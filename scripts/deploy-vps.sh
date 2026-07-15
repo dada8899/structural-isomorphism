@@ -15,14 +15,11 @@
 
 set -euo pipefail
 
-[[ "$EUID" -eq 0 ]] || {
-  echo "[deploy] ERROR: deployment must run as root before any files are changed" >&2
-  exit 1
-}
-
-if [[ "${STRUCTURAL_DEPLOY_LOCK_HELD:-0}" != "1" ]]; then
-  exec 9>/var/lock/structural-isomorphism-deploy.lock
-  flock -w 900 9
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  [[ "$EUID" -eq 0 ]] || {
+    echo "[deploy] ERROR: deployment must run as root before any files are changed" >&2
+    exit 1
+  }
 fi
 
 # CI=true tells pnpm (and most other JS tooling) to skip interactive prompts.
@@ -50,6 +47,7 @@ RUNTIME_FINGERPRINT_PREEXISTED=0
 RUNTIME_FINGERPRINT_TMP=""
 BETA_ENV_FILE="${STRUCTURAL_BETA_ENV_FILE:-$TARGET/web/backend/.env}"
 BETA_AUTH_ENV_FILE="${STRUCTURAL_BETA_AUTH_ENV_FILE:-/root/.config/structural-isomorphism/beta-auth.env}"
+BETA_AUTH_DATA_DIR=""
 SYSTEMD_UNIT_SOURCE="${STRUCTURAL_SYSTEMD_UNIT_SOURCE:-$SOURCE/web/scripts/structural-web.service}"
 SYSTEMD_UNIT_TARGET="${STRUCTURAL_SYSTEMD_UNIT_TARGET:-/etc/systemd/system/${SERVICE}.service}"
 SYSTEMD_DROPIN_TARGET="${STRUCTURAL_LEGACY_SYSTEMD_AUTH_DROPIN:-/etc/systemd/system/${SERVICE}.service.d/auth.conf}"
@@ -96,11 +94,33 @@ env_exact_once() {
   env_key_once "$file" "$key" && grep -qx "${key}=${expected}" "$file"
 }
 
+private_env_file_mode() {
+  if stat -Lc '%a' "$1" >/dev/null 2>&1; then
+    stat -Lc '%a' "$1"
+  else
+    stat -L -f '%Lp' "$1"
+  fi
+}
+
+validate_privacy_hmac_key() {
+  local value="$1"
+  # Canonical ASCII is intentionally stricter than generic entropy: systemd
+  # EnvironmentFile parsing must yield the exact bytes validated here.
+  printf '%s' "$value" | "$RUNTIME_PYTHON" -I -c '
+import re
+import sys
+
+raw = sys.stdin.buffer.read()
+valid = re.fullmatch(rb"[0-9a-f]{64}", raw) is not None and len(set(raw)) >= 12
+raise SystemExit(0 if valid else 1)
+'
+}
+
 validate_beta_sso_config() {
   [[ -f "$BETA_ENV_FILE" ]] || {
     echo "[deploy] ERROR: private beta environment is missing" >&2; return 1;
   }
-  [[ "$(stat -c '%a' "$BETA_ENV_FILE")" == "600" ]] || {
+  [[ "$(private_env_file_mode "$BETA_ENV_FILE")" == "600" ]] || {
     echo "[deploy] ERROR: private beta environment must have mode 600" >&2; return 1;
   }
   for setting in \
@@ -130,11 +150,12 @@ validate_beta_auth_config() {
   [[ -f "$BETA_AUTH_ENV_FILE" ]] || {
     echo "[deploy] ERROR: private beta auth environment is missing" >&2; return 1;
   }
-  [[ "$(stat -Lc '%a' "$BETA_AUTH_ENV_FILE")" == "600" ]] || {
+  [[ "$(private_env_file_mode "$BETA_AUTH_ENV_FILE")" == "600" ]] || {
     echo "[deploy] ERROR: private beta auth environment must have mode 600" >&2; return 1;
   }
   local key
-  for key in AUTH_ENABLED AUTH_SITE_ROLE JWT_SECRET AUTH_LINK_BASE_URL AUTH_DATA_DIR SMTP_HOST SMTP_PORT \
+  for key in AUTH_ENABLED AUTH_SITE_ROLE JWT_SECRET STRUCTURAL_PRIVACY_HMAC_KEY \
+    AUTH_LINK_BASE_URL AUTH_DATA_DIR SMTP_HOST SMTP_PORT \
     SMTP_FROM_EMAIL SMTP_USERNAME SMTP_PASSWORD ADMIN_NOTIFICATION_EMAIL AUTH_TRUSTED_PROXY_IPS; do
     env_key_once "$BETA_AUTH_ENV_FILE" "$key" || {
       echo "[deploy] ERROR: beta auth environment has a missing or duplicate key" >&2; return 1;
@@ -149,8 +170,9 @@ validate_beta_auth_config() {
   env_exact_once "$BETA_AUTH_ENV_FILE" AUTH_LINK_BASE_URL https://beta.structural.bytedance.city || {
     echo "[deploy] ERROR: AUTH_LINK_BASE_URL must use canonical beta HTTPS" >&2; return 1;
   }
-  local jwt_secret auth_data_dir smtp_port from_email admin_email
+  local jwt_secret privacy_hmac_key auth_data_dir smtp_port from_email admin_email
   jwt_secret="$(sed -n 's/^JWT_SECRET=//p' "$BETA_AUTH_ENV_FILE" | tail -1)"
+  privacy_hmac_key="$(sed -n 's/^STRUCTURAL_PRIVACY_HMAC_KEY=//p' "$BETA_AUTH_ENV_FILE" | tail -1)"
   auth_data_dir="$(sed -n 's/^AUTH_DATA_DIR=//p' "$BETA_AUTH_ENV_FILE" | tail -1)"
   smtp_port="$(sed -n 's/^SMTP_PORT=//p' "$BETA_AUTH_ENV_FILE" | tail -1)"
   from_email="$(sed -n 's/^SMTP_FROM_EMAIL=//p' "$BETA_AUTH_ENV_FILE" | tail -1)"
@@ -159,6 +181,9 @@ validate_beta_auth_config() {
     && [[ ! "$jwt_secret" =~ (replace|change-me|changeme|example|test-secret|dev-) ]] \
     && [[ "$(printf '%s' "$jwt_secret" | fold -w1 | sort -u | wc -l)" -ge 12 ]] || {
     echo "[deploy] ERROR: beta JWT secret is unsafe" >&2; return 1;
+  }
+  validate_privacy_hmac_key "$privacy_hmac_key" || {
+    echo "[deploy] ERROR: STRUCTURAL_PRIVACY_HMAC_KEY is unsafe" >&2; return 1;
   }
   [[ "$auth_data_dir" = /* ]] \
     && [[ "$(realpath -m "$auth_data_dir")" != "$(realpath -m "$TARGET")"* ]] || {
@@ -170,8 +195,15 @@ validate_beta_auth_config() {
   [[ "$from_email" == *@* && "$admin_email" == *@* ]] || {
     echo "[deploy] ERROR: beta email identities are invalid" >&2; return 1;
   }
-  mkdir -p "$auth_data_dir"
-  [[ -w "$auth_data_dir" ]] || {
+  BETA_AUTH_DATA_DIR="$auth_data_dir"
+}
+
+prepare_beta_auth_data_dir() {
+  [[ -n "$BETA_AUTH_DATA_DIR" ]] || {
+    echo "[deploy] ERROR: beta AUTH_DATA_DIR was not validated" >&2; return 1;
+  }
+  mkdir -p "$BETA_AUTH_DATA_DIR"
+  [[ -w "$BETA_AUTH_DATA_DIR" ]] || {
     echo "[deploy] ERROR: beta AUTH_DATA_DIR is not writable" >&2; return 1;
   }
 }
@@ -254,6 +286,12 @@ abort_deploy() {
   return 1
 }
 
+# The validation boundary is sourceable so fault-injection tests can execute
+# the production function without requiring root or reaching deployment I/O.
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  return 0
+fi
+
 deploy_guard_install rollback_deploy deploy_cleanup_once
 
 for arg in "$@"; do
@@ -282,6 +320,11 @@ done
 
 validate_beta_sso_config
 validate_beta_auth_config
+if [[ "${STRUCTURAL_DEPLOY_LOCK_HELD:-0}" != "1" ]]; then
+  exec 9>/var/lock/structural-isomorphism-deploy.lock
+  flock -w 2700 9
+fi
+prepare_beta_auth_data_dir
 SOURCE_HEAD_SHA="$(deploy_validate_source_checkout "$SOURCE" "$DEPLOY_COMMIT")" || exit 1
 
 EXCLUDES=("${DEPLOY_STATIC_RSYNC_EXCLUDES[@]}")

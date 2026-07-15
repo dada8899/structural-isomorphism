@@ -21,7 +21,7 @@ LOCK_FILE="${STRUCTURAL_BETA_DEPLOY_LOCK:-/var/lock/structural-isomorphism-deplo
 }
 
 exec 9>"$LOCK_FILE"
-flock -w 900 9
+flock -w 2700 9
 
 git -C "$REPO" fetch --prune origin \
   '+refs/heads/main:refs/remotes/origin/main'

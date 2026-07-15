@@ -24,8 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
       - name: Resolve the last successful beta release identity
+        id: release
         env:
           GH_TOKEN: ${{ github.token }}
           MANUAL_SHA: ${{ inputs.expected_git_sha }}
@@ -52,8 +52,17 @@ jobs:
           esac
           [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
           echo "EXPECTED_BETA_SHA=$EXPECTED_SHA" >> "$GITHUB_ENV"
+          echo "sha=$EXPECTED_SHA" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.release.outputs.sha }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Verify monitor source identity
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_BETA_SHA"
       - name: Run fail-closed production synthetic monitor
         run: |
-          python3 scripts/production_smoke.py \
+          python scripts/production_smoke.py \
             --timeout 15 \
             --expected-git-sha "$EXPECTED_BETA_SHA"

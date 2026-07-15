@@ -27,23 +27,65 @@ on:
       - 'scripts/deploy-versioned-runtime.sh'
       - 'scripts/deploy-retired-module.sh'
       - 'scripts/deploy-beta-backend.sh'
+      - 'scripts/deploy-dispatcher.sh'
+      - 'scripts/install-deploy-dispatcher.sh'
       - 'scripts/install-nginx-privacy-vhost.sh'
       - 'web/scripts/beta-structural.nginx.conf'
       - '.github/workflows/deploy-beta-backend.yml'
   workflow_dispatch: {}
 
-# Serialize deploys so two pushes do not race on the VPS rsync + restart.
+# Keep one pending beta release while the host flock serializes cross-product deploys.
 concurrency:
   group: deploy-beta-backend
   cancel-in-progress: false
+  queue: single
 
 jobs:
-  deploy:
+  release-contracts:
+    name: Python 3.11 exact-SHA release contracts
     runs-on: ubuntu-latest
-    # A cold immutable runtime includes torch + sentence-transformers. Warm
-    # deploys reuse the attested release, while the first build needs room to
-    # complete without leaving a half-installed mutable venv.
-    timeout-minutes: 35
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Verify checkout identity
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Install exact-SHA contract dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r web/backend/requirements.txt
+          python -m pip install pytest
+      - name: Verify runtime, privacy, version, and production-smoke contracts
+        env:
+          PYTHONPATH: ${{ github.workspace }}/web/backend
+        run: |
+          python -I scripts/check_python_syntax.py
+          python -m pytest -q \
+            tests/test_deploy_versioned_runtime.py \
+            tests/test_nginx_privacy_contract.py \
+            tests/test_production_smoke.py
+          python -m pytest -q \
+            web/backend/tests/test_version.py \
+            web/backend/tests/test_privacy_identifiers.py \
+            web/backend/tests/test_auth.py \
+            web/backend/tests/test_account_data.py \
+            web/backend/tests/test_waitlist.py \
+            web/backend/tests/test_error_log.py \
+            web/backend/tests/test_privacy.py
+
+  deploy:
+    needs: release-contracts
+    runs-on: ubuntu-latest
+    # Covers the 45-minute host-lock wait plus a cold immutable runtime build.
+    # Warm deploys reuse the attested release.
+    timeout-minutes: 90
     steps:
       - name: Checkout (context only)
         uses: actions/checkout@v4

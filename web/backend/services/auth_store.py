@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import sqlite3
 import threading
 import time
@@ -10,8 +11,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator, Optional
 
+try:
+    from .privacy_identifiers import opaque_identifier
+except ImportError:
+    from privacy_identifiers import opaque_identifier
+
 
 _INITIALIZATION_LOCK = threading.RLock()
+_RATE_BUCKET_KEY_RE = re.compile(
+    r"^(?:global:magic-link-email|[a-z][a-z0-9_.-]{1,63}:v2:[0-9a-f]{64})$"
+)
+
+
+def _require_private_rate_bucket(key: str) -> None:
+    if not _RATE_BUCKET_KEY_RE.fullmatch(key):
+        raise ValueError("rate-limit writes require a v2 HMAC or global bucket")
 
 _BASE_SCHEMA_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS auth_users (
@@ -192,6 +206,7 @@ class AuthStore:
             conn.close()
 
     def record_rate_request(self, email: str, limit: int, window_seconds: int = 3600) -> bool:
+        _require_private_rate_bucket(email)
         now = int(time.time())
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -216,6 +231,8 @@ class AuthStore:
         the per-address and global mail circuit breakers race-safe across
         multiple workers sharing the SQLite store.
         """
+        for key, _limit in buckets:
+            _require_private_rate_bucket(key)
         now = int(time.time())
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -235,6 +252,44 @@ class AuthStore:
             conn.executemany(
                 "INSERT INTO auth_rate_requests VALUES (?, ?)",
                 [(key, now) for key, _limit in buckets],
+            )
+            conn.commit()
+            return True
+
+    def record_rate_requests_with_legacy(
+        self,
+        buckets: list[tuple[str, tuple[str, ...], int]],
+        window_seconds: int = 3600,
+    ) -> bool:
+        """Admit v2 buckets after atomically upgrading bounded legacy keys."""
+        for key, _legacy_keys, _limit in buckets:
+            _require_private_rate_bucket(key)
+        now = int(time.time())
+        with self._connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                "DELETE FROM auth_rate_requests WHERE requested_at < ?",
+                (now - window_seconds,),
+            )
+            for key, legacy_keys, _limit in buckets:
+                for legacy_key in legacy_keys:
+                    if legacy_key != key:
+                        conn.execute(
+                            "UPDATE auth_rate_requests SET email=? WHERE email=?",
+                            (key, legacy_key),
+                        )
+            for key, _legacy_keys, limit in buckets:
+                count = conn.execute(
+                    "SELECT COUNT(*) FROM auth_rate_requests "
+                    "WHERE email=? AND requested_at>=?",
+                    (key, now - window_seconds),
+                ).fetchone()[0]
+                if count >= limit:
+                    conn.rollback()
+                    return False
+            conn.executemany(
+                "INSERT INTO auth_rate_requests VALUES (?, ?)",
+                [(key, now) for key, _legacy_keys, _limit in buckets],
             )
             conn.commit()
             return True
@@ -289,11 +344,8 @@ class AuthStore:
         """Create/login atomically unless the credential predates deletion."""
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            epoch = conn.execute(
-                "SELECT deleted_at FROM account_deletion_epochs WHERE owner_hash=?",
-                (_email_hash(email),),
-            ).fetchone()
-            if epoch and token_created_at <= epoch["deleted_at"]:
+            deleted_at = _deletion_epoch_for_email(conn, email)
+            if deleted_at and token_created_at <= deleted_at:
                 conn.rollback()
                 raise DeletedCredentialError("credential predates account deletion")
             created = conn.execute(
@@ -318,11 +370,10 @@ class AuthStore:
     def account_deletion_epoch(self, email: str) -> Optional[str]:
         """Return the retained owner-hash epoch without exposing raw identity."""
         with self._connection() as conn:
-            row = conn.execute(
-                "SELECT deleted_at FROM account_deletion_epochs WHERE owner_hash=?",
-                (_email_hash(email),),
-            ).fetchone()
-            return str(row["deleted_at"]) if row else None
+            conn.execute("BEGIN IMMEDIATE")
+            deleted_at = _deletion_epoch_for_email(conn, email)
+            conn.commit()
+            return deleted_at
 
     def export_account_data(self, email: str) -> dict:
         """Return every auth-store row linked to ``email``, excluding hashes."""
@@ -342,17 +393,16 @@ class AuthStore:
                 "SELECT revoked_at FROM revoked_sessions WHERE email=? ORDER BY revoked_at",
                 (email,),
             ).fetchall()
-            deletion_epoch = conn.execute(
-                "SELECT deleted_at FROM account_deletion_epochs WHERE owner_hash=?",
-                (_email_hash(email),),
-            ).fetchone()
+            conn.execute("BEGIN IMMEDIATE")
+            deletion_epoch = _deletion_epoch_for_email(conn, email)
+            conn.commit()
             return {
                 "account": dict(user) if user else None,
                 "magic_link_events": [dict(row) for row in tokens],
                 "registration_notifications": [dict(row) for row in notifications],
                 "revoked_session_events": [dict(row) for row in revocations],
                 "prior_deletion_security_event": (
-                    {"deleted_at": deletion_epoch["deleted_at"], "retention": "security"}
+                    {"deleted_at": deletion_epoch, "retention": "security"}
                     if deletion_epoch else None
                 ),
             }
@@ -441,4 +491,36 @@ class AuthStore:
 
 
 def _email_hash(email: str) -> str:
+    return opaque_identifier("account-deletion.email", email, kind="email")
+
+
+def _legacy_email_hash(email: str) -> str:
     return hashlib.sha256(email.strip().lower().encode("utf-8")).hexdigest()
+
+
+def _deletion_epoch_for_email(
+    conn: sqlite3.Connection,
+    email: str,
+) -> Optional[str]:
+    """Read v2/legacy epochs and opportunistically collapse them into v2."""
+    current = _email_hash(email)
+    legacy = _legacy_email_hash(email)
+    rows = conn.execute(
+        "SELECT owner_hash,deleted_at FROM account_deletion_epochs "
+        "WHERE owner_hash IN (?,?)",
+        (current, legacy),
+    ).fetchall()
+    if not rows:
+        return None
+    deleted_at = max(str(row["deleted_at"]) for row in rows)
+    conn.execute(
+        "INSERT INTO account_deletion_epochs(owner_hash,deleted_at) VALUES(?,?) "
+        "ON CONFLICT(owner_hash) DO UPDATE SET deleted_at=excluded.deleted_at",
+        (current, deleted_at),
+    )
+    if legacy != current:
+        conn.execute(
+            "DELETE FROM account_deletion_epochs WHERE owner_hash=?",
+            (legacy,),
+        )
+    return deleted_at

@@ -201,7 +201,8 @@ def test_tier_limit_anonymous_format(monkeypatch):
     monkeypatch.delenv("STRUCTURAL_API_TOKENS", raising=False)
     req = _FakeRequest(client_host="1.2.3.4")
     out = tier_limit(req)
-    assert out == "anonymous:1.2.3.4"
+    assert out.startswith("anonymous:legacy-api-rate.ip:v2:")
+    assert "1.2.3.4" not in out
 
 
 def test_tier_limit_paid_format(monkeypatch):
@@ -209,7 +210,9 @@ def test_tier_limit_paid_format(monkeypatch):
     req = _FakeRequest(
         headers={"Authorization": "Bearer tok_p"}, client_host="5.6.7.8"
     )
-    assert tier_limit(req) == "paid:5.6.7.8"
+    out = tier_limit(req)
+    assert out.startswith("paid:legacy-api-rate.ip:v2:")
+    assert "5.6.7.8" not in out
 
 
 def test_tier_limit_invalid_token_falls_back_to_anonymous(monkeypatch):
@@ -217,13 +220,15 @@ def test_tier_limit_invalid_token_falls_back_to_anonymous(monkeypatch):
     req = _FakeRequest(
         headers={"Authorization": "Bearer fake_tok"}, client_host="9.9.9.9"
     )
-    assert tier_limit(req) == "anonymous:9.9.9.9"
+    out = tier_limit(req)
+    assert out.startswith("anonymous:legacy-api-rate.ip:v2:")
+    assert "9.9.9.9" not in out
 
 
 def test_tier_limit_no_client_uses_unknown_ip(monkeypatch):
     monkeypatch.delenv("STRUCTURAL_API_TOKENS", raising=False)
     req = _FakeRequest()  # no client
-    assert tier_limit(req) == "anonymous:unknown"
+    assert tier_limit(req).startswith("anonymous:legacy-api-rate.ip:v2:")
 
 
 # --- rate_limit module ---

@@ -38,6 +38,60 @@ file_mode() {
   fi
 }
 
+fsync_file_and_parent() {
+  local path="$1" label="${2:-file}"
+  if [[ -n "$TEST_ROOT" && "${STRUCTURAL_NGINX_TEST_FSYNC_FAIL_AT:-}" == "$label" ]]; then
+    return 1
+  fi
+  /usr/bin/python3 -I - "$path" <<'PY'
+import os
+import stat
+import sys
+
+path = os.path.abspath(sys.argv[1])
+file_flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+file_fd = os.open(path, file_flags)
+try:
+    if not stat.S_ISREG(os.fstat(file_fd).st_mode):
+        raise OSError("fsync target is not a regular file")
+    os.fsync(file_fd)
+finally:
+    os.close(file_fd)
+
+parent = os.path.dirname(path)
+dir_flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+dir_fd = os.open(parent, dir_flags)
+try:
+    if not stat.S_ISDIR(os.fstat(dir_fd).st_mode):
+        raise OSError("fsync parent is not a directory")
+    os.fsync(dir_fd)
+finally:
+    os.close(dir_fd)
+PY
+}
+
+fsync_parent() {
+  local path="$1" label="${2:-parent}"
+  if [[ -n "$TEST_ROOT" && "${STRUCTURAL_NGINX_TEST_FSYNC_FAIL_AT:-}" == "$label" ]]; then
+    return 1
+  fi
+  /usr/bin/python3 -I - "$path" <<'PY'
+import os
+import stat
+import sys
+
+parent = os.path.dirname(os.path.abspath(sys.argv[1]))
+flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+directory_fd = os.open(parent, flags)
+try:
+    if not stat.S_ISDIR(os.fstat(directory_fd).st_mode):
+        raise OSError("fsync parent is not a directory")
+    os.fsync(directory_fd)
+finally:
+    os.close(directory_fd)
+PY
+}
+
 [[ -n "$SOURCE" && -n "$TARGET" && -n "$DOMAIN" && -n "$FORMAT" ]] \
   || die "source, target, domain, and format are required"
 [[ "$SOURCE" == /* && "$TARGET" == /* ]] \
@@ -239,93 +293,244 @@ BACKUP="$STATE_DIR/$FORMAT.backup"
 EFFECTIVE_FILE=""
 ACTIVE=0
 
-server_metrics() {
-  awk -v domain="$DOMAIN" -v format="$FORMAT" '
-    function trim(value) {
-      sub(/^[ \t]+/, "", value)
-      sub(/[ \t]+$/, "", value)
-      return value
+nginx_config_metrics() {
+  /usr/bin/python3 - "$1" "$DOMAIN" "$FORMAT" <<'PY'
+from __future__ import annotations
+
+import re
+import sys
+
+
+def tokenize(config: str) -> list[str]:
+    """Tokenize Nginx syntax without treating comments/quotes as structure."""
+    tokens: list[str] = []
+    word: list[str] = []
+    word_started = False
+    quote: str | None = None
+    escaped = False
+    comment = False
+    index = 0
+
+    def flush() -> None:
+        nonlocal word_started
+        if word_started:
+            tokens.append("".join(word))
+            word.clear()
+            word_started = False
+
+    while index < len(config):
+        char = config[index]
+        if comment:
+            if char in "\r\n":
+                comment = False
+            index += 1
+            continue
+        if escaped:
+            # A backslash-newline is a continuation, not a token boundary.
+            if char not in "\r\n":
+                word.append(char)
+            word_started = True
+            escaped = False
+            index += 1
+            continue
+        if quote is not None:
+            if char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            else:
+                word.append(char)
+                word_started = True
+            index += 1
+            continue
+        if char == "#":
+            flush()
+            comment = True
+            index += 1
+            continue
+        if char in "\"'":
+            quote = char
+            word_started = True
+            index += 1
+            continue
+        if char == "\\":
+            escaped = True
+            word_started = True
+            index += 1
+            continue
+        if char.isspace():
+            flush()
+            index += 1
+            continue
+        if char == "$" and index + 1 < len(config) and config[index + 1] == "{":
+            end = config.find("}", index + 2)
+            if end != -1 and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", config[index + 2 : end]):
+                word.append(config[index : end + 1])
+                word_started = True
+                index = end + 1
+                continue
+        if char in "{};":
+            flush()
+            tokens.append(char)
+            index += 1
+            continue
+        word.append(char)
+        word_started = True
+        index += 1
+
+    if quote is not None or escaped:
+        raise ValueError("unterminated quote or escape")
+    flush()
+    return tokens
+
+
+class ServerMetrics:
+    def __init__(self, start_depth: int) -> None:
+        self.start_depth = start_depth
+        self.owns_domain = False
+        self.access = 0
+        self.access_total = 0
+        self.header = 0
+        self.hidden = 0
+        self.errors = 0
+        self.error_total = 0
+        self.includes = 0
+        self.ssl_includes = 0
+        self.proxies = 0
+        self.request_ids = 0
+
+    def consume(self, directive: list[str], domain: str, format_name: str) -> None:
+        name = directive[0]
+        if directive == ["server_name", domain]:
+            self.owns_domain = True
+        if name == "access_log":
+            self.access_total += 1
+        if directive == ["access_log", "/var/log/nginx/access.log", format_name]:
+            self.access += 1
+        if directive == ["add_header", "Referrer-Policy", "no-referrer", "always"]:
+            self.header += 1
+        if directive == ["proxy_hide_header", "Referrer-Policy"]:
+            self.hidden += 1
+        if name == "error_log":
+            self.error_total += 1
+        if directive == ["error_log", "/dev/null", "crit"]:
+            self.errors += 1
+        if name == "include":
+            self.includes += 1
+        if directive == ["include", "/etc/letsencrypt/options-ssl-nginx.conf"]:
+            self.ssl_includes += 1
+        if name == "proxy_pass":
+            self.proxies += 1
+        if directive == ["proxy_set_header", "X-Request-ID", "$request_id"]:
+            self.request_ids += 1
+
+    def violates_contract(self) -> bool:
+        return (
+            self.access != 1
+            or self.access_total != 1
+            or self.header != 1
+            or self.hidden != 1
+            or self.errors != 1
+            or self.error_total != 1
+            or self.includes != self.ssl_includes
+            or self.ssl_includes > 1
+            or self.proxies != self.request_ids
+        )
+
+
+def analyze(tokens: list[str], domain: str, format_name: str) -> tuple[int, ...]:
+    statement: list[str] = []
+    depth = 0
+    current: ServerMetrics | None = None
+    total = owned = bad = 0
+    format_count = all_format_count = 0
+    format_variables: set[str] = set()
+    variable_pattern = re.compile(
+        r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))"
+    )
+
+    def consume_statement() -> None:
+        nonlocal format_count, all_format_count
+        if not statement:
+            raise ValueError("empty directive")
+        if statement[0] == "log_format":
+            all_format_count += 1
+            if len(statement) >= 2 and statement[1] == format_name:
+                format_count += 1
+                for value in statement[2:]:
+                    for match in variable_pattern.finditer(value):
+                        format_variables.add("$" + (match.group(1) or match.group(2)))
+        if current is not None:
+            current.consume(statement, domain, format_name)
+
+    for token in tokens:
+        if token == ";":
+            consume_statement()
+            statement.clear()
+            continue
+        if token == "{":
+            if statement == ["server"]:
+                if current is not None:
+                    raise ValueError("nested server block")
+                total += 1
+                current = ServerMetrics(depth + 1)
+            elif not statement:
+                raise ValueError("anonymous block")
+            statement.clear()
+            depth += 1
+            continue
+        if token == "}":
+            if statement or depth <= 0:
+                raise ValueError("unbalanced block")
+            if current is not None and current.start_depth == depth:
+                if current.owns_domain:
+                    owned += 1
+                    if current.violates_contract():
+                        bad += 1
+                current = None
+            depth -= 1
+            continue
+        statement.append(token)
+
+    if statement or depth != 0 or current is not None:
+        raise ValueError("unterminated directive or block")
+    expected = {
+        "$body_bytes_sent",
+        "$request_id",
+        "$request_method",
+        "$request_time",
+        "$status",
+        "$upstream_response_time",
     }
-    function brace_delta(value, opened, closed, copy) {
-      copy = value
-      opened = gsub(/\{/, "{", copy)
-      copy = value
-      closed = gsub(/\}/, "}", copy)
-      return opened - closed
-    }
-    function inspect(    rows, n, i, line, owns, access, header, hidden,
-                        errors, proxies, request_ids) {
-      total += 1
-      n = split(block, rows, "\n")
-      owns = access = header = hidden = errors = proxies = request_ids = 0
-      for (i = 1; i <= n; i += 1) {
-        line = trim(rows[i])
-        if (line == "server_name " domain ";") owns = 1
-      }
-      if (!owns) return
-      owned += 1
-      for (i = 1; i <= n; i += 1) {
-        line = trim(rows[i])
-        if (line == "access_log /var/log/nginx/access.log " format ";") access += 1
-        if (line == "add_header Referrer-Policy \"no-referrer\" always;") header += 1
-        if (line == "proxy_hide_header Referrer-Policy;") hidden += 1
-        if (line == "error_log /dev/null crit;") errors += 1
-        if (line ~ /^proxy_pass[ \t]/) proxies += 1
-        if (line == "proxy_set_header X-Request-ID $request_id;") request_ids += 1
-      }
-      if (access != 1 || header != 1 || hidden != 1 || errors != 1 \
-          || proxies != request_ids) bad += 1
-    }
-    /^[ \t]*server[ \t]*\{/ && !inside {
-      inside = 1
-      depth = brace_delta($0)
-      block = $0 "\n"
-      if (depth == 0) { inspect(); inside = 0; block = "" }
-      next
-    }
-    inside {
-      block = block $0 "\n"
-      depth += brace_delta($0)
-      if (depth == 0) { inspect(); inside = 0; block = "" }
-    }
-    END {
-      if (inside) bad += 1
-      printf "%d|%d|%d\n", total, owned, bad
-    }
-  ' "$1"
+    variables_ok = int(format_variables == expected)
+    return total, owned, bad, format_count, all_format_count, variables_ok
+
+
+try:
+    with open(sys.argv[1], "r", encoding="utf-8") as handle:
+        config_text = handle.read()
+    metrics = analyze(tokenize(config_text), sys.argv[2], sys.argv[3])
+except (OSError, UnicodeError, ValueError):
+    raise SystemExit(1)
+
+print("|".join(str(value) for value in metrics))
+PY
 }
 
 validate_config() {
   local path="$1" scope="$2" expected_owned="${3:-}"
-  local format_count format_body variables expected metrics total owned bad
-  format_count="$(grep -Ec "^[[:space:]]*log_format[[:space:]]+$FORMAT([[:space:]]|$)" "$path" || true)"
+  local metrics total owned bad format_count all_format_count variables_ok extra value
+  metrics="$(nginx_config_metrics "$path")" || return 1
+  IFS='|' read -r total owned bad format_count all_format_count variables_ok extra <<<"$metrics"
+  [[ -z "$extra" ]] || return 1
+  for value in "$total" "$owned" "$bad" "$format_count" "$all_format_count" "$variables_ok"; do
+    [[ "$value" =~ ^[0-9]+$ ]] || return 1
+  done
   [[ "$format_count" == "1" ]] || return 1
-  format_body="$(
-    awk -v name="$FORMAT" '
-      $1 == "log_format" && $2 == name { capture = 1 }
-      capture { print }
-      capture && /;/ { exit }
-    ' "$path"
-  )"
-  [[ -n "$format_body" && "$format_body" == *';'* ]] || return 1
-  variables="$(
-    printf '%s\n' "$format_body" \
-      | grep -oE '\$[A-Za-z_][A-Za-z0-9_]*' \
-      | sort -u || true
-  )"
-  expected='$body_bytes_sent
-$request_id
-$request_method
-$request_time
-$status
-$upstream_response_time'
-  [[ "$variables" == "$expected" ]] || return 1
-
-  metrics="$(server_metrics "$path")" || return 1
-  total="${metrics%%|*}"
-  metrics="${metrics#*|}"
-  owned="${metrics%%|*}"
-  bad="${metrics##*|}"
+  if [[ "$scope" == "source" ]]; then
+    [[ "$all_format_count" == "1" ]] || return 1
+  fi
+  [[ "$variables_ok" == "1" ]] || return 1
   [[ "$owned" -gt 0 && "$bad" -eq 0 ]] || return 1
   if [[ "$scope" == "source" ]]; then
     [[ "$total" -eq "$owned" ]] || return 1
@@ -385,8 +590,10 @@ write_journal() {
     "source_sha256=$source_sha256" \
     "backup=$BACKUP" >"$temp"
   chmod 600 "$temp"
+  fsync_file_and_parent "$temp" inner_journal_temp || return 1
   assert_path_anchors || return 1
   mv "$temp" "$JOURNAL"
+  fsync_file_and_parent "$JOURNAL" inner_journal_commit || return 1
   [[ -f "$JOURNAL" && ! -L "$JOURNAL" ]] || return 1
 }
 
@@ -414,8 +621,10 @@ clear_transaction_state() {
   # inert orphan and is deleted on the next invocation.
   assert_path_anchors || return 1
   rm -f "$JOURNAL" || return 1
+  fsync_parent "$JOURNAL" inner_journal_remove || return 1
   assert_path_anchors || return 1
   rm -f "$BACKUP" || return 1
+  fsync_parent "$BACKUP" inner_backup_remove || return 1
 }
 
 recover_transaction() {
@@ -424,6 +633,7 @@ recover_transaction() {
     if [[ -e "$BACKUP" || -L "$BACKUP" ]]; then
       [[ -f "$BACKUP" && ! -L "$BACKUP" ]] || return 1
       rm -f "$BACKUP" || return 1
+      fsync_parent "$BACKUP" inner_orphan_backup_remove || return 1
     fi
     return 0
   fi
@@ -433,11 +643,13 @@ recover_transaction() {
        && "$(file_mode "$BACKUP")" == "600" ]] || return 1
     assert_path_anchors || return 1
     install -m "$JOURNAL_MODE" "$BACKUP" "$TARGET" || return 1
+    fsync_file_and_parent "$TARGET" inner_target_restore || return 1
     assert_path_anchors || return 1
     [[ -f "$TARGET" && ! -L "$TARGET" ]] || return 1
   else
     assert_path_anchors || return 1
     rm -f "$TARGET" || return 1
+    fsync_parent "$TARGET" inner_target_remove || return 1
   fi
   nginx -t >/dev/null 2>&1 || return 1
   systemctl reload nginx >/dev/null 2>&1 || return 1
@@ -514,8 +726,12 @@ if [[ -f "$TARGET" ]]; then
   cmp -s "$TARGET" "$BACKUP_TEMP" \
     || die "rollback snapshot does not match the target"
   chmod 600 "$BACKUP_TEMP"
+  fsync_file_and_parent "$BACKUP_TEMP" inner_backup_temp \
+    || die "rollback snapshot could not be persisted"
   assert_path_anchors || die "transaction paths changed before backup commit"
   mv "$BACKUP_TEMP" "$BACKUP"
+  fsync_file_and_parent "$BACKUP" inner_backup_commit \
+    || die "rollback snapshot commit could not be persisted"
   BACKUP_TEMP=""
 fi
 write_journal "$HAD_TARGET" "$TARGET_MODE" "$SOURCE_SHA256"
@@ -530,6 +746,7 @@ trap 'cleanup_ephemeral; release_transaction_lock' EXIT
 run_test_hook before_target_install
 assert_path_anchors
 install -m 0644 "$SOURCE_SNAPSHOT" "$TARGET"
+fsync_file_and_parent "$TARGET" inner_target_install
 assert_path_anchors
 [[ -f "$TARGET" && ! -L "$TARGET" ]]
 cmp -s "$SOURCE_SNAPSHOT" "$TARGET"
@@ -553,13 +770,10 @@ if [[ "$ACTION" == "prepare" ]]; then
   exit 0
 fi
 
-# Commit by removing the journal first. A crash after this point may leave an
-# inert backup, which the next invocation safely removes without rollback.
-assert_path_anchors
-rm -f "$JOURNAL"
+# Commit by durably removing the journal first. A crash after this point may
+# leave an inert backup, which the next invocation safely removes.
+clear_transaction_state
 ACTIVE=0
-assert_path_anchors
-rm -f "$BACKUP"
 cleanup_ephemeral
 trap - ERR INT TERM HUP EXIT
 release_transaction_lock

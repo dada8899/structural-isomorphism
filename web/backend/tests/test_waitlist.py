@@ -130,6 +130,19 @@ def test_rate_limit_after_5_signups(client):
     assert r6.status_code == 429
     assert r6.json()["error"] == "rate_limited"
     assert "testclient" not in wl._rate_buckets
+    assert all(key.startswith("waitlist-rate.ip:v2:") for key in wl._rate_buckets)
+
+
+def test_legacy_rate_window_is_upgraded_without_reset(client):
+    legacy = wl._legacy_rate_bucket_key("testclient")
+    wl._rate_buckets[legacy] = wl.deque([float("inf")] * wl._RATE_MAX)
+    response = client.post(
+        "/api/waitlist",
+        json={"email": "legacy-window@example.com", "source": "test"},
+    )
+    assert response.status_code == 429
+    assert legacy not in wl._rate_buckets
+    assert wl._rate_bucket_key("testclient") in wl._rate_buckets
 
 
 def test_signup_does_not_persist_client_metadata(client):

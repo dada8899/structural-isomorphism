@@ -22,6 +22,7 @@ from services.report_store import ReportStore
 
 
 ROOT = Path(__file__).resolve().parents[3]
+_TEST_PRIVACY_HMAC_KEY = ("01234567" + "89abcdef") * 4
 
 
 @pytest.fixture()
@@ -506,7 +507,9 @@ def test_beta_deploy_loads_private_canonical_auth_environment():
     runtime_helper = (ROOT / "scripts/deploy-versioned-runtime.sh").read_text(encoding="utf-8")
     unit = (ROOT / "web/scripts/structural-web.service").read_text(encoding="utf-8")
     assert "/root/.config/structural-isomorphism/beta-auth.env" in deploy
-    assert "stat -Lc '%a' \"$BETA_AUTH_ENV_FILE\"" in deploy
+    assert 'private_env_file_mode "$BETA_AUTH_ENV_FILE"' in deploy
+    assert "stat -Lc '%a' \"$1\"" in deploy
+    assert "stat -L -f '%Lp' \"$1\"" in deploy
     assert "AUTH_LINK_BASE_URL https://beta.structural.bytedance.city" in deploy
     assert "AUTH_SITE_ROLE beta" in deploy
     assert "AUTH_DATA_DIR must be absolute and outside Git" in deploy
@@ -550,6 +553,7 @@ def test_beta_deploy_workflow_gates_enabled_account_runtime():
 
 def test_beta_runtime_rejects_noncanonical_production_link(monkeypatch):
     monkeypatch.setenv("STRUCTURAL_ENV", "prod")
+    monkeypatch.setenv("STRUCTURAL_PRIVACY_HMAC_KEY", _TEST_PRIVACY_HMAC_KEY)
     monkeypatch.setenv("AUTH_ENABLED", "true")
     monkeypatch.setenv("AUTH_SITE_ROLE", "beta")
     monkeypatch.setenv("JWT_SECRET", "A7f9K2m4P8q1R6t3V5x0Y2z8C4d7H9j1L6n3")
@@ -561,6 +565,26 @@ def test_beta_runtime_rejects_noncanonical_production_link(monkeypatch):
     monkeypatch.setenv("AUTH_DATA_DIR", "/tmp/structural-auth-test")
     monkeypatch.setenv("AUTH_TRUSTED_PROXY_IPS", "127.0.0.1/32")
     with pytest.raises(RuntimeError, match="beta.*canonical HTTPS origin"):
+        auth._validate_production_config()
+
+
+@pytest.mark.parametrize(
+    "privacy_key",
+    [
+        f'"{_TEST_PRIVACY_HMAC_KEY}"',
+        rf"{_TEST_PRIVACY_HMAC_KEY[:60]}\x41",
+        _TEST_PRIVACY_HMAC_KEY.upper(),
+        f'"{_TEST_PRIVACY_HMAC_KEY[:62]}"',
+        f"{_TEST_PRIVACY_HMAC_KEY}\r",
+    ],
+)
+def test_production_startup_rejects_noncanonical_privacy_root(
+    monkeypatch, privacy_key: str,
+) -> None:
+    monkeypatch.setenv("STRUCTURAL_ENV", "prod")
+    monkeypatch.setenv("AUTH_ENABLED", "false")
+    monkeypatch.setenv("STRUCTURAL_PRIVACY_HMAC_KEY", privacy_key)
+    with pytest.raises(RuntimeError, match="unquoted lowercase 64-hex"):
         auth._validate_production_config()
 
 
@@ -586,6 +610,7 @@ def test_phase_deploy_requires_explicit_role_and_proxy_contract():
 
 def _set_valid_prod_auth(monkeypatch, data_dir: Path) -> None:
     monkeypatch.setenv("STRUCTURAL_ENV", "prod")
+    monkeypatch.setenv("STRUCTURAL_PRIVACY_HMAC_KEY", _TEST_PRIVACY_HMAC_KEY)
     monkeypatch.setenv("AUTH_ENABLED", "true")
     monkeypatch.setenv("AUTH_SITE_ROLE", "beta")
     monkeypatch.setenv("JWT_SECRET", "A7f9K2m4P8q1R6t3V5x0Y2z8C4d7H9j1L6n3")

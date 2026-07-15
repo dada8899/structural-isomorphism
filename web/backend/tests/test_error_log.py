@@ -175,10 +175,23 @@ def test_content_free_reports_share_the_server_ip_bucket(client):
     assert r.json()["accepted"] is False
 
 
-def test_rate_bucket_keys_are_process_local_hmacs(client):
+def test_rate_bucket_keys_are_stable_v2_hmacs(client):
     c, _ = client
     c.post("/api/errors", json=_valid_payload())
     assert el._buckets
     serialized = json.dumps(sorted(el._buckets))
     assert "testclient" not in serialized
-    assert all(key.startswith("ip:") and len(key) == 67 for key in el._buckets)
+    assert all(
+        key.startswith("client-errors-rate.ip:v2:") and len(key.rsplit(":", 1)[1]) == 64
+        for key in el._buckets
+    )
+
+
+def test_legacy_error_bucket_is_preserved_during_v2_upgrade(client):
+    c, _ = client
+    legacy = el._legacy_bucket_key("testclient")
+    el._buckets[legacy].extend([el.time.time()] * el.RATE_LIMIT_MAX)
+    response = c.post("/api/errors", json=_valid_payload())
+    assert response.json()["accepted"] is False
+    assert legacy not in el._buckets
+    assert el._bucket_key("testclient") in el._buckets

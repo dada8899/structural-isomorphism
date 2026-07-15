@@ -107,7 +107,7 @@ def test_signup_unknown_source_gets_normalized(client):
         assert row[0] == "phase_detector"
 
 
-def test_signup_with_placement_and_referrer(client):
+def test_signup_rejects_referrer(client):
     r = client.post(
         "/api/waitlist",
         data={
@@ -117,20 +117,41 @@ def test_signup_with_placement_and_referrer(client):
             "referrer": "https://structural.bytedance.city/",
         },
     )
-    assert r.status_code == 200
-    assert r.json()["created"] is True
+    assert r.status_code == 422
+    assert r.json()["detail"] == "referrer is not accepted"
 
     import v4.product.d1_phase_detector.api.db as db_mod
 
     with db_mod.get_cursor() as (cur, driver):
+        cur.execute("SELECT COUNT(*) FROM waitlist WHERE email = ?", ("place@example.com",))
+        assert cur.fetchone()[0] == 0
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"email": "bounded@example.com", "placement": "private-user-value"},
+        {"email": f"{'a' * 310}@example.com", "placement": "inline"},
+    ],
+)
+def test_signup_rejects_unbounded_identity_adjacent_fields(client, data):
+    response = client.post("/api/waitlist", data=data)
+    assert response.status_code == 422
+
+
+def test_startup_scrubs_legacy_referrer_values(client):
+    import v4.product.d1_phase_detector.api.db as db_mod
+    import v4.product.d1_phase_detector.api.main as main_mod
+
+    with db_mod.get_cursor() as (cur, driver):
         cur.execute(
-            "SELECT source, placement, referrer FROM waitlist WHERE email = ?",
-            ("place@example.com",),
+            "INSERT INTO waitlist(email,source,referrer) VALUES(?,?,?)",
+            ("legacy@example.com", "main_site", "https://private.example/path?q=secret"),
         )
-        row = cur.fetchone()
-        assert row[0] == "main_site"
-        assert row[1] == "hero"
-        assert row[2] == "https://structural.bytedance.city/"
+    main_mod._ensure_waitlist_table()
+    with db_mod.get_cursor() as (cur, driver):
+        cur.execute("SELECT referrer FROM waitlist WHERE email = ?", ("legacy@example.com",))
+        assert cur.fetchone()[0] is None
 
 
 # ---------- GET /api/waitlist/count ----------

@@ -51,6 +51,10 @@ if __package__ == "web.backend.api":
     from ..logging_config import get_logger, new_incident_id
 else:
     from logging_config import get_logger, new_incident_id
+try:
+    from services.privacy_identifiers import opaque_identifier
+except ModuleNotFoundError:
+    from web.backend.services.privacy_identifiers import opaque_identifier
 
 router = APIRouter(tags=["errors"])
 logger = get_logger("structural.client_errors")
@@ -96,6 +100,10 @@ def _rotate_if_needed(path: Path) -> None:
 
 
 def _bucket_key(client_ip: str) -> str:
+    return opaque_identifier("client-errors-rate.ip", client_ip, kind="ip")
+
+
+def _legacy_bucket_key(client_ip: str) -> str:
     digest = hmac.new(
         _RATE_KEY,
         b"ip\0" + (client_ip or "unknown").encode("utf-8"),
@@ -104,8 +112,13 @@ def _bucket_key(client_ip: str) -> str:
     return f"ip:{digest}"
 
 
-def _check_rate_limit(key: str, now: float) -> bool:
+def _check_rate_limit(key: str, now: float, legacy_key: str | None = None) -> bool:
     """Return True iff under limit. Side-effect: appends `now` if accepted."""
+    if legacy_key and legacy_key != key and legacy_key in _buckets:
+        legacy = _buckets.pop(legacy_key)
+        current = _buckets[key]
+        current.extend(legacy)
+        _buckets[key] = deque(sorted(current))
     bucket = _buckets[key]
     cutoff = now - RATE_LIMIT_WINDOW_S
     while bucket and bucket[0] < cutoff:
@@ -134,7 +147,7 @@ async def submit_error(body: ErrorReportBody, request: Request):
 
     # --- Rate limit ---
     key = _bucket_key(client_ip)
-    if not _check_rate_limit(key, now):
+    if not _check_rate_limit(key, now, _legacy_bucket_key(client_ip)):
         return JSONResponse(
             {"accepted": False, "reason": "rate_limited"}, status_code=200
         )

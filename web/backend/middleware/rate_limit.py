@@ -39,6 +39,10 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded as SlowAPIRateLimitExceeded
 from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
+try:
+    from services.privacy_identifiers import opaque_identifier
+except ModuleNotFoundError:
+    from web.backend.services.privacy_identifiers import opaque_identifier
 
 logger = logging.getLogger("structural.middleware.rate_limit")
 
@@ -101,7 +105,7 @@ def _composite_key(request: Request) -> str:
     # slowapi without going through middleware first.
     tier = CURRENT_TIER.get()
     ip = get_remote_address(request)
-    return f"{tier}:{ip}"
+    return f"{tier}:{opaque_identifier('tier-rate.ip', ip, kind='ip')}"
 
 
 # ---- public objects ----

@@ -114,7 +114,7 @@ runtime_abort_resolver() {
 runtime_resolve_dependency_graph() {
   local requirements="$1"
   RUNTIME_RESOLVER_DIR="$(mktemp -d "$RUNTIME_ROOT/.resolver.XXXXXX")" || return 1
-  "$RUNTIME_PYTHON" -m venv "$RUNTIME_RESOLVER_DIR" || {
+  "$RUNTIME_PYTHON" -I -m venv "$RUNTIME_RESOLVER_DIR" || {
     runtime_abort_resolver
     return 1
   }
@@ -125,7 +125,7 @@ runtime_resolve_dependency_graph() {
       runtime_abort_resolver
       return 1
     }
-  RUNTIME_FREEZE_SHA256="$("$RUNTIME_RESOLVER_DIR/bin/python" - \
+  RUNTIME_FREEZE_SHA256="$("$RUNTIME_RESOLVER_DIR/bin/python" -I - \
     "$RUNTIME_RESOLVER_DIR/report.json" \
     "$RUNTIME_RESOLVER_DIR/constraints.txt" <<'PY'
 import hashlib
@@ -268,7 +268,7 @@ deploy_source_snapshot_prepare() {
   DEPLOY_RSYNC_EXCLUDES_FILE="$(mktemp "$RUNTIME_ROOT/.deploy-rsync-excludes.XXXXXX")" \
     || { deploy_source_snapshot_cleanup; return 1; }
 
-  "$RUNTIME_PYTHON" - \
+  "$RUNTIME_PYTHON" -I - \
     "$source" "$commit" "$DEPLOY_ARCHIVE_TREE_PROOF" \
     "$DEPLOY_SYMLINK_PROOF_FILE" "$DEPLOY_LFS_PATHS_FILE" \
     "$DEPLOY_PROTECTED_PATHS_FILE" "$DEPLOY_RSYNC_EXCLUDES_FILE" <<'PY' || {
@@ -452,7 +452,7 @@ PY
   GIT_LFS_SKIP_SMUDGE=1 git -C "$source" archive \
     --format=tar --output="$DEPLOY_SOURCE_ARCHIVE" "$commit" \
     || { deploy_source_snapshot_cleanup; return 1; }
-  "$RUNTIME_PYTHON" - \
+  "$RUNTIME_PYTHON" -I - \
     "$DEPLOY_SOURCE_ARCHIVE" "$DEPLOY_SOURCE_SNAPSHOT" \
     "$DEPLOY_ARCHIVE_TREE_PROOF" "$DEPLOY_SYMLINK_PROOF_FILE" \
     "$DEPLOY_PROTECTED_PATHS_FILE" <<'PY' || {
@@ -541,7 +541,7 @@ PY
 }
 
 deploy_validate_target_tree() {
-  "$RUNTIME_PYTHON" - \
+  "$RUNTIME_PYTHON" -I - \
     "$TARGET" "$DEPLOY_ARCHIVE_TREE_PROOF" "$DEPLOY_PROTECTED_PATHS_FILE" \
     "$DEPLOY_SYMLINK_PROOF_FILE" \
     "${DEPLOY_STATIC_RSYNC_EXCLUDES[@]}" <<'PY'
@@ -660,7 +660,7 @@ PY
 deploy_verify_code_identity() {
   local object_format
   object_format="$(git -C "$SOURCE" rev-parse --show-object-format)" || return 1
-  "$RUNTIME_PYTHON" - \
+  "$RUNTIME_PYTHON" -I - \
     "$SOURCE" "$TARGET" "$SOURCE_HEAD_SHA" "$object_format" \
     "$DEPLOY_MANIFEST_TARGET" "$DEPLOY_PROTECTED_PATHS_FILE" \
     "$DEPLOY_SYMLINK_PROOF_FILE" <<'PY'
@@ -786,7 +786,7 @@ deploy_journal_check_start() {
   find "$(dirname "$DEPLOY_JOURNAL")" -maxdepth 1 -type f \
     -name "$(basename "$DEPLOY_JOURNAL").load.*" -delete || return 1
   [[ -f "$DEPLOY_JOURNAL" ]] || return 0
-  "$RUNTIME_PYTHON" - "$DEPLOY_JOURNAL" <<'PY'
+  "$RUNTIME_PYTHON" -I - "$DEPLOY_JOURNAL" <<'PY'
 import json
 import os
 import re
@@ -1023,7 +1023,7 @@ PY
 
 deploy_journal_write() {
   local stage="$1"
-  "$RUNTIME_PYTHON" - \
+  "$RUNTIME_PYTHON" -I - \
     "$DEPLOY_JOURNAL" "$stage" "${SOURCE_HEAD_SHA:-}" "${RUNTIME_ID:-}" \
     "${TARGET:-}" "${SERVICE:-}" "${DEPLOY_CODE_BACKUP:-}" \
     "${DEPLOY_CODE_SNAPSHOT_READY:-0}" "${DEPLOY_CODE_EXCLUDES_BACKUP:-}" \
@@ -1170,7 +1170,7 @@ deploy_journal_load_state() {
   deploy_journal_check_start || check_status=$?
   [[ "$check_status" == "10" ]] || return 1
   state_file="$(mktemp "$DEPLOY_JOURNAL.load.XXXXXX")" || return 1
-  if ! "$RUNTIME_PYTHON" - "$DEPLOY_JOURNAL" >"$state_file" <<'PY'
+  if ! "$RUNTIME_PYTHON" -I - "$DEPLOY_JOURNAL" >"$state_file" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -1267,8 +1267,8 @@ PY
 
 runtime_attest_release() {
   local release="$1" output="$2"
-  "$release/bin/python" -m pip check >/dev/null || return 1
-  "$release/bin/python" - \
+  "$release/bin/python" -I -m pip check >/dev/null || return 1
+  "$release/bin/python" -I - \
     "$output" "$release" "$RUNTIME_PYTHON" \
     "$RUNTIME_ID" "$RUNTIME_REQUIREMENTS_SHA256" "$RUNTIME_FREEZE_SHA256" \
     "$EXPECTED_PYTHON_ABI" "$EXPECTED_FASTAPI_VERSION" \
@@ -1409,7 +1409,7 @@ runtime_validate_release() {
   local result=$?
   rm -f "$temporary"
   if [[ "$result" == "0" ]]; then
-    "$RUNTIME_PYTHON" - "$release" <<'PY' || result=1
+    "$RUNTIME_PYTHON" -I - "$release" <<'PY' || result=1
 import os
 import stat
 import sys
@@ -1438,7 +1438,7 @@ runtime_abort_build() {
 
 runtime_recover_orphan_builds() {
   mkdir -p "$RUNTIME_RELEASES" || return 1
-  "$RUNTIME_PYTHON" - \
+  "$RUNTIME_PYTHON" -I - \
     "$RUNTIME_ROOT" "$RUNTIME_RELEASES" "${RUNTIME_PREVIOUS_TARGET:-}" <<'PY'
 import os
 import re
@@ -1519,7 +1519,7 @@ runtime_gc_releases() {
     echo "[runtime] ERROR: STRUCTURAL_RUNTIME_KEEP_RELEASES must be a non-negative integer" >&2
     return 1
   }
-  "$RUNTIME_PYTHON" - \
+  "$RUNTIME_PYTHON" -I - \
     "$RUNTIME_RELEASES" "$RUNTIME_CURRENT" "${RUNTIME_PREVIOUS_TARGET:-}" \
     "${DEPLOY_JOURNAL:-}" "$keep" <<'PY'
 import json
@@ -1612,7 +1612,7 @@ runtime_prepare() {
   runtime_require_disk_space "$RUNTIME_ROOT" || return 1
 
   local python_abi
-  python_abi="$("$RUNTIME_PYTHON" -c 'import sys; print(sys.implementation.cache_tag)')" \
+  python_abi="$("$RUNTIME_PYTHON" -I -c 'import sys; print(sys.implementation.cache_tag)')" \
     || return 1
   [[ "$python_abi" == "$EXPECTED_PYTHON_ABI" ]] || {
     echo "[runtime] ERROR: expected $EXPECTED_PYTHON_ABI, got $python_abi" >&2
@@ -1637,7 +1637,7 @@ runtime_prepare() {
     # Recover any killed build for this exact ABI + requirements input, but
     # never remove a directory that current resolves to.
     if [[ -L "$RUNTIME_CURRENT" \
-      && "$("$RUNTIME_PYTHON" -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' \
+      && "$("$RUNTIME_PYTHON" -I -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' \
         "$RUNTIME_CURRENT")" == "$candidate" ]]; then
       echo "[runtime] ERROR: incomplete release is unexpectedly active" >&2
       return 1
@@ -1682,7 +1682,7 @@ runtime_prepare() {
     # .building; it is safe to remove only when current does not resolve to it.
     if [[ -L "$RUNTIME_CURRENT" ]]; then
       local resolved_current
-      resolved_current="$("$RUNTIME_PYTHON" - "$RUNTIME_CURRENT" <<'PY'
+      resolved_current="$("$RUNTIME_PYTHON" -I - "$RUNTIME_CURRENT" <<'PY'
 import os
 import sys
 
@@ -1716,7 +1716,7 @@ PY
     return 1
   }
   echo "[runtime] Building immutable release: $RUNTIME_ID"
-  if ! "$RUNTIME_PYTHON" -m venv "$RUNTIME_BUILD_DIR"; then
+  if ! "$RUNTIME_PYTHON" -I -m venv "$RUNTIME_BUILD_DIR"; then
     runtime_abort_build
     return 1
   fi
@@ -1757,7 +1757,7 @@ PY
   fi
   # Atomic state transition: at every instant the release is either
   # recoverable .building or reusable .complete; there is no markerless gap.
-  "$RUNTIME_PYTHON" - "$RUNTIME_BUILD_DIR/.building" \
+  "$RUNTIME_PYTHON" -I - "$RUNTIME_BUILD_DIR/.building" \
     "$RUNTIME_BUILD_DIR/.complete" <<'PY' || {
 import os
 import sys
@@ -1780,11 +1780,11 @@ PY
 
 runtime_live_validate_release() {
   local release="$1" observed_runtime_id
-  "$release/bin/python" -m pip check >/dev/null || {
+  "$release/bin/python" -I -m pip check >/dev/null || {
     echo "[runtime] ERROR: installed dependency graph failed pip check" >&2
     return 1
   }
-  observed_runtime_id="$("$release/bin/python" - \
+  observed_runtime_id="$("$release/bin/python" -I - \
     "$release" "$RUNTIME_PYTHON" <<'PY'
 import hashlib
 import json
@@ -1885,7 +1885,7 @@ PY
 
 runtime_validate_rollback_target() {
   local target="$1" resolved
-  resolved="$("$RUNTIME_PYTHON" - "$RUNTIME_RELEASES" "$target" <<'PY'
+  resolved="$("$RUNTIME_PYTHON" -I - "$RUNTIME_RELEASES" "$target" <<'PY'
 import json
 import os
 import re
@@ -1981,7 +1981,7 @@ runtime_atomic_link() {
   ln -s "$target" "$RUNTIME_LINK_TMP" || { RUNTIME_LINK_TMP=""; return 1; }
   # os.replace is an atomic same-filesystem rename and, unlike `mv`, never
   # follows an existing current symlink into the release directory.
-  "$RUNTIME_PYTHON" - "$RUNTIME_LINK_TMP" "$RUNTIME_CURRENT" <<'PY' || {
+  "$RUNTIME_PYTHON" -I - "$RUNTIME_LINK_TMP" "$RUNTIME_CURRENT" <<'PY' || {
 import os
 import sys
 
@@ -2264,7 +2264,7 @@ systemd_dropin_capture() {
     return 0
   fi
   [[ -f "$SYSTEMD_DROPIN_TARGET" ]] || return 1
-  "$RUNTIME_PYTHON" - "$SYSTEMD_DROPIN_TARGET" "$expected_environment_file" <<'PY' \
+  "$RUNTIME_PYTHON" -I - "$SYSTEMD_DROPIN_TARGET" "$expected_environment_file" <<'PY' \
     || return 1
 import stat
 import sys
@@ -2526,7 +2526,7 @@ deploy_cleanup_once() {
 runtime_publish_attestation() {
   local output="$1" git_sha="$2" deployed_at="$3"
   mkdir -p "$(dirname "$output")" || return 1
-  "$RUNTIME_CURRENT/bin/python" - \
+  "$RUNTIME_CURRENT/bin/python" -I - \
 	"$RUNTIME_RELEASE/attestation.json" "$output" "$git_sha" "$deployed_at" <<'PY'
 import json
 import os

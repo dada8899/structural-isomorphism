@@ -726,6 +726,28 @@ def test_old_sqlite_schema_migrates_without_losing_user(tmp_path):
         assert "deleted@example.com" not in path.read_bytes().decode("utf-8", errors="ignore")
 
 
+def test_legacy_deletion_sha_is_dual_read_and_upgraded_to_v2(tmp_path):
+    path = tmp_path / "legacy-owner-hash.sqlite3"
+    store = auth.AuthStore(path)
+    legacy = hashlib.sha256(b"deleted@example.com").hexdigest()
+    deleted_at = "2026-07-01T00:00:00+00:00"
+    with sqlite3.connect(path) as conn:
+        conn.execute(
+            "INSERT INTO account_deletion_epochs(owner_hash,deleted_at) VALUES(?,?)",
+            (legacy, deleted_at),
+        )
+
+    assert store.account_deletion_epoch("Deleted@Example.COM") == deleted_at
+    with sqlite3.connect(path) as conn:
+        rows = conn.execute(
+            "SELECT owner_hash,deleted_at FROM account_deletion_epochs"
+        ).fetchall()
+    assert len(rows) == 1
+    assert rows[0][0].startswith("account-deletion.email:v2:")
+    assert rows[0][0] != legacy
+    assert rows[0][1] == deleted_at
+
+
 @pytest.mark.parametrize("_round", range(5))
 def test_old_sqlite_schema_migrates_once_across_concurrent_processes(
     tmp_path, _round,

@@ -27,6 +27,10 @@ if __package__ == "web.backend.api.privacy":
     from ...logging_config import get_logger, new_incident_id
 else:
     from logging_config import get_logger, new_incident_id
+try:
+    from services.privacy_identifiers import opaque_identifier
+except ModuleNotFoundError:
+    from web.backend.services.privacy_identifiers import opaque_identifier
 
 router = APIRouter(tags=["privacy"], prefix="/privacy")
 logger = get_logger("structural.privacy.delete")
@@ -129,7 +133,12 @@ def _expected_verification_code() -> str:
     return _FALLBACK_VERIFICATION_CODE
 
 
-def _check_rate_limit(key: str, now: float) -> bool:
+def _check_rate_limit(key: str, now: float, legacy_key: str | None = None) -> bool:
+    if legacy_key and legacy_key != key and legacy_key in _buckets:
+        legacy = _buckets.pop(legacy_key)
+        current = _buckets[key]
+        current.extend(legacy)
+        _buckets[key] = deque(sorted(current))
     bucket = _buckets[key]
     cutoff = now - RATE_LIMIT_WINDOW_S
     while bucket and bucket[0] < cutoff:
@@ -140,12 +149,16 @@ def _check_rate_limit(key: str, now: float) -> bool:
     return True
 
 
-def _rate_key(identifier: str) -> str:
+def _legacy_rate_key(identifier: str) -> str:
     return hmac.new(
         _RATE_KEY,
         identifier.strip().lower().encode("utf-8"),
         hashlib.sha256,
     ).hexdigest()
+
+
+def _rate_key(identifier: str, kind: str) -> str:
+    return opaque_identifier(f"privacy-delete-rate.{kind}", identifier, kind=kind)
 
 
 def _filter_out_email(path: Path, email: str) -> int:
@@ -320,8 +333,10 @@ async def delete_data(
             status_code=401,
         )
 
-    rl_key = _rate_key(email or session_id or "")
-    if not _check_rate_limit(rl_key, now):
+    identifier = email or session_id or ""
+    kind = "email" if email else "opaque"
+    rl_key = _rate_key(identifier, kind)
+    if not _check_rate_limit(rl_key, now, _legacy_rate_key(identifier)):
         return JSONResponse(
             {
                 "ok": False,

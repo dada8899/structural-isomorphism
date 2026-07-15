@@ -26,13 +26,14 @@ import re
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Optional
 
-from fastapi import FastAPI, Form, HTTPException, Query
+from fastapi import FastAPI, Form, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from .db import get_cursor, placeholder, row_to_dict
 from .universality import router as universality_router
 from .ews import router as ews_router
+from .privacy_middleware import PrivacyRequestContextMiddleware
 from web.backend.api.auth import (
     _validate_production_config,
     retry_registration_notifications,
@@ -74,15 +75,18 @@ CREATE INDEX IF NOT EXISTS idx_waitlist_signed_up_at ON waitlist(signed_up_at);
 
 
 def _ensure_waitlist_table() -> None:
-    try:
-        with get_cursor() as (cur, driver):
-            ddl = _WAITLIST_DDL_SQLITE if driver == "sqlite" else _WAITLIST_DDL_POSTGRES
-            if driver == "sqlite":
-                cur.executescript(ddl)
-            else:
-                cur.execute(ddl)
-    except Exception:  # pragma: no cover -- never block app boot on DDL race
-        pass
+    """Create the table and irreversibly scrub pre-hardening referrers.
+
+    Startup fails closed if the scrub cannot commit: serving while raw legacy
+    navigation data remains readable would violate the published boundary.
+    """
+    with get_cursor() as (cur, driver):
+        ddl = _WAITLIST_DDL_SQLITE if driver == "sqlite" else _WAITLIST_DDL_POSTGRES
+        if driver == "sqlite":
+            cur.executescript(ddl)
+        else:
+            cur.execute(ddl)
+        cur.execute("UPDATE waitlist SET referrer = NULL WHERE referrer IS NOT NULL")
 
 
 @asynccontextmanager
@@ -128,6 +132,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+# Keep correlation outside CORS so preflights and exception responses receive
+# the same single content-free request ID.
+app.add_middleware(PrivacyRequestContextMiddleware)
 # W10-E: /api/universality/* endpoints (class list + detail + companies-by-class)
 app.include_router(universality_router)
 
@@ -190,10 +197,12 @@ class WaitlistCountResponse(BaseModel):
 # We do *not* try to be RFC 5322-perfect; backend stays cheap, frontend already
 # uses <input type="email"> for the strict-enough check.
 _EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+_MAX_EMAIL_LENGTH = 320
 # Whitelist sources to keep the column clean (avoids garbage from manual curl).
 _ALLOWED_SOURCES = frozenset(
     {"phase_detector", "main_site", "thank_you_share", "footer", "hero"}
 )
+_ALLOWED_PLACEMENTS = frozenset({"hero", "footer", "inline"})
 
 
 # -------- helpers --------
@@ -358,22 +367,27 @@ def _maybe_forward_buttondown(email: str, source: str) -> None:
 
 
 @app.post("/api/waitlist", response_model=WaitlistSignupResponse)
-def waitlist_signup(
-    email: str = Form(...),
-    source: str = Form("phase_detector"),
-    placement: Optional[str] = Form(None),
-    referrer: Optional[str] = Form(None),
+async def waitlist_signup(
+    request: Request,
+    email: str = Form(..., max_length=_MAX_EMAIL_LENGTH),
+    source: str = Form("phase_detector", max_length=64),
+    placement: Optional[str] = Form(None, max_length=16),
 ) -> WaitlistSignupResponse:
     """Capture an email + source into the waitlist table.
 
     Idempotent: re-signing the same email returns `created=false` instead of 4xx,
     so the frontend can show a friendly "you're already on the list" message.
     """
+    submitted = await request.form()
+    if "referrer" in submitted:
+        raise HTTPException(status_code=422, detail="referrer is not accepted")
     email_norm = email.strip().lower()
-    if not _EMAIL_RE.match(email_norm):
+    if len(email_norm) > _MAX_EMAIL_LENGTH or not _EMAIL_RE.match(email_norm):
         raise HTTPException(status_code=422, detail="invalid email")
     if source not in _ALLOWED_SOURCES:
         source = "phase_detector"
+    if placement is not None and placement not in _ALLOWED_PLACEMENTS:
+        raise HTTPException(status_code=422, detail="invalid placement")
 
     created = False
     with get_cursor() as (cur, driver):
@@ -383,15 +397,15 @@ def waitlist_signup(
         if existing is None:
             if driver == "sqlite":
                 cur.execute(
-                    "INSERT INTO waitlist (email, source, placement, referrer) "
-                    f"VALUES ({ph}, {ph}, {ph}, {ph})",
-                    (email_norm, source, placement, referrer),
+                    "INSERT INTO waitlist (email, source, placement) "
+                    f"VALUES ({ph}, {ph}, {ph})",
+                    (email_norm, source, placement),
                 )
             else:
                 cur.execute(
-                    "INSERT INTO waitlist (email, source, placement, referrer) "
-                    f"VALUES ({ph}, {ph}, {ph}, {ph}) ON CONFLICT (email) DO NOTHING",
-                    (email_norm, source, placement, referrer),
+                    "INSERT INTO waitlist (email, source, placement) "
+                    f"VALUES ({ph}, {ph}, {ph}) ON CONFLICT (email) DO NOTHING",
+                    (email_norm, source, placement),
                 )
             # rowcount can be -1 on some drivers; treat as success if no existing row.
             created = True

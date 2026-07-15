@@ -66,6 +66,10 @@ if __package__ == "web.backend.api":
     from ..logging_config import get_logger, new_incident_id
 else:
     from logging_config import get_logger, new_incident_id
+try:
+    from services.privacy_identifiers import opaque_identifier
+except ModuleNotFoundError:
+    from web.backend.services.privacy_identifiers import opaque_identifier
 
 router = APIRouter(tags=["waitlist"])
 logger = get_logger("structural.waitlist")
@@ -95,7 +99,12 @@ _RATE_KEY = secrets.token_bytes(32)
 
 
 def _rate_bucket_key(client_address: str) -> str:
-    """Return a process-local opaque bucket key, never a raw client address."""
+    """Return the stable domain-separated v2 bucket for a client address."""
+    return opaque_identifier("waitlist-rate.ip", client_address, kind="ip")
+
+
+def _legacy_rate_bucket_key(client_address: str) -> str:
+    """Pre-v2 process-local key used only to preserve an active window."""
     return hmac.new(
         _RATE_KEY,
         client_address.encode("utf-8", errors="ignore"),
@@ -144,7 +153,7 @@ def _connect() -> sqlite3.Connection:
     return conn
 
 
-def _check_rate_limit(ip: str, now: float) -> bool:
+def _check_rate_limit(ip: str, now: float, legacy_key: str | None = None) -> bool:
     """Return True iff under limit. Side-effect: appends `now` if accepted.
 
     Bucket is per-IP. testclient (FastAPI TestClient) reports 'testclient' as
@@ -152,6 +161,11 @@ def _check_rate_limit(ip: str, now: float) -> bool:
     code; tests that need many signups should rotate IPs via header or reset
     the bucket via the helper below.
     """
+    if legacy_key and legacy_key != ip and legacy_key in _rate_buckets:
+        legacy = _rate_buckets.pop(legacy_key)
+        current = _rate_buckets.setdefault(ip, deque())
+        current.extend(legacy)
+        _rate_buckets[ip] = deque(sorted(current))
     bucket = _rate_buckets.setdefault(ip, deque())
     # Evict old entries
     cutoff = now - _RATE_WINDOW_SEC
@@ -191,7 +205,9 @@ def _norm_utm(v: Optional[str]) -> Optional[str]:
 async def waitlist(body: WaitlistBody, request: Request):
     email = (body.email or "").strip().lower()
     source = (body.source or "homepage-hero").strip().lower()
-    rate_key = _rate_bucket_key(request.client.host if request.client else "unknown")
+    client_address = request.client.host if request.client else "unknown"
+    rate_key = _rate_bucket_key(client_address)
+    legacy_rate_key = _legacy_rate_bucket_key(client_address)
 
     # --- Validation ---
     if not email or len(email) > _MAX_EMAIL_LEN or not _EMAIL_RE.match(email):
@@ -204,7 +220,7 @@ async def waitlist(body: WaitlistBody, request: Request):
         )
 
     # --- Rate limit ---
-    if not _check_rate_limit(rate_key, time.time()):
+    if not _check_rate_limit(rate_key, time.time(), legacy_rate_key):
         logger.info("waitlist.rate_limited")
         return JSONResponse(
             {"ok": False, "error": "rate_limited"}, status_code=429

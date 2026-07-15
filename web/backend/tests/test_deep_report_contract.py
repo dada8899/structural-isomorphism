@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
+import services.deep_report as deep_report_service
 from services.deep_report import (
     SourceBinding,
     SourceRef,
     bind_deep_report,
+    validate_bound_deep_report,
     validate_generated_deep_report,
 )
 
@@ -32,6 +35,46 @@ def validate(
         fingerprint_revision=revision,
         expected_lang=lang,
     )
+
+
+@pytest.fixture
+def isolated_bound_report_proof_cache():
+    deep_report_service._clear_bound_report_proofs_for_tests()
+    try:
+        yield
+    finally:
+        deep_report_service._clear_bound_report_proofs_for_tests()
+
+
+def _proof_cache_subject():
+    generated = validate(report_payload())
+    source_record = {
+        "id": "kb-1",
+        "name": "牛鞭效应记录",
+        "domain": "供应链",
+        "description": "内部记录描述了延迟反馈下的候选过冲模式。",
+    }
+    source_ref = SourceRef(
+        source_ref_id="kb-source",
+        source_kind="internal_kb",
+        record_id=source_record["id"],
+        label=source_record["name"],
+        limitations="内部 KB 摘要；不是系统综述或独立复现。",
+    )
+    binding = SourceBinding(
+        source_kb_id=source_record["id"],
+        source_record_sha256="a" * 64,
+        kb_artifact_id="structural-v2-kb4443-20260711",
+        target_kind="query",
+        query_binding="b" * 64,
+        fingerprint_sha256="c" * 64,
+        fingerprint_revision=2,
+        lang="zh",
+        model_id="openai/gpt-5.6-luna-pro",
+        prompt_version="deep-report-v2",
+        schema_version="deep-analysis-report-v2",
+    )
+    return generated, binding, source_ref, source_record
 
 
 def use_english_fixed_copy(payload: dict) -> None:
@@ -202,6 +245,312 @@ def test_all_canonical_kb_source_snapshots_bind_without_claim_laundering():
             failures.append(f"{record['id']}:{type(exc).__name__}")
 
     assert failures == []
+
+
+def test_bound_report_proof_cache_is_context_exact_and_returns_fresh_models(
+    isolated_bound_report_proof_cache,
+    monkeypatch,
+):
+    generated, binding, source_ref, source_record = _proof_cache_subject()
+    original_validator = deep_report_service.validate_generated_deep_report_value
+    calls = 0
+
+    def tracked_validator(payload, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original_validator(payload, **kwargs)
+
+    monkeypatch.setattr(
+        deep_report_service,
+        "validate_generated_deep_report_value",
+        tracked_validator,
+    )
+    first = bind_deep_report(
+        generated,
+        source_binding=binding,
+        source_refs=[source_ref],
+        source_record=source_record,
+    )
+    second = bind_deep_report(
+        generated,
+        source_binding=binding,
+        source_refs=[source_ref],
+        source_record=source_record,
+    )
+    assert calls == 1
+    assert first is not second
+    assert first.shared_structure is not second.shared_structure
+    original_name = second.shared_structure.name
+    first.shared_structure.name = "仅修改第一个返回对象"
+    assert second.shared_structure.name == original_name
+
+    extra_ref = SourceRef(
+        source_ref_id="kb-context",
+        source_kind="internal_kb",
+        record_id="kb-context",
+        label="额外的允许来源",
+        limitations="仅扩展允许来源上下文；未完成独立复现。",
+    )
+    bind_deep_report(
+        generated,
+        source_binding=binding,
+        source_refs=[source_ref, extra_ref],
+        source_record=source_record,
+    )
+    assert calls == 2
+
+    changed_narrative = generated.model_copy(deep=True)
+    changed_narrative.shared_structure.intuition = (
+        "这是另一条候选结构解释，仍需独立测试。"
+    )
+    bind_deep_report(
+        changed_narrative,
+        source_binding=binding,
+        source_refs=[source_ref],
+        source_record=source_record,
+    )
+    assert calls == 3
+
+
+def test_bound_report_proof_cache_never_remembers_failed_claim_validation(
+    isolated_bound_report_proof_cache,
+    monkeypatch,
+):
+    generated, binding, source_ref, source_record = _proof_cache_subject()
+    attacked = generated.model_copy(deep=True)
+    attacked.shared_structure.intuition = "该方法在所有案例中均已验证有效。"
+    original_validator = deep_report_service.validate_generated_deep_report_value
+    calls = 0
+
+    def tracked_validator(payload, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original_validator(payload, **kwargs)
+
+    monkeypatch.setattr(
+        deep_report_service,
+        "validate_generated_deep_report_value",
+        tracked_validator,
+    )
+    for _ in range(2):
+        with pytest.raises(ValueError, match="candidate evidence boundary"):
+            bind_deep_report(
+                attacked,
+                source_binding=binding,
+                source_refs=[source_ref],
+                source_record=source_record,
+            )
+
+    assert calls == 2
+    with deep_report_service._BOUND_REPORT_PROOFS_LOCK:
+        assert not deep_report_service._BOUND_REPORT_PROOFS
+
+
+def test_bound_report_proof_hit_still_revalidates_structure_and_provenance(
+    isolated_bound_report_proof_cache,
+):
+    generated, binding, source_ref, source_record = _proof_cache_subject()
+    bound = bind_deep_report(
+        generated,
+        source_binding=binding,
+        source_refs=[source_ref],
+        source_record=source_record,
+    )
+    repeated = validate_bound_deep_report(
+        bound,
+        expected_source_binding=binding,
+        expected_source_refs=[source_ref],
+        expected_source_record=source_record,
+    )
+    assert repeated is not bound
+
+    stale_binding = binding.model_copy(
+        update={"source_record_sha256": "d" * 64},
+    )
+    with pytest.raises(ValueError, match="source binding is stale"):
+        validate_bound_deep_report(
+            bound,
+            expected_source_binding=stale_binding,
+            expected_source_refs=[source_ref],
+            expected_source_record=source_record,
+        )
+
+    stale_ref = source_ref.model_copy(update={"label": "被篡改的来源标签"})
+    with pytest.raises(ValueError, match="source references are stale"):
+        validate_bound_deep_report(
+            bound,
+            expected_source_binding=binding,
+            expected_source_refs=[stale_ref],
+            expected_source_record=source_record,
+        )
+
+    stale_record = {**source_record, "description": "被篡改的来源快照"}
+    with pytest.raises(ValueError, match="source snapshot is stale"):
+        validate_bound_deep_report(
+            bound,
+            expected_source_binding=binding,
+            expected_source_refs=[source_ref],
+            expected_source_record=stale_record,
+        )
+
+    malformed = bound.model_dump(mode="json")
+    malformed["shared_structure"]["unexpected"] = "must fail before cache lookup"
+    with pytest.raises(ValidationError):
+        validate_bound_deep_report(
+            malformed,
+            expected_source_binding=binding,
+            expected_source_refs=[source_ref],
+            expected_source_record=source_record,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "invalid_value"),
+    [
+        ("conclusion_status", "validated"),
+        ("mechanism_status", "verified"),
+    ],
+    ids=["conclusion-status", "mechanism-status"],
+)
+@pytest.mark.parametrize(
+    "warm_cache",
+    [False, True],
+    ids=["cold-cache", "proof-hit"],
+)
+def test_bound_report_rejects_assignment_tampered_nested_boundary_models(
+    isolated_bound_report_proof_cache,
+    field_name,
+    invalid_value,
+    warm_cache,
+):
+    generated, binding, source_ref, source_record = _proof_cache_subject()
+    bound = bind_deep_report(
+        generated,
+        source_binding=binding,
+        source_refs=[source_ref],
+        source_record=source_record,
+    )
+    if not warm_cache:
+        deep_report_service._clear_bound_report_proofs_for_tests()
+
+    with deep_report_service._BOUND_REPORT_PROOFS_LOCK:
+        assert bool(deep_report_service._BOUND_REPORT_PROOFS) is warm_cache
+
+    payload = bound.model_dump(mode="json")
+    tampered_boundary = bound.report_boundary.model_copy(deep=True)
+    setattr(tampered_boundary, field_name, invalid_value)
+    assert getattr(tampered_boundary, field_name) == invalid_value
+    payload["report_boundary"] = tampered_boundary
+
+    with pytest.raises(ValidationError):
+        validate_bound_deep_report(
+            payload,
+            expected_source_binding=binding,
+            expected_source_refs=[source_ref],
+            expected_source_record=source_record,
+        )
+
+
+def test_bound_report_proof_digest_commits_every_trust_context(
+    isolated_bound_report_proof_cache,
+):
+    generated, binding, source_ref, source_record = _proof_cache_subject()
+    bound = bind_deep_report(
+        generated,
+        source_binding=binding,
+        source_refs=[source_ref],
+        source_record=source_record,
+    )
+    projection = deep_report_service._model_narrative_projection(bound)
+    base = {
+        "allowed_source_ref_ids": {source_ref.source_ref_id},
+        "source_ref_id": source_ref.source_ref_id,
+        "fingerprint_revision": binding.fingerprint_revision,
+        "expected_lang": binding.lang,
+    }
+    digests = {
+        deep_report_service._bound_report_proof_digest(projection, **base),
+        deep_report_service._bound_report_proof_digest(
+            projection,
+            **{**base, "allowed_source_ref_ids": {"kb-source", "kb-extra"}},
+        ),
+        deep_report_service._bound_report_proof_digest(
+            projection,
+            **{**base, "source_ref_id": "kb-extra"},
+        ),
+        deep_report_service._bound_report_proof_digest(
+            projection,
+            **{**base, "fingerprint_revision": 3},
+        ),
+        deep_report_service._bound_report_proof_digest(
+            projection,
+            **{**base, "expected_lang": "en"},
+        ),
+    }
+    assert len(digests) == 5
+
+
+def test_bound_report_proof_cache_is_bounded_and_retains_no_raw_text(
+    isolated_bound_report_proof_cache,
+):
+    generated, binding, source_ref, source_record = _proof_cache_subject()
+    canary = "private-user@example.test query-canary-7f4d"
+    for index in range(40):
+        unique_narrative = generated.model_copy(deep=True)
+        unique_narrative.your_problem_breakdown.summary = (
+            f"候选问题 {canary} 样本 {index} 仍需测试。"
+        )
+        bind_deep_report(
+            unique_narrative,
+            source_binding=binding,
+            source_refs=[source_ref],
+            source_record=source_record,
+        )
+
+    with deep_report_service._BOUND_REPORT_PROOFS_LOCK:
+        cache_items = tuple(deep_report_service._BOUND_REPORT_PROOFS.items())
+    assert len(cache_items) == deep_report_service._BOUND_REPORT_PROOF_CACHE_CAPACITY
+    assert all(
+        isinstance(digest, bytes) and len(digest) == 32 and proof is None
+        for digest, proof in cache_items
+    )
+    retained_representation = repr(cache_items).encode("utf-8")
+    assert canary.encode("utf-8") not in retained_representation
+    assert b"private-user@example.test" not in retained_representation
+    assert b"query-canary-7f4d" not in retained_representation
+
+
+def test_bound_report_proof_cache_is_thread_safe(
+    isolated_bound_report_proof_cache,
+):
+    generated, binding, source_ref, source_record = _proof_cache_subject()
+    bound = bind_deep_report(
+        generated,
+        source_binding=binding,
+        source_refs=[source_ref],
+        source_record=source_record,
+    )
+    deep_report_service._clear_bound_report_proofs_for_tests()
+
+    def validate_once(_index):
+        return validate_bound_deep_report(
+            bound,
+            expected_source_binding=binding,
+            expected_source_refs=[source_ref],
+            expected_source_record=source_record,
+        )
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        results = list(executor.map(validate_once, range(8)))
+
+    assert len({id(result) for result in results}) == 8
+    assert all(
+        result.target_domain_intro.what_record_says
+        == source_record["description"]
+        for result in results
+    )
+    with deep_report_service._BOUND_REPORT_PROOFS_LOCK:
+        assert len(deep_report_service._BOUND_REPORT_PROOFS) == 1
 
 
 def test_source_derived_fields_cannot_cite_only_the_target_record():

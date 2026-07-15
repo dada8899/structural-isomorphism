@@ -5,8 +5,13 @@ but it cannot create sources, validate a mechanism, or publish partial output.
 """
 from __future__ import annotations
 
+from collections import OrderedDict
+import hashlib
+import hmac
 import json
 import re
+import secrets
+import threading
 from typing import Annotated, Any, Iterable, Literal, Optional
 
 from pydantic import (
@@ -425,6 +430,15 @@ _SERVER_SOURCE_QUOTE_PATHS = {
     ("target_domain_intro", "corresponding_phenomenon", "name"),
     ("target_domain_intro", "corresponding_phenomenon", "plain_description"),
 }
+
+# A bound report can be replayed against many server-owned KB snapshots while
+# its model-authored narrative remains byte-identical.  Remember only a keyed
+# proof that this immutable narrative/context pair passed the complete claim
+# guard.  Raw report or user text is never retained, logged, or persisted.
+_BOUND_REPORT_PROOF_CACHE_CAPACITY = 32
+_BOUND_REPORT_PROOF_PROCESS_KEY = secrets.token_bytes(32)
+_BOUND_REPORT_PROOFS: OrderedDict[bytes, None] = OrderedDict()
+_BOUND_REPORT_PROOFS_LOCK = threading.Lock()
 _STRUCTURED_HYPOTHESIS_FIELD_KEYS = {
     "candidate_hypothesis",
     "competitor_hypotheses",
@@ -1674,6 +1688,77 @@ def _model_narrative_projection(report: DeepAnalysisReportV2) -> dict[str, Any]:
     return payload
 
 
+def _canonical_proof_bytes(value: Any) -> bytes:
+    """Encode one proof component without retaining it in the cache."""
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        allow_nan=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+
+
+def _bound_report_proof_digest(
+    projection: dict[str, Any],
+    *,
+    allowed_source_ref_ids: set[str],
+    source_ref_id: str,
+    fingerprint_revision: Optional[int],
+    expected_lang: ReportLanguage,
+) -> bytes:
+    """Return a process-bound proof digest for narrative plus trust context."""
+    context = {
+        "allowed_source_ref_ids": sorted(allowed_source_ref_ids),
+        "source_ref_id": source_ref_id,
+        "fingerprint_revision": fingerprint_revision,
+        "expected_lang": expected_lang,
+    }
+    proof = hmac.new(
+        _BOUND_REPORT_PROOF_PROCESS_KEY,
+        digestmod=hashlib.sha256,
+    )
+    proof.update(b"structural-bound-report-proof-v1\0")
+    for component in (
+        _canonical_proof_bytes(projection),
+        _canonical_proof_bytes(context),
+    ):
+        proof.update(len(component).to_bytes(8, "big"))
+        proof.update(component)
+    return proof.digest()
+
+
+def _has_bound_report_proof(digest: bytes) -> bool:
+    """Check and refresh one successful proof without exposing its content."""
+    with _BOUND_REPORT_PROOFS_LOCK:
+        if digest not in _BOUND_REPORT_PROOFS:
+            return False
+        _BOUND_REPORT_PROOFS.move_to_end(digest)
+        return True
+
+
+def _remember_bound_report_proof(digest: bytes) -> None:
+    """Remember one successful proof in the bounded process-local LRU."""
+    with _BOUND_REPORT_PROOFS_LOCK:
+        _BOUND_REPORT_PROOFS[digest] = None
+        _BOUND_REPORT_PROOFS.move_to_end(digest)
+        while len(_BOUND_REPORT_PROOFS) > _BOUND_REPORT_PROOF_CACHE_CAPACITY:
+            _BOUND_REPORT_PROOFS.popitem(last=False)
+
+
+def _clear_bound_report_proofs_for_tests() -> None:
+    """Reset process-local proof state between isolated contract tests."""
+    with _BOUND_REPORT_PROOFS_LOCK:
+        _BOUND_REPORT_PROOFS.clear()
+
+
+def _fresh_bound_report(payload: Any) -> DeepAnalysisReportV2:
+    """Revalidate every nested value through a primitive trust boundary."""
+    first_pass = DeepAnalysisReportV2.model_validate(payload)
+    primitive = first_pass.model_dump(mode="json")
+    return DeepAnalysisReportV2.model_validate(primitive)
+
+
 def validate_bound_deep_report(
     payload: Any,
     *,
@@ -1682,7 +1767,7 @@ def validate_bound_deep_report(
     expected_source_record: dict[str, Any],
 ) -> DeepAnalysisReportV2:
     """Validate a cached/final report against server-owned provenance."""
-    report = DeepAnalysisReportV2.model_validate(payload)
+    report = _fresh_bound_report(payload)
     if report.source_binding != expected_source_binding:
         raise ValueError("bound report source binding is stale")
     if report.source_refs != expected_source_refs:
@@ -1704,13 +1789,28 @@ def validate_bound_deep_report(
         != snapshot["plain_description"]
     ):
         raise ValueError("bound report source snapshot is stale")
-    validate_generated_deep_report_value(
-        _model_narrative_projection(report),
-        allowed_source_ref_ids={item.source_ref_id for item in expected_source_refs},
+    allowed_source_ref_ids = {
+        item.source_ref_id for item in expected_source_refs
+    }
+    projection = _model_narrative_projection(report)
+    proof_digest = _bound_report_proof_digest(
+        projection,
+        allowed_source_ref_ids=allowed_source_ref_ids,
         source_ref_id=source_ref_id,
         fingerprint_revision=expected_source_binding.fingerprint_revision,
         expected_lang=expected_source_binding.lang,
     )
+    if not _has_bound_report_proof(proof_digest):
+        validate_generated_deep_report_value(
+            projection,
+            allowed_source_ref_ids=allowed_source_ref_ids,
+            source_ref_id=source_ref_id,
+            fingerprint_revision=expected_source_binding.fingerprint_revision,
+            expected_lang=expected_source_binding.lang,
+        )
+        # Exceptions above never populate the cache. Concurrent misses may
+        # validate twice, but cannot publish an unvalidated proof.
+        _remember_bound_report_proof(proof_digest)
     return report
 
 

@@ -62,6 +62,16 @@ except ModuleNotFoundError:
     from web.backend.services.account_data_registry import (
         AccountAsset, AccountDataRegistry, deletion_tombstone,
     )
+try:
+    from services.privacy_identifiers import (
+        opaque_identifier,
+        validate_privacy_hmac_config,
+    )
+except ModuleNotFoundError:
+    from web.backend.services.privacy_identifiers import (
+        opaque_identifier,
+        validate_privacy_hmac_config,
+    )
 
 logger = get_logger("structural.auth")
 
@@ -133,6 +143,8 @@ def _is_prod() -> bool:
 
 def _validate_production_config() -> None:
     """Fail closed before creating credentials when production auth is enabled."""
+    if _is_prod():
+        validate_privacy_hmac_config()
     if not (_is_prod() and _auth_enabled()):
         return
     _jwt_secret()
@@ -262,7 +274,10 @@ def _account_registry() -> AccountDataRegistry:
             export=store.export_account_data,
             delete=lambda owner: store.delete_account_data(
                 owner,
-                rate_keys=(_privacy_rate_key("email", owner),),
+                rate_keys=(
+                    _privacy_rate_key("email", owner),
+                    _legacy_privacy_rate_key("email", owner),
+                ),
             ),
         ),
     ])
@@ -400,7 +415,13 @@ def _client_ip(request: Request) -> str:
 
 
 def _privacy_rate_key(namespace: str, value: str) -> str:
-    """Domain-separated HMAC bucket key for identifiers in operational state."""
+    """Stable v2 HMAC bucket key for identifiers in operational state."""
+    kind = "email" if namespace == "email" else "ip"
+    return opaque_identifier(f"auth-rate.{namespace}", value, kind=kind)
+
+
+def _legacy_privacy_rate_key(namespace: str, value: str) -> str:
+    """Pre-v2 lookup key retained only for bounded in-place migration."""
     root_key = _jwt_secret().encode("utf-8")
     rate_key = hmac.new(
         root_key,
@@ -417,14 +438,30 @@ def _privacy_rate_key(namespace: str, value: str) -> str:
 
 def _check_rate_limit(email: str, request: Request) -> bool:
     """Apply atomic opaque per-email, trusted-client-IP and global limits."""
-    return _store().record_rate_requests([
-        (_privacy_rate_key("email", email), _RATE_LIMIT_PER_HOUR),
-        (_privacy_rate_key("ip", _client_ip(request)), _positive_limit(
-            "AUTH_IP_EMAIL_LIMIT_PER_HOUR", _DEFAULT_IP_RATE_LIMIT_PER_HOUR,
-        )),
-        ("global:magic-link-email", _positive_limit(
-            "AUTH_GLOBAL_EMAIL_LIMIT_PER_HOUR", _DEFAULT_GLOBAL_RATE_LIMIT_PER_HOUR,
-        )),
+    client_ip = _client_ip(request)
+    return _store().record_rate_requests_with_legacy([
+        (
+            _privacy_rate_key("email", email),
+            # The bounded raw-email lookup covers the oldest pre-HMAC schema;
+            # v1 used the JWT-derived HMAC. Both are rewritten in-place.
+            (_legacy_privacy_rate_key("email", email), email),
+            _RATE_LIMIT_PER_HOUR,
+        ),
+        (
+            _privacy_rate_key("ip", client_ip),
+            (_legacy_privacy_rate_key("ip", client_ip), client_ip),
+            _positive_limit(
+                "AUTH_IP_EMAIL_LIMIT_PER_HOUR", _DEFAULT_IP_RATE_LIMIT_PER_HOUR,
+            ),
+        ),
+        (
+            "global:magic-link-email",
+            (),
+            _positive_limit(
+                "AUTH_GLOBAL_EMAIL_LIMIT_PER_HOUR",
+                _DEFAULT_GLOBAL_RATE_LIMIT_PER_HOUR,
+            ),
+        ),
     ])
 
 

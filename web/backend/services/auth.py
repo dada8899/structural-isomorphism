@@ -31,6 +31,11 @@ from __future__ import annotations
 import os
 from typing import Optional
 
+try:
+    from .privacy_identifiers import opaque_identifier
+except ImportError:
+    from privacy_identifiers import opaque_identifier
+
 if __package__ == "web.backend.services":
     from ..logging_config import get_logger
 else:
@@ -155,7 +160,7 @@ def tier_limit(request) -> str:
         ip = request.client.host if request.client else "unknown"
     except Exception:  # pragma: no cover
         ip = "unknown"
-    return f"{tier}:{ip}"
+    return f"{tier}:{opaque_identifier('legacy-api-rate.ip', ip, kind='ip')}"
 
 
 __all__ = [

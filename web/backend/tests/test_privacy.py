@@ -542,3 +542,18 @@ def test_export_p3_empty_when_db_missing(app_with_data):
     assert data["referrals"] == []
     assert data["connections_messages"] == []
     assert data["connections_prefs"] == []
+
+
+@pytest.mark.parametrize("module", [exp_mod, del_mod])
+def test_legacy_privacy_rate_bucket_is_dual_read_and_upgraded(
+    app_with_data, module,
+):
+    identifier = "alice@example.com"
+    legacy = module._legacy_rate_key(identifier)
+    current = module._rate_key(identifier, "email")
+    module._buckets[legacy].append(module.time.time())
+
+    assert module._check_rate_limit(current, module.time.time(), legacy) is False
+    assert legacy not in module._buckets
+    assert current in module._buckets
+    assert current.startswith(f"privacy-{module.__name__.rsplit('.', 1)[-1]}-rate.email:v2:")

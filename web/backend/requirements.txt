@@ -11,7 +11,10 @@ starlette==0.46.2
 uvicorn[standard]==0.27.1
 pydantic==2.6.1
 python-dotenv==1.0.1
-httpx==0.26.0
+# Shared release environment: guarded-llm and cross-judge both require
+# httpx>=0.27. Keep one exact backend pin so combined CI/runtime resolution
+# cannot silently downgrade the in-tree packages to an unsupported client.
+httpx==0.27.2
 numpy==1.26.3
 # sentence-transformers 5.x — KB embedding model on disk is in v5.5.0 format
 # (saved by retrain pipeline). Pinning 2.5.0 here was a stale drift that broke

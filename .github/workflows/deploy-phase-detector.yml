@@ -24,61 +24,85 @@ on:
       - 'web/backend/services/account_data_registry.py'
       - 'web/backend/services/auth_store.py'
       - 'web/backend/services/candidate_origin.py'
+      - 'web/backend/services/privacy_identifiers.py'
       - 'web/backend/services/report_store.py'
       - 'web/backend/services/sqlite_utils.py'
       - 'web/backend/services/sso_store.py'
       - 'v4/product/d1_phase_detector/api/**'
       - 'scripts/deploy-phase-detector-vps.sh'
+      - 'scripts/deploy-phase-detector-entrypoint.sh'
+      - 'scripts/deploy-dispatcher.sh'
+      - 'scripts/install-deploy-dispatcher.sh'
       - 'scripts/install-nginx-privacy-vhost.sh'
       - 'tests/test_nginx_privacy_contract.py'
+      - 'tests/test_phase_privacy_gate.py'
       - '.github/workflows/deploy-phase-detector.yml'
   workflow_dispatch: {}
 
-# Avoid two deploys racing.
+# Keep one pending Phase release while the host flock serializes cross-product deploys.
 concurrency:
   group: deploy-phase-detector
   cancel-in-progress: false
+  queue: single
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Covers the 45-minute host-lock wait plus a full Phase build and smoke test.
+    timeout-minutes: 90
     steps:
-      - name: Checkout (for context only)
-        uses: actions/checkout@v4
+      - name: Checkout exact deployment source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Verify checkout identity
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
 
       - name: Set up Phase API Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.11'
           cache: pip
           cache-dependency-path: v4/product/d1_phase_detector/api/requirements.txt
 
-      - name: Validate Phase API dependency contract
+      - name: Verify repository Python 3.11 syntax
+        run: python -I scripts/check_python_syntax.py
+
+      - name: Validate Phase API and privacy release contracts
         run: |
           set -euo pipefail
-          python3 -m venv /tmp/phase-api-import
+          python -m venv /tmp/phase-api-import
           /tmp/phase-api-import/bin/pip install --disable-pip-version-check \
             -r v4/product/d1_phase_detector/api/requirements.txt
+          /tmp/phase-api-import/bin/pip install --disable-pip-version-check pytest
           PYTHONPATH=. /tmp/phase-api-import/bin/python -c \
             "from v4.product.d1_phase_detector.api.main import app; from web.backend.api.auth import _account_registry; assert app.title; assert len(_account_registry().manifest()) == 3"
+          PYTHONPATH=. /tmp/phase-api-import/bin/python -m pytest -q \
+            tests/test_phase_privacy_gate.py \
+            tests/test_nginx_privacy_contract.py \
+            v4/product/d1_phase_detector/api/tests/test_privacy_middleware.py \
+            v4/product/d1_phase_detector/api/tests/test_waitlist.py
 
       - name: SSH deploy
         env:
           SSH_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
           HOST: ${{ secrets.VPS_HOST }}
           USER: ${{ secrets.VPS_USER }}
+          DEPLOY_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
-          # authorized_keys command= forces the deploy script regardless of args.
+          # The forced dispatcher accepts only a full main-reachable SHA.
           ssh -i ~/.ssh/id_deploy \
               -o IdentitiesOnly=yes \
               -o StrictHostKeyChecking=yes \
-              "$USER@$HOST" "deploy"
+              "$USER@$HOST" "phase-deploy $DEPLOY_SHA"
 
       - name: Smoke test
         run: |
@@ -96,10 +120,8 @@ jobs:
 
           meta = json.loads(os.environ["META_JSON"])
           assert isinstance(meta.get("version"), str) and meta["version"], meta
-          assert isinstance(meta.get("n_tickers"), int), meta
-          assert meta["n_tickers"] > 0, meta
-          provenance = meta.get("price_provenance")
-          assert isinstance(provenance, str) and provenance != "missing", meta
+          assert meta.get("n_tickers") == 597, meta
+          assert meta.get("price_provenance") == "demo", meta
           PY
           auth_status="$(curl -sS -o /tmp/phase-auth-me.json -w '%{http_code}' https://phase.bytedance.city/api/auth/me)"
           if grep -qx 'NEXT_PUBLIC_AUTH_ENABLED=true' web/phase-detector/.env.production; then

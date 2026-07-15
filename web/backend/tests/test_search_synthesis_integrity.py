@@ -502,19 +502,23 @@ def test_synthesis_request_normalizes_query_and_accepts_only_id_refs() -> None:
 
 
 @pytest.mark.parametrize("path", ["/validate-search", "/validate-assess"])
-def test_search_and_assess_use_the_same_8000_character_query_limit(path) -> None:
-    accepted = _validation_client.post(path, json={"query": "x" * 8_000})
+@pytest.mark.parametrize("character", ["x", "🧪"])
+def test_search_and_assess_use_the_same_8000_character_query_limit(
+    path, character: str,
+) -> None:
+    accepted = _validation_client.post(path, json={"query": character * 8_000})
     assert accepted.status_code == 200
     assert len(accepted.json()["query"]) == 8_000
-    rejected = _validation_client.post(path, json={"query": "x" * 8_001})
+    rejected = _validation_client.post(path, json={"query": character * 8_001})
     assert rejected.status_code == 422
 
 
-def test_synthesis_uses_the_same_8000_character_query_limit() -> None:
+@pytest.mark.parametrize("character", ["x", "🧪"])
+def test_synthesis_uses_the_same_8000_character_query_limit(character: str) -> None:
     body = _valid_request()
-    body["query"] = "x" * 8_000
+    body["query"] = character * 8_000
     assert _validation_client.post("/validate-synthesis", json=body).status_code == 200
-    body["query"] += "x"
+    body["query"] += character
     assert _validation_client.post("/validate-synthesis", json=body).status_code == 422
 
 

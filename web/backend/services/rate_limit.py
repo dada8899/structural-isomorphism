@@ -10,8 +10,13 @@ import functools
 import types
 if __package__ == "web.backend.services":
     from ..logging_config import get_logger, new_incident_id
+    from .privacy_identifiers import opaque_identifier
 else:
     from logging_config import get_logger, new_incident_id
+    try:
+        from .privacy_identifiers import opaque_identifier
+    except ImportError:
+        from privacy_identifiers import opaque_identifier
 
 logger = get_logger("structural.rate_limit")
 
@@ -114,7 +119,12 @@ try:
     from slowapi import Limiter
     from slowapi.util import get_remote_address
 
-    limiter = Limiter(key_func=get_remote_address, default_limits=[])
+    def _privacy_remote_address(request):
+        return opaque_identifier(
+            "route-rate.ip", get_remote_address(request), kind="ip"
+        )
+
+    limiter = Limiter(key_func=_privacy_remote_address, default_limits=[])
     _ENABLED = True
 except Exception as exc:  # pragma: no cover
     logger.warning(

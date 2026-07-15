@@ -6,6 +6,7 @@ import os
 import shlex
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -13,6 +14,7 @@ import time
 from pathlib import Path
 
 import pytest
+import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,8 +23,16 @@ HELPER = ROOT / "scripts" / "deploy-versioned-runtime.sh"
 RETIRED_HELPER = ROOT / "scripts" / "deploy-retired-module.sh"
 UNIT = ROOT / "web" / "scripts" / "structural-web.service"
 WORKFLOW = ROOT / ".github" / "workflows" / "deploy-beta-backend.yml"
+PHASE_WORKFLOW = ROOT / ".github" / "workflows" / "deploy-phase-detector.yml"
+EWS_WORKFLOW = ROOT / ".github" / "workflows" / "ews-pipeline-nightly.yml"
 SITE_SMOKE_WORKFLOW = ROOT / ".github" / "workflows" / "site-smoke.yml"
 DISPATCH_ENTRYPOINT = ROOT / "scripts" / "deploy-beta-backend.sh"
+PHASE_DISPATCH_ENTRYPOINT = ROOT / "scripts" / "deploy-phase-detector-entrypoint.sh"
+PHASE_DEPLOY_ENGINE = ROOT / "scripts" / "deploy-phase-detector-vps.sh"
+PHASE_TEST_ISOLATION_MARKER = "structural-phase-test-isolation-v1"
+FORCED_DISPATCHER = ROOT / "scripts" / "deploy-dispatcher.sh"
+DISPATCH_INSTALLER = ROOT / "scripts" / "install-deploy-dispatcher.sh"
+CANONICAL_PRIVACY_KEY = ("01234567" + "89abcdef") * 4
 
 
 @pytest.fixture(autouse=True)
@@ -39,12 +49,36 @@ def _make_immutable_runtime_fixtures_removable(request):
         Path(root).chmod(Path(root).stat().st_mode | 0o700)
 
 
-def _bash(body: str, *, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def _bash(
+    body: str,
+    *,
+    env: dict[str, str] | None = None,
+    cwd: Path | None = None,
+) -> subprocess.CompletedProcess[str]:
     merged = os.environ.copy()
     if env:
         merged.update(env)
     return subprocess.run(
         ["bash", "-c", f"set -euo pipefail; source {shlex.quote(str(HELPER))}; {body}"],
+        env=merged,
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def _source_deploy(
+    body: str, *, env: dict[str, str]
+) -> subprocess.CompletedProcess[str]:
+    merged = os.environ.copy()
+    merged.update(env)
+    return subprocess.run(
+        [
+            "bash",
+            "-c",
+            f"set -euo pipefail; source {shlex.quote(str(DEPLOY))}; {body}",
+        ],
         env=merged,
         capture_output=True,
         text=True,
@@ -61,6 +95,28 @@ def _git(repository: Path, *arguments: str) -> str:
     )
     assert result.returncode == 0, result.stderr
     return result.stdout.strip()
+
+
+def _bind_phase_test_isolation(
+    env: dict[str, str], repository: Path, test_root: Path
+) -> None:
+    physical_root = test_root.resolve(strict=True)
+    physical_repo = repository.resolve(strict=True)
+    assert physical_repo != physical_root
+    assert physical_repo.is_relative_to(physical_root)
+    assert not repository.is_symlink()
+    git_dir = physical_repo / ".git"
+    assert git_dir.is_dir() and not git_dir.is_symlink()
+    marker = git_dir / PHASE_TEST_ISOLATION_MARKER
+    marker.write_text(
+        f"protocol={PHASE_TEST_ISOLATION_MARKER}\n"
+        f"test_root={physical_root}\n"
+        f"repo_root={physical_repo}\n",
+        encoding="utf-8",
+    )
+    marker.chmod(0o600)
+    env["PHASE_REPO"] = str(physical_repo)
+    env["STRUCTURAL_PHASE_TEST_ROOT"] = str(physical_root)
 
 
 def _make_fake_systemctl(
@@ -159,8 +215,19 @@ def _make_dispatch_repository(tmp_path: Path) -> tuple[Path, str, str, str]:
         'git -C "$SOURCE" rev-parse HEAD >> "$DISPATCH_RESULT"\n',
         encoding="utf-8",
     )
+    (scripts / "deploy-phase-detector-vps.sh").write_text(
+        "#!/bin/bash\n"
+        "set -euo pipefail\n"
+        ': "${PHASE_DISPATCH_RESULT:?}"\n'
+        'printf "%s\\n" "$PHASE_PREVIOUS_SHA" "$PHASE_DEPLOY_COMMIT" > "$PHASE_DISPATCH_RESULT"\n'
+        'git -C "$STRUCTURAL_PHASE_REPO" rev-parse HEAD >> "$PHASE_DISPATCH_RESULT"\n',
+        encoding="utf-8",
+    )
     for name in ("deploy-versioned-runtime.sh", "deploy-retired-module.sh"):
         (scripts / name).write_text("#!/bin/bash\n# tracked bootstrap\n", encoding="utf-8")
+    (scripts / "install-nginx-privacy-vhost.sh").write_text(
+        "#!/bin/bash\n# tracked phase bootstrap\n", encoding="utf-8"
+    )
     for script in scripts.iterdir():
         script.chmod(0o755)
     (repository / "app.txt").write_text("release one\n", encoding="utf-8")
@@ -196,6 +263,58 @@ def _dispatch_env(tmp_path: Path, repository: Path, result: Path) -> dict[str, s
         "STRUCTURAL_BETA_DEPLOY_LOCK": str(tmp_path / "deploy.lock"),
         "DISPATCH_RESULT": str(result),
     }
+
+
+def _make_forced_dispatch_fixture(tmp_path: Path) -> tuple[Path, Path]:
+    install_dir = tmp_path / "forced-dispatch"
+    install_dir.mkdir()
+    dispatcher = install_dir / "deploy-dispatcher.sh"
+    shutil.copy2(FORCED_DISPATCHER, dispatcher)
+    dispatcher.chmod(0o755)
+    record = tmp_path / "forced-dispatch-record"
+    entrypoint = install_dir / "deploy-beta-backend.sh"
+    entrypoint.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        f'printf "beta\\n%s\\n%s\\n%s\\n%s\\n" "$#" "$1" '
+        f'"${{STRUCTURAL_BETA_REPO-unset}}" "${{GIT_DIR-unset}}" > {shlex.quote(str(record))}\n',
+        encoding="utf-8",
+    )
+    entrypoint.chmod(0o755)
+    phase_entrypoint = install_dir / "deploy-phase-detector-entrypoint.sh"
+    phase_entrypoint.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        f'printf "phase\\n%s\\n%s\\n%s\\n%s\\n" "$#" "$1" '
+        f'"${{STRUCTURAL_PHASE_REPO-unset}}" "${{GIT_WORK_TREE-unset}}" > {shlex.quote(str(record))}\n',
+        encoding="utf-8",
+    )
+    phase_entrypoint.chmod(0o755)
+    return dispatcher, record
+
+
+def _dispatcher_install_env(tmp_path: Path) -> tuple[dict[str, str], Path, Path, str]:
+    install_dir = tmp_path / "installed-dispatch"
+    install_dir.mkdir()
+    ssh_dir = tmp_path / "ssh"
+    ssh_dir.mkdir()
+    authorized_keys = ssh_dir / "authorized_keys"
+    authorized_keys.write_text("# operator key\nssh-ed25519 b3BlcmF0b3Ita2V5LW1hdGVyaWFs operator\n")
+    authorized_keys.chmod(0o600)
+    public_key = tmp_path / "deploy-key.pub"
+    public_blob = "AAAAC3NzaC1lZDI1NTE5AAAAIAf5u9RhBKJrIF/oQvRZfYIDnhtce75WgHXoc+Iv5FNu"
+    public_key.write_text(f"ssh-ed25519 {public_blob} deploy\n", encoding="utf-8")
+    return (
+        {
+            **os.environ,
+            "STRUCTURAL_DEPLOY_INSTALL_DIR": str(install_dir),
+            "STRUCTURAL_DEPLOY_AUTHORIZED_KEYS": str(authorized_keys),
+            "STRUCTURAL_DEPLOY_PUBLIC_KEY_FILE": str(public_key),
+        },
+        install_dir,
+        authorized_keys,
+        public_blob,
+    )
 
 
 _RUNTIME_TEMPLATE: Path | None = None
@@ -483,6 +602,130 @@ def _recover_staged_transaction(
     )
 
 
+@pytest.mark.parametrize(
+    ("fault", "privacy_key"),
+    [
+        ("missing", None),
+        ("duplicate", CANONICAL_PRIVACY_KEY),
+        ("short_hex", CANONICAL_PRIVACY_KEY[:-1]),
+        ("low_distinct_bytes", "a" * 64),
+        ("placeholder", "replace-with-private-64-hex-chars"),
+        ("quoted", f'"{CANONICAL_PRIVACY_KEY}"'),
+        ("escaped", rf"{CANONICAL_PRIVACY_KEY[:60]}\x41"),
+        ("uppercase", CANONICAL_PRIVACY_KEY.upper()),
+        ("quoted_31_bytes", f'"{CANONICAL_PRIVACY_KEY[:62]}"'),
+        ("leading_whitespace", f" {CANONICAL_PRIVACY_KEY}"),
+        ("trailing_whitespace", f"{CANONICAL_PRIVACY_KEY} "),
+        ("crlf", f"{CANONICAL_PRIVACY_KEY}\r"),
+    ],
+)
+def test_invalid_privacy_hmac_key_is_zero_mutation_before_beta_deploy(
+    tmp_path: Path, fault: str, privacy_key: str | None,
+) -> None:
+    target = tmp_path / "live-code"
+    target.mkdir()
+    code = target / "app.py"
+    code.write_bytes(b"live-code-sentinel\n")
+
+    runtime_root = tmp_path / "runtime"
+    release = runtime_root / "releases/old"
+    release.mkdir(parents=True)
+    current = runtime_root / "current"
+    current.symlink_to(release)
+    unit = tmp_path / "structural-web.service"
+    unit.write_bytes(b"unit-sentinel\n")
+    nginx_vhost = tmp_path / "beta-structural.conf"
+    nginx_vhost.write_bytes(b"nginx-sentinel\n")
+    journal = runtime_root / "deploy-journal.json"
+    journal.write_bytes(b"journal-sentinel\n")
+    auth_data = tmp_path / "auth-data"
+
+    auth_env = tmp_path / "beta-auth.env"
+    valid_key = CANONICAL_PRIVACY_KEY
+    lines = [
+        "AUTH_ENABLED=true",
+        "AUTH_SITE_ROLE=beta",
+        "JWT_SECRET=J7w!Q2m#L9x@R4c%N8k&T6p*W3z$H5jK",
+        "AUTH_LINK_BASE_URL=https://beta.structural.bytedance.city",
+        f"AUTH_DATA_DIR={auth_data}",
+        "SMTP_HOST=smtp.private.test",
+        "SMTP_PORT=587",
+        "SMTP_FROM_EMAIL=mailer@private.test",
+        "SMTP_USERNAME=mailer",
+        "SMTP_PASSWORD=mail-password",
+        "ADMIN_NOTIFICATION_EMAIL=admin@private.test",
+        "AUTH_TRUSTED_PROXY_IPS=127.0.0.1",
+    ]
+    if privacy_key is not None:
+        lines.insert(3, f"STRUCTURAL_PRIVACY_HMAC_KEY={privacy_key}")
+    if fault == "duplicate":
+        lines.insert(4, f"STRUCTURAL_PRIVACY_HMAC_KEY={valid_key}")
+    auth_env.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    auth_env.chmod(0o600)
+
+    immutable_files = {
+        path: path.read_bytes() for path in (code, unit, nginx_vhost, journal)
+    }
+    current_link = os.readlink(current)
+    result = _source_deploy(
+        "validate_beta_auth_config",
+        env={
+            "SOURCE": str(ROOT),
+            "TARGET": str(target),
+            "STRUCTURAL_RUNTIME_ROOT": str(runtime_root),
+            "STRUCTURAL_RUNTIME_PYTHON": sys.executable,
+            "STRUCTURAL_DEPLOY_JOURNAL": str(journal),
+            "STRUCTURAL_SYSTEMD_UNIT_TARGET": str(unit),
+            "STRUCTURAL_NGINX_VHOST_TARGET": str(nginx_vhost),
+            "STRUCTURAL_BETA_AUTH_ENV_FILE": str(auth_env),
+        },
+    )
+
+    assert result.returncode != 0, (result.stdout, result.stderr)
+    assert {path: path.read_bytes() for path in immutable_files} == immutable_files
+    assert current.is_symlink() and os.readlink(current) == current_link
+    assert not auth_data.exists()
+
+
+def test_privacy_hmac_validator_rejects_noncanonical_utf8(
+    tmp_path: Path,
+) -> None:
+    value = "结构同构隐私密钥-2026-AbCdEfG"
+    assert len(value) < 32 <= len(value.encode("utf-8"))
+    assert len(set(value.encode("utf-8"))) >= 12
+
+    result = _source_deploy(
+        'validate_privacy_hmac_key "$TEST_PRIVACY_KEY"',
+        env={
+            "SOURCE": str(ROOT),
+            "TARGET": str(tmp_path / "target"),
+            "STRUCTURAL_RUNTIME_PYTHON": sys.executable,
+            "TEST_PRIVACY_KEY": value,
+        },
+    )
+
+    assert result.returncode != 0
+
+
+def test_privacy_key_validation_precedes_every_beta_deploy_mutation() -> None:
+    deploy = DEPLOY.read_text(encoding="utf-8")
+    function_start = deploy.index("validate_beta_auth_config()")
+    function_end = deploy.index("\n}\n\nprepare_beta_auth_data_dir", function_start)
+    function_body = deploy[function_start:function_end]
+    assert "STRUCTURAL_PRIVACY_HMAC_KEY" in function_body
+    assert 'validate_privacy_hmac_key "$privacy_hmac_key"' in function_body
+    assert '"$RUNTIME_PYTHON" -I -c' in deploy
+    assert 're.fullmatch(rb"[0-9a-f]{64}", raw)' in deploy
+    assert "mkdir -p" not in function_body
+
+    main_start = deploy.index("deploy_guard_install rollback_deploy deploy_cleanup_once")
+    auth_validation = deploy.index("validate_beta_auth_config\n", main_start)
+    lock_mutation = deploy.index("exec 9>/var/lock/structural-isomorphism-deploy.lock", main_start)
+    auth_data_mutation = deploy.index("prepare_beta_auth_data_dir\n", main_start)
+    source_validation = deploy.index("deploy_validate_source_checkout", main_start)
+    assert auth_validation < lock_mutation < auth_data_mutation < source_validation
+
+
 def test_deploy_builds_before_sync_and_rolls_back_all_mutable_state() -> None:
     deploy = DEPLOY.read_text(encoding="utf-8")
     helper = HELPER.read_text(encoding="utf-8")
@@ -501,7 +744,9 @@ def test_deploy_builds_before_sync_and_rolls_back_all_mutable_state() -> None:
     assert 'runtime_publish_attestation "$PUBLIC_RUNTIME_ATTESTATION"' in deploy
     assert '$TARGET/venv/bin/pip' not in deploy
     assert '"$RUNTIME_BUILD_DIR/bin/pip" install' in helper
-    assert '"$release/bin/python" -m pip check' in helper
+    assert '"$release/bin/python" -I -m pip check' in helper
+    assert '"$release/bin/python" -I - \\' in helper
+    assert '"$RUNTIME_CURRENT/bin/python" -I - \\' in helper
     assert 'RUNTIME_BUILD_DIR="$RUNTIME_RELEASE"' in helper
     assert 'mv "$RUNTIME_BUILD_DIR"' not in helper
     assert 'chmod -R a-w "$RUNTIME_BUILD_DIR"' in helper
@@ -533,6 +778,7 @@ def test_deploy_builds_before_sync_and_rolls_back_all_mutable_state() -> None:
 def test_beta_dispatch_pins_one_full_main_reachable_commit() -> None:
     workflow = WORKFLOW.read_text(encoding="utf-8")
     entrypoint = DISPATCH_ENTRYPOINT.read_text(encoding="utf-8")
+    dispatcher = FORCED_DISPATCHER.read_text(encoding="utf-8")
 
     assert '"beta-backend $DEPLOY_SHA"' in workflow
     assert "DEPLOY_SHA: ${{ github.sha }}" in workflow
@@ -545,6 +791,277 @@ def test_beta_dispatch_pins_one_full_main_reachable_commit() -> None:
     assert "git rev-parse --short" not in workflow
     assert ".startswith(expected_sha)" not in workflow
     assert "got_sha != expected_sha" in workflow
+    assert "SSH_ORIGINAL_COMMAND" in dispatcher
+    assert "^beta-backend\\ ([0-9a-f]{40})$" in dispatcher
+    assert 'PATH=/usr/sbin:/usr/bin:/sbin:/bin' in dispatcher
+
+
+@pytest.mark.parametrize(
+    "original_command",
+    [
+        "",
+        "beta-backend",
+        "beta-backend " + "a" * 39,
+        "beta-backend " + "A" * 40,
+        "beta-backend  " + "a" * 40,
+        " beta-backend " + "a" * 40,
+        "beta-backend " + "a" * 40 + " ",
+        "beta-backend " + "a" * 40 + "; id",
+        "beta-backend\t" + "a" * 40,
+        "beta-backend " + "a" * 40 + "\nwhoami",
+        "deploy",
+        "phase-deploy",
+        "ews US,HK",
+    ],
+)
+def test_forced_dispatcher_rejects_every_noncanonical_original_command(
+    tmp_path: Path, original_command: str,
+) -> None:
+    dispatcher, record = _make_forced_dispatch_fixture(tmp_path)
+    result = subprocess.run(
+        [str(dispatcher)],
+        env={
+            **os.environ,
+            "PATH": str(tmp_path / "attacker-bin"),
+            "SSH_ORIGINAL_COMMAND": original_command,
+            "DISPATCH_RECORD": str(record),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 2, result.stderr
+    assert not record.exists()
+
+
+def test_forced_dispatcher_passes_only_the_exact_full_sha_and_rejects_arguments(
+    tmp_path: Path,
+) -> None:
+    dispatcher, record = _make_forced_dispatch_fixture(tmp_path)
+    deploy_sha = "b" * 40
+    env = {
+        **os.environ,
+        "PATH": str(tmp_path / "attacker-bin"),
+        "SSH_ORIGINAL_COMMAND": f"beta-backend {deploy_sha}",
+        "STRUCTURAL_BETA_REPO": "/attacker/repository",
+        "GIT_DIR": "/attacker/git-dir",
+    }
+
+    accepted = subprocess.run(
+        [str(dispatcher)], env=env, capture_output=True, text=True, check=False
+    )
+    assert accepted.returncode == 0, accepted.stderr
+    assert record.read_text(encoding="utf-8").splitlines() == [
+        "beta", "1", deploy_sha, "unset", "unset",
+    ]
+
+    record.unlink()
+    rejected = subprocess.run(
+        [str(dispatcher), "unexpected"],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert rejected.returncode == 2, rejected.stderr
+    assert not record.exists()
+
+    env["SSH_ORIGINAL_COMMAND"] = f"phase-deploy {deploy_sha}"
+    env["STRUCTURAL_PHASE_REPO"] = "/attacker/phase"
+    env["GIT_WORK_TREE"] = "/attacker/work-tree"
+    phase = subprocess.run(
+        [str(dispatcher)], env=env, capture_output=True, text=True, check=False
+    )
+    assert phase.returncode == 0, phase.stderr
+    assert record.read_text(encoding="utf-8").splitlines() == [
+        "phase", "1", deploy_sha, "unset", "unset",
+    ]
+
+
+def test_dispatcher_installer_is_idempotent_atomic_and_checkable(tmp_path: Path) -> None:
+    env, install_dir, authorized_keys, key_blob = _dispatcher_install_env(tmp_path)
+    unrelated = authorized_keys.read_text(encoding="utf-8")
+
+    installed = subprocess.run(
+        [str(DISPATCH_INSTALLER)], env=env, capture_output=True, text=True, check=False
+    )
+    assert installed.returncode == 0, installed.stderr
+    checked = subprocess.run(
+        [str(DISPATCH_INSTALLER), "--check"],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert checked.returncode == 0, checked.stderr
+    expected_line = (
+        f'restrict,command="{install_dir}/deploy-dispatcher.sh" '
+        f"ssh-ed25519 {key_blob} structural-deploy"
+    )
+    content = authorized_keys.read_text(encoding="utf-8")
+    assert content.startswith(unrelated)
+    assert content.splitlines().count(expected_line) == 1
+    assert stat.S_IMODE(authorized_keys.stat().st_mode) == 0o600
+    for name, source in (
+        ("install-nginx-privacy-vhost.sh", ROOT / "scripts" / "install-nginx-privacy-vhost.sh"),
+        ("deploy-phase-detector-vps.sh", PHASE_DEPLOY_ENGINE),
+        ("deploy-phase-detector-entrypoint.sh", ROOT / "scripts" / "deploy-phase-detector-entrypoint.sh"),
+        ("deploy-dispatcher.sh", FORCED_DISPATCHER),
+        ("deploy-beta-backend.sh", DISPATCH_ENTRYPOINT),
+    ):
+        installed_script = install_dir / name
+        assert installed_script.read_bytes() == source.read_bytes()
+        assert stat.S_IMODE(installed_script.stat().st_mode) == 0o755
+
+    repeated = subprocess.run(
+        [str(DISPATCH_INSTALLER)], env=env, capture_output=True, text=True, check=False
+    )
+    assert repeated.returncode == 0, repeated.stderr
+    assert authorized_keys.read_text(encoding="utf-8").splitlines().count(expected_line) == 1
+
+
+def test_dispatcher_installer_ignores_pythonpath_and_shell_startup_injection(
+    tmp_path: Path,
+) -> None:
+    env, _install_dir, _authorized_keys, _key_blob = _dispatcher_install_env(tmp_path)
+    poison = tmp_path / "poison"
+    poison.mkdir()
+    marker = tmp_path / "pythonpath-imported"
+    (poison / "shlex.py").write_text(
+        f"from pathlib import Path\nPath({str(marker)!r}).write_text('imported')\n"
+        "raise RuntimeError('PYTHONPATH shadow executed')\n",
+        encoding="utf-8",
+    )
+    shell_marker = tmp_path / "shell-startup-executed"
+    bash_env = tmp_path / "bash-env"
+    bash_env.write_text(f"printf injected > {shlex.quote(str(shell_marker))}\n")
+    env.update({"PYTHONPATH": str(poison), "BASH_ENV": str(bash_env)})
+
+    result = subprocess.run(
+        [str(DISPATCH_INSTALLER)], env=env, capture_output=True, text=True, check=False
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert not marker.exists()
+    assert not shell_marker.exists()
+
+
+def test_dispatcher_installer_rejects_non_ssh_wire_key_before_mutation(
+    tmp_path: Path,
+) -> None:
+    env, install_dir, authorized_keys, _key_blob = _dispatcher_install_env(tmp_path)
+    public_key = Path(env["STRUCTURAL_DEPLOY_PUBLIC_KEY_FILE"])
+    public_key.write_text(
+        "ssh-ed25519 c3RydWN0dXJhbC1kZXBsb3kta2V5LW1hdGVyaWFs invalid\n",
+        encoding="utf-8",
+    )
+    authorized_before = authorized_keys.read_bytes()
+
+    result = subprocess.run(
+        [str(DISPATCH_INSTALLER)], env=env, capture_output=True, text=True, check=False
+    )
+
+    assert result.returncode != 0
+    assert "not accepted by ssh-keygen" in result.stderr
+    assert not list(install_dir.iterdir())
+    assert authorized_keys.read_bytes() == authorized_before
+
+
+def test_dispatcher_installer_check_fails_closed_on_tamper(tmp_path: Path) -> None:
+    env, install_dir, authorized_keys, _key_blob = _dispatcher_install_env(tmp_path)
+    installed = subprocess.run(
+        [str(DISPATCH_INSTALLER)], env=env, capture_output=True, text=True, check=False
+    )
+    assert installed.returncode == 0, installed.stderr
+
+    (install_dir / "deploy-beta-backend.sh").write_text("#!/bin/sh\nexit 0\n")
+    rejected_script = subprocess.run(
+        [str(DISPATCH_INSTALLER), "--check"],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert rejected_script.returncode != 0
+    assert "differs from tracked source" in rejected_script.stderr
+
+    healed = subprocess.run(
+        [str(DISPATCH_INSTALLER)], env=env, capture_output=True, text=True, check=False
+    )
+    assert healed.returncode == 0, healed.stderr
+    authorized_keys.write_text(authorized_keys.read_text().replace("restrict,", "no-pty,"))
+    rejected_key = subprocess.run(
+        [str(DISPATCH_INSTALLER), "--check"],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert rejected_key.returncode != 0
+    assert "missing or non-canonical" in rejected_key.stderr
+
+
+def test_dispatcher_installer_rejects_duplicate_key_and_symlink_target(
+    tmp_path: Path,
+) -> None:
+    env, install_dir, authorized_keys, key_blob = _dispatcher_install_env(tmp_path)
+    duplicate = f"ssh-ed25519 {key_blob} duplicate\n"
+    authorized_keys.write_text(duplicate + duplicate, encoding="utf-8")
+    duplicate_result = subprocess.run(
+        [str(DISPATCH_INSTALLER)], env=env, capture_output=True, text=True, check=False
+    )
+    assert duplicate_result.returncode != 0
+    assert "appears more than once" in duplicate_result.stderr
+    assert not list(install_dir.iterdir())
+
+    authorized_keys.write_text("# no deployment key\n", encoding="utf-8")
+    victim = tmp_path / "operator-script"
+    victim.write_text("operator bytes\n", encoding="utf-8")
+    (install_dir / "deploy-dispatcher.sh").symlink_to(victim)
+    symlink_result = subprocess.run(
+        [str(DISPATCH_INSTALLER)], env=env, capture_output=True, text=True, check=False
+    )
+    assert symlink_result.returncode != 0
+    assert "unsafe installed script" in symlink_result.stderr
+    assert victim.read_text(encoding="utf-8") == "operator bytes\n"
+
+
+def test_dispatcher_installer_preflights_every_target_before_mutation(
+    tmp_path: Path,
+) -> None:
+    env, install_dir, authorized_keys, _key_blob = _dispatcher_install_env(tmp_path)
+    dispatcher = install_dir / "deploy-dispatcher.sh"
+    phase = install_dir / "deploy-phase-detector-entrypoint.sh"
+    dispatcher.write_text("old dispatcher\n", encoding="utf-8")
+    phase.write_text("old phase entrypoint\n", encoding="utf-8")
+    dispatcher.chmod(0o700)
+    phase.chmod(0o700)
+    (install_dir / "deploy-beta-backend.sh").mkdir()
+    authorized_before = authorized_keys.read_bytes()
+
+    result = subprocess.run(
+        [str(DISPATCH_INSTALLER)], env=env, capture_output=True, text=True, check=False
+    )
+
+    assert result.returncode != 0
+    assert "unsafe installed script" in result.stderr
+    assert dispatcher.read_text(encoding="utf-8") == "old dispatcher\n"
+    assert phase.read_text(encoding="utf-8") == "old phase entrypoint\n"
+    assert stat.S_IMODE(dispatcher.stat().st_mode) == 0o700
+    assert stat.S_IMODE(phase.stat().st_mode) == 0o700
+    assert authorized_keys.read_bytes() == authorized_before
+    assert not list(install_dir.glob(".*.*"))
+
+
+def test_dispatcher_installer_records_replace_before_directory_fsync() -> None:
+    installer = DISPATCH_INSTALLER.read_text(encoding="utf-8")
+    commit_loop = installer.index("for temporary, target in staged:")
+    replace = installer.index("commit_stage(temporary, target)", commit_loop)
+    record = installer.index("committed.append(target)", replace)
+    fsync = installer.index("fsync_parent(target)", record)
+
+    assert replace < record < fsync
 
 
 @pytest.mark.parametrize(
@@ -608,11 +1125,133 @@ def test_dispatcher_pins_event_sha_when_main_advances_before_dispatch(
     assert _git(repository, "rev-parse", "HEAD") == first
 
 
+def test_phase_installed_engine_pins_requested_sha_when_main_advances_before_dispatch(
+    tmp_path: Path,
+) -> None:
+    repository, first, second, _side = _make_dispatch_repository(tmp_path)
+    env = _dispatch_env(tmp_path, repository, tmp_path / "unused-beta-result")
+    env.update({
+        "STRUCTURAL_DEPLOY_LOCK_HELD": "1",
+        "STRUCTURAL_PHASE_DEPLOY_LIBRARY_ONLY": "1",
+        "PHASE_DEPLOY_ENGINE": str(PHASE_DEPLOY_ENGINE),
+        "REQUESTED_SHA": first,
+    })
+    _bind_phase_test_isolation(env, repository, tmp_path)
+
+    result = subprocess.run(
+        [
+            "bash",
+            "-c",
+            'source "$PHASE_DEPLOY_ENGINE"; phase_sync_exact_commit "$REQUESTED_SHA"',
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert _git(repository, "rev-parse", "refs/remotes/origin/main") == second
+    assert _git(repository, "rev-parse", "HEAD") == first
+
+
 def test_beta_workflow_tracks_privacy_installation_inputs() -> None:
     workflow = WORKFLOW.read_text(encoding="utf-8")
 
     assert "- 'scripts/install-nginx-privacy-vhost.sh'" in workflow
     assert "- 'web/scripts/beta-structural.nginx.conf'" in workflow
+    assert "- 'scripts/deploy-dispatcher.sh'" in workflow
+    assert "- 'scripts/install-deploy-dispatcher.sh'" in workflow
+    assert "needs: release-contracts" in workflow
+    assert 'python-version: "3.11"' in workflow
+    assert "tests/test_deploy_versioned_runtime.py" in workflow
+    assert "tests/test_nginx_privacy_contract.py" in workflow
+    assert "tests/test_production_smoke.py" in workflow
+    assert "web/backend/tests/test_version.py" in workflow
+
+
+def test_product_deploy_queues_are_isolated_while_the_host_lock_serializes() -> None:
+    beta_workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+    phase_workflow = yaml.safe_load(PHASE_WORKFLOW.read_text(encoding="utf-8"))
+    beta_concurrency = beta_workflow["concurrency"]
+    phase_concurrency = phase_workflow["concurrency"]
+
+    assert beta_concurrency == {
+        "group": "deploy-beta-backend",
+        "cancel-in-progress": False,
+        "queue": "single",
+    }
+    assert phase_concurrency == {
+        "group": "deploy-phase-detector",
+        "cancel-in-progress": False,
+        "queue": "single",
+    }
+    assert beta_concurrency["group"] != phase_concurrency["group"]
+    assert beta_workflow["jobs"]["release-contracts"]["timeout-minutes"] == 20
+    assert beta_workflow["jobs"]["deploy"]["timeout-minutes"] == 90
+    assert phase_workflow["jobs"]["deploy"]["timeout-minutes"] == 90
+
+    beta_entrypoint = DISPATCH_ENTRYPOINT.read_text(encoding="utf-8")
+    beta_deploy = DEPLOY.read_text(encoding="utf-8")
+    phase_deploy = PHASE_DEPLOY_ENGINE.read_text(encoding="utf-8")
+    assert beta_entrypoint.count("flock -w 2700 9") == 1
+    assert beta_deploy.count("flock -w 2700 9") == 1
+    assert phase_deploy.count("flock -w 2700 9") == 2
+    assert "flock -w 900 9" not in beta_entrypoint
+    assert "flock -w 900 9" not in beta_deploy
+    assert "flock -w 900 9" not in phase_deploy
+
+
+def test_phase_workflow_uses_python_311_for_the_complete_syntax_gate() -> None:
+    workflow = PHASE_WORKFLOW.read_text(encoding="utf-8")
+    setup_at = workflow.index("- name: Set up Phase API Python")
+    syntax_at = workflow.index("- name: Verify repository Python 3.11 syntax")
+    validation_at = workflow.index(
+        "- name: Validate Phase API and privacy release contracts"
+    )
+
+    assert setup_at < syntax_at < validation_at
+    assert "python-version: '3.11'" in workflow[setup_at:syntax_at]
+    assert "python-version: '3.12'" not in workflow
+    assert "run: python -I scripts/check_python_syntax.py" in workflow[
+        syntax_at:validation_at
+    ]
+    assert "python -m venv /tmp/phase-api-import" in workflow[validation_at:]
+
+
+def test_phase_workflow_uses_the_same_strict_exact_sha_dispatcher() -> None:
+    workflow = PHASE_WORKFLOW.read_text(encoding="utf-8")
+    entrypoint = PHASE_DISPATCH_ENTRYPOINT.read_text(encoding="utf-8")
+    deploy = PHASE_DEPLOY_ENGINE.read_text(encoding="utf-8")
+
+    assert '"phase-deploy $DEPLOY_SHA"' in workflow
+    assert "DEPLOY_SHA: ${{ github.sha }}" in workflow
+    assert "ref: ${{ github.sha }}" in workflow
+    assert 'test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"' in workflow
+    assert "^[0-9a-f]{40}$" in entrypoint
+    assert 'PHASE_DEPLOY_COMMIT="$DEPLOY_SHA"' in entrypoint
+    assert 'ENGINE="$SCRIPT_DIR/deploy-phase-detector-vps.sh"' in entrypoint
+    assert 'NGINX_PRIVACY_INSTALLER="$PHASE_ENGINE_DIR/install-nginx-privacy-vhost.sh"' in deploy
+    assert '$REPO/scripts/install-nginx-privacy-vhost.sh' not in deploy
+    assert 'merge-base --is-ancestor "$deploy_sha" "$fetched_main_sha"' in deploy
+    assert 'reset --hard "$deploy_sha"' in deploy
+    assert "git reset --hard origin/main" not in deploy
+
+    recover_at = deploy.index("recover_phase_outer_transaction || {", deploy.index("if [[ \"${STRUCTURAL_PHASE_RECOVERY_ONLY"))
+    previous_at = deploy.index('PREVIOUS_SHA="$(git -C "$REPO" rev-parse --verify HEAD)"', recover_at)
+    journal_at = deploy.index("begin_phase_outer_transaction || {", previous_at)
+    reset_at = deploy.index('phase_sync_exact_commit "$DEPLOY_SHA"', journal_at)
+    assert recover_at < previous_at < journal_at < reset_at
+
+
+def test_ews_workflow_is_a_read_only_frozen_snapshot_monitor() -> None:
+    workflow = EWS_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "EWS Frozen Snapshot Monitor" in workflow
+    assert "VPS_DEPLOY_KEY" not in workflow
+    assert "ssh " not in workflow
+    assert 'payload.get("n_tickers") == 597' in workflow
+    assert 'payload.get("price_provenance") == "demo"' in workflow
 
 
 def test_smoke_binds_each_trigger_to_an_explicit_deployed_beta_release() -> None:
@@ -626,6 +1265,9 @@ def test_smoke_binds_each_trigger_to_an_explicit_deployed_beta_release() -> None
     assert "actions/workflows/deploy-beta-backend.yml/runs" in workflow
     assert "status=success" in workflow
     assert ".workflow_runs[0].head_sha" in workflow
+    assert "ref: ${{ steps.release.outputs.sha }}" in workflow
+    assert 'python-version: "3.11"' in workflow
+    assert 'test "$(git rev-parse HEAD)" = "$EXPECTED_BETA_SHA"' in workflow
     assert '--expected-git-sha "$EXPECTED_BETA_SHA"' in workflow
     assert '--expected-git-sha "$(git rev-parse HEAD)"' not in workflow
 
@@ -1043,6 +1685,7 @@ def test_known_auth_dropin_migrates_transactionally_and_rolls_back(
         f"[Service]\nEnvironmentFile={auth_env}\n", encoding="utf-8"
     )
     dropin.chmod(0o600)
+    expected_dropin = f"[Service]\nEnvironmentFile={auth_env}"
 
     result = _bash(
         f'RUNTIME_ROOT={shlex.quote(str(runtime_root))}; '
@@ -1059,7 +1702,7 @@ def test_known_auth_dropin_migrates_transactionally_and_rolls_back(
         'systemd_unit_restore; '
         'test "$(cat "$SYSTEMD_UNIT_TARGET")" = "old unit"; '
         f'test "$(cat "$SYSTEMD_DROPIN_TARGET")" = '
-        f'{shlex.quote(f"[Service]\nEnvironmentFile={auth_env}")}',
+        f'{shlex.quote(expected_dropin)}',
     )
 
     assert result.returncode == 0, result.stderr
@@ -1900,6 +2543,74 @@ def test_disk_space_gate_fails_before_runtime_build(tmp_path: Path) -> None:
         env={"STRUCTURAL_RUNTIME_MIN_FREE_KB": str(10**18)},
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_runtime_proofs_ignore_cwd_and_pythonpath_distribution_injection(
+    tmp_path: Path,
+) -> None:
+    requirements_sha = "9" * 64
+    runtime_root = tmp_path / "runtime"
+    release = _make_runtime_release(
+        runtime_root / "releases", requirements_sha=requirements_sha
+    )
+    current = runtime_root / "current"
+    current.symlink_to(release)
+
+    ambient_cwd = tmp_path / "ambient-cwd"
+    ambient_cwd.mkdir()
+    cwd_metadata = ambient_cwd / "structural_isomorphism.egg-info"
+    cwd_metadata.mkdir()
+    (cwd_metadata / "PKG-INFO").write_text(
+        "Metadata-Version: 2.1\nName: structural-isomorphism\nVersion: 9.9.9\n",
+        encoding="utf-8",
+    )
+    (ambient_cwd / "json.py").write_text(
+        "raise RuntimeError('cwd import injection executed')\n", encoding="utf-8"
+    )
+
+    pythonpath_poison = tmp_path / "pythonpath-poison"
+    pythonpath_poison.mkdir()
+    path_metadata = pythonpath_poison / "ambient_dependency-8.8.8.dist-info"
+    path_metadata.mkdir()
+    (path_metadata / "METADATA").write_text(
+        "Metadata-Version: 2.1\nName: ambient-dependency\nVersion: 8.8.8\n",
+        encoding="utf-8",
+    )
+    (pythonpath_poison / "pathlib.py").write_text(
+        "raise RuntimeError('PYTHONPATH import injection executed')\n",
+        encoding="utf-8",
+    )
+
+    generated = tmp_path / "generated-attestation.json"
+    public = tmp_path / "public" / "runtime-attestation.json"
+    freeze_sha = release.name.rsplit("-", 1)[1]
+    result = _bash(
+        f"RUNTIME_ROOT={shlex.quote(str(runtime_root))}; "
+        f'RUNTIME_RELEASES="$RUNTIME_ROOT/releases"; RUNTIME_CURRENT="$RUNTIME_ROOT/current"; '
+        f"RUNTIME_RELEASE={shlex.quote(str(release))}; "
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        f"RUNTIME_ID={shlex.quote(release.name)}; "
+        f"RUNTIME_REQUIREMENTS_SHA256={requirements_sha}; "
+        f"RUNTIME_FREEZE_SHA256={freeze_sha}; "
+        f"runtime_attest_release {shlex.quote(str(release))} {shlex.quote(str(generated))}; "
+        f"runtime_live_validate_release {shlex.quote(str(release))}; "
+        f"runtime_publish_attestation {shlex.quote(str(public))} "
+        f"{'a' * 40} 2026-07-15T00:00:00Z",
+        env={"PYTHONPATH": str(pythonpath_poison)},
+        cwd=ambient_cwd,
+    )
+
+    assert result.returncode == 0, result.stderr
+    generated_payload = json.loads(generated.read_text(encoding="utf-8"))
+    assert generated_payload["installed_package_count"] == len(
+        _RUNTIME_PACKAGE_VERSIONS
+    )
+    assert generated_payload["installed_freeze_sha256"] == freeze_sha
+    payload = json.loads(public.read_text(encoding="utf-8"))
+    assert payload["installed_package_count"] == len(_RUNTIME_PACKAGE_VERSIONS)
+    assert payload["installed_freeze_sha256"] == freeze_sha
+    assert "ambient-dependency" not in public.read_text(encoding="utf-8")
+    assert "structural-isomorphism" not in public.read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize("invalid_sha", ["a" * 12, "A" * 40, "g" * 40])
