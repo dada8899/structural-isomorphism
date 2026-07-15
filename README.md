@@ -44,7 +44,7 @@ The v0.5 draft consolidates SESSION-25 work since the v0.4 cut. v0.4 outputs abo
 - **Legacy internal PASS count (submission-blocked)**: the v0.5 draft counted 11 PASS-CONFIRMED-or-stronger, but `schelling_credible_commitment` conflicts with the B1 taxonomy and the real WTO sign reversal. It must be excluded from universality PASS counts pending external review.
 - **3 methodology increments** (§3.6.5 (s\*, k) reparametrisation / §3.6.6 multilayer test pattern / §3.6.7 head-vs-tail-aware LLM validator) with one full applicability retrospective and three pre-registrations under [paper/v0.5-draft/preregistrations/](paper/v0.5-draft/preregistrations/).
 - **Pythia LAMBADA cross-fit (§4)**: 100 % real per-checkpoint evaluation across 8 sizes × 27 checkpoints. v1 (L∞ free) and v2 (L∞ ∈ [1.0, 5.0]) both deliver TIGHT_UNIVERSALITY (CV ≈ 0.12). **The TIGHT verdict is eval-specific**: pooled across LAMBADA + train-loss sources, CV blows out to 0.58–1.49. The v0.4 BROAD_SPREAD verdict was an artefact of mixed 3-real + 3-synthetic train-loss provenance; the universality claim is a property of *the LAMBADA-OpenAI loss curve*, not of the scaling-law family in general.
-- **arXiv status**: v0.4 preprint submission pending user action; v0.5 draft is *not* a submission, only an extension. See `release/arxiv-submission-receipt.txt` (to be populated).
+- **arXiv status**: neither the v0.4 preprint nor the v0.5 extension has been submitted. The claim/evidence and external-review gates remain incomplete; do not submit until both pass.
 - **No new PyPI packages**; no new datasets; v0.5 inherits v0.4's `dataset/v1/` and the three published PyPI packages unchanged.
 
 ## What's in this repo
@@ -54,7 +54,7 @@ The v0.5 draft consolidates SESSION-25 work since the v0.4 cut. v0.4 outputs abo
 <td width="33%" valign="top">
 
 ### 1. SOC pipeline
-A single shared Clauset MLE module (`v4/lib/soc_pipeline.py`, 339 LOC). Runs unchanged across 13 empirical systems and 4 null controls. Reports power-law vs lognormal vs exponential, with pre-registered exponent bands.
+A single shared Clauset MLE module (`v4/lib/soc_pipeline.py`, 339 LOC). Runs unchanged across 13 empirical systems and 4 null controls. CVE, FDNY and WSB have timestamped preregistrations; broader historical runs were not uniformly preregistered.
 
 [**→ Pipeline docs**](docs/pipeline.md)
 

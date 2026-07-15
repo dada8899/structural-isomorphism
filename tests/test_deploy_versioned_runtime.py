@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import os
@@ -11,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -326,17 +328,47 @@ _RUNTIME_PACKAGE_VERSIONS = {
 }
 
 
+def _record_line(path: str, payload: bytes) -> str:
+    digest = base64.urlsafe_b64encode(hashlib.sha256(payload).digest()).rstrip(b"=")
+    return f"{path},sha256={digest.decode('ascii')},{len(payload)}\n"
+
+
+def _replace_record_line(record: Path, path: str, payload: bytes) -> None:
+    lines = record.read_text(encoding="utf-8").splitlines(keepends=True)
+    matches = [index for index, line in enumerate(lines) if line.split(",", 1)[0] == path]
+    assert len(matches) == 1
+    lines[matches[0]] = _record_line(path, payload)
+    record.write_text("".join(lines), encoding="utf-8")
+
+
+def _composite_freeze_sha256(graph_sha256: str, content_sha256: str) -> str:
+    payload = (
+        f"resolved_graph_sha256={graph_sha256}\n"
+        f"runtime_content_sha256={content_sha256}\n"
+    ).encode("ascii")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _remove_runtime_test_bytecode(environment: Path) -> None:
+    site_packages = _runtime_site_packages(environment)
+    for pyc in site_packages.rglob("*.pyc"):
+        pyc.unlink()
+    for cache in sorted(site_packages.rglob("__pycache__"), reverse=True):
+        if cache.exists():
+            cache.rmdir()
+
+
 def _runtime_template() -> Path:
     global _RUNTIME_TEMPLATE
     if _RUNTIME_TEMPLATE is not None:
         return _RUNTIME_TEMPLATE
     template = Path(tempfile.mkdtemp(prefix="structural-runtime-test-template-"))
-    subprocess.run(
-        [sys.executable, "-m", "venv", str(template)],
-        capture_output=True,
-        text=True,
-        check=True,
+    created = _bash(
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        f"runtime_create_venv_without_pip {shlex.quote(str(template))}; "
+        f"runtime_bootstrap_pip {shlex.quote(str(template))}"
     )
+    assert created.returncode == 0, created.stderr
     site_packages_result = subprocess.run(
         [
             str(template / "bin" / "python"),
@@ -351,18 +383,221 @@ def _runtime_template() -> Path:
     for package, version in _RUNTIME_PACKAGE_VERSIONS.items():
         package_dir = site_packages / package
         package_dir.mkdir()
-        (package_dir / "__init__.py").write_text(
-            f"__version__ = {version!r}\n", encoding="utf-8"
-        )
-        metadata_dir = site_packages / f"{package}-{version}.dist-info"
+        init = package_dir / "__init__.py"
+        init.write_text(f"__version__ = {version!r}\n", encoding="utf-8")
+        metadata_name = f"{package}-{version}.dist-info"
+        metadata_dir = site_packages / metadata_name
         metadata_dir.mkdir()
-        (metadata_dir / "METADATA").write_text(
+        metadata_file = metadata_dir / "METADATA"
+        metadata_file.write_text(
             f"Metadata-Version: 2.1\nName: {package}\nVersion: {version}\n",
             encoding="utf-8",
         )
-        (metadata_dir / "RECORD").write_text("", encoding="utf-8")
+        (metadata_dir / "RECORD").write_text(
+            _record_line(f"{package}/__init__.py", init.read_bytes())
+            + _record_line(f"{metadata_name}/METADATA", metadata_file.read_bytes())
+            + f"{metadata_name}/RECORD,,\n",
+            encoding="utf-8",
+        )
+    _remove_runtime_test_bytecode(template)
     _RUNTIME_TEMPLATE = template
     return template
+
+
+def _runtime_site_packages(release: Path) -> Path:
+    result = subprocess.run(
+        [
+            str(release / "bin" / "python"),
+            "-I",
+            "-B",
+            "-c",
+            "import sysconfig; print(sysconfig.get_paths()['purelib'])",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+    )
+    return Path(result.stdout.strip())
+
+
+def _replace_runtime_distribution(
+    release: Path, package: str, version: str | None
+) -> None:
+    site_packages = _runtime_site_packages(release)
+    stem = package.replace("-", "_")
+    for pattern in (f"{stem}-*.dist-info", f"{stem}.egg-info"):
+        for metadata_dir in site_packages.glob(pattern):
+            shutil.rmtree(metadata_dir)
+    if package == "setuptools":
+        for package_name in ("setuptools", "pkg_resources"):
+            package_path = site_packages / package_name
+            if package_path.exists() or package_path.is_symlink():
+                if package_path.is_symlink():
+                    package_path.unlink()
+                else:
+                    shutil.rmtree(package_path)
+        precedence = site_packages / "distutils-precedence.pth"
+        if precedence.exists() or precedence.is_symlink():
+            precedence.unlink()
+        local_hack = site_packages / "_distutils_hack"
+        if local_hack.exists() or local_hack.is_symlink():
+            if local_hack.is_symlink():
+                local_hack.unlink()
+            else:
+                shutil.rmtree(local_hack)
+    if version is None:
+        return
+    package_dir = site_packages / stem
+    package_dir.mkdir(exist_ok=True)
+    init = package_dir / "__init__.py"
+    init.write_text(f"__version__ = {version!r}\n", encoding="utf-8")
+    metadata_name = f"{stem}-{version}.dist-info"
+    metadata_dir = site_packages / metadata_name
+    metadata_dir.mkdir()
+    metadata_file = metadata_dir / "METADATA"
+    metadata_file.write_text(
+        f"Metadata-Version: 2.1\nName: {package}\nVersion: {version}\n",
+        encoding="utf-8",
+    )
+    (metadata_dir / "RECORD").write_text(
+        _record_line(f"{stem}/__init__.py", init.read_bytes())
+        + _record_line(f"{metadata_name}/METADATA", metadata_file.read_bytes())
+        + f"{metadata_name}/RECORD,,\n",
+        encoding="utf-8",
+    )
+
+
+def _install_owned_setuptools_hook(release: Path) -> tuple[Path, Path]:
+    site_packages = _runtime_site_packages(release)
+    local_hack = site_packages / "_distutils_hack"
+    local_hack.mkdir()
+    hack_init = local_hack / "__init__.py"
+    hack_init.write_text("def add_shim(): pass\n", encoding="utf-8")
+    precedence = site_packages / "distutils-precedence.pth"
+    precedence.write_text(
+        "import os; var = 'SETUPTOOLS_USE_DISTUTILS'; "
+        "enabled = os.environ.get(var, 'local') == 'local'; "
+        "enabled and __import__('_distutils_hack').add_shim();\n",
+        encoding="utf-8",
+    )
+    record = site_packages / "setuptools-83.0.0.dist-info" / "RECORD"
+    with record.open("a", encoding="utf-8") as stream:
+        stream.write(_record_line("distutils-precedence.pth", precedence.read_bytes()))
+        stream.write(
+            _record_line("_distutils_hack/__init__.py", hack_init.read_bytes())
+        )
+    return site_packages, hack_init
+
+
+def _make_runtime_release_writable(release: Path) -> None:
+    for root, directories, files in os.walk(release):
+        for name in [".", *directories, *files]:
+            path = Path(root) if name == "." else Path(root, name)
+            if not path.is_symlink():
+                path.chmod(path.stat().st_mode | 0o700)
+
+
+def _rebind_runtime_release_identity(release: Path) -> Path:
+    attestation_path = release / "attestation.json"
+    payload = json.loads(attestation_path.read_text(encoding="utf-8"))
+    graph_sha = hashlib.sha256(
+        (release / "resolved-packages.txt").read_bytes()
+    ).hexdigest()
+    proof = _bash(
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        "runtime_validate_canonical_package_set "
+        f"{shlex.quote(str(release))} "
+        f"{shlex.quote(str(release / 'resolved-packages.txt'))} {graph_sha}"
+    )
+    assert proof.returncode == 0, proof.stderr
+    count_raw, content_sha = proof.stdout.strip().split("\t")
+    freeze_sha = _composite_freeze_sha256(graph_sha, content_sha)
+    runtime_id = (
+        f"{payload['python_abi']}-{payload['requirements_sha256']}-{freeze_sha}"
+    )
+    target = release.with_name(runtime_id)
+    payload.update(
+        {
+            "schema_version": 2,
+            "runtime_id": runtime_id,
+            "resolved_graph_sha256": graph_sha,
+            "runtime_content_sha256": content_sha,
+            "installed_freeze_sha256": freeze_sha,
+            "installed_package_count": int(count_raw),
+        }
+    )
+    attestation_path.write_text(
+        json.dumps(payload, ensure_ascii=True, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    release.rename(target)
+    for root, directories, files in os.walk(target):
+        for name in [".", *directories, *files]:
+            path = Path(root) if name == "." else Path(root, name)
+            if not path.is_symlink():
+                path.chmod(path.stat().st_mode & ~0o222)
+    return target
+
+
+def _downgrade_runtime_release_to_schema1(release: Path) -> Path:
+    _make_runtime_release_writable(release)
+    attestation_path = release / "attestation.json"
+    payload = json.loads(attestation_path.read_text(encoding="utf-8"))
+    graph_sha = payload.pop("resolved_graph_sha256")
+    payload.pop("runtime_content_sha256")
+    runtime_id = (
+        f"{payload['python_abi']}-{payload['requirements_sha256']}-{graph_sha}"
+    )
+    payload.update(
+        {
+            "schema_version": 1,
+            "runtime_id": runtime_id,
+            "installed_freeze_sha256": graph_sha,
+        }
+    )
+    attestation_path.write_text(
+        json.dumps(payload, ensure_ascii=True, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    target = release.with_name(runtime_id)
+    release.rename(target)
+    for root, directories, files in os.walk(target):
+        for name in [".", *directories, *files]:
+            path = Path(root) if name == "." else Path(root, name)
+            if not path.is_symlink():
+                path.chmod(path.stat().st_mode & ~0o222)
+    return target
+
+
+def _write_runtime_test_wheel(
+    wheelhouse: Path, package: str, version: str
+) -> None:
+    normalized = package.replace("-", "_")
+    metadata_dir = f"{normalized}-{version}.dist-info"
+    files = {
+        f"{normalized}/__init__.py": f"__version__ = {version!r}\n",
+        f"{metadata_dir}/METADATA": (
+            "Metadata-Version: 2.1\n"
+            f"Name: {package}\n"
+            f"Version: {version}\n"
+            + ("Provides-Extra: standard\n" if package == "uvicorn" else "")
+        ),
+        f"{metadata_dir}/WHEEL": (
+            "Wheel-Version: 1.0\n"
+            "Generator: structural-runtime-test\n"
+            "Root-Is-Purelib: true\n"
+            "Tag: py3-none-any\n"
+        ),
+    }
+    record = f"{metadata_dir}/RECORD"
+    files[record] = "".join(
+        _record_line(name, content.encode("utf-8")) for name, content in files.items()
+    ) + f"{record},,\n"
+    wheel = wheelhouse / f"{normalized}-{version}-py3-none-any.whl"
+    with zipfile.ZipFile(wheel, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for name, content in files.items():
+            archive.writestr(name, content)
 
 
 def _make_runtime_release(
@@ -371,38 +606,75 @@ def _make_runtime_release(
     abi: str | None = None,
     requirements_sha: str,
     freeze_sha: str | None = None,
+    resolved_package_versions: dict[str, str] | None = None,
 ) -> Path:
     template = _runtime_template()
     abi = abi or sys.implementation.cache_tag
+    package_versions = {
+        **_RUNTIME_PACKAGE_VERSIONS,
+        **(resolved_package_versions or {}),
+    }
     graph = "".join(
-        f"{name}=={_RUNTIME_PACKAGE_VERSIONS[name]}\n"
-        for name in sorted(_RUNTIME_PACKAGE_VERSIONS)
+        f"{name}=={package_versions[name]}\n" for name in sorted(package_versions)
     )
-    actual_freeze_sha = hashlib.sha256(graph.encode("utf-8")).hexdigest()
+    graph_sha = hashlib.sha256(graph.encode("utf-8")).hexdigest()
+    release = releases / f".fixture-staging-{requirements_sha}"
+    release.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(template, release, symlinks=True)
+    for package, version in (resolved_package_versions or {}).items():
+        _replace_runtime_distribution(release, package, version)
+    (release / ".complete").touch()
+    (release / "resolved-packages.txt").write_text(graph, encoding="utf-8")
+    (release / "installed-packages.txt").write_text(graph, encoding="utf-8")
+    _remove_runtime_test_bytecode(release)
+    proof = _bash(
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        "runtime_validate_canonical_package_set "
+        f"{shlex.quote(str(release))} "
+        f"{shlex.quote(str(release / 'resolved-packages.txt'))} {graph_sha}",
+        env={"STRUCTURAL_EXPECTED_PYTHON_ABI": abi},
+    )
+    assert proof.returncode == 0, proof.stderr
+    installed_count_raw, content_sha = proof.stdout.strip().split("\t")
+    installed_count = int(installed_count_raw)
+    actual_freeze_sha = _composite_freeze_sha256(graph_sha, content_sha)
     if freeze_sha is not None:
         assert freeze_sha == actual_freeze_sha
     freeze_sha = actual_freeze_sha
-    release = releases / f"{abi}-{requirements_sha}-{freeze_sha}"
-    release.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(template, release, symlinks=True)
-    (release / ".complete").touch()
+    final_release = releases / f"{abi}-{requirements_sha}-{freeze_sha}"
+    release.rename(final_release)
+    release = final_release
     python_version = subprocess.run(
-        [str(release / "bin" / "python"), "-c", "import platform; print(platform.python_version())"],
+        [
+            str(release / "bin" / "python"),
+            "-I",
+            "-B",
+            "-c",
+            "import platform; print(platform.python_version())",
+        ],
         capture_output=True,
         text=True,
         check=True,
+        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
     ).stdout.strip()
     (release / "attestation.json").write_text(
-        json.dumps({
-            "schema_version": 1,
-            "runtime_id": release.name,
-            "requirements_sha256": requirements_sha,
-            "installed_freeze_sha256": freeze_sha,
-            "installed_package_count": len(_RUNTIME_PACKAGE_VERSIONS),
-            "python_abi": abi,
-            "python_version": python_version,
-            **_RUNTIME_PACKAGE_VERSIONS,
-        }) + "\n",
+        json.dumps(
+            {
+                "schema_version": 2,
+                "runtime_id": release.name,
+                "requirements_sha256": requirements_sha,
+                "resolved_graph_sha256": graph_sha,
+                "runtime_content_sha256": content_sha,
+                "installed_freeze_sha256": freeze_sha,
+                "installed_package_count": installed_count,
+                "python_abi": abi,
+                "python_version": python_version,
+                **_RUNTIME_PACKAGE_VERSIONS,
+            },
+            ensure_ascii=True,
+            sort_keys=True,
+        )
+        + "\n",
         encoding="utf-8",
     )
     for root, directories, files in os.walk(release):
@@ -744,9 +1016,25 @@ def test_deploy_builds_before_sync_and_rolls_back_all_mutable_state() -> None:
     assert 'runtime_pip "$RUNTIME_BUILD_DIR" freeze --all' in helper
     assert "/bin/pip" not in helper
     assert 'runtime_pip "$release" check' in helper
-    assert '"$release/bin/python" -I - \\' in helper
-    assert '"$RUNTIME_CURRENT/bin/python" -I - \\' in helper
-    assert 'RUNTIME_BUILD_DIR="$RUNTIME_RELEASE"' in helper
+    assert 'Environment="PYTHONDONTWRITEBYTECODE=1"' in unit
+    assert 'Environment="SETUPTOOLS_USE_DISTUTILS=stdlib"' in unit
+    assert 'Environment="STRUCTURAL_PROJECT_ROOT=/root/Projects/structural-isomorphism"' in unit
+    assert 'Environment="PYTHONPATH=' not in unit
+    assert (
+        "/usr/bin/env PYTHONDONTWRITEBYTECODE=1 SETUPTOOLS_USE_DISTUTILS=stdlib "
+        "STRUCTURAL_PROJECT_ROOT=/root/Projects/structural-isomorphism" in unit
+    )
+    assert "/bin/python -I -B -m uvicorn" in unit
+    assert "export SETUPTOOLS_USE_DISTUTILS=stdlib" in deploy
+    assert "export PYTHONDONTWRITEBYTECODE=1" in deploy
+    assert '"$RUNTIME_CURRENT/bin/python" - <<' not in deploy
+    assert '"$RUNTIME_CURRENT/bin/python" -B -' in deploy
+    assert "systemd_validate_tracked_unit_contract" in deploy
+    assert "STRUCTURAL_PROJECT_ROOT=$project_root" in helper
+    assert '"$release/bin/python" -I -B - \\' in helper
+    assert '"$RUNTIME_CURRENT/bin/python" -I -B - \\' in helper
+    assert 'RUNTIME_RELEASE="$RUNTIME_RELEASES/$RUNTIME_ID"' in helper
+    assert '"$RUNTIME_RELEASES/.staging.' in helper
     assert 'mv "$RUNTIME_BUILD_DIR"' not in helper
     assert 'chmod -R a-w "$RUNTIME_BUILD_DIR"' in helper
     assert 'rsync -a --delete --checksum' in helper
@@ -765,13 +1053,267 @@ def test_deploy_builds_before_sync_and_rolls_back_all_mutable_state() -> None:
     assert 'systemctl show "$SERVICE" --property=DropInPaths --value' in deploy
     assert 'systemctl show "$SERVICE" --property=ExecStart --value' in deploy
     assert 'systemctl enable "$SERVICE"' in deploy
-    assert "ExecStart=/root/structural-runtime/current/bin/python" in unit
+    assert (
+        "SETUPTOOLS_USE_DISTUTILS=stdlib "
+        "STRUCTURAL_PROJECT_ROOT=/root/Projects/structural-isomorphism "
+        "/root/structural-runtime/current/bin/python -I -B" in unit
+    )
+    assert (
+        "--app-dir /root/Projects/structural-isomorphism/web/backend" in unit
+    )
     assert "/root/Projects/structural-isomorphism/venv/bin/python" not in unit
     assert "scripts/deploy-versioned-runtime.sh" in workflow
     assert "'structural_isomorphism/**'" in workflow
     assert "Verify immutable runtime attestation" in workflow
     assert "requirements_sha256" in workflow and "cpython-311" in workflow
     assert '"starlette": "0.46.2"' in workflow
+
+
+def test_systemd_installer_and_tracked_unit_share_exact_runtime_contract(
+    tmp_path: Path,
+) -> None:
+    current = "/root/structural-runtime/current"
+    auth_env = "/root/.config/structural-isomorphism/beta-auth.env"
+    app_dir = "/root/Projects/structural-isomorphism/web/backend"
+    accepted = _bash(
+        "systemd_validate_tracked_unit_contract "
+        f"{shlex.quote(str(UNIT))} {current} {auth_env} {app_dir}"
+    )
+    assert accepted.returncode == 0, accepted.stderr
+
+    weakened = tmp_path / "structural-web.service"
+    weakened.write_text(
+        UNIT.read_text(encoding="utf-8").replace(
+            f"{current}/bin/python -I -B -m uvicorn",
+            f"{current}/bin/python -I -m uvicorn",
+        ),
+        encoding="utf-8",
+    )
+    rejected = _bash(
+        "if systemd_validate_tracked_unit_contract "
+        f"{shlex.quote(str(weakened))} {current} {auth_env} {app_dir}; then exit 97; fi"
+    )
+    assert rejected.returncode == 0, rejected.stderr
+    assert "does not use the attested current runtime" in rejected.stderr
+
+    for conflict in (
+        'Environment="PYTHONDONTWRITEBYTECODE=0"',
+        'Environment="SETUPTOOLS_USE_DISTUTILS=local"',
+        'Environment="STRUCTURAL_PROJECT_ROOT=/root/poison"',
+        'Environment="PYTHONPATH=/root/poison"',
+        (
+            "UnsetEnvironment=PYTHONDONTWRITEBYTECODE "
+            "SETUPTOOLS_USE_DISTUTILS STRUCTURAL_PROJECT_ROOT"
+        ),
+        "ExecStart=/bin/false",
+    ):
+        poisoned = tmp_path / f"poisoned-{len(conflict)}.service"
+        poisoned.write_text(
+            UNIT.read_text(encoding="utf-8") + conflict + "\n",
+            encoding="utf-8",
+        )
+        rejected = _bash(
+            "if systemd_validate_tracked_unit_contract "
+            f"{shlex.quote(str(poisoned))} {current} {auth_env} {app_dir}; then exit 97; fi"
+        )
+        assert rejected.returncode == 0, rejected.stderr
+
+    for old_fragment, replacement in (
+        (" -I -B -m uvicorn", " -B -m uvicorn"),
+        (f" --app-dir {app_dir}", ""),
+        ("STRUCTURAL_PROJECT_ROOT=/root/Projects/structural-isomorphism ", ""),
+        (
+            "STRUCTURAL_PROJECT_ROOT=/root/Projects/structural-isomorphism",
+            "STRUCTURAL_PROJECT_ROOT=/root/Projects/poison",
+        ),
+        (app_dir, "/root/Projects/structural-isomorphism-v4/web/backend"),
+    ):
+        legacy = tmp_path / f"legacy-{len(old_fragment)}.service"
+        legacy.write_text(
+            UNIT.read_text(encoding="utf-8").replace(old_fragment, replacement),
+            encoding="utf-8",
+        )
+        rejected = _bash(
+            "if systemd_validate_tracked_unit_contract "
+            f"{shlex.quote(str(legacy))} {current} {auth_env} {app_dir}; then exit 97; fi"
+        )
+        assert rejected.returncode == 0, rejected.stderr
+
+
+def test_beta_workflow_executes_schema2_composite_attestation_guard() -> None:
+    workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+    step = next(
+        candidate
+        for candidate in workflow["jobs"]["deploy"]["steps"]
+        if candidate.get("name", "").startswith("Verify immutable runtime attestation")
+    )
+    verifier = step["run"].rsplit("python3 - <<'PY'\n", 1)[1].split("\nPY\n", 1)[0]
+
+    requirements_sha = "a" * 64
+    graph_sha = "b" * 64
+    content_sha = "c" * 64
+    freeze_sha = _composite_freeze_sha256(graph_sha, content_sha)
+    expected_sha = "d" * 40
+    attestation = {
+        "schema_version": 2,
+        "python_abi": "cpython-311",
+        "python_version": "3.11.14",
+        "runtime_id": f"cpython-311-{requirements_sha}-{freeze_sha}",
+        "requirements_sha256": requirements_sha,
+        "resolved_graph_sha256": graph_sha,
+        "runtime_content_sha256": content_sha,
+        "installed_freeze_sha256": freeze_sha,
+        "fastapi": "0.115.14",
+        "pydantic": "2.6.1",
+        "starlette": "0.46.2",
+        "uvicorn": "0.27.1",
+        "git_sha": expected_sha,
+        "deployed_at": "2026-07-16T00:00:00Z",
+    }
+
+    def execute(payload: dict[str, object]) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, "-I", "-c", verifier],
+            env={
+                **os.environ,
+                "EXPECTED_SHA": expected_sha,
+                "REQUIREMENTS_SHA": requirements_sha,
+                "ATTESTATION": json.dumps(payload),
+                "VERSION": json.dumps(attestation),
+            },
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    accepted = execute(attestation)
+    assert accepted.returncode == 0, accepted.stderr
+
+    invalid_payloads = []
+    for field, value in (
+        ("schema_version", 1),
+        ("resolved_graph_sha256", graph_sha.upper()),
+        ("runtime_content_sha256", "g" * 64),
+        ("runtime_content_sha256", None),
+        ("installed_freeze_sha256", "e" * 64),
+        ("runtime_id", f"cpython-311-{requirements_sha}-{graph_sha}"),
+    ):
+        payload = dict(attestation)
+        payload[field] = value
+        invalid_payloads.append(payload)
+    for payload in invalid_payloads:
+        rejected = execute(payload)
+        assert rejected.returncode != 0, payload
+
+
+def test_systemd_runtime_command_ignores_python_environment_file_injection(
+    tmp_path: Path,
+) -> None:
+    poison_marker = tmp_path / "python-env-injection.marker"
+    canonical_marker = tmp_path / "canonical-import.marker"
+    poison = tmp_path / "poison"
+    poison.mkdir()
+    injected = (
+        "from pathlib import Path\n"
+        f"Path({str(poison_marker)!r}).write_text('executed')\n"
+        "raise RuntimeError('python environment injection executed')\n"
+    )
+    for module in ("sitecustomize.py", "uvicorn.py", "main.py"):
+        (poison / module).write_text(injected, encoding="utf-8")
+    poisoned_package = poison / "structural_isomorphism"
+    poisoned_package.mkdir()
+    (poisoned_package / "__init__.py").write_text(injected, encoding="utf-8")
+
+    environment_file = tmp_path / "hostile.env"
+    environment_file.write_text(
+        f"PYTHONPATH={poison}\n"
+        f"PYTHONHOME={poison}\n"
+        f"STRUCTURAL_PROJECT_ROOT={poison}\n",
+        encoding="utf-8",
+    )
+    hostile_environment = os.environ.copy()
+    for line in environment_file.read_text(encoding="utf-8").splitlines():
+        name, value = line.split("=", 1)
+        hostile_environment[name] = value
+
+    project_root = tmp_path / "project"
+    app_dir = project_root / "web" / "backend"
+    app_dir.mkdir(parents=True)
+    canonical_package = project_root / "structural_isomorphism"
+    canonical_package.mkdir()
+    (canonical_package / "__init__.py").write_text(
+        "ORIGIN = 'canonical'\n", encoding="utf-8"
+    )
+    (app_dir / "main.py").write_text(
+        "import os\n"
+        "import sys\n"
+        "from pathlib import Path\n"
+        "from fastapi import FastAPI\n"
+        "project_root = Path(os.environ['STRUCTURAL_PROJECT_ROOT']).resolve()\n"
+        "sys.path.insert(0, str(project_root))\n"
+        "import structural_isomorphism\n"
+        "origin = Path(structural_isomorphism.__file__).resolve()\n"
+        "if project_root not in origin.parents:\n"
+        "    raise RuntimeError(f'noncanonical structural package: {origin}')\n"
+        f"Path({str(canonical_marker)!r}).write_text(str(origin))\n"
+        "app = FastAPI()\n",
+        encoding="utf-8",
+    )
+    exec_line = next(
+        line
+        for line in UNIT.read_text(encoding="utf-8").splitlines()
+        if line.startswith("ExecStart=")
+    )
+    command = shlex.split(exec_line.removeprefix("ExecStart="))
+    command[command.index("/root/structural-runtime/current/bin/python")] = sys.executable
+    command[
+        command.index(
+            "STRUCTURAL_PROJECT_ROOT=/root/Projects/structural-isomorphism"
+        )
+    ] = f"STRUCTURAL_PROJECT_ROOT={project_root}"
+    command[command.index("/root/Projects/structural-isomorphism/web/backend")] = str(
+        app_dir
+    )
+    command[command.index("5004")] = "0"
+    assert command[:5] == [
+        "/usr/bin/env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "SETUPTOOLS_USE_DISTUTILS=stdlib",
+        f"STRUCTURAL_PROJECT_ROOT={project_root}",
+        sys.executable,
+    ]
+    assert command[5:10] == ["-I", "-B", "-m", "uvicorn", "main:app"]
+
+    process = subprocess.Popen(
+        command,
+        cwd=tmp_path,
+        env=hostile_environment,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline and process.poll() is None:
+            assert not poison_marker.exists()
+            if canonical_marker.exists():
+                break
+            time.sleep(0.05)
+        was_running = process.poll() is None
+    finally:
+        if process.poll() is None:
+            process.terminate()
+        stdout, stderr = process.communicate(timeout=5)
+    if process.returncode != 0:
+        assert "Application startup complete." in stderr, stdout + stderr
+        assert "error while attempting to bind" in stderr, stdout + stderr
+    else:
+        assert was_running, stdout + stderr
+    assert canonical_marker.exists(), stdout + stderr
+    canonical_origin = Path(canonical_marker.read_text(encoding="utf-8"))
+    assert project_root in canonical_origin.parents
+    assert canonical_origin == canonical_package / "__init__.py"
+    assert not poison_marker.exists()
 
 
 def test_beta_dispatch_pins_one_full_main_reachable_commit() -> None:
@@ -1353,6 +1895,160 @@ def test_failed_runtime_build_leaves_current_and_code_untouched(tmp_path: Path) 
     assert result.returncode == 0, result.stderr
     assert current.resolve() == old_release.resolve()
     assert code.read_text(encoding="utf-8") == "old\n"
+
+
+def test_runtime_validate_and_prepare_reuse_succeed_under_nounset(
+    tmp_path: Path,
+) -> None:
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text(
+        "fastapi==0.115.14\n"
+        "starlette==0.46.2\n"
+        "uvicorn[standard]==0.27.1\n"
+        "pydantic==2.6.1\n",
+        encoding="utf-8",
+    )
+    requirements_sha = hashlib.sha256(requirements.read_bytes()).hexdigest()
+    runtime_root = tmp_path / "runtime"
+    release = _make_runtime_release(
+        runtime_root / "releases", requirements_sha=requirements_sha
+    )
+    freeze_sha = release.name.rsplit("-", 1)[1]
+    result = _bash(
+        f"RUNTIME_ROOT={shlex.quote(str(runtime_root))}; "
+        f'RUNTIME_RELEASES="$RUNTIME_ROOT/releases"; RUNTIME_CURRENT="$RUNTIME_ROOT/current"; '
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        f"RUNTIME_RELEASE={shlex.quote(str(release))}; "
+        f"RUNTIME_ID={shlex.quote(release.name)}; "
+        f"RUNTIME_REQUIREMENTS_SHA256={requirements_sha}; "
+        f"RUNTIME_FREEZE_SHA256={freeze_sha}; "
+        f"runtime_validate_release {shlex.quote(str(release))}; "
+        f"runtime_prepare {shlex.quote(str(requirements))}; "
+        f'test "$RUNTIME_RELEASE" = {shlex.quote(str(release))}',
+        env={"STRUCTURAL_EXPECTED_PYTHON_ABI": sys.implementation.cache_tag},
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert f"Reusing attested release: {release.name}" in result.stdout
+
+
+def test_runtime_prepare_cold_build_and_reuse_succeed_with_local_wheels(
+    tmp_path: Path,
+) -> None:
+    wheelhouse = tmp_path / "wheels"
+    wheelhouse.mkdir()
+    for package, version in _RUNTIME_PACKAGE_VERSIONS.items():
+        _write_runtime_test_wheel(wheelhouse, package, version)
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text(
+        "fastapi==0.115.14\n"
+        "starlette==0.46.2\n"
+        "uvicorn[standard]==0.27.1\n"
+        "pydantic==2.6.1\n",
+        encoding="utf-8",
+    )
+    runtime_root = tmp_path / "runtime-one"
+    second_runtime_root = tmp_path / "runtime-two"
+    result = _bash(
+        f"RUNTIME_ROOT={shlex.quote(str(runtime_root))}; "
+        f'RUNTIME_RELEASES="$RUNTIME_ROOT/releases"; RUNTIME_CURRENT="$RUNTIME_ROOT/current"; '
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        f"runtime_prepare {shlex.quote(str(requirements))}; "
+        'cold_release="$RUNTIME_RELEASE"; '
+        'test -f "$cold_release/.complete"; '
+        'test -f "$cold_release/resolved-packages.txt"; '
+        'runtime_validate_release "$cold_release"; '
+        f"runtime_prepare {shlex.quote(str(requirements))}; "
+        'test "$RUNTIME_RELEASE" = "$cold_release"; '
+        'cold_runtime_id="${cold_release##*/}"; '
+        f"RUNTIME_ROOT={shlex.quote(str(second_runtime_root))}; "
+        'RUNTIME_RELEASES="$RUNTIME_ROOT/releases"; RUNTIME_CURRENT="$RUNTIME_ROOT/current"; '
+        f"runtime_prepare {shlex.quote(str(requirements))}; "
+        'test "${RUNTIME_RELEASE##*/}" = "$cold_runtime_id"',
+        env={
+            "PIP_FIND_LINKS": str(wheelhouse),
+            "PIP_NO_INDEX": "1",
+            "STRUCTURAL_EXPECTED_PYTHON_ABI": sys.implementation.cache_tag,
+            "STRUCTURAL_RUNTIME_MIN_FREE_KB": "0",
+        },
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Building immutable runtime staging directory" in result.stdout
+    assert "Reusing attested release:" in result.stdout
+    releases = list((runtime_root / "releases").iterdir())
+    assert len(releases) == 1
+    assert not releases[0].name.startswith(".staging.")
+    payload = json.loads((releases[0] / "attestation.json").read_text())
+    assert payload["schema_version"] == 2
+    assert releases[0].name.endswith(payload["installed_freeze_sha256"])
+    assert payload["installed_freeze_sha256"] == _composite_freeze_sha256(
+        payload["resolved_graph_sha256"], payload["runtime_content_sha256"]
+    )
+    second_releases = list((second_runtime_root / "releases").iterdir())
+    assert [path.name for path in second_releases] == [releases[0].name]
+
+
+def test_schema1_release_is_rollback_only_and_never_reused_by_prepare(
+    tmp_path: Path,
+) -> None:
+    wheelhouse = tmp_path / "wheels"
+    wheelhouse.mkdir()
+    for package, version in _RUNTIME_PACKAGE_VERSIONS.items():
+        _write_runtime_test_wheel(wheelhouse, package, version)
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text(
+        "fastapi==0.115.14\n"
+        "starlette==0.46.2\n"
+        "uvicorn[standard]==0.27.1\n"
+        "pydantic==2.6.1\n",
+        encoding="utf-8",
+    )
+    requirements_sha = hashlib.sha256(requirements.read_bytes()).hexdigest()
+    runtime_root = tmp_path / "runtime"
+    legacy = _downgrade_runtime_release_to_schema1(
+        _make_runtime_release(
+            runtime_root / "releases", requirements_sha=requirements_sha
+        )
+    )
+    _make_runtime_release_writable(legacy)
+    with (legacy / "pyvenv.cfg").open("a", encoding="utf-8") as stream:
+        stream.write(f"command = {sys.executable} -m venv {legacy}\n")
+    legacy_cache = _runtime_site_packages(legacy) / "fastapi" / "__pycache__"
+    legacy_cache.mkdir()
+    (legacy_cache / f"__init__.{sys.implementation.cache_tag}.pyc").write_bytes(
+        b"legacy-runtime-bytecode"
+    )
+    for root, directories, files in os.walk(legacy):
+        for name in [".", *directories, *files]:
+            path = Path(root) if name == "." else Path(root, name)
+            if not path.is_symlink():
+                path.chmod(path.stat().st_mode & ~0o222)
+    (runtime_root / "current").symlink_to(legacy)
+
+    result = _bash(
+        f"RUNTIME_ROOT={shlex.quote(str(runtime_root))}; "
+        'RUNTIME_RELEASES="$RUNTIME_ROOT/releases"; RUNTIME_CURRENT="$RUNTIME_ROOT/current"; '
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        "runtime_capture_current; "
+        f"runtime_prepare {shlex.quote(str(requirements))}; "
+        'test "$RUNTIME_RELEASE" != "$RUNTIME_PREVIOUS_TARGET"',
+        env={
+            "PIP_FIND_LINKS": str(wheelhouse),
+            "PIP_NO_INDEX": "1",
+            "STRUCTURAL_EXPECTED_PYTHON_ABI": sys.implementation.cache_tag,
+            "STRUCTURAL_RUNTIME_MIN_FREE_KB": "0",
+        },
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert legacy.is_dir()
+    releases = [path for path in (runtime_root / "releases").iterdir() if path.is_dir()]
+    schemas = {
+        json.loads((path / "attestation.json").read_text())["schema_version"]
+        for path in releases
+    }
+    assert schemas == {1, 2}
 
 
 def test_source_checkout_accepts_exact_clean_commit_and_ignored_secret(tmp_path: Path) -> None:
@@ -2085,15 +2781,20 @@ def test_current_runtime_mutable_release_is_rejected(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
 
 
-@pytest.mark.parametrize("launcher_state", ["missing", "nonexecutable"])
-def test_current_runtime_accepts_module_pip_without_console_launcher(
-    tmp_path: Path, launcher_state: str,
+@pytest.mark.parametrize(
+    ("launcher_state", "accepted"),
+    [("missing", False), ("nonexecutable", True)],
+)
+def test_current_runtime_pip_launcher_obeys_record_without_being_executed(
+    tmp_path: Path, launcher_state: str, accepted: bool,
 ) -> None:
     runtime_root = tmp_path / "runtime"
     release = _make_runtime_release(
         runtime_root / "releases", requirements_sha="8" * 64
     )
-    launcher = release / "bin" / "pip"
+    launchers = sorted((release / "bin").glob("pip*"))
+    assert launchers
+    launcher = launchers[0]
     if launcher_state == "missing":
         launcher.parent.chmod(launcher.parent.stat().st_mode | 0o200)
         launcher.unlink()
@@ -2103,12 +2804,17 @@ def test_current_runtime_accepts_module_pip_without_console_launcher(
     current = runtime_root / "current"
     current.symlink_to(release)
 
+    validation = (
+        'runtime_capture_current; test "$RUNTIME_PREVIOUS_PRESENT" = 1; '
+        f'test "$RUNTIME_PREVIOUS_TARGET" = {shlex.quote(str(release))}'
+        if accepted
+        else "if runtime_capture_current; then exit 105; fi"
+    )
     result = _bash(
         f'RUNTIME_ROOT={shlex.quote(str(runtime_root))}; '
         'RUNTIME_RELEASES="$RUNTIME_ROOT/releases"; RUNTIME_CURRENT="$RUNTIME_ROOT/current"; '
         f'RUNTIME_PYTHON={shlex.quote(sys.executable)}; '
-        'runtime_capture_current; test "$RUNTIME_PREVIOUS_PRESENT" = 1; '
-        f'test "$RUNTIME_PREVIOUS_TARGET" = {shlex.quote(str(release))}'
+        + validation
     )
 
     assert result.returncode == 0, result.stderr
@@ -2497,6 +3203,10 @@ def test_runtime_orphan_recovery_removes_only_safe_incomplete_directories(
     orphan = releases / f"cpython-311-{'9' * 64}-{'a' * 64}"
     orphan.mkdir()
     (orphan / ".building").touch()
+    staging_orphan = releases / ".staging.cpython-311.deadbeef.ABC123"
+    staging_orphan.mkdir()
+    (staging_orphan / ".building").touch()
+    staging_orphan.chmod(0o500)
     resolver = runtime_root / ".resolver.abcd"
     resolver.mkdir()
     old_code_backup = runtime_root / ".rollback-code.abcd"
@@ -2533,6 +3243,7 @@ def test_runtime_orphan_recovery_removes_only_safe_incomplete_directories(
     assert result.returncode == 0, result.stderr
     assert previous.is_dir()
     assert not orphan.exists()
+    assert not staging_orphan.exists()
     assert not resolver.exists()
     assert not old_code_backup.exists()
     assert not old_unit_backup.exists()
@@ -2611,6 +3322,60 @@ def test_disk_space_gate_fails_before_runtime_build(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
 
 
+def test_resolver_report_canonicalizes_explicit_setuptools_into_identity(
+    tmp_path: Path,
+) -> None:
+    report = tmp_path / "report.json"
+    report.write_text(
+        json.dumps(
+            {
+                "install": [
+                    {"metadata": {"name": "Setuptools", "version": "83.0.0"}},
+                    {"metadata": {"name": "Demo_Pkg", "version": "1.2.3+cpu"}},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    canonical = tmp_path / "constraints.txt"
+    expected = b"demo-pkg==1.2.3+cpu\nsetuptools==83.0.0\n"
+
+    result = _bash(
+        f"runtime_canonicalize_resolver_report {shlex.quote(sys.executable)} "
+        f"{shlex.quote(str(report))} {shlex.quote(str(canonical))}"
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert canonical.read_bytes() == expected
+    assert result.stdout.strip() == hashlib.sha256(expected).hexdigest()
+
+
+def test_resolver_report_rejects_duplicate_canonical_package(tmp_path: Path) -> None:
+    report = tmp_path / "report.json"
+    report.write_text(
+        json.dumps(
+            {
+                "install": [
+                    {"metadata": {"name": "Setuptools", "version": "83.0.0"}},
+                    {"metadata": {"name": "setuptools", "version": "83.0.0"}},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    canonical = tmp_path / "constraints.txt"
+
+    result = _bash(
+        "if runtime_canonicalize_resolver_report "
+        f"{shlex.quote(sys.executable)} {shlex.quote(str(report))} "
+        f"{shlex.quote(str(canonical))}; then exit 93; fi"
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "resolver returned a duplicate package" in result.stderr
+    assert not canonical.exists()
+
+
 def test_runtime_proofs_ignore_cwd_and_pythonpath_distribution_injection(
     tmp_path: Path,
 ) -> None:
@@ -2679,16 +3444,490 @@ def test_runtime_proofs_ignore_cwd_and_pythonpath_distribution_injection(
     assert "structural-isomorphism" not in public.read_text(encoding="utf-8")
 
 
+def test_explicit_setuptools_is_bound_across_attestation_and_live_validation(
+    tmp_path: Path,
+) -> None:
+    requirements_sha = "7" * 64
+    runtime_root = tmp_path / "runtime"
+    release = _make_runtime_release(
+        runtime_root / "releases",
+        requirements_sha=requirements_sha,
+        resolved_package_versions={"setuptools": "83.0.0"},
+    )
+    _make_runtime_release_writable(release)
+    _install_owned_setuptools_hook(release)
+    release = _rebind_runtime_release_identity(release)
+    generated = tmp_path / "generated-attestation.json"
+    freeze_sha = release.name.rsplit("-", 1)[1]
+
+    result = _bash(
+        f"RUNTIME_ROOT={shlex.quote(str(runtime_root))}; "
+        f'RUNTIME_RELEASES="$RUNTIME_ROOT/releases"; RUNTIME_CURRENT="$RUNTIME_ROOT/current"; '
+        f"RUNTIME_RELEASE={shlex.quote(str(release))}; "
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        f"RUNTIME_ID={shlex.quote(release.name)}; "
+        f"RUNTIME_REQUIREMENTS_SHA256={requirements_sha}; "
+        f"RUNTIME_FREEZE_SHA256={freeze_sha}; "
+        f"runtime_attest_release {shlex.quote(str(release))} "
+        f"{shlex.quote(str(generated))}; "
+        f"runtime_live_validate_release {shlex.quote(str(release))}",
+        env={"STRUCTURAL_EXPECTED_PYTHON_ABI": sys.implementation.cache_tag},
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(generated.read_text(encoding="utf-8"))
+    assert payload["installed_package_count"] == len(_RUNTIME_PACKAGE_VERSIONS) + 1
+    assert payload["installed_freeze_sha256"] == freeze_sha
+    assert "setuptools==83.0.0\n" in (release / "resolved-packages.txt").read_text(
+        encoding="utf-8"
+    )
+
+
+@pytest.mark.parametrize(
+    ("tamper", "expected_error"),
+    [
+        ("missing", "installed package-set is missing: setuptools"),
+        ("unexpected", "installed package-set has unexpected packages: wheel"),
+        ("version_drift", "installed package-set has version drift: setuptools"),
+        ("manifest_tamper", "canonical package-set manifest bytes are not canonical"),
+        ("pth_escape", "site path entries are forbidden"),
+        ("sitecustomize", "site customization hooks are forbidden"),
+        ("package_symlink", "site-packages entry escapes its environment"),
+        ("dist_info_symlink", "site-packages entry escapes its environment"),
+        ("record_escape", "accepted distribution RECORD path escapes its environment"),
+        ("interpreter_escape", "runtime interpreter does not resolve to the trusted base"),
+        ("unowned_safe_pth", "runtime file lacks exactly one RECORD owner"),
+        ("nested_unowned_symlink", "runtime file lacks exactly one RECORD owner"),
+        ("unowned_code", "runtime file lacks exactly one RECORD owner"),
+        ("missing_record", "RECORD is unavailable or is a symlink"),
+        ("missing_record_path", "RECORD path is missing"),
+        ("hash_tamper", "RECORD sha256 mismatch"),
+        ("size_tamper", "RECORD size mismatch"),
+        ("safe_hook_marker", "RECORD size mismatch"),
+        (
+            "safe_hook_record_rewrite",
+            "runtime content",
+        ),
+        ("internal_wrapper", "runtime interpreter does not resolve to the trusted base"),
+        ("pyc_injection", "runtime bytecode cache files are forbidden"),
+        ("pyvenv_system_site", "runtime pyvenv enables system site-packages"),
+        (
+            "pyvenv_home",
+            "runtime pyvenv home does not resolve to trusted base",
+        ),
+        (
+            "pyvenv_executable",
+            "runtime pyvenv executable does not resolve to trusted base",
+        ),
+        (
+            "pyvenv_version",
+            "runtime pyvenv Python version does not match trusted base",
+        ),
+        (
+            "pyvenv_missing",
+            "runtime pyvenv configuration is missing or is a symlink",
+        ),
+        (
+            "pyvenv_duplicate",
+            "runtime pyvenv configuration has unknown or duplicate keys",
+        ),
+        (
+            "pyvenv_unknown",
+            "runtime pyvenv configuration has unknown or duplicate keys",
+        ),
+        (
+            "pyvenv_symlink",
+            "runtime pyvenv configuration is missing or is a symlink",
+        ),
+    ],
+)
+def test_attestation_and_live_reject_package_set_or_provenance_drift(
+    tmp_path: Path, tamper: str, expected_error: str
+) -> None:
+    requirements_sha = "6" * 64
+    runtime_root = tmp_path / "runtime"
+    provenance_tamper = tamper in {
+        "pth_escape",
+        "sitecustomize",
+        "package_symlink",
+        "dist_info_symlink",
+        "record_escape",
+        "interpreter_escape",
+        "unowned_safe_pth",
+        "nested_unowned_symlink",
+        "unowned_code",
+        "missing_record",
+        "missing_record_path",
+        "hash_tamper",
+        "size_tamper",
+        "safe_hook_marker",
+        "safe_hook_record_rewrite",
+        "internal_wrapper",
+        "pyc_injection",
+        "pyvenv_system_site",
+        "pyvenv_home",
+        "pyvenv_executable",
+        "pyvenv_version",
+        "pyvenv_missing",
+        "pyvenv_duplicate",
+        "pyvenv_unknown",
+        "pyvenv_symlink",
+    }
+    if tamper in {"safe_hook_marker", "safe_hook_record_rewrite"}:
+        resolved_versions = {"setuptools": "83.0.0"}
+    elif provenance_tamper:
+        resolved_versions = {"plugin-pkg": "1.0.0"}
+    else:
+        resolved_versions = (
+            {"setuptools": "83.0.0"} if tamper != "unexpected" else None
+        )
+    release = _make_runtime_release(
+        runtime_root / "releases",
+        requirements_sha=requirements_sha,
+        resolved_package_versions=resolved_versions,
+    )
+    _make_runtime_release_writable(release)
+    site_packages = _runtime_site_packages(release)
+    external = tmp_path / "external"
+    external.mkdir()
+    marker = tmp_path / "executed.marker"
+    (external / "sitecustomize.py").write_text(
+        f"from pathlib import Path\nPath({str(marker)!r}).write_text('ran')\n",
+        encoding="utf-8",
+    )
+    if tamper == "missing":
+        _replace_runtime_distribution(release, "setuptools", None)
+    elif tamper == "unexpected":
+        _replace_runtime_distribution(release, "wheel", "0.45.1")
+    elif tamper == "version_drift":
+        _replace_runtime_distribution(release, "setuptools", "84.0.0")
+    elif tamper == "manifest_tamper":
+        manifest = release / "resolved-packages.txt"
+        lines = manifest.read_text(encoding="utf-8").splitlines()
+        lines[0], lines[1] = lines[1], lines[0]
+        manifest.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    elif tamper == "pth_escape":
+        shutil.move(str(site_packages / "plugin_pkg"), external / "plugin_pkg")
+        shutil.move(
+            str(site_packages / "plugin_pkg-1.0.0.dist-info"),
+            external / "plugin_pkg-1.0.0.dist-info",
+        )
+        (site_packages / "escape.pth").write_text(str(external) + "\n", encoding="utf-8")
+    elif tamper == "sitecustomize":
+        (site_packages / "sitecustomize.py").write_text(
+            "raise RuntimeError('must never execute')\n", encoding="utf-8"
+        )
+    elif tamper == "package_symlink":
+        package = site_packages / "plugin_pkg"
+        shutil.move(str(package), external / package.name)
+        package.symlink_to(external / package.name, target_is_directory=True)
+    elif tamper == "dist_info_symlink":
+        metadata_dir = site_packages / "plugin_pkg-1.0.0.dist-info"
+        shutil.move(str(metadata_dir), external / metadata_dir.name)
+        metadata_dir.symlink_to(external / metadata_dir.name, target_is_directory=True)
+    elif tamper == "record_escape":
+        escaped = external / "payload.py"
+        escaped.write_text("raise RuntimeError('outside release')\n", encoding="utf-8")
+        record = site_packages / "plugin_pkg-1.0.0.dist-info" / "RECORD"
+        with record.open("a", encoding="utf-8") as stream:
+            stream.write(f"{os.path.relpath(escaped, site_packages)},,\n")
+    elif tamper == "interpreter_escape":
+        escaped_python = external / "python"
+        escaped_python.write_text("#!/bin/sh\nexit 99\n", encoding="utf-8")
+        escaped_python.chmod(0o755)
+        python = release / "bin" / "python"
+        python.unlink()
+        python.symlink_to(escaped_python)
+    elif tamper == "nested_unowned_symlink":
+        (site_packages / "plugin_pkg" / "shadow.py").symlink_to("__init__.py")
+    elif tamper == "unowned_code":
+        (site_packages / "plugin_pkg" / "shadow.py").write_text(
+            "raise RuntimeError('unowned')\n", encoding="utf-8"
+        )
+    elif tamper == "missing_record":
+        (site_packages / "plugin_pkg-1.0.0.dist-info" / "RECORD").unlink()
+    elif tamper == "missing_record_path":
+        (site_packages / "plugin_pkg" / "__init__.py").unlink()
+    elif tamper == "hash_tamper":
+        (site_packages / "plugin_pkg" / "__init__.py").write_text(
+            "__version__ = '9.9.9'\n", encoding="utf-8"
+        )
+    elif tamper == "size_tamper":
+        record = site_packages / "plugin_pkg-1.0.0.dist-info" / "RECORD"
+        lines = record.read_text(encoding="utf-8").splitlines()
+        fields = lines[0].split(",")
+        fields[2] = str(int(fields[2]) + 1)
+        lines[0] = ",".join(fields)
+        record.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    elif tamper == "safe_hook_marker":
+        _site_packages, hack_init = _install_owned_setuptools_hook(release)
+        hack_init.write_text(
+            f"from pathlib import Path\nPath({str(marker)!r}).write_text('ran')\n"
+            "def add_shim(): pass\n",
+            encoding="utf-8",
+        )
+    elif tamper == "safe_hook_record_rewrite":
+        _site_packages, hack_init = _install_owned_setuptools_hook(release)
+        malicious = (
+            f"from pathlib import Path\nPath({str(marker)!r}).write_text('ran')\n"
+            "def add_shim(): pass\n"
+        ).encode("utf-8")
+        hack_init.write_bytes(malicious)
+        _replace_record_line(
+            site_packages / "setuptools-83.0.0.dist-info" / "RECORD",
+            "_distutils_hack/__init__.py",
+            malicious,
+        )
+    elif tamper == "internal_wrapper":
+        python = release / "bin" / "python"
+        python.unlink()
+        python.write_text(
+            "#!/bin/sh\n"
+            f"printf ran > {shlex.quote(str(marker))}\n"
+            f"exec {shlex.quote(sys.executable)} \"$@\"\n",
+            encoding="utf-8",
+        )
+        python.chmod(0o755)
+    elif tamper == "pyc_injection":
+        cache = site_packages / "plugin_pkg" / "__pycache__"
+        cache.mkdir()
+        (cache / f"shadow.{sys.implementation.cache_tag}.pyc").write_bytes(b"malicious")
+    elif tamper == "pyvenv_system_site":
+        configuration = release / "pyvenv.cfg"
+        configuration.write_text(
+            configuration.read_text(encoding="utf-8").replace(
+                "include-system-site-packages = false\n",
+                "include-system-site-packages = true\n",
+            ),
+            encoding="utf-8",
+        )
+    elif tamper == "pyvenv_home":
+        configuration = release / "pyvenv.cfg"
+        lines = configuration.read_text(encoding="utf-8").splitlines()
+        lines[0] = f"home = {external}"
+        configuration.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    elif tamper == "pyvenv_executable":
+        escaped_python = external / "python"
+        escaped_python.write_text("#!/bin/sh\nexit 99\n", encoding="utf-8")
+        escaped_python.chmod(0o755)
+        configuration = release / "pyvenv.cfg"
+        lines = configuration.read_text(encoding="utf-8").splitlines()
+        lines[3] = f"executable = {escaped_python}"
+        configuration.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    elif tamper == "pyvenv_version":
+        configuration = release / "pyvenv.cfg"
+        configuration.write_text(
+            configuration.read_text(encoding="utf-8").replace(
+                f"version = {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}\n",
+                "version = 0.0.0\n",
+            ),
+            encoding="utf-8",
+        )
+    elif tamper == "pyvenv_missing":
+        (release / "pyvenv.cfg").unlink()
+    elif tamper == "pyvenv_duplicate":
+        with (release / "pyvenv.cfg").open("a", encoding="utf-8") as stream:
+            stream.write("include-system-site-packages = false\n")
+    elif tamper == "pyvenv_unknown":
+        with (release / "pyvenv.cfg").open("a", encoding="utf-8") as stream:
+            stream.write("prompt = poisoned\n")
+    elif tamper == "pyvenv_symlink":
+        configuration = release / "pyvenv.cfg"
+        moved = external / "pyvenv.cfg"
+        configuration.rename(moved)
+        configuration.symlink_to(moved)
+    else:
+        _replace_runtime_distribution(release, "setuptools", None)
+        precedence = site_packages / "distutils-precedence.pth"
+        if precedence.exists() or precedence.is_symlink():
+            precedence.unlink()
+        local_hack = site_packages / "_distutils_hack"
+        if local_hack.exists():
+            shutil.rmtree(local_hack)
+        local_hack.mkdir()
+        (local_hack / "__init__.py").write_text(
+            "def add_shim(): pass\n", encoding="utf-8"
+        )
+        precedence.write_text(
+            "import os; var = 'SETUPTOOLS_USE_DISTUTILS'; "
+            "enabled = os.environ.get(var, 'local') == 'local'; "
+            "enabled and __import__('_distutils_hack').add_shim()\n",
+            encoding="utf-8",
+        )
+    freeze_sha = release.name.rsplit("-", 1)[1]
+    common = (
+        f"RUNTIME_ROOT={shlex.quote(str(runtime_root))}; "
+        f'RUNTIME_RELEASES="$RUNTIME_ROOT/releases"; RUNTIME_CURRENT="$RUNTIME_ROOT/current"; '
+        f"RUNTIME_RELEASE={shlex.quote(str(release))}; "
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        f"RUNTIME_ID={shlex.quote(release.name)}; "
+        f"RUNTIME_REQUIREMENTS_SHA256={requirements_sha}; "
+        f"RUNTIME_FREEZE_SHA256={freeze_sha}; "
+    )
+    generated = tmp_path / "generated-attestation.json"
+
+    attestation = _bash(
+        common
+        + f"if runtime_attest_release {shlex.quote(str(release))} "
+        + f"{shlex.quote(str(generated))}; then exit 94; fi",
+        env={
+            "STRUCTURAL_EXPECTED_PYTHON_ABI": sys.implementation.cache_tag,
+            "PYTHONHOME": str(external),
+            "PYTHONPATH": str(external),
+        },
+    )
+    live = _bash(
+        common
+        + f"if runtime_live_validate_release {shlex.quote(str(release))}; "
+        + "then exit 95; fi",
+        env={
+            "STRUCTURAL_EXPECTED_PYTHON_ABI": sys.implementation.cache_tag,
+            "PYTHONHOME": str(external),
+            "PYTHONPATH": str(external),
+        },
+    )
+
+    assert attestation.returncode == 0, attestation.stderr
+    assert live.returncode == 0, live.stderr
+    assert expected_error in attestation.stderr
+    assert expected_error in live.stderr
+    assert not generated.exists()
+    assert not marker.exists()
+
+
+def test_pyvenv_semantic_tamper_cannot_be_reattested_with_synchronized_identity(
+    tmp_path: Path,
+) -> None:
+    requirements_sha = "d" * 64
+    runtime_root = tmp_path / "runtime"
+    release = _make_runtime_release(
+        runtime_root / "releases", requirements_sha=requirements_sha
+    )
+    _make_runtime_release_writable(release)
+    configuration = release / "pyvenv.cfg"
+    configuration.write_text(
+        configuration.read_text(encoding="utf-8").replace(
+            "include-system-site-packages = false\n",
+            "include-system-site-packages = true\n",
+        ),
+        encoding="utf-8",
+    )
+    attestation = release / "attestation.json"
+    payload = json.loads(attestation.read_text(encoding="utf-8"))
+    forged_content = hashlib.sha256(configuration.read_bytes()).hexdigest()
+    forged_freeze = _composite_freeze_sha256(
+        payload["resolved_graph_sha256"], forged_content
+    )
+    forged_id = (
+        f"{payload['python_abi']}-{payload['requirements_sha256']}-{forged_freeze}"
+    )
+    payload.update(
+        {
+            "runtime_id": forged_id,
+            "runtime_content_sha256": forged_content,
+            "installed_freeze_sha256": forged_freeze,
+        }
+    )
+    attestation.write_text(
+        json.dumps(payload, ensure_ascii=True, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    forged_release = release.with_name(forged_id)
+    release.rename(forged_release)
+
+    external = tmp_path / "external"
+    external.mkdir()
+    marker = tmp_path / "executed.marker"
+    (external / "sitecustomize.py").write_text(
+        f"from pathlib import Path\nPath({str(marker)!r}).write_text('ran')\n",
+        encoding="utf-8",
+    )
+    generated = tmp_path / "reattested.json"
+    common = (
+        f"RUNTIME_ROOT={shlex.quote(str(runtime_root))}; "
+        f'RUNTIME_RELEASES="$RUNTIME_ROOT/releases"; RUNTIME_CURRENT="$RUNTIME_ROOT/current"; '
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        f"RUNTIME_ID={forged_id}; "
+        f"RUNTIME_REQUIREMENTS_SHA256={requirements_sha}; "
+        f"RUNTIME_RESOLVED_GRAPH_SHA256={payload['resolved_graph_sha256']}; "
+        f"RUNTIME_CONTENT_SHA256={forged_content}; "
+        f"RUNTIME_FREEZE_SHA256={forged_freeze}; "
+    )
+    hostile_environment = {
+        "STRUCTURAL_EXPECTED_PYTHON_ABI": sys.implementation.cache_tag,
+        "PYTHONHOME": str(external),
+        "PYTHONPATH": str(external),
+    }
+    reattest = _bash(
+        common
+        + f"if runtime_attest_release {shlex.quote(str(forged_release))} "
+        + f"{shlex.quote(str(generated))}; then exit 96; fi",
+        env=hostile_environment,
+    )
+    live = _bash(
+        common
+        + f"if runtime_live_validate_release {shlex.quote(str(forged_release))}; "
+        + "then exit 97; fi",
+        env=hostile_environment,
+    )
+
+    assert reattest.returncode == 0, reattest.stderr
+    assert live.returncode == 0, live.stderr
+    assert "runtime pyvenv enables system site-packages" in reattest.stderr
+    assert "runtime pyvenv enables system site-packages" in live.stderr
+    assert not generated.exists()
+    assert not marker.exists()
+
+
+def test_runtime_content_identity_binds_python_link_text_and_resolved_target(
+    tmp_path: Path,
+) -> None:
+    requirements_sha = "e" * 64
+    release = _make_runtime_release(
+        tmp_path / "runtime" / "releases", requirements_sha=requirements_sha
+    )
+    payload = json.loads((release / "attestation.json").read_text(encoding="utf-8"))
+    _make_runtime_release_writable(release)
+    python = release / "bin" / "python"
+    old_link = os.readlink(python)
+    trusted_python = Path(sys.executable).resolve(strict=True)
+    alternate_link = str(trusted_python)
+    if alternate_link == old_link:
+        alternate_link = os.path.relpath(trusted_python, python.parent)
+    python.unlink()
+    python.symlink_to(alternate_link)
+    assert python.resolve(strict=True) == trusted_python
+
+    proof = _bash(
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        "runtime_validate_canonical_package_set "
+        f"{shlex.quote(str(release))} "
+        f"{shlex.quote(str(release / 'resolved-packages.txt'))} "
+        f"{payload['resolved_graph_sha256']}"
+    )
+    assert proof.returncode == 0, proof.stderr
+    _count, changed_content = proof.stdout.strip().split("\t")
+    assert changed_content != payload["runtime_content_sha256"]
+
+    validation = _bash(
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        f"if runtime_validate_release {shlex.quote(str(release))}; then exit 98; fi",
+        env={"STRUCTURAL_EXPECTED_PYTHON_ABI": sys.implementation.cache_tag},
+    )
+    assert validation.returncode == 0, validation.stderr
+    assert "runtime content digest differs from attestation" in validation.stderr
+
+
 def _make_long_pip_environment(tmp_path: Path) -> Path:
     runtime_id = f"{sys.implementation.cache_tag}-{'a' * 64}-{'b' * 64}"
     environment = tmp_path / "releases" / runtime_id
     environment.parent.mkdir()
-    subprocess.run(
-        [sys.executable, "-I", "-m", "venv", str(environment)],
-        check=True,
-        capture_output=True,
-        text=True,
+    created = _bash(
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        f"runtime_create_venv_without_pip {shlex.quote(str(environment))}; "
+        f"runtime_bootstrap_pip {shlex.quote(str(environment))}"
     )
+    assert created.returncode == 0, created.stderr
     return environment
 
 
@@ -2698,16 +3937,19 @@ def test_runtime_pip_ignores_long_path_console_launcher(tmp_path: Path) -> None:
         f"#!{environment}/bin/python{sys.version_info.major}\n".encode()
     )
     assert expected_shebang_bytes > 127
-    if sys.platform.startswith("linux"):
-        assert (environment / "bin" / "pip").read_text(
-            encoding="utf-8"
-        ).splitlines()[0] == "#!/bin/sh"
+    launchers = list((environment / "bin").glob("pip*"))
+    assert launchers
+    assert all(
+        launcher.read_text(encoding="utf-8").splitlines()[0] == "#!/bin/sh"
+        for launcher in launchers
+    )
 
-    for launcher in (environment / "bin").glob("pip*"):
+    for launcher in launchers:
         launcher.write_text("#!/bin/sh\nexit 97\n", encoding="utf-8")
         launcher.chmod(0o755)
 
     result = _bash(
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
         f"runtime_validate_pip_module {shlex.quote(str(environment))}; "
         f"runtime_pip {shlex.quote(str(environment))} --version"
     )
@@ -2738,12 +3980,58 @@ def test_runtime_pip_rejects_package_symlink_outside_environment(
     pip_package.symlink_to(external_package, target_is_directory=True)
 
     result = _bash(
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
         f"if runtime_validate_pip_module {shlex.quote(str(environment))}; "
         "then exit 97; fi"
     )
 
     assert result.returncode == 0
-    assert "pip module is outside its environment" in result.stderr
+    assert "site-packages entry escapes its environment" in result.stderr
+
+
+def test_venv_bootstrap_preflights_before_first_target_execution(
+    tmp_path: Path,
+) -> None:
+    environment = tmp_path / "runtime"
+    created = _bash(
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        f"runtime_create_venv_without_pip {shlex.quote(str(environment))}"
+    )
+    assert created.returncode == 0, created.stderr
+    site_packages = (
+        environment
+        / "lib"
+        / f"python{sys.version_info.major}.{sys.version_info.minor}"
+        / "site-packages"
+    )
+    assert site_packages.is_dir()
+    assert not (site_packages / "pip").exists()
+
+    marker = tmp_path / "executed.marker"
+    (site_packages / "sitecustomize.py").write_text(
+        f"from pathlib import Path\nPath({str(marker)!r}).write_text('ran')\n",
+        encoding="utf-8",
+    )
+    rejected = _bash(
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        f"if runtime_bootstrap_pip {shlex.quote(str(environment))}; then exit 98; fi"
+    )
+    assert rejected.returncode == 0, rejected.stderr
+    assert "site customization hooks are forbidden" in rejected.stderr
+    assert not marker.exists()
+    assert not (site_packages / "pip").exists()
+
+    helper = HELPER.read_text(encoding="utf-8")
+    create = helper[helper.index("runtime_create_venv_without_pip()") :]
+    create = create[: create.index("\n}")]
+    assert create.index("--without-pip") < create.index(
+        'runtime_trusted_structural_preflight "$environment"'
+    )
+    bootstrap = helper[helper.index("runtime_bootstrap_pip()") :]
+    bootstrap = bootstrap[: bootstrap.index("\n}")]
+    assert bootstrap.index('runtime_trusted_structural_preflight "$environment"') < bootstrap.index(
+        "-m ensurepip --upgrade"
+    )
 
 
 @pytest.mark.parametrize("invalid_sha", ["a" * 12, "A" * 40, "g" * 40])
@@ -2903,3 +4191,400 @@ def test_external_ci_timeout_term_uses_the_same_single_finalizer(tmp_path: Path)
     assert (paths["target"] / "app.py").read_text(encoding="utf-8") == "old code\n"
     assert paths["unit"].read_text(encoding="utf-8") == "old unit\n"
     assert (paths["runtime_root"] / "current").resolve() == paths["old_release"].resolve()
+
+
+def _beta_candidate_gate_fixture(
+    tmp_path: Path, *, failure: str = ""
+) -> tuple[dict[str, str], Path]:
+    snapshot = tmp_path / "snapshot"
+    backend = snapshot / "web" / "backend"
+    backend.mkdir(parents=True)
+    (backend / ".env.example").write_text(
+        "ASK_LLM_MODEL=openai/gpt-5.6-luna-pro\n", encoding="utf-8"
+    )
+    fake_bin = tmp_path / "candidate-fake-bin"
+    fake_bin.mkdir()
+    fake_state = tmp_path / "candidate-fake-state"
+    fake_state.mkdir()
+    fake_curl = fake_bin / "curl"
+    fake_curl.write_text(
+        f"#!{sys.executable}\n"
+        + r'''import hashlib
+import json
+import os
+import sys
+from pathlib import Path
+
+args = sys.argv[1:]
+state = Path(os.environ["FAKE_CURL_STATE"])
+failure = os.environ.get("FAKE_CURL_FAILURE", "")
+if not args or args[0] != "-q":
+    raise SystemExit(90)
+if args.count("--noproxy") != 1:
+    raise SystemExit(91)
+no_proxy_index = args.index("--noproxy")
+if args[no_proxy_index + 1] != "*":
+    raise SystemExit(92)
+if args.count("--resolve") != 1:
+    raise SystemExit(93)
+resolve_index = args.index("--resolve")
+if args[resolve_index + 1] != "beta.structural.bytedance.city:443:127.0.0.1":
+    raise SystemExit(94)
+url = next((arg for arg in reversed(args) if arg.startswith("https://")), "")
+if not url.startswith("https://beta.structural.bytedance.city/"):
+    raise SystemExit(95)
+data = ""
+if "--data-binary" in args:
+    data = args[args.index("--data-binary") + 1]
+with (state / "calls.jsonl").open("a", encoding="utf-8") as handle:
+    handle.write(json.dumps({"url": url, "data": data}, ensure_ascii=False) + "\n")
+
+sha = os.environ["FAKE_EXPECTED_SHA"]
+requirements_sha = os.environ["FAKE_REQUIREMENTS_SHA"]
+graph_sha = "b" * 64
+content_sha = "c" * 64
+freeze_sha = hashlib.sha256(
+    (
+        f"resolved_graph_sha256={graph_sha}\n"
+        f"runtime_content_sha256={content_sha}\n"
+    ).encode("ascii")
+).hexdigest()
+runtime_id = f"cpython-311-{requirements_sha}-{freeze_sha}"
+deployed_at = os.environ["FAKE_DEPLOYED_AT"]
+packages = {
+    "fastapi": "0.115.14",
+    "pydantic": "2.6.1",
+    "starlette": "0.46.2",
+    "uvicorn": "0.27.1",
+}
+attestation = {
+    "schema_version": 2,
+    "python_abi": "cpython-311",
+    "python_version": "3.11.14",
+    "runtime_id": runtime_id,
+    "requirements_sha256": requirements_sha,
+    "resolved_graph_sha256": graph_sha,
+    "runtime_content_sha256": content_sha,
+    "installed_freeze_sha256": freeze_sha,
+    "git_sha": sha,
+    "deployed_at": deployed_at,
+    **packages,
+}
+version = {
+    "semver": "0.2.0",
+    "git_sha": sha,
+    "python_version": "3.11.14",
+    "python_abi": "cpython-311",
+    "runtime_id": runtime_id,
+    "requirements_sha256": requirements_sha,
+    "installed_freeze_sha256": freeze_sha,
+    "env": "prod",
+    "model": "openai/gpt-5.6-luna-pro",
+    "deployed_at": deployed_at,
+    **packages,
+}
+
+if failure == "malformed" and "/api/version" in url:
+    print("{")
+elif "/assets/runtime-attestation.json" in url:
+    if failure == "schema1":
+        attestation["schema_version"] = 1
+    elif failure == "graph":
+        attestation["resolved_graph_sha256"] = "g" * 64
+    elif failure == "content":
+        attestation["runtime_content_sha256"] = None
+    elif failure == "composite":
+        attestation["installed_freeze_sha256"] = "d" * 64
+    elif failure == "runtime_id":
+        attestation["runtime_id"] = "cpython-311-" + "0" * 129
+    elif failure == "sha":
+        attestation["git_sha"] = "e" * 40
+    elif failure == "deployed_at":
+        attestation["deployed_at"] = "2026-07-15T00:00:00Z"
+    print(json.dumps(attestation))
+elif "/api/version" in url:
+    if failure == "sha":
+        version["git_sha"] = "e" * 40
+    elif failure == "model":
+        version["model"] = "wrong-model"
+    elif failure == "package":
+        version["fastapi"] = "9.9.9"
+    elif failure == "semver":
+        version["semver"] = "9.9.9"
+    elif failure == "deployed_at":
+        version["deployed_at"] = "2026-07-15T00:00:00Z"
+    print(json.dumps(version))
+elif "/api/health?deep=1" in url:
+    health = {
+        "status": "ok",
+        "kb_size": 4443,
+        "artifact_id": "structural-v2-kb4443-20260711",
+        "embedding_shape": [4443, 768],
+        "checks": {
+            "search_service": "ok",
+            "knowledge_base": "ok",
+            "artifact_manifest": "ok",
+            "history_db": "ok",
+            "llm_env": "missing",
+        },
+    }
+    if failure == "health":
+        health["checks"]["search_service"] = "failed"
+    print(json.dumps(health))
+elif "/api/auth/me" in url:
+    print(json.dumps({"error": "no session"}))
+    print("200" if failure == "auth" else "401")
+elif url.endswith("/"):
+    print("HTTP/2 200")
+    print("Referrer-Policy: no-referrer")
+    print("X-Request-ID: candidate-request-1234")
+    if failure == "headers":
+        print("X-Request-ID: duplicate-request-5678")
+elif "/api/search" in url:
+    request = json.loads(data)
+    counter_path = state / "search-count"
+    count = int(counter_path.read_text() if counter_path.exists() else "0") + 1
+    counter_path.write_text(str(count))
+    expected_queries = (
+        "月活用户每月固定流失百分之七，应该如何干预？",
+        "为什么有些谣言会突然爆发并形成级联传播？",
+        "团队氛围崩溃后为什么很难恢复？",
+        "银行挤兑为什么会出现自我强化？",
+        "一个平台如何避免正反馈导致系统失控？",
+    )
+    if (
+        count > len(expected_queries)
+        or request.get("query") != expected_queries[count - 1]
+        or request.get("rewrite") is not False
+        or request.get("top_k") != 5
+        or request.get("lang") != "zh"
+    ):
+        raise SystemExit(96)
+    body = {
+        "out_of_scope": False,
+        "count": 1,
+        "results": [{
+            "id": "test",
+            "name": "Test",
+            "domain": "systems",
+            "type_id": "feedback",
+            "cross_domain": failure != "no_cross" and count == 1,
+        }],
+    }
+    if failure == f"search{count}":
+        body.update(out_of_scope=True, count=0, results=[])
+    print(json.dumps(body))
+else:
+    raise SystemExit(97)
+''',
+        encoding="utf-8",
+    )
+    fake_curl.chmod(0o755)
+
+    source_sha = "a" * 40
+    requirements_sha = "f" * 64
+    graph_sha = "b" * 64
+    content_sha = "c" * 64
+    freeze_sha = _composite_freeze_sha256(graph_sha, content_sha)
+    deployed_at = "2026-07-16T00:00:00Z"
+    env = {
+        "SOURCE": str(ROOT),
+        "TARGET": str(tmp_path / "target"),
+        "STRUCTURAL_RUNTIME_PYTHON": sys.executable,
+        "TEST_DEPLOY_SYNC_SOURCE": str(snapshot),
+        "TEST_SOURCE_HEAD_SHA": source_sha,
+        "TEST_RUNTIME_REQUIREMENTS_SHA256": requirements_sha,
+        "TEST_RUNTIME_FREEZE_SHA256": freeze_sha,
+        "TEST_RUNTIME_ID": f"cpython-311-{requirements_sha}-{freeze_sha}",
+        "TEST_DEPLOYED_AT": deployed_at,
+        "PATH": f"{fake_bin}:{os.environ['PATH']}",
+        "FAKE_CURL_STATE": str(fake_state),
+        "FAKE_CURL_FAILURE": failure,
+        "FAKE_EXPECTED_SHA": source_sha,
+        "FAKE_REQUIREMENTS_SHA": requirements_sha,
+        "FAKE_DEPLOYED_AT": deployed_at,
+    }
+    return env, fake_state / "calls.jsonl"
+
+
+def _run_beta_candidate_gate(env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    return _source_deploy(
+        'DEPLOY_SYNC_SOURCE="$TEST_DEPLOY_SYNC_SOURCE"; '
+        'SOURCE_HEAD_SHA="$TEST_SOURCE_HEAD_SHA"; '
+        'RUNTIME_REQUIREMENTS_SHA256="$TEST_RUNTIME_REQUIREMENTS_SHA256"; '
+        'RUNTIME_FREEZE_SHA256="$TEST_RUNTIME_FREEZE_SHA256"; '
+        'RUNTIME_ID="$TEST_RUNTIME_ID"; DEPLOYED_AT="$TEST_DEPLOYED_AT"; '
+        "beta_candidate_tls_gate",
+        env=env,
+    )
+
+
+def test_beta_candidate_tls_gate_accepts_canonical_local_candidate(
+    tmp_path: Path,
+) -> None:
+    env, calls_path = _beta_candidate_gate_fixture(tmp_path)
+
+    result = _run_beta_candidate_gate(env)
+
+    assert result.returncode == 0, result.stderr
+    calls = [json.loads(line) for line in calls_path.read_text().splitlines()]
+    assert len(calls) == 10
+    searches = [call for call in calls if call["url"].endswith("/api/search")]
+    assert len(searches) == 5
+    assert all(json.loads(call["data"])["rewrite"] is False for call in searches)
+
+
+def test_beta_candidate_tls_gate_rejects_schema1_runtime(tmp_path: Path) -> None:
+    env, _calls_path = _beta_candidate_gate_fixture(tmp_path, failure="schema1")
+
+    result = _run_beta_candidate_gate(env)
+
+    assert result.returncode != 0
+    assert "candidate runtime/version identity is invalid" in result.stderr
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "graph",
+        "content",
+        "composite",
+        "runtime_id",
+        "sha",
+        "model",
+        "package",
+        "semver",
+        "deployed_at",
+        "health",
+        "auth",
+        "headers",
+        "malformed",
+        "search1",
+        "search2",
+        "search3",
+        "search4",
+        "search5",
+        "no_cross",
+    ],
+)
+def test_beta_candidate_tls_gate_rejects_invalid_candidate_contracts(
+    tmp_path: Path, failure: str,
+) -> None:
+    env, _calls_path = _beta_candidate_gate_fixture(tmp_path, failure=failure)
+
+    result = _run_beta_candidate_gate(env)
+
+    assert result.returncode != 0, failure
+
+
+def test_beta_candidate_gate_precedes_transaction_commit_and_cleanup() -> None:
+    deploy = DEPLOY.read_text(encoding="utf-8")
+    nginx_installed = deploy.index("deploy_journal_write nginx_installed")
+    gate = deploy.index("  beta_candidate_tls_gate", nginx_installed)
+    ready = deploy.index("deploy_journal_write ready", gate)
+    success = deploy.index("deploy_journal_write success", ready)
+    garbage_collection = deploy.index("runtime_gc_releases", success)
+    deactivate = deploy.index("DEPLOY_TRANSACTION_ACTIVE=0", garbage_collection)
+    cleanup = deploy.index("deploy_cleanup_once", deactivate)
+
+    assert nginx_installed < gate < ready < success < garbage_collection < deactivate < cleanup
+    gate_function = deploy[
+        deploy.index("beta_candidate_tls_gate()") : deploy.index(
+            "\n}\n\n# The validation boundary", deploy.index("beta_candidate_tls_gate()")
+        )
+    ]
+    assert "--resolve \"$resolve\"" in gate_function
+    assert "beta.structural.bytedance.city:443:127.0.0.1" in gate_function
+    assert "--noproxy '*'" in gate_function
+    assert '"$RUNTIME_PYTHON" -I -S -B -' in gate_function
+    assert '"$RUNTIME_CURRENT/bin/python"' not in gate_function
+
+
+def test_beta_workflow_keeps_public_checks_post_commit_without_remote_rollback() -> None:
+    workflow_text = WORKFLOW.read_text(encoding="utf-8")
+    workflow = yaml.safe_load(workflow_text)
+    steps = workflow["jobs"]["deploy"]["steps"]
+    deploy_index = next(
+        index
+        for index, step in enumerate(steps)
+        if step.get("name", "").startswith("Pull + deploy via deploy-dispatcher")
+    )
+    verification_steps = steps[deploy_index + 1 :]
+
+    assert verification_steps
+    assert all(
+        "post-commit public verification" in step.get("name", "")
+        for step in verification_steps
+    )
+    sha_steps = [
+        step
+        for step in verification_steps
+        if "EXPECTED_SHA" in step.get("env", {})
+    ]
+    assert len(sha_steps) == 2
+    assert all(
+        step["env"]["EXPECTED_SHA"] == "${{ github.sha }}" for step in sha_steps
+    )
+    assert "EXPECTED_SHA=$(git rev-parse HEAD)" not in workflow_text
+    for step in steps:
+        run = step.get("run", "").lower()
+        if "ssh " in run:
+            assert "rollback" not in run
+
+
+def test_first_runtime_migration_candidate_gate_failure_restores_legacy_state(
+    tmp_path: Path,
+) -> None:
+    env, _calls_path = _beta_candidate_gate_fixture(tmp_path, failure="schema1")
+    runtime_root = tmp_path / "runtime"
+    new_release = _make_runtime_release(
+        runtime_root / "releases", requirements_sha="8" * 64
+    )
+    target = tmp_path / "target"
+    legacy_python = target / "venv" / "bin" / "python"
+    legacy_python.parent.mkdir(parents=True)
+    legacy_python.write_text("legacy runtime\n", encoding="utf-8")
+    (target / "app.py").write_text("legacy code\n", encoding="utf-8")
+    systemd_unit = tmp_path / "legacy-structural.service"
+    systemd_unit.write_text(f"ExecStart={legacy_python}\n", encoding="utf-8")
+
+    body = (
+        f'RUNTIME_ROOT={shlex.quote(str(runtime_root))}; '
+        'RUNTIME_RELEASES="$RUNTIME_ROOT/releases"; '
+        'RUNTIME_CURRENT="$RUNTIME_ROOT/current"; '
+        f'RUNTIME_PYTHON={shlex.quote(sys.executable)}; '
+        f'TARGET={shlex.quote(str(target))}; '
+        f'SYSTEMD_UNIT_TARGET={shlex.quote(str(systemd_unit))}; '
+        'EXCLUDES=(--exclude=venv/); '
+        'runtime_capture_current; test "$RUNTIME_PREVIOUS_PRESENT" = 0; '
+        'deploy_code_snapshot; systemd_unit_capture; '
+        f'RUNTIME_RELEASE={shlex.quote(str(new_release))}; runtime_switch; '
+        'printf "candidate code\\n" > "$TARGET/app.py"; '
+        'printf "candidate-only\\n" > "$TARGET/new.py"; '
+        'printf "candidate unit\\n" > "$SYSTEMD_UNIT_TARGET"; '
+        'SYSTEMD_UNIT_INSTALLED=1; DEPLOY_TRANSACTION_ACTIVE=1; '
+        'DEPLOY_SYNC_SOURCE="$TEST_DEPLOY_SYNC_SOURCE"; '
+        'SOURCE_HEAD_SHA="$TEST_SOURCE_HEAD_SHA"; '
+        'RUNTIME_REQUIREMENTS_SHA256="$TEST_RUNTIME_REQUIREMENTS_SHA256"; '
+        'RUNTIME_FREEZE_SHA256="$TEST_RUNTIME_FREEZE_SHA256"; '
+        'RUNTIME_ID="$TEST_RUNTIME_ID"; DEPLOYED_AT="$TEST_DEPLOYED_AT"; '
+        'if beta_candidate_tls_gate; then exit 97; fi; '
+        'if abort_deploy "candidate failed canonical TLS pre-commit gate"; then exit 98; fi; '
+        'test "$DEPLOY_TRANSACTION_ACTIVE" = 1; '
+        'deployment_restore_transaction_state; '
+        'test ! -e "$RUNTIME_CURRENT"; '
+        'test "$(cat "$TARGET/app.py")" = "legacy code"; '
+        'test ! -e "$TARGET/new.py"; '
+        'test "$(cat "$TARGET/venv/bin/python")" = "legacy runtime"; '
+        f'test "$(cat "$SYSTEMD_UNIT_TARGET")" = '
+        f'{shlex.quote(f"ExecStart={legacy_python}")}; '
+        'DEPLOY_TRANSACTION_ACTIVE=0; deployment_transaction_cleanup'
+    )
+
+    result = _source_deploy(body, env=env)
+
+    assert result.returncode == 0, result.stderr
+    assert "candidate failed canonical TLS pre-commit gate" in result.stderr
+    assert not (runtime_root / "current").exists()
+    assert legacy_python.read_text(encoding="utf-8") == "legacy runtime\n"
+    assert (target / "app.py").read_text(encoding="utf-8") == "legacy code\n"

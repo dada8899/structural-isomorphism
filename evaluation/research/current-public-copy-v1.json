@@ -29,6 +29,7 @@
     ],
     "current_documents": [
       "README.md",
+      "README-zh.md",
       "model_card.md",
       "dataset_card.md",
       "docs/index.md",
@@ -44,8 +45,19 @@
     "arXiv:XXXX",
     "XXXX.XXXXX",
     "26 verified classes",
+    "26 类已验证",
     "13 verified systems",
     "Every claimed universality class declares",
+    "每一个被宣称的普适类都必须",
+    "Reports power-law vs lognormal vs exponential, with pre-registered exponent bands",
+    "全部对照预注册的指数区间",
+    "preprint submission pending user action",
+    "预印本投递待用户操作",
+    "release/arxiv-submission-receipt.txt",
+    "我们用一条冻结的 339 行 Clauset 流水线",
+    "截至 2026-05-25 的进展",
+    "上线 4,443 条权威 artifact；英文检索仍未达质量门禁",
+    "4 篇完整（地震、S&P 500、DeFi、神经）",
     "what it lets us predict",
     "Why bank runs, earthquakes, and neural avalanches are the same thing",
     "About a third of the time the match is genuinely useful",
@@ -131,6 +143,8 @@
     "(?:discoveries?|发现).{0,100}(?:some\\s+(?:are\\s+)?verified|部分(?:已经|已)?验证)",
     "(?:精选发现|curated discoveries?).{0,180}(?:综合(?:得分|评分).{0,32}0\\s*[-–]\\s*10|composite.{0,32}scores?.{0,24}0\\s*[-–]\\s*10)",
     "(?:精选发现|curated discoveries?).{0,220}(?:由\\s*(?:Opus|独立\\s*AI)|independently\\s+assessed\\s+by\\s+Opus)",
+    "11\\s*个\\s*PASS-CONFIRMED-或更强\\*{0,2}（\\+1）",
+    "schelling_credible_commitment.{0,80}(?:通过|升至).{0,80}PASS-CONFIRMED",
     "真正的跨学科迁移力",
     "(?:超级模式|同一套数学结构连接)"
   ],
@@ -152,7 +166,29 @@
       "patterns": [
         "not a validated universality map or investment system",
         "submission-blocked",
+        "broader historical runs were not uniformly preregistered",
+        "neither the v0.4 preprint nor the v0.5 extension has been submitted",
+        "do not submit until both pass",
         "No paper DOI or arXiv identifier has been assigned"
+      ]
+    },
+    {
+      "path": "README-zh.md",
+      "patterns": [
+        "当前最可防守的贡献是可拒绝验证协议，而不是一张已验证的普适类地图",
+        "已公开的一项零结果是 Sharpe 提升 −0.23 的滚动回测",
+        "历史研究快照：2026-05-25（非当前生产证据）",
+        "26 个内部评审候选类",
+        "并非 26 个经独立验证的机制",
+        "旧版内部 PASS 计数（禁止用于投稿）",
+        "必须将其排除在普适性 PASS 计数之外",
+        "更广泛的历史分类法扫描并未统一预注册",
+        "更广泛的历史运行并未统一预注册",
+        "v0.4 预印本与 v0.5 扩展均尚未投稿",
+        "两项门禁通过前不得提交",
+        "各条映射的溯源质量不一，均按候选关系展示",
+        "4 篇内部领域草稿；均未经过外部同行评审，也未被接收",
+        "目前尚未分配论文 DOI 或 arXiv 标识符"
       ]
     },
     {
