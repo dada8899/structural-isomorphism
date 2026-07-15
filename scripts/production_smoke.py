@@ -184,19 +184,41 @@ class Monitor:
             f"{BETA}/assets/runtime-attestation.json",
         )
         self.require(isinstance(runtime, dict), "beta immutable runtime", "expected an object")
+        resolved_graph_sha = runtime.get("resolved_graph_sha256")
+        content_sha = runtime.get("runtime_content_sha256")
         freeze_sha = runtime.get("installed_freeze_sha256")
-        self.require(isinstance(freeze_sha, str) and len(freeze_sha) == 64
-                     and all(character in "0123456789abcdef" for character in freeze_sha),
-                     "beta immutable runtime", "installed freeze SHA-256 is invalid")
+        for label, digest in (
+            ("resolved graph", resolved_graph_sha),
+            ("runtime content", content_sha),
+            ("installed freeze", freeze_sha),
+        ):
+            self.require(
+                isinstance(digest, str)
+                and len(digest) == 64
+                and all(character in "0123456789abcdef" for character in digest),
+                "beta immutable runtime",
+                f"{label} SHA-256 is invalid",
+            )
+        expected_freeze_sha = hashlib.sha256(
+            (
+                f"resolved_graph_sha256={resolved_graph_sha}\n"
+                f"runtime_content_sha256={content_sha}\n"
+            ).encode("ascii")
+        ).hexdigest()
+        self.require(
+            freeze_sha == expected_freeze_sha,
+            "beta immutable runtime",
+            "installed freeze SHA-256 is not bound to graph + runtime content",
+        )
         expected_runtime_id = (
             f"cpython-311-{EXPECTED_RUNTIME_REQUIREMENTS_SHA256}-{freeze_sha}"
         )
-        self.require(runtime.get("schema_version") == 1, "beta immutable runtime",
-                     "schema_version must equal 1")
+        self.require(runtime.get("schema_version") == 2, "beta immutable runtime",
+                     "schema_version must equal 2")
         self.require(runtime.get("requirements_sha256") == EXPECTED_RUNTIME_REQUIREMENTS_SHA256,
                      "beta immutable runtime", "requirements SHA-256 does not match this release")
         self.require(runtime.get("runtime_id") == expected_runtime_id, "beta immutable runtime",
-                     "runtime_id does not match Python ABI + requirements SHA-256")
+                     "runtime_id does not match Python ABI + requirements + content-bound freeze")
         self.require(runtime.get("python_abi") == "cpython-311", "beta immutable runtime",
                      "python_abi must equal cpython-311")
         self.require(isinstance(runtime.get("python_version"), str)

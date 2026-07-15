@@ -209,20 +209,9 @@ prepare_beta_auth_data_dir() {
 }
 
 install_structural_systemd_unit() {
-  [[ -f "$SYSTEMD_UNIT_SOURCE" ]] || {
-    echo "[deploy] ERROR: tracked structural-web systemd unit is missing" >&2; return 1;
-  }
-  grep -Fqx "EnvironmentFile=$BETA_AUTH_ENV_FILE" "$SYSTEMD_UNIT_SOURCE" || {
-    echo "[deploy] ERROR: tracked systemd unit does not load beta auth environment" >&2; return 1;
-  }
-  grep -Fq 'ExecStartPost=' "$SYSTEMD_UNIT_SOURCE" || {
-    echo "[deploy] ERROR: tracked systemd unit has no deep-readiness gate" >&2; return 1;
-  }
-  grep -Fqx "ExecStart=$RUNTIME_CURRENT/bin/python -m uvicorn main:app --host 127.0.0.1 --port 5004 --no-access-log" \
-    "$SYSTEMD_UNIT_SOURCE" || {
-    echo "[deploy] ERROR: tracked systemd unit does not use the attested current runtime" >&2
-    return 1
-  }
+  systemd_validate_tracked_unit_contract \
+    "$SYSTEMD_UNIT_SOURCE" "$RUNTIME_CURRENT" "$BETA_AUTH_ENV_FILE" \
+    "$TARGET/web/backend" || return 1
   systemd_unit_install_transaction "$SYSTEMD_UNIT_SOURCE" "$SYSTEMD_UNIT_TARGET" \
     || return 1
   systemctl daemon-reload || return 1
@@ -231,7 +220,16 @@ install_structural_systemd_unit() {
   systemctl cat "$SERVICE" | grep -Fq "EnvironmentFile=$BETA_AUTH_ENV_FILE" || {
     echo "[deploy] ERROR: active systemd unit does not load beta auth environment" >&2; return 1;
   }
-  systemctl cat "$SERVICE" | grep -Fq "ExecStart=$RUNTIME_CURRENT/bin/python" || {
+  systemctl cat "$SERVICE" | grep -Fqx 'Environment="PYTHONDONTWRITEBYTECODE=1"' || {
+    echo "[deploy] ERROR: active systemd unit does not disable runtime bytecode" >&2; return 1;
+  }
+  systemctl cat "$SERVICE" | grep -Fqx 'Environment="SETUPTOOLS_USE_DISTUTILS=stdlib"' || {
+    echo "[deploy] ERROR: active systemd unit does not disable the setuptools shim" >&2; return 1;
+  }
+  systemctl cat "$SERVICE" | grep -Fqx "Environment=\"STRUCTURAL_PROJECT_ROOT=$TARGET\"" || {
+    echo "[deploy] ERROR: active systemd unit has a noncanonical project root" >&2; return 1;
+  }
+  systemctl cat "$SERVICE" | grep -Fqx "ExecStart=/usr/bin/env PYTHONDONTWRITEBYTECODE=1 SETUPTOOLS_USE_DISTUTILS=stdlib STRUCTURAL_PROJECT_ROOT=$TARGET $RUNTIME_CURRENT/bin/python -I -B -m uvicorn main:app --app-dir $TARGET/web/backend --host 127.0.0.1 --port 5004 --no-access-log" || {
     echo "[deploy] ERROR: active systemd unit does not use the attested current runtime" >&2
     return 1
   }
@@ -250,7 +248,12 @@ install_structural_systemd_unit() {
     echo "[deploy] ERROR: systemd drop-ins may override the tracked unit" >&2
     return 1
   }
-  [[ "$effective_exec" == *"$RUNTIME_CURRENT/bin/python"* \
+  [[ "$effective_exec" == *"/usr/bin/env"* \
+    && "$effective_exec" == *"PYTHONDONTWRITEBYTECODE=1"* \
+    && "$effective_exec" == *"SETUPTOOLS_USE_DISTUTILS=stdlib"* \
+    && "$effective_exec" == *"STRUCTURAL_PROJECT_ROOT=$TARGET"* \
+    && "$effective_exec" == *"$RUNTIME_CURRENT/bin/python"* \
+    && "$effective_exec" == *" -I -B -m uvicorn main:app --app-dir $TARGET/web/backend "* \
     && "$effective_exec" == *"--no-access-log"* \
     && "$effective_exec" != *"$TARGET/venv/bin/python"* ]] || {
     echo "[deploy] ERROR: effective systemd ExecStart is not private and attested" >&2
@@ -284,6 +287,232 @@ abort_deploy() {
   DEPLOY_FAILURE_REASON="$1"
   echo "[deploy] FAIL: $DEPLOY_FAILURE_REASON" >&2
   return 1
+}
+
+# Prove the candidate through the canonical TLS virtual host while the deploy
+# transaction is still active.  DNS is deliberately bypassed: this gate tests
+# the just-installed local Nginx/service pair, not whichever release public DNS
+# happened to resolve while the host was switching versions.
+beta_candidate_tls_gate() {
+  local origin="https://beta.structural.bytedance.city"
+  local resolve="beta.structural.bytedance.city:443:127.0.0.1"
+  local snapshot_env="$DEPLOY_SYNC_SOURCE/web/backend/.env.example"
+  local expected_model attestation version health auth_response auth_status auth_body
+  local headers search_body cross_domain_result query payload
+  local cross_domain_seen=0
+
+  [[ -f "$snapshot_env" ]] || {
+    echo "[deploy] ERROR: candidate snapshot .env.example is missing" >&2
+    return 1
+  }
+  [[ "$(grep -c '^ASK_LLM_MODEL=' "$snapshot_env" || true)" == "1" ]] || {
+    echo "[deploy] ERROR: candidate snapshot ASK_LLM_MODEL is missing or duplicate" >&2
+    return 1
+  }
+  expected_model="$(sed -n 's/^ASK_LLM_MODEL=//p' "$snapshot_env")"
+  [[ -n "$expected_model" && "$expected_model" != *$'\r'* ]] || {
+    echo "[deploy] ERROR: candidate snapshot ASK_LLM_MODEL is noncanonical" >&2
+    return 1
+  }
+  [[ "$SOURCE_HEAD_SHA" =~ ^[0-9a-f]{40}$ \
+    && "$RUNTIME_REQUIREMENTS_SHA256" =~ ^[0-9a-f]{64}$ \
+    && "$RUNTIME_ID" == "$EXPECTED_PYTHON_ABI-$RUNTIME_REQUIREMENTS_SHA256-$RUNTIME_FREEZE_SHA256" \
+    && "$DEPLOYED_AT" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] || {
+    echo "[deploy] ERROR: candidate gate inputs are noncanonical" >&2
+    return 1
+  }
+
+  if ! attestation="$(curl -q -fsS --noproxy '*' --max-time 15 \
+    --resolve "$resolve" -H 'Cache-Control: no-cache' \
+    "$origin/assets/runtime-attestation.json?sha=$SOURCE_HEAD_SHA")"; then
+    echo "[deploy] ERROR: candidate runtime attestation request failed" >&2
+    return 1
+  fi
+  if ! version="$(curl -q -fsS --noproxy '*' --max-time 15 \
+    --resolve "$resolve" -H 'Cache-Control: no-cache' \
+    "$origin/api/version?sha=$SOURCE_HEAD_SHA")"; then
+    echo "[deploy] ERROR: candidate version request failed" >&2
+    return 1
+  fi
+  if ! ATTESTATION="$attestation" VERSION="$version" \
+    EXPECTED_SHA="$SOURCE_HEAD_SHA" EXPECTED_MODEL="$expected_model" \
+    EXPECTED_ABI="$EXPECTED_PYTHON_ABI" \
+    EXPECTED_REQUIREMENTS_SHA="$RUNTIME_REQUIREMENTS_SHA256" \
+    EXPECTED_RUNTIME_ID="$RUNTIME_ID" EXPECTED_DEPLOYED_AT="$DEPLOYED_AT" \
+    EXPECTED_FASTAPI="$EXPECTED_FASTAPI_VERSION" \
+    EXPECTED_PYDANTIC="$EXPECTED_PYDANTIC_VERSION" \
+    EXPECTED_STARLETTE="$EXPECTED_STARLETTE_VERSION" \
+    EXPECTED_UVICORN="$EXPECTED_UVICORN_VERSION" \
+    "$RUNTIME_PYTHON" -I -S -B - <<'PY'
+import hashlib
+import json
+import os
+import re
+
+attestation = json.loads(os.environ["ATTESTATION"])
+version = json.loads(os.environ["VERSION"])
+expected_sha = os.environ["EXPECTED_SHA"]
+expected_abi = os.environ["EXPECTED_ABI"]
+requirements_sha = os.environ["EXPECTED_REQUIREMENTS_SHA"]
+expected_runtime_id = os.environ["EXPECTED_RUNTIME_ID"]
+expected_deployed_at = os.environ["EXPECTED_DEPLOYED_AT"]
+expected_packages = {
+    "fastapi": os.environ["EXPECTED_FASTAPI"],
+    "pydantic": os.environ["EXPECTED_PYDANTIC"],
+    "starlette": os.environ["EXPECTED_STARLETTE"],
+    "uvicorn": os.environ["EXPECTED_UVICORN"],
+}
+
+assert isinstance(attestation, dict) and isinstance(version, dict)
+assert attestation.get("schema_version") == 2
+assert attestation.get("python_abi") == expected_abi
+assert attestation.get("requirements_sha256") == requirements_sha
+graph_sha = attestation.get("resolved_graph_sha256")
+content_sha = attestation.get("runtime_content_sha256")
+freeze_sha = attestation.get("installed_freeze_sha256")
+for digest in (graph_sha, content_sha, freeze_sha):
+    assert isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest)
+composite = hashlib.sha256(
+    (
+        f"resolved_graph_sha256={graph_sha}\n"
+        f"runtime_content_sha256={content_sha}\n"
+    ).encode("ascii")
+).hexdigest()
+assert freeze_sha == composite
+assert attestation.get("runtime_id") == expected_runtime_id
+assert expected_runtime_id == f"{expected_abi}-{requirements_sha}-{freeze_sha}"
+assert attestation.get("git_sha") == version.get("git_sha") == expected_sha
+assert attestation.get("deployed_at") == version.get("deployed_at") == expected_deployed_at
+assert version.get("semver") == "0.2.0"
+assert version.get("env") == "prod"
+assert version.get("model") == os.environ["EXPECTED_MODEL"]
+assert isinstance(version.get("python_version"), str)
+assert version["python_version"].startswith("3.11.")
+assert version.get("python_version") == attestation.get("python_version")
+for field in ("python_abi", "runtime_id", "requirements_sha256", "installed_freeze_sha256"):
+    assert version.get(field) == attestation.get(field)
+for package, expected in expected_packages.items():
+    assert attestation.get(package) == version.get(package) == expected
+PY
+  then
+    echo "[deploy] ERROR: candidate runtime/version identity is invalid" >&2
+    return 1
+  fi
+
+  if ! health="$(curl -q -fsS --noproxy '*' --max-time 20 --resolve "$resolve" \
+    "$origin/api/health?deep=1")"; then
+    echo "[deploy] ERROR: candidate deep-health request failed" >&2
+    return 1
+  fi
+  if ! HEALTH="$health" "$RUNTIME_PYTHON" -I -S -B - <<'PY'
+import json
+import os
+
+body = json.loads(os.environ["HEALTH"])
+assert body.get("status") == "ok"
+assert body.get("kb_size") == 4443
+assert body.get("artifact_id") == "structural-v2-kb4443-20260711"
+assert body.get("embedding_shape") == [4443, 768]
+checks = body.get("checks")
+assert isinstance(checks, dict)
+for field in ("search_service", "knowledge_base", "artifact_manifest"):
+    assert checks.get(field) == "ok"
+assert checks.get("history_db") in {"ok", "missing"}
+assert checks.get("llm_env") in {"ok", "missing"}
+PY
+  then
+    echo "[deploy] ERROR: candidate deep-health payload is invalid" >&2
+    return 1
+  fi
+
+  if ! auth_response="$(curl -q -sS --noproxy '*' --max-time 15 --resolve "$resolve" \
+    -w $'\n%{http_code}' "$origin/api/auth/me")"; then
+    echo "[deploy] ERROR: candidate auth request failed" >&2
+    return 1
+  fi
+  auth_status="${auth_response##*$'\n'}"
+  auth_body="${auth_response%$'\n'*}"
+  if ! AUTH_STATUS="$auth_status" AUTH_BODY="$auth_body" \
+    "$RUNTIME_PYTHON" -I -S -B - <<'PY'
+import json
+import os
+
+body = json.loads(os.environ["AUTH_BODY"])
+assert os.environ["AUTH_STATUS"] == "401"
+assert body.get("error") == "no session"
+PY
+  then
+    echo "[deploy] ERROR: candidate auth boundary is invalid" >&2
+    return 1
+  fi
+
+  if ! headers="$(curl -q -fsS --noproxy '*' --max-time 15 --resolve "$resolve" \
+    -D - -o /dev/null "$origin/")"; then
+    echo "[deploy] ERROR: candidate homepage request failed" >&2
+    return 1
+  fi
+  if ! HEADERS="$headers" "$RUNTIME_PYTHON" -I -S -B - <<'PY'
+import os
+import re
+
+headers = {}
+for raw_line in os.environ["HEADERS"].replace("\r", "").splitlines():
+    if ":" not in raw_line:
+        continue
+    name, value = raw_line.split(":", 1)
+    headers.setdefault(name.strip().lower(), []).append(value.strip())
+assert headers.get("referrer-policy") == ["no-referrer"]
+request_ids = headers.get("x-request-id", [])
+assert len(request_ids) == 1
+assert re.fullmatch(r"[A-Za-z0-9._:-]{8,128}", request_ids[0])
+PY
+  then
+    echo "[deploy] ERROR: candidate privacy/request-id headers are invalid" >&2
+    return 1
+  fi
+
+  for query in \
+    '月活用户每月固定流失百分之七，应该如何干预？' \
+    '为什么有些谣言会突然爆发并形成级联传播？' \
+    '团队氛围崩溃后为什么很难恢复？' \
+    '银行挤兑为什么会出现自我强化？' \
+    '一个平台如何避免正反馈导致系统失控？'; do
+    payload="$(printf '{\"query\":\"%s\",\"top_k\":5,\"rewrite\":false,\"lang\":\"zh\"}' "$query")"
+    if ! search_body="$(curl -q -fsS --noproxy '*' --max-time 25 --resolve "$resolve" \
+      -H 'Content-Type: application/json' --data-binary "$payload" \
+      "$origin/api/search")"; then
+      echo "[deploy] ERROR: candidate semantic-search request failed" >&2
+      return 1
+    fi
+    if ! cross_domain_result="$(SEARCH_BODY="$search_body" \
+      "$RUNTIME_PYTHON" -I -S -B - <<'PY'
+import json
+import os
+
+body = json.loads(os.environ["SEARCH_BODY"])
+rows = body.get("results")
+assert body.get("out_of_scope") is False
+assert isinstance(rows, list) and len(rows) > 0
+assert body.get("count") == len(rows)
+assert all(isinstance(row, dict) for row in rows)
+print("1" if any(row.get("cross_domain") is True for row in rows) else "0")
+PY
+    )"; then
+      echo "[deploy] ERROR: candidate semantic-search payload is invalid" >&2
+      return 1
+    fi
+    [[ "$cross_domain_result" == "0" || "$cross_domain_result" == "1" ]] || {
+      echo "[deploy] ERROR: candidate semantic-search proof is noncanonical" >&2
+      return 1
+    }
+    if [[ "$cross_domain_result" == "1" ]]; then
+      cross_domain_seen=1
+    fi
+  done
+  [[ "$cross_domain_seen" == "1" ]] || {
+    echo "[deploy] ERROR: candidate searches contain no cross-domain result" >&2
+    return 1
+  }
 }
 
 # The validation boundary is sourceable so fault-injection tests can execute
@@ -418,6 +647,8 @@ if [[ "$DRY_RUN" == "0" ]]; then
   deploy_journal_write runtime_switching || abort_deploy "could not journal runtime switch intent"
   runtime_switch || abort_deploy "runtime symlink switch failed"
   deploy_journal_write runtime_switched || abort_deploy "could not journal runtime switch"
+  export SETUPTOOLS_USE_DISTUTILS=stdlib
+  export PYTHONDONTWRITEBYTECODE=1
 
   echo "[deploy] Validating production artifact bundle..."
   for required in \
@@ -429,7 +660,7 @@ if [[ "$DRY_RUN" == "0" ]]; then
   done
   if ! (
     cd "$TARGET/web/backend"
-    ARTIFACT_ROOT="$ARTIFACT_ROOT" "$RUNTIME_CURRENT/bin/python" - <<'PY'
+    ARTIFACT_ROOT="$ARTIFACT_ROOT" "$RUNTIME_CURRENT/bin/python" -B - <<'PY'
 import os
 
 from services.artifact_manifest import validate_artifact_bundle
@@ -516,7 +747,7 @@ EOF
   for attempt in $(seq 1 24); do
     if systemctl is-active --quiet "$SERVICE" \
       && HEALTH="$(curl -fsS --max-time 5 'http://127.0.0.1:5004/api/health?deep=1' 2>/dev/null)" \
-      && HEALTH="$HEALTH" "$RUNTIME_CURRENT/bin/python" - <<'PY'
+      && HEALTH="$HEALTH" "$RUNTIME_CURRENT/bin/python" -B - <<'PY'
 import json
 import os
 
@@ -538,7 +769,7 @@ PY
     abort_deploy "beta account runtime request failed"
   fi
   [[ "$AUTH_STATUS" == "401" ]] || abort_deploy "beta account runtime is not enabled"
-  "$RUNTIME_CURRENT/bin/python" - <<'PY' || abort_deploy "beta account runtime response is invalid"
+  "$RUNTIME_CURRENT/bin/python" -B - <<'PY' || abort_deploy "beta account runtime response is invalid"
 import json
 
 with open("/tmp/structural-beta-auth-me.json", encoding="utf-8") as handle:
@@ -551,7 +782,7 @@ PY
   VERSION_JSON="$VERSION_JSON" EXPECTED_GIT_SHA="$GIT_SHA" \
     EXPECTED_RUNTIME_ID="$RUNTIME_ID" \
     PUBLIC_RUNTIME_ATTESTATION="$PUBLIC_RUNTIME_ATTESTATION" \
-    "$RUNTIME_CURRENT/bin/python" - <<'PY' \
+    "$RUNTIME_CURRENT/bin/python" -B - <<'PY' \
     || abort_deploy "runtime fingerprint does not match deployed code/runtime"
 import json
 import os
@@ -587,28 +818,8 @@ PY
     structural_beta_privacy \
     || abort_deploy "canonical private Nginx vhost installation failed"
   deploy_journal_write nginx_installed || abort_deploy "could not journal Nginx installation"
-  BETA_EDGE_HEADERS="$(curl -fsS --max-time 10 \
-    --resolve beta.structural.bytedance.city:443:127.0.0.1 \
-    -D - -o /dev/null https://beta.structural.bytedance.city/)" \
-    || abort_deploy "beta private edge request failed"
-  # Expected public edge header: Referrer-Policy: no-referrer
-  BETA_EDGE_HEADERS="$BETA_EDGE_HEADERS" "$RUNTIME_CURRENT/bin/python" - <<'PY' \
-    || abort_deploy "beta privacy/correlation headers are not uniquely effective"
-import os
-import re
-
-headers: dict[str, list[str]] = {}
-for raw_line in os.environ["BETA_EDGE_HEADERS"].replace("\r", "").splitlines():
-    if ":" not in raw_line:
-        continue
-    name, value = raw_line.split(":", 1)
-    headers.setdefault(name.strip().lower(), []).append(value.strip())
-if headers.get("referrer-policy") != ["no-referrer"]:
-    raise SystemExit("effective Referrer-Policy must appear exactly once")
-request_ids = headers.get("x-request-id", [])
-if len(request_ids) != 1 or not re.fullmatch(r"[A-Za-z0-9._:-]{8,128}", request_ids[0]):
-    raise SystemExit("effective X-Request-ID must appear exactly once")
-PY
+  beta_candidate_tls_gate \
+    || abort_deploy "candidate failed canonical TLS pre-commit gate"
   deploy_journal_write ready || abort_deploy "could not journal readiness"
   deploy_journal_write success || abort_deploy "could not persist successful deployment journal"
   runtime_gc_releases || abort_deploy "safe runtime release GC failed"

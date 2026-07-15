@@ -89,6 +89,8 @@ jobs:
     steps:
       - name: Checkout (context only)
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - name: Setup SSH
         env:
@@ -120,7 +122,7 @@ jobs:
               -o StrictHostKeyChecking=yes \
               "$USER@$HOST" "beta-backend $DEPLOY_SHA"
 
-      - name: Verify prod health
+      - name: Verify prod health (post-commit public verification)
         run: |
           set -euo pipefail
           sleep 5
@@ -138,7 +140,7 @@ jobs:
             fi
           done
 
-      - name: Verify beta account runtime is enabled
+      - name: Verify beta account runtime is enabled (post-commit public verification)
         run: |
           set -euo pipefail
           STATUS=$(curl -sS --max-time 10 -o /tmp/beta-auth-me.json -w '%{http_code}' \
@@ -146,10 +148,11 @@ jobs:
           test "$STATUS" = "401"
           python3 -c 'import json; assert json.load(open("/tmp/beta-auth-me.json"))["error"] == "no session"'
 
-      - name: Verify immutable runtime attestation
+      - name: Verify immutable runtime attestation (post-commit public verification)
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          EXPECTED_SHA=$(git rev-parse HEAD)
           REQUIREMENTS_SHA=$(python3 - <<'PY'
           import hashlib
           from pathlib import Path
@@ -162,8 +165,10 @@ jobs:
             "https://beta.structural.bytedance.city/api/version?sha=$EXPECTED_SHA")
           EXPECTED_SHA="$EXPECTED_SHA" REQUIREMENTS_SHA="$REQUIREMENTS_SHA" \
             ATTESTATION="$ATTESTATION" VERSION="$VERSION" python3 - <<'PY'
+          import hashlib
           import json
           import os
+          import re
 
           body = json.loads(os.environ["ATTESTATION"])
           version = json.loads(os.environ["VERSION"])
@@ -175,10 +180,18 @@ jobs:
               "starlette": "0.46.2",
               "uvicorn": "0.27.1",
           }
-          assert body.get("schema_version") == 1, body
+          assert body.get("schema_version") == 2, body
           assert body.get("requirements_sha256") == requirements_sha, body
+          resolved_graph_sha = body.get("resolved_graph_sha256", "")
+          content_sha = body.get("runtime_content_sha256", "")
           freeze_sha = body.get("installed_freeze_sha256", "")
-          assert len(freeze_sha) == 64 and all(c in "0123456789abcdef" for c in freeze_sha), body
+          for digest in (resolved_graph_sha, content_sha, freeze_sha):
+              assert isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest), body
+          composite_payload = (
+              f"resolved_graph_sha256={resolved_graph_sha}\n"
+              f"runtime_content_sha256={content_sha}\n"
+          ).encode("ascii")
+          assert hashlib.sha256(composite_payload).hexdigest() == freeze_sha, body
           assert body.get("runtime_id") == f"cpython-311-{requirements_sha}-{freeze_sha}", body
           assert body.get("python_abi") == "cpython-311", body
           assert str(body.get("python_version", "")).startswith("3.11."), body
@@ -193,7 +206,7 @@ jobs:
               assert version.get(field) == body.get(field), (field, version, body)
           PY
 
-      - name: Verify artifact identity and semantic search
+      - name: Verify artifact identity and semantic search (post-commit public verification)
         run: |
           set -euo pipefail
           HEALTH=$(curl -fsS --max-time 15 'https://beta.structural.bytedance.city/api/health?deep=1')
@@ -217,7 +230,7 @@ jobs:
           for query in "${queries[@]}"; do
             BODY=$(curl -fsS --max-time 20 \
               -H 'Content-Type: application/json' \
-              --data "$(python3 -c 'import json,sys; print(json.dumps({"query":sys.argv[1],"top_k":5}, ensure_ascii=False))' "$query")" \
+              --data "$(python3 -c 'import json,sys; print(json.dumps({"query":sys.argv[1],"top_k":5,"rewrite":False,"lang":"zh"}, ensure_ascii=False))' "$query")" \
               https://beta.structural.bytedance.city/api/search)
             RESULT=$(BODY="$BODY" python3 - <<'PY'
           import json, os
@@ -230,14 +243,15 @@ jobs:
           done
           test "$cross_domain" = "1"
 
-      - name: Verify deploy fingerprint matches the just-deployed commit
+      - name: Verify deploy fingerprint matches the just-deployed commit (post-commit public verification)
         # Session #16: close the SESSION-15-INCIDENT gap.
         # /api/version returns git_sha + model, written into .env.runtime
         # by scripts/deploy-vps.sh. If they don't match what we just pushed,
         # the deploy didn't actually take — fail loudly.
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          EXPECTED_SHA=$(git rev-parse HEAD)
           EXPECTED_MODEL=$(sed -n 's/^ASK_LLM_MODEL=//p' web/backend/.env.example | head -1)
           if [ -z "$EXPECTED_MODEL" ]; then
             echo "[verify] FAIL: ASK_LLM_MODEL missing from web/backend/.env.example" >&2

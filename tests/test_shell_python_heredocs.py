@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -97,14 +98,25 @@ def test_production_runtime_fingerprint_block_executes_exactly(tmp_path: Path) -
     assert fingerprint.quoted
 
     git_sha = "0123456789abcdef0123456789abcdef01234567"
-    runtime_id = "cpython-311-" + "a" * 64 + "-" + "b" * 64
+    resolved_graph_sha = "b" * 64
+    content_sha = "c" * 64
+    freeze_sha = hashlib.sha256(
+        (
+            f"resolved_graph_sha256={resolved_graph_sha}\n"
+            f"runtime_content_sha256={content_sha}\n"
+        ).encode("ascii")
+    ).hexdigest()
+    runtime_id = "cpython-311-" + "a" * 64 + "-" + freeze_sha
     deployed_at = "2026-07-14T00:00:00Z"
     shared = {
+        "schema_version": 2,
         "python_version": "3.11.6",
         "python_abi": "cpython-311",
         "runtime_id": runtime_id,
         "requirements_sha256": "a" * 64,
-        "installed_freeze_sha256": "b" * 64,
+        "resolved_graph_sha256": resolved_graph_sha,
+        "runtime_content_sha256": content_sha,
+        "installed_freeze_sha256": freeze_sha,
         "fastapi": "0.115.14",
         "pydantic": "2.6.1",
         "starlette": "0.46.2",
@@ -163,10 +175,12 @@ def test_public_runtime_attestation_block_executes_exactly(tmp_path: Path) -> No
     git_sha = "0123456789abcdef0123456789abcdef01234567"
     deployed_at = "2026-07-14T00:00:00Z"
     source_payload = {
-        "schema_version": 1,
-        "runtime_id": "cpython-311-" + "a" * 64 + "-" + "b" * 64,
+        "schema_version": 2,
+        "runtime_id": "cpython-311-" + "a" * 64 + "-" + "d" * 64,
         "requirements_sha256": "a" * 64,
-        "installed_freeze_sha256": "b" * 64,
+        "resolved_graph_sha256": "b" * 64,
+        "runtime_content_sha256": "c" * 64,
+        "installed_freeze_sha256": "d" * 64,
     }
     source.write_text(json.dumps(source_payload), encoding="utf-8")
     stale = output.with_name(f"{output.name}.tmp.stale")

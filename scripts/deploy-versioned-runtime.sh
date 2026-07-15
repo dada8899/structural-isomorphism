@@ -49,6 +49,8 @@ RUNTIME_BUILD_DIR=""
 RUNTIME_RELEASE=""
 RUNTIME_ID=""
 RUNTIME_REQUIREMENTS_SHA256=""
+RUNTIME_RESOLVED_GRAPH_SHA256=""
+RUNTIME_CONTENT_SHA256=""
 RUNTIME_FREEZE_SHA256=""
 RUNTIME_RESOLVER_DIR=""
 RUNTIME_PREVIOUS_PRESENT=0
@@ -93,6 +95,26 @@ runtime_sha256() {
   fi
 }
 
+runtime_composite_freeze_sha256() {
+  local resolved_graph_sha256="$1" runtime_content_sha256="$2"
+  "$RUNTIME_PYTHON" -I -S -B - \
+    "$resolved_graph_sha256" "$runtime_content_sha256" <<'PY'
+import hashlib
+import re
+import sys
+
+resolved_graph_sha256, runtime_content_sha256 = sys.argv[1:]
+for value in (resolved_graph_sha256, runtime_content_sha256):
+    if not re.fullmatch(r"[0-9a-f]{64}", value):
+        raise SystemExit("runtime composite identity input is invalid")
+payload = (
+    f"resolved_graph_sha256={resolved_graph_sha256}\n"
+    f"runtime_content_sha256={runtime_content_sha256}\n"
+).encode("ascii")
+print(hashlib.sha256(payload).hexdigest())
+PY
+}
+
 runtime_require_disk_space() {
   local path="$1" minimum_kb="${STRUCTURAL_RUNTIME_MIN_FREE_KB:-4194304}" available_kb
   [[ "$minimum_kb" =~ ^[0-9]+$ ]] || return 1
@@ -104,11 +126,324 @@ runtime_require_disk_space() {
   }
 }
 
-runtime_validate_pip_module() {
+runtime_canonicalize_pyvenv_configuration() {
+  local environment="$1" trusted_python="${RUNTIME_PYTHON:-}"
+  [[ -d "$environment" && ! -L "$environment" && -x "$trusted_python" ]] \
+    || return 1
+  "$trusted_python" -I -S -B - "$environment" <<'PY'
+import os
+import platform
+import shlex
+import sys
+from pathlib import Path
+
+environment_raw = Path(sys.argv[1]).resolve(strict=True)
+environment = environment_raw
+trusted_python = Path(sys.executable).resolve(strict=True)
+configuration = environment_raw / "pyvenv.cfg"
+if not configuration.is_file() or configuration.is_symlink():
+    raise SystemExit("generated pyvenv configuration is missing or is a symlink")
+try:
+    raw = configuration.read_bytes()
+    text = raw.decode("utf-8")
+except UnicodeDecodeError as exc:
+    raise SystemExit("generated pyvenv configuration is not UTF-8") from exc
+if not raw.endswith(b"\n") or b"\0" in raw:
+    raise SystemExit("generated pyvenv configuration bytes are invalid")
+expected_keys = {
+    "home", "include-system-site-packages", "version", "executable", "command"
+}
+values = {}
+for line in text.splitlines():
+    key, separator, value = line.partition(" = ")
+    if not separator or key not in expected_keys or key in values or not value:
+        raise SystemExit("generated pyvenv configuration has unknown or duplicate keys")
+    if key.strip() != key or value.strip() != value:
+        raise SystemExit("generated pyvenv configuration is not canonical")
+    values[key] = value
+if set(values) != expected_keys:
+    raise SystemExit("generated pyvenv configuration is incomplete")
+if values["include-system-site-packages"] != "false":
+    raise SystemExit("generated pyvenv enables system site-packages")
+if values["version"] != platform.python_version():
+    raise SystemExit("generated pyvenv Python version is invalid")
+for key, expected_path in (("home", trusted_python.parent), ("executable", trusted_python)):
+    configured = Path(values[key])
+    if not configured.is_absolute() or configured.resolve(strict=True) != expected_path:
+        raise SystemExit(f"generated pyvenv {key} is not trusted")
+command = shlex.split(values["command"])
+if len(command) != 5 or command[1:4] != ["-m", "venv", "--without-pip"]:
+    raise SystemExit("generated pyvenv command is invalid")
+if Path(command[0]).resolve(strict=True) != trusted_python:
+    raise SystemExit("generated pyvenv command interpreter is not trusted")
+if Path(command[4]).resolve(strict=True) != environment:
+    raise SystemExit("generated pyvenv command target is invalid")
+canonical = (
+    f"home = {trusted_python.parent}\n"
+    "include-system-site-packages = false\n"
+    f"version = {platform.python_version()}\n"
+    f"executable = {trusted_python}\n"
+).encode("utf-8")
+temporary = configuration.with_name(f"{configuration.name}.tmp.{os.getpid()}")
+with temporary.open("wb") as handle:
+    handle.write(canonical)
+    handle.flush()
+    os.fsync(handle.fileno())
+temporary.replace(configuration)
+directory_fd = os.open(environment, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+try:
+    os.fsync(directory_fd)
+finally:
+    os.close(directory_fd)
+PY
+}
+
+runtime_trusted_structural_preflight() {
+  local environment="$1" allow_legacy_pyvenv="${2:-0}"
+  local trusted_python="${RUNTIME_PYTHON:-}"
+  [[ -d "$environment" && ! -L "$environment" \
+    && -x "$environment/bin/python" && -x "$trusted_python" ]] || return 1
+  "$trusted_python" -I -S -B - "$environment" "$allow_legacy_pyvenv" <<'PY'
+import os
+import platform
+import sys
+from importlib import machinery
+from pathlib import Path
+
+environment_raw = Path(sys.argv[1])
+allow_legacy_pyvenv = sys.argv[2] == "1"
+if sys.argv[2] not in {"0", "1"}:
+    raise SystemExit("legacy pyvenv policy is invalid")
+if environment_raw.is_symlink():
+    raise SystemExit("runtime environment cannot be a symlink")
+environment = environment_raw.resolve(strict=True)
+trusted_python = Path(sys.executable).resolve(strict=True)
+pyvenv = environment_raw / "pyvenv.cfg"
+if not pyvenv.is_file() or pyvenv.is_symlink():
+    raise SystemExit("runtime pyvenv configuration is missing or is a symlink")
+try:
+    pyvenv_bytes = pyvenv.read_bytes()
+    pyvenv_text = pyvenv_bytes.decode("utf-8")
+except UnicodeDecodeError as exc:
+    raise SystemExit("runtime pyvenv configuration is not UTF-8") from exc
+if not pyvenv_bytes.endswith(b"\n") or b"\0" in pyvenv_bytes:
+    raise SystemExit("runtime pyvenv configuration bytes are not canonical")
+expected_pyvenv_keys = {"home", "include-system-site-packages", "version", "executable"}
+allowed_pyvenv_keys = set(expected_pyvenv_keys)
+if allow_legacy_pyvenv:
+    allowed_pyvenv_keys.add("command")
+pyvenv_values = {}
+for line in pyvenv_text.splitlines():
+    key, separator, value = line.partition(" = ")
+    if (
+        not separator
+        or key not in allowed_pyvenv_keys
+        or key in pyvenv_values
+        or not value
+        or key.strip() != key
+        or value.strip() != value
+    ):
+        raise SystemExit("runtime pyvenv configuration has unknown or duplicate keys")
+    pyvenv_values[key] = value
+if not expected_pyvenv_keys <= set(pyvenv_values):
+    raise SystemExit("runtime pyvenv configuration is incomplete")
+if not allow_legacy_pyvenv and set(pyvenv_values) != expected_pyvenv_keys:
+    raise SystemExit("runtime pyvenv configuration has unknown or duplicate keys")
+if pyvenv_values["include-system-site-packages"] != "false":
+    raise SystemExit("runtime pyvenv enables system site-packages")
+if pyvenv_values["version"] != platform.python_version():
+    raise SystemExit("runtime pyvenv Python version does not match trusted base")
+for key, expected_path in (
+    ("home", trusted_python.parent),
+    ("executable", trusted_python),
+):
+    configured = Path(pyvenv_values[key])
+    if not configured.is_absolute() or configured.resolve(strict=True) != expected_path:
+        raise SystemExit(f"runtime pyvenv {key} does not resolve to trusted base")
+if not allow_legacy_pyvenv:
+    canonical_pyvenv = (
+        f"home = {trusted_python.parent}\n"
+        "include-system-site-packages = false\n"
+        f"version = {platform.python_version()}\n"
+        f"executable = {trusted_python}\n"
+    ).encode("utf-8")
+    if pyvenv_bytes != canonical_pyvenv:
+        raise SystemExit("runtime pyvenv configuration bytes are not canonical")
+environment_python_raw = environment_raw / "bin" / "python"
+environment_python = environment_python_raw.resolve(strict=True)
+if environment_python != trusted_python:
+    raise SystemExit("runtime interpreter does not resolve to the trusted base")
+site_packages_raw = (
+    environment_raw
+    / "lib"
+    / f"python{sys.version_info.major}.{sys.version_info.minor}"
+    / "site-packages"
+)
+if not site_packages_raw.is_dir() or site_packages_raw.is_symlink():
+    raise SystemExit("runtime site-packages is unavailable or is a symlink")
+site_packages = site_packages_raw.resolve(strict=True)
+if environment not in site_packages.parents:
+    raise SystemExit("runtime site-packages is outside its environment")
+
+for root, directories, files in os.walk(site_packages_raw, followlinks=False):
+    root_path = Path(root)
+    for name in directories + files:
+        candidate = root_path / name
+        if not candidate.is_symlink():
+            continue
+        resolved = candidate.resolve(strict=True)
+        if environment != resolved and environment not in resolved.parents:
+            raise SystemExit("site-packages entry escapes its environment")
+
+for hook_name in ("sitecustomize", "usercustomize"):
+    candidates = [site_packages_raw / hook_name]
+    candidates.extend(
+        site_packages_raw / f"{hook_name}{suffix}"
+        for suffix in machinery.all_suffixes()
+    )
+    if any(path.exists() or path.is_symlink() for path in candidates):
+        raise SystemExit("site customization hooks are forbidden")
+    cache = site_packages_raw / "__pycache__"
+    if cache.is_dir() and any(cache.glob(f"{hook_name}.*.pyc")):
+        raise SystemExit("site customization hooks are forbidden")
+
+safe_hook = (
+    "import os; var = 'SETUPTOOLS_USE_DISTUTILS'; "
+    "enabled = os.environ.get(var, 'local') == 'local'; "
+    "enabled and __import__('_distutils_hack').add_shim()"
+)
+seen_safe_hook = False
+for pth in site_packages_raw.glob("*.pth"):
+    if not pth.is_file() or pth.is_symlink():
+        raise SystemExit("site path hook is not a regular in-environment file")
+    for raw_line in pth.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if (
+            pth.name != "distutils-precedence.pth"
+            or line not in {safe_hook, safe_hook + ";"}
+            or seen_safe_hook
+        ):
+            raise SystemExit("executable site path hooks are forbidden")
+        local_hack = site_packages_raw / "_distutils_hack" / "__init__.py"
+        if not local_hack.is_file() or local_hack.is_symlink():
+            raise SystemExit("setuptools distutils hook has no local code identity")
+        seen_safe_hook = True
+PY
+}
+
+runtime_create_venv_without_pip() {
   local environment="$1"
+  "$RUNTIME_PYTHON" -I -S -B -m venv --without-pip "$environment" \
+    || return 1
+  runtime_canonicalize_pyvenv_configuration "$environment" || return 1
+  # `venv --without-pip` creates the interpreter link but never invokes it.
+  # This trusted inspection is therefore strictly before the first target
+  # interpreter execution.
+  runtime_trusted_structural_preflight "$environment"
+}
+
+runtime_canonicalize_console_launchers() {
+  local environment="$1" trusted_python="${RUNTIME_PYTHON:-}"
+  runtime_trusted_structural_preflight "$environment" || return 1
+  "$trusted_python" -I -S -B - "$environment" <<'PY'
+import base64
+import csv
+import hashlib
+import io
+import os
+import sys
+from pathlib import Path
+
+environment_raw = Path(sys.argv[1]).resolve(strict=True)
+environment = environment_raw
+trusted_python = Path(sys.executable).resolve(strict=True)
+if (environment_raw / "bin" / "python").resolve(strict=True) != trusted_python:
+    raise SystemExit("runtime interpreter does not resolve to the trusted base")
+site_packages = (
+    environment_raw
+    / "lib"
+    / f"python{sys.version_info.major}.{sys.version_info.minor}"
+    / "site-packages"
+)
+if not site_packages.is_dir() or site_packages.is_symlink():
+    raise SystemExit("runtime site-packages is unavailable or is a symlink")
+
+
+def lexical_path(path):
+    return Path(os.path.abspath(os.path.normpath(path)))
+
+
+for metadata in sorted(site_packages.glob("*.dist-info")):
+    if not metadata.is_dir() or metadata.is_symlink():
+        raise SystemExit("runtime distribution metadata is not a regular directory")
+    record = metadata / "RECORD"
+    if not record.is_file() or record.is_symlink():
+        raise SystemExit("runtime distribution RECORD is unavailable or is a symlink")
+    with record.open("r", encoding="utf-8", newline="") as stream:
+        rows = list(csv.reader(stream))
+    changed = False
+    for row in rows:
+        if len(row) != 3 or not row[0] or Path(row[0]).is_absolute():
+            raise SystemExit("runtime distribution RECORD row is invalid")
+        candidate = lexical_path(site_packages / row[0])
+        if environment != candidate and environment not in candidate.parents:
+            raise SystemExit("runtime distribution RECORD path escapes its environment")
+        if candidate.parent != environment_raw / "bin":
+            continue
+        if not candidate.is_file() or candidate.is_symlink():
+            raise SystemExit("runtime console launcher is unavailable or is a symlink")
+        payload = (
+            "#!/bin/sh\n"
+            f"printf '%s\\n' 'immutable runtime launcher disabled: {candidate.name}' >&2\n"
+            "exit 126\n"
+        ).encode("utf-8")
+        candidate.write_bytes(payload)
+        with candidate.open("rb") as handle:
+            os.fsync(handle.fileno())
+        digest = base64.urlsafe_b64encode(hashlib.sha256(payload).digest()).decode("ascii")
+        row[1] = "sha256=" + digest.rstrip("=")
+        row[2] = str(len(payload))
+        changed = True
+    if not changed:
+        continue
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\n")
+    writer.writerows(rows)
+    temporary = record.with_name(f"{record.name}.tmp.{os.getpid()}")
+    with temporary.open("w", encoding="utf-8", newline="") as stream:
+        stream.write(output.getvalue())
+        stream.flush()
+        os.fsync(stream.fileno())
+    temporary.replace(record)
+directory_fd = os.open(environment, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+try:
+    os.fsync(directory_fd)
+finally:
+    os.close(directory_fd)
+PY
+}
+
+runtime_bootstrap_pip() {
+  local environment="$1"
+  runtime_trusted_structural_preflight "$environment" || return 1
+  SETUPTOOLS_USE_DISTUTILS=stdlib PYTHONDONTWRITEBYTECODE=1 \
+    "$environment/bin/python" -I -B -m ensurepip --upgrade >/dev/null \
+    || return 1
+  runtime_canonicalize_console_launchers "$environment" || return 1
+  runtime_trusted_structural_preflight "$environment" || return 1
+  runtime_validate_pip_module "$environment"
+}
+
+runtime_validate_pip_module() {
+  local environment="$1" allow_legacy_pyvenv="${2:-0}"
   [[ -d "$environment" && ! -L "$environment" \
     && -x "$environment/bin/python" ]] || return 1
-  "$environment/bin/python" -I - "$environment" <<'PY'
+  runtime_trusted_structural_preflight \
+    "$environment" "$allow_legacy_pyvenv" || return 1
+  SETUPTOOLS_USE_DISTUTILS=stdlib PYTHONDONTWRITEBYTECODE=1 \
+    "$environment/bin/python" -I -B - "$environment" <<'PY'
 import importlib.util
 import sys
 from importlib import metadata
@@ -156,7 +491,55 @@ runtime_pip() {
   local environment="$1"
   shift
   runtime_validate_pip_module "$environment" || return 1
-  "$environment/bin/python" -I -m pip "$@"
+  SETUPTOOLS_USE_DISTUTILS=stdlib PYTHONDONTWRITEBYTECODE=1 \
+    "$environment/bin/python" -I -B -m pip "$@"
+}
+
+runtime_sanitize_bytecode() {
+  local environment="$1" trusted_python="${RUNTIME_PYTHON:-}"
+  [[ -d "$environment" && ! -L "$environment" \
+    && -x "$environment/bin/python" && -x "$trusted_python" ]] || return 1
+  "$trusted_python" -I -S -B - "$environment" <<'PY'
+import os
+import sys
+from pathlib import Path
+
+environment_raw = Path(sys.argv[1])
+environment = environment_raw.resolve(strict=True)
+trusted_python = Path(sys.executable).resolve(strict=True)
+if (environment_raw / "bin" / "python").resolve(strict=True) != trusted_python:
+    raise SystemExit("runtime interpreter does not resolve to the trusted base")
+site_packages = (
+    environment_raw
+    / "lib"
+    / f"python{sys.version_info.major}.{sys.version_info.minor}"
+    / "site-packages"
+)
+if not site_packages.is_dir() or site_packages.is_symlink():
+    raise SystemExit("runtime site-packages is unavailable or is a symlink")
+for root, directories, files in os.walk(site_packages, topdown=False, followlinks=False):
+    root_path = Path(root)
+    for filename in files:
+        candidate = root_path / filename
+        if candidate.suffix != ".pyc":
+            continue
+        if candidate.is_symlink():
+            raise SystemExit("refusing to sanitize a bytecode symlink")
+        resolved = candidate.resolve(strict=True)
+        if environment not in resolved.parents:
+            raise SystemExit("runtime bytecode cache escapes its environment")
+        candidate.unlink()
+    for directory in directories:
+        candidate = root_path / directory
+        if candidate.name == "__pycache__" and candidate.is_symlink():
+            raise SystemExit("refusing to sanitize a bytecode directory symlink")
+    if root_path.name == "__pycache__":
+        if root_path.is_symlink():
+            raise SystemExit("refusing to sanitize a bytecode directory symlink")
+        if any(root_path.iterdir()):
+            raise SystemExit("bytecode cache contains a non-pyc runtime entry")
+        root_path.rmdir()
+PY
 }
 
 runtime_abort_resolver() {
@@ -168,7 +551,7 @@ runtime_abort_resolver() {
 
 runtime_canonicalize_resolver_report() {
   local interpreter="$1" report="$2" output="$3"
-  "$interpreter" -I - "$report" "$output" <<'PY'
+  "$interpreter" -I -S -B - "$report" "$output" <<'PY'
 import hashlib
 import json
 import re
@@ -216,25 +599,105 @@ PY
 
 runtime_validate_canonical_package_set() {
   local environment="$1" expected_graph="$2" expected_sha256="$3"
+  local allow_legacy_bytecode="${4:-0}"
+  local trusted_python="${RUNTIME_PYTHON:-}"
   [[ -d "$environment" && ! -L "$environment" \
-    && -x "$environment/bin/python" && -f "$expected_graph" \
+    && -x "$environment/bin/python" && -x "$trusted_python" \
+    && -f "$expected_graph" \
     && ! -L "$expected_graph" ]] || return 1
-  "$environment/bin/python" -I - \
-    "$environment" "$expected_graph" "$expected_sha256" <<'PY'
+  "$trusted_python" -I -S -B - \
+    "$environment" "$expected_graph" "$expected_sha256" \
+    "$allow_legacy_bytecode" <<'PY'
+import base64
+import csv
 import hashlib
+import json
+import os
+import platform
 import re
 import sys
+from importlib import machinery
 from importlib import metadata
 from pathlib import Path
 
 environment_raw = Path(sys.argv[1])
 expected_path = Path(sys.argv[2])
 expected_sha256 = sys.argv[3]
+allow_legacy_bytecode = sys.argv[4] == "1"
+if sys.argv[4] not in {"0", "1"}:
+    raise SystemExit("legacy bytecode policy is invalid")
 if not re.fullmatch(r"[0-9a-f]{64}", expected_sha256):
     raise SystemExit("canonical package-set digest is invalid")
 if environment_raw.is_symlink() or expected_path.is_symlink():
     raise SystemExit("canonical package-set inputs cannot be symlinks")
 environment = environment_raw.resolve(strict=True)
+trusted_python = Path(sys.executable).resolve(strict=True)
+environment_python_raw = environment_raw / "bin" / "python"
+environment_python = environment_python_raw.resolve(strict=True)
+if environment_python != trusted_python:
+    raise SystemExit("runtime interpreter does not resolve to the trusted base")
+pyvenv = environment_raw / "pyvenv.cfg"
+if not pyvenv.is_file() or pyvenv.is_symlink():
+    raise SystemExit("runtime pyvenv configuration is missing or is a symlink")
+try:
+    pyvenv_bytes = pyvenv.read_bytes()
+    pyvenv_text = pyvenv_bytes.decode("utf-8")
+except UnicodeDecodeError as exc:
+    raise SystemExit("runtime pyvenv configuration is not UTF-8") from exc
+if not pyvenv_bytes.endswith(b"\n") or b"\0" in pyvenv_bytes:
+    raise SystemExit("runtime pyvenv configuration bytes are not canonical")
+expected_pyvenv_keys = {"home", "include-system-site-packages", "version", "executable"}
+allowed_pyvenv_keys = set(expected_pyvenv_keys)
+if allow_legacy_bytecode:
+    allowed_pyvenv_keys.add("command")
+pyvenv_values = {}
+for line in pyvenv_text.splitlines():
+    key, separator, value = line.partition(" = ")
+    if (
+        not separator
+        or key not in allowed_pyvenv_keys
+        or key in pyvenv_values
+        or not value
+        or key.strip() != key
+        or value.strip() != value
+    ):
+        raise SystemExit("runtime pyvenv configuration has unknown or duplicate keys")
+    pyvenv_values[key] = value
+if not expected_pyvenv_keys <= set(pyvenv_values):
+    raise SystemExit("runtime pyvenv configuration is incomplete")
+if not allow_legacy_bytecode and set(pyvenv_values) != expected_pyvenv_keys:
+    raise SystemExit("runtime pyvenv configuration has unknown or duplicate keys")
+if pyvenv_values["include-system-site-packages"] != "false":
+    raise SystemExit("runtime pyvenv enables system site-packages")
+if pyvenv_values["version"] != platform.python_version():
+    raise SystemExit("runtime pyvenv Python version does not match trusted base")
+for key, expected_path_value in (
+    ("home", trusted_python.parent),
+    ("executable", trusted_python),
+):
+    configured = Path(pyvenv_values[key])
+    if not configured.is_absolute() or configured.resolve(strict=True) != expected_path_value:
+        raise SystemExit(f"runtime pyvenv {key} does not resolve to trusted base")
+if not allow_legacy_bytecode:
+    canonical_pyvenv = (
+        f"home = {trusted_python.parent}\n"
+        "include-system-site-packages = false\n"
+        f"version = {platform.python_version()}\n"
+        f"executable = {trusted_python}\n"
+    ).encode("utf-8")
+    if pyvenv_bytes != canonical_pyvenv:
+        raise SystemExit("runtime pyvenv configuration bytes are not canonical")
+site_packages_raw = (
+    environment_raw
+    / "lib"
+    / f"python{sys.version_info.major}.{sys.version_info.minor}"
+    / "site-packages"
+)
+if not site_packages_raw.is_dir() or site_packages_raw.is_symlink():
+    raise SystemExit("canonical site-packages is unavailable or is a symlink")
+site_packages = site_packages_raw.resolve(strict=True)
+if environment not in site_packages.parents:
+    raise SystemExit("canonical site-packages is outside its environment")
 expected_resolved = expected_path.resolve(strict=True)
 if environment not in expected_resolved.parents:
     raise SystemExit("canonical package-set manifest is outside its environment")
@@ -286,15 +749,65 @@ if raw_expected != canonical_payload:
 if hashlib.sha256(canonical_payload).hexdigest() != expected_sha256:
     raise SystemExit("canonical package-set manifest digest does not match runtime identity")
 
+# -S prevents startup hooks from running before this proof. Reject hooks that
+# could run in the service interpreter, while retaining setuptools' one known
+# local distutils shim used by Python 3.11 venvs.
+safe_distutils_hook = (
+    "import os; var = 'SETUPTOOLS_USE_DISTUTILS'; "
+    "enabled = os.environ.get(var, 'local') == 'local'; "
+    "enabled and __import__('_distutils_hack').add_shim()"
+)
+safe_distutils_paths = None
+for entry in site_packages.iterdir():
+    if entry.is_symlink():
+        resolved_entry = entry.resolve(strict=True)
+        if environment != resolved_entry and environment not in resolved_entry.parents:
+            raise SystemExit("site-packages entry escapes its environment")
+for hook_name in ("sitecustomize", "usercustomize"):
+    hook_candidates = [site_packages / hook_name]
+    hook_candidates.extend(
+        site_packages / f"{hook_name}{suffix}" for suffix in machinery.all_suffixes()
+    )
+    if any(candidate.exists() or candidate.is_symlink() for candidate in hook_candidates):
+        raise SystemExit("site customization hooks are forbidden")
+    if any((site_packages / "__pycache__").glob(f"{hook_name}.*.pyc")):
+        raise SystemExit("site customization hooks are forbidden")
+for pth in site_packages.glob("*.pth"):
+    if not pth.is_file() or pth.is_symlink():
+        raise SystemExit("site path hook is not a regular in-environment file")
+    for raw_line in pth.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith(("import ", "import\t")):
+            local_hack = site_packages / "_distutils_hack"
+            if (
+                pth.name != "distutils-precedence.pth"
+                or line not in {safe_distutils_hook, safe_distutils_hook + ";"}
+                or not local_hack.is_dir()
+                or local_hack.is_symlink()
+                or safe_distutils_paths is not None
+            ):
+                raise SystemExit("executable site path hooks are forbidden")
+            hack_init = local_hack / "__init__.py"
+            if not hack_init.is_file() or hack_init.is_symlink():
+                raise SystemExit("setuptools distutils hook has no local code identity")
+            safe_distutils_paths = {
+                pth.resolve(strict=True),
+                hack_init.resolve(strict=True),
+            }
+            continue
+        raise SystemExit("site path entries are forbidden")
+
 installed = {}
-for distribution in metadata.distributions():
+for distribution in metadata.distributions(path=[str(site_packages)]):
     name = canonical_name(
         distribution.metadata.get("Name"), "installed package metadata"
     )
     version = package_version(distribution.version, "installed package metadata")
     if name in installed:
         raise SystemExit("installed package metadata contains a duplicate package")
-    installed[name] = version
+    installed[name] = (version, distribution)
 
 # A stock venv may bootstrap pip and, on older Python versions, setuptools.
 # They are tolerated only when absent from the resolver graph. Once explicitly
@@ -305,7 +818,7 @@ unexpected = sorted(installed.keys() - expected.keys() - bootstrap_extras)
 drifted = sorted(
     name
     for name in expected.keys() & installed.keys()
-    if expected[name] != installed[name]
+    if expected[name] != installed[name][0]
 )
 if missing:
     raise SystemExit("installed package-set is missing: " + ", ".join(missing))
@@ -313,14 +826,190 @@ if unexpected:
     raise SystemExit("installed package-set has unexpected packages: " + ", ".join(unexpected))
 if drifted:
     raise SystemExit("installed package-set has version drift: " + ", ".join(drifted))
-print(len(expected))
+def lexical_path(path):
+    return Path(os.path.abspath(os.path.normpath(path)))
+
+
+def is_missing_cache_entry(path):
+    return path.suffix == ".pyc" and "__pycache__" in path.parts
+
+
+def require_sha256(path, hash_field, size_field):
+    if not hash_field.startswith("sha256=") or not size_field.isdigit():
+        raise SystemExit("accepted distribution RECORD lacks sha256 or size")
+    encoded = hash_field.removeprefix("sha256=")
+    if not encoded or "=" in encoded:
+        raise SystemExit("accepted distribution RECORD sha256 is not canonical")
+    try:
+        recorded_digest = base64.b64decode(
+            encoded + "=" * (-len(encoded) % 4), altchars=b"-_", validate=True
+        )
+    except (ValueError, base64.binascii.Error) as exc:
+        raise SystemExit("accepted distribution RECORD sha256 is invalid") from exc
+    if len(recorded_digest) != 32:
+        raise SystemExit("accepted distribution RECORD sha256 has invalid length")
+    payload = path.read_bytes()
+    if int(size_field) != len(payload):
+        raise SystemExit("accepted distribution RECORD size mismatch")
+    if hashlib.sha256(payload).digest() != recorded_digest:
+        raise SystemExit("accepted distribution RECORD sha256 mismatch")
+
+
+recorded_by_distribution = {}
+ownership = {}
+for name, (_version, distribution) in installed.items():
+    metadata_raw = getattr(distribution, "_path", None)
+    if not isinstance(metadata_raw, Path):
+        raise SystemExit("accepted distribution has no metadata path identity")
+    metadata_path = metadata_raw.resolve(strict=True)
+    if site_packages != metadata_path.parent or environment not in metadata_path.parents:
+        raise SystemExit("accepted distribution metadata escapes its environment")
+    distribution_root = Path(distribution.locate_file("")).resolve(strict=True)
+    if distribution_root != site_packages:
+        raise SystemExit("accepted distribution root escapes its environment")
+    record = metadata_raw / "RECORD"
+    if not record.is_file() or record.is_symlink():
+        raise SystemExit("accepted distribution RECORD is unavailable or is a symlink")
+    recorded_paths = set()
+    record_self_seen = False
+    with record.open("r", encoding="utf-8", newline="") as stream:
+        rows = list(csv.reader(stream))
+    if not rows:
+        raise SystemExit("accepted distribution RECORD is empty")
+    seen_candidates = set()
+    for row in rows:
+        if len(row) != 3 or not row[0] or Path(row[0]).is_absolute():
+            raise SystemExit("accepted distribution RECORD row is invalid")
+        candidate = lexical_path(site_packages / row[0])
+        if candidate in seen_candidates:
+            raise SystemExit("accepted distribution RECORD contains a duplicate path")
+        seen_candidates.add(candidate)
+        if environment != candidate and environment not in candidate.parents:
+            raise SystemExit("accepted distribution RECORD path escapes its environment")
+        if not candidate.exists() and not candidate.is_symlink():
+            if not is_missing_cache_entry(candidate) or row[1] or row[2]:
+                raise SystemExit("accepted distribution RECORD path is missing")
+            ownership.setdefault(candidate, set()).add(name)
+            continue
+        resolved_candidate = candidate.resolve(strict=True)
+        if environment != resolved_candidate and environment not in resolved_candidate.parents:
+            raise SystemExit("accepted distribution RECORD file escapes its environment")
+        if candidate.suffix == ".pyc":
+            if allow_legacy_bytecode:
+                continue
+            raise SystemExit("runtime bytecode cache files are forbidden")
+        if not candidate.is_file():
+            raise SystemExit("accepted distribution RECORD path is not a regular file")
+        if candidate == lexical_path(record):
+            if row[1] or row[2] or record_self_seen:
+                raise SystemExit("accepted distribution RECORD self row is invalid")
+            record_self_seen = True
+        else:
+            require_sha256(candidate, row[1], row[2])
+        recorded_paths.add(resolved_candidate)
+        ownership.setdefault(candidate, set()).add(name)
+    if not record_self_seen:
+        raise SystemExit("accepted distribution RECORD has no self row")
+    recorded_by_distribution[name] = recorded_paths
+for candidate, owners in ownership.items():
+    if len(owners) != 1:
+        raise SystemExit("runtime path is owned by multiple accepted distributions")
+
+
+content_entries = [
+    {
+        "path": "@runtime/pyvenv.cfg",
+        "type": "file",
+        "link_target": None,
+        "sha256": hashlib.sha256(pyvenv_bytes).hexdigest(),
+    },
+    {
+        "path": "@runtime/bin/python",
+        "type": "symlink" if environment_python_raw.is_symlink() else "file",
+        "link_target": (
+            os.readlink(environment_python_raw)
+            if environment_python_raw.is_symlink()
+            else None
+        ),
+        "resolved_target": str(environment_python),
+    },
+]
+
+
+def validate_runtime_entry(path):
+    candidate = lexical_path(path)
+    if candidate.suffix == ".pyc":
+        if allow_legacy_bytecode:
+            resolved_candidate = candidate.resolve(strict=True)
+            if environment != resolved_candidate and environment not in resolved_candidate.parents:
+                raise SystemExit("site-packages entry escapes its environment")
+            return
+        raise SystemExit("runtime bytecode cache files are forbidden")
+    resolved_candidate = candidate.resolve(strict=True)
+    if environment != resolved_candidate and environment not in resolved_candidate.parents:
+        raise SystemExit("site-packages entry escapes its environment")
+    if not path.is_file():
+        raise SystemExit("site-packages contains a non-regular runtime entry")
+    owners = ownership.get(candidate, set())
+    if len(owners) != 1:
+        raise SystemExit("site-packages runtime file lacks exactly one RECORD owner")
+    relative = candidate.relative_to(site_packages).as_posix()
+    if path.is_symlink():
+        entry_type = "symlink"
+        link_target = os.readlink(path)
+    else:
+        entry_type = "file"
+        link_target = None
+    content_entries.append(
+        {
+            "path": relative,
+            "type": entry_type,
+            "link_target": link_target,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        }
+    )
+
+
+for root, directories, files in os.walk(site_packages, topdown=True, followlinks=False):
+    root_path = Path(root)
+    for directory in list(directories):
+        candidate = root_path / directory
+        if candidate.is_symlink():
+            directories.remove(directory)
+            validate_runtime_entry(candidate)
+    for filename in files:
+        validate_runtime_entry(root_path / filename)
+if safe_distutils_paths is not None:
+    setuptools_paths = recorded_by_distribution.get("setuptools")
+    if setuptools_paths is None or not safe_distutils_paths <= setuptools_paths:
+        raise SystemExit("setuptools distutils hook is not owned by its RECORD")
+    local_hack = site_packages / "_distutils_hack"
+    for root, directories, files in os.walk(local_hack, followlinks=False):
+        for filename in files:
+            candidate = lexical_path(Path(root) / filename)
+            if ownership.get(candidate) != {"setuptools"}:
+                raise SystemExit("setuptools distutils hook package has foreign ownership")
+content_payload = b"".join(
+    (
+        json.dumps(entry, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+        + "\n"
+    ).encode("utf-8")
+    for entry in sorted(content_entries, key=lambda item: item["path"])
+)
+if not content_payload:
+    raise SystemExit("runtime content identity is empty")
+print(f"{len(expected)}\t{hashlib.sha256(content_payload).hexdigest()}")
 PY
 }
 
 runtime_resolve_dependency_graph() {
   local requirements="$1"
   RUNTIME_RESOLVER_DIR="$(mktemp -d "$RUNTIME_ROOT/.resolver.XXXXXX")" || return 1
-  "$RUNTIME_PYTHON" -I -m venv "$RUNTIME_RESOLVER_DIR" || {
+  runtime_create_venv_without_pip "$RUNTIME_RESOLVER_DIR" || {
+    runtime_abort_resolver
+    return 1
+  }
+  runtime_bootstrap_pip "$RUNTIME_RESOLVER_DIR" || {
     runtime_abort_resolver
     return 1
   }
@@ -331,14 +1020,14 @@ runtime_resolve_dependency_graph() {
       runtime_abort_resolver
       return 1
     }
-  RUNTIME_FREEZE_SHA256="$(runtime_canonicalize_resolver_report \
-    "$RUNTIME_RESOLVER_DIR/bin/python" \
+  RUNTIME_RESOLVED_GRAPH_SHA256="$(runtime_canonicalize_resolver_report \
+    "$RUNTIME_PYTHON" \
     "$RUNTIME_RESOLVER_DIR/report.json" \
     "$RUNTIME_RESOLVER_DIR/constraints.txt")" || {
     runtime_abort_resolver
     return 1
   }
-  [[ "$RUNTIME_FREEZE_SHA256" =~ ^[0-9a-f]{64}$ ]] || {
+  [[ "$RUNTIME_RESOLVED_GRAPH_SHA256" =~ ^[0-9a-f]{64}$ ]] || {
     runtime_abort_resolver
     return 1
   }
@@ -1446,15 +2135,40 @@ PY
 }
 
 runtime_attest_release() {
-  local release="$1" output="$2" installed_package_count
-  runtime_pip "$release" check >/dev/null || return 1
-  installed_package_count="$(runtime_validate_canonical_package_set \
-    "$release" "$release/resolved-packages.txt" "$RUNTIME_FREEZE_SHA256")" \
+  local release="$1" output="$2" proof installed_package_count
+  local resolved_graph_sha256 runtime_content_sha256 installed_freeze_sha256
+  resolved_graph_sha256="${RUNTIME_RESOLVED_GRAPH_SHA256:-}"
+  if [[ -z "$resolved_graph_sha256" ]]; then
+    resolved_graph_sha256="$(runtime_sha256 "$release/resolved-packages.txt")" \
+      || return 1
+  fi
+  [[ "$resolved_graph_sha256" =~ ^[0-9a-f]{64}$ ]] || return 1
+  proof="$(runtime_validate_canonical_package_set \
+    "$release" "$release/resolved-packages.txt" "$resolved_graph_sha256")" \
     || return 1
+  IFS=$'\t' read -r installed_package_count runtime_content_sha256 <<<"$proof"
   [[ "$installed_package_count" =~ ^[1-9][0-9]*$ ]] || return 1
-  "$release/bin/python" -I - \
+  [[ "$runtime_content_sha256" =~ ^[0-9a-f]{64}$ ]] || return 1
+  if [[ -n "${RUNTIME_CONTENT_SHA256:-}" \
+    && "$RUNTIME_CONTENT_SHA256" != "$runtime_content_sha256" ]]; then
+    echo "[runtime] ERROR: runtime content digest differs from attestation" >&2
+    return 1
+  fi
+  installed_freeze_sha256="$(runtime_composite_freeze_sha256 \
+    "$resolved_graph_sha256" "$runtime_content_sha256")" || return 1
+  [[ "$installed_freeze_sha256" =~ ^[0-9a-f]{64}$ ]] || return 1
+  if [[ -n "${RUNTIME_FREEZE_SHA256:-}" \
+    && "$RUNTIME_FREEZE_SHA256" != "$installed_freeze_sha256" ]]; then
+    echo "[runtime] ERROR: runtime content differs from installed freeze identity" >&2
+    return 1
+  fi
+  runtime_trusted_structural_preflight "$release" || return 1
+  runtime_pip "$release" check >/dev/null || return 1
+  SETUPTOOLS_USE_DISTUTILS=stdlib PYTHONDONTWRITEBYTECODE=1 \
+    "$release/bin/python" -I -B - \
     "$output" "$release" "$RUNTIME_PYTHON" \
-    "$RUNTIME_ID" "$RUNTIME_REQUIREMENTS_SHA256" "$RUNTIME_FREEZE_SHA256" \
+    "$RUNTIME_ID" "$RUNTIME_REQUIREMENTS_SHA256" "$resolved_graph_sha256" \
+    "$runtime_content_sha256" "$installed_freeze_sha256" \
     "$EXPECTED_PYTHON_ABI" "$EXPECTED_FASTAPI_VERSION" \
     "$EXPECTED_PYDANTIC_VERSION" "$EXPECTED_STARLETTE_VERSION" \
     "$EXPECTED_UVICORN_VERSION" "$installed_package_count" <<'PY'
@@ -1470,7 +2184,9 @@ from pathlib import Path
     base_python_path,
     runtime_id,
     requirements_sha256,
-    expected_freeze_sha256,
+    resolved_graph_sha256,
+    runtime_content_sha256,
+    installed_freeze_sha256,
     expected_abi,
     expected_fastapi,
     expected_pydantic,
@@ -1487,8 +2203,8 @@ if executable.parent != Path(release_path, "bin") or executable.name != "python"
     raise SystemExit("runtime interpreter path is outside the versioned release")
 resolved_executable = executable.resolve(strict=True)
 resolved_base = Path(base_python_path).resolve(strict=True)
-if resolved_executable != resolved_base and release not in resolved_executable.parents:
-    raise SystemExit("runtime interpreter realpath is not the trusted base or release")
+if resolved_executable != resolved_base:
+    raise SystemExit("runtime interpreter does not resolve to the trusted base")
 installed_package_count = int(installed_package_count_raw)
 
 actual = {
@@ -1527,15 +2243,17 @@ if module_versions != expected:
         f"runtime import mismatch: expected={expected!r} actual={module_versions!r}"
     )
 
-expected_runtime_id = f"{python_abi}-{requirements_sha256}-{expected_freeze_sha256}"
+expected_runtime_id = f"{python_abi}-{requirements_sha256}-{installed_freeze_sha256}"
 if runtime_id != expected_runtime_id:
-    raise SystemExit("runtime ID is not bound to ABI + requirements + installed graph")
+    raise SystemExit("runtime ID is not bound to ABI + requirements + runtime content")
 
 attestation = {
-    "schema_version": 1,
+    "schema_version": 2,
     "runtime_id": runtime_id,
     "requirements_sha256": requirements_sha256,
-    "installed_freeze_sha256": expected_freeze_sha256,
+    "resolved_graph_sha256": resolved_graph_sha256,
+    "runtime_content_sha256": runtime_content_sha256,
+    "installed_freeze_sha256": installed_freeze_sha256,
     "installed_package_count": installed_package_count,
     "python_abi": python_abi,
     "python_version": platform.python_version(),
@@ -1550,14 +2268,58 @@ PY
 }
 
 runtime_validate_release() {
-  local release="$1" expected_file="$release/attestation.json"
+  local release="$1" expected_file fields schema_version attested_runtime_id
+  local attested_requirements_sha256 attested_resolved_graph_sha256
+  local attested_content_sha256 attested_freeze_sha256
+  expected_file="$release/attestation.json"
   [[ -x "$release/bin/python" \
     && -f "$expected_file" && -f "$release/.complete" \
     && ! -e "$release/.building" ]] \
     || return 1
+  fields="$("$RUNTIME_PYTHON" -I -S -B - \
+    "$expected_file" "$(basename "$release")" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+path, directory_name = sys.argv[1:]
+payload = json.loads(Path(path).read_text(encoding="utf-8"))
+schema = payload.get("schema_version")
+runtime_id = payload.get("runtime_id")
+requirements = payload.get("requirements_sha256")
+resolved_graph = payload.get("resolved_graph_sha256")
+content = payload.get("runtime_content_sha256")
+freeze = payload.get("installed_freeze_sha256")
+if schema != 2:
+    raise SystemExit("new runtime release requires attestation schema 2")
+if runtime_id != directory_name:
+    raise SystemExit("runtime attestation identity does not match its directory")
+if not re.fullmatch(r"cpython-[0-9]+-[0-9a-f]{64}-[0-9a-f]{64}", runtime_id):
+    raise SystemExit("runtime attestation identity is invalid")
+for name, value in (
+    ("requirements", requirements),
+    ("resolved graph", resolved_graph),
+    ("runtime content", content),
+    ("installed freeze", freeze),
+):
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+        raise SystemExit(f"runtime attestation {name} digest is invalid")
+print("\t".join((str(schema), runtime_id, requirements, resolved_graph, content, freeze)))
+PY
+)" || return 1
+  IFS=$'\t' read -r schema_version attested_runtime_id \
+    attested_requirements_sha256 attested_resolved_graph_sha256 \
+    attested_content_sha256 attested_freeze_sha256 <<<"$fields"
+  [[ "$schema_version" == "2" ]] || return 1
   local temporary
   temporary="$(mktemp)" || return 1
-  if ! runtime_attest_release "$release" "$temporary"; then
+  if ! RUNTIME_ID="$attested_runtime_id" \
+    RUNTIME_REQUIREMENTS_SHA256="$attested_requirements_sha256" \
+    RUNTIME_RESOLVED_GRAPH_SHA256="$attested_resolved_graph_sha256" \
+    RUNTIME_CONTENT_SHA256="$attested_content_sha256" \
+    RUNTIME_FREEZE_SHA256="$attested_freeze_sha256" \
+    runtime_attest_release "$release" "$temporary"; then
     rm -f "$temporary"
     return 1
   fi
@@ -1633,6 +2395,11 @@ def remove_tree(path: Path) -> None:
 
 
 release_name = re.compile(r"cpython-[0-9]+-[0-9a-f]{64}-[0-9a-f]{64}")
+for candidate in releases.glob(".staging.*"):
+    if candidate.is_symlink():
+        raise SystemExit("runtime staging orphan cannot be a symlink")
+    if candidate.is_dir():
+        remove_tree(candidate)
 for candidate in releases.iterdir():
     if candidate.is_symlink() or not candidate.is_dir() or not release_name.fullmatch(candidate.name):
         continue
@@ -1768,7 +2535,7 @@ runtime_prepare() {
   runtime_require_disk_space "$RUNTIME_ROOT" || return 1
 
   local python_abi
-  python_abi="$("$RUNTIME_PYTHON" -I -c 'import sys; print(sys.implementation.cache_tag)')" \
+  python_abi="$("$RUNTIME_PYTHON" -I -S -B -c 'import sys; print(sys.implementation.cache_tag)')" \
     || return 1
   [[ "$python_abi" == "$EXPECTED_PYTHON_ABI" ]] || {
     echo "[runtime] ERROR: expected $EXPECTED_PYTHON_ABI, got $python_abi" >&2
@@ -1781,105 +2548,106 @@ runtime_prepare() {
     return 1
   }
   mkdir -p "$RUNTIME_RELEASES" || return 1
-
-  local prefix="${python_abi}-${RUNTIME_REQUIREMENTS_SHA256}-" candidate
-  local -a completed_candidates=()
+  local prefix="${python_abi}-${RUNTIME_REQUIREMENTS_SHA256}-" candidate metadata
+  local candidate_schema candidate_graph candidate_content candidate_freeze
+  local reusable_release="" reusable_graph="" reusable_content="" reusable_freeze=""
   for candidate in "$RUNTIME_RELEASES"/"${prefix}"*; do
-    [[ -d "$candidate" && ! -L "$candidate" ]] || continue
-    if [[ -f "$candidate/.complete" ]]; then
-      completed_candidates+=("$candidate")
-      continue
-    fi
-    # Recover any killed build for this exact ABI + requirements input, but
-    # never remove a directory that current resolves to.
-    if [[ -L "$RUNTIME_CURRENT" \
-      && "$("$RUNTIME_PYTHON" -I -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' \
-        "$RUNTIME_CURRENT")" == "$candidate" ]]; then
-      echo "[runtime] ERROR: incomplete release is unexpectedly active" >&2
-      return 1
-    fi
-    RUNTIME_BUILD_DIR="$candidate"
-    runtime_abort_build
-  done
-
-  if (( ${#completed_candidates[@]} > 1 )); then
-    echo "[runtime] ERROR: multiple resolved graphs exist for one requirements identity" >&2
-    return 1
-  fi
-  if (( ${#completed_candidates[@]} == 1 )); then
-    RUNTIME_RELEASE="${completed_candidates[0]}"
-    RUNTIME_ID="$(basename "$RUNTIME_RELEASE")"
-    RUNTIME_FREEZE_SHA256="${RUNTIME_ID#"$prefix"}"
-    [[ "$RUNTIME_FREEZE_SHA256" =~ ^[0-9a-f]{64}$ ]] || return 1
-    if runtime_validate_release "$RUNTIME_RELEASE"; then
-      echo "[runtime] Reusing attested release: $RUNTIME_ID"
-      return 0
-    fi
-    if [[ "$RUNTIME_PREVIOUS_PRESENT" == "1" \
-      && "$RUNTIME_PREVIOUS_TARGET" == "$RUNTIME_RELEASE" ]]; then
-      echo "[runtime] ERROR: active rollback runtime failed attestation: $RUNTIME_ID" >&2
-      return 1
-    fi
-    echo "[runtime] Removing incomplete immutable transition: $RUNTIME_ID" >&2
-    RUNTIME_BUILD_DIR="$RUNTIME_RELEASE"
-    runtime_abort_build
-    RUNTIME_RELEASE=""
-    RUNTIME_ID=""
-    RUNTIME_FREEZE_SHA256=""
-  fi
-
-  runtime_resolve_dependency_graph "$requirements" || return 1
-  RUNTIME_ID="${prefix}${RUNTIME_FREEZE_SHA256}"
-  RUNTIME_RELEASE="$RUNTIME_RELEASES/$RUNTIME_ID"
-
-  if [[ -e "$RUNTIME_RELEASE" && ! -f "$RUNTIME_RELEASE/.complete" ]]; then
-    # Any directory without the atomically-renamed .complete marker is a
-    # killed pre-switch build. This includes a kill between mkdir and creating
-    # .building; it is safe to remove only when current does not resolve to it.
-    if [[ -L "$RUNTIME_CURRENT" ]]; then
-      local resolved_current
-      resolved_current="$("$RUNTIME_PYTHON" -I - "$RUNTIME_CURRENT" <<'PY'
-import os
+    [[ -d "$candidate" && ! -L "$candidate" && -f "$candidate/.complete" ]] \
+      || continue
+    metadata="$("$RUNTIME_PYTHON" -I -S -B - \
+      "$candidate/attestation.json" <<'PY'
+import json
+import re
 import sys
+from pathlib import Path
 
-print(os.path.realpath(sys.argv[1]))
+path = Path(sys.argv[1])
+payload = json.loads(path.read_text(encoding="utf-8"))
+schema = payload.get("schema_version")
+if schema == 1:
+    print("1\t-\t-\t-")
+elif schema == 2:
+    values = [
+        payload.get("resolved_graph_sha256"),
+        payload.get("runtime_content_sha256"),
+        payload.get("installed_freeze_sha256"),
+    ]
+    if any(not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value) for value in values):
+        raise SystemExit("schema 2 runtime attestation has invalid identity fields")
+    print("2\t" + "\t".join(values))
+else:
+    raise SystemExit("completed runtime attestation schema is unsupported")
 PY
-)" || return 1
-      if [[ "$resolved_current" == "$RUNTIME_RELEASE" ]]; then
-        echo "[runtime] ERROR: incomplete release is unexpectedly active" >&2
-        return 1
-      fi
-    fi
-    RUNTIME_BUILD_DIR="$RUNTIME_RELEASE"
-    runtime_abort_build
-  fi
-  if [[ -e "$RUNTIME_RELEASE" ]]; then
-    runtime_validate_release "$RUNTIME_RELEASE" || {
-      echo "[runtime] ERROR: existing immutable release failed attestation: $RUNTIME_ID" >&2
+)" || {
       return 1
     }
+    IFS=$'\t' read -r candidate_schema candidate_graph \
+      candidate_content candidate_freeze <<<"$metadata"
+    # Schema 1 is retained only as the already-captured rollback target. It is
+    # never selected by a new prepare transaction.
+    [[ "$candidate_schema" == "2" ]] || continue
+    if ! runtime_validate_release "$candidate"; then
+      echo "[runtime] ERROR: reusable schema 2 release failed attestation" >&2
+      return 1
+    fi
+    [[ -z "$reusable_release" ]] || {
+      echo "[runtime] ERROR: multiple schema 2 runtimes match one requirements identity" >&2
+      return 1
+    }
+    reusable_release="$candidate"
+    reusable_graph="$candidate_graph"
+    reusable_content="$candidate_content"
+    reusable_freeze="$candidate_freeze"
+  done
+  if [[ -n "$reusable_release" ]]; then
+    RUNTIME_RELEASE="$reusable_release"
+    RUNTIME_ID="$(basename "$RUNTIME_RELEASE")"
+    RUNTIME_RESOLVED_GRAPH_SHA256="$reusable_graph"
+    RUNTIME_CONTENT_SHA256="$reusable_content"
+    RUNTIME_FREEZE_SHA256="$reusable_freeze"
     echo "[runtime] Reusing attested release: $RUNTIME_ID"
     return 0
   fi
+  runtime_resolve_dependency_graph "$requirements" || return 1
 
-  # Build at the final versioned path. A venv is not relocatable: console
-  # script shebangs embed its absolute path. The directory remains inert until
-  # .complete exists and the separate current symlink is atomically replaced.
-  RUNTIME_BUILD_DIR="$RUNTIME_RELEASE"
-  mkdir "$RUNTIME_BUILD_DIR" || return 1
+  # Build on the releases filesystem before content identity is known. Every
+  # package operation uses python -m pip; recorded console launchers are made
+  # inert and path-independent before content identity is computed.
+  RUNTIME_BUILD_DIR="$(mktemp -d \
+    "$RUNTIME_RELEASES/.staging.${python_abi}.${RUNTIME_REQUIREMENTS_SHA256}.XXXXXX")" \
+    || {
+      runtime_abort_resolver
+      return 1
+    }
   touch "$RUNTIME_BUILD_DIR/.building" || {
     runtime_abort_build
     return 1
   }
-  echo "[runtime] Building immutable release: $RUNTIME_ID"
-  if ! "$RUNTIME_PYTHON" -I -m venv "$RUNTIME_BUILD_DIR"; then
+  echo "[runtime] Building immutable runtime staging directory"
+  if ! runtime_create_venv_without_pip "$RUNTIME_BUILD_DIR"; then
     runtime_abort_build
+    runtime_abort_resolver
     return 1
   fi
+  runtime_bootstrap_pip "$RUNTIME_BUILD_DIR" || {
+    runtime_abort_build
+    runtime_abort_resolver
+    return 1
+  }
   if ! runtime_pip "$RUNTIME_BUILD_DIR" install \
       --disable-pip-version-check --no-input \
       --constraint "$RUNTIME_RESOLVER_DIR/constraints.txt" \
       --requirement "$requirements"; then
+    runtime_abort_build
+    runtime_abort_resolver
+    return 1
+  fi
+  if ! runtime_canonicalize_console_launchers "$RUNTIME_BUILD_DIR"; then
+    runtime_abort_build
+    runtime_abort_resolver
+    return 1
+  fi
+  if ! runtime_sanitize_bytecode "$RUNTIME_BUILD_DIR"; then
     runtime_abort_build
     runtime_abort_resolver
     return 1
@@ -1890,11 +2658,6 @@ PY
       runtime_abort_resolver
       return 1
     }
-  if ! runtime_attest_release "$RUNTIME_BUILD_DIR" "$RUNTIME_BUILD_DIR/attestation.json"; then
-    runtime_abort_build
-    runtime_abort_resolver
-    return 1
-  fi
   # Keep the raw inventory (including tolerated bootstrap packages) as a
   # diagnostic ledger. resolved-packages.txt remains the identity authority.
   runtime_pip "$RUNTIME_BUILD_DIR" freeze --all \
@@ -1903,6 +2666,52 @@ PY
       runtime_abort_resolver
       return 1
     }
+  if ! runtime_sanitize_bytecode "$RUNTIME_BUILD_DIR"; then
+    runtime_abort_build
+    runtime_abort_resolver
+    return 1
+  fi
+
+  local proof installed_package_count
+  proof="$(runtime_validate_canonical_package_set \
+    "$RUNTIME_BUILD_DIR" "$RUNTIME_BUILD_DIR/resolved-packages.txt" \
+    "$RUNTIME_RESOLVED_GRAPH_SHA256")" || {
+      runtime_abort_build
+      runtime_abort_resolver
+      return 1
+    }
+  IFS=$'\t' read -r installed_package_count RUNTIME_CONTENT_SHA256 <<<"$proof"
+  [[ "$installed_package_count" =~ ^[1-9][0-9]*$ \
+    && "$RUNTIME_CONTENT_SHA256" =~ ^[0-9a-f]{64}$ ]] || {
+      runtime_abort_build
+      runtime_abort_resolver
+      return 1
+    }
+  RUNTIME_FREEZE_SHA256="$(runtime_composite_freeze_sha256 \
+    "$RUNTIME_RESOLVED_GRAPH_SHA256" "$RUNTIME_CONTENT_SHA256")" || {
+      runtime_abort_build
+      runtime_abort_resolver
+      return 1
+    }
+  RUNTIME_ID="${prefix}${RUNTIME_FREEZE_SHA256}"
+  RUNTIME_RELEASE="$RUNTIME_RELEASES/$RUNTIME_ID"
+  if [[ -e "$RUNTIME_RELEASE" ]]; then
+    runtime_validate_release "$RUNTIME_RELEASE" || {
+      echo "[runtime] ERROR: content-addressed release collision failed attestation" >&2
+      runtime_abort_build
+      runtime_abort_resolver
+      return 1
+    }
+    runtime_abort_build
+    runtime_abort_resolver
+    echo "[runtime] Reusing attested release: $RUNTIME_ID"
+    return 0
+  fi
+  if ! runtime_attest_release "$RUNTIME_BUILD_DIR" "$RUNTIME_BUILD_DIR/attestation.json"; then
+    runtime_abort_build
+    runtime_abort_resolver
+    return 1
+  fi
   if ! chmod -R a-w "$RUNTIME_BUILD_DIR"; then
     runtime_abort_build
     runtime_abort_resolver
@@ -1915,7 +2724,7 @@ PY
   fi
   # Atomic state transition: at every instant the release is either
   # recoverable .building or reusable .complete; there is no markerless gap.
-  "$RUNTIME_PYTHON" -I - "$RUNTIME_BUILD_DIR/.building" \
+  "$RUNTIME_PYTHON" -I -S -B - "$RUNTIME_BUILD_DIR/.building" \
     "$RUNTIME_BUILD_DIR/.complete" <<'PY' || {
 import os
 import sys
@@ -1926,29 +2735,65 @@ PY
     runtime_abort_resolver
     return 1
   }
-  chmod a-w "$RUNTIME_BUILD_DIR" || {
+  "$RUNTIME_PYTHON" -I -S -B - "$RUNTIME_BUILD_DIR" "$RUNTIME_RELEASE" <<'PY' || {
+import os
+import sys
+
+os.rename(sys.argv[1], sys.argv[2])
+PY
     runtime_abort_build
     runtime_abort_resolver
     return 1
   }
   RUNTIME_BUILD_DIR=""
+  chmod a-w "$RUNTIME_RELEASE" || {
+    runtime_abort_resolver
+    return 1
+  }
   runtime_abort_resolver
   runtime_validate_release "$RUNTIME_RELEASE" || return 1
 }
 
 runtime_live_validate_release() {
-  local release="$1" observed_runtime_id installed_package_count expected_freeze_sha
-  runtime_pip "$release" check >/dev/null || {
-    echo "[runtime] ERROR: installed dependency graph failed pip check" >&2
+  local release="$1" observed_runtime_id installed_package_count proof schema
+  schema="$("$RUNTIME_PYTHON" -I -S -B - "$release/attestation.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+print(json.loads(Path(sys.argv[1]).read_text(encoding="utf-8")).get("schema_version", ""))
+PY
+)" || return 1
+  if [[ "$schema" == "2" ]]; then
+    runtime_validate_release "$release" || return 1
+  elif [[ "$schema" == "1" \
+    && "${STRUCTURAL_ALLOW_LEGACY_ROLLBACK:-0}" == "1" ]]; then
+    local legacy_graph_sha="${release##*-}"
+    proof="$(runtime_validate_canonical_package_set \
+      "$release" "$release/resolved-packages.txt" "$legacy_graph_sha" 1)" \
+      || return 1
+    IFS=$'\t' read -r installed_package_count _legacy_content <<<"$proof"
+    runtime_validate_pip_module "$release" 1 || return 1
+    SETUPTOOLS_USE_DISTUTILS=stdlib PYTHONDONTWRITEBYTECODE=1 \
+      "$release/bin/python" -I -B -m pip check >/dev/null || return 1
+  else
+    echo "[runtime] ERROR: live runtime attestation schema is unsupported" >&2
     return 1
-  }
-  expected_freeze_sha="${release##*-}"
-  installed_package_count="$(runtime_validate_canonical_package_set \
-    "$release" "$release/resolved-packages.txt" "$expected_freeze_sha")" \
-    || return 1
+  fi
+  installed_package_count="$("$RUNTIME_PYTHON" -I -S -B - \
+    "$release/attestation.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+print(payload.get("installed_package_count", ""))
+PY
+)" || return 1
   [[ "$installed_package_count" =~ ^[1-9][0-9]*$ ]] || return 1
-  observed_runtime_id="$("$release/bin/python" -I - \
-    "$release" "$RUNTIME_PYTHON" "$installed_package_count" <<'PY'
+  observed_runtime_id="$(SETUPTOOLS_USE_DISTUTILS=stdlib PYTHONDONTWRITEBYTECODE=1 \
+    "$release/bin/python" -I -B - \
+    "$release" "$RUNTIME_PYTHON" "$installed_package_count" "$schema" <<'PY'
 import json
 import platform
 import re
@@ -1956,8 +2801,9 @@ import sys
 from importlib import import_module, metadata
 from pathlib import Path
 
-release_raw, base_python_raw, installed_package_count_raw = sys.argv[1:]
+release_raw, base_python_raw, installed_package_count_raw, expected_schema_raw = sys.argv[1:]
 installed_package_count = int(installed_package_count_raw)
+expected_schema = int(expected_schema_raw)
 release_path = Path(release_raw)
 if release_path.is_symlink():
     raise SystemExit("runtime release cannot itself be a symlink")
@@ -1972,12 +2818,14 @@ if executable.parent != release_path / "bin" or executable.name != "python":
     raise SystemExit("live runtime executable path is outside its release")
 resolved_executable = executable.resolve(strict=True)
 resolved_base = Path(base_python_raw).resolve(strict=True)
-if resolved_executable != resolved_base and release not in resolved_executable.parents:
-    raise SystemExit("live runtime interpreter is not derived from the trusted base")
+if resolved_executable != resolved_base:
+    raise SystemExit("live runtime interpreter does not resolve to the trusted base")
 
 runtime_id = attestation.get("runtime_id")
 requirements_sha = attestation.get("requirements_sha256")
 expected_freeze_sha = attestation.get("installed_freeze_sha256")
+resolved_graph_sha = attestation.get("resolved_graph_sha256")
+runtime_content_sha = attestation.get("runtime_content_sha256")
 python_abi = getattr(sys.implementation, "cache_tag", "")
 if runtime_id != release.name:
     raise SystemExit("live runtime ID does not equal its directory")
@@ -1989,8 +2837,15 @@ if not isinstance(expected_freeze_sha, str) or not re.fullmatch(
     r"[0-9a-f]{64}", expected_freeze_sha
 ):
     raise SystemExit("live runtime installed graph digest is invalid")
+if expected_schema == 2:
+    for label, digest in (
+        ("resolved graph", resolved_graph_sha),
+        ("runtime content", runtime_content_sha),
+    ):
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise SystemExit(f"live runtime {label} digest is invalid")
 if runtime_id != f"{python_abi}-{requirements_sha}-{expected_freeze_sha}":
-    raise SystemExit("live runtime identity is not bound to ABI + dependency graph")
+    raise SystemExit("live runtime identity is not bound to ABI + runtime content")
 if attestation.get("installed_package_count") != installed_package_count:
     raise SystemExit("live installed package count differs from attestation")
 
@@ -2007,7 +2862,7 @@ for package in ("fastapi", "pydantic", "starlette", "uvicorn"):
     if release not in module_file.parents:
         raise SystemExit(f"live imported package escaped release: {package}")
 
-if attestation.get("schema_version") != 1:
+if attestation.get("schema_version") != expected_schema:
     raise SystemExit("live runtime attestation schema is invalid")
 if attestation.get("python_abi") != python_abi:
     raise SystemExit("live Python ABI differs from attestation")
@@ -2069,8 +2924,14 @@ if not isinstance(freeze_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", freeze_s
     raise SystemExit("rollback installed graph SHA-256 is invalid")
 if runtime_id != f"{abi}-{requirements_sha}-{freeze_sha}":
     raise SystemExit("rollback runtime ID is not bound to requirements + installed graph")
-if attestation.get("schema_version") != 1:
+schema_version = attestation.get("schema_version")
+if schema_version not in {1, 2}:
     raise SystemExit("rollback runtime attestation schema is invalid")
+if schema_version == 2:
+    for field in ("resolved_graph_sha256", "runtime_content_sha256"):
+        value = attestation.get(field)
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+            raise SystemExit("rollback schema 2 content identity is incomplete")
 for package in ("fastapi", "pydantic", "starlette", "uvicorn"):
     if not isinstance(attestation.get(package), str) or not attestation[package]:
         raise SystemExit("rollback runtime dependency attestation is incomplete")
@@ -2084,7 +2945,8 @@ for root, directories, files in os.walk(resolved):
 print(resolved)
 PY
 )" || return 1
-  runtime_live_validate_release "$resolved" || return 1
+  STRUCTURAL_ALLOW_LEGACY_ROLLBACK=1 \
+    runtime_live_validate_release "$resolved" || return 1
   printf '%s\n' "$resolved"
 }
 
@@ -2441,6 +3303,65 @@ systemd_dropin_migrate() {
   rm -f "$SYSTEMD_DROPIN_TARGET" || return 1
 }
 
+systemd_validate_tracked_unit_contract() {
+  local source="$1" runtime_current="$2" auth_env_file="$3" app_dir="$4"
+  local project_root
+  project_root="${app_dir%/web/backend}"
+  [[ -n "$project_root" && "$app_dir" == "$project_root/web/backend" ]] || {
+    echo "[deploy] ERROR: tracked systemd unit has a noncanonical project root" >&2
+    return 1
+  }
+  [[ -f "$source" && ! -L "$source" ]] || {
+    echo "[deploy] ERROR: tracked structural-web systemd unit is missing" >&2
+    return 1
+  }
+  grep -Fqx "EnvironmentFile=$auth_env_file" "$source" || {
+    echo "[deploy] ERROR: tracked systemd unit does not load beta auth environment" >&2
+    return 1
+  }
+  grep -Fqx "WorkingDirectory=$app_dir" "$source" || {
+    echo "[deploy] ERROR: tracked systemd unit has a noncanonical app directory" >&2
+    return 1
+  }
+  grep -Fq 'ExecStartPost=' "$source" || {
+    echo "[deploy] ERROR: tracked systemd unit has no deep-readiness gate" >&2
+    return 1
+  }
+  grep -Fqx 'Environment="PYTHONDONTWRITEBYTECODE=1"' "$source" || {
+    echo "[deploy] ERROR: tracked systemd unit does not disable runtime bytecode" >&2
+    return 1
+  }
+  grep -Fqx 'Environment="SETUPTOOLS_USE_DISTUTILS=stdlib"' "$source" || {
+    echo "[deploy] ERROR: tracked systemd unit does not disable the setuptools shim" >&2
+    return 1
+  }
+  grep -Fqx "Environment=\"STRUCTURAL_PROJECT_ROOT=$project_root\"" "$source" || {
+    echo "[deploy] ERROR: tracked systemd unit has a noncanonical project root" >&2
+    return 1
+  }
+  [[ "$(grep -Ec '^Environment=.*(PYTHONDONTWRITEBYTECODE|SETUPTOOLS_USE_DISTUTILS|STRUCTURAL_PROJECT_ROOT)' "$source" || true)" == "3" ]] || {
+    echo "[deploy] ERROR: tracked systemd unit has conflicting safety environment" >&2
+    return 1
+  }
+  ! grep -Eq '^Environment=.*(PYTHONPATH|PYTHONHOME)' "$source" || {
+    echo "[deploy] ERROR: tracked systemd unit has a legacy Python path override" >&2
+    return 1
+  }
+  ! grep -Eq '^UnsetEnvironment=.*(PYTHONDONTWRITEBYTECODE|SETUPTOOLS_USE_DISTUTILS|STRUCTURAL_PROJECT_ROOT)' "$source" || {
+    echo "[deploy] ERROR: tracked systemd unit unsets its safety environment" >&2
+    return 1
+  }
+  [[ "$(grep -c '^ExecStart=' "$source" || true)" == "1" ]] || {
+    echo "[deploy] ERROR: tracked systemd unit must have one ExecStart" >&2
+    return 1
+  }
+  grep -Fqx "ExecStart=/usr/bin/env PYTHONDONTWRITEBYTECODE=1 SETUPTOOLS_USE_DISTUTILS=stdlib STRUCTURAL_PROJECT_ROOT=$project_root $runtime_current/bin/python -I -B -m uvicorn main:app --app-dir $app_dir --host 127.0.0.1 --port 5004 --no-access-log" \
+    "$source" || {
+    echo "[deploy] ERROR: tracked systemd unit does not use the attested current runtime" >&2
+    return 1
+  }
+}
+
 systemd_unit_install_transaction() {
   local source="$1" target="$2"
   [[ "$SYSTEMD_UNIT_CAPTURED" == "1" \
@@ -2664,7 +3585,8 @@ deploy_cleanup_once() {
 runtime_publish_attestation() {
   local output="$1" git_sha="$2" deployed_at="$3"
   mkdir -p "$(dirname "$output")" || return 1
-  "$RUNTIME_CURRENT/bin/python" -I - \
+  SETUPTOOLS_USE_DISTUTILS=stdlib PYTHONDONTWRITEBYTECODE=1 \
+    "$RUNTIME_CURRENT/bin/python" -I -B - \
 	"$RUNTIME_RELEASE/attestation.json" "$output" "$git_sha" "$deployed_at" <<'PY'
 import json
 import os

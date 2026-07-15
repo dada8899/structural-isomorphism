@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -23,6 +24,18 @@ def encoded(value):
     return json.dumps(value).encode()
 
 
+def runtime_identity() -> tuple[str, str, str]:
+    resolved_graph_sha = "c" * 64
+    content_sha = "d" * 64
+    freeze_sha = hashlib.sha256(
+        (
+            f"resolved_graph_sha256={resolved_graph_sha}\n"
+            f"runtime_content_sha256={content_sha}\n"
+        ).encode("ascii")
+    ).hexdigest()
+    return resolved_graph_sha, content_sha, freeze_sha
+
+
 def successful_transport(method, url, body, timeout):
     assert 1 <= timeout <= 60
     if url == f"{smoke.STRUCTURAL}/":
@@ -35,7 +48,7 @@ def successful_transport(method, url, body, timeout):
         )
     if url.endswith("/api/version"):
         requirements_sha = smoke.EXPECTED_RUNTIME_REQUIREMENTS_SHA256
-        freeze_sha = "f" * 64
+        _resolved_graph_sha, _content_sha, freeze_sha = runtime_identity()
         return smoke.Response(200, encoded({
             "semver": "1.0", "git_sha": "a" * 40, "python_version": "3.11.6",
             "env": "prod", "model": "model", "deployed_at": "2026-07-11",
@@ -48,11 +61,13 @@ def successful_transport(method, url, body, timeout):
         }))
     if url.endswith("/assets/runtime-attestation.json"):
         requirements_sha = smoke.EXPECTED_RUNTIME_REQUIREMENTS_SHA256
-        freeze_sha = "f" * 64
+        resolved_graph_sha, content_sha, freeze_sha = runtime_identity()
         return smoke.Response(200, encoded({
-            "schema_version": 1,
+            "schema_version": 2,
             "runtime_id": f"cpython-311-{requirements_sha}-{freeze_sha}",
             "requirements_sha256": requirements_sha,
+            "resolved_graph_sha256": resolved_graph_sha,
+            "runtime_content_sha256": content_sha,
             "installed_freeze_sha256": freeze_sha,
             "python_abi": "cpython-311",
             "python_version": "3.11.6",
@@ -153,6 +168,26 @@ def test_runtime_attestation_drift_fails_closed(field, value, expected):
         if url.endswith("/assets/runtime-attestation.json"):
             payload = json.loads(response.body)
             payload[field] = value
+            return smoke.Response(200, encoded(payload))
+        return response
+
+    with pytest.raises(smoke.SmokeFailure, match=expected):
+        smoke.Monitor(transport).check_beta_system()
+
+
+@pytest.mark.parametrize(
+    ("field", "expected"),
+    [
+        ("resolved_graph_sha256", "installed freeze SHA-256 is not bound"),
+        ("runtime_content_sha256", "installed freeze SHA-256 is not bound"),
+    ],
+)
+def test_runtime_content_identity_drift_fails_closed(field, expected):
+    def transport(method, url, body, timeout):
+        response = successful_transport(method, url, body, timeout)
+        if url.endswith("/assets/runtime-attestation.json"):
+            payload = json.loads(response.body)
+            payload[field] = "e" * 64
             return smoke.Response(200, encoded(payload))
         return response
 
