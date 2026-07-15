@@ -89,7 +89,7 @@
 实测每页 nav-link 数量：index 9 / classes 6 / discoveries 7 / papers 6 / learn 8 / methods 6 / about 7 / start-here 7 / reports 5 / search 7 / analyze 7。每个页面的 header 是各写各的，项目集合、顺序都不同（reports 页缺「从这里开始/方法/Phase Detector/收藏/了解」，classes 页又是另一组）。**影响**：用户在站内跳转时导航栏一直在变，缺乏「这是同一个产品」的稳定感。**建议**：抽一份共享 header 片段（report.html 已经用 JS 注入 header 了，可推广），所有页面统一。
 
 ### P1-3 report.html / reports.html 的 Plausible 指向错误域名
-`report.html`、`reports.html` 加载 `https://plausible.io/js/script.js`（公网 Plausible 云），其余全站页面用 `https://plausible.bytedance.city/js/script.js`（自托管）。`index.html` 还专门 `preconnect` 了自托管域名。**影响**：这两页的埋点要么打到错误实例、要么被自托管假设下的 CSP/网络拦掉，分享页和报告列表页的数据会丢。**建议**：统一成自托管域名。
+`report.html`、`reports.html` 当时加载 Plausible 云端 legacy tracker，其余页面加载自托管 legacy tracker。`index.html` 还专门 `preconnect` 了自托管域名。**影响**：这两页的埋点要么打到错误实例、要么被自托管假设下的 CSP/网络拦掉，分享页和报告列表页的数据会丢。**后续处置**：已改为同意后才启用的 direct Events API，敏感报告路由不发送分析请求。
 
 ### P1-4 report.html 的 KaTeX 走 CDN，与全站自托管策略冲突
 `report.html` 从 `cdn.jsdelivr.net` 加载 KaTeX，而 `index.html` 注释明确说字体/脚本要自托管避免外部依赖阻塞 LCP。**影响**：CDN 被墙/慢时分享报告页的公式渲染失败或卡顿，且引入了全站其它页面没有的第三方依赖。**建议**：KaTeX 自托管，与 analyze 页一致。

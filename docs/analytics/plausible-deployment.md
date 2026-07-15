@@ -1,154 +1,308 @@
-# Plausible Community Edition — VPS self-hosted deployment
+# Plausible Community Edition deployment runbook
 
-> **Status (2026-05-13, W4-B G3)**: scaffold only. Plausible JS snippet is already
-> wired into the site (`web/frontend/*.html` + `web/phase-detector/app/layout.tsx`)
-> pointing at `plausible.bytedance.city`, which currently does **not** resolve.
-> The browser will silently drop the `<script defer src="...">` load — zero user-
-> visible impact — until DNS + container are stood up per this doc.
->
-> Owner for actual deploy: W4-D (deploy session) or later ops sweep. **Do not run
-> these steps as part of W4-B**; this file is the runbook.
+**Runbook version:** 1.2.0
 
----
+**Runbook date:** 2026-07-15
 
-## 1. Why self-host
+**Current state (2026-07-15): NOT PUBLICLY DEPLOYED — awaiting application PR merge.**
 
-- Plausible Cloud is $9/month for 10k pageviews. Cheap, but we already have a
-  VPS with spare capacity.
-- Self-hosted = full data ownership, no third-party tracking concerns, easier
-  GDPR posture for European/EU traffic from outreach.
-- Plausible CE is open-source (AGPL), feature-parity for our use case
-  (pageviews, referrers, top pages, sources). What CE lacks vs Cloud: funnels,
-  saved segments, multi-user team plans — none of which we need yet.
+This is the production authority for `plausible.bytedance.city`. It describes
+the intended deployment; it is not a deployment receipt. Keep DNS absent until
+the application release that removes every legacy remote tracker reference is
+live on both products.
 
-## 2. Prerequisites
+## 1. Locked upstream baseline
 
-| Item | Status / how |
+| Artifact | Required value |
 |---|---|
-| VPS reachable, root SSH | yes: `ssh root@43.156.233.71` |
-| Docker + docker-compose | already installed (other projects use it) |
-| Domain available | `plausible.bytedance.city` (need DNS A record, see §5) |
-| Port 8000 free | check `ss -tlnp \| grep 8000` before deploy |
-| Disk space | ~2 GB initial, grows ~1 MB / 100k pageviews |
-| Memory | 2 GB headroom recommended (Postgres + ClickHouse + Plausible) |
+| Community Edition repository | `https://github.com/plausible/community-edition` |
+| CE branch/tag | `v3.2.1` |
+| CE repository commit | `ec6c4da776547516d8f48159ce1a704df4f475ad` |
+| Official compose | `https://raw.githubusercontent.com/plausible/community-edition/v3.2.1/compose.yml` |
+| Analytics release commit | `e4f5a87a5570bd61605217e7ceb376636db8eddb` |
+| Application image | `ghcr.io/plausible/community-edition:v3.2.1` |
+| OCI index digest | `sha256:33e60bfb40f2df5da00f8753b76fad04f67dba3abe6d73eb516e440e3fb62985` |
+| linux/amd64 manifest digest | `sha256:7450d9df4bfce160541d65bdba6bd4bcdd9a6db07f13dde91060705fa242c650` |
+| Server directory | `/root/plausible-ce` |
+| Only host binding | `127.0.0.1:8800:8000` |
 
-## 3. docker-compose.yml
+Do not copy a compose file from an older deployment and do not use a floating
+tag. The official `v3.2.1` compose also owns the compatible Postgres,
+ClickHouse, four named-volume, health-check, and low-resource configuration.
+Local changes belong only in `.env` and `compose.override.yml`.
 
-Save to `/root/plausible/docker-compose.yml`:
+## 2. Hard gates and zero-public-window order
+
+Execute these gates in order. A failed gate stops the deployment.
+
+1. Merge and deploy the application PR to Beta and Phase.
+2. Prove that product code contains zero legacy remote tracker references and
+   that `plausible.bytedance.city` still returns DNS `NXDOMAIN`.
+3. Install CE at `/root/plausible-ce`, bind it only to loopback, and create the
+   first administrator plus both sites over an SSH tunnel.
+4. Replace bootstrap settings with the final public `BASE_URL`, close public
+   registration, restart, and prove loopback readiness.
+5. Install and locally validate the HTTP-only ACME challenge server while DNS
+   is still absent. All other HTTP paths return `503` at this stage.
+6. Create the DNS record, wait for authoritative and public resolvers, then
+   issue the certificate with the already-working HTTP challenge path.
+7. Install the final TLS proxy, including the exact legacy tracker deny and
+   event privacy controls, and only then make the dashboard/event endpoint
+   publicly reachable.
+8. Run real Beta and Phase ingestion acceptance and fill in the deployment
+   receipt. HTTP `202` alone is not acceptance.
+
+The application-first order prevents an accidental DNS change from activating
+old browser tracker code. The HTTP-only ACME staging server prevents a gap in
+which DNS exists but a half-configured dashboard is exposed.
+
+## 3. Preflight: application and DNS must be safe
+
+Run in the exact application merge SHA that is deployed to both products:
+
+```bash
+git rev-parse HEAD
+rg -n 'plausible\.bytedance\.city/js/script\.js|plausible\.io/js/script\.js' \
+  web/frontend web/phase-detector
+```
+
+The `rg` command must exit `1` with no matches. Then verify the public hostname
+does not resolve:
+
+```bash
+dig +short plausible.bytedance.city A
+dig +short plausible.bytedance.city AAAA
+```
+
+Both commands must print nothing. Record the deployed application SHA and the
+two DNS observations before continuing.
+
+## 4. Install the pinned CE tree
+
+Run as root on the deployment server. Do not print secret values to the
+terminal, logs, shell tracing, or the deployment receipt.
+
+```bash
+umask 077
+git clone --branch v3.2.1 --single-branch \
+  https://github.com/plausible/community-edition /root/plausible-ce
+cd /root/plausible-ce
+test "$(git rev-parse HEAD)" = ec6c4da776547516d8f48159ce1a704df4f475ad
+git diff --exit-code
+test -z "$(git status --porcelain)"
+chmod 0700 /root/plausible-ce
+```
+
+Generate secrets directly into the root-only environment file. The generated
+values below are examples of generation procedures, not fixed credentials:
+
+```bash
+cd /root/plausible-ce
+umask 077
+secret_key_base="$(openssl rand -base64 64 | tr -d '\n')"
+totp_vault_key="$(openssl rand -base64 32 | tr -d '\n')"
+postgres_password="$(openssl rand -hex 32)"
+{
+  printf '%s\n' 'COMPOSE_PROJECT_NAME=plausible-ce'
+  printf '%s\n' 'BASE_URL=http://127.0.0.1:8800'
+  printf 'SECRET_KEY_BASE=%s\n' "$secret_key_base"
+  printf 'TOTP_VAULT_KEY=%s\n' "$totp_vault_key"
+  printf 'POSTGRES_PASSWORD=%s\n' "$postgres_password"
+  printf '%s\n' 'DISABLE_REGISTRATION=false'
+  printf '%s\n' 'ENABLE_EMAIL_VERIFICATION=false'
+  printf '%s\n' 'HTTP_PORT=8000'
+} > .env
+unset secret_key_base totp_vault_key postgres_password
+chmod 0600 .env
+```
+
+Create root-only `compose.override.yml`. The digest pins the OCI index; the
+linux/amd64 manifest is independently verified below.
 
 ```yaml
-version: "3.3"
-
 services:
   plausible_db:
-    image: postgres:16-alpine
-    restart: always
-    volumes:
-      - db-data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_PASSWORD=__REPLACE_STRONG_RANDOM__
-
-  plausible_events_db:
-    image: clickhouse/clickhouse-server:24.3-alpine
-    restart: always
-    volumes:
-      - event-data:/var/lib/clickhouse
-      - event-logs:/var/log/clickhouse-server
-      - ./clickhouse-config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
-      - ./clickhouse-user-config.xml:/etc/clickhouse-server/users.d/logging.xml:ro
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
 
   plausible:
-    image: ghcr.io/plausible/community-edition:v2.1.4
-    restart: always
-    command: sh -c "/entrypoint.sh db migrate && /entrypoint.sh run"
-    depends_on:
-      - plausible_db
-      - plausible_events_db
+    image: "ghcr.io/plausible/community-edition:v3.2.1@sha256:33e60bfb40f2df5da00f8753b76fad04f67dba3abe6d73eb516e440e3fb62985"
     ports:
-      - 127.0.0.1:8000:8000
+      - "127.0.0.1:8800:8000"
     environment:
-      - BASE_URL=https://plausible.bytedance.city
-      - SECRET_KEY_BASE=__REPLACE_64_RANDOM_BYTES__
-      - DATABASE_URL=postgres://postgres:__REPLACE_STRONG_RANDOM__@plausible_db:5432/plausible_db
-      - CLICKHOUSE_DATABASE_URL=http://plausible_events_db:8123/plausible_events_db
-      - DISABLE_REGISTRATION=invite_only
-
-volumes:
-  db-data:
-  event-data:
-  event-logs:
+      BASE_URL: "${BASE_URL:?BASE_URL is required}"
+      SECRET_KEY_BASE: "${SECRET_KEY_BASE:?SECRET_KEY_BASE is required}"
+      TOTP_VAULT_KEY: "${TOTP_VAULT_KEY:?TOTP_VAULT_KEY is required}"
+      DISABLE_REGISTRATION: "${DISABLE_REGISTRATION:?DISABLE_REGISTRATION is required}"
+      ENABLE_EMAIL_VERIFICATION: "${ENABLE_EMAIL_VERIFICATION:?ENABLE_EMAIL_VERIFICATION is required}"
+      HTTP_PORT: "${HTTP_PORT:?HTTP_PORT is required}"
+      DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@plausible_db:5432/plausible_db"
 ```
-
-Generate secrets:
 
 ```bash
-openssl rand -base64 48      # SECRET_KEY_BASE
-openssl rand -base64 24      # POSTGRES_PASSWORD (substitute in BOTH places)
+chmod 0600 compose.override.yml
+docker compose config --quiet
+docker compose pull
+docker image inspect \
+  ghcr.io/plausible/community-edition:v3.2.1@sha256:33e60bfb40f2df5da00f8753b76fad04f67dba3abe6d73eb516e440e3fb62985 \
+  --format '{{json .RepoDigests}}'
+docker buildx imagetools inspect \
+  ghcr.io/plausible/community-edition:v3.2.1@sha256:33e60bfb40f2df5da00f8753b76fad04f67dba3abe6d73eb516e440e3fb62985
 ```
 
-Plus the two ClickHouse logging configs (minimal, suppress noise):
+The output must bind the index digest above and show the linux/amd64 manifest
+digest `sha256:7450d9df4bfce160541d65bdba6bd4bcdd9a6db07f13dde91060705fa242c650`.
+Do not continue on an architecture or digest mismatch.
 
-`/root/plausible/clickhouse-config.xml`:
-```xml
-<clickhouse>
-  <logger><level>warning</level><console>true</console></logger>
-  <query_thread_log remove="remove"/>
-  <query_log remove="remove"/>
-  <text_log remove="remove"/>
-  <trace_log remove="remove"/>
-  <metric_log remove="remove"/>
-  <asynchronous_metric_log remove="remove"/>
-  <session_log remove="remove"/>
-  <part_log remove="remove"/>
-</clickhouse>
-```
-
-`/root/plausible/clickhouse-user-config.xml`:
-```xml
-<clickhouse>
-  <profiles><default><log_queries>0</log_queries><log_query_threads>0</log_query_threads></default></profiles>
-</clickhouse>
-```
-
-## 4. Bring up
+## 5. Loopback bootstrap and two-site initialization
 
 ```bash
-cd /root/plausible
+cd /root/plausible-ce
 docker compose up -d
-docker compose logs -f plausible       # watch for "Running PlausibleWeb.Endpoint"
-curl -I http://127.0.0.1:8000          # should 200 / 302
+docker compose ps
+curl --fail --silent --show-error \
+  http://127.0.0.1:8800/api/system/health/ready
+ss -ltnp | rg '127\.0\.0\.1:8800'
 ```
 
-## 5. DNS
-
-DNSPod (manual or via tccli):
+There must be no `0.0.0.0:8800`, `[::]:8800`, Postgres, or ClickHouse host
+listener. From an operator machine, open an SSH tunnel without changing DNS:
 
 ```bash
-tccli dnspod CreateRecord --cli-unfold-argument \
-  --Domain bytedance.city \
-  --SubDomain plausible \
-  --RecordType A \
-  --RecordLine 默认 \
-  --Value 43.156.233.71
+: "${DEPLOYMENT_HOST_ALIAS:?set the deployment host alias from the project registry}"
+ssh -N -L 8800:127.0.0.1:8800 "$DEPLOYMENT_HOST_ALIAS"
 ```
 
-Wait ~1 min, verify: `dig plausible.bytedance.city +short` → `43.156.233.71`.
+Browse to `http://127.0.0.1:8800` and, while the service is loopback-only:
 
-## 6. nginx reverse proxy
+1. Create the first administrator using an operator-selected email and a
+   password stored in the approved password manager. Do not record either in
+   this repository or the deployment receipt.
+2. Create site `beta.structural.bytedance.city` with timezone `Asia/Shanghai`.
+3. Create site `phase.bytedance.city` with timezone `Asia/Shanghai`.
+4. Confirm both sites are visible to the first administrator.
 
-Create `/etc/nginx/conf.d/plausible.conf`:
+Now close registration and switch to the final URL by editing only `.env`:
+
+```dotenv
+BASE_URL=https://plausible.bytedance.city
+DISABLE_REGISTRATION=true
+```
+
+```bash
+set -euo pipefail
+active_dir="${PLAUSIBLE_INITIAL_ACTIVE_DIR:-/root/plausible-ce}"
+active_port="${PLAUSIBLE_INITIAL_ACTIVE_PORT:-8800}"
+chmod 0600 "$active_dir/.env"
+cd "$active_dir"
+docker compose up -d --force-recreate plausible
+curl --fail --silent --show-error \
+  "http://127.0.0.1:$active_port/api/system/health/ready"
+
+authority_file="${PLAUSIBLE_AUTHORITY_FILE:-/root/plausible-ce-authority.env}"
+authority_state_dir="${PLAUSIBLE_AUTHORITY_STATE_DIR:-/root}"
+authority_candidate="$(mktemp "$authority_state_dir/.plausible-ce-authority.XXXXXX")"
+{
+  printf '%s\n' 'PLAUSIBLE_AUTHORITY_PROTOCOL=plausible-ce-authority-v1'
+  printf 'PLAUSIBLE_ACTIVE_DIR=%s\n' "$active_dir"
+  printf '%s\n' 'PLAUSIBLE_ACTIVE_PROJECT=plausible-ce'
+  printf 'PLAUSIBLE_ACTIVE_PORT=%s\n' "$active_port"
+  printf '%s\n' \
+    'PLAUSIBLE_ACTIVE_SOURCE_COMMIT=ec6c4da776547516d8f48159ce1a704df4f475ad'
+} > "$authority_candidate"
+chown root:root "$authority_candidate"
+chmod 0600 "$authority_candidate"
+mv -f "$authority_candidate" "$authority_file"
+```
+
+Keep the service loopback-only. DNS must still be `NXDOMAIN`. The root-owned
+authority file above is the single source for every future backup, promotion,
+rollback, and upgrade; filesystem directory names alone do not confer active
+status.
+
+## 6. Stage HTTP ACME before DNS
+
+Create the ACME webroot and install an HTTP-only Nginx server. It intentionally
+serves no dashboard and no event API.
+
+```bash
+install -d -o root -g root -m 0755 /var/www/acme/.well-known/acme-challenge
+```
 
 ```nginx
 server {
     listen 80;
+    listen [::]:80;
     server_name plausible.bytedance.city;
 
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/acme;
+        default_type text/plain;
+        try_files $uri =404;
+    }
+
+    location / {
+        return 503;
+    }
+}
+```
+
+```bash
+nginx -t
+systemctl reload nginx
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  -H 'Host: plausible.bytedance.city' http://127.0.0.1/
+```
+
+The local probe must return `503`. Only after that proof, create the DNS `A`
+record using the deployment registry's current public address; do not copy an
+address from this document:
+
+```bash
+: "${VPS_PUBLIC_IP:?set the current value from the project registry}"
+tccli dnspod CreateRecord --cli-unfold-argument \
+  --Domain bytedance.city --SubDomain plausible --RecordType A \
+  --RecordLine '默认' --Value "$VPS_PUBLIC_IP"
+unset VPS_PUBLIC_IP
+```
+
+Wait until authoritative DNS and at least two public resolvers return the same
+approved address. Then request the certificate using the already-tested
+webroot; select the ACME contact at execution time rather than hardcoding it:
+
+```bash
+read -r -p 'ACME contact email: ' ACME_CONTACT
+certbot certonly --webroot --webroot-path /var/www/acme \
+  --domain plausible.bytedance.city --non-interactive --agree-tos \
+  --email "$ACME_CONTACT"
+unset ACME_CONTACT
+```
+
+Until the final TLS configuration passes `nginx -t`, the public HTTP root must
+continue returning `503`.
+
+## 7. Final Nginx privacy boundary
+
+Install the final configuration only after the certificate exists. The exact
+`/js/script.js` deny is a migration tripwire for the retired remote tracker.
+Do not block the whole `/js/` tree: Plausible's dashboard may need its own
+static JavaScript assets.
+
+```nginx
+map $http_upgrade $plausible_connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name plausible.bytedance.city;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/acme;
+        default_type text/plain;
+        try_files $uri =404;
     }
 
     location / {
@@ -158,115 +312,1078 @@ server {
 
 server {
     listen 443 ssl http2;
+    listen [::]:443 ssl http2;
     server_name plausible.bytedance.city;
 
-    ssl_certificate     /etc/letsencrypt/live/plausible.bytedance.city/fullchain.pem;
+    ssl_certificate /etc/letsencrypt/live/plausible.bytedance.city/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/plausible.bytedance.city/privkey.pem;
+    client_max_body_size 10m;
 
-    # Plausible needs websocket support for the live dashboard
-    proxy_http_version 1.1;
-    proxy_set_header   Upgrade           $http_upgrade;
-    proxy_set_header   Connection        "upgrade";
-    proxy_set_header   Host              $host;
-    proxy_set_header   X-Real-IP         $remote_addr;
-    proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-    proxy_set_header   X-Forwarded-Proto $scheme;
+    location = /js/script.js {
+        access_log off;
+        return 410;
+    }
 
-    client_max_body_size 100M;
+    location = /api/event {
+        if ($request_method !~ ^(POST|OPTIONS)$) { return 405; }
+        add_header Allow 'POST, OPTIONS' always;
+        access_log off;
+        client_max_body_size 64k;
+        proxy_pass http://127.0.0.1:8800;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    location = /api/system/health/live {
+        access_log off;
+        proxy_pass http://127.0.0.1:8800;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    location = /api/system/health/ready {
+        access_log off;
+        proxy_pass http://127.0.0.1:8800;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+    }
 
     location / {
-        proxy_pass http://127.0.0.1:8000;
+        proxy_pass http://127.0.0.1:8800;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $plausible_connection_upgrade;
     }
 }
 ```
 
-Test + reload:
+`X-Forwarded-For` deliberately overwrites an untrusted client-supplied value;
+it must not use `$proxy_add_x_forwarded_for`. The event endpoint accepts only
+`POST` and CORS preflight `OPTIONS`, and its Nginx access log is disabled so
+analytics payloads cannot be duplicated into request logs. The root proxy
+retains WebSocket upgrade support for the live dashboard.
 
 ```bash
-nginx -t && systemctl reload nginx
+nginx -t
+systemctl reload nginx
+curl --fail --silent --show-error \
+  https://plausible.bytedance.city/api/system/health/live
+curl --fail --silent --show-error \
+  https://plausible.bytedance.city/api/system/health/ready
+PLAUSIBLE_ORIGIN=https://plausible.bytedance.city
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  "$PLAUSIBLE_ORIGIN/js/script.js"
+unset PLAUSIBLE_ORIGIN
 ```
 
-## 7. SSL via certbot
+The health probes must succeed and the retired tracker probe must return
+`410`. Confirm a normal dashboard asset under `/js/`, if the rendered
+dashboard uses one, is not caught by that exact deny.
+
+## 8. Real two-product ingestion acceptance
+
+Use clean browser profiles against the deployed Beta and Phase releases. For
+each product, opt in explicitly and generate one unique pageview or custom
+event. Do not use a synthetic server-side `curl` as the acceptance event:
+Plausible's bot filtering depends on the real browser user agent and client IP.
+
+For Beta, inspect the direct expanded Events API request and require:
+
+- `POST https://plausible.bytedance.city/api/event` returns `202`;
+- the JSON body uses `name`, `url`, `domain`, and optional `props`;
+- `domain` is exactly `beta.structural.bytedance.city`;
+- `url` is canonical origin plus pathname, with no query, fragment, or
+  referrer data;
+- the response has no `x-plausible-dropped` header.
+
+For Phase, inspect the request produced by the pinned
+`@plausible-analytics/tracker` integration and require:
+
+- the event endpoint returns `202`;
+- its site domain is exactly `phase.bytedance.city`;
+- only the application allowlist survives the privacy transform;
+- the response has no `x-plausible-dropped` header.
+
+A `202` carrying `x-plausible-dropped` is a failed acceptance. After both real
+requests, confirm raw ingress in ClickHouse:
 
 ```bash
-certbot --nginx -d plausible.bytedance.city \
-  --non-interactive --agree-tos -m riazward110@gmail.com
+cd /root/plausible-ce
+docker compose exec -T plausible_events_db clickhouse-client \
+  --database plausible_events_db \
+  --query "SELECT hostname, name, pathname, timestamp FROM events_v2 WHERE hostname IN ('beta.structural.bytedance.city', 'phase.bytedance.city') ORDER BY timestamp DESC LIMIT 20 FORMAT PrettyCompact"
 ```
 
-certbot auto-rewrites the conf to add the cert paths and `ssl_session_cache`,
-`ssl_protocols TLSv1.2 TLSv1.3`, etc.
+There must be at least one fresh row for each hostname. Finally, sign in to the
+dashboard and independently open each site. Confirm the same Beta and Phase
+events in Realtime. ClickHouse rows without both dashboard confirmations are
+not a complete acceptance.
 
-## 8. First-time setup
+## 9. Backup, restore, and upgrades
 
-1. Browse to `https://plausible.bytedance.city/register`. Because we set
-   `DISABLE_REGISTRATION=invite_only`, only the first user can register before
-   it locks down.
-2. Create the admin account (use a real email — needed for password reset).
-3. Add site: `Sites → + Add a site` →
-   - Domain: `structural.bytedance.city`
-   - Timezone: `Asia/Shanghai`
-   - Save.
-4. Plausible shows the snippet. **Compare** with what we already shipped:
-   ```html
-   <script defer data-domain="structural.bytedance.city"
-           src="https://plausible.bytedance.city/js/script.js"></script>
-   ```
-   Should match. If Plausible shows a different `data-domain` casing, update
-   the site config in Plausible, not the HTML.
-5. Add second site for `phase.bytedance.city` (when that subdomain ships).
+Plausible stores account/site metadata in Postgres and analytics events in
+ClickHouse. **ClickHouse event data is not replayable from PostgreSQL.** The
+runtime identity also depends on the original `SECRET_KEY_BASE`,
+`TOTP_VAULT_KEY`, database configuration, official compose, and local override.
+A Postgres dump or a set of data volumes without those root-only files is not a
+recoverable backup.
 
-## 9. Verify
+### 9.1 Consistent root-only backup
+
+The complete backup set is:
+
+- a logical `postgres.dump` for independent Postgres validation and recovery;
+- cold snapshots of all four official volumes: `db-data`, `event-data`,
+  `event-logs`, and `plausible-data`;
+- `config-root-only.tgz`, containing `.env`, `compose.yml`,
+  `compose.override.yml`, the optional generated `compose.restore-images.yml`,
+  and the official `clickhouse/` configuration tree;
+- `source.bundle`, which makes the exact source commit and `.git` history
+  available without network access;
+- `authority.env`, the non-secret snapshot of the active directory, Compose
+  project, port, and source commit;
+- `RESOLVED_IMAGES.txt`, containing the pullable repo digests actually used by
+  Postgres, ClickHouse, and Plausible; its archive-helper entry deliberately
+  reuses the resolved Postgres Alpine image after a real `tar` capability probe;
+- `MANIFEST.txt` with non-secret backup and authority metadata; and
+- `SHA256SUMS` covering every artifact above.
+
+For `plausible-ce-complete-v2`, the recoverable runtime identity is the 40-hex
+`source_commit` in `MANIFEST.txt` plus the three exact service repo digests in
+`RESOLVED_IMAGES.txt`. Fixed release-name or historical OCI fields are
+deliberately not copied forward after an upgrade.
+
+Stop the only event writer before taking either database snapshot. The commands
+never print `.env`, expand its values into logs, or render resolved Compose
+configuration:
 
 ```bash
-curl -I https://plausible.bytedance.city/js/script.js   # expect 200
-curl -A 'Mozilla/5.0' https://structural.bytedance.city/   # warm a page
-# wait ~10 s, check dashboard → "Realtime"
+set -euo pipefail
+authority_file="${PLAUSIBLE_AUTHORITY_FILE:-/root/plausible-ce-authority.env}"
+test "$(stat -c '%U:%G %a' "$authority_file")" = 'root:root 600'
+. "$authority_file"
+test "$PLAUSIBLE_AUTHORITY_PROTOCOL" = 'plausible-ce-authority-v1'
+production_dir="$PLAUSIBLE_ACTIVE_DIR"
+production_project="$PLAUSIBLE_ACTIVE_PROJECT"
+production_port="$PLAUSIBLE_ACTIVE_PORT"
+authority_root="${PLAUSIBLE_AUTHORITY_ROOT:-/root}"
+case "$production_dir" in "$authority_root"/*) ;; *) exit 1 ;; esac
+[[ "$production_project" =~ ^[a-z0-9][a-z0-9_-]+$ ]]
+[[ "$production_port" =~ ^[0-9]+$ ]]
+export COMPOSE_PROJECT_NAME="$production_project"
+backup_root="${PLAUSIBLE_BACKUP_ROOT:-/root/backups/plausible-ce}"
+production_compose_file="$production_dir/compose.yml:$production_dir/compose.override.yml"
+if test -f "$production_dir/compose.restore-images.yml"; then
+  production_compose_file="$production_compose_file:$production_dir/compose.restore-images.yml"
+fi
+production_resumed=0
+resume_production() {
+  if (( production_resumed == 0 )); then
+    cd "$production_dir"
+    COMPOSE_FILE="$production_compose_file" docker compose up -d
+    production_resumed=1
+  fi
+}
+trap resume_production EXIT
+
+cd "$production_dir"
+test "$(git rev-parse HEAD)" = "$PLAUSIBLE_ACTIVE_SOURCE_COMMIT"
+umask 077
+stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+backup_dir="$backup_root/$production_project/$stamp"
+install -d -o root -g root -m 0700 "$backup_dir"
+test "$(stat -c '%U:%G %a' "$backup_dir")" = 'root:root 700'
+test "$(stat -c '%U:%G %a' .env)" = 'root:root 600'
+test "$(stat -c '%U:%G %a' compose.override.yml)" = 'root:root 600'
+
+resolve_repo_digest() {
+  local image_id="$1" expected_repo="$2" candidate resolved=''
+  while IFS= read -r candidate; do
+    [[ "$candidate" =~ ^[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$ ]] \
+      || continue
+    case "$candidate" in
+      "$expected_repo"@sha256:*)
+        test -z "$resolved" || return 1
+        resolved="$candidate"
+        ;;
+    esac
+  done < <(docker image inspect \
+    --format '{{range .RepoDigests}}{{println .}}{{end}}' "$image_id")
+  test -n "$resolved" || return 1
+  printf '%s\n' "$resolved"
+}
+{
+  archive_helper=''
+  for service in plausible_db plausible_events_db plausible; do
+    case "$service" in
+      plausible_db) expected_repo=postgres ;;
+      plausible_events_db) expected_repo=clickhouse/clickhouse-server ;;
+      plausible) expected_repo=ghcr.io/plausible/community-edition ;;
+      *) exit 1 ;;
+    esac
+    container_id="$(COMPOSE_FILE="$production_compose_file" \
+      docker compose ps --quiet "$service")"
+    test -n "$container_id"
+    image_id="$(docker inspect --format '{{.Image}}' "$container_id")"
+    resolved_image="$(resolve_repo_digest "$image_id" "$expected_repo")"
+    printf '%s=%s\n' "$service" "$resolved_image"
+    if test "$service" = plausible_db; then
+      archive_helper="$resolved_image"
+    fi
+  done
+  test -n "$archive_helper"
+  docker run --rm "$archive_helper" tar --help > /dev/null
+  printf 'archive_helper=%s\n' "$archive_helper"
+} > "$backup_dir/RESOLVED_IMAGES.txt"
+
+COMPOSE_FILE="$production_compose_file" docker compose stop plausible
+COMPOSE_FILE="$production_compose_file" docker compose exec -T plausible_db \
+  pg_dump --username postgres --format=custom plausible_db \
+  > "$backup_dir/postgres.dump"
+COMPOSE_FILE="$production_compose_file" docker compose exec -T plausible_db \
+  pg_restore --list < "$backup_dir/postgres.dump" > /dev/null
+COMPOSE_FILE="$production_compose_file" \
+  docker compose stop plausible_db plausible_events_db
+
+cp -- "$authority_file" "$backup_dir/authority.env"
+git bundle create "$backup_dir/source.bundle" HEAD
+config_paths=(.env compose.yml compose.override.yml clickhouse)
+if test -f compose.restore-images.yml; then
+  config_paths+=(compose.restore-images.yml)
+fi
+tar -czf "$backup_dir/config-root-only.tgz" \
+  "${config_paths[@]}"
+
+for logical in db-data event-data event-logs plausible-data; do
+  volume="$(docker volume ls \
+    --filter label=com.docker.compose.project="$production_project" \
+    --filter label=com.docker.compose.volume="$logical" \
+    --format '{{.Name}}')"
+  test -n "$volume"
+  test "$(printf '%s\n' "$volume" | wc -l | tr -d ' ')" = 1
+  docker run --rm --volume "$volume:/source:ro" \
+    --volume "$backup_dir:/backup" "$archive_helper" \
+    tar -C /source -czf "/backup/$logical.tgz" .
+done
+
+{
+  printf 'backup_protocol=%s\n' 'plausible-ce-complete-v2'
+  printf 'created_utc=%s\n' "$stamp"
+  printf 'source_commit=%s\n' "$(git rev-parse HEAD)"
+  printf 'active_dir=%s\n' "$production_dir"
+  printf 'compose_project=%s\n' "$production_project"
+  printf 'active_port=%s\n' "$production_port"
+} > "$backup_dir/MANIFEST.txt"
+
+chmod 0600 "$backup_dir"/*
+chown root:root "$backup_dir"/*
+(
+  cd "$backup_dir"
+  sha256sum MANIFEST.txt RESOLVED_IMAGES.txt authority.env source.bundle \
+    config-root-only.tgz postgres.dump \
+    db-data.tgz event-data.tgz event-logs.tgz plausible-data.tgz \
+    > SHA256SUMS
+  chmod 0600 SHA256SUMS
+  chown root:root SHA256SUMS
+  sha256sum --check SHA256SUMS
+  tar -tzf config-root-only.tgz > /dev/null
+  for archive in db-data.tgz event-data.tgz event-logs.tgz plausible-data.tgz; do
+    tar -tzf "$archive" > /dev/null
+  done
+)
+test "$(find "$backup_dir" -maxdepth 1 -type f ! -perm 0600 -print -quit)" = ''
+
+resume_production
+curl --fail --silent --show-error \
+  "http://127.0.0.1:$production_port/api/system/health/ready"
+trap - EXIT
 ```
 
-Send 1-2 page views from a different network / phone to confirm capture.
+If any dump, archive, checksum, ownership, or readiness check fails, keep the
+backup directory for diagnosis, mark that snapshot invalid, and immediately
+return the unchanged production project to service with `docker compose up -d`.
+Do not copy an invalid set off-host.
 
-## 10. Backups
+`config-root-only.tgz` contains live secrets. It and every derivative must stay
+root-owned (`0700` directory, `0600` files). Encrypt the complete set with the
+approved infrastructure backup key before off-host transfer; never copy the
+plaintext config archive into the repository, chat, CI artifacts, or general
+object storage. Record only the encrypted artifact location and checksum in the
+deployment receipt.
+
+### 9.2 Isolated restore drill
+
+Restore into a new directory, a new Compose project, new volumes, and a
+different loopback port. The production directory and volumes remain untouched.
+Set `SOURCE_BACKUP_DIR` to one verified backup directory without printing its
+contents:
 
 ```bash
-# nightly cron, /etc/cron.d/plausible-backup
-0 3 * * * root cd /root/plausible && docker compose exec -T plausible_db \
-  pg_dump -U postgres plausible_db | gzip > /root/backups/plausible-pg-$(date +\%F).sql.gz
+set -euo pipefail
+: "${SOURCE_BACKUP_DIR:?set a verified root-only backup directory}"
+test "$(stat -c '%U:%G %a' "$SOURCE_BACKUP_DIR")" = 'root:root 700'
+test "$(stat -c '%U:%G %a' "$SOURCE_BACKUP_DIR/config-root-only.tgz")" = \
+  'root:root 600'
+test "$(stat -c '%U:%G %a' "$SOURCE_BACKUP_DIR/SHA256SUMS")" = \
+  'root:root 600'
+(
+  cd "$SOURCE_BACKUP_DIR"
+  sha256sum --check SHA256SUMS
+  rg -q '^backup_protocol=plausible-ce-complete-v2$' MANIFEST.txt
+  rg -q '^PLAUSIBLE_AUTHORITY_PROTOCOL=plausible-ce-authority-v1$' \
+    authority.env
+)
+test "$(grep -c '^source_commit=' "$SOURCE_BACKUP_DIR/MANIFEST.txt")" = 1
+test "$(grep -c '^PLAUSIBLE_ACTIVE_SOURCE_COMMIT=' \
+  "$SOURCE_BACKUP_DIR/authority.env")" = 1
+backup_source_commit="$(sed -n 's/^source_commit=//p' \
+  "$SOURCE_BACKUP_DIR/MANIFEST.txt")"
+authority_source_commit="$(sed -n 's/^PLAUSIBLE_ACTIVE_SOURCE_COMMIT=//p' \
+  "$SOURCE_BACKUP_DIR/authority.env")"
+[[ "$backup_source_commit" =~ ^[0-9a-f]{40}$ ]]
+test "$backup_source_commit" = "$authority_source_commit"
+
+resolved_image_for() {
+  local key="$1" expected_repo="$2" value
+  test "$(grep -c "^${key}=" \
+    "$SOURCE_BACKUP_DIR/RESOLVED_IMAGES.txt")" = 1 || return 1
+  value="$(sed -n "s/^${key}=//p" \
+    "$SOURCE_BACKUP_DIR/RESOLVED_IMAGES.txt")"
+  [[ "$value" =~ ^[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$ ]] \
+    || return 1
+  case "$value" in "$expected_repo"@sha256:*) ;; *) return 1 ;; esac
+  printf '%s\n' "$value"
+}
+postgres_image="$(resolved_image_for plausible_db postgres)"
+clickhouse_image="$(resolved_image_for \
+  plausible_events_db clickhouse/clickhouse-server)"
+plausible_image="$(resolved_image_for \
+  plausible ghcr.io/plausible/community-edition)"
+archive_helper="$(resolved_image_for archive_helper postgres)"
+for resolved_image in "$postgres_image" "$clickhouse_image" \
+  "$plausible_image" "$archive_helper"; do
+  docker pull "$resolved_image" > /dev/null
+done
+
+restore_stamp="$(date -u +%Y%m%d%H%M%S)"
+restore_project="plausible-ce-restore-$restore_stamp"
+restore_dir="/root/$restore_project"
+restore_port="${RESTORE_PORT:-18800}"
+test ! -e "$restore_dir"
+git clone "$SOURCE_BACKUP_DIR/source.bundle" "$restore_dir"
+git -C "$restore_dir" checkout --detach "$backup_source_commit"
+tar -xzf "$SOURCE_BACKUP_DIR/config-root-only.tgz" -C "$restore_dir"
+chown -R root:root "$restore_dir"
+chmod 0700 "$restore_dir"
+chmod 0600 "$restore_dir/.env" "$restore_dir/compose.override.yml"
+test "$(git -C "$restore_dir" rev-parse HEAD)" = "$backup_source_commit"
+git -C "$restore_dir" diff --exit-code
+
+sed -i -E \
+  "s/^COMPOSE_PROJECT_NAME=.*/COMPOSE_PROJECT_NAME=$restore_project/" \
+  "$restore_dir/.env"
+sed -i -E \
+  "s#^BASE_URL=.*#BASE_URL=http://127.0.0.1:$restore_port#" \
+  "$restore_dir/.env"
+sed -i -E \
+  "s#127\\.0\\.0\\.1:8800:8000#127.0.0.1:$restore_port:8000#" \
+  "$restore_dir/compose.override.yml"
+sed -i '/^COMPOSE_FILE=/d' "$restore_dir/.env"
+printf '%s\n' \
+  'COMPOSE_FILE=compose.yml:compose.override.yml:compose.restore-images.yml' \
+  >> "$restore_dir/.env"
+{
+  printf '%s\n' 'services:'
+  printf '  plausible_db:\n    image: "%s"\n' "$postgres_image"
+  printf '  plausible_events_db:\n    image: "%s"\n' "$clickhouse_image"
+  printf '  plausible:\n    image: "%s"\n' "$plausible_image"
+} > "$restore_dir/compose.restore-images.yml"
+chmod 0600 "$restore_dir/.env" "$restore_dir/compose.override.yml" \
+  "$restore_dir/compose.restore-images.yml"
+
+for logical in db-data event-data event-logs plausible-data; do
+  restored_volume="${restore_project}_${logical}"
+  docker volume create \
+    --label com.docker.compose.project="$restore_project" \
+    --label com.docker.compose.volume="$logical" \
+    "$restored_volume" > /dev/null
+  docker run --rm --volume "$restored_volume:/target" \
+    --volume "$SOURCE_BACKUP_DIR:/backup:ro" "$archive_helper" \
+    tar -C /target -xzf "/backup/$logical.tgz"
+done
+
+cd "$restore_dir"
+restore_compose_file="$restore_dir/compose.yml:$restore_dir/compose.override.yml:$restore_dir/compose.restore-images.yml"
+COMPOSE_FILE="$restore_compose_file" docker compose config --quiet
+COMPOSE_FILE="$restore_compose_file" docker compose up -d
+for attempt in $(seq 1 60); do
+  if curl --fail --silent --show-error \
+    "http://127.0.0.1:$restore_port/api/system/health/ready" > /dev/null; then
+    break
+  fi
+  sleep 2
+done
+curl --fail --silent --show-error \
+  "http://127.0.0.1:$restore_port/api/system/health/ready"
+ss -ltn | rg "127\\.0\\.0\\.1:$restore_port"
+if ss -ltn | rg -q "(?:0\\.0\\.0\\.0|\\[::\\]):$restore_port"; then
+  exit 1
+fi
+COMPOSE_FILE="$restore_compose_file" \
+  docker compose exec -T plausible_events_db clickhouse-client \
+  --database plausible_events_db \
+  --query "SELECT hostname, count() FROM events_v2 WHERE hostname IN ('beta.structural.bytedance.city', 'phase.bytedance.city') GROUP BY hostname ORDER BY hostname FORMAT PrettyCompact"
+
+set -a
+. "$restore_dir/.env"
+set +a
+export PGPASSWORD="$POSTGRES_PASSWORD"
+logical_pg_container="${restore_project}-logical-pg"
+logical_pg_volume="${restore_project}_logical-pg"
+docker volume create "$logical_pg_volume" > /dev/null
+docker run -d --name "$logical_pg_container" \
+  --env POSTGRES_PASSWORD \
+  --volume "$logical_pg_volume:/var/lib/postgresql/data" \
+  "$postgres_image" > /dev/null
+for attempt in $(seq 1 60); do
+  if docker exec "$logical_pg_container" pg_isready --username postgres \
+    > /dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+done
+docker exec --env PGPASSWORD "$logical_pg_container" \
+  createdb --username postgres plausible_db
+docker exec -i --env PGPASSWORD "$logical_pg_container" \
+  pg_restore --username postgres --dbname plausible_db \
+  --no-owner --no-privileges \
+  < "$SOURCE_BACKUP_DIR/postgres.dump"
+test "$(docker exec --env PGPASSWORD "$logical_pg_container" \
+  psql --username postgres --dbname plausible_db --tuples-only --no-align \
+  --command "SELECT count(*) FROM sites WHERE domain IN ('beta.structural.bytedance.city', 'phase.bytedance.city');")" = 2
+docker rm --force "$logical_pg_container" > /dev/null
+docker volume rm "$logical_pg_volume" > /dev/null
+unset PGPASSWORD POSTGRES_PASSWORD SECRET_KEY_BASE TOTP_VAULT_KEY
+unset COMPOSE_PROJECT_NAME BASE_URL DISABLE_REGISTRATION
+unset ENABLE_EMAIL_VERIFICATION HTTP_PORT
 ```
 
-ClickHouse events DB is replayable from Postgres in a pinch; don't bother
-backing it up unless we grow past ~1M events.
+Use an SSH tunnel to the restore port. Confirm that the original administrator
+can sign in, both sites still use `Asia/Shanghai`, and both sites show the
+expected historical events. The cold `db-data` snapshot is used for the exact
+paired restore above, while the temporary Postgres container proves that
+`postgres.dump` is an independent logical recovery path. Never import it into
+production merely to test it.
 
-## 11. Upgrades
+Only these combined checks constitute a restore proof:
+
+1. every checksum passes before extraction;
+2. restored configuration is root-owned and secret files are `0600`;
+3. readiness passes on the alternate loopback port with no wildcard listener;
+4. the first administrator, both site/timezone records, and their ClickHouse
+   plus dashboard history survive the cold-volume restore; and
+5. `postgres.dump` independently restores both site rows into a clean Postgres
+   volume.
+
+Do not change Nginx or DNS during a drill. After evidence is recorded, run this
+in the restore directory without a volume flag:
 
 ```bash
-cd /root/plausible
-docker compose pull
-docker compose up -d
+COMPOSE_FILE=compose.yml:compose.override.yml:compose.restore-images.yml \
+  docker compose down
 ```
 
-Plausible CE follows semver; minor versions are non-breaking. Check the release
-notes for major bumps (rare).
+Remove only the four explicitly named restore volumes after a second operator
+verifies `restore_project`; never use a wildcard or production project name.
 
-## 12. Cost
+### 9.3 Disaster promotion and failed-restore rollback
 
-- VPS: already paid for.
-- Domain: already paid for.
-- Disk: negligible until ~1M events.
-- **Marginal cost: $0/month.**
+Promotion changes the single authority; it does not leave the restored stack as
+an unnamed second production. Complete Section 9.2 first, keep its directory,
+project, volumes, and source history intact, and set the three `RESTORED_*`
+variables below. The old authority is copied before either writer changes.
 
-## 13. Failure modes / rollback
+This same-host promotion is atomic at the authority-file boundary. Its EXIT
+trap stops the candidate, restores the previous authority, and restarts the old
+stack on any failure or rejected dashboard check:
 
-- If Plausible container OOMs: bump VPS or `docker compose down plausible` and
-  go back to nginx access log analytics (`scripts/analytics/parse_nginx_logs.py`).
-- If we want to migrate to Plausible Cloud later: export Postgres data via
-  Plausible's CSV export, sign up on plausible.io, import. Zero data loss.
-- The site snippet is harmless if Plausible is down — `defer` + non-blocking +
-  silent DNS fail.
+```bash
+set -euo pipefail
+authority_file="${PLAUSIBLE_AUTHORITY_FILE:-/root/plausible-ce-authority.env}"
+test "$(stat -c '%U:%G %a' "$authority_file")" = 'root:root 600'
+. "$authority_file"
+test "$PLAUSIBLE_AUTHORITY_PROTOCOL" = 'plausible-ce-authority-v1'
+old_dir="$PLAUSIBLE_ACTIVE_DIR"
+old_project="$PLAUSIBLE_ACTIVE_PROJECT"
+old_port="$PLAUSIBLE_ACTIVE_PORT"
+old_source_commit="$PLAUSIBLE_ACTIVE_SOURCE_COMMIT"
 
-## 14. Privacy disclosure
+: "${RESTORED_DIR:?set the proven restore directory from Section 9.2}"
+: "${RESTORED_PROJECT:?set the proven restore Compose project}"
+: "${RESTORED_PROOF_PORT:?set the proven alternate loopback port}"
+authority_root="${PLAUSIBLE_AUTHORITY_ROOT:-/root}"
+case "$old_dir" in "$authority_root"/*) ;; *) exit 1 ;; esac
+case "$RESTORED_DIR" in "$authority_root"/*) ;; *) exit 1 ;; esac
+[[ "$old_project" =~ ^[a-z0-9][a-z0-9_-]+$ ]]
+[[ "$RESTORED_PROJECT" =~ ^[a-z0-9][a-z0-9_-]+$ ]]
+[[ "$old_port" =~ ^[0-9]+$ ]]
+[[ "$old_source_commit" =~ ^[0-9a-f]{40}$ ]]
+[[ "$RESTORED_PROOF_PORT" =~ ^[0-9]+$ ]]
+test "$RESTORED_PROOF_PORT" != 8800
+test "$RESTORED_DIR" != "$old_dir"
+test "$RESTORED_PROJECT" != "$old_project"
+restored_source_commit="$(git -C "$RESTORED_DIR" rev-parse HEAD)"
+[[ "$restored_source_commit" =~ ^[0-9a-f]{40}$ ]]
 
-We've already committed `docs/privacy-policy.md`. Plausible CE is cookieless
-and doesn't store IPs, so no additional disclosure is needed once deployed.
-GDPR posture: lawful basis = legitimate interest (low-risk pseudonymous
-analytics), no consent banner required per EDPB guidance for cookieless
-analytics.
+compose_project() {
+  local project_dir="$1" project_name="$2" compose_file
+  shift 2
+  compose_file="$project_dir/compose.yml:$project_dir/compose.override.yml"
+  if test -f "$project_dir/compose.restore-images.yml"; then
+    compose_file="$compose_file:$project_dir/compose.restore-images.yml"
+  fi
+  (
+    cd "$project_dir"
+    COMPOSE_FILE="$compose_file" COMPOSE_PROJECT_NAME="$project_name" \
+      docker compose "$@"
+  )
+}
+
+promotion_stamp="$(date -u +%Y%m%d%H%M%S)"
+authority_state_dir="${PLAUSIBLE_AUTHORITY_STATE_DIR:-/root}"
+old_authority_backup="$authority_state_dir/plausible-ce-authority.rollback-$promotion_stamp.env"
+cp --preserve=mode,ownership "$authority_file" "$old_authority_backup"
+chmod 0600 "$old_authority_backup"
+authority_swapped=0
+
+rollback_promotion() {
+  status=$?
+  trap - EXIT
+  set +e
+  rollback_failed=0
+  compose_project "$RESTORED_DIR" "$RESTORED_PROJECT" stop plausible \
+    || rollback_failed=1
+  (
+    cd "$RESTORED_DIR"
+    sed -i -E \
+      "s#127\\.0\\.0\\.1:8800:8000#127.0.0.1:$RESTORED_PROOF_PORT:8000#" \
+      compose.override.yml
+    sed -i -E \
+      "s#^BASE_URL=.*#BASE_URL=http://127.0.0.1:$RESTORED_PROOF_PORT#" .env
+  ) || rollback_failed=1
+  if (( authority_swapped == 1 )); then
+    authority_rollback="$(mktemp "$authority_state_dir/.plausible-ce-authority.XXXXXX")"
+    if [[ -n "$authority_rollback" ]]; then
+      cp "$old_authority_backup" "$authority_rollback" || rollback_failed=1
+      chown root:root "$authority_rollback" || rollback_failed=1
+      chmod 0600 "$authority_rollback" || rollback_failed=1
+      mv -f "$authority_rollback" "$authority_file" || rollback_failed=1
+    else
+      rollback_failed=1
+    fi
+  fi
+  compose_project "$old_dir" "$old_project" up -d || rollback_failed=1
+  grep -Fqx "PLAUSIBLE_ACTIVE_DIR=$old_dir" "$authority_file" || rollback_failed=1
+  grep -Fqx "PLAUSIBLE_ACTIVE_PROJECT=$old_project" "$authority_file" || rollback_failed=1
+  grep -Fqx "PLAUSIBLE_ACTIVE_PORT=$old_port" "$authority_file" || rollback_failed=1
+  grep -Fqx "PLAUSIBLE_ACTIVE_SOURCE_COMMIT=$old_source_commit" \
+    "$authority_file" || rollback_failed=1
+  curl --fail --silent --show-error \
+    "http://127.0.0.1:$old_port/api/system/health/ready" \
+    > /dev/null || rollback_failed=1
+  if (( rollback_failed != 0 )); then
+    printf '%s\n' \
+      'CRITICAL: Plausible promotion rollback could not restore authority/runtime agreement.' \
+      >&2
+    exit 97
+  fi
+  set -e
+  exit "$status"
+}
+trap rollback_promotion EXIT
+
+compose_project "$RESTORED_DIR" "$RESTORED_PROJECT" up -d
+curl --fail --silent --show-error \
+  "http://127.0.0.1:$RESTORED_PROOF_PORT/api/system/health/ready"
+
+compose_project "$old_dir" "$old_project" stop plausible
+compose_project "$RESTORED_DIR" "$RESTORED_PROJECT" stop plausible
+(
+  cd "$RESTORED_DIR"
+  sed -i -E \
+    "s#127\\.0\\.0\\.1:$RESTORED_PROOF_PORT:8000#127.0.0.1:8800:8000#" \
+    compose.override.yml
+  sed -i -E \
+    's#^BASE_URL=.*#BASE_URL=https://plausible.bytedance.city#' .env
+  chmod 0600 .env compose.override.yml
+)
+compose_project "$RESTORED_DIR" "$RESTORED_PROJECT" up -d
+curl --fail --silent --show-error \
+  http://127.0.0.1:8800/api/system/health/ready
+curl --fail --silent --show-error \
+  http://127.0.0.1:8800/api/system/health/live
+compose_project "$RESTORED_DIR" "$RESTORED_PROJECT" \
+  exec -T plausible_events_db clickhouse-client \
+  --database plausible_events_db \
+  --query "SELECT hostname, count() FROM events_v2 WHERE hostname IN ('beta.structural.bytedance.city', 'phase.bytedance.city') GROUP BY hostname ORDER BY hostname FORMAT PrettyCompact"
+
+printf '%s\n' \
+  'Verify both sites and historical events through the live dashboard.' \
+  'Type PROMOTE only if the restored stack is the intended authority.'
+read -r promotion_confirmation
+test "$promotion_confirmation" = PROMOTE
+
+authority_candidate="$(mktemp "$authority_state_dir/.plausible-ce-authority.XXXXXX")"
+{
+  printf '%s\n' 'PLAUSIBLE_AUTHORITY_PROTOCOL=plausible-ce-authority-v1'
+  printf 'PLAUSIBLE_ACTIVE_DIR=%s\n' "$RESTORED_DIR"
+  printf 'PLAUSIBLE_ACTIVE_PROJECT=%s\n' "$RESTORED_PROJECT"
+  printf '%s\n' 'PLAUSIBLE_ACTIVE_PORT=8800'
+  printf 'PLAUSIBLE_ACTIVE_SOURCE_COMMIT=%s\n' "$restored_source_commit"
+} > "$authority_candidate"
+chown root:root "$authority_candidate"
+chmod 0600 "$authority_candidate"
+authority_swapped=1
+mv -f "$authority_candidate" "$authority_file"
+
+compose_project "$old_dir" "$old_project" stop
+. "$authority_file"
+test "$PLAUSIBLE_ACTIVE_DIR" = "$RESTORED_DIR"
+test "$PLAUSIBLE_ACTIVE_PROJECT" = "$RESTORED_PROJECT"
+test "$PLAUSIBLE_ACTIVE_PORT" = 8800
+test "$PLAUSIBLE_ACTIVE_SOURCE_COMMIT" = "$restored_source_commit"
+curl --fail --silent --show-error \
+  http://127.0.0.1:8800/api/system/health/ready
+trap - EXIT
+```
+
+After the script succeeds, the restored project is the only running authority
+and the previous project is fully stopped. Keep the old directory, its
+root-only authority snapshot, and all old volumes for the rollback retention
+window; do not destroy them during promotion. Update the project registry and
+deployment receipt with the new active directory/project and the old rollback
+snapshot. Then run Section 9.1 from the new authority and require a new complete
+backup plus the Beta/Phase ClickHouse and dashboard proofs. That post-promotion
+backup proves the next backup no longer resolves to stale data.
+
+For a later rollback within the retention window, stop the active project,
+atomically restore the saved authority file, start the project named by that
+file, and pass loopback, ClickHouse, and dashboard checks before retiring the
+failed candidate. Never infer the old source from a directory name.
+
+On a replacement host, complete the same loopback proof and authority switch
+before any public change, then repeat the HTTP ACME, DNS, certificate, and final
+TLS sequence in Sections 6 and 7. DNS is always last.
+
+NEVER run `docker compose down -v`; `docker compose down` without `-v`
+preserves named volumes, but it is still not a substitute for a verified
+backup.
+
+### 9.4 Upgrades
+
+Resolve the active source from the authority file. Do not `cd` to a remembered
+directory or assume that `/root/plausible-ce` is still active after a recovery:
+
+```bash
+set -euo pipefail
+authority_file="${PLAUSIBLE_AUTHORITY_FILE:-/root/plausible-ce-authority.env}"
+test "$(stat -c '%U:%G %a' "$authority_file")" = 'root:root 600'
+. "$authority_file"
+test "$PLAUSIBLE_AUTHORITY_PROTOCOL" = 'plausible-ce-authority-v1'
+cd "$PLAUSIBLE_ACTIVE_DIR"
+export COMPOSE_PROJECT_NAME="$PLAUSIBLE_ACTIVE_PROJECT"
+test "$(git rev-parse HEAD)" = "$PLAUSIBLE_ACTIVE_SOURCE_COMMIT"
+active_compose_file="$PLAUSIBLE_ACTIVE_DIR/compose.yml:$PLAUSIBLE_ACTIVE_DIR/compose.override.yml"
+if test -f "$PLAUSIBLE_ACTIVE_DIR/compose.restore-images.yml"; then
+  active_compose_file="$active_compose_file:$PLAUSIBLE_ACTIVE_DIR/compose.restore-images.yml"
+fi
+COMPOSE_FILE="$active_compose_file" docker compose config --quiet
+```
+
+An exact runtime pin is part of the active identity. Never update only the Git
+checkout or image tag: `compose.restore-images.yml` has final precedence and
+would otherwise keep the old runtime while a new source commit is recorded.
+
+Before an in-place upgrade:
+
+1. Read the release-specific migration and rollback notes.
+2. Take, verify, encrypt, and transfer the complete backup in Section 9.1.
+3. Upgrade a Section 9.2 copy, then actually downgrade that copy to the old
+   source and exact old image digests. Record successful Postgres and
+   ClickHouse rollback checks in a root-owned `0600` evidence file.
+4. Fetch the new CE source and independently verify the target commit plus the
+   three target repo digests.
+
+The evidence file must contain exactly applicable facts, including these four
+lines, with the real target commit substituted:
+
+```text
+rollback_protocol=plausible-ce-in-place-rollback-v1
+pre_upgrade_backup_sha256=<64 lowercase hex SHA256SUMS file checksum>
+old_source_commit=<40 lowercase hex current authority commit>
+target_source_commit=<40 lowercase hex target commit>
+old_postgres_image=<postgres@sha256:... observed before upgrade>
+old_clickhouse_image=<clickhouse/clickhouse-server@sha256:... observed before upgrade>
+old_plausible_image=<ghcr.io/plausible/community-edition@sha256:... observed before upgrade>
+target_postgres_image=<postgres@sha256:...>
+target_clickhouse_image=<clickhouse/clickhouse-server@sha256:...>
+target_plausible_image=<ghcr.io/plausible/community-edition@sha256:...>
+migration_round_trip_test=pass
+postgres_rollback_test=pass
+clickhouse_rollback_test=pass
+```
+
+If either migration is irreversible, the downgrade test fails, or compatibility
+is unknown, **do not run the transaction below**. A failed upgrade must instead
+recover from the pre-upgrade complete backup through Section 9.2 and promote it
+through Section 9.3. Restoring old source and images alone is not a database or
+ClickHouse schema rollback.
+
+For a release that passed that real rollback test, export the exact target
+commit and digests plus the evidence path, then run this transaction. It creates
+a root-only candidate image override, verifies the rendered image set, verifies
+the running container image IDs and repo digests, and updates authority last:
+
+```bash
+set -euo pipefail
+: "${TARGET_SOURCE_COMMIT:?set verified 40-hex target commit}"
+: "${TARGET_POSTGRES_IMAGE:?set exact postgres repo digest}"
+: "${TARGET_CLICKHOUSE_IMAGE:?set exact clickhouse repo digest}"
+: "${TARGET_PLAUSIBLE_IMAGE:?set exact plausible repo digest}"
+: "${PRE_UPGRADE_BACKUP_SHA256:?set SHA-256 of tested backup SHA256SUMS}"
+: "${ROLLBACK_COMPATIBILITY_EVIDENCE:?set root-only rollback evidence path}"
+[[ "$TARGET_SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+[[ "$TARGET_POSTGRES_IMAGE" =~ ^postgres@sha256:[0-9a-f]{64}$ ]]
+[[ "$TARGET_CLICKHOUSE_IMAGE" =~ ^clickhouse/clickhouse-server@sha256:[0-9a-f]{64}$ ]]
+[[ "$TARGET_PLAUSIBLE_IMAGE" =~ ^ghcr.io/plausible/community-edition@sha256:[0-9a-f]{64}$ ]]
+[[ "$PRE_UPGRADE_BACKUP_SHA256" =~ ^[0-9a-f]{64}$ ]]
+test "$(stat -c '%U:%G %a' "$ROLLBACK_COMPATIBILITY_EVIDENCE")" = \
+  'root:root 600'
+require_evidence_fact() {
+  test "$(grep -Fxc -- "$1" "$ROLLBACK_COMPATIBILITY_EVIDENCE")" = 1
+}
+require_evidence_fact 'rollback_protocol=plausible-ce-in-place-rollback-v1'
+require_evidence_fact \
+  "pre_upgrade_backup_sha256=$PRE_UPGRADE_BACKUP_SHA256"
+require_evidence_fact "target_source_commit=$TARGET_SOURCE_COMMIT"
+
+authority_file="${PLAUSIBLE_AUTHORITY_FILE:-/root/plausible-ce-authority.env}"
+test "$(stat -c '%U:%G %a' "$authority_file")" = 'root:root 600'
+. "$authority_file"
+test "$PLAUSIBLE_AUTHORITY_PROTOCOL" = 'plausible-ce-authority-v1'
+active_dir="$PLAUSIBLE_ACTIVE_DIR"
+active_project="$PLAUSIBLE_ACTIVE_PROJECT"
+active_port="$PLAUSIBLE_ACTIVE_PORT"
+old_source_commit="$PLAUSIBLE_ACTIVE_SOURCE_COMMIT"
+authority_root="${PLAUSIBLE_AUTHORITY_ROOT:-/root}"
+authority_state_dir="${PLAUSIBLE_AUTHORITY_STATE_DIR:-/root}"
+case "$active_dir" in "$authority_root"/*) ;; *) exit 1 ;; esac
+[[ "$active_project" =~ ^[a-z0-9][a-z0-9_-]+$ ]]
+[[ "$active_port" =~ ^[0-9]+$ ]]
+test "$TARGET_SOURCE_COMMIT" != "$old_source_commit"
+cd "$active_dir"
+test "$(stat -c '%U:%G %a' .env)" = 'root:root 600'
+test "$(stat -c '%U:%G %a' compose.override.yml)" = 'root:root 600'
+test "$(git rev-parse HEAD)" = "$old_source_commit"
+git diff --exit-code
+git diff --cached --exit-code
+git cat-file -e "$TARGET_SOURCE_COMMIT^{commit}"
+
+current_compose_file="$active_dir/compose.yml:$active_dir/compose.override.yml"
+if test -f "$active_dir/compose.restore-images.yml"; then
+  current_compose_file="$current_compose_file:$active_dir/compose.restore-images.yml"
+fi
+COMPOSE_FILE="$current_compose_file" COMPOSE_PROJECT_NAME="$active_project" \
+  docker compose config --quiet
+
+repo_digest_for_image_id() {
+  local image_id="$1" expected_repo="$2" candidate resolved=''
+  while IFS= read -r candidate; do
+    [[ "$candidate" =~ ^[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$ ]] \
+      || continue
+    case "$candidate" in
+      "$expected_repo"@sha256:*)
+        test -z "$resolved" || return 1
+        resolved="$candidate"
+        ;;
+    esac
+  done < <(docker image inspect \
+    --format '{{range .RepoDigests}}{{println .}}{{end}}' "$image_id")
+  test -n "$resolved" || return 1
+  printf '%s\n' "$resolved"
+}
+
+running_image_identity() {
+  local service="$1" expected_repo="$2" compose_file="$3"
+  local container_id image_id repo_digest
+  container_id="$(COMPOSE_FILE="$compose_file" \
+    COMPOSE_PROJECT_NAME="$active_project" \
+    docker compose ps --quiet "$service")"
+  test -n "$container_id" || return 1
+  image_id="$(docker inspect --format '{{.Image}}' "$container_id")"
+  test -n "$image_id" || return 1
+  repo_digest="$(repo_digest_for_image_id "$image_id" "$expected_repo")"
+  test -n "$repo_digest" || return 1
+  printf '%s|%s\n' "$image_id" "$repo_digest"
+}
+
+assert_running_image() {
+  local service="$1" expected_repo="$2" expected_image="$3" compose_file="$4"
+  local identity actual_id actual_digest expected_id
+  identity="$(running_image_identity "$service" "$expected_repo" "$compose_file")"
+  IFS='|' read -r actual_id actual_digest <<< "$identity"
+  expected_id="$(docker image inspect --format '{{.Id}}' "$expected_image")"
+  test "$actual_id" = "$expected_id" || return 1
+  test "$actual_digest" = "$expected_image" || return 1
+}
+
+old_postgres_identity="$(running_image_identity \
+  plausible_db postgres "$current_compose_file")"
+old_clickhouse_identity="$(running_image_identity \
+  plausible_events_db clickhouse/clickhouse-server "$current_compose_file")"
+old_plausible_identity="$(running_image_identity \
+  plausible ghcr.io/plausible/community-edition "$current_compose_file")"
+IFS='|' read -r old_postgres_id old_postgres_image <<< "$old_postgres_identity"
+IFS='|' read -r old_clickhouse_id old_clickhouse_image <<< "$old_clickhouse_identity"
+IFS='|' read -r old_plausible_id old_plausible_image <<< "$old_plausible_identity"
+
+for evidence_fact in \
+  "old_source_commit=$old_source_commit" \
+  "old_postgres_image=$old_postgres_image" \
+  "old_clickhouse_image=$old_clickhouse_image" \
+  "old_plausible_image=$old_plausible_image" \
+  "target_postgres_image=$TARGET_POSTGRES_IMAGE" \
+  "target_clickhouse_image=$TARGET_CLICKHOUSE_IMAGE" \
+  "target_plausible_image=$TARGET_PLAUSIBLE_IMAGE" \
+  'migration_round_trip_test=pass' \
+  'postgres_rollback_test=pass' \
+  'clickhouse_rollback_test=pass'; do
+  require_evidence_fact "$evidence_fact"
+done
+
+for target_image in "$TARGET_POSTGRES_IMAGE" "$TARGET_CLICKHOUSE_IMAGE" \
+  "$TARGET_PLAUSIBLE_IMAGE"; do
+  docker pull "$target_image" > /dev/null
+done
+
+umask 077
+upgrade_stamp="$(date -u +%Y%m%d%H%M%S)"
+runtime_override="$active_dir/compose.restore-images.yml"
+candidate_override="$(mktemp "$active_dir/.compose.upgrade-images.XXXXXX.yml")"
+rollback_override="$authority_state_dir/plausible-ce-images.rollback-$upgrade_stamp.yml"
+old_authority_backup="$authority_state_dir/plausible-ce-authority.rollback-$upgrade_stamp.env"
+write_image_override() {
+  local output="$1" postgres_image="$2" clickhouse_image="$3" plausible_image="$4"
+  {
+    printf '%s\n' 'services:'
+    printf '  plausible_db:\n    image: "%s"\n' "$postgres_image"
+    printf '  plausible_events_db:\n    image: "%s"\n' "$clickhouse_image"
+    printf '  plausible:\n    image: "%s"\n' "$plausible_image"
+  } > "$output"
+  chown root:root "$output"
+  chmod 0600 "$output"
+}
+publish_runtime_compose_file() {
+  local env_candidate
+  env_candidate="$(mktemp "$active_dir/.env.upgrade.XXXXXX")" || return 1
+  sed '/^COMPOSE_FILE=/d' "$active_dir/.env" > "$env_candidate" || return 1
+  printf '%s\n' \
+    'COMPOSE_FILE=compose.yml:compose.override.yml:compose.restore-images.yml' \
+    >> "$env_candidate" || return 1
+  chown root:root "$env_candidate" || return 1
+  chmod 0600 "$env_candidate" || return 1
+  mv -f "$env_candidate" "$active_dir/.env" || return 1
+}
+write_image_override "$candidate_override" \
+  "$TARGET_POSTGRES_IMAGE" "$TARGET_CLICKHOUSE_IMAGE" \
+  "$TARGET_PLAUSIBLE_IMAGE"
+write_image_override "$rollback_override" \
+  "$old_postgres_image" "$old_clickhouse_image" "$old_plausible_image"
+cp --preserve=mode,ownership "$authority_file" "$old_authority_backup"
+chmod 0600 "$old_authority_backup"
+authority_swapped=0
+
+rollback_upgrade() {
+  status=$?
+  trap - EXIT
+  set +e
+  rollback_failed=0
+  failure_compose_file="$active_dir/compose.yml:$active_dir/compose.override.yml"
+  if test -f "$runtime_override"; then
+    failure_compose_file="$failure_compose_file:$runtime_override"
+  elif test -n "${candidate_override:-}" && test -f "$candidate_override"; then
+    failure_compose_file="$failure_compose_file:$candidate_override"
+  fi
+  COMPOSE_FILE="$failure_compose_file" COMPOSE_PROJECT_NAME="$active_project" \
+    docker compose stop || rollback_failed=1
+  git -C "$active_dir" checkout --detach "$old_source_commit" \
+    || rollback_failed=1
+  rollback_candidate="$(mktemp "$active_dir/.compose.rollback-images.XXXXXX.yml")"
+  if [[ -n "$rollback_candidate" ]]; then
+    cp "$rollback_override" "$rollback_candidate" || rollback_failed=1
+    chown root:root "$rollback_candidate" || rollback_failed=1
+    chmod 0600 "$rollback_candidate" || rollback_failed=1
+    mv -f "$rollback_candidate" "$runtime_override" || rollback_failed=1
+  else
+    rollback_failed=1
+  fi
+  publish_runtime_compose_file || rollback_failed=1
+  if (( authority_swapped == 1 )); then
+    authority_rollback="$(mktemp "$authority_state_dir/.plausible-ce-authority.XXXXXX")"
+    if [[ -n "$authority_rollback" ]]; then
+      cp "$old_authority_backup" "$authority_rollback" || rollback_failed=1
+      chown root:root "$authority_rollback" || rollback_failed=1
+      chmod 0600 "$authority_rollback" || rollback_failed=1
+      mv -f "$authority_rollback" "$authority_file" || rollback_failed=1
+    else
+      rollback_failed=1
+    fi
+  fi
+  old_compose_file="$active_dir/compose.yml:$active_dir/compose.override.yml:$runtime_override"
+  COMPOSE_FILE="$old_compose_file" COMPOSE_PROJECT_NAME="$active_project" \
+    docker compose up -d --force-recreate || rollback_failed=1
+  assert_running_image plausible_db postgres "$old_postgres_image" \
+    "$old_compose_file" || rollback_failed=1
+  assert_running_image plausible_events_db clickhouse/clickhouse-server \
+    "$old_clickhouse_image" "$old_compose_file" || rollback_failed=1
+  assert_running_image plausible ghcr.io/plausible/community-edition \
+    "$old_plausible_image" "$old_compose_file" || rollback_failed=1
+  curl --fail --silent --show-error \
+    "http://127.0.0.1:$active_port/api/system/health/ready" \
+    > /dev/null || rollback_failed=1
+  grep -Fqx "PLAUSIBLE_ACTIVE_SOURCE_COMMIT=$old_source_commit" \
+    "$authority_file" || rollback_failed=1
+  if test -n "${candidate_override:-}" && test -f "$candidate_override"; then
+    rm -f -- "$candidate_override" || rollback_failed=1
+  fi
+  if (( rollback_failed != 0 )); then
+    printf '%s\n' \
+      'CRITICAL: Plausible upgrade rollback could not restore source/config/authority/runtime agreement. Recover the complete pre-upgrade backup through Sections 9.2 and 9.3.' \
+      >&2
+    exit 98
+  fi
+  exit "$status"
+}
+trap rollback_upgrade EXIT
+
+git checkout --detach "$TARGET_SOURCE_COMMIT"
+target_candidate_compose_file="$active_dir/compose.yml:$active_dir/compose.override.yml:$candidate_override"
+COMPOSE_FILE="$target_candidate_compose_file" \
+  COMPOSE_PROJECT_NAME="$active_project" docker compose config --quiet
+configured_images="$(COMPOSE_FILE="$target_candidate_compose_file" \
+  COMPOSE_PROJECT_NAME="$active_project" docker compose config --images)"
+test "$(printf '%s\n' "$configured_images" | sed '/^$/d' | wc -l | tr -d ' ')" = 3
+expected_images="$(printf '%s\n' "$TARGET_POSTGRES_IMAGE" \
+  "$TARGET_CLICKHOUSE_IMAGE" "$TARGET_PLAUSIBLE_IMAGE" | sort)"
+test "$(printf '%s\n' "$configured_images" | sort)" = "$expected_images"
+
+mv -f "$candidate_override" "$runtime_override"
+candidate_override=''
+publish_runtime_compose_file
+target_compose_file="$active_dir/compose.yml:$active_dir/compose.override.yml:$runtime_override"
+COMPOSE_FILE="$target_compose_file" COMPOSE_PROJECT_NAME="$active_project" \
+  docker compose up -d --force-recreate
+curl --fail --silent --show-error \
+  "http://127.0.0.1:$active_port/api/system/health/ready"
+curl --fail --silent --show-error \
+  "http://127.0.0.1:$active_port/api/system/health/live"
+assert_running_image plausible_db postgres "$TARGET_POSTGRES_IMAGE" \
+  "$target_compose_file"
+assert_running_image plausible_events_db clickhouse/clickhouse-server \
+  "$TARGET_CLICKHOUSE_IMAGE" "$target_compose_file"
+assert_running_image plausible ghcr.io/plausible/community-edition \
+  "$TARGET_PLAUSIBLE_IMAGE" "$target_compose_file"
+COMPOSE_FILE="$target_compose_file" COMPOSE_PROJECT_NAME="$active_project" \
+  docker compose exec -T plausible_events_db clickhouse-client \
+  --database plausible_events_db \
+  --query "SELECT hostname, count() FROM events_v2 WHERE hostname IN ('beta.structural.bytedance.city', 'phase.bytedance.city') GROUP BY hostname ORDER BY hostname FORMAT PrettyCompact"
+
+printf '%s\n' \
+  'Send one fresh Beta event and one fresh Phase event. Require 202, no x-plausible-dropped, fresh ClickHouse rows, and both dashboard confirmations.' \
+  'Type UPGRADE only after every check passes.'
+read -r upgrade_confirmation
+test "$upgrade_confirmation" = UPGRADE
+
+authority_candidate="$(mktemp "$authority_state_dir/.plausible-ce-authority.XXXXXX")"
+{
+  printf '%s\n' 'PLAUSIBLE_AUTHORITY_PROTOCOL=plausible-ce-authority-v1'
+  printf 'PLAUSIBLE_ACTIVE_DIR=%s\n' "$active_dir"
+  printf 'PLAUSIBLE_ACTIVE_PROJECT=%s\n' "$active_project"
+  printf 'PLAUSIBLE_ACTIVE_PORT=%s\n' "$active_port"
+  printf 'PLAUSIBLE_ACTIVE_SOURCE_COMMIT=%s\n' "$TARGET_SOURCE_COMMIT"
+} > "$authority_candidate"
+chown root:root "$authority_candidate"
+chmod 0600 "$authority_candidate"
+authority_swapped=1
+mv -f "$authority_candidate" "$authority_file"
+. "$authority_file"
+test "$PLAUSIBLE_ACTIVE_SOURCE_COMMIT" = "$TARGET_SOURCE_COMMIT"
+test "$(git rev-parse HEAD)" = "$TARGET_SOURCE_COMMIT"
+assert_running_image plausible_db postgres "$TARGET_POSTGRES_IMAGE" \
+  "$target_compose_file"
+assert_running_image plausible_events_db clickhouse/clickhouse-server \
+  "$TARGET_CLICKHOUSE_IMAGE" "$target_compose_file"
+assert_running_image plausible ghcr.io/plausible/community-edition \
+  "$TARGET_PLAUSIBLE_IMAGE" "$target_compose_file"
+trap - EXIT
+```
+
+Retain the root-only old authority and exact old image override for the rollback
+window. Then run Section 9.1 from the new authority; the new backup must record
+the target source commit and all three target repo digests. A missing evidence
+file, failed rendered-image comparison, failed running-image comparison, failed
+readiness check, or rejected manual acceptance leaves authority on the old
+commit and invokes the verified rollback path.
+
+## 10. Deployment receipt (fill only after real execution)
+
+- [ ] Application PR number and merge SHA: `__________`
+- [ ] Beta deployed SHA: `__________`
+- [ ] Phase deployed SHA: `__________`
+- [ ] Legacy product reference scan: zero matches at `__________` UTC
+- [ ] Pre-deploy DNS A/AAAA: `NXDOMAIN` at `__________` UTC
+- [ ] CE source commit: `__________`
+- [ ] OCI index digest and linux/amd64 manifest verified: `__________`
+- [ ] `/root/plausible-ce` mode `0700`; `.env` and override mode `0600`
+- [ ] Only host binding is `127.0.0.1:8800:8000`
+- [ ] First administrator created over loopback; registration closed afterward
+- [ ] `beta.structural.bytedance.city`, timezone `Asia/Shanghai`, created
+- [ ] `phase.bytedance.city`, timezone `Asia/Shanghai`, created
+- [ ] HTTP ACME stage returned `503` outside challenge path before DNS
+- [ ] DNS change identifier and observed resolver convergence: `__________`
+- [ ] Certificate identifier/expiry (no private material): `__________`
+- [ ] Final Nginx config checksum and `nginx -t`: `__________`
+- [ ] Exact `/js/script.js` deny returns `410`; dashboard JavaScript still loads
+- [ ] Public live and ready health checks pass
+- [ ] Beta direct expanded request: `202`, no `x-plausible-dropped`
+- [ ] Phase NPM request: `202`, no `x-plausible-dropped`
+- [ ] Fresh ClickHouse row confirmed for Beta and Phase
+- [ ] Fresh dashboard event confirmed for Beta and Phase
+- [ ] Complete backup path and `SHA256SUMS` verification: `__________`
+- [ ] Resolved Postgres, ClickHouse, Plausible, and helper digests verified
+- [ ] Root-only config archive (`.env`, compose, runtime override) mode/checksum: `__________`
+- [ ] Encrypted off-host artifact location/checksum: `__________`
+- [ ] Isolated restore drill project, loopback port, and result: `__________`
+- [ ] Active authority file checksum and dir/project/port: `__________`
+- [ ] Previous project stopped; rollback authority/volumes retained: `__________`
+- [ ] Post-promotion backup resolved from new authority and verified: `__________`
+- [ ] Rollback owner and exact previous image/source baseline: `__________`
+- [ ] Upgrade rollback-compatibility evidence path/checksum: `__________`
+- [ ] Upgrade rendered target images and running IDs/digests verified: `__________`
+- [ ] Upgrade authority switched only after ingestion/dashboard acceptance: `__________`
+
+Unchecked fields mean the deployment is incomplete. Never backfill a receipt
+from assumptions, HTTP status alone, or service/container `active` state.
