@@ -25,7 +25,10 @@ global.escapeHtml = value => String(value == null ? '' : value)
   .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
 
 const {
+  ANALYZE_MATH_ASSETS,
+  ANALYZE_MATH_BACKGROUND_DELAY_MS,
   analyzeGenerationMatches,
+  analyzeMathRuntimeReady,
   buildDecisionBriefModel,
   canonicalAnalyzeJson,
   commitAnalyzeReportForDisplay,
@@ -40,6 +43,7 @@ const {
   renderAnalyzeSharedStructure,
   renderAnalyzeStructuralMapping,
   renderAnalyzeTargetDomainIntro,
+  requestAnalyzeMathRuntime,
   setAnalyzeReportStageState,
   sharePersistedAnalyzeReport,
   sha256CanonicalAnalyzeJson,
@@ -1316,4 +1320,284 @@ test('render exception clears all trusted globals before any report is retained'
   assert.equal(window._finalReport, null);
   assert.equal(window._persistedReport, null);
   assert.equal(window._analyzeMeta, null);
+});
+
+test('Analyze math stays optional, delayed, fixed-origin, and text-safe', async () => {
+  const data = await fixture();
+  const unsafe = clone(data.report.shared_structure);
+  unsafe.formal_expression = '<img src=x onerror=alert(1)>';
+  const html = renderAnalyzeSharedStructure(unsafe);
+  const page = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'frontend', 'analyze.html'), 'utf8'
+  );
+
+  assert.equal(ANALYZE_MATH_BACKGROUND_DELAY_MS, 8000);
+  assert.deepEqual(ANALYZE_MATH_ASSETS.map(({id, tag, url}) => ({id, tag, url})), [
+    {
+      id: 'style', tag: 'link',
+      url: '/assets/vendor/katex/katex.min.css?v=0.16.11',
+    },
+    {
+      id: 'core', tag: 'script',
+      url: '/assets/vendor/katex/katex.min.js?v=0.16.11',
+    },
+    {
+      id: 'auto-render', tag: 'script',
+      url: '/assets/vendor/katex/contrib/auto-render.min.js?v=0.16.11',
+    },
+  ]);
+  assert.doesNotMatch(page, /vendor\/katex/);
+  assert.doesNotMatch(html, /<img/);
+  assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;/);
+  assert.equal(analyzeMathRuntimeReady(), false);
+});
+
+test('Analyze math runtime loads once in order and upgrades detached text safely', async () => {
+  const originalDocument = global.document;
+  const originalKatex = window.katex;
+  const originalAutoRender = window.renderMathInElement;
+  const originalRenderMath = window.renderMath;
+  const nodes = new Map();
+  const appended = [];
+  const classes = new Set(['structure-block__formula']);
+  const formula = {
+    textContent: 'x_{t+1}=f(x_t)',
+    innerHTML: '',
+    classList: {
+      add(value) { classes.add(value); },
+      contains(value) { return classes.has(value); },
+    },
+  };
+  const root = {
+    querySelectorAll(selector) {
+      return selector.startsWith('.structure-block__formula') ? [formula] : [];
+    },
+  };
+  let autoRenderRoot = null;
+
+  const createNode = tag => ({
+    tag,
+    dataset: {},
+    listeners: {},
+    addEventListener(name, handler) { this.listeners[name] = handler; },
+  });
+  global.document = {
+    querySelector(selector) {
+      const match = selector.match(/data-analyze-math-asset="([^"]+)"/);
+      return match ? (nodes.get(match[1]) || null) : null;
+    },
+    createElement: createNode,
+    getElementById(id) { return id === 'analyze-sections' ? root : null; },
+    head: {
+      appendChild(node) {
+        const id = node.dataset.analyzeMathAsset;
+        nodes.set(id, node);
+        appended.push({
+          id,
+          tag: node.tag,
+          url: node.href || node.src,
+        });
+        queueMicrotask(() => {
+          if (id === 'core') {
+            window.katex = {
+              renderToString(latex, options) {
+                assert.equal(options.trust, false);
+                assert.equal(options.maxSize, 10);
+                assert.equal(options.maxExpand, 1000);
+                return `<span data-display="${options.displayMode}">${latex}</span>`;
+              },
+            };
+          }
+          if (id === 'auto-render') window.renderMathInElement = () => {};
+          node.listeners.load();
+        });
+      },
+    },
+  };
+  window.renderMath = value => { autoRenderRoot = value; };
+
+  try {
+    const first = requestAnalyzeMathRuntime();
+    const second = requestAnalyzeMathRuntime();
+    assert.strictEqual(first, second);
+    assert.equal(await first, true);
+    assert.deepEqual(appended, ANALYZE_MATH_ASSETS.map(({id, tag, url}) => ({
+      id, tag, url: new URL(url, window.location.origin).href,
+    })));
+    assert.equal(classes.has('structure-block__formula--rendered'), true);
+    assert.match(formula.innerHTML, /data-display="true"/);
+    assert.strictEqual(autoRenderRoot, root);
+    assert.equal(await requestAnalyzeMathRuntime(), true);
+    assert.equal(appended.length, 3);
+  } finally {
+    global.document = originalDocument;
+    if (originalKatex === undefined) delete window.katex;
+    else window.katex = originalKatex;
+    if (originalAutoRender === undefined) delete window.renderMathInElement;
+    else window.renderMathInElement = originalAutoRender;
+    if (originalRenderMath === undefined) delete window.renderMath;
+    else window.renderMath = originalRenderMath;
+  }
+});
+
+test('fresh Analyze math modules fail closed at every asset boundary', async () => {
+  const modulePath = require.resolve(
+    path.join(__dirname, '..', 'assets', 'js', 'analyze.js')
+  );
+  const originalCacheEntry = require.cache[modulePath];
+  const originalDocument = global.document;
+  const originalKatex = window.katex;
+  const originalAutoRender = window.renderMathInElement;
+  const originalRenderMath = window.renderMath;
+  const originalTrust = window.StructuralAnalyzeTrust;
+  const originalWarn = console.warn;
+
+  try {
+    for (const failedId of ['style', 'core', 'auto-render']) {
+      delete require.cache[modulePath];
+      delete window.katex;
+      delete window.renderMathInElement;
+      const nodes = new Map();
+      const appended = [];
+      const classes = new Set(['structure-block__formula']);
+      const escapedFormula = '&lt;img src=x onerror=alert(1)&gt;';
+      const formula = {
+        textContent: '<img src=x onerror=alert(1)>',
+        innerHTML: escapedFormula,
+        classList: {
+          add(value) { classes.add(value); },
+          contains(value) { return classes.has(value); },
+        },
+      };
+      const root = {
+        querySelectorAll(selector) {
+          return selector.startsWith('.structure-block__formula') ? [formula] : [];
+        },
+      };
+      let renderMathCalls = 0;
+      let katexRenderCalls = 0;
+      const warnings = [];
+      const createNode = tag => ({
+        tag,
+        dataset: {},
+        listeners: {},
+        addEventListener(name, handler) { this.listeners[name] = handler; },
+      });
+
+      global.document = {
+        addEventListener() {},
+        querySelector(selector) {
+          const match = selector.match(/data-analyze-math-asset="([^"]+)"/);
+          return match ? (nodes.get(match[1]) || null) : null;
+        },
+        querySelectorAll() { return []; },
+        createElement: createNode,
+        getElementById(id) { return id === 'analyze-sections' ? root : null; },
+        documentElement: {getAttribute() { return 'zh'; }},
+        head: {
+          appendChild(node) {
+            const id = node.dataset.analyzeMathAsset;
+            nodes.set(id, node);
+            appended.push(id);
+            queueMicrotask(() => {
+              if (id === failedId) {
+                node.listeners.error();
+                return;
+              }
+              if (id === 'core') {
+                window.katex = {
+                  renderToString() {
+                    katexRenderCalls += 1;
+                    return '<span>unexpected enhancement</span>';
+                  },
+                };
+              }
+              if (id === 'auto-render') window.renderMathInElement = () => {};
+              node.listeners.load();
+            });
+          },
+        },
+      };
+      window.renderMath = () => { renderMathCalls += 1; };
+      console.warn = message => { warnings.push(message); };
+
+      const fresh = require(modulePath);
+      const plainTextHtml = fresh.renderAnalyzeSharedStructure({
+        name: 'candidate',
+        formal_expression: '<img src=x onerror=alert(1)>',
+        intuition: '',
+        observations: [],
+        competing_explanations: [],
+        evidence_gaps: [],
+        failure_conditions: [],
+      });
+      assert.doesNotMatch(plainTextHtml, /<img/);
+      assert.match(plainTextHtml, /&lt;img src=x onerror=alert\(1\)&gt;/);
+
+      const first = fresh.requestAnalyzeMathRuntime();
+      const second = fresh.requestAnalyzeMathRuntime();
+      assert.strictEqual(first, second);
+      assert.equal(await first, false);
+      const failedIndex = ['style', 'core', 'auto-render'].indexOf(failedId);
+      assert.deepEqual(appended, ['style', 'core', 'auto-render'].slice(0, failedIndex + 1));
+      assert.equal(formula.innerHTML, escapedFormula);
+      assert.equal(classes.has('structure-block__formula--rendered'), false);
+      assert.equal(katexRenderCalls, 0);
+      assert.equal(renderMathCalls, 0);
+      assert.equal(warnings.length, 1);
+      assert.strictEqual(fresh.requestAnalyzeMathRuntime(), first);
+      assert.equal(await fresh.requestAnalyzeMathRuntime(), false);
+      assert.equal(appended.length, failedIndex + 1);
+    }
+  } finally {
+    global.document = originalDocument;
+    if (originalKatex === undefined) delete window.katex;
+    else window.katex = originalKatex;
+    if (originalAutoRender === undefined) delete window.renderMathInElement;
+    else window.renderMathInElement = originalAutoRender;
+    if (originalRenderMath === undefined) delete window.renderMath;
+    else window.renderMath = originalRenderMath;
+    if (originalTrust === undefined) delete window.StructuralAnalyzeTrust;
+    else window.StructuralAnalyzeTrust = originalTrust;
+    console.warn = originalWarn;
+    if (originalCacheEntry === undefined) delete require.cache[modulePath];
+    else require.cache[modulePath] = originalCacheEntry;
+  }
+});
+
+test('every Analyze math asset is a versioned real file under the frontend root', () => {
+  const frontendRoot = path.resolve(__dirname, '..');
+  const pageOrigin = new URL('https://beta.structural.bytedance.city/analyze');
+  const source = fs.readFileSync(
+    path.join(frontendRoot, 'assets', 'js', 'analyze.js'), 'utf8'
+  );
+  const expectedPaths = {
+    style: '/assets/vendor/katex/katex.min.css',
+    core: '/assets/vendor/katex/katex.min.js',
+    'auto-render': '/assets/vendor/katex/contrib/auto-render.min.js',
+  };
+
+  assert.match(source, /const ANALYZE_MATH_ASSETS = Object\.freeze/);
+  assert.match(source, /ANALYZE_MATH_ASSETS\.reduce/);
+  assert.deepEqual(ANALYZE_MATH_ASSETS.map(asset => asset.id), [
+    'style', 'core', 'auto-render',
+  ]);
+  for (const asset of ANALYZE_MATH_ASSETS) {
+    const url = new URL(asset.url, pageOrigin);
+    assert.equal(url.origin, pageOrigin.origin);
+    assert.equal(url.username, '');
+    assert.equal(url.password, '');
+    assert.equal(url.hash, '');
+    assert.equal(url.pathname, expectedPaths[asset.id]);
+    assert.equal(url.search, '?v=0.16.11');
+    assert.deepEqual([...url.searchParams.entries()], [['v', '0.16.11']]);
+
+    const relativePath = decodeURIComponent(url.pathname).replace(/^\/+/, '');
+    const file = path.resolve(frontendRoot, relativePath);
+    const relative = path.relative(frontendRoot, file);
+    assert.equal(relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative), false);
+    assert.equal(fs.existsSync(file), true, file);
+    assert.equal(fs.statSync(file).isFile(), true, file);
+    assert.equal(source.split(asset.url).length - 1, 1);
+  }
 });

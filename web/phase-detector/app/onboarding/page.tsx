@@ -6,7 +6,6 @@
 // so the tour spotlights land on real content.
 
 import type { Metadata } from "next";
-import OnboardingTourClient from "./OnboardingTourClient";
 import { LandingHero } from "@/components/LandingHero";
 import { ExploreCardsGrid } from "@/components/ExploreCardsGrid";
 import { WaitlistForm } from "@/components/WaitlistForm";
@@ -50,8 +49,6 @@ export default async function OnboardingPage() {
           <WaitlistForm placement="footer" source="phase_detector_onboarding" />
         </div>
       </section>
-      {/* Force-open the tour on this page (bypasses the seen flag). */}
-      <OnboardingTourClient />
     </div>
   );
 }

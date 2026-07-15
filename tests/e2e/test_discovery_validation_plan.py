@@ -306,7 +306,7 @@ def test_mobile_history_drawer_is_inert_when_closed_and_traps_focus_when_open(
           essential: true,
           analytics: false,
           marketing: false,
-          source: 'e2e',
+          source: 'explicit',
           timestamp: new Date(0).toISOString()
         }))"""
     )

@@ -141,12 +141,12 @@ export default function NewsletterIssue001Page() {
       </section>
 
       <nav className="mt-10 flex justify-between border-t border-zinc-200 pt-6 text-sm">
-        <Link href="/newsletter" className="text-zinc-600 hover:text-zinc-900">
+        <Link href="/newsletter" className="inline-flex min-h-11 items-center text-zinc-600 hover:text-zinc-900">
           ← All issues
         </Link>
         <a
           href="https://github.com/dada8899/structural-isomorphism/tree/main/docs/community/newsletters"
-          className="text-zinc-600 hover:text-zinc-900"
+          className="inline-flex min-h-11 items-center text-zinc-600 hover:text-zinc-900"
           target="_blank"
           rel="noopener noreferrer"
         >

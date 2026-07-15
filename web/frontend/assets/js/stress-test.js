@@ -133,7 +133,7 @@
       activeController = controller;
       resultEl.hidden = true;
       setLoading(true);
-      trackPlausible('StressTest Submit');
+      trackPlausible('stress_test_submit');
 
       try {
         var response = await fetch('/api/stress-test', {
@@ -155,7 +155,7 @@
         var validated = contracts.validateStressPayload(body, requestId, claim);
         if (!validated) throw new Error('contract');
         renderResult(validated);
-        trackPlausible('StressTest Result', { outcome: validated.screening_outcome });
+        trackPlausible('stress_test_result', { outcome: validated.screening_outcome });
       } catch (error) {
         if (!current(requestId) || (error && error.name === 'AbortError')) return;
         var messages = {
@@ -165,7 +165,7 @@
           contract: '结果未通过完整性校验，未展示任何模型内容。请重试。'
         };
         showError(messages[error.message] || '压力测试失败，请检查网络后重试。');
-        trackPlausible('StressTest Error');
+        trackPlausible('stress_test_error');
       } finally {
         if (current(requestId)) {
           setLoading(false);

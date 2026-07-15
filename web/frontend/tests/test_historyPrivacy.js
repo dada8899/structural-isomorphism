@@ -197,6 +197,24 @@ async function run() {
   }
 
   {
+    const unicode = loadUtils({
+      sharedLocal: new Map(),
+      tabSession: new Map(),
+      crypto: secureCrypto(),
+    });
+    const atLimit = '🧪'.repeat(8000);
+    unicode.window.addToHistory({query: atLimit, timestamp: 3});
+    assert.strictEqual(
+      Array.from(Array.from(unicode.window.getHistory())[0].query).length,
+      8000
+    );
+    unicode.window.addToHistory({query: atLimit + '🧪', timestamp: 4});
+    assert.strictEqual(Array.from(unicode.window.getHistory()).length, 1);
+    assert.strictEqual(Array.from(unicode.window.getHistory())[0].timestamp, 3);
+    console.log('  ok   - history uses the shared 8000 Unicode code-point boundary');
+  }
+
+  {
     const defaultLocal = new Map();
     const normal = loadUtils({
       sharedLocal: defaultLocal,

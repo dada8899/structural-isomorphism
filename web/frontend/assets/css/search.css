@@ -75,6 +75,25 @@
   margin-top: var(--space-3);
 }
 
+.search-question__query-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-11, 11px);
+  color: var(--text-tertiary);
+}
+
+.search-question__query-feedback[data-state="error"] {
+  color: var(--error, #B42318);
+}
+
+.search-question__edit-actions .btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 .search-question__edit-hint {
   font-size: var(--fs-11, 11px);
   color: var(--text-quaternary);

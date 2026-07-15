@@ -211,7 +211,7 @@ export default function MethodologyPage() {
               href="https://github.com/dada8899/structural-isomorphism"
               target="_blank"
               rel="noopener"
-              className="text-blue-600 hover:underline"
+              className="inline-flex min-h-11 items-center text-blue-600 hover:underline"
             >
               GitHub Repo ↗
             </a>
@@ -219,13 +219,13 @@ export default function MethodologyPage() {
           <li>
             <Link
               href="/about"
-              className="text-blue-600 hover:underline"
+              className="inline-flex min-h-11 items-center text-blue-600 hover:underline"
             >
               关于本站
             </Link>
           </li>
           <li>
-            <Link href="/" className="text-blue-600 hover:underline">
+            <Link href="/" className="inline-flex min-h-11 items-center text-blue-600 hover:underline">
               回到公司表
             </Link>
           </li>

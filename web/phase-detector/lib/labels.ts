@@ -273,12 +273,13 @@ export function displaySubtitle(
 
 // ---------------------------------------------------------------------------
 // Tailwind class maps for badges (statically discoverable by JIT).
-// Aligned to design system tokens (emerald-600/amber-600/red-600/zinc-900).
+// Aligned to design system tokens. Amber uses 700 so white 12px badge text
+// clears WCAG AA contrast instead of the 3.18:1 produced by amber-600.
 // ---------------------------------------------------------------------------
 
 export const CPS_BADGE: Record<CriticalPointState, string> = {
   far_from_critical: "bg-emerald-700 text-white",
-  approaching_critical: "bg-amber-600 text-white",
+  approaching_critical: "bg-amber-700 text-white",
   at_critical: "bg-red-600 text-white",
   post_critical_transition: "bg-zinc-900 text-white",
   unknown: "bg-zinc-400 text-white",

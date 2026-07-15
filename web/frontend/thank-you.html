@@ -181,8 +181,16 @@
           }
         } catch (e) {}
       }
-      // Fire 'thank_you_view' once on load.
-      track("thank_you_view", { source: "main_site" });
+      // Deferred consent initialization runs before DOMContentLoaded. Waiting
+      // here lets an existing explicit choice install the direct transport;
+      // without consent this remains a silent no-op.
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () {
+          track("thank_you_view", { source: "main_site" });
+        }, { once: true });
+      } else {
+        track("thank_you_view", { source: "main_site" });
+      }
 
       var copyBtn = document.getElementById("ty-copy-link");
       if (copyBtn) {

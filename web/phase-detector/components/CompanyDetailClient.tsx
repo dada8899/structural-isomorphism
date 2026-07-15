@@ -586,14 +586,14 @@ export default function CompanyDetailClient({
       >
         <Link
           href="/"
-          className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 hover:border-zinc-400 hover:text-zinc-900"
+          className="inline-flex min-h-11 items-center rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 hover:border-zinc-400 hover:text-zinc-900"
         >
           ← 返回公司表
         </Link>
         {company.universality_class && (
           <Link
             href={`/universality/${encodeURIComponent(company.universality_class)}`}
-            className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 hover:border-zinc-400 hover:text-zinc-900"
+            className="inline-flex min-h-11 items-center rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 hover:border-zinc-400 hover:text-zinc-900"
             data-testid="universality-class-link"
           >
             查看普适类 {company.universality_class} →
@@ -601,14 +601,14 @@ export default function CompanyDetailClient({
         )}
         <Link
           href={`/compare?tickers=${encodeURIComponent(company.ticker)}`}
-          className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 hover:border-zinc-400 hover:text-zinc-900"
+          className="inline-flex min-h-11 items-center rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 hover:border-zinc-400 hover:text-zinc-900"
           data-testid="compare-link"
         >
           在对比页打开 →
         </Link>
         <Link
           href="/methodology"
-          className="text-zinc-500 hover:text-zinc-900 hover:underline"
+          className="inline-flex min-h-11 items-center text-zinc-500 hover:text-zinc-900 hover:underline"
         >
           方法说明
         </Link>
@@ -616,7 +616,7 @@ export default function CompanyDetailClient({
           href="https://beta.structural.bytedance.city/classes"
           target="_blank"
           rel="noopener"
-          className="text-zinc-500 hover:text-zinc-900 hover:underline"
+          className="inline-flex min-h-11 items-center text-zinc-500 hover:text-zinc-900 hover:underline"
         >
           Structural 全局视角 ↗
         </a>

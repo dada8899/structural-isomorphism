@@ -85,12 +85,15 @@
 
 .about-page__section a {
   color: var(--text-primary);
-  border-bottom: 1px solid var(--text-quaternary);
-  transition: border-color var(--dur-fast) var(--ease-out);
+  text-decoration: underline;
+  text-decoration-color: var(--text-quaternary);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--dur-fast) var(--ease-out);
 }
 
 .about-page__section a:hover {
-  border-bottom-color: var(--text-primary);
+  text-decoration-color: var(--text-primary);
 }
 
 /* === Key stats grid === */
@@ -153,7 +156,7 @@
 .about-page__contact-lede a {
   color: var(--accent);
   font-weight: var(--fw-medium);
-  text-decoration: none;
+  text-decoration: underline;
 }
 .about-page__contact-lede a:hover { text-decoration: underline; }
 

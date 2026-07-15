@@ -206,7 +206,7 @@ export function SearchHero({ onSubmit, placeholder }: Props) {
           <label htmlFor="phase-search" className="sr-only">
             搜索公司或问题
           </label>
-          <div className="flex items-center rounded-xl border border-zinc-300 bg-white px-4 transition focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
+          <div className="flex min-w-0 items-center rounded-xl border border-zinc-300 bg-white px-4 transition focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
             <svg
               width="18"
               height="18"
@@ -233,7 +233,7 @@ export function SearchHero({ onSubmit, placeholder }: Props) {
               autoComplete="off"
               value={value}
               placeholder={placeholder ?? DEFAULT_PLACEHOLDER}
-              className="h-14 flex-1 bg-transparent text-base text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
+              className="h-14 min-w-0 flex-1 bg-transparent text-base text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
               onChange={(e) => {
                 setValue(e.target.value);
                 setOpen(true);

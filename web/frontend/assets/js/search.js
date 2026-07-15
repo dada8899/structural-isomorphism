@@ -22,6 +22,26 @@ function synthesisGenerationMatches(expectedRun, expectedGeneration, currentRun,
   return expectedRun === currentRun && expectedGeneration === currentGeneration;
 }
 
+function guardSynthesisCallbacks(expectedRun, expectedGeneration, getCurrentState, callbacks) {
+  const handlers = callbacks || {};
+  const guarded = {};
+  ['onText', 'onDone', 'onError'].forEach((name) => {
+    guarded[name] = function guardedSynthesisCallback(...args) {
+      let current;
+      try { current = getCurrentState(); } catch (_) { return false; }
+      if (!current || !synthesisGenerationMatches(
+        expectedRun,
+        expectedGeneration,
+        current.run,
+        current.generation,
+      )) return false;
+      if (typeof handlers[name] === 'function') handlers[name].apply(this, args);
+      return true;
+    };
+  });
+  return guarded;
+}
+
 if (typeof window !== 'undefined') {
   window.resolveSearchSynthesisCandidate = resolveSearchSynthesisCandidate;
 }
@@ -336,12 +356,54 @@ function renderQuestionHeader(query, data) {
 }
 
 // === Edit mode: turn the question header into an inline form ===
+function currentSearchQueryStatus(value) {
+  if (typeof window.researchQueryStatus === 'function') {
+    return window.researchQueryStatus(value);
+  }
+  const normalized = typeof value === 'string'
+    ? value.normalize('NFKC').trim().split(/\s+/u).filter(Boolean).join(' ')
+    : '';
+  const count = Array.from(normalized).length;
+  return {
+    value: normalized,
+    count,
+    limit: 8000,
+    valid: Boolean(normalized) && count <= 8000,
+    error: !normalized ? 'blank_query' : count > 8000 ? 'query_too_long' : null,
+  };
+}
+
+function updateSearchEditFeedback(input, submit) {
+  const status = currentSearchQueryStatus(input ? input.value : '');
+  const host = document.getElementById('search-edit-query-feedback');
+  const counter = document.getElementById('search-edit-query-counter');
+  const error = document.getElementById('search-edit-query-error');
+  const actionableError = status.error && status.error !== 'blank_query';
+  if (counter) counter.textContent = `${status.count.toLocaleString()} / ${status.limit.toLocaleString()}`;
+  if (host) host.dataset.state = actionableError ? 'error' : 'ready';
+  if (error) {
+    error.hidden = !actionableError;
+    error.textContent = status.error === 'query_too_long'
+      ? T('page.search.query_too_long', '问题超过 8,000 字，请缩短后再提交。')
+      : actionableError
+        ? T('page.search.query_invalid_characters', '请移除不支持的隐藏字符或标记。')
+        : '';
+  }
+  if (input) input.setAttribute('aria-invalid', actionableError ? 'true' : 'false');
+  if (submit) submit.disabled = Boolean(actionableError);
+  return status;
+}
+
 function enterEditMode(currentQuery) {
   const card = document.querySelector('.search-question');
   if (!card) return;
   card.innerHTML = `
     <div class="search-question__label">${T('page.search.edit_your_question', '编辑你的问题')}</div>
     <textarea class="search-question__editor" rows="3">${escapeHtml(currentQuery)}</textarea>
+    <div class="search-question__query-feedback" id="search-edit-query-feedback" role="status" aria-live="polite">
+      <span id="search-edit-query-counter">0 / 8,000</span>
+      <span id="search-edit-query-error" hidden></span>
+    </div>
     <div class="search-question__edit-actions">
       <button type="button" class="btn btn--ghost btn--sm" id="search-edit-cancel">${T('page.search.cancel', '取消')}</button>
       <button type="button" class="btn btn--primary btn--sm" id="search-edit-submit">${T('page.search.ask_again', '再问一次')}</button>
@@ -349,6 +411,7 @@ function enterEditMode(currentQuery) {
     <div class="search-question__edit-hint"><kbd>⌘</kbd> + <kbd>Enter</kbd> ${T('page.search.submit_hint', '提交')}</div>
   `;
   const ta = card.querySelector('textarea');
+  const submit = document.getElementById('search-edit-submit');
   if (ta) {
     ta.focus();
     ta.setSelectionRange(ta.value.length, ta.value.length);
@@ -358,14 +421,21 @@ function enterEditMode(currentQuery) {
         document.getElementById('search-edit-submit')?.click();
       }
     });
+    ta.addEventListener('input', () => updateSearchEditFeedback(ta, submit));
+    updateSearchEditFeedback(ta, submit);
   }
   document.getElementById('search-edit-cancel')?.addEventListener('click', () => {
     window.location.reload();
   });
-  document.getElementById('search-edit-submit')?.addEventListener('click', () => {
-    const newQ = (ta?.value || '').trim();
-    if (!newQ) return;
-    navigateToPrivateSearch(newQ, { source: 'rewrite' });
+  submit?.addEventListener('click', () => {
+    const status = updateSearchEditFeedback(ta, submit);
+    if (!status.valid) {
+      if (status.error !== 'blank_query' && typeof window.announcePrivateNavigationError === 'function') {
+        window.announcePrivateNavigationError(status.error);
+      }
+      return;
+    }
+    navigateToPrivateSearch(status.value, { source: 'rewrite' });
   });
 }
 
@@ -615,9 +685,11 @@ function renderResults(query, data) {
 //   (c) recommendedResult given          → richer preview tied to that pick
 // `recommendedResult` is optional — when the synth has picked a primary, we
 // pass it so the preview names the exact source.
-function renderCrossDomainBanner(query, recommendedResult) {
-  const results = _lastResults || [];
-  const stats = _lastStats || {};
+function renderCrossDomainBanner(query, recommendedResult, resultState) {
+  const results = resultState && Array.isArray(resultState.results)
+    ? resultState.results : (_lastResults || []);
+  const stats = resultState && resultState.stats
+    ? resultState.stats : (_lastStats || {});
   const surfaceDomain = stats.surface_domain || null;
 
   // Count cross-domain candidates — prefer the backend stat, fall back to
@@ -675,8 +747,8 @@ function renderCrossDomainBanner(query, recommendedResult) {
 
 // Render the "V2 模型识别的跨域对" section. Returns HTML string.
 // Pulls from _lastV2PairsForTop (populated in renderResults).
-function renderV2PairsForTop() {
-  const groups = _lastV2PairsForTop || [];
+function renderV2PairsForTop(groupsOverride) {
+  const groups = Array.isArray(groupsOverride) ? groupsOverride : (_lastV2PairsForTop || []);
   if (!groups.length) return '';
 
   const blocks = groups.map(group => {
@@ -722,15 +794,18 @@ function renderV2PairsForTop() {
   `;
 }
 
-function renderResultsWithSynth() {
+function renderResultsWithSynth(renderState) {
   // Stop the phase rotation since synth has completed
   if (_phaseIntervalId) { clearInterval(_phaseIntervalId); _phaseIntervalId = null; }
 
-  const query = _lastQuery;
-  const results = _lastResults;
-  const synth = _lastSynth;
-  const container = $('#search-results');
-  if (!container || !results.length) return;
+  const state = renderState && typeof renderState === 'object' ? renderState : {};
+  const query = typeof state.query === 'string' ? state.query : _lastQuery;
+  const results = Array.isArray(state.results) ? state.results : _lastResults;
+  const synth = state.synth || _lastSynth;
+  const stats = state.stats || _lastStats;
+  const v2Groups = Array.isArray(state.v2PairsForTop) ? state.v2PairsForTop : _lastV2PairsForTop;
+  const container = state.container || $('#search-results');
+  if (!container || !results.length) return '';
 
   const primary = synth && synth.primary_recommendation;
   const alternatives = (synth && synth.alternative_angles) || [];
@@ -746,10 +821,10 @@ function renderResultsWithSynth() {
 
   // Fallback: synth failed or malformed
   if (!primaryBinding) {
-    const v2PairsHtmlFallback = renderV2PairsForTop();
+    const v2PairsHtmlFallback = renderV2PairsForTop(v2Groups);
     container.innerHTML = `
       <div class="search-page__results">
-        ${renderCrossDomainBanner(query, null)}
+        ${renderCrossDomainBanner(query, null, { results, stats })}
         <div class="search-page__results-title">
           <span>${T('page.search.evidence_candidates_title', '跨领域候选')} · ${results.length} ${T('page.search.candidates_unit', '个候选')}</span>
         </div>
@@ -781,7 +856,7 @@ function renderResultsWithSynth() {
         ${v2PairsHtmlFallback}
       </div>
     `;
-    return;
+    return container.innerHTML;
   }
 
   const pickedIds = new Set([primary.source_kb_id]);
@@ -909,11 +984,11 @@ function renderResultsWithSynth() {
     `;
   }
 
-  const v2PairsHtml = renderV2PairsForTop();
+  const v2PairsHtml = renderV2PairsForTop(v2Groups);
 
   // SESSION-17 V2: banner names the recommended cross-domain source. `pr`
   // is the synth's primary pick — pass it so the preview is specific.
-  const xdBanner = renderCrossDomainBanner(query, pr || null);
+  const xdBanner = renderCrossDomainBanner(query, pr || null, { results, stats });
 
   container.innerHTML = `
     <div class="search-page__results">
@@ -941,6 +1016,7 @@ function renderResultsWithSynth() {
       }
     });
   }
+  return container.innerHTML;
 }
 
 function renderError() {
@@ -1124,27 +1200,32 @@ async function performSearch(query, navigationContext) {
         `;
       }
 
-      _activeSynthStream = StructuralAPI.synthesizeStream(q, rewritten, results, {
-        onText: () => {
-          if (!synthesisGenerationMatches(runId, synthGeneration, _activeSearchRun, _activeSynthGeneration)) return;
+      const callbacks = guardSynthesisCallbacks(
+        runId,
+        synthGeneration,
+        () => ({ run: _activeSearchRun, generation: _activeSynthGeneration }),
+        {
+          onText: () => {
+            // Progress contains no semantic model text. It still passes through
+            // the same generation guard as terminal callbacks.
+          },
+          onDone: (data) => {
+            _activeSynthGeneration += 1;
+            _activeSynthStream = null;
+            _lastSynth = data && data.result;
+            renderSynthBlock(_lastSynth);
+            renderResultsWithSynth();
+          },
+          onError: () => {
+            _activeSynthGeneration += 1;
+            _activeSynthStream = null;
+            console.warn('Candidate comparison unavailable; using ranked candidates.');
+            renderSynthTransportFailure(() => runSynth(q, rewritten, results));
+            renderResultsWithSynth();
+          },
         },
-        onDone: (data) => {
-          if (!synthesisGenerationMatches(runId, synthGeneration, _activeSearchRun, _activeSynthGeneration)) return;
-          _activeSynthGeneration += 1;
-          _activeSynthStream = null;
-          _lastSynth = data && data.result;
-          renderSynthBlock(_lastSynth);
-          renderResultsWithSynth();
-        },
-        onError: (err) => {
-          if (!synthesisGenerationMatches(runId, synthGeneration, _activeSearchRun, _activeSynthGeneration)) return;
-          _activeSynthGeneration += 1;
-          _activeSynthStream = null;
-          console.warn('Candidate comparison unavailable; using ranked candidates.');
-          renderSynthTransportFailure(() => runSynth(q, rewritten, results));
-          renderResultsWithSynth();
-        },
-      });
+      );
+      _activeSynthStream = StructuralAPI.synthesizeStream(q, rewritten, results, callbacks);
     };
 
     let currentData = data;
@@ -1311,6 +1392,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     resolveSearchSynthesisCandidate,
     synthesisGenerationMatches,
+    guardSynthesisCallbacks,
+    renderResultsWithSynth,
     containsRenderableMath,
   };
 }

@@ -61,14 +61,6 @@
     try { return localStorage.getItem('anonId') || ''; } catch (e) { return ''; }
   }
 
-  function trackPlausible(event, props) {
-    try {
-      if (typeof window.plausible === 'function') {
-        window.plausible(event, props ? { props: props } : undefined);
-      }
-    } catch (e) { /* ignore */ }
-  }
-
   function originCandidateHref(origin) {
     if (!origin || origin.contract_version !== 'discovery-candidate-v2' ||
         !/^discovery-[0-9a-f]{16}$/.test(origin.discovery_id || '') ||
@@ -870,7 +862,6 @@
     var items = (data && data.items) || [];
     if (offset === 0 && items.length === 0) {
       showEmpty();
-      trackPlausible('Report List Viewed', { count: 0 });
       return;
     }
     appendItems(items);
@@ -879,7 +870,6 @@
     moreBtn.hidden = !hasMoreItems;
     moreBtn.disabled = false;
     updateReminderSummary();
-    trackPlausible('Report List Viewed', { count: offset });
   }
 
   function stageAuthenticatedEndpoint(url) {
@@ -1141,7 +1131,6 @@
       reminderToggle.addEventListener('change', function () {
         try { localStorage.setItem(REMINDER_KEY, reminderToggle.checked ? 'on' : 'off'); } catch (e) {}
         updateReminderSummary();
-        trackPlausible('Local Experiment Reminders Changed', { enabled: reminderToggle.checked });
       });
     }
     updateReminderSummary();

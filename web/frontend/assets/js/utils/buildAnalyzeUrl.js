@@ -34,6 +34,7 @@
   var PREFIX = 'structural_analyze_handoff:';
   var MAX_AGE_MS = 15 * 60 * 1000;
   var MAX_PENDING = 32;
+  var MAX_STORAGE_ENTRIES = 4096;
   var MAX_RESEARCH_QUERY_CHARS = 8000;
   var ENTITY_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/;
   var DISCOVERY_ID_RE = /^discovery-[0-9a-f]{16}$/;
@@ -63,7 +64,7 @@
   function safeText(value, maximum, allowLayout) {
     if (typeof value !== 'string') return '';
     var normalized = value.normalize('NFKC').trim();
-    if (!normalized || normalized.length > maximum || HTML_TAG_RE.test(normalized)) return '';
+    if (!normalized || Array.from(normalized).length > maximum || HTML_TAG_RE.test(normalized)) return '';
     if (hasForbiddenUnicode(value, allowLayout) ||
         hasForbiddenUnicode(normalized, allowLayout)) return '';
     return normalized;
@@ -128,19 +129,40 @@
   function pendingRecords() {
     var rows = [];
     try {
-      for (var i = 0; i < sessionStorage.length; i += 1) {
-        var key = sessionStorage.key(i);
-        if (!key || key.indexOf(PREFIX) !== 0) continue;
+      var scanLimit = sessionStorage.length;
+      if (!Number.isSafeInteger(scanLimit) || scanLimit < 0 || scanLimit > MAX_STORAGE_ENTRIES) {
+        return null;
+      }
+      var index = 0;
+      for (var scanned = 0; scanned < scanLimit && index < sessionStorage.length; scanned += 1) {
+        var currentLength = sessionStorage.length;
+        if (!Number.isSafeInteger(currentLength) || currentLength < 0 ||
+            currentLength > MAX_STORAGE_ENTRIES) return null;
+        if (index >= currentLength) break;
+        var key = sessionStorage.key(index);
+        if (typeof key !== 'string' || !key) return null;
+        if (key.indexOf(PREFIX) !== 0) {
+          index += 1;
+          continue;
+        }
         var created = 0;
         try { created = Number(JSON.parse(sessionStorage.getItem(key) || '{}').created_at) || 0; } catch (_) {}
         if (!created || Date.now() - created > MAX_AGE_MS) {
           sessionStorage.removeItem(key);
-          i -= 1;
+          if (sessionStorage.getItem(key) !== null) return null;
+          var reducedLength = sessionStorage.length;
+          if (!Number.isSafeInteger(reducedLength) || reducedLength !== currentLength - 1) {
+            return null;
+          }
         } else {
           rows.push({ key: key, created_at: created });
+          index += 1;
         }
       }
-    } catch (_) { return []; }
+      var finalLength = sessionStorage.length;
+      if (!Number.isSafeInteger(finalLength) || finalLength < 0 ||
+          finalLength > MAX_STORAGE_ENTRIES || index < finalLength) return null;
+    } catch (_) { return null; }
     return rows.sort(function (a, b) { return a.created_at - b.created_at; });
   }
 
@@ -153,6 +175,7 @@
     if ((opts.origin_discovery_id != null || opts.origin_contract_version != null) && !origin) return '';
     try {
       var records = pendingRecords();
+      if (!records) return '';
       while (records.length >= MAX_PENDING) {
         var oldest = records.shift().key;
         sessionStorage.removeItem(oldest);

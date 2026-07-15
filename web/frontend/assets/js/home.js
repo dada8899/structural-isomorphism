@@ -31,6 +31,44 @@ function navigatePrivateSearch(query, source) {
   return true;
 }
 
+function currentResearchQueryStatus(value) {
+  if (typeof window.researchQueryStatus === 'function') {
+    return window.researchQueryStatus(value);
+  }
+  const normalized = typeof value === 'string'
+    ? value.normalize('NFKC').trim().split(/\s+/u).filter(Boolean).join(' ')
+    : '';
+  const count = Array.from(normalized).length;
+  return {
+    value: normalized,
+    count,
+    limit: 8000,
+    valid: Boolean(normalized) && count <= 8000,
+    error: !normalized ? 'blank_query' : count > 8000 ? 'query_too_long' : null,
+  };
+}
+
+function updateHomeQueryFeedback(input, submit) {
+  const status = currentResearchQueryStatus(input ? input.value : '');
+  const host = document.getElementById('search-query-feedback');
+  const counter = document.getElementById('search-query-counter');
+  const error = document.getElementById('search-query-error');
+  const actionableError = status.error && status.error !== 'blank_query';
+  if (counter) counter.textContent = `${status.count.toLocaleString()} / ${status.limit.toLocaleString()}`;
+  if (host) host.dataset.state = actionableError ? 'error' : 'ready';
+  if (error) {
+    error.hidden = !actionableError;
+    error.textContent = status.error === 'query_too_long'
+      ? (__homeLang() === 'en' ? 'Shorten the question before submitting.' : '请缩短问题后再提交。')
+      : actionableError
+        ? (__homeLang() === 'en' ? 'Remove unsupported hidden characters or markup.' : '请移除不支持的隐藏字符或标记。')
+        : '';
+  }
+  if (input) input.setAttribute('aria-invalid', actionableError ? 'true' : 'false');
+  if (submit) submit.disabled = Boolean(actionableError);
+  return status;
+}
+
 const DEMO_EXAMPLES = [
   {
     a: {
@@ -311,14 +349,19 @@ function initHeroEvidence() {
 function initSearch() {
   const form = $('#search-form');
   const input = $('.searchbox__input');
+  const submit = form && form.querySelector('.searchbox__submit');
 
   if (form && input) {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      const q = input.value.trim();
-      if (q) {
-        navigatePrivateSearch(q, 'home');
+      const status = updateHomeQueryFeedback(input, submit);
+      if (!status.valid) {
+        if (status.error !== 'blank_query' && typeof window.announcePrivateNavigationError === 'function') {
+          window.announcePrivateNavigationError(status.error);
+        }
+        return;
       }
+      navigatePrivateSearch(status.value, 'home');
     });
 
     // Cmd/Ctrl + Enter submits
@@ -337,6 +380,8 @@ function initSearch() {
       };
       input.addEventListener('input', autoGrow);
     }
+    input.addEventListener('input', () => updateHomeQueryFeedback(input, submit));
+    updateHomeQueryFeedback(input, submit);
   }
 }
 

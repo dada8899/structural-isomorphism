@@ -132,7 +132,7 @@ export default function LoginPage() {
               </p>
               <a
                 href={devLink}
-                className="break-all text-xs text-emerald-900 underline"
+                className="inline-flex min-h-11 items-center break-all text-xs text-emerald-900 underline"
                 data-testid="auth-login-dev-link"
               >
                 {devLink}

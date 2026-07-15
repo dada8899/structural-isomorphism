@@ -236,8 +236,14 @@
               rows="3"
             ></textarea>
             <div class="searchbox__footer">
-              <div class="searchbox__hint" data-i18n="page.home.search.hint">
-                <kbd>⌘</kbd> + <kbd>Enter</kbd> 提交
+              <div class="searchbox__meta">
+                <div class="searchbox__hint" data-i18n="page.home.search.hint">
+                  <kbd>⌘</kbd> + <kbd>Enter</kbd> 提交
+                </div>
+                <div class="research-query-feedback" id="search-query-feedback" role="status" aria-live="polite">
+                  <span id="search-query-counter">0 / 8,000</span>
+                  <span id="search-query-error" hidden></span>
+                </div>
               </div>
               <button type="submit" class="searchbox__submit searchbox__submit--primary" data-i18n-attr="aria-label:common.search_submit_aria" aria-label="开始分析">
                 <span class="searchbox__submit-label" data-i18n="page.home.search.submit_label">开始分析</span>

@@ -84,7 +84,7 @@ export default function NewsletterArchivePage() {
             </p>
             <Link
               href={`/newsletter/${issue.slug}`}
-              className="serif text-xl font-semibold text-zinc-900 hover:underline"
+              className="serif inline-flex min-h-11 items-center text-xl font-semibold text-zinc-900 hover:underline"
             >
               {issue.subject}
             </Link>

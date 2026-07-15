@@ -319,7 +319,7 @@ function FavoriteCard({ ticker, company, onRemoved }: FavoriteCardProps) {
         <div className="flex items-start justify-between">
           <Link
             href={`/company/${encodeURIComponent(ticker)}`}
-            className="font-semibold text-zinc-900"
+            className="inline-flex min-h-11 items-center font-semibold text-zinc-900"
           >
             {ticker}
           </Link>
@@ -357,7 +357,7 @@ function FavoriteCard({ ticker, company, onRemoved }: FavoriteCardProps) {
       <header className="flex items-start justify-between gap-2">
         <Link
           href={`/company/${encodeURIComponent(company.ticker)}`}
-          className="min-w-0 flex-1"
+          className="flex min-h-11 min-w-0 flex-1 flex-col justify-center"
         >
           <div className="truncate font-semibold text-zinc-900">
             {company.ticker}

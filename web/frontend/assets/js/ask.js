@@ -276,13 +276,13 @@
   }
 
   function bindExampleChips() {
-    qsa('.ask-chip[data-example-q]').forEach(function (chip) {
+    qsa('.ask-chip[data-example-q]').forEach(function (chip, index) {
       chip.addEventListener('click', function () {
         var q = chip.getAttribute('data-example-q') || '';
         if (q.trim()) {
-          // W3-B: tag the source + record chip label so we know which
-          // canned examples actually draw clicks.
-          track('example_chip_clicked', { chip_label: (chip.textContent || '').trim().slice(0, 40) });
+          // A coarse position identifies the curated example without sending
+          // its natural-language label to analytics.
+          track('example_chip_clicked', { position: index + 1 });
           nextSubmitSource = 'chip';
           openFingerprintReview(q.trim());
         }
@@ -949,9 +949,6 @@
           surface: surface,
         });
 
-        // Keep legacy event so existing dashboards continue to work.
-        var idxText = (citEl.textContent || '').match(/\d+/);
-        track('citation_clicked', { idx: idxText ? parseInt(idxText[0], 10) : 0 });
       }, true);
       item._ckBound = true;
     }

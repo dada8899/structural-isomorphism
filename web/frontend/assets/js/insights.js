@@ -113,7 +113,7 @@
         showSectionError('insights-verified');
       });
 
-    trackPlausible('Insights Page Viewed');
+    trackPlausible('insights_page_viewed');
   }
 
   if (document.readyState === 'loading') {

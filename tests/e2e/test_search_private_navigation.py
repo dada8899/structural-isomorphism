@@ -6,7 +6,7 @@ import json
 import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import quote, quote_plus, urlsplit
 
 import pytest
 
@@ -27,6 +27,8 @@ class _SearchHandler(SimpleHTTPRequestHandler):
         parsed = urlsplit(self.path)
         if parsed.path == "/search":
             self.path = "/search.html" + (f"?{parsed.query}" if parsed.query else "")
+        elif parsed.path in {"/learn", "/tools", "/classes"}:
+            self.path = parsed.path + ".html" + (f"?{parsed.query}" if parsed.query else "")
         super().do_GET()
 
 
@@ -314,6 +316,77 @@ def test_two_tabs_keep_private_questions_isolated(page: Page, search_origin: str
         other.close()
 
 
+def test_history_and_classes_real_clicks_never_leak_query_in_url_or_referrer(
+    page: Page, search_origin: str,
+) -> None:
+    seen_queries: list[str] = []
+    _install_routes(page, seen_queries)
+    request_metadata: list[tuple[str, str]] = []
+    page.on(
+        "request",
+        lambda request: request_metadata.append(
+            (request.url, request.headers.get("referer", ""))
+        ),
+    )
+    private_query = "PRIVATE_QUERY_CANARY_7f9d threshold collapse"
+
+    page.goto(f"{search_origin}/learn.html?lang=zh", wait_until="domcontentloaded")
+    page.locator(".searchbox__input").fill(private_query)
+    page.locator(".searchbox__submit").click()
+    expect(page.locator(".search-question__text")).to_have_text(private_query)
+    expect(page.locator(".result-card")).to_have_count(2)
+
+    page.go_back(wait_until="domcontentloaded")
+    history_chip = page.locator(".chip--history", has_text=private_query)
+    expect(history_chip).to_be_visible()
+    history_chip.click()
+    expect(page.locator(".search-question__text")).to_have_text(private_query)
+    expect(page.locator(".result-card")).to_have_count(2)
+
+    page.goto(f"{search_origin}/tools.html", wait_until="domcontentloaded")
+    classes_link = page.locator('a.tool-card[href="/classes"]')
+    expect(classes_link).to_be_visible()
+    classes_link.click()
+    page.wait_for_url(f"{search_origin}/classes")
+
+    class_card = page.locator(
+        '[data-class-id="fractional_brownian_crossings"]'
+    )
+    expect(class_card).to_be_visible()
+    class_card.click()
+    class_cta = page.locator('[data-private-class-query]')
+    expect(class_cta).to_be_visible()
+    class_query = class_cta.get_attribute("data-private-class-query")
+    assert class_query
+    assert class_query not in (class_cta.get_attribute("href") or "")
+    class_cta.click()
+    page.wait_for_url(f"{search_origin}/search")
+    expect(page.locator(".search-question__text")).to_have_text(class_query)
+    expect(page.locator(".result-card")).to_have_count(2)
+    class_state = page.evaluate("history.state.structuralPrivateNavigation")
+    assert class_state["query"] == class_query
+    assert class_state["source"] == "class"
+
+    assert seen_queries.count(private_query) >= 2
+    assert class_query in seen_queries
+    encoded_class_queries = {
+        quote(class_query, safe=""),
+        quote_plus(class_query, safe=""),
+    }
+    for request_url, referrer in request_metadata:
+        assert private_query not in request_url
+        assert private_query not in referrer
+        assert class_query not in request_url
+        assert class_query not in referrer
+        assert all(encoded not in request_url for encoded in encoded_class_queries)
+        assert all(encoded not in referrer for encoded in encoded_class_queries)
+        assert "PRIVATE_QUERY_CANARY_7f9d" not in request_url
+        assert "PRIVATE_QUERY_CANARY_7f9d" not in referrer
+        assert "q=" not in referrer and "context=" not in referrer
+    assert private_query not in page.url
+    assert class_query not in page.url
+
+
 def test_history_is_private_by_default_and_fails_closed_on_storage_or_crypto(
     page: Page,
     search_origin: str,
@@ -364,6 +437,30 @@ def test_history_is_private_by_default_and_fails_closed_on_storage_or_crypto(
     assert failed_write == []
     assert page.evaluate("window.getHistory()") == []
     assert page.evaluate("localStorage.getItem('structural_history')") is None
+
+    at_limit = "🧪" * 8000
+    unicode_history = page.evaluate(
+        """query => {
+          window.addToHistory({query, timestamp: 3});
+          return window.getHistory().map(item => ({
+            count: Array.from(item.query).length,
+            timestamp: item.timestamp,
+          }));
+        }""",
+        at_limit,
+    )
+    assert unicode_history == [{"count": 8000, "timestamp": 3}]
+    over_limit_history = page.evaluate(
+        """query => {
+          window.addToHistory({query, timestamp: 4});
+          return window.getHistory().map(item => ({
+            count: Array.from(item.query).length,
+            timestamp: item.timestamp,
+          }));
+        }""",
+        at_limit + "🧪",
+    )
+    assert over_limit_history == [{"count": 8000, "timestamp": 3}]
 
     crypto_page = page.context.new_page()
     crypto_requests: list[str] = []

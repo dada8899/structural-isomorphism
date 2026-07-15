@@ -5,10 +5,10 @@
 // the first time the page opens in a session. Idempotent: only fires once per mount.
 
 import { useEffect, useRef } from "react";
-import { trackEvent, type EventProps } from "@/lib/analytics";
+import { trackEvent, type EventName, type EventProps } from "@/lib/analytics";
 
 interface Props {
-  event: string;
+  event: EventName;
   props?: EventProps;
 }
 

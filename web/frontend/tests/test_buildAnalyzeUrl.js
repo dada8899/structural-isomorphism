@@ -217,6 +217,21 @@ test('2000, 2001, and 8000 characters survive; 8001 fails closed', function () {
   );
 });
 
+test('Unicode code-point limits match search at 8000 and 8001 astral characters', function () {
+  const accepted = '🧪'.repeat(8000);
+  const url = buildAnalyzeUrl({ id: 'kb-unicode', q: accepted });
+  const key = params(url).get('handoff');
+  assert.ok(key);
+  assert.strictEqual(
+    Array.from(consumeAnalyzeHandoff(key, { id: 'kb-unicode', a_id: null }).query).length,
+    8000
+  );
+  assert.strictEqual(
+    buildAnalyzeUrl({ id: 'kb-unicode-over', q: accepted + '🧪' }),
+    '/analyze?id=kb-unicode-over'
+  );
+});
+
 test('NFKC normalization is applied before storage and binding', function () {
   const url = buildAnalyzeUrl({ id: 'kb-1', q: 'ＡＢＣ mechanism' });
   const key = params(url).get('handoff');
@@ -250,6 +265,69 @@ test('storage failure is privacy fail-closed, never URL fallback', function () {
     const url = buildAnalyzeUrl({ id: 'kb-9', q: 'must stay private' });
     assert.strictEqual(url, '/analyze?id=kb-9');
     assert.ok(!url.includes('must'));
+  } finally {
+    global.sessionStorage = original;
+  }
+});
+
+test('expired-record cleanup fails closed when removeItem silently does nothing', function () {
+  const original = global.sessionStorage;
+  const backing = memoryStorage();
+  const storageKey = 'structural_analyze_handoff:' + 'd'.repeat(32);
+  backing.setItem(storageKey, JSON.stringify({
+    version: 2,
+    created_at: Date.now() - (16 * 60 * 1000),
+    query: 'expired secret',
+    id: 'kb-expired',
+    a_id: null,
+    fingerprint: null,
+    origin_discovery_id: null,
+    origin_contract_version: null,
+  }));
+  let keyReads = 0;
+  global.sessionStorage = {
+    get length() { return backing.length; },
+    key(index) { keyReads += 1; return backing.key(index); },
+    getItem(name) { return backing.getItem(name); },
+    setItem(name, value) { backing.setItem(name, value); },
+    removeItem() { /* blocked/no-op */ },
+  };
+  try {
+    assert.strictEqual(
+      buildAnalyzeUrl({ id: 'kb-new', q: 'new private question' }),
+      '/analyze?id=kb-new'
+    );
+    assert.ok(keyReads <= 1);
+    assert.notStrictEqual(backing.getItem(storageKey), null);
+  } finally {
+    global.sessionStorage = original;
+  }
+});
+
+test('malformed storage length and key enumeration fail closed', function () {
+  const original = global.sessionStorage;
+  const cases = [
+    {
+      get length() { return Number.POSITIVE_INFINITY; },
+      key() { throw new Error('unbounded storage must not be scanned'); },
+      getItem() { return null; },
+      setItem() { throw new Error('unbounded storage must not be written'); },
+    },
+    {
+      get length() { return 1; },
+      key() { return null; },
+      getItem() { return null; },
+      setItem() { throw new Error('malformed storage must not be written'); },
+    },
+  ];
+  try {
+    cases.forEach(function (storage) {
+      global.sessionStorage = storage;
+      assert.strictEqual(
+        buildAnalyzeUrl({ id: 'kb-storage', q: 'private storage boundary' }),
+        '/analyze?id=kb-storage'
+      );
+    });
   } finally {
     global.sessionStorage = original;
   }

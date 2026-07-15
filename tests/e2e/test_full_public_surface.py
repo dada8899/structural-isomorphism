@@ -133,24 +133,39 @@ def test_beta_analytics_is_absent_until_explicit_consent(
     expect(page.locator("#analytics-consent")).to_be_visible()
 
 
-def test_beta_explicit_consent_loads_only_canonical_plausible(
+def test_beta_explicit_consent_posts_only_canonical_pageview(
     page: Page, local_beta_origin: str
 ):
-    requests: list[str] = []
+    requests: list[dict[str, object]] = []
 
     def capture(route):
-        requests.append(route.request.url)
-        route.fulfill(status=200, content_type="application/javascript", body="")
+        requests.append(
+            {
+                "url": route.request.url,
+                "method": route.request.method,
+                "payload": route.request.post_data_json,
+            }
+        )
+        route.fulfill(status=202, content_type="text/plain", body="ok")
 
     page.route("https://plausible.bytedance.city/**", capture)
     page.goto(local_beta_origin, wait_until="domcontentloaded", timeout=20_000)
     page.get_by_role("button", name="允许匿名分析").click()
 
-    script = page.locator("#plausible-script")
-    expect(script).to_have_count(1)
-    expect(script).to_have_attribute("data-domain", "beta.structural.bytedance.city")
+    page.wait_for_function("() => window.plausible?.s === 'direct'")
     page.wait_for_timeout(100)
-    assert requests == ["https://plausible.bytedance.city/js/script.js"]
+    expect(page.locator("#plausible-script")).to_have_count(0)
+    assert requests == [
+        {
+            "url": "https://plausible.bytedance.city/api/event",
+            "method": "POST",
+            "payload": {
+                "name": "pageview",
+                "url": local_beta_origin + "/",
+                "domain": "beta.structural.bytedance.city",
+            },
+        }
+    ]
 
 
 @pytest.mark.parametrize(
@@ -164,9 +179,50 @@ def test_beta_explicit_consent_loads_only_canonical_plausible(
             "/report.html",
             "/report/share/0123456789abcdef0123456789abcdef",
         ),
+        ("/", "/invite/550e8400-e29b-41d4-a716-446655440000"),
+        ("/", "/resource/550e8400-e29b-41d4-a716-446655440000"),
+        ("/", "/claim/abcdefghijklmnopqrstuvwxyz0123456789"),
+        ("/", "/resource/abcdefghijklmnopqrstuvwxyz0123456789"),
+        (
+            "/",
+            "/verify/"
+            + ".".join(
+                ("eyJhbGciOiJIUzI1NiJ9", "eyJzdWIiOiIxMjM0NTY3ODkwIn0", "signature00")
+            ),
+        ),
+        (
+            "/",
+            "/resource/"
+            + ".".join(
+                ("eyJhbGciOiJIUzI1NiJ9", "eyJzdWIiOiIxMjM0NTY3ODkwIn0", "signature00")
+            ),
+        ),
+        ("/", "/connect/AbCdEf012345.ghIjKl678901.mnOpQr234567"),
+        ("/", "/resource/AbCdEf012345.ghIjKl678901.mnOpQr234567"),
+        ("/", "/auth/connect"),
+        ("/", "/callback/start"),
+        ("/", "/Report/share/test-referrer-capability"),
+        ("/", "/%72eport/share/test-referrer-capability"),
+        ("/", "/%2572eport/share/test-referrer-capability"),
+        ("/", "/resource/user%2540example.com"),
+        (
+            "/",
+            "/phenomenon/"
+            + "-".join(
+                ("xoxb", "123456789012", "123456789012", "abcdefghijklmnopqrstuvwx")
+            ),
+        ),
+        ("/", "/phenomenon/abcdefghijklmnopqrstuvwxyz-0123456789"),
+        (
+            "/",
+            "/phenomenon/"
+            + "-".join(("glpat", "abcdefghijklmnopqrstuvwxyz0123456789")),
+        ),
+        ("/", "/resource/ordinary-semantic-slug"),
+        ("/", "/404"),
     ),
 )
-def test_beta_private_research_routes_never_load_analytics(
+def test_beta_private_or_capability_routes_never_load_analytics(
     page: Page, local_beta_origin: str, entry_path: str, private_path: str,
 ):
     requests: list[str] = []
@@ -175,7 +231,8 @@ def test_beta_private_research_routes_never_load_analytics(
         if (location.protocol === 'http:' || location.protocol === 'https:') {
           history.replaceState(null, '', PRIVATE_PATH);
           localStorage.setItem('cookie_consent_v1', JSON.stringify({
-            version: 1, essential: true, analytics: true, marketing: false
+            version: 1, essential: true, analytics: true, marketing: false,
+            source: 'explicit'
           }));
         }
         """.replace("PRIVATE_PATH", json.dumps(private_path))
@@ -195,7 +252,60 @@ def test_beta_private_research_routes_never_load_analytics(
     assert page.url.endswith(private_path)
     expect(page.locator("#plausible-script")).to_have_count(0)
     expect(page.locator("#analytics-consent")).to_have_count(0)
+    assert page.evaluate("() => window.plausible") is None
     assert requests == []
+
+
+@pytest.mark.parametrize(
+    "public_path",
+    (
+        "/paper/soc-universal-collapse-2026-05-13",
+        "/paper/structural.isomorphism.research-paper",
+        "/phenomenon/sci-001",
+    ),
+)
+def test_beta_public_semantic_slugs_keep_canonical_analytics(
+    page: Page, local_beta_origin: str, public_path: str,
+):
+    requests: list[dict[str, object]] = []
+    page.add_init_script(
+        """
+        if (location.protocol === 'http:' || location.protocol === 'https:') {
+          history.replaceState(null, '', PUBLIC_PATH);
+          localStorage.setItem('cookie_consent_v1', JSON.stringify({
+            version: 1, essential: true, analytics: true, marketing: false,
+            source: 'explicit'
+          }));
+        }
+        """.replace("PUBLIC_PATH", json.dumps(public_path))
+    )
+
+    def capture(route):
+        requests.append(
+            {
+                "url": route.request.url,
+                "method": route.request.method,
+                "payload": route.request.post_data_json,
+            }
+        )
+        route.fulfill(status=202, content_type="text/plain", body="ok")
+
+    page.route("https://plausible.bytedance.city/**", capture)
+    page.goto(local_beta_origin, wait_until="domcontentloaded", timeout=20_000)
+    page.wait_for_function("() => window.plausible?.s === 'direct'")
+    page.wait_for_timeout(100)
+
+    assert requests == [
+        {
+            "url": "https://plausible.bytedance.city/api/event",
+            "method": "POST",
+            "payload": {
+                "name": "pageview",
+                "url": local_beta_origin + public_path,
+                "domain": "beta.structural.bytedance.city",
+            },
+        }
+    ]
 
 
 def test_beta_share_capability_never_becomes_same_origin_referrer(
@@ -232,7 +342,8 @@ def test_beta_dnt_overrides_a_saved_analytics_choice(
     current.add_init_script(
         """
         localStorage.setItem('cookie_consent_v1', JSON.stringify({
-          version: 1, essential: true, analytics: true, marketing: false
+          version: 1, essential: true, analytics: true, marketing: false,
+          source: 'explicit'
         }));
         Object.defineProperty(navigator, 'doNotTrack', {
           value: '1', configurable: true

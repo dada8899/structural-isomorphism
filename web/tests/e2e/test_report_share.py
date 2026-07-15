@@ -35,10 +35,13 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from copy import deepcopy
 from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
+
+pytestmark = pytest.mark.e2e
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 WEB_BACKEND = REPO_ROOT / "web" / "backend"
@@ -96,8 +99,8 @@ def _wait_port(host: str, port: int, timeout: float = 15.0) -> bool:
     return False
 
 
-def _sample_payload() -> dict:
-    """A full 9-section payload — enough for the browser to render 9 cards."""
+def _legacy_payload() -> dict:
+    """Historical nine-string payload used only by explicit compatibility checks."""
     return {
         key: f"Sample content for {key}. 这是 {key} 小节的占位文本。"
         for key in SECTION_KEYS
@@ -121,6 +124,154 @@ def _origin_candidate() -> dict:
     )
     assert candidate is not None
     return candidate
+
+
+def _current_report_archive(
+    *,
+    query: str,
+    b_id: str,
+    lang: str,
+    model: str,
+    fingerprint_summary: str | None = None,
+    origin_candidate: dict | None = None,
+) -> tuple[dict, str, str]:
+    """Build the same sealed deep-report-v2 archive emitted by analyze.py."""
+    if lang != "zh":
+        raise ValueError("the focused browser fixture currently binds zh copy")
+    if str(WEB_BACKEND) not in sys.path:
+        sys.path.insert(0, str(WEB_BACKEND))
+
+    from api.analyze import (  # noqa: WPS433
+        _canonical_digest,
+        _persisted_report_receipt,
+        _query_binding,
+        _record_digest,
+        _source_ref,
+    )
+    from services.deep_report import (  # noqa: WPS433
+        GeneratedDeepReportV2,
+        SourceBinding,
+        bind_deep_report,
+    )
+    from services.evidence_envelope import build_evidence_envelope  # noqa: WPS433
+    from tests.deep_report_fixtures import report_payload  # noqa: WPS433
+
+    raw = deepcopy(report_payload())
+    fingerprint = None
+    if fingerprint_summary:
+        fingerprint = {
+            "summary": fingerprint_summary,
+            "variables": ["反馈延迟", "过冲"],
+            "constraints": ["同一观测窗口"],
+            "unknowns": ["共同趋势强度"],
+            "revision": 2,
+            "provenance": "user_confirmed",
+        }
+        raw["your_problem_breakdown"]["fingerprint_revision"] = 2
+    else:
+        raw["your_problem_breakdown"]["fingerprint_revision"] = None
+
+    if origin_candidate is None:
+        row_query = query
+        row_b_id = b_id
+        source = {
+            "id": b_id,
+            "name": "延迟反馈候选记录",
+            "domain": "控制系统",
+            "type_id": "feedback",
+            "description": "内部记录描述了延迟反馈下的候选过冲模式。",
+        }
+        target = None
+    else:
+        pair = origin_candidate["pair"]
+        if query or b_id != pair["b_id"]:
+            raise ValueError("a current pair report requires empty query and bound target id")
+        row_query = ""
+        row_b_id = pair["b_id"]
+        source = {
+            "id": pair["a_id"],
+            "name": "延迟反馈源候选",
+            "domain": "控制系统",
+            "type_id": "feedback",
+            "description": "内部记录描述了延迟反馈下的候选过冲模式。",
+        }
+        target = {
+            "id": pair["b_id"],
+            "name": "需求过冲目标候选",
+            "domain": "运营管理",
+            "type_id": "operations",
+            "description": "待比较的目标记录；不预设与源记录共享机制。",
+        }
+
+    source_ref = _source_ref(source, lang=lang)
+    raw["target_domain_intro"]["corresponding_phenomenon"]["source_ref_ids"] = [
+        source_ref.source_ref_id
+    ]
+    source_refs = [source_ref]
+    if target is not None:
+        source_refs.append(_source_ref(target, lang=lang, target=True))
+
+    binding = SourceBinding(
+        source_kb_id=source["id"],
+        source_record_sha256=_record_digest(source),
+        kb_artifact_id="structural-e2e-artifact-v1",
+        target_kind="kb" if target is not None else "query",
+        target_kb_id=target["id"] if target is not None else None,
+        query_binding=(
+            None
+            if target is not None
+            else _query_binding(row_query, b_id=row_b_id, lang=lang)
+        ),
+        fingerprint_sha256=(
+            _canonical_digest(fingerprint) if fingerprint is not None else None
+        ),
+        fingerprint_revision=fingerprint["revision"] if fingerprint else None,
+        lang=lang,
+        model_id=model,
+        prompt_version="deep-report-v2",
+        schema_version="deep-analysis-report-v2",
+    )
+    report = bind_deep_report(
+        GeneratedDeepReportV2.model_validate(raw),
+        source_binding=binding,
+        source_refs=source_refs,
+        source_record=source,
+    ).model_dump(mode="json")
+    evidence = build_evidence_envelope(
+        candidate_kind="analysis_candidate",
+        candidate_label=source["name"],
+        requested_level="candidate",
+        source_kind="internal_kb",
+        source_label="Structural internal KB candidate",
+        result_provenance="NOT_TESTED",
+        result_verdict="NOT_TESTED",
+        independence_kind="not_recorded",
+        counterexample_status="gap_recorded",
+        counterexample_summary=(
+            "报告必须提出证伪条件；当前未绑定任何已完成的证伪结果。"
+        ),
+    )
+    sealed = {
+        **report,
+        "_report_sha256": _canonical_digest(report),
+        "_source_record": source,
+        **({"_target_record": target} if target is not None else {}),
+        "_evidence": evidence,
+        **({"_fingerprint": fingerprint} if fingerprint is not None else {}),
+        **({"_origin_candidate": origin_candidate} if origin_candidate else {}),
+        "_source": {
+            key: source[key] for key in ("id", "name", "domain", "type_id")
+        },
+    }
+    sealed["_report_receipt"] = _persisted_report_receipt(
+        query=row_query,
+        b_id=row_b_id,
+        lang=lang,
+        model=model,
+        prompt_version="deep-report-v2",
+        payload=sealed,
+    )
+    return sealed, row_query, row_b_id
 
 
 # ---------------- shim + store fixtures ------------------------------ #
@@ -230,17 +381,38 @@ def seed_report(report_backend):
     store = ReportStore(report_backend["db_path"])
 
     def _seed(*, query="测试查询", b_id="b_demo", lang="zh",
-              creator_anon_id=None, is_partial=False, payload=None):
+              creator_anon_id=None, is_partial=False, payload=None,
+              fingerprint_summary=None, origin_candidate=None):
         # Pytest imports all selected modules before running fixtures. Other
         # E2E modules use their own deterministic share secret, so restore this
         # module's secret at the exact signing boundary for combined runs.
         os.environ["STRUCTURAL_SHARE_TOKEN_SECRET"] = _SHARE_SECRET
+        model = "e2e/deep-report-model"
+        prompt_version = "deep-report-v2"
+        if payload is None:
+            payload, query, b_id = _current_report_archive(
+                query=query,
+                b_id=b_id,
+                lang=lang,
+                model=model,
+                fingerprint_summary=fingerprint_summary,
+                origin_candidate=origin_candidate,
+            )
+        else:
+            # Explicit compatibility payloads remain v1. Current rows must go
+            # through _current_report_archive so receipt/hash guardrails cannot
+            # be bypassed by a hand-written browser fixture.
+            if fingerprint_summary is not None or origin_candidate is not None:
+                raise ValueError("legacy payload cannot carry current report bindings")
+            model = "deepseek/deepseek-chat"
+            prompt_version = "v1"
         return store.create(
             query=query,
             b_id=b_id,
             lang=lang,
-            payload=payload or _sample_payload(),
-            model="deepseek/deepseek-chat",
+            payload=payload,
+            model=model,
+            prompt_version=prompt_version,
             creator_anon_id=creator_anon_id,
             is_partial=is_partial,
         )
@@ -278,9 +450,13 @@ def test_persist_flow_share_token_round_trip(report_backend, seed_report):
     assert status == 200, body
     assert body["id"] == rep["id"]
     assert body["query"] == "为什么蚁群能找到最短路径"
-    # payload comes back as a parsed dict with all 9 sections.
+    # The public payload is a fully validated, source-bound deep-report-v2.
     assert isinstance(body["payload"], dict)
-    assert set(body["payload"]) == set(SECTION_KEYS)
+    assert set(SECTION_KEYS) < set(body["payload"])
+    assert body["payload"]["schema_version"] == "deep-analysis-report-v2"
+    assert body["payload"]["source_binding"]["source_kb_id"] == "b_demo"
+    assert body["evidence"]["evidence_level"] == "candidate"
+    assert len(body["report_sha256"]) == 64
 
 
 def test_credibility_lifted_from_payload(report_backend, seed_report):
@@ -288,7 +464,7 @@ def test_credibility_lifted_from_payload(report_backend, seed_report):
     a top-level field on read, and the payload comes back section-only."""
     cred = {"kb_source": True, "similarity": 0.84, "has_verified_pairs": True,
             "verified_pair_count": 3}
-    payload = {**_sample_payload(), "_credibility": cred}
+    payload = {**_legacy_payload(), "_credibility": cred}
     rep = seed_report(query="V4 徽章测试", payload=payload)
     base = report_backend["base"]
     status, body = _api("GET", f"{base}/api/report/share/{rep['share_token']}")
@@ -434,8 +610,9 @@ def test_share_page_renders_in_browser(report_backend, seed_report, browser):
     """Scenarios 1 + 2 — the share URL renders the 9-section report in a
     fresh browser context (no anon cookie)."""
     rep = seed_report(
-        query="跨领域同构 e2e 渲染测试",
-        payload={**_sample_payload(), "_origin_candidate": _origin_candidate()},
+        query="",
+        b_id="kb-origin-b",
+        origin_candidate=_origin_candidate(),
     )
     url = f"{report_backend['base']}/report/share/{rep['share_token']}"
 
@@ -451,7 +628,7 @@ def test_share_page_renders_in_browser(report_backend, seed_report, browser):
         assert sections.count() == 9, "expected all 9 sections rendered"
         # Meta header (query title) is shown, loading spinner gone.
         assert page.locator("#report-meta").is_visible()
-        assert "跨领域同构 e2e 渲染测试" in page.locator("#report-meta").inner_text()
+        assert "需求过冲目标候选" in page.locator("#report-meta").inner_text()
         assert page.locator("#report-loading").is_hidden()
         origin = page.locator("#report-origin")
         assert origin.is_visible()
@@ -467,12 +644,14 @@ def test_share_page_renders_in_browser(report_backend, seed_report, browser):
 
 @pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
 def test_feedback_button_posts_in_browser(report_backend, seed_report, browser):
-    """Scenario 3 (UI) — clicking the share-bar 👍 fires a POST that 200s."""
-    rep = seed_report()
-    url = f"{report_backend['base']}/report/share/{rep['share_token']}"
+    """Scenario 3 (UI) — the authorized owner share bar posts feedback."""
+    anon = "feedback-browser-owner"
+    rep = seed_report(creator_anon_id=anon)
+    url = f"{report_backend['base']}/report/{rep['id']}"
     feedback_path = f"/api/report/{rep['id']}/feedback"
 
     ctx = browser.new_context()
+    ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
     page = ctx.new_page()
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=20000)
@@ -497,20 +676,11 @@ def test_owner_decision_brief_download_and_create_experiment(
 ):
     """Saved owner report exposes evidence-bounded brief and inline experiment."""
     anon = "decision-brief-owner"
-    payload = _sample_payload()
-    payload.update({
-        "shared_structure": {"name": "负反馈", "intuition": "通过延迟反馈抑制过冲"},
-        "risks_and_limits": [{"risk_name": "时滞失配", "explanation": "反馈周期可能不同"}],
-        "action_plan": {
-            "this_week": [{
-                "title": "小流量试验", "verification": "新策略将过冲降低至少 10%",
-                "expected_impact": "过冲率",
-            }],
-        },
-        "_fingerprint": {"summary": "需求过冲来自反馈时滞", "revision": 1},
-        "_source": {"id": "p_feedback", "name": "Feedback control", "domain": "Control"},
-    })
-    rep = seed_report(query="如何降低需求过冲", creator_anon_id=anon, payload=payload)
+    rep = seed_report(
+        query="如何降低需求过冲",
+        creator_anon_id=anon,
+        fingerprint_summary="需求过冲来自反馈时滞",
+    )
     url = f"{report_backend['base']}/report/{rep['id']}"
     followup_path = f"/api/report/{rep['id']}/followup"
 
@@ -566,10 +736,10 @@ def test_shared_decision_brief_is_read_only(report_backend, seed_report, browser
 
 
 @pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
-def test_legacy_report_without_evidence_cannot_create_experiment(
+def test_current_report_without_confirmed_fingerprint_cannot_create_experiment(
     report_backend, seed_report, browser,
 ):
-    anon = "legacy-brief-owner"
+    anon = "current-no-fingerprint-owner"
     rep = seed_report(creator_anon_id=anon)
     url = f"{report_backend['base']}/report/{rep['id']}"
     ctx = browser.new_context()
@@ -618,9 +788,10 @@ def test_my_reports_lists_cards_in_browser(report_backend, seed_report, browser)
     """/reports lists this device's reports and each card links to /report/<id>."""
     anon = "myreports-browser-anon"
     seed_report(
-        query="蚁群优化与城市交通",
+        query="",
+        b_id="kb-origin-b",
         creator_anon_id=anon,
-        payload={**_sample_payload(), "_origin_candidate": _origin_candidate()},
+        origin_candidate=_origin_candidate(),
     )
     seed_report(query="珊瑚白化与系统性金融风险", creator_anon_id=anon)
 
@@ -635,7 +806,7 @@ def test_my_reports_lists_cards_in_browser(report_backend, seed_report, browser)
         cards = page.locator(".myr-card")
         assert cards.count() == 2
         text = page.locator("#myr-list").inner_text()
-        assert "蚁群优化与城市交通" in text
+        assert "（未命名查询）" in text
         assert "珊瑚白化与系统性金融风险" in text
         # Each card links to a report detail URL.
         href = cards.first.get_attribute("href")

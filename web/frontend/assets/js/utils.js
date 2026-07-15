@@ -206,9 +206,9 @@ function _cleanupLegacyRawHistory() {
 function _normaliseHistoryEntry(entry) {
   if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
   var query = typeof entry.query === 'string' ? entry.query.normalize('NFKC').trim() : '';
-  if (!query || query.length > 8000) return null;
+  if (!query || Array.from(query).length > 8000) return null;
   var rewritten = typeof entry.rewritten_query === 'string'
-    ? entry.rewritten_query.normalize('NFKC').trim().slice(0, 800)
+    ? Array.from(entry.rewritten_query.normalize('NFKC').trim()).slice(0, 800).join('')
     : null;
   var timestamp = Number(entry.timestamp || 0);
   return {

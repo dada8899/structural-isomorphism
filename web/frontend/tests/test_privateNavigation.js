@@ -207,6 +207,29 @@ test('2000, 2001 and 8000 characters pass while 8001 and controls fail closed', 
   assert.strictEqual(nav.buildPrivateSearchUrl({ query: 'bad\u0000query', source: 'home' }), null);
 });
 
+test('Unicode code points and collapsed layout whitespace match the backend limit', () => {
+  const atLimit = '🧪'.repeat(8000);
+  assert.strictEqual(nav.researchQueryCharacterCount(atLimit), 8000);
+  const accepted = nav.buildPrivateSearchUrl({ query: atLimit, source: 'home' });
+  assert.ok(accepted);
+  const context = nav.consumePrivateNavigationContext(params(accepted).get('context'), {
+    kind: 'search',
+  });
+  assert.strictEqual(Array.from(context.query).length, 8000);
+
+  const overLimit = atLimit + '🧪';
+  assert.strictEqual(nav.researchQueryCharacterCount(overLimit), 8001);
+  assert.strictEqual(nav.buildPrivateSearchUrl({ query: overLimit, source: 'home' }), null);
+  assert.strictEqual(window.dispatchedEvents.at(-1).detail.code, 'query_too_long');
+  assert.ok(document.getElementById('private-navigation-error').children[0].textContent.includes('8,000'));
+
+  const status = nav.researchQueryStatus('  alpha\n\t beta  ');
+  assert.deepStrictEqual(
+    { value: status.value, count: status.count, valid: status.valid, error: status.error },
+    { value: 'alpha beta', count: 10, valid: true, error: null },
+  );
+});
+
 test('every backend default-ignorable range fails before a handoff is created', () => {
   const ranges = [
     [0x00AD, 0x00AD], [0x034F, 0x034F], [0x061C, 0x061C],
@@ -262,6 +285,64 @@ test('expired and unknown records are consumed and rejected', () => {
     phenomenon_id: null, results: [], injected: true,
   }));
   assert.strictEqual(nav.consumePrivateNavigationContext(unknown, { kind: 'search' }), null);
+});
+
+test('expired-record cleanup is bounded and fails closed when removal is a no-op', () => {
+  const original = global.sessionStorage;
+  const backing = memoryStorage();
+  const storageKey = 'structural_private_navigation:' + 'c'.repeat(32);
+  backing.setItem(storageKey, JSON.stringify({
+    version: 1, kind: 'search', created_at: Date.now() - 16 * 60 * 1000,
+    query: 'expired secret', rewritten_query: null, lang: 'zh', force: false,
+    source: 'home', phenomenon_id: null, results: [],
+  }));
+  let keyReads = 0;
+  global.sessionStorage = {
+    get length() { return backing.length; },
+    key(index) { keyReads += 1; return backing.key(index); },
+    getItem(name) { return backing.getItem(name); },
+    setItem(name, value) { backing.setItem(name, value); },
+    removeItem() { /* blocked/no-op */ },
+  };
+  try {
+    assert.strictEqual(
+      nav.buildPrivateSearchUrl({ query: 'new private question', source: 'home' }),
+      null,
+    );
+    assert.ok(keyReads <= 1);
+    assert.notStrictEqual(backing.getItem(storageKey), null);
+  } finally {
+    global.sessionStorage = original;
+  }
+});
+
+test('malformed storage length and key enumeration fail closed', () => {
+  const original = global.sessionStorage;
+  const cases = [
+    {
+      get length() { return Number.POSITIVE_INFINITY; },
+      key() { throw new Error('unbounded storage must not be scanned'); },
+      getItem() { return null; },
+      setItem() { throw new Error('unbounded storage must not be written'); },
+    },
+    {
+      get length() { return 1; },
+      key() { return null; },
+      getItem() { return null; },
+      setItem() { throw new Error('malformed storage must not be written'); },
+    },
+  ];
+  try {
+    cases.forEach((storage) => {
+      global.sessionStorage = storage;
+      assert.strictEqual(
+        nav.buildPrivateSearchUrl({ query: 'private storage boundary', source: 'home' }),
+        null,
+      );
+    });
+  } finally {
+    global.sessionStorage = original;
+  }
 });
 
 test('storage failure returns no destination and exposes an accessible alert', () => {

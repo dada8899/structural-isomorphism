@@ -63,6 +63,8 @@
     }
     .waitlist {
       margin: 56px auto 24px;
+      width: 100%;
+      min-width: 0;
       max-width: 680px;
       padding: 28px 32px;
       background: var(--surface-elevated, #FFFFFF);
@@ -409,7 +411,7 @@
             } else {
               setStatus('已加入；有经复核的研究更新时会通知你 ✓', 'ok');
               if (window.plausible) {
-                try { window.plausible('Waitlist Signup', { props: { source: 'homepage-hero' } }); } catch (_) {}
+                try { window.plausible('waitlist_signup', { props: { source: 'homepage-hero', placement: 'homepage-hero' } }); } catch (_) {}
               }
             }
             form.reset();

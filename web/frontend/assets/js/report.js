@@ -641,7 +641,6 @@
             const reminderMessage = document.getElementById('report-reminder-message');
             if (reminderMessage) reminderMessage.textContent = deadlineMessage(experiment);
             window.setTimeout(() => renderFollowup(reportId, saved), 350);
-            trackPlausible('Report Followup', { action_status: body.action_status, outcome: body.outcome || 'none' });
           })
           .catch((err) => {
             console.warn('[report] followup save failed');
@@ -722,10 +721,8 @@
       closeBtn.addEventListener('click', function () {
         nudge.remove();
         try { sessionStorage.setItem(dismissKey, '1'); } catch (e) {}
-        trackPlausible('Report Revisit Nudge Dismissed');
       });
     }
-    trackPlausible('Report Revisit Nudge Shown');
   }
 
   function loadFollowup(reportId, createdAt) {

@@ -1,17 +1,5 @@
 function T(key, fallback) { try { if (window.i18n && typeof window.i18n.t === "function") { var v = window.i18n.t(key); if (v && v !== key) return v; } } catch(e) {} return fallback; }
 
-/* W3-B: Plausible event wrapper — safe when plausible.js is missing
-   (privacy mode / ad-blocker / region block). Telemetry must not throw. */
-function trackPlausible(event, props) {
-  try {
-    if (typeof window.plausible === 'function') {
-      window.plausible(event, props ? { props: props } : undefined);
-    }
-  } catch (e) {}
-}
-
-// Page-level t0 for "time to first useful card" metric — set once on load.
-var _analyzePageT0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 var _tldrShownLogged = false;
 
 /**
@@ -66,38 +54,153 @@ function getQueryParam(name) {
 }
 
 // === KaTeX rendering helpers ===
-function renderFormula(latex) {
-  if (!latex || typeof window.katex === 'undefined') {
-    return `<div class="structure-block__formula">${escapeHtml(latex || '')}</div>`;
-  }
-  try {
-    const html = window.katex.renderToString(latex, {
-      throwOnError: false,
-      displayMode: true,
-      errorColor: 'var(--text-tertiary)',
-      strict: false,
-      output: 'html',
-    });
-    return `<div class="structure-block__formula structure-block__formula--rendered">${html}</div>`;
-  } catch (e) {
-    console.warn('[analyze] KaTeX render failed');
-    return `<div class="structure-block__formula">${escapeHtml(latex)}</div>`;
-  }
+const ANALYZE_MATH_BACKGROUND_DELAY_MS = 8000;
+const ANALYZE_MATH_ASSETS = Object.freeze([
+  Object.freeze({
+    id: 'style', tag: 'link',
+    url: '/assets/vendor/katex/katex.min.css?v=0.16.11',
+  }),
+  Object.freeze({
+    id: 'core', tag: 'script',
+    url: '/assets/vendor/katex/katex.min.js?v=0.16.11',
+    ready: () => typeof window.katex?.renderToString === 'function',
+  }),
+  Object.freeze({
+    id: 'auto-render', tag: 'script',
+    url: '/assets/vendor/katex/contrib/auto-render.min.js?v=0.16.11',
+    ready: () => typeof window.renderMathInElement === 'function',
+  }),
+]);
+let _analyzeMathRuntimePromise = null;
+let _analyzeMathBackgroundTimer = null;
+
+function analyzeMathRuntimeReady() {
+  return ANALYZE_MATH_ASSETS.slice(1).every(asset => asset.ready());
 }
 
-function renderInlineMath(latex) {
-  if (!latex || typeof window.katex === 'undefined') return escapeHtml(latex || '');
+function analyzeMathAssetHref(asset) {
+  const origin = new URL(window.location.href).origin;
+  const resolved = new URL(asset.url, `${origin}/`);
+  if (resolved.origin !== origin || `${resolved.pathname}${resolved.search}` !== asset.url) {
+    throw new Error('Analyze math asset URL is not same-origin');
+  }
+  return resolved.href;
+}
+
+function loadAnalyzeMathAsset(asset) {
+  if (asset.ready && asset.ready()) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const selector = `[data-analyze-math-asset="${asset.id}"]`;
+    let node = document.querySelector(selector);
+    let created = false;
+    const loaded = () => {
+      node.dataset.analyzeMathState = 'loaded';
+      if (asset.ready && !asset.ready()) {
+        reject(new Error('Analyze math runtime did not initialize'));
+        return;
+      }
+      resolve();
+    };
+    const failed = () => {
+      node.dataset.analyzeMathState = 'failed';
+      reject(new Error('Analyze math asset failed to load'));
+    };
+    if (node) {
+      if (node.dataset.analyzeMathState === 'loaded') {
+        loaded();
+        return;
+      }
+      if (node.dataset.analyzeMathState === 'failed') {
+        failed();
+        return;
+      }
+    } else {
+      node = document.createElement(asset.tag);
+      created = true;
+      node.dataset.analyzeMathAsset = asset.id;
+      if (asset.tag === 'link') {
+        node.rel = 'stylesheet';
+        node.href = analyzeMathAssetHref(asset);
+      } else {
+        node.src = analyzeMathAssetHref(asset);
+        node.async = true;
+      }
+    }
+    node.addEventListener('load', loaded, { once: true });
+    node.addEventListener('error', failed, { once: true });
+    if (created) document.head.appendChild(node);
+  });
+}
+
+function renderKatexHtml(latex, displayMode) {
+  if (!latex || typeof window.katex?.renderToString !== 'function') return null;
   try {
     return window.katex.renderToString(latex, {
       throwOnError: false,
-      displayMode: false,
+      displayMode,
       errorColor: 'var(--text-tertiary)',
       strict: false,
+      trust: false,
+      maxSize: 10,
+      maxExpand: 1000,
       output: 'html',
     });
-  } catch (e) {
-    return escapeHtml(latex);
+  } catch (_) {
+    return null;
   }
+}
+
+function renderFormula(latex) {
+  const html = renderKatexHtml(latex, true);
+  if (html === null) {
+    return `<div class="structure-block__formula">${escapeHtml(latex || '')}</div>`;
+  }
+  return `<div class="structure-block__formula structure-block__formula--rendered">${html}</div>`;
+}
+
+function renderInlineMath(latex) {
+  const html = renderKatexHtml(latex, false);
+  return html === null ? escapeHtml(latex || '') : html;
+}
+
+function enhanceAnalyzeMath(root) {
+  if (!root || !analyzeMathRuntimeReady()) return false;
+  root.querySelectorAll(
+    '.structure-block__formula:not(.structure-block__formula--rendered)'
+  ).forEach((node) => {
+    const latex = node.textContent || '';
+    if (!latex || latex.length > 500) return;
+    const html = renderKatexHtml(latex, true);
+    if (html === null) return;
+    node.innerHTML = html;
+    node.classList.add('structure-block__formula--rendered');
+  });
+  if (typeof window.renderMath === 'function') window.renderMath(root);
+  return true;
+}
+
+function requestAnalyzeMathRuntime() {
+  if (_analyzeMathRuntimePromise) return _analyzeMathRuntimePromise;
+  _analyzeMathRuntimePromise = ANALYZE_MATH_ASSETS.reduce(
+    (chain, asset) => chain.then(() => loadAnalyzeMathAsset(asset)),
+    Promise.resolve()
+  ).then(() => {
+    if (!analyzeMathRuntimeReady()) throw new Error('Analyze math runtime is incomplete');
+    enhanceAnalyzeMath(document.getElementById('analyze-sections'));
+    return true;
+  }).catch(() => {
+    console.warn('[analyze] optional math rendering unavailable');
+    return false;
+  });
+  return _analyzeMathRuntimePromise;
+}
+
+function scheduleAnalyzeMathRuntime() {
+  if (_analyzeMathRuntimePromise || _analyzeMathBackgroundTimer !== null) return;
+  _analyzeMathBackgroundTimer = setTimeout(() => {
+    _analyzeMathBackgroundTimer = null;
+    requestAnalyzeMathRuntime();
+  }, ANALYZE_MATH_BACKGROUND_DELAY_MS);
 }
 
 // Use the global renderMath from utils.js
@@ -547,7 +650,6 @@ function renderProgress() {
       const target = $(`#section-${btn.dataset.key}`);
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       // W3-B: user clicked the progress nav to jump to / expand a section.
-      trackPlausible('analyze_section_expanded', { section_name: btn.dataset.key || 'unknown' });
     }
   });
 }
@@ -627,14 +729,9 @@ function renderTldrCard() {
     return;
   }
   el.hidden = false;
-  // W3-B: tldr_card_shown — fired exactly once per page, on the first
-  // transition from hidden → visible.
+  // Record the first transition locally so repeat renders stay idempotent.
   if (!_tldrShownLogged) {
     _tldrShownLogged = true;
-    var _now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    trackPlausible('tldr_card_shown', {
-      time_to_first_section_ms: Math.round(_now - _analyzePageT0)
-    });
   }
 
   const md = window.mdInline || ((s) => escapeHtml(s || ''));
@@ -760,6 +857,7 @@ function renderFinalReport(report) {
       </section>
     `;
   }).join('');
+  if (analyzeMathRuntimeReady()) enhanceAnalyzeMath(container);
 
   // Mark all progress items as done
   const allKeys = new Set(SECTIONS.map(s => s.key));
@@ -796,7 +894,6 @@ function renderShareBar(persistedPayload) {
         const orig = copyBtn.textContent;
         copyBtn.textContent = T('page.analyze.share_copied', '已复制');
         setTimeout(() => { copyBtn.textContent = orig; }, 1500);
-        trackPlausible('Report Share Clicked', { via: 'copy' });
       };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(done).catch(() => {
@@ -816,7 +913,6 @@ function renderShareBar(persistedPayload) {
     openBtn.addEventListener('click', () => {
       const url = (urlInput && urlInput.value) || '';
       if (url) {
-        trackPlausible('Report Share Clicked', { via: 'open' });
         window.open(url, '_blank', 'noopener');
       }
     });
@@ -870,11 +966,6 @@ function submitFeedback(btn) {
         if (up) up.textContent = String(body.total_up || 0);
         if (down) down.textContent = String(body.total_down || 0);
       }
-      trackPlausible('Report Feedback', {
-        section: section || 'overall',
-        vote: vote === 1 ? 'up' : 'down',
-        is_partial: !!persisted.is_partial,
-      });
     })
     .catch((err) => {
       console.warn('[analyze] feedback failed');
@@ -2560,7 +2651,6 @@ function streamAnalysis(payload) {
     setAnalyzeReportStageState('ready');
     if (loading) loading.remove();
     terminalHandled = true;
-    if (accepted.persisted) trackPlausible('Report Persisted', { is_partial: false });
     es.close();
   }));
 
@@ -2886,7 +2976,7 @@ function renderDecisionBrief(context) {
         primary_metric: metric, stop_condition: stopCondition,
       } }),
     }).then((res) => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
-      .then(() => { message.textContent = '实验已保存；7 天后回来记录真实结果。'; trackPlausible('Decision Brief Experiment Created'); })
+      .then(() => { message.textContent = '实验已保存；7 天后回来记录真实结果。'; })
       .catch((err) => { saveButton.disabled = false; console.warn('[decision-brief] save failed'); message.textContent = '没保存成功，请检查报告所有权后重试。'; });
   });
 }
@@ -3401,6 +3491,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) { /* localStorage may be blocked; skip silently */ }
   }
 
+  scheduleAnalyzeMathRuntime();
   streamAnalysis(payload);
 });
 
@@ -3466,13 +3557,17 @@ if (typeof window !== 'undefined') {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
+    ANALYZE_MATH_BACKGROUND_DELAY_MS,
+    ANALYZE_MATH_ASSETS,
     analyzeGenerationMatches,
+    analyzeMathRuntimeReady,
     buildDecisionBriefModel,
     canonicalAnalyzeJson,
     commitAnalyzeReportForDisplay,
     createAnalyzeRequestContext,
     createAnalyzeTrustState,
     decisionBriefMarkdown,
+    enhanceAnalyzeMath,
     renderAnalyzeActionPlan: renderers.action_plan,
     renderAnalyzeBorrowableInsights: renderers.borrowable_insights,
     renderAnalyzeHowToCombine: renderers.how_to_combine,
@@ -3481,6 +3576,7 @@ if (typeof module !== 'undefined' && module.exports) {
     renderAnalyzeSharedStructure: renderers.shared_structure,
     renderAnalyzeStructuralMapping: renderers.structural_mapping,
     renderAnalyzeTargetDomainIntro: renderers.target_domain_intro,
+    requestAnalyzeMathRuntime,
     setAnalyzeReportStageState,
     sharePersistedAnalyzeReport,
     sha256CanonicalAnalyzeJson,

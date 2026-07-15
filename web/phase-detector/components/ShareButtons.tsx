@@ -37,7 +37,7 @@ export function ShareButtons({ url, text }: Props) {
         target="_blank"
         rel="noopener"
         onClick={() => trackEvent("thank_you_share", { channel: "x" })}
-        className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400"
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400"
       >
         分享到 X ↗
       </a>
@@ -46,14 +46,14 @@ export function ShareButtons({ url, text }: Props) {
         target="_blank"
         rel="noopener"
         onClick={() => trackEvent("thank_you_share", { channel: "linkedin" })}
-        className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400"
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400"
       >
         分享到 LinkedIn ↗
       </a>
       <button
         type="button"
         onClick={onCopy}
-        className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400"
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400"
       >
         {copied ? "已复制 ✓" : "复制链接"}
       </button>

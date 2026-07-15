@@ -97,7 +97,7 @@ function VerifyInner() {
       <p className="mt-4 text-sm">
         <Link
           href="/auth/login"
-          className="text-zinc-700 underline"
+          className="inline-flex min-h-11 items-center text-zinc-700 underline"
           data-testid="auth-verify-back-link"
         >
           ← 返回登录页

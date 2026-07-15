@@ -2,7 +2,7 @@
 
 Tests the 3-tier cookie consent system mounted via <CookieConsent />:
   1. First visit (no localStorage) shows the banner.
-  2. "Accept all" sets consent + loads Plausible script.
+  2. "Accept all" sets consent + dynamically imports the pinned Plausible module.
   3. "Essential only" suppresses Plausible.
   4. DNT (Do Not Track) header auto-disables analytics + hides banner.
   5. "Manage preferences" reopens the banner from elsewhere.
@@ -17,6 +17,7 @@ Run:
 """
 from __future__ import annotations
 
+import json
 import os
 import socket
 import subprocess
@@ -29,6 +30,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PHASE_DIR = REPO_ROOT / "web" / "phase-detector"
+PLAUSIBLE_EVENT = "https://plausible.bytedance.city/api/event"
 
 _LOCAL_VENV = REPO_ROOT / ".venv" / "bin" / "python"
 _MAIN_VENV = (
@@ -66,6 +68,25 @@ def _wait_port(host: str, port: int, timeout: float = 30.0) -> bool:
 
 def _have_next_dev() -> bool:
     return (PHASE_DIR / "node_modules" / ".bin" / "next").exists()
+
+
+def _capture_plausible_events(page) -> list[dict[str, object]]:
+    payloads: list[dict[str, object]] = []
+
+    def capture_event(route) -> None:
+        payloads.append(json.loads(route.request.post_data or "{}"))
+        route.fulfill(status=202, body="ok")
+
+    # The official package ignores webdriver traffic unless the verifier flag
+    # is present. The analytics origin is mocked; tracker code stays real.
+    page.add_init_script("window.__plausible = true")
+    # Capture every spelling of the analytics origin. A privacy regression
+    # must not escape the test merely because it percent-encodes `/api/event`.
+    page.route("https://plausible.bytedance.city/**", capture_event)
+    page.route("https://plausible.bytedance.city./**", capture_event)
+    page.route("http://plausible.bytedance.city/**", capture_event)
+    page.route("https://plausible.bytedance.city:444/**", capture_event)
+    return payloads
 
 
 @pytest.fixture(scope="module")
@@ -163,7 +184,8 @@ def test_first_visit_shows_banner(fresh_page):
 # ---------------------------------------------------------------------------
 def test_accept_all_loads_plausible(fresh_page):
     page, base = fresh_page
-    page.goto(base + "/privacy", wait_until="domcontentloaded", timeout=30000)
+    payloads = _capture_plausible_events(page)
+    page.goto(base + "/companies", wait_until="domcontentloaded", timeout=30000)
     page.wait_for_selector('[data-testid="cookie-accept-all"]', state="visible", timeout=8000)
     page.locator('[data-testid="cookie-accept-all"]').click()
     # Banner closes
@@ -175,15 +197,316 @@ def test_accept_all_loads_plausible(fresh_page):
     assert stored["analytics"] is True
     assert stored["essential"] is True
     assert stored["version"] == 1
-    # Plausible script injected
-    has_plausible = page.evaluate(
-        "() => !!document.getElementById('plausible-script')"
+    page.wait_for_function("() => window.plausible?.s === 'npm'")
+    deadline = time.time() + 5
+    while not payloads and time.time() < deadline:
+        page.wait_for_timeout(50)
+    assert payloads and payloads[0]["n"] == "pageview"
+    assert page.evaluate(
+        """() => !document.querySelector('script[src*="/js/script.js"]')"""
     )
-    assert has_plausible is True
+
+
+def test_plausible_transport_strips_url_secrets_referrer_and_unknown_props(
+    fresh_page,
+):
+    page, base = fresh_page
+    payloads = _capture_plausible_events(page)
+    page.goto(
+        base + "/companies?email=private%40example.test#access-token",
+        referer="https://referrer.example/private?secret=1",
+        wait_until="domcontentloaded",
+        timeout=30000,
+    )
+    page.wait_for_selector(
+        '[data-testid="cookie-accept-all"]', state="visible", timeout=8000
+    )
+    page.locator('[data-testid="cookie-accept-all"]').click()
+    page.wait_for_function("() => window.plausible?.s === 'npm'")
+    deadline = time.time() + 5
+    while len(payloads) < 1 and time.time() < deadline:
+        page.wait_for_timeout(50)
+    assert payloads, "expected a sanitized Plausible pageview"
+
+    pageview = payloads[0]
+    assert set(pageview) <= {"u", "n", "d", "v", "p"}
+    assert pageview["n"] == "pageview"
+    assert pageview["u"] == base + "/companies"
+    assert "?" not in str(pageview["u"])
+    assert "#" not in str(pageview["u"])
+    assert not {"r", "ref", "referrer"}.intersection(pageview)
+
+    # The endpoint-scoped guard must leave unrelated application fetches alone.
+    assert page.evaluate("() => fetch('/companies').then((r) => r.status)") == 200
+    assert page.evaluate(
+        """() => fetch('data:text/plain,ok').then(async (response) => ({
+          status: response.status,
+          body: await response.text(),
+        }))"""
+    ) == {"status": 200, "body": "ok"}
+
+    # URL variants of the protected endpoint are not unrelated traffic. Query,
+    # fragment and path-normalization aliases must fail closed before their raw
+    # body reaches the wire. Browser URL parsing resolves dot segments before
+    # the request; the guard must still compare the caller's raw target.
+    before_endpoint_variants = len(payloads)
+    variant_statuses = page.evaluate(
+        """
+        async (endpoint) => {
+          const origin = new URL(endpoint).origin;
+          const variants = [
+            `${endpoint}?email=private@example.test`,
+            `${endpoint}#private-fragment`,
+            `${origin}/api/%65vent`,
+            `${origin}/%61pi/event`,
+            `${origin}/api%2fevent`,
+            `${origin}/api//event`,
+            `${origin}/api/private/../event`,
+            `${origin}/api/%2e%2e/api/event`,
+            `${origin}/api/%252e%252e/api/event`,
+            `${origin}/api/%E0%A4%A`,
+            `https://plausible.bytedance.city./api/event`,
+            `http://plausible.bytedance.city/api/event`,
+            `https://plausible.bytedance.city:444/api/event`,
+            `https://PLAUSIBLE.BYTEDANCE.CITY/api/event`,
+            `https://plausible.bytedance.city:443/api/event`,
+            `https://plausible.bytedance.city%2e/api/event`,
+          ];
+          return Promise.all(variants.map((target) => fetch(target, {
+            method: "POST",
+            body: JSON.stringify({
+              n: "pageview",
+              u: "https://private.example/?token=1",
+              p: { secret: "must-not-leave-browser" },
+            }),
+          }).then((response) => response.status)));
+        }
+        """,
+        PLAUSIBLE_EVENT,
+    )
+    assert variant_statuses == [204] * 16
+    assert len(payloads) == before_endpoint_variants
+
+    # A URL object from another same-origin realm must still enter the same
+    # sanitizer. Realm-specific `instanceof URL` checks are not a security
+    # boundary.
+    cross_realm_status = page.evaluate(
+        """
+        async (endpoint) => {
+          const frame = document.createElement("iframe");
+          document.body.append(frame);
+          try {
+            const ForeignURL = frame.contentWindow.URL;
+            return await fetch(new ForeignURL(endpoint), {
+              method: "POST",
+              body: JSON.stringify({
+                n: "pageview",
+                u: "https://private.example/?token=1",
+                p: { secret: "must-not-leave-browser" },
+              }),
+            }).then((response) => response.status);
+          } finally {
+            frame.remove();
+          }
+        }
+        """,
+        PLAUSIBLE_EVENT,
+    )
+    assert cross_realm_status == 202
+    assert len(payloads) == before_endpoint_variants + 1
+    assert payloads[-1] == {
+        "n": "pageview",
+        "u": base + "/companies",
+        "d": "phase.bytedance.city",
+    }
+
+    # Runtime route checks use the browser's current path, not only the value
+    # React observed at mount. Encoded, repeated-slash, dot-segment and
+    # malformed spellings of a private route all stay fail closed even before
+    # React observes a navigation and tears down the installed transport.
+    route_variants = [
+        "/%61uth/login",
+        "/auth%2flogin",
+        "/%2561uth/login",
+        "/companies//auth/login",
+        "/companies/../auth/login",
+        "/companies/%2e%2e/auth/login",
+        "/companies/%252e%252e/auth/login",
+        "/%61uth/%E0%A4%A",
+    ]
+    before_route_variants = len(payloads)
+    route_statuses = page.evaluate(
+        """
+        async ({ endpoint, aliasEndpoint, paths }) => {
+          const statuses = [];
+          for (const path of paths) {
+            history.replaceState(null, "", path);
+            for (const target of [endpoint, aliasEndpoint]) {
+              statuses.push(await fetch(target, {
+                method: "POST",
+                body: JSON.stringify({
+                  n: "newsletter_link_click",
+                  u: "https://private.example/?token=1",
+                  p: { issue: "private", destination: "archive" },
+                }),
+              }).then((response) => response.status));
+            }
+          }
+          history.replaceState(null, "", "/companies");
+          return statuses;
+        }
+        """,
+        {
+            "endpoint": PLAUSIBLE_EVENT,
+            "aliasEndpoint": "https://plausible.bytedance.city./api/event",
+            "paths": route_variants,
+        },
+    )
+    assert route_statuses == [204] * (2 * len(route_variants))
+    assert len(payloads) == before_route_variants
+
+    # Exercise the real module's internal engagement path. Plausible 0.4.5
+    # sends this directly, bypassing transformRequest; the endpoint guard must
+    # observe the attempt but keep it from reaching the mocked event endpoint.
+    before_engagement = len(payloads)
+    engagement_attempts = page.evaluate(
+        """
+        async (endpoint) => {
+          const guardedFetch = window.fetch;
+          const ownVisibility = Object.getOwnPropertyDescriptor(
+            document,
+            "visibilityState",
+          );
+          const attempts = [];
+          window.fetch = (input, init) => {
+            const raw =
+              typeof input === "string"
+                ? input
+                : input instanceof URL
+                  ? input.href
+                  : input.url;
+            if (
+              new URL(raw, window.location.href).href === endpoint &&
+              typeof init?.body === "string"
+            ) {
+              attempts.push(JSON.parse(init.body));
+            }
+            return guardedFetch(input, init);
+          };
+          try {
+            Object.defineProperty(document, "visibilityState", {
+              configurable: true,
+              value: "hidden",
+            });
+            document.dispatchEvent(new Event("visibilitychange"));
+            await new Promise((resolve) => setTimeout(resolve, 150));
+          } finally {
+            window.fetch = guardedFetch;
+            if (ownVisibility) {
+              Object.defineProperty(document, "visibilityState", ownVisibility);
+            } else {
+              delete document.visibilityState;
+            }
+          }
+          return attempts;
+        }
+        """,
+        PLAUSIBLE_EVENT,
+    )
+    assert any(event.get("n") == "engagement" for event in engagement_attempts)
+    assert len(payloads) == before_engagement
+
+    before_custom = len(payloads)
+    page.evaluate(
+        """
+        () => window.plausible("newsletter_link_click", {
+          props: {
+            issue: "42",
+            destination: "archive",
+            secret: "must-not-leave-browser",
+            url: "https://private.example/token",
+          },
+        })
+        """
+    )
+    deadline = time.time() + 5
+    while len(payloads) <= before_custom and time.time() < deadline:
+        page.wait_for_timeout(50)
+    assert len(payloads) == before_custom + 1, (
+        "expected exactly one sanitized Plausible custom event"
+    )
+    custom = payloads[-1]
+    assert set(custom) <= {"u", "n", "d", "v", "p"}
+    assert custom["n"] == "newsletter_link_click"
+    assert custom["u"] == base + "/companies"
+    assert custom["p"] == {"issue": "42", "destination": "archive"}
+    assert not {"r", "ref", "referrer"}.intersection(custom)
+
+    before_unknown_event = len(payloads)
+    page.evaluate(
+        """
+        () => window.plausible("unregistered_private_event", {
+          props: { secret: "must-not-leave-browser" },
+        })
+        """
+    )
+    page.wait_for_timeout(200)
+    assert len(payloads) == before_unknown_event
+
+    before_sensitive_route = len(payloads)
+    page.goto(
+        base + "/privacy?email=private%40example.test#access-token",
+        wait_until="domcontentloaded",
+        timeout=30000,
+    )
+    page.evaluate(
+        """
+        () => window.plausible?.("newsletter_link_click", {
+          props: { issue: "43", destination: "private" },
+        })
+        """
+    )
+    page.wait_for_timeout(400)
+    assert len(payloads) == before_sensitive_route
+
+
+def test_withdrawal_blocks_window_and_stale_official_tracker(fresh_page):
+    page, base = fresh_page
+    payloads = _capture_plausible_events(page)
+    page.goto(base + "/companies", wait_until="domcontentloaded", timeout=30000)
+    page.locator('[data-testid="cookie-accept-all"]').click()
+    page.wait_for_function("() => window.plausible?.s === 'npm'")
+    deadline = time.time() + 5
+    while not payloads and time.time() < deadline:
+        page.wait_for_timeout(50)
+    assert payloads
+    page.evaluate("window.__stalePlausible = window.plausible")
+
+    page.evaluate("window.dispatchEvent(new CustomEvent('cookie-consent:open'))")
+    page.locator('[data-testid="cookie-tier-analytics"]').uncheck()
+    page.locator('[data-testid="cookie-save-custom"]').click()
+    page.wait_for_selector(
+        '[data-testid="cookie-consent"]', state="detached", timeout=5000
+    )
+    before_withdrawn_calls = len(payloads)
+    page.evaluate(
+        """
+        () => {
+          window.plausible?.("newsletter_link_click", {
+            props: { issue: "withdrawn", destination: "private" },
+          });
+          window.__stalePlausible?.("newsletter_link_click", {
+            props: { issue: "stale", destination: "private" },
+          });
+        }
+        """
+    )
+    page.wait_for_timeout(400)
+    assert len(payloads) == before_withdrawn_calls
 
 
 # ---------------------------------------------------------------------------
-# 3. Essential only → Plausible NOT loaded
+# 3. Essential only → Plausible module NOT imported
 # ---------------------------------------------------------------------------
 def test_essential_only_suppresses_plausible(fresh_page):
     page, base = fresh_page
@@ -217,7 +540,7 @@ def test_dnt_auto_disables_analytics(dnt_page):
     # Implicit consent record stored with analytics=false
     stored = page.evaluate("() => JSON.parse(localStorage.getItem('cookie_consent_v1'))")
     assert stored is not None and stored["analytics"] is False
-    # Plausible NOT injected
+    # The retired legacy Plausible script is never injected.
     has_plausible = page.evaluate(
         "() => !!document.getElementById('plausible-script')"
     )
@@ -237,7 +560,7 @@ def test_manage_preferences_reopens(fresh_page):
         '[data-testid="cookie-consent"]', state="detached", timeout=5000
     )
     # Now click "Manage cookies" button on the privacy page
-    page.locator('[data-testid="manage-cookies-button"]').click()
+    page.locator('#main-content [data-testid="manage-cookies-button"]').click()
     # Banner reopens in customize mode
     page.wait_for_selector('[data-testid="cookie-consent"]', state="visible", timeout=5000)
     # Analytics checkbox should reflect prior choice (checked)

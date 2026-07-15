@@ -13,6 +13,7 @@
   var KEY_TTL_MS = 15 * 60 * 1000;
   var STATE_TTL_MS = 24 * 60 * 60 * 1000;
   var MAX_PENDING = 64;
+  var MAX_STORAGE_ENTRIES = 4096;
   var KEY_ATTEMPTS = 4;
   var MAX_RESEARCH_QUERY_CHARS = 8000;
   var ERROR_REGION_ID = 'private-navigation-error';
@@ -61,14 +62,47 @@
     return false;
   }
 
-  function safeText(value, maximum, allowLayout) {
-    if (typeof value !== 'string') return '';
+  function codePointLength(value) {
+    return Array.from(String(value || '')).length;
+  }
+
+  function textStatus(value, maximum, allowLayout) {
+    if (typeof value !== 'string') {
+      return { value: '', count: 0, valid: false, error: 'invalid_type' };
+    }
     var text = value.normalize('NFKC');
     if (hasForbiddenUnicode(value, allowLayout) ||
-        hasForbiddenUnicode(text, allowLayout)) return '';
-    text = text.trim();
-    if (!text || text.length > maximum || HTML_TAG_RE.test(text)) return '';
-    return text;
+        hasForbiddenUnicode(text, allowLayout)) {
+      return { value: '', count: codePointLength(text), valid: false, error: 'invalid_characters' };
+    }
+    text = allowLayout
+      ? text.trim().split(/\s+/u).filter(Boolean).join(' ')
+      : text.trim();
+    var count = codePointLength(text);
+    if (!text) return { value: '', count: 0, valid: false, error: 'blank_query' };
+    if (count > maximum) {
+      return { value: '', count: count, valid: false, error: 'query_too_long' };
+    }
+    if (HTML_TAG_RE.test(text)) {
+      return { value: '', count: count, valid: false, error: 'invalid_markup' };
+    }
+    return { value: text, count: count, valid: true, error: null };
+  }
+
+  function safeText(value, maximum, allowLayout) {
+    var status = textStatus(value, maximum, allowLayout);
+    return status.valid ? status.value : '';
+  }
+
+  function researchQueryStatus(value) {
+    var status = textStatus(value, MAX_RESEARCH_QUERY_CHARS, true);
+    return Object.assign({ limit: MAX_RESEARCH_QUERY_CHARS }, status);
+  }
+
+  function researchQueryCharacterCount(value) {
+    if (typeof value !== 'string') return 0;
+    var text = value.normalize('NFKC').trim().split(/\s+/u).filter(Boolean).join(' ');
+    return codePointLength(text);
   }
 
   function safeId(value) {
@@ -89,12 +123,30 @@
     } catch (_) { return ''; }
   }
 
-  function privateNavigationCopy() {
+  function privateNavigationCopy(code) {
     var english = false;
     try {
       english = document.documentElement.lang.toLowerCase().indexOf('en') === 0 ||
         (window.i18n && window.i18n.getLang && window.i18n.getLang() === 'en');
     } catch (_) { /* Chinese is the safe default */ }
+    if (code === 'query_too_long') {
+      return english ? {
+        title: 'This question is over the 8,000-character limit',
+        body: 'Shorten the question to 8,000 Unicode characters or fewer. Nothing was added to the URL and this page did not navigate.',
+      } : {
+        title: '问题超过 8,000 字限制',
+        body: '请将问题缩短到 8,000 个 Unicode 字符以内。问题没有写入网址，页面也没有跳转。',
+      };
+    }
+    if (code === 'invalid_characters' || code === 'invalid_markup') {
+      return english ? {
+        title: 'This question contains unsupported characters',
+        body: 'Remove hidden controls or embedded markup and try again. Nothing was added to the URL and this page did not navigate.',
+      } : {
+        title: '问题包含无法安全处理的字符',
+        body: '请移除隐藏控制符或嵌入标记后重试。问题没有写入网址，页面也没有跳转。',
+      };
+    }
     return english ? {
       title: 'Could not open this research question safely',
       body: 'The browser could not create a one-time local handoff. Your question was not added to the URL and this page did not navigate. Allow secure storage for this tab, then try again.',
@@ -129,7 +181,7 @@
         region.style.cssText = 'max-width:720px;margin:16px auto;padding:16px 18px;border:1px solid #d6d3d1;border-radius:12px;background:#fff;color:#1c1917;box-shadow:0 8px 24px rgba(28,25,23,.06)';
         host.insertBefore(region, host.firstChild);
       }
-      var copy = privateNavigationCopy();
+      var copy = privateNavigationCopy(code);
       region.replaceChildren();
       var title = document.createElement('strong');
       title.textContent = copy.title;
@@ -252,18 +304,39 @@
   function pendingRecords() {
     var rows = [];
     try {
-      for (var index = 0; index < sessionStorage.length; index += 1) {
+      var scanLimit = sessionStorage.length;
+      if (!Number.isSafeInteger(scanLimit) || scanLimit < 0 || scanLimit > MAX_STORAGE_ENTRIES) {
+        return null;
+      }
+      var index = 0;
+      for (var scanned = 0; scanned < scanLimit && index < sessionStorage.length; scanned += 1) {
+        var currentLength = sessionStorage.length;
+        if (!Number.isSafeInteger(currentLength) || currentLength < 0 ||
+            currentLength > MAX_STORAGE_ENTRIES) return null;
+        if (index >= currentLength) break;
         var key = sessionStorage.key(index);
-        if (!key || key.indexOf(PREFIX) !== 0) continue;
+        if (typeof key !== 'string' || !key) return null;
+        if (key.indexOf(PREFIX) !== 0) {
+          index += 1;
+          continue;
+        }
         var created = 0;
         try { created = Number(JSON.parse(sessionStorage.getItem(key) || '{}').created_at) || 0; } catch (_) {}
         if (!created || Date.now() - created > KEY_TTL_MS) {
           sessionStorage.removeItem(key);
-          index -= 1;
+          if (sessionStorage.getItem(key) !== null) return null;
+          var reducedLength = sessionStorage.length;
+          if (!Number.isSafeInteger(reducedLength) || reducedLength !== currentLength - 1) {
+            return null;
+          }
         } else {
           rows.push({ key: key, created_at: created });
+          index += 1;
         }
       }
+      var finalLength = sessionStorage.length;
+      if (!Number.isSafeInteger(finalLength) || finalLength < 0 ||
+          finalLength > MAX_STORAGE_ENTRIES || index < finalLength) return null;
     } catch (_) { return null; }
     return rows.sort(function (left, right) { return left.created_at - right.created_at; });
   }
@@ -304,6 +377,8 @@
 
   function buildPrivateSearchUrl(options) {
     options = options || {};
+    var queryStatus = researchQueryStatus(options.query);
+    if (!queryStatus.valid) return failNavigation(queryStatus.error || 'invalid_context');
     var context = newContext('search', options);
     if (!context) return failNavigation('invalid_context');
     var params = publicSearchParams(options);
@@ -319,6 +394,8 @@
     options = options || {};
     var id = safeId(options.id);
     if (!id) return failNavigation('invalid_context');
+    var queryStatus = researchQueryStatus(options.query);
+    if (!queryStatus.valid) return failNavigation(queryStatus.error || 'invalid_context');
     var context = newContext('phenomenon', options);
     if (!context) return failNavigation('invalid_context');
     var params = publicSearchParams(options);
@@ -429,6 +506,8 @@
     updatePrivateNavigationState: updatePrivateNavigationState,
     announcePrivateNavigationError: announcePrivateNavigationError,
     clearPrivateNavigationError: clearPrivateNavigationError,
+    researchQueryStatus: researchQueryStatus,
+    researchQueryCharacterCount: researchQueryCharacterCount,
     MAX_RESEARCH_QUERY_CHARS: MAX_RESEARCH_QUERY_CHARS,
   };
   if (typeof window !== 'undefined') Object.assign(window, api);

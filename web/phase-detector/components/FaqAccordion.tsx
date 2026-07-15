@@ -149,7 +149,7 @@ export function FaqAccordion() {
         {QUESTIONS.map((qa) => (
           <li key={qa.q}>
             <details className="group py-5 sm:py-6" data-testid="faq-item">
-              <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-left">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 text-left">
                 <span className="text-base font-medium text-zinc-900 sm:text-lg">
                   {qa.q}
                 </span>
