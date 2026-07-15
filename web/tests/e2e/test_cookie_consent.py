@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -36,6 +37,17 @@ _LOCAL_VENV = REPO_ROOT / ".venv" / "bin" / "python"
 _MAIN_VENV = (
     Path.home() / "Projects" / "structural-isomorphism" / ".venv" / "bin" / "python"
 )
+
+
+def _published_universality_paths() -> tuple[str, ...]:
+    source = (PHASE_DIR / "lib" / "sitemap-data.ts").read_text(encoding="utf-8")
+    block = source.split(
+        "export const PHASE_DETECTOR_UNIVERSALITY_CLASSES: string[] = [", 1
+    )[1].split("];", 1)[0]
+    return tuple(
+        f"/universality/{class_id}"
+        for class_id in re.findall(r'"([A-Za-z0-9_]+)"', block)
+    )
 
 
 def _resolve_python() -> str:
@@ -196,6 +208,7 @@ def test_accept_all_loads_plausible(fresh_page):
     stored = page.evaluate("() => JSON.parse(localStorage.getItem('cookie_consent_v1'))")
     assert stored["analytics"] is True
     assert stored["essential"] is True
+    assert stored["marketing"] is False
     assert stored["version"] == 1
     page.wait_for_function("() => window.plausible?.s === 'npm'")
     deadline = time.time() + 5
@@ -545,6 +558,169 @@ def test_dnt_auto_disables_analytics(dnt_page):
         "() => !!document.getElementById('plausible-script')"
     )
     assert has_plausible is False
+
+
+def test_dnt_cannot_be_overridden_from_reopened_preferences(dnt_page):
+    page, base = dnt_page
+    payloads = _capture_plausible_events(page)
+    page.goto(base + "/companies", wait_until="domcontentloaded", timeout=30000)
+    page.wait_for_timeout(500)
+
+    page.evaluate("window.dispatchEvent(new CustomEvent('cookie-consent:open'))")
+    page.wait_for_selector(
+        '[data-testid="cookie-consent"]', state="visible", timeout=5000
+    )
+    page.get_by_role("button", name="返回").click()
+    page.locator('[data-testid="cookie-accept-all"]').click()
+    page.wait_for_selector(
+        '[data-testid="cookie-consent"]', state="detached", timeout=5000
+    )
+
+    stored = page.evaluate(
+        "() => JSON.parse(localStorage.getItem('cookie_consent_v1'))"
+    )
+    assert stored["analytics"] is False
+    assert stored["marketing"] is False
+    page.evaluate(
+        """
+        () => window.plausible?.("newsletter_link_click", {
+          props: { issue: "dnt", destination: "archive" },
+        })
+        """
+    )
+    page.wait_for_timeout(300)
+    assert payloads == []
+
+
+def test_runtime_dnt_blocks_current_and_stale_tracker(fresh_page):
+    page, base = fresh_page
+    payloads = _capture_plausible_events(page)
+    page.goto(base + "/companies", wait_until="domcontentloaded", timeout=30000)
+    page.locator('[data-testid="cookie-accept-all"]').click()
+    page.wait_for_function("() => window.plausible?.s === 'npm'")
+    deadline = time.time() + 5
+    while not payloads and time.time() < deadline:
+        page.wait_for_timeout(50)
+    assert payloads
+
+    page.evaluate(
+        """
+        () => {
+          window.__stalePlausible = window.plausible;
+          Object.defineProperty(navigator, "doNotTrack", {
+            value: "1", configurable: true,
+          });
+        }
+        """
+    )
+    before_dnt = len(payloads)
+    page.evaluate(
+        """
+        () => {
+          window.plausible?.("newsletter_link_click", {
+            props: { issue: "current", destination: "archive" },
+          });
+          window.__stalePlausible?.("newsletter_link_click", {
+            props: { issue: "stale", destination: "archive" },
+          });
+        }
+        """
+    )
+    page.wait_for_timeout(400)
+    assert len(payloads) == before_dnt
+
+
+def test_malformed_consent_cannot_enable_analytics(fresh_page):
+    page, base = fresh_page
+    payloads = _capture_plausible_events(page)
+    page.add_init_script(
+        """
+        localStorage.setItem("cookie_consent_v1", JSON.stringify({
+          essential: true,
+          analytics: "yes",
+          marketing: false,
+          version: 1,
+          timestamp: Date.now(),
+        }));
+        """
+    )
+    page.goto(base + "/companies", wait_until="domcontentloaded", timeout=30000)
+    page.wait_for_selector(
+        '[data-testid="cookie-consent"]', state="visible", timeout=8000
+    )
+    page.wait_for_timeout(300)
+    assert payloads == []
+
+
+@pytest.mark.parametrize(
+    "path",
+    (
+        "/company/AAPL",
+        "/company/PG",
+        "/company/0700.HK",
+        "/newsletter/001",
+        *_published_universality_paths(),
+    ),
+)
+def test_allowlisted_dynamic_routes_emit_canonical_pageviews(fresh_page, path):
+    page, base = fresh_page
+    payloads = _capture_plausible_events(page)
+    page.add_init_script(
+        """
+        localStorage.setItem("cookie_consent_v1", JSON.stringify({
+          essential: true,
+          analytics: true,
+          marketing: false,
+          version: 1,
+          timestamp: Date.now(),
+        }));
+        """
+    )
+    page.goto(
+        base + path + "?private=discard#secret",
+        wait_until="domcontentloaded",
+        timeout=30000,
+    )
+    deadline = time.time() + 5
+    while not payloads and time.time() < deadline:
+        page.wait_for_timeout(50)
+    assert payloads
+    assert payloads[0]["n"] == "pageview"
+    assert payloads[0]["u"] == base + path
+
+
+@pytest.mark.parametrize(
+    "path",
+    (
+        "/unknown-private-capability",
+        "/invite/opaque-token",
+        "/company/SECRET123",
+        "/company/TOO-LONG-TICKER",
+        "/universality/opaque-token",
+        "/universality/secrettoken_0123456789",
+        "/universality/not_a_real_class",
+        "/newsletter/not-an-issue",
+        "/newsletter/999",
+        "/%2569nvite%252fopaque-token",
+    ),
+)
+def test_unknown_and_opaque_routes_never_emit_pageviews(fresh_page, path):
+    page, base = fresh_page
+    payloads = _capture_plausible_events(page)
+    page.add_init_script(
+        """
+        localStorage.setItem("cookie_consent_v1", JSON.stringify({
+          essential: true,
+          analytics: true,
+          marketing: false,
+          version: 1,
+          timestamp: Date.now(),
+        }));
+        """
+    )
+    page.goto(base + path, wait_until="domcontentloaded", timeout=30000)
+    page.wait_for_timeout(500)
+    assert payloads == []
 
 
 # ---------------------------------------------------------------------------

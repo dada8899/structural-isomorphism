@@ -1,6 +1,8 @@
 """Independent release gate for Phase privacy boundaries."""
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 
 
@@ -31,10 +33,20 @@ def test_phase_analytics_is_route_event_and_property_allowlisted() -> None:
     pricing = _read("web/phase-detector/components/PricingTable.tsx")
     onboarding = _read("web/phase-detector/components/OnboardingTour.tsx")
     for route in (
-        "auth", "me", "privacy", "checkout", "thank-you", "onboarding",
-        "search", "reports?", "analyze",
+        '"/about"', '"/backtest"', '"/companies"', '"/compare"',
+        '"/methodology"', '"/newsletter"', '"/offline"', '"/pricing"',
+        '"/universality"', '"/zh"',
     ):
         assert route in analytics
+    assert "PUBLIC_ANALYTICS_ROUTES" in analytics
+    assert "PUBLIC_DYNAMIC_ANALYTICS_ROUTES" in analytics
+    assert "SENSITIVE_ROUTE" not in analytics
+    assert "function publicAnalyticsPath(" in analytics
+    assert "PUBLIC_ANALYTICS_ROUTES.has(canonical)" in analytics
+    assert "PUBLIC_DYNAMIC_ANALYTICS_ROUTES.has(canonical)" in analytics
+    assert "PHASE_DETECTOR_TICKERS.map" in analytics
+    assert "ISSUES.map" in analytics
+    assert "PHASE_DETECTOR_UNIVERSALITY_CLASSES.map" in analytics
     assert "EVENT_PROP_ALLOWLIST" in analytics
     assert "export function normalizeAnalyticsPath(" in analytics
     assert "MAX_PATH_DECODE_ROUNDS = 3" in analytics
@@ -111,6 +123,7 @@ def test_phase_analytics_is_route_event_and_property_allowlisted() -> None:
     transform = consent[consent.index("function privacyTransform"):consent.index(
         "\n}\n\nfunction ignoredAnalyticsResponse", consent.index("function privacyTransform")
     )]
+    assert "isDNT()" in transform
     for raw_field in ("referrer", "ref"):
         assert raw_field not in transform
     assert "safe.r" not in transform
@@ -124,6 +137,57 @@ def test_phase_analytics_is_route_event_and_property_allowlisted() -> None:
     assert "window.plausible" not in onboarding
     assert "trackEvent(Events.ResearchPreviewInterest" in pricing
     assert "trackEvent(name, props)" in onboarding
+
+
+def test_phase_dnt_and_consent_schema_fail_closed_at_transport() -> None:
+    consent = _read("web/phase-detector/components/CookieConsent.tsx")
+    read_consent = consent[
+        consent.index("function readConsent(") : consent.index(
+            "\n}\n\nfunction writeConsent", consent.index("function readConsent(")
+        )
+    ]
+    load = consent[
+        consent.index("function loadPlausible(") : consent.index(
+            "\n}\n\nfunction unloadPlausible", consent.index("function loadPlausible(")
+        )
+    ]
+    persist = consent[
+        consent.index("const persistAndApply") : consent.index(
+            "\n\n  const acceptAll", consent.index("const persistAndApply")
+        )
+    ]
+    guard = consent[
+        consent.index("function installAnalyticsFetchGuard(") : consent.index(
+            "\n}\n\nfunction initializedTracker", consent.index("function installAnalyticsFetchGuard(")
+        )
+    ]
+
+    for required in (
+        'typeof candidate.analytics !== "boolean"',
+        "candidate.marketing !== false",
+        "candidate.essential !== true",
+        "!Number.isFinite(candidate.timestamp)",
+    ):
+        assert required in read_consent
+    assert "isDNT()" in load
+    assert "a && !isDNT()" in persist
+    assert "isDNT() || !analyticsTransportEnabled" in guard
+    assert "const acceptAll = () => persistAndApply(true)" in consent
+
+
+def test_phase_company_route_registry_equals_product_artifact() -> None:
+    artifact = json.loads(
+        _read("v4/product/d1_phase_detector/data/ews_results.json")
+    )
+    sitemap_data = _read("web/phase-detector/lib/sitemap-data.ts")
+    block = sitemap_data.split(
+        "export const PHASE_DETECTOR_TICKERS: string[] = [", 1
+    )[1].split("];", 1)[0]
+    registered = re.findall(r'"([A-Z0-9.-]+)"', block)
+
+    assert len(registered) == len(set(registered))
+    assert registered == sorted(artifact)
+    assert set(registered) == set(artifact)
 
 
 def test_phase_api_has_content_free_request_correlation() -> None:

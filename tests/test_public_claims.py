@@ -19,6 +19,28 @@ def test_repository_current_public_copy_passes() -> None:
     assert validate(DEFAULT_INVENTORY, ROOT) == []
 
 
+def test_public_copy_inventory_paths_match_git_index_case() -> None:
+    """Inventory paths must use Git's exact spelling on every platform."""
+    inventory = json.loads(DEFAULT_INVENTORY.read_text(encoding="utf-8"))
+    declared = {
+        *inventory["scope"]["runtime_pages"],
+        *inventory["scope"]["current_documents"],
+        *(item["path"] for item in inventory["required_context"]),
+    }
+    completed = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    )
+    tracked = {
+        path.decode("utf-8")
+        for path in completed.stdout.split(b"\0")
+        if path
+    }
+    assert declared <= tracked, sorted(declared - tracked)
+
+
 def test_current_product_surfaces_use_candidate_and_outcome_language() -> None:
     inventory = json.loads(DEFAULT_INVENTORY.read_text(encoding="utf-8"))
     runtime = set(inventory["scope"]["runtime_pages"])

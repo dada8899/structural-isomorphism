@@ -8,13 +8,12 @@ import {
 // W3-D (2026-05-14): static sitemap for Structural Labs · Phase.
 // W10-D (2026-05-15): added newsletter archive entries.
 // W12-B (2026-05-15): expanded to include /companies, /compare, /pricing,
-//   /universality + per-class detail pages, /company/[ticker] for all
-//   100 tracked tickers. Total ≈ 130 URLs covering every routable page
+//   /universality + per-class detail pages, /company/[ticker] for the
+//   complete published product registry. Total ≈ 620 URLs covering every routable page
 //   in the app.
 //
-// Edit `lib/sitemap-data.ts` to add/remove tickers + classes. When the
-// universe stabilizes we'll switch to fetching from /api/companies +
-// /api/universality/classes at build time.
+// The release privacy gate requires the ticker registry in
+// `lib/sitemap-data.ts` to equal the product data artifact exactly.
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = "https://phase.bytedance.city";
   const lastModified = new Date();

@@ -497,7 +497,7 @@ const renderers = {
     `;
   },
 
-  action_plan(data) {
+  action_plan(data, reportContext = null) {
     if (!data) return '';
     const ifShort = data.if_time_short;
     const items = Array.isArray(data.this_week) ? data.this_week : [];
@@ -578,7 +578,7 @@ const renderers = {
     // how_to_combine.assumptions_to_verify when available, otherwise a
     // generic "does the structural mapping survive contact with reality" prompt.
     const renderRankZero = () => {
-      const report = window._finalReport || {};
+      const report = reportContext || window._finalReport || {};
       const combine = report.how_to_combine || {};
       const assumptions = Array.isArray(combine.assumptions_to_verify)
         ? combine.assumptions_to_verify.slice(0, 3) : [];
@@ -707,15 +707,15 @@ function renderCredibilityBadge(boundary) {
   </div>`;
 }
 
-function renderTldrCard() {
+function renderTldrCard(reportContext = null, metaContext = null) {
   const el = document.getElementById('analyze-tldr');
   if (!el) return;
-  const r = window._finalReport || {};
+  const r = reportContext || window._finalReport || {};
   const action = r.action_plan || {};
   const ifShort = action.if_time_short;
   const struct = r.shared_structure || {};
   const items = Array.isArray(action.this_week) ? action.this_week : [];
-  const meta = window._analyzeMeta || {};
+  const meta = metaContext || window._analyzeMeta || {};
   const boundary = r.report_boundary || meta.report_boundary || null;
 
   // The counter-intuitive insight: prefer shared_structure.intuition; if that
@@ -844,7 +844,7 @@ function clearStreamPreview() {
 function finalReportSectionMarkup(report, section, index, revealed) {
   const renderer = renderers[section.key];
   const data = report[section.key];
-  const html = renderer ? renderer(data) : '';
+  const html = renderer ? renderer(data, report) : '';
   return `
       <section class="section${revealed ? ' section--revealed' : ''}" id="section-${section.key}" data-key="${section.key}" style="animation-delay: ${index * 150}ms"${revealed ? '' : ' hidden'}>
         <div class="section__number">${section.num}</div>
@@ -855,11 +855,15 @@ function finalReportSectionMarkup(report, section, index, revealed) {
 }
 
 function completeFinalReportRender(container) {
+  if (analyzeMathRuntimeReady()) enhanceAnalyzeMath(container);
+  revealFinalReport(container);
+}
+
+function revealFinalReport(container) {
   container.querySelectorAll('.section').forEach(section => {
     section.hidden = false;
     section.classList.add('section--revealed');
   });
-  if (analyzeMathRuntimeReady()) enhanceAnalyzeMath(container);
   const allKeys = new Set(SECTIONS.map(s => s.key));
   updateProgress(null, allKeys);
 }
@@ -882,13 +886,17 @@ function rerenderAnalyzeSectionForLocale(element, report) {
   const renderer = renderers[key];
   const body = element.querySelector('.section__body');
   if (!body || !renderer || !report || !report[key]) return;
-  const html = renderer(report[key]);
+  const html = renderer(report[key], report);
   if (!html) return;
   body.innerHTML = html;
   if (window.renderMath) window.renderMath(body);
 }
 
 function yieldAnalyzeMainThread() {
+  const schedulerImpl = typeof globalThis !== 'undefined' ? globalThis.scheduler : null;
+  if (schedulerImpl && typeof schedulerImpl.yield === 'function') {
+    return schedulerImpl.yield();
+  }
   return new Promise(resolve => setTimeout(resolve, 0));
 }
 
@@ -896,6 +904,7 @@ async function renderFinalReportCooperatively(report, isCurrent) {
   const container = $('#analyze-sections');
   if (!container) return;
   container.replaceChildren();
+  await yieldAnalyzeMainThread();
   for (let index = 0; index < SECTIONS.length; index += 1) {
     if (!isCurrent()) throw new Error('Analyze render was superseded');
     container.insertAdjacentHTML(
@@ -903,8 +912,17 @@ async function renderFinalReportCooperatively(report, isCurrent) {
     );
     if (index + 1 < SECTIONS.length) await yieldAnalyzeMainThread();
   }
+  if (analyzeMathRuntimeReady()) {
+    const sections = Array.from(container.querySelectorAll('.section'));
+    await yieldAnalyzeMainThread();
+    for (let index = 0; index < sections.length; index += 1) {
+      if (!isCurrent()) throw new Error('Analyze render was superseded');
+      enhanceAnalyzeMath(sections[index]);
+      if (index + 1 < sections.length) await yieldAnalyzeMainThread();
+    }
+  }
   if (!isCurrent()) throw new Error('Analyze render was superseded');
-  completeFinalReportRender(container);
+  revealFinalReport(container);
 }
 
 // The backend releases section events only after the complete report passes
@@ -1129,6 +1147,26 @@ function canonicalAnalyzeJson(value, depth = 0) {
     ).join(',') + '}';
   }
   throw new TypeError('value is not canonical JSON');
+}
+
+function canonicalAnalyzeReportWithSections(value) {
+  if (!isPlainObject(value)) throw new TypeError('report is not canonical JSON');
+  const sectionCanonical = Object.create(null);
+  const entries = Object.keys(value).sort().map(key => {
+    const canonical = canonicalAnalyzeJson(value[key], 1);
+    if (DEEP_REPORT_SECTION_KEYS.includes(key)) sectionCanonical[key] = canonical;
+    return JSON.stringify(key) + ':' + canonical;
+  });
+  return {canonicalReport: '{' + entries.join(',') + '}', sectionCanonical};
+}
+
+function freezeAnalyzeJsonSnapshot(value) {
+  if (Array.isArray(value)) {
+    value.forEach(freezeAnalyzeJsonSnapshot);
+  } else if (isPlainObject(value)) {
+    Object.keys(value).forEach(key => freezeAnalyzeJsonSnapshot(value[key]));
+  }
+  return value && typeof value === 'object' ? Object.freeze(value) : value;
 }
 
 async function sha256AnalyzeCanonicalText(canonical, cryptoImpl) {
@@ -1363,10 +1401,22 @@ function analyzeHasUnnegatedMatch(text, pattern) {
   });
 }
 
-function analyzeClaimClauses(text) {
+function analyzeClaimCacheEntry(text, cache) {
+  if (!cache) return {views: analyzeClaimViews(text), clauses: null};
+  let entry = cache.get(text);
+  if (!entry) {
+    entry = {views: analyzeClaimViews(text), clauses: null};
+    cache.set(text, entry);
+  }
+  return entry;
+}
+
+function analyzeClaimClauses(text, cache = null) {
+  const cached = analyzeClaimCacheEntry(text, cache);
+  if (cached.clauses) return cached.clauses;
   const clauses = [];
   const seen = new Set();
-  for (const view of analyzeClaimViews(text)) {
+  for (const view of cached.views) {
     const clauseView = view.replace(/\bet\s+al\./gi, 'et al');
     for (const rawClause of clauseView.split(/[,.!?;，。！？；\n]+/u)) {
       const clause = rawClause.trim();
@@ -1376,6 +1426,7 @@ function analyzeClaimClauses(text) {
       }
     }
   }
+  cached.clauses = clauses;
   return clauses;
 }
 
@@ -1810,9 +1861,10 @@ function analyzeUnverifiedFactIsQualified(
 }
 
 function analyzeHasAssertedUnverifiedFact(
-  text, path, outcomePattern, contextPattern = null, allowHypotheticalPath = false
+  text, path, outcomePattern, contextPattern = null, allowHypotheticalPath = false,
+  claimCache = null
 ) {
-  for (const clause of analyzeClaimClauses(text)) {
+  for (const clause of analyzeClaimClauses(text, claimCache)) {
     const matcher = new RegExp(outcomePattern.source, outcomePattern.flags.includes('g')
       ? outcomePattern.flags : `${outcomePattern.flags}g`);
     let outcome;
@@ -1836,8 +1888,8 @@ function analyzeHasAssertedUnverifiedFact(
   return false;
 }
 
-function analyzeHasAssertedStateMarker(text, pattern, path) {
-  for (const clause of analyzeClaimClauses(text)) {
+function analyzeHasAssertedStateMarker(text, pattern, path, claimCache = null) {
+  for (const clause of analyzeClaimClauses(text, claimCache)) {
     const matcher = new RegExp(pattern.source, pattern.flags.includes('g')
       ? pattern.flags : `${pattern.flags}g`);
     let match;
@@ -1861,8 +1913,10 @@ function analyzeHasAssertedStateMarker(text, pattern, path) {
   return false;
 }
 
-function analyzeHasAssertedCandidateStatePair(text, path, contextPattern, outcomePattern) {
-  for (const clause of analyzeClaimClauses(text)) {
+function analyzeHasAssertedCandidateStatePair(
+  text, path, contextPattern, outcomePattern, claimCache = null
+) {
+  for (const clause of analyzeClaimClauses(text, claimCache)) {
     const matcher = new RegExp(outcomePattern.source, outcomePattern.flags.includes('g')
       ? outcomePattern.flags : `${outcomePattern.flags}g`);
     let outcome;
@@ -1886,29 +1940,63 @@ function analyzeHasAssertedCandidateStatePair(text, path, contextPattern, outcom
   return false;
 }
 
-function analyzePublicTextCrossesBoundary(text, path = []) {
+function analyzePublicTextCrossesBoundary(text, path = [], claimCache = null) {
   if (analyzeContainsMixedScriptConfusable(text)) return true;
-  return analyzeClaimViews(text).some(normalized => {
+  return analyzeClaimCacheEntry(text, claimCache).views.some(normalized => {
     const negatableCrossed = ANALYZE_NEGATABLE_CLAIM_PATTERNS.some(pattern => {
       const match = pattern.exec(normalized);
       return !!match && !claimHasClearNegation(normalized, match.index, match[0]);
     });
     return negatableCrossed ||
       ANALYZE_ASSERTED_NEGATIVE_EVIDENCE_RESULT.test(normalized) ||
-      analyzeHasAssertedStateMarker(normalized, ANALYZE_COMPLETED_EVIDENCE_STATE, path) ||
+      analyzeHasAssertedStateMarker(
+        normalized, ANALYZE_COMPLETED_EVIDENCE_STATE, path, claimCache
+      ) ||
       analyzeHasAssertedCandidateStatePair(
-        normalized, path, ANALYZE_EVIDENCE_ACTIVITY_CONTEXT, ANALYZE_POSITIVE_EVIDENCE_OUTCOME
+        normalized, path, ANALYZE_EVIDENCE_ACTIVITY_CONTEXT,
+        ANALYZE_POSITIVE_EVIDENCE_OUTCOME, claimCache
       ) ||
       analyzeHasAssertedCandidateStatePair(
         normalized, path, ANALYZE_LITERATURE_COMPLETION_CONTEXT,
-        ANALYZE_LITERATURE_NOVELTY_OUTCOME
+        ANALYZE_LITERATURE_NOVELTY_OUTCOME, claimCache
       ) ||
       ANALYZE_ALWAYS_FORBIDDEN_CLAIM_PATTERNS.some(pattern => pattern.test(normalized));
   });
 }
 
-function publicClaimsAreCandidateOnly(report) {
+function analyzePublicFieldHasForbiddenAssertion(path, text, claimCache) {
+  return ANALYZE_NEGATED_NEGATIVE_CANDIDATE_STATE.test(text) ||
+    analyzeHasAssertedUnverifiedFact(
+      text, path, ANALYZE_LITERATURE_FACT_ASSERTION, null, false, claimCache
+    ) || analyzeHasAssertedUnverifiedFact(
+      text, path, ANALYZE_LITERATURE_ATTRIBUTION_OUTCOME,
+      ANALYZE_LITERATURE_ATTRIBUTION_CONTEXT, false, claimCache
+    ) || ANALYZE_INVENTED_CITATION_SHAPE.test(text) ||
+    analyzeHasAssertedCandidateStatePair(
+      text, path, ANALYZE_METHOD_ARTIFACT_CONTEXT,
+      ANALYZE_COMPLETED_METHOD_STATE, claimCache
+    ) || analyzeHasAssertedCandidateStatePair(
+      text, path, ANALYZE_OPERATIONAL_RESULT_CONTEXT,
+      ANALYZE_POSITIVE_OPERATIONAL_STATE, claimCache
+    ) || analyzeHasAssertedStateMarker(
+      text, ANALYZE_COMPLETED_EVIDENCE_ARTIFACT, path, claimCache
+    ) || analyzeHasAssertedUnverifiedFact(
+      text, path, ANALYZE_EXTERNAL_ADOPTION_STATE, null, true, claimCache
+    ) || analyzeHasAssertedUnverifiedFact(
+      text, path, ANALYZE_UNSUPPORTED_SOURCE_ATTRIBUTION,
+      ANALYZE_SOURCE_ATTRIBUTION_CONTEXT, false, claimCache
+    ) || analyzeHasAssertedUnverifiedFact(
+      text, path, ANALYZE_COMPLETED_EMPIRICAL_OUTCOME, null, true, claimCache
+    ) || analyzeHasAssertedUnverifiedFact(
+      text, path, ANALYZE_EMPIRICAL_EVIDENCE_OUTCOME, null, true, claimCache
+    ) || analyzeHasAssertedUnverifiedFact(
+      text, path, ANALYZE_CAUSAL_MECHANISM_ASSERTION, null, true, claimCache
+    );
+}
+
+function* analyzePublicClaimChecks(report) {
   const fields = [];
+  const claimCache = new Map();
   const generated = {};
   ['schema_version', 'evidence_level', 'generation_status', ...DEEP_REPORT_SECTION_KEYS]
     .forEach(key => { generated[key] = report[key]; });
@@ -1917,40 +2005,38 @@ function publicClaimsAreCandidateOnly(report) {
   collectAnalyzePublicTextFields(generated, [], fields);
   const texts = fields.map(field => field.text);
   if (texts.reduce((total, text) => total + Array.from(text).length, 0) > ANALYZE_MAX_PUBLIC_CHARS) {
-    return false;
+    yield false;
+    return;
   }
-  if (fields.some(({path, text}) => analyzePublicTextCrossesBoundary(text, path))) return false;
-  if (fields.some(({path, text}) =>
-    ANALYZE_NEGATED_NEGATIVE_CANDIDATE_STATE.test(text) ||
-    analyzeHasAssertedUnverifiedFact(
-      text, path, ANALYZE_LITERATURE_FACT_ASSERTION
-    ) || analyzeHasAssertedUnverifiedFact(
-      text, path, ANALYZE_LITERATURE_ATTRIBUTION_OUTCOME,
-      ANALYZE_LITERATURE_ATTRIBUTION_CONTEXT
-    ) || ANALYZE_INVENTED_CITATION_SHAPE.test(text) ||
-    analyzeHasAssertedCandidateStatePair(
-      text, path, ANALYZE_METHOD_ARTIFACT_CONTEXT, ANALYZE_COMPLETED_METHOD_STATE
-    ) || analyzeHasAssertedCandidateStatePair(
-      text, path, ANALYZE_OPERATIONAL_RESULT_CONTEXT, ANALYZE_POSITIVE_OPERATIONAL_STATE
-    ) || analyzeHasAssertedStateMarker(
-      text, ANALYZE_COMPLETED_EVIDENCE_ARTIFACT, path
-    ) || analyzeHasAssertedUnverifiedFact(
-      text, path, ANALYZE_EXTERNAL_ADOPTION_STATE, null, true
-    ) || analyzeHasAssertedUnverifiedFact(
-      text, path, ANALYZE_UNSUPPORTED_SOURCE_ATTRIBUTION, ANALYZE_SOURCE_ATTRIBUTION_CONTEXT
-    ) || analyzeHasAssertedUnverifiedFact(
-      text, path, ANALYZE_COMPLETED_EMPIRICAL_OUTCOME, null, true
-    ) || analyzeHasAssertedUnverifiedFact(
-      text, path, ANALYZE_EMPIRICAL_EVIDENCE_OUTCOME, null, true
-    ) || analyzeHasAssertedUnverifiedFact(
-      text, path, ANALYZE_CAUSAL_MECHANISM_ASSERTION, null, true
-    ))) return false;
+  for (const {path, text} of fields) {
+    yield !analyzePublicTextCrossesBoundary(text, path, claimCache);
+  }
+  for (const {path, text} of fields) {
+    yield !analyzePublicFieldHasForbiddenAssertion(path, text, claimCache);
+  }
   const punctuation = /[。！？；.!?;：:]$/u;
   for (let index = 0; index + 1 < texts.length; index += 1) {
     const left = texts[index].trimEnd();
     const right = texts[index + 1].trimStart();
-    if (!punctuation.test(left) && !/^[。！？；.!?;：:]/u.test(right) &&
-        analyzePublicTextCrossesBoundary(left.slice(-80) + right.slice(0, 80))) return false;
+    if (!punctuation.test(left) && !/^[。！？；.!?;：:]/u.test(right)) {
+      yield !analyzePublicTextCrossesBoundary(
+        left.slice(-80) + right.slice(0, 80), [], claimCache
+      );
+    }
+  }
+}
+
+function publicClaimsAreCandidateOnly(report) {
+  for (const valid of analyzePublicClaimChecks(report)) {
+    if (!valid) return false;
+  }
+  return true;
+}
+
+async function publicClaimsAreCandidateOnlyCooperatively(report, yieldControl) {
+  for (const valid of analyzePublicClaimChecks(report)) {
+    if (!valid) return false;
+    await yieldControl();
   }
   return true;
 }
@@ -1969,7 +2055,7 @@ function validateAnalyzeReportLanguage(report, lang) {
       action.decision_rule === copy.actionDecision && action.stop_condition === copy.actionStop);
 }
 
-function validateAnalyzeReportEnvelopeWithCanonical(report, expectedMeta, canonicalReport) {
+function validateAnalyzeReportStructureWithCanonical(report, expectedMeta, canonicalReport) {
   const expected = [
     'schema_version', 'evidence_level', 'generation_status', ...DEEP_REPORT_SECTION_KEYS,
     'source_binding', 'report_boundary', 'source_refs',
@@ -2013,8 +2099,22 @@ function validateAnalyzeReportEnvelopeWithCanonical(report, expectedMeta, canoni
       canonicalReport.length > ANALYZE_MAX_CANONICAL_CHARS) return false;
   const expectedLang = expectedMeta && expectedMeta.source_binding
     ? expectedMeta.source_binding.lang : null;
-  return (!expectedMeta || (expectedMeta.lang === expectedLang &&
-    validateAnalyzeReportLanguage(report, expectedLang))) && publicClaimsAreCandidateOnly(report);
+  return !expectedMeta || (expectedMeta.lang === expectedLang &&
+    validateAnalyzeReportLanguage(report, expectedLang));
+}
+
+function validateAnalyzeReportEnvelopeWithCanonical(report, expectedMeta, canonicalReport) {
+  return validateAnalyzeReportStructureWithCanonical(
+    report, expectedMeta, canonicalReport
+  ) && publicClaimsAreCandidateOnly(report);
+}
+
+async function validateAnalyzeReportEnvelopeCooperatively(
+  report, expectedMeta, canonicalReport, yieldControl
+) {
+  return validateAnalyzeReportStructureWithCanonical(
+    report, expectedMeta, canonicalReport
+  ) && await publicClaimsAreCandidateOnlyCooperatively(report, yieldControl);
 }
 
 function validateAnalyzeReportEnvelope(report, expectedMeta) {
@@ -2320,7 +2420,7 @@ function sourceSnapshotMatchesReport(report, meta) {
     intro.corresponding_phenomenon.plain_description === snapshot.plain_description;
 }
 
-function createAnalyzeTrustState(rawRequest, cryptoImpl) {
+function createAnalyzeTrustState(rawRequest, cryptoImpl, cooperativeYield = null) {
   const request = normalizeAnalyzeRequest(rawRequest);
   if (!request) throw new TypeError('Analyze request context is invalid');
   let meta = null;
@@ -2357,7 +2457,7 @@ function createAnalyzeTrustState(rawRequest, cryptoImpl) {
         if (!await validateAnalyzeMetaEnvelope(value, request, cryptoImpl)) {
           return reject('meta is not bound to the request');
         }
-        meta = value;
+        meta = freezeAnalyzeJsonSnapshot(JSON.parse(JSON.stringify(value)));
         return { type: 'meta', meta };
       }
       if (!meta) return reject('event arrived before meta');
@@ -2371,7 +2471,7 @@ function createAnalyzeTrustState(rawRequest, cryptoImpl) {
         if (receipt || nextSectionIndex || persisted || !validateAnalyzeReceipt(value, meta)) {
           return reject('validation receipt is invalid or duplicated');
         }
-        receipt = value;
+        receipt = freezeAnalyzeJsonSnapshot(JSON.parse(JSON.stringify(value)));
         return { type: 'report_validated', receipt };
       }
       if (!receipt) return reject('report content arrived before validation receipt');
@@ -2380,7 +2480,13 @@ function createAnalyzeTrustState(rawRequest, cryptoImpl) {
           return reject('section is invalid or arrived after persistence');
         }
         const expectedKey = DEEP_REPORT_SECTION_KEYS[nextSectionIndex];
-        if (value.key !== expectedKey || !ANALYZE_SECTION_VALIDATORS[value.key](value.data)) {
+        if (value.key !== expectedKey) {
+          return reject('section is invalid, duplicated, or out of order');
+        }
+        if (cooperativeYield) await cooperativeYield();
+        if (failed || completed || persisted ||
+            value.key !== DEEP_REPORT_SECTION_KEYS[nextSectionIndex] ||
+            !ANALYZE_SECTION_VALIDATORS[value.key](value.data)) {
           return reject('section is invalid, duplicated, or out of order');
         }
         sections[value.key] = value.data;
@@ -2393,12 +2499,20 @@ function createAnalyzeTrustState(rawRequest, cryptoImpl) {
             !validateAnalyzePersisted(value, request, meta, receipt)) {
           return reject('persisted event is invalid, duplicated, or out of order');
         }
-        persisted = value;
+        persisted = freezeAnalyzeJsonSnapshot(JSON.parse(JSON.stringify(value)));
         return { type: 'persisted', persisted };
       }
       if (type === 'done') {
-        let canonicalReport;
-        try { canonicalReport = canonicalAnalyzeJson(value.report); } catch (_) {
+        if (cooperativeYield) await cooperativeYield();
+        let canonicalized;
+        let trustedSnapshot;
+        try { canonicalized = canonicalAnalyzeReportWithSections(value.report); } catch (_) {
+          return reject('done event contains non-canonical JSON');
+        }
+        const {canonicalReport, sectionCanonical: completedSections} = canonicalized;
+        try {
+          trustedSnapshot = freezeAnalyzeJsonSnapshot(JSON.parse(canonicalReport));
+        } catch (_) {
           return reject('done event contains non-canonical JSON');
         }
         if (!hasExactKeys(value, ['generation_id', 'report_sha256', 'report', 'from_cache']) ||
@@ -2406,15 +2520,32 @@ function createAnalyzeTrustState(rawRequest, cryptoImpl) {
             value.generation_id !== receipt.generation_id ||
             value.report_sha256 !== receipt.report_sha256 ||
             value.from_cache !== receipt.from_cache ||
-            !validateAnalyzeReportEnvelopeWithCanonical(value.report, meta, canonicalReport) ||
-            !sourceSnapshotMatchesReport(value.report, meta) ||
             DEEP_REPORT_SECTION_KEYS.some(key =>
-              sectionCanonical[key] !== canonicalAnalyzeJson(value.report[key])
+              sectionCanonical[key] !== completedSections[key]
             )) return reject('done event failed report binding');
+        if (cooperativeYield) await cooperativeYield();
+        const reportEnvelopeValid = cooperativeYield
+          ? await validateAnalyzeReportEnvelopeCooperatively(
+              trustedSnapshot, meta, canonicalReport, cooperativeYield
+            )
+          : validateAnalyzeReportEnvelopeWithCanonical(
+              trustedSnapshot, meta, canonicalReport
+            );
+        if (cooperativeYield) await cooperativeYield();
+        let reboundCanonical;
+        try {
+          reboundCanonical = canonicalAnalyzeReportWithSections(trustedSnapshot).canonicalReport;
+        } catch (_) {
+          return reject('done event failed report binding');
+        }
+        if (!reportEnvelopeValid || reboundCanonical !== canonicalReport ||
+            !sourceSnapshotMatchesReport(trustedSnapshot, meta)) {
+          return reject('done event failed report binding');
+        }
         const computed = await sha256AnalyzeCanonicalText(canonicalReport, cryptoImpl);
         if (computed !== receipt.report_sha256) return reject('report hash mismatch');
         completed = true;
-        return { type: 'done', report: value.report, persisted, meta };
+        return { type: 'done', report: trustedSnapshot, persisted, meta };
       }
       return reject('unknown Analyze event');
     },
@@ -2598,10 +2729,18 @@ function commitAnalyzeReportForDisplay(report, persisted, render) {
 }
 
 async function commitAnalyzeReportForDisplayAsync(report, persisted, render, isCurrent) {
+  freezeAnalyzeJsonSnapshot(report);
+  if (persisted) freezeAnalyzeJsonSnapshot(persisted);
   window._finalReport = report;
   window._persistedReport = persisted || null;
   try {
     await render();
+    if (isCurrent && !isCurrent()) return false;
+    if (window._finalReport !== report ||
+        window._persistedReport !== (persisted || null)) {
+      throw new Error('Analyze display state lost its validated snapshot');
+    }
+    return true;
   } catch (error) {
     if (!isCurrent || isCurrent()) resetAnalyzeResultState();
     throw error;
@@ -2624,7 +2763,7 @@ function streamAnalysis(payload) {
   resetAnalyzeResultState();
   _lastAnalyzePayload = JSON.parse(JSON.stringify(payload || {}));
   let trust = null;
-  try { trust = createAnalyzeTrustState(payload); } catch (_) {
+  try { trust = createAnalyzeTrustState(payload, null, yieldAnalyzeMainThread); } catch (_) {
     renderStreamError({
       message: T('page.analyze.error_protocol', '报告校验协议异常，未展示正文。'),
       retryable: false,
@@ -2719,6 +2858,12 @@ function streamAnalysis(payload) {
   es.addEventListener('done', e => enqueue('done', e, async accepted => {
     stopTimers();
     es.close();
+    const assertTrustedDisplay = () => {
+      if (window._finalReport !== accepted.report ||
+          window._persistedReport !== (accepted.persisted || null)) {
+        throw new Error('Analyze display state lost its validated snapshot');
+      }
+    };
     const completed = await runCurrentAnalyzeSteps(current, [
       () => commitAnalyzeReportForDisplayAsync(
         accepted.report,
@@ -2727,25 +2872,28 @@ function streamAnalysis(payload) {
         current
       ),
       () => {
+        assertTrustedDisplay();
         if (accepted.persisted) renderShareBar(accepted.persisted);
       },
       yieldAnalyzeMainThread,
       () => {
+        assertTrustedDisplay();
         if (accepted.persisted) {
           renderDecisionBrief({
             reportId: accepted.persisted.id,
             createdAt: accepted.persisted.created_at,
             partial: false,
             allowExperiment: true,
-          });
+          }, accepted.report, accepted.meta, accepted.persisted);
         } else {
-          renderDecisionBrief();
+          renderDecisionBrief(null, accepted.report, accepted.meta, null);
         }
       },
       yieldAnalyzeMainThread,
       () => {
+        assertTrustedDisplay();
         updateProgressState(receivedKeys);
-        renderTldrCard();
+        renderTldrCard(accepted.report, accepted.meta);
         const loading = $('#analyze-loading');
         setAnalyzeReportStageState('ready');
         if (loading) loading.remove();
@@ -2928,9 +3076,12 @@ function buildBriefMarkdown() {
 
 // Compact, evidence-bounded action surface. It only extracts fields already
 // present in the report; absent evidence stays visibly unsupported.
-function buildDecisionBriefModel(context) {
-  const r = window._finalReport || {};
-  const meta = window._analyzeMeta || {};
+function buildDecisionBriefModel(
+  context, reportContext = null, metaContext = null, persistedContext = null
+) {
+  const r = reportContext || window._finalReport || {};
+  const meta = metaContext || window._analyzeMeta || {};
+  const persisted = persistedContext || window._persistedReport || {};
   const ctx = context || window._decisionBriefContext || {};
   const source = ctx.source || meta.a || {};
   const target = meta.b || {};
@@ -2946,11 +3097,11 @@ function buildDecisionBriefModel(context) {
     boundary: risks[0] ? [risks[0].risk_name, risks[0].explanation].filter(Boolean).join('：') : '',
     hypothesis: firstAction ? (firstAction.how || firstAction.expected_information || '') : '',
     metric: firstAction ? (firstAction.primary_metric || '') : '',
-    reportId: ctx.reportId || ((window._persistedReport || {}).id) || '',
+    reportId: ctx.reportId || persisted.id || '',
     model: ctx.model || meta.model || '',
     promptVersion: ctx.promptVersion || meta.prompt_version || '',
-    createdAt: ctx.createdAt || ((window._persistedReport || {}).created_at) || '',
-    partial: !!(ctx.partial || ((window._persistedReport || {}).is_partial)),
+    createdAt: ctx.createdAt || persisted.created_at || '',
+    partial: !!(ctx.partial || persisted.is_partial),
     allowExperiment: ctx.allowExperiment === true,
     evidence: ctx.evidence || meta.evidence || null,
   };
@@ -2991,11 +3142,16 @@ function decisionBriefMarkdown(model) {
   ].join('\n');
 }
 
-function renderDecisionBrief(context) {
+function renderDecisionBrief(
+  context, reportContext = null, metaContext = null, persistedContext = null
+) {
   const root = document.getElementById('decision-brief-root');
-  if (!root || !window._finalReport || !Object.keys(window._finalReport).length) return;
+  const report = reportContext || window._finalReport;
+  if (!root || !report || !Object.keys(report).length) return;
   window._decisionBriefContext = { ...(window._decisionBriefContext || {}), ...(context || {}) };
-  const m = buildDecisionBriefModel(window._decisionBriefContext);
+  const m = buildDecisionBriefModel(
+    window._decisionBriefContext, report, metaContext, persistedContext
+  );
   const unsupported = '<span class="decision-brief__unsupported">当前报告没有这项证据</span>';
   const value = (text) => text ? escapeHtml(text) : unsupported;
   const fp = m.fingerprint || {};
@@ -3673,5 +3829,6 @@ if (typeof module !== 'undefined' && module.exports) {
     sha256CanonicalAnalyzeJson,
     validateAnalyzeMetaEnvelope,
     validateAnalyzeReportEnvelope,
+    validateAnalyzeReportEnvelopeCooperatively,
   };
 }

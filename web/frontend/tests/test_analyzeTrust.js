@@ -54,6 +54,7 @@ const {
   sha256CanonicalAnalyzeJson,
   validateAnalyzeMetaEnvelope,
   validateAnalyzeReportEnvelope,
+  validateAnalyzeReportEnvelopeCooperatively,
 } = require(path.join(__dirname, '..', 'assets', 'js', 'analyze.js'));
 
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -449,6 +450,26 @@ test('complete report and meta fixtures pass strict contracts', async () => {
   const data = await fixture();
   assert.equal(await validateAnalyzeMetaEnvelope(data.meta, data.request, webcrypto), true);
   assert.equal(validateAnalyzeReportEnvelope(data.report, data.meta), true);
+});
+
+test('cooperative and synchronous public-claim guards stay equivalent', async () => {
+  const data = await fixture({persist: 0});
+  const strongClaim = clone(data.report);
+  strongClaim.shared_structure.one_sentence = '两者已经证明共享机制。';
+  const inventedCitation = clone(data.report);
+  inventedCitation.action_plan.intro = 'Smith et al. (2024) reported a completed study.';
+  const mixedScript = clone(data.report);
+  mixedScript.action_plan.intro = 'Test the candidate mеchanism before continuing.';
+  let yields = 0;
+  for (const report of [data.report, strongClaim, inventedCitation, mixedScript]) {
+    const canonical = canonicalAnalyzeJson(report);
+    const synchronous = validateAnalyzeReportEnvelope(report, data.meta);
+    const cooperative = await validateAnalyzeReportEnvelopeCooperatively(
+      report, data.meta, canonical, async () => { yields += 1; }
+    );
+    assert.equal(cooperative, synchronous);
+  }
+  assert.ok(yields > 100);
 });
 
 test('empty shell, revision drift, missing binding, strong claim, and unknown source fail', async () => {
@@ -1295,6 +1316,87 @@ test('normal persisted stream validates before returning a displayable report', 
   const result = await state.ingest('done', clone(data.done));
   assert.deepEqual(result.report, data.report);
   assert.deepEqual(result.persisted, data.persisted);
+  assert.equal(Object.isFrozen(result.report), true);
+  assert.equal(Object.isFrozen(result.report.action_plan), true);
+  assert.equal(Object.isFrozen(result.report.action_plan.this_week), true);
+  assert.equal(Object.isFrozen(result.persisted), true);
+});
+
+test('done report remains canonically bound to every released section', async () => {
+  const data = await fixture({persist: 0});
+  const releasedReport = clone(data.report);
+  const changedReport = clone(data.report);
+  changedReport.action_plan.intro = '先验证一个候选步骤，再决定是否继续。';
+  const changedHash = await sha256CanonicalAnalyzeJson(changedReport, webcrypto);
+  data.receipt.report_sha256 = changedHash;
+  const state = createAnalyzeTrustState(data.request, webcrypto);
+  data.report = releasedReport;
+  await ingestThroughSections(state, data);
+  await assert.rejects(state.ingest('done', {
+    generation_id: data.meta.generation_id,
+    report_sha256: changedHash,
+    report: changedReport,
+    from_cache: false,
+  }), /done event failed report binding/);
+});
+
+test('done isolates report mutation across cooperative validation yields', async () => {
+  const data = await fixture({persist: 0});
+  let mutate = false;
+  let doneYields = 0;
+  let donePayload = null;
+  const state = createAnalyzeTrustState(data.request, webcrypto, async () => {
+    if (mutate && ++doneYields === 2) {
+      donePayload.report.action_plan.intro = '先验证一个候选步骤，再决定是否继续。';
+    }
+  });
+  await ingestThroughSections(state, data);
+  donePayload = clone(data.done);
+  mutate = true;
+  window._finalReport = null;
+  const result = await state.ingest('done', donePayload);
+  assert.equal(donePayload.report.action_plan.intro, '先验证一个候选步骤，再决定是否继续。');
+  assert.equal(result.report.action_plan.intro, data.report.action_plan.intro);
+  assert.equal(window._finalReport, null);
+});
+
+test('done isolates repeated input mutation across late cooperative yields', async () => {
+  const data = await fixture({persist: 0});
+  let mutate = false;
+  let doneYields = 0;
+  let donePayload = null;
+  const state = createAnalyzeTrustState(data.request, webcrypto, async () => {
+    if (mutate && ++doneYields >= 2) {
+      donePayload.report.action_plan.intro = '已证明共享机制。';
+    }
+  });
+  await ingestThroughSections(state, data);
+  donePayload = clone(data.done);
+  mutate = true;
+  const result = await state.ingest('done', donePayload);
+  assert.equal(donePayload.report.action_plan.intro, '已证明共享机制。');
+  assert.equal(result.report.action_plan.intro, data.report.action_plan.intro);
+});
+
+test('done returns the hashed snapshot when input mutates during WebCrypto', async () => {
+  const data = await fixture({persist: 0});
+  let donePayload = null;
+  const mutatingCrypto = {
+    subtle: {
+      async digest(...args) {
+        const digest = await webcrypto.subtle.digest(...args);
+        if (donePayload) donePayload.report.action_plan.intro = '已证明共享机制。';
+        return digest;
+      },
+    },
+  };
+  const state = createAnalyzeTrustState(data.request, mutatingCrypto);
+  await ingestThroughSections(state, data);
+  donePayload = clone(data.done);
+  const result = await state.ingest('done', donePayload);
+  assert.equal(donePayload.report.action_plan.intro, '已证明共享机制。');
+  assert.equal(result.report.action_plan.intro, data.report.action_plan.intro);
+  assert.notEqual(result.report, donePayload.report);
 });
 
 test('missing and out-of-order sections are rejected', async () => {
@@ -1407,6 +1509,31 @@ test('async renderer failure clears only the still-current generation', async ()
   );
   assert.equal(window._finalReport, newerReport);
   assert.equal(window._persistedReport, newerPersisted);
+});
+
+test('async renderer exposes only an immutable snapshot and rejects replacement', async () => {
+  const data = await fixture();
+  window._analyzeMeta = data.meta;
+  await assert.rejects(
+    commitAnalyzeReportForDisplayAsync(
+      data.report,
+      data.persisted,
+      async () => {
+        assert.equal(window._finalReport, data.report);
+        assert.equal(Object.isFrozen(window._finalReport.action_plan), true);
+        assert.throws(() => {
+          window._finalReport.action_plan.intro = '已证明共享机制。';
+        }, TypeError);
+        window._finalReport = {action_plan: {intro: '已证明共享机制。'}};
+        await Promise.resolve();
+      },
+      () => true
+    ),
+    /lost its validated snapshot/
+  );
+  assert.equal(window._finalReport, null);
+  assert.equal(window._persistedReport, null);
+  assert.equal(window._analyzeMeta, null);
 });
 
 test('hidden cooperative section is localized before reveal', async () => {

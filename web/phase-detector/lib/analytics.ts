@@ -6,6 +6,12 @@
 //   2. Event names are typed and centrally listed (search-friendly).
 //   3. Events, properties, routes and transmitted URLs are allowlisted.
 
+import { ISSUES } from "@/lib/newsletter-data";
+import {
+  PHASE_DETECTOR_TICKERS,
+  PHASE_DETECTOR_UNIVERSALITY_CLASSES,
+} from "@/lib/sitemap-data";
+
 declare global {
   interface Window {
     plausible?: (
@@ -93,7 +99,26 @@ const EVENT_PROP_ALLOWLIST: Readonly<Record<EventName, readonly string[]>> = {
   tour_restarted_from_nav: [],
 };
 
-const SENSITIVE_ROUTE = /^\/(?:auth(?:\/|$)|me(?:\/|$)|privacy(?:\/|$)|checkout(?:\/|$)|thank-you(?:\/|$)|onboarding(?:\/|$)|search(?:\/|$)|reports?(?:\/|$)|analyze(?:\/|$))/i;
+const PUBLIC_ANALYTICS_ROUTES = new Set([
+  "/",
+  "/about",
+  "/backtest",
+  "/companies",
+  "/compare",
+  "/methodology",
+  "/newsletter",
+  "/offline",
+  "/pricing",
+  "/universality",
+  "/zh",
+]);
+const PUBLIC_DYNAMIC_ANALYTICS_ROUTES = new Set([
+  ...PHASE_DETECTOR_TICKERS.map((ticker) => `/company/${ticker}`),
+  ...ISSUES.map((issue) => `/newsletter/${issue.slug}`),
+  ...PHASE_DETECTOR_UNIVERSALITY_CLASSES.map(
+    (classId) => `/universality/${classId}`,
+  ),
+]);
 const ENCODED_BYTE = /%[0-9A-Fa-f]{2}/;
 const PATH_CONTROL = /[\u0000-\u001f\u007f]/;
 const MAX_PATH_DECODE_ROUNDS = 3;
@@ -138,14 +163,13 @@ export function normalizeAnalyticsPath(pathname: unknown): string | null {
 
 export function analyticsRouteIsSafe(pathname?: string): boolean {
   const current = pathname ?? (typeof window !== "undefined" ? window.location.pathname : "");
-  const normalized = normalizeAnalyticsPath(current);
-  return normalized !== null && !SENSITIVE_ROUTE.test(normalized);
+  return publicAnalyticsPath(current) !== null;
 }
 
 export function canonicalAnalyticsUrl(pathname?: string): string | null {
   if (typeof window === "undefined") return null;
-  const normalized = normalizeAnalyticsPath(pathname ?? window.location.pathname);
-  if (!normalized || SENSITIVE_ROUTE.test(normalized)) return null;
+  const normalized = publicAnalyticsPath(pathname ?? window.location.pathname);
+  if (!normalized) return null;
   try {
     const candidate = new URL(normalized, window.location.origin);
     if (candidate.origin !== window.location.origin || !candidate.pathname.startsWith("/")) {
@@ -155,6 +179,17 @@ export function canonicalAnalyticsUrl(pathname?: string): string | null {
   } catch {
     return null;
   }
+}
+
+function publicAnalyticsPath(pathname: unknown): string | null {
+  const normalized = normalizeAnalyticsPath(pathname);
+  if (!normalized) return null;
+  const canonical =
+    normalized.length > 1 && normalized.endsWith("/")
+      ? normalized.slice(0, -1)
+      : normalized;
+  if (PUBLIC_ANALYTICS_ROUTES.has(canonical)) return canonical;
+  return PUBLIC_DYNAMIC_ANALYTICS_ROUTES.has(canonical) ? canonical : null;
 }
 
 function isEventName(name: string): name is EventName {

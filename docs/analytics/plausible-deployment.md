@@ -1,6 +1,6 @@
 # Plausible Community Edition deployment runbook
 
-**Runbook version:** 1.2.0
+**Runbook version:** 1.3.0
 
 **Runbook date:** 2026-07-15
 
@@ -223,17 +223,39 @@ status.
 ## 6. Stage HTTP ACME before DNS
 
 Create the ACME webroot and install an HTTP-only Nginx server. It intentionally
-serves no dashboard and no event API.
+serves no dashboard and no event API. The canonical source, live target, and
+reviewed transaction installer are fixed as follows:
+
+- source: `/root/plausible-nginx-source/plausible-acme-http.conf`;
+- target: `/etc/nginx/conf.d/plausible.bytedance.city.conf`;
+- installer: `/root/scripts/install-nginx-privacy-vhost.sh`;
+- transaction state and root-only rollback snapshot:
+  `/var/lib/structural-isomorphism/nginx-privacy/`.
+
+Create the source directory as `root:root 0700`, save the exact configuration
+below as the named source file, and make that regular, non-symlink file
+`root:root 0600`. The privacy-safe access format deliberately omits client IP,
+host, URI, query, referrer, user agent, and request body while satisfying the
+installer's reviewed vhost contract.
 
 ```bash
 install -d -o root -g root -m 0755 /var/www/acme/.well-known/acme-challenge
 ```
 
 ```nginx
+log_format plausible_acme_privacy
+    '$request_method $status $body_bytes_sent $request_time '
+    '$upstream_response_time $request_id';
+
 server {
     listen 80;
     listen [::]:80;
     server_name plausible.bytedance.city;
+
+    access_log /var/log/nginx/access.log plausible_acme_privacy;
+    error_log /dev/null crit;
+    add_header Referrer-Policy no-referrer always;
+    proxy_hide_header Referrer-Policy;
 
     location ^~ /.well-known/acme-challenge/ {
         root /var/www/acme;
@@ -248,12 +270,53 @@ server {
 ```
 
 ```bash
+set -euo pipefail
+umask 077
+nginx_source_dir=/root/plausible-nginx-source
+nginx_source="$nginx_source_dir/plausible-acme-http.conf"
+nginx_target=/etc/nginx/conf.d/plausible.bytedance.city.conf
+nginx_installer=/root/scripts/install-nginx-privacy-vhost.sh
+nginx_backup_dir="$nginx_source_dir/backups"
+install -d -o root -g root -m 0700 "$nginx_source_dir" "$nginx_backup_dir"
+test -d "$nginx_source_dir" && test ! -L "$nginx_source_dir"
+test -d "$nginx_backup_dir" && test ! -L "$nginx_backup_dir"
+test "$(stat -c '%U:%G %a' "$nginx_source_dir")" = 'root:root 700'
+test "$(stat -c '%U:%G %a' "$nginx_backup_dir")" = 'root:root 700'
+test -f "$nginx_source" && test ! -L "$nginx_source"
+chown root:root "$nginx_source"
+chmod 0600 "$nginx_source"
+test "$(stat -c '%U:%G %a' "$nginx_source")" = 'root:root 600'
+test -x "$nginx_installer" && test ! -L "$nginx_installer"
+
+stage_stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+test ! -e "$nginx_backup_dir/pre-acme-$stage_stamp.conf"
+test ! -L "$nginx_backup_dir/pre-acme-$stage_stamp.conf"
+test ! -e "$nginx_backup_dir/pre-acme-$stage_stamp.absent"
+test ! -L "$nginx_backup_dir/pre-acme-$stage_stamp.absent"
+if test -e "$nginx_target" || test -L "$nginx_target"; then
+  test -f "$nginx_target" && test ! -L "$nginx_target"
+  install -o root -g root -m 0600 "$nginx_target" \
+    "$nginx_backup_dir/pre-acme-$stage_stamp.conf"
+  sha256sum "$nginx_backup_dir/pre-acme-$stage_stamp.conf"
+else
+  printf '%s\n' 'target_absent_before_acme=true' \
+    > "$nginx_backup_dir/pre-acme-$stage_stamp.absent"
+  chmod 0600 "$nginx_backup_dir/pre-acme-$stage_stamp.absent"
+fi
+
+bash "$nginx_installer" "$nginx_source" "$nginx_target" \
+  plausible.bytedance.city plausible_acme_privacy
 nginx -t
-systemctl reload nginx
-curl -sS -o /dev/null -w '%{http_code}\n' \
-  -H 'Host: plausible.bytedance.city' http://127.0.0.1/
+stage_http_status="$(curl -sS -o /dev/null -w '%{http_code}' \
+  -H 'Host: plausible.bytedance.city' http://127.0.0.1/)"
+test "$stage_http_status" = 503
+printf 'stage_http_status=%s\n' "$stage_http_status"
 ```
 
+The installer snapshots the source, keeps its journal and live rollback copy
+root-only, atomically installs the target, runs `nginx -t`, reloads, validates
+the effective vhost, and restores the old target on any failure. The separately
+retained pre-stage backup records the before-state after the installer commits.
 The local probe must return `503`. Only after that proof, create the DNS `A`
 record using the deployment registry's current public address; do not copy an
 address from this document:
@@ -266,9 +329,43 @@ tccli dnspod CreateRecord --cli-unfold-argument \
 unset VPS_PUBLIC_IP
 ```
 
-Wait until authoritative DNS and at least two public resolvers return the same
-approved address. Then request the certificate using the already-tested
-webroot; select the ACME contact at execution time rather than hardcoding it:
+Resolve the zone's authoritative nameservers through `1.1.1.1`, then require
+every authoritative server plus both `1.1.1.1` and `8.8.8.8` to return exactly
+the approved `A` value and no `AAAA` value. Any empty, duplicate, stale, or
+unexpected answer stops the deployment:
+
+```bash
+set -euo pipefail
+: "${VPS_PUBLIC_IP:?set the current value from the project registry}"
+[[ "$VPS_PUBLIC_IP" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]
+IFS=. read -r ipv4_a ipv4_b ipv4_c ipv4_d <<EOF
+$VPS_PUBLIC_IP
+EOF
+for octet in "$ipv4_a" "$ipv4_b" "$ipv4_c" "$ipv4_d"; do
+  (( 10#$octet <= 255 ))
+done
+authoritative_ns="$(dig +short @1.1.1.1 bytedance.city NS \
+  | sed 's/\.$//' | LC_ALL=C sort -u)"
+test -n "$authoritative_ns"
+while IFS= read -r resolver; do
+  [[ "$resolver" =~ ^[A-Za-z0-9.-]+$ ]]
+done <<EOF
+$authoritative_ns
+EOF
+
+for resolver in $authoritative_ns 1.1.1.1 8.8.8.8; do
+  ipv4_answers="$(dig +short "@$resolver" plausible.bytedance.city A)"
+  test "$(printf '%s\n' "$ipv4_answers" | sed '/^$/d' \
+    | wc -l | tr -d ' ')" = 1
+  test "$ipv4_answers" = "$VPS_PUBLIC_IP"
+  test -z "$(dig +short "@$resolver" plausible.bytedance.city AAAA)"
+done
+unset VPS_PUBLIC_IP authoritative_ns resolver ipv4_answers
+unset ipv4_a ipv4_b ipv4_c ipv4_d octet
+```
+
+Then request the certificate using the already-tested webroot; select the ACME
+contact at execution time rather than hardcoding it:
 
 ```bash
 read -r -p 'ACME contact email: ' ACME_CONTACT
@@ -287,6 +384,17 @@ Install the final configuration only after the certificate exists. The exact
 `/js/script.js` deny is a migration tripwire for the retired remote tracker.
 Do not block the whole `/js/` tree: Plausible's dashboard may need its own
 static JavaScript assets.
+
+The canonical final source is
+`/root/plausible-nginx-source/plausible-final-tls.conf`; the live target remains
+`/etc/nginx/conf.d/plausible.bytedance.city.conf`. Save the exact configuration
+below as a `root:root 0600` regular, non-symlink source file. The reviewed
+installer from Section 6 is used wherever its stricter single-access-log
+contract is compatible. This final vhost intentionally adds `access_log off`
+inside the event and health locations, so that installer must reject it rather
+than silently weaken its contract. The explicit fail-closed transaction after
+the configuration therefore performs the final swap, validation, reload, and
+rollback while retaining a root-only before-state.
 
 ```nginx
 map $http_upgrade $plausible_connection_upgrade {
@@ -377,16 +485,122 @@ analytics payloads cannot be duplicated into request logs. The root proxy
 retains WebSocket upgrade support for the live dashboard.
 
 ```bash
+set -Eeuo pipefail
+umask 077
+nginx_source=/root/plausible-nginx-source/plausible-final-tls.conf
+nginx_target=/etc/nginx/conf.d/plausible.bytedance.city.conf
+nginx_target_dir=/etc/nginx/conf.d
+nginx_source_dir=/root/plausible-nginx-source
+nginx_backup_dir=/root/plausible-nginx-source/backups
+nginx_lock_dir=/run/lock/plausible-nginx-vhost.lock.d
+test "$(id -u)" = 0
+test -d "$nginx_target_dir" && test ! -L "$nginx_target_dir"
+test "$(cd -P "$nginx_target_dir" && pwd)" = "$nginx_target_dir"
+test -d "$nginx_source_dir" && test ! -L "$nginx_source_dir"
+test -f "$nginx_source" && test ! -L "$nginx_source"
+test "$(stat -c '%U:%G %a' "$nginx_source")" = 'root:root 600'
+test "$(dirname "$nginx_target")" = "$nginx_target_dir"
+install -d -o root -g root -m 0700 "$nginx_backup_dir"
+test -d "$nginx_backup_dir" && test ! -L "$nginx_backup_dir"
+test "$(stat -c '%U:%G %a' "$nginx_backup_dir")" = 'root:root 700'
+
+release_final_lock() {
+  rm -f "$nginx_lock_dir/pid"
+  rmdir "$nginx_lock_dir"
+}
+cleanup_final_transaction() {
+  if test -n "${final_candidate:-}"; then
+    rm -f "$final_candidate"
+  fi
+  release_final_lock
+}
+mkdir -m 0700 "$nginx_lock_dir"
+trap cleanup_final_transaction EXIT
+printf '%s\n' "$$" > "$nginx_lock_dir/pid"
+chmod 0600 "$nginx_lock_dir/pid"
+
+final_stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+final_backup="$nginx_backup_dir/pre-final-$final_stamp.conf"
+test ! -e "$final_backup" && test ! -L "$final_backup"
+test ! -e "$final_backup.absent" && test ! -L "$final_backup.absent"
+final_candidate="$(mktemp "$nginx_target_dir/.plausible-final.XXXXXX")"
+test -f "$final_candidate" && test ! -L "$final_candidate"
+had_target=0
+target_mode=0644
+installed=0
+if test -e "$nginx_target" || test -L "$nginx_target"; then
+  test -f "$nginx_target" && test ! -L "$nginx_target"
+  had_target=1
+  target_mode="$(stat -c '%a' "$nginx_target")"
+  [[ "$target_mode" =~ ^[0-7]{3,4}$ ]]
+  install -o root -g root -m 0600 "$nginx_target" "$final_backup"
+  cmp -s "$nginx_target" "$final_backup"
+  sync -f "$final_backup"
+else
+  printf '%s\n' 'target_absent_before_final=true' \
+    > "$final_backup.absent"
+  chmod 0600 "$final_backup.absent"
+  sync -f "$final_backup.absent"
+fi
+
+rollback_final_nginx() {
+  local failure_code="$1" rollback_ok=1
+  trap - ERR INT TERM HUP
+  set +e
+  rm -f "$final_candidate"
+  if (( installed == 1 )); then
+    if (( had_target == 1 )); then
+      install -o root -g root -m "$target_mode" "$final_backup" \
+        "$final_candidate" || rollback_ok=0
+      mv -f "$final_candidate" "$nginx_target" || rollback_ok=0
+      sync -f "$nginx_target_dir" || rollback_ok=0
+    else
+      rm -f "$nginx_target" || rollback_ok=0
+      sync -f "$nginx_target_dir" || rollback_ok=0
+    fi
+    nginx -t >/dev/null 2>&1 || rollback_ok=0
+    systemctl reload nginx >/dev/null 2>&1 || rollback_ok=0
+  fi
+  if (( rollback_ok == 0 )); then
+    printf '%s\n' \
+      'CRITICAL: final Nginx rollback failed; backup retained.' >&2
+    exit 125
+  fi
+  exit "$failure_code"
+}
+trap 'rollback_final_nginx "$?"' ERR
+trap 'rollback_final_nginx 130' INT
+trap 'rollback_final_nginx 143' TERM
+trap 'rollback_final_nginx 129' HUP
+
+install -o root -g root -m 0644 "$nginx_source" "$final_candidate"
+cmp -s "$nginx_source" "$final_candidate"
+sync -f "$final_candidate"
+mv -f "$final_candidate" "$nginx_target"
+installed=1
+sync -f "$nginx_target_dir"
+cmp -s "$nginx_source" "$nginx_target"
 nginx -t
 systemctl reload nginx
+nginx -t
+sha256sum "$nginx_target"
+if (( had_target == 1 )); then
+  sha256sum "$final_backup"
+fi
+
 curl --fail --silent --show-error \
   https://plausible.bytedance.city/api/system/health/live
 curl --fail --silent --show-error \
   https://plausible.bytedance.city/api/system/health/ready
 PLAUSIBLE_ORIGIN=https://plausible.bytedance.city
-curl -sS -o /dev/null -w '%{http_code}\n' \
-  "$PLAUSIBLE_ORIGIN/js/script.js"
+retired_tracker_status="$(curl -sS -o /dev/null -w '%{http_code}' \
+  "$PLAUSIBLE_ORIGIN/js/script.js")"
+test "$retired_tracker_status" = 410
+printf 'retired_tracker_status=%s\n' "$retired_tracker_status"
 unset PLAUSIBLE_ORIGIN
+trap - ERR INT TERM HUP
+release_final_lock
+trap - EXIT
 ```
 
 The health probes must succeed and the retired tracker probe must return
@@ -431,6 +645,40 @@ There must be at least one fresh row for each hostname. Finally, sign in to the
 dashboard and independently open each site. Confirm the same Beta and Phase
 events in Realtime. ClickHouse rows without both dashboard confirmations are
 not a complete acceptance.
+
+### 8.1 Configure and accept every `Goal? = yes` event
+
+The executable event authorities remain the code allowlists; the human goal
+authority is `docs/analytics/plausible-events.md`. For each row marked `yes`,
+configure a Plausible **Custom event** goal only on a site whose documented
+caller emits that event. The resulting per-site sets are exact: optional rows
+are excluded, and a shared event is configured independently on both sites.
+
+Using the dashboard over HTTPS, open each site's settings and its Goals page.
+For every row below, create the exact case-sensitive event goal or prove that
+exactly one matching goal already exists. After saving, reopen the Goals page,
+confirm the one-to-one entry, and record UTC time plus a non-secret evidence
+reference. Do not batch-check rows from memory. A duplicate, missing goal,
+wrong site, renamed event, or unchecked row fails this gate.
+
+| Site | Exact custom-event goal | Created or uniquely existing | Reopened-settings acceptance (UTC + evidence reference) |
+|---|---|---|---|
+| `beta.structural.bytedance.city` | `waitlist_signup` | [ ] | `__________` |
+| `beta.structural.bytedance.city` | `waitlist_error` | [ ] | `__________` |
+| `beta.structural.bytedance.city` | `thank_you_view` | [ ] | `__________` |
+| `beta.structural.bytedance.city` | `thank_you_share` | [ ] | `__________` |
+| `phase.bytedance.city` | `screener_filter_applied` | [ ] | `__________` |
+| `phase.bytedance.city` | `company_viewed` | [ ] | `__________` |
+| `phase.bytedance.city` | `waitlist_signup` | [ ] | `__________` |
+| `phase.bytedance.city` | `waitlist_error` | [ ] | `__________` |
+| `phase.bytedance.city` | `methodology_opened` | [ ] | `__________` |
+| `phase.bytedance.city` | `thank_you_share` | [ ] | `__________` |
+
+The two fresh ingestion events required earlier prove the transport and site
+binding. Goal configuration acceptance proves the dashboard mapping; it does
+not justify deliberately causing a production error merely to populate an
+error-rate goal. Record the ten completed row references again in the initial
+deployment receipt as one indexed evidence artifact.
 
 ## 9. Backup, restore, and upgrades
 
@@ -618,11 +866,174 @@ return the unchanged production project to service with `docker compose up -d`.
 Do not copy an invalid set off-host.
 
 `config-root-only.tgz` contains live secrets. It and every derivative must stay
-root-owned (`0700` directory, `0600` files). Encrypt the complete set with the
-approved infrastructure backup key before off-host transfer; never copy the
-plaintext config archive into the repository, chat, CI artifacts, or general
-object storage. Record only the encrypted artifact location and checksum in the
-deployment receipt.
+root-owned (`0700` directory, `0600` files). Never copy the plaintext config
+archive into the repository, chat, CI artifacts, or general object storage.
+
+#### 9.1.1 Encrypt and verify the complete set off-host
+
+Use age v1 with X25519 recipients and ChaCha20-Poly1305 payload encryption. The
+approved public recipients file is referenced only by
+`PLAUSIBLE_BACKUP_RECIPIENTS_FILE`; never put a recipient, private identity,
+passphrase, or key path into this runbook or a receipt. The approved off-host
+rclone object is referenced only by `PLAUSIBLE_OFFHOST_TARGET`; the variable
+must name a configured remote object rather than a local path. A recovery
+operator supplies the private identity separately through the approved secret
+reference `PLAUSIBLE_BACKUP_IDENTITY_FILE` on the isolated restore host.
+
+The command below streams one tar containing the complete enumerated backup
+set directly into age, so it creates no second plaintext aggregate. It refuses
+a private key in the recipients file, refuses an implicit/local destination,
+uploads the ciphertext plus checksum, downloads the ciphertext again, and
+requires byte-for-byte and SHA-256 equality. A command failure or missing
+round-trip proof leaves this backup **not accepted**; do not fill its receipt
+row.
+
+```bash
+set -euo pipefail
+umask 077
+: "${SOURCE_BACKUP_DIR:?set the verified backup from Section 9.1}"
+: "${PLAUSIBLE_BACKUP_RECIPIENTS_FILE:?set the approved age recipients file}"
+: "${PLAUSIBLE_OFFHOST_TARGET:?set the approved rclone remote object}"
+command -v age >/dev/null
+command -v rclone >/dev/null
+age_version="$(age --version 2>/dev/null)"
+[[ "$age_version" =~ ^v?1\.[0-9]+(\.[0-9]+)?([+-][0-9A-Za-z.-]+)?$ ]]
+test "$(id -u)" = 0
+[[ "$SOURCE_BACKUP_DIR" == /* ]]
+test "$(realpath -e "$SOURCE_BACKUP_DIR")" = "$SOURCE_BACKUP_DIR"
+test "$(stat -c '%U:%G %a' "$SOURCE_BACKUP_DIR")" = 'root:root 700'
+[[ "$PLAUSIBLE_BACKUP_RECIPIENTS_FILE" == /* ]]
+test -f "$PLAUSIBLE_BACKUP_RECIPIENTS_FILE"
+test ! -L "$PLAUSIBLE_BACKUP_RECIPIENTS_FILE"
+test "$(stat -c '%U:%G %a' "$PLAUSIBLE_BACKUP_RECIPIENTS_FILE")" = \
+  'root:root 600'
+test "$(realpath -e "$PLAUSIBLE_BACKUP_RECIPIENTS_FILE")" = \
+  "$PLAUSIBLE_BACKUP_RECIPIENTS_FILE"
+recipients_parent="$(dirname "$PLAUSIBLE_BACKUP_RECIPIENTS_FILE")"
+test -d "$recipients_parent" && test ! -L "$recipients_parent"
+test "$(realpath -e "$recipients_parent")" = "$recipients_parent"
+test "$(stat -c '%U:%G %a' "$recipients_parent")" = 'root:root 700'
+if grep -Eq 'AGE-SECRET-KEY-|BEGIN [A-Z ]*PRIVATE KEY' \
+  "$PLAUSIBLE_BACKUP_RECIPIENTS_FILE"; then
+  exit 1
+fi
+if ! awk '
+  /^[[:space:]]*($|#)/ { next }
+  /^age1[0-9a-z]+$/ { seen = 1; next }
+  { exit 1 }
+  END { if (!seen) exit 1 }
+' "$PLAUSIBLE_BACKUP_RECIPIENTS_FILE"; then
+  exit 1
+fi
+case "$PLAUSIBLE_OFFHOST_TARGET" in
+  *$'\n'*|*$'\r'*|/*|'') exit 1 ;;
+  [A-Za-z0-9]*:*) ;;
+  *) exit 1 ;;
+esac
+
+archive_files=(
+  MANIFEST.txt RESOLVED_IMAGES.txt authority.env source.bundle
+  config-root-only.tgz postgres.dump db-data.tgz event-data.tgz
+  event-logs.tgz plausible-data.tgz SHA256SUMS
+)
+for artifact in "${archive_files[@]}"; do
+  test -f "$SOURCE_BACKUP_DIR/$artifact"
+  test ! -L "$SOURCE_BACKUP_DIR/$artifact"
+  test "$(stat -c '%U:%G %a' "$SOURCE_BACKUP_DIR/$artifact")" = \
+    'root:root 600'
+done
+(
+  cd "$SOURCE_BACKUP_DIR"
+  sha256sum --check SHA256SUMS
+)
+
+backup_project="$(sed -n 's/^compose_project=//p' \
+  "$SOURCE_BACKUP_DIR/MANIFEST.txt")"
+backup_stamp="$(sed -n 's/^created_utc=//p' \
+  "$SOURCE_BACKUP_DIR/MANIFEST.txt")"
+[[ "$backup_project" =~ ^[a-z0-9][a-z0-9_-]+$ ]]
+[[ "$backup_stamp" =~ ^[0-9]{8}T[0-9]{6}Z$ ]]
+export_dir="${PLAUSIBLE_BACKUP_EXPORT_DIR:-/root/backups/plausible-ce-encrypted}"
+install -d -o root -g root -m 0700 "$export_dir"
+test -d "$export_dir" && test ! -L "$export_dir"
+test "$(realpath -e "$export_dir")" = "$export_dir"
+test "$(stat -c '%U:%G %a' "$export_dir")" = 'root:root 700'
+encrypted_artifact="$export_dir/$backup_project-$backup_stamp.tar.age"
+encrypted_candidate="$export_dir/.$backup_project-$backup_stamp.tar.age.$$"
+checksum_file="$encrypted_artifact.sha256"
+checksum_candidate="$checksum_file.$$"
+verification_copy="$export_dir/.offhost-roundtrip.$$"
+checksum_verification_copy="$export_dir/.offhost-checksum-roundtrip.$$"
+recipient_snapshot=''
+test ! -e "$encrypted_artifact" && test ! -e "$checksum_file"
+cleanup_backup_export() {
+  rm -f "$encrypted_candidate" "$checksum_candidate" "$verification_copy" \
+    "$checksum_verification_copy"
+  if test -n "${recipient_snapshot:-}"; then
+    rm -f "$recipient_snapshot"
+  fi
+}
+trap cleanup_backup_export EXIT
+
+recipient_snapshot="$(mktemp "$export_dir/.age-recipients.XXXXXX")"
+install -o root -g root -m 0600 "$PLAUSIBLE_BACKUP_RECIPIENTS_FILE" \
+  "$recipient_snapshot"
+cmp -s "$PLAUSIBLE_BACKUP_RECIPIENTS_FILE" "$recipient_snapshot"
+test "$(stat -c '%U:%G %a' "$recipient_snapshot")" = 'root:root 600'
+if grep -Eq 'AGE-SECRET-KEY-|BEGIN [A-Z ]*PRIVATE KEY' \
+  "$recipient_snapshot"; then
+  exit 1
+fi
+if ! awk '
+  /^[[:space:]]*($|#)/ { next }
+  /^age1[0-9a-z]+$/ { seen = 1; next }
+  { exit 1 }
+  END { if (!seen) exit 1 }
+' "$recipient_snapshot"; then
+  exit 1
+fi
+
+(
+  cd "$SOURCE_BACKUP_DIR"
+  tar --format=posix -cf - -- "${archive_files[@]}"
+) | age --encrypt \
+  --recipients-file "$recipient_snapshot" \
+  --output "$encrypted_candidate"
+test -s "$encrypted_candidate"
+chown root:root "$encrypted_candidate"
+chmod 0600 "$encrypted_candidate"
+mv "$encrypted_candidate" "$encrypted_artifact"
+ciphertext_sha256="$(sha256sum "$encrypted_artifact" | awk '{print $1}')"
+[[ "$ciphertext_sha256" =~ ^[0-9a-f]{64}$ ]]
+printf '%s  %s\n' "$ciphertext_sha256" "$(basename "$encrypted_artifact")" \
+  > "$checksum_candidate"
+chown root:root "$checksum_candidate"
+chmod 0600 "$checksum_candidate"
+mv "$checksum_candidate" "$checksum_file"
+
+rclone copyto --immutable "$encrypted_artifact" "$PLAUSIBLE_OFFHOST_TARGET"
+rclone copyto --immutable "$checksum_file" \
+  "$PLAUSIBLE_OFFHOST_TARGET.sha256"
+rclone copyto "$PLAUSIBLE_OFFHOST_TARGET" "$verification_copy"
+rclone copyto "$PLAUSIBLE_OFFHOST_TARGET.sha256" \
+  "$checksum_verification_copy"
+chmod 0600 "$verification_copy"
+chmod 0600 "$checksum_verification_copy"
+cmp -s "$encrypted_artifact" "$verification_copy"
+cmp -s "$checksum_file" "$checksum_verification_copy"
+retrieved_sha256="$(sha256sum "$verification_copy" | awk '{print $1}')"
+test "$retrieved_sha256" = "$ciphertext_sha256"
+cleanup_backup_export
+trap - EXIT
+printf 'encrypted_backup_sha256=%s\n' "$ciphertext_sha256"
+printf 'age_version=%s\n' "$age_version"
+```
+
+Record only the approved remote object reference, ciphertext SHA-256, age
+version, recipients-file approval identifier (not its contents), execution UTC,
+and round-trip result in the initial deployment receipt. Decryption uses
+`age --decrypt --identity "$PLAUSIBLE_BACKUP_IDENTITY_FILE"` only on an
+isolated root-only restore host; it is not part of routine deployment.
 
 ### 9.2 Isolated restore drill
 
@@ -1350,6 +1761,8 @@ commit and invokes the verified rollback path.
 
 ## 10. Deployment receipt (fill only after real execution)
 
+### 10.1 Initial production deployment receipt — every row required
+
 - [ ] Application PR number and merge SHA: `__________`
 - [ ] Beta deployed SHA: `__________`
 - [ ] Phase deployed SHA: `__________`
@@ -1362,28 +1775,83 @@ commit and invokes the verified rollback path.
 - [ ] First administrator created over loopback; registration closed afterward
 - [ ] `beta.structural.bytedance.city`, timezone `Asia/Shanghai`, created
 - [ ] `phase.bytedance.city`, timezone `Asia/Shanghai`, created
-- [ ] HTTP ACME stage returned `503` outside challenge path before DNS
-- [ ] DNS change identifier and observed resolver convergence: `__________`
+- [ ] HTTP source/target checksum, root-only before-state, installer result, and
+      pre-DNS `503`: `__________`
+- [ ] DNS change identifier: `__________`
+- [ ] Exact `A` convergence at every authoritative server, `1.1.1.1`, and
+      `8.8.8.8`, with empty `AAAA`: `__________`
 - [ ] Certificate identifier/expiry (no private material): `__________`
-- [ ] Final Nginx config checksum and `nginx -t`: `__________`
+- [ ] Final Nginx source/target and before-state checksums, atomic transaction,
+      rollback owner, and `nginx -t`: `__________`
 - [ ] Exact `/js/script.js` deny returns `410`; dashboard JavaScript still loads
 - [ ] Public live and ready health checks pass
 - [ ] Beta direct expanded request: `202`, no `x-plausible-dropped`
 - [ ] Phase NPM request: `202`, no `x-plausible-dropped`
 - [ ] Fresh ClickHouse row confirmed for Beta and Phase
 - [ ] Fresh dashboard event confirmed for Beta and Phase
+- [ ] All ten Section 8.1 goal rows uniquely configured and individually
+      evidenced: `__________`
 - [ ] Complete backup path and `SHA256SUMS` verification: `__________`
 - [ ] Resolved Postgres, ClickHouse, Plausible, and helper digests verified
-- [ ] Root-only config archive (`.env`, compose, runtime override) mode/checksum: `__________`
-- [ ] Encrypted off-host artifact location/checksum: `__________`
+- [ ] Root-only config archive (`.env`, compose, runtime override) mode/checksum:
+      `__________`
+- [ ] age version, X25519 recipients-file approval identifier, execution UTC,
+      and ciphertext SHA-256: `__________`
+- [ ] Approved off-host object reference and byte-for-byte download verification:
+      `__________`
 - [ ] Isolated restore drill project, loopback port, and result: `__________`
 - [ ] Active authority file checksum and dir/project/port: `__________`
+
+`N/A` is forbidden in Section 10.1. An unchecked or placeholder-only row means
+the initial deployment is incomplete.
+
+### 10.2 Disaster recovery and promotion receipt — conditional
+
+Status (write exactly `EXECUTED` or `N/A`): `__________`
+
+If status is `N/A`, leave every checkbox below unchecked and record:
+
+- reason no disaster recovery or promotion was required: `__________`;
+- receipt window and unchanged active-authority checksum: `__________`.
+
+`N/A` is invalid after any incident-driven restore or Section 9.3 promotion
+command was attempted, after a failure, or merely because evidence is missing.
+The mandatory initial Section 9.2 restore drill belongs only to Section 10.1
+and does not turn this conditional disaster receipt into `EXECUTED`. If status
+is `EXECUTED`, every row below is required:
+
+- [ ] Incident/change identifier, operator, start/end UTC: `__________`
+- [ ] Encrypted source object, ciphertext checksum, approved identity reference,
+      and successful root-only decryption verification: `__________`
+- [ ] Backup `SHA256SUMS`, source commit, authority, and resolved image proofs:
+      `__________`
+- [ ] Isolated restore project/port and full Section 9.2 proof: `__________`
 - [ ] Previous project stopped; rollback authority/volumes retained: `__________`
 - [ ] Post-promotion backup resolved from new authority and verified: `__________`
 - [ ] Rollback owner and exact previous image/source baseline: `__________`
+
+### 10.3 Upgrade receipt — conditional
+
+Status (write exactly `EXECUTED` or `N/A`): `__________`
+
+If status is `N/A`, leave every checkbox below unchecked and record:
+
+- reason no upgrade was performed: `__________`;
+- receipt window and unchanged source/image/authority checksums: `__________`.
+
+`N/A` is invalid after any upgrade command was attempted, after a failed or
+rolled-back upgrade, or when evidence is missing. If status is `EXECUTED`,
+every row below is required:
+
+- [ ] Change identifier, operator, start/end UTC, source and image baselines:
+      `__________`
+- [ ] Complete encrypted pre-upgrade backup and isolated restore proof:
+      `__________`
 - [ ] Upgrade rollback-compatibility evidence path/checksum: `__________`
 - [ ] Upgrade rendered target images and running IDs/digests verified: `__________`
 - [ ] Upgrade authority switched only after ingestion/dashboard acceptance: `__________`
+- [ ] Post-upgrade complete backup and rollback-window owner/expiry: `__________`
 
-Unchecked fields mean the deployment is incomplete. Never backfill a receipt
-from assumptions, HTTP status alone, or service/container `active` state.
+Never mark a checkbox for a condition that did not occur; use the conditional
+status plus both required `N/A` fields instead. Never backfill any receipt from
+assumptions, HTTP status alone, or service/container `active` state.

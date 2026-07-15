@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -412,6 +413,177 @@ def test_plausible_deployment_runbook_is_pinned_private_and_recoverable() -> Non
     assert "- [x]" not in runbook.lower()
 
 
+def test_plausible_runbook_closes_operational_receipt_and_backup_gates() -> None:
+    runbook = (ROOT / "docs/analytics/plausible-deployment.md").read_text(
+        encoding="utf-8"
+    )
+    events = (ROOT / "docs/analytics/plausible-events.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "**Runbook version:** 1.3.0" in runbook
+    nginx_contracts = (
+        "/root/plausible-nginx-source/plausible-acme-http.conf",
+        "/root/plausible-nginx-source/plausible-final-tls.conf",
+        "/etc/nginx/conf.d/plausible.bytedance.city.conf",
+        "/root/scripts/install-nginx-privacy-vhost.sh",
+        "/var/lib/structural-isomorphism/nginx-privacy/",
+        'bash "$nginx_installer" "$nginx_source" "$nginx_target"',
+        "plausible.bytedance.city plausible_acme_privacy",
+        "rollback_final_nginx()",
+        "nginx_lock_dir=/run/lock/plausible-nginx-vhost.lock.d",
+        'mkdir -m 0700 "$nginx_lock_dir"',
+        "trap cleanup_final_transaction EXIT",
+        'mv -f "$final_candidate" "$nginx_target"',
+        "CRITICAL: final Nginx rollback failed; backup retained.",
+    )
+    for contract in nginx_contracts:
+        assert contract in runbook
+
+    nginx_blocks = re.findall(
+        r"^```nginx\n(.*?)^```$", runbook, flags=re.MULTILINE | re.DOTALL
+    )
+    acme_sources = [
+        block for block in nginx_blocks if "plausible_acme_privacy" in block
+    ]
+    assert len(acme_sources) == 1
+    acme_source = acme_sources[0]
+    acme_log_format = acme_source.split("log_format plausible_acme_privacy", 1)[
+        1
+    ].split(";", 1)[0]
+    assert set(re.findall(r"\$[A-Za-z_][A-Za-z0-9_]*", acme_log_format)) == {
+        "$request_method",
+        "$status",
+        "$body_bytes_sent",
+        "$request_time",
+        "$upstream_response_time",
+        "$request_id",
+    }
+    assert acme_source.count("server {") == 1
+    assert acme_source.count(
+        "access_log /var/log/nginx/access.log plausible_acme_privacy;"
+    ) == 1
+    assert acme_source.count("error_log /dev/null crit;") == 1
+    assert acme_source.count("add_header Referrer-Policy no-referrer always;") == 1
+    assert acme_source.count("proxy_hide_header Referrer-Policy;") == 1
+
+    acme = runbook.split("## 6. Stage HTTP ACME before DNS", 1)[1].split(
+        "## 7. Final Nginx privacy boundary", 1
+    )[0]
+    dns_contracts = (
+        "dig +short @1.1.1.1 bytedance.city NS",
+        "for resolver in $authoritative_ns 1.1.1.1 8.8.8.8",
+        'test "$ipv4_answers" = "$VPS_PUBLIC_IP"',
+        "wc -l | tr -d ' '",
+        'dig +short "@$resolver" plausible.bytedance.city AAAA',
+    )
+    for contract in dns_contracts:
+        assert contract in acme
+    assert acme.index("bash \"$nginx_installer\"") < acme.index(
+        "tccli dnspod CreateRecord"
+    )
+    assert acme.index("tccli dnspod CreateRecord") < acme.index(
+        "for resolver in $authoritative_ns 1.1.1.1 8.8.8.8"
+    )
+    assert acme.index("for resolver in $authoritative_ns 1.1.1.1 8.8.8.8") < (
+        acme.index("certbot certonly")
+    )
+
+    encryption_blocks = [
+        block for block in _plausible_runbook_bash_blocks() if "age --encrypt" in block
+    ]
+    assert len(encryption_blocks) == 1
+    encryption = encryption_blocks[0]
+    encryption_contracts = (
+        '"${PLAUSIBLE_BACKUP_RECIPIENTS_FILE:',
+        '"${PLAUSIBLE_OFFHOST_TARGET:',
+        "AGE-SECRET-KEY-",
+        'age_version="$(age --version 2>/dev/null)"',
+        "^v?1\\.[0-9]+",
+        "END { if (!seen) exit 1 }",
+        'recipient_snapshot="$(mktemp',
+        'cmp -s "$PLAUSIBLE_BACKUP_RECIPIENTS_FILE" "$recipient_snapshot"',
+        'sha256sum --check SHA256SUMS',
+        'tar --format=posix -cf - -- "${archive_files[@]}"',
+        "age --encrypt",
+        '--recipients-file "$recipient_snapshot"',
+        'rclone copyto --immutable "$encrypted_artifact"',
+        'rclone copyto "$PLAUSIBLE_OFFHOST_TARGET" "$verification_copy"',
+        'cmp -s "$encrypted_artifact" "$verification_copy"',
+        'cmp -s "$checksum_file" "$checksum_verification_copy"',
+        'test "$retrieved_sha256" = "$ciphertext_sha256"',
+    )
+    for contract in encryption_contracts:
+        assert contract in encryption
+    assert "PLAUSIBLE_BACKUP_RECIPIENTS_FILE=" not in encryption
+    assert "PLAUSIBLE_OFFHOST_TARGET=" not in encryption
+    assert "s3://" not in encryption
+    assert "scp " not in encryption
+
+    initial_receipt = runbook.split(
+        "### 10.1 Initial production deployment receipt — every row required", 1
+    )[1].split(
+        "### 10.2 Disaster recovery and promotion receipt — conditional", 1
+    )[0]
+    recovery_receipt = runbook.split(
+        "### 10.2 Disaster recovery and promotion receipt — conditional", 1
+    )[1].split("### 10.3 Upgrade receipt — conditional", 1)[0]
+    upgrade_receipt = runbook.split(
+        "### 10.3 Upgrade receipt — conditional", 1
+    )[1]
+    assert "`N/A` is forbidden in Section 10.1" in initial_receipt
+    assert "Previous project stopped" not in initial_receipt
+    assert "Upgrade rollback-compatibility" not in initial_receipt
+    assert "Previous project stopped" in recovery_receipt
+    assert "Status (write exactly `EXECUTED` or `N/A`)" in recovery_receipt
+    assert "after any incident-driven restore or Section 9.3 promotion" in (
+        recovery_receipt
+    )
+    assert "initial Section 9.2 restore drill belongs only to Section 10.1" in (
+        recovery_receipt
+    )
+    assert "Status (write exactly `EXECUTED` or `N/A`)" in upgrade_receipt
+    assert "after any upgrade command was attempted" in upgrade_receipt
+    assert "Upgrade rollback-compatibility" in upgrade_receipt
+
+    goal_rows = re.findall(
+        r"^\| `(beta\.structural\.bytedance\.city|phase\.bytedance\.city)` "
+        r"\| `([a-z_]+)` \| \[ \] \| `__________` \|$",
+        runbook,
+        flags=re.MULTILINE,
+    )
+    configured_goals: dict[str, set[str]] = {}
+    for site, event in goal_rows:
+        configured_goals.setdefault(site, set()).add(event)
+    assert configured_goals == {
+        "beta.structural.bytedance.city": {
+            "waitlist_signup",
+            "waitlist_error",
+            "thank_you_view",
+            "thank_you_share",
+        },
+        "phase.bytedance.city": {
+            "screener_filter_applied",
+            "company_viewed",
+            "waitlist_signup",
+            "waitlist_error",
+            "methodology_opened",
+            "thank_you_share",
+        },
+    }
+    goal_highlights = events.split("## Phase Detector goal highlights", 1)[1].split(
+        "## Beta event catalog (exhaustive)", 1
+    )[0]
+    yes_goals = set(
+        re.findall(
+            r"^\| `([a-z_]+)` \|.*\| (?:\*\*)?yes\b",
+            goal_highlights,
+            flags=re.MULTILINE | re.IGNORECASE,
+        )
+    )
+    assert yes_goals == set().union(*configured_goals.values())
+
+
 def _plausible_runbook_bash_blocks() -> list[str]:
     runbook = (ROOT / "docs/analytics/plausible-deployment.md").read_text(
         encoding="utf-8"
@@ -462,6 +634,192 @@ def test_plausible_bash_blocks_parse_separately_and_secret_bootstrap_is_inert(
     assert result.returncode == 0, result.stderr
     assert result.stdout == ""
     assert (secret_dir / ".env").stat().st_mode & 0o777 == 0o600
+
+
+def test_final_nginx_transaction_swaps_or_restores_atomically(tmp_path: Path) -> None:
+    blocks = _plausible_runbook_bash_blocks()
+    final_blocks = [block for block in blocks if "rollback_final_nginx()" in block]
+    assert len(final_blocks) == 1
+    transaction = final_blocks[0]
+
+    real_install = shutil.which("install")
+    real_stat = shutil.which("stat")
+    assert real_install is not None
+    assert real_stat is not None
+
+    mock_bin = tmp_path / "final-nginx-mocks"
+    mock_bin.mkdir()
+    mocks = {
+        "install": r'''#!/usr/bin/env bash
+set -euo pipefail
+arguments=()
+while (( "$#" )); do
+  case "$1" in
+    -o|-g) shift 2 ;;
+    *) arguments+=("$1"); shift ;;
+  esac
+done
+exec "$REAL_INSTALL" "${arguments[@]}"
+''',
+        "stat": r'''#!/usr/bin/env bash
+set -euo pipefail
+test "$1" = -c
+format="$2"
+path="$3"
+if "$REAL_STAT" -c '%a' "$path" >/dev/null 2>&1; then
+  mode="$("$REAL_STAT" -c '%a' "$path")"
+else
+  mode="$("$REAL_STAT" -f '%Lp' "$path")"
+fi
+case "$format" in
+  '%a') printf '%s\n' "$mode" ;;
+  '%U:%G %a') printf 'root:root %s\n' "$mode" ;;
+  *) exit 2 ;;
+esac
+''',
+        "sync": r'''#!/usr/bin/env bash
+set -euo pipefail
+count=0
+test ! -f "$MOCK_STATE/sync-count" || \
+  count="$(<"$MOCK_STATE/sync-count")"
+count=$((count + 1))
+printf '%s\n' "$count" > "$MOCK_STATE/sync-count"
+case "${MOCK_FAIL_STAGE:-}" in
+  sync-before-traps) test "$count" -ne 1 ;;
+  sync-after-mv) test "$count" -ne 3 ;;
+esac
+''',
+        "nginx": r'''#!/usr/bin/env bash
+set -euo pipefail
+test "$1" = -t
+count=0
+test ! -f "$MOCK_STATE/nginx-count" || \
+  count="$(<"$MOCK_STATE/nginx-count")"
+count=$((count + 1))
+printf '%s\n' "$count" > "$MOCK_STATE/nginx-count"
+case "${MOCK_FAIL_STAGE:-}" in
+  nginx-first) test "$count" -ne 1 ;;
+  nginx-after-reload) test "$count" -ne 2 ;;
+esac
+''',
+        "systemctl": r'''#!/usr/bin/env bash
+set -euo pipefail
+test "$1" = reload && test "$2" = nginx
+count=0
+test ! -f "$MOCK_STATE/reload-count" || \
+  count="$(<"$MOCK_STATE/reload-count")"
+count=$((count + 1))
+printf '%s\n' "$count" > "$MOCK_STATE/reload-count"
+if [[ "${MOCK_FAIL_STAGE:-}" == reload && "$count" == 1 ]]; then
+  exit 1
+fi
+''',
+        "curl": r'''#!/usr/bin/env bash
+set -euo pipefail
+url="${*: -1}"
+case "$url" in
+  */api/system/health/*)
+    test "${MOCK_FAIL_STAGE:-}" != health
+    ;;
+  */js/script.js)
+    if [[ "${MOCK_FAIL_STAGE:-}" == tracker ]]; then
+      printf '%s' 200
+    else
+      printf '%s' 410
+    fi
+    ;;
+  *) exit 2 ;;
+esac
+''',
+    }
+    for name, source in mocks.items():
+        path = mock_bin / name
+        path.write_text(source, encoding="utf-8")
+        path.chmod(0o700)
+
+    cases = {
+        "success": 0,
+        "sync-before-traps": 1,
+        "sync-after-mv": 1,
+        "nginx-first": 1,
+        "nginx-after-reload": 1,
+        "reload": 1,
+        "health": 1,
+        "tracker": 1,
+    }
+    for stage, expected_failure in cases.items():
+        case_dir = tmp_path / stage
+        source_dir = case_dir / "source"
+        target_dir = case_dir / "conf.d"
+        backup_dir = source_dir / "backups"
+        lock_dir = case_dir / "run/lock/plausible-nginx-vhost.lock.d"
+        source_dir.mkdir(parents=True, mode=0o700)
+        target_dir.mkdir(parents=True)
+        lock_dir.parent.mkdir(parents=True)
+        source = source_dir / "plausible-final-tls.conf"
+        target = target_dir / "plausible.bytedance.city.conf"
+        source.write_text("new-final-vhost\n", encoding="utf-8")
+        source.chmod(0o600)
+        target.write_text("old-http-stage\n", encoding="utf-8")
+        target.chmod(0o640)
+
+        replacements = {
+            "nginx_source=/root/plausible-nginx-source/plausible-final-tls.conf": (
+                f"nginx_source={shlex.quote(str(source))}"
+            ),
+            "nginx_target=/etc/nginx/conf.d/plausible.bytedance.city.conf": (
+                f"nginx_target={shlex.quote(str(target))}"
+            ),
+            "nginx_target_dir=/etc/nginx/conf.d": (
+                f"nginx_target_dir={shlex.quote(str(target_dir))}"
+            ),
+            "nginx_source_dir=/root/plausible-nginx-source": (
+                f"nginx_source_dir={shlex.quote(str(source_dir))}"
+            ),
+            "nginx_backup_dir=/root/plausible-nginx-source/backups": (
+                f"nginx_backup_dir={shlex.quote(str(backup_dir))}"
+            ),
+            "nginx_lock_dir=/run/lock/plausible-nginx-vhost.lock.d": (
+                f"nginx_lock_dir={shlex.quote(str(lock_dir))}"
+            ),
+            'test "$(id -u)" = 0': ": # test executes without root ownership",
+        }
+        executable = transaction
+        for original, replacement in replacements.items():
+            assert original in executable
+            executable = executable.replace(original, replacement, 1)
+
+        state = case_dir / "state"
+        state.mkdir()
+        result = subprocess.run(
+            ["bash"],
+            input=executable,
+            text=True,
+            capture_output=True,
+            check=False,
+            env={
+                **os.environ,
+                "PATH": f"{mock_bin}:{os.environ['PATH']}",
+                "MOCK_FAIL_STAGE": "" if stage == "success" else stage,
+                "MOCK_STATE": str(state),
+                "REAL_INSTALL": real_install,
+                "REAL_STAT": real_stat,
+            },
+        )
+
+        backups = list(backup_dir.glob("pre-final-*.conf"))
+        assert len(backups) == 1
+        assert backups[0].read_text(encoding="utf-8") == "old-http-stage\n"
+        assert not lock_dir.exists()
+        assert list(target_dir.glob(".plausible-final.*")) == []
+        if expected_failure:
+            assert result.returncode != 0
+            assert target.read_text(encoding="utf-8") == "old-http-stage\n"
+            assert target.stat().st_mode & 0o777 == 0o640
+        else:
+            assert result.returncode == 0, result.stderr
+            assert target.read_text(encoding="utf-8") == "new-final-vhost\n"
+            assert target.stat().st_mode & 0o777 == 0o644
 
 
 def test_initial_authority_is_published_only_after_readiness(tmp_path: Path) -> None:

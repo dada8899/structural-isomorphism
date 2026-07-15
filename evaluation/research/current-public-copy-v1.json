@@ -29,8 +29,8 @@
     ],
     "current_documents": [
       "README.md",
-      "MODEL_CARD.md",
-      "DATASET_CARD.md",
+      "model_card.md",
+      "dataset_card.md",
       "docs/index.md",
       "docs/getting-started.md",
       "docs/phase-detector.md"
@@ -156,11 +156,11 @@
       ]
     },
     {
-      "path": "MODEL_CARD.md",
+      "path": "model_card.md",
       "patterns": ["Historical card; not a current generalization claim"]
     },
     {
-      "path": "DATASET_CARD.md",
+      "path": "dataset_card.md",
       "patterns": ["checksum-verified", "historical/staged research assets"]
     },
     {

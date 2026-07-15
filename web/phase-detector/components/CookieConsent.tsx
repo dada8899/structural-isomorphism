@@ -62,11 +62,11 @@ function isDNT(): boolean {
   if (typeof navigator === "undefined") return false;
   // Spec: "1" = opt-out. We also treat "yes" (older spec) as opt-out.
   // We do NOT treat null/unset as opt-out (per the W3C spec).
-  const dnt =
-    (navigator as Navigator & { doNotTrack?: string }).doNotTrack ||
-    (window as Window & { doNotTrack?: string }).doNotTrack ||
-    "";
-  return dnt === "1" || dnt === "yes";
+  const values = [
+    (navigator as Navigator & { doNotTrack?: string }).doNotTrack,
+    (window as Window & { doNotTrack?: string }).doNotTrack,
+  ];
+  return values.some((value) => value === "1" || value === "yes");
 }
 
 function readConsent(): ConsentState | null {
@@ -74,9 +74,27 @@ function readConsent(): ConsentState | null {
   try {
     const raw = window.localStorage.getItem(CONSENT_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as ConsentState;
-    if (parsed.version !== CONSENT_VERSION) return null; // schema bump → re-prompt
-    return parsed;
+    const parsed = JSON.parse(raw) as unknown;
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      Array.isArray(parsed)
+    ) {
+      return null;
+    }
+    const candidate = parsed as Partial<ConsentState>;
+    if (
+      candidate.essential !== true ||
+      typeof candidate.analytics !== "boolean" ||
+      candidate.marketing !== false ||
+      candidate.version !== CONSENT_VERSION ||
+      typeof candidate.timestamp !== "number" ||
+      !Number.isFinite(candidate.timestamp) ||
+      candidate.timestamp < 0
+    ) {
+      return null;
+    }
+    return candidate as ConsentState;
   } catch {
     return null;
   }
@@ -95,6 +113,7 @@ function privacyTransform(
 ): PlausibleRequestPayload | null {
   const safeUrl = canonicalAnalyticsUrl();
   if (
+    isDNT() ||
     !analyticsTransportEnabled ||
     !safeUrl ||
     !payload ||
@@ -222,7 +241,7 @@ function installAnalyticsFetchGuard(): void {
     ) {
       return ignoredAnalyticsResponse();
     }
-    if (!analyticsTransportEnabled || !analyticsRouteIsSafe()) {
+    if (isDNT() || !analyticsTransportEnabled || !analyticsRouteIsSafe()) {
       return ignoredAnalyticsResponse();
     }
 
@@ -281,6 +300,10 @@ function initializedTracker(): Promise<TrackerModule> {
 
 function loadPlausible(pathname?: string): void {
   if (typeof window === "undefined") return;
+  if (isDNT()) {
+    unloadPlausible();
+    return;
+  }
   const safeUrl = canonicalAnalyticsUrl(pathname);
   if (!safeUrl) {
     unloadPlausible();
@@ -291,7 +314,11 @@ function loadPlausible(pathname?: string): void {
   void initializedTracker()
     .then((tracker) => {
       if (generation !== transportGeneration) return;
-      if (!analyticsTransportEnabled || canonicalAnalyticsUrl(pathname) !== safeUrl) {
+      if (
+        isDNT() ||
+        !analyticsTransportEnabled ||
+        canonicalAnalyticsUrl(pathname) !== safeUrl
+      ) {
         unloadPlausible();
         return;
       }
@@ -372,7 +399,11 @@ export default function CookieConsent() {
   useEffect(() => {
     const onOpen = () => {
       const existing = readConsent();
-      if (existing) {
+      if (isDNT()) {
+        unloadPlausible();
+        setAnalytics(false);
+        setMarketing(false);
+      } else if (existing) {
         setAnalytics(existing.analytics);
         setMarketing(existing.marketing);
       }
@@ -384,27 +415,29 @@ export default function CookieConsent() {
   }, []);
 
   const persistAndApply = useCallback(
-    (a: boolean, m: boolean) => {
+    (a: boolean) => {
+      const effectiveAnalytics = a && !isDNT();
+      const effectiveMarketing = false;
       writeConsent({
         essential: true,
-        analytics: a,
-        marketing: m,
+        analytics: effectiveAnalytics,
+        marketing: effectiveMarketing,
         version: CONSENT_VERSION,
         timestamp: Date.now(),
       });
-      if (a && analyticsRouteIsSafe(pathname)) loadPlausible(pathname);
+      if (effectiveAnalytics && analyticsRouteIsSafe(pathname)) loadPlausible(pathname);
       else unloadPlausible();
       // marketing currently no-op (no marketing scripts on the site).
-      setAnalytics(a);
-      setMarketing(m);
+      setAnalytics(effectiveAnalytics);
+      setMarketing(effectiveMarketing);
       setMode("hidden");
     },
     [pathname]
   );
 
-  const acceptAll = () => persistAndApply(true, true);
-  const essentialOnly = () => persistAndApply(false, false);
-  const saveCustom = () => persistAndApply(analytics, marketing);
+  const acceptAll = () => persistAndApply(true);
+  const essentialOnly = () => persistAndApply(false);
+  const saveCustom = () => persistAndApply(analytics);
 
   if (mode === "hidden") return null;
 
