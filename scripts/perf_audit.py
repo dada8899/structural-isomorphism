@@ -102,7 +102,8 @@ INIT_SCRIPT = r"""
 try { localStorage.setItem('phase_tour_seen', 'true'); } catch (e) {}
 try {
   localStorage.setItem('cookie_consent_v1', JSON.stringify({
-    essential: true, analytics: false, marketing: false, version: 1, timestamp: 0
+    essential: true, analytics: false, marketing: false, source: 'explicit',
+    version: 1, timestamp: 0
   }));
 } catch (e) {}
 

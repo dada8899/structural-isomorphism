@@ -168,6 +168,10 @@ def assert_artifact_equivalent(expected, observed, *, path: str = "$") -> None:
         raise ValueError(f"artifact mismatch at {path}")
 
 
+def _reject_nonfinite_json(value: str) -> None:
+    raise ValueError(f"non-finite JSON constant: {value}")
+
+
 def _load_learning_curve():
     """Side-load learning_curve.py without going through soc_pipeline/__init__."""
     spec = importlib.util.spec_from_file_location("soc_pipeline_learning_curve", MODULE_PATH)
@@ -482,13 +486,26 @@ def _write_summary_md(out: dict) -> None:
 def _check_committed_artifacts() -> dict:
     _assert_generator_environment()
     generated = main(write=False)
-    expected_json = json.dumps(generated, indent=2) + "\n"
-    expected_summary = _render_summary_md(generated)
-    if (HERE / "results.json").read_text(encoding="utf-8") != expected_json:
-        raise RuntimeError("results.json differs from the locked generator output")
+    committed_text = (HERE / "results.json").read_text(encoding="utf-8")
+    try:
+        committed = json.loads(
+            committed_text,
+            parse_constant=_reject_nonfinite_json,
+        )
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise RuntimeError("results.json is not strict JSON") from exc
+    if committed_text != json.dumps(committed, indent=2) + "\n":
+        raise RuntimeError("results.json is not in canonical JSON format")
+    try:
+        assert_artifact_equivalent(committed, generated)
+    except ValueError as exc:
+        raise RuntimeError(
+            f"results.json differs materially from the locked generator output: {exc}"
+        ) from exc
+    expected_summary = _render_summary_md(committed)
     if (HERE / "summary.md").read_text(encoding="utf-8") != expected_summary:
-        raise RuntimeError("summary.md differs from the locked generator output")
-    return generated
+        raise RuntimeError("summary.md differs from the committed canonical result")
+    return committed
 
 
 def _parse_args() -> argparse.Namespace:

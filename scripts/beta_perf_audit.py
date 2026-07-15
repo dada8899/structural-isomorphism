@@ -786,6 +786,8 @@ def _page_validator(page_name: str, case: PageCase):
             raise AuditFailure(
                 f"horizontal overflow: {layout['scroll']} > {layout['viewport']}"
             )
+        if page.locator("#analytics-consent").count() != 0:
+            raise AuditFailure("first-visit analytics consent polluted the route audit")
 
         expected_counts = {
             "home": (".ask-chip", 4),

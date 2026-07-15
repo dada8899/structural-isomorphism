@@ -142,12 +142,13 @@ def test_results_json_exists() -> None:
 
 def test_committed_artifacts_equal_deterministic_raw_input_build(runner) -> None:
     if not runner.generator_environment_matches():
-        pytest.skip("byte-stable artifact comparison runs in the locked generator gate")
+        pytest.skip("platform-equivalent artifact comparison runs in the locked generator gate")
     generated = runner.main(write=False)
     committed = json.loads(RESULTS_JSON.read_text())
 
     runner.assert_artifact_equivalent(committed, generated)
     assert SUMMARY_MD.read_text() == runner._render_summary_md(committed)
+    assert runner._check_committed_artifacts() == committed
 
 
 def test_artifact_comparison_rejects_material_numeric_and_semantic_drift(

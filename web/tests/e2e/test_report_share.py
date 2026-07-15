@@ -108,7 +108,10 @@ def _legacy_payload() -> dict:
 
 
 def _origin_candidate() -> dict:
-    from web.backend.services.candidate_origin import (
+    if str(WEB_BACKEND) not in sys.path:
+        sys.path.insert(0, str(WEB_BACKEND))
+
+    from services.candidate_origin import (
         build_origin_candidate,
         discovery_id_for_pair,
     )
@@ -124,6 +127,21 @@ def _origin_candidate() -> dict:
     )
     assert candidate is not None
     return candidate
+
+
+def test_origin_candidate_fixture_bootstraps_backend_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    backend_path = str(WEB_BACKEND)
+    monkeypatch.setattr(sys, "path", [item for item in sys.path if item != backend_path])
+
+    candidate = _origin_candidate()
+
+    assert sys.path[0] == backend_path
+    assert candidate["pair"] == {
+        "a_id": "kb-origin-a",
+        "b_id": "kb-origin-b",
+    }
 
 
 def _current_report_archive(

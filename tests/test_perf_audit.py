@@ -26,6 +26,7 @@ def test_route_audit_excludes_separately_tested_first_visit_overlays():
     assert "phase_tour_seen" in INIT_SCRIPT
     assert "cookie_consent_v1" in INIT_SCRIPT
     assert "analytics: false" in INIT_SCRIPT
+    assert "source: 'explicit'" in INIT_SCRIPT
 
 
 def test_compute_inp_proxy_ignores_loading_loaf_and_untrusted_events():

@@ -1026,5 +1026,6 @@ def test_workflow_gates_all_primary_beta_surfaces_with_three_runs() -> None:
     assert "post_measure_validation_failed" in authoritative
     assert "post_interaction_validator" in authoritative
     assert "audit_one(" in beta and "unknown API" in beta
+    assert 'page.locator("#analytics-consent").count() != 0' in beta
     assert "research-library export action did not complete" in beta
     assert "tool-card navigation did not load its real target" in beta
