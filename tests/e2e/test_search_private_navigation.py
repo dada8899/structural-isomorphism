@@ -182,8 +182,19 @@ def test_query_leaves_url_and_survives_reload_edit_back_and_mobile_keyboard(
     page.go_back(wait_until="domcontentloaded")
     expect(page.locator(".search-question__text")).to_have_text(first)
     assert seen.count(first) >= 2 and second in seen
-    assert page.locator("#search-edit-btn").evaluate(
-        "el => el.getBoundingClientRect().height >= 44"
+
+    edit_button = page.locator("#search-edit-btn")
+    expect(edit_button).to_be_visible()
+    expect(edit_button).to_have_css("min-height", "44px")
+    page.wait_for_function(
+        """() => {
+          const el = document.getElementById('search-edit-btn');
+          return Boolean(
+            el &&
+            el.isConnected &&
+            el.getBoundingClientRect().height >= 44
+          );
+        }"""
     )
 
 
