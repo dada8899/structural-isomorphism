@@ -14,18 +14,18 @@
 [![Live: Structural Search](https://img.shields.io/badge/Live-beta.structural.bytedance.city-2f9e44)](https://beta.structural.bytedance.city)
 [![Live: Phase Detector](https://img.shields.io/badge/Live-phase.bytedance.city-2f9e44)](https://phase.bytedance.city)
 
-> **我们用一条冻结的 339 行 Clauset 流水线、不做任何按领域的调参，检验了横跨物理、金融、生物、互联网共 27 个现象是否真的共享同一套统计力学。本仓库公开每一次拟合、每一组空对照、每一次失败——包括一份零结果的 alpha 回测（Sharpe 提升 −0.23）、LLM 评审委员会对普适类候选 33% 的拒绝率，以及一份 26 类、带完整溯源的分类法。**
+> **我们检验跨领域系统是否共享可测量的标度特征，并公开 PASS、FAIL、NULL 与 INCONCLUSIVE 结果。当前最可防守的贡献是可拒绝验证协议，而不是一张已验证的普适类地图；已公开的一项零结果是 Sharpe 提升 −0.23 的滚动回测。**
 
 普适类 (universality class) 是现代统计物理最具影响力的思想之一：少数几条方程足以描述材料、磁体、流体、晶格中各异的相变现象。本项目要检验的核心问题是——这套思想能否**在不针对具体领域调参的前提下**，延伸到那些噪声大、样本稀、风险高的真实经验领域：金融传染、神经雪崩、DeFi 清算、野火、生物基因开关、引用级联。
 
 答案**不是**默认成立的。我们将其作为可证伪命题处理：先预注册指数区间，再用同一套 Clauset MLE 流水线跨领域拟合，最终以 PASS / FAIL / INCONCLUSIVE 给出有完整溯源记录的判定。当一个假设被证伪——包括我们自己面向消费者的那一个——我们公开它。
 
-**截至 2026-05-25 的进展**
+**历史研究快照：2026-05-25（非当前生产证据）**
 - 27（v0.3） + 18（v0.4 Wave 2）= **45 个 SOC 验证系统**，覆盖教科书级 + 反射式 + reject-confirm 类（KPZ / DP / RFIM / Manna / Oslo / Tracy-Widom 加 18 个新增）
 - **4888 主 KB + 300 长尾（Wave 3C） + 145 Wave 2 条目待合并** 跨领域知识库条目
 - 3 个 PyPI 包已发布 (`soc-pipeline` / `cross-judge` / `guarded-llm`)；`reject-aware-critic` v0.1.0 已就绪 (50/50 测试通过)
 - C1 统一预印本 v0.4 草稿（459 行，§3.5 "Completing the taxonomy"）；v0.3 已闭环 9/9 P0 reviewer 关切，v0.4 批次闭环 18/18
-- 分类法 v0.4：**26 类已验证 + 5 个 SPLIT 决议 + 1 个 MERGE 建议**（preisach_hysteresis_cascade + rfim_barkhausen → crackling_noise_universality）
+- 分类法 v0.4：**26 个内部评审候选类 + 5 个 SPLIT 决议 + 1 个 MERGE 建议**；这些候选类并非 26 个经独立验证的机制（preisach_hysteresis_cascade + rfim_barkhausen → crackling_noise_universality）
 - 一份已公开的零结果：滚动回测 Sharpe 提升 = **−0.23**
 
 **截至 2026-05-26（v0.5-draft 过渡态——详见 [paper/v0.5-draft/](paper/v0.5-draft/)）**
@@ -33,10 +33,10 @@
 v0.5 草稿汇总了 SESSION-25 自 v0.4 切线后的进展。v0.4 以上数字不变；v0.5 新增 3 个方法学增量、1 个新类晋升、1 个评测专属的普适性结论：
 
 - **v0.5 研究账本中的 19 个候选类**（+1）：这不等于 19 个经验机制均已被独立确认。其中多项依赖合成或文献标定锚点；`aggregation_kinetics` 在直接 held-out 复现前仍是候选 scaling/mechanism class。
-- **11 个 PASS-CONFIRMED-或更强**（+1）：`schelling_credible_commitment` 通过 (s\*, k) 阈值-tobit 重参数化升至 PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT（sub-run D，2/4 锚命中）。Horn-Mavroidis WTO 真实数据健全性检查（n = 23 个报复案例）返回符号反转斜率（`k = −2.92`，95 % CI `[−7.92, −0.67]`），如实报告为观测识别失败（被告强硬度选择偏差），不构成对底层机制的反驳。
+- **旧版内部 PASS 计数（禁止用于投稿）**：v0.5 草稿曾计入 11 个 PASS-CONFIRMED-或更强结果，但 `schelling_credible_commitment` 与 B1 分类法及 WTO 真实数据的符号反转冲突。在外部评审完成前，必须将其排除在普适性 PASS 计数之外。
 - **3 个方法学增量**（§3.6.5 (s\*, k) 重参数化 / §3.6.6 多层级测试模式 / §3.6.7 头-尾感知 LLM 校验器），含 1 份完整的跨类适用性回顾 + 3 份预注册（在 [paper/v0.5-draft/preregistrations/](paper/v0.5-draft/preregistrations/)）。
 - **Pythia LAMBADA 跨拟合（§4）**：8 个 size × 27 checkpoint 全部使用真实逐点评测。v1（L∞ 自由）与 v2（L∞ ∈ [1.0, 5.0]）均得到 TIGHT_UNIVERSALITY（CV ≈ 0.12）。**TIGHT 结论是评测特异性的**：跨 LAMBADA + train-loss 多源池化后 CV 涨到 0.58–1.49。v0.4 的 BROAD_SPREAD 是 3-真实 + 3-合成 train-loss 混源造成的伪影；普适性结论是 *LAMBADA-OpenAI 损失曲线本身* 的属性，不是 scaling-law 家族普遍属性。
-- **arXiv 状态**：v0.4 预印本投递待用户操作；v0.5 草稿 *不* 是新投递，只是延伸。见 `release/arxiv-submission-receipt.txt`（待填）。
+- **arXiv 状态**：v0.4 预印本与 v0.5 扩展均尚未投稿。claim/evidence 与外部评审门禁仍未完成；两项门禁通过前不得提交。
 - **没有新的 PyPI 包**；没有新的数据集；v0.5 继承 v0.4 的 `dataset/v1/` 与 3 个已发布 PyPI 包，原样不变。
 
 ## 仓库内容
@@ -46,7 +46,7 @@ v0.5 草稿汇总了 SESSION-25 自 v0.4 切线后的进展。v0.4 以上数字�
 <td width="33%" valign="top">
 
 ### 1. SOC 流水线
-一个共享的 Clauset MLE 模块（`v4/lib/soc_pipeline.py`，339 行代码）。跨 13 个经验系统 + 4 个空对照原样运行，输出幂律 / 对数正态 / 指数分布的对比结果，全部对照预注册的指数区间。
+一个共享的 Clauset MLE 模块（`v4/lib/soc_pipeline.py`，339 行代码）。跨 13 个经验系统 + 4 个空对照原样运行，输出幂律 / 对数正态 / 指数分布的对比结果。CVE、FDNY 和 WSB 有带时间戳的预注册；更广泛的历史运行并未统一预注册。
 
 [**→ 流水线文档**](docs/pipeline.md)
 
@@ -118,7 +118,7 @@ CI 在每个 PR 上跑 sanity + integration 套件。e2e 套件每晚对 prod �
 
 流水线对每个系统都是**同一个函数**——不存在按领域定制的超参数。三条承诺让框架可证伪而非确认导向：
 
-- **预注册的指数区间**。每一个被宣称的普适类都必须**在我们碰新数据之前**先声明它的预期幂律指数。落在区间外的拟合记作 FAIL，绝不允许事后重新分类。
+- **在已有记录处使用带时间戳的预注册**。CVE、FDNY 和 WSB 的预测均在对应运行前提交。更广泛的历史分类法扫描并未统一预注册，不能把它描述为全部事前预注册。
 - **空对照**。四个合成空分布（均匀、指数、对数正态、随机打乱）通过同一套流水线。任何无法拒绝它们的框架就是坏的。
 - **多模型评审委员会**。一个异构的 LLM 评审集成（Claude Sonnet、DeepSeek v4、Kimi K2.5、GLM-5）对候选跨领域对投票，给出明确的 `KEEP / REJECT / SPLIT / MERGE` 裁决。任何单个模型都无法替这一对放行。
 
@@ -148,16 +148,9 @@ CI 在每个 PR 上跑 sanity + integration 套件。e2e 套件每晚对 prod �
   doi       = {10.5281/zenodo.19615170},
   url       = {https://doi.org/10.5281/zenodo.19615170}
 }
-
-@misc{structural-isomorphism-soc-2026,
-  title        = {{Structural Isomorphism: A Cross-Domain
-                   Self-Organized Criticality Validation Pipeline}},
-  author       = {Wan, Qinghui},
-  year         = {2026},
-  howpublished = {arXiv:XXXX.XXXXX (preprint forthcoming)},
-  url          = {https://github.com/dada8899/structural-isomorphism}
-}
 ```
+
+目前尚未分配论文 DOI 或 arXiv 标识符。请引用上方带版本的数据集或具体仓库 commit；不要虚构预印本编号。
 
 仓库根目录的 [`CITATION.cff`](CITATION.cff) 是机器可读引用文件，GitHub 的 "Cite this repository" 按钮会自动识别。
 
@@ -191,9 +184,9 @@ structural-isomorphism/
 | SOC 流水线 | 稳定。冻结模块 + 38 个 sanity 测试 + 总计 213 个测试。 |
 | 普适类分类法 | v0.3，B3 共识完成，B4 集成 run 部分完成。 |
 | Phase Detector | 上线 597 ticker demo 快照；v0.2 负结果已公开。 |
-| Structural Search | 上线 4,443 条权威 artifact；英文检索仍未达质量门禁。 |
+| Structural Search | 上线经 checksum 校验的 4,443 条 artifact；各条映射的溯源质量不一，均按候选关系展示，英文检索仍未达质量门禁。 |
 | 统一预印本 (C1) | reviewer-readable draft；claim/evidence 与外部 review 门禁通过前不投递。 |
-| 单独 arXiv 草稿 | 4 篇完整（地震、S&P 500、DeFi、神经）。 |
+| 研究草稿 | 4 篇内部领域草稿；均未经过外部同行评审，也未被接收，不得表述为已接收或已经外部评审的 arXiv 论文。 |
 
 ## 参与贡献
 

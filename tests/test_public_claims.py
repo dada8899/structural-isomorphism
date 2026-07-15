@@ -44,15 +44,57 @@ def test_public_copy_inventory_paths_match_git_index_case() -> None:
 def test_current_product_surfaces_use_candidate_and_outcome_language() -> None:
     inventory = json.loads(DEFAULT_INVENTORY.read_text(encoding="utf-8"))
     runtime = set(inventory["scope"]["runtime_pages"])
+    current_documents = set(inventory["scope"]["current_documents"])
     assert {
         "web/frontend/about.html",
         "web/frontend/tools.html",
         "web/frontend/insights.html",
         "web/frontend/assets/js/insights.js",
     } <= runtime
-    assert "39 个已验证" in inventory["forbidden_patterns"]
-    assert "已验证同构库" in inventory["forbidden_patterns"]
+    assert "README-zh.md" in current_documents
+    assert {
+        "26 类已验证",
+        "39 个已验证",
+        "已验证同构库",
+        "每一个被宣称的普适类都必须",
+    } <= set(inventory["forbidden_patterns"])
     assert inventory["forbidden_regex"]
+
+
+def test_readme_legacy_claims_fail_closed(tmp_path: Path) -> None:
+    production = json.loads(DEFAULT_INVENTORY.read_text(encoding="utf-8"))
+    root, inventory_path = _fixture(tmp_path)
+    inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+    inventory["scope"]["runtime_pages"] = []
+    inventory["scope"]["current_documents"] = ["README-zh.md"]
+    inventory["required_context"] = [
+        {"path": "README-zh.md", "patterns": ["Next: inspect evidence."]}
+    ]
+    inventory["forbidden_patterns"] = production["forbidden_patterns"]
+    inventory["forbidden_regex"] = production["forbidden_regex"]
+    inventory_path.write_text(json.dumps(inventory), encoding="utf-8")
+
+    attacks = (
+        "分类法 v0.4：26 类已验证 + 5 个 SPLIT 决议。",
+        "11 个 PASS-CONFIRMED-或更强（+1）：schelling_credible_commitment 通过重参数化升至 PASS-CONFIRMED。",
+        "每一个被宣称的普适类都必须在我们碰新数据之前先声明预期指数。",
+        "howpublished = {arXiv:XXXX.XXXXX (preprint forthcoming)}",
+        "Reports power-law vs lognormal vs exponential, with pre-registered exponent bands.",
+        "v0.4 preprint submission pending user action; see release/arxiv-submission-receipt.txt.",
+        "我们用一条冻结的 339 行 Clauset 流水线检验了 27 个现象。",
+        "截至 2026-05-25 的进展",
+        "上线 4,443 条权威 artifact；英文检索仍未达质量门禁。",
+        "单独 arXiv 草稿：4 篇完整（地震、S&P 500、DeFi、神经）。",
+    )
+    for attack in attacks:
+        (root / "README-zh.md").write_text(
+            f"{attack} Next: inspect evidence.", encoding="utf-8"
+        )
+        errors = validate(inventory_path, root)
+        assert any(
+            "forbidden public claim" in error and "README-zh.md" in error
+            for error in errors
+        ), attack
 
 
 def _fixture(tmp_path: Path) -> tuple[Path, Path]:
