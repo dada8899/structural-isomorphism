@@ -166,6 +166,157 @@ runtime_abort_resolver() {
   RUNTIME_RESOLVER_DIR=""
 }
 
+runtime_canonicalize_resolver_report() {
+  local interpreter="$1" report="$2" output="$3"
+  "$interpreter" -I - "$report" "$output" <<'PY'
+import hashlib
+import json
+import re
+import sys
+from pathlib import Path
+
+report_path, output_path = map(Path, sys.argv[1:])
+report = json.loads(report_path.read_text(encoding="utf-8"))
+name_pattern = re.compile(
+    r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?"
+)
+
+
+def canonical_name(value):
+    if not isinstance(value, str) or not name_pattern.fullmatch(value):
+        raise SystemExit("resolver report contains an invalid package name")
+    return re.sub(r"[-_.]+", "-", value).lower()
+
+
+def package_version(value):
+    if (
+        not isinstance(value, str)
+        or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.!+_-]*", value)
+    ):
+        raise SystemExit("resolver report contains an invalid package version")
+    return value
+
+
+resolved = {}
+for item in report.get("install", []):
+    metadata = item.get("metadata") or {}
+    name = canonical_name(metadata.get("name"))
+    version = package_version(metadata.get("version"))
+    if name in resolved:
+        raise SystemExit("resolver returned a duplicate package")
+    resolved[name] = version
+lines = [f"{name}=={resolved[name]}" for name in sorted(resolved)]
+if not lines:
+    raise SystemExit("resolver returned an empty dependency graph")
+payload = ("\n".join(lines) + "\n").encode("utf-8")
+output_path.write_bytes(payload)
+print(hashlib.sha256(payload).hexdigest())
+PY
+}
+
+runtime_validate_canonical_package_set() {
+  local environment="$1" expected_graph="$2" expected_sha256="$3"
+  [[ -d "$environment" && ! -L "$environment" \
+    && -x "$environment/bin/python" && -f "$expected_graph" \
+    && ! -L "$expected_graph" ]] || return 1
+  "$environment/bin/python" -I - \
+    "$environment" "$expected_graph" "$expected_sha256" <<'PY'
+import hashlib
+import re
+import sys
+from importlib import metadata
+from pathlib import Path
+
+environment_raw = Path(sys.argv[1])
+expected_path = Path(sys.argv[2])
+expected_sha256 = sys.argv[3]
+if not re.fullmatch(r"[0-9a-f]{64}", expected_sha256):
+    raise SystemExit("canonical package-set digest is invalid")
+if environment_raw.is_symlink() or expected_path.is_symlink():
+    raise SystemExit("canonical package-set inputs cannot be symlinks")
+environment = environment_raw.resolve(strict=True)
+expected_resolved = expected_path.resolve(strict=True)
+if environment not in expected_resolved.parents:
+    raise SystemExit("canonical package-set manifest is outside its environment")
+
+name_pattern = re.compile(
+    r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?"
+)
+
+
+def canonical_name(value, source):
+    if not isinstance(value, str) or not name_pattern.fullmatch(value):
+        raise SystemExit(f"{source} contains an invalid package name")
+    return re.sub(r"[-_.]+", "-", value).lower()
+
+
+def package_version(value, source):
+    if (
+        not isinstance(value, str)
+        or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.!+_-]*", value)
+    ):
+        raise SystemExit(f"{source} contains an invalid package version")
+    return value
+
+
+raw_expected = expected_path.read_bytes()
+try:
+    expected_text = raw_expected.decode("utf-8")
+except UnicodeDecodeError as exc:
+    raise SystemExit("canonical package-set manifest is not UTF-8") from exc
+expected = {}
+for line in expected_text.splitlines():
+    name_raw, separator, version_raw = line.partition("==")
+    if not separator:
+        raise SystemExit("canonical package-set manifest contains an invalid pin")
+    name = canonical_name(name_raw, "canonical package-set manifest")
+    if name != name_raw:
+        raise SystemExit("canonical package-set manifest name is not canonical")
+    version = package_version(version_raw, "canonical package-set manifest")
+    if name in expected:
+        raise SystemExit("canonical package-set manifest contains a duplicate package")
+    expected[name] = version
+if not expected:
+    raise SystemExit("canonical package-set manifest is empty")
+canonical_payload = (
+    "\n".join(f"{name}=={expected[name]}" for name in sorted(expected)) + "\n"
+).encode("utf-8")
+if raw_expected != canonical_payload:
+    raise SystemExit("canonical package-set manifest bytes are not canonical")
+if hashlib.sha256(canonical_payload).hexdigest() != expected_sha256:
+    raise SystemExit("canonical package-set manifest digest does not match runtime identity")
+
+installed = {}
+for distribution in metadata.distributions():
+    name = canonical_name(
+        distribution.metadata.get("Name"), "installed package metadata"
+    )
+    version = package_version(distribution.version, "installed package metadata")
+    if name in installed:
+        raise SystemExit("installed package metadata contains a duplicate package")
+    installed[name] = version
+
+# A stock venv may bootstrap pip and, on older Python versions, setuptools.
+# They are tolerated only when absent from the resolver graph. Once explicitly
+# resolved, they are ordinary locked packages and must match exactly.
+bootstrap_extras = {"pip", "setuptools"} - expected.keys()
+missing = sorted(expected.keys() - installed.keys())
+unexpected = sorted(installed.keys() - expected.keys() - bootstrap_extras)
+drifted = sorted(
+    name
+    for name in expected.keys() & installed.keys()
+    if expected[name] != installed[name]
+)
+if missing:
+    raise SystemExit("installed package-set is missing: " + ", ".join(missing))
+if unexpected:
+    raise SystemExit("installed package-set has unexpected packages: " + ", ".join(unexpected))
+if drifted:
+    raise SystemExit("installed package-set has version drift: " + ", ".join(drifted))
+print(len(expected))
+PY
+}
+
 runtime_resolve_dependency_graph() {
   local requirements="$1"
   RUNTIME_RESOLVER_DIR="$(mktemp -d "$RUNTIME_ROOT/.resolver.XXXXXX")" || return 1
@@ -180,36 +331,10 @@ runtime_resolve_dependency_graph() {
       runtime_abort_resolver
       return 1
     }
-  RUNTIME_FREEZE_SHA256="$("$RUNTIME_RESOLVER_DIR/bin/python" -I - \
+  RUNTIME_FREEZE_SHA256="$(runtime_canonicalize_resolver_report \
+    "$RUNTIME_RESOLVER_DIR/bin/python" \
     "$RUNTIME_RESOLVER_DIR/report.json" \
-    "$RUNTIME_RESOLVER_DIR/constraints.txt" <<'PY'
-import hashlib
-import json
-import re
-import sys
-from pathlib import Path
-
-report_path, constraints_path = map(Path, sys.argv[1:])
-report = json.loads(report_path.read_text(encoding="utf-8"))
-resolved = {}
-for item in report.get("install", []):
-    metadata = item.get("metadata") or {}
-    name = metadata.get("name")
-    version = metadata.get("version")
-    if not isinstance(name, str) or not isinstance(version, str) or not name or not version:
-        raise SystemExit("resolver report contains incomplete package metadata")
-    canonical = re.sub(r"[-_.]+", "-", name).lower()
-    previous = resolved.setdefault(canonical, version)
-    if previous != version:
-        raise SystemExit("resolver returned conflicting versions")
-lines = [f"{name}=={resolved[name]}" for name in sorted(resolved)]
-if not lines:
-    raise SystemExit("resolver returned an empty dependency graph")
-payload = ("\n".join(lines) + "\n").encode("utf-8")
-constraints_path.write_bytes(payload)
-print(hashlib.sha256(payload).hexdigest())
-PY
-)" || {
+    "$RUNTIME_RESOLVER_DIR/constraints.txt")" || {
     runtime_abort_resolver
     return 1
   }
@@ -1321,14 +1446,18 @@ PY
 }
 
 runtime_attest_release() {
-  local release="$1" output="$2"
+  local release="$1" output="$2" installed_package_count
   runtime_pip "$release" check >/dev/null || return 1
+  installed_package_count="$(runtime_validate_canonical_package_set \
+    "$release" "$release/resolved-packages.txt" "$RUNTIME_FREEZE_SHA256")" \
+    || return 1
+  [[ "$installed_package_count" =~ ^[1-9][0-9]*$ ]] || return 1
   "$release/bin/python" -I - \
     "$output" "$release" "$RUNTIME_PYTHON" \
     "$RUNTIME_ID" "$RUNTIME_REQUIREMENTS_SHA256" "$RUNTIME_FREEZE_SHA256" \
     "$EXPECTED_PYTHON_ABI" "$EXPECTED_FASTAPI_VERSION" \
     "$EXPECTED_PYDANTIC_VERSION" "$EXPECTED_STARLETTE_VERSION" \
-    "$EXPECTED_UVICORN_VERSION" <<'PY'
+    "$EXPECTED_UVICORN_VERSION" "$installed_package_count" <<'PY'
 import json
 import platform
 import sys
@@ -1347,6 +1476,7 @@ from pathlib import Path
     expected_pydantic,
     expected_starlette,
     expected_uvicorn,
+    installed_package_count_raw,
 ) = sys.argv[1:]
 
 release = Path(release_path).resolve(strict=True)
@@ -1359,25 +1489,7 @@ resolved_executable = executable.resolve(strict=True)
 resolved_base = Path(base_python_path).resolve(strict=True)
 if resolved_executable != resolved_base and release not in resolved_executable.parents:
     raise SystemExit("runtime interpreter realpath is not the trusted base or release")
-def canonical_installed_graph():
-    import hashlib
-    import re
-
-    resolved = {}
-    for distribution in metadata.distributions():
-        name = distribution.metadata.get("Name")
-        if not name:
-            continue
-        canonical = re.sub(r"[-_.]+", "-", name).lower()
-        if canonical in {"pip", "setuptools"}:
-            continue
-        version = distribution.version
-        previous = resolved.setdefault(canonical, version)
-        if previous != version:
-            raise SystemExit("installed graph contains conflicting versions")
-    lines = [f"{name}=={resolved[name]}" for name in sorted(resolved)]
-    payload = ("\n".join(lines) + "\n").encode("utf-8")
-    return lines, hashlib.sha256(payload).hexdigest()
+installed_package_count = int(installed_package_count_raw)
 
 actual = {
     "fastapi": metadata.version("fastapi"),
@@ -1415,12 +1527,7 @@ if module_versions != expected:
         f"runtime import mismatch: expected={expected!r} actual={module_versions!r}"
     )
 
-installed_packages, installed_freeze_sha256 = canonical_installed_graph()
-if installed_freeze_sha256 != expected_freeze_sha256:
-    raise SystemExit(
-        "installed dependency graph does not match the pre-resolved freeze digest"
-    )
-expected_runtime_id = f"{python_abi}-{requirements_sha256}-{installed_freeze_sha256}"
+expected_runtime_id = f"{python_abi}-{requirements_sha256}-{expected_freeze_sha256}"
 if runtime_id != expected_runtime_id:
     raise SystemExit("runtime ID is not bound to ABI + requirements + installed graph")
 
@@ -1428,8 +1535,8 @@ attestation = {
     "schema_version": 1,
     "runtime_id": runtime_id,
     "requirements_sha256": requirements_sha256,
-    "installed_freeze_sha256": installed_freeze_sha256,
-    "installed_package_count": len(installed_packages),
+    "installed_freeze_sha256": expected_freeze_sha256,
+    "installed_package_count": installed_package_count,
     "python_abi": python_abi,
     "python_version": platform.python_version(),
     **actual,
@@ -1777,19 +1884,21 @@ PY
     runtime_abort_resolver
     return 1
   fi
+  cp "$RUNTIME_RESOLVER_DIR/constraints.txt" \
+    "$RUNTIME_BUILD_DIR/resolved-packages.txt" || {
+      runtime_abort_build
+      runtime_abort_resolver
+      return 1
+    }
   if ! runtime_attest_release "$RUNTIME_BUILD_DIR" "$RUNTIME_BUILD_DIR/attestation.json"; then
     runtime_abort_build
     runtime_abort_resolver
     return 1
   fi
+  # Keep the raw inventory (including tolerated bootstrap packages) as a
+  # diagnostic ledger. resolved-packages.txt remains the identity authority.
   runtime_pip "$RUNTIME_BUILD_DIR" freeze --all \
     > "$RUNTIME_BUILD_DIR/installed-packages.txt" || {
-      runtime_abort_build
-      runtime_abort_resolver
-      return 1
-    }
-  cp "$RUNTIME_RESOLVER_DIR/constraints.txt" \
-    "$RUNTIME_BUILD_DIR/resolved-packages.txt" || {
       runtime_abort_build
       runtime_abort_resolver
       return 1
@@ -1828,14 +1937,18 @@ PY
 }
 
 runtime_live_validate_release() {
-  local release="$1" observed_runtime_id
+  local release="$1" observed_runtime_id installed_package_count expected_freeze_sha
   runtime_pip "$release" check >/dev/null || {
     echo "[runtime] ERROR: installed dependency graph failed pip check" >&2
     return 1
   }
+  expected_freeze_sha="${release##*-}"
+  installed_package_count="$(runtime_validate_canonical_package_set \
+    "$release" "$release/resolved-packages.txt" "$expected_freeze_sha")" \
+    || return 1
+  [[ "$installed_package_count" =~ ^[1-9][0-9]*$ ]] || return 1
   observed_runtime_id="$("$release/bin/python" -I - \
-    "$release" "$RUNTIME_PYTHON" <<'PY'
-import hashlib
+    "$release" "$RUNTIME_PYTHON" "$installed_package_count" <<'PY'
 import json
 import platform
 import re
@@ -1843,7 +1956,8 @@ import sys
 from importlib import import_module, metadata
 from pathlib import Path
 
-release_raw, base_python_raw = sys.argv[1:]
+release_raw, base_python_raw, installed_package_count_raw = sys.argv[1:]
+installed_package_count = int(installed_package_count_raw)
 release_path = Path(release_raw)
 if release_path.is_symlink():
     raise SystemExit("runtime release cannot itself be a symlink")
@@ -1877,23 +1991,7 @@ if not isinstance(expected_freeze_sha, str) or not re.fullmatch(
     raise SystemExit("live runtime installed graph digest is invalid")
 if runtime_id != f"{python_abi}-{requirements_sha}-{expected_freeze_sha}":
     raise SystemExit("live runtime identity is not bound to ABI + dependency graph")
-
-resolved = {}
-for distribution in metadata.distributions():
-    name = distribution.metadata.get("Name")
-    if not name:
-        continue
-    canonical = re.sub(r"[-_.]+", "-", name).lower()
-    if canonical in {"pip", "setuptools"}:
-        continue
-    previous = resolved.setdefault(canonical, distribution.version)
-    if previous != distribution.version:
-        raise SystemExit("live installed graph contains conflicting versions")
-lines = [f"{name}=={resolved[name]}" for name in sorted(resolved)]
-freeze_sha = hashlib.sha256(("\n".join(lines) + "\n").encode("utf-8")).hexdigest()
-if freeze_sha != expected_freeze_sha:
-    raise SystemExit("live installed graph differs from attestation")
-if attestation.get("installed_package_count") != len(lines):
+if attestation.get("installed_package_count") != installed_package_count:
     raise SystemExit("live installed package count differs from attestation")
 
 for package in ("fastapi", "pydantic", "starlette", "uvicorn"):

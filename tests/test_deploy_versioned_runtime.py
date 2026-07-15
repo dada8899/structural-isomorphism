@@ -365,18 +365,69 @@ def _runtime_template() -> Path:
     return template
 
 
+def _runtime_site_packages(release: Path) -> Path:
+    result = subprocess.run(
+        [
+            str(release / "bin" / "python"),
+            "-I",
+            "-c",
+            "import sysconfig; print(sysconfig.get_paths()['purelib'])",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return Path(result.stdout.strip())
+
+
+def _replace_runtime_distribution(
+    release: Path, package: str, version: str | None
+) -> None:
+    site_packages = _runtime_site_packages(release)
+    stem = package.replace("-", "_")
+    for pattern in (f"{stem}-*.dist-info", f"{stem}.egg-info"):
+        for metadata_dir in site_packages.glob(pattern):
+            shutil.rmtree(metadata_dir)
+    if version is None:
+        return
+    package_dir = site_packages / stem
+    package_dir.mkdir(exist_ok=True)
+    init = package_dir / "__init__.py"
+    if not init.exists():
+        init.write_text(f"__version__ = {version!r}\n", encoding="utf-8")
+    metadata_dir = site_packages / f"{stem}-{version}.dist-info"
+    metadata_dir.mkdir()
+    (metadata_dir / "METADATA").write_text(
+        f"Metadata-Version: 2.1\nName: {package}\nVersion: {version}\n",
+        encoding="utf-8",
+    )
+    (metadata_dir / "RECORD").write_text("", encoding="utf-8")
+
+
+def _make_runtime_release_writable(release: Path) -> None:
+    for root, directories, files in os.walk(release):
+        for name in [".", *directories, *files]:
+            path = Path(root) if name == "." else Path(root, name)
+            if not path.is_symlink():
+                path.chmod(path.stat().st_mode | 0o700)
+
+
 def _make_runtime_release(
     releases: Path,
     *,
     abi: str | None = None,
     requirements_sha: str,
     freeze_sha: str | None = None,
+    resolved_package_versions: dict[str, str] | None = None,
 ) -> Path:
     template = _runtime_template()
     abi = abi or sys.implementation.cache_tag
+    package_versions = {
+        **_RUNTIME_PACKAGE_VERSIONS,
+        **(resolved_package_versions or {}),
+    }
     graph = "".join(
-        f"{name}=={_RUNTIME_PACKAGE_VERSIONS[name]}\n"
-        for name in sorted(_RUNTIME_PACKAGE_VERSIONS)
+        f"{name}=={package_versions[name]}\n" for name in sorted(package_versions)
     )
     actual_freeze_sha = hashlib.sha256(graph.encode("utf-8")).hexdigest()
     if freeze_sha is not None:
@@ -385,7 +436,11 @@ def _make_runtime_release(
     release = releases / f"{abi}-{requirements_sha}-{freeze_sha}"
     release.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(template, release, symlinks=True)
+    for package, version in (resolved_package_versions or {}).items():
+        _replace_runtime_distribution(release, package, version)
     (release / ".complete").touch()
+    (release / "resolved-packages.txt").write_text(graph, encoding="utf-8")
+    (release / "installed-packages.txt").write_text(graph, encoding="utf-8")
     python_version = subprocess.run(
         [str(release / "bin" / "python"), "-c", "import platform; print(platform.python_version())"],
         capture_output=True,
@@ -398,7 +453,7 @@ def _make_runtime_release(
             "runtime_id": release.name,
             "requirements_sha256": requirements_sha,
             "installed_freeze_sha256": freeze_sha,
-            "installed_package_count": len(_RUNTIME_PACKAGE_VERSIONS),
+            "installed_package_count": len(package_versions),
             "python_abi": abi,
             "python_version": python_version,
             **_RUNTIME_PACKAGE_VERSIONS,
@@ -2611,6 +2666,60 @@ def test_disk_space_gate_fails_before_runtime_build(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
 
 
+def test_resolver_report_canonicalizes_explicit_setuptools_into_identity(
+    tmp_path: Path,
+) -> None:
+    report = tmp_path / "report.json"
+    report.write_text(
+        json.dumps(
+            {
+                "install": [
+                    {"metadata": {"name": "Setuptools", "version": "83.0.0"}},
+                    {"metadata": {"name": "Demo_Pkg", "version": "1.2.3+cpu"}},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    canonical = tmp_path / "constraints.txt"
+    expected = b"demo-pkg==1.2.3+cpu\nsetuptools==83.0.0\n"
+
+    result = _bash(
+        f"runtime_canonicalize_resolver_report {shlex.quote(sys.executable)} "
+        f"{shlex.quote(str(report))} {shlex.quote(str(canonical))}"
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert canonical.read_bytes() == expected
+    assert result.stdout.strip() == hashlib.sha256(expected).hexdigest()
+
+
+def test_resolver_report_rejects_duplicate_canonical_package(tmp_path: Path) -> None:
+    report = tmp_path / "report.json"
+    report.write_text(
+        json.dumps(
+            {
+                "install": [
+                    {"metadata": {"name": "Setuptools", "version": "83.0.0"}},
+                    {"metadata": {"name": "setuptools", "version": "83.0.0"}},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    canonical = tmp_path / "constraints.txt"
+
+    result = _bash(
+        "if runtime_canonicalize_resolver_report "
+        f"{shlex.quote(sys.executable)} {shlex.quote(str(report))} "
+        f"{shlex.quote(str(canonical))}; then exit 93; fi"
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "resolver returned a duplicate package" in result.stderr
+    assert not canonical.exists()
+
+
 def test_runtime_proofs_ignore_cwd_and_pythonpath_distribution_injection(
     tmp_path: Path,
 ) -> None:
@@ -2677,6 +2786,106 @@ def test_runtime_proofs_ignore_cwd_and_pythonpath_distribution_injection(
     assert payload["installed_freeze_sha256"] == freeze_sha
     assert "ambient-dependency" not in public.read_text(encoding="utf-8")
     assert "structural-isomorphism" not in public.read_text(encoding="utf-8")
+
+
+def test_explicit_setuptools_is_bound_across_attestation_and_live_validation(
+    tmp_path: Path,
+) -> None:
+    requirements_sha = "7" * 64
+    runtime_root = tmp_path / "runtime"
+    release = _make_runtime_release(
+        runtime_root / "releases",
+        requirements_sha=requirements_sha,
+        resolved_package_versions={"setuptools": "83.0.0"},
+    )
+    generated = tmp_path / "generated-attestation.json"
+    freeze_sha = release.name.rsplit("-", 1)[1]
+
+    result = _bash(
+        f"RUNTIME_ROOT={shlex.quote(str(runtime_root))}; "
+        f'RUNTIME_RELEASES="$RUNTIME_ROOT/releases"; RUNTIME_CURRENT="$RUNTIME_ROOT/current"; '
+        f"RUNTIME_RELEASE={shlex.quote(str(release))}; "
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        f"RUNTIME_ID={shlex.quote(release.name)}; "
+        f"RUNTIME_REQUIREMENTS_SHA256={requirements_sha}; "
+        f"RUNTIME_FREEZE_SHA256={freeze_sha}; "
+        f"runtime_attest_release {shlex.quote(str(release))} "
+        f"{shlex.quote(str(generated))}; "
+        f"runtime_live_validate_release {shlex.quote(str(release))}",
+        env={"STRUCTURAL_EXPECTED_PYTHON_ABI": sys.implementation.cache_tag},
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(generated.read_text(encoding="utf-8"))
+    assert payload["installed_package_count"] == len(_RUNTIME_PACKAGE_VERSIONS) + 1
+    assert payload["installed_freeze_sha256"] == freeze_sha
+    assert "setuptools==83.0.0\n" in (release / "resolved-packages.txt").read_text(
+        encoding="utf-8"
+    )
+
+
+@pytest.mark.parametrize(
+    ("tamper", "expected_error"),
+    [
+        ("missing", "installed package-set is missing: setuptools"),
+        ("unexpected", "installed package-set has unexpected packages: wheel"),
+        ("version_drift", "installed package-set has version drift: setuptools"),
+        ("manifest_tamper", "canonical package-set manifest bytes are not canonical"),
+    ],
+)
+def test_attestation_and_live_reject_package_set_drift(
+    tmp_path: Path, tamper: str, expected_error: str
+) -> None:
+    requirements_sha = "6" * 64
+    runtime_root = tmp_path / "runtime"
+    explicit = tamper != "unexpected"
+    release = _make_runtime_release(
+        runtime_root / "releases",
+        requirements_sha=requirements_sha,
+        resolved_package_versions={"setuptools": "83.0.0"} if explicit else None,
+    )
+    _make_runtime_release_writable(release)
+    if tamper == "missing":
+        _replace_runtime_distribution(release, "setuptools", None)
+    elif tamper == "unexpected":
+        _replace_runtime_distribution(release, "wheel", "0.45.1")
+    elif tamper == "version_drift":
+        _replace_runtime_distribution(release, "setuptools", "84.0.0")
+    else:
+        manifest = release / "resolved-packages.txt"
+        lines = manifest.read_text(encoding="utf-8").splitlines()
+        lines[0], lines[1] = lines[1], lines[0]
+        manifest.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    freeze_sha = release.name.rsplit("-", 1)[1]
+    common = (
+        f"RUNTIME_ROOT={shlex.quote(str(runtime_root))}; "
+        f'RUNTIME_RELEASES="$RUNTIME_ROOT/releases"; RUNTIME_CURRENT="$RUNTIME_ROOT/current"; '
+        f"RUNTIME_RELEASE={shlex.quote(str(release))}; "
+        f"RUNTIME_PYTHON={shlex.quote(sys.executable)}; "
+        f"RUNTIME_ID={shlex.quote(release.name)}; "
+        f"RUNTIME_REQUIREMENTS_SHA256={requirements_sha}; "
+        f"RUNTIME_FREEZE_SHA256={freeze_sha}; "
+    )
+    generated = tmp_path / "generated-attestation.json"
+
+    attestation = _bash(
+        common
+        + f"if runtime_attest_release {shlex.quote(str(release))} "
+        + f"{shlex.quote(str(generated))}; then exit 94; fi",
+        env={"STRUCTURAL_EXPECTED_PYTHON_ABI": sys.implementation.cache_tag},
+    )
+    live = _bash(
+        common
+        + f"if runtime_live_validate_release {shlex.quote(str(release))}; "
+        + "then exit 95; fi",
+        env={"STRUCTURAL_EXPECTED_PYTHON_ABI": sys.implementation.cache_tag},
+    )
+
+    assert attestation.returncode == 0, attestation.stderr
+    assert live.returncode == 0, live.stderr
+    assert expected_error in attestation.stderr
+    assert expected_error in live.stderr
+    assert not generated.exists()
 
 
 def _make_long_pip_environment(tmp_path: Path) -> Path:
