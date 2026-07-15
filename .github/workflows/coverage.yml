@@ -71,6 +71,14 @@ jobs:
               packages/soc-pipeline/tests/test_fit.py \
               $PYTEST_FLAGS
           python -m coverage combine --rcfile=.coveragerc
+      - name: Every production package has measured coverage
+        run: |
+          for source_dir in packages/*/src; do
+            python -m coverage report \
+              --rcfile=.coveragerc \
+              --include="$source_dir/*" \
+              --fail-under=1
+          done
       - name: Coverage report
         run: |
           python -m coverage report --rcfile=.coveragerc --skip-empty

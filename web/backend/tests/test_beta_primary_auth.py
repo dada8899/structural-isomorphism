@@ -22,6 +22,7 @@ from services.report_store import ReportStore
 
 
 ROOT = Path(__file__).resolve().parents[3]
+_TEST_PRIVACY_HMAC_KEY = ("01234567" + "89abcdef") * 4
 
 
 @pytest.fixture()
@@ -142,7 +143,22 @@ def test_dual_valid_cross_account_credentials_reject_every_account_surface_witho
     requests = [
         alice.get("/api/auth/me"),
         alice.get("/api/favorites"),
+        alice.post(
+            "/api/favorites/bookmarks",
+            headers={"Origin": "http://beta.test"},
+            json={
+                "kind": "structural_analysis",
+                "title": "Must not write",
+                "query": "credential conflict",
+                "source_id": "alice-source",
+                "target_id": "alice-target",
+            },
+        ),
         alice.get("/api/me/reports"),
+        alice.delete(
+            f"/api/me/reports/{alice_report['id']}",
+            headers={"Origin": "http://beta.test"},
+        ),
         alice.post("/api/me/reports/claim", headers={"Origin": "http://beta.test"}),
         alice.get("/api/me/export"),
         alice.post(
@@ -488,9 +504,12 @@ def test_verify_document_response_blocks_referrer_and_caching():
 
 def test_beta_deploy_loads_private_canonical_auth_environment():
     deploy = (ROOT / "scripts/deploy-vps.sh").read_text(encoding="utf-8")
+    runtime_helper = (ROOT / "scripts/deploy-versioned-runtime.sh").read_text(encoding="utf-8")
     unit = (ROOT / "web/scripts/structural-web.service").read_text(encoding="utf-8")
     assert "/root/.config/structural-isomorphism/beta-auth.env" in deploy
-    assert "stat -Lc '%a' \"$BETA_AUTH_ENV_FILE\"" in deploy
+    assert 'private_env_file_mode "$BETA_AUTH_ENV_FILE"' in deploy
+    assert "stat -Lc '%a' \"$1\"" in deploy
+    assert "stat -L -f '%Lp' \"$1\"" in deploy
     assert "AUTH_LINK_BASE_URL https://beta.structural.bytedance.city" in deploy
     assert "AUTH_SITE_ROLE beta" in deploy
     assert "AUTH_DATA_DIR must be absolute and outside Git" in deploy
@@ -499,20 +518,28 @@ def test_beta_deploy_loads_private_canonical_auth_environment():
     assert unit.index("web/backend/.env") < unit.index("beta-auth.env")
     assert "install_structural_systemd_unit" in deploy
     assert '$SOURCE/web/scripts/structural-web.service' in deploy
-    assert 'install -m 0644 "$SYSTEMD_UNIT_SOURCE" "$SYSTEMD_UNIT_TARGET"' in deploy
+    assert 'systemd_unit_install_transaction "$SYSTEMD_UNIT_SOURCE" "$SYSTEMD_UNIT_TARGET"' in deploy
+    assert 'install -m 0644 "$source" "$target"' in runtime_helper
     assert 'systemctl daemon-reload' in deploy
     assert 'systemctl cat "$SERVICE"' in deploy
-    assert 'SYSTEMD_UNIT_BACKUP' in deploy
-    assert 'cp -a "$SYSTEMD_UNIT_BACKUP" "$SYSTEMD_UNIT_TARGET"' in deploy
-    assert deploy.index("SYSTEMD_UNIT_INSTALLED=1", deploy.index("install_structural_systemd_unit()")) < deploy.index(
-        'install -m 0644 "$SYSTEMD_UNIT_SOURCE" "$SYSTEMD_UNIT_TARGET"'
-    )
+    assert 'SYSTEMD_UNIT_BACKUP' in runtime_helper
+    assert 'cp -a "$SYSTEMD_UNIT_BACKUP" "$SYSTEMD_UNIT_TARGET"' in runtime_helper
+    install_function = deploy.index("install_structural_systemd_unit()")
+    snapshot_at = deploy.index("systemd_unit_capture", install_function + len("install_structural_systemd_unit()"))
+    sync_at = deploy.index('"${CMD[@]}" | tail -10')
+    assert snapshot_at < sync_at
+    transaction = runtime_helper.index("systemd_unit_install_transaction()")
+    intent = runtime_helper.index("SYSTEMD_UNIT_INSTALLED=1", transaction)
+    journal = runtime_helper.index("deploy_journal_write unit_installing", intent)
+    install = runtime_helper.index('install -m 0644 "$source" "$target"', journal)
+    assert transaction < intent < journal < install
+    assert "deployment_restore_transaction_state" in runtime_helper
     assert 'deployment must run as root before any files are changed' in deploy
-    assert 'rollback_deploy "beta account runtime is not enabled"' in deploy
-    assert 'rollback_deploy "service restart failed"' in deploy
-    assert 'rollback_deploy "beta account runtime request failed"' in deploy
+    assert 'abort_deploy "beta account runtime is not enabled"' in deploy
+    assert 'abort_deploy "service restart failed"' in deploy
+    assert 'abort_deploy "beta account runtime request failed"' in deploy
     assert 'body.get("error") == "no session"' in deploy
-    assert "--exclude=web/backend/data/" in deploy
+    assert "--exclude=web/backend/data/" in runtime_helper
 
 
 def test_beta_deploy_workflow_gates_enabled_account_runtime():
@@ -526,6 +553,7 @@ def test_beta_deploy_workflow_gates_enabled_account_runtime():
 
 def test_beta_runtime_rejects_noncanonical_production_link(monkeypatch):
     monkeypatch.setenv("STRUCTURAL_ENV", "prod")
+    monkeypatch.setenv("STRUCTURAL_PRIVACY_HMAC_KEY", _TEST_PRIVACY_HMAC_KEY)
     monkeypatch.setenv("AUTH_ENABLED", "true")
     monkeypatch.setenv("AUTH_SITE_ROLE", "beta")
     monkeypatch.setenv("JWT_SECRET", "A7f9K2m4P8q1R6t3V5x0Y2z8C4d7H9j1L6n3")
@@ -537,6 +565,26 @@ def test_beta_runtime_rejects_noncanonical_production_link(monkeypatch):
     monkeypatch.setenv("AUTH_DATA_DIR", "/tmp/structural-auth-test")
     monkeypatch.setenv("AUTH_TRUSTED_PROXY_IPS", "127.0.0.1/32")
     with pytest.raises(RuntimeError, match="beta.*canonical HTTPS origin"):
+        auth._validate_production_config()
+
+
+@pytest.mark.parametrize(
+    "privacy_key",
+    [
+        f'"{_TEST_PRIVACY_HMAC_KEY}"',
+        rf"{_TEST_PRIVACY_HMAC_KEY[:60]}\x41",
+        _TEST_PRIVACY_HMAC_KEY.upper(),
+        f'"{_TEST_PRIVACY_HMAC_KEY[:62]}"',
+        f"{_TEST_PRIVACY_HMAC_KEY}\r",
+    ],
+)
+def test_production_startup_rejects_noncanonical_privacy_root(
+    monkeypatch, privacy_key: str,
+) -> None:
+    monkeypatch.setenv("STRUCTURAL_ENV", "prod")
+    monkeypatch.setenv("AUTH_ENABLED", "false")
+    monkeypatch.setenv("STRUCTURAL_PRIVACY_HMAC_KEY", privacy_key)
+    with pytest.raises(RuntimeError, match="unquoted lowercase 64-hex"):
         auth._validate_production_config()
 
 
@@ -562,6 +610,7 @@ def test_phase_deploy_requires_explicit_role_and_proxy_contract():
 
 def _set_valid_prod_auth(monkeypatch, data_dir: Path) -> None:
     monkeypatch.setenv("STRUCTURAL_ENV", "prod")
+    monkeypatch.setenv("STRUCTURAL_PRIVACY_HMAC_KEY", _TEST_PRIVACY_HMAC_KEY)
     monkeypatch.setenv("AUTH_ENABLED", "true")
     monkeypatch.setenv("AUTH_SITE_ROLE", "beta")
     monkeypatch.setenv("JWT_SECRET", "A7f9K2m4P8q1R6t3V5x0Y2z8C4d7H9j1L6n3")

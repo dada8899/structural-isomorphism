@@ -78,6 +78,7 @@
 }
 
 .newsletter-button {
+  min-height: 44px;
   padding: 9px 20px;
   font-size: 14px;
   font-weight: 500;

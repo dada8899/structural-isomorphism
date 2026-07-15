@@ -5,6 +5,8 @@ import sqlite3
 import time
 from pathlib import Path
 
+from .sqlite_utils import ClosingConnection
+
 
 class SsoReplayStore:
     def __init__(self, path: Path):
@@ -18,7 +20,8 @@ class SsoReplayStore:
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS issued_sso_codes("
                 "jti TEXT PRIMARY KEY, subject_id TEXT NOT NULL, tier TEXT NOT NULL, "
-                "expires_at INTEGER NOT NULL, consumed_at INTEGER, email TEXT)"
+                "expires_at INTEGER NOT NULL, consumed_at INTEGER, email TEXT, "
+                "issued_ns INTEGER)"
             )
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS revoked_sso_subjects("
@@ -29,6 +32,8 @@ class SsoReplayStore:
             }
             if "email" not in columns:
                 conn.execute("ALTER TABLE issued_sso_codes ADD COLUMN email TEXT")
+            if "issued_ns" not in columns:
+                conn.execute("ALTER TABLE issued_sso_codes ADD COLUMN issued_ns INTEGER")
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS sso_subject_email_bindings("
                 "subject_id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, "
@@ -36,7 +41,10 @@ class SsoReplayStore:
             )
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.path, timeout=10, isolation_level=None)
+        conn = sqlite3.connect(
+            self.path, timeout=10, isolation_level=None,
+            factory=ClosingConnection,
+        )
         conn.execute("PRAGMA busy_timeout=10000")
         conn.execute("PRAGMA journal_mode=WAL")
         return conn
@@ -62,6 +70,7 @@ class SsoReplayStore:
     ) -> None:
         if not jti or not subject_id:
             raise ValueError("jti and subject_id are required")
+        issued_ns = time.time_ns()
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             if email:
@@ -72,9 +81,13 @@ class SsoReplayStore:
                     (subject_id, email.strip().lower(), time.time_ns()),
                 )
             conn.execute(
-                "INSERT INTO issued_sso_codes(jti,subject_id,tier,expires_at,email) "
-                "VALUES(?,?,?,?,?)",
-                (jti, subject_id, tier, expires_at, email.strip().lower() if email else None),
+                "INSERT INTO issued_sso_codes("
+                "jti,subject_id,tier,expires_at,email,issued_ns) "
+                "VALUES(?,?,?,?,?,?)",
+                (
+                    jti, subject_id, tier, expires_at,
+                    email.strip().lower() if email else None, issued_ns,
+                ),
             )
             conn.commit()
 
@@ -85,7 +98,7 @@ class SsoReplayStore:
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             row = conn.execute(
-                "SELECT subject_id,tier,expires_at,consumed_at,email "
+                "SELECT subject_id,tier,expires_at,consumed_at,email,issued_ns "
                 "FROM issued_sso_codes WHERE jti=?",
                 (jti,),
             ).fetchone()
@@ -99,7 +112,63 @@ class SsoReplayStore:
             conn.commit()
         return {
             "subject_id": row[0], "tier": row[1], "email": row[4],
+            "issued_ns": int(row[5]) if row[5] is not None else None,
         } if updated == 1 else None
+
+    def lookup_issued(self, jti: str) -> dict | None:
+        """Read an exchange owner before entering its account transaction."""
+        now = int(time.time())
+        if not jti:
+            return None
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT subject_id,tier,expires_at,consumed_at,email,issued_ns "
+                "FROM issued_sso_codes WHERE jti=?",
+                (jti,),
+            ).fetchone()
+        if not row or row[3] is not None or int(row[2]) < now:
+            return None
+        return {
+            "subject_id": row[0], "tier": row[1], "email": row[4],
+            "issued_ns": int(row[5]) if row[5] is not None else None,
+        }
+
+    def export_issued_for_subject(self, subject_id: str) -> list[dict]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT jti,subject_id,tier,expires_at,consumed_at,email,issued_ns "
+                "FROM issued_sso_codes WHERE subject_id=? ORDER BY jti",
+                (subject_id,),
+            ).fetchall()
+        columns = (
+            "jti", "subject_id", "tier", "expires_at", "consumed_at",
+            "email", "issued_ns",
+        )
+        return [dict(zip(columns, row, strict=True)) for row in rows]
+
+    def delete_issued_for_subject(self, subject_id: str) -> int:
+        with self._connect() as conn:
+            return conn.execute(
+                "DELETE FROM issued_sso_codes WHERE subject_id=?", (subject_id,)
+            ).rowcount
+
+    def restore_issued(self, rows: list[dict]) -> None:
+        if not rows:
+            return
+        with self._connect() as conn:
+            conn.executemany(
+                "INSERT OR IGNORE INTO issued_sso_codes("
+                "jti,subject_id,tier,expires_at,consumed_at,email,issued_ns) "
+                "VALUES(?,?,?,?,?,?,?)",
+                [
+                    (
+                        row["jti"], row["subject_id"], row["tier"],
+                        row["expires_at"], row.get("consumed_at"),
+                        row.get("email"), row.get("issued_ns"),
+                    )
+                    for row in rows
+                ],
+            )
 
     def email_for_subject(self, subject_id: str) -> str | None:
         with self._connect() as conn:

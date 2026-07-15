@@ -125,7 +125,7 @@ export default function ScreenerHomePage() {
       .catch((err) => {
         if (!cancelled) {
           // eslint-disable-next-line no-console
-          console.warn("stats fetch failed:", err);
+          console.warn("[companies] stats fetch failed");
         }
       });
     // 2026-05-14 P0 fix: BE enum is `approaching_critical` (was hardcoded
@@ -136,7 +136,7 @@ export default function ScreenerHomePage() {
       })
       .catch((err) => {
         // eslint-disable-next-line no-console
-        console.warn("signals fetch failed:", err);
+        console.warn("[companies] signals fetch failed");
       });
     // W3-C session #9: pull 3 companies that have already transitioned for
     // the first-fold "recently flipped" retrospective row. If BE has no rows
@@ -147,7 +147,7 @@ export default function ScreenerHomePage() {
       })
       .catch((err) => {
         // eslint-disable-next-line no-console
-        console.warn("recently-flipped fetch failed:", err);
+        console.warn("[companies] recently flipped fetch failed");
       });
     return () => {
       cancelled = true;
@@ -349,7 +349,7 @@ export default function ScreenerHomePage() {
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             <path d="M9 12l2 2 4-4" />
           </svg>
-          <div>
+          <p>
             <strong className="font-semibold">透明披露</strong>：我们做了 walk-forward backtest（500 ticker × 5 年），
             <strong className="font-semibold">p = {PUBLIC_BACKTEST_P_LABEL}</strong>，alpha 不显著。这个分数
             <strong className="font-semibold"> 不是 </strong>投资信号。{" "}
@@ -359,7 +359,7 @@ export default function ScreenerHomePage() {
             >
               查看完整 NULL 报告 →
             </Link>
-          </div>
+          </p>
         </div>
         <h1
           className="mb-3 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl"
@@ -535,7 +535,7 @@ export default function ScreenerHomePage() {
         <div className="mt-3">
           <Link
             href="/methodology"
-            className="text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:underline"
+            className="inline-flex min-h-11 items-center text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:underline"
           >
             看完整方法说明 →
           </Link>

@@ -158,6 +158,12 @@
             window.i18n.toggleLang();
           }
         } catch (err) {}
+        if (btn.id === 'site-menu-lang-toggle') {
+          var drawer = document.getElementById('site-menu-drawer');
+          if (drawer && typeof drawer.__structuralCloseMenu === 'function') {
+            drawer.__structuralCloseMenu();
+          }
+        }
       });
     });
   }
@@ -229,6 +235,9 @@
         }
       }, 240);
     }
+    // Language switching, the close button, the scrim and Escape all use the
+    // same close/focus-restoration contract.
+    drawer.__structuralCloseMenu = close;
 
     btn.addEventListener('click', open);
     drawer.addEventListener('click', function (e) {
@@ -270,13 +279,22 @@
       '<div class="site-footer__inner">' +
         '<div class="site-footer__copyright" data-i18n="footer.copyright">' +
           '© ' + year + ' Structural · 换个学科找答案</div>' +
-        '<div class="site-footer__links">' + links + '</div>' +
+        '<div class="site-footer__links">' + links +
+          '<button type="button" class="site-footer__link site-footer__link--button" ' +
+            'data-analytics-settings data-i18n="analytics.settings">分析设置</button>' +
+        '</div>' +
       '</div>';
   }
 
   function boot() {
     renderHeader();
     renderFooter();
+    if (
+      window.StructuralAnalytics &&
+      typeof window.StructuralAnalytics.refreshLabels === 'function'
+    ) {
+      window.StructuralAnalytics.refreshLabels();
+    }
     if (typeof window.initHeaderScroll === 'function') {
       window.initHeaderScroll();
     }

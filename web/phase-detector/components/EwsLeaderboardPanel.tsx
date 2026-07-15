@@ -203,7 +203,7 @@ export function EwsLeaderboardPanel() {
                   <td className="py-2 pr-3">
                     <Link
                       href={`/company/${encodeURIComponent(r.ticker)}`}
-                      className="font-medium text-zinc-900 hover:text-indigo-700 hover:underline"
+                      className="inline-flex min-h-11 items-center font-medium text-zinc-900 hover:text-indigo-700 hover:underline"
                     >
                       {r.ticker}
                     </Link>

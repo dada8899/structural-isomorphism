@@ -15,18 +15,37 @@
 //     for non-tracking technical state doesn't require consent under ePD).
 //   • DNT (Do Not Track) header → analytics auto-disabled, banner hidden.
 //     We treat DNT as an explicit opt-out per Plausible's documented behavior.
-//   • Plausible script injected client-side ONLY after consent — uses
-//     document.createElement so it bypasses Next's <Script> SSR.
+//   • The version-pinned official Plausible module is imported ONLY after
+//     consent. The legacy self-hosted script cannot enforce transformRequest.
 //
 // Storage key: `cookie_consent_v1`. Bumping to v2 on schema change forces
 // re-prompt (graceful: missing v2 = first-visit).
 import { useEffect, useState, useCallback } from "react";
+import { usePathname } from "next/navigation";
+import type { PlausibleRequestPayload } from "@plausible-analytics/tracker";
+import {
+  analyticsRouteIsSafe,
+  canonicalAnalyticsUrl,
+  normalizeAnalyticsPath,
+  sanitizeAnalyticsEvent,
+} from "@/lib/analytics";
 
 const CONSENT_KEY = "cookie_consent_v1";
 const CONSENT_VERSION = 1;
-const PLAUSIBLE_SCRIPT_ID = "plausible-script";
 const PLAUSIBLE_DOMAIN = "phase.bytedance.city";
-const PLAUSIBLE_SRC = "https://plausible.bytedance.city/js/script.js";
+const PLAUSIBLE_ENDPOINT = "https://plausible.bytedance.city/api/event";
+
+type TrackerModule = typeof import("@plausible-analytics/tracker");
+type PlausibleWindowBinding = NonNullable<Window["plausible"]> & { s?: string };
+
+let lastPageviewUrl: string | null = null;
+let trackerModule: TrackerModule | null = null;
+let trackerInitPromise: Promise<TrackerModule> | null = null;
+let analyticsTransportEnabled = false;
+let transportGeneration = 0;
+let analyticsFetchGuardInstalled = false;
+
+const blockedPlausible: NonNullable<Window["plausible"]> = () => undefined;
 
 export type ConsentState = {
   essential: true; // always on
@@ -43,11 +62,11 @@ function isDNT(): boolean {
   if (typeof navigator === "undefined") return false;
   // Spec: "1" = opt-out. We also treat "yes" (older spec) as opt-out.
   // We do NOT treat null/unset as opt-out (per the W3C spec).
-  const dnt =
-    (navigator as Navigator & { doNotTrack?: string }).doNotTrack ||
-    (window as Window & { doNotTrack?: string }).doNotTrack ||
-    "";
-  return dnt === "1" || dnt === "yes";
+  const values = [
+    (navigator as Navigator & { doNotTrack?: string }).doNotTrack,
+    (window as Window & { doNotTrack?: string }).doNotTrack,
+  ];
+  return values.some((value) => value === "1" || value === "yes");
 }
 
 function readConsent(): ConsentState | null {
@@ -55,9 +74,27 @@ function readConsent(): ConsentState | null {
   try {
     const raw = window.localStorage.getItem(CONSENT_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as ConsentState;
-    if (parsed.version !== CONSENT_VERSION) return null; // schema bump → re-prompt
-    return parsed;
+    const parsed = JSON.parse(raw) as unknown;
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      Array.isArray(parsed)
+    ) {
+      return null;
+    }
+    const candidate = parsed as Partial<ConsentState>;
+    if (
+      candidate.essential !== true ||
+      typeof candidate.analytics !== "boolean" ||
+      candidate.marketing !== false ||
+      candidate.version !== CONSENT_VERSION ||
+      typeof candidate.timestamp !== "number" ||
+      !Number.isFinite(candidate.timestamp) ||
+      candidate.timestamp < 0
+    ) {
+      return null;
+    }
+    return candidate as ConsentState;
   } catch {
     return null;
   }
@@ -71,27 +108,240 @@ function writeConsent(c: ConsentState): void {
   }
 }
 
-function loadPlausible(): void {
-  if (typeof document === "undefined") return;
-  if (document.getElementById(PLAUSIBLE_SCRIPT_ID)) return;
-  const s = document.createElement("script");
-  s.id = PLAUSIBLE_SCRIPT_ID;
-  s.defer = true;
-  s.dataset.domain = PLAUSIBLE_DOMAIN;
-  s.src = PLAUSIBLE_SRC;
-  document.head.appendChild(s);
+function privacyTransform(
+  payload: PlausibleRequestPayload,
+): PlausibleRequestPayload | null {
+  const safeUrl = canonicalAnalyticsUrl();
+  if (
+    isDNT() ||
+    !analyticsTransportEnabled ||
+    !safeUrl ||
+    !payload ||
+    typeof payload !== "object" ||
+    Array.isArray(payload)
+  ) {
+    return null;
+  }
+  const raw = payload as PlausibleRequestPayload;
+  const safe: PlausibleRequestPayload = {
+    n: "pageview",
+    u: safeUrl,
+    d: PLAUSIBLE_DOMAIN,
+  };
+  if (raw.n === "pageview") {
+    safe.n = "pageview";
+  } else {
+    const event = sanitizeAnalyticsEvent(raw.n, raw.p);
+    if (!event) return null;
+    safe.n = event.name;
+    if (event.props) {
+      safe.p = Object.fromEntries(
+        Object.entries(event.props).map(([key, value]) => [key, String(value)]),
+      );
+    }
+  }
+  if (
+    (typeof raw.v === "string" && raw.v.length <= 32) ||
+    (typeof raw.v === "number" && Number.isFinite(raw.v))
+  ) {
+    safe.v = raw.v;
+  }
+  return safe;
+}
+
+function ignoredAnalyticsResponse(): Promise<Response> {
+  return Promise.resolve(new Response(null, { status: 204 }));
+}
+
+type AnalyticsRequestTarget = {
+  raw: string;
+  url: URL;
+};
+
+function normalizedAnalyticsHostname(url: URL): string | null {
+  const hostname = url.hostname.toLowerCase().replace(/\.+$/, "");
+  return hostname || null;
+}
+
+function effectiveAnalyticsPort(url: URL): string {
+  if (url.port) return url.port;
+  if (url.protocol === "https:") return "443";
+  if (url.protocol === "http:") return "80";
+  return "";
+}
+
+function equivalentAnalyticsAuthority(candidate: URL, expected: URL): boolean {
+  return (
+    candidate.protocol === expected.protocol &&
+    normalizedAnalyticsHostname(candidate) === normalizedAnalyticsHostname(expected) &&
+    effectiveAnalyticsPort(candidate) === effectiveAnalyticsPort(expected)
+  );
+}
+
+function analyticsRequestTarget(
+  input: Parameters<typeof fetch>[0],
+): AnalyticsRequestTarget | null {
+  try {
+    let raw: string;
+    if (typeof input === "string") {
+      raw = input;
+    } else {
+      // URL and Request objects can originate in another same-origin realm,
+      // where `instanceof window.URL` is false. Read their standardized string
+      // attributes structurally so an iframe cannot bypass the guard.
+      const candidate = input as unknown as {
+        href?: unknown;
+        url?: unknown;
+      };
+      if (typeof candidate.url === "string") raw = candidate.url;
+      else if (typeof candidate.href === "string") raw = candidate.href;
+      else raw = String(input);
+    }
+    return { raw, url: new URL(raw, window.location.href) };
+  } catch {
+    return null;
+  }
+}
+
+function installAnalyticsFetchGuard(): void {
+  if (analyticsFetchGuardInstalled || typeof window === "undefined") return;
+
+  const baseFetch = window.fetch.bind(window);
+  const guardedFetch: typeof window.fetch = (input, init) => {
+    const requestTarget = analyticsRequestTarget(input);
+    const protectedEndpoint = new URL(PLAUSIBLE_ENDPOINT);
+    if (!requestTarget) return baseFetch(input, init);
+    const requestUrl = requestTarget.url;
+    const requestHostname = normalizedAnalyticsHostname(requestUrl);
+    const protectedHostname = normalizedAnalyticsHostname(protectedEndpoint);
+    if (!protectedHostname) {
+      return ignoredAnalyticsResponse();
+    }
+    if (!requestHostname) return baseFetch(input, init);
+    if (requestHostname !== protectedHostname) {
+      return baseFetch(input, init);
+    }
+    const equivalentAuthority = equivalentAnalyticsAuthority(
+      requestUrl,
+      protectedEndpoint,
+    );
+    const requestPath = normalizeAnalyticsPath(requestUrl.pathname);
+    const protectedPath = normalizeAnalyticsPath(protectedEndpoint.pathname);
+    // Malformed paths on the analytics origin are never reclassified as
+    // unrelated traffic. A proxy may normalize them differently from the
+    // browser, so the only safe behavior is to stop them here.
+    if (!requestPath || !protectedPath) return ignoredAnalyticsResponse();
+    if (requestPath !== protectedPath) return baseFetch(input, init);
+    // Any query, fragment or other spelling of the protected endpoint is an
+    // attempted boundary bypass. Never reclassify it as unrelated traffic.
+    if (
+      !equivalentAuthority ||
+      requestTarget.raw !== protectedEndpoint.href ||
+      requestUrl.href !== protectedEndpoint.href
+    ) {
+      return ignoredAnalyticsResponse();
+    }
+    if (isDNT() || !analyticsTransportEnabled || !analyticsRouteIsSafe()) {
+      return ignoredAnalyticsResponse();
+    }
+
+    // Plausible 0.4.5 sends engagement events through an internal path that
+    // bypasses transformRequest. The endpoint guard is the final fail-closed
+    // boundary: only POSTed JSON that survives the same allowlist can leave.
+    const method = init?.method?.toUpperCase() ?? "GET";
+    if (method !== "POST" || typeof init?.body !== "string") {
+      return ignoredAnalyticsResponse();
+    }
+    try {
+      const payload = JSON.parse(init.body) as PlausibleRequestPayload;
+      const safePayload = privacyTransform(payload);
+      if (!safePayload) return ignoredAnalyticsResponse();
+      return baseFetch(input, {
+        ...init,
+        body: JSON.stringify(safePayload),
+      });
+    } catch {
+      return ignoredAnalyticsResponse();
+    }
+  };
+
+  window.fetch = guardedFetch;
+  analyticsFetchGuardInstalled = true;
+}
+
+function initializedTracker(): Promise<TrackerModule> {
+  if (trackerModule) return Promise.resolve(trackerModule);
+  if (!trackerInitPromise) {
+    trackerInitPromise = import("@plausible-analytics/tracker")
+      .then((tracker) => {
+        installAnalyticsFetchGuard();
+        const current = window.plausible as PlausibleWindowBinding | undefined;
+        if (current?.s !== "npm") {
+          tracker.init({
+            domain: PLAUSIBLE_DOMAIN,
+            endpoint: PLAUSIBLE_ENDPOINT,
+            autoCapturePageviews: false,
+            captureOnLocalhost: process.env.NODE_ENV !== "production",
+            logging: false,
+            transformRequest: privacyTransform,
+            bindToWindow: true,
+          });
+        }
+        trackerModule = tracker;
+        return tracker;
+      })
+      .catch((error) => {
+        trackerInitPromise = null;
+        throw error;
+      });
+  }
+  return trackerInitPromise;
+}
+
+function loadPlausible(pathname?: string): void {
+  if (typeof window === "undefined") return;
+  if (isDNT()) {
+    unloadPlausible();
+    return;
+  }
+  const safeUrl = canonicalAnalyticsUrl(pathname);
+  if (!safeUrl) {
+    unloadPlausible();
+    return;
+  }
+  analyticsTransportEnabled = true;
+  const generation = ++transportGeneration;
+  void initializedTracker()
+    .then((tracker) => {
+      if (generation !== transportGeneration) return;
+      if (
+        isDNT() ||
+        !analyticsTransportEnabled ||
+        canonicalAnalyticsUrl(pathname) !== safeUrl
+      ) {
+        unloadPlausible();
+        return;
+      }
+      window.plausible = tracker.track as NonNullable<Window["plausible"]>;
+      if (lastPageviewUrl !== safeUrl) {
+        tracker.track("pageview", { url: safeUrl });
+        lastPageviewUrl = safeUrl;
+      }
+    })
+    .catch(() => {
+      if (generation === transportGeneration) unloadPlausible();
+    });
 }
 
 function unloadPlausible(): void {
-  if (typeof document === "undefined") return;
-  const s = document.getElementById(PLAUSIBLE_SCRIPT_ID);
-  if (s) s.remove();
-  // Note: already-loaded script can't be "unloaded" mid-session. We rely on
-  // the user reloading the page to fully drop tracking. Set a flag so any
-  // remaining queued plausible() calls become no-ops.
+  analyticsTransportEnabled = false;
+  transportGeneration += 1;
   if (typeof window !== "undefined") {
-    (window as Window & { plausible?: unknown }).plausible = function noop() {};
+    // The official module has no teardown API. Its transform closes over the
+    // disabled flag above, while app calls are replaced with a local no-op.
+    window.plausible = blockedPlausible;
   }
+  lastPageviewUrl = null;
 }
 
 /** Public API: callable from footer "Manage cookies" link to reopen banner. */
@@ -101,6 +351,7 @@ export function openCookieConsent(): void {
 }
 
 export default function CookieConsent() {
+  const pathname = usePathname();
   const [mode, setMode] = useState<Mode>("hidden");
   const [analytics, setAnalytics] = useState(false);
   const [marketing, setMarketing] = useState(false);
@@ -131,19 +382,28 @@ export default function CookieConsent() {
     if (existing) {
       setAnalytics(existing.analytics);
       setMarketing(existing.marketing);
-      if (existing.analytics) loadPlausible();
+      if (existing.analytics && analyticsRouteIsSafe(pathname)) loadPlausible(pathname);
       else unloadPlausible();
       setMode("hidden");
     } else {
       setMode("banner");
     }
-  }, []);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (analytics && analyticsRouteIsSafe(pathname)) loadPlausible(pathname);
+    else unloadPlausible();
+  }, [analytics, pathname]);
 
   // Listen for "reopen" events from footer link.
   useEffect(() => {
     const onOpen = () => {
       const existing = readConsent();
-      if (existing) {
+      if (isDNT()) {
+        unloadPlausible();
+        setAnalytics(false);
+        setMarketing(false);
+      } else if (existing) {
         setAnalytics(existing.analytics);
         setMarketing(existing.marketing);
       }
@@ -155,27 +415,29 @@ export default function CookieConsent() {
   }, []);
 
   const persistAndApply = useCallback(
-    (a: boolean, m: boolean) => {
+    (a: boolean) => {
+      const effectiveAnalytics = a && !isDNT();
+      const effectiveMarketing = false;
       writeConsent({
         essential: true,
-        analytics: a,
-        marketing: m,
+        analytics: effectiveAnalytics,
+        marketing: effectiveMarketing,
         version: CONSENT_VERSION,
         timestamp: Date.now(),
       });
-      if (a) loadPlausible();
+      if (effectiveAnalytics && analyticsRouteIsSafe(pathname)) loadPlausible(pathname);
       else unloadPlausible();
       // marketing currently no-op (no marketing scripts on the site).
-      setAnalytics(a);
-      setMarketing(m);
+      setAnalytics(effectiveAnalytics);
+      setMarketing(effectiveMarketing);
       setMode("hidden");
     },
-    []
+    [pathname]
   );
 
-  const acceptAll = () => persistAndApply(true, true);
-  const essentialOnly = () => persistAndApply(false, false);
-  const saveCustom = () => persistAndApply(analytics, marketing);
+  const acceptAll = () => persistAndApply(true);
+  const essentialOnly = () => persistAndApply(false);
+  const saveCustom = () => persistAndApply(analytics);
 
   if (mode === "hidden") return null;
 
@@ -254,25 +516,26 @@ export default function CookieConsent() {
                   </p>
                 </div>
               </li>
-              <li className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={analytics}
-                  onChange={(e) => setAnalytics(e.target.checked)}
-                  aria-label="Analytics cookies"
-                  data-testid="cookie-tier-analytics"
-                  className="mt-0.5"
-                />
-                <div>
-                  <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                    分析（可选）
+              <li>
+                <label className="flex min-h-11 cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={analytics}
+                    onChange={(e) => setAnalytics(e.target.checked)}
+                    data-testid="cookie-tier-analytics"
+                    className="mt-0.5"
+                  />
+                  <span className="block">
+                    <span className="block font-medium text-zinc-900 dark:text-zinc-100">
+                      分析（可选）
+                    </span>
+                    <span className="block text-zinc-600 dark:text-zinc-400">
+                      Plausible — 自托管、隐私友好、不使用 cookie、不追踪跨站。
+                    </span>
                   </span>
-                  <p className="text-zinc-600 dark:text-zinc-400">
-                    Plausible — 自托管、隐私友好、不使用 cookie、不追踪跨站。
-                  </p>
-                </div>
+                </label>
               </li>
-              <li className="flex items-start gap-3 opacity-60">
+              <li className="flex cursor-not-allowed items-start gap-3">
                 <input
                   type="checkbox"
                   checked={marketing}

@@ -5,7 +5,7 @@ Session #19 G-MVP（P1+P2）+ Session #22 G-P3（双向同意 match / 引荐 / �
 
 落地范围（设计 §4 的分阶段路径）：
   * P1  指纹抽取与存储 —— 用户把一份 analyze 报告「升级成可连接的指纹」
-  * P2  匹配引擎 + L1 可发现 —— 「N 人在解结构相同的问题」纯计数，不暴露身份
+  * P2  相似候选引擎 + L1 可发现 —— 「N 人有待核验的结构相似候选」纯计数，不暴露身份
   * P3  L2 + 双向同意 match + 引荐 + 异步消息信箱 —— 真正的人际连接
 
 端点（P1+P2，沿用）：
@@ -38,7 +38,7 @@ Session #19 G-MVP（P1+P2）+ Session #22 G-P3（双向同意 match / 引荐 / �
 （看不见 / 没权限一律 404 不区分，避免泄露存在性）。
 
 隐私（设计 §3.3）：
-  * 指纹默认 L0（私密）。neighbors 端点只给「N 人」纯计数，不返回 user_email。
+  * 指纹默认 L0（私密）。neighbors 端点只给候选数量，不返回 user_email。
   * P3 match-request 目标必须是 L2 指纹（L0/L1 拒绝——L1 是「N 人」语义，
     打破要先 opt-in 升 L2）。
   * 接受 match 之前，对方身份不解锁（A 只能看到「有人对你 X 问题感兴趣」）。
@@ -47,13 +47,16 @@ Session #19 G-MVP（P1+P2）+ Session #22 G-P3（双向同意 match / 引荐 / �
 """
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+if __package__ == "web.backend.api":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
 from services.connections_store import (
     ConnectionsStore,
@@ -65,7 +68,7 @@ from services.connections_p3_store import (
     detect_pii_leak,
 )
 
-logger = logging.getLogger("structural.connections.api")
+logger = get_logger("structural.connections.api")
 router = APIRouter(tags=["connections"], prefix="/connections")
 
 _store: Optional[ConnectionsStore] = None
@@ -162,8 +165,12 @@ def _encode_problem(text: str) -> Optional[bytes]:
             return None
         vec = search.encode_query(text)
         return encode_to_blob(vec)
-    except Exception as e:  # pragma: no cover — defensive
-        logger.warning("connections: encode_problem failed: %s", e)
+    except Exception as exc:  # pragma: no cover — defensive
+        logger.warning(
+            "structural.connections_encode_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return None
 
 
@@ -284,14 +291,16 @@ async def delete_fingerprint(fid: str, request: Request):
 
 @router.get(
     "/fingerprints/{fid}/neighbors",
-    summary="结构邻居（N 人在解结构相同的问题）",
+    summary="跨领域结构相似候选（待核验）",
 )
 async def neighbors(fid: str, request: Request):
-    """对一个指纹做匹配：结构同构但领域不同的其他用户指纹。
+    """检索领域不同、向量结构相似的其他用户指纹候选。
+
+    相似度是检索信号，不证明结构同构、共同机制或迁移有效性。
 
     需登录且为指纹 owner。返回：
-      * neighbor_count —— L1 级别的「N 人结构相同」纯数字
-      * neighbors      —— 匹配明细，**不含 user_email**（MVP 不暴露身份）
+      * neighbor_count —— L1 级别的待核验候选数量
+      * neighbors      —— 相似候选明细，**不含 user_email**（MVP 不暴露身份）
 
     候选只取别人的 L1/L2 指纹；自己的指纹是 L0 也能查（看自己的统计）。
     """

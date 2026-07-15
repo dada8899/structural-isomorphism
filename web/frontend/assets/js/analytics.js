@@ -19,8 +19,9 @@
 (function () {
   "use strict";
 
-  // Event name registry. Add new events here; the constant is the source of
-  // truth, no magic strings in placement code. Naming convention:
+  // Convenience registry for the placements that load this helper. The
+  // consent transport remains the sole authoritative event/property policy.
+  // Naming convention:
   //   <noun>_<verb>  e.g. newsletter_signup, ask_submit, waitlist_join
   // Lowercase + underscore; verbs in past or imperative tense.
   var EVENTS = {
@@ -32,29 +33,16 @@
     NEWSLETTER_LINK_CLICK: "newsletter_link_click",
     NEWSLETTER_UNSUBSCRIBE_CLICK: "newsletter_unsubscribe_click",
 
-    // Existing (mirrors what's already inlined across ask.js / analyze.js / ...)
-    ASK_SUBMIT: "ask_submit",
-    ASK_ERROR: "ask_error",
-    ANALYZE_SUBMIT: "analyze_submit",
-    ANALYZE_ERROR: "analyze_error",
-    WAITLIST_JOIN: "waitlist_join",
-    PHASE_FILTER_APPLY: "apply_filter",
-    PHASE_COMPANY_VIEW: "view_company",
-    PHASE_SOURCE_CLICK: "click_source",
-
-    // W10-B (session #10) — Stripe Pro mock funnel. Mirrors phase-detector
-    // app/lib/analytics.ts Events. Keep both in sync when adding events.
-    PRICING_VIEW: "pricing_view",
-    CHECKOUT_STARTED: "checkout_started",
-    CHECKOUT_COMPLETED_MOCK: "checkout_completed_mock",
-    CHECKOUT_DECLINED_MOCK: "checkout_declined_mock",
-    PAYWALL_MODAL_VIEW: "paywall_modal_view",
-    PAYWALL_MODAL_CLICK: "paywall_modal_click",
+    WAITLIST_SIGNUP: "waitlist_signup",
+    WAITLIST_DUPLICATE: "waitlist_duplicate",
+    WAITLIST_ERROR: "waitlist_error",
+    THANK_YOU_VIEW: "thank_you_view",
+    THANK_YOU_SHARE: "thank_you_share",
   };
 
   // Validate event names defensively — Plausible silently drops invalid names,
-  // which makes debugging hard. We log a console.warn in dev (Plausible-less
-  // environments) when someone passes an unknown event.
+  // which makes debugging hard. The warning stays content-free so event names
+  // supplied by callers never reach browser telemetry.
   function isKnownEvent(name) {
     for (var k in EVENTS) {
       if (EVENTS[k] === name) return true;
@@ -65,13 +53,7 @@
   function track(name, props) {
     if (!name || typeof name !== "string") return;
     if (!isKnownEvent(name)) {
-      // Soft warning; still attempt the track (forward-compat for new events
-      // not yet added to the registry).
-      try {
-        if (typeof console !== "undefined" && console.warn) {
-          console.warn("[analytics] unknown event:", name);
-        }
-      } catch (_) { /* swallow */ }
+      return;
     }
     try {
       if (typeof window.plausible === "function") {
@@ -94,7 +76,15 @@
       }
       if (!target || target.tagName !== "A" || !target.href) return;
       var props = defaultProps ? Object.assign({}, defaultProps) : {};
-      props.href = target.href.slice(0, 200); // truncate to keep Plausible happy
+      // Never export a raw href: it may carry search terms, capability tokens
+      // or campaign identifiers. The coarse destination is sufficient for
+      // aggregate link usefulness.
+      try {
+        props.destination = new URL(target.href, window.location.href).origin === window.location.origin
+          ? "same_origin" : "external";
+      } catch (_) {
+        return;
+      }
       track(EVENTS.NEWSLETTER_LINK_CLICK, props);
     });
   }

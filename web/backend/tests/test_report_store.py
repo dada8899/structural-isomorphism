@@ -413,6 +413,55 @@ class TestSchemaDriftMigration:
         assert store.get_by_id(out["id"]) is not None
 
 
+class TestSingleOwnedReportDeletion:
+    def test_owner_delete_is_atomic_cascades_children_and_revokes_share(
+        self, store, sample_payload,
+    ):
+        created = store.create(
+            query="delete one", b_id="b", lang="zh", payload=sample_payload,
+            model="m", creator_anon_id="owner-device",
+        )
+        rid = created["id"]
+        store.claim_by_anon("owner-device", "account-owner")
+        store.record_feedback(
+            report_id=rid, section=None, vote=1, voter_anon="reader",
+        )
+        store.record_followup(
+            report_id=rid, anon_id="owner-device", action_status="planned",
+            publish_to_insights=False,
+        )
+
+        with pytest.raises(PermissionError):
+            store.delete_report_by_owner(rid, "different-account")
+        assert store.get_by_id(rid) is not None
+        assert store.get_by_share_token(created["share_token"]) is not None
+
+        deleted = store.delete_report_by_owner(rid, "account-owner")
+        assert deleted == {
+            "reports": 1,
+            "followups": 1,
+            "feedback": 1,
+            "share_revoked": True,
+        }
+        assert store.get_by_id(rid) is None
+        assert store.get_by_share_token(created["share_token"]) is None
+        assert store.get_followup(rid, "owner-device") is None
+        assert store.feedback_counts(rid) == {"total_up": 0, "total_down": 0}
+
+    def test_unclaimed_or_unknown_report_cannot_be_deleted_as_owned(
+        self, store, sample_payload,
+    ):
+        created = store.create(
+            query="local only", b_id="b", lang="zh", payload=sample_payload,
+            model="m", creator_anon_id="local-device",
+        )
+        with pytest.raises(PermissionError):
+            store.delete_report_by_owner(created["id"], "account-owner")
+        with pytest.raises(PermissionError):
+            store.delete_report_by_owner("r_missing", "account-owner")
+        assert store.get_by_id(created["id"]) is not None
+
+
 # --------- Session #17 V6 — report followup (revisit loop) --------- #
 
 
@@ -435,6 +484,7 @@ class TestReportFollowup:
         assert fu["outcome"] == "worked"
         got = store.get_followup(rid, "anon-1")
         assert got["note"] == "留存涨了 3 个点"
+        assert got["publish_to_insights"] is False
         # created_at == updated_at on first insert.
         assert got["created_at"] == got["updated_at"]
 
@@ -463,6 +513,128 @@ class TestReportFollowup:
         )
         assert store.get_followup(rid, "anon-1")["action_status"] == "tried"
         assert store.get_followup(rid, "anon-2")["action_status"] == "abandoned"
+
+    def test_publication_consent_is_explicit_preserved_and_revocable(
+        self, store, sample_payload,
+    ):
+        rid = self._make_report(store, sample_payload)
+        first = store.record_followup(
+            report_id=rid, anon_id="anon-1", action_status="tried",
+            outcome="worked", publish_to_insights=True,
+        )
+        assert first["publish_to_insights"] is True
+        assert first["consent_version"] == "insights-public-v1"
+        assert first["consented_at"]
+        assert first["withdrawn_at"] is None
+        preserved = store.record_followup(
+            report_id=rid, anon_id="anon-1", action_status="tried",
+            outcome="worked",
+        )
+        assert preserved["publish_to_insights"] is True
+        assert preserved["consent_version"] == first["consent_version"]
+        assert preserved["consented_at"] == first["consented_at"]
+        revoked = store.record_followup(
+            report_id=rid, anon_id="anon-1", action_status="tried",
+            outcome="worked", publish_to_insights=False,
+        )
+        assert revoked["publish_to_insights"] is False
+        assert revoked["consent_version"] == first["consent_version"]
+        assert revoked["consented_at"] == first["consented_at"]
+        assert revoked["withdrawn_at"]
+
+    def test_first_private_choice_is_not_mislabeled_as_withdrawal(
+        self, store, sample_payload,
+    ):
+        rid = self._make_report(store, sample_payload)
+        first = store.record_followup(
+            report_id=rid, anon_id="anon-1", action_status="planned",
+            publish_to_insights=False,
+        )
+        assert first["publish_to_insights"] is False
+        assert first["consent_version"] is None
+        assert first["consented_at"] is None
+        assert first["withdrawn_at"] is None
+        repeated = store.record_followup(
+            report_id=rid, anon_id="anon-1", action_status="planned",
+            publish_to_insights=False,
+        )
+        assert repeated["withdrawn_at"] is None
+
+    def test_reconsent_after_text_version_change_refreshes_timestamp(
+        self, store, sample_payload,
+    ):
+        rid = self._make_report(store, sample_payload)
+        store.record_followup(
+            report_id=rid, anon_id="anon-1", action_status="planned",
+            publish_to_insights=True,
+        )
+        old_timestamp = "2026-01-01T00:00:00.000000Z"
+        with store._connect() as conn:
+            conn.execute(
+                "UPDATE report_followup SET consent_version=?, consented_at=? "
+                "WHERE report_id=? AND anon_id=?",
+                ("insights-public-v0", old_timestamp, rid, "anon-1"),
+            )
+        renewed = store.record_followup(
+            report_id=rid, anon_id="anon-1", action_status="planned",
+            publish_to_insights=True,
+        )
+        assert renewed["consent_version"] == "insights-public-v1"
+        assert renewed["consented_at"] != old_timestamp
+        assert renewed["withdrawn_at"] is None
+
+    def test_claimed_owner_can_withdraw_consent_from_another_device(
+        self, store, sample_payload,
+    ):
+        rid = store.create(
+            query="q", b_id="b1", lang="zh", payload=sample_payload,
+            model="m", creator_anon_id="device-a",
+        )["id"]
+        store.record_followup(
+            report_id=rid, anon_id="device-a", action_status="tried",
+            outcome="worked", publish_to_insights=True,
+        )
+        store.claim_by_anon("device-a", "account-owner")
+        with pytest.raises(PermissionError):
+            store.withdraw_insights_consent_by_owner(rid, "different-account")
+        withdrawn = store.withdraw_insights_consent_by_owner(
+            rid, "account-owner",
+        )
+        assert withdrawn["publish_to_insights"] is False
+        assert withdrawn["consent_version"] == "insights-public-v1"
+        assert withdrawn["consented_at"]
+        assert withdrawn["withdrawn_at"]
+        assert store.get_followup(rid, "device-a")[
+            "publish_to_insights"
+        ] is False
+
+    def test_owner_withdraw_without_prior_consent_has_no_withdrawal_timestamp(
+        self, store, sample_payload,
+    ):
+        rid = store.create(
+            query="q", b_id="b1", lang="zh", payload=sample_payload,
+            model="m", creator_anon_id="device-a",
+        )["id"]
+        store.record_followup(
+            report_id=rid, anon_id="device-a", action_status="planned",
+            publish_to_insights=False,
+        )
+        store.claim_by_anon("device-a", "account-owner")
+        withdrawn = store.withdraw_insights_consent_by_owner(
+            rid, "account-owner",
+        )
+        assert withdrawn["publish_to_insights"] is False
+        assert withdrawn["consent_version"] is None
+        assert withdrawn["consented_at"] is None
+        assert withdrawn["withdrawn_at"] is None
+
+    def test_publication_consent_rejects_non_boolean(self, store, sample_payload):
+        rid = self._make_report(store, sample_payload)
+        with pytest.raises(ValueError, match="must be a boolean"):
+            store.record_followup(
+                report_id=rid, anon_id="anon-1", action_status="tried",
+                outcome="worked", publish_to_insights="yes",
+            )
 
     def test_followup_missing_anon_collapses_to_anon_bucket(self, store, sample_payload):
         rid = self._make_report(store, sample_payload)
@@ -636,23 +808,39 @@ class TestReportFollowup:
         got = healed.get_followup("r_old", "a")
         assert got["note"] == "legacy"
         assert got["experiment"] is None
+        assert got["publish_to_insights"] is False
+        assert got["consent_version"] is None
+        assert got["consented_at"] is None
+        assert got["withdrawn_at"] is None
 
 
-def test_only_report_owner_followup_enters_verified_evidence(store, sample_payload):
+def test_private_followups_do_not_install_public_aggregate_api(
+    store, sample_payload,
+):
     out = store.create(
-        query="q", b_id="target", lang="en", payload=sample_payload, model="m",
-        creator_anon_id="owner",
+        query="q", b_id="target", lang="en", payload=sample_payload,
+        model="m", creator_anon_id="owner-0",
     )
     store.record_followup(
         report_id=out["id"], anon_id="attacker",
-        action_status="tried", outcome="worked",
+        action_status="tried", outcome="worked", publish_to_insights=True,
     )
-    assert store.verified_isomorphisms() == []
-    assert store.count_human_verified("target")["count"] == 0
-    assert store.insights_summary()["verified_isomorphisms"] == 0
     store.record_followup(
-        report_id=out["id"], anon_id="owner",
-        action_status="tried", outcome="worked",
+        report_id=out["id"], anon_id="owner-0",
+        action_status="tried", outcome="worked", publish_to_insights=True,
     )
-    assert len(store.verified_isomorphisms()) == 1
-    assert store.count_human_verified("target")["count"] == 1
+    for i in range(1, 5):
+        owner = f"owner-{i}"
+        extra = store.create(
+            query="private", b_id="target", lang="en",
+            payload=sample_payload, model="m", creator_anon_id=owner,
+        )
+        store.record_followup(
+            report_id=extra["id"], anon_id=owner,
+            action_status="tried", outcome="worked", publish_to_insights=True,
+        )
+    for removed in (
+        "verified_isomorphisms", "count_human_verified",
+        "stuck_structures", "insights_summary",
+    ):
+        assert not hasattr(store, removed)

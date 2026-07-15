@@ -33,9 +33,7 @@ only, never sent to clients unless DEBUG mode).
 
 from __future__ import annotations
 
-import logging
-import os
-import traceback
+import re
 from typing import Any, Optional
 
 from fastapi import FastAPI, Request
@@ -44,16 +42,23 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded as SlowAPIRateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-logger = logging.getLogger("structural.errors")
+if __package__ == "web.backend":
+    from .logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
+
+logger = get_logger("structural.errors")
 
 # Type URI prefix — points to error type catalog. Real URL doesn't need to
 # resolve (RFC 7807 §4.2 allows "about:blank") but a stable string lets
 # clients map error types to localized messages without parsing `title`.
 _ERROR_TYPE_PREFIX = "https://structural.bytedance.city/errors/"
 
-# When true, full tracebacks are returned in `detail` instead of being only
-# logged. Should be false in production.
-_DEBUG = os.getenv("STRUCTURAL_DEBUG", "").lower() in ("1", "true", "yes")
+_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+_INCIDENT_ID_RE = re.compile(r"^[0-9a-f]{32}$")
+_ROUTE_TEMPLATE_RE = re.compile(r"^/[A-Za-z0-9_.~/{\}-]{0,159}$")
+_REQUEST_ID_SCOPE_KEY = "structural.request_id"
+_INCIDENT_ID_SCOPE_KEY = "structural.incident_id"
 
 
 class ProblemDetail(Exception):
@@ -156,8 +161,14 @@ class InternalError(ProblemDetail):
 
 
 def _problem_response(exc: ProblemDetail, request: Request) -> JSONResponse:
-    body = exc.to_dict(instance=str(request.url.path) if request.url else None)
+    route = request.scope.get("route")
+    template = getattr(route, "path", None)
+    instance = template if isinstance(template, str) and _ROUTE_TEMPLATE_RE.fullmatch(template) else None
+    body = exc.to_dict(instance=instance)
     headers = {}
+    request_id = request.scope.get(_REQUEST_ID_SCOPE_KEY)
+    if isinstance(request_id, str) and _REQUEST_ID_RE.fullmatch(request_id):
+        headers["X-Request-ID"] = request_id
     # Surface retry-after on rate-limit so HTTP clients honour it.
     if isinstance(exc, RateLimitExceeded):
         retry = exc.extensions.get("retry_after_s")
@@ -226,14 +237,31 @@ async def _problem_handler(request: Request, exc: Exception) -> JSONResponse:
         wrapped = klass(detail=detail or klass.default_title, status=status)
         return _problem_response(wrapped, request)
 
-    # Unknown exception — log full trace server-side, but only echo a generic
-    # message to the client unless DEBUG mode is on.
-    tb = traceback.format_exc()
-    logger.error("unhandled exception on %s: %s\n%s", request.url.path, exc, tb)
-    if _DEBUG:
-        wrapped = InternalError(detail=f"{type(exc).__name__}: {exc}", traceback=tb)
-    else:
-        wrapped = InternalError(detail="An internal error occurred. Please try again.")
+    # Unknown exceptions are represented only by a type and random incident
+    # handle. Exception strings, tracebacks and raw paths may contain request
+    # bodies or credentials and never enter operational logs or responses.
+    scoped_incident_id = request.scope.get(_INCIDENT_ID_SCOPE_KEY)
+    incident_id = (
+        scoped_incident_id
+        if isinstance(scoped_incident_id, str) and _INCIDENT_ID_RE.fullmatch(scoped_incident_id)
+        else new_incident_id()
+    )
+    request_id = request.scope.get(_REQUEST_ID_SCOPE_KEY)
+    safe_request_id = (
+        request_id
+        if isinstance(request_id, str) and _REQUEST_ID_RE.fullmatch(request_id)
+        else None
+    )
+    logger.error(
+        "privacy.internal_error",
+        error_type=type(exc).__name__,
+        incident_id=incident_id,
+        request_id=safe_request_id,
+    )
+    wrapped = InternalError(
+        detail="An internal error occurred. Please try again.",
+        incident_id=incident_id,
+    )
     return _problem_response(wrapped, request)
 
 

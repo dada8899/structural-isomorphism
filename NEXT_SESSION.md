@@ -843,3 +843,700 @@ git diff --stat
 2. 检查 PR #230 checks与冲突；若账户入口未进入#231，安全合并或在最新main重建最小补丁。
 3. 回收三条 Builder，分别指派独立 Validator；目标/全量测试后独立提交。
 4. 把本节 `NEXT_SESSION.md` 在对应发布终态后再次追加，不用本节“运行中”代替最终证据。
+
+## 25. 2026-07-12 第二阶段冻结发布与配额接力
+
+> 本节是当前最新权威状态。第二阶段代码已在隔离发布分支冻结并完成本地 Builder-Validator；GitHub push 因 Codex 外部执行用量上限被平台拒绝，尚未创建 PR、运行远端 CI 或部署。
+
+### 冻结分支与提交
+
+- worktree：`/tmp/si-product-release2`
+- branch：`release/product-90-stage2-20260712`
+- frozen HEAD：`c31f352`（`fix(release): close SSO and evidence gate bypasses`）
+- 基线：生产主线 squash `15d8a70`，其上无损 cherry-pick 16 个已验证本地版本，再追加 `c31f352`。
+- push 首次因沙箱 DNS 失败；按规则申请外部执行后，被 Codex usage limit 拒绝。不得绕过；额度恢复后直接重试并核对远端 ref。
+
+### 本批主要能力
+
+- 账户数据导出、永久删除、旧 session 永久失效与跨产品删除对称。
+- beta/Phase 跨域 SSO、匿名报告按当前浏览器 proof 认领、一次性 code 与跨域报告归属。
+- Decision Brief 下载、证据边界、7 日实验、截止日与本地提醒。
+- 确定性结构指纹草案、模拟用户评测、Stage 1 benchmark 与 pilot sourcing。
+- KB 来源双审队列、Evidence Ladder、公开 claim/data provenance 收口。
+- Phase 44px 交互目标、移动端/键盘/axe 与 universality 候选/非机制证明文案。
+- 两条高价值 dossier 已收窄：交通锁死×电网级联仅 Stage 0 conditional GO；清算机制辨别仅受控 Stage 0 GO，现实 Stage 1 NO-GO。
+
+### 独立 Validator 与本地门禁
+
+- 产品/UX：GO；Decision Brief 19、公开控件/文案 14、账户/报告/SSO 163、真实浏览器 5；375/390/430 与 15 次 axe 检查无 critical/serious，P0=0、P1=0。
+- 安全：GO for PR/CI；账户/SSO 20。修复公开/私有 env 重复 key、弱 secret、非 canonical origin、非 600 env、非 prod、共享目录 symlink/realpath 绕过；生产仍必须真实配置与跨域 smoke。
+- 科学：本轮工程门禁 GO；93 个联合测试及 evidence/public/research validators PASS。修复 evidence level 伪升级、False/空集合/类型/hash/verdict/独立性/日期/URL 凭据与 fragment 绕过，合法 replicated 正路径可达。
+- 后端全量：`926 passed, 1 skipped`（隔离 worktree 需 `PYTHONPATH` 和 Git 外本地模型挂载；首次环境失败不属于代码回归）。
+- Phase：TypeScript 与生产 build 通过，30/30 routes。
+- 新增/目标 root 门禁：126 passed；最终研究联合门禁 93 passed；`git diff --check`、两个 deploy shell `bash -n` 通过。
+
+### 科学与价值边界
+
+- 当前来源覆盖仍为零；KB 不得从 candidate 自动升级。
+- formal Stage 1 与 pilot dispatch 仍 NO-GO；合成 harness 明确 `scientific_evidence=false`。
+- 在核心发现完成预注册前瞻验证或独立复现前，不得宣称 AI for Science 新范式已被证明。
+- 真实用户价值仍需 15–20 个研究密集型任务或等价的前瞻证据；当前工程/UX 绿色不能替代真实价值证明。
+
+### 额度恢复后的严格下一步
+
+1. 完整重读本文件，检查 `/tmp/si-product-release2` HEAD 必须为 `c31f352` 且工作树干净。
+2. 推送 `release/product-90-stage2-20260712`；必须用远端 ref/PR head 核对，不能相信空 push 输出。
+3. 创建 PR，等待 CI、backend matrix、packages、frontend、browser、mobile clean runner、perf、coverage、sanity、types 全部终态。
+4. 红灯先四层根因分析再修；冻结 SHA 后重新跑移动/浏览器门禁。
+5. PR 全绿才合并；随后在 VPS 私有配置中安装相同高熵 `STRUCTURAL_SSO_SECRET`、相同 Git 外 `STRUCTURAL_SSO_DATA_DIR` 与 canonical origins，绝不记录 secret 值。
+6. 依次部署 beta、Phase、docs；核对 `/api/version` SHA、deep health、4443 KB、597 frozen demo、账户入口、真实跨域 SSO、匿名报告 claim、账户删除撤销、全部 production smoke。
+7. 部署终态立即追加第 26 节和 `~/progress.md`，记录 workflow、生产证据与回滚。
+
+## 26. 2026-07-12 第二阶段生产发布、跨域 SSO 与账户删除 P0
+
+> 本节是当前最新权威状态。第二阶段主版本已发布；跨域 SSO 真实 smoke 已通过至报告认领，但暴露 Phase 账户永久删除的共享 import topology P0。修复 PR #236 正在运行全量 CI，尚未合并、部署或完成最终 production smoke。
+
+### 已合并与已部署
+
+- PR `#232` 全部门禁通过后 squash 合并，远端 main 为 `758a92f`；第二阶段产品、账户、报告、证据、研究门禁和移动体验进入生产主线。
+- beta deploy `29195010569` 在安装私有 SSO 配置后重跑 success；deep health、4,443 KB、artifact、语义搜索和部署 SHA 指纹通过。
+- docs deploy `29195010578`、perf `29195010574`、主线 CI/Coverage/sanity/types 全部 success。
+- PR `#234` 修复 Phase 共享 SSO router 在 beta 顶层 import 与 Phase package import 两种 topology；合并 main `c8f2b29`。
+- PR `#235` 修复 Phase 自动部署未监听共享 auth/SSO 依赖，以及 beta 私有 env symlink 目标权限应使用 `stat -L` 校验；合并 main `13cccac`。
+- Phase deploy `29196248941` success：dependency contract、SSH deploy、API smoke 全绿。
+
+### 生产私有配置
+
+- Phase 与 beta 使用相同高熵 `STRUCTURAL_SSO_SECRET`，仅存 VPS mode 600 私有 env，未进入仓库、文档、日志或对话。
+- canonical origins：`https://phase.bytedance.city` 与 `https://beta.structural.bytedance.city`。
+- 共享 Git 外数据目录：`/var/lib/structural-isomorphism/sso`，mode 700。
+- Phase auth env 与 beta env 已在修改前备份，时间戳 `20260712T134739Z`。
+- Phase Git 工作树通过 ignored private symlink 指向唯一 beta env，避免两份 secret 配置漂移。
+
+### 真实生产 smoke 已验证
+
+- beta `/api/sso/start`：303 到 canonical Phase connect，state/nonce binding 正常。
+- Phase `/api/sso/issue`：合成有效 Phase session 返回 200。
+- beta `/api/sso/exchange`：200，建立 beta-only HttpOnly session；重复 exchange 被拒绝。
+- 创建合成匿名报告后，`/api/reports/anon-proof` 200、`/api/me/reports/claim` 200、账户报告列表包含被认领报告。
+- 每轮合成账户和报告均由 finally/registry 清理，不触碰真实用户。
+
+### 当前真实 P0 与四层根因
+
+- 表面：Phase `POST /api/me/delete` 返回 500。
+- 直接原因：`auth._account_registry()` 在 Phase package topology 中加载 favorites/report assets；favorites 和 auth package re-export 仍包含 beta-only 顶层 imports，日志为 `ModuleNotFoundError: auth`。
+- 系统根因：共享账户删除依赖图只验证 beta 运行方式，之前只对 SSO 第一层做双 topology contract，没有实例化完整 deletion registry。
+- 全局影响：注册、登录、SSO、匿名报告认领正常，但 Phase 用户当前无法永久删除账户；这是隐私 P0，最终生产收口 NO-GO。
+
+### 当前修复 PR #236
+
+- branch：`fix/phase-account-delete-imports-20260712`
+- commit：`dd6dec5`。
+- 修复 favorites 的 api-key/auth/errors package-relative imports、report_account 的 SSO/store imports、auth package 的相对 re-export。
+- 新回归实际从 `web.backend.api.auth` 构建完整账户删除 registry，不只做静态字符串检查。
+- 本地：Phase import/deletion registry contract `4 passed`；beta account/favorites/SSO `51 passed`；diff check PASS。
+- 远端当前：types、retrieval contract 已 pass；backend 六矩阵、browser、frontend、packages、coverage、sanity 正在运行，无失败项。
+
+### 严格下一步
+
+1. 等 PR #236 全部门禁终态；有红灯先四层根因分析，不跳过。
+2. 全绿后 squash 合并；新 main 应自动触发 beta 与 Phase deploy，因为 #235 已补完整共享依赖路径。
+3. 监控两端 deploy 到 success，核对最终 main SHA 与线上版本。
+4. 重跑可清理生产 smoke：start 303、issue 200、exchange 200、重放拒绝、anon proof 200、claim 200、delete 200、旧 beta session 401。
+5. 触发最终 `site-smoke.yml`，验证 docs/beta/Phase 全部业务不变量。
+6. 终态立即追加第 27 节和 `~/progress.md`；不得再等待用户提醒才写交接。
+
+## 27. 2026-07-12 PR #236 发布后生产删除 P0 仍未关闭
+
+> 本节是当前最新权威状态。PR #236 已全绿合并并部署到 beta/Phase，但真实生产 smoke 暴露 Phase 锁定运行环境缺少完整账户删除依赖；最终生产结论仍为 NO-GO。
+
+### 已完成
+
+- PR `#236` 全部门禁 success 后 squash 合并，远端 main：`efed48bb0f5408171420f01621199be11a72a2c9`。
+- beta deploy `29197973546` success：健康、4,443 KB、artifact identity、语义搜索和部署指纹通过。
+- Phase 因 workflow paths 未覆盖 `favorites.py`、`report_account.py`、`auth/__init__.py` 未自动触发；手动 dispatch `29197993059` success，依赖 contract、SSH deploy、API smoke 通过。
+- 真实生产 smoke 再次验证 start/issue/exchange、防重放、匿名报告 proof、claim 与列表成功；合成数据由 finally 清理。
+
+### 新的四层根因
+
+1. 表面：Phase `POST /api/me/delete` 仍返回 500。
+2. 直接原因：完整账户 registry 导入 `web.backend.errors`，Phase 锁定 venv 缺少 `slowapi`，日志为 `ModuleNotFoundError: slowapi`。
+3. 系统根因：Phase deploy contract 只导入主 app，没有在 Phase 锁定依赖环境实例化共享完整账户删除 registry；自动部署 paths 也未覆盖这组共享依赖文件。
+4. 全局影响：Phase 常规 API、SSO 和报告认领正常，但永久删除不可用；隐私 P0 与最终 production GO 仍被阻断。
+
+### 严格下一步
+
+1. 在 Phase 锁定 requirements 增加精确版本 `slowapi`，不得临时污染生产 venv。
+2. 部署 contract 在同一 venv 实际构建 `web.backend.api.auth._account_registry()`。
+3. Phase workflow paths 覆盖完整共享账户依赖文件，并增加静态回归契约。
+4. Builder 后由独立 Validator 审查，跑 Phase dependency contract、账户目标测试、Phase build 和 diff check。
+5. PR 全绿后合并、自动部署 Phase；重跑完整生产 smoke，必须得到 delete 200、旧 beta session 401。
+6. 终态继续追加第 28 节与 `~/progress.md`。
+
+## 28. 2026-07-13 Phase 永久删除生产 P0 关闭
+
+> 本节是当前最新权威状态。Phase 账户永久删除、跨域 SSO、匿名报告认领和跨产品会话撤销已通过真实生产 smoke；核心隐私 P0 已关闭。最终全站 site smoke `29199428277` 已触发，写入本节时需等待终态。
+
+### 修复与发布
+
+- PR `#237`：`fix(phase): validate account deletion runtime dependencies`。
+- 独立 Validator 首轮发现 workflow 错写不存在的 `account_data.py` 且漏掉真实 `account_data_registry.py` / `auth_store.py`，判定 NO-GO；修正后第二轮最终 GO。
+- Phase requirements 精确锁定 `slowapi==0.1.9`；clean Python 3.12 venv 实际导入 Phase app 并构建完整三资产 account registry。
+- Phase workflow paths 覆盖 auth、SSO、favorites、report account、auth package、errors、account registry、auth/report/SSO stores。
+- 本地：clean Python 3.12 registry contract PASS；Phase contract `6 passed`；账户/收藏/报告 `51 passed`；YAML 与 diff check PASS。
+- PR #237 全量 CI success 后 squash 合并，远端 main：`d9f795918180149d3fd558dd413cdbaafbcd43aa`。
+- Phase deploy `29199350344` success：clean dependency contract、SSH deploy、公开 smoke 全部通过。
+
+### 真实生产证据
+
+- 可清理合成账户链路：`start=303`、`issue=200`、`exchange=200`、code replay 拒绝、匿名报告 proof/claim/list 成功、`delete=200`、旧 beta session `401`。
+- 脚本输出：`production_sso_smoke=PASS start=303 issue=200 exchange=200 claim=200 delete=200 revoked=401`。
+- 合成账户与报告由 finally/registry 清理；一次性脚本已从 VPS 删除；无 secret 值进入输出。
+- 当前结论：跨域账户删除隐私 P0 已关闭。
+
+### 接力下一步
+
+1. 等待 site smoke `29199428277` 终态；若成功，将本节中的运行中状态追加为最终 success，不改写历史。
+2. 核对 main `d9f7959` 的 CI、coverage、sanity、types、perf 全部终态；红灯按四层根因处理。
+3. 修复 GitHub Actions Node 20 deprecation warning 是 P2 基础设施债，不阻断当前 P0。
+4. 回到成熟产品与 AI for Science 主线：真实异构 journey scoring、Stage 1/pilot 外部证据、英文检索质量和全站用户可见体验验收；工程绿色不能冒充真实用户/科学价值已证实。
+
+### 2026-07-13 终态追加
+
+- site smoke `29199428277` success，耗时 2m24s；fail-closed production synthetic monitor 全部通过。
+- 同一 main SHA 的 Phase deploy、types、perf 已 success；CI、coverage、sanity 在本追加时仍正常运行且无已知红灯，需等待终态。
+- GitHub Actions 提示 Node 20 action 被强制运行在 Node 24；记录为 P2 维护债，不影响本次 P0/生产验收结论。
+
+### 2026-07-13 主线门禁最终追加
+
+- main `d9f7959` 的 CI `29199350354`、coverage `29199350355`、sanity `29199350394`、types `29199350343`、perf `29199350372`、Phase deploy `29199350344` 与 site smoke `29199428277` 全部 success。
+- 下一阶段已在隔离 worktree `/tmp/si-english-retrieval`、分支 `feat/english-retrieval-safe-experiment-20260713` 启动；仅做安全双路检索实验和无泄漏证据轨，feature flag 默认关闭，尚未提交、PR、部署。
+
+## 29. 2026-07-13 英文检索安全实验与不可伪造评测协议
+
+> 本节是当前最新权威状态。英文检索被确认存在严重召回塌缩；安全实验入口与评测基础设施已完成多轮独立审查并进入 PR #238，但生产功能保持默认关闭，尚无九系统 runs、评审标签、评分或上线授权。
+
+### 现状诊断
+
+- 旧 40 条 English DEV：nDCG@5 `0.3029`、Success@5 `0.275`、Top1 relevant `0.05`；29/40 的 Top-5 没有 relevance>=2。
+- 对应中文：nDCG@5 `0.8543`、Success@5 `0.95`、Top1 `0.75`；英文是候选召回塌缩和跨语 hubness，不是轻微排序问题。
+- 人工中文对应句和 multilingual MiniLM 只证明旧 judged pool 内存在约 30% rerank 信号；新候选未判，不能证明端到端 recall 或真实翻译收益。
+
+### 工程轨
+
+- commit `007d259`：默认关闭的 `retrieve_safe_english` 实验入口。
+- NFKC/control/zero-width/空白/长度规范化；Bearer/JWT/AWS/access token 等敏感信息只走本地原文。
+- 明确英文最多一次翻译；exact schema、中文占比、URL/HTML/行动指令/长度 guard；必须注入可信本地 semantic guard，否则 fail closed 回原文。
+- 原文 lane 先启动、模型/guard/翻译搜索异常硬回退；确定性 RRF；不返回 candidate query 明文。
+- 新旧目标测试 `34 passed`；独立安全 Validator 限定 GO。
+- 未接真实 `/ask`、未开启 flag、未部署；真实接入和 UI/E2E 必须另行 Builder-Validator。
+
+### 证据轨
+
+- commit `0ccb6b6`：200 条 label-sealed deterministic simulated holdout（100 in-scope、100 OOS、40 dangerous，全部唯一）；旧 40 永久标为 DEV_ONLY。
+- 九系统×200×Top50 内容寻址共同池；每系统 output、code、model、KB、run 和 common union 均现场重算指纹。
+- raw `(query,doc,reviewer,score,scope)` 评审；每候选至少 3 reviewer；in-scope relevance QWK 与 OOS scope agreement 分离；逐争议独立仲裁。
+- 唯一 confirmatory primary、cluster bootstrap 10k、paired permutation；英文/中文/OOS/dangerous/延迟/成功率门禁。
+- 中文非劣从权威 qrels 与内容寻址 runs 现场重算；ranking 严格等于冻结 output 前缀、Top5 唯一非空、nDCG 必须 finite 且 `[0,1]`。
+- 四轮独立产品/证据 Validator 曾先后拦截重复 OOS、伪共同池、伪 QWK、cluster 混杂、排名换序、中文手填分、重复高相关 doc 等绕过；最终评测基础设施 GO，P0=0、阻断 P1=0。
+- 主线程相关测试 `26 passed`，py_compile/diff check PASS。
+
+### GitHub 与严格下一步
+
+- worktree：`/tmp/si-english-retrieval`；branch：`feat/english-retrieval-safe-experiment-20260713`；HEAD `0ccb6b6`。
+- PR `#238` 已创建，需等待全部 CI/coverage/sanity/types/perf 终态；当前不得合并前跳过红灯。
+- candidate manifest 仍 `NOT_BUILT`；没有九系统 runs、raw reviews、adjudications、中文 controls 或评分，因此英文上线与价值结论仍 NO-GO。
+- PR 全绿后可合并基础设施，但仍不部署/开启英文功能；下一步是生成九系统候选 runs、异构模型模拟盲评（明确不冒充真人）、仲裁与离线评分，再决定是否进入真实 endpoint shadow/canary。
+- 真实用户价值和投稿级证据仍需独立真人/外部评审；内部模拟不能替代。
+
+## 30. 2026-07-13 产品能力 90 分冲刺与 Stage 3 并行状态
+
+> 本节是当前最新权威状态。用户明确要求产品能力核心维度达到严格 90 分以上才结束；不能用高分可靠性平均掉英文、证据与发现等低分项，也不能用内部模拟冒充真实用户或科学证明。
+
+### 已合并基线
+
+- PR `#238` 全量 CI success 后合并，远端 main：`924e8771c394e5057df6143e13b1ce60f4392549`。
+- 合并内容：默认关闭的安全英文双路实验入口、200 条 label-sealed simulated holdout、不可伪造九系统候选/评审/统计协议。
+- 生产英文能力未开启，candidate manifest 仍 `NOT_BUILT`。
+
+### 最新现场产品评分
+
+- 运行可靠性 94；移动布局/控件 92；账户 92；用户资产 88；Decision Brief/实验闭环 86；中文主旅程 82。
+- 文案/信任 70；实证验证体验 62；精选发现 58；KB 证据可信度 52；英文搜索 25；严格综合约 73。
+- 生产移动 46 intentional routes × 375/390/430 的 route/overflow/named/keyboard/touch PASS；本轮 axe 因隔离 worktree缺依赖未执行，不能写成现场全绿。
+
+### 新发现并行状态
+
+- 基础设施 commit `6ed3860` 已本地提交：精确修复 powerlaw 2.0 `sigma` warning storm，PR 快测 72 pass/10 slow deselected/21 real warnings/约15秒；nightly不再吞backend/E2E/k6失败；Actions升级Node24版本。独立Validator GO，尚未push/PR。
+- 九系统 freezer Builder完成但独立Validator NO-GO：四本地adapter未统一锁定production manifest、BM25 capability与真实依赖不一致、候选ID未校验KB；另有symlink逃逸、authority不可独立复核等P1。正在返工，未提交。
+- 本地多语 guard Builder首版独立Validator NO-GO：MiniLM会把`positive feedback`↔`负反馈`判为高相似，只能验证topic不能验证方向忠实。正在增加否定/方向/数字/实体保真与并发边界，未提交。
+- 产品现场P0：英文生产静默返回明显错误候选且无Beta边界；About/Tools等仍把39候选写成已验证，与Evidence Ladder冲突。claim修复正在Builder，英文正式候选继续保持NO-GO。
+
+### 严格下一步
+
+1. 三路Builder分别由非Builder独立Validator复核；按infra、freezer、guard、claim分开commit。
+2. 先push基础设施版本并跑CI，验证packages/sanity真实耗时与warning数量改善。
+3. freezer GO后在具备真实4443 KB/model/embeddings的权威工作树运行四本地系统；五个缺模型/API系统不可伪造或降级。
+4. 英文候选/异构模拟评审达预注册门槛前，不接生产；先修生产英文静默误导和claim诚信P0。
+5. P0关闭后并行推进KB/Discovery provenance、Empirical Result Card、账户/Library、Decision状态机、全控件行为矩阵与axe clean runner；每个维度独立复评，低于90继续返工。
+
+## 31. 2026-07-13 夜间 90 分冲刺：Validator 反例与 PR #239
+
+> 本节是当前最新权威状态。三条产品/英文基础轨均在独立 Validator 反例后返工；只有 CI 性能版本已独立 GO 并进入 PR。不得把 Builder 自测或局部通过计入产品 90 分。
+
+### PR #239：CI 性能与 nightly 可靠性
+
+- commit `6ed3860`；PR `#239`。
+- powerlaw `sigma` warning storm 在精确第三方调用边界处理，保留真实数值告警；PR快测72 pass/10 slow deselected/21 warnings/约15秒。
+- GitHub真实结果：主 packages 由约9分钟降至1m39s，sanity由约10分钟降至3m42s；SOC多Python/OS矩阵多数1–2分钟success。
+- nightly不再吞backend/E2E/k6失败；Actions升级Node24官方major。
+- 写入时41 checks success、1 skipped；仅两个Ubuntu py3.11 package jobs因GitHub runner卡在`setup-python@v6`而pending，非测试步骤失败；workflow有20分钟timeout。未全绿前不合并。
+
+### Freezer 最新 NO-GO 与返工
+
+- 首轮P0（production corpus、BM25 capability、KB ID allowlist）和symlink/authority/partial问题已修。
+- 后续Validator发现`production_endpoint` construction provenance仍可用自洽JSON伪造：没有raw HTTP request/response bytes与真实version capture；external model同理缺raw provider证据与cost ledger。
+- 当前返工要求：内容寻址raw artifacts，parser只从raw response抽Top50；canonical final URL/status/timestamp/version payload；external request ID、raw response、逐请求token/cost与总预算；无raw/篡改raw/row mismatch fail closed。
+- 未最终GO、未提交、未运行收费模型。
+
+### Crosslingual guard 最新 NO-GO 与返工
+
+- 首版MiniLM只能判topic，`positive feedback`↔`负反馈`错误放行；第二版又被Validator用普通实体因果反转、数字角色交换与可变cache污染击穿。
+- 当前返工覆盖：普通anchor与因果顺序、A/B、数字+canonical unit+role/range、否定缩写、中英单位映射、immutable cache、canonical JSON key、Future sameflight异常共享、14条DEV校准fixture与Wilson报告。
+- Builder最新offline MiniLM 42 tests自测通过，仍需同一独立Validator终审；未接pipeline/API/生产。
+
+### Public claim 最新 NO-GO 与返工
+
+- Builder已清理About/Tools/Insights主要“39已验证/A级”等文案，但独立Science Validator发现i18n切换仍恢复强claim：同一方程/跨协议普适/独立涌现/empirically validated/five arXiv/从不修改不调参等。
+- 系统根因：contract依赖少量exact phrase，变体可绕过。当前返工需同步全部中英key、Tools数字就近ledger/date、regex/variant checker和中英渲染级测试。
+- 未独立GO、未提交、未部署。
+
+### 严格下一步
+
+1. PR #239最后两job终态；全绿才合并并核对main新SHA。
+2. freezer/guard/claim分别完成同一Validator复审；按三个独立commit/PR，不混合。
+3. claim P0优先部署并生产复验；英文production仍关闭。
+4. freezer正式GO后才生成四本地真实runs；五外部/缺模型系统严格fail closed或补真实raw capture，不以伪fixture完成。
+5. 继续按约10分钟或阶段节点主动汇报；compact后完整重读本文件。
+
+## 32. 2026-07-13 CI 性能合并、续费重启恢复与 Stage 3 第三轮审查
+
+> 本节是当前最新权威状态。PR #239 已合并且新 main 全绿；腾讯云续费恢复触发的整机重启曾造成 beta 短暂 502，当前生产已恢复并通过完整 smoke。Claim 与 cross-lingual guard 仍在第三轮 Builder-Validator，未发布。
+
+### 已合并与生产终态
+
+- PR `#239` 全部门禁通过后 squash 合并，远端 main：`e73dc624832b2c080ee2d69150c44031cc6baed7`。
+- 合并后 CI `29226118723`、Coverage `29226118733`、perf `29226118752`、sanity `29226118727`、packages `29226118739`、types `29226118768` 全部 success。
+- packages 实际由约 9 分钟降至约 1–2 分钟，sanity 约 4 分钟；nightly backend/E2E/k6 不再吞失败，SOC warning storm 被精确压到真实告警。
+- 腾讯云到期续费恢复后 VPS 于 `2026-07-13 13:24:05 +08:00` 整机重启；`structural-web` 在模型与 4,443 KB 尚未 ready 时已被 systemd 标记 active，nginx 短暂返回 502。
+- 当前 beta deep health 200：4,443 KB、`[4443,768]`、canonical artifact、Luna Pro 全部正常；docs 与 Phase 200。
+- 重启后完整 production smoke `29226266134` success，54 项业务不变量通过；当前生产 GO。
+- 独立 reliability 补丁正在 Validator：systemd `ExecStartPost` 等待 deep readiness；production smoke 仅对 GET 的 network/502/503/504 做两次有限退避，POST 不重试、持续错误仍 fail closed。本地主线程 `17 passed`、diff check PASS，未提交/未部署。
+
+### Freezer 第三轮最终 GO
+
+- 独立 Product QA 重放伪 production、fake provider、NaN/零预算、中断恢复、响应超限及 CLI/别名绕过后最终 GO；专项 `19 passed`。
+- 因仓库没有独立 runner 公钥/签名 verifier 或 provider-native receipt verifier，production endpoint 与三个 external construction 明确 fail-closed unavailable；任何本地自洽 JSON/SHA 均不能冻结。
+- 本地 HTTP capture 仅标记为 `UNTRUSTED_LOCAL_FORENSIC_CAPTURE`，支持逐 query 原子 checkpoint/resume 与 8 MiB 响应上限；usage/budget 拒绝 bool、NaN/Inf、负数及非整数 token。
+- 独立 commit：`0a26c23` `eval: freeze English candidate runs fail closed`；尚未 push/PR，未接生产。
+
+### Claim 与 guard 当前 NO-GO/返工
+
+- Claim 第二轮虽 checker PASS，但 Science Validator 在运行时 i18n 发现 `same law governs`、`都是它`、`validated on`、`可相互迁移`、合成对照排除偏差等强断言，判定 NO-GO。
+- Claim 第三轮 Builder 已降级所有点名文案，checker 增加 HTML/JSON 渲染扫描、220 字符邻接 caveat 与中英文变体攻击；目标测试 `18 passed`，正在同一 Science Validator 终审，未提交/部署。
+- Cross-lingual guard 第二轮 `42 passed` 仍被 Product QA 用否定作用域转移、实体 increase/decrease 交换、同单位数字槽位交换、Alice/Bob 因果反转、`unlikely` 漏判及 `not only/without delay` 误拒击穿，判定 NO-GO。
+- Guard 第三轮 Builder 正在改为 clause/role ledger：predicate(subject, polarity, object)、signed change→entity、number→entity/metric/unit/role；无法可靠解析的方向性输入 fail closed。未提交/接 API/生产。
+
+### 严格下一步
+
+1. reliability、claim、guard 分别完成独立 Validator；只有 GO 才分 scope 提交。
+2. 基于最新 main 建干净发布分支，逐个 cherry-pick 独立 commit；不得把 stage3 工作树未提交 scope 混在一起。
+3. reliability 与 claim 先 PR/CI/部署/production smoke；freezer 与 guard 仅默认关闭基础设施，继续不启用英文生产链路。
+4. Freezer 在真实 4,443 artifact 环境只运行可证明的四个本地系统；其余五个保持 unavailable，直到具备真实 provider-native capture 与独立 attestation。
+5. 继续推进 KB/Discovery provenance、Empirical Result Card、账户 Library、Decision 状态机与 axe clean runner；每个低于 90 的维度独立返工，不能用平均分掩盖。
+
+## 33. 2026-07-13 beta 主产品架构纠偏与第六轮安全/Claim 门禁
+
+> 本节是当前最新权威状态。用户再次明确：`https://beta.structural.bytedance.city/` 是整个产品的唯一入口，Phase 只是 Structural Labs 下的子产品。当前生产仍是旧的反向账户架构；新实现尚未提交、PR、部署，独立 Validator 已判定两条关键 scope NO-GO，禁止提前上线。
+
+### 当前权威架构
+
+- beta Structural：主产品、研究工作台、统一账户中心与用户资产入口。
+- Phase：`Structural Labs · Phase` 子产品，保持 597 ticker frozen demo、published NULL 与无预测能力边界。
+- 目标主旅程：`提出问题 → 选择候选 → 研究草案 → 保存到我的研究 → 设计实验 → 记录结果`。
+- 账户 Library 最终应统一报告、收藏、实验与结果；不能继续把 localStorage 收藏、账户报告和 Phase 会话视为三套产品。
+
+### 当前现场状态
+
+- 活跃隔离工作树：`/tmp/si-english-stage3`；branch `feat/english-retrieval-stage3-20260713`。
+- 已独立提交但未发布：`a1ea4de` 重启 readiness；`0a26c23` 英文候选 freezer fail-closed。
+- 当前生产 beta `/api/version` 仍为 `924e8771c394`，deep health 200、4,443 KB、`[4443,768]`；`/auth/login` 仍 308 到 Phase。Phase/docs 当前 200。
+- PR #239 合并 main `e73dc624832b2c080ee2d69150c44031cc6baed7` 的全部 CI/coverage/perf/sanity/packages/types 已 success；本地旧主工作树尚未 fetch 对齐，发布必须从最新远端 main 建干净分支，不能 destructive reset。
+
+### beta 原生账户 Builder 与独立 NO-GO
+
+- Builder 已实现 beta-native `/auth/login`、`/auth/verify`、同源 magic link、direct session 到旧 SSO subject 的基础映射、独立 mode-600 `beta-auth.env` 部署契约。
+- Builder/主线程目标验证：账户与资产相关 209 passed；生产冒烟/静态契约 30 passed；真实 Chromium 动态账户入口和移动焦点 2 passed；JS/Shell/Python syntax 与 diff check PASS。
+- 独立安全 Validator 判定 3 个 P0：验证页首批静态资源可能通过 Referer 泄漏 token；旧坏 `structural_beta_session` 会压住成功的新 direct login；旧 Phase SSO 只有 subject，收藏/导出/删除和同邮箱资产没有统一。
+- P1：轮换邮箱可绕过单邮箱邮件限流；应用运行时缺少与部署脚本等价的 role/data-dir fail-closed；登录后动态入口与账户管理 UI 尚未完整闭环。
+- Security Builder 正在第六轮返工；完成后必须由同一独立 Validator 重放攻击路径，未 GO 不得提交。
+- `scripts/production_smoke.py` 已改为不发送真实邮件的 beta `/api/auth/me = 401` 门禁；routine smoke 禁止创建账户、发邮件或触发管理员通知。
+
+### Public Claim 第五轮独立 NO-GO
+
+- Claim Builder 第五轮已做 Unicode/default-ignorable、隐藏 caveat 与多处强断言降级，自测 claim/research 22 passed；独立 Validator 现场只收集到 claim 13 passed，checker 虽 PASS 但仍可绕过。
+- 两个 P0：`classes.html` 无 JS fallback 仍有“全部正确拒绝幂律/优秀 collapse”等强结论；`content.json` 运行时又升级为“已匹配物理普适类/翻译已知物理定律”，与 internal candidate taxonomy ledger 冲突。
+- Gate 还需覆盖 `transform:scale(0)`、offscreen absolute、语义错绑 caveat、ARIA/title-only claim，以及拆成多个 JSON value 的强断言。
+- 原 Claim Builder 正在第六轮返工，之后仍由 Science 独立复审。
+
+### 产品体验已修与待修
+
+- beta 全站账户 CTA 已收敛为单一入口：匿名“登录以同步”，登录后“我的研究”；移动抽屉已补焦点圈、Escape 关闭和焦点恢复；i18n toggle 双绑定已收敛为单一 wire 标记。
+- 机械 cache-bust 曾截断 `404.html`，仅发生在隔离工作树且未部署；已用原页面恢复，并新增全 HTML 最小体积与 `</html>` 完整性检查。根因是批量改写缺少逐文件完整性门禁。
+- 产品审查剩余 P0：导航“分析”仍指向依赖参数的结果页；报告所有权文案冲突；收藏未并入 Library；Phase 仍需子产品品牌/返回母产品路径；首页 Classes/Discoveries 第一触点 claim 仍需最终复核。
+
+### 严格下一步
+
+1. 完成 Auth 第六轮 Builder，独立 Validator 重放 token Referer、坏 cookie 恢复、同邮箱双路径资产/删除、IP/全局限流与 runtime 配置攻击。
+2. 完成 Claim 第六轮 Builder，Science 重放 static/i18n/ARIA/hidden/JSON split 攻击；必须独立 GO。
+3. 恢复 Phase 子产品 Builder；另由非 Builder 验证桌面/375/390、键盘、返回主产品和 frozen-demo claim。
+4. 将 beta-native auth、账户 discoverability、claim、reliability 分 scope commit；从最新 `origin/main` 建干净发布分支 cherry-pick，PR 全门禁 success 后才合并。
+5. 生产创建独立 `beta-auth.env`（只引用私有变量名，不记录值），部署 beta/docs/Phase；真实验证 magic email、重放拒绝、HTTPS cookie、重启持久化、同邮箱资产、导出/删除和旧会话撤销。
+6. 发布后继续 Library/Decision 状态机、全控件行为矩阵、KB/Discovery provenance、英文四本地系统真实 runs 与 guard；外部五系统无原生证明保持 unavailable。
+7. 每个部署节点继续追加本文件和 `~/progress.md`；context compact 后完整重读 1–末行。
+
+## 34. 2026-07-13 beta 账户第七轮 GO 与 Claim 第七轮返工
+
+> 本节是当前最新权威状态。beta 原生账户迁移已通过第七轮独立安全终审并形成隔离 commit；尚未 PR/CI/部署。Public Claim 第六轮仍被独立 Validator 判 NO-GO，正在第七轮返工。
+
+### Auth 独立 GO
+
+- commit：`6880818` `feat(auth): make beta the canonical account center`，位于 `/tmp/si-english-stage3` 分支 `feat/english-retrieval-stage3-20260713`。
+- beta 原生 `/auth/login`、`/auth/verify`、same-origin magic link、token URL 清理、Referrer-Policy/no-store、direct/Phase SSO canonical identity、账户收藏/报告/导出/删除已进入同一身份状态机。
+- 跨账号双凭证不再按优先级任选：direct Alice + SSO Bob 时 auth/me、favorites、reports list/claim、export、delete 六端点全部 `409 error=credential_conflict`，响应不泄露邮箱，双方资产和 revoke epoch 零变化。
+- 同账号 direct+SSO 可正常合并；删除后两类旧 session 均 401。任一 invalid/revoked/unlinked credential 均 fail closed，不降级到另一枚凭证。
+- SSO exchange 成功后主动清 direct cookie；direct verify/logout/delete 清旧 SSO cookie。
+- 邮件限流为 SQLite 原子 per-email + trusted-proxy client-IP + global circuit breaker；应用运行时与 deploy script 均强制 beta role、canonical HTTPS、Git 外绝对数据目录和可信代理配置。
+- 独立 Validator 目标集 75 passed；主线程更大账户/资产组合 221 passed；root public-controls/production-smoke 32 passed；JS/Shell/py_compile/diff check PASS。
+- 生产私有 `beta-auth.env` 尚未创建；需要新增 `AUTH_TRUSTED_PROXY_IPS` 并按真实 nginx/uvicorn loopback 拓扑设定。未配置前部署会 fail closed。
+
+### Claim 第六轮仍 NO-GO
+
+- static/runtime Classes/Methods 已统一降级，现有 checker PASS；但独立 Validator 实际只收集 15 个 claim tests，并非 Builder 汇报的 24 个完整门禁。
+- hidden caveat 仍可被 `scaleX(0)`、`.0`、fixed/offscreen、clip、1px overflow、translate 等 CSS 变体绕过。
+- inventory 没有覆盖 public runtime dependency closure；Search/Analyze 仍存在“成熟解法”“真的有效”“经 AI 评审验证”等升级文案，checker 仍可绿色。
+- 第七轮必须改为同一 text node/极小标记 allowlist，任何 style/class/hidden/aria-hidden caveat fail closed；从 public HTML 自动收集本地 script/data 依赖闭包并真实运行新增攻击测试。未 GO 不提交。
+
+### 产品主线当前进展
+
+- 顶部冷启动入口已从无参数 `/analyze` 改为“开始研究”回到首页工作台；单一账户 CTA 匿名“登录以同步”、登录“我的研究”、双凭证冲突“确认账户”。
+- `/reports` 正在升级为“我的研究”：报告/实验、账户收藏与本机收藏、账户/数据权利同页；390px Chromium 覆盖导出入口、logout/delete失败零假成功、DELETE确认和 credential conflict 资产锁定。
+- 本模块仍等待独立 Product QA，未提交。
+- Evidence Envelope Builder 正在并行贯通 Search/Analyze/Ask/Discoveries/Insights 的 candidate/source/result/independence/counterexamples/ledger 六字段；未完成/未验证。
+
+### 严格下一步
+
+1. Claim 第七轮 Builder→同一 Science Validator，独立 GO 后再提交。
+2. Product QA 完成“我的研究/导航/移动/失败恢复”独立验证；修完 P0/P1 后单独提交。
+3. Evidence Envelope Builder 完成后由非 Builder 对 schema、六类页面、来源与 ledger 降级做对抗验证。
+4. 从 `origin/main=e73dc624832b2c080ee2d69150c44031cc6baed7` 建干净发布分支，按 `a1ea4de` reliability → `6880818` auth → account UX → claim 顺序 cherry-pick；freezer `0a26c23` 默认关闭另发。
+5. PR 全绿前先在 VPS 创建 mode-600 beta auth 私有配置并做只读校验；合并部署后完成真实邮件、token重放、HTTPS cookie、重启持久化、旧/新身份迁移、导出/删除和 production smoke。
+
+## 35. 2026-07-13 beta 发布 PR、证据门禁与子产品复验
+
+> 本节是当前最新权威状态，取代第 34 节中的旧 commit/配置措辞。生产仍为旧版 beta 登录架构；以下新能力尚未合并或部署，不得宣称线上已可见。
+
+### beta canonical auth 发布轨
+
+- Stage 3 中 auth commit 已因补生成 SQLite ignore 修订为 `1843883`；部署时保护可变 runtime data 的 commit 为 `accec6c`。
+- 干净发布 worktree：`/tmp/si-beta-auth-release`；分支 `release/beta-primary-auth-20260713`；PR `#241`。
+- 发布分支当前提交：`fa7b9d0` readiness、`de19a63` canonical auth、`72095f2` runtime data exclude、`7552cea` beta native auth route contract。
+- PR 首轮 retrieval contract 唯一失败为 `check_public_controls.py` 未登记 `/auth/login`、`/auth/verify`；四层根因是新页面与路由 allow-list 分属不同 scope，干净 PR 揭示依赖缺口。最小修复 `7552cea` 已推送，本地相关 28 passed、public control contract 155 controls、diff check PASS；等待新一轮 CI 终态。
+- VPS 已存在 mode-600 私有 `beta-auth.env`，canonical beta URL、beta role、loopback trusted proxies 与 Git 外数据目录已按生产拓扑配置；值未进入仓库/文档/日志。真实服务尚未重启。
+- 部署 dry-run 已确认排除整个 `web/backend/data/`，不会用源工作树覆盖生产 `history.db`、auth rate-limit、outbox 或用户数据。
+
+### 当前独立门禁
+
+- Auth：第七轮独立安全 GO；75 个攻击目标、221 个账户/资产组合通过。
+- Claim：第七轮 Science 复验仍发现 linked CSS `content`、inline script、字符串拼接和 template interpolation 五类绕过；新 Builder 已扩展 CSS/JS/inline runtime closure，Claim+Research 35 passed、两道 gate PASS，等待独立复验，未提交。
+- Evidence Envelope：首轮独立 NO-GO，原因是浏览器与后端对未知 verdict、日期、independence、counterexample 和 score 的升级判定不一致，且 verdict 不可见、Search 有未来 nested-anchor 风险、语言切换不重渲染。主线程已统一 allow-list/日期/账本/反证规则，增加 verdict、等级本地化、ledger URL、`suppressActions` 与 i18n refresh；专项 22、相关后端 80 passed，等待同一 Product QA 对抗复验，未提交。
+- My Research：独立复验 NO-GO；真实 409 credential conflict 未全资产锁定，可能回退显示本机收藏；mobile drawer Shift+Tab 逃逸且无移动语言入口。Builder 正在修复并增加真实 409/焦点/语言 E2E，未提交。
+- Phase：Builder build 30/30、静态 6、浏览器 1 通过，但独立 Validator 判 NO-GO。P0 是权威 backtest `p=0.5690715676` 与首页/companies/FAQ 的 `p=0.681` 冲突；P1 包括移动边界条过高、640px 导航溢出、drawer 无完整 focus trap、旧品牌残留、44px 漏项与 320px privacy overflow。原 Builder 正在从单一结果源修复并补 320/640/品牌/高度/焦点门禁。
+
+### 时间与严格下一步
+
+- 当前估计：3–5 小时首批用户可见发布；10–16 个有效工程小时完成账户、证据、文案、移动与全链路生产收口；英文正式门禁和研究证据另需 1–3 天，不能以内部工程绿色替代科学证明。
+- Claim、Evidence、My Research、Phase 必须各由非 Builder 独立 GO；任何 NO-GO 由原 Builder 返工。
+- 各 scope GO 后分开 commit，按依赖 cherry-pick 到 PR #241 或后续最小 PR；全 CI 终态绿色才合并。
+- 合并后先部署 beta，验证原生 login/verify、真实邮件、重放拒绝、同身份/冲突身份、收藏/报告/导出/删除、重启持久化与 4,443 KB；再部署 Phase 并核对 597 frozen demo、NULL、唯一 p 值和全路由主产品返回。
+- 发布终态继续追加第 36 节与 `~/progress.md`，不改写本节历史；compact 后从本文件第 1 行完整重读到末行。
+
+### 2026-07-13 CI 与 Evidence 追加
+
+- PR #241 第二轮 route contract 已转绿，但旧架构测试仍断言 beta `/auth/login` 308 跳 Phase；coverage/sanity 因此各 1 fail。browser fixture 又将多条 `Set-Cookie` 折叠为一条，丢失 direct session，造成 6 个 Phase Next 账户旅程失败。
+- 修复 commit `b3e239c`：测试改断言 beta 原生 200 登录页；真实 Next/FastAPI 测试代理逐条应用多 cookie，不修改生产认证语义。本地真实 Chromium 13 passed，目标后端 1、public controls 12、syntax/diff PASS；已推送，第三轮 CI 全部重新 pending。
+- Evidence Envelope 经 Product QA 第二轮仅剩 Insights 未接 i18n；补 `i18n.js < evidence-envelope.js < insights.js` 与六 surface 顺序契约后，独立真实 Chromium 390px 中英初始化/双向切换、verdict/ledger、无溢出全部通过，最终 GO。专项 22、相关后端 80 passed；尚未提交，需等待重叠 Claim/My Research 文件均 GO 后再按 patch 边界冻结。
+- PR #241 第三轮已全部终态绿色：backend 5 个 OS/Python 组合、model-load、browser、coverage、frontend、mobile、packages、retrieval、sanity 与 check 均 pass，live soft-fail job 按设计 skipped。暂不合并，先把账户入口/My Research 独立 GO 版本纳入，避免发布“原生路由存在但导航仍指向旧 Phase”的半成品。
+
+## 36. 2026-07-13 产品诚信版本冻结并进入最终 CI
+
+> 本节是当前最新权威状态。新产品版本已推送 PR #241，但尚未合并、部署；生产 beta 仍是旧账户入口。不得在 CI 全绿和生产 smoke 前宣称用户已可见。
+
+### 独立 GO 与冻结提交
+
+- Phase 最终 GO：static 9、lint、build 30/30、真实 Chromium 覆盖 320/375/390/640/1024/1279，boundary+header=122px、全部 drawer focusable>=44px、无 overflow、focus trap/inert/Escape、privacy wrap；1280 正确切桌面。公开 NULL p 值单源 `0.5690715676`，旧品牌清零。Stage commit `ba6a166`，发布 cherry-pick `434ce09`。
+- Evidence Envelope 最终 GO：未知 verdict、非法/未来日期、independence、counterexample、score 与 ledger 前后端 parity；verdict/ledger 可见、等级本地化、Search 无 nested anchor、Ask/Insights 中英切换与 390px 通过。产品冻结内含。
+- Claim Gate 最终 GO：34 Claim + 9 research = 43 passed，两 gate PASS；DOM receiver provenance 与真实 load context 消除 `error.title`、`logger.append`、asset fixture 三类误报，同时保留 linked CSS/DOM/JS 渲染检测。产品冻结内含。
+- My Research 最终 GO：14 static、12 Chromium；身份与 reports/favorites 使用原子 staging，两种延迟 409 下 MutationObserver `seen_secret=false` 且本机读取为 0；普通 401、局部 503、移动 i18n/focus/44px 均通过。Stage 产品 commit `cb3e4ef`，发布 cherry-pick `1cef340`。
+- Cross-lingual guard 仍为 NO-GO/默认未接入；两个未跟踪文件仅留在 Stage 3 worktree，没有进入任何发布 commit。
+
+### PR #241 当前发布头
+
+- release branch：`release/beta-primary-auth-20260713`；当前 head `2b21479`。
+- 新增发布 commits：`434ce09` Phase、`1cef340` product trust、`2b21479` 内部 KB provenance E2E 断言；此前 auth/reliability/data protection/CI fixes 均保留。
+- cherry-pick 唯一冲突为 public route allow-list 的格式级同内容冲突，按两边并集解决；public controls 15 passed、159 controls。
+- 干净发布本地：产品门禁 98 passed；相关后端 92 passed/1 deselected；Claim/Research 两 gate PASS；Phase lint/build 30/30；Phase clean browser 1 passed。
+- Beta 全浏览器组合首次 21 项中 20 passed；唯一失败仍寻找旧“查看候选来源”文案。产品已正确改为“查看内部 KB 记录”，测试同步后目标旅程 1 passed；此修复为 `2b21479`。
+- 当前最新 push 已触发新一轮全 CI，尚待终态；上一轮 auth-only head 曾全绿，不能替代当前 head 的门禁。
+
+### 严格下一步
+
+1. 等 PR #241 当前 head 全部 CI/coverage/browser/mobile/packages/retrieval/sanity 终态；任何红灯先四层根因。
+2. 全绿后合并，核对新 main SHA；监控 beta 与 Phase 自动部署。若 paths 未触发对应部署则手动 dispatch，不能只看 main merge。
+3. beta 生产验证：首页账户 CTA、`/auth/login` 200、真实受控 Magic Link、token重放拒绝、cookie安全、重启持久化、同/异身份、报告/收藏/导出/删除、4,443 KB、runtime data 未覆盖。
+4. Phase 生产验证：597 frozen demo、NULL、唯一 p 值、全路由主产品返回、320/390/1024 与键盘；再触发 site smoke。
+5. 生产终态追加第 37 节与 `~/progress.md`。随后继续英文四本地系统真实 runs、guard 返工、发现/KB provenance 与研究证据，不以本轮发布冒充全项目科学证明完成。
+
+## 37. 2026-07-13 beta 主账户生产发布与部署契约收口
+
+> 本节是当前最新权威状态。beta 主产品账户、我的研究、Evidence Envelope、公开 Claim 门禁与 Phase 子产品版本均已上线并通过生产验收。英文 cross-lingual guard 仍为 NO-GO/未发布；科学证明与英文正式门禁不能用本节的工程绿色替代。
+
+### 发布版本
+
+- PR `#241` 全部门禁 success 后 squash 合并，main `95a142a1829a6e09af1c5d8f97f5da78868e6276`。
+- beta deploy `29230970677` success；docs deploy `29230970794` success。生产 beta `/api/version` 已返回 `95a142a1829a`，4,443 KB、`[4443,768]`、Luna Pro 与 canonical artifact 均正常。
+- Phase 首次 deploy `29230970701` 失败：新 auth runtime 要求 trusted proxy/beta role，而 Phase 私有 env 和旧部署契约仍按旧 origin；服务保持运行，beta 不受影响。
+- 系统性修复 PR `#242` 经独立 Security Validator 三轮（两次 NO-GO、最终 GO）后 squash 合并，main `04c95c842605289a45c0b5b6fcab8f3eacc86fd7`。
+- 修复后 beta deploy `29232268832` success；Phase deploy `29232268824` success；site smoke `29232398181` success。
+
+### 两次生产 P0 与系统性修复
+
+1. beta 登录页已上线但 `/api/auth/me` 仍 503。
+   - 直接原因：VPS 实际 systemd unit 没有加载已经准备好的 mode-600 `beta-auth.env`。
+   - 系统根因：tracked unit 虽正确，但 `deploy-vps.sh` 从未安装它；部署只验健康/数据/版本，不验账户业务不变量。
+   - 修复：unit 只从 Git SOURCE 安装，旧 unit 事务备份；install/daemon-reload/restart/健康/auth curl/JSON 任一失败均回滚；workflow 监听 unit 文件并硬校验公网匿名 401。
+2. Phase 新 auth 配置与共享模块角色冲突。
+   - 修复：Beta/Phase 必须显式声明各自 `AUTH_SITE_ROLE`，并分别绑定唯一 canonical HTTPS origin；Phase 要求 trusted proxy，并在 lifespan 启动时 fail-stop 验证，不再只靠逐请求 503。
+- 本地生成的 `web/backend/data/auth.sqlite3*` 已加入 ignore，避免测试运行时账户状态误提交。
+- VPS 现场备份：`phase-auth.env.pre-beta-canonical-20260713T071018Z` 与 `phase-auth.env.pre-role-phase-20260713T073013Z`；systemd 旧 unit 在部署事务内自动备份/恢复，不记录任何 secret。
+
+### 验证证据
+
+- 本地相关账户/报告/收藏/SSO/Phase：`266 passed`；Shell syntax、两个 workflow YAML、`git diff --check` PASS。
+- 独立 Security Validator 第三轮最终 GO：SOURCE 权威 unit、已有/无旧 unit 回滚、root fail-fast、restart/curl 逃逸、role-origin、proxy、SQLite ignore 全部关闭。
+- 公网：beta `/auth/login=200`；beta 与 Phase 匿名 `/api/auth/me=401 error=no session`；Phase EWS `597`、`price_provenance=demo`。
+- VPS：`structural-web` 实际 unit 已含 private beta auth EnvironmentFile 与 deep-readiness `ExecStartPost`；三个服务均 active。
+- 可清理生产账户链路：verify `200`、token replay `400`、Secure/HttpOnly/SameSite cookie、服务重启后 `/me=200`、export `200`、delete `200`、旧 cookie `401`；合成账户已删除。
+- Resend 官方 `delivered@resend.dev` 测试 sink：beta request-link `200`，说明真实 SMTP 同步接受；测试 token 与 rate-limit 行已清理。此前第 21 节真实邮箱 delivered/管理员通知验收仍有效。
+
+### 当前工作树与严格下一步
+
+- 临时发布 worktree `/tmp/si-beta-auth-release` 已基于最新 main；本地 docs 分支仅用于准备交接，不得覆盖 `/Users/dadamini/Projects/structural-isomorphism` 中本文件的完整追加历史。
+- Stage 3 `/tmp/si-english-stage3` 仍只保留两个未跟踪 cross-lingual guard 文件；它们没有进入 PR #241/#242，生产英文链路继续关闭。
+- 先核对 main `04c95c8` 的 CI/coverage/sanity/types/perf 全部终态；若红灯按四层根因处理。
+- 下一产品/研究主线：四个可证明本地系统的真实英文 candidate runs；guard 第四轮对抗返工；KB/Discovery provenance 与 Empirical Result Card；英文 expanded judgments 和人类/异构独立评审。
+- 仍禁止把 internal candidate、模拟 reviewer 或 fixed-pool 提升写成英文 recall、机制迁移或 AI for Science 范式已被证明。
+- 每个新发布节点继续追加第 38 节与 `~/progress.md`；compact 后从本文件第 1 行完整重读到末行。
+
+### 主线终态追加
+
+- main `04c95c8` 的 CI `29232268801`、Coverage `29232268861`、sanity `29232268798`、types `29232268844`、perf `29232268831`、beta deploy `29232268832`、Phase deploy `29232268824` 与 site smoke `29232398181` 已全部终态 success。
+- 第 37 节工程与生产结论正式 GO；下一步直接进入英文候选真实 runs、guard 与 provenance/科学证据轨，不重复本轮账户发布工作。
+
+## 38. 2026-07-13 英文真实候选 runs 与生产产品只读复验
+
+> 本节是当前最新权威状态。三个可证明本地英文候选系统已完成真实 run；生产 HTTP/HTML/部署一致性 GO且未发现 P0/P1。这不构成英文质量结论，也不得将未完成的生产浏览器交互冒充为已验收。
+
+### 英文候选真实 run
+
+- 权威输入现场核验：KB `299a0fd6...ab99`，4,443 rows/unique IDs；embeddings `dafec148...4f27`，`[4443,768]` float32；structural-v2 四个 required file SHA 均与 manifest 一致；holdout `2df0c126...2b6b`，200 条 label-sealed；多语 MiniLM 唯一 pinned snapshot 存在。
+- Stage 3 因 KB 是 LFS pointer 且缺 model，因此在隔离执行根 `/tmp/si-freezer-exec-20260713` 安装已验物料；输出为 `/tmp/si-english-formal-runs-20260713`，未污染项目工作树。
+- 正式本地 run 完成三项：BM25 `2.69s` / SHA `693eab44...09bb`；current Chinese dense `16.67s` / SHA `acfe246e...9d89`；multilingual dense `25.94s` / SHA `55f76765...177d`。
+- 三项均为 200 queries x Top-50，每条候选唯一且全部属于 4,443 KB allowlist；每 query 三系统 union min 144 / max 150 / mean 148.29；`--resume` 复验前后 SHA 完全不变。
+- 第四项 `production_endpoint` 不是本地 adapter；无独立 runner attestation 时必须 fail closed，本地 capture 不 eligible。九系统 freeze 因缺此项及其他五个外部/缺模型系统未生成 `FROZEN_COMPLETE`；`external_paid_calls_executed=false`。
+- 当前只能声称“三个真实本地候选 run 完成”。尚无 labels/qrels/metrics，不得声称英文 recall、机制迁移或完整 candidate pool 已证明。
+
+### 生产产品只读 QA
+
+- beta `/`、`/auth/login?next=%2Freports`、`/reports`与 Phase 八个核心路由全部 200；匿名 beta `/api/auth/me=401 no session`、`/api/me/reports=401 valid beta session required`。
+- beta 主要页面与 auth/my-reports/site-chrome/i18n/common/responsive 资产 SHA-256 和当前本地验收字节完全一致；Phase HTML 含桌面/移动返回主产品链接、`xl` breakpoint、`min-h-11`、NULL 与唯一 `p=0.5690715676`。
+- production smoke `22/22`、production-smoke tests `18/18`、public-controls `14/14`、159 个静态控件契约 PASS；deep health 仍为 KB 4,443 / embeddings `[4443,768]`，Phase demo 597。未发现已确认 P0/P1。
+- 生产交互仅 `CONDITIONAL GO`：当前 Browser runtime 无可用实例，按规范未改用 standalone Playwright。待补 320/375/390/1024 实际布局、Tab/Escape、动态 CTA、console/network 与真实点击后才可转完全 GO。本地同字节版本的既有浏览器 GO 不冒充生产现场结论。
+
+### 当前严格下一步
+
+1. 独立对抗审查未接入的 cross-lingual guard，覆盖否定、实体、数字/单位、因果方向、范围、条件与混合语言；非 GO 不接入。
+2. 定稿 qrels/judgments 的盲评、异构模型+人类校准、指标/置信区间与发布门禁；指标完成前不做质量结论。
+3. 独立复审 KB/Discovery provenance、Evidence Envelope 与 Empirical Result Card，修复任何 P0/P1 后才进入新发布。
+4. 任一 Browser runtime 可用时补约 5 分钟生产交互验收；不因该外部执行位暂缺而停止其他主线。
+5. 继续保留 Stage 3 两个 guard 文件为未跟踪/未发布；下一发布节点追加第 39 节和 `~/progress.md`。
+
+### 2026-07-13 用户优先级调整
+
+- 用户明确要求：英文能力后置，先把其他每个环节全部做完。该优先级取代本节上方“立即推进英文 guard/qrels”的时序，但不改变其 NO-GO/不得过度声称的事实边界。
+- 已中止英文 guard 与英文评测两条 Agent 当前工作；三个真实本地 runs 作为已冻结证据保留，不继续扩展。
+- 当前主线改为：先修复公开 Insights 数据边界、动态强断言与 claim gate；再完善 KB/Discovery provenance、Evidence Envelope、Empirical Result Card；同时继续全页面/全控件/移动/文案/失败恢复验收。
+- 英文轨只在上述非英文 P0/P1 全部关闭并发布后恢复。
+
+### 2026-07-13 主动进度同步纪律
+
+- 在正在运行的长执行回合中，每约 10 分钟主动汇报一次已验证进度；P0、门禁结果、部署或真实阻塞立即汇报。
+- 不得将“聊天会话未运行时无法自行唤醒”冒充为实时后台自动驾驶；持久无人值守汇报属于 Structural 完成后的独立控制平面项目。
+
+## 39. 2026-07-14 非英文产品硬化、隐私传输与可复现发布（进行中）
+
+> 本节是当前最新权威状态。用户再次确认英文能力后置；先关闭其他产品、隐私、可信输出、运行时和全链路体验 P0/P1。当前改动仍在隔离工作树，尚未 commit、push、PR、部署；生产继续是稳定旧版，不得把本节的本地进展写成线上已可见。
+
+### 当前代码与生产
+
+- 活跃工作树：`/private/tmp/si-nonenglish-hardening`；分支 `feat/nonenglish-product-hardening-20260713`；基线/HEAD/origin main 均为 `04c95c842605289a45c0b5b6fcab8f3eacc86fd7`。
+- 工作树约 198 个 modified/untracked 文件、约 26,720 行新增；包含此前已经 Builder-Validator 的研究来源、账户资产、公开文案、移动体验、证据契约，以及本轮仍在移动的隐私/Search/runtime。禁止 `git add -A`、禁止 destructive reset、禁止从 VPS 反向覆盖。
+- 已为 P0 日志热修预建干净工作树 `/private/tmp/si-nginx-privacy-hotfix`，分支 `fix/privacy-path-only-logging-20260714`，基于 `origin/main=04c95c8`；尚未复制补丁或提交。
+- 2026-07-14 现场复验生产：beta `/api/version=04c95c842605`；deep health 为 4,443 KB、`[4443,768]`、canonical artifact、Luna Pro，全部 checks `ok`；Phase 为 597 ticker frozen demo。生产稳定但没有本轮用户可见改动。
+
+### 已完成并正在收口的三条 Builder
+
+1. 隐私传输与账户收藏：
+   - Analyze、Struct Lint 已改为严格 POST JSON + fetch ReadableStream；旧 GET 410；NFKC/control/长度门禁、abort/retry 已实现。
+   - 收藏 `bookmark-v2` 使用 typed query/fingerprint/candidate origin，公开 href 只含安全路径/公开 ID；旧 raw href 迁移后清理；跨设备点击通过一次性本地 handoff 恢复。
+   - Analyze/账户/收藏目标 129 passed；Node handoff 16 passed；Mapping POST 专项 46/46 passed。
+   - `privateNavigation.js` 已实现随机 key、一次消费、typed `history.state`、reload/back/tab 隔离；Search consumer 正在接入，Phenomenon/所有入口、Nginx、Uvicorn、Sentry 和 query-derived logs 尚未最终冻结。
+2. 自然语言 Search 可信度：
+   - 新增严格 typed candidate synthesis；模型只能引用服务端重跑 Top-5 后从 KB 回源的真实 ID；blocking/stream 均在完整 JSON、Pydantic 与语义门禁通过后才发布，进度事件不含 raw model text。
+   - UI 不再把 fused score 显示成百分比/强中弱/置信度，改为本次查询序位并声明不可跨查询比较、不是概率或证据等级；失败提供显式降级与重试。
+   - Synthesize request 已 strict/extra-forbid、NFKC、1..8000、rewrite<=800、Top-5 唯一 ID、lang enum；模型输出新增 Unicode/bidi/default-ignorable、跨字段、双重否定、URL/Markdown 绕过门禁。专项 55 passed；此前 Search 相关集 106 passed。
+   - 真实 Chromium 的 3 项 reload/edit/back/force/replay/expiry/storage/two-tab/mobile 测试已写，但本机 Chromium 因 Mach/bootstrap 权限无法启动；沙箱外申请又被平台 usage limit 拒绝，未绕过。最终必须由正常 GitHub browser CI 执行。
+3. 可复现 Python runtime 与事务部署：
+   - runtime identity 为 CPython ABI + 完整 requirements SHA + canonical resolved graph SHA；构建后执行 pip check、sys.prefix/interpreter/pip shebang、精确依赖版本、import 和全树只读验证。
+   - 已实现 deploy journal、4 GiB 磁盘门禁、orphan recovery、bounded GC、current/previous/N 保护、effective systemd unit/drop-in/ExecStart 检查、首次 enable、deep-ready rollback 和公开 runtime attestation。
+   - SOURCE 必须 clean Git 且 HEAD==DEPLOY_COMMIT；部署改从 commit Git archive 逐 blob/mode 手工安全解包，拒绝 hardlink/特殊路径/越界 symlink，LFS 物料继续只走外部 artifact manifest；TARGET tracked bytes 最终逐项证明等于 commit。
+   - deployment/smoke 最近 63 passed，version/auth 32 passed，signal fault injection 已覆盖 TERM/HUP/INT；最后一个只读 TOCTOU fixture 正在收口，之后交回原独立 Runtime Validator。
+
+### 新确认的隐私 P0 与四层根因
+
+- 表面：前端准备移除 `/search?q=`、`from_query`、Analyze/Lint/Mapping GET，Magic Link 页面也会清理 token URL。
+- 直接原因：生产 Nginx 仍使用 global `log_format main` 的 `$request`，beta/Phase 无私有格式；两个 Uvicorn ExecStart 也未关闭默认 access log。浏览器清理发生在首个请求之后，因此 query、token、SSO code 仍可能进入 access log 或 systemd log。
+- 系统根因：此前隐私边界只覆盖页面和 API body，没有覆盖反向代理、应用服务器、可选 Sentry、模型校验错误和 query-derived telemetry；把无盐截断 SHA 当作“privacy-preserving”也是同类错误。
+- 全局影响：研究问题可被日志关联/小词典反查，一次性认证凭证可能在有效期内落盘；这阻断生产发布。
+- 生产只读事实：`/var/log/nginx/access.log` mode 640，当前约 129 KB，daily rotate 10；未读取内容、未删除历史。Sentry 当前私有配置未启用。
+- Builder 已落 path-only canonical beta/Phase TLS vhost、事务安装/回滚脚本和 static contract；正在补双 Uvicorn `--no-access-log`、Nginx fault injection、Referrer-Policy、Sentry scrub、无盐 query/email/IP identifier 清理。热修完成后必须独立安全复审并优先最小发布；旧日志不擅自删除，按轮转自然到期。
+
+### 当前门禁证据与已知移动失败
+
+- 当前 moving tree `git diff --check` PASS；public claim checker、research claim gate、159 static public controls PASS。
+- `make test-release-contracts` 最近一次完整快照：932 passed、157 skipped、1 deselected；之后 public API 仍在变化，不能当最终结果。
+- 公开控件/文案组合当前 90 passed、4 failed：两项旧测试仍绑定旧 handoff 函数字面量；一项新资产出现 `20260714p1/p2` cache key 分裂；一项 About i18n 测试仍绑定旧措辞。根因是共享前端契约和 release cache 版本尚未冻结，不是删除测试即可解决。
+- 修复要求：旧测试改为 typed/one-time/no-raw-URL 行为不变量；所有本批变更资产在最终冻结点统一一个 release cache key；中英文 claim 测试继续验证“未校准排序不是证据、模型意见不是独立评审、必须展示证据缺口与下一步核查”。
+- OpenAPI/TypeScript 目前因 API 仍移动而预期 drift；不得中途反复生成。最终 API freeze 后使用现有 pinned venv 一次生成并由原 OpenAPI Validator 独立复验。
+
+### 尚未开始或尚未关闭
+
+1. Ask：确认后的结构指纹目前只显示在 UI，没有进入 request/retrieval；raw LLM answer delta 在整包校验前已进入 DOM；abort/retry 会留下悬空状态。需一个独立 Builder 统一 request schema、原 query OOS guard、fingerprint retrieval、typed answer/source binding、validation-before-display 和并发状态机。
+2. Analyze：deep prompt 仍预设 SOURCE 有成熟答案、结构相同、要求具体阈值/本周动作/历史引用；输出缺少投稿级 typed evidence guard。需改成候选映射、竞争解释、证据缺口、失败条件和可区分实验。
+3. Stress/Diagnose/Apply/Lint：仍有 PASS/FAIL、LLM confidence%、“结构同构真实先例”、score百分比、“可套用”等过度确定表达，需统一 candidate/evidence envelope 与失败恢复。
+4. 最终全页面真实浏览器、320/375/390/1024、键盘、动态账户/收藏/报告/导出/删除、所有按钮、console/network 仍需正常 CI/生产执行位补全；static controls 不等价于行为验收。
+
+### 严格下一步
+
+1. 完成隐私 Nginx/Uvicorn/Sentry/query-log 热修；由非 Builder Security Validator 做 fake-bin rollback、effective config、POST/410、URL/history/referrer/log 对抗审查；GO 后复制到干净 hotfix 分支，目标测试、PR、CI、事务部署和生产 path-only 复验。
+2. Runtime Builder 完成最后 fixture 后恢复原 Runtime Validator；必须给出最终 GO 才进入发布分支。
+3. Search 与 Private Navigation 冻结后由独立 Validator 重放 malformed model、unknown ID、Unicode/Markdown/score、storage/reload/tab 与不泄漏路径；真实浏览器留给正常 CI，不伪称本机已跑。
+4. 依次启动 Ask/Fingerprint、Analyze Deep Report、secondary tools 三个 Builder；每个超过 100 行均 Builder→独立 Validator，OpenAPI 最后一次生成。
+5. 冻结单一 cache key，跑 backend/root/packages/Phase/build/browser/mobile/perf/claims/controls/`make verify-release`；按研究来源、账户隐私、产品 UX、核心可信输出、runtime 五个逻辑边界提交，禁止 `git add -A`。
+6. PR 全绿才部署 beta/Phase/docs；生产核对 runtime attestation、4,443 artifact、POST/410、账户全链路、所有主要旅程与移动端。严格复评分项均>=90 后才恢复英文轨；最终追加第 40 节和 `~/progress.md`。
+
+## 40. 2026-07-14 独立红队、额度恢复与三轨返工（进行中）
+
+> 本节是当前最新权威状态。Codex usage limit 曾阻断所有文件写入；用户已明确额度恢复，主线程已用 `apply_patch` 实测写入成功并继续自动驾驶。当前仍未 commit、push、PR 或部署；生产继续运行 `04c95c8` 稳定旧版。
+
+### 当前代码、生产与纪律
+
+- 活跃工作树仍为 `/private/tmp/si-nonenglish-hardening`，分支 `feat/nonenglish-product-hardening-20260713`，HEAD/origin main 均为 `04c95c842605289a45c0b5b6fcab8f3eacc86fd7`。
+- moving tree 约 200 个 modified/untracked 文件；包含多个已验证与未冻结 scope。继续禁止 `git add -A`、destructive reset、从 VPS 反向覆盖和整体直接部署。
+- 生产只读基线未变：beta 4,443 KB、`[4443,768]`、canonical artifact、Luna Pro；Phase 597 frozen demo。额度封锁期间没有生产写入。
+- 平台封锁前后所有 Builder/Validator 均明确记录了零部署边界；本节只恢复本地落盘与测试，不代表发布 GO。
+
+### Runtime 独立审查与已落盘返工
+
+- 已完成 protected/excluded 根与父链 symlink containment、恢复写入前二次验证；生产移除未消费且依赖外网的 legacy `TARGET/models` 恢复，模型唯一来源为已验证 `ARTIFACT_ROOT/structural-v2`。
+- rollback/current runtime 改为用目标解释器现场核验 `sys.prefix`、ABI、pip shebang、`pip check`、完整 installed graph、关键包 metadata/import/version 与 release 路径；伪 shell、binary tamper、metadata tamper 已有对抗 fixture。
+- Full SHA 主链、systemd 状态、known auth drop-in、Nginx/unit/fingerprint/service journal 与 rollback 语义已部分落盘，但远端 forced dispatcher、SIGKILL 幂等恢复和二次 rollback fault coverage 尚未完成。
+- 最近证据：发布/生产相关 `79 passed`；backend version/security `19 passed`；28 个 shell Python heredoc 全部编译；bash/YAML/diff check PASS。
+- 独立 Validator 曾判定 NO-GO：rollback 失败清证据、SIGKILL 无恢复、protected symlink 越界、伪 runtime、systemd disabled/error、Nginx 不在外层事务、短 SHA/push race、错误 smoke 基线等必须逐项以 fault tests 关闭。
+- usage limit 前最后留下两个明确 P0：public attestation heredoc 缺 `import re`；schema2 journal 不兼容可能存在的 legacy terminal schema1。额度恢复后主线程第一项已补 `import re`，必须增加 exact block 执行测试；schema1 仍待受控兼容/迁移。
+- Candidate continuity 有一个旧断言：实际 rollback 已从 `|| true` 加强为 `|| failed=1`，测试仍要求旧文本；应改为验证 fail-closed 语义。
+
+### Privacy 独立 Security Validator：P0 NO-GO
+
+- `$uri` 不是隐私安全：`/api/report/share/{token}` 与 `/report/share/{token}` 的 path segment 本身是 bearer capability；应用 Correlation ContextVar 又把 raw path 注入每条日志，404 也可记录任意敏感路径。
+- 对抗异常 `ValueError` 已实证 secret 原样进入日志，500 丢失 `X-Request-ID`；response 日志在 context reset 后失去关联信息。
+- Sentry 对抗事件中 breadcrumbs、extra、exception value/frame vars、transaction 仍可携带秘密；当前 scrubber 是 false-green。
+- Nginx installer 可被 `../`、symlink parent/source、FIFO/特殊文件、domain/format/变量注入绕过；全局 header 计数使 beta+Phase 双 vhost 无法共存；rollback/signal/KILL 失败会删唯一 backup。
+- 生产现有 `structural-web` auth drop-in 与新部署“DropInPaths 必须空”冲突；未事务迁移前首发必失败。
+- query hash、email/IP/owner hash、waitlist/newsletter 网络元数据和 raw LLM/Pydantic/exception 日志仍需清理。业务必需 raw email 存储可保留，但 operational telemetry 不得可反查；不擅自删除历史数据。
+- 必须改为 Nginx 极小字段 allowlist、可信 route template、Sentry allowlist rebuild、统一 request ID、外层可恢复事务和全链路 secret canary；原 Security Validator 复验 GO 前不得复制 hotfix 或部署。
+
+### Search / Private Navigation 独立 Validator：NO-GO
+
+- `privateNavigation.js` 在 Web Crypto 缺失时仍回退 `Date.now()+Math.random()`；必须 crypto-only fail closed。
+- helper 仅 Search 页面加载；Learn、Classes、History、Phenomenon 入口会失效/丢上下文；Phenomenon 仍构造/读取 `/search?q=` 与 `from_query`。
+- one-time key 消费失败会回退当前 `history.state`，同 key 可重放；有 key 但消费失败必须拒绝，只有无 key reload/back 可恢复 typed state。
+- 后端重算 Top-5 后重新编号，前端只按 `result_index` 绑定旧数组；可把 `kb-2` 解释显示到 `kb-1`。必须按 canonical `source_kb_id` 绑定。
+- private nav 接受 8,000 字符而 Search API 只接受 500；需端到端统一限制。
+- Unicode combining mark、Markdown、中文文字数字、迁移保证和双重否定可绕过 claim guard；synthesis 旧请求回调缺 generation 校验，可覆盖新结果；Phenomenon 仍显示检索百分比。
+- 现有 113 pytest、8 Node private-nav 和 rendering tests 通过，但对抗复现仍失败；这些绿测不能替代真实入口/竞态/绑定验证。
+
+### 严格下一步
+
+1. 三轨并行且文件互斥：Runtime 完成两个 P0、journal/fault/full-SHA/dispatcher；Privacy 完成代理到观测/持久化/导航全链路；Search 完成 crypto/replay/入口/source binding/claim/generation。
+2. 每条 Builder 冻结后由不同 Validator 复验；同一人不得自审。浏览器本机受 Mach 限制的项目留给正常 GitHub browser CI，不伪称通过。
+3. 三条 GO 后再启动 Ask/Fingerprint、Analyze Deep Report、secondary tools Builder；随后冻结单一 cache key 和 OpenAPI。
+4. 完整门禁、分 scope commit、干净发布分支、PR/CI 全绿后才事务部署；生产 secret canary、账户、主要用户旅程、移动/键盘/console/network 全验收后复评分。
+5. 下次 context 接近 90% 前只追加第 41 节；不要改写本节历史。
+
+## 41. 2026-07-15 恢复工作树、全量冻结门禁与发布前置（本地 GO）
+
+> 本节取代第 40 节的“本地返工中”状态，但不改写历史。代码、隐私、分析、覆盖率与可复现产物已在恢复工作树完成并通过独立 Validator；远端 PR、合并、事务部署与生产验收仍必须按本节顺序执行，不能把本地 GO 当作线上完成。
+
+### 当前权威与安全边界
+
+- 恢复候选位于 `/private/tmp/si-recovered-20260715`，分支 `feat/nonenglish-product-hardening-20260713`；旧损坏工作树 `/private/tmp/si-nonenglish-hardening` 未再修改。
+- GitHub remote 只能显式使用 `github=https://github.com/dada8899/structural-isomorphism.git`；本地 `origin` 指向旧临时工作树，禁止普通 `git push`。
+- 本机绝对路径 `models` 软链已移除，不能进入提交。`v4/validation/llm-scaling/requirements-generator.txt` 是正式 13 包锁文件，必须进入提交。
+- 项目注册表已在 2026-07-15 校正：VPS Git 源为 `/root/Projects/structural-isomorphism-v4/`，Beta 版本化目标为 `/root/Projects/structural-isomorphism/`，Plausible 目标为 `/root/plausible-ce/`。
+- 科学结论保持保守：LLM scaling 仍为 `INSUFFICIENT_REAL_WIDE_SERIES_FOR_UNIVERSALITY_INFERENCE`；本轮只提高产物可复现性与拒绝能力，不升级研究主张。
+
+### 已关闭的系统性问题
+
+- Runtime/部署：所有发布 Python 证明路径使用隔离解释器；full SHA、runtime attestation、事务 journal、回滚、systemd/Nginx/隐私边界均进入 fail-closed 合同。
+- 隐私/分析：Beta 与 Phase 只在明确同意后发送 allowlist 事件；capability、私有研究、异常路径、DNT、撤回与旧 tracker 全部默认拒绝。Plausible runbook 以应用先发布、DNS 最后为唯一顺序。
+- Coverage/CI：`reject-aware-critic` 纳入 coverage source、sanity 与发布矩阵；生产包要求非零采集，关键模块阈值与全局 80% 门禁均有效。
+- Parquet/Python：backtest 通过 `pyarrow==24.0.0` 单一 extra；项目元数据改为 Python `>=3.10`，与依赖真实边界一致。
+- 科学产物：Python 3.11 与 13 个完整传递依赖精确锁定；JSON 禁止 `NaN`；primary、cross-source、12B 与 PNG 绑定同一摘要。PNG 比较使用 metadata、尺寸和解码 RGBA，既拒绝像素篡改，也不因等价压缩编码假红。
+
+### 最终本地证据
+
+- `make verify-release` 在非沙箱 Python 3.11 环境完整通过：syntax 755；fast 306；backend 1902/1 skip；packages 111 + 162 + 50 + 72（另 10 deselected）；retrieval 6；root release contracts 1320/157 skip/1 deselected。
+- 浏览器合同分进程全部通过：11 + 28 + 64（另 3 deselected）+ 28 + 13 + 20；Phase `pnpm lint` 与 30-route production build 通过。
+- LLM/Parquet 独立 Validator：Parquet 14/14；locked LLM 31/31；ordinary 30/1 expected skip；public controls 103/103；两份 fresh env 五项产物逐字节稳定，JSON 与保留正确 metadata 的 PNG 像素篡改均被拒绝。
+- Coverage 独立 Validator：6 suite 合计 2485 passed/1 skipped；global 84.3%；Cross 97.7%、Guarded 89.5%、Reject-aware 85.0%、SOC 71.9%；关键模块均超过各自门槛。
+- Dispatcher bootstrap 独立 Validator：runtime/deploy 129/129，dispatcher/installer 聚焦 32/32，Nginx+Phase privacy 86/86，相关 shell syntax 与 diff-check 通过。
+
+### 发布前 P0 与严格执行顺序
+
+1. 从 GitHub PR head 建立新干净 release worktree，把当前最终内容按 runtime/privacy、产品 analytics、CI/reproducibility、docs/handoff 四个边界显式提交；禁止 `git add -A` 和改写旧损坏工作树。
+2. 显式 push 到 `github` 的 `feat/nonenglish-product-hardening-20260713`，确认 PR #243 head 等于冻结 SHA；所有 required/optional checks 必须 success，不接受 failure、cancelled 或 pending。
+3. 合并前建立短时 deploy freeze。从该已绿 PR SHA 经 `git archive` 提取 installer 与五个入口，做 root-only 外部备份、逐文件 hash/mode/owner 校验、installer `--check` 与非法命令负测。VPS 当前旧 wildcard dispatcher 不兼容 exact-SHA workflow，未完成此 bootstrap 禁止 merge。
+4. 合并并记录 main merge SHA；Beta/Phase workflow 只能发送 `beta-backend <40-sha>` 与 `phase-deploy <40-sha>`，共用部署锁串行完成。必须核对 workflow SHA、VPS SHA、journal、runtime attestation、immutable interpreter、4,443 KB、597 demo、认证 401、隐私 drop-in 与真实公网路线。
+5. Beta/Phase/Docs/site smoke 全绿后，才执行 `docs/analytics/plausible-deployment.md`：loopback CE、关闭注册、HTTP ACME staging、DNS/证书、TLS proxy、Beta+Phase 真实浏览器入库、ClickHouse/Dashboard、备份恢复演练。`202` 或 service active 不能单独算验收。
+6. 生产验收后只追加新回执，不回写本节；同步 `~/progress.md`，再做最终全项目评分。英文能力轨仍按用户先前优先级延后，不能伪称已完成外部科学或人工英文评审。

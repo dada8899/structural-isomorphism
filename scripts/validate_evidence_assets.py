@@ -13,6 +13,14 @@ from typing import Any
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from structural_isomorphism.discovery_evidence import (
+    normalize_candidate_equations,
+    valid_reviewed_literature_source,
+)
+
 LADDER = ROOT / "evaluation/research/evidence-ladder-v1.json"
 KB_SCHEMA = ROOT / "evaluation/research/kb-vnext-schema-v1.json"
 KB = ROOT / "data/kb-expanded.jsonl"
@@ -200,30 +208,20 @@ def normalize_variable_mapping(value: Any) -> dict[str, str] | None:
 
 
 def normalize_discovery(row: dict[str, Any]) -> dict[str, Any]:
-    if isinstance(row.get("shared_equations"), list):
-        equations = row["shared_equations"]
-    elif isinstance(row.get("shared_equation"), str) and row["shared_equation"].strip():
-        equations = [row["shared_equation"]]
-    else:
-        equations = row.get("equations") if isinstance(row.get("equations"), list) else []
+    equations = normalize_candidate_equations(row)
     literature = row.get("literature_evidence")
     has_evidence = (
         isinstance(literature, list)
         and bool(literature)
         and all(
-            isinstance(item, dict)
-            and isinstance(item.get("source"), str)
-            and item["source"].strip()
-            and item.get("license") not in {None, "", "unknown"}
-            and item.get("provenance_class") not in {None, "", "unknown"}
-            and isinstance(item.get("source_review"), dict)
+            valid_reviewed_literature_source(item)
             for item in literature
         )
     )
     score = row.get("isomorphism_confidence")
     return {
         "rank": row.get("rank"),
-        "shared_equations": [item for item in equations if isinstance(item, str) and item.strip()],
+        "shared_equations": equations,
         "variable_mapping": normalize_variable_mapping(row.get("variable_mapping")),
         "model_score_unvalidated": float(score) if isinstance(score, (int, float)) else None,
         "evidence_level": "source_backed" if has_evidence else "candidate",

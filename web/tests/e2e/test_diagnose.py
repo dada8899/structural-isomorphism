@@ -26,7 +26,7 @@ import pytest
 from playwright.sync_api import Page, expect
 
 BASE = os.environ.get(
-    "STRUCTURAL_BASE", "https://structural.bytedance.city"
+    "STRUCTURAL_BASE", "https://beta.structural.bytedance.city"
 ).rstrip("/")
 
 
@@ -99,6 +99,8 @@ def test_diagnose_submit_reaches_loading_or_result(page: Page):
     error_visible = page.locator("#diagnose-error").is_visible()
     assert report_visible or error_visible
     if report_visible:
-        # Primary structural-state card must carry a non-empty name.
+        # Primary structural-state card is a hypothesis, never a probability.
         name = page.locator("#diagnose-state-name").inner_text()
         assert name.strip()
+        badge = page.locator("#diagnose-status").inner_text()
+        assert "模型生成候选" in badge and "%" not in badge

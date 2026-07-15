@@ -22,12 +22,12 @@
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260514e">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260514e">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260514e">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
-  <link rel="stylesheet" href="/assets/css/diagnose.css?v=20260522">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/diagnose.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
 
   <!-- Plausible analytics. -->
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+  <script defer src="/assets/js/analytics-consent.js?v=20260714n2"></script>
 </head>
 <body>
   <header class="site-header"></header>
@@ -45,8 +45,8 @@
         <h1 class="diagnose-intro__title">结构诊断</h1>
         <p class="diagnose-intro__lead">
           描述一个组织、公司、团队或项目现在的处境。我们不预测业绩，
-          而是给它的<strong>结构状态</strong>做一次诊断——告诉你它现在
-          处于哪种结构状态、为什么、不干预会怎样演化、该盯哪个信号。
+          而是生成一个<strong>候选结构状态</strong>——解释为什么值得这样判断、
+          可能如何演化、下一步该用哪些现实信号核查。它不输出成功概率或预测。
         </p>
 
         <form id="diagnose-form" class="diagnose-form" novalidate>
@@ -76,7 +76,7 @@
       </section>
 
       <!-- ── 加载态 ── -->
-      <section class="diagnose-loading" id="diagnose-loading" hidden>
+      <section class="diagnose-loading" id="diagnose-loading" aria-live="polite" hidden>
         <div class="diagnose-loading__dots">
           <span></span><span></span><span></span>
         </div>
@@ -86,7 +86,7 @@
       </section>
 
       <!-- ── 错误态 ── -->
-      <section class="diagnose-error" id="diagnose-error" hidden>
+      <section class="diagnose-error" id="diagnose-error" role="alert" hidden>
         <div class="diagnose-error__icon">!</div>
         <h2 class="diagnose-error__title" id="diagnose-error-title">诊断没能完成</h2>
         <p class="diagnose-error__msg" id="diagnose-error-msg"></p>
@@ -103,8 +103,8 @@
         <!-- 主结构状态卡 -->
         <div class="diagnose-state-card" id="diagnose-primary-card">
           <div class="diagnose-state-card__top">
-            <span class="diagnose-state-card__tag">主结构状态</span>
-            <span class="diagnose-state-card__confidence" id="diagnose-confidence"></span>
+            <span class="diagnose-state-card__tag">候选结构状态</span>
+            <span class="diagnose-state-card__status" id="diagnose-status"></span>
           </div>
           <h2 class="diagnose-state-card__name" id="diagnose-state-name"></h2>
           <p class="diagnose-state-card__def" id="diagnose-state-def"></p>
@@ -119,17 +119,17 @@
 
         <!-- 演化预测 -->
         <div class="diagnose-block">
-          <h3 class="diagnose-block__title">演化预测<span class="diagnose-block__hint">（不做结构性干预的话）</span></h3>
+          <h3 class="diagnose-block__title">可能的演化路径<span class="diagnose-block__hint">（基于当前描述，待核查）</span></h3>
           <p class="diagnose-block__body" id="diagnose-evolution"></p>
         </div>
 
-        <!-- 同结构的真实参照案例 -->
+        <!-- 内部知识库候选参照 -->
         <div class="diagnose-reference" id="diagnose-reference" hidden>
           <div class="diagnose-reference__head">
-            <span class="diagnose-reference__tag">同结构的真实案例</span>
+            <span class="diagnose-reference__tag">候选参照案例</span>
           </div>
           <p class="diagnose-reference__lead">
-            和你结构相同的真实现象，来自我们的跨领域知识库：
+            内部知识库检索候选；检索命中不证明机制相同，是否适用仍需验证：
           </p>
           <a class="diagnose-reference__card" id="diagnose-reference-link">
             <span class="diagnose-reference__domain" id="diagnose-reference-domain"></span>
@@ -147,7 +147,7 @@
 
         <!-- 结构性建议 -->
         <div class="diagnose-block" id="diagnose-reco-block">
-          <h3 class="diagnose-block__title">结构性建议</h3>
+          <h3 class="diagnose-block__title">下一步核查建议</h3>
           <ul class="diagnose-list diagnose-list--reco" id="diagnose-recommendations"></ul>
         </div>
 
@@ -159,8 +159,8 @@
         </div>
 
         <p class="diagnose-disclaimer">
-          结构诊断基于你提供的描述做结构层面的判断，不构成业绩预测或投资/经营建议。
-          描述越具体、越贴近真实，诊断越可靠。
+          这是内部模型生成的结构候选，不是测量结果、医学诊断或投资 / 经营建议。
+          请用页面列出的可观测信号核查，反例优先。
         </p>
       </section>
     </div>
@@ -168,7 +168,8 @@
 
   <footer class="site-footer"></footer>
 
-  <script src="/assets/js/diagnose.js?v=20260522"></script>
-  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
+  <script src="/assets/js/secondary-tool-contracts.js?v=20260714n2"></script>
+  <script src="/assets/js/diagnose.js?v=20260714n2"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
 </body>
 </html>

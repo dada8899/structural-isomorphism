@@ -8,8 +8,8 @@
     "en": "Shared patterns"
   },
   "nav.discoveries": {
-    "zh": "精选发现",
-    "en": "Curated discoveries"
+    "zh": "候选发现",
+    "en": "Candidate discoveries"
   },
   "nav.favorites": {
     "zh": "我的收藏",
@@ -44,8 +44,8 @@
     "en": "About"
   },
   "footer.paper": {
-    "zh": "论文",
-    "en": "Paper"
+    "zh": "历史材料",
+    "en": "Historical materials"
   },
   "footer.github": {
     "zh": "GitHub",
@@ -58,6 +58,30 @@
   "footer.zenodo": {
     "zh": "Zenodo",
     "en": "Zenodo"
+  },
+  "analytics.title": {
+    "zh": "由你决定是否分享匿名访问统计",
+    "en": "You decide whether to share anonymous usage data"
+  },
+  "analytics.body": {
+    "zh": "必要功能始终可用。允许后才会加载自托管、无 Cookie 的 Plausible；不记录搜索内容，也不做跨站追踪。",
+    "en": "Essential features always work. Self-hosted, cookieless Plausible loads only after you allow it; search content is not recorded and there is no cross-site tracking."
+  },
+  "analytics.privacy": {
+    "zh": "查看隐私说明",
+    "en": "Read the privacy notice"
+  },
+  "analytics.essential": {
+    "zh": "仅必要功能",
+    "en": "Essential only"
+  },
+  "analytics.allow": {
+    "zh": "允许匿名分析",
+    "en": "Allow anonymous analytics"
+  },
+  "analytics.settings": {
+    "zh": "分析设置",
+    "en": "Analytics settings"
   },
   "beta.badge": {
     "zh": "beta",
@@ -80,8 +104,8 @@
     "en": "Back to home"
   },
   "nav.papers": {
-    "zh": "论文",
-    "en": "Papers"
+    "zh": "历史材料",
+    "en": "Historical materials"
   },
   "nav.methods": {
     "zh": "方法",

@@ -20,16 +20,16 @@
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260513">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260513">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260513">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
   <link rel="stylesheet" href="/assets/css/glossary.css?v=20260513">
-  <link rel="stylesheet" href="/assets/css/newsletter.css?v=20260514">
+  <link rel="stylesheet" href="/assets/css/newsletter.css?v=20260714n2">
 
   <style>
     .essay { max-width: 720px; margin: 0 auto; padding: 56px 24px 96px; }
     .essay__eyebrow {
       display: inline-flex; align-items: center; gap: 8px;
-      font-size: 12px; color: #71717A; letter-spacing: 0.4px;
+      font-size: 12px; color: #696972; letter-spacing: 0.4px;
       text-transform: uppercase; margin-bottom: 18px;
     }
     .essay__eyebrow-dot {
@@ -47,7 +47,7 @@
     }
     .essay__meta {
       font-family: "JetBrains Mono", monospace;
-      font-size: 12px; color: #A1A1AA; margin-bottom: 40px;
+      font-size: 12px; color: #696972; margin-bottom: 40px;
       padding-bottom: 18px; border-bottom: 1px solid #E4E4E7;
     }
     .essay h2 {
@@ -65,8 +65,14 @@
     }
     .essay strong { color: #18181B; font-weight: 600; }
     .essay em { font-style: italic; color: #18181B; }
-    .essay a { color: #2563EB; text-decoration: none; border-bottom: 1px solid rgba(37,99,235,0.3); }
-    .essay a:hover { border-bottom-color: #2563EB; }
+    .essay a {
+      color: #2563EB;
+      text-decoration: underline;
+      text-decoration-color: rgba(37,99,235,0.3);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+    .essay a:hover { text-decoration-color: #2563EB; }
 
     .essay__figure {
       margin: 28px 0; padding: 22px 24px;
@@ -78,7 +84,7 @@
     }
     .essay__figure-caption {
       margin-top: 12px; font-family: "Inter", sans-serif;
-      font-size: 13px; color: #71717A; line-height: 1.6;
+      font-size: 13px; color: #696972; line-height: 1.6;
     }
 
     /* SESSION-18: Chinese-reader hand-off note at the top of this EN essay. */
@@ -93,8 +99,11 @@
       color: #52525B;
     }
     .essay__lang-note a {
-      color: #2563EB; text-decoration: none;
-      border-bottom: 1px solid rgba(37,99,235,0.3);
+      color: #2563EB;
+      text-decoration: underline;
+      text-decoration-color: rgba(37,99,235,0.3);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
     }
 
     .essay__pullquote {
@@ -113,7 +122,7 @@
     }
     .essay__next-label {
       font-size: 12px; letter-spacing: 0.4px; text-transform: uppercase;
-      color: #71717A; margin-bottom: 10px;
+      color: #696972; margin-bottom: 10px;
     }
     .essay__next-grid {
       display: grid; gap: 12px; grid-template-columns: 1fr;
@@ -137,7 +146,7 @@
       margin-bottom: 4px;
     }
     .essay__next-card span {
-      font-size: 13px; color: #71717A; line-height: 1.5;
+      font-size: 13px; color: #696972; line-height: 1.5;
     }
 
     @media (max-width: 640px) {
@@ -154,9 +163,7 @@
     }
   </style>
 
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
-  <!-- Plausible analytics (W7-D mini-brief 5, 2026-05-24). -->
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+  <script defer src="/assets/js/analytics-consent.js?v=20260714n2"></script>
 </head>
 <body class="has-history-sidebar">
 
@@ -318,12 +325,12 @@
    [2] Cluster fingerprints to surface candidate families.
             │
             ▼
-   [3] Have multiple AI critics independently vote KEEP or REJECT
-       on each candidate. Majority rules.
+   [3] Ask three configurations from one model family to assign
+       internal screening labels. A majority only prioritizes human review.
             │
             ▼
-   [4] For survivors, run real-world data through the same code,
-       no parameter tuning. Check if it fits the predictions.
+   [4] For selected candidates, reuse shared analysis modules with
+       dataset-specific inputs and configuration. Record mixed outcomes.
             │
             ▼
         candidate systems · mixed PASS / FAIL / INCONCLUSIVE evidence
@@ -332,9 +339,10 @@
     <p class="essay__figure-caption">
       A structural fingerprint is a compact comparison summary, not proof of
       equivalence. Layer 1 creates those summaries. Layer 2 groups them. Layer 3
-      sanity-checks the groups with several independent reviewers. Layer 5
-      tests each survivor on real data with no tuning &mdash; one piece of
-      code, many domains. The whole thing is open source.
+      applies internal screening labels from three same-vendor configurations;
+      that is not independent peer review. Later layers reuse shared analysis
+      modules, while ingestion, preprocessing, and applicable parameters can
+      differ by dataset. The code and research records are open source.
     </p>
 
     <p>
@@ -342,8 +350,9 @@
       things</strong>. Most failed matches in this field are not bold-faced
       errors &mdash; they&rsquo;re plausible-looking groupings where someone
       confused a mathematical framework with an actual mechanism. (Confusing
-      a hammer with a building, basically.) Running three independent
-      reviewers and demanding majority agreement filters those out cheaply.
+      a hammer with a building, basically.) Agreement among three configurations
+      from one model family is only a triage signal. It can prioritize human
+      review, but it does not validate the classification or remove shared bias.
     </p>
 
     <h2>5. What we&rsquo;ve found so far</h2>
@@ -355,16 +364,18 @@
       jumps (35 years of S&amp;P 500), DeFi cascades (three protocols),
       neural avalanches (mouse cortex), bank failures (FDIC), wildfires
       (NIFC), solar flares (GOES), traffic phase transitions (NGSIM US-101),
-      and lake regime shifts (Fox River). Same 339 lines of Python. No
-      parameter tuning between domains.
+      and lake regime shifts (Fox River). Several records reuse a 339-line
+      Python analysis module, but data ingestion, preprocessing, and applicable
+      settings still require a per-domain audit.
     </p>
 
     <p>
       We also ran four <em>synthetic null</em> datasets &mdash; generated
       counterexamples designed to lack the target pattern &mdash; through the
-      same code. The pipeline correctly rejected all four. That&rsquo;s the
-      check that turns &ldquo;interesting&rdquo; into &ldquo;trustworthy&rdquo;: a tool that
-      confirms everything you point it at is useless.
+      same code. Under the recorded configuration, selected non-target samples
+      were not classified as the target pattern. This bounded check can reveal
+      some implementation errors, but it cannot exclude other generators,
+      preprocessing choices, or model-selection bias.
     </p>
 
     <h2>6. Why this matters outside academic curiosity</h2>
@@ -385,11 +396,10 @@
     <p>
       <strong>For public policy:</strong> grid operators, regulators, public
       health officials all design interventions on assumptions about how
-      systems behave between shocks. If the underlying process is critical
-      cascading rather than independent random failures, the cheapest
-      intervention isn&rsquo;t &ldquo;reduce average load&rdquo; &mdash; it&rsquo;s &ldquo;reduce
-      the tightness of coupling between parts.&rdquo; That insight comes for free
-      once you recognize the family.
+      systems behave between shocks. A critical-cascade model might motivate a
+      test of coupling-focused interventions against simpler load-reduction
+      baselines. The candidate family alone cannot identify the mechanism or
+      justify a policy; domain evidence and controlled comparisons still decide.
     </p>
 
     <p>
@@ -410,10 +420,11 @@
       inspect one of the candidate matches in concrete detail. The
       <a href="/classes">pattern families page</a> shows candidate families,
       examples, and the tests associated with them. The
-      <a href="/discoveries">discoveries page</a> shows ~200 pair-level matches
-      between phenomena (some verified, some candidate-only). And the
-      <a href="/papers">research report page</a> links the open-access report with
-      all the data and code.
+      <a href="/discoveries">discoveries page</a> shows the current strict
+      pair-level candidate queue with source status, evidence gaps, and a next
+      test; it is not a list of verified matches. The
+      <a href="/papers">research records page</a> links dated internal drafts,
+      methods, data, and code with their evidence boundaries.
     </p>
 
     <p>
@@ -460,18 +471,18 @@
 
   <footer class="site-footer"></footer>
 
-  <script src="/assets/js/i18n.js?v=20260713a"></script>
-  <script src="/assets/js/utils.js?v=20260417e"></script>
-  <script defer src="/assets/js/glossary.js?v=20260417e"></script>
-  <script src="/assets/js/history-sidebar.js?v=20260514"></script>
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/utils.js?v=20260714n2"></script>
+  <script defer src="/assets/js/glossary.js?v=20260714n2"></script>
+  <script src="/assets/js/history-sidebar.js?v=20260714n2"></script>
   <script src="/assets/js/product-switcher.js?v=20260513"></script>
-  <script src="/assets/js/newsletter.js?v=20260514"></script>
+  <script src="/assets/js/newsletter.js?v=20260714n2"></script>
   <script>
     // Session #9 W2-A: mount newsletter signup at the end of the essay.
     if (window.mountNewsletter) {
       window.mountNewsletter("newsletter-start-here", "start-here-essay-end");
     }
   </script>
-  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
 </body>
 </html>

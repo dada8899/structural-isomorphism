@@ -1,167 +1,209 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "1.3",
   "validation": "llm-scaling",
   "date": "2026-05-25",
   "module": "soc_pipeline.learning_curve.fit_learning_curve",
+  "generation_contract": {
+    "python": "3.11",
+    "requirements": {
+      "contourpy": "1.3.3",
+      "cycler": "0.12.1",
+      "fonttools": "4.63.0",
+      "kiwisolver": "1.5.0",
+      "matplotlib": "3.11.0",
+      "numpy": "1.26.3",
+      "packaging": "26.2",
+      "pandas": "3.0.3",
+      "pillow": "12.3.0",
+      "pyparsing": "3.3.2",
+      "python-dateutil": "2.9.0.post0",
+      "scipy": "1.16.3",
+      "six": "1.17.0"
+    },
+    "float_significant_digits": 12,
+    "comparison_rel_tol": 0.0001,
+    "comparison_abs_tol": 1e-10,
+    "canonical_data_kind": "real",
+    "canonical_input": "v4/validation/llm-scaling/raw/pythia_checkpoints_combined.csv"
+  },
   "fits": {
     "pythia-1.4b": {
       "name": "pythia-1.4b",
       "alpha": 1.9999,
       "A": 999999999900.0,
-      "L_inf": 1.817896412269476,
+      "L_inf": 1.81789641227,
       "alpha_se": 0.0,
       "A_se": 0.0,
-      "L_inf_se": 0.003738235631535756,
-      "R2": -0.007608108040419115,
-      "residual_rms": 0.022738799628931394,
+      "L_inf_se": 0.00373823563154,
+      "R2": -0.00760810804042,
+      "residual_rms": 0.0227387996289,
       "n_points": 40,
       "C_range": [
-        1.2993520056774083e+21,
-        1.4046514737064428e+21
+        1.29935200568e+21,
+        1.40465147371e+21
       ],
-      "provenance": "REAL_TAIL_NARROW"
+      "provenance": "REAL_TAIL_NARROW",
+      "fit_status": "rejected",
+      "exclusion_reason": "alpha is outside the open scientific sanity range (0, 1)"
     },
     "pythia-160m": {
       "name": "pythia-160m",
-      "alpha": 0.09491123668506439,
-      "A": 20.302672308468377,
-      "L_inf": 1.9997748782727316,
-      "alpha_se": 0.027831001332805794,
-      "A_se": 18.56015952229605,
-      "L_inf_se": 0.09493091339478493,
-      "R2": 0.9919017104544915,
-      "residual_rms": 0.006603765633629648,
+      "alpha": 0.094911228356,
+      "A": 20.3026666789,
+      "L_inf": 1.99977485041,
+      "alpha_se": 0.0278308749618,
+      "A_se": 18.5600715668,
+      "L_inf_se": 0.0949304656387,
+      "R2": 0.991901710454,
+      "residual_rms": 0.00660376563363,
       "n_points": 14,
       "C_range": [
-        2.042495319932928e+17,
-        2.920768307504087e+20
+        2.04249531993e+17,
+        2.9207683075e+20
       ],
-      "provenance": "SYNTHETIC"
+      "provenance": "SYNTHETIC",
+      "fit_status": "fit_quality_eligible",
+      "exclusion_reason": null
     },
     "pythia-1b": {
       "name": "pythia-1b",
-      "alpha": 0.1164138516168699,
-      "A": 57.479051188333344,
-      "L_inf": 1.7156686383256694,
-      "alpha_se": 0.012103627205849518,
-      "A_se": 25.415577581826934,
-      "L_inf_se": 0.030285988615067743,
-      "R2": 0.9984551681757796,
-      "residual_rms": 0.003178003482844858,
+      "alpha": 0.116413935648,
+      "A": 57.4792276864,
+      "L_inf": 1.71566884669,
+      "alpha_se": 0.0121036056591,
+      "A_se": 25.4156155625,
+      "L_inf_se": 0.0302858853961,
+      "R2": 0.998455168176,
+      "residual_rms": 0.00317800348285,
       "n_points": 14,
       "C_range": [
-        1.2731159238672384e+18,
-        1.820555771130151e+21
+        1.27311592387e+18,
+        1.82055577113e+21
       ],
-      "provenance": "SYNTHETIC"
+      "provenance": "SYNTHETIC",
+      "fit_status": "fit_quality_eligible",
+      "exclusion_reason": null
     },
     "pythia-2.8b": {
       "name": "pythia-2.8b",
-      "alpha": 0.3997251780827386,
-      "A": 58192088.63408348,
-      "L_inf": 1.6191495019681046,
-      "alpha_se": 0.030469045664428634,
-      "A_se": 3.3302191407245536e-11,
-      "L_inf_se": 0.19312528846393764,
-      "R2": 0.012798498840694617,
-      "residual_rms": 0.018819179837272305,
+      "alpha": 0.39969227485,
+      "A": 58101487.8764,
+      "L_inf": 1.61913901036,
+      "alpha_se": 0.0304691452892,
+      "A_se": 3.33605502932e-11,
+      "L_inf_se": 0.193142026289,
+      "R2": 0.0127984979067,
+      "residual_rms": 0.0188191798462,
       "n_points": 40,
       "C_range": [
-        4.329827130384415e+21,
-        4.99322811626496e+21
+        4.32982713038e+21,
+        4.99322811626e+21
       ],
-      "provenance": "REAL_TAIL_NARROW"
+      "provenance": "REAL_TAIL_NARROW",
+      "fit_status": "descriptive_only",
+      "exclusion_reason": "narrow compute range is not eligible for exponent inference"
     },
     "pythia-410m": {
       "name": "pythia-410m",
-      "alpha": 0.5756581702263754,
-      "A": 73542460547.09859,
-      "L_inf": 2.000683275446591,
-      "alpha_se": 0.00045653758701175244,
-      "A_se": 1.3119018374141526e-15,
-      "L_inf_se": 0.007727211037699935,
-      "R2": 0.9856092546946604,
-      "residual_rms": 0.026017025884489946,
+      "alpha": 0.575658312808,
+      "A": 73542916433.8,
+      "L_inf": 2.00068334571,
+      "alpha_se": 0.000456537586511,
+      "A_se": 1.31189389497e-15,
+      "L_inf_se": 0.0077272097836,
+      "R2": 0.985609254695,
+      "residual_rms": 0.0260170258844,
       "n_points": 40,
       "C_range": [
-        1.0510919846572032e+19,
-        7.292365011457228e+20
+        1.05109198466e+19,
+        7.29236501146e+20
       ],
-      "provenance": "REAL_FULL"
+      "provenance": "REAL_FULL",
+      "fit_status": "fit_quality_eligible",
+      "exclusion_reason": null
     },
     "pythia-6.9b": {
       "name": "pythia-6.9b",
-      "alpha": 0.13478955721790142,
-      "A": 190.72013266486695,
-      "L_inf": 1.4568159214533298,
-      "alpha_se": 0.011957053618590573,
-      "A_se": 90.1673248364203,
-      "L_inf_se": 0.028893529222030638,
-      "R2": 0.9984934364251618,
-      "residual_rms": 0.004069424503333516,
+      "alpha": 0.134789615707,
+      "A": 190.720573881,
+      "L_inf": 1.4568160611,
+      "alpha_se": 0.0119570372339,
+      "A_se": 90.1674136838,
+      "L_inf_se": 0.0288934706118,
+      "R2": 0.998493436425,
+      "residual_rms": 0.00406942450333,
       "n_points": 14,
       "C_range": [
-        8.628482782475059e+18,
-        1.2338730378939335e+22
+        8.62848278248e+18,
+        1.23387303789e+22
       ],
-      "provenance": "SYNTHETIC"
+      "provenance": "SYNTHETIC",
+      "fit_status": "fit_quality_eligible",
+      "exclusion_reason": null
     },
     "pythia-70m": {
       "name": "pythia-70m",
-      "alpha": 0.3118824258240901,
-      "A": 1111006.0583597268,
-      "L_inf": 1.7122222333271149,
-      "alpha_se": 0.028317990161795915,
-      "A_se": 1198918.0521471628,
-      "L_inf_se": 0.22103249226345453,
-      "R2": 0.9732497073266807,
-      "residual_rms": 0.2566114308396444,
+      "alpha": 0.311882473356,
+      "A": 1111008.07077,
+      "L_inf": 1.71222257825,
+      "alpha_se": 0.0283179888512,
+      "A_se": 1198920.17157,
+      "L_inf_se": 0.221032431159,
+      "R2": 0.973249707327,
+      "residual_rms": 0.25661143084,
       "n_points": 35,
       "C_range": [
-        5.4052574773248e+16,
-        1.2666999371164877e+20
+        5.40525747732e+16,
+        1.26669993712e+20
       ],
-      "provenance": "REAL_FULL"
+      "provenance": "REAL_FULL",
+      "fit_status": "fit_quality_eligible",
+      "exclusion_reason": null
     },
     "kaplan2020-gpt": {
       "name": "kaplan2020-gpt",
-      "alpha": 0.04952204052547624,
-      "A": 24.934341044489134,
-      "L_inf": 5.68521388178467e-12,
-      "alpha_se": 0.006723111478464163,
-      "A_se": 11.291120617308845,
-      "L_inf_se": 0.04333230625431358,
-      "R2": 0.9980408023598203,
-      "residual_rms": 0.003543518149342089,
+      "alpha": 0.0495220405376,
+      "A": 24.9343410706,
+      "L_inf": 5.7076041732e-12,
+      "alpha_se": 0.00672310971354,
+      "A_se": 11.291117583,
+      "L_inf_se": 0.0433322957417,
+      "R2": 0.99804080236,
+      "residual_rms": 0.00354351814934,
       "n_points": 12,
       "C_range": [
         8.64e+34,
         8.64e+41
       ],
-      "provenance": "LITERATURE_ANCHORED (Kaplan 2020 eq. 1.5)"
+      "provenance": "LITERATURE_ANCHORED (Kaplan 2020 eq. 1.5)",
+      "fit_status": "fit_quality_eligible",
+      "exclusion_reason": null
     },
     "hoffmann2022-chinchilla": {
       "name": "hoffmann2022-chinchilla",
-      "alpha": 0.1612640654200074,
-      "A": 1468.3454318844435,
-      "L_inf": 1.7114282342001939,
-      "alpha_se": 0.0055167476306706206,
-      "A_se": 327.57732925894373,
-      "L_inf_se": 0.02252513891124572,
-      "R2": 0.9988311046889644,
-      "residual_rms": 0.017649188628267674,
+      "alpha": 0.161264067631,
+      "A": 1468.34556322,
+      "L_inf": 1.71142824244,
+      "alpha_se": 0.0055167483547,
+      "A_se": 327.577401394,
+      "L_inf_se": 0.0225251413464,
+      "R2": 0.998831104689,
+      "residual_rms": 0.0176491886283,
       "n_points": 14,
       "C_range": [
         1e+18,
         1e+25
       ],
-      "provenance": "LITERATURE_ANCHORED (Hoffmann 2022 Table 4 Approach 3)"
+      "provenance": "LITERATURE_ANCHORED (Hoffmann 2022 Table 4 Approach 3)",
+      "fit_status": "fit_quality_eligible",
+      "exclusion_reason": null
     }
   },
   "summary": {
     "data_kind": "real",
     "pythia_csv": "v4/validation/llm-scaling/raw/pythia_checkpoints_combined.csv",
     "pythia_n_sizes": 7,
+    "pythia_n_fit_quality_eligible": 5,
     "provenance_per_model": {
       "pythia-1.4b": "REAL_TAIL_NARROW",
       "pythia-160m": "SYNTHETIC",
@@ -171,20 +213,34 @@
       "pythia-6.9b": "SYNTHETIC",
       "pythia-70m": "REAL_FULL"
     },
-    "alpha_all_sizes": {
-      "n": 7,
-      "mean": 0.5190400599504342,
-      "std": 0.6761340683225583,
-      "cv": 1.3026625890632137
+    "fit_status_per_model": {
+      "pythia-1.4b": "rejected",
+      "pythia-160m": "fit_quality_eligible",
+      "pythia-1b": "fit_quality_eligible",
+      "pythia-2.8b": "descriptive_only",
+      "pythia-410m": "fit_quality_eligible",
+      "pythia-6.9b": "fit_quality_eligible",
+      "pythia-70m": "fit_quality_eligible"
+    },
+    "exclusions_from_fit_spread": {
+      "pythia-1.4b": "alpha is outside the open scientific sanity range (0, 1)",
+      "pythia-2.8b": "narrow compute range is not eligible for exponent inference"
+    },
+    "alpha_fit_quality_eligible_sizes": {
+      "n": 5,
+      "mean": 0.246731113175,
+      "std": 0.203101295806,
+      "cv": 0.823168562701
     },
     "alpha_real_wide_only": {
       "n": 2,
-      "mean": 0.44377029802523277,
-      "std": 0.18651761757938548,
-      "cv": 0.42030216625444383
+      "mean": 0.443770393082,
+      "std": 0.18651768479,
+      "cv": 0.420302227678
     },
-    "universality_verdict_all": "BROAD_SPREAD",
-    "universality_verdict_real_wide": "BROAD_SPREAD",
+    "fit_spread_diagnostic_fit_quality_eligible": "BROAD_SPREAD",
+    "fit_spread_diagnostic_real_wide": "BROAD_SPREAD",
+    "scientific_conclusion": "INSUFFICIENT_REAL_WIDE_SERIES_FOR_UNIVERSALITY_INFERENCE",
     "benchmark": {
       "chinchilla_alpha_compute": 0.155,
       "chinchilla_alpha_N": 0.34,

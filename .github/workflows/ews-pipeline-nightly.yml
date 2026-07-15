@@ -1,64 +1,38 @@
-name: EWS Pipeline (nightly)
+name: EWS Frozen Snapshot Monitor
 
-# Refreshes the Early-Warning-Signal (CSD) dataset that powers the
-# Phase Detector frontend. Runs nightly on the VPS where outbound network
-# can reach yfinance for both US (.US) and HK (.HK) tickers.
-#
-# Why nightly and at 22:00 UTC: after US close (~20:00 UTC) and well
-# before HK open (~01:30 UTC), so the most recent HK + US daily bars are
-# both available.
-#
-# The VPS deploy key's `command=` restriction routes to a wrapper script
-# that picks the verb from $SSH_ORIGINAL_COMMAND ("deploy" vs "ews"),
-# matching the pattern already used by deploy-phase-detector.yml.
+# Phase Detector is a published frozen demo with a NULL backtest, not a live
+# trading signal. This monitor is deliberately read-only: it guards the
+# public 597-ticker snapshot and must never mutate production data nightly.
 
 on:
   schedule:
-    - cron: '0 22 * * *'    # 22:00 UTC daily
-  workflow_dispatch:
-    inputs:
-      markets:
-        description: 'Comma-separated markets (US,HK) or single value'
-        default: 'US,HK'
-        required: false
+    - cron: '0 22 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
 
 concurrency:
   group: ews-pipeline
   cancel-in-progress: false
 
 jobs:
-  refresh:
+  verify-frozen-snapshot:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 5
     steps:
-      - name: SSH run pipeline
-        env:
-          SSH_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
-          HOST: ${{ secrets.VPS_HOST }}
-          USER: ${{ secrets.VPS_USER }}
-          MARKETS: ${{ github.event.inputs.markets || 'US,HK' }}
+      - name: Verify immutable public EWS metadata
         run: |
           set -euo pipefail
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
-          # Wrapper on the VPS routes "ews" to:
-          #   .venv/bin/python3 v4/product/d1_phase_detector/run_ews_pipeline.py \
-          #     --markets "$MARKETS" \
-          #     --output v4/product/d1_phase_detector/data/ews_results.json
-          ssh -i ~/.ssh/id_deploy \
-              -o IdentitiesOnly=yes \
-              -o StrictHostKeyChecking=yes \
-              "$USER@$HOST" "ews $MARKETS"
+          meta="$(curl -fsS --retry 3 --retry-all-errors --max-time 15 \
+            https://phase.bytedance.city/api/ews/meta)"
+          META_JSON="$meta" python3 - <<'PY'
+          import json
+          import os
 
-      - name: Smoke /api/ews/meta
-        env:
-          API_HOST: ${{ secrets.VPS_HOST }}
-        run: |
-          set -euo pipefail
-          # The /api/ews/meta endpoint is served behind nginx /api/ at the same
-          # host as the frontend. Confirm n_tickers > 0 and provenance != missing.
-          meta=$(curl -fsSL "https://phase.bytedance.city/api/ews/meta")
-          echo "$meta"
-          echo "$meta" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d.get("n_tickers",0)>0, d; assert d.get("price_provenance") not in (None,"missing"), d; print("ok n=",d["n_tickers"],"prov=",d["price_provenance"])'
+          payload = json.loads(os.environ["META_JSON"])
+          assert payload.get("n_tickers") == 597, payload
+          assert payload.get("price_provenance") == "demo", payload
+          assert isinstance(payload.get("version"), str) and payload["version"], payload
+          print("frozen EWS snapshot verified")
+          PY

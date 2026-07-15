@@ -4,286 +4,84 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAFAF9">
-  <title data-i18n="page.papers.meta_title">论文与预印本 — Structural</title>
-  <meta name="description" data-i18n-meta="page.papers.meta_desc" content="13 个独立领域的验证报告 + 统一研究报告 + 4 篇 arXiv 投稿 + 复现教程。所有论文由同一份 339 行 Python 产出，覆盖 SOC、强者愈强、Motter-Lai、Preisach、Scheffer 五个共享模式。">
+  <title data-i18n="page.papers.meta_title">历史研究材料 — Structural</title>
+  <meta name="description" data-i18n-meta="page.papers.meta_desc" content="20 项历史研究材料：14 份结果记录、5 份研究草稿与 1 份复现教程。材料未与当前证据账本逐项绑定。">
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
-
-  <meta property="og:title" data-i18n-meta="page.papers.meta_title" content="论文与预印本 — Structural">
-  <meta property="og:description" data-i18n-meta="page.papers.meta_desc" content="13 个独立领域的验证报告 + 统一研究报告 + 4 篇 arXiv 投稿 + 复现教程。">
+  <meta property="og:title" data-i18n-meta="page.papers.meta_title" content="历史研究材料 — Structural">
+  <meta property="og:description" data-i18n-meta="page.papers.meta_desc" content="20 项历史研究材料：14 份结果记录、5 份研究草稿与 1 份复现教程。">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/assets/og-image.png">
 
   <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
-
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260513">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260513">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260513">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/papers.css?v=20260714n2">
 
-  <style>
-    .papers-page { padding: 56px 24px 96px; }
-    .papers-container { max-width: 1100px; margin: 0 auto; }
-    .papers-hero { margin-bottom: 56px; }
-    .papers-hero__eyebrow {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 12px; color: #71717A; letter-spacing: 0.4px;
-      text-transform: uppercase; margin-bottom: 16px;
-    }
-    .papers-hero__dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: #2563EB;
-    }
-    .papers-hero__title {
-      font-family: "Noto Serif SC", serif;
-      font-size: 36px; line-height: 1.25; margin-bottom: 18px; color: #18181B;
-    }
-    .papers-hero__title em { font-style: normal; color: #2563EB; }
-    .papers-hero__lede {
-      font-size: 16px; line-height: 1.7; color: #52525B; max-width: 720px;
-    }
-    .papers-hero__lede strong { color: #18181B; }
-    .papers-hero__lede a { color: #2563EB; text-decoration: none; }
-    .papers-hero__lede a:hover { text-decoration: underline; }
-
-    .papers-stats {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
-      margin: 32px 0 0; padding: 20px; background: #FAFAF9;
-      border: 1px solid #E4E4E7; border-radius: 12px;
-    }
-    .papers-stat__num {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 26px; font-weight: 600; color: #18181B;
-    }
-    .papers-stat__label {
-      font-size: 12px; color: #71717A; margin-top: 4px;
-    }
-
-    .papers-filter {
-      display: flex; gap: 8px; margin: 40px 0 28px; flex-wrap: wrap;
-    }
-    .papers-filter__btn {
-      padding: 7px 14px; border: 1px solid #E4E4E7; background: #FFF;
-      border-radius: 999px; font-size: 13px; color: #52525B; cursor: pointer;
-      transition: all 0.15s;
-    }
-    .papers-filter__btn:hover { border-color: #A1A1AA; }
-    .papers-filter__btn--active {
-      background: #18181B; color: #FFF; border-color: #18181B;
-    }
-
-    .papers-group { margin-bottom: 56px; }
-    .papers-group__header { margin-bottom: 20px; }
-    .papers-group__title {
-      font-size: 22px; font-weight: 600; color: #18181B; margin-bottom: 6px;
-    }
-    .papers-group__desc { font-size: 14px; color: #71717A; }
-
-    .papers-list { display: grid; grid-template-columns: 1fr; gap: 10px; }
-
-    .paper-card {
-      display: block;
-      padding: 18px 20px; background: #FFF;
-      border: 1px solid #E4E4E7; border-radius: 10px;
-      text-decoration: none; color: inherit;
-      transition: all 0.15s;
-    }
-    .paper-card:hover {
-      border-color: #18181B;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-      transform: translateY(-1px);
-    }
-    .paper-card--feature {
-      background: linear-gradient(135deg, #F0F7FF, #FAFAF9);
-      border-color: #2563EB;
-    }
-    .paper-card__title {
-      font-size: 15px; font-weight: 600; color: #18181B;
-      line-height: 1.5; margin-bottom: 8px;
-    }
-    .paper-card__meta {
-      display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: #71717A;
-      font-family: "JetBrains Mono", monospace;
-    }
-    .paper-card__meta-class {
-      padding: 2px 8px; background: #F4F4F5; border-radius: 4px;
-      color: #52525B;
-    }
-    .paper-card__alpha {
-      font-family: "JetBrains Mono", monospace;
-      color: #2563EB; font-weight: 500;
-    }
-    .paper-card__status {
-      padding: 2px 8px; border-radius: 4px;
-      font-family: "Inter", sans-serif; font-size: 10px;
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .paper-card__status--preprint { background: #EFF6FF; color: #1D4ED8; }
-    .paper-card__status--arxiv-draft { background: #FEF3C7; color: #92400E; }
-    .paper-card__status--site { background: #F0FDF4; color: #166534; }
-
-    .papers-footer-note {
-      margin-top: 48px; padding: 20px 24px;
-      background: #FAFAF9; border-left: 3px solid #2563EB;
-      border-radius: 6px; font-size: 13px; color: #52525B; line-height: 1.7;
-    }
-    .papers-footer-note a { color: #2563EB; text-decoration: none; }
-    .papers-footer-note a:hover { text-decoration: underline; }
-
-    @media (max-width: 720px) {
-      .papers-hero__title { font-size: 28px; }
-      .papers-stats { grid-template-columns: repeat(2, 1fr); }
-    }
-  </style>
-  <!-- Plausible analytics (W7-D mini-brief 5, 2026-05-24). -->
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+  <script defer src="/assets/js/analytics-consent.js?v=20260714n2"></script>
 </head>
-<body>
+<body class="has-history-sidebar">
   <header class="site-header"></header>
 
-  <main class="papers-page">
+  <main class="papers-page" id="main-content">
     <div class="papers-container">
-
-      <section class="papers-hero">
-        <div class="papers-hero__eyebrow">
-          <span class="papers-hero__dot"></span>
-          <span data-i18n="page.papers.eyebrow">内部分析记录 · 研究草稿</span>
-        </div>
-        <h1 class="papers-hero__title" data-i18n="page.papers.title">同一分析框架，<em>13 份结果记录</em></h1>
+      <section class="papers-hero" aria-labelledby="papers-heading">
+        <p class="papers-hero__eyebrow">
+          <span class="papers-hero__dot" aria-hidden="true"></span>
+          <span data-i18n="page.papers.eyebrow">历史内部材料 · 尚未绑定当前证据账本</span>
+        </p>
+        <h1 class="papers-hero__title" id="papers-heading" data-i18n="page.papers.title">20 项历史研究材料</h1>
         <p class="papers-hero__lede" data-i18n="page.papers.lede">
-          这些页面记录共享分析模块在不同数据上的结果，包括支持、NULL、FAIL、PARTIAL 和 INCONCLUSIVE。共享代码便于比较，但不自动证明系统共享机制；每份记录仍需检查数据来源、替代模型、依赖结构和外部复现。
+          这里保留 14 份结果记录、5 份研究草稿与 1 份复现教程。它们可用于审计历史分析，但不能据此证明这些系统具有同一机制，也不代表外部同行评审、独立复现或当前可投稿结论。
         </p>
 
-        <div class="papers-stats" id="papers-stats">
-          <div><div class="papers-stat__num">13</div><div class="papers-stat__label" data-i18n="page.papers.stat_verified">结果记录</div></div>
-          <div><div class="papers-stat__num">5</div><div class="papers-stat__label" data-i18n="page.papers.stat_classes">共享模式</div></div>
-          <div><div class="papers-stat__num">1</div><div class="papers-stat__label" data-i18n="page.papers.stat_preprint">完整研究报告</div></div>
-          <div><div class="papers-stat__num">4</div><div class="papers-stat__label" data-i18n="page.papers.stat_arxiv">单领域研究稿</div></div>
+        <dl class="papers-stats" id="papers-stats" aria-label="材料构成">
+          <div><dd class="papers-stat__num">20</dd><dt class="papers-stat__label" data-i18n="page.papers.stat_total">历史材料总数</dt></div>
+          <div><dd class="papers-stat__num">14</dd><dt class="papers-stat__label" data-i18n="page.papers.stat_records">结果记录</dt></div>
+          <div><dd class="papers-stat__num">5</dd><dt class="papers-stat__label" data-i18n="page.papers.stat_drafts">研究草稿</dt></div>
+          <div><dd class="papers-stat__num">1</dd><dt class="papers-stat__label" data-i18n="page.papers.stat_tutorials">复现教程</dt></div>
+        </dl>
+      </section>
+
+      <section class="papers-catalog" aria-labelledby="papers-catalog-heading">
+        <div class="papers-catalog__heading-row">
+          <h2 id="papers-catalog-heading" data-i18n="page.papers.catalog_title">按材料类型浏览</h2>
+          <p class="sr-only" id="papers-filter-help" data-i18n="page.papers.filter_help">使用方向键切换筛选项</p>
+        </div>
+        <div class="papers-filter" id="papers-filter" role="toolbar" aria-label="材料类型筛选" aria-describedby="papers-filter-help">
+          <button type="button" class="papers-filter__btn papers-filter__btn--active" data-filter="all" aria-pressed="true" tabindex="0" data-i18n="page.papers.filter_all">全部 20 项</button>
+          <button type="button" class="papers-filter__btn" data-filter="unified" aria-pressed="false" tabindex="-1" data-i18n="page.papers.filter_unified">综合研究稿</button>
+          <button type="button" class="papers-filter__btn" data-filter="arxiv-drafts" aria-pressed="false" tabindex="-1" data-i18n="page.papers.filter_drafts">单系统研究稿</button>
+          <button type="button" class="papers-filter__btn" data-filter="phase-papers" aria-pressed="false" tabindex="-1" data-i18n="page.papers.filter_records">结果记录</button>
+          <button type="button" class="papers-filter__btn" data-filter="tutorials" aria-pressed="false" tabindex="-1" data-i18n="page.papers.filter_tutorial">复现教程</button>
+        </div>
+        <p class="sr-only" id="papers-filter-status" role="status" aria-live="polite"></p>
+        <div id="papers-content" aria-live="polite" aria-busy="true">
+          <div class="papers-loading" role="status">
+            <span class="papers-loading__dot" aria-hidden="true"></span>
+            <span data-i18n="page.papers.loading">正在校验历史材料目录…</span>
+          </div>
         </div>
       </section>
 
-      <div class="papers-filter" id="papers-filter">
-        <button type="button" class="papers-filter__btn papers-filter__btn--active" data-filter="all" data-i18n="page.papers.filter_all">全部</button>
-        <button type="button" class="papers-filter__btn" data-filter="unified" data-i18n="page.papers.filter_unified">统一预印本</button>
-        <button type="button" class="papers-filter__btn" data-filter="arxiv-drafts" data-i18n="page.papers.filter_arxiv">arXiv 单系统稿</button>
-        <button type="button" class="papers-filter__btn" data-filter="phase-papers" data-i18n="page.papers.filter_phase">Phase paper</button>
-        <button type="button" class="papers-filter__btn" data-filter="tutorials" data-i18n="page.papers.filter_tutorial">复现 tutorial</button>
-      </div>
-
-      <div id="papers-content">
-        <div class="papers-group">
-          <p style="color:#71717A;font-size:14px;">Loading…</p>
-        </div>
-      </div>
-
-      <div class="papers-footer-note">
-        <strong data-i18n="page.papers.footer_note_title">关于这些 paper:</strong>
-        <span data-i18n="page.papers.footer_note_body">每个 phase 用同一份代码、独立公开数据源、相同 fitting 标准产出,可在 <a href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub 仓库</a> 复现。30 分钟 Phase 1 复现 tutorial 见 <a href="/paper/tutorial-reproduction-2026-05-13">复现 tutorial</a>。完整 v0.2 预印本含 v0.1 → v0.2 changelog、B3 ensemble taxonomy 评审、null control、universal collapse 等 7 节。</span>
-      </div>
-
+      <aside class="papers-footer-note" aria-label="材料边界">
+        <strong data-i18n="page.papers.footer_note_title">阅读边界</strong>
+        <span data-i18n="page.papers.footer_note_body">每个详情页先显示当前公开边界，再将未经当前证据标准化的历史 Markdown 收纳在默认关闭的区域中。源码与数据链接仅指向项目 GitHub 仓库。</span>
+      </aside>
     </div>
   </main>
 
   <footer class="site-footer"></footer>
 
-  <script src="/assets/js/i18n.js?v=20260713a"></script>
-  <script src="/assets/js/utils.js?v=20260417e"></script>
-  <script src="/assets/js/history-sidebar.js?v=20260514"></script>
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/utils.js?v=20260714n2"></script>
+  <script src="/assets/js/history-sidebar.js?v=20260714n2"></script>
   <script src="/assets/js/product-switcher.js?v=20260513"></script>
-  <script>
-    (function () {
-      const STATUS_LABEL = {
-        'preprint':    { zh: 'PREPRINT', en: 'PREPRINT' },
-        'arxiv-draft': { zh: 'ARXIV DRAFT', en: 'ARXIV DRAFT' },
-        'site':        { zh: 'SITE',  en: 'SITE'  }
-      };
-      function T(key, fallback) {
-        try { if (window.i18n && typeof window.i18n.t === 'function') { const v = window.i18n.t(key); if (v && v !== key) return v; } } catch(e) {}
-        return fallback;
-      }
-      function lang() {
-        try { return (window.i18n && window.i18n.getLang && window.i18n.getLang()) || 'zh'; } catch(e) { return 'zh'; }
-      }
-      function fmtNum(n) {
-        if (n == null) return '—';
-        if (n >= 1000) return n.toLocaleString('en-US');
-        return String(n);
-      }
-      function paperUrl(slug, externalLink) {
-        if (externalLink) return externalLink;
-        return `/paper/${slug}`;
-      }
-      function render(manifest) {
-        const cur = lang();
-        const container = document.getElementById('papers-content');
-        container.innerHTML = '';
-        for (const g of manifest.groups) {
-          const groupEl = document.createElement('section');
-          groupEl.className = 'papers-group';
-          groupEl.setAttribute('data-group-id', g.id);
-          const header = document.createElement('div');
-          header.className = 'papers-group__header';
-          header.innerHTML = `
-            <h2 class="papers-group__title">${cur === 'en' ? g.title_en : g.title_zh}</h2>
-            <p class="papers-group__desc">${cur === 'en' ? g.desc_en : g.desc_zh}</p>
-          `;
-          groupEl.appendChild(header);
-          const listEl = document.createElement('div');
-          listEl.className = 'papers-list';
-          for (const p of g.papers) {
-            const card = document.createElement('a');
-            card.className = 'paper-card' + (p.feature ? ' paper-card--feature' : '');
-            card.href = paperUrl(p.slug, p.external_link);
-            if (p.external_link) {
-              card.target = '_blank';
-              card.rel = 'noopener';
-            }
-            const statusLabel = (STATUS_LABEL[p.status] || {zh: p.status, en: p.status})[cur === 'en' ? 'en' : 'zh'];
-            const title = cur === 'en' ? p.title_en : p.title_zh;
-            const cls = p.class || '';
-            const alpha = p.alpha ? `<span class="paper-card__alpha">${p.alpha}</span>` : '';
-            const nTail = p.n_tail ? ` · n=${fmtNum(p.n_tail)}` : '';
-            card.innerHTML = `
-              <div class="paper-card__title">${title}</div>
-              <div class="paper-card__meta">
-                <span class="paper-card__meta-class">${cls}</span>
-                ${alpha}
-                <span>${p.words.toLocaleString('en-US')} ${cur === 'en' ? 'words' : '字'} · ${p.minutes} ${cur === 'en' ? 'min read' : '分钟阅读'}</span>
-                <span>${p.date}${nTail}</span>
-                <span class="paper-card__status paper-card__status--${p.status}">${statusLabel}</span>
-              </div>
-            `;
-            listEl.appendChild(card);
-          }
-          groupEl.appendChild(listEl);
-          container.appendChild(groupEl);
-        }
-      }
-      function applyFilter(filter) {
-        document.querySelectorAll('.papers-group').forEach(g => {
-          const gid = g.getAttribute('data-group-id');
-          g.style.display = (filter === 'all' || gid === filter) ? '' : 'none';
-        });
-        document.querySelectorAll('.papers-filter__btn').forEach(b => {
-          b.classList.toggle('papers-filter__btn--active', b.getAttribute('data-filter') === filter);
-        });
-      }
-      fetch('/assets/data/papers-manifest.json?v=20260513')
-        .then(r => r.json())
-        .then(d => {
-          render(d);
-          document.querySelectorAll('.papers-filter__btn').forEach(b => {
-            b.addEventListener('click', () => applyFilter(b.getAttribute('data-filter')));
-          });
-          // re-render on lang change
-          document.addEventListener('i18n:langchange', () => render(d));
-        })
-        .catch(e => {
-          document.getElementById('papers-content').innerHTML = `<p style="color:#c44;">${T('page.papers.load_failed', 'Failed to load papers manifest')}: ${e.message}</p>`;
-        });
-    })();
-  </script>
-  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
+  <script src="/assets/js/papers-catalog.js?v=20260714n2"></script>
+  <script src="/assets/js/papers.js?v=20260714n2"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
 </body>
 </html>

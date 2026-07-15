@@ -37,39 +37,39 @@
   // grepping templates. Tone target: 克制 / 不营销。
   var COPY = {
     "start-here-essay-end": {
-      eyebrow: "每周一封",
-      title: "你已读完，要不要每周收 1 篇？",
-      body: "每周 1 封邮件，挑 1 个新发现的跨域结构同构，3 分钟读完。",
+      eyebrow: "不定期研究更新",
+      title: "你已读完，想继续跟进研究进展吗？",
+      body: "有新的方法、复核进展或公开负结果时，我们会发送一封简短更新。",
       placeholder: "you@example.com",
-      cta: "订阅",
-      fineprint: "免费 · 可随时退订",
+      cta: "获取更新",
+      fineprint: "免费 · 不定期 · 可随时退订",
     },
     "learn-end": {
-      eyebrow: "每周一封",
-      title: "想第一时间看到新论文 / 新发现？",
-      body: "每周 1 封邮件，最新的 1 个跨域结构同构案例，3 分钟读完。",
+      eyebrow: "不定期研究更新",
+      title: "想继续跟进方法与复核进展？",
+      body: "有新的方法、复核进展或公开负结果时，我们会发送一封简短更新。",
       placeholder: "you@example.com",
-      cta: "订阅",
-      fineprint: "免费 · 可随时退订",
+      cta: "获取更新",
+      fineprint: "免费 · 不定期 · 可随时退订",
     },
     "discoveries-top": {
-      eyebrow: "每周一封",
-      title: "想第一时间看到新发现？",
-      body: "新的跨域结构同构每周日推送，3 分钟读完。",
+      eyebrow: "不定期研究更新",
+      title: "想跟进候选的验证进展？",
+      body: "候选完成来源复核或实证检验时发送更新；未通过的结果也会公开。",
       placeholder: "you@example.com",
-      cta: "订阅",
-      fineprint: "免费 · 可随时退订",
+      cta: "获取更新",
+      fineprint: "免费 · 不定期 · 可随时退订",
     },
   };
 
   // Generic fallback when an unknown source is passed.
   var DEFAULT_COPY = {
-    eyebrow: "每周一封",
-    title: "每周收 1 篇结构同构",
-    body: "新发现的跨域结构同构每周日推送，3 分钟读完。",
+    eyebrow: "不定期研究更新",
+    title: "跟进候选与复核进展",
+    body: "有新的方法、复核进展或公开负结果时，我们会发送一封简短更新。",
     placeholder: "you@example.com",
-    cta: "订阅",
-    fineprint: "免费 · 可随时退订",
+    cta: "获取更新",
+    fineprint: "免费 · 不定期 · 可随时退订",
   };
 
   function buildMarkup(copy, idSuffix) {
@@ -192,7 +192,7 @@
           if (!data) return;
           if (data.created) {
             trackEvent("newsletter_signup", { source: source });
-            setStatus(status, "✓ 已订阅，下个周日发第一封。", "ok");
+            setStatus(status, "✓ 已加入；有经复核的研究更新时会通知你。", "ok");
             // Clear input on success so users see clean state, not their email
             // sticking around (which could confuse "did it submit?")
             try { input.value = ""; } catch (_) { /* swallow */ }

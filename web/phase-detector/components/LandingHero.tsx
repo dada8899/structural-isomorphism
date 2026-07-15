@@ -32,7 +32,7 @@ export function LandingHero() {
       <div className="relative mx-auto w-full max-w-5xl px-6 pb-16 pt-16 sm:pb-24 sm:pt-24 lg:pt-32">
         {/* Eyebrow */}
         <p
-          className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
+          className="mb-6 inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
           data-testid="hero-eyebrow"
         >
           <span

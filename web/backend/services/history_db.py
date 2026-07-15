@@ -19,12 +19,17 @@ from __future__ import annotations
 
 import datetime as _dt
 import json
-import logging
 import sqlite3
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from .sqlite_utils import ClosingConnection
+if __package__ == "web.backend.services":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
+
+logger = get_logger("structural.history")
 
 
 # --- Python 3.12+ sqlite3 timestamp adapter/converter ---------------------
@@ -100,21 +105,30 @@ class HistoryDB:
             str(self.db_path),
             detect_types=sqlite3.PARSE_DECLTYPES,
             timeout=10.0,
+            factory=ClosingConnection,
         )
         conn.row_factory = sqlite3.Row
         # WAL mode for better concurrent read/write behaviour under uvicorn workers.
         try:
             conn.execute("PRAGMA journal_mode=WAL")
-        except sqlite3.Error as e:  # pragma: no cover
-            logger.warning("history_db WAL pragma failed: %s", e)
+        except sqlite3.Error as exc:  # pragma: no cover
+            logger.warning(
+                "history.wal_unavailable",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
         return conn
 
     def _init_schema(self) -> None:
         try:
             with self._connect() as conn:
                 conn.executescript(_SCHEMA)
-        except sqlite3.Error as e:
-            logger.exception("history_db schema init failed: %s", e)
+        except sqlite3.Error as exc:
+            logger.error(
+                "history.schema_init_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             raise
 
     def record(
@@ -138,8 +152,12 @@ class HistoryDB:
         else:
             try:
                 summary_text = json.dumps(result_summary, ensure_ascii=False)
-            except (TypeError, ValueError) as e:
-                logger.warning("history_db record: result_summary not JSON-serializable: %s", e)
+            except (TypeError, ValueError) as exc:
+                logger.warning(
+                    "history.summary_rejected",
+                    error_type=type(exc).__name__,
+                    incident_id=new_incident_id(),
+                )
                 summary_text = json.dumps({"_unserializable": str(type(result_summary))})
 
         try:
@@ -150,8 +168,12 @@ class HistoryDB:
                     (device_id, query, kind, summary_text),
                 )
                 return int(cur.lastrowid)
-        except sqlite3.Error as e:
-            logger.exception("history_db record failed device=%s kind=%s: %s", device_id, kind, e)
+        except sqlite3.Error as exc:
+            logger.error(
+                "history.record_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             raise
 
     def list_recent(self, device_id: str, limit: int = 20) -> list[dict[str, Any]]:
@@ -168,8 +190,12 @@ class HistoryDB:
                     "ORDER BY created_at DESC, id DESC LIMIT ?",
                     (device_id, int(limit)),
                 ).fetchall()
-        except sqlite3.Error as e:
-            logger.exception("history_db list_recent failed device=%s: %s", device_id, e)
+        except sqlite3.Error as exc:
+            logger.error(
+                "history.list_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             raise
 
         out: list[dict[str, Any]] = []
@@ -196,11 +222,10 @@ class HistoryDB:
                     (int(history_id), device_id),
                 )
                 return cur.rowcount > 0
-        except sqlite3.Error as e:
-            logger.exception(
-                "history_db delete failed device=%s id=%s: %s",
-                device_id,
-                history_id,
-                e,
+        except sqlite3.Error as exc:
+            logger.error(
+                "history.delete_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
             )
             raise

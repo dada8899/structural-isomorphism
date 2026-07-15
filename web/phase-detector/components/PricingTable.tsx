@@ -19,20 +19,11 @@
 
 import { useEffect, useState } from "react";
 import { TIERS, type Interval, type PricingTier } from "@/lib/pricing";
+import { Events, trackEvent } from "@/lib/analytics";
 
 interface PricingTableProps {
   /** Initial interval; defaults to month. */
   defaultInterval?: Interval;
-}
-
-function track(event: string, props: Record<string, string | number> = {}) {
-  if (typeof window === "undefined") return;
-  try {
-    const p = (window as unknown as { plausible?: (n: string, o?: object) => void }).plausible;
-    if (typeof p === "function") p(event, { props });
-  } catch {
-    /* swallow — analytics must never block UI */
-  }
 }
 
 function CheckIcon({ included }: { included: boolean }) {
@@ -110,7 +101,7 @@ function TierCard({
       <button
         type="button"
         onClick={() => {
-          track("research_preview_interest", {
+          trackEvent(Events.ResearchPreviewInterest, {
             tier: tier.id,
             interval,
             from: "pricing_page",

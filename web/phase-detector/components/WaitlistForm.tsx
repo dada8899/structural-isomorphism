@@ -53,9 +53,6 @@ export function WaitlistForm({
       form.set("email", trimmed);
       form.set("source", source);
       form.set("placement", placement);
-      if (typeof document !== "undefined" && document.referrer) {
-        form.set("referrer", document.referrer);
-      }
 
       const res = await fetch(`${API_BASE}/api/waitlist`, {
         method: "POST",

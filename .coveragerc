@@ -1,5 +1,5 @@
 [run]
-source = v4/lib, packages/cross-judge/src, packages/guarded-llm/src, packages/soc-pipeline/src, web/backend
+source = v4/lib, packages/cross-judge/src, packages/guarded-llm/src, packages/reject-aware-critic/src, packages/soc-pipeline/src, web/backend
 parallel = True
 relative_files = True
 omit =

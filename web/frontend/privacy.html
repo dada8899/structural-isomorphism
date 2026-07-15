@@ -23,14 +23,14 @@
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260417e">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260417e">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260417e">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
   <link rel="stylesheet" href="/assets/css/about.css?v=20260417e">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
 
   <!-- Plausible analytics (self-hosted, cookieless). -->
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+  <script defer src="/assets/js/analytics-consent.js?v=20260714n2"></script>
 </head>
-<body>
+<body class="has-history-sidebar">
   <header class="site-header"></header>
 
   <main class="about-page">
@@ -38,86 +38,86 @@
     <h1 class="about-page__title">你的数据，<br>你说了算</h1>
 
     <p class="about-page__lede">
-      Structural 把隐私当成产品的一部分来设计，而不是事后补的条款。<strong>我们不要求注册、不收集姓名、不收集邮箱（除非你主动订阅）。</strong>这一页用大白话讲清楚：我们收集什么、为什么、怎么保管，以及你随时可以怎样导出或删掉自己的全部数据。
+      Structural 把隐私当成产品功能来设计。这一页用大白话说明邮箱账户、会话、收藏、报告、实验结果、分享链接和第三方处理；也说明你怎样导出、删除或撤回自己的数据。
     </p>
     <p class="about-page__lede" style="font-size: var(--fs-13); color: var(--text-tertiary);">
-      最后更新：2026-05-21
+      最后更新：2026-07-14
     </p>
 
     <div class="about-page__section">
       <div class="about-page__section-label">01</div>
       <h2 class="about-page__section-title">我们收集哪些信息</h2>
-      <p>为了让产品能正常工作，我们只收集下面这些，并且尽量少：</p>
+      <p>我们按你使用的功能处理以下信息：</p>
       <ul>
-        <li><strong>匿名设备标识</strong>：你第一次访问时，浏览器会生成一个随机字符串（匿名 ID），用来把"你保存的报告"关联到这台设备。它<strong>不包含任何能识别你本人的信息</strong>，也不跨网站追踪你。</li>
-        <li><strong>你提交的问题与生成的报告</strong>：你输入的研究问题，以及系统为你生成的研究报告。生成报告时默认会保存一份，方便你之后在「我的报告」里回看。</li>
-        <li><strong>你的反馈</strong>：报告下方的 👍 / 👎 评价，用来帮我们判断哪些类比真的有用。</li>
-        <li><strong>访问统计</strong>：我们用<strong>自托管的 Plausible</strong> 统计页面访问量。Plausible <strong>不使用 Cookie、不采集个人数据、不做跨站追踪</strong>，只汇总匿名的访问趋势。因此本站没有 Cookie 同意弹窗——因为我们没有需要征求同意的追踪型 Cookie。</li>
-        <li><strong>订阅邮箱（仅在你主动填写时）</strong>：如果你订阅更新或加入等候名单，我们会保存你填写的邮箱，只用于发送你订阅的内容。</li>
+        <li><strong>邮箱账户</strong>：你可以用邮箱申请一次性 Magic Link。服务端保存规范化邮箱、用户 ID、登录与删除所需的安全状态；一次性令牌只保存哈希。新账户注册时，管理员通知队列会向运营邮箱发送注册通知。</li>
+        <li><strong>必要会话</strong>：登录后使用 Secure、HttpOnly、SameSite 会话 Cookie。它用于识别账户和阻止脚本读取会话，不用于广告追踪。</li>
+        <li><strong>问题与模型处理</strong>：你提交的问题、选择的候选和必要上下文会发送到服务端，并在生成内容时交给配置的大语言模型服务商处理。请勿输入个人、商业或安全机密。</li>
+        <li><strong>账户资产</strong>：你明确保存的报告、实验方案、结果、反馈，以及登录状态下保存的账户收藏会保存在服务端，供「我的研究」跨设备恢复。</li>
+        <li><strong>本机数据</strong>：匿名设备 ID、语言偏好、部分搜索历史、本机收藏和本地提醒保存在浏览器。登录和主动同步后，相关报告或账户收藏才会与服务器账户关联；并非所有收藏都只在本机。</li>
+        <li><strong>订阅与访问统计</strong>：你主动订阅时会保存邮箱和来源页面；新记录不保存 IP、User-Agent 或 referrer。只有你明确允许后，站点才加载自托管 Plausible 了解汇总访问趋势；Plausible 不设置分析 Cookie，也不用于跨站广告画像。带访问令牌的报告分享页始终不加载分析脚本，即使你已经允许访问统计。</li>
+        <li><strong>无内容运行遥测</strong>：Nginx 只记录随机请求编号、方法、状态码、响应字节数、请求耗时和上游耗时，不记录 IP、URL/路径、查询参数、User-Agent、cookie 或 referrer。前端错误记录只保存固定事件名、错误类型、随机事件编号、时间和致命状态，不保存消息、堆栈、URL、会话或请求内容；应用日志使用路由模板并丢弃异常正文与 traceback。</li>
       </ul>
-      <p>我们<strong>不会</strong>收集：真实姓名、电话号码、精确位置、设备指纹，也不会向第三方广告网络出售或共享你的数据。</p>
+      <p data-i18n="page.privacy.bookmark_detail"><strong>结构分析收藏</strong>会保存标题、你提交的问题、被比较对象的标识和由服务端生成的站内链接；Phase 公司收藏会保存股票代码。匿名收藏先留在本机，登录后才会主动同步到账户。同步或移除失败时，本机副本不会被误删；已同步收藏会进入账户导出，并随账户删除一起删除。</p>
+      <p>我们不要求真实姓名、电话号码或精确位置，不接入第三方广告网络，也不出售你的数据。</p>
     </div>
 
     <div class="about-page__section">
       <div class="about-page__section-label">02</div>
       <h2 class="about-page__section-title">这些数据存在哪里</h2>
       <ul>
-        <li><strong>存在你浏览器里的</strong>：搜索历史、收藏、语言偏好、匿名 ID 都保存在你本地的 localStorage。清空浏览器数据就会一并清掉，它们从不离开你的设备做它用。</li>
-        <li><strong>存在我们服务器上的</strong>：你保存的报告、反馈、订阅邮箱。服务器位于新加坡，仅团队成员可访问。</li>
+        <li><strong>浏览器</strong>：本机偏好和未同步资产使用 localStorage；必要登录状态使用 HttpOnly Cookie。清空浏览器数据会清除本机副本和会话，但不会自动删除已经同步到账户的服务端资产。</li>
+        <li><strong>服务端</strong>：账户、会话状态、账户收藏、明确保存的报告、反馈与实验结果，以及邮件发送/管理员通知队列保存在受访问控制的数据库或队列中。</li>
+        <li><strong>处理服务商</strong>：邮件由配置的邮件服务商投递；模型请求由配置的大语言模型服务商处理。我们只发送完成对应功能所需的数据。</li>
+        <li><strong>可选异常监控</strong>：如启用，只发送事件编号、错误类型、状态码和随机关联编号；不发送请求 URL、header、cookie、body、用户记录、错误消息、breadcrumb、堆栈变量或原始 transaction。</li>
       </ul>
     </div>
 
     <div class="about-page__section">
       <div class="about-page__section-label">03</div>
       <h2 class="about-page__section-title">关于报告的可见性</h2>
-      <p>
-        你生成的报告默认会被保存，并附带一个<strong>分享链接</strong>。这意味着：<strong>任何拿到该链接的人都能打开这份报告</strong>。报告不会被搜索引擎收录，也不会公开列出，但分享链接本身没有密码保护——请只把它发给你信任的人。如果你不希望某份报告被保存，可以联系我们删除（见第 5 节）。
-      </p>
+      <p>生成内容本身不等于同意长期保存。只有你明确选择保存时，报告和相关研究状态才会写入服务端。保存会生成一个高熵分享令牌；只有你主动复制或发送链接，其他人才会知道入口。<strong>任何拿到链接的人都可以读取报告</strong>，所以不要把链接发给不信任的人。</p>
+      <p>分享响应明确禁止缓存，公开分享读取也会移除历史报告中可能残留的用户聚合可信度字段。删除对应报告或账户后，原分享入口不应继续提供该报告。</p>
+      <p><strong>公开结果聚合当前暂停。</strong>无论新增、撤回或人数跨越任何档位，Insights 都不会展示人数、排行、卡片、结果类别或可信度提示。结果表单中的勾选只保存版本化同意状态（同意版本、同意时间和撤回时间），不代表内容现在已公开。原浏览器可撤回；报告认领到账户后，账户所有者也可跨设备撤回。匿名设备不会成为公开参与者；即使未来恢复，也只会评估已认领到账户的报告，并需另行通过延迟批次、粘性抑制或形式化差分隐私设计审查。</p>
     </div>
 
     <div class="about-page__section">
       <div class="about-page__section-label">04</div>
       <h2 class="about-page__section-title">我们用这些数据做什么</h2>
       <ul>
-        <li>让产品正常运转：把报告关联到你的设备，让你能回看。</li>
-        <li>改进产品质量：根据匿名的反馈和访问统计，判断哪些功能有用、哪些类比靠谱。</li>
-        <li>发送你订阅的内容：仅当你主动留了邮箱。</li>
+        <li>提供注册、登录、跨设备收藏和「我的研究」。</li>
+        <li>处理问题、生成候选、报告和实验工作流。</li>
+        <li>保存你明确选择保存的资产，并在你主动分享时提供链接读取。</li>
+        <li>发送 Magic Link、订阅内容和必要的账户运营通知。</li>
+        <li>用汇总访问统计和产品反馈排查故障、改进体验；反馈不会自动成为科学验证。</li>
       </ul>
-      <p>我们<strong>不会</strong>用你的数据训练对外的模型，也不会用于广告投放。</p>
+      <p>我们不会把账户数据用于第三方广告投放。是否被模型服务商保留或用于其服务改进，受对应服务商条款和我们的配置约束；因此不要提交敏感信息。</p>
     </div>
 
     <div class="about-page__section">
       <div class="about-page__section-label">05</div>
       <h2 class="about-page__section-title">你的权利：导出与删除</h2>
-      <p>
-        无论你身处哪个地区，你都可以随时<strong>导出</strong>或<strong>彻底删除</strong>我们持有的、与你相关的数据。这是你的权利（在欧盟即 GDPR 下的"被遗忘权"），我们提供对应的接口：
-      </p>
+      <p>登录后，你可以在「我的研究」使用账户数据功能：</p>
       <ul>
-        <li><strong>导出数据</strong>：我们提供数据导出接口，会把与你的邮箱或会话相关的记录打包返回。</li>
-        <li><strong>删除数据</strong>：我们提供数据删除接口，会从订阅列表、反馈与日志中移除与你相关的记录，操作不可撤销。</li>
+        <li><strong>导出</strong>：下载当前账户登记的报告、实验、收藏等支持导出的资产。</li>
+        <li><strong>永久删除</strong>：删除账户登记资产并撤销已有会话；操作不可撤销。浏览器里的本机资产需另外清除。</li>
+        <li><strong>撤回公开聚合同意</strong>：原浏览器或报告账户所有者均可撤回；公开聚合目前本来就处于暂停状态。</li>
+        <li><strong>控制分享</strong>：不要继续传播分享链接；需要使已有链接失效时，可删除相应报告或账户，或联系我们协助。</li>
       </ul>
-      <p>
-        最简单的方式是给我们发一封邮件：<a href="mailto:hello@bytedance.city?subject=数据删除请求">hello@bytedance.city</a>，标题写「数据导出」或「数据删除」，并附上你订阅时用的邮箱。我们会在合理时间内处理完成。
-      </p>
-      <p style="font-size: var(--fs-13); color: var(--text-tertiary);">
-        提示：保存在你浏览器本地的历史与收藏，你自己随时可以通过清空浏览器数据直接删除，无需联系我们。
-      </p>
+      <p>订阅退订、无法登录或其他数据请求可发送到 <a href="mailto:hello@bytedance.city?subject=数据请求">hello@bytedance.city</a>。我们可能需要验证你对邮箱或账户的控制权，避免他人冒名导出或删除。</p>
     </div>
 
     <div class="about-page__section">
       <div class="about-page__section-label">06</div>
       <h2 class="about-page__section-title">数据保留与安全</h2>
       <p>
-        我们只在产品需要时保留数据，不做无限期囤积。订阅邮箱在你退订或请求删除后即移除。我们采取常规的技术与管理措施保护服务器，但请理解：互联网上没有绝对安全，建议你不要在提交的问题里写入敏感的个人或商业机密信息。
+        账户和明确保存的资产在提供服务所需期间保留，直到你删除账户、删除相应资产或提出适用的数据请求。一次性登录令牌有短有效期并按单次消费处理；会话可在登出或删除后撤销。我们使用访问控制、哈希令牌、HttpOnly Cookie、私有配置和最小化公开响应等措施，但任何联网系统都没有绝对安全。
       </p>
     </div>
 
     <div class="about-page__section">
       <div class="about-page__section-label">07</div>
       <h2 class="about-page__section-title">第三方服务</h2>
-      <p>
-        生成报告时，你的问题会发送给我们使用的大语言模型服务商进行推理。我们仅传递必要的问题文本，不附带你的身份信息。除此之外，本站不嵌入第三方广告、不接入社交媒体追踪插件。
-      </p>
+      <p>主要第三方处理包括邮件投递和大语言模型推理。模型请求通常不需要附带账户邮箱，但问题正文可能本身包含身份信息，所以请先自行去除敏感内容。本站不嵌入第三方广告或社交媒体追踪插件。</p>
     </div>
 
     <div class="about-page__section">
@@ -143,14 +143,15 @@
         对隐私有任何疑问，或想行使导出 / 删除权利，欢迎邮件联系：
         <a href="mailto:hello@bytedance.city">hello@bytedance.city</a>。
       </p>
+      <p><button type="button" class="btn btn--secondary" data-analytics-settings>重新选择分析设置</button></p>
     </div>
   </main>
 
   <footer class="site-footer"></footer>
-  <script src="/assets/js/i18n.js?v=20260713a"></script>
-  <script src="/assets/js/utils.js?v=20260514c"></script>
-  <script src="/assets/js/history-sidebar.js?v=20260514"></script>
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/utils.js?v=20260714n2"></script>
+  <script src="/assets/js/history-sidebar.js?v=20260714n2"></script>
   <script src="/assets/js/product-switcher.js?v=20260514c"></script>
-  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
 </body>
 </html>

@@ -1,33 +1,113 @@
 // W12-B (session #10, 2026-05-15): sitemap enumeration data.
 //
-// Tickers + universality class IDs that should appear in sitemap.xml.
-// In production these will be fetched from the API; for static export
-// the lists are checked into git. Keep in sync with backend taxonomy.
+// Tickers + universality class IDs that appear in sitemap.xml and the
+// analytics route allowlist. Release tests bind the ticker snapshot to the
+// product artifact and keep the class list synchronized with the taxonomy.
 
-// Top-100 U.S. equity tickers covered by Structural Labs · Phase v0.1.
-// Source: SP500 + Russell-1000 supplement from public/backtest/ universe.
-// Edit this list when the universe changes.
+// Client-safe published company-route registry.
+// Generated from v4/product/d1_phase_detector/data/ews_results.json; the
+// release privacy gate requires exact set equality with that artifact.
 export const PHASE_DETECTOR_TICKERS: string[] = [
-  // Mega-cap tech
-  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AVGO", "ORCL", "ADBE",
-  // Semis + hardware
-  "INTC", "AMD", "QCOM", "TXN", "MU", "AMAT", "LRCX", "KLAC", "MRVL", "ARM",
-  // SaaS / software
-  "CRM", "NOW", "SNOW", "DDOG", "PLTR", "MDB", "NET", "OKTA", "ZS", "CRWD",
-  // Financials
-  "JPM", "BAC", "WFC", "GS", "MS", "C", "BLK", "AXP", "SCHW", "USB",
-  // Energy
-  "XOM", "CVX", "COP", "EOG", "PXD", "SLB", "OXY", "MPC", "PSX", "VLO",
-  // Healthcare / biotech
-  "JNJ", "UNH", "PFE", "MRK", "ABBV", "TMO", "DHR", "LLY", "AMGN", "BIIB",
-  // Consumer + retail
-  "WMT", "COST", "HD", "LOW", "TGT", "NKE", "SBUX", "MCD", "BKNG", "CMG",
-  // Communication / media
-  "DIS", "NFLX", "CMCSA", "T", "VZ", "TMUS", "CHTR", "WBD", "PARA", "FOX",
-  // Industrials
-  "BA", "CAT", "GE", "HON", "LMT", "RTX", "UNP", "UPS", "FDX", "DE",
-  // Other notable (crypto/fintech/EV)
-  "COIN", "SQ", "PYPL", "SOFI", "AFRM", "RBLX", "U", "RIVN", "LCID", "ABNB",
+  "0001.HK", "0002.HK", "0003.HK", "0005.HK", "0006.HK", "0011.HK",
+  "0012.HK", "0016.HK", "0017.HK", "0020.HK", "0027.HK", "0066.HK",
+  "0101.HK", "0175.HK", "0241.HK", "0267.HK", "0285.HK", "0288.HK",
+  "0291.HK", "0316.HK", "0322.HK", "0386.HK", "0388.HK", "0522.HK",
+  "0669.HK", "0688.HK", "0700.HK", "0762.HK", "0780.HK", "0788.HK",
+  "0823.HK", "0857.HK", "0868.HK", "0883.HK", "0909.HK", "0939.HK",
+  "0941.HK", "0960.HK", "0968.HK", "0981.HK", "0992.HK", "1024.HK",
+  "1038.HK", "1044.HK", "1088.HK", "1093.HK", "1099.HK", "1109.HK",
+  "1113.HK", "1177.HK", "1209.HK", "1211.HK", "1299.HK", "1347.HK",
+  "1378.HK", "1398.HK", "1797.HK", "1810.HK", "1833.HK", "1876.HK",
+  "1928.HK", "1929.HK", "1997.HK", "2007.HK", "2015.HK", "2018.HK",
+  "2020.HK", "2269.HK", "2313.HK", "2318.HK", "2319.HK", "2331.HK",
+  "2382.HK", "2388.HK", "2400.HK", "2628.HK", "2688.HK", "3690.HK",
+  "3692.HK", "3888.HK", "3968.HK", "3988.HK", "6060.HK", "6098.HK",
+  "6618.HK", "6682.HK", "6690.HK", "6862.HK", "9618.HK", "9626.HK",
+  "9633.HK", "9660.HK", "9866.HK", "9868.HK", "9888.HK", "9961.HK",
+  "9987.HK", "9988.HK", "9999.HK", "A", "AAPL", "ABBV",
+  "ABNB", "ABT", "ACGL", "ACN", "ADBE", "ADI",
+  "ADM", "ADP", "ADSK", "AEE", "AEP", "AES",
+  "AFL", "AFRM", "AIG", "AIZ", "AJG", "AKAM",
+  "ALB", "ALGN", "ALL", "ALLE", "AMAT", "AMCR",
+  "AMD", "AME", "AMGN", "AMP", "AMT", "AMZN",
+  "ANET", "AON", "AOS", "APA", "APD", "APH",
+  "APO", "APP", "APTV", "ARE", "ARES", "ATO",
+  "AVB", "AVGO", "AVY", "AWK", "AXON", "AXP",
+  "AZO", "BA", "BAC", "BALL", "BAX", "BBY",
+  "BDX", "BEN", "BF.B", "BG", "BIIB", "BK",
+  "BKNG", "BKR", "BLDP", "BLDR", "BLK", "BMY",
+  "BNTX", "BR", "BRK.B", "BRO", "BSX", "BX",
+  "BXP", "C", "CAG", "CAH", "CARR", "CASY",
+  "CAT", "CB", "CBOE", "CBRE", "CCI", "CCL",
+  "CDNS", "CDW", "CEG", "CF", "CFG", "CHD",
+  "CHRW", "CHTR", "CI", "CIEN", "CINF", "CL",
+  "CLX", "CMCSA", "CME", "CMG", "CMI", "CMS",
+  "CNC", "CNP", "COF", "COHR", "COIN", "COO",
+  "COP", "COR", "COST", "CPAY", "CPB", "CPRT",
+  "CPT", "CRH", "CRL", "CRM", "CRWD", "CSCO",
+  "CSGP", "CSX", "CTAS", "CTSH", "CTVA", "CVNA",
+  "CVS", "CVX", "D", "DAL", "DASH", "DD",
+  "DDOG", "DE", "DECK", "DELL", "DG", "DGX",
+  "DHI", "DHR", "DIS", "DLR", "DLTR", "DOC",
+  "DOV", "DOW", "DPZ", "DRI", "DTE", "DUK",
+  "DVA", "DVN", "DXCM", "EA", "EBAY", "ECL",
+  "ED", "EFX", "EG", "EIX", "EL", "ELV",
+  "EME", "EMR", "ENPH", "EOG", "EPAM", "EQIX",
+  "EQR", "EQT", "ERIE", "ES", "ESS", "ETN",
+  "ETR", "EVRG", "EW", "EXC", "EXE", "EXPD",
+  "EXPE", "EXR", "F", "FANG", "FAST", "FCX",
+  "FDS", "FDX", "FE", "FFIV", "FICO", "FIS",
+  "FISV", "FITB", "FIX", "FOX", "FOXA", "FRT",
+  "FSLR", "FTNT", "FTV", "GD", "GDDY", "GE",
+  "GEHC", "GEN", "GEV", "GILD", "GIS", "GL",
+  "GLW", "GM", "GNRC", "GOOG", "GOOGL", "GPC",
+  "GPN", "GRMN", "GS", "HAL", "HAS", "HBAN",
+  "HCA", "HD", "HIG", "HII", "HLT", "HON",
+  "HOOD", "HPE", "HPQ", "HRL", "HSIC", "HST",
+  "HSY", "HUBB", "HUM", "HWM", "IBKR", "IBM",
+  "ICE", "IDXX", "IEX", "IFF", "ILMN", "INCY",
+  "INTC", "INTU", "INVH", "IP", "IQV", "IR",
+  "IRM", "ISRG", "IT", "ITW", "IVZ", "J",
+  "JBHT", "JBL", "JCI", "JKHY", "JNJ", "JPM",
+  "KDP", "KEY", "KEYS", "KHC", "KIM", "KKR",
+  "KLAC", "KMB", "KMI", "KO", "KR", "KVUE",
+  "L", "LCID", "LDOS", "LEN", "LH", "LHX",
+  "LII", "LIN", "LITE", "LLY", "LMT", "LNT",
+  "LOW", "LRCX", "LULU", "LUV", "LVS", "LYB",
+  "LYV", "MA", "MAA", "MAR", "MAS", "MCD",
+  "MCHP", "MCK", "MCO", "MDB", "MDLZ", "MDT",
+  "MET", "META", "MGM", "MKC", "MLM", "MMM",
+  "MNST", "MO", "MOS", "MPC", "MPWR", "MRK",
+  "MRNA", "MRSH", "MS", "MSCI", "MSFT", "MSI",
+  "MTB", "MTD", "MU", "NCLH", "NDAQ", "NDSN",
+  "NEE", "NEM", "NET", "NFLX", "NI", "NKE",
+  "NOC", "NOW", "NRG", "NSC", "NTAP", "NTRS",
+  "NUE", "NVDA", "NVR", "NWS", "NWSA", "NXPI",
+  "O", "ODFL", "OKE", "OMC", "ON", "ORCL",
+  "ORLY", "OTIS", "OXY", "PANW", "PAYX", "PCAR",
+  "PCG", "PEG", "PEP", "PFE", "PFG", "PG",
+  "PGR", "PH", "PHM", "PKG", "PLD", "PLTR",
+  "PLUG", "PM", "PNC", "PNR", "PNW", "PODD",
+  "POOL", "PPG", "PPL", "PRU", "PSA", "PSKY",
+  "PSX", "PTC", "PWR", "PYPL", "Q", "QCOM",
+  "RBLX", "RCL", "RE", "REG", "REGN", "RF",
+  "RIVN", "RJF", "RL", "RMD", "RNR", "ROK",
+  "ROKU", "ROL", "ROP", "ROST", "RSG", "RTX",
+  "RVTY", "SATS", "SBAC", "SBUX", "SCHW", "SEDG",
+  "SHOP", "SHW", "SJM", "SLB", "SMCI", "SNA",
+  "SNDK", "SNOW", "SNPS", "SO", "SOLV", "SPG",
+  "SPGI", "SPOT", "SRE", "STE", "STLD", "STT",
+  "STX", "STZ", "SW", "SWK", "SWKS", "SYF",
+  "SYK", "SYY", "T", "TAP", "TDG", "TDY",
+  "TECH", "TEL", "TER", "TFC", "TGT", "TJX",
+  "TKO", "TMO", "TMUS", "TPL", "TPR", "TRGP",
+  "TRMB", "TROW", "TRV", "TSCO", "TSLA", "TSN",
+  "TT", "TTD", "TTWO", "TXN", "TXT", "TYL",
+  "U", "UAL", "UBER", "UDR", "UHS", "ULTA",
+  "UNH", "UNP", "UPS", "UPST", "URI", "USB",
+  "V", "VEEV", "VLO", "VLTO", "VRSK", "VRSN",
+  "VRTX", "VTR", "VZ", "WBD", "WFC", "WMT",
+  "XOM", "XYZ", "ZS",
 ];
 
 // Universality class IDs from v4/taxonomy/universality_classes.yaml.

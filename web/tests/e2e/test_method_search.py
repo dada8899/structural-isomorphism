@@ -5,6 +5,8 @@ Run: pytest web/tests/e2e/test_method_search.py -v
 @pytest.mark.post_deploy — only pass once Session #18 ships apply.html.
 The orchestrator runs these; in baseline phase skip via `-k "not post_deploy"`.
 """
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 from playwright.sync_api import Page, expect
 
@@ -39,8 +41,8 @@ def test_apply_short_input_rejected(page: Page):
 
 
 @pytest.mark.post_deploy
-def test_apply_submit_shows_signature_and_matches(page: Page):
-    """A real method submit should render the signature + match cards."""
+def test_apply_submit_shows_signature_and_candidates(page: Page):
+    """A real method submit renders an unverified signature + candidates."""
     page.goto(f"{BASE}/apply")
     page.fill("#apply-input", "梯度下降——在带噪声的反馈下沿局部信息迭代逼近最优解")
     page.click("#apply-submit")
@@ -49,15 +51,20 @@ def test_apply_submit_shows_signature_and_matches(page: Page):
     expect(page.locator(".apply-signature__text")).to_be_visible()
     cards = page.locator(".apply-card")
     assert cards.count() >= 1, "expected at least one match card"
+    rank = cards.first.locator(".apply-card__rel").inner_text()
+    assert "候选 #" in rank and "%" not in rank
 
 
 @pytest.mark.post_deploy
 def test_apply_card_links_to_analyze(page: Page):
-    """The 深入分析 link on a card should point to /analyze with b_id+text_a."""
+    """The 深入分析 link keeps method text in a local handoff."""
     page.goto(f"{BASE}/apply")
     page.fill("#apply-input", "模拟退火——以逐渐降低的随机扰动跳出局部最优")
     page.click("#apply-submit")
     expect(page.locator("#apply-result")).to_be_visible(timeout=30000)
     href = page.locator(".apply-card__link").first.get_attribute("href")
     assert href and href.startswith("/analyze?")
-    assert "b_id=" in href and "text_a=" in href
+    query = parse_qs(urlparse(href).query)
+    assert len(query.get("id", [])) == 1
+    assert len(query.get("handoff", [])) == 1
+    assert "q" not in query and "b_id" not in query and "text_a" not in query

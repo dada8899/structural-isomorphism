@@ -13,6 +13,7 @@ Coverage:
 """
 from __future__ import annotations
 
+import copy
 import csv
 import importlib.util
 import json
@@ -29,6 +30,10 @@ MODULE_PATH = (
 VAL_DIR = REPO_ROOT / "v4" / "validation" / "llm-scaling"
 RAW_DIR = VAL_DIR / "raw"
 RESULTS_JSON = VAL_DIR / "results.json"
+SUMMARY_MD = VAL_DIR / "summary.md"
+RUNNER_PATH = VAL_DIR / "run_validation.py"
+CROSS_SOURCE_JSON = VAL_DIR / "cross_source_summary.json"
+CROSS_SOURCE_12B_JSON = VAL_DIR / "pythia_12b_cross_source.json"
 KB_JSONL = REPO_ROOT / "data" / "kb-additions-2026-05-24-llm-scaling.jsonl"
 
 
@@ -42,6 +47,15 @@ def lc():
     spec = importlib.util.spec_from_file_location("lc_under_test", MODULE_PATH)
     mod = importlib.util.module_from_spec(spec)
     sys.modules["lc_under_test"] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@pytest.fixture(scope="module")
+def runner():
+    spec = importlib.util.spec_from_file_location("llm_scaling_runner", RUNNER_PATH)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["llm_scaling_runner"] = mod
     spec.loader.exec_module(mod)
     return mod
 
@@ -126,41 +140,165 @@ def test_results_json_exists() -> None:
     )
 
 
+def test_committed_artifacts_equal_deterministic_raw_input_build(runner) -> None:
+    if not runner.generator_environment_matches():
+        pytest.skip("platform-equivalent artifact comparison runs in the locked generator gate")
+    generated = runner.main(write=False)
+    committed = json.loads(RESULTS_JSON.read_text())
+
+    runner.assert_artifact_equivalent(committed, generated)
+    assert SUMMARY_MD.read_text() == runner._render_summary_md(committed)
+    assert runner._check_committed_artifacts() == committed
+
+
+def test_artifact_comparison_rejects_material_numeric_and_semantic_drift(
+    runner,
+) -> None:
+    committed = json.loads(RESULTS_JSON.read_text())
+    numeric_drift = copy.deepcopy(committed)
+    numeric_drift["fits"]["pythia-2.8b"]["A"] *= 1.001
+    with pytest.raises(ValueError, match="numeric artifact mismatch"):
+        runner.assert_artifact_equivalent(committed, numeric_drift)
+
+    semantic_drift = copy.deepcopy(committed)
+    semantic_drift["fits"]["pythia-2.8b"]["fit_status"] = "rejected"
+    with pytest.raises(ValueError, match="artifact mismatch"):
+        runner.assert_artifact_equivalent(committed, semantic_drift)
+
+
+def test_generator_contract_is_exact_and_self_describing(runner) -> None:
+    data = json.loads(RESULTS_JSON.read_text())
+    assert runner._generator_pins() == {
+        "contourpy": "1.3.3",
+        "cycler": "0.12.1",
+        "fonttools": "4.63.0",
+        "kiwisolver": "1.5.0",
+        "matplotlib": "3.11.0",
+        "numpy": "1.26.3",
+        "packaging": "26.2",
+        "pandas": "3.0.3",
+        "pillow": "12.3.0",
+        "pyparsing": "3.3.2",
+        "python-dateutil": "2.9.0.post0",
+        "scipy": "1.16.3",
+        "six": "1.17.0",
+    }
+    assert data["generation_contract"] == {
+        "python": "3.11",
+        "requirements": runner._generator_pins(),
+        "float_significant_digits": 12,
+        "comparison_rel_tol": 1e-4,
+        "comparison_abs_tol": 1e-10,
+        "canonical_data_kind": "real",
+        "canonical_input": (
+            "v4/validation/llm-scaling/raw/pythia_checkpoints_combined.csv"
+        ),
+    }
+
+
+@pytest.mark.parametrize("path", [CROSS_SOURCE_JSON, CROSS_SOURCE_12B_JSON])
+def test_cross_source_outputs_are_strict_json(path: Path) -> None:
+    def reject_nonfinite(value: str) -> None:
+        raise ValueError(f"non-finite JSON constant: {value}")
+
+    parsed = json.loads(path.read_text(), parse_constant=reject_nonfinite)
+    assert isinstance(parsed, dict)
+
+
+@pytest.mark.parametrize("data_kind", ["synthetic", "rea1"])
+def test_canonical_writer_rejects_nonreal_data_without_clobber(
+    runner, monkeypatch, data_kind: str,
+) -> None:
+    before_results = RESULTS_JSON.read_bytes()
+    before_summary = SUMMARY_MD.read_bytes()
+    monkeypatch.setenv("PYTHIA_DATA", data_kind)
+    monkeypatch.setattr(
+        runner, "_assert_generator_environment", runner._assert_canonical_data_source
+    )
+
+    with pytest.raises(
+        RuntimeError, match="canonical LLM scaling artifacts require PYTHIA_DATA=real"
+    ):
+        runner.main(write=True)
+
+    assert RESULTS_JSON.read_bytes() == before_results
+    assert SUMMARY_MD.read_bytes() == before_summary
+
+
+def test_canonical_writer_rejects_missing_real_input_without_clobber(
+    runner, monkeypatch, tmp_path: Path,
+) -> None:
+    before_results = RESULTS_JSON.read_bytes()
+    before_summary = SUMMARY_MD.read_bytes()
+    monkeypatch.setenv("PYTHIA_DATA", "real")
+    monkeypatch.setattr(runner, "RAW_DIR", tmp_path)
+    monkeypatch.setattr(
+        runner, "_assert_generator_environment", runner._assert_canonical_data_source
+    )
+
+    with pytest.raises(RuntimeError, match="canonical LLM scaling input is missing"):
+        runner.main(write=True)
+
+    assert RESULTS_JSON.read_bytes() == before_results
+    assert SUMMARY_MD.read_bytes() == before_summary
+
+
+def test_fit_classification_rejects_boundaries_and_separates_narrow_tail(runner) -> None:
+    base = {
+        "error": None,
+        "alpha": 0.2,
+        "A": 10.0,
+        "L_inf": 1.0,
+        "R2": 0.99,
+        "provenance": "REAL_FULL",
+    }
+    assert runner._classify_fit(base, pythia=True) == ("fit_quality_eligible", None)
+    boundary = {**base, "alpha": 1.9999}
+    assert runner._classify_fit(boundary, pythia=True)[0] == "rejected"
+    negative = {**base, "R2": -0.01, "provenance": "REAL_TAIL_NARROW"}
+    assert runner._classify_fit(negative, pythia=True)[0] == "rejected"
+    narrow = {**base, "R2": 0.01, "provenance": "REAL_TAIL_NARROW"}
+    assert runner._classify_fit(narrow, pythia=True)[0] == "descriptive_only"
+
+
 def test_results_json_schema() -> None:
     data = json.loads(RESULTS_JSON.read_text())
     assert data["validation"] == "llm-scaling"
-    assert data["schema_version"] in {"1.0", "1.1"}
+    assert data["schema_version"] == "1.3"
     assert "fits" in data and "summary" in data
-    # Expect 6 Pythia sizes + Kaplan + Hoffmann = 8 series
-    assert len(data["fits"]) == 8
+    # Seven observed Pythia sizes + Kaplan + Hoffmann.
+    assert len(data["fits"]) == 9
     pythia_keys = [k for k in data["fits"] if k.startswith("pythia-")]
-    assert len(pythia_keys) == 6
+    assert set(pythia_keys) == {
+        "pythia-70m", "pythia-160m", "pythia-410m", "pythia-1b",
+        "pythia-1.4b", "pythia-2.8b", "pythia-6.9b",
+    }
 
 
 def test_results_per_fit_schema() -> None:
     data = json.loads(RESULTS_JSON.read_text())
-    required = {"name", "alpha", "A", "L_inf", "R2", "n_points"}
+    required = {
+        "name", "alpha", "A", "L_inf", "R2", "n_points",
+        "fit_status", "exclusion_reason",
+    }
     for name, fit in data["fits"].items():
         missing = required - set(fit.keys())
         assert not missing, f"{name} missing keys {missing}"
-        assert fit.get("error") is None, f"{name} errored: {fit['error']}"
-        # alpha sanity: must be a finite positive number in (0, 1)
-        assert fit["alpha"] is not None and 0 < fit["alpha"] < 1
-        # L_inf sanity: non-negative and < 10
-        assert fit["L_inf"] is not None and 0 <= fit["L_inf"] < 10
-        # R^2 sanity:
-        #  - For SYNTHETIC / REAL_FULL / LITERATURE_ANCHORED fits we require R^2 > 0.9.
-        #  - REAL_TAIL_NARROW data has no dynamic range and is allowed lower R^2,
-        #    but we still require it >= 0 (i.e. the fit isn't degenerate).
-        prov = fit.get("provenance", "")
-        if "REAL_TAIL_NARROW" in prov:
-            assert fit["R2"] is not None and fit["R2"] >= 0.0
-        else:
+        assert fit["fit_status"] in {
+            "fit_quality_eligible", "descriptive_only", "rejected",
+        }
+        if fit["fit_status"] == "fit_quality_eligible":
+            assert fit["exclusion_reason"] is None
+            assert fit.get("error") is None
+            assert fit["alpha"] is not None and 0 < fit["alpha"] < 1
+            assert fit["L_inf"] is not None and 0 <= fit["L_inf"] < 10
             assert fit["R2"] is not None and fit["R2"] > 0.9
+        else:
+            assert isinstance(fit["exclusion_reason"], str) and fit["exclusion_reason"]
 
 
 def test_pythia_alpha_band() -> None:
-    """All 6 Pythia alphas should be in a relaxed band [0.03, 1.0].
+    """Only fit-quality-eligible Pythia alphas enter the numerical band.
 
     The original 2026-05-24 synthetic data clustered at α ∈ [0.09, 0.15].
     Real wandb training-curve fits (2026-05-25 upgrade) push the per-size
@@ -170,6 +308,8 @@ def test_pythia_alpha_band() -> None:
     data = json.loads(RESULTS_JSON.read_text())
     for name, fit in data["fits"].items():
         if not name.startswith("pythia-"):
+            continue
+        if fit["fit_status"] != "fit_quality_eligible":
             continue
         assert 0.03 <= fit["alpha"] <= 1.0, (
             f"{name} alpha {fit['alpha']:.4f} outside [0.03, 1.0]"
@@ -201,28 +341,27 @@ def test_pythia_universality_summary() -> None:
     """
     data = json.loads(RESULTS_JSON.read_text())
     s = data["summary"]
-    assert s["pythia_n_sizes"] == 6
-    allowed_verdicts = {
-        "STRONG_UNIVERSALITY",
-        "MODERATE_UNIVERSALITY",
+    assert s["pythia_n_sizes"] == 7
+    assert s["pythia_n_fit_quality_eligible"] == 5
+    allowed_diagnostics = {
+        "NARROW_SPREAD",
+        "MODERATE_SPREAD",
         "BROAD_SPREAD",
         "UNKNOWN",
     }
-    # Schema 1.1 (stratified): keys "alpha_all_sizes" / "alpha_real_wide_only"
-    if "alpha_all_sizes" in s:
-        all_stats = s["alpha_all_sizes"]
-        assert all_stats["n"] == 6
-        assert all_stats["mean"] is not None
-        assert 0.03 < all_stats["mean"] < 1.0
-        assert s["universality_verdict_all"] in allowed_verdicts
-        assert s["universality_verdict_real_wide"] in allowed_verdicts
-    # Schema 1.0 (original flat keys) for backward compat
-    elif "pythia_alpha_mean" in s:
-        assert s["pythia_alpha_mean"] is not None
-        assert 0.05 < s["pythia_alpha_mean"] < 0.30
-        assert s["universality_verdict"] in allowed_verdicts
-    else:
-        raise AssertionError("Neither schema 1.0 nor 1.1 keys present in summary")
+    eligible = s["alpha_fit_quality_eligible_sizes"]
+    assert eligible["n"] == 5
+    assert eligible["mean"] is not None
+    assert 0.03 < eligible["mean"] < 1.0
+    assert s["fit_spread_diagnostic_fit_quality_eligible"] in allowed_diagnostics
+    assert s["fit_spread_diagnostic_real_wide"] in allowed_diagnostics
+    assert s["alpha_real_wide_only"]["n"] == 2
+    assert s["scientific_conclusion"] == (
+        "INSUFFICIENT_REAL_WIDE_SERIES_FOR_UNIVERSALITY_INFERENCE"
+    )
+    assert s["fit_status_per_model"]["pythia-1.4b"] == "rejected"
+    assert s["fit_status_per_model"]["pythia-2.8b"] == "descriptive_only"
+    assert set(s["exclusions_from_fit_spread"]) == {"pythia-1.4b", "pythia-2.8b"}
 
 
 # ---------------------------------------------------------------------------

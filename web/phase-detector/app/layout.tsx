@@ -164,18 +164,18 @@ export default function RootLayout({
                 <span className="font-medium text-zinc-700 dark:text-zinc-300">
                   Structural Labs · Phase
                 </span>
-                <Link href="/about" className="hover:text-zinc-900 dark:hover:text-white">
+                <Link href="/about" className="inline-flex min-h-11 items-center hover:text-zinc-900 dark:hover:text-white">
                   关于
                 </Link>
-                <Link href="/methodology" className="hover:text-zinc-900 dark:hover:text-white">
+                <Link href="/methodology" className="inline-flex min-h-11 items-center hover:text-zinc-900 dark:hover:text-white">
                   方法
                 </Link>
                 {/* W14-C: privacy + cookie controls in footer */}
-                <Link href="/privacy" className="hover:text-zinc-900 dark:hover:text-white">
+                <Link href="/privacy" className="inline-flex min-h-11 items-center hover:text-zinc-900 dark:hover:text-white">
                   隐私
                 </Link>
                 {process.env.NEXT_PUBLIC_AUTH_ENABLED === "true" && (
-                  <Link href="/auth/login" className="hover:text-zinc-900 dark:hover:text-white">
+                  <Link href="/auth/login" className="inline-flex min-h-11 items-center hover:text-zinc-900 dark:hover:text-white">
                     注册 / 登录
                   </Link>
                 )}
@@ -192,7 +192,7 @@ export default function RootLayout({
                   href="https://beta.structural.bytedance.city"
                   target="_blank"
                   rel="noopener"
-                  className="hover:text-zinc-900 dark:hover:text-white"
+                  className="inline-flex min-h-11 items-center hover:text-zinc-900 dark:hover:text-white"
                 >
                   返回 Structural 主产品 ↗
                 </a>

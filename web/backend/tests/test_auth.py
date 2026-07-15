@@ -10,6 +10,7 @@ Run with:
 from __future__ import annotations
 
 import json
+import hashlib
 import sqlite3
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -132,6 +133,76 @@ def test_request_link_rate_limit(client):
     r = _request_link(client, "rl@example.com")
     assert r.status_code == 429
     assert "rate limit" in r.json()["error"].lower()
+
+
+def test_rate_limit_keys_are_domain_separated_hmacs(client, tmp_path):
+    email = "rate-private@example.com"
+    response = _request_link(client, email)
+    assert response.status_code == 200
+    with sqlite3.connect(tmp_path / "auth.sqlite3") as conn:
+        keys = {
+            row[0]
+            for row in conn.execute("SELECT DISTINCT email FROM auth_rate_requests")
+        }
+    assert "global:magic-link-email" in keys
+    private_keys = keys - {"global:magic-link-email"}
+    assert len(private_keys) == 2
+    assert {key.split(":", 1)[0] for key in private_keys} == {
+        "auth-rate.email", "auth-rate.ip",
+    }
+    assert all(":v2:" in key for key in private_keys)
+    serialized = json.dumps(sorted(keys))
+    assert email not in serialized
+    assert hashlib.sha256(email.encode()).hexdigest() not in serialized
+
+    same_value = "same-value"
+    assert auth_mod._privacy_rate_key("email", same_value) != auth_mod._privacy_rate_key(
+        "ip", same_value
+    )
+    assert auth_mod._privacy_rate_key("email", same_value) == auth_mod._privacy_rate_key(
+        "email", same_value
+    )
+
+
+def test_legacy_rate_bucket_is_counted_and_upgraded(client, tmp_path):
+    email = "legacy-rate@example.com"
+    auth_mod._store()
+    legacy = auth_mod._legacy_privacy_rate_key("email", email)
+    with sqlite3.connect(tmp_path / "auth.sqlite3") as conn:
+        conn.execute(
+            "INSERT INTO auth_rate_requests(email,requested_at) VALUES(?,strftime('%s','now'))",
+            (legacy,),
+        )
+
+    response = _request_link(client, email)
+    assert response.status_code == 200
+    with sqlite3.connect(tmp_path / "auth.sqlite3") as conn:
+        keys = {
+            row[0]
+            for row in conn.execute("SELECT DISTINCT email FROM auth_rate_requests")
+        }
+    assert legacy not in keys
+    assert auth_mod._privacy_rate_key("email", email) in keys
+
+
+def test_oldest_raw_email_rate_bucket_is_counted_and_upgraded(client, tmp_path):
+    email = "raw-legacy-rate@example.com"
+    auth_mod._store()
+    with sqlite3.connect(tmp_path / "auth.sqlite3") as conn:
+        conn.execute(
+            "INSERT INTO auth_rate_requests(email,requested_at) VALUES(?,strftime('%s','now'))",
+            (email,),
+        )
+
+    response = _request_link(client, email)
+    assert response.status_code == 200
+    with sqlite3.connect(tmp_path / "auth.sqlite3") as conn:
+        keys = {
+            row[0]
+            for row in conn.execute("SELECT DISTINCT email FROM auth_rate_requests")
+        }
+    assert email not in keys
+    assert auth_mod._privacy_rate_key("email", email) in keys
 
 
 def test_request_link_dev_mode_returns_link(client, monkeypatch):

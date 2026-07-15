@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -27,12 +30,47 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install test runner
-        run: python -m pip install pytest
+        run: python -m pip install pytest PyYAML==6.0.3
       - name: Validate retrieval evaluation contract
         run: make PY=python test-retrieval-contract
 
       - name: Validate product and research contracts
-        run: make PY=python test-product-contracts
+        run: >-
+          python -m pytest
+          tests/test_public_controls.py
+          tests/test_english_review_tool.py
+          tests/test_research_claim_gate.py
+          -q
+
+  site-docs-contract:
+    name: project site document closure (offline)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify every project-site document is published and navigable
+        run: python -I scripts/check_site_docs.py
+
+  phase-python-contract:
+    name: Phase Python contract (complete, offline)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install exact Phase runtime and test dependencies
+        run: >-
+          python -m pip install
+          -r v4/product/d1_phase_detector/api/requirements.txt
+          pytest==9.0.3
+          httpx==0.27.2
+      - name: Run both complete Phase Python test trees
+        run: make PY=python test-phase-python-contract
 
   browser-product-contract:
     name: browser product contract (local, fail-closed)
@@ -45,7 +83,17 @@ jobs:
           python-version: "3.11"
       - name: Install browser test dependencies
         run: |
-          python -m pip install pytest playwright fastapi uvicorn PyJWT slowapi
+          python -m pip install \
+            pytest==9.0.3 \
+            playwright==1.59.0 \
+            pytest-playwright==0.7.2 \
+            fastapi==0.115.14 \
+            pydantic==2.6.1 \
+            starlette==0.46.2 \
+            'uvicorn[standard]==0.27.1' \
+            PyJWT==2.12.1 \
+            slowapi==0.1.9 \
+            structlog==25.5.0
           python -m playwright install --with-deps chromium
       - uses: pnpm/action-setup@v4
         with:
@@ -60,12 +108,108 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Verify the explicit workbench decision journey
         run: >-
-          pytest tests/e2e/test_full_public_surface.py
-          -k "beta_workbench_requires_fingerprint_and_explicit_candidate
-          or beta_header_exposes_canonical_phase_account"
+          pytest
+          tests/e2e/test_full_public_surface.py::test_beta_workbench_requires_fingerprint_and_explicit_candidate
+          tests/e2e/test_full_public_surface.py::test_beta_header_exposes_one_dynamic_primary_account_entry
+          tests/e2e/test_full_public_surface.py::test_beta_header_never_picks_one_of_two_accounts
           -m "e2e and not requires_internet" -v
       - name: Verify real Next auth, failure states, mobile controls and axe
         run: pytest web/tests/e2e/test_phase_auth_real.py -v
+      - name: Verify consent-gated official analytics transport
+        run: pytest web/tests/e2e/test_cookie_consent.py -v
+
+  browser-beta-surface-contract:
+    name: browser beta surfaces (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: search-ask-analyze-phenomenon
+            pytest_args: >-
+              tests/e2e/test_search_private_navigation.py
+              tests/e2e/test_phenomenon_evidence_mobile.py
+            pytest_args_isolated: ''
+            node_tests: >-
+              web/frontend/tests/test_privateNavigation.js
+              web/frontend/tests/test_searchBootstrap.js
+              web/frontend/tests/test_searchSynthesisRendering.js
+              web/frontend/tests/test_askTrust.js
+              web/frontend/tests/test_analyzeTrust.js
+              web/frontend/tests/test_buildAnalyzeUrl.js
+          - shard: discovery-classes-papers
+            pytest_args: >-
+              tests/e2e/test_discovery_validation_plan.py
+              tests/e2e/test_classes_language_mobile.py
+              tests/e2e/test_papers_public_runtime.py
+            pytest_args_isolated: ''
+            node_tests: ''
+          - shard: library-auth-reports-favorites
+            pytest_args: >-
+              tests/e2e/test_full_public_surface.py
+              tests/e2e/test_unified_research_library.py
+            pytest_args_isolated: >-
+              web/tests/e2e/test_thank_you_copy.py
+              web/tests/e2e/test_report_share.py
+              web/tests/e2e/test_cross_domain_report_claim.py
+            node_tests: >-
+              web/frontend/tests/test_analyticsSensitiveRoutes.js
+              web/frontend/tests/test_historyPrivacy.js
+              web/frontend/tests/test_reportTrust.js
+          - shard: secondary-whitespace
+            pytest_args: >-
+              web/tests/e2e/test_secondary_tools_candidate_journeys.py
+              web/tests/e2e/test_whitespace.py
+            pytest_args_isolated: ''
+            node_tests: >-
+              web/frontend/tests/test_secondaryToolContracts.js
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Install locked axe asset
+        working-directory: web/phase-detector
+        run: pnpm install --frozen-lockfile
+      - name: Install browser contract dependencies
+        run: |
+          python -m pip install \
+            pytest==9.0.3 \
+            playwright==1.59.0 \
+            pytest-playwright==0.7.2 \
+            httpx==0.27.2 \
+            fastapi==0.115.14 \
+            pydantic==2.6.1 \
+            starlette==0.46.2 \
+            'uvicorn[standard]==0.27.1' \
+            PyJWT==2.12.1 \
+            slowapi==0.1.9 \
+            structlog==25.5.0
+          python -m playwright install --with-deps chromium
+      - name: Run browser surface shard
+        run: >-
+          pytest ${{ matrix.pytest_args }}
+          -m "e2e and not requires_internet" -v
+      - name: Run isolated browser surface subgroup
+        if: matrix.pytest_args_isolated != ''
+        run: >-
+          pytest ${{ matrix.pytest_args_isolated }}
+          -m "e2e and not requires_internet" -v
+      - name: Run JavaScript trust contracts
+        if: matrix.node_tests != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in ${{ matrix.node_tests }}; do
+            node "$test_file"
+          done
 
   # ---------------------------------------------------------------------------
   # 1) Backend: full Python matrix (3.10/3.11/3.12 × ubuntu/macos/windows)
@@ -125,8 +269,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[dev] || pip install numpy scipy pandas powerlaw pytest pytest-xdist
-          pip install pyyaml
+          python -m pip install -e ".[dev]"
+          python -m pip install pyyaml
 
       - name: Install local packages (editable)
         # v4 sanity / integration tests import via deprecated shims at
@@ -267,3 +411,48 @@ jobs:
 
       - name: Run e2e (skip slow + requires_llm; soft-fail)
         run: pytest tests/e2e -m "e2e and not slow and not requires_llm" -v
+
+  release-gate-summary:
+    name: release-gate
+    if: always()
+    needs:
+      - retrieval-eval-contract
+      - site-docs-contract
+      - phase-python-contract
+      - browser-product-contract
+      - browser-beta-surface-contract
+      - backend
+      - packages
+      - frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Require every CI dependency to succeed
+        env:
+          REQUIRED_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = json.loads(
+              Path(".github/release-gate-manifest.json").read_text(encoding="utf-8")
+          )
+          expected = set(manifest["ci_aggregator"]["needs"])
+          results = json.loads(os.environ["REQUIRED_RESULTS"])
+          if set(results) != expected:
+              raise SystemExit(f"release-gate dependency drift: {sorted(results)}")
+          failed = {
+              name: result.get("result")
+              for name, result in results.items()
+              if result.get("result") != "success"
+          }
+          if failed:
+              raise SystemExit(f"release-gate dependency failure: {failed}")
+          print("all CI-internal release dependencies succeeded")
+          PY

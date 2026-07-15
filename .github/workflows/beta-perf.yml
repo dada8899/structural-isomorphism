@@ -1,0 +1,67 @@
+name: beta perf budget
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: beta-perf-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  beta-perf-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install locked browser runtime
+        run: |
+          python -m pip install pytest==9.0.3 playwright==1.59.0 pydantic==2.6.1
+          python -m playwright install --with-deps chromium
+      - name: Run deterministic unit contracts
+        run: >-
+          python -m pytest
+          tests/test_perf_audit.py
+          tests/test_beta_perf_audit.py
+          -q
+      - name: Start local beta static server
+        run: |
+          python -m http.server 4173 --bind 127.0.0.1 --directory web/frontend > /tmp/beta-server.log 2>&1 &
+          echo $! > /tmp/beta-server.pid
+          for attempt in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:4173/index.html > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/beta-server.log
+          exit 1
+      - name: Audit beta surfaces against the existing product budget
+        run: >-
+          python scripts/beta_perf_audit.py
+          --base http://127.0.0.1:4173
+          --runs 3
+          --budget perf-budget.json
+          --out /tmp/beta-perf-audit.json
+      - name: Stop local beta server
+        if: always()
+        run: |
+          if [ -f /tmp/beta-server.pid ]; then
+            kill "$(cat /tmp/beta-server.pid)" 2>/dev/null || true
+          fi
+      - name: Upload beta performance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beta-perf-audit
+          path: |
+            /tmp/beta-perf-audit.json
+            /tmp/beta-server.log

@@ -34,18 +34,40 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import os
+import re
 import time
 from datetime import datetime, timezone
 from typing import AsyncIterator, Dict, List, Optional, Tuple
 
 from pydantic import ValidationError
+if __package__ == "web.backend.services":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
-from services.ask_schemas import AskAnswerPayload
-from services.llm_service import LLMService, _get_http_client, OPENROUTER_URL
+if __package__ == "web.backend.services":
+    from .ask_schemas import AskAnswerPayload
+    from .llm_service import LLMService, OPENROUTER_URL, _get_http_client
+    from .research_fingerprint import (
+        ConfirmedResearchFingerprint,
+        bounded_fingerprint_rerank,
+        build_fingerprint_retrieval_hint,
+    )
+    from .scope_guard import is_out_of_scope
+    from .search_synthesis import validate_candidate_public_texts
+else:
+    from services.ask_schemas import AskAnswerPayload
+    from services.llm_service import LLMService, OPENROUTER_URL, _get_http_client
+    from services.research_fingerprint import (
+        ConfirmedResearchFingerprint,
+        bounded_fingerprint_rerank,
+        build_fingerprint_retrieval_hint,
+    )
+    from services.scope_guard import is_out_of_scope
+    from services.search_synthesis import validate_candidate_public_texts
 
-logger = logging.getLogger("structural.ask_orchestrator")
+logger = get_logger("structural.ask_orchestrator")
 
 
 # DeepSeek as the default driver for /ask. The `:nitro` suffix tells
@@ -173,11 +195,16 @@ def _now_iso() -> str:
 
 def _display_score(card: Dict) -> float:
     """Return a finite display-only retrieval score for evidence copy."""
+    value = card.get("score")
+    if isinstance(value, bool):
+        return 0.0
     try:
-        value = float(card.get("score") or 0.0)
+        value = float(value or 0.0)
     except (TypeError, ValueError):
         return 0.0
-    return value if value == value and value not in (float("inf"), float("-inf")) else 0.0
+    if not (value == value and value not in (float("inf"), float("-inf"))):
+        return 0.0
+    return value if 0.0 <= value <= 1.0 else 0.0
 
 
 class _AnswerFieldExtractor:
@@ -349,13 +376,25 @@ class AskOrchestrator:
     # Public entry — async generator yielding SSE-formatted strings.
     # ------------------------------------------------------------------ #
 
-    async def stream(self, query: str, lang: str = "zh") -> AsyncIterator[str]:
+    async def stream(
+        self,
+        query: str,
+        lang: str = "zh",
+        fingerprint: Optional[ConfirmedResearchFingerprint] = None,
+    ) -> AsyncIterator[str]:
         """Run the full 3-phase pipeline. Caller is FastAPI StreamingResponse."""
         started = time.monotonic()
         started_iso = _now_iso()
         lang_norm = (lang or "zh").lower()
         if lang_norm not in ("zh", "en"):
             lang_norm = "zh"
+
+        raw_oos, raw_oos_reason = is_out_of_scope(query)
+        raw_scope_reason: Optional[str] = None
+        if raw_oos:
+            raw_scope_reason = f"off_topic_{raw_oos_reason}"
+        elif _is_forecasting_intent(query, lang_norm):
+            raw_scope_reason = "forecasting_intent"
 
         # ---- Phase A: vector search ---------------------------------- #
         # We don't currently invoke the LLM rewrite gate here — the /ask
@@ -368,6 +407,7 @@ class AskOrchestrator:
             "started_at": started_iso,
             "model": self.model,
             "lang": lang_norm,
+            "fingerprint_applied": fingerprint is not None,
         })
 
         cards: List[Dict] = []
@@ -380,21 +420,58 @@ class AskOrchestrator:
         # or translation hits any error it degrades to the original query,
         # so flipping the flag never breaks retrieval.
         _expansion_enabled = os.getenv("ASK_EXPANSION_ENABLED", "").lower() in ("1", "true", "yes")
+        raw_cards: List[Dict] = []
         try:
-            if self.search is not None and _expansion_enabled:
+            pool_k = max(TOP_K_CARDS * 2, 10) if fingerprint is not None else TOP_K_CARDS
+            if raw_scope_reason is not None:
+                raw_cards = []
+            elif self.search is not None and _expansion_enabled:
                 from services.retrieval_pipeline import retrieve_with_expansion
                 pipeline_out = await retrieve_with_expansion(
                     query,
                     search_fn=self.search.search,
+                    top_k=pool_k,
+                )
+                raw_cards = pipeline_out["results"] or []
+            elif self.search is not None:
+                raw_cards = self.search.search(query, top_k=pool_k) or []
+        except Exception as exc:
+            logger.warning(
+                "ask.retrieval_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
+            raw_cards = []
+
+        cards = list(raw_cards[:TOP_K_CARDS])
+        if fingerprint is not None and raw_cards and self.search is not None:
+            try:
+                hint = build_fingerprint_retrieval_hint(fingerprint)
+                hint_cards = self.search.search(hint, top_k=max(TOP_K_CARDS * 2, 10)) or []
+                cards = bounded_fingerprint_rerank(
+                    raw_cards,
+                    hint_cards,
                     top_k=TOP_K_CARDS,
                 )
-                cards = pipeline_out["results"] or []
-            elif self.search is not None:
-                cards = self.search.search(query, top_k=TOP_K_CARDS) or []
-        except Exception as e:
-            logger.warning(f"[ask] vector search failed: {e}")
-            cards = []
+            except Exception as exc:
+                logger.warning(
+                    "ask.fingerprint_rerank_failed",
+                    error_type=type(exc).__name__,
+                    incident_id=new_incident_id(),
+                )
+                cards = list(raw_cards[:TOP_K_CARDS])
         retrieval_ms = int((time.monotonic() - retrieval_started) * 1000)
+
+        # Decide trust before any candidate becomes actionable. Weak or invalid
+        # retrieval rows remain server-side diagnostics; publishing them and
+        # then refusing would still let the browser launch a report from a
+        # candidate this gate explicitly rejected.
+        if raw_scope_reason is not None:
+            low_relevance, relevance_reason = True, raw_scope_reason
+        else:
+            low_relevance, relevance_reason = self._evaluate_relevance(cards)
+        if low_relevance:
+            cards = []
 
         # Always emit the kb_cards event (possibly empty) so the frontend
         # can transition from "searching" to "ready". Cards keep only the
@@ -406,7 +483,7 @@ class AskOrchestrator:
                 "name": c.get("name", ""),
                 "domain": c.get("domain", ""),
                 "type_id": c.get("type_id", ""),
-                "score": c.get("score", 0.0),
+                "score": _display_score(c),
                 "description": (c.get("description") or "")[:240],
                 # Candidate-decision evidence is intentionally retrieval-only.
                 # It must never be phrased as causal/mechanism validation: the
@@ -487,24 +564,17 @@ class AskOrchestrator:
         # catches obvious junk ("1+1=?", "你好", "今天几号") even when it
         # happens to retrieve a KB card with a passable cosine. Cheaper +
         # more reliable than leaning on the score gate for these classes.
-        from services.scope_guard import is_out_of_scope as _is_oos
-        oos, oos_reason = _is_oos(query)
-        if oos:
-            low_relevance, relevance_reason = True, f"off_topic_{oos_reason}"
-        elif _is_forecasting_intent(query, lang_norm):
-            low_relevance, relevance_reason = True, "forecasting_intent"
-        else:
-            low_relevance, relevance_reason = self._evaluate_relevance(cards)
         if low_relevance:
-            logger.info(
-                "[ask] low-relevance query refused locally; "
-                f"reason={relevance_reason} "
-                f"top1={(cards[0].get('score') if cards else None)}"
-            )
+            logger.info("ask.low_relevance_refused")
             refusal = self._build_refusal_payload(
                 query, cards, lang_norm, relevance_reason,
             )
             refusal_text = refusal["answer"]
+            # The browser publishes prose only after this explicit trust
+            # transition.  Local refusals do not pass through the model, but
+            # they still need the same validation-before-display protocol as
+            # synthesized answers or the client will correctly reject them.
+            yield _sse("answer_validated", {"ok": True, "source": "local_refusal"})
             for chunk in self._typewriter_chunks(refusal_text):
                 yield _sse("answer_chunk", {"delta": chunk})
                 if TYPEWRITER_SLEEP_S > 0:
@@ -526,18 +596,35 @@ class AskOrchestrator:
             yield _sse("followups", {"questions": refusal["followups"]})
             refusal_latency_ms = int((time.monotonic() - started) * 1000)
             try:
-                from logging_config import get_logger as _glog
-
-                _glog("structural.ask").info(
+                get_logger("structural.ask").info(
                     "ask.response",
                     latency_ms=refusal_latency_ms,
-                    citation_count=0,
-                    out_of_scope=True,
-                    refused=True,
+                    count=0,
                 )
             except Exception:
                 pass
             yield _sse("done", {"latency_ms": refusal_latency_ms})
+            return
+
+        # Charge exactly once at the real provider boundary. Deterministic OOS
+        # and low-relevance refusals make no paid call and cannot exhaust the
+        # daily LLM budget. A budget refusal is a terminal SSE path because the
+        # response headers have already been sent.
+        if __package__ == "web.backend.services":
+            from .cost_ledger import ledger as _cost_ledger
+            from ..errors import BudgetExceeded as _BudgetExceeded
+        else:
+            from services.cost_ledger import ledger as _cost_ledger
+            from errors import BudgetExceeded as _BudgetExceeded
+        try:
+            _cost_ledger.charge(endpoint="/api/ask/stream")
+        except _BudgetExceeded as exc:
+            yield _sse("error", {
+                "code": "budget_exceeded",
+                "message": str(exc.detail),
+                "retryable": False,
+            })
+            yield _sse("done", {"latency_ms": int((time.monotonic() - started) * 1000)})
             return
 
         # ---- Phase B: LLM synthesize answer + citations + followups -- #
@@ -547,9 +634,7 @@ class AskOrchestrator:
         # count so a single grep on `request_id` reconstructs the whole
         # pipeline timeline.
         try:
-            from logging_config import get_logger as _glog
-
-            _glog("structural.ask").info(
+            get_logger("structural.ask").info(
                 "ask.llm.start",
                 model=self.model,
                 kb_count=len(cards_payload),
@@ -564,31 +649,24 @@ class AskOrchestrator:
             "kb_count": len(cards_payload),
         })
         llm_started = time.monotonic()
-        payload: Dict
-        raw_buffer = ""
-        first_chunk_sent = False
+        payload: Dict = {}
         try:
             async for kind, value in self._stream_llm_answer_with_retry(
-                query, cards, lang_norm,
+                query, cards, lang_norm, fingerprint=fingerprint,
             ):
-                if kind == "answer_delta":
-                    if value:
-                        if not first_chunk_sent:
-                            first_chunk_sent = True
-                            logger.info(
-                                "[ask] first answer chunk emitted at %dms",
-                                int((time.monotonic() - started) * 1000),
-                            )
-                        yield _sse("answer_chunk", {"delta": value})
-                elif kind == "raw_chunk":
-                    raw_buffer += value
+                if kind == "progress":
+                    yield _sse("generation_progress", {"stage": str(value)})
                 elif kind == "done":
                     payload = value
                     break
             else:
                 payload = self._fallback_payload(query, cards, lang_norm)
-        except Exception as e:
-            logger.error(f"[ask] streaming LLM pipeline failed: {e}")
+        except Exception as exc:
+            logger.error(
+                "ask.streaming_pipeline_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             payload = self._fallback_payload(query, cards, lang_norm)
 
         answer_text = payload.get("answer", "") if payload else ""
@@ -598,21 +676,17 @@ class AskOrchestrator:
         # + answer length is the best proxy until we plumb token usage
         # through llm_service.
         try:
-            from logging_config import get_logger as _glog
-
-            _glog("structural.ask").info(
+            get_logger("structural.ask").info(
                 "ask.llm.complete",
                 latency_ms=int((time.monotonic() - llm_started) * 1000),
-                answer_len=len(answer_text),
             )
         except Exception:
             pass
 
-        # If we never streamed any answer chars (e.g. fallback path, or the
-        # JSON-string-extractor never matched `"answer"` because the model
-        # produced a wonky envelope), fall back to one typewriter pass so
-        # the frontend isn't stuck on its "正在思考..." placeholder.
-        if not first_chunk_sent and answer_text:
+        # No model-authored text is emitted until the entire typed payload,
+        # citation identities and citation markers have validated.
+        yield _sse("answer_validated", {"ok": True})
+        if answer_text:
             for chunk in self._typewriter_chunks(answer_text):
                 yield _sse("answer_chunk", {"delta": chunk})
                 if TYPEWRITER_SLEEP_S > 0:
@@ -645,13 +719,10 @@ class AskOrchestrator:
         # request_id reconstructs full lifecycle (request → retrieval →
         # llm.start → llm.complete → response).
         try:
-            from logging_config import get_logger as _glog
-
-            _glog("structural.ask").info(
+            get_logger("structural.ask").info(
                 "ask.response",
                 latency_ms=latency_ms,
-                citation_count=len(validated_citations),
-                out_of_scope=False,
+                count=len(validated_citations),
             )
         except Exception:
             pass
@@ -712,7 +783,7 @@ class AskOrchestrator:
                 "domain": c.get("domain", ""),
                 "key_metric": _safe_snippet(desc, max_len=140),
                 "kb_id": c.get("id", ""),
-                "score": c.get("score", 0.0),
+                "score": _display_score(c),
             })
         return out
 
@@ -739,10 +810,7 @@ class AskOrchestrator:
             return True, "no_cards"
 
         def _score(c: Dict) -> float:
-            try:
-                return float(c.get("score") or 0.0)
-            except (TypeError, ValueError):
-                return 0.0
+            return _display_score(c)
 
         top1 = _score(cards[0])
         if top1 < RELEVANCE_TOP1_MIN:
@@ -763,6 +831,7 @@ class AskOrchestrator:
         query: str,
         cards: List[Dict],
         lang: str,
+        fingerprint: Optional[ConfirmedResearchFingerprint] = None,
     ) -> Dict:
         """One LLM call; on failure retry once with a stricter reminder.
 
@@ -774,21 +843,25 @@ class AskOrchestrator:
         path in `stream()` uses `_stream_llm_answer_with_retry` instead.
         """
         # First attempt — normal prompt.
-        prompt = self._build_prompt(query, cards, lang, strict_json=False)
+        prompt = self._build_prompt(
+            query, cards, lang, strict_json=False, fingerprint=fingerprint,
+        )
         result = await self._call_llm_once(prompt)
-        validated = self._try_validate(result)
+        validated = self._try_validate(result, cards=cards)
         if validated is not None:
             return validated
 
         # Retry once with a stricter "JSON only, no markdown fences" note.
-        logger.warning("[ask] first LLM JSON validate failed; retrying once")
-        prompt2 = self._build_prompt(query, cards, lang, strict_json=True)
+        logger.warning("ask.json_validation_retry")
+        prompt2 = self._build_prompt(
+            query, cards, lang, strict_json=True, fingerprint=fingerprint,
+        )
         result2 = await self._call_llm_once(prompt2)
-        validated2 = self._try_validate(result2)
+        validated2 = self._try_validate(result2, cards=cards)
         if validated2 is not None:
             return validated2
 
-        logger.error("[ask] LLM JSON validate failed twice; emitting fallback")
+        logger.error("ask.json_validation_failed", incident_id=new_incident_id())
         return self._fallback_payload(query, cards, lang)
 
     async def _stream_llm_answer_with_retry(
@@ -796,111 +869,57 @@ class AskOrchestrator:
         query: str,
         cards: List[Dict],
         lang: str,
+        fingerprint: Optional[ConfirmedResearchFingerprint] = None,
     ) -> AsyncIterator[Tuple[str, object]]:
-        """Streaming variant — yields tuples driving the SSE pipeline.
+        """Buffer an upstream stream and publish only a validated payload.
 
         Yield protocol:
-            ("answer_delta", str)  → newly-emittable answer-string chars
-            ("raw_chunk", str)     → raw JSON chunk (caller may ignore)
+            ("progress", str)      → content-free progress state
             ("done", dict)         → validated/fallback payload at end
-
-        Strategy:
-        1. First attempt streams; if the final JSON validates, done.
-        2. If first attempt failed validation:
-            - If we already streamed answer chars (DONE > IN_VALUE state),
-              we KEEP what we sent (don't yank text out of the user's view)
-              and use `_try_validate` retry once for citations/followups.
-              The retry runs in NON-streaming mode (no further answer_delta).
-            - If we never emitted any answer_delta (e.g. envelope malformed
-              before the `answer` field arrived), we retry in streaming mode
-              with strict_json=True.
-        3. After two failures total, yield ("done", fallback).
         """
-        # ---- Attempt 1: stream + extract --------------------------------
-        prompt = self._build_prompt(query, cards, lang, strict_json=False)
+        # Attempt 1 uses the streaming transport for latency and provider
+        # compatibility, but every byte stays server-side until validation.
+        prompt = self._build_prompt(
+            query, cards, lang, strict_json=False, fingerprint=fingerprint,
+        )
         accumulated = ""
-        emitted_any = False
+        progress_sent = False
         async for kind, value in self._call_llm_stream(prompt):
-            if kind == "answer_delta":
-                if value:
-                    emitted_any = True
-                    yield ("answer_delta", value)
-            elif kind == "raw_chunk":
+            if kind == "raw_chunk":
                 accumulated += value
-                yield ("raw_chunk", value)
+                if not progress_sent:
+                    progress_sent = True
+                    yield ("progress", "validating")
             elif kind == "error":
-                logger.warning(f"[ask] streaming attempt 1 errored: {value}")
+                logger.warning("ask.stream_attempt_failed", incident_id=new_incident_id())
                 break
 
-        validated = self._try_validate(accumulated)
+        validated = self._try_validate(accumulated, cards=cards)
         if validated is not None:
             yield ("done", validated)
             return
 
-        # ---- Attempt 2: depends on whether we already streamed answer ---
-        if emitted_any:
-            # Already showed text to user. Re-call (non-streaming) for a
-            # second shot at valid citations/followups, but preserve the
-            # already-emitted answer string by overriding `answer` with
-            # whatever we managed to accumulate via the extractor.
-            logger.warning("[ask] stream JSON validate failed; retry (no re-stream)")
-            prompt2 = self._build_prompt(query, cards, lang, strict_json=True)
-            result2 = await self._call_llm_once(prompt2)
-            validated2 = self._try_validate(result2)
-            if validated2 is not None:
-                # Keep what the user already saw on screen.
-                streamed_answer = self._best_effort_extract_answer(accumulated)
-                if streamed_answer:
-                    validated2 = dict(validated2)
-                    validated2["answer"] = streamed_answer
-                yield ("done", validated2)
-                return
-        else:
-            # Nothing user-visible yet — safe to fully re-stream.
-            logger.warning("[ask] stream emitted nothing; retry with strict_json")
-            prompt2 = self._build_prompt(query, cards, lang, strict_json=True)
-            accumulated2 = ""
-            stream2_errored = False
-            async for kind, value in self._call_llm_stream(prompt2):
-                if kind == "answer_delta":
-                    if value:
-                        yield ("answer_delta", value)
-                elif kind == "raw_chunk":
-                    accumulated2 += value
-                    yield ("raw_chunk", value)
-                elif kind == "error":
-                    logger.warning(f"[ask] streaming attempt 2 errored: {value}")
-                    stream2_errored = True
-                    break
-            validated3 = self._try_validate(accumulated2)
-            if validated3 is not None:
-                yield ("done", validated3)
-                return
+        # Attempt 2 is a strict, non-streaming repair. The first attempt's
+        # answer is never merged into it because that would bypass validation.
+        logger.warning("ask.stream_validation_retry")
+        prompt2 = self._build_prompt(
+            query, cards, lang, strict_json=True, fingerprint=fingerprint,
+        )
+        try:
+            repaired = await self._call_llm_once(prompt2)
+        except Exception as exc:
+            logger.error(
+                "ask.non_stream_fallback_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
+            repaired = None
+        validated2 = self._try_validate(repaired, cards=cards)
+        if validated2 is not None:
+            yield ("done", validated2)
+            return
 
-            # Final tier: if streaming failed entirely (e.g. no API key,
-            # network refused) fall back to the legacy non-streaming
-            # `_call_llm_once` path. This preserves compatibility with
-            # mocks that only patch `_call_llm_once` AND keeps prod from
-            # giving up if the streaming endpoint flakes.
-            if stream2_errored or not accumulated2:
-                logger.warning("[ask] streaming retry empty; falling back to non-stream")
-                try:
-                    result3 = await self._call_llm_once(prompt2)
-                except Exception as e:
-                    logger.error(f"[ask] non-stream fallback failed: {e}")
-                    result3 = None
-                validated4 = self._try_validate(result3)
-                if validated4 is not None:
-                    # Typewriter emission of the recovered answer so the
-                    # frontend isn't stuck on its placeholder.
-                    answer4 = validated4.get("answer", "")
-                    if answer4:
-                        for chunk in self._typewriter_chunks(answer4):
-                            yield ("answer_delta", chunk)
-                    yield ("done", validated4)
-                    return
-
-        logger.error("[ask] LLM JSON validate failed twice; emitting fallback")
+        logger.error("ask.json_validation_failed", incident_id=new_incident_id())
         yield ("done", self._fallback_payload(query, cards, lang))
 
     def _best_effort_extract_answer(self, raw: str) -> str:
@@ -929,7 +948,12 @@ class AskOrchestrator:
         ext = _AnswerFieldExtractor()
         return ext.feed(text)
 
-    def _try_validate(self, raw: Optional[str]) -> Optional[Dict]:
+    def _try_validate(
+        self,
+        raw: Optional[str],
+        *,
+        cards: Optional[List[Dict]] = None,
+    ) -> Optional[Dict]:
         """Parse + pydantic-validate the LLM JSON. None on any failure."""
         if not raw:
             return None
@@ -941,22 +965,75 @@ class AskOrchestrator:
                 text = text[4:].lstrip()
         try:
             parsed = json.loads(text)
-        except json.JSONDecodeError as e:
-            logger.warning(f"[ask] JSON decode failed: {e}; head={text[:200]!r}")
+        except json.JSONDecodeError:
+            logger.warning("ask.json_decode_failed", incident_id=new_incident_id())
             return None
         try:
             payload = AskAnswerPayload.model_validate(parsed)
-        except ValidationError as e:
-            logger.warning(f"[ask] pydantic validate failed: {e.errors()[:2]}")
+        except ValidationError:
+            logger.warning("ask.schema_validation_failed", incident_id=new_incident_id())
             return None
         # Use model_dump so downstream code works with plain dicts.
-        return payload.model_dump()
+        validated = payload.model_dump()
+        if cards is not None:
+            return self._validate_payload_semantics(validated, cards)
+        return validated
+
+    def _validate_payload_semantics(
+        self,
+        payload: Dict,
+        cards: List[Dict],
+    ) -> Optional[Dict]:
+        """Bind every model citation and answer marker to the current cards."""
+
+        citations = payload.get("citations") or []
+        answer = payload.get("answer") or ""
+        # Citation grammar is deliberately ASCII across Python and JavaScript.
+        # Python ``\d`` also accepts Arabic-Indic/Devanagari digits while the
+        # browser regex does not, creating a validated-on-server/rejected-on-
+        # client split.
+        marker_values = [int(value) for value in re.findall(r"\[([0-9]+)\]", answer)]
+        citation_indexes: list[int] = []
+        canonical_citations: list[Dict] = []
+        for citation in citations:
+            idx = citation.get("idx")
+            if not isinstance(idx, int) or isinstance(idx, bool):
+                return None
+            if idx < 1 or idx > len(cards) or idx in citation_indexes:
+                return None
+            canonical = cards[idx - 1]
+            canonical_id = canonical.get("id")
+            if not isinstance(canonical_id, str) or not canonical_id:
+                return None
+            if citation.get("kb_id") != canonical_id:
+                return None
+            citation_indexes.append(idx)
+            canonical_citations.append(
+                {
+                    "idx": idx,
+                    "kb_id": canonical_id,
+                    "label": str(canonical.get("name") or "KB record")[:200],
+                }
+            )
+        if not marker_values or set(marker_values) != set(citation_indexes):
+            return None
+        if any(index < 1 or index > len(cards) for index in marker_values):
+            return None
+        try:
+            validate_candidate_public_texts(
+                [answer, *(payload.get("followups") or [])]
+            )
+        except (TypeError, ValueError):
+            return None
+        validated = dict(payload)
+        validated["citations"] = canonical_citations
+        return validated
 
     async def _call_llm_once(self, prompt: str) -> Optional[str]:
         """Single non-streaming chat call to OpenRouter, returns raw content."""
         api_key = self.llm.api_key or os.getenv("OPENROUTER_API_KEY", "")
         if not api_key:
-            logger.warning("[ask] no OPENROUTER_API_KEY; cannot call LLM")
+            logger.warning("ask.llm_unavailable")
             return None
         try:
             client = _get_http_client()
@@ -983,8 +1060,12 @@ class AskOrchestrator:
             resp.raise_for_status()
             data = resp.json()
             return data["choices"][0]["message"]["content"]
-        except Exception as e:
-            logger.error(f"[ask] LLM call failed: {e}")
+        except Exception as exc:
+            logger.error(
+                "ask.llm_call_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             return None
 
     async def _call_llm_stream(
@@ -1007,7 +1088,7 @@ class AskOrchestrator:
         """
         api_key = self.llm.api_key or os.getenv("OPENROUTER_API_KEY", "")
         if not api_key:
-            logger.warning("[ask] no OPENROUTER_API_KEY; cannot call LLM (stream)")
+            logger.warning("ask.llm_unavailable")
             yield ("error", "no_api_key")
             return
 
@@ -1064,7 +1145,11 @@ class AskOrchestrator:
             # P1-2 — never surface the raw exception string. httpx errors
             # can carry the upstream URL / timeout / connection internals.
             # Map to a stable, neutral code; full detail stays in the log.
-            logger.error(f"[ask] LLM stream failed: {e}")
+            logger.error(
+                "ask.llm_stream_failed",
+                error_type=type(e).__name__,
+                incident_id=new_incident_id(),
+            )
             yield ("error", _classify_upstream_error(e))
 
     def _build_prompt(
@@ -1073,6 +1158,7 @@ class AskOrchestrator:
         cards: List[Dict],
         lang: str,
         strict_json: bool,
+        fingerprint: Optional[ConfirmedResearchFingerprint] = None,
     ) -> str:
         """Build the single-shot prompt for answer + citations + followups.
 
@@ -1085,11 +1171,26 @@ class AskOrchestrator:
         else:
             lines = []
             for i, c in enumerate(cards, 1):
+                card_id = c.get("id", "")
                 name = c.get("name", "")
                 domain = c.get("domain", "")
                 desc = (c.get("description") or "")[:240]
-                lines.append(f"{i}. {name}（{domain}）— {desc}")
+                lines.append(f"{i}. id={card_id} | {name}（{domain}）— {desc}")
             cards_block = "\n".join(lines)
+
+        fingerprint_block = "（用户未确认结构指纹）"
+        if fingerprint is not None:
+            fingerprint_block = json.dumps(
+                {
+                    "summary": fingerprint.summary,
+                    "variables": fingerprint.variables,
+                    "constraints": fingerprint.constraints,
+                    "unknowns": fingerprint.unknowns,
+                    "revision": fingerprint.revision,
+                },
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
 
         lang_clause = (
             "请用中文输出 `answer` / `followups` / `citations.label` 三个字段的文字内容。"
@@ -1104,16 +1205,19 @@ class AskOrchestrator:
         )
 
         # ---- In-scope synthesis prompt --------------------------------
-        return f"""你是一个跨学科结构同构搜索引擎。用户问了一个复杂问题，你需要：
+        return f"""你是一个跨学科候选研究助手。用户问了一个复杂问题，你需要：
 
-1. 基于以下 KB 现象（已 vector 召回，按相似度排序），给出 200-400 字短答案，解释问题的"结构本质"
+1. 基于以下内部 KB 候选，给出 200-400 字候选比较；不得声称同构、共享机制或迁移已经成立
 2. 在答案中用 [1] [2] [3] 标注引用（对应下方 KB 现象的编号）
-3. 列出 3 个深入的追问建议（followups），每个 8-30 字，能让用户继续探索
+3. 明确至少一个证据缺口或失效边界，并列出 3 个可继续核查的追问
 
 用户问题：
 {query}
 
-KB 现象列表（结构相似度排序）：
+用户确认的结构指纹（只作为有界检索与比较线索，不能覆盖原问题意图）：
+{fingerprint_block}
+
+内部 KB 候选列表（检索顺序，不是概率或证据等级）：
 {cards_block}
 
 {lang_clause}
@@ -1122,15 +1226,17 @@ KB 现象列表（结构相似度排序）：
 {{
   "answer": "200-400 字短答案，内含 [1][2] 引用",
   "citations": [
-    {{"idx": 1, "kb_id": "对应 KB 现象的 id（从上面列表里取）", "label": "一句话标签，不超过 30 字"}}
+    {{"idx": 1, "kb_id": "必须逐字复制同一编号行里的 id", "label": "一句话标签，不超过 30 字"}}
   ],
   "followups": ["问题1?", "问题2?", "问题3?"]
 }}
 
 要求：
-- citations 至少 1 条，最多 10 条；idx 必须是上面 KB 现象列表里的有效编号（1-based）
+- citations 至少 1 条，最多 10 条；idx 与 kb_id 必须同时绑定上面同一候选
+- answer 中出现的每个 [N] 必须恰好对应 citations 中的 idx，不能引用列表外来源
 - followups 必须 2-5 条字符串
-- answer 长度 20-2000 字符；包含至少一个 [1] 之类的引用标记{strict_block}"""
+- answer 长度 20-2000 字符；包含至少一个 [1] 之类的引用标记
+- 禁止成功概率、置信百分比、保证有效、成熟答案、直接套用和虚构外部来源{strict_block}"""
 
     def _build_refusal_payload(
         self, query: str, cards: List[Dict], lang: str, scope_reason: str,
@@ -1232,23 +1338,23 @@ KB 现象列表（结构相似度排序）：
         if lang == "en":
             answer = (
                 "Sorry — the cross-domain synthesizer is temporarily unavailable. "
-                f"Your question was: “{query[:120]}”. "
-                "Try refining the wording or pick one of the related phenomena below."
+                "You can retry or inspect the first retrieval candidate [1] as an "
+                "unverified lead; it is not a validated mechanism transfer."
             )
             followups = [
                 "What time scale does this play out on?",
-                "Which discipline has the most mature toolkit for this?",
+                "Which candidate method can be checked against a primary source?",
                 "Where would this analogy break down?",
             ]
         else:
             answer = (
                 "抱歉，跨领域结构同构合成器暂时不可用。"
-                f"你的问题是：「{query[:120]}」。"
-                "可以尝试缩窄描述，或直接点击下方的相关现象查看类比线索。"
+                "可以重试，或把第一个检索候选 [1] 作为尚未验证的核查线索；"
+                "它不是已经成立的机制迁移。"
             )
             followups = [
                 "这个现象通常在什么时间尺度上展开？",
-                "哪个学科对它有最成熟的分析工具？",
+                "哪个候选方法可以回到一手来源核查？",
                 "在什么边界条件下这种类比会失效？",
             ]
         # Build a single citation pointing at card 1 if any cards exist.

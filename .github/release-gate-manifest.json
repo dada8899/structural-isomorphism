@@ -1,0 +1,40 @@
+{
+  "schema_version": "release-gate-v1",
+  "ci_aggregator": {
+    "workflow": ".github/workflows/ci.yml",
+    "job": "release-gate-summary",
+    "needs": [
+      "retrieval-eval-contract",
+      "site-docs-contract",
+      "phase-python-contract",
+      "browser-product-contract",
+      "browser-beta-surface-contract",
+      "backend",
+      "packages",
+      "frontend"
+    ]
+  },
+  "branch_protection_required_checks": [
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "release-gate-summary",
+      "context": "release-gate"
+    },
+    {
+      "workflow": ".github/workflows/sanity.yml",
+      "job": "sanity",
+      "context": "sanity"
+    },
+    {
+      "workflow": ".github/workflows/types-sync.yml",
+      "job": "check",
+      "context": "check"
+    },
+    {
+      "workflow": ".github/workflows/beta-perf.yml",
+      "job": "beta-perf-audit",
+      "context": "beta-perf-audit"
+    }
+  ],
+  "external_boundary": "GitHub branch protection must require every listed check; repository YAML cannot create cross-workflow needs edges."
+}

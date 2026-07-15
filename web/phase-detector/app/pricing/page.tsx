@@ -138,7 +138,7 @@ export default function PricingPage() {
         </dl>
       </section>
 
-      <div className="mt-16 text-center text-sm text-zinc-500">
+      <p className="mt-16 text-center text-sm text-zinc-500">
         还想再读一下方法？看{" "}
         {/* W12-A: axe `link-in-text-block` — inline links inside running text
          * must carry a non-color visual affordance. Switched from
@@ -157,7 +157,7 @@ export default function PricingPage() {
           关于
         </Link>
         。
-      </div>
+      </p>
     </article>
   );
 }

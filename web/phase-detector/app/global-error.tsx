@@ -15,25 +15,26 @@ interface GlobalErrorProps {
   reset: () => void;
 }
 
+const SAFE_ERROR_TYPES = new Set([
+  "ChunkLoadError",
+  "Error",
+  "NetworkError",
+  "RangeError",
+  "ReferenceError",
+  "SyntaxError",
+  "TypeError",
+  "URIError",
+]);
+
 async function _report(error: Error & { digest?: string }) {
   try {
-    let sessionId = "no-storage";
-    try {
-      sessionId = window.localStorage.getItem("phase.sessionId") || "no-id";
-    } catch {
-      /* no-op */
-    }
+    const errorType = SAFE_ERROR_TYPES.has(error?.name) ? error.name : "ClientError";
     await fetch("/api/errors", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        message: String(error?.message || "global error").slice(0, 500),
-        stack: (error?.stack || "").slice(0, 4000),
-        digest: error?.digest,
-        url: window.location.origin + window.location.pathname,
-        userAgent: navigator.userAgent.slice(0, 300),
+        message: errorType,
         timestamp: Math.floor(Date.now() / 1000),
-        sessionId,
         fatal: true,
       }),
       keepalive: true,
@@ -46,7 +47,7 @@ async function _report(error: Error & { digest?: string }) {
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
     // eslint-disable-next-line no-console
-    console.error("[phase-detector] global runtime error:", error);
+    console.error("[phase-detector] global runtime error captured");
     _report(error);
   }, [error]);
 

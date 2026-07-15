@@ -2,12 +2,121 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import sqlite3
+import threading
 import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator, Optional
+
+try:
+    from .privacy_identifiers import opaque_identifier
+except ImportError:
+    from privacy_identifiers import opaque_identifier
+
+
+_INITIALIZATION_LOCK = threading.RLock()
+_RATE_BUCKET_KEY_RE = re.compile(
+    r"^(?:global:magic-link-email|[a-z][a-z0-9_.-]{1,63}:v2:[0-9a-f]{64})$"
+)
+
+
+def _require_private_rate_bucket(key: str) -> None:
+    if not _RATE_BUCKET_KEY_RE.fullmatch(key):
+        raise ValueError("rate-limit writes require a v2 HMAC or global bucket")
+
+_BASE_SCHEMA_STATEMENTS = (
+    """CREATE TABLE IF NOT EXISTS auth_users (
+        email TEXT PRIMARY KEY, tier TEXT NOT NULL, created_at TEXT NOT NULL,
+        session_generation TEXT NOT NULL
+    )""",
+    """CREATE TABLE IF NOT EXISTS magic_tokens (
+        token_hash TEXT PRIMARY KEY, email TEXT NOT NULL,
+        created_at TEXT NOT NULL, expires_at TEXT NOT NULL,
+        consumed_at TEXT
+    )""",
+    """CREATE TABLE IF NOT EXISTS revoked_sessions (
+        jti TEXT PRIMARY KEY, revoked_at TEXT NOT NULL, email TEXT
+    )""",
+    """CREATE TABLE IF NOT EXISTS auth_rate_requests (
+        email TEXT NOT NULL, requested_at INTEGER NOT NULL
+    )""",
+    """CREATE INDEX IF NOT EXISTS idx_auth_rate
+        ON auth_rate_requests(email, requested_at)""",
+    """CREATE TABLE IF NOT EXISTS auth_notification_outbox (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind TEXT NOT NULL, email TEXT NOT NULL,
+        created_at TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT, delivered_at TEXT, claimed_at INTEGER,
+        UNIQUE(kind, email)
+    )""",
+    """CREATE TABLE IF NOT EXISTS account_deletion_epochs (
+        owner_hash TEXT PRIMARY KEY, deleted_at TEXT NOT NULL
+    )""",
+)
+
+
+def _is_sqlite_lock_error(exc: sqlite3.OperationalError) -> bool:
+    code = getattr(exc, "sqlite_errorcode", None)
+    if isinstance(code, int) and code & 0xFF in {
+        getattr(sqlite3, "SQLITE_BUSY", 5),
+        getattr(sqlite3, "SQLITE_LOCKED", 6),
+    }:
+        return True
+    return "locked" in str(exc).lower() or "busy" in str(exc).lower()
+
+
+def _ensure_wal_mode(path: Path, timeout_seconds: float = 10.0) -> None:
+    """Select WAL once, retrying only cross-process SQLite lock contention."""
+    deadline = time.monotonic() + timeout_seconds
+    delay = 0.01
+    last_lock_error: sqlite3.OperationalError | None = None
+    last_mode: str | None = None
+
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            detail = f"; last mode was {last_mode}" if last_mode else ""
+            raise RuntimeError(
+                f"auth database WAL initialization timed out{detail}"
+            ) from last_lock_error
+
+        bootstrap = sqlite3.connect(
+            path,
+            timeout=min(remaining, 1.0),
+            isolation_level=None,
+        )
+        try:
+            bootstrap.execute(
+                "PRAGMA busy_timeout=%d" % max(1, int(min(remaining, 1.0) * 1000))
+            )
+            last_mode = str(
+                bootstrap.execute("PRAGMA journal_mode").fetchone()[0]
+            ).lower()
+            if last_mode == "wal":
+                return
+            last_mode = str(
+                bootstrap.execute("PRAGMA journal_mode=WAL").fetchone()[0]
+            ).lower()
+            if last_mode == "wal":
+                return
+            raise RuntimeError(
+                f"auth database refused WAL journal mode: {last_mode}"
+            )
+        except sqlite3.OperationalError as exc:
+            if not _is_sqlite_lock_error(exc):
+                raise
+            last_lock_error = exc
+        finally:
+            bootstrap.close()
+
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            continue
+        time.sleep(min(delay, remaining))
+        delay = min(delay * 2, 0.25)
 
 
 class DeletedCredentialError(ValueError):
@@ -18,58 +127,50 @@ class AuthStore:
     def __init__(self, path: Path):
         self.path = path
         path.parent.mkdir(parents=True, exist_ok=True)
-        with self._connection() as conn:
-            conn.executescript("""
-                CREATE TABLE IF NOT EXISTS auth_users (
-                    email TEXT PRIMARY KEY, tier TEXT NOT NULL, created_at TEXT NOT NULL,
-                    session_generation TEXT NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS magic_tokens (
-                    token_hash TEXT PRIMARY KEY, email TEXT NOT NULL,
-                    created_at TEXT NOT NULL, expires_at TEXT NOT NULL,
-                    consumed_at TEXT
-                );
-                CREATE TABLE IF NOT EXISTS revoked_sessions (
-                    jti TEXT PRIMARY KEY, revoked_at TEXT NOT NULL, email TEXT
-                );
-                CREATE TABLE IF NOT EXISTS auth_rate_requests (
-                    email TEXT NOT NULL, requested_at INTEGER NOT NULL
-                );
-                CREATE INDEX IF NOT EXISTS idx_auth_rate
-                    ON auth_rate_requests(email, requested_at);
-                CREATE TABLE IF NOT EXISTS auth_notification_outbox (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    kind TEXT NOT NULL, email TEXT NOT NULL,
-                    created_at TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
-                    last_error TEXT, delivered_at TEXT, claimed_at INTEGER,
-                    UNIQUE(kind, email)
-                );
-                CREATE TABLE IF NOT EXISTS account_deletion_epochs (
-                    owner_hash TEXT PRIMARY KEY, deleted_at TEXT NOT NULL
-                );
-            """)
-            revoked_columns = {
-                row[1] for row in conn.execute("PRAGMA table_info(revoked_sessions)").fetchall()
-            }
-            if "email" not in revoked_columns:
-                conn.execute("ALTER TABLE revoked_sessions ADD COLUMN email TEXT")
-            user_columns = {
-                row[1] for row in conn.execute("PRAGMA table_info(auth_users)").fetchall()
-            }
-            if "session_generation" not in user_columns:
-                conn.execute("ALTER TABLE auth_users ADD COLUMN session_generation TEXT")
-                conn.execute(
-                    "UPDATE auth_users SET session_generation=lower(hex(randomblob(16))) "
-                    "WHERE session_generation IS NULL"
-                )
-            epoch_columns = {
-                row[1] for row in conn.execute("PRAGMA table_info(account_deletion_epochs)").fetchall()
-            }
-            if "email" in epoch_columns:
-                # Migrate the brief pre-release schema without retaining raw
-                # deleted-account identifiers in the security marker.
-                conn.execute("BEGIN IMMEDIATE")
-                try:
+        # WAL selection and schema migration are one-time mutable operations.
+        # Serialise constructors and avoid asking every request connection to
+        # renegotiate journal mode while another thread owns a write lock.
+        with _INITIALIZATION_LOCK:
+            _ensure_wal_mode(self.path)
+
+        with _INITIALIZATION_LOCK, self._connection() as conn:
+            # BEGIN IMMEDIATE is the cross-process migration lock. All schema
+            # inspection happens after it is acquired so a process that waited
+            # for another migrator cannot act on stale PRAGMA table_info data.
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                for statement in _BASE_SCHEMA_STATEMENTS:
+                    conn.execute(statement)
+                revoked_columns = {
+                    row[1]
+                    for row in conn.execute(
+                        "PRAGMA table_info(revoked_sessions)"
+                    ).fetchall()
+                }
+                if "email" not in revoked_columns:
+                    conn.execute("ALTER TABLE revoked_sessions ADD COLUMN email TEXT")
+                user_columns = {
+                    row[1]
+                    for row in conn.execute("PRAGMA table_info(auth_users)").fetchall()
+                }
+                if "session_generation" not in user_columns:
+                    conn.execute(
+                        "ALTER TABLE auth_users ADD COLUMN session_generation TEXT"
+                    )
+                    conn.execute(
+                        "UPDATE auth_users "
+                        "SET session_generation=lower(hex(randomblob(16))) "
+                        "WHERE session_generation IS NULL"
+                    )
+                epoch_columns = {
+                    row[1]
+                    for row in conn.execute(
+                        "PRAGMA table_info(account_deletion_epochs)"
+                    ).fetchall()
+                }
+                if "email" in epoch_columns:
+                    # Migrate the brief pre-release schema without retaining
+                    # raw deleted-account identifiers in the security marker.
                     rows = conn.execute(
                         "SELECT email,deleted_at FROM account_deletion_epochs"
                     ).fetchall()
@@ -86,17 +187,16 @@ class AuthStore:
                         [(_email_hash(row["email"]), row["deleted_at"]) for row in rows],
                     )
                     conn.execute("DROP TABLE account_deletion_epochs_raw")
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
-                    raise
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
 
     @contextmanager
     def _connection(self) -> Iterator[sqlite3.Connection]:
         conn = sqlite3.connect(self.path, timeout=10, isolation_level=None)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA busy_timeout=10000")
-        conn.execute("PRAGMA journal_mode=WAL")
         # Account erasure must also clear deleted payloads from SQLite pages,
         # not merely unlink rows into the freelist.
         conn.execute("PRAGMA secure_delete=ON")
@@ -106,6 +206,7 @@ class AuthStore:
             conn.close()
 
     def record_rate_request(self, email: str, limit: int, window_seconds: int = 3600) -> bool:
+        _require_private_rate_bucket(email)
         now = int(time.time())
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -130,6 +231,8 @@ class AuthStore:
         the per-address and global mail circuit breakers race-safe across
         multiple workers sharing the SQLite store.
         """
+        for key, _limit in buckets:
+            _require_private_rate_bucket(key)
         now = int(time.time())
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -149,6 +252,44 @@ class AuthStore:
             conn.executemany(
                 "INSERT INTO auth_rate_requests VALUES (?, ?)",
                 [(key, now) for key, _limit in buckets],
+            )
+            conn.commit()
+            return True
+
+    def record_rate_requests_with_legacy(
+        self,
+        buckets: list[tuple[str, tuple[str, ...], int]],
+        window_seconds: int = 3600,
+    ) -> bool:
+        """Admit v2 buckets after atomically upgrading bounded legacy keys."""
+        for key, _legacy_keys, _limit in buckets:
+            _require_private_rate_bucket(key)
+        now = int(time.time())
+        with self._connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                "DELETE FROM auth_rate_requests WHERE requested_at < ?",
+                (now - window_seconds,),
+            )
+            for key, legacy_keys, _limit in buckets:
+                for legacy_key in legacy_keys:
+                    if legacy_key != key:
+                        conn.execute(
+                            "UPDATE auth_rate_requests SET email=? WHERE email=?",
+                            (key, legacy_key),
+                        )
+            for key, _legacy_keys, limit in buckets:
+                count = conn.execute(
+                    "SELECT COUNT(*) FROM auth_rate_requests "
+                    "WHERE email=? AND requested_at>=?",
+                    (key, now - window_seconds),
+                ).fetchone()[0]
+                if count >= limit:
+                    conn.rollback()
+                    return False
+            conn.executemany(
+                "INSERT INTO auth_rate_requests VALUES (?, ?)",
+                [(key, now) for key, _legacy_keys, _limit in buckets],
             )
             conn.commit()
             return True
@@ -203,11 +344,8 @@ class AuthStore:
         """Create/login atomically unless the credential predates deletion."""
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            epoch = conn.execute(
-                "SELECT deleted_at FROM account_deletion_epochs WHERE owner_hash=?",
-                (_email_hash(email),),
-            ).fetchone()
-            if epoch and token_created_at <= epoch["deleted_at"]:
+            deleted_at = _deletion_epoch_for_email(conn, email)
+            if deleted_at and token_created_at <= deleted_at:
                 conn.rollback()
                 raise DeletedCredentialError("credential predates account deletion")
             created = conn.execute(
@@ -229,6 +367,14 @@ class AuthStore:
             row = conn.execute("SELECT * FROM auth_users WHERE email=?", (email,)).fetchone()
             return dict(row) if row else None
 
+    def account_deletion_epoch(self, email: str) -> Optional[str]:
+        """Return the retained owner-hash epoch without exposing raw identity."""
+        with self._connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            deleted_at = _deletion_epoch_for_email(conn, email)
+            conn.commit()
+            return deleted_at
+
     def export_account_data(self, email: str) -> dict:
         """Return every auth-store row linked to ``email``, excluding hashes."""
         with self._connection() as conn:
@@ -247,22 +393,26 @@ class AuthStore:
                 "SELECT revoked_at FROM revoked_sessions WHERE email=? ORDER BY revoked_at",
                 (email,),
             ).fetchall()
-            deletion_epoch = conn.execute(
-                "SELECT deleted_at FROM account_deletion_epochs WHERE owner_hash=?",
-                (_email_hash(email),),
-            ).fetchone()
+            conn.execute("BEGIN IMMEDIATE")
+            deletion_epoch = _deletion_epoch_for_email(conn, email)
+            conn.commit()
             return {
                 "account": dict(user) if user else None,
                 "magic_link_events": [dict(row) for row in tokens],
                 "registration_notifications": [dict(row) for row in notifications],
                 "revoked_session_events": [dict(row) for row in revocations],
                 "prior_deletion_security_event": (
-                    {"deleted_at": deletion_epoch["deleted_at"], "retention": "security"}
+                    {"deleted_at": deletion_epoch, "retention": "security"}
                     if deletion_epoch else None
                 ),
             }
 
-    def delete_account_data(self, email: str) -> dict:
+    def delete_account_data(
+        self,
+        email: str,
+        *,
+        rate_keys: tuple[str, ...] = (),
+    ) -> dict:
         """Atomically remove all auth rows linked to an account."""
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -280,7 +430,10 @@ class AuthStore:
                     "DELETE FROM auth_notification_outbox WHERE email=?", (email,)
                 ).rowcount,
                 "rate_limit_events": conn.execute(
-                    "DELETE FROM auth_rate_requests WHERE email=?", (email,)
+                    "DELETE FROM auth_rate_requests WHERE email IN ("
+                    + ",".join("?" for _ in (email, *rate_keys))
+                    + ")",
+                    (email, *rate_keys),
                 ).rowcount,
                 "revoked_session_events": conn.execute(
                     "DELETE FROM revoked_sessions WHERE email=?", (email,)
@@ -338,4 +491,36 @@ class AuthStore:
 
 
 def _email_hash(email: str) -> str:
+    return opaque_identifier("account-deletion.email", email, kind="email")
+
+
+def _legacy_email_hash(email: str) -> str:
     return hashlib.sha256(email.strip().lower().encode("utf-8")).hexdigest()
+
+
+def _deletion_epoch_for_email(
+    conn: sqlite3.Connection,
+    email: str,
+) -> Optional[str]:
+    """Read v2/legacy epochs and opportunistically collapse them into v2."""
+    current = _email_hash(email)
+    legacy = _legacy_email_hash(email)
+    rows = conn.execute(
+        "SELECT owner_hash,deleted_at FROM account_deletion_epochs "
+        "WHERE owner_hash IN (?,?)",
+        (current, legacy),
+    ).fetchall()
+    if not rows:
+        return None
+    deleted_at = max(str(row["deleted_at"]) for row in rows)
+    conn.execute(
+        "INSERT INTO account_deletion_epochs(owner_hash,deleted_at) VALUES(?,?) "
+        "ON CONFLICT(owner_hash) DO UPDATE SET deleted_at=excluded.deleted_at",
+        (current, deleted_at),
+    )
+    if legacy != current:
+        conn.execute(
+            "DELETE FROM account_deletion_epochs WHERE owner_hash=?",
+            (legacy,),
+        )
+    return deleted_at

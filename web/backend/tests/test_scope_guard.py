@@ -25,6 +25,8 @@ from services.scope_guard import is_out_of_scope  # noqa: E402
     "1+1",
     "1+1=?",
     "1+1 等于几",
+    "1+1 等于多少？",
+    "请问 １＋１ 等于多少？",
     "1+1等于几",
     "2 * 3",
     "(4-2)/2",

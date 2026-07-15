@@ -303,8 +303,8 @@ def test_coerce_precedent_missing_optional_fields_filled():
 
 def test_pick_precedent_hit_prefers_cross_domain():
     results = [
-        {"id": "a", "relevance": 0.9, "cross_domain": False},
-        {"id": "b", "relevance": 0.6, "cross_domain": True},
+        {"id": "a", "name": "同域候选", "relevance": 0.9, "cross_domain": False},
+        {"id": "b", "name": "跨域候选", "relevance": 0.6, "cross_domain": True},
     ]
     # Same-domain 0.9 loses to cross-domain 0.6.
     assert sts._pick_precedent_hit(results)["id"] == "b"
@@ -317,8 +317,8 @@ def test_pick_precedent_hit_below_floor_returns_none():
 
 def test_pick_precedent_hit_falls_back_to_best_when_no_cross_domain():
     results = [
-        {"id": "a", "relevance": 0.6, "cross_domain": False},
-        {"id": "b", "relevance": 0.8, "cross_domain": False},
+        {"id": "a", "name": "候选 A", "relevance": 0.6, "cross_domain": False},
+        {"id": "b", "name": "候选 B", "relevance": 0.8, "cross_domain": False},
     ]
     assert sts._pick_precedent_hit(results)["id"] == "b"
 
@@ -472,13 +472,29 @@ def _kb_search_results():
 
 def test_endpoint_success(client, mock_llm):
     mock_llm(available=True, json_return=_good_raw())
-    resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
+    resp = client.post("/api/stress-test", json={
+        "claim": "我们是中国版的 Notion",
+        "client_request_id": "stress-request-0001",
+    })
     assert resp.status_code == 200
     body = resp.json()
     assert body["claim"] == "我们是中国版的 Notion"
-    assert body["verdict"] == "CONDITIONAL"
+    assert body["request_id"] == "stress-request-0001"
+    assert body["contract_version"] == "secondary-tools-v2"
+    assert body["screening_outcome"] == "condition_dependent"
+    assert "verdict" not in body
+    assert body["evidence"]["evidence_level"] == "candidate"
     assert body["source"] == "Notion"
     assert len(body["structural_correspondences"]) == 2
+
+
+def test_endpoint_rejects_out_of_scope_before_model(client, mock_llm):
+    mock_llm(available=True, json_return=_good_raw())
+    response = client.post(
+        "/api/stress-test", json={"claim": "2 + 2 等于多少，请直接告诉我答案"}
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"]["error"] == "out_of_scope"
 
 
 def test_endpoint_llm_unavailable_503(client, mock_llm):
@@ -502,8 +518,8 @@ def test_endpoint_llm_garbage_guardrailed_503(client, mock_llm):
     assert resp.status_code == 503
 
 
-def test_endpoint_malformed_llm_still_coerced(client, mock_llm):
-    # Garbage verdict + partly-broken correspondences → guardrail recovers.
+def test_endpoint_malformed_llm_fails_closed(client, mock_llm):
+    # Garbage verdict + partly-broken correspondences must never be displayed.
     mock_llm(
         available=True,
         json_return={
@@ -517,11 +533,7 @@ def test_endpoint_malformed_llm_still_coerced(client, mock_llm):
         },
     )
     resp = client.post("/api/stress-test", json={"claim": "这是一个有效的类比判断"})
-    assert resp.status_code == 200
-    body = resp.json()
-    # Bogus verdict + single holds-True corr → PASS fallback.
-    assert body["verdict"] in sts.VERDICTS
-    assert len(body["structural_correspondences"]) == 1
+    assert resp.status_code == 503
 
 
 def test_endpoint_empty_claim_422(client, mock_llm):
@@ -554,37 +566,38 @@ def test_endpoint_missing_claim_422(client, mock_llm):
 # --------- precedent integration --------- #
 
 
-def test_endpoint_success_with_precedent(client, mock_llm, mock_search):
-    # 1st LLM call → stress result; 2nd → precedent failure text.
+def test_endpoint_success_with_candidate_reference(client, mock_llm, mock_search):
+    # 1st LLM call → screen; 2nd → cautious note bound to a KB candidate.
     mock_llm(
         available=True,
         json_return=[
             _good_raw(),
-            {"failure_precedent": "猎物耗尽后种群在数月内崩溃，规模假设同样脆弱。"},
+            {"candidate_note": "值得核查资源耗尽条件；若触发变量不同，应放弃这个参照。"},
         ],
     )
     mock_search(_kb_search_results())
     resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
     assert resp.status_code == 200
     body = resp.json()
-    assert body["verdict"] == "CONDITIONAL"
-    prec = body["precedent"]
-    assert prec is not None
-    assert prec["phenomenon_id"] == "ph-eco-1"
-    assert prec["phenomenon_name"] == "种群崩溃"
-    assert prec["domain"] == "生态学"
-    assert "崩溃" in prec["failure_precedent"]
+    assert body["screening_outcome"] == "condition_dependent"
+    candidate = body["candidate_reference"]
+    assert candidate is not None
+    assert candidate["id"] == "ph-eco-1"
+    assert candidate["name"] == "种群崩溃"
+    assert candidate["domain"] == "生态学"
+    assert candidate["retrieval_rank"] == 1
+    assert candidate["evidence"]["evidence_level"] == "candidate"
 
 
 def test_endpoint_success_search_unavailable_degrades(client, mock_llm, mock_search):
-    # No search service in app_state → precedent null, verdict still emitted.
+    # No search service in app_state → candidate reference stays null.
     mock_llm(available=True, json_return=_good_raw())
     mock_search(None)
     resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
     assert resp.status_code == 200
     body = resp.json()
-    assert body["verdict"] == "CONDITIONAL"
-    assert body["precedent"] is None
+    assert body["screening_outcome"] == "condition_dependent"
+    assert body["candidate_reference"] is None
 
 
 def test_endpoint_success_no_kb_hit_degrades(client, mock_llm, mock_search):
@@ -594,11 +607,11 @@ def test_endpoint_success_no_kb_hit_degrades(client, mock_llm, mock_search):
     resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
     assert resp.status_code == 200
     body = resp.json()
-    assert body["precedent"] is None
+    assert body["candidate_reference"] is None
 
 
 def test_endpoint_precedent_llm_garbage_degrades(client, mock_llm, mock_search):
-    # KB hit found but precedent LLM returns unusable JSON → precedent null,
+    # KB hit found but annotation LLM returns unusable JSON → candidate null,
     # the stress test itself still succeeds.
     mock_llm(
         available=True,
@@ -608,8 +621,8 @@ def test_endpoint_precedent_llm_garbage_degrades(client, mock_llm, mock_search):
     resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
     assert resp.status_code == 200
     body = resp.json()
-    assert body["verdict"] == "CONDITIONAL"
-    assert body["precedent"] is None
+    assert body["screening_outcome"] == "condition_dependent"
+    assert body["candidate_reference"] is None
 
 
 def test_endpoint_precedent_weak_relevance_degrades(client, mock_llm, mock_search):
@@ -623,4 +636,4 @@ def test_endpoint_precedent_weak_relevance_degrades(client, mock_llm, mock_searc
     mock_search(weak)
     resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
     assert resp.status_code == 200
-    assert resp.json()["precedent"] is None
+    assert resp.json()["candidate_reference"] is None

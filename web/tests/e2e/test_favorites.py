@@ -190,7 +190,11 @@ def test_get_empty_for_anonymous(local_backend):
     status, body = _api("GET", f"{local_backend['base']}/api/favorites")
     assert status == 200
     assert body == {
-        "tickers": [], "authenticated": False, "auth_method": None
+        "schema_version": "favorites-v2",
+        "tickers": [],
+        "bookmarks": [],
+        "authenticated": False,
+        "auth_method": None,
     }
 
 
@@ -202,6 +206,8 @@ def test_post_and_get_for_authenticated(local_backend):
     s2, body = _api("GET", f"{base}/api/favorites", headers=hdr)
     assert s2 == 200
     assert "AAPL" in body["tickers"]
+    assert body["schema_version"] == "favorites-v2"
+    assert any(item["kind"] == "phase_company" for item in body["bookmarks"])
 
 
 def test_idempotent_add(local_backend):
@@ -237,6 +243,8 @@ def test_merge_endpoint(local_backend):
     assert s == 200
     assert set(body["tickers"]) >= {"AAPL", "TSLA", "NVDA"}
     assert body["dropped"] == []
+    assert body["schema_version"] == "favorites-v2"
+    assert all(item["schema_version"] == "bookmark-v1" for item in body["bookmarks"])
 
 
 def test_anonymous_write_rejected(local_backend):

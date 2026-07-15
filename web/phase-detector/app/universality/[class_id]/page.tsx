@@ -134,7 +134,7 @@ function CompaniesPanel({
                 <li key={c.ticker}>
                   <Link
                     href={`/company/${encodeURIComponent(c.ticker)}`}
-                    className="flex items-center justify-between gap-3 py-2 hover:bg-zinc-50"
+                    className="flex min-h-11 items-center justify-between gap-3 py-2 hover:bg-zinc-50"
                   >
                     <div className="flex min-w-0 items-center gap-2">
                       {c.critical_point_state && (
@@ -169,7 +169,7 @@ function CompaniesPanel({
             <div className="mt-3 border-t border-zinc-100 pt-3 text-right">
               <Link
                 href={compareHref}
-                className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-700"
+                className="inline-flex min-h-11 items-center gap-1 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-700"
                 data-testid="universality-compare-cta"
               >
                 并排对比前 5 家 →
@@ -243,7 +243,7 @@ export default function UniversalityDetailPage() {
       <div className="space-y-4">
         <h1 className="sr-only">普适类未找到</h1>
         <div className="text-xs text-zinc-500">
-          <Link href="/universality" className="hover:text-zinc-900">
+          <Link href="/universality" className="inline-flex min-h-11 items-center hover:text-zinc-900">
             ← 返回普适类列表
           </Link>
         </div>
@@ -261,7 +261,7 @@ export default function UniversalityDetailPage() {
   return (
     <div className="space-y-6">
       <nav className="text-xs text-zinc-500">
-        <Link href="/universality" className="hover:text-zinc-900">
+        <Link href="/universality" className="inline-flex min-h-11 items-center hover:text-zinc-900">
           ← 普适类列表
         </Link>
       </nav>
@@ -272,15 +272,15 @@ export default function UniversalityDetailPage() {
         aria-busy={loading ? "true" : "false"}
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-semibold text-zinc-900">
+          <div className="min-w-0 max-w-full">
+            <h1 className="break-words text-2xl font-semibold text-zinc-900">
               {detail?.display_name ?? classId}
             </h1>
             {detail?.display_name_zh &&
               detail.display_name_zh !== detail.display_name && (
                 <p className="text-sm text-zinc-600">{detail.display_name_zh}</p>
               )}
-            <p className="mt-1 font-mono text-[11px] text-zinc-400">
+            <p className="mt-1 break-all font-mono text-[11px] text-zinc-400">
               {detail?.class_id ?? classId}
             </p>
           </div>
@@ -472,7 +472,7 @@ export default function UniversalityDetailPage() {
               <li>
                 <Link
                   href="/compare"
-                  className="text-zinc-700 underline hover:text-zinc-900"
+                  className="inline-flex min-h-11 items-center text-zinc-700 underline hover:text-zinc-900"
                 >
                   在 /compare 并排对比公司
                 </Link>
@@ -480,7 +480,7 @@ export default function UniversalityDetailPage() {
               <li>
                 <Link
                   href="/universality"
-                  className="text-zinc-700 underline hover:text-zinc-900"
+                  className="inline-flex min-h-11 items-center text-zinc-700 underline hover:text-zinc-900"
                 >
                   浏览全部普适类
                 </Link>
@@ -488,7 +488,7 @@ export default function UniversalityDetailPage() {
               <li>
                 <Link
                   href="/methodology"
-                  className="text-zinc-700 underline hover:text-zinc-900"
+                  className="inline-flex min-h-11 items-center text-zinc-700 underline hover:text-zinc-900"
                 >
                   了解分类方法
                 </Link>

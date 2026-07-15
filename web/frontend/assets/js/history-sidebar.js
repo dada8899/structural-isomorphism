@@ -1,10 +1,11 @@
-// history-sidebar.js — anonymous local search history sidebar (Perplexity-style)
+// history-sidebar.js — per-tab search history sidebar (Perplexity-style)
 // Self-contained widget: injects own CSS + DOM, reads from window.getHistory().
-// Depends on: utils.js (getHistory, Storage). Safe to include via <script src="..."> on any page.
+// Depends on: utils.js (per-tab history + optional remote opt-in).
+// Safe to include via <script src="..."> on any page.
 //
-// localStorage keys:
-//   structural_history             (existing) — search entries written by search.js
-//   structural_sidebar_collapsed   (new)     — desktop collapsed state ("1" | "0")
+// Storage boundaries:
+//   raw queries live only in per-tab sessionStorage via utils.js
+//   structural_sidebar_collapsed remains a non-sensitive local preference
 //
 // Public API:
 //   window.HistorySidebar.refresh()  // re-render after a write
@@ -18,11 +19,59 @@
   if (window.HistorySidebar) return; // idempotent
 
   var COLLAPSED_KEY = 'structural_sidebar_collapsed';
+  var PRIVATE_NAVIGATION_SRC = '/assets/js/utils/privateNavigation.js?v=20260714n2';
+  var privateNavigationPromise = null;
   var EXAMPLE_QUERIES = [
     '为什么团队氛围崩了就回不去？',
     '月活下降 7% 怎么找根因？',
     '一些谣言为什么会突然爆？',
   ];
+
+  function renderPrivateNavigationLoadError() {
+    if (typeof window.announcePrivateNavigationError === 'function') {
+      window.announcePrivateNavigationError('helper_unavailable');
+      return;
+    }
+    try {
+      var host = document.querySelector('main') || document.body;
+      if (!host) return;
+      var existing = document.getElementById('private-navigation-error');
+      if (existing) return;
+      var region = document.createElement('section');
+      region.id = 'private-navigation-error';
+      region.className = 'private-navigation-error';
+      region.setAttribute('role', 'alert');
+      region.setAttribute('aria-live', 'assertive');
+      region.setAttribute('aria-atomic', 'true');
+      region.setAttribute('tabindex', '-1');
+      region.style.cssText = 'max-width:720px;margin:16px auto;padding:16px 18px;border:1px solid #d6d3d1;border-radius:12px;background:#fff;color:#1c1917';
+      region.textContent = '无法安全打开这个研究问题。问题没有写入网址，页面也没有跳转。请刷新后重试。';
+      host.insertBefore(region, host.firstChild);
+      region.focus();
+    } catch (_) { /* no safe navigation and no secondary exception */ }
+  }
+
+  function ensurePrivateNavigation() {
+    if (typeof window.buildPrivateSearchUrl === 'function') return Promise.resolve(true);
+    if (privateNavigationPromise) return privateNavigationPromise;
+    privateNavigationPromise = new Promise(function (resolve) {
+      var settled = false;
+      var finish = function (loaded) {
+        if (settled) return;
+        settled = true;
+        resolve(Boolean(loaded && typeof window.buildPrivateSearchUrl === 'function'));
+      };
+      var script = document.createElement('script');
+      script.src = PRIVATE_NAVIGATION_SRC;
+      script.async = true;
+      script.dataset.privateNavigationLoader = 'true';
+      script.onload = function () { finish(true); };
+      script.onerror = function () { finish(false); };
+      (document.head || document.documentElement).appendChild(script);
+      window.setTimeout(function () { finish(false); }, 5000);
+    });
+    return privateNavigationPromise;
+  }
 
   // ---------- CSS injection ----------
   var CSS = `
@@ -53,6 +102,11 @@
   letter-spacing: 0.02em;
 }
 .history-sidebar__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   background: transparent;
   border: 0;
   cursor: pointer;
@@ -70,13 +124,18 @@
 }
 .history-entry {
   display: block;
-  padding: 10px 12px;
   border-radius: 8px;
-  text-decoration: none;
   color: inherit;
   position: relative;
-  cursor: pointer;
   border: 1px solid transparent;
+}
+.history-entry__link {
+  display: block;
+  min-height: 44px;
+  padding: 10px 48px 10px 12px;
+  border-radius: inherit;
+  color: inherit;
+  text-decoration: none;
 }
 .history-entry:hover {
   background: #FFFFFF;
@@ -105,7 +164,9 @@
   background: transparent;
   border: 0;
   cursor: pointer;
-  padding: 4px 6px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   border-radius: 4px;
   color: #A1A1AA;
   opacity: 0;
@@ -123,6 +184,9 @@
   flex-shrink: 0;
 }
 .history-sidebar__clear {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   background: transparent;
   border: 0;
   color: #71717A;
@@ -141,7 +205,9 @@
   line-height: 1.5;
 }
 .history-sidebar__example {
-  display: block;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
   font-size: 13px;
   color: #18181B;
   padding: 10px 12px;
@@ -254,6 +320,8 @@
     btn.id = 'history-sidebar-trigger';
     btn.type = 'button';
     btn.setAttribute('aria-label', '打开历史');
+    btn.setAttribute('aria-controls', 'history-sidebar');
+    btn.setAttribute('aria-expanded', 'false');
     btn.innerHTML = '☰';
     return btn;
   }
@@ -284,7 +352,7 @@
       '<div class="history-sidebar__empty">' +
         '<p class="history-sidebar__empty-text">你用过的查询会出现在这里。试试看：</p>' +
         EXAMPLE_QUERIES.map(function (q) {
-          return '<a class="history-sidebar__example" href="/search?q=' + encodeURIComponent(q) + '">' + escapeHtml(q) + '</a>';
+          return '<a class="history-sidebar__example" href="/search" data-private-search-query="' + escapeHtml(q) + '">' + escapeHtml(q) + '</a>';
         }).join('') +
       '</div>';
   }
@@ -292,40 +360,32 @@
   function renderList(body, list) {
     body.innerHTML = list.map(function (entry) {
       var q = escapeHtml(entry.query);
-      var url = '/search?q=' + encodeURIComponent(entry.query);
+      var url = '/search';
       return (
-        '<a class="history-entry" href="' + url + '" data-query="' + q + '">' +
-          '<div class="history-entry__query">' + q + '</div>' +
-          '<div class="history-entry__time">' + timeAgo(entry.timestamp) + '</div>' +
+        '<div class="history-entry" data-query="' + q + '">' +
+          '<a class="history-entry__link" href="' + url + '" data-private-search-query="' + q + '">' +
+            '<div class="history-entry__query">' + q + '</div>' +
+            '<div class="history-entry__time">' + timeAgo(entry.timestamp) + '</div>' +
+          '</a>' +
           '<button class="history-entry__delete" type="button" aria-label="删除" title="删除">×</button>' +
-        '</a>'
+        '</div>'
       );
     }).join('');
   }
 
-  // Local cache of the last merged list so a remote fetch doesn't have to
-  // race the initial render. localStorage stays authoritative.
+  // Per-tab cache of the last explicitly requested remote snapshot.
   var _remoteCache = null;
 
-  // Remote sync is ON by default (W1-B, session #8). Users who explicitly
-  // want device-local-only history can set `structural_disable_remote_history=1`
-  // in localStorage. We still respect the old opt-in flag if set so existing
-  // testers who turned it on don't see any regression.
+  // Remote raw-query history is strictly opt-in. utils.js owns the single
+  // flag parser so POST and GET cannot drift to different defaults.
   function _useRemote() {
-    try {
-      if (localStorage.getItem('structural_disable_remote_history') === '1') return false;
-      // Old opt-in flag still wins if explicitly set to '0' (force off).
-      if (localStorage.getItem('structural_use_remote_history') === '0') return false;
-      return true;
-    } catch (e) {
-      // localStorage unavailable (private mode) — fall back to off.
-      return false;
-    }
+    return typeof window.isRemoteHistoryEnabled === 'function'
+      && window.isRemoteHistoryEnabled() === true;
   }
 
   // Merge two lists by query string (case-insensitive), keeping the most
-  // recent timestamp from either source. localStorage entries win on tie
-  // so user-local writes never get clobbered by a stale remote row.
+  // recent timestamp from either source. Per-tab entries win on tie so the
+  // current tab's writes never get clobbered by a stale remote row.
   function mergeHistoryLists(localList, remoteList) {
     var bucket = {};
     var order = [];
@@ -378,9 +438,11 @@
   function fetchRemoteHistory() {
     if (!_useRemote()) return Promise.resolve(null);
     if (!window.getDeviceId) return Promise.resolve(null);
+    var deviceId = window.getDeviceId();
+    if (!deviceId || typeof fetch !== 'function') return Promise.resolve(null);
     return fetch('/api/history?limit=20', {
       method: 'GET',
-      headers: { 'X-Device-ID': window.getDeviceId() },
+      headers: { 'X-Device-ID': deviceId },
       credentials: 'same-origin',
     })
       .then(function (res) {
@@ -391,8 +453,8 @@
         _remoteCache = _normaliseRemote(data && data.items);
         return _remoteCache;
       })
-      .catch(function (err) {
-        if (window.console && console.warn) console.warn('[history-sidebar] remote fetch failed:', err);
+      .catch(function () {
+        console.warn('[history-sidebar] remote fetch unavailable');
         return null;
       });
   }
@@ -401,8 +463,8 @@
     var body = document.getElementById('history-sidebar-body');
     if (!body) return;
     var local = (window.getHistory && window.getHistory()) || [];
-    // Dual-source: if remote is enabled and we have a cached snapshot,
-    // merge it in. localStorage is the source of truth.
+    // Remote rows are merged only after explicit opt-in; per-tab history is
+    // otherwise the sole source of truth.
     var list = local;
     if (_useRemote() && _remoteCache) {
       list = mergeHistoryLists(local, _remoteCache);
@@ -413,14 +475,13 @@
 
   // ---------- Removal helper ----------
   function removeFromHistory(query) {
-    if (!window.getHistory || !window.Storage) return;
-    var list = window.getHistory();
-    var next = list.filter(function (e) { return !e || !e.query || e.query.trim().toLowerCase() !== String(query).trim().toLowerCase(); });
-    window.Storage.set('structural_history', next);
+    if (typeof window.removeFromHistory === 'function') {
+      window.removeFromHistory(query);
+    }
   }
 
   function clearAll() {
-    if (window.Storage) window.Storage.set('structural_history', []);
+    if (typeof window.clearHistory === 'function') window.clearHistory();
   }
 
   // ---------- Toggle / drawer state ----------
@@ -429,20 +490,58 @@
     try { localStorage.setItem(COLLAPSED_KEY, isCollapsed ? '1' : '0'); } catch (e) {}
   }
 
+  function drawerFocusables() {
+    var sb = document.getElementById('history-sidebar');
+    if (!sb) return [];
+    return Array.prototype.slice.call(sb.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      .filter(function (node) { return node.offsetParent !== null; });
+  }
+
+  function syncSidebarAccessibility() {
+    var sb = document.getElementById('history-sidebar');
+    var trigger = document.getElementById('history-sidebar-trigger');
+    var toggle = document.querySelector('.history-sidebar__toggle');
+    if (!sb) return;
+    var mobile = isMobile();
+    var open = mobile && sb.classList.contains('history-sidebar--open');
+    if (mobile) {
+      sb.setAttribute('role', 'dialog');
+      sb.setAttribute('aria-modal', open ? 'true' : 'false');
+      sb.setAttribute('aria-hidden', open ? 'false' : 'true');
+      if (open) sb.removeAttribute('inert');
+      else sb.setAttribute('inert', '');
+    } else {
+      sb.removeAttribute('role');
+      sb.removeAttribute('aria-modal');
+      sb.setAttribute('aria-hidden', 'false');
+      sb.removeAttribute('inert');
+    }
+    if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (toggle) toggle.setAttribute('aria-label', mobile ? '关闭历史' : '收起或展开历史');
+  }
+
   function openDrawer() {
     var sb = document.getElementById('history-sidebar');
     var bd = document.getElementById('history-sidebar-backdrop');
     if (sb) sb.classList.add('history-sidebar--open');
     if (bd) bd.classList.add('history-sidebar__backdrop--visible');
     document.body.classList.add('history-sidebar--drawer-open');
+    syncSidebarAccessibility();
+    window.requestAnimationFrame(function () {
+      var controls = drawerFocusables();
+      if (controls.length) controls[0].focus();
+    });
   }
 
-  function closeDrawer() {
+  function closeDrawer(restoreFocus) {
     var sb = document.getElementById('history-sidebar');
     var bd = document.getElementById('history-sidebar-backdrop');
+    var trigger = document.getElementById('history-sidebar-trigger');
+    if (restoreFocus && trigger) trigger.focus();
     if (sb) sb.classList.remove('history-sidebar--open');
     if (bd) bd.classList.remove('history-sidebar__backdrop--visible');
     document.body.classList.remove('history-sidebar--drawer-open');
+    syncSidebarAccessibility();
   }
 
   function isMobile() { return window.innerWidth < 1024; }
@@ -455,6 +554,7 @@
     document.body.appendChild(buildBackdrop());
     document.body.appendChild(buildTrigger());
     document.body.classList.add('has-history-sidebar');
+    syncSidebarAccessibility();
 
     // Restore collapsed state
     try {
@@ -467,7 +567,7 @@
     var toggleBtn = document.querySelector('.history-sidebar__toggle');
     if (toggleBtn) {
       toggleBtn.addEventListener('click', function () {
-        if (isMobile()) closeDrawer();
+        if (isMobile()) closeDrawer(true);
         else toggleCollapsed();
       });
     }
@@ -478,10 +578,62 @@
 
     // Backdrop tap closes drawer
     var bd = document.getElementById('history-sidebar-backdrop');
-    if (bd) bd.addEventListener('click', closeDrawer);
+    if (bd) bd.addEventListener('click', function () { closeDrawer(true); });
+
+    document.addEventListener('keydown', function (event) {
+      var sb = document.getElementById('history-sidebar');
+      if (!isMobile() || !sb || !sb.classList.contains('history-sidebar--open')) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeDrawer(true);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      var controls = drawerFocusables();
+      if (!controls.length) return;
+      var first = controls[0];
+      var last = controls[controls.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !sb.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+
+    window.addEventListener('resize', function () {
+      var sb = document.getElementById('history-sidebar');
+      var bd = document.getElementById('history-sidebar-backdrop');
+      if (!isMobile()) {
+        if (sb) sb.classList.remove('history-sidebar--open');
+        if (bd) bd.classList.remove('history-sidebar__backdrop--visible');
+        document.body.classList.remove('history-sidebar--drawer-open');
+      }
+      syncSidebarAccessibility();
+    });
 
     // Delegated click on body for entries + delete + clear + examples
-    document.getElementById('history-sidebar-body').addEventListener('click', function (e) {
+    document.getElementById('history-sidebar-body').addEventListener('click', async function (e) {
+      var searchLink = e.target.closest && e.target.closest('[data-private-search-query]');
+      if (searchLink) {
+        e.preventDefault();
+        var privateQuery = searchLink.getAttribute('data-private-search-query') || '';
+        if (!privateQuery || !await ensurePrivateNavigation()) {
+          renderPrivateNavigationLoadError();
+          return;
+        }
+        var lang = window.i18n && window.i18n.getLang && window.i18n.getLang() === 'en' ? 'en' : 'zh';
+        var destination = window.buildPrivateSearchUrl({
+          query: privateQuery, lang: lang, source: 'history'
+        });
+        if (!destination) return;
+        try {
+          if (!new URL(destination, window.location.origin).searchParams.get('context')) return;
+        } catch (_error) { return; }
+        window.location.assign(destination);
+        return;
+      }
       var del = e.target.closest && e.target.closest('.history-entry__delete');
       if (del) {
         e.preventDefault();
@@ -504,15 +656,13 @@
       });
     }
 
-    // Listen for storage events from other tabs
-    window.addEventListener('storage', function (ev) {
-      if (ev.key === 'structural_history') refresh();
-    });
-
     // Listen for visibility change (re-render on tab return)
     document.addEventListener('visibilitychange', function () {
       if (!document.hidden) refresh();
     });
+    // Custom same-tab signal only. The browser `storage` event is deliberately
+    // not used because raw questions are isolated in per-tab sessionStorage.
+    window.addEventListener('structural:history-changed', refresh);
 
     refresh();
 

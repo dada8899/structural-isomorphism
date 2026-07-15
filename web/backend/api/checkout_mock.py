@@ -1,23 +1,15 @@
-"""
-POST /api/checkout/mock — Stripe Checkout *mock* endpoint (W10-B, session #10).
+"""Legacy checkout simulator retained for local compatibility tests only.
 
-This is **not** live Stripe. It simulates the surface area we'll eventually
-plug into (customer/session ids, decline 10% of the time, persist to jsonl).
-The point is to:
+For a schema-valid request, production returns HTTP 410 before business
+validation or persistence. FastAPI/Pydantic still validates the request body
+first, so malformed JSON or an invalid body shape can return HTTP 422. The
+live product has no paid checkout; billing stays fail closed until a real
+entitlement system is launched.
 
-  1. Let the pricing page render a realistic Stripe-style flow today, so we
-     can wire / measure / test the funnel BEFORE PMF justifies a real Stripe
-     integration.
-  2. Build a "would-have-paid" waitlist (mock_checkouts.jsonl) we can convert
-     when we flip the switch on real Stripe (Q3 2026 target).
-  3. Validate that the /api/usage gate (tier → ticker_limit) actually shapes
-     user behaviour vs. always-free.
-
-When real Stripe arrives:
-  - Replace this endpoint with stripe.checkout.Session.create()
-  - Webhook receiver lives at /api/stripe/webhook (separate file)
-  - mock_checkouts.jsonl gets migrated to a `customers` SQLite table
-  - The frontend /checkout/mock page is replaced by a redirect to checkout.stripe.com
+In development this is **not** live Stripe. It is an isolated compatibility
+fixture that emits deterministic success/decline-shaped data for tests and
+may append those fixture records to JSONL. It does not imply a billing launch
+or roadmap commitment.
 
 Body (JSON):
     {
@@ -46,28 +38,26 @@ Response:
 from __future__ import annotations
 
 import json
-import logging
+import os
 import random
 import re
 import time
 import uuid
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-router = APIRouter(tags=["checkout-mock"])
-logger = logging.getLogger("structural.checkout_mock")
-# W14-D: structlog adapter — `slog` emits queryable key=value fields
-# alongside the legacy stdlib `logger` calls (kept for log-message stability).
-try:  # pragma: no cover — import guard for early-load test envs
-    from logging_config import get_logger as _glog
+from schemas import CheckoutResponse as LegacyCheckoutResponse
+if __package__ == "web.backend.api":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
-    slog = _glog("structural.checkout_mock")
-except Exception:  # pragma: no cover
-    slog = None
+router = APIRouter(tags=["checkout-mock"])
+logger = get_logger("structural.checkout_mock")
 
 _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
 
@@ -88,6 +78,10 @@ _MAX_NAME_LEN = 100
 _MAX_EMAIL_LEN = 200
 
 
+def _is_prod() -> bool:
+    return os.getenv("STRUCTURAL_ENV", "dev").strip().lower() == "prod"
+
+
 def _data_file() -> Path:
     """Mock-checkout persistence. JSONL append-only — same shape we'd ingest
     from real Stripe webhooks later."""
@@ -106,14 +100,48 @@ class CheckoutBody(BaseModel):
     force_status: Optional[str] = None
 
 
-@router.post("/checkout/mock")
-async def checkout_mock(body: CheckoutBody, request: Request):
-    """Simulate a Stripe Checkout call.
+class LegacyCheckoutRetiredResponse(BaseModel):
+    error: Literal["legacy_checkout_retired"]
+    detail: str
 
-    Returns success ~90% of the time, decline ~10%. Decline is a *valid*
+
+@router.post(
+    "/checkout/mock",
+    response_model=LegacyCheckoutResponse,
+    summary="Legacy checkout simulator (retired in production)",
+    description=(
+        "Development compatibility endpoint only. A schema-valid production "
+        "request returns HTTP 410 before business logic or persistence; a "
+        "malformed or schema-invalid body returns HTTP 422 before the handler. "
+        "This is not a live payment or entitlement capability."
+    ),
+    deprecated=True,
+    responses={
+        410: {
+            "model": LegacyCheckoutRetiredResponse,
+            "description": "Production checkout is retired",
+        },
+    },
+)
+async def checkout_mock(body: CheckoutBody, request: Request):
+    """Run the development-only checkout simulator.
+
+    A schema-valid production request receives HTTP 410 before business
+    validation or persistence; malformed bodies may receive HTTP 422 from
+    FastAPI/Pydantic first. In development, returns success ~90% of the time
+    and decline ~10%. Decline is a *valid*
     business response (200, not 4xx) — the frontend distinguishes via the
     `status` field, mirroring how Stripe surfaces card_declined.
     """
+    if _is_prod():
+        return JSONResponse(
+            {
+                "error": "legacy_checkout_retired",
+                "detail": "Paid checkout is not available.",
+            },
+            status_code=410,
+        )
+
     tier = (body.tier or "").strip().lower()
     interval = (body.interval or "month").strip().lower()
     email = (body.email or "").strip().lower()
@@ -147,15 +175,7 @@ async def checkout_mock(body: CheckoutBody, request: Request):
         status = "declined" if random.random() < _DECLINE_RATE else "success"
 
     if status == "declined":
-        logger.info(
-            "checkout_mock declined: email=%s tier=%s interval=%s",
-            email, tier, interval,
-        )
-        if slog is not None:
-            slog.info(
-                "checkout.declined",
-                tier=tier, interval=interval, amount_usd=amount,
-            )
+        logger.info("checkout.declined", tier=tier)
         # Persist the decline too — useful funnel signal.
         _persist({
             "status": "declined",
@@ -188,16 +208,7 @@ async def checkout_mock(body: CheckoutBody, request: Request):
         "checkout_session_id": session_id,
     }, request)
 
-    logger.info(
-        "checkout_mock success: email=%s tier=%s interval=%s cust=%s",
-        email, tier, interval, customer_id,
-    )
-    if slog is not None:
-        slog.info(
-            "checkout.success",
-            tier=tier, interval=interval, amount_usd=amount,
-            customer_id=customer_id,
-        )
+    logger.info("checkout.success", tier=tier)
     return JSONResponse({
         "status": "success",
         "customer_id": customer_id,
@@ -221,13 +232,14 @@ def _persist(payload: dict, request: Request) -> None:
         entry = dict(payload)
         entry["ts"] = int(time.time())
         entry["iso"] = time.strftime("%Y-%m-%d %H:%M:%S")
-        entry["ip"] = request.client.host if request.client else "?"
-        entry["ua"] = (request.headers.get("user-agent") or "")[:200]
-        entry["referrer"] = (request.headers.get("referer") or "")[:300]
         with open(f, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
-    except Exception as e:
-        logger.warning("checkout_mock persist failed: %s", e)
+    except Exception as exc:
+        logger.warning(
+            "checkout.persist_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
 
 
 # -------- /api/usage --------
@@ -243,7 +255,14 @@ _TIER_LIMITS = {
 }
 
 
-@router.get("/usage")
+@router.get(
+    "/usage",
+    summary="Read the current public usage limits",
+    description=(
+        "Production currently exposes the free tier only. Development tests "
+        "may exercise mock tier inputs; production ignores them."
+    ),
+)
 async def usage(request: Request):
     """Return current tier + ticker_limit + today's API usage.
 
@@ -258,6 +277,15 @@ async def usage(request: Request):
     the frontend doesn't need to change.
     """
     tier = "free"
+    if _is_prod():
+        limits = _TIER_LIMITS[tier]
+        return JSONResponse({
+            "tier": tier,
+            "ticker_limit": limits["ticker_limit"],
+            "api_calls_today": 0,
+            "api_quota_today": limits["api_quota_today"],
+        })
+
     client_host = request.client.host if request.client else ""
     is_local = client_host in ("127.0.0.1", "localhost", "::1", "testclient", "")
 

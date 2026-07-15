@@ -1,54 +1,55 @@
-"""DELETE /api/privacy/delete — GDPR right-to-erasure endpoint.
+"""Legacy unauthenticated deletion retained only as a development fixture.
 
-W14-C (session #10, 2026-05-15): self-service data deletion.
-
-Removes records tied to a given email from:
-  • newsletter-subscribers.jsonl
-  • mock_checkouts.jsonl
-  • error_log.jsonl  (if matching by session_id)
-
-Writes an audit entry to:
-  • privacy_audit.jsonl  — append-only log of deletion requests (for
-    compliance traceability). Contains *only* email + timestamp + request
-    IP, NOT the deleted data.
-
-Verification:
-  Same as /api/privacy/export — Phase 1 mock code "123456", Phase 2 will
-  be a real OTP.
-
-Implementation strategy:
-  Read → filter → write-back. For our scale (< 100k rows total) this is
-  simple, atomic-ish (file replace), and avoids needing a DB transaction.
-  A concurrent write from another endpoint *could* race; the worst-case
-  is that 1 new record gets clobbered. This is acceptable for the current
-  alpha — when we ship real customers, we move to sqlite + transactions.
-
-Email confirmation:
-  Mocked. We log the "would-have-sent" mail at INFO level so it's
-  observable in test + CI. Phase 2 wires SES/Postmark.
+A well-formed, constraint-valid production request returns HTTP 410; malformed
+or constraint-invalid queries return HTTP 422 before the handler. The supported
+account-bound erasure flow is ``POST /api/me/delete`` with an active signed-in
+session. The email-code implementation below exists solely for isolated local
+and CI compatibility; it is not a public verification or account-deletion flow.
 """
 from __future__ import annotations
 
 import json
-import logging
+import hashlib
+import hmac
 import os
 import secrets
 import time
 from collections import defaultdict, deque
 from pathlib import Path
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any, Deque, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+from schemas import PrivacyDeleteResponse as LegacyPrivacyDeleteResponse
+if __package__ == "web.backend.api.privacy":
+    from ...logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
+try:
+    from services.privacy_identifiers import opaque_identifier
+except ModuleNotFoundError:
+    from web.backend.services.privacy_identifiers import opaque_identifier
 
 router = APIRouter(tags=["privacy"], prefix="/privacy")
-logger = logging.getLogger("structural.privacy.delete")
+logger = get_logger("structural.privacy.delete")
 
 RATE_LIMIT_WINDOW_S = 3600
 RATE_LIMIT_MAX = 1
 _MAX_EMAIL_LEN = 200
 
 _buckets: Dict[str, Deque[float]] = defaultdict(deque)
+_RATE_KEY = secrets.token_bytes(32)
+
+
+class LegacyPrivacyDeleteRetiredResponse(BaseModel):
+    error: Literal["legacy_privacy_endpoint_retired"]
+    detail: str
+
+
+def _is_prod() -> bool:
+    return os.getenv("STRUCTURAL_ENV", "dev").strip().lower() == "prod"
 
 
 def _data_dir() -> Path:
@@ -120,20 +121,24 @@ _FALLBACK_VERIFICATION_CODE = secrets.token_hex(16)
 
 
 def _expected_verification_code() -> str:
-    """Set STRUCTURAL_PRIVACY_MOCK_CODE in every real deployment. When unset
-    we return an unguessable random code (fail closed)."""
+    """Resolve the development-fixture code, failing closed when unset.
+
+    A constraint-valid production request never reaches this flow because the
+    route returns HTTP 410.
+    """
     code = os.getenv("STRUCTURAL_PRIVACY_MOCK_CODE")
     if code:
         return code
-    logger.warning(
-        "STRUCTURAL_PRIVACY_MOCK_CODE unset — privacy delete verification "
-        "uses a random per-process code; the endpoint is effectively locked "
-        "until an operator configures a real code."
-    )
+    logger.warning("privacy.delete_fixture_locked")
     return _FALLBACK_VERIFICATION_CODE
 
 
-def _check_rate_limit(key: str, now: float) -> bool:
+def _check_rate_limit(key: str, now: float, legacy_key: str | None = None) -> bool:
+    if legacy_key and legacy_key != key and legacy_key in _buckets:
+        legacy = _buckets.pop(legacy_key)
+        current = _buckets[key]
+        current.extend(legacy)
+        _buckets[key] = deque(sorted(current))
     bucket = _buckets[key]
     cutoff = now - RATE_LIMIT_WINDOW_S
     while bucket and bucket[0] < cutoff:
@@ -142,6 +147,18 @@ def _check_rate_limit(key: str, now: float) -> bool:
         return False
     bucket.append(now)
     return True
+
+
+def _legacy_rate_key(identifier: str) -> str:
+    return hmac.new(
+        _RATE_KEY,
+        identifier.strip().lower().encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def _rate_key(identifier: str, kind: str) -> str:
+    return opaque_identifier(f"privacy-delete-rate.{kind}", identifier, kind=kind)
 
 
 def _filter_out_email(path: Path, email: str) -> int:
@@ -174,8 +191,12 @@ def _filter_out_email(path: Path, email: str) -> int:
                     continue
                 dst.write(stripped + "\n")
         os.replace(tmp, path)
-    except Exception as e:
-        logger.error("delete rewrite failed path=%s err=%s", path, e)
+    except Exception as exc:
+        logger.error(
+            "privacy.delete_rewrite_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         # Clean up tmp if still around
         try:
             tmp.unlink(missing_ok=True)
@@ -209,8 +230,12 @@ def _filter_out_session(path: Path, session_id: str) -> int:
                     continue
                 dst.write(stripped + "\n")
         os.replace(tmp, path)
-    except Exception as e:
-        logger.error("delete rewrite failed path=%s err=%s", path, e)
+    except Exception as exc:
+        logger.error(
+            "privacy.delete_rewrite_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         try:
             tmp.unlink(missing_ok=True)
         except Exception:
@@ -221,15 +246,13 @@ def _filter_out_session(path: Path, session_id: str) -> int:
 
 def _audit(email: Optional[str], session_id: Optional[str], ip: str, removed: Dict[str, int]) -> None:
     """Append an audit row. The audit log itself never gets deleted by
-    this endpoint (compliance requirement) — and it intentionally does NOT
-    record the deleted *content*, only the request metadata."""
+    this endpoint. Identifiers and network metadata are deliberately omitted;
+    the row retains only aggregate removal counts and a random incident ID."""
     f = _audit_file()
     f.parent.mkdir(parents=True, exist_ok=True)
     entry = {
         "event": "delete_requested",
-        "email": email,
-        "session_id": session_id,
-        "ip": ip,
+        "incident_id": new_incident_id(),
         "removed_counts": removed,
         "ts": int(time.time()),
         "iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -237,32 +260,58 @@ def _audit(email: Optional[str], session_id: Optional[str], ip: str, removed: Di
     try:
         with open(f, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
-    except Exception as e:
-        logger.error("privacy_audit write failed: %s", e)
+    except Exception as exc:
+        logger.error(
+            "privacy.delete_audit_write_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
 
 
 def _mock_send_confirmation(email: str, removed: Dict[str, int]) -> None:
-    """Phase 1: log the mail we would have sent. Phase 2 swaps in real SES."""
-    logger.info(
-        "[MOCK EMAIL] to=%s subject='Your data has been deleted' "
-        "removed=%s",
-        email,
-        removed,
-    )
+    """Log a development-fixture confirmation; never used in production."""
+    logger.info("privacy.delete_confirmation_fixture")
 
 
-@router.delete("/delete")
+@router.delete(
+    "/delete",
+    response_model=LegacyPrivacyDeleteResponse,
+    summary="Legacy email-code deletion (retired in production)",
+    description=(
+        "Development compatibility endpoint. A well-formed, constraint-valid "
+        "production request returns HTTP 410 before business logic or "
+        "persistence; a malformed, overlong, or otherwise constraint-invalid "
+        "query returns HTTP 422 before the handler. Signed-in users delete "
+        "account data through /api/me/delete."
+    ),
+    deprecated=True,
+    responses={
+        410: {
+            "model": LegacyPrivacyDeleteRetiredResponse,
+            "description": "Production legacy deletion is retired",
+        },
+    },
+)
 async def delete_data(
     request: Request,
     email: Optional[str] = Query(None, max_length=_MAX_EMAIL_LEN),
     session_id: Optional[str] = Query(None, max_length=128),
     code: Optional[str] = Query(None, max_length=32),
 ):
-    """Delete all data tied to the given email and/or session_id.
+    """Exercise the retired deletion fixture outside production only.
 
     Returns 200 with removal counts on success. 401 if unverified.
     429 if rate-limit exceeded. 400 if no identifier supplied.
     """
+    if _is_prod():
+        return JSONResponse(
+            {
+                "error": "legacy_privacy_endpoint_retired",
+                "detail": "Use the signed-in account deletion flow.",
+            },
+            status_code=410,
+        )
+
     now = time.time()
     client_ip = request.client.host if request.client else "?"
 
@@ -278,16 +327,16 @@ async def delete_data(
             status_code=401,
         )
     if code != _expected_verification_code():
-        logger.info(
-            "privacy delete bad code: email=%s ip=%s", email, client_ip
-        )
+        logger.info("privacy.delete_verification_rejected")
         return JSONResponse(
             {"ok": False, "error": "invalid verification code"},
             status_code=401,
         )
 
-    rl_key = (email or session_id or "").lower()
-    if not _check_rate_limit(rl_key, now):
+    identifier = email or session_id or ""
+    kind = "email" if email else "opaque"
+    rl_key = _rate_key(identifier, kind)
+    if not _check_rate_limit(rl_key, now, _legacy_rate_key(identifier)):
         return JSONResponse(
             {
                 "ok": False,
@@ -328,8 +377,12 @@ async def delete_data(
             for f in _error_log_files():
                 n += _filter_out_session(f, session_id)
             removed["error_log"] = n
-    except Exception as e:
-        logger.error("privacy delete failed: %s", e)
+    except Exception as exc:
+        logger.error(
+            "privacy.delete_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return JSONResponse(
             {"ok": False, "error": "storage failure"}, status_code=500
         )
@@ -339,9 +392,7 @@ async def delete_data(
     if email:
         _mock_send_confirmation(email, removed)
 
-    logger.info(
-        "privacy delete: email=%s session=%s removed=%s", email, session_id, removed
-    )
+    logger.info("privacy.delete_completed")
     return JSONResponse(
         {
             "ok": True,

@@ -21,12 +21,12 @@ if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
 
-def _fresh_main(monkeypatch, env: str):
+def _fresh_main(monkeypatch, env: str, *, auth_enabled: bool = False):
     """Reload `main` under a given STRUCTURAL_ENV and return the module."""
     monkeypatch.setenv("STRUCTURAL_ENV", env)
     # prod path requires the share-token secret env (report_store guards it).
     monkeypatch.setenv("STRUCTURAL_SHARE_TOKEN_SECRET", "test-secret-for-suite")
-    monkeypatch.setenv("AUTH_ENABLED", "false")
+    monkeypatch.setenv("AUTH_ENABLED", "true" if auth_enabled else "false")
     if "main" in sys.modules:
         del sys.modules["main"]
     import main  # noqa: WPS433 — deliberate reload
@@ -45,13 +45,23 @@ def prod_client(monkeypatch):
     return TestClient(main.app)
 
 
+@pytest.fixture
+def prod_auth_client(monkeypatch):
+    main = _fresh_main(monkeypatch, "prod", auth_enabled=True)
+    return TestClient(main.app)
+
+
 # --------- P1-4: HEAD / --------- #
 
 
 def test_head_root_returns_200(dev_client):
     """HEAD / must be 200 — health checkers / CDNs probe with HEAD."""
-    r = dev_client.head("/")
-    assert r.status_code == 200
+    head = dev_client.head("/")
+    get = dev_client.get("/")
+    assert head.status_code == 200
+    assert head.content == b""
+    assert head.headers["content-type"] == get.headers["content-type"]
+    assert head.headers["content-length"] == get.headers["content-length"]
 
 
 def test_get_root_still_works(dev_client):
@@ -89,7 +99,21 @@ def test_unfinished_surfaces_fail_closed_in_prod(prod_client):
 
     connections = prod_client.get("/connections", follow_redirects=False)
     assert connections.status_code == 308
-    assert connections.headers["location"] == "/tools"
+    assert connections.headers["location"] == "/reports"
+
+    connections_api = prod_client.get("/api/connections/fingerprints")
+    assert connections_api.status_code == 410
+    assert connections_api.json()["error"] == "connections_not_available"
+
+
+def test_connections_remain_retired_when_accounts_are_enabled(prod_auth_client):
+    page = prod_auth_client.get("/connections", follow_redirects=False)
+    assert page.status_code == 308
+    assert page.headers["location"] == "/reports"
+
+    api = prod_auth_client.get("/api/connections/fingerprints")
+    assert api.status_code == 410
+    assert api.json()["error"] == "connections_not_available"
 
 
 def test_beta_auth_entry_is_native_to_primary_product(dev_client):
@@ -151,10 +175,10 @@ def test_version_no_subprocess_when_sha_present(dev_client, monkeypatch):
         raise AssertionError("/api/version forked a subprocess")
 
     monkeypatch.setattr(_sp, "check_output", _boom)
-    monkeypatch.setenv("STRUCTURAL_GIT_SHA", "feedface1234")
+    monkeypatch.setenv("STRUCTURAL_GIT_SHA", "f" * 40)
     r = dev_client.get("/api/version")
     assert r.status_code == 200
-    assert r.json()["git_sha"] == "feedface1234"
+    assert r.json()["git_sha"] == "f" * 40
 
 
 def test_version_prod_missing_sha_returns_unknown(monkeypatch):

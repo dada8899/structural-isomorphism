@@ -96,7 +96,7 @@ function CompareColumn({ company }: { company: Company }) {
         <div className="flex items-start justify-between gap-2">
           <Link
             href={`/company/${encodeURIComponent(company.ticker)}`}
-            className="text-base font-semibold text-zinc-900 hover:text-zinc-700"
+            className="inline-flex min-h-11 items-center text-base font-semibold text-zinc-900 hover:text-zinc-700"
           >
             {company.ticker}
           </Link>
@@ -353,15 +353,17 @@ export default function CompareClient({
       )}
 
       <footer className="border-t border-zinc-200 pt-4 text-xs text-zinc-500">
-        看完了？{" "}
-        <Link href="/universality" className="text-zinc-900 underline hover:text-zinc-700">
-          浏览全部普适类
-        </Link>{" "}
-        或返回{" "}
-        <Link href="/" className="text-zinc-900 underline hover:text-zinc-700">
-          公司表
-        </Link>
-        。
+        <p>
+          看完了？{" "}
+          <Link href="/universality" className="text-zinc-900 underline hover:text-zinc-700">
+            浏览全部普适类
+          </Link>{" "}
+          或返回{" "}
+          <Link href="/" className="text-zinc-900 underline hover:text-zinc-700">
+            公司表
+          </Link>
+          。
+        </p>
       </footer>
     </div>
   );

@@ -8,11 +8,14 @@ json 缺失时优雅降级：返回空结构 + 记录日志，不抛异常。
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
 from typing import Optional
+if __package__ == "web.backend.services":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
-logger = logging.getLogger("structural.whitespace")
+logger = get_logger("structural.whitespace")
 
 # web/data/whitespace_matrix.json relative to this file:
 # services/ -> backend/ -> web/ -> web/data/
@@ -29,11 +32,7 @@ class WhitespaceService:
 
     def _load(self) -> None:
         if not self.data_file.exists():
-            logger.warning(
-                "whitespace_matrix.json not found at %s — serving empty data. "
-                "Run scripts/build_whitespace_matrix.py to generate it.",
-                self.data_file,
-            )
+            logger.warning("structural.whitespace_data_missing")
             self._data = self._empty()
             return
         try:
@@ -41,18 +40,17 @@ class WhitespaceService:
                 raw = json.load(f)
             # Minimal shape validation — guard against a truncated / wrong file.
             if not isinstance(raw, dict) or "matrix" not in raw or "leads" not in raw:
-                logger.error("whitespace_matrix.json has unexpected shape — serving empty data.")
+                logger.error("structural.whitespace_data_rejected")
                 self._data = self._empty()
                 return
             self._data = raw
-            logger.info(
-                "Loaded whitespace matrix: %d classes, %d domains, %d leads",
-                len(raw.get("classes", [])),
-                len(raw.get("domains", [])),
-                len(raw.get("leads", [])),
+            logger.info("structural.whitespace_data_loaded")
+        except (json.JSONDecodeError, OSError) as exc:
+            logger.error(
+                "structural.whitespace_data_load_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
             )
-        except (json.JSONDecodeError, OSError) as e:
-            logger.error("Failed to load whitespace_matrix.json: %s", e)
             self._data = self._empty()
 
     @staticmethod

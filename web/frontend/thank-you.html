@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="已加入《结构信号》订阅。每周日推送本周公司状态的变化。">
+  <meta name="description" content="已加入 Structural 研究更新；有经复核的方法、案例或公开负结果时发送，不承诺固定频率。">
   <meta name="theme-color" content="#FAFAF9">
   <meta name="robots" content="noindex, nofollow">
   <title>已加入名单 — Structural</title>
@@ -15,8 +15,8 @@
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260417e">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260417e">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260417e">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
   <link rel="stylesheet" href="/assets/css/glossary.css?v=20260417e">
   <style>
     .ty-wrap {
@@ -27,7 +27,7 @@
     .ty-eyebrow {
       display: inline-block;
       font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase;
-      color: #71717A; font-weight: 600;
+      color: #696972; font-weight: 600;
       margin-bottom: 10px;
     }
     .ty-title {
@@ -51,7 +51,7 @@
     }
     .ty-share-title {
       font-size: 12px; letter-spacing: 0.6px; text-transform: uppercase;
-      color: #71717A; font-weight: 600; margin-bottom: 8px;
+      color: #696972; font-weight: 600; margin-bottom: 8px;
     }
     .ty-share-body { font-size: 14px; color: #52525B; margin-bottom: 14px; }
     .ty-share-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -63,7 +63,19 @@
       cursor: pointer; text-decoration: none;
       transition: border-color 0.15s;
     }
-    .ty-share-button:hover { border-color: #71717A; }
+    .ty-share-button:hover { border-color: #696972; }
+    .ty-copy-status {
+      min-height: 20px; margin: 10px 0 0; font-size: 13px; color: #52525B;
+    }
+    .ty-copy-fallback { margin-top: 10px; }
+    .ty-copy-fallback label {
+      display: block; margin-bottom: 6px; font-size: 13px; color: #3F3F46;
+    }
+    .ty-copy-url {
+      box-sizing: border-box; width: 100%; min-height: 44px; padding: 9px 11px;
+      border: 1px solid #A1A1AA;
+      border-radius: 8px; color: #18181B; background: #FFFFFF;
+    }
 
     .ty-next {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
@@ -81,22 +93,19 @@
       box-shadow: 0 4px 14px rgba(0,0,0,0.04);
     }
     .ty-next-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-    .ty-next-meta { font-size: 12px; color: #71717A; }
+    .ty-next-meta { font-size: 12px; color: #696972; }
 
     .ty-fineprint {
-      font-size: 12px; color: #A1A1AA; line-height: 1.6;
+      font-size: 12px; color: #696972; line-height: 1.6;
     }
-    .ty-fineprint a { color: #52525B; }
+    .ty-fineprint a { color: #52525B; text-decoration: underline; text-underline-offset: 3px; }
   </style>
 
-  <script defer data-domain="structural.bytedance.city"
-          src="https://plausible.bytedance.city/js/script.js"></script>
-  <!-- Plausible analytics (W7-D mini-brief 5, 2026-05-24). -->
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+  <script defer src="/assets/js/analytics-consent.js?v=20260714n2"></script>
 </head>
 <body>
   <main class="ty-wrap">
-    <span class="ty-eyebrow">Newsletter · 已加入</span>
+    <span class="ty-eyebrow">Research updates · 已加入</span>
     <h1 class="ty-title">已加入。</h1>
 
     <p class="ty-body">
@@ -105,7 +114,7 @@
     <ul class="ty-list">
       <li>597-ticker 冻结 demo 的方法与局限</li>
       <li>没有发现效果、反向结果和证据不足的公开记录</li>
-      <li>一个跨领域研究案例</li>
+      <li>跨领域候选的来源与实证复核进展</li>
       <li>方法更新与推荐阅读</li>
     </ul>
 
@@ -126,9 +135,17 @@
           Share on LinkedIn ↗
         </a>
         <button type="button" class="ty-share-button" id="ty-copy-link"
-                data-share="copy_link">
+                data-share="copy_link" aria-describedby="ty-copy-status"
+                aria-controls="ty-copy-fallback">
           复制链接
         </button>
+      </div>
+      <p id="ty-copy-status" class="ty-copy-status" role="status"
+         aria-live="polite"></p>
+      <div id="ty-copy-fallback" class="ty-copy-fallback" hidden>
+        <label for="ty-copy-url">手动复制链接</label>
+        <input id="ty-copy-url" class="ty-copy-url" type="url" readonly
+               spellcheck="false" value="https://structural.bytedance.city">
       </div>
     </section>
 
@@ -148,10 +165,11 @@
     </section>
 
     <p class="ty-fineprint">
-      如果一周后没收到邮件，请检查垃圾邮件文件夹 — 或者在
+      如果暂时没有收到邮件，可能还没有新的经复核内容。你也可以检查垃圾邮件文件夹，或在
       <a href="https://github.com/dada8899/structural-isomorphism/issues" target="_blank" rel="noopener">GitHub Issues</a>
       告诉我们。
     </p>
+    <p><button type="button" class="ty-share-button" data-analytics-settings>分析设置</button></p>
   </main>
 
   <script>
@@ -163,23 +181,115 @@
           }
         } catch (e) {}
       }
-      // Fire 'thank_you_view' once on load.
-      track("thank_you_view", { source: "main_site" });
+      // Deferred consent initialization runs before DOMContentLoaded. Waiting
+      // here lets an existing explicit choice install the direct transport;
+      // without consent this remains a silent no-op.
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () {
+          track("thank_you_view", { source: "main_site" });
+        }, { once: true });
+      } else {
+        track("thank_you_view", { source: "main_site" });
+      }
 
       var copyBtn = document.getElementById("ty-copy-link");
       if (copyBtn) {
-        copyBtn.addEventListener("click", function () {
-          var url = "https://structural.bytedance.city";
+        var copyStatus = document.getElementById("ty-copy-status");
+        var copyFallback = document.getElementById("ty-copy-fallback");
+        var copyUrl = document.getElementById("ty-copy-url");
+        var resetTimer = null;
+        var copyAttempt = 0;
+        var url = "https://structural.bytedance.city";
+
+        function setBusy(busy) {
+          copyBtn.disabled = busy;
+          copyBtn.setAttribute("aria-busy", busy ? "true" : "false");
+        }
+        function copied() {
+          setBusy(false);
+          if (copyFallback) copyFallback.hidden = true;
+          copyBtn.textContent = "已复制 ✓";
+          if (copyStatus) copyStatus.textContent = "链接已复制到剪贴板。";
+          copyBtn.focus();
+          track("thank_you_share", { channel: "copy_link" });
+          resetTimer = setTimeout(function () {
+            copyBtn.textContent = "复制链接";
+            if (copyStatus) copyStatus.textContent = "";
+          }, 2000);
+        }
+        function showManualCopy() {
+          setBusy(false);
+          copyBtn.textContent = "重试复制";
+          if (copyStatus) {
+            copyStatus.textContent = "未能自动复制。链接已选中；可长按复制，或按 ⌘C（Windows 按 Ctrl+C）。";
+          }
+          if (copyFallback && copyUrl) {
+            copyFallback.hidden = false;
+            copyUrl.value = url;
+            copyUrl.focus();
+            copyUrl.select();
+            try { copyUrl.setSelectionRange(0, copyUrl.value.length); } catch (e) {}
+          } else {
+            try { window.prompt("请手动复制这个链接", url); } catch (e) {}
+          }
+        }
+        function tryLegacyCopy() {
+          var textarea = document.createElement("textarea");
+          textarea.value = url;
+          textarea.setAttribute("readonly", "");
+          textarea.style.position = "fixed";
+          textarea.style.left = "-9999px";
+          document.body.appendChild(textarea);
+          textarea.select();
+          var ok = false;
           try {
-            navigator.clipboard.writeText(url).then(function () {
-              copyBtn.textContent = "已复制 ✓";
-              track("thank_you_share", { channel: "copy_link" });
-              setTimeout(function () { copyBtn.textContent = "复制链接"; }, 2000);
-            });
+            ok = typeof document.execCommand === "function" &&
+              document.execCommand("copy") === true;
           } catch (e) {
-            window.prompt("Copy this link", url);
+            ok = false;
+          }
+          textarea.remove();
+          if (ok) copied(); else showManualCopy();
+        }
+        copyBtn.addEventListener("click", function () {
+          var attempt = ++copyAttempt;
+          var settled = false;
+          var timeout = null;
+          function settle(action) {
+            if (settled || attempt !== copyAttempt) return;
+            settled = true;
+            if (timeout) clearTimeout(timeout);
+            action();
+          }
+          if (resetTimer) clearTimeout(resetTimer);
+          setBusy(true);
+          copyBtn.textContent = "正在复制…";
+          if (copyStatus) copyStatus.textContent = "";
+          try {
+            if (!navigator.clipboard ||
+                typeof navigator.clipboard.writeText !== "function") {
+              settle(tryLegacyCopy);
+              return;
+            }
+            var write = navigator.clipboard.writeText(url);
+            if (!write || typeof write.then !== "function") {
+              settle(tryLegacyCopy);
+              return;
+            }
+            timeout = setTimeout(function () {
+              settle(tryLegacyCopy);
+            }, 4000);
+            write.then(
+              function () { settle(copied); },
+              function () { settle(tryLegacyCopy); }
+            );
+          } catch (e) {
+            settle(tryLegacyCopy);
           }
         });
+        if (copyUrl) {
+          copyUrl.addEventListener("click", function () { copyUrl.select(); });
+        }
       }
       var shares = document.querySelectorAll('a[data-share]');
       for (var i = 0; i < shares.length; i++) {

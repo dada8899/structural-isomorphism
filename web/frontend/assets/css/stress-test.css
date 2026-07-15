@@ -180,8 +180,8 @@
   border: 1px solid var(--brand-line, #e4e4e7);
   margin-bottom: var(--space-6);
 }
-.stress-verdict--pass { background: rgba(5, 150, 105, 0.06); border-color: rgba(5, 150, 105, 0.3); }
-.stress-verdict--fail { background: rgba(220, 38, 38, 0.06); border-color: rgba(220, 38, 38, 0.3); }
+.stress-verdict--not-broken { background: rgba(5, 150, 105, 0.06); border-color: rgba(5, 150, 105, 0.3); }
+.stress-verdict--breaks { background: rgba(220, 38, 38, 0.06); border-color: rgba(220, 38, 38, 0.3); }
 .stress-verdict--conditional { background: rgba(217, 119, 6, 0.06); border-color: rgba(217, 119, 6, 0.3); }
 
 .stress-verdict__badge {
@@ -196,8 +196,8 @@
   border-radius: 999px;
   color: #fff;
 }
-.stress-verdict__badge--pass { background: var(--brand-success, #059669); }
-.stress-verdict__badge--fail { background: var(--brand-danger, #dc2626); }
+.stress-verdict__badge--not-broken { background: var(--brand-success, #059669); }
+.stress-verdict__badge--breaks { background: var(--brand-danger, #dc2626); }
 .stress-verdict__badge--conditional { background: var(--brand-warning, #d97706); }
 
 .stress-verdict__reason {
@@ -267,7 +267,7 @@
   padding: var(--space-4);
   background: var(--brand-paper-card, #fff);
 }
-.stress-corr--holds { border-left-color: var(--brand-success, #059669); }
+.stress-corr--not-broken { border-left-color: var(--brand-success, #059669); }
 .stress-corr--breaks { border-left-color: var(--brand-danger, #dc2626); }
 
 .stress-corr__head {
@@ -288,7 +288,7 @@
   color: #fff;
   margin-top: 1px;
 }
-.stress-corr--holds .stress-corr__mark { background: var(--brand-success, #059669); }
+.stress-corr--not-broken .stress-corr__mark { background: var(--brand-success, #059669); }
 .stress-corr--breaks .stress-corr__mark { background: var(--brand-danger, #dc2626); }
 .stress-corr__claim {
   font-size: var(--fs-14, 0.875rem);

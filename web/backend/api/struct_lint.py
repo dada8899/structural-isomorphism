@@ -4,17 +4,17 @@ Takes a strategy / plan document and returns its structural claims with
 failure modes and risk levels. See services/struct_lint_service.py for
 the extraction logic and the LLM-output guardrail.
 
-GET /api/struct-lint/stream is the SSE variant: same pipeline, but it
-emits progress events (extract → claims → per-claim isomorph) so the
+POST /api/struct-lint/stream is the SSE variant: same pipeline, but it
+emits progress events (extract → claims → per-claim candidate reference) so the
 frontend can show live progress instead of a 36-165s blank wait. The
 POST endpoint is kept for backward compatibility.
 """
 import json as _json
-import logging
+import unicodedata
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse, StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError, field_validator
 
 from services import llm_client
 from services.struct_lint_service import (
@@ -23,8 +23,19 @@ from services.struct_lint_service import (
     lint_document,
     lint_document_streamed,
 )
+from services.secondary_tool_contracts import (
+    CONTRACT_VERSION,
+    StructLintResponse,
+    ensure_request_id,
+    internal_screen_evidence,
+    secondary_scope_guard,
+)
+if __package__ == "web.backend.api":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
-logger = logging.getLogger("structural.api.struct_lint")
+logger = get_logger("structural.api.struct_lint")
 router = APIRouter(tags=["struct-lint"])
 
 
@@ -36,10 +47,37 @@ class StructLintRequest(BaseModel):
     with the limit + received counts before we ever reach the LLM.
     """
 
-    document: str = Field(..., max_length=MAX_DOC_CHARS + 5000)
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    document: StrictStr = Field(
+        ...,
+        max_length=MAX_DOC_CHARS + 5000,
+        json_schema_extra={"minLength": 1, "maxLength": MAX_DOC_CHARS},
+    )
+    client_request_id: StrictStr | None = Field(
+        default=None,
+        min_length=12,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{11,63}$",
+    )
+
+    @field_validator("document")
+    @classmethod
+    def _canonical_document(cls, value: str) -> str:
+        normalized = unicodedata.normalize("NFKC", value)
+        for char in normalized:
+            if unicodedata.category(char) in {"Cc", "Cf"} and char not in {
+                "\n",
+                "\r",
+                "\t",
+            }:
+                raise ValueError("document contains control characters")
+        if len(normalized) > MAX_DOC_CHARS + 5000:
+            raise ValueError("document exceeds the structural request ceiling")
+        return normalized
 
 
-@router.post("/struct-lint")
+@router.post("/struct-lint", response_model=StructLintResponse)
 async def struct_lint(req: StructLintRequest):
     """Extract structural claims + failure modes from a document.
 
@@ -68,9 +106,20 @@ async def struct_lint(req: StructLintRequest):
             },
         )
 
+    out_of_scope, reason = secondary_scope_guard(document)
+    if out_of_scope and reason in {"empty", "arithmetic", "chitchat", "trivia"}:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": "out_of_scope",
+                "reason": reason,
+                "message": "这里只筛查策略、方案或决策文档中的结构性主张。",
+            },
+        )
+
     # --- LLM availability gate — fail clean, don't attempt a doomed call ---
     if not llm_client.llm_available():
-        logger.warning("struct_lint: no OPENROUTER_API_KEY configured")
+        logger.warning("structural.struct_lint_unavailable")
         return JSONResponse(
             status_code=503,
             content={
@@ -79,19 +128,19 @@ async def struct_lint(req: StructLintRequest):
             },
         )
 
-    # --- KB search service — the structural-isomorphism engine. Optional:
-    # when it isn't ready, lint_document degrades to a basic lint (every
-    # claim gets isomorph=None) rather than failing the request. ---
+    # --- Optional KB candidate references. Retrieval never rewrites the
+    # screen or promotes it to evidence; unavailable search leaves references
+    # null rather than failing the document screen. ---
     search_svc = None
     try:
         from main import app_state
         search_svc = app_state.get("search")
     except Exception:
-        logger.warning("struct_lint: search service unavailable, degrading")
+        logger.warning("structural.struct_lint_search_unavailable")
 
     result = await lint_document(document, search_svc=search_svc)
     if result is None:
-        logger.error("struct_lint: lint_document returned no usable result")
+        logger.error("structural.struct_lint_result_rejected", incident_id=new_incident_id())
         return JSONResponse(
             status_code=503,
             content={
@@ -100,13 +149,47 @@ async def struct_lint(req: StructLintRequest):
             },
         )
 
-    return result
+    request_id = ensure_request_id(req.client_request_id)
+    payload = {
+        "contract_version": CONTRACT_VERSION,
+        "request_id": request_id,
+        "screening_kind": "internal_ai_document_screen",
+        **result,
+        "evidence": internal_screen_evidence(
+            kind="strategy_document_screen", label="用户提交的策略文档"
+        ),
+    }
+    try:
+        return StructLintResponse.model_validate(payload).model_dump()
+    except ValidationError:
+        logger.error(
+            "structural.struct_lint_response_contract_rejected",
+            incident_id=new_incident_id(),
+        )
+        return JSONResponse(
+            status_code=503,
+            content={
+                "error": "result_rejected",
+                "message": "文档筛查结果未通过完整性校验，请重试。",
+            },
+        )
 
 
-@router.get("/struct-lint/stream")
-async def struct_lint_stream(
-    document: str = Query(..., max_length=MAX_DOC_CHARS + 5000),
-):
+@router.get("/struct-lint/stream", include_in_schema=False)
+async def retired_struct_lint_stream_get():
+    """Retire the URL-bearing transport without inspecting its query string."""
+    return JSONResponse(
+        status_code=410,
+        content={
+            "error": "sensitive_get_retired",
+            "message": "Use POST /api/struct-lint/stream with a JSON body.",
+        },
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@router.post("/struct-lint/stream")
+async def struct_lint_stream(req: StructLintRequest):
     """SSE variant of /struct-lint — emits progress while the lint runs.
 
     Events (mirrors api/analyze.py's naming):
@@ -124,11 +207,17 @@ async def struct_lint_stream(
     def sse(event_type: str, data: dict) -> str:
         return f"event: {event_type}\ndata: {_json.dumps(data, ensure_ascii=False)}\n\n"
 
+    request_id = ensure_request_id(req.client_request_id)
+
     async def event_gen():
-        doc = document or ""
+        doc = req.document or ""
 
         # meta first — gives the client an instant "stream is alive" signal.
-        yield sse("meta", {"max_doc_chars": MAX_DOC_CHARS})
+        yield sse("meta", {
+            "max_doc_chars": MAX_DOC_CHARS,
+            "request_id": request_id,
+            "contract_version": CONTRACT_VERSION,
+        })
 
         # --- Input validation (same checks as the POST endpoint) ---
         err = check_doc_length(doc)
@@ -147,9 +236,18 @@ async def struct_lint_stream(
             })
             return
 
+        out_of_scope, reason = secondary_scope_guard(doc)
+        if out_of_scope and reason in {"empty", "arithmetic", "chitchat", "trivia"}:
+            yield sse("error", {
+                "error": "out_of_scope",
+                "reason": reason,
+                "message": "这里只筛查策略、方案或决策文档中的结构性主张。",
+            })
+            return
+
         # --- LLM availability gate ---
         if not llm_client.llm_available():
-            logger.warning("struct_lint_stream: no OPENROUTER_API_KEY configured")
+            logger.warning("structural.struct_lint_unavailable")
             yield sse("error", {
                 "error": "llm_unavailable",
                 "message": "结构 lint 暂时不可用（未配置模型服务）。",
@@ -162,7 +260,7 @@ async def struct_lint_stream(
             from main import app_state
             search_svc = app_state.get("search")
         except Exception:
-            logger.warning("struct_lint_stream: search service unavailable, degrading")
+            logger.warning("structural.struct_lint_search_unavailable")
 
         # --- Run the streamed pipeline, forwarding each event ---
         try:
@@ -171,14 +269,36 @@ async def struct_lint_stream(
                 if etype == "progress":
                     yield sse("progress", {k: v for k, v in ev.items() if k != "type"})
                 elif etype == "done":
-                    yield sse("done", {"result": ev.get("result")})
+                    payload = {
+                        "contract_version": CONTRACT_VERSION,
+                        "request_id": request_id,
+                        "screening_kind": "internal_ai_document_screen",
+                        **(ev.get("result") or {}),
+                        "evidence": internal_screen_evidence(
+                            kind="strategy_document_screen",
+                            label="用户提交的策略文档",
+                        ),
+                    }
+                    try:
+                        validated = StructLintResponse.model_validate(payload).model_dump()
+                    except ValidationError:
+                        yield sse("error", {
+                            "error": "result_rejected",
+                            "message": "文档筛查结果未通过完整性校验，请重试。",
+                        })
+                        return
+                    yield sse("done", {"result": validated})
                 elif etype == "error":
                     yield sse("error", {
                         "error": "llm_failed",
                         "message": ev.get("message", "结构 lint 生成失败，请稍后重试。"),
                     })
-        except Exception:
-            logger.exception("struct_lint_stream: pipeline raised")
+        except Exception as exc:
+            logger.error(
+                "structural.struct_lint_stream_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             yield sse("error", {
                 "error": "llm_failed",
                 "message": "结构 lint 生成失败，请稍后重试。",
@@ -188,7 +308,8 @@ async def struct_lint_stream(
         event_gen(),
         media_type="text/event-stream",
         headers={
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-store",
+            "Pragma": "no-cache",
             "X-Accel-Buffering": "no",
         },
     )

@@ -17,22 +17,32 @@ nothing. Callers MUST handle that (it is the local-dev / test default).
 from __future__ import annotations
 
 import json
-import logging
 import os
 from typing import AsyncIterator, Optional
 
-from services.llm_service import (
-    OPENROUTER_URL,
-    _fix_latex_escapes,
-    _get_http_client,
-    _try_repair_json,
-)
+if __package__ == "web.backend.services":
+    from .ask_orchestrator import ASK_MODEL as _DEFAULT_MODEL
+    from .llm_service import (
+        OPENROUTER_URL,
+        _fix_latex_escapes,
+        _get_http_client,
+        _try_repair_json,
+    )
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from services.ask_orchestrator import ASK_MODEL as _DEFAULT_MODEL
+    from services.llm_service import (
+        OPENROUTER_URL,
+        _fix_latex_escapes,
+        _get_http_client,
+        _try_repair_json,
+    )
+    from logging_config import get_logger, new_incident_id
 
-logger = logging.getLogger("structural.llm_client")
+logger = get_logger("structural.llm_client")
 
 # Single source of truth for the default model — same one analyze / ask
 # use in prod. Honours the ASK_LLM_MODEL env override.
-from services.ask_orchestrator import ASK_MODEL as _DEFAULT_MODEL
 
 
 def _api_key() -> str:
@@ -68,7 +78,7 @@ async def complete_json(
     surface a degraded result.
     """
     if not _api_key():
-        logger.warning("complete_json called with no OPENROUTER_API_KEY")
+        logger.warning("llm.client_unavailable")
         return None
     try:
         client = _get_http_client()
@@ -97,10 +107,14 @@ async def complete_json(
         try:
             return json.loads(fixed)
         except json.JSONDecodeError:
-            logger.warning("complete_json: JSON parse failed, attempting repair")
+            logger.warning("llm.json_repair_started")
             return _try_repair_json(fixed)
-    except Exception as e:  # noqa: BLE001 — never let an LLM error escape
-        logger.error("complete_json failed: %s", e)
+    except Exception as exc:  # noqa: BLE001 — never let an LLM error escape
+        logger.error(
+            "llm.complete_json_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return None
 
 
@@ -115,7 +129,7 @@ async def complete_text(
 ) -> Optional[str]:
     """Run one non-streaming plain-text completion. None on failure."""
     if not _api_key():
-        logger.warning("complete_text called with no OPENROUTER_API_KEY")
+        logger.warning("llm.client_unavailable")
         return None
     try:
         client = _get_http_client()
@@ -139,8 +153,12 @@ async def complete_text(
         resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"]
-    except Exception as e:  # noqa: BLE001
-        logger.error("complete_text failed: %s", e)
+    except Exception as exc:  # noqa: BLE001
+        logger.error(
+            "llm.complete_text_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return None
 
 
@@ -159,7 +177,7 @@ async def stream_text(
     (logs them) so a partial result still reaches the caller.
     """
     if not _api_key():
-        logger.warning("stream_text called with no OPENROUTER_API_KEY")
+        logger.warning("llm.client_unavailable")
         return
     try:
         client = _get_http_client()
@@ -196,8 +214,12 @@ async def stream_text(
                         yield delta
                 except (json.JSONDecodeError, KeyError, IndexError):
                     continue
-    except Exception as e:  # noqa: BLE001
-        logger.error("stream_text failed: %s", e)
+    except Exception as exc:  # noqa: BLE001
+        logger.error(
+            "llm.stream_text_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return
 
 

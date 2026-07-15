@@ -73,6 +73,7 @@ def client(monkeypatch):
 
 @pytest.mark.parametrize("q", [
     "1+1=?",
+    "1+1 等于多少？",
     "你好",
     "今天天气怎么样",  # the canonical V3.3 bug example
 ])

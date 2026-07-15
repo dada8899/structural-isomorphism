@@ -19,9 +19,9 @@
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260522s18">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260522s18">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260522s18">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
   <link rel="stylesheet" href="/assets/css/tools.css?v=20260522s18">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
 
   <style>
     /* SESSION-18: per-card "what you get" footer + group intro line.
@@ -47,9 +47,7 @@
     }
   </style>
 
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
-  <!-- Plausible analytics (W7-D mini-brief 5, 2026-05-24). -->
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+  <script defer src="/assets/js/analytics-consent.js?v=20260714n2"></script>
 </head>
 <body>
   <header class="site-header"></header>
@@ -58,10 +56,10 @@
     <div class="tools-page__eyebrow">— 工具中心 —</div>
     <h1 class="tools-page__title">一套工具，<br>同一个结构引擎</h1>
     <p class="tools-page__lede">
-      这些工具都建立在同一件事上：<strong>看似无关的现象，骨子里常是同一道数学题</strong>——比如地震和银行挤兑。
-      我们把 4,443 个跨领域现象整理进了一个引擎，下面 9 个工具就是它的不同用法。
+      这些工具都从一个可检验的问题出发：<strong>看似无关的现象，是否存在值得比较的变量关系、反馈或方程骨架</strong>——比如地震和银行挤兑。
+      我们把 4,443 个跨领域现象整理进了一个引擎，下面 8 个公开工具就是它的不同用法。
       <br><br>
-      不确定从哪开始？<strong>有具体难题就用「深度迁移分析」；想先看看能搜出什么就翻「精选发现」。</strong>
+      不确定从哪开始？<strong>有具体难题就用「深度迁移分析」；想先看候选与证据缺口就打开「候选发现」。</strong>
     </p>
 
     <section class="tools-group" aria-labelledby="grp-analyze">
@@ -88,8 +86,8 @@
             <span class="tool-card__name">研究空白地图</span>
             <span class="tool-card__badge">新</span>
           </div>
-          <p class="tool-card__desc">23 个普适类 × 183 个领域的矩阵。空格子里那些“理论上应该成立、还没人验证”的，就是研究选题。</p>
-          <p class="tool-card__meta"><strong>什么时候用</strong>：你在找一个还没人做过、值得研究的新课题。<br><strong>会得到</strong>：一张矩阵，高亮出"理论上该成立、目前还是空白"的格子。</p>
+          <p class="tool-card__desc">26 个候选模式 × 183 个领域的探索矩阵。空格子只表示当前目录没有记录，适合用来提出待查文献、待找数据的研究问题。</p>
+          <p class="tool-card__meta"><strong>什么时候用</strong>：你想系统筛选仍缺来源或数据的候选问题。<br><strong>会得到</strong>：一张探索矩阵；每个空格都需先查重和核对机制，不能据此声称新颖性或成立概率。</p>
         </a>
 
         <a class="tool-card" href="/apply">
@@ -161,7 +159,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.2 4.6L19 8.3l-3.5 3.4.9 4.9L12 14.3 7.6 16.6l.9-4.9L5 8.3l4.8-.7Z"/></svg>
           </span>
           <div class="tool-card__head">
-            <span class="tool-card__name">精选发现</span>
+            <span class="tool-card__name">候选发现</span>
           </div>
           <p class="tool-card__desc">39 条经内部 AI 筛查的跨域候选，用来比较不同问题是否可能共享相似的变量关系；仍需来源、反例和真实数据复核。</p>
           <p class="tool-card__meta"><strong>什么时候用</strong>：第一次来、想看看引擎会提出什么候选。<br><strong>会得到</strong>：39 条待验证联系，可逐条查看证据缺口与下一步。<br><strong>口径</strong>：证据账本 v1，冻结于 2026-07-12；不是同行评审或机制确认。</p>
@@ -178,24 +176,12 @@
           <p class="tool-card__meta"><strong>什么时候用</strong>：想系统查看哪些变量关系可能在不同领域重复出现。<br><strong>会得到</strong>：候选成员、预测、反例与证据状态；分组不代表跨领域规律已经成立。</p>
         </a>
 
-        <a class="tool-card" href="/insights">
-          <span class="tool-card__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4"/><path d="M4 20h16"/><rect x="7.5" y="12" width="3" height="5"/><rect x="13.5" y="8" width="3" height="9"/><rect x="19" y="14" width="0" height="3"/><path d="M7.5 9l3-3 3 2 5-5"/></svg>
-          </span>
-          <div class="tool-card__head">
-            <span class="tool-card__name">数据洞察</span>
-            <span class="tool-card__badge">新</span>
-          </div>
-          <p class="tool-card__desc">用户最常卡住的问题结构，以及用户主动回填的迁移结果记录；单次“管用”不等于机制已验证。</p>
-          <p class="tool-card__meta"><strong>什么时候用</strong>：好奇别人都问什么、哪些建议有人尝试过。<br><strong>会得到</strong>：高频问题归类和结果登记，包含样本量与最近记录日期。</p>
-        </a>
-
       </div>
     </section>
   </main>
 
   <footer class="site-footer"></footer>
-  <script src="/assets/js/i18n.js?v=20260713a"></script>
-  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
 </body>
 </html>

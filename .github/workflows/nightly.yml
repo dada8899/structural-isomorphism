@@ -25,14 +25,14 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
         exclude:
           - os: macos-latest
             python-version: "3.10"
-          - os: windows-latest
-            python-version: "3.10"
     steps:
       - uses: actions/checkout@v5
+        with:
+          lfs: true
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
@@ -43,7 +43,6 @@ jobs:
           path: |
             ~/.cache/pip
             ~/Library/Caches/pip
-            ~\AppData\Local\pip\Cache
           key: ${{ matrix.os }}-py${{ matrix.python-version }}-pip-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml', 'pytest.ini') }}
           restore-keys: |
             ${{ matrix.os }}-py${{ matrix.python-version }}-pip-
@@ -51,7 +50,12 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[dev] || pip install numpy scipy pandas powerlaw pytest
+          python -m pip install -e ".[dev]"
+          python -m pip install \
+            -e packages/soc-pipeline \
+            -e packages/guarded-llm \
+            -e packages/cross-judge \
+            -e packages/reject-aware-critic
 
       - name: Run sanity + integration (incl. slow)
         run: pytest v4/tests -v -m "not requires_llm"
@@ -86,6 +90,16 @@ jobs:
         with:
           python-version: "3.11"
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: web/phase-detector/pnpm-lock.yaml
+
       - name: Cache pip
         uses: actions/cache@v4
         with:
@@ -95,9 +109,30 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[dev] || pip install pytest requests
-          pip install playwright || true
-          python -m playwright install --with-deps chromium || true
+          python -m pip install \
+            pytest==9.0.3 \
+            playwright==1.59.0 \
+            pytest-playwright==0.7.2 \
+            httpx==0.27.2 \
+            fastapi==0.115.14 \
+            pydantic==2.6.1 \
+            starlette==0.46.2 \
+            'uvicorn[standard]==0.27.1' \
+            PyJWT==2.12.1 \
+            slowapi==0.1.9 \
+            structlog==25.5.0 \
+            Pillow==12.3.0
+          python -m playwright install --with-deps chromium
+
+      - name: Install Phase browser runtime
+        working-directory: web/phase-detector
+        run: pnpm install --frozen-lockfile
+
+      - name: Require the installed Next and axe runtimes
+        working-directory: web/phase-detector
+        run: |
+          test -x node_modules/.bin/next
+          test -s node_modules/axe-core/axe.min.js
 
       - name: Run e2e (all markers except requires_llm w/o key)
         env:
@@ -118,6 +153,9 @@ jobs:
     name: load smoke (k6, 1 VU)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    concurrency:
+      group: structural-production-beta-load
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v5
 
@@ -136,8 +174,14 @@ jobs:
 
       - name: Inspect scripts (parse-check)
         run: |
-          for f in tests/load/*.js; do
-            [ -f "$f" ] || continue
+          set -euo pipefail
+          for f in \
+            tests/load/phases_smoke.js \
+            tests/load/ask_smoke.js \
+            tests/load/universality_smoke.js \
+            tests/load/mixed_realistic.js \
+            tests/load/stress_ramp.js; do
+            test -f "$f"
             echo "--- inspect: $f ---"
             k6 inspect "$f" || { echo "PARSE FAIL: $f"; exit 1; }
           done
@@ -146,10 +190,10 @@ jobs:
         env:
           BASE_URL: https://beta.structural.bytedance.city
         run: |
+          set -euo pipefail
           mkdir -p tests/load/results
-          if [ -f tests/load/phases_smoke.js ]; then
-            BASE_URL="$BASE_URL" k6 run --vus 1 --duration 30s tests/load/phases_smoke.js
-          fi
+          test -f tests/load/phases_smoke.js
+          BASE_URL="$BASE_URL" k6 run --vus 1 --duration 20s tests/load/phases_smoke.js
 
       - name: Upload results
         if: always()
@@ -157,7 +201,7 @@ jobs:
         with:
           name: nightly-k6-results
           path: tests/load/results/
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
 
   # ---------------------------------------------------------------------------
@@ -166,6 +210,7 @@ jobs:
   summary:
     name: post nightly summary
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: always()
     needs: [backend-full, soc-pipeline-full, e2e-full, load-smoke-1vu]
     steps:
@@ -179,14 +224,14 @@ jobs:
             echo "load=${{ needs.load-smoke-1vu.result }}"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Post issue comment (failure only)
-        if: needs.backend-full.result == 'failure' || needs.soc-pipeline-full.result == 'failure' || needs.e2e-full.result == 'failure' || needs.load-smoke-1vu.result == 'failure'
+      - name: Post issue comment (non-success only)
+        if: needs.backend-full.result != 'success' || needs.soc-pipeline-full.result != 'success' || needs.e2e-full.result != 'success' || needs.load-smoke-1vu.result != 'success'
         uses: actions/github-script@v8
         with:
           script: |
             const title = "Nightly CI tracker";
             const body = [
-              `Nightly run **${context.runId}** finished with failures.`,
+              `Nightly run **${context.runId}** finished with non-success results.`,
               "",
               `- backend-full: \`${{ steps.status.outputs.be }}\``,
               `- soc-pipeline-full: \`${{ steps.status.outputs.soc }}\``,

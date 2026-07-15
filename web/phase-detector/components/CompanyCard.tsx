@@ -218,7 +218,7 @@ export function CompanyCard({ company }: { company: Company }) {
       <div className="relative z-10 mt-auto pt-1">
         <Link
           href={`/company/${encodeURIComponent(company.ticker)}`}
-          className="pointer-events-auto inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
+          className="pointer-events-auto inline-flex min-h-11 items-center gap-1 text-sm font-medium text-accent hover:underline"
           style={{ color: "#2563EB" }}
           onClick={(e) => {
             // Stop the surface link's onClick from double-firing the same

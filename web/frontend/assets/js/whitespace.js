@@ -1,7 +1,7 @@
 /* A2 Whitespace Map — research whitespace heatmap + leads list.
    Loads the precomputed matrix from /api/whitespace/*, renders a heatmap
    and a ranked leads list. Each lead links to /analyze with prefilled
-   ?text_a= (research question) + ?b_id= (anchor phenomenon). */
+   ?q= (deterministic verification question) + ?id= (anchor phenomenon). */
 (function () {
   'use strict';
 
@@ -21,33 +21,33 @@
   function show(el) { if (el) el.hidden = false; }
   function hide(el) { if (el) el.hidden = true; }
 
-  // --- The research question for a lead ---
-  // When the build ran the LLM layer, each lead carries a concrete,
-  // verifiable research_question. Without a key the field is absent — fall
-  // back to a templated question so the page still works.
+  function finiteScore(value) {
+    var numeric = Number(value);
+    return Number.isFinite(numeric) && numeric >= 0 && numeric <= 1 ? numeric : null;
+  }
+
+  // Public copy is deterministic: model-authored questions and rationales are
+  // not rendered as facts, novelty claims, or calibrated probabilities.
   function leadQuestion(lead) {
-    if (lead.research_question) return String(lead.research_question);
-    return lead.domain + '中是否存在属于「' + lead.class_name +
-      '」的结构同构现象？' +
-      (lead.anchor_name ? '以「' + lead.anchor_name + '」为切入点验证。' : '');
+    return '「' + lead.domain + '」中是否存在可与「' + lead.class_name +
+      '」比较的候选变量关系？先查重，再核对数据、机制和失败条件。' +
+      (lead.anchor_name ? '可从「' + lead.anchor_name + '」这条目录记录开始核查。' : '');
   }
 
-  // --- One-sentence research claim (fallback when no LLM rationale) ---
   function leadClaim(lead) {
-    if (lead.rationale) return esc(lead.rationale);
-    return '「' + esc(lead.domain) + '」领域里，大概率存在属于 ' +
-      '<em>' + esc(lead.class_name) + '</em> 的现象，但目前还没有人去验证。';
+    return '当前目录没有记录「' + esc(lead.domain) + ' × ' +
+      esc(lead.class_name) + '」的已核查联系。这是待查重候选，不表示尚无人研究、结构存在或结论成立。';
   }
 
-  // --- Plausibility badge (only when the LLM layer ran) ---
+  // The model label only controls internal triage order; it is not a probability.
   function plausibleBadge(lead) {
     if (lead.plausible === 'yes') {
       return '<span class="ws-lead__plausible ws-lead__plausible--yes" ' +
-        'title="LLM 评判：结构上几乎必然存在">大概率成立</span>';
+        'title="未校准的内部筛查优先级；需查重并核对来源、数据和机制">优先核查</span>';
     }
     if (lead.plausible === 'maybe') {
       return '<span class="ws-lead__plausible ws-lead__plausible--maybe" ' +
-        'title="LLM 评判：有合理可能，需验证">值得验证</span>';
+        'title="内部筛查标签；不代表存在概率或新颖性">待核查</span>';
     }
     return '';
   }
@@ -105,13 +105,16 @@
       cellsWrap.className = 'ws-matrix__cells';
       pick.forEach(function (dom) {
         var c = cells[dom];
+        var cellScore = finiteScore(c.score);
         var cell = document.createElement('div');
         cell.className = 'ws-cell ws-cell--' + c.state;
         cell.setAttribute('role', 'cell');
         var stateLabel = c.state === 'filled' ? '有证据记录'
           : (c.state === 'lead' ? '待验证选题' : '结构不相关');
         cell.title = (cls.class_name || cls.class_id) + ' × ' + dom +
-          ' — ' + stateLabel + '（相似度 ' + (c.score || 0).toFixed(2) + '）';
+          ' — ' + stateLabel + (cellScore == null
+            ? '（未提供有效内部检索分）'
+            : '（内部检索分 ' + cellScore.toFixed(2) + '）');
         if (c.state === 'lead') {
           cell.tabIndex = 0;
           cell.dataset.classId = cls.class_id;
@@ -183,7 +186,9 @@
       ra = (ra == null) ? 2 : ra;
       rb = (rb == null) ? 2 : rb;
       if (ra !== rb) return ra - rb;
-      return (b.score || 0) - (a.score || 0);
+      var aScore = finiteScore(a.score);
+      var bScore = finiteScore(b.score);
+      return (bScore == null ? -1 : bScore) - (aScore == null ? -1 : aScore);
     });
 
     host.innerHTML = '';
@@ -204,22 +209,21 @@
           (lead.anchor_desc ? ' — ' + esc(lead.anchor_desc) : '') + '</p>';
       }
 
-      // The concrete research question — headline of the card when the LLM
+      // Deterministic verification question — public headline of the card.
       // layer produced one; otherwise a templated question still shows.
       var questionHtml = '<p class="ws-lead__question">' +
         esc(leadQuestion(lead)) + '</p>';
 
-      // Rationale line: LLM's "why" when present, else the generic claim.
-      var rationaleHtml = '<p class="ws-lead__claim' +
-        (lead.rationale ? ' ws-lead__claim--llm' : '') + '">' +
-        leadClaim(lead) + '</p>';
+      var rationaleHtml = '<p class="ws-lead__claim">' + leadClaim(lead) + '</p>';
+      var score = finiteScore(lead.score);
+      var scoreHtml = score == null ? '内部检索分不可用' : '内部检索分 ' + score.toFixed(3);
 
       card.innerHTML =
         '<div class="ws-lead__top">' +
           '<span class="ws-lead__tag ws-lead__tag--class">' + esc(lead.class_name) + '</span>' +
           '<span class="ws-lead__tag ws-lead__tag--domain">' + esc(lead.domain) + '</span>' +
           plausibleBadge(lead) +
-          '<span class="ws-lead__score">相似度 ' + (lead.score || 0).toFixed(3) + '</span>' +
+          '<span class="ws-lead__score">' + scoreHtml + '</span>' +
         '</div>' +
         questionHtml +
         rationaleHtml +
@@ -319,7 +323,7 @@
       show($('ws-matrix-section'));
       show($('ws-leads-section'));
     }).catch(function (err) {
-      console.error('[whitespace] load failed:', err);
+      console.error('[whitespace] load failed');
       hide(loading);
       show(errorEl);
     });

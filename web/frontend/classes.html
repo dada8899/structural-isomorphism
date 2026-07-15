@@ -5,36 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAFAF9">
   <title data-i18n="page.classes.meta_title">共享模式 — Structural</title>
-  <meta name="description" data-i18n-meta="page.classes.meta_desc" content="浏览 23 个跨领域候选结构组，其中 8 个示例记录候选方程、不变量、可证伪预测与证据缺口；这些分组不是已确认的物理普适类。">
+  <meta name="description" content="浏览候选结构分组、结构化的历史分析字段与证据边界；数量由当前加载记录计算。">
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
 
   <meta property="og:title" data-i18n-meta="page.classes.meta_title" content="共享模式 — Structural">
-  <meta property="og:description" data-i18n-meta="page.classes.meta_desc" content="跨领域候选结构组与证据缺口；用于组织待检验预测，不代表已确认的共同机制。">
+  <meta property="og:description" content="候选结构分组、历史内部记录与明确证据边界。">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/assets/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" data-i18n-meta="page.classes.meta_title" content="共享模式 — Structural">
-  <meta name="twitter:description" data-i18n-meta="page.classes.meta_desc" content="跨领域候选结构组；不是已确认的物理普适类。">
+  <meta name="twitter:description" content="候选结构分组、历史内部记录与明确证据边界。">
 
   <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
 
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260417e">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260417e">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260417e">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
-  <link rel="stylesheet" href="/assets/css/classes.css?v=20260522s18">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/classes.css?v=20260714n2">
 
   <link rel="stylesheet" href="/assets/vendor/katex/katex.min.css?v=0.16.11">
   <script defer src="/assets/vendor/katex/katex.min.js?v=0.16.11"></script>
   <script defer src="/assets/vendor/katex/contrib/auto-render.min.js?v=0.16.11"></script>
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
   <link rel="stylesheet" href="/assets/css/glossary.css?v=20260417e">
 
   <!-- Plausible analytics (W4-B G3, 2026-05-13). -->
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+  <script defer src="/assets/js/analytics-consent.js?v=20260714n2"></script>
 </head>
-<body>
+<body class="has-history-sidebar">
   <header class="site-header"></header>
 
   <main class="uc-page">
@@ -47,28 +47,49 @@
             <span class="uc-hero__dot"></span>
             <span data-i18n="page.classes.hero_eyebrow">候选分组 · 待检验不变量 · 可证伪预测</span>
           </div>
-          <h1 class="uc-hero__title" data-i18n="page.classes.hero_title">23 个跨领域<em>候选模式</em></h1>
+          <h1 class="uc-hero__title" id="uc-hero-title" aria-label="候选模式">候选<em>模式</em></h1>
           <p class="uc-hero__lede" data-i18n="page.classes.hero_lede">
             这些分组由算法从候选联系中生成，用来组织待检验预测；它们不是已经证明的普适机制。部分系统有内部分析记录，也包含 NULL、FAIL、PARTIAL 和合成对照。点开卡片先看预测、数据和边界，再决定是否继续验证。
           </p>
-          <div class="uc-hero__stats" id="uc-hero-stats"></div>
+          <div class="uc-hero__stats" id="uc-hero-stats" aria-busy="true" aria-label="候选数据概览">
+            <div class="uc-hero__stat" data-stat="total">
+              <div class="uc-hero__stat-value">—</div>
+              <div class="uc-hero__stat-label" data-i18n="page.classes.stat_total">候选模式</div>
+            </div>
+            <div class="uc-hero__stat" data-stat="original">
+              <div class="uc-hero__stat-value">—</div>
+              <div class="uc-hero__stat-label" data-i18n="page.classes.stat_original_queue">原队列跨域组</div>
+            </div>
+            <div class="uc-hero__stat" data-stat="later">
+              <div class="uc-hero__stat-value">—</div>
+              <div class="uc-hero__stat-label" data-i18n="page.classes.stat_later">后加候选</div>
+            </div>
+            <div class="uc-hero__stat" data-stat="domains">
+              <div class="uc-hero__stat-value">—</div>
+              <div class="uc-hero__stat-label" data-i18n="page.classes.stat_max_domains">最多跨越领域</div>
+            </div>
+          </div>
         </section>
 
         <div class="uc-filter" id="uc-filter">
-          <button type="button" class="uc-filter__btn uc-filter__btn--active" data-filter="all" data-i18n="page.classes.filter_all">
-            全部
+          <button type="button" class="uc-filter__btn uc-filter__btn--active" data-filter="all">
+            <span data-i18n="page.classes.filter_all">全部</span>
             <span class="uc-filter__count" data-count-all>—</span>
           </button>
-          <button type="button" class="uc-filter__btn" data-filter="manual" data-i18n="page.classes.filter_manual">
-            人工精选
+          <button type="button" class="uc-filter__btn" data-filter="manual">
+            <span data-i18n="page.classes.filter_manual">人工精选</span>
             <span class="uc-filter__count" data-count-manual>—</span>
           </button>
-          <button type="button" class="uc-filter__btn" data-filter="llm" data-i18n="page.classes.filter_llm">
-            LLM 辅助
+          <button type="button" class="uc-filter__btn" data-filter="llm">
+            <span data-i18n="page.classes.filter_llm">LLM 辅助</span>
             <span class="uc-filter__count" data-count-llm>—</span>
           </button>
-          <button type="button" class="uc-filter__btn uc-filter__btn--path" data-filter="path" data-i18n="page.classes.filter_path">
-            学习路径
+          <button type="button" class="uc-filter__btn" data-filter="unclassified">
+            <span data-i18n="page.classes.filter_unclassified">后加候选</span>
+            <span class="uc-filter__count" data-count-unclassified>—</span>
+          </button>
+          <button type="button" class="uc-filter__btn uc-filter__btn--path" data-filter="path">
+            <span data-i18n="page.classes.filter_path">学习路径</span>
           </button>
         </div>
 
@@ -88,12 +109,12 @@
         <h2 class="uc-footnote__title" data-i18n="page.classes.footnote_title">方法论说明</h2>
         <ol class="uc-footnote__list">
           <li data-i18n="page.classes.footnote_l1"><strong>Layer 1 图构建</strong>：读取 V1/V2/V3 中带 A、B+ 内部评分标签的候选，按 <code>final_score ≥ 7.0 OR rating ∈ {A, B+}</code> 过滤，得到 180 节点 / 143 边。标签只用于当时的内部筛选，不代表正确性或证据质量。</li>
-          <li data-i18n="page.classes.footnote_l2"><strong>Layer 2 社区发现</strong>：连通分量 + Louvain（weight=score）。得到 23 个候选等价类，21 个跨 ≥ 2 领域。</li>
-          <li data-i18n="page.classes.footnote_l3"><strong>Layer 3 分类假设</strong>：本页 8 个候选分组由人工关联到文献中的命名模式，供后续检验。这个关联是分类标签，不等于确认物理普适类或共享机制。</li>
+          <li id="uc-method-data-summary"><strong>当前数据边界</strong>：候选总数、原队列数与后加候选数均由当前加载记录计算。</li>
+          <li data-i18n="page.classes.footnote_l3"><strong>Layer 3 分类假设</strong>：带有人工来源标签的候选分组与文献命名模式关联，供后续检验。这个关联是分类标签，不等于确认物理普适类或共享机制。</li>
           <li data-i18n="page.classes.footnote_l4"><strong>Layer 4 假设草拟</strong>：参考文献中报告的关系，为其他领域草拟可证伪假设。迁移是否成立仍取决于变量映射、真实数据、替代解释和预先声明的失败标准。</li>
           <li data-i18n="page.classes.footnote_l5"><strong>Layer 5 结果记录</strong>：领域分析与合成对照使用共享代码框架，但数据依赖和证据强度不同。记录包含支持、拒绝、部分支持和证据不足；不等于外部复现。</li>
           <li data-i18n="page.classes.footnote_l6"><strong>合成对照记录</strong>：在当时配置下，3 组已选非 SOC 样本（高斯、指数、Poisson）未被选为幂律（R ∈ [−45, −16]，Poisson Omori R² ≈ 0.002）。这个有限对照可发现部分实现错误，不能排除其他生成过程、预处理或模型选择偏差。</li>
-          <li data-i18n="page.classes.footnote_l7"><strong>AI 内部筛查记录</strong>：同一厂商模型族的 3 个配置对 21 个候选分组产生 63 次内部投票（保留 5 / 拒绝 7 / 拆分 5 / 合并 4）。这些配置不是独立同行评审，也不能验证分类方法；结果只用于发现命名过宽等待复核问题。详见 <a href="/taxonomy-v2">筛查记录</a>。</li>
+          <li data-i18n="page.classes.footnote_l7"><strong>AI 内部筛查记录</strong>：AI 配置只对原队列候选生成内部处理标签，用于安排人工复核优先级。这些配置不是独立同行评审，也不能验证分类方法。详见 <a href="/taxonomy-v2">筛查记录</a>。</li>
         </ol>
         <p class="uc-footnote__hint" data-i18n="page.classes.footnote_hint">
           完整可行性报告见 <a href="https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/FINDINGS-2026-04-15.md" target="_blank" rel="noopener">GitHub</a>，
@@ -105,14 +126,15 @@
 
   <footer class="site-footer"></footer>
 
-  <script src="/assets/js/i18n.js?v=20260713a"></script>
-  <script src="/assets/js/utils.js?v=20260417e"></script>
-  <script defer src="/assets/js/glossary.js?v=20260417e"></script>
-  <script src="/assets/js/history-sidebar.js?v=20260514"></script>
-  <script src="/assets/js/share-card.js?v=20260522s18"></script>
-  <script src="/assets/js/utils/buildAnalyzeUrl.js?v=20260524s22"></script>
-  <script src="/assets/js/classes.js?v=20260524s22"></script>
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/utils.js?v=20260714n2"></script>
+  <script src="/assets/js/utils/privateNavigation.js?v=20260714n2"></script>
+  <script defer src="/assets/js/glossary.js?v=20260714n2"></script>
+  <script src="/assets/js/history-sidebar.js?v=20260714n2"></script>
+  <script src="/assets/js/share-card.js?v=20260714n2"></script>
+  <script src="/assets/js/utils/buildAnalyzeUrl.js?v=20260714n2"></script>
+  <script src="/assets/js/classes.js?v=20260714n2"></script>
   <script src="/assets/js/product-switcher.js?v=20260417e"></script>
-  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
 </body>
 </html>

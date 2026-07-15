@@ -17,8 +17,6 @@ from services.evidence_envelope import (  # noqa: E402
     build_evidence_envelope,
     retrieval_candidate,
 )
-from services.report_store import ReportStore  # noqa: E402
-from services.verified_isomorphisms import shape_verified  # noqa: E402
 
 
 SURFACES = {
@@ -122,8 +120,8 @@ def test_external_source_requires_https_review_identity_and_date() -> None:
         assert row["evidence_level"] == "candidate"
 
 
-def test_external_source_rejects_future_and_impossible_review_dates_in_both_runtimes() -> None:
-    for reviewed_at in ("2999-01-01", "2026-99-99"):
+def test_external_source_rejects_noncanonical_future_and_impossible_dates_in_both_runtimes() -> None:
+    for reviewed_at in ("2999-01-01", "2026-99-99", "20260713", "2026-W29-1"):
         backend = build_evidence_envelope(
             candidate_kind="test", requested_level="source_backed",
             source_kind="external_source", source_url="https://example.test/paper",
@@ -138,12 +136,30 @@ def test_external_source_rejects_future_and_impossible_review_dates_in_both_runt
         assert backend["source"]["kind"] == frontend["source"]["kind"] == "not_recorded"
 
 
-def test_valid_source_and_ledger_can_reach_source_backed() -> None:
+def test_ledger_rejects_python_only_iso_date_forms_in_both_runtimes() -> None:
+    for recorded_at in ("20260713", "2026-W29-1"):
+        ledger = {**_ledger(), "recorded_at": recorded_at}
+        backend = build_evidence_envelope(
+            candidate_kind="test", requested_level="source_backed",
+            **_source(), ledger=ledger,
+        )
+        frontend = _frontend_normalize({
+            "evidence_level": "source_backed", "candidate": {"kind": "test"},
+            "source": {
+                "kind": "external_source", "url": "https://example.test/paper",
+                "source_review": {"reviewer": "r", "reviewed_at": "2026-07-13"},
+            },
+            "ledger": {"status": "bound", **ledger},
+        })
+        assert backend["ledger"]["status"] == frontend["ledger"]["status"] == "not_recorded"
+
+
+def test_legacy_source_and_format_only_ledger_stay_candidate_until_strict_manifest_binding() -> None:
     row = build_evidence_envelope(
         candidate_kind="test", requested_level="source_backed", **_source(),
         ledger=_ledger(),
     )
-    assert row["evidence_level"] == "source_backed"
+    assert row["evidence_level"] == "candidate"
     assert row["source"]["kind"] == "external_source"
     assert row["ledger"]["status"] == "bound"
 
@@ -160,7 +176,7 @@ def test_external_review_and_replication_require_matching_independence() -> None
         result_provenance="INDEPENDENT_REPLICATION", result_verdict="PASS",
         independence_kind="independent_team", counterexample_status="searched",
     )
-    assert strong["evidence_level"] == "replicated"
+    assert strong["evidence_level"] == "candidate"
 
 
 def test_unknown_verdict_and_weak_provenance_cannot_promote_in_either_runtime() -> None:
@@ -186,7 +202,7 @@ def test_unknown_verdict_and_weak_provenance_cannot_promote_in_either_runtime() 
         assert backend["evidence_level"] == frontend["evidence_level"] == "candidate"
 
 
-def test_replication_independence_status_is_derived_consistently() -> None:
+def test_replication_claim_without_strict_manifest_binding_is_quarantined() -> None:
     frontend = _frontend_normalize({
         "evidence_level": "replicated", "candidate": {"kind": "test"},
         "source": {"kind": "external_source", "url": "https://example.test/paper", "source_review": {"reviewer": "reviewer-a", "reviewed_at": "2026-07-13"}},
@@ -194,7 +210,7 @@ def test_replication_independence_status_is_derived_consistently() -> None:
         "independence": {"kind": "independent_team"}, "counterexamples": {"status": "searched"},
         "ledger": {"status": "bound", **_ledger()},
     })
-    assert frontend["evidence_level"] == "replicated"
+    assert frontend["evidence_level"] == "candidate"
     assert frontend["independence"]["status"] == "recorded"
 
 
@@ -238,7 +254,11 @@ def test_all_target_pages_load_renderer_before_surface_script() -> None:
 def test_all_target_surface_scripts_render_evidence() -> None:
     for js_name in SURFACES.values():
         text = (ROOT / "web/frontend/assets/js" / js_name).read_text(encoding="utf-8")
-        assert "StructuralEvidence.render" in text, js_name
+        if js_name == "insights.js":
+            assert "StructuralEvidence.render" not in text
+            assert "公开结果聚合已暂停" in text
+        else:
+            assert "StructuralEvidence.render" in text, js_name
     analyze = (ROOT / "web/frontend/assets/js/analyze.js").read_text(encoding="utf-8")
     assert "decision-brief" in analyze and "m.evidence" in analyze
 
@@ -265,27 +285,49 @@ def test_old_escalation_copy_is_absent_from_changed_surfaces() -> None:
         assert forbidden not in combined
 
 
-def test_insights_exposes_complete_outcome_denominator(tmp_path: Path) -> None:
-    summary = ReportStore(tmp_path / "history.db").insights_summary()
-    assert summary["outcome_counts"] == {
-        "worked": 0, "partial": 0, "no_effect": 0,
-        "too_early": 0, "not_recorded": 0,
-    }
+def test_insights_is_stably_paused_without_public_bands() -> None:
+    api = (ROOT / "web/backend/api/insights.py").read_text(encoding="utf-8")
+    store = (
+        ROOT / "web/backend/services/report_store.py"
+    ).read_text(encoding="utf-8")
     script = (ROOT / "web/frontend/assets/js/insights.js").read_text(encoding="utf-8")
-    for value in ("worked", "partial", "no_effect", "too_early", "not_recorded"):
-        assert f"outcomes.{value}" in script
-    assert "存在选择偏差，不等于科学验证" in script
+    for forbidden in (
+        "outcomes.worked", "worked_rate", "verifier_count",
+        "verification_band", "participation_band", "StructuralEvidence.render",
+    ):
+        assert forbidden not in api
+        assert forbidden not in script
+    for removed in (
+        "public_count_band", "def insights_summary", "def stuck_structures",
+        "def verified_isomorphisms", "def count_human_verified",
+    ):
+        assert removed not in store
+    assert "公开结果聚合已暂停" in script
+    assert "新增或撤回记录都不会改变公开页面" in script
 
 
-def test_user_outcome_is_recorded_without_scientific_promotion() -> None:
-    row = shape_verified({
-        "id": "r1", "query": "problem", "b_id": "b1", "lang": "zh",
-        "payload": {"shared_structure": {"name": "candidate structure"}},
-        "verifier_count": 3, "last_verified_at": "2026-07-13", "created_at": "2026-07-13",
-    })
-    assert row["evidence"]["result"]["provenance"] == "USER_RECORDED_OUTCOME"
-    assert row["evidence"]["evidence_level"] == "candidate"
-    assert row["evidence"]["independence"]["kind"] == "internal"
+def test_privacy_page_matches_live_account_assets_and_paused_aggregation() -> None:
+    privacy = (ROOT / "web/frontend/privacy.html").read_text(encoding="utf-8")
+    reports = (
+        ROOT / "web/frontend/assets/js/my-reports.js"
+    ).read_text(encoding="utf-8")
+    for required in (
+        "邮箱账户", "Secure、HttpOnly、SameSite", "账户收藏",
+        "明确选择保存", "分享令牌", "服务端", "永久删除",
+        "公开结果聚合当前暂停", "同意版本", "跨设备撤回",
+        "匿名设备不会成为公开参与者", "已认领到账户", "延迟批次",
+    ):
+        assert required in privacy
+    for stale in (
+        "我们不要求注册", "生成的报告默认会被保存",
+        "它们从不离开你的设备", "收藏，你自己随时可以通过清空浏览器",
+    ):
+        assert stale not in privacy
+    assert "data-withdraw-insights-consent" in reports
+    assert "/insights-consent" in reports
+    assert "data-delete-report" in reports
+    assert "确认永久删除" in reports
+    assert "result.share_revoked !== true" in reports
 
 
 def test_discoveries_api_envelopes_every_public_candidate() -> None:

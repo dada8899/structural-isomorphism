@@ -102,7 +102,10 @@
     var counterexampleStatus = COUNTEREXAMPLE_STATUSES.indexOf(counterexamples.status) >= 0 ? counterexamples.status : 'not_recorded';
     var sourceKind = ['internal_kb', 'external_source'].indexOf(source.kind) >= 0 ? source.kind : 'not_recorded';
     if (sourceKind === 'external_source' && !validExternalSource(source)) sourceKind = 'not_recorded';
-    var promoted = bound;
+    // Keep runtime parity with the backend strict-promotion quarantine. A
+    // syntactically valid URL/hash is not an auditable source or artifact.
+    // Promotion resumes only after a content-bound manifest is implemented.
+    var promoted = false;
     if (requested !== 'candidate') promoted = promoted && sourceKind === 'external_source';
     if (['analysis_recorded', 'falsification_tested', 'externally_reviewed', 'replicated'].indexOf(requested) >= 0) promoted = promoted && ANALYSIS_PROVENANCE.indexOf(provenance) >= 0;
     if (['falsification_tested', 'externally_reviewed', 'replicated'].indexOf(requested) >= 0) promoted = promoted && FALSIFICATION_PROVENANCE.indexOf(provenance) >= 0 && ['NOT_TESTED', 'INCONCLUSIVE'].indexOf(verdict) < 0 && FALSIFICATION_COUNTEREXAMPLES.indexOf(counterexampleStatus) >= 0;

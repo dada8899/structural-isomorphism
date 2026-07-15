@@ -2,7 +2,7 @@
 
 // W12-E: page-level error boundary with auto-reporting + GitHub-issue link.
 // Previously (W6-E) we logged to console only. Now:
-//   • Auto-POSTs to /api/errors with sessionId + digest (no PII).
+//   • Auto-POSTs a content-free error type + timestamp to /api/errors.
 //   • "Report this" link pre-fills a GitHub issue.
 //   • Graceful retry button preserves the route.
 // Stale data (if any was kept in sessionStorage by parent components) remains
@@ -20,14 +20,14 @@ interface ErrorProps {
 export default function ErrorBoundary({ error, reset }: ErrorProps) {
   useEffect(() => {
     // eslint-disable-next-line no-console
-    console.error("[phase-detector] runtime error captured by error.tsx:", error);
+    console.error("[phase-detector] runtime error captured");
     // Fire-and-forget; reporter handles offline + rate limit internally.
     reportError({ error }).catch(() => {
       /* never throw from a boundary */
     });
   }, [error]);
 
-  const issueUrl = typeof window !== "undefined" ? buildIssueUrl(error) : "#";
+  const issueUrl = typeof window !== "undefined" ? buildIssueUrl() : "#";
 
   return (
     <div className="mx-auto max-w-2xl py-16">
@@ -58,7 +58,7 @@ export default function ErrorBoundary({ error, reset }: ErrorProps) {
           </button>
           <a
             href="/"
-            className="inline-flex items-center rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400"
+            className="inline-flex min-h-11 items-center rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400"
           >
             返回首页
           </a>
@@ -67,7 +67,7 @@ export default function ErrorBoundary({ error, reset }: ErrorProps) {
             target="_blank"
             rel="noopener noreferrer"
             data-testid="error-report"
-            className="inline-flex items-center text-sm font-medium text-amber-700 underline-offset-2 hover:underline"
+            className="inline-flex min-h-11 items-center text-sm font-medium text-amber-700 underline-offset-2 hover:underline"
           >
             Report this ↗
           </a>

@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="用户流失、谣言扩散、团队崩盘、资金挤兑——表面无关，骨子里常是同一套规律。描述你的难题，Structural 帮你找到已经把它研究透的学科，给你一份能照着做的清单。">
+  <meta name="description" content="把难题拆成可检查的结构草案，检索其他领域的候选案例；逐项查看匹配线索、反证与适用边界，再设计可以先验证的小步骤。">
   <meta name="theme-color" content="#FAFAF9">
-  <title>Structural — 你卡住的问题，可能别人早就解过</title>
+  <title>Structural — 从别的领域，找值得验证的解题线索</title>
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
 
@@ -13,30 +13,29 @@
        The first paint above the fold renders `.ask-empty__brand` (Noto
        Serif SC 600) and `.ask-empty__tagline` (Inter 400). Preload both
        so they don't block LCP behind the CSS-discovered @font-face
-       resolution, and preconnect to the Plausible host so its deferred
-       script doesn't contend for connection slots later. -->
+       resolution. Optional analytics must not contact its host before an
+       explicit choice, so this page deliberately has no analytics preconnect. -->
   <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/noto-serif-sc-600-latin.woff2" crossorigin>
   <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-400-latin.woff2" crossorigin>
-  <link rel="preconnect" href="https://plausible.bytedance.city" crossorigin>
 
-  <meta property="og:title" content="Structural — 你卡住的问题，可能别人早就解过">
-  <meta property="og:description" content="表面无关的难题，骨子里常是同一套规律。描述你的难题，我们帮你找到已经把它研究透的学科，给你一份能照着做的清单。">
+  <meta property="og:title" content="Structural — 从别的领域，找值得验证的解题线索">
+  <meta property="og:description" content="把难题拆成结构草案，比较跨领域候选、反证与边界，再设计可以先验证的小步骤。">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/assets/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Structural — 你卡住的问题，可能别人早就解过">
-  <meta name="twitter:description" content="表面无关的难题，骨子里常是同一套规律。描述你的难题，我们帮你找到已经把它研究透的学科，给你一份能照着做的清单。">
+  <meta name="twitter:title" content="Structural — 从别的领域，找值得验证的解题线索">
+  <meta name="twitter:description" content="把难题拆成结构草案，比较跨领域候选、反证与边界，再设计可以先验证的小步骤。">
 
   <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
 
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260514s7">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260514s7">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260514s7">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
-  <link rel="stylesheet" href="/assets/css/evidence-envelope.css?v=20260713a">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/evidence-envelope.css?v=20260713n1">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
   <link rel="stylesheet" href="/assets/css/glossary.css?v=20260514s7">
-  <link rel="stylesheet" href="/assets/css/ask.css?v=20260522">
+  <link rel="stylesheet" href="/assets/css/ask.css?v=20260714n2">
 
   <!-- W4-A CLS fix (2026-05-14): pre-reserve history-sidebar padding so
        layout doesn't shift when history-sidebar.js late-injects its CSS
@@ -64,6 +63,8 @@
     }
     .waitlist {
       margin: 56px auto 24px;
+      width: 100%;
+      min-width: 0;
       max-width: 680px;
       padding: 28px 32px;
       background: var(--surface-elevated, #FFFFFF);
@@ -133,9 +134,8 @@
     .waitlist__status.is-err { color: #B91C1C; }
   </style>
 
-  <!-- Plausible analytics (W4-B G3, 2026-05-13). Loads only when DNS resolves;
-       safe to keep before Plausible self-hosted instance is live. -->
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+  <!-- Optional analytics: this local loader injects Plausible only after consent. -->
+  <script defer src="/assets/js/analytics-consent.js?v=20260714n2"></script>
 </head>
 <body class="has-history-sidebar is-home">
 
@@ -144,9 +144,9 @@
   <main class="ask-main">
     <!-- ===== Empty state ===== -->
     <section class="ask-empty" id="ask-empty">
-      <h1 class="ask-empty__brand">你卡住的问题，可能是别人早就解过的同一道题</h1>
-      <p class="ask-empty__tagline">用户流失、谣言扩散、团队崩盘、连锁式的资金挤兑——表面八竿子打不着，骨子里常是同一套规律。描述你的难题，我们帮你找到那个已经把它研究透的学科，给你一份能照着做的清单：能借哪些方法、有哪些坑。</p>
-      <p class="ask-empty__subtagline">下面这个框就是入口：把难题写进去，约 2–3 分钟拿到一份研究报告。想先了解这是什么、或者用别的工具，往下翻。</p>
+      <h1 class="ask-empty__brand">换一个领域，找到值得验证的解题线索</h1>
+      <p class="ask-empty__tagline">用户流失、谣言扩散、团队崩盘、连锁式资金挤兑，表面不同，也可能共享部分变量关系。描述你的难题，我们会给出跨领域候选、支持与反对证据，以及可以先验证的小步骤；候选不是已经成立的答案。</p>
+      <p class="ask-empty__subtagline">下面这个框就是入口：把难题写进去，约 2–3 分钟拿到一份候选研究草案。先核对证据和边界，再决定是否行动。</p>
 
       <form id="ask-form" class="ask-searchbox" role="search" autocomplete="off">
         <textarea
@@ -219,7 +219,10 @@
         </label>
         <div class="ask-fingerprint__actions">
           <span id="ask-fingerprint-error" role="alert" aria-live="polite"></span>
-          <button type="button" class="btn btn--primary" id="ask-fingerprint-confirm">草案无误，查找候选</button>
+          <div class="ask-fingerprint__buttons">
+            <button type="button" class="btn" id="ask-fingerprint-skip">暂不确认，直接检查</button>
+            <button type="button" class="btn btn--primary" id="ask-fingerprint-confirm">草案无误，查找候选</button>
+          </div>
         </div>
       </section>
 
@@ -246,8 +249,8 @@
                 <circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.5 8.5l7 7"/>
               </svg>
             </span>
-            <h3 class="explore-card__title">23 组跨域共享模式</h3>
-            <p class="explore-card__desc">地震、银行挤兑、神经放电——表面无关，其实是同一道数学题</p>
+            <h3 class="explore-card__title">23 组候选跨域模式</h3>
+            <p class="explore-card__desc">按变量关系和方程骨架组织现象，逐项查看预测、反例与证据状态</p>
           </a>
           <a href="/discoveries" class="explore-card">
             <span class="explore-card__icon" aria-hidden="true">
@@ -255,8 +258,8 @@
                 <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.5"/>
               </svg>
             </span>
-            <h3 class="explore-card__title">39 个精选发现</h3>
-            <p class="explore-card__desc">经过 AI 多轮评审的高质量跨域结构同构</p>
+            <h3 class="explore-card__title">39 个优先核查候选</h3>
+            <p class="explore-card__desc">由 AI 排序、等待来源复核和实证检验的跨域候选联系</p>
           </a>
           <a href="https://phase.bytedance.city/" target="_blank" rel="noopener" class="explore-card">
             <span class="explore-card__icon" aria-hidden="true">
@@ -273,7 +276,7 @@
       <div class="ask-empty__footer">
         <a href="/learn" class="ask-empty__link">了解工作原理 →</a>
         <span class="ask-empty__sep">·</span>
-        <a href="/tools" class="ask-empty__link">全部 9 个工具 →</a>
+        <a href="/tools" class="ask-empty__link">全部 8 个公开工具 →</a>
         <span class="ask-empty__sep">·</span>
         <a href="/about" class="ask-empty__link">关于这个项目 →</a>
         <span class="ask-empty__sep">·</span>
@@ -345,13 +348,13 @@
 
   <footer class="site-footer"></footer>
 
-  <script src="/assets/js/utils.js?v=20260514s7"></script>
-  <script src="/assets/js/i18n.js?v=20260713a"></script>
-  <script src="/assets/js/history-sidebar.js?v=20260514s7"></script>
-  <script src="/assets/js/utils/buildAnalyzeUrl.js?v=20260524s22"></script>
-  <script src="/assets/js/evidence-envelope.js?v=20260713a"></script>
-  <script src="/assets/js/ask.js?v=20260713a"></script>
-  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
+  <script src="/assets/js/utils.js?v=20260714n2"></script>
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/history-sidebar.js?v=20260714n2"></script>
+  <script src="/assets/js/utils/buildAnalyzeUrl.js?v=20260714n2"></script>
+  <script src="/assets/js/evidence-envelope.js?v=20260714n2"></script>
+  <script src="/assets/js/ask.js?v=20260714n2"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
   <!-- W7-D mini-brief 1 (2026-05-24): homepage waitlist submit handler.
        Captures UTM from URL params; fires Plausible custom event on success. -->
   <script>
@@ -404,11 +407,11 @@
           try { data = await r.json(); } catch (_) {}
           if (r.ok && data.ok) {
             if (data.created === false) {
-              setStatus('这个邮箱已经在等候名单上，下周二见 ✓', 'ok');
+              setStatus('这个邮箱已加入；有经复核的研究更新时会通知你 ✓', 'ok');
             } else {
-              setStatus('已加入，周二早晨见 ✓', 'ok');
+              setStatus('已加入；有经复核的研究更新时会通知你 ✓', 'ok');
               if (window.plausible) {
-                try { window.plausible('Waitlist Signup', { props: { source: 'homepage-hero' } }); } catch (_) {}
+                try { window.plausible('waitlist_signup', { props: { source: 'homepage-hero', placement: 'homepage-hero' } }); } catch (_) {}
               }
             }
             form.reset();

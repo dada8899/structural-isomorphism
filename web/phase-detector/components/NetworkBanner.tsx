@@ -23,7 +23,7 @@ export default function NetworkBanner() {
       if (process.env.NODE_ENV === "production" || allowDev) {
         navigator.serviceWorker.register("/sw.js").catch((err) => {
           // eslint-disable-next-line no-console
-          console.warn("[phase-detector] SW registration failed:", err);
+          console.warn("[phase-detector] service worker registration failed");
         });
       }
     }
@@ -38,6 +38,8 @@ export default function NetworkBanner() {
 
     if (typeof window !== "undefined") {
       setOffline(navigator.onLine === false);
+      // Also sanitizes any queue written by a pre-hardening release.
+      flushErrorQueue().catch(() => undefined);
       window.addEventListener("online", setOnline);
       window.addEventListener("offline", setOff);
     }

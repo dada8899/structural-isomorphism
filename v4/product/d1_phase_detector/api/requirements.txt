@@ -2,10 +2,13 @@
 # Keep this service isolated from web/backend/requirements.txt: the API has a
 # separate systemd unit and virtualenv in production.
 fastapi==0.115.14
+starlette==0.46.2
 uvicorn[standard]==0.27.1
 pydantic==2.6.1
 PyYAML==6.0.3
 python-multipart==0.0.20
 psycopg2-binary==2.9.9
-PyJWT==2.10.1
+# Phase imports the shared beta auth routers, so keep their JWT runtime exact.
+PyJWT==2.12.1
 slowapi==0.1.9
+structlog==25.5.0

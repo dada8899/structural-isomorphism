@@ -36,6 +36,37 @@ def verified_registry(registry):
     return registry
 
 
+def test_private_payload_scanner_allows_only_exact_capture_digest_field():
+    MODULE.reject_private_payload(
+        {"text_sha256": "54cb5ff3143341324359a7cb4785dfff361e7f18cac1adcdd96a83f843f07266"},
+        "case.captures[0]",
+    )
+    with pytest.raises(ValueError, match="invalid capture text SHA-256"):
+        MODULE.reject_private_payload(
+            {"text_sha256": "not-a-digest"}, "case.captures[0]"
+        )
+    with pytest.raises(ValueError, match="unexpected capture digest field"):
+        MODULE.reject_private_payload(
+            {"task": {"text_sha256": "a" * 64}}, "case"
+        )
+    with pytest.raises(ValueError, match="credential-like or PII"):
+        MODULE.reject_private_payload({"sha256": "call me at +1 212 555 0199"}, "capture")
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("task", "alice@example.com"),
+        ("role", "+1 212 555 0199"),
+        ("capture", "Authorization: Bearer secret"),
+        ("capture", "session_cookie=secret"),
+    ],
+)
+def test_private_payload_scanner_still_rejects_sensitive_content(field, value):
+    with pytest.raises(ValueError, match="credential-like or PII"):
+        MODULE.reject_private_payload({field: value}, "case")
+
+
 def test_builds_and_resolves_complete_immutable_matrix(tmp_path):
     config, prompt, registry = inputs()
     MODULE.write_bundle(MODULE.build(config, prompt, registry), tmp_path)

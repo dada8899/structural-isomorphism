@@ -4,127 +4,91 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAFAF9">
-  <title id="paper-title">论文 — Structural</title>
-  <meta name="description" data-i18n-meta="page.paper.meta_desc" content="Structural 项目产出的跨领域结构同构研究论文">
+  <title id="paper-title">历史研究材料 — Structural</title>
+  <meta name="description" data-i18n-meta="page.paper.meta_desc" content="历史内部研究材料；尚未与当前证据账本绑定，也不代表外部复核或独立复现。">
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
-
   <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
-
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260417e">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260417e">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260417e">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
-  <link rel="stylesheet" href="/assets/css/paper.css?v=20260417e">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
-
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/paper.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
   <link rel="stylesheet" href="/assets/vendor/katex/katex.min.css?v=0.16.11">
+
   <script defer src="/assets/vendor/katex/katex.min.js?v=0.16.11"></script>
   <script defer src="/assets/vendor/katex/contrib/auto-render.min.js?v=0.16.11"></script>
-
-  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
-
-  <!-- Plausible analytics (W4-B G3, 2026-05-13). -->
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+  <script defer src="/assets/js/analytics-consent.js?v=20260714n2"></script>
 </head>
-<body>
+<body class="has-history-sidebar">
   <header class="site-header"></header>
 
-  <main class="paper-page">
+  <main class="paper-page" id="paper-main">
     <div class="paper-container">
-      <div class="paper-breadcrumb">
-        <a href="/classes" data-i18n="page.paper.crumb_back">← 共享模式</a>
-        <span class="paper-breadcrumb__sep">/</span>
-        <span class="paper-breadcrumb__current">Layer 5 Phase 1 · SOC × USGS Earthquakes</span>
-      </div>
+      <nav class="paper-breadcrumb" aria-label="面包屑">
+        <a href="/papers" data-i18n="page.paper.crumb_back">历史材料目录</a>
+        <span class="paper-breadcrumb__sep" aria-hidden="true">/</span>
+        <span class="paper-breadcrumb__current" id="paper-breadcrumb-current" aria-current="page">正在校验…</span>
+      </nav>
 
-      <article class="paper-article" id="paper-article">
-        <div class="paper-skeleton">
-          <div class="paper-skeleton__line paper-skeleton__line--title"></div>
-          <div class="paper-skeleton__line"></div>
-          <div class="paper-skeleton__line"></div>
-          <div class="paper-skeleton__line"></div>
-          <div class="paper-skeleton__line paper-skeleton__line--short"></div>
+      <section class="paper-boundary" id="paper-boundary" aria-labelledby="paper-heading">
+        <div class="paper-boundary__topline">
+          <span class="paper-boundary__label" id="paper-boundary-label">历史内部材料</span>
+          <time id="paper-date"></time>
         </div>
-      </article>
+        <h1 id="paper-heading">正在校验历史材料…</h1>
+        <p class="paper-boundary__review" id="paper-review-status"></p>
+        <dl class="paper-boundary__decision">
+          <div>
+            <dt data-i18n="page.paper.recorded_observation">记录了什么</dt>
+            <dd id="paper-observed"></dd>
+          </div>
+          <div>
+            <dt data-i18n="page.paper.not_established">不能推出什么</dt>
+            <dd id="paper-not-established"></dd>
+          </div>
+          <div>
+            <dt data-i18n="page.paper.next_validation">下一步检验</dt>
+            <dd id="paper-next-test"></dd>
+          </div>
+        </dl>
+        <div class="paper-boundary__meta">
+          <span data-i18n="page.paper.analysis_class">历史分类</span>
+          <strong id="paper-class">—</strong>
+        </div>
+      </section>
 
-      <div class="paper-footer-actions">
-        <a class="paper-action" id="paper-download-md" download data-i18n="page.paper.dl_md">⬇ 下载 Markdown 原文</a>
-        <a class="paper-action" href="https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-earthquake" target="_blank" rel="noopener" data-i18n="page.paper.source_gh">📂 源代码与数据 (GitHub)</a>
-        <a class="paper-action" href="/classes"  data-i18n="page.paper.back_to_list">← 回到共享模式目录</a>
+      <div class="paper-primary-actions" aria-label="材料操作">
+        <a class="paper-action" id="paper-source" target="_blank" rel="noopener noreferrer"><span id="paper-source-label">源码与数据</span><span aria-hidden="true">↗</span></a>
+        <a class="paper-action" id="paper-download-md" download><span id="paper-download-label">下载历史 Markdown</span><span aria-hidden="true">↓</span></a>
+        <a class="paper-action" href="/papers" data-i18n="page.paper.back_to_list">返回历史材料目录</a>
       </div>
+
+      <details class="paper-legacy" id="paper-legacy-record">
+        <summary id="paper-legacy-summary">查看未经当前证据标准化的历史 Markdown 原文</summary>
+        <p class="paper-legacy__warning" data-i18n="page.paper.legacy_warning">以下内容按原始历史记录呈现，其中标题和论断可能强于当前公开证据边界；请以上方边界卡为准。</p>
+        <article class="paper-article" id="paper-article" lang="en" aria-busy="true">
+          <div class="paper-skeleton" role="status" aria-label="正在加载历史 Markdown">
+            <div class="paper-skeleton__line paper-skeleton__line--title"></div>
+            <div class="paper-skeleton__line"></div>
+            <div class="paper-skeleton__line"></div>
+            <div class="paper-skeleton__line paper-skeleton__line--short"></div>
+          </div>
+        </article>
+      </details>
     </div>
   </main>
 
   <footer class="site-footer"></footer>
 
-  <script>
-    function T(key, fallback) { try { if (window.i18n && typeof window.i18n.t === "function") { var v = window.i18n.t(key); if (v && v !== key) return v; } } catch(e) {} return fallback; }
-    (function () {
-      const urlParams = new URLSearchParams(window.location.search);
-      const pathMatch = window.location.pathname.match(/^\/paper\/([a-zA-Z0-9\-_.]+)/);
-      let docSlug = (pathMatch && pathMatch[1]) || urlParams.get("doc") || "soc-earthquake-2026-04-15";
-      // whitelist against directory traversal (allow dots for version slugs e.g. v0.2)
-      docSlug = docSlug.replace(/[^a-zA-Z0-9\-_.]/g, "");
-      // Defense in depth: forbid leading dot / .. / consecutive dots
-      if (docSlug.startsWith(".") || docSlug.indexOf("..") !== -1) docSlug = "soc-earthquake-2026-04-15";
-      if (!docSlug) docSlug = "soc-earthquake-2026-04-15";
-      const mdUrl = `/assets/data/papers/${docSlug}.md`;
-      const target = document.getElementById("paper-article");
-      const dl = document.getElementById("paper-download-md");
-      if (dl) dl.href = mdUrl;
-
-      function render(md) {
-        if (typeof marked === "undefined") {
-          target.innerHTML = `<p style='color:#c44;'>${T("page.paper.md_loader_failed", "Markdown 渲染器加载失败.")}</p>`;
-          return;
-        }
-        marked.setOptions({ gfm: true, breaks: false });
-        const html = marked.parse(md);
-        target.innerHTML = html;
-        // Extract first h1 as title
-        const h1 = target.querySelector("h1");
-        if (h1) {
-          document.getElementById("paper-title").textContent = h1.textContent + " — Structural";
-        }
-        if (window.renderMathInElement) {
-          try {
-            window.renderMathInElement(target, {
-              delimiters: [
-                { left: "$$", right: "$$", display: true },
-                { left: "\\[", right: "\\]", display: true },
-                { left: "$", right: "$", display: false },
-                { left: "\\(", right: "\\)", display: false },
-              ],
-              throwOnError: false,
-            });
-          } catch (e) {
-            console.warn("KaTeX render failed", e);
-          }
-        }
-      }
-
-      fetch(mdUrl)
-        .then((r) => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.text();
-        })
-        .then((md) => {
-          if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", () => render(md));
-          } else {
-            render(md);
-          }
-        })
-        .catch((e) => {
-          target.innerHTML = `<p style="color:#c44; text-align:center; padding:60px 0;">${T("page.paper.load_failed", "论文加载失败")}: ${e.message}</p>`;
-        });
-    })();
-  </script>
-  <script src="/assets/js/i18n.js?v=20260713a"></script>
-  <script src="/assets/js/utils.js?v=20260417e"></script>
-  <script src="/assets/js/history-sidebar.js?v=20260514"></script>
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/utils.js?v=20260714n2"></script>
+  <script src="/assets/js/history-sidebar.js?v=20260714n2"></script>
   <script src="/assets/js/product-switcher.js?v=20260417e"></script>
-  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
+  <script src="/assets/js/papers-catalog.js?v=20260714n2"></script>
+  <script src="/assets/js/markdown-safe.js?v=20260714n2"></script>
+  <script src="/assets/js/paper.js?v=20260714n2"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
 </body>
 </html>

@@ -7,7 +7,6 @@ v2 upgrades (2026-04-13):
 - Domain collapse guard (MMR-lite): diversify top-5 when one domain dominates
 """
 import json
-import logging
 import re
 from functools import lru_cache
 from pathlib import Path
@@ -16,7 +15,12 @@ from typing import Dict, List, Optional
 import numpy as np
 from structural_isomorphism.model import load_model, encode_texts
 
-logger = logging.getLogger("structural.search_service")
+try:
+    from logging_config import get_logger, new_incident_id
+except ImportError:  # package topology: web.backend.services.search_service
+    from ..logging_config import get_logger, new_incident_id
+
+logger = get_logger("structural.search_service")
 
 
 # --- Hybrid retrieval config -------------------------------------------------
@@ -206,24 +210,35 @@ class SearchService:
                     self._embeddings = np.load(pre_path)
                     if self._embeddings.shape[0] != len(self.kb):
                         logger.warning(
-                            f"Precomputed embeddings size mismatch: "
-                            f"{self._embeddings.shape[0]} vs kb {len(self.kb)}. Re-encoding."
+                            "retrieval.embeddings_size_mismatch",
+                            count=int(self._embeddings.shape[0]),
+                            kb_count=len(self.kb),
                         )
                         self._embeddings = None
                     else:
                         logger.info(
-                            f"Loaded precomputed embeddings from {pre_path} "
-                            f"(shape: {self._embeddings.shape})"
+                            "retrieval.embeddings_loaded",
+                            kb_count=len(self.kb),
                         )
-                except Exception as e:
-                    logger.error(f"Failed to load precomputed embeddings: {e}")
+                except Exception as exc:
+                    logger.error(
+                        "retrieval.embeddings_load_failed",
+                        error_type=type(exc).__name__,
+                        incident_id=new_incident_id(),
+                    )
                     self._embeddings = None
 
         if self._embeddings is None and self.kb:
-            logger.info(f"Encoding {len(self.kb)} phenomena...")
+            logger.info(
+                "retrieval.embeddings_encode_started",
+                kb_count=len(self.kb),
+            )
             descriptions = [item["description"] for item in self.kb]
             self._embeddings = encode_texts(self.model, descriptions, show_progress=True)
-            logger.info(f"Embeddings shape: {self._embeddings.shape}")
+            logger.info(
+                "retrieval.embeddings_encoded",
+                kb_count=len(self.kb),
+            )
 
         # Build BM25 index over name + description (name doubled for weighting)
         self._bm25 = None
@@ -237,9 +252,16 @@ class SearchService:
             if corpus_tokens:
                 self._bm25 = BM25Okapi(corpus_tokens)
                 self._bm25_corpus_len = len(corpus_tokens)
-                logger.info(f"BM25 index built ({self._bm25_corpus_len} docs)")
-        except Exception as e:
-            logger.warning(f"BM25 init failed, falling back to embedding-only: {e}")
+                logger.info(
+                    "retrieval.bm25_index_ready",
+                    kb_count=self._bm25_corpus_len,
+                )
+        except Exception as exc:
+            logger.warning(
+                "retrieval.bm25_init_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             self._bm25 = None
 
         # Load StructTuple index (phenomenon_id -> struct record)
@@ -266,17 +288,28 @@ class SearchService:
                                 self._struct_by_id[pid] = rec
                         except json.JSONDecodeError:
                             continue
-                logger.info(f"Loaded {len(self._struct_by_id)} StructTuple records from {struct_path}")
-            except Exception as e:
-                logger.warning(f"Failed to load StructTuple file: {e}")
+                logger.info(
+                    "retrieval.struct_index_loaded",
+                    count=len(self._struct_by_id),
+                )
+            except Exception as exc:
+                logger.warning(
+                    "retrieval.struct_index_load_failed",
+                    error_type=type(exc).__name__,
+                    incident_id=new_incident_id(),
+                )
 
     def _load_kb(self):
         if not self.data_dir:
-            logger.warning("No data_dir configured")
+            logger.warning("startup.kb_data_dir_unconfigured")
             return
         kb_path = self.data_dir / self.kb_file
         if not kb_path.exists():
-            logger.error(f"KB file not found: {kb_path}")
+            logger.error(
+                "startup.kb_file_missing",
+                error_type="FileNotFoundError",
+                incident_id=new_incident_id(),
+            )
             return
         with open(kb_path, "r", encoding="utf-8") as f:
             for line in f:
@@ -290,9 +323,13 @@ class SearchService:
                     if "id" in item:
                         self.kb_by_id[item["id"]] = item
                         self.idx_by_id[item["id"]] = idx
-                except json.JSONDecodeError as e:
-                    logger.warning(f"Skipping malformed line: {e}")
-        logger.info(f"Loaded {len(self.kb)} phenomena from {kb_path}")
+                except json.JSONDecodeError as exc:
+                    logger.warning(
+                        "retrieval.kb_record_invalid",
+                        error_type=type(exc).__name__,
+                        incident_id=new_incident_id(),
+                    )
+        logger.info("startup.kb_loaded", kb_count=len(self.kb))
 
     # --- Query embedding cache -------------------------------------------------
     def _encode_query_uncached(self, query: str) -> np.ndarray:
@@ -536,9 +573,9 @@ class SearchService:
                 continue
             item = self.kb[int(idx)]
             dom = item.get("domain", "")
-            # Return fused score directly in [0, 1.1]. Frontend is
-            # responsible for mapping this to a visual tier (strong/medium/weak)
-            # or a capped percentage (min(score, 1.0) * 100).
+            # Return the fused signal for backward-compatible ordering only.
+            # It is query-relative and uncalibrated: consumers must not map it
+            # to a percentage, confidence, evidence tier, or cross-query value.
             display_score = round(min(score, 1.0), 4)
             # V3 — unified relevance口径 (same transform as relevance_score()),
             # so a value search shows here can be re-derived by the analyze

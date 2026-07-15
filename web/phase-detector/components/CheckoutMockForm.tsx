@@ -155,7 +155,7 @@ export function CheckoutMockForm() {
       <header className="mb-6">
         <Link
           href="/pricing"
-          className="text-xs text-zinc-500 hover:text-zinc-700"
+          className="inline-flex min-h-11 items-center text-xs text-zinc-500 hover:text-zinc-700"
         >
           ← 返回定价页
         </Link>

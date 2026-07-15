@@ -20,9 +20,9 @@ Coverage:
 from __future__ import annotations
 
 import concurrent.futures
+import builtins
 import json
 import sys
-import threading
 from pathlib import Path
 
 import pytest
@@ -113,7 +113,11 @@ def test_get_anonymous_returns_empty(client):
     r = client.get("/api/favorites")
     assert r.status_code == 200
     assert r.json() == {
-        "tickers": [], "authenticated": False, "auth_method": None
+        "schema_version": "favorites-v2",
+        "tickers": [],
+        "bookmarks": [],
+        "authenticated": False,
+        "auth_method": None,
     }
 
 
@@ -445,3 +449,568 @@ def test_records_isolated_per_user(client):
 
     assert r_free.json()["tickers"] == ["AAPL"]
     assert r_pro.json()["tickers"] == ["TSLA"]
+
+
+# ---- favorites-v2 typed research bookmarks ----
+
+
+def _analysis_bookmark(index: int = 1, **overrides) -> dict:
+    payload = {
+        "kind": "structural_analysis",
+        "title": f"Candidate {index}",
+        "query": f"How does mechanism {index} transfer?",
+        "source_id": f"source-{index}",
+        "target_id": f"target-{index}",
+    }
+    payload.update(overrides)
+    return payload
+
+
+def _opaque_bookmarks() -> list[object]:
+    """Forward/legacy values that current code must store but never project."""
+    return [
+        {
+            "schema_version": "bookmark-v9",
+            "bookmark_id": "bm_ffffffffffffffffffffffff",
+            "kind": "structural_analysis",
+            "title": "Future bookmark",
+            "query": "future semantics",
+            "source_id": "future-source",
+            "target_id": "future-target",
+            "future_payload": {"nested": [1, "two"]},
+        },
+        {
+            "schema_version": "bookmark-v1",
+            "kind": "future_kind",
+            "payload": ["opaque", 2],
+        },
+        {
+            "schema_version": ["future", 10],
+            "kind": "structural_analysis",
+            "title": "Unhashable schema marker",
+            "query": "must remain opaque",
+            "source_id": None,
+            "target_id": "future-target",
+        },
+        {
+            "schema_version": "bookmark-v1",
+            "kind": "structural_analysis",
+            "title": "<script>not public</script>",
+            "query": "malformed-current-record",
+            "source_id": None,
+            "target_id": "target",
+        },
+        {
+            "schema_version": "bookmark-v1",
+            "kind": "structural_analysis",
+            "title": "Unstable legacy timestamp",
+            "query": "must not receive a fresh timestamp on every read",
+            "source_id": None,
+            "target_id": "target",
+            "created_at": "",
+        },
+        {"raw": ["legacy", {"nested": True}]},
+        ["array-record", 3],
+        "string-record",
+        7,
+        None,
+    ]
+
+
+def test_get_v2_keeps_legacy_tickers_and_maps_phase_bookmarks(client):
+    assert client.post(
+        "/api/favorites/AAPL", headers=_hdr("sk_test_free")
+    ).status_code == 201
+
+    body = client.get("/api/favorites", headers=_hdr("sk_test_free")).json()
+    assert body["schema_version"] == "favorites-v2"
+    assert body["tickers"] == ["AAPL"]
+    assert body["bookmarks"] == [{
+        "schema_version": "bookmark-v1",
+        "bookmark_id": body["bookmarks"][0]["bookmark_id"],
+        "kind": "phase_company",
+        "title": "AAPL",
+        "href": "https://phase.bytedance.city/company/AAPL",
+        "source": "Phase",
+        "created_at": None,
+    }]
+    assert body["bookmarks"][0]["bookmark_id"].startswith("bm_")
+
+
+def test_legacy_jsonl_upgrades_on_mutation_without_losing_tickers(client, monkeypatch, tmp_path):
+    path = tmp_path / "legacy-favorites.jsonl"
+    path.write_text(
+        json.dumps({
+            "email": "free@example.com",
+            "tickers": ["AAPL", "TSLA"],
+            "updated_at": "2026-01-01T00:00:00+00:00",
+            "legacy_note": "preserve-me",
+        }) + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("STRUCTURAL_FAVORITES_PATH", str(path))
+
+    listed = client.get("/api/favorites", headers=_hdr("sk_test_free"))
+    assert listed.status_code == 200
+    assert listed.json()["tickers"] == ["AAPL", "TSLA"]
+    assert "schema_version" not in json.loads(path.read_text())
+
+    added = client.post(
+        "/api/favorites/bookmarks",
+        json=_analysis_bookmark(),
+        headers=_hdr("sk_test_free"),
+    )
+    assert added.status_code == 201
+    stored = json.loads(path.read_text())
+    assert stored["schema_version"] == "favorites-v2"
+    assert stored["tickers"] == ["AAPL", "TSLA"]
+    assert stored["legacy_note"] == "preserve-me"
+    assert len(stored["bookmarks"]) == 1
+
+
+def test_typed_bookmark_server_mints_stable_id_and_canonical_href(client):
+    payload = _analysis_bookmark(
+        title="Neural avalanche candidate",
+        query="critical branching + finite size",
+        source_id="neural.source",
+        target_id="grid-target",
+    )
+    first = client.post(
+        "/api/favorites/bookmarks", json=payload, headers=_hdr("sk_test_free")
+    )
+    assert first.status_code == 201, first.text
+    bookmark = first.json()["bookmark"]
+    assert bookmark["bookmark_id"].startswith("bm_")
+    assert bookmark["schema_version"] == "bookmark-v2"
+    assert bookmark["href"] == "/analyze?id=grid-target"
+    assert "q=" not in bookmark["href"]
+    assert bookmark["title"] == "Neural avalanche candidate"
+    assert "owner" not in first.text.lower()
+
+    replay = client.post(
+        "/api/favorites/bookmarks", json=payload, headers=_hdr("sk_test_free")
+    )
+    assert replay.status_code == 200
+    assert replay.json()["created"] is False
+    assert replay.json()["bookmark"]["bookmark_id"] == bookmark["bookmark_id"]
+    assert len(client.get(
+        "/api/favorites", headers=_hdr("sk_test_free")
+    ).json()["bookmarks"]) == 1
+
+
+def test_known_bookmark_mutations_preserve_opaque_raw_records(client):
+    path = fav._data_file()
+    opaque = _opaque_bookmarks()
+    path.write_text(json.dumps({
+        "schema_version": "favorites-v9",
+        "email": "free@example.com",
+        "tickers": [],
+        "bookmarks": opaque,
+        "updated_at": "2026-07-13T00:00:00+00:00",
+        "future_envelope": {"raw": [1, None, True]},
+    }) + "\n", encoding="utf-8")
+
+    # Opaque values are storage-only and cannot become executable/public data.
+    listed = client.get("/api/favorites", headers=_hdr("sk_test_free"))
+    assert listed.status_code == 200
+    assert listed.json()["bookmarks"] == []
+    assert listed.json()["total"] == 0
+
+    added = client.post(
+        "/api/favorites/bookmarks",
+        json=_analysis_bookmark(1),
+        headers=_hdr("sk_test_free"),
+    )
+    assert added.status_code == 201, added.text
+    first = added.json()["bookmark"]
+    stored = json.loads(path.read_text(encoding="utf-8"))
+    assert stored["bookmarks"][:len(opaque)] == opaque
+    assert stored["bookmarks"][len(opaque):] == [first]
+    assert stored["schema_version"] == "favorites-v9"
+    assert stored["future_envelope"] == {"raw": [1, None, True]}
+
+    merged = client.post(
+        "/api/favorites/merge",
+        json={
+            "tickers": [],
+            "bookmarks": [_analysis_bookmark(1), _analysis_bookmark(2)],
+        },
+        headers=_hdr("sk_test_free"),
+    )
+    assert merged.status_code == 200, merged.text
+    assert len(merged.json()["confirmed_bookmark_ids"]) == 2
+    second = next(
+        item for item in merged.json()["bookmarks"]
+        if item["kind"] == "structural_analysis"
+        and item["bookmark_id"] != first["bookmark_id"]
+    )
+    stored = json.loads(path.read_text(encoding="utf-8"))
+    assert stored["bookmarks"][:len(opaque)] == opaque
+    assert [item["bookmark_id"] for item in stored["bookmarks"][len(opaque):]] == [
+        first["bookmark_id"], second["bookmark_id"],
+    ]
+    assert stored["schema_version"] == "favorites-v9"
+
+    removed = client.delete(
+        f"/api/favorites/bookmarks/{first['bookmark_id']}",
+        headers=_hdr("sk_test_free"),
+    )
+    assert removed.status_code == 204
+    stored = json.loads(path.read_text(encoding="utf-8"))
+    assert stored["bookmarks"] == [*opaque, second]
+    assert stored["schema_version"] == "favorites-v9"
+    assert client.get(
+        "/api/favorites", headers=_hdr("sk_test_free")
+    ).json()["bookmarks"] == [second]
+
+    before_missing = path.read_bytes()
+    assert client.delete(
+        "/api/favorites/bookmarks/bm_000000000000000000000000",
+        headers=_hdr("sk_test_free"),
+    ).status_code == 204
+    assert path.read_bytes() == before_missing
+
+
+@pytest.mark.parametrize("created_at", [
+    "",
+    "2026-07-13T12:00:00",
+    "2026-07-13T12:00:00+00:00\n",
+    "<script>alert(1)</script>",
+    "x" * 65,
+    7,
+    ["2026-07-13T12:00:00Z"],
+])
+def test_stored_bookmark_rejects_unstable_or_unsafe_created_at(created_at):
+    raw = {
+        "schema_version": "bookmark-v1",
+        **_analysis_bookmark(9),
+        "created_at": created_at,
+    }
+    assert fav._canonical_bookmark_from_raw(raw) is None
+
+
+def test_stored_bookmark_created_at_projection_is_stable():
+    raw = {"schema_version": "bookmark-v1", **_analysis_bookmark(10)}
+    first = fav._canonical_bookmark_from_raw(raw)
+    second = fav._canonical_bookmark_from_raw(raw)
+    assert first == second
+    assert first is not None and first["created_at"] is None
+
+    raw["created_at"] = "2026-07-13T12:00:00Z"
+    projected = fav._canonical_bookmark_from_raw(raw)
+    assert projected is not None
+    assert projected["created_at"] == "2026-07-13T12:00:00Z"
+
+
+@pytest.mark.parametrize("attack", [
+    {"owner_email": "victim@example.com"},
+    {"bookmark_id": "bm_client_forged"},
+    {"href": "javascript:alert(1)"},
+    {"url": "https://evil.example/steal"},
+    {"extra": "field"},
+])
+def test_typed_bookmark_rejects_client_owned_or_extra_fields_without_mutation(
+    client, attack,
+):
+    payload = {**_analysis_bookmark(), **attack}
+    response = client.post(
+        "/api/favorites/bookmarks", json=payload, headers=_hdr("sk_test_free")
+    )
+    assert response.status_code == 422
+    listed = client.get("/api/favorites", headers=_hdr("sk_test_free")).json()
+    assert listed["tickers"] == [] and listed["bookmarks"] == []
+
+
+@pytest.mark.parametrize("field,value", [
+    ("kind", "discovery_candidate"),
+    ("title", "<img src=x onerror=alert(1)>") ,
+    ("title", "control\u0000character"),
+    ("query", "<script>alert(1)</script>"),
+    ("query", "line\u000bbreak"),
+    ("source_id", "../escape"),
+    ("target_id", "https://evil.example"),
+    ("target_id", "x" * 121),
+])
+def test_typed_bookmark_rejects_kind_html_controls_and_unbound_targets(
+    client, field, value,
+):
+    response = client.post(
+        "/api/favorites/bookmarks",
+        json=_analysis_bookmark(**{field: value}),
+        headers=_hdr("sk_test_free"),
+    )
+    assert response.status_code == 422
+
+
+def test_typed_bookmark_requires_auth_and_same_origin_for_session(client):
+    assert client.post(
+        "/api/favorites/bookmarks", json=_analysis_bookmark()
+    ).status_code == 401
+    client.cookies.set("phase_session", _session_cookie("member@example.com"))
+    blocked = client.post(
+        "/api/favorites/bookmarks",
+        json=_analysis_bookmark(),
+        headers={"Origin": "https://evil.example"},
+    )
+    assert blocked.status_code == 403
+    assert client.get("/api/favorites").json()["bookmarks"] == []
+
+
+def test_total_quota_is_shared_between_tickers_and_typed_bookmarks(client):
+    for index in range(49):
+        assert client.post(
+            f"/api/favorites/T{index:03d}", headers=_hdr("sk_test_free")
+        ).status_code == 201
+    accepted = client.post(
+        "/api/favorites/bookmarks",
+        json=_analysis_bookmark(),
+        headers=_hdr("sk_test_free"),
+    )
+    assert accepted.status_code == 201
+    rejected = client.post(
+        "/api/favorites/bookmarks",
+        json=_analysis_bookmark(2),
+        headers=_hdr("sk_test_free"),
+    )
+    assert rejected.status_code == 429
+    assert rejected.json()["current"] == 50
+
+
+def test_merge_supports_tickers_and_bookmarks_with_replay_and_partial_quota(client):
+    for index in range(48):
+        assert client.post(
+            f"/api/favorites/T{index:03d}", headers=_hdr("sk_test_free")
+        ).status_code == 201
+    payload = {
+        "tickers": ["NEW1"],
+        "bookmarks": [_analysis_bookmark(1), _analysis_bookmark(2)],
+    }
+    merged = client.post(
+        "/api/favorites/merge", json=payload, headers=_hdr("sk_test_free")
+    )
+    assert merged.status_code == 200, merged.text
+    body = merged.json()
+    assert body["merged"] == ["NEW1"]
+    assert len(body["confirmed_bookmark_ids"]) == 1
+    assert len(body["dropped_bookmark_ids"]) == 1
+    assert body["total"] == 50
+
+    replay = client.post(
+        "/api/favorites/merge", json=payload, headers=_hdr("sk_test_free")
+    )
+    assert replay.status_code == 200
+    assert replay.json()["merged"] == []
+    assert replay.json()["confirmed_bookmark_ids"] == body["confirmed_bookmark_ids"]
+    assert replay.json()["dropped_bookmark_ids"] == body["dropped_bookmark_ids"]
+
+
+def test_merge_rejects_extra_or_invalid_typed_bookmark_atomically(client):
+    attack = {
+        "tickers": ["AAPL"],
+        "bookmarks": [{**_analysis_bookmark(), "href": "https://evil.example"}],
+    }
+    response = client.post(
+        "/api/favorites/merge", json=attack, headers=_hdr("sk_test_free")
+    )
+    assert response.status_code == 422
+    listed = client.get("/api/favorites", headers=_hdr("sk_test_free")).json()
+    assert listed["tickers"] == [] and listed["bookmarks"] == []
+
+
+def test_typed_delete_handles_structural_and_phase_bookmarks_idempotently(client):
+    created = client.post(
+        "/api/favorites/bookmarks",
+        json=_analysis_bookmark(),
+        headers=_hdr("sk_test_free"),
+    ).json()["bookmark"]
+    client.post("/api/favorites/AAPL", headers=_hdr("sk_test_free"))
+    listed = client.get("/api/favorites", headers=_hdr("sk_test_free")).json()
+    phase = next(item for item in listed["bookmarks"] if item["kind"] == "phase_company")
+
+    for bookmark_id in (created["bookmark_id"], phase["bookmark_id"]):
+        removed = client.delete(
+            f"/api/favorites/bookmarks/{bookmark_id}", headers=_hdr("sk_test_free")
+        )
+        assert removed.status_code == 204
+        replay = client.delete(
+            f"/api/favorites/bookmarks/{bookmark_id}", headers=_hdr("sk_test_free")
+        )
+        assert replay.status_code == 204
+    final = client.get("/api/favorites", headers=_hdr("sk_test_free")).json()
+    assert final["tickers"] == [] and final["bookmarks"] == []
+
+
+def test_typed_delete_rejects_path_or_client_forged_ids(client):
+    assert client.delete(
+        "/api/favorites/bookmarks/not-a-bookmark", headers=_hdr("sk_test_free")
+    ).status_code == 422
+    assert client.delete(
+        "/api/favorites/bookmarks/bm_%2E%2E%2Fescape", headers=_hdr("sk_test_free")
+    ).status_code in {404, 422}
+
+
+def test_typed_and_phase_delete_preserve_opaque_legacy_tickers(client):
+    created = client.post(
+        "/api/favorites/bookmarks",
+        json=_analysis_bookmark(),
+        headers=_hdr("sk_test_free"),
+    ).json()["bookmark"]
+    path = fav._data_file()
+    record = json.loads(path.read_text(encoding="utf-8"))
+    opaque = ["legacy ticker with spaces", {"raw": "ticker"}, ["nested"], 7, " aapl "]
+    record["tickers"] = ["AAPL", *opaque, "AAPL"]
+    path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+    phase_id = fav._phase_bookmark("AAPL")["bookmark_id"]
+    phase_delete = client.delete(
+        f"/api/favorites/bookmarks/{phase_id}", headers=_hdr("sk_test_free")
+    )
+    assert phase_delete.status_code == 204
+    after_phase = json.loads(path.read_text(encoding="utf-8"))
+    assert after_phase["tickers"] == opaque
+
+    structural_delete = client.delete(
+        f"/api/favorites/bookmarks/{created['bookmark_id']}",
+        headers=_hdr("sk_test_free"),
+    )
+    assert structural_delete.status_code == 204
+    preserved = json.loads(path.read_text(encoding="utf-8"))
+    assert preserved["tickers"] == opaque
+
+    before = path.read_bytes()
+    missing = client.delete(
+        "/api/favorites/bookmarks/bm_ffffffffffffffffffffffff",
+        headers=_hdr("sk_test_free"),
+    )
+    assert missing.status_code == 204
+    assert path.read_bytes() == before
+
+
+def test_merge_keeps_raw_prefix_and_only_appends_unique_canonical_tickers(client):
+    path = fav._data_file()
+    raw_prefix = [{"raw": 1}, ["nested"], 7, "bad ticker", "AAPL", "AAPL", " aapl "]
+    record = {
+        "email": "pro@example.com", "tickers": raw_prefix,
+        "bookmarks": [], "updated_at": "legacy",
+    }
+    path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+    payload = {
+        "tickers": ["aapl", " tsla ", "TSLA", {"new": 1}, ["new"], 9],
+        "bookmarks": [],
+    }
+    merged = client.post(
+        "/api/favorites/merge", json=payload, headers=_hdr("sk_test_pro")
+    )
+    assert merged.status_code == 200, merged.text
+    assert merged.json()["tickers"] == ["AAPL", "TSLA"]
+    assert merged.json()["merged"] == ["TSLA"]
+    assert merged.json()["total"] == 2
+    stored = json.loads(path.read_text(encoding="utf-8"))
+    assert stored["tickers"] == raw_prefix + ["TSLA"]
+
+    before_replay = path.read_bytes()
+    replay = client.post(
+        "/api/favorites/merge", json=payload, headers=_hdr("sk_test_pro")
+    )
+    assert replay.status_code == 200
+    assert replay.json()["merged"] == []
+    assert replay.json()["total"] == 2
+    assert path.read_bytes() == before_replay
+
+
+def test_missing_storage_allows_atomic_first_write(client):
+    path = fav._data_file()
+    assert not path.exists()
+    response = client.post("/api/favorites/AAPL", headers=_hdr("sk_test_free"))
+    assert response.status_code == 201
+    assert json.loads(path.read_text(encoding="utf-8"))["tickers"] == ["AAPL"]
+    assert list(path.parent.glob(".favorites-*.jsonl.tmp")) == []
+
+
+@pytest.mark.parametrize(
+    "corrupt_bytes",
+    [
+        b'{"email":"free@example.com","tickers":["AAPL"]}\nnot-json\n',
+        b'\xff\xfe\x00broken',
+        b'[]\n',
+        b'{"email":"","tickers":[]}\n',
+    ],
+)
+def test_nonempty_malformed_storage_fails_closed_without_rewrite(
+    client, corrupt_bytes,
+):
+    path = fav._data_file()
+    path.write_bytes(corrupt_bytes)
+    before = path.read_bytes()
+
+    listed = client.get("/api/favorites", headers=_hdr("sk_test_free"))
+    mutated = client.post("/api/favorites/MSFT", headers=_hdr("sk_test_free"))
+    merged = client.post(
+        "/api/favorites/merge",
+        headers=_hdr("sk_test_free"),
+        json={"tickers": ["MSFT"], "bookmarks": []},
+    )
+    assert [listed.status_code, mutated.status_code, merged.status_code] == [503, 503, 503]
+    assert path.read_bytes() == before
+    assert list(path.parent.glob(".favorites-*.jsonl.tmp")) == []
+    assert "AAPL" not in listed.text and "free@example.com" not in listed.text
+
+
+def test_storage_read_oserror_returns_503_and_preserves_all_owners(
+    client, monkeypatch,
+):
+    path = fav._data_file()
+    original = (
+        b'{"email":"free@example.com","tickers":["AAPL"]}\n'
+        b'{"email":"pro@example.com","tickers":["TSLA"]}\n'
+    )
+    path.write_bytes(original)
+    real_open = builtins.open
+
+    def fail_target_open(candidate, *args, **kwargs):
+        if Path(candidate) == path:
+            raise OSError("simulated storage read failure")
+        return real_open(candidate, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", fail_target_open)
+    listed = client.get("/api/favorites", headers=_hdr("sk_test_free"))
+    deleted = client.delete("/api/favorites/AAPL", headers=_hdr("sk_test_free"))
+    assert listed.status_code == 503
+    assert deleted.status_code == 503
+    assert path.read_bytes() == original
+    assert list(path.parent.glob(".favorites-*.jsonl.tmp")) == []
+
+
+def test_atomic_replace_failure_returns_503_without_file_or_temp_change(
+    client, monkeypatch,
+):
+    assert client.post(
+        "/api/favorites/AAPL", headers=_hdr("sk_test_free")
+    ).status_code == 201
+    path = fav._data_file()
+    before = path.read_bytes()
+    monkeypatch.setattr(
+        fav.os, "replace",
+        lambda *_args: (_ for _ in ()).throw(OSError("simulated replace failure")),
+    )
+    response = client.post("/api/favorites/MSFT", headers=_hdr("sk_test_free"))
+    assert response.status_code == 503
+    assert path.read_bytes() == before
+    assert list(path.parent.glob(".favorites-*.jsonl.tmp")) == []
+
+
+def test_concurrent_typed_bookmark_adds_have_no_lost_writes(client):
+    payloads = [_analysis_bookmark(index) for index in range(30)]
+
+    def add(payload: dict) -> int:
+        return client.post(
+            "/api/favorites/bookmarks", json=payload, headers=_hdr("sk_test_pro")
+        ).status_code
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        statuses = list(executor.map(add, payloads))
+
+    assert statuses == [201] * len(payloads)
+    listed = client.get("/api/favorites", headers=_hdr("sk_test_pro")).json()
+    assert len(listed["bookmarks"]) == 30
+    assert len({item["bookmark_id"] for item in listed["bookmarks"]}) == 30

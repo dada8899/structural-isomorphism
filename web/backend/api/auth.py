@@ -24,26 +24,32 @@ value (see web/backend/.env.example).
 from __future__ import annotations
 
 import hashlib
+import hmac
 import asyncio
+from contextlib import contextmanager
 import ipaddress
 import json
-import logging
 import os
 import re
 import secrets
 import smtplib
+import threading
 import time
 import uuid
 from email.message import EmailMessage
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 from urllib.parse import urlencode, urlsplit
 
 import jwt
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+if __package__ == "web.backend.api":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 try:  # Supports both `api.auth` and `web.backend.api.auth` import modes.
     from services.auth_store import AuthStore, DeletedCredentialError
 except ModuleNotFoundError:  # Phase API imports from the repository root.
@@ -56,8 +62,18 @@ except ModuleNotFoundError:
     from web.backend.services.account_data_registry import (
         AccountAsset, AccountDataRegistry, deletion_tombstone,
     )
+try:
+    from services.privacy_identifiers import (
+        opaque_identifier,
+        validate_privacy_hmac_config,
+    )
+except ModuleNotFoundError:
+    from web.backend.services.privacy_identifiers import (
+        opaque_identifier,
+        validate_privacy_hmac_config,
+    )
 
-logger = logging.getLogger("structural.auth")
+logger = get_logger("structural.auth")
 
 router = APIRouter(tags=["auth"])
 
@@ -78,6 +94,25 @@ _EMAIL_RE = re.compile(
     r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$"
 )
 _MAX_EMAIL_LEN = 200
+
+# Account deletion spans several stores. Every owner-scoped mutation must use
+# the same gate so a valid pre-deletion session cannot write between snapshot,
+# erase, compensation, and the final auth revocation.
+_ACCOUNT_OWNER_LOCKS_GUARD = threading.Lock()
+_ACCOUNT_OWNER_LOCKS: dict[str, threading.Lock] = {}
+_AUTH_STORES_GUARD = threading.Lock()
+_AUTH_STORES: dict[Path, AuthStore] = {}
+
+
+@contextmanager
+def account_owner_transaction(owner: str):
+    normalized = owner.strip().lower()
+    if not normalized:
+        raise ValueError("account transaction requires an owner")
+    with _ACCOUNT_OWNER_LOCKS_GUARD:
+        lock = _ACCOUNT_OWNER_LOCKS.setdefault(normalized, threading.Lock())
+    with lock:
+        yield
 
 
 def _jwt_secret() -> str:
@@ -108,6 +143,8 @@ def _is_prod() -> bool:
 
 def _validate_production_config() -> None:
     """Fail closed before creating credentials when production auth is enabled."""
+    if _is_prod():
+        validate_privacy_hmac_config()
     if not (_is_prod() and _auth_enabled()):
         return
     _jwt_secret()
@@ -158,7 +195,43 @@ def _data_dir() -> Path:
 
 
 def _store() -> AuthStore:
-    return AuthStore(_data_dir() / "auth.sqlite3")
+    path = (_data_dir() / "auth.sqlite3").expanduser().resolve()
+    with _AUTH_STORES_GUARD:
+        store = _AUTH_STORES.get(path)
+        if store is None:
+            store = AuthStore(path)
+            _AUTH_STORES[path] = store
+        return store
+
+
+def account_deletion_epoch(email: str) -> Optional[str]:
+    """Expose the opaque deletion generation for owner transaction guards."""
+    return _store().account_deletion_epoch(email)
+
+
+def account_is_active(email: str) -> bool:
+    """Return whether an email-owned account still exists after revalidation."""
+    return _store().user(email) is not None
+
+
+def api_key_retired_by_account_deletion(email: str, created_at: str) -> bool:
+    """Fail closed for a legacy key issued no later than a deletion commit."""
+    deleted_at = account_deletion_epoch(email)
+    if deleted_at is None:
+        return False
+    try:
+        key_time = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        deletion_time = datetime.fromisoformat(deleted_at.replace("Z", "+00:00"))
+    except (AttributeError, TypeError, ValueError):
+        return True
+    if (
+        key_time.tzinfo is None
+        or key_time.utcoffset() is None
+        or deletion_time.tzinfo is None
+        or deletion_time.utcoffset() is None
+    ):
+        return True
+    return key_time <= deletion_time
 
 
 def _outbox_file() -> Path:
@@ -183,6 +256,7 @@ def _account_registry() -> AccountDataRegistry:
             export=favorites.export_account_favorites,
             delete=favorites.delete_account_favorites,
             restore=favorites.restore_account_favorites,
+            snapshot=favorites.snapshot_account_favorites,
         ),
         AccountAsset(
             name="claimed_reports", owner_key="sso_subject_hmac",
@@ -190,6 +264,7 @@ def _account_registry() -> AccountDataRegistry:
             export=report_account.export_account_reports,
             delete=report_account.delete_account_reports,
             restore=report_account.restore_account_reports,
+            snapshot=report_account.snapshot_account_reports,
         ),
         # Account identity is deliberately last: deletion invalidates every
         # outstanding JWT because resolve_session_user requires this row.
@@ -197,7 +272,13 @@ def _account_registry() -> AccountDataRegistry:
             name="authentication", owner_key="normalized_email",
             retention="account lifetime; removed on account deletion",
             export=store.export_account_data,
-            delete=store.delete_account_data,
+            delete=lambda owner: store.delete_account_data(
+                owner,
+                rate_keys=(
+                    _privacy_rate_key("email", owner),
+                    _legacy_privacy_rate_key("email", owner),
+                ),
+            ),
         ),
     ])
 
@@ -227,6 +308,54 @@ class VerifyBody(BaseModel):
 
 class DeleteAccountBody(BaseModel):
     confirmation: str = Field(..., min_length=6, max_length=20)
+
+
+class AuthUserResponse(BaseModel):
+    email: str
+    tier: str
+    created_at: str
+
+
+class RequestLinkResponse(BaseModel):
+    """Enumeration-safe acknowledgement; dev credentials never appear in prod."""
+
+    ok: Literal[True]
+    dev_link: Optional[str] = None
+    dev_token: Optional[str] = None
+
+
+class VerifyResponse(BaseModel):
+    ok: Literal[True]
+    user: AuthUserResponse
+
+
+class LogoutResponse(BaseModel):
+    ok: bool
+    error: Optional[Literal["credential_conflict"]] = None
+
+
+class AuthMeResponse(BaseModel):
+    ok: Literal[True]
+    user: AuthUserResponse
+
+
+class AccountAssetManifestResponse(BaseModel):
+    name: str
+    owner_key: str
+    retention: str
+
+
+class AccountExportResponse(BaseModel):
+    ok: Literal[True]
+    exported_at: str
+    assets: list[AccountAssetManifestResponse]
+    data: dict[str, object]
+
+
+class AccountDeleteResponse(BaseModel):
+    ok: Literal[True]
+    deleted_at: str
+    removed: dict[str, object]
 
 
 # --- Helpers: email validation, rate limit, token gen, JWT ---
@@ -277,7 +406,7 @@ def _client_ip(request: Request) -> str:
         try:
             forwarded.append(ipaddress.ip_address(raw.strip()))
         except ValueError:
-            logger.warning("auth.forwarded_for_rejected reason=malformed")
+            logger.warning("auth.forwarded_for_rejected")
             return peer.compressed
     for candidate in reversed([*forwarded, peer]):
         if not any(candidate in network for network in trusted):
@@ -285,17 +414,54 @@ def _client_ip(request: Request) -> str:
     return peer.compressed
 
 
+def _privacy_rate_key(namespace: str, value: str) -> str:
+    """Stable v2 HMAC bucket key for identifiers in operational state."""
+    kind = "email" if namespace == "email" else "ip"
+    return opaque_identifier(f"auth-rate.{namespace}", value, kind=kind)
+
+
+def _legacy_privacy_rate_key(namespace: str, value: str) -> str:
+    """Pre-v2 lookup key retained only for bounded in-place migration."""
+    root_key = _jwt_secret().encode("utf-8")
+    rate_key = hmac.new(
+        root_key,
+        b"structural.auth.rate-limit.key.v1",
+        hashlib.sha256,
+    ).digest()
+    digest = hmac.new(
+        rate_key,
+        namespace.encode("ascii") + b"\0" + value.strip().lower().encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return f"{namespace}:v1:{digest}"
+
+
 def _check_rate_limit(email: str, request: Request) -> bool:
-    """Apply atomic per-email, trusted-client-IP and global mail limits."""
-    ip_hash = hashlib.sha256(_client_ip(request).encode("utf-8")).hexdigest()
-    return _store().record_rate_requests([
-        (email, _RATE_LIMIT_PER_HOUR),
-        (f"ip:{ip_hash}", _positive_limit(
-            "AUTH_IP_EMAIL_LIMIT_PER_HOUR", _DEFAULT_IP_RATE_LIMIT_PER_HOUR,
-        )),
-        ("global:magic-link-email", _positive_limit(
-            "AUTH_GLOBAL_EMAIL_LIMIT_PER_HOUR", _DEFAULT_GLOBAL_RATE_LIMIT_PER_HOUR,
-        )),
+    """Apply atomic opaque per-email, trusted-client-IP and global limits."""
+    client_ip = _client_ip(request)
+    return _store().record_rate_requests_with_legacy([
+        (
+            _privacy_rate_key("email", email),
+            # The bounded raw-email lookup covers the oldest pre-HMAC schema;
+            # v1 used the JWT-derived HMAC. Both are rewritten in-place.
+            (_legacy_privacy_rate_key("email", email), email),
+            _RATE_LIMIT_PER_HOUR,
+        ),
+        (
+            _privacy_rate_key("ip", client_ip),
+            (_legacy_privacy_rate_key("ip", client_ip), client_ip),
+            _positive_limit(
+                "AUTH_IP_EMAIL_LIMIT_PER_HOUR", _DEFAULT_IP_RATE_LIMIT_PER_HOUR,
+            ),
+        ),
+        (
+            "global:magic-link-email",
+            (),
+            _positive_limit(
+                "AUTH_GLOBAL_EMAIL_LIMIT_PER_HOUR",
+                _DEFAULT_GLOBAL_RATE_LIMIT_PER_HOUR,
+            ),
+        ),
     ])
 
 
@@ -370,8 +536,10 @@ def retry_registration_notifications(limit: int = 50) -> tuple[int, int]:
     if not admin:
         remaining = _store().pending_notification_count()
         logger.error(
-            "auth.registration_notification_failed reason=admin_email_missing retryable=true remaining=%d",
-            remaining,
+            "auth.registration_notification_failed",
+            retryable=True,
+            remaining=remaining,
+            incident_id=new_incident_id(),
         )
         return 0, remaining
     store = _store()
@@ -387,9 +555,18 @@ def retry_registration_notifications(limit: int = 50) -> tuple[int, int]:
             sent += 1
         except Exception as exc:
             store.mark_notification(item["id"], delivered_at=None, error=type(exc).__name__)
-            logger.exception("auth.registration_notification_failed retryable=true")
+            logger.error(
+                "auth.registration_notification_failed",
+                error_type=type(exc).__name__,
+                retryable=True,
+                incident_id=new_incident_id(),
+            )
     remaining = store.pending_notification_count()
-    logger.info("auth.registration_notification_retry sent=%d remaining=%d", sent, remaining)
+    logger.info(
+        "auth.registration_notification_retry",
+        sent=sent,
+        remaining=remaining,
+    )
     return sent, remaining
 
 
@@ -411,8 +588,12 @@ def _auth_unavailable() -> Optional[JSONResponse]:
         return JSONResponse({"ok": False, "error": "auth unavailable"}, status_code=503)
     try:
         _validate_production_config()
-    except RuntimeError:
-        logger.exception("auth.configuration_invalid")
+    except RuntimeError as exc:
+        logger.error(
+            "auth.configuration_invalid",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return JSONResponse({"ok": False, "error": "auth unavailable"}, status_code=503)
     return None
 
@@ -539,9 +720,16 @@ def _cookie_args(request: Request) -> dict:
 
 # --- Endpoints ---
 
-@router.post("/auth/request-link", summary="Request a magic-link email")
+@router.post(
+    "/auth/request-link",
+    response_model=RequestLinkResponse,
+    summary="Request a magic-link email",
+)
 async def request_link(body: RequestLinkBody, request: Request):
-    """Generate a magic-link token and 'send' it (mock writes to outbox.jsonl).
+    """Generate and deliver a one-time magic-link token.
+
+    Production sends through the configured SMTP transport and fails closed
+    when delivery is unavailable. Tests may inject an isolated outbox sender.
 
     Returns 200 unconditionally for valid emails to prevent enumeration
     (whether the email exists or not, the response is identical). Invalid
@@ -583,11 +771,15 @@ async def request_link(body: RequestLinkBody, request: Request):
             _send_email, email, "Your Structural Isomorphism sign-in link",
             f"Sign in using this one-time link (valid for {_TOKEN_TTL_MIN} minutes):\n\n{magic_link}\n",
         )
-    except Exception:
-        logger.exception("auth.magic_link_delivery_failed")
+    except Exception as exc:
+        logger.error(
+            "auth.magic_link_delivery_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return JSONResponse({"ok": False, "error": "email delivery unavailable"}, status_code=503)
 
-    logger.info("auth.magic_link_requested email_hash=%s", _token_hash(email)[:12])
+    logger.info("auth.magic_link_requested")
 
     # Dev mode: return the link inline so the frontend can show it.
     # In prod, response always omits the link (regardless of dev flag).
@@ -598,7 +790,11 @@ async def request_link(body: RequestLinkBody, request: Request):
     return JSONResponse(body_out)
 
 
-@router.post("/auth/verify", summary="Exchange magic-link token for session")
+@router.post(
+    "/auth/verify",
+    response_model=VerifyResponse,
+    summary="Exchange magic-link token for session",
+)
 async def verify(body: VerifyBody, request: Request, response: Response):
     """Validate the token, create/lookup the user, issue a JWT, set cookie."""
     unavailable = _auth_unavailable()
@@ -635,7 +831,7 @@ async def verify(body: VerifyBody, request: Request, response: Response):
             email, _DEFAULT_TIER, datetime.now(timezone.utc).isoformat(), match["created_at"]
         )
     except DeletedCredentialError:
-        logger.warning("auth.verify_rejected reason=credential_predates_deletion")
+        logger.warning("auth.verify_rejected")
         return JSONResponse({"ok": False, "error": "invalid token"}, status_code=400)
     if was_created:
         # User creation and durable outbox enqueue are already committed. Never
@@ -647,7 +843,7 @@ async def verify(body: VerifyBody, request: Request, response: Response):
     # Issue JWT + set cookie.
     jwt_token, _jti = _issue_jwt(email=email, tier=user["tier"])
 
-    logger.info("auth.verified email_hash=%s tier=%s", _token_hash(email)[:12], user["tier"])
+    logger.info("auth.verified", tier=user["tier"])
 
     payload = {
         "ok": True,
@@ -665,7 +861,11 @@ async def verify(body: VerifyBody, request: Request, response: Response):
     return resp
 
 
-@router.post("/auth/logout", summary="Clear session cookie + revoke jti")
+@router.post(
+    "/auth/logout",
+    response_model=LogoutResponse,
+    summary="Clear session cookie + revoke jti",
+)
 async def logout(request: Request):
     """Revoke the current session's jti and clear the cookie.
 
@@ -697,7 +897,7 @@ async def logout(request: Request):
                 _store().revoke(
                     claims["jti"], datetime.now(timezone.utc).isoformat(), claims.get("sub")
                 )
-                logger.info("auth.logout jti=%s", claims["jti"])
+                logger.info("auth.logout")
         if request.cookies.get("structural_beta_session"):
             SsoReplayStore(sso_data_dir() / "sso_replay.sqlite3").revoke_subject(beta_user["id"])
     # delete_cookie matches the path the cookie was set on.
@@ -706,7 +906,11 @@ async def logout(request: Request):
     return resp
 
 
-@router.get("/auth/me", summary="Return current session user")
+@router.get(
+    "/auth/me",
+    response_model=AuthMeResponse,
+    summary="Return current session user",
+)
 async def me(request: Request):
     """Return {email, tier, created_at} or 401 if no/invalid session."""
     unavailable = _auth_unavailable()
@@ -726,7 +930,11 @@ async def me(request: Request):
     })
 
 
-@router.get("/me/export", summary="Export authenticated account data")
+@router.get(
+    "/me/export",
+    response_model=AccountExportResponse,
+    summary="Export authenticated account data",
+)
 async def export_my_account(request: Request):
     """Export registry-declared assets for the current session only."""
     unavailable = _auth_unavailable()
@@ -736,12 +944,33 @@ async def export_my_account(request: Request):
     if status != "valid" or not user:
         return _account_auth_error(status)
     try:
-        registry = _account_registry()
-        data = registry.export_all(user["email"])
-    except Exception:
-        logger.exception("account_data.export_failed")
-        return JSONResponse({"ok": False, "error": "account export unavailable"}, status_code=500)
-    logger.info("account_data.exported email_hash=%s", _token_hash(user["email"])[:12])
+        with account_owner_transaction(user["email"]):
+            locked_user, locked_status = resolve_account_user(request)
+            if locked_status != "valid" or not locked_user:
+                return _account_auth_error(locked_status)
+            if locked_user["email"].lower() != user["email"].lower():
+                return _account_auth_error("credential_conflict")
+            registry = _account_registry()
+            data = registry.export_all(locked_user["email"])
+    except Exception as exc:
+        status_code = 503 if getattr(exc, "status", None) == 503 else 500
+        if status_code == 503:
+            logger.error(
+                "account_data.export_unavailable",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
+        else:
+            logger.error(
+                "account_data.export_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
+        return JSONResponse(
+            {"ok": False, "error": "account export unavailable"},
+            status_code=status_code,
+        )
+    logger.info("account_data.exported")
     return JSONResponse({
         "ok": True,
         "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -750,7 +979,11 @@ async def export_my_account(request: Request):
     })
 
 
-@router.post("/me/delete", summary="Permanently delete authenticated account")
+@router.post(
+    "/me/delete",
+    response_model=AccountDeleteResponse,
+    summary="Permanently delete authenticated account",
+)
 async def delete_my_account(body: DeleteAccountBody, request: Request):
     """Erase registry assets, invalidate credentials and clear the cookie."""
     unavailable = _auth_unavailable()
@@ -765,18 +998,45 @@ async def delete_my_account(body: DeleteAccountBody, request: Request):
     if body.confirmation != "DELETE":
         return JSONResponse({"ok": False, "error": "confirmation must equal DELETE"}, status_code=400)
     try:
-        registry = _account_registry()
-        removed = registry.delete_all(user["email"])
-    except Exception:
-        logger.exception("account_data.delete_failed")
-        return JSONResponse({"ok": False, "error": "account deletion failed"}, status_code=500)
-    tombstone = deletion_tombstone(user["email"], removed)
+        with account_owner_transaction(user["email"]):
+            # The first resolve selects the lock. Re-resolve inside it so a
+            # request queued behind another deletion cannot use a stale JWT.
+            locked_user, locked_status = resolve_account_user(request)
+            if locked_status != "valid" or not locked_user:
+                return _account_auth_error(locked_status)
+            if locked_user["email"].lower() != user["email"].lower():
+                return _account_auth_error("credential_conflict")
+            registry = _account_registry()
+            removed = registry.delete_all(locked_user["email"])
+    except Exception as exc:
+        status_code = 503 if getattr(exc, "status", None) == 503 else 500
+        if status_code == 503:
+            logger.error(
+                "account_data.delete_unavailable",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
+        else:
+            logger.error(
+                "account_data.delete_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
+        return JSONResponse(
+            {"ok": False, "error": "account deletion failed"},
+            status_code=status_code,
+        )
+    tombstone = deletion_tombstone(user["email"], removed, _jwt_secret())
     try:
         _append_deletion_audit(tombstone)
-    except Exception:
+    except Exception as exc:
         # Deletion already succeeded. Do not report a false failure that could
         # encourage repeated requests; alert operators without restoring PII.
-        logger.exception("account_data.audit_write_failed")
+        logger.error(
+            "account_data.audit_write_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
     response = JSONResponse({
         "ok": True,
         "deleted_at": tombstone["deleted_at"],
@@ -784,7 +1044,7 @@ async def delete_my_account(body: DeleteAccountBody, request: Request):
     })
     response.delete_cookie(key=_COOKIE_NAME, path="/")
     _clear_beta_session(response)
-    logger.info("account_data.deleted owner_hash=%s", tombstone["owner_hash"])
+    logger.info("account_data.deleted")
     return response
 
 

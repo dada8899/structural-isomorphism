@@ -28,7 +28,6 @@ import datetime as _dt
 import hashlib
 import hmac
 import json
-import logging
 import os
 import re
 import secrets
@@ -36,7 +35,27 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Optional
 
-logger = logging.getLogger(__name__)
+from .sqlite_utils import ClosingConnection
+if __package__ == "web.backend.services":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
+
+if __package__ == "web.backend.services":
+    from .candidate_origin import origin_candidate_from_payload
+else:
+    from services.candidate_origin import origin_candidate_from_payload
+
+logger = get_logger("structural.report_store")
+
+# Public outcome aggregation is paused. Static cohort thresholds are not a
+# privacy boundary in a low-volume product: an observer can still learn that a
+# specific person's contribution moved a group from 4 to 5 (or 19 to 20).
+# Re-enabling publication requires a separately reviewed delayed-batch,
+# sticky-suppression or formal differential-privacy design. Anonymous device
+# identities must never count as independent participants.
+PUBLIC_INSIGHTS_CONSENT_VERSION = "insights-public-v1"
+_CANONICAL_B_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 
 
 # ---------------- Share token helpers --------------------------------- #
@@ -132,6 +151,12 @@ CREATE TABLE IF NOT EXISTS report_followup (
     note        TEXT,
     experiment_json TEXT,
     outcome_detail_json TEXT,
+    -- Purpose-specific, revocable consent for the public Insights feed.
+    -- Recording a private outcome never implies publication.
+    publish_to_insights INTEGER NOT NULL DEFAULT 0,
+    consent_version TEXT,
+    consented_at TEXT,
+    withdrawn_at TEXT,
     created_at  TEXT NOT NULL,
     updated_at  TEXT NOT NULL,
     FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE,
@@ -176,15 +201,21 @@ class ReportStore:
         self._init_schema()
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        conn = sqlite3.connect(
+            str(self.db_path), timeout=10.0, factory=ClosingConnection,
+        )
         conn.row_factory = sqlite3.Row
         # Foreign keys are off by default in sqlite3 — enable so the
         # ON DELETE CASCADE on report_feedback actually fires.
         conn.execute("PRAGMA foreign_keys=ON")
         try:
             conn.execute("PRAGMA journal_mode=WAL")
-        except sqlite3.Error as e:  # pragma: no cover
-            logger.warning("report_store WAL pragma failed: %s", e)
+        except sqlite3.Error as exc:  # pragma: no cover
+            logger.warning(
+                "structural.report_store_wal_unavailable",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
         return conn
 
     # Columns the `reports` table MUST have. `CREATE TABLE IF NOT EXISTS`
@@ -229,8 +260,12 @@ class ReportStore:
                 self._migrate_reports_columns(conn)
                 self._migrate_followup_columns(conn)
                 conn.executescript(_SCHEMA)
-        except sqlite3.Error as e:
-            logger.exception("report_store schema init failed: %s", e)
+        except sqlite3.Error as exc:
+            logger.error(
+                "structural.report_store_schema_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             raise
 
     def _migrate_reports_columns(self, conn: sqlite3.Connection) -> None:
@@ -251,10 +286,7 @@ class ReportStore:
             return
         for col, col_def in self._REPORTS_COLUMNS:
             if col not in existing:
-                logger.warning(
-                    "report_store: reports table missing column %r — "
-                    "adding via ALTER TABLE (schema drift self-heal)", col,
-                )
+                logger.warning("structural.report_store_schema_repaired")
                 conn.execute(f"ALTER TABLE reports ADD COLUMN {col} {col_def}")
 
     def _migrate_followup_columns(self, conn: sqlite3.Connection) -> None:
@@ -265,9 +297,19 @@ class ReportStore:
         }
         if not existing:
             return
-        for col in ("experiment_json", "outcome_detail_json"):
+        columns = {
+            "experiment_json": "TEXT",
+            "outcome_detail_json": "TEXT",
+            "publish_to_insights": "INTEGER NOT NULL DEFAULT 0",
+            "consent_version": "TEXT",
+            "consented_at": "TEXT",
+            "withdrawn_at": "TEXT",
+        }
+        for col, col_def in columns.items():
             if col not in existing:
-                conn.execute(f"ALTER TABLE report_followup ADD COLUMN {col} TEXT")
+                conn.execute(
+                    f"ALTER TABLE report_followup ADD COLUMN {col} {col_def}"
+                )
 
     # ------ create / read ------------------------------------------- #
 
@@ -323,8 +365,12 @@ class ReportStore:
                         1 if is_public else 0, 1 if is_partial else 0,
                     ),
                 )
-        except sqlite3.Error as e:
-            logger.exception("report_store.create failed: %s", e)
+        except sqlite3.Error as exc:
+            logger.error(
+                "structural.report_store_create_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             raise
 
         return {
@@ -369,7 +415,7 @@ class ReportStore:
         with self._connect() as conn:
             rows = conn.execute(
                 """
-                SELECT r.id, r.query, r.b_id, r.lang, r.created_at,
+                SELECT r.id, r.query, r.b_id, r.lang, r.created_at, r.payload,
                        r.view_count,
                        CASE WHEN f.report_id IS NULL THEN 0 ELSE 1 END
                            AS has_followup,
@@ -388,6 +434,12 @@ class ReportStore:
         out = []
         for r in rows:
             d = dict(r)
+            raw_payload = d.pop("payload", "")
+            try:
+                payload = json.loads(raw_payload) if raw_payload else {}
+            except (json.JSONDecodeError, TypeError):
+                payload = {}
+            d["origin_candidate"] = origin_candidate_from_payload(payload)
             d["has_followup"] = bool(d.get("has_followup", 0))
             raw_experiment = d.pop("experiment_json", "")
             try:
@@ -445,12 +497,15 @@ class ReportStore:
         with self._connect() as conn:
             rows = conn.execute(
                 """
-                SELECT r.id,r.share_token,r.query,r.b_id,r.lang,r.created_at,r.view_count,
+                SELECT r.id,r.query,r.b_id,r.lang,r.created_at,r.view_count,
+                       r.payload,
                        r.claimed_at,
                        CASE WHEN f.report_id IS NULL THEN 0 ELSE 1 END AS has_followup,
                        COALESCE(f.action_status,'') AS followup_status,
                        COALESCE(f.outcome,'') AS followup_outcome,
-                       COALESCE(f.experiment_json,'') AS experiment_json
+                       COALESCE(f.experiment_json,'') AS experiment_json,
+                       COALESCE(f.publish_to_insights, 0) AS publish_to_insights,
+                       f.consent_version, f.consented_at, f.withdrawn_at
                 FROM reports r
                 LEFT JOIN report_followup f ON f.report_id=r.id
                     AND f.anon_id=r.creator_anon_id
@@ -461,6 +516,12 @@ class ReportStore:
         out: list[dict] = []
         for row in rows:
             item = dict(row)
+            raw_payload = item.pop("payload", "")
+            try:
+                payload = json.loads(raw_payload) if raw_payload else {}
+            except (json.JSONDecodeError, TypeError):
+                payload = {}
+            item["origin_candidate"] = origin_candidate_from_payload(payload)
             raw_experiment = item.pop("experiment_json", "")
             try:
                 experiment = json.loads(raw_experiment) if raw_experiment else {}
@@ -471,6 +532,9 @@ class ReportStore:
             )
             item["experiment_deadline"] = (
                 experiment.get("deadline") if isinstance(experiment, dict) else None
+            )
+            item["publish_to_insights"] = bool(
+                item.get("publish_to_insights", 0)
             )
             out.append(item)
         return out
@@ -516,6 +580,50 @@ class ReportStore:
             conn.commit()
         return {"reports": removed, "followups": followups, "feedback": feedback}
 
+    def delete_report_by_owner(
+        self, report_id: str, owner_user_id: str,
+    ) -> dict:
+        """Atomically erase one owned report and revoke its share capability.
+
+        Ownership is part of the DELETE predicate, so a concurrent claim or
+        caller-controlled report id cannot create a check/use race. Followups
+        and feedback are in the same SQLite transaction and cascade from the
+        report row; no cross-store compensation is required.
+        """
+        if not report_id or not owner_user_id:
+            raise ValueError("report_id and owner_user_id are required")
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            owned = conn.execute(
+                "SELECT 1 FROM reports WHERE id=? AND owner_user_id=?",
+                (report_id, owner_user_id),
+            ).fetchone()
+            if owned is None:
+                conn.rollback()
+                raise PermissionError("report not found")
+            followups = conn.execute(
+                "SELECT COUNT(*) FROM report_followup WHERE report_id=?",
+                (report_id,),
+            ).fetchone()[0]
+            feedback = conn.execute(
+                "SELECT COUNT(*) FROM report_feedback WHERE report_id=?",
+                (report_id,),
+            ).fetchone()[0]
+            removed = conn.execute(
+                "DELETE FROM reports WHERE id=? AND owner_user_id=?",
+                (report_id, owner_user_id),
+            ).rowcount
+            if removed != 1:
+                conn.rollback()
+                raise PermissionError("report not found")
+            conn.commit()
+        return {
+            "reports": 1,
+            "followups": followups,
+            "feedback": feedback,
+            "share_revoked": True,
+        }
+
     def restore_owner_snapshot(self, snapshot: dict) -> None:
         """Restore an exact snapshot after a later registry asset fails."""
         with self._connect() as conn:
@@ -533,165 +641,6 @@ class ReportStore:
                     )
             conn.commit()
 
-    # ------ B Data Flywheel (Session #18) -------------------------- #
-
-    def verified_isomorphisms(self, *, limit: int = 50) -> list[dict]:
-        """Reports whose followup outcome == 'worked' — i.e. a real user
-        came back and confirmed the borrowed structure actually helped.
-
-        These are stronger evidence than LLM-rated v2_pairs: someone tried
-        it and it worked. We aggregate per report (a report can be marked
-        'worked' by several anons → verifier_count). `payload` is decoded
-        so the caller can pull shared_structure / _credibility.
-        """
-        if limit < 1 or limit > 200:
-            limit = 50
-        with self._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT r.id, r.query, r.b_id, r.lang, r.payload,
-                       r.created_at,
-                       COUNT(f.id)        AS verifier_count,
-                       MAX(f.updated_at)  AS last_verified_at
-                FROM reports r
-                JOIN report_followup f
-                    ON f.report_id = r.id
-                   AND f.outcome = 'worked'
-                   AND r.creator_anon_id IS NOT NULL
-                   AND f.anon_id = r.creator_anon_id
-                GROUP BY r.id
-                ORDER BY last_verified_at DESC
-                LIMIT ?
-                """,
-                (limit,),
-            ).fetchall()
-        out = []
-        for r in rows:
-            d = dict(r)
-            try:
-                d["payload"] = json.loads(d["payload"]) if d["payload"] else {}
-            except json.JSONDecodeError:
-                d["payload"] = {}
-            out.append(d)
-        return out
-
-    def count_human_verified(self, b_id: str) -> dict:
-        """How many DISTINCT users marked outcome='worked' on a report whose
-        target phenomenon is `b_id`.
-
-        B Data Flywheel closure (Session #18): this feeds the analyze
-        credibility badge "N 人验证这个跨域迁移真的有效". We count distinct
-        anon_id (not followup rows) so one user re-submitting doesn't
-        inflate the number. Empty b_id or no matches → count 0, recent ''.
-
-        Returns {count: int, recent: str}. `recent` is the latest
-        followup updated_at across matching 'worked' rows ('' if none).
-        """
-        if not b_id:
-            return {"count": 0, "recent": ""}
-        with self._connect() as conn:
-            row = conn.execute(
-                """
-                SELECT COUNT(DISTINCT f.anon_id) AS verifier_count,
-                       MAX(f.updated_at)         AS last_verified_at
-                FROM report_followup f
-                JOIN reports r ON r.id = f.report_id
-                WHERE r.b_id = ? AND f.outcome = 'worked'
-                  AND r.creator_anon_id IS NOT NULL
-                  AND f.anon_id = r.creator_anon_id
-                """,
-                (b_id,),
-            ).fetchone()
-        if row is None:
-            return {"count": 0, "recent": ""}
-        return {
-            "count": int(row["verifier_count"] or 0),
-            "recent": row["last_verified_at"] or "",
-        }
-
-    def stuck_structures(self, *, limit: int = 20) -> list[dict]:
-        """Aggregate which problem targets (b_id) users hit most.
-
-        Per b_id: how many reports, how many got a followup, and the
-        worked-rate among reports that have a followup. Surfaces 'the
-        structures people keep getting stuck on'. Sorted by report_count.
-        """
-        if limit < 1 or limit > 200:
-            limit = 20
-        with self._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT r.b_id,
-                       COUNT(DISTINCT r.id)         AS report_count,
-                       COUNT(DISTINCT f.report_id)  AS followup_count,
-                       SUM(CASE WHEN f.outcome = 'worked'
-                                THEN 1 ELSE 0 END)  AS worked_count
-                FROM reports r
-                LEFT JOIN report_followup f
-                    ON f.report_id = r.id
-                   AND r.creator_anon_id IS NOT NULL
-                   AND f.anon_id = r.creator_anon_id
-                GROUP BY r.b_id
-                ORDER BY report_count DESC, r.b_id ASC
-                LIMIT ?
-                """,
-                (limit,),
-            ).fetchall()
-        out = []
-        for r in rows:
-            d = dict(r)
-            d["report_count"] = d.get("report_count", 0) or 0
-            d["followup_count"] = d.get("followup_count", 0) or 0
-            d["worked_count"] = d.get("worked_count", 0) or 0
-            fc = d["followup_count"]
-            d["worked_rate"] = (
-                round(d["worked_count"] / fc, 3) if fc else 0.0
-            )
-            out.append(d)
-        return out
-
-    def insights_summary(self) -> dict:
-        """Top-line counters for the insights dashboard. Empty DB → zeros."""
-        with self._connect() as conn:
-            total_reports = conn.execute(
-                "SELECT COUNT(*) FROM reports"
-            ).fetchone()[0]
-            total_followups = conn.execute(
-                "SELECT COUNT(*) FROM report_followup f JOIN reports r ON r.id=f.report_id "
-                "WHERE r.creator_anon_id IS NOT NULL AND f.anon_id=r.creator_anon_id"
-            ).fetchone()[0]
-            worked = conn.execute(
-                "SELECT COUNT(*) FROM report_followup f JOIN reports r ON r.id=f.report_id "
-                "WHERE f.outcome='worked' AND r.creator_anon_id IS NOT NULL "
-                "AND f.anon_id=r.creator_anon_id"
-            ).fetchone()[0]
-            # verified isomorphisms = distinct reports with a 'worked' followup
-            verified = conn.execute(
-                "SELECT COUNT(DISTINCT f.report_id) FROM report_followup f "
-                "JOIN reports r ON r.id=f.report_id WHERE f.outcome='worked' "
-                "AND r.creator_anon_id IS NOT NULL AND f.anon_id=r.creator_anon_id"
-            ).fetchone()[0]
-            outcome_rows = conn.execute(
-                "SELECT f.outcome, COUNT(*) FROM report_followup f "
-                "JOIN reports r ON r.id=f.report_id "
-                "WHERE r.creator_anon_id IS NOT NULL AND f.anon_id=r.creator_anon_id "
-                "GROUP BY f.outcome"
-            ).fetchall()
-        outcome_counts = {str(row[0] or "not_recorded"): int(row[1] or 0) for row in outcome_rows}
-        return {
-            "total_reports": total_reports or 0,
-            "total_followups": total_followups or 0,
-            "worked_count": worked or 0,
-            "verified_isomorphisms": verified or 0,
-            "outcome_counts": {
-                "worked": outcome_counts.get("worked", 0),
-                "partial": outcome_counts.get("partial", 0),
-                "no_effect": outcome_counts.get("no_effect", 0),
-                "too_early": outcome_counts.get("too_early", 0),
-                "not_recorded": outcome_counts.get("not_recorded", 0),
-            },
-        }
-
     def record_view(self, rid: str) -> None:
         """Bump view_count + last_viewed_at. Best-effort, never raises."""
         now = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
@@ -702,8 +651,12 @@ class ReportStore:
                     "last_viewed_at = ? WHERE id = ?",
                     (now, rid),
                 )
-        except sqlite3.Error:
-            logger.exception("record_view failed for %s", rid)
+        except sqlite3.Error as exc:
+            logger.error(
+                "structural.report_store_view_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
 
     # ------ feedback ----------------------------------------------- #
 
@@ -882,11 +835,16 @@ class ReportStore:
         note: Optional[str] = None,
         experiment: Optional[dict] = None,
         outcome_detail: Optional[dict] = None,
+        publish_to_insights: Optional[bool] = None,
     ) -> dict:
         """Idempotent upsert of a revisit record on (report_id, anon_id).
 
         Re-submitting updates the existing row (latest wins) and preserves
-        the original created_at. Returns the stored followup dict.
+        the original created_at. ``publish_to_insights`` is tri-state:
+        omitted preserves existing consent (and defaults private on insert),
+        true explicitly records consent for the current consent text, and
+        false revokes it. Public aggregation remains paused independently of
+        this private preference record.
         """
         if action_status not in self.ACTION_STATUSES:
             raise ValueError(
@@ -895,12 +853,18 @@ class ReportStore:
         outcome = outcome or ""
         if outcome not in self.OUTCOMES:
             raise ValueError(f"outcome must be one of {self.OUTCOMES}")
+        if publish_to_insights is not None and not isinstance(
+            publish_to_insights, bool
+        ):
+            raise ValueError("publish_to_insights must be a boolean")
         self._validate_text(note, "note", 2000)
         anon_norm = anon_id if anon_id else "anon"
         now = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         with self._connect() as conn:
             previous = conn.execute(
-                "SELECT experiment_json, outcome_detail_json FROM report_followup "
+                "SELECT experiment_json, outcome_detail_json, "
+                "publish_to_insights, consent_version, consented_at, "
+                "withdrawn_at FROM report_followup "
                 "WHERE report_id = ? AND anon_id = ?",
                 (report_id, anon_norm),
             ).fetchone()
@@ -919,6 +883,35 @@ class ReportStore:
                 {**(old_outcome_detail or {}), **outcome_detail}
                 if outcome_detail is not None else old_outcome_detail
             )
+            previous_publish = bool(
+                previous["publish_to_insights"] if previous else 0
+            )
+            effective_publish = (
+                previous_publish
+                if publish_to_insights is None
+                else publish_to_insights
+            )
+            consent_version = previous["consent_version"] if previous else None
+            consented_at = previous["consented_at"] if previous else None
+            withdrawn_at = previous["withdrawn_at"] if previous else None
+            if publish_to_insights is True:
+                version_changed = (
+                    consent_version != PUBLIC_INSIGHTS_CONSENT_VERSION
+                )
+                consent_version = PUBLIC_INSIGHTS_CONSENT_VERSION
+                if not previous_publish or not consented_at or version_changed:
+                    consented_at = now
+                withdrawn_at = None
+            elif publish_to_insights is False:
+                # A first private/default choice is not a withdrawal. Record a
+                # withdrawal timestamp only when an effective, versioned
+                # consent existed immediately before this request.
+                if (
+                    previous_publish
+                    and consent_version
+                    and consented_at
+                ):
+                    withdrawn_at = now
             self._validate_experiment(merged_experiment)
             self._validate_outcome_detail(merged_outcome_detail)
             if old is not None and experiment is not None:
@@ -960,8 +953,10 @@ class ReportStore:
                 """
                 INSERT INTO report_followup (
                     report_id, anon_id, action_status, outcome, note,
-                    experiment_json, outcome_detail_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    experiment_json, outcome_detail_json, publish_to_insights,
+                    consent_version, consented_at, withdrawn_at,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(report_id, anon_id) DO UPDATE SET
                     action_status = excluded.action_status,
                     outcome = excluded.outcome,
@@ -972,6 +967,10 @@ class ReportStore:
                     outcome_detail_json = COALESCE(
                         excluded.outcome_detail_json, report_followup.outcome_detail_json
                     ),
+                    publish_to_insights = excluded.publish_to_insights,
+                    consent_version = excluded.consent_version,
+                    consented_at = excluded.consented_at,
+                    withdrawn_at = excluded.withdrawn_at,
                     updated_at = excluded.updated_at
                 """,
                 (report_id, anon_norm, action_status, outcome, note,
@@ -979,18 +978,95 @@ class ReportStore:
                  if experiment is not None else None,
                  json.dumps(merged_outcome_detail, ensure_ascii=False)
                  if outcome_detail is not None else None,
+                 1 if effective_publish else 0,
+                 consent_version, consented_at, withdrawn_at,
                  now, now),
             )
             row = conn.execute(
                 """
                 SELECT report_id, anon_id, action_status, outcome, note,
-                       experiment_json, outcome_detail_json, created_at, updated_at
+                       experiment_json, outcome_detail_json,
+                       publish_to_insights, consent_version, consented_at,
+                       withdrawn_at, created_at, updated_at
                 FROM report_followup
                 WHERE report_id = ? AND anon_id = ?
                 """,
                 (report_id, anon_norm),
             ).fetchone()
         return self._followup_row(row) or {}
+
+    def withdraw_insights_consent_by_owner(
+        self, report_id: str, owner_user_id: str,
+    ) -> dict:
+        """Revoke a claimed report's consent from any owner device.
+
+        The owner id is matched in the same UPDATE that changes the consent,
+        so authorization cannot race with a report claim. Anonymous callers
+        cannot use this method through the account endpoint.
+        """
+        if not report_id or not owner_user_id:
+            raise ValueError("report_id and owner_user_id are required")
+        now = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT f.id, f.publish_to_insights, f.consent_version,
+                       f.consented_at, f.withdrawn_at
+                FROM report_followup f
+                JOIN reports r ON r.id=f.report_id
+                WHERE r.id=? AND r.owner_user_id=?
+                  AND f.anon_id=r.creator_anon_id
+                """,
+                (report_id, owner_user_id),
+            ).fetchone()
+            report_exists = conn.execute(
+                "SELECT 1 FROM reports WHERE id=? AND owner_user_id=?",
+                (report_id, owner_user_id),
+            ).fetchone()
+            if report_exists is None:
+                raise PermissionError("report not found")
+            if row is None:
+                return {
+                    "report_id": report_id,
+                    "publish_to_insights": False,
+                    "consent_version": None,
+                    "consented_at": None,
+                    "withdrawn_at": None,
+                }
+            active_valid_consent = bool(
+                row["publish_to_insights"]
+                and row["consent_version"]
+                and row["consented_at"]
+            )
+            if active_valid_consent:
+                conn.execute(
+                    """
+                    UPDATE report_followup
+                    SET publish_to_insights=0, withdrawn_at=?, updated_at=?
+                    WHERE id=?
+                    """,
+                    (now, now, row["id"]),
+                )
+            else:
+                conn.execute(
+                    """
+                    UPDATE report_followup
+                    SET publish_to_insights=0, updated_at=?
+                    WHERE id=?
+                    """,
+                    (now, row["id"]),
+                )
+            current = conn.execute(
+                """
+                SELECT report_id, publish_to_insights, consent_version,
+                       consented_at, withdrawn_at
+                FROM report_followup WHERE id=?
+                """,
+                (row["id"],),
+            ).fetchone()
+        result = dict(current)
+        result["publish_to_insights"] = False
+        return result
 
     def get_followup(
         self, report_id: str, anon_id: Optional[str],
@@ -1001,7 +1077,9 @@ class ReportStore:
             row = conn.execute(
                 """
                 SELECT report_id, anon_id, action_status, outcome, note,
-                       experiment_json, outcome_detail_json, created_at, updated_at
+                       experiment_json, outcome_detail_json,
+                       publish_to_insights, consent_version, consented_at,
+                       withdrawn_at, created_at, updated_at
                 FROM report_followup
                 WHERE report_id = ? AND anon_id = ?
                 """,
@@ -1022,6 +1100,9 @@ class ReportStore:
             json.loads(result.pop("outcome_detail_json"))
             if result.get("outcome_detail_json") else None
         )
+        result["publish_to_insights"] = bool(
+            result.get("publish_to_insights", 0)
+        )
         return result
 
     # ------ internals --------------------------------------------- #
@@ -1034,7 +1115,10 @@ class ReportStore:
         try:
             d["payload"] = json.loads(d["payload"]) if d["payload"] else {}
         except json.JSONDecodeError:
-            logger.warning("report_store: bad JSON payload for %s", d.get("id"))
+            logger.warning(
+                "structural.report_store_payload_rejected",
+                incident_id=new_incident_id(),
+            )
             d["payload"] = {}
         d["is_public"] = bool(d.get("is_public", 0))
         d["is_partial"] = bool(d.get("is_partial", 0))

@@ -9,11 +9,15 @@ Source data: web/data/v2_pairs_index.json
 Built by:    scripts/build_v2_pairs_index.py
 """
 import json
-import logging
 from pathlib import Path
 from typing import List, Optional
 
-logger = logging.getLogger("structural.v2pairs")
+if __package__ == "web.backend.services":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
+
+logger = get_logger("structural.v2_pairs")
 
 _INDEX_PATH = Path(__file__).parent.parent.parent / "data" / "v2_pairs_index.json"
 
@@ -27,7 +31,7 @@ def _ensure_loaded():
     if _loaded:
         return
     if not _INDEX_PATH.exists():
-        logger.warning("v2_pairs_index.json not found at %s", _INDEX_PATH)
+        logger.warning("structural.v2_pairs.index_missing")
         _loaded = True
         return
     try:
@@ -36,12 +40,15 @@ def _ensure_loaded():
         _by_id = data.get("by_id", {})
         _stats = data.get("stats", {})
         logger.info(
-            "v2_pairs loaded: %d phenomena indexed, %d total pairs",
-            len(_by_id),
-            _stats.get("indexed_pairs", 0),
+            "structural.v2_pairs.loaded",
+            count=len(_by_id),
         )
-    except Exception as e:
-        logger.exception("Failed to load v2_pairs_index: %s", e)
+    except Exception as exc:
+        logger.error(
+            "structural.v2_pairs.load_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
     _loaded = True
 
 

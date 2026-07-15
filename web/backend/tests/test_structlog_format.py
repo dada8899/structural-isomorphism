@@ -25,6 +25,7 @@ from logging_config import (  # noqa: E402
     configure_logging,
     current_log_file,
     get_logger,
+    new_incident_id,
     new_request_id,
 )
 
@@ -63,11 +64,11 @@ def fresh_log(tmp_path, monkeypatch):
 def test_sample_log_line_is_valid_json(fresh_log):
     """Every emitted line must parse as JSON. No half-text, half-json hybrid."""
     log = get_logger("structural.test")
-    log.info("sample.event", k="v")
+    log.info("test.sample", arbitrary_field="must-not-survive")
     entry = _read_last_json_line(fresh_log)
     assert isinstance(entry, dict)
-    assert entry.get("event") == "sample.event"
-    assert entry.get("k") == "v"
+    assert entry.get("event") == "test.sample"
+    assert "arbitrary_field" not in entry
 
 
 def test_log_line_has_iso_timestamp(fresh_log):
@@ -117,7 +118,7 @@ def test_request_id_omitted_when_unset(fresh_log):
     assert rid in (None, "-"), f"unexpected request_id: {rid!r}"
 
 
-def test_path_and_method_propagate(fresh_log):
+def test_route_template_and_method_propagate(fresh_log):
     log = get_logger("structural.test")
     p = REQUEST_PATH_VAR.set("/api/test")
     m = REQUEST_METHOD_VAR.set("POST")
@@ -129,7 +130,8 @@ def test_path_and_method_propagate(fresh_log):
         REQUEST_METHOD_VAR.reset(m)
         REQUEST_PATH_VAR.reset(p)
     entry = _read_last_json_line(fresh_log)
-    assert entry.get("path") == "/api/test"
+    assert entry.get("route_template") == "/api/test"
+    assert "path" not in entry
     assert entry.get("method") == "POST"
     assert entry.get("tier") == "pro"
 
@@ -148,12 +150,12 @@ def test_stdlib_logging_also_flows_through_pipeline(fresh_log):
     so uvicorn/fastapi logs share the same shape."""
     import logging as stdlib_logging
 
-    stdlib_logging.getLogger("structural.legacy").info("legacy_event")
+    stdlib_logging.getLogger("structural.legacy").info("test.legacy_event")
     entry = _read_last_json_line(fresh_log)
     # message may land under `event` (structlog) or `msg` (stdlib bridge)
     # — the formatter normalizes both to the JSON output.
     payload = json.dumps(entry)
-    assert "legacy_event" in payload
+    assert "test.legacy_event" in payload
 
 
 def test_current_log_file_resolves_env(monkeypatch, tmp_path):
@@ -163,14 +165,43 @@ def test_current_log_file_resolves_env(monkeypatch, tmp_path):
     assert current_log_file() == p
 
 
-def test_exception_info_serializes(fresh_log):
-    """Tracebacks must serialize without crashing the formatter."""
+def test_exception_is_reduced_to_type_and_incident_id(fresh_log):
+    """Exception messages and tracebacks must never enter operational logs."""
     log = get_logger("structural.test")
+    incident_id = new_incident_id()
     try:
-        raise RuntimeError("boom")
+        raise RuntimeError("boom-private-token")
     except RuntimeError:
-        log.exception("err.check")
+        log.exception(
+            "test.error",
+            error_type="RuntimeError",
+            incident_id=incident_id,
+        )
     entry = _read_last_json_line(fresh_log)
-    # `exception` or `exc_info` field, depending on processor chain.
     payload = json.dumps(entry)
-    assert "boom" in payload or "RuntimeError" in payload
+    assert entry["event"] == "test.error"
+    assert entry["error_type"] == "RuntimeError"
+    assert entry["incident_id"] == incident_id
+    assert "boom-private-token" not in payload
+    assert "traceback" not in payload.casefold()
+
+
+def test_content_canaries_are_dropped_from_messages_and_fields(fresh_log):
+    canaries = {
+        "query": "query-canary-6cc6b0",
+        "token": "Bearer token-canary-179e60",
+        "email": "privacy-canary@example.test",
+        "ip": "203.0.113.241",
+        "cookie": "session=cookie-canary-9f194d",
+        "referrer": "https://ref.example/private-canary",
+    }
+    get_logger("structural.test").warning(
+        "user text " + " ".join(canaries.values()),
+        **canaries,
+        path="/private/query-canary-6cc6b0",
+    )
+    payload = json.dumps(_read_last_json_line(fresh_log))
+    assert "log.message_redacted" in payload
+    for value in canaries.values():
+        assert value not in payload
+    assert '"path"' not in payload

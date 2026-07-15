@@ -11,14 +11,6 @@
 (function () {
   'use strict';
 
-  function trackPlausible(event, props) {
-    try {
-      if (typeof window.plausible === 'function') {
-        window.plausible(event, props ? { props: props } : undefined);
-      }
-    } catch (e) {}
-  }
-
   function escapeHtml(s) {
     if (s == null) return '';
     return String(s).replace(/[&<>"']/g, (c) => ({
@@ -46,6 +38,34 @@
     return '<p>' + escapeHtml(String(v)) + '</p>';
   }
 
+  function persistedTargetContext(detail) {
+    const report = detail && detail.payload;
+    const binding = report && report.source_binding;
+    const queryMode = !binding || binding.target_kind === 'query';
+    if (queryMode) {
+      return {
+        isQueryMode: true,
+        label: (detail && detail.query) || '',
+        target: {
+          original_query: (detail && detail.query) || '',
+          description: (detail && detail.query) || '',
+        },
+      };
+    }
+    const refs = Array.isArray(report.source_refs) ? report.source_refs : [];
+    const targetRef = refs.find(item => item.record_id === binding.target_kb_id);
+    const label = targetRef ? targetRef.label : String(detail.b_id || '');
+    return {
+      isQueryMode: false,
+      label,
+      target: {
+        id: detail.b_id,
+        name: label,
+        description: label,
+      },
+    };
+  }
+
   /**
    * Render the 9-section report into #analyze-sections.
    *
@@ -65,16 +85,14 @@
     // expose a meta object so the core insight card can render, but with
     // `credibility: null` — renderCredibilityBadge() then honestly omits the
     // badge rather than inventing numbers.
+    const targetContext = persistedTargetContext(detail);
     window._analyzeMeta = {
       credibility: (detail && detail.credibility) || null,
       evidence: (detail && detail.evidence) || null,
       similarity: (detail && typeof detail.similarity === 'number') ? detail.similarity : undefined,
       a: (detail && detail.source) || {},
-      b: {
-        original_query: (detail && detail.query) || '',
-        description: (detail && (detail.rewritten_query || detail.query)) || '',
-      },
-      is_query_mode: true,
+      b: targetContext.target,
+      is_query_mode: targetContext.isQueryMode,
       fingerprint: (detail && detail.fingerprint) || null,
       model: (detail && detail.model) || '',
       prompt_version: (detail && detail.prompt_version) || '',
@@ -111,6 +129,252 @@
     }
     // Render any inline math the LLM emitted.
     if (typeof window.renderMath === 'function') window.renderMath(container);
+  }
+
+  function resetPersistedReportState() {
+    window._finalReport = null;
+    window._analyzeMeta = null;
+    window._persistedReport = null;
+    window._decisionBriefContext = null;
+    const followup = document.getElementById('report-followup');
+    if (followup) followup.remove();
+    for (const id of ['report-meta', 'analyze-sections', 'analyze-tldr',
+      'decision-brief-root', 'report-origin']) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.replaceChildren();
+        if (id === 'report-meta' || id === 'analyze-tldr' || id === 'report-origin') {
+          element.hidden = true;
+        }
+      }
+    }
+    // Keep the static controls so a successful owner render can reuse them,
+    // but erase every capability-derived value and partial render state.
+    const shareBar = document.getElementById('analyze-share-bar');
+    if (shareBar) shareBar.hidden = true;
+    const shareInput = document.getElementById('analyze-share-url');
+    if (shareInput) shareInput.value = '';
+    const partial = document.getElementById('analyze-share-bar__partial');
+    if (partial) partial.hidden = true;
+    for (const id of ['analyze-vote-up-count', 'analyze-vote-down-count']) {
+      const count = document.getElementById(id);
+      if (count) count.textContent = '0';
+    }
+  }
+
+  function isPlainObject(value) {
+    return value !== null && typeof value === 'object' && !Array.isArray(value) &&
+      (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
+  }
+
+  function hasExactKeys(value, keys) {
+    if (!isPlainObject(value)) return false;
+    const actual = Object.keys(value).sort();
+    const expected = keys.slice().sort();
+    return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
+  }
+
+  function textOrNull(value, maximum) {
+    return value === null || (typeof value === 'string' &&
+      Array.from(value).length <= maximum);
+  }
+
+  function containsInternalCapability(value) {
+    const capability = /\/(?:api\/)?report\/share\/[0-9a-f]{32}(?![0-9a-f])/i;
+    const stack = [value];
+    let visited = 0;
+    while (stack.length) {
+      const item = stack.pop();
+      visited += 1;
+      if (visited > 100000) return true;
+      if (typeof item === 'string') {
+        let candidate = item.normalize('NFKC');
+        for (let round = 0; round < 2; round += 1) {
+          if (capability.test(candidate)) return true;
+          try { candidate = decodeURIComponent(candidate); } catch (_) { break; }
+        }
+      }
+      if (Array.isArray(item)) stack.push.apply(stack, item);
+      else if (isPlainObject(item)) {
+        stack.push.apply(stack, Object.keys(item));
+        stack.push.apply(stack, Object.values(item));
+      }
+    }
+    return false;
+  }
+
+  function boundedSnapshotText(value, maximum, fallback) {
+    const raw = value == null ? '' : String(value).trim();
+    return Array.from(raw || fallback).slice(0, maximum).join('');
+  }
+
+  function validateSourceSnapshot(source, report) {
+    if (!hasExactKeys(source, ['id', 'name', 'domain', 'type_id']) ||
+        typeof source.id !== 'string' || !source.id ||
+        !textOrNull(source.name, 10000) || !textOrNull(source.domain, 10000) ||
+        !textOrNull(source.type_id, 10000)) return false;
+    const intro = report.target_domain_intro;
+    const sourceRefs = report.source_refs.filter(item =>
+      item.record_id === report.source_binding.source_kb_id
+    );
+    const expectedLabel = Array.from(String(source.name || source.id || 'Internal KB record'))
+      .slice(0, 240).join('');
+    return intro.domain_name === boundedSnapshotText(source.domain, 120, 'Internal source record') &&
+      intro.corresponding_phenomenon.name === boundedSnapshotText(
+        source.name, 120, 'Internal source record'
+      ) && sourceRefs.length === 1 && sourceRefs[0].label === expectedLabel;
+  }
+
+  function validateEvidenceEnvelope(value, source, lang) {
+    if (!hasExactKeys(value, ['schema_version', 'evidence_level', 'candidate', 'source',
+      'result', 'independence', 'counterexamples', 'ledger']) ||
+        value.schema_version !== 'evidence-envelope-v1' || value.evidence_level !== 'candidate') {
+      return false;
+    }
+    const candidateLabel = source.name == null || String(source.name).trim() === ''
+      ? null : Array.from(String(source.name).trim()).slice(0, 1000).join('');
+    const candidate = value.candidate;
+    const evidenceSource = value.source;
+    const result = value.result;
+    const independence = value.independence;
+    const counterexamples = value.counterexamples;
+    const ledger = value.ledger;
+    return hasExactKeys(candidate, ['status', 'kind', 'label', 'score']) &&
+      candidate.status === 'recorded' && candidate.kind === 'analysis_candidate' &&
+      candidate.label === candidateLabel && candidate.score === null &&
+      hasExactKeys(evidenceSource, ['status', 'kind', 'label', 'url', 'source_review']) &&
+      evidenceSource.status === 'recorded' && evidenceSource.kind === 'internal_kb' &&
+      evidenceSource.label === 'Structural internal KB candidate' &&
+      evidenceSource.url === null && evidenceSource.source_review === null &&
+      hasExactKeys(result, ['status', 'provenance', 'verdict', 'summary']) &&
+      result.status === 'not_recorded' && result.provenance === 'NOT_TESTED' &&
+      result.verdict === 'NOT_TESTED' && result.summary === null &&
+      hasExactKeys(independence, ['status', 'kind', 'summary']) &&
+      independence.status === 'not_recorded' && independence.kind === 'not_recorded' &&
+      independence.summary === null &&
+      hasExactKeys(counterexamples, ['status', 'summary']) &&
+      counterexamples.status === 'gap_recorded' && counterexamples.summary === (lang === 'en'
+        ? 'The report must propose falsifiers; no completed falsification result is bound.'
+        : '报告必须提出证伪条件；当前未绑定任何已完成的证伪结果。') &&
+      hasExactKeys(ledger, ['status', 'claim_id', 'version', 'recorded_at',
+        'artifact_sha256', 'url']) && ledger.status === 'not_recorded' &&
+      ledger.claim_id === null && ledger.version === null && ledger.recorded_at === null &&
+      ledger.artifact_sha256 === null && ledger.url === null;
+  }
+
+  function validateOriginCandidate(value, binding) {
+    if (!hasExactKeys(value, ['discovery_id', 'contract_version', 'candidate_family_id',
+      'tier', 'pair', 'origin_content_id']) ||
+        !/^discovery-[0-9a-f]{16}$/.test(value.discovery_id || '') ||
+        value.contract_version !== 'discovery-candidate-v2' ||
+        !/^(?:anchor|pair)-[0-9a-f]{12}$/.test(value.candidate_family_id || '') ||
+        !['priority_review', 'candidate_pool'].includes(value.tier) ||
+        !hasExactKeys(value.pair, ['a_id', 'b_id']) ||
+        !/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/.test(value.pair.a_id || '') ||
+        !/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/.test(value.pair.b_id || '') ||
+        !/^origin-[0-9a-f]{24}$/.test(value.origin_content_id || '')) return false;
+    return binding.target_kind === 'kb' && value.pair.a_id === binding.source_kb_id &&
+      value.pair.b_id === binding.target_kb_id;
+  }
+
+  async function validatePersistedDetail(data, route) {
+    const trust = window.StructuralAnalyzeTrust;
+    const report = data && data.payload;
+    const required = ['id', 'query', 'b_id', 'lang', 'payload', 'model', 'prompt_version',
+      'created_at', 'view_count', 'is_partial', 'source', 'evidence', 'report_sha256',
+      'snapshot_status'];
+    const optional = ['fingerprint', 'origin_candidate', 'share_url'];
+    if (!isPlainObject(data) || Object.keys(data).some(key => !required.concat(optional).includes(key)) ||
+        required.some(key => !Object.prototype.hasOwnProperty.call(data, key)) ||
+        !route || !hasExactKeys(route, ['kind', 'value']) || !['id', 'share'].includes(route.kind) ||
+        (route.kind === 'id' ? !/^r_[0-9a-f]{16}$/.test(route.value || '')
+          : !/^[0-9a-f]{32}$/.test(route.value || '')) ||
+        !trust || typeof trust.validateAnalyzeReportEnvelope !== 'function' ||
+        typeof trust.sha256CanonicalAnalyzeJson !== 'function' || !report ||
+        !/^r_[0-9a-f]{16}$/.test(data.id || '') ||
+        typeof data.query !== 'string' || Array.from(data.query).length > 8000 ||
+        !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(data.b_id || '') ||
+        !['zh', 'en'].includes(data.lang) || typeof data.created_at !== 'string' ||
+        !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(data.created_at) ||
+        !Number.isFinite(Date.parse(data.created_at)) ||
+        !Number.isSafeInteger(data.view_count) || data.view_count < 0 || data.is_partial !== false ||
+        data.prompt_version !== 'deep-report-v2' ||
+        !/^[0-9a-f]{64}$/.test(data.report_sha256 || '') ||
+        !report.source_binding || data.lang !== report.source_binding.lang ||
+        data.model !== report.source_binding.model_id ||
+        report.source_binding.prompt_version !== data.prompt_version ||
+        !['current_artifact', 'historical_snapshot'].includes(data.snapshot_status)) {
+      return false;
+    }
+    if (route.kind === 'id') {
+      if (route.value !== data.id || !/^\/report\/share\/[0-9a-f]{32}$/.test(data.share_url || '')) {
+        return false;
+      }
+    } else if (Object.prototype.hasOwnProperty.call(data, 'share_url')) {
+      return false;
+    }
+    const capabilityProbe = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (key !== 'share_url') capabilityProbe[key] = value;
+    }
+    if (containsInternalCapability(capabilityProbe)) return false;
+    const expectedMeta = {
+      lang: data.lang,
+      source_binding: report.source_binding,
+      source_refs: report.source_refs,
+      report_boundary: report.report_boundary,
+    };
+    if (!trust.validateAnalyzeReportEnvelope(report, expectedMeta)) return false;
+    const binding = report.source_binding;
+    if (!validateSourceSnapshot(data.source, report) ||
+        binding.source_kb_id !== data.source.id || data.model !== binding.model_id ||
+        !validateEvidenceEnvelope(data.evidence, data.source, data.lang)) return false;
+    if (binding.target_kind === 'query') {
+      if (!data.query || data.b_id !== binding.source_kb_id || binding.target_kb_id !== null ||
+          typeof binding.query_binding !== 'string' ||
+          Object.prototype.hasOwnProperty.call(data, 'origin_candidate')) return false;
+    } else if (data.query !== '' || data.b_id !== binding.target_kb_id ||
+        binding.query_binding !== null) return false;
+    if (Object.prototype.hasOwnProperty.call(data, 'origin_candidate') &&
+        !validateOriginCandidate(data.origin_candidate, binding)) return false;
+    try {
+      if (await trust.sha256CanonicalAnalyzeJson(report) !== data.report_sha256) {
+        return false;
+      }
+      const hasFingerprint = Object.prototype.hasOwnProperty.call(data, 'fingerprint');
+      if (binding.fingerprint_sha256 === null || binding.fingerprint_revision === null) {
+        if (hasFingerprint || binding.fingerprint_sha256 !== null ||
+            binding.fingerprint_revision !== null) return false;
+      } else {
+        if (!hasFingerprint || !hasExactKeys(data.fingerprint, ['source_query', 'summary',
+          'variables', 'constraints', 'unknowns', 'revision', 'provenance']) ||
+            data.fingerprint.source_query !== data.query ||
+            typeof data.fingerprint.summary !== 'string' ||
+            Array.from(data.fingerprint.summary).length < 8 ||
+            Array.from(data.fingerprint.summary).length > 1000 ||
+            !Number.isSafeInteger(data.fingerprint.revision) ||
+            data.fingerprint.revision < 1 || data.fingerprint.revision > 1000 ||
+            data.fingerprint.revision !== binding.fingerprint_revision ||
+            data.fingerprint.provenance !== 'user_confirmed' ||
+            !Array.isArray(data.fingerprint.variables) ||
+            !Array.isArray(data.fingerprint.constraints) ||
+            !Array.isArray(data.fingerprint.unknowns) ||
+            ['variables', 'constraints', 'unknowns'].some(key =>
+              data.fingerprint[key].length > 12 || data.fingerprint[key].some(item =>
+                typeof item !== 'string' || !item || Array.from(item).length > 120
+              ))) return false;
+        const projected = {};
+        for (const key of ['summary', 'variables', 'constraints', 'unknowns', 'revision', 'provenance']) {
+          projected[key] = data.fingerprint[key];
+        }
+        if (await trust.sha256CanonicalAnalyzeJson(projected) !== binding.fingerprint_sha256) {
+          return false;
+        }
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   // === SESSION-17 V6: report → action → outcome follow-up loop ===
@@ -201,6 +465,7 @@
     const curNote = st.note || '';
     const exp = st.experiment || {};
     const detail = st.outcome_detail || {};
+    const publishToInsights = st.publish_to_insights === true;
     const expStatus = exp.status || 'planned';
     const allowedStatuses = EXPERIMENT_TRANSITIONS[expStatus] || [expStatus];
     const chip = (group, opt, selected) => `
@@ -210,7 +475,7 @@
     panel.innerHTML = `
       <div class="report-followup__head">
         <h3 class="report-followup__title">验证这次迁移</h3>
-        <p class="report-followup__sub">把建议变成一个可检验的最小实验，并记录真实结果。内容只保存在这份报告中。</p>
+        <p class="report-followup__sub">把建议变成一个可检验的最小实验，并记录真实结果。默认只保存在这份报告中。</p>
       </div>
       <div class="report-reminder" id="report-reminder">
         <span id="report-reminder-message">${escapeHtml(deadlineMessage(exp))}</span>
@@ -247,6 +512,10 @@
           <label class="report-form-field report-form-field--wide"><span>学到了什么</span><textarea id="rf-learning" maxlength="4000" rows="2">${escapeHtml(detail.learning || '')}</textarea></label>
           <label class="report-form-field"><span>下一步决策</span><select id="rf-decision"><option value="">请选择</option>${DECISION_OPTIONS.map(o => `<option value="${o.v}"${detail.next_decision === o.v ? ' selected' : ''}>${o.label}</option>`).join('')}</select></label>
         </div>
+        <label class="report-publication-consent">
+          <input type="checkbox" id="rf-publish-insights" ${publishToInsights ? 'checked' : ''}>
+          <span><strong>未来公开聚合同意（当前暂停）</strong><small>默认关闭。勾选只记录你的版本化同意；当前不会公开人数、档位、排行或卡片。你可随时取消，登录账户后也可跨设备撤回；匿名设备不会成为公开参与者。</small></span>
+        </label>
       </fieldset>
       <div class="report-followup__field">
         <span class="report-followup__label">备注 <span class="report-followup__optional">选填</span></span>
@@ -341,6 +610,8 @@
           }
           body.outcome_detail = outcomeDetail;
           body.outcome = { success: 'worked', partial: 'partial', failure: 'no_effect', inconclusive: 'too_early' }[outcomeDetail.result];
+          const publicationConsent = document.getElementById('rf-publish-insights');
+          body.publish_to_insights = Boolean(publicationConsent && publicationConsent.checked);
         }
 
         if ([experiment.baseline, experiment.success_threshold,
@@ -362,17 +633,18 @@
             submitBtn.disabled = false;
             if (msg) {
               msg.textContent = TERMINAL_EXPERIMENTS.includes(sel.experimentStatus)
-                ? '已保存；实验已结束，不再提醒。'
+                ? (saved.publish_to_insights
+                  ? '已保存；已记录未来公开聚合同意，但公开聚合当前暂停。'
+                  : '已保存；结果保持私密，不再提醒。')
                 : '已保存；可在「我的报告」查看到期状态。';
               msg.className = 'report-followup__msg report-followup__msg--ok';
             }
             const reminderMessage = document.getElementById('report-reminder-message');
             if (reminderMessage) reminderMessage.textContent = deadlineMessage(experiment);
             window.setTimeout(() => renderFollowup(reportId, saved), 350);
-            trackPlausible('Report Followup', { action_status: body.action_status, outcome: body.outcome || 'none' });
           })
           .catch((err) => {
-            console.warn('[report] followup save failed:', err);
+            console.warn('[report] followup save failed');
             submitBtn.disabled = false;
             if (msg) { msg.textContent = '没保存成功，请稍后再试'; msg.className = 'report-followup__msg report-followup__msg--err'; }
           });
@@ -450,10 +722,8 @@
       closeBtn.addEventListener('click', function () {
         nudge.remove();
         try { sessionStorage.setItem(dismissKey, '1'); } catch (e) {}
-        trackPlausible('Report Revisit Nudge Dismissed');
       });
     }
-    trackPlausible('Report Revisit Nudge Shown');
   }
 
   function loadFollowup(reportId, createdAt) {
@@ -467,7 +737,7 @@
       })
       .catch((err) => {
         // Fail closed: an empty form could overwrite a record we could not load.
-        console.warn('[report] followup load failed:', err);
+        console.warn('[report] followup load failed');
         renderFollowup(reportId, null);
         const submit = document.getElementById('rf-submit');
         const msg = document.getElementById('rf-msg');
@@ -485,17 +755,44 @@
     const created = data.created_at
       ? new Date(data.created_at).toLocaleString('zh-CN')
       : '';
+    const displayLabel = persistedTargetContext(data).label || '未命名报告';
     el.innerHTML = (
       '<div class="report-meta__row">' +
-        '<h1 class="report-meta__query">' + escapeHtml(data.query || '未命名报告') + '</h1>' +
+        '<h1 class="report-meta__query">' + escapeHtml(displayLabel) + '</h1>' +
         '<div class="report-meta__attrs">' +
           (created ? '<span>📅 ' + escapeHtml(created) + '</span>' : '') +
           ' <span>👁 ' + (data.view_count || 0) + ' 次浏览</span>' +
           ' <span class="report-meta__model">' + escapeHtml(data.model || '') + '</span>' +
+          (data.snapshot_status === 'historical_snapshot'
+            ? ' <span class="report-meta__snapshot">生成时证据快照</span>' : '') +
           (data.is_partial ? ' <span class="report-meta__partial">⚠ 未完整生成</span>' : '') +
         '</div>' +
       '</div>'
     );
+    el.hidden = false;
+  }
+
+  function renderOrigin(origin) {
+    const el = document.getElementById('report-origin');
+    if (!el) return;
+    el.hidden = true;
+    el.replaceChildren();
+    if (!origin || origin.contract_version !== 'discovery-candidate-v2' ||
+        !/^discovery-[0-9a-f]{16}$/.test(origin.discovery_id || '') ||
+        !origin.pair || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/.test(origin.pair.a_id || '') ||
+        !/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/.test(origin.pair.b_id || '')) return;
+
+    const copy = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = '来自精选发现中的候选';
+    const detail = document.createElement('span');
+    detail.textContent = '这份报告保留了源候选身份；报告和用户结果不会自动升级候选证据。';
+    copy.append(title, detail);
+
+    const link = document.createElement('a');
+    link.href = '/discoveries?candidate=' + encodeURIComponent(origin.discovery_id);
+    link.textContent = '返回源候选';
+    el.append(copy, link);
     el.hidden = false;
   }
 
@@ -507,6 +804,54 @@
     if (msg) {
       const m = document.getElementById('report-error-msg');
       if (m) m.textContent = msg;
+    }
+  }
+
+  function renderValidatedPersistedDetail(data, route) {
+    resetPersistedReportState();
+    try {
+      const error = document.getElementById('report-error');
+      if (error) error.hidden = true;
+      const loading = document.getElementById('report-loading');
+      if (loading) loading.hidden = true;
+
+      renderMeta(null, data);
+      renderOrigin(data.origin_candidate);
+
+      const sectionsContainer = document.getElementById('analyze-sections');
+      if (sectionsContainer) renderReport(data.payload, sectionsContainer, data);
+
+      // A renderer exception is a trust-boundary failure, not a cosmetic
+      // warning: leaving a half old/half new report would misbind evidence.
+      if (typeof window.renderTldrCard === 'function') window.renderTldrCard();
+      if (typeof window.renderDecisionBrief === 'function') {
+        const targetContext = persistedTargetContext(data);
+        window.renderDecisionBrief({
+          query: targetContext.label,
+          fingerprint: data.fingerprint,
+          source: data.source,
+          reportId: data.id,
+          model: data.model,
+          promptVersion: data.prompt_version,
+          createdAt: data.created_at,
+          partial: data.is_partial,
+          allowExperiment: route.kind === 'id',
+        });
+      }
+
+      window._persistedReport = route.kind === 'id' ? {
+        id: data.id,
+        share_url: data.share_url,
+        is_partial: false,
+      } : null;
+      if (window._m14_renderShareBar && window._persistedReport) {
+        window._m14_renderShareBar(window._persistedReport);
+      }
+      if (route.kind === 'id') loadFollowup(data.id, data.created_at);
+      return true;
+    } catch (error) {
+      resetPersistedReportState();
+      throw error;
     }
   }
 
@@ -541,82 +886,38 @@
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
       })
-      .then((data) => {
-        const loading = document.getElementById('report-loading');
-        if (loading) loading.hidden = true;
-
-        renderMeta(null, data);
-
-        const sectionsContainer = document.getElementById('analyze-sections');
-        if (sectionsContainer) {
-          renderReport(data.payload || {}, sectionsContainer, data);
+      .then(async (data) => {
+        if (!await validatePersistedDetail(data, route)) {
+          resetPersistedReportState();
+          throw new Error('invalid_report');
         }
-
-        // SESSION-17 V1: render the core insight card on the saved/shared
-        // page too, using analyze.js's renderTldrCard (it reads the same
-        // window._finalReport + window._analyzeMeta we just populated).
-        if (typeof window.renderTldrCard === 'function') {
-          try { window.renderTldrCard(); } catch (e) { /* non-fatal */ }
-        }
-
-        if (typeof window.renderDecisionBrief === 'function') {
-          window.renderDecisionBrief({
-            query: data.query,
-            fingerprint: data.fingerprint,
-            source: data.source,
-            reportId: data.id,
-            model: data.model,
-            promptVersion: data.prompt_version,
-            createdAt: data.created_at,
-            partial: data.is_partial,
-            allowExperiment: route.kind === 'id',
-          });
-        }
-
-        // Stash persisted info so window._m14_submitFeedback can POST.
-        // P1-5: also pick up the share token from the API response on the
-        // /report/<id> route, so a user viewing their own report still
-        // gets a share bar.
-        const shareToken = route.kind === 'share'
-          ? route.value
-          : (data.share_token || null);
-        const shareUrl = shareToken
-          ? (window.location.origin + '/report/share/' + shareToken)
-          : null;
-        window._persistedReport = {
-          id: data.id,
-          share_token: shareToken,
-          share_url: shareUrl,
-          is_partial: !!data.is_partial,
-        };
-        // Render the share bar (re-uses analyze.js's renderShareBar)
-        // whenever we have a share token, regardless of route kind.
-        if (window._m14_renderShareBar && shareToken) {
-          window._m14_renderShareBar(window._persistedReport);
-        }
-
-        // SESSION-17 V6: load + render the report→action→outcome follow-up
-        // panel below the action_plan section.
-        if (data.id && route.kind === 'id') loadFollowup(data.id, data.created_at);
-
-        trackPlausible('Report Share Page Viewed', {
-          referrer: document.referrer ? 'external' : 'direct',
-          is_partial: !!data.is_partial,
-        });
+        renderValidatedPersistedDetail(data, route);
       })
       .catch((err) => {
         // P0-4: never surface a raw error (e.g. a JSON SyntaxError from an
         // HTML error page) to the user. Friendly copy only; details to
-        // the console.
-        console.error('[report] load failed:', err);
+        // content-free browser telemetry.
+        resetPersistedReportState();
+        console.error('[report] load failed');
         if (String(err).indexOf('404') !== -1) {
           // Keep the richer static HTML copy (points at /reports). (R-02)
           showError();
+        } else if (String(err).indexOf('invalid_report') !== -1) {
+          showError('这份报告未通过完整性与证据校验，请从「我的研究」重新生成。');
         } else {
           showError('报告暂时加载不出来，请稍后重试。');
         }
       });
   }
+
+  const reportTrustApi = Object.freeze({
+    containsInternalCapability,
+    renderValidatedPersistedDetail,
+    resetPersistedReportState,
+    validatePersistedDetail,
+  });
+  window.StructuralReportTrust = reportTrustApi;
+  if (typeof module !== 'undefined' && module.exports) module.exports = reportTrustApi;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', load);

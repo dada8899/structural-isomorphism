@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAFAF9">
   <title>我的研究 — Structural</title>
-  <meta name="description" content="你在这台设备上保存过的跨领域研究报告——把别的学科的成熟解法借到你的问题上。">
+  <meta name="description" content="你保存的跨领域候选比较、验证计划、实验与结果记录。">
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
 
@@ -13,12 +13,10 @@
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260521a">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260521a">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260521a">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
 
-  <!-- Plausible analytics (self-hosted, cookieless — matches the rest of the site). -->
-  <script defer data-domain="structural.bytedance.city"
-          src="https://plausible.bytedance.city/js/script.js"></script>
+  <!-- No analytics on account research-library surfaces. -->
 
   <style>
     /* My Reports — quiet list page, reuses design tokens (shared-tokens.css). */
@@ -60,9 +58,16 @@
     .myr-delete-form label { color:var(--brand-muted); font-size:13px; line-height:1.55; }
     .myr-delete-form input { min-height:44px; padding:0 12px; border:1px solid var(--brand-line,#e7e5e4); border-radius:8px; font-size:16px; }
     .myr-delete-form button { min-height:44px; border:0; border-radius:8px; background:#991b1b; color:#fff; font-weight:650; cursor:pointer; }
-    .myr-favorites-list { display:flex; flex-wrap:wrap; gap:8px; }
-    .myr-favorite { display:inline-flex; min-height:44px; align-items:center; gap:7px; padding:0 12px; border:1px solid var(--brand-line,#e7e5e4); border-radius:9px; color:var(--brand-ink); text-decoration:none; font-size:13px; }
+    .myr-favorites-list { display:grid; gap:10px; }
+    .myr-favorite { min-height:64px; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:stretch; border:1px solid var(--brand-line,#e7e5e4); border-radius:11px; background:#fff; overflow:hidden; }
+    .myr-favorite__open { min-height:44px; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:3px; padding:11px 14px; color:var(--brand-ink); text-decoration:none; }
+    .myr-favorite__open:hover { background:#fafaf9; }
+    .myr-favorite__title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13.5px; font-weight:620; }
     .myr-favorite__source { color:var(--brand-muted); font-size:11px; }
+    .myr-favorite__remove { min-width:64px; min-height:44px; border:0; border-left:1px solid var(--brand-line,#e7e5e4); background:#fff; color:#7f1d1d; font:600 12px/1 inherit; cursor:pointer; }
+    .myr-favorite__remove:hover { background:#fff7f7; }
+    .myr-favorite__remove:disabled { opacity:.6; cursor:default; }
+    .myr-favorite__status { grid-column:1/-1; padding:8px 14px; border-top:1px solid #fecaca; background:#fff7f7; color:#991b1b; font-size:12px; line-height:1.45; }
 
     .myr-card {
       display: block; text-decoration: none;
@@ -73,6 +78,20 @@
     }
     .myr-card:hover { border-color: var(--brand-line-strong, #d6d3d1); }
     .myr-card:active { transform: scale(.997); }
+    .myr-card-wrap { display:grid; gap:8px; }
+    .myr-card__origin { min-height:44px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 12px; border:1px solid #dbe4ee; border-radius:10px; background:#f8fafc; color:#334155; font-size:12px; }
+    .myr-card__origin span { color:#64748b; }
+    .myr-card__origin strong { font-size:12px; font-weight:650; }
+    .myr-card__origin:hover { border-color:#94a3b8; }
+    .myr-card__privacy { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 12px; border:1px solid var(--brand-line,#e7e5e4); border-radius:10px; background:#fafaf9; color:var(--brand-muted); font-size:12px; line-height:1.45; }
+    .myr-card__privacy button { min-height:44px; flex:0 0 auto; padding:0 12px; border:1px solid var(--brand-line,#e7e5e4); border-radius:8px; background:#fff; color:var(--brand-ink); font:600 12px/1 inherit; cursor:pointer; }
+    .myr-card__privacy button[disabled] { opacity:.6; cursor:default; }
+    .myr-card__report-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 12px; border:1px solid var(--brand-line,#e7e5e4); border-radius:10px; background:#fff; color:var(--brand-muted); font-size:12px; line-height:1.45; }
+    .myr-card__report-buttons { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+    .myr-card__report-buttons button { min-height:44px; padding:0 12px; border:1px solid var(--brand-line,#e7e5e4); border-radius:8px; background:#fff; color:var(--brand-ink); font:600 12px/1 inherit; cursor:pointer; }
+    .myr-card__report-buttons .myr-card__delete { color:#991b1b; border-color:#fecaca; }
+    .myr-card__report-buttons .myr-card__delete[data-delete-armed] { color:#fff; border-color:#991b1b; background:#991b1b; }
+    .myr-card__report-buttons button[disabled] { opacity:.6; cursor:default; }
     /* B Data Flywheel (Session #18) — query + revisit badge on one row. */
     .myr-card__head {
       display: flex; align-items: flex-start; justify-content: space-between;
@@ -137,6 +156,12 @@
       .myr-reminder-panel { align-items:flex-start; flex-direction:column; }
       .myr-reminder-toggle { width:100%; }
       .myr-card { padding:15px; }
+      .myr-card__privacy { align-items:flex-start; flex-direction:column; }
+      .myr-card__privacy button { width:100%; }
+      .myr-card__report-actions { align-items:stretch; flex-direction:column; }
+      .myr-card__report-buttons { width:100%; }
+      .myr-card__report-buttons button { flex:1 1 0; }
+      .myr-favorite__remove { min-width:72px; }
     }
   </style>
 </head>
@@ -168,7 +193,7 @@
       </section>
 
       <section id="research-favorites" class="myr-library-section" aria-labelledby="research-favorites-title">
-        <div class="myr-library-section__head"><h2 id="research-favorites-title">收藏</h2><p id="myr-favorites-copy">正在读取与你当前身份关联的收藏。</p></div>
+        <div class="myr-library-section__head"><h2 id="research-favorites-title" data-i18n="page.reports.favorites_title">我的研究收藏库</h2><p id="myr-favorites-copy" data-i18n="page.reports.favorites_loading">正在读取与你当前身份关联的收藏。</p></div>
         <div id="myr-favorites" class="myr-favorites-list" aria-live="polite"><span class="myr-state__hint">正在加载…</span></div>
       </section>
 
@@ -181,8 +206,10 @@
 
   <footer class="site-footer"></footer>
 
-  <script src="/assets/js/i18n.js?v=20260713a"></script>
-  <script src="/assets/js/my-reports.js?v=20260713b"></script>
-  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/utils/buildAnalyzeUrl.js?v=20260714n2"></script>
+  <script src="/assets/js/my-reports.js?v=20260714n2"></script>
+  <script src="/assets/js/analytics-consent.js?v=20260714n2"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
 </body>
 </html>

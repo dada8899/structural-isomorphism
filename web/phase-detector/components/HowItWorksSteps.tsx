@@ -82,7 +82,7 @@ export function HowItWorksSteps() {
       <div className="mt-12 sm:mt-14">
         <Link
           href="/methodology"
-          className="inline-flex items-center gap-1 text-sm font-medium text-indigo-700 underline-offset-4 hover:underline"
+          className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-indigo-700 underline-offset-4 hover:underline"
         >
           完整方法说明 <span aria-hidden="true">→</span>
         </Link>

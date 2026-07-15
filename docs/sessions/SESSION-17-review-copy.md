@@ -313,9 +313,9 @@
 ### 十、其他全局项
 
 #### G-01 · `report.html` Plausible 指向公网 plausible.io —— P1（技术+隐私文案相关）
-- 位置：`report.html` L26-27 / `reports.html` L20-21 用 `https://plausible.io/js/script.js`；`index.html` / `analyze.html` 用自托管 `plausible.bytedance.city`
+- 位置：`report.html` L26-27 / `reports.html` L20-21 当时用 Plausible 云端 legacy tracker；`index.html` / `analyze.html` 当时用自托管 legacy tracker
 - 问题：埋点脚本来源不一致。虽非纯文案问题，但涉及对外一致性，发布前应统一为自托管。
-- 建议：统一指向 `plausible.bytedance.city`。
+- 后续处置：统一为同意后才启用的 schema-validated direct Events API；敏感报告路由拒绝发送。
 - severity：P1
 
 #### G-02 · 「Phase Detector」产品名未本地化 —— P2

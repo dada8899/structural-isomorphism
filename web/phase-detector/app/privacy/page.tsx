@@ -23,7 +23,7 @@ export default function PrivacyPage() {
   return (
     <article className="prose prose-zinc mx-auto max-w-3xl px-0 py-10 [overflow-wrap:anywhere] [&_code]:break-all sm:px-6 dark:prose-invert">
       <h1>隐私政策</h1>
-      <p className="text-sm text-zinc-500">最后更新：2026-07-11</p>
+      <p className="text-sm text-zinc-500">最后更新：2026-07-14</p>
 
       <p>
         本页是 <strong>Structural Isomorphism</strong> 研究项目相关站点的简明隐私
@@ -38,17 +38,18 @@ export default function PrivacyPage() {
       <p>仅在获得你同意（或属于站点正常运行所必需）时收集以下数据：</p>
       <ul>
         <li>
-          <strong>会话 ID</strong>（本地随机生成，存于 localStorage）—— 用于在
-          页面崩溃时把错误日志归到同一次浏览。不绑定身份。
+          <strong>本地错误状态</strong>（可能由浏览器保存在 localStorage）——
+          只用于客户端恢复与去重，不作为服务器端错误记录的身份字段。
         </li>
         <li>
-          <strong>错误报告</strong>（前端崩溃时） —— 错误消息、堆栈、URL（已去除
-          查询参数）、User-Agent、时间戳、会话 ID。详见{" "}
+          <strong>无内容错误元数据</strong>（前端崩溃时） —— 仅保存固定事件名、
+          错误类型、随机事件编号、时间戳和是否为致命错误；不保存错误消息、堆栈、
+          页面 URL、User-Agent、会话 ID、IP、查询内容、cookie 或来源页面。详见{" "}
           <code>web/backend/api/error_log.py</code>。
         </li>
         <li>
           <strong>邮件订阅</strong>（如果你主动填写） —— 邮箱、来源页面、提交
-          时间。
+          时间。新写入的订阅和候补记录不保存 IP、User-Agent 或 referrer。
         </li>
         <li>
           <strong>账户与登录</strong>（仅在账户功能开启且你主动登录时）——
@@ -58,6 +59,12 @@ export default function PrivacyPage() {
         <li>
           <strong>分析数据</strong>（仅在你勾选同意后启用）—— Plausible 自托管、
           无 cookie、不存原始 IP、不做跨站追踪。
+        </li>
+        <li>
+          <strong>无内容运行遥测</strong>（站点正常运行所必需）—— Nginx 仅记录
+          随机请求编号、请求方法、状态码、响应字节数、请求耗时和上游耗时；不记录
+          IP、URL/路径、查询参数、User-Agent、cookie 或 referrer。应用日志仅使用
+          路由模板，并丢弃任意字段、异常消息和 traceback。
         </li>
       </ul>
 
@@ -70,11 +77,11 @@ export default function PrivacyPage() {
 
       <h2>保留多久</h2>
       <ul>
-        <li>错误日志：<strong>90 天</strong>，到期后滚动覆盖（详见 error_log.jsonl 的轮转策略）</li>
+        <li>错误日志：按文件大小滚动，仅保留当前段和最近一段；不承诺固定天数</li>
         <li>邮件订阅：<strong>直到你退订</strong>（每封邮件底部有一键退订链接）</li>
         <li>账户记录：<strong>直到你要求删除账户</strong></li>
         <li>登录链接：15 分钟后失效；哈希和使用状态仅用于防重放与安全审计</li>
-        <li>Nginx 访问日志：<strong>14 天</strong>，仅用于安全与运维诊断</li>
+        <li>Nginx 访问日志：按运行环境的轮转策略、仅在运维所需期间保留；不承诺固定天数</li>
         <li>Plausible 分析数据：<strong>聚合后无限期</strong>，原始 IP 从不写入磁盘</li>
       </ul>
 
@@ -104,6 +111,11 @@ export default function PrivacyPage() {
           <strong>邮件投递服务</strong>—— 账户功能开启时，仅为发送一次性登录链接
           和注册通知处理必要的邮箱与邮件内容。
         </li>
+        <li>
+          <strong>可选异常监控</strong>（如启用）—— 只接收事件编号、错误类型、
+          状态码和随机关联编号；不接收请求 URL、header、cookie、body、用户记录、
+          breadcrumb、错误消息、堆栈变量或原始 transaction。
+        </li>
       </ul>
       <p>
         我们 <strong>不使用</strong> Google Analytics、Facebook Pixel、广告网络、
@@ -114,15 +126,14 @@ export default function PrivacyPage() {
       <p>无论你身处何地，你都享有以下权利：</p>
       <ul>
         <li>
-          <strong>访问 / 导出</strong>：调用{" "}
-          <code>GET /api/privacy/export?email=...</code> 获取我们存储的与你相关
-          的所有数据（需邮箱验证）。
+          <strong>访问 / 导出</strong>：登录 Structural 主产品后，在{" "}
+          <a href="https://beta.structural.bytedance.city/reports">我的研究与账户中心</a>
+          下载与你的账户关联的数据副本。
         </li>
         <li>
-          <strong>删除</strong>：账户与登录数据请通过本页联系邮箱提交删除请求；
-          研究预览产生的其他邮箱记录可调用{" "}
-          <code>DELETE /api/privacy/delete?email=...</code> 删除
-          （审计日志会保留删除请求本身，用于合规追踪）。
+          <strong>删除</strong>：在同一账户中心发起永久删除；系统会验证当前
+          登录身份，并撤销账户会话及关联的服务器端资产。无法登录时请联系本页
+          列出的支持邮箱。
         </li>
         <li>
           <strong>反对</strong>：你可以拒绝分析 cookie。开启浏览器的 DNT（Do Not

@@ -1,15 +1,4 @@
 // --- i18n helpers ---
-function statusLabel(cls, fallback) {
-  // Map statusInfo cls → i18n key at render time (not table load time).
-  var map = {
-    'unknown':     'page.discoveries.status_unexplored',
-    'partial':     'page.discoveries.status_partial',
-    'established': 'page.discoveries.status_established',
-  };
-  var key = map[cls];
-  return key ? T(key, fallback || '') : (fallback || '');
-}
-
 function T(key, fallback) {
   try { if (window.i18n && typeof window.i18n.t === 'function') { var v = window.i18n.t(key); if (v && v !== key) return v; } } catch(e) {}
   return fallback;
@@ -30,38 +19,36 @@ function L(obj, baseKey) {
   return obj[baseKey];
 }
 
+function LT(value) {
+  if (!value || typeof value !== 'object') return '';
+  if (currentLang() === 'en') return value.en || value.zh || '';
+  return value.zh || value.en || '';
+}
+
+function LL(value) {
+  if (!value || typeof value !== 'object') return [];
+  const selected = currentLang() === 'en' ? (value.en || value.zh) : (value.zh || value.en);
+  return Array.isArray(selected) ? selected : [];
+}
+
 function normalizeDiscovery(raw) {
-  const equationValues = Array.isArray(raw.shared_equations)
-    ? raw.shared_equations
-    : (raw.shared_equation ? [raw.shared_equation] : (Array.isArray(raw.equations) ? raw.equations : []));
-  const hasLiteratureEvidence = Array.isArray(raw.literature_evidence)
-    && raw.literature_evidence.length > 0
-    && raw.literature_evidence.every((item) => item && typeof item === 'object'
-      && typeof item.source === 'string' && item.source.trim()
-      && item.license && item.license !== 'unknown'
-      && item.provenance_class && item.provenance_class !== 'unknown'
-      && item.source_review && typeof item.source_review === 'object');
-  let variableMapping = null;
-  if (raw.variable_mapping && typeof raw.variable_mapping === 'object') {
-    variableMapping = raw.variable_mapping;
-  } else if (typeof raw.variable_mapping === 'string') {
-    const pairs = raw.variable_mapping.split(/[;；]/).map((item) => item.trim()).filter(Boolean);
-    const parsed = pairs.map((item) => item.split(/↔|→|=>/, 2).map((part) => part.trim()));
-    const mapped = parsed.filter((pair) => pair.length === 2 && pair[0] && pair[1]);
-    if (mapped.length) {
-      variableMapping = Object.fromEntries(mapped);
-      const notes = pairs.filter((_, index) => parsed[index].length !== 2);
-      if (notes.length) variableMapping.__unmapped_notes__ = notes.join('；');
-    }
-  }
+  if (!raw || raw.schema_version !== 'discovery-candidate-v2') throw new Error('Unsupported discovery schema');
+  if (!raw.pair || !raw.pair.a || !raw.pair.b || !raw.pair.a.id || !raw.pair.b.id) throw new Error('Invalid discovery pair');
+  if (!raw.candidate_summary || !raw.validation_plan || !raw.readiness || !raw.provenance) throw new Error('Incomplete discovery candidate');
   return {
     ...raw,
-    shared_equations: equationValues.filter((value) => typeof value === 'string' && value.trim()),
-    variable_mapping_normalized: variableMapping,
-    model_score_unvalidated: Number.isFinite(Number(raw.isomorphism_confidence))
-      ? Number(raw.isomorphism_confidence) : null,
-    evidence_level: hasLiteratureEvidence ? 'source_backed' : 'candidate',
-    literature_status_display: hasLiteratureEvidence ? raw.literature_status : 'not_systematically_reviewed',
+    a_id: raw.pair.a.id,
+    b_id: raw.pair.b.id,
+    a_name: raw.pair.a.name.zh,
+    a_name_en: raw.pair.a.name.en,
+    b_name: raw.pair.b.name.zh,
+    b_name_en: raw.pair.b.name.en,
+    a_domain: raw.pair.a.domain.zh,
+    a_domain_en: raw.pair.a.domain.en,
+    b_domain: raw.pair.b.domain.zh,
+    b_domain_en: raw.pair.b.domain.en,
+    shared_equations: Array.isArray(raw.candidate_equations) ? raw.candidate_equations : [],
+    variable_mapping_normalized: raw.candidate_variable_mapping || {},
   };
 }
 
@@ -74,90 +61,27 @@ function renderVariableMapping(mapping) {
     .join(' · ');
 }
 
-/**
- * Structural — Discoveries page
- * Renders 39 A-level cross-domain isomorphism discoveries (V2 19 + V3 20)
- * merged from three pipelines.
- */
+/** Structural candidate-review queue. */
 
 let allDiscoveries = [];
 let allTier2 = [];
 let currentFilter = 'all';
-// SESSION-18 (D): when the URL carries ?d=<rank> we focus that card after
-// the list renders — scroll into view + auto-expand. Consumed once.
-let pendingFocusRank = null;
+const PAGE_SIZE = 12;
+let visibleLimit = PAGE_SIZE;
+const expandedDiscoveryIds = new Set();
+// Stable deep links use the content-derived candidate id. Rank is only the
+// current queue position and must never identify a scientific candidate.
+let pendingFocusId = null;
+let deepLinkNotice = '';
+let dataLoaded = false;
 
-// Build a hook-style headline straight from the discovery's real fields.
-//
-// SESSION-18 design polish: instead of one mechanical template for all 39
-// cards, pick from several sentence patterns based on the discovery's REAL
-// signals (literature status / isomorphism depth / cross-domain distance).
-// Every variant is grounded in real fields — no fabrication, no hype:
-//   · a_name / b_name      — the two phenomena
-//   · a_domain / b_domain  — their fields (used to gauge "distance")
-//   · literature_status    — unexplored / partial / established
-//   · isomorphism_depth    — 0–5, structural depth of the match
-// A stable per-card index (rank) keeps the choice deterministic so the same
-// card always reads the same way (and an i18n re-render is idempotent).
 function discoveryHeadline(d) {
-  const a = L(d, 'a_name') || '';
-  const b = L(d, 'b_name') || '';
-  if (!a || !b) return L(d, 'paper_title') || '';
-
-  const en = currentLang() === 'en';
-  const aDom = L(d, 'a_domain') || '';
-  const bDom = L(d, 'b_domain') || '';
-  const st = statusInfo(d.literature_status);
-  const depth = Number(d.isomorphism_depth) || 0;
-  const crossDomain = aDom && bDom && aDom !== bDom;
-
-  // English keeps a small, calm variant set.
-  if (en) {
-    const enSet = [
-      `Compare ${a} with ${b}: a structural candidate to test.`,
-      `${a} and ${b}: where might the mapping fail?`,
-      `A testable connection between ${a} and ${b}.`,
-    ];
-    return enSet[(d.rank || 0) % enSet.length];
-  }
-
-  // --- Chinese: choose a pool by the discovery's real character ---
-  // Pool 1 — literature-unexplored: lean on the "nobody has connected these" angle.
-  const poolUnexplored = [
-    `比较${a}和${b}：一条待验证的结构候选。`,
-    `${a}与${b}可能共享什么，又会在哪里失效？`,
-    `从${a}到${b}：先提出映射，再用数据反驳它。`,
-  ];
-  // Pool 2 — deep isomorphism (depth >= 3): emphasize "same skeleton, not just analogy".
-  const poolDeep = [
-    `${a}和${b}的结构匹配较深，但仍需机制检验。`,
-    `${a}与${b}：候选数学骨架，不是机制证明。`,
-    `检验${a}与${b}是否真的共享演化约束。`,
-  ];
-  // Pool 3 — far-apart domains: emphasize the cross-field leap.
-  const poolCross = [
-    `比较${aDom}的${a}与${bDom}的${b}。`,
-    `${a}和${b}相距很远：哪些变量真的能对应？`,
-    `跨领域候选：${a}与${b}，等待反例检验。`,
-  ];
-  // Pool 0 — default / established / same-domain.
-  const poolDefault = [
-    `${a}与${b}：一条需要验证的结构联系。`,
-    `${a}和${b}是否共享规律？先看证据和反例。`,
-    `用${a}提出假设，再检查它能否解释${b}。`,
-  ];
-
-  let pool = poolDefault;
-  if (st.cls === 'unknown') pool = poolUnexplored;
-  else if (depth >= 3) pool = poolDeep;
-  else if (crossDomain) pool = poolCross;
-
-  return pool[(d.rank || 0) % pool.length];
+  return LT(d.candidate_summary);
 }
 
 // Absolute share URL pointing at this specific discovery.
 function discoveryShareUrl(d) {
-  return location.origin + '/discoveries?d=' + encodeURIComponent(d.rank);
+  return location.origin + '/discoveries?candidate=' + encodeURIComponent(d.discovery_id);
 }
 
 // Attach the share-action row + hook headline interactions to a card.
@@ -168,118 +92,261 @@ function wireDiscoveryShare(article, d) {
   const actions = window.ShareCard.buildActions({
     url: discoveryShareUrl(d),
     shareTitle: headline,
-    shareText: headline + ' — Structural 跨领域结构同构引擎',
+    shareText: headline + (currentLang() === 'en' ? ' — Structural candidate review' : ' — Structural 候选核查'),
     filename: 'structural-discovery-' + d.rank + '.png',
     compact: true,
     cardData: {
-      eyebrow: '跨领域结构同构 #' + d.rank,
+      eyebrow: (currentLang() === 'en' ? 'Cross-domain candidate #' : '跨领域候选 #') + d.rank,
       headline: headline,
       lineA: (L(d, 'a_domain') || '') + ' · ' + (L(d, 'a_name') || ''),
       lineB: (L(d, 'b_domain') || '') + ' · ' + (L(d, 'b_name') || ''),
-      footnote: L(d, 'paper_title') || '',
+      footnote: currentLang() === 'en' ? 'AI-ranked candidate · evidence review incomplete' : 'AI 排序候选 · 证据核查未完成',
       url: 'structural.bytedance.city',
     },
   });
   host.appendChild(actions);
 }
-let currentTier = 'a'; // 'a' = A-grade, 't2' = tier2 candidate pool
+let currentTier = 'a'; // 'a' = priority-review candidates, 't2' = candidate pool
 // P0-4 (SESSION-17): when the data fetch fails we show a friendly error
-// state. The i18n re-render fires renderList() again later — guard it so
-// the error state is not clobbered with a misleading "没有匹配的发现".
+// state. The i18n re-render fires renderList() again later; keep the error.
 let loadFailed = false;
 
-// Normalize literature_status (English or Chinese) to (class, zhLabel).
-// The backend merges V2 and V3 A-level into a single feed; V2 originally used
-// Chinese strings, V3 uses English. We unify here.
-const STATUS_MAP = {
-  // English (V3)
-  'unexplored':    { cls: 'unknown', zh: T('page.discoveries.status_unexplored', '前所未有') },
-  'partial':       { cls: 'partial', zh: '部分探索' },
-  'established':   { cls: 'known',   zh: '已有文献' },
-  // Chinese (V2 legacy)
-  '未有先例':      { cls: 'unknown', zh: T('page.discoveries.status_unexplored', '前所未有') },
-  '未发表':        { cls: 'unknown', zh: T('page.discoveries.status_unexplored', '前所未有') },
-  '未探索':        { cls: 'unknown', zh: T('page.discoveries.status_unexplored', '前所未有') },
-  '微弱探索':      { cls: 'partial', zh: '部分探索' },
-  '部分探索':      { cls: 'partial', zh: '部分探索' },
-  '部分讨论':      { cls: 'partial', zh: '部分探索' },
-  '广泛讨论':      { cls: 'known',   zh: '已有文献' },
-  '已知':          { cls: 'known',   zh: '已有文献' },
-};
-
-function statusInfo(status) {
-  if (!status) return { cls: 'known', zh: '未知' };
-  const exact = STATUS_MAP[status];
-  if (exact) return exact;
-  for (const [key, val] of Object.entries(STATUS_MAP)) {
-    if (status.includes(key)) return val;
+function preparePendingCandidate() {
+  if (!dataLoaded || !pendingFocusId) return;
+  const priorityIndex = allDiscoveries.findIndex((row) => row.discovery_id === pendingFocusId);
+  const poolIndex = allTier2.findIndex((row) => row.discovery_id === pendingFocusId);
+  if (priorityIndex >= 0) {
+    currentTier = 'a';
+    currentFilter = 'all';
+    visibleLimit = Math.max(PAGE_SIZE, priorityIndex + 1);
+    deepLinkNotice = '';
+    return;
   }
-  return { cls: 'known', zh: status };
+  if (poolIndex >= 0) {
+    currentTier = 't2';
+    currentFilter = 'all';
+    visibleLimit = Math.max(PAGE_SIZE, poolIndex + 1);
+    deepLinkNotice = '';
+    return;
+  }
+  deepLinkNotice = currentLang() === 'en'
+    ? 'This candidate link is unavailable. Choose a candidate from the review queue.'
+    : '这条候选链接不可用，请从核查队列中重新选择。';
+  pendingFocusId = null;
 }
 
-// Render a list field that might be string, array, or missing.
-function renderListField(v) {
-  if (!v) return '';
-  if (Array.isArray(v)) {
-    return '<ul class="disc-item__list">' + v.map(x => `<li>${escapeHtml(String(x))}</li>`).join('') + '</ul>';
-  }
-  return `<p>${escapeHtml(String(v))}</p>`;
+function paginationMarkup(tier, shown, total) {
+  const status = currentLang() === 'en'
+    ? `Showing ${shown} of ${total} candidates`
+    : `已显示 ${shown} / ${total} 条候选`;
+  const remaining = Math.max(0, total - shown);
+  return `<div class="disc-pagination">
+    <p class="disc-pagination-status" role="status" aria-live="polite">${status}</p>
+    ${remaining ? `<button type="button" class="disc-load-more" data-load-more="${tier}">
+      ${currentLang() === 'en' ? `Show ${Math.min(PAGE_SIZE, remaining)} more candidates` : `再显示 ${Math.min(PAGE_SIZE, remaining)} 条候选`}
+    </button>` : ''}
+  </div>`;
 }
 
-// Render the 5-dim score bars. Accepts either a nested dim_scores dict OR
-// flat top-level fields (novelty/rigor/feasibility/impact/writability).
-function renderDimScores(d) {
-  const source = d.dim_scores || d;
-  const dims = [
-    { key: 'novelty',     label: '创新性' },
-    { key: 'rigor',       label: '严谨性' },
-    { key: 'feasibility', label: T('page.discoveries.dim_feasibility', '可行性') },
-    { key: 'impact',      label: '影响力' },
-    { key: 'writability', label: T('page.discoveries.dim_writability', '可写性') },
-  ];
-  const rows = dims
-    .map(dim => ({ ...dim, score: source[dim.key] }))
-    .filter(dim => typeof dim.score === 'number' && dim.score > 0);
-  if (rows.length === 0) return '';
+function focusCandidateAt(listEl, tier, index) {
+  requestAnimationFrame(() => {
+    const card = listEl.querySelector(`[data-list-index="${index}"]`);
+    if (!card) return;
+    const control = tier === 'a'
+      ? card.querySelector('.disc-item__expand')
+      : card.querySelector('.disc-t2-evidence > summary');
+    (control || card).focus({ preventScroll: true });
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
+function honorPendingFocus(listEl, tier) {
+  if (!pendingFocusId) return;
+  const target = document.getElementById('candidate-' + pendingFocusId);
+  if (!target) return;
+  target.classList.add('disc-item--focused');
+  if (tier === 'a') setDiscoveryExpanded(target, true);
+  const control = tier === 'a'
+    ? target.querySelector('.disc-item__expand')
+    : target.querySelector('.disc-t2-evidence > summary');
+  pendingFocusId = null;
+  deepLinkNotice = '';
+  requestAnimationFrame(() => {
+    (control || target).focus({ preventScroll: true });
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
+function renderPlanField(labelZh, labelEn, value) {
   return `
-    <div class="disc-item__detail-block disc-item__dims" style="grid-column: 1 / -1">
-      <h4>${T("page.discoveries.section_dim_scores", "五维评分")}</h4>
-      <div class="disc-dims">
-        ${rows.map(r => `
-          <div class="disc-dim">
-            <div class="disc-dim__label">${escapeHtml(r.label)}</div>
-            <div class="disc-dim__bar-track">
-              <div class="disc-dim__bar" style="width: ${r.score * 10}%"></div>
-            </div>
-            <div class="disc-dim__num">${r.score}</div>
-          </div>
-        `).join('')}
+    <div class="disc-plan__field">
+      <dt>${escapeHtml(currentLang() === 'en' ? labelEn : labelZh)}</dt>
+      <dd>${escapeHtml(LT(value) || (currentLang() === 'en' ? 'Not recorded' : '尚未记录'))}</dd>
+    </div>`;
+}
+
+function renderEvidenceBoundarySummary(d) {
+  const sourceCount = Number(d && d.provenance && d.provenance.recorded_source_count) || 0;
+  const source = sourceCount > 0
+    ? (currentLang() === 'en' ? 'source review incomplete' : '来源复核未完成')
+    : (currentLang() === 'en' ? 'sources not recorded' : '来源未记录');
+  return `<div class="disc-evidence-summary" role="note" aria-label="${currentLang() === 'en' ? 'Evidence boundary' : '证据边界'}">
+    <span>${currentLang() === 'en' ? 'Candidate' : '候选'}</span>
+    <span>${source}</span>
+    <span>${currentLang() === 'en' ? 'not tested' : '尚未检验'}</span>
+  </div>`;
+}
+
+function renderCandidateStructure(d, evidenceLanguage) {
+  const equations = Array.isArray(d.shared_equations) ? d.shared_equations : [];
+  const mapping = d.variable_mapping_normalized && typeof d.variable_mapping_normalized === 'object'
+    ? d.variable_mapping_normalized
+    : {};
+  const hasMapping = Object.keys(mapping).length > 0;
+  if (!equations.length && !hasMapping) {
+    return `<div class="disc-item__detail-block" style="grid-column:1 / -1">
+      <h4>${currentLang() === 'en' ? 'Candidate structure to record' : '待记录的候选结构'}</h4>
+      <p>${currentLang() === 'en'
+        ? 'No candidate equation or variable-to-variable mapping is recorded yet.'
+        : '尚未记录待检验的候选方程，也未记录两边变量的对应关系。'}</p>
+    </div>`;
+  }
+  return `<div class="disc-item__detail-block" style="grid-column:1 / -1">
+    <h4>${currentLang() === 'en' ? 'Candidate structure to test' : '待检验的候选结构'}</h4>
+    ${equations.length
+      ? `<pre class="disc-item__equations">${equations.map((equation) => escapeHtml(equation)).join('\n')}</pre>`
+      : `<p>${currentLang() === 'en' ? 'Candidate equation: not recorded.' : '待检验的候选方程：尚未记录。'}</p>`}
+    ${hasMapping
+      ? `<p class="disc-item__var-map"><strong>${currentLang() === 'en' ? 'How variables on the two sides correspond (variable mapping)' : '两边变量的对应关系（变量映射）'}</strong>：${renderVariableMapping(mapping)}</p>`
+      : `<p class="disc-item__var-map"><strong>${currentLang() === 'en' ? 'Variable-to-variable mapping' : '两边变量的对应关系'}</strong>：${currentLang() === 'en' ? 'not recorded' : '尚未记录'}</p>`}
+    <p class="disc-item__evidence-language">${escapeHtml(evidenceLanguage)} · ${currentLang() === 'en' ? 'A similar equation does not establish a shared mechanism.' : '方程相似不能证明两边存在同一机制。'}</p>
+  </div>`;
+}
+
+function renderValidationPlan(d) {
+  const plan = d.validation_plan || {};
+  const gaps = Array.isArray(plan.validation_gaps) ? plan.validation_gaps : [];
+  return `
+    <section class="disc-plan" aria-labelledby="plan-${escapeHtml(d.discovery_id)}">
+      <div class="disc-plan__header">
+        <div>
+          <p class="disc-plan__eyebrow">${currentLang() === 'en' ? 'Validation-plan draft' : '验证计划草案'}</p>
+          <h4 id="plan-${escapeHtml(d.discovery_id)}">${currentLang() === 'en' ? 'Turn the candidate into a falsifiable test' : '把候选变成可反驳的检验'}</h4>
+        </div>
+        <span class="disc-plan__status">${currentLang() === 'en' ? 'Not publicly locked (not preregistered)' : '尚未公开锁定（未预注册）'}</span>
       </div>
-    </div>
-  `;
+      <dl class="disc-plan__grid">
+        ${renderPlanField('假设', 'Hypothesis', plan.hypothesis)}
+        ${renderPlanField('数据与来源', 'Data and sources', plan.data_needed)}
+        ${renderPlanField('比较基线', 'Baseline', plan.baseline)}
+        ${renderPlanField('主指标', 'Primary metric', plan.primary_metric)}
+        ${renderPlanField('停止 / 失败条件', 'Stop / failure condition', plan.failure_condition)}
+      </dl>
+      ${gaps.length ? `
+        <div class="disc-plan__gaps">
+          <strong>${currentLang() === 'en' ? 'Validation gaps to complete' : '待补齐的验证缺口'}</strong>
+          <ul>${gaps.map((gap) => `<li>${escapeHtml(LT(gap.label))}</li>`).join('')}</ul>
+        </div>` : ''}
+      <p class="disc-plan__boundary">${currentLang() === 'en'
+        ? 'This draft is a starting checklist. Complete sources, metric, sample, and stop rule before treating it as a study plan.'
+        : '这只是起点清单。补齐来源、指标、样本和停止规则之前，不能把它当作正式研究计划。'}</p>
+    </section>`;
+}
+
+function markdownText(value) {
+  return String(value == null ? '' : value)
+    .replace(/[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\\/g, '\\\\')
+    .replace(/([`*_{}\[\]()#+.!|])/g, '\\$1');
+}
+
+function validationPlanMarkdown(d) {
+  const p = d.validation_plan || {};
+  const equations = Array.isArray(d.shared_equations) ? d.shared_equations : [];
+  const mapping = d.variable_mapping_normalized && typeof d.variable_mapping_normalized === 'object'
+    ? Object.entries(d.variable_mapping_normalized)
+    : [];
+  const sourceCount = Number(d && d.provenance && d.provenance.recorded_source_count) || 0;
+  const lines = [
+    '# ' + (currentLang() === 'en' ? 'Structural validation-plan draft' : 'Structural 验证计划草案'),
+    '',
+    `- Candidate ID: ${markdownText(d.discovery_id)}`,
+    `- Evidence level: candidate`,
+    `- Preregistered: no`,
+    '',
+    `## ${currentLang() === 'en' ? 'Candidate pair' : '候选配对'}`,
+    `${markdownText(L(d, 'a_name'))} (${markdownText(L(d, 'a_domain'))}) ↔ ${markdownText(L(d, 'b_name'))} (${markdownText(L(d, 'b_domain'))})`,
+    '',
+    `## ${currentLang() === 'en' ? 'Candidate structure to test' : '待检验的候选结构'}`,
+    `### ${currentLang() === 'en' ? 'Candidate equations' : '候选方程'}`,
+  ];
+  if (equations.length) equations.forEach((equation) => lines.push(`- ${markdownText(equation)}`));
+  else lines.push('- ' + (currentLang() === 'en' ? 'Not recorded' : '尚未记录'));
+  lines.push('', `### ${currentLang() === 'en' ? 'How variables correspond' : '两边变量的对应关系'}`);
+  if (mapping.length) mapping.forEach(([left, right]) => lines.push(`- ${markdownText(left)} → ${markdownText(right)}`));
+  else lines.push('- ' + (currentLang() === 'en' ? 'Not recorded' : '尚未记录'));
+  lines.push(
+    '',
+    `## ${currentLang() === 'en' ? 'Evidence boundary' : '证据边界'}`,
+    `- ${currentLang() === 'en' ? 'Recorded source entries' : '已记录来源条目'}: ${sourceCount}`,
+    `- ${currentLang() === 'en' ? 'Result' : '检验结果'}: NOT_TESTED`,
+    `- ${currentLang() === 'en' ? 'Publicly locked before the study' : '实验前公开锁定'}: no`,
+    '',
+  );
+  [
+    ['假设', 'Hypothesis', p.hypothesis],
+    ['数据与来源', 'Data and sources', p.data_needed],
+    ['比较基线', 'Baseline', p.baseline],
+    ['主指标', 'Primary metric', p.primary_metric],
+    ['停止 / 失败条件', 'Stop / failure condition', p.failure_condition],
+  ].forEach(([zh, en, value]) => lines.push(`## ${currentLang() === 'en' ? en : zh}`, markdownText(LT(value)) || '—', ''));
+  const gaps = Array.isArray(p.validation_gaps) ? p.validation_gaps : [];
+  lines.push(`## ${currentLang() === 'en' ? 'Gaps to verify' : '待核对缺口'}`);
+  if (gaps.length) gaps.forEach((gap) => lines.push(`- ${markdownText(LT(gap.label))}`));
+  else lines.push('- ' + (currentLang() === 'en' ? 'No gap record yet' : '尚无缺口记录'));
+  lines.push('', currentLang() === 'en'
+    ? '> Draft only. Not a preregistration, mechanism proof, or publication plan.'
+    : '> 仅为草案，不是预注册、机制证明或投稿计划。');
+  return lines.join('\n');
+}
+
+function downloadValidationPlan(d) {
+  const blob = new Blob([validationPlanMarkdown(d)], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `structural-validation-${d.discovery_id}.md`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function renderStats(stats, count) {
   const statsEl = $('#disc-hero-stats');
   if (!statsEl) return;
 
-  // by_status may use English (unexplored/partial/established) or Chinese keys.
-  const unknownCount = allDiscoveries.filter(d => statusInfo(d.literature_status).cls === 'unknown').length;
-  // "Top tier" = final_score >= 8.5 (there's no 10-scale bucket >= 9 after normalization).
-  const topTier = allDiscoveries.filter(d => (d.final_score || 0) >= 8.5).length;
-
   statsEl.innerHTML = `
     <div class="disc-hero__stat">
-      <div class="disc-hero__stat-num">${count}</div>
-      <div class="disc-hero__stat-label">${T("page.discoveries.stat_a_grade", "A 级发现")}</div>
+      <div class="disc-hero__stat-num">${stats.priority_review || count || 0}</div>
+      <div class="disc-hero__stat-label">${currentLang() === 'en' ? 'Priority review queue' : '优先核查队列'}</div>
     </div>
     <div class="disc-hero__stat">
-      <div class="disc-hero__stat-num">${topTier}</div>
-      <div class="disc-hero__stat-label">Top tier (score ≥ 8.5)</div>
+      <div class="disc-hero__stat-num">${stats.candidate_pool || 0}</div>
+      <div class="disc-hero__stat-label">${currentLang() === 'en' ? 'Candidate pool' : '候选池'}</div>
     </div>
     <div class="disc-hero__stat">
-      <div class="disc-hero__stat-num">${unknownCount}</div>
-      <div class="disc-hero__stat-label">${T("page.discoveries.stat_lit_unexplored", "文献未探索")}</div>
+      <div class="disc-hero__stat-num">${stats.source_backed || 0}</div>
+      <div class="disc-hero__stat-label">${currentLang() === 'en' ? 'Source-backed' : '完成来源核查'}</div>
+    </div>
+    <div class="disc-hero__stat">
+      <div class="disc-hero__stat-num">${stats.ready_for_preregistration || 0}</div>
+      <div class="disc-hero__stat-label">${currentLang() === 'en' ? 'Ready to publicly lock a study plan' : '可公开锁定研究方案'}</div>
     </div>
   `;
 }
@@ -288,9 +355,6 @@ function renderFilters(stats, total) {
   const filterEl = $('#disc-filter');
   if (!filterEl) return;
 
-  const unknownCount = allDiscoveries.filter(d => statusInfo(d.literature_status).cls === 'unknown').length;
-  const partialCount = allDiscoveries.filter(d => statusInfo(d.literature_status).cls === 'partial').length;
-  const knownCount = total - unknownCount - partialCount;
   const tier2Count = allTier2.length;
 
   const v2Count = allDiscoveries.filter(d => d.pipeline === 'V2').length;
@@ -298,35 +362,23 @@ function renderFilters(stats, total) {
 
   filterEl.innerHTML = `
     <div class="disc-tier-tabs">
-      <button class="disc-tier-tab ${currentTier === 'a' ? 'active' : ''}" data-tier="a">
+      <button class="disc-tier-tab ${currentTier === 'a' ? 'active' : ''}" data-tier="a" aria-pressed="${currentTier === 'a' ? 'true' : 'false'}">
         ${T("page.discoveries.tier_curated", "优先核查")} <span class="disc-tier-tab__count">${total}</span>
       </button>
-      <button class="disc-tier-tab ${currentTier === 't2' ? 'active' : ''}" data-tier="t2">
+      <button class="disc-tier-tab ${currentTier === 't2' ? 'active' : ''}" data-tier="t2" aria-pressed="${currentTier === 't2' ? 'true' : 'false'}">
         ${T("page.discoveries.tier_tier2", "候选池")} <span class="disc-tier-tab__count">${tier2Count}</span>
       </button>
     </div>
     ${currentTier === 'a' ? `
       <div class="disc-filter-row">
-        <span class="disc-filter__label">${T("page.discoveries.filter_lit_status_label", "文献状态")}</span>
-        <button class="disc-filter__btn ${currentFilter === 'all' ? 'active' : ''}" data-filter="all">
+        <span class="disc-filter__label">${currentLang() === 'en' ? 'Review lane' : '核查路径'}</span>
+        <button class="disc-filter__btn ${currentFilter === 'all' ? 'active' : ''}" data-filter="all" aria-pressed="${currentFilter === 'all' ? 'true' : 'false'}">
           ${T("page.discoveries.filter_all_chip", "全部")} <span class="disc-filter__count">${total}</span>
         </button>
-        <button class="disc-filter__btn ${currentFilter === 'unknown' ? 'active' : ''}" data-filter="unknown">
-          ${T("page.discoveries.status_unexplored", "前所未有")} <span class="disc-filter__count">${unknownCount}</span>
-        </button>
-        <button class="disc-filter__btn ${currentFilter === 'partial' ? 'active' : ''}" data-filter="partial">
-          ${T("page.discoveries.filter_partial_chip", "部分探索")} <span class="disc-filter__count">${partialCount}</span>
-        </button>
-        <button class="disc-filter__btn ${currentFilter === 'known' ? 'active' : ''}" data-filter="known">
-          ${T("page.discoveries.filter_established_chip", "已有文献")} <span class="disc-filter__count">${knownCount}</span>
-        </button>
-      </div>
-      <div class="disc-filter-row">
-        <span class="disc-filter__label">${T("page.discoveries.filter_pipeline_label", "检索管道")}</span>
-        <button class="disc-filter__btn ${currentFilter === 'pipeline-v2' ? 'active' : ''}" data-filter="pipeline-v2">
+        <button class="disc-filter__btn ${currentFilter === 'pipeline-v2' ? 'active' : ''}" data-filter="pipeline-v2" aria-pressed="${currentFilter === 'pipeline-v2' ? 'true' : 'false'}">
           ${T("page.discoveries.pipeline_v2", "文本结构检索")} <span class="disc-filter__count">${v2Count}</span>
         </button>
-        <button class="disc-filter__btn ${currentFilter === 'pipeline-v3' ? 'active' : ''}" data-filter="pipeline-v3">
+        <button class="disc-filter__btn ${currentFilter === 'pipeline-v3' ? 'active' : ''}" data-filter="pipeline-v3" aria-pressed="${currentFilter === 'pipeline-v3' ? 'true' : 'false'}">
           ${T("page.discoveries.pipeline_v3", "变量关系检索")} <span class="disc-filter__count">${v3Count}</span>
         </button>
       </div>
@@ -337,14 +389,15 @@ function renderFilters(stats, total) {
     `}
   `;
 
-  // Event delegation for tabs + filter buttons
-  filterEl.addEventListener('click', (e) => {
+  // Replace the delegated handler on every locale render; do not accumulate it.
+  filterEl.onclick = (e) => {
     const tab = e.target.closest('.disc-tier-tab');
     if (tab) {
       const newTier = tab.dataset.tier;
       if (newTier !== currentTier) {
         currentTier = newTier;
         currentFilter = 'all';
+        visibleLimit = PAGE_SIZE;
         renderFilters(stats, total);
         renderList();
       }
@@ -352,163 +405,154 @@ function renderFilters(stats, total) {
     }
     const btn = e.target.closest('.disc-filter__btn');
     if (!btn) return;
-    $$('.disc-filter__btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
     currentFilter = btn.dataset.filter;
+    visibleLimit = PAGE_SIZE;
+    renderFilters(stats, total);
     renderList();
-  });
+  };
 }
 
 function applyFilter(list) {
   if (currentFilter === 'all') return list;
   if (currentFilter === 'pipeline-v2') return list.filter(d => d.pipeline === 'V2');
   if (currentFilter === 'pipeline-v3') return list.filter(d => d.pipeline === 'V3');
-  return list.filter(d => statusInfo(d.literature_status).cls === currentFilter);
+  return [];
 }
 
 function renderList() {
   const listEl = $('#disc-list');
   if (!listEl) return;
   // Keep the friendly error state if the data never loaded.
-  if (loadFailed) return;
+  if (loadFailed || !dataLoaded) return;
+
+  preparePendingCandidate();
 
   if (currentTier === 't2') {
     renderTier2List(listEl);
     return;
   }
 
-  const filtered = applyFilter(allDiscoveries);
+  const allFiltered = applyFilter(allDiscoveries);
 
-  if (filtered.length === 0) {
+  const filtered = allFiltered.slice(0, visibleLimit);
+
+  if (allFiltered.length === 0) {
     listEl.innerHTML = `<p style="text-align:center; color: var(--text-tertiary); padding: var(--space-7) 0">${T("page.discoveries.empty_filter", "没有匹配的发现")}</p>`;
     return;
   }
 
-  listEl.innerHTML = filtered.map((d, i) => {
-    const st = d.evidence_level === 'source_backed'
-      ? statusInfo(d.literature_status_display)
-      : { cls: 'unknown', zh: T('page.discoveries.status_not_reviewed', '文献未系统核查') };
-    const conf = d.model_score_unvalidated === null ? null : Math.round(d.model_score_unvalidated);
+  const notice = deepLinkNotice
+    ? `<div class="disc-link-notice" role="status">${escapeHtml(deepLinkNotice)}</div>`
+    : '';
+  listEl.innerHTML = notice + filtered.map((d, i) => {
     const pipelineBadge = d.pipeline
       ? `<span class="disc-item__pipeline disc-item__pipeline--${d.pipeline.toLowerCase()}">${d.pipeline === 'V3' ? T('page.discoveries.pipeline_v3', '变量关系检索') : T('page.discoveries.pipeline_v2', '文本结构检索')}</span>`
       : '';
-    const verdict = L(d, "one_line_verdict") || L(d, "paper_title") || '';
+    const sourceCount = Number(d.provenance.recorded_source_count) || 0;
+    const evidenceLanguage = d.evidence_language === 'zh_only'
+        ? (currentLang() === 'en' ? 'Evidence fields are Chinese-only' : '证据字段仅有中文')
+        : (currentLang() === 'en' ? 'Evidence fields not recorded' : '证据字段未记录');
+    const blockerLabels = currentLang() === 'en'
+      ? {
+          candidate_equation: 'a candidate equation',
+          variable_mapping: 'a variable-to-variable mapping',
+          source_review: 'independent source review',
+          dataset_record: 'a dataset and sampling record',
+          primary_metric: 'a primary metric',
+          preregistered_stop_rule: 'a stopping rule publicly locked before the study',
+        }
+      : {
+          candidate_equation: '待检验的候选方程',
+          variable_mapping: '两边变量的对应关系',
+          source_review: '独立来源复核',
+          dataset_record: '数据与抽样记录',
+          primary_metric: '主要判断指标',
+          preregistered_stop_rule: '实验前公开锁定的停止规则',
+        };
+    const blockers = Array.isArray(d.readiness.blockers) ? d.readiness.blockers : [];
+    const missing = blockers.map((key) => blockerLabels[key]).filter(Boolean);
+    const readinessText = currentLang() === 'en'
+      ? `Still missing: ${missing.join(', ')}.`
+      : `仍缺：${missing.join('、')}。`;
+    const detailId = `disc-detail-${d.discovery_id}`;
 
     return `
-      <article class="disc-item" id="d-${d.rank}" data-index="${i}" data-rank="${d.rank}" style="animation: fadeInUp 500ms var(--ease-out-expo) ${Math.min(i * 30, 400)}ms both">
+      <article class="disc-item" id="candidate-${escapeHtml(d.discovery_id)}" data-list-index="${i}" data-rank="${d.rank}" data-discovery-id="${escapeHtml(d.discovery_id)}" tabindex="-1" style="animation: fadeInUp 500ms var(--ease-out-expo) ${Math.min(i * 30, 400)}ms both">
         <header class="disc-item__header">
           <div class="disc-item__rank">#${d.rank}</div>
           <div class="disc-item__body">
-            <p class="disc-item__hook">${escapeHtml(discoveryHeadline(d))}</p>
             <div class="disc-item__pair">
               <div class="disc-item__side">
                 <span class="disc-item__domain">${escapeHtml(L(d, "a_domain"))}</span>
                 <div class="disc-item__name">${escapeHtml(L(d, "a_name"))}</div>
               </div>
               <div class="disc-item__connector">
-                <div class="disc-item__symbol">≅</div>
+                <div class="disc-item__symbol" aria-label="${currentLang() === 'en' ? 'candidate similarity to test' : '待检验的候选相似'}">≈?</div>
               </div>
               <div class="disc-item__side disc-item__side--right">
                 <span class="disc-item__domain">${escapeHtml(L(d, "b_domain"))}</span>
                 <div class="disc-item__name">${escapeHtml(L(d, "b_name"))}</div>
               </div>
             </div>
-            <p class="disc-item__verdict">${escapeHtml(verdict)}</p>
+            <p class="disc-item__verdict">${escapeHtml(LT(d.candidate_summary))}</p>
             <div class="disc-item__meta">
               ${pipelineBadge}
-              ${d.rating ? `<span class="disc-item__meta-tag disc-item__meta-tag--rating">${T("page.discoveries.meta_rating", "AI 内部等级")} ${escapeHtml(d.rating)}</span>` : ''}
-              <span class="disc-item__meta-tag disc-item__meta-tag--${st.cls}">
-                ${escapeHtml(statusLabel(st.cls, st.zh))}
-              </span>
-              ${conf !== null ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_iso_confidence", "未校准 AI 结构匹配分")} ${conf}/100</span>` : ''}
-              ${d.isomorphism_depth ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_iso_depth", "同构深度")} ${d.isomorphism_depth}/5</span>` : ''}
-              ${L(d, "time_estimate") ? `<span class="disc-item__meta-tag">${escapeHtml(L(d, "time_estimate"))}</span>` : ''}
-              ${d.solo_feasible ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_solo_feasible", "单人可做")}</span>` : ''}
+              <span class="disc-item__meta-tag disc-item__meta-tag--unknown">${currentLang() === 'en' ? 'Candidate · unverified' : '候选 · 未验证'}</span>
+              <span class="disc-item__meta-tag">${sourceCount > 0
+                ? (currentLang() === 'en' ? `${sourceCount} source record(s), review incomplete` : `${sourceCount} 条来源记录，复核未完成`)
+                : (currentLang() === 'en' ? 'Sources not recorded' : '来源未记录')}</span>
+              ${d.family_variant_count > 1 ? `<span class="disc-item__meta-tag">${currentLang() === 'en' ? `${d.family_variant_count} candidates share one knowledge-base phenomenon` : `同一知识库现象关联 ${d.family_variant_count} 条候选`}</span>` : ''}
             </div>
-            ${window.StructuralEvidence ? window.StructuralEvidence.render(d.evidence || window.StructuralEvidence.fallback(d), { compact: true }) : ''}
+            ${renderEvidenceBoundarySummary(d)}
           </div>
           <div class="disc-item__aside">
-            <div class="disc-item__score">
-              <span class="disc-item__score-num">${d.final_score}</span>
-              <span class="disc-item__score-unit">/10 AI内部</span>
-            </div>
-            <div class="disc-item__expand">
-              ${T("page.discoveries.expand", "展开")}
+            <span class="disc-item__queue-label">${currentLang() === 'en' ? 'Review queue' : '核查队列'}</span>
+            <button type="button" class="disc-item__expand" aria-expanded="false" aria-controls="${escapeHtml(detailId)}">
+              <span class="disc-item__expand-label">${T("page.discoveries.expand", "展开")}</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M6 9l6 6 6-6"/>
               </svg>
-            </div>
+            </button>
           </div>
         </header>
-        <div class="disc-item__detail">
+        <div class="disc-item__detail" id="${escapeHtml(detailId)}" aria-hidden="true">
           <div class="disc-item__detail-grid">
-            ${d.shared_equations.length ? `
-              <div class="disc-item__detail-block" style="grid-column: 1 / -1">
-                <h4>${T("page.discoveries.section_shared_equation", "候选共享方程")}</h4>
-                <pre class="disc-item__equations">${d.shared_equations.map(e => escapeHtml(e)).join('\n')}</pre>
-                ${d.variable_mapping_normalized ? `<p class="disc-item__var-map"><strong>${T("page.discoveries.label_var_mapping", "候选变量映射")}</strong>：${renderVariableMapping(d.variable_mapping_normalized)}</p>` : ''}
-              </div>
-            ` : ''}
+            ${renderCandidateStructure(d, evidenceLanguage)}
 
-            ${renderDimScores(d)}
-
-            ${L(d, "paper_title") || d.target_venue ? `
-              <div class="disc-item__detail-block disc-item__paper" style="grid-column: 1 / -1">
-                <h4>${T("page.discoveries.section_paper_path", "验证与研究路径")}</h4>
-                ${L(d, "paper_title") ? `<div class="disc-item__paper-title">${escapeHtml(L(d, "paper_title"))}</div>` : ''}
-                ${d.target_venue ? `<div class="disc-item__paper-venue">${T("page.discoveries.label_submit_to", "建议投稿")}：<strong>${escapeHtml(d.target_venue)}</strong></div>` : ''}
+            <div class="disc-readiness" style="grid-column:1 / -1">
+              <div>
+                <span class="disc-readiness__label">${currentLang() === 'en' ? 'Current decision' : '当前判断'}</span>
+                <strong>${currentLang() === 'en' ? 'Not ready to publicly lock a study plan' : '尚不能公开锁定研究方案'}</strong>
               </div>
-            ` : ''}
-
-            ${L(d, "blocking_mechanisms") ? `
-              <div class="disc-item__detail-block">
-                <h4>${T("page.discoveries.section_blocking", "阻塞机制")}</h4>
-                ${renderListField(L(d, "blocking_mechanisms"))}
-              </div>
-            ` : ''}
-            ${L(d, "risk") ? `
-              <div class="disc-item__detail-block">
-                <h4>${T("page.discoveries.section_risks", "潜在风险")}</h4>
-                ${renderListField(L(d, "risk"))}
-              </div>
-            ` : ''}
-            ${L(d, "execution_plan") ? `
-              <div class="disc-item__detail-block" style="grid-column: 1 / -1">
-                <h4>${T("page.discoveries.section_execution_plan", "执行方案")}</h4>
-                ${renderListField(L(d, "execution_plan"))}
-              </div>
-            ` : ''}
-            ${L(d, "impact_scope") || L(d, "practical_value") ? `
-              <div class="disc-item__detail-block" style="grid-column: 1 / -1">
-                <h4>${T("page.discoveries.section_practical_value", "实用价值")}</h4>
-                <p>${L(d, "impact_scope") ? `<strong>${escapeHtml(L(d, "impact_scope"))}</strong> · ` : ''}${escapeHtml(L(d, "practical_value") || '')}</p>
-              </div>
-            ` : ''}
-            ${L(d, "full_analysis") ? `
-              <details class="disc-item__full-analysis" style="grid-column: 1 / -1">
-                <summary>${T("page.discoveries.section_full_analysis", "完整深度分析")}</summary>
-                <div class="disc-item__full-text">${escapeHtml(L(d, "full_analysis"))}</div>
-              </details>
-            ` : ''}
-            ${d.a_id && d.b_id ? `
-              <div class="disc-item__cta">
-                <a class="disc-item__cta-btn" href="/analyze?a_id=${encodeURIComponent(d.a_id)}&id=${encodeURIComponent(d.b_id)}">
-                  <span class="disc-item__cta-btn-main">${T("page.discoveries.cta_main", "生成深度分析报告")}</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-                </a>
-                <span class="disc-item__cta-hint">${T("page.discoveries.cta_hint", "8 段跨学科迁移研究 · 流式生成 60-90 秒")}</span>
-              </div>
-            ` : ''}
+              <p>${readinessText}</p>
+            </div>
+            <div class="disc-item__detail-evidence" style="grid-column:1 / -1">
+              ${window.StructuralEvidence ? window.StructuralEvidence.render(d.evidence || window.StructuralEvidence.fallback(d), { compact: true }) : ''}
+            </div>
+            <div style="grid-column:1 / -1">${renderValidationPlan(d)}</div>
+            <div class="disc-item__cta">
+              <button type="button" class="disc-item__cta-btn disc-plan-download" data-discovery-id="${escapeHtml(d.discovery_id)}">
+                <span class="disc-item__cta-btn-main">${currentLang() === 'en' ? 'Download plan draft' : '下载验证计划草案'}</span>
+              </button>
+              <a class="disc-item__cta-btn disc-item__cta-btn--secondary" href="${escapeHtml(d.analyze_url)}">
+                <span class="disc-item__cta-btn-main">${currentLang() === 'en' ? 'Open comparison workspace' : '打开比较工作台'}</span>
+              </a>
+              <span class="disc-item__cta-hint">${currentLang() === 'en' ? 'The workspace generates analysis, not proof.' : '工作台生成分析草稿，不生成证明。'}</span>
+            </div>
             <div class="disc-item__detail-block disc-item__share-block" style="grid-column: 1 / -1">
-              <h4>${T("page.discoveries.section_share", "分享这条发现")}</h4>
-              <p class="disc-item__share-hint">${T("page.discoveries.share_hint", "复制链接直达这张卡，或生成一张图片卡片发到社交平台。")}</p>
+              <h4>${currentLang() === 'en' ? 'Share this candidate' : '分享这条候选'}</h4>
+              <p class="disc-item__share-hint">${currentLang() === 'en' ? 'Shared cards retain the candidate boundary.' : '分享卡会保留“候选、未验证”的边界。'}</p>
               <div class="disc-item__share"></div>
             </div>
           </div>
         </div>
       </article>
     `;
-  }).join('');
+  }).join('') + paginationMarkup('priority', filtered.length, allFiltered.length);
+
+  $$('.disc-item', listEl).forEach((article) => {
+    setDiscoveryExpanded(article, expandedDiscoveryIds.has(article.dataset.discoveryId));
+  });
 
   // Wire per-card share actions (DOM nodes, not innerHTML, for event safety).
   $$('.disc-item', listEl).forEach((article) => {
@@ -516,36 +560,49 @@ function renderList() {
     const d = filtered.find((x) => x.rank === rank);
     if (d) wireDiscoveryShare(article, d);
   });
+  $$('.disc-plan-download', listEl).forEach((button) => {
+    const d = filtered.find((row) => row.discovery_id === button.dataset.discoveryId);
+    if (d) button.addEventListener('click', () => downloadValidationPlan(d));
+  });
 
-  // SESSION-18 (D): honor ?d=<rank> — scroll the matching card into view
-  // and expand it. We do this after render so the node exists.
-  if (pendingFocusRank != null) {
-    const target = document.getElementById('d-' + pendingFocusRank);
-    if (target) {
-      target.classList.add('disc-item--expanded', 'disc-item--focused');
-      if (window.renderMath) {
-        const detail = target.querySelector('.disc-item__detail');
-        if (detail) window.renderMath(detail);
-      }
-      requestAnimationFrame(() => {
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      });
-    }
-    pendingFocusRank = null;
-  }
+  // Honor the stable candidate id after render so the node exists.
+  honorPendingFocus(listEl, 'a');
 
   // Expand click handler (replaces any prior handler on re-render)
   listEl.onclick = (e) => {
-    if (e.target.closest('a')) return;
-    const item = e.target.closest('.disc-item');
-    if (item) {
-      item.classList.toggle('disc-item--expanded');
-      if (item.classList.contains('disc-item--expanded') && window.renderMath) {
-        const detail = item.querySelector('.disc-item__detail');
-        if (detail) window.renderMath(detail);
-      }
+    const loadMore = e.target.closest('[data-load-more="priority"]');
+    if (loadMore) {
+      const firstNewIndex = filtered.length;
+      visibleLimit += PAGE_SIZE;
+      renderList();
+      focusCandidateAt(listEl, 'a', firstNewIndex);
+      return;
     }
+    const expandButton = e.target.closest('.disc-item__expand');
+    if (expandButton) return setDiscoveryExpanded(expandButton.closest('.disc-item'));
+    if (e.target.closest('a, button')) return;
+    const header = e.target.closest('.disc-item__header');
+    if (header) setDiscoveryExpanded(header.closest('.disc-item'));
   };
+}
+
+function setDiscoveryExpanded(item, force) {
+  if (!item) return;
+  const expanded = typeof force === 'boolean' ? force : !item.classList.contains('disc-item--expanded');
+  item.classList.toggle('disc-item--expanded', expanded);
+  if (expanded) expandedDiscoveryIds.add(item.dataset.discoveryId);
+  else expandedDiscoveryIds.delete(item.dataset.discoveryId);
+  const button = item.querySelector('.disc-item__expand');
+  const detail = item.querySelector('.disc-item__detail');
+  if (button) {
+    button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    const label = button.querySelector('.disc-item__expand-label');
+    if (label) label.textContent = expanded
+      ? (currentLang() === 'en' ? 'Collapse' : '收起')
+      : (currentLang() === 'en' ? 'Expand' : '展开');
+  }
+  if (detail) detail.setAttribute('aria-hidden', expanded ? 'false' : 'true');
+  if (expanded && detail && window.renderMath) window.renderMath(detail);
 }
 
 // === Tier 2 renderer — simpler cards, no deep analysis ===
@@ -555,8 +612,9 @@ function renderTier2List(listEl) {
     return;
   }
 
-  listEl.innerHTML = allTier2.map((d, i) => `
-    <article class="disc-t2-item" data-index="${i}" style="animation: fadeInUp 400ms var(--ease-out-expo) ${Math.min(i * 20, 300)}ms both">
+  const visible = allTier2.slice(0, visibleLimit);
+  listEl.innerHTML = visible.map((d, i) => `
+    <article class="disc-t2-item" id="candidate-${escapeHtml(d.discovery_id)}" data-list-index="${i}" data-discovery-id="${escapeHtml(d.discovery_id)}" tabindex="-1" style="animation: fadeInUp 400ms var(--ease-out-expo) ${Math.min(i * 20, 300)}ms both">
       <div class="disc-t2-item__rank">#${d.rank}</div>
       <div class="disc-t2-item__body">
         <div class="disc-t2-item__pair">
@@ -564,29 +622,44 @@ function renderTier2List(listEl) {
             <span class="disc-t2-item__domain">${escapeHtml(L(d, "a_domain"))}</span>
             <span class="disc-t2-item__name">${escapeHtml(L(d, "a_name"))}</span>
           </div>
-          <span class="disc-t2-item__symbol">≅</span>
+          <span class="disc-t2-item__symbol" aria-label="${currentLang() === 'en' ? 'candidate similarity to test' : '待检验的候选相似'}">≈?</span>
           <div class="disc-t2-item__side disc-t2-item__side--right">
             <span class="disc-t2-item__domain">${escapeHtml(L(d, "b_domain"))}</span>
             <span class="disc-t2-item__name">${escapeHtml(L(d, "b_name"))}</span>
           </div>
         </div>
-        ${L(d, "reason") ? `<p class="disc-t2-item__reason">${escapeHtml(L(d, "reason"))}</p>` : ''}
-        ${window.StructuralEvidence ? window.StructuralEvidence.render(d.evidence || window.StructuralEvidence.fallback(d), { compact: true }) : ''}
+        <p class="disc-t2-item__reason">${escapeHtml(LT(d.candidate_summary))}</p>
+        ${renderEvidenceBoundarySummary(d)}
+        <details class="disc-t2-evidence">
+          <summary>${currentLang() === 'en' ? 'Inspect evidence fields' : '核对证据字段'}</summary>
+          ${window.StructuralEvidence ? window.StructuralEvidence.render(d.evidence || window.StructuralEvidence.fallback(d), { compact: true }) : ''}
+        </details>
       </div>
       <div class="disc-t2-item__aside">
-        <div class="disc-t2-item__sim">
-          <span class="disc-t2-item__sim-num">${Math.round((d.similarity || 0) * 100)}</span>
-          <span class="disc-t2-item__sim-unit">%</span>
-        </div>
-        ${d.a_id && d.b_id ? `
-          <a class="disc-t2-item__analyze" href="/analyze?a_id=${encodeURIComponent(d.a_id)}&id=${encodeURIComponent(d.b_id)}" onclick="event.stopPropagation()">
-            深度分析
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </a>
-        ` : ''}
+        <span class="disc-t2-item__state">${currentLang() === 'en' ? 'Candidate' : '候选'}</span>
+        <button type="button" class="disc-t2-item__analyze disc-plan-download" data-discovery-id="${escapeHtml(d.discovery_id)}">
+          ${currentLang() === 'en' ? 'Plan draft' : '验证草案'}
+        </button>
+        <a class="disc-t2-item__analyze" href="${escapeHtml(d.analyze_url)}">
+          ${currentLang() === 'en' ? 'Compare' : '比较'}
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </a>
       </div>
     </article>
-  `).join('');
+  `).join('') + paginationMarkup('candidate-pool', visible.length, allTier2.length);
+  $$('.disc-plan-download', listEl).forEach((button) => {
+    const d = allTier2.find((row) => row.discovery_id === button.dataset.discoveryId);
+    if (d) button.addEventListener('click', () => downloadValidationPlan(d));
+  });
+  honorPendingFocus(listEl, 't2');
+  listEl.onclick = (event) => {
+    if (event.target.closest('[data-load-more="candidate-pool"]')) {
+      const firstNewIndex = visible.length;
+      visibleLimit += PAGE_SIZE;
+      renderList();
+      focusCandidateAt(listEl, 't2', firstNewIndex);
+    }
+  };
 }
 
 // W3-B: render skeleton placeholders into the three load-driven regions
@@ -607,6 +680,31 @@ function renderDiscSkeletons() {
     '<div class="disc-skeleton-card" aria-hidden="true"></div>';
 }
 
+function renderLoadFailure() {
+  const stats = $('#disc-hero-stats');
+  const filters = $('#disc-filter');
+  const list = $('#disc-list');
+  if (stats) stats.innerHTML = `<p class="disc-unavailable">${currentLang() === 'en' ? 'Queue statistics are temporarily unavailable.' : '核查队列统计暂不可用。'}</p>`;
+  if (filters) filters.innerHTML = `<p class="disc-unavailable">${currentLang() === 'en' ? 'Filters will return when the candidate catalog is available.' : '候选目录恢复后将重新显示筛选项。'}</p>`;
+  if (!list) return;
+  list.innerHTML =
+    '<div class="disc-loaderror" role="alert">' +
+      '<p class="disc-loaderror__text">' +
+        (currentLang() === 'en' ? 'Candidate records are temporarily unavailable. Please try again.' : '候选记录暂时加载不出来，请重试。') +
+      '</p>' +
+      '<button type="button" class="disc-loaderror__retry" id="disc-retry">' +
+        (currentLang() === 'en' ? 'Retry' : '重试') +
+      '</button>' +
+    '</div>';
+  const retry = document.getElementById('disc-retry');
+  if (retry) retry.addEventListener('click', () => {
+    loadFailed = false;
+    dataLoaded = false;
+    renderDiscSkeletons();
+    loadDiscoveries();
+  });
+}
+
 async function loadDiscoveries() {
   const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   try {
@@ -615,7 +713,9 @@ async function loadDiscoveries() {
     const data = await resp.json();
     loadFailed = false;
     allDiscoveries = (data.discoveries || []).map(normalizeDiscovery);
-    allTier2 = data.tier2 || [];
+    allTier2 = (data.tier2 || []).map(normalizeDiscovery);
+    dataLoaded = true;
+    preparePendingCandidate();
     window.__discStats = data.stats || {};
     renderStats(data.stats || {}, data.count);
     renderFilters(data.stats || {}, data.count);
@@ -632,39 +732,26 @@ async function loadDiscoveries() {
   } catch (err) {
     // P0-4 (SESSION-17): never surface the raw JS exception (e.g. a JSON
     // SyntaxError "Unexpected token '<'") to the user. Friendly empty state
-    // with a retry button; the real error goes to the console only.
-    console.error('Failed to load discoveries:', err);
+    // with a retry button and content-free browser telemetry.
+    console.error('[discoveries] load failed');
     loadFailed = true;
-    const list = $('#disc-list');
-    if (list) {
-      list.innerHTML =
-        '<div class="disc-loaderror">' +
-          '<p class="disc-loaderror__text">' +
-            T('page.discoveries.load_failed_friendly', '内容暂时加载不出来，请稍后重试。') +
-          '</p>' +
-          '<button type="button" class="disc-loaderror__retry" id="disc-retry">' +
-            T('page.discoveries.retry', '重试') +
-          '</button>' +
-        '</div>';
-      const retry = document.getElementById('disc-retry');
-      if (retry) retry.addEventListener('click', () => {
-        loadFailed = false;
-        renderDiscSkeletons();
-        loadDiscoveries();
-      });
-    }
+    dataLoaded = false;
+    renderLoadFailure();
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   initHeaderScroll();
-  // SESSION-18 (D): read the deep-link target (?d=<rank>) once at startup.
+  // Read the stable content-derived candidate id once at startup. Legacy rank
+  // links are not guessed because reordering could silently open another pair.
   try {
-    const dParam = new URLSearchParams(location.search).get('d');
-    if (dParam) {
-      const n = parseInt(dParam, 10);
-      if (!isNaN(n)) pendingFocusRank = n;
-    }
+    const params = new URLSearchParams(location.search);
+    const candidate = params.get('candidate');
+    const legacyRank = params.get('d');
+    if (candidate && /^discovery-[0-9a-f]{16}$/.test(candidate)) pendingFocusId = candidate;
+    else if (candidate || legacyRank) deepLinkNotice = currentLang() === 'en'
+      ? 'This legacy or malformed link cannot be mapped safely. Choose the candidate from the queue.'
+      : '旧版或格式错误的链接无法安全定位，请从候选队列中重新选择。';
   } catch (e) {}
   renderDiscSkeletons();
   loadDiscoveries();
@@ -675,6 +762,10 @@ try {
   if (window.i18n && typeof window.i18n.onChange === 'function') {
     window.i18n.onChange(function () {
       try {
+        if (loadFailed) {
+          renderLoadFailure();
+          return;
+        }
         if (typeof renderStats === 'function' && window.__discStats) {
           renderStats(window.__discStats, (allDiscoveries || []).length);
         }
@@ -682,7 +773,7 @@ try {
           renderFilters(window.__discStats, (allDiscoveries || []).length);
         }
         if (typeof renderList === 'function') renderList();
-      } catch (e) { console.warn('[discoveries rerender]', e); }
+      } catch (e) { console.warn('[discoveries] rerender failed'); }
     });
   }
 } catch (e) {}

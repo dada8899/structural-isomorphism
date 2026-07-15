@@ -6,7 +6,11 @@ Layer 2 — integration: TestClient against the method_search router, with
 """
 from __future__ import annotations
 
+import asyncio
+import json
+import re
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -154,10 +158,72 @@ async def test_run_method_search_degrades_without_llm(monkeypatch):
          "description": "d1", "relevance": 0.9, "score": 0.8},
     ])
     out = await mss.run_method_search("梯度下降", fake, top_n=5)
-    assert out["llm_used"] is False
+    assert out["signature_origin"] == "input_fallback"
     assert out["signature"] == "梯度下降"
     assert out["count"] == 1
-    assert out["matches"][0]["apply_note"] == ""  # no LLM → no note
+    assert out["candidates"][0]["candidate_note"] is None
+    assert out["candidates"][0]["retrieval_rank"] == 1
+
+
+@pytest.mark.anyio
+async def test_run_method_search_hanging_llm_returns_local_results_within_budget(
+    monkeypatch,
+):
+    """Neither optional LLM stage may hold the first useful result hostage."""
+    from services import llm_client
+
+    async def hanging_complete_json(**kwargs):
+        await asyncio.sleep(60)
+
+    monkeypatch.setattr(llm_client, "llm_available", lambda: True)
+    monkeypatch.setattr(llm_client, "complete_json", hanging_complete_json)
+    monkeypatch.setattr(mss, "METHOD_SEARCH_TOTAL_BUDGET_SECONDS", 0.12)
+    monkeypatch.setattr(mss, "SIGNATURE_TIMEOUT_SECONDS", 0.04)
+    monkeypatch.setattr(mss, "ANNOTATION_TIMEOUT_SECONDS", 0.04)
+    fake = _FakeSearch(list(_SAMPLE_RESULTS))
+
+    started = time.monotonic()
+    out = await asyncio.wait_for(
+        mss.run_method_search("模拟退火", fake, top_n=2),
+        timeout=0.3,
+    )
+    elapsed = time.monotonic() - started
+
+    assert elapsed < 0.2
+    assert out["signature_origin"] == "input_fallback"
+    assert out["signature"] == "模拟退火"
+    assert out["count"] == 2
+    assert all(candidate["candidate_note"] is None for candidate in out["candidates"])
+
+
+@pytest.mark.anyio
+async def test_run_method_search_caps_annotation_after_fast_signature(monkeypatch):
+    from services import llm_client
+
+    calls: list[float] = []
+
+    async def signature_then_hanging_note(**kwargs):
+        calls.append(kwargs["timeout"])
+        if len(calls) == 1:
+            return {"signature": "局部扰动跳出极值", "keywords": ["局部搜索"]}
+        await asyncio.sleep(60)
+
+    monkeypatch.setattr(llm_client, "llm_available", lambda: True)
+    monkeypatch.setattr(llm_client, "complete_json", signature_then_hanging_note)
+    monkeypatch.setattr(mss, "METHOD_SEARCH_TOTAL_BUDGET_SECONDS", 0.12)
+    monkeypatch.setattr(mss, "SIGNATURE_TIMEOUT_SECONDS", 0.04)
+    monkeypatch.setattr(mss, "ANNOTATION_TIMEOUT_SECONDS", 0.04)
+
+    out = await asyncio.wait_for(
+        mss.run_method_search("模拟退火", _FakeSearch(list(_SAMPLE_RESULTS)), top_n=2),
+        timeout=0.3,
+    )
+
+    assert out["signature_origin"] == "model_generated"
+    assert out["signature"] == "局部扰动跳出极值"
+    assert out["count"] == 2
+    assert all(candidate["candidate_note"] is None for candidate in out["candidates"])
+    assert calls == [0.04, pytest.approx(0.04, abs=0.01)]
 
 
 @pytest.fixture
@@ -218,15 +284,31 @@ def patched(monkeypatch):
 
 def test_endpoint_success_with_llm(client, patched):
     """Happy path: signature extracted + notes attached."""
-    resp = client.post("/api/method/apply", json={"method": "梯度下降算法", "top_n": 5})
+    resp = client.post("/api/method/apply", json={
+        "method": "梯度下降算法", "top_n": 5,
+        "client_request_id": "apply-request-00001",
+    })
     assert resp.status_code == 200
     body = resp.json()
-    assert body["llm_used"] is True
+    assert body["signature_origin"] == "model_generated"
+    assert body["request_id"] == "apply-request-00001"
+    assert body["contract_version"] == "secondary-tools-v2"
     assert body["signature"] == "在反馈下沿局部信息迭代逼近最优"
     assert body["keywords"] == ["迭代", "局部信息"]
     assert body["count"] == 2
-    assert body["matches"][0]["id"] == "p1"
-    assert body["matches"][0]["apply_note"]  # note present
+    assert body["candidates"][0]["id"] == "p1"
+    assert body["candidates"][0]["candidate_note"]
+    assert body["candidates"][0]["retrieval_rank"] == 1
+    assert "score" not in body["candidates"][0]
+    assert body["candidates"][0]["evidence"]["candidate"]["score"] is None
+
+
+def test_endpoint_rejects_out_of_scope_before_search_pipeline(client, patched):
+    response = client.post(
+        "/api/method/apply", json={"method": "2 + 2 等于多少，请直接告诉我答案"}
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"]["error"] == "out_of_scope"
 
 
 def test_endpoint_degrades_when_llm_unavailable(client, patched):
@@ -235,10 +317,10 @@ def test_endpoint_degrades_when_llm_unavailable(client, patched):
     resp = client.post("/api/method/apply", json={"method": "梯度下降算法"})
     assert resp.status_code == 200
     body = resp.json()
-    assert body["llm_used"] is False
+    assert body["signature_origin"] == "input_fallback"
     assert body["signature"] == "梯度下降算法"  # raw method text
     assert body["count"] == 2
-    assert all(m["apply_note"] == "" for m in body["matches"])
+    assert all(c["candidate_note"] is None for c in body["candidates"])
 
 
 def test_endpoint_rejects_empty_input(client, patched):
@@ -275,3 +357,47 @@ def test_endpoint_top_n_clamped(client, patched):
     resp = client.post("/api/method/apply", json={"method": "梯度下降", "top_n": 1})
     assert resp.status_code == 200
     assert resp.json()["count"] == 1
+
+
+def test_endpoint_pipeline_failure_logs_only_safe_incident_metadata(
+    client,
+    patched,
+    monkeypatch,
+):
+    from api import method_search as ms_api
+
+    canaries = (
+        "query-canary-a116cf",
+        "Bearer-token-canary-6f922c",
+        "privacy-canary@example.test",
+    )
+    entries: list[dict] = []
+
+    class RecordingLogger:
+        def error(self, event: str, *args, **fields) -> None:
+            assert not args
+            entries.append({"event": event, **fields})
+
+    async def fail_with_private_exception(method_text, search_svc, top_n):
+        raise RuntimeError(" ".join((method_text, *canaries)))
+
+    monkeypatch.setattr(ms_api, "logger", RecordingLogger())
+    monkeypatch.setattr(ms_api, "run_method_search", fail_with_private_exception)
+
+    response = client.post(
+        "/api/method/apply",
+        json={"method": canaries[0], "top_n": 2},
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Method search failed"}
+    assert len(entries) == 1
+    assert entries[0]["event"] == "retrieval.method_pipeline_failed"
+    assert entries[0]["error_type"] == "RuntimeError"
+    incident_id = entries[0]["incident_id"]
+    assert re.fullmatch(r"[0-9a-f]{32}", incident_id)
+    assert response.headers["x-incident-id"] == incident_id
+    serialized = json.dumps(entries)
+    for canary in canaries:
+        assert canary not in serialized
+    assert "traceback" not in serialized.casefold()

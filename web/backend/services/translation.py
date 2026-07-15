@@ -26,15 +26,20 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import os
 from typing import Dict, Iterable, List, Optional
 
-import httpx
+if __package__ == "web.backend.services":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
-from services.llm_service import OPENROUTER_URL, _get_http_client
+if __package__ == "web.backend.services":
+    from .llm_service import OPENROUTER_URL, _get_http_client
+else:
+    from services.llm_service import OPENROUTER_URL, _get_http_client
 
-logger = logging.getLogger("structural.translation")
+logger = get_logger("structural.translation")
 
 # Process-local cache: id -> translated dict (at minimum name/domain/description)
 _TRANSLATE_CACHE: Dict[str, Dict[str, str]] = {}
@@ -148,8 +153,12 @@ async def _llm_translate_batch(items: List[Dict]) -> List[Dict[str, str]]:
         for i in range(len(items)):
             result.append(by_i.get(i, {}))
         return result
-    except Exception as e:
-        logger.warning(f"KB translate batch failed ({len(items)} items): {e}")
+    except Exception as exc:
+        logger.warning(
+            "llm.translation_batch_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return []
 
 

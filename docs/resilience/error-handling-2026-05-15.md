@@ -11,16 +11,16 @@ Next.js gives us two boundary slots; we use both, with different scopes and diff
 
 | Boundary | File | Catches | Fallback fidelity |
 |---|---|---|---|
-| Page-level | `app/error.tsx` | Errors thrown by any segment _below_ `app/layout.tsx`. The layout (nav, footer, banner) keeps rendering around the failing route. | Full styling — uses `@/lib/error-reporter` for auto-report + a pre-filled GitHub issue URL. |
-| Root-level | `app/global-error.tsx` | Errors thrown by `app/layout.tsx` itself (font loader broke, top-level provider died). | Minimal — own `<html>`/`<body>`, no `@/` aliases. Auto-reports via raw `fetch` so a borked bundler can still surface the incident. |
+| Page-level | `app/error.tsx` | Errors thrown by any segment _below_ `app/layout.tsx`. The layout (nav, footer, banner) keeps rendering around the failing route. | Full styling — uses `@/lib/error-reporter` for content-free auto-reporting plus a user-initiated GitHub issue URL. |
+| Root-level | `app/global-error.tsx` | Errors thrown by `app/layout.tsx` itself (font loader broke, top-level provider died). | Minimal — own `<html>`/`<body>`, no `@/` aliases. Auto-reports the same content-free envelope via raw `fetch`. |
 
 Both boundaries:
 
-- Log the error to the console (so it's still visible in DevTools).
-- Auto-POST a sanitised summary to `/api/errors` (fire-and-forget, never throws).
+- Log only a constant failure category to the console; the `Error` object is not printed.
+- Auto-POST an allowlisted error class, timestamp, and fatal flag to `/api/errors` (fire-and-forget, never throws).
 - Show the `error.digest` to the user so they can copy it into a bug report.
 
-The page-level boundary additionally renders a "Report this ↗" link that pre-fills a GitHub issue with title, digest, URL, and browser. The user is one click away from a useful bug report; no need to copy/paste.
+The page-level boundary additionally renders a "Report this ↗" link. It pre-fills only a fixed generic title and instructions; it does not read or insert the error object, digest, time, page URL, or browser fingerprint. The user decides what to add before submitting the public issue.
 
 ## 2. Service-worker caching strategy
 
@@ -43,22 +43,19 @@ Cache names are versioned (`phase-static-v1-2026-05-15` etc.). On `activate`, an
 
 ## 3. Error reporting privacy
 
-`/api/errors` accepts a strict schema (`pydantic` with `extra="forbid"`). Anything outside the allow-list is rejected with 422 — this is the load-bearing guarantee that no `localStorage` blobs, query strings, or arbitrary fields can leak into the log.
+`/api/errors` accepts a strict schema (`pydantic` with `extra="forbid"`). It accepts only the following content-free envelope. Pre-hardening tabs that still send raw message, stack, digest, URL, User-Agent, or session fields receive `422`; those values never enter the accepted application model.
 
 | Field | Bound | Stripping |
 |---|---|---|
-| `message` | 1..500 chars | none beyond truncation |
-| `stack` | ≤ 4000 chars | none |
-| `digest` | ≤ 64 chars | none |
-| `url` | ≤ 500 chars | **query string stripped server-side** (`urlsplit` → empty `query`/`fragment`) |
-| `userAgent` | ≤ 300 chars | none — the browser sends it anyway |
-| `sessionId` | ≤ 64 chars | opaque uuid generated client-side, lives in `localStorage`; not tied to any account |
+| `message` | fixed allowlist | Compatibility field containing only a coarse class such as `TypeError`; never `Error.message` |
+| `timestamp` | integer | Used only while queued; persistence uses server time |
+| `fatal` | boolean | Distinguishes a root-boundary crash |
 
-Two layers strip the query string: the client (`lib/error-reporter.ts`) and the server. Defence in depth — a misconfigured client can't accidentally smuggle PII through the URL.
+`lib/error-reporter.ts` sanitizes again immediately before network transmission and before every local-storage write. When a new release encounters an older offline queue, it keeps only an allowlisted error class, timestamp, and fatal flag and removes every raw field before retrying. The durable server row contains only event name, coarse error type, fatal flag, server time, and a random incident ID.
 
 ## 4. Rate limiting + rotation
 
-- **Limit**: 10 reports / 60 s per `sessionId` (sliding window). Anonymous reports without `sessionId` are bucketed by client IP instead. Implemented as an in-memory `Dict[str, deque[float]]` — sufficient for client-side instrumentation that fires single-digit reports.
+- **Limit**: 10 reports / 60 s. Requests are bucketed by an ephemeral HMAC of the client IP observed by the trusted server path. The address is neither written to disk nor placed in application logs. Client-supplied session IDs are rejected.
 - **Limited response**: HTTP 200 with `{accepted: false, reason: "rate_limited"}`. We do not 429 so the client doesn't need branchy error handling for a non-actionable status.
 - **Rotation**: when `error_log.jsonl` crosses 10 MB, it's renamed to `error_log.jsonl.1` (single-slot rotation). Disk usage stays bounded ≤ 20 MB.
 
@@ -66,22 +63,22 @@ Two layers strip the query string: the client (`lib/error-reporter.ts`) and the 
 
 A typical bug report comes in as one or both of:
 
-1. A GitHub issue auto-filled by the user (title prefix `[user-report]`), containing the `Digest` field.
-2. A `/api/errors` jsonl record for the same `digest`.
+1. A GitHub issue opened and completed by the user (title prefix `[user-report]`), optionally containing the opaque Next.js digest shown on screen.
+2. A content-free `/api/errors` jsonl incident near the same server time.
 
 To find the record:
 
 ```bash
 ssh root@43.156.233.71 \
-  "jq -c 'select(.digest == \"<digest>\")' \
+  "jq -c 'select(.incident_id == \"<incident-id>\")' \
      /root/Projects/structural-isomorphism/web/backend/data/error_log.jsonl \
      /root/Projects/structural-isomorphism/web/backend/data/error_log.jsonl.1 2>/dev/null"
 ```
 
-The record exposes the redacted URL, user-agent, truncated stack, and `sessionId`. For repeated incidents, group by `sessionId` to see whether one user is hitting the same path multiple times — that's usually a stale browser tab against a fresh deploy, fixable by hard reload.
+The record exposes no page, device, user, session, message, or stack content. Correlate only by incident ID, coarse error type, fatal flag, and a bounded time window. Ask the reporting user for reproduction steps rather than reconstructing their activity from telemetry.
 
 ## 6. Deferred work
 
-- **Real Sentry integration** — current endpoint is a mock receiver. Migration plan: swap the `_data_file()` write for a `sentry_sdk.capture_event()` call inside the same router, keeping the rate-limit + schema layer in front. The frontend's `lib/error-reporter.ts` API does not need to change.
+- **Real Sentry integration** — current endpoint is a local receiver. Any future processor must receive only the same content-free event type, status, and opaque incident/correlation IDs; request data, messages, breadcrumbs, stack variables, and raw transactions stay disabled.
 - **Cache warming** — the SW only precaches `/offline`. We could opportunistically warm the homepage `/` and the most-viewed company pages on `install`. Deferred until we measure how often users actually hit offline mode.
 - **next-pwa migration** — if/when we need workbox features (background sync, push), revisit; for now hand-rolled stays.

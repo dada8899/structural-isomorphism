@@ -577,6 +577,7 @@ body.is-home .ask-main {
 .ask-fingerprint__field input:focus,
 .ask-fingerprint__field textarea:focus { outline: 2px solid var(--accent, #4f46e5); outline-offset: 1px; }
 #ask-fingerprint-error { color: #b91c1c; font-size: 12px; }
+.ask-fingerprint__buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 
 .ask-thread-item__fingerprint { display: grid; gap: 5px; margin: 12px 0 18px; padding: 14px; border-left: 3px solid var(--accent, #4f46e5); background: #fafafa; color: var(--text-secondary); font-size: 12px; }
 .ask-thread-item__fingerprint p { margin: 0; color: var(--text-primary); font-size: 14px; }
@@ -585,6 +586,7 @@ body.is-home .ask-main {
   .ask-fingerprint { padding: 16px; }
   .ask-fingerprint__grid { grid-template-columns: 1fr; gap: 0; }
   .ask-fingerprint__actions { align-items: stretch; flex-direction: column; }
+  .ask-fingerprint__buttons { display: grid; }
   .ask-fingerprint__actions .btn { min-height: 44px; width: 100%; }
 }
 .ask-kb-card:hover {

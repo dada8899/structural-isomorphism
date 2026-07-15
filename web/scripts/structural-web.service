@@ -9,7 +9,11 @@ WorkingDirectory=/root/Projects/structural-isomorphism/web/backend
 Environment="PYTHONPATH=/root/Projects/structural-isomorphism"
 EnvironmentFile=/root/Projects/structural-isomorphism/web/backend/.env
 EnvironmentFile=/root/.config/structural-isomorphism/beta-auth.env
-ExecStart=/root/Projects/structural-isomorphism/venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 5004
+# `current` is an atomic symlink managed by deploy-vps.sh. Releases underneath
+# it are immutable and identified by Python ABI + requirements SHA-256.
+# Nginx owns path-only request telemetry. Uvicorn's default access line embeds
+# the complete request target, including legacy query strings and auth tokens.
+ExecStart=/root/structural-runtime/current/bin/python -m uvicorn main:app --host 127.0.0.1 --port 5004 --no-access-log
 # Keep the unit in "activating" until the model, canonical KB, embeddings and
 # artifact manifest are genuinely ready. This closes the reboot window where
 # systemd reported active while nginx still received connection refused.

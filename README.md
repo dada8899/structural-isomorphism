@@ -123,7 +123,8 @@ Cross-domain universality claims have a long history of being over-generated and
 
 ```bash
 make test-fast          # root offline baseline
-make verify-release     # backend + all packages + retrieval + Phase build
+make llm-scaling-env    # first: create the locked Python 3.11 artifact-check environment
+make verify-release     # then: API artifacts + backend/packages/retrieval + browser + Phase build
 make test-e2e           # live deployments (non-blocking signal in CI)
 ```
 

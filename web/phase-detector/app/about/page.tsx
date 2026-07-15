@@ -144,10 +144,10 @@ export default function AboutPage() {
           <li>
             邮箱：
             <a
-              href="mailto:riazward110@gmail.com"
+              href="mailto:hello@bytedance.city"
               className="text-blue-600 hover:underline"
             >
-              riazward110@gmail.com
+              hello@bytedance.city
             </a>
           </li>
           <li>
@@ -188,10 +188,10 @@ export default function AboutPage() {
           <li>
             <strong>次选</strong>：邮箱{" "}
             <a
-              href="mailto:riazward110@gmail.com"
+              href="mailto:hello@bytedance.city"
               className="text-blue-600 hover:underline"
             >
-              riazward110@gmail.com
+              hello@bytedance.city
             </a>
           </li>
         </ul>
@@ -204,11 +204,11 @@ export default function AboutPage() {
         <div className="flex flex-wrap gap-3 text-sm">
           <Link
             href="/methodology"
-            className="text-blue-600 hover:underline"
+            className="inline-flex min-h-11 items-center text-blue-600 hover:underline"
           >
             方法论详解 →
           </Link>
-          <Link href="/" className="text-blue-600 hover:underline">
+          <Link href="/" className="inline-flex min-h-11 items-center text-blue-600 hover:underline">
             打开公司表 →
           </Link>
           <a

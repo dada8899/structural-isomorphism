@@ -65,7 +65,7 @@ async function safeJson<T>(res: Response): Promise<T | null> {
     return JSON.parse(text) as T;
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn("[api] malformed JSON response:", err);
+    console.warn("[api] malformed JSON response rejected");
     return null;
   }
 }

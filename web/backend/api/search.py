@@ -15,8 +15,9 @@ from collections import Counter
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
+from services.input_limits import MAX_RESEARCH_QUERY_CHARS, normalize_research_query
 from services.llm_service import LLMService
 from services.rate_limit import tier_limit_decorator
 from services.translation import translate_category, translate_kb_items
@@ -36,7 +37,7 @@ def _get_llm() -> LLMService:
 
 
 class SearchRequest(BaseModel):
-    query: str = Field(..., min_length=1, max_length=500)
+    query: str = Field(..., min_length=1, max_length=MAX_RESEARCH_QUERY_CHARS)
     top_k: int = Field(12, ge=1, le=30)
     # Default False: the fast path skips the LLM rewrite/assessment entirely.
     # The frontend calls /api/search/assess separately when it wants the gate.
@@ -45,10 +46,20 @@ class SearchRequest(BaseModel):
     # optional LLM rewrite/assessment. Vector search itself is language-neutral.
     lang: str = Field("zh", description="Output language for LLM-generated text: 'zh' or 'en'")
 
+    @field_validator("query", mode="before")
+    @classmethod
+    def normalize_query(cls, value: object) -> str:
+        return normalize_research_query(value)  # type: ignore[arg-type]
+
 
 class AssessRequest(BaseModel):
-    query: str = Field(..., min_length=1, max_length=500)
+    query: str = Field(..., min_length=1, max_length=MAX_RESEARCH_QUERY_CHARS)
     lang: str = Field("zh", description="Output language for LLM-generated text: 'zh' or 'en'")
+
+    @field_validator("query", mode="before")
+    @classmethod
+    def normalize_query(cls, value: object) -> str:
+        return normalize_research_query(value)  # type: ignore[arg-type]
 
 
 class SearchResult(BaseModel):
@@ -57,7 +68,9 @@ class SearchResult(BaseModel):
     domain: str
     type_id: str
     description: str
-    # Fused BM25+embedding ranking score, [0, 1]. Use for visual tiering.
+    # Uncalibrated fused ranking signal for this query only. It is retained
+    # for API compatibility and internal ordering; never render it as a
+    # percentage, confidence, evidence tier, or cross-query measurement.
     score: float
     # Session #17 V3 — unified relevance口径 in [0, 1]. This is the SAME
     # value the /api/analyze scope gate uses, so a result shown here will
@@ -179,7 +192,7 @@ async def search_phenomena(request: Request, req: SearchRequest):
         {
             **r,
             "evidence": retrieval_candidate(
-                r,
+                {**r, "score": None, "relevance": None},
                 counterexample=(
                     "Variable mapping, causal direction, and boundary conditions have not been tested."
                     if lang_norm == "en" else
@@ -216,7 +229,9 @@ async def search_phenomena(request: Request, req: SearchRequest):
                 "evidence": build_evidence_envelope(
                     candidate_kind="v2_model_pair_candidate",
                     candidate_label=p.get("other_name"),
-                    candidate_score=p.get("similarity"),
+                    # The V2 value is an internal screen/ranking signal, not
+                    # calibrated public evidence or a success probability.
+                    candidate_score=None,
                     source_kind="internal_kb",
                     source_label="Structural V2 pair index",
                     result_provenance="INTERNAL_AI_SCREEN",

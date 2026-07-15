@@ -9,6 +9,8 @@ deterministic.
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -390,15 +392,41 @@ def test_openapi_admin_path_requires_security():
             )
 
 
-def test_openapi_json_file_exists():
-    """The exported OpenAPI artifact should be committed."""
+def test_openapi_operation_ids_are_unique():
+    from main import app
+
+    spec = app.openapi()
+    operation_ids = []
+    for path_item in spec.get("paths", {}).values():
+        for operation in path_item.values():
+            if isinstance(operation, dict) and operation.get("operationId"):
+                operation_ids.append(operation["operationId"])
+    assert len(operation_ids) == len(set(operation_ids))
+
+
+def test_openapi_json_is_exactly_synced():
+    """The committed artifact must exactly match this worktree's application."""
     project_root = _BACKEND_ROOT.parent.parent
     spec_path = project_root / "docs" / "api" / "openapi.json"
-    assert spec_path.exists(), f"missing {spec_path}"
-    with open(spec_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    assert "paths" in data
-    assert len(data["paths"]) > 10
+    generator = project_root / "scripts" / "openapi_artifact.py"
+    dedicated_python = project_root / ".venv-openapi" / "bin" / "python"
+    generator_python = os.environ.get(
+        "STRUCTURAL_OPENAPI_TEST_PYTHON",
+        str(dedicated_python) if dedicated_python.is_file() else sys.executable,
+    )
+    result = subprocess.run(
+        [generator_python, str(generator), "--check", "--artifact", str(spec_path)],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, (
+        "docs/api/openapi.json is stale or could not be verified; run "
+        "`make openapi-generate`.\n"
+        f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    )
 
 
 # -------------- contextvar isolation ----------------------

@@ -12,18 +12,13 @@ name: types-sync
 on:
   pull_request:
     branches: [main]
-    paths:
-      - "web/backend/schemas.py"
-      - "web/backend/api/**"
-      - "web/phase-detector/lib/api-types.ts"
-      - "scripts/gen_ts_types.sh"
-      - ".github/workflows/types-sync.yml"
   push:
     branches: [main]
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: write
@@ -41,15 +36,14 @@ jobs:
       - name: Install pydantic-to-typescript
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pydantic-to-typescript pydantic
+          python -m pip install -r scripts/requirements-types.txt
 
       - name: Install json-schema-to-typescript
-        run: npm install -g json-schema-to-typescript@15
+        run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/types-generator
 
       - name: Regenerate api-types.ts
         env:
           PY: python
-          PYDANTIC2TS: pydantic2ts
         run: bash scripts/gen_ts_types.sh
 
       - name: Diff committed vs regenerated

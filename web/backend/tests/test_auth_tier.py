@@ -139,7 +139,9 @@ def test_get_rate_limit_tier_unknown_falls_back_to_anonymous():
 def test_tier_limit_anonymous_has_ip_suffix(monkeypatch):
     monkeypatch.delenv("STRUCTURAL_API_TOKENS", raising=False)
     req = _make_request(client_host="198.51.100.42")
-    assert tier_limit(req) == "anonymous:198.51.100.42"
+    key = tier_limit(req)
+    assert key.startswith("anonymous:legacy-api-rate.ip:v2:")
+    assert "198.51.100.42" not in key
 
 
 def test_tier_limit_paid_promotes(monkeypatch):
@@ -148,7 +150,9 @@ def test_tier_limit_paid_promotes(monkeypatch):
         headers={"Authorization": "Bearer tok_paid_abc"},
         client_host="198.51.100.42",
     )
-    assert tier_limit(req) == "paid:198.51.100.42"
+    key = tier_limit(req)
+    assert key.startswith("paid:legacy-api-rate.ip:v2:")
+    assert "198.51.100.42" not in key
 
 
 def test_tier_limit_invalid_token_buckets_as_anonymous(monkeypatch):
@@ -158,4 +162,6 @@ def test_tier_limit_invalid_token_buckets_as_anonymous(monkeypatch):
         headers={"Authorization": "Bearer wrong"},
         client_host="198.51.100.42",
     )
-    assert tier_limit(req) == "anonymous:198.51.100.42"
+    key = tier_limit(req)
+    assert key.startswith("anonymous:legacy-api-rate.ip:v2:")
+    assert "198.51.100.42" not in key

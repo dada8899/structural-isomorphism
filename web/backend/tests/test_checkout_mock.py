@@ -35,13 +35,78 @@ def client(tmp_path, monkeypatch):
     # Redirect jsonl persistence to tmp so tests don't pollute repo data dir.
     tmp_file = tmp_path / "data" / "mock_checkouts.jsonl"
     monkeypatch.setattr(cm, "_data_file", lambda: tmp_file)
+    monkeypatch.setenv("STRUCTURAL_ENV", "dev")
 
     app = FastAPI()
     app.include_router(cm.router, prefix="/api")
     return TestClient(app)
 
 
+@pytest.fixture
+def production_client(tmp_path, monkeypatch):
+    tmp_file = tmp_path / "data" / "mock_checkouts.jsonl"
+    monkeypatch.setattr(cm, "_data_file", lambda: tmp_file)
+    monkeypatch.setenv("STRUCTURAL_ENV", "prod")
+    app = FastAPI()
+    app.include_router(cm.router, prefix="/api")
+    return TestClient(app), tmp_file
+
+
 # ---------- POST /api/checkout/mock ----------
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"tier": "pro", "interval": "month", "email": "ok@example.com", "force_status": "success"},
+        {"tier": "team", "interval": "year", "email": "decline@example.com", "force_status": "declined"},
+        {"tier": "invalid", "interval": "invalid", "email": "not-an-email"},
+    ],
+)
+def test_production_checkout_is_retired_without_persistence(production_client, payload):
+    client, data_file = production_client
+    response = client.post("/api/checkout/mock", json=payload)
+
+    assert response.status_code == 410
+    assert response.json()["error"] == "legacy_checkout_retired"
+    assert not data_file.exists()
+
+
+@pytest.mark.parametrize(
+    "request_kwargs",
+    [
+        {"json": {"tier": "pro", "interval": "month"}},
+        {
+            "content": b'{"tier":',
+            "headers": {"content-type": "application/json"},
+        },
+    ],
+)
+def test_production_checkout_rejects_malformed_body_before_retirement_handler(
+    production_client, request_kwargs,
+):
+    client, data_file = production_client
+
+    response = client.post("/api/checkout/mock", **request_kwargs)
+
+    assert response.status_code == 422
+    assert not data_file.exists()
+
+
+@pytest.mark.parametrize(
+    "request_kwargs",
+    [
+        {"headers": {"x-mock-tier": "pro"}},
+        {"cookies": {"mock_tier": "team"}},
+        {"params": {"tier": "pro"}},
+    ],
+)
+def test_production_usage_ignores_mock_tier_spoofing(production_client, request_kwargs):
+    client, _ = production_client
+    response = client.get("/api/usage", **request_kwargs)
+
+    assert response.status_code == 200
+    assert response.json()["tier"] == "free"
+    assert response.json()["ticker_limit"] == 100
 
 def test_success_returns_customer_and_session_ids(client):
     r = client.post(
@@ -124,6 +189,9 @@ def test_persists_success_to_jsonl(client, tmp_path):
     assert row["amount_usd"] == 19
     assert "customer_id" in row
     assert "ts" in row and "iso" in row
+    assert "ip" not in row
+    assert "ua" not in row
+    assert "referrer" not in row
 
 
 def test_persists_decline_to_jsonl(client):

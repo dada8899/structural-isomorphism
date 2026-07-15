@@ -68,3 +68,42 @@ If reintroduced, the prereq work above must land first as its own milestone
   py3.11 / py3.12 due to the three failure classes above. Pragmatic call:
   drop Windows entirely, keep macOS for dev parity. Documented here so
   future contributors don't re-add Windows assuming it was "just slow".
+
+## 2026-07-14 release-gate aggregation and external boundary
+
+`.github/release-gate-manifest.json` is the single repository authority for
+release checks. The `release-gate-summary` job in `ci.yml` fails closed over
+all CI-internal jobs, including both browser contracts. Type regeneration,
+the canonical sanity suite, and the three-run beta performance audit remain
+separate workflows so their evidence and timeouts stay independently visible.
+
+GitHub Actions cannot express `needs` across workflow files. Therefore the
+final merge boundary is external: main-branch protection must require every
+check in `branch_protection_required_checks` from the manifest. A green
+`release-gate-summary` alone is insufficient. The types and performance
+workflows intentionally run on every pull request and push to `main`; adding
+path filters would make a required check remain absent or pending.
+
+Branch protection must use the manifest's exact `context` values, not assume
+that a workflow job id is the emitted check name. GitHub Actions emits the
+job-level `name` when present; only unnamed jobs fall back to their job id.
+The desired contexts are `release-gate`, `sanity`, `check`, and
+`beta-perf-audit`.
+
+The live protection API is authoritative. As checked on 2026-07-14, `main`
+was strict but required only `sanity`, so the external release boundary was
+not yet satisfied. Do not add a context before a pull request has emitted its
+check run: first confirm all four names from the PR checks, update branch
+protection, then read the protection API again and compare its exact context
+set with the manifest. The manifest is a configuration contract, not evidence
+that the repository setting has already been applied.
+
+The TypeScript generator has two evidence levels. Local `make types-check`
+proves byte reproducibility in the current developer runtime; it is not an
+attestation against a hostile same-UID process that can replace the checkout,
+interpreter, or native executables. Release evidence comes from the required
+`check` job on a clean GitHub runner: `actions/setup-node` establishes the Node
+runtime, `npm ci --ignore-scripts` reconstructs the content-locked dependency
+tree, and the generated artifact must byte-match the committed file. The
+generator additionally rejects shell command overrides, package-entrypoint
+escape, entrypoint content drift, script wrappers, and Node identity mismatch.

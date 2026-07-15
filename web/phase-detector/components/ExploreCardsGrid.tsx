@@ -103,14 +103,14 @@ export function ExploreCardsGrid({ cards }: Props) {
               key={c.ticker}
               href={`/company/${encodeURIComponent(c.ticker)}`}
               data-testid="explore-card"
-              className="group block rounded-2xl border border-zinc-200 bg-white p-5 transition-all duration-150 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-[0_8px_24px_-12px_rgba(79,70,229,0.18)]"
+              className="group block min-w-0 rounded-2xl border border-zinc-200 bg-white p-5 transition-all duration-150 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-[0_8px_24px_-12px_rgba(79,70,229,0.18)]"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <div className="min-w-0">
                   <div className="font-mono text-base font-semibold tracking-tight text-zinc-900">
                     {c.ticker}
                   </div>
-                  <div className="mt-0.5 text-xs uppercase tracking-wider text-zinc-500">
+                  <div className="mt-0.5 truncate text-xs uppercase tracking-wider text-zinc-500">
                     {c.sector}
                   </div>
                 </div>
@@ -119,7 +119,7 @@ export function ExploreCardsGrid({ cards }: Props) {
                   height="28"
                   viewBox="0 0 80 28"
                   aria-hidden="true"
-                  className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100"
+                  className="h-7 w-20 max-w-[36%] shrink-0 opacity-70 transition-opacity group-hover:opacity-100"
                 >
                   <path
                     d={sparkPath}

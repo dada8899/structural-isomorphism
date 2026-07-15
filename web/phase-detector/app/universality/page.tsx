@@ -220,17 +220,19 @@ export default function UniversalityExplorerPage() {
       )}
 
       <footer className="border-t border-zinc-200 pt-4 text-xs text-zinc-500">
-        想并排对比公司？{" "}
-        <Link href="/compare" className="text-zinc-900 underline hover:text-zinc-700">
-          打开 /compare
-        </Link>
-        。{" "}
-        <a
-          href="https://beta.structural.bytedance.city"
-          className="inline-flex min-h-11 items-center font-medium text-indigo-700 underline underline-offset-4"
-        >
-          返回 Structural 主产品 / Back to main product ↗
-        </a>
+        <p>
+          想并排对比公司？{" "}
+          <Link href="/compare" className="text-zinc-900 underline hover:text-zinc-700">
+            打开 /compare
+          </Link>
+          。{" "}
+          <a
+            href="https://beta.structural.bytedance.city"
+            className="inline-flex min-h-11 items-center font-medium text-indigo-700 underline underline-offset-4"
+          >
+            返回 Structural 主产品 / Back to main product ↗
+          </a>
+        </p>
       </footer>
     </div>
   );

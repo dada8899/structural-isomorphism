@@ -179,11 +179,11 @@ def test_default_anon_param_is_respected_per_endpoint():
     "module_name,route_path,method",
     [
         ("api.ask", "/ask/stream", "POST"),
-        ("api.analyze", "/analyze/stream", "GET"),
+        ("api.analyze", "/analyze/stream", "POST"),
         ("api.search", "/search", "POST"),
         ("api.search", "/search/assess", "POST"),
         ("api.mapping", "/mapping", "POST"),
-        ("api.mapping", "/mapping/stream", "GET"),
+        ("api.mapping", "/mapping/stream", "POST"),
         ("api.synthesize", "/synthesize", "POST"),
         ("api.synthesize", "/synthesize/stream", "POST"),
         ("api.admin.logs", "/admin/logs/tail", "GET"),

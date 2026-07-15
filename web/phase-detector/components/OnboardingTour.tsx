@@ -29,34 +29,22 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Events } from "@/lib/analytics";
+import { usePathname } from "next/navigation";
+import { Events, trackEvent, type EventName } from "@/lib/analytics";
 
 // Local event names (kept here so the tour file is self-contained; also
 // listed in docs/analytics/plausible-events.md).
 const TOUR_EVENTS = {
-  Started: "tour_started",
-  NextStep: "tour_next_step",
-  Skipped: "tour_skipped",
-  Completed: "tour_completed",
-  Restarted: "tour_restarted_from_nav",
+  Started: Events.TourStarted,
+  NextStep: Events.TourNextStep,
+  Skipped: Events.TourSkipped,
+  Completed: Events.TourCompleted,
+  Restarted: Events.TourRestartedFromNav,
 } as const;
 
-function safeTrack(name: string, props?: Record<string, string | number | boolean>) {
-  if (typeof window === "undefined") return;
-  const p = (window as Window).plausible;
-  if (typeof p !== "function") return;
-  try {
-    p(name, props ? { props } : undefined);
-  } catch {
-    // Analytics must never throw.
-  }
+function safeTrack(name: EventName, props?: Record<string, string | number | boolean>) {
+  trackEvent(name, props);
 }
-
-// Voids the Events const-unused warning while keeping the import for future
-// shared Events wiring. (Tour events live in their own namespace until we
-// add them to lib/analytics.ts in a follow-up; bundling that change here
-// would balloon the diff.)
-void Events;
 
 const STORAGE_KEY = "phase_tour_seen";
 const AUTO_START_DELAY_MS = 1500;
@@ -107,7 +95,7 @@ const DEFAULT_STEPS: TourStep[] = [
 interface Props {
   /**
    * When set, overrides the auto-start logic and forces the tour open.
-   * Used by /onboarding deep-link page.
+   * Used by isolated previews; /onboarding is detected from the pathname.
    */
   forceOpen?: boolean;
   /** Optional override of the default step list (testing / i18n). */
@@ -152,6 +140,8 @@ function measureRect(el: HTMLElement | null): Rect | null {
 }
 
 export default function OnboardingTour({ forceOpen = false, steps = DEFAULT_STEPS }: Props) {
+  const pathname = usePathname();
+  const shouldForceOpen = forceOpen || pathname === "/onboarding";
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
@@ -163,10 +153,11 @@ export default function OnboardingTour({ forceOpen = false, steps = DEFAULT_STEP
   // Portal target only available client-side.
   useEffect(() => setMounted(true), []);
 
-  // Auto-start on first visit (or forceOpen).
+  // /onboarding uses this global owner too; mounting a second instance there
+  // creates duplicate dialog IDs and competing focus traps.
   useEffect(() => {
     if (!mounted) return;
-    if (forceOpen) {
+    if (shouldForceOpen) {
       setOpen(true);
       setStepIdx(0);
       safeTrack(TOUR_EVENTS.Started, { source: "force" });
@@ -186,7 +177,7 @@ export default function OnboardingTour({ forceOpen = false, steps = DEFAULT_STEP
       safeTrack(TOUR_EVENTS.Started, { source: "auto" });
     }, AUTO_START_DELAY_MS);
     return () => window.clearTimeout(t);
-  }, [mounted, forceOpen]);
+  }, [mounted, shouldForceOpen]);
 
   // Listen for restart events from TopNav / external triggers.
   useEffect(() => {
@@ -409,7 +400,7 @@ export default function OnboardingTour({ forceOpen = false, steps = DEFAULT_STEP
         .phase-tour-tooltip {
           position: fixed;
           pointer-events: auto;
-          max-width: min(360px, calc(100vw - 32px));
+          width: min(340px, calc(100vw - 32px));
           background: #ffffff;
           border: 1px solid rgb(228 228 231);
           border-radius: 14px;
@@ -426,11 +417,9 @@ export default function OnboardingTour({ forceOpen = false, steps = DEFAULT_STEP
         @keyframes phase-tour-fade-in {
           from {
             opacity: 0;
-            transform: translateY(4px);
           }
           to {
             opacity: 1;
-            transform: translateY(0);
           }
         }
         .phase-tour-step-counter {
@@ -530,10 +519,10 @@ const CENTERED_STYLE: React.CSSProperties = {
 function computeTooltipPosition(rect: Rect | null): React.CSSProperties {
   if (!rect || typeof window === "undefined") return CENTERED_STYLE;
   const margin = 16;
-  const tooltipW = 340;
-  const tooltipH = 180; // best-effort estimate
   const vw = window.innerWidth;
   const vh = window.innerHeight;
+  const tooltipW = Math.min(340, Math.max(1, vw - margin * 2));
+  const tooltipH = 180; // best-effort estimate
 
   // Prefer below the target.
   let top = rect.top + rect.height + 12;
@@ -547,9 +536,8 @@ function computeTooltipPosition(rect: Rect | null): React.CSSProperties {
   if (top < margin) {
     top = Math.min(vh - tooltipH - margin, rect.top + rect.height + 12);
   }
-  // Clamp horizontally.
-  if (left < margin) left = margin;
-  if (left + tooltipW > vw - margin) left = vw - tooltipW - margin;
+  // Clamp horizontally using the same responsive width as the CSS tooltip.
+  left = Math.min(Math.max(left, margin), vw - tooltipW - margin);
 
   return { top: `${top}px`, left: `${left}px` };
 }

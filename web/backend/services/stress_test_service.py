@@ -1,10 +1,11 @@
 """Structural stress-test service (Session #18, feature E).
 
 The product takes ONE business analogy / strategic claim and ONLY tries to
-falsify it. It never flatters, never agrees for the sake of agreeing. It
+falsify it. It never flatters or agrees for the sake of agreeing. It
 decomposes the analogy into source / target, lists the structural
-correspondences the user implicitly assumes, red-teams each one, names the
-weakest link, and gives a hard verdict (PASS / FAIL / CONDITIONAL).
+correspondences the user implicitly assumes, and red-teams each one. The model
+uses a three-way internal screen; the public contract maps it to neutral,
+candidate-level outcomes and never presents it as empirical validation.
 
 LLM access goes through the generic `llm_client` wrapper. When no API key is
 configured `complete_json` returns None — callers must surface a clean 503.
@@ -13,12 +14,25 @@ verdict enum are validated / coerced before reaching the API layer.
 """
 from __future__ import annotations
 
-import logging
-from typing import Any, Optional
+import math
+from typing import Any, Literal, Optional
 
-from services import llm_client
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
-logger = logging.getLogger("structural.stress_test")
+if __package__ == "web.backend.services":
+    from . import llm_client
+    from .input_limits import normalize_research_text
+    from .search_synthesis import validate_candidate_public_texts
+    from .secondary_tool_contracts import kb_candidate_evidence
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from services import llm_client
+    from services.input_limits import normalize_research_text
+    from services.search_synthesis import validate_candidate_public_texts
+    from services.secondary_tool_contracts import kb_candidate_evidence
+    from logging_config import get_logger, new_incident_id
+
+logger = get_logger("structural.stress_test")
 
 # Verdict enum — the only three values the API will ever emit.
 VERDICTS = ("PASS", "FAIL", "CONDITIONAL")
@@ -30,8 +44,8 @@ CLAIM_MAX_LEN = 600
 # Cap how many correspondences we keep — a runaway LLM could emit dozens.
 MAX_CORRESPONDENCES = 12
 
-# Precedent search — how many KB candidates to pull, and the relevance floor
-# below which a hit is too weak to call a real structural precedent.
+# Candidate search — how many KB rows to pull, and the internal retrieval floor
+# below which a hit is too weak even to display as a candidate reference.
 PRECEDENT_TOP_K = 6
 PRECEDENT_MIN_RELEVANCE = 0.55
 
@@ -77,28 +91,89 @@ _SYSTEM_PROMPT = """你是一个冷静、严苛的结构红队分析师（red te
 }"""
 
 
-# Precedent grounding — second LLM call. Takes the weakest link plus ONE real
-# KB phenomenon that is structurally isomorphic, and explains how that real
-# phenomenon broke. This is what turns the verdict from "a clever red-team
-# LLM's opinion" into "backed by a verified cross-domain precedent".
+# Candidate-reference note — second LLM call. It may explain what to compare
+# and what would falsify the reference, but cannot promote retrieval to proof.
 _PRECEDENT_SYSTEM_PROMPT = """你是结构红队分析师。下面给你一个商业类比里\
-【最薄弱的一环】，以及一个从知识库里检索到的、与这一环结构同构的真实现象。
+【最薄弱的一环】，以及一个从知识库里检索到的候选参照记录。
 
-这个真实现象来自其他领域（物理、生态、金融、社会系统等），它和用户类比里\
-最薄弱那一环共享同一种底层结构。
+这个记录来自其他领域（物理、生态、金融、社会系统等）。检索命中只说明它\
+值得继续比较，不证明它与用户类比共享机制，也不代表方法可以直接迁移。
 
-你的任务：基于这个真实现象作为锚点，说清楚——"同样的结构，在那个真实现象\
-里是怎么崩的、在什么条件下崩的"。这给用户的最薄弱环节提供一个真实先例证据。
+你的任务：说明这个候选记录为什么值得核查，并明确指出要验证哪个变量关系、\
+什么观察会推翻这次参照。只把它写成待验证线索。
 
 严格要求：
-- 必须紧扣给你的那个真实现象，不要泛泛而谈、不要编造现象细节。
-- 讲清楚那个现象失效/崩溃的【触发条件】，并点出用户的类比是否可能踩中同样的条件。
-- 简洁，2-4 句，像红队给出的一条硬证据，不要鼓励性废话。
+- 必须紧扣给你的候选记录，不要泛泛而谈、不要编造记录里没有的细节。
+- 不得写成真实先例、证据、已经同构、确认适用或成功概率。
+- 简洁，2-4 句，必须包含一个可证伪检查。
 
 只输出 JSON：
 {
-  "failure_precedent": "那个真实现象在什么条件下崩过 / 它对用户最薄弱环节的警示，2-4 句"
+  "candidate_note": "为什么值得核查，以及什么观察会推翻这次参照，2-4 句"
 }"""
+
+
+class _StrictStressCorrespondence(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, str_strip_whitespace=True)
+
+    claim: str = Field(min_length=1, max_length=600)
+    stress_result: str = Field(min_length=1, max_length=1_000)
+    holds: bool
+
+    @field_validator("claim", "stress_result", mode="before")
+    @classmethod
+    def normalize_text(cls, value: Any, info: Any) -> str:
+        limit = 600 if info.field_name == "claim" else 1_000
+        return normalize_research_text(
+            value, max_chars=limit, allow_layout=False, field_name=info.field_name
+        )
+
+
+class _StrictStressResult(BaseModel):
+    """Complete LLM payload accepted by the live execution path."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, str_strip_whitespace=True)
+
+    source: str = Field(min_length=1, max_length=400)
+    target: str = Field(min_length=1, max_length=400)
+    structural_correspondences: list[_StrictStressCorrespondence] = Field(
+        min_length=1, max_length=MAX_CORRESPONDENCES
+    )
+    weakest_link: str = Field(min_length=1, max_length=1_000)
+    verdict: Literal["PASS", "FAIL", "CONDITIONAL"]
+    verdict_reason: str = Field(min_length=1, max_length=1_200)
+
+    @field_validator("source", "target", "weakest_link", "verdict_reason", mode="before")
+    @classmethod
+    def normalize_text(cls, value: Any, info: Any) -> str:
+        limits = {
+            "source": 400,
+            "target": 400,
+            "weakest_link": 1_000,
+            "verdict_reason": 1_200,
+        }
+        return normalize_research_text(
+            value,
+            max_chars=limits[info.field_name],
+            allow_layout=False,
+            field_name=info.field_name,
+        )
+
+
+class _StrictCandidateNote(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, str_strip_whitespace=True)
+
+    candidate_note: str = Field(min_length=1, max_length=600)
+
+    @field_validator("candidate_note", mode="before")
+    @classmethod
+    def normalize_note(cls, value: Any) -> str:
+        return normalize_research_text(
+            value,
+            max_chars=600,
+            allow_layout=False,
+            field_name="candidate_note",
+        )
 
 
 def build_precedent_query(weakest_link: Any, target: Any = None) -> Optional[str]:
@@ -160,32 +235,35 @@ def coerce_precedent(raw: Any, phenomenon: dict) -> Optional[dict]:
 
 
 def _pick_precedent_hit(results: Any) -> Optional[dict]:
-    """Pick the strongest cross-domain hit above the relevance floor.
-
-    Prefers cross-domain hits (a same-domain match is not an interesting
-    structural precedent). Falls back to the best hit overall if no
-    cross-domain one clears the bar. Returns None when nothing qualifies.
-    """
+    """Pick a well-formed candidate hit above the internal retrieval floor."""
     if not isinstance(results, list) or not results:
         return None
-    usable = [
-        r
-        for r in results
-        if isinstance(r, dict)
-        and isinstance(r.get("relevance"), (int, float))
-        and r["relevance"] >= PRECEDENT_MIN_RELEVANCE
-        and isinstance(r.get("id"), str)
-        and r.get("id")
-    ]
+    usable = []
+    for row in results:
+        if not isinstance(row, dict):
+            continue
+        relevance = row.get("relevance")
+        if (
+            isinstance(relevance, bool)
+            or not isinstance(relevance, (int, float))
+            or not math.isfinite(float(relevance))
+            or not PRECEDENT_MIN_RELEVANCE <= float(relevance) <= 1.0
+            or not isinstance(row.get("id"), str)
+            or not row["id"].strip()
+            or not isinstance(row.get("name"), str)
+            or not row["name"].strip()
+        ):
+            continue
+        usable.append(row)
     if not usable:
         return None
-    cross = [r for r in usable if r.get("cross_domain")]
+    cross = [r for r in usable if r.get("cross_domain") is True]
     pool = cross if cross else usable
-    return max(pool, key=lambda r: r["relevance"])
+    return max(pool, key=lambda r: float(r["relevance"]))
 
 
 async def enrich_with_precedent(result: dict, search_svc: Any) -> dict:
-    """Attach a `precedent` field to a coerced stress-test result.
+    """Legacy compatibility helper for the pre-v2 response contract.
 
     Uses the KB search engine to find a real phenomenon structurally
     isomorphic to the weakest link, then asks the LLM to explain how that
@@ -203,18 +281,22 @@ async def enrich_with_precedent(result: dict, search_svc: Any) -> dict:
 
     try:
         hits = search_svc.search(query, top_k=PRECEDENT_TOP_K)
-    except Exception as e:  # search must never break the stress test
-        logger.warning("enrich_with_precedent: search failed: %s", e)
+    except Exception as exc:  # search must never break the stress test
+        logger.warning(
+            "structural.stress_precedent_search_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return result
 
     hit = _pick_precedent_hit(hits)
     if hit is None:
-        logger.info("enrich_with_precedent: no qualifying KB precedent")
+        logger.info("structural.stress_precedent_missing")
         return result
 
     user_prompt = (
         f"用户类比里最薄弱的一环：\n{result.get('weakest_link', '')}\n\n"
-        f"知识库检索到的结构同构真实现象：\n"
+        f"知识库检索到的候选参照记录：\n"
         f"领域：{hit.get('domain', '')}\n"
         f"名称：{hit.get('name', '')}\n"
         f"描述：{hit.get('description', '')}"
@@ -226,13 +308,17 @@ async def enrich_with_precedent(result: dict, search_svc: Any) -> dict:
             temperature=0.3,
             max_tokens=600,
         )
-    except Exception as e:
-        logger.warning("enrich_with_precedent: precedent LLM failed: %s", e)
+    except Exception as exc:
+        logger.warning(
+            "structural.stress_precedent_llm_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return result
 
     precedent = coerce_precedent(raw, hit)
     if precedent is None:
-        logger.info("enrich_with_precedent: precedent LLM output unusable")
+        logger.info("structural.stress_precedent_rejected")
         return result
 
     result["precedent"] = precedent
@@ -371,13 +457,123 @@ def coerce_result(raw: Any) -> Optional[dict]:
     }
 
 
+def validate_screen_result(raw: Any) -> Optional[dict]:
+    """Validate the complete model reply before any public text is exposed.
+
+    Unlike the legacy ``coerce_result`` compatibility helper, this execution
+    path does not guess missing fields, translate synonyms, or keep a partially
+    valid payload. One malformed field rejects the whole screen.
+    """
+    try:
+        parsed = _StrictStressResult.model_validate(raw)
+        validate_candidate_public_texts(
+            [
+                parsed.weakest_link,
+                parsed.verdict_reason,
+                *(
+                    text
+                    for item in parsed.structural_correspondences
+                    for text in (item.claim, item.stress_result)
+                ),
+            ]
+        )
+    except (ValidationError, ValueError, TypeError):
+        return None
+
+    outcome = {
+        "PASS": "not_broken_in_screen",
+        "FAIL": "breaks_in_screen",
+        "CONDITIONAL": "condition_dependent",
+    }[parsed.verdict]
+    return {
+        "screening_outcome": outcome,
+        "screening_basis": "internal_ai_red_team",
+        "source": parsed.source,
+        "target": parsed.target,
+        "structural_correspondences": [
+            {
+                "claim": item.claim,
+                "screening_outcome": "not_broken" if item.holds else "breaks",
+                "stress_result": item.stress_result,
+            }
+            for item in parsed.structural_correspondences
+        ],
+        "weakest_link": parsed.weakest_link,
+        "rationale": parsed.verdict_reason,
+        "candidate_reference": None,
+    }
+
+
+async def enrich_with_candidate_reference(result: dict, search_svc: Any) -> dict:
+    """Bind one optional model note to an allowlisted KB retrieval candidate."""
+    if search_svc is None:
+        return result
+    query = build_precedent_query(result.get("weakest_link"), result.get("target"))
+    if query is None:
+        return result
+    try:
+        hits = search_svc.search(query, top_k=PRECEDENT_TOP_K)
+    except Exception as exc:
+        logger.warning(
+            "structural.stress_candidate_search_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
+        return result
+    hit = _pick_precedent_hit(hits)
+    if hit is None:
+        return result
+
+    user_prompt = (
+        f"用户类比里最薄弱的一环：\n{result.get('weakest_link', '')}\n\n"
+        "知识库检索到的候选参照记录：\n"
+        f"领域：{hit.get('domain', '')}\n"
+        f"名称：{hit.get('name', '')}\n"
+        f"描述：{hit.get('description', '')}"
+    )
+    try:
+        raw = await llm_client.complete_json(
+            system=_PRECEDENT_SYSTEM_PROMPT,
+            user=user_prompt,
+            temperature=0.3,
+            max_tokens=600,
+        )
+        note = _StrictCandidateNote.model_validate(raw).candidate_note
+        validate_candidate_public_texts([note])
+    except Exception as exc:
+        logger.warning(
+            "structural.stress_candidate_note_rejected",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
+        return result
+
+    pid = hit.get("id")
+    name = hit.get("name")
+    if not isinstance(pid, str) or not isinstance(name, str):
+        return result
+    reference = {
+        "id": pid.strip(),
+        "name": name.strip(),
+        "domain": str(hit.get("domain") or "").strip()[:120],
+        "description": str(hit.get("description") or "").strip()[:600],
+        "retrieval_rank": 1,
+        "candidate_note": note,
+        "evidence": kb_candidate_evidence(
+            hit,
+            counterexample="候选参照需要验证变量定义、边界条件和失效触发是否一致。",
+        ),
+    }
+    result["candidate_reference"] = reference
+    return result
+
+
 async def run_stress_test(claim: str, search_svc: Any = None) -> Optional[dict]:
     """Run the full stress test for one claim.
 
-    When `search_svc` is provided, the weakest link is additionally backed
-    by a real, structurally-isomorphic KB phenomenon (the product's moat).
-    Returns the coerced result dict, or None when the LLM is unavailable /
-    failed / returned unrecoverable garbage. Never raises on LLM problems.
+    When `search_svc` is provided, the weakest link may receive one KB
+    candidate reference. That reference remains untested. Returns the strict
+    public result dict, or None when the LLM response is unavailable/invalid.
     """
     user_prompt = f"请对下面这个类比/判断做结构压力测试：\n\n{claim}"
     raw = await llm_client.complete_json(
@@ -387,16 +583,15 @@ async def run_stress_test(claim: str, search_svc: Any = None) -> Optional[dict]:
         max_tokens=2600,
     )
     if raw is None:
-        logger.warning("run_stress_test: LLM returned None")
+        logger.warning("structural.stress_test.payload_missing")
         return None
-    coerced = coerce_result(raw)
-    if coerced is None:
-        logger.warning("run_stress_test: LLM output failed schema coercion")
+    validated = validate_screen_result(raw)
+    if validated is None:
+        logger.warning("structural.stress_test.payload_invalid")
         return None
-    # Ground the weakest link in a real KB precedent. Degrades silently to
-    # precedent=None when search is unavailable or finds nothing.
-    coerced = await enrich_with_precedent(coerced, search_svc)
-    return coerced
+    # Retrieval creates a candidate reference only. It is not a precedent or
+    # source-backed validation and therefore remains at evidence level candidate.
+    return await enrich_with_candidate_reference(validated, search_svc)
 
 
 __all__ = [
@@ -407,8 +602,10 @@ __all__ = [
     "PRECEDENT_MIN_RELEVANCE",
     "validate_claim",
     "coerce_result",
+    "validate_screen_result",
     "build_precedent_query",
     "coerce_precedent",
     "enrich_with_precedent",
+    "enrich_with_candidate_reference",
     "run_stress_test",
 ]

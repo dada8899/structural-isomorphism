@@ -24,13 +24,22 @@ Outputs:
 
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
 import math
+import tempfile
 from pathlib import Path
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from PIL import Image
+
+from run_validation import _assert_generator_environment, _canonicalize
 
 ROOT = Path(__file__).resolve().parent
 FIG_DIR = ROOT / "figures"
@@ -247,7 +256,7 @@ def per_source_stats(df: pd.DataFrame) -> pd.DataFrame:
 # ----------------------------------------------------------------------------
 # Per-size matrix and per-size σ across sources
 # ----------------------------------------------------------------------------
-def per_size_matrix(df: pd.DataFrame) -> pd.DataFrame:
+def per_size_matrix(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Wide matrix: rows = Pythia size, cols = source, cells = α.
     Only Pythia sizes (not lit anchors). Source-set for the matrix uses the
@@ -263,6 +272,12 @@ def per_size_matrix(df: pd.DataFrame) -> pd.DataFrame:
     wide = wide.loc[order]
     r2 = r2.loc[order]
     return wide, r2
+
+
+def _nullable_matrix(frame: pd.DataFrame, *, digits: int) -> dict:
+    """Return strict-JSON records, replacing missing float cells with null."""
+    rounded = frame.round(digits).astype(object)
+    return rounded.where(pd.notna(rounded), None).to_dict(orient="index")
 
 
 def per_size_sigma(wide: pd.DataFrame) -> pd.DataFrame:
@@ -343,8 +358,14 @@ def pythia_12b_spotlight(df: pd.DataFrame) -> dict:
 # ----------------------------------------------------------------------------
 # Figure
 # ----------------------------------------------------------------------------
-def make_figure(df: pd.DataFrame, wide: pd.DataFrame, per_src: pd.DataFrame,
-                pooled: dict, out_path: Path) -> None:
+def make_figure(
+    df: pd.DataFrame,
+    wide: pd.DataFrame,
+    per_src: pd.DataFrame,
+    pooled: dict,
+    out_path: Path,
+    summary_sha256: str,
+) -> None:
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
 
     # ---------- Panel A: per-size α vs size, one line per source ----------
@@ -470,14 +491,24 @@ def make_figure(df: pd.DataFrame, wide: pd.DataFrame, per_src: pd.DataFrame,
     fig.suptitle("Pythia learning-curve α: cross-source universality robustness",
                  fontsize=11, y=1.02)
     fig.tight_layout()
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    fig.savefig(
+        out_path,
+        dpi=300,
+        bbox_inches="tight",
+        metadata={
+            "Software": "structural-isomorphism-llm-scaling-v1",
+            "StructuralSummarySHA256": summary_sha256,
+        },
+    )
+    plt.close(fig)
     print(f"[fig] wrote {out_path}")
 
 
 # ----------------------------------------------------------------------------
 # Main
 # ----------------------------------------------------------------------------
-def main() -> None:
+def main(*, write: bool = True) -> tuple[dict, dict]:
+    _assert_generator_environment()
     df = load_sources()
     print(f"[load] {len(df)} (size × source) rows")
     print(df.groupby("source").size())
@@ -506,7 +537,7 @@ def main() -> None:
         print(f"  {k}: {v}")
 
     # ---------- write JSON summary ----------
-    summary = dict(
+    summary = _canonicalize(dict(
         generated_at="SESSION-25 cross-source α comparison",
         sources={
             "LAMBADA_v1": "v4/validation/llm-scaling/results_lambada.json",
@@ -518,26 +549,38 @@ def main() -> None:
             moderate_max=CV_MODERATE_MAX,
         ),
         per_source=per_src.to_dict(orient="records"),
-        per_size_matrix=wide.where(wide.notna(), None).round(6).to_dict(orient="index"),
-        per_size_R2_matrix=r2_wide.where(r2_wide.notna(), None).round(4).to_dict(orient="index"),
+        per_size_matrix=_nullable_matrix(wide, digits=6),
+        per_size_R2_matrix=_nullable_matrix(r2_wide, digits=4),
         per_size_cross_source_sigma=sigmas.to_dict(orient="records"),
         pooled_all=pooled,
         pooled_R2_filtered=pooled_q,
         pythia_12b_spotlight=spot,
-    )
+    ))
+    spot = _canonicalize(spot)
+    summary_bytes = _json_bytes(summary)
+    spot_bytes = _json_bytes(spot)
+    summary_sha256 = hashlib.sha256(summary_bytes).hexdigest()
     out_json = ROOT / "cross_source_summary.json"
-    with open(out_json, "w") as f:
-        json.dump(summary, f, indent=2, default=_json_default)
-    print(f"\n[json] wrote {out_json}")
+    if write:
+        out_json.write_bytes(summary_bytes)
+        print(f"\n[json] wrote {out_json}")
 
     # ---------- write pythia-12b standalone ----------
     out_12b = ROOT / "pythia_12b_cross_source.json"
-    with open(out_12b, "w") as f:
-        json.dump(spot, f, indent=2, default=_json_default)
-    print(f"[json] wrote {out_12b}")
+    if write:
+        out_12b.write_bytes(spot_bytes)
+        print(f"[json] wrote {out_12b}")
 
     # ---------- figure ----------
-    make_figure(df, wide, per_src, pooled, FIG_DIR / "cross_source_alpha.png")
+    if write:
+        make_figure(
+            df,
+            wide,
+            per_src,
+            pooled,
+            FIG_DIR / "cross_source_alpha.png",
+            summary_sha256,
+        )
 
     # ---------- final verdict line ----------
     print("\n===== FINAL =====")
@@ -550,6 +593,87 @@ def main() -> None:
             print(f"  {src}: α={info['alpha']:.4f}  (R²={info['R2']:.3f})")
         print(f"  σ across sources = {spot['alpha_std']:.4f}  "
               f"(CV = {spot['alpha_cv']:.4f})")
+    return summary, spot
+
+
+def _json_bytes(payload: object) -> bytes:
+    return (
+        json.dumps(payload, indent=2, default=_json_default, allow_nan=False) + "\n"
+    ).encode("utf-8")
+
+
+def _png_text_metadata(path: Path) -> dict[str, str]:
+    payload = path.read_bytes()
+    if not payload.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise RuntimeError("cross-source figure is not a PNG")
+    metadata: dict[str, str] = {}
+    offset = 8
+    while offset + 12 <= len(payload):
+        length = int.from_bytes(payload[offset : offset + 4], "big")
+        chunk_type = payload[offset + 4 : offset + 8]
+        data_start = offset + 8
+        data_end = data_start + length
+        if data_end + 4 > len(payload):
+            raise RuntimeError("cross-source PNG contains a truncated chunk")
+        if chunk_type == b"tEXt" and b"\x00" in payload[data_start:data_end]:
+            key, value = payload[data_start:data_end].split(b"\x00", 1)
+            metadata[key.decode("latin-1")] = value.decode("latin-1")
+        offset = data_end + 4
+        if chunk_type == b"IEND":
+            break
+    return metadata
+
+
+def _png_rgba_pixels(path: Path) -> tuple[tuple[int, int], bytes]:
+    with Image.open(path) as image:
+        if image.format != "PNG":
+            raise RuntimeError("cross-source figure is not a PNG")
+        image.load()
+        rgba = image.convert("RGBA")
+        return rgba.size, rgba.tobytes()
+
+
+def _check_outputs() -> None:
+    summary, spot = main(write=False)
+    summary_bytes = _json_bytes(summary)
+    spot_bytes = _json_bytes(spot)
+    if (ROOT / "cross_source_summary.json").read_bytes() != summary_bytes:
+        raise RuntimeError("cross_source_summary.json differs from locked output")
+    if (ROOT / "pythia_12b_cross_source.json").read_bytes() != spot_bytes:
+        raise RuntimeError("pythia_12b_cross_source.json differs from locked output")
+    metadata = _png_text_metadata(FIG_DIR / "cross_source_alpha.png")
+    if metadata.get("StructuralSummarySHA256") != hashlib.sha256(
+        summary_bytes
+    ).hexdigest():
+        raise RuntimeError("cross-source figure is not bound to the locked summary")
+    df = load_sources()
+    per_src = per_source_stats(df)
+    wide, _ = per_size_matrix(df)
+    pooled = pooled_stats(df, restrict_high_quality=False)
+    with tempfile.TemporaryDirectory(prefix="structural-cross-source-") as temp_dir:
+        expected_figure = Path(temp_dir) / "cross_source_alpha.png"
+        make_figure(
+            df,
+            wide,
+            per_src,
+            pooled,
+            expected_figure,
+            hashlib.sha256(summary_bytes).hexdigest(),
+        )
+        committed_size, committed_pixels = _png_rgba_pixels(
+            FIG_DIR / "cross_source_alpha.png"
+        )
+        expected_size, expected_pixels = _png_rgba_pixels(expected_figure)
+        if committed_size != expected_size or committed_pixels != expected_pixels:
+            raise RuntimeError("cross-source figure differs from locked pixel output")
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--write", action="store_true", help="write canonical outputs")
+    mode.add_argument("--check", action="store_true", help="check canonical outputs")
+    return parser.parse_args()
 
 
 def _json_default(o):
@@ -563,4 +687,8 @@ def _json_default(o):
 
 
 if __name__ == "__main__":
-    main()
+    args = _parse_args()
+    if args.check:
+        _check_outputs()
+    else:
+        main(write=True)

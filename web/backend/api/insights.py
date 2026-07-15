@@ -1,115 +1,99 @@
-"""GET /api/insights/* — aggregate data-flywheel dashboard.
+"""GET /api/insights/* — fail-closed paused public aggregation.
 
-B Data Flywheel (Session #18).
-
-Three read-only endpoints powering /insights:
-  * /api/insights/summary           — top-line counters
-  * /api/insights/stuck-structures  — which problem targets users hit most
-  * /api/insights/verified          — the result-verified isomorphism library
-
-All three degrade to empty/zero on a fresh DB — no auth, no anon-id; this
-is aggregate, non-PII data. Companion: services/report_store.py +
-services/verified_isomorphisms.py.
+Static k-anonymity thresholds and count bands are vulnerable to differencing
+in a low-volume product. These endpoints therefore return stable withheld or
+empty states that never depend on report data. Re-enablement requires a
+separately reviewed delayed-batch, sticky-suppression or formal-DP design.
 """
 from __future__ import annotations
 
-import logging
-from pathlib import Path
-from typing import Any, Optional
+from typing import Literal, Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from services.report_store import ReportStore
-from services.verified_isomorphisms import list_verified
+if __package__ == "web.backend.api":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
-logger = logging.getLogger(__name__)
+logger = get_logger("structural.insights")
 router = APIRouter(tags=["insights"])
-
-_store: Optional[ReportStore] = None
-
-
-def _get_store() -> ReportStore:
-    """Resolve the shared ReportStore (same history.db as api/report.py).
-
-    Kept as a module global mirroring api/report.py so tests can monkeypatch
-    a tmp-path store the same way.
-    """
-    global _store
-    if _store is None:
-        db_path = Path(__file__).parent.parent / "data" / "history.db"
-        _store = ReportStore(db_path)
-    return _store
 
 
 # ---------------- response shapes ----------------------------------- #
 
 
 class SummaryResponse(BaseModel):
-    total_reports: int
-    total_followups: int
-    worked_count: int
-    verified_isomorphisms: int
-    outcome_counts: dict[str, int]
-
-
-class StuckStructureItem(BaseModel):
-    b_id: str
-    report_count: int
-    followup_count: int
-    worked_count: int
-    worked_rate: float
-
-
-class StuckStructuresResponse(BaseModel):
-    items: list[StuckStructureItem]
-
-
-class VerifiedItem(BaseModel):
-    report_id: str
-    problem: str
-    b_id: str
-    lang: str
-    source_phenomenon: str
-    structure_name: str
-    verifier_count: int
-    last_verified_at: str
-    created_at: str
-    evidence: dict[str, Any]
-
-
-class VerifiedResponse(BaseModel):
-    items: list[VerifiedItem]
+    status: Literal["public_aggregation_paused"]
 
 
 # ---------------- endpoints ----------------------------------------- #
 
 
+def _no_store(response: Response) -> None:
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+
+
+async def no_store_insights_responses(request: Request, call_next):
+    """Cover exact/prefix paths, framework errors and unhandled failures."""
+    path = request.url.path
+    if path != "/api/insights" and not path.startswith("/api/insights/"):
+        return await call_next(request)
+    response: Optional[Response] = None
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        logger.error(
+            "structural.insights.request_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
+        response = JSONResponse(
+            {"detail": "Internal Server Error"}, status_code=500,
+        )
+    finally:
+        if response is not None:
+            _no_store(response)
+    return response
+
+
 @router.get(
     "/insights/summary",
     response_model=SummaryResponse,
-    summary="Top-line data-flywheel counters",
+    summary="Public aggregation status",
 )
-async def insights_summary():
-    """Total reports / followups / worked / verified. Fresh DB → all zero."""
-    return _get_store().insights_summary()
+async def insights_summary(response: Response):
+    """Stable paused status; never reads report data."""
+    _no_store(response)
+    return {"status": "public_aggregation_paused"}
 
 
 @router.get(
     "/insights/stuck-structures",
-    response_model=StuckStructuresResponse,
-    summary="Problem targets users hit most (Top N)",
+    response_model=SummaryResponse,
+    summary="Paused public stuck-structure aggregation",
 )
-async def stuck_structures(limit: int = Query(20, ge=1, le=100)):
-    """Aggregate report_count / followup_count / worked_rate per b_id."""
-    return {"items": _get_store().stuck_structures(limit=limit)}
+async def stuck_structures(
+    response: Response,
+    limit: int = Query(20, ge=1, le=100),
+):
+    """Stable paused status; ``limit`` cannot affect data visibility."""
+    _no_store(response)
+    return {"status": "public_aggregation_paused"}
 
 
 @router.get(
     "/insights/verified",
-    response_model=VerifiedResponse,
-    summary="Result-verified isomorphism library",
+    response_model=SummaryResponse,
+    summary="Paused public result aggregation",
 )
-async def verified(limit: int = Query(50, ge=1, le=100)):
-    """Reports a real user came back and marked outcome='worked'."""
-    return {"items": list_verified(_get_store(), limit=limit)}
+async def verified(
+    response: Response,
+    limit: int = Query(50, ge=1, le=100),
+):
+    """Stable paused status; ``limit`` cannot affect data visibility."""
+    _no_store(response)
+    return {"status": "public_aggregation_paused"}

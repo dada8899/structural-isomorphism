@@ -282,6 +282,7 @@ class StreamingPipelineTests(unittest.TestCase):
             assert card["description"]
 
     def test_candidate_evidence_handles_invalid_retrieval_score(self):
+        """Invalid scores fail closed and never become actionable cards."""
         bad = [{**_FIXED_KB[0], "score": "not-a-number"}]
         orch = AskOrchestrator(search_service=_FakeSearch(bad))
         with patch.object(
@@ -290,11 +291,12 @@ class StreamingPipelineTests(unittest.TestCase):
             _mock_stream_factory(_MOCK_FULL_JSON),
         ), patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
             chunks = asyncio.run(_collect(orch.stream("Why do banks fail", lang="en")))
-        cards = next(
-            data["cards"] for name, data in _parse_sse_events(chunks)
-            if name == "kb_cards"
-        )
-        assert "score 0.000" in cards[0]["match_basis"]
+        events = _parse_sse_events(chunks)
+        cards = next(data["cards"] for name, data in events if name == "kb_cards")
+        answer = next(data for name, data in events if name == "answer_done")
+        assert cards == []
+        assert answer["out_of_scope"] is True
+        assert answer["refused"] is True
 
     def test_full_event_sequence_streaming_path(self):
         """All required events still emit when LLM is streamed."""

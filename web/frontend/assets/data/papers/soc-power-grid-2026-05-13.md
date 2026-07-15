@@ -1,3 +1,9 @@
+> **历史研究记录——不是当前证据。 / Historical research record — not current evidence.**
+>
+> 这份历史材料仅为可审计性保留，未绑定当前证据账本。其统计量、标签和结论性措辞不能证明跨领域系统共享机制，也不代表外部同行评审、独立复现或可投稿结论。
+>
+> This historical material is retained only for auditability and is not bound to the current evidence ledger. Its statistics, labels, and verdict language do not establish a shared cross-domain mechanism, external peer review, independent replication, or a submission-ready conclusion.
+
 # Power-Law Size Distribution in North American Power Grid Cascade Events: SOC Pipeline Validation on the NERC / OE-417 Literature-Meta Catalog (Motter-Lai Class)
 
 **Author.** Wan Qinghui (万庆徽), Structural Isomorphism Project.

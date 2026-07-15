@@ -17,6 +17,8 @@
 .analyze-action-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-height: 44px;
   gap: 6px;
   padding: 6px 12px;
   font-size: var(--fs-12);
@@ -79,7 +81,7 @@
 
   .analyze-action-btn {
     flex: 0 0 auto;
-    min-height: 38px;
+    min-height: 44px;
     padding: 8px 14px;
     white-space: nowrap;
   }

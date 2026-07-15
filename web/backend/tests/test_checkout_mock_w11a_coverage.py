@@ -28,6 +28,7 @@ from api import checkout_mock as cm  # noqa: E402
 def client(tmp_path, monkeypatch):
     tmp_file = tmp_path / "data" / "mock_checkouts.jsonl"
     monkeypatch.setattr(cm, "_data_file", lambda: tmp_file)
+    monkeypatch.setenv("STRUCTURAL_ENV", "dev")
     app = FastAPI()
     app.include_router(cm.router, prefix="/api")
     return TestClient(app)

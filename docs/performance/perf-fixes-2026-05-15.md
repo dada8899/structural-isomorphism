@@ -217,9 +217,7 @@ NEXT_PUBLIC_USE_MOCK=true PORT=3017 pnpm start &
    future PR removes the dynamic boundary, the LCP should drop back to
    ~2.25 s and the exemption can be removed.
 
-5. **No real third-party origin in the audit.** The Plausible analytics
-   script (`plausible.bytedance.city/js/script.js`) is fetched on real
-   page loads but is a 404 in CI (no DNS). This isolates the perf
-   measurement from third-party flakiness — desired for the gate — but
-   means real users see ~50 ms of additional CSS+JS work. Worth
-   measuring in production RUM once it's wired up.
+5. **No real analytics origin in the audit.** This historical run predated the
+   consent-gated direct Events API transport. Current Beta does not load a
+   remote analytics script; CI should still capture and validate the outbound
+   JSON request without depending on public DNS.

@@ -314,8 +314,11 @@ textarea:focus-visible {
 /* === Skip link (a11y) === */
 .skip-link {
   position: absolute;
-  top: -40px;
+  top: -52px;
   left: 0;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
   background: var(--text-primary);
   color: #FAFAF9;
   padding: 8px 16px;
@@ -325,6 +328,25 @@ textarea:focus-visible {
 }
 .skip-link:focus {
   top: 0;
+}
+
+/* Coarse-pointer controls use a real 44px layout box. Pseudo-element-only
+ * expansion is not sufficient for adjacent controls because their hit areas
+ * can overlap. Inline text links remain the sole audited exception. */
+@media (max-width: 639.98px), (hover: none) and (pointer: coarse) {
+  a[href],
+  [role="link"],
+  button,
+  summary {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  select,
+  textarea {
+    min-height: 44px;
+  }
 }
 
 /* === W12-A: WCAG AA contrast hardening (2026-05-15) ===

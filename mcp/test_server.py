@@ -34,11 +34,14 @@ class FakeClient:
     def __init__(self, *, get_result=None, post_result=None):
         self._get_result = get_result
         self._post_result = post_result
+        self.last_request = None
 
     async def get(self, url, **kwargs):
+        self.last_request = ("GET", url, kwargs)
         return self._resolve(self._get_result)
 
     async def post(self, url, **kwargs):
+        self.last_request = ("POST", url, kwargs)
         return self._resolve(self._post_result)
 
     @staticmethod
@@ -230,35 +233,45 @@ def test_do_analyze_normal():
         f'event: section\ndata: {{"key": "{k}", "data": "x"}}\n\n'
         for k in server.REPORT_SECTION_ORDER
     ) + 'event: done\ndata: {"from_cache": false}\n\n'
-    client = FakeClient(get_result=FakeResponse(200, text=stream))
+    client = FakeClient(post_result=FakeResponse(200, text=stream))
     out = run(server.do_analyze(client, "http://x", "为什么会挤兑?", "soc-001"))
     assert out["ok"] is True
     assert out["complete"] is True
+    method, url, kwargs = client.last_request
+    assert method == "POST"
+    assert url == "http://x/api/analyze/stream"
+    assert "?" not in url
+    assert kwargs["json"] == {
+        "text_a": "为什么会挤兑?",
+        "b_id": "soc-001",
+        "lang": "zh",
+        "persist": 0,
+    }
 
 
 def test_do_analyze_404():
-    client = FakeClient(get_result=FakeResponse(404, text="Phenomenon not found"))
+    client = FakeClient(post_result=FakeResponse(404, text="Phenomenon not found"))
     out = run(server.do_analyze(client, "http://x", "q?", "bad-id"))
     assert out["ok"] is False
     assert out["error"] == "not_found"
 
 
 def test_do_analyze_timeout():
-    client = FakeClient(get_result=httpx.TimeoutException("slow"))
+    client = FakeClient(post_result=httpx.TimeoutException("slow"))
     out = run(server.do_analyze(client, "http://x", "q?", "soc-001"))
     assert out["ok"] is False
     assert out["error"] == "timeout"
 
 
 def test_do_analyze_empty_stream():
-    client = FakeClient(get_result=FakeResponse(200, text=""))
+    client = FakeClient(post_result=FakeResponse(200, text=""))
     out = run(server.do_analyze(client, "http://x", "q?", "soc-001"))
     assert out["ok"] is False
     assert out["error"] == "empty_stream"
 
 
 def test_do_analyze_bad_args():
-    client = FakeClient(get_result=FakeResponse(200, text="x"))
+    client = FakeClient(post_result=FakeResponse(200, text="x"))
     out = run(server.do_analyze(client, "http://x", "  ", "soc-001"))
     assert out["ok"] is False
     assert out["error"] == "bad_request"

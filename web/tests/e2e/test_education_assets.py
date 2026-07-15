@@ -9,7 +9,7 @@ Covers the "资料陈列 → 增长引擎" upgrade of /discoveries and /classes:
   4. The "生成图片卡片" button opens a share-card preview modal with a
      non-empty <img> (canvas → dataURL).
   5. /classes detail view exposes the "用它分析你自己的问题" CTA, and the
-     CTA navigates to /analyze with a text_a prefill param.
+     CTA navigates to /analyze with canonical id/q prefill params.
   6. /classes "学习路径" view groups classes into progressive bands.
 
 Base URL: PHASE_BASE env (default local static/dev server). The suite
@@ -26,6 +26,7 @@ import os
 import re
 import urllib.error
 import urllib.request
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from playwright.sync_api import Page, expect
@@ -116,7 +117,7 @@ def test_discovery_share_image_modal_renders(page: Page):
 
 def test_classes_detail_has_analyze_cta(page: Page):
     """Opening a class detail surfaces the 用它分析你自己的问题 CTA which
-    links to /analyze with a text_a prefill."""
+    links to /analyze with a public id and private one-use handoff."""
     page.goto(f"{BASE}/classes", wait_until="domcontentloaded")
     page.wait_for_selector(".uc-card--preview", timeout=20000)
     # Navigate into the first class.
@@ -125,7 +126,10 @@ def test_classes_detail_has_analyze_cta(page: Page):
     expect(cta).to_be_visible(timeout=8000)
     href = cta.get_attribute("href") or ""
     assert "/analyze" in href, f"CTA should target /analyze, got {href!r}"
-    assert "text_a=" in href, f"CTA should prefill text_a, got {href!r}"
+    query = parse_qs(urlparse(href).query)
+    assert len(query.get("id", [])) == 1, f"CTA should select an id: {href!r}"
+    assert len(query.get("handoff", [])) == 1, f"CTA should create handoff: {href!r}"
+    assert "q" not in query and "b_id" not in query and "text_a" not in query
 
 
 def test_classes_cta_navigates_to_analyze(page: Page):

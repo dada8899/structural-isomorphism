@@ -34,9 +34,34 @@ def successful_transport(method, url, body, timeout):
             ).encode(),
         )
     if url.endswith("/api/version"):
+        requirements_sha = smoke.EXPECTED_RUNTIME_REQUIREMENTS_SHA256
+        freeze_sha = "f" * 64
         return smoke.Response(200, encoded({
-            "semver": "1.0", "git_sha": "abc", "python_version": "3.12",
+            "semver": "1.0", "git_sha": "a" * 40, "python_version": "3.11.6",
             "env": "prod", "model": "model", "deployed_at": "2026-07-11",
+            "python_abi": "cpython-311",
+            "runtime_id": f"cpython-311-{requirements_sha}-{freeze_sha}",
+            "requirements_sha256": requirements_sha,
+            "installed_freeze_sha256": freeze_sha,
+            "fastapi": "0.115.14", "pydantic": "2.6.1",
+            "starlette": "0.46.2", "uvicorn": "0.27.1",
+        }))
+    if url.endswith("/assets/runtime-attestation.json"):
+        requirements_sha = smoke.EXPECTED_RUNTIME_REQUIREMENTS_SHA256
+        freeze_sha = "f" * 64
+        return smoke.Response(200, encoded({
+            "schema_version": 1,
+            "runtime_id": f"cpython-311-{requirements_sha}-{freeze_sha}",
+            "requirements_sha256": requirements_sha,
+            "installed_freeze_sha256": freeze_sha,
+            "python_abi": "cpython-311",
+            "python_version": "3.11.6",
+            "fastapi": "0.115.14",
+            "pydantic": "2.6.1",
+            "starlette": "0.46.2",
+            "uvicorn": "0.27.1",
+            "git_sha": "a" * 40,
+            "deployed_at": "2026-07-11",
         }))
     if "api/health?deep=1" in url:
         return smoke.Response(200, encoded({
@@ -78,9 +103,9 @@ def test_full_monitor_contract_passes_with_mock_transport(capsys):
     monitor = smoke.Monitor(
         successful_transport, timeout=3, search_interval=2.1, sleeper=waits.append
     )
-    assert monitor.run() == 54
+    assert monitor.run() == 55
     assert waits == [2.1] * 29
-    assert "PASS production smoke: 54 checks, 54 HTTP attempts" in capsys.readouterr().out
+    assert "PASS production smoke: 55 checks, 55 HTTP attempts" in capsys.readouterr().out
 
 
 def test_systemd_activation_waits_for_deep_readiness():
@@ -113,6 +138,82 @@ def test_deep_health_fails_closed(mutation, expected):
         return response
     with pytest.raises(smoke.SmokeFailure, match=expected):
         smoke.Monitor(transport).check_beta_system()
+
+
+@pytest.mark.parametrize(("field", "value", "expected"), [
+    ("fastapi", "0.110.0", "fastapi must equal 0.115.14"),
+    ("pydantic", "1.10.0", "pydantic must equal 2.6.1"),
+    ("starlette", "0.36.3", "starlette must equal 0.46.2"),
+    ("python_abi", "cpython-312", "python_abi must equal cpython-311"),
+    ("git_sha", "stale", "API and runtime git SHAs differ"),
+])
+def test_runtime_attestation_drift_fails_closed(field, value, expected):
+    def transport(method, url, body, timeout):
+        response = successful_transport(method, url, body, timeout)
+        if url.endswith("/assets/runtime-attestation.json"):
+            payload = json.loads(response.body)
+            payload[field] = value
+            return smoke.Response(200, encoded(payload))
+        return response
+
+    with pytest.raises(smoke.SmokeFailure, match=expected):
+        smoke.Monitor(transport).check_beta_system()
+
+
+def test_checked_out_git_sha_prevents_two_consistently_stale_fingerprints():
+    with pytest.raises(
+        smoke.SmokeFailure,
+        match="running git SHA does not exactly match the expected beta release",
+    ):
+        smoke.Monitor(
+            successful_transport,
+            expected_git_sha="d" * 40,
+        ).check_beta_system()
+
+
+def test_checked_out_full_git_sha_requires_exact_running_identity():
+    monitor = smoke.Monitor(
+        successful_transport,
+        expected_git_sha="a" * 40,
+    )
+    monitor.check_beta_system()
+
+
+def test_docs_only_main_advance_keeps_last_successful_beta_release_as_authority():
+    last_successful_beta_sha = "a" * 40
+    docs_only_main_sha = "b" * 40
+    assert docs_only_main_sha != last_successful_beta_sha
+
+    smoke.Monitor(
+        successful_transport,
+        expected_git_sha=last_successful_beta_sha,
+    ).check_beta_system()
+    with pytest.raises(
+        smoke.SmokeFailure,
+        match="running git SHA does not exactly match the expected beta release",
+    ):
+        smoke.Monitor(
+            successful_transport,
+            expected_git_sha=docs_only_main_sha,
+        ).check_beta_system()
+
+
+@pytest.mark.parametrize("invalid", ["a" * 12, "a" * 64, "A" * 40, "g" * 40])
+def test_cli_requires_exactly_one_lowercase_full_sha1_identity(invalid):
+    with pytest.raises(SystemExit) as caught:
+        smoke.main(["--expected-git-sha", invalid])
+    assert caught.value.code == 2
+
+
+def test_checked_out_full_git_sha_rejects_a_matching_prefix_only():
+    with pytest.raises(
+        smoke.SmokeFailure,
+        match="running git SHA does not exactly match the expected beta release",
+    ):
+        smoke.Monitor(
+            successful_transport,
+            expected_git_sha="a" * 12 + "b" * 28,
+        ).check_beta_system()
 
 
 def test_invalid_json_fails_without_echoing_body():

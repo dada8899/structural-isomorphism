@@ -20,8 +20,8 @@
   var STORAGE_KEY = 'structural.lang';
   var DEFAULT_LANG = 'zh';
   var SUPPORTED = ['zh', 'en'];
-  var UI_JSON_URL = '/assets/data/i18n/ui.json?v=20260713a';
-  var CONTENT_JSON_URL = '/assets/data/i18n/content.json?v=20260713a';
+  var UI_JSON_URL = '/assets/data/i18n/ui.json?v=20260714n2';
+  var CONTENT_JSON_URL = '/assets/data/i18n/content.json?v=20260714n2';
 
   // Global strings registry — may be pre-populated by other scripts loaded
   // before this one (e.g. a page-specific content bundle). We merge into it
@@ -56,7 +56,9 @@
   })();
 
   var state = {
-    lang: DEFAULT_LANG,
+    // Resolve synchronously so page scripts loaded before DOMContentLoaded do
+    // not render a transient Chinese frame for an explicit English request.
+    lang: readInitialLang(),
     ready: false,
     listeners: []
   };
@@ -303,9 +305,7 @@
       })
       .then(function (data) { ingestUiJson(data); })
       .catch(function (err) {
-        if (window.console && console.warn) {
-          console.warn('[i18n] failed to load ui.json:', err);
-        }
+        console.warn('[i18n] ui catalog load failed');
       });
   }
 
@@ -317,9 +317,7 @@
       })
       .then(function (data) { ingestUiJson(data); })
       .catch(function (err) {
-        if (window.console && console.warn) {
-          console.warn('[i18n] failed to load content.json:', err);
-        }
+        console.warn('[i18n] content catalog load failed');
       });
   }
 

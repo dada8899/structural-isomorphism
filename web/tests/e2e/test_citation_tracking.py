@@ -2,7 +2,7 @@
 
 Asserts that clicking a citation surface (kb_card / inline / citation_bar)
 fires a Plausible `citation_click` event whose props include
-phenomenon_id, position, query_hash, and surface.
+phenomenon_id, position, and surface. Query-derived values are forbidden.
 
 This test is self-contained: it serves the static frontend out of
 `web/frontend/` via a local HTTP server and stubs the /api/ask/stream
@@ -42,6 +42,8 @@ _CANNED_SSE = (
     'data: {"count": 1, "cards": [{"id": "phen-1", "name": "Bank run cascade",'
     ' "domain": "finance", "type_id": "Network_cascade",'
     ' "description": "Depositors withdraw en masse.", "score": 0.91}]}\n\n'
+    "event: answer_validated\n"
+    'data: {"ok": true}\n\n'
     "event: answer_chunk\n"
     'data: {"delta": "答案引用 [1] 完成。"}\n\n'
     "event: answer_done\n"
@@ -151,19 +153,26 @@ def _wait_for_event(page, name: str, timeout_ms: int = 5000) -> dict:
     )
 
 
+def _submit_confirmed_fingerprint(page, query: str = "test query") -> None:
+    """Follow the real Ask journey instead of bypassing fingerprint review."""
+    page.fill("#ask-input", query)
+    page.click(".ask-searchbox__submit")
+    page.locator("#ask-fingerprint-confirm").wait_for(state="visible", timeout=5000)
+    page.click("#ask-fingerprint-confirm")
+
+
 def test_citation_click_kb_card_fires_event(local_server, chromium_browser):
-    """Click .ask-kb-card → citation_click with surface=kb_card and expected props."""
+    """Click the KB source link and emit only its public candidate identity."""
     context, page = _setup_page(chromium_browser, local_server)
     try:
         # Fill input and submit; canned SSE renders one kb card.
-        page.fill("#ask-input", "test query")
-        page.click(".ask-searchbox__submit")
+        _submit_confirmed_fingerprint(page)
 
         # Wait for kb card to render.
         page.locator(".ask-kb-card").first.wait_for(state="visible", timeout=5000)
         # Use JS click to avoid the new-tab navigation (target=_blank) that
         # would steal focus from our spy context.
-        page.evaluate("() => document.querySelector('.ask-kb-card').click()")
+        page.evaluate("() => document.querySelector('.ask-kb-card__source').click()")
         # Allow capture-phase listener to flush.
         page.wait_for_timeout(200)
 
@@ -171,8 +180,8 @@ def test_citation_click_kb_card_fires_event(local_server, chromium_browser):
         props = evt["opts"]["props"]
         assert props["phenomenon_id"] == "phen-1"
         assert props["position"] == 1
-        assert props["surface"] == "kb_card"
-        assert isinstance(props["query_hash"], str) and len(props["query_hash"]) >= 4
+        assert props["surface"] == "kb_card_source"
+        assert "query_hash" not in props
     finally:
         context.close()
 
@@ -181,8 +190,7 @@ def test_citation_click_inline_marker_fires_event(local_server, chromium_browser
     """Click .ask-citation (inline [N] marker) → citation_click with surface=inline."""
     context, page = _setup_page(chromium_browser, local_server)
     try:
-        page.fill("#ask-input", "test query")
-        page.click(".ask-searchbox__submit")
+        _submit_confirmed_fingerprint(page)
 
         # answer_done event renders the citations bar AND inline [N] links.
         # Inline marker is .ask-citation (renderCitationsAsLinks output).
@@ -219,8 +227,7 @@ def test_input_too_long_server_shows_friendly_error(local_server, chromium_brows
             )
         page.route("**/api/ask/stream", handle_ask)
         page.goto(local_server + "/", wait_until="load")
-        page.fill("#ask-input", "test query")
-        page.click(".ask-searchbox__submit")
+        _submit_confirmed_fingerprint(page)
         # The thread item should render and showError() must inject the
         # message body. We grep for "Input limit" or "限制" since the
         # server message is English in the test stub.
