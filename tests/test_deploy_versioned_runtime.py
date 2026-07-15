@@ -385,10 +385,6 @@ def _make_runtime_release(
     release = releases / f"{abi}-{requirements_sha}-{freeze_sha}"
     release.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(template, release, symlinks=True)
-    for executable in release.joinpath("bin").glob("pip*"):
-        lines = executable.read_text(encoding="utf-8").splitlines(keepends=True)
-        lines[0] = f"#!{release}/bin/python\n"
-        executable.write_text("".join(lines), encoding="utf-8")
     (release / ".complete").touch()
     python_version = subprocess.run(
         [str(release / "bin" / "python"), "-c", "import platform; print(platform.python_version())"],
@@ -743,8 +739,11 @@ def test_deploy_builds_before_sync_and_rolls_back_all_mutable_state() -> None:
     assert 'deployment_restore_transaction_state' in helper
     assert 'runtime_publish_attestation "$PUBLIC_RUNTIME_ATTESTATION"' in deploy
     assert '$TARGET/venv/bin/pip' not in deploy
-    assert '"$RUNTIME_BUILD_DIR/bin/pip" install' in helper
-    assert '"$release/bin/python" -I -m pip check' in helper
+    assert 'runtime_pip "$RUNTIME_RESOLVER_DIR" install' in helper
+    assert 'runtime_pip "$RUNTIME_BUILD_DIR" install' in helper
+    assert 'runtime_pip "$RUNTIME_BUILD_DIR" freeze --all' in helper
+    assert "/bin/pip" not in helper
+    assert 'runtime_pip "$release" check' in helper
     assert '"$release/bin/python" -I - \\' in helper
     assert '"$RUNTIME_CURRENT/bin/python" -I - \\' in helper
     assert 'RUNTIME_BUILD_DIR="$RUNTIME_RELEASE"' in helper
@@ -2086,6 +2085,35 @@ def test_current_runtime_mutable_release_is_rejected(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
 
 
+@pytest.mark.parametrize("launcher_state", ["missing", "nonexecutable"])
+def test_current_runtime_accepts_module_pip_without_console_launcher(
+    tmp_path: Path, launcher_state: str,
+) -> None:
+    runtime_root = tmp_path / "runtime"
+    release = _make_runtime_release(
+        runtime_root / "releases", requirements_sha="8" * 64
+    )
+    launcher = release / "bin" / "pip"
+    if launcher_state == "missing":
+        launcher.parent.chmod(launcher.parent.stat().st_mode | 0o200)
+        launcher.unlink()
+        launcher.parent.chmod(launcher.parent.stat().st_mode & ~0o222)
+    else:
+        launcher.chmod(0o444)
+    current = runtime_root / "current"
+    current.symlink_to(release)
+
+    result = _bash(
+        f'RUNTIME_ROOT={shlex.quote(str(runtime_root))}; '
+        'RUNTIME_RELEASES="$RUNTIME_ROOT/releases"; RUNTIME_CURRENT="$RUNTIME_ROOT/current"; '
+        f'RUNTIME_PYTHON={shlex.quote(sys.executable)}; '
+        'runtime_capture_current; test "$RUNTIME_PREVIOUS_PRESENT" = 1; '
+        f'test "$RUNTIME_PREVIOUS_TARGET" = {shlex.quote(str(release))}'
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
 def test_current_runtime_rejects_forged_shell_executables(tmp_path: Path) -> None:
     runtime_root = tmp_path / "runtime"
     release = _make_forged_runtime_release(
@@ -2649,6 +2677,73 @@ def test_runtime_proofs_ignore_cwd_and_pythonpath_distribution_injection(
     assert payload["installed_freeze_sha256"] == freeze_sha
     assert "ambient-dependency" not in public.read_text(encoding="utf-8")
     assert "structural-isomorphism" not in public.read_text(encoding="utf-8")
+
+
+def _make_long_pip_environment(tmp_path: Path) -> Path:
+    runtime_id = f"{sys.implementation.cache_tag}-{'a' * 64}-{'b' * 64}"
+    environment = tmp_path / "releases" / runtime_id
+    environment.parent.mkdir()
+    subprocess.run(
+        [sys.executable, "-I", "-m", "venv", str(environment)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return environment
+
+
+def test_runtime_pip_ignores_long_path_console_launcher(tmp_path: Path) -> None:
+    environment = _make_long_pip_environment(tmp_path)
+    expected_shebang_bytes = len(
+        f"#!{environment}/bin/python{sys.version_info.major}\n".encode()
+    )
+    assert expected_shebang_bytes > 127
+    if sys.platform.startswith("linux"):
+        assert (environment / "bin" / "pip").read_text(
+            encoding="utf-8"
+        ).splitlines()[0] == "#!/bin/sh"
+
+    for launcher in (environment / "bin").glob("pip*"):
+        launcher.write_text("#!/bin/sh\nexit 97\n", encoding="utf-8")
+        launcher.chmod(0o755)
+
+    result = _bash(
+        f"runtime_validate_pip_module {shlex.quote(str(environment))}; "
+        f"runtime_pip {shlex.quote(str(environment))} --version"
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert str(environment) in result.stdout
+
+
+def test_runtime_pip_rejects_package_symlink_outside_environment(
+    tmp_path: Path,
+) -> None:
+    environment = _make_long_pip_environment(tmp_path)
+    observed = subprocess.run(
+        [
+            str(environment / "bin" / "python"),
+            "-I",
+            "-c",
+            "import pip; print(pip.__file__)",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    pip_package = Path(observed.stdout.strip()).parent
+    external_package = tmp_path / "external-pip"
+    shutil.copytree(pip_package, external_package)
+    shutil.rmtree(pip_package)
+    pip_package.symlink_to(external_package, target_is_directory=True)
+
+    result = _bash(
+        f"if runtime_validate_pip_module {shlex.quote(str(environment))}; "
+        "then exit 97; fi"
+    )
+
+    assert result.returncode == 0
+    assert "pip module is outside its environment" in result.stderr
 
 
 @pytest.mark.parametrize("invalid_sha", ["a" * 12, "A" * 40, "g" * 40])
