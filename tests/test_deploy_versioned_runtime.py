@@ -1219,6 +1219,44 @@ def test_phase_workflow_uses_python_311_for_the_complete_syntax_gate() -> None:
     assert "python -m venv /tmp/phase-api-import" in workflow[validation_at:]
 
 
+def test_phase_workflow_installs_exact_test_dependency_closure() -> None:
+    workflow = yaml.safe_load(PHASE_WORKFLOW.read_text(encoding="utf-8"))
+    steps = workflow["jobs"]["deploy"]["steps"]
+    matches = [
+        step
+        for step in steps
+        if isinstance(step, dict)
+        and step.get("name") == "Validate Phase API and privacy release contracts"
+    ]
+    assert len(matches) == 1
+    validation = matches[0]
+    run = validation["run"]
+
+    assert steps.index(validation) < next(
+        index
+        for index, step in enumerate(steps)
+        if isinstance(step, dict) and step.get("name") == "SSH deploy"
+    )
+    assert "if" not in validation and "continue-on-error" not in validation
+    assert run.count("/tmp/phase-api-import/bin/pip install") == 1
+    assert "-r v4/product/d1_phase_detector/api/requirements.txt" in run
+    assert "pytest==9.0.3 httpx==0.27.2" in run
+    assert run.index("/tmp/phase-api-import/bin/pip check") < run.index(
+        "from v4.product.d1_phase_detector.api.main import app"
+    )
+    assert (
+        "tests/test_deploy_versioned_runtime.py::"
+        "test_phase_workflow_installs_exact_test_dependency_closure"
+    ) in run
+    for target in (
+        "tests/test_phase_privacy_gate.py",
+        "tests/test_nginx_privacy_contract.py",
+        "v4/product/d1_phase_detector/api/tests/test_privacy_middleware.py",
+        "v4/product/d1_phase_detector/api/tests/test_waitlist.py",
+    ):
+        assert target in run
+
+
 def test_phase_workflow_uses_the_same_strict_exact_sha_dispatcher() -> None:
     workflow = PHASE_WORKFLOW.read_text(encoding="utf-8")
     entrypoint = PHASE_DISPATCH_ENTRYPOINT.read_text(encoding="utf-8")
