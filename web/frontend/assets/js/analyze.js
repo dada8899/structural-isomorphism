@@ -841,27 +841,70 @@ function clearStreamPreview() {
 }
 
 // === Final render: all sections at once with stagger animation ===
-function renderFinalReport(report) {
-  const container = $('#analyze-sections');
-  if (!container) return;
-
-  container.innerHTML = SECTIONS.map((s, i) => {
-    const renderer = renderers[s.key];
-    const data = report[s.key];
-    const html = renderer ? renderer(data) : '';
-    return `
-      <section class="section section--revealed" id="section-${s.key}" data-key="${s.key}" style="animation-delay: ${i * 150}ms">
-        <div class="section__number">${s.num}</div>
-        <h2 class="section__title">${escapeHtml(sectionLabel(s))}</h2>
+function finalReportSectionMarkup(report, section, index, revealed) {
+  const renderer = renderers[section.key];
+  const data = report[section.key];
+  const html = renderer ? renderer(data) : '';
+  return `
+      <section class="section${revealed ? ' section--revealed' : ''}" id="section-${section.key}" data-key="${section.key}" style="animation-delay: ${index * 150}ms"${revealed ? '' : ' hidden'}>
+        <div class="section__number">${section.num}</div>
+        <h2 class="section__title">${escapeHtml(sectionLabel(section))}</h2>
         <div class="section__body">${html || '<p style="color:var(--text-tertiary)">—</p>'}</div>
       </section>
     `;
-  }).join('');
-  if (analyzeMathRuntimeReady()) enhanceAnalyzeMath(container);
+}
 
-  // Mark all progress items as done
+function completeFinalReportRender(container) {
+  container.querySelectorAll('.section').forEach(section => {
+    section.hidden = false;
+    section.classList.add('section--revealed');
+  });
+  if (analyzeMathRuntimeReady()) enhanceAnalyzeMath(container);
   const allKeys = new Set(SECTIONS.map(s => s.key));
   updateProgress(null, allKeys);
+}
+
+function renderFinalReport(report) {
+  const container = $('#analyze-sections');
+  if (!container) return;
+  container.innerHTML = SECTIONS.map(
+    (section, index) => finalReportSectionMarkup(report, section, index, true)
+  ).join('');
+  completeFinalReportRender(container);
+}
+
+function rerenderAnalyzeSectionForLocale(element, report) {
+  const key = element && element.dataset ? element.dataset.key : null;
+  const section = SECTIONS.find(item => item.key === key);
+  if (!section) return;
+  const title = element.querySelector('.section__title');
+  if (title) title.textContent = sectionLabel(section);
+  const renderer = renderers[key];
+  const body = element.querySelector('.section__body');
+  if (!body || !renderer || !report || !report[key]) return;
+  const html = renderer(report[key]);
+  if (!html) return;
+  body.innerHTML = html;
+  if (window.renderMath) window.renderMath(body);
+}
+
+function yieldAnalyzeMainThread() {
+  return new Promise(resolve => setTimeout(resolve, 0));
+}
+
+async function renderFinalReportCooperatively(report, isCurrent) {
+  const container = $('#analyze-sections');
+  if (!container) return;
+  container.replaceChildren();
+  for (let index = 0; index < SECTIONS.length; index += 1) {
+    if (!isCurrent()) throw new Error('Analyze render was superseded');
+    container.insertAdjacentHTML(
+      'beforeend', finalReportSectionMarkup(report, SECTIONS[index], index, false)
+    );
+    if (index + 1 < SECTIONS.length) await yieldAnalyzeMainThread();
+  }
+  if (!isCurrent()) throw new Error('Analyze render was superseded');
+  completeFinalReportRender(container);
 }
 
 // The backend releases section events only after the complete report passes
@@ -1027,6 +1070,7 @@ const ANALYZE_CONTROL_RE = /[\p{Cc}\p{Cf}\p{Cs}]/u;
 const ANALYZE_MAX_PUBLIC_CHARS = 24000;
 const ANALYZE_MAX_CANONICAL_CHARS = 96000;
 const ANALYZE_MAX_STREAM_BYTES = 512000;
+const ANALYZE_MAX_CANONICAL_DEPTH = 64;
 
 function hasExactKeys(value, keys) {
   if (!isPlainObject(value)) return false;
@@ -1065,7 +1109,10 @@ function deepEqualCanonical(left, right) {
   try { return canonicalAnalyzeJson(left) === canonicalAnalyzeJson(right); } catch (_) { return false; }
 }
 
-function canonicalAnalyzeJson(value) {
+function canonicalAnalyzeJson(value, depth = 0) {
+  if (!Number.isSafeInteger(depth) || depth < 0 || depth > ANALYZE_MAX_CANONICAL_DEPTH) {
+    throw new TypeError('canonical JSON nesting is too deep');
+  }
   if (value === null || typeof value === 'string' || typeof value === 'boolean') {
     return JSON.stringify(value);
   }
@@ -1074,28 +1121,31 @@ function canonicalAnalyzeJson(value) {
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
-    return '[' + value.map(canonicalAnalyzeJson).join(',') + ']';
+    return '[' + value.map(item => canonicalAnalyzeJson(item, depth + 1)).join(',') + ']';
   }
   if (isPlainObject(value)) {
     return '{' + Object.keys(value).sort().map(key =>
-      JSON.stringify(key) + ':' + canonicalAnalyzeJson(value[key])
+      JSON.stringify(key) + ':' + canonicalAnalyzeJson(value[key], depth + 1)
     ).join(',') + '}';
   }
   throw new TypeError('value is not canonical JSON');
 }
 
-async function sha256CanonicalAnalyzeJson(value, cryptoImpl) {
+async function sha256AnalyzeCanonicalText(canonical, cryptoImpl) {
   const provider = cryptoImpl || (typeof window !== 'undefined' && window.crypto);
   if (!provider || !provider.subtle || typeof provider.subtle.digest !== 'function' ||
       typeof TextEncoder === 'undefined') {
     throw new Error('WebCrypto SHA-256 is unavailable');
   }
-  const canonical = canonicalAnalyzeJson(value);
-  if (canonical.length > ANALYZE_MAX_CANONICAL_CHARS) {
+  if (typeof canonical !== 'string' || canonical.length > ANALYZE_MAX_CANONICAL_CHARS) {
     throw new Error('canonical report is too large');
   }
   const digest = await provider.subtle.digest('SHA-256', new TextEncoder().encode(canonical));
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256CanonicalAnalyzeJson(value, cryptoImpl) {
+  return sha256AnalyzeCanonicalText(canonicalAnalyzeJson(value), cryptoImpl);
 }
 
 function validateReportBoundary(value) {
@@ -1919,7 +1969,7 @@ function validateAnalyzeReportLanguage(report, lang) {
       action.decision_rule === copy.actionDecision && action.stop_condition === copy.actionStop);
 }
 
-function validateAnalyzeReportEnvelope(report, expectedMeta) {
+function validateAnalyzeReportEnvelopeWithCanonical(report, expectedMeta, canonicalReport) {
   const expected = [
     'schema_version', 'evidence_level', 'generation_status', ...DEEP_REPORT_SECTION_KEYS,
     'source_binding', 'report_boundary', 'source_refs',
@@ -1959,13 +2009,22 @@ function validateAnalyzeReportEnvelope(report, expectedMeta) {
   if (expectedMeta && (!deepEqualCanonical(report.source_binding, expectedMeta.source_binding) ||
       !deepEqualCanonical(report.source_refs, expectedMeta.source_refs) ||
       !deepEqualCanonical(report.report_boundary, expectedMeta.report_boundary))) return false;
-  try {
-    if (canonicalAnalyzeJson(report).length > ANALYZE_MAX_CANONICAL_CHARS) return false;
-  } catch (_) { return false; }
+  if (typeof canonicalReport !== 'string' ||
+      canonicalReport.length > ANALYZE_MAX_CANONICAL_CHARS) return false;
   const expectedLang = expectedMeta && expectedMeta.source_binding
     ? expectedMeta.source_binding.lang : null;
   return (!expectedMeta || (expectedMeta.lang === expectedLang &&
     validateAnalyzeReportLanguage(report, expectedLang))) && publicClaimsAreCandidateOnly(report);
+}
+
+function validateAnalyzeReportEnvelope(report, expectedMeta) {
+  try {
+    return validateAnalyzeReportEnvelopeWithCanonical(
+      report, expectedMeta, canonicalAnalyzeJson(report)
+    );
+  } catch (_) {
+    return false;
+  }
 }
 
 function normalizeAnalyzeRequestText(value, maximum, allowLayout) {
@@ -2270,6 +2329,7 @@ function createAnalyzeTrustState(rawRequest, cryptoImpl) {
   let completed = false;
   let failed = false;
   const sections = Object.create(null);
+  const sectionCanonical = Object.create(null);
   let nextSectionIndex = 0;
   const progressByAttempt = new Map();
 
@@ -2324,6 +2384,7 @@ function createAnalyzeTrustState(rawRequest, cryptoImpl) {
           return reject('section is invalid, duplicated, or out of order');
         }
         sections[value.key] = value.data;
+        sectionCanonical[value.key] = canonicalAnalyzeJson(value.data);
         nextSectionIndex += 1;
         return { type: 'section', key: value.key, data: value.data };
       }
@@ -2336,17 +2397,21 @@ function createAnalyzeTrustState(rawRequest, cryptoImpl) {
         return { type: 'persisted', persisted };
       }
       if (type === 'done') {
+        let canonicalReport;
+        try { canonicalReport = canonicalAnalyzeJson(value.report); } catch (_) {
+          return reject('done event contains non-canonical JSON');
+        }
         if (!hasExactKeys(value, ['generation_id', 'report_sha256', 'report', 'from_cache']) ||
             nextSectionIndex !== DEEP_REPORT_SECTION_KEYS.length ||
             value.generation_id !== receipt.generation_id ||
             value.report_sha256 !== receipt.report_sha256 ||
             value.from_cache !== receipt.from_cache ||
-            !validateAnalyzeReportEnvelope(value.report, meta) ||
+            !validateAnalyzeReportEnvelopeWithCanonical(value.report, meta, canonicalReport) ||
             !sourceSnapshotMatchesReport(value.report, meta) ||
             DEEP_REPORT_SECTION_KEYS.some(key =>
-              !deepEqualCanonical(sections[key], value.report[key])
+              sectionCanonical[key] !== canonicalAnalyzeJson(value.report[key])
             )) return reject('done event failed report binding');
-        const computed = await sha256CanonicalAnalyzeJson(value.report, cryptoImpl);
+        const computed = await sha256AnalyzeCanonicalText(canonicalReport, cryptoImpl);
         if (computed !== receipt.report_sha256) return reject('report hash mismatch');
         completed = true;
         return { type: 'done', report: value.report, persisted, meta };
@@ -2360,6 +2425,7 @@ function resetAnalyzeResultState() {
   window._finalReport = null;
   window._persistedReport = null;
   window._analyzeMeta = null;
+  window._decisionBriefContext = null;
   _tldrShownLogged = false;
   setAnalyzeReportStageState('loading');
   clearStreamPreview();
@@ -2531,6 +2597,26 @@ function commitAnalyzeReportForDisplay(report, persisted, render) {
   }
 }
 
+async function commitAnalyzeReportForDisplayAsync(report, persisted, render, isCurrent) {
+  window._finalReport = report;
+  window._persistedReport = persisted || null;
+  try {
+    await render();
+  } catch (error) {
+    if (!isCurrent || isCurrent()) resetAnalyzeResultState();
+    throw error;
+  }
+}
+
+async function runCurrentAnalyzeSteps(isCurrent, steps) {
+  for (const step of steps) {
+    if (!isCurrent()) return false;
+    await step();
+    if (!isCurrent()) return false;
+  }
+  return true;
+}
+
 // === Main streaming loop ===
 function streamAnalysis(payload) {
   if (_activeAnalyzeStream) _activeAnalyzeStream.close();
@@ -2630,28 +2716,42 @@ function streamAnalysis(payload) {
 
   es.addEventListener('persisted', e => enqueue('persisted', e, () => {}));
 
-  es.addEventListener('done', e => enqueue('done', e, accepted => {
-    commitAnalyzeReportForDisplay(accepted.report, accepted.persisted, () => {
-      renderFinalReport(accepted.report);
-      if (accepted.persisted) {
-        renderShareBar(accepted.persisted);
-        renderDecisionBrief({
-          reportId: accepted.persisted.id,
-          createdAt: accepted.persisted.created_at,
-          partial: false,
-          allowExperiment: true,
-        });
-      }
-      updateProgressState(receivedKeys);
-      renderTldrCard();
-      if (!accepted.persisted) renderDecisionBrief();
-    });
+  es.addEventListener('done', e => enqueue('done', e, async accepted => {
     stopTimers();
-    const loading = $('#analyze-loading');
-    setAnalyzeReportStageState('ready');
-    if (loading) loading.remove();
-    terminalHandled = true;
     es.close();
+    const completed = await runCurrentAnalyzeSteps(current, [
+      () => commitAnalyzeReportForDisplayAsync(
+        accepted.report,
+        accepted.persisted,
+        () => renderFinalReportCooperatively(accepted.report, current),
+        current
+      ),
+      () => {
+        if (accepted.persisted) renderShareBar(accepted.persisted);
+      },
+      yieldAnalyzeMainThread,
+      () => {
+        if (accepted.persisted) {
+          renderDecisionBrief({
+            reportId: accepted.persisted.id,
+            createdAt: accepted.persisted.created_at,
+            partial: false,
+            allowExperiment: true,
+          });
+        } else {
+          renderDecisionBrief();
+        }
+      },
+      yieldAnalyzeMainThread,
+      () => {
+        updateProgressState(receivedKeys);
+        renderTldrCard();
+        const loading = $('#analyze-loading');
+        setAnalyzeReportStageState('ready');
+        if (loading) loading.remove();
+      },
+    ]);
+    if (completed) terminalHandled = true;
   }));
 
   es.addEventListener('error', e => enqueue('error', e, ({ error }) => {
@@ -2851,7 +2951,7 @@ function buildDecisionBriefModel(context) {
     promptVersion: ctx.promptVersion || meta.prompt_version || '',
     createdAt: ctx.createdAt || ((window._persistedReport || {}).created_at) || '',
     partial: !!(ctx.partial || ((window._persistedReport || {}).is_partial)),
-    allowExperiment: ctx.allowExperiment !== false,
+    allowExperiment: ctx.allowExperiment === true,
     evidence: ctx.evidence || meta.evidence || null,
   };
 }
@@ -3512,25 +3612,11 @@ try {
             if (sec) el.textContent = sectionLabel(sec);
           });
         }
-        // Section titles
+        // Re-render every validated section, including cooperative sections
+        // that are still hidden, so a mid-render locale change cannot mix
+        // labels from two languages when the report is revealed.
         document.querySelectorAll('.section').forEach(function (el) {
-          var k = el.dataset.key;
-          var sec = SECTIONS.find(function (s) { return s.key === k; });
-          if (!sec) return;
-          var titleEl = el.querySelector('.section__title');
-          if (titleEl) titleEl.textContent = sectionLabel(sec);
-          // Re-render already-revealed bodies so sub-headings pick up new lang.
-          if (el.classList.contains('section--revealed') && window._finalReport && window._finalReport[k]) {
-            var body = el.querySelector('.section__body');
-            var renderer = renderers[k];
-            if (body && renderer) {
-              var html = renderer(window._finalReport[k]);
-              if (html) {
-                body.innerHTML = html;
-                if (window.renderMath) window.renderMath(body);
-              }
-            }
-          }
+          rerenderAnalyzeSectionForLocale(el, window._finalReport);
         });
         // TL;DR pinned card — re-render so labels and "完整 N 步清单" pick up new lang
         try { renderTldrCard(); } catch (e) {}
@@ -3559,11 +3645,13 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     ANALYZE_MATH_BACKGROUND_DELAY_MS,
     ANALYZE_MATH_ASSETS,
+    ANALYZE_MAX_CANONICAL_DEPTH,
     analyzeGenerationMatches,
     analyzeMathRuntimeReady,
     buildDecisionBriefModel,
     canonicalAnalyzeJson,
     commitAnalyzeReportForDisplay,
+    commitAnalyzeReportForDisplayAsync,
     createAnalyzeRequestContext,
     createAnalyzeTrustState,
     decisionBriefMarkdown,
@@ -3577,6 +3665,9 @@ if (typeof module !== 'undefined' && module.exports) {
     renderAnalyzeStructuralMapping: renderers.structural_mapping,
     renderAnalyzeTargetDomainIntro: renderers.target_domain_intro,
     requestAnalyzeMathRuntime,
+    rerenderAnalyzeSectionForLocale,
+    resetAnalyzeResultState,
+    runCurrentAnalyzeSteps,
     setAnalyzeReportStageState,
     sharePersistedAnalyzeReport,
     sha256CanonicalAnalyzeJson,

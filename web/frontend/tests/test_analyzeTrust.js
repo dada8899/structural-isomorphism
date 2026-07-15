@@ -27,11 +27,13 @@ global.escapeHtml = value => String(value == null ? '' : value)
 const {
   ANALYZE_MATH_ASSETS,
   ANALYZE_MATH_BACKGROUND_DELAY_MS,
+  ANALYZE_MAX_CANONICAL_DEPTH,
   analyzeGenerationMatches,
   analyzeMathRuntimeReady,
   buildDecisionBriefModel,
   canonicalAnalyzeJson,
   commitAnalyzeReportForDisplay,
+  commitAnalyzeReportForDisplayAsync,
   createAnalyzeRequestContext,
   createAnalyzeTrustState,
   decisionBriefMarkdown,
@@ -44,6 +46,9 @@ const {
   renderAnalyzeStructuralMapping,
   renderAnalyzeTargetDomainIntro,
   requestAnalyzeMathRuntime,
+  rerenderAnalyzeSectionForLocale,
+  resetAnalyzeResultState,
+  runCurrentAnalyzeSteps,
   setAnalyzeReportStageState,
   sharePersistedAnalyzeReport,
   sha256CanonicalAnalyzeJson,
@@ -405,6 +410,31 @@ test('generation guard and canonical JSON are deterministic', () => {
   assert.equal(analyzeGenerationMatches(3, 3), true);
   assert.equal(analyzeGenerationMatches(2, 3), false);
   assert.equal(canonicalAnalyzeJson({b: 2, a: ['中', true]}), '{"a":["中",true],"b":2}');
+});
+
+test('canonical JSON rejects nesting beyond its explicit depth budget', () => {
+  let allowed = 'leaf';
+  for (let depth = 0; depth < ANALYZE_MAX_CANONICAL_DEPTH; depth += 1) allowed = [allowed];
+  assert.doesNotThrow(() => canonicalAnalyzeJson(allowed));
+  assert.throws(() => canonicalAnalyzeJson([allowed]), /nesting is too deep/);
+});
+
+test('superseded generation cannot run effects after an async yield', async () => {
+  let generation = 1;
+  let releaseYield;
+  const effects = [];
+  const pending = runCurrentAnalyzeSteps(
+    () => generation === 1,
+    [
+      () => new Promise(resolve => { releaseYield = resolve; }),
+      () => { effects.push('stale-decision-brief'); },
+    ]
+  );
+  await Promise.resolve();
+  generation = 2;
+  releaseYield();
+  assert.equal(await pending, false);
+  assert.deepEqual(effects, []);
 });
 
 test('semantic guard ships without regex lookbehind for older Safari', () => {
@@ -1142,6 +1172,26 @@ test('decision brief uses current PriorityAction fields without title-as-hypothe
   assert.match(markdown, new RegExp(first.how));
 });
 
+test('private generation cannot inherit a persisted decision capability', async () => {
+  const persisted = await fixture();
+  window._decisionBriefContext = {
+    reportId: persisted.persisted.id,
+    createdAt: persisted.persisted.created_at,
+    allowExperiment: true,
+  };
+  resetAnalyzeResultState();
+
+  const privateData = await fixture({persist: 0});
+  window._finalReport = privateData.report;
+  window._analyzeMeta = privateData.meta;
+  window._persistedReport = null;
+  const model = buildDecisionBriefModel();
+  assert.equal(window._decisionBriefContext, null);
+  assert.equal(model.reportId, '');
+  assert.equal(model.createdAt, '');
+  assert.equal(model.allowExperiment, false);
+});
+
 test('handoff context preserves fingerprint and candidate origin without putting query in href', () => {
   const fingerprint = {source_query: 'private question', summary: 'private confirmed summary'};
   const context = createAnalyzeRequestContext({
@@ -1320,6 +1370,74 @@ test('render exception clears all trusted globals before any report is retained'
   assert.equal(window._finalReport, null);
   assert.equal(window._persistedReport, null);
   assert.equal(window._analyzeMeta, null);
+});
+
+test('async renderer failure clears only the still-current generation', async () => {
+  const data = await fixture();
+  window._analyzeMeta = data.meta;
+  await assert.rejects(
+    commitAnalyzeReportForDisplayAsync(
+      data.report,
+      data.persisted,
+      async () => { throw new Error('cooperative renderer failed'); },
+      () => true
+    ),
+    /cooperative renderer failed/
+  );
+  assert.equal(window._finalReport, null);
+  assert.equal(window._persistedReport, null);
+  assert.equal(window._analyzeMeta, null);
+
+  let current = true;
+  const newerReport = {generation: 2};
+  const newerPersisted = {id: 'newer'};
+  await assert.rejects(
+    commitAnalyzeReportForDisplayAsync(
+      data.report,
+      data.persisted,
+      async () => {
+        current = false;
+        window._finalReport = newerReport;
+        window._persistedReport = newerPersisted;
+        throw new Error('superseded renderer failed');
+      },
+      () => current
+    ),
+    /superseded renderer failed/
+  );
+  assert.equal(window._finalReport, newerReport);
+  assert.equal(window._persistedReport, newerPersisted);
+});
+
+test('hidden cooperative section is localized before reveal', async () => {
+  const data = await fixture();
+  const title = {textContent: ''};
+  const body = {innerHTML: ''};
+  const hiddenSection = {
+    hidden: true,
+    dataset: {key: 'shared_structure'},
+    querySelector(selector) {
+      if (selector === '.section__title') return title;
+      if (selector === '.section__body') return body;
+      return null;
+    },
+  };
+  const originalI18n = window.i18n;
+  window.i18n = {
+    t(key) {
+      if (key === 'page.analyze.section_shared_structure') return 'Candidate structure';
+      if (key === 'page.analyze.candidate_only') return 'Candidate only';
+      return key;
+    },
+  };
+  try {
+    rerenderAnalyzeSectionForLocale(hiddenSection, data.report);
+  } finally {
+    window.i18n = originalI18n;
+  }
+  assert.equal(title.textContent, 'Candidate structure');
+  assert.match(body.innerHTML, /Candidate only/);
+  assert.equal(hiddenSection.hidden, true);
 });
 
 test('Analyze math stays optional, delayed, fixed-origin, and text-safe', async () => {

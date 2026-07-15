@@ -296,6 +296,7 @@ test('valid render commits once while a late renderer throw rolls everything bac
   assert.equal(renderValidatedPersistedDetail(shared, {kind: 'share', value: 'c'.repeat(32)}), true);
   assert.equal(renders, 1);
   assert.equal(window._finalReport, shared.payload);
+  window._decisionBriefContext = {reportId: shared.id, allowExperiment: true};
 
   elements.set('report-followup', element('report-followup'));
   window.renderTldrCard = () => {
@@ -309,6 +310,7 @@ test('valid render commits once while a late renderer throw rolls everything bac
   assert.equal(window._finalReport, null);
   assert.equal(window._analyzeMeta, null);
   assert.equal(window._persistedReport, null);
+  assert.equal(window._decisionBriefContext, null);
   for (const id of ['report-meta', 'analyze-sections', 'analyze-tldr',
     'decision-brief-root', 'report-origin']) {
     assert.equal(elements.get(id).innerHTML, '', id);

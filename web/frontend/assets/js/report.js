@@ -135,6 +135,7 @@
     window._finalReport = null;
     window._analyzeMeta = null;
     window._persistedReport = null;
+    window._decisionBriefContext = null;
     const followup = document.getElementById('report-followup');
     if (followup) followup.remove();
     for (const id of ['report-meta', 'analyze-sections', 'analyze-tldr',
