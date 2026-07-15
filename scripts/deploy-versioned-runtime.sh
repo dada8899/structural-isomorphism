@@ -104,6 +104,61 @@ runtime_require_disk_space() {
   }
 }
 
+runtime_validate_pip_module() {
+  local environment="$1"
+  [[ -d "$environment" && ! -L "$environment" \
+    && -x "$environment/bin/python" ]] || return 1
+  "$environment/bin/python" -I - "$environment" <<'PY'
+import importlib.util
+import sys
+from importlib import metadata
+from pathlib import Path
+
+environment_raw = Path(sys.argv[1])
+if environment_raw.is_symlink():
+    raise SystemExit("pip environment cannot be a symlink")
+environment = environment_raw.resolve(strict=True)
+if Path(sys.prefix).resolve(strict=True) != environment:
+    raise SystemExit("pip interpreter prefix is outside its environment")
+executable = Path(sys.executable)
+if executable.parent != environment_raw / "bin" or executable.name != "python":
+    raise SystemExit("pip interpreter path is outside its environment")
+
+spec = importlib.util.find_spec("pip")
+if spec is None or not isinstance(spec.origin, str):
+    raise SystemExit("pip module has no filesystem identity")
+module_origin = Path(spec.origin).resolve(strict=True)
+if environment not in module_origin.parents:
+    raise SystemExit("pip module is outside its environment")
+for location in spec.submodule_search_locations or ():
+    resolved_location = Path(location).resolve(strict=True)
+    if environment != resolved_location and environment not in resolved_location.parents:
+        raise SystemExit("pip package search path is outside its environment")
+
+distribution = metadata.distribution("pip")
+distribution_root = Path(distribution.locate_file("")).resolve(strict=True)
+if environment != distribution_root and environment not in distribution_root.parents:
+    raise SystemExit("pip distribution root is outside its environment")
+files = distribution.files
+if not files:
+    raise SystemExit("pip distribution has no installed-file identity")
+for entry in files:
+    candidate = Path(distribution.locate_file(entry))
+    if not candidate.exists() and not candidate.is_symlink():
+        continue
+    resolved_candidate = candidate.resolve(strict=True)
+    if environment != resolved_candidate and environment not in resolved_candidate.parents:
+        raise SystemExit("pip distribution file is outside its environment")
+PY
+}
+
+runtime_pip() {
+  local environment="$1"
+  shift
+  runtime_validate_pip_module "$environment" || return 1
+  "$environment/bin/python" -I -m pip "$@"
+}
+
 runtime_abort_resolver() {
   if [[ -n "$RUNTIME_RESOLVER_DIR" && -d "$RUNTIME_RESOLVER_DIR" ]]; then
     rm -rf "$RUNTIME_RESOLVER_DIR"
@@ -118,7 +173,7 @@ runtime_resolve_dependency_graph() {
     runtime_abort_resolver
     return 1
   }
-  "$RUNTIME_RESOLVER_DIR/bin/pip" install \
+  runtime_pip "$RUNTIME_RESOLVER_DIR" install \
     --disable-pip-version-check --no-input --dry-run --ignore-installed \
     --report "$RUNTIME_RESOLVER_DIR/report.json" \
     --requirement "$requirements" >/dev/null || {
@@ -1267,7 +1322,7 @@ PY
 
 runtime_attest_release() {
   local release="$1" output="$2"
-  "$release/bin/python" -I -m pip check >/dev/null || return 1
+  runtime_pip "$release" check >/dev/null || return 1
   "$release/bin/python" -I - \
     "$output" "$release" "$RUNTIME_PYTHON" \
     "$RUNTIME_ID" "$RUNTIME_REQUIREMENTS_SHA256" "$RUNTIME_FREEZE_SHA256" \
@@ -1304,12 +1359,6 @@ resolved_executable = executable.resolve(strict=True)
 resolved_base = Path(base_python_path).resolve(strict=True)
 if resolved_executable != resolved_base and release not in resolved_executable.parents:
     raise SystemExit("runtime interpreter realpath is not the trusted base or release")
-pip_script = Path(release_path, "bin", "pip")
-pip_shebang = pip_script.read_text(encoding="utf-8").splitlines()[0]
-if pip_shebang != f"#!{release_path}/bin/python":
-    raise SystemExit("pip shebang is not bound to the final runtime path")
-
-
 def canonical_installed_graph():
     import hashlib
     import re
@@ -1395,7 +1444,7 @@ PY
 
 runtime_validate_release() {
   local release="$1" expected_file="$release/attestation.json"
-  [[ -x "$release/bin/python" && -x "$release/bin/pip" \
+  [[ -x "$release/bin/python" \
     && -f "$expected_file" && -f "$release/.complete" \
     && ! -e "$release/.building" ]] \
     || return 1
@@ -1720,7 +1769,7 @@ PY
     runtime_abort_build
     return 1
   fi
-  if ! "$RUNTIME_BUILD_DIR/bin/pip" install \
+  if ! runtime_pip "$RUNTIME_BUILD_DIR" install \
       --disable-pip-version-check --no-input \
       --constraint "$RUNTIME_RESOLVER_DIR/constraints.txt" \
       --requirement "$requirements"; then
@@ -1733,7 +1782,7 @@ PY
     runtime_abort_resolver
     return 1
   fi
-  "$RUNTIME_BUILD_DIR/bin/pip" freeze --all \
+  runtime_pip "$RUNTIME_BUILD_DIR" freeze --all \
     > "$RUNTIME_BUILD_DIR/installed-packages.txt" || {
       runtime_abort_build
       runtime_abort_resolver
@@ -1780,7 +1829,7 @@ PY
 
 runtime_live_validate_release() {
   local release="$1" observed_runtime_id
-  "$release/bin/python" -I -m pip check >/dev/null || {
+  runtime_pip "$release" check >/dev/null || {
     echo "[runtime] ERROR: installed dependency graph failed pip check" >&2
     return 1
   }
@@ -1811,14 +1860,6 @@ resolved_executable = executable.resolve(strict=True)
 resolved_base = Path(base_python_raw).resolve(strict=True)
 if resolved_executable != resolved_base and release not in resolved_executable.parents:
     raise SystemExit("live runtime interpreter is not derived from the trusted base")
-
-pip_script = release / "bin" / "pip"
-try:
-    pip_shebang = pip_script.read_text(encoding="utf-8").splitlines()[0]
-except (OSError, UnicodeError, IndexError) as exc:
-    raise SystemExit("live runtime pip launcher is unreadable") from exc
-if pip_shebang != f"#!{release_raw}/bin/python":
-    raise SystemExit("live runtime pip launcher is not bound to its release")
 
 runtime_id = attestation.get("runtime_id")
 requirements_sha = attestation.get("requirements_sha256")
@@ -1910,10 +1951,9 @@ if resolved.parent != releases or resolved.name != target.name:
 complete = resolved / ".complete"
 attestation_path = resolved / "attestation.json"
 python = resolved / "bin" / "python"
-pip = resolved / "bin" / "pip"
 if not complete.is_file() or not attestation_path.is_file():
     raise SystemExit("rollback runtime is incomplete")
-if (resolved / ".building").exists() or not os.access(python, os.X_OK) or not os.access(pip, os.X_OK):
+if (resolved / ".building").exists() or not os.access(python, os.X_OK):
     raise SystemExit("rollback runtime executables are unavailable")
 
 attestation = json.loads(attestation_path.read_text(encoding="utf-8"))
