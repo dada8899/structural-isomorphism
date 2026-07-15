@@ -18,6 +18,13 @@
 # output to block merges that ship a stale TS file.
 set -euo pipefail
 
+# Reject legacy shell-command injection surfaces before inspecting any local
+# dependency. The same hostile input must fail identically in every runtime.
+if [[ -n "${JSON2TS_CMD:-}" || -n "${JSON2TS_PACKAGE_JSON:-}" ]]; then
+  echo "[gen_ts_types] legacy command overrides are forbidden" >&2
+  exit 2
+fi
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
@@ -76,10 +83,6 @@ for package in ("pydantic", "pydantic-to-typescript"):
         )
 PY
 
-if [[ -n "${JSON2TS_CMD:-}" || -n "${JSON2TS_PACKAGE_JSON:-}" ]]; then
-  echo "[gen_ts_types] legacy command overrides are forbidden" >&2
-  exit 2
-fi
 if [[ ! -f "${TYPE_TOOL_ROOT}/package-lock.json" \
    || ! -x "${TYPE_TOOL_ROOT}/node_modules/.bin/json2ts" ]]; then
   echo "[gen_ts_types] locked json2ts runtime is missing — run:" >&2

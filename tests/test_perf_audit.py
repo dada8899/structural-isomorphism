@@ -208,15 +208,15 @@ const armed = arm(element);
 element.dispatch('pointerdown', false);
 element.dispatch('pointerup', false);
 element.dispatch('click', false);
-const afterUntrusted = read(element);
+const afterUntrusted = read();
 element.dispatch('pointerdown', true);
 element.dispatch('pointerup', true);
 element.dispatch('click', true);
-const afterTrusted = read(element);
+const afterTrusted = read();
 element.dispatch('pointerdown', true);
 element.dispatch('pointerup', true);
 element.dispatch('click', true);
-const afterSecondTrusted = read(element);
+const afterSecondTrusted = read();
 console.log(JSON.stringify({
   armed, afterUntrusted, afterTrusted, afterSecondTrusted,
 }));

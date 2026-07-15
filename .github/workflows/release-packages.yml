@@ -40,8 +40,8 @@ on:
       dry_run:
         description: "If true: build + twine check only, no upload"
         required: false
-        default: "true"
-        type: string
+        default: true
+        type: boolean
 
 # Single in-flight publish per tag (avoid force-push duplicates).
 concurrency:
@@ -72,12 +72,24 @@ jobs:
       - name: Resolve target package + version from tag (or input)
         id: resolve
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_PACKAGE: ${{ inputs.package }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            PKG="${{ inputs.package }}"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            case "$INPUT_PACKAGE" in
+              guarded-llm|soc-pipeline|cross-judge|reject-aware-critic) ;;
+              *) echo "::error::Unsupported package input"; exit 1 ;;
+            esac
+            case "$INPUT_DRY_RUN" in
+              true|false) ;;
+              *) echo "::error::dry_run must be a boolean"; exit 1 ;;
+            esac
+            PKG="$INPUT_PACKAGE"
             VER=""             # version sanity check skipped for dispatch
-            DRY="${{ inputs.dry_run }}"
+            DRY="$INPUT_DRY_RUN"
           else
             TAG="${GITHUB_REF_NAME}"
             # tag pattern: <package>-vX.Y.Z(.suffix?)
@@ -155,11 +167,12 @@ jobs:
           steps.resolve.outputs.dry_run != 'true' &&
           env.HAS_PYPI_TOKEN == 'true'
         env:
+          PKG: ${{ steps.resolve.outputs.package }}
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         working-directory: packages/${{ steps.resolve.outputs.package }}
         run: |
-          echo "Publishing ${{ steps.resolve.outputs.package }} via PYPI_API_TOKEN..."
+          echo "Publishing $PKG via PYPI_API_TOKEN..."
           python -m twine upload --non-interactive --disable-progress-bar dist/*
 
       - name: Skip upload — PYPI_API_TOKEN absent
@@ -176,18 +189,24 @@ jobs:
       - name: Summary
         if: always()
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          PKG: ${{ steps.resolve.outputs.package }}
+          VER: ${{ steps.resolve.outputs.version }}
+          DRY_RUN: ${{ steps.resolve.outputs.dry_run }}
         run: |
           {
-            echo "### release-packages — ${{ steps.resolve.outputs.package }}"
+            echo "### release-packages — $PKG"
             echo ""
-            echo "- Event:   \`${{ github.event_name }}\`"
-            echo "- Tag/Ref: \`${{ github.ref_name }}\`"
-            echo "- Version: \`${{ steps.resolve.outputs.version }}\`"
-            echo "- Dry run: \`${{ steps.resolve.outputs.dry_run }}\`"
+            echo "- Event:   \`$EVENT_NAME\`"
+            echo "- Tag/Ref: \`$REF_NAME\`"
+            echo "- Version: \`$VER\`"
+            echo "- Dry run: \`$DRY_RUN\`"
             if [ "${HAS_PYPI_TOKEN}" = "true" ]; then
               echo "- Auth:    PYPI_API_TOKEN present"
             else
               echo "- Auth:    PYPI_API_TOKEN absent — upload skipped"
             fi
-            echo "- PyPI:    https://pypi.org/p/${{ steps.resolve.outputs.package }}"
+            echo "- PyPI:    https://pypi.org/p/$PKG"
           } >> "$GITHUB_STEP_SUMMARY"

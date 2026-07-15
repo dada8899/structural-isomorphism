@@ -9,6 +9,8 @@ else
 OPENAPI_PY ?= $(if $(wildcard $(ROOT)/.venv-openapi/bin/python),$(ROOT)/.venv-openapi/bin/python,$(PY))
 endif
 TYPES_PY ?= $(OPENAPI_PY)
+LLM_SCALING_DIR := $(ROOT)/v4/validation/llm-scaling
+LLM_SCALING_PY ?= $(LLM_SCALING_DIR)/.venv/bin/python
 PACKAGE_PYTHONPATH := $(ROOT)/packages/guarded-llm/src:$(ROOT)/packages/cross-judge/src:$(ROOT)/packages/reject-aware-critic/src:$(ROOT)/packages/soc-pipeline/src
 PYTEST := PYTHONPATH=$(PACKAGE_PYTHONPATH) $(PY) -m pytest
 BACKEND_PYTEST := PYTHONPATH=$(ROOT)/web/backend:$(PACKAGE_PYTHONPATH) $(PY) -m pytest
@@ -37,21 +39,25 @@ BROWSER_CONTRACT_DISCOVERY_CLASSES_PAPERS_TESTS := \
 BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS := \
 	tests/e2e/test_full_public_surface.py \
 	tests/e2e/test_unified_research_library.py \
-	web/tests/e2e/test_thank_you_copy.py
+	web/tests/e2e/test_thank_you_copy.py \
+	web/tests/e2e/test_report_share.py \
+	web/tests/e2e/test_cross_domain_report_claim.py
 
 BROWSER_CONTRACT_SECONDARY_WHITESPACE_TESTS := \
 	web/tests/e2e/test_secondary_tools_candidate_journeys.py \
 	web/tests/e2e/test_whitespace.py
 
 PHASE_REAL_BROWSER_CONTRACT_TESTS := \
-	web/tests/e2e/test_phase_auth_real.py
+	web/tests/e2e/test_phase_auth_real.py \
+	web/tests/e2e/test_cookie_consent.py
 
-.PHONY: test test-unit test-integration test-e2e test-frontend-node test-browser-contracts test-retrieval-contract test-product-contracts test-release-contracts test-all test-fast openapi-env openapi-generate openapi-check types-check verify-release help
+.PHONY: test test-unit test-integration test-phase-python-contract test-e2e test-frontend-node test-browser-contracts test-retrieval-contract test-product-contracts test-release-contracts test-all test-fast openapi-env openapi-generate openapi-check types-check python-syntax-check llm-scaling-env llm-scaling-generate llm-scaling-check verify-release help
 
 help:
 	@echo "Targets:"
 	@echo "  test-unit         Run unit tests (offline, < 30s)"
 	@echo "  test-integration  Run integration tests (in-process, < 2min)"
+	@echo "  test-phase-python-contract  Run the complete offline Phase Python suites"
 	@echo "  test-e2e          Run e2e tests (live network, may be flaky)"
 	@echo "  test-frontend-node  Run every vanilla frontend Node contract"
 	@echo "  test-browser-contracts  Run the hard browser contract suite"
@@ -64,6 +70,10 @@ help:
 	@echo "  openapi-generate  Update OpenAPI using release-target backend dependencies"
 	@echo "  openapi-check     Check OpenAPI using release-target backend dependencies"
 	@echo "  types-check       Regenerate API TypeScript in a temp file and compare exactly"
+	@echo "  python-syntax-check  Compile tracked Python with the release interpreter"
+	@echo "  llm-scaling-env  Create the locked Python 3.11 artifact-generator environment"
+	@echo "  llm-scaling-generate  Regenerate canonical LLM scaling artifacts"
+	@echo "  llm-scaling-check  Check LLM scaling artifacts in the locked environment"
 	@echo "  verify-release    Authoritative offline release gate across backend, packages, retrieval, and Phase"
 	@echo "  test              Alias for test-fast"
 
@@ -74,6 +84,9 @@ test-unit:
 
 test-integration:
 	$(PYTEST) v4/tests/integration v4/product/d1_phase_detector/tests v4/product/d1_phase_detector/api/tests -q
+
+test-phase-python-contract:
+	$(PYTEST) v4/product/d1_phase_detector/tests v4/product/d1_phase_detector/api/tests -q
 
 test-e2e:
 	$(PYTEST) tests/e2e -m e2e -v
@@ -123,9 +136,26 @@ openapi-check:
 types-check:
 	PY=$(TYPES_PY) bash scripts/check_ts_types.sh
 
+python-syntax-check:
+	$(OPENAPI_PY) -I $(ROOT)/scripts/check_python_syntax.py
+
+llm-scaling-env:
+	uv venv --clear --python 3.11 $(LLM_SCALING_DIR)/.venv
+	uv pip install --python $(LLM_SCALING_DIR)/.venv/bin/python -r $(LLM_SCALING_DIR)/requirements-generator.txt
+
+llm-scaling-generate:
+	$(LLM_SCALING_PY) $(LLM_SCALING_DIR)/run_validation.py --write
+	$(LLM_SCALING_PY) $(LLM_SCALING_DIR)/cross_source_alpha_comparison.py --write
+
+llm-scaling-check:
+	$(LLM_SCALING_PY) $(LLM_SCALING_DIR)/run_validation.py --check
+	$(LLM_SCALING_PY) $(LLM_SCALING_DIR)/cross_source_alpha_comparison.py --check
+
 verify-release:
+	$(MAKE) python-syntax-check
 	$(MAKE) openapi-check
 	$(MAKE) types-check
+	$(MAKE) llm-scaling-check
 	$(MAKE) test-fast
 	cd web/backend && $(BACKEND_PYTEST) -q
 	cd packages/guarded-llm && $(PYTEST) tests -q

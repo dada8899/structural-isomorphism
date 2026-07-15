@@ -11,9 +11,8 @@ on:
         description: 'Target environment'
         required: true
         type: choice
-        default: 'local'
+        default: 'beta'
         options:
-          - local
           - beta
           - custom
       custom_url:
@@ -43,13 +42,24 @@ on:
         required: false
         type: string
         default: ''
+      unsafe_load_confirmation:
+        description: 'Type "yes" to authorize stress_ramp or an uncapped custom load'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   load-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    concurrency:
+      group: structural-production-beta-load
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Install k6
         run: |
@@ -66,18 +76,84 @@ jobs:
 
       - name: Resolve BASE_URL
         id: target
+        env:
+          TARGET: ${{ inputs.target }}
+          CUSTOM_URL: ${{ inputs.custom_url }}
         run: |
-          case "${{ inputs.target }}" in
-            local)  echo "url=http://localhost:8000" >> "$GITHUB_OUTPUT" ;;
-            beta)   echo "url=https://beta.structural.bytedance.city" >> "$GITHUB_OUTPUT" ;;
-            custom)
-              if [ -z "${{ inputs.custom_url }}" ]; then
-                echo "ERROR: custom target requires custom_url input"
-                exit 1
-              fi
-              echo "url=${{ inputs.custom_url }}" >> "$GITHUB_OUTPUT"
-              ;;
-          esac
+          set -euo pipefail
+          python - <<'PY'
+          import ipaddress
+          import os
+          import re
+          from urllib.parse import urlsplit, urlunsplit
+
+          BETA_HOST = "beta.structural.bytedance.city"
+
+          def fail(message: str) -> None:
+              raise SystemExit(f"ERROR: {message}")
+
+          target = os.environ.get("TARGET", "")
+          if target == "beta":
+              resolved = f"https://{BETA_HOST}"
+          elif target == "custom":
+              raw = os.environ.get("CUSTOM_URL", "")
+              if not raw:
+                  fail("custom target requires custom_url input")
+              if any(ord(character) <= 32 or ord(character) == 127 for character in raw):
+                  fail("custom_url must not contain whitespace or control characters")
+              try:
+                  parsed = urlsplit(raw)
+                  port = parsed.port
+                  hostname = parsed.hostname
+              except ValueError as exc:
+                  fail(f"invalid custom_url: {exc}")
+              if parsed.scheme.lower() not in {"http", "https"}:
+                  fail("custom_url must be an HTTP(S) URL")
+              if parsed.username is not None or parsed.password is not None:
+                  fail("custom_url must not contain userinfo")
+              if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+                  fail("custom_url must be an origin without path, query, or fragment")
+              if not hostname or "%" in parsed.netloc:
+                  fail("custom_url must contain a literal hostname")
+              raw_host = hostname.lower()
+              if ":" in raw_host:
+                  try:
+                      address = ipaddress.ip_address(raw_host)
+                  except ValueError:
+                      fail("custom_url IPv6 hostname is invalid")
+                  if address.version != 6:
+                      fail("custom_url hostname is invalid")
+                  canonical_host = address.compressed
+              else:
+                  try:
+                      canonical_host = raw_host.encode("idna").decode("ascii").rstrip(".")
+                  except UnicodeError:
+                      fail("custom_url hostname is invalid")
+                  if not canonical_host:
+                      fail("custom_url hostname is empty after normalization")
+                  try:
+                      ipaddress.ip_address(canonical_host)
+                  except ValueError:
+                      labels = canonical_host.split(".")
+                      label = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
+                      if len(canonical_host) > 253 or any(
+                          not label.fullmatch(part) for part in labels
+                      ):
+                          fail("custom_url DNS hostname is invalid")
+              if canonical_host == BETA_HOST:
+                  fail("select the beta target so production safety caps apply")
+              rendered_host = f"[{canonical_host}]" if ":" in canonical_host else canonical_host
+              netloc = rendered_host if port is None else f"{rendered_host}:{port}"
+              resolved = urlunsplit((parsed.scheme.lower(), netloc, "", "", ""))
+          else:
+              fail("unsupported target")
+
+          output = os.environ.get("GITHUB_OUTPUT")
+          if not output:
+              fail("GITHUB_OUTPUT is unavailable")
+          with open(output, "a", encoding="utf-8") as handle:
+              handle.write(f"url={resolved}\n")
+          PY
 
       - name: Inspect scripts (parse-check, no execution)
         run: |
@@ -89,30 +165,56 @@ jobs:
       - name: Run scenario(s)
         env:
           BASE_URL: ${{ steps.target.outputs.url }}
+          TARGET: ${{ inputs.target }}
+          SCENARIO: ${{ inputs.scenario }}
           VUS_OVERRIDE: ${{ inputs.vus_override }}
           DURATION_OVERRIDE: ${{ inputs.duration_override }}
+          UNSAFE_LOAD_CONFIRMATION: ${{ inputs.unsafe_load_confirmation }}
         run: |
+          set -euo pipefail
           mkdir -p tests/load/results
+
+          if [ "$SCENARIO" = "stress_ramp" ] && [ "$UNSAFE_LOAD_CONFIRMATION" != "yes" ]; then
+            echo 'ERROR: stress_ramp requires unsafe_load_confirmation="yes"'
+            exit 1
+          fi
+
+          SAFE_CAP=0
+          if [ "$SCENARIO" != "stress_ramp" ]; then
+            if [ "$TARGET" = "beta" ] || [ "$UNSAFE_LOAD_CONFIRMATION" != "yes" ]; then
+              SAFE_CAP=1
+            fi
+          fi
+          if [ "$SAFE_CAP" = "1" ]; then
+            case "$VUS_OVERRIDE" in
+              ""|1) ;;
+              *) echo "ERROR: unconfirmed load is capped at 1 VU"; exit 1 ;;
+            esac
+            case "$DURATION_OVERRIDE" in
+              ""|20s) ;;
+              *) echo "ERROR: unconfirmed load is capped at 20s"; exit 1 ;;
+            esac
+            VUS_OVERRIDE=1
+            DURATION_OVERRIDE=20s
+          fi
 
           run_one() {
             local script="$1"
             shift
-            local args=()
+            local args=(--max-redirects 0)
             if [ -n "$VUS_OVERRIDE" ]; then args+=(--vus "$VUS_OVERRIDE"); fi
             if [ -n "$DURATION_OVERRIDE" ]; then args+=(--duration "$DURATION_OVERRIDE"); fi
-            echo "Running: BASE_URL=$BASE_URL k6 run ${args[*]} $script"
-            BASE_URL="$BASE_URL" k6 run "${args[@]}" "$script" || echo "WARN: threshold breach or error"
+            echo "Running load scenario with ${#args[@]} CLI overrides: $script"
+            BASE_URL="$BASE_URL" k6 run "${args[@]}" "$script"
           }
 
-          case "${{ inputs.scenario }}" in
+          case "$SCENARIO" in
             phases_smoke)      run_one tests/load/phases_smoke.js ;;
             ask_smoke)         run_one tests/load/ask_smoke.js ;;
             universality_smoke) run_one tests/load/universality_smoke.js ;;
             mixed_realistic)   run_one tests/load/mixed_realistic.js ;;
             stress_ramp)
-              if [ "${{ inputs.target }}" = "beta" ]; then
-                export I_KNOW_WHAT_I_AM_DOING=yes
-              fi
+              export I_KNOW_WHAT_I_AM_DOING="$UNSAFE_LOAD_CONFIRMATION"
               run_one tests/load/stress_ramp.js
               ;;
             all)
@@ -121,6 +223,7 @@ jobs:
               run_one tests/load/universality_smoke.js
               run_one tests/load/mixed_realistic.js
               ;;
+            *) echo "ERROR: unsupported scenario"; exit 1 ;;
           esac
 
       - name: Upload results

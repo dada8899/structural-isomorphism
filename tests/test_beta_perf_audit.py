@@ -307,8 +307,9 @@ def test_authoritative_run_failure_emits_structured_safe_evidence() -> None:
 
 
 class _AuditLocator:
-    def __init__(self, fail_stage: str | None):
-        self.fail_stage = fail_stage
+    def __init__(self, page: "_AuditPage"):
+        self.page = page
+        self.fail_stage = page.fail_stage
 
     @property
     def first(self):
@@ -318,10 +319,51 @@ class _AuditLocator:
         return None
 
     def evaluate(self, script: str):
+        self.page.locator_evaluate_scripts.append(script)
+        if script == READ_TRUSTED_INTERACTION_SCRIPT:
+            raise AssertionError("trusted handshake must be read from the page")
+        if self.page.interaction_element_detached:
+            raise RuntimeError("interaction element is no longer attached")
         if "tagName" in script:
             return "BUTTON"
         if script == ARM_TRUSTED_INTERACTION_SCRIPT:
             return {"armed": True}
+        return None
+
+    def click(self, **_kwargs):
+        if self.fail_stage == "interaction":
+            raise RuntimeError("PRIVATE-CLICK-MUST-NOT-PERSIST")
+        if self.fail_stage == "detached_after_click":
+            self.page.interaction_element_detached = True
+
+
+class _AuditPage:
+    def __init__(self, fail_stage: str | None):
+        self.fail_stage = fail_stage
+        self._clock = iter((1000.0, 1100.0, 6000.0))
+        self.interaction_element_detached = False
+        self.locator_evaluate_scripts: list[str] = []
+
+    def add_init_script(self, _script):
+        return None
+
+    def goto(self, *_args, **_kwargs):
+        if self.fail_stage == "navigation":
+            raise RuntimeError("PRIVATE-NAV-MUST-NOT-PERSIST")
+        return type("Response", (), {"status": 200})()
+
+    def wait_for_load_state(self, *_args, **_kwargs):
+        return None
+
+    def wait_for_timeout(self, _duration):
+        return None
+
+    def locator(self, _selector):
+        return _AuditLocator(self)
+
+    def evaluate(self, script: str):
+        if script == "performance.now()":
+            return next(self._clock)
         if script == READ_TRUSTED_INTERACTION_SCRIPT:
             if self.fail_stage == "multiple_clicks":
                 return {
@@ -346,38 +388,6 @@ class _AuditLocator:
                 "timestamp": 1050.0,
                 "armed": False,
             }
-        return None
-
-    def click(self, **_kwargs):
-        if self.fail_stage == "interaction":
-            raise RuntimeError("PRIVATE-CLICK-MUST-NOT-PERSIST")
-
-
-class _AuditPage:
-    def __init__(self, fail_stage: str | None):
-        self.fail_stage = fail_stage
-        self._clock = iter((1000.0, 1100.0, 6000.0))
-
-    def add_init_script(self, _script):
-        return None
-
-    def goto(self, *_args, **_kwargs):
-        if self.fail_stage == "navigation":
-            raise RuntimeError("PRIVATE-NAV-MUST-NOT-PERSIST")
-        return type("Response", (), {"status": 200})()
-
-    def wait_for_load_state(self, *_args, **_kwargs):
-        return None
-
-    def wait_for_timeout(self, _duration):
-        return None
-
-    def locator(self, _selector):
-        return _AuditLocator(self.fail_stage)
-
-    def evaluate(self, script: str):
-        if script == "performance.now()":
-            return next(self._clock)
         if script == FLUSH_EVENT_TIMING_SCRIPT:
             return {
                 "eventTimingSupported": self.fail_stage != "event_unsupported",
@@ -552,6 +562,29 @@ def test_fast_trusted_click_without_event_entry_uses_threshold_bound() -> None:
     assert final["inp_proxy_ms"] == 16.0
     assert final["inp_observation_mode"] == "trusted_click_threshold_bound"
     assert "timestamp" not in json.dumps(final).lower()
+
+
+def test_trusted_handshake_survives_interaction_element_removal() -> None:
+    page = _AuditPage("detached_after_click")
+    durable = {}
+    result = audit_one(
+        _AuditRuntime(_AuditBrowser(page)),
+        "http://127.0.0.1/", "search.html", "desktop",
+        {"width": 1280, "height": 800, "isMobile": False}, "#search-edit-btn",
+        page_setup=lambda *_args: {},
+        run_evidence_sink=lambda sample: durable.update(
+            {sample["run_index"]: sample}
+        ),
+    )
+
+    assert "error" not in result
+    assert page.interaction_element_detached is True
+    assert READ_TRUSTED_INTERACTION_SCRIPT not in page.locator_evaluate_scripts
+    assert ARM_TRUSTED_INTERACTION_SCRIPT in page.locator_evaluate_scripts
+    final = durable[1]
+    assert final["trusted_interaction_count"] == 1
+    assert final["trusted_interaction_window_verified"] is True
+    assert final["trusted_pointer_sequence_verified"] is True
 
 
 def test_long_zero_interaction_id_event_cannot_be_downgraded_to_threshold() -> None:

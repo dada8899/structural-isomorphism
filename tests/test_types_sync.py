@@ -98,6 +98,7 @@ def test_legacy_json2ts_shell_command_override_fails_before_execution(tmp_path) 
     environment = os.environ.copy()
     environment["JSON2TS_CMD"] = f"/usr/bin/true; /usr/bin/touch {marker}"
     environment["JSON2TS_PACKAGE_JSON"] = str(tmp_path / "forged-package.json")
+    environment["PY"] = str(tmp_path / "missing-python")
     environment["OUT"] = str(tmp_path / "api-types.ts")
     completed = subprocess.run(
         ["bash", "scripts/gen_ts_types.sh"],

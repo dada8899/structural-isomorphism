@@ -265,8 +265,7 @@ ARM_TRUSTED_INTERACTION_SCRIPT = r"""
 """
 
 READ_TRUSTED_INTERACTION_SCRIPT = r"""
-(element) => {
-  void element;
+() => {
   const perf = window.__perf;
   const count = Number.isInteger(perf?.trustedInteractionCount)
     ? perf.trustedInteractionCount : 0;
@@ -767,7 +766,7 @@ def audit_one(
             if interaction_mode == "new_tab":
                 with context.expect_page(timeout=3000) as popup_info:
                     candidate.click(timeout=3000)
-                handshake = candidate.evaluate(READ_TRUSTED_INTERACTION_SCRIPT)
+                handshake = page.evaluate(READ_TRUSTED_INTERACTION_SCRIPT)
                 popup = popup_info.value
                 popup.wait_for_load_state("domcontentloaded", timeout=5000)
                 interaction_details.update(
@@ -777,7 +776,7 @@ def audit_one(
                 popup.close()
             else:
                 candidate.click(timeout=3000)
-                handshake = candidate.evaluate(READ_TRUSTED_INTERACTION_SCRIPT)
+                handshake = page.evaluate(READ_TRUSTED_INTERACTION_SCRIPT)
             if (
                 not isinstance(handshake, dict)
                 or type(handshake.get("count")) is not int

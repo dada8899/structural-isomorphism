@@ -7,7 +7,8 @@ name: sanity tests
 #   1. v4 sanity tests (existing, deterministic primitive suite — must stay green).
 #   2. web/backend pytest baseline (781 tests as of 2026-05-24 + any new tests).
 #   3. Every offline root product/research/deployment contract under tests/.
-#   4. Per-package unit tests for packages/* (guarded-llm / soc-pipeline / cross-judge).
+#   4. Per-package unit tests for packages/* (guarded-llm / soc-pipeline /
+#      cross-judge / reject-aware-critic).
 #
 # The deeper matrix (Linux + macOS × py3.10–3.13) for packages/* lives in
 # `ci-packages.yml`. This sanity workflow only runs the canonical py3.11 Linux
@@ -62,13 +63,14 @@ jobs:
           pip install numpy scipy pandas powerlaw matplotlib pytest pydantic pyyaml scikit-learn
 
       # ----------------------------------------------------------------------
-      # Install the three packaged libraries in editable mode.
+      # Install the four packaged libraries in editable mode.
       # v4/lib/{llm_guardrail,soc_pipeline}.py are deprecated shims that
       # re-export from packages/*. Sanity tests import via the shims (and one
       # test imports `yaml` directly), so we MUST install:
       #   * soc-pipeline       → fit_clauset_powerlaw + soc primitives
       #   * guarded-llm        → guarded_llm.guardrail symbols
       #   * cross-judge        → pulls in pyyaml + cross_judge prompts
+      #   * reject-aware-critic → reject-aware critic + ensemble contracts
       # Each install also pulls its own [dev] extras so the per-package
       # unit-test leg below has everything it needs.
       # ----------------------------------------------------------------------
@@ -77,6 +79,7 @@ jobs:
           pip install -e "packages/soc-pipeline[dev]"
           pip install -e "packages/guarded-llm[dev]"
           pip install -e "packages/cross-judge[dev]"
+          pip install -e "packages/reject-aware-critic[dev]"
 
       # ----------------------------------------------------------------------
       # Leg 1: v4 sanity tests (existing canonical check).
@@ -131,6 +134,22 @@ jobs:
       - name: Leg 3 — reproducible API TypeScript artifact
         run: make PY=python types-check
 
+      - name: Install root release contract dependencies
+        run: |
+          python -m pip install -e ".[dev]"
+          python -m pip install playwright==1.59.0
+
+      - name: Check LLM scaling artifacts in locked generator environment
+        run: |
+          python -m venv /tmp/structural-llm-scaling-generator
+          /tmp/structural-llm-scaling-generator/bin/pip install \
+            -r v4/validation/llm-scaling/requirements-generator.txt
+          make LLM_SCALING_PY=/tmp/structural-llm-scaling-generator/bin/python \
+            llm-scaling-check
+
+      - name: Leg 3 — Python 3.11 syntax closure
+        run: python -I scripts/check_python_syntax.py
+
       # ----------------------------------------------------------------------
       # Leg 3: root release contracts.
       #
@@ -172,6 +191,10 @@ jobs:
           else
             echo "No tests/ directory in cross-judge — skipping."
           fi
+
+      - name: Leg 4 — packages/reject-aware-critic tests
+        working-directory: packages/reject-aware-critic
+        run: python -m pytest -ra -q --tb=short
 
       - name: Summary
         if: always()

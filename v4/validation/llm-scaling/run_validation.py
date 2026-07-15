@@ -19,15 +19,20 @@ Run:
 """
 from __future__ import annotations
 
+import argparse
 import csv
+import importlib.metadata
 import importlib.util
 import json
+import math
 import os
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
+import scipy
 
 HERE = Path(__file__).resolve().parent
 PROJECT_ROOT = HERE.parents[2]  # v4/validation/llm-scaling → project root
@@ -35,6 +40,132 @@ MODULE_PATH = (
     PROJECT_ROOT / "packages" / "soc-pipeline" / "src" / "soc_pipeline" / "learning_curve.py"
 )
 RAW_DIR = HERE / "raw"
+GENERATOR_REQUIREMENTS = HERE / "requirements-generator.txt"
+GENERATOR_PYTHON = (3, 11)
+CANONICAL_SIGNIFICANT_DIGITS = 12
+COMPARISON_REL_TOL = 1e-4
+COMPARISON_ABS_TOL = 1e-10
+GENERATOR_PACKAGES = frozenset(
+    {
+        "contourpy",
+        "cycler",
+        "fonttools",
+        "kiwisolver",
+        "matplotlib",
+        "numpy",
+        "packaging",
+        "pandas",
+        "pillow",
+        "pyparsing",
+        "python-dateutil",
+        "scipy",
+        "six",
+    }
+)
+
+
+def _generator_pins() -> dict[str, str]:
+    pins: dict[str, str] = {}
+    for raw_line in GENERATOR_REQUIREMENTS.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        match = re.fullmatch(r"([a-z0-9][a-z0-9._-]*)==([A-Za-z0-9][A-Za-z0-9._+-]*)", line)
+        if match is None:
+            raise RuntimeError(f"non-exact generator requirement: {line!r}")
+        name, version = match.groups()
+        if name in pins:
+            raise RuntimeError(f"duplicate generator requirement: {name}")
+        pins[name] = version
+    if set(pins) != GENERATOR_PACKAGES:
+        missing = sorted(GENERATOR_PACKAGES - set(pins))
+        extra = sorted(set(pins) - GENERATOR_PACKAGES)
+        raise RuntimeError(
+            "generator requirements must exactly pin the complete scientific "
+            f"rendering closure: missing={missing!r} extra={extra!r}"
+        )
+    return pins
+
+
+def _assert_generator_environment() -> dict[str, str]:
+    pins = _generator_pins()
+    actual = {name: importlib.metadata.version(name) for name in pins}
+    if sys.version_info[:2] != GENERATOR_PYTHON:
+        raise RuntimeError(
+            "LLM scaling artifacts require Python "
+            f"{GENERATOR_PYTHON[0]}.{GENERATOR_PYTHON[1]}"
+        )
+    if actual != pins:
+        raise RuntimeError(
+            f"LLM scaling generator dependency mismatch: expected={pins!r} actual={actual!r}"
+        )
+    _assert_canonical_data_source()
+    return pins
+
+
+def _assert_canonical_data_source() -> None:
+    if os.environ.get("PYTHIA_DATA", "real") != "real":
+        raise RuntimeError("canonical LLM scaling artifacts require PYTHIA_DATA=real")
+    canonical_input = RAW_DIR / "pythia_checkpoints_combined.csv"
+    if not canonical_input.is_file():
+        raise RuntimeError(f"canonical LLM scaling input is missing: {canonical_input}")
+
+
+def generator_environment_matches() -> bool:
+    try:
+        _assert_generator_environment()
+    except RuntimeError:
+        return False
+    return True
+
+
+def _canonicalize(value):
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ValueError("LLM scaling artifact contains a non-finite float")
+        rounded = float(format(value, f".{CANONICAL_SIGNIFICANT_DIGITS}g"))
+        return 0.0 if rounded == 0.0 else rounded
+    if isinstance(value, list):
+        return [_canonicalize(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _canonicalize(item) for key, item in value.items()}
+    return value
+
+
+def assert_artifact_equivalent(expected, observed, *, path: str = "$") -> None:
+    if isinstance(expected, bool) or isinstance(observed, bool):
+        if expected is not observed:
+            raise ValueError(f"artifact mismatch at {path}")
+        return
+    if isinstance(expected, float) and isinstance(observed, float):
+        if not math.isclose(
+            expected,
+            observed,
+            rel_tol=COMPARISON_REL_TOL,
+            abs_tol=COMPARISON_ABS_TOL,
+        ):
+            raise ValueError(f"numeric artifact mismatch at {path}")
+        return
+    if isinstance(expected, dict) and isinstance(observed, dict):
+        if expected.keys() != observed.keys():
+            raise ValueError(f"artifact keys mismatch at {path}")
+        for key in expected:
+            assert_artifact_equivalent(
+                expected[key], observed[key], path=f"{path}.{key}"
+            )
+        return
+    if isinstance(expected, list) and isinstance(observed, list):
+        if len(expected) != len(observed):
+            raise ValueError(f"artifact length mismatch at {path}")
+        for index, (expected_item, observed_item) in enumerate(
+            zip(expected, observed, strict=True)
+        ):
+            assert_artifact_equivalent(
+                expected_item, observed_item, path=f"{path}[{index}]"
+            )
+        return
+    if type(expected) is not type(observed) or expected != observed:
+        raise ValueError(f"artifact mismatch at {path}")
 
 
 def _load_learning_curve():
@@ -115,14 +246,17 @@ def _annotate_fit(fit: dict, *, pythia: bool) -> None:
 
 
 def main(*, write: bool = True) -> dict:
+    if write:
+        _assert_generator_environment()
     lc = _load_learning_curve()
 
     data_kind = os.environ.get("PYTHIA_DATA", "real")
+    if data_kind not in {"real", "synthetic"}:
+        raise ValueError("PYTHIA_DATA must be exactly 'real' or 'synthetic'")
     if data_kind == "real":
         pythia_csv = RAW_DIR / "pythia_checkpoints_combined.csv"
         if not pythia_csv.exists():
-            print("WARN: combined CSV not present; falling back to synthetic", file=sys.stderr)
-            pythia_csv = RAW_DIR / "pythia_checkpoints.csv"
+            raise FileNotFoundError(f"required real input is missing: {pythia_csv}")
     else:
         pythia_csv = RAW_DIR / "pythia_checkpoints.csv"
 
@@ -216,16 +350,30 @@ def main(*, write: bool = True) -> dict:
     }
 
     out = {
-        "schema_version": "1.2",
+        "schema_version": "1.3",
         "validation": "llm-scaling",
         "date": "2026-05-25",
         "module": "soc_pipeline.learning_curve.fit_learning_curve",
+        "generation_contract": {
+            "python": f"{GENERATOR_PYTHON[0]}.{GENERATOR_PYTHON[1]}",
+            "requirements": _generator_pins(),
+            "float_significant_digits": CANONICAL_SIGNIFICANT_DIGITS,
+            "comparison_rel_tol": COMPARISON_REL_TOL,
+            "comparison_abs_tol": COMPARISON_ABS_TOL,
+            "canonical_data_kind": "real",
+            "canonical_input": (
+                "v4/validation/llm-scaling/raw/pythia_checkpoints_combined.csv"
+            ),
+        },
         "fits": fits,
         "summary": summary,
     }
+    out = _canonicalize(out)
 
     if write:
-        (HERE / "results.json").write_text(json.dumps(out, indent=2))
+        (HERE / "results.json").write_text(
+            json.dumps(out, indent=2) + "\n", encoding="utf-8"
+        )
         _write_summary_md(out)
     return out
 
@@ -328,9 +476,30 @@ def _render_summary_md(out: dict) -> str:
 
 
 def _write_summary_md(out: dict) -> None:
-    (HERE / "summary.md").write_text(_render_summary_md(out))
+    (HERE / "summary.md").write_text(_render_summary_md(out), encoding="utf-8")
+
+
+def _check_committed_artifacts() -> dict:
+    _assert_generator_environment()
+    generated = main(write=False)
+    expected_json = json.dumps(generated, indent=2) + "\n"
+    expected_summary = _render_summary_md(generated)
+    if (HERE / "results.json").read_text(encoding="utf-8") != expected_json:
+        raise RuntimeError("results.json differs from the locked generator output")
+    if (HERE / "summary.md").read_text(encoding="utf-8") != expected_summary:
+        raise RuntimeError("summary.md differs from the locked generator output")
+    return generated
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--write", action="store_true", help="write canonical artifacts")
+    mode.add_argument("--check", action="store_true", help="check canonical artifacts")
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    result = main()
+    args = _parse_args()
+    result = _check_committed_artifacts() if args.check else main(write=True)
     print(json.dumps(result["summary"], indent=2))

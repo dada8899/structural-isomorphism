@@ -5,6 +5,8 @@ import os
 import re
 import shlex
 import subprocess
+import sys
+import tomllib
 from pathlib import Path, PurePosixPath
 
 import pytest
@@ -59,6 +61,14 @@ HARD_STEP_CONDITIONS = {
         "Stop local beta server": "always()",
         "Upload beta performance evidence": "always()",
     },
+}
+
+HARD_STEP_SHELL_OR_ALLOWLIST = {
+    (
+        ".github/workflows/beta-perf.yml",
+        "beta-perf-audit",
+        "Stop local beta server",
+    ): ['kill "$(cat /tmp/beta-server.pid)" 2>/dev/null || true'],
 }
 
 
@@ -205,8 +215,20 @@ def _assert_hard_job_contract(
     for step in steps:
         assert isinstance(step, dict)
         assert "continue-on-error" not in step
+        name = step.get("name")
+        run = step.get("run")
+        shell_or_lines = (
+            [line.strip() for line in run.splitlines() if "||" in line]
+            if isinstance(run, str)
+            else []
+        )
+        expected_shell_or = HARD_STEP_SHELL_OR_ALLOWLIST.get(
+            (workflow, job_name, name), []
+        )
+        assert shell_or_lines == expected_shell_or, (
+            f"hard job shell fallback is forbidden: {job_name}/{name}"
+        )
         if "if" in step:
-            name = step.get("name")
             assert isinstance(name, str) and name
             assert name not in conditions, f"duplicate conditional step: {name}"
             conditions[name] = step["if"]
@@ -265,8 +287,10 @@ def _assert_make_release_closure(makefile: str) -> None:
     phony_targets = set(phony_lines[0].split())
     required_phony = {
         "test-fast", "test-retrieval-contract", "test-product-contracts",
-        "test-release-contracts", "test-frontend-node", "test-browser-contracts",
-        "openapi-check", "types-check", "verify-release",
+        "test-release-contracts", "test-phase-python-contract",
+        "test-frontend-node", "test-browser-contracts",
+        "openapi-check", "types-check", "python-syntax-check", "verify-release",
+        "llm-scaling-check",
     }
     assert required_phony <= phony_targets
 
@@ -283,9 +307,20 @@ def _assert_make_release_closure(makefile: str) -> None:
             "$(BACKEND_PYTEST) tests --ignore=tests/e2e "
             '-m "not e2e and not slow and not requires_internet and not requires_llm" -q'
         ],
+        "test-phase-python-contract": [
+            "$(PYTEST) v4/product/d1_phase_detector/tests "
+            "v4/product/d1_phase_detector/api/tests -q"
+        ],
         "openapi-check": [
             "PYTHONPATH=$(ROOT)/web/backend:$(PACKAGE_PYTHONPATH) $(OPENAPI_PY) "
             "$(ROOT)/scripts/openapi_artifact.py --check"
+        ],
+        "python-syntax-check": [
+            "$(OPENAPI_PY) -I $(ROOT)/scripts/check_python_syntax.py"
+        ],
+        "llm-scaling-check": [
+            "$(LLM_SCALING_PY) $(LLM_SCALING_DIR)/run_validation.py --check",
+            "$(LLM_SCALING_PY) $(LLM_SCALING_DIR)/cross_source_alpha_comparison.py --check",
         ],
     }
     for target, recipe in expected_recipes.items():
@@ -408,7 +443,8 @@ def test_phase_auth_browser_job_installs_canonical_runtime_logging() -> None:
     assert "if" not in install_step and "continue-on-error" not in install_step
     assert _shell_tokens(install_step) == [
         "python", "-m", "pip", "install",
-        "pytest==9.0.3", "playwright==1.59.0", "fastapi==0.115.14",
+        "pytest==9.0.3", "playwright==1.59.0", "pytest-playwright==0.7.2",
+        "fastapi==0.115.14",
         "pydantic==2.6.1", "starlette==0.46.2",
         "uvicorn[standard]==0.27.1", "PyJWT==2.12.1", "slowapi==0.1.9",
         "structlog==25.5.0", "python", "-m", "playwright", "install",
@@ -418,6 +454,117 @@ def test_phase_auth_browser_job_installs_canonical_runtime_logging() -> None:
         ROOT / "web/backend/requirements.txt"
     ).read_text(encoding="utf-8").splitlines()
     assert "structlog==25.5.0" in requirements
+
+
+def test_backend_release_job_installs_root_package_fail_closed() -> None:
+    job = _ci_job("backend")
+    install = _named_ci_step(job, "Install dependencies")
+    assert _shell_tokens(install) == [
+        "python", "-m", "pip", "install", "--upgrade", "pip",
+        "python", "-m", "pip", "install", "-e", ".[dev]",
+        "python", "-m", "pip", "install", "pyyaml",
+    ]
+    assert "||" not in install["run"]
+
+
+def test_hard_job_contract_rejects_shell_install_fallback() -> None:
+    job = {
+        "steps": [
+            {
+                "name": "Install",
+                "run": "python -m pip install -e . || python -m pip install pytest",
+            }
+        ]
+    }
+    with pytest.raises(AssertionError, match="shell fallback"):
+        _assert_hard_job_contract("test.yml", "required", job)
+
+
+def test_browser_product_job_uses_exact_existing_nodeids() -> None:
+    job = _ci_job("browser-product-contract")
+    step = _named_ci_step(job, "Verify the explicit workbench decision journey")
+    test_path = "tests/e2e/test_full_public_surface.py"
+    names = {
+        node.name
+        for node in ast.parse((ROOT / test_path).read_text(encoding="utf-8")).body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    selected = [
+        "test_beta_workbench_requires_fingerprint_and_explicit_candidate",
+        "test_beta_header_exposes_one_dynamic_primary_account_entry",
+        "test_beta_header_never_picks_one_of_two_accounts",
+    ]
+    assert set(selected) <= names
+    assert _shell_tokens(step) == [
+        "pytest",
+        *(f"{test_path}::{name}" for name in selected),
+        "-m",
+        "e2e and not requires_internet",
+        "-v",
+    ]
+    assert "-k" not in _shell_tokens(step)
+
+
+def test_release_gate_runs_project_site_and_complete_phase_contracts() -> None:
+    docs_job = _ci_job("site-docs-contract")
+    docs_step = _named_ci_step(
+        docs_job, "Verify every project-site document is published and navigable"
+    )
+    assert _shell_tokens(docs_step) == [
+        "python", "-I", "scripts/check_site_docs.py"
+    ]
+    assert "if" not in docs_step and "continue-on-error" not in docs_step
+
+    phase_job = _ci_job("phase-python-contract")
+    setup_python = [
+        step
+        for step in phase_job["steps"]
+        if isinstance(step, dict) and step.get("uses") == "actions/setup-python@v5"
+    ]
+    assert setup_python == [
+        {"uses": "actions/setup-python@v5", "with": {"python-version": "3.11"}}
+    ]
+    install = _named_ci_step(
+        phase_job, "Install exact Phase runtime and test dependencies"
+    )
+    assert _shell_tokens(install) == [
+        "python", "-m", "pip", "install",
+        "-r", "v4/product/d1_phase_detector/api/requirements.txt",
+        "pytest==9.0.3", "httpx==0.27.2",
+    ]
+    run = _named_ci_step(phase_job, "Run both complete Phase Python test trees")
+    assert _shell_tokens(run) == [
+        "make", "PY=python", "test-phase-python-contract"
+    ]
+    for step in (install, run):
+        assert "if" not in step and "continue-on-error" not in step
+
+
+def test_release_dependency_sets_share_one_satisfiable_httpx_contract() -> None:
+    requirements = (
+        ROOT / "web/backend/requirements.txt"
+    ).read_text(encoding="utf-8").splitlines()
+    backend_pins = [line for line in requirements if line.startswith("httpx==")]
+    assert len(backend_pins) == 1
+    version = backend_pins[0].removeprefix("httpx==")
+
+    for package in ("guarded-llm", "cross-judge", "reject-aware-critic"):
+        project = tomllib.loads(
+            (ROOT / f"packages/{package}/pyproject.toml").read_text(encoding="utf-8")
+        )["project"]
+        constraints = [
+            dependency.removeprefix("httpx")
+            for dependency in project["dependencies"]
+            if dependency.startswith("httpx")
+        ]
+        assert len(constraints) == 1
+        minimum_match = re.fullmatch(r">=([0-9]+(?:\.[0-9]+)*)", constraints[0])
+        assert minimum_match, f"unsupported httpx constraint syntax: {constraints[0]}"
+        current = tuple(int(part) for part in version.split("."))
+        minimum = tuple(int(part) for part in minimum_match.group(1).split("."))
+        assert current >= minimum, (
+            f"backend httpx=={version} conflicts with {package}{constraints[0]}"
+        )
 
 
 def test_types_artifact_is_reproducible_in_make_and_sanity() -> None:
@@ -461,11 +608,91 @@ def test_types_artifact_is_reproducible_in_make_and_sanity() -> None:
     ]
 
 
+def test_sanity_installs_and_runs_root_contract_runtime_fail_closed() -> None:
+    workflow_path = ROOT / ".github/workflows/sanity.yml"
+    workflow = _workflow_data(workflow_path)
+    job = _workflow_job(workflow_path, "sanity")
+    install = _named_ci_step(job, "Install root release contract dependencies")
+    llm_scaling = _named_ci_step(
+        job, "Check LLM scaling artifacts in locked generator environment"
+    )
+    syntax = _named_ci_step(job, "Leg 3 — Python 3.11 syntax closure")
+    contracts = _named_ci_step(job, "Leg 3 — offline root release contracts")
+
+    assert _shell_tokens(install) == [
+        "python", "-m", "pip", "install", "-e", ".[dev]",
+        "python", "-m", "pip", "install", "playwright==1.59.0",
+    ]
+    assert _shell_tokens(llm_scaling) == [
+        "python", "-m", "venv", "/tmp/structural-llm-scaling-generator",
+        "/tmp/structural-llm-scaling-generator/bin/pip", "install", "-r",
+        "v4/validation/llm-scaling/requirements-generator.txt",
+        "make", "LLM_SCALING_PY=/tmp/structural-llm-scaling-generator/bin/python",
+        "llm-scaling-check",
+    ]
+    assert _shell_tokens(syntax) == [
+        "python", "-I", "scripts/check_python_syntax.py"
+    ]
+    assert all(
+        key not in syntax
+        for key in ("env", "working-directory", "shell", "continue-on-error", "if")
+    )
+    assert all(key not in workflow for key in ("env", "defaults"))
+    assert all(key not in job for key in ("env", "defaults"))
+    assert _shell_tokens(contracts) == [
+        "make", "PY=python", "test-release-contracts"
+    ]
+
+    positions = {
+        step.get("name"): index
+        for index, step in enumerate(job["steps"])
+        if isinstance(step, dict)
+    }
+    assert positions["Install root release contract dependencies"] < positions[
+        "Check LLM scaling artifacts in locked generator environment"
+    ] < positions["Leg 3 — Python 3.11 syntax closure"] < positions[
+        "Leg 3 — offline root release contracts"
+    ]
+
+
+def test_readmes_document_llm_scaling_env_before_release_verification() -> None:
+    for relative_path in ("README.md", "README-zh.md"):
+        source = (ROOT / relative_path).read_text(encoding="utf-8")
+        assert source.count("make llm-scaling-env") == 1
+        assert source.count("make verify-release") == 1
+        assert source.index("make llm-scaling-env") < source.index(
+            "make verify-release"
+        )
+
+
+def test_sanity_installs_and_runs_reject_aware_critic_explicitly() -> None:
+    job = _workflow_job(ROOT / ".github/workflows/sanity.yml", "sanity")
+    install = _named_ci_step(job, "Install local packages (editable + dev extras)")
+    assert _shell_tokens(install) == [
+        "pip", "install", "-e", "packages/soc-pipeline[dev]",
+        "pip", "install", "-e", "packages/guarded-llm[dev]",
+        "pip", "install", "-e", "packages/cross-judge[dev]",
+        "pip", "install", "-e", "packages/reject-aware-critic[dev]",
+    ]
+
+    reject_aware = _named_ci_step(
+        job, "Leg 4 — packages/reject-aware-critic tests"
+    )
+    assert reject_aware["working-directory"] == "packages/reject-aware-critic"
+    assert _shell_tokens(reject_aware) == [
+        "python", "-m", "pytest", "-ra", "-q", "--tb=short",
+    ]
+    assert "if" not in reject_aware
+    assert "continue-on-error" not in reject_aware
+
+
 def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
     manifest_path = ROOT / ".github/release-gate-manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     expected_needs = [
         "retrieval-eval-contract",
+        "site-docs-contract",
+        "phase-python-contract",
         "browser-product-contract",
         "browser-beta-surface-contract",
         "backend",
@@ -511,6 +738,14 @@ def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
     assert aggregator.get("if") == "always()"
     assert aggregator.get("needs") == expected_needs
     assert not _mapping_contains_key(aggregator, "continue-on-error")
+    setup_python = [
+        step
+        for step in aggregator["steps"]
+        if isinstance(step, dict) and step.get("uses") == "actions/setup-python@v5"
+    ]
+    assert setup_python == [
+        {"uses": "actions/setup-python@v5", "with": {"python-version": "3.11"}}
+    ]
     summary_step = _named_ci_step(aggregator, "Require every CI dependency to succeed")
     assert summary_step.get("env") == {"REQUIRED_RESULTS": "${{ toJSON(needs) }}"}
     summary_run = summary_step.get("run")
@@ -611,6 +846,610 @@ def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
     assert "main-branch protection must require every" in decisions
 
 
+def test_nightly_backend_matches_supported_matrix_and_installs_fail_closed() -> None:
+    job = _workflow_job(ROOT / ".github/workflows/nightly.yml", "backend-full")
+    assert job["strategy"] == {
+        "fail-fast": False,
+        "matrix": {
+            "python-version": ["3.10", "3.11", "3.12"],
+            "os": ["ubuntu-latest", "macos-latest"],
+            "exclude": [{"os": "macos-latest", "python-version": "3.10"}],
+        },
+    }
+    checkout = [
+        step
+        for step in job["steps"]
+        if isinstance(step, dict) and step.get("uses") == "actions/checkout@v5"
+    ]
+    assert checkout == [{"uses": "actions/checkout@v5", "with": {"lfs": True}}]
+
+    install = _named_ci_step(job, "Install")
+    assert install.get("run") == (
+        "python -m pip install --upgrade pip\n"
+        'python -m pip install -e ".[dev]"\n'
+        "python -m pip install \\\n"
+        "  -e packages/soc-pipeline \\\n"
+        "  -e packages/guarded-llm \\\n"
+        "  -e packages/cross-judge \\\n"
+        "  -e packages/reject-aware-critic\n"
+    )
+    assert "||" not in install["run"]
+    assert "continue-on-error" not in install
+    run = _named_ci_step(job, "Run sanity + integration (incl. slow)")
+    assert _shell_tokens(run) == [
+        "pytest", "v4/tests", "-v", "-m", "not requires_llm"
+    ]
+
+
+def test_nightly_e2e_reconstructs_the_full_browser_runtime() -> None:
+    job = _workflow_job(ROOT / ".github/workflows/nightly.yml", "e2e-full")
+    pnpm = [
+        step
+        for step in job["steps"]
+        if isinstance(step, dict) and step.get("uses") == "pnpm/action-setup@v4"
+    ]
+    assert pnpm == [{"uses": "pnpm/action-setup@v4", "with": {"version": 10}}]
+    node = [
+        step
+        for step in job["steps"]
+        if isinstance(step, dict) and step.get("uses") == "actions/setup-node@v4"
+    ]
+    assert node == [{
+        "uses": "actions/setup-node@v4",
+        "with": {
+            "node-version": "20",
+            "cache": "pnpm",
+            "cache-dependency-path": "web/phase-detector/pnpm-lock.yaml",
+        },
+    }]
+
+    install = _named_ci_step(job, "Install")
+    install_tokens = _shell_tokens(install)
+    assert install_tokens == [
+        "python", "-m", "pip", "install", "--upgrade", "pip",
+        "python", "-m", "pip", "install",
+        "pytest==9.0.3", "playwright==1.59.0", "pytest-playwright==0.7.2",
+        "httpx==0.27.2", "fastapi==0.115.14", "pydantic==2.6.1",
+        "starlette==0.46.2", "uvicorn[standard]==0.27.1", "PyJWT==2.12.1",
+        "slowapi==0.1.9", "structlog==25.5.0", "Pillow==12.3.0",
+        "python", "-m", "playwright", "install", "--with-deps", "chromium",
+    ]
+    assert "||" not in install["run"]
+    phase_install = _named_ci_step(job, "Install Phase browser runtime")
+    assert phase_install == {
+        "name": "Install Phase browser runtime",
+        "working-directory": "web/phase-detector",
+        "run": "pnpm install --frozen-lockfile",
+    }
+    phase_runtime = _named_ci_step(job, "Require the installed Next and axe runtimes")
+    assert phase_runtime == {
+        "name": "Require the installed Next and axe runtimes",
+        "working-directory": "web/phase-detector",
+        "run": (
+            "test -x node_modules/.bin/next\n"
+            "test -s node_modules/axe-core/axe.min.js\n"
+        ),
+    }
+    positions = {
+        step.get("name"): index
+        for index, step in enumerate(job["steps"])
+        if isinstance(step, dict) and isinstance(step.get("name"), str)
+    }
+    assert positions["Install"] < positions["Install Phase browser runtime"]
+    assert positions["Require the installed Next and axe runtimes"] < positions[
+        "Run e2e (all markers except requires_llm w/o key)"
+    ]
+
+
+def test_manual_load_defaults_to_capped_beta_and_requires_stress_consent() -> None:
+    workflow = _workflow_data(ROOT / ".github/workflows/load-smoke.yml")
+    triggers = workflow.get("on", workflow.get(True))
+    assert isinstance(triggers, dict)
+    dispatch = triggers.get("workflow_dispatch")
+    assert isinstance(dispatch, dict)
+    inputs = dispatch.get("inputs")
+    assert isinstance(inputs, dict)
+    assert inputs["target"] == {
+        "description": "Target environment",
+        "required": True,
+        "type": "choice",
+        "default": "beta",
+        "options": ["beta", "custom"],
+    }
+    assert inputs["unsafe_load_confirmation"] == {
+        "description": 'Type "yes" to authorize stress_ramp or an uncapped custom load',
+        "required": False,
+        "type": "string",
+        "default": "",
+    }
+
+    job = _workflow_job(ROOT / ".github/workflows/load-smoke.yml", "load-smoke")
+    assert job["concurrency"] == {
+        "group": "structural-production-beta-load",
+        "cancel-in-progress": False,
+    }
+    setup_python = [
+        step
+        for step in job["steps"]
+        if isinstance(step, dict) and step.get("uses") == "actions/setup-python@v5"
+    ]
+    assert setup_python == [
+        {"uses": "actions/setup-python@v5", "with": {"python-version": "3.11"}}
+    ]
+    resolve = _named_ci_step(job, "Resolve BASE_URL")
+    assert resolve.get("env") == {
+        "TARGET": "${{ inputs.target }}",
+        "CUSTOM_URL": "${{ inputs.custom_url }}",
+    }
+    resolve_run = resolve.get("run")
+    assert isinstance(resolve_run, str)
+    assert "local)" not in resolve_run and "localhost" not in resolve_run
+    assert 'BETA_HOST = "beta.structural.bytedance.city"' in resolve_run
+    assert 'resolved = f"https://{BETA_HOST}"' in resolve_run
+    assert "urlsplit(raw)" in resolve_run
+    assert 'canonical_host == BETA_HOST' in resolve_run
+    assert "parsed.username is not None or parsed.password is not None" in resolve_run
+    assert 'parsed.path not in {"", "/"} or parsed.query or parsed.fragment' in resolve_run
+    assert '"%" in parsed.netloc' in resolve_run
+    assert 'raw_host.encode("idna").decode("ascii").rstrip(".")' in resolve_run
+    assert "label.fullmatch(part)" in resolve_run
+    assert "select the beta target so production safety caps apply" in resolve_run
+    assert "custom_url must not contain whitespace or control characters" in resolve_run
+    assert "${{ inputs.custom_url }}" not in resolve_run
+    assert "${{ inputs.target }}" not in resolve_run
+    assert 'fail("unsupported target")' in resolve_run
+    positions = {
+        step.get("name", step.get("uses")): index
+        for index, step in enumerate(job["steps"])
+        if isinstance(step, dict)
+    }
+    assert positions["actions/setup-python@v5"] < positions["Resolve BASE_URL"]
+
+    scenario = _named_ci_step(job, "Run scenario(s)")
+    assert scenario.get("env") == {
+        "BASE_URL": "${{ steps.target.outputs.url }}",
+        "TARGET": "${{ inputs.target }}",
+        "SCENARIO": "${{ inputs.scenario }}",
+        "VUS_OVERRIDE": "${{ inputs.vus_override }}",
+        "DURATION_OVERRIDE": "${{ inputs.duration_override }}",
+        "UNSAFE_LOAD_CONFIRMATION": "${{ inputs.unsafe_load_confirmation }}",
+    }
+    scenario_run = scenario.get("run")
+    assert isinstance(scenario_run, str)
+    assert scenario_run.startswith("set -euo pipefail\n")
+    for fragment in (
+        'SAFE_CAP=0',
+        'if [ "$SCENARIO" != "stress_ramp" ]; then',
+        'SAFE_CAP=1',
+        'VUS_OVERRIDE=1\n',
+        'DURATION_OVERRIDE=20s\n',
+        'local args=(--max-redirects 0)',
+        'args+=(--vus "$VUS_OVERRIDE")',
+        'args+=(--duration "$DURATION_OVERRIDE")',
+        'BASE_URL="$BASE_URL" k6 run "${args[@]}" "$script"',
+        '[ "$SCENARIO" = "stress_ramp" ] && [ "$UNSAFE_LOAD_CONFIRMATION" != "yes" ]',
+        '[ "$TARGET" = "beta" ] || [ "$UNSAFE_LOAD_CONFIRMATION" != "yes" ]',
+        'export I_KNOW_WHAT_I_AM_DOING="$UNSAFE_LOAD_CONFIRMATION"',
+        '*) echo "ERROR: unsupported scenario"; exit 1 ;;',
+    ):
+        assert fragment in scenario_run
+    assert "I_KNOW_WHAT_I_AM_DOING=yes" not in scenario_run
+    assert "BASE_URL=$BASE_URL" not in scenario_run
+    assert "threshold breach or error" not in scenario_run
+    assert "k6 run" in scenario_run
+    assert "|| true" not in scenario_run and "|| echo" not in scenario_run
+    assert not re.search(r"k6\s+run[^\n]*\|\|", scenario_run)
+
+
+@pytest.mark.parametrize(
+    "custom_url",
+    [
+        "https://BETA.structural.bytedance.city",
+        "https://beta.structural.bytedance.city:443",
+        "https://beta.structural.bytedance.city/.",
+        "https://beta.structural.bytedance.city?probe=1",
+        "https://beta.structural.bytedance.city./api",
+        "https://beta.structural.bytedance.city．/",
+        "https://beta.structural.bytedance.city。/",
+        "https://beta.structural.bytedance.city｡/",
+        "https://beta.structural.bytedance.city．．/",
+        "https://user@beta.structural.bytedance.city",
+        "https://%62eta.structural.bytedance.city",
+        "https://example.invalid/#fragment",
+        "https://example.invalid/base?token=secret",
+        "https://example.invalid/private-capability",
+        "https://example.invalid/has space",
+        "javascript://example.invalid",
+    ],
+)
+def test_manual_load_custom_url_parser_rejects_aliases_and_ambiguity(
+    tmp_path: Path, custom_url: str,
+) -> None:
+    job = _workflow_job(ROOT / ".github/workflows/load-smoke.yml", "load-smoke")
+    script = _named_ci_step(job, "Resolve BASE_URL")["run"]
+    script_path = tmp_path / "resolve.sh"
+    script_path.write_text(script, encoding="utf-8")
+    output = tmp_path / "github-output"
+    environment = os.environ.copy()
+    environment.update(
+        PATH=f"{Path(sys.executable).parent}:{environment['PATH']}",
+        TARGET="custom",
+        CUSTOM_URL=custom_url,
+        GITHUB_OUTPUT=str(output),
+    )
+    completed = subprocess.run(
+        ["/bin/bash", str(script_path)],
+        cwd=ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert completed.returncode != 0, custom_url
+    assert not output.exists() or output.read_text(encoding="utf-8") == ""
+
+
+def test_manual_load_custom_url_parser_emits_one_canonical_url(tmp_path: Path) -> None:
+    job = _workflow_job(ROOT / ".github/workflows/load-smoke.yml", "load-smoke")
+    script = _named_ci_step(job, "Resolve BASE_URL")["run"]
+    script_path = tmp_path / "resolve.sh"
+    script_path.write_text(script, encoding="utf-8")
+    output = tmp_path / "github-output"
+    environment = os.environ.copy()
+    environment.update(
+        PATH=f"{Path(sys.executable).parent}:{environment['PATH']}",
+        TARGET="custom",
+        CUSTOM_URL="HTTPS://EXAMPLE.invalid:8443",
+        GITHUB_OUTPUT=str(output),
+    )
+    completed = subprocess.run(
+        ["/bin/bash", str(script_path)],
+        cwd=ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert output.read_text(encoding="utf-8") == (
+        "url=https://example.invalid:8443\n"
+    )
+
+
+def _run_load_scenario(
+    tmp_path: Path,
+    *,
+    target: str,
+    scenario: str,
+    confirmation: str = "",
+    vus: str = "",
+    duration: str = "",
+) -> tuple[subprocess.CompletedProcess[str], str]:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    job = _workflow_job(ROOT / ".github/workflows/load-smoke.yml", "load-smoke")
+    script = _named_ci_step(job, "Run scenario(s)")["run"]
+    script_path = tmp_path / "scenario.sh"
+    script_path.write_text(script, encoding="utf-8")
+    binary_dir = tmp_path / "bin"
+    binary_dir.mkdir()
+    log = tmp_path / "k6.log"
+    fake_k6 = binary_dir / "k6"
+    fake_k6.write_text(
+        "#!/bin/bash\n"
+        "printf 'safety=%s args=%s\\n' \"${I_KNOW_WHAT_I_AM_DOING-}\" \"$*\" >> \"$K6_LOG\"\n",
+        encoding="utf-8",
+    )
+    fake_k6.chmod(0o755)
+    environment = os.environ.copy()
+    environment.update(
+        PATH=f"{binary_dir}:{environment['PATH']}",
+        K6_LOG=str(log),
+        BASE_URL=(
+            "https://beta.structural.bytedance.city"
+            if target == "beta"
+            else "https://example.invalid"
+        ),
+        TARGET=target,
+        SCENARIO=scenario,
+        VUS_OVERRIDE=vus,
+        DURATION_OVERRIDE=duration,
+        UNSAFE_LOAD_CONFIRMATION=confirmation,
+    )
+    completed = subprocess.run(
+        ["/bin/bash", str(script_path)],
+        cwd=ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    return completed, log.read_text(encoding="utf-8") if log.exists() else ""
+
+
+def test_manual_load_dynamic_caps_and_stress_authority(tmp_path: Path) -> None:
+    beta, beta_log = _run_load_scenario(
+        tmp_path / "beta", target="beta", scenario="phases_smoke"
+    )
+    assert beta.returncode == 0, beta.stderr
+    assert (
+        "args=run --max-redirects 0 --vus 1 --duration 20s "
+        "tests/load/phases_smoke.js"
+    ) in beta_log
+
+    over, _ = _run_load_scenario(
+        tmp_path / "over", target="beta", scenario="phases_smoke", vus="2"
+    )
+    assert over.returncode != 0
+
+    custom_stress, _ = _run_load_scenario(
+        tmp_path / "custom-no", target="custom", scenario="stress_ramp"
+    )
+    assert custom_stress.returncode != 0
+
+    custom_safe, custom_safe_log = _run_load_scenario(
+        tmp_path / "custom-safe", target="custom", scenario="mixed_realistic"
+    )
+    assert custom_safe.returncode == 0, custom_safe.stderr
+    assert "--max-redirects 0 --vus 1 --duration 20s" in custom_safe_log
+
+    custom_uncapped, custom_uncapped_log = _run_load_scenario(
+        tmp_path / "custom-uncapped",
+        target="custom",
+        scenario="mixed_realistic",
+        confirmation="yes",
+    )
+    assert custom_uncapped.returncode == 0, custom_uncapped.stderr
+    assert "args=run --max-redirects 0 tests/load/mixed_realistic.js" in custom_uncapped_log
+
+    allowed, allowed_log = _run_load_scenario(
+        tmp_path / "custom-yes",
+        target="custom",
+        scenario="stress_ramp",
+        confirmation="yes",
+    )
+    assert allowed.returncode == 0, allowed.stderr
+    assert "safety=yes args=run --max-redirects 0 tests/load/stress_ramp.js" in allowed_log
+
+
+def test_production_load_jobs_serialize_and_nightly_fails_closed(tmp_path: Path) -> None:
+    manual = _workflow_job(ROOT / ".github/workflows/load-smoke.yml", "load-smoke")
+    nightly_path = ROOT / ".github/workflows/nightly.yml"
+    nightly = _workflow_job(nightly_path, "load-smoke-1vu")
+    expected_concurrency = {
+        "group": "structural-production-beta-load",
+        "cancel-in-progress": False,
+    }
+    assert manual["concurrency"] == expected_concurrency
+    assert nightly["concurrency"] == expected_concurrency
+
+    inspect = _named_ci_step(nightly, "Inspect scripts (parse-check)")["run"]
+    assert inspect.startswith("set -euo pipefail\n")
+    assert "tests/load/*.js" not in inspect and "|| continue" not in inspect
+    inspect_path = tmp_path / "inspect.sh"
+    inspect_path.write_text(inspect, encoding="utf-8")
+    completed = subprocess.run(
+        ["/bin/bash", str(inspect_path)],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert completed.returncode != 0
+
+    run = _named_ci_step(nightly, "Run 1-VU smoke against beta")["run"]
+    assert "test -f tests/load/phases_smoke.js" in run
+    assert "--vus 1 --duration 20s" in run
+    assert "if [ -f" not in run
+    upload = _named_ci_step(nightly, "Upload results")
+    assert upload["with"]["if-no-files-found"] == "error"
+    assert _workflow_job(nightly_path, "summary")["timeout-minutes"] == 5
+    assert _ci_job("release-gate-summary")["timeout-minutes"] == 5
+    nightly_summary = _workflow_job(nightly_path, "summary")
+    notification = _named_ci_step(
+        nightly_summary, "Post issue comment (non-success only)"
+    )
+    assert notification["if"] == (
+        "needs.backend-full.result != 'success' || "
+        "needs.soc-pipeline-full.result != 'success' || "
+        "needs.e2e-full.result != 'success' || "
+        "needs.load-smoke-1vu.result != 'success'"
+    )
+    assert "non-success results" in notification["with"]["script"]
+
+
+def test_every_github_actions_job_has_a_bounded_timeout() -> None:
+    missing: list[str] = []
+    invalid: list[str] = []
+    for workflow_path in sorted((ROOT / ".github/workflows").glob("*.yml")):
+        workflow = _workflow_data(workflow_path)
+        jobs = workflow.get("jobs")
+        assert isinstance(jobs, dict) and jobs, workflow_path
+        for job_name, job in jobs.items():
+            assert isinstance(job, dict), f"{workflow_path}:{job_name}"
+            timeout = job.get("timeout-minutes")
+            label = f"{workflow_path.relative_to(ROOT)}:{job_name}"
+            if timeout is None:
+                missing.append(label)
+            elif not isinstance(timeout, int) or isinstance(timeout, bool) or not 1 <= timeout <= 90:
+                invalid.append(f"{label}={timeout!r}")
+    assert missing == []
+    assert invalid == []
+
+
+def test_workflow_dispatch_inputs_never_enter_shell_source() -> None:
+    violations: list[str] = []
+    for workflow_path in sorted((ROOT / ".github/workflows").glob("*.yml")):
+        workflow = _workflow_data(workflow_path)
+        for job_name, job in workflow["jobs"].items():
+            for step in job.get("steps", []):
+                if not isinstance(step, dict) or not isinstance(step.get("run"), str):
+                    continue
+                run = step["run"]
+                if "${{ inputs." in run or "${{ github.event.inputs" in run:
+                    violations.append(
+                        f"{workflow_path.relative_to(ROOT)}:{job_name}:"
+                        f"{step.get('name', '<unnamed>')}"
+                    )
+    assert violations == []
+
+
+def test_privileged_dispatch_workflows_validate_inputs_and_use_env() -> None:
+    newsletter_path = ROOT / ".github/workflows/newsletter.yml"
+    newsletter = _workflow_job(newsletter_path, "generate")
+    week = _named_ci_step(newsletter, "Compute ISO week")
+    assert week["env"] == {"WEEK_INPUT": "${{ inputs.week }}"}
+    assert '^[0-9]{4}-W(0[1-9]|[1-4][0-9]|5[0-3])$' in week["run"]
+    generate = _named_ci_step(newsletter, "Generate newsletter")
+    assert generate["env"]["SPOTLIGHT_INPUT"] == "${{ inputs.spotlight }}"
+    assert "all_spotlight_slugs" in generate["run"]
+    assert 'GENERATOR_ARGS+=(--spotlight "$SPOTLIGHT_INPUT")' in generate["run"]
+    assert "SPOTLIGHT_FLAG" not in generate["run"]
+
+    release_path = ROOT / ".github/workflows/release-packages.yml"
+    release_workflow = _workflow_data(release_path)
+    release_inputs = release_workflow.get("on", release_workflow.get(True))[
+        "workflow_dispatch"
+    ]["inputs"]
+    assert release_inputs["dry_run"] == {
+        "description": "If true: build + twine check only, no upload",
+        "required": False,
+        "default": True,
+        "type": "boolean",
+    }
+    resolve = _named_ci_step(
+        _workflow_job(release_path, "release"),
+        "Resolve target package + version from tag (or input)",
+    )
+    assert resolve["env"] == {
+        "EVENT_NAME": "${{ github.event_name }}",
+        "INPUT_PACKAGE": "${{ inputs.package }}",
+        "INPUT_DRY_RUN": "${{ inputs.dry_run }}",
+    }
+    assert "guarded-llm|soc-pipeline|cross-judge|reject-aware-critic" in resolve["run"]
+    assert "true|false" in resolve["run"]
+
+    publish_path = ROOT / ".github/workflows/publish-pypi.yml"
+    publish_workflow = _workflow_data(publish_path)
+    publish_inputs = publish_workflow.get("on", publish_workflow.get(True))[
+        "workflow_dispatch"
+    ]["inputs"]
+    assert publish_inputs["dry_run"] == {
+        "description": "If true, build but do not upload (twine check only)",
+        "required": False,
+        "default": False,
+        "type": "boolean",
+    }
+    publish_job = _workflow_job(publish_path, "build-and-publish")
+    publish_summary = _named_ci_step(publish_job, "Summary")
+    assert publish_summary["env"]["DRY_RUN"] == "${{ inputs.dry_run }}"
+    assert "${{ inputs." not in publish_summary["run"]
+
+
+def test_privileged_dispatch_payloads_cannot_execute_in_bash(
+    tmp_path: Path,
+) -> None:
+    marker = tmp_path / "injected"
+    payload = f"$(touch {marker})"
+
+    def run_step(
+        workflow: str,
+        job: str,
+        step: str,
+        environment_overrides: dict[str, str],
+    ) -> subprocess.CompletedProcess[str]:
+        workflow_path = ROOT / workflow
+        script = _named_ci_step(_workflow_job(workflow_path, job), step)["run"]
+        script_path = tmp_path / f"{job}-{step.replace(' ', '-')}.sh"
+        script_path.write_text(script, encoding="utf-8")
+        environment = os.environ.copy()
+        environment.update(
+            PATH=f"{Path(sys.executable).parent}:{environment['PATH']}",
+            **environment_overrides,
+        )
+        return subprocess.run(
+            ["/bin/bash", str(script_path)],
+            cwd=ROOT,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+
+    week = run_step(
+        ".github/workflows/newsletter.yml",
+        "generate",
+        "Compute ISO week",
+        {"WEEK_INPUT": payload, "GITHUB_OUTPUT": str(tmp_path / "week-output")},
+    )
+    assert week.returncode != 0
+    assert not marker.exists()
+
+    spotlight = run_step(
+        ".github/workflows/newsletter.yml",
+        "generate",
+        "Generate newsletter",
+        {
+            "WEEK": "2026-W19",
+            "WEEKNUM": "19",
+            "SPOTLIGHT_INPUT": payload,
+            "GITHUB_OUTPUT": str(tmp_path / "newsletter-output"),
+        },
+    )
+    assert spotlight.returncode != 0
+    assert not marker.exists()
+
+    release_resolve = run_step(
+        ".github/workflows/release-packages.yml",
+        "release",
+        "Resolve target package + version from tag (or input)",
+        {
+            "EVENT_NAME": "workflow_dispatch",
+            "INPUT_PACKAGE": payload,
+            "INPUT_DRY_RUN": "true",
+            "GITHUB_OUTPUT": str(tmp_path / "release-output"),
+        },
+    )
+    assert release_resolve.returncode != 0
+    assert not marker.exists()
+
+    pypi_summary = run_step(
+        ".github/workflows/publish-pypi.yml",
+        "build-and-publish",
+        "Summary",
+        {
+            "PACKAGE": "guarded-llm",
+            "REF_NAME": "manual",
+            "DRY_RUN": payload,
+            "HAS_PYPI_TOKEN": "false",
+            "GITHUB_STEP_SUMMARY": str(tmp_path / "pypi-summary"),
+        },
+    )
+    assert pypi_summary.returncode == 0, pypi_summary.stderr
+    assert not marker.exists()
+
+    release_summary = run_step(
+        ".github/workflows/release-packages.yml",
+        "release",
+        "Summary",
+        {
+            "EVENT_NAME": "push",
+            "REF_NAME": payload,
+            "PKG": "guarded-llm",
+            "VER": "0.1.0",
+            "DRY_RUN": "false",
+            "HAS_PYPI_TOKEN": "false",
+            "GITHUB_STEP_SUMMARY": str(tmp_path / "release-summary"),
+        },
+    )
+    assert release_summary.returncode == 0, release_summary.stderr
+    assert not marker.exists()
+
+
 def test_make_release_targets_form_a_fail_closed_recipe_closure() -> None:
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     _assert_make_release_closure(makefile)
@@ -650,15 +1489,72 @@ def test_make_release_targets_form_a_fail_closed_recipe_closure() -> None:
             _assert_make_release_closure(mutated)
 
 
+def test_coverage_package_source_and_test_matrix_is_closed() -> None:
+    coverage_config = (ROOT / ".coveragerc").read_text(encoding="utf-8")
+    source_lines = re.findall(r"^source\s*=\s*(.+)$", coverage_config, re.MULTILINE)
+    assert len(source_lines) == 1
+    configured_sources = {
+        value.strip() for value in source_lines[0].split(",") if value.strip()
+    }
+    package_sources = {
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "packages").glob("*/src")
+        if path.is_dir()
+    }
+    assert package_sources
+    assert package_sources <= configured_sources
+
+    workflow = (ROOT / ".github/workflows/coverage.yml").read_text(
+        encoding="utf-8"
+    )
+    for source in package_sources:
+        package = PurePosixPath(source).parent.name
+        assert f"packages/{package}/tests/" in workflow
+    assert "for source_dir in packages/*/src; do" in workflow
+    assert '--include="$source_dir/*"' in workflow
+    assert "--fail-under=1" in workflow
+
+
+def test_backtest_parquet_extra_is_single_source_and_used_by_sanity() -> None:
+    setup_source = (ROOT / "setup.py").read_text(encoding="utf-8")
+    assert setup_source.count('"pyarrow==24.0.0"') == 1
+    assert 'BACKTEST_REQUIREMENTS = ["pyarrow==24.0.0"]' in setup_source
+    assert '"backtest": BACKTEST_REQUIREMENTS' in setup_source
+    assert '"dev": ["scikit-learn", "pytest", "black", "ruff", *BACKTEST_REQUIREMENTS]' in setup_source
+    assert 'python_requires=">=3.10"' in setup_source
+    assert "Programming Language :: Python :: 3.8" not in setup_source
+    assert "Programming Language :: Python :: 3.9" not in setup_source
+    assert "Programming Language :: Python :: 3.13" in setup_source
+
+    sanity = (ROOT / ".github/workflows/sanity.yml").read_text(encoding="utf-8")
+    assert 'python -m pip install -e ".[dev]"' in sanity
+    assert "pyarrow==24.0.0" not in sanity
+
+
 def test_makefile_release_authority_is_independently_frozen() -> None:
     assert hashlib.sha256((ROOT / "Makefile").read_bytes()).hexdigest() == (
-        "5230385937dd093bd362dd459f55ef4716baa8ba2b8b8f76283b44ab5c604b0c"
+        "4b4dfb0608153681fd409d28c3bfd1fea5fecc93aefc550dc6585266d1ffac95"
+    )
+
+
+def test_python_syntax_release_authority_is_independently_frozen() -> None:
+    assert hashlib.sha256(
+        (ROOT / "scripts/check_python_syntax.py").read_bytes()
+    ).hexdigest() == (
+        "904a8bf6ddbe9f614d67a3848da4330de5f612be643aeb5f92a4d4dc9444e2e7"
     )
 
 
 def test_verify_release_dry_run_expands_real_test_and_build_commands() -> None:
     environment = os.environ.copy()
-    for variable in ("MAKEFLAGS", "MAKEOVERRIDES", "PYTEST", "BACKEND_PYTEST"):
+    for variable in (
+        "MAKEFLAGS",
+        "MAKEOVERRIDES",
+        "PYTEST",
+        "BACKEND_PYTEST",
+        "OPENAPI_PY",
+        "TYPES_PY",
+    ):
         environment.pop(variable, None)
     completed = subprocess.run(
         ["make", "-n", "--no-print-directory", "PY=python", "verify-release"],
@@ -672,6 +1568,7 @@ def test_verify_release_dry_run_expands_real_test_and_build_commands() -> None:
     assert completed.returncode == 0, completed.stderr
     output = completed.stdout
     assert output.count("python -m pytest") == 14
+    assert "scripts/check_python_syntax.py" in output
     assert "scripts/openapi_artifact.py --check" in output
     assert "PY=python bash scripts/check_ts_types.sh" in output
     assert 'node "$test_file"' in output
@@ -721,6 +1618,8 @@ def test_required_browser_workflow_covers_nonenglish_product_surfaces() -> None:
         "web/tests/e2e/test_secondary_tools_candidate_journeys.py",
         "web/tests/e2e/test_whitespace.py",
         "web/tests/e2e/test_thank_you_copy.py",
+        "web/tests/e2e/test_report_share.py",
+        "web/tests/e2e/test_cross_domain_report_claim.py",
     ):
         assert contract in executable_contracts
 
@@ -738,8 +1637,15 @@ def test_required_browser_workflow_covers_nonenglish_product_surfaces() -> None:
         "Run JavaScript trust contracts": "matrix.node_tests != ''",
     }
     install_tokens = _shell_tokens(install_step)
-    assert install_tokens[:4] == ["python", "-m", "pip", "install"]
-    assert "pytest-playwright==0.7.2" in install_tokens
+    assert install_tokens == [
+        "python", "-m", "pip", "install",
+        "pytest==9.0.3", "playwright==1.59.0", "pytest-playwright==0.7.2",
+        "httpx==0.27.2",
+        "fastapi==0.115.14", "pydantic==2.6.1", "starlette==0.46.2",
+        "uvicorn[standard]==0.27.1", "PyJWT==2.12.1", "slowapi==0.1.9",
+        "structlog==25.5.0", "python", "-m", "playwright", "install",
+        "--with-deps", "chromium",
+    ]
     browser_tokens = _shell_tokens(browser_step)
     assert "if" not in browser_step
     assert browser_tokens == [
@@ -931,7 +1837,10 @@ def test_hard_browser_gate_has_one_make_and_ci_contract_list() -> None:
     ]
 
     phase_tests = _make_path_list(makefile, "PHASE_REAL_BROWSER_CONTRACT_TESTS")
-    assert phase_tests == ["web/tests/e2e/test_phase_auth_real.py"]
+    assert phase_tests == [
+        "web/tests/e2e/test_phase_auth_real.py",
+        "web/tests/e2e/test_cookie_consent.py",
+    ]
     phase_job = _ci_job("browser-product-contract")
     assert "if" not in phase_job
     assert not any(
@@ -943,11 +1852,27 @@ def test_hard_browser_gate_has_one_make_and_ci_contract_list() -> None:
         phase_job, "Verify real Next auth, failure states, mobile controls and axe"
     )
     assert "if" not in phase_step
-    assert _shell_tokens(phase_step) == ["pytest", *phase_tests, "-v"]
+    assert _shell_tokens(phase_step) == ["pytest", phase_tests[0], "-v"]
+    consent_step = _named_ci_step(
+        phase_job, "Verify consent-gated official analytics transport"
+    )
+    assert "if" not in consent_step
+    assert _shell_tokens(consent_step) == ["pytest", phase_tests[1], "-v"]
+
+    phase_positions = {
+        step.get("name"): index
+        for index, step in enumerate(phase_job["steps"])
+        if isinstance(step, dict)
+    }
+    assert phase_positions["Install Phase dependencies"] < phase_positions[
+        "Verify consent-gated official analytics transport"
+    ]
 
     assert _make_recipe_commands(makefile, "verify-release") == [
+        "$(MAKE) python-syntax-check",
         "$(MAKE) openapi-check",
         "$(MAKE) types-check",
+        "$(MAKE) llm-scaling-check",
         "$(MAKE) test-fast",
         "cd web/backend && $(BACKEND_PYTEST) -q",
         "cd packages/guarded-llm && $(PYTEST) tests -q",
@@ -999,19 +1924,17 @@ def test_no_beta_page_loads_the_same_script_twice() -> None:
     assert failures == []
 
 
-def test_optional_analytics_never_blocks_dom_content_loaded() -> None:
-    """Third-party telemetry must not delay the product's readiness event."""
+def test_optional_analytics_never_loads_a_remote_tracker_script() -> None:
+    """The consent boundary owns transport; no remote script may run code."""
     failures: list[str] = []
     pattern = re.compile(
         r"<script\b(?P<attrs>[^>]*)\bsrc=[\"']"
-        r"https://plausible\.bytedance\.city/js/script\.js[\"'][^>]*>",
+        r"https://plausible\.bytedance\.city/[^\"']*[\"'][^>]*>",
         re.I,
     )
     for page in sorted((ROOT / "web/frontend").glob("*.html")):
         for match in pattern.finditer(page.read_text(encoding="utf-8")):
-            attrs = match.group("attrs")
-            if not re.search(r"(?:^|\s)async(?:\s|$)", attrs, re.I):
-                failures.append(f"{page.name}: Plausible script is not async")
+            failures.append(f"{page.name}: remote analytics script is forbidden")
     assert failures == []
 
 

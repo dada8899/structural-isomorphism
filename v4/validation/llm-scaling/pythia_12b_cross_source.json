@@ -3,24 +3,24 @@
   "n_sources": 2,
   "sources": {
     "LAMBADA_v1": {
-      "alpha": 0.16316869867121825,
-      "alpha_se": 0.07720950240410593,
-      "R2": 0.8073097406151725,
+      "alpha": 0.163168698671,
+      "alpha_se": 0.0772095024041,
+      "R2": 0.807309740615,
       "n_points": 26,
-      "L_inf": 1.5251270360605558e-15,
+      "L_inf": 1.52512703606e-15,
       "provenance": "REAL_LAMBADA"
     },
     "LAMBADA_v2": {
-      "alpha": 0.17827643195860496,
-      "alpha_se": 0.08431084459023824,
-      "R2": 0.7865526462327634,
+      "alpha": 0.178276431959,
+      "alpha_se": 0.0843108445902,
+      "R2": 0.786552646233,
       "n_points": 26,
-      "L_inf": 1.0000000000000002,
+      "L_inf": 1.0,
       "provenance": "REAL_LAMBADA_v2_LINF_CONSTRAINED"
     }
   },
-  "alpha_mean": 0.1707225653149116,
-  "alpha_std": 0.010682780655868874,
-  "alpha_cv": 0.06257392299701929,
+  "alpha_mean": 0.170722565315,
+  "alpha_std": 0.0106827806559,
+  "alpha_cv": 0.062573922997,
   "note": "pythia-12b only exists in LAMBADA v1 + v2; train-loss source did not include 12b checkpoints. \u03c3 here is across LAMBADA v1 vs v2 (L_inf free vs constrained)."
 }

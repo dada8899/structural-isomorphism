@@ -23,12 +23,12 @@ PUBLIC_BETA_ROUTES = {
     "/", "/about", "/analyze", "/apply", "/auth/login", "/auth/verify",
     "/classes", "/diagnose",
     "/discoveries", "/insights", "/learn", "/lint", "/methods",
-    "/papers", "/phenomenon", "/privacy", "/report", "/reports",
+    "/papers", "/phenomenon", "/pricing", "/privacy", "/report", "/reports",
     "/search", "/start-here", "/stress-test", "/taxonomy-v2",
     "/thank-you", "/tools", "/whitespace",
 }
 DYNAMIC_BETA_PREFIXES = ("/paper/", "/phenomenon/", "/report/", "/api/")
-RETIRED_PUBLIC_PREFIXES = ("/connections", "/pricing", "/phase/")
+RETIRED_PUBLIC_PREFIXES = ("/connections", "/phase/")
 
 
 class ControlParser(HTMLParser):
@@ -41,13 +41,10 @@ class ControlParser(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs) -> None:
         values = dict(attrs)
-        if (
-            tag == "script"
-            and values.get("src") == "https://plausible.bytedance.city/js/script.js"
-            and "async" not in values
-        ):
+        script_src = values.get("src") or ""
+        if tag == "script" and urlsplit(script_src).hostname == "plausible.bytedance.city":
             self.errors.append(
-                f"{self.source}: optional Plausible analytics must load asynchronously"
+                f"{self.source}: analytics must use the consent-gated Events API transport"
             )
         if tag in {"a", "button"}:
             record = {"tag": tag, "text": "", **{k: v or "" for k, v in values.items()}}
@@ -103,7 +100,7 @@ def scan_beta() -> tuple[list[dict[str, str]], list[str]]:
     controls: list[dict[str, str]] = []
     errors: list[str] = []
     for page in sorted(FRONTEND.glob("*.html")):
-        if page.name in {"404.html", "pricing.html", "connections.html"}:
+        if page.name in {"404.html", "connections.html"}:
             continue
         parser = ControlParser(page.relative_to(ROOT))
         parser.feed(page.read_text(encoding="utf-8"))

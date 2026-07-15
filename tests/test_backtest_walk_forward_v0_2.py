@@ -13,6 +13,7 @@ Run:
 """
 from __future__ import annotations
 
+import importlib.metadata
 import importlib.util
 import json
 import sys
@@ -23,6 +24,10 @@ import pandas as pd
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def test_parquet_engine_matches_root_backtest_extra() -> None:
+    assert importlib.metadata.version("pyarrow") == "24.0.0"
 
 
 @pytest.fixture(scope="module")

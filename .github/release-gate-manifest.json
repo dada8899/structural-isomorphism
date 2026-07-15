@@ -5,6 +5,8 @@
     "job": "release-gate-summary",
     "needs": [
       "retrieval-eval-contract",
+      "site-docs-contract",
+      "phase-python-contract",
       "browser-product-contract",
       "browser-beta-surface-contract",
       "backend",

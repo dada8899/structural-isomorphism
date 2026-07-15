@@ -12,7 +12,7 @@
 | pythia-1.4b | 1.9999 | 0.0000 | 1.8179 | 1e+12 | -0.0076 | 40 | rejected | REAL_TAIL_NARROW |
 | pythia-160m | 0.0949 | 0.0278 | 1.9998 | 20.3 | 0.9919 | 14 | fit_quality_eligible | SYNTHETIC |
 | pythia-1b | 0.1164 | 0.0121 | 1.7157 | 57.5 | 0.9985 | 14 | fit_quality_eligible | SYNTHETIC |
-| pythia-2.8b | 0.3997 | 0.0305 | 1.6191 | 5.82e+07 | 0.0128 | 40 | descriptive_only | REAL_TAIL_NARROW |
+| pythia-2.8b | 0.3997 | 0.0305 | 1.6191 | 5.81e+07 | 0.0128 | 40 | descriptive_only | REAL_TAIL_NARROW |
 | pythia-410m | 0.5757 | 0.0005 | 2.0007 | 7.35e+10 | 0.9856 | 40 | fit_quality_eligible | REAL_FULL |
 | pythia-6.9b | 0.1348 | 0.0120 | 1.4568 | 191 | 0.9985 | 14 | fit_quality_eligible | SYNTHETIC |
 | pythia-70m | 0.3119 | 0.0283 | 1.7122 | 1.11e+06 | 0.9732 | 35 | fit_quality_eligible | REAL_FULL |

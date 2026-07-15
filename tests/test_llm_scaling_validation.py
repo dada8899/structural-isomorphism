@@ -13,6 +13,7 @@ Coverage:
 """
 from __future__ import annotations
 
+import copy
 import csv
 import importlib.util
 import json
@@ -31,6 +32,8 @@ RAW_DIR = VAL_DIR / "raw"
 RESULTS_JSON = VAL_DIR / "results.json"
 SUMMARY_MD = VAL_DIR / "summary.md"
 RUNNER_PATH = VAL_DIR / "run_validation.py"
+CROSS_SOURCE_JSON = VAL_DIR / "cross_source_summary.json"
+CROSS_SOURCE_12B_JSON = VAL_DIR / "pythia_12b_cross_source.json"
 KB_JSONL = REPO_ROOT / "data" / "kb-additions-2026-05-24-llm-scaling.jsonl"
 
 
@@ -138,10 +141,105 @@ def test_results_json_exists() -> None:
 
 
 def test_committed_artifacts_equal_deterministic_raw_input_build(runner) -> None:
+    if not runner.generator_environment_matches():
+        pytest.skip("byte-stable artifact comparison runs in the locked generator gate")
     generated = runner.main(write=False)
+    committed = json.loads(RESULTS_JSON.read_text())
 
-    assert json.loads(RESULTS_JSON.read_text()) == generated
-    assert SUMMARY_MD.read_text() == runner._render_summary_md(generated)
+    runner.assert_artifact_equivalent(committed, generated)
+    assert SUMMARY_MD.read_text() == runner._render_summary_md(committed)
+
+
+def test_artifact_comparison_rejects_material_numeric_and_semantic_drift(
+    runner,
+) -> None:
+    committed = json.loads(RESULTS_JSON.read_text())
+    numeric_drift = copy.deepcopy(committed)
+    numeric_drift["fits"]["pythia-2.8b"]["A"] *= 1.001
+    with pytest.raises(ValueError, match="numeric artifact mismatch"):
+        runner.assert_artifact_equivalent(committed, numeric_drift)
+
+    semantic_drift = copy.deepcopy(committed)
+    semantic_drift["fits"]["pythia-2.8b"]["fit_status"] = "rejected"
+    with pytest.raises(ValueError, match="artifact mismatch"):
+        runner.assert_artifact_equivalent(committed, semantic_drift)
+
+
+def test_generator_contract_is_exact_and_self_describing(runner) -> None:
+    data = json.loads(RESULTS_JSON.read_text())
+    assert runner._generator_pins() == {
+        "contourpy": "1.3.3",
+        "cycler": "0.12.1",
+        "fonttools": "4.63.0",
+        "kiwisolver": "1.5.0",
+        "matplotlib": "3.11.0",
+        "numpy": "1.26.3",
+        "packaging": "26.2",
+        "pandas": "3.0.3",
+        "pillow": "12.3.0",
+        "pyparsing": "3.3.2",
+        "python-dateutil": "2.9.0.post0",
+        "scipy": "1.16.3",
+        "six": "1.17.0",
+    }
+    assert data["generation_contract"] == {
+        "python": "3.11",
+        "requirements": runner._generator_pins(),
+        "float_significant_digits": 12,
+        "comparison_rel_tol": 1e-4,
+        "comparison_abs_tol": 1e-10,
+        "canonical_data_kind": "real",
+        "canonical_input": (
+            "v4/validation/llm-scaling/raw/pythia_checkpoints_combined.csv"
+        ),
+    }
+
+
+@pytest.mark.parametrize("path", [CROSS_SOURCE_JSON, CROSS_SOURCE_12B_JSON])
+def test_cross_source_outputs_are_strict_json(path: Path) -> None:
+    def reject_nonfinite(value: str) -> None:
+        raise ValueError(f"non-finite JSON constant: {value}")
+
+    parsed = json.loads(path.read_text(), parse_constant=reject_nonfinite)
+    assert isinstance(parsed, dict)
+
+
+@pytest.mark.parametrize("data_kind", ["synthetic", "rea1"])
+def test_canonical_writer_rejects_nonreal_data_without_clobber(
+    runner, monkeypatch, data_kind: str,
+) -> None:
+    before_results = RESULTS_JSON.read_bytes()
+    before_summary = SUMMARY_MD.read_bytes()
+    monkeypatch.setenv("PYTHIA_DATA", data_kind)
+    monkeypatch.setattr(
+        runner, "_assert_generator_environment", runner._assert_canonical_data_source
+    )
+
+    with pytest.raises(
+        RuntimeError, match="canonical LLM scaling artifacts require PYTHIA_DATA=real"
+    ):
+        runner.main(write=True)
+
+    assert RESULTS_JSON.read_bytes() == before_results
+    assert SUMMARY_MD.read_bytes() == before_summary
+
+
+def test_canonical_writer_rejects_missing_real_input_without_clobber(
+    runner, monkeypatch, tmp_path: Path,
+) -> None:
+    before_results = RESULTS_JSON.read_bytes()
+    before_summary = SUMMARY_MD.read_bytes()
+    monkeypatch.setenv("PYTHIA_DATA", "real")
+    monkeypatch.setattr(runner, "RAW_DIR", tmp_path)
+    monkeypatch.setattr(
+        runner, "_assert_generator_environment", runner._assert_canonical_data_source
+    )
+
+    with pytest.raises(RuntimeError, match="canonical LLM scaling input is missing"):
+        runner.main(write=True)
+
+    assert RESULTS_JSON.read_bytes() == before_results
+    assert SUMMARY_MD.read_bytes() == before_summary
 
 
 def test_fit_classification_rejects_boundaries_and_separates_narrow_tail(runner) -> None:
@@ -165,7 +263,7 @@ def test_fit_classification_rejects_boundaries_and_separates_narrow_tail(runner)
 def test_results_json_schema() -> None:
     data = json.loads(RESULTS_JSON.read_text())
     assert data["validation"] == "llm-scaling"
-    assert data["schema_version"] == "1.2"
+    assert data["schema_version"] == "1.3"
     assert "fits" in data and "summary" in data
     # Seven observed Pythia sizes + Kaplan + Hoffmann.
     assert len(data["fits"]) == 9
