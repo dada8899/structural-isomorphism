@@ -45,6 +45,7 @@ vis = ["matplotlib>=3.7"]
 notebooks = ["jupyter", "matplotlib>=3.7", "nbconvert"]
 dev = [
     "pytest>=7",
+    "pytest-benchmark",
     "pytest-cov",
     "ruff",
     "mypy",
@@ -75,6 +76,7 @@ testpaths = ["tests"]
 markers = [
     "sanity: deterministic primitive tests (~10s budget)",
     "slow: longer-running real-data tests",
+    "benchmark: performance benchmarks",
 ]
 addopts = "-ra"
 

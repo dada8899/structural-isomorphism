@@ -4,9 +4,10 @@ All public symbols are exported from the top-level `soc_pipeline` namespace.
 
 ## Fit
 
-### `fit_clauset_powerlaw(x_data, name="values", discrete=False, xmin_method="ks", min_samples=100) -> FitResult`
+### `fit_clauset_powerlaw(x_data, name="values", discrete=False, xmin_method="ks", min_samples=100, max_xmin_candidates=512) -> FitResult`
 
 Fit a power-law to the tail of `x_data` using the Clauset-Shalizi-Newman 2009 method (KS minimization on xmin, MLE on alpha).
+Set `max_xmin_candidates=None` to scan every continuous `xmin` candidate.
 
 **Returns `FitResult`** (dataclass) with:
 
