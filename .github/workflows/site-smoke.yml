@@ -50,19 +50,33 @@ jobs:
               exit 1
               ;;
           esac
-          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ ${#EXPECTED_SHA} -eq 40 && "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "expected beta identity must be a full lowercase Git SHA" >&2
+            exit 1
+          }
           echo "EXPECTED_BETA_SHA=$EXPECTED_SHA" >> "$GITHUB_ENV"
           echo "sha=$EXPECTED_SHA" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v5
         with:
-          ref: ${{ steps.release.outputs.sha }}
+          # The monitor belongs to this workflow version. The deployed SHA is
+          # the expected production identity, not the monitor source version.
+          ref: ${{ github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Verify monitor source identity
-        run: test "$(git rev-parse HEAD)" = "$EXPECTED_BETA_SHA"
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Bind requirements identity to the deployed release
+        run: |
+          set -euo pipefail
+          git cat-file -e "${EXPECTED_BETA_SHA}^{commit}"
+          EXPECTED_REQUIREMENTS_SHA256=$(git show "$EXPECTED_BETA_SHA:web/backend/requirements.txt" \
+            | python -c 'import hashlib, sys; print(hashlib.sha256(sys.stdin.buffer.read()).hexdigest())')
+          echo "EXPECTED_REQUIREMENTS_SHA256=$EXPECTED_REQUIREMENTS_SHA256" >> "$GITHUB_ENV"
       - name: Run fail-closed production synthetic monitor
         run: |
           python scripts/production_smoke.py \
             --timeout 15 \
-            --expected-git-sha "$EXPECTED_BETA_SHA"
+            --expected-git-sha "$EXPECTED_BETA_SHA" \
+            --expected-requirements-sha256 "$EXPECTED_REQUIREMENTS_SHA256"
