@@ -1540,3 +1540,31 @@ git diff --stat
 4. 合并并记录 main merge SHA；Beta/Phase workflow 只能发送 `beta-backend <40-sha>` 与 `phase-deploy <40-sha>`，共用部署锁串行完成。必须核对 workflow SHA、VPS SHA、journal、runtime attestation、immutable interpreter、4,443 KB、597 demo、认证 401、隐私 drop-in 与真实公网路线。
 5. Beta/Phase/Docs/site smoke 全绿后，才执行 `docs/analytics/plausible-deployment.md`：loopback CE、关闭注册、HTTP ACME staging、DNS/证书、TLS proxy、Beta+Phase 真实浏览器入库、ClickHouse/Dashboard、备份恢复演练。`202` 或 service active 不能单独算验收。
 6. 生产验收后只追加新回执，不回写本节；同步 `~/progress.md`，再做最终全项目评分。英文能力轨仍按用户先前优先级延后，不能伪称已完成外部科学或人工英文评审。
+
+## 42. 2026-10-14 本地/GitHub 统一候选与部署目标核实
+
+> 本节记录当前任务状态，历史第 41 节不重写。用户已授权多 Agent 深度审查、统一本地与 GitHub 版本并部署 VPS。候选以 GitHub `13743b685d77b65a94a50c5a976b4bec9fa09610` 为基础；代码修复通过独立验收，部署目标与数据库恢复方案仍待核实，尚未合并或部署。
+
+### 已确认与保留
+
+- 本地 `fbc68ea` 的主要产品成果已被 GitHub Product 90 / Stage 2 打包，不重放旧历史，不恢复已替代的匿名公开聚合或重复导览。
+- 原工作目录、未提交 NEXT_SESSION、AGENTS 和旧 Worktree 保留；旧 Worktree 的大量暂存内容与 embeddings 不进入本轮候选，也不清理。
+- 统一候选分支为 `integration/structural-unified-20261014`。完整判断、证据及验收见 `docs/audit/unified-release-review-2026-10-14.md`。
+
+### 本轮修复
+
+1. 匿名报告列表仅显示未认领报告；认领后退出登录不再暴露账户报告标题与回访结果。
+2. site smoke 使用本次工作流的监测源码，同时按实际部署完整 SHA 的 Git 对象计算依赖摘要，修复旧监测脚本参数不兼容与跨版本摘要误判。
+
+### 本地验收终态
+
+- 全后端 1,903 passed / 1 skipped；四个包 111 / 162 / 50 / 72 passed；根基础 306 passed；检索 6 passed。
+- 根合同首轮 1,325 passed / 158 skipped / 16 failed；16 个失败均由环境 Playwright 版本不符引起，对齐既定 1.59 后失败所在文件 32 项全部通过，不改测试或放宽门禁。
+- 本地浏览器六组共 194 passed / 3 deselected；前端 Node 合同、Phase lint/build、Python 3.11 755 文件语法、OpenAPI/TypeScript 和锁定研究产物均通过。
+- Astra 对六文件代码补丁独立 GO，部署前置仍 NO-GO。测试数量有重叠，不相加为唯一总数。没有运行付费模型、导入生产数据或执行远端写入；临时验收服务均已关闭。
+
+### 发布前置
+
+- 当前 SSH 别名和现有站点 DNS 指向不同服务器；已集中询问用户应更新现有站点还是迁移到当前 VPS，连接与目标明确前不写远端或改 DNS。
+- 独立合成复现证明旧账户删除标记经过新版本迁移后，仅回退旧代码可能重新接受删除前凭据。需要现场核实旧代码/schema、一致性备份与隔离恢复；现有部署 journal 不恢复被排除的持久数据库。
+- PR 合并可能触发 main 自动部署。目标、恢复方案与最终门禁未闭合前保持候选分支，不合入 main。浏览器与所有临时验收服务由本任务收尾，不停止用户服务。
