@@ -376,9 +376,53 @@ def test_owner_deletes_one_report_cascades_children_and_invalidates_share(stack)
     )
 
 
+def test_claimed_report_metadata_stays_private_after_logout(stack, monkeypatch):
+    app, store = stack
+    anon_id = "private-origin-browser"
+    private = store.create(
+        query="private account research", b_id="b1", lang="zh", payload={},
+        model="m", creator_anon_id=anon_id,
+    )
+    store.record_followup(
+        report_id=private["id"], anon_id=anon_id, action_status="tried",
+        outcome="worked",
+    )
+    beta, code, state, _ = exchange_session(app)
+    origin = {"Origin": "http://beta.test"}
+    assert beta.post(
+        "/api/sso/exchange", headers=origin, json={"code": code, "state": state},
+    ).status_code == 200
+    assert beta.post(
+        "/api/reports/anon-proof", headers={**origin, "X-Anon-Id": anon_id},
+    ).status_code == 200
+    assert beta.post("/api/me/reports/claim", headers=origin).status_code == 200
+    owned = beta.get("/api/me/reports").json()["items"]
+    assert [row["id"] for row in owned] == [private["id"]]
+    assert owned[0]["followup_outcome"] == "worked"
+    # The shared fixture starts with Phase as its auth-link origin; this
+    # request exercises the canonical beta auth endpoint configuration.
+    monkeypatch.setenv("AUTH_LINK_BASE_URL", "http://beta.test")
+    assert beta.post("/api/auth/logout", headers=origin).status_code == 200
+    assert beta.get("/api/me/reports").status_code == 401
+    # A new anonymous report on the same browser must remain usable, while
+    # neither the old account query nor its experiment result may be listed.
+    local = store.create(
+        query="new anonymous research", b_id="b2", lang="zh", payload={},
+        model="m", creator_anon_id=anon_id,
+    )
+    response = beta.get("/api/reports/mine", headers={"X-Anon-Id": anon_id})
+    assert response.status_code == 200
+    assert [row["id"] for row in response.json()["items"]] == [local["id"]]
+    assert "private account research" not in response.text
+    assert response.json()["items"][0]["followup_outcome"] == ""
+    assert beta.get(
+        "/api/report/" + private["id"], headers={"X-Anon-Id": anon_id},
+    ).status_code == 404
+
+
 def test_claim_is_idempotent_and_never_transfers_existing_owner(stack):
     app, store = stack
-    store.create(
+    owned = store.create(
         query="owned", b_id="b1", lang="zh", payload={}, model="m",
         creator_anon_id="anon-current-browser",
     )
@@ -392,16 +436,17 @@ def test_claim_is_idempotent_and_never_transfers_existing_owner(stack):
     conflict = beta.post("/api/me/reports/claim", headers={"Origin": "http://beta.test"})
     assert conflict.status_code == 409
     assert conflict.json()["claimed"] == 0
-    assert store.get_by_id(store.list_by_anon("anon-current-browser")[0]["id"])["owner_user_id"] == "another-user"
+    assert store.get_by_id(owned["id"])["owner_user_id"] == "another-user"
 
 
 def test_concurrent_claim_has_one_owner_and_no_partial_transfer(stack):
     _, store = stack
+    created = []
     for idx in range(8):
-        store.create(
+        created.append(store.create(
             query=f"r{idx}", b_id="b", lang="zh", payload={}, model="m",
             creator_anon_id="anon-race",
-        )
+        ))
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
         results = list(pool.map(
             lambda owner: store.claim_by_anon("anon-race", owner),
@@ -409,7 +454,7 @@ def test_concurrent_claim_has_one_owner_and_no_partial_transfer(stack):
         ))
     owners = {
         store.get_by_id(row["id"])["owner_user_id"]
-        for row in store.list_by_anon("anon-race")
+        for row in created
     }
     assert len(owners) == 1
     assert sum(result["claimed"] for result in results) == 8
