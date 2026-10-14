@@ -90,16 +90,20 @@ jobs:
 
       - name: SSH deploy
         env:
-          SSH_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
-          HOST: ${{ secrets.VPS_HOST }}
-          USER: ${{ secrets.VPS_USER }}
+          SSH_KEY: ${{ secrets.STRUCTURAL_VPS_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.STRUCTURAL_VPS_KNOWN_HOSTS }}
+          HOST: ${{ secrets.STRUCTURAL_VPS_HOST }}
+          USER: ${{ secrets.STRUCTURAL_VPS_USER }}
           DEPLOY_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          [[ -n "$KNOWN_HOSTS" ]] || { echo "trusted SSH host keys are required" >&2; exit 1; }
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          ssh-keygen -F "$HOST" -f ~/.ssh/known_hosts >/dev/null
           # The forced dispatcher accepts only a full main-reachable SHA.
           ssh -i ~/.ssh/id_deploy \
               -o IdentitiesOnly=yes \
