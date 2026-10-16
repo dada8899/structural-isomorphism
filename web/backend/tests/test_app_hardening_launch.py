@@ -84,14 +84,28 @@ def test_docs_disabled_in_prod(prod_client):
     assert prod_client.get("/redoc").status_code == 404
 
 
-def test_unfinished_surfaces_fail_closed_in_prod(prod_client):
+def test_unfinished_surfaces_fail_closed_in_prod(prod_client, monkeypatch):
     auth = prod_client.post("/api/auth/request-link", json={"email": "a@example.com"})
     assert auth.status_code == 503
     assert auth.json()["error"] == "account_features_not_available"
 
+    from unittest.mock import AsyncMock
+    phase_route = next(route for route in prod_client.app.routes
+                       if getattr(route, "path", None) == "/phase/api/redteam"
+                       and "POST" in getattr(route, "methods", set()))
+    handler = AsyncMock(wraps=phase_route.dependant.call)
+    prepare = AsyncMock(side_effect=AssertionError("retired generation preparation"))
+    monkeypatch.setattr(phase_route.dependant, "call", handler)
+    monkeypatch.setattr(sys.modules["main"], "_phase_urlopen_json", prepare)
     legacy_api = prod_client.post("/phase/api/redteam", json={})
-    assert legacy_api.status_code == 410
-    assert legacy_api.json()["error"] == "legacy_phase_api_retired"
+    assert legacy_api.status_code == 503
+    assert legacy_api.headers["content-type"].startswith("application/problem+json")
+    assert legacy_api.json()["code"] == "FEATURE_UNAVAILABLE"
+    assert legacy_api.json()["retryable"] is False
+    assert legacy_api.json()["canonical"] == "/research"
+    assert "event: meta" not in legacy_api.text and "event: done" not in legacy_api.text
+    handler.assert_not_called()
+    prepare.assert_not_called()
 
     legacy_page = prod_client.get("/phase", follow_redirects=False)
     assert legacy_page.status_code == 308

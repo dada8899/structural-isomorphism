@@ -124,8 +124,6 @@ class LLMService:
     def __init__(self):
         self.api_key = ""  # Retired client never loads a real credential.
         self.model = os.getenv("LLM_MODEL", "openai/gpt-5.6-luna-pro")
-        if not self.api_key:
-            logger.info("legacy_paid.disabled")
 
     async def rewrite_query(self, query: str, lang: str = "zh") -> Optional[str]:
         """Backward-compat wrapper — just the rewritten string."""
