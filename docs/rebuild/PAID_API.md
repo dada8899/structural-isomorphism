@@ -17,3 +17,9 @@ preview幂等在owner gate+同库事务内记录；原key只回未消费且未�
 测试走真实路由/auth/同DB及原main挂载（只不启动无关model/index lifespan）；服务器测试装配offline resolver，不mock auth/业务返回，不新增测试env后门。覆盖默认关闭／假资金字段、严格bool、CSRF/重复JSON/限额、跨号/同邮箱新代际/失效凭据、并发确认、实际提交后丢ack故障再回读、TTL、撤权删除、原任务重放与白名单。所有预留/permit/cost/session计数保持0；测试client/log handler/sys.path按finally收尾。
 
 最终新API组40 passed／0 skipped（42.40秒）；此前38项API与旧权限／内部服务组合199 passed／0 skipped（103.09秒），后补“确认默认关闭／只读owner只能preview”两例已独立包含在最终40项。基线最小69项通过。当前300元Owner上限记录不是fresh balance/auth，仍无实际1P/资金/模型/厂商请求或收费。OpenAPI快照留后续集成Bootstrap统一生成，未在本卡越界更新。
+
+## 0acf3e5 原审两项 P2
+
+旧worker自动挑选仅限当下已启用且支持的c0-fixture／D1策略，所有选择条件均加策略范围；显式paid或未知策略在写入前明确FEATURE_UNAVAILABLE，不再误进旧fixture路径或堵Source，未增加paid worker。最终codec仅typed ProviderFailure('request_limit')在两个paid POST映射PAYLOAD_LIMIT/413，其余错误保持原语义，不把任意异常都称超限，不改16KiB。
+
+新增原测试外的真实对照覆盖C0开／关先paid再Source、连续自动两次及显式Source实际两GET、显式paid拒且queued不变；1000 Unicode摘要配三条各1000字符合法原span返回413且业务计数不变，两条200对照；其他codec失败不映射413。原审两脚本原样实跑2 passed，新增5项独立通过；原API/c0/D1完整124 passed／0 skipped（137.02秒），旧API全部方法/断言AST保持。无DDL、阈值、F、成本来源、实际发送或资金放行，资源按原finally收尾，停写交原审查者。

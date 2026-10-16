@@ -15,6 +15,7 @@ if __package__ == "web.backend.api":
     from . import auth
     from ..research.authorization import AccountIdentity
     from ..research.errors import ResearchError
+    from ..research.provider_schemas import ProviderFailure
     from ..research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery, PaidPreviewEnvelope, PaidConfirmationEnvelope
     from ..research import source_integration
     from ..research import ResearchService, ResearchStore
@@ -22,6 +23,7 @@ else:
     from api import auth
     from research.authorization import AccountIdentity
     from research.errors import ResearchError
+    from research.provider_schemas import ProviderFailure
     from research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery, PaidPreviewEnvelope, PaidConfirmationEnvelope
     from research import source_integration
     from research import ResearchService, ResearchStore
@@ -147,6 +149,10 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         return JSONResponse(result, headers=_HEADERS)
     except ResearchError as exc:
         return JSONResponse(exc.body(), status_code=exc.status, headers=_HEADERS)
+    except ProviderFailure as exc:
+        if operation not in ('paid-preview','paid-confirm') or str(exc)!='request_limit':raise
+        error=ResearchError('PAYLOAD_LIMIT',413,'最终外发请求超过16KiB上限。')
+        return JSONResponse(error.body(),status_code=error.status,headers=_HEADERS)
     except (sqlite3.Error, OSError):
         error = ResearchError("STORE_UNAVAILABLE", 503, "研究存储暂时不可用，请保留当前内容。")
         return JSONResponse(error.body(), status_code=error.status, headers=_HEADERS)

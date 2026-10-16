@@ -5,6 +5,8 @@ import importlib
 import json
 import logging
 import sys
+import hashlib
+from functools import partial
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -286,3 +288,74 @@ def test_read_only_owner_can_preview_but_cannot_confirm(paid_api):
     draft=make_preview(paid_api);before=counts(store)
     response=post(client,'/api/research/'+rid+'/paid-approvals',confirm_data(draft),'read-only')
     assert response.status_code==404 and counts(store)==before
+
+
+@pytest.mark.parametrize('fixture_enabled',[False,True])
+def test_old_worker_skips_paid_queue_and_explicit_paid_is_rejected(paid_api,monkeypatch,fixture_enabled):
+    from research import ResearchRunner
+    from research.errors import ResearchError
+    from research.source_policy import PinnedPublicTransport
+    from .source_http_fixture import source_server,get_local
+    from .test_research_d1_integration import start as start_source
+    client,_,store,rid,_,_=paid_api
+    monkeypatch.setenv('STRUCTURAL_C0_ENABLED','true' if fixture_enabled else 'false')
+    draft=make_preview(paid_api)
+    approved=post(client,'/api/research/'+rid+'/paid-approvals',confirm_data(draft),'queue-only')
+    assert approved.status_code==200,approved.text
+    paid_task=approved.json()['data']['task_id']
+    data=problem('separate legitimate source task');data['confirmed']=True
+    source_rid=post(client,'/api/research',{'problem':data}).json()['data']['research']['id']
+    source_task=start_source(client,source_rid)
+    with source_server() as (port,calls):
+        runner=ResearchRunner(store,source_transport=PinnedPublicTransport(_worker=partial(get_local,port)))
+        assert runner.run_once()=='COMPLETED'
+        assert runner.run_once()=='idle'
+        assert runner.run_once(source_task)=='COMPLETED' and calls==['/discovery','/article']
+        before=counts(store)
+        with pytest.raises(ResearchError) as error:runner.run_once(paid_task)
+        assert error.value.code=='FEATURE_UNAVAILABLE' and counts(store)==before
+    with store.transaction() as conn:
+        assert conn.execute('SELECT execution FROM research_tasks WHERE id=?',(paid_task,)).fetchone()[0]=='QUEUED'
+        assert conn.execute('SELECT count(*) FROM research_reservations').fetchone()[0]==0
+
+
+@pytest.mark.parametrize('number,expected',[(2,200),(3,413)])
+def test_unicode_complete_final_request_limit_is_413_with_zero_new_objects(paid_api,number,expected):
+    from research import ResearchRunner
+    from research.source_policy import PinnedPublicTransport
+    from .source_http_fixture import source_server,get_local,ARTICLE,TITLE
+    from .test_research_d1_integration import start as start_source
+    client,_,store,_,_,_=paid_api
+    data=problem('saved bounded original input');data.update(confirmed=True,summary='😀'*1000)
+    rid=post(client,'/api/research',{'problem':data}).json()['data']['research']['id']
+    tid=start_source(client,rid)
+    article=ARTICLE.replace(('Citation: '+TITLE).encode(),('Citation: Example A, Example B (2026) '+TITLE).encode())
+    article=article.replace(b'Waiting time depends on arrivals and service variability.',('😀'*1000).encode())
+    with source_server(article=article) as (port,calls):
+        assert ResearchRunner(store,source_transport=PinnedPublicTransport(_worker=partial(get_local,port))).run_once(tid)=='COMPLETED'
+        assert calls==['/discovery','/article']
+    with store.transaction(write=True) as conn:
+        row=dict(conn.execute("SELECT * FROM research_evidence_objects WHERE task_id=? AND kind='excerpts'",(tid,)).fetchone());refs=[row['id']]
+        for _ in range(number-1):
+            new={**row,'id':str(uuid4())};payload=json.loads(new['payload']);payload['id']=new['id']
+            new['payload']=json.dumps(payload,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False);new['payload_digest']=hashlib.sha256(new['payload'].encode()).hexdigest()
+            conn.execute('INSERT INTO research_evidence_objects ('+','.join(new)+') VALUES('+','.join('?' for _ in new)+')',tuple(new.values()));refs.append(new['id'])
+    request=preview_data(client,rid,refs[0]);request['excerpt_ids']=refs;before=counts(store)
+    response=post(client,'/api/research/'+rid+'/paid-previews',request,'unicode-'+str(number))
+    assert response.status_code==expected,response.text
+    if expected==413:
+        assert response.json()['error']['code']=='PAYLOAD_LIMIT' and counts(store)==before
+        assert '😀' not in response.text
+    else:assert counts(store)=={**before,'research_paid_approvals':before['research_paid_approvals']+1}
+
+
+def test_other_codec_failures_are_not_relabelled_payload_limit(paid_api,monkeypatch):
+    from research import preview_codec
+    from research.provider_schemas import ProviderFailure
+    client,_,store,rid,excerpt,_=paid_api;before=counts(store)
+    def fail(*args,**kwargs):raise ProviderFailure('invalid_input')
+    monkeypatch.setattr(preview_codec,'preview_request',fail)
+    with TestClient(client.app,raise_server_exceptions=False) as actual:
+        actual.cookies.update(client.cookies)
+        response=post(actual,'/api/research/'+rid+'/paid-previews',preview_data(client,rid,excerpt),'unrelated')
+    assert response.status_code==500 and counts(store)==before

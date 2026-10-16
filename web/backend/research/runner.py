@@ -139,22 +139,30 @@ class ResearchRunner:
 
     def run_once(self,task_id=None,*,max_steps=2):
         from .source_integration import enabled as sources_enabled
-        if not sources_enabled():require_enabled()
+        from .budget import enabled as c0_enabled
+        source_available=sources_enabled()
+        if not source_available:require_enabled()
+        supported=([POLICY] if c0_enabled() else [])+(['d1-source-only-v1'] if source_available else [])
         if type(max_steps) is not int or max_steps not in (1,2):raise ValueError("fixed plan only")
         if task_id is None:
             with self.store.transaction() as conn:
-                row=conn.execute("""SELECT t.id FROM research_tasks t WHERE t.execution IN ('QUEUED','RUNNING')
+                marks=','.join('?' for _ in supported)
+                row=conn.execute("""SELECT t.id FROM research_tasks t WHERE t.policy_revision IN ("""+marks+""") AND (t.execution IN ('QUEUED','RUNNING')
                     OR t.reconcile_requested=1 OR (t.execution='WAITING_EXTERNAL' AND EXISTS(
-                    SELECT 1 FROM research_steps s WHERE s.task_id=t.id AND s.state IN ('SENDING','AWAITING_RECEIPT')))
-                    ORDER BY t.created_at,t.id LIMIT 1""").fetchone()
+                    SELECT 1 FROM research_steps s WHERE s.task_id=t.id AND s.state IN ('SENDING','AWAITING_RECEIPT'))))
+                    ORDER BY t.created_at,t.id LIMIT 1""",supported).fetchone()
                 if not row:return "idle"
                 task_id=row["id"]
         from uuid import UUID
         if str(UUID(task_id,version=4))!=task_id:raise not_found()
+        if self.task(task_id)['policy_revision'] not in supported:
+            raise ResearchError('FEATURE_UNAVAILABLE',503,'此worker尚不支持该任务策略。')
         # Task lock may span response wait. Cancellation/deletion only take
         # owner lock, so they never wait for this task lock or network finish.
         with self.gate.owner_gate_id(task_id) as task_lease:
             task=self.task(task_id)
+            if task['policy_revision'] not in supported:
+                raise ResearchError('FEATURE_UNAVAILABLE',503,'此worker尚不支持该任务策略。')
             if task["policy_revision"]=="d1-source-only-v1":
                 from .source_workflow import run_source_once
                 return run_source_once(self.store,task_id,task_lease,self.source_transport)
