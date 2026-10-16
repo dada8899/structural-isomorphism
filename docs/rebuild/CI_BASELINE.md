@@ -190,6 +190,36 @@ checkout 仅增加 fetch-depth 2，原性能 audit 仅增加 `beta_perf_gate` id
 
 这不是 collector＋hook 当前组合或真实 Linux 采证验收。PMO 须先合受审 collector、提交当前 hook 并回收来源／接线独审，再单次发布唯一 marker；不能先改变 54 项输入、合入 B1／PR247 或重发 marker“采到绿”。旧真实性能失败继续保留，诊断分数、成功退出或 artifact 不能替代原无 Profiler gate。
 
+## Marker 发布前的干净依赖环境返修
+
+日期：2026-10-17。源基线 `41ea13d57b585e9a4b1fdaeaddba939229dae9e3`。当前局部 marker 尚未推送，远端发布仍由 PMO 控制。独审发现 P1：原 workflow 函数新增 `import yaml`，而 beta-perf job 仅直接安装 pytest／Playwright／Pydantic，依赖旧复核环境中预先存在的 PyYAML 才显得通过；干净 job 会在原评分前失败。
+
+本次仅在该安装命令明确增加 `PyYAML==6.0.3`，原 grade／collector／测量／预算／诊断限额与调度条件均不动。精确依赖合同冻结四个直接包及浏览器安装命令，增加删除 PyYAML 的拒绝反例；复原后的 job 摘要只随这项安装依赖修正为 `1ff605671ee6159516eb8f0ca7b1860c415fd1b9dff887c935f832b491ba4348`，原 gate 命令仍逐字相同。collector 的 54 项 source pin 实际全部匹配。
+
+验证从同一受支持 CPython 基解释器创建全新 venv，未继承此前45包环境的 site-packages。初始 pytest／playwright／pydantic／yaml 均不存在，`import yaml` 退出1；之后从实际 workflow 提取 pip 命令，在该新环境正常解析安装全部四项 Python 直接依赖，无额外测试包补丁。实际 Python 为3.11.15，macOS 15.3.1 arm64；yaml6.0.3从该新prefix导入，`pip check` 为No broken requirements found。完整已安装清单如下，含venv自带pip/setuptools：
+
+```text
+annotated-types==0.8.0
+greenlet==3.5.6
+iniconfig==2.3.1
+packaging==26.3
+pip==24.0
+playwright==1.59.0
+pluggy==1.7.0
+pydantic==2.7.4
+pydantic_core==2.18.4
+pyee==13.0.1
+Pygments==2.21.0
+pytest==9.0.3
+PyYAML==6.0.3
+setuptools==79.0.1
+typing_extensions==4.16.0
+```
+
+包清单以本轮私有 `verified.json` 原始 metadata 为准；同时保存initial、pip安装日志和两组测试日志，权限600。原 deterministic unit contracts 的实际 argv 在新环境 **42 passed**；新增接线合同 **66 passed**，无skip，一条既有Pydantic namespace warning。actionlint v1.7.12、Shell／Python／差异检查通过。未执行Chromium安装、真实浏览器、HTTP研究、collector或trace；Python依赖闭合不代表Linux浏览器/采证已验收。
+
+本轮不创建其他会话，不提交、推送、amend／rebase／force或触发CI。旧局部空marker保留历史，PMO须先提交本修复并回收当前SHA独审，再以最终marker作首次唯一远端发布；不能用旧45包环境或局部空marker放行真实采证。新临时venv由Bootstrap保留供本修复复核，结束后负责清理；没有运行中的服务或采证资源。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。

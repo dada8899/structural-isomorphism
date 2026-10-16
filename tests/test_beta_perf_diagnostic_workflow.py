@@ -28,7 +28,8 @@ ORIGINAL_GRADE_COMMAND = (
     "python scripts/beta_perf_audit.py --base http://127.0.0.1:4173 "
     "--runs 3 --budget perf-budget.json --out /tmp/beta-perf-audit.json"
 )
-ORIGINAL_JOB_DIGEST = "9859b40bfa87aa0b9c08cb730e4364ee3c2f9a967faa62bdea06cb218dcff714"
+# Original job plus the approved explicit PyYAML dependency (no gate change).
+ORIGINAL_JOB_DIGEST = "1ff605671ee6159516eb8f0ca7b1860c415fd1b9dff887c935f832b491ba4348"
 PREDICATES = [
     "always()", "!cancelled()", f"github.repository == '{REPO}'",
     "github.event_name == 'pull_request'", "github.event.action == 'synchronize'",
@@ -68,6 +69,10 @@ def assert_hook(value):
     assert names.index(CLEANUP) < names.index(ORIGINAL_UPLOAD) < names.index(UPLOAD)
     assert all("continue-on-error" not in step for step in steps)
     assert steps[0] == {"uses": "actions/checkout@v4", "with": {"fetch-depth": 2}}
+    assert selected["Install locked browser runtime"]["run"] == (
+        "python -m pip install pytest==9.0.3 playwright==1.59.0 pydantic==2.7.4 PyYAML==6.0.3\n"
+        "python -m playwright install --with-deps chromium\n"
+    )
     grade = selected[GRADE]
     assert grade == {"name": GRADE, "id": "beta_perf_gate", "run": ORIGINAL_GRADE_COMMAND}
     diagnostic = selected[DIAGNOSTIC]
@@ -202,7 +207,7 @@ def test_deleting_or_widening_any_admission_condition_is_rejected(step_name, ind
         assert_hook(value)
 
 
-@pytest.mark.parametrize("mutation", ["soft-grade", "grade-command", "timeout", "artifact-path", "no-cleanup"])
+@pytest.mark.parametrize("mutation", ["soft-grade", "grade-command", "timeout", "artifact-path", "missing-yaml", "no-cleanup"])
 def test_grade_timeout_artifact_and_cleanup_cannot_be_softened(mutation):
     value = load_workflow()
     selected = steps_by_name(value)
@@ -214,6 +219,8 @@ def test_grade_timeout_artifact_and_cleanup_cannot_be_softened(mutation):
         selected[DIAGNOSTIC]["timeout-minutes"] = 10
     elif mutation == "artifact-path":
         selected[UPLOAD]["with"]["path"] = "$RUNNER_TEMP/structure-perf-linux-r2"
+    elif mutation == "missing-yaml":
+        selected["Install locked browser runtime"]["run"] = selected["Install locked browser runtime"]["run"].replace(" PyYAML==6.0.3", "")
     else:
         value["jobs"]["beta-perf-audit"]["steps"].remove(selected[CLEANUP])
     with pytest.raises((AssertionError, ValueError)):

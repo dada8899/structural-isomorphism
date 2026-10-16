@@ -1007,6 +1007,7 @@ def test_workflow_gates_all_primary_beta_surfaces_with_three_runs() -> None:
     beta = (ROOT / "scripts/beta_perf_audit.py").read_text(encoding="utf-8")
     assert "playwright==1.59.0" in workflow
     assert "pydantic==2.7.4" in workflow
+    assert "PyYAML==6.0.3" in workflow
     assert "--runs 3" in workflow
     assert "--budget perf-budget.json" in workflow
     assert "if: always()" in workflow
