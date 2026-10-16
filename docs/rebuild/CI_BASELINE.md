@@ -343,6 +343,19 @@ coverage原矩阵没有收集root研究合同，六个公式／provider生产文
 实际覆盖使用已披露的既有异依赖Python3.11完整环境，同八root文件通过并合并其parallel数据；这是**root-only分组采样**，不拼旧head完整数据、不复用旧85.6%声称组合达标。financial_schemas／policy／evaluator／result_adapter／usage_upper分别96.4／93.4／99.0／90.8／96.7%。此子集面对全source分母仅19.8%，默认80检查退出2，原样保留；初次仅诊断JSON渲染不作为门槛结论，未修改CI或配置阈值。未执行完整旧矩阵或声称normal Linux已全绿，后续仍须组合整体验证及正常CI。
 
 29个guard观测PID均无running，guard事件仅29次bootstrap、无deny；本任务synthetic DB／tmp／cache目录已移除，保留受限日志／XML／coverage／guard证据供审查。原受控root与backend复验不等于真实模型、资金或VPS验收。作者仅四路径停写交PMO新SHA／原Astra复审，无新官方／账户／模型请求、依赖安装、SSH、费用、提交或推送。
+## Nightly 显式移除密钥驱动的远端模型测试入口
+
+日期：2026-10-17，分支 `codex/structure-nightly-admission-20261017`，基线 `bd0a7b1c0e7e15e483e4bf45790dfd1a0800e3e4`。独立research-ci工作区及其正常CI不动。原Nightly按OPENROUTER密钥是否存在选择目录级e2e扫描，key分支允许requires_llm；无key分支也不是免费证明，旧目录内有未标requires_llm的远端method/apply、stress和Ask提交，另有收集期远端可达性探测。
+
+仅移除该step的vendor secret注入与has-key双分支，换成准确命名的 `Run reviewed local browser contracts`，固定执行 `make PY=python test-browser-contracts`。现Make六个独立进程、十五个明确本地受控测试文件及其原过滤规则闭合，不扫描旧远端目录，不改Make或另造manifest／SDK平台。旧远端／未分类用例未删除，但不再由此自动入口调度；本卡不宣称仍保全原全部live e2e。backend／soc免费套、全部安装／Next／axe准备、期限、summary与load-smoke均保持；没有运行live GET、k6或issue/comment步骤。
+
+严格合同固定唯一Make命令和无step env／分支／跳过，vendor注入、目录扫描、吞错、增付费step或删免费套等十类实际YAML变体均拒绝；移除唯一获准执行step后，整份原workflow语义摘要相等，其他触发器／权限／jobs／steps未改。原Nightly测试只同步step-name位置，其余原Python函数AST保持。真实 `make -n` 验证六组解析到现有明确文件、无目录级扫描，只展开命令，不执行测试或网络。
+
+既有发布匹配Python3.11环境的public-controls、integration-CI和shell/heredoc完整合同 **237 passed、退出0（3.35秒）**；actionlint、AST、YAML对照与差异检查通过。未安装依赖、读秘密值、操作GitHub配置、启用／dispatch／rerun Nightly、发送issue评论或调用模型。workflow `277089927` 继续按既有 `disabled_manually` 登记封存，本轮未联网冒作状态已读回，也不以无key作为代码准入证据。
+
+**恢复门槛**：本PR或主线CI绿色不构成恢复授权；必须核最终真实执行制品、旧SDK24能力边界及费用整体验收，负责人再明确恢复并读回实际平台状态。不能通过merge、自动化或本卡代码更新自动enable，不能把所有密钥路径已移除的文字声明当全项目费用隔离已验。当前仅源码缓解已登记Nightly缺口，其余旧SDK／制品／资金继续各原owner。
+
+本卡仅nightly workflow、public-controls合同及本记录三路径；其他Source／CONTRACT／应用／费用／runtime不动。作者停写交PMO精确SHA及原Astra独审，未提交或推送；外部Nightly仍未运行，源码通过不等于恢复完成。
 
 ## 回收与下一步
 

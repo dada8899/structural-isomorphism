@@ -994,7 +994,7 @@ def test_nightly_e2e_reconstructs_the_full_browser_runtime() -> None:
     }
     assert positions["Install"] < positions["Install Phase browser runtime"]
     assert positions["Require the installed Next and axe runtimes"] < positions[
-        "Run e2e (all markers except requires_llm w/o key)"
+        "Run reviewed local browser contracts"
     ]
 
 
@@ -2311,3 +2311,60 @@ def test_phase_logout_and_bulk_favorite_failures_are_not_false_successes() -> No
     assert "已保留在列表中" in favorites
     assert "已同步到邮箱账户，可在其他设备登录后查看" in favorites
     assert "当前未登录，收藏仅保存在本设备；登录后会自动合并" in favorites
+
+
+def _assert_nightly_has_only_reviewed_local_browser_admission(value):
+    # JSON roundtrip makes YAML's legacy boolean `on` key deterministic.
+    body = json.loads(json.dumps(value))
+    job = body['jobs']['e2e-full']
+    run = _named_ci_step(job, 'Run reviewed local browser contracts')
+    assert set(run) == {'name', 'run'}
+    assert _shell_tokens(run) == ['make', 'PY=python', 'test-browser-contracts']
+    for key in ('OPENROUTER_API_KEY', 'OPENAI_API_KEY', 'DEEPSEEK_API_KEY', 'ANTHROPIC_API_KEY'):
+        assert not _mapping_contains_key(body, key)
+    job['steps'].remove(run)
+    # The one approved execution step is removed; every other job, runtime,
+    # trigger, dependency, deadline, load smoke and summary remains frozen.
+    assert hashlib.sha256(json.dumps(body, sort_keys=True, separators=(',', ':')).encode()).hexdigest() == 'ff7383650faf04a91c26ec48074d84841629b4e60b649b17232b949469882e59'
+
+
+def test_nightly_removes_vendor_key_branch_in_favor_of_reviewed_local_contracts():
+    _assert_nightly_has_only_reviewed_local_browser_admission(_workflow_data(ROOT / '.github/workflows/nightly.yml'))
+    _assert_make_release_closure((ROOT / 'Makefile').read_text())
+
+
+@pytest.mark.parametrize('mutation', ['vendor_step', 'vendor_job', 'has_key', 'scan_root',
+    'scan_web', 'ignore_failure', 'skip_step', 'extra_paid_step', 'backend_changed', 'timeout'])
+def test_nightly_rejects_reintroduced_paid_admission_or_removed_free_checks(mutation):
+    value = _workflow_data(ROOT / '.github/workflows/nightly.yml')
+    job = value['jobs']['e2e-full']
+    step = _named_ci_step(job, 'Run reviewed local browser contracts')
+    if mutation == 'vendor_step':step['env'] = {'OPENROUTER_API_KEY': '${{ secrets.OPENROUTER_API_KEY }}'}
+    elif mutation == 'vendor_job':job['env'] = {'DEEPSEEK_API_KEY': '${{ secrets.DEEPSEEK_API_KEY }}'}
+    elif mutation == 'has_key':step['run'] = 'if [ -n "$OPENROUTER_API_KEY" ]; then pytest tests/e2e; fi'
+    elif mutation == 'scan_root':step['run'] = 'pytest tests/e2e -v -m "e2e and not requires_llm"'
+    elif mutation == 'scan_web':step['run'] = 'pytest web/tests/e2e -v -m "not requires_llm"'
+    elif mutation == 'ignore_failure':step['run'] += ' || true'
+    elif mutation == 'skip_step':step['if'] = 'false'
+    elif mutation == 'extra_paid_step':job['steps'].append({'name':'unregistered model path','run':'pytest web/tests/e2e/test_method_search.py'})
+    elif mutation == 'backend_changed':value['jobs']['backend-full']['steps'][-1]['run'] = 'true'
+    else:job['timeout-minutes'] = 60
+    with pytest.raises(AssertionError):_assert_nightly_has_only_reviewed_local_browser_admission(value)
+
+
+def test_nightly_make_command_resolves_only_existing_reviewed_browser_files():
+    result = subprocess.run(
+        ['make', '-n', 'PY=python', 'test-browser-contracts'], cwd=ROOT,
+        env={'PATH': os.defpath}, capture_output=True, text=True, timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    commands = [line for line in result.stdout.splitlines() if line.strip()]
+    assert len(commands) == 6
+    actual = BROWSER_PATH_PATTERN.findall(result.stdout)
+    makefile = (ROOT / 'Makefile').read_text()
+    expected = [path for _, variable in BROWSER_MAKE_SHARDS for path in _make_path_list(makefile, variable)]
+    expected += _make_path_list(makefile, 'PHASE_REAL_BROWSER_CONTRACT_TESTS')
+    assert actual == expected and len(actual) == len(set(actual))
+    assert all(Path(ROOT / path).is_file() for path in actual)
+    assert all(token not in {'tests/e2e', 'web/tests/e2e'}
+               for command in commands for token in shlex.split(command))
