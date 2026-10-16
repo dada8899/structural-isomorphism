@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 
 import pytest
@@ -356,9 +357,15 @@ def assert_linux_runtime_smoke_contract(value):
         assert "requirements/runtime-*.lock" in paths
     assert "schedule" in events and "workflow_dispatch" in events
     job = value["jobs"]["import-smoke"]
+    assert_job_env_contexts(value)
     assert job["runs-on"] == "ubuntu-latest"
     assert "if" not in job and "continue-on-error" not in job
     steps = runtime_steps(value)
+    initializer = steps[0]
+    assert initializer.get("name") == "Initialize isolated runtime paths"
+    assert "env" not in job
+    assert "if" not in initializer and "continue-on-error" not in initializer
+    assert '"$RUNNER_TEMP" >> "$GITHUB_ENV"' in initializer["run"]
     names = [step.get("name", "") for step in steps]
     required_order = [
         "Install pinned uv tool",
@@ -514,3 +521,90 @@ def test_actual_checkout_binding_script_rejects_foreign_source_and_sha(tmp_path,
         assert "source resolves outside the checkout" in result.stderr
     elif wrong_sha:
         assert "checkout SHA mismatch" in result.stderr
+
+
+def assert_job_env_contexts(value):
+    # GitHub's Context availability table restricts jobs.<job_id>.env to
+    # these roots; runner/env/job/steps are available at other keys only.
+    # This is a narrow context check, not a full Actions expression parser.
+    allowed = {"github", "needs", "strategy", "matrix", "vars", "secrets", "inputs"}
+    functions = {"contains", "startswith", "endswith", "format", "join", "tojson", "fromjson"}
+    for job in value["jobs"].values():
+        for item in job.get("env", {}).values():
+            if not isinstance(item, str):
+                continue
+            for expression in re.findall(r"\$\{\{(.*?)\}\}", item, re.S):
+                # Quoted literals such as 'runner.temp' aren't context uses.
+                expression = re.sub(r"'(?:[^']|'')*'", "''", expression)
+                for token in re.finditer(r"(?<![.\w])([A-Za-z_][A-Za-z0-9_]*)(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_-]*|\s*\[\s*\])*", expression):
+                    name = token[1].lower()
+                    if name in {"true", "false", "null"}:
+                        continue
+                    if expression[token.end():].lstrip().startswith("("):
+                        assert name in functions, f"disallowed job-env function: {name}"
+                    else:
+                        assert name in allowed, f"disallowed job-env context: {name}"
+
+
+@pytest.mark.parametrize("expression", [
+    "${{ github.sha }}", "${{ needs.prepare.outputs.path }}", "${{ strategy.job-index }}",
+    "${{ matrix.python }}", "${{ vars.RUNTIME_PATH }}", "${{ secrets.DEPLOY_KEY }}",
+    "${{ inputs.path }}", "${{ format('runner.temp {0}', github.ref) }}",
+])
+def test_job_env_allowed_contexts_and_quoted_runner_literals(expression):
+    assert_job_env_contexts({"jobs": {"probe": {"env": {"VALUE": expression}}}})
+
+
+@pytest.mark.parametrize("expression", [
+    "${{ runner.temp }}", "${{ runner['temp'] }}", "${{ toJSON(runner) }}",
+    "${{ env.RUNTIME_ENV }}", "${{ job.status }}", "${{ steps.prepare.outputs.path }}",
+    "${{ hashFiles('requirements/*.lock') }}",
+])
+def test_job_env_runner_and_other_unavailable_contexts_are_rejected(expression):
+    with pytest.raises(AssertionError):
+        assert_job_env_contexts({"jobs": {"probe": {"env": {"VALUE": expression}}}})
+
+
+def test_original_job_env_runner_annotation_is_detected():
+    value = copy.deepcopy(workflow("runtime-smoke.yml"))
+    value["jobs"]["import-smoke"]["env"] = {
+        "RUNTIME_ENV": "${{ runner.temp }}/structural-runtime-smoke",
+        "RUNTIME_PYTHON": "${{ runner.temp }}/structural-runtime-smoke/bin/python",
+    }
+    with pytest.raises(AssertionError, match="disallowed job-env context: runner"):
+        assert_job_env_contexts(value)
+
+
+def test_runtime_path_step_exports_exact_paths_and_cleanup_is_scoped(tmp_path):
+    runner_temp = tmp_path / "runner temp"
+    runner_temp.mkdir()
+    env_file = tmp_path / "github-env"
+    steps = runtime_steps()
+    initial = steps[0]["run"]
+    env = {"PATH": os.environ["PATH"], "RUNNER_TEMP": str(runner_temp), "GITHUB_ENV": str(env_file)}
+    result = subprocess.run(["/bin/bash", "-c", initial], env=env,
+                            capture_output=True, text=True, timeout=5)
+    assert result.returncode == 0, result.stderr
+    exported = dict(line.split("=", 1) for line in env_file.read_text().splitlines())
+    runtime = runner_temp / "structural-runtime-smoke"
+    assert exported == {"RUNTIME_ENV": str(runtime), "RUNTIME_PYTHON": str(runtime / "bin/python")}
+    assert not runtime.exists(), "initialization must not install or start the runtime"
+    cleanup = next(step["run"] for step in steps if step.get("name") == "Remove this job's isolated runtime")
+    checker = runner_temp / "structural-runtime-lock-check.py"
+    checker.write_text("owned fixture")
+    unowned = tmp_path / "unowned"
+    unowned.mkdir()
+    marker = unowned / "keep"
+    marker.write_text("must remain")
+    refused = subprocess.run(["/bin/bash", "-c", cleanup],
+                             env={**env, "RUNTIME_ENV": str(unowned)},
+                             capture_output=True, text=True, timeout=5)
+    assert refused.returncode != 0
+    assert marker.is_file() and checker.is_file()
+    runtime.mkdir()
+    (runtime / "owned").write_text("fixture")
+    removed = subprocess.run(["/bin/bash", "-c", cleanup], env={**env, **exported},
+                             capture_output=True, text=True, timeout=5)
+    assert removed.returncode == 0, removed.stderr
+    assert not runtime.exists() and not checker.exists()
+    assert marker.read_text() == "must remain"

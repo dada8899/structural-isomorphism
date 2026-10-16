@@ -133,6 +133,18 @@ main／集成／Bootstrap 的原精确触发、schedule 和 dispatch 均保留�
 
 新增真实 helper 合同覆盖当前真实 requirements 成功、历史 pin、四项单独漂移、重复／缺失 pin 拒绝，以及历史显式 override 合法且不改变默认。11 项定点合同通过；完整 `test_deploy_versioned_runtime.py` **143 passed，66.82 秒，退出 0**，未跳过或调整阈值。执行器设置 300 秒进程组上限，未触发超时；测试创建的 runtime 模板在结束后清理。`bash -n`、差异空白检查通过；AST 对照确认已有测试体仅两项历史场景作显式路径验证调整，其余原测试体不变。未触任何真实部署、服务、迁移、生产数据或外部付费调用；本轮返修不提交或推送，需新 SHA 的受影响 Astra 复审和必要 CI。
 
+## GitHub job-env context 解析阶段返修
+
+候选 `a98fee6a3aa4ad0811de9113b01a79e32274f81f` 的 [runtime-smoke run 38921464534](https://github.com/dada8899/structural-isomorphism/actions/runs/38921464534) 在 workflow 解析阶段失败，**0 jobs**；它没有执行 Linux 安装。第 53／54 行在 job-level env 使用 `runner.temp`，而 [GitHub context availability](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability) 规定该位置仅允许 github、needs、strategy、matrix、vars、secrets、inputs，runner 要到 step 等允许的位置使用。
+
+本次只移除这两个 job-level 表达式，增加首个路径初始化 step，以已存在的 `RUNNER_TEMP` 写入 `GITHUB_ENV`，后续步骤继续使用原 RUNTIME_ENV／RUNTIME_PYTHON。逐字对照证明 workflow 其余部分完全相同：独立环境、CPU／哈希同步、73 包校验、导入／模型实际检查及原 always 清理均保持，不改锁、测量、其他 CI 或安装策略。
+
+PyYAML 与 Bash 语法不能判断 GitHub context 可用位置，因此新增可移植的窄 job-env context 合同：允许表及带引号文字的合法对照，runner 点／括号／裸对象与其他不可用 contexts／函数的拒绝，原失败配置的回放。测试还实际执行路径初始化和清理：包含空格的 runner 临时目录能导出精确路径，初始化不安装或启动 runtime；非法清理目标被拒绝且未删除，合法目标只清理本 job 资源。
+
+另使用任务私有的 actionlint v1.7.12，`-shellcheck= -pyflakes=` 检查该单一 workflow：对原 a98 源实际复现两个 context 错误并退出 1，对修复后文件退出 0。没有新增 CI job 或工具依赖，也没有以本地窄正则冒充完整 Actions 语义验证。新 B0 合同 **106 passed**；与原 public-controls 同进程回归 **209 passed**。原 shell／嵌入 Python 及源绑定／锁图／清理反例保留。
+
+此结果修复的是解析前置，不是 Linux 安装通过。作者未 dispatch、push、重跑旧 run、调用生产或付费服务；PMO 需提交新 SHA、回收受影响 Astra 复审，再由新的真实 Actions 验证有 job 执行及其实际 Linux 结果。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。

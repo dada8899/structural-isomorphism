@@ -49,10 +49,14 @@ jobs:
     name: Import + model-load smoke (Linux, py3.11)
     runs-on: ubuntu-latest
     timeout-minutes: 12
-    env:
-      RUNTIME_ENV: ${{ runner.temp }}/structural-runtime-smoke
-      RUNTIME_PYTHON: ${{ runner.temp }}/structural-runtime-smoke/bin/python
     steps:
+      - name: Initialize isolated runtime paths
+        run: |
+          set -euo pipefail
+          : "${RUNNER_TEMP:?}" "${GITHUB_ENV:?}"
+          printf 'RUNTIME_ENV=%s/structural-runtime-smoke\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'RUNTIME_PYTHON=%s/structural-runtime-smoke/bin/python\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
