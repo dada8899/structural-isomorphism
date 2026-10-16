@@ -59,16 +59,13 @@ def sidebar_origin():
 
 
 @pytest.fixture(scope="module")
-def sidebar_browser():
-    from playwright.sync_api import sync_playwright
-
-    with sync_playwright() as runtime:
-        browser = runtime.chromium.launch()
-        try:
-            assert browser.version.split(".")[0] == "147"
-            yield browser
-        finally:
-            browser.close()
+def sidebar_browser(playwright):
+    browser = playwright.chromium.launch()
+    try:
+        assert browser.version.split(".")[0] == "147"
+        yield browser
+    finally:
+        browser.close()
 
 
 @pytest.fixture
