@@ -188,9 +188,9 @@ def test_generator_enforces_release_target_fastapi_and_pydantic_pins(monkeypatch
 
     locked = module._locked_schema_runtime_versions()
     assert locked == {
-        "fastapi": "0.115.14",
-        "pydantic": "2.6.1",
-        "starlette": "0.46.2",
+        "fastapi": "0.135.0",
+        "pydantic": "2.7.4",
+        "starlette": "1.3.1",
     }
 
     monkeypatch.setattr(
@@ -204,17 +204,17 @@ def test_generator_enforces_release_target_fastapi_and_pydantic_pins(monkeypatch
 
 def test_release_target_schema_dependencies_remain_exactly_pinned():
     requirements = BACKEND_REQUIREMENTS.read_text(encoding="utf-8")
-    assert "fastapi==0.115.14" in requirements
-    assert "pydantic==2.6.1" in requirements
-    assert "starlette==0.46.2" in requirements
+    assert "fastapi==0.135.0" in requirements
+    assert "pydantic==2.7.4" in requirements
+    assert "starlette==1.3.1" in requirements
 
 
 def test_browser_contract_jobs_use_the_release_target_runtime_pins():
     workflow = yaml.safe_load(CI_WORKFLOW.read_text(encoding="utf-8"))
     required = (
-        "fastapi==0.115.14",
-        "pydantic==2.6.1",
-        "starlette==0.46.2",
+        "fastapi==0.135.0",
+        "pydantic==2.7.4",
+        "starlette==1.3.1",
         "uvicorn[standard]==0.27.1",
     )
     for job_name in ("browser-product-contract", "browser-beta-surface-contract"):

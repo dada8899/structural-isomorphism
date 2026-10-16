@@ -1,71 +1,24 @@
-# SESSION-22 §1 — bumped from 0.110.0 to 0.115.14 as second-layer defense
-# against the slowapi PEP 563 __globals__ crash root-fixed in SESSION-21 §2.
-# 0.115.x is the last stable line with the same minor API surface as 0.110;
-# 0.116+ introduces new behaviors not yet vetted here. The rate_limit.py
-# _ChainedGlobals shim is the primary fix; this bump is belt-and-suspenders.
-fastapi==0.115.14
-# Release-target pin: FastAPI's compatible Starlette range is broad enough to
-# change validation/OpenAPI behavior across installs. Keep the target exact;
-# deployment attestation must prove the active service moved to this lock.
-starlette==0.46.2
+# Compatible security candidate. FastAPI 0.115.x cannot support the patched
+# Starlette form parser; never install this combination with --no-deps.
+fastapi==0.135.0
+starlette==1.3.1
+pydantic==2.7.4
 uvicorn[standard]==0.27.1
-pydantic==2.6.1
-python-dotenv==1.0.1
-# Shared release environment: guarded-llm and cross-judge both require
-# httpx>=0.27. Keep one exact backend pin so combined CI/runtime resolution
-# cannot silently downgrade the in-tree packages to an unsupported client.
+python-dotenv==1.2.2
 httpx==0.27.2
 numpy==1.26.3
-# sentence-transformers 5.x — KB embedding model on disk is in v5.5.0 format
-# (saved by retrain pipeline). Pinning 2.5.0 here was a stale drift that broke
-# prod restart 2026-05-20 when a forced `pip install -r requirements.txt`
-# downgraded ST to 2.5.0 and the model loader threw "version 5.5.0 → 2.5.0"
-# incompatibility. Allow 5.4+ but cap below 6 to preserve the load contract.
-sentence-transformers>=5.4.0,<6
-# torch>=2.2 matches ST 5.x peer-dep range.
-torch>=2.2.0,<3
-# W14-D (session #10): structured JSON logging + correlation IDs.
+
+# Preserve the already observed local model-loading family; these pins do not
+# prove a future Linux runtime or a model bundle has been loaded successfully.
+sentence-transformers==5.7.0
+torch==2.14.1
+
 structlog==25.5.0
-# W15-E (session #10): feature flags YAML config.
-PyYAML>=6.0,<7.0
-# W15-B (session #10): JWT session tokens for magic-link auth scaffold.
-pyjwt==2.12.1
-# W7-D mini-brief 2 (2026-05-24): Stripe SDK for real test-mode checkout.
-# Optional — billing.py auto-falls-back to mock mode if `stripe` is absent
-# OR if STRIPE_TEST_SECRET_KEY is unset. Pin to a stable line; 7.x is the
-# active major as of 2026-05.
-stripe>=7.0.0,<9
-# X2 W1 (2026-05-24) — hybrid BM25 retrieval requires Chinese segmentation.
-# Previously jieba/rank_bm25 were imported lazily inside services/search_service.py
-# without being declared here, which let BM25 silently degrade to char-level
-# tokenization in prod (X2 root-cause: dogfood q2 "团队相变恢复" → "形状记忆合金
-# 相变恢复" score=1.0 via 4-char字面 hack). main.py lifespan now fails fast at
-# startup if either is missing instead of silently degrading.
-jieba>=0.42.1
-rank_bm25>=0.2.2
-# X2 W3 (2026-05-24) — language detection for EN→ZH translate-before-embed.
-# Used in services/search_service.py:_detect_lang(). Lightweight pure-Python
-# port of Google's compact language detector. Optional fallback to ASCII-ratio
-# heuristic when import fails (search_service handles ImportError gracefully).
-langdetect>=1.0.9
-# SESSION-28 (2026-05-29): restore slowapi pin that the SESSION-15-INCIDENT-#2
-# fix attempted to land in orphan commit 7d34d3f (5/15) but never merged into
-# main. errors.py:44 + middleware/rate_limit.py + services/rate_limit.py +
-# tests/test_ask_endpoint.py all import slowapi.errors / slowapi.Limiter —
-# without this pin every fresh CI venv + every prod restart crashes at import
-# time. PEP 563 __globals__ regression mitigated by the _ChainedGlobals shim
-# in middleware/rate_limit.py (SESSION-21 §2 root fix) + fastapi 0.115.14
-# belt-and-suspenders (SESSION-22 §1, see top of file). 0.1.9 is the latest
-# PyPI release as of 2026-05-29; cap below 0.2 because the maintainer has
-# signalled an API rework in the 0.2 line and we don't want a silent break.
-slowapi>=0.1.9,<0.2
-# SESSION-28 N6 (2026-05-29): python-multipart is REQUIRED by FastAPI whenever
-# a route declares `Form(...)` parameters. v4/product/d1_phase_detector/api/
-# main.py:316-319 has 4 such Form fields on the email-signup endpoint, but the
-# package was never declared here — main.py at import time raises
-# RuntimeError('Form data requires "python-multipart" to be installed') at
-# route-registration, which broke 9 test_universality_endpoints tests (this
-# was hidden behind the slowapi collection error until SESSION-28 restored
-# slowapi). Floor at 0.0.20 because earlier versions had CVE-2024-24762; cap
-# below 0.1 because the maintainer flagged a future API break above 0.1.
-python-multipart>=0.0.20,<0.1
+PyYAML==6.0.3
+PyJWT==2.15.1
+stripe==8.11.0
+jieba==0.42.1
+rank_bm25==0.2.2
+langdetect==1.0.9
+slowapi==0.1.9
+python-multipart==0.0.32
