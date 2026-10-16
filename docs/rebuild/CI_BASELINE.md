@@ -74,6 +74,55 @@ PMO 分别批准仅修改这两个函数的精确预期：PR base 为 main 与�
 
 browser context、Chromium、临时 API／Next 服务均沿 fixture 的 finally 收尾；完成后未见与本工作树对应的遗留测试服务进程。未访问生产或发起付费调用。返修仍由 PMO 提交新 SHA、安排 Astra 受影响复审并核真实 Actions，不把旧 `31f8680` 的失败或旧独审结论冒充新候选结果。
 
+## Runtime 版本桥接候选
+
+源基线 `044e08c612dc69aa7d3b78887d4a303446be4cef`。runtime owner 的独立候选正在安全审阅，本树没有复制其 WIP、backend requirements、OpenAPI／TypeScript 生成物或业务源码；本节只形成待组合的 CI 版本桥接，不提交、不推送或合并。
+
+| 项目 | 目标版本 | 本次桥接位置 |
+| --- | --- | --- |
+| FastAPI | 0.135.0 | CI 两个 browser 安装步骤、nightly browser 安装、Beta workflow 的 expected_versions |
+| Pydantic | 2.7.4 | 上述位置及 beta-perf 安装 |
+| Starlette | 1.3.1 | CI／nightly browser 安装、Beta workflow 的 expected_versions |
+| PyJWT | 2.15.1 | CI／nightly browser 安装 |
+
+uvicorn 0.27.1、httpx 0.27.2、slowapi 0.1.9、structlog 25.5.0 及原测试／浏览器锁保持。初始桥接只适配 PMO 指定的三个 public-controls 函数、一个 beta-perf 函数、一个 deploy-runtime 函数及一个 heredoc 函数中的精确版本字面；随后追加的监测常量权限与范围见下文。其他函数不动，未削减八个硬 job、矩阵、步骤、依赖和失败条件。
+
+语义摘要仅更新两个有版本变化的 job：browser-product-contract 为 `5a7c0ecd56d6300bcf3a3418bdb7ee0f41f2064fb7efa527295d7956b257a205`，browser-beta-surface-contract 为 `26f0c96a942aa86f5027e4d9048c375200260e343278877992070b0bdeaa5479`。更新前已逐 job 验证差异等于四项获准版本替换，其余六个硬 job 和 release-gate-summary 语义未变；摘要仍受 B0 合同检查，不以重算掩盖删检查。
+
+为避免使用旧依赖树假称升级通过，本轮新建独立 Python 3.11.15 环境，按 CI／nightly browser 声明的完整包集合安装，包括 pytest 9.0.3、Playwright 1.59.0、pytest-playwright 0.7.2、Pillow 12.3.0 及合同测试所需 PyYAML 6.0.3。实际解析并安装 45 包，`uv pip check` 确认兼容；逐项读取目标版本，与四个升级版本及保持版本一致。基础 FastAPI／TestClient GET 冒烟通过，未导入产品或 runtime WIP。Starlette 提示当前 httpx TestClient 适配弃用；保留警告，未擅自安装替代包或改变 httpx 锁。
+
+在这个新环境，以本树源码运行 B0、完整 public-controls、获准 beta-perf／deploy-runtime／heredoc 目标合同，**177 passed**。这是桥接字面、CI 安全边界及基础依赖机制证据，不是完整 backend 安装或 runtime／OpenAPI／产品组合验收；不采用旧环境的绿灯代替。
+
+PMO 后续精确追加监测权限：仅将 `scripts/production_smoke.py` 的 EXPECTED_RUNTIME_VERSIONS 内 FastAPI／Pydantic／Starlette 改为目标三版本，uvicorn 不动；`tests/test_production_smoke.py` 只更新当前 release 的两份成功 payload 版本与 bad-version 参数的三个预期错误字符串，原坏版本、无覆盖／身份拒绝、历史模拟及其他逻辑均保留。追加后在同一新环境重跑监测文件和上述精确合同组，**208 passed**，未向公网发送监测请求。
+
+跨 owner 依赖已只读确认并报告：`web/backend/tests/test_openapi_artifact.py::test_browser_contract_jobs_use_the_release_target_runtime_pins` 的 required 元组在本树仍为旧三版本，组合时需 runtime owner／PMO 接续。未跨树改该文件，也未复制尚在独审的 runtime WIP。本树 backend requirements、OpenAPI 和 TypeScript 生成物仍是原基线，各 browser workflow 的真实 Actions、安全复核和完整组合仍待验，不能用本次静态／离线精确合同结果解除这些门禁。
+
+隔离环境仅作为本桥接复核资源保留，owner 为 Bootstrap；没有运行中的浏览器、服务或连接，后续组合验证完成后由 owner 清理。本次未触服务器、生产、收费模型、私有配置或其他树。
+
+## Linux CPU 锁真实安装入口桥接
+
+PMO 追加 `runtime-smoke.yml` 的 Linux 安装桥接，并允许在 B0 合同文件补模板和负例。锁数据只读自已受审提交 `594566481313cf2ac931875e34c7f95d61e997b1`，未复制 runtime 工作树 WIP；Linux 输入摘要为 `4ae9d5046cd002d46712c17d13c28d9be88996c279ca5dc7346199c60aa7e708`，锁摘要为 `efd2731c4e9e212ab75e6bcb53880d88492e1a44272622f05b6c98e8a606b6f5`。本地实际解析该受审锁，确认 73 个带哈希精确版本，Torch 为 `2.14.1+cpu`。
+
+本机固定 uv 0.11.8 的实际 help 已确认支持以下命令。Linux workflow 安装同版工具，用 setup-python 的 Python 3.11 建独立、不 seed pip 的环境，禁止自动切换／下载解释器，再执行：
+
+```sh
+uv venv --python "$(python -c 'import sys; print(sys.executable)')" \
+  --no-managed-python --no-python-downloads "$RUNTIME_ENV"
+uv pip sync --python "$RUNTIME_PYTHON" --torch-backend cpu \
+  --require-hashes --strict --no-python-downloads requirements/runtime-linux-cpu.lock
+uv pip check --python "$RUNTIME_PYTHON"
+```
+
+不使用 `--no-deps` 或跳过哈希。根包正常 editable 安装会额外拉入不属于这份生产锁的 pandas／powerlaw／matplotlib 等研究依赖，所以采用 PMO 明确允许的当前 checkout 源码导入方案：核实际完整 SHA 与导入模块 `__file__` 的归属，使用独立 runtime 的解释器和明确 checkout 导出路径，保留全部重模块 import。源码导入前、导入后、真实 SearchService 冒烟后，均检查依赖兼容、73 包完整版本图、核心桥接版本、实际 Torch CPU 后缀／CUDA 元数据和无 NVIDIA 包。
+
+tiny-KB 步骤仍真实加载模型、编码和查询，明确选择通用 `shibing624/text2vec-base-chinese`，要求真实 KB 大小为二且查询非空。它不证明生产 structural-v2 bundle 完整或查询质量。临时 KB 用 TemporaryDirectory 收尾，workflow 的 always 清理仅删除本 job 固定的独立环境与校验脚本；不触源树或其他运行时。
+
+main／集成／Bootstrap 的原精确触发、schedule 和 dispatch 均保留，push／PR 的 paths 增加 `requirements/runtime-*.in` 与 `requirements/runtime-*.lock`。固定锁尚未进入本 Bootstrap 源，真实安装会保持 fail closed，必须先由 PMO 组合受审 runtime 提交，不能跳过缺锁或提前声称成功。
+
+新增离线合同直接执行 workflow 中的锁图校验器及 source-binding 脚本，以模拟 metadata 和临时 Git 源提供合法对照，并覆盖版本漂移、缺包／额外包、NVIDIA、非 CPU Torch、CUDA、错误平台／Python、缺 hash、错 SHA／跨 checkout 导入、移除哈希／后置核验和跳过 source import 等反例。原八个硬 job 与生产拒绝合同仍保留。扩展后 B0 合同 **89 passed**；新目标版本隔离环境中的完整本次精确合同组 **226 passed**；runtime-smoke 所有 shell 和嵌入 Python 语法通过。
+
+本机是 Mac，没有执行 Linux 73 包安装、CPU Torch import、通用模型下载或真实 SearchService 查询。本地 fixture 只证明校验逻辑及源码绑定机制；Linux 完整安装、包图与模型实际加载／回答必须在组合后 Actions 的当前 SHA 验证。既有 analyze/mobile 性能门槛的失败由相应业务 owner 调查，本轮未改预算、测量、业务代码或对旧 run 盲重试。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。

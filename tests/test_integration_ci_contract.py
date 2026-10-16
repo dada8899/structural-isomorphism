@@ -27,14 +27,15 @@ PRODUCTION_WORKFLOWS = [
     "deploy-beta-backend.yml", "deploy-phase-detector.yml", "docs.yml",
     "release-packages.yml", "publish-pypi.yml",
 ]
-# Semantic snapshots of the actual job bodies at reviewed baseline be3a3c6.
+# Semantic snapshots: be3a3c6 jobs, with only the two approved runtime-pin
+# upgrades bridged from source 044e08c (see CI_BASELINE.md).
 # Trigger expansion must not silently remove work from any existing hard job.
 BASELINE_JOB_DIGESTS = {
     "retrieval-eval-contract": "314bae490885c88c9c6db354267821221f66bc51b1390e02f361c000016d15f8",
     "site-docs-contract": "0f57f4945237fd941c2e8d368de8c45ac77cebb7ef06263d1a8d66367c48a92c",
     "phase-python-contract": "31410b6d2c1aaf8d2d46261b6b9cfdefbcbe0ed0391d6afb119b636356c1dc32",
-    "browser-product-contract": "fb67470d5ec9d583ea68c9ff48fe26c0fe310ae6caaa3bafe6f1a57c2074cad4",
-    "browser-beta-surface-contract": "b402a9767448e7dcb415034ab372d27daa917bbe767216fe5bfca66719a1b380",
+    "browser-product-contract": "5a7c0ecd56d6300bcf3a3418bdb7ee0f41f2064fb7efa527295d7956b257a205",
+    "browser-beta-surface-contract": "26f0c96a942aa86f5027e4d9048c375200260e343278877992070b0bdeaa5479",
     "backend": "1880d457fc00c68ff81deb35c32c75e321c3dc5c6e0cdc793dfab4f030669b4c",
     "packages": "e4aa89e17ef04576287375e0d658dd3b2ee78569cfe6afb7d5d34b933d313fbe",
     "frontend": "bc2d19708c65b0594b78ca090ab06297a5106e1906fb826d4b5e01bce82fbe70",
@@ -334,3 +335,182 @@ def test_changed_yaml_and_guard_shell_are_parseable():
                     result = subprocess.run(["/bin/bash", "-n"], input=step["run"],
                                             capture_output=True, text=True, timeout=5)
                     assert result.returncode == 0, result.stderr
+
+
+def runtime_steps(value=None):
+    value = value or workflow("runtime-smoke.yml")
+    return value["jobs"]["import-smoke"]["steps"]
+
+
+def embedded_python(step):
+    # Both executable heredocs are quoted; their Python source is not shell
+    # interpolated. Tests run the actual checked-in verifier/import bodies.
+    return step["run"].split("<<'PY'\n", 1)[1].rsplit("\nPY", 1)[0]
+
+
+def assert_linux_runtime_smoke_contract(value):
+    events = triggers(value)
+    for event in ("push", "pull_request"):
+        paths = events[event]["paths"]
+        assert "requirements/runtime-*.in" in paths
+        assert "requirements/runtime-*.lock" in paths
+    assert "schedule" in events and "workflow_dispatch" in events
+    job = value["jobs"]["import-smoke"]
+    assert job["runs-on"] == "ubuntu-latest"
+    assert "if" not in job and "continue-on-error" not in job
+    steps = runtime_steps(value)
+    names = [step.get("name", "") for step in steps]
+    required_order = [
+        "Install pinned uv tool",
+        "Sync independent Python 3.11 Linux CPU runtime with hashes",
+        "Write locked graph validator",
+        "Verify locked graph before checkout imports",
+        "Import structural_isomorphism from the exact checkout",
+        "Verify locked graph after checkout import",
+        "Import every heavy module that prod loads at startup",
+        "Load SearchService and answer with a generic model and tiny KB",
+        "Verify locked graph after SearchService smoke",
+        "Remove this job's isolated runtime",
+    ]
+    indices = [names.index(name) for name in required_order]
+    assert indices == sorted(indices)
+    selected = {step.get("name"): step for step in steps}
+    assert selected[required_order[0]]["run"] == "python -m pip install uv==0.11.8"
+    sync = selected[required_order[1]]["run"]
+    for fragment in (
+        "uv venv --python", "--no-managed-python --no-python-downloads",
+        'uv pip sync --python "$RUNTIME_PYTHON" --torch-backend cpu',
+        "--require-hashes --strict", "requirements/runtime-linux-cpu.lock",
+        'uv pip check --python "$RUNTIME_PYTHON"',
+    ):
+        assert fragment in sync
+    assert "--no-deps" not in sync and "--no-verify-hashes" not in sync
+    source = selected[required_order[4]]
+    assert source["env"]["PYTHONPATH"] == "${{ github.workspace }}"
+    assert source["env"]["EXPECTED_SOURCE_SHA"] == "${{ github.sha }}"
+    assert "structural_isomorphism.__file__" in source["run"]
+    assert "actual != os.environ" in source["run"]
+    assert source["run"].index('find_spec("structural_isomorphism")') < source["run"].index("import structural_isomorphism\n")
+    for name in required_order[:-1]:
+        assert "if" not in selected[name] and "continue-on-error" not in selected[name]
+    for name in [required_order[3], required_order[5], required_order[8]]:
+        assert '"$RUNTIME_PYTHON" -I' in selected[name]["run"]
+        assert 'uv pip check --python "$RUNTIME_PYTHON"' in selected[name]["run"]
+    heavy = ast.parse(embedded_python(selected[required_order[6]]))
+    modules = next(node for node in ast.walk(heavy)
+                   if isinstance(node, ast.Assign)
+                   and any(isinstance(target, ast.Name) and target.id == "mods" for target in node.targets))
+    assert ast.literal_eval(modules.value) == [
+        "sentence_transformers", "transformers", "torch", "httpx", "fastapi",
+        "uvicorn", "pydantic", "slowapi", "structlog", "dotenv", "starlette",
+    ]
+    tiny = selected[required_order[7]]["run"]
+    assert 'model_path="shibing624/text2vec-base-chinese"' in tiny
+    assert 'service.search("test phenomenon", top_k=2)' in tiny
+    assert "service.kb_size != 2 or not hits" in tiny
+    assert "TemporaryDirectory" in tiny
+    assert selected[required_order[-1]]["if"] == "always()"
+
+
+def test_linux_runtime_smoke_preserves_real_work_and_hash_graph_boundaries():
+    assert_linux_runtime_smoke_contract(workflow("runtime-smoke.yml"))
+
+
+@pytest.mark.parametrize("mutation", ["no-hashes", "wrong-backend", "missing-postcheck", "skipped-import"])
+def test_linux_runtime_smoke_boundary_mutations_fail(mutation):
+    value = copy.deepcopy(workflow("runtime-smoke.yml"))
+    steps = runtime_steps(value)
+    selected = {step.get("name"): step for step in steps}
+    sync = selected["Sync independent Python 3.11 Linux CPU runtime with hashes"]
+    if mutation == "no-hashes":
+        sync["run"] = sync["run"].replace("--require-hashes", "")
+    elif mutation == "wrong-backend":
+        sync["run"] = sync["run"].replace("--torch-backend cpu", "--torch-backend auto")
+    elif mutation == "missing-postcheck":
+        steps.remove(selected["Verify locked graph after checkout import"])
+    else:
+        selected["Import structural_isomorphism from the exact checkout"]["if"] = "false"
+    with pytest.raises((AssertionError, ValueError)):
+        assert_linux_runtime_smoke_contract(value)
+
+
+def runtime_verifier():
+    step = next(step for step in runtime_steps() if step.get("name") == "Write locked graph validator")
+    namespace = {"__name__": "runtime_lock_contract_fixture"}
+    exec(compile(embedded_python(step), "<checked-in-runtime-verifier>", "exec"), namespace)
+    return namespace
+
+
+def synthetic_runtime_lock(pins):
+    # Mock metadata tests verify rejection logic, not a Linux installation.
+    return "".join(f"{name}=={version} \\\n    --hash=sha256:{'a' * 64}\n" for name, version in pins.items())
+
+
+def synthetic_runtime_pins():
+    pins = {"fastapi": "0.135.0", "pydantic": "2.7.4", "starlette": "1.3.1",
+            "pyjwt": "2.15.1", "uvicorn": "0.27.1", "httpx": "0.27.2",
+            "slowapi": "0.1.9", "structlog": "25.5.0", "torch": "2.14.1+cpu"}
+    pins.update({f"fixture-{index}": "1.0" for index in range(64)})
+    return pins
+
+
+@pytest.mark.parametrize("mutation", [
+    "valid", "wrong-version", "extra-package", "missing-package", "nvidia",
+    "noncpu-torch", "cuda-build", "wrong-platform", "wrong-python", "missing-hash",
+])
+def test_actual_locked_graph_verifier_accepts_control_and_rejects_drift(mutation):
+    pins = synthetic_runtime_pins()
+    if mutation == "nvidia":
+        pins["nvidia-cuda-runtime-cu12"] = pins.pop("fixture-0")
+    installed = dict(pins)
+    if mutation == "wrong-version":
+        installed["fastapi"] = "0.115.14"
+    elif mutation == "extra-package":
+        installed["unapproved-package"] = "1.0"
+    elif mutation == "missing-package":
+        installed.pop("fixture-0")
+    text = synthetic_runtime_lock(pins)
+    if mutation == "missing-hash":
+        text = text.replace("--hash=sha256:", "--hash=sha512:", 1)
+    arguments = (text, installed, "2.14.1" if mutation == "noncpu-torch" else "2.14.1+cpu",
+                 "12.8" if mutation == "cuda-build" else None,
+                 "Darwin" if mutation == "wrong-platform" else "Linux", "x86_64",
+                 (3, 12) if mutation == "wrong-python" else (3, 11))
+    verify = runtime_verifier()["verify_runtime"]
+    if mutation == "valid":
+        assert verify(*arguments) == pins
+    else:
+        with pytest.raises(SystemExit):
+            verify(*arguments)
+
+
+@pytest.mark.parametrize("wrong_source,wrong_sha", [(False, False), (True, False), (False, True)])
+def test_actual_checkout_binding_script_rejects_foreign_source_and_sha(tmp_path, wrong_source, wrong_sha):
+    source = tmp_path / "source"
+    foreign = tmp_path / "foreign"
+    for root in (source, foreign):
+        package = root / "structural_isomorphism"
+        package.mkdir(parents=True)
+        (package / "__init__.py").write_text("CHECKOUT_FIXTURE = True\n")
+    marker = tmp_path / "foreign-imported"
+    (foreign / "structural_isomorphism/__init__.py").write_text(
+        f"from pathlib import Path\nPath({str(marker)!r}).touch()\n"
+    )
+    subprocess.run(["git", "init", "-q"], cwd=source, check=True)
+    subprocess.run(["git", "add", "structural_isomorphism/__init__.py"], cwd=source, check=True)
+    subprocess.run(["git", "-c", "user.name=B0", "-c", "user.email=b0@example.invalid",
+                    "commit", "-qm", "source"], cwd=source, check=True)
+    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source, text=True).strip()
+    step = next(step for step in runtime_steps() if step.get("name") == "Import structural_isomorphism from the exact checkout")
+    cwd = foreign if wrong_source else source
+    result = subprocess.run([os.sys.executable, "-c", embedded_python(step)], cwd=cwd,
+                            env={"PATH": os.environ["PATH"], "PYTHONPATH": str(cwd),
+                                 "GITHUB_WORKSPACE": str(source),
+                                 "EXPECTED_SOURCE_SHA": "0" * 40 if wrong_sha else sha},
+                            capture_output=True, text=True, timeout=5)
+    assert (result.returncode == 0) is (not wrong_source and not wrong_sha)
+    assert not marker.exists(), "foreign package must be refused before its code executes"
+    if wrong_source:
+        assert "source resolves outside the checkout" in result.stderr
+    elif wrong_sha:
+        assert "checkout SHA mismatch" in result.stderr

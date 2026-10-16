@@ -24,7 +24,7 @@ jobs:
           python-version: '3.11'
       - name: Install locked browser runtime
         run: |
-          python -m pip install pytest==9.0.3 playwright==1.59.0 pydantic==2.6.1
+          python -m pip install pytest==9.0.3 playwright==1.59.0 pydantic==2.7.4
           python -m playwright install --with-deps chromium
       - name: Run deterministic unit contracts
         run: >-

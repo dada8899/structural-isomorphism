@@ -444,9 +444,9 @@ def test_phase_auth_browser_job_installs_canonical_runtime_logging() -> None:
     assert _shell_tokens(install_step) == [
         "python", "-m", "pip", "install",
         "pytest==9.0.3", "playwright==1.59.0", "pytest-playwright==0.7.2",
-        "fastapi==0.115.14",
-        "pydantic==2.6.1", "starlette==0.46.2",
-        "uvicorn[standard]==0.27.1", "PyJWT==2.12.1", "slowapi==0.1.9",
+        "fastapi==0.135.0",
+        "pydantic==2.7.4", "starlette==1.3.1",
+        "uvicorn[standard]==0.27.1", "PyJWT==2.15.1", "slowapi==0.1.9",
         "structlog==25.5.0", "python", "-m", "playwright", "install",
         "--with-deps", "chromium",
     ]
@@ -917,8 +917,8 @@ def test_nightly_e2e_reconstructs_the_full_browser_runtime() -> None:
         "python", "-m", "pip", "install", "--upgrade", "pip",
         "python", "-m", "pip", "install",
         "pytest==9.0.3", "playwright==1.59.0", "pytest-playwright==0.7.2",
-        "httpx==0.27.2", "fastapi==0.115.14", "pydantic==2.6.1",
-        "starlette==0.46.2", "uvicorn[standard]==0.27.1", "PyJWT==2.12.1",
+        "httpx==0.27.2", "fastapi==0.135.0", "pydantic==2.7.4",
+        "starlette==1.3.1", "uvicorn[standard]==0.27.1", "PyJWT==2.15.1",
         "slowapi==0.1.9", "structlog==25.5.0", "Pillow==12.3.0",
         "python", "-m", "playwright", "install", "--with-deps", "chromium",
     ]
@@ -1649,8 +1649,8 @@ def test_required_browser_workflow_covers_nonenglish_product_surfaces() -> None:
         "python", "-m", "pip", "install",
         "pytest==9.0.3", "playwright==1.59.0", "pytest-playwright==0.7.2",
         "httpx==0.27.2",
-        "fastapi==0.115.14", "pydantic==2.6.1", "starlette==0.46.2",
-        "uvicorn[standard]==0.27.1", "PyJWT==2.12.1", "slowapi==0.1.9",
+        "fastapi==0.135.0", "pydantic==2.7.4", "starlette==1.3.1",
+        "uvicorn[standard]==0.27.1", "PyJWT==2.15.1", "slowapi==0.1.9",
         "structlog==25.5.0", "python", "-m", "playwright", "install",
         "--with-deps", "chromium",
     ]

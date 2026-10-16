@@ -771,7 +771,7 @@ def test_deploy_builds_before_sync_and_rolls_back_all_mutable_state() -> None:
     assert "'structural_isomorphism/**'" in workflow
     assert "Verify immutable runtime attestation" in workflow
     assert "requirements_sha256" in workflow and "cpython-311" in workflow
-    assert '"starlette": "0.46.2"' in workflow
+    assert '"starlette": "1.3.1"' in workflow
 
 
 def test_beta_dispatch_pins_one_full_main_reachable_commit() -> None:
