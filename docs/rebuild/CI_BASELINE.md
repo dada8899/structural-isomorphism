@@ -270,6 +270,18 @@ collector、原54pin、生产Papers、helper、Make、CI、原grade和预算未�
 
 浏览器context／browser和静态服务沿各原fixture finally收尾，测试observer在finally disconnect；没有遗留服务或新采证资源。本卡仅上述i18n函数、三个测试文件及本记录，未改预算、fixture、测量、旧source pins、Make、CI或其他回调。没有HTTP研究、真实模型、费用、SSH、trace、Profiler、新marker、提交或推送。作者至此停写，交PMO精确五路径Git提交、当前SHA独审，再执行一次正常CI核实性能；本机语言验证通过不代表202ms性能失败已关闭。
 
+## Research 组合后的 OpenAPI 与 sanity Chromium 返修
+
+日期：2026-10-17。分支 `codex/structure-research-ci-20261017`，基线 `742c0732627ab34f78139e82b17cb7b65b62a83b`。组合独审指出两个P1：新增Research router未进入提交的OpenAPI快照；sanity的root release选择会运行本机研究页面浏览器用例，但只安装Playwright包，未安装Chromium。
+
+复用既有发布匹配环境，实际Python3.11.15、FastAPI0.135.0、Pydantic2.7.4、Starlette1.3.1，与当前requirements精确schema pins一致；没有新建环境或安装依赖。运行原 `openapi-generate` 和 `openapi-check` Make目标，生成器原有当前工作树导入检查、schema运行版本检查及稳定hash seed全部保留。快照新增的12个路径与当前Research router装饰器及HTTP方法逐项相等，路径总数105→117；原105个路径内容、原136个schema逐项不变。生成物SHA-256为 `b464a58775f2aaafa842d15c4a45562b93aadd102809daf36da46e2a9132c234`。
+
+sanity仅在既有 `python -m pip install playwright==1.59.0` 后增加 `python -m playwright install --with-deps chromium`。没有修改原触发器、权限、并发、job期限、依赖版本或任何检查，也没有skip。这个命令只写入workflow，本机未下载或安装浏览器。
+
+验证：原 `make openapi-check` 显示in_sync、退出0；完整 `web/backend/tests/test_openapi_artifact.py` **12 passed、退出0**，含跨进程hash seed／外来工作树注入的确定性和漂移拒绝；原 `tests/test_integration_ci_contract.py` 与 `tests/test_shell_python_heredocs.py` **112 passed、退出0**。actionlint、JSON／路由集合与已有schema对照、差异检查通过。生成器保留一条既有Pydantic namespace warning。没有运行实际Linux安装／CI，不将本机生成或静态检查当成Linux浏览器已验收。
+
+本卡仅OpenAPI快照、sanity workflow及本记录三路径；不改生成器、Make、测试、fixture、锁、业务源码或Core并行schema5工作树。没有网络研究、真实模型、费用、SSH、trace、提交或推送。作者停写，交PMO精确三路径提交及原Astra当前SHA复审，再由后续CI核实际Linux结果。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。
