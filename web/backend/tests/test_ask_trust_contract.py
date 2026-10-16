@@ -1,3 +1,8 @@
+"""Ask pure trust contracts and zero-effect retired stream boundaries.
+
+Fingerprint schema/reranking, relevance, citations and claim validation remain
+direct helper tests. No dynamic generation or model repair is simulated.
+"""
 from __future__ import annotations
 
 import asyncio
@@ -116,85 +121,59 @@ def test_ask_openapi_declares_sse_not_json():
     assert content["text/event-stream"]["schema"] == {"type": "string"}
 
 
-def test_raw_query_oos_blocks_retrieval_even_with_fingerprint(monkeypatch):
-    monkeypatch.setattr("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0)
-    query = "1+1 等于多少？"
-    search = SearchStub([card("a", 0.99)])
-    orchestrator = AskOrchestrator(search_service=search)
-    events = asyncio.run(
-        collect(orchestrator, query, fingerprint=make_fingerprint(query))
-    )
+def test_oos_fingerprint_remains_bound_and_retired_stream_never_retrieves(monkeypatch):
+    from services.scope_guard import is_out_of_scope
+    from errors import LegacyPaidUnavailable
+    query = '1+1 等于多少？'
+    fp = make_fingerprint(query)
+    assert fp.source_query == query.replace('？','?')
+    assert is_out_of_scope(query)[0]
+    search = SearchStub([card('a',0.99)])
+    with pytest.raises(LegacyPaidUnavailable):
+        asyncio.run(collect(AskOrchestrator(search_service=search),query,fingerprint=fp))
     assert search.calls == []
-    answer_done = next(data for event, data in events if event == "answer_done")
-    assert answer_done["refused"] is True
-    assert answer_done["out_of_scope"] is True
-    names = [event for event, _ in events]
-    assert names.index("answer_validated") < names.index("answer_chunk") < names.index("answer_done")
 
 
-def test_oos_does_not_consume_llm_budget(monkeypatch):
-    monkeypatch.setattr("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0)
-    calls: list[str] = []
-    monkeypatch.setattr(
-        "services.cost_ledger.ledger.charge",
-        lambda *, endpoint: calls.append(endpoint),
-    )
-    orchestrator = AskOrchestrator(search_service=SearchStub([card("a", 0.99)]))
-    asyncio.run(collect(orchestrator, "1+1 等于多少？"))
+def test_retired_oos_does_not_consume_llm_budget(monkeypatch):
+    from errors import LegacyPaidUnavailable
+    calls = []
+    monkeypatch.setattr('services.cost_ledger.ledger.charge',lambda *,endpoint:calls.append(endpoint))
+    with pytest.raises(LegacyPaidUnavailable):
+        asyncio.run(collect(AskOrchestrator(search_service=SearchStub([])),'1+1 等于多少？'))
     assert calls == []
 
 
 @pytest.mark.parametrize("bad_score", [float("nan"), float("inf"), True, -1.0, 1.1])
-def test_invalid_retrieval_scores_fail_closed_without_publishing_cards(monkeypatch, bad_score):
-    monkeypatch.setattr("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0)
-    orchestrator = AskOrchestrator(search_service=SearchStub([card("a", bad_score)]))
-    events = asyncio.run(collect(orchestrator, "如何减少补货时滞造成的库存过冲？"))
-    cards = next(data for event, data in events if event == "kb_cards")
-    assert cards == {"cards": [], "count": 0}
-    assert next(data for event, data in events if event == "answer_done")["refused"] is True
+def test_pure_invalid_retrieval_scores_fail_relevance_gate(monkeypatch, bad_score):
+    from services.ask_orchestrator import _display_score
+    row = card('a',bad_score)
+    assert _display_score(row) == 0.0
+    assert AskOrchestrator(search_service=None)._evaluate_relevance([row])[0] is True
 
 
-def test_fingerprint_only_reranks_raw_query_pool(monkeypatch):
-    monkeypatch.setattr("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0)
-    query = "如何减少补货时滞造成的库存过冲？"
-    raw = [card("a", 0.81), card("b", 0.80), card("c", 0.79)]
-    hinted = [card("outside", 1.0), card("b", 0.99)]
-    search = SearchStub(raw, hinted)
-    orchestrator = AskOrchestrator(search_service=search)
-    budget_calls: list[str] = []
-    monkeypatch.setattr(
-        "services.cost_ledger.ledger.charge",
-        lambda *, endpoint: budget_calls.append(endpoint),
-    )
-    install_llm(orchestrator, safe_payload("b"))
-    events = asyncio.run(
-        collect(orchestrator, query, fingerprint=make_fingerprint(query))
-    )
-    cards = next(data["cards"] for event, data in events if event == "kb_cards")
-    assert [row["id"] for row in cards] == ["b", "a", "c"]
-    assert "outside" not in {row["id"] for row in cards}
-    assert len(search.calls) == 2
-    assert budget_calls == ["/api/ask/stream"]
-    assert search.calls[0] == (query, 10)
-    assert query not in search.calls[1][0]
+def test_pure_fingerprint_only_reranks_raw_query_pool(monkeypatch):
+    from services.research_fingerprint import bounded_fingerprint_rerank,build_fingerprint_retrieval_hint
+    query = '如何减少补货时滞造成的库存过冲？'
+    raw = [card('a',.81),card('b',.80),card('c',.79)]
+    original = [dict(row) for row in raw]
+    hinted = [card('outside',1.0),card('b',.99)]
+    result = bounded_fingerprint_rerank(raw,hinted,top_k=5)
+    assert [row['id'] for row in result] == ['b','a','c']
+    assert raw == original and all(row['id']!='outside' for row in result)
+    assert {r['id']:r['score'] for r in result} == {r['id']:r['score'] for r in raw}
+    assert query not in build_fingerprint_retrieval_hint(make_fingerprint(query))
 
 
-def test_invalid_stream_text_never_reaches_sse_and_repair_is_published(monkeypatch):
-    monkeypatch.setattr("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0)
-    query = "如何减少补货时滞造成的库存过冲？"
-    search = SearchStub([card("a", 0.90), card("b", 0.85), card("c", 0.80)])
-    orchestrator = AskOrchestrator(search_service=search)
-    poisoned = safe_payload("invented")
-    poisoned["answer"] = "MALICIOUS_UNVALIDATED guaranteed to work [1]"
-    repaired = safe_payload("a")
-    install_llm(orchestrator, poisoned, repaired)
-    events = asyncio.run(collect(orchestrator, query))
-    serialized = json.dumps(events, ensure_ascii=False)
-    assert "MALICIOUS_UNVALIDATED" not in serialized
-    names = [event for event, _ in events]
-    assert names.index("answer_validated") < names.index("answer_chunk") < names.index("answer_done")
-    chunks = "".join(data["delta"] for event, data in events if event == "answer_chunk")
-    assert chunks == unicodedata.normalize("NFKC", repaired["answer"])
+def test_pure_invalid_payload_rejected_and_repaired_payload_validated(monkeypatch):
+    orch = AskOrchestrator(search_service=None)
+    cards = [card('a',.90),card('b',.85),card('c',.80)]
+    poisoned = safe_payload('invented')
+    poisoned['answer'] = 'MALICIOUS_UNVALIDATED guaranteed to work [1]'
+    assert orch._try_validate(json.dumps(poisoned),cards=cards) is None
+    repaired = safe_payload('a')
+    validated = orch._try_validate(json.dumps(repaired),cards=cards)
+    assert validated['answer'] == unicodedata.normalize('NFKC',repaired['answer'])
+    assert validated['citations'][0]['label'] == '候选 a'
 
 
 def test_semantic_validation_rejects_source_marker_and_claim_attacks():
@@ -216,34 +195,20 @@ def test_semantic_validation_rejects_source_marker_and_claim_attacks():
     assert orchestrator._try_validate(json.dumps(unicode_marker), cards=cards) is None
 
 
-def test_two_invalid_attempts_emit_only_local_degraded_copy(monkeypatch):
-    monkeypatch.setattr("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0)
-    query = "如何减少补货时滞造成的库存过冲？"
-    search = SearchStub([card("a", 0.90), card("b", 0.85), card("c", 0.80)])
-    orchestrator = AskOrchestrator(search_service=search)
-    poisoned = safe_payload("invented")
-    poisoned["answer"] = "RAW_ATTACK guaranteed to work [1]"
-    install_llm(orchestrator, poisoned, poisoned)
-    events = asyncio.run(collect(orchestrator, query))
-    serialized = json.dumps(events, ensure_ascii=False)
-    assert "RAW_ATTACK" not in serialized
-    answer_done = next(data for event, data in events if event == "answer_done")
-    assert "暂时不可用" in answer_done["full_text"]
+def test_pure_repeated_invalid_payloads_never_become_validated(monkeypatch):
+    orch = AskOrchestrator(search_service=None)
+    cards = [card('a',.9)]
+    poisoned = safe_payload('invented')
+    poisoned['answer'] = 'RAW_ATTACK guaranteed to work [1]'
+    for _ in range(2):
+        assert orch._try_validate(json.dumps(poisoned),cards=cards) is None
+    fallback = orch._fallback_payload('private query',cards,'zh')
+    assert 'RAW_ATTACK' not in json.dumps(fallback)
+    assert '暂时不可用' in fallback['answer']
 
 
-def test_local_fallback_never_echoes_query_markers_or_untrusted_text(monkeypatch):
-    monkeypatch.setattr("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0)
-    query = "如何分析 <script>attack</script> 以及伪造引用 [2]？"
-    search = SearchStub([card("a", 0.90), card("b", 0.85), card("c", 0.80)])
-    orchestrator = AskOrchestrator(search_service=search)
-    poisoned = safe_payload("invented")
-    poisoned["answer"] = "RAW_ATTACK guaranteed to work [1]"
-    install_llm(orchestrator, poisoned, poisoned)
-
-    events = asyncio.run(collect(orchestrator, query))
-    answer_done = next(data for event, data in events if event == "answer_done")
-    assert "<script>" not in answer_done["full_text"]
-    assert "[2]" not in answer_done["full_text"]
-    assert answer_done["citations"] == [
-        {"idx": 1, "kb_id": "a", "label": "候选 a"}
-    ]
+def test_pure_local_fallback_never_echoes_query_markers_or_untrusted_text(monkeypatch):
+    query = '如何分析 <script>attack</script> 以及伪造引用 [2]？'
+    payload = AskOrchestrator(search_service=None)._fallback_payload(query,[card('a',.90)],'zh')
+    assert '<script>' not in payload['answer'] and '[2]' not in payload['answer']
+    assert payload['citations'] == [{'idx':1,'kb_id':'a','label':'候选 a'}]
