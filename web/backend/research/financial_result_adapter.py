@@ -263,8 +263,9 @@ def _operation(data, binding, *, budget):
     operation = _parse(raw, 64 * 1024, budget=budget)
     fields(operation, ("input_revision", "expected_research_version", "registry_ref", "request"))
     _revision(operation["input_revision"]); _revision(operation["expected_research_version"])
+    registry_ref = _record(FinancialRegistryRef, operation["registry_ref"])
     if (operation["input_revision"] != binding.input_revision
-            or operation["registry_ref"] != asdict(binding.registry_ref)
+            or registry_ref != binding.registry_ref
             or digest(operation) != binding.request_digest):
         raise FinancialError("operation request binding mismatch")
     FinancialRequest.parse(operation["request"])

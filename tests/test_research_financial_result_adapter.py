@@ -122,6 +122,33 @@ class FinancialAdapterTests(unittest.TestCase):
                     adapter.evaluate_financial_candidate(wrong,resolved,binding)
         evaluate.assert_not_called()
 
+    def test_registry_reference_types_rejected_before_actual_evaluator(self):
+        operation,binding,_,resolved=setup()
+        variants=[]
+        for revision in (True,1.0,"1"):
+            wrong=deepcopy(operation);wrong["registry_ref"]["revision"]=revision;variants.append(wrong)
+        for key,value in (("id","not-a-uuid"),("digest","not-a-digest"),("extra",True)):
+            wrong=deepcopy(operation);wrong["registry_ref"][key]=value;variants.append(wrong)
+        with patch.object(adapter,"evaluate_financial",wraps=adapter.evaluate_financial) as evaluate:
+            for wrong in variants:
+                # Matching whole-body digest isolates the typed-ref bug, not a digest mismatch.
+                matching_binding=replace(binding,request_digest=digest(wrong))
+                with self.subTest(ref=wrong["registry_ref"]),self.assertRaises(FinancialError):
+                    adapter.evaluate_financial_candidate(wrong,resolved,matching_binding)
+        evaluate.assert_not_called()
+
+    def test_integer_registry_revision_evaluates_and_reopens_unchanged(self):
+        operation,binding,_,resolved=setup()
+        self.assertIs(type(operation["registry_ref"]["revision"]),int)
+        with patch.object(adapter,"evaluate_financial",wraps=adapter.evaluate_financial) as evaluate:
+            candidate=adapter.evaluate_financial_candidate(operation,resolved,binding)
+            record,expected=saved(candidate,resolved)
+            for view in ("summary","table","chart"):
+                result=adapter.project_financial_result(record,resolved,expected,current_input_revision=1,view=view)
+                self.assertEqual(result["data"]["snapshot_digest"],candidate.snapshot_digest)
+                self.assertEqual(result["data"]["request_digest"],binding.request_digest)
+        self.assertEqual(evaluate.call_count,1)
+
     def test_outer_request_digest_is_not_executor_digest(self):
         operation,binding,server,resolved=setup()
         wrong=replace(binding,request_digest=digest({"request":operation["request"],"registry":server.registry.data()}))
