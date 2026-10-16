@@ -203,3 +203,9 @@ def mint_trusted_cost_authority(conn,*,observation):
     if type(observation) is not ProviderObservation:
         raise PermissionError("provider DTO is not transport provenance")
     raise ResearchError("FEATURE_UNAVAILABLE",503,"受控供应端费用观测来源尚未接通。")
+
+
+def persist_offline_owned_source(conn,receipt):
+    """Records loopback provenance only, never creates a cost capability."""
+    from .paid_provider_session import persist_owned_return
+    return persist_owned_return(conn,receipt)

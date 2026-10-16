@@ -73,3 +73,8 @@ authorize／consume 除核调用者当前expected版本，还核持久permit上�
 新独立preview署名口在真实当前owner/revision下重核CP1资格和完整creator/year，返回sources全false及精确outbound handles；旧eligibility/confirmed读口AST保持。缺署名现在preview即拒、draft/task/grant/fee不增。manifest摘要与无能力bytes摘要在确认前保存，确认分配真实Context后重建同codec bytes须逐字相同；EvidencePacket.binding_digest另域，不拿控制ID替身。公开preview_view采用§6.4.2白名单和SHA256(canonical(view去preview_digest))，内部旧别名不准直接成为API响应。
 
 U仅调用受审usage_upper.preview_bound，用真实服务器clock核≤60秒TTL和quote revision/digest；返回值不是reserve/observed凭证，Core不复制F。原合成fixture仅把2033长期quote改当前clock+60，过期／长TTL负例拒绝，不假now/dispatch；真实资金默认None/live closed。原provider/model115项、预览/确认/CP1受影响48项通过。未改DDL、API/UI、runner或CP3；客户/源HTTP/本机sink/timer按finally关闭，公开网络/资金/key/真实模型为0。独审冻结前停写，仍不声称公共API或真实费用链已交付。
+
+## CP3 A：离线实际收包来源
+
+2026-10-17。OwnedProviderSession独占真实loopback socket，亲自调用transport finish后生成不可公开构造的receipt，同auth DB首次CAS保存完整binding及usage；candidate另槽可擦。普通DTO、重复注册、损坏binding、退休来源均拒；取消／撤权／删除后仅保用量事实，不恢复正文，重复回执不回填已擦candidate。无完整收包即UNKNOWN，关闭连接及期限计时器；Python私有类型不构成任意root代码隔离。
+旧finish只委托共用收包校验并调用原v1 cost_intent；原begin／最终字节守卫／probe标志和旧schema定义不变。测试装配的已消费票及余额均为合成前置，不能证明预算consume；生产注册／send、TrustedCostAuthority及held→upper消费继续关闭，未新增DDL／API／F／资金／凭据或真实模型调用。
