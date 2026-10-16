@@ -58,6 +58,30 @@ HARD_STEP_CONDITIONS = {
         "Comment on PR with diff": "failure() && github.event_name == 'pull_request'",
     },
     (".github/workflows/beta-perf.yml", "beta-perf-audit"): {
+        'NOT_GATE one marked Linux diagnostic pair': (
+            '${{ always() && !cancelled()\n'
+            "    && github.repository == 'dada8899/structural-isomorphism'\n"
+            "    && github.event_name == 'pull_request'\n"
+            "    && github.event.action == 'synchronize'\n"
+            '    && github.event.pull_request.number == 253\n'
+            '    && github.event.pull_request.head.repo.full_name == github.repository\n'
+            '    && github.event.pull_request.base.repo.full_name == github.repository\n'
+            "    && github.event.pull_request.head.ref == 'bootstrap/structure-ci-20261016'\n"
+            "    && github.run_attempt == '1' }}"
+        ),
+        'Upload NOT_GATE Linux diagnostic evidence': (
+            '${{ always() && !cancelled()\n'
+            "    && github.repository == 'dada8899/structural-isomorphism'\n"
+            "    && github.event_name == 'pull_request'\n"
+            "    && github.event.action == 'synchronize'\n"
+            '    && github.event.pull_request.number == 253\n'
+            '    && github.event.pull_request.head.repo.full_name == github.repository\n'
+            '    && github.event.pull_request.base.repo.full_name == github.repository\n'
+            "    && github.event.pull_request.head.ref == 'bootstrap/structure-ci-20261016'\n"
+            "    && github.run_attempt == '1'\n"
+            "    && (steps.beta_perf_diagnostic.outcome == 'success'\n"
+            "        || steps.beta_perf_diagnostic.outcome == 'failure') }}"
+        ),
         "Stop local beta server": "always()",
         "Upload beta performance evidence": "always()",
     },
@@ -444,9 +468,9 @@ def test_phase_auth_browser_job_installs_canonical_runtime_logging() -> None:
     assert _shell_tokens(install_step) == [
         "python", "-m", "pip", "install",
         "pytest==9.0.3", "playwright==1.59.0", "pytest-playwright==0.7.2",
-        "fastapi==0.115.14",
-        "pydantic==2.6.1", "starlette==0.46.2",
-        "uvicorn[standard]==0.27.1", "PyJWT==2.12.1", "slowapi==0.1.9",
+        "fastapi==0.135.0",
+        "pydantic==2.7.4", "starlette==1.3.1",
+        "uvicorn[standard]==0.27.1", "PyJWT==2.15.1", "slowapi==0.1.9",
         "structlog==25.5.0", "python", "-m", "playwright", "install",
         "--with-deps", "chromium",
     ]
@@ -727,6 +751,11 @@ def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
                 "job": "beta-perf-audit",
                 "context": "beta-perf-audit",
             },
+            {
+                "workflow": ".github/workflows/product-ci.yml",
+                "job": "product",
+                "context": "product",
+            },
         ],
         "external_boundary": (
             "GitHub branch protection must require every listed check; "
@@ -796,7 +825,10 @@ def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
         assert isinstance(triggers, dict)
         for event in ("pull_request", "push"):
             config = triggers.get(event)
-            assert config == {"branches": ["main"]}, (
+            expected_branches = ["main", "integration/structure-rebuild-v1"]
+            if event == "push":
+                expected_branches.append("bootstrap/structure-ci-20261016")
+            assert config == {"branches": expected_branches}, (
                 f"required workflow {workflow_path} must run on every {event}"
             )
 
@@ -811,6 +843,30 @@ def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
         if isinstance(step, dict) and "if" in step
     }
     assert perf_conditions == {
+        'NOT_GATE one marked Linux diagnostic pair': (
+            '${{ always() && !cancelled()\n'
+            "    && github.repository == 'dada8899/structural-isomorphism'\n"
+            "    && github.event_name == 'pull_request'\n"
+            "    && github.event.action == 'synchronize'\n"
+            '    && github.event.pull_request.number == 253\n'
+            '    && github.event.pull_request.head.repo.full_name == github.repository\n'
+            '    && github.event.pull_request.base.repo.full_name == github.repository\n'
+            "    && github.event.pull_request.head.ref == 'bootstrap/structure-ci-20261016'\n"
+            "    && github.run_attempt == '1' }}"
+        ),
+        'Upload NOT_GATE Linux diagnostic evidence': (
+            '${{ always() && !cancelled()\n'
+            "    && github.repository == 'dada8899/structural-isomorphism'\n"
+            "    && github.event_name == 'pull_request'\n"
+            "    && github.event.action == 'synchronize'\n"
+            '    && github.event.pull_request.number == 253\n'
+            '    && github.event.pull_request.head.repo.full_name == github.repository\n'
+            '    && github.event.pull_request.base.repo.full_name == github.repository\n'
+            "    && github.event.pull_request.head.ref == 'bootstrap/structure-ci-20261016'\n"
+            "    && github.run_attempt == '1'\n"
+            "    && (steps.beta_perf_diagnostic.outcome == 'success'\n"
+            "        || steps.beta_perf_diagnostic.outcome == 'failure') }}"
+        ),
         "Stop local beta server": "always()",
         "Upload beta performance evidence": "always()",
     }
@@ -909,8 +965,8 @@ def test_nightly_e2e_reconstructs_the_full_browser_runtime() -> None:
         "python", "-m", "pip", "install", "--upgrade", "pip",
         "python", "-m", "pip", "install",
         "pytest==9.0.3", "playwright==1.59.0", "pytest-playwright==0.7.2",
-        "httpx==0.27.2", "fastapi==0.115.14", "pydantic==2.6.1",
-        "starlette==0.46.2", "uvicorn[standard]==0.27.1", "PyJWT==2.12.1",
+        "httpx==0.27.2", "fastapi==0.135.0", "pydantic==2.7.4",
+        "starlette==1.3.1", "uvicorn[standard]==0.27.1", "PyJWT==2.15.1",
         "slowapi==0.1.9", "structlog==25.5.0", "Pillow==12.3.0",
         "python", "-m", "playwright", "install", "--with-deps", "chromium",
     ]
@@ -1533,7 +1589,7 @@ def test_backtest_parquet_extra_is_single_source_and_used_by_sanity() -> None:
 
 def test_makefile_release_authority_is_independently_frozen() -> None:
     assert hashlib.sha256((ROOT / "Makefile").read_bytes()).hexdigest() == (
-        "4b4dfb0608153681fd409d28c3bfd1fea5fecc93aefc550dc6585266d1ffac95"
+        "9dc5644b315a28704b6041e14d4d30c0d437649daeeda1ef671728f7895733f0"
     )
 
 
@@ -1641,8 +1697,8 @@ def test_required_browser_workflow_covers_nonenglish_product_surfaces() -> None:
         "python", "-m", "pip", "install",
         "pytest==9.0.3", "playwright==1.59.0", "pytest-playwright==0.7.2",
         "httpx==0.27.2",
-        "fastapi==0.115.14", "pydantic==2.6.1", "starlette==0.46.2",
-        "uvicorn[standard]==0.27.1", "PyJWT==2.12.1", "slowapi==0.1.9",
+        "fastapi==0.135.0", "pydantic==2.7.4", "starlette==1.3.1",
+        "uvicorn[standard]==0.27.1", "PyJWT==2.15.1", "slowapi==0.1.9",
         "structlog==25.5.0", "python", "-m", "playwright", "install",
         "--with-deps", "chromium",
     ]

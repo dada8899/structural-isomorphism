@@ -1006,14 +1006,15 @@ def test_workflow_gates_all_primary_beta_surfaces_with_three_runs() -> None:
     authoritative = (ROOT / "scripts/perf_audit.py").read_text(encoding="utf-8")
     beta = (ROOT / "scripts/beta_perf_audit.py").read_text(encoding="utf-8")
     assert "playwright==1.59.0" in workflow
-    assert "pydantic==2.6.1" in workflow
+    assert "pydantic==2.7.4" in workflow
+    assert "PyYAML==6.0.3" in workflow
     assert "--runs 3" in workflow
     assert "--budget perf-budget.json" in workflow
     assert "if: always()" in workflow
     assert "/tmp/beta-perf-audit.json" in workflow
     assert "\n    paths:" not in workflow
-    assert "pull_request:\n    branches: [main]" in workflow
-    assert "push:\n    branches: [main]" in workflow
+    assert "pull_request:\n    branches: [main, integration/structure-rebuild-v1]" in workflow
+    assert "push:\n    branches: [main, integration/structure-rebuild-v1, bootstrap/structure-ci-20261016]" in workflow
     assert "scripts/perf_audit.py" in EVIDENCE_SOURCES
     assert set(_source_snapshot()) == set(EVIDENCE_SOURCES)
     assert VIEWPORTS["mobile"]["isMobile"] is True
@@ -1029,3 +1030,13 @@ def test_workflow_gates_all_primary_beta_surfaces_with_three_runs() -> None:
     assert 'page.locator("#analytics-consent").count() != 0' in beta
     assert "research-library export action did not complete" in beta
     assert "tool-card navigation did not load its real target" in beta
+
+    import yaml
+    data = yaml.safe_load(workflow)
+    job = data["jobs"]["beta-perf-audit"]
+    gate = next(step for step in job["steps"] if step.get("id") == "beta_perf_gate")
+    assert "if" not in gate and "continue-on-error" not in gate
+    assert gate["run"] == (
+        "python scripts/beta_perf_audit.py --base http://127.0.0.1:4173 "
+        "--runs 3 --budget perf-budget.json --out /tmp/beta-perf-audit.json"
+    )

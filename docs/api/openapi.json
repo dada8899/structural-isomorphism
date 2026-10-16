@@ -32,7 +32,11 @@
           },
           "ok": {
             "const": true,
-            "title": "Ok"
+            "enum": [
+              true
+            ],
+            "title": "Ok",
+            "type": "boolean"
           },
           "removed": {
             "title": "Removed",
@@ -66,7 +70,11 @@
           },
           "ok": {
             "const": true,
-            "title": "Ok"
+            "enum": [
+              true
+            ],
+            "title": "Ok",
+            "type": "boolean"
           }
         },
         "required": [
@@ -398,7 +406,11 @@
         "properties": {
           "ok": {
             "const": true,
-            "title": "Ok"
+            "enum": [
+              true
+            ],
+            "title": "Ok",
+            "type": "boolean"
           }
         },
         "required": [
@@ -468,7 +480,11 @@
         "properties": {
           "ok": {
             "const": true,
-            "title": "Ok"
+            "enum": [
+              true
+            ],
+            "title": "Ok",
+            "type": "boolean"
           },
           "user": {
             "$ref": "#/components/schemas/AuthUserResponse"
@@ -516,7 +532,11 @@
           },
           "ok": {
             "const": true,
-            "title": "Ok"
+            "enum": [
+              true
+            ],
+            "title": "Ok",
+            "type": "boolean"
           }
         },
         "required": [
@@ -538,7 +558,11 @@
           },
           "evidence_level": {
             "const": "candidate",
-            "title": "Evidence Level"
+            "enum": [
+              "candidate"
+            ],
+            "title": "Evidence Level",
+            "type": "string"
           },
           "independence": {
             "$ref": "#/components/schemas/EvidenceIndependence"
@@ -551,7 +575,11 @@
           },
           "schema_version": {
             "const": "evidence-envelope-v1",
-            "title": "Schema Version"
+            "enum": [
+              "evidence-envelope-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
           },
           "source": {
             "$ref": "#/components/schemas/EvidenceSource"
@@ -591,7 +619,11 @@
           },
           "evidence_level": {
             "const": "candidate",
-            "title": "Evidence Level"
+            "enum": [
+              "candidate"
+            ],
+            "title": "Evidence Level",
+            "type": "string"
           },
           "failure_conditions": {
             "items": {
@@ -626,7 +658,11 @@
           },
           "schema_version": {
             "const": "candidate-mapping-v2",
-            "title": "Schema Version"
+            "enum": [
+              "candidate-mapping-v2"
+            ],
+            "title": "Schema Version",
+            "type": "string"
           },
           "structure_name": {
             "maxLength": 200,
@@ -775,7 +811,11 @@
           "reason": {
             "anyOf": [
               {
-                "const": "card_declined"
+                "const": "card_declined",
+                "enum": [
+                  "card_declined"
+                ],
+                "type": "string"
               },
               {
                 "type": "null"
@@ -894,11 +934,19 @@
           },
           "ok": {
             "const": true,
-            "title": "Ok"
+            "enum": [
+              true
+            ],
+            "title": "Ok",
+            "type": "boolean"
           },
           "publish_to_insights": {
             "const": false,
-            "title": "Publish To Insights"
+            "enum": [
+              false
+            ],
+            "title": "Publish To Insights",
+            "type": "boolean"
           },
           "report_id": {
             "title": "Report Id",
@@ -1088,7 +1136,11 @@
         "properties": {
           "assessment_kind": {
             "const": "structural_state_hypothesis",
-            "title": "Assessment Kind"
+            "enum": [
+              "structural_state_hypothesis"
+            ],
+            "title": "Assessment Kind",
+            "type": "string"
           },
           "candidate_reference": {
             "anyOf": [
@@ -1102,7 +1154,11 @@
           },
           "contract_version": {
             "const": "secondary-tools-v2",
-            "title": "Contract Version"
+            "enum": [
+              "secondary-tools-v2"
+            ],
+            "title": "Contract Version",
+            "type": "string"
           },
           "evidence": {
             "$ref": "#/components/schemas/CandidateEvidenceEnvelope"
@@ -1296,7 +1352,11 @@
           },
           "schema_version": {
             "const": "discovery-candidate-v2",
-            "title": "Schema Version"
+            "enum": [
+              "discovery-candidate-v2"
+            ],
+            "title": "Schema Version",
+            "type": "string"
           },
           "tier": {
             "enum": [
@@ -1352,11 +1412,19 @@
             "title": "Label"
           },
           "score": {
-            "title": "Score"
+            "enum": [
+              null
+            ],
+            "title": "Score",
+            "type": "null"
           },
           "status": {
             "const": "recorded",
-            "title": "Status"
+            "enum": [
+              "recorded"
+            ],
+            "title": "Status",
+            "type": "string"
           }
         },
         "required": [
@@ -1406,7 +1474,11 @@
           },
           "evidence_level": {
             "const": "candidate",
-            "title": "Evidence Level"
+            "enum": [
+              "candidate"
+            ],
+            "title": "Evidence Level",
+            "type": "string"
           },
           "independence": {
             "$ref": "#/components/schemas/DiscoveryEvidenceIndependence"
@@ -1419,7 +1491,11 @@
           },
           "schema_version": {
             "const": "evidence-envelope-v1",
-            "title": "Schema Version"
+            "enum": [
+              "evidence-envelope-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
           },
           "source": {
             "$ref": "#/components/schemas/DiscoveryEvidenceSource"
@@ -1443,14 +1519,26 @@
         "properties": {
           "kind": {
             "const": "not_recorded",
-            "title": "Kind"
+            "enum": [
+              "not_recorded"
+            ],
+            "title": "Kind",
+            "type": "string"
           },
           "status": {
             "const": "not_recorded",
-            "title": "Status"
+            "enum": [
+              "not_recorded"
+            ],
+            "title": "Status",
+            "type": "string"
           },
           "summary": {
-            "title": "Summary"
+            "enum": [
+              null
+            ],
+            "title": "Summary",
+            "type": "null"
           }
         },
         "required": [
@@ -1464,23 +1552,47 @@
         "additionalProperties": false,
         "properties": {
           "artifact_sha256": {
-            "title": "Artifact Sha256"
+            "enum": [
+              null
+            ],
+            "title": "Artifact Sha256",
+            "type": "null"
           },
           "claim_id": {
-            "title": "Claim Id"
+            "enum": [
+              null
+            ],
+            "title": "Claim Id",
+            "type": "null"
           },
           "recorded_at": {
-            "title": "Recorded At"
+            "enum": [
+              null
+            ],
+            "title": "Recorded At",
+            "type": "null"
           },
           "status": {
             "const": "not_recorded",
-            "title": "Status"
+            "enum": [
+              "not_recorded"
+            ],
+            "title": "Status",
+            "type": "string"
           },
           "url": {
-            "title": "Url"
+            "enum": [
+              null
+            ],
+            "title": "Url",
+            "type": "null"
           },
           "version": {
-            "title": "Version"
+            "enum": [
+              null
+            ],
+            "title": "Version",
+            "type": "null"
           }
         },
         "required": [
@@ -1494,18 +1606,34 @@
         "properties": {
           "provenance": {
             "const": "NOT_TESTED",
-            "title": "Provenance"
+            "enum": [
+              "NOT_TESTED"
+            ],
+            "title": "Provenance",
+            "type": "string"
           },
           "status": {
             "const": "not_recorded",
-            "title": "Status"
+            "enum": [
+              "not_recorded"
+            ],
+            "title": "Status",
+            "type": "string"
           },
           "summary": {
-            "title": "Summary"
+            "enum": [
+              null
+            ],
+            "title": "Summary",
+            "type": "null"
           },
           "verdict": {
             "const": "NOT_TESTED",
-            "title": "Verdict"
+            "enum": [
+              "NOT_TESTED"
+            ],
+            "title": "Verdict",
+            "type": "string"
           }
         },
         "required": [
@@ -1521,20 +1649,40 @@
         "properties": {
           "kind": {
             "const": "not_recorded",
-            "title": "Kind"
+            "enum": [
+              "not_recorded"
+            ],
+            "title": "Kind",
+            "type": "string"
           },
           "label": {
-            "title": "Label"
+            "enum": [
+              null
+            ],
+            "title": "Label",
+            "type": "null"
           },
           "source_review": {
-            "title": "Source Review"
+            "enum": [
+              null
+            ],
+            "title": "Source Review",
+            "type": "null"
           },
           "status": {
             "const": "not_recorded",
-            "title": "Status"
+            "enum": [
+              "not_recorded"
+            ],
+            "title": "Status",
+            "type": "string"
           },
           "url": {
-            "title": "Url"
+            "enum": [
+              null
+            ],
+            "title": "Url",
+            "type": "null"
           }
         },
         "required": [
@@ -1588,7 +1736,11 @@
         "properties": {
           "independent_review_complete": {
             "const": false,
-            "title": "Independent Review Complete"
+            "enum": [
+              false
+            ],
+            "title": "Independent Review Complete",
+            "type": "boolean"
           },
           "recorded_source_count": {
             "minimum": 0.0,
@@ -1605,7 +1757,11 @@
           },
           "systematic_search_recorded": {
             "const": false,
-            "title": "Systematic Search Recorded"
+            "enum": [
+              false
+            ],
+            "title": "Systematic Search Recorded",
+            "type": "boolean"
           }
         },
         "required": [
@@ -1637,11 +1793,19 @@
           },
           "ready_for_preregistration": {
             "const": false,
-            "title": "Ready For Preregistration"
+            "enum": [
+              false
+            ],
+            "title": "Ready For Preregistration",
+            "type": "boolean"
           },
           "status": {
             "const": "blocked",
-            "title": "Status"
+            "enum": [
+              "blocked"
+            ],
+            "title": "Status",
+            "type": "string"
           }
         },
         "required": [
@@ -1742,14 +1906,22 @@
           },
           "preregistered": {
             "const": false,
-            "title": "Preregistered"
+            "enum": [
+              false
+            ],
+            "title": "Preregistered",
+            "type": "boolean"
           },
           "primary_metric": {
             "$ref": "#/components/schemas/LocalizedDiscoveryText"
           },
           "status": {
             "const": "draft_requires_user_completion",
-            "title": "Status"
+            "enum": [
+              "draft_requires_user_completion"
+            ],
+            "title": "Status",
+            "type": "string"
           },
           "validation_gaps": {
             "items": {
@@ -1878,7 +2050,11 @@
           },
           "status": {
             "const": "recorded",
-            "title": "Status"
+            "enum": [
+              "recorded"
+            ],
+            "title": "Status",
+            "type": "string"
           }
         },
         "required": [
@@ -1923,11 +2099,19 @@
         "properties": {
           "kind": {
             "const": "not_recorded",
-            "title": "Kind"
+            "enum": [
+              "not_recorded"
+            ],
+            "title": "Kind",
+            "type": "string"
           },
           "status": {
             "const": "not_recorded",
-            "title": "Status"
+            "enum": [
+              "not_recorded"
+            ],
+            "title": "Status",
+            "type": "string"
           },
           "summary": {
             "anyOf": [
@@ -1990,7 +2174,11 @@
           },
           "status": {
             "const": "not_recorded",
-            "title": "Status"
+            "enum": [
+              "not_recorded"
+            ],
+            "title": "Status",
+            "type": "string"
           },
           "url": {
             "anyOf": [
@@ -2343,7 +2531,11 @@
           },
           "schema_version": {
             "const": "favorites-v2",
-            "title": "Schema Version"
+            "enum": [
+              "favorites-v2"
+            ],
+            "title": "Schema Version",
+            "type": "string"
           },
           "tickers": {
             "items": {
@@ -2422,7 +2614,11 @@
           },
           "schema_version": {
             "const": "favorites-v2",
-            "title": "Schema Version"
+            "enum": [
+              "favorites-v2"
+            ],
+            "title": "Schema Version",
+            "type": "string"
           },
           "tickers": {
             "items": {
@@ -2885,7 +3081,11 @@
           },
           "error": {
             "const": "legacy_checkout_retired",
-            "title": "Error"
+            "enum": [
+              "legacy_checkout_retired"
+            ],
+            "title": "Error",
+            "type": "string"
           }
         },
         "required": [
@@ -2903,7 +3103,11 @@
           },
           "error": {
             "const": "legacy_privacy_endpoint_retired",
-            "title": "Error"
+            "enum": [
+              "legacy_privacy_endpoint_retired"
+            ],
+            "title": "Error",
+            "type": "string"
           }
         },
         "required": [
@@ -2921,7 +3125,11 @@
           },
           "error": {
             "const": "legacy_privacy_endpoint_retired",
-            "title": "Error"
+            "enum": [
+              "legacy_privacy_endpoint_retired"
+            ],
+            "title": "Error",
+            "type": "string"
           }
         },
         "required": [
@@ -3033,7 +3241,11 @@
           "error": {
             "anyOf": [
               {
-                "const": "credential_conflict"
+                "const": "credential_conflict",
+                "enum": [
+                  "credential_conflict"
+                ],
+                "type": "string"
               },
               {
                 "type": "null"
@@ -3152,7 +3364,11 @@
           },
           "schema_version": {
             "const": "mapping-response-v2",
-            "title": "Schema Version"
+            "enum": [
+              "mapping-response-v2"
+            ],
+            "title": "Schema Version",
+            "type": "string"
           }
         },
         "required": [
@@ -3413,7 +3629,11 @@
           },
           "contract_version": {
             "const": "secondary-tools-v2",
-            "title": "Contract Version"
+            "enum": [
+              "secondary-tools-v2"
+            ],
+            "title": "Contract Version",
+            "type": "string"
           },
           "count": {
             "maximum": 20.0,
@@ -3575,7 +3795,11 @@
           },
           "contract_version": {
             "const": "discovery-candidate-v2",
-            "title": "Contract Version"
+            "enum": [
+              "discovery-candidate-v2"
+            ],
+            "title": "Contract Version",
+            "type": "string"
           },
           "discovery_id": {
             "title": "Discovery Id",
@@ -3689,7 +3913,11 @@
           },
           "ok": {
             "const": true,
-            "title": "Ok"
+            "enum": [
+              true
+            ],
+            "title": "Ok",
+            "type": "boolean"
           },
           "report_id": {
             "title": "Report Id",
@@ -3697,11 +3925,19 @@
           },
           "reports": {
             "const": 1,
-            "title": "Reports"
+            "enum": [
+              1
+            ],
+            "title": "Reports",
+            "type": "integer"
           },
           "share_revoked": {
             "const": true,
-            "title": "Share Revoked"
+            "enum": [
+              true
+            ],
+            "title": "Share Revoked",
+            "type": "boolean"
           }
         },
         "required": [
@@ -3735,15 +3971,27 @@
           },
           "kind": {
             "const": "phase_company",
-            "title": "Kind"
+            "enum": [
+              "phase_company"
+            ],
+            "title": "Kind",
+            "type": "string"
           },
           "schema_version": {
             "const": "bookmark-v1",
-            "title": "Schema Version"
+            "enum": [
+              "bookmark-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
           },
           "source": {
             "const": "Phase",
-            "title": "Source"
+            "enum": [
+              "Phase"
+            ],
+            "title": "Source",
+            "type": "string"
           },
           "title": {
             "maxLength": 10,
@@ -3783,11 +4031,19 @@
             "type": "string"
           },
           "score": {
-            "title": "Score"
+            "enum": [
+              null
+            ],
+            "title": "Score",
+            "type": "null"
           },
           "status": {
             "const": "recorded",
-            "title": "Status"
+            "enum": [
+              "recorded"
+            ],
+            "title": "Status",
+            "type": "string"
           }
         },
         "required": [
@@ -3803,7 +4059,11 @@
         "properties": {
           "status": {
             "const": "gap_recorded",
-            "title": "Status"
+            "enum": [
+              "gap_recorded"
+            ],
+            "title": "Status",
+            "type": "string"
           },
           "summary": {
             "maxLength": 1000,
@@ -3830,7 +4090,11 @@
           },
           "evidence_level": {
             "const": "candidate",
-            "title": "Evidence Level"
+            "enum": [
+              "candidate"
+            ],
+            "title": "Evidence Level",
+            "type": "string"
           },
           "independence": {
             "$ref": "#/components/schemas/PhenomenonEvidenceIndependence"
@@ -3843,7 +4107,11 @@
           },
           "schema_version": {
             "const": "evidence-envelope-v1",
-            "title": "Schema Version"
+            "enum": [
+              "evidence-envelope-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
           },
           "source": {
             "$ref": "#/components/schemas/PhenomenonEvidenceSource"
@@ -3905,23 +4173,47 @@
         "additionalProperties": false,
         "properties": {
           "artifact_sha256": {
-            "title": "Artifact Sha256"
+            "enum": [
+              null
+            ],
+            "title": "Artifact Sha256",
+            "type": "null"
           },
           "claim_id": {
-            "title": "Claim Id"
+            "enum": [
+              null
+            ],
+            "title": "Claim Id",
+            "type": "null"
           },
           "recorded_at": {
-            "title": "Recorded At"
+            "enum": [
+              null
+            ],
+            "title": "Recorded At",
+            "type": "null"
           },
           "status": {
             "const": "not_recorded",
-            "title": "Status"
+            "enum": [
+              "not_recorded"
+            ],
+            "title": "Status",
+            "type": "string"
           },
           "url": {
-            "title": "Url"
+            "enum": [
+              null
+            ],
+            "title": "Url",
+            "type": "null"
           },
           "version": {
-            "title": "Version"
+            "enum": [
+              null
+            ],
+            "title": "Version",
+            "type": "null"
           }
         },
         "required": [
@@ -3983,7 +4275,11 @@
         "properties": {
           "kind": {
             "const": "internal_kb",
-            "title": "Kind"
+            "enum": [
+              "internal_kb"
+            ],
+            "title": "Kind",
+            "type": "string"
           },
           "label": {
             "maxLength": 1000,
@@ -3992,14 +4288,26 @@
             "type": "string"
           },
           "source_review": {
-            "title": "Source Review"
+            "enum": [
+              null
+            ],
+            "title": "Source Review",
+            "type": "null"
           },
           "status": {
             "const": "recorded",
-            "title": "Status"
+            "enum": [
+              "recorded"
+            ],
+            "title": "Status",
+            "type": "string"
           },
           "url": {
-            "title": "Url"
+            "enum": [
+              null
+            ],
+            "title": "Url",
+            "type": "null"
           }
         },
         "required": [
@@ -4315,7 +4623,11 @@
           },
           "ok": {
             "const": true,
-            "title": "Ok"
+            "enum": [
+              true
+            ],
+            "title": "Ok",
+            "type": "boolean"
           },
           "removed": {
             "$ref": "#/components/schemas/PrivacyRemovalCounts"
@@ -4434,7 +4746,11 @@
           },
           "ok": {
             "const": true,
-            "title": "Ok"
+            "enum": [
+              true
+            ],
+            "title": "Ok",
+            "type": "boolean"
           },
           "session_id": {
             "anyOf": [
@@ -4556,11 +4872,19 @@
           },
           "conflicts": {
             "const": 0,
-            "title": "Conflicts"
+            "enum": [
+              0
+            ],
+            "title": "Conflicts",
+            "type": "integer"
           },
           "ok": {
             "const": true,
-            "title": "Ok"
+            "enum": [
+              true
+            ],
+            "title": "Ok",
+            "type": "boolean"
           },
           "owned_total": {
             "minimum": 0.0,
@@ -4893,7 +5217,11 @@
           },
           "ok": {
             "const": true,
-            "title": "Ok"
+            "enum": [
+              true
+            ],
+            "title": "Ok",
+            "type": "boolean"
           }
         },
         "required": [
@@ -5143,7 +5471,11 @@
           },
           "contract_version": {
             "const": "secondary-tools-v2",
-            "title": "Contract Version"
+            "enum": [
+              "secondary-tools-v2"
+            ],
+            "title": "Contract Version",
+            "type": "string"
           },
           "evidence": {
             "$ref": "#/components/schemas/CandidateEvidenceEnvelope"
@@ -5161,7 +5493,11 @@
           },
           "screening_basis": {
             "const": "internal_ai_red_team",
-            "title": "Screening Basis"
+            "enum": [
+              "internal_ai_red_team"
+            ],
+            "title": "Screening Basis",
+            "type": "string"
           },
           "screening_outcome": {
             "enum": [
@@ -5261,7 +5597,11 @@
           },
           "contract_version": {
             "const": "secondary-tools-v2",
-            "title": "Contract Version"
+            "enum": [
+              "secondary-tools-v2"
+            ],
+            "title": "Contract Version",
+            "type": "string"
           },
           "evidence": {
             "$ref": "#/components/schemas/CandidateEvidenceEnvelope"
@@ -5273,7 +5613,11 @@
           },
           "screening_kind": {
             "const": "internal_ai_document_screen",
-            "title": "Screening Kind"
+            "enum": [
+              "internal_ai_document_screen"
+            ],
+            "title": "Screening Kind",
+            "type": "string"
           },
           "summary": {
             "maxLength": 1200,
@@ -5330,12 +5674,20 @@
           },
           "kind": {
             "const": "structural_analysis",
-            "title": "Kind"
+            "enum": [
+              "structural_analysis"
+            ],
+            "title": "Kind",
+            "type": "string"
           },
           "origin_contract_version": {
             "anyOf": [
               {
-                "const": "discovery-candidate-v2"
+                "const": "discovery-candidate-v2",
+                "enum": [
+                  "discovery-candidate-v2"
+                ],
+                "type": "string"
               },
               {
                 "type": "null"
@@ -5363,11 +5715,19 @@
           },
           "schema_version": {
             "const": "bookmark-v2",
-            "title": "Schema Version"
+            "enum": [
+              "bookmark-v2"
+            ],
+            "title": "Schema Version",
+            "type": "string"
           },
           "source": {
             "const": "Structural",
-            "title": "Source"
+            "enum": [
+              "Structural"
+            ],
+            "title": "Source",
+            "type": "string"
           },
           "source_id": {
             "anyOf": [
@@ -5421,12 +5781,20 @@
           },
           "kind": {
             "const": "structural_analysis",
-            "title": "Kind"
+            "enum": [
+              "structural_analysis"
+            ],
+            "title": "Kind",
+            "type": "string"
           },
           "origin_contract_version": {
             "anyOf": [
               {
-                "const": "discovery-candidate-v2"
+                "const": "discovery-candidate-v2",
+                "enum": [
+                  "discovery-candidate-v2"
+                ],
+                "type": "string"
               },
               {
                 "type": "null"
@@ -5612,7 +5980,11 @@
         "properties": {
           "status": {
             "const": "public_aggregation_paused",
-            "title": "Status"
+            "enum": [
+              "public_aggregation_paused"
+            ],
+            "title": "Status",
+            "type": "string"
           }
         },
         "required": [
@@ -5697,7 +6069,11 @@
           },
           "ok": {
             "const": true,
-            "title": "Ok"
+            "enum": [
+              true
+            ],
+            "title": "Ok",
+            "type": "boolean"
           },
           "ticker": {
             "pattern": "^[A-Z0-9][A-Z0-9.\\-]{0,9}$",
@@ -5715,6 +6091,13 @@
       },
       "ValidationError": {
         "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
           "loc": {
             "items": {
               "anyOf": [
@@ -5765,7 +6148,11 @@
         "properties": {
           "ok": {
             "const": true,
-            "title": "Ok"
+            "enum": [
+              true
+            ],
+            "title": "Ok",
+            "type": "boolean"
           },
           "user": {
             "$ref": "#/components/schemas/AuthUserResponse"

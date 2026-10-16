@@ -319,10 +319,19 @@ def _dispatcher_install_env(tmp_path: Path) -> tuple[dict[str, str], Path, Path,
 
 _RUNTIME_TEMPLATE: Path | None = None
 _RUNTIME_PACKAGE_VERSIONS = {
-    "fastapi": "0.115.14",
-    "pydantic": "2.6.1",
-    "starlette": "0.46.2",
+    "fastapi": "0.135.0",
+    "pydantic": "2.7.4",
+    "starlette": "1.3.1",
     "uvicorn": "0.27.1",
+}
+
+# These two failure/recovery scenarios deliberately model the older release.
+# Keep their old inputs and opt into that explicit historical contract; they
+# must reach the intended downstream failure instead of failing new defaults.
+_HISTORICAL_RUNTIME_EXPECTATIONS = {
+    "STRUCTURAL_EXPECTED_FASTAPI_VERSION": "0.115.14",
+    "STRUCTURAL_EXPECTED_PYDANTIC_VERSION": "2.6.1",
+    "STRUCTURAL_EXPECTED_STARLETTE_VERSION": "0.46.2",
 }
 
 
@@ -771,7 +780,7 @@ def test_deploy_builds_before_sync_and_rolls_back_all_mutable_state() -> None:
     assert "'structural_isomorphism/**'" in workflow
     assert "Verify immutable runtime attestation" in workflow
     assert "requirements_sha256" in workflow and "cpython-311" in workflow
-    assert '"starlette": "0.46.2"' in workflow
+    assert '"starlette": "1.3.1"' in workflow
 
 
 def test_beta_dispatch_pins_one_full_main_reachable_commit() -> None:
@@ -1328,11 +1337,14 @@ def test_failed_runtime_build_leaves_current_and_code_untouched(tmp_path: Path) 
         "pydantic==2.6.1\n",
         encoding="utf-8",
     )
+    build_attempted = tmp_path / "resolver-venv-attempted"
     fake_python = tmp_path / "python"
     fake_python.write_text(
         "#!/usr/bin/env bash\n"
+        "if [[ ${1:-} == -I ]]; then shift; fi\n"
         "if [[ ${1:-} == -c ]]; then echo cpython-311; exit 0; fi\n"
-        "if [[ ${1:-} == -m && ${2:-} == venv ]]; then exit 47; fi\n"
+        "if [[ ${1:-} == -m && ${2:-} == venv ]]; then "
+        f"printf 'attempted\\n' > {shlex.quote(str(build_attempted))}; exit 47; fi\n"
         "exit 48\n",
         encoding="utf-8",
     )
@@ -1348,9 +1360,11 @@ def test_failed_runtime_build_leaves_current_and_code_untouched(tmp_path: Path) 
         f'test "$(cat {shlex.quote(str(code))})" = old; '
         'test ! -e "$RUNTIME_RELEASE"; '
         'test -z "$(find "$RUNTIME_RELEASES" -maxdepth 1 -name ".build-*" -print -quit)"',
+        env=_HISTORICAL_RUNTIME_EXPECTATIONS,
     )
 
     assert result.returncode == 0, result.stderr
+    assert build_attempted.read_text() == "attempted\n"
     assert current.resolve() == old_release.resolve()
     assert code.read_text(encoding="utf-8") == "old\n"
 
@@ -2019,10 +2033,11 @@ def test_incomplete_release_that_current_resolves_to_is_never_deleted(tmp_path: 
         f'RUNTIME_PYTHON={shlex.quote(sys.executable)}; '
         f'if runtime_prepare {shlex.quote(str(requirements))}; then exit 92; fi; '
         f'test -f {shlex.quote(str(incomplete / ".building"))}',
-        env={"STRUCTURAL_EXPECTED_PYTHON_ABI": abi},
+        env={**_HISTORICAL_RUNTIME_EXPECTATIONS, "STRUCTURAL_EXPECTED_PYTHON_ABI": abi},
     )
 
     assert result.returncode == 0, result.stderr
+    assert "incomplete release is unexpectedly active" in result.stderr
     assert (incomplete / ".building").is_file()
 
 
@@ -2903,3 +2918,64 @@ def test_external_ci_timeout_term_uses_the_same_single_finalizer(tmp_path: Path)
     assert (paths["target"] / "app.py").read_text(encoding="utf-8") == "old code\n"
     assert paths["unit"].read_text(encoding="utf-8") == "old unit\n"
     assert (paths["runtime_root"] / "current").resolve() == paths["old_release"].resolve()
+
+
+def _direct_pin_contract(
+    requirements: Path, *, historical_expectations: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    environment = os.environ.copy()
+    for package in ("FASTAPI", "PYDANTIC", "STARLETTE", "UVICORN"):
+        environment.pop(f"STRUCTURAL_EXPECTED_{package}_VERSION", None)
+    if historical_expectations:
+        environment.update(historical_expectations)
+    return subprocess.run(
+        ["bash", "-c", 'set -euo pipefail; source "$1"; runtime_validate_direct_pins "$2"',
+         "default-runtime-pin-contract", str(HELPER), str(requirements)],
+        env=environment, capture_output=True, text=True, check=False, timeout=10,
+    )
+
+
+def test_default_runtime_helper_accepts_actual_current_release_requirements() -> None:
+    result = _direct_pin_contract(ROOT / "web/backend/requirements.txt")
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize("drift", [
+    "historical", "fastapi", "pydantic", "starlette", "uvicorn", "duplicate", "missing",
+])
+def test_default_runtime_helper_rejects_old_drifted_or_nonexact_pins(
+    tmp_path: Path, drift: str,
+) -> None:
+    rows = (ROOT / "web/backend/requirements.txt").read_text().splitlines()
+    old_versions = {"fastapi": "0.115.14", "pydantic": "2.6.1", "starlette": "0.46.2"}
+    mutated = []
+    for row in rows:
+        for package, current in _RUNTIME_PACKAGE_VERSIONS.items():
+            requirement_name = "uvicorn[standard]" if package == "uvicorn" else package
+            if row != f"{requirement_name}=={current}":
+                continue
+            if drift == "historical" and package in old_versions:
+                row = f"{package}=={old_versions[package]}"
+            elif drift == package:
+                row = f"{requirement_name}==0.0.0"
+            elif drift == "missing" and package == "pydantic":
+                row = "# pydantic pin intentionally missing"
+        mutated.append(row)
+    if drift == "duplicate":
+        mutated.append("fastapi==0.135.0")
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text("\n".join(mutated) + "\n")
+    result = _direct_pin_contract(requirements)
+    assert result.returncode == 1
+    assert "requirements must contain exactly one" in result.stderr
+
+
+def test_historical_pin_contract_is_explicit_and_does_not_change_defaults(tmp_path: Path) -> None:
+    requirements = tmp_path / "historical-requirements.txt"
+    requirements.write_text(
+        "fastapi==0.115.14\nstarlette==0.46.2\npydantic==2.6.1\nuvicorn[standard]==0.27.1\n"
+    )
+    assert _direct_pin_contract(requirements).returncode == 1
+    historical = _direct_pin_contract(requirements, historical_expectations=_HISTORICAL_RUNTIME_EXPECTATIONS)
+    assert historical.returncode == 0, historical.stderr
+    assert _direct_pin_contract(ROOT / "web/backend/requirements.txt").returncode == 0

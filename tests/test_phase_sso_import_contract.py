@@ -38,8 +38,8 @@ def test_phase_runtime_locks_shared_account_dependencies() -> None:
     requirements = (
         Path(__file__).parents[1] / "v4/product/d1_phase_detector/api/requirements.txt"
     ).read_text().splitlines()
-    assert "starlette==0.46.2" in requirements
-    assert "PyJWT==2.12.1" in requirements
+    assert "starlette==1.3.1" in requirements
+    assert "PyJWT==2.15.1" in requirements
     assert "slowapi==0.1.9" in requirements
     assert "structlog==25.5.0" in requirements
 

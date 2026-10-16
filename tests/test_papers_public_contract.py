@@ -318,3 +318,77 @@ def test_index_evidence_summary_has_mobile_touch_target_contract() -> None:
 
     assert "box-sizing: border-box" in summary_rule
     assert "min-height: 44px" in summary_rule
+
+
+def test_index_render_cache_requires_successful_identity_and_actual_language() -> None:
+    """Exercise the real renderer closure with controlled load/i18n ordering."""
+    program = r"""
+const fs = require('fs'), vm = require('vm'), assert = require('assert/strict');
+const renderer = fs.readFileSync(process.argv[1], 'utf8');
+const catalog = fs.readFileSync(process.argv[2], 'utf8');
+const manifest = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+for (const earlyNotification of [false, true]) {
+  let lang = 'zh', listener, deliver, writes = 0, fail = false, missing = false;
+  const root = {
+    set innerHTML(value) { writes++; this.html = value; },
+    setAttribute() { if (fail) { fail = false; throw Error('controlled finalization failure'); } }
+  };
+  const status = {}, labels = new Map();
+  const document = {
+    createElement: () => ({set textContent(v) { this.v=v; }, get innerHTML() { return this.v; }}),
+    getElementById: id => id === 'papers-content' ? (missing ? null : root)
+      : id === 'papers-filter-status' ? status : null,
+    querySelectorAll: () => [],
+    querySelector: selector => {
+      if (!labels.has(selector)) labels.set(selector, {setAttribute(k,v) { this[k]=v; }});
+      return labels.get(selector);
+    }
+  };
+  const window = {location: {href:'https://local.invalid/papers'}, i18n: {
+    getLang: () => lang, onChange: fn => {listener=fn; if (earlyNotification) fn();}
+  }};
+  const sandbox = {window, document, fetch: () => new Promise(()=>{}), URL, CSS:{escape:s=>s}};
+  vm.runInNewContext(catalog, sandbox);
+  const real = window.StructuralPapersCatalog;
+  const validated = real.validateManifest(manifest);
+  window.StructuralPapersCatalog = {...real, loadManifest: () => ({
+    then: fn => {deliver=fn; return {catch() {}};}
+  })};
+  vm.runInNewContext(renderer, sandbox);
+  assert.equal(writes, 0);
+  missing=true;
+  assert.throws(()=>deliver(validated), /content root is missing/);
+  assert.equal(writes, 0);
+  missing=false;
+  deliver(validated);
+  assert.equal(writes, 1);
+  for (let n=0;n<3;n++) listener();
+  assert.equal(writes, 1);
+  assert.equal(labels.get('#papers-stats')['aria-label'], '历史材料构成');
+  lang='en'; listener(); assert.equal(writes, 2);
+  assert.ok(root.html.includes(manifest.groups[0].papers[0].title_en));
+  listener(); assert.equal(writes, 2);
+  lang='zh'; listener(); assert.equal(writes, 3);
+  // A newly validated object must not be collapsed by JSON/content equality.
+  deliver(real.validateManifest(JSON.parse(JSON.stringify(manifest))));
+  assert.equal(writes, 4);
+  listener(); assert.equal(writes, 4);
+  // Failure after DOM replacement cannot mark this tuple successfully rendered.
+  lang='en'; fail=true;
+  assert.throws(()=>listener(), /controlled finalization failure/);
+  assert.equal(writes, 5);
+  listener(); assert.equal(writes, 6);
+  listener(); assert.equal(writes, 6);
+  missing=true;
+  assert.throws(()=>listener(), /content root is missing/);
+  missing=false; listener(); assert.equal(writes, 7);
+  listener(); assert.equal(writes, 7);
+}
+process.stdout.write('render lifecycle contracts passed');
+"""
+    result = subprocess.run(
+        ["node", "-e", program, str(FRONTEND / "assets/js/papers.js"),
+         str(CATALOG_JS), str(MANIFEST_PATH)],
+        check=True, capture_output=True, text=True,
+    )
+    assert result.stdout == "render lifecycle contracts passed"

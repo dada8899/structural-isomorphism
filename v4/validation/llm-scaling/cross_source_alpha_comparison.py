@@ -491,12 +491,13 @@ def make_figure(
     fig.suptitle("Pythia learning-curve α: cross-source universality robustness",
                  fontsize=11, y=1.02)
     fig.tight_layout()
+    fig.text(0.5, -0.12, "Missing error bars indicate unavailable uncertainty, not zero error.", ha="center", fontsize=8)
     fig.savefig(
         out_path,
         dpi=300,
         bbox_inches="tight",
         metadata={
-            "Software": "structural-isomorphism-llm-scaling-v1",
+            "Software": "structural-isomorphism-llm-scaling-v2",
             "StructuralSummarySHA256": summary_sha256,
         },
     )
@@ -536,9 +537,22 @@ def main(*, write: bool = True) -> tuple[dict, dict]:
     for k, v in spot.items():
         print(f"  {k}: {v}")
 
+    # Bind derived reports and pixels to the same versioned estimator inputs.
+    train_loss = json.loads((ROOT / "results.json").read_text())
+    binding = {
+        "train_loss_schema": train_loss["schema_version"],
+        "train_loss_estimator": train_loss["generation_contract"]["estimator"],
+        "input_artifacts_sha256": {
+            name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
+            for name in ("results.json", "results_lambada.json", "results_lambada_v2.json")
+        },
+        "implementation_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    }
+    spot["generation_binding"] = binding
     # ---------- write JSON summary ----------
     summary = _canonicalize(dict(
-        generated_at="SESSION-25 cross-source α comparison",
+        generation_binding=binding,
+        generated_at="2026-10-16 numerical-estimator refresh; historical LAMBADA inputs unchanged",
         sources={
             "LAMBADA_v1": "v4/validation/llm-scaling/results_lambada.json",
             "LAMBADA_v2": "v4/validation/llm-scaling/results_lambada_v2.json",

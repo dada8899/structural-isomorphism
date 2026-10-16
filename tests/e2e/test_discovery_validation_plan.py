@@ -146,13 +146,43 @@ def _route_daily_dependencies(page) -> None:
 
 
 @pytest.mark.parametrize("width", [320, 390])
+@pytest.mark.parametrize("hold_suggest", [False, True], ids=["normal", "suggest-held"])
 def test_daily_candidate_cards_are_scoreless_accessible_and_deep_linked(
-    page, discovery_origin: str, width: int
+    page, discovery_origin: str, width: int, hold_suggest: bool
 ) -> None:
     page.set_viewport_size({"width": width, "height": 844})
     _route_daily_dependencies(page)
-    page.goto(f"{discovery_origin}/learn.html", wait_until="domcontentloaded", timeout=20_000)
-    page.locator("#daily-grid .disc-card").first.wait_for()
+    if hold_suggest:
+        pending = {"released": False, "routes": []}
+
+        def complete_suggest(route) -> None:
+            if pending["released"]:
+                route.fulfill(status=200, content_type="application/json", body='{"suggestions":[]}')
+            else:
+                pending["routes"].append(route)
+
+        page.route("**/api/suggest**", complete_suggest)
+        with page.expect_request(lambda req: "/api/suggest" in req.url, timeout=10_000), \
+                page.expect_response(lambda res: "/api/daily" in res.url, timeout=10_000) as daily:
+            page.goto(f"{discovery_origin}/learn.html", wait_until="domcontentloaded", timeout=20_000)
+        daily_response = daily.value
+        daily_response.finished()
+        assert daily_response.status == 200
+        assert len(daily_response.json()["discoveries"]) == 3
+        # The old readiness condition is already satisfied by three busy
+        # ARTICLE skeletons, even though valid daily data has arrived.
+        page.locator("#daily-grid .disc-card").first.wait_for()
+        assert pending["routes"]
+        assert page.locator("#daily-grid .disc-card").count() == 3
+        assert page.locator("#daily-grid .disc-card--skeleton[aria-busy=true]").count() == 3
+        assert page.locator("#daily-grid a.disc-card").count() == 0
+        assert all(card.get_attribute("href") is None for card in page.locator("#daily-grid .disc-card").all())
+        pending["released"] = True
+        for route in pending["routes"]:
+            route.fulfill(status=200, content_type="application/json", body='{"suggestions":[]}')
+    else:
+        page.goto(f"{discovery_origin}/learn.html", wait_until="domcontentloaded", timeout=20_000)
+    page.locator("#daily-grid a.disc-card").first.wait_for()
 
     cards = page.locator("#daily-grid .disc-card")
     assert cards.count() == 3

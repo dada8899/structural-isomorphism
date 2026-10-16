@@ -5,9 +5,9 @@ permissions:
 
 on:
   push:
-    branches: [main]
+    branches: [main, integration/structure-rebuild-v1, bootstrap/structure-ci-20261016]
   pull_request:
-    branches: [main]
+    branches: [main, integration/structure-rebuild-v1]
 
 # Cancel duplicate runs on the same PR / branch — keeps queue clean.
 concurrency:
@@ -87,11 +87,11 @@ jobs:
             pytest==9.0.3 \
             playwright==1.59.0 \
             pytest-playwright==0.7.2 \
-            fastapi==0.115.14 \
-            pydantic==2.6.1 \
-            starlette==0.46.2 \
+            fastapi==0.135.0 \
+            pydantic==2.7.4 \
+            starlette==1.3.1 \
             'uvicorn[standard]==0.27.1' \
-            PyJWT==2.12.1 \
+            PyJWT==2.15.1 \
             slowapi==0.1.9 \
             structlog==25.5.0
           python -m playwright install --with-deps chromium
@@ -149,6 +149,7 @@ jobs:
             pytest_args: >-
               tests/e2e/test_full_public_surface.py
               tests/e2e/test_unified_research_library.py
+              tests/e2e/test_history_sidebar.py
             pytest_args_isolated: >-
               web/tests/e2e/test_thank_you_copy.py
               web/tests/e2e/test_report_share.py
@@ -157,6 +158,7 @@ jobs:
               web/frontend/tests/test_analyticsSensitiveRoutes.js
               web/frontend/tests/test_historyPrivacy.js
               web/frontend/tests/test_reportTrust.js
+              web/frontend/tests/test_historySidebarPerformance.js
           - shard: secondary-whitespace
             pytest_args: >-
               web/tests/e2e/test_secondary_tools_candidate_journeys.py
@@ -185,11 +187,11 @@ jobs:
             playwright==1.59.0 \
             pytest-playwright==0.7.2 \
             httpx==0.27.2 \
-            fastapi==0.115.14 \
-            pydantic==2.6.1 \
-            starlette==0.46.2 \
+            fastapi==0.135.0 \
+            pydantic==2.7.4 \
+            starlette==1.3.1 \
             'uvicorn[standard]==0.27.1' \
-            PyJWT==2.12.1 \
+            PyJWT==2.15.1 \
             slowapi==0.1.9 \
             structlog==25.5.0
           python -m playwright install --with-deps chromium
@@ -388,7 +390,10 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     timeout-minutes: 12
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'run-e2e')
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.base_ref == 'main' &&
+       contains(github.event.pull_request.labels.*.name, 'run-e2e'))
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

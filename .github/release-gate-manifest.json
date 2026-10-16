@@ -34,6 +34,11 @@
       "workflow": ".github/workflows/beta-perf.yml",
       "job": "beta-perf-audit",
       "context": "beta-perf-audit"
+    },
+    {
+      "workflow": ".github/workflows/product-ci.yml",
+      "job": "product",
+      "context": "product"
     }
   ],
   "external_boundary": "GitHub branch protection must require every listed check; repository YAML cannot create cross-workflow needs edges."

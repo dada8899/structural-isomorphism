@@ -41,7 +41,27 @@ concurrency:
   queue: single
 
 jobs:
+  admit-production:
+    name: Admit production ref
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    steps:
+      - name: Reject non-production ref before side effects
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SOURCE_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME:$SOURCE_REF" in
+            push:refs/heads/main|workflow_dispatch:refs/heads/main) ;;
+            *) echo "::error::Production entry requires the main branch"; exit 1 ;;
+          esac
+
   release-contracts:
+    needs: admit-production
     name: Python 3.11 exact-SHA release contracts
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -170,9 +190,9 @@ jobs:
           expected_sha = os.environ["EXPECTED_SHA"]
           requirements_sha = os.environ["REQUIREMENTS_SHA"]
           expected_versions = {
-              "fastapi": "0.115.14",
-              "pydantic": "2.6.1",
-              "starlette": "0.46.2",
+              "fastapi": "0.135.0",
+              "pydantic": "2.7.4",
+              "starlette": "1.3.1",
               "uvicorn": "0.27.1",
           }
           assert body.get("schema_version") == 1, body
