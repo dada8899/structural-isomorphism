@@ -544,7 +544,9 @@
     syncSidebarAccessibility();
   }
 
-  function isMobile() { return window.innerWidth < 1024; }
+  // Match the injected CSS without flushing layout after sidebar DOM writes.
+  var mobileViewport = window.matchMedia('(max-width: 1023px)');
+  function isMobile() { return mobileViewport.matches; }
 
   // ---------- Wire up ----------
   function init() {
