@@ -343,6 +343,7 @@ coverage原矩阵没有收集root研究合同，六个公式／provider生产文
 实际覆盖使用已披露的既有异依赖Python3.11完整环境，同八root文件通过并合并其parallel数据；这是**root-only分组采样**，不拼旧head完整数据、不复用旧85.6%声称组合达标。financial_schemas／policy／evaluator／result_adapter／usage_upper分别96.4／93.4／99.0／90.8／96.7%。此子集面对全source分母仅19.8%，默认80检查退出2，原样保留；初次仅诊断JSON渲染不作为门槛结论，未修改CI或配置阈值。未执行完整旧矩阵或声称normal Linux已全绿，后续仍须组合整体验证及正常CI。
 
 29个guard观测PID均无running，guard事件仅29次bootstrap、无deny；本任务synthetic DB／tmp／cache目录已移除，保留受限日志／XML／coverage／guard证据供审查。原受控root与backend复验不等于真实模型、资金或VPS验收。作者仅四路径停写交PMO新SHA／原Astra复审，无新官方／账户／模型请求、依赖安装、SSH、费用、提交或推送。
+
 ## Nightly 显式移除密钥驱动的远端模型测试入口
 
 日期：2026-10-17，分支 `codex/structure-nightly-admission-20261017`，基线 `bd0a7b1c0e7e15e483e4bf45790dfd1a0800e3e4`。独立research-ci工作区及其正常CI不动。原Nightly按OPENROUTER密钥是否存在选择目录级e2e扫描，key分支允许requires_llm；无key分支也不是免费证明，旧目录内有未标requires_llm的远端method/apply、stress和Ask提交，另有收集期远端可达性探测。
