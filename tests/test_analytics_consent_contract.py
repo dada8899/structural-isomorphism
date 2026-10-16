@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "web" / "frontend"
 
 AUTH_OR_NONPUBLIC = {
+    "research.html",  # Private problem/revision/task workspace; no tracker loader.
     "auth-callback.html",
     "auth-login.html",
     "auth-verify.html",
@@ -23,6 +24,7 @@ AUTH_OR_NONPUBLIC = {
 }
 
 ANALYTICS_PRIVATE_OR_RETIRED_PAGES = {
+    "research",
     "404",
     "analyze",
     "connections",
@@ -91,6 +93,20 @@ def test_consent_loader_is_explicit_dnt_first_and_fail_closed() -> None:
     assert "EVENT_POLICIES" in source
     assert "Object.prototype.hasOwnProperty.call(EVENT_POLICIES, name)" in source
     assert "document.createElement('script')" not in source
+
+
+def test_research_workspace_and_actual_bundle_never_load_analytics() -> None:
+    html = (FRONTEND / "research.html").read_text(encoding="utf-8")
+    bundle = (FRONTEND / "assets/research.js").read_text(encoding="utf-8")
+    assert "research.html" in AUTH_OR_NONPUBLIC
+    assert "research" in ANALYTICS_PRIVATE_OR_RETIRED_PAGES
+    assert html.count('src="/assets/research.js"') == 1
+    for content in (html, bundle):
+        for forbidden in (
+            "analytics-consent.js", "/assets/js/analytics.js", "plausible.bytedance.city",
+            "window.plausible", "window.analytics", "trackPlausible", "trackEvent", "gtag(",
+        ):
+            assert forbidden not in content
 
 
 def test_analytics_public_allowlist_matches_published_consent_pages() -> None:

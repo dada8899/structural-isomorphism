@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import subprocess
 
 import pytest
@@ -609,3 +610,54 @@ def test_runtime_path_step_exports_exact_paths_and_cleanup_is_scoped(tmp_path):
     assert removed.returncode == 0, removed.stderr
     assert not runtime.exists() and not checker.exists()
     assert marker.read_text() == "must remain"
+
+
+RESEARCH_COVERAGE_COMMAND = [
+    'python', '-m', 'coverage', 'run', '-p', '--rcfile=.coveragerc', '-m', 'pytest',
+    'tests/test_research_evidence.py', 'tests/test_research_sources.py',
+    'tests/test_research_formula.py', 'tests/test_research_provider_adapter.py',
+    'tests/test_research_model_report.py', '$PYTEST_FLAGS',
+]
+
+
+def _assert_research_coverage_closure(value, rcfile):
+    job = copy.deepcopy(value['jobs']['coverage'])
+    step = next(s for s in job['steps'] if s.get('name') == 'Run coverage (split by suite, parallel files combined)')
+    commands = [shlex.split(line, comments=True)
+                for line in re.sub(r'\\\n\s*', ' ', step['run']).splitlines()
+                if shlex.split(line, comments=True)]
+    assert commands[-1] == ['python', '-m', 'coverage', 'combine', '--rcfile=.coveragerc']
+    assert commands[-2] == RESEARCH_COVERAGE_COMMAND
+    assert sum(command == RESEARCH_COVERAGE_COMMAND for command in commands) == 1
+    step['run'] = commands[:-2] + commands[-1:]
+    # Freeze the original job, suites, limits and reports, apart from this one
+    # added parallel measurement. Ignore comments/line wrapping in its script.
+    assert hashlib.sha256(json.dumps(job, sort_keys=True, separators=(',', ':')).encode()).hexdigest() == '9eebc30634e8c6c7dcdaa030b2d21ec93d3814385b21b6a36423dd25080033ba'
+    assert hashlib.sha256(rcfile.encode()).hexdigest() == 'd99a2766d35215d1249c6f0388d8bb9effa7faec8ed715c040f897d6314847af'
+
+
+def test_coverage_measures_root_research_before_combining_without_weakening_gates():
+    _assert_research_coverage_closure(workflow('coverage.yml'), (ROOT / '.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('mutation', ['missing_file', 'missing_parallel', 'wrong_rcfile',
+    'ignore_failure', 'after_combine', 'legacy_suite', 'timeout', 'global_threshold', 'omit'])
+def test_research_coverage_closure_rejects_incomplete_or_relaxed_pipeline(mutation):
+    value = workflow('coverage.yml')
+    rcfile = (ROOT / '.coveragerc').read_text()
+    step = next(s for s in value['jobs']['coverage']['steps'] if s.get('name') == 'Run coverage (split by suite, parallel files combined)')
+    marker = '# Root research contracts'
+    before, added = step['run'].split(marker, 1)
+    if mutation == 'missing_file':added = added.replace('tests/test_research_model_report.py', '')
+    elif mutation == 'missing_parallel':added = added.replace('coverage run -p', 'coverage run')
+    elif mutation == 'wrong_rcfile':added = added.replace('--rcfile=.coveragerc', '--rcfile=other.ini', 1)
+    elif mutation == 'ignore_failure':added = added.replace('$PYTEST_FLAGS', '$PYTEST_FLAGS || true')
+    elif mutation == 'after_combine':
+        added = added.replace('python -m coverage combine --rcfile=.coveragerc\n', '')
+        before += 'python -m coverage combine --rcfile=.coveragerc\n'
+    elif mutation == 'legacy_suite':before = before.replace('packages/guarded-llm/tests/', 'packages/guarded-llm/missing/')
+    elif mutation == 'timeout':value['jobs']['coverage']['timeout-minutes'] = 25
+    elif mutation == 'global_threshold':rcfile = rcfile.replace('fail_under = 80', 'fail_under = 79')
+    else:rcfile += '\n    web/backend/research/*\n'
+    step['run'] = before + marker + added
+    with pytest.raises(AssertionError):_assert_research_coverage_closure(value, rcfile)

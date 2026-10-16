@@ -70,6 +70,15 @@ jobs:
               packages/soc-pipeline/tests/test_time_resolution.py \
               packages/soc-pipeline/tests/test_fit.py \
               $PYTEST_FLAGS
+          # Root research contracts cover the unwired formula/provider modules;
+          # they are not collected by the backend or package test directories.
+          python -m coverage run -p --rcfile=.coveragerc -m pytest \
+              tests/test_research_evidence.py \
+              tests/test_research_sources.py \
+              tests/test_research_formula.py \
+              tests/test_research_provider_adapter.py \
+              tests/test_research_model_report.py \
+              $PYTEST_FLAGS
           python -m coverage combine --rcfile=.coveragerc
       - name: Every production package has measured coverage
         run: |

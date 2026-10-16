@@ -314,6 +314,22 @@ sanity仅在既有 `python -m pip install playwright==1.59.0` 后增加 `python 
 
 既有Python3.11环境最终完整lifetime文件 **14 passed、退出0（35.58秒）**（原9＋新增5）；原persistence选取root-first真实spawn对照及两项监督器收尾对照 **3 passed、退出0（2.13秒）**，不重复无关大套，一条既有依赖warning。AST与原源码前缀对照确认，全部原函数只有ps参数这一项变化；差异检查通过。仅本测试文件和本记录停写交PMO原Astra复审，待后续新head正常CI执行真实Linux寿命断言；不提前宣称Linux五项已绿。没有应用、公开源、CI、依赖、预算、凭据或费用改动，无新trace、提交或推送，44cb旧红保留。
 
+## fb 正常 CI 的研究页隐私分类与 root coverage 接线
+
+日期：2026-10-17。独立工作区分支 `codex/structure-research-ci-20261017`，基线 `fb8491e772fb996c0819494a1e8e88ce77b3d92f`。原 Source 工作区不动。只读核原正常 sanity run `38961375038`／job `117177000087`：Leg2成功，Leg3唯一失败为新增research页使public计数28而非27；该步1848 passed、160 skipped、1 deselected、53 subtests passed、1 failed。coverage run `38961375187`／job `117177000462` 的各套执行和package测量检查成功，但总覆盖率77.0%＜80，后续90%检查未执行；旧红保留，不重跑采绿。
+
+`research.html` 与实际bundle `assets/research.js` 没有analytics loader／调用，且含私密问题、query与task标识。测试将research明确列为nonpublic／private，原27数值不改；新增HTML和正确bundle路径无追踪的合同。原loader不在research路径安装或发事件，无需修改生产allowlist或给私密页安装追踪。新Node用例覆盖10种research路径／编码形式，即使既有opt-in、显式allow或保留从public页面取得的发送函数，也不新增请求；保留合法public paper slug与原全部Node用例。
+
+coverage原矩阵没有收集root研究合同，六个公式／provider生产文件合1455语句均0%。原combine前仅追加同rcfile、独立parallel run，精确点名evidence、sources、formula、provider_adapter、model_report五个已有root文件；不泛扫浏览器或生成器测试。原source／omit、全部旧套件、15分钟、80%与六文件90%门槛不变。新增严格接线合同核五路径、parallel、rcfile、combine顺序，并冻结原job语义／覆盖配置；九类缺路径、吞错、弱阈值等变体拒绝。
+
+发布匹配既有环境的静态合同组合 **243 passed、退出0**；Node原集合加研究路由反例 **17 passed**。旧Python测试函数和原Node用例保持，actionlint、AST／精确差异检查通过。现场56个LFS对象均为完整内容，无额外数据恢复、依赖安装或runtime修改。
+
+实际本机coverage使用获准的既有完整Python3.11环境；其FastAPI0.115.14／Pydantic2.6.1与CI新发布依赖不同，不能冒锁匹配结果。四个包显式从当前checkout导入，OpenAPI子进程指向既有发布匹配环境；不写入运行配置。初次backend采集 **2061 passed、1 skipped、8 failed** 原日志完整保留：七项是本地禁autoload后漏载已有AnyIO插件，一项是旧环境FastAPI版本断言。只追加测量七异步项，显式已有插件后 **7 passed**；版本断言在发布匹配环境单独 **1 passed**，没有修改／跳过该断言，也没有将局部结果合写为旧环境整套通过。
+
+其余原测量：guarded111、cross-judge162、critic50、v4 sanity201、soc原选择59均passed；新增五root文件 **215 passed、2个原Mac/Linux差异skip、53 subtests passed**。实际parallel数据完成combine，17025语句分母不变，14566行覆盖、2459缺失，**85.6%**；显式原global80命令、四个package最低1和六个critical90命令均退出0。critical依次为100.0／98.1／99.0／97.3／100.0／97.3%。公式／provider六文件分别63.8／94.2／91.0／99.1／91.6／98.0%，不冒每模块90或子进程全覆盖。
+
+受限私有目录保留原失败日志、补测日志、parallel合并数据及coverage.json，均不含真实凭据或资金配置；只作本地带环境差异的采样，正常Linux新head必须完整通过。所有本任务测试进程／服务已沿原finally收尾，无待运行coverage进程。本卡只五个获准路径，不改应用、Source／CONTRACT、账本、费用、runtime或阈值。作者停写交PMO精确提交及原Astra独审，未提交／推送或触发CI。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。
