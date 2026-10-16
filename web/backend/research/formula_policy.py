@@ -392,6 +392,15 @@ def comparison(left, right, scope):
             raise PolicyIssue("failed", "zero_nonzero_initial_problems_not_equivalent")
         elif scope == "equation_form" and lk != rk:
             relation = "partial_structure"  # general ODE vs solution family; no IVP claim
+        elif scope == "equation_form" and lk == rk == "solution":
+            amplitudes = [roles(form)["x0" if form.template_id == "passive_decay" else "delta0"].value for form in (left, right)]
+            # These amplitudes are part of the supplied closed forms, even
+            # without an IVP record. A zero/unknown scale cannot be treated as
+            # an invertible map between the actual solution expressions.
+            if any(value is None for value in amplitudes) or (rational(amplitudes[0]) == 0) != (rational(amplitudes[1]) == 0):
+                relation = "partial_structure"
+            else:
+                relation = "local_approximation" if "linear_stable" in {left.template_id, right.template_id} else "conditional_model_equivalence"
         else:
             relation = "local_approximation" if "linear_stable" in {left.template_id, right.template_id} else "conditional_model_equivalence"
     elif left.template_id == right.template_id and lo == ro and left.measure_scope == right.measure_scope:
@@ -419,4 +428,10 @@ def comparison(left, right, scope):
             trace.append({"kind": "substitute_constant" if initial(left) == 0 else "state_normalize",
                           "input_digest": trace[-1]["output_digest"], "output_digest": digest({"initial": 0 if initial(left) == 0 else 1}),
                           "precondition_ids": ["left_initial_value", "right_initial_value"]})
+        elif scope == "equation_form" and form_kind(left) == form_kind(right) == "solution" and relation != "partial_structure":
+            amplitude = rational(roles(left)["x0" if left.template_id == "passive_decay" else "delta0"].value)
+            trace.append({"kind": "substitute_constant" if amplitude == 0 else "state_normalize",
+                          "input_digest": trace[-1]["output_digest"],
+                          "output_digest": digest({"solution": "zero" if amplitude == 0 else "exp(-s)", "scope": scope}),
+                          "precondition_ids": ["left_closed_form_amplitude", "right_closed_form_amplitude"]})
     return relation, tuple(trace)

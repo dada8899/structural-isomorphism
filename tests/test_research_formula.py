@@ -127,6 +127,31 @@ def closed_side(template="passive_decay", prefix="a", *, kind="tau", use_tau=Fal
 
 
 class FormulaConsumers(unittest.TestCase):
+    def test_closed_form_zero_nonzero_amplitudes_are_not_solution_equivalent(self):
+        for template in ("passive_decay", "linear_stable"):
+            left = closed_side(template, kind="solution", amplitude="0")
+            right = closed_side(template, "b", kind="solution", amplitude="3")
+            left["initial_conditions"] = right["initial_conditions"] = []
+            result = core(request(left, right))
+            canonical = outcomes(result)["canonical_transform"]
+            self.assertEqual(canonical.relation, "partial_structure")
+            self.assertEqual(outcomes(result)["bounded_numeric"].status, "failed")
+            self.assertNotIn("state_normalize", [v["kind"] for v in canonical.trace])
+            role = "x0" if template == "passive_decay" else "delta0"
+            next(v for v in left["symbols"] if v["role"] == role)["value"] = None
+            self.assertEqual(outcomes(core(request(left, right)))["canonical_transform"].relation, "partial_structure")
+
+    def test_closed_form_double_zero_and_negative_scales_remain_legal(self):
+        for template in ("passive_decay", "linear_stable"):
+            for a, b in (("0", "0"), ("-2", "3"), ("-2", "-3")):
+                left = closed_side(template, kind="solution", amplitude=a)
+                right = closed_side(template, "b", kind="solution", amplitude=b)
+                left["initial_conditions"] = right["initial_conditions"] = []
+                result = core(request(left, right))
+                self.assertTrue(all(v.status == "passed" for v in result.outcomes))
+                self.assertNotEqual(outcomes(result)["canonical_transform"].relation, "partial_structure")
+                kinds = [v["kind"] for v in outcomes(result)["canonical_transform"].trace]
+                self.assertIn("substitute_constant" if a == "0" else "state_normalize", kinds)
     def test_additional_boundaries_are_not_silently_discarded(self):
         for declaration, status in ((False, "failed"), (None, "inconclusive"), (True, "unsupported")):
             left = side("passive_decay")
