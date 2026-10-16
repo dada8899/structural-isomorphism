@@ -13,8 +13,9 @@ where:
 
 This is **not** event-size power-law (which lives in `fit.py` via Clauset MLE).
 Learning curves have a *floor* (L_inf) which cannot be modelled by a pure
-power-law distribution, so this module uses `scipy.optimize.curve_fit` on the
-mean curve (not a sample distribution) and returns parameters + residual R^2.
+power-law distribution. This module fits bounded nonlinear least squares on
+the mean curve (not a sample distribution), with explicit scaling and an
+analytic Jacobian, and returns parameters + residual R^2.
 
 Reference
 ---------
@@ -37,16 +38,17 @@ Design notes
 
 * All fits are done in linear space on `L`, not in log-log space. Log-log
   fitting biases the floor `L_inf` toward zero because subtracting a small
-  number near the floor blows up under log. Curve_fit with sensible bounds
-  and an initial guess derived from the data is empirically more stable.
+  number near the floor blows up under log. Bounded least squares with explicit derivatives
+  avoids finite-difference errors in badly scaled raw prefactors.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 from typing import Any
 
 import numpy as np
-from scipy.optimize import curve_fit
+from scipy.optimize import least_squares
 
 __all__ = [
     "LearningCurveResult",
@@ -58,7 +60,7 @@ __all__ = [
 def power_law_with_floor(C: np.ndarray, A: float, alpha: float, L_inf: float) -> np.ndarray:
     """Chinchilla / Kaplan functional form: L(C) = A * C^(-alpha) + L_inf.
 
-    Vectorized over C. Used as the model for `curve_fit`.
+    Vectorized over C. Also used for independent residual checks.
     """
     C = np.asarray(C, dtype=float)
     # guard against C <= 0
@@ -75,7 +77,7 @@ class LearningCurveResult:
         alpha: Scaling-law exponent (positive; L decreases as C^-alpha).
         A: Prefactor (sets the height of the power-law part).
         L_inf: Irreducible loss floor (asymptotic loss as C -> inf).
-        alpha_se: Standard error on alpha from the curve_fit covariance.
+        alpha_se: Local linearized standard error, absent at an active bound or deficient rank.
         A_se: Standard error on A.
         L_inf_se: Standard error on L_inf.
         R2: Coefficient of determination on (loss, predicted loss).
@@ -156,10 +158,10 @@ def fit_learning_curve(
         Bounds for the prefactor. Spans many orders of magnitude because
         C can be 1e15..1e25 FLOPs and L is O(1)..O(10).
     initial_guess : (A0, alpha0, L_inf0) or None
-        If None, derived from data: L_inf0 = 0.9 * min(loss);
-        alpha0 = 0.3; A0 fitted from the smallest-C point.
+        If None, deterministic exponent starts are scaled from the smallest-C
+        point. A supplied guess uses the same original physical bounds.
     max_nfev : int
-        Hard cap on Levenberg-Marquardt function evaluations.
+        Hard cap on trust-region function evaluations per deterministic start.
 
     Returns
     -------
@@ -169,7 +171,7 @@ def fit_learning_curve(
     -----
     * Filters non-finite and non-positive entries before fitting.
     * If fewer than 4 valid points remain, returns `error="too_few_points"`.
-    * If curve_fit raises (ill-conditioned / max_nfev hit), the error string
+    * If all bounded optimizer starts fail, the error string
       is captured and other fields are left None.
     """
     C = np.asarray(compute, dtype=float).ravel()
@@ -193,60 +195,132 @@ def fit_learning_curve(
     C_min = float(C.min())
     C_max = float(C.max())
 
-    # Build initial guess from the data
-    if initial_guess is None:
-        # Step 1: estimate L_inf as slightly below the minimum loss
-        L_min = float(L.min())
-        L_inf0 = max(L_inf_bounds[0] + 1e-6, 0.95 * L_min)
-        if L_min > 1e-3:
-            L_inf0 = min(L_inf0, L_min - 1e-3)
-        L_inf0 = float(np.clip(L_inf0, L_inf_bounds[0], L_inf_bounds[1] - 1e-6))
-
-        # Step 2: estimate alpha via OLS on log(L - L_inf0) vs log(C).
-        # This is far more accurate than blind alpha0=0.3 when curves span
-        # several orders of magnitude in C.
-        residual = L - L_inf0
-        good = residual > 0
-        if good.sum() >= 2:
-            logC = np.log(C[good])
-            logR = np.log(residual[good])
-            slope, intercept = np.polyfit(logC, logR, 1)
-            alpha0 = float(np.clip(-slope, alpha_bounds[0] + 1e-4, alpha_bounds[1] - 1e-4))
-            A0 = float(np.exp(intercept))
-        else:
-            alpha0 = 0.3
-            i_small = int(np.argmin(C))
-            A0 = max(1e-6, (float(L[i_small]) - L_inf0) * (float(C[i_small]) ** alpha0))
-        A0 = float(np.clip(A0, A_bounds[0], A_bounds[1]))
-        initial_guess = (A0, alpha0, L_inf0)
-
-    lo = [A_bounds[0], alpha_bounds[0], L_inf_bounds[0]]
-    hi = [A_bounds[1], alpha_bounds[1], L_inf_bounds[1]]
-
+    # Canonical order avoids reduction- and finite-difference dependence on
+    # caller row order. Work in log(A), not the badly scaled raw prefactor.
+    order = np.lexsort((L, C))
+    C, L = C[order], L[order]
+    log_C = np.log(C)
+    log_C0 = math.fsum(float(value) for value in log_C) / n
+    centered_log_C = log_C - log_C0
     try:
-        popt, pcov = curve_fit(
-            power_law_with_floor,
-            C,
-            L,
-            p0=initial_guess,
-            bounds=(lo, hi),
-            max_nfev=max_nfev,
-        )
-    except Exception as exc:  # noqa: BLE001 — curve_fit raises various
+        if not (0 < A_bounds[0] < A_bounds[1]):
+            raise ValueError("A bounds must be finite, positive and increasing")
+        lower = np.array([math.log(A_bounds[0]), alpha_bounds[0], L_inf_bounds[0]])
+        upper = np.array([math.log(A_bounds[1]), alpha_bounds[1], L_inf_bounds[1]])
+        if not np.all(np.isfinite([lower, upper])) or np.any(lower >= upper):
+            raise ValueError("all bounds must be finite and increasing")
+        if C_min == C_max:
+            raise ValueError("constant compute cannot identify a learning curve")
+    except (ValueError, TypeError, OverflowError) as exc:
         return LearningCurveResult(
-            name=name,
-            n_points=n,
-            C_range=(C_min, C_max),
-            error=f"curve_fit_failed: {type(exc).__name__}: {exc}",
+            name=name, n_points=n, C_range=(C_min, C_max),
+            error=f"invalid_fit_domain: {exc}",
         )
 
-    A_hat, alpha_hat, L_inf_hat = (float(p) for p in popt)
-    # Standard errors from covariance diagonal (if positive-definite)
-    try:
-        perr = np.sqrt(np.maximum(np.diag(pcov), 0.0))
-        A_se, alpha_se, L_inf_se = (float(p) for p in perr)
-    except Exception:  # noqa: BLE001
-        A_se = alpha_se = L_inf_se = None
+    def prediction(parameters: np.ndarray) -> np.ndarray:
+        log_A, alpha, floor = parameters
+        # B=A*C0**(-alpha) is derived rather than separately bounded. Thus
+        # the caller's original A bounds are preserved exactly in log space.
+        power = np.exp(log_A - alpha * log_C0) * np.exp(-alpha * centered_log_C)
+        return power + floor
+
+    def residual(parameters: np.ndarray) -> np.ndarray:
+        return prediction(parameters) - L
+
+    def jacobian(parameters: np.ndarray) -> np.ndarray:
+        log_A, alpha, _ = parameters
+        power = np.exp(log_A - alpha * log_C0) * np.exp(-alpha * centered_log_C)
+        return np.column_stack((power, -log_C * power, np.ones(n)))
+
+    starts = []
+    if initial_guess is not None:
+        try:
+            A0, alpha0, floor0 = initial_guess
+            start = np.array([math.log(A0), alpha0, floor0], dtype=float)
+            if not np.all(np.isfinite(start)) or np.any(start < lower) or np.any(start > upper):
+                raise ValueError("initial guess is outside the declared bounds")
+            starts.append(start)
+        except (ValueError, TypeError, OverflowError) as exc:
+            return LearningCurveResult(
+                name=name, n_points=n, C_range=(C_min, C_max),
+                error=f"invalid_initial_guess: {exc}",
+            )
+    else:
+        floor0 = float(np.clip(0.95 * L.min(), lower[2], upper[2]))
+        for alpha0 in (0.1, 0.3, 0.6, 1.0):
+            alpha0 = float(np.clip(alpha0, lower[1], upper[1]))
+            amplitude0 = max(float(L[0]) - floor0, np.finfo(float).tiny)
+            log_A0 = float(np.clip(math.log(amplitude0) + alpha0 * log_C[0], lower[0], upper[0]))
+            starts.append(np.array([log_A0, alpha0, floor0]))
+
+    solutions = []
+    failures = []
+    for start in starts:
+        try:
+            result = least_squares(
+                residual, start, jac=jacobian, bounds=(lower, upper),
+                x_scale="jac", max_nfev=max_nfev,
+                ftol=1e-12, xtol=1e-12, gtol=1e-12,
+            )
+            if result.success and np.all(np.isfinite(result.x)):
+                solutions.append(result)
+            else:
+                failures.append(str(result.message))
+        except Exception as exc:  # noqa: BLE001 — numerical failures are results
+            failures.append(f"{type(exc).__name__}: {exc}")
+    if not solutions:
+        return LearningCurveResult(
+            name=name, n_points=n, C_range=(C_min, C_max),
+            error=f"least_squares_failed: {'; '.join(failures)}",
+        )
+    optimum = min(solutions, key=lambda item: math.fsum(float(v) ** 2 for v in item.fun))
+    log_A_hat, alpha_hat, L_inf_hat = (float(value) for value in optimum.x)
+    A_hat = math.exp(log_A_hat)
+
+    # A covariance in raw (A, alpha, floor) coordinates can truncate the
+    # prefactor direction and report spuriously tiny A_se. Diagnose and
+    # calculate in the actual scaled optimizer coordinates; active-bound or
+    # rank-deficient fits do not have an unconstrained Gaussian covariance.
+    J = jacobian(optimum.x)
+    singular_values = np.linalg.svd(J, compute_uv=False)
+    cutoff = np.finfo(float).eps * max(J.shape) * singular_values[0]
+    rank = int(np.count_nonzero(singular_values > cutoff))
+    condition = float(singular_values[0] / singular_values[-1]) if singular_values[-1] > 0 else None
+    boundaries = [
+        label for index, label in enumerate(("A", "alpha", "L_inf"))
+        if math.isclose(float(optimum.x[index]), float(lower[index]), rel_tol=1e-8, abs_tol=1e-8)
+        or math.isclose(float(optimum.x[index]), float(upper[index]), rel_tol=1e-8, abs_tol=1e-8)
+    ]
+    A_se = alpha_se = L_inf_se = None
+    covariance_status = "not_reported_active_bound" if boundaries else "not_reported_rank_deficient"
+    if not boundaries and condition is not None and condition > 1 / math.sqrt(np.finfo(float).eps):
+        covariance_status = "not_reported_ill_conditioned"
+    if rank == 3 and not boundaries and condition is not None and condition <= 1 / math.sqrt(np.finfo(float).eps) and n > 3:
+        _, sv, vt = np.linalg.svd(J, full_matrices=False)
+        covariance = (vt.T / sv**2) @ vt
+        covariance *= math.fsum(float(value) ** 2 for value in optimum.fun) / (n - 3)
+        standard_errors = np.sqrt(np.maximum(np.diag(covariance), 0.0))
+        converted = [A_hat * standard_errors[0], standard_errors[1], standard_errors[2]]
+        if np.all(np.isfinite(converted)):
+            A_se, alpha_se, L_inf_se = (float(value) for value in converted)
+            covariance_status = "local_linearization_only"
+    diagnostics = {
+        "estimator": "log-amplitude-analytic-jacobian-v1",
+        "optimizer_parameterization": ["log_A", "alpha", "L_inf"],
+        "original_A_bounds": list(A_bounds),
+        "jacobian_rank": rank,
+        "jacobian_condition": condition if condition is not None and math.isfinite(condition) else None,
+        "active_bounds": boundaries,
+        "bound_hit": bool(boundaries),
+        "parameter_identifiability": (
+            "weak_or_unestablished"
+            if boundaries or rank < 3 or condition is None
+            or condition > 1 / math.sqrt(np.finfo(float).eps)
+            else "local_linearized_diagnostic_only"
+        ),
+        "covariance_status": covariance_status,
+        "uncertainty_interpretation": "local diagnostic, not an inference eligibility claim",
+    }
 
     L_pred = power_law_with_floor(C, A_hat, alpha_hat, L_inf_hat)
     resid = L - L_pred
@@ -267,4 +341,5 @@ def fit_learning_curve(
         residual_rms=rms,
         n_points=n,
         C_range=(C_min, C_max),
+        extra={"fit_diagnostics": diagnostics},
     )

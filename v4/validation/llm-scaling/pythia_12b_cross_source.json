@@ -22,5 +22,15 @@
   "alpha_mean": 0.170722565315,
   "alpha_std": 0.0106827806559,
   "alpha_cv": 0.062573922997,
-  "note": "pythia-12b only exists in LAMBADA v1 + v2; train-loss source did not include 12b checkpoints. \u03c3 here is across LAMBADA v1 vs v2 (L_inf free vs constrained)."
+  "note": "pythia-12b only exists in LAMBADA v1 + v2; train-loss source did not include 12b checkpoints. \u03c3 here is across LAMBADA v1 vs v2 (L_inf free vs constrained).",
+  "generation_binding": {
+    "train_loss_schema": "1.4",
+    "train_loss_estimator": "log-amplitude-analytic-jacobian-v1",
+    "input_artifacts_sha256": {
+      "results.json": "892f07fd3a4dfe74027a12ca6c55c105880491096b741154a2c07e57195f0580",
+      "results_lambada.json": "7665276067e0b1560069b1f0abdf997a1d321326d46dd1ce10b3eac12dcf298b",
+      "results_lambada_v2.json": "a354fadce2bbc9737d895e1241b51a47f8d048cc6226423b9f7b4d75d0f9ca85"
+    },
+    "implementation_sha256": "b2bc74b9b6eb56b3ca90b44f3ea9ab8d3c2c5ed2752e0c72d4b4e20cdff43dda"
+  }
 }
