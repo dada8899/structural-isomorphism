@@ -93,7 +93,9 @@ OpenAPI 有 188 个结构差异，按行为分为三类：
 
 最小 canonical Linux 图流程可在外层 CI 工具解释器安装固定 uv，在另一个 Python 3.11 候选 venv 用 CPU 锁 `--require-hashes` 同步并 `uv pip check`，先记录仅生产73包的 graph／ABI／锁摘要，再在另外受约束的测试环境加工具。项目源码可从当前 checkout 的显式导出路径导入；不能用 `pip install -e .` 二次解析修改过的候选图后仍声称是同一73包。若必须安装项目包，先使用标准构建准备并比较安装前后所有已锁包与摘要，不使用 `--no-deps` 硬装来隐藏冲突。模型和实际分发恢复证据继续单列。
 
-CI 依赖版本变更会有意改变 B0 的对应 job 语义摘要，需精确更新该已审基线而非删除八个硬作业保护。关联旧字面断言分别位于 public_controls 的三个浏览器安装函数、beta_perf 的 workflow 函数、openapi_artifact 的 browser pin 函数，以及部署／production_smoke／heredoc 的当前版本 fixture。模拟历史构建的自洽旧版本 fixture 不应机械替换，只有绑定当前 release 的预期需要适配。当前仅获准的三个测试函数由本 owner 改，其余待协调者明确 owner。
+CI 依赖版本变更会有意改变 B0 的对应 job 语义摘要，需精确更新该已审基线而非删除八个硬作业保护。关联旧字面断言分别位于 public_controls 的三个浏览器安装函数、beta_perf 的 workflow 函数、openapi_artifact 的 browser pin 函数，以及部署／production_smoke／heredoc 的当前版本 fixture。模拟历史构建的自洽旧版本 fixture 不应机械替换，只有绑定当前 release 的预期需要适配。
+
+初批三个测试函数已随候选 `594566481313cf2ac931875e34c7f95d61e997b1` 提交并获独审 No findings。PMO 后续最小扩权至 `test_browser_contract_jobs_use_the_release_target_runtime_pins` 一个函数，仅将 required 元组前三项同步为 FastAPI 0.135.0／Pydantic 2.7.4／Starlette 1.3.1，uvicorn 0.27.1 和逐 job／逐 pin 校验不变。本 runtime 树的 CI workflow 仍是旧版本，因此该函数须与 B0 桥接组合后实际通过；旧树上应拒绝旧 pin，不通过改 workflow、删除断言或弱化规则制造本树绿灯。初批的 OpenAPI 12 项通过是变更前检查点，不冒充此新组合依赖已验。
 
 ## 收尾与剩余门禁
 

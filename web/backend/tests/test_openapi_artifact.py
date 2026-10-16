@@ -212,9 +212,9 @@ def test_release_target_schema_dependencies_remain_exactly_pinned():
 def test_browser_contract_jobs_use_the_release_target_runtime_pins():
     workflow = yaml.safe_load(CI_WORKFLOW.read_text(encoding="utf-8"))
     required = (
-        "fastapi==0.115.14",
-        "pydantic==2.6.1",
-        "starlette==0.46.2",
+        "fastapi==0.135.0",
+        "pydantic==2.7.4",
+        "starlette==1.3.1",
         "uvicorn[standard]==0.27.1",
     )
     for job_name in ("browser-product-contract", "browser-beta-surface-contract"):
