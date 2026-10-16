@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from .test_research_persistence import stack,app,login,post,problem
 from .test_research_d1_integration import source_stack,start
-from .source_http_fixture import source_server,get_local
+from web.backend.tests.source_http_fixture import source_server,get_local
 from api import auth
 from research import ResearchStore,ResearchRunner
 from research.authorization import AccountIdentity,AuthorizationGate
@@ -199,3 +199,61 @@ def test_last_send_uses_revalidated_local_immutable_bytes(tmp_path,mutate):
 def test_public_paid_entry_stays_closed_without_loading_or_connecting():
     prepared=adapter.prepare_request("Bounded offline question",packet())
     with pytest.raises(ProviderFailure,match="paid_disabled"):adapter.DeepSeekAdapter().preconnect(prepared)
+
+
+def test_source_runner_spawn_survives_cached_backend_tests_then_root_prepend(tmp_path):
+    from pathlib import Path
+    from web.backend.tests.research_process_fixture import _run_owned_probe
+
+    data_root=tmp_path/"root-first-synthetic"
+    data_root.mkdir()
+    program=r'''
+import importlib, pathlib, sys
+from contextlib import contextmanager
+from functools import partial
+from types import SimpleNamespace
+from uuid import uuid4
+backend=pathlib.Path.cwd();root=backend.parents[1]
+sys.path[:]=[str(backend)]+[p for p in sys.path if p not in ('',str(root),str(backend))]
+producer=importlib.import_module('tests.test_research_paid_producers')
+legacy=importlib.import_module('tests.source_http_fixture')
+assert pathlib.Path(sys.modules['tests'].__file__).resolve()==backend/'tests/__init__.py'
+assert legacy.get_local.__module__=='tests.source_http_fixture'
+sys.path.remove(str(root))
+importlib.import_module('tests.test_universality_endpoints')
+assert sys.path[0]==str(root)
+import pytest
+from research.authorization import AuthorizationGate
+from research.source_policy import PinnedPublicTransport,SourceFailure,article_target
+from web.backend.tests.source_http_fixture import source_server,DOI
+data_root=pathlib.Path(DATA_ROOT)
+# The old relative-module target really fails in a fresh spawned interpreter,
+# before it can send an HTTP request to the owned loopback fixture.
+with source_server() as (port,calls):
+    gate=AuthorizationGate(SimpleNamespace(path=data_root/'unused.sqlite3'))
+    with gate.owner_gate_id(str(uuid4())) as lease:
+        with pytest.raises(SourceFailure):
+            PinnedPublicTransport(_worker=partial(legacy.get_local,port)).get(
+                article_target(DOI),still_authorized=lambda:True,owner_lease=lease)
+    assert calls==[]
+# Consume the unchanged original fixtures/test, not a second app or DB setup.
+monkeypatch=pytest.MonkeyPatch()
+try:
+    with contextmanager(producer.stack.__wrapped__)(data_root,monkeypatch) as stack:
+        with contextmanager(producer.source_stack.__wrapped__)(stack,monkeypatch) as source:
+            saved=producer.saved.__wrapped__(source)
+            producer.test_real_v2_publisher_proof_produces_eligibility_but_never_send_consent(saved)
+            assert producer.get_local.__module__=='web.backend.tests.source_http_fixture'
+            client,_,store,rid,tid,_,_=saved
+            response=client.get(f'/api/research/{rid}/records',params={'task_id':tid,'kind':'reports'})
+            assert response.status_code==200
+            report,=response.json()['data']['items']
+            assert report['status']=='notes' and report['model_analysis_ran'] is False
+            with store.transaction() as conn:
+                for table in ('research_funding_accounts','research_reservations','research_dispatch_permits','research_cost_observations'):
+                    assert conn.execute('SELECT count(*) FROM '+table).fetchone()[0]==0
+finally:
+    monkeypatch.undo()
+'''.replace('DATA_ROOT',repr(str(data_root)))
+    result=_run_owned_probe(program,Path(__file__).resolve().parents[1])
+    assert result.returncode==0,result.stdout+result.stderr
