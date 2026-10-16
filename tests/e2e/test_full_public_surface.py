@@ -716,7 +716,10 @@ def test_my_research_account_and_data_failures_are_honest(page: Page, local_beta
     expect(page.locator("#myr-account-status")).to_contain_text("请输入 DELETE")
     page.locator("#myr-delete-confirmation").fill("DELETE")
     page.get_by_role("button", name="永久删除", exact=True).click()
-    expect(page.locator("#myr-account-status")).to_contain_text("删除没有完成")
+    expect(page.locator("#myr-account-status")).to_contain_text("删除结果尚未确认。请先刷新页面核对账户状态，请勿重复提交。")
+    expect(page.locator("#myr-delete-confirmation")).to_be_disabled()
+    expect(page.get_by_role("button", name="导出我的数据")).to_be_disabled()
+    expect(page.get_by_role("button", name="永久删除", exact=True)).to_be_disabled()
 
 
 @pytest.mark.parametrize("conflict_surface", ("auth", "reports", "favorites"))
