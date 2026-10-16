@@ -17,6 +17,16 @@
   let sourceApproval = null;
   let sourceRecordScope = null;
   let sourceRecordGeneration = 0;
+  let sourcePreviewGeneration = 0;
+  let privateGeneration = 0;
+  let listGeneration = 0;
+  let listCursor = null;
+  let listBusy = false;
+  let listSeen = new Set();
+  let kbGeneration = 0;
+  let kbBusy = false;
+  let summaryEdited = false;
+  let accountScope = null;
   const initialPath = location.pathname.split('/').filter(Boolean);
   let researchId = initialPath.length === 2 ? initialPath[1] : null;
   const selectedTask = new URLSearchParams(location.search).get('task_id');
@@ -42,6 +52,18 @@
         observation:variable.observation === null ? null : variable.observation.normalize('NFC')}))};
   }
   function clearPrivateView() {
+    accountScope = null;
+    privateGeneration++;
+    listGeneration++;
+    listCursor = null;
+    listBusy = false;
+    listSeen.clear();
+    byId('my-research').hidden = true;
+    byId('research-list-items').replaceChildren();
+    byId('research-list-status').textContent = '';
+    byId('research-list-more').hidden = true;
+    invalidateKB();
+    summaryEdited = false;
     current = null;
     editBase = null;
     observed = null;
@@ -57,20 +79,26 @@
     byId('task-notes').replaceChildren();
     sourcePreview = null;
     sourceApproval = null;
+    sourcePreviewGeneration++;
     byId('source-section').hidden = true;
     byId('source-plan').textContent = '';
+    byId('source-query').value = '';
+    byId('source-status').textContent = '';
+    byId('source-confirm').hidden = true;
     byId('source-records').replaceChildren();
     sourceRecordScope = null;
     sourceRecordGeneration++;
   }
   async function request(url, options = {}, isCurrent = () => true) {
+    const privateScope = privateGeneration;
+    const active = () => privateScope === privateGeneration && isCurrent();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15000);
     try {
       const response = await fetch(url, {...options, credentials: 'same-origin', cache: 'no-store', signal: controller.signal});
-      if (!isCurrent()) throw new Error('较早的来源读取已失效。');
+      if (!active()) throw new Error('较早的来源读取已失效。');
       const payload = await response.json();
-      if (!isCurrent()) throw new Error('较早的来源读取已失效。');
+      if (!active()) throw new Error('较早的来源读取已失效。');
       if (!response.ok) {
         if (response.status === 401 || response.status === 404 || payload.error?.code === 'AUTHORIZATION_STALE') clearPrivateView();
         const error = new Error(payload.error?.message || '操作暂时无法完成，请保留当前内容。');
@@ -85,6 +113,8 @@
     } finally { clearTimeout(timer); }
   }
   function render(data) {
+    invalidateKB();
+    summaryEdited = true;
     sourceRecordGeneration++;
     current = data;
     researchId = data.research.id;
@@ -95,6 +125,7 @@
       historical:Boolean(data.is_historical || selectedTask)};
     sourcePreview = null;
     sourceApproval = null;
+    sourcePreviewGeneration++;
     byId('source-confirm').hidden = true;
     byId('source-plan').textContent = '';
     for (const [id, key] of [['entry','entry'],['original-input','original_input'],['objective','objective'],['summary','summary']]) {
@@ -103,6 +134,7 @@
     byId('constraints').value = problem.constraints.join('\n');
     byId('unknowns').value = problem.unknowns.join('\n');
     byId('confirmed').checked = problem.confirmed;
+    echoDraft();
     variables = problem.variables;
     byId('variables').hidden = variables.length === 0;
     byId('variables').textContent = variables.map(v => `${v.label} (${v.id}) · ${v.unit_id || '单位待确认'} · ${v.observation || '观测待补充'}`).join('\n');
@@ -209,19 +241,157 @@
     return true;
   }
   function viewUrl() { return `/api/research/${researchId}` + (selectedTask ? `?task_id=${encodeURIComponent(selectedTask)}` : ''); }
+  function invalidateKB() {
+    kbGeneration++;
+    kbBusy = false;
+    byId('kb-results').replaceChildren();
+    byId('kb-status').textContent = '填写现象后可查询；不会自动开始研究。';
+    byId('kb-search').disabled = busy || Boolean(editBase?.historical);
+  }
+  function echoDraft() {
+    const original = byId('original-input').value;
+    const length = Array.from(original).length;
+    if (!summaryEdited && !editBase) byId('summary').value = length <= 1000 ? original : '';
+    byId('summary-hint').textContent = length > 1000
+      ? '原文超过 1000 字，已完整保留。请另写 8–1000 字摘要；不会截断原文或自动生成摘要。'
+      : '待核验草稿：这里只回显原话，可直接编辑；尚未进行模型结构化或确认。';
+  }
+  async function authenticated(isCurrent, signal) {
+    const response = await fetch('/api/auth/me', {cache:'no-store', credentials:'same-origin', signal});
+    if (!isCurrent()) return false;
+    if (!response.ok) {
+      clearPrivateView();
+      status('账户访问已失效，请重新登录。', true);
+      return false;
+    }
+    const payload = await response.json();
+    if (!isCurrent()) return false;
+    if (!payload.ok || !payload.user?.email || !payload.user?.created_at) throw new Error('账户状态暂时无法核对。');
+    const identity = JSON.stringify([payload.user.email, payload.user.created_at]);
+    if (accountScope && accountScope !== identity) {
+      clearPrivateView(); status('账户已变化，请重新打开研究页面。', true); return false;
+    }
+    accountScope = identity;
+    return true;
+  }
+  async function loadResearchList(more = false) {
+    if (more && (listBusy || !listCursor)) return;
+    const generation = ++listGeneration;
+    const privateScope = privateGeneration;
+    const active = () => generation === listGeneration && privateScope === privateGeneration;
+    const cursor = more ? listCursor : null;
+    listBusy = true;
+    byId('research-list-refresh').disabled = false;
+    byId('research-list-more').disabled = true;
+    if (!more) {
+      listCursor = null;
+      listSeen = new Set();
+      byId('research-list-items').replaceChildren();
+      byId('research-list-more').hidden = true;
+    }
+    byId('research-list-status').textContent = '正在读取当前账户的研究…';
+    try {
+      if (!await authenticated(active)) return;
+      const data = await request('/api/research?limit=20' + (cursor ? '&cursor=' + encodeURIComponent(cursor) : ''), {}, active);
+      if (!active()) return;
+      if (!await authenticated(active)) return;
+      if (!Array.isArray(data.items) || !(data.next_cursor === null || typeof data.next_cursor === 'string')) throw new Error('列表格式暂时无法核对，请刷新列表。');
+      byId('my-research').hidden = false;
+      for (const item of data.items) {
+        if (!validId(item.research_id) || listSeen.has(item.research_id)) continue;
+        listSeen.add(item.research_id);
+        const article = document.createElement('article');
+        const title = document.createElement('h3');
+        const link = document.createElement('a');
+        link.href = '/research/' + item.research_id;
+        link.target = '_blank'; link.rel = 'noopener noreferrer';
+        link.textContent = item.title;
+        title.append(link);
+        const meta = document.createElement('p'); meta.className = 'hint';
+        const states = {QUEUED:'等待执行', RUNNING:'处理中', WAITING_EXTERNAL:'等待响应', RECONCILING:'结果待核对', COMPLETED:'流程已结束，结论待验证', FAILED:'流程未完成', CANCELLED:'已停止', ACCESS_REVOKED:'访问已停止'};
+        meta.textContent = `修订 ${item.current_input_revision} · ${item.current_task ? (states[item.current_task.execution] || '状态待核对') : '已保存，尚未执行'} · 在新标签页打开`;
+        article.append(title, meta); byId('research-list-items').append(article);
+      }
+      listCursor = data.next_cursor;
+      byId('research-list-more').hidden = !listCursor;
+      byId('research-list-status').textContent = listSeen.size ? `已读取 ${listSeen.size} 条研究${listCursor ? '，可加载更多。' : '。'}` : '还没有保存的研究。从上方的现象开始即可。';
+    } catch (error) {
+      if (!active()) return;
+      if (cursor && (error.status === 409 || error.status === 422)) {
+        listCursor = null; listSeen.clear();
+        byId('research-list-items').replaceChildren();
+        byId('research-list-more').hidden = true;
+        byId('research-list-status').textContent = '列表已变化，分页位置失效。请刷新列表；当前问题草稿保持不变。';
+      } else byId('research-list-status').textContent = '列表暂时无法读取，请刷新列表；当前问题草稿保持不变。';
+    } finally {
+      if (active()) { listBusy = false; byId('research-list-more').disabled = false; }
+    }
+  }
+  byId('research-list-refresh').addEventListener('click', () => loadResearchList());
+  byId('research-list-more').addEventListener('click', () => loadResearchList(true));
+  for (const id of ['original-input','objective','entry','summary','constraints','unknowns','confirmed']) {
+    byId(id).addEventListener('input', () => {
+      if (id === 'summary') summaryEdited = true;
+      if (id === 'original-input') echoDraft();
+      invalidateKB();
+    });
+  }
+  byId('kb-search').addEventListener('click', async () => {
+    if (kbBusy || busy || form.hidden || editBase?.historical) return;
+    const query = byId('original-input').value.trim();
+    invalidateKB();
+    if (!query) { byId('kb-status').textContent = '请先填写观察到的现象。'; return; }
+    const generation = kbGeneration;
+    const privateScope = privateGeneration;
+    const scope = researchId;
+    const active = () => generation === kbGeneration && privateScope === privateGeneration && scope === researchId;
+    kbBusy = true; byId('kb-search').disabled = true;
+    byId('kb-status').textContent = '正在查找本地知识库线索…';
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      if (!await authenticated(active, controller.signal)) return;
+      const response = await fetch('/api/search', {method:'POST', credentials:'same-origin', cache:'no-store', signal:controller.signal,
+        headers:{'Content-Type':'application/json'}, body:JSON.stringify({query, top_k:12, rewrite:false, lang:'zh'})});
+      if (!active()) return;
+      const data = await response.json();
+      if (!active()) return;
+      if (response.status === 401 || response.status === 404 || data.error?.code === 'AUTHORIZATION_STALE') { clearPrivateView(); status('账户访问已失效，请重新登录。', true); return; }
+      if (!response.ok) throw new Error(response.status === 503 ? '知识库当前不可用；当前问题仍可保存。未启动模型或收费研究。' : '知识库查询未完成；当前输入已保留。');
+      if (!Array.isArray(data.results)) throw new Error('知识库返回格式暂时无法核对。');
+      if (!await authenticated(active, controller.signal)) return;
+      for (const item of data.results) {
+        const article = document.createElement('article');
+        const title = document.createElement('h3'); title.textContent = item.name;
+        const meta = document.createElement('p'); meta.className = 'hint'; meta.textContent = `${item.domain || '领域未标注'} · 待核验的知识库线索 · 本次本地排序`;
+        const description = document.createElement('p'); description.textContent = item.description;
+        article.append(title, meta, description); byId('kb-results').append(article);
+      }
+      byId('kb-status').textContent = data.results.length ? `找到 ${data.results.length} 条待核验线索。尚未检验变量、机制与适用条件；未写入研究或读取外部来源。` : '未找到本地线索。可以调整现象描述，或先保存问题；尚未查询外部文献。';
+    } catch (error) {
+      if (active()) byId('kb-status').textContent = error.name === 'AbortError' || error.name === 'TypeError' ? '知识库查询未完成，当前输入已保留；可主动重试。' : error.message;
+    } finally {
+      clearTimeout(timer);
+      if (active()) { kbBusy = false; byId('kb-search').disabled = busy; }
+    }
+  });
   async function load() {
+    const privateScope = privateGeneration;
+    if (!await authenticated(() => privateScope === privateGeneration)) return;
     if (!researchId) {
       // An authenticated read is still required: the account endpoint performs
       // actual session validation; the research API revalidates on every save.
-      const response = await fetch('/api/auth/me', {cache:'no-store', credentials:'same-origin'});
-      if (!response.ok) { clearPrivateView(); status('请登录账户，再开始保存研究。', true); return; }
       form.hidden = false;
       status('新问题尚未保存。');
+      byId('my-research').hidden = false;
+      loadResearchList();
       return;
     }
     if (!validId(researchId)) { clearPrivateView(); status('研究链接无效。', true); return; }
     if (selectedTask && !validId(selectedTask)) { clearPrivateView(); status('流程链接无效。', true); return; }
     render(await request(viewUrl()));
+    byId('my-research').hidden = false;
+    loadResearchList();
     await recoverSourceIntent();
     if (!editNotice()) status('已从账户读取保存的问题；尚未执行研究。');
   }
@@ -246,10 +416,12 @@
     }
     return values;
   }
-  async function sourcePost(operation, data) {
+  async function sourcePost(operation, data, isCurrent = () => true) {
+    const privateScope = privateGeneration;
     const body = JSON.stringify({schema_version:schema, contract_revision:revision, data});
-    if (operation === 'source-preview') return request(`/api/research/${researchId}/${operation}`, {method:'POST', headers:{'Content-Type':'application/json','Idempotency-Key':crypto.randomUUID()}, body});
+    if (operation === 'source-preview') return request(`/api/research/${researchId}/${operation}`, {method:'POST', headers:{'Content-Type':'application/json','Idempotency-Key':crypto.randomUUID()}, body}, isCurrent);
     const pending = await operationKey(`source:${operation}:${researchId}`, body, data.input_revision, data);
+    if (privateScope !== privateGeneration) throw new Error('账户访问已变化，请重新打开研究页面。');
     try {
       const result = await request(`/api/research/${researchId}/${operation}`, {method:'POST', headers:{'Content-Type':'application/json','Idempotency-Key':pending.key}, body});
       sessionStorage.removeItem(pending.slot);
@@ -317,20 +489,28 @@
   byId('source-preview').addEventListener('click', async () => {
     if (sourceBusy || busy || taskBusy || !editBase || editBase.historical) return;
     sourceBusy = true;
+    byId('source-preview').disabled = true;
+    byId('source-status').textContent = '正在预览关键词；尚未开始读取来源。';
     sourcePreview = null;
     sourceApproval = null;
     byId('source-confirm').hidden = true;
+    const generation = ++sourcePreviewGeneration;
+    const privateScope = privateGeneration;
+    const researchScope = researchId;
+    const savedVersion = editBase.researchVersion;
+    const active = () => generation === sourcePreviewGeneration && privateScope === privateGeneration && researchScope === researchId && savedVersion === editBase?.researchVersion;
     try {
       const data = {input_revision:editBase.revision,expected_research_version:editBase.researchVersion,query:byId('source-query').value};
-      const result = await sourcePost('source-preview',data);
+      const result = await sourcePost('source-preview',data, active);
+      if (!active()) return;
       sourcePreview = {...data,preview_digest:result.preview_digest};
-      byId('source-plan').textContent = `查询：${result.query}\n绑定已保存修订 ${result.input_revision}\n最多读取 ${result.plan.max_requests} 次来源；不会发送原始问题正文。`;
+      byId('source-plan').textContent = `实际对外关键词：${result.query}\n绑定已保存修订 ${result.input_revision}（不含表单中的未保存修改）\n最多读取 ${result.plan.max_requests} 次 GET 来源；不会发送现象原文、目标或私有标签。`;
       byId('source-status').textContent = '预览完成；尚未开始读取来源。';
       byId('source-confirm').hidden = false;
-    } catch (error) { byId('source-status').textContent = error.message; }
-    finally { sourceBusy = false; }
+    } catch (error) { if (active()) byId('source-status').textContent = error.message; }
+    finally { sourceBusy = false; byId('source-preview').disabled = false; }
   });
-  byId('source-query').addEventListener('input', () => { sourcePreview = null; sourceApproval = null; byId('source-confirm').hidden = true; });
+  byId('source-query').addEventListener('input', () => { sourcePreviewGeneration++; sourcePreview = null; sourceApproval = null; byId('source-confirm').hidden = true; byId('source-plan').textContent = ''; byId('source-status').textContent = '关键词已变化，请重新预览；尚未开始读取来源。'; });
   byId('source-confirm').addEventListener('click', async () => {
     if (sourceBusy || busy || taskBusy || !sourcePreview || editBase?.historical) return;
     sourceBusy = true;
@@ -359,6 +539,7 @@
     setBusy(true);
     status('正在保存，请保留当前页面…');
     let pending;
+    const privateScope = privateGeneration;
     try {
       const problem = normalizeProblem({entry:byId('entry').value, original_input:byId('original-input').value,
         objective:byId('objective').value, summary:byId('summary').value, variables,
@@ -372,11 +553,13 @@
       const data = current ? {expected_revision:expectedRevision, problem} : {problem};
       const body = JSON.stringify({schema_version:schema, contract_revision:revision, data});
       pending = await operationKey(scope, body, expectedRevision);
+      if (privateScope !== privateGeneration) throw new Error('账户访问已变化，请重新登录后核对原操作。');
       const url = researchId ? `/api/research/${researchId}/revisions` : '/api/research';
       const saved = await request(url, {method:'POST', headers:{'Content-Type':'application/json', 'Idempotency-Key':pending.key}, body});
       sessionStorage.removeItem(pending.slot);
       history.replaceState(null, '', `/research/${saved.research.id}`);
       render(saved);
+      loadResearchList();
       status(`已保存修订 ${saved.current_problem.revision}。这是一条问题记录，尚未执行研究。`);
     } catch (error) {
       // 4xx proves rejection; transport/5xx outcomes keep the original key.
@@ -391,6 +574,7 @@
     if (taskBusy || !taskData || (operation === 'start' && busy)) return;
     taskBusy = true; syncTaskButtons();
     let pending;
+    const privateScope = privateGeneration;
     try {
       const scope = `task:${operation}:${researchId}:${operation === 'start' ? editBase.revision : taskData.task.id}`;
       const prior = sessionStorage.getItem('structure-research-pending:' + scope);
@@ -399,6 +583,7 @@
         : {task_id:taskData.task.id, expected_task_version:taskData.task_version});
       const body = JSON.stringify({schema_version:schema, contract_revision:revision, data});
       pending = await operationKey(scope, body, null, data);
+      if (privateScope !== privateGeneration) throw new Error('账户访问已变化，请重新打开研究页面。');
       const result = await request(`/api/research/${researchId}/${operation === 'start' ? 'tasks' : operation}`, {method:'POST', headers:{'Content-Type':'application/json','Idempotency-Key':pending.key}, body});
       sessionStorage.removeItem(pending.slot);
       if (!renderTask(result, {operation, targetTask:operation === 'start' ? null : data.task_id})) {
