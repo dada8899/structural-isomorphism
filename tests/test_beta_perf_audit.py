@@ -1029,3 +1029,13 @@ def test_workflow_gates_all_primary_beta_surfaces_with_three_runs() -> None:
     assert 'page.locator("#analytics-consent").count() != 0' in beta
     assert "research-library export action did not complete" in beta
     assert "tool-card navigation did not load its real target" in beta
+
+    import yaml
+    data = yaml.safe_load(workflow)
+    job = data["jobs"]["beta-perf-audit"]
+    gate = next(step for step in job["steps"] if step.get("id") == "beta_perf_gate")
+    assert "if" not in gate and "continue-on-error" not in gate
+    assert gate["run"] == (
+        "python scripts/beta_perf_audit.py --base http://127.0.0.1:4173 "
+        "--runs 3 --budget perf-budget.json --out /tmp/beta-perf-audit.json"
+    )

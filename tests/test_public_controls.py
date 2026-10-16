@@ -58,6 +58,30 @@ HARD_STEP_CONDITIONS = {
         "Comment on PR with diff": "failure() && github.event_name == 'pull_request'",
     },
     (".github/workflows/beta-perf.yml", "beta-perf-audit"): {
+        'NOT_GATE one marked Linux diagnostic pair': (
+            '${{ always() && !cancelled()\n'
+            "    && github.repository == 'dada8899/structural-isomorphism'\n"
+            "    && github.event_name == 'pull_request'\n"
+            "    && github.event.action == 'synchronize'\n"
+            '    && github.event.pull_request.number == 253\n'
+            '    && github.event.pull_request.head.repo.full_name == github.repository\n'
+            '    && github.event.pull_request.base.repo.full_name == github.repository\n'
+            "    && github.event.pull_request.head.ref == 'bootstrap/structure-ci-20261016'\n"
+            "    && github.run_attempt == '1' }}"
+        ),
+        'Upload NOT_GATE Linux diagnostic evidence': (
+            '${{ always() && !cancelled()\n'
+            "    && github.repository == 'dada8899/structural-isomorphism'\n"
+            "    && github.event_name == 'pull_request'\n"
+            "    && github.event.action == 'synchronize'\n"
+            '    && github.event.pull_request.number == 253\n'
+            '    && github.event.pull_request.head.repo.full_name == github.repository\n'
+            '    && github.event.pull_request.base.repo.full_name == github.repository\n'
+            "    && github.event.pull_request.head.ref == 'bootstrap/structure-ci-20261016'\n"
+            "    && github.run_attempt == '1'\n"
+            "    && (steps.beta_perf_diagnostic.outcome == 'success'\n"
+            "        || steps.beta_perf_diagnostic.outcome == 'failure') }}"
+        ),
         "Stop local beta server": "always()",
         "Upload beta performance evidence": "always()",
     },
@@ -819,6 +843,30 @@ def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
         if isinstance(step, dict) and "if" in step
     }
     assert perf_conditions == {
+        'NOT_GATE one marked Linux diagnostic pair': (
+            '${{ always() && !cancelled()\n'
+            "    && github.repository == 'dada8899/structural-isomorphism'\n"
+            "    && github.event_name == 'pull_request'\n"
+            "    && github.event.action == 'synchronize'\n"
+            '    && github.event.pull_request.number == 253\n'
+            '    && github.event.pull_request.head.repo.full_name == github.repository\n'
+            '    && github.event.pull_request.base.repo.full_name == github.repository\n'
+            "    && github.event.pull_request.head.ref == 'bootstrap/structure-ci-20261016'\n"
+            "    && github.run_attempt == '1' }}"
+        ),
+        'Upload NOT_GATE Linux diagnostic evidence': (
+            '${{ always() && !cancelled()\n'
+            "    && github.repository == 'dada8899/structural-isomorphism'\n"
+            "    && github.event_name == 'pull_request'\n"
+            "    && github.event.action == 'synchronize'\n"
+            '    && github.event.pull_request.number == 253\n'
+            '    && github.event.pull_request.head.repo.full_name == github.repository\n'
+            '    && github.event.pull_request.base.repo.full_name == github.repository\n'
+            "    && github.event.pull_request.head.ref == 'bootstrap/structure-ci-20261016'\n"
+            "    && github.run_attempt == '1'\n"
+            "    && (steps.beta_perf_diagnostic.outcome == 'success'\n"
+            "        || steps.beta_perf_diagnostic.outcome == 'failure') }}"
+        ),
         "Stop local beta server": "always()",
         "Upload beta performance evidence": "always()",
     }

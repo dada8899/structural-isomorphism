@@ -174,6 +174,22 @@ Playwright 1.59.0 目标版本环境中，四个正常／受控参数用例 **4 
 
 本轮不把本地证据当新 SHA 的 CI；作者停写后由 PMO 提交、Astra 受影响复核及新 Actions 确认。双接口渲染屏障如需产品层独立加载优化另立明确范围，本次不修改业务来掩盖测试的加载态误判。
 
+## Linux NOT_GATE 两页诊断接线候选
+
+日期：2026-10-17。hook 源基线 `462f301ad66447071a7f5b19a60bc8413d8449b3`。固定 collector 输入为 `4194a4678a2c0e47ffb1bcb09d321fa1ceaccc2e`，其 `PERF_DIAGNOSTICS.md` 第 6 节与 CLI 只读核对；PMO 已回收该工具 Astra No findings 及 104 项独立模拟／原审计回归。本树尚未合入 collector，本轮只准备 hook，不提交、推送、dispatch、发布 marker 或采任何 Mac／Linux trace。
+
+checkout 仅增加 fetch-depth 2，原性能 audit 仅增加 `beta_perf_gate` id，八页、两 viewport、三轮、预算文件及原 run 命令字节保持。原 grade 结束后、借用静态服务关闭前，新增五分钟的 NOT_GATE step：同 repo 的 PR253 synchronize、同 head／base repo、固定 Bootstrap head ref、run_attempt 1 且未取消才调用；红／绿均允许，实际 `steps.beta_perf_gate.outcome` 原样经环境和引用参数传入，不以 grade 红绿决定是否采证。完整 subject `ci: capture structure-perf-linux-r2-20261016` 与 54 项 source、head／checkout 等前置仍由固定 collector 自行严格校验，日期不改 nonce，不增加 force／page／runs／budget 覆盖或令牌／repo 变量平台。
+
+原 always 服务清理和原 artifact 的名字、路径、布局完全不变。新增第二个专属 artifact，在原上传之后，以相同事件边界和 diagnostic step 实际 success／failure outcome 才上传；路径使用合法的 step-with `runner.temp` context，不把 Shell `$RUNNER_TEMP` 写入不会展开的 with.path。未调度／前置拒绝没有文件时用 if-no-files-found ignore，不造空报告。collector incomplete 的非零退出仍分列基础设施失败；没有 continue-on-error 或改写原 grade 的退出／结果，NOT_GATE 不是性能达标证明。
+
+完整 hook 合同恢复后的原 job 语义摘要为 `9859b40bfa87aa0b9c08cb730e4364ee3c2f9a967faa62bdea06cb218dcff714`：只移除新增两步、checkout depth 与原 audit id 后，原安装、确定性单测、服务、审计、清理和上传与原版本完全一致。新测试覆盖 push、opened、reopened、attempt2、错 repo／PR／head／base／ref 和取消拒绝，红绿都允许、删／宽化任一条件被合同拒绝、五分钟及 artifact／清理边界，以及真实 Shell 下原 grade 非零退出不被后续成功吞掉、实际 outcome 和含空格 runner 路径正确传参。该 Shell 检查用明确测试替身，不运行实际 audit 或 collector，也不伪造 capture artifact。
+
+原 public-controls 同时存在全局 HARD_STEP_CONDITIONS 与 release-gate 函数尾部的重复二项条件表。第一次组合回归为 315 passed／1 failed，发现后由 PMO 精确授权两处仅增加同两个固定名称／完整条件字符串；原 Stop／Upload always、manifest 五检查／八依赖／分支／退出断言及 `_assert_hard_job_contract` 均未改。不是放宽到任意 always 或跳过硬检查。
+
+目标版本 Python 3.11／Pydantic 2.7.4 环境下，新 hook 合同 **65 passed**；新合同、原两份 audit、public-controls 与 B0 合同同进程 **316 passed**，一条既有 Pydantic namespace warning，无 skip。任务私有 actionlint v1.7.12 实际检查该 workflow 通过；Shell／Python／差异核对通过。原 workflow 函数的全部原断言保留，public-controls 仅获准全局 beta 条目和该函数尾部精确表变化。
+
+这不是 collector＋hook 当前组合或真实 Linux 采证验收。PMO 须先合受审 collector、提交当前 hook 并回收来源／接线独审，再单次发布唯一 marker；不能先改变 54 项输入、合入 B1／PR247 或重发 marker“采到绿”。旧真实性能失败继续保留，诊断分数、成功退出或 artifact 不能替代原无 Profiler gate。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。
