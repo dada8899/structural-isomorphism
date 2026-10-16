@@ -291,3 +291,91 @@ def test_conflicting_receipt_cannot_overwrite_first_financial_fact(approved_inpu
         with approved_inputs[2].transaction(write=True) as conn:
             with pytest.raises(PermissionError):persist_offline_owned_source(conn,receipt)
         assert saved(approved_inputs[2])==before
+
+
+def _corrupt_consumed_financial_facts(store,approval_ref,permit_id,change):
+    """Fault injection in synthetic consumed rows, never the approved source."""
+    with store.transaction(write=True) as conn:
+        approval=conn.execute('SELECT * FROM research_paid_approvals WHERE id=?',(approval_ref,)).fetchone()
+        permit=conn.execute('SELECT * FROM research_dispatch_permits WHERE id=?',(permit_id,)).fetchone()
+        reservation=permit['reservation_id']
+        if change=='other_account':
+            other=str(uuid4())
+            conn.execute("INSERT INTO research_funding_accounts(id,binding_id,mode,provider,currency,cap,initial_prepaid_units,other_use_margin_units,held,status) VALUES(?,?,'live','deepseek','CNY',1000000,1000000,0,3,'active')",(other,str(uuid4())))
+            conn.execute('UPDATE research_reservations SET account_id=? WHERE id=?',(other,reservation))
+        elif change=='basis':conn.execute('UPDATE research_dispatch_permits SET budget_basis_digest=? WHERE id=?',('0'*64,permit_id))
+        elif change in ('admitted_future','admitted_negative','before_confirmation'):
+            stamp={'admitted_future':int(time.time())+600,'admitted_negative':-1,'before_confirmation':approval['confirmed_at']-1}[change]
+            conn.execute('UPDATE research_dispatch_permits SET admitted_at=? WHERE id=?',(stamp,permit_id))
+        elif change=='epoch':conn.execute('UPDATE research_reservations SET funding_epoch=funding_epoch+1 WHERE id=?',(reservation,))
+        elif change in ('under_reserved','over_reserved'):
+            amount=1 if change=='under_reserved' else 4
+            conn.execute('UPDATE research_reservations SET max_cost=? WHERE id=?',(amount,reservation))
+            conn.execute('UPDATE research_funding_accounts SET held=? WHERE id=?',(amount,approval['account_id']))
+        elif change in ('auth_scope_digest','outbound_fingerprint'):
+            conn.execute('UPDATE research_reservations SET '+change+'=? WHERE id=?',('0'*64,reservation))
+        else:raise AssertionError('unknown synthetic fault')
+
+
+@pytest.mark.parametrize('phase',['registration','pre_send'])
+@pytest.mark.parametrize('change',['other_account','basis','admitted_future','admitted_negative',
+    'before_confirmation','epoch','under_reserved','over_reserved','auth_scope_digest','outbound_fingerprint'])
+def test_original_approval_binds_consumed_rows_before_any_post(approved_inputs,monkeypatch,phase,change):
+    import sys
+    original_factory=OwnedProviderSession.offline_probe
+    original_reply=tcp_reply
+    observed={'connections':0,'wire':None}
+    @contextmanager
+    def capture_wire(*args,**kwargs):
+        with original_reply(*args,**kwargs) as (factory,state):
+            observed['wire']=state
+            yield factory,state
+    def create(cls,store,actor,lease,approval_ref,permit_id,*,connection_factory,seconds=5):
+        if phase=='registration':_corrupt_consumed_financial_facts(store,approval_ref,permit_id,change)
+        def connect(deadline):
+            observed['connections']+=1
+            sock=connection_factory(deadline)
+            try:
+                if phase=='pre_send':_corrupt_consumed_financial_facts(store,approval_ref,permit_id,change)
+                return sock
+            except BaseException:
+                sock.close()
+                raise
+        return original_factory(store,actor,lease,approval_ref,permit_id,connection_factory=connect,seconds=seconds)
+    with monkeypatch.context() as patch:
+        patch.setattr(sys.modules[__name__],'tcp_reply',capture_wire)
+        patch.setattr(OwnedProviderSession,'offline_probe',classmethod(create))
+        with pytest.raises((PermissionError,ResearchError)):
+            with owned_probe(approved_inputs):pytest.fail('corrupted consumed probe was sent')
+    assert observed['connections']==(0 if phase=='registration' else 1)
+    assert observed['wire']['requests']==0 and observed['wire']['closed']
+    with approved_inputs[2].transaction() as conn:
+        assert conn.execute('SELECT count(*) FROM research_cost_observations').fetchone()[0]==0
+        if phase=='registration':assert conn.execute('SELECT count(*) FROM research_provider_sessions').fetchone()[0]==0
+        else:
+            row=conn.execute('SELECT state,financial_return_json,candidate_json FROM research_provider_sessions').fetchone()
+            assert tuple(row)==('unknown',None,None)
+
+
+@pytest.mark.parametrize('ending',['cancel','revoke','stop','paid_scope'])
+def test_replay_erases_now_disallowed_candidate_preserving_first_financial_fact(approved_inputs,ending):
+    client,_,store,rid,_,_,_=approved_inputs
+    with owned_probe(approved_inputs) as (session,result,state):
+        receipt=session.receive()
+        with store.transaction(write=True) as conn:first=persist_offline_owned_source(conn,receipt)
+        original=saved(store)
+        assert original['candidate_json']
+        if ending=='cancel':
+            response=post(client,f'/api/research/{rid}/cancel',{'task_id':result['task_id'],'expected_task_version':1})
+            assert response.status_code==200,response.text
+        else:
+            with store.transaction(write=True) as conn:
+                if ending=='stop':conn.execute('UPDATE research_tasks SET stop_requested=1 WHERE id=?',(result['task_id'],))
+                elif ending=='revoke':conn.execute("UPDATE research_grants SET status='revoked' WHERE id=(SELECT grant_id FROM research_tasks WHERE id=?)",(result['task_id'],))
+                else:conn.execute("UPDATE research_grants SET scopes='[\"execute\"]' WHERE id=(SELECT grant_id FROM research_tasks WHERE id=?)",(result['task_id'],))
+        for _ in range(2):
+            with store.transaction(write=True) as conn:assert persist_offline_owned_source(conn,receipt)==first
+            current=saved(store)
+            assert current['candidate_json'] is None
+            assert {key:value for key,value in current.items() if key!='candidate_json'}=={key:value for key,value in original.items() if key!='candidate_json'}
+        assert state['requests']==1

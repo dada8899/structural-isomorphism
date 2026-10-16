@@ -7,6 +7,7 @@ from dataclasses import dataclass,asdict
 from datetime import datetime,timezone
 import json
 import os
+import time
 from pathlib import Path
 from uuid import uuid4
 
@@ -15,7 +16,7 @@ from .paid_control import _current_scope
 from .paid_approval import _checked,packet_authority
 from .provider_evidence import read_confirmed_provider_packet
 from .provider_adapter import OfflineOwnedTransport,prepare_request,final_request_bytes
-from .provider_schemas import CallPermit,UsageUpperQuote,OfflineTransportReturn,canonical,digest,MODEL,DECLARED_VERSION
+from .provider_schemas import CallPermit,UsageUpperQuote,BudgetBasisSnapshot,Money,OfflineTransportReturn,canonical,digest,MODEL,DECLARED_VERSION
 from .errors import ResearchError
 
 _FACTORY=object()
@@ -93,6 +94,43 @@ def _send_versions(conn,binding,task):
         raise PermissionError('consumed probe task versions changed')
 
 
+def _approved_send_facts(conn,approval,payload,context,permit_id,prepared):
+    """Compare consumed rows with the independently checked original approval.
+
+    This validates synthetic preconditions; it does not implement consumption
+    or turn a legal timestamp into proof of a real financial event.
+    """
+    funding=payload['funding']
+    quote=UsageUpperQuote.model_validate(funding['quote'])
+    basis=BudgetBasisSnapshot.model_validate(funding['basis'])
+    upper=Money.model_validate(funding['approved_upper'])
+    permit=conn.execute('SELECT * FROM research_dispatch_permits WHERE id=?',(permit_id,)).fetchone()
+    reservation=conn.execute('SELECT * FROM research_reservations WHERE id=?',(permit['reservation_id'],)).fetchone() if permit else None
+    account=conn.execute('SELECT * FROM research_funding_accounts WHERE id=?',(approval['account_id'],)).fetchone()
+    if not permit or not reservation or not account:raise PermissionError('approved consumed probe preconditions required')
+    scope=digest(canonical({'context':context.model_dump(),'approval_ref':approval['id'],'generation':payload['generation']}))
+    outbound=digest(canonical({'method':'POST','target':'https://api.deepseek.com/chat/completions','body_digest':prepared.request_digest}))
+    admitted=permit['admitted_at']
+    if (funding['account_id']!=approval['account_id'] or basis.account_id!=approval['account_id']
+            or reservation['account_id']!=approval['account_id'] or account['id']!=funding['account_id']
+            or funding['binding_id']!=basis.provider_binding_id or account['binding_id']!=basis.provider_binding_id
+            or funding['funding_epoch']!=basis.funding_epoch or account['funding_epoch']!=basis.funding_epoch
+            or reservation['funding_epoch']!=basis.funding_epoch or reservation['max_cost']!=upper.amount_units
+            or upper.currency!=quote.currency or upper.scale!=quote.scale or account['currency']!=upper.currency
+            or account['scale']!=upper.scale or basis.cap.currency!=upper.currency or basis.cap.scale!=upper.scale
+            or reservation['price_revision']!=quote.revision or basis.price_revision!=quote.revision
+            or permit['price_digest']!=digest(canonical(funding['quote'])) or permit['budget_basis_digest']!=digest(canonical(funding['basis']))
+            or permit['paid_approval_ref']!=approval['id'] or reservation['task_id']!=context.task_id
+            or reservation['principal_id']!=context.principal_id or reservation['auth_scope_digest']!=scope
+            or reservation['outbound_fingerprint']!=outbound or permit['input_digest']!=context.input_digest
+            or permit['authorization_context_digest']!=digest(canonical(context.model_dump()))
+            or permit['request_digest']!=prepared.request_digest or permit['evidence_digest']!=prepared.evidence_digest
+            or type(admitted) is not int or not 0<admitted<=int(time.time())
+            or admitted<approval['confirmed_at'] or admitted>=min(quote.valid_until,basis.valid_until,approval['expires_at'])):
+        raise PermissionError('consumed probe differs from approved financial facts')
+    return permit,reservation,account,quote,basis,upper
+
+
 class OwnedReturnReceipt:
     __slots__=('_session','_binding','_value','_received_at','_pid')
     def __init__(self,session,value,*,_factory=None):
@@ -132,16 +170,11 @@ class OwnedProviderSession:
             consent=packet_authority(conn,store,identity,lease,approval_ref)
             packet=read_confirmed_provider_packet(conn,store,identity,consent)
             prepared=prepare_request(payload['summary'],packet);final_request_bytes(prepared)
-            permit=conn.execute('SELECT * FROM research_dispatch_permits WHERE id=?',(permit_id,)).fetchone()
-            if not permit:raise PermissionError('offline consumed probe preconditions required')
-            reservation=conn.execute('SELECT * FROM research_reservations WHERE id=?',(permit['reservation_id'],)).fetchone()
-            if not reservation:raise PermissionError('offline probe reservation required')
-            account=conn.execute('SELECT * FROM research_funding_accounts WHERE id=?',(reservation['account_id'],)).fetchone()
-            q=UsageUpperQuote.model_validate(payload['funding']['quote'])
-            obj.binding=FinancialReturnBinding(obj.id,approval_ref,row['payload_digest'],account['id'],account['binding_id'],account['currency'],account['scale'],reservation['funding_epoch'],
+            permit,reservation,account,q,basis,upper=_approved_send_facts(conn,row,payload,context,permit_id,prepared)
+            obj.binding=FinancialReturnBinding(obj.id,approval_ref,row['payload_digest'],basis.account_id,basis.provider_binding_id,upper.currency,upper.scale,basis.funding_epoch,
                 reservation['id'],reservation['version'],permit_id,permit['dispatch_id'],permit['authorized_task_version'],permit['authorized_step_version'],task['id'],permit['step_id'],
-                prepared.request_digest,prepared.evidence_digest,digest(canonical(packet.context.model_dump())),digest(canonical(q.model_dump())),q.revision,permit['budget_basis_digest'],permit['admitted_at'],
-                packet.context.attempt,q.context_bound,q.output_bound,reservation['max_cost'])
+                prepared.request_digest,prepared.evidence_digest,digest(canonical(packet.context.model_dump())),digest(canonical(q.model_dump())),q.revision,digest(canonical(payload['funding']['basis'])),permit['admitted_at'],
+                packet.context.attempt,q.context_bound,q.output_bound,upper.amount_units)
             _financial_facts(conn,obj.binding)
             _send_versions(conn,obj.binding,task)
             if prepared.request_digest!=payload['request_digest'] or prepared.evidence_digest!=payload['evidence_digest']:
@@ -156,7 +189,8 @@ class OwnedProviderSession:
         try:
             object.__setattr__(obj,'connection',obj.transport.preconnect(prepared,q,seconds=seconds))
             with store.transaction(write=True) as conn:
-                _,_,_,task=_checked(conn,store,identity,lease,approval_ref)
+                row,payload,context,task=_checked(conn,store,identity,lease,approval_ref)
+                _approved_send_facts(conn,row,payload,context,permit_id,prepared)
                 _financial_facts(conn,obj.binding);_send_versions(conn,obj.binding,task)
                 if conn.execute("UPDATE research_provider_sessions SET state='sent',version=version+1 WHERE id=? AND state='created' AND version=1",(obj.id,)).rowcount!=1:raise PermissionError('session already started')
             obj.transport.begin(obj.connection,lease=lease,permit=ticket)
@@ -243,6 +277,8 @@ def persist_owned_return(conn,receipt):
     if len(raw.encode())>16384:raise ValueError('bounded offline financial provenance required')
     if session['financial_return_json'] is not None:
         if session['return_digest']!=stamp or session['financial_return_json']!=raw:raise PermissionError('immutable received return conflict')
+        if not owner._current_content(conn):
+            conn.execute('UPDATE research_provider_sessions SET candidate_json=NULL WHERE id=? AND candidate_json IS NOT NULL',(owner.id,))
         return {'return_ref':owner.id,'digest':stamp,'execution_mode':'offline_probe','financial_consumer_enabled':False}
     candidate=value.candidate if owner._current_content(conn) else None
     state='received' if value.usage is not None else 'unknown'

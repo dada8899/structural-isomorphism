@@ -76,5 +76,5 @@ U仅调用受审usage_upper.preview_bound，用真实服务器clock核≤60秒TT
 
 ## CP3 A：离线实际收包来源
 
-2026-10-17。OwnedProviderSession独占真实loopback socket，亲自调用transport finish后生成不可公开构造的receipt，同auth DB首次CAS保存完整binding及usage；candidate另槽可擦。普通DTO、重复注册、损坏binding、退休来源均拒；取消／撤权／删除后仅保用量事实，不恢复正文，重复回执不回填已擦candidate。无完整收包即UNKNOWN，关闭连接及期限计时器；Python私有类型不构成任意root代码隔离。
+2026-10-17。OwnedProviderSession独占真实loopback socket，登记前和敏感POST前依据原确认approval／funding核实际账户、经济binding／epoch、basis、批准U及合法admitted时窗，不从票据抄值自证；自身finish生成receipt，同auth DB首次CAS保存binding及usage。candidate另槽可擦，首次保存及幂等重放均核当前内容资格：取消／撤权后擦候选，财务首事实不变，已擦不回填。普通DTO、重复注册、损坏binding、退休来源均拒；无完整收包即UNKNOWN并关闭socket／timer。Python私有类型不是任意root代码隔离；合法时窗也不是实际金融消费证明，本阶段待原独审复验。
 旧finish只委托共用收包校验并调用原v1 cost_intent；原begin／最终字节守卫／probe标志和旧schema定义不变。测试装配的已消费票及余额均为合成前置，不能证明预算consume；生产注册／send、TrustedCostAuthority及held→upper消费继续关闭，未新增DDL／API／F／资金／凭据或真实模型调用。
