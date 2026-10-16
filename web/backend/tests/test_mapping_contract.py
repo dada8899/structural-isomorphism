@@ -209,55 +209,74 @@ def test_mapping_sse_never_exposes_partial_semantics_and_final_payload_is_strict
     monkeypatch, tmp_path,
 ) -> None:
     import main
+    from errors import LegacyPaidUnavailable
+    from unittest.mock import Mock
 
     monkeypatch.setattr(main, "app_state", {"search": _FakeSearch()})
     mapping_api._cache = _cache(tmp_path / "mapping-cache.jsonl")
-    mapping_api._llm = _AdversarialStreamLLM()
+    llm = _AdversarialStreamLLM()
+    sender = Mock(side_effect=AssertionError("retired generation must not start"))
+    monkeypatch.setattr(llm, "stream_mapping", sender)
+    mapping_api._llm = llm
     endpoint = inspect.unwrap(mapping_api.stream_mapping)
-    response = asyncio.run(endpoint(
-        _request(),
-        mapping_api.MappingStreamRequest(b_id="p-b", a_id="p-a", lang="zh"),
-    ))
-    body = asyncio.run(_stream_text(response))
+    response = None
+    with monkeypatch.context() as guard:
+        sse = Mock(side_effect=AssertionError("SSE headers must not start on a miss"))
+        guard.setattr(mapping_api, "StreamingResponse", sse)
+        with pytest.raises(LegacyPaidUnavailable) as error:
+            response = asyncio.run(endpoint(_request(), mapping_api.MappingStreamRequest(b_id="p-b", a_id="p-a", lang="zh")))
+        assert response is None and sse.call_count == 0
+    assert error.value.status == 503 and error.value.to_dict()["code"] == "FEATURE_UNAVAILABLE"
+    refused = json.dumps(error.value.to_dict())
+    assert "semantic-leak" not in refused and "event: done" not in refused
+    assert sender.call_count == 0
 
+    # Preserve the strict final-payload contract on a real versioned cache read.
+    mapping_api._cache.put("p-a", "p-b", _valid_mapping(), lang="zh")
+    response = asyncio.run(endpoint(_request(), mapping_api.MappingStreamRequest(b_id="p-b", a_id="p-a", lang="zh")))
+    body = asyncio.run(_stream_text(response))
     assert "semantic-leak" not in body
     assert "confirmed" not in body
-    assert 'event: text\ndata: {"total_length": 42}' in body
-    assert '"schema_version": "candidate-mapping-v2"' in body
-    assert '"secret"' not in body and '"score": 999' not in body
+    assert "event: text" not in body  # no fabricated progress from a model
+    assert '\"schema_version\": \"candidate-mapping-v2\"' in body
+    assert '\"secret\"' not in body and '\"score\": 999' not in body
+    assert '\"from_cache\": true' in body and sender.call_count == 0
 
 
 def test_query_mapping_rejects_blank_input_falls_back_from_bad_rewrite_and_stops_at_done(
     monkeypatch, tmp_path,
 ) -> None:
     import main
+    from errors import LegacyPaidUnavailable
+    from unittest.mock import Mock
 
     monkeypatch.setattr(main, "app_state", {"search": _FakeSearch()})
     mapping_api._cache = _cache(tmp_path / "mapping-cache.jsonl")
     llm = _AdversarialRewriteLLM()
+    rewrite = Mock(side_effect=AssertionError("retired rewrite must not start"))
+    stream = Mock(side_effect=AssertionError("retired generation must not start"))
+    monkeypatch.setattr(llm, "rewrite_query", rewrite)
+    monkeypatch.setattr(llm, "stream_mapping", stream)
     mapping_api._llm = llm
     endpoint = inspect.unwrap(mapping_api.stream_mapping)
-
     with pytest.raises(ValidationError):
         mapping_api.MappingStreamRequest(b_id="p-b", text_a="   ", lang="zh")
-
     question = "为什么阈值附近会突然变化？"
-    response = asyncio.run(
-        endpoint(
-            _request(),
-            mapping_api.MappingStreamRequest(
-                b_id="p-b", text_a=question, lang="zh"
-            ),
-        )
-    )
-    body = asyncio.run(_stream_text(response))
-    assert llm.seen is not None
-    assert llm.seen[0]["id"] == "p-b"
-    assert llm.seen[1]["id"] == "__query__"
-    assert llm.seen[1]["description"] == "为什么阈值附近会突然变化?"
+    query = mapping_api.MappingStreamRequest(b_id="p-b", text_a=question, lang="zh")
+    assert mapping_api._bounded_query_text(query.text_a) == "为什么阈值附近会突然变化?"
+    response = None
+    with monkeypatch.context() as guard:
+        sse = Mock(side_effect=AssertionError("SSE must not be constructed"))
+        guard.setattr(mapping_api, "StreamingResponse", sse)
+        with pytest.raises(LegacyPaidUnavailable) as error:
+            response = asyncio.run(endpoint(_request(), query))
+        assert response is None and sse.call_count == 0
+    body = json.dumps(error.value.to_dict())
+    assert error.value.status == 503 and error.value.to_dict()["code"] == "FEATURE_UNAVAILABLE"
+    assert llm.seen is None and rewrite.call_count == stream.call_count == 0
     assert "poisoned" not in body
-    assert '"total_length": 999' not in body
-    assert body.count("event: done") == 1
+    assert '\"total_length\": 999' not in body
+    assert body.count("event: done") == 0
 
 
 def test_mapping_stream_public_docs_match_runtime_direction_and_score_field() -> None:
@@ -334,19 +353,37 @@ def test_phenomenon_and_share_card_never_present_retrieval_as_a_percentage() -> 
 
 def test_sync_mapping_response_has_one_stable_score_field(monkeypatch, tmp_path) -> None:
     import main
+    from errors import LegacyPaidUnavailable
+    from fastapi import HTTPException
+    from unittest.mock import Mock
 
     class _SyncLLM:
         async def generate_mapping(self, _a, _b, _similarity, lang="zh"):
-            del lang
-            return _valid_mapping()
+            raise AssertionError("cache reads must not generate")
 
-    monkeypatch.setattr(main, "app_state", {"search": _FakeSearch()})
+    svc = _FakeSearch()
+    original_get = svc.get_by_id
+    # Only the declared public catalog is readable, even if a cache row exists.
+    monkeypatch.setattr(svc, "get_by_id", lambda key: original_get(key) if key in {"p-a", "p-b"} else None)
+    monkeypatch.setattr(main, "app_state", {"search": svc})
     mapping_api._cache = _cache(tmp_path / "mapping-cache.jsonl")
     mapping_api._llm = _SyncLLM()
     endpoint = inspect.unwrap(mapping_api.generate_mapping)
+    with pytest.raises(LegacyPaidUnavailable):
+        asyncio.run(endpoint(_request(), mapping_api.MappingRequest(a_id="p-a", b_id="p-b")))
+    mapping_api._cache.put("p-a", "p-b", _valid_mapping(), lang="zh")
+    before = (tmp_path / "mapping-cache.jsonl").read_bytes()
     payload = asyncio.run(endpoint(_request(), mapping_api.MappingRequest(a_id="p-a", b_id="p-b")))
     parsed = MappingResponse.model_validate(payload)
+    assert parsed.from_cache is True
     assert parsed.retrieval_similarity == pytest.approx(0.8)
     assert parsed.mapping.generation_status == "generated"
     assert "score" not in payload and "similarity" not in payload
     assert set(payload["a"]) == {"id", "name", "domain", "type_id", "description", "original_query"}
+    assert (tmp_path / "mapping-cache.jsonl").read_bytes() == before
+    with pytest.raises(LegacyPaidUnavailable):
+        asyncio.run(endpoint(_request(), mapping_api.MappingRequest(a_id="p-a", b_id="p-b", lang="en")))
+    mapping_api._cache.put("not-public", "p-b", _valid_mapping(), lang="zh")
+    with pytest.raises(HTTPException) as denied:
+        asyncio.run(endpoint(_request(), mapping_api.MappingRequest(a_id="not-public", b_id="p-b")))
+    assert denied.value.status_code == 404

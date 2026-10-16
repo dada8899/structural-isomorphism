@@ -9,6 +9,12 @@ LLM 不可用时返回 503，不假装能测。
 """
 from __future__ import annotations
 
+if __package__ == "web.backend.api":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
+
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
@@ -62,6 +68,7 @@ class StressTestRequest(BaseModel):
 @tier_limit_decorator(default_anon="10/minute")
 async def stress_test(request: Request, req: StressTestRequest):
     """Run a structural stress test on one analogy / strategic claim."""
+    deny_legacy_paid()
     # Re-validate after strip — pydantic min_length doesn't strip whitespace.
     try:
         claim = validate_claim(req.claim)

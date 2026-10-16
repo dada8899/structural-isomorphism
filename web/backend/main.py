@@ -94,6 +94,15 @@ def _resolve_git_sha() -> str:
         return "unknown"
 
 
+from errors import LegacyPaidUnavailable, deny_legacy_paid
+
+_LEGACY_PHASE_PAID_PATHS = frozenset({
+    "/phase/api/redteam", "/phase/api/deep-report", "/phase/api/analogy",
+    "/phase/api/analogy-detail", "/phase/api/analogy-detail/stream",
+    "/phase/api/analogy/stream", "/phase/api/memo/stream",
+})
+
+
 async def _phase_urlopen_json(req, timeout: int) -> dict:
     """Run a blocking urllib request off the event loop, return parsed JSON.
 
@@ -103,6 +112,7 @@ async def _phase_urlopen_json(req, timeout: int) -> dict:
     other request on the Structural site. `run_in_threadpool` keeps the loop
     free. (The /phase/*/stream endpoints already use httpx.AsyncClient.)
     """
+    deny_legacy_paid()
     import json as _json
     import urllib.request as _req
     from starlette.concurrency import run_in_threadpool
@@ -345,6 +355,12 @@ install_correlation_middleware(app)
 @app.middleware("http")
 async def gate_unfinished_production_surfaces(request: Request, call_next):
     """Fail closed for scaffolds that are not production products yet."""
+    if request.method == "POST" and request.url.path in _LEGACY_PHASE_PAID_PATHS:
+        return JSONResponse(
+            LegacyPaidUnavailable().to_dict(instance=request.url.path),
+            status_code=503, media_type="application/problem+json",
+            headers={"Cache-Control": "no-store"},
+        )
     if not _IS_PROD:
         return await call_next(request)
     path = request.url.path
@@ -778,6 +794,7 @@ async def phase_api_redteam(request: Request):
     Run structural red team analysis on a user-supplied thesis.
     Returns 3 structurally vulnerable assumptions + historical precedents.
     """
+    deny_legacy_paid()
     import json as _json
     import os as _os
     import urllib.request as _req
@@ -884,6 +901,7 @@ Thesis 内容：
 @app.post("/phase/api/deep-report", include_in_schema=False)
 async def phase_api_deep_report(request: Request):
     """Generate a deep structural report for a given company on demand."""
+    deny_legacy_paid()
     import json as _json
     import os as _os
     import urllib.request as _req
@@ -1004,6 +1022,7 @@ async def phase_api_waitlist(request: Request):
 @app.post("/phase/api/analogy", include_in_schema=False)
 async def phase_api_analogy(request: Request):
     """Generate 3 historical structural analogies for a company."""
+    deny_legacy_paid()
     import json as _json
     import os as _os
     import urllib.request as _req
@@ -1138,6 +1157,7 @@ async def phase_analogy_page():
 @app.post("/phase/api/analogy-detail", include_in_schema=False)
 async def phase_api_analogy_detail(request: Request):
     """Deep analysis (~1500-2000 zh) on ONE specific historical analogy."""
+    deny_legacy_paid()
     import json as _json
     import os as _os
     import urllib.request as _req
@@ -1320,6 +1340,7 @@ async def phase_analogy_detail_page():
 @app.post("/phase/api/analogy-detail/stream", include_in_schema=False)
 async def phase_api_analogy_detail_stream(request: Request):
     """Streaming deep analysis — forwards OpenRouter SSE to the browser."""
+    deny_legacy_paid()
     import json as _json
     import os as _os
     import urllib.request as _req
@@ -1548,6 +1569,7 @@ note: {struct.get('note', '?')}
 @app.post("/phase/api/analogy/stream", include_in_schema=False)
 async def phase_api_analogy_stream(request: Request):
     """Streaming list view — 3 analogies as JSON, but streamed char-by-char."""
+    deny_legacy_paid()
     import json as _json
     import os as _os
     import urllib.request as _req
@@ -1785,6 +1807,7 @@ async def phase_about_page():
 @app.post("/phase/api/memo/stream", include_in_schema=False)
 async def phase_api_memo_stream(request: Request):
     """流式生成投资 memo 模板 — Sonnet 4.5，6 板块结构化 Markdown。"""
+    deny_legacy_paid()
     import json as _json
     import os as _os
     import asyncio as _asyncio

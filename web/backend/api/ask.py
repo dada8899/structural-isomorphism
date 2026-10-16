@@ -16,6 +16,12 @@ answer with a softer "outside KB coverage" badge instead of the usual
 isomorphism framing. See services/ask_orchestrator.py
 `_evaluate_relevance` for thresholds and env knobs.
 """
+
+if __package__ == "web.backend.api":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
 from typing import Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Request
@@ -113,6 +119,7 @@ async def ask_stream(request: Request, req: AskRequest):
     Auth: optional Bearer token / cookie promotes the caller to free/paid
     tier (looser rate limits). Anonymous traffic still allowed.
     """
+    deny_legacy_paid()
     # W14-D structured log: request received (length only, never the full
     # query body — PII / IP-sensitive content stays out of logs by default).
     log.info("ask.request")

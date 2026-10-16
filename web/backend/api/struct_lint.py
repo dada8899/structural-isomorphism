@@ -9,6 +9,12 @@ emits progress events (extract → claims → per-claim candidate reference) so 
 frontend can show live progress instead of a 36-165s blank wait. The
 POST endpoint is kept for backward compatibility.
 """
+
+if __package__ == "web.backend.api":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
 import json as _json
 import unicodedata
 
@@ -86,6 +92,7 @@ async def struct_lint(req: StructLintRequest):
       400 — empty or over-long document
       503 — no LLM key configured / LLM call failed
     """
+    deny_legacy_paid()
     document = req.document or ""
 
     # --- Input validation (cheap, before any LLM call) ---
@@ -203,6 +210,7 @@ async def struct_lint_stream(req: StructLintRequest):
     terminal `error` event rather than an HTTP status, because by the time
     the generator runs the 200 + headers are already sent.
     """
+    deny_legacy_paid()
 
     def sse(event_type: str, data: dict) -> str:
         return f"event: {event_type}\ndata: {_json.dumps(data, ensure_ascii=False)}\n\n"

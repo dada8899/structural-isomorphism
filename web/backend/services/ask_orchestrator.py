@@ -32,6 +32,12 @@ Design notes:
 """
 from __future__ import annotations
 
+if __package__ == "web.backend.services":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
+
 import asyncio
 import json
 import os
@@ -383,6 +389,7 @@ class AskOrchestrator:
         fingerprint: Optional[ConfirmedResearchFingerprint] = None,
     ) -> AsyncIterator[str]:
         """Run the full 3-phase pipeline. Caller is FastAPI StreamingResponse."""
+        deny_legacy_paid()
         started = time.monotonic()
         started_iso = _now_iso()
         lang_norm = (lang or "zh").lower()
@@ -842,6 +849,7 @@ class AskOrchestrator:
         currently still drive this via `_call_llm_once` mocks). The hot
         path in `stream()` uses `_stream_llm_answer_with_retry` instead.
         """
+        deny_legacy_paid()
         # First attempt — normal prompt.
         prompt = self._build_prompt(
             query, cards, lang, strict_json=False, fingerprint=fingerprint,
@@ -877,6 +885,7 @@ class AskOrchestrator:
             ("progress", str)      → content-free progress state
             ("done", dict)         → validated/fallback payload at end
         """
+        deny_legacy_paid()
         # Attempt 1 uses the streaming transport for latency and provider
         # compatibility, but every byte stays server-side until validation.
         prompt = self._build_prompt(
@@ -1031,6 +1040,7 @@ class AskOrchestrator:
 
     async def _call_llm_once(self, prompt: str) -> Optional[str]:
         """Single non-streaming chat call to OpenRouter, returns raw content."""
+        deny_legacy_paid()
         api_key = self.llm.api_key or os.getenv("OPENROUTER_API_KEY", "")
         if not api_key:
             logger.warning("ask.llm_unavailable")
@@ -1086,6 +1096,7 @@ class AskOrchestrator:
         `answer` field characters as soon as they arrive (rather than
         waiting for the closing `}`).
         """
+        deny_legacy_paid()
         api_key = self.llm.api_key or os.getenv("OPENROUTER_API_KEY", "")
         if not api_key:
             logger.warning("ask.llm_unavailable")

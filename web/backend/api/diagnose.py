@@ -12,6 +12,12 @@
 """
 from __future__ import annotations
 
+if __package__ == "web.backend.api":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
+
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
@@ -72,6 +78,7 @@ async def diagnose_states():
 @tier_limit_decorator(default_anon="10/minute")
 async def diagnose(request: Request, req: DiagnoseRequest):
     """Run a structural diagnosis on one organisation/team situation."""
+    deny_legacy_paid()
     # Re-validate after strip — pydantic min_length doesn't strip whitespace.
     try:
         situation = validate_situation(req.situation)

@@ -151,6 +151,24 @@ class UpstreamUnavailable(ProblemDetail):
     type_slug = "upstream_unavailable"
 
 
+class LegacyPaidUnavailable(ProblemDetail):
+    """Permanent old-client admission refusal, not a missing-key condition."""
+    default_status = 503
+    default_title = "Legacy generation unavailable"
+    type_slug = "feature_unavailable"
+
+    def __init__(self):
+        super().__init__(
+            detail="旧动态生成暂不可用；可继续本地检索、读取已授权历史记录，或前往研究入口。",
+            code="FEATURE_UNAVAILABLE", retryable=False, canonical="/research",
+        )
+
+
+def deny_legacy_paid():
+    """No key, model, URL or environment flag can reopen a legacy sender."""
+    raise LegacyPaidUnavailable()
+
+
 class InternalError(ProblemDetail):
     default_status = 500
     default_title = "Internal error"
@@ -306,6 +324,8 @@ def install_problem_handlers(app: FastAPI) -> None:
 
 __all__ = [
     "ProblemDetail",
+    "LegacyPaidUnavailable",
+    "deny_legacy_paid",
     "InvalidInput",
     "Unauthenticated",
     "Forbidden",
@@ -316,3 +336,10 @@ __all__ = [
     "InternalError",
     "install_problem_handlers",
 ]
+
+# Both supported application import topologies must share the exception base
+# registered with FastAPI. Otherwise package services can become generic 500s.
+import sys as _sys
+if __name__ in {"errors", "web.backend.errors"}:
+    _sys.modules.setdefault("errors", _sys.modules[__name__])
+    _sys.modules.setdefault("web.backend.errors", _sys.modules[__name__])

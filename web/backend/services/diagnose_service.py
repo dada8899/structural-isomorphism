@@ -22,6 +22,11 @@ is configured `complete_json` returns None — callers surface a clean 503.
 """
 from __future__ import annotations
 
+if __package__ == "web.backend.services":
+    from ..errors import LegacyPaidUnavailable
+else:
+    from errors import LegacyPaidUnavailable
+
 from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
@@ -628,6 +633,8 @@ async def _build_reference_note(
             temperature=0.3,
             max_tokens=400,
         )
+    except LegacyPaidUnavailable:
+        raise
     except Exception as exc:  # noqa: BLE001
         logger.warning(
             "structural.diagnose_reference_note_failed",
@@ -678,6 +685,8 @@ async def _build_candidate_note(case: dict, state_id: str) -> Optional[str]:
         note = _StrictReferenceNote.model_validate(raw).candidate_note
         validate_candidate_public_texts([note])
         return note
+    except LegacyPaidUnavailable:
+        raise
     except Exception as exc:  # optional annotation must never break diagnosis
         logger.warning(
             "structural.diagnose_candidate_note_rejected",

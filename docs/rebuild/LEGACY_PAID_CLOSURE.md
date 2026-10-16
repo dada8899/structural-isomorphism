@@ -1,0 +1,37 @@
+# A006 旧 Web 计费出口关闭候选
+
+日期：2026-10-17；基线：`fbd0b9ee01e6c0036e042ba2a4e58e7e0fadc6d8`。本轮仅旧 Web 发送与 admission，不接新 provider，不是全运行制品／VPS费用验收。
+
+## 实际代码边界
+
+- `LegacyPaidUnavailable` 复用 ProblemDetail，统一503／FEATURE_UNAVAILABLE／不可自动重试；flat/package导入共用异常类型。
+- `_get_http_client` 无条件拒绝，不返回裸 client；旧 LLMService 不加载 key，llm_available 固定 false，model、URL、key 或环境变量不能恢复旧付款路径。
+- 六个 LLMService 发送方法、三 llm_client 方法、两 Ask 发送与重试入口、旧翻译 batch 均在网络准备／吞异常前拒绝。四工具 service 只对可能吞掉该 typed 异常的调用链重抛，不改候选检索／推理算法。
+- Ask、Synthesize、Search rewrite/assess、Method/Stress/Lint/Diagnose直接 admission；Analyze/Mapping仅允许已有受检公共配对缓存，其余在构造生成 SSE 前拒绝。不会因 None/fallback 显示“已生成”。
+- Phase 七个动态POST在prod/dev均503，直接helper及三个stream也拒绝；不扩大关闭auth、静态或原读取路径。已存在的其他生产路由策略保持。
+
+## 保留的读取
+
+- 中文rewrite=false走原 SearchService 本地向量／KB排序，未改检索算法。
+- Mapping沿已有schema/lang/公共KB配对缓存校验；Analyze额外核artifact、源记录摘要、模型元数据与source refs，失配不回退生成。
+- 缓存响应明确from_cache；Analyze缓存回放不新建报告、不刷新取得时间或伪发persisted事件。新保存能力由新研究流程另接，不在此补丁扩建。
+- 英文详情／搜索只读取source-bound的公共翻译缓存，miss保留原文，HTTP头明确cache-only/original-on-miss。无版本／源摘要的旧翻译条目不冒充当前翻译。
+- 私有报告、账户读取与新研究Core保持原代码；本轮没有读取真实账户或验证其全部生命周期。
+
+## 实际消费者与后续提示
+
+只读确认：浏览器api.js搜索明确rewrite=false；search.js独立await搜索，assess失败转null，不会连带关闭普通排序结果。MCP搜索仅query/top_k，后端默认rewrite=false。
+
+搜索页仍默认发assess和synthesis，比较失败组件仍有重试按钮。需Product/UI owner在后续限定前端范围识别FEATURE_UNAVAILABLE并说明旧动态比较停用／保留本地候选／引导研究；本轮不改前端，不把API正例当完整用户入口已验收。
+
+## 验证与未覆盖
+
+新测试使用真实FastAPI路由和ProblemDetail处理器、真实本地检索数学、磁盘缓存与严格报告绑定；embedding／KB输入、日志和dotenv loader为固定边界。仅合成key与最小测试环境，禁止任何真实网络、凭据／邮件或模型加载。
+
+测试覆盖16个旧Web发送site的入口、prod/dev Phase七路由、直接client/helper、SSE头前503、flat/package异常、合法本地检索／静态／授权公共缓存与失配缓存拒绝；实际测试数／环境见当前回执，独审和Linux组合另记。
+
+作者最终在发布匹配Python3.11.15／FastAPI0.135.0／Pydantic2.7.4／Starlette1.3.1运行：新测试28通过，旧Mapping28通过。旧文件仅获准三函数修订：miss在SSE前typed拒绝且无partial／rewrite／done，严格候选及score结构转由真实版本配对cache命中承接，语言失配／非公开KB拒绝；其余AST节点不变。
+
+24个独立SDK／CLI发送site、真实launchd安装状态、Nightly代码分支和实际发布制品／凭据继承隔离由既定owner另证。本轮不改公共SDK、CLI、CI或部署，不因“没key／没安装／未运行／改manifest”登记关闭，也不删除研究资产。
+
+新DeepSeek公开paid_disabled与C0 fixture字节保持；它们不是旧Web闭合的替身。未执行真实调用、扣费、SSH、旧请求撤回、VPS部署或费用对账；本补丁不证明旧进程／旧版本已退出，发布恢复仍须核真实版本与未结调用。

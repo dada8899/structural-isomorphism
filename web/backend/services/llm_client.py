@@ -16,6 +16,12 @@ nothing. Callers MUST handle that (it is the local-dev / test default).
 """
 from __future__ import annotations
 
+if __package__ == "web.backend.services":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
+
 import json
 import os
 from typing import AsyncIterator, Optional
@@ -46,16 +52,12 @@ logger = get_logger("structural.llm_client")
 
 
 def _api_key() -> str:
-    return os.getenv("OPENROUTER_API_KEY", "")
+    return ""  # Retired client has no credential capability.
 
 
 def llm_available() -> bool:
-    """True when an OpenRouter key is configured.
-
-    Feature endpoints should check this and surface a clean 503 / fallback
-    rather than attempting a call that will certainly fail.
-    """
-    return bool(_api_key())
+    """Legacy paid generation is unavailable regardless of credentials."""
+    return False  # No environment can re-enable legacy paid operations.
 
 
 def _resolve_model(model: Optional[str]) -> str:
@@ -77,6 +79,7 @@ async def complete_json(
     error, unrepairable JSON). Never raises — the caller decides how to
     surface a degraded result.
     """
+    deny_legacy_paid()
     if not _api_key():
         logger.warning("llm.client_unavailable")
         return None
@@ -128,6 +131,7 @@ async def complete_text(
     timeout: float = 90.0,
 ) -> Optional[str]:
     """Run one non-streaming plain-text completion. None on failure."""
+    deny_legacy_paid()
     if not _api_key():
         logger.warning("llm.client_unavailable")
         return None
@@ -176,6 +180,7 @@ async def stream_text(
     Yields nothing when no key is configured. Swallows mid-stream errors
     (logs them) so a partial result still reaches the caller.
     """
+    deny_legacy_paid()
     if not _api_key():
         logger.warning("llm.client_unavailable")
         return

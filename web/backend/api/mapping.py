@@ -4,6 +4,12 @@ Two endpoints:
 - POST /api/mapping      — synchronous, returns cached or full result at once
 - POST /api/mapping/stream — SSE stream, for fresh generations
 """
+
+if __package__ == "web.backend.api":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
 import json as _json
 import math
 from pathlib import Path
@@ -141,7 +147,7 @@ async def generate_mapping(request: Request, req: MappingRequest):
 
     svc = app_state.get("search")
     if not svc:
-        raise HTTPException(503, "Search service not ready")
+        deny_legacy_paid()
 
     a = svc.get_by_id(req.a_id)
     b = svc.get_by_id(req.b_id)
@@ -165,13 +171,13 @@ async def generate_mapping(request: Request, req: MappingRequest):
 
     cached = _cache.get(req.a_id, req.b_id, lang=req.lang)
     if cached:
-        return _mapping_response(
-            from_cache=True,
-            a=a_public,
-            b=b_public,
-            similarity=similarity,
-            mapping=cached,
-        )
+        try:
+            return _mapping_response(from_cache=True, a=a_public, b=b_public,
+                                     similarity=similarity, mapping=cached)
+        except (TypeError, ValueError):
+            deny_legacy_paid()
+
+    deny_legacy_paid()
 
     # Generate with LLM
     mapping = await _llm.generate_mapping(a_public, b_public, similarity, lang=req.lang)
@@ -241,7 +247,7 @@ async def stream_mapping(request: Request, req: MappingStreamRequest):
 
     svc = app_state.get("search")
     if not svc:
-        raise HTTPException(503, "Search service not ready")
+        deny_legacy_paid()
 
     b = svc.get_by_id(b_id)
     if not b:
@@ -266,6 +272,7 @@ async def stream_mapping(request: Request, req: MappingStreamRequest):
             raise HTTPException(503, "Mapping similarity is invalid") from exc
         cache_pair = (a_id, b_id)
     elif text_a:
+        deny_legacy_paid()
         # Query mode: text_a is user's free-text question
         #
         # Product semantics: the user wants to BORROW methods FROM a known
@@ -319,6 +326,17 @@ async def stream_mapping(request: Request, req: MappingStreamRequest):
     except (TypeError, ValueError) as exc:
         raise HTTPException(503, "Mapping inputs are invalid") from exc
 
+    cached_mapping = None
+    if cache_pair:
+        cached = _cache.get(*cache_pair, lang=lang)
+        if cached:
+            try:
+                cached_mapping = CandidateMapping.model_validate(cached).model_dump(mode="json")
+            except (TypeError, ValueError):
+                cached_mapping = None
+    if cached_mapping is None:
+        deny_legacy_paid()
+
     async def event_gen():
         def sse(event_type: str, data: dict) -> str:
             return f"event: {event_type}\ndata: {_json.dumps(data, ensure_ascii=False)}\n\n"
@@ -334,13 +352,9 @@ async def stream_mapping(request: Request, req: MappingStreamRequest):
             },
         )
 
-        # Check cache only in pair mode
-        if cache_pair:
-            cached = _cache.get(*cache_pair, lang=lang)
-            if cached:
-                yield sse("cache", {"mapping": cached})
-                yield sse("done", {"mapping": cached, "from_cache": True})
-                return
+        yield sse("cache", {"mapping": cached_mapping})
+        yield sse("done", {"mapping": cached_mapping, "from_cache": True})
+        return
 
         async for chunk in _llm.stream_mapping(a_public, b_public, similarity, lang=lang):
             ctype = chunk.get("type")
