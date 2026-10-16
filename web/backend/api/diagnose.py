@@ -78,7 +78,6 @@ async def diagnose_states():
 @tier_limit_decorator(default_anon="10/minute")
 async def diagnose(request: Request, req: DiagnoseRequest):
     """Run a structural diagnosis on one organisation/team situation."""
-    deny_legacy_paid()
     # Re-validate after strip — pydantic min_length doesn't strip whitespace.
     try:
         situation = validate_situation(req.situation)
@@ -95,6 +94,8 @@ async def diagnose(request: Request, req: DiagnoseRequest):
                 "message": "这里只分析组织、团队或项目的结构处境。请补充参与者、反馈和变化过程。",
             },
         )
+
+    deny_legacy_paid()
 
     # No API key locally / in tests → be honest, don't fake a diagnosis.
     if not llm_client.llm_available():

@@ -112,14 +112,6 @@ def _looks_like_question(query: str) -> bool:
 @router.post("/search")
 @tier_limit_decorator(default_anon="30/minute")
 async def search_phenomena(request: Request, req: SearchRequest, response: Response = None):
-    if req.rewrite:
-        deny_legacy_paid()
-    from main import app_state
-
-    svc = app_state.get("search")
-    if not svc:
-        raise HTTPException(503, "Search service not ready")
-
     if req.lang == "en" and response is not None:
         response.headers["X-Translation-Policy"] = "cache-only; original-on-miss"
 
@@ -156,6 +148,14 @@ async def search_phenomena(request: Request, req: SearchRequest, response: Respo
             "stats": {"types": [], "domains": [], "top_score": 0},
             "v2_pairs_for_top": [],
         }
+    if req.rewrite:
+        deny_legacy_paid()
+    from main import app_state
+
+    svc = app_state.get("search")
+    if not svc:
+        raise HTTPException(503, "Search service not ready")
+
     # Default assessment is a permissive passthrough so downstream code that
     # reads `assessment.worth_score` still sees a valid shape. The `category`
     # value stays ZH internally (enum shape) and is translated on output

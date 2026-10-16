@@ -556,6 +556,10 @@ async def _stream_analyze_v2(
         raise HTTPException(401, "Invalid API token")
 
     if req.text_a is not None:
+        from services.scope_guard import is_out_of_scope
+        out_of_scope, reason = is_out_of_scope(req.text_a)
+        if out_of_scope:
+            raise HTTPException(422, {"error": "out_of_scope", "reason": reason})
         deny_legacy_paid()  # Query-mode has no eligible public-pair cache.
 
     from main import app_state

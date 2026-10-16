@@ -87,6 +87,84 @@ def assert_unavailable(response):
     assert response.json()["retryable"] is False
 
 
+@pytest.fixture
+def no_preparation(monkeypatch, app_env):
+    _, _, svc, _ = app_env
+    def fail(*a, **k): raise AssertionError("pure validation reached generation/retrieval preparation")
+    checks = []
+    for name in ("get_by_id", "search", "encode_query"):
+        spy = Mock(side_effect=fail); monkeypatch.setattr(svc, name, spy); checks.append(spy)
+    for module_name, names in {
+        "ask": ("_get_llm", "AskOrchestrator"), "analyze": ("_init", "_query_binding", "_analyze_stream_response"),
+        "method_search": ("run_method_search",), "stress_test": ("run_stress_test",),
+        "diagnose": ("run_diagnosis",), "struct_lint": ("lint_document", "StreamingResponse"),
+        "synthesize": ("_get_llm", "_canonical_top_results"),
+    }.items():
+        module = importlib.import_module("api." + module_name)
+        for name in names:
+            spy = Mock(side_effect=fail); monkeypatch.setattr(module, name, spy); checks.append(spy)
+    yield checks
+    assert all(spy.call_count == 0 for spy in checks)
+
+
+@pytest.mark.parametrize("path,body,status", [
+    ("/api/ask/stream", {"query": "x"*8001}, 422),
+    ("/api/ask/stream", {"query": "2 + 2 等于多少"}, 422),
+    ("/api/analyze/stream", {"b_id": "p2", "text_a": "2 + 2 等于多少"}, 422),
+    ("/api/method/apply", {"method": "2 + 2 等于多少，请直接告诉我答案"}, 422),
+    ("/api/stress-test", {"claim": "2 + 2 等于多少，请直接告诉我答案"}, 422),
+    ("/api/diagnose", {"situation": "2 + 2 等于多少，请直接告诉我答案"}, 422),
+    ("/api/struct-lint", {"document": "   \n"}, 400),
+    ("/api/struct-lint/stream", {"document": "   \n"}, 400),
+    ("/api/struct-lint", {"document": "x"*20001}, 400),
+    ("/api/struct-lint/stream", {"document": "x"*20001}, 400),
+    ("/api/struct-lint", {"document": "2 + 2 等于多少，请直接告诉我答案"}, 422),
+    ("/api/struct-lint/stream", {"document": "2 + 2 等于多少，请直接告诉我答案"}, 422),
+    ("/api/synthesize", {"query": "反馈延迟", "results": []}, 422),
+    ("/api/synthesize/stream", {"query": "反馈延迟", "results": []}, 422),
+])
+def test_pure_validation_is_http_before_deny_or_preparation(app_env, no_sender, no_preparation, path, body, status):
+    _, client, _, _ = app_env
+    reply = client.post(path, json=body)
+    assert reply.status_code == status, reply.text
+    assert "text/event-stream" not in reply.headers["content-type"]
+    assert "event: meta" not in reply.text and "event: done" not in reply.text
+
+
+@pytest.mark.parametrize("path,body", [
+    ("/api/ask/stream", {"query": "2 + 2 等于多少"}),
+    ("/api/analyze/stream", {"b_id": "p2", "text_a": "2 + 2 等于多少"}),
+])
+def test_invalid_caller_identity_precedes_oos(app_env, no_sender, no_preparation, monkeypatch, path, body):
+    _, client, _, _ = app_env
+    monkeypatch.setenv("STRUCTURAL_API_TOKENS", "free:synthetic-valid-caller")
+    invalid = client.post(path, json=body, headers={"Authorization": "Bearer synthetic-invalid-caller"})
+    assert invalid.status_code == 401, invalid.text
+    valid = client.post(path, json=body, headers={"Authorization": "Bearer synthetic-valid-caller"})
+    assert valid.status_code == 422, valid.text
+
+
+def test_search_oos_remains_local_even_when_rewrite_requested(app_env, no_sender, no_preparation):
+    _, client, _, _ = app_env
+    reply = client.post("/api/search", json={"query": "2 + 2 等于多少", "rewrite": True})
+    assert reply.status_code == 200
+    assert reply.json()["out_of_scope"] is True and reply.json()["results"] == []
+
+
+@pytest.mark.parametrize("endpoint", ["synthesize", "synthesize_stream"])
+def test_direct_synthesis_empty_results_retains_400_before_model(app_env, no_sender, no_preparation, endpoint):
+    from api import synthesize
+    from starlette.requests import Request
+    from fastapi import HTTPException
+    import inspect
+    # Internal/direct callers can bypass Pydantic; preserve this old cheap check.
+    data = synthesize.SynthesizeRequest.model_construct(query="反馈延迟", results=[], rewritten_query=None, lang="zh")
+    request = Request({"type": "http", "method": "POST", "path": "/", "headers": [], "client": ("127.0.0.1", 1234)})
+    with pytest.raises(HTTPException) as error:
+        asyncio.run(inspect.unwrap(getattr(synthesize, endpoint))(request, data))
+    assert error.value.status_code == 400
+
+
 @pytest.mark.parametrize("path,body", [
     ("/api/ask/stream", {"query": "为什么反馈系统出现延迟响应"}),
     ("/api/analyze/stream", {"a_id": "p1", "b_id": "p2", "persist": 0}),

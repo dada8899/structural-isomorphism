@@ -68,7 +68,6 @@ class StressTestRequest(BaseModel):
 @tier_limit_decorator(default_anon="10/minute")
 async def stress_test(request: Request, req: StressTestRequest):
     """Run a structural stress test on one analogy / strategic claim."""
-    deny_legacy_paid()
     # Re-validate after strip — pydantic min_length doesn't strip whitespace.
     try:
         claim = validate_claim(req.claim)
@@ -85,6 +84,8 @@ async def stress_test(request: Request, req: StressTestRequest):
                 "message": "这里只测试完整的结构类比或战略判断。请补充要比较的两个对象和机制。",
             },
         )
+
+    deny_legacy_paid()
 
     # No API key locally / in tests → be honest, don't fake an analysis.
     if not llm_client.llm_available():

@@ -145,9 +145,9 @@ def _canonical_top_results(requested: List[object], effective_query: str) -> Lis
 @router.post("/synthesize")
 @tier_limit_decorator(default_anon="5/minute")
 async def synthesize(request: Request, req: SynthesizeRequest):
-    deny_legacy_paid()
     if not req.query or not req.results:
         raise HTTPException(400, "Missing query or results")
+    deny_legacy_paid()
 
     top_results = _canonical_top_results(
         req.results, req.rewritten_query or req.query,
@@ -177,9 +177,9 @@ async def synthesize_stream(request: Request, req: SynthesizeRequest):
     - `done`  → {"result": {...full parsed JSON...}}
     - `error` → {"message": "..."}
     """
-    deny_legacy_paid()
     if not req.query or not req.results:
         raise HTTPException(400, "Missing query or results")
+    deny_legacy_paid()
 
     top_results = _canonical_top_results(
         req.results, req.rewritten_query or req.query,

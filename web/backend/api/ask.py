@@ -119,7 +119,6 @@ async def ask_stream(request: Request, req: AskRequest):
     Auth: optional Bearer token / cookie promotes the caller to free/paid
     tier (looser rate limits). Anonymous traffic still allowed.
     """
-    deny_legacy_paid()
     # W14-D structured log: request received (length only, never the full
     # query body — PII / IP-sensitive content stays out of logs by default).
     log.info("ask.request")
@@ -144,6 +143,12 @@ async def ask_stream(request: Request, req: AskRequest):
     tier = verify_api_token(request)
     if tier is None:
         raise HTTPException(401, "Invalid API token")
+
+    from services.scope_guard import is_out_of_scope
+    out_of_scope, reason = is_out_of_scope(req.query)
+    if out_of_scope:
+        raise HTTPException(422, {"error": "out_of_scope", "reason": reason})
+    deny_legacy_paid()
 
     # Import inside the handler to avoid a circular import at module load.
     # (api.ask is imported in main.py, which itself owns app_state.)
