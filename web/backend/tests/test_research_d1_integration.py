@@ -647,4 +647,5 @@ def legacy_v4_c0(monkeypatch,request):
     # Keep the original v3->v4 test's real historical shape and every failure
     # boundary. Production has no bypass; v4->v5 is tested independently.
     monkeypatch.setattr(ResearchStore,"_migrate_v5",lambda self:None)
+    monkeypatch.setattr(ResearchStore,"_migrate_v6",lambda self:None)
     return request.getfixturevalue("c0")

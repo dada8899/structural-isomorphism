@@ -349,6 +349,8 @@ class ResearchService:
             if not principal or principal["status"] != "deleting":
                 raise ResearchError("AUTHORIZATION_STALE", 409, "删除任务主体状态不一致。")
             pid = principal["id"]
+            from .paid_approval import erase_paid_private_inputs
+            erase_paid_private_inputs(self.store,conn,pid,job_id)
             count = lambda table, clause, params: conn.execute(f"SELECT count(*) FROM {table} WHERE {clause}",params).fetchone()[0]
             counts = {
                 "researches": count("research_controls","owner_id=?",(pid,)),
