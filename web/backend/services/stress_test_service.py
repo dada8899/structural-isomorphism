@@ -14,6 +14,11 @@ verdict enum are validated / coerced before reaching the API layer.
 """
 from __future__ import annotations
 
+if __package__ == "web.backend.services":
+    from ..errors import LegacyPaidUnavailable
+else:
+    from errors import LegacyPaidUnavailable
+
 import math
 from typing import Any, Literal, Optional
 
@@ -308,6 +313,8 @@ async def enrich_with_precedent(result: dict, search_svc: Any) -> dict:
             temperature=0.3,
             max_tokens=600,
         )
+    except LegacyPaidUnavailable:
+        raise
     except Exception as exc:
         logger.warning(
             "structural.stress_precedent_llm_failed",
@@ -540,6 +547,8 @@ async def enrich_with_candidate_reference(result: dict, search_svc: Any) -> dict
         )
         note = _StrictCandidateNote.model_validate(raw).candidate_note
         validate_candidate_public_texts([note])
+    except LegacyPaidUnavailable:
+        raise
     except Exception as exc:
         logger.warning(
             "structural.stress_candidate_note_rejected",

@@ -270,12 +270,23 @@ def test_search_isomorph_returns_top_anchor():
 
 
 @pytest.fixture
-def client():
-    from api import struct_lint as struct_lint_api
-
+def client(monkeypatch):
+    from api import struct_lint as endpoint
+    from errors import install_problem_handlers
     app = FastAPI()
-    app.include_router(struct_lint_api.router, prefix="/api")
-    return TestClient(app)
+    install_problem_handlers(app)
+    app.include_router(endpoint.router, prefix="/api")
+    from unittest.mock import Mock
+    checks = []
+    check = Mock(side_effect=AssertionError("retired generator must not run"))
+    monkeypatch.setattr(endpoint, "lint_document", check)
+    checks.append(check)
+    check = Mock(side_effect=AssertionError("retired generator must not run"))
+    monkeypatch.setattr(endpoint, "lint_document_streamed", check)
+    checks.append(check)
+    with TestClient(app) as connection:
+        yield connection
+    assert all(check.call_count == 0 for check in checks)
 
 
 _GOOD_LLM_REPLY = {
@@ -306,8 +317,8 @@ _GOOD_DOCUMENT = (
 )
 
 
-def test_endpoint_success(client, monkeypatch):
-    """Happy path: LLM available + returns a clean payload."""
+def test_retired_endpoint_success(client, monkeypatch):
+    """Retired runtime rejects this former generation scenario before preparation."""
     from services import struct_lint_service
 
     monkeypatch.setattr(struct_lint_service.llm_client, "llm_available", lambda: True)
@@ -323,16 +334,7 @@ def test_endpoint_success(client, monkeypatch):
         "document": _GOOD_DOCUMENT,
         "client_request_id": "lint-request-000001",
     })
-    assert r.status_code == 200
-    body = r.json()
-    assert body["summary"]
-    assert body["request_id"] == "lint-request-000001"
-    assert body["contract_version"] == "secondary-tools-v2"
-    assert len(body["claims"]) == 2
-    assert body["claims"][0]["claim_type"] == "analogy"
-    assert body["claims"][0]["review_priority"] == "high"
-    assert "risk_level" not in body["claims"][0]
-    assert body["evidence"]["evidence_level"] == "candidate"
+    _assert_retired_response(r)
 
 
 def test_endpoint_rejects_out_of_scope_before_model(client, monkeypatch):
@@ -346,15 +348,14 @@ def test_endpoint_rejects_out_of_scope_before_model(client, monkeypatch):
     assert response.json()["error"] == "out_of_scope"
 
 
-def test_endpoint_llm_unavailable(client, monkeypatch):
-    """No API key → clean 503, no LLM call attempted."""
+def test_retired_endpoint_llm_unavailable(client, monkeypatch):
+    """Retired runtime rejects this former generation scenario before preparation."""
     from api import struct_lint as struct_lint_api
 
     monkeypatch.setattr(struct_lint_api.llm_client, "llm_available", lambda: False)
 
     r = client.post("/api/struct-lint", json={"document": "一段文档"})
-    assert r.status_code == 503
-    assert r.json()["error"] == "llm_unavailable"
+    _assert_retired_response(r)
 
 
 def test_endpoint_empty_document(client, monkeypatch):
@@ -379,8 +380,8 @@ def test_endpoint_document_too_long(client, monkeypatch):
     assert body["received"] == len(too_long)
 
 
-def test_endpoint_rejects_partially_malformed_claim_set(client, monkeypatch):
-    """One malformed model claim rejects the complete payload before display."""
+def test_retired_endpoint_rejects_partially_malformed_claim_set(client, monkeypatch):
+    """Retired runtime rejects this former generation scenario before preparation."""
     from services import struct_lint_service
 
     monkeypatch.setattr(struct_lint_service.llm_client, "llm_available", lambda: True)
@@ -411,11 +412,11 @@ def test_endpoint_rejects_partially_malformed_claim_set(client, monkeypatch):
     )
 
     r = client.post("/api/struct-lint", json={"document": "doc"})
-    assert r.status_code == 503
+    _assert_retired_response(r)
 
 
-def test_endpoint_llm_returns_unusable_payload(client, monkeypatch):
-    """LLM returns None (parse failure) → 503 llm_failed."""
+def test_retired_endpoint_llm_returns_unusable_payload(client, monkeypatch):
+    """Retired runtime rejects this former generation scenario before preparation."""
     from services import struct_lint_service
 
     monkeypatch.setattr(struct_lint_service.llm_client, "llm_available", lambda: True)
@@ -428,8 +429,7 @@ def test_endpoint_llm_returns_unusable_payload(client, monkeypatch):
     )
 
     r = client.post("/api/struct-lint", json={"document": "doc"})
-    assert r.status_code == 503
-    assert r.json()["error"] == "llm_failed"
+    _assert_retired_response(r)
 
 
 # =========================================================================
@@ -478,8 +478,8 @@ def _stub_two_llm_calls(monkeypatch, extract_reply, anchor_reply):
     )
 
 
-def test_endpoint_attaches_candidate_reference_on_kb_hit(client, monkeypatch):
-    """A KB hit is shown as a candidate and cannot rewrite model claims."""
+def test_retired_endpoint_attaches_candidate_reference_on_kb_hit(client, monkeypatch):
+    """Retired runtime rejects this former generation scenario before preparation."""
     fake = _FakeSearch(hits=[
         {
             "id": "ph-eco-01",
@@ -501,65 +501,41 @@ def test_endpoint_attaches_candidate_reference_on_kb_hit(client, monkeypatch):
     )
 
     r = client.post("/api/struct-lint", json={"document": _GOOD_DOCUMENT})
-    assert r.status_code == 200
-    body = r.json()
-    claims = body["claims"]
-    assert len(claims) == 2
-    for c in claims:
-        assert c["reference_candidate"] is not None
-        assert c["reference_candidate"]["id"] == "ph-eco-01"
-        assert c["reference_candidate"]["domain"] == "生态学"
-        assert c["reference_candidate"]["retrieval_rank"] == 1
-        assert c["reference_candidate"]["evidence"]["evidence_level"] == "candidate"
-        assert "同构" not in c["failure_mode"]
-    # The KB was actually queried — one search per claim.
-    assert len(fake.calls) == 2
+    _assert_retired_response(r)
+    assert fake.calls == []
 
 
-def test_endpoint_degrades_when_search_unavailable(client, monkeypatch):
-    """Search service not in app_state → isomorph=None, lint still 200."""
+def test_retired_endpoint_degrades_when_search_unavailable(client, monkeypatch):
+    """Retired runtime rejects this former generation scenario before preparation."""
     import main
 
     monkeypatch.delitem(main.app_state, "search", raising=False)
     _stub_two_llm_calls(monkeypatch, _GOOD_LLM_REPLY, {})
 
     r = client.post("/api/struct-lint", json={"document": _GOOD_DOCUMENT})
-    assert r.status_code == 200
-    claims = r.json()["claims"]
-    assert len(claims) == 2
-    for c in claims:
-        assert c["reference_candidate"] is None
-        # Failure mode falls back to the first-pass LLM output.
-        assert c["failure_mode"]
+    _assert_retired_response(r)
 
 
-def test_endpoint_degrades_on_empty_kb_match(client, monkeypatch):
-    """Search returns no hits → isomorph=None, no anchor pass, lint 200."""
+def test_retired_endpoint_degrades_on_empty_kb_match(client, monkeypatch):
+    """Retired runtime rejects this former generation scenario before preparation."""
     fake = _FakeSearch(hits=[])
     _install_search(monkeypatch, fake)
     _stub_two_llm_calls(monkeypatch, _GOOD_LLM_REPLY, {})
 
     r = client.post("/api/struct-lint", json={"document": _GOOD_DOCUMENT})
-    assert r.status_code == 200
-    claims = r.json()["claims"]
-    assert len(claims) == 2
-    for c in claims:
-        assert c["reference_candidate"] is None
-    # Searched, but found nothing.
-    assert len(fake.calls) == 2
+    _assert_retired_response(r)
+    assert fake.calls == []
 
 
-def test_endpoint_degrades_when_search_raises(client, monkeypatch):
-    """Search service raises → isomorph=None, lint still succeeds."""
+def test_retired_endpoint_degrades_when_search_raises(client, monkeypatch):
+    """Retired runtime rejects this former generation scenario before preparation."""
     fake = _FakeSearch(raises=True)
     _install_search(monkeypatch, fake)
     _stub_two_llm_calls(monkeypatch, _GOOD_LLM_REPLY, {})
 
     r = client.post("/api/struct-lint", json={"document": _GOOD_DOCUMENT})
-    assert r.status_code == 200
-    claims = r.json()["claims"]
-    for c in claims:
-        assert c["reference_candidate"] is None
+    _assert_retired_response(r)
+    assert fake.calls == []
 
 
 # =========================================================================
@@ -706,7 +682,8 @@ def test_stream_body_rejects_wrong_type_controls_extra_and_hard_ceiling(client, 
     assert response.status_code == 422
 
 
-def test_stream_accepts_20k_cjk_in_body(client, monkeypatch):
+def test_retired_stream_accepts_20k_cjk_in_body(client, monkeypatch):
+    """Retired runtime rejects this former generation scenario before preparation."""
     from api import struct_lint as struct_lint_api
 
     document = "策" * 20_000
@@ -722,19 +699,13 @@ def test_stream_accepts_20k_cjk_in_body(client, monkeypatch):
         "/api/struct-lint/stream",
         json={"document": document},
     )
-    assert response.status_code == 200
-    assert response.request.url.path == "/api/struct-lint/stream"
+    _assert_retired_response(response)
+    assert seen == []
     assert not response.request.url.query
-    assert seen and seen[0][0] == document
-    assert _parse_sse(response.text)[-1][0] == "done"
 
 
-def test_stream_endpoint_emits_meta_progress_done(client, monkeypatch):
-    """Happy path: the SSE stream emits meta → progress(s) → done.
-
-    Asserts each named event actually appears in the response body — a
-    log line is not an SSE event, so we parse and check the wire format.
-    """
+def test_retired_stream_endpoint_emits_meta_progress_done(client, monkeypatch):
+    """Retired runtime rejects this former generation scenario before preparation."""
     fake = _FakeSearch(hits=[
         {"id": "ph-eco-01", "name": "捕食者-猎物震荡", "domain": "生态学",
          "relevance": 0.78, "description": "周期性波动"},
@@ -750,60 +721,33 @@ def test_stream_endpoint_emits_meta_progress_done(client, monkeypatch):
         "document": _GOOD_DOCUMENT,
         "client_request_id": "lint-stream-000001",
     })
-    assert r.status_code == 200
-    assert r.headers["content-type"].startswith("text/event-stream")
-
-    events = _parse_sse(r.text)
-    types = [e[0] for e in events]
-    assert types[0] == "meta"               # meta is sent first (fast first byte)
-    assert "progress" in types              # at least one progress event
-    assert types[-1] == "done"              # done is terminal
-    assert events[0][1]["request_id"] == "lint-stream-000001"
-    assert events[0][1]["contract_version"] == "secondary-tools-v2"
-
-    # The done event carries the full lint result.
-    done_event = next(e for e in events if e[0] == "done")
-    result = done_event[1]["result"]
-    assert result["summary"]
-    assert len(result["claims"]) == 2
-    assert result["claims"][0]["reference_candidate"]["id"] == "ph-eco-01"
-
-    # Progress events cover the pipeline stages.
-    progress_stages = {
-        e[1].get("stage") for e in events if e[0] == "progress"
-    }
-    assert "extract" in progress_stages
-    assert "claims" in progress_stages
-    assert "candidate_reference" in progress_stages
+    _assert_retired_response(r)
+    assert fake.calls == []
 
 
-def test_stream_endpoint_empty_document_emits_error(client, monkeypatch):
-    """Empty doc → meta then a terminal error event (no HTTP 400)."""
+def test_stream_empty_document_is_http_400_before_sse(client, monkeypatch):
+    """Empty doc is rejected before any SSE/meta response."""
     from api import struct_lint as struct_lint_api
 
     monkeypatch.setattr(struct_lint_api.llm_client, "llm_available", lambda: True)
     r = client.post("/api/struct-lint/stream", json={"document": "   "})
-    assert r.status_code == 200
-    events = _parse_sse(r.text)
-    err = next(e for e in events if e[0] == "error")
-    assert err[1]["error"] == "empty_document"
-    assert not any(e[0] == "done" for e in events)
+    assert r.status_code == 400
+    assert r.json()["error"] == "empty_document"
+    assert r.headers["content-type"].startswith("application/json")
+    assert _parse_sse(r.text) == []
 
 
-def test_stream_endpoint_llm_unavailable_emits_error(client, monkeypatch):
-    """No API key → terminal error event with llm_unavailable."""
+def test_retired_stream_endpoint_llm_unavailable_emits_error(client, monkeypatch):
+    """Retired runtime rejects this former generation scenario before preparation."""
     from api import struct_lint as struct_lint_api
 
     monkeypatch.setattr(struct_lint_api.llm_client, "llm_available", lambda: False)
     r = client.post("/api/struct-lint/stream", json={"document": "一段文档"})
-    assert r.status_code == 200
-    events = _parse_sse(r.text)
-    err = next(e for e in events if e[0] == "error")
-    assert err[1]["error"] == "llm_unavailable"
+    _assert_retired_response(r)
 
 
-def test_stream_endpoint_llm_failure_emits_error(client, monkeypatch):
-    """LLM returns None mid-pipeline → terminal error event, no done."""
+def test_retired_stream_endpoint_llm_failure_emits_error(client, monkeypatch):
+    """Retired runtime rejects this former generation scenario before preparation."""
     from services import struct_lint_service
 
     monkeypatch.setattr(struct_lint_service.llm_client, "llm_available", lambda: True)
@@ -818,10 +762,14 @@ def test_stream_endpoint_llm_failure_emits_error(client, monkeypatch):
     monkeypatch.delitem(main.app_state, "search", raising=False)
 
     r = client.post("/api/struct-lint/stream", json={"document": "一段文档"})
-    assert r.status_code == 200
-    events = _parse_sse(r.text)
-    types = [e[0] for e in events]
-    assert "meta" in types
-    err = next(e for e in events if e[0] == "error")
-    assert err[1]["error"] == "llm_failed"
-    assert "done" not in types
+    _assert_retired_response(r)
+
+
+def _assert_retired_response(response):
+    """The retired endpoint cannot publish a report, fallback, or SSE."""
+    assert response.status_code == 503, response.text
+    body = response.json()
+    assert body["code"] == "FEATURE_UNAVAILABLE"
+    assert body["retryable"] is False and body["canonical"] == "/research"
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert "event: meta" not in response.text and "event: done" not in response.text

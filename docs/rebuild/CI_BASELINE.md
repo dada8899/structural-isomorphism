@@ -330,6 +330,20 @@ coverage原矩阵没有收集root研究合同，六个公式／provider生产文
 
 受限私有目录保留原失败日志、补测日志、parallel合并数据及coverage.json，均不含真实凭据或资金配置；只作本地带环境差异的采样，正常Linux新head必须完整通过。所有本任务测试进程／服务已沿原finally收尾，无待运行coverage进程。本卡只五个获准路径，不改应用、Source／CONTRACT、账本、费用、runtime或阈值。作者停写交PMO精确提交及原Astra独审，未提交／推送或触发CI。
 
+## 本地受审组合的 owner index OpenAPI 与八个 root coverage 端口
+
+日期：2026-10-17，组合分支 `codex/structure-reviewed-composition-20261017`，基线 `1e068b393bc1619df06e81362e791e64c4a6d2be`。本卡仅四个CI／生成物路径，应用、Core/schema6、Source、CONTRACT、金融adapter及F代码不改。
+
+复用发布匹配环境和原生成器write/check，OpenAPI显示in_sync：117个path集合及全部components不变，仅现有 `/api/research` 增正式owner list GET；另同步组合中已有A006 struct-lint stream退役docstring，该原操作除description外完全相同。没有paid／finance新路由或TS制品变化，不手裁真实生成输出。生成物SHA为 `653daf350946102e7f63a348924c472ac26654482b496a6a15d61877b6715395`；完整原OpenAPI合同12 passed／退出0。
+
+原五root独立parallel采样段只追加现成financial、financial_result_adapter、usage_upper三个文件，严格expected command同步为八文件，并逐个增加漏收反例。原全部套件／combine顺序／rcfile／source／omit／80／90／15分钟保持；coverage接线及public-controls／shell完整合同228 passed／退出0，actionlint、差异检查通过。
+
+隔离复用PMO已验证的v2 audit guard，先复制到本任务唯一私有目录，不写稳定归档。数据／DB／cache／HF／TMP均指任务root，dotenv及外网／SMTP阻断；loopback须由本任务bind-port0登记且creator仍存活。发布环境八个root文件347 passed／2个原Mac专属skip／119 subtests passed，owner-index＋quote正式控制组80 passed，均退出0；不修改应用绕guard，不把原v1误挡18fail／9error记录抹掉。
+
+实际覆盖使用已披露的既有异依赖Python3.11完整环境，同八root文件通过并合并其parallel数据；这是**root-only分组采样**，不拼旧head完整数据、不复用旧85.6%声称组合达标。financial_schemas／policy／evaluator／result_adapter／usage_upper分别96.4／93.4／99.0／90.8／96.7%。此子集面对全source分母仅19.8%，默认80检查退出2，原样保留；初次仅诊断JSON渲染不作为门槛结论，未修改CI或配置阈值。未执行完整旧矩阵或声称normal Linux已全绿，后续仍须组合整体验证及正常CI。
+
+29个guard观测PID均无running，guard事件仅29次bootstrap、无deny；本任务synthetic DB／tmp／cache目录已移除，保留受限日志／XML／coverage／guard证据供审查。原受控root与backend复验不等于真实模型、资金或VPS验收。作者仅四路径停写交PMO新SHA／原Astra复审，无新官方／账户／模型请求、依赖安装、SSH、费用、提交或推送。
+
 ## Nightly 显式移除密钥驱动的远端模型测试入口
 
 日期：2026-10-17，分支 `codex/structure-nightly-admission-20261017`，基线 `bd0a7b1c0e7e15e483e4bf45790dfd1a0800e3e4`。独立research-ci工作区及其正常CI不动。原Nightly按OPENROUTER密钥是否存在选择目录级e2e扫描，key分支允许requires_llm；无key分支也不是免费证明，旧目录内有未标requires_llm的远端method/apply、stress和Ask提交，另有收集期远端可达性探测。
@@ -349,3 +363,9 @@ coverage原矩阵没有收集root研究合同，六个公式／provider生产文
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。
 
 集成线保护由有权限者按精确方案配置并回读，不能靠本 manifest 声称已强制执行。首次合入后再核集成 merge SHA 的检查，之后才接候选修复与 B1 共享实现；main 合并和发布仍各自受门禁。本轮没有执行上述 Git、保护变更、发布或共享冻结动作。
+
+## 完整覆盖检查的有界运行时限
+
+2026-10-17，正常 Coverage run 38978315486（候选7f0e3b3）在原15分钟job期限取消；后端已报告2287 passed／1原skip（573.28秒），其后sanity子集201 passed，但后续研究合同与报告步骤未全部完成。取消不代表覆盖比例通过，也不作测试失败结论。
+
+本次只将coverage job总期限15改30分钟，为完整串行套件保留有界运行余量。测试命令、文件范围、依赖、原覆盖source/omit、关键文件90%及整体80%门槛、触发器和其他workflow保持；不删用例、不吞退出码、不复用旧比例。须以包含本次改动的精确新HEAD正常CI重新验证，不以延长时限代替覆盖检查通过。

@@ -12,6 +12,12 @@
 """
 from __future__ import annotations
 
+if __package__ == "web.backend.api":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
+
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
@@ -88,6 +94,8 @@ async def diagnose(request: Request, req: DiagnoseRequest):
                 "message": "这里只分析组织、团队或项目的结构处境。请补充参与者、反馈和变化过程。",
             },
         )
+
+    deny_legacy_paid()
 
     # No API key locally / in tests → be honest, don't fake a diagnosis.
     if not llm_client.llm_available():

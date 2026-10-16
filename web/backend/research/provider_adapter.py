@@ -198,6 +198,21 @@ def prepare_request(summary, packet):
         raise ProviderFailure('invalid_input') from None
 
 
+def final_request_bytes(prepared):
+    """Rebuild and validate the complete final bytes, never merged kwargs."""
+    if type(prepared) is not PreparedRequest or type(prepared.raw) is not bytes:
+        raise ProviderFailure('invalid_input')
+    expected=prepare_request(prepared.summary,prepared.packet)
+    body=strict_json(prepared.raw,cap=REQUEST_CAP)
+    if (type(body) is not dict or set(body)!={'model','stream','thinking','max_tokens','response_format','tool_choice','messages'}
+            or body['model']!=MODEL or body['stream'] is not False
+            or type(body['max_tokens']) is not int or body['max_tokens']!=4096
+            or body['thinking']!={'type':'disabled'} or body['tool_choice']!='none'
+            or body['response_format']!={'type':'json_object'} or expected!=prepared):
+        raise ProviderFailure('invalid_input')
+    return prepared.raw
+
+
 @dataclass
 class _Connection:
     prepared: PreparedRequest = field(repr=False)
@@ -236,8 +251,7 @@ class DeepSeekAdapter:
     def preconnect(self, prepared, *, seconds=WALL_SECONDS):
         if not self._probe:
             raise ProviderFailure('paid_disabled')
-        if type(prepared) is not PreparedRequest or prepare_request(prepared.summary, prepared.packet) != prepared:
-            raise ProviderFailure('invalid_input')
+        final_request_bytes(prepared)
         deadline = _Deadline(seconds)
         sock = None
         try:
@@ -316,13 +330,17 @@ class DeepSeekAdapter:
                 raise ProviderFailure('permit_invalid')
             if lease.identity != identity:
                 raise ProviderFailure('lease_invalid')
+            final_raw=final_request_bytes(prepared)
+            if (digest(final_raw)!=permit.request_digest or prepared.packet.context!=permit.context
+                    or prepared.packet.binding_digest()!=permit.evidence_digest):
+                raise ProviderFailure('permit_invalid')
             headers = (f'POST {PATH} HTTP/1.1\r\nHost: {HOST}\r\nAuthorization: Bearer {credential}\r\n'
                        f'Content-Type: application/json\r\nAccept-Encoding: identity\r\n'
-                       f'Content-Length: {len(prepared.raw)}\r\nConnection: close\r\n\r\n').encode('ascii')
+                       f'Content-Length: {len(final_raw)}\r\nConnection: close\r\n\r\n').encode('ascii')
             connection.sock.settimeout(min(SEND_SECONDS, connection.deadline.remaining()))
             # May be partial on failure: mark uncertainty BEFORE the first send call.
             connection.sent = True
-            connection.sock.sendall(headers + prepared.raw)
+            connection.sock.sendall(headers + final_raw)
             credential = None
             return connection
         except Exception:

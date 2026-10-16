@@ -75,9 +75,9 @@ class BudgetLedger:
             conn.execute("""INSERT INTO research_funding_accounts
                 (id,binding_id,fixture_port,mode,currency,scale,funding_epoch,cap,status,snapshot_id)
                 VALUES(?,?,?,'fixture','USD',6,1,10000,'active',?)""",(account,binding,port,snapshot))
-            conn.execute("INSERT INTO research_balance_snapshots VALUES(?,?,10000,0,0,?,?,1,1,1)",(snapshot,account,now(),expires(ttl_seconds)))
+            conn.execute("INSERT INTO research_balance_snapshots (id,account_id,balance,settled_at_observation,local_settlement_cursor,observed_at,expires_at,hard_prepaid,auto_topup_off,postpaid_off) VALUES(?,?,10000,0,0,?,?,1,1,1)",(snapshot,account,now(),expires(ttl_seconds)))
             for operation,units in (("discover_sources",7000),("compose_report",5000)):
-                conn.execute("INSERT INTO research_price_revisions VALUES(?,?,?,'USD',6,0,0,0,0,?,'ceil_total',?)",
+                conn.execute("INSERT INTO research_price_revisions (id,account_id,operation,currency,scale,input_rate,output_rate,max_input,max_output,fixed_units,rounding,expires_at) VALUES(?,?,?,'USD',6,0,0,0,0,?,'ceil_total',?)",
                              (str(uuid4()),account,operation,units,expires(ttl_seconds if price_ttl_seconds is None else price_ttl_seconds)))
             return account
 
@@ -122,7 +122,7 @@ class BudgetLedger:
         conn.execute("""INSERT INTO research_reservations
             (id,account_id,task_id,step_id,operation_key,price_revision,funding_epoch,max_cost,status)
             VALUES(?,?,?,?,?,?,?,?,'HELD')""",(rid,account["id"],task["id"],step["id"],step["id"]+":1",price["id"],account["funding_epoch"],amount))
-        conn.execute("INSERT INTO research_dispatch_permits VALUES(?,?,?,?,?,'prepared',?)",(pid,step["id"],rid,dispatch,task["input_digest"],expires()))
+        conn.execute("INSERT INTO research_dispatch_permits (id,step_id,reservation_id,dispatch_id,input_digest,state,expires_at) VALUES(?,?,?,?,?,'prepared',?)",(pid,step["id"],rid,dispatch,task["input_digest"],expires()))
         conn.execute("UPDATE research_funding_accounts SET held=held+?,version=version+1 WHERE id=?",(amount,account["id"]))
         conn.execute("UPDATE research_steps SET reservation_id=?,state='PREPARED',version=version+1 WHERE id=?",(rid,step["id"]))
         return dict(conn.execute("SELECT * FROM research_reservations WHERE id=?",(rid,)).fetchone())

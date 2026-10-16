@@ -616,7 +616,9 @@ RESEARCH_COVERAGE_COMMAND = [
     'python', '-m', 'coverage', 'run', '-p', '--rcfile=.coveragerc', '-m', 'pytest',
     'tests/test_research_evidence.py', 'tests/test_research_sources.py',
     'tests/test_research_formula.py', 'tests/test_research_provider_adapter.py',
-    'tests/test_research_model_report.py', '$PYTEST_FLAGS',
+    'tests/test_research_model_report.py', 'tests/test_research_financial.py',
+    'tests/test_research_financial_result_adapter.py', 'tests/test_research_usage_upper.py',
+    '$PYTEST_FLAGS',
 ]
 
 
@@ -632,7 +634,7 @@ def _assert_research_coverage_closure(value, rcfile):
     step['run'] = commands[:-2] + commands[-1:]
     # Freeze the original job, suites, limits and reports, apart from this one
     # added parallel measurement. Ignore comments/line wrapping in its script.
-    assert hashlib.sha256(json.dumps(job, sort_keys=True, separators=(',', ':')).encode()).hexdigest() == '9eebc30634e8c6c7dcdaa030b2d21ec93d3814385b21b6a36423dd25080033ba'
+    assert hashlib.sha256(json.dumps(job, sort_keys=True, separators=(',', ':')).encode()).hexdigest() == '6fbcd21946927d0423c2c83257c3ad980a10dd160e2e819654ac96aa3ecc7551'
     assert hashlib.sha256(rcfile.encode()).hexdigest() == 'd99a2766d35215d1249c6f0388d8bb9effa7faec8ed715c040f897d6314847af'
 
 
@@ -641,7 +643,8 @@ def test_coverage_measures_root_research_before_combining_without_weakening_gate
 
 
 @pytest.mark.parametrize('mutation', ['missing_file', 'missing_parallel', 'wrong_rcfile',
-    'ignore_failure', 'after_combine', 'legacy_suite', 'timeout', 'global_threshold', 'omit'])
+    'ignore_failure', 'after_combine', 'legacy_suite', 'timeout', 'global_threshold', 'omit',
+    'missing_financial', 'missing_financial_adapter', 'missing_usage_upper'])
 def test_research_coverage_closure_rejects_incomplete_or_relaxed_pipeline(mutation):
     value = workflow('coverage.yml')
     rcfile = (ROOT / '.coveragerc').read_text()
@@ -649,6 +652,9 @@ def test_research_coverage_closure_rejects_incomplete_or_relaxed_pipeline(mutati
     marker = '# Root research contracts'
     before, added = step['run'].split(marker, 1)
     if mutation == 'missing_file':added = added.replace('tests/test_research_model_report.py', '')
+    elif mutation == 'missing_financial':added = added.replace('tests/test_research_financial.py', '')
+    elif mutation == 'missing_financial_adapter':added = added.replace('tests/test_research_financial_result_adapter.py', '')
+    elif mutation == 'missing_usage_upper':added = added.replace('tests/test_research_usage_upper.py', '')
     elif mutation == 'missing_parallel':added = added.replace('coverage run -p', 'coverage run')
     elif mutation == 'wrong_rcfile':added = added.replace('--rcfile=.coveragerc', '--rcfile=other.ini', 1)
     elif mutation == 'ignore_failure':added = added.replace('$PYTEST_FLAGS', '$PYTEST_FLAGS || true')

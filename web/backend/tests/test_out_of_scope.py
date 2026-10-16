@@ -8,11 +8,10 @@ q6 burned 33s of LLM time producing 494 chars of forced analogy.
 M1.3 guardrail tested here:
   - AskOrchestrator._evaluate_relevance gates on top-1 < RELEVANCE_TOP1_MIN
     OR top-3 mean < RELEVANCE_TOP3_MEAN_MIN (or empty cards).
-  - When it trips, stream() SHORT-CIRCUITS with a local refusal
-    (_build_refusal_payload) and never calls the LLM.
+  - Refusal payload, followups and typewriter helpers remain pure tests.
+  - Retired stream() rejects before retrieval, provider, cost or SSE emission.
 
-We mock the search service and verify the refusal path makes zero LLM
-calls and the SSE `answer_done` payload carries `refused=True`.
+Pure helper checks do not claim that the retired generation stream runs.
 
 Run:
     cd web/backend
@@ -276,106 +275,106 @@ class RefusalPayloadTests(unittest.TestCase):
 
 
 # --------------------------------------------------------------------------
-# Integration: M1.3 refusal short-circuits the SSE stream without an LLM call
+# Retired runtime admission plus surviving pure refusal helpers
 # --------------------------------------------------------------------------
 
 class OutOfScopeStreamTests(unittest.TestCase):
-    """End-to-end SSE behavior with the M1.3 refusal short-circuit."""
+    """Pure refusal contracts and zero-effect admission for retired generation."""
 
-    def _run_refused(self, kb, query):
-        """Run stream() with LLM-call counters. Returns (events, calls).
+    def _assert_closed(self, kb, query):
+        from errors import LegacyPaidUnavailable
+        from services.cost_ledger import ledger
 
-        Both LLM entry points are patched with counting stand-ins so a
-        passing test PROVES the refusal path never touched the network —
-        an AssertionError would be swallowed by stream()'s broad
-        `except Exception`, so we assert call counts instead of raising.
-        """
-        orch = AskOrchestrator(search_service=_FakeSearch(kb))
-        calls = {"once": 0, "stream": 0}
+        search = _FakeSearch(kb)
+        orch = AskOrchestrator(search_service=search)
+        calls = {"search": 0, "once": 0, "stream": 0, "cost": 0}
+        emitted = []
 
-        async def _track_once(self, prompt):
+        def retrieve(*args, **kwargs):
+            calls["search"] += 1
+            return kb
+
+        async def once(*args, **kwargs):
             calls["once"] += 1
             return _MOCK_IN_SCOPE_JSON
 
-        async def _track_stream(self, prompt):
+        async def stream(*args, **kwargs):
             calls["stream"] += 1
-            yield ("error", "should-not-be-called")
+            yield ("error", "unexpected generation")
 
-        with patch.object(AskOrchestrator, "_call_llm_once", new=_track_once), \
-             patch.object(AskOrchestrator, "_call_llm_stream", new=_track_stream), \
-             patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
-            chunks = asyncio.run(_collect(orch.stream(query, lang="zh")))
-        return _parse_sse(chunks), calls
+        def charge(*args, **kwargs):
+            calls["cost"] += 1
 
-    def test_low_relevance_query_refused_without_llm(self):
-        """Low-score retrieval → local refusal, ZERO LLM calls."""
-        events, calls = self._run_refused(_LOW_REL_KB, "求 1+1 = ?")
-        self.assertEqual(calls["once"], 0, "refusal path must not call LLM")
-        self.assertEqual(calls["stream"], 0, "refusal path must not call LLM")
-        answer_done = next(p for n, p in events if n == "answer_done")
-        self.assertTrue(answer_done.get("out_of_scope"))
-        self.assertTrue(answer_done.get("refused"))
-        self.assertIsInstance(answer_done.get("scope_reason"), str)
-        self.assertEqual(answer_done.get("citations"), [])
-        # The streamed answer is the LOCAL refusal text — honest & short.
-        self.assertIn("覆盖范围", answer_done["full_text"])
-        # No LLM call → no `llm_start` event.
-        self.assertNotIn("llm_start", [n for n, _ in events])
+        async def collect():
+            async for chunk in orch.stream(query, lang="zh"):
+                emitted.append(chunk)
 
-    def test_refusal_answer_chunks_reconstruct_full_text(self):
-        """Typewriter answer_chunks must concatenate exactly to full_text."""
-        events, _ = self._run_refused(_LOW_REL_KB, "BTC 明天涨跌?")
-        answer_done = next(p for n, p in events if n == "answer_done")
-        streamed = "".join(p["delta"] for n, p in events if n == "answer_chunk")
-        self.assertEqual(streamed, answer_done["full_text"])
+        with patch.object(search, "search", retrieve), \
+             patch.object(orch, "_call_llm_once", once), \
+             patch.object(orch, "_call_llm_stream", stream), \
+             patch.object(ledger, "charge", charge):
+            with self.assertRaises(LegacyPaidUnavailable) as unavailable:
+                asyncio.run(collect())
+        self.assertEqual(unavailable.exception.status, 503)
+        self.assertIs(unavailable.exception.extensions["retryable"], False)
+        self.assertEqual(emitted, [])
+        self.assertEqual(calls, {"search": 0, "once": 0, "stream": 0, "cost": 0})
+        return orch
 
-    def test_refusal_emits_three_in_scope_followups(self):
-        events, _ = self._run_refused(_LOW_REL_KB, "1+1=?")
-        followups = next(p for n, p in events if n == "followups")
-        self.assertEqual(len(followups["questions"]), 3)
+    def test_pure_low_relevance_refusal_and_retired_stream_without_llm(self):
+        orch = self._assert_closed(_LOW_REL_KB, "求 1+1 = ?")
+        refused, reason = orch._evaluate_relevance(_LOW_REL_KB)
+        self.assertTrue(refused)
+        self.assertTrue(reason.startswith(("top1_below_", "top3_mean_below_")))
+        payload = orch._build_refusal_payload("求 1+1 = ?", _LOW_REL_KB, "zh", reason)
+        self.assertIn("覆盖范围", payload["answer"])
+        self.assertNotIn("citations", payload)
 
-    def test_refusal_emits_empty_similar_phenomena(self):
-        """Weak cards must NOT be surfaced as 'similar phenomena'."""
-        events, _ = self._run_refused(_LOW_REL_KB, "1+1=?")
-        similar = next(p for n, p in events if n == "similar_phenomena")
-        self.assertEqual(similar["phenomena"], [])
+    def test_pure_refusal_chunks_reconstruct_full_text(self):
+        orch = AskOrchestrator(search_service=None)
+        payload = orch._build_refusal_payload("BTC 明天涨跌?", [], "zh", "forecasting_intent")
+        chunks = orch._typewriter_chunks(payload["answer"])
+        self.assertGreater(len(chunks), 1)
+        self.assertEqual("".join(chunks), payload["answer"])
 
-    def test_empty_search_results_trigger_refusal(self):
-        """No KB cards retrieved → refused with scope_reason=no_cards."""
-        events, calls = self._run_refused([], "xyzzy plugh qwerty")
-        self.assertEqual(calls["once"] + calls["stream"], 0)
-        answer_done = next(p for n, p in events if n == "answer_done")
-        self.assertTrue(answer_done.get("refused"))
-        self.assertEqual(answer_done["scope_reason"], "no_cards")
+    def test_pure_refusal_has_three_distinct_in_scope_followups(self):
+        from services.scope_guard import is_out_of_scope
+        orch = AskOrchestrator(search_service=None)
+        payload = orch._build_refusal_payload("1+1=?", _LOW_REL_KB, "zh", "off_topic_arithmetic")
+        followups = payload["followups"]
+        self.assertEqual(len(followups), 3)
+        self.assertEqual(len(set(followups)), 3)
+        self.assertTrue(all(isinstance(q, str) and q.strip() for q in followups))
+        self.assertTrue(all(not is_out_of_scope(q)[0] for q in followups))
 
-    def test_refusal_sse_sequence_well_formed(self):
-        """Refusal still emits a complete, ordered SSE event sequence."""
-        events, _ = self._run_refused(_LOW_REL_KB, "1+1=?")
-        names = [n for n, _ in events]
-        for required in ("meta", "retrieval_done", "kb_cards", "answer_done",
-                         "similar_phenomena", "followups", "done"):
-            self.assertIn(required, names)
-        self.assertEqual(names[-1], "done", "`done` must be the last event")
+    def test_pure_empty_similar_projection_and_no_weak_card_publication(self):
+        orch = self._assert_closed(_LOW_REL_KB, "1+1=?")
+        self.assertEqual(orch._build_similar_phenomena([]), [])
+        self.assertTrue(orch._evaluate_relevance(_LOW_REL_KB)[0])
 
-    def test_high_relevance_query_not_refused(self):
-        """SVB-style query: in-scope path runs the LLM, no `refused` flag,
-        and M1.2 fix 4's `llm_start` event is emitted."""
-        search = _FakeSearch(_HIGH_REL_KB)
-        orch = AskOrchestrator(search_service=search)
+    def test_pure_empty_search_relevance_reason_is_no_cards(self):
+        orch = self._assert_closed([], "xyzzy plugh qwerty")
+        self.assertEqual(orch._evaluate_relevance([]), (True, "no_cards"))
+        payload = orch._build_refusal_payload("xyzzy plugh qwerty", [], "zh", "no_cards")
+        self.assertTrue(payload["answer"])
+        self.assertNotRegex(payload["answer"], r"\[[0-9]+\]")
 
-        with patch.object(
-            AskOrchestrator, "_call_llm_once",
-            return_value=_MOCK_IN_SCOPE_JSON,
-        ), patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
-            chunks = asyncio.run(_collect(orch.stream("Why do banks collapse?", lang="zh")))
+    def test_pure_sse_serialization_and_retired_stream_emits_no_events(self):
+        from services.ask_orchestrator import _sse
+        self._assert_closed(_LOW_REL_KB, "1+1=?")
+        # Encoder format remains testable; no retired runtime event sequence is promised.
+        payload = {"code": "FEATURE_UNAVAILABLE", "retryable": False}
+        self.assertEqual(_parse_sse([_sse("error", payload)]), [("error", payload)])
 
-        events = _parse_sse(chunks)
-        names = [n for n, _ in events]
-        answer_done = next(p for n, p in events if n == "answer_done")
-        self.assertFalse(answer_done.get("out_of_scope", False))
-        self.assertFalse(answer_done.get("refused", False))
-        # M1.2 fix 4: the in-scope path signals the LLM call to the frontend.
-        self.assertIn("llm_start", names)
+    def test_pure_high_relevance_schema_and_retired_stream_still_closed(self):
+        from services.ask_schemas import AskAnswerPayload
+        orch = self._assert_closed(_HIGH_REL_KB, "Why do banks collapse?")
+        self.assertEqual(orch._evaluate_relevance(_HIGH_REL_KB), (False, "ok"))
+        payload = AskAnswerPayload.model_validate_json(_MOCK_IN_SCOPE_JSON)
+        self.assertEqual(payload.citations[0].kb_id, "phen-h-1")
+        self.assertEqual(len(payload.followups), 3)
+        prompt = orch._build_prompt("Why do banks collapse?", _HIGH_REL_KB, lang="zh", strict_json=False)
+        self.assertIn("[1] [2]", prompt)
 
 
 # --------------------------------------------------------------------------

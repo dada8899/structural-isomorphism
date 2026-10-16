@@ -15,14 +15,14 @@ if __package__ == "web.backend.api":
     from . import auth
     from ..research.authorization import AccountIdentity
     from ..research.errors import ResearchError
-    from ..research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope
+    from ..research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery
     from ..research import source_integration
     from ..research import ResearchService, ResearchStore
 else:
     from api import auth
     from research.authorization import AccountIdentity
     from research.errors import ResearchError
-    from research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope
+    from research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery
     from research import source_integration
     from research import ResearchService, ResearchStore
 
@@ -92,7 +92,17 @@ async def _dispatch(request, *, research_id=None, operation="view"):
             raise ResearchError("FEATURE_UNAVAILABLE", 503, "研究保存功能尚未开放。")
         identity = await run_in_threadpool(_identity, request)
         service = await run_in_threadpool(lambda: ResearchService(ResearchStore(auth._store())))
-        if operation == "view":
+        if operation == "index":
+            pairs=list(request.query_params.multi_items())
+            if len({key for key,_ in pairs})!=len(pairs) or any(key not in ("limit","cursor") for key,_ in pairs):
+                raise ResearchError("INPUT_INVALID",422,"列表分页参数无效。")
+            raw_limit=request.query_params.get("limit","20")
+            if re.fullmatch(r"[1-9]|1[0-9]|20",raw_limit,re.ASCII) is None:
+                raise ResearchError("INPUT_INVALID",422,"列表分页参数无效。")
+            try:query=ResearchIndexQuery(limit=int(raw_limit),cursor=request.query_params.get("cursor"))
+            except ValidationError:raise ResearchError("INPUT_INVALID",422,"列表分页参数无效。") from None
+            result=await run_in_threadpool(service.index,identity,query)
+        elif operation == "view":
             task_id=request.query_params.get("task_id")
             if task_id:service._id(task_id)
             result = await run_in_threadpool(service.view, identity, research_id, task_id)
@@ -136,6 +146,11 @@ async def _dispatch(request, *, research_id=None, operation="view"):
 @router.post("/research")
 async def create_research(request: Request):
     return await _dispatch(request, operation="create")
+
+
+@router.get("/research")
+async def list_research(request: Request):
+    return await _dispatch(request,operation="index")
 
 
 @router.post("/research/{research_id}/revisions")

@@ -35,7 +35,7 @@
 
 `PrivateBindingRef={id:Id}`是服务器配置句柄，不是密钥、账号配置或可外发的凭据。
 
-引用的辅助类型：`Family={queue_flow,first_order_storage,local_recovery}`；`TemplateId={little,mm1,passive_decay,linear_stable}`。`SourceVersion={source_id:Id,revision:Revision,content_digest:Digest?,access:SourceRecord.access}`。`Transform={kind:constant_fold|commute|associate|rename_bijection|substitute_constant|multiply_nonzero|divide_nonzero|positive_time_scale|state_normalize,input_digest:Digest,output_digest:Digest,precondition_ids:Text(64)[]}`。`NumericTolerance={absolute:DecimalText,relative:DecimalText,policy_revision:Text(64)}`，两容差非负。`Action={view,cancel,refresh,request_reconciliation,revise,export,record_followup,retry,start,resume,sign_in,return_to_library}`。`TaskBudgetView={known_cost:Money[],held_cost:Money[],unknown_count:int,status:unverified|available|exhausted|reconciling}`，每币种最多一项，只展示本任务，不展示共享账户余额或账号。
+引用的辅助类型：`Family={queue_flow,first_order_storage,local_recovery}`；`TemplateId={little,mm1,passive_decay,linear_stable}`。`SourceVersion={source_id:Id,revision:Revision,content_digest:Digest?,access:SourceRecord.access,read_scope:legacy_page_unverified|author_narrative_subset}`。`Transform={kind:constant_fold|commute|associate|rename_bijection|substitute_constant|multiply_nonzero|divide_nonzero|positive_time_scale|state_normalize,input_digest:Digest,output_digest:Digest,precondition_ids:Text(64)[]}`。`NumericTolerance={absolute:DecimalText,relative:DecimalText,policy_revision:Text(64)}`，两容差非负。`Action={view,cancel,refresh,request_reconciliation,revise,export,record_followup,retry,start,resume,sign_in,return_to_library}`。`TaskBudgetView={known_cost:Money[],held_cost:Money[],unknown_count:int,status:unverified|available|exhausted|reconciling}`，每币种最多一项，只展示本任务，不展示共享账户余额或账号。
 
 输入问题正文 `1..4000` 字符、摘要 `8..1000` 字符；变量/约束/未知各最多 12 项，每项 120 字符；候选最多 10，来源最多 20，单任务执行步骤最多 64。JSON 请求体上限 64 KiB（附件不在本候选允许范围）；公式另有限额。原问题、身份、正文和分享凭据不进入 URL、公开日志或 incident 文本。
 
@@ -65,7 +65,7 @@
 | `MethodRecord` | `id:Id, research_id:Id, revision:Revision, catalog_ref:CatalogRef?, model_id:Id, label:Text(120), description:Text(1200), source_ids:Id[], applicability:Assumption[], limitations:Text(400)[], support:unreviewed\|source_linked\|reviewed` | 无可定位原文只能作为提议；不能仅凭内部 KB 把 support 设 reviewed |
 | `TransferProposal` | `id:Id, research_id:Id, revision:Revision, source_model_id:Id, method_id:Id?, mapping:MappingItem[], prerequisites:Assumption[], nontransferable:Text(400)[], competing_explanations:Text(400)[], test:TestPlan, status:"hypothesis"` | mapping最多12、竞争解释1..5；与当前现象的有效性仍是假设；LLM 不能设为实证成功 |
 | `MappingItem` / `TestPlan` | `MappingItem={source_symbol:ASCII32, target_variable:ASCII32, rationale:Text(400), evidence_ids:Id[], limitations:Text(400)[]}`；`TestPlan={id:Id,question:Text(400), measurement:Text(700), primary_outcome:Text(240), competitor:Text(400), falsification:Text(400), stop_rule:Text(400)}` | 双侧引用存在；判据与停止条件不同，不能不可证伪；未执行计划不记结果 |
-| `SourceRecord` | `id:Id, research_id:Id, revision:Revision, kind:internal_kb\|external_metadata\|external_html\|external_pdf\|user_observation, title:Text(300), canonical_url:Text(2000)?, authors:Text(120)[], published_at:Text(40)?, accessed_at:UtcTime?, provider_ref:Text(200)?, retrieval_scope:Text(700), access:discovered\|metadata_only\|body_retrieved\|failed\|restricted, content_digest:Digest?, extracted_text_digest:Digest?, extractor_version:Text(64)?, license_note:Text(400), failure_code:ErrorCode?` | discovered/metadata_only不能充当已读全文；来源URL不含user/pass/令牌；外部抓取经受控适配器，不接受任意内网URL |
+| `SourceRecord` | `id:Id, research_id:Id, revision:Revision, kind:internal_kb\|external_metadata\|external_html\|external_pdf\|user_observation, title:Text(300), canonical_url:Text(2000)?, authors:Text(120)[], published_at:Text(40)?, accessed_at:UtcTime?, provider_ref:Text(200)?, retrieval_scope:Text(700), read_scope:legacy_page_unverified\|author_narrative_subset, access:discovered\|metadata_only\|body_retrieved\|failed\|restricted, content_digest:Digest?, extracted_text_digest:Digest?, extractor_version:Text(64)?, license_note:Text(400), failure_code:ErrorCode?` | discovered/metadata_only不能充当已读全文；read_scope由parser_version派生：v1=legacy_page_unverified、v2=author_narrative_subset（未显式标引他人内容的叙述子集，不是完整全文或语义归属审查），SourceVersion沿用同一映射，旧快照不改写；来源URL不含user/pass/令牌；外部抓取经受控适配器，不接受任意内网URL |
 | `EvidenceExcerpt` | `id:Id, source_id:Id, source_revision:Revision, text_digest:Digest, start:int, end:int, quote:ExactText(1000), page_number:int?, extraction:plain\|pdf_text\|ocr, extraction_review:unreviewed\|checked` | LF归一的不可变提取文本按Unicode字符计，`[start,end)`必须精确匹配quote；PDF页为1起，另核页映射；OCR未经核对不能冒充准确引文 |
 | `ClaimEvidenceLink` | `claim_id:Id, excerpt_id:Id, relation:supports\|contradicts\|context\|insufficient, assessment:llm_inference\|human_review\|deterministic_check, rationale:Text(700)` | 主张/摘录属于同研究授权范围；模型推断不升级为人工或确定验证；引用匹配检查不证明语义支持正确 |
 | `Claim` | `id:Id, research_id:Id, revision:Revision, text:Text(1200), level:hypothesis\|literature_supported\|computed_under_assumptions\|empirical_record, evidence_links:ClaimEvidenceLink[], check_ids:Id[], limitations:Text(400)[]` | level只能由应用校验所需引用后设置；empirical_record须有独立记录的实际观测/实验，B1合成对照不得设置 |
@@ -336,6 +336,8 @@ Bridge/Guard拒绝不得被旧`except Exception`吞成None、success fallback、
 
 ### 6.4 Bounded-provider 保守占用增量
 
+版本范围：本节以下原有全 U 占用规则为 `bounded_full_u_v1`；§6.4.1另定义 Mentor 已确认方向的 `bounded_usage_upper_v2`。策略在发送前由受审服务端选择并随 dispatch 不可变绑定；旧 fixture/final-receipt、v1及历史金额不自动迁入v2。文档增量不是实现或实费验收收据。
+
 本节为新 accounting policy／schema 分支，不能静默套入旧 C0 fixture 或旧 `BillingReceipt.final` 解析器。首发仅固定官方 `https://api.deepseek.com/chat/completions` 的单次受控 POST，沿 Bootstrap 卡候选 `deepseek-flash`／文档声明 `DeepSeek-V4.1-Flash`，接线前核官方当前映射；model 与文档声明版本绑定，不沿用旧别名或自动 fallback；stream=false、thinking disabled、请求 max_tokens=4096、无工具、零自动重试。受控响应原字节及解压后各≤128 KiB、总 wall deadline≤60秒，超限／截断按真实 usage 可得性分别处理，不默默当完成。Bootstrap 的 2026-10-17 官方只读卡是设计输入，不是本轮价格／账户实测；模型别名不保证锁定不可变权重，必须记录声明版本与实际响应模型／可得指纹，漂移则关 paid。正式调用仍须 Mentor/DevOps 核真实 grant、原预充值、无自动充值／后付费、同币余额与他用边界。沿现有 Guard 的发送线性化：预连不得发送敏感输入；同 owner gate 内重核完整输入包、当前授权、permit 与预算，在受控短发送期限内实际启动 POST 字节，响应等待在 gate 外，任何网络等待不持 DB 事务。固定免费 GET 持 gate 至收尾的窄策略不借此改写。
 
 | 对象／增量 | 最小字段与不变量 |
@@ -360,6 +362,145 @@ usage 完整但模型内容坏 JSON、空／截断、非法 schema／引用时�
 新版本任务预算白名单投影增加 `upper_booked:Money[]` 与受限的当前任务 cost observations：区分 actual、estimated_upper、unknown，显示 actual=null 的“实际扣费未核”，原 known_cost 只放 actual。UNKNOWN/held 与 UPPER_BOOKED 分开；仅可信完整最终响应／usage且已足额保守占用的后者，不计入新版本 UNKNOWN 外发计数；但实际扣费未核必须独立呈现，也不能显示成实际0元／已财务结算。这是§4.2／4.4费用完成前置在新 policy 下的明确限定：它可以在其余执行与证据门禁满足时结束声明范围内的有条件报告，不永久等不存在的逐笔接口；缺 usage 的 UNKNOWN 仍保持原门禁，旧版本 fixture／final-receipt policy 不适用此完成例外。公开投影不含共享账户余额／账号、私有绑定、原响应或完整账单。取消／删除后仅费用控制记录可幂等转移／收实际依据，正文、分享和任务不得复活。
 
 正式 owner 须对同物理 auth DB 做版本化迁移（旧 upper_booked=0、旧状态与 final 语义不变），同步派发／幂等／恢复／删除与新版本投影消费者，再启用新分支。该增量不另造计费平台、逐笔查询服务或新的资金账户体系；旧 fixture 正常结算、未知 held 与退款消费者继续原样验收。
+
+#### 6.4.1 CNY usage-upper v2：可信用量后的保守重记账
+
+2026-10-17，按 Mentor 已确认的保守用量上界方向，在 `bdd9cfc6d1f6c08a9e6f1ccc7a1ad3529de05547` 上新增此显式分支，不代表新的真实调用／凭据授权或 v5 已实现。v2 首发限同币 CNY 的已验证预充值、可信峰价、余额／他用边界与既有 cap；其他币种、旧策略须另按其受审规则处理，不猜汇率，也不因可用余额上升自动放宽。
+
+定义同一个不可变费用函数 `F(i,o)=ceil_native((i*P_peak_miss_CNY + o*P_peak_output_CNY)/1_000_000)+local_guard`。rate、currency/scale、ceil方式、local_guard及price revision在 dispatch 时冻结，均非负且精确可表示。发送前仍 `U=F(contextBound,4096)` 足额预留；contextBound 仍按已核官方 context 的保守界，不用字符数推实际 token。与 v1不同，v2不采用未知的大输出fallback：必须已有官方参数语义依据与最终请求代码证明，保证全部可计费 completion 受4096上限约束；否则不启用v2，不能仅靠模板／配置声称已限。
+
+最终序列化请求须固定 `max_tokens=4096`、thinking disabled、无 tools、非流式、零自动重试。受控 prepare 在所有模板／参数合并之后严格核完整最终 bytes（重复 key／额外覆盖拒绝），把该摘要、model/version、contextBound、输出界、F及 policy revision绑定permit；实际 send 再核发送bytes完全相同。调用者kwargs、后层SDK／middleware不得改max_tokens、开thinking或插工具；代码独审和本机发送边界反例须证明改动在任何敏感字节发出前被拒。此要求不能拿4096可见文本上限替代全部可计费completion界。
+
+只在同 dispatch 的完整可信最终 usage 已持久化、模型／请求摘要／原price和新policy绑定一致后，沿原整数、缓存合计、total、reasoning规则核验：`0<=prompt_tokens<=contextBound`、`0<=completion_tokens<=4096`，reasoning若有属于completion而不重复加。必需字段缺失、非final、bool／负数／矛盾、绑定不符或越界均不能补0。按全部 prompt 一律峰值 cache-miss、全部 completion 峰值输出，使用原来的同一个 F 得 `Uobs=F(prompt_tokens,completion_tokens)`；不赌cache-hit或非峰折扣，不换新价表／scale，不省local_guard。先严格核 `0<=Uobs<=U`；若不成立，保留原全 held U 并置UNKNOWN／阻断新paid，绝不 `min(Uobs,U)` 裁切过关。
+
+同 auth DB 的一个幂等CAS事务绑定该持久usage／cost观测后，完成 `held-=U; upper_booked+=Uobs`、置UPPER_BOOKED，并记录 `reserved_upper=U,booked_upper=Uobs,released_reserve_difference=U-Uobs,actual_charge=null` 及原F／policy／dispatch关联。仅原来发送时已绑定v2且状态／版本／预留匹配的 SENT，或有同dispatch完整可信持久观测恢复的UNKNOWN允许此转移；重复或并发处理同观测不再退／扣差额。事务崩溃回滚保持全held，已提交则恢复同一Uobs，不能“先释放、后补记”或重复释放。差额只是保守预留重估，不是provider退款或单笔actual已知；新预留仍核 `settled_actual+upper_booked+held+newU<=cap` 及最新保守可用余额约束。
+
+内容坏JSON、schema／引用失败但上述usage有效时，仍按v2独立记Uobs，报告失败；取消／撤权／删除后仅最小费用记录可迁移，正文／分享／任务不得复活。丢usage／响应、超界或异常usage继续UNKNOWN并全held U、不重试，不套免费GET execution_closed。旧fixture/final policy/v1或未绑定v2的既有SENT／UNKNOWN／UPPER_BOOKED均不追溯释放差额；历史全U金额、退款／actual记录不因新算法回放减记。
+
+投影仍区分 actual、estimated_upper、unknown：v2显示已核用量对应的保守Uobs、原U与一次释放的预留差额，同时明确actual=null，不写SETTLED／伪final receipt／实际0元。报告完成按原有条件化规则，不把计费上界当证据级别。后来可信账单A若大于Uobs（即使仍小于原U），须记录上界失效并阻断新paid，不丢弃／裁切真实费用；不得仍宣称旧上界有效。若A不超Uobs，按受审财务依据只以当前Uobs替换actual A，差额只算Uobs−A，不能再释放已处理的U−Uobs；余额差不是该单笔依据。
+
+本分支最小消费者判据如下，均待正式owner实现与独审实际运行；当前不修改旧消费者探针的fixture/v1对照。
+
+| 场景 | 必须成立 |
+| --- | --- |
+| 最终请求覆盖／cap证明 | 改max_tokens、thinking、tools、序列化重复key或发送bytes，在真实发送边界前拒且计数0；合法最终固定包为对照，不能只测prepare模板 |
+| 低量／满量与ceil | 低量按原F算Uobs，差额释放一次；prompt=contextBound、completion=4096时Uobs=U；cache hit全额仍按miss计，local_guard不丢；不是actual账单 |
+| 并发／重复／崩溃 | 两进程处理同dispatch观测只一次held U→upper Uobs；事务各故障点原子回滚或读回已提交值，不二次退差，其他writer的新预留仍受同cap |
+| 内容坏而usage完整 | 报告失败，保守费用Uobs仍持久；不发JSON修复／重试，不恢复被撤权正文 |
+| 缺／伪／超界usage | UNKNOWN保全held，不补0／不min裁切／不重发；响应ref或绑定冲突阻断；后续账单A>Uobs如实保存并关paid |
+| 旧策略／币种／历史与重启 | fixture/final/v1及既有金额原样不减；未绑定v2、错币或过期依据不新发；重启保原policy/F/usage与一次差额记录，余额／充值／别名变化不追认或放宽 |
+
+#### 6.4.2 付费研究预览与确认的外部契约
+
+本节仅冻结两个 POST 的外部 DTO 与同意／控制边界，由 Core 后续适配内部服务；不实现路由、资金、真实模型或 CP3。当前执行模式只用已冻结 `offline_probe`，`model_analysis_ran=false`；真实 paid mode／结果 producer 须另一个受审增量，不能给旧离线 DTO 改标 live，也不能因 quote／F 通过宣称模型跑过。外部资金／凭据／实际付费放行仍按§6.4独立核验。
+
+两入口沿既有 Envelope、cookie-only 研究身份入口、CSRF、`Idempotency-Key`、`Cache-Control:no-store` 与 `Referrer-Policy:no-referrer`。Bearer-only 为401，失效 cookie 不被 Bearer 救活，两 cookie／共享凭据冲突保持原语义；不新增 JWT/Bearer 身份选择。原始请求体含 Envelope 合计≤64 KiB，严格 JSON／额外字段／重复 key／类型拒绝规则继续有效。两响应含 Envelope 的 UTF-8 总字节沿§4投影上限≤512 KiB，超限拒绝；实际最终外发包另限16 KiB，不能用公开投影限额扩大外发。
+
+| 入口／DTO | 精确客户端 data 与结果 |
+| --- | --- |
+| `POST /api/research/{research_id}/paid-previews` | `{input_revision:Revision,expected_research_version:Revision,excerpt_ids:Id[],purpose:"method_hypothesis"}`；excerpt_ids为1..20项、不重复；路径 ID 不能从正文覆盖。返回 `PaidPreviewView` |
+| `POST /api/research/{research_id}/paid-approvals` | `{preview_ref:Id,expected_preview_version:Revision,input_revision:Revision,expected_research_version:Revision,preview_digest:Digest,confirm_external_input:true,confirm_maximum_reserve:true}`；两确认必须是显式严格布尔 true，拒绝缺省／false／1／字符串。返回 `PaidApprovalView` |
+
+请求不能指定或覆盖 provider/model、summary、price/quote、funding、cap/余额、policy、调用次数／重试、可信 usage/cost、owner/grant、最终 packet、许可或 may_send。用户只能选当前已保存摘录；服务端从当前研究修订读取摘要，选择已核 quote／资金／policy，不能从客户请求中挑一份“可用价表”或依布尔自授资格。purpose固定方法假设，不借此启用任意金融预测／交易或旧动态工具。
+
+| 响应／子对象 | 精确白名单字段与含义 |
+| --- | --- |
+| `PaidPreviewBinding` | `{research_id:Id,input_revision:Revision,input_digest:Digest,research_version:Revision}`；绑定当前研究及问题，不含完整 CallContext／主体／grant／资金 binding |
+| `PaidPreviewQuote` | `{revision:Id,digest:Digest,valid_until:UtcTime}`；来自服务端当前受审 UsageUpperQuote，原 policy／币种／价格／context/output依据、代码摘要与时效全部在服务端核并绑定；不是客户端报送的 quote |
+| `PaidPreviewSource` | `{source_id:Id,source_revision:Revision,excerpt_id:Id,title:ExactText(300),canonical_url:Text(2000),attribution:ExactText(400),raw_digest:Digest,extracted_digest:Digest,discovery_digest:Digest,permission_basis_digest:Digest,start:int,end:int,quote:ExactText(1000),read_scope:"author_narrative_subset",acquired_at:UtcTime,information_cutoff:YYYY-MM-DD,may_send_to_provider:false}`；仍由现有 source/excerpt资格读取生成，0≤start<end，Unicode区间／原取得时间／署名／许可逐项核，短引≤20词 |
+| `PaidOutboundHandle` | `{handle:ASCII32,source_id:Id,source_revision:Revision,excerpt_id:Id,title:ExactText(300),attribution:ExactText(400),extracted_digest:Digest,start:int,end:int,quote:ExactText(1000)}`；精确复用现有 EvidenceHandle.outbound 白名单，handle在包内唯一；不含完整 extracted_text、display_permission或发送权限布尔 |
+| `PaidPreviewManifest` | `{problem_summary:Text(1000),sources:PaidPreviewSource[],handles:PaidOutboundHandle[]}`；两数组1..20且逐项同 source/excerpt具体版本／hash/offset／短引／署名，一一对应；sources是核查与显示依据，真正用户输入出站仅 problem_summary+handles |
+| `PaidPreviewView` | `{preview_ref:Id,preview_version:Revision,status:"draft",expires_at:UtcTime,bindings:PaidPreviewBinding,purpose:"method_hypothesis",provider:"deepseek",model:"deepseek-flash",declared_model_version:"DeepSeek-V4.1-Flash",execution_mode:"offline_probe",policy_revision:"bounded_usage_upper_v2",quote:PaidPreviewQuote,maximum_reserve:Money,actual:null,cost_label:"maximum_reserve_not_actual",max_calls:1,manifest:PaidPreviewManifest,manifest_digest:Digest,outbound_request_digest:Digest,preview_digest:Digest,may_send_to_provider:false,model_analysis_ran:false}`；maximum_reserve严格CNY／scale6，来自原F完整U；只是保守预留上界，不是实际收费、概率费用估计、余额或官方最终账单 |
+| `PaidApprovalView` | `{approval_ref:Id,preview_ref:Id,preview_version:Revision,preview_digest:Digest,research_version:Revision,task_id:Id,task_version:Revision,execution:ExecutionState,status:ProductState,execution_mode:"offline_probe",model_analysis_ran:false}`；preview_version指所确认的原预览内容版本，不是消费后的内部CAS版本；首次固定QUEUED／queued；重放返回实际当前状态，只说明原批准与任务，不因确认显示已外发／已生成／U1或U2已完成 |
+
+预览必须展示实际将外发的摘要、短引、署名和上述费用提示，不能只列来源标题或只给预估金额；页面按固定policy明确说明单次、无工具、非流式、零自动重试及输出界4096，不能由请求改写。缺信息／许可／完整署名或资金／quote未核则明确拒绝，不构造假成功 preview。完整问题原文、全文提取文本、原始文件句柄、provider key、共享账号／余额／私有资金／authority对象不进入响应、URL或公开日志。公开字段不是控制对象的直接序列化；无关当前范围的资料不得夹带出站。
+
+`manifest_digest=SHA256(canonical(PaidPreviewManifest))`；`outbound_request_digest`只绑定真实最终 provider 请求 bytes，包括固定 system模板／schema示例／model／参数与 problem_summary+handles，完整包≤16 KiB且无截断。`preview_digest=SHA256(canonical(PaidPreviewView去掉preview_digest字段))`，因此展示范围、原quote摘要／有效期、U、模式／policy／目标和版本均被绑定。hash对象域和规范算法必须明示；研究input_digest、manifest_digest、outbound_request_digest和同意请求摘要不互作替身。
+
+Preview manifest是不携带发送能力的独立显示结构；资格两层 may_send 均 false，不能为了调用 prepare 临时翻 true，也不提前生成假的 task/attempt/plan 或已批准 EvidenceHandle。Core须用无能力的固定序列化预览构建／校验出站 bytes，不调用发送、消费或签票入口。确认后才分配正式 task/attempt/plan，将新的 CallContext 与同一获准内容建立实际 EvidencePacket；其 binding_digest另含这些新控制ID，必须独立计算并绑定，不强求它等于preview manifest摘要。实际外发 bytes摘要必须仍等于获准 outbound_request_digest，不能借控制ID变化改变用户获准内容。
+
+#### 预览、确认与实际派发的事务边界
+
+Preview仅产生无权力 draft（可保存其私有控制行及幂等引用），不新建／消费 paid grant、task、reservation、permit或费用，不改变 research version。先核当前 cookie身份／研究read权限／input revision+digest／expected_research_version及摘录资格、显示范围，再由受控 quote／资金入口取得当前报价条件；固定 v2quote与U由唯一受审算术产生，不在API复制另一套F。expires_at不得晚于服务端本地preview TTL或原quote.valid_until，时效规则明确为本地策略；缺 quote不以旧价／前端价格兜底。
+
+首次 confirmation 在既有 owner gate／同 auth DB 的短事务中重核当前主体 incarnation/epochs、研究owner/acl/grant、write及独立付费执行资格、研究修订／版本、所选全部源许可／完整署名及读显范围、原preview版本／摘要／draft未消费／未过期、原quote和资金basis当前性，并核实际出站内容及 max_calls=1。两个 true只表达用户对具体资料外发与最大预留U的同意，不能替Owner资金权限或将免费GET批准变成付费批准。
+
+事务原子消费该preview，保存独立 paid批准及其私有授权／quote／manifest／最终bytes／资金epoch绑定，创建正式 plan/task/attempt与queued步骤、幂等结果，递增 research version；preview内部消费CAS版本另增，公开 approval回指原内容版本。全部失败回滚、无半计划。确认不建 reservation／permit／派发或费用；同研究已有活task拒绝，不用新preview/key绕开当前未知外发／资金对账。D1免费GET的批准／quota／未结控制仍独立，不互相继承或清零。
+
+reservation只在后续 prepare／authorize前的既有受审预算事务中足额预留U，再按原guard流程生成并一次消费permit。真正send之前仍重核当前批准、原quoteTTL、资金及 source/current auth、完整最终固定bytes和预算；queued或确认成功不是外发成功。价格／模型／模板／输入／来源许可或原绑定变化、到期时失效未消费的发送资格，重新显式preview／confirm；不自动换价、换模型或把旧同意迁到新包。原调用若已发／未知，先按原规则对账，不用新确认重发；生产资金、CP3真实producer及live版本尚未独审放行时仍拒绝实际paid。
+
+幂等按现有主体incarnation／operation／research非空scope及key摘要唯一，正文摘要覆盖全部对应客户端data。相同key同正文重放先核当前身份、研究与资料读取权限，再回原preview或approval/task引用及当前安全状态，不新建／消费／派发；未消费draft的原key重放若已过期或当前输入／绑定变化，返回409要求重新预览，不盲回仍有效draft；已提交同意的原key回读不能因原quote已过期变成新的扣费申请。同key异正文409，换key也不能重复消费同preview或绕过未结fingerprint；并发只一个有效确认。replay不能返回盲存的旧QUEUED状态冒当前执行进度，PaidApprovalView的execution/status首次为QUEUED/queued，重放从既有ResearchView读取当前二状态并保留原approval/task refs，具体已确认版本不变。
+
+删除、研究撤权、账户incarnation更换、失效会话或许可撤销后，旧preview／确认／key／缓存不恢复私有正文或资格；跨账户及不匹配的对象引用404。已启动不可取消的provider调用不能承诺撤销费用，迟到只按现有费用控制规则处理，不恢复报告、分享或任务；缺usage的UNKNOWN保持held，不套免费GET闭合例外。付费入口不接收客户端usage、receipt或余额差作为可信费用；坏内容与可信usage的费用分别按§6.4.1记账，actual仍未知时为null。
+
+| 拒绝／结果 | HTTP与动作 |
+| --- | --- |
+| 格式、版本类型／确认值、额外字段／重复key；rawbody／最终外发／响应超限 | 422；体积超限413，执行／派发0，不截断 |
+| 研究／preview版本、摘要／包变化、preview或原quote过期、已消费、已有活task | 409，读当前状态或重新preview；不自动换价重发 |
+| 来源／许可／完整署名不支持；预览创建时funding／可用新quote未核；预算不足 | SOURCE_PERMISSION_UNAVAILABLE 409；BUDGET_UNVERIFIED 503；BUDGET_EXHAUSTED 429；不返回source私有细节或资金控制对象 |
+| 在途／未知、身份失效、对象越权 | OUTCOME_UNKNOWN／RECONCILIATION_REQUIRED 409并request_reconciliation；身份401／原冲突语义；对象404，均无新外发 |
+
+#### 最小消费者反例（待实现后独立执行）
+
+| 场景 | 必须成立 |
+| --- | --- |
+| preview→确认→prepare/send | preview真实task/reservation/permit/发送计数0且may_send=false；显示摘要／短引与最终获准bytes一致。确认只一批准/queued task、无费用；受审后续预算及真实producer缺一仍不可send，离线不标live |
+| 客户端伪造与边界 | 自报价表／资金／可信usage／may_send、数字1代true、bool/float/string代Revision、重复／跨研究excerpt、额外字段／JSON重复key、超64KiB输入或16KiB最终包，在创建/发送前拒；合法cookie+严格整数/true为对照，Bearer-only及失效cookie+Bearer不救活 |
+| TTL、许可与摘要域 | quote/preview到期、改题／读显许可／署名／模型／模板／bytes漂移拒；manifest与含新task IDs的packet摘要分域，正式packet重建仍吻合原bytes，不先翻发送许可布尔 |
+| CAS、重放与未知 | 两进程确认仅一原子批准/计划；丢ack用原key读回，无二次消费/预留/发送，异正文409；新key/preview/task不绕UNKNOWN、同研究活task或原funding cap |
+| 撤权／删号与费用 | 跨号、两cookie冲突、同邮箱新incarnation、CSRF及删除/确认/迟到竞争均保原边界；不回放私有幂等正文；内容坏而usage可信仍记保守费用，unknown全held、不重发、不用余额差造actual |
+
+### 6.5 本地财务情景结果：保存与读取增量
+
+依据已批准 PRD 0.3／U2，复用 `7e0780ba30d163180efc5584e65ef138b1571f27` 的五文件有限执行器。本节仅冻结候选接口，独审后由 PMO 分检查点派实现；不表示 API／存储已实现或 U2 已验收。操作固定为 `local_financial_result_v1`：本机纯计算并保存私有结果，无网络、模型、资金、reservation、dispatch 或外发批准；不借用 D1／model task，不更改它们的完成状态、来源标志或费用，不改§6.4、schema6及价格函数。表迁移版本由 Core 唯一 owner 后续核定。
+
+#### 对象与受控来源
+
+| 对象 | 最小字段与边界 |
+| --- | --- |
+| `FinancialRegistryRef` | `{id:Id,revision:Revision,digest:Digest}`；指服务端在本研究授权范围保存的不可变 `SourceRegistry`，digest 按执行器的规范 JSON 算法绑定完整 registry；请求仅引用，不接受来源事实表或自报许可 |
+| `FinancialSourceBinding` | `{financial_snapshot_id:Id,registry_ref:FinancialRegistryRef,snapshot_digest:Digest,source_record_ref:{id:Id,revision:Revision}?}`；financial_snapshot_id 精确对应 registry.sources 中的 SourceSnapshot.id，观测／FX 的 source_refs 只能指该 registry 内的快照；绑定由受控 importer 保存，不能靠 UUID 存在认定同研究／可读 |
+| `FinancialResultBinding` | `{research_id:Id,input_revision:Revision,input_digest:Digest,request_digest:Digest,registry_ref:FinancialRegistryRef,policy_revision:Text(64),producer_commit:Text(40)}`；producer 固定上述受审执行器，policy=`financial-scenario-v1-candidate`。另私存当前主体 incarnation／principal epoch、auth_generation、owner/acl epoch、grant，不能由请求或模型赋值或在公开投影泄露 |
+| `FinancialResult` | `{id:Id,type:"financial_scenario_v1",binding:FinancialResultBinding,snapshot_digest:Digest,canonical_snapshot:ExactText(131072),calculation_status:"calculated_under_assumptions",u2_goal_status:not_assessed\|not_met,model_analysis_ran:false,created_at:UtcTime,research_version_at_commit:Revision}`；服务端生成、不可变；字节上限另验，缺必要基线／成本／构成时必须 not_met，纯计算不得自行签发 U2 通过 |
+| `FinancialResultReceipt` | `{result_id:Id,input_revision:Revision,snapshot_digest:Digest,research_version_at_commit:Revision}`；仅回受权结果引用，不返回原始 registry／凭据／正文；同 key 恢复仍须当前授权 |
+
+财务 SourceSnapshot 的 `kind/read_scope/source_chain` 保留执行器原类型；不扩写或借用现有 SourceRecord／SourceVersion 的两种 parser read_scope。`curated_record` 必须绑定整理表摘要、固定 commit、entry 定位和实际人工读取范围，raw_response_digest／extracted_text_digest／retained_original_ref 均 null；87e564 历史表不冒原文、live 或独立交叉确认。`historical_original/live_original` 必须由受控导入／取证路径保存真实原文、提取摘要及受权 opaque 引用，另建快照而不回填 curated。source_record_ref 仅在该实际记录的范围、版本、摘要和读取语义均能正确表达时绑定，否则为 null，保留独立财务来源记录；不得强行套 PLOS parser 标志。
+
+importer 单独核来源真实性／层级、同源转载关系与本研究读取／显示权限，生成 registry 和上述映射；执行器类型验证不承担这些证明。本节不新增任意 URL 抓取、原文导入接口或自动来源升级。后续取得的来源、新事实／会计口径／参数均形成新 registry 或新结果，旧内容不原位覆盖；公共来源可按许可重新导入，跨账户私有 registry 不得复用。投影不给原文私有路径、保留文件句柄或未经许可的原文。
+
+财务数值沿受审模块的独立 `FinancialDecimalText` 范围：有限十进制字符串≤64字符、≤24有效位、指数及非零数量级±18、绝对值≤1e18，拒绝 bool／float／表达式；不是§2 的 DecimalText 或计费 Money。原币 CNY/USD、期间／单位／会计口径／证据级别与未舍入原值保留，历史 FX 与未来假设分开；净利／EBITDA 不替营业利润，CAPEX 不直计营业费用，共用成本／折旧／SBC 不重复。2026E 中期加剩余期间假设桥接、2027–2031 五完整年、最多3情景及21单参数敏感点沿原 policy；业务互斥、未分配及缺失／冲突保留，null 不补0、全未分配不算构成完成。未来参数始终标条件假设，范围不是已校准概率；没有可信绝对基线／成本桥接时不以指数图或机械演示宣称题目满足，不在本契约设新参数数值。
+
+#### POST、提交与重开
+
+| 消费者 | 正式请求／响应边界 |
+| --- | --- |
+| `POST /research/{research_id}/financial-results` | 请求为 `{input_revision:Revision,expected_research_version:Revision,registry_ref:FinancialRegistryRef,request:FinancialRequest}`，沿现有 Envelope／身份／CSRF／Idempotency-Key 与严格额外字段、重复 key 拒绝规则；FinancialRequest 精确复用上述执行器的字段、显式假设和上限，客户端不能传 registry 内容、快照、digest 结果、trusted 标志、owner、模型或价格。成功返回 FinancialResultReceipt |
+| `GET /research/{research_id}/financial-results/{result_id}?view=summary\|table\|chart` | 默认 summary，未知 view 拒绝；在一致读事务逐对象验当前授权，跨账户／不属于该研究／失效引用统一404。响应为 Envelope，data 固定含 `{result_id,type,input_revision,input_digest,request_digest,registry_digest,policy_revision,snapshot_digest,created_at,is_historical,calculation_status,u2_goal_status,model_analysis_ran:false,view,payload}`；payload 按下述三种白名单投影，不能任意字段／函数调用 |
+| summary／table／chart payload | summary 只列情景／指标可用性、信息截止、来源 kind/read_scope、显式缺口与假设索引；table 为同一保存快照的 table() 视图并带历史背景、来源／观测／参数依据；chart 为同一快照 chart_spec() 及对应依据索引。源、原值和理由按当前显示权限过滤，不能用删除缺口或换一份 registry 维持图形。研究 view 仅增受权 result refs／capability，旧 notes／D1／model report 类型保持 |
+
+内部正式边界为 `resolve_financial_registry(conn,identity,binding,ref)->AuthorizedFinancialRegistry`、`evaluate_financial_candidate(request,authorized_registry,binding)->ServerFinancialCandidate`、`commit_financial_result_locked(conn,identity,expected_research_version,candidate,key)->FinancialResultReceipt`、`read_financial_result(conn,identity,research_id,result_id,view)->Envelope[FinancialResultView]`。前两种内部类型只由受控调用链产生，携带完整 registry／输入绑定和私有授权快照；类型或摘要本身不授予信任，commit／read 仍按下述门禁重核；FinancialResultView 即上表 GET 白名单。adapter 不接受任意对象注入这些内部类型。
+
+服务端先在短一致读事务核当前有效身份 incarnation、principal/owner/acl epoch、read+write grant、研究 active、已确认且当前的 input_revision+digest、expected_research_version 和 registry 绑定／来源权限，再取得不可变输入包；事务外执行有限纯计算，不持 DB／owner gate 等待完整计算。请求体沿64 KiB上限，request+受控registry≤128 KiB，所有原对象数量、Decimal50／5000步骤／合作式2秒上限继续有效；合作式限制不声称 OS 隔离。资源超限整次拒绝，不降精度或删来源过关。
+
+`evaluate_financial` 产物只是服务端内部 candidate；`FinancialSnapshot(str)` 仅验大小，不能用它校验不可信快照。保存入口不接受客户端／LLM 自报 candidate、canonical bytes 或摘要；从该次受控 request+registry+producer 调用取得结果，严格核结构、输入／registry／policy 摘要、完整 export 上限和表图一致后，才能交 commit。摘要不是授权凭证；不从裸 JSON 还原一个对象就追认来源或计算已验证。
+
+commit 在既有跨进程 owner gate 内、同一 auth DB 的短事务中重新核上述全部授权／grant／来源显示范围及版本，CAS 当前 research version 与 input revision+digest；来源撤权／改版、问题变更、账户删除或研究撤权先提交时，候选不得保存或恢复资产。成功原子写不可变结果、source 映射引用及幂等引用，并递增 research version，current_task_id／任务状态不变；任何失败全部回滚、不留半结果，未知 ID 禁止 upsert。Core 是 DDL／连接／事务／删除与 API 接线唯一 owner；独立 adapter 不自行 connect/commit、建库、分配 schema 版本或迁移当前 paid producer 表。
+
+幂等唯一作用域为 `(principal incarnation,local_financial_result_v1,r:<research_id>,key_digest)`，规范请求摘要含全部客户端请求字段；同 key 异正文409，同 key 同正文并发只存一个结果。重放先核当前身份、研究及 registry 读取权限，再返回原结果引用；已改题仍可作为有标历史读取，不重算或覆盖旧结果。响应丢失／进程崩溃先按原 key 查提交事实；仅确证未提交且当前版本／权限仍有效时可重做本地纯计算，不新增外部请求或伪造 UNKNOWN 费用。已撤权／删除不回放私有幂等正文，最小防复活记录不能重建内容。
+
+每次 GET／重开重新核当前研究及来源读取／显示资格，校验保存 canonical 摘要、受控 producer／policy／严格快照结构和 binding，拒绝损坏／未知版本，不能从客户端缓存补写；历史结果按 input_revision 与当前 revision 比较设置 is_historical，原输入与来源／参数摘要、原 created_at 保持。table 和 chart 仅从这一份不可变快照投影，均带相同 snapshot_digest；缺点不连线、不再计算、拟合或自动换汇。table() 的 same_as 展开及外层 Envelope 也受限：持久完整结果、每种最终 UTF-8 view 响应分别≤128 KiB，超限明确拒绝、不截断；不要重复拼装 table+export+chart 绕过上限。对无效／超限 candidate 不产生结果；已有完整结果的某 view 超限只拒该 view，不伪造成计算成功的新结果。
+
+账户／研究删除与撤权复用同库控制门禁及§7，先禁读／增 epoch，再清 FinancialResult、私有 registry／来源映射、幂等正文和保存的参数快照；共享公开源只清本研究授权关联，不误删其他仍获授权研究的来源。迟到计算及旧 cookie／同邮箱新 incarnation／旧 key 均不得复活结果、研究或分享。本节不开放新的匿名读取、分享、模型调用或预算入口；“本地无外发”不是 provider actual=0 账单，model_analysis_ran=false 也不代表 U2 价值已验收。
+
+#### 最小消费者反例（待实现后独立执行）
+
+| 消费者场景 | 必须成立 |
+| --- | --- |
+| POST→保存→重开→表／图 | 实际私有 API 调纯执行器，重启后同 result/input/registry/snapshot 摘要与原时间，table/chart 同源；同请求单元格与纯模块 golden 一致，模型／网络／资金调用0 |
+| 伪事实／摘要／来源 | 客户端 registry／快照／trusted 或伪造来源引用在执行前拒绝；只改 digest、将87e curated 冒 live／原文、同源转载冒独立、跨 owner registry 不能入库；未知 policy／损坏保存字节不得读取 |
+| 竞争／丢回执／版本 | 同 key 并发只一结果，异正文409；提交前后崩溃按原 key 读回或确证未提交再算。计算中改题／来源授权变化先提交则结果提交拒绝，已存旧修订只能有标历史展示，不改当前问题或任务 |
+| 隐私／删除与迟到 | 跨账户／同邮箱新 incarnation／失效会话不得读，撤权或删除与 commit 竞争只允许合法先后；删除后迟到 candidate、旧 key／缓存／重启不能恢复正文或分享，原文句柄不出投影／日志 |
+| 数值／资源／不足 | 半年不直年化、OP不以净利代、成本不重计；缺 FX／成本／分部保留 null／缺口与not_met，不假U2通过；same_as 展开／Envelope 超128 KiB拒该view，任一输入／计算上限整次失败，不删来源或补0，范围不标概率 |
 
 ## 7 撤权、删除、认领与迟到提交
 

@@ -2,6 +2,7 @@
 from dataclasses import replace
 from contextlib import contextmanager
 import gzip
+import hashlib
 import http.client
 import json
 import multiprocessing
@@ -31,8 +32,9 @@ TITLE = "Method fixture for stock market common factors"
 NOTICE = ("permits unrestricted use, distribution, and reproduction in any medium, "
           "provided the original author and source are credited")
 ARTICLE = (f'<html><meta name="citation_doi" content="{DOI}"><meta name="citation_title" content="{TITLE}">'
-           '<script>never extracted()</script><p>Partial correlation is not a causality measure.</p>'
-           '<section class="article-body"><div id="artText" class="article-text"><div class="articleinfo">'
+           '<script>never extracted()</script>'
+           '<section class="article-body"><div id="artText" class="article-text">'
+           '<p>Partial correlation is not a causality measure.</p><div class="articleinfo">'
            f'<p><strong>Citation: </strong>{TITLE}. https://doi.org/{DOI}</p>'
            f'<p><strong>Copyright: </strong>This is an open-access article distributed under the terms of the Creative Commons Attribution License, which {NOTICE}</p>'
            '</div></div></section></html>').encode()
@@ -513,6 +515,154 @@ class SourceTests(unittest.TestCase):
                 self.local_http(response)
         with self.assertRaisesRegex(SourceFailure, "peer mismatch"):
             self.local_http(b"", peer="127.0.0.1")
+
+
+class SourceAcceptanceTests(unittest.TestCase):
+    def fetch(self, article):
+        chain = SourceTests().chain(FixtureTransport([
+            (200, "application/json", discovery(), discovery()), (200, "text/html", article, article)]))
+        chain.discover()
+        return chain.fetch(DOI)
+
+    def test_both_complete_fixed_boilerplates_keep_all_permission_conditions(self):
+        for spelling in (b"open-access", b"open access"):
+            article = ARTICLE.replace(b"open-access", spelling)
+            snapshot, raw, extracted = self.fetch(article)
+            self.assertEqual(snapshot.parser_version, "plos-author-narrative-subset-v2")
+            self.assertEqual(extracted, "Partial correlation is not a causality measure.")
+            self.assertEqual(raw, article)
+            self.assertEqual(snapshot.raw_digest, hashlib.sha256(raw).hexdigest())
+            self.assertEqual((snapshot.licence.private_cache, snapshot.licence.display_excerpt, snapshot.licence.export_excerpt), (True, True, True))
+            for denied in (article.replace(NOTICE.encode(), b"Unknown credit"),
+                           article.replace(b"Attribution License", b"Attribution"),
+                           article.replace(b"open access", b"open  accessx") if spelling == b"open access" else article.replace(b"open-access", b"open--access")):
+                _, licence = parse_article(denied, Hit(DOI, TITLE, True))
+                self.assertFalse(licence.private_cache)
+            copyright_p = (b'<p><strong>Copyright: </strong>This is an ' + spelling +
+                b' article distributed under the terms of the Creative Commons Attribution License, which ' + NOTICE.encode() + b'</p>')
+            quoted = article.replace(copyright_p, b'<p><span class="quoted-other">' + copyright_p[3:-4] + b'</span></p>')
+            self.assertNotEqual(quoted, article)
+            _, licence = parse_article(quoted, Hit(DOI, TITLE, True))
+            self.assertFalse(licence.private_cache)
+
+    def test_narrative_is_scoped_and_keeps_inline_citations_not_foreign_statements(self):
+        paragraph = ("<p>反馈 f<span>eed</span>back links <a class=\"reference\" href=\"#ref1\">[1]</a> to 作者叙述。</p>"
+                     "<p>Second <em>author</em> paragraph.</p>").encode()
+        outside = b'<nav>FOREIGN_NAV</nav><p>OUTSIDE_PARAGRAPH</p>'
+        excluded = (b'<div class="comments">FOREIGN_COMMENT</div>'
+                    b'<blockquote>FOREIGN_BLOCKQUOTE</blockquote><q>FOREIGN_Q</q>'
+                    b'<span class="quoted-other">FOREIGN_EXPLICIT_QUOTE</span>'
+                    b'<ol class="references"><li>FOREIGN_REFERENCE</li></ol>'
+                    b'<div class="metadata">FOREIGN_METADATA</div>')
+        article = ARTICLE.replace(b'<script>', outside+b'<script>', 1)
+        article = article.replace(b'<p>Partial correlation is not a causality measure.</p>', paragraph+excluded)
+        snapshot, raw, extracted = self.fetch(article)
+        self.assertEqual(extracted, "反馈 feedback links [1] to 作者叙述。 Second author paragraph.")
+        self.assertNotIn("Copyright", extracted)
+        for word in (b'FOREIGN_NAV', b'OUTSIDE_PARAGRAPH', b'FOREIGN_COMMENT', b'FOREIGN_BLOCKQUOTE',
+                     b'FOREIGN_Q', b'FOREIGN_EXPLICIT_QUOTE', b'FOREIGN_REFERENCE', b'FOREIGN_METADATA'):
+            self.assertIn(word, raw)
+            self.assertNotIn(word.decode(), extracted)
+        quote = " ".join(extracted.split()[:20])
+        self.assertEqual(extracted[:len(quote)], quote)
+        self.assertEqual(snapshot.extracted_digest, hashlib.sha256(extracted.encode()).hexdigest())
+
+    def test_current_container_intersection_accepts_either_nesting_order(self):
+        article = ARTICLE.replace(b'<section class="article-body"><div id="artText" class="article-text">',
+                                  b'<div id="artText" class="article-text"><section class="article-body">')
+        article = article.replace(b'</div></div></section>', b'</div></section></div>')
+        _, _, extracted = self.fetch(article)
+        self.assertEqual(extracted, "Partial correlation is not a causality measure.")
+
+    def test_empty_multiple_and_malformed_bodies_never_become_snapshots(self):
+        sentence = b'<p>Partial correlation is not a causality measure.</p>'
+        variants = (
+            ARTICLE.replace(sentence, b''),
+            ARTICLE.replace(sentence, b'').replace(b'<section class="article-body">', sentence+b'<section class="article-body">'),
+            ARTICLE.replace(b'</html>', b'<section class="article-body"><div id="artText"><p>Other work.</p></div></section></html>'),
+            ARTICLE.replace(sentence, b'<p>Malformed <em>inline narrative.</p>'),
+            ARTICLE.replace(b'</div></div></section>', b'</div></section>'),
+        )
+        for article in variants:
+            with self.subTest(article=article[-80:]), self.assertRaises(SourceFailure):
+                self.fetch(article)
+
+    def test_omitted_explicit_quote_leaves_a_boundary_not_a_fabricated_word(self):
+        article = ARTICLE.replace(b'Partial correlation is not a causality measure.',
+            b'Author<span class="quoted-other">NOT_AUTHOR</span>narrative f<span>eed</span>back.')
+        _, _, extracted = self.fetch(article)
+        self.assertEqual(extracted, "Author narrative feedback.")
+
+    def test_owned_scientific_discussion_is_not_reader_comments(self):
+        article = ARTICLE.replace(b'<p>Partial correlation is not a causality measure.</p>',
+            b'<section id="discussion"><p>Author discussion cites <a class="reference" href="#r1">[1]</a> with limits.</p></section>')
+        _, _, extracted = self.fetch(article)
+        self.assertEqual(extracted, "Author discussion cites [1] with limits.")
+
+    def test_omitted_image_boundary_reaches_actual_save_snapshot_default_excerpt(self):
+        import sqlite3
+        from tests.test_research_evidence import EvidenceTests
+        from web.backend.research import source_workflow
+
+        prefix = " ".join(f"word{number}" for number in range(1, 20))
+        cases = (
+            ('<p>Alpha<img src="formula.png" alt="is greater than">Beta.</p>', 'Alpha Beta.'),
+            ('<p>Alpha<img src="formula.png" alt="UNTRUSTED_ALT"/>Beta.</p>', 'Alpha Beta.'),
+            ('<p>前<span>后</span><img alt="UNTRUSTED_ALT">终。</p>', '前后 终。'),
+            ('<p>Al<span>pha</span>Beta.</p>', 'AlphaBeta.'),
+            ('<p>Alpha<q><img alt="UNTRUSTED_ALT">FOREIGN</q>Beta.</p>', 'Alpha Beta.'),
+            (f'<p>{prefix} Alpha<img alt="UNTRUSTED_ALT">Beta after.</p>', f'{prefix} Alpha Beta after.'),
+        )
+        for body, expected in cases:
+            with self.subTest(body=body):
+                article = ARTICLE.replace(b'<p>Partial correlation is not a causality measure.</p>', body.encode())
+                snapshot, raw, extracted = self.fetch(article)
+                self.assertEqual(extracted, expected)
+                self.assertNotIn('UNTRUSTED_ALT', extracted)
+                self.assertNotIn('is greater than', extracted)
+                self.assertNotIn('FOREIGN', extracted)
+                fixture = EvidenceTests()
+                fixture.setUp()
+                try:
+                    fixture.conn.row_factory = sqlite3.Row
+                    fixture.repo.put(fixture.context, fixture.plan)
+                    fixture.conn.execute('CREATE TABLE research_source_requests(id TEXT,outcome TEXT,dispatch_id TEXT,started_at TEXT,ended_at TEXT,http_status INTEGER)')
+                    request_id = uid()
+                    fixture.conn.execute('INSERT INTO research_source_requests VALUES(?,?,?,?,?,200)',
+                        (request_id, 'SUCCEEDED', uid(), '2026-10-17T00:00:00Z', '2026-10-17T00:00:01Z'))
+                    @contextmanager
+                    def transaction(*, write=False):
+                        self.assertTrue(write)
+                        yield fixture.conn
+                    # Isolated transaction/authorization fixture, not a C0
+                    # acceptance claim; save_snapshot and repository are real.
+                    session = source_workflow.SourceSession.__new__(source_workflow.SourceSession)
+                    session.store = SimpleNamespace(transaction=transaction)
+                    session.checked = lambda conn: None
+                    session.task_id, session.step_id = fixture.context.task_id, fixture.context.step_id
+                    session.binding, session.plan = fixture.binding, fixture.plan
+                    session.last_request, session.mode = request_id, 'offline_probe'
+                    snapshot = replace(snapshot, **fixture.binding)
+                    with patch.object(source_workflow, 'context_for', return_value=fixture.context), patch.object(source_workflow, 'authorizer', return_value=fixture.authorize):
+                        saved, _, _ = session.save_snapshot(snapshot, raw, extracted, discovery())
+                    row = fixture.conn.execute("SELECT id FROM research_evidence_objects WHERE kind='excerpts'").fetchone()
+                    excerpt = fixture.repo.get(fixture.context, 'excerpts', row[0])
+                    expected_quote = f'{prefix} Alpha' if len(expected.split()) > 20 else expected
+                    self.assertEqual(excerpt.quote, expected_quote)
+                    self.assertEqual((excerpt.start, excerpt.end), (0, len(expected_quote)))
+                    self.assertEqual(excerpt.extracted_digest, hashlib.sha256(extracted.encode()).hexdigest())
+                    stored_raw, stored_text = fixture.conn.execute('SELECT raw,extracted FROM research_evidence_objects WHERE id=?', (saved,)).fetchone()
+                    self.assertEqual((stored_raw, stored_text), (article, expected))
+                finally:
+                    fixture.tearDown()
+
+    def test_images_do_not_relax_existing_text_or_structure_limits(self):
+        from web.backend.research.source_policy import TEXT_CAP
+        for body in (b'<p>' + b'x' * (TEXT_CAP + 1) + b'<img>y</p>',
+                     b'<p>' + b'<span>' * 128 + b'x<img>' + b'</span>' * 128 + b'</p>'):
+            article = ARTICLE.replace(b'<p>Partial correlation is not a causality measure.</p>', body)
+            with self.assertRaises(SourceFailure):
+                self.fetch(article)
 
 
 if __name__ == "__main__":

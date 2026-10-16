@@ -6,6 +6,8 @@ Layer 2 — integration: TestClient against the method_search router, with
 """
 from __future__ import annotations
 
+from ast import literal_eval
+
 import asyncio
 import json
 import re
@@ -238,13 +240,23 @@ def app():
     """Sub-app exposing only the method_search router."""
     from api import method_search as ms_api
     a = FastAPI()
+    from errors import install_problem_handlers
+    install_problem_handlers(a)
     a.include_router(ms_api.router, prefix="/api")
     return a
 
 
 @pytest.fixture
-def client(app):
-    return TestClient(app)
+def client(app, monkeypatch):
+    from api import method_search as endpoint
+    from unittest.mock import Mock
+    checks = []
+    check = Mock(side_effect=AssertionError("retired generator must not run"))
+    monkeypatch.setattr(endpoint, "run_method_search", check)
+    checks.append(check)
+    with TestClient(app) as connection:
+        yield connection
+    assert all(check.call_count == 0 for check in checks)
 
 
 _SAMPLE_RESULTS = [
@@ -282,25 +294,13 @@ def patched(monkeypatch):
     main_mod.app_state.pop("search", None)
 
 
-def test_endpoint_success_with_llm(client, patched):
-    """Happy path: signature extracted + notes attached."""
+def test_retired_endpoint_success_with_llm(client, patched):
+    """Retired runtime rejects this former generation scenario before preparation."""
     resp = client.post("/api/method/apply", json={
         "method": "梯度下降算法", "top_n": 5,
         "client_request_id": "apply-request-00001",
     })
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["signature_origin"] == "model_generated"
-    assert body["request_id"] == "apply-request-00001"
-    assert body["contract_version"] == "secondary-tools-v2"
-    assert body["signature"] == "在反馈下沿局部信息迭代逼近最优"
-    assert body["keywords"] == ["迭代", "局部信息"]
-    assert body["count"] == 2
-    assert body["candidates"][0]["id"] == "p1"
-    assert body["candidates"][0]["candidate_note"]
-    assert body["candidates"][0]["retrieval_rank"] == 1
-    assert "score" not in body["candidates"][0]
-    assert body["candidates"][0]["evidence"]["candidate"]["score"] is None
+    _assert_retired_response(resp)
 
 
 def test_endpoint_rejects_out_of_scope_before_search_pipeline(client, patched):
@@ -308,19 +308,14 @@ def test_endpoint_rejects_out_of_scope_before_search_pipeline(client, patched):
         "/api/method/apply", json={"method": "2 + 2 等于多少，请直接告诉我答案"}
     )
     assert response.status_code == 422
-    assert response.json()["detail"]["error"] == "out_of_scope"
+    assert literal_eval(response.json()["detail"])["error"] == "out_of_scope"
 
 
-def test_endpoint_degrades_when_llm_unavailable(client, patched):
-    """LLM off → 200, still returns search results, no notes, no crash."""
+def test_retired_endpoint_degrades_when_llm_unavailable(client, patched):
+    """Retired runtime rejects this former generation scenario before preparation."""
     patched["llm"] = False
     resp = client.post("/api/method/apply", json={"method": "梯度下降算法"})
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["signature_origin"] == "input_fallback"
-    assert body["signature"] == "梯度下降算法"  # raw method text
-    assert body["count"] == 2
-    assert all(c["candidate_note"] is None for c in body["candidates"])
+    _assert_retired_response(resp)
 
 
 def test_endpoint_rejects_empty_input(client, patched):
@@ -342,28 +337,28 @@ def test_endpoint_rejects_blank_whitespace(client, patched):
     assert resp.status_code == 422
 
 
-def test_endpoint_503_when_search_not_ready(client, monkeypatch):
-    """Search service missing → 503."""
+def test_retired_endpoint_503_when_search_not_ready(client, monkeypatch):
+    """Retired runtime rejects this former generation scenario before preparation."""
     import main as main_mod
     main_mod.app_state.pop("search", None)
     resp = client.post("/api/method/apply", json={"method": "梯度下降"})
-    assert resp.status_code == 503
+    _assert_retired_response(resp)
 
 
-def test_endpoint_top_n_clamped(client, patched):
-    """top_n above le=20 rejected by pydantic; valid value honoured."""
+def test_retired_endpoint_top_n_clamped(client, patched):
+    """Retired runtime rejects this former generation scenario before preparation."""
     assert client.post("/api/method/apply",
                        json={"method": "梯度下降", "top_n": 99}).status_code == 422
     resp = client.post("/api/method/apply", json={"method": "梯度下降", "top_n": 1})
-    assert resp.status_code == 200
-    assert resp.json()["count"] == 1
+    _assert_retired_response(resp)
 
 
-def test_endpoint_pipeline_failure_logs_only_safe_incident_metadata(
+def test_retired_endpoint_pipeline_failure_logs_only_safe_incident_metadata(
     client,
     patched,
     monkeypatch,
 ):
+    """Retired runtime rejects this former generation scenario before preparation."""
     from api import method_search as ms_api
 
     canaries = (
@@ -378,7 +373,9 @@ def test_endpoint_pipeline_failure_logs_only_safe_incident_metadata(
             assert not args
             entries.append({"event": event, **fields})
 
+    pipeline_calls = []
     async def fail_with_private_exception(method_text, search_svc, top_n):
+        pipeline_calls.append(method_text)
         raise RuntimeError(" ".join((method_text, *canaries)))
 
     monkeypatch.setattr(ms_api, "logger", RecordingLogger())
@@ -388,16 +385,18 @@ def test_endpoint_pipeline_failure_logs_only_safe_incident_metadata(
         "/api/method/apply",
         json={"method": canaries[0], "top_n": 2},
     )
-
-    assert response.status_code == 500
-    assert response.json() == {"detail": "Method search failed"}
-    assert len(entries) == 1
-    assert entries[0]["event"] == "retrieval.method_pipeline_failed"
-    assert entries[0]["error_type"] == "RuntimeError"
-    incident_id = entries[0]["incident_id"]
-    assert re.fullmatch(r"[0-9a-f]{32}", incident_id)
-    assert response.headers["x-incident-id"] == incident_id
-    serialized = json.dumps(entries)
+    _assert_retired_response(response)
+    assert pipeline_calls == []
+    assert entries == []
     for canary in canaries:
-        assert canary not in serialized
-    assert "traceback" not in serialized.casefold()
+        assert canary not in response.text
+
+
+def _assert_retired_response(response):
+    """The retired endpoint cannot publish a report, fallback, or SSE."""
+    assert response.status_code == 503, response.text
+    body = response.json()
+    assert body["code"] == "FEATURE_UNAVAILABLE"
+    assert body["retryable"] is False and body["canonical"] == "/research"
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert "event: meta" not in response.text and "event: done" not in response.text

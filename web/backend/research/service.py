@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import base64
+import re
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
@@ -83,7 +85,7 @@ class ResearchService:
             rid, timestamp = str(uuid4()), now()
             conn.execute("INSERT INTO research_controls VALUES(?,?,?,?,?,?,?,?,?,?)",
                          (rid, principal, owner["epoch"], 1, 1, 1, "private", "active", timestamp, timestamp))
-            conn.execute("INSERT INTO research_grants VALUES(?,?,?,?,?,?,?,?)",
+            conn.execute("INSERT INTO research_grants (id,principal_id,principal_epoch,research_id,acl_epoch,scopes,status,created_at) VALUES(?,?,?,?,?,?,?,?)",
                          (str(uuid4()), principal, owner["epoch"], rid, 1, '["read","write"]', "active", timestamp))
             problem = payload["problem"]
             conn.execute("INSERT INTO research_revisions VALUES(?,?,?,?,?)", (rid, 1, canonical(problem), digest(problem), timestamp))
@@ -125,6 +127,77 @@ class ResearchService:
             row = self.authorization.check(conn, identity, principal, rid)
             return ResearchProjection.build(conn, row, task_id=task_id)
 
+    def index(self, identity, query):
+        """Keyset page of currently readable research, never a saved-view cache."""
+        from .schemas import ResearchIndexQuery,SCHEMA_VERSION,CONTRACT_REVISION
+        if type(query) is not ResearchIndexQuery:raise ResearchError("INPUT_INVALID",422,"列表分页参数无效。")
+        query=ResearchIndexQuery.model_validate(query.model_dump())
+        boundary=None
+        namespace="research-owner-index-v1"
+        if query.cursor is not None:
+            try:
+                raw=base64.b64decode(query.cursor+"="*((-len(query.cursor))%4),altchars=b"-_",validate=True)
+                if base64.urlsafe_b64encode(raw).decode().rstrip("=")!=query.cursor:raise ValueError()
+                def unique(pairs):
+                    data={}
+                    for key,value in pairs:
+                        if key in data:raise ValueError()
+                        data[key]=value
+                    return data
+                boundary=json.loads(raw.decode("utf-8"),object_pairs_hook=unique)
+                if type(boundary) is not dict or set(boundary)!={"operation","scope","updated_at","research_id"}:raise ValueError()
+                if boundary["operation"]!=namespace or not all(type(v) is str for v in boundary.values()):raise ValueError()
+                for name in ("research_id",):
+                    parsed=UUID(boundary[name])
+                    if parsed.version!=4 or str(parsed)!=boundary[name]:raise ValueError()
+                if re.fullmatch(r"[0-9a-f]{64}",boundary["scope"]) is None:raise ValueError()
+                if re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z",boundary["updated_at"],re.ASCII) is None:raise ValueError()
+                datetime.strptime(boundary["updated_at"],"%Y-%m-%dT%H:%M:%S.%fZ")
+            except (ValueError,TypeError,UnicodeError,RecursionError,OverflowError):
+                raise ResearchError("INPUT_INVALID",422,"列表分页游标无效。") from None
+        with self.store.transaction() as conn:
+            self.authorization.check_account(conn,identity)
+            principal=conn.execute("SELECT * FROM research_principals WHERE normalized_email=? AND session_generation=?",(identity.email,identity.generation)).fetchone()
+            empty={"schema_version":SCHEMA_VERSION,"contract_revision":CONTRACT_REVISION,"data":{"items":[],"next_cursor":None}}
+            if principal is None:
+                if boundary is not None:raise ResearchError("INPUT_INVALID",422,"列表分页游标无效。")
+                return empty
+            pid=principal["id"]
+            self.authorization.check(conn,identity,pid)
+            scope=digest({"operation":namespace,"principal":pid,"generation":identity.generation})
+            if boundary is not None and boundary["scope"]!=scope:
+                raise ResearchError("INPUT_INVALID",422,"列表分页游标无效。")
+            if boundary:
+                try:anchor=self.authorization.check(conn,identity,pid,boundary["research_id"])
+                except ResearchError:raise ResearchError("REVISION_CONFLICT",409,"列表游标已失效，请重新读取。") from None
+                if anchor["updated_at"]!=boundary["updated_at"]:
+                    raise ResearchError("REVISION_CONFLICT",409,"列表游标已失效，请重新读取。")
+            cursor_sql=" AND (c.updated_at<? OR (c.updated_at=? AND c.id<?))" if boundary else ""
+            params=[pid,principal["epoch"],pid,principal["epoch"]]
+            if boundary:params.extend((boundary["updated_at"],boundary["updated_at"],boundary["research_id"]))
+            params.append(query.limit+1)
+            rows=conn.execute("""SELECT c.*,r.problem_json FROM research_controls c
+                JOIN research_revisions r ON r.research_id=c.id AND r.revision=c.current_revision
+                WHERE c.owner_id=? AND c.owner_epoch=? AND c.lifecycle='active'
+                AND EXISTS(SELECT 1 FROM research_grants g WHERE g.principal_id=? AND g.principal_epoch=?
+                    AND g.research_id=c.id AND g.acl_epoch=c.acl_epoch AND g.status='active'
+                    AND EXISTS(SELECT 1 FROM json_each(g.scopes) WHERE value='read'))"""+cursor_sql+
+                " ORDER BY c.updated_at DESC,c.id DESC LIMIT ?",params).fetchall()
+            items=[]
+            for row in rows[:query.limit]:
+                self.authorization.check(conn,identity,pid,row["id"])
+                task=conn.execute("SELECT execution,evidence FROM research_tasks WHERE research_id=? AND input_revision=? ORDER BY start_version DESC,id DESC LIMIT 1",(row["id"],row["current_revision"])).fetchone()
+                try:title=json.loads(row["problem_json"])["summary"]
+                except (ValueError,KeyError,TypeError):raise ResearchError("STORE_UNAVAILABLE",503,"研究记录当前无法核对。") from None
+                if type(title) is not str:raise ResearchError("STORE_UNAVAILABLE",503,"研究记录当前无法核对。")
+                items.append({"research_id":row["id"],"title":title[:160],"current_input_revision":row["current_revision"],"updated_at":row["updated_at"],
+                    "current_task":{"execution":task["execution"],"evidence":task["evidence"]} if task else None})
+            next_cursor=None
+            if len(rows)>query.limit:
+                last=rows[query.limit-1]
+                next_cursor=base64.urlsafe_b64encode(canonical({"operation":namespace,"scope":scope,"updated_at":last["updated_at"],"research_id":last["id"]}).encode()).decode().rstrip("=")
+            return {"schema_version":SCHEMA_VERSION,"contract_revision":CONTRACT_REVISION,"data":{"items":items,"next_cursor":next_cursor}}
+
     def start(self,identity,research_id,request,key):
         from .budget import require_enabled, POLICY
         from .runner import event_in
@@ -148,7 +221,7 @@ class ResearchService:
                 raise ResearchError("RECONCILIATION_REQUIRED",409,"同一问题仍有未确认调用，请先对账。")
             task,grant,timestamp=str(uuid4()),str(uuid4()),now()
             owner=conn.execute("SELECT * FROM research_principals WHERE id=?",(principal,)).fetchone()
-            conn.execute("INSERT INTO research_grants VALUES(?,?,?,?,?,?,'active',?)",(grant,principal,owner["epoch"],rid,row["acl_epoch"],'["execute"]',timestamp))
+            conn.execute("INSERT INTO research_grants (id,principal_id,principal_epoch,research_id,acl_epoch,scopes,status,created_at) VALUES(?,?,?,?,?,?,'active',?)",(grant,principal,owner["epoch"],rid,row["acl_epoch"],'["execute"]',timestamp))
             conn.execute("""INSERT INTO research_tasks
                 (id,research_id,principal_id,principal_epoch,owner_epoch,acl_epoch,grant_id,auth_generation,input_revision,input_digest,start_version,
                  execution,phase,version,policy_revision,execution_mode,created_at,updated_at)

@@ -11,10 +11,16 @@ it off:
 The frontend uses Promise.all to fire both at once. Results render as soon
 as /api/search returns; the assessment gate overlays later if low-fit.
 """
+
+if __package__ == "web.backend.api":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
 from collections import Counter
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field, field_validator
 
 from services.input_limits import MAX_RESEARCH_QUERY_CHARS, normalize_research_query
@@ -105,12 +111,9 @@ def _looks_like_question(query: str) -> bool:
 
 @router.post("/search")
 @tier_limit_decorator(default_anon="30/minute")
-async def search_phenomena(request: Request, req: SearchRequest):
-    from main import app_state
-
-    svc = app_state.get("search")
-    if not svc:
-        raise HTTPException(503, "Search service not ready")
+async def search_phenomena(request: Request, req: SearchRequest, response: Response = None):
+    if req.lang == "en" and response is not None:
+        response.headers["X-Translation-Policy"] = "cache-only; original-on-miss"
 
     original_query = req.query
     effective_query = original_query
@@ -145,6 +148,14 @@ async def search_phenomena(request: Request, req: SearchRequest):
             "stats": {"types": [], "domains": [], "top_score": 0},
             "v2_pairs_for_top": [],
         }
+    if req.rewrite:
+        deny_legacy_paid()
+    from main import app_state
+
+    svc = app_state.get("search")
+    if not svc:
+        raise HTTPException(503, "Search service not ready")
+
     # Default assessment is a permissive passthrough so downstream code that
     # reads `assessment.worth_score` still sees a valid shape. The `category`
     # value stays ZH internally (enum shape) and is translated on output
@@ -319,6 +330,7 @@ async def assess_query(request: Request, req: AssessRequest):
     results immediately and then overlay the coaching gate if the query
     scores below threshold. On any error we fail open (worth_score=5).
     """
+    deny_legacy_paid()
     lang_norm = (req.lang or "zh").lower()
     if lang_norm not in ("zh", "en"):
         lang_norm = "zh"

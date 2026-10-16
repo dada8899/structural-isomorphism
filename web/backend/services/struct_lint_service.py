@@ -16,6 +16,11 @@ document. When search is unavailable, references remain null.
 """
 from __future__ import annotations
 
+if __package__ == "web.backend.services":
+    from ..errors import LegacyPaidUnavailable
+else:
+    from errors import LegacyPaidUnavailable
+
 import hashlib
 from typing import Any, AsyncIterator, Optional
 
@@ -278,6 +283,8 @@ async def _anchor_failure_mode(claim: dict, isomorph: dict) -> None:
             temperature=0.3,
             max_tokens=600,
         )
+    except LegacyPaidUnavailable:
+        raise
     except Exception as exc:
         logger.warning(
             "structural.struct_lint_anchor_failed",

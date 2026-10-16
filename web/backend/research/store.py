@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sqlite3
+import re
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -130,6 +131,177 @@ C0_SCHEMA = (
         at TEXT NOT NULL, UNIQUE(account_id,provider_ref))""",
 )
 
+# Historical C0_SCHEMA remains the literal v3/v4 installation baseline.
+# Only this owner defines the v5 replacement; consumers never install DDL.
+PAID_SCHEMA_VERSION = 5
+_MAX = "9223372036854775807"
+_POLICY = "deepseek-bounded-upper-v1"
+
+
+def _integer(name, *, default=None, nullable=False):
+    required="" if nullable else " NOT NULL"
+    initial="" if default is None else f" DEFAULT {default}"
+    return f"{name} INTEGER{required}{initial} CHECK({name} IS NULL OR (typeof({name})='integer' AND {name} BETWEEN 0 AND {_MAX}))"
+
+
+V5_SCHEMA = {
+    "research_grants": SCHEMA[3].replace("created_at TEXT NOT NULL)","created_at TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1 CHECK(typeof(version)='integer' AND version BETWEEN 1 AND 2147483647))"),
+    "research_tasks": C0_SCHEMA[0].replace("'c0-fixture-v1','d1-source-only-v1'",f"'c0-fixture-v1','d1-source-only-v1','{_POLICY}'"),
+    "research_steps": next(s for s in C0_SCHEMA if s.startswith("CREATE TABLE IF NOT EXISTS research_steps (")).replace("'fetch_source','compose_report'","'fetch_source','compose_report','model_report'"),
+    "research_funding_accounts": f"""CREATE TABLE research_funding_accounts (
+        id TEXT PRIMARY KEY,binding_id TEXT NOT NULL UNIQUE,
+        fixture_port INTEGER,mode TEXT NOT NULL DEFAULT 'live' CHECK(mode IN ('fixture','live')),
+        currency TEXT NOT NULL DEFAULT 'USD' CHECK(currency IN ('USD','CNY')),
+        scale INTEGER NOT NULL DEFAULT 6 CHECK(typeof(scale)='integer' AND scale=6),
+        funding_epoch INTEGER NOT NULL DEFAULT 1 CHECK(typeof(funding_epoch)='integer' AND funding_epoch BETWEEN 1 AND 2147483647),
+        {_integer('cap',default=0)},{_integer('settled',default=0)},{_integer('held',default=0)},
+        status TEXT NOT NULL DEFAULT 'unverified' CHECK(status IN ('active','unverified','reconciling','blocked')),
+        snapshot_id TEXT,version INTEGER NOT NULL DEFAULT 1 CHECK(typeof(version)='integer' AND version BETWEEN 1 AND 2147483647),
+        provider TEXT NOT NULL DEFAULT 'fixture' CHECK(provider IN ('fixture','deepseek')),
+        {_integer('initial_prepaid_units',nullable=True)},{_integer('other_use_margin_units',nullable=True)},
+        {_integer('upper_booked',default=0)},
+        CHECK((mode='fixture' AND provider='fixture' AND typeof(fixture_port)='integer' AND fixture_port BETWEEN 1 AND 65535 AND currency='USD' AND cap=10000)
+            OR (mode='live' AND provider='deepseek' AND fixture_port IS NULL)),
+        CHECK(mode='fixture' OR (status='unverified' AND cap=0 AND initial_prepaid_units IS NULL AND other_use_margin_units IS NULL)
+            OR (initial_prepaid_units IS NOT NULL AND other_use_margin_units IS NOT NULL AND other_use_margin_units<=initial_prepaid_units AND cap=initial_prepaid_units-other_use_margin_units)))""",
+    "research_balance_snapshots": f"""CREATE TABLE research_balance_snapshots (
+        id TEXT PRIMARY KEY,account_id TEXT NOT NULL REFERENCES research_funding_accounts(id),
+        {_integer('balance')},{_integer('settled_at_observation')},{_integer('local_settlement_cursor')},
+        observed_at TEXT NOT NULL,expires_at TEXT NOT NULL,
+        hard_prepaid INTEGER NOT NULL CHECK(hard_prepaid=1),auto_topup_off INTEGER NOT NULL CHECK(auto_topup_off=1),postpaid_off INTEGER NOT NULL CHECK(postpaid_off=1),
+        {_integer('upper_booked_at_observation',default=0)},funding_epoch INTEGER NOT NULL DEFAULT 1 CHECK(typeof(funding_epoch)='integer' AND funding_epoch BETWEEN 1 AND 2147483647),
+        basis_evidence_digest TEXT CHECK(basis_evidence_digest IS NULL OR length(basis_evidence_digest)=64))""",
+    "research_price_revisions": f"""CREATE TABLE research_price_revisions (
+        id TEXT PRIMARY KEY,account_id TEXT NOT NULL REFERENCES research_funding_accounts(id),
+        operation TEXT NOT NULL CHECK(operation IN ('discover_sources','compose_report','model_report')),
+        currency TEXT NOT NULL CHECK(currency IN ('USD','CNY')),scale INTEGER NOT NULL CHECK(typeof(scale)='integer' AND scale=6),
+        {_integer('input_rate',default=0)},{_integer('output_rate',default=0)},{_integer('max_input',default=0)},{_integer('max_output',default=0)},{_integer('fixed_units',default=0)},
+        rounding TEXT NOT NULL DEFAULT 'ceil_total' CHECK(rounding IN ('ceil_total','ceil_components')),expires_at TEXT NOT NULL,
+        policy_revision TEXT NOT NULL DEFAULT 'c0-fixture-v1' CHECK(policy_revision IN ('c0-fixture-v1','{_POLICY}')),
+        quote_json TEXT,quote_digest TEXT,
+        CHECK((policy_revision='c0-fixture-v1' AND operation IN ('discover_sources','compose_report') AND currency='USD' AND quote_json IS NULL AND quote_digest IS NULL)
+            OR (policy_revision='{_POLICY}' AND operation='model_report' AND quote_json IS NOT NULL AND quote_digest IS NOT NULL AND json_valid(quote_json) AND json_type(quote_json)='object' AND length(quote_json)<=8192 AND length(quote_digest)=64)))""",
+    "research_reservations": f"""CREATE TABLE research_reservations (
+        id TEXT PRIMARY KEY,account_id TEXT NOT NULL REFERENCES research_funding_accounts(id),
+        task_id TEXT NOT NULL REFERENCES research_tasks(id),step_id TEXT NOT NULL UNIQUE REFERENCES research_steps(id),
+        operation_key TEXT NOT NULL UNIQUE,price_revision TEXT NOT NULL REFERENCES research_price_revisions(id),
+        funding_epoch INTEGER NOT NULL CHECK(typeof(funding_epoch)='integer' AND funding_epoch BETWEEN 1 AND 2147483647),
+        {_integer('max_cost')},{_integer('settled_cost',nullable=True)},
+        status TEXT NOT NULL CHECK(status IN ('HELD','SENT','UNKNOWN','SETTLED','RELEASED','UPPER_BOOKED')),
+        version INTEGER NOT NULL DEFAULT 1 CHECK(typeof(version)='integer' AND version BETWEEN 1 AND 2147483647),
+        policy_revision TEXT NOT NULL DEFAULT 'c0-fixture-v1' CHECK(policy_revision IN ('c0-fixture-v1','{_POLICY}')),
+        principal_id TEXT REFERENCES research_principals(id),auth_scope_digest TEXT,outbound_fingerprint TEXT,
+        CHECK((policy_revision='c0-fixture-v1' AND status!='UPPER_BOOKED') OR
+            (policy_revision='{_POLICY}' AND principal_id IS NOT NULL AND auth_scope_digest IS NOT NULL AND outbound_fingerprint IS NOT NULL AND length(auth_scope_digest)=64 AND length(outbound_fingerprint)=64 AND
+            (status!='UPPER_BOOKED' OR settled_cost IS NULL))))""",
+    "research_dispatch_permits": f"""CREATE TABLE research_dispatch_permits (
+        id TEXT PRIMARY KEY,step_id TEXT NOT NULL UNIQUE REFERENCES research_steps(id),
+        reservation_id TEXT NOT NULL UNIQUE REFERENCES research_reservations(id),dispatch_id TEXT NOT NULL UNIQUE,input_digest TEXT,
+        state TEXT NOT NULL CHECK(state IN ('prepared','consumed','revoked')),expires_at TEXT NOT NULL,
+        policy_revision TEXT NOT NULL DEFAULT 'c0-fixture-v1' CHECK(policy_revision IN ('c0-fixture-v1','{_POLICY}')),
+        request_digest TEXT,evidence_digest TEXT,price_digest TEXT,budget_basis_digest TEXT,budget_basis_json TEXT,
+        authorization_context_digest TEXT,authorization_context_json TEXT,gate_identity_json TEXT,
+        authorized_task_version INTEGER,authorized_step_version INTEGER,
+        CHECK(policy_revision='c0-fixture-v1' OR (request_digest IS NOT NULL AND evidence_digest IS NOT NULL AND price_digest IS NOT NULL
+            AND budget_basis_digest IS NOT NULL AND authorization_context_digest IS NOT NULL AND length(request_digest)=64 AND length(evidence_digest)=64 AND length(price_digest)=64
+            AND length(budget_basis_digest)=64 AND length(authorization_context_digest)=64
+            AND (budget_basis_json IS NULL OR (json_valid(budget_basis_json) AND length(budget_basis_json)<=8192))
+            AND (authorization_context_json IS NULL OR (json_valid(authorization_context_json) AND length(authorization_context_json)<=8192))
+            AND (gate_identity_json IS NULL OR (json_valid(gate_identity_json) AND length(gate_identity_json)<=256))
+            AND typeof(authorized_task_version)='integer' AND authorized_task_version BETWEEN 1 AND 2147483647
+            AND typeof(authorized_step_version)='integer' AND authorized_step_version BETWEEN 1 AND 2147483647)))""",
+}
+
+COST_SCHEMA = f"""CREATE TABLE research_cost_observations (
+    id TEXT PRIMARY KEY,account_id TEXT NOT NULL REFERENCES research_funding_accounts(id),
+    reservation_id TEXT NOT NULL REFERENCES research_reservations(id),dispatch_id TEXT NOT NULL,
+    policy_revision TEXT NOT NULL CHECK(policy_revision='{_POLICY}'),
+    kind TEXT NOT NULL CHECK(kind IN ('estimated_upper','unknown','anomaly')),
+    response_digest TEXT CHECK(response_digest IS NULL OR length(response_digest)=64),usage_ref TEXT CHECK(usage_ref IS NULL OR length(usage_ref)=64),
+    provider_response_ref TEXT CHECK(provider_response_ref IS NULL OR (length(provider_response_ref) BETWEEN 1 AND 120 AND provider_response_ref NOT GLOB '*[^a-zA-Z0-9._:-]*')),
+    usage_json TEXT CHECK(usage_json IS NULL OR (json_valid(usage_json) AND json_type(usage_json)='object' AND length(usage_json)<=4096)),
+    observation_digest TEXT NOT NULL CHECK(length(observation_digest)=64),
+    {_integer('reserved_upper')},{_integer('booked_upper',nullable=True)},actual_charge INTEGER CHECK(actual_charge IS NULL),
+    {_integer('usage_priced_estimate_units',nullable=True)},price_revision TEXT NOT NULL REFERENCES research_price_revisions(id),
+    basis_digest TEXT NOT NULL CHECK(length(basis_digest)=64),
+    safe_code TEXT NOT NULL CHECK(safe_code IN ('ok','body_invalid','access_ended','response_unknown','usage_unknown','usage_over_bound','model_drift','deadline','response_limit','send_unknown','conflict')),
+    observed_at TEXT NOT NULL,UNIQUE(dispatch_id,observation_digest),
+    CHECK((kind='estimated_upper' AND booked_upper=reserved_upper AND booked_upper IS NOT NULL AND usage_json IS NOT NULL AND usage_ref IS NOT NULL AND response_digest IS NOT NULL)
+        OR (kind IN ('unknown','anomaly') AND booked_upper IS NULL)))"""
+
+V5_AUX = (
+    "CREATE UNIQUE INDEX research_fixture_price_operation ON research_price_revisions(account_id,operation) WHERE policy_revision='c0-fixture-v1'",
+    """CREATE UNIQUE INDEX research_bounded_open_operation ON research_reservations(account_id,principal_id,outbound_fingerprint)
+        WHERE policy_revision='deepseek-bounded-upper-v1' AND status IN ('HELD','SENT','UNKNOWN')""",
+    "CREATE UNIQUE INDEX research_one_upper_observation ON research_cost_observations(dispatch_id) WHERE kind='estimated_upper'",
+    """CREATE TRIGGER research_reservation_policy_immutable BEFORE UPDATE OF policy_revision ON research_reservations
+        WHEN NEW.policy_revision!=OLD.policy_revision BEGIN SELECT RAISE(ABORT,'reservation policy immutable'); END""",
+    """CREATE TRIGGER research_grant_version AFTER UPDATE OF status,scopes,principal_epoch,acl_epoch ON research_grants
+        WHEN NEW.version=OLD.version AND (NEW.status!=OLD.status OR NEW.scopes!=OLD.scopes OR NEW.principal_epoch!=OLD.principal_epoch OR NEW.acl_epoch!=OLD.acl_epoch)
+        BEGIN UPDATE research_grants SET version=version+1 WHERE id=NEW.id; END""",
+    """CREATE TRIGGER research_grant_version_monotonic BEFORE UPDATE OF version ON research_grants
+        WHEN NEW.version<=OLD.version BEGIN SELECT RAISE(ABORT,'grant version monotonic'); END""",
+    """CREATE TRIGGER research_cost_usage_keys BEFORE INSERT ON research_cost_observations WHEN NEW.usage_json IS NOT NULL
+        BEGIN SELECT CASE WHEN EXISTS(SELECT 1 FROM json_each(NEW.usage_json) WHERE key NOT IN
+            ('prompt_tokens','completion_tokens','total_tokens','prompt_cache_hit_tokens','prompt_cache_miss_tokens','cached_tokens','reasoning_tokens')
+            OR (type!='integer' AND NOT (type='null' AND key IN ('cached_tokens','reasoning_tokens'))) OR (type='integer' AND (value<0 OR value>9223372036854775807)))
+            THEN RAISE(ABORT,'financial usage fields only') END; END""",
+    """CREATE TRIGGER research_funding_identity_immutable BEFORE UPDATE OF binding_id,mode,provider,currency,scale ON research_funding_accounts
+        WHEN NEW.binding_id!=OLD.binding_id OR NEW.mode!=OLD.mode OR NEW.provider!=OLD.provider OR NEW.currency!=OLD.currency OR NEW.scale!=OLD.scale
+        BEGIN SELECT RAISE(ABORT,'funding identity immutable'); END""",
+    """CREATE TRIGGER research_funding_cap_immutable BEFORE UPDATE OF cap,initial_prepaid_units,other_use_margin_units ON research_funding_accounts
+        WHEN OLD.initial_prepaid_units IS NOT NULL AND (NEW.cap!=OLD.cap OR NEW.initial_prepaid_units IS NOT OLD.initial_prepaid_units OR NEW.other_use_margin_units IS NOT OLD.other_use_margin_units)
+        BEGIN SELECT RAISE(ABORT,'funding cap immutable'); END""",
+    """CREATE TRIGGER research_funding_epoch_monotonic BEFORE UPDATE OF funding_epoch ON research_funding_accounts
+        WHEN NEW.funding_epoch<=OLD.funding_epoch BEGIN SELECT RAISE(ABORT,'funding epoch monotonic'); END""",
+    """CREATE TRIGGER research_cost_binding BEFORE INSERT ON research_cost_observations
+        BEGIN SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM research_reservations r JOIN research_dispatch_permits p ON p.reservation_id=r.id
+            JOIN research_price_revisions q ON q.id=r.price_revision JOIN research_funding_accounts a ON a.id=r.account_id
+            WHERE r.id=NEW.reservation_id AND r.account_id=NEW.account_id AND r.price_revision=NEW.price_revision
+            AND r.max_cost=NEW.reserved_upper AND r.policy_revision='deepseek-bounded-upper-v1'
+            AND q.policy_revision=r.policy_revision AND q.currency=a.currency AND q.scale=a.scale
+            AND p.policy_revision=r.policy_revision AND p.dispatch_id=NEW.dispatch_id AND p.state='consumed' AND p.budget_basis_digest=NEW.basis_digest
+            AND r.status IN ('SENT','UNKNOWN','UPPER_BOOKED'))
+            THEN RAISE(ABORT,'cost observation binding') END; END""",
+    """CREATE TRIGGER research_price_account_binding BEFORE INSERT ON research_price_revisions
+        BEGIN SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM research_funding_accounts a WHERE a.id=NEW.account_id
+            AND a.currency=NEW.currency AND a.scale=NEW.scale AND ((a.mode='fixture' AND NEW.policy_revision='c0-fixture-v1')
+            OR (a.mode='live' AND NEW.policy_revision='deepseek-bounded-upper-v1')))
+            THEN RAISE(ABORT,'price account currency binding') END; END""",
+    """CREATE TRIGGER research_cost_usage_complete BEFORE INSERT ON research_cost_observations WHEN NEW.kind='estimated_upper'
+        BEGIN SELECT CASE WHEN NOT (
+            json_type(NEW.usage_json,'$.prompt_tokens') IS 'integer' AND json_type(NEW.usage_json,'$.completion_tokens') IS 'integer'
+            AND json_type(NEW.usage_json,'$.total_tokens') IS 'integer' AND json_type(NEW.usage_json,'$.prompt_cache_hit_tokens') IS 'integer'
+            AND json_type(NEW.usage_json,'$.prompt_cache_miss_tokens') IS 'integer'
+            AND json_extract(NEW.usage_json,'$.prompt_tokens')=json_extract(NEW.usage_json,'$.prompt_cache_hit_tokens')+json_extract(NEW.usage_json,'$.prompt_cache_miss_tokens')
+            AND json_extract(NEW.usage_json,'$.total_tokens')=json_extract(NEW.usage_json,'$.prompt_tokens')+json_extract(NEW.usage_json,'$.completion_tokens')
+            AND (json_type(NEW.usage_json,'$.cached_tokens') IS NULL OR json_type(NEW.usage_json,'$.cached_tokens') IS 'null' OR json_extract(NEW.usage_json,'$.cached_tokens')=json_extract(NEW.usage_json,'$.prompt_cache_hit_tokens'))
+            AND (json_type(NEW.usage_json,'$.reasoning_tokens') IS NULL OR json_type(NEW.usage_json,'$.reasoning_tokens') IS 'null' OR json_extract(NEW.usage_json,'$.reasoning_tokens')<=json_extract(NEW.usage_json,'$.completion_tokens')))
+            THEN RAISE(ABORT,'complete financial usage required') END; END""",
+    """CREATE TRIGGER research_funding_no_replace BEFORE INSERT ON research_funding_accounts
+        WHEN EXISTS(SELECT 1 FROM research_funding_accounts WHERE id=NEW.id OR binding_id=NEW.binding_id)
+        BEGIN SELECT RAISE(ABORT,'funding replacement forbidden'); END""",
+    """CREATE TRIGGER research_cost_no_replace BEFORE INSERT ON research_cost_observations
+        WHEN EXISTS(SELECT 1 FROM research_cost_observations WHERE id=NEW.id
+            OR (dispatch_id=NEW.dispatch_id AND observation_digest=NEW.observation_digest)
+            OR (dispatch_id=NEW.dispatch_id AND kind='estimated_upper' AND NEW.kind='estimated_upper'))
+        BEGIN SELECT RAISE(ABORT,'cost replacement forbidden'); END""",
+    """CREATE TRIGGER research_snapshot_no_replace BEFORE INSERT ON research_balance_snapshots
+        WHEN EXISTS(SELECT 1 FROM research_balance_snapshots WHERE id=NEW.id)
+        BEGIN SELECT RAISE(ABORT,'snapshot replacement forbidden'); END""",
+    """CREATE TRIGGER research_price_no_replace BEFORE INSERT ON research_price_revisions
+        WHEN EXISTS(SELECT 1 FROM research_price_revisions WHERE id=NEW.id OR
+            (account_id=NEW.account_id AND operation=NEW.operation AND policy_revision='c0-fixture-v1' AND NEW.policy_revision='c0-fixture-v1'))
+        BEGIN SELECT RAISE(ABORT,'price replacement forbidden'); END""",
+    """CREATE TRIGGER research_receipt_no_replace BEFORE INSERT ON research_billing_receipts
+        WHEN EXISTS(SELECT 1 FROM research_billing_receipts WHERE id=NEW.id OR (account_id=NEW.account_id AND provider_ref=NEW.provider_ref))
+        BEGIN SELECT RAISE(ABORT,'receipt replacement forbidden'); END""",
+)
+
+V5_GUARDS=tuple(f"CREATE TRIGGER {table}_immutable BEFORE UPDATE ON {table} BEGIN SELECT RAISE(ABORT,'immutable accounting record'); END"
+    for table in ("research_price_revisions","research_balance_snapshots","research_cost_observations"))+("CREATE TRIGGER research_cost_no_delete BEFORE DELETE ON research_cost_observations BEGIN SELECT RAISE(ABORT,'append only cost observation'); END",
+    "CREATE TRIGGER research_funding_no_delete BEFORE DELETE ON research_funding_accounts BEGIN SELECT RAISE(ABORT,'funding identity retained'); END")
+
 
 class ResearchStore:
     def __init__(self, auth_store):
@@ -139,7 +311,7 @@ class ResearchStore:
         with self.transaction(write=True) as conn:
             conn.execute(SCHEMA[0])
             row = conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()
-            if row is not None and row["version"] not in (1, 2, 3, 4):
+            if row is not None and row["version"] not in (1, 2, 3, 4, 5):
                 raise ResearchError("SCHEMA_UNSUPPORTED", 503, "研究数据版本暂不支持。")
             for statement in SCHEMA[1:]:
                 conn.execute(statement)
@@ -161,6 +333,7 @@ class ResearchStore:
                     BEFORE UPDATE ON {table} BEGIN SELECT RAISE(ABORT,'immutable accounting record'); END""")
             conn.execute("INSERT INTO research_schema VALUES(1,3) ON CONFLICT(id) DO NOTHING")
         self._migrate_v4()
+        self._migrate_v5()
 
     def _migrate_v4(self):
         """Controlled SQLite table replacement, never an application session.
@@ -179,7 +352,7 @@ class ResearchStore:
             conn.execute("BEGIN IMMEDIATE")
             self.auth_store.check_gate_policy(conn)
             version=conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0]
-            if version==4:
+            if version in (4,5):
                 from .source_integration import install_schema
                 install_schema(conn,existing_required=True)
                 conn.commit();return
@@ -220,6 +393,96 @@ class ResearchStore:
             finally:
                 conn.close()
 
+    @staticmethod
+    def _normalize_sql(sql):
+        # Compare tokens, never flattened SQL text. Only SQLite's automatic
+        # quoting of simple managed research_* names is normalized away.
+        # Quoted identifiers with spaces/keywords keep their exact boundary.
+        tokens=[]
+        pattern=r"\s+|'(?:''|[^'])*'|\"(?:\"\"|[^\"])*\"|`(?:``|[^`])*`|\[[^\]]*\]|[A-Za-z_][A-Za-z_0-9]*|[0-9]+|."
+        for match in re.finditer(pattern,sql,re.S):
+            value=match.group()
+            if value.isspace():continue
+            if value.startswith("'"):token=("literal",value)
+            elif value[0] in ('"','`','['):
+                unquoted=value[1:-1].replace(value[0]*2,value[0]) if value[0]!='[' else value[1:-1]
+                token=("word",unquoted.lower()) if re.fullmatch(r"research_[A-Za-z_0-9]+",unquoted,re.I) else ("quoted_identifier",unquoted)
+            elif re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*",value):token=("word",value.lower())
+            elif value.isdigit():token=("number",value)
+            else:token=("punctuation",value)
+            tokens.append(token)
+        optional=[("word","if"),("word","not"),("word","exists")]
+        return tuple(token for i,token in enumerate(tokens) if not any(tokens[j:j+3]==optional and j<=i<j+3 for j in range(max(0,i-2),i+1)))
+
+    def _migrate_v5(self):
+        """Single-owner graph replacement; no application/upper-budget writes."""
+        conn=sqlite3.connect(self.path,timeout=5,isolation_level=None)
+        conn.row_factory=sqlite3.Row
+        try:
+            conn.execute("PRAGMA foreign_keys=OFF")
+            if conn.execute("PRAGMA foreign_keys").fetchone()[0]!=0:
+                raise ResearchError("SCHEMA_UNSUPPORTED",503,"账本迁移连接配置失败。")
+            conn.execute("BEGIN IMMEDIATE")
+            self.auth_store.check_gate_policy(conn)
+            version=conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0]
+            if version==5:
+                self._check_v5(conn)
+                conn.commit();return
+            if version!=4:raise ResearchError("SCHEMA_UNSUPPORTED",503,"账本迁移版本不支持。")
+            if conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_cost_observations'").fetchone():
+                raise ResearchError("SCHEMA_UNSUPPORTED",503,"账本迁移结构不一致。")
+            legacy={s.split()[5]:s for s in (*SCHEMA,*C0_SCHEMA) if s.startswith("CREATE TABLE IF NOT EXISTS ")}
+            for name,ddl in V5_SCHEMA.items():
+                original=conn.execute("SELECT sql FROM sqlite_schema WHERE type='table' AND name=?",(name,)).fetchone()
+                if not original or self._normalize_sql(original[0])!=self._normalize_sql(legacy[name]):
+                    raise ResearchError("SCHEMA_UNSUPPORTED",503,"账本旧表与迁移基准不一致。")
+                for item in conn.execute("SELECT type,name,sql FROM sqlite_schema WHERE tbl_name=? AND type IN ('index','trigger') AND sql IS NOT NULL",(name,)):
+                    expected=next((s for s in C0_SCHEMA if s.startswith("CREATE UNIQUE INDEX IF NOT EXISTS "+item["name"]+" ")),None)
+                    immutable=item["name"]==name+"_immutable" and name in ("research_price_revisions","research_balance_snapshots") and item["type"]=="trigger"
+                    if immutable:
+                        expected=f"CREATE TRIGGER {name}_immutable BEFORE UPDATE ON {name} BEGIN SELECT RAISE(ABORT,'immutable accounting record'); END"
+                    if expected is None or self._normalize_sql(expected)!=self._normalize_sql(item["sql"]):
+                        raise ResearchError("SCHEMA_UNSUPPORTED",503,"账本旧表附属结构不一致。")
+                clean=ddl.replace("CREATE TABLE IF NOT EXISTS ","CREATE TABLE ",1)
+                conn.execute(clean.replace("CREATE TABLE "+name,"CREATE TABLE "+name+"_v5",1))
+                columns=",".join('"'+row["name"]+'"' for row in conn.execute(f"PRAGMA table_info({name})"))
+                conn.execute(f"INSERT INTO {name}_v5 ({columns}) SELECT {columns} FROM {name}")
+            conn.execute("UPDATE research_funding_accounts_v5 SET initial_prepaid_units=cap,other_use_margin_units=0 WHERE mode='fixture'")
+            for name in reversed(tuple(V5_SCHEMA)):
+                conn.execute(f"DROP TABLE {name}")
+            for name in V5_SCHEMA:
+                conn.execute(f"ALTER TABLE {name}_v5 RENAME TO {name}")
+            conn.execute(COST_SCHEMA)
+            for ddl in V5_AUX:conn.execute(ddl)
+            for ddl in C0_SCHEMA:
+                if ddl.startswith("CREATE UNIQUE INDEX"):conn.execute(ddl)
+            for ddl in V5_GUARDS:conn.execute(ddl)
+            if conn.execute("PRAGMA foreign_key_check").fetchall():
+                raise ResearchError("SCHEMA_UNSUPPORTED",503,"账本迁移关联校验失败。")
+            conn.execute("UPDATE research_schema SET version=5 WHERE id=1")
+            self._check_v5(conn)
+            conn.commit()
+        except Exception:
+            conn.rollback();raise
+        finally:
+            try:
+                conn.execute("PRAGMA foreign_keys=ON")
+                if conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1:
+                    raise ResearchError("SCHEMA_UNSUPPORTED",503,"账本迁移连接恢复失败。")
+            finally:conn.close()
+
+    @classmethod
+    def _check_v5(cls,conn):
+        for name,ddl in (*V5_SCHEMA.items(),("research_cost_observations",COST_SCHEMA)):
+            row=conn.execute("SELECT sql FROM sqlite_schema WHERE type='table' AND name=?",(name,)).fetchone()
+            if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):
+                raise ResearchError("SCHEMA_UNSUPPORTED",503,"账本结构不匹配。")
+        for ddl in (*V5_AUX,*V5_GUARDS):
+            name=ddl.split()[3] if ddl.startswith("CREATE UNIQUE INDEX") else ddl.split()[2]
+            row=conn.execute("SELECT sql FROM sqlite_schema WHERE name=?",(name,)).fetchone()
+            if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):
+                raise ResearchError("SCHEMA_UNSUPPORTED",503,"账本控制结构不匹配。")
+
     @contextmanager
     def transaction(self, *, write=False):
         conn = sqlite3.connect(self.path, timeout=5, isolation_level=None)
@@ -230,8 +493,10 @@ class ResearchStore:
         try:
             conn.execute("BEGIN IMMEDIATE" if write else "BEGIN")
             self.auth_store.check_gate_policy(conn)
-            yield conn
-            conn.commit()
+            from .paid_control import _transaction_scope
+            with _transaction_scope(conn,write=write):
+                yield conn
+                conn.commit()
         except sqlite3.OperationalError as exc:
             conn.rollback()
             if getattr(exc, "sqlite_errorcode", 0) & 255 in (5, 6):

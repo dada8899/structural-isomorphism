@@ -452,7 +452,7 @@ def test_balance_drop_after_prepare_is_rechecked_before_transport(c0):
     with store.transaction(write=True) as conn:
         account=conn.execute("SELECT * FROM research_funding_accounts").fetchone()
         snapshot=str(uuid4())
-        conn.execute("INSERT INTO research_balance_snapshots VALUES(?,?,0,0,0,?,?,1,1,1)",(snapshot,account["id"],now(),expires()))
+        conn.execute("INSERT INTO research_balance_snapshots (id,account_id,balance,settled_at_observation,local_settlement_cursor,observed_at,expires_at,hard_prepaid,auto_topup_off,postpaid_off) VALUES(?,?,0,0,0,?,?,1,1,1)",(snapshot,account["id"],now(),expires()))
         conn.execute("UPDATE research_funding_accounts SET snapshot_id=? WHERE id=?",(snapshot,account["id"]))
     assert ResearchRunner(store).run_once(tid)=="WAITING_EXTERNAL"
     assert fixture.count()==0 and view(client,rid)["detail"]=="budget_unverified"

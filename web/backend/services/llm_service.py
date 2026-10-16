@@ -1,6 +1,12 @@
 """
 LLM Service — OpenRouter 调用，生成结构映射和行动建议。
 """
+
+if __package__ == "web.backend.services":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
 import asyncio
 import json
 import os
@@ -110,25 +116,18 @@ _HTTP_CLIENT: Optional[httpx.AsyncClient] = None
 
 
 def _get_http_client() -> httpx.AsyncClient:
-    global _HTTP_CLIENT
-    if _HTTP_CLIENT is None or _HTTP_CLIENT.is_closed:
-        _HTTP_CLIENT = httpx.AsyncClient(
-            timeout=httpx.Timeout(300.0, connect=10.0),
-            limits=httpx.Limits(max_keepalive_connections=20, max_connections=50),
-            http2=False,
-        )
-    return _HTTP_CLIENT
+    """Retired sender: never exposes a client or reads any credential."""
+    deny_legacy_paid()
 
 
 class LLMService:
     def __init__(self):
-        self.api_key = os.getenv("OPENROUTER_API_KEY", "")
+        self.api_key = ""  # Retired client never loads a real credential.
         self.model = os.getenv("LLM_MODEL", "openai/gpt-5.6-luna-pro")
-        if not self.api_key:
-            logger.warning("llm.client_unavailable")
 
     async def rewrite_query(self, query: str, lang: str = "zh") -> Optional[str]:
         """Backward-compat wrapper — just the rewritten string."""
+        deny_legacy_paid()
         result = await self.assess_and_rewrite(query, lang=lang)
         return result.get("rewritten") or query
 
@@ -146,6 +145,7 @@ class LLMService:
         On any failure, returns a permissive fallback (worth_score=4) so the
         user is never silently blocked due to an LLM error.
         """
+        deny_legacy_paid()
         fallback = {
             "rewritten": query,
             "worth_score": 4,
@@ -276,6 +276,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
         semantic payload is the final CandidateMapping after strict schema and
         public-claim validation.
         """
+        deny_legacy_paid()
         if not self.api_key:
             yield {
                 "type": "done",
@@ -360,6 +361,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
         """
         给定两个现象 a, b，生成 schema-valid 的待检验候选映射。
         """
+        deny_legacy_paid()
         if not self.api_key:
             return self._fallback_mapping(a, b, similarity, lang=lang)
 
@@ -548,6 +550,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
         lang: str = "zh",
     ) -> Optional[Dict]:
         """Return only a schema-valid comparison over the supplied Top-K IDs."""
+        deny_legacy_paid()
         if not self.api_key or not top_results:
             return degraded_search_synthesis(lang)
 
@@ -605,6 +608,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
         lang: str = "zh",
     ):
         """Stream non-semantic progress, then one fully validated result."""
+        deny_legacy_paid()
         if not self.api_key or not top_results:
             yield {"type": "done", "result": degraded_search_synthesis(lang)}
             return
@@ -702,6 +706,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
         partial section crosses this boundary before the strict v2 schema,
         source allow-list, fingerprint and public-claim guards all pass.
         """
+        deny_legacy_paid()
         if __package__ == "web.backend.services":
             from .deep_report import (
                 DEEP_REPORT_SYSTEM_PROMPT,

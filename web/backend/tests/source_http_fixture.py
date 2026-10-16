@@ -12,8 +12,8 @@ from urllib.parse import parse_qs,urlsplit
 DOI="10.1371/journal.pone.0015032"
 TITLE="Synthetic queue methods"
 ARTICLE=(f'<html><meta name="citation_doi" content="{DOI}"><meta name="citation_title" content="{TITLE}">'
-    '<p>Waiting time depends on arrivals and service variability.</p>'
-    '<section class="article-body"><div id="artText"><div class="articleinfo">'
+    '<section class="article-body"><div id="artText">'
+    '<p>Waiting time depends on arrivals and service variability.</p><div class="articleinfo">'
     f'<p>Citation: {TITLE}. https://doi.org/{DOI}</p>'
     '<p>Copyright: This is an open-access article distributed under the terms of the Creative Commons Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the original author and source are credited</p>'
     '</div></div></section></html>').encode()

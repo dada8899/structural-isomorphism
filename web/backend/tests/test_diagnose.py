@@ -8,6 +8,8 @@ Two layers in one file:
 """
 from __future__ import annotations
 
+from ast import literal_eval
+
 import sys
 from pathlib import Path
 
@@ -356,13 +358,23 @@ def app():
     from api import diagnose as diagnose_api
 
     a = FastAPI()
+    from errors import install_problem_handlers
+    install_problem_handlers(a)
     a.include_router(diagnose_api.router, prefix="/api")
     return a
 
 
 @pytest.fixture
-def client(app):
-    return TestClient(app)
+def client(app, monkeypatch):
+    from api import diagnose as endpoint
+    from unittest.mock import Mock
+    checks = []
+    check = Mock(side_effect=AssertionError("retired generator must not run"))
+    monkeypatch.setattr(endpoint, "run_diagnosis", check)
+    checks.append(check)
+    with TestClient(app) as connection:
+        yield connection
+    assert all(check.call_count == 0 for check in checks)
 
 
 @pytest.fixture
@@ -423,58 +435,56 @@ def mock_search():
     main.app_state.pop("search", None)
 
 
-def test_endpoint_success(client, mock_llm):
+def test_retired_endpoint_success(client, mock_llm):
+    """Retired runtime rejects this former generation scenario before preparation."""
     r = client.post("/api/diagnose", json={
         "situation": "一个 30 人公司的效率塌陷，加人反而更慢。",
         "client_request_id": "diagnose-request-001",
     })
-    assert r.status_code == 200
-    body = r.json()
-    assert body["primary_state"]["state_id"] == "hysteresis_trap"
-    assert "confidence" not in body["primary_state"]
-    assert body["assessment_kind"] == "structural_state_hypothesis"
-    assert body["request_id"] == "diagnose-request-001"
-    assert body["contract_version"] == "secondary-tools-v2"
-    assert body["evidence"]["evidence_level"] == "candidate"
-    assert body["situation"].startswith("一个 30 人公司")
-    assert "signals_to_watch" in body
+    _assert_retired_response(r)
 
 
 def test_endpoint_rejects_out_of_scope_before_model(client, mock_llm):
     r = client.post("/api/diagnose", json={"situation": "2 + 2 等于多少，请直接告诉我答案"})
     assert r.status_code == 422
-    assert r.json()["detail"]["error"] == "out_of_scope"
+    assert literal_eval(r.json()["detail"])["error"] == "out_of_scope"
 
 
-def test_endpoint_503_when_llm_unavailable(client, mock_llm):
+def test_retired_endpoint_503_when_llm_unavailable(client, mock_llm):
+    """Retired runtime rejects this former generation scenario before preparation."""
     mock_llm["available"] = False
     r = client.post("/api/diagnose", json={"situation": "一个 30 人公司的效率塌陷情况。"})
-    assert r.status_code == 503
+    _assert_retired_response(r)
 
 
-def test_endpoint_503_when_llm_returns_none(client, mock_llm):
+def test_retired_endpoint_503_when_llm_returns_none(client, mock_llm):
+    """Retired runtime rejects this former generation scenario before preparation."""
     mock_llm["raw"] = None
     r = client.post("/api/diagnose", json={"situation": "一个 30 人公司的效率塌陷情况。"})
-    assert r.status_code == 503
+    _assert_retired_response(r)
 
 
-def test_endpoint_503_when_llm_returns_illegal_state(client, mock_llm):
+def test_retired_endpoint_503_when_llm_returns_illegal_state(client, mock_llm):
+    # Guardrail: an LLM that invents a state must NOT leak through — the
+    # service coerces to None, the endpoint degrades to 503.
+    """Retired runtime rejects this former generation scenario before preparation."""
     # Guardrail: an LLM that invents a state must NOT leak through — the
     # service coerces to None, the endpoint degrades to 503.
     raw = _good_raw()
     raw["primary_state"] = {"state_id": "totally_made_up"}
     mock_llm["raw"] = raw
     r = client.post("/api/diagnose", json={"situation": "一个 30 人公司的效率塌陷情况。"})
-    assert r.status_code == 503
+    _assert_retired_response(r)
 
 
-def test_endpoint_illegal_secondary_fails_closed(client, mock_llm):
+def test_retired_endpoint_illegal_secondary_fails_closed(client, mock_llm):
+    """Retired runtime rejects this former generation scenario before preparation."""
     raw = _good_raw()
     raw["primary_state"].pop("confidence")
     raw["secondary_state"] = {"state_id": "nonsense"}
     mock_llm["raw"] = raw
     r = client.post("/api/diagnose", json={"situation": "一个 30 人公司的效率塌陷情况。"})
-    assert r.status_code == 503
+    _assert_retired_response(r)
 
 
 def test_endpoint_rejects_empty_situation(client, mock_llm):
@@ -509,37 +519,26 @@ def test_states_catalogue_endpoint(client):
 # ===========================================================================
 
 
-def test_endpoint_includes_candidate_reference_from_search(client, mock_llm, mock_search):
-    """A successful diagnosis may carry a source-bound KB candidate."""
+def test_retired_endpoint_includes_candidate_reference_from_search(client, mock_llm, mock_search):
+    """Retired runtime rejects this former generation scenario before preparation."""
     r = client.post(
         "/api/diagnose",
         json={"situation": "一个 30 人公司的效率塌陷，加人反而更慢。"},
     )
-    assert r.status_code == 200
-    ref = r.json()["candidate_reference"]
-    assert ref is not None
-    assert ref["id"] == "phen_0421"
-    assert ref["retrieval_rank"] == 1
-    assert ref["evidence"]["evidence_level"] == "candidate"
-    assert ref["candidate_note"] == "值得核查恢复时长;若状态变量不同,应放弃这个参照。"
+    _assert_retired_response(r)
 
 
-def test_endpoint_candidate_reference_absent_without_search(client, mock_llm):
-    """A class-hub label without a KB record is not surfaced as evidence."""
+def test_retired_endpoint_candidate_reference_absent_without_search(client, mock_llm):
+    """Retired runtime rejects this former generation scenario before preparation."""
     r = client.post(
         "/api/diagnose",
         json={"situation": "一个 30 人公司的效率塌陷情况。"},
     )
-    assert r.status_code == 200
-    assert r.json()["candidate_reference"] is None
+    _assert_retired_response(r)
 
 
-def test_endpoint_reference_case_null_when_no_hit_and_no_hub(client, mock_llm, mock_search):
-    """Search yields nothing + state has no class_hub → reference_case null.
-
-    damped_convergence has an empty class_hub, so when search returns
-    nothing there is no reference to show — the diagnosis still succeeds.
-    """
+def test_retired_endpoint_reference_case_null_when_no_hit_and_no_hub(client, mock_llm, mock_search):
+    """Retired runtime rejects this former generation scenario before preparation."""
     mock_search["svc"] = _FakeSearch(hits=[])
     raw = _good_raw()
     raw["primary_state"] = {"state_id": "damped_convergence"}
@@ -548,19 +547,24 @@ def test_endpoint_reference_case_null_when_no_hit_and_no_hub(client, mock_llm, m
         "/api/diagnose",
         json={"situation": "扰动后能自己回到平衡的健康团队。"},
     )
-    assert r.status_code == 200
-    body = r.json()
-    assert body["primary_state"]["state_id"] == "damped_convergence"
-    assert body["candidate_reference"] is None
+    _assert_retired_response(r)
 
 
-def test_endpoint_survives_search_failure(client, mock_llm, mock_search):
-    """A search backend that raises must not break the diagnosis."""
+def test_retired_endpoint_survives_search_failure(client, mock_llm, mock_search):
+    """Retired runtime rejects this former generation scenario before preparation."""
     mock_search["svc"] = _FakeSearch(raises=True)
     r = client.post(
         "/api/diagnose",
         json={"situation": "一个 30 人公司的效率塌陷情况。"},
     )
-    assert r.status_code == 200
-    # Diagnosis still completes, but an unbound class-hub label is not shown.
-    assert r.json()["candidate_reference"] is None
+    _assert_retired_response(r)
+
+
+def _assert_retired_response(response):
+    """The retired endpoint cannot publish a report, fallback, or SSE."""
+    assert response.status_code == 503, response.text
+    body = response.json()
+    assert body["code"] == "FEATURE_UNAVAILABLE"
+    assert body["retryable"] is False and body["canonical"] == "/research"
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert "event: meta" not in response.text and "event: done" not in response.text

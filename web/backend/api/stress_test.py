@@ -9,6 +9,12 @@ LLM 不可用时返回 503，不假装能测。
 """
 from __future__ import annotations
 
+if __package__ == "web.backend.api":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
+
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
@@ -78,6 +84,8 @@ async def stress_test(request: Request, req: StressTestRequest):
                 "message": "这里只测试完整的结构类比或战略判断。请补充要比较的两个对象和机制。",
             },
         )
+
+    deny_legacy_paid()
 
     # No API key locally / in tests → be honest, don't fake an analysis.
     if not llm_client.llm_available():

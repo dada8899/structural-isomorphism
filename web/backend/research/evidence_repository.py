@@ -95,6 +95,52 @@ class EvidenceRepository:
         # must still apply C0's explicit public field whitelist.
         return record
 
+    def provider_eligibility(self,context,excerpt_id):
+        """Recheck stored publisher proof; return no grant or outbound handle.
+
+        External consumers use this public port instead of private cache reads.
+        Eligibility is deliberately distinct from user/funding/send approval.
+        """
+        self._guard(context,"read")
+        excerpt,_,_=self._get(context,"excerpts",excerpt_id)
+        self._permissions(context,excerpt)
+        snapshot,raw,extracted=self._get(context,"snapshots",excerpt.snapshot_id)
+        if snapshot.parser_version!="plos-author-narrative-subset-v2" or snapshot.origin not in ("live","offline_probe"):
+            raise PermissionError("reviewed narrative scope required")
+        from .source_adapters.crossref_plos import strict_json,Hit,parse_article
+        from .source_policy import decompress,RAW_CAP,TEXT_CAP
+        if type(raw) is not bytes or len(raw)>RAW_CAP or type(extracted) is not str or len(extracted)>TEXT_CAP:
+            raise ValueError("bounded stored source required")
+        discovery=self.conn.execute("SELECT discovery FROM research_evidence_objects WHERE id=? AND kind='snapshots'",(snapshot.id,)).fetchone()[0]
+        metadata=strict_json(discovery)
+        if (type(metadata) is not dict or metadata.get("status")!="ok" or metadata.get("message-type")!="work-list"
+                or type(metadata.get("message")) is not dict):
+            raise ValueError("publisher discovery object required")
+        items=metadata["message"].get("items")
+        if type(items) is not list or len(items)>3:raise ValueError("bounded publisher discovery required")
+        matching=[item for item in items if type(item) is dict and item.get("DOI")==snapshot.doi and item.get("title")==[snapshot.title]]
+        if len(matching)!=1:raise PermissionError("matched original identity required")
+        licences=matching[0].get("license",[])
+        if type(licences) is not list or len(licences)>20:raise PermissionError("publisher licence proof unavailable")
+        cc_by=any(type(item) is dict and item.get("content-version") in ("vor","unspecified") and item.get("URL") in
+            ("http://creativecommons.org/licenses/by/4.0/","https://creativecommons.org/licenses/by/4.0/") for item in licences)
+        decoded=decompress(raw,"gzip" if raw.startswith(b"\x1f\x8b") else "identity")
+        original,licence=parse_article(decoded,Hit(snapshot.doi,snapshot.title,cc_by))
+        if licence.status!="verified" or not cc_by or original!=extracted or sha256(original.encode())!=snapshot.extracted_digest:
+            raise PermissionError("independent current-article licence/scope proof required")
+        if (excerpt.extracted_digest!=snapshot.extracted_digest or extracted[excerpt.start:excerpt.end]!=excerpt.quote
+                or len(excerpt.quote.split())>20 or len(excerpt.quote)>1000):
+            raise ValueError("exact short excerpt required")
+        from .provider_evidence import ProviderEligibleExcerpt
+        return ProviderEligibleExcerpt(source_id=snapshot.source_id,source_revision=snapshot.source_revision,excerpt_id=excerpt.id,
+            title=snapshot.title,canonical_url=snapshot.canonical_url,
+            attribution=f"{snapshot.title[:180]} — {snapshot.canonical_url} — CC BY 4.0",
+            extracted_digest=snapshot.extracted_digest,raw_digest=snapshot.raw_digest,discovery_digest=snapshot.discovery_digest,
+            acquired_at=snapshot.acquired_at,information_cutoff=snapshot.information_cutoff,
+            start=excerpt.start,end=excerpt.end,quote=excerpt.quote,origin=snapshot.origin,
+            permission_basis_digest=sha256(canonical({"policy":"plos-ccby-subset-eligibility-v1","basis":licence.basis,
+                "raw_digest":snapshot.raw_digest,"discovery_digest":snapshot.discovery_digest,"read_scope":"author_narrative_subset"}).encode()))
+
     def _permissions(self, context, record, *, export=False):
         snapshots = []
         if type(record) is DataSnapshot:

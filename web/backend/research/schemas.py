@@ -28,6 +28,11 @@ class StrictObject(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
 
+class ResearchIndexQuery(StrictObject):
+    limit: Annotated[StrictInt, Field(ge=1, le=20)] = 20
+    cursor: Annotated[str, StringConstraints(strict=True, min_length=1, max_length=1024, pattern=r"^[A-Za-z0-9_-]+$")] | None = None
+
+
 class Variable(StrictObject):
     id: Identifier
     label: str

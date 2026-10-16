@@ -64,6 +64,32 @@ class Money(DTO):
     amount_units: Natural
 
 
+class UsageUpperQuote(DTO):
+    """Untrusted v2 quote data; arithmetic and authority live elsewhere."""
+    revision: Id
+    policy: Literal['bounded_usage_upper_v2'] = 'bounded_usage_upper_v2'
+    model: Literal['deepseek-flash'] = MODEL
+    declared_version: Literal['DeepSeek-V4.1-Flash'] = DECLARED_VERSION
+    currency: Literal['CNY'] = 'CNY'
+    scale: Annotated[StrictInt, Field(ge=6, le=6)] = 6
+    peak_input_miss_units_per_million: Natural
+    peak_output_units_per_million: Natural
+    context_bound: Annotated[StrictInt, Field(ge=1048576, le=2147483647)]
+    output_bound: Annotated[StrictInt, Field(ge=4096, le=4096)] = 4096
+    local_guard: Natural
+    price_document_digest: Digest
+    model_document_digest: Digest
+    completion_bound_basis_digest: Digest
+    final_request_code_digest: Digest
+    valid_until: Positive
+
+    @model_validator(mode='after')
+    def peak_rates(self):
+        if self.peak_input_miss_units_per_million<=0 or self.peak_output_units_per_million<=0:
+            raise ValueError('positive native peak rates required')
+        return self
+
+
 def money(currency, units):
     return Money(currency=currency, scale=6, amount_units=units)
 

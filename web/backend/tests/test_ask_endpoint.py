@@ -1,13 +1,7 @@
-"""Unit tests for AskOrchestrator.
+"""Ask pure payload helpers and actual retired HTTP admission boundaries.
 
-We mock the LLM call (`AskOrchestrator._call_llm_once`) and a fake
-SearchService that returns a fixed top-k list, then run the async
-generator to completion and assert that the SSE event sequence covers
-every spec-required event type.
-
-Run with:
-    cd web/backend
-    PYTHONPATH=. ../../.venv/bin/python -m pytest tests/test_ask_endpoint.py -q
+Input limits, identity and rate limits remain live. Valid generation requests are
+explicitly unavailable before orchestrator/client construction or budget charge.
 """
 from __future__ import annotations
 
@@ -139,116 +133,24 @@ async def _force_non_stream(*_args, **_kwargs):
 
 
 class AskOrchestratorTests(unittest.TestCase):
-    def test_full_stream_event_sequence(self):
-        """Happy path: mock LLM returns valid JSON, all 7 event types emit."""
-        search = _FakeSearch(_FIXED_KB)
-        orch = AskOrchestrator(search_service=search)
+    def test_pure_answer_schema_and_card_projection(self):
+        # SSE generation is retired; validate the surviving pure data contracts.
+        payload = AskAnswerPayload.model_validate_json(_MOCK_LLM_JSON)
+        self.assertEqual(len(payload.citations), 3)
+        self.assertEqual(len(payload.followups), 3)
+        orch = AskOrchestrator(search_service=None)
+        similar = orch._build_similar_phenomena(_FIXED_KB[:3])
+        self.assertEqual([x['kb_id'] for x in similar], [x['id'] for x in _FIXED_KB[:3]])
+        self.assertTrue(all(x['key_metric'] and x['domain'] for x in similar))
 
-        # Patch out the network call and the typewriter sleep so the test
-        # runs in <100ms regardless of asyncio loop scheduling.
-        with patch.object(AskOrchestrator, "_call_llm_stream", _force_non_stream), \
-             patch.object(AskOrchestrator, "_call_llm_once", return_value=_MOCK_LLM_JSON), \
-             patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
-            chunks = asyncio.run(_collect(orch.stream("为什么银行系统会突然崩溃？", lang="zh")))
-
-        events = _parse_sse_events(chunks)
-        names = [e[0] for e in events]
-
-        # Spec ordering: meta first, retrieval_done before kb_cards, done last.
-        # (retrieval_done was added in W5-B to give the user a < 5s signal
-        # before the kb_cards payload arrives.)
-        self.assertEqual(names[0], "meta")
-        self.assertEqual(names[-1], "done")
-        self.assertLess(names.index("retrieval_done"), names.index("kb_cards"))
-
-        # All required event types present (retrieval_done is new in W5-B).
-        for required in (
-            "meta",
-            "retrieval_done",
-            "kb_cards",
-            "answer_chunk",
-            "answer_done",
-            "similar_phenomena",
-            "followups",
-            "done",
-        ):
-            self.assertIn(required, names, f"missing event: {required}")
-
-        # meta payload sanity.
-        meta_data = events[names.index("meta")][1]
-        self.assertEqual(meta_data["query"], "为什么银行系统会突然崩溃？")
-        self.assertEqual(meta_data["lang"], "zh")
-        self.assertIn("started_at", meta_data)
-
-        # kb_cards: 5 cards from fixture.
-        kb_data = events[names.index("kb_cards")][1]
-        self.assertEqual(kb_data["count"], 5)
-        self.assertEqual(len(kb_data["cards"]), 5)
-        self.assertEqual(kb_data["cards"][0]["id"], "phen-1")
-
-        # answer_chunk events accumulate to the full answer text.
-        accumulated = "".join(
-            ev["delta"] for name, ev in events if name == "answer_chunk"
-        )
-        answer_done = next(ev for name, ev in events if name == "answer_done")
-        self.assertEqual(accumulated, answer_done["full_text"])
-        self.assertGreater(len(answer_done["full_text"]), 20)
-
-        # Citations: 3 emitted, all idx in 1..5, kb_id rewritten to canonical.
-        citations = answer_done["citations"]
-        self.assertEqual(len(citations), 3)
-        for cit in citations:
-            self.assertIn(cit["idx"], (1, 2, 3, 4, 5))
-            self.assertTrue(cit["kb_id"].startswith("phen-"))
-
-        # similar_phenomena: top-3 with key_metric and kb_id.
-        sim = next(ev for name, ev in events if name == "similar_phenomena")
-        self.assertEqual(len(sim["phenomena"]), 3)
-        for p in sim["phenomena"]:
-            self.assertIn("name", p)
-            self.assertIn("domain", p)
-            self.assertIn("key_metric", p)
-            self.assertIn("kb_id", p)
-
-        # followups: 3 questions, all non-empty strings.
-        fu = next(ev for name, ev in events if name == "followups")
-        self.assertEqual(len(fu["questions"]), 3)
-        for q in fu["questions"]:
-            self.assertIsInstance(q, str)
-            self.assertGreater(len(q.strip()), 0)
-
-        # done: latency_ms is a non-negative int.
-        done = next(ev for name, ev in events if name == "done")
-        self.assertGreaterEqual(done["latency_ms"], 0)
-
-    def test_citation_idx_out_of_cards_range_dropped(self):
-        """LLM returns idx=8 (passes schema 1-20 but exceeds cards=5) -> dropped at canonicalization."""
-        # idx=8 satisfies the pydantic schema (1..20) but our fake KB has
-        # only 5 cards, so _validate_citations must drop it.
-        partly_bad = json.dumps({
-            "answer": "网络级联 [1] 与森林火灾 [8] 是同一结构。" * 3,
-            "citations": [
-                {"idx": 1, "kb_id": "phen-1", "label": "ok"},
-                {"idx": 8, "kb_id": "fake", "label": "should-be-dropped"},
-            ],
-            "followups": ["问题a?", "问题b?", "问题c?"],
-        }, ensure_ascii=False)
-
-        search = _FakeSearch(_FIXED_KB)
-        orch = AskOrchestrator(search_service=search)
-
-        with patch.object(AskOrchestrator, "_call_llm_stream", _force_non_stream), \
-             patch.object(AskOrchestrator, "_call_llm_once", return_value=partly_bad), \
-             patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
-            chunks = asyncio.run(_collect(orch.stream("test", lang="zh")))
-
-        events = _parse_sse_events(chunks)
-        answer_done = next(ev for name, ev in events if name == "answer_done")
-        # The idx=8 must be dropped at the cards-range validation step;
-        # only the valid idx=1 survives with canonical kb_id from cards.
-        self.assertEqual(len(answer_done["citations"]), 1)
-        self.assertEqual(answer_done["citations"][0]["idx"], 1)
-        self.assertEqual(answer_done["citations"][0]["kb_id"], "phen-1")
+    def test_pure_citation_idx_out_of_cards_range_dropped(self):
+        orch = AskOrchestrator(search_service=None)
+        result = orch._validate_citations([
+            {"idx":1,"kb_id":"forged","label":"ok"},
+            {"idx":8,"kb_id":"fake","label":"drop"},
+            {"idx":1,"kb_id":"duplicate","label":"drop"},
+        ], _FIXED_KB)
+        self.assertEqual(result, [{"idx":1,"kb_id":"phen-1","label":"ok"}])
 
     def test_pydantic_schema_directly(self):
         """Sanity-check the schema rejects too-short answers."""
@@ -323,6 +225,8 @@ def ask_app(monkeypatch):
     from api import ask as ask_module
 
     app = FastAPI()
+    from errors import install_problem_handlers
+    install_problem_handlers(app)
     if limiter is not None:
         from slowapi import _rate_limit_exceeded_handler
         from slowapi.errors import RateLimitExceeded
@@ -334,8 +238,13 @@ def ask_app(monkeypatch):
             limiter.reset()
         except Exception:
             pass
+    from unittest.mock import Mock
+    preparation = [Mock(side_effect=AssertionError("retired ask preparation")) for _ in range(2)]
+    monkeypatch.setattr(ask_module, "_get_llm", preparation[0])
+    monkeypatch.setattr(ask_module, "AskOrchestrator", preparation[1])
     app.include_router(ask_module.router, prefix="/api")
-    return app
+    yield app
+    assert all(call.call_count == 0 for call in preparation)
 
 
 async def _async_value(v):
@@ -365,24 +274,10 @@ def _clear_token_env(monkeypatch):
 class TestAskStreamEndpoint:
     """8 cases covering /api/ask/stream HTTP behavior."""
 
-    def test_happy_path_returns_sse_stream(self, ask_app):
-        """200 + text/event-stream + emits meta as the first event."""
+    def test_retired_request_returns_http_problem_before_sse(self, ask_app):
         with TestClient(ask_app) as client:
-            with client.stream(
-                "POST",
-                "/api/ask/stream",
-                json={"query": "Why do banks collapse"},
-            ) as r:
-                assert r.status_code == 200
-                assert r.headers["content-type"].startswith("text/event-stream")
-                # The 'X-Accel-Buffering' header tells nginx not to buffer; the
-                # endpoint is supposed to set it explicitly.
-                assert r.headers.get("x-accel-buffering") == "no"
-                chunks = _consume_sse(r)
-        full = "".join(chunks)
-        # 'meta' is the first event the orchestrator emits per the spec.
-        assert "event: meta" in full
-        assert "event: done" in full  # stream actually completed
+            r = client.post('/api/ask/stream', json={'query':'Why do banks collapse'})
+        _assert_retired_response(r)
 
     def test_empty_query_rejected_422(self, ask_app):
         """Pydantic min_length=1 → empty string → 422."""
@@ -407,17 +302,13 @@ class TestAskStreamEndpoint:
             assert body["received"] == 8001
             assert "focus" in body["message"].lower() or "split" in body["message"].lower()
 
-    def test_within_new_cap_passes(self, ask_app):
-        """W6-D: a 4000-char query (within new 8000 cap) reaches the orchestrator."""
+    def test_within_new_cap_is_valid_but_generation_retired(self, ask_app):
+        query = 'Why ' + 'do banks collapse ' * 250
+        from api.ask import AskRequest
+        assert AskRequest(query=query).query == query.strip()
         with TestClient(ask_app) as client:
-            with client.stream(
-                "POST",
-                "/api/ask/stream",
-                json={"query": "Why " + ("do banks collapse " * 250)},
-            ) as r:
-                # New cap allows long inputs; 200 + event-stream.
-                assert r.status_code == 200, f"expected 200 within cap, got {r.status_code}"
-                assert r.headers["content-type"].startswith("text/event-stream")
+            r = client.post('/api/ask/stream', json={'query':query})
+        _assert_retired_response(r)
 
     def test_structured_input_too_long_shape(self, ask_app):
         """W6-D: pydantic-rejected oversize (way past cap) still 422.
@@ -470,42 +361,19 @@ class TestAskStreamEndpoint:
             )
         assert r.status_code == 401
 
-    def test_search_service_missing_returns_503(self, ask_app, monkeypatch):
-        """If app_state['search'] is None (startup not finished) → 503."""
-        main_mod = importlib.import_module("main")
-        monkeypatch.setitem(main_mod.app_state, "search", None)
+    def test_retired_request_does_not_depend_on_search_readiness(self, ask_app, monkeypatch):
+        main_mod = importlib.import_module('main')
+        monkeypatch.setitem(main_mod.app_state,'search',None)
         with TestClient(ask_app) as client:
-            r = client.post("/api/ask/stream", json={"query": "Why do banks collapse"})
-        assert r.status_code == 503
+            r = client.post('/api/ask/stream',json={'query':'Why do banks collapse'})
+        _assert_retired_response(r)
 
-    def test_rate_limit_free_tier_enforces_endpoint_floor(self, ask_app):
-        """Launch P1-1 — anonymous/free /api/ask traffic is capped at the
-        endpoint floor (5/min), NOT the 60/min free-tier table value.
-
-        Requests without an X-API-Key resolve to tier='free' via
-        TierResolutionMiddleware. `/api/ask/stream` is decorated with
-        `tier_limit_decorator(default_anon="5/minute")`. Before the P1-1
-        fix `free` walked the 60/min table branch and `default_anon` was
-        dead code — anonymous LLM traffic ran 12x looser than documented.
-
-        This test asserts the protection actually fires: the first 5
-        requests pass, the 6th is rejected with 429. This is the
-        regression guard for the "限流形同虚设" finding.
-        """
+    def test_rate_limit_still_bounds_retired_endpoint(self, ask_app):
+        # Rate protection remains a live route contract even though generation is closed.
         with TestClient(ask_app) as client:
-            for i in range(5):
-                with client.stream(
-                    "POST",
-                    "/api/ask/stream",
-                    json={"query": "Why do banks collapse"},
-                ) as r:
-                    assert r.status_code == 200, f"request {i + 1} should pass"
-                    for _line in r.iter_text():
-                        pass
-            r6 = client.post(
-                "/api/ask/stream", json={"query": "Why do banks collapse"}
-            )
-        # 6th request exceeds the 5/min floor → rate limited.
+            for _ in range(5):
+                _assert_retired_response(client.post('/api/ask/stream',json={'query':'Why do banks collapse'}))
+            r6 = client.post('/api/ask/stream',json={'query':'Why do banks collapse'})
         assert r6.status_code == 429
 
 
@@ -526,49 +394,32 @@ def ask_app_with_problem_handler(ask_app):
     return ask_app
 
 
-def test_ask_over_budget_returns_friendly_429(ask_app_with_problem_handler, monkeypatch):
-    """An exhausted LLM budget becomes a typed terminal SSE error.
-
-    Charging happens immediately before the provider call.  At that point
-    HTTP 200 streaming headers are already committed, so returning a later
-    RFC 7807 status would be a false transport contract.
-    """
-    monkeypatch.setenv("STRUCTURAL_LLM_DAILY_CALL_CAP", "1")
+def test_retired_ask_does_not_charge_an_exhausted_budget(ask_app_with_problem_handler, monkeypatch):
+    monkeypatch.setenv('STRUCTURAL_LLM_DAILY_CALL_CAP','1')
     from services.cost_ledger import ledger
     ledger.reset()
-
-    with TestClient(ask_app_with_problem_handler) as client:
-        # First request consumes the single allowed slot.
-        with client.stream(
-            "POST", "/api/ask/stream", json={"query": "Why do banks collapse"}
-        ) as r1:
-            assert r1.status_code == 200
-            for _ in r1.iter_text():
-                pass
-        # Second request is over budget at the provider boundary.
-        r2 = client.post(
-            "/api/ask/stream", json={"query": "Why do banks collapse again"}
-        )
-    assert r2.status_code == 200
-    events = _parse_sse_events([r2.text])
-    errors = [payload for name, payload in events if name == "error"]
-    assert len(errors) == 1
-    assert errors[0]["code"] == "budget_exceeded"
-    assert errors[0]["retryable"] is False
-    assert "tomorrow" in errors[0]["message"].lower()
-    assert not any(name == "answer_done" for name, _ in events)
-    ledger.reset()
+    ledger.charge(endpoint='/api/ask/stream')
+    before = ledger.snapshot()
+    try:
+        with TestClient(ask_app_with_problem_handler) as client:
+            for query in ('Why do banks collapse','Why do banks collapse again'):
+                _assert_retired_response(client.post('/api/ask/stream',json={'query':query}))
+        assert ledger.snapshot() == before
+    finally:
+        ledger.reset()
 
 
-def test_ask_under_budget_unaffected(ask_app_with_problem_handler, monkeypatch):
-    """A generous cap leaves normal traffic untouched."""
-    monkeypatch.setenv("STRUCTURAL_LLM_DAILY_CALL_CAP", "1000")
+def test_retired_ask_does_not_charge_an_available_budget(ask_app_with_problem_handler, monkeypatch):
+    monkeypatch.setenv('STRUCTURAL_LLM_DAILY_CALL_CAP','1000')
     from services.cost_ledger import ledger
     ledger.reset()
-    with TestClient(ask_app_with_problem_handler) as client:
-        r = client.post("/api/ask/stream", json={"query": "Why do banks collapse"})
-    assert r.status_code == 200
-    ledger.reset()
+    before = ledger.snapshot()
+    try:
+        with TestClient(ask_app_with_problem_handler) as client:
+            _assert_retired_response(client.post('/api/ask/stream',json={'query':'Why do banks collapse'}))
+        assert ledger.snapshot() == before
+    finally:
+        ledger.reset()
 
 
 # --------------------------------------------------------------------------
@@ -604,3 +455,33 @@ def test_classify_llm_error_maps_to_stable_codes():
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _assert_retired_response(response):
+    assert response.status_code == 503, response.text
+    body = response.json()
+    assert body["code"] == "FEATURE_UNAVAILABLE" and body["retryable"] is False
+    assert body["canonical"] == "/research"
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert "event: meta" not in response.text and "event: done" not in response.text
+
+
+@pytest.mark.parametrize("module_name", ["api.ask", "web.backend.api.ask"])
+def test_retired_factory_is_closed_in_both_import_topologies(module_name, monkeypatch):
+    """Compatibility imports retain validation without allocating a legacy client."""
+    from unittest.mock import Mock
+    from errors import LegacyPaidUnavailable
+
+    module = importlib.import_module(module_name)
+    constructor = Mock(side_effect=AssertionError("retired client must not be constructed"))
+    monkeypatch.setattr(module, "LLMService", constructor)
+    with pytest.raises(LegacyPaidUnavailable) as stopped:
+        module._get_llm()
+    constructor.assert_not_called()
+    assert stopped.value.status == 503
+    assert stopped.value.extensions == {
+        "code": "FEATURE_UNAVAILABLE", "retryable": False, "canonical": "/research",
+    }
+    assert module.AskRequest(query="ｆｅｅｄｂａｃｋ　ｄｅｌａｙ").query == "feedback delay"
+    assert module.AskEventStreamResponse.media_type == "text/event-stream"
+    assert module.AskOrchestrator is AskOrchestrator

@@ -139,7 +139,7 @@ class DataSnapshot(Record):
             digest(value)
         utc(self.acquired_at)
         utc(self.information_cutoff)
-        if self.parser_version != "plos-html-text-v1" or type(self.licence) is not Licence:
+        if self.parser_version not in ("plos-html-text-v1", "plos-author-narrative-subset-v2") or type(self.licence) is not Licence:
             raise ValueError("unsupported parser/permission")
         if self.origin not in {"live", "historical_import", "offline_probe"}:
             raise ValueError("invalid provenance")

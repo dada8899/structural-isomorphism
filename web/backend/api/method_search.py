@@ -10,6 +10,12 @@
 LLM 不可用时优雅降级：仍返回检索候选，只是没有结构签名细化和候选说明。
 """
 
+if __package__ == "web.backend.api":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
+
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError, field_validator
 
@@ -87,15 +93,6 @@ class MethodApplyRequest(BaseModel):
 @tier_limit_decorator(default_anon="15/minute")
 async def method_apply(request: Request, req: MethodApplyRequest):
     """抽取方法的结构签名，再在 KB 找值得进一步检验的候选现象。"""
-    if _PACKAGE_TOPOLOGY:
-        from ..main import app_state
-    else:
-        from main import app_state
-
-    svc = app_state.get("search")
-    if not svc:
-        raise HTTPException(503, "Search service not ready")
-
     method_text = req.method.strip()
     if len(method_text) < MIN_METHOD_LEN:
         # min_length 在 pydantic 已挡空字符串，这里挡纯空白输入。
@@ -111,6 +108,16 @@ async def method_apply(request: Request, req: MethodApplyRequest):
                 "message": "这里只检索方法、算法或模型的跨领域候选。请描述方法依赖的机制和前提。",
             },
         )
+
+    deny_legacy_paid()
+    if _PACKAGE_TOPOLOGY:
+        from ..main import app_state
+    else:
+        from main import app_state
+
+    svc = app_state.get("search")
+    if not svc:
+        raise HTTPException(503, "Search service not ready")
 
     try:
         result = await run_method_search(method_text, svc, req.top_n)

@@ -402,9 +402,11 @@ def test_copied_database_cannot_resume_original_registered_job(lifecycle,monkeyp
     assert auth.resume_account_deletion(job_id)["removed"]["research"]["revisions"] == 1
 
 
-def test_v1_research_migration_keeps_existing_lock_inode_and_problem(lifecycle):
+def test_v1_research_migration_keeps_existing_lock_inode_and_problem(lifecycle,monkeypatch):
     client,path,_=lifecycle
-    rid=create(client)
+    with monkeypatch.context() as legacy:
+        legacy.setattr(ResearchStore,"_migrate_v5",lambda self:None)
+        rid=create(client)
     with sqlite3.connect(path) as conn:
         principal=conn.execute("SELECT id FROM research_principals").fetchone()[0]
         conn.execute("DROP TRIGGER research_principal_gate_required")
@@ -416,7 +418,7 @@ def test_v1_research_migration_keeps_existing_lock_inode_and_problem(lifecycle):
     ResearchStore(auth._store())
     assert lock.stat().st_ino == inode
     with sqlite3.connect(path) as conn:
-        assert conn.execute("SELECT version FROM research_schema").fetchone()[0] == 4
+        assert conn.execute("SELECT version FROM research_schema").fetchone()[0] == 5
         assert conn.execute("SELECT gate_id FROM research_principals").fetchone()[0] == principal
     assert client.get(f"/api/research/{rid}").status_code == 200
     assert post(client,f"/api/research/{rid}/revisions",{"expected_revision":1,"problem":problem("迁移后新修订")}).status_code == 200

@@ -1,19 +1,7 @@
-"""W5-B: streaming optimizations for /api/ask/stream.
+"""Ask pure incremental parser, evidence and retired streaming boundaries.
 
-Covers:
-1. `_AnswerFieldExtractor` JSON-string state machine — happy path,
-   escapes, unicode, never-matched, multi-chunk feed.
-2. `retrieval_done` SSE event lands BEFORE the first `answer_chunk` and
-   before `kb_cards`.
-3. End-to-end SSE event ordering with a mock streaming LLM:
-   meta → retrieval_done → kb_cards → answer_chunk* → answer_done →
-   similar_phenomena → followups → done.
-4. Fallback paths: if no answer_delta ever streamed (malformed envelope)
-   we still emit a typewriter answer.
-
-Run with:
-    cd web/backend
-    PYTHONPATH=. ../../.venv/bin/python -m pytest tests/test_ask_streaming.py -v
+Parser/schema helpers are exercised directly. No provider/SSE runtime ordering or
+latency claim remains: retired stream/retry entrypoints emit nothing.
 """
 from __future__ import annotations
 
@@ -215,177 +203,61 @@ def _mock_stream_factory(json_payload: str, chunk_size: int = 16):
 
 
 class StreamingPipelineTests(unittest.TestCase):
-    """End-to-end: orchestrator.stream() with the streaming path patched."""
+    """Pure helpers and explicit retired stream entrypoint guards."""
 
-    def test_retrieval_done_emits_before_first_answer_chunk(self):
-        """W5-B core invariant: `retrieval_done` lands before `answer_chunk`."""
+    def test_retired_stream_emits_nothing_before_retrieval(self):
+        from errors import LegacyPaidUnavailable
         search = _FakeSearch(_FIXED_KB)
         orch = AskOrchestrator(search_service=search)
-        with patch.object(
-            AskOrchestrator,
-            "_call_llm_stream",
-            _mock_stream_factory(_MOCK_FULL_JSON, chunk_size=20),
-        ), patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
-            chunks = asyncio.run(_collect(orch.stream("Why do banks fail", lang="en")))
+        with patch.object(search,'search',side_effect=AssertionError('no retrieval')) as retrieve, patch.object(orch,'_call_llm_stream',side_effect=AssertionError('no provider')) as send:
+            chunks = []
+            async def collect():
+                async for chunk in orch.stream('Why do banks fail',lang='en'):
+                    chunks.append(chunk)
+            with self.assertRaises(LegacyPaidUnavailable):
+                asyncio.run(collect())
+        self.assertEqual(chunks,[])
+        retrieve.assert_not_called()
+        send.assert_not_called()
 
-        events = _parse_sse_events(chunks)
-        names = [e[0] for e in events]
+    def test_pure_sse_encoder_preserves_named_event_shape(self):
+        from services.ask_orchestrator import _sse
+        # Serializer contract only; retired stream ordering is no longer promised.
+        self.assertEqual(_parse_sse_events([_sse('retrieval_done',{'count':0})]), [('retrieval_done',{'count':0})])
 
-        # retrieval_done must appear, and must appear BEFORE the first
-        # answer_chunk. This is the spec-anchored guarantee from the task.
-        self.assertIn("retrieval_done", names, f"missing retrieval_done in {names}")
-        first_retr = names.index("retrieval_done")
-        first_chunk = names.index("answer_chunk")
-        self.assertLess(
-            first_retr,
-            first_chunk,
-            f"retrieval_done (at {first_retr}) must precede first answer_chunk (at {first_chunk})",
-        )
+    def test_pure_candidate_envelope_does_not_claim_verified_transfer(self):
+        from services.evidence_envelope import retrieval_candidate
+        envelope = retrieval_candidate(_FIXED_KB[0],counterexample='No variable mapping has been completed.')
+        self.assertEqual(envelope['evidence_level'],'candidate')
+        self.assertIn('No variable mapping',json.dumps(envelope))
 
-        # retrieval_done payload sanity.
-        retr_data = events[first_retr][1]
-        self.assertEqual(retr_data["count"], 3)
-        self.assertEqual(len(retr_data["candidates"]), 3)
-        self.assertEqual(retr_data["candidates"][0]["idx"], 1)
-        self.assertEqual(retr_data["candidates"][0]["id"], "phen-1")
-        self.assertGreaterEqual(retr_data["retrieval_ms"], 0)
+    def test_pure_relevance_rejects_invalid_retrieval_score(self):
+        from services.ask_orchestrator import _display_score
+        bad = {**_FIXED_KB[0],'score':'not-a-number'}
+        self.assertEqual(_display_score(bad),0.0)
+        self.assertTrue(AskOrchestrator(search_service=None)._evaluate_relevance([bad])[0])
 
-    def test_retrieval_done_before_kb_cards(self):
-        """retrieval_done = lighter / faster signal; kb_cards = fuller payload."""
-        search = _FakeSearch(_FIXED_KB)
-        orch = AskOrchestrator(search_service=search)
-        with patch.object(
-            AskOrchestrator,
-            "_call_llm_stream",
-            _mock_stream_factory(_MOCK_FULL_JSON),
-        ), patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
-            chunks = asyncio.run(_collect(orch.stream("Q", lang="zh")))
-        names = [e[0] for e in _parse_sse_events(chunks)]
-        self.assertLess(names.index("retrieval_done"), names.index("kb_cards"))
+    def test_retired_retry_stream_emits_no_partial_answer(self):
+        from errors import LegacyPaidUnavailable
+        orch = AskOrchestrator(search_service=_FakeSearch(_FIXED_KB))
+        emitted = []
+        async def collect():
+            async for item in orch._stream_llm_answer_with_retry('Q',_FIXED_KB,'zh'):
+                emitted.append(item)
+        with patch.object(orch,'_call_llm_stream',side_effect=AssertionError('no send')) as send:
+            with self.assertRaises(LegacyPaidUnavailable):
+                asyncio.run(collect())
+        send.assert_not_called()
+        self.assertEqual(emitted,[])
 
-    def test_candidate_cards_expose_honest_preselection_evidence(self):
-        search = _FakeSearch(_FIXED_KB)
-        orch = AskOrchestrator(search_service=search)
-        with patch.object(
-            AskOrchestrator,
-            "_call_llm_stream",
-            _mock_stream_factory(_MOCK_FULL_JSON),
-        ), patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
-            chunks = asyncio.run(_collect(orch.stream("Why do banks fail", lang="en")))
-        events = _parse_sse_events(chunks)
-        cards = next(data["cards"] for name, data in events if name == "kb_cards")
-        assert len(cards) == 3
-        for card in cards:
-            assert "ranking signal, not a validated transfer" in card["match_basis"]
-            assert "variable-by-variable mapping" in card["counter_evidence"]
-            assert "verify it in the report before acting" in card["applicability_boundary"]
-            assert card["description"]
-
-    def test_candidate_evidence_handles_invalid_retrieval_score(self):
-        """Invalid scores fail closed and never become actionable cards."""
-        bad = [{**_FIXED_KB[0], "score": "not-a-number"}]
-        orch = AskOrchestrator(search_service=_FakeSearch(bad))
-        with patch.object(
-            AskOrchestrator,
-            "_call_llm_stream",
-            _mock_stream_factory(_MOCK_FULL_JSON),
-        ), patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
-            chunks = asyncio.run(_collect(orch.stream("Why do banks fail", lang="en")))
-        events = _parse_sse_events(chunks)
-        cards = next(data["cards"] for name, data in events if name == "kb_cards")
-        answer = next(data for name, data in events if name == "answer_done")
-        assert cards == []
-        assert answer["out_of_scope"] is True
-        assert answer["refused"] is True
-
-    def test_full_event_sequence_streaming_path(self):
-        """All required events still emit when LLM is streamed."""
-        search = _FakeSearch(_FIXED_KB)
-        orch = AskOrchestrator(search_service=search)
-        with patch.object(
-            AskOrchestrator,
-            "_call_llm_stream",
-            _mock_stream_factory(_MOCK_FULL_JSON),
-        ), patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
-            chunks = asyncio.run(_collect(orch.stream("Q", lang="zh")))
-
-        events = _parse_sse_events(chunks)
-        names = [e[0] for e in events]
-
-        self.assertEqual(names[0], "meta")
-        self.assertEqual(names[-1], "done")
-        for required in (
-            "meta",
-            "retrieval_done",
-            "kb_cards",
-            "llm_start",
-            "answer_chunk",
-            "answer_done",
-            "similar_phenomena",
-            "followups",
-            "done",
-        ):
-            self.assertIn(required, names, f"missing event: {required}")
-
-        # M1.2 fix 4 — llm_start must land between retrieval_done and the
-        # first answer_chunk so the frontend can advance progress UI before
-        # tokens start arriving. PR #224 added the yield (commit 5090e4c)
-        # but the original test only asserted the log line, never the SSE
-        # event — leaving this regression-prone. Lock it in now.
-        retrieval_idx = names.index("retrieval_done")
-        llm_start_idx = names.index("llm_start")
-        first_chunk_idx = names.index("answer_chunk")
-        self.assertLess(retrieval_idx, llm_start_idx, "llm_start must follow retrieval_done")
-        self.assertLess(llm_start_idx, first_chunk_idx, "llm_start must precede first answer_chunk")
-        llm_start_ev = next(ev for name, ev in events if name == "llm_start")
-        self.assertIn("model", llm_start_ev, "llm_start payload must include model")
-
-        # answer_chunks accumulate into the answer string.
-        accumulated = "".join(
-            ev["delta"] for name, ev in events if name == "answer_chunk"
-        )
-        answer_done = next(ev for name, ev in events if name == "answer_done")
-        self.assertEqual(accumulated, answer_done["full_text"])
-
-        # Citations validated (3 in mock, all in range).
-        self.assertEqual(len(answer_done["citations"]), 3)
-        for cit in answer_done["citations"]:
-            self.assertIn(cit["idx"], (1, 2, 3))
-            self.assertTrue(cit["kb_id"].startswith("phen-"))
-
-    def test_fallback_when_envelope_never_matches_answer_key(self):
-        """If the mocked stream produces no `answer` field, we still emit a chunk via fallback typewriter."""
-
-        # JSON with NO `answer` field — extractor never matches; full JSON also fails pydantic.
-        bad_json = json.dumps({
-            "reply": "wrong shape",
-            "citations": [],
-            "followups": [],
-        }, ensure_ascii=False)
-
-        search = _FakeSearch(_FIXED_KB)
-        orch = AskOrchestrator(search_service=search)
-        with patch.object(
-            AskOrchestrator,
-            "_call_llm_stream",
-            _mock_stream_factory(bad_json, chunk_size=8),
-        ), patch.object(
-            AskOrchestrator,
-            "_call_llm_once",
-            # Async mock returning the same bad JSON twice → triggers fallback.
-            lambda self, prompt: _async_value(bad_json),
-        ), patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
-            chunks = asyncio.run(_collect(orch.stream("Q", lang="zh")))
-
-        events = _parse_sse_events(chunks)
-        names = [e[0] for e in events]
-        # Even on full fallback we still must emit answer_chunk (typewriter
-        # path) + answer_done so the frontend isn't stuck.
-        self.assertIn("answer_chunk", names)
-        self.assertIn("answer_done", names)
-        answer_done = next(ev for n, ev in events if n == "answer_done")
-        # Fallback answer is the localized "synthesizer unavailable" line.
-        self.assertGreater(len(answer_done["full_text"]), 20)
+    def test_pure_malformed_envelope_rejected_and_local_fallback_bounded(self):
+        bad_json = json.dumps({'reply':'wrong shape','citations':[],'followups':[]})
+        orch = AskOrchestrator(search_service=None)
+        self.assertIsNone(orch._try_validate(bad_json,cards=_FIXED_KB))
+        fallback = orch._fallback_payload('UNTRUSTED_QUERY',_FIXED_KB,'zh')
+        self.assertNotIn('UNTRUSTED_QUERY',fallback['answer'])
+        self.assertIn('尚未验证',fallback['answer'])
+        self.assertEqual(fallback['citations'][0]['kb_id'],'phen-1')
 
 
 async def _async_value(v):
@@ -398,63 +270,22 @@ async def _async_value(v):
 
 
 class StreamingLatencyTests(unittest.TestCase):
-    """Verify that answer_chunk events arrive INTERLEAVED with the JSON stream,
-    not all at the end. This is the whole point of W5-B."""
+    """Incremental parser timing only, without a live streaming claim."""
 
-    def test_answer_chunks_interleave_with_stream(self):
-        """The first answer_chunk must come well before the final stream chunk."""
-
-        # Build a JSON payload where the `answer` field is filled across many
-        # tiny chunks, then citations come much later in the stream.
-        big_answer = "a" * 300  # 300 chars of trivial answer text
-        payload = json.dumps({
-            "answer": big_answer,
-            "citations": [{"idx": 1, "kb_id": "phen-1", "label": "x"}],
-            "followups": ["q1?", "q2?"],
-        }, ensure_ascii=False)
-
-        # Track at which raw_chunk index the first answer_delta gets emitted.
-        # If the extractor works, it should be early — well before the
-        # citations / followups portions of the JSON arrive.
-        chunk_size = 8
-        first_answer_at = {"i": None}
-        last_chunk_at = {"i": 0}
-
-        async def instrumented_stream(self, prompt):  # noqa: ARG001
-            from services.ask_orchestrator import _AnswerFieldExtractor as _Ext
-            ext = _Ext()
-            i = 0
-            while i * chunk_size < len(payload):
-                piece = payload[i * chunk_size : (i + 1) * chunk_size]
-                yield ("raw_chunk", piece)
-                emitted = ext.feed(piece)
-                if emitted:
-                    if first_answer_at["i"] is None:
-                        first_answer_at["i"] = i
-                    yield ("answer_delta", emitted)
-                last_chunk_at["i"] = i
-                i += 1
-                await asyncio.sleep(0)
-
-        search = _FakeSearch(_FIXED_KB)
-        orch = AskOrchestrator(search_service=search)
-        with patch.object(
-            AskOrchestrator, "_call_llm_stream", instrumented_stream
-        ), patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
-            asyncio.run(_collect(orch.stream("Q", lang="zh")))
-
-        self.assertIsNotNone(
-            first_answer_at["i"], "extractor never emitted any answer_delta"
-        )
-        # First answer chars should land in the first ~10% of stream chunks.
-        # The JSON envelope is `{"answer": "` (~13 chars) + 300 chars of `a`
-        # + closing + citations + followups. With chunk_size=8 the answer
-        # value starts emitting around chunk 2 and stays well below chunk 30.
-        self.assertLess(
-            first_answer_at["i"],
-            last_chunk_at["i"] // 3,
-            f"first answer chunk at index {first_answer_at['i']} should be in first 1/3 of {last_chunk_at['i']}",
-        )
+    def test_pure_extractor_yields_early_without_publishing_runtime_events(self):
+        # Incremental parsing remains a pure helper; no provider/SSE latency claim.
+        payload = json.dumps({'answer':'a'*300,'citations':[],'followups':[]})
+        ext = _AnswerFieldExtractor()
+        positions = []
+        answer = ''
+        pieces = [payload[i:i+8] for i in range(0,len(payload),8)]
+        for i,piece in enumerate(pieces):
+            emitted = ext.feed(piece)
+            if emitted: positions.append(i)
+            answer += emitted
+        self.assertEqual(answer,'a'*300)
+        self.assertLess(positions[0],len(pieces)//4)
+        self.assertEqual(ext.state,_AnswerFieldExtractor.DONE)
 
 
 if __name__ == "__main__":
