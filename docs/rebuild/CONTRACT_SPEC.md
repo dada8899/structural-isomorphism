@@ -390,6 +390,58 @@ usage 完整但模型内容坏 JSON、空／截断、非法 schema／引用时�
 | 缺／伪／超界usage | UNKNOWN保全held，不补0／不min裁切／不重发；响应ref或绑定冲突阻断；后续账单A>Uobs如实保存并关paid |
 | 旧策略／币种／历史与重启 | fixture/final/v1及既有金额原样不减；未绑定v2、错币或过期依据不新发；重启保原policy/F/usage与一次差额记录，余额／充值／别名变化不追认或放宽 |
 
+### 6.5 本地财务情景结果：保存与读取增量
+
+依据已批准 PRD 0.3／U2，复用 `7e0780ba30d163180efc5584e65ef138b1571f27` 的五文件有限执行器。本节仅冻结候选接口，独审后由 PMO 分检查点派实现；不表示 API／存储已实现或 U2 已验收。操作固定为 `local_financial_result_v1`：本机纯计算并保存私有结果，无网络、模型、资金、reservation、dispatch 或外发批准；不借用 D1／model task，不更改它们的完成状态、来源标志或费用，不改§6.4、schema6及价格函数。表迁移版本由 Core 唯一 owner 后续核定。
+
+#### 对象与受控来源
+
+| 对象 | 最小字段与边界 |
+| --- | --- |
+| `FinancialRegistryRef` | `{id:Id,revision:Revision,digest:Digest}`；指服务端在本研究授权范围保存的不可变 `SourceRegistry`，digest 按执行器的规范 JSON 算法绑定完整 registry；请求仅引用，不接受来源事实表或自报许可 |
+| `FinancialSourceBinding` | `{financial_snapshot_id:Id,registry_ref:FinancialRegistryRef,snapshot_digest:Digest,source_record_ref:{id:Id,revision:Revision}?}`；financial_snapshot_id 精确对应 registry.sources 中的 SourceSnapshot.id，观测／FX 的 source_refs 只能指该 registry 内的快照；绑定由受控 importer 保存，不能靠 UUID 存在认定同研究／可读 |
+| `FinancialResultBinding` | `{research_id:Id,input_revision:Revision,input_digest:Digest,request_digest:Digest,registry_ref:FinancialRegistryRef,policy_revision:Text(64),producer_commit:Text(40)}`；producer 固定上述受审执行器，policy=`financial-scenario-v1-candidate`。另私存当前主体 incarnation／principal epoch、auth_generation、owner/acl epoch、grant，不能由请求或模型赋值或在公开投影泄露 |
+| `FinancialResult` | `{id:Id,type:"financial_scenario_v1",binding:FinancialResultBinding,snapshot_digest:Digest,canonical_snapshot:ExactText(131072),calculation_status:"calculated_under_assumptions",u2_goal_status:not_assessed\|not_met,model_analysis_ran:false,created_at:UtcTime,research_version_at_commit:Revision}`；服务端生成、不可变；字节上限另验，缺必要基线／成本／构成时必须 not_met，纯计算不得自行签发 U2 通过 |
+| `FinancialResultReceipt` | `{result_id:Id,input_revision:Revision,snapshot_digest:Digest,research_version_at_commit:Revision}`；仅回受权结果引用，不返回原始 registry／凭据／正文；同 key 恢复仍须当前授权 |
+
+财务 SourceSnapshot 的 `kind/read_scope/source_chain` 保留执行器原类型；不扩写或借用现有 SourceRecord／SourceVersion 的两种 parser read_scope。`curated_record` 必须绑定整理表摘要、固定 commit、entry 定位和实际人工读取范围，raw_response_digest／extracted_text_digest／retained_original_ref 均 null；87e564 历史表不冒原文、live 或独立交叉确认。`historical_original/live_original` 必须由受控导入／取证路径保存真实原文、提取摘要及受权 opaque 引用，另建快照而不回填 curated。source_record_ref 仅在该实际记录的范围、版本、摘要和读取语义均能正确表达时绑定，否则为 null，保留独立财务来源记录；不得强行套 PLOS parser 标志。
+
+importer 单独核来源真实性／层级、同源转载关系与本研究读取／显示权限，生成 registry 和上述映射；执行器类型验证不承担这些证明。本节不新增任意 URL 抓取、原文导入接口或自动来源升级。后续取得的来源、新事实／会计口径／参数均形成新 registry 或新结果，旧内容不原位覆盖；公共来源可按许可重新导入，跨账户私有 registry 不得复用。投影不给原文私有路径、保留文件句柄或未经许可的原文。
+
+财务数值沿受审模块的独立 `FinancialDecimalText` 范围：有限十进制字符串≤64字符、≤24有效位、指数及非零数量级±18、绝对值≤1e18，拒绝 bool／float／表达式；不是§2 的 DecimalText 或计费 Money。原币 CNY/USD、期间／单位／会计口径／证据级别与未舍入原值保留，历史 FX 与未来假设分开；净利／EBITDA 不替营业利润，CAPEX 不直计营业费用，共用成本／折旧／SBC 不重复。2026E 中期加剩余期间假设桥接、2027–2031 五完整年、最多3情景及21单参数敏感点沿原 policy；业务互斥、未分配及缺失／冲突保留，null 不补0、全未分配不算构成完成。未来参数始终标条件假设，范围不是已校准概率；没有可信绝对基线／成本桥接时不以指数图或机械演示宣称题目满足，不在本契约设新参数数值。
+
+#### POST、提交与重开
+
+| 消费者 | 正式请求／响应边界 |
+| --- | --- |
+| `POST /research/{research_id}/financial-results` | 请求为 `{input_revision:Revision,expected_research_version:Revision,registry_ref:FinancialRegistryRef,request:FinancialRequest}`，沿现有 Envelope／身份／CSRF／Idempotency-Key 与严格额外字段、重复 key 拒绝规则；FinancialRequest 精确复用上述执行器的字段、显式假设和上限，客户端不能传 registry 内容、快照、digest 结果、trusted 标志、owner、模型或价格。成功返回 FinancialResultReceipt |
+| `GET /research/{research_id}/financial-results/{result_id}?view=summary\|table\|chart` | 默认 summary，未知 view 拒绝；在一致读事务逐对象验当前授权，跨账户／不属于该研究／失效引用统一404。响应为 Envelope，data 固定含 `{result_id,type,input_revision,input_digest,request_digest,registry_digest,policy_revision,snapshot_digest,created_at,is_historical,calculation_status,u2_goal_status,model_analysis_ran:false,view,payload}`；payload 按下述三种白名单投影，不能任意字段／函数调用 |
+| summary／table／chart payload | summary 只列情景／指标可用性、信息截止、来源 kind/read_scope、显式缺口与假设索引；table 为同一保存快照的 table() 视图并带历史背景、来源／观测／参数依据；chart 为同一快照 chart_spec() 及对应依据索引。源、原值和理由按当前显示权限过滤，不能用删除缺口或换一份 registry 维持图形。研究 view 仅增受权 result refs／capability，旧 notes／D1／model report 类型保持 |
+
+内部正式边界为 `resolve_financial_registry(conn,identity,binding,ref)->AuthorizedFinancialRegistry`、`evaluate_financial_candidate(request,authorized_registry,binding)->ServerFinancialCandidate`、`commit_financial_result_locked(conn,identity,expected_research_version,candidate,key)->FinancialResultReceipt`、`read_financial_result(conn,identity,research_id,result_id,view)->Envelope[FinancialResultView]`。前两种内部类型只由受控调用链产生，携带完整 registry／输入绑定和私有授权快照；类型或摘要本身不授予信任，commit／read 仍按下述门禁重核；FinancialResultView 即上表 GET 白名单。adapter 不接受任意对象注入这些内部类型。
+
+服务端先在短一致读事务核当前有效身份 incarnation、principal/owner/acl epoch、read+write grant、研究 active、已确认且当前的 input_revision+digest、expected_research_version 和 registry 绑定／来源权限，再取得不可变输入包；事务外执行有限纯计算，不持 DB／owner gate 等待完整计算。请求体沿64 KiB上限，request+受控registry≤128 KiB，所有原对象数量、Decimal50／5000步骤／合作式2秒上限继续有效；合作式限制不声称 OS 隔离。资源超限整次拒绝，不降精度或删来源过关。
+
+`evaluate_financial` 产物只是服务端内部 candidate；`FinancialSnapshot(str)` 仅验大小，不能用它校验不可信快照。保存入口不接受客户端／LLM 自报 candidate、canonical bytes 或摘要；从该次受控 request+registry+producer 调用取得结果，严格核结构、输入／registry／policy 摘要、完整 export 上限和表图一致后，才能交 commit。摘要不是授权凭证；不从裸 JSON 还原一个对象就追认来源或计算已验证。
+
+commit 在既有跨进程 owner gate 内、同一 auth DB 的短事务中重新核上述全部授权／grant／来源显示范围及版本，CAS 当前 research version 与 input revision+digest；来源撤权／改版、问题变更、账户删除或研究撤权先提交时，候选不得保存或恢复资产。成功原子写不可变结果、source 映射引用及幂等引用，并递增 research version，current_task_id／任务状态不变；任何失败全部回滚、不留半结果，未知 ID 禁止 upsert。Core 是 DDL／连接／事务／删除与 API 接线唯一 owner；独立 adapter 不自行 connect/commit、建库、分配 schema 版本或迁移当前 paid producer 表。
+
+幂等唯一作用域为 `(principal incarnation,local_financial_result_v1,r:<research_id>,key_digest)`，规范请求摘要含全部客户端请求字段；同 key 异正文409，同 key 同正文并发只存一个结果。重放先核当前身份、研究及 registry 读取权限，再返回原结果引用；已改题仍可作为有标历史读取，不重算或覆盖旧结果。响应丢失／进程崩溃先按原 key 查提交事实；仅确证未提交且当前版本／权限仍有效时可重做本地纯计算，不新增外部请求或伪造 UNKNOWN 费用。已撤权／删除不回放私有幂等正文，最小防复活记录不能重建内容。
+
+每次 GET／重开重新核当前研究及来源读取／显示资格，校验保存 canonical 摘要、受控 producer／policy／严格快照结构和 binding，拒绝损坏／未知版本，不能从客户端缓存补写；历史结果按 input_revision 与当前 revision 比较设置 is_historical，原输入与来源／参数摘要、原 created_at 保持。table 和 chart 仅从这一份不可变快照投影，均带相同 snapshot_digest；缺点不连线、不再计算、拟合或自动换汇。table() 的 same_as 展开及外层 Envelope 也受限：持久完整结果、每种最终 UTF-8 view 响应分别≤128 KiB，超限明确拒绝、不截断；不要重复拼装 table+export+chart 绕过上限。对无效／超限 candidate 不产生结果；已有完整结果的某 view 超限只拒该 view，不伪造成计算成功的新结果。
+
+账户／研究删除与撤权复用同库控制门禁及§7，先禁读／增 epoch，再清 FinancialResult、私有 registry／来源映射、幂等正文和保存的参数快照；共享公开源只清本研究授权关联，不误删其他仍获授权研究的来源。迟到计算及旧 cookie／同邮箱新 incarnation／旧 key 均不得复活结果、研究或分享。本节不开放新的匿名读取、分享、模型调用或预算入口；“本地无外发”不是 provider actual=0 账单，model_analysis_ran=false 也不代表 U2 价值已验收。
+
+#### 最小消费者反例（待实现后独立执行）
+
+| 消费者场景 | 必须成立 |
+| --- | --- |
+| POST→保存→重开→表／图 | 实际私有 API 调纯执行器，重启后同 result/input/registry/snapshot 摘要与原时间，table/chart 同源；同请求单元格与纯模块 golden 一致，模型／网络／资金调用0 |
+| 伪事实／摘要／来源 | 客户端 registry／快照／trusted 或伪造来源引用在执行前拒绝；只改 digest、将87e curated 冒 live／原文、同源转载冒独立、跨 owner registry 不能入库；未知 policy／损坏保存字节不得读取 |
+| 竞争／丢回执／版本 | 同 key 并发只一结果，异正文409；提交前后崩溃按原 key 读回或确证未提交再算。计算中改题／来源授权变化先提交则结果提交拒绝，已存旧修订只能有标历史展示，不改当前问题或任务 |
+| 隐私／删除与迟到 | 跨账户／同邮箱新 incarnation／失效会话不得读，撤权或删除与 commit 竞争只允许合法先后；删除后迟到 candidate、旧 key／缓存／重启不能恢复正文或分享，原文句柄不出投影／日志 |
+| 数值／资源／不足 | 半年不直年化、OP不以净利代、成本不重计；缺 FX／成本／分部保留 null／缺口与not_met，不假U2通过；same_as 展开／Envelope 超128 KiB拒该view，任一输入／计算上限整次失败，不删来源或补0，范围不标概率 |
+
 ## 7 撤权、删除、认领与迟到提交
 
 同DB维护principal/acl epoch、task授权快照与新研究数据。正常结果提交使用条件写入，要求principal active、auth用户仍存在且generation相同、grant active、research active、各epoch一致、task attempt/version当前、未stop。任一条件不满足即拒绝持久正文，不依靠先读后写的时间窗。
