@@ -139,8 +139,13 @@ def test_source_bound_public_mapping_cache_is_read_only(app_env, no_sender):
     from api import mapping
     from services.llm_service import LLMService
     cached = LLMService()._fallback_mapping(svc.kb[0], svc.kb[1], .5)
-    mapping._cache.put("p1", "p2", cached, lang="zh")
+    from services.cache import mapping_source_binding
+    frozen = mapping_source_binding(svc.kb[0], svc.kb[1], "synthetic-artifact")
+    mapping._cache.put_bound("p1", "p2", cached, binding=frozen, lang="zh")
     original = (tmp / "mapping.jsonl").read_bytes()
+    from services.cache import MappingCache
+    from schemas import CandidateMapping
+    mapping._cache = MappingCache(tmp / "mapping.jsonl", validator=lambda v: CandidateMapping.model_validate(v).model_dump(mode="json"))
     reply = client.post("/api/mapping", json={"a_id": "p1", "b_id": "p2"})
     assert reply.status_code == 200, reply.text
     assert reply.json()["from_cache"] is True
@@ -148,6 +153,51 @@ def test_source_bound_public_mapping_cache_is_read_only(app_env, no_sender):
     assert stream.status_code == 200 and '"from_cache": true' in stream.text
     assert (tmp / "mapping.jsonl").read_bytes() == original
     assert_unavailable(client.post("/api/mapping", json={"a_id": "p1", "b_id": "p2", "lang": "en"}))
+
+
+@pytest.mark.parametrize("route", ["/api/mapping", "/api/mapping/stream"])
+@pytest.mark.parametrize("change", ["source_name", "source_description", "target_name", "target_description", "artifact"])
+def test_mapping_frozen_disk_binding_rejects_changes_before_and_after_restart(app_env, no_sender, route, change):
+    main, client, svc, tmp = app_env
+    from api import mapping
+    from services.cache import MappingCache, mapping_source_binding
+    from services.llm_service import LLMService
+    from schemas import CandidateMapping
+    candidate = LLMService()._fallback_mapping(svc.kb[0], svc.kb[1], .5)
+    frozen = mapping_source_binding(svc.kb[0], svc.kb[1], main.app_state["artifact"]["artifact_id"])
+    mapping._cache.put_bound("p1", "p2", candidate, binding=frozen, lang="zh")
+    body = {"a_id": "p1", "b_id": "p2"}
+    assert client.post(route, json=body).status_code == 200
+    original = (tmp / "mapping.jsonl").read_bytes()
+    if change == "artifact":
+        main.app_state["artifact"]["artifact_id"] = "different-artifact"
+    else:
+        side, field = change.split("_", 1)
+        svc.kb[0 if side == "source" else 1][field] = "Changed current record"
+    assert_unavailable(client.post(route, json=body))
+    mapping._cache = MappingCache(tmp / "mapping.jsonl", validator=lambda v: CandidateMapping.model_validate(v).model_dump(mode="json"))
+    assert_unavailable(client.post(route, json=body))
+    assert (tmp / "mapping.jsonl").read_bytes() == original
+    row = json.loads(original)
+    assert row["binding"] == frozen  # no read-time signing or overwrite
+
+
+@pytest.mark.parametrize("route", ["/api/mapping", "/api/mapping/stream"])
+def test_unbound_legacy_mapping_row_is_not_retroactively_signed(app_env, no_sender, route):
+    _, client, svc, tmp = app_env
+    from api import mapping
+    from services.cache import MappingCache
+    from services.llm_service import LLMService
+    from schemas import CandidateMapping
+    candidate = LLMService()._fallback_mapping(svc.kb[0], svc.kb[1], .5)
+    mapping._cache.put("p1", "p2", candidate, lang="zh")
+    original = (tmp / "mapping.jsonl").read_bytes()
+    body = {"a_id": "p1", "b_id": "p2"}
+    assert_unavailable(client.post(route, json=body))
+    mapping._cache = MappingCache(tmp / "mapping.jsonl", validator=lambda v: CandidateMapping.model_validate(v).model_dump(mode="json"))
+    assert_unavailable(client.post(route, json=body))
+    assert "binding" not in json.loads(original)
+    assert (tmp / "mapping.jsonl").read_bytes() == original
 
 
 def test_deep_cache_exact_artifact_binding_before_sse_and_no_new_persist(app_env, no_sender):

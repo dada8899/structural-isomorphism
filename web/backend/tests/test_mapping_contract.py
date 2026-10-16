@@ -209,10 +209,11 @@ def test_mapping_sse_never_exposes_partial_semantics_and_final_payload_is_strict
     monkeypatch, tmp_path,
 ) -> None:
     import main
+    from services.cache import mapping_source_binding
     from errors import LegacyPaidUnavailable
     from unittest.mock import Mock
 
-    monkeypatch.setattr(main, "app_state", {"search": _FakeSearch()})
+    monkeypatch.setattr(main, "app_state", {"search": _FakeSearch(), "artifact": {"artifact_id": "synthetic-mapping-artifact"}})
     mapping_api._cache = _cache(tmp_path / "mapping-cache.jsonl")
     llm = _AdversarialStreamLLM()
     sender = Mock(side_effect=AssertionError("retired generation must not start"))
@@ -232,7 +233,8 @@ def test_mapping_sse_never_exposes_partial_semantics_and_final_payload_is_strict
     assert sender.call_count == 0
 
     # Preserve the strict final-payload contract on a real versioned cache read.
-    mapping_api._cache.put("p-a", "p-b", _valid_mapping(), lang="zh")
+    frozen_binding = mapping_source_binding(main.app_state["search"].get_by_id("p-a"), main.app_state["search"].get_by_id("p-b"), main.app_state["artifact"]["artifact_id"])
+    mapping_api._cache.put_bound("p-a", "p-b", _valid_mapping(), binding=frozen_binding, lang="zh")
     response = asyncio.run(endpoint(_request(), mapping_api.MappingStreamRequest(b_id="p-b", a_id="p-a", lang="zh")))
     body = asyncio.run(_stream_text(response))
     assert "semantic-leak" not in body
@@ -353,6 +355,7 @@ def test_phenomenon_and_share_card_never_present_retrieval_as_a_percentage() -> 
 
 def test_sync_mapping_response_has_one_stable_score_field(monkeypatch, tmp_path) -> None:
     import main
+    from services.cache import mapping_source_binding
     from errors import LegacyPaidUnavailable
     from fastapi import HTTPException
     from unittest.mock import Mock
@@ -365,13 +368,14 @@ def test_sync_mapping_response_has_one_stable_score_field(monkeypatch, tmp_path)
     original_get = svc.get_by_id
     # Only the declared public catalog is readable, even if a cache row exists.
     monkeypatch.setattr(svc, "get_by_id", lambda key: original_get(key) if key in {"p-a", "p-b"} else None)
-    monkeypatch.setattr(main, "app_state", {"search": svc})
+    monkeypatch.setattr(main, "app_state", {"search": svc, "artifact": {"artifact_id": "synthetic-mapping-artifact"}})
     mapping_api._cache = _cache(tmp_path / "mapping-cache.jsonl")
     mapping_api._llm = _SyncLLM()
     endpoint = inspect.unwrap(mapping_api.generate_mapping)
     with pytest.raises(LegacyPaidUnavailable):
         asyncio.run(endpoint(_request(), mapping_api.MappingRequest(a_id="p-a", b_id="p-b")))
-    mapping_api._cache.put("p-a", "p-b", _valid_mapping(), lang="zh")
+    frozen_binding = mapping_source_binding(main.app_state["search"].get_by_id("p-a"), main.app_state["search"].get_by_id("p-b"), main.app_state["artifact"]["artifact_id"])
+    mapping_api._cache.put_bound("p-a", "p-b", _valid_mapping(), binding=frozen_binding, lang="zh")
     before = (tmp_path / "mapping-cache.jsonl").read_bytes()
     payload = asyncio.run(endpoint(_request(), mapping_api.MappingRequest(a_id="p-a", b_id="p-b")))
     parsed = MappingResponse.model_validate(payload)

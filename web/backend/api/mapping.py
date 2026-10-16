@@ -32,6 +32,7 @@ from services.cache import MappingCache
 from services.llm_service import LLMService
 from services.input_limits import MAX_RESEARCH_QUERY_CHARS
 from services.rate_limit import tier_limit_decorator
+from services.cache import mapping_source_binding
 
 if __package__ == "web.backend.api":
     from ..logging_config import get_logger, new_incident_id
@@ -169,7 +170,11 @@ async def generate_mapping(request: Request, req: MappingRequest):
     except (TypeError, ValueError) as exc:
         raise HTTPException(503, "Mapping inputs are invalid") from exc
 
-    cached = _cache.get(req.a_id, req.b_id, lang=req.lang)
+    try:
+        binding = mapping_source_binding(a, b, (app_state.get("artifact") or {}).get("artifact_id"))
+    except (TypeError, ValueError):
+        deny_legacy_paid()
+    cached = _cache.get_bound(req.a_id, req.b_id, binding=binding, lang=req.lang)
     if cached:
         try:
             return _mapping_response(from_cache=True, a=a_public, b=b_public,
@@ -328,7 +333,11 @@ async def stream_mapping(request: Request, req: MappingStreamRequest):
 
     cached_mapping = None
     if cache_pair:
-        cached = _cache.get(*cache_pair, lang=lang)
+        try:
+            binding = mapping_source_binding(a, b, (app_state.get("artifact") or {}).get("artifact_id"))
+        except (TypeError, ValueError):
+            deny_legacy_paid()
+        cached = _cache.get_bound(*cache_pair, binding=binding, lang=lang)
         if cached:
             try:
                 cached_mapping = CandidateMapping.model_validate(cached).model_dump(mode="json")
