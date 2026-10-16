@@ -39,3 +39,10 @@ Backend 原测试仅严格 SourceRecord key 集合增加 read_scope，原迁移�
 所有真实 socket 均为本任务合成 loopback，进程／服务沿原 finally 收束，无公开 GET、自动重试、依赖安装或费用。
 最终 root source＋evidence 独立进程 **58 passed、58 subtests passed、退出0（1.38秒）**；backend 完整 D1 集成文件独立进程 **43 passed、退出0（50.36秒）**，两条既有依赖 warning。
 AST／精确路径／差异检查通过；八文件摘要见停写回执。仍须 PMO 当前 SHA 独审后，才做一次真实全链接纳验证；本机合成结果不冒真实公开研究已完成。
+
+## bdd 独审 P2：省略图像保文字边界
+
+基线 `bdd9cfc6d1f6c08a9e6f1ccc7a1ad3529de05547`。唯一解析变化是省略img时插入文字边界：`Alpha<img ...>Beta.` 派生为 `Alpha Beta.`，不从alt猜公式或补词；普通span继续保持词内连续。
+新增六组解析与实际 `SourceSession.save_snapshot` 默认短引对照（含图片位于第20词边界、Unicode、显式他人内容），复用既有隔离SQLite事务夹具、真实Repository和编码校验，只在测试注入控制上下文，不冒真实AuthStore权限验收；raw图像／alt原字节仍保留。
+新增图像旁超长文本／深层结构拒绝，原所有许可、scope、旧v1及原测试方法保持。最终source＋evidence完整组合 **60 passed、64 subtests passed、退出0（1.47秒）**，AST／差异检查通过。
+仅adapter、root source测试及本说明三路径停写；共享契约、财务policy、schema、传输和前端均未改。无公开GET、模型、费用或提交／推送，仍交PMO原Astra复审后一次真实全链验。

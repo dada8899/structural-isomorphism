@@ -599,6 +599,71 @@ class SourceAcceptanceTests(unittest.TestCase):
         _, _, extracted = self.fetch(article)
         self.assertEqual(extracted, "Author discussion cites [1] with limits.")
 
+    def test_omitted_image_boundary_reaches_actual_save_snapshot_default_excerpt(self):
+        import sqlite3
+        from tests.test_research_evidence import EvidenceTests
+        from web.backend.research import source_workflow
+
+        prefix = " ".join(f"word{number}" for number in range(1, 20))
+        cases = (
+            ('<p>Alpha<img src="formula.png" alt="is greater than">Beta.</p>', 'Alpha Beta.'),
+            ('<p>Alpha<img src="formula.png" alt="UNTRUSTED_ALT"/>Beta.</p>', 'Alpha Beta.'),
+            ('<p>前<span>后</span><img alt="UNTRUSTED_ALT">终。</p>', '前后 终。'),
+            ('<p>Al<span>pha</span>Beta.</p>', 'AlphaBeta.'),
+            ('<p>Alpha<q><img alt="UNTRUSTED_ALT">FOREIGN</q>Beta.</p>', 'Alpha Beta.'),
+            (f'<p>{prefix} Alpha<img alt="UNTRUSTED_ALT">Beta after.</p>', f'{prefix} Alpha Beta after.'),
+        )
+        for body, expected in cases:
+            with self.subTest(body=body):
+                article = ARTICLE.replace(b'<p>Partial correlation is not a causality measure.</p>', body.encode())
+                snapshot, raw, extracted = self.fetch(article)
+                self.assertEqual(extracted, expected)
+                self.assertNotIn('UNTRUSTED_ALT', extracted)
+                self.assertNotIn('is greater than', extracted)
+                self.assertNotIn('FOREIGN', extracted)
+                fixture = EvidenceTests()
+                fixture.setUp()
+                try:
+                    fixture.conn.row_factory = sqlite3.Row
+                    fixture.repo.put(fixture.context, fixture.plan)
+                    fixture.conn.execute('CREATE TABLE research_source_requests(id TEXT,outcome TEXT,dispatch_id TEXT,started_at TEXT,ended_at TEXT,http_status INTEGER)')
+                    request_id = uid()
+                    fixture.conn.execute('INSERT INTO research_source_requests VALUES(?,?,?,?,?,200)',
+                        (request_id, 'SUCCEEDED', uid(), '2026-10-17T00:00:00Z', '2026-10-17T00:00:01Z'))
+                    @contextmanager
+                    def transaction(*, write=False):
+                        self.assertTrue(write)
+                        yield fixture.conn
+                    # Isolated transaction/authorization fixture, not a C0
+                    # acceptance claim; save_snapshot and repository are real.
+                    session = source_workflow.SourceSession.__new__(source_workflow.SourceSession)
+                    session.store = SimpleNamespace(transaction=transaction)
+                    session.checked = lambda conn: None
+                    session.task_id, session.step_id = fixture.context.task_id, fixture.context.step_id
+                    session.binding, session.plan = fixture.binding, fixture.plan
+                    session.last_request, session.mode = request_id, 'offline_probe'
+                    snapshot = replace(snapshot, **fixture.binding)
+                    with patch.object(source_workflow, 'context_for', return_value=fixture.context), patch.object(source_workflow, 'authorizer', return_value=fixture.authorize):
+                        saved, _, _ = session.save_snapshot(snapshot, raw, extracted, discovery())
+                    row = fixture.conn.execute("SELECT id FROM research_evidence_objects WHERE kind='excerpts'").fetchone()
+                    excerpt = fixture.repo.get(fixture.context, 'excerpts', row[0])
+                    expected_quote = f'{prefix} Alpha' if len(expected.split()) > 20 else expected
+                    self.assertEqual(excerpt.quote, expected_quote)
+                    self.assertEqual((excerpt.start, excerpt.end), (0, len(expected_quote)))
+                    self.assertEqual(excerpt.extracted_digest, hashlib.sha256(extracted.encode()).hexdigest())
+                    stored_raw, stored_text = fixture.conn.execute('SELECT raw,extracted FROM research_evidence_objects WHERE id=?', (saved,)).fetchone()
+                    self.assertEqual((stored_raw, stored_text), (article, expected))
+                finally:
+                    fixture.tearDown()
+
+    def test_images_do_not_relax_existing_text_or_structure_limits(self):
+        from web.backend.research.source_policy import TEXT_CAP
+        for body in (b'<p>' + b'x' * (TEXT_CAP + 1) + b'<img>y</p>',
+                     b'<p>' + b'<span>' * 128 + b'x<img>' + b'</span>' * 128 + b'</p>'):
+            article = ARTICLE.replace(b'<p>Partial correlation is not a causality measure.</p>', body)
+            with self.assertRaises(SourceFailure):
+                self.fetch(article)
+
 
 if __name__ == "__main__":
     unittest.main()

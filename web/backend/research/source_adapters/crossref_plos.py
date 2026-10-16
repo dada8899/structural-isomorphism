@@ -117,7 +117,7 @@ class _ArticleParser(HTMLParser):
         attrs = dict(attributes)
         excluded = self.excluded(tag, attrs)
         narrative_excluded = self.narrative_excluded(tag, attrs)
-        if tag in self.BLOCK or narrative_excluded:
+        if tag in self.BLOCK or narrative_excluded or tag == "img":
             self.body_data(" ")
         if excluded:
             for frame in self.stack:
