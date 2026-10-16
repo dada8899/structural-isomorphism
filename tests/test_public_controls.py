@@ -646,6 +646,7 @@ def test_sanity_installs_and_runs_root_contract_runtime_fail_closed() -> None:
     assert _shell_tokens(install) == [
         "python", "-m", "pip", "install", "-e", ".[dev]",
         "python", "-m", "pip", "install", "playwright==1.59.0",
+        "python", "-m", "playwright", "install", "--with-deps", "chromium",
     ]
     assert _shell_tokens(llm_scaling) == [
         "python", "-m", "venv", "/tmp/structural-llm-scaling-generator",

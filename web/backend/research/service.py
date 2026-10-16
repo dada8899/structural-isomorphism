@@ -1,0 +1,352 @@
+"""Transactional create/revise/read with incarnation-scoped idempotency."""
+from __future__ import annotations
+
+import hashlib
+import json
+from datetime import datetime, timezone
+from uuid import UUID, uuid4
+
+from .authorization import AuthorizationGate
+from .errors import ResearchError, not_found
+from .projection import ResearchProjection
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+
+
+def digest(value):
+    return hashlib.sha256(canonical(value).encode("utf-8")).hexdigest()
+
+
+def now():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+
+class ResearchService:
+    def __init__(self, store):
+        self.store = store
+        self.authorization = AuthorizationGate(store)
+
+    def _principal(self, identity, *, create=False):
+        with self.store.transaction(write=create) as conn:
+            self.authorization.check_account(conn, identity)
+            row = conn.execute("SELECT * FROM research_principals WHERE normalized_email=? AND session_generation=?",
+                               (identity.email, identity.generation)).fetchone()
+            if row is None and create:
+                pid = str(uuid4())
+                gate_id = self.store.auth_store.owner_gate_in(conn, identity.email, pid)
+                conn.execute("INSERT INTO research_principals VALUES(?,?,?,?,?,?,?,?)",
+                             (pid, "account", identity.email, identity.generation, 1, "active", now(), gate_id))
+                return pid
+            if row is None or row["status"] != "active":
+                raise not_found()
+            return row["id"]
+
+    @staticmethod
+    def _id(value):
+        try:
+            parsed = UUID(value)
+            if parsed.version != 4 or str(parsed) != value:
+                raise ValueError()
+        except (ValueError, TypeError, AttributeError):
+            raise not_found() from None
+        return value
+
+    @staticmethod
+    def _replay(conn, principal, operation, scope, key, request_digest):
+        row = conn.execute("""SELECT * FROM research_idempotency
+            WHERE principal_id=? AND operation=? AND scope_key=? AND key_digest=?""",
+            (principal, operation, scope, hashlib.sha256(key.encode()).hexdigest())).fetchone()
+        if row is None:
+            return None
+        if row["request_digest"] != request_digest:
+            raise ResearchError("IDEMPOTENCY_CONFLICT", 409, "同一操作标识对应了不同内容，请核对已保存结果。")
+        return json.loads(row["result_json"])
+
+    @staticmethod
+    def _remember(conn, principal, operation, scope, key, request_digest, result):
+        conn.execute("INSERT INTO research_idempotency VALUES(?,?,?,?,?,?)",
+                     (principal, operation, scope, hashlib.sha256(key.encode()).hexdigest(), request_digest, canonical(result)))
+
+    def create(self, identity, request, key):
+        principal = self._principal(identity, create=True)
+        payload = request.model_dump(mode="json")
+        request_digest = digest(payload)
+        with self.authorization.owner_gate(principal), self.store.transaction(write=True) as conn:
+            owner = self.authorization.check(conn, identity, principal)
+            replay = self._replay(conn, principal, "create", "new", key, request_digest)
+            if replay is not None:
+                # A replay must not return stale private data after revocation.
+                self.authorization.check(conn, identity, principal, replay["data"]["research"]["id"])
+                return replay
+            rid, timestamp = str(uuid4()), now()
+            conn.execute("INSERT INTO research_controls VALUES(?,?,?,?,?,?,?,?,?,?)",
+                         (rid, principal, owner["epoch"], 1, 1, 1, "private", "active", timestamp, timestamp))
+            conn.execute("INSERT INTO research_grants VALUES(?,?,?,?,?,?,?,?)",
+                         (str(uuid4()), principal, owner["epoch"], rid, 1, '["read","write"]', "active", timestamp))
+            problem = payload["problem"]
+            conn.execute("INSERT INTO research_revisions VALUES(?,?,?,?,?)", (rid, 1, canonical(problem), digest(problem), timestamp))
+            row = self.authorization.check(conn, identity, principal, rid, scope="write")
+            result = ResearchProjection.build(conn, row)
+            self._remember(conn, principal, "create", "new", key, request_digest, result)
+            return result
+
+    def revise(self, identity, research_id, request, key):
+        rid = self._id(research_id)
+        principal = self._principal(identity)
+        payload = request.model_dump(mode="json")
+        request_digest = digest(payload)
+        with self.authorization.owner_gate(principal), self.store.transaction(write=True) as conn:
+            row = self.authorization.check(conn, identity, principal, rid, scope="write")
+            replay = self._replay(conn, principal, "revise", "r:" + rid, key, request_digest)
+            if replay is not None:
+                return replay
+            revision = row["current_revision"]
+            if revision != payload["expected_revision"]:
+                raise ResearchError("REVISION_CONFLICT", 409, "研究已有新修订，请先重新读取，当前输入仍保留在页面。")
+            if revision == 2147483647 or row["version"] == 2147483647:
+                raise ResearchError("VERSION_CONFLICT", 409, "研究版本已达上限，当前操作无法保存。")
+            timestamp, problem = now(), payload["problem"]
+            conn.execute("INSERT INTO research_revisions VALUES(?,?,?,?,?)",
+                         (rid, revision + 1, canonical(problem), digest(problem), timestamp))
+            changed = conn.execute("""UPDATE research_controls SET current_revision=?,version=version+1,updated_at=?
+                WHERE id=? AND version=? AND current_revision=? AND lifecycle='active'""",
+                (revision + 1, timestamp, rid, row["version"], revision)).rowcount
+            if changed != 1:
+                raise ResearchError("REVISION_CONFLICT", 409, "研究已有新修订，请重新读取。")
+            result = ResearchProjection.build(conn, self.authorization.check(conn, identity, principal, rid))
+            self._remember(conn, principal, "revise", "r:" + rid, key, request_digest, result)
+            return result
+
+    def view(self, identity, research_id, task_id=None):
+        rid, principal = self._id(research_id), self._principal(identity)
+        with self.store.transaction() as conn:
+            row = self.authorization.check(conn, identity, principal, rid)
+            return ResearchProjection.build(conn, row, task_id=task_id)
+
+    def start(self,identity,research_id,request,key):
+        from .budget import require_enabled, POLICY
+        from .runner import event_in
+        require_enabled()
+        rid,principal=self._id(research_id),self._principal(identity)
+        payload=request.model_dump(mode="json")
+        with self.authorization.owner_gate(principal),self.store.transaction(write=True) as conn:
+            row=self.authorization.check(conn,identity,principal,rid,scope="write")
+            replay=self._replay(conn,principal,"start","r:"+rid,key,digest(payload))
+            if replay is not None:return replay
+            if row["version"]!=payload["expected_research_version"] or row["current_revision"]!=payload["input_revision"]:
+                raise ResearchError("REVISION_CONFLICT",409,"问题已有新版本，请先刷新。")
+            if row["version"]==2147483647:raise ResearchError("VERSION_CONFLICT",409,"研究版本已达上限。")
+            revision=conn.execute("SELECT * FROM research_revisions WHERE research_id=? AND revision=?",(rid,row["current_revision"])).fetchone()
+            if not json.loads(revision["problem_json"])["confirmed"]:
+                raise ResearchError("INPUT_INVALID",422,"请先确认并保存问题结构。")
+            if conn.execute("SELECT 1 FROM research_tasks WHERE research_id=? AND execution IN ('QUEUED','RUNNING','WAITING_EXTERNAL','RECONCILING')",(rid,)).fetchone():
+                raise ResearchError("VERSION_CONFLICT",409,"该研究已有尚未结束的流程。")
+            if conn.execute("""SELECT 1 FROM research_reservations r JOIN research_tasks t ON t.id=r.task_id
+                WHERE t.research_id=? AND t.input_revision=? AND r.status IN ('SENT','UNKNOWN')""",(rid,row["current_revision"])).fetchone():
+                raise ResearchError("RECONCILIATION_REQUIRED",409,"同一问题仍有未确认调用，请先对账。")
+            task,grant,timestamp=str(uuid4()),str(uuid4()),now()
+            owner=conn.execute("SELECT * FROM research_principals WHERE id=?",(principal,)).fetchone()
+            conn.execute("INSERT INTO research_grants VALUES(?,?,?,?,?,?,'active',?)",(grant,principal,owner["epoch"],rid,row["acl_epoch"],'["execute"]',timestamp))
+            conn.execute("""INSERT INTO research_tasks
+                (id,research_id,principal_id,principal_epoch,owner_epoch,acl_epoch,grant_id,auth_generation,input_revision,input_digest,start_version,
+                 execution,phase,version,policy_revision,execution_mode,created_at,updated_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,'QUEUED','queued',1,?,'offline_probe',?,?)""",
+                (task,rid,principal,owner["epoch"],row["owner_epoch"],row["acl_epoch"],grant,identity.generation,row["current_revision"],revision["digest"],row["version"]+1,POLICY,timestamp,timestamp))
+            conn.execute("INSERT INTO research_attempts VALUES(?,1,'initial',?,?)",(task,POLICY,revision["digest"]))
+            for position,kind in enumerate(("discover_sources","compose_report")):
+                conn.execute("INSERT INTO research_steps(id,task_id,position,kind,state) VALUES(?,?,?,?,'PENDING')",(str(uuid4()),task,position,kind))
+            event_in(conn,task,"created")
+            conn.execute("UPDATE research_controls SET version=version+1,updated_at=? WHERE id=?",(timestamp,rid))
+            result=ResearchProjection.build(conn,self.authorization.check(conn,identity,principal,rid))
+            self._remember(conn,principal,"start","r:"+rid,key,digest(payload),result)
+            return result
+
+    def task_action(self,identity,research_id,request,key,operation):
+        from .budget import BudgetLedger, require_enabled
+        from .runner import state_in
+        if operation!="cancel":require_enabled()
+        rid,principal=self._id(research_id),self._principal(identity)
+        payload=request.model_dump(mode="json")
+        with self.authorization.owner_gate(principal),self.store.transaction(write=True) as conn:
+            row=self.authorization.check(conn,identity,principal,rid,scope="write")
+            task=conn.execute("SELECT * FROM research_tasks WHERE id=? AND research_id=?",(request.task_id,rid)).fetchone()
+            if not task:raise not_found()
+            if task["policy_revision"]=="d1-source-only-v1" and operation!="cancel":
+                raise ResearchError("RECONCILIATION_REQUIRED",409,"来源读取只能闭合旧执行后重新预览并明确批准，不能继续旧调用。")
+            replay=self._replay(conn,principal,operation,"r:"+rid,key,digest(payload))
+            if replay is not None:return replay
+            if task["version"]!=request.expected_task_version:
+                raise ResearchError("VERSION_CONFLICT",409,"任务状态已变化，请先刷新。")
+            unresolved=conn.execute("SELECT count(*) FROM research_reservations WHERE task_id=? AND status IN ('SENT','UNKNOWN')",(task["id"],)).fetchone()[0]
+            if operation=="cancel":
+                if task["execution"] not in ("COMPLETED","FAILED","ACCESS_REVOKED"):
+                    conn.execute("UPDATE research_tasks SET stop_requested=1 WHERE id=?",(task["id"],))
+                    BudgetLedger.release_prepared_in(conn,task["id"])
+                    conn.execute("UPDATE research_steps SET state='DISCARDED',version=version+1 WHERE task_id=? AND state IN ('PENDING','PREPARED')",(task["id"],))
+                    state_in(conn,task["id"],"CANCELLED",kind="stop_requested")
+            elif operation=="reconcile":
+                if unresolved or task["execution"]=="RECONCILING":
+                    conn.execute("UPDATE research_tasks SET reconcile_requested=1 WHERE id=?",(task["id"],))
+                    state_in(conn,task["id"],task["execution"],kind="reconciling")
+            elif operation=="resume":
+                if task["stop_requested"] or task["execution"]!="WAITING_EXTERNAL" or unresolved:
+                    raise ResearchError("RECONCILIATION_REQUIRED",409,"当前状态不能继续，请先核对调用。")
+                self.authorization.check_task(conn,task)
+                if not BudgetLedger.ready_in(conn,task["id"]):
+                    raise ResearchError("BUDGET_UNVERIFIED",503,"当前演练额度或费率尚不允许继续。")
+                state_in(conn,task["id"],"QUEUED",kind="waiting")
+            else:raise ValueError("unregistered task action")
+            result=ResearchProjection.build(conn,row,task_id=task["id"])
+            self._remember(conn,principal,operation,"r:"+rid,key,digest(payload),result)
+            return result
+
+    def events(self,identity,research_id,task_id,after_seq):
+        rid,principal=self._id(research_id),self._principal(identity)
+        self._id(task_id)
+        if type(after_seq) is not int or after_seq<0:raise ResearchError("INPUT_INVALID",422,"事件游标无效。")
+        with self.store.transaction() as conn:
+            self.authorization.check(conn,identity,principal,rid)
+            if not conn.execute("SELECT 1 FROM research_tasks WHERE id=? AND research_id=?",(task_id,rid)).fetchone():raise not_found()
+            rows=[dict(r) for r in conn.execute("SELECT seq,state_version,kind,safe_code,at FROM research_task_events WHERE task_id=? AND seq>? ORDER BY seq LIMIT 200",(task_id,after_seq))]
+            return {"schema_version":"structure-research-v1","contract_revision":"b1-candidate-01","data":{"items":rows,"after_seq":rows[-1]["seq"] if rows else after_seq}}
+
+    def begin_account_deletion_locked(self, email, generation, gate_id, cleanup_binding):
+        """Internal only: caller holds this owner's OS gate and revalidated auth.
+
+        The committed fence is intentionally outside the legacy multi-store
+        compensation. No legacy restore can turn this epoch active again.
+        """
+        with self.store.transaction(write=True) as conn:
+            user = conn.execute("SELECT session_generation,lifecycle FROM auth_users WHERE email=?", (email,)).fetchone()
+            if not user or user["session_generation"] != generation or user["lifecycle"] != "active":
+                raise ResearchError("AUTH_REQUIRED", 401, "账户当前无法执行删除。")
+            if self.store.auth_store.owner_gate_in(conn, email) != gate_id:
+                raise ResearchError("AUTHORIZATION_STALE", 409, "账户状态已变化。")
+            principal = conn.execute("SELECT * FROM research_principals WHERE normalized_email=? AND session_generation=?", (email,generation)).fetchone()
+            if principal is None:
+                principal_id = str(uuid4())
+                conn.execute("INSERT INTO research_principals VALUES(?,?,?,?,?,?,?,?)",
+                             (principal_id,"account",email,generation,1,"active",now(),gate_id))
+            else:
+                principal_id = principal["id"]
+            job_id, timestamp = str(uuid4()), now()
+            conn.execute("UPDATE auth_users SET lifecycle='deleting' WHERE email=? AND session_generation=?", (email,generation))
+            conn.execute("UPDATE research_principals SET status='deleting',epoch=epoch+1 WHERE id=? AND status!='deleted'", (principal_id,))
+            conn.execute("UPDATE research_grants SET status='revoked' WHERE principal_id=?", (principal_id,))
+            conn.execute("UPDATE research_controls SET lifecycle='deleting' WHERE owner_id=?", (principal_id,))
+            from .budget import BudgetLedger
+            from .runner import state_in
+            for task in conn.execute("SELECT * FROM research_tasks WHERE principal_id=?",(principal_id,)).fetchall():
+                conn.execute("UPDATE research_tasks SET stop_requested=1,reconcile_requested=1 WHERE id=?",(task["id"],))
+                BudgetLedger.release_prepared_in(conn,task["id"])
+                state_in(conn,task["id"],"ACCESS_REVOKED",kind="authorization_changed")
+            conn.execute("""INSERT INTO auth_deletion_jobs
+                (id,owner_key,gate_id,cleanup_binding,database_binding,owner_email,session_generation,state,created_at)
+                VALUES(?,?,?,?,?,?,?,'pending',?)""",
+                (job_id,self.store.auth_store.owner_key(email),gate_id,cleanup_binding,
+                 hashlib.sha256(str(self.store.path).encode()).hexdigest(),email,generation,timestamp))
+            return job_id
+
+    def deletion_job(self, job_id):
+        self._id(job_id)
+        with self.store.transaction() as conn:
+            row = conn.execute("SELECT * FROM auth_deletion_jobs WHERE id=?", (job_id,)).fetchone()
+            if not row:
+                raise not_found()
+            if row["database_binding"] != hashlib.sha256(str(self.store.path).encode()).hexdigest():
+                raise ResearchError("AUTHORIZATION_STALE",409,"删除任务数据库绑定不一致。")
+            return dict(row)
+
+    def erase_research_locked(self, job_id):
+        with self.store.transaction(write=True) as conn:
+            job = conn.execute("SELECT * FROM auth_deletion_jobs WHERE id=? AND state='pending'", (job_id,)).fetchone()
+            if not job or not job["owner_email"] or not job["session_generation"]:
+                raise ResearchError("AUTHORIZATION_STALE", 409, "删除任务状态已变化。")
+            email, generation = job["owner_email"], job["session_generation"]
+            if self.store.auth_store.owner_key(email) != job["owner_key"] or self.store.auth_store.owner_gate_in(conn,email) != job["gate_id"]:
+                raise ResearchError("AUTHORIZATION_STALE", 409, "删除任务绑定不一致。")
+            user = conn.execute("SELECT lifecycle,session_generation FROM auth_users WHERE email=?", (email,)).fetchone()
+            if user and (user["lifecycle"] != "deleting" or user["session_generation"] != generation):
+                raise ResearchError("AUTHORIZATION_STALE", 409, "删除任务不能影响其他账户。")
+            if job["research_erased"]:
+                return json.loads(job["research_counts_json"])
+            principal = conn.execute("SELECT id,status FROM research_principals WHERE normalized_email=? AND session_generation=?", (email,generation)).fetchone()
+            if not principal or principal["status"] != "deleting":
+                raise ResearchError("AUTHORIZATION_STALE", 409, "删除任务主体状态不一致。")
+            pid = principal["id"]
+            count = lambda table, clause, params: conn.execute(f"SELECT count(*) FROM {table} WHERE {clause}",params).fetchone()[0]
+            counts = {
+                "researches": count("research_controls","owner_id=?",(pid,)),
+                "revisions": count("research_revisions","research_id IN (SELECT id FROM research_controls WHERE owner_id=?)",(pid,)),
+                "idempotency_results": count("research_idempotency","principal_id=?",(pid,)),
+                "grants": count("research_grants","principal_id=?",(pid,)),
+            }
+            tasks=[t["id"] for t in conn.execute("SELECT id FROM research_tasks WHERE principal_id=?",(pid,))]
+            for task_id in tasks:
+                from .source_integration import purge_for_deletion
+                purge_for_deletion(self.store,conn,task_id,job_id)
+                conn.execute("DELETE FROM research_step_outputs WHERE task_id=?",(task_id,))
+                conn.execute("DELETE FROM research_task_events WHERE task_id=?",(task_id,))
+                conn.execute("UPDATE research_attempts SET input_digest=NULL WHERE task_id=?",(task_id,))
+                conn.execute("UPDATE research_dispatch_permits SET input_digest=NULL WHERE step_id IN (SELECT id FROM research_steps WHERE task_id=?)",(task_id,))
+                conn.execute("UPDATE research_tasks SET grant_id=NULL,auth_generation=NULL,input_revision=NULL,input_digest=NULL,research_id=NULL WHERE id=?",(task_id,))
+            conn.execute("DELETE FROM research_idempotency WHERE principal_id=?",(pid,))
+            conn.execute("DELETE FROM research_revisions WHERE research_id IN (SELECT id FROM research_controls WHERE owner_id=?)",(pid,))
+            conn.execute("DELETE FROM research_grants WHERE principal_id=?",(pid,))
+            conn.execute("DELETE FROM research_controls WHERE owner_id=?",(pid,))
+            conn.execute("UPDATE auth_deletion_jobs SET research_erased=1,research_counts_json=? WHERE id=?",(canonical(counts),job_id))
+            return counts
+
+    def finish_account_deletion_locked(self, job_id, removed):
+        # First clear private bindings durably. A crash/busy checkpoint then
+        # needs only the opaque job/gate and same DB, never restored identity.
+        with self.store.transaction(write=True) as conn:
+            job = conn.execute("SELECT * FROM auth_deletion_jobs WHERE id=? AND state!='completed'",(job_id,)).fetchone()
+            if not job or not job["research_erased"]:
+                raise ResearchError("AUTHORIZATION_STALE",409,"删除任务尚未完成。")
+            if job["state"] == "pending":
+                if removed is None or conn.execute("SELECT 1 FROM auth_users WHERE email=?",(job["owner_email"],)).fetchone():
+                    raise ResearchError("AUTHORIZATION_STALE",409,"账户清理尚未完成。")
+                result = {"deleted_at":now(),"removed":{**removed,"research":json.loads(job["research_counts_json"])}}
+                conn.execute("UPDATE research_principals SET status='deleted',normalized_email=NULL,session_generation=NULL WHERE normalized_email=? AND session_generation=? AND status='deleting'",(job["owner_email"],job["session_generation"]))
+                conn.execute("UPDATE auth_deletion_jobs SET state='scrubbing',owner_email=NULL,session_generation=NULL,result_json=? WHERE id=?",(canonical(result),job_id))
+            else:
+                result = json.loads(job["result_json"])
+        # Explicitly truncate old frames, even if another connection keeps WAL
+        # alive. A busy historical reader leaves scrubbing and access closed.
+        self.store.checkpoint_erasure()
+        with self.store.transaction(write=True) as conn:
+            conn.execute("UPDATE auth_deletion_jobs SET state='completed',completed_at=? WHERE id=? AND state='scrubbing'",(now(),job_id))
+            return result
+
+    def prepare_legacy_deletion_locked(self, job_id):
+        """Persist attempted before side effects; never infer a lost receipt."""
+        with self.store.transaction(write=True) as conn:
+            job=conn.execute("SELECT legacy_attempted,legacy_receipt_json FROM auth_deletion_jobs WHERE id=? AND state='pending'",(job_id,)).fetchone()
+            if not job:
+                raise ResearchError("AUTHORIZATION_STALE",409,"删除任务状态已变化。")
+            if job["legacy_receipt_json"] is not None:
+                return False,json.loads(job["legacy_receipt_json"])
+            first=not bool(job["legacy_attempted"])
+            conn.execute("UPDATE auth_deletion_jobs SET legacy_attempted=1 WHERE id=?",(job_id,))
+            return first,None
+
+    def record_legacy_deletion_locked(self, job_id, removed, *, first):
+        receipt={"count_status":"known" if first else "unknown_after_interruption","observed":removed}
+        with self.store.transaction(write=True) as conn:
+            changed=conn.execute("UPDATE auth_deletion_jobs SET legacy_receipt_json=? WHERE id=? AND state='pending' AND legacy_attempted=1 AND legacy_receipt_json IS NULL",(canonical(receipt),job_id)).rowcount
+            if changed != 1:
+                raise ResearchError("AUTHORIZATION_STALE",409,"删除收据状态已变化。")
+        return receipt
+
+    @staticmethod
+    def legacy_deletion_result(receipt):
+        if receipt["count_status"] == "known":
+            return receipt["observed"]
+        # These values describe only the successful recovery pass, not the
+        # original job's possibly committed deletes. A retry's zero is not a
+        # zero original deletion count.
+        return {name:{"count_status":"unknown_after_interruption","recovery_observed":observed}
+                for name,observed in receipt["observed"].items()}

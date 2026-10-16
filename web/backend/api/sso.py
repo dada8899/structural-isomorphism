@@ -289,6 +289,8 @@ def _resolve_sso_beta_user(request: Request) -> tuple[dict | None, str]:
     email = ledger.email_for_subject(subject)
     if not email or not hmac.compare_digest(_subject_id(email), subject):
         return None, "unlinked"
+    if not account_is_active(email):
+        return None, "invalid"
     return {
         "id": subject,
         "email": email,

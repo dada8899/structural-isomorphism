@@ -590,10 +590,47 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ confirmation: 'DELETE' })
       }).then(function (response) {
-        if (!response.ok) throw new Error();
+        return response.json().then(function (data) {
+          if (response.status === 200 && data && data.ok === true) return { kind: 'completed' };
+          if ([500, 503].indexOf(response.status) !== -1 && data && data.ok === false &&
+              data.access_ended === true && data.deletion_state === 'cleanup_pending') return { kind: 'pending' };
+          if ([400, 401, 403, 409, 422].indexOf(response.status) !== -1 && data && data.ok === false) return { kind: 'rejected' };
+          return { kind: 'unknown' };
+        }).catch(function () { return { kind: 'unknown' }; });
+      }).then(function (outcome) {
+        if (outcome.kind === 'pending') {
+          credentialLocked = true;
+          localFeaturesEnabled = false;
+          accountConnected = false;
+          loadedItems = [];
+          displayedFavorites = [];
+          currentAccountFavorites = { tickers: [], bookmarks: [] };
+          if (listEl) listEl.innerHTML = '';
+          if (favoritesEl) favoritesEl.innerHTML = '';
+          ['research-reports', 'research-favorites', 'myr-reminder-panel'].forEach(function (id) {
+            var section = document.getElementById(id);
+            if (section) section.hidden = true;
+          });
+          if (connectBtn) connectBtn.hidden = true;
+          if (moreBtn) moreBtn.hidden = true;
+          input.disabled = true;
+          if (exportButton) exportButton.disabled = true;
+          status.textContent = '账户访问已停止，清理尚未完成。请联系维护方继续处理；重新登录不会恢复旧权限。';
+          return;
+        }
+        if (outcome.kind === 'rejected') {
+          status.textContent = '本次删除请求未获准。请刷新核对当前账户状态及确认输入。';
+          button.disabled = false;
+          return;
+        }
+        if (outcome.kind !== 'completed') throw new Error();
         try { localStorage.removeItem('structural_favorites'); } catch (_error) {}
         window.location.assign('/?account=deleted');
-      }).catch(function () { status.textContent = '删除没有完成，账户与数据仍保留。请稍后重试。'; button.disabled = false; });
+      }).catch(function () {
+        status.textContent = '删除结果尚未确认。请先刷新页面核对账户状态，请勿重复提交。';
+        input.disabled = true;
+        if (exportButton) exportButton.disabled = true;
+      });
     });
   }
 

@@ -171,22 +171,37 @@ def test_failed_account_delete_restores_pending_exchange_code(
     beta, code, state, _ = exchange_session(app)
     phase = TestClient(app, base_url="http://phase.test")
     phase_login(phase)
+    original_delete = auth.AuthStore.delete_account_data
     monkeypatch.setattr(
         auth.AuthStore, "delete_account_data",
-        lambda _self, _email: (_ for _ in ()).throw(OSError("late failure")),
+        lambda _self, _email, **_kwargs: (_ for _ in ()).throw(OSError("late failure")),
     )
     failed = phase.post(
         "/api/me/delete", json={"confirmation": "DELETE"},
         headers={"Origin": "http://phase.test"},
     )
     assert failed.status_code == 500
+    ledger = sso.SsoReplayStore(sso._data_dir() / "sso_replay.sqlite3")
+    code_jti = jwt.decode(code, options={"verify_signature": False}, algorithms=["HS256"])["jti"]
+    assert ledger.lookup_issued(code_jti) is not None
+    jobs = auth.pending_account_deletions()
+    assert len(jobs) == 1
 
     exchanged = beta.post(
         "/api/sso/exchange", headers={"Origin": "http://beta.test"},
         json={"code": code, "state": state},
     )
-    assert exchanged.status_code == 200, exchanged.text
-    assert beta.get("/api/me/reports").status_code == 200
+    assert exchanged.status_code == 409, exchanged.text
+    assert beta.get("/api/me/reports").status_code == 401
+    assert phase.get("/api/auth/me").status_code == 401
+    monkeypatch.setattr(auth.AuthStore,"delete_account_data",original_delete)
+    auth.resume_account_deletion(jobs[0])
+    fresh, fresh_code, fresh_state, _ = exchange_session(app)
+    assert fresh.post(
+        "/api/sso/exchange", headers={"Origin":"http://beta.test"},
+        json={"code":fresh_code,"state":fresh_state},
+    ).status_code == 200
+    assert fresh.get("/api/me/reports").status_code == 200
 
 
 def test_claim_uses_anon_proof_not_share_token_and_restores_cross_device(stack):

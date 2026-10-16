@@ -9710,6 +9710,465 @@
         ]
       }
     },
+    "/api/research": {
+      "post": {
+        "operationId": "create_research_api_research_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Create Research",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}": {
+      "get": {
+        "operationId": "view_research_api_research__research_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "View Research",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/cancel": {
+      "post": {
+        "operationId": "cancel_research_task_api_research__research_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Research Task",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/events": {
+      "get": {
+        "operationId": "research_task_events_api_research__research_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Research Task Events",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/reconcile": {
+      "post": {
+        "operationId": "reconcile_research_task_api_research__research_id__reconcile_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reconcile Research Task",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/records": {
+      "get": {
+        "operationId": "source_records_api_research__research_id__records_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Records",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/resume": {
+      "post": {
+        "operationId": "resume_research_task_api_research__research_id__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resume Research Task",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/revisions": {
+      "post": {
+        "operationId": "revise_research_api_research__research_id__revisions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revise Research",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/source-approvals": {
+      "post": {
+        "operationId": "source_approval_api_research__research_id__source_approvals_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Approval",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/source-preview": {
+      "post": {
+        "operationId": "source_preview_api_research__research_id__source_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Preview",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/source-tasks": {
+      "post": {
+        "operationId": "source_task_api_research__research_id__source_tasks_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Task",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/tasks": {
+      "post": {
+        "operationId": "start_research_task_api_research__research_id__tasks_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Research Task",
+        "tags": [
+          "research"
+        ]
+      }
+    },
     "/api/search": {
       "post": {
         "operationId": "search_phenomena_api_search_post",

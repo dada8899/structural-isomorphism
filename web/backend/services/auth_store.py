@@ -6,6 +6,7 @@ import re
 import sqlite3
 import threading
 import time
+import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -55,6 +56,26 @@ _BASE_SCHEMA_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS account_deletion_epochs (
         owner_hash TEXT PRIMARY KEY, deleted_at TEXT NOT NULL
     )""",
+    """CREATE TABLE IF NOT EXISTS auth_owner_gates (
+        owner_key TEXT PRIMARY KEY, gate_id TEXT NOT NULL UNIQUE
+    )""",
+    """CREATE TABLE IF NOT EXISTS auth_owner_gate_policy (
+        id INTEGER PRIMARY KEY CHECK(id=1), fingerprint TEXT NOT NULL
+    )""",
+    """CREATE TABLE IF NOT EXISTS auth_deletion_jobs (
+        id TEXT PRIMARY KEY, owner_key TEXT NOT NULL, gate_id TEXT NOT NULL,
+        cleanup_binding TEXT NOT NULL,
+        database_binding TEXT NOT NULL,
+        owner_email TEXT, session_generation TEXT,
+        state TEXT NOT NULL CHECK(state IN ('pending','scrubbing','completed')),
+        research_erased INTEGER NOT NULL DEFAULT 0 CHECK(research_erased IN (0,1)),
+        legacy_attempted INTEGER NOT NULL DEFAULT 0 CHECK(legacy_attempted IN (0,1)),
+        legacy_receipt_json TEXT CHECK(legacy_receipt_json IS NULL OR json_valid(legacy_receipt_json)),
+        research_counts_json TEXT NOT NULL DEFAULT '{}',
+        result_json TEXT, created_at TEXT NOT NULL, completed_at TEXT
+    )""",
+    """CREATE UNIQUE INDEX IF NOT EXISTS auth_one_pending_deletion
+        ON auth_deletion_jobs(owner_key) WHERE state!='completed'""",
 )
 
 
@@ -133,7 +154,7 @@ class AuthStore:
         with _INITIALIZATION_LOCK:
             _ensure_wal_mode(self.path)
 
-        with _INITIALIZATION_LOCK, self._connection() as conn:
+        with _INITIALIZATION_LOCK, self._connection(bootstrap=True) as conn:
             # BEGIN IMMEDIATE is the cross-process migration lock. All schema
             # inspection happens after it is acquired so a process that waited
             # for another migrator cannot act on stale PRAGMA table_info data.
@@ -141,6 +162,7 @@ class AuthStore:
             try:
                 for statement in _BASE_SCHEMA_STATEMENTS:
                     conn.execute(statement)
+                self.check_gate_policy(conn, initialize=True)
                 revoked_columns = {
                     row[1]
                     for row in conn.execute(
@@ -162,6 +184,16 @@ class AuthStore:
                         "SET session_generation=lower(hex(randomblob(16))) "
                         "WHERE session_generation IS NULL"
                     )
+                if "lifecycle" not in user_columns:
+                    conn.execute("ALTER TABLE auth_users ADD COLUMN lifecycle TEXT NOT NULL DEFAULT 'active' CHECK(lifecycle IN ('active','deleting'))")
+                deletion_columns = {row[1] for row in conn.execute("PRAGMA table_info(auth_deletion_jobs)")}
+                if "legacy_attempted" not in deletion_columns:
+                    conn.execute("ALTER TABLE auth_deletion_jobs ADD COLUMN legacy_attempted INTEGER NOT NULL DEFAULT 0 CHECK(legacy_attempted IN (0,1))")
+                    # An older pending job may already have committed legacy
+                    # deletes. Missing a receipt is not proof of no attempt.
+                    conn.execute("UPDATE auth_deletion_jobs SET legacy_attempted=1")
+                if "legacy_receipt_json" not in deletion_columns:
+                    conn.execute("ALTER TABLE auth_deletion_jobs ADD COLUMN legacy_receipt_json TEXT CHECK(legacy_receipt_json IS NULL OR json_valid(legacy_receipt_json))")
                 epoch_columns = {
                     row[1]
                     for row in conn.execute(
@@ -193,7 +225,7 @@ class AuthStore:
                 raise
 
     @contextmanager
-    def _connection(self) -> Iterator[sqlite3.Connection]:
+    def _connection(self, *, bootstrap=False) -> Iterator[sqlite3.Connection]:
         conn = sqlite3.connect(self.path, timeout=10, isolation_level=None)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA busy_timeout=10000")
@@ -201,6 +233,8 @@ class AuthStore:
         # not merely unlink rows into the freelist.
         conn.execute("PRAGMA secure_delete=ON")
         try:
+            if not bootstrap:
+                self.check_gate_policy(conn)
             yield conn
         finally:
             conn.close()
@@ -296,10 +330,13 @@ class AuthStore:
 
     def add_token(self, token_hash: str, email: str, created_at: str, expires_at: str) -> None:
         with self._connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            self.require_registration_allowed(conn, email)
             conn.execute(
                 "INSERT INTO magic_tokens(token_hash,email,created_at,expires_at) VALUES(?,?,?,?)",
                 (token_hash, email, created_at, expires_at),
             )
+            conn.commit()
 
     def consume_token(self, token_hash: str, consumed_at: str) -> tuple[Optional[dict], str]:
         with self._connection() as conn:
@@ -324,6 +361,7 @@ class AuthStore:
     def ensure_user_and_notification(self, email: str, tier: str, created_at: str) -> tuple[dict, bool]:
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
+            self.require_registration_allowed(conn, email)
             created = conn.execute(
                 "INSERT OR IGNORE INTO auth_users(email,tier,created_at,session_generation) "
                 "VALUES(?,?,?,lower(hex(randomblob(16))))",
@@ -344,6 +382,7 @@ class AuthStore:
         """Create/login atomically unless the credential predates deletion."""
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
+            self.require_registration_allowed(conn, email)
             deleted_at = _deletion_epoch_for_email(conn, email)
             if deleted_at and token_created_at <= deleted_at:
                 conn.rollback()
@@ -366,6 +405,54 @@ class AuthStore:
         with self._connection() as conn:
             row = conn.execute("SELECT * FROM auth_users WHERE email=?", (email,)).fetchone()
             return dict(row) if row else None
+
+    @staticmethod
+    def owner_key(email: str) -> str:
+        return opaque_identifier("account-owner.gate", email, kind="email")
+
+    @staticmethod
+    def check_gate_policy(conn, *, initialize=False):
+        fingerprint = opaque_identifier("account-owner.policy", "single-host-gate-v1", kind="opaque")
+        row = conn.execute("SELECT fingerprint FROM auth_owner_gate_policy WHERE id=1").fetchone()
+        if row is None and initialize:
+            if conn.execute("SELECT 1 FROM auth_owner_gates LIMIT 1").fetchone():
+                raise RuntimeError("account owner gate policy is missing")
+            conn.execute("INSERT INTO auth_owner_gate_policy VALUES(1,?)", (fingerprint,))
+        elif row is None or row["fingerprint"] != fingerprint:
+            raise RuntimeError("account owner gate configuration mismatch")
+
+    @classmethod
+    def require_registration_allowed(cls, conn, email):
+        pending = conn.execute("SELECT 1 FROM auth_deletion_jobs WHERE owner_key=? AND state!='completed'", (cls.owner_key(email),)).fetchone()
+        user = conn.execute("SELECT lifecycle FROM auth_users WHERE email=?", (email,)).fetchone()
+        if pending is not None or (user is not None and user["lifecycle"] != "active"):
+            raise DeletedCredentialError("account deletion is pending")
+
+    @classmethod
+    def owner_gate_in(cls, conn, email: str, preferred: str | None = None) -> str:
+        key = cls.owner_key(email)
+        row = conn.execute("SELECT gate_id FROM auth_owner_gates WHERE owner_key=?", (key,)).fetchone()
+        if row is not None:
+            return row["gate_id"]
+        # Preserve already-created research lock inodes during the v1 upgrade.
+        has_principals = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='research_principals'").fetchone()
+        if preferred is None and has_principals:
+            principal = conn.execute("SELECT id FROM research_principals WHERE normalized_email=? ORDER BY created_at,id LIMIT 1", (email,)).fetchone()
+            preferred = principal["id"] if principal else None
+        gate_id = preferred or str(uuid.uuid4())
+        conn.execute("INSERT INTO auth_owner_gates VALUES(?,?)", (key, gate_id))
+        return gate_id
+
+    def owner_gate_id(self, email: str) -> str:
+        with self._connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            result = self.owner_gate_in(conn, email.strip().lower())
+            conn.commit()
+            return result
+
+    def deletion_pending(self, email: str) -> bool:
+        with self._connection() as conn:
+            return conn.execute("SELECT 1 FROM auth_deletion_jobs WHERE owner_key=? AND state!='completed'", (self.owner_key(email),)).fetchone() is not None
 
     def account_deletion_epoch(self, email: str) -> Optional[str]:
         """Return the retained owner-hash epoch without exposing raw identity."""

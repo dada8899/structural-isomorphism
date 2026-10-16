@@ -270,6 +270,66 @@ collector、原54pin、生产Papers、helper、Make、CI、原grade和预算未�
 
 浏览器context／browser和静态服务沿各原fixture finally收尾，测试observer在finally disconnect；没有遗留服务或新采证资源。本卡仅上述i18n函数、三个测试文件及本记录，未改预算、fixture、测量、旧source pins、Make、CI或其他回调。没有HTTP研究、真实模型、费用、SSH、trace、Profiler、新marker、提交或推送。作者至此停写，交PMO精确五路径Git提交、当前SHA独审，再执行一次正常CI核实性能；本机语言验证通过不代表202ms性能失败已关闭。
 
+## Research 组合后的 OpenAPI 与 sanity Chromium 返修
+
+日期：2026-10-17。分支 `codex/structure-research-ci-20261017`，基线 `742c0732627ab34f78139e82b17cb7b65b62a83b`。组合独审指出两个P1：新增Research router未进入提交的OpenAPI快照；sanity的root release选择会运行本机研究页面浏览器用例，但只安装Playwright包，未安装Chromium。
+
+复用既有发布匹配环境，实际Python3.11.15、FastAPI0.135.0、Pydantic2.7.4、Starlette1.3.1，与当前requirements精确schema pins一致；没有新建环境或安装依赖。运行原 `openapi-generate` 和 `openapi-check` Make目标，生成器原有当前工作树导入检查、schema运行版本检查及稳定hash seed全部保留。快照新增的12个路径与当前Research router装饰器及HTTP方法逐项相等，路径总数105→117；原105个路径内容、原136个schema逐项不变。生成物SHA-256为 `b464a58775f2aaafa842d15c4a45562b93aadd102809daf36da46e2a9132c234`。
+
+sanity仅在既有 `python -m pip install playwright==1.59.0` 后增加 `python -m playwright install --with-deps chromium`。没有修改原触发器、权限、并发、job期限、依赖版本或任何检查，也没有skip。这个命令只写入workflow，本机未下载或安装浏览器。
+
+验证：原 `make openapi-check` 显示in_sync、退出0；完整 `web/backend/tests/test_openapi_artifact.py` **12 passed、退出0**，含跨进程hash seed／外来工作树注入的确定性和漂移拒绝；原 `tests/test_integration_ci_contract.py` 与 `tests/test_shell_python_heredocs.py` **112 passed、退出0**。actionlint、JSON／路由集合与已有schema对照、差异检查通过。生成器保留一条既有Pydantic namespace warning。没有运行实际Linux安装／CI，不将本机生成或静态检查当成Linux浏览器已验收。
+
+本卡仅OpenAPI快照、sanity workflow及本记录三路径；不改生成器、Make、测试、fixture、锁、业务源码或Core并行schema5工作树。没有网络研究、真实模型、费用、SSH、trace、提交或推送。作者停写，交PMO精确三路径提交及原Astra当前SHA复审，再由后续CI核实际Linux结果。
+
+## Sanity spawn 模块身份返修与 tracker 失败诊断
+
+日期：2026-10-17，源基线 `fbd0b9ee01e6c0036e042ba2a4e58e7e0fadc6d8`。旧474 sanity实红为2051 passed／1 skipped／8 failed；其中三项持久化进程用例在执行数据库或锁之前，spawn重导入 `tests.test_research_persistence` 失败。独审已复现：backend-first先缓存backend的tests，universality随后将repo root放到前面，新解释器把tests解析成root测试包。原隔离文件34 passed不能覆盖这个确定组合反例；不是增加等待可修复。
+
+只将 `_api_process`／`_hold_gate` 两个spawn目标移入规范模块 `web.backend.tests.research_process_fixture`，API目标延迟引用原规范persistence模块的app/post，不复制应用。测试文件仅在缺少repo root时追加到导入路径末尾以供规范模块加载，不改生产路径或重命名全局tests包。原全部测试函数／fixture的AST保持；hold_gate原逻辑逐字相同，API目标只多一条规范app/post导入，原HTTP、DB、OS gate、超时和断言不变。
+
+新增对照在独立、可清理的测试进程内实际按cwd=backend缓存旧tests，再仅import universality使root-first，核缓存与两个target的规范身份，执行原两API进程参数用例和锁inode／退出恢复用例，要求内部3 passed。新测试自己的监督进程超时会关闭本测试独占进程组，原测试内部所有时间保持。最终持久化完整文件 **35 passed、退出0（4.34秒）**，含原34项与此对照，一条既有依赖warning；使用既有发布匹配Python3.11环境，未安装依赖。
+
+另五个Linux lifetime cutpoint的tracker漏识仍为**根因未知**，没有将Mac的结果或ps截断推断当成修复。原 `_private_trackers` 与 `len(trackers)==1` 严格断言保持；仅在len不为1时输出一次安全JSON。先用纯数字pid／ppid／pgid建立本测试独占parent／sender／子族，再对该集合取普通及ww ps，只输出存在、归属、zombie及tracker／spawn标记布尔，不返回命令；Linux/proc也仅对该集合读取PPID／comm-python／tracker标记布尔，其他PPID脱敏为null，不输出路径、argv、env、配置或全机进程。阶段字段经白名单。没有新增来源请求、延长stage或修改生产。
+
+两个新增纯诊断测试以合成进程表／临时proc验证：非归属进程、命令canary及路径不能出现在JSON，普通／wide／proc标记仍可区分；ps异常不回显原错误。lifetime当前完整文件 **9 passed、退出0（35.50秒）**（原7项＋诊断2项）。AST核对删除新增失败诊断if后，原cutpoints、超时、kill、gate及late GET断言与原函数完全相等。所有本机服务器、请求父子进程与pipe／queue沿原finally收尾；新对照也有独占进程组收束。Linux诊断分支真实数据尚待后续正常CI观测，当前不宣称五项Linux失败已关闭。
+
+本卡仅上述两个测试文件、新规范helper及本记录；不改应用、CI、依赖、原schema literal或Core并行实现，不提交／推送或重跑旧CI。作者停写，交PMO精确四路径及当前SHA独审，旧红保留。
+
+## 0ed 独审 P2：监督父退出后的独占组收束
+
+日期：2026-10-17，基线 `0ed3667ec44364ee1f74a63f9a4885a3ba6209da`。独审实证：原监督器的communicate遇到TimeoutExpired时，父pytest可能已经exit0，而后代仍持stdout管道；按poll是否存活决定kill会漏清理后代。本卡将启动与监督收束到测试helper的 `_run_owned_probe`：由函数自身创建并登记start_new_session独占组，任何异常都对该登记组清理，不以父进程poll结果为前提；组已不存在时正常处理，回收直接子进程后保持原异常。正常结果不终止其他组。
+
+新增真实对照让父先exit0、后代仍在原组并实际继承管道，确认父已退出、子仍属该登记组后，在测试侧把communicate等待缩短为0.05秒以取得真实TimeoutExpired，监督器代码仍传120秒。异常后核后代不再运行（若等待init回收的zombie则明确按非运行判断），stdout/stderr关闭。另建独立session对照，正常probe完成后其仍存活，最后由创建它的测试正常关闭。两项对照均有自身finally收尾；没有信号发送到未登记的外部组。
+
+最终持久化完整文件 **37 passed、退出0（4.59秒）**，含原35项及新增2项，一条既有依赖warning。原API／DB／OS gate测试和两个规范spawn目标AST全部原样，原15／20秒等超时及断言不变；只替换root-first新增对照的监督器调用。lifetime诊断文件完全未改，不重复运行，Linux tracker根因仍未知。AST、精确差异与空白检查通过。作者停写，仅helper、persistence测试及本记录三路径交PMO新exact头独审；无应用、CI、依赖或其他改动，无提交／推送，旧CI实红保留。
+
+## 44cb Linux tracker 宽度漏识返修
+
+日期：2026-10-17，基线 `44cb2630e6bef1f82f0e1b36767e2dfb54396480`。PMO回收正常Linux sanity run `38959032823`／job `117169128008`：2059 passed／1 skipped／5 failed，前三项spawn已关闭，只剩tracker。五项safe JSON均显示同一已归属tracker的normal_ps标记false、wide_ps和/proc标记true，PPID精确属于独占parent；现在有Linux实证支持命令显示宽度漏标记，不再沿用“根因未知”判断。
+
+本卡唯一原逻辑变化是 `_private_trackers` 的ps命令增加 `-ww`。原PPID／marker过滤、严格len==1、安全失败诊断、所有cutpoints、SIGKILL、原期限、OS gate、late GET与资源收尾断言逐项原样，未改SourcePolicy、sender或内核策略。
+
+新增独立读取对照创建本机独占parent／长argv子进程；`-ww`使用真实OS ps读取完整标记，普通显示在测试侧确定截断为80列后无法识别，避免依赖Mac默认显示宽度。输出只校验归属PID及标记，不打印命令。foreign PPID、错误marker、空结果和ps错误四项对照保持拒绝，未允许0或skip；新增进程组在finally关闭。既有Linux原始诊断仍为此次根因依据，本机受控截断不冒Linux实测。
+
+既有Python3.11环境最终完整lifetime文件 **14 passed、退出0（35.58秒）**（原9＋新增5）；原persistence选取root-first真实spawn对照及两项监督器收尾对照 **3 passed、退出0（2.13秒）**，不重复无关大套，一条既有依赖warning。AST与原源码前缀对照确认，全部原函数只有ps参数这一项变化；差异检查通过。仅本测试文件和本记录停写交PMO原Astra复审，待后续新head正常CI执行真实Linux寿命断言；不提前宣称Linux五项已绿。没有应用、公开源、CI、依赖、预算、凭据或费用改动，无新trace、提交或推送，44cb旧红保留。
+
+## fb 正常 CI 的研究页隐私分类与 root coverage 接线
+
+日期：2026-10-17。独立工作区分支 `codex/structure-research-ci-20261017`，基线 `fb8491e772fb996c0819494a1e8e88ce77b3d92f`。原 Source 工作区不动。只读核原正常 sanity run `38961375038`／job `117177000087`：Leg2成功，Leg3唯一失败为新增research页使public计数28而非27；该步1848 passed、160 skipped、1 deselected、53 subtests passed、1 failed。coverage run `38961375187`／job `117177000462` 的各套执行和package测量检查成功，但总覆盖率77.0%＜80，后续90%检查未执行；旧红保留，不重跑采绿。
+
+`research.html` 与实际bundle `assets/research.js` 没有analytics loader／调用，且含私密问题、query与task标识。测试将research明确列为nonpublic／private，原27数值不改；新增HTML和正确bundle路径无追踪的合同。原loader不在research路径安装或发事件，无需修改生产allowlist或给私密页安装追踪。新Node用例覆盖10种research路径／编码形式，即使既有opt-in、显式allow或保留从public页面取得的发送函数，也不新增请求；保留合法public paper slug与原全部Node用例。
+
+coverage原矩阵没有收集root研究合同，六个公式／provider生产文件合1455语句均0%。原combine前仅追加同rcfile、独立parallel run，精确点名evidence、sources、formula、provider_adapter、model_report五个已有root文件；不泛扫浏览器或生成器测试。原source／omit、全部旧套件、15分钟、80%与六文件90%门槛不变。新增严格接线合同核五路径、parallel、rcfile、combine顺序，并冻结原job语义／覆盖配置；九类缺路径、吞错、弱阈值等变体拒绝。
+
+发布匹配既有环境的静态合同组合 **243 passed、退出0**；Node原集合加研究路由反例 **17 passed**。旧Python测试函数和原Node用例保持，actionlint、AST／精确差异检查通过。现场56个LFS对象均为完整内容，无额外数据恢复、依赖安装或runtime修改。
+
+实际本机coverage使用获准的既有完整Python3.11环境；其FastAPI0.115.14／Pydantic2.6.1与CI新发布依赖不同，不能冒锁匹配结果。四个包显式从当前checkout导入，OpenAPI子进程指向既有发布匹配环境；不写入运行配置。初次backend采集 **2061 passed、1 skipped、8 failed** 原日志完整保留：七项是本地禁autoload后漏载已有AnyIO插件，一项是旧环境FastAPI版本断言。只追加测量七异步项，显式已有插件后 **7 passed**；版本断言在发布匹配环境单独 **1 passed**，没有修改／跳过该断言，也没有将局部结果合写为旧环境整套通过。
+
+其余原测量：guarded111、cross-judge162、critic50、v4 sanity201、soc原选择59均passed；新增五root文件 **215 passed、2个原Mac/Linux差异skip、53 subtests passed**。实际parallel数据完成combine，17025语句分母不变，14566行覆盖、2459缺失，**85.6%**；显式原global80命令、四个package最低1和六个critical90命令均退出0。critical依次为100.0／98.1／99.0／97.3／100.0／97.3%。公式／provider六文件分别63.8／94.2／91.0／99.1／91.6／98.0%，不冒每模块90或子进程全覆盖。
+
+受限私有目录保留原失败日志、补测日志、parallel合并数据及coverage.json，均不含真实凭据或资金配置；只作本地带环境差异的采样，正常Linux新head必须完整通过。所有本任务测试进程／服务已沿原finally收尾，无待运行coverage进程。本卡只五个获准路径，不改应用、Source／CONTRACT、账本、费用、runtime或阈值。作者停写交PMO精确提交及原Astra独审，未提交／推送或触发CI。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。
