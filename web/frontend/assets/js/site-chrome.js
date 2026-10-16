@@ -6,7 +6,7 @@
  * this script fills both with identical markup so navigation is consistent
  * across the whole site.
  *
- * Core nav: 开始研究 / 工具 / 我的报告 / 关于. The logo already provides
+ * Core nav: 开始研究 / 我的研究 / 资料线索. The logo already provides
  * the home affordance; cold-start users must never land on parameter-only
  * /analyze.
  * Mobile (<=720px): the inline nav collapses into an iOS-style hamburger
@@ -26,25 +26,24 @@
     return fallback;
   }
 
-  // Core navigation — the homepage is the actual research workbench.
+  // Public entry points; private input is never carried in navigation URLs.
   var NAV = [
-    { href: '/', key: 'nav.start_here', label: '开始研究' },
-    { href: '/tools', key: 'nav.tools', label: '工具' },
-    { href: '/about', key: 'nav.about', label: '关于' },
+    { href: '/research', key: 'nav.start_here', label: '开始研究' },
+    { href: '/research#my-research', key: 'nav.my_research', label: '我的研究' },
+    { href: '/classes', key: 'nav.reference_clues', label: '资料线索' },
   ];
 
   // Pages that live under the 工具 hub (SESSION-18) — visiting any of them
   // marks 工具 as the current nav item.
-  var TOOLS_PATHS = [
-    '/tools', '/whitespace', '/apply', '/stress-test', '/lint',
-    '/diagnose', '/insights', '/discoveries', '/classes',
-    '/connections',
-  ];
+  var RESOURCE_PATHS = ['/classes', '/discoveries', '/papers'];
 
   // Footer links — kept short and identical everywhere.
   var FOOTER_LINKS = [
     { href: '/about', key: 'footer.about', label: '关于', external: false },
-    { href: '/reports', key: 'nav.reports', label: '我的研究', external: false },
+    { href: '/discoveries', key: 'nav.discoveries', label: '候选发现', external: false },
+    { href: '/papers', key: 'nav.papers', label: '历史研究资料', external: false },
+    { href: '/tools', key: 'nav.legacy_tools', label: '旧工具（历史入口）', external: false },
+    { href: '/reports', key: 'nav.legacy_reports', label: '旧报告（历史）', external: false },
     { href: '/privacy', key: 'footer.privacy', label: '隐私政策', external: false },
     { href: 'https://github.com/dada8899/structural-isomorphism', key: 'footer.github', label: 'GitHub', external: true },
   ];
@@ -57,8 +56,8 @@
     if (p === '/index.html') return '/';
     // strip a trailing .html so /about.html matches /about
     var noExt = p.replace(/\.html$/, '');
-    // SESSION-18 — any tool page highlights the 工具 hub.
-    if (TOOLS_PATHS.indexOf(noExt) !== -1) return '/tools';
+    if (noExt === '/research' || noExt.indexOf('/research/') === 0) return window.location.hash === '#my-research' ? '/research#my-research' : '/research';
+    if (RESOURCE_PATHS.indexOf(noExt) !== -1 || noExt.indexOf('/paper/') === 0) return '/classes';
     return noExt || '/';
   }
 
@@ -103,7 +102,7 @@
           navLinksHtml('site-header__nav-link') +
           langToggleHtml('lang-toggle', 'site-header__lang-toggle') +
         '</nav>' +
-        '<a href="/auth/login?next=%2Freports" class="site-header__account-cta" ' +
+        '<a href="/auth/login?next=%2Fresearch" class="site-header__account-cta" ' +
           'data-auth-state="loading" aria-live="polite">登录以同步</a>' +
         '<button type="button" class="site-header__menu-btn" id="site-menu-btn" ' +
           'aria-label="打开菜单" aria-expanded="false" aria-controls="site-menu-drawer">' +
@@ -189,7 +188,7 @@
         : (authenticated
           ? (lang === 'en' ? 'My research' : '我的研究')
           : (lang === 'en' ? 'Sign in to sync' : '登录以同步'));
-      cta.href = authenticated ? '/reports' : '/auth/login?next=%2Freports';
+      cta.href = authenticated ? '/research#my-research' : '/auth/login?next=%2Fresearch';
       cta.dataset.authState = conflicted ? 'conflict' : (authenticated ? 'authenticated' : 'anonymous');
     }
 

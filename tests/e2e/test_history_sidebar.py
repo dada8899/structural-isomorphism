@@ -222,7 +222,9 @@ def test_sidebar_private_history_and_main_navigation(sidebar_page):
     assert json.loads(state)["query"] == QUERY
 
     page.goto(origin + "/analyze.html", wait_until="load")
-    tools = page.locator(".site-header__nav a[href='/tools']")
+    expect(page.locator(".site-header__nav a[href='/classes']")).to_be_visible()
+    expect(page.locator(".site-header__nav a[href='/tools']")).to_have_count(0)
+    tools = page.locator(".site-footer__link[href='/tools']")
     expect(tools).to_be_visible()
     tools.click()
     page.wait_for_url(origin + "/tools")

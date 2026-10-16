@@ -1,4 +1,8 @@
 {
+  "nav.my_research": {"zh": "我的研究", "en": "My research"},
+  "nav.reference_clues": {"zh": "资料线索", "en": "Reference clues"},
+  "nav.legacy_tools": {"zh": "旧工具（历史入口）", "en": "Legacy tools"},
+  "nav.legacy_reports": {"zh": "旧报告（历史）", "en": "Legacy reports"},
   "nav.start_here": {
     "zh": "开始研究",
     "en": "Start research"

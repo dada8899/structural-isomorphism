@@ -436,6 +436,17 @@ def test_public_control_contract() -> None:
     assert errors == []
 
 
+def test_existing_research_route_and_static_entry_anchors_are_exact() -> None:
+    from scripts.check_public_controls import ControlParser
+    parser=ControlParser(Path("entry-route-fixture.html"))
+    for href in ("/research","/research#my-research","/research#kb-section"):
+        parser.feed(f'<a href="{href}">Research</a>')
+    assert parser.errors==[]
+    unknown=ControlParser(Path("entry-route-fixture.html"))
+    unknown.feed('<a href="/research-typo">Unknown</a>')
+    assert len(unknown.errors)==1 and "unknown local route: /research-typo" in unknown.errors[0]
+
+
 def test_inventory_has_links_and_buttons() -> None:
     controls, _ = run()
     assert any(item["tag"] == "a" for item in controls)
@@ -2164,7 +2175,7 @@ def test_phase_auth_navigation_is_wired_and_fail_closed() -> None:
 def test_beta_auth_entry_is_user_visible_and_canonical() -> None:
     chrome = (ROOT / "web/frontend/assets/js/site-chrome.js").read_text(encoding="utf-8")
     backend = (ROOT / "web/backend/main.py").read_text(encoding="utf-8")
-    assert '/auth/login?next=%2Freports' in chrome
+    assert '/auth/login?next=%2Fresearch' in chrome
     assert "登录以同步" in chrome
     assert "我的研究" in chrome
     assert "fetch('/api/auth/me'" in chrome
@@ -2176,7 +2187,10 @@ def test_beta_auth_entry_is_user_visible_and_canonical() -> None:
 
 def test_primary_navigation_starts_at_the_real_workbench() -> None:
     chrome = (ROOT / "web/frontend/assets/js/site-chrome.js").read_text(encoding="utf-8")
-    assert "{ href: '/', key: 'nav.start_here', label: '开始研究' }" in chrome
+    assert "{ href: '/research', key: 'nav.start_here', label: '开始研究' }" in chrome
+    assert "{ href: '/research#my-research', key: 'nav.my_research'" in chrome
+    assert "{ href: '/classes', key: 'nav.reference_clues'" in chrome
+    assert "{ href: '/tools', key: 'nav.tools'" not in chrome
     assert "{ href: '/analyze', key: 'nav.analyze'" not in chrome
 
 
@@ -2288,6 +2302,11 @@ def test_beta_entry_copy_uses_current_counts_timing_and_claim_boundary() -> None
         assert stale not in copy
     assert "597 个 demo ticker" in copy
     assert "2–3 分钟" in copy
+    index = (ROOT / "web/frontend/index.html").read_text(encoding="utf-8")
+    assert "2–3 分钟" not in index
+    assert 'id="start-research"' in index and 'href="/research"' in index
+    assert 'method="post" action="/research"' in index
+    assert 'data-legacy-ask-retired' in index
     assert "机制是否一致仍需验证" in copy
 
 

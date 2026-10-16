@@ -3,6 +3,11 @@
   'use strict';
   const byId = id => document.getElementById(id);
   const form = byId('problem-form');
+  // Keep first-time sign-in on the new research entry; legacy pages retain
+  // their own default return target. Never carry private input in next.
+  for (const link of [document.querySelector("header a[href='/auth/login']"), byId('access').querySelector("a[href='/auth/login']")]) {
+    if (link) link.setAttribute('href', '/auth/login?next=%2Fresearch');
+  }
   const schema = 'structure-research-v1';
   const revision = 'b1-candidate-01';
   let current = null;
@@ -27,6 +32,9 @@
   let kbBusy = false;
   let summaryEdited = false;
   let accountScope = null;
+  const initialSection = ['#my-research', '#kb-section'].includes(location.hash) ? location.hash.slice(1) : null;
+  let initialLoad = true;
+  let entryPositioned = false;
   const initialPath = location.pathname.split('/').filter(Boolean);
   let researchId = initialPath.length === 2 ? initialPath[1] : null;
   const selectedTask = new URLSearchParams(location.search).get('task_id');
@@ -287,7 +295,14 @@
       return unavailable();
     }
   }
-  async function loadResearchList(more = false) {
+  function positionInitialSection() {
+    if (entryPositioned || !initialSection || form.hidden) return;
+    const section = byId(initialSection);
+    if (!section || section.hidden) return;
+    entryPositioned = true;
+    section.scrollIntoView({block:'start'});
+  }
+  async function loadResearchList(more = false, positionEntry = false) {
     if (more && (listBusy || !listCursor)) return;
     const generation = ++listGeneration;
     const privateScope = privateGeneration;
@@ -334,6 +349,7 @@
       listCursor = data.next_cursor;
       byId('research-list-more').hidden = !listCursor;
       byId('research-list-status').textContent = listSeen.size ? `已读取 ${listSeen.size} 条研究${listCursor ? '，可加载更多。' : '。'}` : '还没有保存的研究。从上方的现象开始即可。';
+      if (positionEntry && initialSection === 'my-research') positionInitialSection();
     } catch (error) {
       if (!active()) return;
       if (cursor && (error.status === 409 || error.status === 422)) {
@@ -401,6 +417,8 @@
     }
   });
   async function load() {
+    const positionEntry = initialLoad;
+    initialLoad = false;
     const privateScope = privateGeneration;
     if (!await authenticated(() => privateScope === privateGeneration)) return;
     if (!researchId) {
@@ -409,14 +427,16 @@
       form.hidden = false;
       status('新问题尚未保存。');
       byId('my-research').hidden = false;
-      loadResearchList();
+      loadResearchList(false, positionEntry);
+      if (positionEntry && initialSection === 'kb-section') positionInitialSection();
       return;
     }
     if (!validId(researchId)) { clearPrivateView(); status('研究链接无效。', true); return; }
     if (selectedTask && !validId(selectedTask)) { clearPrivateView(); status('流程链接无效。', true); return; }
     render(await request(viewUrl()));
     byId('my-research').hidden = false;
-    loadResearchList();
+    loadResearchList(false, positionEntry);
+    if (positionEntry && initialSection === 'kb-section') positionInitialSection();
     await recoverSourceIntent();
     if (!editNotice()) status('已从账户读取保存的问题；尚未执行研究。');
   }

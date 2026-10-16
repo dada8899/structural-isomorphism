@@ -164,7 +164,38 @@
     el.style.overflowY = el.scrollHeight > el.clientHeight ? 'auto' : 'hidden';
   }
 
+  function legacyAskRetired() {
+    return Boolean(document.body && document.body.hasAttribute('data-legacy-ask-retired'));
+  }
+
+  function scrubLegacyQuery() {
+    try {
+      var legacyUrl = new URL(window.location.href);
+      var query = legacyUrl.searchParams.get('q');
+      if (legacyUrl.searchParams.has('q')) {
+        legacyUrl.searchParams.delete('q');
+        window.history.replaceState(window.history.state, '', legacyUrl.pathname + legacyUrl.search + legacyUrl.hash);
+      }
+      return query;
+    } catch (e) { return null; }
+  }
+
+  function showLegacyRetired() {
+    scrubLegacyQuery();
+    var note = qs('#legacy-ask-status');
+    if (note) note.textContent = T('page.home.entry_legacy', '旧 AI 报告入口已停用。已有资料和旧工具仍可按历史入口查看。');
+  }
+
   function initAskPage() {
+    // Keep privacy cleanup even when the retired page does not bind inputs.
+    var legacyQuery = scrubLegacyQuery();
+    if (legacyAskRetired()) {
+      qsa('#ask-form, #ask-followup-form').forEach(function (form) {
+        form.addEventListener('submit', function (event) { event.preventDefault(); showLegacyRetired(); });
+      });
+      showLegacyRetired();
+      return;
+    }
     var form = qs('#ask-form');
     if (form) {
       var submitBtn = qs('.ask-searchbox__submit', form);
@@ -256,26 +287,17 @@
     // upstream access logs; scrub immediately so history/referrers and every
     // subsequent same-origin request do not propagate the question further.
     try {
-      var legacyUrl = new URL(window.location.href);
-      var qParam = legacyUrl.searchParams.get('q');
-      if (qParam) {
-        legacyUrl.searchParams.delete('q');
-        window.history.replaceState(
-          window.history.state,
-          '',
-          legacyUrl.pathname + legacyUrl.search + legacyUrl.hash
-        );
-      }
-      if (qParam && qParam.trim()) {
+      if (legacyQuery && legacyQuery.trim()) {
         // Tag the upcoming submit; submitQuery normalises 'empty' for
         // first-from-landing, so we keep 'deeplink' explicit instead.
         nextSubmitSource = 'deeplink';
-        openFingerprintReview(qParam.trim());
+        openFingerprintReview(legacyQuery.trim());
       }
     } catch (e) {}
   }
 
   function bindExampleChips() {
+    if (legacyAskRetired()) return;
     qsa('.ask-chip[data-example-q]').forEach(function (chip, index) {
       chip.addEventListener('click', function () {
         var q = chip.getAttribute('data-example-q') || '';
@@ -398,6 +420,7 @@
   }
 
   function openFingerprintReview(query, initialFingerprint, initialError) {
+    if (legacyAskRetired()) { showLegacyRetired(); return; }
     var panel = qs('#ask-fingerprint');
     var summary = qs('#ask-fingerprint-summary');
     if (!panel || !summary) {
@@ -428,6 +451,7 @@
   }
 
   function bindFingerprintReview() {
+    if (legacyAskRetired()) return;
     var panel = qs('#ask-fingerprint');
     var confirm = qs('#ask-fingerprint-confirm');
     var cancel = qs('#ask-fingerprint-cancel');
@@ -490,6 +514,7 @@
   // Submit + state transition
   // ============================================================
   function submitQuery(query, fingerprint) {
+    if (legacyAskRetired()) { showLegacyRetired(); return; }
     if (!query) return;
 
     // Abort any in-flight stream
