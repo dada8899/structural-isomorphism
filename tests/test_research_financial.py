@@ -62,6 +62,45 @@ def future_fx(period, value, name, *, from_currency="USD", to_currency="CNY"):
 
 
 class FinancialTests(unittest.TestCase):
+    def test_cost_fact_anchor_must_match_accounting_basis(self):
+        data, registry = fixture()
+        cost = data["scenarios"][0]["costs"][0]
+        cost["mode"] = "amount"
+        cost["values"] = annual_values("expense", "85", unit="million", currency="CNY")
+        anchor = replace(registry.observations[0], id=uid(), metric="operating_cost", period=Period(**fy(2026)), amount=FinancialAmount("85", "CNY", "million"), accounting_basis="different_adjusted_scope")
+        registry = replace(registry, observations=registry.observations + (anchor,))
+        p = cost["values"][0]["parameter"]
+        p.update(independent=False, anchor_observation_id=anchor.id)
+        with self.assertRaisesRegex(FinancialError, "anchor accounting basis mismatch"):
+            evaluate_financial(data, registry)
+        same_basis = replace(anchor, accounting_basis=data["scenarios"][0]["accounting_basis"])
+        same_registry = replace(registry, observations=registry.observations[:-1] + (same_basis,))
+        self.assertEqual(rows(evaluate_financial(data, same_registry))[0]["target"]["operating_profit"]["display"], "15.000000")
+        p["independent"] = True
+        output = evaluate_financial(data, registry)
+        self.assertEqual(rows(output)[0]["target"]["operating_profit"]["display"], "15.000000")
+        self.assertEqual(output.export()["snapshot"]["registry_snapshot"]["observations"][-1]["accounting_basis"], "different_adjusted_scope")
+        self.assertTrue(output.export()["snapshot"]["request_snapshot"]["scenarios"][0]["costs"][0]["values"][0]["parameter"]["independent"])
+
+    def test_future_disclosed_anchor_cannot_bypass_cutoff_via_parameter(self):
+        data, registry = fixture()
+        anchor = replace(registry.observations[0], id=uid(), period=Period("2026-07-01", "2026-12-31", "remaining"), amount=FinancialAmount("60", "CNY", "million"), evidence_basis="disclosed")
+        registry = replace(registry, observations=registry.observations + (anchor,))
+        p = data["scenarios"][0]["remaining_revenue"]
+        p.update(anchor_observation_id=anchor.id, independent=False)
+        self.assertNotIn(anchor.id, data["historical_context_refs"])
+        for independent in (False, True):
+            p["independent"] = independent
+            with self.assertRaisesRegex(FinancialError, "future period is not historical actual"):
+                evaluate_financial(data, registry)
+        estimate = replace(anchor, evidence_basis="media_estimate")
+        estimates = replace(registry, observations=registry.observations[:-1] + (estimate,))
+        p["independent"] = False
+        self.assertEqual(rows(evaluate_financial(data, estimates))[0]["target"]["revenue"]["display"], "100.000000")
+        p.update(independent=True, value="65")
+        self.assertEqual(rows(evaluate_financial(data, estimates))[0]["target"]["revenue"]["display"], "105.000000")
+        self.assertEqual(estimates.observation(anchor.id).evidence_basis, "media_estimate")
+
     def test_independent_decimal_golden_bridge_and_five_year_chain(self):
         data, registry = fixture()
         snapshot = evaluate_financial(data, registry)

@@ -41,10 +41,14 @@ class _Evaluation:
             raise FinancialError("2026 observed interim period required")
         source_ids = {v.id for v in self.registry.sources}
         historic_ids = {self.base.id} | set(self.r.historical_context_refs)
+        consumed_ids = historic_ids | {p.anchor_observation_id for s in self.r.scenarios for p in s.parameters() if p.anchor_observation_id is not None}
+        for ref in consumed_ids:
+            obs = self.registry.observation(ref)
+            if obs.evidence_basis == "disclosed" and day(obs.period.end) > cutoff:
+                raise FinancialError("future period is not historical actual")
         for ref in historic_ids:
             obs = self.registry.observation(ref)
             if obs.scope_kind != "group" or obs.entity_scope != self.r.entity_scope: raise FinancialError("mixed entity scope")
-            if obs.evidence_basis == "disclosed" and day(obs.period.end) > cutoff: raise FinancialError("future period is not historical actual")
         for choice in self.r.historical_fx_choices:
             if choice["observation_id"] not in historic_ids: raise FinancialError("FX choice outside selected historical observations")
             obs = self.registry.observation(choice["observation_id"])
@@ -61,6 +65,8 @@ class _Evaluation:
                 if p.anchor_observation_id is not None:
                     obs = self.registry.observation(p.anchor_observation_id)
                     if not p.independent:
+                        if obs.accounting_basis != scenario.accounting_basis:
+                            raise FinancialError("anchor accounting basis mismatch requires independent assumption")
                         if (p.unit not in MILLION_FACTORS or obs.evidence_basis in {"missing", "conflicted"}
                                 or p.period != obs.period or p.currency != obs.amount.currency
                                 or obs.scope_kind != "group" or obs.entity_scope != self.r.entity_scope or p.value is None):
