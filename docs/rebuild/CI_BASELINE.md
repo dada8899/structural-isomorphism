@@ -123,6 +123,16 @@ main／集成／Bootstrap 的原精确触发、schedule 和 dispatch 均保留�
 
 本机是 Mac，没有执行 Linux 73 包安装、CPU Torch import、通用模型下载或真实 SearchService 查询。本地 fixture 只证明校验逻辑及源码绑定机制；Linux 完整安装、包图与模型实际加载／回答必须在组合后 Actions 的当前 SHA 验证。既有 analyze/mobile 性能门槛的失败由相应业务 owner 调查，本轮未改预算、测量、业务代码或对旧 run 盲重试。
 
+## 组合后部署 helper 默认版本返修
+
+组合基线为 `3f00d596c3b76f874c72c3517f7aeeeaa227cc6a`。组合独审发现 P1：`deploy-versioned-runtime.sh` 的默认 FastAPI／Pydantic／Starlette 仍为旧版本，实际部署调用链没有 expected override，导致 `source` 后直接调用 `runtime_validate_direct_pins` 对当前 backend requirements 返回 1。作者以清除 expected-version 环境覆盖的真实 helper 直调用复现，错误为要求旧 FastAPI 精确 pin。
+
+只将 helper 三个默认值改为 0.135.0／2.7.4／1.3.1，uvicorn 0.27.1、override 机制、精确次数检查和全部其他脚本内容不变。逐字归一对照确认整个 helper 等于组合源上的这三项替换。修复后同一无 override 直调用返回 0，实际输出三项新默认与原 uvicorn。
+
+当前 release 的虚拟 runtime 模板同步目标版本；两个故意模拟旧版的失败／恢复场景保留旧 requirements，并显式指定旧 expected。构建失败 fixture 补齐原 helper 已使用的 `-I` 调用形态，并用文件标记证明到达 resolver venv 故障；活动中的不完整 release fixture 明确检查其错误原因，证明没有在默认版本检查处提前退出。原 current／代码／不完整物料保留断言均保持，未把历史输入机械替换为新版本。
+
+新增真实 helper 合同覆盖当前真实 requirements 成功、历史 pin、四项单独漂移、重复／缺失 pin 拒绝，以及历史显式 override 合法且不改变默认。11 项定点合同通过；完整 `test_deploy_versioned_runtime.py` **143 passed，66.82 秒，退出 0**，未跳过或调整阈值。执行器设置 300 秒进程组上限，未触发超时；测试创建的 runtime 模板在结束后清理。`bash -n`、差异空白检查通过；AST 对照确认已有测试体仅两项历史场景作显式路径验证调整，其余原测试体不变。未触任何真实部署、服务、迁移、生产数据或外部付费调用；本轮返修不提交或推送，需新 SHA 的受影响 Astra 复审和必要 CI。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。
