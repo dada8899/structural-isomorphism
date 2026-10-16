@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sqlite3
+from uuid import uuid4
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -18,6 +19,7 @@ if __package__ == "web.backend.api":
     from ..research.provider_schemas import ProviderFailure
     from ..research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery, PaidPreviewEnvelope, PaidConfirmationEnvelope
     from ..research import source_integration
+    from ..research import paid_api_public as paid_public
     from ..research import ResearchService, ResearchStore
 else:
     from api import auth
@@ -26,11 +28,42 @@ else:
     from research.provider_schemas import ProviderFailure
     from research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery, PaidPreviewEnvelope, PaidConfirmationEnvelope
     from research import source_integration
+    from research import paid_api_public as paid_public
     from research import ResearchService, ResearchStore
 
 router = APIRouter(tags=["research"])
 _KEY = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z", re.ASCII)
 _HEADERS = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"}
+_PAID_OPERATIONS = ('paid-preview','paid-confirm')
+
+
+def _paid_response_unavailable():
+    # A response failure does not undo a committed approval. This literal
+    # fallback never depends on a failing DTO validator or ResearchError.body.
+    return JSONResponse({'error':{'code':'RESPONSE_UNAVAILABLE',
+        'message':'响应暂时无法核对，操作可能已保存。请保留原操作标识，核对原记录。',
+        'retryable':False,'allowed_next_actions':[],'incident_id':str(uuid4())}},status_code=503,headers=_HEADERS)
+
+
+def _paid_error_response(error):
+    try:
+        body=paid_public.validate_error_response(error.body())
+        return JSONResponse(body,status_code=error.status,headers=_HEADERS)
+    except Exception:
+        return _paid_response_unavailable()
+
+
+def _paid_success_response(operation,result):
+    try:
+        body=paid_public.validate_success_response(operation,result)
+        return JSONResponse(body,headers=_HEADERS)
+    except Exception:
+        return _paid_response_unavailable()
+
+
+def _paid_responses(operation):
+    return {200:{'model':paid_public.success_response_model(operation)},
+        **{status:{'model':paid_public.ResearchPublicErrorEnvelope} for status in (401,403,404,409,413,422,429,503)}}
 
 
 def enabled():
@@ -146,15 +179,18 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                 result=await run_in_threadpool(source_integration.start_source,service,identity,research_id,envelope.data,key)
             else:
                 result=await run_in_threadpool(service.task_action,identity,research_id,envelope.data,key,operation)
+        if operation in _PAID_OPERATIONS:return _paid_success_response(operation,result)
         return JSONResponse(result, headers=_HEADERS)
     except ResearchError as exc:
+        if operation in _PAID_OPERATIONS:return _paid_error_response(exc)
         return JSONResponse(exc.body(), status_code=exc.status, headers=_HEADERS)
     except ProviderFailure as exc:
         if operation not in ('paid-preview','paid-confirm') or str(exc)!='request_limit':raise
         error=ResearchError('PAYLOAD_LIMIT',413,'最终外发请求超过16KiB上限。')
-        return JSONResponse(error.body(),status_code=error.status,headers=_HEADERS)
+        return _paid_error_response(error)
     except (sqlite3.Error, OSError):
         error = ResearchError("STORE_UNAVAILABLE", 503, "研究存储暂时不可用，请保留当前内容。")
+        if operation in _PAID_OPERATIONS:return _paid_error_response(error)
         return JSONResponse(error.body(), status_code=error.status, headers=_HEADERS)
 
 
@@ -223,11 +259,13 @@ async def source_task(research_id: str,request: Request):
     return await _dispatch(request,research_id=research_id,operation="source-start")
 
 
-@router.post('/research/{research_id}/paid-previews')
+@router.post('/research/{research_id}/paid-previews',
+    openapi_extra={'requestBody':paid_public.request_body_schema('paid-preview')},responses=_paid_responses('paid-preview'))
 async def paid_preview(research_id:str,request:Request):
     return await _dispatch(request,research_id=research_id,operation='paid-preview')
 
 
-@router.post('/research/{research_id}/paid-approvals')
+@router.post('/research/{research_id}/paid-approvals',
+    openapi_extra={'requestBody':paid_public.request_body_schema('paid-confirm')},responses=_paid_responses('paid-confirm'))
 async def paid_confirmation(research_id:str,request:Request):
     return await _dispatch(request,research_id=research_id,operation='paid-confirm')
