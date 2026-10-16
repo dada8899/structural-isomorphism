@@ -62,6 +62,18 @@ PMO 分别批准仅修改这两个函数的精确预期：PR base 为 main 与�
 
 `995e5c2` 的失败检查不能代表新返修候选，旧 No findings 也不覆盖这次改动。PMO 须提交新 SHA、回收 Astra 受影响复审并更新 PR #253，重新核必要检查。旧 run 只能标为失败或被新候选取代，取消不算通过。
 
+## 浏览器保存完成条件返修
+
+候选 `31f868020e5d226352b427394cfb5e7d01b84408` 的 push CI run `38914793667`、job `117019383698` 在 library/auth 隔离组出现一项失败、28 项通过：`test_owner_decision_brief_download_and_create_experiment` 收到 followup POST 200 后立即断言成功文案，实际 DOM 仍为“保存中…”。
+
+直接原因是测试将网络响应事件当作 UI 完成。实际 `analyze.js` handler 先禁用按钮并写保存中，随后等待 fetch 返回、`res.json()` 和下一 Promise 回调，最后才写成功文案；按钮禁用也不是成功证据。本次不改生产 handler，不以无证据的 flaky 标签或重跑旧 SHA 处理。
+
+经 PMO 批准，仅改该测试函数及参数化装饰器，保留下载、375px、指纹、焦点、截止日、真实 POST 200 和最终禁用断言，用 Playwright 的有界自动重试等待真实成功 DOM。正常与 delayed-json 两个 case 均访问原 API；延迟只在测试 browser context 内用手动释放的 JSON Promise 闩阻止 parsed body 交给 handler，未替换请求或返回体。闩未释放时明确断言“保存中…”且不含成功文字，证明旧即时成功断言会失败；释放后成功 DOM 出现，再通过原 GET 接口核对保存的假设、指标、截止日和停止条件。
+
+本地使用现有 pytest／Playwright 1.59.0 和 Chromium：两参数用例 2 passed；完整目标文件 22 passed；所属 library/auth 根浏览器组 64 passed、3 deselected；隔离子组 30 passed；三个所属 JavaScript 信任合同文件全部通过。上述范围有重叠，不相加宣传为唯一测试数。依赖按既有 pnpm 锁离线复用缓存，未改锁、引入新测试框架、增 sleep、扩大超时、skip 或调整阈值。AST 对照确认测试文件仅获准函数和装饰器变化；生产脚本未改。
+
+browser context、Chromium、临时 API／Next 服务均沿 fixture 的 finally 收尾；完成后未见与本工作树对应的遗留测试服务进程。未访问生产或发起付费调用。返修仍由 PMO 提交新 SHA、安排 Astra 受影响复审并核真实 Actions，不把旧 `31f8680` 的失败或旧独审结论冒充新候选结果。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。
