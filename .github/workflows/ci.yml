@@ -149,6 +149,7 @@ jobs:
             pytest_args: >-
               tests/e2e/test_full_public_surface.py
               tests/e2e/test_unified_research_library.py
+              tests/e2e/test_history_sidebar.py
             pytest_args_isolated: >-
               web/tests/e2e/test_thank_you_copy.py
               web/tests/e2e/test_report_share.py
@@ -157,6 +158,7 @@ jobs:
               web/frontend/tests/test_analyticsSensitiveRoutes.js
               web/frontend/tests/test_historyPrivacy.js
               web/frontend/tests/test_reportTrust.js
+              web/frontend/tests/test_historySidebarPerformance.js
           - shard: secondary-whitespace
             pytest_args: >-
               web/tests/e2e/test_secondary_tools_candidate_journeys.py

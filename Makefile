@@ -21,6 +21,7 @@ FRONTEND_NODE_TESTS := \
 	web/frontend/tests/test_askTrust.js \
 	web/frontend/tests/test_buildAnalyzeUrl.js \
 	web/frontend/tests/test_historyPrivacy.js \
+	web/frontend/tests/test_historySidebarPerformance.js \
 	web/frontend/tests/test_privateNavigation.js \
 	web/frontend/tests/test_reportTrust.js \
 	web/frontend/tests/test_searchBootstrap.js \
@@ -39,6 +40,7 @@ BROWSER_CONTRACT_DISCOVERY_CLASSES_PAPERS_TESTS := \
 BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS := \
 	tests/e2e/test_full_public_surface.py \
 	tests/e2e/test_unified_research_library.py \
+	tests/e2e/test_history_sidebar.py \
 	web/tests/e2e/test_thank_you_copy.py \
 	web/tests/e2e/test_report_share.py \
 	web/tests/e2e/test_cross_domain_report_claim.py

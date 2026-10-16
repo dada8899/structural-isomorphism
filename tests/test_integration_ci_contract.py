@@ -29,14 +29,15 @@ PRODUCTION_WORKFLOWS = [
     "release-packages.yml", "publish-pypi.yml",
 ]
 # Semantic snapshots: be3a3c6 jobs, with only the two approved runtime-pin
-# upgrades bridged from source 044e08c (see CI_BASELINE.md).
+# upgrades bridged from source 044e08c, plus the two approved sidebar test
+# paths on a76d6b9 (see CI_BASELINE.md).
 # Trigger expansion must not silently remove work from any existing hard job.
 BASELINE_JOB_DIGESTS = {
     "retrieval-eval-contract": "314bae490885c88c9c6db354267821221f66bc51b1390e02f361c000016d15f8",
     "site-docs-contract": "0f57f4945237fd941c2e8d368de8c45ac77cebb7ef06263d1a8d66367c48a92c",
     "phase-python-contract": "31410b6d2c1aaf8d2d46261b6b9cfdefbcbe0ed0391d6afb119b636356c1dc32",
     "browser-product-contract": "5a7c0ecd56d6300bcf3a3418bdb7ee0f41f2064fb7efa527295d7956b257a205",
-    "browser-beta-surface-contract": "26f0c96a942aa86f5027e4d9048c375200260e343278877992070b0bdeaa5479",
+    "browser-beta-surface-contract": "cc468c8be6afbfe28539a507697c95b4f37e7e5611f8499b7f0445803ab44d18",
     "backend": "1880d457fc00c68ff81deb35c32c75e321c3dc5c6e0cdc793dfab4f030669b4c",
     "packages": "e4aa89e17ef04576287375e0d658dd3b2ee78569cfe6afb7d5d34b933d313fbe",
     "frontend": "bc2d19708c65b0594b78ca090ab06297a5106e1906fb826d4b5e01bce82fbe70",

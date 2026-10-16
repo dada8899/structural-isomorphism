@@ -145,6 +145,23 @@ PyYAML 与 Bash 语法不能判断 GitHub context 可用位置，因此新增可
 
 此结果修复的是解析前置，不是 Linux 安装通过。作者未 dispatch、push、重跑旧 run、调用生产或付费服务；PMO 需提交新 SHA、回收受影响 Astra 复审，再由新的真实 Actions 验证有 job 执行及其实际 Linux 结果。
 
+## Sidebar 回归合同漏接线
+
+基线 `a76d6b97d68cf323211cb0ee3ee052c58c97ab9e` 已包含 sidebar 性能修复及新 Node 合同，但 Make 与 CI 列表漏掉该文件。作者实际复现 `test_frontend_node_gate_cannot_silently_skip_a_contract` 失败：磁盘上的 `web/frontend/tests/test_historySidebarPerformance.js` 不在 Make／CI 的全集中，不能靠减少全集断言或删除测试取得绿灯。
+
+仅在 FRONTEND_NODE_TESTS 增加该 Node，library/auth 的 Make 浏览器列表与 CI 同 shard 的 pytest_args 增加规范路径 `tests/e2e/test_history_sidebar.py`，同 shard node_tests 增加新 Node。原列表、isolated 子组、e2e 条件、工作量及 parser 均保持。逐结构对比证明 CI job 唯一变化是这两条测试路径；browser-beta-surface-contract 的新摘要为 `cc468c8be6afbfe28539a507697c95b4f37e7e5611f8499b7f0445803ab44d18`，其余硬 job 和聚合不动。
+
+Node 合同实际通过，完整 `make test-frontend-node` 通过；B0 硬 job 合同与原漏接线反例组合 107 passed，CI 文件通过 actionlint。规范迁移来自 perf owner 的固定提交 `cd78029c80f53698127c3c2a2cadfc621a318739`；本轮只读该提交确认 ROOT 使用 parents[2]，三项浏览器 case 保持 e2e 标记，Node case 由单独 Node 门禁覆盖，未复制其 WIP 或修改性能实现、测量及预算。
+
+首次接线时该规范文件尚未进入本树，只有旧根路径；缺失路径不是通过证据。PMO 随后合入受审迁移，组合源变为 `91dfd355b6281b4ac1c60a1ed7cfbd2a839dbe14`，四个 CI 接线未提交改动保留，规范文件实际存在。完整 Node 门禁与规范文件四用例通过，CI 文件 actionlint 通过；继续验证发现以下两项确定阻塞，当前不放行：
+
+- 完整 public-controls 与 B0 硬 job 组合为 **208 passed、1 failed**。失败是 `test_makefile_release_authority_is_independently_frozen` 将整个 Makefile 固定为旧摘要 `4b4dfb0608153681fd409d28c3bfd1fea5fecc93aefc550dc6585266d1ffac95`；本次两项合法新增后的摘要为 `9dc5644b315a28704b6041e14d4d30c0d437649daeeda1ef671728f7895733f0`。逐字还原确认只有两条测试路径新增，执行器、recipe 和原列表均未变。未自行改独立冻结断言，已交 PMO／Astra 核准。
+- library/auth 主浏览器组合为 **64 passed、4 deselected、3 setup errors**，隔离 web 子组仍 **30 passed**。sidebar 单文件正常，但 unified-library 使用 pytest-playwright 0.7.2 的 session 级 manager，sidebar fixture 又独立启动 Sync manager，在活动 asyncio loop 中失败；已读取实际插件 fixture 源确认，非产品断言失败或无证 flaky。该 fixture 属 perf 测试 owner，已返其最小复用 manager 处理，CI owner 未抢写、未改 parser 或新建 job 隐藏冲突。
+
+Make 摘要变更随后经 Astra 独立前置核验 No findings，确认只新增两条已受审测试路径，原 recipes／executors／顺序保持。PMO 精确授权只更新 `test_makefile_release_authority_is_independently_frozen` 中的摘要为上述新值，仍做完全相等断言，其他函数不改；完整 public-controls 与硬 job 合同重新运行 **209 passed**。该授权不放行 fixture 混组问题，也不替代整批接线的最终独审。
+
+这些用例在目标版本／Playwright 1.59.0 环境中实际运行，未因缺依赖跳过。仍待原 perf 测试 owner 的 fixture 修复受审合入，再验证真实混组；规范主分组不转为 isolated 逃避，旧 a76 的 Node 覆盖失败与本次新发现均保留。本次接线不提交或推送，不通过删测试、弱化冻结／覆盖断言、改预算或盲重跑取得绿灯。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。
