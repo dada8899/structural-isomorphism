@@ -257,22 +257,35 @@
       : '待核验草稿：这里只回显原话，可直接编辑；尚未进行模型结构化或确认。';
   }
   async function authenticated(isCurrent, signal) {
-    const response = await fetch('/api/auth/me', {cache:'no-store', credentials:'same-origin', signal});
-    if (!isCurrent()) return false;
-    if (!response.ok) {
-      clearPrivateView();
-      status('账户访问已失效，请重新登录。', true);
+    const unavailable = () => {
+      if (isCurrent()) status('账户状态暂时无法核对；草稿与待核对操作已保留，本次后续请求已停止。请稍后主动重试。', true);
       return false;
+    };
+    try {
+      const response = await fetch('/api/auth/me', {cache:'no-store', credentials:'same-origin', signal});
+      if (!isCurrent()) return false;
+      // /auth/me confirms missing, invalid or revoked sessions with 401.
+      // Other HTTP failures alone say nothing about the account's authority.
+      if (response.status === 401) {
+        clearPrivateView(); status('账户访问已失效，请重新登录。', true); return false;
+      }
+      if (!response.ok && response.status !== 409) return unavailable();
+      const payload = await response.json();
+      if (!isCurrent()) return false;
+      if (response.status === 409 && payload?.ok === false && payload.error === 'credential_conflict') {
+        clearPrivateView(); status('账户凭据存在冲突，请重新确认账户。', true); return false;
+      }
+      if (!response.ok || payload?.ok !== true || typeof payload.user?.email !== 'string' || !payload.user.email.trim() ||
+          typeof payload.user.created_at !== 'string' || !payload.user.created_at.trim()) return unavailable();
+      const identity = JSON.stringify([payload.user.email, payload.user.created_at]);
+      if (accountScope && accountScope !== identity) {
+        clearPrivateView(); status('账户已变化，请重新打开研究页面。', true); return false;
+      }
+      accountScope = identity;
+      return true;
+    } catch (error) {
+      return unavailable();
     }
-    const payload = await response.json();
-    if (!isCurrent()) return false;
-    if (!payload.ok || !payload.user?.email || !payload.user?.created_at) throw new Error('账户状态暂时无法核对。');
-    const identity = JSON.stringify([payload.user.email, payload.user.created_at]);
-    if (accountScope && accountScope !== identity) {
-      clearPrivateView(); status('账户已变化，请重新打开研究页面。', true); return false;
-    }
-    accountScope = identity;
-    return true;
   }
   async function loadResearchList(more = false) {
     if (more && (listBusy || !listCursor)) return;
@@ -291,10 +304,16 @@
     }
     byId('research-list-status').textContent = '正在读取当前账户的研究…';
     try {
-      if (!await authenticated(active)) return;
+      if (!await authenticated(active)) {
+        if (active()) byId('research-list-status').textContent = '账户状态尚待核对，列表已停止更新；草稿保持不变。';
+        return;
+      }
       const data = await request('/api/research?limit=20' + (cursor ? '&cursor=' + encodeURIComponent(cursor) : ''), {}, active);
       if (!active()) return;
-      if (!await authenticated(active)) return;
+      if (!await authenticated(active)) {
+        if (active()) byId('research-list-status').textContent = '账户状态尚待核对，列表已停止更新；草稿保持不变。';
+        return;
+      }
       if (!Array.isArray(data.items) || !(data.next_cursor === null || typeof data.next_cursor === 'string')) throw new Error('列表格式暂时无法核对，请刷新列表。');
       byId('my-research').hidden = false;
       for (const item of data.items) {
@@ -350,7 +369,10 @@
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15000);
     try {
-      if (!await authenticated(active, controller.signal)) return;
+      if (!await authenticated(active, controller.signal)) {
+        if (active()) byId('kb-status').textContent = '账户状态尚待核对，未更新线索；请稍后主动重试。';
+        return;
+      }
       const response = await fetch('/api/search', {method:'POST', credentials:'same-origin', cache:'no-store', signal:controller.signal,
         headers:{'Content-Type':'application/json'}, body:JSON.stringify({query, top_k:12, rewrite:false, lang:'zh'})});
       if (!active()) return;
@@ -359,7 +381,10 @@
       if (response.status === 401 || response.status === 404 || data.error?.code === 'AUTHORIZATION_STALE') { clearPrivateView(); status('账户访问已失效，请重新登录。', true); return; }
       if (!response.ok) throw new Error(response.status === 503 ? '知识库当前不可用；当前问题仍可保存。未启动模型或收费研究。' : '知识库查询未完成；当前输入已保留。');
       if (!Array.isArray(data.results)) throw new Error('知识库返回格式暂时无法核对。');
-      if (!await authenticated(active, controller.signal)) return;
+      if (!await authenticated(active, controller.signal)) {
+        if (active()) byId('kb-status').textContent = '账户状态尚待核对，未更新线索；请稍后主动重试。';
+        return;
+      }
       for (const item of data.results) {
         const article = document.createElement('article');
         const title = document.createElement('h3'); title.textContent = item.name;

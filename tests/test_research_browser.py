@@ -1173,3 +1173,102 @@ def test_entry_changed_source_query_rejects_held_real_preview(server):
         finally:
             for route,_ in held:route.abort()
             context.close();browser.close()
+
+
+@pytest.mark.parametrize("fault,action",[
+    ("503","list"),("503","kb"),("503","reload"),
+    ("500","list"),("403","list"),("404","list"),("409","list"),
+    ("network","list"),("bad-json","list"),("bad-user","list"),("ok-false","list"),
+])
+def test_entry_auth_uncertain_preserves_unknown_draft_and_stops_chain(server,fault,action):
+    """Fault only one /auth/me receipt; auth, commits and recovery stay real."""
+    server["stop"](server["process"]);server["start"](d1_sources=True)
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server["base"];login(context,base)
+            saved=_entry_create(context,base,"账户暂时无法核对的对照")
+            research=saved["research"]["id"]
+            page=context.new_page();page.goto(base+"/research/"+research)
+            expect(page.locator("#research-list-status")).to_contain_text("已读取 1")
+            fill(page,"暂时核对失败时必须完整保留的未确认提交原文")
+            page.locator("#summary").fill("人工编辑的摘要不能因服务暂时不可用而销毁")
+            page.locator("#confirmed").check()
+            page.locator("#source-query").fill("queue theory")
+            keys=[]
+            def lose_commit_receipt(route):
+                response=route.fetch();assert response.status==200
+                keys.append(route.request.headers["idempotency-key"])
+                route.abort("failed")
+            page.route("**/api/research/*/revisions",lose_commit_receipt,times=1)
+            page.locator("#save").click()
+            expect(page.locator("#status")).to_contain_text("尚未确认")
+            snapshot=page.locator("#problem-form").evaluate("f=>Array.from(f.querySelectorAll('input,textarea,select')).map(e=>[e.id,e.value,e.checked])")
+            slot="structure-research-pending:"+research
+            pending=page.evaluate("slot=>sessionStorage.getItem(slot)",slot)
+            assert json.loads(pending)["key"]==keys[0]
+            private_calls=[];checks=[]
+            def observe(request):
+                path=request.url.split(base)[-1]
+                if path=="/api/auth/me":checks.append(path)
+                elif path.startswith(("/api/search","/api/research")):private_calls.append(path)
+            page.on("request",observe)
+            def fail_auth_receipt(route):
+                real=route.fetch();assert real.status==200
+                if fault=="network":route.abort("failed")
+                elif fault=="bad-json":route.fulfill(status=200,content_type="application/json",body="{")
+                elif fault=="bad-user":route.fulfill(json={"ok":True,"user":{"email":"browser-a@example.test","created_at":{}}})
+                elif fault=="ok-false":route.fulfill(json={"ok":False,"user":{"email":"browser-a@example.test","created_at":"invalid-placeholder"}})
+                else:route.fulfill(status=int(fault),json={"ok":False,"error":"auth unavailable"})
+            page.route("**/api/auth/me",fail_auth_receipt,times=1)
+            page.locator({"list":"#research-list-refresh","kb":"#kb-search","reload":"#reload"}[action]).click()
+            expect(page.locator("#status")).to_contain_text("账户状态暂时无法核对")
+            expect(page.locator("#problem-form")).to_be_visible()
+            expect(page.locator("#save")).to_be_enabled()
+            assert page.locator("#problem-form").evaluate("f=>Array.from(f.querySelectorAll('input,textarea,select')).map(e=>[e.id,e.value,e.checked])")==snapshot
+            expect(page.locator("#source-query")).to_have_value("queue theory")
+            assert page.evaluate("slot=>sessionStorage.getItem(slot)",slot)==pending
+            page.wait_for_timeout(80)
+            assert private_calls==[] and len(checks)==1
+            # The same canonical session is valid; no retry occurred until the
+            # test explicitly asks for recovery, including the original key.
+            assert context.request.get(base+"/api/auth/me").status==200
+            page.locator("#research-list-refresh").click()
+            expect(page.locator("#research-list-status")).to_contain_text("已读取 1")
+            assert page.evaluate("slot=>sessionStorage.getItem(slot)",slot)==pending
+            with page.expect_request("**/api/research/*/revisions") as replay:page.locator("#save").click()
+            expect(page.locator("#status")).to_contain_text("已保存修订 2")
+            assert replay.value.headers["idempotency-key"]==keys[0]
+            with sqlite3.connect(server["path"]) as conn:
+                assert conn.execute("SELECT count(*) FROM research_revisions WHERE research_id=?",(research,)).fetchone()[0]==2
+        finally:context.close();browser.close()
+
+
+def test_entry_auth_real_401_clears_private_draft_and_stops_chain(server):
+    server["stop"](server["process"]);server["start"](d1_sources=True)
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server["base"];login(context,base)
+            saved=_entry_create(context,base,"真实失权清理对照")
+            page=context.new_page();page.goto(base+"/research/"+saved["research"]["id"])
+            expect(page.locator("#research-list-status")).to_contain_text("已读取 1")
+            page.locator("#source-query").fill("queue theory");page.locator("#source-preview").click()
+            expect(page.locator("#source-confirm")).to_be_visible()
+            fill(page,"真实失权后不能继续展示的私有原文")
+            page.locator("#summary").fill("真实失权后需要清空的人工摘要")
+            context.request.post(base+"/api/auth/logout",headers={"Origin":base})
+            assert context.request.get(base+"/api/auth/me").status==401
+            calls=[]
+            page.on("request",lambda request:calls.append(request.url) if request.url.startswith((base+"/api/research",base+"/api/search")) else None)
+            page.locator("#research-list-refresh").click()
+            expect(page.locator("#status")).to_contain_text("账户访问已失效")
+            expect(page.locator("#problem-form")).to_be_hidden()
+            expect(page.locator("#original-input")).to_have_value("")
+            expect(page.locator("#summary")).to_have_value("")
+            expect(page.locator("#confirmed")).not_to_be_checked()
+            expect(page.locator("#source-plan")).to_have_text("")
+            expect(page.locator("#research-list-items article")).to_have_count(0)
+            expect(page.locator("#kb-results article")).to_have_count(0)
+            assert calls==[]
+        finally:context.close();browser.close()
