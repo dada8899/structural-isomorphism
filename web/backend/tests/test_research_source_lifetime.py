@@ -102,7 +102,7 @@ def _running(pid):
 
 
 def _private_trackers(parent):
-    output=subprocess.run(["ps","-axo","pid,ppid,command"],capture_output=True,text=True,check=True).stdout
+    output=subprocess.run(["ps","-ww","-axo","pid,ppid,command"],capture_output=True,text=True,check=True).stdout
     return [int(parts[0]) for row in output.splitlines()[1:]
             if len(parts:=row.strip().split(None,2))==3 and parts[1]==str(parent) and "multiprocessing.resource_tracker" in parts[2]]
 
@@ -313,3 +313,60 @@ def test_tracker_failure_diagnostic_never_echoes_ps_errors(tmp_path,monkeypatch)
     value=_owned_tracker_diagnostic(101,{"pid":102,"stage":"sender"},{"parent":101},"sender",0,proc_root=tmp_path/"missing")
     assert "PRIVATE" not in json.dumps(value)
     assert all(not row["normal_ps"]["present"] and not row["wide_ps"]["present"] for row in value["owned"])
+
+
+def test_private_tracker_reader_requests_full_width_for_real_owned_process(tmp_path,monkeypatch):
+    manifest=tmp_path/"owned-reader.json"
+    program=(
+        "import json,os,pathlib,subprocess,sys,time; "
+        "child=subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)',"
+        "'padding-'*100,'multiprocessing.resource_tracker']); "
+        f"pathlib.Path({str(manifest)!r}).write_text(json.dumps({{'parent':os.getpid(),'child':child.pid}})); "
+        "time.sleep(30)"
+    )
+    native_run=subprocess.run
+    calls=[]
+    with subprocess.Popen([sys.executable,"-c",program],start_new_session=True,
+                          stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL) as parent:
+        try:
+            owned=_await_file(manifest,seconds=5)
+            assert owned["parent"]==parent.pid and os.getpgid(owned["child"])==parent.pid
+            def observed_ps(argv,**kwargs):
+                calls.append(argv)
+                result=native_run(argv,**kwargs)
+                if "-ww" not in argv:
+                    return subprocess.CompletedProcess(argv,result.returncode,
+                        "\n".join(row[:80] for row in result.stdout.splitlines()),result.stderr)
+                rows=[line.strip().split(None,2) for line in result.stdout.splitlines()[1:]]
+                assert any(len(row)==3 and row[0]==str(owned["child"]) and
+                    row[1]==str(parent.pid) and "multiprocessing.resource_tracker" in row[2] for row in rows)
+                return result
+            monkeypatch.setattr(subprocess,"run",observed_ps)
+            assert _private_trackers(parent.pid)==[owned["child"]]
+            assert calls==[["ps","-ww","-axo","pid,ppid,command"]]
+            # Reproduce a narrow display deterministically. Wide above was a
+            # real OS read, not a second mocked copy of a diagnostic result.
+            narrow=observed_ps(["ps","-axo","pid,ppid,command"],capture_output=True,text=True,check=True)
+            monkeypatch.setattr(subprocess,"run",lambda *args,**kwargs:narrow)
+            assert _private_trackers(parent.pid)==[]
+        finally:
+            try:os.killpg(parent.pid,signal.SIGKILL)
+            except ProcessLookupError:pass
+            parent.wait(timeout=5)
+
+
+@pytest.mark.parametrize("case",["foreign","wrong-marker","empty","error"])
+def test_private_tracker_wide_reader_preserves_rejection_rules(monkeypatch,case):
+    def output(argv,**kwargs):
+        assert argv==["ps","-ww","-axo","pid,ppid,command"]
+        assert kwargs=={"capture_output":True,"text":True,"check":True}
+        if case=="error":raise subprocess.CalledProcessError(1,argv)
+        rows={"foreign":" PID PPID COMMAND\n202 999 multiprocessing.resource_tracker\n",
+              "wrong-marker":" PID PPID COMMAND\n202 101 multiprocessing.spawn\n",
+              "empty":""}
+        return SimpleNamespace(stdout=rows[case])
+    monkeypatch.setattr(subprocess,"run",output)
+    if case=="error":
+        with pytest.raises(subprocess.CalledProcessError):_private_trackers(101)
+    else:
+        assert _private_trackers(101)==[]  # original lifecycle still requires exactly one

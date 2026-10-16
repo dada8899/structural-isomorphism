@@ -304,6 +304,16 @@ sanity仅在既有 `python -m pip install playwright==1.59.0` 后增加 `python 
 
 最终持久化完整文件 **37 passed、退出0（4.59秒）**，含原35项及新增2项，一条既有依赖warning。原API／DB／OS gate测试和两个规范spawn目标AST全部原样，原15／20秒等超时及断言不变；只替换root-first新增对照的监督器调用。lifetime诊断文件完全未改，不重复运行，Linux tracker根因仍未知。AST、精确差异与空白检查通过。作者停写，仅helper、persistence测试及本记录三路径交PMO新exact头独审；无应用、CI、依赖或其他改动，无提交／推送，旧CI实红保留。
 
+## 44cb Linux tracker 宽度漏识返修
+
+日期：2026-10-17，基线 `44cb2630e6bef1f82f0e1b36767e2dfb54396480`。PMO回收正常Linux sanity run `38959032823`／job `117169128008`：2059 passed／1 skipped／5 failed，前三项spawn已关闭，只剩tracker。五项safe JSON均显示同一已归属tracker的normal_ps标记false、wide_ps和/proc标记true，PPID精确属于独占parent；现在有Linux实证支持命令显示宽度漏标记，不再沿用“根因未知”判断。
+
+本卡唯一原逻辑变化是 `_private_trackers` 的ps命令增加 `-ww`。原PPID／marker过滤、严格len==1、安全失败诊断、所有cutpoints、SIGKILL、原期限、OS gate、late GET与资源收尾断言逐项原样，未改SourcePolicy、sender或内核策略。
+
+新增独立读取对照创建本机独占parent／长argv子进程；`-ww`使用真实OS ps读取完整标记，普通显示在测试侧确定截断为80列后无法识别，避免依赖Mac默认显示宽度。输出只校验归属PID及标记，不打印命令。foreign PPID、错误marker、空结果和ps错误四项对照保持拒绝，未允许0或skip；新增进程组在finally关闭。既有Linux原始诊断仍为此次根因依据，本机受控截断不冒Linux实测。
+
+既有Python3.11环境最终完整lifetime文件 **14 passed、退出0（35.58秒）**（原9＋新增5）；原persistence选取root-first真实spawn对照及两项监督器收尾对照 **3 passed、退出0（2.13秒）**，不重复无关大套，一条既有依赖warning。AST与原源码前缀对照确认，全部原函数只有ps参数这一项变化；差异检查通过。仅本测试文件和本记录停写交PMO原Astra复审，待后续新head正常CI执行真实Linux寿命断言；不提前宣称Linux五项已绿。没有应用、公开源、CI、依赖、预算、凭据或费用改动，无新trace、提交或推送，44cb旧红保留。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。
