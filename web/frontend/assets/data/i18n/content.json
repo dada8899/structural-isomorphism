@@ -2586,5 +2586,17 @@
   "page.discoveries.retry": {
     "zh": "重试",
     "en": "Retry"
+  },
+  "page.search.retired_comparison_status": {
+    "zh": "旧候选比较暂不可用；当前仅为本地排序结果",
+    "en": "Legacy candidate comparison is unavailable; these are local ranking results only."
+  },
+  "page.search.research_no_transfer": {
+    "zh": "本页问题不会自动带入研究页。请重新输入、确认后保存。",
+    "en": "Your question is not transferred to the research page. Re-enter, confirm and save it there."
+  },
+  "page.search.research_new_problem": {
+    "zh": "前往研究记录（需重新输入并保存）",
+    "en": "Open research records (re-enter and save your question)"
   }
 }

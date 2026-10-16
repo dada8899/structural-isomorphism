@@ -21,6 +21,7 @@ const {
   guardSynthesisCallbacks,
   renderResultsWithSynth,
   containsRenderableMath,
+  renderRetiredComparison,
 } = require(path.join(
   __dirname, '..', 'assets', 'js', 'search.js'
 ));
@@ -112,3 +113,70 @@ assert.ok(rendered.indexOf('API row three') < rendered.indexOf('API row four'));
 assert.ok(!rendered.includes('private reordered query'));
 
 console.log('search synthesis rendering tests passed');
+
+// Render the retired state with the actual bilingual catalog, without a
+// query argument or fake research handoff. Existing renderer cases stay above.
+const fs = require('fs');
+const vm = require('vm');
+const catalog = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'assets/data/i18n/content.json'), 'utf8'));
+const oldGet = global.document.getElementById;
+const oldDollar = global.$;
+const retiredContainer = {innerHTML: '', classList: {add() {}, remove() {}}};
+global.document.getElementById = id => id === 'search-synth' ? retiredContainer : null;
+global.$ = selector => selector === '#search-synth' ? retiredContainer : null;
+for (const lang of ['zh', 'en', 'zh']) {
+  window.i18n = {t: key => catalog[key] ? catalog[key][lang] : key};
+  renderRetiredComparison();
+  assert.ok(retiredContainer.innerHTML.includes(catalog['page.search.retired_comparison_status'][lang]));
+  assert.ok(retiredContainer.innerHTML.includes(catalog['page.search.research_no_transfer'][lang]));
+  assert.ok(retiredContainer.innerHTML.includes('href="/research"'));
+  assert.ok(!retiredContainer.innerHTML.includes('retry'));
+  assert.ok(!retiredContainer.innerHTML.includes('?context='));
+}
+delete window.i18n;
+global.document.getElementById = oldGet;
+if (oldDollar === undefined) delete global.$;
+else global.$ = oldDollar;
+
+async function testApiRefusals() {
+  const apiSource = fs.readFileSync(path.join(__dirname, '..', 'assets/js/api.js'), 'utf8');
+  const rawCanary = 'DO_NOT_EXPOSE_SERVER_DETAIL_OR_PRIVATE_INPUT';
+  const retired = {status: 503, code: 'FEATURE_UNAVAILABLE', retryable: false, detail: rawCanary};
+  async function run(status, payload, type = 'application/problem+json', mode = 'http') {
+    const timers = new Map(); let timerId = 0; let clearCount = 0; const errors = []; let requests = 0;
+    const context = {window: {}, AbortController, TextDecoder, console,
+      setTimeout(fn) { timers.set(++timerId, fn); return timerId; },
+      clearTimeout(id) { timers.delete(id); clearCount += 1; },
+      fetch: async (_url, options) => {
+        requests += 1;
+        if (mode === 'network') throw new Error(rawCanary);
+        if (mode === 'forged-network') throw Object.assign(new Error(rawCanary), {code:'FEATURE_UNAVAILABLE',status:503});
+        if (mode === 'timeout') return new Promise((_resolve, reject) => options.signal.addEventListener('abort', () => reject(Object.assign(new Error(rawCanary), {name:'AbortError'}))));
+        return {ok:false,status,headers:{get:()=>type},text:async()=>typeof payload === 'string' ? payload : JSON.stringify(payload)};
+      },
+    };
+    vm.createContext(context);vm.runInContext(apiSource, context);
+    context.window.StructuralAPI.synthesizeStream('synthetic private question', null, [{id:'kb-1'}], {onError:error=>errors.push(error)});
+    if (mode === 'timeout') Array.from(timers.values())[0]();
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(errors.length, 1);assert.equal(requests, 1);assert.equal(timers.size, 0);assert.ok(clearCount > 0);
+    assert.ok(!errors[0].message.includes(rawCanary));
+    return {error:errors[0],api:context.window.StructuralAPI};
+  }
+  const valid = await run(503, retired);
+  assert.equal(valid.error.code, 'FEATURE_UNAVAILABLE');assert.equal(valid.error.status, 503);
+  await assert.rejects(valid.api.assessQuery('synthetic'), error => error.code === 'FEATURE_UNAVAILABLE' && !error.message.includes(rawCanary));
+  for (const [status, body, type] of [
+    [500,retired], [503,{...retired,code:'UPSTREAM_UNAVAILABLE'}],
+    [503,{...retired,retryable:true}], [503,{...retired,status:500}],
+    [503,{error:{code:'FEATURE_UNAVAILABLE'}}], [503,'{broken'],
+    [503,retired,'text/html'], [503,{detail:'FEATURE_UNAVAILABLE'}],
+  ]) assert.equal((await run(status,body,type)).error.code, undefined);
+  assert.equal((await run(0,null,'','network')).error.code, undefined);
+  assert.equal((await run(0,null,'','forged-network')).error.code, undefined);
+  assert.equal((await run(0,null,'','timeout')).error.message, 'synthesis_timeout');
+  const ordinary = await run(500, retired);
+  await assert.rejects(ordinary.api.assessQuery('synthetic'), error => error.status === 500 && error.code === undefined && !error.message.includes(rawCanary));
+  console.log('retired comparison API, rendering and safe-error contracts passed');
+}
+testApiRefusals().catch(error => { console.error(error); process.exitCode = 1; });

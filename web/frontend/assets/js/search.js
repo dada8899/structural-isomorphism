@@ -582,6 +582,21 @@ function renderSynthTransportFailure(onRetry) {
   document.getElementById('search-synth-retry')?.addEventListener('click', onRetry);
 }
 
+function renderRetiredComparison() {
+  if (_synthTimerStop) { _synthTimerStop(); _synthTimerStop = null; }
+  if (_phaseIntervalId) { clearInterval(_phaseIntervalId); _phaseIntervalId = null; }
+  const container = $('#search-synth');
+  if (!container) return;
+  container.classList.remove('search-synth--loading');
+  container.classList.add('search-synth--degraded');
+  container.innerHTML = `
+    <div class="search-synth__content">
+      <div class="search-synth__label" role="status">${escapeHtml(T('page.search.retired_comparison_status', '旧候选比较暂不可用；当前仅为本地排序结果'))}</div>
+      <p>${escapeHtml(T('page.search.research_no_transfer', '本页问题不会自动带入研究页。请重新输入、确认后保存。'))}</p>
+      <a class="btn btn--secondary" href="/research" style="max-width:100%;white-space:normal;line-height:1.45">${escapeHtml(T('page.search.research_new_problem', '前往研究记录（需重新输入并保存）'))}</a>
+    </div>`;
+}
+
 // State shared between renderResults and renderResultsWithSynth
 let _lastQuery = '';
 let _lastResults = [];
@@ -593,6 +608,8 @@ let _lastForce = false;
 let _activeSearchRun = 0;
 let _activeSynthGeneration = 0;
 let _activeSynthStream = null;
+let _retiredComparisonRun = null;
+let _lastAssessmentGate = null;
 
 function cancelActiveSynthesis() {
   _activeSynthGeneration += 1;
@@ -1053,6 +1070,7 @@ function maybeRenderAssessmentGate(query, data) {
   if (!assess) return false;
   const score = assess.worth_score;
   if (typeof score !== 'number' || score >= 3) return false;
+  _lastAssessmentGate = { query, data };
 
   // Below threshold — show the coaching card instead of results.
   const coaching = assess.coaching || T('page.search.assess_coaching_default', '这个输入对 Structural 的结构候选搜索可能不太适合。');
@@ -1126,6 +1144,10 @@ function maybeRenderAssessmentGate(query, data) {
 async function performSearch(query, navigationContext) {
   const runId = ++_activeSearchRun;
   cancelActiveSynthesis();
+  _lastAssessmentGate = null;
+  // A confirmed old-client refusal stays terminal in this page. A new local
+  // query is not permission to retry the retired comparison automatically.
+  _retiredComparisonRun = _retiredComparisonRun === null ? null : runId;
   if (navigationContext) _currentSearchContext = navigationContext;
   _lastQuery = query;
   _lastForce = Boolean(
@@ -1180,6 +1202,7 @@ async function performSearch(query, navigationContext) {
     // only after the backend validates the complete typed payload.
     const runSynth = (q, rewritten, results) => {
       if (!results || results.length === 0) return;
+      if (_retiredComparisonRun === runId) { renderRetiredComparison(); return; }
       // Cancel any prior comparison and bind every callback to this exact
       // search run + synthesis generation. Abort is advisory; a stale
       // transport callback must still be unable to mutate the current DOM.
@@ -1216,9 +1239,15 @@ async function performSearch(query, navigationContext) {
             renderSynthBlock(_lastSynth);
             renderResultsWithSynth();
           },
-          onError: () => {
+          onError: (error) => {
             _activeSynthGeneration += 1;
             _activeSynthStream = null;
+            if (error && error.code === 'FEATURE_UNAVAILABLE' && error.status === 503) {
+              _retiredComparisonRun = runId;
+              _lastSynth = null;
+              renderRetiredComparison();
+              return;  // Current local result nodes/IDs/order remain intact.
+            }
             console.warn('Candidate comparison unavailable; using ranked candidates.');
             renderSynthTransportFailure(() => runSynth(q, rewritten, results));
             renderResultsWithSynth();
@@ -1368,6 +1397,10 @@ try {
         const q = _lastQuery;
         if (!q) return;
         updatePrivateSearchState({ lang: currentSearchLang() });
+        if (_lastAssessmentGate && _lastAssessmentGate.query === q) {
+          maybeRenderAssessmentGate(q, _lastAssessmentGate.data);
+          return;
+        }
         // Re-render all cached results with new language
         const data = {
           count: (_lastResults || []).length,
@@ -1377,7 +1410,10 @@ try {
           stats: _lastStats,
         };
         renderQuestionHeader(q, data);
-        if (_lastSynth) {
+        if (_retiredComparisonRun === _activeSearchRun) {
+          renderResults(q, data);
+          renderRetiredComparison();
+        } else if (_lastSynth) {
           renderSynthBlock(_lastSynth);
           renderResultsWithSynth();
         } else {
@@ -1395,5 +1431,6 @@ if (typeof module !== 'undefined' && module.exports) {
     guardSynthesisCallbacks,
     renderResultsWithSynth,
     containsRenderableMath,
+    renderRetiredComparison,
   };
 }
