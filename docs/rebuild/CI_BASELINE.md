@@ -296,6 +296,14 @@ sanity仅在既有 `python -m pip install playwright==1.59.0` 后增加 `python 
 
 本卡仅上述两个测试文件、新规范helper及本记录；不改应用、CI、依赖、原schema literal或Core并行实现，不提交／推送或重跑旧CI。作者停写，交PMO精确四路径及当前SHA独审，旧红保留。
 
+## 0ed 独审 P2：监督父退出后的独占组收束
+
+日期：2026-10-17，基线 `0ed3667ec44364ee1f74a63f9a4885a3ba6209da`。独审实证：原监督器的communicate遇到TimeoutExpired时，父pytest可能已经exit0，而后代仍持stdout管道；按poll是否存活决定kill会漏清理后代。本卡将启动与监督收束到测试helper的 `_run_owned_probe`：由函数自身创建并登记start_new_session独占组，任何异常都对该登记组清理，不以父进程poll结果为前提；组已不存在时正常处理，回收直接子进程后保持原异常。正常结果不终止其他组。
+
+新增真实对照让父先exit0、后代仍在原组并实际继承管道，确认父已退出、子仍属该登记组后，在测试侧把communicate等待缩短为0.05秒以取得真实TimeoutExpired，监督器代码仍传120秒。异常后核后代不再运行（若等待init回收的zombie则明确按非运行判断），stdout/stderr关闭。另建独立session对照，正常probe完成后其仍存活，最后由创建它的测试正常关闭。两项对照均有自身finally收尾；没有信号发送到未登记的外部组。
+
+最终持久化完整文件 **37 passed、退出0（4.59秒）**，含原35项及新增2项，一条既有依赖warning。原API／DB／OS gate测试和两个规范spawn目标AST全部原样，原15／20秒等超时及断言不变；只替换root-first新增对照的监督器调用。lifetime诊断文件完全未改，不重复运行，Linux tracker根因仍未知。AST、精确差异与空白检查通过。作者停写，仅helper、persistence测试及本记录三路径交PMO新exact头独审；无应用、CI、依赖或其他改动，无提交／推送，旧CI实红保留。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。

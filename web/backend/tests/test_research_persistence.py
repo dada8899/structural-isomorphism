@@ -23,7 +23,7 @@ sys.path.insert(0, str(BACKEND))
 PROJECT_ROOT = BACKEND.parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
-from web.backend.tests.research_process_fixture import _api_process, _hold_gate
+from web.backend.tests.research_process_fixture import _api_process, _hold_gate, _run_owned_probe
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from api import auth, research, sso
@@ -380,15 +380,67 @@ raise SystemExit(pytest.main([
     '-q', '-p', 'no:cacheprovider', '--show-capture=no', '--tb=short',
 ]))
 """
+    result = _run_owned_probe(program, BACKEND)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert '3 passed' in result.stdout
+
+
+def test_owned_probe_timeout_cleans_descendant_after_parent_already_exited(tmp_path, monkeypatch):
+    manifest = tmp_path / 'owned-process.json'
+    program = (
+        'import json,os,pathlib,subprocess,sys; '
+        'child=subprocess.Popen([sys.executable,"-c","import time;time.sleep(30)"]); '
+        f'pathlib.Path({str(manifest)!r}).write_text(json.dumps({{"child":child.pid,"group":os.getpgrp()}})); '
+        'os._exit(0)'
+    )
+    communicate = subprocess.Popen.communicate
+    registered = []
+
+    def timeout_after_parent_exit(process, *args, **kwargs):
+        if process.args == [sys.executable, '-c', program]:
+            assert kwargs['timeout'] == 120
+            process.wait(timeout=5)
+            assert process.returncode == 0
+            record = json.loads(manifest.read_text())
+            assert record['group'] == process.pid
+            assert os.getpgid(record['child']) == process.pid
+            registered.append(process)
+            # Exercise a real pipe timeout with a test-only short wait; the
+            # supervisor itself still passed its unchanged 120-second limit.
+            return communicate(process, timeout=.05)
+        return communicate(process, *args, **kwargs)
+
+    monkeypatch.setattr(subprocess.Popen, 'communicate', timeout_after_parent_exit)
+    try:
+        with pytest.raises(subprocess.TimeoutExpired):
+            _run_owned_probe(program, tmp_path)
+        child = json.loads(manifest.read_text())['child']
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            state = subprocess.run(['ps', '-p', str(child), '-o', 'stat='], capture_output=True, text=True).stdout.strip()
+            if not state or state.startswith('Z'):
+                break
+            time.sleep(.01)
+        assert not state or state.startswith('Z'), 'owned descendant is still live'
+        assert len(registered) == 1 and registered[0].stdout.closed and registered[0].stderr.closed
+    finally:
+        if manifest.exists():
+            try:
+                os.killpg(json.loads(manifest.read_text())['group'], signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+
+def test_owned_probe_normal_completion_does_not_kill_another_session(tmp_path):
     with subprocess.Popen(
-        [sys.executable, '-c', program], cwd=BACKEND, start_new_session=True,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-    ) as process:
+        [sys.executable, '-c', 'import time;time.sleep(30)'], start_new_session=True,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    ) as unrelated:
         try:
-            stdout, stderr = process.communicate(timeout=120)
+            group = os.getpgid(unrelated.pid)
+            result = _run_owned_probe('print("normal owned result")', tmp_path)
+            assert result.returncode == 0 and result.stdout == 'normal owned result\n'
+            assert unrelated.poll() is None and os.getpgid(unrelated.pid) == group
         finally:
-            if process.poll() is None:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait(timeout=5)
-    assert process.returncode == 0, stdout + stderr
-    assert '3 passed' in stdout
+            unrelated.terminate()
+            unrelated.wait(timeout=5)
