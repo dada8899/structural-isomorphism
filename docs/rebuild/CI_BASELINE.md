@@ -244,6 +244,16 @@ renderer以已成功完成的validated对象身份和实际语言作为去重条
 
 两卡至此作者停写，PMO回收精确五文件差异并按当前SHA独审。helper的16项已完成结果保留，未无故重跑；Papers最终25项通过不撤销既有Linux性能失败，也不代表已部署。
 
+## 历史采证清单与后续产品源码的组合合同返修
+
+日期：2026-10-17。PMO已将前述两卡精确提交为 `bd5d681f638c68825b14ac1f146e0eab48a9c51e`，独立审查的25项Papers、16项Next及275项静态检查通过，但另发现发布组合P1：`test_pins_cover_both_pages_shared_assets_fixture_and_original_audit` 永久将当前工作树逐文件与历史54pin比较，使合法Papers修复必然被历史快照拦住。真实collector普通subject已返回not_scheduled；带原marker的新源码仍会拒绝，不应通过重写历史摘要或放宽真实来源校验来处理。
+
+本卡仅改该历史合同函数、新增两个参数化反例函数与本记录。以UTF-8、sort_keys和紧凑分隔的canonical JSON固定原base_sha和全部source_pins的联合SHA-256 `3d885f0afbc667763e3258f9537a9016b238d195630fa98ffa2fe03a4c391cea`，保留原路径覆盖并要求54项，冻结的是原采证清单身份；正常后续产品工作树不再永久等于旧内容。新增base／摘要／路径／缺项四类清单变造拒绝；隔离目录复制当前源码后模拟后续Papers修订，执行真实main→run→verify_binding，仅注入浅Git读取与Linux平台前提：普通subject退出0、not_scheduled且只读取三项Git身份；marker退出2、source_digest_mismatch。两者均在grade、依赖、动态导入、service、claim及capture前停止，无采证目录，也不读取原847历史对象或fetch。原其他函数AST全部保持。
+
+目标Python3.11环境，诊断文件 **68 passed**；perf_audit、beta_perf_audit、beta_perf_diagnostics及Papers静态组合 **125 passed**，一条原Pydantic namespace warning。没有新生产改动，沿已完成25项Papers及16项Next独立结果，不重跑浏览器。首次原make test-release-contracts使用45包环境因缺NumPy在收集阶段16 errors、退出2；未修改安装或联网，改用本机既有Python3.14.7／NumPy2.4.4环境执行同一原make目标，完整结果为 **1608 passed、160 skipped、1 deselected、1 failed**，80条既有warning、218.50秒，make退出2（内部目标Error 1）。唯一失败是既有 `test_runtime_proofs_ignore_cwd_and_pythonpath_distribution_injection` 的ABI断言：expected cpython-311、actual cpython-314；未更改测试或部署脚本。在现有目标Python3.11.15环境单独复核此原用例 **1 passed、退出0**。因此记录完整本机make执行及版本边界，不宣称目标3.11全量发布合同全部通过；本卡相关125项和该ABI用例在3.11分别通过。
+
+collector、原54pin、生产Papers、helper、Make、CI、原grade和预算未改，无浏览器、trace、Profiler、新marker、网络、SSH、费用或提交／推送。此卡交PMO回收当前差异及新SHA独审，不以历史快照身份合同替代真实受准marker的强制来源校验。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。

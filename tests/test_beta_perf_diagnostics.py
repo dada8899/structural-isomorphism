@@ -406,8 +406,94 @@ def test_pins_cover_both_pages_shared_assets_fixture_and_original_audit():
         "web/frontend/assets/js/i18n.js", "web/frontend/assets/js/utils.js",
         "web/backend/tests/deep_report_fixtures.py", *diag.GRADE_SOURCE_PATHS}
     assert required <= diag.SOURCE_PINS.keys()
-    for relative, expected in diag.SOURCE_PINS.items():
-        assert diag.digest((diag.ROOT / relative).read_bytes()) == expected
+    assert len(diag.SOURCE_PINS) == 54
+    # Freeze the historical capture identity, not future product worktrees.
+    # Canonical UTF-8 JSON binds the base and every exact path/digest pair.
+    historical = json.dumps(
+        {"base_sha": diag.BASE_SHA, "source_pins": diag.SOURCE_PINS},
+        sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")
+    assert diag.digest(historical) == "3d885f0afbc667763e3258f9537a9016b238d195630fa98ffa2fe03a4c391cea"
+
+
+@pytest.mark.parametrize("mutation", ["base", "digest", "path", "missing"])
+def test_historical_pin_identity_rejects_manifest_tampering(monkeypatch, mutation):
+    pins = dict(diag.SOURCE_PINS)
+    if mutation == "base":
+        monkeypatch.setattr(diag, "BASE_SHA", "0" * 40)
+    elif mutation == "digest":
+        pins["web/frontend/assets/js/papers.js"] = "0" * 64
+    elif mutation == "path":
+        pins["web/frontend/assets/js/replaced.js"] = pins.pop("web/frontend/assets/js/papers.js")
+    else:
+        pins.pop("web/frontend/assets/js/papers.js")
+    monkeypatch.setattr(diag, "SOURCE_PINS", pins)
+    with pytest.raises(AssertionError):
+        test_pins_cover_both_pages_shared_assets_fixture_and_original_audit()
+
+
+@pytest.mark.parametrize("marker", [False, True])
+def test_evolved_product_source_is_unscheduled_or_rejected_before_capture(
+    tmp_path, monkeypatch, capsys, marker,
+):
+    # An isolated evolving checkout, with no historical Git objects required.
+    source = tmp_path / "source"
+    for relative in (*diag.SOURCE_PINS, "scripts/beta_perf_diagnostics.py"):
+        target = source / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((diag.ROOT / relative).read_bytes())
+    papers = source / "web/frontend/assets/js/papers.js"
+    papers.write_bytes(papers.read_bytes() + b"\n// subsequent product revision\n")
+    assert diag.digest(papers.read_bytes()) != diag.SOURCE_PINS["web/frontend/assets/js/papers.js"]
+    env, event = event_identity()
+    event_path = tmp_path / "event.json"
+    event_path.write_text(json.dumps(event))
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("GITHUB_EVENT_PATH", str(event_path))
+    calls = []
+
+    def shallow_git(root, *args):
+        assert root == source
+        calls.append(args)
+        if args == ("rev-parse", "HEAD"):
+            return (env["GITHUB_SHA"] + "\n").encode()
+        if args == ("cat-file", "-t", "b" * 40):
+            return b"commit\n"
+        if args == ("show", "-s", "--format=%s", "b" * 40):
+            subject = diag.MARKER_SUBJECT if marker else "fix: evolve Papers renderer"
+            return (subject + "\n").encode()
+        if args[0] == "show" and len(args) == 2:
+            ref, relative = args[1].split(":", 1)
+            assert ref in {"a" * 40, "b" * 40}
+            return (source / relative).read_bytes()
+        pytest.fail(f"unexpected Git operation: {args}")
+
+    binding = diag.verify_binding
+    monkeypatch.setattr(diag, "ROOT", source)
+    monkeypatch.setattr(diag, "require_linux", lambda: None)
+    monkeypatch.setattr(diag, "verify_binding", lambda root, identity:
+                        binding(root, identity, read_git=shallow_git))
+
+    def forbidden(*_args, **_kwargs):
+        pytest.fail("source rejection must precede grade, service, imports and capture")
+
+    for name in ("verify_grade", "verify_dependencies", "verify_service", "collect_pair", "claim_attempt"):
+        monkeypatch.setattr(diag, name, forbidden)
+    monkeypatch.setattr(diag.importlib, "import_module", forbidden)
+    output = tmp_path / "capture"
+    result = diag.main(["--grade-artifact", str(tmp_path / "absent-grade.json"),
+                       "--grade-outcome", "success", "--base", "http://127.0.0.1:4173/",
+                       "--out", str(output)])
+    message = json.loads(capsys.readouterr().out)
+    assert result == (2 if marker else 0)
+    assert message == {"classification": "NOT_GATE",
+                       "status": "incomplete" if marker else "not_scheduled",
+                       "reason": "source_digest_mismatch" if marker else "marker_not_approved"}
+    assert not output.exists()
+    assert all("fetch" not in args and diag.BASE_SHA not in " ".join(args) for args in calls)
+    if not marker:
+        assert len(calls) == 3  # no source reads before the subject allows scheduling
 
 
 def test_service_must_serve_exact_static_files_without_network(tmp_path, monkeypatch):
