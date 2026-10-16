@@ -39,11 +39,13 @@ def _sources(request):
 
 
 def _result(request, outcomes, guard=CORE_GUARD):
-    formula_refs = tuple({"id": form.id, "revision": form.revision, "formula_digest": digest(form.data()), "checked_representation": "validated_AST"} for form in (request.left, request.right) if form)
+    forms = {form.id: form for form in (request.left, request.right) if form}
+    formula_refs = tuple({"id": form.id, "revision": form.revision, "formula_digest": digest(form.data()), "checked_representation": "validated_AST"} for form in forms.values())
     return FormulaCheckResult(request.input_digest, request.research_id, request.input_revision, request.task_id, request.attempt,
         request.comparison_scope, POLICY, formula_refs, tuple(outcomes), _sources(request),
         ("Mathematics under declared assumptions is not observed mechanism or successful transfer.",
          "Only the validated AST is checked; original display text is not parsed or proved.",
+         "A tau-only solution does not verify any unprovided R*C or reciprocal-rate definition.",
          "Curated SOURCE_CORPUS references are historical editorial references, not product-retrieved excerpts.",
          "Numeric agreement is limited to recorded points; it cannot prove an identity or predict a collapse date."), guard)
 
@@ -80,6 +82,8 @@ def evaluate_fixed_templates(request):
                     raise PolicyIssue("inconclusive", "explicit_sample_points_missing")
                 if request.left.template_id in {"little", "mm1"} and request.sample_points != ("0",):
                     raise PolicyIssue("unsupported", "queue_numeric_is_one_fixed_parameter_case_not_a_time_grid")
+                if recognize(request.left)[0] == "tau" and request.sample_points != ("0",):
+                    raise PolicyIssue("unsupported", "timescale_numeric_is_one_fixed_parameter_case_not_a_time_grid")
                 comparison(request.left, request.right, request.comparison_scope)
                 samples, equal = [], True
                 for point in request.sample_points:

@@ -113,10 +113,18 @@ def recognize(form):
         d = derivative("x")
         choices = {"x": eq(mul(s("c"), d), div(neg(s("x")), s("r"))),
                    "x_alt": eq(mul(s("c"), d), neg(div(s("x"), s("r")))),
-                   "x_solved": eq(d, div(neg(s("x")), mul(s("r"), s("c"))))}
+                   "x_solved": eq(d, div(neg(s("x")), mul(s("r"), s("c")))),
+                   "tau": eq(s("tau"), mul(s("r"), s("c")))}
+        for index, denominator in enumerate((s("tau"), mul(s("r"), s("c")))):
+            for variant, exponent in enumerate((div(neg(s("t")), denominator), neg(div(s("t"), denominator)))):
+                choices[f"solution_{index}_{variant}"] = eq(s("x"), mul(s("x0"), ("exp", exponent)))
     else:
         choices = {"delta": eq(derivative("delta"), neg(mul(s("k"), s("delta")))),
-                   "delta_alt": eq(derivative("delta"), mul(neg(s("k")), s("delta")))}
+                   "delta_alt": eq(derivative("delta"), mul(neg(s("k")), s("delta"))),
+                   "tau": eq(s("tau"), div(c(1), s("k")))}
+        for index, exponent in enumerate((neg(mul(s("k"), s("t"))), mul(neg(s("k")), s("t")),
+                                           div(neg(s("t")), s("tau")), neg(div(s("t"), s("tau"))))):
+            choices[f"solution_{index}"] = eq(s("delta"), mul(s("delta0"), ("exp", exponent)))
     for output, pattern in choices.items():
         if tree == pattern:
             return output.split("_")[0], tree
@@ -125,6 +133,11 @@ def recognize(form):
 
 def roles(form):
     return {v.role: v for v in form.symbols}
+
+
+def form_kind(form):
+    output, _ = recognize(form)
+    return "timescale" if output == "tau" else "solution" if output == "solution" else "ode_or_relation"
 
 
 def basis(unit):
@@ -182,19 +195,36 @@ def dimensions(form):
             require(role, *specs[role])
         if form.template_id == "mm1": require("mu", {"count_per_" + tb}, "service_capacity")
     elif form.template_id == "passive_decay":
-        require("x", {"K", "V"}, "state_difference")
-        require("t", {"s"}, "time")
-        if r["x"].unit_id == "K":
-            require("r", {"K_per_W"}, "thermal_resistance"); require("c", {"J_per_K"}, "thermal_capacity")
-        else:
-            require("r", {"ohm"}, "electrical_resistance"); require("c", {"F"}, "electrical_capacity")
-        if set(r) != {"x", "t", "r", "c"}: raise PolicyIssue("unsupported", "extra_role")
+        kind = form_kind(form)
+        if kind != "timescale":
+            require("x", {"K", "V"}, "state_difference"); require("t", {"s"}, "time")
+        thermal = r.get("x").unit_id == "K" if "x" in r else r.get("r") is not None and r["r"].unit_id == "K_per_W"
+        rc = kind != "solution" or "r" in r or "c" in r
+        if rc:
+            if thermal:
+                require("r", {"K_per_W"}, "thermal_resistance"); require("c", {"J_per_K"}, "thermal_capacity")
+            else:
+                require("r", {"ohm"}, "electrical_resistance"); require("c", {"F"}, "electrical_capacity")
+        expected = {"tau", "r", "c"} if kind == "timescale" else {"x", "t"} | ({"r", "c"} if rc else {"tau"})
+        if kind == "solution":
+            expected.add("x0"); require("x0", {r["x"].unit_id}, "initial_state_difference")
+            if "tau" in r: expected.add("tau")
+        if "tau" in expected: require("tau", {"s"}, "time_constant")
+        if set(r) != expected: raise PolicyIssue("unsupported", "extra_role")
     elif form.template_id == "linear_stable":
-        require("delta", {"one", "K", "V"}, "local_state_difference")
-        require("t", {"s"}, "time"); require("k", {"inverse_s"}, "recovery_rate")
-        if set(r) != {"delta", "t", "k"}: raise PolicyIssue("unsupported", "extra_role")
+        kind = form_kind(form)
+        rate = kind != "solution" or "k" in r
+        if rate: require("k", {"inverse_s"}, "recovery_rate")
+        expected = {"tau", "k"} if kind == "timescale" else {"delta", "t"} | ({"k"} if rate else {"tau"})
+        if kind != "timescale":
+            require("delta", {"one", "K", "V"}, "local_state_difference"); require("t", {"s"}, "time")
+        if kind == "solution":
+            expected.add("delta0"); require("delta0", {r["delta"].unit_id}, "initial_local_state_difference")
+            if "tau" in r: expected.add("tau")
+        if "tau" in expected: require("tau", {"s"}, "time_constant")
+        if set(r) != expected: raise PolicyIssue("unsupported", "extra_role")
     else: raise PolicyIssue("unsupported", "family_or_template")
-    if form.template_id in {"passive_decay", "linear_stable"}:
+    if form.template_id in {"passive_decay", "linear_stable"} and form_kind(form) != "timescale":
         state = "x" if form.template_id == "passive_decay" else "delta"
         if r[state].value is not None or r["t"].value is not None:
             raise PolicyIssue("unsupported", "state_values_require_initial_or_sample_fields")
@@ -220,7 +250,7 @@ def prerequisites(form, scope, *, numeric=False):
                 if values.get("mu") is None or values.get("lambda") is None:
                     if d.get("stable_regime") is not True: raise PolicyIssue("inconclusive", "denominator_nonzero_unknown")
                 elif values["mu"] == values["lambda"]: raise PolicyIssue("failed", "division_by_zero")
-        if form.template_id == "passive_decay":
+        if form.template_id in {"passive_decay", "linear_stable"}:
             denominator_roles = set()
             def denominators(node):
                 if node.op == "div":
@@ -237,8 +267,21 @@ def prerequisites(form, scope, *, numeric=False):
     elif form.template_id == "little": required = LITTLE
     elif form.template_id == "mm1": required = MM1
     elif form.template_id == "passive_decay":
-        required = PASSIVE + (("lumped_state", "constant_environment") if r["x"].unit_id == "K" else ("ideal_isolated_rc",))
+        thermal = r["x"].unit_id == "K" if "x" in r else r["r"].unit_id == "K_per_W"
+        required = PASSIVE + (("lumped_state", "constant_environment") if thermal else ("ideal_isolated_rc",))
     else: required = LOCAL
+    if (form.template_id in {"passive_decay", "linear_stable"} and form_kind(form) == "solution" and "tau" in r
+            and ("r" in r or "k" in r)):
+        required += ("tau_definition",)
+    # No natural-language boundary interpreter: an additional declared boundary
+    # is not silently discarded. Even a true flag cannot make an unknown
+    # spatial/time restriction executable; that requires a registered policy.
+    for extra in form.assumptions + form.boundary_conditions:
+        if extra.declared_satisfied is False:
+            raise PolicyIssue("failed", "precondition_contradicted:" + extra.id)
+    for extra in form.assumptions + form.boundary_conditions:
+        if extra.id not in required:
+            raise PolicyIssue("inconclusive" if extra.declared_satisfied is None else "unsupported", "additional_condition_not_implemented:" + extra.id)
     for key in required:
         if d.get(key) is False: raise PolicyIssue("failed", "precondition_contradicted:" + key)
         if d.get(key) is not True: raise PolicyIssue("inconclusive", "precondition_unknown:" + key)
@@ -253,10 +296,17 @@ def prerequisites(form, scope, *, numeric=False):
             raise PolicyIssue("failed", "no_mm1_steady_state")
         if any(v is not None and v < 0 for v in values.values()): raise PolicyIssue("failed", "negative_queue_quantity")
     else:
-        for key in (("r", "c") if form.template_id == "passive_decay" else ("k",)):
+        for key in (("r", "c") if "r" in values else ("k",) if "k" in values else ("tau",)):
             if values[key] is not None and values[key] <= 0: raise PolicyIssue("failed", "nonpositive_decay_parameter")
+        if "tau" in values:
+            if values["tau"] is not None and values["tau"] <= 0: raise PolicyIssue("failed", "nonpositive_time_constant")
+            parameters = ("r", "c") if form.template_id == "passive_decay" else ("k",)
+            if values["tau"] is not None and all(values.get(key) is not None for key in parameters):
+                expected = calc("mul", values["r"], values["c"]) if form.template_id == "passive_decay" else calc("div", Fraction(1), values["k"])
+                if values["tau"] != expected: raise PolicyIssue("failed", "time_constant_definition_conflict")
     if scope == "initial_value_problem":
         if form.template_id in {"little", "mm1"}: raise PolicyIssue("unsupported", "algebraic_relation_has_no_ivp")
+        if form_kind(form) == "timescale": raise PolicyIssue("unsupported", "timescale_relation_has_no_ivp")
         if len(form.initial_conditions) != 1: raise PolicyIssue("inconclusive", "initial_condition_missing")
         initial = form.initial_conditions[0]
         state = r["x" if form.template_id == "passive_decay" else "delta"].id
@@ -264,6 +314,10 @@ def prerequisites(form, scope, *, numeric=False):
         if rational(initial.at_time) != 0: raise PolicyIssue("unsupported", "initial_time_not_zero")
         if initial.declared_satisfied is False: raise PolicyIssue("failed", "initial_condition_contradicted")
         if initial.declared_satisfied is not True or initial.value is None: raise PolicyIssue("inconclusive", "initial_condition_unknown")
+        if form_kind(form) == "solution":
+            amplitude = values["x0" if form.template_id == "passive_decay" else "delta0"]
+            if amplitude is not None and amplitude != rational(initial.value):
+                raise PolicyIssue("failed", "closed_form_initial_value_conflict")
     return values
 
 
@@ -272,7 +326,8 @@ def initial(form):
 
 
 def numeric_result(form, point, scope):
-    if scope == "expression" and form.template_id in {"passive_decay", "linear_stable"}:
+    kind = form_kind(form)
+    if scope == "expression" and form.template_id in {"passive_decay", "linear_stable"} and kind == "ode_or_relation":
         raise PolicyIssue("unsupported", "formal_derivative_not_a_numeric_expression")
     values = prerequisites(form, scope, numeric=True)
     if form.template_id in {"little", "mm1"}:
@@ -292,9 +347,12 @@ def numeric_result(form, point, scope):
         observed = values.get(output)
         if observed is not None and observed != prediction: raise PolicyIssue("failed", "provided_output_breaks_exact_relation")
         return {"value": str(prediction), "given_output": None if observed is None else str(observed), "arithmetic": "exact_rational"}
-    required = ("r", "c") if form.template_id == "passive_decay" else ("k",)
+    supplied_tau = kind == "solution" and values.get("tau") is not None
+    required = ("tau",) if supplied_tau else ("r", "c") if "r" in values else ("k",) if "k" in values else ("tau",)
     if any(values[k] is None for k in required): raise PolicyIssue("inconclusive", "numeric_parameter_missing")
-    tau = calc("mul", values["r"], values["c"]) if form.template_id == "passive_decay" else calc("div", Fraction(1), values["k"])
+    tau = values["tau"] if supplied_tau else calc("mul", values["r"], values["c"]) if "r" in values else calc("div", Fraction(1), values["k"]) if "k" in values else values["tau"]
+    if kind == "timescale":
+        return {"value": str(tau), "unit_id": "s", "meaning": "time_constant_only_not_an_ivp", "arithmetic": "exact_rational"}
     at = rational(point)
     if not 0 <= at <= 20: raise FormulaLimit("normalized time limit")
     physical_time = calc("mul", tau, at)
@@ -302,14 +360,16 @@ def numeric_result(form, point, scope):
     if not -100 <= exponent <= 0: raise FormulaLimit("exponent limit")
     value = math.exp(exponent)
     actual = None
-    if scope == "initial_value_problem":
-        amplitude = initial(form)
+    amplitude = None
+    if scope == "initial_value_problem" or kind == "solution":
+        amplitude = initial(form) if scope == "initial_value_problem" else values["x0" if form.template_id == "passive_decay" else "delta0"]
+        if amplitude is None: raise PolicyIssue("inconclusive", "closed_form_amplitude_missing")
         actual = float(amplitude) * value
         if not math.isfinite(actual) or abs(actual) > 10**12: raise FormulaLimit("numeric output limit")
         value = 0.0 if amplitude == 0 else value
     return {"value": format(value, ".17g"), "physical_time": str(physical_time), "tau": str(tau),
             "actual_state": None if actual is None else format(actual, ".17g"),
-            "arithmetic": "bounded_exp", "meaning": ("zero_solution_no_state_normalization" if initial(form) == 0 else "normalized_initial_state") if scope == "initial_value_problem" else "unit_response_kernel_only"}
+            "arithmetic": "bounded_exp", "meaning": ("zero_solution_no_state_normalization" if amplitude == 0 else "normalized_initial_state") if amplitude is not None else "unit_response_kernel_only"}
 
 
 def comparison(left, right, scope):
@@ -324,9 +384,16 @@ def comparison(left, right, scope):
             raise PolicyIssue("inconclusive", "literal_expressions_require_same_units_parameters_and_roles")
         relation = "algebraic_identity"
     elif left.template_id in decay and right.template_id in decay:
-        if scope == "initial_value_problem" and (initial(left) == 0) != (initial(right) == 0):
+        lk, rk = form_kind(left), form_kind(right)
+        if "timescale" in {lk, rk}:
+            if lk != rk: raise PolicyIssue("unsupported", "timescale_and_dynamics_are_distinct_objects")
+            relation = "partial_structure"  # two time-constant definitions, not full dynamics
+        elif scope == "initial_value_problem" and (initial(left) == 0) != (initial(right) == 0):
             raise PolicyIssue("failed", "zero_nonzero_initial_problems_not_equivalent")
-        relation = "local_approximation" if "linear_stable" in {left.template_id, right.template_id} else "conditional_model_equivalence"
+        elif scope == "equation_form" and lk != rk:
+            relation = "partial_structure"  # general ODE vs solution family; no IVP claim
+        else:
+            relation = "local_approximation" if "linear_stable" in {left.template_id, right.template_id} else "conditional_model_equivalence"
     elif left.template_id == right.template_id and lo == ro and left.measure_scope == right.measure_scope:
         if basis(roles(left)["lambda"].unit_id) != basis(roles(right)["lambda"].unit_id):
             raise PolicyIssue("inconclusive", "no_implicit_workday_conversion")
@@ -340,11 +407,11 @@ def comparison(left, right, scope):
                          "right": repr(normalized(right.expression, {s.id: s for s in right.symbols}, stage)), "scope": scope})
         trace.append({"kind": stage, "input_digest": before, "output_digest": output, "precondition_ids": []})
         before = output
-    if scope != "expression" and left.template_id in decay and right.template_id in decay:
-        if "passive_decay" in {left.template_id, right.template_id}:
+    if scope != "expression" and left.template_id in decay and right.template_id in decay and "timescale" not in {form_kind(left), form_kind(right)}:
+        if any(form.template_id == "passive_decay" and form_kind(form) == "ode_or_relation" for form in (left, right)):
             trace.append({"kind": "divide_nonzero", "input_digest": trace[-1]["output_digest"],
-                          "output_digest": digest({"left_rate": "1/(r*c)" if left.template_id == "passive_decay" else "k",
-                                                  "right_rate": "1/(r*c)" if right.template_id == "passive_decay" else "k"}),
+                          "output_digest": digest({"left_rate": "1/(r*c)" if "r" in roles(left) else "k" if "k" in roles(left) else "1/tau",
+                                                  "right_rate": "1/(r*c)" if "r" in roles(right) else "k" if "k" in roles(right) else "1/tau"}),
                           "precondition_ids": ["positive_parameters"]})
         trace.append({"kind": "positive_time_scale", "input_digest": trace[-1]["output_digest"],
                       "output_digest": digest({"equation": "d(state)/ds=-state", "state_unit": "unchanged", "scope": scope}), "precondition_ids": ["positive_parameters", "constant_parameters", "no_external_input"]})

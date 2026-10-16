@@ -100,7 +100,145 @@ def condition(form, key, value):
     next(v for v in form["assumptions"] if v["id"] == key)["declared_satisfied"] = value
 
 
+def closed_side(template="passive_decay", prefix="a", *, kind="tau", use_tau=False, electrical=False, amplitude="10", tau_value=None):
+    form = side(template, prefix, electrical=electrical, amplitude=amplitude)
+    s = lambda role: sym(prefix + "_" + role)
+    state, start = ("x", "x0") if template == "passive_decay" else ("delta", "delta0")
+    if kind == "tau":
+        form["symbols"] = [v for v in form["symbols"] if v["role"] in {"r", "c", "k"}]
+        form["symbols"].append({"id": prefix + "_tau", "role": "tau", "unit_id": "s", "quantity": "time_constant", "value": tau_value})
+        form["initial_conditions"] = []
+        rhs = binary("mul", s("r"), s("c")) if template == "passive_decay" else binary("div", const(1), s("k"))
+        form["expression"] = binary("eq", s("tau"), rhs)
+    else:
+        unit = next(v["unit_id"] for v in form["symbols"] if v["role"] == state)
+        form["symbols"].append({"id": prefix + "_" + start, "role": start, "unit_id": unit,
+                                "quantity": "initial_state_difference" if template == "passive_decay" else "initial_local_state_difference", "value": amplitude})
+        if use_tau:
+            form["symbols"].append({"id": prefix + "_tau", "role": "tau", "unit_id": "s", "quantity": "time_constant", "value": tau_value})
+            form["assumptions"].append({"id": "tau_definition", "statement": "tau=r*c" if template == "passive_decay" else "tau=1/k", "declared_satisfied": True})
+            exponent = neg(binary("div", s("t"), s("tau")))
+        elif template == "passive_decay":
+            exponent = binary("div", neg(s("t")), binary("mul", s("r"), s("c")))
+        else:
+            exponent = neg(binary("mul", s("k"), s("t")))
+        form["expression"] = binary("eq", s(state), binary("mul", s(start), {"op": "exp", "arg": exponent}))
+    return form
+
+
 class FormulaConsumers(unittest.TestCase):
+    def test_additional_boundaries_are_not_silently_discarded(self):
+        for declaration, status in ((False, "failed"), (None, "inconclusive"), (True, "unsupported")):
+            left = side("passive_decay")
+            left["boundary_conditions"] = [{"id": "finite_time_interval", "statement": "Valid only at 0 through 1 second", "declared_satisfied": declaration}]
+            data = request(left, side("passive_decay", "b"), scope="initial_value_problem", points=["20"])
+            o = outcomes(core(data))
+            self.assertEqual((o["template"].status, o["dimensions"].status), ("passed", "passed"))
+            self.assertEqual((o["canonical_transform"].status, o["bounded_numeric"].status), (status, status))
+            self.assertEqual(o["bounded_numeric"].samples, ())
+        self.assertTrue(all(v.status == "passed" for v in core(request(side("passive_decay"), side("passive_decay", "b"), scope="initial_value_problem")).outcomes))
+
+    def test_expression_and_dimensions_do_not_require_extra_model_boundary(self):
+        left, right = side("passive_decay"), side("passive_decay", "b")
+        for form in (left, right):
+            form["boundary_conditions"] = [{"id": "unimplemented_boundary", "statement": "An unimplemented condition", "declared_satisfied": False}]
+        result = core(request(left, right, scope="expression", checks=["template", "dimensions", "canonical_transform"]))
+        self.assertTrue(all(v.status == "passed" for v in result.outcomes))
+
+    def test_formula_ids_are_immutable_versions(self):
+        left = side()
+        same = request(left, deepcopy(left))
+        self.assertTrue(all(v.status == "passed" for v in core(same).outcomes))
+        self.assertEqual(len(core(same).formula_refs), 1)
+        for mutation in ("content", "version"):
+            right = deepcopy(left)
+            if mutation == "content": next(v for v in right["symbols"] if v["role"] == "lambda")["value"] = "3"
+            else: right["revision"] = 2
+            with self.assertRaisesRegex(FormulaInputError, "immutable formula id"):
+                FormulaCheckInput.parse(request(left, right))
+        right = deepcopy(left); right["id"] = uid(); right["revision"] = 2
+        self.assertEqual(len(core(request(left, right)).formula_refs), 2)
+
+    def test_passive_and_local_timescale_formula_inputs(self):
+        for template, expected in (("passive_decay", "6"), ("linear_stable", "2")):
+            result = core(request(closed_side(template), closed_side(template, "b"), points=["0"]))
+            self.assertTrue(all(v.status == "passed" for v in result.outcomes))
+            self.assertEqual(outcomes(result)["canonical_transform"].relation, "partial_structure")
+            sample = outcomes(result)["bounded_numeric"].samples[0]["left"]
+            self.assertEqual((sample["value"], sample["meaning"]), (expected, "time_constant_only_not_an_ivp"))
+
+    def test_exponential_solution_formula_inputs_and_ivp_consumers(self):
+        for template in ("passive_decay", "linear_stable"):
+            for use_tau in (False, True):
+                left = closed_side(template, kind="solution", use_tau=use_tau, amplitude="-10")
+                right = closed_side(template, "b", kind="solution", use_tau=use_tau, amplitude="-5")
+                result = core(request(left, right, scope="initial_value_problem"))
+                self.assertTrue(all(v.status == "passed" for v in result.outcomes), result)
+                self.assertAlmostEqual(float(outcomes(result)["bounded_numeric"].samples[1]["left"]["actual_state"]), -10/math.e)
+
+    def test_tau_only_exponential_inputs_do_not_invent_missing_parameters(self):
+        for template, tau in (("passive_decay", "6"), ("linear_stable", "2")):
+            forms = []
+            for prefix in ("a", "b"):
+                form = closed_side(template, prefix, kind="solution", use_tau=True, tau_value=tau, amplitude="-2")
+                form["symbols"] = [v for v in form["symbols"] if v["role"] not in {"r", "c", "k"}]
+                form["assumptions"] = [v for v in form["assumptions"] if v["id"] != "tau_definition"]
+                forms.append(form)
+            result = core(request(*forms, scope="initial_value_problem"))
+            self.assertTrue(all(v.status == "passed" for v in result.outcomes), result)
+            self.assertEqual(outcomes(result)["bounded_numeric"].samples[1]["left"]["tau"], tau)
+            self.assertAlmostEqual(float(outcomes(result)["bounded_numeric"].samples[1]["left"]["actual_state"]), -2/math.e)
+            self.assertNotIn("divide_nonzero", [v["kind"] for v in outcomes(result)["canonical_transform"].trace])
+            next(v for v in forms[0]["symbols"] if v["role"] == "tau")["value"] = None
+            self.assertEqual(outcomes(core(request(*forms)))["bounded_numeric"].status, "inconclusive")
+
+    def test_known_tau_solution_can_evaluate_without_separate_rc_values(self):
+        forms = [closed_side(prefix=p, kind="solution", use_tau=True, tau_value="6") for p in ("a", "b")]
+        for form in forms:
+            for symbol in form["symbols"]:
+                if symbol["role"] in {"r", "c"}: symbol["value"] = None
+        result = core(request(*forms, scope="initial_value_problem"))
+        self.assertEqual(outcomes(result)["bounded_numeric"].status, "passed")
+        self.assertEqual(outcomes(result)["bounded_numeric"].samples[1]["left"]["physical_time"], "6")
+
+    def test_false_extra_boundary_takes_precedence_over_unknown_extra(self):
+        left = side("passive_decay")
+        left["boundary_conditions"] = [
+            {"id": "unknown_extra", "statement": "Unknown restriction", "declared_satisfied": None},
+            {"id": "false_extra", "statement": "Known false restriction", "declared_satisfied": False}]
+        result = core(request(left, side("passive_decay", "b")))
+        self.assertEqual(outcomes(result)["canonical_transform"].reason, "precondition_contradicted:false_extra")
+
+    def test_exponential_solution_and_ode_have_scope_specific_relationships(self):
+        left, right = closed_side(kind="solution"), side("passive_decay", "b")
+        self.assertEqual(outcomes(core(request(left, right)))["canonical_transform"].relation, "partial_structure")
+        self.assertEqual(outcomes(core(request(left, right, scope="initial_value_problem")))["canonical_transform"].relation, "conditional_model_equivalence")
+        right["initial_conditions"][0]["value"] = "5"
+        # Nonzero state rescaling remains legal, not literal original amplitude equality.
+        self.assertEqual(outcomes(core(request(left, right, scope="initial_value_problem")))["canonical_transform"].status, "passed")
+        left["initial_conditions"][0]["value"] = "6"
+        self.assertEqual(outcomes(core(request(left, right, scope="initial_value_problem")))["canonical_transform"].reason, "closed_form_initial_value_conflict")
+
+    def test_closed_forms_require_correct_units_parameters_and_tau_definition(self):
+        bad = closed_side(); next(v for v in bad["symbols"] if v["role"] == "tau")["unit_id"] = "count"
+        self.assertEqual(outcomes(core(request(bad, closed_side(prefix="b"), points=["0"])))["dimensions"].status, "failed")
+        for template in ("passive_decay", "linear_stable"):
+            left = closed_side(template, kind="solution", use_tau=True, tau_value="7")
+            right = closed_side(template, "b", kind="solution", use_tau=True)
+            self.assertEqual(outcomes(core(request(left, right)))["canonical_transform"].reason, "time_constant_definition_conflict")
+            left = closed_side(template, kind="solution", use_tau=True)
+            condition(left, "tau_definition", None)
+            self.assertEqual(outcomes(core(request(left, right)))["canonical_transform"].status, "inconclusive")
+            left = closed_side(template, kind="solution")
+            parameter = "r" if template == "passive_decay" else "k"
+            next(v for v in left["symbols"] if v["role"] == parameter)["value"] = "-1"
+            self.assertEqual(outcomes(core(request(left, closed_side(template, "b", kind="solution"))))["canonical_transform"].status, "failed")
+
+    def test_time_constant_does_not_become_a_dynamics_or_ivp_comparison(self):
+        result = core(request(closed_side(), side("passive_decay", "b"), points=["0"]))
+        self.assertEqual(outcomes(result)["canonical_transform"].reason, "timescale_and_dynamics_are_distinct_objects")
+        result = core(request(closed_side(), closed_side(prefix="b"), points=["0"], scope="initial_value_problem"))
+        self.assertEqual(outcomes(result)["canonical_transform"].reason, "timescale_relation_has_no_ivp")
     def test_queue_positive_consumer_with_exact_golden_values(self):
         result = core(request())
         self.assertTrue(all(v.status == "passed" for v in result.outcomes))

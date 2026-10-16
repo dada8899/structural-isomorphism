@@ -268,6 +268,8 @@ class FormulaCheckInput:
         if data["right"] is None and set(checks) - {"template", "dimensions"}:
             raise FormulaInputError("two sides required for comparison")
         left, right = FormulaInput.parse(data["left"]), None if data["right"] is None else FormulaInput.parse(data["right"])
+        if right is not None and left.id == right.id and left.data() != right.data():
+            raise FormulaInputError("immutable formula id cannot change version or content")
         sources = {}
         for form in (left, right):
             if form:
