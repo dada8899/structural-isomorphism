@@ -186,6 +186,51 @@ class SourceStartEnvelope(StrictObject):
     data: SourceStartRequest
 
 
+PaidId=Annotated[str,StringConstraints(strict=True,pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")]
+PaidDigest=Annotated[str,StringConstraints(strict=True,pattern=r"^[a-f0-9]{64}$")]
+
+
+class PaidPreviewRequest(StrictObject):
+    input_revision:Revision
+    expected_research_version:Revision
+    excerpt_ids:Annotated[list[PaidId],Field(min_length=1,max_length=20)]
+    purpose:Literal['method_hypothesis']
+
+    @field_validator('excerpt_ids')
+    @classmethod
+    def unique_excerpts(cls,values):
+        if len(values)!=len(set(values)):raise ValueError('duplicate excerpt')
+        return values
+
+
+class PaidConfirmationRequest(StrictObject):
+    preview_ref:PaidId
+    expected_preview_version:Revision
+    input_revision:Revision
+    expected_research_version:Revision
+    preview_digest:PaidDigest
+    confirm_external_input:StrictBool
+    confirm_maximum_reserve:StrictBool
+
+    @field_validator('confirm_external_input','confirm_maximum_reserve')
+    @classmethod
+    def explicit_true(cls,value):
+        if value is not True:raise ValueError('explicit confirmation required')
+        return value
+
+
+class PaidPreviewEnvelope(StrictObject):
+    schema_version:Literal['structure-research-v1']
+    contract_revision:Literal['b1-candidate-01']
+    data:PaidPreviewRequest
+
+
+class PaidConfirmationEnvelope(StrictObject):
+    schema_version:Literal['structure-research-v1']
+    contract_revision:Literal['b1-candidate-01']
+    data:PaidConfirmationRequest
+
+
 class FixtureResult(StrictObject):
     dispatch_id: str
     receipt_ref: Annotated[str, StringConstraints(strict=True, pattern=r"^[a-zA-Z0-9._:-]{1,120}$")]

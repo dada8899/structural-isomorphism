@@ -127,6 +127,42 @@ class ResearchService:
             row = self.authorization.check(conn, identity, principal, rid)
             return ResearchProjection.build(conn, row, task_id=task_id)
 
+    def paid_preview(self,identity,research_id,request,key,*,funding_resolver=None):
+        from .paid_approval import PaidApprovalService,OfflineFundingResolver
+        from .schemas import PaidPreviewRequest
+        rid=self._id(research_id);pid=self._principal(identity)
+        with self.store.transaction() as conn:self.authorization.check(conn,identity,pid,rid)
+        if type(request) is not PaidPreviewRequest:raise ResearchError('INPUT_INVALID',422,'预览请求无效。')
+        if type(funding_resolver) is not OfflineFundingResolver:raise ResearchError('BUDGET_UNVERIFIED',503,'当前资金来源未核。')
+        result=PaidApprovalService(self.store,funding_resolver=funding_resolver).preview(identity,rid,request.input_revision,
+            request.expected_research_version,tuple(request.excerpt_ids),key=key,client_request_digest=digest(request.model_dump(mode='json')))
+        return self._paid_envelope(result['preview_view'])
+
+    def paid_confirm(self,identity,research_id,request,key,*,funding_resolver=None):
+        from .paid_approval import PaidApprovalService,OfflineFundingResolver
+        from .schemas import PaidConfirmationRequest
+        rid=self._id(research_id);pid=self._principal(identity)
+        with self.store.transaction() as conn:self.authorization.check(conn,identity,pid,rid,scope='write')
+        if type(request) is not PaidConfirmationRequest:raise ResearchError('INPUT_INVALID',422,'确认请求无效。')
+        if request.confirm_external_input is not True or request.confirm_maximum_reserve is not True:raise ResearchError('INPUT_INVALID',422,'请明确核对本次范围。')
+        with self.store.transaction() as conn:
+            preview=conn.execute('SELECT principal_id,research_id FROM research_paid_approvals WHERE id=?',(request.preview_ref,)).fetchone()
+            if not preview or preview['principal_id']!=pid or preview['research_id']!=rid:raise not_found()
+        if type(funding_resolver) is not OfflineFundingResolver:raise ResearchError('BUDGET_UNVERIFIED',503,'当前资金来源未核。')
+        result=PaidApprovalService(self.store,funding_resolver=funding_resolver).confirm(identity,request.preview_ref,request.preview_digest,key,
+            expected_preview_version=request.expected_preview_version,research_id=rid,input_revision=request.input_revision,
+            expected_research_version=request.expected_research_version,client_request_digest=digest(request.model_dump(mode='json')))
+        fields=('approval_ref','preview_version','research_version','task_id','task_version','execution','status')
+        return self._paid_envelope({**{name:result[name] for name in fields},'preview_ref':request.preview_ref,'preview_digest':request.preview_digest,
+            'execution_mode':'offline_probe','model_analysis_ran':False})
+
+    @staticmethod
+    def _paid_envelope(data):
+        from .schemas import SCHEMA_VERSION,CONTRACT_REVISION
+        result={'schema_version':SCHEMA_VERSION,'contract_revision':CONTRACT_REVISION,'data':data}
+        if len(canonical(result).encode())>524288:raise ResearchError('PAYLOAD_LIMIT',413,'响应超过范围上限。')
+        return result
+
     def index(self, identity, query):
         """Keyset page of currently readable research, never a saved-view cache."""
         from .schemas import ResearchIndexQuery,SCHEMA_VERSION,CONTRACT_REVISION

@@ -15,14 +15,14 @@ if __package__ == "web.backend.api":
     from . import auth
     from ..research.authorization import AccountIdentity
     from ..research.errors import ResearchError
-    from ..research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery
+    from ..research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery, PaidPreviewEnvelope, PaidConfirmationEnvelope
     from ..research import source_integration
     from ..research import ResearchService, ResearchStore
 else:
     from api import auth
     from research.authorization import AccountIdentity
     from research.errors import ResearchError
-    from research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery
+    from research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery, PaidPreviewEnvelope, PaidConfirmationEnvelope
     from research import source_integration
     from research import ResearchService, ResearchStore
 
@@ -118,11 +118,20 @@ async def _dispatch(request, *, research_id=None, operation="view"):
             key = request.headers.get("idempotency-key", "")
             if not _KEY.fullmatch(key):
                 raise ResearchError("INPUT_INVALID", 422, "保存操作标识缺失或不合法。")
+            if operation in ('paid-preview','paid-confirm') and request.query_params:
+                raise ResearchError('INPUT_INVALID',422,'付费范围请求不接受查询参数。')
             envelope = await _parse(request,{"create":CreateEnvelope,"revise":RevisionEnvelope,"start":StartEnvelope,
+                                             'paid-preview':PaidPreviewEnvelope,'paid-confirm':PaidConfirmationEnvelope,
                                              "source-preview":SourcePreviewEnvelope,"source-approve":SourceApprovalEnvelope,"source-start":SourceStartEnvelope,
                                              "cancel":TaskEnvelope,"reconcile":TaskEnvelope,"resume":TaskEnvelope}[operation])
             if operation == "create":
                 result = await run_in_threadpool(service.create, identity, envelope.data, key)
+            elif operation in ('paid-preview','paid-confirm'):
+                # Server composition only. Requests/env booleans cannot install
+                # this controlled source; the normal application has none.
+                resolver=getattr(request.app.state,'research_paid_resolver',None)
+                method=service.paid_preview if operation=='paid-preview' else service.paid_confirm
+                result=await run_in_threadpool(method,identity,research_id,envelope.data,key,funding_resolver=resolver)
             elif operation == "revise":
                 result = await run_in_threadpool(service.revise, identity, research_id, envelope.data, key)
             elif operation == "start":
@@ -206,3 +215,13 @@ async def source_approval(research_id: str,request: Request):
 @router.post("/research/{research_id}/source-tasks")
 async def source_task(research_id: str,request: Request):
     return await _dispatch(request,research_id=research_id,operation="source-start")
+
+
+@router.post('/research/{research_id}/paid-previews')
+async def paid_preview(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='paid-preview')
+
+
+@router.post('/research/{research_id}/paid-approvals')
+async def paid_confirmation(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='paid-confirm')

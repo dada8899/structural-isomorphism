@@ -205,7 +205,7 @@ class PaidApprovalService:
         self.store,self.resolver=store,funding_resolver
         if funding_resolver is not None and type(funding_resolver) is not OfflineFundingResolver:raise TypeError('controlled offline resolver required')
 
-    def preview(self,identity,research_id,input_revision,research_version,source_refs):
+    def preview(self,identity,research_id,input_revision,research_version,source_refs,*,key=None,client_request_digest=None):
         if self.resolver is None:raise ResearchError('FEATURE_UNAVAILABLE',503,'资金使用依据未核，当前入口关闭。')
         candidate=read_provider_eligibility(self.store,identity,research_id,input_revision,research_version,source_refs)
         gate=AuthorizationGate(self.store)
@@ -214,8 +214,20 @@ class PaidApprovalService:
             if not principal:raise not_found()
             pid=principal[0]
         with gate.owner_gate(pid),self.store.transaction(write=True) as conn:
-            control=gate.check(conn,identity,pid,research_id,scope='write')
+            control=gate.check(conn,identity,pid,research_id,scope='read')
             if control['current_revision']!=input_revision or control['version']!=research_version:raise ResearchError('REVISION_CONFLICT',409,'问题已变化。')
+            from .service import ResearchService
+            if key is not None:
+                replay=ResearchService._replay(conn,pid,'paid-preview','r:'+research_id,key,client_request_digest)
+                if replay is not None:
+                    row=conn.execute('SELECT * FROM research_paid_approvals WHERE id=? AND principal_id=? AND research_id=?',(replay['preview_ref'],pid,research_id)).fetchone()
+                    if not row or row['state']!='draft' or row['payload_json'] is None or row['expires_at']<=int(time.time()):raise ResearchError('REVISION_CONFLICT',409,'原预览已消费或过期，请重新预览。')
+                    original=json.loads(row['payload_json'])
+                    from .provider_evidence import read_preview_manifest
+                    fresh=read_preview_manifest(conn,self.store,identity,research_id,input_revision,research_version,source_refs,original['summary'])
+                    if (digest(canonical(fresh))!=original['manifest_digest'] or self.resolver.current(conn,pid)!=original['funding']
+                            or request_codec_digest()!=original['codec_digest']):raise ResearchError('REVISION_CONFLICT',409,'原预览绑定已变化。')
+                    return {'preview_view':replay}
             principal=conn.execute('SELECT * FROM research_principals WHERE id=?',(pid,)).fetchone()
             problem=conn.execute('SELECT * FROM research_revisions WHERE research_id=? AND revision=?',(research_id,input_revision)).fetchone()
             data=json.loads(problem['problem_json'])
@@ -242,29 +254,48 @@ class PaidApprovalService:
                 may_send_to_provider=False,model_analysis_ran=False)
             view['preview_digest']=digest(canonical(view));payload['preview_digest']=view['preview_digest']
             conn.execute("INSERT INTO research_paid_approvals(id,principal_id,research_id,payload_json,payload_digest,state,mode,policy_revision,funding_source_ref,account_id,expires_at,created_at) VALUES(?,?,?,?,?,'draft','offline_probe',?,?,?,?,?)",(aid,pid,research_id,canonical(payload).decode(),digest(canonical(payload)),POLICY,self.resolver._ref,funding['account_id'],expires,timestamp))
+            if key is not None:ResearchService._remember(conn,pid,'paid-preview','r:'+research_id,key,client_request_digest,view)
             # Legacy aliases remain internal only; the future route must emit
             # exactly preview_view, never directly serialize this container.
             return {**view,'preview_view':view,'mode':'offline_probe','summary':data['summary'],'excerpts':manifest['sources'],
                 'maximum_approved_upper':funding['approved_upper'],'may_send':False}
 
-    def confirm(self,identity,preview_ref,preview_digest,key,*,expected_preview_version=1):
+    def confirm(self,identity,preview_ref,preview_digest,key,*,expected_preview_version=1,research_id=None,input_revision=None,expected_research_version=None,client_request_digest=None):
         from .provider_evidence import read_confirmed_provider_packet
         from .service import ResearchService,now
         from .projection import ResearchProjection
         gate=AuthorizationGate(self.store)
         if type(expected_preview_version) is not int or expected_preview_version<1:raise ResearchError('INPUT_INVALID',422,'预览版本无效。')
         if type(key) is not str or not 1<=len(key)<=128 or any(not (c.isascii() and (c.isalnum() or c in '._:-')) for c in key):raise ResearchError('INPUT_INVALID',422,'操作标识无效。')
-        operation_digest=digest(canonical({'preview_ref':preview_ref,'digest':preview_digest,'version':expected_preview_version}))
+        operation_digest=client_request_digest or digest(canonical({'preview_ref':preview_ref,'digest':preview_digest,'version':expected_preview_version}))
         with self.store.transaction() as conn:
-            row=conn.execute('SELECT principal_id,research_id FROM research_paid_approvals WHERE id=?',(preview_ref,)).fetchone()
+            row=conn.execute('SELECT principal_id,research_id,payload_json FROM research_paid_approvals WHERE id=?',(preview_ref,)).fetchone()
             if not row:raise not_found()
             pid=row[0]
             gate.check(conn,identity,pid,row['research_id'],scope='write')
+            if research_id is not None and row['research_id']!=research_id:raise not_found()
+            bound=json.loads(row['payload_json']) if row['payload_json'] else None
+            if not bound:raise not_found()
+            if ((input_revision is not None and input_revision!=bound['input_revision']) or
+                    (expected_research_version is not None and expected_research_version!=bound['research_version'])):
+                raise ResearchError('REVISION_CONFLICT',409,'确认的预览输入绑定不一致。')
         with gate.owner_gate(pid) as lease,self.store.transaction(write=True) as conn:
             row=conn.execute('SELECT * FROM research_paid_approvals WHERE id=?',(preview_ref,)).fetchone()
             gate.check(conn,identity,pid,row['research_id'],scope='write')
             def current_receipt(receipt):
                 owner=gate.check(conn,identity,pid,row['research_id'])
+                # A financial/confirmation replay never reinstates permission
+                # to display source material that has since been revoked.
+                from .evidence_repository import EvidenceRepository
+                from .source_integration import authorizer,context_for
+                saved=json.loads(row['payload_json']) if row['payload_json'] else None
+                if not saved:raise not_found()
+                repository=EvidenceRepository(conn,authorizer(self.store,identity=identity))
+                for source_ref in saved['source_refs']:
+                    item=conn.execute("SELECT task_id FROM research_evidence_objects WHERE id=? AND kind='excerpts' AND research_id=? AND input_revision=?",(source_ref,row['research_id'],saved['input_revision'])).fetchone()
+                    if not item:raise not_found()
+                    try:repository.provider_eligibility(context_for(conn,item[0]),source_ref)
+                    except (ValueError,LookupError,PermissionError):raise ResearchError('SOURCE_PERMISSION_UNAVAILABLE',409,'资料读取资格已变化。') from None
                 view=ResearchProjection.build(conn,owner,task_id=receipt['task_id'])['data']
                 return {**receipt,'research_version':view['research_version'],'task_version':view['task_version'],
                     'execution':view['execution'],'status':view['status']}
