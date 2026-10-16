@@ -162,6 +162,18 @@ Make 摘要变更随后经 Astra 独立前置核验 No findings，确认只新�
 
 这些用例在目标版本／Playwright 1.59.0 环境中实际运行，未因缺依赖跳过。仍待原 perf 测试 owner 的 fixture 修复受审合入，再验证真实混组；规范主分组不转为 isolated 逃避，旧 a76 的 Node 覆盖失败与本次新发现均保留。本次接线不提交或推送，不通过删测试、弱化冻结／覆盖断言、改预算或盲重跑取得绿灯。
 
+## Daily 卡片加载态就绪条件返修
+
+源基线 `847077a2706a748b37a21bfb1f613d8b86fa451a`。真实 push CI run `38924986095` 的 discovery/classes/papers shard 为 27 passed、1 failed：320 宽度的 daily 用例在 href 断言失败。只读诊断确认 `home.js` 先以三个无 href 的 busy ARTICLE 渲染骨架，与真实结果共用 `.disc-card`；原测试的第一张 `.disc-card` 可见并不代表候选数据已渲染。daily 返回有效 200 后，`loadHomeData` 仍等待 suggest 的 Promise.allSettled 屏障，能够放大该窗口。
+
+有效原测试只自然运行一次且通过，DOM 轨迹仍记录骨架到真实 anchor 的转换；首次错误参数 nodeid 没有执行测试，记录保留，没有反复采到绿。只读受控 320／390 各一次均证明旧等待提前满足而 href 条件为 false；释放 suggest 后三条真实深链、aria、键盘、边界文案与语言切换通过，无 pageerror，console 仅夹具刻意返回的匿名 auth 401。CI 原次没有逐卡 DOM artifact，不能宣称掌握那一次全部 DOM，也不能用本地通过抵消真实失败。
+
+经 PMO 精确授权，只改原 daily 测试函数及参数化：保留正常 320／390，新增各自 suggest-held 对照。受控分支只暂停网络 fixture 的 suggest 完成，daily 原 fixture 返回体不改；确认 daily body 完成且有三条数据后，先证明原 broad 选择器已有三个 busy 骨架、真实 anchors 为零、href 均为空，随后释放建议接口。就绪等待仅从 `.disc-card` 改为 `a.disc-card`，不预筛选正确 href；原 broad 卡片数量、无分数、每条深链／aria、文案、溢出、焦点、44px 和 i18n 断言逐条保留。未增 sleep、延长原等待、skip、修改生产／DOM renderer、导航、预算或其他测试。
+
+Playwright 1.59.0 目标版本环境中，四个正常／受控参数用例 **4 passed**；完整目标文件 **15 passed**；对应 discovery/classes/papers shard **30 passed**；public-controls 与 B0 硬 job 合同 **209 passed**。这些范围重叠，不相加宣传唯一测试数。AST 核实项目内仅获准函数／装饰器变化，原宽度列表和全部原顶层断言保持。测试 context／browser 和静态服务沿 fixture teardown 收尾，未访问生产、收费模型或重跑旧 run。
+
+本轮不把本地证据当新 SHA 的 CI；作者停写后由 PMO 提交、Astra 受影响复核及新 Actions 确认。双接口渲染屏障如需产品层独立加载优化另立明确范围，本次不修改业务来掩盖测试的加载态误判。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。
