@@ -49,3 +49,13 @@
 验证阶段：固定首轮定义后，原472项加当时新增72项合跑 **544 passed**、浏览器 **22 passed**。最后收紧 SQL 常量校验、统一 StopBinding，并将迁移故障覆盖扩大到全部54切点后，新增组 **90 passed（40.37秒）**；最终同一固定运行时代码的完整后端 **562 passed／0 skipped（190.31秒）**。中途曾边补强 DDL 边跑跨进程测试，出现两个子进程提前退出；当时父子可能载入不同代定义，但未从被抑制的 stderr 确认直接异常，该次失败不计通过。固定代码后，两项独立重跑、完整544项及最终562项均通过。没有放宽原信号／超时或旧断言。
 
 当前不得宣称所有旧 writer 已计入 upper。它们的唯一行为变化只是显式旧列名；预算／runner／投影／删除 paid 适配仍须后续唯一 owner 卡。发布、真实付费、Linux/VPS 与产品验收均未在本轮放行。
+
+## ed6c3bb4 独审返修
+
+2026-10-17 原审查者的两项 P1 与一项 P2 反例均按原范围修复：
+
+- **隐式回滚退休能力。** 编译时 authorizer 保留，但不再把它当实际事务结束的充分观测。增加同一 Core 连接的 SQLite 执行回调：每次真实语句开始前核 in_transaction；隐式 OR ROLLBACK 后，即使 BEGIN／外层 SAVEPOINT 使用缓存，也会在新事务开始前永久退休原 scope。回调不保存或打印 SQL／参数，不产生网络或浏览器 trace。消费者不能接管连接的事务和控制回调。connection/cursor 两种 API × 缓存 BEGIN/SAVEPOINT 四个真实反例全部拒绝；commit、rollback、显式 SQL、executescript 原对照仍拒绝，合法内部 SAVEPOINT 不误退役。
+- **不可变记录拒绝 REPLACE。** 增加 BEFORE INSERT 冲突守卫，覆盖账户、cost，以及同类的 snapshot/price/receipt 的 PK 和全部现有唯一键；在 REPLACE 的隐式删除前拒绝，不依赖 recursive_triggers。账户还禁止普通 DELETE 后重建来重置经济身份与 cap。recursive_triggers=OFF 的真实替换反例均保留原行且 FKcheck 为空；非冲突插入、合法 held 更新及独立 anomaly 追加照常允许，没有用总额 CHECK 丢弃已经发生的超额事实。
+- **DDL 比较保留 token 边界。** 使用 SQL token 序列比较，保持单双引号、标识符与关键字边界；只规范 SQLite 对简单 managed research_* 名称自动添加的合法引号。真实把 id 列改成名为 `id TEXT` 的合成 schema5 表，重开立即拒绝，而不会误通过后才 SELECT id 报错；合法表名引号、真实 v1/v4 迁移对照保持。
+
+原90项对应的全部测试函数、helper与断言 AST 不变；新增守卫使原54个迁移故障切点扩到60，原切点全部保留。最终 schema 专项 **114 passed／0 skipped（46.73秒）**；旧 C0/lifecycle/persistence、完整 D1 与 schema 专项组合 **258 passed／0 skipped（155.91秒）**。旧SQL、旧测试、其他生产源码和收费关闭边界均未修改；本轮仅 paid_control/store/new-schema-test/本文，停写后交 PMO 固定新 SHA 再原审查者复核。没有上限预算实现、资金／凭据／live／真实模型或对外发布。

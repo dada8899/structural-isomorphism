@@ -353,3 +353,124 @@ def test_open_outbound_unique_ignores_rotating_epochs_task_key_and_scope(current
             conn.execute("INSERT INTO research_reservations ("+",".join(changed)+") VALUES("+",".join("?" for _ in changed)+")",tuple(changed.values()))
         columns=[r[2] for r in conn.execute("PRAGMA index_info(research_bounded_open_operation)")]
         assert columns==["account_id","principal_id","outbound_fingerprint"]
+
+
+@pytest.mark.parametrize("restart",["BEGIN IMMEDIATE","SAVEPOINT cached_scope"])
+@pytest.mark.parametrize("api",["connection","cursor"])
+def test_implicit_rollback_then_cached_restart_never_revives_stop(current,restart,api):
+    client,_,store,rid,pid=current;tid=_stop_task(client,store,rid)
+    with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+        executor=conn if api=="connection" else conn.cursor()
+        if restart.startswith("SAVEPOINT"):
+            executor.execute(restart);executor.execute("RELEASE cached_scope")
+        cap=mint_stop_authority(conn,store=store,lease=lease,principal_id=pid,task_id=tid,expected_task_version=1,identity=identity(client))
+        assert cap.require(conn,"cancel").task_id==tid
+        with pytest.raises(sqlite3.IntegrityError):executor.execute("INSERT OR ROLLBACK INTO research_schema(id,version) VALUES(1,5)")
+        assert not conn.in_transaction
+        executor.execute(restart)
+        assert conn.in_transaction
+        with pytest.raises(PermissionError):cap.require(conn,"cancel")
+        with pytest.raises(PermissionError):mint_stop_authority(conn,store=store,lease=lease,principal_id=pid,task_id=tid,expected_task_version=1,identity=identity(client))
+        if api=="cursor":executor.close()
+
+
+@pytest.mark.parametrize("ending",["commit","rollback","sql_commit","sql_rollback","executescript"])
+def test_explicit_transaction_end_controls_still_retire_stop(current,ending):
+    client,_,store,rid,pid=current;tid=_stop_task(client,store,rid)
+    with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+        cap=mint_stop_authority(conn,store=store,lease=lease,principal_id=pid,task_id=tid,expected_task_version=1,identity=identity(client))
+        if ending=="commit":conn.commit()
+        elif ending=="rollback":conn.rollback()
+        elif ending=="sql_commit":conn.execute("COMMIT")
+        elif ending=="sql_rollback":conn.execute("ROLLBACK")
+        else:conn.executescript("SELECT 1;")
+        assert not conn.in_transaction
+        conn.execute("BEGIN IMMEDIATE")
+        with pytest.raises(PermissionError):cap.require(conn,"cancel")
+
+
+def test_inner_savepoint_does_not_end_current_stop_scope(current):
+    client,_,store,rid,pid=current;tid=_stop_task(client,store,rid)
+    with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+        cap=mint_stop_authority(conn,store=store,lease=lease,principal_id=pid,task_id=tid,expected_task_version=1,identity=identity(client))
+        conn.execute("SAVEPOINT inner_scope");conn.execute("SELECT 1")
+        conn.execute("ROLLBACK TO inner_scope");conn.execute("RELEASE inner_scope")
+        assert cap.require(conn,"cancel").task_id==tid
+
+
+def replace_row(conn,table,row):
+    conn.execute("INSERT OR REPLACE INTO "+table+" ("+",".join('"'+key+'"' for key in row)+") VALUES("+",".join("?" for _ in row)+")",tuple(row.values()))
+
+
+@pytest.mark.parametrize("conflict",["primary","binding"])
+def test_funding_replace_conflicts_do_not_reset_original_cap(current,conflict):
+    _,_,store,_,_=current
+    with store.transaction(write=True) as conn:
+        conn.execute("PRAGMA recursive_triggers=OFF")
+        fid,_,_,_=bounded_rows(conn,current)
+        original=dict(conn.execute("SELECT * FROM research_funding_accounts WHERE id=?",(fid,)).fetchone())
+        changed={**original,"cap":2000,"initial_prepaid_units":2000}
+        if conflict=="binding":changed["id"]=str(uuid4())
+        else:changed["binding_id"]=str(uuid4())
+        with pytest.raises(sqlite3.IntegrityError,match="replacement forbidden"):replace_row(conn,"research_funding_accounts",changed)
+        assert dict(conn.execute("SELECT * FROM research_funding_accounts WHERE id=?",(fid,)).fetchone())==original
+        assert conn.execute("PRAGMA foreign_key_check").fetchall()==[]
+        conn.execute("UPDATE research_funding_accounts SET held=held+1,version=version+1 WHERE id=?",(fid,))
+        assert conn.execute("SELECT held FROM research_funding_accounts WHERE id=?",(fid,)).fetchone()[0]==original["held"]+1
+        with pytest.raises(sqlite3.IntegrityError):conn.execute("DELETE FROM research_funding_accounts WHERE id=?",(fid,))
+
+
+@pytest.mark.parametrize("conflict",["primary","observation_unique","upper_partial_unique"])
+def test_cost_replace_cannot_erase_any_immutable_unique_conflict(current,conflict):
+    _,_,store,_,_=current
+    with store.transaction(write=True) as conn:
+        conn.execute("PRAGMA recursive_triggers=OFF")
+        ids=bounded_rows(conn,current);insert_cost(conn,ids,_USAGE)
+        original=dict(conn.execute("SELECT * FROM research_cost_observations").fetchone())
+        changed={**original,"safe_code":"body_invalid"}
+        if conflict=="primary":changed.update(observation_digest="e"*64,kind="anomaly",booked_upper=None)
+        else:changed["id"]=str(uuid4())
+        if conflict=="upper_partial_unique":changed["observation_digest"]="f"*64
+        with pytest.raises(sqlite3.IntegrityError,match="replacement forbidden"):replace_row(conn,"research_cost_observations",changed)
+        assert dict(conn.execute("SELECT * FROM research_cost_observations").fetchone())==original
+        # An independent anomaly fact can still be appended without rewriting
+        # the first observation or pretending an excess charge did not happen.
+        insert_cost(conn,ids,_USAGE,id=str(uuid4()),observation_digest="1"*64,kind="anomaly",booked_upper=None,safe_code="conflict")
+        assert conn.execute("SELECT count(*) FROM research_cost_observations").fetchone()[0]==2
+        assert conn.execute("PRAGMA foreign_key_check").fetchall()==[]
+
+
+def test_other_immutable_financial_unique_keys_reject_replace(legacy):
+    _,_,_,_,_=legacy
+    store=ResearchStore(auth._store())
+    with store.transaction(write=True) as conn:
+        conn.execute("PRAGMA recursive_triggers=OFF")
+        for table,unique in (("research_balance_snapshots",None),("research_price_revisions","operation"),("research_billing_receipts","provider_ref")):
+            original=dict(conn.execute("SELECT * FROM "+table+" LIMIT 1").fetchone())
+            with pytest.raises(sqlite3.IntegrityError,match="replacement forbidden"):replace_row(conn,table,original)
+            if unique:
+                changed={**original,"id":str(uuid4())}
+                with pytest.raises(sqlite3.IntegrityError,match="replacement forbidden"):replace_row(conn,table,changed)
+            assert dict(conn.execute("SELECT * FROM "+table+" WHERE id=?",(original["id"],)).fetchone())==original
+        assert conn.execute("PRAGMA foreign_key_check").fetchall()==[]
+
+
+def test_ddl_tokens_preserve_identifier_and_keyword_boundaries():
+    normalize=ResearchStore._normalize_sql
+    baseline="CREATE TABLE research_example (id TEXT PRIMARY KEY)"
+    assert normalize(baseline)==normalize('CREATE TABLE "research_example" ( id TEXT PRIMARY KEY )')
+    assert normalize(baseline)!=normalize('CREATE TABLE research_example ("id TEXT" PRIMARY KEY)')
+    assert normalize(baseline)!=normalize('CREATE TABLE research_example (idTEXT PRIMARY KEY)')
+    assert normalize("CHECK(x='USD')")!=normalize("CHECK(x='U SD')")
+
+
+def test_v5_reopen_rejects_real_quoted_column_drift_before_selecting_id(current):
+    _,path,store,_,_=current
+    from research.store import COST_SCHEMA
+    with store.transaction(write=True) as conn:
+        assert conn.execute("SELECT count(*) FROM research_cost_observations").fetchone()[0]==0
+        conn.execute("DROP TABLE research_cost_observations")
+        conn.execute(COST_SCHEMA.replace("id TEXT PRIMARY KEY",'"id TEXT" PRIMARY KEY',1))
+    before=snapshot(path)
+    with pytest.raises(ResearchError) as failure:ResearchStore(auth._store())
+    assert failure.value.code=="SCHEMA_UNSUPPORTED" and snapshot(path)==before

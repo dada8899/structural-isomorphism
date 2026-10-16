@@ -63,15 +63,24 @@ def _transaction_scope(conn,*,write):
         if action==sqlite3.SQLITE_TRANSACTION and arg1 in ("COMMIT","ROLLBACK"):
             scope.active=False
         return sqlite3.SQLITE_OK
+    def executing(statement):
+        # Authorizers run at compilation and may be skipped for cached SQL.
+        # Trace runs at execution, before each actual statement. After an
+        # implicit OR ROLLBACK, a BEGIN or outer SAVEPOINT is observed while
+        # autocommit is still true, permanently retiring the original scope.
+        if not conn.in_transaction:
+            scope.active=False
     with _LOCK:
         if id(conn) in _SCOPES:raise PermissionError("transaction already registered")
         _SCOPES[id(conn)]=scope
     conn.set_authorizer(authorizer)
+    conn.set_trace_callback(executing)
     try:yield
     finally:
         scope.active=False
         with _LOCK:_SCOPES.pop(id(conn),None)
         conn.set_authorizer(None)
+        conn.set_trace_callback(None)
 
 
 def _current_scope(conn):

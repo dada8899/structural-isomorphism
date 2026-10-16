@@ -278,10 +278,29 @@ V5_AUX = (
             AND (json_type(NEW.usage_json,'$.cached_tokens') IS NULL OR json_type(NEW.usage_json,'$.cached_tokens') IS 'null' OR json_extract(NEW.usage_json,'$.cached_tokens')=json_extract(NEW.usage_json,'$.prompt_cache_hit_tokens'))
             AND (json_type(NEW.usage_json,'$.reasoning_tokens') IS NULL OR json_type(NEW.usage_json,'$.reasoning_tokens') IS 'null' OR json_extract(NEW.usage_json,'$.reasoning_tokens')<=json_extract(NEW.usage_json,'$.completion_tokens')))
             THEN RAISE(ABORT,'complete financial usage required') END; END""",
+    """CREATE TRIGGER research_funding_no_replace BEFORE INSERT ON research_funding_accounts
+        WHEN EXISTS(SELECT 1 FROM research_funding_accounts WHERE id=NEW.id OR binding_id=NEW.binding_id)
+        BEGIN SELECT RAISE(ABORT,'funding replacement forbidden'); END""",
+    """CREATE TRIGGER research_cost_no_replace BEFORE INSERT ON research_cost_observations
+        WHEN EXISTS(SELECT 1 FROM research_cost_observations WHERE id=NEW.id
+            OR (dispatch_id=NEW.dispatch_id AND observation_digest=NEW.observation_digest)
+            OR (dispatch_id=NEW.dispatch_id AND kind='estimated_upper' AND NEW.kind='estimated_upper'))
+        BEGIN SELECT RAISE(ABORT,'cost replacement forbidden'); END""",
+    """CREATE TRIGGER research_snapshot_no_replace BEFORE INSERT ON research_balance_snapshots
+        WHEN EXISTS(SELECT 1 FROM research_balance_snapshots WHERE id=NEW.id)
+        BEGIN SELECT RAISE(ABORT,'snapshot replacement forbidden'); END""",
+    """CREATE TRIGGER research_price_no_replace BEFORE INSERT ON research_price_revisions
+        WHEN EXISTS(SELECT 1 FROM research_price_revisions WHERE id=NEW.id OR
+            (account_id=NEW.account_id AND operation=NEW.operation AND policy_revision='c0-fixture-v1' AND NEW.policy_revision='c0-fixture-v1'))
+        BEGIN SELECT RAISE(ABORT,'price replacement forbidden'); END""",
+    """CREATE TRIGGER research_receipt_no_replace BEFORE INSERT ON research_billing_receipts
+        WHEN EXISTS(SELECT 1 FROM research_billing_receipts WHERE id=NEW.id OR (account_id=NEW.account_id AND provider_ref=NEW.provider_ref))
+        BEGIN SELECT RAISE(ABORT,'receipt replacement forbidden'); END""",
 )
 
 V5_GUARDS=tuple(f"CREATE TRIGGER {table}_immutable BEFORE UPDATE ON {table} BEGIN SELECT RAISE(ABORT,'immutable accounting record'); END"
-    for table in ("research_price_revisions","research_balance_snapshots","research_cost_observations"))+("CREATE TRIGGER research_cost_no_delete BEFORE DELETE ON research_cost_observations BEGIN SELECT RAISE(ABORT,'append only cost observation'); END",)
+    for table in ("research_price_revisions","research_balance_snapshots","research_cost_observations"))+("CREATE TRIGGER research_cost_no_delete BEFORE DELETE ON research_cost_observations BEGIN SELECT RAISE(ABORT,'append only cost observation'); END",
+    "CREATE TRIGGER research_funding_no_delete BEFORE DELETE ON research_funding_accounts BEGIN SELECT RAISE(ABORT,'funding identity retained'); END")
 
 
 class ResearchStore:
@@ -376,11 +395,24 @@ class ResearchStore:
 
     @staticmethod
     def _normalize_sql(sql):
-        # Whitespace/case outside SQL literals is formatting. Values inside
-        # literals (including spaces or case) remain part of the contract.
-        parts=re.split(r"('(?:''|[^'])*')",sql)
-        return "".join(part if index%2 else "".join(re.sub(r"\bIF\s+NOT\s+EXISTS\b","",part,flags=re.I).replace('"','').split()).lower()
-            for index,part in enumerate(parts))
+        # Compare tokens, never flattened SQL text. Only SQLite's automatic
+        # quoting of simple managed research_* names is normalized away.
+        # Quoted identifiers with spaces/keywords keep their exact boundary.
+        tokens=[]
+        pattern=r"\s+|'(?:''|[^'])*'|\"(?:\"\"|[^\"])*\"|`(?:``|[^`])*`|\[[^\]]*\]|[A-Za-z_][A-Za-z_0-9]*|[0-9]+|."
+        for match in re.finditer(pattern,sql,re.S):
+            value=match.group()
+            if value.isspace():continue
+            if value.startswith("'"):token=("literal",value)
+            elif value[0] in ('"','`','['):
+                unquoted=value[1:-1].replace(value[0]*2,value[0]) if value[0]!='[' else value[1:-1]
+                token=("word",unquoted.lower()) if re.fullmatch(r"research_[A-Za-z_0-9]+",unquoted,re.I) else ("quoted_identifier",unquoted)
+            elif re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*",value):token=("word",value.lower())
+            elif value.isdigit():token=("number",value)
+            else:token=("punctuation",value)
+            tokens.append(token)
+        optional=[("word","if"),("word","not"),("word","exists")]
+        return tuple(token for i,token in enumerate(tokens) if not any(tokens[j:j+3]==optional and j<=i<j+3 for j in range(max(0,i-2),i+1)))
 
     def _migrate_v5(self):
         """Single-owner graph replacement; no application/upper-budget writes."""
