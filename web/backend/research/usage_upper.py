@@ -26,6 +26,14 @@ class UpperMathError(ValueError):
     """Fixed error codes only; no partial observed or releasable result."""
 
 
+class PreviewUpperMath(DTO):
+    """Quote-only arithmetic, deliberately unrelated to a reserved dispatch."""
+    policy: Literal['bounded_usage_upper_v2'] = 'bounded_usage_upper_v2'
+    quote_revision: Id
+    quote_digest: Digest
+    upper_bound: Money
+
+
 class ReservedUpperMath(DTO):
     policy: Literal['bounded_usage_upper_v2'] = 'bounded_usage_upper_v2'
     quote_revision: Id
@@ -63,13 +71,30 @@ def _f(quote, inputs, outputs):
     return Money(currency=quote.currency, scale=quote.scale, amount_units=units)
 
 
-def reserve_bound(quote: UsageUpperQuote, *, dispatch_id: str, request_digest: str, now: int) -> ReservedUpperMath:
-    """Calculate U for a current quote; `now` is Core's clock, not admission proof."""
+def _current_quote(quote, now):
     quote = _quote(quote)
     if type(now) is not int or now < 0:
         raise UpperMathError('invalid_clock')
     if not 0 < quote.valid_until - now <= MAX_QUOTE_REMAINING_SECONDS:
         raise UpperMathError('quote_not_current')
+    return quote
+
+
+def preview_bound(quote: UsageUpperQuote, *, now: int) -> PreviewUpperMath:
+    """Quote-only upper bound, no fake dispatch/request or execution authority.
+
+    `now` is Core's UTC epoch-second clock. This shares the exact F and local
+    TTL with reserve, but its distinct DTO cannot serve as a reservation.
+    """
+    quote = _current_quote(quote, now)
+    return PreviewUpperMath(quote_revision=quote.revision,
+        quote_digest=digest(canonical(quote.model_dump())),
+        upper_bound=_f(quote, quote.context_bound, quote.output_bound))
+
+
+def reserve_bound(quote: UsageUpperQuote, *, dispatch_id: str, request_digest: str, now: int) -> ReservedUpperMath:
+    """Calculate U for a current quote; `now` is Core's clock, not admission proof."""
+    quote = _current_quote(quote, now)
     try:
         return ReservedUpperMath(quote_revision=quote.revision,
             quote_digest=digest(canonical(quote.model_dump())), dispatch_id=dispatch_id,
