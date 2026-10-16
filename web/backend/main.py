@@ -413,6 +413,8 @@ app.include_router(favorites.router, prefix="/api")
 # Canonical beta magic-link auth + JWT session cookies. Production delivery
 # uses the configured SMTP transport and fails closed when unavailable.
 app.include_router(auth_api.router, prefix="/api")
+from api import research as research_api  # noqa: E402
+app.include_router(research_api.router, prefix="/api")
 # Session #16 M1.4 — persisted analyze reports + share + feedback.
 from api import report as report_api  # noqa: E402
 app.include_router(report_api.router, prefix="/api")
@@ -664,6 +666,15 @@ async def index_head():
 @app.get("/search")
 async def search_page():
     return FileResponse(FRONTEND_DIR / "search.html")
+
+
+@app.get("/research", include_in_schema=False)
+@app.get("/research/{research_id}", include_in_schema=False)
+async def research_page():
+    return FileResponse(
+        FRONTEND_DIR / "research.html",
+        headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+    )
 
 
 @app.get("/auth/login", include_in_schema=False)

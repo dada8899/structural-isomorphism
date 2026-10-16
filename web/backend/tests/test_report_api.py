@@ -490,8 +490,17 @@ def test_get_by_id_unhandled_failure_is_minimal_and_no_store(client, monkeypatch
 
 
 def test_shared_historical_snapshots_recursively_drop_user_aggregates(
-    client, isolated_store, sample_payload,
+    client, isolated_store, sample_payload, tmp_path, monkeypatch,
 ):
+    from api import auth, sso
+    monkeypatch.setenv("AUTH_DATA_DIR",str(tmp_path/"auth"))
+    monkeypatch.setattr(auth,"_data_dir",lambda:tmp_path/"auth")
+    monkeypatch.setenv("STRUCTURAL_SSO_DATA_DIR",str(tmp_path/"sso"))
+    monkeypatch.setenv("STRUCTURAL_SSO_SECRET","historical-fixture-sso-secret-32-characters")
+    monkeypatch.setenv("STRUCTURAL_PRIVACY_HMAC_KEY","0123456789abcdef"*4)
+    email="historical-fixture@example.test"
+    auth._store().ensure_user_and_notification(email,"free","2026-01-01T00:00:00+00:00")
+    owner_id=sso._subject_id(email)
     payload = {
         **sample_payload,
         "_credibility": {
@@ -529,8 +538,8 @@ def test_shared_historical_snapshots_recursively_drop_user_aggregates(
         report_id=out["id"], anon_id="device-a", action_status="tried",
         outcome="worked", publish_to_insights=True,
     )
-    isolated_store.claim_by_anon("device-a", "account-a")
-    isolated_store.withdraw_insights_consent_by_owner(out["id"], "account-a")
+    isolated_store.claim_by_anon("device-a", owner_id)
+    isolated_store.withdraw_insights_consent_by_owner(out["id"], owner_id)
 
     response = client.get(f"/api/report/share/{out['share_token']}")
     assert response.status_code == 200

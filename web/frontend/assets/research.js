@@ -1,0 +1,436 @@
+/* The server is the authority. No generated research or local saved-state mock. */
+(() => {
+  'use strict';
+  const byId = id => document.getElementById(id);
+  const form = byId('problem-form');
+  const schema = 'structure-research-v1';
+  const revision = 'b1-candidate-01';
+  let current = null;
+  let editBase = null;
+  let observed = null;
+  let busy = false;
+  let variables = [];
+  let taskData = null;
+  let taskBusy = false;
+  let sourceBusy = false;
+  let sourcePreview = null;
+  let sourceApproval = null;
+  let sourceRecordScope = null;
+  let sourceRecordGeneration = 0;
+  const initialPath = location.pathname.split('/').filter(Boolean);
+  let researchId = initialPath.length === 2 ? initialPath[1] : null;
+  const selectedTask = new URLSearchParams(location.search).get('task_id');
+  const validId = value => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value);
+
+  function status(message, error = false) {
+    byId('status').textContent = message;
+    byId('status').dataset.error = String(error);
+  }
+  function setBusy(value) {
+    busy = value;
+    // Freeze the submitted draft until the receipt is handled. Otherwise a
+    // late render could silently replace edits made while fetch was pending.
+    for (const control of form.querySelectorAll('input, textarea, select, button')) control.disabled = value || (Boolean(editBase?.historical) && control.id !== 'reload');
+    syncTaskButtons();
+  }
+  function normalizeProblem(problem) {
+    // Match ProblemInput exactly; original_input intentionally stays verbatim.
+    return {...problem, objective:problem.objective.normalize('NFC'), summary:problem.summary.normalize('NFC'),
+      constraints:problem.constraints.map(value => value.normalize('NFC')),
+      unknowns:problem.unknowns.map(value => value.normalize('NFC')),
+      variables:problem.variables.map(variable => ({...variable, label:variable.label.normalize('NFC'),
+        observation:variable.observation === null ? null : variable.observation.normalize('NFC')}))};
+  }
+  function clearPrivateView() {
+    current = null;
+    editBase = null;
+    observed = null;
+    variables = [];
+    form.reset();
+    form.hidden = true;
+    byId('history').hidden = true;
+    byId('history-items').replaceChildren();
+    byId('variables').textContent = '';
+    byId('access').hidden = false;
+    taskData = null;
+    byId('task-section').hidden = true;
+    byId('task-notes').replaceChildren();
+    sourcePreview = null;
+    sourceApproval = null;
+    byId('source-section').hidden = true;
+    byId('source-plan').textContent = '';
+    byId('source-records').replaceChildren();
+    sourceRecordScope = null;
+    sourceRecordGeneration++;
+  }
+  async function request(url, options = {}, isCurrent = () => true) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(url, {...options, credentials: 'same-origin', cache: 'no-store', signal: controller.signal});
+      if (!isCurrent()) throw new Error('较早的来源读取已失效。');
+      const payload = await response.json();
+      if (!isCurrent()) throw new Error('较早的来源读取已失效。');
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 404 || payload.error?.code === 'AUTHORIZATION_STALE') clearPrivateView();
+        const error = new Error(payload.error?.message || '操作暂时无法完成，请保留当前内容。');
+        error.status = response.status;
+        error.code = payload.error?.code;
+        throw error;
+      }
+      if (payload.schema_version !== schema || payload.contract_revision !== revision || !payload.data) {
+        throw new Error('读取到不支持的数据版本，请保留当前内容并稍后重试。');
+      }
+      return payload.data;
+    } finally { clearTimeout(timer); }
+  }
+  function render(data) {
+    sourceRecordGeneration++;
+    current = data;
+    researchId = data.research.id;
+    const problem = data.current_problem;
+    // Only a full, explicit problem load/save establishes the editing base.
+    // Task responses may observe newer server state but never rebase this form.
+    editBase = {revision:problem.revision, digest:problem.digest, researchVersion:data.research_version,
+      historical:Boolean(data.is_historical || selectedTask)};
+    sourcePreview = null;
+    sourceApproval = null;
+    byId('source-confirm').hidden = true;
+    byId('source-plan').textContent = '';
+    for (const [id, key] of [['entry','entry'],['original-input','original_input'],['objective','objective'],['summary','summary']]) {
+      byId(id).value = problem[key];
+    }
+    byId('constraints').value = problem.constraints.join('\n');
+    byId('unknowns').value = problem.unknowns.join('\n');
+    byId('confirmed').checked = problem.confirmed;
+    variables = problem.variables;
+    byId('variables').hidden = variables.length === 0;
+    byId('variables').textContent = variables.map(v => `${v.label} (${v.id}) · ${v.unit_id || '单位待确认'} · ${v.observation || '观测待补充'}`).join('\n');
+    byId('revision-label').textContent = `当前修订 ${problem.revision}`;
+    byId('save').textContent = '保存为新修订';
+    byId('reload').hidden = false;
+    byId('access').hidden = true;
+    byId('history-items').replaceChildren();
+    for (const item of [...data.revisions].reverse()) {
+      const detail = document.createElement('details');
+      const title = document.createElement('summary');
+      title.textContent = `修订 ${item.revision} · ${item.summary}`;
+      const content = document.createElement('pre');
+      content.textContent = `原始问题\n${item.original_input}\n\n目标\n${item.objective}\n\n摘要\n${item.summary}\n\n约束\n${item.constraints.join('\n') || '未填写'}\n\n未知\n${item.unknowns.join('\n') || '未填写'}`;
+      detail.append(title, content);
+      byId('history-items').append(detail);
+    }
+    form.hidden = false;
+    byId('history').hidden = false;
+    renderTask(data);
+    setBusy(busy);
+  }
+  function observeServer(data) {
+    if (!observed || data.research_version >= observed.researchVersion) {
+      const latest = data.revisions.find(item => item.revision === data.research.current_revision);
+      observed = {researchVersion:data.research_version, revision:data.research.current_revision, digest:latest?.digest};
+    }
+  }
+  function editNotice() {
+    const conflict = editBase && observed && !editBase.historical &&
+      (observed.revision !== editBase.revision || observed.digest !== editBase.digest);
+    if (conflict) {
+      status(`服务端已有修订 ${observed.revision}；表单仍基于修订 ${editBase.revision}，草稿已保留。保存与启动仍检查原基准；采用最新内容须明确载入。`, true);
+      byId('reload').textContent = '明确载入最新修订（替换表单）';
+    } else {
+      byId('reload').textContent = '重新读取已存版本';
+    }
+    return Boolean(conflict);
+  }
+  function syncTaskButtons() {
+    const actions = taskData?.allowed_next_actions || [];
+    const map = {start:'start', cancel:'cancel', reconcile:'request_reconciliation', resume:'resume'};
+    for (const [operation, action] of Object.entries(map)) {
+      const button = byId('task-' + operation);
+      button.hidden = !actions.includes(action) || (operation === 'start' && Boolean(taskData?.is_historical));
+      button.disabled = taskBusy || (operation === 'start' && busy);
+    }
+    byId('task-refresh').disabled = taskBusy;
+  }
+  function renderTask(data, context = {}) {
+    const olderResearch = observed && data.research_version < observed.researchVersion;
+    const sameTask = taskData?.task?.id === data.task?.id;
+    observeServer(data);
+    editNotice();
+    if (olderResearch && (!sameTask || (!selectedTask && data.current_problem.revision !== observed.revision))) return false;
+    if (sameTask && taskData?.task_version > data.task_version) return false;
+    // A response to task1 cannot replace the task2 already shown by a newer
+    // real view, even when both tasks use the same problem revision.
+    if (context.targetTask && !selectedTask && taskData?.task?.id !== context.targetTask) return false;
+    if (context.operation === 'start' && taskData?.task && !sameTask && data.research_version <= taskData.research_version) return false;
+    const recordScope = `${data.research.id}:${data.current_problem.revision}:${data.task?.id || 'none'}`;
+    if (sourceRecordScope !== recordScope) {
+      sourceRecordScope = recordScope;
+      sourceRecordGeneration++;
+      byId('source-records').replaceChildren();
+      byId('source-status').textContent = '';
+    }
+    taskData = data;
+    byId('task-title').textContent = '本机流程演练';
+    byId('task-scope').textContent = '仅验证保存、调用与对账流程，不访问真实供应端、不扣真实费用，也不代表研究成果。';
+    byId('source-section').hidden = !data.capabilities?.source_evidence;
+    byId('task-section').hidden = !data.capabilities?.execution && !data.task && !data.other_active_task_id;
+    const labels = {QUEUED:'等待本机执行', RUNNING:'本机演练处理中', WAITING_EXTERNAL:'等待演练响应', RECONCILING:'调用结果待核对', COMPLETED:'本机演练结束；尚无真实研究结论', FAILED:'演练未完成', CANCELLED:'已停止后续步骤', ACCESS_REVOKED:'访问已停止'};
+    byId('task-phase').textContent = data.task ? labels[data.execution] : '尚未启动演练。启动后进入队列，仅在本机实际执行时推进，可刷新查看状态。';
+    byId('task-budget').textContent = data.budget ? `已确认 ${data.budget.known_text}；预留 ${data.budget.held_text}；未确认调用 ${data.budget.unknown_count} 笔。` : '';
+    const details = {reconciliation_required:'调用与费用仍待确认，预留保持占用；核对前不会重复调用。', waiting_external:'请求可能仍在处理中；停止只阻断后续步骤，不承诺撤回已经发出的请求。', budget_unverified:'演练额度或费率尚未核实，未发起新的调用。', budget_exhausted:'演练可用额度不足，未发起新的调用。', partial_results:'只保存本机合成笔记，不能当作真实取证或研究成果。'};
+    byId('task-message').textContent = data.budget?.anomaly ? '演练费用出现异常，已停止新增调用，需要核对。' : (details[data.detail] || '');
+    if (data.detail === 'reconciliation_required' && data.budget?.unknown_count === 0 && !data.budget?.anomaly) byId('task-message').textContent = '费用已确认，输出仍待核对；核对不会重复发送原调用。';
+    byId('task-saved-scope').textContent = data.task
+      ? `此流程绑定已保存的修订 ${data.task.input_revision}；本页表单基于修订 ${editBase?.revision}，未保存输入不进入演练。`
+      : `本页表单基于已载入的修订 ${editBase?.revision}；任务刷新不会载入或覆盖问题。`;
+    byId('task-other').hidden = !data.other_active_task_id;
+    if (data.other_active_task_id) byId('task-other').href = `/research/${data.research.id}?task_id=${encodeURIComponent(data.other_active_task_id)}`;
+    byId('task-current').hidden = !data.is_historical;
+    byId('task-current').href = `/research/${data.research.id}`;
+    byId('task-notes').replaceChildren();
+    for (const note of data.notes || []) {
+      const element = document.createElement('pre'); element.textContent = note; byId('task-notes').append(element);
+    }
+    for (const observation of data.source_observations || []) {
+      const element = document.createElement('p');
+      element.textContent = `原读取 ${observation.started_at}；${observation.execution_closed ? '执行已闭合，结果仍未知' : '执行尚未闭合，结果待核对'}。未恢复旧结果。`;
+      byId('task-notes').append(element);
+    }
+    if (data.source_quota) {
+      byId('task-title').textContent = '来源读取流程';
+      byId('task-scope').textContent = data.execution_mode === 'offline_probe' ? '当前使用本机合成来源验证流程；未访问公网，不构成真实研究证据。' : '按已确认的关键词读取固定学术来源；仅整理方法笔记，研究结论仍需验证。';
+      byId('task-phase').textContent = data.execution === 'COMPLETED' ? '来源整理结束；研究证据仍不足。' : data.execution === 'FAILED' ? '来源读取未完成。' : data.execution === 'CANCELLED' ? '已停止后续来源读取。' : '来源流程状态：' + data.execution;
+      byId('task-budget').textContent = `同一观测链已读取 ${data.source_quota.used} / ${data.source_quota.limit} 次；结果未知 ${data.source_quota.unknown_count} 次，其中执行已闭合 ${data.source_quota.unknown_closed} 次，尚未闭合 ${data.source_quota.unknown_unclosed} 次。`;
+      byId('task-message').textContent = '尚未运行模型分析、行情计算或统计检验；短摘录不代表已验证结论。';
+      if (data.source_quota.unknown_closed) byId('task-message').textContent += ' 旧读取执行已闭合，但原结果仍未知；后续读取是新观测，未恢复旧结果。';
+    }
+    syncTaskButtons();
+    return true;
+  }
+  function viewUrl() { return `/api/research/${researchId}` + (selectedTask ? `?task_id=${encodeURIComponent(selectedTask)}` : ''); }
+  async function load() {
+    if (!researchId) {
+      // An authenticated read is still required: the account endpoint performs
+      // actual session validation; the research API revalidates on every save.
+      const response = await fetch('/api/auth/me', {cache:'no-store', credentials:'same-origin'});
+      if (!response.ok) { clearPrivateView(); status('请登录账户，再开始保存研究。', true); return; }
+      form.hidden = false;
+      status('新问题尚未保存。');
+      return;
+    }
+    if (!validId(researchId)) { clearPrivateView(); status('研究链接无效。', true); return; }
+    if (selectedTask && !validId(selectedTask)) { clearPrivateView(); status('流程链接无效。', true); return; }
+    render(await request(viewUrl()));
+    await recoverSourceIntent();
+    if (!editNotice()) status('已从账户读取保存的问题；尚未执行研究。');
+  }
+  async function operationKey(scope, body, expectedRevision, taskRequest = null) {
+    const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body));
+    const hash = Array.from(new Uint8Array(bytes), n => n.toString(16).padStart(2,'0')).join('');
+    const slot = 'structure-research-pending:' + scope;
+    const existing = sessionStorage.getItem(slot);
+    if (existing) {
+      const pending = JSON.parse(existing);
+      if (pending.digest !== hash) throw new Error('上次保存的结果尚未确认。请先用上次相同内容再次保存，或重新读取已存版本。');
+      return {key:pending.key, slot};
+    }
+    const key = crypto.randomUUID();
+    sessionStorage.setItem(slot, JSON.stringify({key, digest:hash, expected_revision:expectedRevision, task_request:taskRequest}));
+    return {key, slot};
+  }
+  function lines(id) {
+    const values = byId(id).value.split('\n').filter(line => line.length > 0);
+    if (values.length > 12 || values.some(line => Array.from(line).length > 120)) {
+      throw new Error('约束与未知各最多 12 项，每项最多 120 字。');
+    }
+    return values;
+  }
+  async function sourcePost(operation, data) {
+    const body = JSON.stringify({schema_version:schema, contract_revision:revision, data});
+    if (operation === 'source-preview') return request(`/api/research/${researchId}/${operation}`, {method:'POST', headers:{'Content-Type':'application/json','Idempotency-Key':crypto.randomUUID()}, body});
+    const pending = await operationKey(`source:${operation}:${researchId}`, body, data.input_revision, data);
+    try {
+      const result = await request(`/api/research/${researchId}/${operation}`, {method:'POST', headers:{'Content-Type':'application/json','Idempotency-Key':pending.key}, body});
+      sessionStorage.removeItem(pending.slot);
+      return result;
+    } catch (error) {
+      if (error.status >= 400 && error.status < 500) sessionStorage.removeItem(pending.slot);
+      throw error;
+    }
+  }
+  async function recoverSourceIntent() {
+    if (!researchId || !taskData?.capabilities?.source_evidence) return;
+    const pendingStart = sessionStorage.getItem(`structure-research-pending:source:source-tasks:${researchId}`);
+    const pendingApproval = sessionStorage.getItem(`structure-research-pending:source:source-approvals:${researchId}`);
+    if (!pendingStart && !pendingApproval) return;
+    sourceBusy = true;
+    try {
+      let data;
+      if (pendingStart) data = JSON.parse(pendingStart).task_request;
+      else {
+        const original = JSON.parse(pendingApproval).task_request;
+        const approved = await sourcePost('source-approvals',original);
+        data = {input_revision:original.input_revision,expected_research_version:original.expected_research_version,approval_ref:approved.approval_ref};
+      }
+      const result = await sourcePost('source-tasks',data);
+      renderTask(result,{operation:'start'});
+      byId('source-status').textContent = '已核对上次确认的原操作；没有另启重复流程。';
+    } catch (error) { byId('source-status').textContent = error.message; }
+    finally { sourceBusy = false; }
+  }
+  async function sourceRecords() {
+    const task = taskData?.task;
+    if (!task || task.policy_revision !== 'd1-source-only-v1') return;
+    const taskId = task.id;
+    const scope = sourceRecordScope;
+    const generation = sourceRecordGeneration;
+    const items = [];
+    for (const kind of ['sources','excerpts','claims','reports']) {
+      let cursor = null;
+      do {
+        let data;
+        try { data = await request(`/api/research/${researchId}/records?task_id=${encodeURIComponent(taskId)}&kind=${kind}` + (cursor ? '&cursor=' + encodeURIComponent(cursor) : ''), {}, () => sourceRecordGeneration === generation && sourceRecordScope === scope); }
+        catch (error) { if (sourceRecordGeneration !== generation) return; throw error; }
+        if (sourceRecordGeneration !== generation || sourceRecordScope !== scope || taskData?.task?.id !== taskId || taskData.task_version > data.task_version || observed?.researchVersion > data.research_version) return;
+        items.push(...data.items.map(item => ({...item,recordKind:kind})));
+        cursor = data.next_cursor;
+      } while (cursor);
+    }
+    if (sourceRecordGeneration !== generation || sourceRecordScope !== scope || taskData?.task?.id !== taskId) return;
+    byId('source-records').replaceChildren();
+    for (const item of items) {
+      const article = document.createElement('article');
+      const title = document.createElement('h3');
+      title.textContent = {sources:'来源',excerpts:'短摘录',claims:'待验证判断',reports:'研究缺口'}[item.recordKind];
+      const content = document.createElement('p');
+      content.textContent = item.title || item.quote || item.text || item.outstanding_requirements.join('；');
+      article.append(title,content);
+      if (item.recordKind === 'sources') {
+        const link = document.createElement('a'); link.href = item.canonical_url; link.textContent = item.canonical_url; link.rel = 'noreferrer'; article.append(link);
+        const provenance = document.createElement('p'); provenance.className = 'hint'; provenance.textContent = `${item.execution_mode} · ${item.accessed_at} · ${item.license_note}`; article.append(provenance);
+      }
+      byId('source-records').append(article);
+    }
+    byId('source-status').textContent = items.length ? '已从账户读取来源与笔记；证据仍不足。' : '当前尚无可展示的来源材料。';
+  }
+  byId('source-preview').addEventListener('click', async () => {
+    if (sourceBusy || busy || taskBusy || !editBase || editBase.historical) return;
+    sourceBusy = true;
+    sourcePreview = null;
+    sourceApproval = null;
+    byId('source-confirm').hidden = true;
+    try {
+      const data = {input_revision:editBase.revision,expected_research_version:editBase.researchVersion,query:byId('source-query').value};
+      const result = await sourcePost('source-preview',data);
+      sourcePreview = {...data,preview_digest:result.preview_digest};
+      byId('source-plan').textContent = `查询：${result.query}\n绑定已保存修订 ${result.input_revision}\n最多读取 ${result.plan.max_requests} 次来源；不会发送原始问题正文。`;
+      byId('source-status').textContent = '预览完成；尚未开始读取来源。';
+      byId('source-confirm').hidden = false;
+    } catch (error) { byId('source-status').textContent = error.message; }
+    finally { sourceBusy = false; }
+  });
+  byId('source-query').addEventListener('input', () => { sourcePreview = null; sourceApproval = null; byId('source-confirm').hidden = true; });
+  byId('source-confirm').addEventListener('click', async () => {
+    if (sourceBusy || busy || taskBusy || !sourcePreview || editBase?.historical) return;
+    sourceBusy = true;
+    const approvedPreview = {...sourcePreview};
+    try {
+      const approved = sourceApproval || await sourcePost('source-approvals',{...approvedPreview,confirm_external:true});
+      sourceApproval = approved;
+      const result = await sourcePost('source-tasks',{input_revision:approvedPreview.input_revision,expected_research_version:approvedPreview.expected_research_version,approval_ref:approved.approval_ref});
+      renderTask(result,{operation:'start'});
+      sourceApproval = null;
+      byId('source-confirm').hidden = true;
+      byId('source-status').textContent = '来源流程已排队；刷新可读取实际执行状态。';
+    } catch (error) { byId('source-status').textContent = error.message; }
+    finally { sourceBusy = false; }
+  });
+  byId('source-refresh').addEventListener('click', async () => {
+    if (sourceBusy || busy || taskBusy || !researchId) return;
+    sourceBusy = true;
+    try { renderTask(await request(viewUrl())); await sourceRecords(); }
+    catch (error) { byId('source-status').textContent = error.message; }
+    finally { sourceBusy = false; }
+  });
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (busy || editBase?.historical) return;
+    setBusy(true);
+    status('正在保存，请保留当前页面…');
+    let pending;
+    try {
+      const problem = normalizeProblem({entry:byId('entry').value, original_input:byId('original-input').value,
+        objective:byId('objective').value, summary:byId('summary').value, variables,
+        constraints:lines('constraints'), unknowns:lines('unknowns'), confirmed:byId('confirmed').checked});
+      const scope = researchId || 'new';
+      const prior = sessionStorage.getItem('structure-research-pending:' + scope);
+      const priorOperation = prior ? JSON.parse(prior) : null;
+      // Reopening a committed revision must not silently change the body of an
+      // unresolved operation. Retain its original CAS revision when confirming.
+      const expectedRevision = current ? (priorOperation?.expected_revision ?? editBase.revision) : null;
+      const data = current ? {expected_revision:expectedRevision, problem} : {problem};
+      const body = JSON.stringify({schema_version:schema, contract_revision:revision, data});
+      pending = await operationKey(scope, body, expectedRevision);
+      const url = researchId ? `/api/research/${researchId}/revisions` : '/api/research';
+      const saved = await request(url, {method:'POST', headers:{'Content-Type':'application/json', 'Idempotency-Key':pending.key}, body});
+      sessionStorage.removeItem(pending.slot);
+      history.replaceState(null, '', `/research/${saved.research.id}`);
+      render(saved);
+      status(`已保存修订 ${saved.current_problem.revision}。这是一条问题记录，尚未执行研究。`);
+    } catch (error) {
+      // 4xx proves rejection; transport/5xx outcomes keep the original key.
+      if (pending && error.status >= 400 && error.status < 500) sessionStorage.removeItem(pending.slot);
+      const transportFailure = error.name === 'AbortError' || error.name === 'TypeError' || error.name === 'SyntaxError';
+      status(transportFailure ? '保存结果尚未确认。请保留输入，用相同内容再次保存以核对原操作。' : error.message, true);
+    } finally {
+      setBusy(false);
+    }
+  });
+  async function taskAction(operation) {
+    if (taskBusy || !taskData || (operation === 'start' && busy)) return;
+    taskBusy = true; syncTaskButtons();
+    let pending;
+    try {
+      const scope = `task:${operation}:${researchId}:${operation === 'start' ? editBase.revision : taskData.task.id}`;
+      const prior = sessionStorage.getItem('structure-research-pending:' + scope);
+      const data = prior && JSON.parse(prior).task_request || (operation === 'start'
+        ? {input_revision:editBase.revision, expected_research_version:editBase.researchVersion, mode:'research'}
+        : {task_id:taskData.task.id, expected_task_version:taskData.task_version});
+      const body = JSON.stringify({schema_version:schema, contract_revision:revision, data});
+      pending = await operationKey(scope, body, null, data);
+      const result = await request(`/api/research/${researchId}/${operation === 'start' ? 'tasks' : operation}`, {method:'POST', headers:{'Content-Type':'application/json','Idempotency-Key':pending.key}, body});
+      sessionStorage.removeItem(pending.slot);
+      if (!renderTask(result, {operation, targetTask:operation === 'start' ? null : data.task_id})) {
+        byId('task-message').textContent = '较早流程的操作已确认；当前问题保持不变，可从历史流程查看。';
+      }
+    } catch (error) {
+      if (pending && error.status >= 400 && error.status < 500) sessionStorage.removeItem(pending.slot);
+      byId('task-message').textContent = error.code === 'REVISION_CONFLICT'
+        ? '问题版本已变化，当前草稿和已载入修订保持不变；请明确载入最新修订后再启动。'
+        : error.status ? error.message : '操作结果尚未确认，请刷新演练状态，再用原操作核对；不要重复启动。';
+    } finally { taskBusy = false; syncTaskButtons(); }
+  }
+  for (const operation of ['start','cancel','reconcile','resume']) byId('task-' + operation).addEventListener('click', () => taskAction(operation));
+  byId('task-refresh').addEventListener('click', async () => {
+    if (taskBusy || !researchId) return;
+    taskBusy = true; syncTaskButtons();
+    try {
+      const result = await request(viewUrl());
+      renderTask(result);
+    } catch (error) { byId('task-message').textContent = error.message; }
+    finally { taskBusy = false; syncTaskButtons(); }
+  });
+  byId('reload').addEventListener('click', async () => {
+    if (busy) return;
+    setBusy(true);
+    try { await load(); }
+    catch (error) { status(error.message, true); }
+    finally { setBusy(false); }
+  });
+  // Clear existing private DOM on restored bfcache pages before revalidating.
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) { clearPrivateView(); load().catch(error => status(error.message, true)); }
+  });
+  load().catch(error => status(error.message, true));
+})();

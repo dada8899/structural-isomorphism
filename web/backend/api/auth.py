@@ -95,11 +95,7 @@ _EMAIL_RE = re.compile(
 )
 _MAX_EMAIL_LEN = 200
 
-# Account deletion spans several stores. Every owner-scoped mutation must use
-# the same gate so a valid pre-deletion session cannot write between snapshot,
-# erase, compensation, and the final auth revocation.
-_ACCOUNT_OWNER_LOCKS_GUARD = threading.Lock()
-_ACCOUNT_OWNER_LOCKS: dict[str, threading.Lock] = {}
+# Account deletion and research writes share one persistent, single-host gate.
 _AUTH_STORES_GUARD = threading.Lock()
 _AUTH_STORES: dict[Path, AuthStore] = {}
 
@@ -109,9 +105,13 @@ def account_owner_transaction(owner: str):
     normalized = owner.strip().lower()
     if not normalized:
         raise ValueError("account transaction requires an owner")
-    with _ACCOUNT_OWNER_LOCKS_GUARD:
-        lock = _ACCOUNT_OWNER_LOCKS.setdefault(normalized, threading.Lock())
-    with lock:
+    try:
+        from research.authorization import AuthorizationGate
+    except ModuleNotFoundError:
+        from web.backend.research.authorization import AuthorizationGate
+    store = _store()
+    gate_id = store.owner_gate_id(normalized)
+    with AuthorizationGate(store).owner_gate_id(gate_id):
         yield
 
 
@@ -211,11 +211,15 @@ def account_deletion_epoch(email: str) -> Optional[str]:
 
 def account_is_active(email: str) -> bool:
     """Return whether an email-owned account still exists after revalidation."""
-    return _store().user(email) is not None
+    store = _store()
+    user = store.user(email)
+    return bool(user and user["lifecycle"] == "active" and not store.deletion_pending(email))
 
 
 def api_key_retired_by_account_deletion(email: str, created_at: str) -> bool:
     """Fail closed for a legacy key issued no later than a deletion commit."""
+    if _store().deletion_pending(email):
+        return True
     deleted_at = account_deletion_epoch(email)
     if deleted_at is None:
         return False
@@ -652,7 +656,8 @@ def resolve_session_user(request: Request) -> tuple[Optional[dict], str]:
     if _is_jti_revoked(claims.get("jti", "")):
         return None, "revoked"
     user = _store().user(claims.get("sub", ""))
-    if not user or claims.get("gen") != user.get("session_generation"):
+    if (not user or user["lifecycle"] != "active" or _store().deletion_pending(user["email"])
+            or claims.get("gen") != user.get("session_generation")):
         return None, "invalid"
     return {
         "email": user["email"],
@@ -672,6 +677,8 @@ def resolve_account_user(request: Request) -> tuple[Optional[dict], str]:
     if beta_status != "valid" or not beta:
         return None, beta_status
     stored = _store().user(beta["email"])
+    if not stored or not account_is_active(beta["email"]):
+        return None, "invalid"
     return {
         "email": beta["email"],
         "tier": beta.get("tier", "free"),
@@ -755,10 +762,15 @@ async def request_link(body: RequestLinkBody, request: Request):
 
     token = _generate_token()
     now = datetime.now(timezone.utc)
-    _store().add_token(
-        _token_hash(token), email, now.isoformat(),
-        (now + timedelta(minutes=_TOKEN_TTL_MIN)).isoformat(),
-    )
+    try:
+        _store().add_token(
+            _token_hash(token), email, now.isoformat(),
+            (now + timedelta(minutes=_TOKEN_TTL_MIN)).isoformat(),
+        )
+    except DeletedCredentialError:
+        # Same production acknowledgement: no account-state enumeration, no
+        # new email-bearing row after the fence and no unusable email sent.
+        return JSONResponse({"ok": True})
 
     base_url = os.getenv("AUTH_LINK_BASE_URL", "http://localhost:3000").rstrip("/")
     query = {"token": token}
@@ -997,6 +1009,7 @@ async def delete_my_account(body: DeleteAccountBody, request: Request):
         return _account_auth_error(status)
     if body.confirmation != "DELETE":
         return JSONResponse({"ok": False, "error": "confirmation must equal DELETE"}, status_code=400)
+    job_id = None
     try:
         with account_owner_transaction(user["email"]):
             # The first resolve selects the lock. Re-resolve inside it so a
@@ -1006,8 +1019,15 @@ async def delete_my_account(body: DeleteAccountBody, request: Request):
                 return _account_auth_error(locked_status)
             if locked_user["email"].lower() != user["email"].lower():
                 return _account_auth_error("credential_conflict")
-            registry = _account_registry()
-            removed = registry.delete_all(locked_user["email"])
+            service = _account_deletion_service()
+            account = _store().user(locked_user["email"])
+            job_id = service.begin_account_deletion_locked(
+                locked_user["email"], account["session_generation"],
+                _store().owner_gate_id(locked_user["email"]),
+                _account_cleanup_binding(locked_user["email"]),
+            )
+            result = _run_account_deletion_locked(service, job_id)
+            removed = result["removed"]
     except Exception as exc:
         status_code = 503 if getattr(exc, "status", None) == 503 else 500
         if status_code == 503:
@@ -1022,10 +1042,13 @@ async def delete_my_account(body: DeleteAccountBody, request: Request):
                 error_type=type(exc).__name__,
                 incident_id=new_incident_id(),
             )
-        return JSONResponse(
-            {"ok": False, "error": "account deletion failed"},
-            status_code=status_code,
-        )
+        payload = {"ok": False, "error": "account deletion failed"}
+        if job_id is not None:
+            payload.update({
+                "deletion_state":"cleanup_pending", "access_ended":True,
+                "message":"账户访问已停止，数据清理尚未完成。请由维护方继续既有删除任务，重新登录不会恢复旧权限。",
+            })
+        return JSONResponse(payload, status_code=status_code)
     tombstone = deletion_tombstone(user["email"], removed, _jwt_secret())
     try:
         _append_deletion_audit(tombstone)
@@ -1046,6 +1069,75 @@ async def delete_my_account(body: DeleteAccountBody, request: Request):
     _clear_beta_session(response)
     logger.info("account_data.deleted")
     return response
+
+
+def _account_deletion_service():
+    try:
+        from research import ResearchService, ResearchStore
+    except ModuleNotFoundError:
+        from web.backend.research import ResearchService, ResearchStore
+    return ResearchService(ResearchStore(_store()))
+
+
+def _run_account_deletion_locked(service, job_id):
+    job = service.deletion_job(job_id)
+    if job["state"] == "completed":
+        return json.loads(job["result_json"])
+    if job["state"] == "scrubbing":
+        return service.finish_account_deletion_locked(job_id, None)
+    if not hmac.compare_digest(job["cleanup_binding"], _account_cleanup_binding(job["owner_email"])):
+        raise RuntimeError("account deletion recovery binding mismatch")
+    service.erase_research_locked(job_id)
+    # Generic legacy compensation remains unchanged. The committed auth fence
+    # and research epoch are not registry assets and cannot be restored by it.
+    first,receipt = service.prepare_legacy_deletion_locked(job_id)
+    if receipt is None:
+        removed = _account_registry().delete_all(job["owner_email"])
+        receipt = service.record_legacy_deletion_locked(job_id, removed, first=first)
+    removed = service.legacy_deletion_result(receipt)
+    return service.finish_account_deletion_locked(job_id, removed)
+
+
+def _account_cleanup_binding(email):
+    """Bind recovery to the original fixed stores and SSO identity derivation.
+
+    Persist a digest only; neither paths nor private identity material enter
+    an API, ordinary log, or a user-supplied recovery argument.
+    """
+    try:
+        from api import favorites, report_account, sso
+    except ModuleNotFoundError:
+        from web.backend.api import favorites, report_account, sso
+    binding = {
+        "auth": str(_store().path.resolve()),
+        "favorites": str(favorites._data_file().resolve()),
+        "favorites_legacy": str(favorites._legacy_data_file().resolve()),
+        "reports": str(report_account._get_store().db_path.resolve()),
+        "sso": str((sso._data_dir() / "sso_replay.sqlite3").resolve()),
+        "subject": sso._subject_id(email),
+        "registry": _account_registry().manifest(),
+    }
+    return hashlib.sha256(json.dumps(binding, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def pending_account_deletions():
+    """Local control only: return bounded opaque job IDs, never user bindings."""
+    with _store()._connection() as conn:
+        return [row["id"] for row in conn.execute(
+            "SELECT id FROM auth_deletion_jobs WHERE state!='completed' ORDER BY created_at,id LIMIT 100"
+        )]
+
+
+def resume_account_deletion(job_id: str):
+    """Local control only: resume one persisted job in the configured auth DB.
+
+    Not registered as HTTP/CLI user input. No email, DB path, credential,
+    callback, or arbitrary action is accepted; completed jobs are idempotent.
+    """
+    service = _account_deletion_service()
+    job = service.deletion_job(job_id)
+    with service.authorization.owner_gate_id(job["gate_id"]):
+        return _run_account_deletion_locked(service, job_id)
 
 
 # --- Test helpers ---

@@ -291,7 +291,7 @@ def test_late_failure_rolls_back_favorites_and_keeps_account(client, monkeypatch
     )
     report_account._store.claim_by_anon("anon-rollback", subject)
 
-    def fail(_email: str):
+    def fail(_self, _email: str, **_kwargs):
         raise OSError("simulated auth database failure")
 
     monkeypatch.setattr(auth.AuthStore, "delete_account_data", fail)
@@ -300,8 +300,11 @@ def test_late_failure_rolls_back_favorites_and_keeps_account(client, monkeypatch
         headers={"Origin": "http://testserver"},
     )
     assert response.status_code == 500
-    assert client.get("/api/auth/me").status_code == 200
-    restored_favorites = client.get("/api/favorites").json()
+    assert client.get("/api/auth/me").status_code == 401
+    assert len(auth.pending_account_deletions()) == 1
+    with pytest.raises(favorites.Unauthenticated):
+        client.get("/api/favorites")
+    restored_favorites = favorites.export_account_favorites("alice@example.com")
     assert restored_favorites["tickers"] == ["AAPL"]
     assert any(
         item["bookmark_id"] == bookmark["bookmark_id"]
@@ -354,19 +357,21 @@ def test_successful_delete_serializes_predeletion_favorite_write(
     with TestClient(client.app) as writer:
         writer.cookies.set("phase_session", token)
         deleting = threading.Thread(target=delete_account)
-        deleting.start()
-        assert reached_later_asset.wait(5)
-
         writing = threading.Thread(
             target=write_with_predeletion_session, args=(writer,)
         )
-        writing.start()
-        writing.join(0.1)
-        assert writing.is_alive(), "same-owner mutation escaped account transaction gate"
-
-        release_delete.set()
-        deleting.join(5)
-        writing.join(5)
+        deleting.start()
+        try:
+            assert reached_later_asset.wait(5)
+            writing.start()
+            writing.join(0.1)
+            if not writing.is_alive():
+                assert getattr(mutation_result.get("exception"), "status", None) == 401
+        finally:
+            release_delete.set()
+            deleting.join(5)
+            if writing.ident is not None:
+                writing.join(5)
         assert not deleting.is_alive() and not writing.is_alive()
         assert delete_result["response"].status_code == 200  # type: ignore[union-attr]
         assert getattr(mutation_result.get("exception"), "status", None) == 401
@@ -394,9 +399,10 @@ def test_failed_delete_releases_gate_after_raw_restore_then_write_succeeds(
     monkeypatch.setattr(
         favorites, "delete_account_favorites", blocked_delete_favorites
     )
+    original_auth_delete = auth.AuthStore.delete_account_data
     monkeypatch.setattr(
         auth.AuthStore, "delete_account_data",
-        lambda _self, _email: (_ for _ in ()).throw(OSError("late failure")),
+        lambda _self, _email, **_kwargs: (_ for _ in ()).throw(OSError("late failure")),
     )
     delete_result: dict[str, object] = {}
     mutation_result: dict[str, object] = {}
@@ -410,27 +416,39 @@ def test_failed_delete_releases_gate_after_raw_restore_then_write_succeeds(
     with TestClient(client.app) as writer:
         writer.cookies.set("phase_session", token)
         deleting = threading.Thread(target=delete_account)
+        def write():
+            try:
+                mutation_result["response"] = writer.post("/api/favorites/TSLA", headers={"Origin":"http://testserver"})
+            except favorites.Unauthenticated as exc:
+                mutation_result["exception"] = exc
+        writing = threading.Thread(target=write)
         deleting.start()
-        assert reached_favorites_delete.wait(5)
-
-        writing = threading.Thread(target=lambda: mutation_result.setdefault(
-            "response", writer.post(
-                "/api/favorites/TSLA",
-                headers={"Origin": "http://testserver"},
-            ),
-        ))
-        writing.start()
-        writing.join(0.1)
-        assert writing.is_alive(), "mutation raced snapshot/delete compensation"
-
-        release_delete.set()
-        deleting.join(5)
-        writing.join(5)
+        try:
+            assert reached_favorites_delete.wait(5)
+            writing.start()
+            writing.join(0.1)
+            if not writing.is_alive():
+                assert getattr(mutation_result.get("exception"),"status",None) == 401
+        finally:
+            release_delete.set()
+            deleting.join(5)
+            if writing.ident is not None:
+                writing.join(5)
         assert not deleting.is_alive() and not writing.is_alive()
         assert delete_result["response"].status_code == 500  # type: ignore[union-attr]
-        assert mutation_result["response"].status_code == 201  # type: ignore[union-attr]
-        assert writer.get("/api/favorites").json()["tickers"] == ["AAPL", "TSLA"]
-        assert writer.get("/api/auth/me").status_code == 200
+        assert getattr(mutation_result.get("exception"),"status",None) == 401
+        assert "response" not in mutation_result
+        assert favorites.export_account_favorites("alice@example.com")["tickers"] == ["AAPL"]
+        assert writer.get("/api/auth/me").status_code == 401
+        jobs = auth.pending_account_deletions()
+        assert len(jobs) == 1
+        monkeypatch.setattr(auth.AuthStore,"delete_account_data",original_auth_delete)
+        auth.resume_account_deletion(jobs[0])
+        assert writer.get("/api/auth/me").status_code == 401
+        writer.cookies.clear()
+        _login(writer)
+        assert writer.post("/api/favorites/TSLA",headers={"Origin":"http://testserver"}).status_code == 201
+        assert writer.get("/api/favorites").json()["tickers"] == ["TSLA"]
 
 
 def test_delete_retires_queued_legacy_api_key_but_allows_rotated_key(
@@ -481,16 +499,19 @@ def test_delete_retires_queued_legacy_api_key_but_allows_rotated_key(
 
     with TestClient(client.app) as writer:
         deleting = threading.Thread(target=delete_account)
-        deleting.start()
-        assert reached_later_asset.wait(5)
         writing = threading.Thread(target=write_with_key, args=(writer,))
-        writing.start()
-        writing.join(0.1)
-        assert writing.is_alive(), "legacy API key escaped owner transaction gate"
-
-        release_delete.set()
-        deleting.join(5)
-        writing.join(5)
+        deleting.start()
+        try:
+            assert reached_later_asset.wait(5)
+            writing.start()
+            writing.join(0.1)
+            if not writing.is_alive():
+                assert getattr(mutation_result.get("exception"), "status", None) == 401
+        finally:
+            release_delete.set()
+            deleting.join(5)
+            if writing.ident is not None:
+                writing.join(5)
         assert not deleting.is_alive() and not writing.is_alive()
         assert delete_result["response"].status_code == 200  # type: ignore[union-attr]
         assert getattr(mutation_result.get("exception"), "status", None) == 401
@@ -535,7 +556,8 @@ def test_report_delete_failure_does_not_leave_beta_session_revoked(client, monke
     assert sso.SsoReplayStore(
         sso._data_dir() / "sso_replay.sqlite3"
     ).subject_revoked_at(subject) is None
-    assert client.get("/api/auth/me").status_code == 200
+    assert client.get("/api/auth/me").status_code == 401
+    assert len(auth.pending_account_deletions()) == 1
 
 
 def test_late_failure_restores_an_existing_empty_favorites_record(client, monkeypatch):
@@ -586,7 +608,8 @@ def test_account_delete_storage_read_failure_is_503_and_changes_nothing(
     assert not (tmp_path / "account_deletion_audit.jsonl").exists()
     assert "alice@example.com" not in caplog.text
     assert "AAPL" not in caplog.text
-    assert client.get("/api/auth/me").status_code == 200
+    assert client.get("/api/auth/me").status_code == 401
+    assert len(auth.pending_account_deletions()) == 1
 
 
 def test_account_delete_replace_failure_preserves_assets_and_owner(
@@ -607,7 +630,8 @@ def test_account_delete_replace_failure_preserves_assets_and_owner(
     )
     assert response.status_code == 503
     assert path.read_bytes() == original
-    assert client.get("/api/auth/me").status_code == 200
+    assert client.get("/api/auth/me").status_code == 401
+    assert len(auth.pending_account_deletions()) == 1
     assert not (tmp_path / "account_deletion_audit.jsonl").exists()
     assert bookmark["bookmark_id"].encode() in original
     assert list(path.parent.glob(".favorites-*.jsonl.tmp")) == []
@@ -633,7 +657,7 @@ def test_late_failure_rollback_preserves_mixed_legacy_tickers(client, monkeypatc
 
     monkeypatch.setattr(
         auth.AuthStore, "delete_account_data",
-        lambda _self, _email: (_ for _ in ()).throw(OSError("late failure")),
+        lambda _self, _email, **_kwargs: (_ for _ in ()).throw(OSError("late failure")),
     )
     response = client.post(
         "/api/me/delete", json={"confirmation": "DELETE"},
@@ -642,7 +666,8 @@ def test_late_failure_rollback_preserves_mixed_legacy_tickers(client, monkeypatc
     assert response.status_code == 500
     restored = json.loads(path.read_text(encoding="utf-8"))
     assert restored["tickers"] == mixed
-    assert client.get("/api/auth/me").status_code == 200
+    assert client.get("/api/auth/me").status_code == 401
+    assert len(auth.pending_account_deletions()) == 1
 
 
 def test_export_projects_and_delete_rollback_restores_opaque_bookmarks(
@@ -691,7 +716,7 @@ def test_export_projects_and_delete_rollback_restores_opaque_bookmarks(
 
     monkeypatch.setattr(
         auth.AuthStore, "delete_account_data",
-        lambda _self, _email: (_ for _ in ()).throw(OSError("late failure")),
+        lambda _self, _email, **_kwargs: (_ for _ in ()).throw(OSError("late failure")),
     )
     response = client.post(
         "/api/me/delete", json={"confirmation": "DELETE"},
@@ -701,8 +726,11 @@ def test_export_projects_and_delete_rollback_restores_opaque_bookmarks(
     restored = json.loads(path.read_text(encoding="utf-8"))
     assert restored == record
     assert restored["bookmarks"] == [*opaque, known]
-    assert client.get("/api/favorites").json()["bookmarks"] == [known]
-    assert client.get("/api/auth/me").status_code == 200
+    with pytest.raises(favorites.Unauthenticated):
+        client.get("/api/favorites")
+    assert favorites.export_account_favorites("alice@example.com")["bookmarks"] == [known]
+    assert client.get("/api/auth/me").status_code == 401
+    assert len(auth.pending_account_deletions()) == 1
 
 
 def test_old_sqlite_schema_migrates_without_losing_user(tmp_path):

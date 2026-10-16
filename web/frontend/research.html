@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>研究记录 · Structure</title>
+  <link rel="stylesheet" href="/assets/research.css">
+  <script src="/assets/research.js" defer></script>
+</head>
+<body>
+  <header><a href="/" class="brand">Structure<span>结构研究</span></a><a href="/auth/login">账户</a></header>
+  <main>
+    <div class="eyebrow">RESEARCH NOTEBOOK / 研究记录</div>
+    <h1>先把问题，<br>保存清楚。</h1>
+    <p class="intro">留下现象、目标与尚待确认的部分。修改会保存为新修订，原来的问题仍可回看。</p>
+    <p class="scope" id="page-scope">可保存问题与修订；来源流程开放时可预览查询、确认读取并保存证据笔记。研究结论仍需验证。</p>
+    <p id="status" role="status" aria-live="polite">正在读取研究记录…</p>
+    <div id="access" hidden><a href="/auth/login">登录账户</a><p>研究默认私有，请使用保存时的账户读取。</p></div>
+    <form id="problem-form" hidden>
+      <div class="section-heading"><h2>问题记录</h2><span id="revision-label">未保存</span></div>
+      <label for="entry">从哪里开始</label>
+      <select id="entry"><option value="phenomenon">一个现象</option><option value="formula">一组公式</option><option value="research">一个研究问题</option></select>
+      <label for="original-input">原始问题 <span>必填 · 最多 4000 字</span></label>
+      <textarea id="original-input" required maxlength="4000" rows="5" aria-describedby="input-hint"></textarea>
+      <p id="input-hint" class="hint">描述你观察到了什么，先保留原话。</p>
+      <label for="objective">希望解释或改变什么 <span>最多 1000 字</span></label>
+      <textarea id="objective" maxlength="1000" rows="2"></textarea>
+      <label for="summary">问题摘要 <span>8–1000 字</span></label>
+      <textarea id="summary" required minlength="8" maxlength="1000" rows="3"></textarea>
+      <label for="constraints">已知约束 <span>每行一项，最多 12 项</span></label>
+      <textarea id="constraints" rows="2"></textarea>
+      <label for="unknowns">还不知道什么 <span>每行一项，最多 12 项</span></label>
+      <textarea id="unknowns" rows="2"></textarea>
+      <div id="variables" hidden></div>
+      <label class="check"><input id="confirmed" type="checkbox">我已核对这版问题结构；这不代表假设已被验证。</label>
+      <div class="actions"><button id="save" type="submit">保存问题</button><button id="reload" type="button" class="secondary" hidden>重新读取已存版本</button></div>
+      <p class="hint">请求结果不明时保留当前内容，再次保存相同内容会核对原操作，不会另存一份。</p>
+    </form>
+    <section id="task-section" hidden aria-labelledby="task-title" aria-live="polite">
+      <h2 id="task-title">本机流程演练</h2>
+      <p class="scope" id="task-scope">仅验证保存、调用与对账流程，不访问真实供应端、不扣真实费用，也不代表研究成果。</p>
+      <p id="task-phase"></p><p id="task-budget" class="hint"></p>
+      <p id="task-message"></p>
+      <p id="task-saved-scope" class="hint"></p>
+      <a id="task-other" hidden>查看上一修订的流程</a>
+      <a id="task-current" hidden>返回当前问题</a>
+      <div class="actions">
+        <button id="task-start" type="button" hidden>启动已保存问题的演练</button>
+        <button id="task-cancel" type="button" class="secondary" hidden>停止后续步骤</button>
+        <button id="task-reconcile" type="button" class="secondary" hidden>请求核对回执</button>
+        <button id="task-resume" type="button" class="secondary" hidden>继续已对账流程</button>
+        <button id="task-refresh" type="button" class="secondary">刷新演练状态</button>
+      </div>
+      <div id="task-notes"></div>
+    </section>
+    <section id="source-section" hidden aria-labelledby="source-title">
+      <h2 id="source-title">方法来源与证据笔记</h2>
+      <p class="hint">先预览，再确认查询内容。最多读取四次 Crossref / PLOS 来源；这里只整理方法材料与短摘录，尚未运行模型分析、行情计算或统计检验。</p>
+      <label for="source-query">英文方法关键词</label>
+      <input id="source-query" type="text" minlength="3" maxlength="160" placeholder="例如 queue theory" autocomplete="off" style="width:100%">
+      <div class="actions"><button id="source-preview" type="button">预览来源查询</button><button id="source-confirm" type="button" hidden>确认查询内容并启动</button><button id="source-refresh" type="button" class="secondary">刷新来源笔记</button></div>
+      <p id="source-status" role="status" aria-live="polite"></p><pre id="source-plan"></pre><div id="source-records"></div>
+    </section>
+    <section id="history" hidden aria-labelledby="history-title"><h2 id="history-title">修订记录</h2><p class="hint">历史版本只读。新修订不会覆盖旧内容。</p><div id="history-items"></div></section>
+  </main>
+  <footer>Structure / 从问题出发，保留判断的依据。</footer>
+</body>
+</html>
