@@ -5,9 +5,9 @@ permissions:
 
 on:
   push:
-    branches: [main]
+    branches: [main, integration/structure-rebuild-v1, bootstrap/structure-ci-20261016]
   pull_request:
-    branches: [main]
+    branches: [main, integration/structure-rebuild-v1]
 
 # Cancel duplicate runs on the same PR / branch — keeps queue clean.
 concurrency:
@@ -388,7 +388,10 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     timeout-minutes: 12
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'run-e2e')
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.base_ref == 'main' &&
+       contains(github.event.pull_request.labels.*.name, 'run-e2e'))
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

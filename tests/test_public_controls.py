@@ -727,6 +727,11 @@ def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
                 "job": "beta-perf-audit",
                 "context": "beta-perf-audit",
             },
+            {
+                "workflow": ".github/workflows/product-ci.yml",
+                "job": "product",
+                "context": "product",
+            },
         ],
         "external_boundary": (
             "GitHub branch protection must require every listed check; "
@@ -796,7 +801,10 @@ def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
         assert isinstance(triggers, dict)
         for event in ("pull_request", "push"):
             config = triggers.get(event)
-            assert config == {"branches": ["main"]}, (
+            expected_branches = ["main", "integration/structure-rebuild-v1"]
+            if event == "push":
+                expected_branches.append("bootstrap/structure-ci-20261016")
+            assert config == {"branches": expected_branches}, (
                 f"required workflow {workflow_path} must run on every {event}"
             )
 

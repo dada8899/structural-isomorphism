@@ -8,9 +8,9 @@ name: Coverage
 
 on:
   push:
-    branches: [main]
+    branches: [main, integration/structure-rebuild-v1, bootstrap/structure-ci-20261016]
   pull_request:
-    branches: [main]
+    branches: [main, integration/structure-rebuild-v1]
 
 jobs:
   coverage:

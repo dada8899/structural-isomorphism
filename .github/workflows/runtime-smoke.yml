@@ -16,7 +16,7 @@ name: Runtime smoke (prod-shaped deps)
 
 on:
   push:
-    branches: [main]
+    branches: [main, integration/structure-rebuild-v1, bootstrap/structure-ci-20261016]
     paths:
       - 'web/backend/requirements.txt'
       - 'web/backend/services/search_service.py'
@@ -24,7 +24,7 @@ on:
       - 'web/backend/main.py'
       - '.github/workflows/runtime-smoke.yml'
   pull_request:
-    branches: [main]
+    branches: [main, integration/structure-rebuild-v1]
     paths:
       - 'web/backend/requirements.txt'
       - 'web/backend/services/search_service.py'

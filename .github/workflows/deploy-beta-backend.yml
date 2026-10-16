@@ -41,7 +41,27 @@ concurrency:
   queue: single
 
 jobs:
+  admit-production:
+    name: Admit production ref
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    steps:
+      - name: Reject non-production ref before side effects
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SOURCE_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME:$SOURCE_REF" in
+            push:refs/heads/main|workflow_dispatch:refs/heads/main) ;;
+            *) echo "::error::Production entry requires the main branch"; exit 1 ;;
+          esac
+
   release-contracts:
+    needs: admit-production
     name: Python 3.11 exact-SHA release contracts
     runs-on: ubuntu-latest
     timeout-minutes: 20

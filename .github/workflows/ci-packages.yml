@@ -10,12 +10,12 @@ name: ci-packages
 
 on:
   push:
-    branches: [main]
+    branches: [main, integration/structure-rebuild-v1, bootstrap/structure-ci-20261016]
     paths:
       - "packages/**"
       - ".github/workflows/ci-packages.yml"
   pull_request:
-    branches: [main]
+    branches: [main, integration/structure-rebuild-v1]
     paths:
       - "packages/**"
       - ".github/workflows/ci-packages.yml"
