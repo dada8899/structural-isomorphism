@@ -336,7 +336,9 @@ PRODUCER_DDL=(
         return_digest TEXT,received_at TEXT,candidate_json TEXT CHECK(candidate_json IS NULL OR length(candidate_json)<=32768))""",
 )
 
-V6_AUX=tuple(ddl.replace("policy_revision='deepseek-bounded-upper-v1'","policy_revision IN ('deepseek-bounded-upper-v1','bounded_usage_upper_v2')") for ddl in V5_AUX)+(
+V6_AUX=tuple(ddl.replace("policy_revision='deepseek-bounded-upper-v1'","policy_revision IN ('deepseek-bounded-upper-v1','bounded_usage_upper_v2')")
+    .replace("WHERE r.id=NEW.reservation_id", "WHERE NEW.policy_revision=r.policy_revision AND NEW.policy_revision=p.policy_revision AND NEW.policy_revision=q.policy_revision AND r.id=NEW.reservation_id")
+    for ddl in V5_AUX)+(
     """CREATE TRIGGER research_paid_approval_identity BEFORE UPDATE OF principal_id,research_id,mode,policy_revision,funding_source_ref,account_id,max_calls,expires_at,created_at ON research_paid_approvals
         WHEN NEW.principal_id!=OLD.principal_id OR NEW.mode!=OLD.mode OR NEW.policy_revision!=OLD.policy_revision
             OR NEW.funding_source_ref!=OLD.funding_source_ref OR NEW.account_id!=OLD.account_id OR NEW.max_calls!=OLD.max_calls
@@ -525,15 +527,6 @@ class ResearchStore:
                 raise ResearchError("SCHEMA_UNSUPPORTED",503,"账本迁移关联校验失败。")
             conn.execute("UPDATE research_schema SET version=5 WHERE id=1")
             self._check_v5(conn)
-            allowed={}
-            for ddl in (*V5_AUX,*V5_GUARDS,*[s for s in C0_SCHEMA if s.startswith('CREATE UNIQUE INDEX')]):
-                tokens=ddl.split();name=tokens[3] if ddl.startswith('CREATE UNIQUE INDEX') else tokens[2]
-                if name=='IF':name=tokens[6]
-                allowed[name]=ddl
-            for table in V6_SCHEMA:
-                for item in conn.execute("SELECT name,sql FROM sqlite_schema WHERE tbl_name=? AND type IN ('index','trigger') AND sql IS NOT NULL",(table,)):
-                    if item['name'] not in allowed or self._normalize_sql(item['sql'])!=self._normalize_sql(allowed[item['name']]):
-                        raise ResearchError('SCHEMA_UNSUPPORTED',503,'生产者旧表附属结构不一致。')
             conn.commit()
         except Exception:
             conn.rollback();raise
@@ -567,6 +560,15 @@ class ResearchStore:
                 self._check_v6(conn);conn.commit();return
             if version!=5:raise ResearchError("SCHEMA_UNSUPPORTED",503,"生产者迁移版本不支持。")
             self._check_v5(conn)
+            allowed={}
+            for ddl in (*V5_AUX,*V5_GUARDS,*[s for s in C0_SCHEMA if s.startswith('CREATE UNIQUE INDEX')]):
+                tokens=ddl.split();name=tokens[3] if ddl.startswith('CREATE UNIQUE INDEX') else tokens[2]
+                if name=='IF':name=tokens[6]
+                allowed[name]=ddl
+            for table in V6_SCHEMA:
+                for item in conn.execute("SELECT name,sql FROM sqlite_schema WHERE tbl_name=? AND type IN ('index','trigger') AND sql IS NOT NULL",(table,)):
+                    if item['name'] not in allowed or self._normalize_sql(item['sql'])!=self._normalize_sql(allowed[item['name']]):
+                        raise ResearchError('SCHEMA_UNSUPPORTED',503,'生产者旧表附属结构不一致。')
             for name in ('research_paid_approvals','research_provider_sessions'):
                 if conn.execute("SELECT 1 FROM sqlite_schema WHERE name=?",(name,)).fetchone():raise ResearchError("SCHEMA_UNSUPPORTED",503,"生产者结构不一致。")
             for name,ddl in V6_SCHEMA.items():

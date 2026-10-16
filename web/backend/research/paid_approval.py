@@ -138,6 +138,7 @@ def mint_current_authority(conn,*,store,lease,identity,context,step_id,expected_
         permit=conn.execute('SELECT * FROM research_dispatch_permits WHERE step_id=?',(step_id,)).fetchone()
         if operation!='reserve' and (not permit or permit['state']!='prepared' or permit['paid_approval_ref']!=approval_ref
                 or permit['policy_revision']!=POLICY or permit['reservation_id']!=reservation['id']
+                or permit['authorized_task_version']!=task['version'] or permit['authorized_step_version']!=step['version']
                 or permit['request_digest']!=prepared.request_digest or permit['evidence_digest']!=prepared.evidence_digest
                 or permit['price_digest']!=digest(canonical(f['quote'])) or permit['budget_basis_digest']!=digest(canonical(f['basis']))
                 or permit['input_digest']!=current.input_digest or permit['authorization_context_digest']!=digest(canonical(current.model_dump()))):

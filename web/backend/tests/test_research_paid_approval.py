@@ -222,3 +222,25 @@ def test_confirmation_replay_reads_original_task_current_view_not_newer_task(app
     replay=service.confirm(identity(client),draft['preview_ref'],draft['preview_digest'],'original')
     assert replay['task_id']==first['task_id'] and replay['approval_ref']==first['approval_ref']
     assert replay['execution']=='CANCELLED' and replay['status']=='cancelled'
+
+
+@pytest.mark.parametrize('operation',['authorize','consume'])
+@pytest.mark.parametrize('changed',['authorized_task_version','authorized_step_version'])
+def test_stale_persisted_permit_versions_reject_current_caller_versions(approved_inputs,operation,changed):
+    client,_,store,_,pid,_,_=approved_inputs;service,draft=preview(approved_inputs)
+    result=service.confirm(identity(client),draft['preview_ref'],draft['preview_digest'],'prepared-version')
+    with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+        consent=packet_authority(conn,store,identity(client),lease,result['approval_ref'])
+        packet=read_confirmed_provider_packet(conn,store,identity(client),consent)
+        row=conn.execute('SELECT * FROM research_paid_approvals').fetchone();funding=json.loads(row['payload_json'])['funding']
+        admission=mint_current_paid_authority(conn,store=store,lease=lease,identity=identity(client),context=packet.context,step_id=result['step_id'],expected_task_version=1,expected_step_version=1,operation='reserve',approval_ref=row['id']).require(conn,'reserve')
+        reservation,permit,dispatch=str(uuid4()),str(uuid4()),str(uuid4())
+        conn.execute("INSERT INTO research_reservations(id,account_id,task_id,step_id,operation_key,price_revision,funding_epoch,max_cost,status,policy_revision,principal_id,auth_scope_digest,outbound_fingerprint) VALUES(?,?,?,?,?,?,1,3,'HELD','bounded_usage_upper_v2',?,?,?)",(reservation,row['account_id'],result['task_id'],result['step_id'],str(uuid4()),funding['quote']['revision'],pid,admission.auth_scope_digest,admission.outbound_fingerprint))
+        conn.execute("INSERT INTO research_dispatch_permits(id,step_id,reservation_id,dispatch_id,input_digest,state,expires_at,policy_revision,request_digest,evidence_digest,price_digest,budget_basis_digest,authorization_context_digest,authorized_task_version,authorized_step_version,paid_approval_ref,admitted_at) VALUES(?,?,?,?,?,'prepared','2033-01-01T00:00:00.000000Z','bounded_usage_upper_v2',?,?,?,?,?,1,2,?,?)",(permit,result['step_id'],reservation,dispatch,packet.context.input_digest,result['request_digest'],result['evidence_digest'],digest(canonical(funding['quote'])),digest(canonical(funding['basis'])),digest(canonical(packet.context.model_dump())),row['id'],int(time.time())))
+        conn.execute("UPDATE research_steps SET state='PREPARED',version=2 WHERE id=?",(result['step_id'],))
+        conn.execute('UPDATE research_funding_accounts SET held=cap WHERE id=?',(row['account_id'],))
+        def mint():return mint_current_paid_authority(conn,store=store,lease=lease,identity=identity(client),context=packet.context,step_id=result['step_id'],expected_task_version=1,expected_step_version=2,operation=operation,approval_ref=row['id'])
+        cap=mint();assert cap.require(conn,operation)
+        conn.execute('UPDATE research_dispatch_permits SET '+changed+'=99 WHERE id=?',(permit,))
+        with pytest.raises(PermissionError):cap.require(conn,operation)
+        with pytest.raises(PermissionError):mint()

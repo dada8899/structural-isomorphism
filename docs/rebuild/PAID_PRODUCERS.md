@@ -55,3 +55,13 @@ Offline resolver的approved_upper为显式服务器模拟授权数据，不是�
 旧v3/v4/v5迁移探针仅测试fixture隔离v6，原故障／金额／receipt／inode断言保留；旧unknown6改7、当前requirements5改6、PK冲突value5不动。新v5→6逐写入故障回滚测试与内部真实auth/DB确认、单次并发／故障重试、缺署名／改题／撤权／旧UNKNOWN／删除对照独立验证。受影响组合336 passed；最终确认组16 passed（16.38秒），含实际版本/本票/permit变更、旧task幂等准确状态与隐私删除；扩至全部80个迁移写入／移除guard／commit切点后，迁移组81 passed（53.85秒），旧v5非空事实与锁inode保留。CP1原方法AST和guard/quote字节保持。未作生产／真实余额／厂商模型验收，CP3未启动。
 
 §6.4.2后补冻结合同已只读核对，公开适配仍有两个明确缺口：当前内部preview是无能力候选caption，完整creator credit在确认packet口才核；实际bytes digest也在确认分配Context后算。正式API必须再增加无能力的preview序列化端口／模板复用，预览即核齐署名并绑定bytes；不能临时翻may_send或用假task/quote充全文。本卡不改冻结adapter、不开路由、不把当前内部返回对象当外部DTO。确认重放已按原approval.task_id取得当前ResearchView二状态，保留旧ref，不能默认指向新current_task。
+
+## 4347ed6 原审三项最小返修
+
+2026-10-17。v6 cost binding 现在在插入时明确要求 observation／reservation／price／permit 四者的 policy 相同，不能给旧v1票贴v2标签释放差额。旧v1合法全U与新CNY/v2同策略差额分别为正对照，旧金额／V5定义不改。
+
+authorize／consume 除核调用者当前expected版本，还核持久permit上的authorized_task_version／authorized_step_version与实际task／step一致。四种票版本改99的组合均拒，已有cap的require也失效；合法同版本票仍可作为离线权限正例，不代表已实现金融consume。
+
+附属结构检查此前误置于_v5提交前，本轮已移到真正_v6首次复制／建表之前；直接已存在v5库也必须核待替换表的全部显式index／trigger。未知附属结构拒绝并回滚，不再随DROP TABLE静默消失。真实额外trigger/index反例均保留原v5全snapshot及inode，原v5方法不再夹带此v6检查。
+
+作者验证：原审5个票版本／策略拒绝断言实跑5 passed（原extra-trigger脚本要求保留升级，本实现选择更保守拒绝，另以2个真实新反例核exact原库）；原v5安全组+approval+迁移最终220 passed／0 skipped（124.46秒），其中v1不可折减与v2部分／全额三个对照独立3 passed。首轮组合因新fixture未显式导入source_stack出现1个setup error，没有计绿；补齐测试依赖后完整220项通过。原fault81、旧隐式事务退休／REPLACE／CP1 guard等保留，未改原审证据、旧测试或其他源码。API/preview-codec/CP3/F/资金/live仍未进入本轮。
