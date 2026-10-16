@@ -293,3 +293,56 @@ def test_actual_offline_core_preview_and_confirm_payloads_pass_without_new_execu
     actual=counts(store)
     for name in ("research_reservations","research_dispatch_permits","research_cost_observations","research_provider_sessions"):
         assert actual[name]==0
+
+
+def _raise_private_caller_error(kind, canary):
+    if kind == "value":
+        raise ValueError(canary)
+    PaidPreviewEnvelope.model_validate({"schema_version": canary})
+
+
+@pytest.mark.parametrize("caller_kind", ["value", "pydantic"])
+@pytest.mark.parametrize("helper", ["success", "error", "unknown-success", "unknown-model", "unknown-schema", "schema-ref"])
+def test_safe_failures_have_no_caller_exception_context(caller_kind, helper, preview_sample, monkeypatch):
+    canary = "CALLER-PRIVATE-DATA-CANARY-81f"
+    bad = deepcopy(preview_sample)
+    bad["data"]["private"] = canary
+    unsafe_error = {"error": {"input": canary}}
+    if helper == "schema-ref":
+        monkeypatch.setattr(PaidPreviewEnvelope, "model_json_schema",
+            classmethod(lambda cls, *args, **kwargs: {"$ref": "https://example.invalid/private-schema"}))
+    try:
+        _raise_private_caller_error(caller_kind, canary)
+    except (ValueError, ValidationError) as outer:
+        assert canary in str(outer)
+        with pytest.raises(public.PaidPublicValidationError) as caught:
+            if helper == "success": public.validate_success_response("paid-preview", bad)
+            elif helper == "error": public.validate_error_response(unsafe_error)
+            elif helper == "unknown-success": public.validate_success_response(canary, preview_sample)
+            elif helper == "unknown-model": public.success_response_model(canary)
+            elif helper == "unknown-schema": public.request_body_schema(canary)
+            else: public.request_body_schema("paid-preview")
+        safe = caught.value
+        # Inspect actual BaseException slots, not subclass properties or only suppression.
+        assert BaseException.__dict__["__context__"].__get__(safe) is None
+        assert BaseException.__dict__["__cause__"].__get__(safe) is None
+        assert safe.__context__ is None and safe.__cause__ is None
+        assert safe.__suppress_context__ is False
+        text = str(safe) + repr(vars(safe)) + "".join(traceback.format_exception(type(safe), safe, safe.__traceback__))
+        assert canary not in text and "input_value" not in text
+        assert canary in str(outer)  # The caller's original exception is untouched.
+
+
+@pytest.mark.parametrize("caller_kind", ["value", "pydantic"])
+def test_legal_public_consumers_remain_legal_in_caller_except(caller_kind, preview_sample, confirmation_sample):
+    canary = "CALLER-PRIVATE-DATA-CANARY-81f"
+    safe_error = ResearchError("INPUT_INVALID", 422, "受控错误提示。").body()
+    try:
+        _raise_private_caller_error(caller_kind, canary)
+    except (ValueError, ValidationError) as outer:
+        assert public.validate_success_response("paid-preview", preview_sample) == preview_sample
+        assert public.validate_success_response("paid-confirm", confirmation_sample) == confirmation_sample
+        assert public.validate_error_response(safe_error) == safe_error
+        assert public.success_response_model("paid-preview") is public.PaidPreviewSuccessEnvelope
+        assert public.request_body_schema("paid-confirm")["required"] is True
+        assert canary in str(outer)

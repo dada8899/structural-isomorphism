@@ -236,6 +236,18 @@ class PaidPublicValidationError(ValueError):
         super().__init__("Paid public response could not be validated.")
 
 
+def _raise_safe(reason):
+    """Clear real exception slots even when called from an active outer except."""
+    try:
+        raise PaidPublicValidationError(reason) from None
+    except PaidPublicValidationError as safe:
+        safe.__context__ = None
+        safe.__cause__ = None
+        safe.__suppress_context__ = False
+        # Bare re-raise preserves the cleared slots; a new raise would chain again.
+        raise
+
+
 class _Limit(Exception):
     pass
 
@@ -273,7 +285,7 @@ _SUCCESSES = {"paid-preview":PaidPreviewSuccessEnvelope, "paid-confirm":PaidConf
 
 def success_response_model(operation: Operation):
     if type(operation) is not str or operation not in _SUCCESSES:
-        raise PaidPublicValidationError("unsupported_public_operation")
+        _raise_safe("unsupported_public_operation")
     return _SUCCESSES[operation]
 
 
@@ -287,9 +299,9 @@ def _validate(payload, model):
         reason = "public_payload_limit"
     except (ValidationError, ValueError, TypeError, OverflowError, RecursionError, UnicodeError):
         reason = "invalid_public_payload"
-    # Raise outside the except block: no raw Pydantic exception/context escapes.
+    # Discard internal parse errors; the shared exit also clears caller context.
     if reason is not None:
-        raise PaidPublicValidationError(reason)
+        _raise_safe(reason)
     return result
 
 
@@ -310,7 +322,7 @@ def request_body_schema(operation: Operation):
     provenance or current authorization. No request is parsed by this helper.
     """
     if type(operation) is not str or operation not in _REQUESTS:
-        raise PaidPublicValidationError("unsupported_public_operation")
+        _raise_safe("unsupported_public_operation")
     schema = _REQUESTS[operation].model_json_schema()
     definitions = schema.get("$defs", {})
     def expand(value, active=()):
@@ -319,10 +331,10 @@ def request_body_schema(operation: Operation):
         if "$ref" in value:
             ref = value["$ref"]
             if type(ref) is not str or not ref.startswith("#/$defs/"):
-                raise PaidPublicValidationError("unsupported_schema_reference")
+                _raise_safe("unsupported_schema_reference")
             name = ref[len("#/$defs/"):].replace("~1","/").replace("~0","~")
             if name not in definitions or name in active:
-                raise PaidPublicValidationError("unsupported_schema_reference")
+                _raise_safe("unsupported_schema_reference")
             target = expand(definitions[name],active+(name,))
             siblings = {k:v for k,v in value.items() if k not in {"$ref","$defs"}}
             return {"allOf":[target,expand(siblings,active)]} if siblings else target
