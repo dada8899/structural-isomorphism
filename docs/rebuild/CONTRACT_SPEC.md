@@ -336,6 +336,8 @@ Bridge/Guard拒绝不得被旧`except Exception`吞成None、success fallback、
 
 ### 6.4 Bounded-provider 保守占用增量
 
+版本范围：本节以下原有全 U 占用规则为 `bounded_full_u_v1`；§6.4.1另定义 Mentor 已确认方向的 `bounded_usage_upper_v2`。策略在发送前由受审服务端选择并随 dispatch 不可变绑定；旧 fixture/final-receipt、v1及历史金额不自动迁入v2。文档增量不是实现或实费验收收据。
+
 本节为新 accounting policy／schema 分支，不能静默套入旧 C0 fixture 或旧 `BillingReceipt.final` 解析器。首发仅固定官方 `https://api.deepseek.com/chat/completions` 的单次受控 POST，沿 Bootstrap 卡候选 `deepseek-flash`／文档声明 `DeepSeek-V4.1-Flash`，接线前核官方当前映射；model 与文档声明版本绑定，不沿用旧别名或自动 fallback；stream=false、thinking disabled、请求 max_tokens=4096、无工具、零自动重试。受控响应原字节及解压后各≤128 KiB、总 wall deadline≤60秒，超限／截断按真实 usage 可得性分别处理，不默默当完成。Bootstrap 的 2026-10-17 官方只读卡是设计输入，不是本轮价格／账户实测；模型别名不保证锁定不可变权重，必须记录声明版本与实际响应模型／可得指纹，漂移则关 paid。正式调用仍须 Mentor/DevOps 核真实 grant、原预充值、无自动充值／后付费、同币余额与他用边界。沿现有 Guard 的发送线性化：预连不得发送敏感输入；同 owner gate 内重核完整输入包、当前授权、permit 与预算，在受控短发送期限内实际启动 POST 字节，响应等待在 gate 外，任何网络等待不持 DB 事务。固定免费 GET 持 gate 至收尾的窄策略不借此改写。
 
 | 对象／增量 | 最小字段与不变量 |
@@ -360,6 +362,33 @@ usage 完整但模型内容坏 JSON、空／截断、非法 schema／引用时�
 新版本任务预算白名单投影增加 `upper_booked:Money[]` 与受限的当前任务 cost observations：区分 actual、estimated_upper、unknown，显示 actual=null 的“实际扣费未核”，原 known_cost 只放 actual。UNKNOWN/held 与 UPPER_BOOKED 分开；仅可信完整最终响应／usage且已足额保守占用的后者，不计入新版本 UNKNOWN 外发计数；但实际扣费未核必须独立呈现，也不能显示成实际0元／已财务结算。这是§4.2／4.4费用完成前置在新 policy 下的明确限定：它可以在其余执行与证据门禁满足时结束声明范围内的有条件报告，不永久等不存在的逐笔接口；缺 usage 的 UNKNOWN 仍保持原门禁，旧版本 fixture／final-receipt policy 不适用此完成例外。公开投影不含共享账户余额／账号、私有绑定、原响应或完整账单。取消／删除后仅费用控制记录可幂等转移／收实际依据，正文、分享和任务不得复活。
 
 正式 owner 须对同物理 auth DB 做版本化迁移（旧 upper_booked=0、旧状态与 final 语义不变），同步派发／幂等／恢复／删除与新版本投影消费者，再启用新分支。该增量不另造计费平台、逐笔查询服务或新的资金账户体系；旧 fixture 正常结算、未知 held 与退款消费者继续原样验收。
+
+#### 6.4.1 CNY usage-upper v2：可信用量后的保守重记账
+
+2026-10-17，按 Mentor 已确认的保守用量上界方向，在 `bdd9cfc6d1f6c08a9e6f1ccc7a1ad3529de05547` 上新增此显式分支，不代表新的真实调用／凭据授权或 v5 已实现。v2 首发限同币 CNY 的已验证预充值、可信峰价、余额／他用边界与既有 cap；其他币种、旧策略须另按其受审规则处理，不猜汇率，也不因可用余额上升自动放宽。
+
+定义同一个不可变费用函数 `F(i,o)=ceil_native((i*P_peak_miss_CNY + o*P_peak_output_CNY)/1_000_000)+local_guard`。rate、currency/scale、ceil方式、local_guard及price revision在 dispatch 时冻结，均非负且精确可表示。发送前仍 `U=F(contextBound,4096)` 足额预留；contextBound 仍按已核官方 context 的保守界，不用字符数推实际 token。与 v1不同，v2不采用未知的大输出fallback：必须已有官方参数语义依据与最终请求代码证明，保证全部可计费 completion 受4096上限约束；否则不启用v2，不能仅靠模板／配置声称已限。
+
+最终序列化请求须固定 `max_tokens=4096`、thinking disabled、无 tools、非流式、零自动重试。受控 prepare 在所有模板／参数合并之后严格核完整最终 bytes（重复 key／额外覆盖拒绝），把该摘要、model/version、contextBound、输出界、F及 policy revision绑定permit；实际 send 再核发送bytes完全相同。调用者kwargs、后层SDK／middleware不得改max_tokens、开thinking或插工具；代码独审和本机发送边界反例须证明改动在任何敏感字节发出前被拒。此要求不能拿4096可见文本上限替代全部可计费completion界。
+
+只在同 dispatch 的完整可信最终 usage 已持久化、模型／请求摘要／原price和新policy绑定一致后，沿原整数、缓存合计、total、reasoning规则核验：`0<=prompt_tokens<=contextBound`、`0<=completion_tokens<=4096`，reasoning若有属于completion而不重复加。必需字段缺失、非final、bool／负数／矛盾、绑定不符或越界均不能补0。按全部 prompt 一律峰值 cache-miss、全部 completion 峰值输出，使用原来的同一个 F 得 `Uobs=F(prompt_tokens,completion_tokens)`；不赌cache-hit或非峰折扣，不换新价表／scale，不省local_guard。先严格核 `0<=Uobs<=U`；若不成立，保留原全 held U 并置UNKNOWN／阻断新paid，绝不 `min(Uobs,U)` 裁切过关。
+
+同 auth DB 的一个幂等CAS事务绑定该持久usage／cost观测后，完成 `held-=U; upper_booked+=Uobs`、置UPPER_BOOKED，并记录 `reserved_upper=U,booked_upper=Uobs,released_reserve_difference=U-Uobs,actual_charge=null` 及原F／policy／dispatch关联。仅原来发送时已绑定v2且状态／版本／预留匹配的 SENT，或有同dispatch完整可信持久观测恢复的UNKNOWN允许此转移；重复或并发处理同观测不再退／扣差额。事务崩溃回滚保持全held，已提交则恢复同一Uobs，不能“先释放、后补记”或重复释放。差额只是保守预留重估，不是provider退款或单笔actual已知；新预留仍核 `settled_actual+upper_booked+held+newU<=cap` 及最新保守可用余额约束。
+
+内容坏JSON、schema／引用失败但上述usage有效时，仍按v2独立记Uobs，报告失败；取消／撤权／删除后仅最小费用记录可迁移，正文／分享／任务不得复活。丢usage／响应、超界或异常usage继续UNKNOWN并全held U、不重试，不套免费GET execution_closed。旧fixture/final policy/v1或未绑定v2的既有SENT／UNKNOWN／UPPER_BOOKED均不追溯释放差额；历史全U金额、退款／actual记录不因新算法回放减记。
+
+投影仍区分 actual、estimated_upper、unknown：v2显示已核用量对应的保守Uobs、原U与一次释放的预留差额，同时明确actual=null，不写SETTLED／伪final receipt／实际0元。报告完成按原有条件化规则，不把计费上界当证据级别。后来可信账单A若大于Uobs（即使仍小于原U），须记录上界失效并阻断新paid，不丢弃／裁切真实费用；不得仍宣称旧上界有效。若A不超Uobs，按受审财务依据只以当前Uobs替换actual A，差额只算Uobs−A，不能再释放已处理的U−Uobs；余额差不是该单笔依据。
+
+本分支最小消费者判据如下，均待正式owner实现与独审实际运行；当前不修改旧消费者探针的fixture/v1对照。
+
+| 场景 | 必须成立 |
+| --- | --- |
+| 最终请求覆盖／cap证明 | 改max_tokens、thinking、tools、序列化重复key或发送bytes，在真实发送边界前拒且计数0；合法最终固定包为对照，不能只测prepare模板 |
+| 低量／满量与ceil | 低量按原F算Uobs，差额释放一次；prompt=contextBound、completion=4096时Uobs=U；cache hit全额仍按miss计，local_guard不丢；不是actual账单 |
+| 并发／重复／崩溃 | 两进程处理同dispatch观测只一次held U→upper Uobs；事务各故障点原子回滚或读回已提交值，不二次退差，其他writer的新预留仍受同cap |
+| 内容坏而usage完整 | 报告失败，保守费用Uobs仍持久；不发JSON修复／重试，不恢复被撤权正文 |
+| 缺／伪／超界usage | UNKNOWN保全held，不补0／不min裁切／不重发；响应ref或绑定冲突阻断；后续账单A>Uobs如实保存并关paid |
+| 旧策略／币种／历史与重启 | fixture/final/v1及既有金额原样不减；未绑定v2、错币或过期依据不新发；重启保原policy/F/usage与一次差额记录，余额／充值／别名变化不追认或放宽 |
 
 ## 7 撤权、删除、认领与迟到提交
 
