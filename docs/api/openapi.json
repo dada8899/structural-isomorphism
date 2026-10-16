@@ -9866,6 +9866,86 @@
         ]
       }
     },
+    "/api/research/{research_id}/paid-approvals": {
+      "post": {
+        "operationId": "paid_confirmation_api_research__research_id__paid_approvals_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Paid Confirmation",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/paid-previews": {
+      "post": {
+        "operationId": "paid_preview_api_research__research_id__paid_previews_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Paid Preview",
+        "tags": [
+          "research"
+        ]
+      }
+    },
     "/api/research/{research_id}/reconcile": {
       "post": {
         "operationId": "reconcile_research_task_api_research__research_id__reconcile_post",
