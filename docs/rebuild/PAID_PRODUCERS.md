@@ -25,3 +25,11 @@ preconnect前先核；begin在全部授权／loader／consume回调之后、发�
 组合baseline197 passed。原provider/source/evidence组合137 passed、64 subtests；CP1初18项与原D1/v5/owner-index组合215 passed；最后补坏metadata拒绝后新组19 passed。均无skip，无外网／模型／费用／1P／密钥读取；来源验证只用原App/auth/同DB与自建本机HTTP夹具，最终发送守卫只用内存sink，不产生厂商请求。原repository全部方法AST保持，Source parser/schema/公共port、v5、CONTRACT_SPEC、API/UI、现有测试字节不改。
 
 此处不称三producer已全部完成。CP1固定SHA独审后，才进入CP2必要schema6／独立paid批准与当前资金授权来源；CP3再接真实拥有的adapter/session/持久收包来源。Bootstrap拥有后续唯一v2预算helper，Core不得复制另一套F。外部资金／凭据／真实模型／外网仍NO GO。
+
+## CP2 前置：additive v2 报价类型
+
+基线58b196，按 PMO 精确例外仅在 provider_schemas.py 增 `UsageUpperQuote`。字段固定v2 policy、Flash声明版本、CNY/scale6、revision、正native peak miss/output rates、严格 context_bound≥1048576且≤2147483647、output_bound=4096、int63 local_guard、price/model/completioncap/finalcode证据摘要及valid_until。旧PriceQuote／CostObservation／cost_intent与全部旧节点AST不变。
+
+新类型没有F、upper、预留、释放、receipt或可信资金权限。它只约束数据，单字段在int63内不证明乘积可表示；唯一算术与溢出检查由Bootstrap后续usage_upper.py实现。Core正式resolver、真实quote证据、准入时admitted_at与原quote摘要仍待CP2闭合，不能凭DTO或合成行自封trusted quote。
+
+本小检查点新40项边界测试及原provider77项通过；新值全为纯合成native整数，不查真实价格／资金／key。schema6、API、外发packet、CurrentPaidAuthority与成本生产者尚未实施。本文件与quote/test停写交原审冻结后，再按正式范围继续。
