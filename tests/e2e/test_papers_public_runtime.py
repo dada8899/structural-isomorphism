@@ -517,3 +517,55 @@ $$
         assert _serious_axe_violations(page) == []
     finally:
         context.close()
+
+
+def test_index_repeated_i18n_notifications_preserve_live_catalog_state(
+    browser: Browser, papers_origin: str,
+) -> None:
+    page, context = _new_page(browser, 390)
+    try:
+        page.goto(f"{papers_origin}/papers?lang=zh", wait_until="domcontentloaded")
+        expect(page.locator(".paper-card")).to_have_count(20)
+        page.wait_for_function("window.i18n.t('page.papers.title') !== 'page.papers.title'")
+        selected = page.locator('.papers-filter__btn[data-filter="unified"]')
+        selected.click()
+        details = page.locator('.paper-result__details').first
+        details.locator('summary').click()
+        for lang in ['zh', 'en', 'zh']:
+            page.evaluate("lang => window.i18n.setLang(lang)", lang)
+            expect(page.locator('.paper-card__title').first).to_have_text(RECORDS[0][f'title_{lang}'])
+            expect(page.locator('.paper-result__decision > div').nth(1).locator('p').first).to_have_text(CONTRACT[f'boundary_{lang}'])
+            expect(page.locator('.paper-card__status').first).to_have_text(
+                'Historical research draft' if lang == 'en' else '历史研究稿'
+            )
+            expect(selected).to_have_attribute('aria-pressed', 'true')
+            expect(details).to_have_attribute('open', '')
+            expect(page.locator('#papers-filter-status')).to_have_text(
+                '1 historical items shown' if lang == 'en' else '当前显示 1 项历史材料'
+            )
+            assert page.locator('.papers-group:not([hidden]) .paper-card').count() == 1
+            assert page.locator('.paper-card').count() == 20
+            hrefs = page.locator('.paper-card__title').evaluate_all(
+                "nodes => nodes.map(n => n.getAttribute('href'))"
+            )
+            assert [href.split('?')[0] for href in hrefs] == [f"/paper/{r['slug']}" for r in RECORDS]
+            details.locator('summary').focus()
+            # Real public notification API, without changing the language tuple.
+            result = page.evaluate("""() => {
+              const root=document.getElementById('papers-content');
+              const nodes=Array.from(root.querySelectorAll('*'));
+              const focus=document.activeElement;
+              document.getElementById('papers-stats').setAttribute('aria-label','stale');
+              for(let n=0;n<3;n++) window.i18n.render();
+              return {same: nodes.every((node,i)=>node===root.querySelectorAll('*')[i]),
+                focused: focus===document.activeElement};
+            }""")
+            assert result == {'same': True, 'focused': True}
+            expect(details).to_have_attribute('open', '')
+            expect(selected).to_have_attribute('aria-pressed', 'true')
+            expect(page.locator('#papers-stats')).to_have_attribute(
+                'aria-label', 'Historical material composition' if lang == 'en' else '历史材料构成'
+            )
+        assert _serious_axe_violations(page) == []
+    finally:
+        context.close()

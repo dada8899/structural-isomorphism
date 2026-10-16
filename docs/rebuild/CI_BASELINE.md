@@ -220,6 +220,30 @@ typing_extensions==4.16.0
 
 本轮不创建其他会话，不提交、推送、amend／rebase／force或触发CI。旧局部空marker保留历史，PMO须先提交本修复并回收当前SHA独审，再以最终marker作首次唯一远端发布；不能用旧45包环境或局部空marker放行真实采证。新临时venv由Bootstrap保留供本修复复核，结束后负责清理；没有运行中的服务或采证资源。
 
+## Cookie／tour 真实弹层操作顺序返修
+
+日期：2026-10-17。源基线 `6224e13eea1c079ee83d5c631e073b482eafbd83`。真实 push CI run `38936481598`、job `117093165122` 的账户手机可访问性用例在430×932被 welcome tour 的全屏 backdrop 拦截 cookie-only click，原文件为12 passed／1 failed。未读取或转发包含夹具一次性链接的原始日志。只读代码证据显示 tour modal 位于z9999、cookie在z200；旧 helper 固定先cookie再skip，无法在click被遮挡时走到skip，并非加等待可解决。PR247精确差异不含这两个组件或该helper，既有单tour owner修复不涉及此操作顺序。
+
+按PMO选择只修测试操作，不改变产品的cookie优先决策或层级。helper在cookie正常click期间临时注册可见tour-skip的locator handler，正常点击Skip并等真实tour隐藏；finally移除handler。随后保留独立延迟tour的正常关闭核查，移除后才手动点残留Skip，避免点击自身再次触发handler。cookie仍实际选择仅必要；click失败不吞掉，未force、写storage、禁tour、加sleep、延超时或自造无界重试。
+
+同文件新增真实Next三种确定对照：tour先显示、cookie先显示后在正常click检查边界推进原1500ms计时器、以及通过真实Skip建立的无tour状态。只用测试时钟控制既有生产timer，没有mock DOM或组件；确认真实consent仅必要。helper返回后通过导航正常重开tour，并用auto-waiting可见断言证明handler没有残留，再正常关闭。原375／390／430账户设置、44px、焦点和axe等全部原测试／fixture的AST保持，只有helper改变及新增对照函数。
+
+Playwright1.59.0／目标runtime45包环境下，三种对照与原430×932定点用例四项均通过。首次私有日志包装器在pytest四项及teardown通过后遇到关闭句柄flush错误（进程120、pytest0）；仅修正包装器关闭顺序，没有以此重跑定点采绿。随后执行原CI文件选择`pytest web/tests/e2e/test_phase_auth_real.py -v`，仅增加隐私capture与显式关闭trace/video/screenshot选项，**16 passed、退出0**（原13项＋新增3项），无skip。原Next/API子进程stdout/stderr在写日志前丢弃；测试结果仅存600权限的脱敏日志和不含链接／凭据的结构化回执，未读取原token日志。
+
+测试context、browser、Next/API服务沿fixture finally收尾，新测试自身finally另移除边界handler并关闭context。原54source、评分、collector和marker均未修改，未trace、Profiler、HTTP研究、SSH、模型或提交／推送。此卡完成后helper源码停写，后续Papers卡按独立范围顺序接续，最终两卡由PMO按当前完整SHA独审。
+
+## Papers 重复语言通知的目录去重
+
+日期：2026-10-17。接续同一源基线 `6224e13eea1c079ee83d5c631e073b482eafbd83`，弹层helper保持停写。PMO回收的既有Linux离线诊断将Papers重复整目录替换定位到多次i18n通知；本卡只修改Papers本地renderer、原两Papers测试文件和本记录，不更改全局i18n、utils、评分、预算、CI、Make、collector或原54输入摘要。既有采证已完成，Papers源码变化后历史固定摘要自然不再代表当前源码，不能重写历史摘要或重采来覆盖。
+
+renderer以已成功完成的validated对象身份和实际语言作为去重条件；重复通知仍同步静态ARIA标签，保留现有目录节点、展开状态、筛选和焦点。实际语言变化、新validated对象继续完整渲染全部20项，沿原逻辑恢复展开slug与筛选。替换前清除成功记录，只有目录、筛选及aria-busy全部完成才记录成功；根缺失及错误显示均清除成功记录，失败后同对象同语言仍可重试。未减少正文、材料数量、安全边界或延后内容渲染，没有添加产品调试接口。
+
+原Node合同文件新增真实renderer闭包的受控生命周期检查：manifest前／后的i18n通知、连续同tuple通知、新validated对象、zh→en→zh、初次根缺失、最终完成步骤抛错及已渲染后根缺失恢复。真实Chromium新增公共i18n.render广播检查，连续三次广播保持全部节点身份、真实summary焦点、展开和筛选；换语言检查标题、材料状态、边界、20项链接及可见1项计数，并运行原axe规则。原两个文件全部既有函数、fixture与类AST逐项核对原样，既有断言未删改。
+
+目标runtime45包环境，最终命令 `python -m pytest tests/test_papers_public_contract.py tests/e2e/test_papers_public_runtime.py -q --tracing=off --video=off --screenshot=off -p no:cacheprovider` 配合当前树PYTHONPATH，**25 passed，退出0**。首次新增浏览器断言误把首条historical-draft写成historical-record，24 passed／1 failed；仅更正该新增预期后25 passed，再补根缺失恢复的源码及反例，最终当前版本25 passed。包含原375／390／430矩阵、20条详情路由、安全Markdown与axe；本机浏览器结果不替代Linux性能或发布验收。Node语法、差异检查通过。所有测试context和服务沿原fixture finally收尾，未创建trace、Profiler、新marker、SSH、外部模型或提交／推送。
+
+两卡至此作者停写，PMO回收精确五文件差异并按当前SHA独审。helper的16项已完成结果保留，未无故重跑；Papers最终25项通过不撤销既有Linux性能失败，也不代表已部署。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。
