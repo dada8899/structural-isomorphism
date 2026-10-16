@@ -358,7 +358,7 @@ def start_source(service,identity,rid,request,key):
         else:
             chain_id=str(uuid4());conn.execute("INSERT INTO research_source_chains(id,principal_id,research_id,fingerprint) VALUES(?,?,?,?)",(chain_id,pid,rid,fp))
         tid,gid,plan_id,timestamp=str(uuid4()),str(uuid4()),str(uuid4()),now()
-        conn.execute("INSERT INTO research_grants VALUES(?,?,?,?,?,?,'active',?)",(gid,pid,row["owner_epoch"],rid,row["acl_epoch"],'["execute"]',timestamp))
+        conn.execute("INSERT INTO research_grants (id,principal_id,principal_epoch,research_id,acl_epoch,scopes,status,created_at) VALUES(?,?,?,?,?,?,'active',?)",(gid,pid,row["owner_epoch"],rid,row["acl_epoch"],'["execute"]',timestamp))
         conn.execute("""INSERT INTO research_tasks
             (id,research_id,principal_id,principal_epoch,owner_epoch,acl_epoch,grant_id,auth_generation,input_revision,input_digest,start_version,execution,phase,version,policy_revision,execution_mode,created_at,updated_at)
             VALUES(?,?,?,?,?,?,?,?,?,?,?,'QUEUED','queued',1,?,?,?,?)""",(tid,rid,pid,row["owner_epoch"],row["owner_epoch"],row["acl_epoch"],gid,identity.generation,request.input_revision,inp,row["version"]+1,POLICY,origin(),timestamp,timestamp))

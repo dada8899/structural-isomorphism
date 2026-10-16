@@ -527,8 +527,8 @@ def database_rows(path):
 
 
 @pytest.mark.parametrize("boundary",[None,"CREATE TABLE research_tasks_v4","INSERT INTO research_tasks_v4","CREATE TABLE research_steps_v4","INSERT INTO research_steps_v4","DROP TABLE research_steps","DROP TABLE research_tasks","ALTER TABLE research_tasks_v4","ALTER TABLE research_steps_v4","CREATE TABLE research_source_approvals","UPDATE research_schema SET version=4","COMMIT"])
-def test_true_v3_financial_rows_migrate_or_roll_back_at_each_boundary(c0,monkeypatch,boundary):
-    client,path,store,provider=c0
+def test_true_v3_financial_rows_migrate_or_roll_back_at_each_boundary(legacy_v4_c0,monkeypatch,boundary):
+    client,path,store,provider=legacy_v4_c0
     rid,tid=c0_start(client)
     assert ResearchRunner(store).run_once(tid)=="COMPLETED"
     locks={p.name:p.stat().st_ino for p in (path.parent/"research-locks").glob("*.lock")}
@@ -562,3 +562,11 @@ def test_true_v3_financial_rows_migrate_or_roll_back_at_each_boundary(c0,monkeyp
     assert {p.name:p.stat().st_ino for p in (path.parent/"research-locks").glob("*.lock") }==locks
     assert ResearchRunner(migrated).run_once(tid)=="COMPLETED" and provider.count()==2
     assert client.get(f"/api/research/{rid}").json()["data"]["budget"]["known_cost"][0]["amount_units"]==7000
+
+
+@pytest.fixture
+def legacy_v4_c0(monkeypatch,request):
+    # Keep the original v3->v4 test's real historical shape and every failure
+    # boundary. Production has no bypass; v4->v5 is tested independently.
+    monkeypatch.setattr(ResearchStore,"_migrate_v5",lambda self:None)
+    return request.getfixturevalue("c0")

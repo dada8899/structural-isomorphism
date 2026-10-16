@@ -83,7 +83,7 @@ class ResearchService:
             rid, timestamp = str(uuid4()), now()
             conn.execute("INSERT INTO research_controls VALUES(?,?,?,?,?,?,?,?,?,?)",
                          (rid, principal, owner["epoch"], 1, 1, 1, "private", "active", timestamp, timestamp))
-            conn.execute("INSERT INTO research_grants VALUES(?,?,?,?,?,?,?,?)",
+            conn.execute("INSERT INTO research_grants (id,principal_id,principal_epoch,research_id,acl_epoch,scopes,status,created_at) VALUES(?,?,?,?,?,?,?,?)",
                          (str(uuid4()), principal, owner["epoch"], rid, 1, '["read","write"]', "active", timestamp))
             problem = payload["problem"]
             conn.execute("INSERT INTO research_revisions VALUES(?,?,?,?,?)", (rid, 1, canonical(problem), digest(problem), timestamp))
@@ -148,7 +148,7 @@ class ResearchService:
                 raise ResearchError("RECONCILIATION_REQUIRED",409,"同一问题仍有未确认调用，请先对账。")
             task,grant,timestamp=str(uuid4()),str(uuid4()),now()
             owner=conn.execute("SELECT * FROM research_principals WHERE id=?",(principal,)).fetchone()
-            conn.execute("INSERT INTO research_grants VALUES(?,?,?,?,?,?,'active',?)",(grant,principal,owner["epoch"],rid,row["acl_epoch"],'["execute"]',timestamp))
+            conn.execute("INSERT INTO research_grants (id,principal_id,principal_epoch,research_id,acl_epoch,scopes,status,created_at) VALUES(?,?,?,?,?,?,'active',?)",(grant,principal,owner["epoch"],rid,row["acl_epoch"],'["execute"]',timestamp))
             conn.execute("""INSERT INTO research_tasks
                 (id,research_id,principal_id,principal_epoch,owner_epoch,acl_epoch,grant_id,auth_generation,input_revision,input_digest,start_version,
                  execution,phase,version,policy_revision,execution_mode,created_at,updated_at)
