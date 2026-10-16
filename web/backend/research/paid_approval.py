@@ -19,8 +19,8 @@ _SOURCES={}
 
 def request_codec_digest():
     from pathlib import Path
-    from . import provider_adapter,provider_schemas
-    return digest(canonical({module.__name__.rsplit('.',1)[-1]:digest(Path(module.__file__).read_bytes()) for module in (provider_adapter,provider_schemas)}))
+    from . import provider_adapter,provider_schemas,preview_codec
+    return digest(canonical({module.__name__.rsplit('.',1)[-1]:digest(Path(module.__file__).read_bytes()) for module in (provider_adapter,provider_schemas,preview_codec)}))
 
 
 class OfflineFundingResolver:
@@ -52,6 +52,11 @@ class OfflineFundingResolver:
         if not self._active or _SOURCES.get(self._ref) is not self or pid!=self._pid:raise PermissionError('registered offline source unavailable')
         q,b,u=self._quote,self._basis,self._upper
         if min(q.valid_until,b.valid_until)<=int(time.time()):raise ResearchError('BUDGET_UNVERIFIED',503,'离线控制依据已过期。')
+        from .usage_upper import preview_bound,UpperMathError
+        try:bound=preview_bound(q,now=int(time.time()))
+        except UpperMathError:raise ResearchError('BUDGET_UNVERIFIED',503,'当前报价不满足已审短时效或金额上界。') from None
+        if bound.upper_bound!=u or bound.quote_revision!=q.revision or bound.quote_digest!=digest(canonical(q.model_dump())):
+            raise ResearchError('BUDGET_UNVERIFIED',503,'服务器模拟授权值与原报价上界不一致。')
         a=conn.execute('SELECT * FROM research_funding_accounts WHERE id=?',(b.account_id,)).fetchone()
         p=conn.execute('SELECT * FROM research_price_revisions WHERE id=? AND account_id=?',(q.revision,b.account_id)).fetchone()
         snapshot=conn.execute('SELECT * FROM research_balance_snapshots WHERE id=? AND account_id=?',(b.id,b.account_id)).fetchone()
@@ -66,7 +71,7 @@ class OfflineFundingResolver:
                 or not all(snapshot[name]==1 for name in ('hard_prepaid','auto_topup_off','postpaid_off'))):
             raise ResearchError('BUDGET_UNVERIFIED',503,'离线资金配置与当前控制记录不符。')
         return dict(source_ref=self._ref,mode='offline_probe',account_id=b.account_id,binding_id=b.provider_binding_id,
-            funding_epoch=b.funding_epoch,quote=q.model_dump(),basis=b.model_dump(),approved_upper=u.model_dump())
+            funding_epoch=b.funding_epoch,quote=q.model_dump(),basis=b.model_dump(),approved_upper=bound.upper_bound.model_dump())
 
 
 @dataclass(frozen=True)
@@ -216,13 +221,31 @@ class PaidApprovalService:
             data=json.loads(problem['problem_json'])
             if not data['confirmed']:raise ResearchError('INPUT_INVALID',422,'请先确认问题。')
             funding=self.resolver.current(conn,pid)
+            from .provider_evidence import read_preview_manifest
+            from .preview_codec import preview_request,PreviewOutboundHandle
+            manifest=read_preview_manifest(conn,self.store,identity,research_id,input_revision,research_version,source_refs,data['summary'])
+            encoded=preview_request(data['summary'],tuple(PreviewOutboundHandle.model_validate(item) for item in manifest['handles']))
             payload=dict(generation=identity.generation,input_revision=input_revision,research_version=research_version,
                 problem_digest=problem['digest'],summary=data['summary'],principal_epoch=principal['epoch'],owner_epoch=control['owner_epoch'],acl_epoch=control['acl_epoch'],
-                source_refs=list(source_refs),source_manifest_digest=digest(canonical([asdict(item) for item in candidate.excerpts])),funding=funding,plan_id=str(uuid4()),codec_digest=request_codec_digest())
+                source_refs=list(source_refs),source_manifest_digest=digest(canonical([asdict(item) for item in candidate.excerpts])),funding=funding,codec_digest=request_codec_digest(),
+                preview_manifest=manifest,manifest_digest=digest(canonical(manifest)),outbound_request_digest=encoded.outbound_request_digest)
             aid=str(uuid4());timestamp=datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
             expires=min(funding['quote']['valid_until'],funding['basis']['valid_until'],int(time.time())+120)
+            utc=lambda value:datetime.fromtimestamp(value,timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+            view=dict(preview_ref=aid,preview_version=1,status='draft',expires_at=utc(expires),
+                bindings=dict(research_id=research_id,input_revision=input_revision,input_digest=problem['digest'],research_version=research_version),
+                purpose='method_hypothesis',provider='deepseek',model='deepseek-flash',declared_model_version='DeepSeek-V4.1-Flash',
+                execution_mode='offline_probe',policy_revision=POLICY,
+                quote=dict(revision=funding['quote']['revision'],digest=digest(canonical(funding['quote'])),valid_until=utc(funding['quote']['valid_until'])),
+                maximum_reserve=funding['approved_upper'],actual=None,cost_label='maximum_reserve_not_actual',max_calls=1,
+                manifest=manifest,manifest_digest=payload['manifest_digest'],outbound_request_digest=encoded.outbound_request_digest,
+                may_send_to_provider=False,model_analysis_ran=False)
+            view['preview_digest']=digest(canonical(view));payload['preview_digest']=view['preview_digest']
             conn.execute("INSERT INTO research_paid_approvals(id,principal_id,research_id,payload_json,payload_digest,state,mode,policy_revision,funding_source_ref,account_id,expires_at,created_at) VALUES(?,?,?,?,?,'draft','offline_probe',?,?,?,?,?)",(aid,pid,research_id,canonical(payload).decode(),digest(canonical(payload)),POLICY,self.resolver._ref,funding['account_id'],expires,timestamp))
-            return dict(preview_ref=aid,preview_version=1,preview_digest=digest(canonical(payload)),mode='offline_probe',summary=data['summary'],excerpts=[asdict(item) for item in candidate.excerpts],quote=funding['quote'],maximum_approved_upper=funding['approved_upper'],may_send=False)
+            # Legacy aliases remain internal only; the future route must emit
+            # exactly preview_view, never directly serialize this container.
+            return {**view,'preview_view':view,'mode':'offline_probe','summary':data['summary'],'excerpts':manifest['sources'],
+                'maximum_approved_upper':funding['approved_upper'],'may_send':False}
 
     def confirm(self,identity,preview_ref,preview_digest,key,*,expected_preview_version=1):
         from .provider_evidence import read_confirmed_provider_packet
@@ -247,21 +270,32 @@ class PaidApprovalService:
                     'execution':view['execution'],'status':view['status']}
             replay=ResearchService._replay(conn,pid,'paid-confirm','approval:'+preview_ref,key,operation_digest)
             if replay is not None:return current_receipt(replay)
-            if row['state']!='draft' or row['version']!=expected_preview_version or row['expires_at']<=int(time.time()) or row['payload_digest']!=preview_digest:raise ResearchError('REVISION_CONFLICT',409,'付费预览已失效。')
-            payload=json.loads(row['payload_json']);control=gate.check(conn,identity,pid,row['research_id'],scope='write')
+            payload=json.loads(row['payload_json'])
+            if (row['state']!='draft' or row['version']!=expected_preview_version or row['expires_at']<=int(time.time())
+                    or digest(canonical(payload))!=row['payload_digest'] or payload.get('preview_digest')!=preview_digest):raise ResearchError('REVISION_CONFLICT',409,'付费预览已失效。')
+            control=gate.check(conn,identity,pid,row['research_id'],scope='write')
             if control['version']!=payload['research_version'] or control['current_revision']!=payload['input_revision']:raise ResearchError('REVISION_CONFLICT',409,'问题已变化。')
+            from .provider_evidence import read_preview_manifest
+            from .preview_codec import preview_request,PreviewOutboundHandle
+            manifest=read_preview_manifest(conn,self.store,identity,row['research_id'],payload['input_revision'],control['version'],tuple(payload['source_refs']),payload['summary'])
+            encoded=preview_request(payload['summary'],tuple(PreviewOutboundHandle.model_validate(item) for item in manifest['handles']))
+            if digest(canonical(manifest))!=payload['manifest_digest'] or encoded.outbound_request_digest!=payload['outbound_request_digest']:
+                raise ResearchError('REVISION_CONFLICT',409,'获准外发资料或模板已变化。')
             if conn.execute("SELECT 1 FROM research_tasks WHERE research_id=? AND execution IN ('QUEUED','RUNNING','WAITING_EXTERNAL','RECONCILING')",(row['research_id'],)).fetchone():raise ResearchError('VERSION_CONFLICT',409,'已有活跃任务。')
             if conn.execute("SELECT 1 FROM research_reservations r JOIN research_tasks t ON t.id=r.task_id WHERE t.research_id=? AND r.status IN ('SENT','UNKNOWN')",(row['research_id'],)).fetchone():raise ResearchError('RECONCILIATION_REQUIRED',409,'旧收费结果未知。')
             tid,gid,sid=str(uuid4()),str(uuid4()),str(uuid4());timestamp=now()
+            payload['plan_id']=str(uuid4())
             conn.execute("INSERT INTO research_grants(id,principal_id,principal_epoch,research_id,acl_epoch,scopes,status,created_at,funding_account_id,funding_permission_ref) VALUES(?,?,?,?,?,'[\"execute\",\"execute_paid\"]','active',?,?,?)",(gid,pid,payload['principal_epoch'],row['research_id'],payload['acl_epoch'],timestamp,row['account_id'],row['funding_source_ref']))
             conn.execute("""INSERT INTO research_tasks(id,research_id,principal_id,principal_epoch,owner_epoch,acl_epoch,grant_id,auth_generation,input_revision,input_digest,start_version,execution,phase,version,policy_revision,execution_mode,created_at,updated_at)
                 VALUES(?,?,?,?,?,?,?,?,?,?,?,'QUEUED','analysis',1,?,'offline_probe',?,?)""",(tid,row['research_id'],pid,payload['principal_epoch'],payload['owner_epoch'],payload['acl_epoch'],gid,identity.generation,payload['input_revision'],payload['problem_digest'],control['version']+1,POLICY,timestamp,timestamp))
             conn.execute("INSERT INTO research_steps(id,task_id,position,kind,state) VALUES(?,?,0,'model_report','PENDING')",(sid,tid))
             conn.execute("INSERT INTO research_attempts VALUES(?,1,'initial',?,?)",(tid,POLICY,payload['problem_digest']))
-            conn.execute('UPDATE research_paid_approvals SET task_id=?,grant_id=?,confirmed_at=? WHERE id=? AND state=\'draft\'',(tid,gid,int(time.time()),preview_ref))
+            conn.execute('UPDATE research_paid_approvals SET task_id=?,grant_id=?,confirmed_at=?,payload_json=?,payload_digest=? WHERE id=? AND state=\'draft\'',(tid,gid,int(time.time()),canonical(payload).decode(),digest(canonical(payload)),preview_ref))
             consent=packet_authority(conn,self.store,identity,lease,preview_ref,allow_confirming=True)
             packet=read_confirmed_provider_packet(conn,self.store,identity,consent)
             prepared=prepare_request(payload['summary'],packet);final_request_bytes(prepared)
+            if prepared.request_digest!=payload['outbound_request_digest'] or [handle.outbound() for handle in packet.handles]!=payload['preview_manifest']['handles']:
+                raise PermissionError('confirmed bytes differ from no-capability preview')
             payload.update(request_digest=prepared.request_digest,evidence_digest=prepared.evidence_digest)
             conn.execute("UPDATE research_paid_approvals SET payload_json=?,payload_digest=?,state='confirmed',version=version+1 WHERE id=? AND state='draft'",(canonical(payload).decode(),digest(canonical(payload)),preview_ref))
             conn.execute('UPDATE research_controls SET version=version+1,updated_at=? WHERE id=?',(timestamp,row['research_id']))

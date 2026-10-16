@@ -160,6 +160,19 @@ class EvidenceRepository:
             extracted_text=extracted,start=candidate.start,end=candidate.end,quote=candidate.quote,
             display_permission=True,may_send_to_provider=True)
 
+    def preview_provider_handle(self,context,excerpt_id,handle):
+        """Read complete credit as display data, never an approved handle."""
+        candidate=self.provider_eligibility(context,excerpt_id)
+        excerpt,_,_=self._get(context,'excerpts',excerpt_id)
+        snapshot,raw,_=self._get(context,'snapshots',excerpt.snapshot_id)
+        from .source_policy import decompress
+        from .provider_evidence import complete_attribution
+        from .preview_codec import PreviewOutboundHandle
+        attribution=complete_attribution(decompress(raw,'gzip' if raw.startswith(b'\x1f\x8b') else 'identity'),snapshot)
+        return candidate,PreviewOutboundHandle(handle=handle,source_id=candidate.source_id,source_revision=candidate.source_revision,
+            excerpt_id=excerpt_id,title=candidate.title,attribution=attribution,extracted_digest=candidate.extracted_digest,
+            start=candidate.start,end=candidate.end,quote=candidate.quote)
+
     def _permissions(self, context, record, *, export=False):
         snapshots = []
         if type(record) is DataSnapshot:

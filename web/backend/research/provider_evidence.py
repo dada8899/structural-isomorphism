@@ -145,3 +145,37 @@ def read_confirmed_provider_packet(conn,store,identity,authority):
         handles.append(repository.confirmed_provider_handle(context,ref,authority,'e'+str(index+1)))
     if digest(canonical(candidates))!=binding.source_manifest_digest:raise PermissionError('approved source manifest changed')
     return EvidencePacket(context=binding.context,handles=tuple(handles))
+
+
+def read_preview_manifest(conn,store,identity,research_id,input_revision,research_version,excerpt_ids,summary):
+    """Current owner, complete attribution, no permission DTO or fake context."""
+    from .evidence_repository import EvidenceRepository
+    from .store import ResearchStore
+    from pathlib import Path
+    import sqlite3
+    from .source_integration import authorizer,context_for
+    if type(store) is not ResearchStore or type(identity) is not AccountIdentity or not isinstance(conn,sqlite3.Connection) or not conn.in_transaction:
+        raise PermissionError('canonical preview read transaction required')
+    database=next((row[2] for row in conn.execute('PRAGMA database_list') if row[1]=='main'),None)
+    if not database or Path(database).resolve()!=store.path:raise PermissionError('canonical preview database required')
+    gate=AuthorizationGate(store);gate.check_account(conn,identity)
+    principal=conn.execute('SELECT id FROM research_principals WHERE normalized_email=? AND session_generation=?',(identity.email,identity.generation)).fetchone()
+    if not principal:raise not_found()
+    control=gate.check(conn,identity,principal[0],research_id)
+    if control['current_revision']!=input_revision or control['version']!=research_version:raise ResearchError('REVISION_CONFLICT',409,'问题版本已变化。')
+    import json
+    original=conn.execute('SELECT problem_json FROM research_revisions WHERE research_id=? AND revision=?',(research_id,input_revision)).fetchone()
+    if not original or json.loads(original[0])['summary']!=summary:raise ResearchError('REVISION_CONFLICT',409,'预览摘要必须来自当前保存的问题。')
+    if type(excerpt_ids) is not tuple or not 1<=len(excerpt_ids)<=20 or any(type(ref) is not str for ref in excerpt_ids) or len(set(excerpt_ids))!=len(excerpt_ids):raise ResearchError('INPUT_INVALID',422,'摘录范围无效。')
+    repository=EvidenceRepository(conn,authorizer(store,identity=identity));sources=[];handles=[]
+    for index,ref in enumerate(excerpt_ids):
+        row=conn.execute("SELECT task_id FROM research_evidence_objects WHERE id=? AND kind='excerpts' AND research_id=? AND input_revision=?",(ref,research_id,input_revision)).fetchone()
+        if not row:raise not_found()
+        try:candidate,handle=repository.preview_provider_handle(context_for(conn,row[0]),ref,'e'+str(index+1))
+        except (ValueError,LookupError,PermissionError):raise ResearchError('SOURCE_PERMISSION_UNAVAILABLE',409,'预览需要完整有效的署名、许可与读取范围。') from None
+        fields=('source_id','source_revision','excerpt_id','title','canonical_url','raw_digest','extracted_digest','discovery_digest',
+            'permission_basis_digest','start','end','quote','read_scope','acquired_at','information_cutoff','may_send_to_provider')
+        display={name:getattr(candidate,name) for name in fields};display['attribution']=handle.attribution
+        display['information_cutoff']=display['information_cutoff'][:10]
+        sources.append(display);handles.append(handle.model_dump())
+    return {'problem_summary':summary,'sources':sources,'handles':handles}

@@ -65,3 +65,11 @@ authorize／consume 除核调用者当前expected版本，还核持久permit上�
 附属结构检查此前误置于_v5提交前，本轮已移到真正_v6首次复制／建表之前；直接已存在v5库也必须核待替换表的全部显式index／trigger。未知附属结构拒绝并回滚，不再随DROP TABLE静默消失。真实额外trigger/index反例均保留原v5全snapshot及inode，原v5方法不再夹带此v6检查。
 
 作者验证：原审5个票版本／策略拒绝断言实跑5 passed（原extra-trigger脚本要求保留升级，本实现选择更保守拒绝，另以2个真实新反例核exact原库）；原v5安全组+approval+迁移最终220 passed／0 skipped（124.46秒），其中v1不可折减与v2部分／全额三个对照独立3 passed。首轮组合因新fixture未显式导入source_stack出现1个setup error，没有计绿；补齐测试依赖后完整220项通过。原fault81、旧隐式事务退休／REPLACE／CP1 guard等保留，未改原审证据、旧测试或其他源码。API/preview-codec/CP3/F/资金/live仍未进入本轮。
+
+## 无能力 preview codec／完整署名检查点
+
+基线37e4；协调停写后仅合受审preview_bound，续接HEAD188f237。唯一模板从adapter抽到纯preview_codec.request_bytes，确认后的prepare亦调用它；final_request_bytes与begin/finish/preconnect权限守卫AST保持。PreviewOutboundHandle没有Context、fulltext、may_send或资金字段，PreviewRequest不能交adapter发送，不造task/plan/dispatch；固定4096/thinking off/no tools/nonstream和原16KiB整包拒溢出保留。
+
+新独立preview署名口在真实当前owner/revision下重核CP1资格和完整creator/year，返回sources全false及精确outbound handles；旧eligibility/confirmed读口AST保持。缺署名现在preview即拒、draft/task/grant/fee不增。manifest摘要与无能力bytes摘要在确认前保存，确认分配真实Context后重建同codec bytes须逐字相同；EvidencePacket.binding_digest另域，不拿控制ID替身。公开preview_view采用§6.4.2白名单和SHA256(canonical(view去preview_digest))，内部旧别名不准直接成为API响应。
+
+U仅调用受审usage_upper.preview_bound，用真实服务器clock核≤60秒TTL和quote revision/digest；返回值不是reserve/observed凭证，Core不复制F。原合成fixture仅把2033长期quote改当前clock+60，过期／长TTL负例拒绝，不假now/dispatch；真实资金默认None/live closed。原provider/model115项、预览/确认/CP1受影响48项通过。未改DDL、API/UI、runner或CP3；客户/源HTTP/本机sink/timer按finally关闭，公开网络/资金/key/真实模型为0。独审冻结前停写，仍不声称公共API或真实费用链已交付。

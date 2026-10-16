@@ -36,7 +36,7 @@ def approved_inputs(source_stack,request):
         pid=conn.execute('SELECT owner_id FROM research_controls WHERE id=?',(rid,)).fetchone()[0]
         ref=conn.execute("SELECT id FROM research_evidence_objects WHERE kind='excerpts'").fetchone()[0]
     quote=UsageUpperQuote(revision=str(uuid4()),peak_input_miss_units_per_million=1,peak_output_units_per_million=2,context_bound=1048576,local_guard=1,
-        price_document_digest='a'*64,model_document_digest='b'*64,completion_bound_basis_digest='c'*64,final_request_code_digest=request_codec_digest(),valid_until=2000000000)
+        price_document_digest='a'*64,model_document_digest='b'*64,completion_bound_basis_digest='c'*64,final_request_code_digest=request_codec_digest(),valid_until=int(time.time())+60)
     fid,binding,snapshot=str(uuid4()),str(uuid4()),str(uuid4())
     money=lambda value:Money(currency='CNY',scale=6,amount_units=value)
     basis=BudgetBasisSnapshot(id=snapshot,account_id=fid,provider_binding_id=binding,funding_epoch=1,initial_prepaid=money(1000000),other_use_margin=money(0),cap=money(1000000),settled_actual=money(0),upper_booked=money(0),held=money(0),available_after_observed_consumption=money(1000000),price_revision=quote.revision,valid_until=2000000000)
@@ -143,11 +143,14 @@ def test_confirmation_failure_rolls_back_whole_paid_creation(approved_inputs):
 
 @pytest.mark.parametrize('approved_inputs',[False],indirect=True)
 def test_missing_creator_credit_cannot_be_supplied_by_user_consent(approved_inputs):
-    client,_,store,_,_,_,_=approved_inputs;service,draft=preview(approved_inputs)
-    with pytest.raises(PermissionError):service.confirm(identity(client),draft['preview_ref'],draft['preview_digest'],'bad-credit')
+    client,_,store,_,_,_,_=approved_inputs
+    with pytest.raises(ResearchError) as error:preview(approved_inputs)
+    assert error.value.code=='SOURCE_PERMISSION_UNAVAILABLE'
+    with pytest.raises(ResearchError):PaidApprovalService(store).confirm(identity(client),str(uuid4()),'a'*64,'bad-credit')
     with store.transaction() as conn:
         assert conn.execute("SELECT count(*) FROM research_grants WHERE scopes LIKE '%execute_paid%'").fetchone()[0]==0
-        assert conn.execute('SELECT state FROM research_paid_approvals').fetchone()[0]=='draft'
+        assert conn.execute('SELECT count(*) FROM research_paid_approvals').fetchone()[0]==0
+        assert conn.execute('SELECT count(*) FROM research_reservations').fetchone()[0]==0
 
 
 def test_cancel_delete_and_source_retirement_do_not_restore_paid_body(approved_inputs,lifecycle):
