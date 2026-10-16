@@ -392,3 +392,78 @@ process.stdout.write('render lifecycle contracts passed');
         check=True, capture_output=True, text=True,
     )
     assert result.stdout == "render lifecycle contracts passed"
+
+
+def test_static_i18n_root_writes_preserve_notifications_and_async_dictionaries() -> None:
+    program = r"""
+const fs=require('fs'), vm=require('vm'), assert=require('assert/strict');
+const source=fs.readFileSync(process.argv[1], 'utf8');
+const tick=()=>new Promise(resolve=>setImmediate(resolve));
+(async()=>{
+ for(const initial of [null,'zh','zh-CN','en','EN','invalid'])
+ for(const requested of ['zh','en'])
+ for(const order of [['ui','content'],['content','ui']]) {
+  let boot, writes=[], notifications=[];
+  const gates={};
+  function node(attrs,html='original') {
+    return {attrs:{...attrs},innerHTML:html,
+      hasAttribute(k){return Object.hasOwn(this.attrs,k);},
+      getAttribute(k){return this.hasAttribute(k)?this.attrs[k]:null;},
+      setAttribute(k,v){this.attrs[k]=String(v);},
+    };
+  }
+  const text=node({'data-i18n':'probe.text'});
+  const attr=node({'data-i18n-attr':'aria-label:probe.attr','aria-label':'original aria'});
+  const root=node(initial===null?{}:{lang:initial});
+  const set=root.setAttribute;
+  root.setAttribute=function(k,v){if(k==='lang')writes.push(v);set.call(this,k,v);};
+  root.querySelectorAll=selector=>selector==='[data-i18n]'?[text]
+    :selector==='[data-i18n-attr]'?[attr]:[];
+  const document={documentElement:root,body:root,readyState:'loading',
+    querySelector:()=>null,querySelectorAll:()=>[],getElementById:()=>null,
+    addEventListener:(name,fn)=>{assert.equal(name,'DOMContentLoaded');boot=fn;}};
+  const storage=new Map();
+  const window={location:{href:'https://local.invalid/papers?lang='+requested}};
+  vm.runInNewContext(source,{window,document,URL,localStorage:{
+    getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},
+    fetch:url=>new Promise(resolve=>{gates[url.includes('/ui.json')?'ui':'content']=resolve;}),
+    console:{warn:()=>assert.fail('unexpected dictionary failure')},Promise});
+  window.i18n.onChange(lang=>notifications.push(lang));
+  boot();
+  const desired=requested==='en'?'en':'zh-CN';
+  assert.deepEqual(writes,initial===desired?[]:[desired]);
+  assert.equal(root.getAttribute('lang'),desired);
+  assert.deepEqual(notifications,[requested]);
+  assert.equal(text.innerHTML,'original');
+  writes=[];notifications=[];
+  for(let n=0;n<3;n++)window.i18n.render();
+  assert.deepEqual(writes,[]);assert.deepEqual(notifications,[requested,requested,requested]);
+  const payload={ui:{'probe.attr':{zh:'词典标签',en:'Dictionary aria'}},
+    content:{'probe.text':{zh:'词典正文',en:'Dictionary body'}}};
+  notifications=[];
+  gates[order[0]]({ok:true,json:()=>Promise.resolve(payload[order[0]])});await tick();
+  assert.deepEqual(notifications,[]);assert.equal(text.innerHTML,'original');
+  gates[order[1]]({ok:true,json:()=>Promise.resolve(payload[order[1]])});await tick();
+  assert.deepEqual(writes,[]);assert.deepEqual(notifications,[requested]);
+  assert.equal(text.innerHTML,requested==='en'?'Dictionary body':'词典正文');
+  assert.equal(attr.getAttribute('aria-label'),requested==='en'?'Dictionary aria':'词典标签');
+  window.i18n.setLang('zh');writes=[];notifications=[];
+  window.i18n.setLang('en');window.i18n.setLang('zh');
+  assert.deepEqual(writes,['en','zh-CN']);assert.deepEqual(notifications,['en','zh']);
+  assert.equal(text.innerHTML,'词典正文');
+  writes=[];notifications=[];
+  window.i18n.setLang('zh');window.i18n.setLang('unsupported');
+  assert.deepEqual(writes,[]);assert.deepEqual(notifications,[]);
+  window.i18n.mergeStrings({zh:{'probe.text':'合并正文','probe.attr':'合并标签'}});
+  window.i18n.render();
+  assert.equal(text.innerHTML,'合并正文');assert.equal(attr.getAttribute('aria-label'),'合并标签');
+  assert.deepEqual(writes,[]);assert.deepEqual(notifications,['zh']);
+ }
+ process.stdout.write('static i18n lifecycle matrix passed');
+})().catch(error=>{console.error(error);process.exitCode=1;});
+"""
+    result = subprocess.run(
+        ["node", "-e", program, str(FRONTEND / "assets/js/i18n.js")],
+        check=True, capture_output=True, text=True,
+    )
+    assert result.stdout == "static i18n lifecycle matrix passed"
