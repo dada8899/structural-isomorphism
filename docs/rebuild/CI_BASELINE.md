@@ -282,6 +282,20 @@ sanity仅在既有 `python -m pip install playwright==1.59.0` 后增加 `python 
 
 本卡仅OpenAPI快照、sanity workflow及本记录三路径；不改生成器、Make、测试、fixture、锁、业务源码或Core并行schema5工作树。没有网络研究、真实模型、费用、SSH、trace、提交或推送。作者停写，交PMO精确三路径提交及原Astra当前SHA复审，再由后续CI核实际Linux结果。
 
+## Sanity spawn 模块身份返修与 tracker 失败诊断
+
+日期：2026-10-17，源基线 `fbd0b9ee01e6c0036e042ba2a4e58e7e0fadc6d8`。旧474 sanity实红为2051 passed／1 skipped／8 failed；其中三项持久化进程用例在执行数据库或锁之前，spawn重导入 `tests.test_research_persistence` 失败。独审已复现：backend-first先缓存backend的tests，universality随后将repo root放到前面，新解释器把tests解析成root测试包。原隔离文件34 passed不能覆盖这个确定组合反例；不是增加等待可修复。
+
+只将 `_api_process`／`_hold_gate` 两个spawn目标移入规范模块 `web.backend.tests.research_process_fixture`，API目标延迟引用原规范persistence模块的app/post，不复制应用。测试文件仅在缺少repo root时追加到导入路径末尾以供规范模块加载，不改生产路径或重命名全局tests包。原全部测试函数／fixture的AST保持；hold_gate原逻辑逐字相同，API目标只多一条规范app/post导入，原HTTP、DB、OS gate、超时和断言不变。
+
+新增对照在独立、可清理的测试进程内实际按cwd=backend缓存旧tests，再仅import universality使root-first，核缓存与两个target的规范身份，执行原两API进程参数用例和锁inode／退出恢复用例，要求内部3 passed。新测试自己的监督进程超时会关闭本测试独占进程组，原测试内部所有时间保持。最终持久化完整文件 **35 passed、退出0（4.34秒）**，含原34项与此对照，一条既有依赖warning；使用既有发布匹配Python3.11环境，未安装依赖。
+
+另五个Linux lifetime cutpoint的tracker漏识仍为**根因未知**，没有将Mac的结果或ps截断推断当成修复。原 `_private_trackers` 与 `len(trackers)==1` 严格断言保持；仅在len不为1时输出一次安全JSON。先用纯数字pid／ppid／pgid建立本测试独占parent／sender／子族，再对该集合取普通及ww ps，只输出存在、归属、zombie及tracker／spawn标记布尔，不返回命令；Linux/proc也仅对该集合读取PPID／comm-python／tracker标记布尔，其他PPID脱敏为null，不输出路径、argv、env、配置或全机进程。阶段字段经白名单。没有新增来源请求、延长stage或修改生产。
+
+两个新增纯诊断测试以合成进程表／临时proc验证：非归属进程、命令canary及路径不能出现在JSON，普通／wide／proc标记仍可区分；ps异常不回显原错误。lifetime当前完整文件 **9 passed、退出0（35.50秒）**（原7项＋诊断2项）。AST核对删除新增失败诊断if后，原cutpoints、超时、kill、gate及late GET断言与原函数完全相等。所有本机服务器、请求父子进程与pipe／queue沿原finally收尾；新对照也有独占进程组收束。Linux诊断分支真实数据尚待后续正常CI观测，当前不宣称五项Linux失败已关闭。
+
+本卡仅上述两个测试文件、新规范helper及本记录；不改应用、CI、依赖、原schema literal或Core并行实现，不提交／推送或重跑旧CI。作者停写，交PMO精确四路径及当前SHA独审，旧红保留。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。

@@ -107,6 +107,68 @@ def _private_trackers(parent):
             if len(parts:=row.strip().split(None,2))==3 and parts[1]==str(parent) and "multiprocessing.resource_tracker" in parts[2]]
 
 
+def _owned_tracker_diagnostic(parent_pid,ready,started,stage,tracker_count,*,proc_root=Path("/proc")):
+    """Failure-only safe snapshot. Never return command lines or global ps rows."""
+    def ps(arguments):
+        try:
+            result=subprocess.run(["ps",*arguments],capture_output=True,text=True,timeout=2)
+            return result.stdout if result.returncode==0 else ""
+        except (OSError,subprocess.SubprocessError):
+            return ""
+    # Discover ownership using numeric topology only, before reading commands.
+    topology={}
+    for line in ps(["-axo","pid=,ppid=,pgid="]).splitlines():
+        values=line.split()
+        if len(values)==3 and all(value.isdecimal() for value in values):
+            pid,ppid,pgid=map(int,values);topology[pid]=(ppid,pgid)
+    known={parent_pid,ready["pid"]}
+    owned=set(known)
+    for _ in range(32):
+        additions={pid for pid,(ppid,pgid) in topology.items() if pgid==parent_pid or ppid in owned}
+        if additions<=owned:break
+        owned.update(additions)
+    owned=set(sorted(owned)[:32])|known
+    selection=",".join(str(pid) for pid in sorted(owned))
+    def snapshot(wide):
+        args=(["-ww"] if wide else [])+["-p",selection,"-o","pid=,ppid=,pgid=,stat=,command="]
+        rows={}
+        for line in ps(args).splitlines():
+            values=line.strip().split(None,4)
+            if len(values)<4 or not all(value.isdecimal() for value in values[:3]):continue
+            pid,ppid,pgid=map(int,values[:3])
+            if pid not in owned:continue
+            command=values[4] if len(values)==5 else ""
+            rows[pid]={"present":True,"ppid":ppid if ppid in owned or ppid==os.getpid() else None,
+                "in_owned_group":pgid==parent_pid,"zombie":values[3].startswith("Z"),
+                "tracker_marker":"multiprocessing.resource_tracker" in command,
+                "spawn_marker":"multiprocessing.spawn" in command}
+        return rows
+    normal,wide=snapshot(False),snapshot(True)
+    rows=[]
+    for pid in sorted(owned):
+        proc=proc_root/str(pid)
+        detail={"supported":proc_root.is_dir(),"exists":proc.is_dir()}
+        if proc.is_dir():
+            try:
+                status=proc.joinpath("status").read_text()
+                parent_line=next((line.split(":",1)[1].strip() for line in status.splitlines() if line.startswith("PPid:")),"")
+                ppid=int(parent_line) if parent_line.isdecimal() else None
+                comm=proc.joinpath("comm").read_text().strip()
+                command=proc.joinpath("cmdline").read_bytes()
+                detail.update(ppid=ppid if ppid in owned or ppid==os.getpid() else None,
+                    comm_python=comm.startswith("python"),
+                    tracker_marker=b"multiprocessing.resource_tracker" in command)
+            except (OSError,UnicodeError,ValueError):detail["read_unavailable"]=True
+        rows.append({"pid":pid,"role":"parent" if pid==parent_pid else "sender" if pid==ready["pid"] else "owned_descendant",
+            "normal_ps":normal.get(pid,{"present":False}),"wide_ps":wide.get(pid,{"present":False}),"proc":detail})
+    allowed={"before-arm","before-handoff","queued-handle","sender","blocked-alarm"}
+    ready_stages={"before-arm","armed-before-handoff","handle-queued","sender","armed-before-receive"}
+    return {"kind":"owned_tracker_diagnostic_v1","stage":stage if stage in allowed else "unknown",
+        "ready_stage":ready.get("stage") if ready.get("stage") in ready_stages else "unknown",
+        "started_parent_matches":started.get("parent")==parent_pid,"tracker_count":tracker_count,
+        "parent_pid":parent_pid,"sender_pid":ready["pid"],"owned":rows}
+
+
 @pytest.fixture
 def local_source(tmp_path):
     calls=[]
@@ -156,6 +218,8 @@ def test_sigkill_parent_cannot_leave_unleased_late_sender(tmp_path,local_source,
         ready=_await_file(config["ready"])
         if stage=="queued-handle":_await_file(config["receiver"])
         trackers=_private_trackers(parent.pid)
+        if len(trackers)!=1:
+            print(json.dumps(_owned_tracker_diagnostic(parent.pid,ready,started,stage,len(trackers)),sort_keys=True))
         assert len(trackers)==1,"expected this independent parent's private resource_tracker"
         os.kill(parent.pid,signal.SIGKILL);parent.wait(timeout=3)
         gate=AuthorizationGate(SimpleNamespace(path=tmp_path/"unused.sqlite3"))
@@ -214,3 +278,38 @@ def test_missing_inactive_or_forged_lease_fails_before_spawn(tmp_path):
         with pytest.raises(TypeError):source_policy.PinnedPublicTransport().get(TARGET,still_authorized=lambda:True)
         with pytest.raises(source_policy.SourceFailure):source_policy.PinnedPublicTransport().get(TARGET,still_authorized=lambda:True,owner_lease=True)
     with pytest.raises(PermissionError):source_policy.PinnedPublicTransport().get(TARGET,still_authorized=lambda:True,owner_lease=lease)
+
+
+def test_tracker_failure_diagnostic_filters_ownership_before_emitting_commands(tmp_path,monkeypatch):
+    canary="DO_NOT_LOG_PRIVATE_COMMAND_OR_PATH"
+    commands=[]
+    def fake_ps(argv,**kwargs):
+        commands.append(argv)
+        if "-axo" in argv:
+            assert argv[-1]=="pid=,ppid=,pgid="
+            return SimpleNamespace(returncode=0,stdout="101 1 101\n102 101 101\n103 101 101\n999 1 999\n")
+        assert argv[argv.index("-p")+1]=="101,102,103"
+        marker=" multiprocessing.resource_tracker" if "-ww" in argv else " truncated"
+        return SimpleNamespace(returncode=0,stdout=f"101 1 101 S {canary}\n102 101 101 S multiprocessing.spawn {canary}\n103 101 101 S{marker} {canary}\n999 1 999 S {canary}\n")
+    monkeypatch.setattr(subprocess,"run",fake_ps)
+    proc=tmp_path/"proc"/"103";proc.mkdir(parents=True)
+    (proc/"status").write_text("PPid:\t101\n")
+    (proc/"comm").write_text("python3.11\n")
+    (proc/"cmdline").write_bytes(b"python\0multiprocessing.resource_tracker\0"+canary.encode())
+    value=_owned_tracker_diagnostic(101,{"pid":102,"stage":"sender"},{"parent":101},"sender",0,proc_root=tmp_path/"proc")
+    encoded=json.dumps(value)
+    assert canary not in encoded and "999" not in encoded and str(tmp_path) not in encoded
+    assert [row["pid"] for row in value["owned"]]==[101,102,103]
+    tracker=value["owned"][-1]
+    assert tracker["normal_ps"]["tracker_marker"] is False and tracker["wide_ps"]["tracker_marker"] is True
+    assert tracker["proc"]["tracker_marker"] is True and tracker["proc"]["ppid"]==101
+    assert len(commands)==3
+
+
+def test_tracker_failure_diagnostic_never_echoes_ps_errors(tmp_path,monkeypatch):
+    def unavailable(*args,**kwargs):
+        raise subprocess.TimeoutExpired("PRIVATE_COMMAND_CANARY",2,output="PRIVATE_OUTPUT_CANARY")
+    monkeypatch.setattr(subprocess,"run",unavailable)
+    value=_owned_tracker_diagnostic(101,{"pid":102,"stage":"sender"},{"parent":101},"sender",0,proc_root=tmp_path/"missing")
+    assert "PRIVATE" not in json.dumps(value)
+    assert all(not row["normal_ps"]["present"] and not row["wide_ps"]["present"] for row in value["owned"])

@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import copy
+import subprocess
 import json
 import multiprocessing
 import os
+import signal
 import sqlite3
 import sys
 import time
@@ -17,6 +19,11 @@ import jwt
 
 BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))
+# Expose the canonical spawn module without changing backend-first precedence.
+PROJECT_ROOT = BACKEND.parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
+from web.backend.tests.research_process_fixture import _api_process, _hold_gate
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from api import auth, research, sso
@@ -285,16 +292,6 @@ def test_grant_and_epoch_checks_apply_before_replay(stack):
     assert post(client, "/api/research", {"problem":problem()}, "create-one").status_code == 404
 
 
-def _api_process(cookie, path, payload, key, ready, start, result):
-    client = TestClient(app())
-    client.cookies.set("phase_session", cookie)
-    ready.put(True)
-    if not start.wait(15):
-        return
-    response = post(client, path, payload, key)
-    result.put((response.status_code, response.json().get("data", {}).get("research", {}).get("id")))
-    client.close()
-
 
 @pytest.mark.parametrize("operation", ["same-create", "competing-revision"])
 def test_two_real_api_processes_serialize_and_keep_one_revision(stack, operation):
@@ -332,13 +329,6 @@ def test_two_real_api_processes_serialize_and_keep_one_revision(stack, operation
         result.close()
 
 
-def _hold_gate(path, principal, acquired):
-    from services.auth_store import AuthStore
-    gate = AuthorizationGate(ResearchStore(AuthStore(Path(path))))
-    with gate.owner_gate(principal):
-        acquired.set()
-        time.sleep(20)
-
 
 def test_os_gate_excludes_another_process_and_recovers_after_process_exit(stack):
     client, path = stack
@@ -366,3 +356,39 @@ def test_os_gate_excludes_another_process_and_recovers_after_process_exit(stack)
         if process.is_alive():
             process.terminate()
         process.join(5)
+
+
+def test_canonical_spawn_targets_survive_backend_tests_cache_and_root_first_import():
+    program = r"""
+import importlib, pathlib, sys
+backend = pathlib.Path.cwd()
+root = backend.parents[1]
+sys.path[:] = [str(backend)] + [p for p in sys.path if p not in ('', str(root), str(backend))]
+original = importlib.import_module('tests.test_research_persistence')
+assert pathlib.Path(sys.modules['tests'].__file__).resolve() == backend / 'tests/__init__.py'
+# The persistence fixture adds a canonical import root at the end, not first.
+sys.path.remove(str(root))
+importlib.import_module('tests.test_universality_endpoints')
+assert sys.path[0] == str(root)
+assert original.__name__ == 'tests.test_research_persistence'
+assert original._api_process.__module__ == 'web.backend.tests.research_process_fixture'
+assert original._hold_gate.__module__ == 'web.backend.tests.research_process_fixture'
+import pytest
+raise SystemExit(pytest.main([
+    'tests/test_research_persistence.py::test_two_real_api_processes_serialize_and_keep_one_revision',
+    'tests/test_research_persistence.py::test_os_gate_excludes_another_process_and_recovers_after_process_exit',
+    '-q', '-p', 'no:cacheprovider', '--show-capture=no', '--tb=short',
+]))
+"""
+    with subprocess.Popen(
+        [sys.executable, '-c', program], cwd=BACKEND, start_new_session=True,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    ) as process:
+        try:
+            stdout, stderr = process.communicate(timeout=120)
+        finally:
+            if process.poll() is None:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait(timeout=5)
+    assert process.returncode == 0, stdout + stderr
+    assert '3 passed' in stdout
