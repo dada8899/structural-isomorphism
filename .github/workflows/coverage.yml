@@ -78,6 +78,9 @@ jobs:
               tests/test_research_formula.py \
               tests/test_research_provider_adapter.py \
               tests/test_research_model_report.py \
+              tests/test_research_financial.py \
+              tests/test_research_financial_result_adapter.py \
+              tests/test_research_usage_upper.py \
               $PYTEST_FLAGS
           python -m coverage combine --rcfile=.coveragerc
       - name: Every production package has measured coverage

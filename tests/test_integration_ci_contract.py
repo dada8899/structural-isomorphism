@@ -616,7 +616,9 @@ RESEARCH_COVERAGE_COMMAND = [
     'python', '-m', 'coverage', 'run', '-p', '--rcfile=.coveragerc', '-m', 'pytest',
     'tests/test_research_evidence.py', 'tests/test_research_sources.py',
     'tests/test_research_formula.py', 'tests/test_research_provider_adapter.py',
-    'tests/test_research_model_report.py', '$PYTEST_FLAGS',
+    'tests/test_research_model_report.py', 'tests/test_research_financial.py',
+    'tests/test_research_financial_result_adapter.py', 'tests/test_research_usage_upper.py',
+    '$PYTEST_FLAGS',
 ]
 
 
@@ -641,7 +643,8 @@ def test_coverage_measures_root_research_before_combining_without_weakening_gate
 
 
 @pytest.mark.parametrize('mutation', ['missing_file', 'missing_parallel', 'wrong_rcfile',
-    'ignore_failure', 'after_combine', 'legacy_suite', 'timeout', 'global_threshold', 'omit'])
+    'ignore_failure', 'after_combine', 'legacy_suite', 'timeout', 'global_threshold', 'omit',
+    'missing_financial', 'missing_financial_adapter', 'missing_usage_upper'])
 def test_research_coverage_closure_rejects_incomplete_or_relaxed_pipeline(mutation):
     value = workflow('coverage.yml')
     rcfile = (ROOT / '.coveragerc').read_text()
@@ -649,6 +652,9 @@ def test_research_coverage_closure_rejects_incomplete_or_relaxed_pipeline(mutati
     marker = '# Root research contracts'
     before, added = step['run'].split(marker, 1)
     if mutation == 'missing_file':added = added.replace('tests/test_research_model_report.py', '')
+    elif mutation == 'missing_financial':added = added.replace('tests/test_research_financial.py', '')
+    elif mutation == 'missing_financial_adapter':added = added.replace('tests/test_research_financial_result_adapter.py', '')
+    elif mutation == 'missing_usage_upper':added = added.replace('tests/test_research_usage_upper.py', '')
     elif mutation == 'missing_parallel':added = added.replace('coverage run -p', 'coverage run')
     elif mutation == 'wrong_rcfile':added = added.replace('--rcfile=.coveragerc', '--rcfile=other.ini', 1)
     elif mutation == 'ignore_failure':added = added.replace('$PYTEST_FLAGS', '$PYTEST_FLAGS || true')

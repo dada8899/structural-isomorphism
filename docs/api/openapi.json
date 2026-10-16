@@ -9711,6 +9711,23 @@
       }
     },
     "/api/research": {
+      "get": {
+        "operationId": "list_research_api_research_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Research",
+        "tags": [
+          "research"
+        ]
+      },
       "post": {
         "operationId": "create_research_api_research_post",
         "responses": {
@@ -10434,7 +10451,7 @@
     },
     "/api/struct-lint/stream": {
       "post": {
-        "description": "SSE variant of /struct-lint — emits progress while the lint runs.\n\nEvents (mirrors api/analyze.py's naming):\n  meta     — {\"max_doc_chars\": N} sent immediately so the client knows\n             the stream is alive (fast first byte).\n  progress — {\"stage\", \"message\", ...} for each pipeline stage.\n  done     — {\"result\": {\"summary\", \"claims\": [...]}} final payload.\n  error    — {\"error\", \"message\"} terminal failure.\n\nValidation errors (empty / too-long doc, no LLM key) are surfaced as a\nterminal `error` event rather than an HTTP status, because by the time\nthe generator runs the 200 + headers are already sent.",
+        "description": "SSE variant of /struct-lint — emits progress while the lint runs.\n\nEvents (mirrors api/analyze.py's naming):\n  meta     — {\"max_doc_chars\": N} sent immediately so the client knows\n             the stream is alive (fast first byte).\n  progress — {\"stage\", \"message\", ...} for each pipeline stage.\n  done     — {\"result\": {\"summary\", \"claims\": [...]}} final payload.\n  error    — {\"error\", \"message\"} terminal failure.\n\nPure input failures are HTTP responses before any SSE/meta. Valid input\nremains explicitly unavailable; this does not restore the retired stream.",
         "operationId": "struct_lint_stream_api_struct_lint_stream_post",
         "requestBody": {
           "content": {
