@@ -2,6 +2,7 @@
 from dataclasses import replace
 from contextlib import contextmanager
 import gzip
+import hashlib
 import http.client
 import json
 import multiprocessing
@@ -31,8 +32,9 @@ TITLE = "Method fixture for stock market common factors"
 NOTICE = ("permits unrestricted use, distribution, and reproduction in any medium, "
           "provided the original author and source are credited")
 ARTICLE = (f'<html><meta name="citation_doi" content="{DOI}"><meta name="citation_title" content="{TITLE}">'
-           '<script>never extracted()</script><p>Partial correlation is not a causality measure.</p>'
-           '<section class="article-body"><div id="artText" class="article-text"><div class="articleinfo">'
+           '<script>never extracted()</script>'
+           '<section class="article-body"><div id="artText" class="article-text">'
+           '<p>Partial correlation is not a causality measure.</p><div class="articleinfo">'
            f'<p><strong>Citation: </strong>{TITLE}. https://doi.org/{DOI}</p>'
            f'<p><strong>Copyright: </strong>This is an open-access article distributed under the terms of the Creative Commons Attribution License, which {NOTICE}</p>'
            '</div></div></section></html>').encode()
@@ -513,6 +515,89 @@ class SourceTests(unittest.TestCase):
                 self.local_http(response)
         with self.assertRaisesRegex(SourceFailure, "peer mismatch"):
             self.local_http(b"", peer="127.0.0.1")
+
+
+class SourceAcceptanceTests(unittest.TestCase):
+    def fetch(self, article):
+        chain = SourceTests().chain(FixtureTransport([
+            (200, "application/json", discovery(), discovery()), (200, "text/html", article, article)]))
+        chain.discover()
+        return chain.fetch(DOI)
+
+    def test_both_complete_fixed_boilerplates_keep_all_permission_conditions(self):
+        for spelling in (b"open-access", b"open access"):
+            article = ARTICLE.replace(b"open-access", spelling)
+            snapshot, raw, extracted = self.fetch(article)
+            self.assertEqual(snapshot.parser_version, "plos-author-narrative-subset-v2")
+            self.assertEqual(extracted, "Partial correlation is not a causality measure.")
+            self.assertEqual(raw, article)
+            self.assertEqual(snapshot.raw_digest, hashlib.sha256(raw).hexdigest())
+            self.assertEqual((snapshot.licence.private_cache, snapshot.licence.display_excerpt, snapshot.licence.export_excerpt), (True, True, True))
+            for denied in (article.replace(NOTICE.encode(), b"Unknown credit"),
+                           article.replace(b"Attribution License", b"Attribution"),
+                           article.replace(b"open access", b"open  accessx") if spelling == b"open access" else article.replace(b"open-access", b"open--access")):
+                _, licence = parse_article(denied, Hit(DOI, TITLE, True))
+                self.assertFalse(licence.private_cache)
+            copyright_p = (b'<p><strong>Copyright: </strong>This is an ' + spelling +
+                b' article distributed under the terms of the Creative Commons Attribution License, which ' + NOTICE.encode() + b'</p>')
+            quoted = article.replace(copyright_p, b'<p><span class="quoted-other">' + copyright_p[3:-4] + b'</span></p>')
+            self.assertNotEqual(quoted, article)
+            _, licence = parse_article(quoted, Hit(DOI, TITLE, True))
+            self.assertFalse(licence.private_cache)
+
+    def test_narrative_is_scoped_and_keeps_inline_citations_not_foreign_statements(self):
+        paragraph = ("<p>反馈 f<span>eed</span>back links <a class=\"reference\" href=\"#ref1\">[1]</a> to 作者叙述。</p>"
+                     "<p>Second <em>author</em> paragraph.</p>").encode()
+        outside = b'<nav>FOREIGN_NAV</nav><p>OUTSIDE_PARAGRAPH</p>'
+        excluded = (b'<div class="comments">FOREIGN_COMMENT</div>'
+                    b'<blockquote>FOREIGN_BLOCKQUOTE</blockquote><q>FOREIGN_Q</q>'
+                    b'<span class="quoted-other">FOREIGN_EXPLICIT_QUOTE</span>'
+                    b'<ol class="references"><li>FOREIGN_REFERENCE</li></ol>'
+                    b'<div class="metadata">FOREIGN_METADATA</div>')
+        article = ARTICLE.replace(b'<script>', outside+b'<script>', 1)
+        article = article.replace(b'<p>Partial correlation is not a causality measure.</p>', paragraph+excluded)
+        snapshot, raw, extracted = self.fetch(article)
+        self.assertEqual(extracted, "反馈 feedback links [1] to 作者叙述。 Second author paragraph.")
+        self.assertNotIn("Copyright", extracted)
+        for word in (b'FOREIGN_NAV', b'OUTSIDE_PARAGRAPH', b'FOREIGN_COMMENT', b'FOREIGN_BLOCKQUOTE',
+                     b'FOREIGN_Q', b'FOREIGN_EXPLICIT_QUOTE', b'FOREIGN_REFERENCE', b'FOREIGN_METADATA'):
+            self.assertIn(word, raw)
+            self.assertNotIn(word.decode(), extracted)
+        quote = " ".join(extracted.split()[:20])
+        self.assertEqual(extracted[:len(quote)], quote)
+        self.assertEqual(snapshot.extracted_digest, hashlib.sha256(extracted.encode()).hexdigest())
+
+    def test_current_container_intersection_accepts_either_nesting_order(self):
+        article = ARTICLE.replace(b'<section class="article-body"><div id="artText" class="article-text">',
+                                  b'<div id="artText" class="article-text"><section class="article-body">')
+        article = article.replace(b'</div></div></section>', b'</div></section></div>')
+        _, _, extracted = self.fetch(article)
+        self.assertEqual(extracted, "Partial correlation is not a causality measure.")
+
+    def test_empty_multiple_and_malformed_bodies_never_become_snapshots(self):
+        sentence = b'<p>Partial correlation is not a causality measure.</p>'
+        variants = (
+            ARTICLE.replace(sentence, b''),
+            ARTICLE.replace(sentence, b'').replace(b'<section class="article-body">', sentence+b'<section class="article-body">'),
+            ARTICLE.replace(b'</html>', b'<section class="article-body"><div id="artText"><p>Other work.</p></div></section></html>'),
+            ARTICLE.replace(sentence, b'<p>Malformed <em>inline narrative.</p>'),
+            ARTICLE.replace(b'</div></div></section>', b'</div></section>'),
+        )
+        for article in variants:
+            with self.subTest(article=article[-80:]), self.assertRaises(SourceFailure):
+                self.fetch(article)
+
+    def test_omitted_explicit_quote_leaves_a_boundary_not_a_fabricated_word(self):
+        article = ARTICLE.replace(b'Partial correlation is not a causality measure.',
+            b'Author<span class="quoted-other">NOT_AUTHOR</span>narrative f<span>eed</span>back.')
+        _, _, extracted = self.fetch(article)
+        self.assertEqual(extracted, "Author narrative feedback.")
+
+    def test_owned_scientific_discussion_is_not_reader_comments(self):
+        article = ARTICLE.replace(b'<p>Partial correlation is not a causality measure.</p>',
+            b'<section id="discussion"><p>Author discussion cites <a class="reference" href="#r1">[1]</a> with limits.</p></section>')
+        _, _, extracted = self.fetch(article)
+        self.assertEqual(extracted, "Author discussion cites [1] with limits.")
 
 
 if __name__ == "__main__":

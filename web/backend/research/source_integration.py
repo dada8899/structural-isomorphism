@@ -83,6 +83,7 @@ def public_record(record,kind,source,reported_at=None):
             authors=[],published_at=None,accessed_at=record.acquired_at,
             retrieval_scope=f"{record.origin}: licensed method document only; cutoff {record.information_cutoff}",
             content_digest=record.raw_digest,extracted_text_digest=record.extracted_digest,extractor_version=record.parser_version,
+            read_scope={"plos-html-text-v1":"legacy_page_unverified","plos-author-narrative-subset-v2":"author_narrative_subset"}[record.parser_version],
             license_note=record.licence.basis[:400],failure_code=None,execution_mode="live" if record.origin=="live" else "offline_probe")
     elif kind=="excerpts":
         snapshot=source(record.snapshot_id)
@@ -90,7 +91,8 @@ def public_record(record,kind,source,reported_at=None):
             page_number=None,extraction="plain",extraction_review="unreviewed")
     elif kind=="reports":
         if not reported_at:raise ValueError("report publication event unavailable")
-        item["source_revisions"]=[{"source_id":snapshot.source_id,"revision":snapshot.source_revision,"content_digest":snapshot.raw_digest,"access":snapshot.access} for snapshot in map(source,record.snapshot_refs)]
+        item["source_revisions"]=[{"source_id":snapshot.source_id,"revision":snapshot.source_revision,"content_digest":snapshot.raw_digest,"access":snapshot.access,
+            "read_scope":{"plos-html-text-v1":"legacy_page_unverified","plos-author-narrative-subset-v2":"author_narrative_subset"}[snapshot.parser_version]} for snapshot in map(source,record.snapshot_refs)]
         item["claim_ids"]=record.claim_refs
         item.update(attempt=record.attempt,check_ids=[],limitations=record.outstanding_requirements,created_at=reported_at,
             execution_mode="live" if record.origin=="live" else "offline_probe")

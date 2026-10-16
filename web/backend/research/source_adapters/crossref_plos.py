@@ -14,6 +14,8 @@ from uuid import uuid4
 from ..evidence_schemas import DataSnapshot, Licence, AnalysisPlan, canonical, sha256
 from ..source_policy import SourceFailure, TEXT_CAP, discovery_target, article_target
 
+PARSER_VERSION = "plos-author-narrative-subset-v2"
+
 
 def strict_json(data):
     def pairs(items):
@@ -48,6 +50,39 @@ class _ArticleParser(HTMLParser):
         self.stack, self.article_info = [], []
         self.nodes = 0
         self.permission_size = 0
+        self.body_sections, self.body_roots = [], []
+        self.art_text_count = 0
+
+    @staticmethod
+    def narrative_excluded(tag, attrs):
+        # Extraction scope is independent of the article's legal notice scope.
+        # Ordinary inline citation anchors remain part of the author paragraph.
+        tokens = attrs.get("id", "") + " " + attrs.get("class", "")
+        return (tag in {"script", "style", "template", "noscript", "nav", "header", "footer", "aside", "blockquote", "q", "meta", "title"}
+                or re.search(r"(?:^|[\s_-])(?:articleinfo|comments?|quoted-other|user-content|metadata|site-chrome)(?:$|[\s_-])", tokens, re.I) is not None
+                or (tag != "a" and re.search(r"(?:^|[\s_-])(?:references?|ref-list)(?:$|[\s_-])", tokens, re.I) is not None))
+
+    def body_data(self, value):
+        if self.skip or any(frame["narrative_excluded"] for frame in self.stack):
+            return
+        roots = [frame["body_root"] for frame in self.stack if "body_root" in frame]
+        if roots and any("body_section" in frame for frame in self.stack):
+            self.size += len(value)
+            if self.size > TEXT_CAP:
+                raise SourceFailure("extracted text limit")
+            roots[-1]["parts"].append(value)
+
+    def malformed_body(self):
+        for frame in self.stack:
+            for key in ("body_root", "body_section"):
+                if key in frame:
+                    frame[key]["malformed"] = True
+
+    def narrative(self):
+        if (self.art_text_count != 1 or len(self.body_sections) != 1 or len(self.body_roots) != 1
+                or any(not region["closed"] or region["malformed"] for region in (*self.body_sections, *self.body_roots))):
+            return ""
+        return re.sub(r"\s+", " ", "".join(self.body_roots[0]["parts"])).strip()
 
     def permission_data(self, value):
         if self.skip:
@@ -66,7 +101,7 @@ class _ArticleParser(HTMLParser):
     def excluded(tag, attrs):
         tokens = attrs.get("id", "") + " " + attrs.get("class", "")
         return (tag in {"blockquote", "q", "aside", "footer", "script", "style", "template", "noscript"}
-                or re.search(r"(?:^|[\s_-])(?:comments?|discussion|references?|ref-list|user-content)(?:$|[\s_-])", tokens, re.I) is not None)
+                or re.search(r"(?:^|[\s_-])(?:comments?|discussion|references?|ref-list|quoted-other|user-content)(?:$|[\s_-])", tokens, re.I) is not None)
 
     def handle_starttag(self, tag, attributes):
         self.nodes += 1
@@ -81,11 +116,25 @@ class _ArticleParser(HTMLParser):
             self.permission_data(" ")
         attrs = dict(attributes)
         excluded = self.excluded(tag, attrs)
+        narrative_excluded = self.narrative_excluded(tag, attrs)
+        if tag in self.BLOCK or narrative_excluded:
+            self.body_data(" ")
         if excluded:
             for frame in self.stack:
                 if "paragraph" in frame:
                     frame["tainted"] = True
-        frame = {"tag": tag, "attrs": attrs, "excluded": excluded}
+        frame = {"tag": tag, "attrs": attrs, "excluded": excluded, "narrative_excluded": narrative_excluded}
+        if tag == "section" and "article-body" in attrs.get("class", "").split():
+            region = {"closed": False, "malformed": False}
+            self.body_sections.append(region)
+            frame["body_section"] = region
+        if attrs.get("id") == "artText":
+            self.art_text_count += 1
+            if (tag == "div" and not narrative_excluded
+                    and not any(f["narrative_excluded"] for f in self.stack)):
+                region = {"closed": False, "malformed": False, "parts": []}
+                self.body_roots.append(region)
+                frame["body_root"] = region
         # PLOS's current-article metadata is a specific articleinfo block inside
         # artText/article-body. A matching notice elsewhere is never a grant.
         if (tag == "div" and "articleinfo" in attrs.get("class", "").split()
@@ -115,7 +164,14 @@ class _ArticleParser(HTMLParser):
             self.skip -= 1
         for index in range(len(self.stack) - 1, -1, -1):
             if self.stack[index]["tag"] == tag:
+                if index != len(self.stack) - 1:
+                    self.malformed_body()
+                self.body_data(" " if tag in self.BLOCK else "")
+                boundary = tag in self.BLOCK or any(f["narrative_excluded"] for f in self.stack[index:])
                 for frame in self.stack[index:]:
+                    for key in ("body_root", "body_section"):
+                        if key in frame:
+                            frame[key]["closed"] = frame is self.stack[index]
                     if "paragraph" in frame:
                         value = re.sub(r"\s+", " ", "".join(frame["paragraph"])).strip()
                         scope = frame["scope"]
@@ -130,20 +186,19 @@ class _ArticleParser(HTMLParser):
                     if "info" in frame:
                         frame["info"]["closed"] = frame is self.stack[index]
                 del self.stack[index:]
+                if boundary:
+                    self.body_data(" ")
                 break
+        else:
+            if tag not in self.VOID:
+                self.malformed_body()
 
     def handle_data(self, value):
         # Preserve inline continuity for permission/ownership checks. Comments
         # contribute no bytes; only explicit block boundaries insert a space.
         # Normalize whitespace once, after joining the original text nodes.
         self.permission_data(value)
-        if not self.skip:
-            part = re.sub(r"\s+", " ", value).strip()
-            if part:
-                self.size += len(part) + 1
-                if self.size > TEXT_CAP:
-                    raise SourceFailure("extracted text limit")
-                self.parts.append(part)
+        self.body_data(value)
 
     def current_article_grant(self, doi):
         if len(self.article_info) != 1:
@@ -169,7 +224,9 @@ class _ArticleParser(HTMLParser):
         # paragraph, even if an open grant appears in the same paragraph.
         if re.search(r"all rights reserved|non[- ]commercial|no derivatives|not permitted|permission required|may not|except", value):
             return False
-        return ("open-access article distributed under the terms of the creative commons attribution license" in value
+        return (any(boilerplate in value for boilerplate in (
+                    "open-access article distributed under the terms of the creative commons attribution license",
+                    "open access article distributed under the terms of the creative commons attribution license"))
                 and "permits unrestricted use, distribution, and reproduction in any medium, provided the original author and source are credited" in value)
 
 
@@ -185,10 +242,14 @@ def parse_article(decoded, hit):
     normalize = lambda s: re.sub(r"\s+", " ", s).strip().casefold()
     if parser.dois != [hit.doi] or parser.titles != [hit.title]:
         raise SourceFailure("publisher identity mismatch")
-    extracted = " ".join(parser.parts)
-    if not extracted or len(extracted) > TEXT_CAP:
-        raise SourceFailure("article text unavailable")
     permitted = bool(hit.cc_by_4 and parser.current_article_grant(hit.doi))
+    extracted = parser.narrative()
+    if not extracted or len(extracted) > TEXT_CAP:
+        # Preserve unknown-permission results for the existing legal-denial
+        # probes; fetch still rejects them before any cache/snapshot is written.
+        if not permitted:
+            return "", Licence()
+        raise SourceFailure("article narrative subset unavailable")
     licence = Licence(status="verified", private_cache=True, display_excerpt=True, export_excerpt=True,
         basis="Work metadata identifies CC BY 4.0. Current articleinfo copyright paragraph, bound by its citation DOI inside artText/article-body, independently grants unrestricted reproduction with author/source credit. That notice is not version-specific.") if permitted else Licence()
     return extracted, licence
@@ -290,5 +351,5 @@ class CrossrefPlosChain:
             query_digest=sha256(self.plan.query.encode()), acquired_at=timestamp,
             discovery_digest=sha256(self.discovery_body),
             information_cutoff=self.plan.created_at, raw_digest=sha256(raw), extracted_digest=sha256(extracted.encode()),
-            parser_version="plos-html-text-v1", licence=licence, origin=self.origin)
+            parser_version=PARSER_VERSION, licence=licence, origin=self.origin)
         return snapshot, raw, extracted

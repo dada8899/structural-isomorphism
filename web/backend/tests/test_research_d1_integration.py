@@ -237,8 +237,86 @@ def test_public_sources_use_exact_whitelist_without_provider_reference(source_st
     item,=response.json()["data"]["items"]
     assert set(item)=={"id","kind","research_id","task_id","input_revision","title","canonical_url","access","revision",
         "authors","published_at","accessed_at","retrieval_scope","content_digest","extracted_text_digest","extractor_version",
-        "license_note","failure_code","execution_mode"}
+        "license_note","failure_code","execution_mode","read_scope"}
     assert '"provider_ref"' not in response.text and item["canonical_url"].startswith("https://journals.plos.org/")
+
+
+def test_v2_narrative_scope_keeps_raw_and_exact_excerpt_separate(source_stack):
+    client,path,rid=source_stack;tid=start(client,rid)
+    original=b'<p>Waiting time depends on arrivals and service variability.</p>'
+    author='<p>反馈 f<span>eed</span>back links <a class="reference" href="#r1">[1]</a> to 作者叙述。</p>'.encode()
+    foreign=(b'<div class="comments">FOREIGN_COMMENT</div><blockquote>FOREIGN_QUOTE</blockquote>'
+             b'<span class="quoted-other">FOREIGN_OTHER</span><ol class="references"><li>FOREIGN_REF</li></ol>')
+    article=ARTICLE.replace(b'<html>',b'<html><nav>FOREIGN_NAV</nav>').replace(original,foreign+author)
+    with source_server(article=article) as (port,calls):
+        assert ResearchRunner(ResearchStore(auth._store()),source_transport=PinnedPublicTransport(_worker=partial(get_local,port))).run_once(tid)=="COMPLETED"
+        assert calls==["/discovery","/article"]
+    data={kind:client.get(f"/api/research/{rid}/records",params={"task_id":tid,"kind":kind}).json()["data"]["items"]
+          for kind in ("sources","excerpts","reports")}
+    source,=data["sources"];excerpt,=data["excerpts"];report,=data["reports"]
+    assert source["read_scope"]=="author_narrative_subset"
+    assert source["extractor_version"]=="plos-author-narrative-subset-v2"
+    ref,=report["source_revisions"]
+    assert set(ref)=={"source_id","revision","content_digest","access","read_scope"}
+    assert ref["read_scope"]==source["read_scope"]
+    assert (ref["source_id"],ref["revision"],ref["content_digest"])==(source["id"],source["revision"],source["content_digest"])
+    with sqlite3.connect(path) as conn:
+        payload,payload_digest,raw,extracted=conn.execute(
+            "SELECT payload,payload_digest,raw,extracted FROM research_evidence_objects WHERE task_id=? AND kind='snapshots'",(tid,)).fetchone()
+    assert raw==article and source["content_digest"]==hashlib.sha256(raw).hexdigest()
+    assert extracted=="反馈 feedback links [1] to 作者叙述。"
+    assert hashlib.sha256(payload.encode()).hexdigest()==payload_digest
+    assert "read_scope" not in json.loads(payload)
+    assert source["extracted_text_digest"]==hashlib.sha256(extracted.encode()).hexdigest()
+    assert excerpt["start"]==0 and excerpt["end"]==len(excerpt["quote"])
+    assert excerpt["quote"]==extracted[excerpt["start"]:excerpt["end"]] and len(excerpt["quote"].split())<=20
+    for marker in (b'FOREIGN_NAV',b'FOREIGN_COMMENT',b'FOREIGN_QUOTE',b'FOREIGN_OTHER',b'FOREIGN_REF'):
+        assert marker in raw and marker.decode() not in extracted and marker.decode() not in excerpt["quote"]
+    assert not any(key in json.dumps(data) for key in ('"raw":','"extracted":','"discovery":','"provider_ref":','"snapshot_id":'))
+    assert report["model_analysis_ran"] is report["statistics_ran"] is False
+
+
+def test_legacy_snapshot_stays_immutable_when_new_v2_source_is_added(source_stack,monkeypatch):
+    from dataclasses import replace
+    import re
+    from research.source_adapters.crossref_plos import CrossrefPlosChain
+    from research.evidence_schemas import encode,decode
+
+    client,path,rid=source_stack;first=start(client,rid)
+    original_fetch=CrossrefPlosChain.fetch
+    legacy_raw=ARTICLE.replace(b'<html>',b'<html><nav>Legacy navigation.</nav>')
+    legacy_text="Legacy navigation. "+" ".join(re.findall(r'<p>(.*?)</p>',ARTICLE.decode()))
+    def historical_fetch(chain,doi):
+        snapshot,raw,_=original_fetch(chain,doi)
+        old=replace(snapshot,parser_version="plos-html-text-v1",extracted_digest=hashlib.sha256(legacy_text.encode()).hexdigest())
+        assert decode("snapshots",encode(old))==old
+        with pytest.raises(ValueError):replace(old,parser_version="unregistered-parser")
+        return old,raw,legacy_text
+    with source_server(article=legacy_raw) as (port,_):
+        monkeypatch.setattr(CrossrefPlosChain,"fetch",historical_fetch)
+        assert ResearchRunner(ResearchStore(auth._store()),source_transport=PinnedPublicTransport(_worker=partial(get_local,port))).run_once(first)=="COMPLETED"
+    old_public={kind:client.get(f"/api/research/{rid}/records",params={"task_id":first,"kind":kind}).json()["data"]["items"]
+                for kind in ("sources","excerpts","reports")}
+    assert old_public["sources"][0]["read_scope"]=="legacy_page_unverified"
+    assert old_public["reports"][0]["source_revisions"][0]["read_scope"]=="legacy_page_unverified"
+    with sqlite3.connect(path) as conn:
+        old_rows=conn.execute("SELECT * FROM research_evidence_objects WHERE task_id=? ORDER BY id",(first,)).fetchall()
+    monkeypatch.setattr(CrossrefPlosChain,"fetch",original_fetch)
+    next_task=start_current(client,rid)
+    assert next_task.status_code==200,next_task.text
+    second=next_task.json()["data"]["task"]["id"]
+    with source_server() as (port,_):
+        assert ResearchRunner(ResearchStore(auth._store()),source_transport=PinnedPublicTransport(_worker=partial(get_local,port))).run_once(second)=="COMPLETED"
+    new_public=client.get(f"/api/research/{rid}/records",params={"task_id":second,"kind":"sources"}).json()["data"]["items"][0]
+    assert new_public["read_scope"]=="author_narrative_subset" and new_public["id"]!=old_public["sources"][0]["id"]
+    assert new_public["extractor_version"]=="plos-author-narrative-subset-v2"
+    with sqlite3.connect(path) as conn:
+        assert conn.execute("SELECT * FROM research_evidence_objects WHERE task_id=? ORDER BY id",(first,)).fetchall()==old_rows
+        stored=json.loads(conn.execute("SELECT payload FROM research_evidence_objects WHERE task_id=? AND kind='snapshots'",(second,)).fetchone()[0])
+        assert decode("snapshots",json.dumps(stored)).parser_version=="plos-author-narrative-subset-v2"
+    for kind,items in old_public.items():
+        assert client.get(f"/api/research/{rid}/records",params={"task_id":first,"kind":kind}).json()["data"]["items"]==items
+    assert old_public["reports"][0]["model_analysis_ran"] is old_public["reports"][0]["statistics_ran"] is False
 
 
 def test_new_observation_links_closed_unknown_in_nonselected_compatible_chain(source_stack):
