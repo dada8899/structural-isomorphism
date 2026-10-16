@@ -1012,8 +1012,8 @@ def test_workflow_gates_all_primary_beta_surfaces_with_three_runs() -> None:
     assert "if: always()" in workflow
     assert "/tmp/beta-perf-audit.json" in workflow
     assert "\n    paths:" not in workflow
-    assert "pull_request:\n    branches: [main]" in workflow
-    assert "push:\n    branches: [main]" in workflow
+    assert "pull_request:\n    branches: [main, integration/structure-rebuild-v1]" in workflow
+    assert "push:\n    branches: [main, integration/structure-rebuild-v1, bootstrap/structure-ci-20261016]" in workflow
     assert "scripts/perf_audit.py" in EVIDENCE_SOURCES
     assert set(_source_snapshot()) == set(EVIDENCE_SOURCES)
     assert VIEWPORTS["mobile"]["isMobile"] is True
