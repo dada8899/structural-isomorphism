@@ -1,6 +1,6 @@
 # Analyze 移动端阻塞诊断
 
-日期：2026-10-16。任务：STRUCTURE-PERF-255 attempt1，Issue #255。源码基线 `044e08c612dc69aa7d3b78887d4a303446be4cef`；改动前业务页面、assets和两份审计脚本与故障头 `31f8680` 相同。状态：完成一次基线和一次修复对照trace，侧栏视口检测的最小业务补丁及针对性回归就绪；尚未提交、独审或通过当前候选CI，不构成发布放行。
+日期：2026-10-16。任务：STRUCTURE-PERF-255 attempt1，Issue #255。性能源码基线 `044e08c612dc69aa7d3b78887d4a303446be4cef`；改动前业务页面、assets和两份审计脚本与故障头 `31f8680` 相同。侧栏业务补丁和测试迁移已由PMO回报独审/合入B0；当前追加Playwright manager混组兼容返修，本次增量尚未提交、复审或通过组合CI，不构成发布放行。
 
 ## 已确认的 CI 失败
 
@@ -61,7 +61,7 @@ PR beta-perf run `38914802182` attempt1 的 analyze/mobile 三次TBT为212、209
 
 修复后Observer任务为1532.5/75ms（结束早于FCP1616，不计TBT）、3199.9/73ms、3480/145ms；阻塞贡献23+95=118。与基线86+98对照，侧栏所在DOMContentLoaded任务的阻塞下降63ms，后续帧下降3ms；不能把全部时序变化当成跨环境可重复收益。轨迹直接支持的是：侧栏init中的原强制布局消失，init降到约1.8ms；报告后的大布局仍在，未声称唯一根因全部消除。
 
-三项受控API在两次均各命中一次，无未知/非法API、页面异常或坏静态响应。原六项审计快照前后相同，变更的侧栏文件另外记录摘要：基线Git文件`5fc272c03ec22e15f4e74b32e32d0501ed6874de339f188fdfe7989f8795a2ac`，候选`262c38698adeaeb2831a2ebf4bdefc0a5651bed7308889434869f42a1e0daa6f`。候选尚未提交，不能把基线HEAD冒充补丁的冻结SHA。
+三项受控API在两次均各命中一次，无未知/非法API、页面异常或坏静态响应。原六项审计快照前后相同，变更的侧栏文件另外记录摘要：基线Git文件`5fc272c03ec22e15f4e74b32e32d0501ed6874de339f188fdfe7989f8795a2ac`，候选`262c38698adeaeb2831a2ebf4bdefc0a5651bed7308889434869f42a1e0daa6f`。初交付时该候选尚未提交，后续提交与集成身份以PMO记录为准；本次manager fixture返修不改变该业务源码摘要。
 
 ## 功能回归
 
@@ -83,6 +83,24 @@ PYTHONDONTWRITEBYTECODE=1 "$STRUCTURE_PERF_PY" -B -m pytest -p no:cacheprovider 
 ```
 
 实际解释器路径、两次采证完整命令及所有测试尝试结果在私有commands证据中登记。Python浏览器用例标e2e，不因本机执行就宣称现有CI已运行这些新增用例。
+
+## 真实混组的 Playwright manager 兼容返修
+
+PMO在完整library/auth主组合中确认了一个此前单独4case未覆盖的fixture冲突：按`test_full_public_surface.py → test_unified_research_library.py → test_history_sidebar.py`顺序执行，unified模块使用pytest-playwright0.7.2的session级manager，进入sidebar时该manager仍存活；sidebar_browser再次`with sync_playwright()`会触发`Sync API inside asyncio loop`，产生3个setup errors。单独通过不抵消这个组合失败。
+
+本次在`cd78029c80f53698127c3c2a2cadfc621a318739`工作树上只调整sidebar_browser：声明依赖插件`playwright`参数，借用其manager，自行launch和finally close自己的Chromium，保留major147断言；不自行停止借用manager。routes、交互/权限断言、context及静态服务finally、生产JS、Node、测量和门禁均未改。
+
+本机Python3.11.15、pytest9.1.1、pytest-playwright0.7.2、Playwright1.59.0实际回归：单独4 passed（2.99秒）；真实primary顺序同一进程67 passed、4 deselected（16.94秒），无新的进程隔离、skip、白名单或覆盖收缩。4项未选来自原`e2e and not requires_internet`表达式；不能改写成全部收集项都执行。该结果是本机增量与混组证据，不冒充最终组合SHA的CI通过。
+
+性能树未安装node_modules，因此混组仅将unified模块的AXE资源位置配置为受审B0树现有文件：两树pnpm锁SHA256相同`a09cf2dbf1bbdf3ef20ae4923b02e193117c0f37afc334392312b417db22de23`；实际axe4.11.4文件SHA256为`fb83a4378d978ecb7d2dae48a3a3778a84c971ac692f3afd45d714fba89c0f0d`，运行前后未变。真实axe断言及测试逻辑未替换，也未跨写B0树。完整运行配置/命令在私有manager-combination证据中保留。
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 "$STRUCTURE_PERF_PY" -B -m pytest -p no:cacheprovider tests/e2e/test_history_sidebar.py -q
+# 同一进程，借用只读B0 axe资源配置，其余保持正式primary参数：
+pytest tests/e2e/test_full_public_surface.py tests/e2e/test_unified_research_library.py tests/e2e/test_history_sidebar.py -m "e2e and not requires_internet" -q
+```
+
+侧栏关闭自身browser/context，静态服务仍经finally关闭并校验线程结束；插件manager由pytest-playwright自身session teardown回收，两次pytest进程正常结束。本次没有新增trace、服务驻留、模型/付费调用、SSH或提交。仍需受影响fixture独审及最终候选的既有组合CI，不以本机混组抵消后续失败。
 
 ## 采证、范围和下一动作
 
