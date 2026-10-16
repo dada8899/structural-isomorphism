@@ -79,7 +79,7 @@ node web/frontend/tests/test_historyPrivacy.js
 node web/frontend/tests/test_privateNavigation.js
 node web/frontend/tests/test_analyzeTrust.js
 node web/frontend/tests/test_reportTrust.js
-PYTHONDONTWRITEBYTECODE=1 "$STRUCTURE_PERF_PY" -B -m pytest -p no:cacheprovider tests/test_history_sidebar.py -q
+PYTHONDONTWRITEBYTECODE=1 "$STRUCTURE_PERF_PY" -B -m pytest -p no:cacheprovider tests/e2e/test_history_sidebar.py -q
 ```
 
 实际解释器路径、两次采证完整命令及所有测试尝试结果在私有commands证据中登记。Python浏览器用例标e2e，不因本机执行就宣称现有CI已运行这些新增用例。
