@@ -538,3 +538,49 @@ commit 在既有跨进程 owner gate 内、同一 auth DB 的短事务中重新�
 本候选选用同一auth SQLite与单机owner gate，以减少不可证明的跨库竞态；实施owner需审其迁移/锁顺序、Phase共享入口和异常补偿，再通过多进程探针。公式资源值与snapshot TTL是可逆技术初值，必须在实现中验证拒绝路径，不能只存在文档。供应商可计费上界、硬预付费隔离及实际余额均未实测，不阻断离线B1，也不放行真实调用。
 
 所有导出、路由、表和schema均为候选建议；本规格工作树没有新增源码、数据迁移、产品运行或冻结证据。返修复核后，可由唯一共享owner在指定固定受审base隔离实现B1，不把B0等待扩大为阻断无依赖实现；合入和冻结仍需B0、科学、runtime组合当前SHA的独审、必要CI与真实消费者证据全部闭合。PRD、源码现有字段和旧报告语义不因本文自动改变。
+
+## 10 CP3 内部 OwnedSession／Return 消费增量
+
+2026-10-17，追加于受审离线预览／确认候选之后。本节只冻结内部来源与消费边界，不新增公共 API、表、资金账户或通用执行平台，不实现六个预算 writer、资金 loader、secret 或 live 工厂。§6.4.1 的唯一 F、§6.4.2 的确认与最终字节守卫、§7 的撤权／删除继续独立适用。
+
+### 10.1 类型、模式与不可变关联
+
+最小新增类型为 Core 拥有的 `OwnedProviderSession`、`OwnedReturnReceipt` 与冻结的 `FinancialReturnBinding`。它们由受审服务端调用链构造并绑定实际资源；普通 `ProviderObservation`、客户端 JSON、`trusted=true`、URI／UUID存在或摘要一致都不能生产可信收包能力。Python 私有构造、禁止 pickle 和类型检查仅是正式应用路径的约束，不构成对任意 Python／root 代码的进程安全隔离。
+
+阶段一仅 `offline_probe`：服务器测试装配的独立连接与合成控制源可验证机制，但不登记为真实供应商收费，不显示 `model_analysis_ran=true`。默认公开 adapter 的 `paid_disabled` 与既有 probe 入口语义保持，不私改 probe 标志或给旧 DTO／v1 记录换 live 标签。真实结果、资金、凭据与出站模式必须在后续 additive 版本中另经 producer／制品／授权独审，不能借本节放行。
+
+`FinancialReturnBinding` 至少冻结：session／paid approval／dispatch／reservation／permit 引用及消费版本；task／step／attempt与发送时授权版本；实际最终请求 bytes、evidence 与授权上下文摘要；account及稳定经济 binding、原 funding_epoch；accounting policy／model声明版本／实际响应模型及可得指纹；原合法准入的 quote revision／digest、basis digest、F界限与 server admitted_at。模式与 producer 版本同样绑定。关联均由当前同库受控来源生成，不接受客户补字段、换 quote 或回填准入时间。
+
+### 10.2 唯一受控收包与持久来源
+
+1. Core 在发送前登记 session，独占实际 adapter 实例、connection、creator PID、固定绝对期限及原完整请求。核已批准单次计划、当前 source／paid grant／资金用途和实际 HELD、prepared permit／版本；普通 DTO 或 `state='received'` 不能注册一个可消费 session。
+2. 同 owner lease 内，Core 通过唯一预算消费入口在短同库事务中 CAS 一次 permit／reservation、approval／session、task／step及事件；确认 commit 后，受控 transport 才能启动敏感 POST 字节。任何网络、loader 或响应等待不放在数据库事务中。消费提交／回执不明先重读原状态，不能换 key／task／session重新发送。
+3. `OwnedProviderSession.receive()` 自己调用该 session 已登记 adapter 的 `finish`，从该实际收包路径生成 `OwnedReturnReceipt`。禁止 `mint(observation)`／任意布尔或调用者 callback 把普通响应 DTO 盖章为可信来源；类型校验、合法 usage 和 hash 只能作为必要条件，不能代替此次受控调用出处。
+4. `persist_owned_return(conn, receipt)` 由 Core 唯一拥有连接／事务，核实际 session／消费票及全部 binding，首次 CAS 保存同 auth DB 的 `financial_return_json / return_digest / received_at`。财务部分只保严格 usage、受控 safe_code、模型／响应摘要及必要私有请求关联；不含 credential、用户摘要、摘录、完整 prompt或原始响应正文。重复相同凭证只回原记录；不同内容冲突保留安全异常并阻断，不能 UPDATE／REPLACE 首个事实。
+5. `candidate_json` 是独立可擦槽。候选结构／引用失败，或已取消／撤权时保持 NULL／清除；财务 usage 完整与否分别处理，不把坏正文当免费，也不为了账务恢复而复原候选。候选不成为费用可信来源。
+6. `mint_cost_from_return(conn, return_ref)` 仅消费上述真实受控持久来源，并重新核原 binding／mode／producer／记录完整性。现有 `mint_trusted_cost_authority(observation=普通DTO)` 拒绝语义继续保留；新入口不给正文提交或新发送权限。
+
+这些内部签名是实现消费者的最小约定，不代表当前源码已经提供。复用现有唯一 DB、session／approval／permit／reservation／cost 表；如字段不足，Core 须先冻结最小版本化差异，不能由模块另建账本或自行分配 schema 版本。
+
+恢复时可信出处依赖受审 server 写入边界、其消费／收包因果关联以及持久元数据完整性；数据库位置／UUID／hash／状态本身不是外部返回证明。只有这些来源证据都可验证，才可恢复原 receipt。若进程死亡前没有保存完整可信 usage，或恢复时出处缺失／冲突／损坏，则保留 UNKNOWN／held并明确不可恢复；不从普通缓存重造可信 stamp，不新发 HTTP、不伪造逐笔查询或用余额差猜费用。该保证不覆盖已被任意 root/SQL 写入破坏的信任边界。
+
+### 10.3 账务消费与正文提交分离
+
+合法 v2 receipt 沿原合法准入 quote／policy 调唯一受审 `observed_bound`，不因事后 TTL 到期换价。Core 在一个幂等 CAS 事务内核同 dispatch／reservation／版本及原 U，完成 `held-=U; upper_booked+=Uobs`、写原 U／Uobs／一次差额和观测引用，`actual_charge=null`。数学 DTO 不是 release／receipt／资金权限，Core 不复制另一套 F；重复处理、并发及重启回读不得二次扣／退。坏内容而 usage完整仍独立记录 Uobs；usage缺失、矛盾、越界、绑定不明则 UNKNOWN并保全 held U，不裁切、不补0、不重发。旧 fixture／final-policy／v1 历史金额不回放减记，后续可信账单超过 Uobs仍按§6.4.1留事实并阻断。
+
+取消／撤权／删除后，迟到费用可核原已消费的最小财务 binding，不要求旧主体重新获得正文写权；只补必要 opaque账务事实，不改变任务为 RUNNING、不新派发、不恢复正文／报告／分享。删除先按§7封禁，再清批准私密 payload、候选和可擦上下文，必要财务摘要／原时间保留。不得为“重建来源”恢复已清用户材料。
+
+正文提交是另一条当前身份／owner／source许可／epochs／input／task-step版本／stop门禁，只接受同一受控返回的合法候选并再核权限。成本能力不能授予内容能力；内容丢弃不推导费用为0。离线记录的这一分离只证明代码机制，不构成真实费用或真实模型执行证明。
+
+### 10.4 分卡与最小反例
+
+实施顺序为：先本内部契约独审；再最小 owned session／receive／持久来源生产者与故障探针；其后 Core 唯一封边并接六个预算 writer（Bootstrap唯一纯 F仍不拥有事务）；最后组合原 App／API／取消删除／重开验收。公共结果／模式增量、实际资金／loader／secret／live及真实一笔费用仍需独立正式授权，不在本节自动接续。
+
+| 反例／对照 | 必须成立 |
+| --- | --- |
+| 普通 DTO／伪 receipt／错 conn或PID／任一 binding改变 | 实际 trusted-cost mint拒；同一受控 session真实本机收包为正对照，不拿合成行当真实资金证据 |
+| 消费 commit丢ack／父死／收包未持久 | 按原票对账，UNKNOWN保全held且外发至多一次，不换session重发，不用elapsed/PID消失推断未收费 |
+| 重复／两进程／金融事务各故障切点 | 同receipt只一次原 U→Uobs；全回滚或读回既有提交，不丢首个观测／不重复退差 |
+| 坏正文但usage完整；缺／矛盾／超界usage | 前者正文拒而费用独立记Uobs；后者UNKNOWN全held，不补0／裁切；不是actual结算 |
+| 取消／删除在收包前后两序与重开 | 仅保原quote／policy／时间／最小财务凭证，正文新增0、任务不复活；破损或伪持久元数据fail closed |
+| 旧v1／offline换标签／未核funding | 旧金额和模式不改，离线model flag仍false，默认paid_disabled及真实运行NO GO保持 |
