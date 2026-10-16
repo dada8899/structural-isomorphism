@@ -190,3 +190,115 @@ def test_derived_artifact_binding_and_pixel_tampering_are_checked(tmp_path, monk
     tampered.save(image_path, pnginfo=metadata)
     with pytest.raises(RuntimeError, match="locked pixel output"):
         module._check_outputs()
+
+
+def _load_lambada_consumer(filename):
+    path = ROOT / "v4/validation/llm-scaling" / filename
+    name = "consumer_" + path.stem
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize("filename", ["run_validation_lambada.py", "run_validation_lambada_v2.py"])
+def test_real_lambada_consumers_render_unavailable_uncertainty_without_touching_source_outputs(
+    filename, tmp_path, monkeypatch,
+):
+    import json
+    module = _load_lambada_consumer(filename)
+    directory = ROOT / "v4/validation/llm-scaling"
+    originals = {name: (directory / name).read_bytes() for name in (
+        "results_lambada.json", "summary_lambada.md",
+        "results_lambada_v2.json", "summary_lambada_v2.md",
+    )}
+    results = tmp_path / "results.json"
+    summary = tmp_path / "summary.md"
+    monkeypatch.setattr(module, "RESULTS_OUT", results)
+    monkeypatch.setattr(module, "SUMMARY_OUT", summary)
+    module.main()
+    payload = json.loads(results.read_text())
+    markdown = summary.read_text()
+    assert len(payload["per_size_fits"]) == 8
+    missing = 0
+    for name, fit in payload["per_size_fits"].items():
+        line = next(line for line in markdown.splitlines() if line.startswith(f"| {name} |"))
+        standard_error_cell = line.split("|")[3].strip()
+        assert line.split("|")[6].strip() == f"{fit['R2']:.4f}"
+        if fit["alpha_se"] is None:
+            missing += 1
+            diagnostic = fit["extra"]["fit_diagnostics"]
+            assert standard_error_cell.startswith("unavailable (")
+            assert diagnostic["covariance_status"] in standard_error_cell
+            assert diagnostic["parameter_identifiability"] in standard_error_cell
+            for boundary in diagnostic["active_bounds"]:
+                assert boundary in standard_error_cell
+        else:
+            assert standard_error_cell == f"{fit['alpha_se']:.4f}"
+    assert missing > 0
+    assert '"alpha_se": null' in results.read_text()
+    for name, before in originals.items():
+        assert (directory / name).read_bytes() == before
+
+
+@pytest.mark.parametrize("filename", ["run_validation_lambada.py", "run_validation_lambada_v2.py"])
+@pytest.mark.parametrize("value, expected", [(.123456, "0.1235"), (0.0, "0.0000")])
+def test_lambada_numeric_standard_error_control_is_not_hidden(filename, value, expected):
+    module = _load_lambada_consumer(filename)
+    assert module._format_standard_error({"alpha_se": value}) == expected
+
+
+@pytest.mark.parametrize("filename", ["run_validation_lambada.py", "run_validation_lambada_v2.py"])
+def test_lambada_render_failure_leaves_both_previous_outputs_intact(
+    filename, tmp_path, monkeypatch,
+):
+    module = _load_lambada_consumer(filename)
+    results = tmp_path / "results.json"
+    summary = tmp_path / "summary.md"
+    results.write_text("previous JSON")
+    summary.write_text("previous Markdown")
+    monkeypatch.setattr(module, "RESULTS_OUT", results)
+    monkeypatch.setattr(module, "SUMMARY_OUT", summary)
+
+    def broken_format(_):
+        raise TypeError("forced rendering failure")
+
+    monkeypatch.setattr(module, "_format_standard_error", broken_format)
+    with pytest.raises(TypeError, match="forced rendering failure"):
+        module.main()
+    assert results.read_text() == "previous JSON"
+    assert summary.read_text() == "previous Markdown"
+
+
+@pytest.mark.parametrize("fields, expected", [
+    ({"R2": .812345, "r_squared": .1}, .812345),
+    ({"R2": 0.0, "r_squared": .7}, 0.0),
+    ({"R2": -.25, "r_squared": .7}, -.25),
+    ({"r_squared": .456789}, .456789),
+])
+def test_lambada_v1_R2_rendering_matches_canonical_or_legacy_json(
+    fields, expected, tmp_path, monkeypatch,
+):
+    """Controlled consumer values, not new estimates for the real dataset."""
+    import json
+    from types import SimpleNamespace
+    module = _load_lambada_consumer("run_validation_lambada.py")
+
+    def controlled_fit(*args, **kwargs):
+        return SimpleNamespace(alpha=.2, alpha_se=.025, A=10.0, L_inf=1.0, **fields)
+
+    monkeypatch.setattr(module.lc, "fit_learning_curve", controlled_fit)
+    results = tmp_path / "results.json"
+    summary = tmp_path / "summary.md"
+    monkeypatch.setattr(module, "RESULTS_OUT", results)
+    monkeypatch.setattr(module, "SUMMARY_OUT", summary)
+    module.main()
+    payload = json.loads(results.read_text())
+    markdown = summary.read_text()
+    assert len(payload["per_size_fits"]) == 8
+    for name, fit in payload["per_size_fits"].items():
+        assert fit.get("R2", fit.get("r_squared")) == expected
+        line = next(line for line in markdown.splitlines() if line.startswith(f"| {name} |"))
+        assert line.split("|")[6].strip() == f"{expected:.4f}"
+        assert line.split("|")[3].strip() == "0.0250"

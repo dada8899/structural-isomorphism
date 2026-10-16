@@ -79,3 +79,13 @@ GitHub sanity run `38911548818` 在 Python 3.11.17、13 个精确依赖安装后
 - `pythia_checkpoints_combined.csv`：payload与基线完全一致，18681 bytes，SHA-256 `5c68ba65c7b2b787827580c64cdcddf2895e78445365e1f1ebcae63325de0a15`。
 - `kaplan2020_compute.csv`：payload与基线完全一致，553 bytes，SHA-256 `fa78385fddff969ee2b1e6f18261534e12e709a5d3b3048297b2e27ad83223da`。
 - `hoffmann2022_compute.csv`：payload与基线完全一致，768 bytes，SHA-256 `31dc2e0d76cf23e192ab2fb6e7993b4be2d89c9b79408001782d7690df28527d`。
+
+## P2 调用方回归返修
+
+独立Astra审查候选`72e9e61d65fb9c54b6f6de21a192142a36d08572`发现：新拟合器在触界时诚实返回`alpha_se=None`，两个既有LAMBADA生成器却直接使用`a_se:.4f`。真实8组数据下，两调用方都先写JSON、再在Markdown格式化时TypeError，留下半套新产物。原基线两调用方能完成，故这是本次引入的消费回归；该候选未push、未接受。
+
+返修只改两调用方的标准误消费：null显示`unavailable`并包含covariance_status、active_bounds和parameter_identifiability，合法数值仍按原四位格式显示，合法0不变成缺失。JSON与Markdown全部序列化／渲染完成后才进行任一写入；这防止渲染异常造成半更新，不承诺磁盘故障时双文件事务原子性。
+
+回归在测试自有临时输出运行两套真实8组main，检查JSON null与Markdown不可用原因一致；另有正常数值／0控制和强制渲染失败旧JSON／MD同时不变。本轮锁环境原51项、8项调用方回归及4项R²控制合计63 passed、无skip。未重生成`results_lambada*.json`或`summary_lambada*.md`；原数据、阈值、边界、主3源码及五项绑定产物均未更改。本轮仍待新SHA受影响独审与Linux CI。
+
+相关摘要一致性还补一处已存在的v1字段问题：原Markdown只读旧名`r_squared`，而JSON的规范字段为`R2`，导致正常R²显示nan。按PMO批准仅改单行，优先规范`R2`，仅缺字段时回退旧名，不用truthiness，故0和负值保持。四项受控消费者对照覆盖规范字段优先、0、负值和旧别名；两套真实调用同时核对JSON与Markdown的R²。该问题在旧基线已存在，不是本次None回归或原CI失败根因，未改变拟合值、来源、统计阈值或科学结论。

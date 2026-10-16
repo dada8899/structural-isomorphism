@@ -55,6 +55,18 @@ sys.modules["soc_pipeline_learning_curve"] = lc
 spec.loader.exec_module(lc)
 
 
+def _format_standard_error(fit: dict) -> str:
+    """Keep unavailable uncertainty distinct from zero or a numeric estimate."""
+    standard_error = fit.get("alpha_se", float("nan"))
+    if standard_error is not None:
+        return f"{standard_error:.4f}"
+    diagnostic = (fit.get("extra") or {}).get("fit_diagnostics", {})
+    reason = diagnostic.get("covariance_status", "not_reported")
+    bounds = ",".join(diagnostic.get("active_bounds", [])) or "none"
+    identification = diagnostic.get("parameter_identifiability", "not_established")
+    return f"unavailable ({reason}; bounds={bounds}; {identification})"
+
+
 def main() -> None:
     rows = list(csv.DictReader(open(LAMBADA_CSV)))
     print(f"loaded {len(rows)} rows from {LAMBADA_CSV.name}")
@@ -132,8 +144,7 @@ def main() -> None:
             "missing sizes (160m, 1b, 6.9b)."
         ),
     }
-    RESULTS_OUT.write_text(json.dumps(out, indent=2))
-    print(f"\nwrote {RESULTS_OUT}")
+    results_text = json.dumps(out, indent=2)
 
     # Summary markdown
     md = [
@@ -150,12 +161,12 @@ def main() -> None:
     ]
     for model, f in sorted(fits.items()):
         alpha = f.get("alpha", float("nan"))
-        a_se = f.get("alpha_se", float("nan"))
+        a_se = _format_standard_error(f)
         Linf = f.get("L_inf", float("nan"))
         A = f.get("A", float("nan"))
-        r2 = f.get("r_squared", float("nan"))
+        r2 = f.get("R2", f.get("r_squared", float("nan")))
         n = f.get("n", 0)
-        md.append(f"| {model} | {alpha:.4f} | {a_se:.4f} | {Linf:.3f} | {A:.2e} | "
+        md.append(f"| {model} | {alpha:.4f} | {a_se} | {Linf:.3f} | {A:.2e} | "
                   f"{r2:.4f} | {n} | REAL_LAMBADA |")
     md.extend([
         "",
@@ -184,7 +195,12 @@ def main() -> None:
         "",
         "End of summary.",
     ])
-    SUMMARY_OUT.write_text("\n".join(md))
+    # Render both payloads before either write: a formatting failure must not
+    # leave a fresh JSON paired with an old Markdown report.
+    summary_text = "\n".join(md)
+    RESULTS_OUT.write_text(results_text)
+    SUMMARY_OUT.write_text(summary_text)
+    print(f"\nwrote {RESULTS_OUT}")
     print(f"wrote {SUMMARY_OUT}")
 
 
