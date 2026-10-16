@@ -464,3 +464,24 @@ def _assert_retired_response(response):
     assert body["canonical"] == "/research"
     assert response.headers["content-type"].startswith("application/problem+json")
     assert "event: meta" not in response.text and "event: done" not in response.text
+
+
+@pytest.mark.parametrize("module_name", ["api.ask", "web.backend.api.ask"])
+def test_retired_factory_is_closed_in_both_import_topologies(module_name, monkeypatch):
+    """Compatibility imports retain validation without allocating a legacy client."""
+    from unittest.mock import Mock
+    from errors import LegacyPaidUnavailable
+
+    module = importlib.import_module(module_name)
+    constructor = Mock(side_effect=AssertionError("retired client must not be constructed"))
+    monkeypatch.setattr(module, "LLMService", constructor)
+    with pytest.raises(LegacyPaidUnavailable) as stopped:
+        module._get_llm()
+    constructor.assert_not_called()
+    assert stopped.value.status == 503
+    assert stopped.value.extensions == {
+        "code": "FEATURE_UNAVAILABLE", "retryable": False, "canonical": "/research",
+    }
+    assert module.AskRequest(query="ｆｅｅｄｂａｃｋ　ｄｅｌａｙ").query == "feedback delay"
+    assert module.AskEventStreamResponse.media_type == "text/event-stream"
+    assert module.AskOrchestrator is AskOrchestrator

@@ -421,7 +421,7 @@
       },
       "AskRequest": {
         "additionalProperties": false,
-        "description": "Body for /api/ask/stream.\n\n`query` is the raw user question. We don't pre-rewrite it here — the\norchestrator emits `meta.rewritten` mirroring the query verbatim, so\nthe frontend can show a single \"thinking about: <query>\" line.",
+        "description": "Body for /api/ask/stream.\n\n`query` remains the normalized research input bound to its optional\nconfirmed fingerprint. Validation is retained while generation is retired;\naccepting this request shape does not promise an answer or an SSE stream.",
         "properties": {
           "fingerprint": {
             "anyOf": [
@@ -6721,7 +6721,7 @@
     },
     "/api/ask/stream": {
       "post": {
-        "description": "SSE endpoint streaming a Perplexity-style cross-domain answer.\n\nAuth: optional Bearer token / cookie promotes the caller to free/paid\ntier (looser rate limits). Anonymous traffic still allowed.",
+        "description": "Validate legacy Ask input, then reject retired generation before SSE.\n\nExisting caller identity, input limits, scope checks and rate limits remain.\nValid requests receive non-retryable FEATURE_UNAVAILABLE (HTTP 503).",
         "operationId": "ask_stream_api_ask_stream_post",
         "requestBody": {
           "content": {

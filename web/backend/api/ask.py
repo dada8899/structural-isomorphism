@@ -1,20 +1,8 @@
-"""POST /api/ask/stream — Perplexity-like SSE search endpoint.
+"""Legacy Ask admission endpoint with generation explicitly retired.
 
-Wires the AskOrchestrator into FastAPI. Returns a Server-Sent Events
-StreamingResponse that emits, in order:
-
-    meta → kb_cards → answer_chunk* → answer_done →
-    similar_phenomena → followups → done
-
-Rate-limited to 5 requests/minute per IP (DeepSeek calls cost real $).
-
-W5-A guardrail (2026-05-15): the orchestrator emits an
-`out_of_scope: true` flag plus `scope_reason` inside `answer_done` when
-the retrieval scores fail the relevance gate (top-1 < 0.75 OR top-3
-mean < 0.65). Frontend code should detect this flag and render the
-answer with a softer "outside KB coverage" badge instead of the usual
-isomorphism framing. See services/ask_orchestrator.py
-`_evaluate_relevance` for thresholds and env knobs.
+Preserves request normalization, fingerprint binding, limits and caller checks.
+Valid generation requests fail with a non-retryable problem before any client,
+retrieval or SSE preparation. Pure research helpers remain in their own modules.
 """
 
 if __package__ == "web.backend.api":
@@ -39,7 +27,8 @@ if __package__ == "web.backend.api":
     from ..logging_config import get_logger
 else:
     from logging_config import get_logger
-from services.ask_orchestrator import AskOrchestrator
+# Compatibility re-export retained for existing callers and admission probes.
+from services.ask_orchestrator import AskOrchestrator as AskOrchestrator
 from services.auth import verify_api_token
 from services.llm_service import LLMService
 from services.input_limits import MAX_RESEARCH_QUERY_CHARS
@@ -65,24 +54,18 @@ class AskEventStreamResponse(StreamingResponse):
 # 422 from pydantic. See `docs/sessions/SESSION-10-HANDOFF.md` §6 Option D.
 MAX_QUERY_CHARS = MAX_RESEARCH_QUERY_CHARS
 
-# Reuse a single LLMService instance so its API key + model env are
-# captured once and the underlying http client is shared.
-_llm: Optional[LLMService] = None
-
 
 def _get_llm() -> LLMService:
-    global _llm
-    if _llm is None:
-        _llm = LLMService()
-    return _llm
+    """Compatibility hook: never construct a retired client or read its settings."""
+    deny_legacy_paid()
 
 
 class AskRequest(BaseModel):
     """Body for /api/ask/stream.
 
-    `query` is the raw user question. We don't pre-rewrite it here — the
-    orchestrator emits `meta.rewritten` mirroring the query verbatim, so
-    the frontend can show a single "thinking about: <query>" line.
+    `query` remains the normalized research input bound to its optional
+    confirmed fingerprint. Validation is retained while generation is retired;
+    accepting this request shape does not promise an answer or an SSE stream.
     """
 
     model_config = ConfigDict(extra="forbid", strict=True)
@@ -114,10 +97,10 @@ class AskRequest(BaseModel):
 @router.post("/ask/stream", response_class=AskEventStreamResponse)
 @tier_limit_decorator(default_anon="5/minute")
 async def ask_stream(request: Request, req: AskRequest):
-    """SSE endpoint streaming a Perplexity-style cross-domain answer.
+    """Validate legacy Ask input, then reject retired generation before SSE.
 
-    Auth: optional Bearer token / cookie promotes the caller to free/paid
-    tier (looser rate limits). Anonymous traffic still allowed.
+    Existing caller identity, input limits, scope checks and rate limits remain.
+    Valid requests receive non-retryable FEATURE_UNAVAILABLE (HTTP 503).
     """
     # W14-D structured log: request received (length only, never the full
     # query body — PII / IP-sensitive content stays out of logs by default).
@@ -149,25 +132,3 @@ async def ask_stream(request: Request, req: AskRequest):
     if out_of_scope:
         raise HTTPException(422, {"error": "out_of_scope", "reason": reason})
     deny_legacy_paid()
-
-    # Import inside the handler to avoid a circular import at module load.
-    # (api.ask is imported in main.py, which itself owns app_state.)
-    from main import app_state
-
-    search = app_state.get("search")
-    if search is None:
-        raise HTTPException(503, "Search service not ready")
-
-    orchestrator = AskOrchestrator(search_service=search, llm=_get_llm())
-    log.info("ask.response", tier=tier)
-
-    return AskEventStreamResponse(
-        orchestrator.stream(req.query, lang=req.lang, fingerprint=req.fingerprint),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            # Disable nginx buffering so SSE chunks flush immediately.
-            "X-Accel-Buffering": "no",
-            "Connection": "keep-alive",
-        },
-    )
