@@ -1051,3 +1051,108 @@ def test_phase_companies_controls_activate_after_scroll(page: Page):
     expect(page.get_by_role("region", name="筛选条件")).to_be_visible(timeout=10_000)
     expect(page.locator("#screener select")).to_have_count(3)
     expect(page.locator('#screener input[type="range"]')).to_be_visible()
+
+
+def test_analyze_static_lang_writes_preserve_full_report_and_late_dictionary(
+    page: Page, local_beta_origin: str,
+) -> None:
+    # Only pure backend-validated fixture data; no auditor or profiler is invoked.
+    from scripts.beta_perf_audit import _analyze_fixture
+
+    expected_request, stream = _analyze_fixture()
+    held = {}
+    posted = []
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    dictionaries = {
+        name: json.loads((FRONTEND_DIR / f'assets/data/i18n/{name}.json').read_text(encoding='utf-8'))
+        for name in ('ui', 'content')
+    }
+    catalog = {**dictionaries['ui'], **dictionaries['content']}
+    probe = """<script>
+      window.__langChanges=[];window.__langNotifications=[];
+      window.__langObserver=new MutationObserver(records=>{
+        window.__langChanges.push(...records.map(r=>r.oldValue));
+      });
+      window.__langObserver.observe(document.documentElement,
+        {attributes:true,attributeOldValue:true,attributeFilter:['lang']});
+    </script>"""
+    html = (FRONTEND_DIR / 'analyze.html').read_text(encoding='utf-8')
+    html = html.replace('<head>', '<head>' + probe, 1)
+    page.route('https://**', lambda route: route.abort())
+    page.route('**/analyze.html?*', lambda route: route.fulfill(
+        status=200, content_type='text/html; charset=utf-8', body=html,
+    ))
+    i18n = (FRONTEND_DIR / 'assets/js/i18n.js').read_text(encoding='utf-8')
+    page.route('**/assets/js/i18n.js?*', lambda route: route.fulfill(
+        status=200, content_type='application/javascript', body=i18n +
+        '\nwindow.i18n.onChange(lang=>window.__langNotifications.push(lang));',
+    ))
+    page.route('**/assets/data/i18n/*.json?*', lambda route: held.__setitem__(
+        'ui' if '/ui.json' in route.request.url else 'content', route,
+    ))
+
+    def api(route):
+        request = route.request
+        if request.url.split('?')[0].endswith('/api/analyze/stream'):
+            assert request.method == 'POST'
+            posted.append(request.post_data_json)
+            assert request.post_data_json == expected_request
+            route.fulfill(status=200, content_type='text/event-stream; charset=utf-8', body=stream)
+        elif request.url.split('?')[0].endswith(('/api/auth/me', '/api/favorites')):
+            route.fulfill(status=401, content_type='application/json', body='{"error":"no session"}')
+        else:
+            pytest.fail('unexpected API in static Analyze language test')
+
+    page.route('**/api/**', api)
+    try:
+        page.goto(f'{local_beta_origin}/analyze.html?id=target-two&a_id=source-one', wait_until='domcontentloaded')
+        page.wait_for_function("""() => window._finalReport && !document.getElementById('analyze-loading')
+          && document.querySelectorAll('.section--revealed').length===9
+          && Array.from(document.querySelectorAll('.section__body')).every(n=>n.textContent.trim().length>30)""")
+        assert set(held) == {'ui', 'content'}
+        assert posted == [expected_request]
+        assert page.evaluate('window.__langChanges') == []
+        original = page.evaluate('JSON.stringify(window._finalReport)')
+        page.evaluate("window.i18n.setLang('en')")
+        expect(page.locator('html')).to_have_attribute('lang', 'en')
+        # No EN dictionary yet: actual section fallback remains visible.
+        expect(page.locator('#section-shared_structure .section__title')).to_have_text('候选结构')
+        page.evaluate('window.__langObserver.takeRecords();window.__langChanges=[];window.__langNotifications=[]')
+        held['ui'].fulfill(status=200, content_type='application/json', body=json.dumps(dictionaries['ui'], ensure_ascii=False))
+        held['content'].fulfill(status=200, content_type='application/json', body=json.dumps(dictionaries['content'], ensure_ascii=False))
+        expect(page.locator('#section-shared_structure .section__title')).to_have_text(catalog['page.analyze.section_shared_structure']['en'])
+        assert page.evaluate('window.__langChanges') == []
+        assert 'en' in page.evaluate('window.__langNotifications')
+        same = page.evaluate("""async () => {
+          window.__langObserver.takeRecords();window.__langChanges=[];window.__langNotifications=[];
+          for(let n=0;n<3;n++)window.i18n.render();
+          await Promise.resolve();return {changes:window.__langChanges,notifications:window.__langNotifications};
+        }""")
+        assert same == {'changes': [], 'notifications': ['en'] * 3}
+        for lang, old in [('zh', 'en'), ('en', 'zh-CN'), ('zh', 'en')]:
+            result = page.evaluate("""async lang => {
+              window.__langObserver.takeRecords();window.__langChanges=[];window.__langNotifications=[];
+              window.i18n.setLang(lang);await Promise.resolve();
+              return {changes:window.__langChanges,notifications:window.__langNotifications};
+            }""", lang)
+            assert result == {'changes': [old], 'notifications': [lang]}
+            expect(page.locator('html')).to_have_attribute('lang', 'en' if lang == 'en' else 'zh-CN')
+            sections = page.locator('.section')
+            assert sections.count() == 9
+            for section in sections.all():
+                key = section.get_attribute('data-key')
+                expect(section.locator('.section__title')).to_have_text(catalog[f'page.analyze.section_{key}'][lang])
+                assert len((section.locator('.section__body').text_content() or '').strip()) > 30
+            expect(page.locator('#analyze-fav-label')).to_have_text(catalog['page.analyze.btn_fav'][lang])
+            assert (page.locator('#analyze-tldr').text_content() or '').strip()
+            assert page.locator('#analyze-tldr .cred-badge__chip').all_inner_texts() == [
+                catalog[f'page.analyze.{key}'][lang]
+                for key in ('candidate_only', 'mechanism_not_verified', 'review_not_recorded')
+            ]
+            assert page.evaluate('JSON.stringify(window._finalReport)') == original
+            assert page.locator('.section--revealed').count() == 9
+        assert errors == []
+    finally:
+        if not page.is_closed():
+            page.evaluate('window.__langObserver && window.__langObserver.disconnect()')

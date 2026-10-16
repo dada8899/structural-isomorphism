@@ -85,7 +85,8 @@
   function applyHtmlLangAttr(lang) {
     var root = document.documentElement;
     if (!root) return;
-    root.setAttribute('lang', lang === 'en' ? 'en' : 'zh-CN');
+    var desired = lang === 'en' ? 'en' : 'zh-CN';
+    if (root.getAttribute('lang') !== desired) root.setAttribute('lang', desired);
   }
 
   // ---------- registry access ----------

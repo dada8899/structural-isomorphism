@@ -254,6 +254,22 @@ renderer以已成功完成的validated对象身份和实际语言作为去重条
 
 collector、原54pin、生产Papers、helper、Make、CI、原grade和预算未改，无浏览器、trace、Profiler、新marker、网络、SSH、费用或提交／推送。此卡交PMO回收当前差异及新SHA独审，不以历史快照身份合同替代真实受准marker的强制来源校验。
 
+## 静态 i18n 根语言属性同值写入返修
+
+日期：2026-10-17。PMO在原物理Bootstrap树建立 `codex/structure-i18n-perf-20261017`，基线 `982afd88d11b1c9b4db0f809d4f31847ac6734bf`；D2的PR256及26eebe7分支保留。本卡依据已回收的Linux trace和PR256当前beta-perf失败（Analyze mobile 202ms＞200ms，Papers125ms）消除根节点同值lang写入，没有新采证或重新触发CI，也不因只超2ms改变标准。旧trace对应的i18n源码在相关基线一致，证据回收由PMO负责；本卡没有重新读取或生成trace。
+
+唯一生产差异是 `applyHtmlLangAttr` 计算 `en`／`zh-CN` 规范值，并以 `root.getAttribute('lang')` 精确比较，不同才写；缺值、zh、EN及其他错误值仍规范化，root不存在仍原样返回。render、boot、setLang、词典合并、Promise.all异步行为和全部onChange代码不变。没有按语言跳过render，未改Analyze／Papers renderer，也没有减少正文或延后展示。
+
+仅追加三个现有测试文件中的新函数，全部既有函数／fixture／类AST与982基线逐项相等：Papers静态合同19个、Papers浏览器10个、full_public_surface31个。Node真实i18n VM矩阵覆盖6种初始根值×2种URL语言×2种词典完成顺序（24个独立上下文）：初boot至多一次规范化；同语言render三次根属性写0、通知3次，文本与ARIA仍翻译；词典先完成一份时不伪报全部就绪、两份完成后同语言DOM更新和通知不丢；真实zh→en→zh及非法／同值setLang行为保持；mergeStrings后显式render实际更新文本和ARIA。新矩阵以临时只读旧源码对照确定失败，临时文件在finally移除，没有靠重复自然采样取得绿色。
+
+真实Papers新增两种词典顺序的受控网络边界：仅初始测试HTML去掉lang、head内安装原生MutationObserver；真实脚本后注册测试侧回调，不增加产品调试API。缺lang首boot只产生1次根变化，异步词典将原中文heading更新为真实英文heading而根变化0；显式同语言广播3次根变化0、回调3次，并保持全部目录节点身份、summary焦点、筛选、展开和20卡。真实zh→en→zh每次仅1次根变化，标题、卡片、筛选与展开正确，沿原axe规则检查。
+
+真实Analyze只读导入 `_analyze_fixture` 的纯后端验证数据，不调用auditor。固定本地API路由核POST精确请求并返回原合法SSE；等完整最终报告、loading移除、9节真实正文及全部revealed，再执行语言对照。先在词典未完成时切英文，实际fallback仍可读；词典完成后9节labels由真实目录更新，同语言根变化0且回调保留；随后三次same-lang广播0写3通知，zh→en→zh逐次1写，9节标题／正文、收藏标签、TLDR候选／未验证／未复核提示正确；最终报告JSON全程不变，不把中文原报告内容冒充已翻译生成。未运行full_public_surface的外网路由用例。
+
+目标Python3.11.15／Playwright1.59.0环境：最终 `tests/test_papers_public_contract.py` 和 `tests/e2e/test_papers_public_runtime.py` 两个完整文件 **28 passed、退出0**，包含原375／390／430、20条详情、安全渲染、节点／焦点与axe检查；新增完整Analyze本地用例 **1 passed、退出0**，一条原Pydantic namespace warning。最初把Papers和full_public_surface合进一进程时，Papers两项通过后，full_public_surface原自建sync_playwright夹具与session级浏览器事件循环冲突，1 setup error；保留原夹具，按各自独立进程运行，Analyze通过。最后增加词典顺序同步与TLDR断言后，两个最终命令均重新通过。`make test-frontend-node` 原11个脚本全部退出0，包含原Analyze隐藏协作节locale检查；Node语法、差异检查通过。
+
+浏览器context／browser和静态服务沿各原fixture finally收尾，测试observer在finally disconnect；没有遗留服务或新采证资源。本卡仅上述i18n函数、三个测试文件及本记录，未改预算、fixture、测量、旧source pins、Make、CI或其他回调。没有HTTP研究、真实模型、费用、SSH、trace、Profiler、新marker、提交或推送。作者至此停写，交PMO精确五路径Git提交、当前SHA独审，再执行一次正常CI核实性能；本机语言验证通过不代表202ms性能失败已关闭。
+
 ## 回收与下一步
 
 PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单提交，不包含未跟踪 AGENTS 或其他树内容；独立 Astra 审查当前差异，返修回本 owner。随后推送 Bootstrap 候选并创建到集成线的 PR，核真实 event／workflow／run／head／base／checkout 及所有必要结果；缺失、取消、未知或失败不放行。
