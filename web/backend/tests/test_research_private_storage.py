@@ -261,19 +261,63 @@ def test_checkpoint_busy_is_not_reported_as_erasure_success(private):
 
 
 @pytest.fixture
-def formal_paid(paid_api,monkeypatch):
+def formal_paid(paid_api,monkeypatch,record_property):
     """Actual offline HTTP composition with captured formal storage objects.
 
     The public Main remains closed. The test-only route profile is restored
     after capturing the real preprovisioned Auth object; downgrade cannot turn
     either storage object into a dev connection or creation path.
     """
+    import json
+    import stat
+    from uuid import UUID
     from api import auth
-    client,db,_,rid,excerpt,resolver=paid_api;db=db.resolve()
+    client,db,development_store,rid,excerpt,resolver=paid_api
+    def inspect(label,path,kind,*,phase,required=True):
+        try:info=path.lstat()
+        except FileNotFoundError:
+            record_property('formal_paid_mode.'+label+'.'+phase,json.dumps({'exists':False}))
+            assert not required,'missing synthetic prerequisite: '+label
+            return None
+        actual='directory' if stat.S_ISDIR(info.st_mode) else 'regular' if stat.S_ISREG(info.st_mode) else 'symlink' if stat.S_ISLNK(info.st_mode) else 'other'
+        record_property('formal_paid_mode.'+label+'.'+phase,json.dumps(dict(exists=True,type=actual,uid=info.st_uid,
+            mode=format(stat.S_IMODE(info.st_mode),'04o'),nlink=info.st_nlink),sort_keys=True))
+        assert actual==kind and info.st_uid==os.geteuid(),label
+        assert info.st_nlink==1 if kind=='regular' else info.st_nlink>=1,label
+        return info
+    # This is the explicit synthetic dev provisioning phase, before capture of
+    # any formal store. Normalize only the two known objects and named sidecars.
+    assert db.name=='auth.sqlite3' and db.is_absolute()
+    inspect('state_root',db.parent,'directory',phase='before')
+    inspect('auth.sqlite3',db,'regular',phase='before')
+    with development_store.transaction() as conn:
+        gates={row[0] for row in conn.execute('SELECT gate_id FROM auth_owner_gates')}
+        gates.update(row[0] for row in conn.execute('SELECT id FROM research_tasks'))
+    db.parent.chmod(0o700);db.chmod(0o600)
+    assert stat.S_IMODE(inspect('state_root',db.parent,'directory',phase='after').st_mode)==0o700
+    assert stat.S_IMODE(inspect('auth.sqlite3',db,'regular',phase='after').st_mode)==0o600
+    for suffix in ('-wal','-shm','-journal'):
+        path=db.with_name(db.name+suffix);label=db.name+suffix
+        if inspect(label,path,'regular',phase='before',required=False) is not None:path.chmod(0o600)
+        after=inspect(label,path,'regular',phase='after',required=False)
+        if after is not None:assert stat.S_IMODE(after.st_mode)==0o600,label
+    db=db.resolve()
     cache=db.parent.parent/'private-cache';logs=db.parent/'logs'
-    for folder in (cache,logs):folder.mkdir(mode=0o700,exist_ok=True)
+    for label,folder in (('cache',cache),('logs',logs)):
+        inspect(label,folder,'directory',phase='before',required=False)
+        folder.mkdir(mode=0o700,exist_ok=True)
+        assert stat.S_IMODE(inspect(label,folder,'directory',phase='after').st_mode)==0o700,label
     for name,value in [('STATE_ROOT',db.parent),('CACHE_ROOT',cache),('LOG_ROOT',logs)]:monkeypatch.setattr(paths,name,value)
-    audit=db.parent/'account_deletion_audit.jsonl';audit.write_bytes(b'');audit.chmod(0o600)
+    audit=db.parent/'account_deletion_audit.jsonl'
+    inspect('audit',audit,'regular',phase='before',required=False)
+    audit.write_bytes(b'');audit.chmod(0o600)
+    assert stat.S_IMODE(inspect('audit',audit,'regular',phase='after').st_mode)==0o600
+    lock_root=db.parent/'research-locks'
+    assert stat.S_IMODE(inspect('lock_root',lock_root,'directory',phase='checked').st_mode)==0o700
+    for gate in sorted(gates):
+        assert type(gate) is str and str(UUID(gate,version=4))==gate
+        label='lock.'+gate
+        assert stat.S_IMODE(inspect(label,lock_root/(gate+'.lock'),'regular',phase='checked').st_mode)==0o600,label
     monkeypatch.setenv('STRUCTURAL_ENV','prod')
     held=AuthStore(db);store=ResearchStore(held)
     monkeypatch.setattr(auth,'_store',lambda:held)
