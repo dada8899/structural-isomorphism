@@ -22,10 +22,10 @@ from uuid import uuid4
 from .privacy_identifiers import opaque_identifier
 
 _FACTORY = object()
-_REQUEST = ContextVar('private_registration_request', default=None)
-_DELETE = ContextVar('private_registration_delete', default=None)
-_SCOPES = {}
-_SESSIONS = {}
+_REQUEST = vars(sqlite3).setdefault('_structural_registration_request_v1',ContextVar('private_registration_request', default=None))
+_DELETE = vars(sqlite3).setdefault('_structural_registration_delete_v1',ContextVar('private_registration_delete', default=None))
+_SCOPES = vars(sqlite3).setdefault('_structural_registration_writes_v1',{})
+_SESSIONS = vars(sqlite3).setdefault('_structural_registration_sessions_v1',{})
 _GEN = re.compile(r'^[a-f0-9]{32}$')
 
 
@@ -49,21 +49,35 @@ def _private(store):
     return current or store._private_auth
 
 
+def _research_control(store):
+    """Select only one of the two real supported ResearchStore classes."""
+    import importlib
+    module=type(store).__module__
+    if module not in ('research.store','web.backend.research.store'):
+        raise PermissionError('actual ResearchStore required')
+    owner=importlib.import_module(module)
+    if type(store) is not owner.ResearchStore:
+        raise PermissionError('actual ResearchStore required')
+    return importlib.import_module(module.rsplit('.',1)[0]+'.paid_control')
+
+
 def _route_call(request,name):
     """Bind admission to the live code-owned route, not a Request-shaped DTO."""
     from starlette.requests import Request
     if __package__=='web.backend.services':from ..api import auth
     else:from api import auth
-    endpoint=getattr(auth,name)
     if (not isinstance(request,Request) or request.method!='POST'
         or request.url.path!='/api/auth/'+('verify' if name=='verify' else 'request-link')
         or auth.require_same_origin(request) is not None):
         raise PermissionError('actual same-origin Auth route required')
     import sys
+    endpoints={getattr(module,name).__code__:module for module_name in ('api.auth','web.backend.api.auth')
+        if (module:=sys.modules.get(module_name)) is not None and hasattr(module,name)}
     frame=sys._getframe(1)
     try:
         while frame is not None:
-            if frame.f_code is endpoint.__code__ and frame.f_locals.get('request') is request:
+            if frame.f_code in endpoints and frame.f_locals.get('request') is request:
+                if endpoints[frame.f_code].require_same_origin(request) is not None:raise PermissionError('Auth origin changed')
                 return
             frame=frame.f_back
         raise PermissionError('Auth admission requires its live route caller')
@@ -236,7 +250,10 @@ def _close_request_claims(store,source):
 def _native(conn, store):
     from .sqlite_utils import PrivateAuthConnection
     from .runtime_paths import private_auth_path
-    if type(conn) is not PrivateAuthConnection or not conn.in_transaction or conn.private_storage_identity!=store.storage_identity or store.path!=private_auth_path():
+    import sys
+    types={PrivateAuthConnection}|{module.PrivateAuthConnection for name in ('services.sqlite_utils','web.backend.services.sqlite_utils')
+        if (module:=sys.modules.get(name)) is not None}
+    if type(conn) not in types or not conn.in_transaction or conn.private_storage_identity!=store.storage_identity or store.path!=private_auth_path():
         raise PermissionError('actual private Auth transaction required')
     conn._history_file.check()
 
@@ -295,10 +312,12 @@ def add_token(store, token_hash, email, created_at, expires_at, *, request):
 @contextmanager
 def deletion_scope(service, lease, job_id):
     """Source wrapper only; each Auth write independently validates its job."""
-    if __package__=='web.backend.services':from ..research.service import ResearchService
-    else:from research.service import ResearchService
-    if type(service) is not ResearchService or lease is None:
+    import importlib
+    module=type(service).__module__
+    if module not in ('research.service','web.backend.research.service') or lease is None:
         raise PermissionError('actual deletion service and lease required')
+    if type(service) is not importlib.import_module(module).ResearchService:raise PermissionError('actual deletion service required')
+    _research_control(service.store)
     source=(service,lease,job_id,os.getpid())
     token=_DELETE.set(source)
     try:yield
@@ -309,9 +328,7 @@ def _deletion_validate(conn, store, *, service, lease, job_id, email):
     _native(conn,store)
     if _DELETE.get()!=(service,lease,job_id,os.getpid()) or service.store.path!=store.path or service.store.storage_identity!=store.storage_identity:
         raise PermissionError('actual deletion source changed')
-    if __package__=='web.backend.services':from ..research.paid_control import verify_deletion_origin
-    else:from research.paid_control import verify_deletion_origin
-    verify_deletion_origin(conn,store=service.store,lease=lease,job_id=job_id)
+    _research_control(service.store).verify_deletion_origin(conn,store=service.store,lease=lease,job_id=job_id)
     job=conn.execute("SELECT * FROM auth_deletion_jobs WHERE id=? AND state='pending'",(job_id,)).fetchone()
     user=conn.execute('SELECT * FROM auth_users WHERE email=?',(email,)).fetchone()
     if not job or job['origin_version'] is None or job['owner_email']!=email or job['owner_key']!=store.owner_key(email):
@@ -330,18 +347,12 @@ def mark_account_deleting(conn, *, store, lease, request_source, email, generati
     This grants only the active->deleting fence. It never grants erasure;
     erasure requires the subsequently inserted protected pending job.
     """
-    if __package__=='web.backend.services':
-        from ..research.store import ResearchStore
-        from ..research.paid_control import _current_scope,require_authenticated_action
-    else:
-        from research.store import ResearchStore
-        from research.paid_control import _current_scope,require_authenticated_action
-    if type(store) is not ResearchStore:raise PermissionError('actual ResearchStore required')
+    control=_research_control(store)
     auth=store.auth_store
     install_hook(conn)
     def validate():
-        _native(conn,auth);_current_scope(conn)
-        require_authenticated_action(request_source,identity=request_source.identity,action='account-delete')
+        _native(conn,auth);control._current_scope(conn)
+        control.require_authenticated_action(request_source,identity=request_source.identity,action='account-delete')
         if request_source.identity.email!=email or request_source.identity.generation!=generation:raise PermissionError('actual deletion request changed')
         user=conn.execute('SELECT * FROM auth_users WHERE email=?',(email,)).fetchone()
         if not user or user['lifecycle']!='active' or user['session_generation']!=generation:raise PermissionError('actual active generation required')
@@ -358,10 +369,7 @@ def erase_registration_for_job(conn, *, store, lease, job_id):
 
     `store` is the real ResearchStore, never a caller supplied evidence DTO.
     """
-    if __package__=='web.backend.services':from ..research.store import ResearchStore
-    else:from research.store import ResearchStore
-    if type(store) is not ResearchStore:
-        raise PermissionError('real ResearchStore required')
+    control=_research_control(store)
     auth=store.auth_store
     job=conn.execute("SELECT * FROM auth_deletion_jobs WHERE id=? AND state='pending'",(job_id,)).fetchone()
     if not job:
@@ -372,12 +380,10 @@ def erase_registration_for_job(conn, *, store, lease, job_id):
             raise PermissionError('real Auth deletion context required')
         def validate():return _deletion_validate(conn,auth,service=source[0],lease=lease,job_id=job_id,email=job['owner_email'])
     else:
-        if __package__=='web.backend.services':from ..research.paid_control import _current_scope,verify_deletion_origin
-        else:from research.paid_control import _current_scope,verify_deletion_origin
         def validate():
             _native(conn,auth)
-            _current_scope(conn)
-            verify_deletion_origin(conn,store=store,lease=lease,job_id=job_id)
+            control._current_scope(conn)
+            control.verify_deletion_origin(conn,store=store,lease=lease,job_id=job_id)
             actual=conn.execute("SELECT * FROM auth_deletion_jobs WHERE id=? AND state='pending'",(job_id,)).fetchone()
             if not actual or actual['origin_version'] is None or actual['owner_email']!=job['owner_email'] or actual['session_generation']!=job['session_generation']:
                 raise PermissionError('protected pending deletion changed')

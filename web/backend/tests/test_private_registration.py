@@ -373,3 +373,23 @@ def test_receipts_and_mapping_cannot_replace_update_delete_or_rowid_bypass(stack
             with pytest.raises(sqlite3.Error):conn.execute(sql,args)
         assert conn.execute('SELECT state FROM auth_registration_operations').fetchone()[0]=='finalized'
         assert store.expected_owner_gate_identity(gate['gate_id'])
+
+
+def test_real_formal_registration_both_supported_import_namespaces(stack,monkeypatch):
+    client,root,mail=stack
+    import importlib
+    from services import runtime_paths as paths
+    other_paths=importlib.import_module('web.backend.services.runtime_paths')
+    for name in ('STATE_ROOT','CACHE_ROOT','LOG_ROOT'):monkeypatch.setattr(other_paths,name,getattr(paths,name))
+    other=importlib.import_module('web.backend.api.auth')
+    monkeypatch.setattr(other,'_AUTH_STORES',{})
+    monkeypatch.setattr(other,'_send_email',lambda _to,_subject,text:mail.append(text))
+    app=FastAPI();app.include_router(other.router,prefix='/api')
+    with TestClient(app,base_url=BETA) as alternative:
+        result=alternative.post('/api/auth/request-link',json={'email':'namespace@example.invalid'},headers={'origin':BETA})
+        assert result.status_code==200,result.text
+        from urllib.parse import urlsplit,parse_qs
+        token=parse_qs(urlsplit(mail[-1].strip().split()[-1]).query)['token'][0]
+        result=alternative.post('/api/auth/verify',json={'token':token},headers={'origin':BETA})
+        assert result.status_code==200,result.text
+        assert alternative.get('/api/auth/me').status_code==200
