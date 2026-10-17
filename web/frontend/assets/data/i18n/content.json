@@ -4,7 +4,7 @@
   "page.home.entry_scope": {"zh": "当前提供问题记录、本地知识库线索与经批准的来源查询；模型分析和深度研究结论尚未开放。", "en": "You can save problems, search local knowledge clues, and approve source queries. Model analysis and deep research conclusions are not available yet."},
   "page.home.entry_cta": {"zh": "开始研究", "en": "Start research"},
   "page.home.entry_kb_cta": {"zh": "查找本地知识库线索", "en": "Find local knowledge clues"},
-  "page.home.entry_kb_hint": {"zh": "知识库内容只是待核验线索，不表示数学同构或成熟解法。进入研究页后重新输入；这里不会自动传递私有问题。", "en": "Knowledge records are unverified clues, not established isomorphisms or solutions. Enter your problem again on the research page; private input is not transferred automatically."},
+  "page.home.entry_kb_hint": {"zh": "知识库内容是待核验的研究线索，不能直接作为解题结论；数学对应关系与适用条件仍需逐项核对。进入研究页后重新输入；这里不会自动传递私有问题。", "en": "Knowledge records are unverified research clues. Check mathematical correspondences and applicability before drawing conclusions for your problem. Enter your problem again on the research page; private input is not transferred automatically."},
   "page.home.entry_legacy": {"zh": "旧 AI 报告入口已停用。已有资料和旧工具仍可按历史入口查看。", "en": "The old AI report entry is retired. Existing references and legacy tools remain accessible through their historical links."},
   "page.about.eyebrow": {
     "zh": "— 关于 Structural —",
