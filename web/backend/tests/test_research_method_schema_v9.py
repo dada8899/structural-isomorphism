@@ -53,16 +53,17 @@ def test_each_v9_alter_guard_marker_and_commit_failure_rolls_back_exact_v8(v8,mo
     ResearchStore(auth._store())
 
 
-@pytest.mark.parametrize('change',['column','guard','missing','changed','unknown'])
+@pytest.mark.parametrize('change',['column','guard','missing','changed','unknown','legacy-aux'])
 def test_partial_or_damaged_v9_is_rejected_without_repair(v8,change):
     path,store=v8
-    if change in ('missing','changed','unknown'):store._migrate_v9()
+    if change in ('missing','changed','unknown','legacy-aux'):store._migrate_v9()
     with store.transaction(write=True) as conn:
         if change=='column':conn.execute(FAULTS[0])
         elif change=='guard':conn.execute("CREATE TRIGGER research_method_birth BEFORE INSERT ON research_provider_sessions BEGIN SELECT 1; END")
         elif change in ('missing','changed'):
             conn.execute('DROP TRIGGER research_method_birth')
             if change=='changed':conn.execute("CREATE TRIGGER research_method_birth BEFORE INSERT ON research_provider_sessions BEGIN SELECT 1; END")
+        elif change=='legacy-aux':conn.execute("CREATE TRIGGER owned_paid_fault BEFORE UPDATE OF state ON research_paid_approvals WHEN NEW.state='confirmed' BEGIN SELECT RAISE(ABORT,'owned confirmation fault'); END")
         else:conn.execute('CREATE INDEX unknown_method_idx ON research_provider_sessions(body_origin_state)')
     before=snapshot(path)
     with pytest.raises(ResearchError):ResearchStore(auth._store())

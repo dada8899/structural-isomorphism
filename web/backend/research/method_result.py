@@ -227,9 +227,11 @@ def _packet(conn,store,identity,snapshot,session):
     for index,ref in enumerate(payload['source_refs']):
         evidence=conn.execute("SELECT task_id FROM research_evidence_objects WHERE id=? AND kind='excerpts' AND research_id=? AND input_revision=?",(ref,context.research_id,context.input_revision)).fetchone()
         if not evidence:raise not_found()
-        source_context=context_for(conn,evidence[0]);eligible,handle=repository.preview_provider_handle(source_context,ref,'e'+str(index+1))
-        excerpt,_,_=repository._get(source_context,'excerpts',ref)
-        _,_,extracted=repository._get(source_context,'snapshots',excerpt.snapshot_id)
+        try:
+            source_context=context_for(conn,evidence[0]);eligible,handle=repository.preview_provider_handle(source_context,ref,'e'+str(index+1))
+            excerpt,_,_=repository._get(source_context,'excerpts',ref)
+            _,_,extracted=repository._get(source_context,'snapshots',excerpt.snapshot_id)
+        except LookupError:raise not_found() from None
         handles.append(EvidenceHandle(**handle.model_dump(),extracted_text=extracted,display_permission=True,may_send_to_provider=True))
     packet=EvidencePacket(context=context,handles=tuple(handles))
     if packet.binding_digest()!=snapshot.dispatch.evidence_digest:raise PermissionError('current method sources differ')

@@ -64,7 +64,14 @@ class ResearchService:
             return None
         if row["request_digest"] != request_digest:
             raise ResearchError("IDEMPOTENCY_CONFLICT", 409, "同一操作标识对应了不同内容，请核对已保存结果。")
-        return json.loads(row["result_json"])
+        result=json.loads(row['result_json'])
+        # Older full response snapshots never confer current method-body access.
+        if type(result) is dict and type(result.get('data')) is dict:
+            data=result['data']
+            if 'method_result' in data:
+                data.pop('method_result')
+                if data.get('report_status')=='qualified_report':data['report_status']='none'
+        return result
 
     @staticmethod
     def _remember(conn, principal, operation, scope, key, request_digest, result):
@@ -316,8 +323,8 @@ class ResearchService:
             replay=self._replay(conn,principal,operation,"r:"+rid,key,digest(payload))
             if replay is not None:
                 if method_request:return self._method_projection(conn,row,identity,lease,request_source,task['id'])
-                if replay.get('_method_result_replay')==1:
-                    raise PermissionError('fresh authenticated replay source required')
+                if is_paid and operation=='reconcile' and conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:
+                    return ResearchProjection.build(conn,row,task_id=task['id'])
                 return replay
             if task["version"]!=request.expected_task_version:
                 raise ResearchError("VERSION_CONFLICT",409,"任务状态已变化，请先刷新。")

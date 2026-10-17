@@ -155,6 +155,9 @@ def test_cached_replay_rechecks_paid_grant_and_does_not_rollback_late_cost(paid_
         replay=post(client,f'/api/research/{rid}/reconcile',body,'fresh-read-every-replay')
         assert replay.status_code==200,replay.text
         assert replay.json()['data']['method_result'] is None and 'Offline candidate' not in replay.text
+        from research.schemas import TaskVersionRequest
+        direct=ResearchService(store).task_action(identity(client),rid,TaskVersionRequest(**body),'fresh-read-every-replay','reconcile')
+        assert 'method_result' not in direct['data'] and direct['data']['report_status']=='none'
         assert client.get(f'/api/research/{rid}',params={'task_id':result['task_id']}).status_code==404
         with store.transaction() as conn:
             assert conn.execute('SELECT upper_booked,held FROM research_funding_accounts').fetchone()[:]==(2,0)
@@ -162,13 +165,15 @@ def test_cached_replay_rechecks_paid_grant_and_does_not_rollback_late_cost(paid_
         assert wire['requests']==1
 
 
-def test_revoked_grant_before_typed_commit_preserves_valid_financial_reconciliation(paid_api):
+@pytest.mark.parametrize('withdraw',['paid-grant','excerpt','snapshot'])
+def test_revoked_grant_before_typed_commit_preserves_valid_financial_reconciliation(paid_api,withdraw):
     client,_,store,rid,_,_=paid_api
     with execution(paid_api) as (session,result,wire,pid):
         receipt=session.receive()
         with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
             persist_budget_return(conn,store=store,lease=lease,receipt=receipt)
-            conn.execute("UPDATE research_grants SET status='revoked' WHERE id=(SELECT grant_id FROM research_tasks WHERE id=?)",(result['task_id'],))
+            if withdraw=='paid-grant':conn.execute("UPDATE research_grants SET status='revoked' WHERE id=(SELECT grant_id FROM research_tasks WHERE id=?)",(result['task_id'],))
+            else:conn.execute('DELETE FROM research_evidence_objects WHERE research_id=? AND kind=?',(rid,'excerpts' if withdraw=='excerpt' else 'snapshots'))
         response=post(client,f'/api/research/{rid}/reconcile',{'task_id':result['task_id'],'expected_task_version':2},'financial-independent')
         assert response.status_code==200 and response.json()['data']['method_result'] is None,response.text
         with store.transaction() as conn:
