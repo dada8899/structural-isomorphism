@@ -178,3 +178,42 @@ def test_maintenance_closes_every_native_resource_after_cleanup_failure(v9,monke
     fd=os.open(str(path)+'.formula-maintenance',os.O_RDWR|os.O_NOFOLLOW)
     try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
     finally:os.close(fd)
+
+
+def test_v10_retains_exact_method_hook_check(v9):
+    _,_,_,store=v9
+    with formula_maintenance(store) as maintenance:store.migrate_formula_v10(maintenance=maintenance)
+    with store.transaction() as conn:
+        conn.create_function('research_method_guard_version',0,lambda:8)
+        with pytest.raises(ResearchError):store._check_v10(conn)
+
+
+def test_bad_auth_policy_refuses_maintenance_before_any_mutation(v9):
+    _,path,_,store=v9
+    with sqlite3.connect(path) as conn:conn.execute('UPDATE auth_owner_gate_policy SET fingerprint=?',('0'*64,))
+    before=snapshot(path)
+    with pytest.raises(RuntimeError,match='configuration mismatch'):
+        with formula_maintenance(store):pass
+    assert snapshot(path)==before
+
+
+def test_replaced_inode_is_rejected_before_journal_mutation(v9,monkeypatch):
+    _,path,_,store=v9;native=sqlite3.connect
+    other=path.with_name('replacement.sqlite3');old=path.with_name('original.sqlite3')
+    source=native(path);dest=native(other)
+    try:source.backup(dest)
+    finally:dest.close();source.close()
+    os.chmod(other,0o600);swapped=[];mutations=[]
+    class Observe(sqlite3.Connection):
+        def execute(self,sql,*args,**kwargs):
+            result=super().execute(sql,*args,**kwargs)
+            if sql=='PRAGMA journal_mode=DELETE':mutations.append(path.stat().st_ino)
+            return result
+    def connect(value,*args,**kwargs):
+        if str(value).startswith(path.as_uri()) and '?mode=ro' in str(value) and not swapped:
+            os.replace(path,old);os.replace(other,path);swapped.append(True)
+        return native(value,*args,factory=Observe,**kwargs)
+    monkeypatch.setattr(sqlite3,'connect',connect)
+    with pytest.raises(PermissionError,match='inode changed'):
+        with formula_maintenance(store):pass
+    assert not mutations

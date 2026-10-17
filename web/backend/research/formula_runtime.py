@@ -164,6 +164,7 @@ def formula_maintenance(store):
             ro.row_factory=sqlite3.Row
             from .financial_guard import install_default_hook
             install_default_hook(ro);ro.execute('PRAGMA foreign_keys=ON');ro.execute('BEGIN')
+            store.auth_store.check_gate_policy(ro)
             store._check_structure_version(ro,9);store._check_v9(ro);ro.rollback()
             _check_database_path(store.path,parentfd,parent_identity,identity)
         finally:ro.close()
@@ -178,7 +179,7 @@ def formula_maintenance(store):
         _check_database_path(store.path,parentfd,parent_identity,identity)
         if conn.execute('PRAGMA journal_mode=DELETE').fetchone()[0]!='delete':raise PermissionError('exclusive journal unavailable')
         if conn.execute('PRAGMA locking_mode=EXCLUSIVE').fetchone()[0]!='exclusive':raise PermissionError('exclusive mode unavailable')
-        conn.execute('BEGIN EXCLUSIVE');store._check_structure_version(conn,9);store._check_v9(conn);conn.commit()
+        conn.execute('BEGIN EXCLUSIVE');store.auth_store.check_gate_policy(conn);store._check_structure_version(conn,9);store._check_v9(conn);conn.commit()
         backup=sqlite3.connect(':memory:',isolation_level=None);conn.backup(backup)
         restored=sqlite3.connect(':memory:',isolation_level=None)
         try:
@@ -235,6 +236,7 @@ def migrate_v10(store,*,maintenance):
         conn.execute('PRAGMA foreign_keys=OFF')
         if conn.execute('PRAGMA foreign_keys').fetchone()[0]!=0:raise PermissionError('FK disable failed')
         conn.execute('BEGIN EXCLUSIVE');maintenance.require(store)
+        store.auth_store.check_gate_policy(conn)
         store._check_structure_version(conn,9);store._check_v9(conn)
         overlays=store._formula_tables();objects=store._current_structure_declarations(version=9)
         extras=[forms[0] for kind,target,forms in objects.values() if target in overlays and kind!='table']

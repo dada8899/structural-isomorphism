@@ -1081,6 +1081,10 @@ class ResearchStore:
     def _check_v9(cls,conn):
         cls._check_v8(conn,method=True);cls._check_v7_attachments(conn,method=True)
         cls._check_declared_structure(conn,cls._structure_declarations(METHOD_GUARDS))
+        cls._check_method_hook(conn)
+
+    @staticmethod
+    def _check_method_hook(conn):
         try:version=conn.execute('SELECT research_method_guard_version(),research_method_write_allowed(?,?,?)',('probe','','{}')).fetchone()
         except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究正文连接守卫不可用。') from None
         if tuple(version)!=(9,0):raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究正文连接守卫不匹配。')
@@ -1137,10 +1141,14 @@ class ResearchStore:
 
     @classmethod
     def _check_v10(cls,conn):
+        if __package__=='web.backend.research':from ..services.auth_store import AuthStore
+        else:from services.auth_store import AuthStore
+        AuthStore.check_gate_policy(conn)
         cls.check_current_structure(conn)
         cls._check_v8(conn,method=True,formula=True)
         cls._check_v7_attachments(conn,method=True)
         cls._check_declared_structure(conn,cls._structure_declarations(METHOD_GUARDS))
+        cls._check_method_hook(conn)
         from .formula_runtime import require_hook
         require_hook(conn)
 
