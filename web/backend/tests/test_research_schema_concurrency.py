@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 import importlib
 import hashlib
 import json
+import os
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -337,7 +338,10 @@ def test_cold_schema_race_across_processes_and_namespaces_preserves_both_wal_com
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
     path = tmp_path/'auth.sqlite3';auth_for(namespace, path)
     ready = tmp_path/'ready';resume = tmp_path/'resume';output = tmp_path/'result.json'
-    process = subprocess.Popen([sys.executable, '-c', CHILD, namespace, str(path), str(ready), str(resume), str(output)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    project_root = Path(__file__).resolve().parents[3]
+    child_env = dict(os.environ)
+    child_env['PYTHONPATH'] = os.pathsep.join((str(project_root), str(project_root/'web/backend'), child_env.get('PYTHONPATH', '')))
+    process = subprocess.Popen([sys.executable, '-c', CHILD, namespace, str(path), str(ready), str(resume), str(output)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=child_env)
     try:
         deadline = time.monotonic()+20
         while not ready.exists():
