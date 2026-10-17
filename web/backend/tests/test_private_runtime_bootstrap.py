@@ -74,3 +74,23 @@ def test_exact_offline_migration_keeps_research10_and_identity(roots):
     assert (db.stat().st_dev,db.stat().st_ino)==identity
     with AuthStore(db)._connection() as conn:
         assert list(map(tuple,conn.execute('SELECT * FROM research_schema')))==[(1,10)]
+
+
+def test_current_preflight_metadata_only_no_hooks_or_business_reads(roots,monkeypatch):
+    bootstrap_private_runtime();db=roots/'auth.sqlite3'
+    original=sqlite3.connect;forbidden=[];queries=[]
+    def connect(*args,**kwargs):
+        conn=original(*args,**kwargs)
+        if args[0]==db.as_uri()+'?mode=ro':
+            def authorize(action,table,column,*_):
+                if action==sqlite3.SQLITE_READ and table not in ('sqlite_master','sqlite_schema','research_schema','auth_owner_gate_policy'):
+                    forbidden.append(table);return sqlite3.SQLITE_DENY
+                if action not in (sqlite3.SQLITE_READ,sqlite3.SQLITE_SELECT,sqlite3.SQLITE_PRAGMA,sqlite3.SQLITE_TRANSACTION):
+                    forbidden.append(action);return sqlite3.SQLITE_DENY
+                return sqlite3.SQLITE_OK
+            conn.set_authorizer(authorize);conn.set_trace_callback(queries.append)
+        return conn
+    monkeypatch.setattr(sqlite3,'connect',connect)
+    AuthStore.preflight_private(db)
+    assert not forbidden and queries
+    assert not any(sql.upper().startswith(('INSERT','UPDATE','DELETE','CREATE','ALTER')) or 'guard_version(' in sql or 'write_allowed(' in sql for sql in queries)

@@ -85,6 +85,18 @@ def test_formal_old_callers_and_ordinary_sql_default_deny(stack,monkeypatch):
     assert store.user('bad@example.invalid') is None
 
 
+def test_fabricated_request_is_not_actual_token_or_verify_producer(stack):
+    client,root,mail=stack;store=auth._store()
+    scope={'type':'http','method':'POST','scheme':'https','query_string':b'',
+        'server':('beta.structural.bytedance.city',443),'headers':[(b'origin',BETA.encode())]}
+    request=Request(dict(scope,path='/api/auth/request-link'))
+    now=datetime.now(timezone.utc)
+    with pytest.raises(PermissionError):store.add_token('f'*64,'forged@example.invalid',now.isoformat(),(now+timedelta(minutes=10)).isoformat(),request=request)
+    with pytest.raises(PermissionError):
+        with registration.verify_request(Request(dict(scope,path='/api/auth/verify')),store):pass
+    with store._connection() as conn:assert conn.execute('SELECT count(*) FROM magic_tokens').fetchone()[0]==0
+
+
 def test_failure_before_finalize_does_not_consume(stack,monkeypatch):
     client,root,mail=stack
     token=link(client,mail)
@@ -333,3 +345,31 @@ def test_actual_process_death_no_session_replay_and_safe_recovery(stack,point):
     finally:
         if process.is_alive():process.terminate();process.join(5)
         if process.pid is not None:process.close()
+
+
+def test_receipts_and_mapping_cannot_replace_update_delete_or_rowid_bypass(stack):
+    client,root,mail=stack
+    assert verify(client,link(client,mail)).status_code==200
+    store=auth._store()
+    with store._connection() as conn:
+        conn.execute('BEGIN IMMEDIATE')
+        op=conn.execute('SELECT * FROM auth_registration_operations').fetchone()
+        gate=conn.execute('SELECT * FROM auth_owner_gates').fetchone()
+        attempts=[
+            ("UPDATE auth_registration_receipts SET recorded_at='forged'",()),
+            ('DELETE FROM auth_registration_receipts',()),
+            ('DELETE FROM auth_registration_operations',()),
+            ('UPDATE auth_registration_operations SET rowid=rowid+100',()),
+            ('UPDATE OR REPLACE auth_registration_operations SET state=\'claimed\',version=version+1',()),
+            ('UPDATE auth_owner_gates SET gate_id=?',(str(__import__('uuid').uuid4()),)),
+            ('DELETE FROM auth_owner_gates',()),
+            ('UPDATE auth_users SET rowid=rowid+10',()),
+            ('UPDATE auth_users SET lifecycle=\'active\'',()),
+            ('UPDATE magic_tokens SET consumed_at=NULL',()),
+            ("INSERT OR REPLACE INTO auth_users(email,tier,created_at,session_generation,lifecycle) SELECT email,tier,created_at,session_generation,lifecycle FROM auth_users",()),
+            ('INSERT OR REPLACE INTO auth_registration_receipts SELECT * FROM auth_registration_receipts',()),
+        ]
+        for sql,args in attempts:
+            with pytest.raises(sqlite3.Error):conn.execute(sql,args)
+        assert conn.execute('SELECT state FROM auth_registration_operations').fetchone()[0]=='finalized'
+        assert store.expected_owner_gate_identity(gate['gate_id'])

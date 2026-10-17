@@ -49,6 +49,27 @@ def _private(store):
     return current or store._private_auth
 
 
+def _route_call(request,name):
+    """Bind admission to the live code-owned route, not a Request-shaped DTO."""
+    from starlette.requests import Request
+    if __package__=='web.backend.services':from ..api import auth
+    else:from api import auth
+    endpoint=getattr(auth,name)
+    if (not isinstance(request,Request) or request.method!='POST'
+        or request.url.path!='/api/auth/'+('verify' if name=='verify' else 'request-link')
+        or auth.require_same_origin(request) is not None):
+        raise PermissionError('actual same-origin Auth route required')
+    import sys
+    frame=sys._getframe(1)
+    try:
+        while frame is not None:
+            if frame.f_code is endpoint.__code__ and frame.f_locals.get('request') is request:
+                return
+            frame=frame.f_back
+        raise PermissionError('Auth admission requires its live route caller')
+    finally:del frame
+
+
 class RegistrationError(ValueError):
     pass
 
@@ -171,11 +192,13 @@ class _VerifyRequest:
         from starlette.requests import Request
         if not isinstance(request, Request) or request.method!='POST' or not request.url.path.endswith('/auth/verify'):
             raise PermissionError('actual POST verify required')
+        _route_call(request,'verify')
         self.request, self.store, self.pid, self.active = request, store, os.getpid(), True
         self.nonce, self.caps = uuid4().hex, []
     def require(self, store):
         if _REQUEST.get() is not self or not self.active or self.pid!=os.getpid() or self.store is not store or not _private(store):
             raise PermissionError('verify request ended or changed')
+        _route_call(self.request,'verify')
 
 
 @contextmanager
@@ -253,6 +276,7 @@ def add_token(store, token_hash, email, created_at, expires_at, *, request):
     from starlette.requests import Request
     if not isinstance(request,Request) or request.method!='POST' or not request.url.path.endswith('/auth/request-link'):
         raise PermissionError('actual request-link source required')
+    _route_call(request,'request_link')
     if not _private(store):
         raise PermissionError('private token producer required')
     pid=os.getpid()
@@ -260,6 +284,7 @@ def add_token(store, token_hash, email, created_at, expires_at, *, request):
         conn.execute('BEGIN IMMEDIATE')
         def validate():
             _native(conn,store)
+            _route_call(request,'request_link')
             if pid!=os.getpid():raise PermissionError('token producer process changed')
             store.require_registration_allowed(conn,email)
         with _write(conn,store,{('magic_tokens:INSERT',token_hash)},validate,_factory=_FACTORY):
@@ -395,6 +420,7 @@ def delete_account_data(store,email,*,rate_keys):
                 'account':conn.execute('DELETE FROM auth_users WHERE email=?',(email,)).rowcount,
                 'revoked_session_events':'retained security markers','security_deletion_epoch':'retained without raw email'}
             counts['rate_limit_events']=conn.execute('DELETE FROM auth_rate_requests WHERE email IN ('+','.join('?' for _ in (email,*rate_keys))+')',(email,*rate_keys)).rowcount
+            conn.execute('UPDATE revoked_sessions SET email=NULL WHERE email=?',(email,))
         conn.commit()
         return counts
 
