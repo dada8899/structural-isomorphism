@@ -182,3 +182,75 @@ def test_no_worker_database_sdk_or_network_side_effects():
         tree=ast.parse(Path(module.__file__).read_text())
         names=[n.module or "" for n in ast.walk(tree) if isinstance(n,ast.ImportFrom)]
         assert not any(v.startswith(("formula_check","provider","paid","api","store","budget","usage_upper")) for v in names)
+
+
+def _source_union_case(total, *, mixed=False):
+    from uuid import uuid4
+    data=request()
+    references=[]
+    for index in range(total):
+        item=deepcopy(data["left"]["source_refs"][0]);item["id"]=str(uuid4())
+        if mixed and index%2:
+            item.update(provenance="product_excerpt",locator="excerpt:"+item["id"])
+        references.append(item)
+    data["left"]["source_refs"]=deepcopy(references[:20])
+    data["right"]["source_refs"]=deepcopy(references[:20] if total==20 else references[total-20:])
+    return data
+
+
+@pytest.mark.parametrize("total",[20,21,40])
+def test_legal_per_side_twenty_source_union_is_not_truncated(total):
+    expected,result=content(_source_union_case(total))
+    assert all(outcome["status"]=="passed" for outcome in result["outcomes"])
+    assert len(science.canonical(expected.data()).encode())<65536
+    assert len(result["source_refs"])==total
+    view=project(expected,result)
+    assert len(view["source_references"])==total
+    assert {row["id"] for row in view["source_references"]}=={row["id"] for row in result["source_refs"]}
+
+
+def test_mixed_source_union_deduplicates_only_identical_specific_versions():
+    expected,result=content(_source_union_case(30,mixed=True))
+    view=project(expected,result)
+    assert len(view["source_references"])==30
+    assert {row["declared_provenance"] for row in view["source_references"]}=={"curated_reference","product_excerpt"}
+    wrong=deepcopy(result);wrong["source_refs"][0]["revision"]=2
+    wrong["output_digest"]=science.digest({k:v for k,v in wrong.items() if k!="output_digest"})
+    with pytest.raises(public.FormulaPublicError):project(expected,wrong)
+
+
+def test_union_capacity_never_widens_original_per_side_twenty_limit():
+    data=_source_union_case(21)
+    data["left"]["source_refs"].append(deepcopy(data["right"]["source_refs"][-1]))
+    with pytest.raises(science.FormulaLimit):science.FormulaCheckInput.parse(data)
+
+
+@pytest.mark.parametrize("case",["exp_claims_exact","exact_claims_tolerance"])
+def test_sample_comparison_is_derived_from_both_arithmetic_tags(case):
+    if case=="exp_claims_exact":
+        expected,result=content(request(side("passive_decay"),side("passive_decay","b")))
+    else:expected,result=content(request())
+    numeric=next(outcome for outcome in result["outcomes"] if outcome["samples"])
+    if case=="exp_claims_exact":
+        assert all(sample["left"]["arithmetic"]==sample["right"]["arithmetic"]=="bounded_exp" for sample in numeric["samples"])
+        for sample in numeric["samples"]:sample["comparison"]="exact"
+        numeric["tolerance"]=None
+    else:
+        assert all(sample["left"]["arithmetic"]==sample["right"]["arithmetic"]=="exact_rational" for sample in numeric["samples"])
+        for sample in numeric["samples"]:sample["comparison"]="abs1e-10_rel1e-8_normalized_only"
+        numeric["tolerance"]={"absolute":"1e-10","relative":"1e-8","policy_revision":policy.POLICY,"scope":"normalized_same_scale_samples_only"}
+    result["output_digest"]=science.digest({k:v for k,v in result.items() if k!="output_digest"})
+    with pytest.raises(public.FormulaPublicError):project(expected,result)
+
+
+def test_mixed_arithmetic_content_requires_the_existing_tolerance_without_recomputing_values():
+    # Deliberate content-type boundary, not a new supported scientific template pair.
+    expected,result=content(request(side("passive_decay"),side("passive_decay","b")))
+    numeric=next(outcome for outcome in result["outcomes"] if outcome["samples"])
+    numeric["samples"][0]["left"]={"value":"1","given_output":None,"arithmetic":"exact_rational"}
+    result["output_digest"]=science.digest({k:v for k,v in result.items() if k!="output_digest"})
+    assert project(expected,result)["execution_attested"] is False
+    for sample in numeric["samples"]:sample["comparison"]="exact"
+    numeric["tolerance"]=None
+    result["output_digest"]=science.digest({k:v for k,v in result.items() if k!="output_digest"})
+    with pytest.raises(public.FormulaPublicError):project(expected,result)

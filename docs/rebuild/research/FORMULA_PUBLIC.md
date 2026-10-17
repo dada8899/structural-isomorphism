@@ -19,3 +19,5 @@
 真实执行与保存仍待Core冻结当前任务／来源reader、stop/epoch/CAS及check/result保存读取；然后使用原Linux隔离checker。纯类型、内容摘要、用户declared或lambda不能授予调用资格。资源guard不支持时仍应按原checker拒绝，不能改走纯核冒充产品执行。
 
 新测试复用既有有限fixture和纯数学核的真实结果作为数据，绝不运行FormulaChecker／worker；这些合成task UUID只是测试内容，不对应创建的任务。测试保四主要关系、三scope、失败／不足／不支持／资源分类、反例及私密异常不泄露，不是实际页面、Linux隔离或现实机制验收。
+
+原审两项内容一致性返修：结果来源按原每侧≤20条合并去重，合法并集最多40条，具体版本和输入64 KiB／结果512 KiB保持；不截断并集。样本仅左右arithmetic都为exact_rational才允许comparison=exact且无容差，其他组合必须沿原固定容差。此处只核类型与标签一致，不重新比较数值或增加科学模板；混合类型反例也不代表新模板配对已获支持。

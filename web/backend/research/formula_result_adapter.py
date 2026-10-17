@@ -59,7 +59,12 @@ def project_formula_result(payload,*,expected_input=None,expected_output_digest=
             if outcome["check_kind"]=="bounded_numeric" and outcome["samples"]:
                 expected_status="passed" if all(sample["passed"] for sample in outcome["samples"]) else "failed"
                 if outcome["status"]!=expected_status:_fail("formula_sample_status_mismatch")
-                all_exact=all(sample["comparison"]=="exact" for sample in outcome["samples"])
+                all_exact=True
+                for sample in outcome["samples"]:
+                    exact=sample["left"]["arithmetic"]==sample["right"]["arithmetic"]=="exact_rational"
+                    expected_comparison="exact" if exact else "abs1e-10_rel1e-8_normalized_only"
+                    if sample["comparison"]!=expected_comparison:_fail("formula_arithmetic_comparison_mismatch")
+                    all_exact &= exact
                 if (outcome["tolerance"] is None)!=all_exact:_fail("formula_tolerance_scope_mismatch")
         data={"schema_version":"formula-content-view-v1","comparison_scope":result["comparison_scope"],"policy_revision":result["policy_revision"],
             "content_input_digest":result["input_digest"],"content_output_digest":result["output_digest"],

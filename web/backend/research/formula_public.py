@@ -256,7 +256,7 @@ class _ReportedResult(_DTO):
     policy_revision:Literal["formula-policy-v1-d2-candidate"]
     formula_refs:Annotated[list[_FormulaRef],Field(min_length=1,max_length=2)]
     outcomes:Annotated[list[_Outcome],Field(min_length=1,max_length=4)]
-    source_refs:Annotated[list[_ReportedSource],Field(max_length=20)]
+    source_refs:Annotated[list[_ReportedSource],Field(max_length=40)]
     limitations:Annotated[list[Text],Field(min_length=1,max_length=24)]
     resource_guard:Literal["pure_core_not_a_sandbox","not_executed","isolated_execution_not_completed","linux_as_baseline_plus_128mib_cpu1s_wall2s"]
     output_digest:Digest
