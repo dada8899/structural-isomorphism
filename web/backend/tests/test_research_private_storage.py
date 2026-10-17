@@ -374,7 +374,7 @@ def formal_paid(request,tmp_path,monkeypatch,record_property):
     from api import auth
     from services.auth_registration import bootstrap_private_runtime
     # Resolve the original paid/source producers only after a real current
-    # Auth11 runtime and account exist. Legacy Auth + Research11 is not an
+    # Auth runtime and account exist. Legacy Auth + Research11 is not an
     # admissible maintenance pair and cannot be made current by a marker edit.
     state=tmp_path.resolve()/'auth';cache=tmp_path.resolve()/'private-cache'
     for name,value in [('STATE_ROOT',state),('CACHE_ROOT',cache),('LOG_ROOT',state/'logs')]:monkeypatch.setattr(paths,name,value)
@@ -410,12 +410,12 @@ def formal_paid(request,tmp_path,monkeypatch,record_property):
     with development_store.transaction() as conn:
         gates={row[0] for row in conn.execute('SELECT gate_id FROM auth_owner_gates')}
         marker=[tuple(row) for row in conn.execute('SELECT id,version FROM research_schema')]
-        assert len(marker)==1 and marker[0][0]==1 and type(marker[0][1]) is int and marker[0][1] in (9,10,11)
+        assert len(marker)==1 and marker[0][0]==1 and type(marker[0][1]) is int and marker[0][1] in (9,10,11,12)
         version=marker[0][1]
         ResearchStore._check_structure_version(conn,version)
         source_gates=[]
         for task in conn.execute('SELECT id,policy_revision FROM research_tasks'):
-            if version==11 and task['policy_revision']=='d1-source-only-v1':
+            if version in (11,12) and task['policy_revision']=='d1-source-only-v1':
                 resource=conn.execute('SELECT owner_gate_id,admission_version,task_gate_identity FROM research_source_resources WHERE task_id=?',(task['id'],)).fetchone()
                 run=conn.execute('SELECT task_gate_identity FROM research_source_runs WHERE task_id=?',(task['id'],)).fetchone()
                 assert resource and run and resource['admission_version']=='source-admission-v1'
@@ -462,13 +462,16 @@ def formal_paid(request,tmp_path,monkeypatch,record_property):
     # exclusive maintainer. A numeric marker alone is never fixture admission.
     profile=recover_formula_journal(db)
     if profile['schema_version']==9:provision_formula_v10(db)
-    elif profile['schema_version'] not in (10,11):raise AssertionError('unsupported complete offline fixture graph')
+    elif profile['schema_version'] not in (10,11,12):raise AssertionError('unsupported complete offline fixture graph')
     with raw(db) as conn:
         conn.execute('BEGIN');auth_profile=AuthStore.check_offline_auth_metadata(conn)
     migrate_private_auth_registration()
     if profile['schema_version'] in (9,10):
         from research.source_guard import provision_source_v11
         provision_source_v11(db)
+    if profile['schema_version'] in (9,10,11):
+        from research.plan_financial import provision_plan_v12
+        provision_plan_v12(db)
     with raw(db) as conn:owners=[tuple(row) for row in conn.execute('SELECT owner_key,gate_id FROM auth_owner_gates')]
     held=AuthStore(db)
     for owner,gate in owners:
