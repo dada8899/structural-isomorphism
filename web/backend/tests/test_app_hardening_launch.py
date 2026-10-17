@@ -36,6 +36,18 @@ def _fresh_main(monkeypatch, env: str, *, auth_enabled: bool = False):
     # prod path requires the share-token secret env (report_store guards it).
     monkeypatch.setenv("STRUCTURAL_SHARE_TOKEN_SECRET", "test-secret-for-suite")
     monkeypatch.setenv("AUTH_ENABLED", "true" if auth_enabled else "false")
+    # The history getter supports this env; report getters do not. Seed only
+    # their existing lazy singleton slots with a real Store at the same private
+    # path. No handler, Store method or missing-report result is mocked.
+    import os
+    from api import history, report, report_account
+    from services.report_store import ReportStore
+
+    db_path = Path(os.environ["STRUCTURAL_HISTORY_DB"])
+    store = ReportStore(db_path)
+    monkeypatch.setattr(report, "_store", store)
+    monkeypatch.setattr(report_account, "_store", store)
+    monkeypatch.setattr(history, "_db", None)
     if "main" in sys.modules:
         del sys.modules["main"]
     import main  # noqa: WPS433 — deliberate reload
@@ -44,6 +56,20 @@ def _fresh_main(monkeypatch, env: str, *, auth_enabled: bool = False):
         # the ASGI middleware's module symbol. Lifespan/health stay closed.
         main.require_formal_admission = admission
     return main
+
+
+@pytest.fixture(autouse=True)
+def private_report_history_location(request, monkeypatch):
+    """Give route tests a synthetic private DB, independently of the model spy."""
+    if request.node.name == "test_search_service_cache_stats_shape":
+        yield
+        return
+    directory = request.getfixturevalue("tmp_path")
+    monkeypatch.setenv("STRUCTURAL_HISTORY_DB", str(directory / "history.db"))
+    # Real Store operations close their native connections in
+    # ClosingConnection.__exit__'s finally. Monkeypatch teardown restores both
+    # singleton slots and the env after the route fixture completes.
+    yield
 
 
 @pytest.fixture
