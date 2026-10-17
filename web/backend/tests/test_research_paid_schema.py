@@ -43,6 +43,7 @@ def legacy(stack,tmp_path,monkeypatch):
     provider=ResearchHTTPFixture(tmp_path/"legacy-provider.sqlite3")
     try:
         with monkeypatch.context() as old:
+            old.setattr(ResearchStore,'_initialize_current',lambda self,conn:False)
             old.setattr(ResearchStore,"_migrate_v5",lambda self:None)
             old.setattr(ResearchStore,"_migrate_v6",lambda self:None)
             old.setattr(ResearchStore,"_migrate_v7",lambda self:None)
