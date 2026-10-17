@@ -1781,3 +1781,33 @@ def test_method_result_successful_old_write_cannot_revive_revoked_private_view(m
         finally:
             for route,_ in held:route.abort()
             context.close();browser.close()
+
+
+@pytest.mark.parametrize('refresh',['task-refresh','source-refresh'])
+def test_method_current_source404_replaces_success_with_visible_access_error(method_server,refresh):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context(viewport={'width':430,'height':932})
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            expect(page.locator('#status')).to_contain_text('已从账户读取保存的问题')
+            method_server['withdraw_source']()
+            with page.expect_response(base+'/api/research/'+facts['research_id']) as response:
+                page.locator('#'+refresh).click()
+            assert response.value.status==404
+            message=response.value.json()['error']['message']
+            assert context.request.get(base+'/api/auth/me').status==200
+            expect(page.locator('#problem-form')).to_be_hidden()
+            expect(page.locator('#method-section')).to_be_hidden()
+            expect(page.locator('#method-body')).to_have_text('')
+            expect(page.locator('#method-citations')).to_have_text('')
+            expect(page.locator('#method-meta')).to_be_hidden()
+            expect(page.locator('#status')).to_be_visible()
+            expect(page.locator('#status')).to_have_text(message)
+            expect(page.locator('#status')).to_have_attribute('data-error','true')
+            assert '已从账户读取保存的问题' not in page.locator('body').inner_text()
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+            page.screenshot(path=str(method_server['root']/('access-error-'+refresh+'.png')),full_page=True)
+        finally:context.close();browser.close()

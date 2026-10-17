@@ -242,10 +242,13 @@
       const payload = await response.json();
       if (!active(response)) throw new Error('较早的来源读取已失效。');
       if (!response.ok) {
-        if (response.status === 401 || response.status === 404 || payload.error?.code === 'AUTHORIZATION_STALE') clearPrivateView();
         const error = new Error(payload.error?.message || '操作暂时无法完成，请保留当前内容。');
         error.status = response.status;
         error.code = payload.error?.code;
+        if (response.status === 401 || response.status === 404 || payload.error?.code === 'AUTHORIZATION_STALE') {
+          clearPrivateView();
+          status(error.message, true);
+        }
         throw error;
       }
       if (payload.schema_version !== schema || payload.contract_revision !== revision || !payload.data) {
