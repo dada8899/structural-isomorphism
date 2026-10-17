@@ -654,6 +654,7 @@
     initialLoad = false;
     const privateScope = privateGeneration;
     if (!await authenticated(() => privateScope === privateGeneration)) return;
+    if (selectedTask !== null && (!researchId || !validId(selectedTask) || new URLSearchParams(location.search).getAll('task_id').length !== 1)) { clearPrivateView(); status('流程链接无效。', true); return; }
     if (!researchId) {
       // An authenticated read is still required: the account endpoint performs
       // actual session validation; the research API revalidates on every save.
@@ -665,7 +666,6 @@
       return;
     }
     if (!validId(researchId)) { clearPrivateView(); status('研究链接无效。', true); return; }
-    if (selectedTask !== null && (!validId(selectedTask) || new URLSearchParams(location.search).getAll('task_id').length !== 1)) { clearPrivateView(); status('流程链接无效。', true); return; }
     const data = await methodRequest(viewUrl(),{},methodToken);
     if (methodToken.generation !== methodGeneration) return;
     if (selectedTask && data.task?.id !== selectedTask) { clearPrivateView(); status('无法核对所选流程，请重新打开研究记录。',true); return; }

@@ -2160,3 +2160,50 @@ def test_invalid_or_ambiguous_task_url_never_falls_back_to_editable_current_prob
                 assert requests==[]
                 page.close()
         finally:context.close();browser.close()
+
+
+
+@pytest.mark.parametrize('selector',['','bad','00000000-0000-4000-8000-000000000000'],ids=['empty','malformed','valid-uuid'])
+def test_task_selector_without_research_id_is_explicitly_invalid_and_cannot_create(server,selector):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server['base'];login(context,base);page=context.new_page();requests=[]
+            page.on('request',lambda request:requests.append((request.method,request.url)) if '/api/research' in request.url else None)
+            page.goto(base+'/research?task_id='+selector)
+            expect(page.locator('#status')).not_to_have_text('正在读取研究记录…')
+            observation={'selector':selector,'status':page.locator('#status').inner_text(),'form_visible':page.locator('#problem-form').is_visible(),'requests':requests.copy()}
+            (server['root']/'missing-research-id-observation.json').write_text(json.dumps(observation,ensure_ascii=False,indent=2))
+            expect(page.locator('#status')).to_have_text('流程链接无效。')
+            expect(page.locator('#status')).to_have_attribute('data-error','true')
+            expect(page.locator('#problem-form')).to_be_hidden()
+            expect(page.locator('#method-body')).to_have_text('')
+            expect(page.locator('#task-history-items a')).to_have_count(0)
+            page.locator('#problem-form').dispatch_event('submit')
+            page.locator('#task-start').dispatch_event('click')
+            page.wait_for_timeout(50)
+            assert requests==[]
+            assert context.request.get(base+'/api/auth/me').status==200
+        finally:context.close();browser.close()
+
+
+def test_new_research_without_task_selector_keeps_real_create_and_save(server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server['base'];login(context,base);page=context.new_page();page.goto(base+'/research')
+            expect(page.locator('#status')).to_have_text('新问题尚未保存。')
+            expect(page.locator('#original-input')).to_be_enabled()
+            expect(page.locator('#save')).to_be_enabled()
+            text='普通新建入口应继续真实保存问题'
+            fill(page,text)
+            with page.expect_response(lambda response:response.url==base+'/api/research' and response.request.method=='POST') as saved:
+                page.locator('#save').click()
+            assert saved.value.status==200
+            data=saved.value.json()['data'];rid=data['research']['id']
+            assert data['current_problem']['original_input']==text and data['current_problem']['revision']==1
+            expect(page.locator('#status')).to_contain_text('已保存修订 1')
+            assert page.url==base+'/research/'+rid
+            actual=context.request.get(base+'/api/research/'+rid)
+            assert actual.status==200 and actual.json()['data']['current_problem']['original_input']==text
+        finally:context.close();browser.close()
