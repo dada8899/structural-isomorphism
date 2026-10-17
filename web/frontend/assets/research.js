@@ -65,7 +65,11 @@
     if (token?.generation === methodGeneration) clearMethod('本次未能核对方法记录，旧正文已收起。请重新读取已保存版本。');
   }
   async function methodRequest(url, options, token) {
-    try { return await request(url,options); }
+    // Keep successful write receipts for original-key reconciliation and the
+    // existing version checks; stale reads/errors must never clear a newer view.
+    const active = response => (options?.method === 'POST' && response.ok) ||
+      (token?.generation === methodGeneration && (!token.researchId || token.researchId === researchId));
+    try { return await request(url,options,active); }
     catch (error) { methodFailure(token); throw error; }
   }
   function validMethod(data) {
@@ -229,14 +233,14 @@
   }
   async function request(url, options = {}, isCurrent = () => true) {
     const privateScope = privateGeneration;
-    const active = () => privateScope === privateGeneration && isCurrent();
+    const active = response => privateScope === privateGeneration && isCurrent(response);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15000);
     try {
       const response = await fetch(url, {...options, credentials: 'same-origin', cache: 'no-store', signal: controller.signal});
-      if (!active()) throw new Error('较早的来源读取已失效。');
+      if (!active(response)) throw new Error('较早的来源读取已失效。');
       const payload = await response.json();
-      if (!active()) throw new Error('较早的来源读取已失效。');
+      if (!active(response)) throw new Error('较早的来源读取已失效。');
       if (!response.ok) {
         if (response.status === 401 || response.status === 404 || payload.error?.code === 'AUTHORIZATION_STALE') clearPrivateView();
         const error = new Error(payload.error?.message || '操作暂时无法完成，请保留当前内容。');

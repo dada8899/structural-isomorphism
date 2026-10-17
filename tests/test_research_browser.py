@@ -1696,3 +1696,88 @@ def test_method_result_new_explicit_source_task_clears_current_method_body(metho
             expect(page.locator('#method-body')).to_have_text('')
             expect(page.locator('#method-meta')).to_be_hidden()
         finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('late_status',[404,401])
+@pytest.mark.parametrize('save_new_revision',[True,False],ids=['saved','draft'])
+def test_method_result_late_actual_access_error_cannot_clear_new_problem(method_server,late_status,save_new_revision):
+    """Hold a real rejected GET, then accept a newer save or local edit."""
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();held=[]
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            if late_status==404:
+                method_server['withdraw_source']()
+            else:
+                assert context.request.post(base+'/api/auth/logout',headers={'Origin':base}).status==200
+            def hold(route):
+                response=route.fetch();assert response.status==late_status
+                held.append((route,response))
+            page.route('**/api/research/'+facts['research_id'],hold,times=1)
+            page.locator('#task-refresh').click()
+            for _ in range(50):
+                if held:break
+                page.wait_for_timeout(20)
+            assert len(held)==1
+            if late_status==401:login(context,base,facts['owner_email'])
+            draft='另一份新问题，迟到的旧访问错误不应清除当前输入'
+            page.locator('#original-input').fill(draft)
+            if save_new_revision:
+                with page.expect_response('**/revisions') as saved:page.locator('#save').click()
+                assert saved.value.status==200
+                assert saved.value.json()['data']['current_problem']['revision']==2
+                expect(page.locator('#status')).to_contain_text('已保存修订 2')
+            pending=page.evaluate("Object.fromEntries(Object.entries(sessionStorage))")
+            route,response=held.pop();route.fulfill(response=response)
+            expect(page.locator('#task-refresh')).to_be_enabled()
+            expect(page.locator('#problem-form')).to_be_visible()
+            expect(page.locator('#original-input')).to_have_value(draft)
+            assert page.evaluate("Object.fromEntries(Object.entries(sessionStorage))")==pending
+            expect(page.locator('#method-body')).to_have_text('')
+            expect(page.locator('#method-meta')).to_be_hidden()
+            if save_new_revision:
+                fresh=context.request.get(base+'/api/research/'+facts['research_id'])
+                assert fresh.status==200
+                assert fresh.json()['data']['current_problem']['original_input']==draft
+        finally:
+            for route,_ in held:route.abort()
+            context.close();browser.close()
+
+
+def test_method_result_successful_old_write_cannot_revive_revoked_private_view(method_server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();held=[]
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            def hold(route):
+                response=route.fetch();assert response.status==200
+                held.append((route,response))
+            page.route('**/api/research/*/revisions',hold,times=1)
+            page.locator('#original-input').fill('退出前已经提交，迟到成功回执也不能恢复私有页面')
+            page.locator('#save').click()
+            for _ in range(50):
+                if held:break
+                page.wait_for_timeout(20)
+            assert len(held)==1
+            assert held[0][1].json()['data']['current_problem']['revision']==2
+            assert context.request.post(base+'/api/auth/logout',headers={'Origin':base}).status==200
+            page.locator('#research-list-refresh').click()
+            expect(page.locator('#problem-form')).to_be_hidden()
+            pending=page.evaluate("Object.fromEntries(Object.entries(sessionStorage))")
+            assert any(key.startswith('structure-research-pending:') for key in pending)
+            route,response=held.pop();route.fulfill(response=response)
+            expect(page.locator('#status')).to_contain_text('较早的来源读取已失效')
+            expect(page.locator('#problem-form')).to_be_hidden()
+            expect(page.locator('#original-input')).to_have_value('')
+            expect(page.locator('#method-section')).to_be_hidden()
+            expect(page.locator('#method-body')).to_have_text('')
+            assert page.evaluate("Object.fromEntries(Object.entries(sessionStorage))")==pending
+        finally:
+            for route,_ in held:route.abort()
+            context.close();browser.close()
