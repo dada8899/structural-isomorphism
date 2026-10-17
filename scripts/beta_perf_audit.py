@@ -60,7 +60,7 @@ class PageCase:
 
 
 PAGES: dict[str, PageCase] = {
-    "home": PageCase("index.html", ".ask-chip", ".ask-chip", (("GET", "/api/auth/me"),)),
+    "home": PageCase("index.html", "#start-research", "#start-research", (("GET", "/api/auth/me"),), "new_tab"),
     "search": PageCase(
         "search.html?context=" + "a" * 32,
         ".result-card",
@@ -577,6 +577,12 @@ def _page_setup_factory(
             "page_errors": [], "bad_static_responses": [],
             "tool_navigation_count": 0,
         }
+        if page_name == "home":
+            state.update({"home_navigation_count": 0, "home_destination_validated": False, "home_origin": origin})
+            def observe_destination(popup: Any) -> None:
+                popup.on("pageerror", lambda error: state["page_errors"].append(type(error).__name__))
+                popup.on("response", record_response)
+            page.context.on("page", observe_destination)
         if page_name == "search":
             storage_key = "structural_private_navigation:" + "a" * 32
             serialized = json.dumps(_search_context(), ensure_ascii=False)
@@ -650,6 +656,16 @@ def _page_setup_factory(
                 state["unknown_requests"].append(f"external {request.method} {parsed.hostname}")
                 route.abort()
                 return
+            if page_name == "home" and parsed.path == "/research":
+                if request.method != "GET" or parsed.query:
+                    state["invalid_api"].append("invalid research entry navigation")
+                    route.abort()
+                    return
+                state["home_navigation_count"] += 1
+                route.fulfill(status=200, content_type="text/html; charset=utf-8",
+                    headers={"Cache-Control":"no-store", "Referrer-Policy":"no-referrer"},
+                    body=(ROOT / "web/frontend/research.html").read_text(encoding="utf-8"))
+                return
             if not parsed.path.startswith("/api/"):
                 route.continue_()
                 return
@@ -660,7 +676,7 @@ def _page_setup_factory(
                 if page_name == "reports":
                     fulfill_json(route, {"user": {"email": "researcher@example.test"}})
                 else:
-                    fulfill_json(route, {"error": "no session"}, 401)
+                    fulfill_json(route, {"ok": False, "error": "no session"} if page_name == "home" else {"error": "no session"}, 401)
                 return
             if key == ("GET", "/api/favorites"):
                 if page_name == "reports":
@@ -754,7 +770,10 @@ def _page_setup_factory(
             state["unknown_requests"].append(f"unknown API {key[0]} {key[1]}")
             fulfill_json(route, {"error": "unknown deterministic endpoint"}, 599)
 
-        page.route("**/*", route_request)
+        if page_name == "home":
+            page.context.route("**/*", route_request)
+        else:
+            page.route("**/*", route_request)
         return state
 
     return setup
@@ -790,7 +809,7 @@ def _page_validator(page_name: str, case: PageCase):
             raise AuditFailure("first-visit analytics consent polluted the route audit")
 
         expected_counts = {
-            "home": (".ask-chip", 4),
+            "home": ("#start-research", 1),
             "search": (".result-card", 2),
             "analyze": (".section--revealed", 9),
             "reports": (".myr-card", 1),
@@ -803,7 +822,14 @@ def _page_validator(page_name: str, case: PageCase):
         count = page.locator(selector).count()
         if count < minimum:
             raise AuditFailure(f"unexpected {page_name} state: {selector} count={count}")
-        if page_name == "search":
+        if page_name == "home":
+            entry = page.locator("#start-research")
+            if (not entry.is_visible() or not entry.is_enabled()
+                    or entry.get_attribute("href") != "/research"
+                    or page.locator("#legacy-ask-entry").is_visible()
+                    or not page.locator("#ask-input").is_disabled()):
+                raise AuditFailure("current research entry did not reach its real state")
+        elif page_name == "search":
             if page.locator(".search-context-lost").count() or "context=" in page.url:
                 raise AuditFailure("private search handoff was not consumed safely")
         elif page_name == "analyze":
@@ -823,11 +849,38 @@ def _page_validator(page_name: str, case: PageCase):
     return validate
 
 
+def _destination_validator(page_name: str):
+    if page_name != "home":
+        return None
+    def validate(popup: Any, state: dict[str, Any], interaction: dict[str, Any]) -> None:
+        destination = urlsplit(popup.url)
+        if ((destination.scheme, destination.hostname or "", destination.port) != state["home_origin"]
+                or destination.path != "/research" or destination.query or destination.fragment):
+            raise AuditFailure("research entry loaded an unexpected destination")
+        popup.locator("#access a").wait_for(state="visible", timeout=5000)
+        if (popup.locator("#access a").get_attribute("href") != "/auth/login?next=%2Fresearch"
+                or popup.locator("#problem-form").is_visible()
+                or state["home_navigation_count"] != 1
+                or state["api_counts"].get(("GET", "/api/auth/me"), 0) < 2
+                or any(path.startswith("/api/research") for _method, path in state["api_counts"])):
+            raise AuditFailure("research destination did not show its real sign-in state")
+        state["home_destination_validated"] = True
+        interaction["destination_state"] = "research_sign_in_required"
+    return validate
+
+
 def _post_interaction_validator(page_name: str):
     def validate(
         _page: Any, state: dict[str, Any], interaction: dict[str, Any]
     ) -> None:
-        if page_name == "reports":
+        if page_name == "home":
+            destination = urlsplit(str(interaction.get("destination_url", "")))
+            if (interaction.get("mode") != "new_tab" or interaction.get("popup_created") is not True
+                    or destination.path != "/research" or destination.query or destination.fragment
+                    or state.get("home_destination_validated") is not True
+                    or interaction.get("destination_state") != "research_sign_in_required"):
+                raise AuditFailure("research-entry navigation was not validated")
+        elif page_name == "reports":
             if state["api_counts"].get(("GET", "/api/me/export"), 0) != 1:
                 raise AuditFailure("research-library export action did not complete")
         elif page_name == "tools":
@@ -1082,6 +1135,7 @@ def run(
                         post_interaction_validator=_post_interaction_validator(page_name),
                         interaction_mode=case.interaction_mode,
                         run_evidence_sink=persist_run,
+                        destination_validator=_destination_validator(page_name),
                     )
                     _validate_audit_result(result, runs)
                     failures.extend(
