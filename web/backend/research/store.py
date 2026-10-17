@@ -371,6 +371,23 @@ class ResearchStore:
     def __init__(self, auth_store):
         self.auth_store = auth_store
         self.path = Path(auth_store.path).resolve()
+        # A completed v6 source must be verified before any legacy IF NOT
+        # EXISTS installation could hide missing inherited objects.
+        completed_v6=False
+        with self.transaction() as conn:
+            present=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema' AND type='table'").fetchone()
+            if present:
+                try:current=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
+                except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本标记结构不匹配。') from None
+                if current and current[0]==PRODUCER_SCHEMA_VERSION:
+                    self._check_v6_inherited(conn)
+                    self._check_v7_attachments(conn)
+                    if conn.execute('PRAGMA foreign_key_check').fetchall():
+                        raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究旧库关联不匹配。')
+                    completed_v6=True
+        if completed_v6:
+            self._migrate_v7()
+            return
         # AuthStore already initializes auth tables and WAL with its own lock.
         with self.transaction(write=True) as conn:
             existing=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema' AND type='table'").fetchone()
@@ -657,7 +674,7 @@ class ResearchStore:
         return required
 
     @classmethod
-    def _check_v7(cls,conn):
+    def _check_v6_inherited(cls,conn):
         for name,ddl in cls._v7_required_legacy_objects().items():
             row=conn.execute('SELECT type,sql FROM sqlite_schema WHERE name=?',(name,)).fetchone()
             expected_type='table' if ddl.startswith('CREATE TABLE') else 'trigger' if ddl.startswith('CREATE TRIGGER') else 'index'
@@ -666,6 +683,10 @@ class ResearchStore:
         cls._check_v6(conn)
         from .source_integration import install_schema
         install_schema(conn,existing_required=True)
+
+    @classmethod
+    def _check_v7(cls,conn):
+        cls._check_v6_inherited(conn)
         require_hook(conn)
         for ddl in (*V7_TABLES,*V7_GUARDS):
             name=ddl.split()[2]
@@ -714,7 +735,7 @@ class ResearchStore:
             if version==FINANCIAL_SCHEMA_VERSION:
                 self._check_v7(conn);self._check_v7_attachments(conn);conn.commit();return
             if version!=PRODUCER_SCHEMA_VERSION:raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融迁移版本不支持。')
-            self._check_v6(conn);self._check_v7_attachments(conn)
+            self._check_v6_inherited(conn);self._check_v7_attachments(conn)
             for ddl in (*V7_TABLES,*V7_GUARDS):
                 if conn.execute('SELECT 1 FROM sqlite_schema WHERE name=?',(ddl.split()[2],)).fetchone():
                     raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融迁移发现部分新结构。')

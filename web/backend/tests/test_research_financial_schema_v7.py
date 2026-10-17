@@ -374,3 +374,66 @@ def test_missing_revision_guard_is_not_accepted_for_registration_or_late_store_f
         assert response.status_code==503 and response.json()['error']['code']=='SCHEMA_UNSUPPORTED'
         assert snapshot(path)==before
     finally:dependency.close()
+
+
+@pytest.mark.parametrize('kind,name',[
+    ('table','research_idempotency'),('table','research_revisions'),('table','research_controls'),
+    ('table','research_attempts'),('table','research_step_outputs'),
+    ('trigger','research_revision_no_update'),('trigger','research_principal_gate_required'),
+    ('trigger','research_billing_receipts_immutable'),('index','research_owner_idx'),
+    ('table','research_source_approvals')])
+def test_v6_constructor_preflight_rejects_missing_objects_without_executing_installation(v6_data,monkeypatch,kind,name):
+    _,path,store,_,_=v6_data
+    with sqlite3.connect(path) as raw:raw.execute('DROP '+kind.upper()+' '+name)
+    before=snapshot(path);connect=sqlite3.connect;writes=[]
+    class Observe(sqlite3.Connection):
+        def execute(self,sql,*args,**kwargs):
+            if sql.lstrip().upper().startswith(('CREATE ','ALTER ','DROP ','INSERT ','UPDATE ','DELETE ')):writes.append(sql)
+            return super().execute(sql,*args,**kwargs)
+    with monkeypatch.context() as patch:
+        patch.setattr(sqlite3,'connect',lambda *a,**k:connect(*a,**k) if 'factory' in k else connect(*a,factory=Observe,**k))
+        with pytest.raises(ResearchError) as caught:ResearchStore(store.auth_store)
+        assert caught.value.code=='SCHEMA_UNSUPPORTED'
+    assert writes==[] and snapshot(path)==before
+    with pytest.raises(ResearchError) as caught:store._migrate_v7()
+    assert caught.value.code=='SCHEMA_UNSUPPORTED' and snapshot(path)==before
+
+
+@pytest.mark.parametrize('change',['base-ddl','base-guard','unknown-aux','foreign-key'])
+def test_v6_constructor_rejects_drift_before_repair_or_data_change(v6_data,change):
+    from research.store import SCHEMA
+    _,path,store,_,_=v6_data
+    with sqlite3.connect(path) as conn:
+        if change=='base-ddl':
+            conn.execute('DROP TABLE research_idempotency')
+            ddl=next(sql for sql in SCHEMA if sql.startswith('CREATE TABLE IF NOT EXISTS research_idempotency'))
+            conn.execute(ddl.replace('PRIMARY KEY(principal_id, operation, scope_key, key_digest)','PRIMARY KEY(principal_id, operation, key_digest)'))
+        elif change=='base-guard':
+            conn.execute('DROP TRIGGER research_revision_no_update')
+            conn.execute('CREATE TRIGGER research_revision_no_update BEFORE UPDATE ON research_revisions BEGIN SELECT 1; END')
+        elif change=='unknown-aux':conn.execute('CREATE INDEX extra_v6_preflight_idx ON research_dispatch_permits(dispatch_id)')
+        else:conn.execute('UPDATE research_controls SET owner_id=?',(str(uuid4()),))
+    before=snapshot(path)
+    with pytest.raises(ResearchError) as caught:ResearchStore(store.auth_store)
+    assert caught.value.code=='SCHEMA_UNSUPPORTED' and snapshot(path)==before
+
+
+def test_valid_v6_constructor_checks_source_before_any_create_then_upgrades_once(v6_data,monkeypatch):
+    _,path,store,_,_=v6_data;before=rows(path);connect=sqlite3.connect;events=[]
+    class Observe(sqlite3.Connection):
+        def execute(self,sql,*args,**kwargs):
+            events.append(sql)
+            return super().execute(sql,*args,**kwargs)
+    with monkeypatch.context() as patch:
+        patch.setattr(sqlite3,'connect',lambda *a,**k:connect(*a,**k) if 'factory' in k else connect(*a,factory=Observe,**k))
+        upgraded=ResearchStore(store.auth_store)
+    first_create=next(i for i,sql in enumerate(events) if sql.startswith('CREATE '))
+    assert events[first_create]==V7_TABLES[0]
+    assert not any('CREATE TABLE IF NOT EXISTS' in sql for sql in events)
+    with upgraded.transaction() as conn:
+        assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==7
+        assert conn.execute('SELECT count(*) FROM research_project_budgets').fetchone()[0]==0
+        assert conn.execute('SELECT count(*) FROM research_financial_admissions').fetchone()[0]==0
+    after=rows(path)
+    assert all(after[name]==data for name,data in before.items() if name!='research_schema')
+    ResearchStore(store.auth_store)

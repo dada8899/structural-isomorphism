@@ -96,3 +96,9 @@ U仅调用受审usage_upper.preview_bound，用真实服务器clock核≤60秒TT
 原审指出V7早返仅核金融结构，漏掉原幂等表及修订不可变guard。本轮将SCHEMA／C0及版本overlay的全部必需table／index／trigger、初始化附加guard和Source既有结构一并校验，缺失／漂移即SCHEMA_UNSUPPORTED；研究／V7对象已存在但marker丢表／丢行／列漂移也在初始化前拒绝，不自动补建。原金融未知附件规则、旧DDL、历史profile和原断言保留；只追加损坏／漂移／实际登记与API早拒反例，没有新资金writer或生产放行。
 
 原strict-reopen两反例已先复现后通过；新增21项基础缺失／漂移及早拒用例。最终新旧金融组296 passed、应用／Source期限组391 passed，均0 skipped；正常v1迁移与旧真实存储故障回滚对照保留通过。这里只修完整性检查，旧证据不改，候选仍交原独审复验。
+
+## v6 启动预检：先验证继承对象，再迁移
+
+原审指出：marker6缺幂等表或修订guard时，直接迁移拒绝，但普通构造先执行SCHEMA/C0补建后成功升7。本轮抽取已审完整legacy对象校验供v6/v7共用；构造识别完整marker6后先只读核基础类型／DDL、Source及附件／FK，再单独进入原V7迁移，不走旧初始化补建。直接V7迁移也先核该继承基底，损坏库SCHEMA_UNSUPPORTED且schema／rows不变；完整6正例、V1–V4获准历史路径及旧profile规则不改。仅基础预检，没有B1六口、资金或发送代码；实际业务DB未迁移，候选待原独审。
+
+作者先复现原2拒绝断言失败，再原脚本／完整6／真实v1迁移4 passed；新增10缺失对象零安装语句、4漂移／未知附件／FK及完整6一次升级正控，扩展前置86 passed。最终旧新金融311 passed，原API／公开校验／持久化／生命周期／C0／D1／Source期限429 passed，均0 skipped；旧DDL区块与所有原测试前缀逐字保持，独立基础候选交原审复核。
