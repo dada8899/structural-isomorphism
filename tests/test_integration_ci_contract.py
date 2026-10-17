@@ -38,7 +38,7 @@ BASELINE_JOB_DIGESTS = {
     "site-docs-contract": "0f57f4945237fd941c2e8d368de8c45ac77cebb7ef06263d1a8d66367c48a92c",
     "phase-python-contract": "31410b6d2c1aaf8d2d46261b6b9cfdefbcbe0ed0391d6afb119b636356c1dc32",
     "browser-product-contract": "ea661e1cc7eee8004be5a25e49b38fb1f4f9b27394648b6b64e2a428c55e39df",
-    "browser-beta-surface-contract": "1672b91a7c0c16f3a3cc3b7a9b202835ec5875a332d9803389ac6ed55a6d87c3",
+    "browser-beta-surface-contract": "561bf72d78777f276b64e20f215a40efe67bb9d025c78ce4afc60744ef2ad004",
     "backend": "1880d457fc00c68ff81deb35c32c75e321c3dc5c6e0cdc793dfab4f030669b4c",
     "packages": "e4aa89e17ef04576287375e0d658dd3b2ee78569cfe6afb7d5d34b933d313fbe",
     "frontend": "bc2d19708c65b0594b78ca090ab06297a5106e1906fb826d4b5e01bce82fbe70",
