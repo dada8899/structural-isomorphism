@@ -128,6 +128,10 @@ async def _phase_urlopen_json(req, timeout: int) -> dict:
 async def lifespan(app: FastAPI):
     """Startup: load the search engine once."""
     logger.info("startup.begin")
+    if _IS_PROD:
+        # A failed startup must not leave a previous candidate marked ready.
+        app_state.pop("search", None)
+        app_state.pop("artifact", None)
 
     # Authentication deployment constraints are runtime security boundaries,
     # not merely deploy-script conventions. A production beta process must
@@ -176,7 +180,7 @@ async def lifespan(app: FastAPI):
 
     if _IS_PROD and not manifest_path:
         raise RuntimeError("STRUCTURAL_ARTIFACT_MANIFEST is required in production")
-    if manifest_path:
+    if manifest_path and not _IS_PROD:
         if not data_dir or not model_path or not precomputed:
             raise RuntimeError(
                 "artifact validation requires STRUCTURAL_DATA_DIR, "
@@ -197,10 +201,13 @@ async def lifespan(app: FastAPI):
         kb_file=kb_file,
         model_path=model_path,
         precomputed_embeddings=precomputed,
+        **({"formal": True, "artifact_manifest": manifest_path} if _IS_PROD else {}),
     )
-    app_state["search"] = search_service
     if _IS_PROD and search_service.kb_size == 0:
         raise RuntimeError("production search service loaded an empty knowledge base")
+    if _IS_PROD:
+        app_state["artifact"] = search_service.artifact
+    app_state["search"] = search_service
     logger.info("startup.search_ready", kb_count=search_service.kb_size)
 
     yield
