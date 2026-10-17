@@ -67,7 +67,7 @@ def _resource_owner_email(row: dict) -> Optional[str]:
         from . import auth, sso
     else:
         from api import auth, sso
-    bound=sso.SsoReplayStore(sso._data_dir()/"sso_replay.sqlite3").email_for_subject(owner)
+    bound=sso.get_replay_store().email_for_subject(owner)
     if bound is not None:
         if not hmac.compare_digest(sso._subject_id(bound),owner):
             raise HTTPException(404,"Report not found",headers=_SHARE_NO_STORE_HEADERS)

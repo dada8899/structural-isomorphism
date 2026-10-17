@@ -16,6 +16,7 @@ from urllib.parse import urlencode
 from urllib.parse import urlsplit
 
 import jwt
+import sqlite3,threading
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, ConfigDict, Field
@@ -70,13 +71,48 @@ def _beta_origin() -> str:
     )
 
 
-def _data_dir() -> Path:
-    configured = os.getenv("STRUCTURAL_SSO_DATA_DIR", "").strip()
-    if configured:
-        return Path(configured)
-    if os.getenv("STRUCTURAL_ENV", "dev").lower() == "prod":
-        raise RuntimeError("STRUCTURAL_SSO_DATA_DIR is required in production")
-    return Path(os.getenv("AUTH_DATA_DIR", Path(__file__).parent.parent / "data"))
+def _data_dir()->Path:
+    if os.getenv('STRUCTURAL_ENV','dev').strip().lower()=='prod':
+        if __package__=='web.backend.api':from ..services.runtime_paths import private_sso_path
+        else:from services.runtime_paths import private_sso_path
+        return private_sso_path().parent
+    configured=os.getenv('STRUCTURAL_SSO_DATA_DIR','').strip()
+    return Path(configured) if configured else Path(os.getenv('AUTH_DATA_DIR',Path(__file__).parent.parent/'data'))
+
+
+_REPLAY_LOCK=vars(sqlite3).setdefault('_structural_sso_factory_lock_v1',threading.RLock())
+_REPLAY_STORES={}
+
+
+def _replay_path():
+    return _data_dir()/'sso_replay.sqlite3'
+
+
+def get_replay_store():
+    """One real factory for all API consumers; never creates formal storage."""
+    with _REPLAY_LOCK:
+        formal=os.getenv('STRUCTURAL_ENV','dev').lower()=='prod'
+        path=_replay_path()
+        if not formal:
+            # Legacy development factories construct on each call, including
+            # their existing create/migrate semantics. Formal never does so.
+            return SsoReplayStore(path)
+        identity=SsoReplayStore.preflight_private(path)
+        key=(formal,str(path),identity)
+        current=_REPLAY_STORES.get(key)
+        if current is not None:
+            if formal and (not current._private_sso or current.storage_identity!=identity or current.path!=path):
+                raise RuntimeError('private SSO cache binding is inconsistent')
+            return current
+        candidate=SsoReplayStore(path)
+        after_formal=os.getenv('STRUCTURAL_ENV','dev').lower()=='prod'
+        after_path=_replay_path() if after_formal else _replay_path().absolute()
+        if after_formal!=formal or after_path!=path:
+            raise RuntimeError('SSO configuration changed during initialization')
+        if formal and SsoReplayStore.preflight_private(path)!=identity:
+            raise RuntimeError('SSO ledger changed during initialization')
+        _REPLAY_STORES[key]=candidate
+        return candidate
 
 
 def _validate_origin(value: str, canonical: str) -> str:
@@ -134,6 +170,8 @@ async def start_exchange(request: Request):
     origin_error = require_beta_origin(request)
     if origin_error:
         return origin_error
+    if os.getenv('STRUCTURAL_ENV','dev').strip().lower()=='prod':
+        get_replay_store()  # Do not send a browser into an unusable formal exchange.
     now = int(time.time())
     state, nonce = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
     binding = jwt.encode(
@@ -156,6 +194,7 @@ async def issue_exchange_code(body: IssueBody, request: Request):
     user, status = resolve_session_user(request)
     if status != "valid" or not user:
         return JSONResponse({"ok": False, "error": "valid session required"}, status_code=401)
+    ledger=get_replay_store()
     with account_owner_transaction(user["email"]):
         locked_user, locked_status = resolve_session_user(request)
         if locked_status != "valid" or not locked_user:
@@ -169,7 +208,7 @@ async def issue_exchange_code(body: IssueBody, request: Request):
         now = int(time.time())
         jti = uuid.uuid4().hex
         expires_at = now + _CODE_TTL
-        SsoReplayStore(_data_dir() / "sso_replay.sqlite3").issue(
+        ledger.issue(
             jti, _subject_id(locked_user["email"]), locked_user["tier"], expires_at,
             email=locked_user["email"],
         )
@@ -202,7 +241,7 @@ async def exchange_code(body: ExchangeBody, request: Request):
         return JSONResponse({"ok": False, "error": "state mismatch"}, status_code=400)
     if not hmac.compare_digest(str(code.get("nonce", "")), str(binding.get("nonce", ""))):
         return JSONResponse({"ok": False, "error": "nonce mismatch"}, status_code=400)
-    ledger = SsoReplayStore(_data_dir() / "sso_replay.sqlite3")
+    ledger = get_replay_store()
     code_jti = str(code.get("jti", ""))
     pending = ledger.lookup_issued(code_jti)
     if not pending:
@@ -255,7 +294,7 @@ def _resolve_direct_beta_user(request: Request) -> tuple[dict | None, str]:
     if direct_status != "valid" or not direct_user:
         return None, direct_status
     subject = _subject_id(direct_user["email"])
-    revoked_at = SsoReplayStore(_data_dir() / "sso_replay.sqlite3").subject_revoked_at(subject)
+    revoked_at = get_replay_store().subject_revoked_at(subject)
     if revoked_at is not None and int(direct_user.get("_issued_ns", 0)) <= revoked_at:
         return None, "revoked"
     return {
@@ -278,7 +317,7 @@ def _resolve_sso_beta_user(request: Request) -> tuple[dict | None, str]:
     except jwt.PyJWTError:
         return None, "invalid"
     subject = str(claims.get("sub", ""))
-    ledger = SsoReplayStore(_data_dir() / "sso_replay.sqlite3")
+    ledger = get_replay_store()
     revoked_at = ledger.subject_revoked_at(subject)
     if revoked_at is not None and int(claims.get("issued_ns", 0)) <= revoked_at:
         return None, "revoked"

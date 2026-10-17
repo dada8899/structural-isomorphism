@@ -468,3 +468,45 @@ def append_private_auth_audit(record):
     finally:
         if fd is not None:os.close(fd)  # Releases this non-DB journal's flock.
         os.close(directory)
+
+
+def private_sso_path(configured_dir=None):
+    profile=os.getenv('STRUCTURAL_ENV','dev')
+    if profile.strip().lower()=='prod' and profile.lower()!='prod':
+        raise RuntimePathError('private SSO profile contains invalid whitespace')
+    configured=os.environ.get('STRUCTURAL_SSO_DATA_DIR') if configured_dir is None else os.fspath(configured_dir)
+    if configured is None or not configured or configured.startswith('file:') or not Path(configured).is_absolute() or '..' in Path(configured).parts or Path(configured)!=STATE_ROOT:
+        raise RuntimePathError('private SSO requires its explicit approved directory')
+    return STATE_ROOT/'sso_replay.sqlite3'
+
+
+class PrivateSsoFile(PrivateHistoryFile):
+    """Existing replay ledger metadata; never an ordinary database witness FD."""
+    @classmethod
+    def acquire(cls,path):
+        inspected=cls()
+        try:
+            if not isinstance(path,(str,Path)) or Path(path)!=private_sso_path():
+                raise RuntimePathError('private SSO requires its canonical existing ledger')
+            inspected.path=private_sso_path()
+            inspected.forbidden=_auth_forbidden_roots()
+            inspected.parent_fd=_validated_directory_fd(inspected.path.parent,forbidden=inspected.forbidden)
+            info=inspected._entry('sso_replay.sqlite3')
+            if info is None:raise RuntimePathError('private SSO ledger is missing')
+            inspected.file_identity=(info.st_dev,info.st_ino)
+            inspected.check()
+            return inspected
+        except BaseException:
+            inspected.close();raise
+
+    def _sidecars(self):
+        return [info for suffix in ('-wal','-shm','-journal')
+                if (info:=self._entry('sso_replay.sqlite3'+suffix)) is not None]
+
+    def check(self):
+        _check_current_parent(self.path.parent,self.parent_fd,forbidden=self.forbidden)
+        current=self._entry('sso_replay.sqlite3')
+        if current is None or self.file_identity!=(current.st_dev,current.st_ino):
+            raise RuntimePathError('private SSO ledger identity changed')
+        if self._sidecars() and current.st_size==0:
+            raise RuntimePathError('private SSO ledger has orphan sidecars')

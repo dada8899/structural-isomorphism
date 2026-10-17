@@ -906,10 +906,10 @@ async def logout(request: Request):
     origin_error = _require_same_origin(request)
     if origin_error:
         return origin_error
-    try:
-        from api.sso import SsoReplayStore, _data_dir as sso_data_dir, resolve_beta_user
-    except ModuleNotFoundError:
-        from web.backend.api.sso import SsoReplayStore, _data_dir as sso_data_dir, resolve_beta_user
+    if __package__=='web.backend.api':
+        from .sso import get_replay_store,resolve_beta_user
+    else:
+        from api.sso import get_replay_store,resolve_beta_user
     beta_user, beta_status = resolve_beta_user(request)
     resp = JSONResponse(
         {"ok": False, "error": "credential_conflict"} if beta_status == "credential_conflict"
@@ -917,6 +917,7 @@ async def logout(request: Request):
         status_code=409 if beta_status == "credential_conflict" else 200,
     )
     if beta_status == "valid" and beta_user:
+        ledger=get_replay_store()  # Validate before any JTI/subject revocation.
         cookie = request.cookies.get(_COOKIE_NAME)
         if cookie:
             claims = _decode_jwt(cookie)
@@ -926,7 +927,7 @@ async def logout(request: Request):
                 )
                 logger.info("auth.logout")
         if request.cookies.get("structural_beta_session"):
-            SsoReplayStore(sso_data_dir() / "sso_replay.sqlite3").revoke_subject(beta_user["id"])
+            ledger.revoke_subject(beta_user["id"])
     # delete_cookie matches the path the cookie was set on.
     resp.delete_cookie(key=_COOKIE_NAME, path="/")
     _clear_beta_session(resp)
@@ -1131,16 +1132,15 @@ def _account_cleanup_binding(email):
     Persist a digest only; neither paths nor private identity material enter
     an API, ordinary log, or a user-supplied recovery argument.
     """
-    try:
-        from api import favorites, report_account, sso
-    except ModuleNotFoundError:
-        from web.backend.api import favorites, report_account, sso
+    if __package__=='web.backend.api':from . import favorites,report_account,sso
+    else:from api import favorites,report_account,sso
+    ledger = sso.get_replay_store()  # Fail before any other asset getter side effect.
     binding = {
         "auth": str(_store().path.resolve()),
         "favorites": str(favorites._data_file().resolve()),
         "favorites_legacy": str(favorites._legacy_data_file().resolve()),
         "reports": str(report_account._get_store().db_path.resolve()),
-        "sso": str((sso._data_dir() / "sso_replay.sqlite3").resolve()),
+        "sso": str(ledger.path),
         "subject": sso._subject_id(email),
         "registry": _account_registry().manifest(),
     }

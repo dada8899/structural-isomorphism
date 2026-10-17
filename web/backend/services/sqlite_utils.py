@@ -154,3 +154,36 @@ def connect_private_auth(path, *, readonly=False, timeout=10.0, expected_identit
         finally:
             if witness is not None:witness.close()
         raise
+
+
+class PrivateSsoConnection(PrivateHistoryConnection):
+    @property
+    def private_storage_identity(self):
+        return self._history_file.file_identity if self._history_file is not None else None
+
+
+def connect_private_sso(path,*,readonly=False,timeout=10.0,expected_identity=None):
+    """Replay-specific, tuple rows/autocommit; caller owns transactions."""
+    from .runtime_paths import PrivateSsoFile,RuntimePathError,HISTORY_OPEN_LOCK
+    if type(readonly) is not bool:raise TypeError('readonly must be a boolean')
+    inspected=None;conn=None
+    try:
+        with HISTORY_OPEN_LOCK:
+            inspected=PrivateSsoFile.acquire(path)
+            if expected_identity is not None and inspected.file_identity!=expected_identity:
+                raise RuntimePathError('private SSO object has obsolete ledger identity')
+            conn=sqlite3.connect(inspected.path.as_uri()+'?mode='+('ro' if readonly else 'rw'),
+                uri=True,timeout=timeout,isolation_level=None,factory=PrivateSsoConnection)
+            conn._history_file=inspected
+        inspected.check()
+        # No Auth Row factory/default hook, no policy/grant or journal rewrite.
+        if conn.execute('PRAGMA journal_mode').fetchone()[0].lower()!='wal':
+            raise RuntimePathError('private SSO requires preprovisioned WAL mode')
+        inspected.check()
+        return conn
+    except BaseException:
+        try:
+            if conn is not None:conn.close()
+        finally:
+            if inspected is not None:inspected.close()
+        raise
