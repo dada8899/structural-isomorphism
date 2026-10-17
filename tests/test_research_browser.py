@@ -1605,30 +1605,69 @@ def test_method_result_cancelled_pending_body_stays_hidden(method_server):
 
 def test_method_result_changed_input_and_late_real_a_cannot_restore_old_body(method_server):
     with sync_playwright() as playwright:
-        browser=playwright.chromium.launch();context=browser.new_context();held=[]
+        browser=playwright.chromium.launch();context=browser.new_context();held=[];active_routes=[];listeners=[];page=None
+        observed={"events":[],"request_count":0,"fetch_status":None,"failures":[],"held_ready":False};pattern=None;hold=None
         try:
             base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
             page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
             expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            target=base+'/api/research/'+facts['research_id'];requests=[]
+            started=time.monotonic();deadline=started+5
+            def record(stage):observed['events'].append({'stage':stage,'seconds':round(time.monotonic()-started,6)})
+            def remaining_ms():
+                remaining=deadline-time.monotonic()
+                assert remaining>0,'real held-response precondition exceeded its own5s deadline: '+json.dumps(observed)
+                return max(1,int(remaining*1000))
+            def capture(request):
+                if request.method=='GET' and request.url==target:
+                    requests.append(request);observed['request_count']=len(requests);record('request')
+            def failed(request):
+                if any(request is item for item in requests):
+                    observed['failures'].append({'stage':'requestfailed','error_type':request.failure.split()[0] if request.failure else 'unknown'});record('requestfailed')
+            def page_error(error):
+                observed['failures'].append({'stage':'pageerror','error_type':error.name});record('pageerror')
+            listeners=[('request',capture),('requestfailed',failed),('pageerror',page_error)]
+            for event,callback in listeners:page.on(event,callback)
             def hold(route):
-                response=route.fetch();assert response.status==200
-                held.append((route,response))
-            page.route('**/api/research/'+facts['research_id'],hold,times=1)
-            page.locator('#task-refresh').click();page.wait_for_timeout(100)
-            assert len(held)==1
+                active_routes.append(route);record('route_enter')
+                try:
+                    assert len(requests)==1 and route.request is requests[0],'route must hold the original GET'
+                    record('fetch_start');response=route.fetch(timeout=remaining_ms());observed['fetch_status']=response.status;record('fetch_returned')
+                    assert response.status==200 and response.url==target,'real original GET must return200'
+                    assert time.monotonic()<=deadline,'real fetch exceeded held-response deadline'
+                    held.append((route,response));observed['held_ready']=True;record('held')
+                except Exception as error:
+                    observed['failures'].append({'stage':'route_fetch','error_type':type(error).__name__});record('fetch_failed')
+                    try:route.abort()
+                    except Exception:pass
+            pattern='**/api/research/'+facts['research_id'];page.route(pattern,hold,times=1)
+            page.locator('#task-refresh').click(timeout=remaining_ms())
+            while not held and not observed['failures'] and time.monotonic()<deadline:
+                page.wait_for_timeout(min(20,remaining_ms()))
+            assert not observed['failures'],'held-response precondition failed: '+json.dumps(observed)
+            assert len(held)==1,'real response not held within5s: '+json.dumps(observed)
+            assert time.monotonic()<=deadline and held[0][0].request is requests[0],json.dumps(observed)
             page.locator('#original-input').fill('换成新的研究现象，旧方法记录不能沿用')
             expect(page.locator('#method-body')).to_have_text('')
             page.locator('#save').click()
             expect(page.locator('#status')).to_contain_text('已保存修订 2')
-            route,response=held.pop();route.fulfill(response=response)
+            route,response=held.pop();route.fulfill(response=response);active_routes.remove(route);record('released')
             expect(page.locator('#task-refresh')).to_be_enabled()
             expect(page.locator('#method-body')).to_have_text('')
             expect(page.locator('#original-input')).to_have_value('换成新的研究现象，旧方法记录不能沿用')
             fresh=context.request.get(base+'/api/research/'+facts['research_id']).json()['data']
             assert fresh.get('method_result') is None
         finally:
-            for route,_ in held:route.abort()
-            context.close();browser.close()
+            try:
+                for route in active_routes:
+                    try:route.abort()
+                    except Exception:pass
+                if page is not None:
+                    if pattern is not None:page.unroute(pattern,hold)
+                    for event,callback in listeners:page.remove_listener(event,callback)
+                observed['route_unbound']=pattern is not None;observed['listeners_removed']=bool(listeners)
+                (method_server['root']/'method-late-response-wait.json').write_text(json.dumps(observed,indent=2))
+            finally:context.close();browser.close()
 
 
 def test_method_result_actual_auth503_preserves_draft_but_requires_fresh_read(method_server):
