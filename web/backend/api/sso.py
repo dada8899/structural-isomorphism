@@ -24,13 +24,13 @@ from pydantic import BaseModel, ConfigDict, Field
 if __package__ == "web.backend.api":
     from .auth import (
         account_is_active, account_owner_transaction, require_same_origin,
-        resolve_session_user,
+        resolve_session_user, valid_account_generation, verified_account_generation,
     )
     from ..services.sso_store import SsoReplayStore
 else:
     from api.auth import (
         account_is_active, account_owner_transaction, require_same_origin,
-        resolve_session_user,
+        resolve_session_user, valid_account_generation, verified_account_generation,
     )
     from services.sso_store import SsoReplayStore
 
@@ -205,6 +205,8 @@ async def issue_exchange_code(body: IssueBody, request: Request):
             return JSONResponse(
                 {"ok": False, "error": "credential_conflict"}, status_code=409,
             )
+        if not valid_account_generation(locked_user.get('_verified_generation')):
+            return JSONResponse({'ok': False, 'error': 'verified generation required'}, status_code=401)
         now = int(time.time())
         jti = uuid.uuid4().hex
         expires_at = now + _CODE_TTL
@@ -215,6 +217,7 @@ async def issue_exchange_code(body: IssueBody, request: Request):
         claims = {
             "iss": _phase_origin(), "aud": body.audience, "state": body.state,
             "nonce": body.nonce, "jti": jti, "iat": now, "exp": expires_at,
+            "gen": locked_user['_verified_generation'],
         }
     return {"ok": True, "code": jwt.encode(claims, _secret(), algorithm=_ALG)}
 
@@ -237,9 +240,17 @@ async def exchange_code(body: ExchangeBody, request: Request):
         )
     except jwt.PyJWTError:
         return JSONResponse({"ok": False, "error": "invalid or expired exchange"}, status_code=400)
+    for claims, fields in ((binding, ('state', 'nonce')), (code, ('state', 'nonce', 'jti'))):
+        if any(type(claims.get(field)) is not str or not claims[field] for field in fields):
+            return JSONResponse({'ok': False, 'error': 'invalid exchange claims'}, status_code=400)
+    if 'gen' in code:
+        if not valid_account_generation(code['gen']):
+            return JSONResponse({'ok': False, 'error': 'invalid account generation'}, status_code=401)
+    elif os.getenv('STRUCTURAL_ENV', 'dev').strip().lower() == 'prod':
+        return JSONResponse({'ok': False, 'error': 'exchange retired; sign in again'}, status_code=401)
     if body.state != binding.get("state") or code.get("state") != binding.get("state"):
         return JSONResponse({"ok": False, "error": "state mismatch"}, status_code=400)
-    if not hmac.compare_digest(str(code.get("nonce", "")), str(binding.get("nonce", ""))):
+    if not hmac.compare_digest(code['nonce'].encode('utf-8'), binding['nonce'].encode('utf-8')):
         return JSONResponse({"ok": False, "error": "nonce mismatch"}, status_code=400)
     ledger = get_replay_store()
     code_jti = str(code.get("jti", ""))
@@ -253,6 +264,26 @@ async def exchange_code(body: ExchangeBody, request: Request):
     ):
         return JSONResponse({"ok": False, "error": "exchange identity unavailable"}, status_code=409)
     with account_owner_transaction(issued_email):
+        generation = code.get('gen')
+        if not account_is_active(issued_email):
+            return JSONResponse({'ok': False, 'error': 'account no longer active'}, status_code=409)
+        if 'gen' in code and not verified_account_generation(issued_email, generation):
+            return JSONResponse({'ok': False, 'error': 'account generation changed'}, status_code=401)
+        # Existing cookies cannot be silently shadowed by a fresh code. This
+        # check is repeated inside the same owner's gate before consumption.
+        present, present_status = resolve_beta_user(request)
+        if present_status not in {'absent', 'valid'}:
+            return JSONResponse({'ok': False, 'error': present_status},
+                status_code=409 if present_status == 'credential_conflict' else 401)
+        if present is not None and (present['email'].lower() != issued_email
+                or ('_verified_generation' in present and present['_verified_generation'] != generation)):
+            return JSONResponse({'ok': False, 'error': 'credential_conflict'}, status_code=409)
+        revoked_at = ledger.subject_revoked_at(pending['subject_id'])
+        if (not account_is_active(issued_email)
+                or ledger.email_for_subject(pending['subject_id']) != issued_email
+                or (revoked_at is not None and (pending.get('issued_ns') is None
+                    or int(pending['issued_ns']) <= revoked_at))):
+            return JSONResponse({'ok': False, 'error': 'account no longer active'}, status_code=409)
         issued = ledger.consume_issued(code_jti)
         if not issued:
             return JSONResponse({"ok": False, "error": "exchange already used"}, status_code=409)
@@ -276,7 +307,8 @@ async def exchange_code(body: ExchangeBody, request: Request):
         session = jwt.encode(
             {"iss": _beta_origin(), "aud": "structural-beta-session", "sub": issued["subject_id"],
              "tier": issued.get("tier", "free"), "jti": uuid.uuid4().hex,
-             "iat": now, "issued_ns": time.time_ns(), "exp": now + _SESSION_TTL},
+             "iat": now, "issued_ns": time.time_ns(), "exp": now + _SESSION_TTL,
+             **({'gen': generation} if 'gen' in code else {})},
             _secret(), algorithm=_ALG,
         )
     response = JSONResponse({"ok": True, "user": {"id": issued["subject_id"]}})
@@ -302,6 +334,7 @@ def _resolve_direct_beta_user(request: Request) -> tuple[dict | None, str]:
         "email": direct_user["email"],
         "tier": direct_user.get("tier", "free"),
         "auth_method": "direct",
+        "_verified_generation": direct_user['_verified_generation'],
     }, "valid"
 
 
@@ -316,7 +349,14 @@ def _resolve_sso_beta_user(request: Request) -> tuple[dict | None, str]:
         )
     except jwt.PyJWTError:
         return None, "invalid"
-    subject = str(claims.get("sub", ""))
+    if 'gen' in claims:
+        if not valid_account_generation(claims['gen']):
+            return None, 'invalid'
+    elif os.getenv('STRUCTURAL_ENV', 'dev').strip().lower() == 'prod':
+        return None, 'retired'
+    if type(claims.get('sub')) is not str or not claims['sub']:
+        return None, 'invalid'
+    subject = claims['sub']
     ledger = get_replay_store()
     revoked_at = ledger.subject_revoked_at(subject)
     if revoked_at is not None and int(claims.get("issued_ns", 0)) <= revoked_at:
@@ -330,12 +370,24 @@ def _resolve_sso_beta_user(request: Request) -> tuple[dict | None, str]:
         return None, "unlinked"
     if not account_is_active(email):
         return None, "invalid"
+    if 'gen' in claims and not verified_account_generation(email, claims['gen']):
+        return None, 'invalid'
     return {
         "id": subject,
         "email": email,
         "tier": claims.get("tier", "free"),
         "auth_method": "phase_sso",
+        **({'_verified_generation': claims['gen']} if 'gen' in claims else {}),
     }, "valid"
+
+
+def _beta_user_projection(user):
+    # Keep the legacy development resolver shape. Validation above still
+    # checks every present signed generation before producing this projection;
+    # it cannot grant formal Favorites authority after a profile change.
+    if os.getenv('STRUCTURAL_ENV', 'dev').strip().lower() != 'prod':
+        return {key: value for key, value in user.items() if key != '_verified_generation'}
+    return user
 
 
 def resolve_beta_user(request: Request) -> tuple[dict | None, str]:
@@ -351,17 +403,19 @@ def resolve_beta_user(request: Request) -> tuple[dict | None, str]:
         if status not in {"absent", "valid"}:
             return None, status
     if direct_status == "valid" and sso_status == "valid":
-        if not direct or not sso_user or not hmac.compare_digest(direct["id"], sso_user["id"]):
+        if (not direct or not sso_user or not hmac.compare_digest(direct["id"], sso_user["id"])
+                or ('_verified_generation' in sso_user and
+                    direct.get('_verified_generation') != sso_user['_verified_generation'])):
             return None, "credential_conflict"
-        return {
+        return _beta_user_projection({
             **direct,
             "tier": direct.get("tier", sso_user.get("tier", "free")),
             "auth_method": "direct+phase_sso",
-        }, "valid"
+        }), "valid"
     if direct_status == "valid":
-        return direct, "valid"
+        return _beta_user_projection(direct), "valid"
     if sso_status == "valid":
-        return sso_user, "valid"
+        return _beta_user_projection(sso_user), "valid"
     return None, "absent"
 
 

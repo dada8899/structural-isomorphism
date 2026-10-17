@@ -113,6 +113,102 @@ def account_owner_transaction(owner: str):
         yield lease
 
 
+
+def valid_account_generation(value):
+    return type(value) is str and re.fullmatch(r"[0-9a-f]{32}", value) is not None
+
+
+def verified_account_generation(email, generation):
+    """Validate a signed generation; a current row never fills a missing claim."""
+    if not valid_account_generation(generation):
+        return False
+    user = _store().user(email)
+    return bool(user and user['lifecycle'] == 'active'
+                and not _store().deletion_pending(email)
+                and user.get('session_generation') == generation)
+
+
+class _FavoritesAuthorityError(PermissionError):
+    """The actual authenticated request/job capability is no longer valid."""
+
+
+class _FavoritesAuthority:
+    """Per-operation live gate and server-side request/job, never a DTO grant."""
+    def __init__(self, email, generation, lease, *, request=None, service=None, job_id=None):
+        if not valid_account_generation(generation):
+            raise _FavoritesAuthorityError('verified Favorites generation required')
+        self.email, self.generation, self.lease = email.strip().lower(), generation, lease
+        self.request, self.service, self.job_id = request, service, job_id
+        self.store = _store()
+        self.path = self.store.path
+        self.owner_key = self.store.owner_key(self.email)
+        self.active = True
+        self.check()
+
+    def check(self):
+        import stat
+        if __package__ == 'web.backend.api':
+            from ..research.authorization import OwnerGateLease
+            from ..services.runtime_paths import require_private_auth_lock_dir
+        else:
+            from research.authorization import OwnerGateLease
+            from services.runtime_paths import require_private_auth_lock_dir
+        if (not self.active or not _is_prod() or _store().path != self.path
+                or not isinstance(self.lease, OwnerGateLease)):
+            raise _FavoritesAuthorityError('Favorites authority is no longer active')
+        if self.request is not None:
+            user, status = resolve_account_user(self.request)
+            if (status != 'valid' or not user or user['email'].lower() != self.email
+                    or user.get('_verified_generation') != self.generation):
+                raise _FavoritesAuthorityError('Favorites request identity changed')
+            with self.store._connection() as conn:
+                gate = conn.execute('SELECT gate_id FROM auth_owner_gates WHERE owner_key=?',
+                    (self.owner_key,)).fetchone()
+            if gate is None:
+                raise _FavoritesAuthorityError('Favorites gate is missing; no automatic repair')
+            gate_id = gate['gate_id']
+        elif self.service is not None and self.job_id is not None:
+            job = self.service.deletion_job(self.job_id)
+            if (job['state'] != 'pending' or job['owner_email'] != self.email
+                    or job['session_generation'] != self.generation
+                    or job['owner_key'] != self.owner_key or self.service.store.path != self.path):
+                raise _FavoritesAuthorityError('Favorites deletion job identity changed')
+            gate_id = job['gate_id']
+            if __package__ == 'web.backend.api':from ..research.paid_control import verify_deletion_origin
+            else:from research.paid_control import verify_deletion_origin
+            with self.service.store.transaction() as conn:
+                verify_deletion_origin(conn, store=self.service.store, lease=self.lease, job_id=self.job_id)
+            user = self.store.user(self.email)
+            if user and (user['lifecycle'] != 'deleting' or user['session_generation'] != self.generation):
+                raise _FavoritesAuthorityError('Favorites deletion cannot target a new incarnation')
+        else:
+            raise _FavoritesAuthorityError('actual Favorites request or deletion job required')
+        # Also bind legacy-origin jobs to the actual held gate; their Core
+        # origin compatibility check alone does not authenticate a lease.
+        if type(gate_id) is not str or str(uuid.UUID(gate_id, version=4)) != gate_id:
+            raise _FavoritesAuthorityError('Favorites gate identifier is invalid')
+        root = require_private_auth_lock_dir(self.path)
+        info = (root / (gate_id + '.lock')).lstat()
+        identity = (info.st_dev, info.st_ino, info.st_uid, stat.S_IMODE(info.st_mode), info.st_nlink)
+        if (not stat.S_ISREG(info.st_mode) or identity != self.lease.identity
+                or info.st_uid != os.getuid() or info.st_nlink != 1 or info.st_mode & 0o077):
+            raise _FavoritesAuthorityError('Favorites lease belongs to another gate')
+        return self
+
+
+@contextmanager
+def _favorites_authority(email, generation, lease, **source):
+    if __package__ == 'web.backend.api':from ..services.runtime_paths import FAVORITES_AUTHORITY
+    else:from services.runtime_paths import FAVORITES_AUTHORITY
+    authority = _FavoritesAuthority(email, generation, lease, **source)
+    token = FAVORITES_AUTHORITY.set(authority)
+    try:
+        yield authority
+    finally:
+        authority.active = False
+        FAVORITES_AUTHORITY.reset(token)
+
+
 def _jwt_secret() -> str:
     """Read JWT secret from env, fall back to a fixed dev string.
 
@@ -250,7 +346,7 @@ def _outbox_file() -> Path:
     return _data_dir() / "mock_email_outbox.jsonl"
 
 
-def _account_registry() -> AccountDataRegistry:
+def _account_registry(*, favorites_authority=None) -> AccountDataRegistry:
     # Lazy import avoids an auth/favorites import cycle.
     try:
         from api import favorites
@@ -261,14 +357,48 @@ def _account_registry() -> AccountDataRegistry:
         from api import report_account
     except ModuleNotFoundError:
         from web.backend.api import report_account
+    favorite_snapshot = None
+    def favorite_call(method, owner, *args):
+        if favorites_authority is None:
+            return method(owner, *args)
+        favorites_authority.check()
+        if owner.strip().lower() != favorites_authority.email:
+            raise PermissionError('Favorites registry target mismatch')
+        if __package__ == 'web.backend.api':from ..services.runtime_paths import FAVORITES_AUTHORITY
+        else:from services.runtime_paths import FAVORITES_AUTHORITY
+        token = FAVORITES_AUTHORITY.set(favorites_authority)
+        try:
+            return method(owner, *args)
+        finally:
+            FAVORITES_AUTHORITY.reset(token)
+    def favorite_snapshot_call(owner):
+        nonlocal favorite_snapshot
+        favorite_snapshot = favorite_call(favorites.snapshot_account_favorites, owner)
+        return favorite_snapshot
+    def favorite_delete_call(owner):
+        if favorites_authority is None:
+            return favorites.delete_account_favorites(owner)
+        # UNKNOWN is reconciled inside this delete call, before the generic
+        # registry may mark it completed or run any compensation.
+        try:
+            return favorite_call(favorites._delete_private_favorites, owner, favorite_snapshot)
+        except favorites._private_paths().FavoritesWriteUnknown as unknown:
+            return favorite_call(favorites._reconcile_private_favorites, owner, favorite_snapshot, unknown, 'delete')
+    def favorite_restore_call(owner, snapshot, result):
+        if favorites_authority is not None and snapshot is not favorite_snapshot:
+            raise PermissionError('Favorites restore is not from this registry operation')
+        try:
+            return favorite_call(favorites.restore_account_favorites, owner, snapshot, result)
+        except favorites._private_paths().FavoritesWriteUnknown as unknown:
+            return favorite_call(favorites._reconcile_private_favorites, owner, snapshot, unknown, 'restore')
     return AccountDataRegistry([
         AccountAsset(
             name="favorites", owner_key="normalized_email",
             retention="until removed by the user or account deletion",
-            export=favorites.export_account_favorites,
-            delete=favorites.delete_account_favorites,
-            restore=favorites.restore_account_favorites,
-            snapshot=favorites.snapshot_account_favorites,
+            export=lambda owner: favorite_call(favorites.export_account_favorites, owner),
+            delete=favorite_delete_call,
+            restore=favorite_restore_call,
+            snapshot=favorite_snapshot_call,
         ),
         AccountAsset(
             name="claimed_reports", owner_key="sso_subject_hmac",
@@ -674,11 +804,14 @@ def resolve_session_user(request: Request) -> tuple[Optional[dict], str]:
     if (not user or user["lifecycle"] != "active" or _store().deletion_pending(user["email"])
             or claims.get("gen") != user.get("session_generation")):
         return None, "invalid"
+    if not valid_account_generation(claims.get("gen")):
+        return None, "invalid"
     return {
         "email": user["email"],
         "tier": user["tier"],
         "created_at": user["created_at"],
         "_issued_ns": int(claims.get("issued_ns", 0)),
+        "_verified_generation": claims["gen"],
     }, "valid"
 
 
@@ -694,11 +827,17 @@ def resolve_account_user(request: Request) -> tuple[Optional[dict], str]:
     stored = _store().user(beta["email"])
     if not stored or not account_is_active(beta["email"]):
         return None, "invalid"
+    generation = beta.get("_verified_generation")
+    if generation is not None and not verified_account_generation(beta["email"], generation):
+        return None, "invalid"
+    if _is_prod() and generation is None:
+        return None, "invalid"
     return {
         "email": beta["email"],
         "tier": beta.get("tier", "free"),
         "created_at": stored.get("created_at") if stored else None,
         "auth_method": "phase_sso",
+        **({"_verified_generation": generation} if generation is not None else {}),
     }, "valid"
 
 
@@ -710,6 +849,7 @@ def _account_auth_error(status: str) -> JSONResponse:
     messages = {
         "absent": "no session", "revoked": "session revoked",
         "unlinked": "email confirmation required",
+        "retired": "session retired; sign in again",
     }
     return JSONResponse({
         "ok": False, "error": messages.get(status, "invalid session"),
@@ -972,14 +1112,20 @@ async def export_my_account(request: Request):
     if status != "valid" or not user:
         return _account_auth_error(status)
     try:
-        with account_owner_transaction(user["email"]):
+        with account_owner_transaction(user["email"]) as owner_lease:
             locked_user, locked_status = resolve_account_user(request)
             if locked_status != "valid" or not locked_user:
                 return _account_auth_error(locked_status)
             if locked_user["email"].lower() != user["email"].lower():
                 return _account_auth_error("credential_conflict")
-            registry = _account_registry()
-            data = registry.export_all(locked_user["email"])
+            if _is_prod():
+                with _favorites_authority(locked_user['email'], locked_user.get('_verified_generation'),
+                        owner_lease, request=request) as authority:
+                    registry = _account_registry(favorites_authority=authority)
+                    data = registry.export_all(locked_user['email'])
+            else:
+                registry = _account_registry()
+                data = registry.export_all(locked_user['email'])
     except Exception as exc:
         status_code = 503 if getattr(exc, "status", None) == 503 else 500
         if status_code == 503:
@@ -1120,7 +1266,12 @@ def _run_account_deletion_locked(service, job_id,*,owner_lease=None):
     # and research epoch are not registry assets and cannot be restored by it.
     first,receipt = service.prepare_legacy_deletion_locked(job_id,**lease_args)
     if receipt is None:
-        removed = _account_registry().delete_all(job["owner_email"])
+        if _is_prod():
+            with _favorites_authority(job['owner_email'], job['session_generation'], owner_lease,
+                    service=service, job_id=job_id) as authority:
+                removed = _account_registry(favorites_authority=authority).delete_all(job['owner_email'])
+        else:
+            removed = _account_registry().delete_all(job["owner_email"])
         receipt = service.record_legacy_deletion_locked(job_id, removed, first=first,**lease_args)
     removed = service.legacy_deletion_result(receipt)
     return service.finish_account_deletion_locked(job_id, removed,**lease_args)

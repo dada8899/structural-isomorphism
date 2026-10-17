@@ -510,3 +510,223 @@ class PrivateSsoFile(PrivateHistoryFile):
             raise RuntimePathError('private SSO ledger identity changed')
         if self._sidecars() and current.st_size==0:
             raise RuntimePathError('private SSO ledger has orphan sidecars')
+
+
+# Favorites owns a small JSONL transaction, not a generic asset registry.
+import contextvars
+import fcntl
+import hashlib
+import time
+import uuid
+from contextlib import contextmanager
+
+FAVORITES_LOCK = vars(sqlite3).setdefault('_structural_favorites_lock_v1', threading.RLock())
+FAVORITES_IO = vars(sqlite3).setdefault('_structural_favorites_io_v1', contextvars.ContextVar('private_favorites_io', default=None))
+FAVORITES_AUTHORITY = vars(sqlite3).setdefault('_structural_favorites_authority_v1', contextvars.ContextVar('private_favorites_authority', default=None))
+
+
+def formal_favorites():
+    raw = os.getenv('STRUCTURAL_ENV', 'dev')
+    if raw.strip().lower() == 'prod' and raw.lower() != 'prod':
+        raise RuntimePathError('private Favorites profile contains invalid whitespace')
+    return raw.lower() == 'prod'
+
+
+def private_favorites_path():
+    configured = os.environ.get('STRUCTURAL_FAVORITES_PATH')
+    if configured is None:
+        directory = os.environ.get('AUTH_DATA_DIR')
+        if directory is None:
+            raise RuntimePathError('favorites persistence requires AUTH_DATA_DIR or STRUCTURAL_FAVORITES_PATH in production')
+        if not directory or Path(directory) != STATE_ROOT:
+            raise RuntimePathError('private Favorites requires its approved state directory')
+        return STATE_ROOT / 'favorites.jsonl'
+    if (not configured or configured != str(STATE_ROOT / 'favorites.jsonl')
+            or not Path(configured).is_absolute() or '..' in Path(configured).parts):
+        raise RuntimePathError('favorites persistence path must be outside the Git checkout and use its canonical existing file')
+    return STATE_ROOT / 'favorites.jsonl'
+
+
+class FavoritesWriteUnknown(RuntimePathError):
+    """Replace may have committed. This receipt is evidence, never authority."""
+    def __init__(self, operation_id, payload_digest):
+        super().__init__('Favorites write outcome needs reconciliation')
+        self.operation_id = operation_id
+        self.payload_digest = payload_digest
+
+
+FavoritesWriteUnknown = vars(sqlite3).setdefault('_structural_favorites_unknown_v1', FavoritesWriteUnknown)
+
+
+class PrivateFavoritesFile:
+    def __init__(self):
+        self.parent_fd = self.lock_fd = None
+        self.path = private_favorites_path()
+        self.forbidden = _auth_forbidden_roots()
+        self.file_identity = self.lock_identity = None
+        self.last_write = None
+
+    @staticmethod
+    def _regular(info):
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
+                or stat.S_IMODE(info.st_mode) != 0o600 or info.st_nlink != 1):
+            raise RuntimePathError('private Favorites file is unsafe')
+        return info.st_dev, info.st_ino
+
+    def _entry(self, name):
+        info = os.stat(name, dir_fd=self.parent_fd, follow_symlinks=False)
+        return self._regular(info)
+
+    def check(self):
+        if private_favorites_path() != self.path or not formal_favorites():
+            raise RuntimePathError('private Favorites configuration changed')
+        _check_current_parent(self.path.parent, self.parent_fd, forbidden=self.forbidden)
+        if (self._entry('favorites.lock') != self.lock_identity
+                or self._regular(os.fstat(self.lock_fd)) != self.lock_identity
+                or self._entry('favorites.jsonl') != self.file_identity):
+            raise RuntimePathError('private Favorites identity changed')
+
+    def acquire(self):
+        try:
+            self.parent_fd = _validated_directory_fd(self.path.parent, forbidden=self.forbidden)
+            self.lock_identity = self._entry('favorites.lock')
+            self.lock_fd = os.open('favorites.lock', os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK,
+                                   dir_fd=self.parent_fd)
+            if self._regular(os.fstat(self.lock_fd)) != self.lock_identity:
+                raise RuntimePathError('private Favorites lock changed')
+            deadline = time.monotonic() + 5
+            while True:
+                try:
+                    fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError:
+                    if time.monotonic() >= deadline:
+                        raise RuntimePathError('private Favorites lock unavailable')
+                    time.sleep(0.01)
+            self.file_identity = self._entry('favorites.jsonl')
+            self.check()
+            return self
+        except BaseException:
+            self.close()
+            raise
+
+    def read(self):
+        self.check()
+        fd = os.open('favorites.jsonl', os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK,
+                     dir_fd=self.parent_fd)
+        try:
+            if self._regular(os.fstat(fd)) != self.file_identity:
+                raise RuntimePathError('private Favorites changed while opening')
+            chunks = []
+            while True:
+                chunk = os.read(fd, 1024 * 1024)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            self.check()
+            return b''.join(chunks)
+        finally:
+            os.close(fd)
+
+    def write(self, payload, *, operation_id):
+        if type(payload) is not bytes or type(operation_id) is not str:
+            raise TypeError('private Favorites write requires bytes and operation id')
+        self.check()
+        name = '.favorites-' + uuid.uuid4().hex + '.jsonl.tmp'
+        fd = None
+        temp_identity = None
+        replaced = False
+        replace_started = False
+        try:
+            fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                         0o600, dir_fd=self.parent_fd)
+            temp_identity = self._regular(os.fstat(fd))
+            offset = 0
+            while offset < len(payload):
+                written = os.write(fd, payload[offset:])
+                if written <= 0:
+                    raise RuntimePathError('private Favorites write incomplete')
+                offset += written
+            os.fsync(fd)
+            self.check()
+            if self._entry(name) != temp_identity:
+                raise RuntimePathError('private Favorites temporary file changed')
+            closing, fd = fd, None
+            os.close(closing)
+            replace_started = True
+            os.replace(name, 'favorites.jsonl', src_dir_fd=self.parent_fd, dst_dir_fd=self.parent_fd)
+            replaced = True
+            self.last_write = (operation_id, hashlib.sha256(payload).hexdigest())
+            self.file_identity = temp_identity
+            os.fsync(self.parent_fd)
+            self.check()
+        except BaseException as exc:
+            # An injected/lost replace receipt may raise after the rename. Do
+            # not infer failure merely because os.replace did not return.
+            if temp_identity is not None:
+                try:
+                    replaced = replaced or self._entry('favorites.jsonl') == temp_identity
+                except (OSError, RuntimePathError):
+                    if replace_started:
+                        replaced = True
+            if replaced:
+                self.last_write = (operation_id, hashlib.sha256(payload).hexdigest())
+                raise FavoritesWriteUnknown(operation_id, hashlib.sha256(payload).hexdigest()) from exc
+            raise
+        finally:
+            try:
+                if fd is not None:
+                    os.close(fd)
+            finally:
+                if not replaced and temp_identity is not None:
+                    try:
+                        if self._entry(name) == temp_identity:
+                            os.unlink(name, dir_fd=self.parent_fd)
+                    except FileNotFoundError:
+                        pass
+
+    def confirm(self, unknown):
+        self.check()
+        if hashlib.sha256(self.read()).hexdigest() != unknown.payload_digest:
+            raise unknown
+        # No repeat replace. Re-observe the exact committed image and complete
+        # the durability boundary; failure stays UNKNOWN for this operation.
+        try:
+            os.fsync(self.parent_fd)
+            self.check()
+        except BaseException as exc:
+            raise unknown from exc
+
+    def close(self):
+        try:
+            try:
+                if self.lock_fd is not None:
+                    closing, self.lock_fd = self.lock_fd, None
+                    os.close(closing)
+            finally:
+                if self.parent_fd is not None:
+                    closing, self.parent_fd = self.parent_fd, None
+                    os.close(closing)
+        except OSError as exc:
+            if self.last_write is not None:
+                raise FavoritesWriteUnknown(*self.last_write) from exc
+            raise
+
+
+@contextmanager
+def private_favorites_transaction():
+    current = FAVORITES_IO.get()
+    if current is not None:
+        if not formal_favorites() or current.path != private_favorites_path():
+            raise RuntimePathError('nested Favorites operation changed its approved root')
+        current.check()
+        yield current
+        return
+    with FAVORITES_LOCK:
+        owned = PrivateFavoritesFile().acquire()
+        token = FAVORITES_IO.set(owned)
+        try:
+            yield owned
+        finally:
+            FAVORITES_IO.reset(token)
+            owned.close()

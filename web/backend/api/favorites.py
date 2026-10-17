@@ -43,6 +43,7 @@ to remove an item before retrying.
 from __future__ import annotations
 
 import copy
+import uuid
 from contextlib import contextmanager
 import json
 import hashlib
@@ -342,8 +343,53 @@ class TickerMutationResponse(BaseModel):
     ticker: str = Field(pattern=r"^[A-Z0-9][A-Z0-9.\-]{0,9}$")
 
 
+
+def _private_paths():
+    if __package__ == 'web.backend.api':from ..services import runtime_paths
+    else:from services import runtime_paths
+    return runtime_paths
+
+
+def _private_mode():
+    paths = _private_paths()
+    formal = paths.formal_favorites()
+    if not formal and (paths.FAVORITES_AUTHORITY.get() is not None or paths.FAVORITES_IO.get() is not None):
+        raise paths.RuntimePathError('an active private Favorites operation cannot downgrade to development')
+    return formal
+
+
+def _auth_api():
+    if __package__ == 'web.backend.api':from . import auth
+    else:from api import auth
+    return auth
+
+
+def _authority(email=None, *, deletion=False):
+    context = _private_paths().FAVORITES_AUTHORITY.get()
+    if context is None:
+        raise PermissionError('Favorites requires actual request or job authority')
+    context.check()
+    if context.path.parent != _private_paths().private_favorites_path().parent:
+        raise PermissionError('Favorites and Auth must share the same approved authority root')
+    if email is not None and email.strip().lower() != context.email:
+        raise PermissionError('Favorites target does not match authority')
+    if deletion and context.job_id is None:
+        raise PermissionError('Favorites cleanup requires a persistent deletion job')
+    return context
+
+
+def _record_key(email):
+    if not _private_mode():
+        return email.lower()
+    context = _authority(email)
+    return ('owned', context.owner_key, context.generation)
+
+
 def _data_file() -> Path:
     """Persistent storage path; production must never default into Git."""
+    if _private_mode():
+        with _private_paths().private_favorites_transaction() as io:
+            return io.path
     env_override = os.getenv("STRUCTURAL_FAVORITES_PATH", "").strip()
     if env_override:
         target = Path(env_override)
@@ -376,6 +422,8 @@ def _legacy_data_file() -> Path:
 
 def _migrate_legacy_file(target: Path) -> None:
     """Copy a pre-persistence-boundary JSONL once, without overwriting data."""
+    if _private_mode():
+        raise _private_paths().RuntimePathError('formal Favorites cannot auto-inherit legacy material')
     legacy = _legacy_data_file()
     if target == legacy or target.exists() or not legacy.exists():
         return
@@ -630,7 +678,11 @@ def _validated_storage_record(value: object, line_no: int) -> tuple[str, dict]:
 
 
 def _load_all() -> dict[str, dict]:
-    """Read all records; only a genuinely missing file means an empty store."""
+    """Read all records; only development may treat missing storage as empty."""
+    if _private_mode():
+        _authority()
+        with _private_paths().private_favorites_transaction() as io:
+            return _read_private_records(io)
     out: dict[str, dict] = {}
     try:
         path = _data_file()
@@ -664,6 +716,9 @@ def _load_all() -> dict[str, dict]:
 
 def _atomic_write_all(records: dict[str, dict]) -> None:
     """Rewrite full jsonl atomically (tmp file + rename)."""
+    if _private_mode():
+        _write_private_records(records)
+        return
     tmp_path: Optional[str] = None
     try:
         path = _data_file()
@@ -696,7 +751,7 @@ def _atomic_write_all(records: dict[str, dict]) -> None:
 def _get_user_record(email: str, all_records: Optional[dict] = None) -> dict:
     """Return existing record for email or a fresh blank one."""
     records = all_records if all_records is not None else _load_all()
-    rec = records.get(email.lower())
+    rec = records.get(_record_key(email))
     if rec is None:
         rec = {
             "schema_version": FAVORITES_SCHEMA_VERSION,
@@ -705,6 +760,10 @@ def _get_user_record(email: str, all_records: Optional[dict] = None) -> dict:
             "bookmarks": [],
             "updated_at": None,
         }
+        if _private_mode():
+            context = _authority(email)
+            rec['_favorites_owner'] = {'owner_key': context.owner_key, 'generation': context.generation,
+                'record_id': uuid.uuid4().hex, 'revision': uuid.uuid4().hex}
     # Storage validation guarantees a list container. Individual ticker values
     # intentionally remain opaque JSON until an explicit canonical match.
     if not isinstance(rec.get("tickers"), list):
@@ -723,6 +782,8 @@ def _mark_legacy_storage_schema(rec: dict) -> None:
 
 def _save_user_record(rec: dict) -> None:
     """Read-modify-write under lock."""
+    if _private_mode():
+        raise PermissionError('formal Favorites must use a versioned owner transaction')
     email = (rec.get("email") or "").lower()
     if not email:
         raise InvalidInput(detail="record missing email")
@@ -737,7 +798,7 @@ def _save_user_record(rec: dict) -> None:
 def export_account_favorites(email: str) -> dict:
     """Registry adapter: export one account's server-side favorites."""
     records = _load_all()
-    rec = records.get(email.lower())
+    rec = records.get(_record_key(email))
     return {
         "schema_version": FAVORITES_SCHEMA_VERSION,
         "exists": rec is not None,
@@ -749,8 +810,10 @@ def export_account_favorites(email: str) -> dict:
 
 def snapshot_account_favorites(email: str) -> dict:
     """Private, lossless compensation snapshot; never return through an API."""
+    if _private_mode():
+        return _snapshot_private_favorites(email)
     records = _load_all()
-    rec = records.get(email.lower())
+    rec = records.get(_record_key(email))
     return {
         "snapshot_version": "favorites-raw-snapshot-v1",
         "exists": rec is not None,
@@ -760,6 +823,8 @@ def snapshot_account_favorites(email: str) -> dict:
 
 def delete_account_favorites(email: str) -> dict:
     """Registry adapter: remove one account without touching other owners."""
+    if _private_mode():
+        raise PermissionError('formal Favorites delete requires the registry snapshot')
     with _WRITE_LOCK:
         records = _load_all()
         removed = records.pop(email.lower(), None)
@@ -774,6 +839,8 @@ def delete_account_favorites(email: str) -> dict:
 
 def restore_account_favorites(email: str, snapshot: object, _removed: object = None) -> None:
     """Compensating write used if a later account deletion step fails."""
+    if _private_mode():
+        return _restore_private_favorites(email, snapshot)
     if not isinstance(snapshot, dict) or not snapshot.get("exists"):
         return
     with _WRITE_LOCK:
@@ -802,13 +869,17 @@ class _FavoriteUser:
     tier: str
     auth_method: str
     deletion_epoch: Optional[str] = None
+    generation: Optional[str] = None
 
 
 def _resolve_user(request: Request, api_key: Optional[APIKey]) -> Optional[_FavoriteUser]:
     """Session is authoritative; API key remains a compatibility fallback."""
     session_user, status = resolve_account_user(request)
     if status == "valid" and session_user:
-        return _FavoriteUser(session_user["email"], session_user["tier"], "session")
+        generation = session_user.get('_verified_generation')
+        if _private_mode() and not _auth_api().valid_account_generation(generation):
+            raise Unauthenticated(detail='Sign in again to access this account incarnation')
+        return _FavoriteUser(session_user["email"], session_user["tier"], "session", generation=generation)
     if status != "absent":
         if status == "credential_conflict":
             logger.warning("structural.favorites.credential_conflict")
@@ -817,8 +888,12 @@ def _resolve_user(request: Request, api_key: Optional[APIKey]) -> Optional[_Favo
                 status=409, error="credential_conflict",
             )
         logger.warning("structural.favorites.session_invalid")
+        if status == 'retired':
+            raise Unauthenticated(detail='This session is retired; sign in again')
         raise Unauthenticated(detail="invalid or revoked authenticated session")
     if api_key is not None:
+        if _private_mode():
+            raise Unauthenticated(detail='Sign in to access incarnation-bound Favorites')
         deletion_epoch = account_deletion_epoch(api_key.owner_email)
         if api_key_retired_by_account_deletion(
             api_key.owner_email, api_key.created_at,
@@ -846,22 +921,41 @@ def _require_user(request: Request, api_key: Optional[APIKey]) -> _FavoriteUser:
 
 @contextmanager
 def _favorite_write_transaction(
-    request: Request, api_key: Optional[APIKey],
+    request: Request, api_key: Optional[APIKey], *, mutation=True,
 ):
     """Serialize and revalidate an owner-scoped mutation with account erase."""
-    provisional = _require_user(request, api_key)
-    with account_owner_transaction(provisional.owner_email):
-        current = _require_user(request, api_key)
+    resolve = _require_user if mutation else _resolve_user
+    provisional = resolve(request, api_key)
+    if provisional is None:
+        raise Unauthenticated(detail='Authenticated account required')
+    with account_owner_transaction(provisional.owner_email) as lease:
+        current = resolve(request, api_key)
+        if current is None:
+            raise Unauthenticated(detail='Authenticated account changed')
         if current.owner_email.lower() != provisional.owner_email.lower():
             raise Unauthenticated(
                 detail="Authenticated owner changed; retry with one credential",
                 status=409,
                 error="credential_conflict",
             )
-        if current.deletion_epoch != provisional.deletion_epoch:
+        if (current.deletion_epoch != provisional.deletion_epoch
+                or current.generation != provisional.generation):
             raise Unauthenticated(detail="Account deletion state changed; retry")
-        with _WRITE_LOCK:
-            yield current
+        if _private_mode():
+            try:
+                with _auth_api()._favorites_authority(current.owner_email, current.generation, lease, request=request):
+                    with _private_paths().private_favorites_transaction():
+                        yield current
+            except _private_paths().FavoritesWriteUnknown as exc:
+                raise UpstreamUnavailable(detail='Favorites result is not confirmed. Reopen before repeating this action.',
+                    type_slug='favorites_storage_result_unknown') from exc
+            except _auth_api()._FavoritesAuthorityError as exc:
+                raise Unauthenticated(detail='Favorites authority changed; sign in again') from exc
+            except (OSError, ValueError, _private_paths().RuntimePathError) as exc:
+                raise _storage_unavailable('private transaction', exc) from exc
+        else:
+            with _WRITE_LOCK:
+                yield current
 
 
 def _limit_for_tier(tier: str) -> Optional[int]:
@@ -895,7 +989,11 @@ async def list_favorites(
             "authenticated": False,
             "auth_method": None,
         }
-    rec = _get_user_record(user.owner_email)
+    if _private_mode():
+        with _favorite_write_transaction(request, api_key, mutation=False) as current:
+            rec = _get_user_record(current.owner_email)
+    else:
+        rec = _get_user_record(user.owner_email)
     return {
         "schema_version": FAVORITES_SCHEMA_VERSION,
         "tickers": _canonical_tickers(rec.get("tickers")),
@@ -991,7 +1089,7 @@ async def merge_favorites(
             rec["bookmarks"] = raw_bookmarks
             _mark_legacy_storage_schema(rec)
             rec["updated_at"] = datetime.now(timezone.utc).isoformat()
-            all_recs[user.owner_email.lower()] = rec
+            all_recs[_record_key(user.owner_email)] = rec
             _atomic_write_all(all_recs)
 
     logger.info(
@@ -1061,7 +1159,7 @@ async def add_bookmark(
         rec["bookmarks"] = raw_bookmarks
         _mark_legacy_storage_schema(rec)
         rec["updated_at"] = datetime.now(timezone.utc).isoformat()
-        all_recs[user.owner_email.lower()] = rec
+        all_recs[_record_key(user.owner_email)] = rec
         _atomic_write_all(all_recs)
 
     logger.info(
@@ -1111,7 +1209,7 @@ async def remove_bookmark(
             rec["tickers"] = next_tickers
             _mark_legacy_storage_schema(rec)
             rec["updated_at"] = datetime.now(timezone.utc).isoformat()
-            all_recs[user.owner_email.lower()] = rec
+            all_recs[_record_key(user.owner_email)] = rec
             _atomic_write_all(all_recs)
         total = len(_stored_bookmarks(rec)) + len(_canonical_tickers(next_tickers))
 
@@ -1177,7 +1275,7 @@ async def add_favorite(
         rec["tickers"] = existing
         _mark_legacy_storage_schema(rec)
         rec["updated_at"] = datetime.now(timezone.utc).isoformat()
-        all_recs[user.owner_email.lower()] = rec
+        all_recs[_record_key(user.owner_email)] = rec
         _atomic_write_all(all_recs)
 
     logger.info(
@@ -1220,7 +1318,7 @@ async def remove_favorite(
             rec["tickers"] = next_tickers
             _mark_legacy_storage_schema(rec)
             rec["updated_at"] = datetime.now(timezone.utc).isoformat()
-            all_recs[user.owner_email.lower()] = rec
+            all_recs[_record_key(user.owner_email)] = rec
             _atomic_write_all(all_recs)
 
     logger.info(
@@ -1229,3 +1327,214 @@ async def remove_favorite(
     )
 
     return Response(status_code=204)
+
+
+# Only newly owned Favorites records receive this private envelope. Opaque
+# legacy records remain isolated and never gain an owner through their email.
+def _private_digest(value):
+    return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+        separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+
+
+def _owner_key_valid(value):
+    return type(value) is str and re.fullmatch(r'account-owner\.gate:v2:[0-9a-f]{64}', value) is not None
+
+
+def _hex(value, length=32):
+    return type(value) is str and re.fullmatch('[0-9a-f]{' + str(length) + '}', value) is not None
+
+
+def _private_entry(value, line):
+    if not isinstance(value, dict):
+        raise ValueError('Favorites JSONL requires object records')
+    if '_favorites_tombstone' in value:
+        mark = value['_favorites_tombstone']
+        if (set(value) != {'_favorites_tombstone'} or type(mark) is not dict
+                or set(mark) != {'owner_key', 'incarnation', 'record_id', 'operation_id', 'revision', 'digest'}
+                or not _owner_key_valid(mark.get('owner_key'))
+                or not all(_hex(mark.get(k), 64 if k in {'incarnation', 'digest'} else 32)
+                           for k in mark if k != 'owner_key')):
+            raise ValueError('Favorites deletion marker is invalid')
+        return ('tombstone', mark['owner_key']), value
+    email, _ = _validated_storage_record(copy.deepcopy(value), line)
+    if '_favorites_owner' not in value:
+        return ('legacy', email), value
+    meta = value['_favorites_owner']
+    if (type(meta) is not dict or set(meta) != {'owner_key', 'generation', 'record_id', 'revision'}
+            or not _owner_key_valid(meta.get('owner_key'))
+            or not all(_hex(meta.get(k)) for k in ('generation', 'record_id', 'revision'))
+            or meta['owner_key'] != _auth_api().AuthStore.owner_key(email)):
+        raise ValueError('Favorites owner envelope is invalid')
+    return ('owned', meta['owner_key'], meta['generation']), value
+
+
+def _read_private_records(io):
+    payload = io.read()
+    if payload and not payload.endswith(b'\n'):
+        raise ValueError('Favorites JSONL has an unfinished record')
+    records = {}
+    def invalid_constant(_value):
+        raise ValueError('Favorites non-finite JSON is unsupported')
+    def unique_object(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError('Favorites JSON contains duplicate keys')
+            value[key] = item
+        return value
+    for line, raw in enumerate(payload.decode('utf-8').splitlines(), 1):
+        if not raw.strip():
+            continue
+        key, value = _private_entry(json.loads(raw, parse_constant=invalid_constant, object_pairs_hook=unique_object), line)
+        if key in records:
+            raise ValueError('Favorites JSONL has duplicate records')
+        records[key] = value
+    return records
+
+
+def _write_private_records(records, *, operation_id=None, reconcile=False):
+    context = _authority()
+    paths = _private_paths()
+    operation_id = operation_id or uuid.uuid4().hex
+    with paths.private_favorites_transaction() as io:
+        original = _read_private_records(io)
+        key = _record_key(context.email)
+        # No caller, including an internal compensation snapshot, can replace
+        # another incarnation or an unowned legacy record as a side effect.
+        for changed in set(original) | set(records):
+            if original.get(changed) != records.get(changed) and changed not in {
+                    key, ('tombstone', context.owner_key)}:
+                raise PermissionError('Favorites write escaped its incarnation')
+        if key in records and records.get(key) != original.get(key):
+            records[key]['_favorites_owner']['revision'] = uuid.uuid4().hex
+            records.pop(('tombstone', context.owner_key), None)
+        for index, (stored_key, value) in enumerate(records.items(), 1):
+            if _private_entry(value, index)[0] != stored_key:
+                raise ValueError('Favorites internal record key mismatch')
+        payload = b''.join((json.dumps(value, ensure_ascii=False, allow_nan=False) + '\n').encode()
+                           for value in records.values())
+        context.check()
+        try:
+            io.write(payload, operation_id=operation_id)
+        except paths.FavoritesWriteUnknown as unknown:
+            if (not reconcile or unknown.operation_id != operation_id
+                    or unknown.payload_digest != hashlib.sha256(payload).hexdigest()):
+                raise
+            # This is the one controlled reconciliation point for delete and
+            # restore, before AccountDataRegistry observes success/failure.
+            # Rebind the data inode under the same held parent and stable lock
+            # if the replace itself lost its receipt; confirm the exact image.
+            if io._entry('favorites.jsonl') != io.file_identity:
+                io.file_identity = io._entry('favorites.jsonl')
+            context.check()
+            io.confirm(unknown)
+        try:
+            context.check()
+        except BaseException as exc:
+            raise paths.FavoritesWriteUnknown(operation_id, hashlib.sha256(payload).hexdigest()) from exc
+
+
+def _snapshot_private_favorites(email):
+    context = _authority(email, deletion=True)
+    with _private_paths().private_favorites_transaction() as io:
+        record = _read_private_records(io).get(_record_key(email))
+        return {'snapshot_version': 'favorites-private-snapshot-v1',
+            'exists': record is not None, 'record': copy.deepcopy(record),
+            'operation_id': uuid.uuid4().hex, 'owner_key': context.owner_key,
+            'incarnation': hashlib.sha256(context.generation.encode()).hexdigest(),
+            'digest': _private_digest(record)}
+
+
+def _check_private_snapshot(email, snapshot):
+    context = _authority(email, deletion=True)
+    if (type(snapshot) is not dict or snapshot.get('snapshot_version') != 'favorites-private-snapshot-v1'
+            or snapshot.get('owner_key') != context.owner_key
+            or snapshot.get('incarnation') != hashlib.sha256(context.generation.encode()).hexdigest()
+            or not _hex(snapshot.get('operation_id'))
+            or snapshot.get('digest') != _private_digest(snapshot.get('record'))):
+        raise PermissionError('Favorites snapshot is not for this deletion incarnation')
+    record = snapshot.get('record')
+    if snapshot.get('exists') is not (record is not None):
+        raise ValueError('Favorites snapshot existence is inconsistent')
+    if record is not None and _private_entry(record, 1)[0] != _record_key(email):
+        raise PermissionError('Favorites snapshot owner mismatch')
+    return context
+
+
+def _delete_private_favorites(email, snapshot):
+    context = _check_private_snapshot(email, snapshot)
+    with _private_paths().private_favorites_transaction() as io:
+        records = _read_private_records(io)
+        key = _record_key(email)
+        current = records.get(key)
+        if current != snapshot['record']:
+            raise PermissionError('Favorites changed after deletion snapshot')
+        if current is None:
+            mark = records.get(('tombstone', context.owner_key), {}).get('_favorites_tombstone')
+            if mark is not None and mark['incarnation'] == snapshot['incarnation']:
+                # A restarted pending job may have lost the original return
+                # receipt. Confirm the existing operation/image durably,
+                # without replaying deletion or inventing its original count.
+                context.check()
+                io.confirm(_private_paths().FavoritesWriteUnknown(mark['operation_id'],
+                    hashlib.sha256(io.read()).hexdigest()))
+                context.check()
+            return {'records': 0, 'tickers': 0, 'bookmarks': 0}
+        meta = current['_favorites_owner']
+        records.pop(key)
+        records[('tombstone', context.owner_key)] = {'_favorites_tombstone': {
+            'owner_key': context.owner_key, 'incarnation': snapshot['incarnation'],
+            'record_id': meta['record_id'], 'operation_id': snapshot['operation_id'],
+            'revision': meta['revision'], 'digest': snapshot['digest']}}
+        _write_private_records(records, operation_id=snapshot['operation_id'], reconcile=True)
+        return {'records': 1, 'tickers': len(_canonical_tickers(current.get('tickers'))),
+                'bookmarks': len(_stored_bookmarks(current))}
+
+
+def _restore_private_favorites(email, snapshot):
+    context = _check_private_snapshot(email, snapshot)
+    if not snapshot['exists']:
+        return
+    with _private_paths().private_favorites_transaction() as io:
+        records = _read_private_records(io)
+        key = _record_key(email)
+        meta = snapshot['record']['_favorites_owner']
+        expected = {'owner_key': context.owner_key, 'incarnation': snapshot['incarnation'],
+            'record_id': meta['record_id'], 'operation_id': snapshot['operation_id'],
+            'revision': meta['revision'], 'digest': snapshot['digest']}
+        if (records.get(('tombstone', context.owner_key)) != {'_favorites_tombstone': expected}
+                or any(k[0] == 'owned' and k[1] == context.owner_key for k in records)):
+            raise PermissionError('Favorites compensation was superseded or already used')
+        records[key] = copy.deepcopy(snapshot['record'])
+        records.pop(('tombstone', context.owner_key))
+        _write_private_records(records, operation_id=snapshot['operation_id'], reconcile=True)
+
+
+def _reconcile_private_favorites(email, snapshot, unknown, action):
+    """Closure-level reconciliation, including a lost FD-close receipt.
+
+    It only observes and fsyncs an exact expected image. It never repeats a
+    replace, infers ownership from a DTO, or writes a compensation snapshot.
+    """
+    context = _check_private_snapshot(email, snapshot)
+    if unknown.operation_id != snapshot['operation_id'] or action not in {'delete', 'restore'}:
+        raise unknown
+    with _private_paths().private_favorites_transaction() as io:
+        current = _read_private_records(io)
+        key = _record_key(email)
+        if action == 'delete':
+            meta = snapshot['record']['_favorites_owner']
+            expected = {'owner_key': context.owner_key, 'incarnation': snapshot['incarnation'],
+                'record_id': meta['record_id'], 'operation_id': snapshot['operation_id'],
+                'revision': meta['revision'], 'digest': snapshot['digest']}
+            if key in current or current.get(('tombstone', context.owner_key)) != {'_favorites_tombstone': expected}:
+                raise unknown
+        elif key not in current or ('tombstone', context.owner_key) in current:
+            raise unknown
+        io.confirm(unknown)
+        context.check()
+        if action == 'restore':
+            return None
+        record = snapshot['record']
+        return {'records': 1, 'tickers': len(_canonical_tickers(record.get('tickers'))),
+            'bookmarks': len(_stored_bookmarks(record))}
