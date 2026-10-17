@@ -18,11 +18,11 @@ from typing import Optional
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from services.history_db import ALLOWED_KINDS, HistoryDB
-
 if __package__ == "web.backend.api":
+    from ..services.history_db import ALLOWED_KINDS, HistoryDB
     from ..logging_config import get_logger
 else:
+    from services.history_db import ALLOWED_KINDS, HistoryDB
     from logging_config import get_logger
 
 logger = get_logger("structural.api.history")
