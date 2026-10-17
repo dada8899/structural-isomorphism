@@ -644,6 +644,7 @@ def test_true_v3_financial_rows_migrate_or_roll_back_at_each_boundary(legacy_v4_
 
 @pytest.fixture
 def legacy_v4_c0(monkeypatch,request):
+    monkeypatch.setattr(ResearchStore,'_initialize_current',lambda self,conn:False)
     # Keep the original v3->v4 test's real historical shape and every failure
     # boundary. Production has no bypass; v4->v5 is tested independently.
     monkeypatch.setattr(ResearchStore,"_migrate_v5",lambda self:None)
