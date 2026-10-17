@@ -250,11 +250,12 @@ class ControlledNativePending(_Sealed):
     def receive(self):
         self.require()
         if self.grant is None:raise PermissionError('actual first write required')
-        try:
-            _send_remaining(self.conn,self.deadline,memoryview(self.remaining));status,body=_receive(self.conn,self.deadline)
-            dispatch,nonce,admission_digest,producer_digest=self.grant
-            return OwnedNativeReturn(_factory=_FACTORY,resource=self.resource,dispatch=dispatch,nonce=nonce,admission_digest=admission_digest,producer_digest=producer_digest,status=status,body=body,mode='controlled_fixture')
-        finally:self.close()
+        # Core owns independent pending.close in its finally, after accepting
+        # and committing this owned return. A socket-close error must not
+        # replace the handoff or orphan a registered receipt.
+        _send_remaining(self.conn,self.deadline,memoryview(self.remaining));status,body=_receive(self.conn,self.deadline)
+        dispatch,nonce,admission_digest,producer_digest=self.grant
+        return OwnedNativeReturn(_factory=_FACTORY,resource=self.resource,dispatch=dispatch,nonce=nonce,admission_digest=admission_digest,producer_digest=producer_digest,status=status,body=body,mode='controlled_fixture')
     def close(self):
         if self.active:
             object.__setattr__(self,'active',False);_PENDING.pop(self.reference,None)
@@ -328,3 +329,7 @@ def retire_attempts(*resources,flight=None):
         try:flight.release()
         except BaseException as error:errors.append(type(error).__name__)
     return tuple(errors)
+
+
+# Fixed code origins, captured before test wrappers or caller attribute aliases.
+_WRITE_PRODUCERS=(install_native_funding,)

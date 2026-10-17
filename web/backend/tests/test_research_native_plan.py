@@ -218,3 +218,98 @@ def test_native_retired_runtime_permit_cannot_retain_resource_sending_authority(
         with pytest.raises(PermissionError):ResearchRunner(store).run_once(result['task_id'])
         assert calls==[]
         assert resource.flight.acquire(blocking=False);resource.flight.release()
+
+
+def test_review_pending_close_after_real_response_books_and_retires_owned_return(stack,monkeypatch):
+    data=saved(stack,monkeypatch);client,_,rid,store=data
+    close=native.ControlledNativePending.close;fired=[];returns=set(native._RETURNS)
+    def failed(pending):
+        close(pending)
+        if pending.grant is not None and not fired:fired.append(True);raise OSError('synthetic pending close failure after actual response')
+    monkeypatch.setattr(native.ControlledNativePending,'close',failed)
+    with provider() as (server,calls),installed(data,server) as resource:
+        result=admitted(client,rid)
+        with pytest.raises(ResearchError) as uncertain:ResearchRunner(store).run_once(result['task_id'])
+        assert uncertain.value.code=='CLEANUP_UNCERTAIN' and fired==[True]
+        assert not [v for k,v in native._RETURNS.items() if k not in returns and v.active]
+        assert resource.flight.acquire(blocking=False);resource.flight.release()
+        with store.transaction() as conn:
+            assert conn.execute('SELECT state,cost_state,cleanup_state FROM research_plan_native_runs').fetchone()[:]==('returned','upper_booked','uncertain')
+            assert conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone()[:]==(0,flow.UPPER)
+        response=client.get('/api/research/'+rid+'/plan-results/'+result['result_ref'])
+        assert response.status_code==200 and response.json()['data']['content']['proposal']==CANDIDATE
+        ResearchRunner(store).run_once(result['task_id']);assert [c[0] for c in calls]==['GET','POST']
+
+
+@pytest.mark.parametrize('writer',['fake','unrelated_owner','actual_owner_noop','money_wrapper_noop'])
+def test_review_native_write_rejects_unrelated_or_unproduced_financial_changes(stack,monkeypatch,writer):
+    from types import SimpleNamespace
+    from research import ResearchService
+    from research.authorization import AuthorizationGate
+    from research import plan_native_financial as finance
+    from .test_private_registration import link,verify
+    from .test_research_persistence import envelope,problem
+    data=saved(stack,monkeypatch);client,_,rid,store=data
+    with provider() as (server,calls),installed(data,server):
+        result=admitted(client,rid);ResearchRunner(store).run_once(result['task_id'])
+        if writer=='unrelated_owner':
+            assert client.post('/api/auth/logout',headers={'origin':BETA}).status_code==200
+            assert verify(client,link(client,stack[2],'other-owner@example.invalid')).status_code==200
+            assert client.post('/api/research',json=envelope({'problem':problem()}),headers={'origin':BETA,'idempotency-key':'other-native-owner'}).status_code==200
+        pid=ResearchService(store)._principal(identity(client))
+        with AuthorizationGate(store).owner_gate(pid) as actual,store.transaction(write=True) as conn:
+            account=conn.execute('SELECT * FROM research_funding_accounts').fetchone();before=tuple(account)
+            lease=SimpleNamespace(identity=(1,2,3)) if writer=='fake' else actual
+            with pytest.raises((PermissionError,TypeError)):
+                if writer=='money_wrapper_noop':flow._money(conn,lease,account,0,-flow.UPPER,lambda:None)
+                else:finance._write(conn,lease,finance.MONEY,account['id'],{'upper_booked':0,'version':account['version']+1},lambda:None,_factory=finance._FACTORY)
+            assert tuple(conn.execute('SELECT * FROM research_funding_accounts').fetchone())==before
+            conn.rollback()
+        assert [c[0] for c in calls]==['GET','POST']
+
+
+def test_review_retired_native_permit_preview_is_closed_without_reading_balance(stack,monkeypatch):
+    data=saved(stack,monkeypatch);client,_,rid,store=data
+    with provider() as (server,calls),installed(data,server) as resource:
+        resource.permit.close();value=preview(client,rid)
+        assert value['can_confirm'] is False and value['state']=='funding_closed' and value['funding_reason']=='FUNDING_CLOSED'
+        assert value['cash_evidence']=='not_observed' and calls==[]
+
+
+def test_review_unknown_cleanup_preserves_every_execution_and_financial_field(stack,monkeypatch):
+    data=saved(stack,monkeypatch);client,_,rid,store=data
+    def failed(pending,cap):cap.consume(pending.resource);raise OSError('synthetic consumed ambiguity')
+    monkeypatch.setattr(native.ControlledNativePending,'write_first',failed)
+    with provider() as (server,calls),installed(data,server):
+        result=admitted(client,rid)
+        with pytest.raises(OSError):ResearchRunner(store).run_once(result['task_id'])
+        with store.transaction() as conn:
+            value=conn.execute('SELECT * FROM research_plan_native_runs').fetchone()
+            assert (value['state'],value['cost_state'],value['cleanup_state'])==('unknown','unknown','clean')
+            assert conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone()[:]==(flow.UPPER,0)
+            assert not native._PENDING and not native._RETURNS and not native._BALANCES and not flow._CAPS
+        # Isolate the SQL terminal-state rule from its UDF authority gate. Even
+        # a deliberately replaced scalar cannot reopen UNKNOWN or clear debt.
+        with closing(sqlite3.connect(store.path,isolation_level=None)) as conn:
+            conn.create_function('research_plan_native_write_allowed',4,lambda *_:1)
+            for assignment in ("state='consumed'","cost_state='unreserved'","upper=0","receipt_json='{}'","result_json='{}'","safe_code='saved'"):
+                with pytest.raises(sqlite3.Error):conn.execute('UPDATE research_plan_native_runs SET '+assignment+',version=version+1')
+            conn.execute("UPDATE research_plan_native_runs SET cleanup_state='uncertain',version=version+1")
+            assert conn.execute('SELECT state,cost_state,cleanup_state FROM research_plan_native_runs').fetchone()==('unknown','unknown','uncertain')
+        ResearchRunner(store).run_once(result['task_id']);assert [c[0] for c in calls]==['GET']
+
+
+
+def test_review_funding_owner_binding_preserves_other_registered_accounts_closed_preview(stack,monkeypatch):
+    from .test_private_registration import link,verify
+    from .test_research_persistence import envelope,problem
+    data=saved(stack,monkeypatch);client,_,rid,store=data
+    with provider() as (server,calls),installed(data,server):
+        assert client.post('/api/auth/logout',headers={'origin':BETA}).status_code==200
+        assert verify(client,link(client,stack[2],'cost-preview-only@example.invalid')).status_code==200
+        confirmed=problem();confirmed['confirmed']=True
+        made=client.post('/api/research',json=envelope({'problem':confirmed}),headers={'origin':BETA,'idempotency-key':'other-cost-preview'})
+        assert made.status_code==200
+        other=made.json()['data']['research']['id'];value=preview(client,other)
+        assert value['can_confirm'] is False and value['funding_reason']=='FUNDING_CLOSED' and value['cash_evidence']=='not_observed'
+        assert calls==[]

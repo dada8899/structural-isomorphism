@@ -76,6 +76,11 @@ def preview(service,identity,rid,request,key,source):
 def preview_view(value,conn,store):
     consent=json.loads(value['consent_json']);q=json.loads(value['quote_json']);funding=row(conn,FUNDING,1)
     authorized=bool(ports.installation(store) and funding and funding['state']=='authorized' and funding['principal_id']==value['principal_id'] and funding['generation']==consent['generation'])
+    if authorized:
+        try:
+            provision,resource=ports.installation(store)
+            provision.require();resource.require()
+        except (PermissionError,OSError,ResearchError):authorized=False
     return dict(preview_ref=value['id'],preview_digest=value['consent_digest'],request_digest=value['request_digest'],research_id=value['research_id'],input_revision=value['input_revision'],expected_research_version=value['research_version'],
         exact_input=consent['raw_input'],purpose='phenomenon_plan_v1',observation_rights='self_declared',state='awaiting_confirmation' if authorized else 'funding_closed',can_confirm=authorized,
         funding_reason=None if authorized else 'FUNDING_CLOSED',cash_evidence='not_observed',approved_upper_units=q['approved_upper_units'],currency='CNY',scale=6,quote=q,expires_at=value['expires_at'],
@@ -421,3 +426,7 @@ def erase_in(conn,store,lease,pid,job_id):
     for value in conn.execute('SELECT * FROM '+PREVIEWS+' WHERE principal_id=?',(pid,)).fetchall():_write(conn,lease,PREVIEWS,value['id'],dict(state='closed',consent_json=None,research_id=None),verify)
     funding=row(conn,FUNDING,1)
     if funding and funding['principal_id']==pid:_write(conn,lease,FUNDING,1,dict(state='retired',principal_id=None,generation=None,version=funding['version']+1),verify)
+
+
+# Retain actual producer code identity across observational test wrappers.
+_WRITE_PRODUCERS=(preview,confirm,run_once,_commit_return,_fail,_cleanup,stop_in,erase_in)
