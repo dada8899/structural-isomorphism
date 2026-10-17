@@ -2734,11 +2734,37 @@ def test_formula_ack_is_confirmed_and_request_bound_before_pending_key_retiremen
                     elif mode=='other-real-run':body['data']=older
                     route.fulfill(response=response,json=body)
                 page.route('**/formula-checks',fault_after_commit,times=1)
+            def completed_ack_post(action):
+                captured=[];responses=[];terminal=[]
+                def capture(request):
+                    if request.method=='POST' and request.url==base+'/api/research/'+rid+'/formula-checks' and not captured:captured.append(request)
+                def headers(response):
+                    if captured and response.request is captured[0]:responses.append(response)
+                def finished(request):
+                    if captured and request is captured[0] and not terminal:terminal.append(('requestfinished',request,time.monotonic()))
+                def failed(request):
+                    if captured and request is captured[0] and not terminal:terminal.append(('requestfailed',request,time.monotonic()))
+                listeners=[('request',capture),('response',headers),('requestfinished',finished),('requestfailed',failed)]
+                for event,callback in listeners:page.on(event,callback)
+                deadline=time.monotonic()+15
+                try:
+                    action()
+                    while not terminal:
+                        remaining=deadline-time.monotonic()
+                        assert remaining>0,'ACK body did not reach a terminal network event within15s'
+                        page.wait_for_timeout(min(20,remaining*1000))
+                    assert terminal[0][2]<=deadline,'ACK terminal network event exceeded15s'
+                    assert captured and terminal[0][1] is captured[0],'ACK terminal event must identify the original POST'
+                    assert terminal[0][0]=='requestfinished','ACK body requestfailed before completion'
+                    assert len(responses)==1 and responses[0].request is captured[0],'ACK headers and finish must be the same request'
+                    return responses[0]
+                finally:
+                    for event,callback in listeners:page.remove_listener(event,callback)
             page.locator('#formula-confirm').check()
             if mode=='abort':
                 with page.expect_event('requestfailed',predicate=lambda request:request.url.endswith('/formula-checks')):page.locator('#formula-run').click()
             else:
-                with page.expect_response('**/formula-checks'):page.locator('#formula-run').click()
+                completed_ack_post(lambda:page.locator('#formula-run').click())
             if mode=='normal':expect(page.locator('#formula-result-ref')).to_have_text(re.compile(r'[0-9a-f-]{36}'))
             else:
                 assert len(actual)==1
@@ -2754,10 +2780,10 @@ def test_formula_ack_is_confirmed_and_request_bound_before_pending_key_retiremen
                 expect(page.locator('#formula-recover')).to_be_visible()
                 expect(page.locator('#formula-status')).to_contain_text('状态尚未确认')
                 expect(page.locator('#problem-form')).to_be_visible()
-                with page.expect_response('**/formula-checks') as replay:page.locator('#formula-recover').click()
-                assert replay.value.status==200
-                assert replay.value.json()['data']['result_ref']==actual[0]['result_ref']
-                assert replay.value.json()['data']['formula_result_recorded_at']==actual[0]['formula_result_recorded_at']
+                replay=completed_ack_post(lambda:page.locator('#formula-recover').click())
+                assert replay.status==200
+                assert replay.json()['data']['result_ref']==actual[0]['result_ref']
+                assert replay.json()['data']['formula_result_recorded_at']==actual[0]['formula_result_recorded_at']
                 expect(page.locator('#formula-result-ref')).to_have_text(actual[0]['result_ref'])
                 assert len(sent)==2 and sent[0]==sent[1]
                 assert page.evaluate("Object.keys(sessionStorage).filter(key=>key.startsWith('structure-research-pending:formula-check:')).length")==0
