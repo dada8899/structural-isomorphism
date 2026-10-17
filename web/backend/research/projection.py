@@ -28,7 +28,7 @@ class ResearchProjection:
     @staticmethod
     def build(conn, row, task_id=None,*,method_result=None,method_authorized=False,method_state=None,task_history=None,next_task_id=None):
         revisions=ResearchProjection.revision_records(conn,row['id'])
-        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12):
+        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):
             from .formula_result import revision_metadata
             for record in revisions:record['formula_snapshot']=revision_metadata(conn,row['id'],record['revision'])
         current=conn.execute('SELECT id FROM research_tasks WHERE research_id=? AND input_revision=? ORDER BY start_version DESC,id DESC LIMIT 1',(row['id'],row['current_revision'])).fetchone()
@@ -52,6 +52,8 @@ class ResearchProjection:
             'known_cost_units':0,'math_is_not_causal_evidence':True}
         from .plan_result import history as plan_history
         view['plan_history']=plan_history(conn,row['id'],task_ids=None if task_history is None else [item['task_id'] for item in task_history])
+        from .plan_native_runtime import history as native_history
+        view['native_plan_history']=native_history(conn,row['id'],task_ids=None if task_history is None else [item['task_id'] for item in task_history])
         if task_history is not None:view.update(task_history=task_history,next_task_id=next_task_id)
         active=conn.execute("SELECT id FROM research_tasks WHERE research_id=? AND execution IN ('QUEUED','RUNNING','WAITING_EXTERNAL','RECONCILING') ORDER BY start_version DESC LIMIT 1",(row["id"],)).fetchone()
         from .source_integration import enabled as source_enabled
@@ -61,6 +63,12 @@ class ResearchProjection:
         if enabled() and view["current_problem"]["confirmed"] and not active and not unresolved_current:
             view["allowed_next_actions"].append("start")
         if task:
+            if task['policy_revision']=='native-plan-v1':
+                from .plan_native_runtime import metadata,RUNS
+                value=conn.execute('SELECT * FROM '+RUNS+' WHERE task_id=?',(task['id'],)).fetchone()
+                view.update(task=dict(task),execution=task['execution'],status='plan_'+metadata(value)['state'],native_plan=metadata(value),execution_mode=task['execution_mode'])
+                if task['execution'] not in ('COMPLETED','FAILED','CANCELLED','ACCESS_REVOKED'):view['allowed_next_actions'].append('cancel')
+                return {'schema_version':'structure-research-v1','contract_revision':'b1-candidate-01','data':view}
             if task['policy_revision']=='funded-plan-v1':
                 from .plan_runtime import metadata
                 value=conn.execute('SELECT * FROM research_plan_dispatches WHERE task_id=?',(task['id'],)).fetchone()
