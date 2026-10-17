@@ -903,8 +903,25 @@ def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
         workflow_path = ROOT / required["workflow"]
         required_job = _workflow_job(workflow_path, required["job"])
         allowed_job_if = (
-            "always()" if required["job"] == "release-gate-summary" else None
+            "always()" if (required["workflow"], required["job"]) in {
+                (".github/workflows/ci.yml", "release-gate-summary"),
+                (".github/workflows/sanity.yml", "sanity"),
+            } else None
         )
+        if (required["workflow"], required["job"]) == (
+            ".github/workflows/sanity.yml", "sanity",
+        ):
+            assert required_job.get("needs") == ["sanity-backend"]
+            backend = _workflow_job(workflow_path, "sanity-backend")
+            assert backend.get("name") == "sanity-backend"
+            assert backend.get("timeout-minutes") == 25
+            assert "needs" not in backend
+            _assert_hard_job_contract(required["workflow"], "sanity-backend", backend)
+            gate = required_job["steps"][0]
+            assert gate.get("name") == "Require complete backend baseline success"
+            assert gate.get("env") == {
+                "SANITY_BACKEND_RESULT": "${{ needs['sanity-backend'].result }}",
+            }
         _assert_hard_job_contract(
             required["workflow"],
             required["job"],

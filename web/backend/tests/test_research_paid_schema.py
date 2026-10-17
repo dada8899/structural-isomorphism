@@ -15,6 +15,7 @@ from research.authorization import AccountIdentity,AuthorizationGate
 from research.errors import ResearchError
 from research.transport import FixtureTransport
 from research.store import V5_SCHEMA,V5_AUX,V5_GUARDS
+from research.financial_guard import FINANCIAL_SCHEMA_VERSION
 from research.paid_control import (schema_requirements,mint_stop_authority,mint_current_paid_authority,
     mint_trusted_cost_authority,StopAuthority,CurrentPaidAuthority,TrustedCostAuthority,UPPER_ENTRYPOINTS)
 from research.provider_schemas import CallContext,PriceQuote,canonical,digest
@@ -44,6 +45,7 @@ def legacy(stack,tmp_path,monkeypatch):
         with monkeypatch.context() as old:
             old.setattr(ResearchStore,"_migrate_v5",lambda self:None)
             old.setattr(ResearchStore,"_migrate_v6",lambda self:None)
+            old.setattr(ResearchStore,"_migrate_v7",lambda self:None)
             store=ResearchStore(auth._store());BudgetLedger(store).provision_fixture(provider.port)
             # Small trusted LOCAL test prices let all four real legacy states
             # coexist under the unchanged 10000-unit fixture account cap.
@@ -150,7 +152,7 @@ def current(stack):
 def test_schema_hook_is_pure_and_live_has_no_automatic_funds(current):
     _,path,store,_,_=current
     before=snapshot(path);requirements=schema_requirements()
-    assert requirements.version==6 and len(requirements.definition_digest)==64
+    assert requirements.version==FINANCIAL_SCHEMA_VERSION and len(requirements.definition_digest)==64
     assert UPPER_ENTRYPOINTS==("schema_requirements","reserve","authorize","consume","observe","cancel")
     assert snapshot(path)==before
     with store.transaction(write=True) as conn:
@@ -480,3 +482,4 @@ def test_v5_reopen_rejects_real_quoted_column_drift_before_selecting_id(current)
 @pytest.fixture
 def v5_only(monkeypatch):
     monkeypatch.setattr(ResearchStore,"_migrate_v6",lambda self:None)
+    monkeypatch.setattr(ResearchStore,"_migrate_v7",lambda self:None)

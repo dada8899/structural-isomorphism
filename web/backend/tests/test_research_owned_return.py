@@ -42,35 +42,90 @@ def response_body(**updates):
 
 @contextmanager
 def tcp_reply(body,*,truncated=False):
-    listener=socket.socket();listener.bind(('127.0.0.1',0));listener.listen(1);listener.settimeout(2)
-    address=listener.getsockname();state={'requests':0,'body':None,'closed':False}
+    import errno
+    from research.provider_schemas import ProviderFailure
+    listener=socket.socket();listener.bind(('127.0.0.1',0));listener.listen(1)
+    address=listener.getsockname();state={'requests':0,'body':None,'closed':False,'termination':None,'server_error':None}
+    stop=threading.Event();lock=threading.Lock()
+    resources={'connection':None,'thread':None,'deadline':None,'called':False}
+    class Stopped(Exception):pass
+    class ClientClosed(Exception):pass
+    def close_socket(sock):
+        if sock is None:return
+        try:sock.shutdown(socket.SHUT_RDWR)
+        except OSError:pass
+        sock.close()
+    def io(sock,operation):
+        while not stop.is_set():
+            sock.settimeout(min(.05,resources['deadline'].remaining()))
+            try:return operation()
+            except socket.timeout:continue
+        raise Stopped()
     def serve():
-        conn=None
+        conn=None;phase='accept'
         try:
-            conn,_=listener.accept();conn.settimeout(2);raw=b''
+            conn,_=io(listener,listener.accept)
+            with lock:resources['connection']=conn
+            phase='headers';raw=b''
             while b'\r\n\r\n' not in raw:
-                part=conn.recv(4096)
-                if not part:raise ValueError('closed request')
+                part=io(conn,lambda:conn.recv(4096))
+                if not part:raise ClientClosed()
                 raw+=part
                 if len(raw)>20000:raise ValueError('request cap')
             headers,incoming=raw.split(b'\r\n\r\n',1)
             size=int(next(line.split(b':',1)[1] for line in headers.split(b'\r\n') if line.lower().startswith(b'content-length:')))
             assert 0<size<=16384
+            phase='body'
             while len(incoming)<size:
-                part=conn.recv(size-len(incoming))
-                if not part:raise ValueError('closed body')
+                part=io(conn,lambda:conn.recv(size-len(incoming)))
+                if not part:raise ClientClosed()
                 incoming+=part
             state['body']=incoming;state['requests']+=1
+            phase='send'
+            conn.settimeout(resources['deadline'].remaining())
             conn.sendall((f'HTTP/1.1 200 Probe\r\nContent-Type: application/json\r\nContent-Length: {len(body)+(10 if truncated else 0)}\r\nConnection: close\r\n\r\n').encode()+body)
-        except (OSError,ValueError):pass
+            state['termination']='sent'
+        except Stopped:
+            state['termination']='stopped'
+        except ClientClosed:
+            state['termination']='client_closed'
+        except BaseException as error:
+            if stop.is_set() and isinstance(error,OSError) and error.errno in (errno.EBADF,errno.EINVAL,errno.ENOTSOCK,errno.ENOTCONN):state['termination']='stopped'
+            elif isinstance(error,ProviderFailure) and str(error)=='deadline':state['termination']='deadline'
+            elif isinstance(error,socket.timeout) and time.monotonic()>=resources['deadline'].expires:state['termination']='deadline'
+            elif isinstance(error,OSError) and error.errno in (errno.EPIPE,errno.ECONNRESET,errno.ECONNABORTED):state['termination']='client_closed'
+            else:
+                state['server_error']={'phase':phase,'type':type(error).__name__}
+                state['termination']='server_error'
         finally:
-            if conn is not None:conn.close()
-            state['closed']=True
-    thread=threading.Thread(target=serve);thread.start()
-    try:yield lambda deadline:socket.create_connection(address,timeout=deadline.remaining()),state
+            close_socket(conn);close_socket(listener)
+            state['closed']=listener.fileno()==-1 and (conn is None or conn.fileno()==-1)
+    def connect(deadline):
+        with lock:
+            assert not resources['called'],'owned TCP fixture connection factory is single-use'
+            resources['called']=True
+        deadline.remaining()
+        resources['deadline']=deadline
+        thread=threading.Thread(target=serve,name='owned-tcp-reply-'+str(id(listener)))
+        resources['thread']=thread;thread.start()
+        try:return socket.create_connection(address,timeout=deadline.remaining())
+        except BaseException:
+            stop.set();close_socket(listener)
+            with lock:close_socket(resources['connection'])
+            raise
+    try:yield connect,state
     finally:
-        listener.close();thread.join(3)
-        assert not thread.is_alive()
+        stop.set();close_socket(listener)
+        with lock:close_socket(resources['connection'])
+        thread=resources['thread']
+        if thread is not None:thread.join(3)
+        assert thread is None or not thread.is_alive(),'owned TCP fixture thread did not close'
+        state['closed']=listener.fileno()==-1 and (resources['connection'] is None or resources['connection'].fileno()==-1)
+        assert state['closed'],'owned TCP fixture sockets did not close'
+        if state['server_error'] is not None:
+            detail=state['server_error']
+            raise AssertionError('owned TCP fixture failure: '+detail['phase']+'/'+detail['type']) from None
+
 
 
 @contextmanager
@@ -379,3 +434,60 @@ def test_replay_erases_now_disallowed_candidate_preserving_first_financial_fact(
             assert current['candidate_json'] is None
             assert {key:value for key,value in current.items() if key!='candidate_json'}=={key:value for key,value in original.items() if key!='candidate_json'}
         assert state['requests']==1
+
+
+def test_preconnect_actual_packet_work_does_not_expire_fixture_accept(approved_inputs,monkeypatch):
+    import sys
+    original=read_confirmed_provider_packet
+    measured={}
+    def current_packet_work(*args,**kwargs):
+        started=time.monotonic();count=0
+        while True:
+            packet=original(*args,**kwargs);count+=1
+            if time.monotonic()-started>=2.05:break
+        measured.update(seconds=time.monotonic()-started,reads=count)
+        return packet
+    monkeypatch.setattr(sys.modules[__name__],'read_confirmed_provider_packet',current_packet_work)
+    store=approved_inputs[2]
+    with owned_probe(approved_inputs) as (session,_result,state):
+        receipt=session.receive()
+        with store.transaction(write=True) as conn:persist_offline_owned_source(conn,receipt)
+        row=saved(store)
+        assert row['state']=='received' and row['candidate_json']
+        assert measured['seconds']>2 and measured['reads']>0
+        assert state['requests']==1
+        assert json.loads(row['financial_return_json'])['actual_charge'] is None
+    assert state['closed'] and session.connection.sock.fileno()==-1
+
+
+def test_postconnect_actual_authorization_work_does_not_expire_fixture_receive(approved_inputs,monkeypatch):
+    import research.paid_provider_session as sessions
+    from research.provider_adapter import OfflineOwnedTransport
+    original_preconnect=OfflineOwnedTransport.preconnect;original_checked=sessions._checked
+    measured={};connected={}
+    def connected_transport(*args,**kwargs):
+        result=original_preconnect(*args,**kwargs)
+        connected['deadline']=result.deadline
+        return result
+    def current_authorization_work(*args,**kwargs):
+        value=original_checked(*args,**kwargs)
+        if connected and not measured:
+            deadline=connected['deadline'];expires=deadline.expires;started=time.monotonic();count=1
+            while time.monotonic()-started<2.05:
+                assert deadline.remaining()>.5,'actual authorization work exhausted the legal positive-control window'
+                value=original_checked(*args,**kwargs);count+=1
+            measured.update(seconds=time.monotonic()-started,checks=count,remaining=deadline.remaining())
+            assert deadline.expires==expires
+        return value
+    monkeypatch.setattr(OfflineOwnedTransport,'preconnect',connected_transport)
+    monkeypatch.setattr(sessions,'_checked',current_authorization_work)
+    store=approved_inputs[2]
+    with owned_probe(approved_inputs) as (session,_result,state):
+        receipt=session.receive()
+        with store.transaction(write=True) as conn:persist_offline_owned_source(conn,receipt)
+        row=saved(store)
+        assert row['state']=='received' and row['candidate_json']
+        assert measured['seconds']>2 and measured['checks']>0 and measured['remaining']>0
+        assert state['requests']==1
+        assert json.loads(row['financial_return_json'])['actual_charge'] is None
+    assert state['closed'] and session.connection.sock.fileno()==-1

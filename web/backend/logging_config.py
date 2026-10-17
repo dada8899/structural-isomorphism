@@ -238,19 +238,25 @@ def configure_logging(
     max_bytes: int = _DEFAULT_MAX_BYTES,
     backup_count: int = _DEFAULT_BACKUP_COUNT,
     level: str | int = "INFO",
-) -> Path:
+    _bootstrap: bool = False,
+) -> Optional[Path]:
     """Configure structlog + stdlib logging into a single JSON pipeline.
 
-    Returns the resolved log-file path (callers — e.g. the admin tail
-    endpoint — read from it directly).
+    Returns the resolved file path after explicit development configuration,
+    or None for bootstrap/production stdout-only logging.
 
     Idempotent: safe to call multiple times. Subsequent calls re-resolve
     the level / file but do not stack handlers.
     """
     global _configured
 
-    path = log_file or _resolve_log_path()
-    _ensure_log_dir(path)
+    # Imports can call get_logger before main loads its effective profile.
+    # Bootstrap never probes a path. Production also remains stdout-only
+    # until B/R3 integrate and a reviewed source change admits private sinks.
+    file_enabled = not _bootstrap and os.getenv("STRUCTURAL_ENV", "dev").lower() != "prod"
+    path = (log_file or _resolve_log_path()) if file_enabled else None
+    if path is not None:
+        _ensure_log_dir(path)
 
     lvl = level
     if isinstance(level, str):
@@ -262,27 +268,29 @@ def configure_logging(
     for h in list(root.handlers):
         if getattr(h, "_structlog_owned", False):
             root.removeHandler(h)
+            h.close()
     root.setLevel(lvl)
 
     stream_h = logging.StreamHandler(sys.stdout)
     setattr(stream_h, "_structlog_owned", True)
     root.addHandler(stream_h)
 
-    try:
-        file_h = logging.handlers.RotatingFileHandler(
-            path,
-            maxBytes=max_bytes,
-            backupCount=backup_count,
-            encoding="utf-8",
-        )
-        setattr(file_h, "_structlog_owned", True)
-        root.addHandler(file_h)
-    except Exception as e:  # pragma: no cover — depends on fs
-        # File handler is best-effort; stdout always works.
-        sys.stderr.write(
-            "[logging_config] file_handler_init_failed "
-            f"error_type={type(e).__name__}\n"
-        )
+    if path is not None:
+        try:
+            file_h = logging.handlers.RotatingFileHandler(
+                path,
+                maxBytes=max_bytes,
+                backupCount=backup_count,
+                encoding="utf-8",
+            )
+            setattr(file_h, "_structlog_owned", True)
+            root.addHandler(file_h)
+        except Exception as e:  # pragma: no cover — depends on fs
+            # File handler is best-effort; stdout always works.
+            sys.stderr.write(
+                "[logging_config] file_handler_init_failed "
+                f"error_type={type(e).__name__}\n"
+            )
 
     # Format stdlib log records via structlog's ProcessorFormatter so they
     # get the same JSON shape + correlation injection.
@@ -349,13 +357,14 @@ def _safe_json_dumps(obj: Any, **kwargs: Any) -> str:
 
 
 def get_logger(name: Optional[str] = None) -> structlog.stdlib.BoundLogger:
-    """Convenience accessor. Auto-configures on first call so import-order
-    bugs don't leave logs unformatted."""
+    """Format import-time events without implicitly opening a file sink."""
     if not _configured:
-        configure_logging()
+        configure_logging(_bootstrap=True)
     return structlog.get_logger(name or "structural")
 
 
 def current_log_file() -> Path:
-    """Resolve the live log path the admin tail endpoint should read."""
+    """Development file path; formal file sinks are not admitted in R2-A."""
+    if os.getenv("STRUCTURAL_ENV", "dev").lower() == "prod":
+        raise RuntimeError("formal file logging is not admitted")
     return _resolve_log_path()

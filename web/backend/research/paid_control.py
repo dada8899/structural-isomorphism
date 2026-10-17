@@ -43,14 +43,21 @@ class StopBinding:
 
 def schema_requirements():
     from .store import PRODUCER_SCHEMA_VERSION,V5_SCHEMA,V6_SCHEMA,V6_AUX,V5_GUARDS,PRODUCER_DDL
-    return SchemaRequirements(PRODUCER_SCHEMA_VERSION,tuple({**V5_SCHEMA,**V6_SCHEMA})+tuple(s.split()[2] for s in PRODUCER_DDL),
+    from .financial_guard import FINANCIAL_SCHEMA_VERSION,V7_TABLES,V7_GUARDS
+    return SchemaRequirements(FINANCIAL_SCHEMA_VERSION,tuple({**V5_SCHEMA,**V6_SCHEMA})+tuple(s.split()[2] for s in (*PRODUCER_DDL,*V7_TABLES)),
         tuple(s.split()[3] for s in V6_AUX if s.startswith("CREATE UNIQUE INDEX")),
-        digest(canonical({"tables":{**V5_SCHEMA,**V6_SCHEMA},"producer":PRODUCER_DDL,"aux":V6_AUX,"guards":V5_GUARDS})))
+        digest(canonical({"tables":{**V5_SCHEMA,**V6_SCHEMA},"producer":PRODUCER_DDL,"aux":V6_AUX,"guards":V5_GUARDS,'v7_tables':V7_TABLES,'v7_guards':V7_GUARDS})))
 
 
 class _Scope:
     def __init__(self,conn,write):
         self.conn,self.active,self.pid,self.write=conn,True,os.getpid(),write
+        table=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_project_budgets'").fetchone()
+        # Pausing execution never withdraws protection of existing tickets.
+        self.financial_active=bool(table and conn.execute("SELECT 1 FROM research_project_budgets WHERE id=1").fetchone())
+        self.authorizer=None
+    def refresh_authorizer(self):
+        if self.authorizer is not None:self.conn.set_authorizer(self.authorizer)
 
 
 @contextmanager
@@ -62,6 +69,9 @@ def _transaction_scope(conn,*,write):
     def authorizer(action,arg1,arg2,database,source):
         if action==sqlite3.SQLITE_TRANSACTION and arg1 in ("COMMIT","ROLLBACK"):
             scope.active=False
+        if scope.financial_active:
+            from .financial_guard import _statement_allowed
+            if not _statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
         return sqlite3.SQLITE_OK
     def executing(statement):
         # Authorizers run at compilation and may be skipped for cached SQL.
@@ -73,6 +83,7 @@ def _transaction_scope(conn,*,write):
     with _LOCK:
         if id(conn) in _SCOPES:raise PermissionError("transaction already registered")
         _SCOPES[id(conn)]=scope
+    scope.authorizer=authorizer
     conn.set_authorizer(authorizer)
     conn.set_trace_callback(executing)
     try:yield
@@ -87,8 +98,11 @@ def _current_scope(conn):
     with _LOCK:scope=_SCOPES.get(id(conn))
     if (not scope or scope.conn is not conn or not scope.active or not scope.write or scope.pid!=os.getpid()
             or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1
-            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6)):
+            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7)):
         raise PermissionError("current canonical v5 transaction required")
+    if conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==7:
+        from .store import ResearchStore
+        ResearchStore._check_v7(conn)
     return scope
 
 
@@ -136,6 +150,21 @@ class TrustedCostAuthority(_Authority):
     __slots__=()
 
 
+@dataclass(frozen=True)
+class FinancialWriteBinding:
+    operation:str
+    target:str
+    table:str
+    key:str
+    before_digest:str
+    version:int
+
+
+class FinancialWriteAuthority(_Authority):
+    """Internal single-statement permit; never built from a public DTO."""
+    __slots__=()
+
+
 class StopAuthority(_Authority):
     """Current owner or verified pending account deletion; no send permission."""
     __slots__=()
@@ -168,7 +197,7 @@ def mint_stop_authority(conn,*,store,lease,principal_id,task_id,expected_task_ve
 
 def mint_current_paid_authority(conn,*,store,lease,identity,context,step_id,expected_task_version,expected_step_version,operation,approval_ref):
     _current_scope(conn)
-    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0]==6:
+    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7):
         policy=conn.execute('SELECT policy_revision FROM research_tasks WHERE id=?',(context.task_id,)).fetchone()
         if policy and policy[0]=='bounded_usage_upper_v2':
             from .paid_approval import mint_current_authority
@@ -209,3 +238,9 @@ def persist_offline_owned_source(conn,receipt):
     """Records loopback provenance only, never creates a cost capability."""
     from .paid_provider_session import persist_owned_return
     return persist_owned_return(conn,receipt)
+
+
+def mint_cost_from_return(conn,*,store,lease,return_ref):
+    from .paid_budget import _validated_return
+    def validate():return _validated_return(conn,store,lease,return_ref)[0]
+    return TrustedCostAuthority(conn,lease,'observe',validate,_factory=_FACTORY)

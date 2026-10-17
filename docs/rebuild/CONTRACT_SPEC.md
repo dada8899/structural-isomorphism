@@ -649,3 +649,86 @@ commit 在既有跨进程 owner gate 内、同一 auth DB 的短事务中重新�
 | 费用／撤权竞争 | 同key并发至多一次派发，丢ack/UNKNOWN不换purpose重发；新鲜quote/资金缺口仍关，stop/删号/来源疑点处理遵守原门禁，迟到可核费用但正文／计划不复活，正文失败不释放已发生费用 |
 
 以上是待实现的消费与价值判据，不是本轮已经调用模型、检索原文、完成数学验证或兑现最终服务。先独审本增量，再派最小纯类型／固定codec与安全反例卡；Core唯一接授权／事务／保存，实际模式、制品、正常CI及真实用户任务另行验收，不新增搜索／Agent平台。
+
+## 12 Phase B 项目统一预算与最小金融准入
+
+2026-10-17。仅冻结后续离线消费接线的契约，不实现、迁移或开放资金。§10的A阶段真实收包来源不等于预算消费；其合成consumed前置、旧producer或普通SQL记录均不能升级为本节费用能力。§11新purpose的实施独立准入，本节仅支持原method_hypothesis；旧v1会计含义、v5/v6定义及所有历史金额不变。
+
+### 12.1 两道上限与唯一项目绑定
+
+项目授权上限记为P，供应商资金约束记为C及当前保守可用余额B。P表示Owner允许本项目占用多少，不是供应商余额、预充值或付款证明；现funding_account.cap=initial_prepaid−other_use_margin继续表示原资金约束，不能改成P或反向把P算成现金。新增预留须同时满足账务总占用+U≤P、≤C及B足够；所有金额为同币CNY、scale=6的非bool有界整数，不隐式换汇。
+
+选定最小V7增量：沿唯一auth DB复用funding_account.settled／upper_booked／held计数，新增下列两表，不再建第二套计数账本。一个项目固定关联一个稳定经济binding及一个资金账户，不能按用户、key、purpose、phase、重试或epoch新领一份P。
+
+| 新表 | 最小字段与技术约束 |
+| --- | --- |
+| research_project_budgets | id为PRIMARY KEY且CHECK(id=1)，project_key唯一且CHECK为structure；funding_account_id为NOT NULL唯一FK、economic_binding唯一且非空、currency=CNY、scale=6、authorized_cap=P、authorization_ref／digest、database_binding、mode=offline_probe、status=closed/active/blocked、version。授权ref为服务器登记的opaque依据，非请求字段。 |
+| research_financial_admissions | id:Id；project_budget_id FK；reservation_id／permit_id／session_id分别唯一FK，dispatch_id唯一；record_version=financial-admission-v1、producer_version=owned-budget-offline-v1、policy=bounded_usage_upper_v2、mode=offline_probe；snapshot_json为≤16KiB严格金融对象、snapshot_digest、原created_at。此v1是新记录首版，不是旧会计v1。 |
+
+项目行的身份、P、经济binding、账户关联、币种／scale／mode、授权依据及DB绑定登记后不可原位改写、删除或REPLACE；版本单调CAS，status只按受控暂停／恢复转移。资金账户的binding与项目字段须一致，FK／唯一键／固定project_key及跨表guard拒绝别名绕行；创建新账户不能转移该单例或重置历史。需要改授权或换账户另审保留累计占用的迁移，不在本节提供增额／充值接口。
+
+P的登记是独立服务器控制动作，迁移不登记额度、不凭登录激活；缺项目行、无明确Owner授权、错误actor或来源未核都关闭。原资金账户已有同币settled、upper和held全部计入项目，旧v1占用不漏算、不重估；已有占用超过P则关闭新增预留，不删除事实或清零以通过。外部应用共用供应商账户的支出不由本DB互斥控制，仍须新鲜原生余额、other-use margin及有效期这道外部floor；认证成功、旧余额或余额差都不是单笔actual。
+
+### 12.2 原子准入的严格纯金融快照
+
+snapshot_json仅允许下表字段；解析采用严格、extra-forbid、有界JSON模型。不得保存email、浏览器凭据／session generation、用户摘要、摘录、候选、查询、完整请求bytes、原始响应或secret；opaque关联和必要摘要不在公共响应、普通日志展示。
+
+| 金融域 | 必须保存并核对的原事实 |
+| --- | --- |
+| 项目与主体授权 | project预算ref／原version／P／authorization_digest；同auth DB绑定；account／稳定economic binding／原funding_epoch／币种scale；principal opaque ref及原epoch、grant opaque ref及原version、paid approval ref／原digest、funding permission ref／digest与scope_digest。无grant或research的删除级联FK，不保留身份正文。 |
+| 单次消费关联 | task／step／attempt、发送授权版本及实际消费前后版本；reservation／session refs及实际版本、permit ref及prepared→consumed状态CAS、唯一dispatch。现permit没有独立version，不伪造一个版本；保存实际request_digest、evidence_digest、context_digest、outbound_fingerprint、已批准purpose及固定codec代码digest，不接受客户端覆盖。 |
+| 原数学与资金依据 | 完整严格UsageUpperQuote、原ReservedUpperMath(U)、原BudgetBasisSnapshot、各canonical摘要、价格ref、F/policy/纯数学实现版本及代码digest；与现不可变price.quote_json、项目／资金行、原确认中已核准U逐项一致，不能从票据抄值再自比。 |
+| 原时间与来源 | reserve核价的服务器时间、最终admitted_at、同消费事务recorded_at；满足实际确认≤准入≤服务器当时钟且在原quote/basis有效期内，消费时quote剩余窗口≤60秒。recorded_at不是预填的commit回执；快照存在须来自真正提交的受控消费事务。 |
+
+原basis必须在仍有权限时从已核原批准／资金源取得，不能在删除后根据一个digest、最新余额或猜测字段重建。原quote／F／basis／消费版本及快照正文的摘要互相绑定；原始准入合法性由消费链证明，数学DTO、时间合法或哈希匹配仅是必要条件。
+
+### 12.3 最小迁移与写入防线
+
+V7只追加两表、相应唯一索引及guard，提升schema marker；现v5/v6表定义、旧策略与数据逐字保留，不以重建或回放重写历史。迁移先核旧结构及未知附属对象；不支持、旧结构漂移或半途失败则全回滚，既有正确库保持，B入口关闭。不得把无新版admission的旧A／v2／v1行补标为新来源。
+
+新admission仅在consume事务INSERT一次，禁止UPDATE／DELETE／REPLACE及所有唯一键冲突替换。跨表guard核项目账户、币种、policy、dispatch、session／permit／reservation关联、受控消费状态／版本及严格金融快照；financial_return与新admission互绑，其首次JSON／digest／原时间沿现不可变guard保留。
+
+仅凭表结构、UUID或普通conn.execute不构成来源。冻结连接内受控写许可：Core在实际canonical conn／当前事务／PID／owner lease内核真实Authority后，才临时打开绑定operation及目标行版本的私有write scope；SQLite guard调用该conn的Core校验函数，缺hook或未持有效许可一律拒绝。默认函数拒绝；普通SQL不能设置许可，不能把一个数据库布尔列当钥匙。项目账务列、新admission及有admission的B financial_return均受此防线；candidate擦除独立，不取得账务权。
+
+旧AuthStore／ResearchStore连接工厂须装默认拒绝hook，schema_requirements核完整V7定义与guard指纹；代码／schema／hook任一缺口都不支持B。源安全依赖受审服务器写入与配置边界，不声称抵抗任意root、任意Python或有权重注册SQLite函数／改schema者；同内容复制到未登记DB也不能恢复本项目能力。
+
+### 12.4 六入口及一次性账务转移
+
+所有入口由Core统一拥有conn，不自行connect、commit或建旁账；使用同auth DB的BEGIN IMMEDIATE、实际scope与lease、版本CAS及精确rowcount。发生COMMIT／ROLLBACK或隐式回滚后旧能力失效，换conn／PID／操作、过期lease或旧版本不能复活。网络与响应等待不进入DB事务。
+
+| 入口 | 唯一职责 |
+| --- | --- |
+| schema_requirements | 只返回受审V7结构和guard要求，不给额度、资金或发送能力。 |
+| reserve | CurrentPaidAuthority核当前明确paid grant／actor／原批准和当前source／quote；唯一reserve_bound得U，核项目P、原资金C、保守B及并发占用，CAS一次HELD、held+=U和prepared票／step，不复制F；重复仅核回原记录。 |
+| authorize | 同conn／lease重核当前身份、grant/epochs、task-step版本、原项目账户／epoch／U／quote TTL、合法来源和最终固定bytes，不增加额度或再预留。 |
+| consume | 一事务CAS permit、reservation、approval、session、task/step及event，并INSERT完整FinancialAdmission；版本定义明确对应消费前后，不能拿prepare旧版本盖当前发送。只有实际commit已确认后才在仍有效lease内由受控transport发送敏感bytes一次。 |
+| observe | mint_cost_from_return只消费受保护的新版admission+实际自身finish首次持久return，核producer/mode、原关联及完整性后发仅财务TrustedCostAuthority；旧mint(observation=DTO)继续拒绝。缺任一因果来源不消费。 |
+| cancel | 仅实际StopAuthority或经核的删除控制链：HELD且prepared才能一次撤票、held−=U；已consumed／SENT／UNKNOWN不退，转UNKNOWN保全held。暂停或停止不授权换key重发或增加额度。 |
+
+账务写须同时CAS项目／账户当前版本及原票版本，重复消费拒绝；observe使用当前账务版本，不要求它仍等于过去准入版本。项目后续暂停、actor撤权或删除不取消已发生费用的财务核对资格，但不能因此获得新发送或正文权限。无论调用者来自service、runner、取消、删除恢复或后台控制，都不可旁路新入口；旧C0 release／settle等不得操作v2票，未识别策略fail closed，不误当fixture。
+
+合法同dispatch完整usage沿原已登记F实现调用observed_bound；只读原quote和ReservedUpperMath，不伪造now重新reserve，不换新价或丢local_guard。一个幂等事务完成held−=U、upper_booked+=Uobs、reservation→UPPER_BOOKED，append原U/Uobs／一次差额／usage／return_ref，actual_charge=null。总占用不增加；旧v1／fixture金额不迁减。坏正文而usage完整仍独立记Uobs；账务不写SETTLED或“实际零元”。
+
+缺／坏／矛盾／越界／非最终usage、Uobs>U、快照或实现版本无法核对时，保全原held U、置UNKNOWN／必要时阻断新paid；不补0、不裁切、不按余额差算actual。consume回执丢失、父进程死亡或发送结果不明先读原事务结果；“已consumed”也不证明未发，可疑状态不能重建socket、换session／purpose／key发送。
+
+### 12.5 删除、撤权与重启后的仅财务恢复
+
+删除仍先封禁／增epoch，再擦approval私密payload、summary、candidate、授权上下文、原有可擦permit JSON、原始请求正文／私有来源映射及其余§7资料。本节不修改旧擦除语义，而是仅保留新表中受控消费产生的严格最小金融快照和必要不含正文的既有账务记录；未消费的草稿不借“金融”长期保留用户材料。
+
+现有budget_basis_json删除后为空、仅有basis_digest的A记录不具备本节恢复资格；不保留旧完整approvalpayload补洞。新admission在删除前已完整且来源可核时，恢复只读取允许保留的admission／原price／session return／permit-reservation与账户记录，重验严格schema、canonical摘要、producer版本、原消费版本及真实写入因果；不能凭state=received或可重算hash自证。
+
+仅财务恢复可使用保留的opaque principal／gate关联取得真实lease，不要求旧cookie、已删grant或主体重新活跃；能力只能observe原调用，不能新reserve/send、重建正文/报告/分享、恢复RUNNING或给新同邮箱主体额度。源码／schema／最小快照缺失、损坏或冲突则UNKNOWN全held；无完整可信return绝不再HTTP。候选首次保存与幂等重放均独立核当前内容资格，已擦不回填。
+
+### 12.6 分卡与必须实跑的反例
+
+B0只文档独审；B1须完整真实reserve→authorize→consume及快照同落→本机自身finish→持久return→observer闭环，不以合成SQL consumed票作正例；B2再封齐全部调用者、取消／删除与重开。正例仅在隔离的同auth测试DB使用服务器指定actor的OfflineFundingResolver和本机响应，模拟账务不得复制到正式账本冒真实资金或费用。任一卡未闭合全部生产门禁仍prodclosed，mode及model_analysis_ran=false不改真。供应商authenticated observation不等于fresh资金授权，真实loader／credential／live／新purpose另审。
+
+| 反例／对照 | 验收 |
+| --- | --- |
+| 项目与双上限 | 两用户／任务／进程并发只占同P及同C/B；换key、epoch、purpose、account alias／新建另一account／重启均不重置；P<C及C<P都取更紧值，未授权actor／只有登录／只有认证成功都不获资金。 |
+| 写入与来源 | 普通SQL伪造admission/received、DTO／trusted=true、错误DB/conn/PID/事务/lease、替换账户/basis/quote/U/时间/版本、旧A/v1冒新producer均拒；实际受控全生命周期为正例，原单独F绿测不是它。 |
+| 原子与幂等 | 各SQL切点故障全回滚，consume丢ack先核回而不重发；双进程同return仅一次U→Uobs，取消与observe竞争不双退，其他writer同时reserve仍受共享上限。 |
+| 用量与旧值 | 低量、满量、cache-hit按峰miss、ceil/local_guard通过；正文坏但usage完整保财务；usage缺／矛盾／超界UNKNOWN全held，v1全U、历史actual和已有占用不重放减记。 |
+| 晚费与删除重开 | cancel/revoke/delete在接收、持久与observe前后分别竞争，清空进程缓存后仅凭允许金融域核原F并至多一次记账；坏/缺依据不补正文、不发HTTP、不复活任务/分享，同邮箱新主体不继承。 |
+
+新schema／代码、正常CI、原独审、实际funding与真实费用事件是分开的门槛；本节及离线闭环不证明真实预充值、实际模型或对外服务已完成。

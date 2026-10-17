@@ -56,6 +56,11 @@ def max_cost(price):
     return units
 
 
+def _fixture_task_in(conn,task_id):
+    row=conn.execute('SELECT policy_revision FROM research_tasks WHERE id=?',(task_id,)).fetchone()
+    if row and row[0]!=POLICY:raise ResearchError('FEATURE_UNAVAILABLE',503,'旧演练账本不能处理此策略。')
+
+
 class BudgetLedger:
     def __init__(self,store):
         self.store=store
@@ -102,6 +107,7 @@ class BudgetLedger:
     @staticmethod
     def reserve_in(conn,task,step):
         require_enabled()
+        _fixture_task_in(conn,task['id'])
         existing=conn.execute("SELECT * FROM research_reservations WHERE step_id=?",(step["id"],)).fetchone()
         if existing:
             return dict(existing)
@@ -130,6 +136,7 @@ class BudgetLedger:
     @staticmethod
     def dispatch_in(conn,step):
         require_enabled()
+        _fixture_task_in(conn,step['task_id'])
         permit=conn.execute("SELECT * FROM research_dispatch_permits WHERE step_id=?",(step["id"],)).fetchone()
         reservation=conn.execute("SELECT * FROM research_reservations WHERE id=?",(step["reservation_id"],)).fetchone()
         if (not permit or permit["state"]!="prepared" or permit["expires_at"]<=now()
@@ -153,12 +160,15 @@ class BudgetLedger:
     def release_prepared_in(conn,task_id):
         rows=conn.execute("SELECT r.* FROM research_reservations r JOIN research_dispatch_permits p ON p.reservation_id=r.id WHERE r.task_id=? AND r.status='HELD' AND p.state='prepared'",(task_id,)).fetchall()
         for row in rows:
+            _fixture_task_in(conn,row['task_id'])
             conn.execute("UPDATE research_dispatch_permits SET state='revoked',input_digest=NULL WHERE reservation_id=?",(row["id"],))
             conn.execute("UPDATE research_reservations SET status='RELEASED',version=version+1 WHERE id=?",(row["id"],))
             conn.execute("UPDATE research_funding_accounts SET held=held-?,version=version+1 WHERE id=?",(row["max_cost"],row["account_id"]))
 
     @staticmethod
     def unknown_in(conn,step_id):
+        step=conn.execute('SELECT task_id FROM research_steps WHERE id=?',(step_id,)).fetchone()
+        if step:_fixture_task_in(conn,step[0])
         conn.execute("UPDATE research_reservations SET status='UNKNOWN',version=version+1 WHERE step_id=? AND status='SENT'",(step_id,))
         conn.execute("UPDATE research_steps SET state='UNKNOWN',version=version+1 WHERE id=? AND state IN ('SENDING','AWAITING_RECEIPT')",(step_id,))
 
@@ -167,6 +177,7 @@ class BudgetLedger:
         result=FixtureResult.model_validate(result)
         with self.store.transaction(write=True) as conn:
             reservation=conn.execute("SELECT * FROM research_reservations WHERE step_id=?",(step_id,)).fetchone()
+            if reservation:_fixture_task_in(conn,reservation['task_id'])
             permit=conn.execute("SELECT * FROM research_dispatch_permits WHERE step_id=?",(step_id,)).fetchone()
             if (not reservation or not permit or permit["state"]!="consumed"
                     or result.dispatch_id!=permit["dispatch_id"]):

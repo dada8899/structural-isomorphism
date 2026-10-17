@@ -78,3 +78,43 @@ U仅调用受审usage_upper.preview_bound，用真实服务器clock核≤60秒TT
 
 2026-10-17。OwnedProviderSession独占真实loopback socket，登记前和敏感POST前依据原确认approval／funding核实际账户、经济binding／epoch、basis、批准U及合法admitted时窗，不从票据抄值自证；自身finish生成receipt，同auth DB首次CAS保存binding及usage。candidate另槽可擦，首次保存及幂等重放均核当前内容资格：取消／撤权后擦候选，财务首事实不变，已擦不回填。普通DTO、重复注册、损坏binding、退休来源均拒；无完整收包即UNKNOWN并关闭socket／timer。Python私有类型不是任意root代码隔离；合法时窗也不是实际金融消费证明，本阶段待原独审复验。
 旧finish只委托共用收包校验并调用原v1 cost_intent；原begin／最终字节守卫／probe标志和旧schema定义不变。测试装配的已消费票及余额均为合成前置，不能证明预算consume；生产注册／send、TrustedCostAuthority及held→upper消费继续关闭，未新增DDL／API／F／资金／凭据或真实模型调用。
+
+## Phase B0：金融准入契约候选
+
+2026-10-17。CONTRACT_SPEC §12选定待审V7最小增量：单例项目预算表将Owner上限P独立绑定唯一经济账户，沿用原账户计数；不可变金融准入表与真实consume同事务保存原quote/F/basis及授权/消费关联。两个上限分别核，删除不改旧擦除规则，仅保新版严格纯金融域，缺失依据UNKNOWN全held，旧A合成票不升级为费用来源。本轮仅文档，未实现表／guard／六writer、迁移或真实资金；B1完整生命周期与observer、B2全部调用者及删号恢复均须后续最小范围GO与独审。
+
+## V7 基础候选：空表、关闭登记与默认拒绝
+
+2026-10-17。追加V7两表／guard、严格纯金融数据模型与连接默认拒绝hook，保留原SCHEMA/C0/v5/v6定义及producer版本6；仅完成6后迁7，已有7先完整校验，部分结构／未知附件不补建。两新表默认空，服务器受控offline配置也只能登记closed单例，项目授权P独立于原资金cap，账户计数不变；普通SQL／DTO、缺hook、旧A合成consumed记录不能取得金融写权。没有Money六writer、资金loader、真实provider或active登记入口，纯快照通过仅表示类型关联正确。
+
+迁移与守卫测试使用临时auth DB及合成数据，覆盖每个DDL／marker／commit故障、进程死亡重开、旧金融值／policy／锁inode保留、真实closed INSERT失败回滚和许可收尾、过期／错conn/PID/lease及复制DB拒。旧隔离v5→v6探针仍真断6；通用当前版本期待才指向7，隐式rollback／cached BEGIN／REPLACE／unknownAux保护保留。API／Source旧路径未实现新收费，Notebook实际组合体验与统一typed读口不由本基础候选预签。
+
+作者最终两组实跑：新基础75＋旧schema／迁移200合组275 passed，原paid／auth／持久化／生命周期／C0／D1及Source期限收尾391 passed，均0 skipped；旧DDL整块逐字不变，两个current-target期待与历史profile隔离的最小测试接缝保留。当前SHA待原独审，实际业务库未迁移，真实资金／模型／生产发送未放行。
+
+## V7 原审 P2：必需基础对象完整性
+
+原审指出V7早返仅核金融结构，漏掉原幂等表及修订不可变guard。本轮将SCHEMA／C0及版本overlay的全部必需table／index／trigger、初始化附加guard和Source既有结构一并校验，缺失／漂移即SCHEMA_UNSUPPORTED；研究／V7对象已存在但marker丢表／丢行／列漂移也在初始化前拒绝，不自动补建。原金融未知附件规则、旧DDL、历史profile和原断言保留；只追加损坏／漂移／实际登记与API早拒反例，没有新资金writer或生产放行。
+
+原strict-reopen两反例已先复现后通过；新增21项基础缺失／漂移及早拒用例。最终新旧金融组296 passed、应用／Source期限组391 passed，均0 skipped；正常v1迁移与旧真实存储故障回滚对照保留通过。这里只修完整性检查，旧证据不改，候选仍交原独审复验。
+
+## v6 启动预检：先验证继承对象，再迁移
+
+原审指出：marker6缺幂等表或修订guard时，直接迁移拒绝，但普通构造先执行SCHEMA/C0补建后成功升7。本轮抽取已审完整legacy对象校验供v6/v7共用；构造识别完整marker6后先只读核基础类型／DDL、Source及附件／FK，再单独进入原V7迁移，不走旧初始化补建。直接V7迁移也先核该继承基底，损坏库SCHEMA_UNSUPPORTED且schema／rows不变；完整6正例、V1–V4获准历史路径及旧profile规则不改。仅基础预检，没有B1六口、资金或发送代码；实际业务DB未迁移，候选待原独审。
+
+作者先复现原2拒绝断言失败，再原脚本／完整6／真实v1迁移4 passed；新增10缺失对象零安装语句、4漂移／未知附件／FK及完整6一次升级正控，扩展前置86 passed。最终旧新金融311 passed，原API／公开校验／持久化／生命周期／C0／D1／Source期限429 passed，均0 skipped；旧DDL区块与所有原测试前缀逐字保持，独立基础候选交原审复核。
+
+## B1：受控离线预算与实际收包纵向候选
+
+唯一paid_budget写者接实际reserve／authorize／consume／cancel／observe；先真实API预览确认、受控offline项目试验启用、足额held，再外部preconnect、同库消费与immutable admission同落。消费commit成功后由独立连接回读可见事实，B专属session才一次begin／自身finish／sealed receipt；首次persist核实际所属资源与receipt，重启observe只读受保护admission／金融return，不要求进程内OWNED，不重造收包凭证。旧A合成consumed／DTO仍不授B能力，F／adapter及旧A实现不改。
+
+写许可绑定实际conn／txn／PID／lease／operation／目标row与version；现有authorizer组合保护活动预算的票／返回／观测写入，私有scope进出刷新同一authorizer以拒缓存SQL越权，原trace／rollback退休保持。P、原C与fresh保守B分别核，项目／账户／票CAS共享；完整可信usage按原F仅一次U→Uobs、actual=null，坏正文不免记用量。缺首次持久return、丢ack或死亡不再begin／重发，UNKNOWN全held；删除后只用允许金融域核对，正文／任务不复活。
+
+新B1专属31项与原金融组组合327 passed，原消费者／auth／保存／生命周期／C0／D1／Source期限391 passed，均0 skipped。覆盖两进程不同任务争P、两新进程同return一次记账、实际SQL各故障点／真实commit丢ack、consume后begin前及完整receive后未持久死亡、P较大而C/B更紧、真实删号／撤权／取消后的财务处理。只使用隔离auth测试DB、合成资金及本机TCP；B2全部真实caller与HELD取消／删号lease封边未签，公开worker仍拒paid，真实Owner/funding/loader/live/新purpose未放行，当前候选待原审。
+
+## B1 原审 P1／P2：账户未决门禁与持续行保护
+
+原审实证：UNKNOWN held尚在时可换研究继续POST；项目从active暂停为blocked后新scope撤掉了行级SQL防线。返修在共享准入_limits核整个稳定funding account的未决UNKNOWN，reserve及发送前authorize／consume均拒新执行，原held不释放；原有效持久return的late observe不走该新准入门禁。行保护按是否已有项目登记启用，与active／blocked／closed执行状态分离；首次closed登记及既有scope的语句缓存同步退权。普通SQL／cached SQL不因此改造既存真实票据，暂停只关闭新执行。
+
+新增真实对照覆盖新研究再预留0连接／0POST、已HELD后二次authorize／consume拒、late有效财务核对后正常准入、三状态真实票据保护及本机免费Source两GET／四类记录／重跑0GET／quota读回共存；不为旧fixture撤v2保护，不新增Source适配或权限平台，原DDL／F／adapter／旧A及原断言保留。真实资金、生产发送与B2仍关闭，候选交两原审分别复核。
+
+暂停执行补充：closed仅首次version1登记可按明确offline配置启用；运行后再closed不能被原source新调用自动重开，blocked同样拒新连接。作者验证：原审两缺陷先实证2 fail/1 pass，修后连Source原正控4 pass；主回归337 pass和旧消费者391 pass，随后补这一行暂停门禁后定点13 pass及完整B1专属43 pass（原31＋新增12），均0 skipped。分组证据如实分列，未冒称最后又跑统一新339组；当前SHA待两原审复核。
