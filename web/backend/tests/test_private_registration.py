@@ -5,6 +5,7 @@ import pickle
 import sqlite3
 import os
 import multiprocessing
+from contextlib import contextmanager
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -16,12 +17,13 @@ from .test_private_runtime_bootstrap import roots
 
 BETA='https://beta.structural.bytedance.city'
 SECRET='private-registration-synthetic-7a3c95e02b18f6d4'
+FIXTURE_SECRET='A7f9K2m4P8q1R6t3V5x0Y2z8C4d7H9j1L6n3'
 
 
 def register_private_user(monkeypatch,email='fixture@example.invalid',tier='free'):
     """Explicit fixture producer: actual formal HTTP mail->verify, no seeding."""
     mail=[]
-    configured_secret=os.getenv('JWT_SECRET') or 'A7f9K2m4P8q1R6t3V5x0Y2z8C4d7H9j1L6n3'
+    configured_secret=os.getenv('JWT_SECRET') or FIXTURE_SECRET
     with monkeypatch.context() as setup:
         for key,value in {'AUTH_ENABLED':'true','AUTH_SITE_ROLE':'beta','AUTH_LINK_BASE_URL':BETA,'JWT_SECRET':configured_secret,
             'SMTP_HOST':'fixture.invalid','SMTP_PORT':'587','SMTP_FROM_EMAIL':'sender@example.invalid',
@@ -37,6 +39,26 @@ def register_private_user(monkeypatch,email='fixture@example.invalid',tier='free
             assert verify(client,link(client,mail,email)).status_code==200
             token=client.cookies.get('phase_session')
             return auth._store().user(email),token
+
+
+@contextmanager
+def corrupt_auth_fixture(conn,table):
+    """Explicit offline fault injection; restore the exact protected DDL.
+
+    Ordinary runtime SQL remains denied. These pre-existing corruption cases
+    need invalid durable rows in order to test their read-only rejection.
+    """
+    assert table in ('auth_users','auth_owner_gates')
+    declarations=list(conn.execute("SELECT name,sql FROM sqlite_schema WHERE type='trigger' AND tbl_name=?",(table,)))
+    removed=[]
+    try:
+        for name,sql in declarations:
+            conn.execute('DROP TRIGGER "'+name+'"');removed.append((name,sql))
+        yield
+    finally:
+        for _name,sql in removed:conn.execute(sql)
+        restored=dict(conn.execute("SELECT name,sql FROM sqlite_schema WHERE type='trigger' AND tbl_name=?",(table,)))
+        assert restored==dict(declarations)
 
 
 @pytest.fixture
