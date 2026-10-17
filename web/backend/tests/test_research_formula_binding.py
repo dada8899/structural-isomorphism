@@ -167,3 +167,26 @@ def test_new_optional_formula_field_preserves_pre_formula_replay_digest(stack,op
     with closing(sqlite3.connect(path)) as conn,conn:
         assert conn.execute('SELECT count(*) FROM research_controls').fetchone()[0]==1
         assert conn.execute('SELECT count(*) FROM research_revisions').fetchone()[0]==(2 if operation=='revise' else 1)
+
+
+def test_formula_metadata_response_limit_rejects_before_revision_commit(stack):
+    client,path=stack
+    compact={'entry':'formula','original_input':'x','objective':'','summary':'12345678','variables':[],
+        'constraints':[],'unknowns':[],'confirmed':False,
+        'formula_draft':{'input_origin':'user_provided','comparison_scope':'expression',
+            'left':{'family':'queue_flow','template_id':'little','original_display':'L=lambda W','expression':None,
+                'symbols':[],'assumptions':[],'initial_conditions':[],'boundary_conditions':[],'source_refs':[],'measure_scope':'system'},
+            'right':None,'requested_checks':['template'],'sample_points':[]}}
+    rid,body=create_formula(client,compact);revision=1
+    for attempt in range(2000):
+        response=post(client,f'/api/research/{rid}/revisions',{'expected_revision':revision,'problem':compact},'bounded-history-'+str(attempt))
+        if response.status_code==413:
+            with closing(sqlite3.connect(path)) as conn,conn:
+                assert conn.execute('SELECT current_revision FROM research_controls WHERE id=?',(rid,)).fetchone()[0]==revision
+                assert conn.execute('SELECT count(*) FROM research_formula_revisions WHERE research_id=?',(rid,)).fetchone()[0]==revision
+                assert conn.execute("SELECT count(*) FROM research_idempotency WHERE operation='revise' AND scope_key=?",('r:'+rid,)).fetchone()[0]==revision-1
+            readable=client.get(f'/api/research/{rid}');assert readable.status_code==200
+            break
+        assert response.status_code==200,response.text
+        revision+=1
+    else:raise AssertionError('bounded history never reached its declared resource limit')

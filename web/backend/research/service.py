@@ -125,6 +125,7 @@ class ResearchService:
             save_snapshot(conn,store=self.store,lease=lease,identity=identity,principal=principal,rid=rid,revision=1,draft=request.problem.formula_draft)
             row = self.authorization.check(conn, identity, principal, rid, scope="write")
             result = ResearchProjection.build(conn, row)
+            if projection_bytes(result)>RESEARCH_RESPONSE_LIMIT:raise ResearchError('PAYLOAD_LIMIT',413,'完整研究视图超过保存范围；旧记录未更改。')
             self._remember(conn, principal, "create", "new", key, request_digest, result)
             return result
 
@@ -157,6 +158,7 @@ class ResearchService:
             from .formula_result import save_snapshot
             save_snapshot(conn,store=self.store,lease=lease,identity=identity,principal=principal,rid=rid,revision=revision+1,draft=request.problem.formula_draft)
             result = ResearchProjection.build(conn, self.authorization.check(conn, identity, principal, rid))
+            if projection_bytes(result)>RESEARCH_RESPONSE_LIMIT:raise ResearchError('PAYLOAD_LIMIT',413,'完整研究视图超过保存范围；旧记录未更改。')
             self._remember(conn, principal, "revise", "r:" + rid, key, request_digest, result)
             return result
 
