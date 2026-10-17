@@ -496,19 +496,26 @@ class ResearchService:
             if conn.execute('SELECT version FROM research_schema').fetchone()[0]==10:
                 has_paid=has_paid or conn.execute('SELECT 1 FROM research_formula_revisions f JOIN research_controls c ON c.id=f.research_id WHERE c.owner_id=? LIMIT 1',(principal_id,)).fetchone()
             from .paid_control import require_authenticated_action,create_authenticated_deletion_job
+            formal=self.store._formal_mode()
+            protected=formal or bool(has_paid)
             if request_source is not None:
                 require_authenticated_action(request_source,identity=request_source.identity,action='account-delete')
                 if request_source.identity.email!=email or request_source.identity.generation!=generation:
                     raise PermissionError('deletion request incarnation mismatch')
-            elif has_paid:raise ResearchError('AUTHORIZATION_STALE',403,'此删除需要实际认证操作来源。')
+            elif protected:raise ResearchError('AUTHORIZATION_STALE',403,'此删除需要实际认证操作来源。')
             job_id, timestamp = str(uuid4()), now()
-            conn.execute("UPDATE auth_users SET lifecycle='deleting' WHERE email=? AND session_generation=?", (email,generation))
+            if formal:
+                if __package__=='web.backend.research':from ..services.auth_registration import mark_account_deleting
+                else:from services.auth_registration import mark_account_deleting
+                mark_account_deleting(conn,store=self.store,lease=owner_lease,request_source=request_source,email=email,generation=generation)
+            else:
+                conn.execute("UPDATE auth_users SET lifecycle='deleting' WHERE email=? AND session_generation=?", (email,generation))
             conn.execute("UPDATE research_principals SET status='deleting',epoch=epoch+1 WHERE id=? AND status!='deleted'", (principal_id,))
             conn.execute("UPDATE research_grants SET status='revoked' WHERE principal_id=?", (principal_id,))
             conn.execute("UPDATE research_controls SET lifecycle='deleting' WHERE owner_id=?", (principal_id,))
             values=dict(id=job_id,owner_key=self.store.auth_store.owner_key(email),gate_id=gate_id,cleanup_binding=cleanup_binding,
                 database_binding=hashlib.sha256(str(self.store.path).encode()).hexdigest(),owner_email=email,session_generation=generation,state='pending',created_at=timestamp)
-            if request_source is not None and has_paid:
+            if request_source is not None and protected:
                 create_authenticated_deletion_job(conn,store=self.store,lease=owner_lease,source=request_source,values=values)
             else:
                 conn.execute('INSERT INTO auth_deletion_jobs('+','.join(values)+') VALUES('+','.join('?' for _ in values)+')',tuple(values.values()))
@@ -555,6 +562,10 @@ class ResearchService:
             if not principal or principal["status"] != "deleting":
                 raise ResearchError("AUTHORIZATION_STALE", 409, "删除任务主体状态不一致。")
             pid = principal["id"]
+            if self.store._formal_mode():
+                if __package__=='web.backend.research':from ..services.auth_registration import erase_registration_for_job
+                else:from services.auth_registration import erase_registration_for_job
+                erase_registration_for_job(conn,store=self.store,lease=owner_lease,job_id=job_id)
             from .paid_approval import erase_paid_private_inputs
             erase_paid_private_inputs(self.store,conn,pid,job_id,owner_lease=owner_lease)
             count = lambda table, clause, params: conn.execute(f"SELECT count(*) FROM {table} WHERE {clause}",params).fetchone()[0]

@@ -295,10 +295,11 @@ class _OfflineFormulaTarget:
 
 def _check_profile(conn,target,versions):
     from .store import ResearchStore
-    if __package__=='web.backend.research':from ..services.auth_store import AuthStore,_auth_metadata,_auth_final_contracts
-    else:from services.auth_store import AuthStore,_auth_metadata,_auth_final_contracts
-    allowed=_auth_final_contracts()
-    if _auth_metadata(conn,allowed=allowed) not in allowed:raise PermissionError('complete static Auth metadata required')
+    if __package__=='web.backend.research':from ..services.auth_store import AuthStore
+    else:from services.auth_store import AuthStore
+    # Explicit offline maintenance accepts only the complete static legacy or
+    # registration profile. Current formal consumers still require current Auth.
+    AuthStore.check_offline_auth_metadata(conn)
     AuthStore.check_gate_policy(conn)
     marker=[tuple(row) for row in conn.execute('SELECT id,version FROM research_schema')]
     if len(marker)!=1 or marker[0][0]!=1 or type(marker[0][1]) is not int or marker[0][1] not in versions:
@@ -355,8 +356,12 @@ def recover_formula_journal(path):
     """Reconcile a killed maintenance process; no schema repair or replay."""
     with _offline_maintenance(path,(9,10)) as (target,capability):
         capability.conn.execute('BEGIN')
-        try:version=_check_profile(capability.conn,target,(9,10))
+        try:
+            version=_check_profile(capability.conn,target,(9,10))
+            if __package__=='web.backend.research':from ..services.auth_store import AuthStore
+            else:from services.auth_store import AuthStore
+            auth_profile=AuthStore.check_offline_auth_metadata(capability.conn)
         finally:capability.conn.rollback()
         identity=capability.identity
     return {'schema_version':version,'journal_mode':'wal','database_identity':list(identity),
-        'current_app_compatible':version==10,'schema_repaired':False}
+        'current_app_compatible':version==10 and auth_profile=='auth-provision-v1','schema_repaired':False}

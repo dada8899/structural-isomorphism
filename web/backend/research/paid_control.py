@@ -27,6 +27,22 @@ _REQUEST_FACTORY=object()
 _REQUEST_SOURCES={}
 
 
+@dataclass(frozen=True)
+class SsoAccountDeletionIdentity:
+    """Verified SSO deletion subject; deliberately has no direct-session JTI."""
+    email: str
+    generation: str
+    expires_at: int
+    subject: str
+    issued_ns: int
+
+
+def _sso_deletion_ledger():
+    if __package__=='web.backend.research':from ..api import sso
+    else:from api import sso
+    return sso,sso.get_replay_store()
+
+
 class AuthenticatedActionSource:
     """Scoped result of actual route/cookie verification, never an identity DTO."""
     __slots__=('identity','action','research_id','task_id','key_digest','body_digest','pid','reference','active')
@@ -41,7 +57,7 @@ class AuthenticatedActionSource:
 
 
 def issue_authenticated_action(request,*,action,research_id=None,task_id=None,key='',body_digest=''):
-    """Reverify the real ASGI route and signed direct cookie, not passed claims."""
+    """Reverify the real route and credential appropriate to this action."""
     from starlette.requests import Request
     routes={'cancel':('POST','cancel_research_task'),'account-delete':('POST','delete_my_account'),
         'method-read':('GET','view_research'),'method-reconcile':('POST','reconcile_research_task'),
@@ -105,22 +121,46 @@ def issue_authenticated_action(request,*,action,research_id=None,task_id=None,ke
     unified,status=auth.resolve_account_user(request)
     user,direct=auth.resolve_session_user(request)
     claims=auth._decode_jwt(request.cookies.get(auth._COOKIE_NAME,''))
-    if (status!='valid' or direct!='valid' or not unified or not user or unified['email']!=user['email'] or not claims
-            or type(claims.get('exp')) is not int or not all(type(claims.get(k)) is str and claims[k] for k in ('sub','gen','jti'))
-            or (request.method=='POST' and auth.require_same_origin(request) is not None)):
+    if status!='valid' or not unified or (request.method=='POST' and auth.require_same_origin(request) is not None):
         raise ResearchError('AUTH_REQUIRED',401,'操作来源认证失效。')
-    identity=AccountIdentity(user['email'],claims['gen'],claims['jti'],claims['exp'])
+    if action=='account-delete' and direct=='absent':
+        sso,_ledger=_sso_deletion_ledger()
+        verified,sso_status=sso._resolve_sso_beta_user(request)
+        try:
+            signed=sso.jwt.decode(request.cookies.get(sso._BETA_SESSION_COOKIE,''),sso._secret(),algorithms=[sso._ALG],
+                audience='structural-beta-session',issuer=sso._beta_origin())
+        except sso.jwt.PyJWTError:
+            raise ResearchError('AUTH_REQUIRED',401,'操作来源认证失效。') from None
+        if (sso_status!='valid' or not verified or verified['email']!=unified['email']
+                or type(signed.get('gen')) is not str or not signed['gen'] or signed['gen']!=verified.get('_verified_generation')
+                or type(signed.get('sub')) is not str or signed['sub']!=verified['id']
+                or type(signed.get('exp')) is not int or type(signed.get('issued_ns')) is not int):
+            raise ResearchError('AUTH_REQUIRED',401,'操作来源认证失效。')
+        identity=SsoAccountDeletionIdentity(verified['email'],signed['gen'],signed['exp'],signed['sub'],signed['issued_ns'])
+    else:
+        if (direct!='valid' or not user or unified['email']!=user['email'] or not claims
+                or type(claims.get('exp')) is not int or not all(type(claims.get(k)) is str and claims[k] for k in ('sub','gen','jti'))):
+            raise ResearchError('AUTH_REQUIRED',401,'操作来源认证失效。')
+        identity=AccountIdentity(user['email'],claims['gen'],claims['jti'],claims['exp'])
     return AuthenticatedActionSource(_factory=_REQUEST_FACTORY,identity=identity,action=action,research_id=research_id,task_id=task_id,
         key_digest=digest(key.encode()),body_digest=body_digest)
 
 
 def require_authenticated_action(source,*,identity,action,research_id=None,task_id=None,key=None,body_digest=None):
     if (type(source) is not AuthenticatedActionSource or not source.active or source.pid!=os.getpid()
-            or _REQUEST_SOURCES.get(source.reference) is not source or type(identity) is not AccountIdentity
+            or _REQUEST_SOURCES.get(source.reference) is not source or not (type(identity) is AccountIdentity
+                or (action=='account-delete' and type(identity) is SsoAccountDeletionIdentity))
             or source.identity!=identity or identity.expires_at<=time.time() or source.action!=action
             or source.research_id!=research_id or source.task_id!=task_id
             or (key is not None and source.key_digest!=digest(key.encode())) or (body_digest is not None and source.body_digest!=body_digest)):
         raise PermissionError('verified action source missing or stale')
+    if type(identity) is SsoAccountDeletionIdentity:
+        # This is the existing SSO subject-revocation ledger, never the direct
+        # revoked_sessions JTI path. Recheck during each short capability use.
+        _sso,ledger=_sso_deletion_ledger()
+        revoked=ledger.subject_revoked_at(identity.subject)
+        if revoked is not None and identity.issued_ns<=revoked:
+            raise PermissionError('SSO deletion subject revoked')
     return source.reference
 
 

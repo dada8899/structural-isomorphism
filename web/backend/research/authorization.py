@@ -164,6 +164,9 @@ class AuthorizationGate:
                     raise RuntimePathError('private owner gate file is unsafe')
             if (held.st_dev,held.st_ino)!=(entry.st_dev,entry.st_ino):
                 raise RuntimePathError('private owner gate inode changed')
+            auth=getattr(self.store,'auth_store',self.store)
+            if (held.st_dev,held.st_ino)!=auth.expected_owner_gate_identity(gate_id):
+                raise RuntimePathError('private owner gate differs from admitted resource')
         try:
             if formal:
                 if (self.store.path!=private_auth_path() or self.store.storage_identity is None):

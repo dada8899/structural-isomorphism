@@ -259,13 +259,25 @@ def test_explicit_offline_provisioning_then_actual_formal_construct_write_and_re
         with pytest.raises((ResearchError,RuntimeError)):AuthStore(path)
         result=provision_formula_v10(path)
         assert result['schema_version']==10 and result['backup_scope']=='in_memory_algorithm_recovery_only'
+        assert recover_formula_journal(path)['current_app_compatible'] is False
+        from services.auth_registration import migrate_private_auth_registration,admit_private_gate
+        from .test_research_paid_producers import identity
+        actor=identity(client)
+        assert migrate_private_auth_registration()['migrated'] is True
+        assert admit_private_gate(AuthStore.owner_key(actor.email))['admitted'] is True
+        assert recover_formula_journal(path)['current_app_compatible'] is True
         real=ResearchStore(AuthStore(path))
         with real.transaction(write=True) as conn:
             assert conn.execute('SELECT count(*) FROM research_controls WHERE id=?',(rid,)).fetchone()[0]==1
-            conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('after-provision@example.invalid','free','synthetic','g')")
+            with pytest.raises(sqlite3.Error):
+                conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('after-provision@example.invalid','free','synthetic','g')")
+        from research import ResearchService
+        from research.schemas import RevisionRequest
+        ResearchService(real).revise(actor,rid,RevisionRequest(expected_revision=1,problem=problem('after-provision')),'after-provision-revise')
         reopened=ResearchStore(AuthStore(path))
         with reopened.transaction() as conn:
-            assert conn.execute("SELECT 1 FROM auth_users WHERE email='after-provision@example.invalid'").fetchone()
+            assert not conn.execute("SELECT 1 FROM auth_users WHERE email='after-provision@example.invalid'").fetchone()
+            assert conn.execute('SELECT revision FROM research_revisions WHERE research_id=? ORDER BY revision DESC',(rid,)).fetchone()[0]==2
             assert conn.execute('PRAGMA journal_mode').fetchone()[0]=='wal'
     finally:
         os.environ.clear();os.environ.update(old)
@@ -308,11 +320,16 @@ def test_real_process_death_recovers_only_complete_profile_and_wal(v9,cut,monkey
         from services.auth_store import AuthStore
         recovered=recover_formula_journal(path)
         assert recovered['schema_version']==(10 if cut=='after-commit' else 9)
-        assert recovered['current_app_compatible']==(cut=='after-commit')
+        assert recovered['current_app_compatible'] is False
         assert path.stat().st_ino==inode
         if cut!='after-commit':
             with pytest.raises((ResearchError,RuntimeError)):AuthStore(path)
             provision_formula_v10(path)
+        from services.auth_registration import migrate_private_auth_registration,admit_private_gate
+        from .test_research_paid_producers import identity
+        assert migrate_private_auth_registration()['migrated'] is True
+        assert admit_private_gate(AuthStore.owner_key(identity(v9[0]).email))['admitted'] is True
+        assert recover_formula_journal(path)['current_app_compatible'] is True
         current=ResearchStore(AuthStore(path))
         with current.transaction() as conn:
             current._check_v10(conn)
