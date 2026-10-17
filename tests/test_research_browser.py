@@ -1272,3 +1272,65 @@ def test_entry_auth_real_401_clears_private_draft_and_stops_chain(server):
             expect(page.locator("#kb-results article")).to_have_count(0)
             assert calls==[]
         finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('viewport',[{'width':1280,'height':900},{'width':430,'height':932}])
+def test_source_reopen_explains_explicit_read_without_losing_draft_or_refetching_provider(server,viewport):
+    """Real auth/store/Source worker; only Source transport uses the loopback fixture."""
+    from urllib.parse import urlsplit
+    from web.backend.tests.source_http_fixture import source_server
+    server['stop'](server['process']);server['start'](d1_sources=True)
+    with source_server() as (port,calls),sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context(viewport=viewport)
+        try:
+            base=server['base'];login(context,base)
+            page=context.new_page();page.goto(base+'/research')
+            fill(page);page.locator('#confirmed').check();page.locator('#save').click()
+            expect(page.locator('#status')).to_contain_text('已保存修订 1')
+            page.locator('#source-query').fill('queue theory');page.locator('#source-preview').click()
+            expect(page.locator('#source-confirm')).to_be_visible()
+            expect(page.locator('#source-status')).to_contain_text('预览完成')
+            expect(page.locator('#source-reopen-hint')).to_be_visible()
+            expect(page.locator('#source-plan')).to_contain_text('queue theory')
+            assert page.locator('#source-reopen-hint').get_attribute('role') is None and calls==[]
+            page.locator('#source-confirm').click()
+            expect(page.locator('#source-status')).to_contain_text('已排队')
+            view=base+'/api'+urlsplit(page.url).path
+            task=context.request.get(view).json()['data']['task']['id']
+            worker=server['run_source_worker'](task,port)
+            assert worker.returncode==0 and worker.stdout.strip()=='COMPLETED'
+            assert calls==['/discovery','/article']
+            page.locator('#source-refresh').click()
+            expect(page.locator('#source-records article')).to_have_count(4)
+            with sqlite3.connect(server['path']) as conn:
+                before=conn.execute('SELECT count(*) FROM research_tasks').fetchone()[0]
+            requests=[]
+            page.on('request',lambda request:requests.append((request.method,urlsplit(request.url).path)))
+            page.reload()
+            expect(page.locator('#task-phase')).to_contain_text('来源整理结束')
+            expect(page.locator('#source-records article')).to_have_count(0)
+            expect(page.locator('#source-status')).to_have_text('')
+            expect(page.locator('#source-reopen-hint')).to_contain_text('尚未读取不代表没有记录')
+            button=page.get_by_role('button',name='核对并读取已保存来源笔记',exact=True)
+            expect(button).to_be_visible()
+            expect(button).to_have_attribute('aria-describedby','source-reopen-hint')
+            assert not any('/records' in path or method=='POST' for method,path in requests)
+            page.locator('#original-input').fill('重开之后手写且尚未保存的新现象输入')
+            page.locator('#summary').fill('重开之后手写且尚未保存的摘要需要保留')
+            page.locator('#confirmed').uncheck()
+            button.focus();page.keyboard.press('Enter')
+            expect(page.locator('#source-records article')).to_have_count(4)
+            assert set(page.locator('#source-records h3').all_text_contents())=={'来源','短摘录','待验证判断','研究缺口'}
+            expect(page.locator('#source-status')).to_contain_text('已从账户读取来源与笔记')
+            expect(page.locator('#original-input')).to_have_value('重开之后手写且尚未保存的新现象输入')
+            expect(page.locator('#summary')).to_have_value('重开之后手写且尚未保存的摘要需要保留')
+            expect(page.locator('#confirmed')).not_to_be_checked()
+            assert calls==['/discovery','/article']
+            assert context.request.get(view).json()['data']['task']['id']==task
+            assert not any(method=='POST' for method,_path in requests)
+            with sqlite3.connect(server['path']) as conn:
+                assert conn.execute('SELECT count(*) FROM research_tasks').fetchone()[0]==before
+            assert button.bounding_box()['height']>=44
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+            page.screenshot(path=str(server['root'] / 'source-reopen-explicit-read.png'),full_page=True)
+        finally:context.close();browser.close()

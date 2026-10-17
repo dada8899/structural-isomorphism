@@ -69,9 +69,10 @@
       <h2 id="source-title">可选：继续查找方法来源</h2>
       <p class="hint">先预览，再确认查询内容。最多读取四次 Crossref / PLOS 来源；这里只整理方法材料与短摘录，尚未运行模型分析、行情计算或统计检验。</p>
       <p class="hint">保存并核对问题后，可自行填写英文关键词。不清楚关键词时可先保留问题；当前尚不提供模型提炼、自动翻译或深度研究结论。</p>
+      <p id="source-reopen-hint" class="hint">重新打开研究后，已保存的来源笔记需手动读取。尚未读取不代表没有记录；请用下方按钮核对本页对应的研究和来源流程。</p>
       <label for="source-query">英文方法关键词 <span>可编辑 · 仅发送预览中的查询词</span></label>
       <input id="source-query" type="text" minlength="3" maxlength="160" placeholder="例如 queue theory" autocomplete="off" style="width:100%">
-      <div class="actions"><button id="source-preview" type="button">预览来源查询</button><button id="source-confirm" type="button" hidden>确认查询内容并启动</button><button id="source-refresh" type="button" class="secondary">刷新来源笔记</button></div>
+      <div class="actions"><button id="source-preview" type="button">预览来源查询</button><button id="source-confirm" type="button" hidden>确认查询内容并启动</button><button id="source-refresh" type="button" class="secondary" aria-describedby="source-reopen-hint">核对并读取已保存来源笔记</button></div>
       <p id="source-status" role="status" aria-live="polite"></p><pre id="source-plan"></pre><div id="source-records"></div>
     </section>
     <section id="history" hidden aria-labelledby="history-title"><h2 id="history-title">修订记录</h2><p class="hint">历史版本只读。新修订不会覆盖旧内容。</p><div id="history-items"></div></section>
