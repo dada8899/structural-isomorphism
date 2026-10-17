@@ -6,6 +6,10 @@ preserved with a development flag or a fabricated signup/SMTP response.
 import json
 from urllib.parse import urlsplit
 
+import pytest
+
+pytestmark = pytest.mark.e2e
+
 from web.tests.e2e.test_subscriptions_closed import subscription_site, subscription_browser
 
 

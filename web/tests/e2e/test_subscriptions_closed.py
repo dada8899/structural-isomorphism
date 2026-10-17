@@ -12,6 +12,8 @@ from urllib.parse import urlsplit
 
 import pytest
 
+pytestmark = pytest.mark.e2e
+
 ROOT = Path(__file__).resolve().parents[3]
 RELEASE_PYTHON = os.getenv('STRUCTURAL_RELEASE_TEST_PYTHON', str(ROOT / '.venv/bin/python'))
 COLLECTORS = {'/api/newsletter/subscribe', '/api/newsletter/count', '/api/waitlist',
