@@ -87,7 +87,14 @@
       </div>
 
       <!-- Updates are secondary to the review queue's first useful result. -->
-      <div id="newsletter-discoveries" class="newsletter newsletter--compact"></div>
+      <div id="newsletter-discoveries" class="newsletter newsletter--compact">
+          <div class="newsletter-card">
+            <span class="newsletter-eyebrow">不定期研究更新</span>
+            <h2 class="newsletter-title">新增订阅暂不可用</h2>
+            <p class="newsletter-body">本版不收集订阅邮箱。研究进展和公开负结果可在站内查看。</p>
+            <p class="newsletter-fineprint">既有订阅请查看原邮件中的退订说明。</p>
+          </div>
+        </div>
     </div>
   </main>
 
@@ -102,9 +109,9 @@
   <script src="/assets/js/evidence-envelope.js?v=20260714n2"></script>
   <script src="/assets/js/discoveries.js?v=20260714n2"></script>
   <script src="/assets/js/product-switcher.js?v=20260417e"></script>
-  <script src="/assets/js/newsletter.js?v=20260714n2"></script>
+  <script src="/assets/js/newsletter.js?v=20261017closed1"></script>
   <script>
-    // Session #9 W2-A: newsletter signup at the top of the discoveries list.
+    // Session #9 W2-A: closed subscription notice in the discoveries page.
     if (window.mountNewsletter) {
       window.mountNewsletter("newsletter-discoveries", "discoveries-top");
     }

@@ -897,7 +897,7 @@ process.stdout.write(JSON.stringify(context.__result));
 
 
 def test_current_release_assets_share_one_cache_version() -> None:
-    """Every asset changed by this release must invalidate as one unit.
+    """Keep coupled assets together and pin the standalone closed widget exactly.
 
     A prior batch rewrite left Classes loading three generations of JS/data,
     so a warm browser could combine incompatible contracts while clean E2E
@@ -997,11 +997,24 @@ def test_current_release_assets_share_one_cache_version() -> None:
                 )
 
     missing = sorted(asset for asset in release_assets if asset not in references)
+    # This closed, standalone widget has no data/API/import dependency on
+    # the coupled release cohort. Its only consumers move together exactly.
+    newsletter_asset = "/assets/js/newsletter.js"
+    newsletter_version = "20261017closed1"
+    newsletter_consumers = {
+        "web/frontend/start-here.html",
+        "web/frontend/learn.html",
+        "web/frontend/discoveries.html",
+    }
+    assert {source for source, _ in references.get(newsletter_asset, [])} == newsletter_consumers
+    assert len(references.get(newsletter_asset, [])) == len(newsletter_consumers)
+    newsletter_source = (frontend / "assets/js/newsletter.js").read_text(encoding="utf-8")
+    assert _js_dependency_strings(newsletter_source) == []
     stale = sorted(
         (source, asset, version)
         for asset in release_assets
         for source, version in references.get(asset, [])
-        if version != release_version
+        if version != (newsletter_version if asset == newsletter_asset else release_version)
     )
     split_release = sorted(
         item for item in current_release_versions if item[2] != release_version
