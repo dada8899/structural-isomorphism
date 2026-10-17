@@ -362,3 +362,25 @@ def test_cold_schema_race_across_processes_and_namespaces_preserves_both_wal_com
         if process.poll() is None:process.terminate()
         try:process.communicate(timeout=3)
         except subprocess.TimeoutExpired:process.kill();process.communicate(timeout=3)
+
+
+@pytest.mark.parametrize('namespace', NAMESPACES)
+def test_late_completed_v8_unknown_managed_table_is_rejected_without_mutation(tmp_path, monkeypatch, namespace):
+    monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
+    module = importlib.import_module(namespace);cls = module.ResearchStore
+    path = tmp_path/'auth.sqlite3';auth = auth_for(namespace, path)
+    before = [];images = []
+
+    def peer():
+        store = completed_peer(cls, auth, 8, monkeypatch)
+        with store.transaction(write=True) as conn:
+            conn.execute('CREATE TABLE research_unexpected(value TEXT)')
+        before.extend(catalog(path));images.append(hashlib.sha256(path.read_bytes()).hexdigest())
+
+    result = thread_race(cls, auth, peer, monkeypatch)
+    assert isinstance(result, module.ResearchError) and result.code == 'SCHEMA_UNSUPPORTED', repr(result)
+    assert catalog(path) == before
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == images[0]
+    conn = sqlite3.connect(path.resolve().as_uri()+'?mode=ro', uri=True)
+    try:assert conn.execute('SELECT id,version FROM research_schema').fetchall() == [(1,8)]
+    finally:conn.close()

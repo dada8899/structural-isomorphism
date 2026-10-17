@@ -441,7 +441,7 @@ class ResearchStore:
                     self.check_current_structure(conn);self._check_v9(conn)
                     return
                 if current and current[0]==DELETION_SCHEMA_VERSION:
-                    self._check_v8(conn);self._check_v7_attachments(conn)
+                    self._check_completed_migration_peer(conn,current[0])
                     completed_v8=True
                 elif current and current[0]==FINANCIAL_SCHEMA_VERSION:
                     self._check_v7(conn);self._check_v7_attachments(conn)
