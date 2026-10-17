@@ -107,7 +107,7 @@ V8_JOB_GUARDS=(
         WHEN OLD.origin_version IS NULL AND (NEW.origin_version IS NOT NULL OR NEW.origin_digest IS NOT NULL)
         BEGIN SELECT RAISE(ABORT,'legacy deletion origin cannot be signed'); END""",
     """CREATE TRIGGER auth_deletion_origin_identity BEFORE UPDATE ON auth_deletion_jobs WHEN OLD.origin_version IS NOT NULL
-        AND (NEW.id IS NOT OLD.id OR NEW.owner_key IS NOT OLD.owner_key OR NEW.gate_id IS NOT OLD.gate_id
+        AND (NEW.rowid IS NOT OLD.rowid OR NEW.id IS NOT OLD.id OR NEW.owner_key IS NOT OLD.owner_key OR NEW.gate_id IS NOT OLD.gate_id
             OR NEW.cleanup_binding IS NOT OLD.cleanup_binding OR NEW.database_binding IS NOT OLD.database_binding
             OR NEW.created_at IS NOT OLD.created_at OR NEW.origin_version IS NOT OLD.origin_version OR NEW.origin_digest IS NOT OLD.origin_digest)
         BEGIN SELECT RAISE(ABORT,'immutable deletion origin binding'); END""",
@@ -125,8 +125,12 @@ V8_JOB_GUARDS=(
             THEN RAISE(ABORT,'invalid deletion stage transition') END; END""",
     """CREATE TRIGGER auth_deletion_origin_no_replace BEFORE INSERT ON auth_deletion_jobs
         WHEN EXISTS(SELECT 1 FROM auth_deletion_jobs j WHERE j.origin_version IS NOT NULL AND
-            (j.id=NEW.id OR (j.owner_key=NEW.owner_key AND j.state!='completed' AND NEW.state!='completed')))
+            (j.rowid=NEW.rowid OR j.id=NEW.id OR (j.owner_key=NEW.owner_key AND j.state!='completed' AND NEW.state!='completed')))
         BEGIN SELECT RAISE(ABORT,'protected deletion replacement forbidden'); END""",
+    """CREATE TRIGGER auth_deletion_origin_no_update_replace BEFORE UPDATE ON auth_deletion_jobs
+        WHEN EXISTS(SELECT 1 FROM auth_deletion_jobs j WHERE j.origin_version IS NOT NULL AND j.rowid IS NOT OLD.rowid AND
+            (j.rowid=NEW.rowid OR j.id=NEW.id OR (j.owner_key=NEW.owner_key AND j.state!='completed' AND NEW.state!='completed')))
+        BEGIN SELECT RAISE(ABORT,'protected deletion update replacement forbidden'); END""",
     """CREATE TRIGGER auth_deletion_origin_no_delete BEFORE DELETE ON auth_deletion_jobs WHEN OLD.origin_version IS NOT NULL
         BEGIN SELECT RAISE(ABORT,'deletion provenance retained'); END""",
 )

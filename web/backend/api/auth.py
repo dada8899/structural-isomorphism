@@ -105,10 +105,8 @@ def account_owner_transaction(owner: str):
     normalized = owner.strip().lower()
     if not normalized:
         raise ValueError("account transaction requires an owner")
-    try:
-        from research.authorization import AuthorizationGate
-    except ModuleNotFoundError:
-        from web.backend.research.authorization import AuthorizationGate
+    if __package__=='web.backend.api':from ..research.authorization import AuthorizationGate
+    else:from research.authorization import AuthorizationGate
     store = _store()
     gate_id = store.owner_gate_id(normalized)
     with AuthorizationGate(store).owner_gate_id(gate_id) as lease:
@@ -1082,10 +1080,8 @@ async def delete_my_account(body: DeleteAccountBody, request: Request):
 
 
 def _account_deletion_service():
-    try:
-        from research import ResearchService, ResearchStore
-    except ModuleNotFoundError:
-        from web.backend.research import ResearchService, ResearchStore
+    if __package__=='web.backend.api':from ..research import ResearchService,ResearchStore
+    else:from research import ResearchService,ResearchStore
     return ResearchService(ResearchStore(_store()))
 
 

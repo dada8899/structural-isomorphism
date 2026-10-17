@@ -22,6 +22,7 @@ from research.paid_provider_session import persist_budget_return
 from api import auth
 import sqlite3
 import multiprocessing
+import importlib
 from research import paid_control
 from research.provider_schemas import canonical,digest
 from services.auth_store import AuthStore
@@ -116,6 +117,77 @@ def test_real_v2_delete_preserves_possible_fee_and_never_rebooks(paid_api,lifecy
         # Server control returns the persisted result, not a new cleanup pass.
         first=auth.resume_account_deletion(job['id']);second=auth.resume_account_deletion(job['id']);assert first==second
         assert wire['requests']==1
+
+
+@pytest.mark.parametrize('with_hook',[True,False])
+@pytest.mark.parametrize('conflict',['id','owner-key','pending-state','rowid','insert-rowid'])
+def test_legacy_replace_cannot_implicitly_delete_real_protected_pending_job(paid_api,lifecycle,monkeypatch,with_hook,conflict):
+    client,path,store,rid,_,_=paid_api
+    draft=make_preview(paid_api);response=post(client,f'/api/research/{rid}/paid-approvals',confirm_data(draft),'replace-confirm')
+    assert response.status_code==200,response.text
+    with monkeypatch.context() as fault:
+        def fail(self,email,**kwargs):raise OSError('owned pending job fault')
+        fault.setattr(AuthStore,'delete_account_data',fail)
+        assert delete(lifecycle[0]).status_code==500
+    legacy=str(uuid4())
+    with store.transaction(write=True) as conn:
+        protected=dict(conn.execute('SELECT rowid AS stored_rowid,* FROM auth_deletion_jobs').fetchone())
+        owner=protected['owner_key'] if conflict=='pending-state' else 'legacy-update-owner'
+        state='pending' if conflict=='owner-key' else 'completed'
+        conn.execute('INSERT INTO auth_deletion_jobs(id,owner_key,gate_id,cleanup_binding,database_binding,state,created_at) VALUES(?,?,?,?,?,?,?)',
+            (legacy,owner,str(uuid4()),'legacy-cleanup','legacy-database',state,'2026-10-17T00:00:00.000000Z'))
+    with sqlite3.connect(path) as conn:
+        conn.row_factory=sqlite3.Row
+        if with_hook:
+            from research.financial_guard import install_default_hook
+            install_default_hook(conn)
+        assert conn.execute('PRAGMA recursive_triggers').fetchone()[0]==0
+        if conflict=='id':sql,args='UPDATE OR REPLACE auth_deletion_jobs SET id=? WHERE id=?',(protected['id'],legacy)
+        elif conflict=='owner-key':sql,args='UPDATE OR REPLACE auth_deletion_jobs SET owner_key=? WHERE id=?',(protected['owner_key'],legacy)
+        elif conflict=='pending-state':sql,args="UPDATE OR REPLACE auth_deletion_jobs SET state='pending' WHERE id=?",(legacy,)
+        elif conflict=='rowid':sql,args='UPDATE OR REPLACE auth_deletion_jobs SET rowid=? WHERE id=?',(protected['stored_rowid'],legacy)
+        else:
+            sql='INSERT OR REPLACE INTO auth_deletion_jobs(rowid,id,owner_key,gate_id,cleanup_binding,database_binding,state,created_at) VALUES(?,?,?,?,?,?,?,?)'
+            args=(protected['stored_rowid'],str(uuid4()),'new-legacy-owner',str(uuid4()),'legacy-cleanup','legacy-database','completed','2026-10-17T00:00:00.000000Z')
+        with pytest.raises(sqlite3.DatabaseError):conn.execute(sql,args)
+        assert dict(conn.execute('SELECT rowid AS stored_rowid,* FROM auth_deletion_jobs WHERE id=?',(protected['id'],)).fetchone())==protected
+        if with_hook:
+            # Normal legacy updates, including their stage change, still work.
+            conn.execute("UPDATE auth_deletion_jobs SET cleanup_binding='updated-legacy',state='completed' WHERE id=?",(legacy,))
+            assert conn.execute('SELECT cleanup_binding,state,origin_version FROM auth_deletion_jobs WHERE id=?',(legacy,)).fetchone()[:]==('updated-legacy','completed',None)
+
+
+@pytest.mark.parametrize('prefix',['api','web.backend.api'])
+@pytest.mark.parametrize('has_v2',[False,True])
+def test_both_real_auth_import_modes_keep_sources_service_and_lease_in_same_namespace(paid_api,lifecycle,monkeypatch,prefix,has_v2):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    client,_,store,rid,_,_=paid_api
+    if has_v2:
+        draft=make_preview(paid_api);response=post(client,f'/api/research/{rid}/paid-approvals',confirm_data(draft),'namespace-confirm')
+        assert response.status_code==200,response.text
+    module=importlib.import_module(prefix+'.auth');research_prefix='web.backend.research' if prefix.startswith('web.') else 'research'
+    control=importlib.import_module(research_prefix+'.paid_control')
+    other=importlib.import_module(('research' if prefix.startswith('web.') else 'web.backend.research')+'.paid_control')
+    gate_module=importlib.import_module(research_prefix+'.authorization')
+    seen=[];original=control.issue_authenticated_action
+    def capture(*args,**kwargs):
+        source=original(*args,**kwargs);seen.append(source)
+        with pytest.raises(PermissionError):other.require_authenticated_action(source,identity=source.identity,action='account-delete')
+        return source
+    monkeypatch.setattr(control,'issue_authenticated_action',capture)
+    application=FastAPI();application.include_router(module.router,prefix='/api')
+    with TestClient(application) as incoming:
+        incoming.cookies.update(client.cookies)
+        response=delete(incoming)
+    assert response.status_code==200,response.text
+    assert len(seen)==1 and type(seen[0]) is control.AuthenticatedActionSource and not seen[0].active
+    assert module._account_deletion_service().__class__.__module__==research_prefix+'.service'
+    with module.account_owner_transaction('research-a@example.test') as lease:assert type(lease) is gate_module.OwnerGateLease
+    with store.transaction() as conn:
+        job=conn.execute('SELECT state,origin_version FROM auth_deletion_jobs').fetchone()
+        assert job['state']=='completed'
+        assert job['origin_version']==('authenticated-delete-v1' if has_v2 else None)
 
 
 def _resume_scrubbing_child(job_id,result):
