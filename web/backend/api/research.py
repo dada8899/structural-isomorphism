@@ -192,6 +192,8 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                     finally:source.close()
                 else:result=await run_in_threadpool(service.task_action,identity,research_id,envelope.data,key,operation)
         if operation in _PAID_OPERATIONS:return _paid_success_response(operation,result)
+        if len(json.dumps(result,ensure_ascii=False,allow_nan=False,separators=(',',':')).encode('utf-8'))>524288:
+            raise ResearchError('PAYLOAD_LIMIT',413,'响应超过研究范围上限；旧记录未更改。')
         return JSONResponse(result, headers=_HEADERS)
     except ResearchError as exc:
         if operation in _PAID_OPERATIONS:return _paid_error_response(exc)

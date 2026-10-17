@@ -158,7 +158,10 @@ def test_cached_replay_rechecks_paid_grant_and_does_not_rollback_late_cost(paid_
         from research.schemas import TaskVersionRequest
         direct=ResearchService(store).task_action(identity(client),rid,TaskVersionRequest(**body),'fresh-read-every-replay','reconcile')
         assert 'method_result' not in direct['data'] and direct['data']['report_status']=='none'
-        assert client.get(f'/api/research/{rid}',params={'task_id':result['task_id']}).status_code==404
+        unavailable=client.get(f'/api/research/{rid}',params={'task_id':result['task_id']})
+        assert unavailable.status_code==200 and unavailable.json()['data']['method_result'] is None
+        assert unavailable.json()['data']['method_result_state']=='unavailable' and unavailable.json()['data']['task_history']
+        assert 'Offline candidate' not in unavailable.text
         with store.transaction() as conn:
             assert conn.execute('SELECT upper_booked,held FROM research_funding_accounts').fetchone()[:]==(2,0)
             assert conn.execute('SELECT count(*) FROM research_cost_observations').fetchone()[0]==1
@@ -490,7 +493,10 @@ def test_rebinding_task_to_another_valid_grant_does_not_inherit_body(paid_api):
             grant['id']=str(uuid4())
             conn.execute('INSERT INTO research_grants('+','.join(grant)+') VALUES('+','.join('?' for _ in grant)+')',tuple(grant.values()))
             conn.execute('UPDATE research_tasks SET grant_id=? WHERE id=?',(grant['id'],result['task_id']))
-        assert client.get(f'/api/research/{rid}',params={'task_id':result['task_id']}).status_code==404
+        unavailable=client.get(f'/api/research/{rid}',params={'task_id':result['task_id']})
+        assert unavailable.status_code==200 and unavailable.json()['data']['method_result'] is None
+        assert unavailable.json()['data']['method_result_state']=='unavailable' and unavailable.json()['data']['task_history']
+        assert 'Offline candidate' not in unavailable.text
         assert post(client,f'/api/research/{rid}/reconcile',body,'original-grant').json()['data']['method_result'] is None
 
 

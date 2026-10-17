@@ -196,7 +196,7 @@ def _request(source,identity,rid,task_id):
     return source.action
 
 
-def _packet(conn,store,identity,snapshot,session):
+def _packet(conn,store,identity,snapshot,session,request_source):
     from .evidence_repository import EvidenceRepository
     from .source_integration import authorizer,context_for
     approval=conn.execute('SELECT * FROM research_paid_approvals WHERE id=?',(session['approval_id'],)).fetchone()
@@ -213,8 +213,13 @@ def _packet(conn,store,identity,snapshot,session):
     gate=AuthorizationGate(store);control=gate.check(conn,identity,context.principal_id,context.research_id)
     task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(context.task_id,)).fetchone()
     gate.check_task(conn,task)
+    current=conn.execute('SELECT id FROM research_tasks WHERE research_id=? AND input_revision=? ORDER BY start_version DESC,id DESC LIMIT 1',
+        (control['id'],control['current_revision'])).fetchone()
+    historical=task['input_revision']!=control['current_revision'] or not current or current[0]!=task['id']
+    action=_request(request_source,identity,control['id'],task['id'])
+    if historical and (action!='method-read' or request_source.task_id!=task['id']):raise not_found()
     grant=conn.execute('SELECT * FROM research_grants WHERE id=?',(context.grant_id,)).fetchone()
-    if (control['current_revision']!=context.input_revision or task['input_digest']!=context.input_digest
+    if (task['input_revision']>control['current_revision'] or task['input_digest']!=context.input_digest
             or not grant or grant['version']!=context.grant_epoch or 'execute_paid' not in json.loads(grant['scopes'])
             or task['execution'] in ('FAILED','CANCELLED','ACCESS_REVOKED')):raise not_found()
     bindings={'id':context.task_id,'research_id':context.research_id,'principal_id':context.principal_id,'principal_epoch':context.principal_epoch,
@@ -235,11 +240,11 @@ def _packet(conn,store,identity,snapshot,session):
         handles.append(EvidenceHandle(**handle.model_dump(),extracted_text=extracted,display_permission=True,may_send_to_provider=True))
     packet=EvidencePacket(context=context,handles=tuple(handles))
     if packet.binding_digest()!=snapshot.dispatch.evidence_digest:raise PermissionError('current method sources differ')
-    return packet,task,control,approval
+    return packet,task,control,approval,historical
 
 
 class BodySource:
-    __slots__=('_conn','_scope','_store','_lease','_identity','_request','_rid','_task','_session','_decoded','_packet','_snapshot','_before')
+    __slots__=('_conn','_scope','_store','_lease','_identity','_request','_rid','_task','_session','_decoded','_packet','_snapshot','_before','_historical')
     def __init__(self,*,_factory=None,**values):
         if _factory is not _FACTORY:raise TypeError('current controlled body reader required')
         for key,value in values.items():object.__setattr__(self,key,value)
@@ -249,7 +254,8 @@ class BodySource:
         if conn is not self._conn or _scope(conn,self._store,self._lease) is not self._scope:raise PermissionError('body scope retired')
         _request(self._request,self._identity,self._rid,self._task['id'])
         if digest(canonical(_row(conn,self._session['id'])))!=self._before:raise PermissionError('body source changed')
-        _packet(conn,self._store,self._identity,self._snapshot,self._session)
+        *_,historical=_packet(conn,self._store,self._identity,self._snapshot,self._session,self._request)
+        if historical!=self._historical:raise PermissionError('method read domain changed')
         return self
 
 
@@ -262,13 +268,13 @@ def read_source(conn,*,store,lease,identity,rid,task_id,request_source):
     row=_row(conn,session[0])
     if row['body_origin_state']!='present':return None
     _,snapshot,_,_,_,_=_validated_return(conn,store,lease,row['id'],read=True)
-    packet,task,control,approval=_packet(conn,store,identity,snapshot,row)
+    packet,task,control,approval,historical=_packet(conn,store,identity,snapshot,row,request_source)
     from .method_body_codec import decode_method_body
     from .model_report import parse_candidate
     decoded=decode_method_body(row['candidate_json'],_binding(conn,snapshot,row,approval,packet.context),row['body_candidate_digest'],row['body_envelope_digest'])
     parse_candidate(canonical(decoded.candidate.model_dump(mode='json')),packet)
     return BodySource(_factory=_FACTORY,_conn=conn,_scope=scope,_store=store,_lease=lease,_identity=identity,_request=request_source,
-        _rid=rid,_task=dict(task),_session=row,_decoded=decoded,_packet=packet,_snapshot=snapshot,_before=digest(canonical(row)))
+        _rid=rid,_task=dict(task),_session=row,_decoded=decoded,_packet=packet,_snapshot=snapshot,_before=digest(canonical(row)),_historical=historical)
 
 
 def _cost(conn,source):
@@ -288,6 +294,7 @@ def commit_result(conn,*,store,lease,identity,rid,task_id,request_source):
     try:
         source=read_source(conn,store=store,lease=lease,identity=identity,rid=rid,task_id=task_id,request_source=request_source)
         if source is None:return False
+        if source._historical:raise PermissionError('historical source is read only')
         source.require(conn);_cost(conn,source)
     except ResearchError as exc:
         if exc.code=='NOT_FOUND':return False
@@ -320,13 +327,20 @@ def result_view(conn,*,store,lease,identity,rid,task_id,request_source):
     meta=json.loads(source._session['method_commit_json'])
     task=source._task;control=conn.execute('SELECT * FROM research_controls WHERE id=?',(rid,)).fetchone()
     step=conn.execute('SELECT * FROM research_steps WHERE id=?',(source._snapshot.dispatch.step_id,)).fetchone()
+    if (type(meta) is not dict or type(meta.get('input_revision')) is not int
+            or not 1<=meta['input_revision']<=2147483647 or any(
+        type(meta.get(prefix+'_before')) is not int or type(meta.get(prefix+'_after')) is not int
+        or not 1<=meta[prefix+'_before']<2147483647 or meta[prefix+'_after']!=meta[prefix+'_before']+1
+        for prefix in ('research','task','step'))):
+        raise PermissionError('invalid protected original commit versions')
     expected=dict(version='method-result-commit-v1',result_ref=source._session['id'],research_id=rid,task_id=task_id,step_id=step['id'],
         input_revision=task['input_revision'],input_digest=task['input_digest'],task_before=task['version']-1,task_after=task['version'],
-        step_before=step['version']-1,step_after=step['version'],research_before=control['version']-1,research_after=control['version'])
-    if meta!=expected or task['execution']!='COMPLETED' or step['state']!='SUCCEEDED':raise PermissionError('typed current version changed')
+        step_before=step['version']-1,step_after=step['version'],research_before=meta['research_before'],research_after=meta['research_after'])
+    if (meta!=expected or control['version']<meta['research_after'] or task['execution']!='COMPLETED'
+            or step['state']!='SUCCEEDED'):raise PermissionError('typed current version changed')
     header=source._decoded.header
     return dict(schema_version='MethodHypothesisResultView-v1',result_ref=header.result_ref,input_revision=header.input_revision,input_digest=header.input_digest,
         candidate_schema=header.candidate_schema,body_schema=header.body_schema,producer_revision=header.producer_revision,received_at=header.received_at,
-        candidate_digest=source._session['body_candidate_digest'],envelope_digest=source._session['body_envelope_digest'],is_historical=False,
+        candidate_digest=source._session['body_candidate_digest'],envelope_digest=source._session['body_envelope_digest'],is_historical=bool(source._historical),
         execution_mode='offline_probe',model_analysis_ran=False,status='qualified_report',evidence='INSUFFICIENT',assessment='llm_inference',review='unreviewed',
         sections=source._decoded.candidate.model_dump(mode='json'),citations=[handle.model_dump(include={'handle','source_id','source_revision','excerpt_id','title','attribution','start','end','quote','extracted_digest'}) for handle in source._packet.handles])

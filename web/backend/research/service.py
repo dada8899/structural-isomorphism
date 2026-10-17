@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 
 from .authorization import AuthorizationGate
 from .errors import ResearchError, not_found
-from .projection import ResearchProjection
+from .projection import ResearchProjection,require_revision_budget,projection_bytes,RESEARCH_RESPONSE_LIMIT
 
 
 def canonical(value):
@@ -92,6 +92,7 @@ class ResearchService:
                 self.authorization.check(conn, identity, principal, replay["data"]["research"]["id"])
                 return replay
             rid, timestamp = str(uuid4()), now()
+            require_revision_budget([{'research_id':rid,'revision':1,**payload['problem'],'digest':digest(payload['problem']),'created_at':timestamp}])
             conn.execute("INSERT INTO research_controls VALUES(?,?,?,?,?,?,?,?,?,?)",
                          (rid, principal, owner["epoch"], 1, 1, 1, "private", "active", timestamp, timestamp))
             conn.execute("INSERT INTO research_grants (id,principal_id,principal_epoch,research_id,acl_epoch,scopes,status,created_at) VALUES(?,?,?,?,?,?,?,?)",
@@ -119,6 +120,8 @@ class ResearchService:
             if revision == 2147483647 or row["version"] == 2147483647:
                 raise ResearchError("VERSION_CONFLICT", 409, "研究版本已达上限，当前操作无法保存。")
             timestamp, problem = now(), payload["problem"]
+            require_revision_budget([*ResearchProjection.revision_records(conn,rid),
+                {'research_id':rid,'revision':revision+1,**problem,'digest':digest(problem),'created_at':timestamp}])
             conn.execute("INSERT INTO research_revisions VALUES(?,?,?,?,?)",
                          (rid, revision + 1, canonical(problem), digest(problem), timestamp))
             changed = conn.execute("""UPDATE research_controls SET current_revision=?,version=version+1,updated_at=?
@@ -137,22 +140,48 @@ class ResearchService:
             return self._method_projection(conn,row,identity,lease,request_source,task_id)
 
     def _method_projection(self,conn,row,identity,lease,request_source,task_id):
-        result=None;authorized=False
+        result=None;authorized=False;state=None;history=None;next_task_id=None
         if request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:
-            task=conn.execute('SELECT * FROM research_tasks WHERE research_id=? '+('AND id=?' if task_id else 'AND input_revision=? ORDER BY start_version DESC LIMIT 1'),
+            from .paid_control import require_authenticated_action
+            require_authenticated_action(request_source,identity=identity,action=request_source.action,research_id=row['id'],task_id=task_id)
+            task=conn.execute('SELECT * FROM research_tasks WHERE research_id=? '+('AND id=?' if task_id else 'AND input_revision=? ORDER BY start_version DESC,id DESC LIMIT 1'),
                 (row['id'],task_id if task_id else row['current_revision'])).fetchone()
+            if task_id and not task:raise not_found()
+            if request_source.action=='method-read':history,next_task_id=self._task_history(conn,row,task if task_id else None)
             if task and task['policy_revision']=='bounded_usage_upper_v2':
                 from .method_result import result_view
                 authorized=True
+                saved=conn.execute('SELECT s.body_origin_state,s.method_commit_json IS NOT NULL FROM research_provider_sessions s JOIN research_paid_approvals a ON a.id=s.approval_id WHERE a.task_id=? AND a.research_id=? ORDER BY s.rowid DESC LIMIT 1',(task['id'],row['id'])).fetchone()
+                state='unavailable' if saved and (saved[0]=='closed' or saved[1]) else 'none'
                 if not task['stop_requested'] and task['execution'] not in ('FAILED','CANCELLED','ACCESS_REVOKED'):
-                    try:result=result_view(conn,store=self.store,lease=lease,identity=identity,rid=row['id'],task_id=task['id'],request_source=request_source)
+                    try:
+                        result=result_view(conn,store=self.store,lease=lease,identity=identity,rid=row['id'],task_id=task['id'],request_source=request_source)
+                        if result is not None:state='available'
                     except ResearchError as exc:
-                        if exc.code!='NOT_FOUND' or request_source.action!='method-reconcile':raise
-                    except (PermissionError,ValueError,TypeError,KeyError):
-                        if request_source.action!='method-reconcile':raise not_found() from None
-        view=ResearchProjection.build(conn,row,task_id=task_id,method_result=result,method_authorized=authorized)
-        if authorized and len(canonical(view).encode())>524288:raise ResearchError('PAYLOAD_LIMIT',413,'研究结果超过响应范围。')
+                        if exc.code!='NOT_FOUND':raise
+                        state='unavailable'
+                    except (PermissionError,ValueError,TypeError,KeyError):state='unavailable'
+        view=ResearchProjection.build(conn,row,task_id=task_id,method_result=result,method_authorized=authorized,
+            method_state=state,task_history=history,next_task_id=next_task_id)
+        if projection_bytes(view)>RESEARCH_RESPONSE_LIMIT:raise ResearchError('PAYLOAD_LIMIT',413,'研究结果超过响应范围；旧记录未更改。')
         return view
+
+    @staticmethod
+    def _task_history(conn,control,anchor):
+        current=conn.execute('SELECT id FROM research_tasks WHERE research_id=? AND input_revision=? ORDER BY start_version DESC,id DESC LIMIT 1',
+            (control['id'],control['current_revision'])).fetchone()
+        sql='SELECT * FROM research_tasks WHERE research_id=?';args=[control['id']]
+        if anchor:
+            sql+=' AND (start_version<? OR (start_version=? AND id<=?))'
+            args.extend((anchor['start_version'],anchor['start_version'],anchor['id']))
+        rows=conn.execute(sql+' ORDER BY start_version DESC,id DESC LIMIT 21',args).fetchall();items=[]
+        for task in rows[:20]:
+            stored=conn.execute('SELECT s.body_origin_state,s.received_at,s.method_commit_json IS NOT NULL FROM research_provider_sessions s JOIN research_paid_approvals a ON a.id=s.approval_id WHERE a.task_id=? AND a.research_id=? ORDER BY s.rowid DESC LIMIT 1',(task['id'],control['id'])).fetchone()
+            status='stored' if stored and stored[0]=='present' and stored[2] else 'unavailable' if stored and stored[0]=='closed' else 'none'
+            items.append(dict(task_id=task['id'],input_revision=task['input_revision'],input_digest=task['input_digest'],start_version=task['start_version'],
+                execution=task['execution'],is_historical=bool(task['input_revision']!=control['current_revision'] or not current or current[0]!=task['id']),
+                received_at=stored[1] if stored else None,result_status=status))
+        return items,rows[20]['id'] if len(rows)>20 else None
 
     def paid_preview(self,identity,research_id,request,key,*,funding_resolver=None):
         from .paid_approval import PaidApprovalService,OfflineFundingResolver
@@ -304,6 +333,12 @@ class ResearchService:
         from .runner import state_in
         rid,principal=self._id(research_id),self._principal(identity)
         payload=request.model_dump(mode="json")
+        if operation=='reconcile':
+            with self.store.transaction() as conn:
+                self.authorization.check(conn,identity,principal,rid,scope='write')
+                candidate=conn.execute('SELECT policy_revision FROM research_tasks WHERE id=? AND research_id=?',(request.task_id,rid)).fetchone()
+                method=bool(candidate and candidate[0]=='bounded_usage_upper_v2' and conn.execute('SELECT version FROM research_schema').fetchone()[0]==9)
+            if method:return self._reconcile_method(identity,rid,principal,request,key,request_source)
         with self.authorization.owner_gate(principal) as lease,self.store.transaction(write=True) as conn:
             row=self.authorization.check(conn,identity,principal,rid,scope="write")
             task=conn.execute("SELECT * FROM research_tasks WHERE id=? AND research_id=?",(request.task_id,rid)).fetchone()
@@ -366,6 +401,33 @@ class ResearchService:
             cached={'_method_result_replay':1,'task_id':task['id']} if method_request else result
             self._remember(conn,principal,operation,"r:"+rid,key,digest(payload),cached)
             return result
+
+    def _reconcile_method(self,identity,rid,principal,request,key,request_source):
+        """Commit trusted financial outcome before optional body publication.
+
+        A later unavailable body or response-size error cannot undo valid fees.
+        No network or new execution is started by either phase.
+        """
+        payload=request.model_dump(mode='json')
+        with self.authorization.owner_gate(principal) as lease,self.store.transaction(write=True) as conn:
+            self.authorization.check(conn,identity,principal,rid,scope='write')
+            task=conn.execute('SELECT * FROM research_tasks WHERE id=? AND research_id=?',(request.task_id,rid)).fetchone()
+            if not task or task['policy_revision']!='bounded_usage_upper_v2':raise not_found()
+            if request_source is not None:
+                from .paid_control import require_authenticated_action
+                require_authenticated_action(request_source,identity=identity,action='method-reconcile',research_id=rid,task_id=task['id'],key=key,body_digest=digest(payload))
+            replay=self._replay(conn,principal,'reconcile','r:'+rid,key,digest(payload))
+            if replay is None:
+                if task['version']!=request.expected_task_version:raise ResearchError('VERSION_CONFLICT',409,'任务状态已变化，请先刷新。')
+                from .paid_budget import reconcile_task_in
+                reconcile_task_in(conn,store=self.store,lease=lease,task_id=task['id'])
+                conn.execute('UPDATE research_tasks SET reconcile_requested=0 WHERE id=?',(task['id'],))
+                if request_source is not None and not task['stop_requested'] and task['execution'] not in ('FAILED','CANCELLED','ACCESS_REVOKED'):
+                    from .method_result import commit_result
+                    commit_result(conn,store=self.store,lease=lease,identity=identity,rid=rid,task_id=task['id'],request_source=request_source)
+                self._remember(conn,principal,'reconcile','r:'+rid,key,digest(payload),{'_method_result_replay':1,'task_id':task['id']})
+        # Deliberately outside the mutation transaction, including replay.
+        return self.view(identity,rid,task_id=request.task_id,request_source=request_source)
 
     def events(self,identity,research_id,task_id,after_seq):
         rid,principal=self._id(research_id),self._principal(identity)
