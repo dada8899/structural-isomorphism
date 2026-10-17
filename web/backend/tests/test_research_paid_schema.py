@@ -1,5 +1,5 @@
 """Actual v4/v5 AuthStore graph and real owner leases; synthetic money only."""
-from contextlib import contextmanager
+from contextlib import contextmanager,closing
 import json
 import sqlite3
 from uuid import uuid4
@@ -24,14 +24,14 @@ from research.service import ResearchService
 
 
 def rows(path):
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         return {name:(tuple(r[1] for r in conn.execute(f'PRAGMA table_info("{name}")')),
             conn.execute(f'SELECT * FROM "{name}" ORDER BY rowid').fetchall())
             for (name,) in conn.execute("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
 
 
 def snapshot(path):
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         objects=conn.execute("SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name").fetchall()
     return objects,rows(path)
 
