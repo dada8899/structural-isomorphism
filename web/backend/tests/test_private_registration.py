@@ -303,6 +303,8 @@ def _die_registration_process(root,token,point):
     paths.STATE_ROOT=Path(root);paths.CACHE_ROOT=Path(root).parent/'cache';paths.LOG_ROOT=Path(root)/'logs'
     if point=='birth':
         child_registration._mark_ready=lambda *_a,**_k:os._exit(77)
+    elif point=='ready':
+        child_registration._finalize=lambda *_a,**_k:os._exit(77)
     else:
         from services.sqlite_utils import PrivateAuthConnection
         original=PrivateAuthConnection.commit
@@ -321,7 +323,7 @@ def _die_registration_process(root,token,point):
     asyncio.run(child_auth.verify(child_auth.VerifyBody(token=token),request,Response()))
 
 
-@pytest.mark.parametrize('point',['birth','commit'])
+@pytest.mark.parametrize('point',['birth','ready','commit'])
 def test_actual_process_death_no_session_replay_and_safe_recovery(stack,point):
     client,root,mail=stack;token=link(client,mail)
     ctx=multiprocessing.get_context('spawn')
@@ -334,10 +336,16 @@ def test_actual_process_death_no_session_replay_and_safe_recovery(stack,point):
             op=conn.execute("SELECT * FROM auth_registration_operations WHERE kind!='offline_gate_admission'").fetchone()
             consumed=conn.execute('SELECT consumed_at FROM magic_tokens').fetchone()[0]
         assert client.get('/api/auth/me').status_code==401
-        if point=='birth':
-            assert op['state']=='claimed' and consumed is None
+        if point in ('birth','ready'):
+            assert op['state']==('claimed' if point=='birth' else 'gate_ready') and consumed is None
             with pytest.raises(PermissionError):registration.admit_private_gate(op['owner_key'])
-            assert registration.admit_private_gate(op['owner_key'],operation_id=op['id'])['admitted']
+            result=registration.admit_private_gate(op['owner_key'],operation_id=op['id'])
+            assert result['admitted'] is (point=='birth')
+            with store._connection() as conn:
+                assert conn.execute('SELECT state FROM auth_registration_operations WHERE id=?',(op['id'],)).fetchone()[0]=='closed'
+                assert conn.execute('SELECT count(*) FROM auth_users').fetchone()[0]==0
+                assert conn.execute('SELECT count(*) FROM auth_notification_outbox').fetchone()[0]==0
+                assert conn.execute("SELECT count(*) FROM auth_registration_receipts WHERE kind='account_finalize'").fetchone()[0]==0
         else:
             assert op['state']=='finalized' and consumed is not None
             assert verify(client,token).status_code==400
@@ -393,3 +401,65 @@ def test_real_formal_registration_both_supported_import_namespaces(stack,monkeyp
         result=alternative.post('/api/auth/verify',json={'token':token},headers={'origin':BETA})
         assert result.status_code==200,result.text
         assert alternative.get('/api/auth/me').status_code==200
+
+
+@pytest.mark.parametrize('namespace',['api','web.backend.api'])
+@pytest.mark.parametrize('kind',['live','retired','copied','wrong_owner','subclass'])
+def test_delete_mark_requires_actual_live_canonical_owner_lease(stack,monkeypatch,namespace,kind):
+    """Actual deletion action and write txn; only the real held owner passes."""
+    import importlib
+    from contextlib import contextmanager
+    from types import SimpleNamespace
+    from services import runtime_paths as paths
+    _client,root,mail=stack
+    if namespace.startswith('web.'):
+        other=importlib.import_module('web.backend.services.runtime_paths')
+        for name in ('STATE_ROOT','CACHE_ROOT','LOG_ROOT'):monkeypatch.setattr(other,name,getattr(paths,name))
+    api=importlib.import_module(namespace+'.auth')
+    reg=importlib.import_module('web.backend.services.auth_registration' if namespace.startswith('web.') else 'services.auth_registration')
+    service_type=importlib.import_module('web.backend.research.service' if namespace.startswith('web.') else 'research.service').ResearchService
+    monkeypatch.setattr(api,'_AUTH_STORES',{})
+    monkeypatch.setattr(api,'_send_email',lambda _to,_subject,text:mail.append(text))
+    for name in ('report_account','report'):monkeypatch.setattr(importlib.import_module(namespace+'.'+name),'_store',None)
+    monkeypatch.setattr(importlib.import_module(namespace+'.favorites'),'_legacy_data_file',lambda:root/'absent-legacy-favorites.jsonl')
+    monkeypatch.setenv('STRUCTURAL_HISTORY_DB',str(root/'history.db'))
+    monkeypatch.setenv('STRUCTURAL_SHARE_TOKEN_SECRET','synthetic-share-secret')
+    app=FastAPI();app.include_router(api.router,prefix='/api')
+    observed={}
+    class RollBackProbe(Exception):pass
+    def begin(self,email,generation,gate_id,cleanup_binding,*,owner_lease=None,request_source=None):
+        assert request_source is not None and request_source.active
+        try:
+            with self.store.transaction(write=True) as conn:
+                try:reg.mark_account_deleting(conn,store=self.store,lease=owner_lease,request_source=request_source,email=email,generation=generation)
+                except PermissionError:observed['denied']=True
+                else:
+                    observed['denied']=False
+                    assert conn.execute('SELECT lifecycle FROM auth_users WHERE email=?',(email,)).fetchone()[0]=='deleting'
+                raise RollBackProbe()
+        except RollBackProbe:raise RuntimeError('intentional rollback before any deletion job')
+    monkeypatch.setattr(service_type,'begin_account_deletion_locked',begin)
+    with TestClient(app,base_url=BETA) as client:
+        if kind=='wrong_owner':assert verify(client,link(client,mail,'other@example.invalid')).status_code==200
+        assert verify(client,link(client,mail)).status_code==200
+        original=api.account_owner_transaction
+        @contextmanager
+        def lease_context(email):
+            if kind=='wrong_owner':
+                with original('other@example.invalid') as lease:yield lease
+            elif kind=='live':
+                with original(email) as lease:yield lease
+            else:
+                with original(email) as lease:identity=lease.identity
+                if kind=='retired':yield lease
+                elif kind=='copied':yield SimpleNamespace(identity=identity)
+                else:
+                    class FakeSubclass(type(lease)):
+                        @property
+                        def identity(self):return identity
+                    yield object.__new__(FakeSubclass)
+        monkeypatch.setattr(api,'account_owner_transaction',lease_context)
+        result=client.post('/api/me/delete',json={'confirmation':'DELETE'},headers={'origin':BETA})
+        assert result.status_code==500,result.text
+        assert observed['denied'] is (kind!='live')
+        assert api._store().user('fresh@example.invalid')['lifecycle']=='active'

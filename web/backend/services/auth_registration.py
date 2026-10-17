@@ -349,6 +349,10 @@ def mark_account_deleting(conn, *, store, lease, request_source, email, generati
     """
     control=_research_control(store)
     auth=store.auth_store
+    import importlib
+    lease_type=importlib.import_module(type(store).__module__.rsplit('.',1)[0]+'.authorization').OwnerGateLease
+    if type(lease) is not lease_type:
+        raise PermissionError('actual canonical owner gate lease required')
     install_hook(conn)
     def validate():
         _native(conn,auth);control._current_scope(conn)
@@ -358,7 +362,23 @@ def mark_account_deleting(conn, *, store, lease, request_source, email, generati
         if not user or user['lifecycle']!='active' or user['session_generation']!=generation:raise PermissionError('actual active generation required')
         gate=conn.execute('SELECT gate_id FROM auth_owner_gates WHERE owner_key=?',(auth.owner_key(email),)).fetchone()
         resource=_receipt(conn,gate['gate_id']) if gate else None
-        if not resource or resource['database_binding']!=_binding(auth) or (resource['lock_dev'],resource['lock_ino'])!=lease.identity[:2]:raise PermissionError('deletion owner resource changed')
+        # The exact native type's property checks its active flag, creator PID
+        # and held kernel FD. Public inode facts copied into a DTO cannot do so.
+        held=lease.identity
+        if (not resource or resource['owner_key']!=auth.owner_key(email)
+            or resource['gate_id']!=gate['gate_id'] or resource['database_binding']!=_binding(auth)
+            or (resource['lock_dev'],resource['lock_ino'],os.geteuid(),0o600,1)!=held):
+            raise PermissionError('deletion owner resource changed')
+        from .runtime_paths import require_private_auth_lock_dir,_check_current_parent,_auth_forbidden_roots
+        root=require_private_auth_lock_dir(auth.path)
+        directory=os.open('research-locks',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=conn._history_file.parent_fd)
+        try:
+            _check_current_parent(root,directory,forbidden=_auth_forbidden_roots())
+            info=os.stat(gate['gate_id']+'.lock',dir_fd=directory,follow_symlinks=False)
+            _safe_file(info)
+            if (info.st_dev,info.st_ino,info.st_uid,stat.S_IMODE(info.st_mode),info.st_nlink)!=held:
+                raise PermissionError('deletion owner gate pathname changed')
+        finally:os.close(directory)
         auth.require_registration_allowed(conn,email)
     with _write(conn,auth,{('auth_users:UPDATE',email)},validate,_factory=_FACTORY):
         if conn.execute("UPDATE auth_users SET lifecycle='deleting' WHERE email=? AND session_generation=? AND lifecycle='active'",(email,generation)).rowcount!=1:raise PermissionError('deletion fence CAS failed')
@@ -976,7 +996,7 @@ def admit_private_gate(owner_key, *, operation_id=None):
         from uuid import UUID
         if str(UUID(gate_id,version=4))!=gate_id:raise PermissionError('canonical gate required')
         prior=conn.execute('SELECT * FROM auth_registration_operations WHERE id=?',(operation_id,)).fetchone() if operation_id else None
-        if operation_id and (not prior or prior['owner_key']!=owner_key or prior['gate_id']!=gate_id or prior['database_binding']!=_binding(target) or prior['state'] not in ('claimed','closed')):
+        if operation_id and (not prior or prior['owner_key']!=owner_key or prior['gate_id']!=gate_id or prior['database_binding']!=_binding(target) or prior['state'] not in ('claimed','gate_ready','closed')):
             raise PermissionError('actual same orphan operation required')
         original_token=None
         if prior:
@@ -1000,8 +1020,36 @@ def admit_private_gate(owner_key, *, operation_id=None):
             fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
             receipt=_receipt(conn,gate_id)
             if receipt:
-                if (receipt['lock_dev'],receipt['lock_ino'])!=(info.st_dev,info.st_ino):raise PermissionError('admitted resource identity differs')
-                conn.rollback();return {'admitted':False}
+                def validate_existing():
+                    _native(conn,target)
+                    _check_current_parent(root,directory,forbidden=_auth_forbidden_roots())
+                    current=os.stat(gate_id+'.lock',dir_fd=directory,follow_symlinks=False)
+                    _safe_file(current);held=os.fstat(fd);_safe_file(held)
+                    identity=(info.st_dev,info.st_ino,info.st_uid,stat.S_IMODE(info.st_mode),info.st_nlink)
+                    if (tuple((current.st_dev,current.st_ino,current.st_uid,stat.S_IMODE(current.st_mode),current.st_nlink))!=identity
+                        or (held.st_dev,held.st_ino,held.st_uid,stat.S_IMODE(held.st_mode),held.st_nlink)!=identity
+                        or receipt['owner_key']!=owner_key or receipt['gate_id']!=gate_id
+                        or receipt['database_binding']!=_binding(target)
+                        or (receipt['lock_dev'],receipt['lock_ino'])!=(info.st_dev,info.st_ino)):
+                        raise PermissionError('admitted resource identity differs')
+                    if prior:
+                        actual=conn.execute('SELECT * FROM auth_registration_operations WHERE id=?',(prior['id'],)).fetchone()
+                        token=conn.execute('SELECT * FROM magic_tokens WHERE token_hash=?',(prior['token_hash'],)).fetchone()
+                        if (not actual or actual['state']!=prior['state'] or actual['version']!=prior['version']
+                            or actual['owner_key']!=owner_key or actual['database_binding']!=_binding(target)
+                            or not token or token['consumed_at'] is not None or AuthStore.owner_key(token['email'])!=owner_key
+                            or token['created_at']!=prior['token_created_at'] or token['expires_at']!=prior['token_expires_at']
+                            or (prior['state']=='gate_ready' and prior['resource_receipt_id']!=receipt['id'])):
+                            raise PermissionError('same operation resource reconciliation changed')
+                validate_existing()
+                if prior and prior['state'] in ('claimed','gate_ready'):
+                    install_hook(conn)
+                    with _write(conn,target,{('auth_registration_operations:UPDATE',prior['id'])},validate_existing,_factory=_FACTORY):
+                        if conn.execute("UPDATE auth_registration_operations SET state='closed',version=version+1,closed_reason='resource_unknown',last_failure_code='resource_unknown',updated_at=? WHERE id=? AND state=? AND version=?",(_now(),prior['id'],prior['state'],prior['version'])).rowcount!=1:
+                            raise PermissionError('existing resource operation retirement CAS failed')
+                    conn.commit()
+                else:conn.rollback()
+                return {'admitted':False}
             op_id=str(uuid4());now=_now()
             install_hook(conn)
             def validate():
