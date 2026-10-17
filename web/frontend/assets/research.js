@@ -549,6 +549,21 @@
     if(result.limitations.length){const list=formulaElement(parent,'ul',null,{className:'hint'});result.limitations.forEach(v=>formulaElement(list,'li',v));}
   }
   function formulaRetire(pending) {try {const saved=JSON.parse(sessionStorage.getItem(pending.slot));if(saved?.key===pending.key)sessionStorage.removeItem(pending.slot);}catch{}}
+  async function formulaConfirmAck(ack,payload,ticket) {
+    if(!validateFormulaMetadata(ack)||!validId(ack.task_id)||ack.formula_digest!==payload.formula_digest)throw Error('检查回执格式或公式绑定尚未确认。');
+    const samePrivate=()=>ticket.privateScope===privateGeneration&&ticket.rid===researchId;
+    if(!samePrivate())throw Error('账户读取范围已变化，原操作保留待核对。');
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+    try {
+      // This is acknowledgment verification, not a current-view read. An
+      // untrusted task404 cannot clear a newer form or acknowledge the POST.
+      const response=await fetch(`/api/research/${ticket.rid}?task_id=${encodeURIComponent(ack.task_id)}`,{credentials:'same-origin',cache:'no-store',signal:controller.signal});
+      if(!samePrivate())throw Error('账户读取范围已变化，原操作保留待核对。');
+      const envelope=await response.json();if(!samePrivate())throw Error('账户读取范围已变化，原操作保留待核对。');
+      const view=envelope.data,stored=view?.formula_check,anchor=view?.task_history?.[0];
+      if(!response.ok||envelope.schema_version!==schema||envelope.contract_revision!==revision||view?.research?.id!==ticket.rid||view.task?.id!==ack.task_id||view.task.policy_revision!=='local-formula-v1'||view.task.input_revision!==payload.input_revision||view.current_problem?.revision!==payload.input_revision||view.current_problem.formula_snapshot?.revision!==payload.input_revision||view.current_problem.formula_snapshot.formula_digest!==payload.formula_digest||!validateFormulaMetadata(stored,ack.result_ref)||stored.formula_digest!==payload.formula_digest||anchor?.task_id!==ack.task_id||anchor.input_revision!==payload.input_revision||anchor.input_digest!==view.current_problem.digest||anchor.start_version!==payload.expected_research_version+1)throw Error('检查回执尚未与原请求绑定，原key保留待核对。');
+    } finally {clearTimeout(timer);}
+  }
   async function formulaStart(recover=false) {
     const f=formulaState;if(readOnlyView()||f.busy||busy||!researchId)return;
     let payload,pending;
@@ -564,8 +579,8 @@
       f.epoch++;const ticket=formulaTicket(),operation=Symbol();f.busy=true;f.busyToken=operation;byId('formula-confirm').checked=false;formulaClearResult(recover?'正在核对原操作；不会检查当前未保存草稿。':'正在请求已保存公式的检查；结果以真实回执为准。');syncFormulaControls();
       try {
         const ack=await request(`/api/research/${researchId}/formula-checks`,{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':pending.key},body},response=>response.ok||formulaActive(ticket));
+        await formulaConfirmAck(ack,payload,ticket);
         formulaRetire(pending);if(!formulaActive(ticket))return;
-        if(!validateFormulaMetadata(ack)||!validId(ack.task_id))throw Error('检查回执格式无法核对，请重新读取。');
         const view=await request(viewUrl(),{},()=>formulaActive(ticket));if(!formulaActive(ticket))return;
         const token=beginMethodRead();renderTask(view,{methodToken:token});
         if(!f.snapshot||!f.scope||f.scope.revision!==payload.input_revision||f.snapshot.digest!==payload.formula_digest||f.dirty||methodDirty||view.task?.id!==ack.task_id){

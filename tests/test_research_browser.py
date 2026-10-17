@@ -2707,3 +2707,59 @@ def test_formula_client_canonical_bounds_and_attestation_guards_from_actual_http
             assert checked.returncode==0,checked.stderr
             (server['root']/'formula-proof-observation.json').write_text(json.dumps({'result_ref':meta['result_ref'],'recorded_at':meta['formula_result_recorded_at'],'execution_state':result['provenance']['execution_state'],'execution_attested':result['provenance']['execution_attested'],'resource_guard':result['provenance']['resource_guard'],'pure_adapter_execution_attested':result['result']['execution_attested'],'outcomes':[{'check_kind':v['check_kind'],'status':v['status'],'relation':v['relation']} for v in result['result']['outcomes']]},indent=2))
         finally:context.close();browser.close()
+
+
+
+@pytest.mark.parametrize('mode',['normal','abort','missing-ref','wrong-digest','wrong-task','wrong-ref','other-real-run'])
+def test_formula_ack_is_confirmed_and_request_bound_before_pending_key_retirement(server,mode):
+    """Corrupt only the browser ACK after the actual HTTP operation committed."""
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();actual=[];sent=[]
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            for side in ('left','right'):page.locator('#formula-'+side+'-use-template').click()
+            saved=_save_formula_editor(page,base);rid=saved['research']['id'];older=None
+            if mode=='other-real-run':
+                older=_formula_execute_ui(page)
+                page.locator('#formula-refresh').click();expect(page.locator('#formula-editor-status')).to_contain_text('已按权限读取')
+            page.on('request',lambda request:sent.append((request.headers.get('idempotency-key'),request.post_data)) if request.method=='POST' and request.url.endswith('/formula-checks') else None)
+            if mode!='normal':
+                def fault_after_commit(route):
+                    response=route.fetch();assert response.status==200,response.text();body=response.json();actual.append(body['data'].copy())
+                    if mode=='abort':route.abort();return
+                    if mode=='missing-ref':body['data'].pop('result_ref')
+                    elif mode=='wrong-digest':body['data']['formula_digest']='0'*64
+                    elif mode=='wrong-task':body['data']['task_id']='00000000-0000-4000-8000-000000000000'
+                    elif mode=='wrong-ref':body['data']['result_ref']='00000000-0000-4000-8000-000000000000'
+                    elif mode=='other-real-run':body['data']=older
+                    route.fulfill(response=response,json=body)
+                page.route('**/formula-checks',fault_after_commit,times=1)
+            page.locator('#formula-confirm').check()
+            if mode=='abort':
+                with page.expect_event('requestfailed',predicate=lambda request:request.url.endswith('/formula-checks')):page.locator('#formula-run').click()
+            else:
+                with page.expect_response('**/formula-checks'):page.locator('#formula-run').click()
+            if mode=='normal':expect(page.locator('#formula-result-ref')).to_have_text(re.compile(r'[0-9a-f-]{36}'))
+            else:
+                assert len(actual)==1
+                expect(page.locator('#formula-status')).not_to_have_text(re.compile(r'^正在'))
+            pending=page.evaluate("Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('structure-research-pending:formula-check:')))")
+            with sqlite3.connect(server['path']) as conn:count=conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]
+            expected=2 if mode=='other-real-run' else 1
+            (server['root']/'ack-observation.json').write_text(json.dumps({'mode':mode,'actual_task_count':count,'post_count':len(sent),'pending_count':len(pending),'recover_visible':page.locator('#formula-recover').is_visible(),'status':page.locator('#formula-status').inner_text()},ensure_ascii=False,indent=2))
+            assert count==expected and len(sent)==1
+            if mode=='normal':assert len(pending)==0
+            else:
+                assert len(pending)==1,'Unconfirmed or request-mismatched ACK must keep the original key'
+                expect(page.locator('#formula-recover')).to_be_visible()
+                expect(page.locator('#formula-status')).to_contain_text('状态尚未确认')
+                expect(page.locator('#problem-form')).to_be_visible()
+                with page.expect_response('**/formula-checks') as replay:page.locator('#formula-recover').click()
+                assert replay.value.status==200
+                assert replay.value.json()['data']['result_ref']==actual[0]['result_ref']
+                assert replay.value.json()['data']['formula_result_recorded_at']==actual[0]['formula_result_recorded_at']
+                expect(page.locator('#formula-result-ref')).to_have_text(actual[0]['result_ref'])
+                assert len(sent)==2 and sent[0]==sent[1]
+                assert page.evaluate("Object.keys(sessionStorage).filter(key=>key.startsWith('structure-research-pending:formula-check:')).length")==0
+                with sqlite3.connect(server['path']) as conn:assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]==expected
+        finally:context.close();browser.close()
