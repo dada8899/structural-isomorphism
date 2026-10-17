@@ -59,13 +59,36 @@ def _fresh_main(monkeypatch, env: str, *, auth_enabled: bool = False):
 
 
 @pytest.fixture(autouse=True)
+def restore_main_module_cache():
+    """Return only this test's main cache entry to its exact previous state."""
+    missing = object()
+    previous = sys.modules.get("main", missing)
+    try:
+        yield
+    finally:
+        if previous is missing:
+            sys.modules.pop("main", None)
+        else:
+            sys.modules["main"] = previous
+
+
+@pytest.fixture(autouse=True)
 def private_report_history_location(request, monkeypatch):
     """Give route tests a synthetic private DB, independently of the model spy."""
     if request.node.name == "test_search_service_cache_stats_shape":
         yield
         return
-    directory = request.getfixturevalue("tmp_path")
-    monkeypatch.setenv("STRUCTURAL_HISTORY_DB", str(directory / "history.db"))
+    directory = request.getfixturevalue("tmp_path").resolve()
+    state, cache, logs = directory / "state", directory / "cache", directory / "state/logs"
+    for root in (state, cache, logs):
+        root.mkdir(mode=0o700)
+        root.chmod(0o700)
+    # One approved-root configuration boundary for both current and future
+    # formal Store implementations. It never admits the production app.
+    from services import runtime_paths
+    for name, root in (("STATE_ROOT", state), ("CACHE_ROOT", cache), ("LOG_ROOT", logs)):
+        monkeypatch.setattr(runtime_paths, name, root)
+    monkeypatch.setenv("STRUCTURAL_HISTORY_DB", str(state / "history.db"))
     # Real Store operations close their native connections in
     # ClosingConnection.__exit__'s finally. Monkeypatch teardown restores both
     # singleton slots and the env after the route fixture completes.
