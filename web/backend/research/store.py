@@ -819,11 +819,114 @@ class ResearchStore:
         return old.rstrip()[:-1]+', '+', '.join(name+' '+ddl for name,ddl in METHOD_COLUMNS)+')'
 
     @classmethod
+    def _structure_declarations(cls,statements):
+        objects={}
+        for sql in statements:
+            tokens=cls._normalize_sql(sql)
+            offset=2 if tokens[1]==('word','unique') else 1
+            kind=tokens[offset][1];name=tokens[offset+1][1]
+            target=name if kind=='table' else tokens[tokens.index(('word','on'))+1][1]
+            objects[name]=(kind,target,(sql,))
+        return objects
+
+    @classmethod
+    def _current_structure_declarations(cls):
+        # Code-owned declarations only. No application objects or constructors.
+        from .source_integration import SOURCE_DDL
+        from .evidence_repository import DDL as evidence_ddl
+        statements=(*cls._v7_required_legacy_objects(method=True).values(),*SOURCE_DDL,*evidence_ddl,
+            *V7_TABLES,*V7_GUARDS,*V8_JOB_GUARDS,*METHOD_GUARDS)
+        objects=cls._structure_declarations(statements)
+        forms=tuple(sql.rstrip()[:-1]+', '+', '.join(name+' '+ddl for name,ddl in JOB_ORIGIN_COLUMNS)+')'
+            for sql in cls._auth_job_baseline_forms())
+        objects['auth_deletion_jobs']=('table','auth_deletion_jobs',forms)
+        objects.update(cls._structure_declarations(("CREATE UNIQUE INDEX auth_one_pending_deletion ON auth_deletion_jobs(owner_key) WHERE state!='completed'",)))
+        return objects
+
+    @classmethod
+    def _check_declared_structure(cls,conn,objects,*,catalog=None):
+        if catalog is None:
+            catalog={row[1]:tuple(row) for row in conn.execute('SELECT type,name,tbl_name,sql FROM main.sqlite_schema')}
+        for name,(kind,target,forms) in objects.items():
+            row=catalog.get(name)
+            if (not row or row[0]!=kind or row[2]!=target or row[3] is None
+                    or cls._normalize_sql(row[3]) not in {cls._normalize_sql(sql) for sql in forms}):
+                raise ResearchError('SCHEMA_UNSUPPORTED',503,'当前研究存储结构不匹配。')
+        return catalog
+
+    @classmethod
+    def _declared_columns(cls,sql):
+        tokens=cls._normalize_sql(sql);depth=0;segments=[];current=[]
+        for token in tokens[tokens.index(('punctuation','('))+1:]:
+            if token==('punctuation',')') and depth==0:
+                segments.append(current);break
+            if token==('punctuation',',') and depth==0:
+                segments.append(current);current=[];continue
+            current.append(token)
+            if token==('punctuation','('):depth+=1
+            elif token==('punctuation',')'):depth-=1
+        constraints={'check','primary','foreign','unique','constraint'}
+        return tuple((part[0][1],part[1][1]) for part in segments
+            if part and part[0][1] not in constraints)
+
+    @classmethod
+    def check_current_structure(cls,conn):
+        """Current Research metadata only, in the caller's existing snapshot.
+
+        This does not certify Auth base rows/policy, FK data, budget bindings,
+        connection hooks, native read-only access, or application readiness.
+        No connection, transaction, hook, migration, or business-row operation.
+        """
+        if not isinstance(conn,sqlite3.Connection) or not conn.in_transaction:
+            raise ResearchError('SCHEMA_UNSUPPORTED',503,'结构检查需要调用方的事务快照。')
+        objects=cls._current_structure_declarations()
+        tables={name for name,(kind,_,_) in objects.items() if kind=='table'}
+        catalog={}
+        # Reject unknown/view/vtab objects before any object-specific PRAGMA.
+        for value in conn.execute('SELECT type,name,tbl_name,sql FROM main.sqlite_schema'):
+            row=tuple(value);kind,name,target,sql=row
+            if name not in objects and not name.startswith('research_') and target not in tables:continue
+            if name in catalog:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究结构存在名称冲突。')
+            catalog[name]=row
+            if name in objects:continue
+            automatic=(kind=='index' and sql is None and target in tables
+                and re.fullmatch(r'sqlite_autoindex_'+re.escape(target)+r'_[0-9]+',name) is not None)
+            if not automatic:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究结构存在未知对象。')
+        cls._check_declared_structure(conn,objects,catalog=catalog)
+        marker=[tuple(row) for row in conn.execute('SELECT id,version FROM main.research_schema')]
+        if marker!=[(1,CURRENT_RESEARCH_SCHEMA_VERSION)] or any(type(value) is not int for value in marker[0]):
+            raise ResearchError('SCHEMA_UNSUPPORTED',503,'当前研究版本标记不匹配。')
+        columns={}
+        for name in tables:
+            # Both accepted Auth-job layouts retain their actual column order.
+            sql=next(form for form in objects[name][2] if cls._normalize_sql(form)==cls._normalize_sql(catalog[name][3]))
+            expected=cls._declared_columns(sql)
+            actual=[tuple(row) for row in conn.execute("PRAGMA main.table_xinfo('"+name+"')")]
+            if tuple((row[1],row[2].lower()) for row in actual)!=expected or any(row[0]!=i or row[6]!=0 for i,row in enumerate(actual)):
+                raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究列结构不匹配。')
+            columns[name]={column for column,_ in expected}
+        for name in tables:
+            for fk in conn.execute("PRAGMA main.foreign_key_list('"+name+"')"):
+                if fk[2] not in columns or fk[3] not in columns[name] or (fk[4] is not None and fk[4] not in columns[fk[2]]):
+                    raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究外键声明不匹配。')
+            indexes=[tuple(row) for row in conn.execute("PRAGMA main.index_list('"+name+"')")]
+            known={key for key,value in catalog.items() if value[0]=='index' and value[2]==name}
+            if {row[1] for row in indexes}!=known:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究索引集合不匹配。')
+            for index in indexes:
+                row=catalog[index[1]];sql=row[3]
+                if sql is None:
+                    if index[2]!=1 or index[3] not in ('pk','u') or index[4]!=0:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究自动索引不匹配。')
+                else:
+                    tokens=cls._normalize_sql(sql)
+                    if index[2]!=int(tokens[1]==('word','unique')) or index[3]!='c' or index[4]!=int(('word','where') in tokens):
+                        raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究索引声明不匹配。')
+                for part in conn.execute("PRAGMA main.index_xinfo('"+index[1]+"')"):
+                    if part[5] and (part[1]<0 or part[2] not in columns[name]):raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究索引列不匹配。')
+
+    @classmethod
     def _check_v9(cls,conn):
         cls._check_v8(conn,method=True);cls._check_v7_attachments(conn,method=True)
-        for ddl in METHOD_GUARDS:
-            row=conn.execute('SELECT sql FROM sqlite_schema WHERE name=?',(ddl.split()[2],)).fetchone()
-            if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究正文保护结构不匹配。')
+        cls._check_declared_structure(conn,cls._structure_declarations(METHOD_GUARDS))
         try:version=conn.execute('SELECT research_method_guard_version(),research_method_write_allowed(?,?,?)',('probe','','{}')).fetchone()
         except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究正文连接守卫不可用。') from None
         if tuple(version)!=(9,0):raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究正文连接守卫不匹配。')
