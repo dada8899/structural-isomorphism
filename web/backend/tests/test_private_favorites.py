@@ -294,7 +294,7 @@ def test_present_bad_session_generation_rejected_in_every_profile(stack, native,
 
 
 def test_only_absent_dev_generation_has_legacy_compatibility_never_formal(stack, native, monkeypatch):
-    client, _, _ = stack
+    client, state, _ = stack
     ledger = sso.get_replay_store();subject = sso._subject_id(ALICE)
     ledger.issue('old-session-link', subject, 'pro', int(time.time()) + 300, email=ALICE)
     claims = {'iss': BETA, 'aud': 'structural-beta-session', 'sub': subject,
@@ -307,7 +307,22 @@ def test_only_absent_dev_generation_has_legacy_compatibility_never_formal(stack,
     assert exported.status_code == 401 and 'retired' in exported.text
     with monkeypatch.context() as dev:
         dev.setenv('STRUCTURAL_ENV', 'dev')
-        user, status = sso.resolve_beta_user(request_for(token, sso_cookie=True))
+        # A captured formal Auth path cannot become a legacy development DB.
+        with pytest.raises(PermissionError, match='captured private Auth path'):
+            sso.resolve_beta_user(request_for(token, sso_cookie=True))
+        legacy = state.parent / 'legacy-dev'
+        dev.setenv('AUTH_DATA_DIR', str(legacy))
+        dev.setenv('STRUCTURAL_SSO_DATA_DIR', str(legacy))
+        legacy_auth = auth._store()
+        assert legacy_auth.path != state / 'auth.sqlite3' and not legacy_auth._private_auth
+        email = 'legacy@example.invalid'
+        legacy_auth.ensure_user_and_notification(email, 'pro', '2026-10-18T00:00:00+00:00')
+        legacy_subject = sso._subject_id(email)
+        legacy_ledger = sso.get_replay_store()
+        assert legacy_ledger.path == legacy / 'sso_replay.sqlite3' and legacy_ledger.storage_identity is None
+        legacy_ledger.issue('legacy-dev-session-link', legacy_subject, 'pro', int(time.time()) + 300, email=email)
+        legacy_token = jwt.encode({**claims, 'sub': legacy_subject}, SECRET, algorithm='HS256')
+        user, status = sso.resolve_beta_user(request_for(legacy_token, sso_cookie=True))
         assert status == 'valid' and '_verified_generation' not in user
     assert sso.resolve_beta_user(request_for(token, sso_cookie=True))[1] == 'retired'
 
