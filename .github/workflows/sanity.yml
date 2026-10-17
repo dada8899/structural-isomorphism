@@ -3,16 +3,16 @@ name: sanity tests
 # Repo-level "sanity" check. This workflow is the one required by main-branch
 # protection — it must keep passing on every PR / push to main.
 #
-# Four sequential legs, all gated under the single `sanity` job summary:
+# Four complete legs, all required by the `sanity` dependency gate:
 #   1. v4 sanity tests (existing, deterministic primitive suite — must stay green).
-#   2. web/backend pytest baseline (781 tests as of 2026-05-24 + any new tests).
+#   2. Complete web/backend baseline in a separate bounded prerequisite job.
 #   3. Every offline root product/research/deployment contract under tests/.
 #   4. Per-package unit tests for packages/* (guarded-llm / soc-pipeline /
 #      cross-judge / reject-aware-critic).
 #
 # The deeper matrix (Linux + macOS × py3.10–3.13) for packages/* lives in
 # `ci-packages.yml`. This sanity workflow only runs the canonical py3.11 Linux
-# leg so it stays fast (< 10 min) and is suitable as a required check.
+# leg. Each job keeps its original bound; no suite is omitted to fit one job.
 
 on:
   push:
@@ -29,12 +29,77 @@ permissions:
   contents: read
 
 jobs:
+  sanity-backend:
+    name: sanity-backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        lfs: true
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.11'
+        cache: pip
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Install v4 sanity deps
+      run: 'python -m pip install --upgrade pip
+
+        pip install numpy scipy pandas powerlaw matplotlib pytest pydantic pyyaml scikit-learn
+
+        '
+    - name: Install local packages (editable + dev extras)
+      run: 'pip install -e "packages/soc-pipeline[dev]"
+
+        pip install -e "packages/guarded-llm[dev]"
+
+        pip install -e "packages/cross-judge[dev]"
+
+        pip install -e "packages/reject-aware-critic[dev]"
+
+        '
+    - name: Install web/backend deps
+      run: 'pip install -r web/backend/requirements.txt
+
+        '
+    - name: OpenAPI artifact matches release-target schema runtime
+      run: make PY=python openapi-check
+    - name: Leg 2 — web/backend pytest baseline
+      env:
+        PYTHONPATH: ${{ github.workspace }}/web/backend
+      working-directory: web/backend
+      run: '# -ra: surface skipped/xfailed reasons. -q: compact output.
+
+        # --tb=short: brief tracebacks.
+
+        # The baseline as of 2026-05-24 is 781 passing tests; new tests
+
+        # added in 0.1.1+ must also pass here.
+
+        # Stop on a real failure so its traceback survives the job deadline.
+
+        python -m pytest tests -x -ra -q --tb=short --durations=10
+
+        '
+
   sanity:
     name: sanity
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    needs: [sanity-backend]
+    if: always()
 
     steps:
+      - name: Require complete backend baseline success
+        env:
+          SANITY_BACKEND_RESULT: ${{ needs['sanity-backend'].result }}
+        run: |
+          if [ "${SANITY_BACKEND_RESULT:-}" != "success" ]; then
+            echo "The complete backend baseline did not succeed."
+            exit 1
+          fi
       - uses: actions/checkout@v5
         with:
           lfs: true   # SESSION-27: fetch LFS-tracked web/data/kb_*.npy embeddings
@@ -113,19 +178,6 @@ jobs:
 
       - name: OpenAPI artifact matches release-target schema runtime
         run: make PY=python openapi-check
-
-      - name: Leg 2 — web/backend pytest baseline
-        env:
-          # tests assume backend modules importable as top-level packages
-          PYTHONPATH: ${{ github.workspace }}/web/backend
-        working-directory: web/backend
-        run: |
-          # -ra: surface skipped/xfailed reasons. -q: compact output.
-          # --tb=short: brief tracebacks.
-          # The baseline as of 2026-05-24 is 781 passing tests; new tests
-          # added in 0.1.1+ must also pass here.
-          # Stop on a real failure so its traceback survives the job deadline.
-          python -m pytest tests -x -ra -q --tb=short --durations=10
 
       - name: Install locked TypeScript generator
         run: |

@@ -667,3 +667,100 @@ def test_research_coverage_closure_rejects_incomplete_or_relaxed_pipeline(mutati
     else:rcfile += '\n    web/backend/research/*\n'
     step['run'] = before + marker + added
     with pytest.raises(AssertionError):_assert_research_coverage_closure(value, rcfile)
+
+
+# The backend baseline outgrew the original single-job wall budget. Both
+# complete jobs remain hard requirements; only the existing sanity context
+# is the branch-protection aggregate.
+SANITY_SPLIT_DIGESTS = {
+    "sanity-backend": "fa8af528ec40abc3203e8eb1f20982f97bf649a66f73537e99d0449411d2dafc",
+    "sanity": "c969dc72598a5d59f4eb6d3d220ea70b0a911590228d3793a4e89225c65664ca",
+}
+
+
+def _assert_sanity_backend_dependency(value):
+    jobs = value["jobs"]
+    assert set(jobs) == {"sanity-backend", "sanity"}
+    backend, aggregate = jobs["sanity-backend"], jobs["sanity"]
+    assert "if" not in backend and "needs" not in backend
+    assert aggregate["needs"] == ["sanity-backend"]
+    assert aggregate["if"] == "always()"
+    assert aggregate["name"] == "sanity"
+    for job in (backend, aggregate):
+        assert job["timeout-minutes"] == 25
+        assert "continue-on-error" not in job
+    assert all("if" not in step and "continue-on-error" not in step
+               for step in backend["steps"])
+    gate = aggregate["steps"][0]
+    assert gate["name"] == "Require complete backend baseline success"
+    assert gate["env"] == {
+        "SANITY_BACKEND_RESULT": "${{ needs['sanity-backend'].result }}",
+    }
+    assert "if" not in gate and "continue-on-error" not in gate
+    for name, expected in SANITY_SPLIT_DIGESTS.items():
+        actual = hashlib.sha256(json.dumps(
+            jobs[name], sort_keys=True, separators=(",", ":"),
+        ).encode()).hexdigest()
+        assert actual == expected, f"complete sanity job changed: {name}"
+
+
+def test_sanity_runs_complete_backend_and_gates_all_remaining_legs():
+    _assert_sanity_backend_dependency(workflow("sanity.yml"))
+
+
+@pytest.mark.parametrize("result", ["success", "failure", "cancelled", "skipped", "", "unknown", None])
+def test_required_sanity_rejects_every_unsuccessful_backend_result(result):
+    value = workflow("sanity.yml")
+    _assert_sanity_backend_dependency(value)
+    gate = value["jobs"]["sanity"]["steps"][0]
+    env = {"PATH": "/usr/bin:/bin"}
+    if result is not None:
+        env["SANITY_BACKEND_RESULT"] = result
+    actual = subprocess.run(
+        ["/bin/bash", "-e", "-c", gate["run"]], env=env,
+        capture_output=True, text=True, timeout=5,
+    )
+    assert (actual.returncode == 0) is (result == "success")
+
+
+@pytest.mark.parametrize("mutation", [
+    "missing_backend", "missing_dependency", "wrong_dependency", "missing_gate",
+    "missing_result", "hardcoded_success", "gate_soft", "gate_if", "job_soft",
+    "backend_soft", "backend_if", "backend_step_soft", "backend_timeout",
+    "aggregate_timeout", "missing_backend_suite", "partial_backend_suite",
+    "missing_backend_runtime", "changed_backend_runtime", "missing_lfs",
+    "missing_root_contracts", "missing_types", "missing_package",
+])
+def test_sanity_split_rejects_incomplete_or_softened_dependencies(mutation):
+    value = workflow("sanity.yml")
+    jobs = value["jobs"]
+    backend, aggregate = jobs["sanity-backend"], jobs["sanity"]
+    gate = aggregate["steps"][0]
+    if mutation == "missing_backend": del jobs["sanity-backend"]
+    elif mutation == "missing_dependency": del aggregate["needs"]
+    elif mutation == "wrong_dependency": aggregate["needs"] = []
+    elif mutation == "missing_gate": aggregate["steps"].pop(0)
+    elif mutation == "missing_result": gate["env"] = {}
+    elif mutation == "hardcoded_success": gate["run"] = "exit 0"
+    elif mutation == "gate_soft": gate["continue-on-error"] = True
+    elif mutation == "gate_if": gate["if"] = "false"
+    elif mutation == "job_soft": aggregate["continue-on-error"] = True
+    elif mutation == "backend_soft": backend["continue-on-error"] = True
+    elif mutation == "backend_if": backend["if"] = "false"
+    elif mutation == "backend_step_soft": backend["steps"][-1]["continue-on-error"] = True
+    elif mutation == "backend_timeout": backend["timeout-minutes"] = 26
+    elif mutation == "aggregate_timeout": aggregate["timeout-minutes"] = 26
+    elif mutation == "missing_lfs": backend["steps"][0]["with"]["lfs"] = False
+    elif mutation in ("missing_backend_suite", "partial_backend_suite"):
+        step = next(s for s in backend["steps"] if s.get("name") == "Leg 2 — web/backend pytest baseline")
+        step["run"] = "true" if mutation == "missing_backend_suite" else "python -m pytest tests -k smoke"
+    elif mutation in ("missing_backend_runtime", "changed_backend_runtime"):
+        step = next(s for s in backend["steps"] if s.get("name") == "Install web/backend deps")
+        step["run"] = "true" if mutation == "missing_backend_runtime" else "pip install fastapi"
+    else:
+        name = {"missing_root_contracts": "Leg 3 — offline root release contracts",
+                "missing_types": "Leg 3 — reproducible API TypeScript artifact",
+                "missing_package": "Leg 4 — packages/reject-aware-critic tests"}[mutation]
+        next(s for s in aggregate["steps"] if s.get("name") == name)["run"] = "true"
+    with pytest.raises((AssertionError, KeyError)):
+        _assert_sanity_backend_dependency(value)
