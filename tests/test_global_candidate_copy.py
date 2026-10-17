@@ -78,7 +78,9 @@ def test_tools_hub_exposes_exactly_eight_supported_public_tools() -> None:
     assert tools.count('class="tool-card"') == 8
     assert 'href="/insights"' not in tools
     assert "8 个公开工具" in tools
-    assert "8 个公开工具" in index
+    assert "8 个公开工具" not in index  # Homepage no longer promises retired AI tools.
+    assert "旧 AI 报告入口已停用" in index
+    assert 'href="/papers"' in index and 'href="/research"' in index
     assert "8 个公开工具" in about
     assert "9 个工具" not in public
 

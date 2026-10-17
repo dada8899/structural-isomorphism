@@ -42,10 +42,10 @@ class StopBinding:
 
 
 def schema_requirements():
-    from .store import PAID_SCHEMA_VERSION,V5_SCHEMA,V5_AUX,V5_GUARDS,COST_SCHEMA
-    return SchemaRequirements(PAID_SCHEMA_VERSION,tuple(V5_SCHEMA)+("research_cost_observations",),
-        tuple(s.split()[3] for s in V5_AUX if s.startswith("CREATE UNIQUE INDEX")),
-        digest(canonical({"tables":V5_SCHEMA,"cost":COST_SCHEMA,"aux":V5_AUX,"guards":V5_GUARDS})))
+    from .store import PRODUCER_SCHEMA_VERSION,V5_SCHEMA,V6_SCHEMA,V6_AUX,V5_GUARDS,PRODUCER_DDL
+    return SchemaRequirements(PRODUCER_SCHEMA_VERSION,tuple({**V5_SCHEMA,**V6_SCHEMA})+tuple(s.split()[2] for s in PRODUCER_DDL),
+        tuple(s.split()[3] for s in V6_AUX if s.startswith("CREATE UNIQUE INDEX")),
+        digest(canonical({"tables":{**V5_SCHEMA,**V6_SCHEMA},"producer":PRODUCER_DDL,"aux":V6_AUX,"guards":V5_GUARDS})))
 
 
 class _Scope:
@@ -87,7 +87,7 @@ def _current_scope(conn):
     with _LOCK:scope=_SCOPES.get(id(conn))
     if (not scope or scope.conn is not conn or not scope.active or not scope.write or scope.pid!=os.getpid()
             or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1
-            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0]!=5):
+            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6)):
         raise PermissionError("current canonical v5 transaction required")
     return scope
 
@@ -168,6 +168,12 @@ def mint_stop_authority(conn,*,store,lease,principal_id,task_id,expected_task_ve
 
 def mint_current_paid_authority(conn,*,store,lease,identity,context,step_id,expected_task_version,expected_step_version,operation,approval_ref):
     _current_scope(conn)
+    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0]==6:
+        policy=conn.execute('SELECT policy_revision FROM research_tasks WHERE id=?',(context.task_id,)).fetchone()
+        if policy and policy[0]=='bounded_usage_upper_v2':
+            from .paid_approval import mint_current_authority
+            return mint_current_authority(conn,store=store,lease=lease,identity=identity,context=context,step_id=step_id,
+                expected_task_version=expected_task_version,expected_step_version=expected_step_version,operation=operation,approval_ref=approval_ref)
     if type(identity) is not AccountIdentity or type(context) is not CallContext or operation not in ("reserve","authorize","consume"):
         raise PermissionError("typed server paid context required")
     principal=_owner_binding(conn,store,context.principal_id,lease)
@@ -197,3 +203,9 @@ def mint_trusted_cost_authority(conn,*,observation):
     if type(observation) is not ProviderObservation:
         raise PermissionError("provider DTO is not transport provenance")
     raise ResearchError("FEATURE_UNAVAILABLE",503,"受控供应端费用观测来源尚未接通。")
+
+
+def persist_offline_owned_source(conn,receipt):
+    """Records loopback provenance only, never creates a cost capability."""
+    from .paid_provider_session import persist_owned_return
+    return persist_owned_return(conn,receipt)

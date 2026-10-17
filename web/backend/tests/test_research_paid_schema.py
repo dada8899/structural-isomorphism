@@ -43,6 +43,7 @@ def legacy(stack,tmp_path,monkeypatch):
     try:
         with monkeypatch.context() as old:
             old.setattr(ResearchStore,"_migrate_v5",lambda self:None)
+            old.setattr(ResearchStore,"_migrate_v6",lambda self:None)
             store=ResearchStore(auth._store());BudgetLedger(store).provision_fixture(provider.port)
             # Small trusted LOCAL test prices let all four real legacy states
             # coexist under the unchanged 10000-unit fixture account cap.
@@ -72,7 +73,7 @@ def legacy(stack,tmp_path,monkeypatch):
     finally:provider.close()
 
 
-def test_nonempty_v4_graph_migrates_preserving_every_old_column_and_inode(legacy):
+def test_nonempty_v4_graph_migrates_preserving_every_old_column_and_inode(legacy,v5_only):
     client,path,old,provider,ids=legacy
     before=rows(path)
     locks={p.name:p.stat().st_ino for p in (path.parent/"research-locks").glob("*.lock")}
@@ -98,7 +99,7 @@ _FAULTS.extend(("DDL",sql) for sql in (*V5_AUX,*V5_GUARDS))
 
 
 @pytest.mark.parametrize("phase,table",_FAULTS)
-def test_every_v5_replace_boundary_rolls_back_exact_v4(legacy,monkeypatch,phase,table):
+def test_every_v5_replace_boundary_rolls_back_exact_v4(legacy,monkeypatch,phase,table,v5_only):
     _,path,store,_,_=legacy
     before=snapshot(path);original=sqlite3.connect;raised=[];restored=[]
     marker=table if phase=="DDL" else (phase+" "+table+("_v5" if phase in ("CREATE TABLE","INSERT INTO","ALTER TABLE") else "")) if table else {
@@ -123,7 +124,7 @@ def test_every_v5_replace_boundary_rolls_back_exact_v4(legacy,monkeypatch,phase,
     ResearchStore(auth._store())
 
 
-@pytest.mark.parametrize("version",[0,6,99])
+@pytest.mark.parametrize("version",[0,7,99])
 def test_unknown_version_rejected_without_mutation(legacy,version):
     _,path,_,_,_=legacy
     with sqlite3.connect(path) as conn:conn.execute("UPDATE research_schema SET version=?",(version,))
@@ -149,7 +150,7 @@ def current(stack):
 def test_schema_hook_is_pure_and_live_has_no_automatic_funds(current):
     _,path,store,_,_=current
     before=snapshot(path);requirements=schema_requirements()
-    assert requirements.version==5 and len(requirements.definition_digest)==64
+    assert requirements.version==6 and len(requirements.definition_digest)==64
     assert UPPER_ENTRYPOINTS==("schema_requirements","reserve","authorize","consume","observe","cancel")
     assert snapshot(path)==before
     with store.transaction(write=True) as conn:
@@ -474,3 +475,8 @@ def test_v5_reopen_rejects_real_quoted_column_drift_before_selecting_id(current)
     before=snapshot(path)
     with pytest.raises(ResearchError) as failure:ResearchStore(auth._store())
     assert failure.value.code=="SCHEMA_UNSUPPORTED" and snapshot(path)==before
+
+
+@pytest.fixture
+def v5_only(monkeypatch):
+    monkeypatch.setattr(ResearchStore,"_migrate_v6",lambda self:None)

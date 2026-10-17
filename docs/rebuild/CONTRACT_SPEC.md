@@ -538,3 +538,114 @@ commit 在既有跨进程 owner gate 内、同一 auth DB 的短事务中重新�
 本候选选用同一auth SQLite与单机owner gate，以减少不可证明的跨库竞态；实施owner需审其迁移/锁顺序、Phase共享入口和异常补偿，再通过多进程探针。公式资源值与snapshot TTL是可逆技术初值，必须在实现中验证拒绝路径，不能只存在文档。供应商可计费上界、硬预付费隔离及实际余额均未实测，不阻断离线B1，也不放行真实调用。
 
 所有导出、路由、表和schema均为候选建议；本规格工作树没有新增源码、数据迁移、产品运行或冻结证据。返修复核后，可由唯一共享owner在指定固定受审base隔离实现B1，不把B0等待扩大为阻断无依赖实现；合入和冻结仍需B0、科学、runtime组合当前SHA的独审、必要CI与真实消费者证据全部闭合。PRD、源码现有字段和旧报告语义不因本文自动改变。
+
+## 10 CP3 内部 OwnedSession／Return 消费增量
+
+2026-10-17，追加于受审离线预览／确认候选之后。本节只冻结内部来源与消费边界，不新增公共 API、表、资金账户或通用执行平台，不实现六个预算 writer、资金 loader、secret 或 live 工厂。§6.4.1 的唯一 F、§6.4.2 的确认与最终字节守卫、§7 的撤权／删除继续独立适用。
+
+### 10.1 类型、模式与不可变关联
+
+最小新增类型为 Core 拥有的 `OwnedProviderSession`、`OwnedReturnReceipt` 与冻结的 `FinancialReturnBinding`。它们由受审服务端调用链构造并绑定实际资源；普通 `ProviderObservation`、客户端 JSON、`trusted=true`、URI／UUID存在或摘要一致都不能生产可信收包能力。Python 私有构造、禁止 pickle 和类型检查仅是正式应用路径的约束，不构成对任意 Python／root 代码的进程安全隔离。
+
+阶段一仅 `offline_probe`：服务器测试装配的独立连接与合成控制源可验证机制，但不登记为真实供应商收费，不显示 `model_analysis_ran=true`。默认公开 adapter 的 `paid_disabled` 与既有 probe 入口语义保持，不私改 probe 标志或给旧 DTO／v1 记录换 live 标签。真实结果、资金、凭据与出站模式必须在后续 additive 版本中另经 producer／制品／授权独审，不能借本节放行。
+
+`FinancialReturnBinding` 至少冻结：session／paid approval／dispatch／reservation／permit 引用及消费版本；task／step／attempt与发送时授权版本；实际最终请求 bytes、evidence 与授权上下文摘要；account及稳定经济 binding、原 funding_epoch；accounting policy／model声明版本／实际响应模型及可得指纹；原合法准入的 quote revision／digest、basis digest、F界限与 server admitted_at。模式与 producer 版本同样绑定。关联均由当前同库受控来源生成，不接受客户补字段、换 quote 或回填准入时间。
+
+### 10.2 唯一受控收包与持久来源
+
+1. Core 在发送前登记 session，独占实际 adapter 实例、connection、creator PID、固定绝对期限及原完整请求。核已批准单次计划、当前 source／paid grant／资金用途和实际 HELD、prepared permit／版本；普通 DTO 或 `state='received'` 不能注册一个可消费 session。
+2. 同 owner lease 内，Core 通过唯一预算消费入口在短同库事务中 CAS 一次 permit／reservation、approval／session、task／step及事件；确认 commit 后，受控 transport 才能启动敏感 POST 字节。任何网络、loader 或响应等待不放在数据库事务中。消费提交／回执不明先重读原状态，不能换 key／task／session重新发送。
+3. `OwnedProviderSession.receive()` 自己调用该 session 已登记 adapter 的 `finish`，从该实际收包路径生成 `OwnedReturnReceipt`。禁止 `mint(observation)`／任意布尔或调用者 callback 把普通响应 DTO 盖章为可信来源；类型校验、合法 usage 和 hash 只能作为必要条件，不能代替此次受控调用出处。
+4. `persist_owned_return(conn, receipt)` 由 Core 唯一拥有连接／事务，核实际 session／消费票及全部 binding，首次 CAS 保存同 auth DB 的 `financial_return_json / return_digest / received_at`。财务部分只保严格 usage、受控 safe_code、模型／响应摘要及必要私有请求关联；不含 credential、用户摘要、摘录、完整 prompt或原始响应正文。重复相同凭证只回原记录；不同内容冲突保留安全异常并阻断，不能 UPDATE／REPLACE 首个事实。
+5. `candidate_json` 是独立可擦槽。候选结构／引用失败，或已取消／撤权时保持 NULL／清除；财务 usage 完整与否分别处理，不把坏正文当免费，也不为了账务恢复而复原候选。候选不成为费用可信来源。
+6. `mint_cost_from_return(conn, return_ref)` 仅消费上述真实受控持久来源，并重新核原 binding／mode／producer／记录完整性。现有 `mint_trusted_cost_authority(observation=普通DTO)` 拒绝语义继续保留；新入口不给正文提交或新发送权限。
+
+这些内部签名是实现消费者的最小约定，不代表当前源码已经提供。复用现有唯一 DB、session／approval／permit／reservation／cost 表；如字段不足，Core 须先冻结最小版本化差异，不能由模块另建账本或自行分配 schema 版本。
+
+恢复时可信出处依赖受审 server 写入边界、其消费／收包因果关联以及持久元数据完整性；数据库位置／UUID／hash／状态本身不是外部返回证明。只有这些来源证据都可验证，才可恢复原 receipt。若进程死亡前没有保存完整可信 usage，或恢复时出处缺失／冲突／损坏，则保留 UNKNOWN／held并明确不可恢复；不从普通缓存重造可信 stamp，不新发 HTTP、不伪造逐笔查询或用余额差猜费用。该保证不覆盖已被任意 root/SQL 写入破坏的信任边界。
+
+### 10.3 账务消费与正文提交分离
+
+合法 v2 receipt 沿原合法准入 quote／policy 调唯一受审 `observed_bound`，不因事后 TTL 到期换价。Core 在一个幂等 CAS 事务内核同 dispatch／reservation／版本及原 U，完成 `held-=U; upper_booked+=Uobs`、写原 U／Uobs／一次差额和观测引用，`actual_charge=null`。数学 DTO 不是 release／receipt／资金权限，Core 不复制另一套 F；重复处理、并发及重启回读不得二次扣／退。坏内容而 usage完整仍独立记录 Uobs；usage缺失、矛盾、越界、绑定不明则 UNKNOWN并保全 held U，不裁切、不补0、不重发。旧 fixture／final-policy／v1 历史金额不回放减记，后续可信账单超过 Uobs仍按§6.4.1留事实并阻断。
+
+取消／撤权／删除后，迟到费用可核原已消费的最小财务 binding，不要求旧主体重新获得正文写权；只补必要 opaque账务事实，不改变任务为 RUNNING、不新派发、不恢复正文／报告／分享。删除先按§7封禁，再清批准私密 payload、候选和可擦上下文，必要财务摘要／原时间保留。不得为“重建来源”恢复已清用户材料。
+
+正文提交是另一条当前身份／owner／source许可／epochs／input／task-step版本／stop门禁，只接受同一受控返回的合法候选并再核权限。成本能力不能授予内容能力；内容丢弃不推导费用为0。离线记录的这一分离只证明代码机制，不构成真实费用或真实模型执行证明。
+
+### 10.4 分卡与最小反例
+
+实施顺序为：先本内部契约独审；再最小 owned session／receive／持久来源生产者与故障探针；其后 Core 唯一封边并接六个预算 writer（Bootstrap唯一纯 F仍不拥有事务）；最后组合原 App／API／取消删除／重开验收。公共结果／模式增量、实际资金／loader／secret／live及真实一笔费用仍需独立正式授权，不在本节自动接续。
+
+| 反例／对照 | 必须成立 |
+| --- | --- |
+| 普通 DTO／伪 receipt／错 conn或PID／任一 binding改变 | 实际 trusted-cost mint拒；同一受控 session真实本机收包为正对照，不拿合成行当真实资金证据 |
+| 消费 commit丢ack／父死／收包未持久 | 按原票对账，UNKNOWN保全held且外发至多一次，不换session重发，不用elapsed/PID消失推断未收费 |
+| 重复／两进程／金融事务各故障切点 | 同receipt只一次原 U→Uobs；全回滚或读回既有提交，不丢首个观测／不重复退差 |
+| 坏正文但usage完整；缺／矛盾／超界usage | 前者正文拒而费用独立记Uobs；后者UNKNOWN全held，不补0／裁切；不是actual结算 |
+| 取消／删除在收包前后两序与重开 | 仅保原quote／policy／时间／最小财务凭证，正文新增0、任务不复活；破损或伪持久元数据fail closed |
+| 旧v1／offline换标签／未核funding | 旧金额和模式不改，离线model flag仍false，默认paid_disabled及真实运行NO GO保持 |
+
+## 11 无 KB 线索时的现象起步计划增量
+
+本节兑现既有现象解题目标的起步缺口：用户只有自己的现象描述、没有合适 KB 命中，也不预先知道英文方法名时，可以先取得未核提名和可编辑查询计划。它不是已找到成熟解法、已完成研究或新增自主 Agent/search 平台。仅冻结内容与控制契约；不创建 API 路由、表、实现、预算账户、资金 grant、loader或live资格，既有正文与受审边界保持。
+
+### 11.1 显式分支与自有观察输入
+
+新分支固定 `purpose="phenomenon_plan_v1"`、`input_template="SelfObservationPlanInput-v1"`、`candidate_schema="PhenomenonPlanCandidate-v1"`。新的候选 Envelope 使用 `schema_version="structure-research-v1",contract_revision="phenomenon-plan-candidate-01"`，与原 `b1-candidate-01`／`method_hypothesis` 显式区分；这里的v1是新内容分支首版，不是旧报告或旧会计策略v1。当前接口在新版本独审接线前继续拒绝不支持的purpose／版本，不由本节自动接受。
+
+原 `method_hypothesis` 的1..20条合法摘录、完整署名、许可／当前读显／外发权限及 EvidencePacket 约束不变。不能用空 handles、将用户摘要伪装成已读摘录／SourceRecord、填 PLOS read_scope或给旧 DTO 改标签来走新分支。账务仍沿原 `bounded_usage_upper_v2`；输入、返回、receipt及实际模式的additive消费者须后续分别实现和独审，旧 `offline_probe/model_analysis_ran=false` 不改真。
+
+| 输入／关联 | 最小字段与不变量 |
+| --- | --- |
+| `PhenomenonPlanPreviewRequest-v1` | `{input_revision:Revision,expected_research_version:Revision,purpose:"phenomenon_plan_v1",observation_source:"own_observation"}`；从当前已确认研究修订读取自有观察摘要，不接受正文／URL／附件／source/excerpt IDs／模板／模型／资金／价格覆盖 |
+| `SelfObservationPlanInput-v1` | 服务端固定 `{input_kind:"user_observation_summary",summary:Text(1000)}`，summary必须为已保存当前 ProblemRevision.summary 的完整8..1000字符；原文原样保留私有，不截断、拼接或暗取 original_input／附件补进模型包。超限先要求用户修改保存的摘要 |
+| 所有权声明 | observation_source只是用户声明，不是服务端版权认证；确认另要求严格 `confirm_own_observation:true`，同用户／当前修订／摘要摘要／时间存为 self_declared，不可生成“版权已核”或第三方文献许可 |
+| `PhenomenonPlanBinding-v1` | 服务端绑定主体incarnation／grant／epochs、research/input revision+digest、summary_digest、声明版本、purpose/input_template/candidate_schema、模板与最终bytes摘要、原quote/policy与有效期；问题摘要、输入manifest、最终请求、财务usage各域分别核验 |
+
+服务端核当前owner、读取／写入／付费执行资格、已保存修订／版本、明确输入来源及必要敏感信息选择。用户输入者身份不证明文字自有；路径／字段和已知资料来源可检查，不能靠用户勾选或文本相似度证明版权。已知为第三方长文、附件、已读资料或其绕行粘贴的内容，不可改标own_observation悄作usertext；应让用户改写自己的观察或进入原受许可资料流程。未知归属须如实说明，不能宣称server verified；明确资料疑点未处理不外发。输入不当不扣费，不自动截摘要或付费改写以绕许可。
+
+接§10时，purpose/input_template必须作显式输入分支判别：本分支核input_manifest_digest／summary_digest，原方法分支仍核真实evidence／packet摘要；两者不互赋相等、不填空迁入旧receipt或空摘录分支。金融用量凭证仍只能由受控OwnedSession实际消费／收包生成，提名JSON、用户声明和内容摘要不能mint可信receipt；该additive接缝另随producer版本独审。
+
+预览沿原无能力draft控制，展示完整将外发的自有摘要、self_declared来源含义、新purpose／模板、单次目标、费用保守U与本地TTL。`input_manifest`只描述这一份自有摘要及其绑定，不能充当第三方evidence manifest。新固定模板／代码须由服务端登记、当前quote依据明确覆盖该分支；不能只因模型或价相同就沿用绑定旧method模板的quote／批准。最终 system模板、示例和输入合计≤16 KiB；不把字符数当token硬界，不静默删字段凑包。
+
+### 11.2 有界提名与查询建议
+
+模型只返回下表候选数据，完整候选JSON≤16 KiB；原受控响应原字节／解压上限、4096可计费completion界、零自动重试、无工具、非流式保持。数量与UTF-8字节上限同时成立，超限整次拒绝，不裁剪后称成功。
+
+| 模型候选字段 | 严格schema边界 |
+| --- | --- |
+| `summary` | Text(700)，只归纳起步思路，不输出结论完成度、已核证据或保证 |
+| `candidates` | 0..3项，每项精确 `{label:Text(120),mechanism_hypothesis:Text(700),why_considered:Text(400),method_leads:Text(160)[],key_unknowns:Text(240)[]}`；method_leads为0..2个待核方法名，key_unknowns为1..5项；无模型生成id、来源引用、checked或成熟度等级 |
+| `query_suggestions` | 0..5项，每项精确 `{candidate_index:int?,query:EnglishQuery,intent:Text(240)}`；非null index是非bool整数且指当前candidates数组，直接围绕观察的查询可为null；query按当前Source预览既有ASCII字母／空格／连字符、3..160字符规则，去重，intent解释供用户理解和选择，不扩大Source允许范围 |
+| `gaps`／`clarification_questions` | 分别Text(400)的1..8项、Text(240)的0..3项；候选和查询都空时至少有一个澄清问题。无法提名是合法不足结果，不伪造方法或固定答案补齐 |
+
+类型、数组／引用／文本和允许范围由代码先验，不靠system prompt或模型自述守界。所有文字沿公开候选主张检查，拒绝无依据成熟／已验证／保证或概率断言、伪引文及来源标识；无URL、工具、command、代码、自动检索或执行字段。显式URI／代码围栏／命令结构整次拒绝，自由文本只作转义显示，不作为任意URL、shell、SQL、模型参数或工具调用解释。数学名词／公式显示不生成 CheckResult、不执行生成代码，不因换符号即标同构。
+
+服务器生成不可变 `PhenomenonPlanResult-v1`，绑定上述输入／purpose／实际返回摘要及原取得时间，保存候选和可编辑计划的初始版本。展示状态固定为“未核机制／方法提名”，文献未检索、数学未检查、机制未验证，研究证据仍不足；这些状态由应用赋值，不接受模型覆盖。可以复用既有reports的独立schema标记白名单section，但不得作为旧ModelReportRecord或已审Source/Method/Claim证据直接入库，不新增公共RecordKind。阶段完成只表示起步草案产出，不能将原研究或完整解题目标标为已满足。
+
+`QueryPlanRevision-v1` 仅是同研究／输入修订下的可编辑建议，最小保存proposal_ref、服务端revision、上述query列表、编辑者来源与digest；修改生成新版本并递增research version，不改原模型提名／原时间，不需要新模型。用户新写的查询可把candidate_index置null并标用户编辑，不能反向声称模型或来源支持。修改问题本身则沿原ProblemRevision创建新修订，旧提名／计划清楚显示历史，旧同意不自动迁移。
+
+### 11.3 人工确认顺序与共享费用控制
+
+1. 用户保存并确认自己的现象摘要；KB无合适线索时可以进入新起步分支，不能因KB分数低就拿旧Ask生成兜底、硬配一个KB候选或要求用户先知道英文方法名。
+2. 服务端生成无外发／无任务／无预留的起步预览，显示全部摘要和原quote/最大U/版本；用户核对并严格确认自有观察、具体摘要外发及最大预留，不能从一次来源GET批准或旧研究同意推导。
+3. 新确认数据复用原preview_ref／expected_preview_version／input_revision／expected_research_version／preview_digest及两个严格true外发/费用确认字段，再加本分支的confirm_own_observation；只在当前owner／epochs／版本／来源声明／quote与资金权限满足时原子保存独立批准和单次queued计划。不同合同版本明确解析，不能向旧confirmation追加字段冒兼容。
+4. 后续唯一受控派发仍须完整当前权限、同经济binding／同ledger／当前币种与预充值、原F的足额U和一次permit；max_calls=1、零自动重试／修复／fallback。现有新鲜资金、CP3实际producer、loader及live放行未齐时仍关实际调用；本节不授予它们。
+5. 收到提名后只展示、保存并允许本地编辑查询；服务端不选择一条自动检索，不循环尝试建议，不付费翻译／重提名。没有可用建议时显示缺口，用户可补充自己的摘要后走新预览，未知费用仍先按原规则对账。
+6. 用户明确选择或编辑某条查询，再进入现有Source预览、逐次批准／start，绑定当前研究修订、选定plan revision与查询摘要的审计关联；审计关联由服务端当前已保存选择生成，不能向旧Source DTO夹带plan_ref、候选ID或许可字段；Source请求字段、许可、请求quota与实际目标仍按原合同，不直接执行模型URL或新增主机。编辑计划／起步批准都不是Source批准。
+7. 取得合法、当前获准的短摘录后，才进入原 `method_hypothesis` 的预览／独立批准／受控执行；其证据／署名／许可门槛一项不减，起步提名不能当检索所得证据。完整现象解题仍须方法证据、条件化迁移与适当数学/实测验证另验，不以此草案替代。
+
+全部派发、幂等、取消／撤权／删除和迟到提交沿§6.4／§7／§10；新purpose/plan/ref/key不重置资金cap或绕未结fingerprint。用量完整但候选坏／越界仍独立按原quote/F记Uobs且actual=null；缺失／矛盾usage仍UNKNOWN+全heldU、无自动重发。删除后只可核最小迟到费用，不恢复自有摘要、候选、查询或分享；当前授权过期不能用同意声明重新取得资格。这里只复用唯一账本，不新增额度、资金账户、余额证明或真实调用授权。
+
+### 11.4 最小用户任务与反例验收
+
+| 场景 | 必须成立 |
+| --- | --- |
+| KB空／用户无英文方法知识 | 用至少两个未作开发固定答案、无预置KB命中的新现象实际走起步预览与明确确认，得到有理由／缺口、可理解且能进入现Source预览的建议；人工词表／固定三家族／固定真实题答案不算泛化通过 |
+| 未同意与阶段隔离 | 确认前模型／费用／Source请求计数0；一次提名后未选择和批准查询时Source仍0。用户编辑及重开不触发模型或搜索；原method purpose空摘录仍拒，不能翻旧may_send或给旧probe改live |
+| 输入来源／版本 | 自有摘要8/1000边界与原文完整保存通过；超限不截断，第三方长文／附件／资料绕行或已知来源冲突不外发，勾选不变版权已核；改题／换主体／旧版本批准在实际派发前拒绝 |
+| 坏提名与资源 | URL／命令／代码／伪来源／verified标志、无效index、重复／不合法查询、超过数量/16KiB候选或最终包拒；解释和方法名只作未核文本，无数学或成熟解法标签，不执行也不自动补发 |
+| 不足、保存与后续 | 无lead有真实缺口／澄清；正常提名与用户编辑各版本可重开、历史标记和摘要一致；合法资料链后才进入原方法报告，不把用户同意、候选名或付费成功当证据 |
+| 费用／撤权竞争 | 同key并发至多一次派发，丢ack/UNKNOWN不换purpose重发；新鲜quote/资金缺口仍关，stop/删号/来源疑点处理遵守原门禁，迟到可核费用但正文／计划不复活，正文失败不释放已发生费用 |
+
+以上是待实现的消费与价值判据，不是本轮已经调用模型、检索原文、完成数学验证或兑现最终服务。先独审本增量，再派最小纯类型／固定codec与安全反例卡；Core唯一接授权／事务／保存，实际模式、制品、正常CI及真实用户任务另行验收，不新增搜索／Agent平台。

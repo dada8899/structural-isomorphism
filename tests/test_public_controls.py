@@ -50,6 +50,7 @@ BROWSER_MAKE_SHARDS = [
 
 HARD_STEP_CONDITIONS = {
     (".github/workflows/ci.yml", "browser-beta-surface-contract"): {
+        "Install complete backend runtime and verify imports": "matrix.shard == 'library-auth-reports-favorites'",
         "Run isolated browser surface subgroup": "matrix.pytest_args_isolated != ''",
         "Run JavaScript trust contracts": "matrix.node_tests != ''",
     },
@@ -436,6 +437,17 @@ def test_public_control_contract() -> None:
     assert errors == []
 
 
+def test_existing_research_route_and_static_entry_anchors_are_exact() -> None:
+    from scripts.check_public_controls import ControlParser
+    parser=ControlParser(Path("entry-route-fixture.html"))
+    for href in ("/research","/research#my-research","/research#kb-section"):
+        parser.feed(f'<a href="{href}">Research</a>')
+    assert parser.errors==[]
+    unknown=ControlParser(Path("entry-route-fixture.html"))
+    unknown.feed('<a href="/research-typo">Unknown</a>')
+    assert len(unknown.errors)==1 and "unknown local route: /research-typo" in unknown.errors[0]
+
+
 def test_inventory_has_links_and_buttons() -> None:
     controls, _ = run()
     assert any(item["tag"] == "a" for item in controls)
@@ -504,9 +516,7 @@ def test_hard_job_contract_rejects_shell_install_fallback() -> None:
         _assert_hard_job_contract("test.yml", "required", job)
 
 
-def test_browser_product_job_uses_exact_existing_nodeids() -> None:
-    job = _ci_job("browser-product-contract")
-    step = _named_ci_step(job, "Verify the explicit workbench decision journey")
+def _assert_current_research_entry_selection(step) -> None:
     test_path = "tests/e2e/test_full_public_surface.py"
     names = {
         node.name
@@ -514,9 +524,11 @@ def test_browser_product_job_uses_exact_existing_nodeids() -> None:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
     selected = [
-        "test_beta_workbench_requires_fingerprint_and_explicit_candidate",
-        "test_beta_header_exposes_one_dynamic_primary_account_entry",
-        "test_beta_header_never_picks_one_of_two_accounts",
+        "test_public_entry_actual_owner_index_anchor",
+        "test_public_entry_default_retirement_and_language",
+        "test_public_entry_no_script_native_forms_never_send_private_get",
+        "test_public_entry_real_login_return_owner_and_legacy_resource_links",
+        "test_public_entry_main_cta_first_login_returns_to_research",
     ]
     assert set(selected) <= names
     assert _shell_tokens(step) == [
@@ -527,6 +539,85 @@ def test_browser_product_job_uses_exact_existing_nodeids() -> None:
         "-v",
     ]
     assert "-k" not in _shell_tokens(step)
+
+
+def test_browser_product_job_uses_exact_existing_nodeids() -> None:
+    job = _ci_job("browser-product-contract")
+    step = _named_ci_step(job, "Verify the current public research entry journey")
+    _assert_current_research_entry_selection(step)
+
+
+def _assert_complete_browser_backend_runtime(job, *, matrix=False) -> None:
+    step = _named_ci_step(job, "Install complete backend runtime and verify imports")
+    assert "continue-on-error" not in step
+    if matrix:
+        assert step.get("if") == "matrix.shard == 'library-auth-reports-favorites'"
+    else:
+        assert "if" not in step
+    lines=step["run"].splitlines()
+    marker='"$BROWSER_BACKEND_PYTHON" - <<\'PY\''
+    index=lines.index(marker)
+    assert lines[:index+1] == [
+        'set -euo pipefail',
+        'BROWSER_BACKEND_PYTHON="$(python -c \'import sys; print(sys.executable)\')"',
+        '"$BROWSER_BACKEND_PYTHON" -m pip install uv==0.11.8',
+        'test "$(uv --version | cut -d \' \' -f 2)" = "0.11.8"',
+        'uv pip install --python "$BROWSER_BACKEND_PYTHON" --system --torch-backend cpu -r web/backend/requirements.txt',
+        'uv pip check --python "$BROWSER_BACKEND_PYTHON" --system',
+        marker,
+    ]
+    assert lines[-1] == 'PY'
+    body='\n'.join(lines[index+1:-1])
+    tree=ast.parse(body)
+    assert any(isinstance(node,ast.Import) and any(name.name=='main' for name in node.names) for node in ast.walk(tree))
+    for boundary in ('importlib.metadata.version(name)', 'web/backend/requirements.txt',
+                     'Path(main.__file__).resolve() != root / "web/backend/main.py"',
+                     'torch.version.cuda is not None', 'HF_HUB_OFFLINE',
+                     'TRANSFORMERS_OFFLINE', 'RUNNER_TEMP', 'TemporaryDirectory'):
+        assert boundary in body
+    assert 'sys.modules' not in body and 'monkeypatch' not in body
+    target='Run browser surface shard' if matrix else 'Verify the current public research entry journey'
+    assert job['steps'].index(step)<job['steps'].index(_named_ci_step(job,target))
+
+
+def test_only_real_main_browser_jobs_install_complete_authoritative_runtime() -> None:
+    product=_ci_job('browser-product-contract');surface=_ci_job('browser-beta-surface-contract')
+    _assert_complete_browser_backend_runtime(product)
+    _assert_complete_browser_backend_runtime(surface,matrix=True)
+    assert _named_ci_step(product,'Install complete backend runtime and verify imports')['run']==_named_ci_step(surface,'Install complete backend runtime and verify imports')['run']
+    assert product['timeout-minutes']==8 and surface['timeout-minutes']==15
+    rows=_ci_matrix_rows(surface)
+    assert [row['shard'] for row in rows].count('library-auth-reports-favorites')==1
+    assert 'tests/e2e/test_full_public_surface.py' in next(row for row in rows if row['shard']=='library-auth-reports-favorites')['pytest_args']
+
+
+@pytest.mark.parametrize('mutation', ['missing_step','wrong_shard','unconditional_matrix','no_requirements',
+    'no_cpu','different_python','no_check','no_main','no_source_binding','no_cpu_check','soft_failure'])
+def test_complete_browser_runtime_rejects_incomplete_or_weakened_steps(mutation) -> None:
+    import copy
+    job=copy.deepcopy(_ci_job('browser-beta-surface-contract'))
+    step=_named_ci_step(job,'Install complete backend runtime and verify imports')
+    if mutation=='missing_step':job['steps'].remove(step)
+    elif mutation=='wrong_shard':step['if']="matrix.shard == 'secondary-whitespace'"
+    elif mutation=='unconditional_matrix':step.pop('if')
+    elif mutation=='no_requirements':step['run']=step['run'].replace('-r web/backend/requirements.txt','numpy==1.26.3 httpx==0.27.2')
+    elif mutation=='no_cpu':step['run']=step['run'].replace('--torch-backend cpu','')
+    elif mutation=='different_python':step['run']=step['run'].replace('--python "$BROWSER_BACKEND_PYTHON"','--python python3.12')
+    elif mutation=='no_check':step['run']=step['run'].replace('uv pip check','uv pip list')
+    elif mutation=='no_main':step['run']=step['run'].replace('import main','import types as main')
+    elif mutation=='no_source_binding':step['run']=step['run'].replace('Path(main.__file__).resolve() != root / "web/backend/main.py"','False')
+    elif mutation=='no_cpu_check':step['run']=step['run'].replace('torch.version.cuda is not None','False')
+    else:step['continue-on-error']=True
+    with pytest.raises(AssertionError):_assert_complete_browser_backend_runtime(job,matrix=True)
+
+
+@pytest.mark.parametrize('missing',range(5))
+def test_current_entry_gate_cannot_drop_any_required_journey(missing) -> None:
+    step=dict(_named_ci_step(_ci_job('browser-product-contract'),'Verify the current public research entry journey'))
+    tokens=_shell_tokens(step)
+    del tokens[missing+1]
+    step['run']=shlex.join(tokens)
+    with pytest.raises(AssertionError):_assert_current_research_entry_selection(step)
 
 
 def test_release_gate_runs_project_site_and_complete_phase_contracts() -> None:
@@ -1690,6 +1781,7 @@ def test_required_browser_workflow_covers_nonenglish_product_surfaces() -> None:
         if isinstance(step, dict) and "if" in step
     }
     assert conditional_steps == {
+        "Install complete backend runtime and verify imports": "matrix.shard == 'library-auth-reports-favorites'",
         "Run isolated browser surface subgroup": "matrix.pytest_args_isolated != ''",
         "Run JavaScript trust contracts": "matrix.node_tests != ''",
     }
@@ -2164,7 +2256,7 @@ def test_phase_auth_navigation_is_wired_and_fail_closed() -> None:
 def test_beta_auth_entry_is_user_visible_and_canonical() -> None:
     chrome = (ROOT / "web/frontend/assets/js/site-chrome.js").read_text(encoding="utf-8")
     backend = (ROOT / "web/backend/main.py").read_text(encoding="utf-8")
-    assert '/auth/login?next=%2Freports' in chrome
+    assert '/auth/login?next=%2Fresearch' in chrome
     assert "登录以同步" in chrome
     assert "我的研究" in chrome
     assert "fetch('/api/auth/me'" in chrome
@@ -2176,7 +2268,10 @@ def test_beta_auth_entry_is_user_visible_and_canonical() -> None:
 
 def test_primary_navigation_starts_at_the_real_workbench() -> None:
     chrome = (ROOT / "web/frontend/assets/js/site-chrome.js").read_text(encoding="utf-8")
-    assert "{ href: '/', key: 'nav.start_here', label: '开始研究' }" in chrome
+    assert "{ href: '/research', key: 'nav.start_here', label: '开始研究' }" in chrome
+    assert "{ href: '/research#my-research', key: 'nav.my_research'" in chrome
+    assert "{ href: '/classes', key: 'nav.reference_clues'" in chrome
+    assert "{ href: '/tools', key: 'nav.tools'" not in chrome
     assert "{ href: '/analyze', key: 'nav.analyze'" not in chrome
 
 
@@ -2288,6 +2383,11 @@ def test_beta_entry_copy_uses_current_counts_timing_and_claim_boundary() -> None
         assert stale not in copy
     assert "597 个 demo ticker" in copy
     assert "2–3 分钟" in copy
+    index = (ROOT / "web/frontend/index.html").read_text(encoding="utf-8")
+    assert "2–3 分钟" not in index
+    assert 'id="start-research"' in index and 'href="/research"' in index
+    assert 'method="post" action="/research"' in index
+    assert 'data-legacy-ask-retired' in index
     assert "机制是否一致仍需验证" in copy
 
 

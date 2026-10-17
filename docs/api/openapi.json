@@ -3951,6 +3951,656 @@
         "title": "OwnedReportDeleteResponse",
         "type": "object"
       },
+      "PaidApprovalView": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_ref": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Approval Ref",
+            "type": "string"
+          },
+          "execution": {
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "WAITING_EXTERNAL",
+              "CANCEL_REQUESTED",
+              "RECONCILING",
+              "COMPLETED",
+              "FAILED",
+              "CANCELLED",
+              "ACCESS_REVOKED"
+            ],
+            "title": "Execution",
+            "type": "string"
+          },
+          "execution_mode": {
+            "const": "offline_probe",
+            "enum": [
+              "offline_probe"
+            ],
+            "title": "Execution Mode",
+            "type": "string"
+          },
+          "model_analysis_ran": {
+            "const": false,
+            "title": "Model Analysis Ran",
+            "type": "boolean"
+          },
+          "preview_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Preview Digest",
+            "type": "string"
+          },
+          "preview_ref": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Preview Ref",
+            "type": "string"
+          },
+          "preview_version": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Preview Version",
+            "type": "integer"
+          },
+          "research_version": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Research Version",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "retrieving",
+              "analysing",
+              "synthesising",
+              "completed",
+              "insufficient",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_version": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Task Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "approval_ref",
+          "preview_ref",
+          "preview_version",
+          "preview_digest",
+          "research_version",
+          "task_id",
+          "task_version",
+          "execution",
+          "status",
+          "execution_mode",
+          "model_analysis_ran"
+        ],
+        "title": "PaidApprovalView",
+        "type": "object"
+      },
+      "PaidConfirmationSuccessEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "b1-candidate-01",
+            "enum": [
+              "b1-candidate-01"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PaidApprovalView"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_revision",
+          "data"
+        ],
+        "title": "PaidConfirmationSuccessEnvelope",
+        "type": "object"
+      },
+      "PaidMaximumReserve": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_units": {
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Amount Units",
+            "type": "integer"
+          },
+          "currency": {
+            "const": "CNY",
+            "enum": [
+              "CNY"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "scale": {
+            "maximum": 6.0,
+            "minimum": 6.0,
+            "title": "Scale",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "currency",
+          "scale",
+          "amount_units"
+        ],
+        "title": "PaidMaximumReserve",
+        "type": "object"
+      },
+      "PaidOutboundHandle": {
+        "additionalProperties": false,
+        "properties": {
+          "attribution": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Attribution",
+            "type": "string"
+          },
+          "end": {
+            "maximum": 200000.0,
+            "minimum": 0.0,
+            "title": "End",
+            "type": "integer"
+          },
+          "excerpt_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Excerpt Id",
+            "type": "string"
+          },
+          "extracted_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Extracted Digest",
+            "type": "string"
+          },
+          "handle": {
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "title": "Handle",
+            "type": "string"
+          },
+          "quote": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "source_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Source Revision",
+            "type": "integer"
+          },
+          "start": {
+            "maximum": 200000.0,
+            "minimum": 0.0,
+            "title": "Start",
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "source_revision",
+          "excerpt_id",
+          "title",
+          "attribution",
+          "extracted_digest",
+          "start",
+          "end",
+          "quote",
+          "handle"
+        ],
+        "title": "PaidOutboundHandle",
+        "type": "object"
+      },
+      "PaidPreviewBinding": {
+        "additionalProperties": false,
+        "properties": {
+          "input_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Input Digest",
+            "type": "string"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "research_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Research Id",
+            "type": "string"
+          },
+          "research_version": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Research Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "research_id",
+          "input_revision",
+          "input_digest",
+          "research_version"
+        ],
+        "title": "PaidPreviewBinding",
+        "type": "object"
+      },
+      "PaidPreviewManifest": {
+        "additionalProperties": false,
+        "properties": {
+          "handles": {
+            "items": {
+              "$ref": "#/components/schemas/PaidOutboundHandle"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Handles",
+            "type": "array"
+          },
+          "problem_summary": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Problem Summary",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/PaidPreviewSource"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "problem_summary",
+          "sources",
+          "handles"
+        ],
+        "title": "PaidPreviewManifest",
+        "type": "object"
+      },
+      "PaidPreviewQuote": {
+        "additionalProperties": false,
+        "properties": {
+          "digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Digest",
+            "type": "string"
+          },
+          "revision": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Revision",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date-time",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{6}Z$",
+            "title": "Valid Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision",
+          "digest",
+          "valid_until"
+        ],
+        "title": "PaidPreviewQuote",
+        "type": "object"
+      },
+      "PaidPreviewSource": {
+        "additionalProperties": false,
+        "properties": {
+          "acquired_at": {
+            "format": "date-time",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{6}Z$",
+            "title": "Acquired At",
+            "type": "string"
+          },
+          "attribution": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Attribution",
+            "type": "string"
+          },
+          "canonical_url": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Canonical Url",
+            "type": "string"
+          },
+          "discovery_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Discovery Digest",
+            "type": "string"
+          },
+          "end": {
+            "maximum": 200000.0,
+            "minimum": 0.0,
+            "title": "End",
+            "type": "integer"
+          },
+          "excerpt_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Excerpt Id",
+            "type": "string"
+          },
+          "extracted_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Extracted Digest",
+            "type": "string"
+          },
+          "information_cutoff": {
+            "format": "date",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "title": "Information Cutoff",
+            "type": "string"
+          },
+          "may_send_to_provider": {
+            "const": false,
+            "title": "May Send To Provider",
+            "type": "boolean"
+          },
+          "permission_basis_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Permission Basis Digest",
+            "type": "string"
+          },
+          "quote": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "raw_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Raw Digest",
+            "type": "string"
+          },
+          "read_scope": {
+            "const": "author_narrative_subset",
+            "enum": [
+              "author_narrative_subset"
+            ],
+            "title": "Read Scope",
+            "type": "string"
+          },
+          "source_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Source Revision",
+            "type": "integer"
+          },
+          "start": {
+            "maximum": 200000.0,
+            "minimum": 0.0,
+            "title": "Start",
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "source_revision",
+          "excerpt_id",
+          "title",
+          "attribution",
+          "extracted_digest",
+          "start",
+          "end",
+          "quote",
+          "canonical_url",
+          "raw_digest",
+          "discovery_digest",
+          "permission_basis_digest",
+          "read_scope",
+          "acquired_at",
+          "information_cutoff",
+          "may_send_to_provider"
+        ],
+        "title": "PaidPreviewSource",
+        "type": "object"
+      },
+      "PaidPreviewSuccessEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "b1-candidate-01",
+            "enum": [
+              "b1-candidate-01"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PaidPreviewView"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_revision",
+          "data"
+        ],
+        "title": "PaidPreviewSuccessEnvelope",
+        "type": "object"
+      },
+      "PaidPreviewView": {
+        "additionalProperties": false,
+        "properties": {
+          "actual": {
+            "title": "Actual",
+            "type": "null"
+          },
+          "bindings": {
+            "$ref": "#/components/schemas/PaidPreviewBinding"
+          },
+          "cost_label": {
+            "const": "maximum_reserve_not_actual",
+            "enum": [
+              "maximum_reserve_not_actual"
+            ],
+            "title": "Cost Label",
+            "type": "string"
+          },
+          "declared_model_version": {
+            "const": "DeepSeek-V4.1-Flash",
+            "enum": [
+              "DeepSeek-V4.1-Flash"
+            ],
+            "title": "Declared Model Version",
+            "type": "string"
+          },
+          "execution_mode": {
+            "const": "offline_probe",
+            "enum": [
+              "offline_probe"
+            ],
+            "title": "Execution Mode",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{6}Z$",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/PaidPreviewManifest"
+          },
+          "manifest_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Manifest Digest",
+            "type": "string"
+          },
+          "max_calls": {
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Max Calls",
+            "type": "integer"
+          },
+          "maximum_reserve": {
+            "$ref": "#/components/schemas/PaidMaximumReserve"
+          },
+          "may_send_to_provider": {
+            "const": false,
+            "title": "May Send To Provider",
+            "type": "boolean"
+          },
+          "model": {
+            "const": "deepseek-flash",
+            "enum": [
+              "deepseek-flash"
+            ],
+            "title": "Model",
+            "type": "string"
+          },
+          "model_analysis_ran": {
+            "const": false,
+            "title": "Model Analysis Ran",
+            "type": "boolean"
+          },
+          "outbound_request_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Outbound Request Digest",
+            "type": "string"
+          },
+          "policy_revision": {
+            "const": "bounded_usage_upper_v2",
+            "enum": [
+              "bounded_usage_upper_v2"
+            ],
+            "title": "Policy Revision",
+            "type": "string"
+          },
+          "preview_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Preview Digest",
+            "type": "string"
+          },
+          "preview_ref": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Preview Ref",
+            "type": "string"
+          },
+          "preview_version": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Preview Version",
+            "type": "integer"
+          },
+          "provider": {
+            "const": "deepseek",
+            "enum": [
+              "deepseek"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
+          "purpose": {
+            "const": "method_hypothesis",
+            "enum": [
+              "method_hypothesis"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "quote": {
+            "$ref": "#/components/schemas/PaidPreviewQuote"
+          },
+          "status": {
+            "const": "draft",
+            "enum": [
+              "draft"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "preview_ref",
+          "preview_version",
+          "status",
+          "expires_at",
+          "bindings",
+          "purpose",
+          "provider",
+          "model",
+          "declared_model_version",
+          "execution_mode",
+          "policy_revision",
+          "quote",
+          "maximum_reserve",
+          "actual",
+          "cost_label",
+          "max_calls",
+          "manifest",
+          "manifest_digest",
+          "outbound_request_digest",
+          "preview_digest",
+          "may_send_to_provider",
+          "model_analysis_ran"
+        ],
+        "title": "PaidPreviewView",
+        "type": "object"
+      },
       "PhaseCompanyBookmark": {
         "additionalProperties": false,
         "description": "Canonical public projection of one legacy Phase company ticker.",
@@ -5228,6 +5878,75 @@
           "ok"
         ],
         "title": "RequestLinkResponse",
+        "type": "object"
+      },
+      "ResearchPublicError": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_next_actions": {
+            "items": {
+              "enum": [
+                "view",
+                "cancel",
+                "refresh",
+                "request_reconciliation",
+                "revise",
+                "export",
+                "record_followup",
+                "retry",
+                "start",
+                "resume",
+                "sign_in",
+                "return_to_library"
+              ],
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Allowed Next Actions",
+            "type": "array"
+          },
+          "code": {
+            "pattern": "^[A-Z][A-Z0-9_]{0,63}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "incident_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Incident Id",
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable",
+          "allowed_next_actions",
+          "incident_id"
+        ],
+        "title": "ResearchPublicError",
+        "type": "object"
+      },
+      "ResearchPublicErrorEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ResearchPublicError"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ResearchPublicErrorEnvelope",
         "type": "object"
       },
       "SearchRequest": {
@@ -9861,6 +10580,398 @@
           }
         },
         "summary": "Research Task Events",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/paid-approvals": {
+      "post": {
+        "operationId": "paid_confirmation_api_research__research_id__paid_approvals_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "contract_revision": {
+                    "const": "b1-candidate-01",
+                    "enum": [
+                      "b1-candidate-01"
+                    ],
+                    "title": "Contract Revision",
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "confirm_external_input": {
+                        "const": true,
+                        "title": "Confirm External Input",
+                        "type": "boolean"
+                      },
+                      "confirm_maximum_reserve": {
+                        "const": true,
+                        "title": "Confirm Maximum Reserve",
+                        "type": "boolean"
+                      },
+                      "expected_preview_version": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Expected Preview Version",
+                        "type": "integer"
+                      },
+                      "expected_research_version": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Expected Research Version",
+                        "type": "integer"
+                      },
+                      "input_revision": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Input Revision",
+                        "type": "integer"
+                      },
+                      "preview_digest": {
+                        "pattern": "^[a-f0-9]{64}$",
+                        "title": "Preview Digest",
+                        "type": "string"
+                      },
+                      "preview_ref": {
+                        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                        "title": "Preview Ref",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "preview_ref",
+                      "expected_preview_version",
+                      "input_revision",
+                      "expected_research_version",
+                      "preview_digest",
+                      "confirm_external_input",
+                      "confirm_maximum_reserve"
+                    ],
+                    "title": "PaidConfirmationRequest",
+                    "type": "object"
+                  },
+                  "schema_version": {
+                    "const": "structure-research-v1",
+                    "enum": [
+                      "structure-research-v1"
+                    ],
+                    "title": "Schema Version",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "contract_revision",
+                  "data"
+                ],
+                "title": "PaidConfirmationEnvelope",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaidConfirmationSuccessEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Paid Confirmation",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/paid-previews": {
+      "post": {
+        "operationId": "paid_preview_api_research__research_id__paid_previews_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "contract_revision": {
+                    "const": "b1-candidate-01",
+                    "enum": [
+                      "b1-candidate-01"
+                    ],
+                    "title": "Contract Revision",
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "excerpt_ids": {
+                        "items": {
+                          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                          "type": "string"
+                        },
+                        "maxItems": 20,
+                        "minItems": 1,
+                        "title": "Excerpt Ids",
+                        "type": "array",
+                        "uniqueItems": true
+                      },
+                      "expected_research_version": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Expected Research Version",
+                        "type": "integer"
+                      },
+                      "input_revision": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Input Revision",
+                        "type": "integer"
+                      },
+                      "purpose": {
+                        "const": "method_hypothesis",
+                        "enum": [
+                          "method_hypothesis"
+                        ],
+                        "title": "Purpose",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "input_revision",
+                      "expected_research_version",
+                      "excerpt_ids",
+                      "purpose"
+                    ],
+                    "title": "PaidPreviewRequest",
+                    "type": "object"
+                  },
+                  "schema_version": {
+                    "const": "structure-research-v1",
+                    "enum": [
+                      "structure-research-v1"
+                    ],
+                    "title": "Schema Version",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "contract_revision",
+                  "data"
+                ],
+                "title": "PaidPreviewEnvelope",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaidPreviewSuccessEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPublicErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Paid Preview",
         "tags": [
           "research"
         ]

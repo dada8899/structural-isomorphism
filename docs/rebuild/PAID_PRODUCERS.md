@@ -33,3 +33,48 @@ preconnect前先核；begin在全部授权／loader／consume回调之后、发�
 新类型没有F、upper、预留、释放、receipt或可信资金权限。它只约束数据，单字段在int63内不证明乘积可表示；唯一算术与溢出检查由Bootstrap后续usage_upper.py实现。Core正式resolver、真实quote证据、准入时admitted_at与原quote摘要仍待CP2闭合，不能凭DTO或合成行自封trusted quote。
 
 本小检查点新40项边界测试及原provider77项通过；新值全为纯合成native整数，不查真实价格／资金／key。schema6、API、外发packet、CurrentPaidAuthority与成本生产者尚未实施。本文件与quote/test停写交原审冻结后，再按正式范围继续。
+
+## CP2：内部离线确认与当前能力
+
+基线 f19f1056。无公开API：其方法／DTO／错误仍由Architecture合同先行，内部 `PaidApprovalService.preview/confirm` 不自行成为公开路由。默认无resolver直接拒绝，即使数据库合成active行也不能启用；唯一正例依赖显式服务器装配的 OfflineFundingResolver，始终标offline_probe，没有真实资金、凭据或live工厂。
+
+schema6只新增 `research_paid_approvals / research_provider_sessions` 两个producer控制表，并给原grant增资金用途绑定、permit增approval/admitted_at、显式v2 policy与cost差额数据约束。原V5定义／旧行不变，不回放减记。sessions只建表，未实现收包／TrustedCost来源；cost新约束不是F或账务writer。
+
+preview读取当前真实身份／问题和CP1来源候选，核离线配置与当前同币account/quote/basis记录，仅写无能力draft，不建task/grant/reservation/permit/fee。confirm在同owner lease+短同库事务核preview版本／摘要、原问题与当前权限、TTL、受控用途配置；独立创建execute_paid grant和queued单步任务，max_calls=1。Cookie身份、用户确认、许可和资金用途彼此不能替代。
+
+确认后才允许新 `read_confirmed_provider_packet`／repository端口；它只接受同conn/txn/lease实际DB生产的 PaidPacketAuthority，不接受bool/dict或Eligibility。当前许可、具体scope/hash/offset、原版本与manifest重核，creator/year署名必须来自该文章实际articleinfo citation，缺失或长度/结构不明拒绝，不能拿用户同意补版权。full extracted只在内部repr=False字段核验，outbound仍仅短引／必要署名；原CP1候选false和guard AST不变。
+
+完整请求由原固定prepare/guard重建；实际codec制品摘要同时绑定quote与preview，模板/代码变动不能暗换包。确认后request digest只含最终bytes，EvidencePacket.binding_digest另绑定实际分配task/attempt/grant。确认幂等按当前owner核验、原key回原任务，不再次创建。
+
+CurrentPaidAuthority每次require都重核确认行、当前paid grant/epochs/revision/stop/task/step/CAS、注册offline来源、同币quote/basis/完整包摘要；只能产生offline权限。authorize/consume还要求真实同policy HELD全额本票和当前prepared permit/approval绑定/admitted_at，核DB总held含本票；没有“金额差”猜费或旧UNKNOWN转v2。Scope仍按原conn/真实事务/lease机制退休。
+
+Offline resolver的approved_upper为显式服务器模拟授权数据，不是已验真实资金或F计算结果；未来账本reserve必须用Bootstrap独占F重算并核匹配，Core未复制F/Uobs或实现reserve/consume/费用写入。真实来源默认不可用；注册模拟来源退休或服务重启无法重建可信源时，只能拒绝而不能从控制行自证资金。
+
+删除先凭实际pending job清确认payload/permit私密JSON与候选槽、撤销状态，再由原流程去研究/身份绑定；必要opaque摘要不复活正文。迟到成本来源与收费对账仍待CP3，不能把本卡成本行0新增当迟到实费已经闭合。
+
+旧v3/v4/v5迁移探针仅测试fixture隔离v6，原故障／金额／receipt／inode断言保留；旧unknown6改7、当前requirements5改6、PK冲突value5不动。新v5→6逐写入故障回滚测试与内部真实auth/DB确认、单次并发／故障重试、缺署名／改题／撤权／旧UNKNOWN／删除对照独立验证。受影响组合336 passed；最终确认组16 passed（16.38秒），含实际版本/本票/permit变更、旧task幂等准确状态与隐私删除；扩至全部80个迁移写入／移除guard／commit切点后，迁移组81 passed（53.85秒），旧v5非空事实与锁inode保留。CP1原方法AST和guard/quote字节保持。未作生产／真实余额／厂商模型验收，CP3未启动。
+
+§6.4.2后补冻结合同已只读核对，公开适配仍有两个明确缺口：当前内部preview是无能力候选caption，完整creator credit在确认packet口才核；实际bytes digest也在确认分配Context后算。正式API必须再增加无能力的preview序列化端口／模板复用，预览即核齐署名并绑定bytes；不能临时翻may_send或用假task/quote充全文。本卡不改冻结adapter、不开路由、不把当前内部返回对象当外部DTO。确认重放已按原approval.task_id取得当前ResearchView二状态，保留旧ref，不能默认指向新current_task。
+
+## 4347ed6 原审三项最小返修
+
+2026-10-17。v6 cost binding 现在在插入时明确要求 observation／reservation／price／permit 四者的 policy 相同，不能给旧v1票贴v2标签释放差额。旧v1合法全U与新CNY/v2同策略差额分别为正对照，旧金额／V5定义不改。
+
+authorize／consume 除核调用者当前expected版本，还核持久permit上的authorized_task_version／authorized_step_version与实际task／step一致。四种票版本改99的组合均拒，已有cap的require也失效；合法同版本票仍可作为离线权限正例，不代表已实现金融consume。
+
+附属结构检查此前误置于_v5提交前，本轮已移到真正_v6首次复制／建表之前；直接已存在v5库也必须核待替换表的全部显式index／trigger。未知附属结构拒绝并回滚，不再随DROP TABLE静默消失。真实额外trigger/index反例均保留原v5全snapshot及inode，原v5方法不再夹带此v6检查。
+
+作者验证：原审5个票版本／策略拒绝断言实跑5 passed（原extra-trigger脚本要求保留升级，本实现选择更保守拒绝，另以2个真实新反例核exact原库）；原v5安全组+approval+迁移最终220 passed／0 skipped（124.46秒），其中v1不可折减与v2部分／全额三个对照独立3 passed。首轮组合因新fixture未显式导入source_stack出现1个setup error，没有计绿；补齐测试依赖后完整220项通过。原fault81、旧隐式事务退休／REPLACE／CP1 guard等保留，未改原审证据、旧测试或其他源码。API/preview-codec/CP3/F/资金/live仍未进入本轮。
+
+## 无能力 preview codec／完整署名检查点
+
+基线37e4；协调停写后仅合受审preview_bound，续接HEAD188f237。唯一模板从adapter抽到纯preview_codec.request_bytes，确认后的prepare亦调用它；final_request_bytes与begin/finish/preconnect权限守卫AST保持。PreviewOutboundHandle没有Context、fulltext、may_send或资金字段，PreviewRequest不能交adapter发送，不造task/plan/dispatch；固定4096/thinking off/no tools/nonstream和原16KiB整包拒溢出保留。
+
+新独立preview署名口在真实当前owner/revision下重核CP1资格和完整creator/year，返回sources全false及精确outbound handles；旧eligibility/confirmed读口AST保持。缺署名现在preview即拒、draft/task/grant/fee不增。manifest摘要与无能力bytes摘要在确认前保存，确认分配真实Context后重建同codec bytes须逐字相同；EvidencePacket.binding_digest另域，不拿控制ID替身。公开preview_view采用§6.4.2白名单和SHA256(canonical(view去preview_digest))，内部旧别名不准直接成为API响应。
+
+U仅调用受审usage_upper.preview_bound，用真实服务器clock核≤60秒TTL和quote revision/digest；返回值不是reserve/observed凭证，Core不复制F。原合成fixture仅把2033长期quote改当前clock+60，过期／长TTL负例拒绝，不假now/dispatch；真实资金默认None/live closed。原provider/model115项、预览/确认/CP1受影响48项通过。未改DDL、API/UI、runner或CP3；客户/源HTTP/本机sink/timer按finally关闭，公开网络/资金/key/真实模型为0。独审冻结前停写，仍不声称公共API或真实费用链已交付。
+
+## CP3 A：离线实际收包来源
+
+2026-10-17。OwnedProviderSession独占真实loopback socket，登记前和敏感POST前依据原确认approval／funding核实际账户、经济binding／epoch、basis、批准U及合法admitted时窗，不从票据抄值自证；自身finish生成receipt，同auth DB首次CAS保存binding及usage。candidate另槽可擦，首次保存及幂等重放均核当前内容资格：取消／撤权后擦候选，财务首事实不变，已擦不回填。普通DTO、重复注册、损坏binding、退休来源均拒；无完整收包即UNKNOWN并关闭socket／timer。Python私有类型不是任意root代码隔离；合法时窗也不是实际金融消费证明，本阶段待原独审复验。
+旧finish只委托共用收包校验并调用原v1 cost_intent；原begin／最终字节守卫／probe标志和旧schema定义不变。测试装配的已消费票及余额均为合成前置，不能证明预算consume；生产注册／send、TrustedCostAuthority及held→upper消费继续关闭，未新增DDL／API／F／资金／凭据或真实模型调用。

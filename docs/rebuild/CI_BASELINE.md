@@ -369,3 +369,17 @@ PMO 为本批唯一 Git 提交者。作者停写后，PMO 用精确路径清单�
 2026-10-17，正常 Coverage run 38978315486（候选7f0e3b3）在原15分钟job期限取消；后端已报告2287 passed／1原skip（573.28秒），其后sanity子集201 passed，但后续研究合同与报告步骤未全部完成。取消不代表覆盖比例通过，也不作测试失败结论。
 
 本次只将coverage job总期限15改30分钟，为完整串行套件保留有界运行余量。测试命令、文件范围、依赖、原覆盖source/omit、关键文件90%及整体80%门槛、触发器和其他workflow保持；不删用例、不吞退出码、不复用旧比例。须以包含本次改动的精确新HEAD正常CI重新验证，不以延长时限代替覆盖检查通过。
+
+## 浏览器真实主应用测试的后端依赖闭合
+
+2026-10-17，修复基线为 `16a9e0f40cbe8673d466de8dd36221b546a5de8d`，独立分支为 `codex/structure-browser-ci-runtime-20261017`。正常 CI run `38984393039` 的 browser-product-contract 在收集真实研究页测试时缺少 `httpx`；library-auth-reports-favorites 在导入当前主应用时缺少 `numpy`，原结果为 71 passed、4 deselected、7 errors。两项都是完整主应用进入原轻量浏览器环境后暴露的依赖缺口；release summary 是上游失败的派生结果。原失败记录保留，没有 rerun，也没有修改 summary 或必需检查依赖图。
+
+本卡只修改 CI、public-controls 合同、integration-CI 合同和本记录四个路径。两个受影响任务在收集测试前，使用同一 setup-python 3.11 解释器，通过既有 `uv==0.11.8` 和 CPU Torch 策略安装完整 `web/backend/requirements.txt`，再执行依赖检查、全部直接锁定版本核对和当前 checkout 的真实 `main` 导入。导入检查使用临时私有数据目录和离线模型设置，不启动应用 lifespan 或加载模型。产品任务无条件执行；矩阵内只有 library-auth-reports-favorites 执行新步骤，其他三个分片保留原轻量安装和完整测试选择。未改变 requirements、73 包 Linux CPU 锁或独立 runtime-smoke 工作流，也不把浏览器环境当作该锁环境的验收结果。
+
+产品步骤固定选择当前入口的五个既有测试函数，共 10 个参数化用例，覆盖首次登录返回、新研究归属、两个静态定位入口、手机和语言、旧 AI 入口停用及无脚本原生表单安全。三个历史 SSE 组件测试继续在 library 的整份 surface 回归中执行，原候选、隐私和焦点断言保持；它们不再充当当前公共入口的主门禁。未新增 skip、删减分片、吞掉失败或更换真实主应用。product 原 8 分钟、surface 原 15 分钟、coverage 原 30 分钟及所有阈值保持不变。
+
+只更新两个获准 job 的语义冻结摘要：browser-product-contract 为 `ea661e1cc7eee8004be5a25e49b38fb1f4f9b27394648b6b64e2a428c55e39df`，browser-beta-surface-contract 为 `1672b91a7c0c16f3a3cc3b7a9b202835ec5875a332d9803389ac6ed55a6d87c3`。其他 job、触发器、权限、必需父图、时限和原矩阵选择逐项保持。新增合同拒绝漏装完整依赖、错分片、CPU 策略缺失、解释器错配、漏导入检查、失败软化及漏选任一当前入口流程；条件白名单只增加 library 的精确条件。
+
+本地 public-controls、integration-CI 和 shell/heredoc 三套共 258 passed；actionlint、YAML/AST 与差异检查通过。现有 Mac 发布依赖环境实际核对了 18 个后端直接锁定版本，真实主应用导入通过；仅离线 dry-run 核实 uv 参数可用，没有改装共享运行环境。五个当前入口测试实际 10 passed，library 主组原选择 78 passed、4 个原 deselected。额外 isolated 子组原样执行时，旧 fixture 的预选端口再回绑方式被原私有 guard 拒绝，得到 7 passed、23 setup errors；还观察到旧 fixture 优先选取旧 Python 3.14。经负责人批准，仅在任务私有测试工具中绑定现有发布解释器、允许已登记精确 loopback 端口的同组回绑并验证真实活 listener；7 项有限正反例通过，文件、数据库、外网和 SMTP 保护保持。只补测一次得到 9 passed、21 setup errors：两个原跨域恢复用例通过，21 项旧报告用例的启动探测在 listener 尚未就绪时被 guard 拒绝，而原探测只捕获 OSError，未进入业务断言。没有继续放宽 guard 或改写 fixture 追求通过；这 21 项明确列为本地未验，由新 HEAD 的正常 Linux CI 回收。原失败、私有适配差异和日志保留于 `structure-browser-ci-runtime-8ax3rmci` 证据目录；此适配不是完整 Node 文件与网络隔离证明。
+
+上述结果不证明全新 Linux 依赖安装或正常 CI 已通过。后续必须以独立精确新 HEAD 的正常 Linux CI 核对安装闭合、运行时间与全部必要结果；本地测试邮件验证链不等于实际邮件投递。本卡不关闭独立的首页性能消费者问题、来源笔记重开提示问题、模型/资金或公网验收。PMO 仍为唯一 Git 提交者，作者在检查点停写后交回精确差异。

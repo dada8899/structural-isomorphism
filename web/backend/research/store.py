@@ -302,6 +302,69 @@ V5_GUARDS=tuple(f"CREATE TRIGGER {table}_immutable BEFORE UPDATE ON {table} BEGI
     for table in ("research_price_revisions","research_balance_snapshots","research_cost_observations"))+("CREATE TRIGGER research_cost_no_delete BEFORE DELETE ON research_cost_observations BEGIN SELECT RAISE(ABORT,'append only cost observation'); END",
     "CREATE TRIGGER research_funding_no_delete BEFORE DELETE ON research_funding_accounts BEGIN SELECT RAISE(ABORT,'funding identity retained'); END")
 
+# Producer v6 is additive/versioned; the reviewed v5 definitions remain intact.
+PRODUCER_SCHEMA_VERSION=6
+USAGE_POLICY="bounded_usage_upper_v2"
+V6_SCHEMA={name:ddl.replace("'deepseek-bounded-upper-v1'", "'deepseek-bounded-upper-v1','bounded_usage_upper_v2'",1)
+    for name,ddl in V5_SCHEMA.items() if name in ("research_tasks","research_price_revisions","research_reservations","research_dispatch_permits")}
+V6_SCHEMA["research_grants"]=V5_SCHEMA["research_grants"][:-1]+",funding_account_id TEXT REFERENCES research_funding_accounts(id),funding_permission_ref TEXT)"
+V6_SCHEMA["research_price_revisions"]=V6_SCHEMA["research_price_revisions"].replace("policy_revision='deepseek-bounded-upper-v1'","policy_revision IN ('deepseek-bounded-upper-v1','bounded_usage_upper_v2')")
+V6_SCHEMA["research_reservations"]=V6_SCHEMA["research_reservations"].replace("policy_revision='deepseek-bounded-upper-v1'","policy_revision IN ('deepseek-bounded-upper-v1','bounded_usage_upper_v2')")
+V6_SCHEMA["research_dispatch_permits"]=V6_SCHEMA["research_dispatch_permits"].replace("CHECK(policy_revision='c0-fixture-v1' OR", "paid_approval_ref TEXT REFERENCES research_paid_approvals(id),admitted_at INTEGER,CHECK(policy_revision='c0-fixture-v1' OR")
+V6_SCHEMA["research_cost_observations"]=COST_SCHEMA.replace("policy_revision='deepseek-bounded-upper-v1'","policy_revision IN ('deepseek-bounded-upper-v1','bounded_usage_upper_v2')").replace("booked_upper=reserved_upper", "((policy_revision='deepseek-bounded-upper-v1' AND booked_upper=reserved_upper) OR (policy_revision='bounded_usage_upper_v2' AND booked_upper<=reserved_upper))").replace("observed_at TEXT NOT NULL,UNIQUE", "observed_at TEXT NOT NULL,released_reserve_difference INTEGER NOT NULL DEFAULT 0 CHECK(typeof(released_reserve_difference)='integer' AND released_reserve_difference BETWEEN 0 AND 9223372036854775807),trusted_return_ref TEXT REFERENCES research_provider_sessions(id),UNIQUE").replace("CHECK((kind='estimated_upper'", "CHECK(kind!='estimated_upper' OR (policy_revision='deepseek-bounded-upper-v1' AND released_reserve_difference=0) OR (policy_revision='bounded_usage_upper_v2' AND released_reserve_difference=reserved_upper-booked_upper)),CHECK((kind='estimated_upper'")
+
+PRODUCER_DDL=(
+    """CREATE TABLE research_paid_approvals (
+        id TEXT PRIMARY KEY,principal_id TEXT NOT NULL REFERENCES research_principals(id),
+        research_id TEXT REFERENCES research_controls(id) ON DELETE SET NULL,
+        payload_json TEXT CHECK(payload_json IS NULL OR (json_valid(payload_json) AND length(payload_json)<=65536)),
+        payload_digest TEXT NOT NULL CHECK(length(payload_digest)=64),
+        state TEXT NOT NULL CHECK(state IN ('draft','confirmed','consumed','revoked')),
+        version INTEGER NOT NULL DEFAULT 1 CHECK(typeof(version)='integer' AND version BETWEEN 1 AND 2147483647),
+        mode TEXT NOT NULL CHECK(mode='offline_probe'),policy_revision TEXT NOT NULL CHECK(policy_revision='bounded_usage_upper_v2'),
+        funding_source_ref TEXT NOT NULL,account_id TEXT NOT NULL REFERENCES research_funding_accounts(id),
+        task_id TEXT UNIQUE,grant_id TEXT UNIQUE,dispatch_id TEXT UNIQUE,
+        confirmed_at INTEGER,expires_at INTEGER NOT NULL CHECK(typeof(expires_at)='integer' AND expires_at>0),
+        created_at TEXT NOT NULL,max_calls INTEGER NOT NULL DEFAULT 1 CHECK(max_calls=1))""",
+    """CREATE TABLE research_provider_sessions (
+        id TEXT PRIMARY KEY,approval_id TEXT NOT NULL REFERENCES research_paid_approvals(id),
+        dispatch_id TEXT NOT NULL UNIQUE,permit_id TEXT NOT NULL UNIQUE REFERENCES research_dispatch_permits(id),
+        mode TEXT NOT NULL CHECK(mode='offline_probe'),binding_digest TEXT NOT NULL CHECK(length(binding_digest)=64),
+        state TEXT NOT NULL CHECK(state IN ('created','consumed','sent','received','unknown','closed')),
+        version INTEGER NOT NULL DEFAULT 1 CHECK(typeof(version)='integer' AND version BETWEEN 1 AND 2147483647),
+        financial_return_json TEXT CHECK(financial_return_json IS NULL OR (json_valid(financial_return_json) AND length(financial_return_json)<=16384)),
+        return_digest TEXT,received_at TEXT,candidate_json TEXT CHECK(candidate_json IS NULL OR length(candidate_json)<=32768))""",
+)
+
+V6_AUX=tuple(ddl.replace("policy_revision='deepseek-bounded-upper-v1'","policy_revision IN ('deepseek-bounded-upper-v1','bounded_usage_upper_v2')")
+    .replace("WHERE r.id=NEW.reservation_id", "WHERE NEW.policy_revision=r.policy_revision AND NEW.policy_revision=p.policy_revision AND NEW.policy_revision=q.policy_revision AND r.id=NEW.reservation_id")
+    for ddl in V5_AUX)+(
+    """CREATE TRIGGER research_paid_approval_identity BEFORE UPDATE OF principal_id,research_id,mode,policy_revision,funding_source_ref,account_id,max_calls,expires_at,created_at ON research_paid_approvals
+        WHEN NEW.principal_id!=OLD.principal_id OR NEW.mode!=OLD.mode OR NEW.policy_revision!=OLD.policy_revision
+            OR NEW.funding_source_ref!=OLD.funding_source_ref OR NEW.account_id!=OLD.account_id OR NEW.max_calls!=OLD.max_calls
+            OR NEW.expires_at!=OLD.expires_at OR NEW.created_at!=OLD.created_at OR (NEW.research_id IS NOT OLD.research_id
+                AND NOT (NEW.research_id IS NULL AND NEW.state='revoked' AND EXISTS(SELECT 1 FROM research_principals WHERE id=OLD.principal_id AND status='deleting')))
+        BEGIN SELECT RAISE(ABORT,'paid approval binding immutable'); END""",
+    """CREATE TRIGGER research_paid_approval_state BEFORE UPDATE OF state ON research_paid_approvals
+        WHEN NEW.state!=OLD.state AND NOT ((OLD.state='draft' AND NEW.state IN ('confirmed','revoked'))
+            OR (OLD.state='confirmed' AND NEW.state IN ('consumed','revoked')) OR (OLD.state='consumed' AND NEW.state='revoked'))
+        BEGIN SELECT RAISE(ABORT,'paid approval transition forbidden'); END""",
+    """CREATE TRIGGER research_paid_approval_no_replace BEFORE INSERT ON research_paid_approvals
+        WHEN EXISTS(SELECT 1 FROM research_paid_approvals WHERE id=NEW.id OR task_id=NEW.task_id OR grant_id=NEW.grant_id OR dispatch_id=NEW.dispatch_id)
+        BEGIN SELECT RAISE(ABORT,'paid approval replacement forbidden'); END""",
+    """CREATE TRIGGER research_paid_approval_payload_guard BEFORE UPDATE OF payload_json,payload_digest ON research_paid_approvals
+        WHEN OLD.state!='draft' AND (NEW.payload_json IS NOT OLD.payload_json OR NEW.payload_digest!=OLD.payload_digest)
+        AND NOT (NEW.payload_json IS NULL AND NEW.payload_digest=OLD.payload_digest AND NEW.state='revoked'
+            AND EXISTS(SELECT 1 FROM research_principals WHERE id=OLD.principal_id AND status='deleting'))
+        BEGIN SELECT RAISE(ABORT,'confirmed paid input immutable'); END""",
+    """CREATE TRIGGER research_provider_session_no_replace BEFORE INSERT ON research_provider_sessions
+        WHEN EXISTS(SELECT 1 FROM research_provider_sessions WHERE id=NEW.id OR dispatch_id=NEW.dispatch_id OR permit_id=NEW.permit_id)
+        BEGIN SELECT RAISE(ABORT,'provider session replacement forbidden'); END""",
+    """CREATE TRIGGER research_provider_return_immutable BEFORE UPDATE OF financial_return_json,return_digest,received_at ON research_provider_sessions
+        WHEN OLD.financial_return_json IS NOT NULL AND (NEW.financial_return_json IS NOT OLD.financial_return_json OR NEW.return_digest IS NOT OLD.return_digest OR NEW.received_at IS NOT OLD.received_at)
+        BEGIN SELECT RAISE(ABORT,'provider financial return immutable'); END""",
+)
+
 
 class ResearchStore:
     def __init__(self, auth_store):
@@ -311,7 +374,7 @@ class ResearchStore:
         with self.transaction(write=True) as conn:
             conn.execute(SCHEMA[0])
             row = conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()
-            if row is not None and row["version"] not in (1, 2, 3, 4, 5):
+            if row is not None and row["version"] not in (1, 2, 3, 4, 5, 6):
                 raise ResearchError("SCHEMA_UNSUPPORTED", 503, "研究数据版本暂不支持。")
             for statement in SCHEMA[1:]:
                 conn.execute(statement)
@@ -334,6 +397,7 @@ class ResearchStore:
             conn.execute("INSERT INTO research_schema VALUES(1,3) ON CONFLICT(id) DO NOTHING")
         self._migrate_v4()
         self._migrate_v5()
+        self._migrate_v6()
 
     def _migrate_v4(self):
         """Controlled SQLite table replacement, never an application session.
@@ -352,7 +416,7 @@ class ResearchStore:
             conn.execute("BEGIN IMMEDIATE")
             self.auth_store.check_gate_policy(conn)
             version=conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0]
-            if version in (4,5):
+            if version in (4,5,6):
                 from .source_integration import install_schema
                 install_schema(conn,existing_required=True)
                 conn.commit();return
@@ -425,6 +489,8 @@ class ResearchStore:
             conn.execute("BEGIN IMMEDIATE")
             self.auth_store.check_gate_policy(conn)
             version=conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0]
+            if version==6:
+                conn.commit();return
             if version==5:
                 self._check_v5(conn)
                 conn.commit();return
@@ -482,6 +548,65 @@ class ResearchStore:
             row=conn.execute("SELECT sql FROM sqlite_schema WHERE name=?",(name,)).fetchone()
             if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):
                 raise ResearchError("SCHEMA_UNSUPPORTED",503,"账本控制结构不匹配。")
+
+    def _migrate_v6(self):
+        conn=sqlite3.connect(self.path,timeout=5,isolation_level=None);conn.row_factory=sqlite3.Row
+        try:
+            conn.execute("PRAGMA foreign_keys=OFF")
+            if conn.execute("PRAGMA foreign_keys").fetchone()[0]!=0:raise ResearchError("SCHEMA_UNSUPPORTED",503,"生产者迁移连接配置失败。")
+            conn.execute("BEGIN IMMEDIATE");self.auth_store.check_gate_policy(conn)
+            version=conn.execute("SELECT version FROM research_schema").fetchone()[0]
+            if version==6:
+                self._check_v6(conn);conn.commit();return
+            if version!=5:raise ResearchError("SCHEMA_UNSUPPORTED",503,"生产者迁移版本不支持。")
+            self._check_v5(conn)
+            allowed={}
+            for ddl in (*V5_AUX,*V5_GUARDS,*[s for s in C0_SCHEMA if s.startswith('CREATE UNIQUE INDEX')]):
+                tokens=ddl.split();name=tokens[3] if ddl.startswith('CREATE UNIQUE INDEX') else tokens[2]
+                if name=='IF':name=tokens[6]
+                allowed[name]=ddl
+            for table in V6_SCHEMA:
+                for item in conn.execute("SELECT name,sql FROM sqlite_schema WHERE tbl_name=? AND type IN ('index','trigger') AND sql IS NOT NULL",(table,)):
+                    if item['name'] not in allowed or self._normalize_sql(item['sql'])!=self._normalize_sql(allowed[item['name']]):
+                        raise ResearchError('SCHEMA_UNSUPPORTED',503,'生产者旧表附属结构不一致。')
+            for name in ('research_paid_approvals','research_provider_sessions'):
+                if conn.execute("SELECT 1 FROM sqlite_schema WHERE name=?",(name,)).fetchone():raise ResearchError("SCHEMA_UNSUPPORTED",503,"生产者结构不一致。")
+            for name,ddl in V6_SCHEMA.items():
+                clean=ddl.replace("CREATE TABLE IF NOT EXISTS ","CREATE TABLE ",1)
+                conn.execute(clean.replace("CREATE TABLE "+name,"CREATE TABLE "+name+"_v6",1))
+                columns=",".join('"'+r['name']+'"' for r in conn.execute(f"PRAGMA table_info({name})"))
+                conn.execute(f"INSERT INTO {name}_v6 ({columns}) SELECT {columns} FROM {name}")
+            for name in reversed(tuple(V6_SCHEMA)):conn.execute(f"DROP TABLE {name}")
+            for name in V6_SCHEMA:conn.execute(f"ALTER TABLE {name}_v6 RENAME TO {name}")
+            for ddl in PRODUCER_DDL:conn.execute(ddl)
+            # Replace policy predicates by explicit v6 definitions; never
+            # reinterpret an old row's immutable policy or historical amount.
+            for ddl in (*V5_AUX,*V5_GUARDS):
+                name=ddl.split()[3] if ddl.startswith('CREATE UNIQUE INDEX') else ddl.split()[2]
+                conn.execute('DROP '+('INDEX' if ddl.startswith('CREATE UNIQUE INDEX') else 'TRIGGER')+' IF EXISTS '+name)
+            for ddl in (*V6_AUX,*V5_GUARDS):conn.execute(ddl)
+            for ddl in C0_SCHEMA:
+                if ddl.startswith('CREATE UNIQUE INDEX'):conn.execute(ddl)
+            if conn.execute('PRAGMA foreign_key_check').fetchall():raise ResearchError('SCHEMA_UNSUPPORTED',503,'生产者迁移关联校验失败。')
+            conn.execute('UPDATE research_schema SET version=6 WHERE id=1');self._check_v6(conn);conn.commit()
+        except Exception:conn.rollback();raise
+        finally:
+            try:
+                conn.execute('PRAGMA foreign_keys=ON')
+                if conn.execute('PRAGMA foreign_keys').fetchone()[0]!=1:raise ResearchError('SCHEMA_UNSUPPORTED',503,'生产者连接恢复失败。')
+            finally:conn.close()
+
+    @classmethod
+    def _check_v6(cls,conn):
+        tables={**V5_SCHEMA,**V6_SCHEMA}
+        tables.update({ddl.split()[2]:ddl for ddl in PRODUCER_DDL})
+        for name,ddl in tables.items():
+            row=conn.execute('SELECT sql FROM sqlite_schema WHERE name=? AND type=\'table\'',(name,)).fetchone()
+            if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):raise ResearchError('SCHEMA_UNSUPPORTED',503,'生产者结构不匹配。')
+        for ddl in (*V6_AUX,*V5_GUARDS):
+            name=ddl.split()[3] if ddl.startswith('CREATE UNIQUE INDEX') else ddl.split()[2]
+            row=conn.execute('SELECT sql FROM sqlite_schema WHERE name=?',(name,)).fetchone()
+            if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):raise ResearchError('SCHEMA_UNSUPPORTED',503,'生产者控制结构不匹配。')
 
     @contextmanager
     def transaction(self, *, write=False):

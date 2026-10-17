@@ -370,3 +370,26 @@ def cost_intent(permit, price, basis, usage, *, response_digest=None):
         kind='estimated_upper' if usage else 'unknown', reserved_upper=upper,
         booked_upper=upper if usage else None, usage_priced_estimate=estimate,
         price_revision=price.revision, basis_digest=digest(canonical(basis.model_dump())))
+
+
+class OfflineTransportLimits(DTO):
+    """Token validation limits, deliberately not a price or budget quote."""
+    c_bound:Annotated[StrictInt,Field(ge=1048576,le=2147483647)]
+    o_bound:Annotated[StrictInt,Field(ge=4096,le=4096)] = 4096
+    expected_fingerprint_digest:Digest | None = None
+
+
+class OfflineTransportReturn(DTO):
+    """Received data only; ordinary construction grants no source authority."""
+    execution_mode:Literal['offline_probe'] = 'offline_probe'
+    context:CallContext
+    dispatch_id:Id
+    request_digest:Digest
+    evidence_digest:Digest
+    response_digest:Digest | None
+    response_model:Literal['deepseek-flash'] | None
+    provider_ref:Annotated[str,StringConstraints(strict=True,pattern=r'^[a-zA-Z0-9._:-]{1,120}$')] | None
+    fingerprint_digest:Digest | None
+    usage:UsageObservation | None
+    candidate:Annotated[str,StringConstraints(strict=True,max_length=32768)] | None = Field(repr=False)
+    safe_code:Literal['ok','body_invalid','access_ended','response_unknown','usage_unknown','usage_over_bound','model_drift','deadline','response_limit','send_unknown']

@@ -901,3 +901,436 @@ def test_late_cancel_receipt_cannot_replace_newer_same_revision_task(c0_server):
         finally:
             for route,_ in held:route.abort()
             context.close();browser.close()
+
+
+# Research-entry coverage uses the real mounted API/auth/SQLite. Only the
+# unrelated KB endpoint is replaced in these tests; this proves UI handling,
+# never KB retrieval quality. Held research receipts always come from route.fetch.
+def _entry_create(context, base, number):
+    from uuid import uuid4
+    problem = {"entry":"phenomenon", "original_input":f"真实保存流程使用的合成现象 {number}",
+               "objective":"验证保存和恢复，不构成真实研究", "summary":f"列表研究 {number} 的合成问题摘要",
+               "variables":[], "constraints":[], "unknowns":[], "confirmed":True}
+    response = context.request.post(base+"/api/research", headers={"Origin":base,"Idempotency-Key":str(uuid4())},
+                                    data={"schema_version":"structure-research-v1","contract_revision":"b1-candidate-01","data":{"problem":problem}})
+    assert response.status == 200, response.text()
+    return response.json()["data"]
+
+
+def test_entry_original_draft_kb_and_real_saved_source_chain(server):
+    from web.backend.tests.source_http_fixture import source_server
+    server["stop"](server["process"]); server["start"](d1_sources=True)
+    with source_server() as (port, calls), sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        context = browser.new_context(viewport={"width":430,"height":900})
+        try:
+            base=server["base"]; login(context,base)
+            page=context.new_page(); seen=[]
+            def kb(route):
+                seen.append(route.request.post_data_json)
+                route.fulfill(json={"results":[{"id":"queue","name":"合成排队线索","domain":"运筹","description":"变量映射尚待核验","score":.99,"relevance":.99}]})
+            page.route("**/api/search", kb)
+            page.goto(base+"/research")
+            expect(page.locator("#problem-form")).to_be_visible()
+            expect(page.locator("#research-list-status")).to_contain_text("还没有")
+            original="午间窗口等待时间逐渐增加，需要解释这个现象"
+            page.locator("#original-input").fill(original)
+            expect(page.locator("#summary")).to_have_value(original)
+            expect(page.locator("#confirmed")).not_to_be_checked()
+            long_original="长"*1001
+            page.locator("#original-input").fill(long_original)
+            expect(page.locator("#summary")).to_have_value("")
+            expect(page.locator("#summary-hint")).to_contain_text("不会截断")
+            expect(page.locator("#original-input")).to_have_value(long_original)
+            page.locator("#summary").fill("用户自行填写的摘要不会被后续原文覆盖")
+            page.locator("#original-input").fill(original)
+            expect(page.locator("#summary")).to_have_value("用户自行填写的摘要不会被后续原文覆盖")
+            assert seen==[] and calls==[]
+            page.locator("#objective").fill("缩短等待；私有目标不进入来源查询")
+            before=page.locator("#problem-form").evaluate("f=>Array.from(f.querySelectorAll('textarea,select')).map(e=>[e.id,e.value])")
+            page.locator("#kb-search").click()
+            expect(page.locator("#kb-results article")).to_have_count(1)
+            assert seen==[{"query":original,"top_k":12,"rewrite":False,"lang":"zh"}]
+            assert page.locator("#problem-form").evaluate("f=>Array.from(f.querySelectorAll('textarea,select')).map(e=>[e.id,e.value])")==before
+            assert "99%" not in page.locator("#kb-results").inner_text()
+            expect(page.locator("#kb-status")).to_contain_text("待核验")
+            page.locator("#confirmed").check(); page.locator("#save").click()
+            expect(page.locator("#status")).to_contain_text("已保存修订 1")
+            expect(page.locator("#research-list-items a")).to_have_count(1)
+            link=page.locator("#research-list-items a")
+            assert link.get_attribute("target")=="_blank" and "noopener" in link.get_attribute("rel")
+            with context.expect_page() as opened: link.click()
+            reopened=opened.value
+            expect(reopened.locator("#original-input")).to_have_value(original)
+            assert reopened.evaluate("window.opener===null")
+            reopened.close()
+            page.locator("#source-query").fill("queue theory")
+            with page.expect_request("**/source-preview") as preview: page.locator("#source-preview").click()
+            expect(page.locator("#source-status")).to_contain_text("尚未开始读取")
+            assert preview.value.post_data_json["data"]["query"]=="queue theory" and calls==[]
+            expect(page.locator("#source-plan")).to_contain_text("最多读取 4 次 GET")
+            assert original not in page.locator("#source-plan").inner_text()
+            plan=page.locator("#source-plan").inner_text()
+            page.locator("#research-list-refresh").click()
+            expect(page.locator("#research-list-status")).to_contain_text("已读取 1")
+            expect(page.locator("#source-plan")).to_have_text(plan)
+            expect(page.locator("#source-confirm")).to_be_visible()
+            assert calls==[]
+            page.locator("#source-confirm").click()
+            expect(page.locator("#source-status")).to_contain_text("已排队")
+            task=context.request.get(base+"/api"+page.url.split(base)[1]).json()["data"]["task"]["id"]
+            worker=server["run_source_worker"](task,port)
+            assert worker.returncode==0 and worker.stdout.strip()=="COMPLETED" and calls==["/discovery","/article"]
+            page.locator("#source-refresh").click()
+            expect(page.locator("#source-records article")).to_have_count(4)
+            assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")
+            for selector in ("#kb-search","#save","#research-list-refresh","#research-list-items a","#source-preview"):
+                assert page.locator(selector).first.bounding_box()["height"]>=44
+            page.locator("#kb-search").focus()
+            assert page.locator("#kb-search").evaluate("e=>document.activeElement===e")
+            page.screenshot(path=str(server["root"] / "entry-mobile.png"),full_page=True)
+        finally: context.close(); browser.close()
+
+
+def test_entry_kb_input_generations_and_revocation_reject_late_results(server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch(); context=browser.new_context(); held=[]
+        try:
+            base=server["base"]; login(context,base)
+            page=context.new_page(); page.goto(base+"/research")
+            expect(page.locator("#problem-form")).to_be_visible()
+            def kb(route):
+                if route.request.post_data_json["query"]=="现象 A 的旧请求需要延迟": held.append(route)
+                else: route.fulfill(json={"results":[{"name":"现象 B 的新线索","domain":"本地","description":"仅界面合成数据"}]})
+            page.route("**/api/search",kb)
+            page.locator("#original-input").fill("现象 A 的旧请求需要延迟"); page.locator("#kb-search").click()
+            page.wait_for_function("document.querySelector('#kb-search').disabled")
+            # Let Playwright receive the outbound request before changing input.
+            page.wait_for_timeout(100)
+            assert len(held)==1
+            page.locator("#original-input").fill("现象 B 的当前输入保持不变"); page.locator("#kb-search").click()
+            expect(page.locator("#kb-results")).to_contain_text("现象 B")
+            held.pop().fulfill(json={"results":[{"name":"现象 A 旧线索不得出现"}]})
+            expect(page.locator("#kb-results")).to_contain_text("现象 B")
+            assert "现象 A" not in page.locator("#kb-results").inner_text()
+            page.locator("#original-input").fill("现象 A 的旧请求需要延迟"); page.locator("#kb-search").click()
+            page.wait_for_timeout(100); assert len(held)==1
+            context.request.post(base+"/api/auth/logout",headers={"Origin":base})
+            page.locator("#research-list-refresh").click()
+            expect(page.locator("#problem-form")).to_be_hidden()
+            expect(page.locator("#my-research")).to_be_hidden()
+            held.pop().fulfill(json={"results":[{"name":"撤权后禁止复现的线索"}]})
+            expect(page.locator("#kb-results article")).to_have_count(0)
+            assert "撤权后禁止复现" not in page.locator("body").inner_text()
+        finally:
+            for route in held: route.abort()
+            context.close(); browser.close()
+
+
+def test_entry_index_real_pagination_invalid_cursor_and_late_receipt(server):
+    from uuid import uuid4
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch(); context=browser.new_context(); held=[]
+        try:
+            base=server["base"]; login(context,base)
+            for number in range(22): _entry_create(context,base,number)
+            page=context.new_page(); page.goto(base+"/research")
+            expect(page.locator("#research-list-items article")).to_have_count(20)
+            page.locator("#original-input").fill("当前尚未保存的问题，分页必须完整保留")
+            page.locator("#summary").fill("分页不应改写的自定义摘要")
+            before=page.locator("#original-input").input_value()
+            with page.expect_response(re.compile(r"/api/research\?limit=20&cursor=")) as next_page:
+                page.locator("#research-list-more").click()
+            assert next_page.value.status==200 and next_page.value.json()["data"]["next_cursor"] is None
+            expect(page.locator("#research-list-items article")).to_have_count(22)
+            expect(page.locator("#original-input")).to_have_value(before)
+            page.locator("#research-list-refresh").click()
+            expect(page.locator("#research-list-items article")).to_have_count(20)
+            anchor_href=page.locator("#research-list-items a").last.get_attribute("href")
+            anchor=context.request.get(base+"/api"+anchor_href).json()["data"]
+            problem=dict(anchor["current_problem"])
+            problem={key:problem[key] for key in ("entry","original_input","objective","summary","variables","constraints","unknowns","confirmed")}
+            problem["summary"]="分页锚点实际被修改，原游标应失效"
+            changed=context.request.post(base+"/api"+anchor_href+"/revisions",headers={"Origin":base,"Idempotency-Key":str(uuid4())},data={"schema_version":"structure-research-v1","contract_revision":"b1-candidate-01","data":{"expected_revision":anchor["current_problem"]["revision"],"problem":problem}})
+            assert changed.status==200,changed.text()
+            page.locator("#research-list-more").click()
+            expect(page.locator("#research-list-status")).to_contain_text("分页位置失效")
+            expect(page.locator("#research-list-items article")).to_have_count(0)
+            expect(page.locator("#original-input")).to_have_value(before)
+            page.locator("#research-list-refresh").click()
+            expect(page.locator("#research-list-items article")).to_have_count(20)
+            def hold_page(route):
+                response=route.fetch(); assert response.status==200
+                held.append((route,response))
+            page.route("**/api/research?limit=20&cursor=*",hold_page,times=1)
+            page.locator("#research-list-more").click()
+            page.wait_for_timeout(100); assert len(held)==1
+            page.locator("#research-list-refresh").click()
+            expect(page.locator("#research-list-items article")).to_have_count(20)
+            expect(page.locator("#research-list-status")).to_contain_text("已读取 20")
+            route,response=held.pop();route.fulfill(response=response)
+            expect(page.locator("#research-list-items article")).to_have_count(20)
+            expect(page.locator("#summary")).to_have_value("分页不应改写的自定义摘要")
+        finally:
+            for route,_ in held: route.abort()
+            context.close(); browser.close()
+
+
+def test_entry_list_reopen_preserves_unknown_save_and_late_auth_list(server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();held=[]
+        try:
+            base=server["base"];login(context,base)
+            _entry_create(context,base,"先前研究")
+            page=context.new_page();page.goto(base+"/research")
+            expect(page.locator("#research-list-items article")).to_have_count(1)
+            fill(page,"保存回执未知时仍需保留完整原始输入")
+            keys=[]
+            def lose(route):
+                response=route.fetch(); assert response.status==200
+                keys.append(route.request.headers["idempotency-key"]);route.abort("failed")
+            page.route("**/api/research",lose,times=1)
+            page.locator("#save").click()
+            expect(page.locator("#status")).to_contain_text("尚未确认")
+            pending=page.evaluate("sessionStorage.getItem('structure-research-pending:new')")
+            page.locator("#research-list-refresh").click()
+            expect(page.locator("#research-list-items article")).to_have_count(2)
+            with context.expect_page() as reopened:page.locator("#research-list-items a").first.click()
+            expect(reopened.value.locator("#problem-form")).to_be_visible()
+            reopened.value.close()
+            expect(page.locator("#original-input")).to_have_value("保存回执未知时仍需保留完整原始输入")
+            assert page.evaluate("sessionStorage.getItem('structure-research-pending:new')")==pending
+            with page.expect_request("**/api/research") as replay:page.locator("#save").click()
+            expect(page.locator("#status")).to_contain_text("已保存修订 1")
+            assert replay.value.headers["idempotency-key"]==keys[0]
+            with sqlite3.connect(server["path"]) as conn:assert conn.execute("SELECT count(*) FROM research_controls").fetchone()[0]==2
+            expect(page.locator("#research-list-status")).to_contain_text("已读取 2")
+            def hold_index(route):
+                response=route.fetch();assert response.status==200
+                held.append((route,response))
+            page.route("**/api/research?limit=20",hold_index,times=1)
+            page.locator("#research-list-refresh").click()
+            page.wait_for_timeout(100);assert len(held)==1
+            context.request.post(base+"/api/auth/logout",headers={"Origin":base})
+            page.locator("#reload").click()
+            expect(page.locator("#problem-form")).to_be_hidden()
+            route,response=held.pop();route.fulfill(response=response)
+            expect(page.locator("#research-list-items article")).to_have_count(0)
+            expect(page.locator("#my-research")).to_be_hidden()
+        finally:
+            for route,_ in held:route.abort()
+            context.close();browser.close()
+
+
+def test_entry_kb_unavailable_is_honest_and_account_switch_clears_private_view(server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server["base"];login(context,base)
+            _entry_create(context,base,"账户 A")
+            page=context.new_page();page.goto(base+"/research")
+            expect(page.locator("#research-list-items article")).to_have_count(1)
+            page.locator("#original-input").fill("不应启动收费兜底的原始现象")
+            page.route("**/api/search",lambda route:route.fulfill(status=503,json={"detail":{"code":"FEATURE_DISABLED","message":"<img src=x onerror=alert(1)>"}}))
+            page.locator("#kb-search").click()
+            expect(page.locator("#kb-status")).to_contain_text("未启动模型或收费研究")
+            expect(page.locator("#original-input")).to_have_value("不应启动收费兜底的原始现象")
+            assert "<img" not in page.locator("#kb-status").inner_text()
+            login(context,base,"browser-b@example.test")
+            page.locator("#research-list-refresh").click()
+            expect(page.locator("#problem-form")).to_be_hidden()
+            expect(page.locator("#research-list-items article")).to_have_count(0)
+            expect(page.locator("#status")).to_contain_text("账户已变化")
+        finally:context.close();browser.close()
+
+
+def test_entry_changed_source_query_rejects_held_real_preview(server):
+    server["stop"](server["process"]);server["start"](d1_sources=True)
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();held=[]
+        try:
+            base=server["base"];login(context,base)
+            page=context.new_page();page.goto(base+"/research")
+            fill(page);page.locator("#confirmed").check();page.locator("#save").click()
+            expect(page.locator("#status")).to_contain_text("已保存修订 1")
+            def hold(route):
+                response=route.fetch();assert response.status==200
+                held.append((route,response))
+            page.route("**/source-preview",hold,times=1)
+            page.locator("#source-query").fill("queue theory")
+            page.locator("#source-preview").click()
+            page.wait_for_timeout(100);assert len(held)==1
+            page.locator("#source-query").fill("network theory")
+            route,response=held.pop()
+            with page.expect_response("**/source-preview"):route.fulfill(response=response)
+            expect(page.locator("#source-preview")).to_be_enabled()
+            expect(page.locator("#source-plan")).to_have_text("")
+            expect(page.locator("#source-confirm")).to_be_hidden()
+            page.locator("#source-preview").click()
+            expect(page.locator("#source-plan")).to_contain_text("network theory")
+            assert "queue theory" not in page.locator("#source-plan").inner_text()
+            assert context.request.get(base+"/api"+page.url.split(base)[1]).json()["data"]["task"] is None
+        finally:
+            for route,_ in held:route.abort()
+            context.close();browser.close()
+
+
+@pytest.mark.parametrize("fault,action",[
+    ("503","list"),("503","kb"),("503","reload"),
+    ("500","list"),("403","list"),("404","list"),("409","list"),
+    ("network","list"),("bad-json","list"),("bad-user","list"),("ok-false","list"),
+])
+def test_entry_auth_uncertain_preserves_unknown_draft_and_stops_chain(server,fault,action):
+    """Fault only one /auth/me receipt; auth, commits and recovery stay real."""
+    server["stop"](server["process"]);server["start"](d1_sources=True)
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server["base"];login(context,base)
+            saved=_entry_create(context,base,"账户暂时无法核对的对照")
+            research=saved["research"]["id"]
+            page=context.new_page();page.goto(base+"/research/"+research)
+            expect(page.locator("#research-list-status")).to_contain_text("已读取 1")
+            fill(page,"暂时核对失败时必须完整保留的未确认提交原文")
+            page.locator("#summary").fill("人工编辑的摘要不能因服务暂时不可用而销毁")
+            page.locator("#confirmed").check()
+            page.locator("#source-query").fill("queue theory")
+            keys=[]
+            def lose_commit_receipt(route):
+                response=route.fetch();assert response.status==200
+                keys.append(route.request.headers["idempotency-key"])
+                route.abort("failed")
+            page.route("**/api/research/*/revisions",lose_commit_receipt,times=1)
+            page.locator("#save").click()
+            expect(page.locator("#status")).to_contain_text("尚未确认")
+            snapshot=page.locator("#problem-form").evaluate("f=>Array.from(f.querySelectorAll('input,textarea,select')).map(e=>[e.id,e.value,e.checked])")
+            slot="structure-research-pending:"+research
+            pending=page.evaluate("slot=>sessionStorage.getItem(slot)",slot)
+            assert json.loads(pending)["key"]==keys[0]
+            private_calls=[];checks=[]
+            def observe(request):
+                path=request.url.split(base)[-1]
+                if path=="/api/auth/me":checks.append(path)
+                elif path.startswith(("/api/search","/api/research")):private_calls.append(path)
+            page.on("request",observe)
+            def fail_auth_receipt(route):
+                real=route.fetch();assert real.status==200
+                if fault=="network":route.abort("failed")
+                elif fault=="bad-json":route.fulfill(status=200,content_type="application/json",body="{")
+                elif fault=="bad-user":route.fulfill(json={"ok":True,"user":{"email":"browser-a@example.test","created_at":{}}})
+                elif fault=="ok-false":route.fulfill(json={"ok":False,"user":{"email":"browser-a@example.test","created_at":"invalid-placeholder"}})
+                else:route.fulfill(status=int(fault),json={"ok":False,"error":"auth unavailable"})
+            page.route("**/api/auth/me",fail_auth_receipt,times=1)
+            page.locator({"list":"#research-list-refresh","kb":"#kb-search","reload":"#reload"}[action]).click()
+            expect(page.locator("#status")).to_contain_text("账户状态暂时无法核对")
+            expect(page.locator("#problem-form")).to_be_visible()
+            expect(page.locator("#save")).to_be_enabled()
+            assert page.locator("#problem-form").evaluate("f=>Array.from(f.querySelectorAll('input,textarea,select')).map(e=>[e.id,e.value,e.checked])")==snapshot
+            expect(page.locator("#source-query")).to_have_value("queue theory")
+            assert page.evaluate("slot=>sessionStorage.getItem(slot)",slot)==pending
+            page.wait_for_timeout(80)
+            assert private_calls==[] and len(checks)==1
+            # The same canonical session is valid; no retry occurred until the
+            # test explicitly asks for recovery, including the original key.
+            assert context.request.get(base+"/api/auth/me").status==200
+            page.locator("#research-list-refresh").click()
+            expect(page.locator("#research-list-status")).to_contain_text("已读取 1")
+            assert page.evaluate("slot=>sessionStorage.getItem(slot)",slot)==pending
+            with page.expect_request("**/api/research/*/revisions") as replay:page.locator("#save").click()
+            expect(page.locator("#status")).to_contain_text("已保存修订 2")
+            assert replay.value.headers["idempotency-key"]==keys[0]
+            with sqlite3.connect(server["path"]) as conn:
+                assert conn.execute("SELECT count(*) FROM research_revisions WHERE research_id=?",(research,)).fetchone()[0]==2
+        finally:context.close();browser.close()
+
+
+def test_entry_auth_real_401_clears_private_draft_and_stops_chain(server):
+    server["stop"](server["process"]);server["start"](d1_sources=True)
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server["base"];login(context,base)
+            saved=_entry_create(context,base,"真实失权清理对照")
+            page=context.new_page();page.goto(base+"/research/"+saved["research"]["id"])
+            expect(page.locator("#research-list-status")).to_contain_text("已读取 1")
+            page.locator("#source-query").fill("queue theory");page.locator("#source-preview").click()
+            expect(page.locator("#source-confirm")).to_be_visible()
+            fill(page,"真实失权后不能继续展示的私有原文")
+            page.locator("#summary").fill("真实失权后需要清空的人工摘要")
+            context.request.post(base+"/api/auth/logout",headers={"Origin":base})
+            assert context.request.get(base+"/api/auth/me").status==401
+            calls=[]
+            page.on("request",lambda request:calls.append(request.url) if request.url.startswith((base+"/api/research",base+"/api/search")) else None)
+            page.locator("#research-list-refresh").click()
+            expect(page.locator("#status")).to_contain_text("账户访问已失效")
+            expect(page.locator("#problem-form")).to_be_hidden()
+            expect(page.locator("#original-input")).to_have_value("")
+            expect(page.locator("#summary")).to_have_value("")
+            expect(page.locator("#confirmed")).not_to_be_checked()
+            expect(page.locator("#source-plan")).to_have_text("")
+            expect(page.locator("#research-list-items article")).to_have_count(0)
+            expect(page.locator("#kb-results article")).to_have_count(0)
+            assert calls==[]
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('viewport',[{'width':1280,'height':900},{'width':430,'height':932}])
+def test_source_reopen_explains_explicit_read_without_losing_draft_or_refetching_provider(server,viewport):
+    """Real auth/store/Source worker; only Source transport uses the loopback fixture."""
+    from urllib.parse import urlsplit
+    from web.backend.tests.source_http_fixture import source_server
+    server['stop'](server['process']);server['start'](d1_sources=True)
+    with source_server() as (port,calls),sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context(viewport=viewport)
+        try:
+            base=server['base'];login(context,base)
+            page=context.new_page();page.goto(base+'/research')
+            fill(page);page.locator('#confirmed').check();page.locator('#save').click()
+            expect(page.locator('#status')).to_contain_text('已保存修订 1')
+            page.locator('#source-query').fill('queue theory');page.locator('#source-preview').click()
+            expect(page.locator('#source-confirm')).to_be_visible()
+            expect(page.locator('#source-status')).to_contain_text('预览完成')
+            expect(page.locator('#source-reopen-hint')).to_be_visible()
+            expect(page.locator('#source-plan')).to_contain_text('queue theory')
+            assert page.locator('#source-reopen-hint').get_attribute('role') is None and calls==[]
+            page.locator('#source-confirm').click()
+            expect(page.locator('#source-status')).to_contain_text('已排队')
+            view=base+'/api'+urlsplit(page.url).path
+            task=context.request.get(view).json()['data']['task']['id']
+            worker=server['run_source_worker'](task,port)
+            assert worker.returncode==0 and worker.stdout.strip()=='COMPLETED'
+            assert calls==['/discovery','/article']
+            page.locator('#source-refresh').click()
+            expect(page.locator('#source-records article')).to_have_count(4)
+            with sqlite3.connect(server['path']) as conn:
+                before=conn.execute('SELECT count(*) FROM research_tasks').fetchone()[0]
+            requests=[]
+            page.on('request',lambda request:requests.append((request.method,urlsplit(request.url).path)))
+            page.reload()
+            expect(page.locator('#task-phase')).to_contain_text('来源整理结束')
+            expect(page.locator('#source-records article')).to_have_count(0)
+            expect(page.locator('#source-status')).to_have_text('')
+            expect(page.locator('#source-reopen-hint')).to_contain_text('尚未读取不代表没有记录')
+            button=page.get_by_role('button',name='核对并读取已保存来源笔记',exact=True)
+            expect(button).to_be_visible()
+            expect(button).to_have_attribute('aria-describedby','source-reopen-hint')
+            assert not any('/records' in path or method=='POST' for method,path in requests)
+            page.locator('#original-input').fill('重开之后手写且尚未保存的新现象输入')
+            page.locator('#summary').fill('重开之后手写且尚未保存的摘要需要保留')
+            page.locator('#confirmed').uncheck()
+            button.focus();page.keyboard.press('Enter')
+            expect(page.locator('#source-records article')).to_have_count(4)
+            assert set(page.locator('#source-records h3').all_text_contents())=={'来源','短摘录','待验证判断','研究缺口'}
+            expect(page.locator('#source-status')).to_contain_text('已从账户读取来源与笔记')
+            expect(page.locator('#original-input')).to_have_value('重开之后手写且尚未保存的新现象输入')
+            expect(page.locator('#summary')).to_have_value('重开之后手写且尚未保存的摘要需要保留')
+            expect(page.locator('#confirmed')).not_to_be_checked()
+            assert calls==['/discovery','/article']
+            assert context.request.get(view).json()['data']['task']['id']==task
+            assert not any(method=='POST' for method,_path in requests)
+            with sqlite3.connect(server['path']) as conn:
+                assert conn.execute('SELECT count(*) FROM research_tasks').fetchone()[0]==before
+            assert button.bounding_box()['height']>=44
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+            page.screenshot(path=str(server['root'] / 'source-reopen-explicit-read.png'),full_page=True)
+        finally:context.close();browser.close()

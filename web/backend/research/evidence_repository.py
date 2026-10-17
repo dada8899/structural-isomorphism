@@ -141,6 +141,38 @@ class EvidenceRepository:
             permission_basis_digest=sha256(canonical({"policy":"plos-ccby-subset-eligibility-v1","basis":licence.basis,
                 "raw_digest":snapshot.raw_digest,"discovery_digest":snapshot.discovery_digest,"read_scope":"author_narrative_subset"}).encode()))
 
+    def confirmed_provider_handle(self,context,excerpt_id,authority,handle):
+        """New consent-only port; the CP1 candidate path remains unchanged."""
+        from .paid_approval import PaidPacketAuthority
+        if type(authority) is not PaidPacketAuthority:raise PermissionError('actual paid consent required')
+        binding=authority.require(self.conn,'packet')
+        if excerpt_id not in binding.source_refs or context.research_id!=binding.research_id or context.input_revision!=binding.input_revision:
+            raise PermissionError('paid source binding mismatch')
+        candidate=self.provider_eligibility(context,excerpt_id)
+        excerpt,_,_=self._get(context,'excerpts',excerpt_id)
+        snapshot,raw,extracted=self._get(context,'snapshots',excerpt.snapshot_id)
+        from .source_policy import decompress
+        from .provider_evidence import complete_attribution
+        from .provider_schemas import EvidenceHandle
+        attribution=complete_attribution(decompress(raw,'gzip' if raw.startswith(b'\x1f\x8b') else 'identity'),snapshot)
+        return EvidenceHandle(handle=handle,source_id=candidate.source_id,source_revision=candidate.source_revision,
+            excerpt_id=excerpt_id,title=candidate.title,attribution=attribution,extracted_digest=candidate.extracted_digest,
+            extracted_text=extracted,start=candidate.start,end=candidate.end,quote=candidate.quote,
+            display_permission=True,may_send_to_provider=True)
+
+    def preview_provider_handle(self,context,excerpt_id,handle):
+        """Read complete credit as display data, never an approved handle."""
+        candidate=self.provider_eligibility(context,excerpt_id)
+        excerpt,_,_=self._get(context,'excerpts',excerpt_id)
+        snapshot,raw,_=self._get(context,'snapshots',excerpt.snapshot_id)
+        from .source_policy import decompress
+        from .provider_evidence import complete_attribution
+        from .preview_codec import PreviewOutboundHandle
+        attribution=complete_attribution(decompress(raw,'gzip' if raw.startswith(b'\x1f\x8b') else 'identity'),snapshot)
+        return candidate,PreviewOutboundHandle(handle=handle,source_id=candidate.source_id,source_revision=candidate.source_revision,
+            excerpt_id=excerpt_id,title=candidate.title,attribution=attribution,extracted_digest=candidate.extracted_digest,
+            start=candidate.start,end=candidate.end,quote=candidate.quote)
+
     def _permissions(self, context, record, *, export=False):
         snapshots = []
         if type(record) is DataSnapshot:

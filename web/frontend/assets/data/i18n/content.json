@@ -1,4 +1,11 @@
 {
+  "page.home.entry_title": {"zh": "从你的现象，开始研究", "en": "Start with a phenomenon"},
+  "page.home.entry_description": {"zh": "先描述观察到的现象和希望解决的问题，再核对草稿、保存修订，按需查找线索与来源。不必先知道数学方法或英文术语。", "en": "Describe what you observe and what you want to solve. Review the draft, save revisions, and look for clues and sources when needed. No mathematical method or English terminology is required to begin."},
+  "page.home.entry_scope": {"zh": "当前提供问题记录、本地知识库线索与经批准的来源查询；模型分析和深度研究结论尚未开放。", "en": "You can save problems, search local knowledge clues, and approve source queries. Model analysis and deep research conclusions are not available yet."},
+  "page.home.entry_cta": {"zh": "开始研究", "en": "Start research"},
+  "page.home.entry_kb_cta": {"zh": "查找本地知识库线索", "en": "Find local knowledge clues"},
+  "page.home.entry_kb_hint": {"zh": "知识库内容是待核验的研究线索，不能直接作为解题结论；数学对应关系与适用条件仍需逐项核对。进入研究页后重新输入；这里不会自动传递私有问题。", "en": "Knowledge records are unverified research clues. Check mathematical correspondences and applicability before drawing conclusions for your problem. Enter your problem again on the research page; private input is not transferred automatically."},
+  "page.home.entry_legacy": {"zh": "旧 AI 报告入口已停用。已有资料和旧工具仍可按历史入口查看。", "en": "The old AI report entry is retired. Existing references and legacy tools remain accessible through their historical links."},
   "page.about.eyebrow": {
     "zh": "— 关于 Structural —",
     "en": "— About Structural —"
@@ -2586,5 +2593,17 @@
   "page.discoveries.retry": {
     "zh": "重试",
     "en": "Retry"
+  },
+  "page.search.retired_comparison_status": {
+    "zh": "旧候选比较暂不可用；当前仅为本地排序结果",
+    "en": "Legacy candidate comparison is unavailable; these are local ranking results only."
+  },
+  "page.search.research_no_transfer": {
+    "zh": "本页问题不会自动带入研究页。请重新输入、确认后保存。",
+    "en": "Your question is not transferred to the research page. Re-enter, confirm and save it there."
+  },
+  "page.search.research_new_problem": {
+    "zh": "前往研究记录（需重新输入并保存）",
+    "en": "Open research records (re-enter and save your question)"
   }
 }

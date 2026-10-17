@@ -186,3 +186,47 @@ def test_incomplete_constructed_money_is_a_safe_error_not_an_observed_fact():
     q=quote();r=reserved(q)
     bad=r.model_copy(update={'reserved_upper':Money.model_construct(currency='CNY',amount_units=11)})
     with pytest.raises(math.UpperMathError,match='invalid_observation'):observed(q,bad,usage())
+
+
+def test_preview_same_f_as_real_reserve_without_execution_or_release_fields():
+    q=quote();preview=math.preview_bound(q,now=100);r=reserved(q)
+    assert type(preview) is math.PreviewUpperMath
+    assert not isinstance(preview,math.ReservedUpperMath)
+    assert preview.upper_bound==r.reserved_upper
+    assert preview.quote_revision==r.quote_revision and preview.quote_digest==r.quote_digest
+    assert set(preview.model_dump())=={'policy','quote_revision','quote_digest','upper_bound'}
+    with pytest.raises(ValueError):math.ReservedUpperMath.model_validate(preview.model_dump())
+    with pytest.raises(math.UpperMathError,match='typed_observation_required'):
+        math.observed_bound(q,preview,usage(),dispatch_id=r.dispatch_id,request_digest=r.request_digest)
+    with pytest.raises(ValueError):preview.upper_bound=Money(currency='CNY',scale=6,amount_units=0)
+
+
+@pytest.mark.parametrize('now',[True,100.0,-1,None,'100'])
+def test_preview_reuses_reserve_strict_utc_clock_validation(now):
+    with pytest.raises(math.UpperMathError,match='invalid_clock'):math.preview_bound(quote(),now=now)
+
+
+@pytest.mark.parametrize('expiry',[99,100,161,2000000000])
+def test_preview_rejects_expired_or_non_short_quote(expiry):
+    with pytest.raises(math.UpperMathError,match='quote_not_current'):math.preview_bound(quote(valid_until=expiry),now=100)
+
+
+@pytest.mark.parametrize('field,value',[('output_bound',4097),('currency','USD'),('scale',6.0),
+    ('peak_input_miss_units_per_million',True),('local_guard',-1),('context_bound',1048575)])
+def test_preview_revalidates_constructed_and_copied_quote(field,value):
+    value_fields=quote().model_dump();value_fields[field]=value
+    for bad in [UsageUpperQuote.model_construct(**value_fields),quote().model_copy(update={field:value})]:
+        with pytest.raises(math.UpperMathError,match='invalid_quote'):math.preview_bound(bad,now=100)
+
+
+def test_preview_rejects_old_quote_dict_or_overflow_without_partial_result():
+    from tests.test_research_provider_adapter import quote as legacy_quote
+    for bad in [quote().model_dump(),legacy_quote()]:
+        with pytest.raises(math.UpperMathError):math.preview_bound(bad,now=100)
+    with pytest.raises(math.UpperMathError,match='money_overflow'):
+        math.preview_bound(quote(local_guard=MAX_UNITS),now=100)
+
+
+def test_preview_accepts_no_fake_execution_arguments():
+    for argument in ['dispatch_id','request_digest','admitted_at','authority']:
+        with pytest.raises(TypeError):math.preview_bound(quote(),now=100,**{argument:'not an execution reference'})

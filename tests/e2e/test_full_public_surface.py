@@ -432,9 +432,27 @@ def test_beta_consent_privacy_link_has_real_touch_target(
     assert page.evaluate("document.documentElement.scrollWidth - innerWidth") <= 0
 
 
+def _legacy_ask_component_only(page,origin):
+    """Keep historical renderer coverage; this is NOT the public entry page.
+
+    These three pre-existing tests already mock SSE. Remove only the new
+    retirement wrapper in an isolated document so every original component
+    assertion remains. Separate production-page tests never use this helper.
+    """
+    def document(route):
+        response=route.fetch()
+        html=response.text().replace(' data-legacy-ask-retired','')
+        html=html.replace('<fieldset id="legacy-ask-entry" hidden disabled inert style="border:0;padding:0;margin:0">','',1).replace('</fieldset>','',1)
+        html=html.replace('id="ask-thread" hidden inert','id="ask-thread" hidden')
+        route.fulfill(response=response,body=html)
+    page.route(origin+"/",document)
+
+
 def test_beta_workbench_requires_fingerprint_and_explicit_candidate(
     page: Page, local_beta_origin: str
 ):
+    """Historical component regression, not a live public research promise."""
+    _legacy_ask_component_only(page,local_beta_origin)
     cards = [
         {"id": "candidate-1", "name": "Cascade A", "domain": "Physics", "score": 0.82},
         {"id": "candidate-2", "name": "Feedback B", "domain": "Biology", "score": 0.77},
@@ -511,6 +529,8 @@ def test_beta_workbench_requires_fingerprint_and_explicit_candidate(
 def test_beta_fingerprint_draft_mobile_keyboard_and_recovery(
     page: Page, local_beta_origin: str
 ):
+    """Historical component keyboard regression; production is retired."""
+    _legacy_ask_component_only(page,local_beta_origin)
     page.set_viewport_size({"width": 375, "height": 812})
     page.goto(local_beta_origin, wait_until="domcontentloaded", timeout=20_000)
     query = "留存率下降，需要在 2 周内验证，不能改变价格"
@@ -542,6 +562,8 @@ def test_beta_fingerprint_draft_mobile_keyboard_and_recovery(
 def test_beta_fingerprint_draft_does_not_invent_english_or_trust_bad_cache(
     page: Page, local_beta_origin: str
 ):
+    """Historical input/cache regression; production entry is tested below."""
+    _legacy_ask_component_only(page,local_beta_origin)
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto(local_beta_origin, wait_until="domcontentloaded", timeout=20_000)
     query = "Why did retention fall <script>alert(1)</script>?"
@@ -588,7 +610,7 @@ def test_beta_header_exposes_one_dynamic_primary_account_entry(
     expect(account).to_have_count(1)
     expect(account).to_be_visible()
     expect(account).to_have_text("登录以同步")
-    expect(account).to_have_attribute("href", "/auth/login?next=%2Freports")
+    expect(account).to_have_attribute("href", "/auth/login?next=%2Fresearch")
 
     page.route(
         "**/api/auth/me",
@@ -600,7 +622,7 @@ def test_beta_header_exposes_one_dynamic_primary_account_entry(
     )
     page.reload(wait_until="domcontentloaded")
     expect(account).to_have_text("我的研究")
-    expect(account).to_have_attribute("href", "/reports")
+    expect(account).to_have_attribute("href", "/research#my-research")
 
 
 def test_beta_mobile_menu_traps_and_restores_focus(page: Page, local_beta_origin: str):
@@ -633,7 +655,7 @@ def test_beta_header_never_picks_one_of_two_accounts(page: Page, local_beta_orig
     account = page.locator(".site-header__account-cta")
     expect(account).to_have_text("确认账户")
     expect(account).to_have_attribute("data-auth-state", "conflict")
-    expect(account).to_have_attribute("href", "/auth/login?next=%2Freports")
+    expect(account).to_have_attribute("href", "/auth/login?next=%2Fresearch")
 
 
 def test_report_workbench_groups_action_state(page: Page, local_beta_origin: str):
@@ -1159,3 +1181,174 @@ def test_analyze_static_lang_writes_preserve_full_report_and_late_dictionary(
     finally:
         if not page.is_closed():
             page.evaluate('window.__langObserver && window.__langObserver.disconnect()')
+
+
+# Reuse the existing real main/auth/SQLite fixture, with model/search lifespan
+# disabled as in the research acceptance suite. No auth or research API mocks.
+import importlib.util as _entry_import
+_entry_spec = _entry_import.spec_from_file_location("_entry_real_browser", FRONTEND_DIR.parents[1] / "tests/test_research_browser.py")
+_entry_module = _entry_import.module_from_spec(_entry_spec)
+_entry_spec.loader.exec_module(_entry_module)
+real_entry_server = _entry_module.server
+
+
+@pytest.mark.parametrize("viewport",[{"width":1280,"height":900},{"width":430,"height":932}])
+@pytest.mark.parametrize("target",["my-research","kb-section"])
+def test_public_entry_actual_owner_index_anchor(page,real_entry_server,viewport,target):
+    page.set_viewport_size(viewport)
+    base=real_entry_server["base"]
+    _entry_module.login(page.context,base)
+    _entry_module._entry_create(page.context,base,"导航真实归属对照")
+    page.goto(base+"/classes")
+    account=page.locator(".site-header__account-cta")
+    expect(account).to_have_attribute("href","/research#my-research")
+    if target=="my-research":account.click()
+    else:
+        page.goto(base+"/");page.locator("#local-kb-entry").click()
+    expect(page.locator("#research-list-items article")).to_have_count(1)
+    assert page.url==base+"/research#"+target
+    bounds=page.locator("#"+target).bounding_box()
+    # scrollIntoView rounds scrollY to device pixels; permit <1px rounding.
+    assert -1<=bounds["y"]<page.viewport_size["height"]-44, {"section_y":bounds["y"],"scroll_y":page.evaluate("scrollY")}
+    page.locator("#original-input").fill("导航之后新写的私密草稿不会被列表刷新改写")
+    page.locator("#summary").fill("手写摘要必须保留")
+    page.locator("#confirmed").check()
+    page.locator("#original-input").focus();page.evaluate("scrollTo(0,0)")
+    before=page.evaluate("scrollY")
+    page.locator("#research-list-refresh").evaluate("e=>e.click()")
+    expect(page.locator("#research-list-status")).to_contain_text("已读取 1")
+    assert abs(page.evaluate("scrollY")-before)<2
+    assert page.locator("#original-input").evaluate("e=>document.activeElement===e")
+    expect(page.locator("#summary")).to_have_value("手写摘要必须保留")
+    expect(page.locator("#confirmed")).to_be_checked()
+
+
+@pytest.mark.parametrize("viewport",[{"width":1280,"height":900},{"width":430,"height":932}])
+def test_public_entry_default_retirement_and_language(page,local_beta_origin,viewport,tmp_path):
+    from urllib.parse import quote,urlsplit,parse_qs,unquote
+    page.set_viewport_size(viewport)
+    private="private retired input <script>not executable</script>"
+    calls=[];network=[]
+    def observe(request):
+        network.append(request)
+        if any(route in request.url for route in ("/api/ask/","/api/analyze","/api/search/assess","/api/search/synthesize")):calls.append(request.url)
+    page.on("request",observe)
+    page.goto(local_beta_origin+"/?q="+quote(private)+"&lang=zh")
+    page.wait_for_function("window.__ask && window.i18n?.getLang() === 'zh'")
+    assert "q" not in parse_qs(urlsplit(page.url).query) and private not in page.url
+    expect(page.locator("#start-research")).to_have_attribute("href","/research")
+    expect(page.locator("#local-kb-entry")).to_have_attribute("href","/research#kb-section")
+    expect(page.locator("#ask-input")).to_be_disabled()
+    expect(page.locator("#ask-fingerprint")).to_be_hidden()
+    page.evaluate("""q=>{
+      document.querySelector('#ask-input').value=q;
+      document.querySelector('#ask-form').requestSubmit();
+      document.querySelector('#ask-followup-input').value=q;
+      document.querySelector('#ask-followup-form').requestSubmit();
+      document.querySelector('.ask-chip').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+      document.querySelector('#ask-input').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',ctrlKey:true,bubbles:true}));
+      document.querySelector('#ask-fingerprint-confirm').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+      window.__ask.submitQuery(q,{summary:q});
+    }""",private)
+    expect(page.locator("#legacy-ask-status")).to_contain_text("已停用")
+    page.get_by_role("button",name="仅必要功能",exact=True).click()
+    expect(page.locator("#ask-thread")).to_be_hidden()
+    expect(page.get_by_role("radiogroup",name="选择一个跨领域候选")).to_have_count(0)
+    assert page.evaluate("sessionStorage.getItem('structural_fingerprint_draft')") is None
+    assert private not in page.url and calls==[]
+    # The incoming legacy URL existed before this page could clean it. None
+    # of its subsequent requests may forward the private query or referrer.
+    for request in network[1:]:
+        assert "private retired input" not in unquote(request.url)
+        assert "private retired input" not in unquote(request.headers.get("referer",""))
+    assert page.locator("script").filter(has_text="not executable").count()==0
+    assert "2–3" not in page.locator("body").inner_text()
+    assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")
+    assert page.locator("#start-research").bounding_box()["height"]>=44
+    page.screenshot(path=str(tmp_path / "public-entry.png"),full_page=True)
+    if viewport["width"]<720:
+        page.locator("#site-menu-btn").click();page.locator("#site-menu-lang-toggle").click()
+    else:page.locator("#lang-toggle").click()
+    expect(page.locator("html")).to_have_attribute("lang","en")
+    expect(page.locator("#start-research")).to_have_text("Start research")
+    expect(page.locator("#legacy-ask-status")).to_contain_text("retired")
+    expect(page.locator(".site-footer__link[href='/reports']")).to_have_text("Legacy reports")
+    assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")
+    assert all(private not in (href or "") for href in page.locator("a").evaluate_all("links=>links.map(link=>link.getAttribute('href'))"))
+    if page.locator("#site-menu-drawer").is_visible():page.keyboard.press("Escape")
+    page.locator("#start-research").focus()
+    assert page.locator("#start-research").evaluate("e=>document.activeElement===e")
+    assert calls==[] and private not in page.url
+
+
+def test_public_entry_no_script_native_forms_never_send_private_get(browser,local_beta_origin):
+    context=browser.new_context(java_script_enabled=False)
+    try:
+        page=context.new_page();page.goto(local_beta_origin)
+        expect(page.locator("#start-research")).to_be_visible()
+        expect(page.locator("#ask-input")).to_be_disabled()
+        expect(page.locator("#ask-followup-input")).to_be_disabled()
+        expect(page.locator("#ask-form")).to_have_attribute("method","post")
+        expect(page.locator("#ask-followup-form")).to_have_attribute("method","post")
+        private="disabled native form private input"
+        page.locator("#ask-input").evaluate("(e,q)=>e.value=q",private)
+        with page.expect_request(lambda request:request.is_navigation_request()) as navigation:
+            page.locator("#ask-form").evaluate("f=>HTMLFormElement.prototype.submit.call(f)")
+        request=navigation.value
+        assert request.method=="POST" and request.url==local_beta_origin+"/research"
+        assert private not in (request.post_data or "") and private not in request.url
+    finally:context.close()
+
+
+def test_public_entry_real_login_return_owner_and_legacy_resource_links(page,real_entry_server):
+    base=real_entry_server["base"]
+    page.goto(base+"/")
+    account=page.locator(".site-header__account-cta")
+    expect(account).to_have_attribute("href","/auth/login?next=%2Fresearch")
+    account.click()
+    page.locator("#auth-email").fill("public-entry-owner@example.test")
+    with page.expect_response("**/api/auth/request-link") as response:page.locator("#auth-submit").click()
+    assert response.value.status==200
+    link=response.value.json()["dev_link"]
+    page.goto(link)
+    page.wait_for_url(base+"/research")
+    expect(page.locator("#problem-form")).to_be_visible()
+    saved=_entry_module._entry_create(page.context,base,"本人私有研究")
+    other=page.context.browser.new_context()
+    try:
+        _entry_module.login(other,base,"public-entry-other@example.test")
+        _entry_module._entry_create(other,base,"其他账户不应混入列表")
+    finally:other.close()
+    page.goto(base+"/classes")
+    expect(page.locator(".site-header__account-cta")).to_have_attribute("href","/research#my-research")
+    expect(page.locator(".site-footer__link[href='/reports']")).to_have_text("旧报告（历史）")
+    page.locator(".site-header__account-cta").click()
+    expect(page.locator("#research-list-items a")).to_have_count(1)
+    expect(page.locator("#research-list-items a")).to_have_attribute("href","/research/"+saved["research"]["id"])
+    assert "其他账户" not in page.locator("#research-list-items").inner_text()
+    for route in ("/classes","/discoveries","/papers","/tools"):
+        response=page.goto(base+route);assert response.status==200
+        if route=="/tools":expect(page.locator(".tool-card")).to_have_count(8)
+        else:expect(page.locator(".site-header__nav a[aria-current='page']")).to_have_attribute("href","/classes")
+
+
+@pytest.mark.parametrize("viewport",[{"width":1280,"height":900},{"width":430,"height":932}])
+def test_public_entry_main_cta_first_login_returns_to_research(page,real_entry_server,viewport):
+    page.set_viewport_size(viewport)
+    base=real_entry_server["base"]
+    page.goto(base+"/");page.locator("#start-research").click()
+    expect(page.locator("#access")).to_be_visible()
+    page.locator("#access a").click()
+    page.locator("#auth-email").fill("first-entry-new-owner@example.test")
+    with page.expect_response("**/api/auth/request-link") as response:page.locator("#auth-submit").click()
+    assert response.value.status==200
+    page.goto(response.value.json()["dev_link"])
+    page.wait_for_url(lambda url:"/auth/" not in url)
+    assert page.url==base+"/research"
+    expect(page.locator("#problem-form")).to_be_visible()
+    expect(page.locator("#research-list-status")).to_contain_text("还没有")
+    saved=_entry_module._entry_create(page.context,base,"首登之后本人新研究")
+    page.locator("#research-list-refresh").click()
+    expect(page.locator("#research-list-items a")).to_have_count(1)
+    expect(page.locator("#research-list-items a")).to_have_attribute("href","/research/"+saved["research"]["id"])
+    assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")

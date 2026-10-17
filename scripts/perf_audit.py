@@ -491,6 +491,7 @@ def audit_one(
     post_interaction_validator: Callable[[Any, Any, dict[str, Any]], None] | None = None,
     interaction_mode: str = "in_page",
     run_evidence_sink: Callable[[dict[str, Any]], None] | None = None,
+    destination_validator: Callable[[Any, Any, dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     if runs < 1:
         raise ValueError("runs must be at least 1")
@@ -769,12 +770,16 @@ def audit_one(
                     candidate.click(timeout=3000)
                 handshake = page.evaluate(READ_TRUSTED_INTERACTION_SCRIPT)
                 popup = popup_info.value
-                popup.wait_for_load_state("domcontentloaded", timeout=5000)
-                interaction_details.update(
-                    {"popup_created": True, "destination_url": popup.url}
-                )
-                page.wait_for_timeout(100)
-                popup.close()
+                try:
+                    popup.wait_for_load_state("domcontentloaded", timeout=5000)
+                    interaction_details.update(
+                        {"popup_created": True, "destination_url": popup.url}
+                    )
+                    if destination_validator is not None:
+                        destination_validator(popup, setup_state, interaction_details)
+                    page.wait_for_timeout(100)
+                finally:
+                    popup.close()
             else:
                 candidate.click(timeout=3000)
                 handshake = page.evaluate(READ_TRUSTED_INTERACTION_SCRIPT)
