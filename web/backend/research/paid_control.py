@@ -150,7 +150,8 @@ def verify_deletion_origin(conn,*,store,lease,job_id):
     from .store import ResearchStore
     from .financial_guard import JOB_ORIGIN_VERSION
     _deletion_lease_binding(conn,store,lease,job)
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==10:ResearchStore._check_v10(conn)
+    elif conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
     else:ResearchStore._check_v8(conn)
     if job['origin_version']!=JOB_ORIGIN_VERSION or job['origin_digest']!=deletion_origin_digest(job):
         raise PermissionError('protected deletion origin damaged')
@@ -255,6 +256,8 @@ def _transaction_scope(conn,*,write):
     def authorizer(action,arg1,arg2,database,source):
         if action==sqlite3.SQLITE_TRANSACTION and arg1 in ("COMMIT","ROLLBACK"):
             scope.active=False
+        from .formula_runtime import statement_allowed as formula_statement_allowed
+        if not formula_statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
         if scope.financial_active:
             from .financial_guard import _statement_allowed
             if not _statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
@@ -284,7 +287,7 @@ def _current_scope(conn):
     with _LOCK:scope=_SCOPES.get(id(conn))
     if (not scope or scope.conn is not conn or not scope.active or not scope.write or scope.pid!=os.getpid()
             or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1
-            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7,8,9)):
+            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7,8,9,10)):
         raise PermissionError("current canonical v5 transaction required")
     if conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==7:
         from .store import ResearchStore
@@ -295,6 +298,9 @@ def _current_scope(conn):
     elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==9:
         from .store import ResearchStore
         ResearchStore._check_v9(conn)
+    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==10:
+        from .store import ResearchStore
+        ResearchStore._check_v10(conn)
     return scope
 
 
@@ -393,7 +399,7 @@ def mint_stop_authority(conn,*,store,lease,principal_id,task_id,expected_task_ve
 
 def mint_current_paid_authority(conn,*,store,lease,identity,context,step_id,expected_task_version,expected_step_version,operation,approval_ref):
     _current_scope(conn)
-    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9):
+    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10):
         policy=conn.execute('SELECT policy_revision FROM research_tasks WHERE id=?',(context.task_id,)).fetchone()
         if policy and policy[0]=='bounded_usage_upper_v2':
             from .paid_approval import mint_current_authority

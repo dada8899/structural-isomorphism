@@ -18,6 +18,8 @@ _ERASABLE={'research_dispatch_permits':{'input_digest','authorization_context_js
 
 
 def _statement_allowed(conn,action,table,column):
+    from .formula_runtime import statement_allowed
+    if not statement_allowed(conn,action,table,column):return False
     if action not in (sqlite3.SQLITE_INSERT,sqlite3.SQLITE_UPDATE,sqlite3.SQLITE_DELETE) or table not in _LEDGER_ROWS:return True
     if action==sqlite3.SQLITE_UPDATE and column in _ERASABLE.get(table,set()):return True
     if action==sqlite3.SQLITE_UPDATE and table=='research_provider_sessions' and column in dict(METHOD_COLUMNS):
@@ -201,13 +203,15 @@ def install_default_hook(conn):
     conn.create_function('research_financial_guard_version',0,lambda:7 if os.getpid()==pid else 0)
     from .method_result import install_hook
     install_hook(conn)
+    from .formula_runtime import install_hook as formula_hook
+    formula_hook(conn)
     from .paid_control import _SCOPES
     if id(conn) not in _SCOPES:
         # Fresh factory connections have no transaction observer to replace.
         schema=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema' AND type='table'").fetchone()
         try:version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone() if schema else None
         except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本标记结构不匹配。') from None
-        if version and version[0] in (7,8,9):
+        if version and version[0] in (7,8,9,10):
             conn.set_authorizer(lambda action,table,column,db,trigger:
                 sqlite3.SQLITE_OK if _statement_allowed(conn,action,table,column) else sqlite3.SQLITE_DENY)
 

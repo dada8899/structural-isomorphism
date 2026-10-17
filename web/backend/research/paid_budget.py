@@ -136,7 +136,7 @@ def reserve_in(conn,*,store,actor,lease,source,approval_ref):
         (permit,step['id'],reservation,dispatch,context.input_digest,expiry,POLICY,prepared.request_digest,prepared.evidence_digest,cap.quote_digest,cap.basis_digest,
          canonical(payload['funding']['basis']).decode(),digest(canonical(context.model_dump())),task['version'],step['version']+1,approval_ref,now,canonical(lease.identity).decode()))
     descriptor=digest(canonical({'producer':PRODUCER,'dispatch':dispatch,'request':prepared.request_digest,'reservation':reservation}))
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10):
         from .method_result import fresh_scope
         with fresh_scope(conn,store=store,lease=lease,authority=authority,ref=session):
             _write(conn,lease,'reserve-row',session,'research_provider_sessions',session,"INSERT INTO research_provider_sessions(id,approval_id,dispatch_id,permit_id,mode,binding_digest,state,body_origin_state) VALUES(?,?,?,?,'offline_probe',?,'created','fresh')",(session,approval_ref,dispatch,permit,descriptor))

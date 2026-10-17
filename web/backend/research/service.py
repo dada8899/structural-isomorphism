@@ -162,7 +162,7 @@ class ResearchService:
 
     def _method_projection(self,conn,row,identity,lease,request_source,task_id):
         result=None;authorized=False;state=None;history=None;next_task_id=None
-        if request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:
+        if request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10):
             from .paid_control import require_authenticated_action
             require_authenticated_action(request_source,identity=identity,action=request_source.action,research_id=row['id'],task_id=task_id)
             task=conn.execute('SELECT * FROM research_tasks WHERE research_id=? '+('AND id=?' if task_id else 'AND input_revision=? ORDER BY start_version DESC,id DESC LIMIT 1'),
@@ -358,14 +358,14 @@ class ResearchService:
             with self.store.transaction() as conn:
                 self.authorization.check(conn,identity,principal,rid,scope='write')
                 candidate=conn.execute('SELECT policy_revision FROM research_tasks WHERE id=? AND research_id=?',(request.task_id,rid)).fetchone()
-                method=bool(candidate and candidate[0]=='bounded_usage_upper_v2' and conn.execute('SELECT version FROM research_schema').fetchone()[0]==9)
+                method=bool(candidate and candidate[0]=='bounded_usage_upper_v2' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10))
             if method:return self._reconcile_method(identity,rid,principal,request,key,request_source)
         with self.authorization.owner_gate(principal) as lease,self.store.transaction(write=True) as conn:
             row=self.authorization.check(conn,identity,principal,rid,scope="write")
             task=conn.execute("SELECT * FROM research_tasks WHERE id=? AND research_id=?",(request.task_id,rid)).fetchone()
             if not task:raise not_found()
             is_paid=task['policy_revision']=='bounded_usage_upper_v2'
-            method_request=is_paid and operation=='reconcile' and request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0]==9
+            method_request=is_paid and operation=='reconcile' and request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10)
             if method_request:
                 from .paid_control import require_authenticated_action
                 require_authenticated_action(request_source,identity=identity,action='method-reconcile',research_id=rid,task_id=task['id'],key=key,body_digest=digest(payload))
@@ -379,7 +379,7 @@ class ResearchService:
             replay=self._replay(conn,principal,operation,"r:"+rid,key,digest(payload))
             if replay is not None:
                 if method_request:return self._method_projection(conn,row,identity,lease,request_source,task['id'])
-                if is_paid and operation=='reconcile' and conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:
+                if is_paid and operation=='reconcile' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10):
                     return ResearchProjection.build(conn,row,task_id=task['id'])
                 return replay
             if task["version"]!=request.expected_task_version:
