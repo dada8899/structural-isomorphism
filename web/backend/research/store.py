@@ -5,6 +5,7 @@ import sqlite3
 import re
 from contextlib import contextmanager
 from pathlib import Path
+from functools import lru_cache
 
 from .errors import ResearchError
 from .financial_guard import FINANCIAL_SCHEMA_VERSION,V7_TABLES,V7_GUARDS,install_default_hook,require_hook
@@ -501,6 +502,7 @@ class ResearchStore:
                 conn.close()
 
     @staticmethod
+    @lru_cache(maxsize=1024)
     def _normalize_sql(sql):
         # Compare tokens, never flattened SQL text. Only SQLite's automatic
         # quoting of simple managed research_* names is normalized away.
