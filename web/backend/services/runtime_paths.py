@@ -116,7 +116,7 @@ def _repository_roots(repository):
     return roots
 
 
-def _validate_directory(path, *, forbidden):
+def _validated_directory_fd(path, *, forbidden):
     path = Path(path)
     if not path.is_absolute() or ".." in path.parts:
         raise RuntimePathError("private runtime paths must be absolute and canonical")
@@ -129,9 +129,30 @@ def _validate_directory(path, *, forbidden):
         info = os.fstat(fd)
         if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
             raise RuntimePathError("private runtime directory owner or permissions are invalid")
-    finally:
+    except BaseException:
         os.close(fd)
-    return path
+        raise
+    return fd
+
+
+def _validate_directory(path, *, forbidden):
+    fd = _validated_directory_fd(path, forbidden=forbidden)
+    os.close(fd)
+    return Path(path)
+
+
+def _check_current_parent(path, fd, *, forbidden):
+    # Reopen only to compare the current pathname to the held, validated FD;
+    # file/sidecar inspection itself never switches to this second directory.
+    current_fd = _validated_directory_fd(path, forbidden=forbidden)
+    try:
+        held, current = os.fstat(fd), os.fstat(current_fd)
+        if (held.st_uid != os.geteuid() or stat.S_IMODE(held.st_mode) != 0o700
+                or current.st_uid != os.geteuid() or stat.S_IMODE(current.st_mode) != 0o700
+                or (held.st_dev, held.st_ino) != (current.st_dev, current.st_ino)):
+            raise RuntimePathError("private runtime directory changed during inspection")
+    finally:
+        os.close(current_fd)
 
 
 @dataclass(frozen=True)
@@ -165,14 +186,19 @@ class RuntimePaths:
         return cls(state, cache, logs, forbidden)
 
     def file(self, kind):
-        """Inspect a known target; a missing file is returned, never created."""
+        """Inspect a known target now; never create it or grant write access.
+
+        File/sidecar checks use one validated directory FD. The pathname must
+        still match it at the final check, but the returned Path is inspection
+        only: B/R3 consumers still need their own atomic open/FD validation.
+        No guarantee extends to replacements after this function returns.
+        """
         if kind not in _FILES:
             raise RuntimePathError("unknown private runtime file")
         group, name = _FILES[kind]
         parent = getattr(self, group)
         try:
-            _validate_directory(parent, forbidden=self.forbidden)
-            fd = _directory_fd(parent)
+            fd = _validated_directory_fd(parent, forbidden=self.forbidden)
             try:
                 try:
                     info = os.stat(name, dir_fd=fd, follow_symlinks=False)
@@ -191,6 +217,7 @@ class RuntimePaths:
                         if (not stat.S_ISREG(side.st_mode) or side.st_nlink != 1
                                 or side.st_uid != os.geteuid() or stat.S_IMODE(side.st_mode) != 0o600):
                             raise RuntimePathError("private SQLite sidecar is unsafe")
+                _check_current_parent(parent, fd, forbidden=self.forbidden)
             finally:
                 os.close(fd)
         except OSError:

@@ -159,3 +159,80 @@ def test_development_hook_preserves_default_without_inspecting_or_migrating(monk
     previous = Path('../legacy/data/history.db')
     assert runtime.resolve_runtime_file('history', formal=False, development_path=previous,
         repository='/unused', public_roots=[]) == previous
+
+
+@pytest.mark.parametrize('mutation', ['same-inode-mode', 'new-inode-755', 'new-inode-700'])
+def test_original_two_open_parent_race_is_rejected_after_real_mutation(layout, monkeypatch, mutation):
+    paths = inspect(layout)
+    state = layout['state']
+    original_identity = (state.stat().st_dev, state.stat().st_ino)
+    original_open = runtime._directory_fd
+    calls, mutations = [], []
+
+    def changed(path):
+        if Path(path) == state:
+            calls.append('parent-open')
+            if len(calls) == 2:
+                # Original 78fc counterexample: the second actual open happens
+                # after initial validation. Keep the mutation and prove it ran.
+                if mutation == 'same-inode-mode':
+                    state.chmod(0o755)
+                else:
+                    state.rename(state.with_name('held-original-state'))
+                    state.mkdir(mode=0o755 if mutation.endswith('755') else 0o700)
+                mutations.append((state.stat().st_dev, state.stat().st_ino, stat.S_IMODE(state.stat().st_mode)))
+        return original_open(path)
+
+    monkeypatch.setattr(runtime, '_directory_fd', changed)
+    with pytest.raises(runtime.RuntimePathError):paths.file('auth')
+    assert len(calls) == 2 and len(mutations) == 1
+    actual = mutations[0]
+    assert actual[:2] == original_identity if mutation == 'same-inode-mode' else actual[:2] != original_identity
+    assert actual[2] == (0o700 if mutation.endswith('700') else 0o755)
+
+
+@pytest.mark.parametrize('point', ['file', 'sidecar'])
+@pytest.mark.parametrize('mutation', ['same-inode-mode', 'new-inode-700'])
+def test_parent_mutation_during_held_fd_inspection_is_rejected(layout, monkeypatch, point, mutation):
+    paths = inspect(layout)
+    state = layout['state']
+    original_stat = os.stat
+    changed = []
+    expected = 'auth.sqlite3' if point == 'file' else 'auth.sqlite3-wal'
+
+    def mutate(path, *args, **kwargs):
+        if path == expected and 'dir_fd' in kwargs and not changed:
+            held = os.fstat(kwargs['dir_fd'])
+            assert stat.S_IMODE(held.st_mode) == 0o700
+            if mutation == 'same-inode-mode':
+                state.chmod(0o755)
+            else:
+                state.rename(state.with_name('held-original-state'))
+                state.mkdir(mode=0o700)
+            changed.append(kwargs['dir_fd'])
+        return original_stat(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, 'stat', mutate)
+    with pytest.raises(runtime.RuntimePathError):paths.file('auth')
+    assert len(changed) == 1  # Do not claim coverage when injection never fired.
+    with pytest.raises(OSError):os.fstat(changed[0])
+
+
+def test_file_and_sqlite_sidecars_use_the_same_live_validated_parent_fd(layout, monkeypatch):
+    paths = inspect(layout)
+    original_stat = os.stat
+    used = []
+
+    def observed(path, *args, **kwargs):
+        if isinstance(path, str) and path.startswith('auth.sqlite3') and 'dir_fd' in kwargs:
+            fd = kwargs['dir_fd']
+            info = os.fstat(fd)
+            assert info.st_uid == os.geteuid() and stat.S_IMODE(info.st_mode) == 0o700
+            used.append((path, fd))
+        return original_stat(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, 'stat', observed)
+    assert paths.file('auth') == layout['state'] / 'auth.sqlite3'
+    assert [name for name, _fd in used] == ['auth.sqlite3', 'auth.sqlite3-wal', 'auth.sqlite3-shm', 'auth.sqlite3-journal']
+    assert len({fd for _name, fd in used}) == 1
+    with pytest.raises(OSError):os.fstat(used[0][1])
