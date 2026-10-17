@@ -732,3 +732,67 @@ B0只文档独审；B1须完整真实reserve→authorize→consume及快照同�
 | 晚费与删除重开 | cancel/revoke/delete在接收、持久与observe前后分别竞争，清空进程缓存后仅凭允许金融域核原F并至多一次记账；坏/缺依据不补正文、不发HTTP、不复活任务/分享，同邮箱新主体不继承。 |
 
 新schema／代码、正常CI、原独审、实际funding与真实费用事件是分开的门槛；本节及离线闭环不证明真实预充值、实际模型或对外服务已完成。
+
+## 13 Phase B method_hypothesis 的受保护可擦正文与 typed 存读
+
+本节只冻结当前 `method_hypothesis`／B 的内容来源边界，不实现类型／codec、SQL／迁移、权限／producer、worker或API，不扩大产品方向。§12金融准入与晚费能力不含正文权；§10的进程OwnedReceipt、`response_digest`整包摘要、普通candidate JSON均不能单独证明一份重启后正文的来源。起步计划、公式或其他purpose须后续显式additive输入／结果版本，不能借本节绕旧资料门槛。
+
+### 13.1 资源引用、版本和整体字节边界
+
+最小正文槽候选仍为现有 `research_provider_sessions.candidate_json`，可先用版本envelope承载；这不是“无需DDL／guard”的结论。`result_ref`复用实际既有session UUID，始终是资源引用而非权限，不用digest造server id，不从客户端创建一个session来补洞。
+
+| 对象／字段 | 固定内容与边界 |
+| --- | --- |
+| `OwnedMethodBody-v1` | 精确 `{header:MethodBodyBinding-v1,candidate:ModelReportCandidate-v1,candidate_digest:Digest,envelope_digest:Digest}`；candidate是受审parser所得合法候选对象，不是完整provider响应或未核原字符串 |
+| `MethodBodyBinding-v1`：对象／输入 | `result_ref:Id,research_id:Id,task_id:Id,step_id:Id,input_revision:Revision,input_digest:Digest,approval_ref:Id,dispatch_id:Id,permit_id:Id`；全部来自真实已消费的当前B链，引用关系由Core逐项核，不能只验UUID格式 |
+| `MethodBodyBinding-v1`：消费版本 | `approval_consumed_version:Revision,permit_state:"consumed",session_consumed_version:Revision,authorized_task_version:Revision,authorized_step_version:Revision`；permit仅核真实prepared→consumed状态CAS及唯一dispatch关联，没有独立version，不虚构permit或dispatch版本。session_consumed_version精确取原FinancialAdmission.session_after，是实际session消费版本；不重命名／改写金融admission或自造数值 |
+| `MethodBodyBinding-v1`：内容／出处 | `request_digest:Digest,evidence_digest:Digest,financial_return_ref:Id,financial_return_digest:Digest,candidate_schema:"ModelReportCandidate-v1",body_schema:"OwnedMethodBody-v1",producer_revision:Text(64),execution_mode:"offline_probe",received_at:UtcTime`；跨域摘要不互作替身，时间为该次真实收包原时间，producer须受审Core登记 |
+| 摘要算法 | candidate_digest为规范candidate对象的UTF-8 SHA-256；envelope_digest为规范envelope去掉自身字段后的SHA-256。金融return及response摘要只做实际因果交叉关联，不能替candidate摘要／内容出处；摘要相同不是授权或科学证明 |
+
+整个envelope含header、candidate及摘要合计UTF-8≤32 KiB，仍在现槽范围内；SQL现有字符数CHECK不替代字节校验。旧候选独立上限不被偷偷放宽，若header开销使合法候选装不下，新正文保存明确失败、费用独立处理，不截断、不删引用凑包、不另存无保护旁文件。未来模式若另版本支持offline/live，字段只描述数据，实际来源与模型调用事实仍须受控receipt；传live或纯codec通过不能把旧probe／model_analysis_ran=false改真。
+
+`ExpectedMethodBodyBinding`、期待摘要和纯codec输出仅是数据。Core必须从实际owned／准入／受保护持久来源取得期待值；不得从同份客户端／普通槽JSON取字段、重算hash就自称独立证明，不以`trusted=true`、finance-only authority或恢复后的`_OWNED`模拟来源。后续纯模块只能校结构／canonical／摘要，不生产CurrentBodySource、grant或BudgetOwnedReceipt。
+
+### 13.2 首次实际收包、重放和不可回填
+
+1. 只有该实际B session持有的 `BudgetOwnedReceipt` 首次处理路径（旧A的OwnedReturnReceipt不适用），经过原B消费admission／permit／request／evidence和producer核验，并核当下正文资格，才可构造上述正文envelope；普通ProviderObservation／candidate DTO／传入callback不能替代它。
+2. 同一canonical auth DB的受控短事务，以session及实际消费版本做CAS，在financial_return首次NULL→持久事实的同一次写入中，正文合法且当前可提交时写envelope，否则candidate_json仍NULL。金融usage／费用处理不以正文有效为前置，也不因正文缺失推断免费。
+3. 首次处理后，只允许在当前仍可读且正文仍存在／完好的情况下幂等回读同一result_ref；不重发HTTP、不重建模型响应、不重复生成新的结果或改原时间。金融重复凭证不自动取得正文重放权。
+4. 首次坏正文／权限已终止而为NULL，或后续被擦为NULL，都必须持久防止再次写非NULL。即使后来出现普通候选缓存、源材料重新可读、同邮箱账号或新grant，也不得给该旧收包补签／回填；financial事实不可变与内容关闭条件须被实际guard一起核。
+5. 合法erase使用独立、真实当前删除／撤权控制链，清正文及其中的摘要／私有引用，不要求取得财务写能力。擦除与首次保存／重放竞争按同库版本与owner gate线性化；已擦结果不能因崩溃恢复、普通UPDATE或旧receipt复活。
+6. 旧A/v1的会话裸candidate或其他无本节proof的会话行，只关闭本节BodySource恢复／提交资格并保原政策必要费用；不取代合法旧报告按既有已审门禁独立读取，不连带删除材料。不得批量封装、回算header或升级producer追认为新来源，旧源码／行存在不是迁移授权。
+
+### 13.3 当前资格、历史边界与 typed 结果
+
+内容来源证明只证明受控收包及保护写入的因果关联，不证明机制／数学正确、文献支持或当前Source权限。每次首次typed提交、幂等重放和read都须Core重新核当前cookie身份／account incarnation、owner／grant／principal及acl epochs、研究状态、task/step/input具体绑定、stop／终态边界、所有source/excerpt版本／hash／Unicode引用及当前读显ACL；finance-only恢复可在删号后继续，而本段读取／提交不得借其绕开正文资格。
+
+发送／消费冻结版本与内容提交／读取版本分域。原admission精确核authorized/consumed版本；后续合法状态转移和内容commit以独立当前预期版本CAS并保存其结果关联，不要求伪装旧SENDING，也不能用`current_version>=old_version`泛放。旧input只遵已采纳的明确历史读取边界，满足当前对象／资料授权才可有标回看；保存本身不新增历史读取特权，不继承新问题的同意，不能当当前修订结果、重新执行或跨人认领。
+
+Core在已核同库读事务中从受保护、未擦、未损坏的新正文来源建立仅当前消费的内部BodySource；不是反序列化普通JSON成OwnedReceipt，也不是用户自报header。重启清空进程registry后仍须验证准入→实际收包→受保护首次持久的来源／版本完整性；缺hook／旧producer／未知版本／绑定或摘要不符均拒，不能降级到raw candidate或金融return补正文。
+
+typed提交复用既有ModelReportCandidate的严格结构／公开主张和引用校验；生成的机制／变量／条件／竞争解释／验证计划仍是 `hypothesis/llm_inference/unreviewed`、`qualified_report+INSUFFICIENT`。不接受模型check id／checked，不由本节关联假数学检查，也不把schema／精确短引通过当科学支持。原ModelReportRecord接受普通observation的纯构造不是本节受权提交入口；需要additive消费BodySource并保持原离线含义。
+
+最小公开 `MethodHypothesisResultView-v1` 只给result_ref、原input_revision／input_digest、candidate/body schema、producer版本、received_at、is_historical、实际模式、固定离线model_analysis_ran=false、报告/evidence状态与已核候选sections、具体source版本／引用和limitations。不能dump私有header、完整CallContext、permit／admission、财务凭据／账号、full extracted或原响应；各类型／引用／整体响应沿现白名单及512 KiB边界。重开保持同一result_ref／内容摘要／原时间，不能每次读重造server id，digest不作为对象id。
+
+v2 typed commit/readback以其真实完整usage／UPPER_BOOKED与当前内容资格门禁为前置，按§6.4.1和§12保actual=null；不得调用旧FixtureRunner.commit_result的SETTLED专用路径、将账务假改SETTLED或伪actual让旧流程通过。不能把ModelReportRecord JSON塞notes让前端自行解析；结果存读与当前ResearchView的明确关联须Core唯一冻结，不称现有D1 reports即为本节通用结果库。若不能复用既有受保护slot／typed报告协议，先报最小版本化接缝，不另造通用结果平台。
+
+### 13.4 尚未闭合的技术前置与分工
+
+**当前candidate可擦槽允许任意UPDATE，故现状不具备本节正文来源保证。** Core必须先冻结版本化的默认拒绝nonNULL普通SQL／缺hook／错scope、仅实际首次来源可写、合法erase独立能力及无refill保护，并核canonical连接、实际事务、PID／lease与目标行／版本。仅在Python函数前加检查或envelope多一个hash不够；具体最小SQL guard、既有state可否复用、迁移版本／结构指纹及故障回滚由Core审定，本文不宣称无需DDL或已能保存。
+
+该前置须由Core与实际request proof、真实deletion job／lease及既有恢复门禁统一冻结，不给并行模块抢写这些接缝。金融guard与内容guard分别授职，财务观察／admission只金融；erase不变新财务mint，body来源也不授权预留／发送。已删主体迟到完整usage仍可按原最小金融域至多一次记账，候选、报告、task、分享和旧权限不复活。
+
+实施顺序：本契约独审→另GO至多两纯type/codec模块及其tests（只校本envelope／期待数据／32KiB／安全错误／白名单）→Core唯一保护写/擦/重启reader→当前v2 typed commit/readback／Notebook实际闭环。Core拥有paid_provider_session.py、必要store/financial_guard差异及model_report/service/projection/runner接线；实际allowed_paths由停写检查点给定，不由本文授予全部文件写权。纯模块不得mint来源／授权、写SQL、创建worker、接API或真实资金；plan/公式另purpose后审，不泛造平台。
+
+### 13.5 必须独立实跑的消费者反例
+
+| 场景 | 必须成立 |
+| --- | --- |
+| 实际收包与重启typed读 | 原真实受控B离线链首次持久body+金融事实，清空_OWNED后仍可在当前权限下读同result_ref／摘要／时间；纯codec/data fixture不替这个来源正例 |
+| 伪body／写入防线 | 普通SQL/UPDATE/REPLACE、缺hook、仅finance authority、旧DTO、重算candidate/envelope hash、错producer／绑定／quote／schema不能造正文；实际首次receipt+当前资格为对照 |
+| 首次NULL／擦除与竞争 | 坏正文或失权首次NULL不可补写；保存、erase、重放并发及各事务故障切点不留半来源，擦后重启／同邮箱新incarnation／旧key／候选缓存均不refill |
+| 当前与历史边界 | 来源许可／epoch／输入／task-step版本变化逐项拒越权；合法历史只能按原规则有标回看，不靠>=version或新问题同意放旧正文，不伪造当前状态 |
+| 账务独立与旧记录 | 坏/擦正文不妨碍可信usage按原F记Uobs／actualnull，缺usage仍UNKNOWN全held；latefee不恢复body，旧无proof历史只closed，不改SETTLED／notes借道 |
+| 字节、白名单与科学边界 | envelope含header真实UTF8超32KiB整次拒，未知／嵌套字段／坏Unicode／重复key／非finite及安全异常不泄原文；public typed内容仍未科学／许可验证，不因模式字段、数学词或费用成功升级 |
+
+本节没有真实外网、模型、资金、保存或产品验收收据；只明确B2-B前的最小共享条件。新实际模式、资金／loader、完整正常CI和最终真实用户任务依然分别验收，不能以协议或纯模块通过代替。

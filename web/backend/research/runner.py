@@ -29,6 +29,7 @@ def state_in(conn,task_id,execution,*,phase=None,evidence=None,kind="waiting",sa
 
 
 def access_ended_in(conn,task):
+    if task['policy_revision']=='bounded_usage_upper_v2':raise ResearchError('FEATURE_UNAVAILABLE',503,'自动撤权停止尚无受控来源。')
     if not task["stop_requested"] and task["execution"] not in TERMINAL:
         conn.execute("UPDATE research_tasks SET stop_requested=1 WHERE id=?",(task["id"],))
         BudgetLedger.release_prepared_in(conn,task["id"])
@@ -120,6 +121,13 @@ class ResearchRunner:
     def reconcile(self,task_id):
         # Fee receipts may be processed after cancellation/deletion. They never
         # grant permission to recreate research contents.
+        task=self.task(task_id)
+        if task['policy_revision']=='bounded_usage_upper_v2':
+            from .paid_budget import reconcile_task_in
+            with self.gate.owner_gate(task['principal_id']) as lease,self.store.transaction(write=True) as conn:
+                reconcile_task_in(conn,store=self.store,lease=lease,task_id=task_id)
+                conn.execute('UPDATE research_tasks SET reconcile_requested=0 WHERE id=?',(task_id,))
+            return
         with self.store.transaction() as conn:
             rows=conn.execute("""SELECT s.id,p.dispatch_id,a.fixture_port FROM research_steps s
                 JOIN research_reservations r ON r.step_id=s.id JOIN research_dispatch_permits p ON p.step_id=s.id

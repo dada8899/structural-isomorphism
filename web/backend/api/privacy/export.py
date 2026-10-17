@@ -76,7 +76,11 @@ def _error_log_files() -> List[Path]:
 
 def _history_db() -> Path:
     """history.db holds the structural_fingerprints table (G connections)."""
-    return _data_dir() / "history.db"
+    if __package__ == "web.backend.api.privacy":
+        from ..history import _existing_history_path
+    else:
+        from api.history import _existing_history_path
+    return _existing_history_path(_data_dir() / "history.db")
 
 
 def _export_fingerprints(email: str) -> List[Dict[str, Any]]:
@@ -88,7 +92,7 @@ def _export_fingerprints(email: str) -> List[Dict[str, Any]]:
     history.db hasn't been created yet (no fingerprints registered).
     """
     db = _history_db()
-    if not db.exists():
+    if not _is_prod() and not db.exists():
         return []
     from services.connections_store import ConnectionsStore
 
@@ -108,7 +112,7 @@ def _export_p3(email: str) -> Dict[str, List[Dict[str, Any]]]:
         "connections_prefs": [],
     }
     db = _history_db()
-    if not db.exists():
+    if not _is_prod() and not db.exists():
         return empty
     from services.connections_p3_store import ConnectionsP3Store
 

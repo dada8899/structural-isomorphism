@@ -404,7 +404,14 @@
            mismatched in topic — it pitched phase signals on a
            cross-disciplinary learn page). -->
       <section class="home__section">
-        <div id="newsletter-learn" class="newsletter"></div>
+        <div id="newsletter-learn" class="newsletter">
+          <div class="newsletter-card">
+            <span class="newsletter-eyebrow">不定期研究更新</span>
+            <h2 class="newsletter-title">新增订阅暂不可用</h2>
+            <p class="newsletter-body">本版不收集订阅邮箱。研究进展和公开负结果可在站内查看。</p>
+            <p class="newsletter-fineprint">既有订阅请查看原邮件中的退订说明。</p>
+          </div>
+        </div>
       </section>
 
     </div>
@@ -421,13 +428,9 @@
   <script src="/assets/js/utils/buildAnalyzeUrl.js?v=20260714n2"></script>
   <script src="/assets/js/home.js?v=20260714n2"></script>
   <script src="/assets/js/product-switcher.js?v=20260514c"></script>
-  <!-- W8-D waitlist.js no longer mounted: removed the cross-origin phase form
-       on this page in favor of the beta-native newsletter (session #9 W2-A).
-       Script still loaded so it self-no-ops cleanly without errors. -->
-  <script src="/assets/js/waitlist.js?v=20260513"></script>
-  <script src="/assets/js/newsletter.js?v=20260714n2"></script>
+  <script src="/assets/js/newsletter.js?v=20261017closed1"></script>
   <script>
-    // Session #9 W2-A: beta-native newsletter at the end of learn page.
+    // Session #9 W2-A: closed subscription notice at the end of learn page.
     if (window.mountNewsletter) {
       window.mountNewsletter("newsletter-learn", "learn-end");
     }

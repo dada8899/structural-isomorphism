@@ -31,7 +31,7 @@ def isolated_stores(tmp_path, monkeypatch):
     db = tmp_path / "test_msg.db"
     monkeypatch.setattr(conn_api, "_store", ConnectionsStore(db))
     monkeypatch.setattr(conn_api, "_p3_store", ConnectionsP3Store(db))
-    auth_api._override_data_dir_for_tests(tmp_path)
+    monkeypatch.setattr(auth_api, "_data_dir", lambda: tmp_path)
     return conn_api._store, conn_api._p3_store
 
 

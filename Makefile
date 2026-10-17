@@ -9,6 +9,9 @@ else
 OPENAPI_PY ?= $(if $(wildcard $(ROOT)/.venv-openapi/bin/python),$(ROOT)/.venv-openapi/bin/python,$(PY))
 endif
 TYPES_PY ?= $(OPENAPI_PY)
+# setup-python provides pythonLocation in CI; an explicit parent Python wins
+# locally. Child browser services must not guess a checkout-local .venv.
+export STRUCTURAL_RELEASE_TEST_PYTHON ?= $(if $(pythonLocation),$(pythonLocation)/bin/python,$(PY))
 LLM_SCALING_DIR := $(ROOT)/v4/validation/llm-scaling
 LLM_SCALING_PY ?= $(LLM_SCALING_DIR)/.venv/bin/python
 PACKAGE_PYTHONPATH := $(ROOT)/packages/guarded-llm/src:$(ROOT)/packages/cross-judge/src:$(ROOT)/packages/reject-aware-critic/src:$(ROOT)/packages/soc-pipeline/src
@@ -22,6 +25,7 @@ FRONTEND_NODE_TESTS := \
 	web/frontend/tests/test_buildAnalyzeUrl.js \
 	web/frontend/tests/test_historyPrivacy.js \
 	web/frontend/tests/test_historySidebarPerformance.js \
+	web/frontend/tests/test_newsletterClosed.js \
 	web/frontend/tests/test_privateNavigation.js \
 	web/frontend/tests/test_reportTrust.js \
 	web/frontend/tests/test_searchBootstrap.js \
@@ -43,7 +47,9 @@ BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS := \
 	tests/e2e/test_history_sidebar.py \
 	web/tests/e2e/test_thank_you_copy.py \
 	web/tests/e2e/test_report_share.py \
-	web/tests/e2e/test_cross_domain_report_claim.py
+	web/tests/e2e/test_cross_domain_report_claim.py \
+	web/tests/e2e/test_subscriptions_closed.py \
+	web/tests/e2e/test_newsletter_e2e.py
 
 BROWSER_CONTRACT_SECONDARY_WHITESPACE_TESTS := \
 	web/tests/e2e/test_secondary_tools_candidate_journeys.py \

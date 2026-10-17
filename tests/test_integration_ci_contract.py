@@ -38,7 +38,7 @@ BASELINE_JOB_DIGESTS = {
     "site-docs-contract": "0f57f4945237fd941c2e8d368de8c45ac77cebb7ef06263d1a8d66367c48a92c",
     "phase-python-contract": "31410b6d2c1aaf8d2d46261b6b9cfdefbcbe0ed0391d6afb119b636356c1dc32",
     "browser-product-contract": "ea661e1cc7eee8004be5a25e49b38fb1f4f9b27394648b6b64e2a428c55e39df",
-    "browser-beta-surface-contract": "1672b91a7c0c16f3a3cc3b7a9b202835ec5875a332d9803389ac6ed55a6d87c3",
+    "browser-beta-surface-contract": "561bf72d78777f276b64e20f215a40efe67bb9d025c78ce4afc60744ef2ad004",
     "backend": "1880d457fc00c68ff81deb35c32c75e321c3dc5c6e0cdc793dfab4f030669b4c",
     "packages": "e4aa89e17ef04576287375e0d658dd3b2ee78569cfe6afb7d5d34b933d313fbe",
     "frontend": "bc2d19708c65b0594b78ca090ab06297a5106e1906fb826d4b5e01bce82fbe70",
@@ -634,7 +634,7 @@ def _assert_research_coverage_closure(value, rcfile):
     step['run'] = commands[:-2] + commands[-1:]
     # Freeze the reviewed job, suites, limits and reports, apart from this one
     # added parallel measurement. Ignore comments/line wrapping in its script.
-    assert hashlib.sha256(json.dumps(job, sort_keys=True, separators=(',', ':')).encode()).hexdigest() == 'a00616bb08f39fd9220c8a18ed1c9950aa057fa42204ca7977154ecd7de1b3cd'
+    assert hashlib.sha256(json.dumps(job, sort_keys=True, separators=(',', ':')).encode()).hexdigest() == '601c495e11c7d17017b64fc745760cbf9e80d369a8bdf35a2d217a4a39c574ee'
     assert hashlib.sha256(rcfile.encode()).hexdigest() == 'd99a2766d35215d1249c6f0388d8bb9effa7faec8ed715c040f897d6314847af'
 
 
@@ -673,7 +673,7 @@ def test_research_coverage_closure_rejects_incomplete_or_relaxed_pipeline(mutati
 # complete jobs remain hard requirements; only the existing sanity context
 # is the branch-protection aggregate.
 SANITY_SPLIT_DIGESTS = {
-    "sanity-backend": "fa8af528ec40abc3203e8eb1f20982f97bf649a66f73537e99d0449411d2dafc",
+    "sanity-backend": "4135a5d81f35ed7c9155fa239f18644f51174d2bd8b9cacfd200cfef7a717798",
     "sanity": "c969dc72598a5d59f4eb6d3d220ea70b0a911590228d3793a4e89225c65664ca",
 }
 
@@ -686,8 +686,9 @@ def _assert_sanity_backend_dependency(value):
     assert aggregate["needs"] == ["sanity-backend"]
     assert aggregate["if"] == "always()"
     assert aggregate["name"] == "sanity"
+    assert backend["timeout-minutes"] == 45
+    assert aggregate["timeout-minutes"] == 25
     for job in (backend, aggregate):
-        assert job["timeout-minutes"] == 25
         assert "continue-on-error" not in job
     assert all("if" not in step and "continue-on-error" not in step
                for step in backend["steps"])

@@ -9,6 +9,8 @@ from dataclasses import dataclass
 import os
 from pathlib import Path
 import stat
+import threading
+import sqlite3
 
 
 class FormalAdmissionError(RuntimeError):
@@ -232,3 +234,530 @@ def resolve_runtime_file(kind, *, formal, development_path, repository, public_r
     if not formal:
         return Path(development_path)
     return RuntimePaths.inspect_formal(repository=repository, public_roots=public_roots).file(kind)
+
+
+def formal_history_runtime():
+    return os.getenv('STRUCTURAL_ENV', 'dev').lower() == 'prod'
+
+
+# Process-local only: closing even an unrelated ordinary database FD releases
+# this process's POSIX locks on that inode. Protect a *new* inode's short
+# precreation FD until close, against every native open through this helper.
+# This mutex does not serialize SQL transactions or replace SQLite's locks.
+# Both supported module names (services.* / web.backend.services.*) must use
+# the same mutex in one interpreter. sqlite3 is the canonical shared module;
+# setdefault installs exactly one object, not a migration/admission flag.
+HISTORY_OPEN_LOCK = vars(sqlite3).setdefault('_structural_history_open_lock_v1', threading.RLock())
+
+
+class PrivateHistoryFile:
+    """A parent-directory FD and non-locking file-identity snapshot.
+
+    Never open/dup/close an ordinary FD for an existing SQLite database:
+    closing it can release another live connection's process-level locks.
+    Native sqlite3 opens a pathname, not an application-owned database FD.
+    This boundary assumes the dedicated service UID, trusted parents and no uncontrolled same-UID path
+    replacement. Maintenance must stop consumers. It is not a hostile-root
+    proof, custom VFS, or permission to admit the unfinished formal app.
+    """
+
+    def __init__(self):
+        self.parent_fd = None
+        self.file_identity = None
+
+    @classmethod
+    def acquire(cls, path, *, create=False):
+        with HISTORY_OPEN_LOCK:
+            return cls._acquire_locked(path, create=create)
+
+    @classmethod
+    def _acquire_locked(cls, path, *, create):
+        witness = cls()
+        try:
+            supplied = os.fspath(path)
+            expected = STATE_ROOT / 'history.db'
+            if (not isinstance(supplied, str) or supplied.startswith('file:')
+                    or Path(supplied) != expected or '..' in Path(supplied).parts
+                    or not Path(supplied).is_absolute()):
+                raise RuntimePathError('formal history requires the approved canonical file')
+            root = Path(__file__).resolve().parents[3]
+            frontend = root / 'web/frontend'
+            paths = RuntimePaths.inspect_formal(repository=root, public_roots=[
+                frontend, frontend / 'assets', frontend / 'phase/samples', frontend / 'phase/data',
+            ])
+            witness.path = expected
+            witness.forbidden = paths.forbidden
+            witness.parent_fd = _validated_directory_fd(paths.state, forbidden=paths.forbidden)
+            base = witness._entry('history.db')
+            sides = witness._sidecars()
+            if sides and (base is None or base.st_size == 0):
+                raise RuntimePathError('orphan SQLite sidecars cannot initialize a history database')
+            created = False
+            if base is None:
+                if not create:
+                    raise RuntimePathError('formal history database is missing')
+                try:
+                    fd = os.open('history.db', os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK
+                                 | os.O_CREAT | os.O_EXCL, 0o600, dir_fd=witness.parent_fd)
+                except FileExistsError:
+                    # Validate the winner by no-follow stat only. Opening and
+                    # closing it would invalidate other native SQLite locks.
+                    base = witness._entry('history.db')
+                    if base is None:
+                        raise RuntimePathError('history creation race has no validated winner')
+                else:
+                    try:
+                        base = os.fstat(fd)
+                        witness._require_private_file(base)
+                    finally:
+                        # Still under HISTORY_OPEN_LOCK: no helper native open
+                        # may have acquired a lock on this new inode yet.
+                        os.close(fd)
+                    created = True
+            witness.file_identity = (base.st_dev, base.st_ino)
+            if created and witness._sidecars():
+                raise RuntimePathError('sidecars appeared during fresh history creation')
+            witness.check()
+            return witness
+        except BaseException:
+            witness.close()
+            raise
+
+    @staticmethod
+    def _require_private_file(info):
+        if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o600):
+            raise RuntimePathError('private history file owner, permissions or links are unsafe')
+
+    def _entry(self, name):
+        try:
+            info = os.stat(name, dir_fd=self.parent_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            return None
+        self._require_private_file(info)
+        return info
+
+    def _sidecar_entry(self, name):
+        # SQLite may unlink a sidecar after pathname lookup but before stat
+        # copies its link count. Never apply this to the database itself.
+        known = {
+            'history.db-wal', 'history.db-shm', 'history.db-journal',
+            'auth.sqlite3-wal', 'auth.sqlite3-shm', 'auth.sqlite3-journal',
+            'sso_replay.sqlite3-wal', 'sso_replay.sqlite3-shm', 'sso_replay.sqlite3-journal',
+        }
+        if name not in known or not name.startswith(self.path.name + '-'):
+            raise RuntimePathError('unknown private SQLite sidecar')
+        try:
+            info = os.stat(name, dir_fd=self.parent_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            return None
+        try:
+            self._require_private_file(info)
+        except RuntimePathError:
+            if (stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
+                    and stat.S_IMODE(info.st_mode) == 0o600 and info.st_nlink == 0):
+                try:
+                    current = os.stat(name, dir_fd=self.parent_fd, follow_symlinks=False)
+                except FileNotFoundError:
+                    return None
+                # Sidecars are recreated by SQLite. Validate every attribute
+                # of the new snapshot independently, even for a new inode.
+                self._require_private_file(current)
+                return current
+            # No other unsafe snapshot qualifies for a metadata recheck.
+            raise
+        return info
+
+    def _sidecars(self):
+        return [info for suffix in ('-wal', '-shm', '-journal')
+                if (info := self._sidecar_entry('history.db' + suffix)) is not None]
+
+    def check(self):
+        _check_current_parent(self.path.parent, self.parent_fd, forbidden=self.forbidden)
+        current = self._entry('history.db')
+        if current is None or self.file_identity != (current.st_dev, current.st_ino):
+            raise RuntimePathError('formal history pathname no longer matches its identity snapshot')
+        if self._sidecars() and current.st_size == 0:
+            raise RuntimePathError('empty history database has orphan sidecars')
+
+    @property
+    def uri(self):
+        return self.path.as_uri() + '?mode=rw'
+
+    def close(self):
+        self.file_identity = None
+        fd = self.parent_fd
+        self.parent_fd = None
+        if fd is not None:
+            os.close(fd)
+
+
+def private_auth_path(configured_dir=None):
+    """Static Auth role only; None/unset uses approved state, empty is invalid."""
+    profile=os.getenv('STRUCTURAL_ENV','dev')
+    if profile.strip().lower()=='prod' and profile.lower()!='prod':
+        raise RuntimePathError('private Auth profile contains invalid whitespace')
+    configured = os.environ.get('AUTH_DATA_DIR') if configured_dir is None else os.fspath(configured_dir)
+    if configured is not None and (not configured or configured.startswith('file:')
+            or not Path(configured).is_absolute() or '..' in Path(configured).parts
+            or Path(configured) != STATE_ROOT):
+        raise RuntimePathError('private auth directory does not match its approved root')
+    return STATE_ROOT / 'auth.sqlite3'
+
+
+def _auth_forbidden_roots():
+    repository = Path(__file__).resolve().parents[3]
+    frontend = repository / 'web/frontend'
+    inspected = RuntimePaths.inspect_formal(repository=repository, public_roots=[
+        frontend, frontend/'assets', frontend/'phase/samples', frontend/'phase/data',
+    ])
+    return inspected.forbidden
+
+
+class PrivateAuthFile(PrivateHistoryFile):
+    """Existing Auth file metadata and parent FD; no ordinary database FD."""
+    @classmethod
+    def acquire(cls, path):
+        witness = cls()
+        try:
+            if not isinstance(path, (str, Path)) or Path(path) != private_auth_path():
+                raise RuntimePathError('private auth requires its canonical existing file')
+            witness.path = private_auth_path()
+            witness.forbidden = _auth_forbidden_roots()
+            witness.parent_fd = _validated_directory_fd(witness.path.parent, forbidden=witness.forbidden)
+            info = witness._entry('auth.sqlite3')
+            if info is None:
+                raise RuntimePathError('private auth database is missing')
+            witness.file_identity = (info.st_dev, info.st_ino)
+            witness.check()
+            return witness
+        except BaseException:
+            witness.close()
+            raise
+
+    def _sidecars(self):
+        return [info for suffix in ('-wal','-shm','-journal')
+                if (info := self._sidecar_entry('auth.sqlite3'+suffix)) is not None]
+
+    def check(self):
+        _check_current_parent(self.path.parent, self.parent_fd, forbidden=self.forbidden)
+        current = self._entry('auth.sqlite3')
+        if current is None or self.file_identity != (current.st_dev,current.st_ino):
+            raise RuntimePathError('private auth database identity changed')
+        if self._sidecars() and current.st_size == 0:
+            raise RuntimePathError('private auth database has orphan sidecars')
+
+
+def require_private_auth_lock_dir(auth_path):
+    if Path(auth_path) != private_auth_path():
+        raise RuntimePathError('private auth lock root has an invalid database binding')
+    root = Path(auth_path).parent/'research-locks'
+    fd = _validated_directory_fd(root, forbidden=_auth_forbidden_roots())
+    os.close(fd)
+    return root
+
+
+def append_private_auth_audit(record):
+    """Specific existing tombstone journal; no create or partial-record repair."""
+    import fcntl
+    import json
+    payload = (json.dumps(record, ensure_ascii=False, allow_nan=False)+'\n').encode('utf-8')
+    if len(payload)>1024*1024:
+        raise RuntimePathError('private auth audit record is too large')
+    parent = private_auth_path().parent
+    forbidden = _auth_forbidden_roots()
+    directory = _validated_directory_fd(parent, forbidden=forbidden)
+    fd = None
+    name = 'account_deletion_audit.jsonl'
+    try:
+        initial=os.stat(name,dir_fd=directory,follow_symlinks=False)
+        PrivateAuthFile._require_private_file(initial)
+        fd = os.open(name, os.O_RDWR|os.O_APPEND|os.O_NOFOLLOW|os.O_NONBLOCK, dir_fd=directory)
+        info = os.fstat(fd)
+        PrivateAuthFile._require_private_file(info)
+        if (initial.st_dev,initial.st_ino)!=(info.st_dev,info.st_ino):
+            raise RuntimePathError('private auth audit changed while opening')
+        fcntl.flock(fd,fcntl.LOCK_EX)
+        info=os.fstat(fd);PrivateAuthFile._require_private_file(info)
+        _check_current_parent(parent,directory,forbidden=forbidden)
+        bound = os.stat(name,dir_fd=directory,follow_symlinks=False)
+        if (info.st_dev,info.st_ino)!=(bound.st_dev,bound.st_ino):
+            raise RuntimePathError('private auth audit identity changed')
+        if info.st_size and os.pread(fd,1,info.st_size-1)!=b'\n':
+            raise RuntimePathError('private auth audit has an unfinished record; operator reconciliation required')
+        offset=0
+        while offset<len(payload):
+            written=os.write(fd,payload[offset:])
+            if written<=0:raise RuntimePathError('private auth audit append was incomplete')
+            offset+=written
+        os.fsync(fd)
+        after=os.fstat(fd);PrivateAuthFile._require_private_file(after)
+        _check_current_parent(parent,directory,forbidden=forbidden)
+        bound=os.stat(name,dir_fd=directory,follow_symlinks=False)
+        if (after.st_dev,after.st_ino)!=(bound.st_dev,bound.st_ino):
+            raise RuntimePathError('private auth audit pathname changed during append')
+    finally:
+        if fd is not None:os.close(fd)  # Releases this non-DB journal's flock.
+        os.close(directory)
+
+
+def private_sso_path(configured_dir=None):
+    profile=os.getenv('STRUCTURAL_ENV','dev')
+    if profile.strip().lower()=='prod' and profile.lower()!='prod':
+        raise RuntimePathError('private SSO profile contains invalid whitespace')
+    configured=os.environ.get('STRUCTURAL_SSO_DATA_DIR') if configured_dir is None else os.fspath(configured_dir)
+    if configured is None or not configured or configured.startswith('file:') or not Path(configured).is_absolute() or '..' in Path(configured).parts or Path(configured)!=STATE_ROOT:
+        raise RuntimePathError('private SSO requires its explicit approved directory')
+    return STATE_ROOT/'sso_replay.sqlite3'
+
+
+class PrivateSsoFile(PrivateHistoryFile):
+    """Existing replay ledger metadata; never an ordinary database witness FD."""
+    @classmethod
+    def acquire(cls,path):
+        inspected=cls()
+        try:
+            if not isinstance(path,(str,Path)) or Path(path)!=private_sso_path():
+                raise RuntimePathError('private SSO requires its canonical existing ledger')
+            inspected.path=private_sso_path()
+            inspected.forbidden=_auth_forbidden_roots()
+            inspected.parent_fd=_validated_directory_fd(inspected.path.parent,forbidden=inspected.forbidden)
+            info=inspected._entry('sso_replay.sqlite3')
+            if info is None:raise RuntimePathError('private SSO ledger is missing')
+            inspected.file_identity=(info.st_dev,info.st_ino)
+            inspected.check()
+            return inspected
+        except BaseException:
+            inspected.close();raise
+
+    def _sidecars(self):
+        return [info for suffix in ('-wal','-shm','-journal')
+                if (info:=self._sidecar_entry('sso_replay.sqlite3'+suffix)) is not None]
+
+    def check(self):
+        _check_current_parent(self.path.parent,self.parent_fd,forbidden=self.forbidden)
+        current=self._entry('sso_replay.sqlite3')
+        if current is None or self.file_identity!=(current.st_dev,current.st_ino):
+            raise RuntimePathError('private SSO ledger identity changed')
+        if self._sidecars() and current.st_size==0:
+            raise RuntimePathError('private SSO ledger has orphan sidecars')
+
+
+# Favorites owns a small JSONL transaction, not a generic asset registry.
+import contextvars
+import fcntl
+import hashlib
+import time
+import uuid
+from contextlib import contextmanager
+
+FAVORITES_LOCK = vars(sqlite3).setdefault('_structural_favorites_lock_v1', threading.RLock())
+FAVORITES_IO = vars(sqlite3).setdefault('_structural_favorites_io_v1', contextvars.ContextVar('private_favorites_io', default=None))
+FAVORITES_AUTHORITY = vars(sqlite3).setdefault('_structural_favorites_authority_v1', contextvars.ContextVar('private_favorites_authority', default=None))
+
+
+def formal_favorites():
+    raw = os.getenv('STRUCTURAL_ENV', 'dev')
+    if raw.strip().lower() == 'prod' and raw.lower() != 'prod':
+        raise RuntimePathError('private Favorites profile contains invalid whitespace')
+    return raw.lower() == 'prod'
+
+
+def private_favorites_path():
+    configured = os.environ.get('STRUCTURAL_FAVORITES_PATH')
+    if configured is None:
+        directory = os.environ.get('AUTH_DATA_DIR')
+        if directory is None:
+            raise RuntimePathError('favorites persistence requires AUTH_DATA_DIR or STRUCTURAL_FAVORITES_PATH in production')
+        if not directory or Path(directory) != STATE_ROOT:
+            raise RuntimePathError('private Favorites requires its approved state directory')
+        return STATE_ROOT / 'favorites.jsonl'
+    if (not configured or configured != str(STATE_ROOT / 'favorites.jsonl')
+            or not Path(configured).is_absolute() or '..' in Path(configured).parts):
+        raise RuntimePathError('favorites persistence path must be outside the Git checkout and use its canonical existing file')
+    return STATE_ROOT / 'favorites.jsonl'
+
+
+class FavoritesWriteUnknown(RuntimePathError):
+    """Replace may have committed. This receipt is evidence, never authority."""
+    def __init__(self, operation_id, payload_digest):
+        super().__init__('Favorites write outcome needs reconciliation')
+        self.operation_id = operation_id
+        self.payload_digest = payload_digest
+
+
+FavoritesWriteUnknown = vars(sqlite3).setdefault('_structural_favorites_unknown_v1', FavoritesWriteUnknown)
+
+
+class PrivateFavoritesFile:
+    def __init__(self):
+        self.parent_fd = self.lock_fd = None
+        self.path = private_favorites_path()
+        self.forbidden = _auth_forbidden_roots()
+        self.file_identity = self.lock_identity = None
+        self.last_write = None
+
+    @staticmethod
+    def _regular(info):
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
+                or stat.S_IMODE(info.st_mode) != 0o600 or info.st_nlink != 1):
+            raise RuntimePathError('private Favorites file is unsafe')
+        return info.st_dev, info.st_ino
+
+    def _entry(self, name):
+        info = os.stat(name, dir_fd=self.parent_fd, follow_symlinks=False)
+        return self._regular(info)
+
+    def check(self):
+        if private_favorites_path() != self.path or not formal_favorites():
+            raise RuntimePathError('private Favorites configuration changed')
+        _check_current_parent(self.path.parent, self.parent_fd, forbidden=self.forbidden)
+        if (self._entry('favorites.lock') != self.lock_identity
+                or self._regular(os.fstat(self.lock_fd)) != self.lock_identity
+                or self._entry('favorites.jsonl') != self.file_identity):
+            raise RuntimePathError('private Favorites identity changed')
+
+    def acquire(self):
+        try:
+            self.parent_fd = _validated_directory_fd(self.path.parent, forbidden=self.forbidden)
+            self.lock_identity = self._entry('favorites.lock')
+            self.lock_fd = os.open('favorites.lock', os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK,
+                                   dir_fd=self.parent_fd)
+            if self._regular(os.fstat(self.lock_fd)) != self.lock_identity:
+                raise RuntimePathError('private Favorites lock changed')
+            deadline = time.monotonic() + 5
+            while True:
+                try:
+                    fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError:
+                    if time.monotonic() >= deadline:
+                        raise RuntimePathError('private Favorites lock unavailable')
+                    time.sleep(0.01)
+            self.file_identity = self._entry('favorites.jsonl')
+            self.check()
+            return self
+        except BaseException:
+            self.close()
+            raise
+
+    def read(self):
+        self.check()
+        fd = os.open('favorites.jsonl', os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK,
+                     dir_fd=self.parent_fd)
+        try:
+            if self._regular(os.fstat(fd)) != self.file_identity:
+                raise RuntimePathError('private Favorites changed while opening')
+            chunks = []
+            while True:
+                chunk = os.read(fd, 1024 * 1024)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            self.check()
+            return b''.join(chunks)
+        finally:
+            os.close(fd)
+
+    def write(self, payload, *, operation_id):
+        if type(payload) is not bytes or type(operation_id) is not str:
+            raise TypeError('private Favorites write requires bytes and operation id')
+        self.check()
+        name = '.favorites-' + uuid.uuid4().hex + '.jsonl.tmp'
+        fd = None
+        temp_identity = None
+        replaced = False
+        replace_started = False
+        try:
+            fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                         0o600, dir_fd=self.parent_fd)
+            temp_identity = self._regular(os.fstat(fd))
+            offset = 0
+            while offset < len(payload):
+                written = os.write(fd, payload[offset:])
+                if written <= 0:
+                    raise RuntimePathError('private Favorites write incomplete')
+                offset += written
+            os.fsync(fd)
+            self.check()
+            if self._entry(name) != temp_identity:
+                raise RuntimePathError('private Favorites temporary file changed')
+            closing, fd = fd, None
+            os.close(closing)
+            replace_started = True
+            os.replace(name, 'favorites.jsonl', src_dir_fd=self.parent_fd, dst_dir_fd=self.parent_fd)
+            replaced = True
+            self.last_write = (operation_id, hashlib.sha256(payload).hexdigest())
+            self.file_identity = temp_identity
+            os.fsync(self.parent_fd)
+            self.check()
+        except BaseException as exc:
+            # An injected/lost replace receipt may raise after the rename. Do
+            # not infer failure merely because os.replace did not return.
+            if temp_identity is not None:
+                try:
+                    replaced = replaced or self._entry('favorites.jsonl') == temp_identity
+                except (OSError, RuntimePathError):
+                    if replace_started:
+                        replaced = True
+            if replaced:
+                self.last_write = (operation_id, hashlib.sha256(payload).hexdigest())
+                raise FavoritesWriteUnknown(operation_id, hashlib.sha256(payload).hexdigest()) from exc
+            raise
+        finally:
+            try:
+                if fd is not None:
+                    os.close(fd)
+            finally:
+                if not replaced and temp_identity is not None:
+                    try:
+                        if self._entry(name) == temp_identity:
+                            os.unlink(name, dir_fd=self.parent_fd)
+                    except FileNotFoundError:
+                        pass
+
+    def confirm(self, unknown):
+        self.check()
+        if hashlib.sha256(self.read()).hexdigest() != unknown.payload_digest:
+            raise unknown
+        # No repeat replace. Re-observe the exact committed image and complete
+        # the durability boundary; failure stays UNKNOWN for this operation.
+        try:
+            os.fsync(self.parent_fd)
+            self.check()
+        except BaseException as exc:
+            raise unknown from exc
+
+    def close(self):
+        try:
+            try:
+                if self.lock_fd is not None:
+                    closing, self.lock_fd = self.lock_fd, None
+                    os.close(closing)
+            finally:
+                if self.parent_fd is not None:
+                    closing, self.parent_fd = self.parent_fd, None
+                    os.close(closing)
+        except OSError as exc:
+            if self.last_write is not None:
+                raise FavoritesWriteUnknown(*self.last_write) from exc
+            raise
+
+
+@contextmanager
+def private_favorites_transaction():
+    current = FAVORITES_IO.get()
+    if current is not None:
+        if not formal_favorites() or current.path != private_favorites_path():
+            raise RuntimePathError('nested Favorites operation changed its approved root')
+        current.check()
+        yield current
+        return
+    with FAVORITES_LOCK:
+        owned = PrivateFavoritesFile().acquire()
+        token = FAVORITES_IO.set(owned)
+        try:
+            yield owned
+        finally:
+            FAVORITES_IO.reset(token)
+            owned.close()

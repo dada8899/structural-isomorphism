@@ -20,6 +20,9 @@ _ERASABLE={'research_dispatch_permits':{'input_digest','authorization_context_js
 def _statement_allowed(conn,action,table,column):
     if action not in (sqlite3.SQLITE_INSERT,sqlite3.SQLITE_UPDATE,sqlite3.SQLITE_DELETE) or table not in _LEDGER_ROWS:return True
     if action==sqlite3.SQLITE_UPDATE and column in _ERASABLE.get(table,set()):return True
+    if action==sqlite3.SQLITE_UPDATE and table=='research_provider_sessions' and column in dict(METHOD_COLUMNS):
+        from .method_result import statement_allowed
+        return statement_allowed(conn)
     permit=_WRITES.get(id(conn))
     if not permit or 'authority' not in permit:return False
     try:
@@ -90,6 +93,93 @@ V7_GUARDS=(
         BEGIN SELECT CASE WHEN research_financial_write_allowed('return',OLD.id)!=1 THEN RAISE(ABORT,'owned financial return unavailable') END; END""",
 )
 
+DELETION_SCHEMA_VERSION=8
+JOB_ORIGIN_VERSION='authenticated-delete-v1'
+JOB_ORIGIN_COLUMNS=(
+    ('origin_version',"TEXT CHECK(origin_version IS NULL OR origin_version='authenticated-delete-v1')"),
+    ('origin_digest',"TEXT CHECK((origin_version IS NULL AND origin_digest IS NULL) OR (origin_version IS NOT NULL AND origin_version='authenticated-delete-v1' AND typeof(origin_digest)='text' AND length(origin_digest)=64 AND origin_digest NOT GLOB '*[^a-f0-9]*'))"),
+)
+V8_JOB_GUARDS=(
+    """CREATE TRIGGER auth_deletion_origin_create BEFORE INSERT ON auth_deletion_jobs WHEN NEW.origin_version IS NOT NULL
+        BEGIN SELECT CASE WHEN research_financial_write_allowed('delete-create',NEW.id)!=1
+            OR NEW.state!='pending' OR NEW.owner_email IS NULL OR NEW.session_generation IS NULL
+            OR NEW.research_erased!=0 OR NEW.legacy_attempted!=0 OR NEW.legacy_receipt_json IS NOT NULL
+            OR NEW.result_json IS NOT NULL OR NEW.completed_at IS NOT NULL
+            THEN RAISE(ABORT,'authenticated deletion creation required') END; END""",
+    """CREATE TRIGGER auth_deletion_origin_no_retro BEFORE UPDATE OF origin_version,origin_digest ON auth_deletion_jobs
+        WHEN OLD.origin_version IS NULL AND (NEW.origin_version IS NOT NULL OR NEW.origin_digest IS NOT NULL)
+        BEGIN SELECT RAISE(ABORT,'legacy deletion origin cannot be signed'); END""",
+    """CREATE TRIGGER auth_deletion_origin_identity BEFORE UPDATE ON auth_deletion_jobs WHEN OLD.origin_version IS NOT NULL
+        AND (NEW.rowid IS NOT OLD.rowid OR NEW.id IS NOT OLD.id OR NEW.owner_key IS NOT OLD.owner_key OR NEW.gate_id IS NOT OLD.gate_id
+            OR NEW.cleanup_binding IS NOT OLD.cleanup_binding OR NEW.database_binding IS NOT OLD.database_binding
+            OR NEW.created_at IS NOT OLD.created_at OR NEW.origin_version IS NOT OLD.origin_version OR NEW.origin_digest IS NOT OLD.origin_digest)
+        BEGIN SELECT RAISE(ABORT,'immutable deletion origin binding'); END""",
+    """CREATE TRIGGER auth_deletion_origin_stage BEFORE UPDATE ON auth_deletion_jobs WHEN OLD.origin_version IS NOT NULL
+        BEGIN SELECT CASE WHEN research_financial_write_allowed('delete-stage',OLD.id)!=1 OR OLD.state='completed'
+            OR NOT ((OLD.state='pending' AND NEW.state IN ('pending','scrubbing')) OR (OLD.state='scrubbing' AND NEW.state='completed'))
+            OR NEW.research_erased<OLD.research_erased OR NEW.legacy_attempted<OLD.legacy_attempted
+            OR (OLD.legacy_receipt_json IS NOT NULL AND NEW.legacy_receipt_json IS NOT OLD.legacy_receipt_json)
+            OR (OLD.result_json IS NOT NULL AND NEW.result_json IS NOT OLD.result_json)
+            OR (NEW.state='pending' AND (NEW.owner_email IS NOT OLD.owner_email OR NEW.session_generation IS NOT OLD.session_generation))
+            OR (NEW.state IN ('scrubbing','completed') AND (NEW.owner_email IS NOT NULL OR NEW.session_generation IS NOT NULL
+                OR NEW.research_erased!=1 OR NEW.result_json IS NULL OR NOT json_valid(NEW.result_json)))
+            OR (NEW.state!='completed' AND NEW.completed_at IS NOT OLD.completed_at)
+            OR (NEW.state='completed' AND NEW.completed_at IS NULL)
+            THEN RAISE(ABORT,'invalid deletion stage transition') END; END""",
+    """CREATE TRIGGER auth_deletion_origin_no_replace BEFORE INSERT ON auth_deletion_jobs
+        WHEN EXISTS(SELECT 1 FROM auth_deletion_jobs j WHERE j.origin_version IS NOT NULL AND
+            (j.rowid=NEW.rowid OR j.id=NEW.id OR (j.owner_key=NEW.owner_key AND j.state!='completed' AND NEW.state!='completed')))
+        BEGIN SELECT RAISE(ABORT,'protected deletion replacement forbidden'); END""",
+    """CREATE TRIGGER auth_deletion_origin_no_update_replace BEFORE UPDATE ON auth_deletion_jobs
+        WHEN EXISTS(SELECT 1 FROM auth_deletion_jobs j WHERE j.origin_version IS NOT NULL AND j.rowid IS NOT OLD.rowid AND
+            (j.rowid=NEW.rowid OR j.id=NEW.id OR (j.owner_key=NEW.owner_key AND j.state!='completed' AND NEW.state!='completed')))
+        BEGIN SELECT RAISE(ABORT,'protected deletion update replacement forbidden'); END""",
+    """CREATE TRIGGER auth_deletion_origin_no_delete BEFORE DELETE ON auth_deletion_jobs WHEN OLD.origin_version IS NOT NULL
+        BEGIN SELECT RAISE(ABORT,'deletion provenance retained'); END""",
+)
+
+METHOD_SCHEMA_VERSION=9
+METHOD_COLUMNS=(
+    ('body_origin_state',"TEXT NOT NULL DEFAULT 'legacy_unproved' CHECK(body_origin_state IN ('legacy_unproved','fresh','present','closed'))"),
+    ('body_candidate_digest',"TEXT CHECK(body_candidate_digest IS NULL OR (length(body_candidate_digest)=64 AND body_candidate_digest NOT GLOB '*[^a-f0-9]*'))"),
+    ('body_envelope_digest',"TEXT CHECK(body_envelope_digest IS NULL OR (length(body_envelope_digest)=64 AND body_envelope_digest NOT GLOB '*[^a-f0-9]*'))"),
+    ('method_commit_json',"TEXT CHECK(method_commit_json IS NULL OR (json_valid(method_commit_json) AND length(CAST(method_commit_json AS BLOB))<=4096)) CHECK((body_origin_state='legacy_unproved' AND body_candidate_digest IS NULL AND body_envelope_digest IS NULL AND method_commit_json IS NULL) OR (body_origin_state='fresh' AND candidate_json IS NULL AND body_candidate_digest IS NULL AND body_envelope_digest IS NULL AND method_commit_json IS NULL AND financial_return_json IS NULL) OR (body_origin_state='closed' AND candidate_json IS NULL AND body_candidate_digest IS NULL AND body_envelope_digest IS NULL AND method_commit_json IS NULL) OR (body_origin_state='present' AND candidate_json IS NOT NULL AND body_candidate_digest IS NOT NULL AND body_envelope_digest IS NOT NULL AND financial_return_json IS NOT NULL AND received_at IS NOT NULL AND length(CAST(candidate_json AS BLOB))<=32768))"),
+)
+_METHOD_NEW="json_object("+','.join("'"+name+"',NEW."+name for name in ('id','approval_id','dispatch_id','permit_id','mode','binding_digest','candidate_json',*(name for name,_ in METHOD_COLUMNS)))+")"
+METHOD_GUARDS=(
+    """CREATE TRIGGER research_method_birth BEFORE INSERT ON research_provider_sessions
+        WHEN NEW.body_origin_state!='legacy_unproved' OR NEW.candidate_json IS NOT NULL
+            OR NEW.body_candidate_digest IS NOT NULL OR NEW.body_envelope_digest IS NOT NULL OR NEW.method_commit_json IS NOT NULL
+        BEGIN SELECT CASE WHEN NEW.body_origin_state!='fresh' OR NEW.candidate_json IS NOT NULL
+            OR NEW.body_candidate_digest IS NOT NULL OR NEW.body_envelope_digest IS NOT NULL OR NEW.method_commit_json IS NOT NULL
+            OR research_method_write_allowed('birth',NEW.id,"""+_METHOD_NEW+""")!=1 THEN RAISE(ABORT,'controlled method birth required') END; END""",
+    """CREATE TRIGGER research_method_write BEFORE UPDATE OF candidate_json,body_origin_state,body_candidate_digest,body_envelope_digest,method_commit_json ON research_provider_sessions
+        WHEN OLD.body_origin_state!='legacy_unproved' OR NEW.body_origin_state!='legacy_unproved'
+            OR NEW.body_candidate_digest IS NOT NULL OR NEW.body_envelope_digest IS NOT NULL OR NEW.method_commit_json IS NOT NULL
+        BEGIN SELECT CASE WHEN OLD.body_origin_state='legacy_unproved'
+            OR NOT ((OLD.body_origin_state='fresh' AND NEW.body_origin_state IN ('present','closed'))
+                OR (OLD.body_origin_state='present' AND NEW.body_origin_state IN ('present','closed'))
+                OR (OLD.body_origin_state='closed' AND NEW.body_origin_state='closed'))
+            OR (OLD.body_origin_state='present' AND NEW.body_origin_state='present' AND
+                (NEW.candidate_json IS NOT OLD.candidate_json OR NEW.body_candidate_digest IS NOT OLD.body_candidate_digest
+                    OR NEW.body_envelope_digest IS NOT OLD.body_envelope_digest OR OLD.method_commit_json IS NOT NULL))
+            OR research_method_write_allowed('write',OLD.id,"""+_METHOD_NEW+""")!=1 THEN RAISE(ABORT,'controlled method write required') END; END""",
+    """CREATE TRIGGER research_method_identity BEFORE UPDATE ON research_provider_sessions WHEN OLD.body_origin_state!='legacy_unproved'
+        AND (NEW.rowid IS NOT OLD.rowid OR NEW.id IS NOT OLD.id OR NEW.approval_id IS NOT OLD.approval_id OR NEW.dispatch_id IS NOT OLD.dispatch_id
+            OR NEW.permit_id IS NOT OLD.permit_id OR NEW.mode IS NOT OLD.mode OR NEW.binding_digest IS NOT OLD.binding_digest)
+        BEGIN SELECT RAISE(ABORT,'immutable method source binding'); END""",
+    """CREATE TRIGGER research_method_no_replace BEFORE INSERT ON research_provider_sessions
+        WHEN EXISTS(SELECT 1 FROM research_provider_sessions s WHERE s.body_origin_state!='legacy_unproved'
+            AND (s.rowid=NEW.rowid OR s.id=NEW.id OR s.dispatch_id=NEW.dispatch_id OR s.permit_id=NEW.permit_id))
+        BEGIN SELECT RAISE(ABORT,'method source replacement forbidden'); END""",
+    """CREATE TRIGGER research_method_no_update_replace BEFORE UPDATE ON research_provider_sessions
+        WHEN EXISTS(SELECT 1 FROM research_provider_sessions s WHERE s.body_origin_state!='legacy_unproved' AND s.rowid IS NOT OLD.rowid
+            AND (s.rowid=NEW.rowid OR s.id=NEW.id OR s.dispatch_id=NEW.dispatch_id OR s.permit_id=NEW.permit_id))
+        BEGIN SELECT RAISE(ABORT,'method source update replacement forbidden'); END""",
+    """CREATE TRIGGER research_method_no_delete BEFORE DELETE ON research_provider_sessions WHEN OLD.body_origin_state!='legacy_unproved'
+        BEGIN SELECT RAISE(ABORT,'method source tombstone retained'); END""",
+)
+
 
 def install_default_hook(conn):
     """No authorizer/trace replacement; private registration is the sole permit."""
@@ -109,13 +199,15 @@ def install_default_hook(conn):
         except (ValueError,TypeError,PermissionError,OSError):return 0
     conn.create_function('research_financial_write_allowed',2,allowed)
     conn.create_function('research_financial_guard_version',0,lambda:7 if os.getpid()==pid else 0)
+    from .method_result import install_hook
+    install_hook(conn)
     from .paid_control import _SCOPES
     if id(conn) not in _SCOPES:
         # Fresh factory connections have no transaction observer to replace.
         schema=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema' AND type='table'").fetchone()
         try:version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone() if schema else None
         except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本标记结构不匹配。') from None
-        if version and version[0]==7:
+        if version and version[0] in (7,8,9):
             conn.set_authorizer(lambda action,table,column,db,trigger:
                 sqlite3.SQLITE_OK if _statement_allowed(conn,action,table,column) else sqlite3.SQLITE_DENY)
 
@@ -178,8 +270,8 @@ def register_closed_project(conn,*,store,identity,lease,source=None):
     if (type(source) is not OfflineProjectRegistration or not source._active or source._pid!=os.getpid()
             or _SOURCES.get(source._ref) is not source or source._store is not store or source._identity!=identity):
         raise PermissionError('explicit offline project registration source required')
-    ResearchStore._check_v7(conn)
-    ResearchStore._check_v7_attachments(conn)
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
+    else:ResearchStore._check_v7(conn);ResearchStore._check_v7_attachments(conn)
     _owner_binding(conn,store,source._principal,lease)
     AuthorizationGate(store).check(conn,identity,source._principal)
     facts=source._funding.current(conn,source._principal)

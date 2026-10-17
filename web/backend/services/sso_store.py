@@ -2,52 +2,115 @@
 from __future__ import annotations
 
 import sqlite3
+import os,re
+from functools import lru_cache
 import time
 from pathlib import Path
 
-from .sqlite_utils import ClosingConnection
+from .sqlite_utils import ClosingConnection,connect_private_sso
+
+
+_SSO_TABLE_DDL = ('CREATE TABLE IF NOT EXISTS consumed_sso_codes(jti TEXT PRIMARY KEY, consumed_at INTEGER NOT NULL, expires_at INTEGER NOT NULL)', 'CREATE TABLE IF NOT EXISTS issued_sso_codes(jti TEXT PRIMARY KEY, subject_id TEXT NOT NULL, tier TEXT NOT NULL, expires_at INTEGER NOT NULL, consumed_at INTEGER, email TEXT, issued_ns INTEGER)', 'CREATE TABLE IF NOT EXISTS revoked_sso_subjects(subject_id TEXT PRIMARY KEY, revoked_at INTEGER NOT NULL)', 'CREATE TABLE IF NOT EXISTS sso_subject_email_bindings(subject_id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, bound_at INTEGER NOT NULL)')
+_SSO_ALTER_DDL = ('ALTER TABLE issued_sso_codes ADD COLUMN email TEXT', 'ALTER TABLE issued_sso_codes ADD COLUMN issued_ns INTEGER')
+
+
+def _formal_sso_mode():
+    from .runtime_paths import RuntimePathError
+    raw=os.getenv('STRUCTURAL_ENV','dev')
+    if raw.strip().lower()=='prod' and raw.lower()!='prod':raise RuntimePathError('private SSO profile contains invalid whitespace')
+    return raw.lower()=='prod'
+
+
+def _sql_tokens(sql):
+    # Literal-preserving tokens; normalize only optional IF NOT EXISTS and
+    # simple managed SSO object quoting, never flatten string literal content.
+    tokens=[]
+    managed={ddl.split()[5].split('(')[0] for ddl in _SSO_TABLE_DDL}
+    for value in re.findall(r"\s+|'(?:''|[^'])*'|\"(?:\"\"|[^\"])*\"|`(?:``|[^`])*`|\[[^\]]*\]|[A-Za-z_][A-Za-z_0-9]*|[0-9]+|.",sql,re.S):
+        if value.isspace():continue
+        if value.startswith("'"):tokens.append(('literal',value))
+        elif value[0] in ('"','`','['):
+            name=value[1:-1]
+            tokens.append(('token',name.lower()) if name.lower() in managed else ('quoted',name))
+        else:tokens.append(('token',value.lower()))
+    optional=[('token','if'),('token','not'),('token','exists')]
+    return tuple(v for i,v in enumerate(tokens) if not any(tokens[j:j+3]==optional and j<=i<j+3 for j in range(max(0,i-2),i+1)))
+
+
+def _metadata(conn,allowed=None):
+    objects={};columns={};indexes={}
+    rows=list(conn.execute('SELECT type,name,tbl_name,sql FROM main.sqlite_schema'))
+    for kind,name,target,sql in rows:objects[name]=(kind,target,_sql_tokens(sql) if sql is not None else None)
+    if allowed is not None and objects not in [form[0] for form in allowed]:return objects,columns,indexes
+    known={ddl.split()[5].split('(')[0] for ddl in _SSO_TABLE_DDL}
+    if any(target not in known for _,_,target,_ in rows):return objects,columns,indexes
+    for kind,name,target,sql in rows:
+        quoted='"'+name.replace('"','""')+'"'
+        if kind=='table':
+            columns[name]=tuple(tuple(v) for v in conn.execute('PRAGMA main.table_xinfo('+quoted+')'))
+        elif kind=='index':
+            indexes[name]=tuple(tuple(v) for v in conn.execute('PRAGMA main.index_xinfo('+quoted+')'))
+    return objects,columns,indexes
+
+
+@lru_cache(maxsize=1)
+def _final_sso_contracts():
+    forms=[]
+    # Exactly the constructor's declared creation/ALTER histories, including
+    # legacy issued_ns already present when the email ALTER was applied.
+    for removed in ((),('email',),('issued_ns',),('email','issued_ns')):
+        with sqlite3.connect(':memory:',isolation_level=None,factory=ClosingConnection) as conn:
+            for ddl in _SSO_TABLE_DDL:
+                if 'issued_sso_codes(' in ddl:
+                    if 'email' in removed:ddl=ddl.replace(', email TEXT','')
+                    if 'issued_ns' in removed:ddl=ddl.replace(', issued_ns INTEGER','')
+                conn.execute(ddl)
+            for field,ddl in zip(('email','issued_ns'),_SSO_ALTER_DDL):
+                if field in removed:conn.execute(ddl)
+            forms.append(_metadata(conn))
+    return tuple(forms)
 
 
 class SsoReplayStore:
-    def __init__(self, path: Path):
-        self.path = path
-        path.parent.mkdir(parents=True, exist_ok=True)
+    def __init__(self,path:Path):
+        self.path=Path(path);self._private_sso=_formal_sso_mode();self._storage_identity=None
+        if self._private_sso:
+            self._storage_identity=self.preflight_private(self.path)
+            return
+        self.path.parent.mkdir(parents=True,exist_ok=True)
         with self._connect() as conn:
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS consumed_sso_codes("
-                "jti TEXT PRIMARY KEY, consumed_at INTEGER NOT NULL, expires_at INTEGER NOT NULL)"
-            )
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS issued_sso_codes("
-                "jti TEXT PRIMARY KEY, subject_id TEXT NOT NULL, tier TEXT NOT NULL, "
-                "expires_at INTEGER NOT NULL, consumed_at INTEGER, email TEXT, "
-                "issued_ns INTEGER)"
-            )
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS revoked_sso_subjects("
-                "subject_id TEXT PRIMARY KEY, revoked_at INTEGER NOT NULL)"
-            )
-            columns = {
-                row[1] for row in conn.execute("PRAGMA table_info(issued_sso_codes)").fetchall()
-            }
-            if "email" not in columns:
-                conn.execute("ALTER TABLE issued_sso_codes ADD COLUMN email TEXT")
-            if "issued_ns" not in columns:
-                conn.execute("ALTER TABLE issued_sso_codes ADD COLUMN issued_ns INTEGER")
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS sso_subject_email_bindings("
-                "subject_id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, "
-                "bound_at INTEGER NOT NULL)"
-            )
+            for ddl in _SSO_TABLE_DDL[:3]:conn.execute(ddl)
+            columns={row[1] for row in conn.execute('PRAGMA table_info(issued_sso_codes)')}
+            for name,ddl in zip(('email','issued_ns'),_SSO_ALTER_DDL):
+                if name not in columns:conn.execute(ddl)
+            conn.execute(_SSO_TABLE_DDL[3])
 
-    def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(
-            self.path, timeout=10, isolation_level=None,
-            factory=ClosingConnection,
-        )
-        conn.execute("PRAGMA busy_timeout=10000")
-        conn.execute("PRAGMA journal_mode=WAL")
-        return conn
+    @property
+    def storage_identity(self):return self._storage_identity
+
+    @classmethod
+    def preflight_private(cls,path):
+        conn=connect_private_sso(path,readonly=True);identity=conn.private_storage_identity
+        try:
+            conn.execute('BEGIN')
+            allowed=_final_sso_contracts()
+            if _metadata(conn,allowed=allowed) not in allowed:
+                raise RuntimeError('private SSO schema is incomplete or unsupported')
+            return identity
+        finally:conn.close()
+
+    def _connect(self)->sqlite3.Connection:
+        current=_formal_sso_mode()
+        if current and not self._private_sso:raise RuntimeError('development SSO object cannot become formal')
+        conn=(connect_private_sso(self.path,expected_identity=self.storage_identity)
+              if self._private_sso or current else sqlite3.connect(self.path,timeout=10,
+                    isolation_level=None,factory=ClosingConnection))
+        try:
+            conn.execute('PRAGMA busy_timeout=10000')
+            if not (self._private_sso or current):conn.execute('PRAGMA journal_mode=WAL')
+            return conn
+        except BaseException:
+            conn.close();raise
 
     def consume_once(self, jti: str, expires_at: int) -> bool:
         """Atomically consume a non-expired code identifier exactly once."""

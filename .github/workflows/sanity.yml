@@ -12,7 +12,8 @@ name: sanity tests
 #
 # The deeper matrix (Linux + macOS × py3.10–3.13) for packages/* lives in
 # `ci-packages.yml`. This sanity workflow only runs the canonical py3.11 Linux
-# leg. Each job keeps its original bound; no suite is omitted to fit one job.
+# leg. The complete backend inventory has a bounded 45-minute CI capacity;
+# product and per-test deadlines stay unchanged, and no suite is omitted.
 
 on:
   push:
@@ -32,7 +33,7 @@ jobs:
   sanity-backend:
     name: sanity-backend
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
     - uses: actions/checkout@v5
       with:
