@@ -217,3 +217,16 @@ def test_replaced_inode_is_rejected_before_journal_mutation(v9,monkeypatch):
     with pytest.raises(PermissionError,match='inode changed'):
         with formula_maintenance(store):pass
     assert not mutations
+
+
+def test_native_maintenance_open_does_not_recreate_disappearing_path(v9,monkeypatch):
+    _,path,_,store=v9;native=sqlite3.connect;hit=[]
+    original=path.with_name('moved-original.sqlite3')
+    def raced(value,*args,**kwargs):
+        if str(value) in (str(path),path.as_uri()+'?mode=rw') and not hit:
+            os.replace(path,original);hit.append(True)
+        return native(value,*args,**kwargs)
+    monkeypatch.setattr(sqlite3,'connect',raced)
+    with pytest.raises((PermissionError,sqlite3.OperationalError)):
+        with formula_maintenance(store):pass
+    assert hit and not path.exists()

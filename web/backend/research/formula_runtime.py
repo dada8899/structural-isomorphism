@@ -170,7 +170,7 @@ def formula_maintenance(store):
         finally:ro.close()
         lockfd=os.open(str(store.path)+'.formula-maintenance',os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
         _safe_file(os.fstat(lockfd));fcntl.flock(lockfd,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        conn=sqlite3.connect(store.path,isolation_level=None,timeout=.1,cached_statements=0);conn.row_factory=sqlite3.Row
+        conn=sqlite3.connect(store.path.as_uri()+'?mode=rw',uri=True,isolation_level=None,timeout=.1,cached_statements=0);conn.row_factory=sqlite3.Row
         _check_database_path(store.path,parentfd,parent_identity,identity)
         install_default_hook(conn);conn.execute('PRAGMA busy_timeout=100');conn.execute('PRAGMA foreign_keys=ON')
         old_journal=conn.execute('PRAGMA journal_mode').fetchone()[0]
