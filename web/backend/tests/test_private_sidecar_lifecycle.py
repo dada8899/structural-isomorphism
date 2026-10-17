@@ -1,4 +1,5 @@
 """SQLite sidecar disappearance is not a still-named unsafe file."""
+from contextlib import contextmanager
 from pathlib import Path
 import importlib
 import json
@@ -144,6 +145,98 @@ print(json.dumps({'native_reads_closed':count}))
 '''
 
 
+def _sidecar_stat_metadata(info,first=None):
+    if not isinstance(info,os.stat_result):return {'observed':False}
+    kind='regular' if stat.S_ISREG(info.st_mode) else 'symlink' if stat.S_ISLNK(info.st_mode) else 'directory' if stat.S_ISDIR(info.st_mode) else 'other'
+    return {'observed':True,'kind':kind,'mode':format(stat.S_IMODE(info.st_mode),'04o'),
+        'uid_match':info.st_uid==os.geteuid(),'nlink':info.st_nlink,
+        'same_inode_as_first':None if first is None else (info.st_dev,info.st_ino)==(first.st_dev,first.st_ino)}
+
+
+def _sidecar_failure_metadata(error,witness,kind,namespace,captured,code,trace_mode):
+    first=current=None;suffix='unknown';matched=False
+    traceback=error.__traceback__
+    while traceback is not None:
+        frame=traceback.tb_frame
+        if frame.f_code is code and frame.f_locals.get('self') is witness:
+            matched=True;values=frame.f_locals
+            first=values.get('info');current=values.get('current')
+            if captured.get('frame_id')==id(frame):
+                first=captured.get('first');current=captured.get('recheck')
+            suffix=next((s for s in ('-wal','-shm','-journal') if values.get('name')==witness.path.name+s),'unknown')
+            break
+        traceback=traceback.tb_next
+    # Only the original helper's actual stat_result objects are serialized.
+    # A missing local is unobserved, never a fabricated ENOENT observation.
+    return {'role':kind,'namespace':namespace,'suffix':suffix,'matched_helper_frame':matched,
+        'first':_sidecar_stat_metadata(first),'recheck':_sidecar_stat_metadata(current,first),
+        'error_class':type(error).__name__,'trace_mode':trace_mode,
+        'runtime':{'python':'.'.join(map(str,sys.version_info[:3])),'sqlite':sqlite3.sqlite_version,
+            'platform':sys.platform,'kernel_release':os.uname().release,'euid':os.geteuid()}}
+
+
+@contextmanager
+def _observe_sidecar_failure(witness,kind,namespace):
+    code=witness._sidecar_entry.__func__.__code__;captured={};previous=sys.gettrace()
+    def local(frame,event,arg):
+        if event=='exception':
+            captured.update(frame_id=id(frame),first=frame.f_locals.get('info'),recheck=frame.f_locals.get('current'))
+        return local
+    def trace(frame,event,arg):
+        if event=='call' and frame.f_code is code and frame.f_locals.get('self') is witness:
+            captured.clear()
+            return local
+        return None
+    # Coverage's C tracer is not replaced or called as a Python trace hook.
+    # Its failure path retains the same immutable snapshots in the traceback.
+    installed=previous is None
+    if installed:sys.settrace(trace)
+    try:
+        yield
+    except Exception as error:
+        try:
+            report=_sidecar_failure_metadata(error,witness,kind,namespace,captured,code,
+                'sidecar_trace' if installed else 'existing_trace_preserved')
+            print('NATIVE_SIDECAR_REJECTION:'+json.dumps(report,sort_keys=True),file=sys.stderr,flush=True)
+        except Exception:
+            # A diagnostic failure must never replace the original rejection.
+            pass
+        raise
+    finally:
+        if installed:sys.settrace(previous)
+
+
+def test_failure_observer_keeps_actual_rejection_trace_and_no_success_output(role,monkeypatch,capsys):
+    kind,db=role;witness=witness_for(paths,kind,db);previous=sys.gettrace();actual_stat=os.stat
+    try:
+        with _observe_sidecar_failure(witness,kind,paths.__name__):witness._sidecars()
+        assert sys.gettrace() is previous and capsys.readouterr().err==''
+        side=db.with_name(db.name+'-wal');side.write_bytes(b'owned unsafe metadata negative');side.chmod(0o644)
+        errors=[]
+        with pytest.raises(paths.RuntimePathError) as rejected:
+            with _observe_sidecar_failure(witness,kind,paths.__name__):
+                try:witness._sidecars()
+                except paths.RuntimePathError as error:errors.append(error);raise
+        assert rejected.value is errors[0] and sys.gettrace() is previous and os.stat is actual_stat
+        lines=capsys.readouterr().err.splitlines();assert len(lines)==1 and lines[0].startswith('NATIVE_SIDECAR_REJECTION:')
+        report=json.loads(lines[0].split(':',1)[1])
+        assert report['matched_helper_frame'] and report['role']==kind and report['suffix']=='-wal'
+        assert report['first']=={'observed':True,'kind':'regular','mode':'0644','uid_match':True,'nlink':1,'same_inode_as_first':None}
+        assert report['recheck']=={'observed':False}
+        assert report['trace_mode']==('sidecar_trace' if previous is None else 'existing_trace_preserved')
+        assert str(db.parent) not in lines[0] and 'owned unsafe metadata negative' not in lines[0]
+        def diagnostic_fault(*args):raise ValueError('owned diagnostic-only failure')
+        with monkeypatch.context() as failure:
+            failure.setitem(globals(),'_sidecar_failure_metadata',diagnostic_fault)
+            with pytest.raises(paths.RuntimePathError) as unchanged:
+                with _observe_sidecar_failure(witness,kind,paths.__name__):
+                    try:witness._sidecars()
+                    except paths.RuntimePathError as error:errors.append(error);raise
+        assert unchanged.value is errors[-1] and sys.gettrace() is previous and os.stat is actual_stat
+        assert capsys.readouterr().err==''
+    finally:witness.close()
+
+
 @pytest.mark.parametrize('namespace',['services.runtime_paths','web.backend.services.runtime_paths'])
 def test_real_native_active_readers_then_final_close_without_recreation(role, namespace):
     kind,db=role;module=importlib.import_module(namespace);witness=witness_for(module,kind,db)
@@ -153,9 +246,10 @@ def test_real_native_active_readers_then_final_close_without_recreation(role, na
         for _ in range(2):
             processes.append(subprocess.Popen([sys.executable,'-B','-c',_NATIVE_READER,str(db),str(db.parent.parent)],env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE))
         checks=0;deadline=time.monotonic()+8
-        while any(child.poll() is None for child in processes):
-            assert time.monotonic()<deadline
-            witness._sidecars();checks+=1
+        with _observe_sidecar_failure(witness,kind,namespace):
+            while any(child.poll() is None for child in processes):
+                assert time.monotonic()<deadline
+                witness._sidecars();checks+=1
         for child in processes:
             output,error=child.communicate(timeout=5)
             assert child.returncode==0,error
