@@ -104,6 +104,7 @@ class ResearchService:
     def create(self, identity, request, key):
         principal = self._principal(identity, create=True)
         payload = request.model_dump(mode="json")
+        if payload["problem"].get("formula_draft") is None:payload["problem"].pop("formula_draft",None)
         request_digest = digest(payload)
         with self.authorization.owner_gate(principal) as lease, self.store.transaction(write=True) as conn:
             owner = self.authorization.check(conn, identity, principal)
@@ -131,6 +132,7 @@ class ResearchService:
         rid = self._id(research_id)
         principal = self._principal(identity)
         payload = request.model_dump(mode="json")
+        if payload["problem"].get("formula_draft") is None:payload["problem"].pop("formula_draft",None)
         request_digest = digest(payload)
         with self.authorization.owner_gate(principal) as lease, self.store.transaction(write=True) as conn:
             row = self.authorization.check(conn, identity, principal, rid, scope="write")

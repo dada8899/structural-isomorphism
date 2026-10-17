@@ -143,3 +143,27 @@ def test_failed_admission_commit_cannot_leave_live_execution_capability(stack,mo
         assert set(formula_result._EXECUTIONS)==before
     finally:
         for nonce in set(formula_result._EXECUTIONS)-before:formula_result._EXECUTIONS[nonce].close()
+
+
+@pytest.mark.parametrize('operation',['create','revise'])
+def test_new_optional_formula_field_preserves_pre_formula_replay_digest(stack,operation):
+    from .test_research_persistence import problem
+    from research.service import digest
+    client,path=stack;payload={'problem':problem()};key='historical-key'
+    created=post(client,'/api/research',payload,key);assert created.status_code==200
+    rid=created.json()['data']['research']['id']
+    target='/api/research'
+    if operation=='revise':
+        payload={'expected_revision':1,'problem':problem('Second historical version')}
+        target=f'/api/research/{rid}/revisions'
+        changed=post(client,target,payload,key);assert changed.status_code==200
+    # Exact pre-formula Create/RevisionRequest canonical shape from V9.
+    # This historical idempotency DATA grants no execution or read authority.
+    with closing(sqlite3.connect(path)) as conn,conn:
+        conn.execute('UPDATE research_idempotency SET request_digest=? WHERE operation=?',(digest(payload),operation))
+    replay=post(client,target,payload,key)
+    assert replay.status_code==200,replay.text
+    assert replay.json()['data']['research']['id']==rid
+    with closing(sqlite3.connect(path)) as conn,conn:
+        assert conn.execute('SELECT count(*) FROM research_controls').fetchone()[0]==1
+        assert conn.execute('SELECT count(*) FROM research_revisions').fetchone()[0]==(2 if operation=='revise' else 1)
