@@ -359,3 +359,112 @@ class PrivateHistoryFile:
         self.parent_fd = None
         if fd is not None:
             os.close(fd)
+
+
+def private_auth_path(configured_dir=None):
+    """Static Auth role only; None/unset uses approved state, empty is invalid."""
+    profile=os.getenv('STRUCTURAL_ENV','dev')
+    if profile.strip().lower()=='prod' and profile.lower()!='prod':
+        raise RuntimePathError('private Auth profile contains invalid whitespace')
+    configured = os.environ.get('AUTH_DATA_DIR') if configured_dir is None else os.fspath(configured_dir)
+    if configured is not None and (not configured or configured.startswith('file:')
+            or not Path(configured).is_absolute() or '..' in Path(configured).parts
+            or Path(configured) != STATE_ROOT):
+        raise RuntimePathError('private auth directory does not match its approved root')
+    return STATE_ROOT / 'auth.sqlite3'
+
+
+def _auth_forbidden_roots():
+    repository = Path(__file__).resolve().parents[3]
+    frontend = repository / 'web/frontend'
+    inspected = RuntimePaths.inspect_formal(repository=repository, public_roots=[
+        frontend, frontend/'assets', frontend/'phase/samples', frontend/'phase/data',
+    ])
+    return inspected.forbidden
+
+
+class PrivateAuthFile(PrivateHistoryFile):
+    """Existing Auth file metadata and parent FD; no ordinary database FD."""
+    @classmethod
+    def acquire(cls, path):
+        witness = cls()
+        try:
+            if not isinstance(path, (str, Path)) or Path(path) != private_auth_path():
+                raise RuntimePathError('private auth requires its canonical existing file')
+            witness.path = private_auth_path()
+            witness.forbidden = _auth_forbidden_roots()
+            witness.parent_fd = _validated_directory_fd(witness.path.parent, forbidden=witness.forbidden)
+            info = witness._entry('auth.sqlite3')
+            if info is None:
+                raise RuntimePathError('private auth database is missing')
+            witness.file_identity = (info.st_dev, info.st_ino)
+            witness.check()
+            return witness
+        except BaseException:
+            witness.close()
+            raise
+
+    def _sidecars(self):
+        return [info for suffix in ('-wal','-shm','-journal')
+                if (info := self._entry('auth.sqlite3'+suffix)) is not None]
+
+    def check(self):
+        _check_current_parent(self.path.parent, self.parent_fd, forbidden=self.forbidden)
+        current = self._entry('auth.sqlite3')
+        if current is None or self.file_identity != (current.st_dev,current.st_ino):
+            raise RuntimePathError('private auth database identity changed')
+        if self._sidecars() and current.st_size == 0:
+            raise RuntimePathError('private auth database has orphan sidecars')
+
+
+def require_private_auth_lock_dir(auth_path):
+    if Path(auth_path) != private_auth_path():
+        raise RuntimePathError('private auth lock root has an invalid database binding')
+    root = Path(auth_path).parent/'research-locks'
+    fd = _validated_directory_fd(root, forbidden=_auth_forbidden_roots())
+    os.close(fd)
+    return root
+
+
+def append_private_auth_audit(record):
+    """Specific existing tombstone journal; no create or partial-record repair."""
+    import fcntl
+    import json
+    payload = (json.dumps(record, ensure_ascii=False, allow_nan=False)+'\n').encode('utf-8')
+    if len(payload)>1024*1024:
+        raise RuntimePathError('private auth audit record is too large')
+    parent = private_auth_path().parent
+    forbidden = _auth_forbidden_roots()
+    directory = _validated_directory_fd(parent, forbidden=forbidden)
+    fd = None
+    name = 'account_deletion_audit.jsonl'
+    try:
+        initial=os.stat(name,dir_fd=directory,follow_symlinks=False)
+        PrivateAuthFile._require_private_file(initial)
+        fd = os.open(name, os.O_RDWR|os.O_APPEND|os.O_NOFOLLOW|os.O_NONBLOCK, dir_fd=directory)
+        info = os.fstat(fd)
+        PrivateAuthFile._require_private_file(info)
+        if (initial.st_dev,initial.st_ino)!=(info.st_dev,info.st_ino):
+            raise RuntimePathError('private auth audit changed while opening')
+        fcntl.flock(fd,fcntl.LOCK_EX)
+        info=os.fstat(fd);PrivateAuthFile._require_private_file(info)
+        _check_current_parent(parent,directory,forbidden=forbidden)
+        bound = os.stat(name,dir_fd=directory,follow_symlinks=False)
+        if (info.st_dev,info.st_ino)!=(bound.st_dev,bound.st_ino):
+            raise RuntimePathError('private auth audit identity changed')
+        if info.st_size and os.pread(fd,1,info.st_size-1)!=b'\n':
+            raise RuntimePathError('private auth audit has an unfinished record; operator reconciliation required')
+        offset=0
+        while offset<len(payload):
+            written=os.write(fd,payload[offset:])
+            if written<=0:raise RuntimePathError('private auth audit append was incomplete')
+            offset+=written
+        os.fsync(fd)
+        after=os.fstat(fd);PrivateAuthFile._require_private_file(after)
+        _check_current_parent(parent,directory,forbidden=forbidden)
+        bound=os.stat(name,dir_fd=directory,follow_symlinks=False)
+        if (after.st_dev,after.st_ino)!=(bound.st_dev,bound.st_ino):
+            raise RuntimePathError('private auth audit pathname changed during append')
+    finally:
+        if fd is not None:os.close(fd)  # Releases this non-DB journal's flock.
+        os.close(directory)

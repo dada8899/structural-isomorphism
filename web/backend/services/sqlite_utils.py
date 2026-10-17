@@ -118,3 +118,39 @@ def connect_private_history(path, *, detect_types=0, foreign_keys=False):
             if witness is not None:
                 witness.close()
         raise
+
+
+class PrivateAuthConnection(PrivateHistoryConnection):
+    """Native SQLite semantics (including autocommit None), guarded close."""
+    @property
+    def private_storage_identity(self):
+        return self._history_file.file_identity if self._history_file is not None else None
+
+
+def connect_private_auth(path, *, readonly=False, timeout=10.0, expected_identity=None):
+    """Existing static Auth role only. Caller owns BEGIN/hooks/policy/close."""
+    from .runtime_paths import PrivateAuthFile, RuntimePathError, HISTORY_OPEN_LOCK
+    if type(readonly) is not bool:
+        raise TypeError('readonly must be a boolean')
+    witness=None;connection=None
+    try:
+        with HISTORY_OPEN_LOCK:
+            witness=PrivateAuthFile.acquire(path)
+            if expected_identity is not None and witness.file_identity!=expected_identity:
+                raise RuntimePathError('private auth object has an obsolete file identity')
+            mode='ro' if readonly else 'rw'
+            connection=sqlite3.connect(witness.path.as_uri()+'?mode='+mode,uri=True,
+                timeout=timeout,isolation_level=None,factory=PrivateAuthConnection)
+            connection._history_file=witness
+        witness.check()
+        connection.row_factory=sqlite3.Row
+        if connection.execute('PRAGMA journal_mode').fetchone()[0].lower()!='wal':
+            raise RuntimePathError('private auth requires preprovisioned WAL mode')
+        witness.check()
+        return connection
+    except BaseException:
+        try:
+            if connection is not None:connection.close()
+        finally:
+            if witness is not None:witness.close()
+        raise

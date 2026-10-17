@@ -188,17 +188,27 @@ def _validate_production_config() -> None:
 # --- Storage paths (lazy, overridable in tests) ---
 
 def _data_dir() -> Path:
+    if os.getenv("STRUCTURAL_ENV","dev").strip().lower()=="prod":
+        if __package__=='web.backend.api':from ..services.runtime_paths import private_auth_path
+        else:from services.runtime_paths import private_auth_path
+        return private_auth_path().parent
     configured = os.getenv("AUTH_DATA_DIR", "").strip()
     return Path(configured) if configured else Path(__file__).resolve().parent.parent / "data"
 
 
 def _store() -> AuthStore:
-    path = (_data_dir() / "auth.sqlite3").expanduser().resolve()
+    formal=os.getenv("STRUCTURAL_ENV","dev").strip().lower()=="prod"
+    path=(_data_dir()/"auth.sqlite3")
+    if not formal:path=path.expanduser().resolve()
     with _AUTH_STORES_GUARD:
-        store = _AUTH_STORES.get(path)
+        identity=AuthStore.preflight_private(path) if formal else None
+        key=(True,path,identity) if formal else path
+        store=_AUTH_STORES.get(key)
         if store is None:
-            store = AuthStore(path)
-            _AUTH_STORES[path] = store
+            store=AuthStore(path)
+            _AUTH_STORES[key]=store
+        elif formal and (not store._private_auth or store.storage_identity!=identity):
+            raise RuntimeError('private Auth cache has an inconsistent profile or identity')
         return store
 
 
@@ -286,6 +296,11 @@ def _account_registry() -> AccountDataRegistry:
 
 
 def _append_deletion_audit(record: dict) -> None:
+    if os.getenv("STRUCTURAL_ENV","dev").strip().lower()=="prod":
+        if __package__=='web.backend.api':from ..services.runtime_paths import append_private_auth_audit
+        else:from services.runtime_paths import append_private_auth_audit
+        append_private_auth_audit(record)
+        return
     _append_jsonl(_data_dir() / "account_deletion_audit.jsonl", record)
 
 
@@ -500,6 +515,8 @@ def _ensure_user(email: str) -> tuple[dict, bool]:
 
 def _send_email(to: str, subject: str, text: str) -> None:
     """Deliver through configured SMTP; mock delivery is dev-only."""
+    if os.getenv("STRUCTURAL_ENV","dev").strip().lower()=="prod" and not _is_prod():
+        raise RuntimeError('invalid private Auth profile; mock delivery is forbidden')
     if not _is_prod() and os.getenv("AUTH_DEV_MODE", "").lower() in {"1", "true", "yes"}:
         _append_jsonl(_outbox_file(), {
             "ts": int(time.time()), "to": to, "subject": subject, "text": text,
