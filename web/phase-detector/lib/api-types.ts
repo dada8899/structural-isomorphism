@@ -1552,6 +1552,204 @@ export interface MappingStreamRequest {
   text_a?: string | null;
   lang?: "zh" | "en";
 }
+export interface NativePlanConfirmationData {
+  task_id: string;
+  result_ref: string;
+  state: "queued";
+  cash_evidence: "not_observed";
+  real_model_executed: false;
+  recorded_at: null;
+}
+export interface NativePlanConfirmationEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v2";
+  data: PlanConfirmationRequest;
+}
+export interface PlanConfirmationRequest {
+  preview_ref: string;
+  preview_digest: string;
+  request_digest: string;
+  expected_research_version: number;
+  approved_upper_units: number;
+  confirm_outbound: true;
+}
+export interface NativePlanConfirmationResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v2";
+  data: NativePlanConfirmationData;
+}
+export interface NativePlanPreviewEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v2";
+  data: PlanPreviewRequest;
+}
+export interface PlanPreviewRequest {
+  input_revision: number;
+  expected_research_version: number;
+  observation_source: "own_observation";
+  declaration_status: "self_declared";
+}
+export interface NativePlanPreviewResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v2";
+  data: NativePlanPreviewView;
+}
+export interface NativePlanPreviewView {
+  preview_ref: string;
+  preview_digest: string;
+  request_digest: string;
+  research_id: string;
+  input_revision: number;
+  expected_research_version: number;
+  exact_input: string;
+  purpose: "phenomenon_plan_v1";
+  observation_rights: "self_declared";
+  state: "awaiting_confirmation" | "funding_closed";
+  can_confirm: boolean;
+  funding_reason: "FUNDING_CLOSED" | null;
+  cash_evidence: "not_observed";
+  approved_upper_units: number;
+  currency: "CNY";
+  scale: 6;
+  quote: NativePlanQuote;
+  expires_at: number;
+  explanation: string;
+}
+export interface NativePlanQuote {
+  protocol: "financial9-native-quote-v1";
+  revision: string;
+  purpose: "phenomenon_plan_v1";
+  provider: "deepseek";
+  model: "deepseek-flash";
+  declared_model_version: "DeepSeek-V4.1-Flash-1017";
+  declaration_observed_on: "2026-10-18";
+  currency: "CNY";
+  scale: 6;
+  peak_input_hit_units_per_million: 40000;
+  peak_input_miss_units_per_million: 2000000;
+  peak_output_units_per_million: 8000000;
+  context_bound: 1048576;
+  provider_output_bound: 393216;
+  max_output_tokens: 4096;
+  approved_upper_units: number;
+  codec_digest: string;
+  issued_at: number;
+  valid_until: number;
+  price_source: "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/";
+}
+export interface NativePlanReadData {
+  task_id: string;
+  result_ref: string;
+  state: "saved" | "failed_insufficient" | "pending_reconciliation" | "cancelled" | "queued" | "generating";
+  financial_version: 9;
+  execution_mode: ("controlled_fixture" | "native_live") | null;
+  real_model_executed: boolean;
+  cost_state: "unreserved" | "held" | "upper_booked" | "unknown";
+  cleanup_state: "pending" | "clean" | "uncertain";
+  safe_code: ("saved" | "body_invalid" | "send_unknown" | "not_sent" | "cancelled" | "access_ended") | null;
+  recorded_at: string | null;
+  content: NativePlanResult | null;
+}
+export interface NativePlanResult {
+  protocol: "owned-native-plan-result-v2";
+  purpose: "phenomenon_plan_v1";
+  result_ref: string;
+  task_id: string;
+  research_id: string;
+  input_revision: number;
+  input_digest: string;
+  request_digest: string;
+  consent_digest: string;
+  admission_digest: string;
+  recorded_at: string;
+  execution_mode: "controlled_fixture" | "native_live";
+  producer: "core-controlled-native-v1" | "owned-native-plan-runtime-v1";
+  real_model_executed: boolean;
+  weight_identity_verified: false;
+  literature_status: "not_retrieved";
+  mathematics_status: "not_checked";
+  mechanism_status: "unverified";
+  observation_rights: "self_declared";
+  query_state: "draft_only";
+  automatically_created_sources: 0;
+  proposal: PhenomenonPlanCandidate;
+}
+export interface PhenomenonPlanCandidate {
+  summary: string;
+  /**
+   * @maxItems 3
+   */
+  candidates:
+    [] | [PlanNomination] | [PlanNomination, PlanNomination] | [PlanNomination, PlanNomination, PlanNomination];
+  /**
+   * @maxItems 5
+   */
+  query_suggestions:
+    | []
+    | [PlanQuerySuggestion]
+    | [PlanQuerySuggestion, PlanQuerySuggestion]
+    | [PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion]
+    | [PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion]
+    | [PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion];
+  /**
+   * @minItems 1
+   * @maxItems 8
+   */
+  gaps:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string];
+  /**
+   * @maxItems 3
+   */
+  clarification_questions: [] | [string] | [string, string] | [string, string, string];
+}
+export interface PlanNomination {
+  label: string;
+  mechanism_hypothesis: string;
+  why_considered: string;
+  /**
+   * @maxItems 2
+   */
+  method_leads: [] | [string] | [string, string];
+  /**
+   * @minItems 1
+   * @maxItems 5
+   */
+  key_unknowns:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string];
+}
+export interface PlanQuerySuggestion {
+  candidate_index: number | null;
+  query: string;
+  intent: string;
+}
+export interface NativePlanReadResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v2";
+  data: NativePlanReadData;
+}
+export interface NativePlanRunMetadata {
+  task_id: string;
+  result_ref: string;
+  state: "saved" | "failed_insufficient" | "pending_reconciliation" | "cancelled" | "queued" | "generating";
+  financial_version: 9;
+  execution_mode: ("controlled_fixture" | "native_live") | null;
+  real_model_executed: boolean;
+  cost_state: "unreserved" | "held" | "upper_booked" | "unknown";
+  cleanup_state: "pending" | "clean" | "uncertain";
+  safe_code: ("saved" | "body_invalid" | "send_unknown" | "not_sent" | "cancelled" | "access_ended") | null;
+  recorded_at: string | null;
+}
 /**
  * GET /api/newsletter/count — current subscriber count (anon-safe).
  */
@@ -1621,65 +1819,6 @@ export interface PhenomenonEvidenceLedger {
   recorded_at?: null;
   artifact_sha256?: null;
   url?: null;
-}
-export interface PhenomenonPlanCandidate {
-  summary: string;
-  /**
-   * @maxItems 3
-   */
-  candidates:
-    [] | [PlanNomination] | [PlanNomination, PlanNomination] | [PlanNomination, PlanNomination, PlanNomination];
-  /**
-   * @maxItems 5
-   */
-  query_suggestions:
-    | []
-    | [PlanQuerySuggestion]
-    | [PlanQuerySuggestion, PlanQuerySuggestion]
-    | [PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion]
-    | [PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion]
-    | [PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion];
-  /**
-   * @minItems 1
-   * @maxItems 8
-   */
-  gaps:
-    | [string]
-    | [string, string]
-    | [string, string, string]
-    | [string, string, string, string]
-    | [string, string, string, string, string]
-    | [string, string, string, string, string, string]
-    | [string, string, string, string, string, string, string]
-    | [string, string, string, string, string, string, string, string];
-  /**
-   * @maxItems 3
-   */
-  clarification_questions: [] | [string] | [string, string] | [string, string, string];
-}
-export interface PlanNomination {
-  label: string;
-  mechanism_hypothesis: string;
-  why_considered: string;
-  /**
-   * @maxItems 2
-   */
-  method_leads: [] | [string] | [string, string];
-  /**
-   * @minItems 1
-   * @maxItems 5
-   */
-  key_unknowns:
-    | [string]
-    | [string, string]
-    | [string, string, string]
-    | [string, string, string, string]
-    | [string, string, string, string, string];
-}
-export interface PlanQuerySuggestion {
-  candidate_index: number | null;
-  query: string;
-  intent: string;
 }
 export interface PhenomenonRecord {
   id: string;
@@ -2035,14 +2174,6 @@ export interface PlanConfirmationEnvelope {
   contract_revision: "b1-candidate-01";
   data: PlanConfirmationRequest;
 }
-export interface PlanConfirmationRequest {
-  preview_ref: string;
-  preview_digest: string;
-  request_digest: string;
-  expected_research_version: number;
-  approved_upper_units: number;
-  confirm_outbound: true;
-}
 export interface PlanConfirmationResponse {
   schema_version: "structure-research-v1";
   contract_revision: "funded-plan-v1";
@@ -2052,12 +2183,6 @@ export interface PlanPreviewEnvelope {
   schema_version: "structure-research-v1";
   contract_revision: "b1-candidate-01";
   data: PlanPreviewRequest;
-}
-export interface PlanPreviewRequest {
-  input_revision: number;
-  expected_research_version: number;
-  observation_source: "own_observation";
-  declaration_status: "self_declared";
 }
 export interface PlanPreviewResponse {
   schema_version: "structure-research-v1";

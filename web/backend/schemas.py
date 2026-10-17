@@ -36,7 +36,7 @@ from datetime import date as calendar_date
 import re
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import model_validator, BaseModel, Field, model_validator
 
 if __package__ == "web.backend":
     from .services.input_limits import MAX_RESEARCH_QUERY_CHARS
@@ -1608,3 +1608,121 @@ class PlanReadResponse(FormulaPublicObject):
     data: PlanReadData
 
 __all__ += ['PlanNomination', 'PlanQuerySuggestion', 'PhenomenonPlanCandidate', 'PlanPreviewRequest', 'PlanConfirmationRequest', 'PlanPreviewEnvelope', 'PlanConfirmationEnvelope', 'PlanQuote', 'PlanResult', 'PlanPreviewView', 'PlanConfirmationData', 'PlanUsage', 'PlanRunMetadata', 'PlanReadData', 'PlanPreviewResponse', 'PlanConfirmationResponse', 'PlanReadResponse']
+
+
+# Financial9 native-plan public contract. Data shapes do not grant funding.
+NativePlanTimestamp=Annotated[str,StringConstraints(strict=True,pattern=r'^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z$')]
+
+NativePlanMode=Literal['controlled_fixture','native_live']
+
+NativePlanProducer=Literal['core-controlled-native-v1','owned-native-plan-runtime-v1']
+
+class NativePlanQuote(PlanQuote):
+    protocol:Literal['financial9-native-quote-v1']
+
+class NativePlanPreviewEnvelope(FormulaPublicObject):
+    schema_version:Literal['structure-research-v1']
+    contract_revision:Literal['funded-plan-v2']
+    data:PlanPreviewRequest
+
+class NativePlanConfirmationEnvelope(FormulaPublicObject):
+    schema_version:Literal['structure-research-v1']
+    contract_revision:Literal['funded-plan-v2']
+    data:PlanConfirmationRequest
+
+class NativePlanResult(FormulaPublicObject):
+    protocol:Literal['owned-native-plan-result-v2']
+    purpose:Literal['phenomenon_plan_v1']
+    result_ref:PlanRef
+    task_id:PlanRef
+    research_id:PlanRef
+    input_revision:FormulaRevision
+    input_digest:PlanDigest
+    request_digest:PlanDigest
+    consent_digest:PlanDigest
+    admission_digest:PlanDigest
+    recorded_at:NativePlanTimestamp
+    execution_mode:NativePlanMode
+    producer:NativePlanProducer
+    real_model_executed:StrictBool
+    weight_identity_verified:Literal[False]
+    literature_status:Literal['not_retrieved']
+    mathematics_status:Literal['not_checked']
+    mechanism_status:Literal['unverified']
+    observation_rights:Literal['self_declared']
+    query_state:Literal['draft_only']
+    automatically_created_sources:Literal[0]
+    proposal:PhenomenonPlanCandidate
+
+    @model_validator(mode='after')
+    def actual_producer_mode(self):
+        if (self.execution_mode=='native_live')!=self.real_model_executed or (self.producer=='core-controlled-native-v1' and self.execution_mode!='controlled_fixture'):
+            raise ValueError('result producer/mode truth differs')
+        return self
+
+class NativePlanPreviewView(FormulaPublicObject):
+    preview_ref:PlanRef
+    preview_digest:PlanDigest
+    request_digest:PlanDigest
+    research_id:PlanRef
+    input_revision:FormulaRevision
+    expected_research_version:FormulaRevision
+    exact_input:Annotated[str,StringConstraints(strict=True,min_length=8,max_length=1000)]
+    purpose:Literal['phenomenon_plan_v1']
+    observation_rights:Literal['self_declared']
+    state:Literal['awaiting_confirmation','funding_closed']
+    can_confirm:StrictBool
+    funding_reason:Literal['FUNDING_CLOSED']|None
+    cash_evidence:Literal['not_observed']
+    approved_upper_units:PlanUnits
+    currency:Literal['CNY']
+    scale:Literal[6]
+    quote:NativePlanQuote
+    expires_at:StrictInt
+    explanation:Annotated[str,StringConstraints(strict=True,max_length=160)]
+
+    @model_validator(mode='after')
+    def confirmation_state(self):
+        if self.can_confirm!=(self.state=='awaiting_confirmation') or (self.funding_reason is None)!=self.can_confirm:
+            raise ValueError('confirmation state differs')
+        return self
+
+class NativePlanConfirmationData(FormulaPublicObject):
+    task_id:PlanRef
+    result_ref:PlanRef
+    state:Literal['queued']
+    cash_evidence:Literal['not_observed']
+    real_model_executed:Literal[False]
+    recorded_at:None
+
+class NativePlanRunMetadata(FormulaPublicObject):
+    task_id:PlanRef
+    result_ref:PlanRef
+    state:Literal['saved','failed_insufficient','pending_reconciliation','cancelled','queued','generating']
+    financial_version:Literal[9]
+    execution_mode:NativePlanMode|None
+    real_model_executed:StrictBool
+    cost_state:Literal['unreserved','held','upper_booked','unknown']
+    cleanup_state:Literal['pending','clean','uncertain']
+    safe_code:Literal['access_ended','saved','body_invalid','send_unknown','not_sent','cancelled']|None
+    recorded_at:NativePlanTimestamp|None
+
+class NativePlanReadData(NativePlanRunMetadata):
+    content:NativePlanResult|None
+
+class NativePlanPreviewResponse(FormulaPublicObject):
+    schema_version:Literal['structure-research-v1']
+    contract_revision:Literal['funded-plan-v2']
+    data:NativePlanPreviewView
+
+class NativePlanConfirmationResponse(FormulaPublicObject):
+    schema_version:Literal['structure-research-v1']
+    contract_revision:Literal['funded-plan-v2']
+    data:NativePlanConfirmationData
+
+class NativePlanReadResponse(FormulaPublicObject):
+    schema_version:Literal['structure-research-v1']
+    contract_revision:Literal['funded-plan-v2']
+    data:NativePlanReadData
+
+__all__ += ['NativePlanQuote', 'NativePlanPreviewEnvelope', 'NativePlanConfirmationEnvelope', 'NativePlanResult', 'NativePlanPreviewView', 'NativePlanConfirmationData', 'NativePlanRunMetadata', 'NativePlanReadData', 'NativePlanPreviewResponse', 'NativePlanConfirmationResponse', 'NativePlanReadResponse']

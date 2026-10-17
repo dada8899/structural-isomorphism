@@ -149,6 +149,13 @@ class ResearchRunner:
         if task_id is None:
             from .plan_runtime import next_plan_task
             task_id=next_plan_task(self.store)
+            if task_id is None:
+                with self.store.transaction() as conn:
+                    native=conn.execute("SELECT r.task_id FROM research_plan_native_runs r JOIN research_tasks t ON t.id=r.task_id WHERE r.state='approved' AND t.execution='QUEUED' ORDER BY t.created_at,t.id LIMIT 1").fetchone() if conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_plan_native_runs'").fetchone() else None
+                    task_id=native[0] if native else None
+        if task_id is not None and self.task(task_id)['policy_revision']=='native-plan-v1':
+            from .plan_native_runtime import run_once
+            return run_once(self.store,task_id)
         if task_id is not None and self.task(task_id)['policy_revision']=='funded-plan-v1':
             from .plan_runtime import run_once
             return run_once(self.store,task_id)
@@ -176,7 +183,7 @@ class ResearchRunner:
         # owner lock, so they never wait for this task lock or network finish.
         with self.store.transaction() as conn:
             version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
-        lock=self.gate.source_task_gate(task_id) if version in (11,12) and self.task(task_id)['policy_revision']=='d1-source-only-v1' else self.gate.owner_gate_id(task_id)
+        lock=self.gate.source_task_gate(task_id) if version in (11,12,13) and self.task(task_id)['policy_revision']=='d1-source-only-v1' else self.gate.owner_gate_id(task_id)
         with lock as task_lease:
             task=self.task(task_id)
             if task['policy_revision'] not in supported:

@@ -369,7 +369,7 @@ def provision_source_v11(path):
 
 def deletion_scope(conn,service,lease,job_id):
     from contextlib import nullcontext
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12):return nullcontext()
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()
     return erase_scope(conn,service.store,lease,job_id)
 
 
