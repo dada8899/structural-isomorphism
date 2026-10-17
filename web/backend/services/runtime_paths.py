@@ -9,6 +9,8 @@ from dataclasses import dataclass
 import os
 from pathlib import Path
 import stat
+import threading
+import sqlite3
 
 
 class FormalAdmissionError(RuntimeError):
@@ -238,21 +240,38 @@ def formal_history_runtime():
     return os.getenv('STRUCTURAL_ENV', 'dev').lower() == 'prod'
 
 
-class PrivateHistoryFile:
-    """Live directory/file witnesses for one bounded native SQLite operation.
+# Process-local only: closing even an unrelated ordinary database FD releases
+# this process's POSIX locks on that inode. Protect a *new* inode's short
+# precreation FD until close, against every native open through this helper.
+# This mutex does not serialize SQL transactions or replace SQLite's locks.
+# Both supported module names (services.* / web.backend.services.*) must use
+# the same mutex in one interpreter. sqlite3 is the canonical shared module;
+# setdefault installs exactly one object, not a migration/admission flag.
+HISTORY_OPEN_LOCK = vars(sqlite3).setdefault('_structural_history_open_lock_v1', threading.RLock())
 
-    Native sqlite3 opens a pathname, not our FD. This boundary assumes the
-    dedicated service UID, trusted parents and no uncontrolled same-UID path
+
+class PrivateHistoryFile:
+    """A parent-directory FD and non-locking file-identity snapshot.
+
+    Never open/dup/close an ordinary FD for an existing SQLite database:
+    closing it can release another live connection's process-level locks.
+    Native sqlite3 opens a pathname, not an application-owned database FD.
+    This boundary assumes the dedicated service UID, trusted parents and no uncontrolled same-UID path
     replacement. Maintenance must stop consumers. It is not a hostile-root
     proof, custom VFS, or permission to admit the unfinished formal app.
     """
 
     def __init__(self):
         self.parent_fd = None
-        self.file_fd = None
+        self.file_identity = None
 
     @classmethod
     def acquire(cls, path, *, create=False):
+        with HISTORY_OPEN_LOCK:
+            return cls._acquire_locked(path, create=create)
+
+    @classmethod
+    def _acquire_locked(cls, path, *, create):
         witness = cls()
         try:
             supplied = os.fspath(path)
@@ -274,26 +293,28 @@ class PrivateHistoryFile:
             if sides and (base is None or base.st_size == 0):
                 raise RuntimePathError('orphan SQLite sidecars cannot initialize a history database')
             created = False
-            flags = os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK
             if base is None:
                 if not create:
                     raise RuntimePathError('formal history database is missing')
                 try:
-                    witness.file_fd = os.open('history.db', flags | os.O_CREAT | os.O_EXCL,
-                                              0o600, dir_fd=witness.parent_fd)
-                    created = True
+                    fd = os.open('history.db', os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK
+                                 | os.O_CREAT | os.O_EXCL, 0o600, dir_fd=witness.parent_fd)
                 except FileExistsError:
-                    # A competing creator may have won. Validate it once;
-                    # never retry creation, redirect, or implicitly recreate.
+                    # Validate the winner by no-follow stat only. Opening and
+                    # closing it would invalidate other native SQLite locks.
                     base = witness._entry('history.db')
                     if base is None:
                         raise RuntimePathError('history creation race has no validated winner')
-            if witness.file_fd is None:
-                witness.file_fd = os.open('history.db', flags, dir_fd=witness.parent_fd)
-            opened = os.fstat(witness.file_fd)
-            witness._require_private_file(opened)
-            if base is not None and (base.st_dev, base.st_ino) != (opened.st_dev, opened.st_ino):
-                raise RuntimePathError('formal history file changed while opening')
+                else:
+                    try:
+                        base = os.fstat(fd)
+                        witness._require_private_file(base)
+                    finally:
+                        # Still under HISTORY_OPEN_LOCK: no helper native open
+                        # may have acquired a lock on this new inode yet.
+                        os.close(fd)
+                    created = True
+            witness.file_identity = (base.st_dev, base.st_ino)
             if created and witness._sidecars():
                 raise RuntimePathError('sidecars appeared during fresh history creation')
             witness.check()
@@ -322,12 +343,10 @@ class PrivateHistoryFile:
 
     def check(self):
         _check_current_parent(self.path.parent, self.parent_fd, forbidden=self.forbidden)
-        held = os.fstat(self.file_fd)
-        self._require_private_file(held)
         current = self._entry('history.db')
-        if current is None or (held.st_dev, held.st_ino) != (current.st_dev, current.st_ino):
-            raise RuntimePathError('formal history pathname no longer matches its file witness')
-        if self._sidecars() and held.st_size == 0:
+        if current is None or self.file_identity != (current.st_dev, current.st_ino):
+            raise RuntimePathError('formal history pathname no longer matches its identity snapshot')
+        if self._sidecars() and current.st_size == 0:
             raise RuntimePathError('empty history database has orphan sidecars')
 
     @property
@@ -335,8 +354,8 @@ class PrivateHistoryFile:
         return self.path.as_uri() + '?mode=rw'
 
     def close(self):
-        for name in ('file_fd', 'parent_fd'):
-            fd = getattr(self, name)
-            if fd is not None:
-                setattr(self, name, None)
-                os.close(fd)
+        self.file_identity = None
+        fd = self.parent_fd
+        self.parent_fd = None
+        if fd is not None:
+            os.close(fd)

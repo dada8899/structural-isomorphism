@@ -21,7 +21,7 @@ class ClosingConnection(sqlite3.Connection):
 
 
 class PrivateHistoryConnection(ClosingConnection):
-    """A native connection whose file witnesses survive until finally-close."""
+    """A native connection holding only a directory FD and stat identity snapshot."""
 
     _history_file = None
 
@@ -84,14 +84,19 @@ def prepare_private_history(path):
 
 def connect_private_history(path, *, detect_types=0, foreign_keys=False):
     """Open the prevalidated file mode=rw, never SQLite's implicit create mode."""
-    from .runtime_paths import PrivateHistoryFile, RuntimePathError
-    witness = PrivateHistoryFile.acquire(path, create=False)
+    from .runtime_paths import PrivateHistoryFile, RuntimePathError, HISTORY_OPEN_LOCK
+    witness = None
     conn = None
     try:
-        witness.check()
-        conn = sqlite3.connect(witness.uri, uri=True, timeout=10.0,
-                               detect_types=detect_types, factory=PrivateHistoryConnection)
-        conn._history_file = witness
+        # Share the creation mutex only through the actual native open. A new
+        # inode's ordinary creation FD must already be closed before this point.
+        # SQL transactions and PRAGMAs run under SQLite's own locking protocol.
+        with HISTORY_OPEN_LOCK:
+            witness = PrivateHistoryFile.acquire(path, create=False)
+            witness.check()
+            conn = sqlite3.connect(witness.uri, uri=True, timeout=10.0,
+                                   detect_types=detect_types, factory=PrivateHistoryConnection)
+            conn._history_file = witness
         witness.check()
         conn.row_factory = sqlite3.Row
         if foreign_keys:
@@ -110,5 +115,6 @@ def connect_private_history(path, *, detect_types=0, foreign_keys=False):
             if conn is not None:
                 conn.close()
         finally:
-            witness.close()
+            if witness is not None:
+                witness.close()
         raise
