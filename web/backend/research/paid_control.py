@@ -52,6 +52,11 @@ def schema_requirements():
 class _Scope:
     def __init__(self,conn,write):
         self.conn,self.active,self.pid,self.write=conn,True,os.getpid(),write
+        table=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_project_budgets'").fetchone()
+        self.financial_active=bool(table and conn.execute("SELECT 1 FROM research_project_budgets WHERE status='active'").fetchone())
+        self.authorizer=None
+    def refresh_authorizer(self):
+        if self.authorizer is not None:self.conn.set_authorizer(self.authorizer)
 
 
 @contextmanager
@@ -63,6 +68,9 @@ def _transaction_scope(conn,*,write):
     def authorizer(action,arg1,arg2,database,source):
         if action==sqlite3.SQLITE_TRANSACTION and arg1 in ("COMMIT","ROLLBACK"):
             scope.active=False
+        if scope.financial_active:
+            from .financial_guard import _statement_allowed
+            if not _statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
         return sqlite3.SQLITE_OK
     def executing(statement):
         # Authorizers run at compilation and may be skipped for cached SQL.
@@ -74,6 +82,7 @@ def _transaction_scope(conn,*,write):
     with _LOCK:
         if id(conn) in _SCOPES:raise PermissionError("transaction already registered")
         _SCOPES[id(conn)]=scope
+    scope.authorizer=authorizer
     conn.set_authorizer(authorizer)
     conn.set_trace_callback(executing)
     try:yield
@@ -137,6 +146,21 @@ class CurrentPaidAuthority(_Authority):
 
 class TrustedCostAuthority(_Authority):
     """No producer until controlled transport/persisted response is implemented."""
+    __slots__=()
+
+
+@dataclass(frozen=True)
+class FinancialWriteBinding:
+    operation:str
+    target:str
+    table:str
+    key:str
+    before_digest:str
+    version:int
+
+
+class FinancialWriteAuthority(_Authority):
+    """Internal single-statement permit; never built from a public DTO."""
     __slots__=()
 
 
@@ -213,3 +237,9 @@ def persist_offline_owned_source(conn,receipt):
     """Records loopback provenance only, never creates a cost capability."""
     from .paid_provider_session import persist_owned_return
     return persist_owned_return(conn,receipt)
+
+
+def mint_cost_from_return(conn,*,store,lease,return_ref):
+    from .paid_budget import _validated_return
+    def validate():return _validated_return(conn,store,lease,return_ref)[0]
+    return TrustedCostAuthority(conn,lease,'observe',validate,_factory=_FACTORY)

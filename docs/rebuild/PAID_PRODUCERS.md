@@ -102,3 +102,11 @@ U仅调用受审usage_upper.preview_bound，用真实服务器clock核≤60秒TT
 原审指出：marker6缺幂等表或修订guard时，直接迁移拒绝，但普通构造先执行SCHEMA/C0补建后成功升7。本轮抽取已审完整legacy对象校验供v6/v7共用；构造识别完整marker6后先只读核基础类型／DDL、Source及附件／FK，再单独进入原V7迁移，不走旧初始化补建。直接V7迁移也先核该继承基底，损坏库SCHEMA_UNSUPPORTED且schema／rows不变；完整6正例、V1–V4获准历史路径及旧profile规则不改。仅基础预检，没有B1六口、资金或发送代码；实际业务DB未迁移，候选待原独审。
 
 作者先复现原2拒绝断言失败，再原脚本／完整6／真实v1迁移4 passed；新增10缺失对象零安装语句、4漂移／未知附件／FK及完整6一次升级正控，扩展前置86 passed。最终旧新金融311 passed，原API／公开校验／持久化／生命周期／C0／D1／Source期限429 passed，均0 skipped；旧DDL区块与所有原测试前缀逐字保持，独立基础候选交原审复核。
+
+## B1：受控离线预算与实际收包纵向候选
+
+唯一paid_budget写者接实际reserve／authorize／consume／cancel／observe；先真实API预览确认、受控offline项目试验启用、足额held，再外部preconnect、同库消费与immutable admission同落。消费commit成功后由独立连接回读可见事实，B专属session才一次begin／自身finish／sealed receipt；首次persist核实际所属资源与receipt，重启observe只读受保护admission／金融return，不要求进程内OWNED，不重造收包凭证。旧A合成consumed／DTO仍不授B能力，F／adapter及旧A实现不改。
+
+写许可绑定实际conn／txn／PID／lease／operation／目标row与version；现有authorizer组合保护活动预算的票／返回／观测写入，私有scope进出刷新同一authorizer以拒缓存SQL越权，原trace／rollback退休保持。P、原C与fresh保守B分别核，项目／账户／票CAS共享；完整可信usage按原F仅一次U→Uobs、actual=null，坏正文不免记用量。缺首次持久return、丢ack或死亡不再begin／重发，UNKNOWN全held；删除后只用允许金融域核对，正文／任务不复活。
+
+新B1专属31项与原金融组组合327 passed，原消费者／auth／保存／生命周期／C0／D1／Source期限391 passed，均0 skipped。覆盖两进程不同任务争P、两新进程同return一次记账、实际SQL各故障点／真实commit丢ack、consume后begin前及完整receive后未持久死亡、P较大而C/B更紧、真实删号／撤权／取消后的财务处理。只使用隔离auth测试DB、合成资金及本机TCP；B2全部真实caller与HELD取消／删号lease封边未签，公开worker仍拒paid，真实Owner/funding/loader/live/新purpose未放行，当前候选待原审。

@@ -2,6 +2,7 @@
 import json
 import os
 import sqlite3
+from contextlib import contextmanager
 from uuid import uuid4
 
 from .financial_admission_schemas import ProjectBudget
@@ -11,6 +12,20 @@ from .errors import ResearchError
 FINANCIAL_SCHEMA_VERSION=7
 _SOURCES={}
 _WRITES={}
+_LEDGER_ROWS={'research_reservations','research_dispatch_permits','research_provider_sessions','research_cost_observations'}
+_ERASABLE={'research_dispatch_permits':{'input_digest','authorization_context_json','budget_basis_json','gate_identity_json'},
+    'research_provider_sessions':{'candidate_json'}}
+
+
+def _statement_allowed(conn,action,table,column):
+    if action not in (sqlite3.SQLITE_INSERT,sqlite3.SQLITE_UPDATE,sqlite3.SQLITE_DELETE) or table not in _LEDGER_ROWS:return True
+    if action==sqlite3.SQLITE_UPDATE and column in _ERASABLE.get(table,set()):return True
+    permit=_WRITES.get(id(conn))
+    if not permit or 'authority' not in permit:return False
+    try:
+        facts=permit['authority'].require(conn,permit['operation'])
+        return facts.table==table and permit['scope'].active
+    except (PermissionError,ResearchError,sqlite3.Error):return False
 
 V7_TABLES=(
     """CREATE TABLE research_project_budgets (
@@ -82,20 +97,47 @@ def install_default_hook(conn):
     def allowed(operation,raw):
         permit=_WRITES.get(id(conn))
         if (pid!=os.getpid() or permit is None or permit['conn'] is not conn or not conn.in_transaction
-                or not permit['scope'].active or permit['scope'].pid!=pid or operation!='register-project'):
+                or not permit['scope'].active or permit['scope'].pid!=pid):
             return 0
         try:
             permit['lease'].identity
-            return int(json.loads(raw)==permit['values'])
+            if 'authority' in permit:
+                if operation!=permit['operation'] or raw!=permit['target']:return 0
+                facts=permit['authority'].require(conn,operation)
+                return int(facts.operation==operation and facts.target==raw)
+            return int(operation=='register-project' and json.loads(raw)==permit['values'])
         except (ValueError,TypeError,PermissionError,OSError):return 0
     conn.create_function('research_financial_write_allowed',2,allowed)
     conn.create_function('research_financial_guard_version',0,lambda:7 if os.getpid()==pid else 0)
+    from .paid_control import _SCOPES
+    if id(conn) not in _SCOPES:
+        # Fresh factory connections have no transaction observer to replace.
+        schema=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema' AND type='table'").fetchone()
+        try:version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone() if schema else None
+        except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本标记结构不匹配。') from None
+        if version and version[0]==7:
+            conn.set_authorizer(lambda action,table,column,db,trigger:
+                sqlite3.SQLITE_OK if _statement_allowed(conn,action,table,column) else sqlite3.SQLITE_DENY)
 
 
 def require_hook(conn):
     try:valid=conn.execute('SELECT research_financial_guard_version(),research_financial_write_allowed(?,?)',('probe','')).fetchone()
     except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融连接守卫不可用。') from None
     if tuple(valid)!=(7,0):raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融连接守卫不匹配。')
+
+
+@contextmanager
+def _financial_write_scope(conn,lease,authority):
+    from .paid_control import FinancialWriteAuthority,_current_scope
+    if type(authority) is not FinancialWriteAuthority:raise PermissionError('real financial write authority required')
+    operation=authority._operation;facts=authority.require(conn,operation);scope=_current_scope(conn)
+    if authority._lease is not lease or id(conn) in _WRITES:raise PermissionError('financial write scope mismatch')
+    _WRITES[id(conn)]={'conn':conn,'scope':scope,'lease':lease,'authority':authority,'operation':operation,'target':facts.target}
+    scope.refresh_authorizer()
+    try:yield
+    finally:
+        _WRITES.pop(id(conn),None)
+        scope.refresh_authorizer()
 
 
 class OfflineProjectRegistration:

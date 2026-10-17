@@ -285,3 +285,148 @@ def persist_owned_return(conn,receipt):
     if conn.execute("UPDATE research_provider_sessions SET state=?,version=version+1,financial_return_json=?,return_digest=?,received_at=?,candidate_json=? WHERE id=? AND financial_return_json IS NULL AND state='sent' AND version=2",(state,raw,stamp,receipt._received_at,candidate,owner.id)).rowcount!=1:
         raise PermissionError('return CAS changed')
     return {'return_ref':owner.id,'digest':stamp,'execution_mode':'offline_probe','financial_consumer_enabled':False}
+
+
+# Additive B producer. The reviewed A probe above deliberately remains a
+# transport-only source with synthetic preconditions and cannot issue B facts.
+_B_FACTORY=object()
+_B_SESSIONS={}
+
+
+@dataclass(frozen=True)
+class _BudgetContentBinding:
+    task_id:str
+    approval_ref:str
+    account_id:str
+
+
+class BudgetOwnedReceipt:
+    __slots__=('_owner','_value','_digest','_time','_pid')
+    def __init__(self,owner,value,*,_factory=None):
+        if _factory is not _B_FACTORY or _B_SESSIONS.get(owner.id) is not owner or owner._received is not value:
+            raise TypeError('actual budgeted owned finish required')
+        self._owner,self._value,self._digest,self._time,self._pid=owner,value,digest(canonical(value.model_dump())),_now(),os.getpid()
+    def __setattr__(self,name,value):
+        if hasattr(self,name):raise TypeError('owned receipt immutable')
+        object.__setattr__(self,name,value)
+    def __reduce__(self):raise TypeError('receipts cannot cross processes')
+
+
+class BudgetedOwnedSession:
+    """Owns reserve/preconnect/consume/commit proof/begin/finish; loopback only."""
+    __slots__=('store','identity','pid','id','packet','binding','transport','connection','proof','admission','snapshot',
+        '_received','_receipt','_closed','_commit_verified')
+    def __init__(self,*,_factory=None):
+        if _factory is not _B_FACTORY:raise TypeError('budgeted server factory required')
+    def __setattr__(self,name,value):
+        if hasattr(self,name):raise TypeError('budgeted resource binding immutable')
+        object.__setattr__(self,name,value)
+    def __reduce__(self):raise TypeError('budgeted resources cannot be serialized')
+
+    @classmethod
+    def offline_start(cls,store,identity,source,approval_ref,*,connection_factory,seconds=5):
+        from . import paid_budget as ledger
+        from .financial_guard import OfflineProjectRegistration
+        from .store import ResearchStore
+        if cls is not BudgetedOwnedSession:raise TypeError('fixed budgeted producer required')
+        if type(store) is not ResearchStore or type(identity) is not AccountIdentity or type(source) is not OfflineProjectRegistration:
+            raise PermissionError('configured offline budget context required')
+        obj=cls(_factory=_B_FACTORY);obj.store,obj.identity,obj.pid=store,identity,os.getpid()
+        obj._received,obj._receipt,obj._closed,obj._commit_verified=None,None,False,False
+        obj.connection=None
+        proof=None
+        try:
+            with AuthorizationGate(store).owner_gate(source._principal) as lease:
+                with store.transaction(write=True) as conn:
+                    ledger.activate_offline_in(conn,store=store,actor=identity,lease=lease,source=source)
+                    proof=ledger.reserve_in(conn,store=store,actor=identity,lease=lease,source=source,approval_ref=approval_ref)
+                obj.proof,obj.id,obj.packet=proof,proof.session,proof.prepared.packet
+                obj.binding=_BudgetContentBinding(proof.prepared.packet.context.task_id,approval_ref,proof.basis.account_id)
+                obj.transport=OfflineOwnedTransport(connection_factory)
+                object.__setattr__(obj,'connection',obj.transport.preconnect(proof.prepared,source._funding._quote,seconds=seconds))
+                with store.transaction(write=True) as conn:
+                    admission,snapshot=ledger.consume_in(conn,proof,lease)
+                # A distinct connection sees only committed DB facts. An ack
+                # exception above never reaches begin, even after real commit.
+                with store.transaction() as conn:
+                    saved=conn.execute('SELECT snapshot_digest FROM research_financial_admissions WHERE id=? AND session_id=?',(admission,obj.id)).fetchone()
+                    ticket=conn.execute('SELECT state FROM research_dispatch_permits WHERE id=?',(proof.permit,)).fetchone()
+                    if not saved or saved[0]!=digest(canonical(snapshot.model_dump())) or not ticket or ticket[0]!='consumed':
+                        raise PermissionError('budget consumption commit not visible')
+                obj.admission,obj.snapshot=admission,snapshot
+                object.__setattr__(obj,'_commit_verified',True)
+                permit=CallPermit(id=proof.permit,account_id=snapshot.project.account_id,provider_binding_id=snapshot.project.economic_binding,
+                    funding_epoch=snapshot.project.funding_epoch,dispatch_id=proof.dispatch,reservation_id=proof.reservation,
+                    context=proof.prepared.packet.context,request_digest=snapshot.dispatch.request_digest,evidence_digest=snapshot.dispatch.evidence_digest,
+                    price_digest=snapshot.quote_digest,price_revision=snapshot.quote.revision,budget_basis_digest=snapshot.basis_digest,
+                    gate_identity=lease.identity,expires_at=min(snapshot.quote.valid_until,snapshot.basis.valid_until))
+                if not obj._commit_verified:raise PermissionError('confirmed budget commit required')
+                obj.transport.begin(obj.connection,lease=lease,permit=permit)
+            _B_SESSIONS[obj.id]=obj
+            return obj
+        except Exception:
+            if obj.connection is not None:obj.connection.close()
+            if proof is not None:
+                with AuthorizationGate(store).owner_gate(source._principal) as recovery_lease,store.transaction(write=True) as conn:
+                    ledger.unknown_in(conn,proof.reservation,store=store,lease=recovery_lease)
+                    ledger._write(conn,recovery_lease,'unknown-row',proof.session,'research_provider_sessions',proof.session,
+                        "UPDATE research_provider_sessions SET state='unknown',version=version+1 WHERE id=? AND financial_return_json IS NULL",(proof.session,))
+            raise
+        finally:
+            if proof is not None:
+                ledger._PREPARED.pop(proof.session,None)
+                object.__setattr__(proof,'_active',False)
+
+    def _current_content(self,conn):return OwnedProviderSession._current_content(self,conn)
+
+    def receive(self):
+        if self.pid!=os.getpid() or self._closed or _B_SESSIONS.get(self.id) is not self or self._receipt is not None:
+            raise PermissionError('actual budgeted owned receiver required')
+        def current(context,evidence):
+            with self.store.transaction() as conn:
+                if not self._current_content(conn):raise PermissionError('content authorization ended')
+            return self.packet
+        value=OfflineOwnedTransport.finish(self.transport,self.connection,current_authorizer=current)
+        if (value.dispatch_id!=self.snapshot.dispatch.dispatch_id or value.request_digest!=self.snapshot.dispatch.request_digest
+                or value.evidence_digest!=self.snapshot.dispatch.evidence_digest):raise PermissionError('owned return binding changed')
+        object.__setattr__(self,'_received',value)
+        object.__setattr__(self,'_receipt',BudgetOwnedReceipt(self,value,_factory=_B_FACTORY))
+        return self._receipt
+
+    def close(self):
+        if not self._closed:
+            object.__setattr__(self,'_closed',True);_B_SESSIONS.pop(self.id,None)
+            if self.connection is not None:self.connection.close()
+            from .paid_budget import unknown_in
+            with AuthorizationGate(self.store).owner_gate(self.snapshot.actor.principal_id) as lease,self.store.transaction(write=True) as conn:
+                if conn.execute('SELECT financial_return_json FROM research_provider_sessions WHERE id=?',(self.id,)).fetchone()[0] is None:
+                    unknown_in(conn,self.proof.reservation,store=self.store,lease=lease)
+    def __enter__(self):return self
+    def __exit__(self,*args):self.close()
+
+
+def persist_budget_return(conn,*,store,lease,receipt):
+    from . import paid_budget as ledger
+    _current_scope(conn)
+    if type(receipt) is not BudgetOwnedReceipt or receipt._pid!=os.getpid():raise PermissionError('actual owned budget receipt required')
+    owner=receipt._owner
+    if (_B_SESSIONS.get(owner.id) is not owner or owner._receipt is not receipt or owner.store is not store
+            or owner._received is not receipt._value or receipt._digest!=digest(canonical(receipt._value.model_dump()))):
+        raise PermissionError('owned budget provenance retired or changed')
+    admission,snapshot,project,r,p,s=ledger._load_admission(conn,store,lease,owner.id)
+    data={'record_version':ledger.PRODUCER,'admission_ref':admission['id'],'admission_digest':admission['snapshot_digest'],
+        'transport':receipt._value.model_dump(exclude={'candidate','context'}),'received_at':receipt._time,
+        'execution_mode':'offline_probe','model_analysis_ran':False,'actual_charge':None}
+    raw=canonical(data).decode();stamp=digest(raw.encode())
+    if len(raw.encode())>16384:raise ValueError('bounded financial return required')
+    allowed=owner._current_content(conn)
+    if s['financial_return_json'] is not None:
+        if s['financial_return_json']!=raw or s['return_digest']!=stamp:raise PermissionError('immutable budget return conflict')
+        if not allowed:conn.execute('UPDATE research_provider_sessions SET candidate_json=NULL WHERE id=?',(owner.id,))
+        return owner.id
+    candidate=receipt._value.candidate if allowed else None
+    state='received' if receipt._value.usage is not None else 'unknown'
+    if ledger._write(conn,lease,'return',owner.id,'research_provider_sessions',owner.id,
+            "UPDATE research_provider_sessions SET state=?,version=version+1,financial_return_json=?,return_digest=?,received_at=?,candidate_json=? WHERE id=? AND version=? AND financial_return_json IS NULL AND state IN ('consumed','unknown')",
+            (state,raw,stamp,receipt._time,candidate,owner.id,s['version'])).rowcount!=1:raise PermissionError('budget return CAS failed')
+    return owner.id
