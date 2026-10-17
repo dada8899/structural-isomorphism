@@ -274,7 +274,8 @@ def register_closed_project(conn,*,store,identity,lease,source=None):
     if (type(source) is not OfflineProjectRegistration or not source._active or source._pid!=os.getpid()
             or _SOURCES.get(source._ref) is not source or source._store is not store or source._identity!=identity):
         raise PermissionError('explicit offline project registration source required')
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==10:ResearchStore._check_v10(conn)
+    elif conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
     else:ResearchStore._check_v7(conn);ResearchStore._check_v7_attachments(conn)
     _owner_binding(conn,store,source._principal,lease)
     AuthorizationGate(store).check(conn,identity,source._principal)

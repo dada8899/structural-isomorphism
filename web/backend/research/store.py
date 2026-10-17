@@ -956,7 +956,9 @@ class ResearchStore:
 
     def _migrate_v8_if_ready(self):
         self._require_development_migration()
-        with self.transaction() as conn:version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
+        with self.transaction() as conn:
+            version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
+            if version==10:self._check_v10(conn)
         if version==FINANCIAL_SCHEMA_VERSION:self._migrate_v8()
 
     @staticmethod
@@ -1091,7 +1093,9 @@ class ResearchStore:
 
     def _migrate_v9_if_ready(self):
         self._require_development_migration()
-        with self.transaction() as conn:version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
+        with self.transaction() as conn:
+            version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
+            if version==10:self._check_v10(conn)
         if version==DELETION_SCHEMA_VERSION:self._migrate_v9()
 
     def _migrate_v9(self):

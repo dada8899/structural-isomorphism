@@ -357,3 +357,12 @@ def test_populated_v9_tasks_events_source_and_legacy_method_financial_refs_survi
     response=client.get(f'/api/research/{rid}')
     assert response.status_code==200,response.text
     assert response.json()['data']['task']['id']==task
+
+
+@pytest.mark.parametrize('helper',['_migrate_v8_if_ready','_migrate_v9_if_ready'])
+def test_completed_v10_helpers_recheck_complete_graph_instead_of_only_marker(stack,helper):
+    client,path=stack;create(client);store=ResearchStore(auth._store())
+    with store.transaction(write=True) as conn:conn.execute('DROP TRIGGER research_method_birth')
+    before=snapshot(path)
+    with pytest.raises(ResearchError):getattr(store,helper)()
+    assert snapshot(path)==before
