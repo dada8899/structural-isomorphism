@@ -31,6 +31,27 @@ class ResearchService:
         self.authorization = AuthorizationGate(store)
 
     def _principal(self, identity, *, create=False):
+        if create and self.store._formal_mode():
+            # Existing owner mapping and actual preprovisioned lock come before
+            # the first principal write. This lease ends before create's later
+            # independent owner transaction; it is never nested or transferred.
+            with self.store.transaction() as conn:
+                self.authorization.check_account(conn,identity)
+                gate_id=self.store.auth_store.owner_gate_in(conn,identity.email)
+            with self.authorization.owner_gate_id(gate_id) as lease,self.store.transaction(write=True) as conn:
+                self.authorization.check_account(conn,identity)
+                if self.store.auth_store.owner_gate_in(conn,identity.email)!=gate_id:
+                    raise ResearchError('AUTHORIZATION_STALE',409,'账户锁绑定已变化，请重新读取。')
+                lease.identity
+                row=conn.execute('SELECT * FROM research_principals WHERE normalized_email=? AND session_generation=?',
+                    (identity.email,identity.generation)).fetchone()
+                if row is not None:
+                    if row['status']!='active' or row['gate_id']!=gate_id:raise not_found()
+                    return row['id']
+                pid=str(uuid4())
+                conn.execute('INSERT INTO research_principals VALUES(?,?,?,?,?,?,?,?)',
+                    (pid,'account',identity.email,identity.generation,1,'active',now(),gate_id))
+                return pid
         with self.store.transaction(write=create) as conn:
             self.authorization.check_account(conn, identity)
             row = conn.execute("SELECT * FROM research_principals WHERE normalized_email=? AND session_generation=?",

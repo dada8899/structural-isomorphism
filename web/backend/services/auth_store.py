@@ -529,6 +529,37 @@ class AuthStore:
 
     @classmethod
     def owner_gate_in(cls, conn, email: str, preferred: str | None = None) -> str:
+        # The direct Research principal/deletion callers must not bypass the
+        # existing-only formal owner_gate_id path, including after downgrade.
+        import sys
+        from .sqlite_utils import PrivateAuthConnection
+        native_types=(PrivateAuthConnection,)+tuple(candidate for name in
+            ('services.sqlite_utils','web.backend.services.sqlite_utils')
+            if (module:=sys.modules.get(name)) is not None
+            and isinstance(candidate:=getattr(module,'PrivateAuthConnection',None),type) and candidate is not PrivateAuthConnection)
+        private_native=isinstance(conn,native_types)
+        if _formal_auth_mode() or private_native:
+            from .runtime_paths import PrivateAuthFile,private_auth_path,RuntimePathError
+            if not private_native or not conn.in_transaction:
+                raise RuntimePathError('private owner mapping requires an active native transaction')
+            path=private_auth_path()
+            database=next((row[2] for row in conn.execute('PRAGMA database_list') if row[1]=='main'),None)
+            if database is None or Path(database)!=path:
+                raise RuntimePathError('private owner mapping database differs')
+            witness=PrivateAuthFile.acquire(path)
+            try:
+                if witness.file_identity!=conn.private_storage_identity:
+                    raise RuntimePathError('private owner mapping identity differs')
+                cls.check_gate_policy(conn,initialize=False)
+                row=conn.execute('SELECT gate_id FROM auth_owner_gates WHERE owner_key=?',(cls.owner_key(email),)).fetchone()
+                if row is None or type(row['gate_id']) is not str:
+                    raise RuntimePathError('private owner gate mapping is not provisioned')
+                try:canonical=str(uuid.UUID(row['gate_id'],version=4))
+                except ValueError:raise RuntimePathError('private owner gate identifier is invalid') from None
+                if canonical!=row['gate_id']:raise RuntimePathError('private owner gate identifier is invalid')
+                witness.check()
+                return canonical
+            finally:witness.close()
         key = cls.owner_key(email)
         row = conn.execute("SELECT gate_id FROM auth_owner_gates WHERE owner_key=?", (key,)).fetchone()
         if row is not None:
@@ -543,6 +574,24 @@ class AuthStore:
         return gate_id
 
     def owner_gate_id(self, email: str) -> str:
+        current=_formal_auth_mode();captured=getattr(self,'_private_auth',False)
+        if current and not captured:raise RuntimeError('development Auth cannot become private')
+        if captured:
+            from .sqlite_utils import connect_private_auth
+            from .runtime_paths import private_auth_path,RuntimePathError
+            if self.path!=private_auth_path() or self.storage_identity is None:
+                raise RuntimePathError('private owner gate has no captured Auth identity')
+            conn=connect_private_auth(self.path,readonly=True,expected_identity=self.storage_identity)
+            try:
+                conn.execute('BEGIN');self.check_gate_policy(conn,initialize=False)
+                row=conn.execute('SELECT gate_id FROM auth_owner_gates WHERE owner_key=?',(self.owner_key(email.strip().lower()),)).fetchone()
+                if row is None or type(row['gate_id']) is not str:
+                    raise RuntimePathError('private owner gate mapping is not provisioned')
+                try:canonical=str(uuid.UUID(row['gate_id'],version=4))
+                except ValueError:raise RuntimePathError('private owner gate identifier is invalid') from None
+                if canonical!=row['gate_id']:raise RuntimePathError('private owner gate identifier is invalid')
+                return canonical
+            finally:conn.close()
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
             result = self.owner_gate_in(conn, email.strip().lower())

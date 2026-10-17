@@ -374,7 +374,21 @@ V6_AUX=tuple(ddl.replace("policy_revision='deepseek-bounded-upper-v1'","policy_r
 class ResearchStore:
     def __init__(self, auth_store):
         self.auth_store = auth_store
-        self.path = Path(auth_store.path).resolve()
+        if __package__=='web.backend.research':from ..services.auth_store import _formal_auth_mode,AuthStore
+        else:from services.auth_store import _formal_auth_mode,AuthStore
+        current=_formal_auth_mode()
+        captured=getattr(auth_store,'_private_auth',False)
+        if current and not captured:raise RuntimeError('development Auth cannot become private Research')
+        self._private_auth=bool(current or captured)
+        self.path=Path(auth_store.path) if self._private_auth else Path(auth_store.path).resolve()
+        self._private_path=self.path if self._private_auth else None
+        self._storage_identity=auth_store.storage_identity if self._private_auth else None
+        if self._private_auth:
+            self._formal_mode()
+            if AuthStore.preflight_private(self.path)!=self._storage_identity:
+                raise RuntimeError('private Research and Auth identities differ')
+            with self.transaction():pass
+            return
         # A completed v6 source must be verified before any legacy IF NOT
         # EXISTS installation could hide missing inherited objects.
         completed_v6=False
@@ -463,6 +477,44 @@ class ResearchStore:
         self._migrate_v8_if_ready()
         self._migrate_v9_if_ready()
 
+    @property
+    def storage_identity(self):
+        return self._storage_identity
+
+    def _formal_mode(self):
+        if __package__=='web.backend.research':
+            from ..services.auth_store import _formal_auth_mode,AuthStore
+            from ..services.runtime_paths import private_auth_path,RuntimePathError
+        else:
+            from services.auth_store import _formal_auth_mode,AuthStore
+            from services.runtime_paths import private_auth_path,RuntimePathError
+        current=_formal_auth_mode();captured=getattr(self,'_private_auth',False)
+        if (current or getattr(getattr(self,'auth_store',None),'_private_auth',False)) and not captured:
+            raise RuntimePathError('development Research cannot become private')
+        if not captured:return False
+        import sys
+        auth_types=(AuthStore,)+tuple(candidate for name in
+            ('services.auth_store','web.backend.services.auth_store')
+            if (module:=sys.modules.get(name)) is not None
+            and isinstance(candidate:=getattr(module,'AuthStore',None),type) and candidate is not AuthStore)
+        if type(self.auth_store) not in auth_types:
+            raise RuntimePathError('private Research requires the actual Auth store')
+        if (self.path!=self._private_path or self.path!=private_auth_path() or self.auth_store.path!=self.path
+                or not getattr(self.auth_store,'_private_auth',False)
+                or self.auth_store.storage_identity!=self._storage_identity or self._storage_identity is None):
+            raise RuntimePathError('private Research Auth binding changed')
+        return True
+
+    def _connect(self,*,readonly=False):
+        if self._formal_mode():
+            if __package__=='web.backend.research':from ..services.sqlite_utils import connect_private_auth
+            else:from services.sqlite_utils import connect_private_auth
+            return connect_private_auth(self.path,readonly=readonly,timeout=5,expected_identity=self._storage_identity)
+        return sqlite3.connect(self.path,timeout=5,isolation_level=None)
+
+    def _require_development_migration(self):
+        if self._formal_mode():raise RuntimeError('private Research migration requires separate provisioning')
+
     def _migrate_v4(self):
         """Controlled SQLite table replacement, never an application session.
 
@@ -470,10 +522,11 @@ class ResearchStore:
         BEGIN. No network/records API uses it. Validate the full graph before
         commit; every failure rolls back the original tables and schema value.
         """
+        self._require_development_migration()
         conn=sqlite3.connect(self.path,timeout=5,isolation_level=None)
-        conn.row_factory=sqlite3.Row
-        install_default_hook(conn)
         try:
+            conn.row_factory=sqlite3.Row
+            install_default_hook(conn)
             conn.execute("PRAGMA busy_timeout=5000")
             conn.execute("PRAGMA foreign_keys=OFF")
             if conn.execute("PRAGMA foreign_keys").fetchone()[0] != 0:
@@ -548,10 +601,11 @@ class ResearchStore:
 
     def _migrate_v5(self):
         """Single-owner graph replacement; no application/upper-budget writes."""
+        self._require_development_migration()
         conn=sqlite3.connect(self.path,timeout=5,isolation_level=None)
-        conn.row_factory=sqlite3.Row
-        install_default_hook(conn)
         try:
+            conn.row_factory=sqlite3.Row
+            install_default_hook(conn)
             conn.execute("PRAGMA foreign_keys=OFF")
             if conn.execute("PRAGMA foreign_keys").fetchone()[0]!=0:
                 raise ResearchError("SCHEMA_UNSUPPORTED",503,"账本迁移连接配置失败。")
@@ -621,9 +675,11 @@ class ResearchStore:
                 raise ResearchError("SCHEMA_UNSUPPORTED",503,"账本控制结构不匹配。")
 
     def _migrate_v6(self):
-        conn=sqlite3.connect(self.path,timeout=5,isolation_level=None);conn.row_factory=sqlite3.Row
-        install_default_hook(conn)
+        self._require_development_migration()
+        conn=sqlite3.connect(self.path,timeout=5,isolation_level=None)
         try:
+            conn.row_factory=sqlite3.Row
+            install_default_hook(conn)
             conn.execute("PRAGMA foreign_keys=OFF")
             if conn.execute("PRAGMA foreign_keys").fetchone()[0]!=0:raise ResearchError("SCHEMA_UNSUPPORTED",503,"生产者迁移连接配置失败。")
             conn.execute("BEGIN IMMEDIATE");self.auth_store.check_gate_policy(conn)
@@ -754,9 +810,11 @@ class ResearchStore:
                     raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融迁移发现未知附属结构。')
 
     def _migrate_v7(self):
-        conn=sqlite3.connect(self.path,timeout=5,isolation_level=None);conn.row_factory=sqlite3.Row
-        install_default_hook(conn)
+        self._require_development_migration()
+        conn=sqlite3.connect(self.path,timeout=5,isolation_level=None)
         try:
+            conn.row_factory=sqlite3.Row
+            install_default_hook(conn)
             conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN IMMEDIATE')
             self.auth_store.check_gate_policy(conn)
             version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
@@ -810,6 +868,7 @@ class ResearchStore:
             if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除来源守卫不匹配。')
 
     def _migrate_v8_if_ready(self):
+        self._require_development_migration()
         with self.transaction() as conn:version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
         if version==FINANCIAL_SCHEMA_VERSION:self._migrate_v8()
 
@@ -932,13 +991,16 @@ class ResearchStore:
         if tuple(version)!=(9,0):raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究正文连接守卫不匹配。')
 
     def _migrate_v9_if_ready(self):
+        self._require_development_migration()
         with self.transaction() as conn:version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
         if version==DELETION_SCHEMA_VERSION:self._migrate_v9()
 
     def _migrate_v9(self):
-        conn=sqlite3.connect(self.path,timeout=5,isolation_level=None);conn.row_factory=sqlite3.Row
-        install_default_hook(conn)
+        self._require_development_migration()
+        conn=sqlite3.connect(self.path,timeout=5,isolation_level=None)
         try:
+            conn.row_factory=sqlite3.Row
+            install_default_hook(conn)
             conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN IMMEDIATE');self.auth_store.check_gate_policy(conn)
             version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
             if version==METHOD_SCHEMA_VERSION:self._check_v9(conn);conn.commit();return
@@ -953,9 +1015,11 @@ class ResearchStore:
         finally:conn.close()
 
     def _migrate_v8(self):
-        conn=sqlite3.connect(self.path,timeout=5,isolation_level=None);conn.row_factory=sqlite3.Row
-        install_default_hook(conn)
+        self._require_development_migration()
+        conn=sqlite3.connect(self.path,timeout=5,isolation_level=None)
         try:
+            conn.row_factory=sqlite3.Row
+            install_default_hook(conn)
             conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN IMMEDIATE');self.auth_store.check_gate_policy(conn)
             version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
             if version==DELETION_SCHEMA_VERSION:self._check_v8(conn);conn.commit();return
@@ -972,15 +1036,19 @@ class ResearchStore:
 
     @contextmanager
     def transaction(self, *, write=False):
-        conn = sqlite3.connect(self.path, timeout=5, isolation_level=None)
-        conn.row_factory = sqlite3.Row
-        install_default_hook(conn)
-        conn.execute("PRAGMA foreign_keys=ON")
-        conn.execute("PRAGMA secure_delete=ON")
-        conn.execute("PRAGMA busy_timeout=5000")
+        formal=self._formal_mode()
+        conn=self._connect(readonly=not write)
         try:
+            conn.row_factory = sqlite3.Row
+            install_default_hook(conn)
+            conn.execute("PRAGMA foreign_keys=ON")
+            conn.execute("PRAGMA secure_delete=ON")
+            conn.execute("PRAGMA busy_timeout=5000")
             conn.execute("BEGIN IMMEDIATE" if write else "BEGIN")
             self.auth_store.check_gate_policy(conn)
+            if formal:
+                self.check_current_structure(conn)
+                self._check_v9(conn)
             from .paid_control import _transaction_scope
             with _transaction_scope(conn,write=write):
                 yield conn
@@ -990,7 +1058,7 @@ class ResearchStore:
             if getattr(exc, "sqlite_errorcode", 0) & 255 in (5, 6):
                 raise ResearchError("STORE_BUSY", 503, "保存暂时繁忙，请用原操作重试。", retryable=True) from None
             raise ResearchError("STORE_UNAVAILABLE", 503, "研究存储暂时不可用。") from None
-        except Exception:
+        except BaseException:
             conn.rollback()
             raise
         finally:
@@ -998,10 +1066,16 @@ class ResearchStore:
 
     def checkpoint_erasure(self):
         """Do not report erasure while old WAL frames are held by a reader."""
-        conn = sqlite3.connect(self.path, timeout=5, isolation_level=None)
-        conn.row_factory = sqlite3.Row
+        formal=self._formal_mode()
+        conn=self._connect()
         try:
+            conn.row_factory = sqlite3.Row
+            if formal:
+                install_default_hook(conn)
+                conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN')
+                self.check_current_structure(conn);self._check_v9(conn)
             self.auth_store.check_gate_policy(conn)
+            if formal:conn.commit()
             conn.execute("PRAGMA busy_timeout=5000")
             result = conn.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
             if result[0] != 0:

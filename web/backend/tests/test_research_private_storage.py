@@ -1,0 +1,338 @@
+"""A2 native consumers of a preprovisioned synthetic Auth+Research database."""
+import importlib
+import multiprocessing
+import os
+import sqlite3
+import time
+from pathlib import Path
+from uuid import uuid4
+
+import pytest
+from .test_private_auth_store import private,native,raw
+from .test_research_persistence import problem
+from research import ResearchStore,ResearchService
+from research.authorization import AccountIdentity,AuthorizationGate
+from research.errors import ResearchError
+from services.auth_store import AuthStore
+from services import runtime_paths as paths,sqlite_utils
+from .test_research_persistence import stack,post
+from .test_research_d1_integration import source_stack
+from .test_research_paid_approval import approved_inputs
+from .test_research_paid_api import paid_api
+from .test_research_lifecycle import lifecycle,delete
+
+
+@pytest.fixture
+def prepared(private,monkeypatch):
+    monkeypatch.setenv('STRUCTURAL_ENV','dev')
+    auth=AuthStore(private);email='a2-owner@example.invalid';generation='a2-synthetic-generation'
+    with auth._connection() as conn:
+        conn.execute('INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES(?,?,?,?)',(email,'free','synthetic',generation))
+    gate=auth.owner_gate_id(email)
+    folder=private.parent/'research-locks';folder.mkdir(mode=0o700,exist_ok=True)
+    lock=folder/(gate+'.lock');lock.write_bytes(b'');lock.chmod(0o600)
+    actor=AccountIdentity(email,generation,'a2-synthetic-jti',int(time.time())+3600)
+    dev=ResearchStore(auth)
+    from research.schemas import CreateResearchRequest
+    rid=ResearchService(dev).create(actor,CreateResearchRequest(problem=problem()),'a2-preprovision')['data']['research']['id']
+    monkeypatch.setenv('STRUCTURAL_ENV','prod')
+    auth=AuthStore(private);store=ResearchStore(auth)
+    return dict(path=private,auth=auth,store=store,actor=actor,rid=rid,gate=gate,lock=lock)
+
+
+def test_formal_constructor_and_read_transaction_use_only_native_ro(private,native):
+    before=private.read_bytes();store=ResearchStore(AuthStore(private))
+    from research.paid_control import _SCOPES,_current_scope
+    with store.transaction() as conn:
+        assert conn.isolation_level is None and conn.row_factory is sqlite3.Row and conn.in_transaction
+        assert conn.execute('PRAGMA foreign_keys').fetchone()[0]==1
+        assert conn.execute('PRAGMA secure_delete').fetchone()[0]==1
+        assert conn.execute('SELECT research_method_guard_version()').fetchone()[0]==9
+        scope=_SCOPES[id(conn)];assert scope.conn is conn and scope.pid==os.getpid() and scope.write is False
+        with pytest.raises(PermissionError):_current_scope(conn)
+        with pytest.raises(sqlite3.OperationalError):conn.execute("INSERT INTO auth_users VALUES('x','free','s','g','active')")
+    assert not scope.active and id(conn) not in _SCOPES
+    assert private.read_bytes()==before
+    assert all(args[0]==':memory:' or args[0]==private.as_uri()+'?mode=ro' for args,_kw,_conn in native)
+
+
+def test_real_rw_commit_and_rollback_preserve_domain_scope(prepared):
+    store=prepared['store']
+    with store.transaction(write=True) as conn:
+        conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('commit@example.invalid','free','synthetic','g')")
+    with pytest.raises(RuntimeError):
+        with store.transaction(write=True) as conn:
+            conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('rollback@example.invalid','free','synthetic','g')")
+            raise RuntimeError('synthetic transaction failure')
+    with store.transaction() as conn:
+        assert conn.execute("SELECT count(*) FROM auth_users WHERE email='commit@example.invalid'").fetchone()[0]==1
+        assert conn.execute("SELECT count(*) FROM auth_users WHERE email='rollback@example.invalid'").fetchone()[0]==0
+
+
+@pytest.mark.parametrize('operation',['_migrate_v4','_migrate_v5','_migrate_v6','_migrate_v7','_migrate_v8','_migrate_v9','_migrate_v8_if_ready','_migrate_v9_if_ready'])
+def test_every_migration_entry_rejects_formal_before_native_open(private,native,operation):
+    store=ResearchStore(AuthStore(private));start=len(native);before=private.read_bytes()
+    with pytest.raises(RuntimeError):getattr(store,operation)()
+    assert len(native)==start and private.read_bytes()==before
+
+
+@pytest.mark.parametrize('fault',['missing','path','identity','config','promote','downgrade'])
+def test_captured_profile_and_binding_never_fall_back_to_create(private,native,monkeypatch,fault):
+    if fault=='promote':
+        monkeypatch.setenv('STRUCTURAL_ENV','dev');store=ResearchStore(AuthStore(private));monkeypatch.setenv('STRUCTURAL_ENV','prod')
+    else:store=ResearchStore(AuthStore(private))
+    start=len(native)
+    if fault=='missing':private.unlink()
+    elif fault=='path':store.path=private.with_name('other.sqlite3')
+    elif fault=='identity':store.auth_store._storage_identity=(0,0)
+    elif fault=='config':monkeypatch.setenv('AUTH_DATA_DIR','')
+    elif fault=='downgrade':monkeypatch.setenv('STRUCTURAL_ENV','dev')
+    if fault=='downgrade':
+        with store.transaction() as conn:assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==9
+        assert all(args[0].endswith('?mode=ro') for args,_kw,_conn in native[start:])
+    else:
+        with pytest.raises((RuntimeError,OSError)):
+            with store.transaction():pass
+        assert len(native)==start
+    assert not private.with_name('other.sqlite3').exists()
+    if fault=='missing':assert not private.exists()
+
+
+@pytest.mark.parametrize('fault',['missing-table','missing-guard','unknown','old-marker','policy','fk'])
+def test_formal_full_v9_and_policy_checks_never_repair(private,fault):
+    with raw(private) as conn:
+        if fault=='missing-table':conn.execute('DROP TABLE research_source_runs')
+        elif fault=='missing-guard':conn.execute('DROP TRIGGER '+next(r[0] for r in conn.execute("SELECT name FROM sqlite_schema WHERE type='trigger' AND name LIKE 'research_method_%'")))
+        elif fault=='unknown':conn.execute('CREATE TABLE research_unexpected(value TEXT)')
+        elif fault=='old-marker':conn.execute('UPDATE research_schema SET version=8')
+        elif fault=='policy':conn.execute("UPDATE auth_owner_gate_policy SET fingerprint='wrong'")
+        else:conn.execute('INSERT INTO research_revisions VALUES(?,?,?,?,?)',(str(uuid4()),1,'{}','a'*64,'synthetic'))
+    before=private.read_bytes()
+    with pytest.raises((RuntimeError,ResearchError,sqlite3.Error)):ResearchStore(AuthStore(private))
+    assert private.read_bytes()==before
+
+
+@pytest.mark.parametrize('point',['hook','pragma'])
+def test_initialization_failure_closes_real_native_connection_and_parent_fd(private,native,monkeypatch,point):
+    store=ResearchStore(AuthStore(private));before=len(native)
+    if point=='hook':
+        import research.store as module
+        monkeypatch.setattr(module,'install_default_hook',lambda _conn:(_ for _ in ()).throw(RuntimeError('synthetic hook failure')))
+    else:
+        execute=sqlite_utils.PrivateAuthConnection.execute
+        def failed(conn,sql,*args,**kwargs):
+            if sql=='PRAGMA foreign_keys=ON':raise sqlite3.OperationalError('synthetic pragma failure')
+            return execute(conn,sql,*args,**kwargs)
+        monkeypatch.setattr(sqlite_utils.PrivateAuthConnection,'execute',failed)
+    with pytest.raises((RuntimeError,ResearchError)):
+        with store.transaction():pass
+    assert len(native)==before+1
+    assert native[-1][2]._history_file is None
+
+
+@pytest.mark.parametrize('operation',['_migrate_v4','_migrate_v5','_migrate_v6','_migrate_v7','_migrate_v8','_migrate_v9'])
+def test_development_migration_hook_failure_closes_native_connection_without_partial_writes(private,native,monkeypatch,operation):
+    import research.store as module
+    monkeypatch.setenv('STRUCTURAL_ENV','dev');store=ResearchStore(AuthStore(private))
+    before=private.read_bytes();start=len(native)
+    monkeypatch.setattr(module,'install_default_hook',lambda _conn:(_ for _ in ()).throw(RuntimeError('synthetic migration hook failure')))
+    with pytest.raises(RuntimeError):getattr(store,operation)()
+    assert len(native)==start+1 and private.read_bytes()==before
+
+
+def test_plain_auth_dto_cannot_replace_captured_native_auth_store(private,native):
+    from types import SimpleNamespace
+    identity=(private.stat().st_dev,private.stat().st_ino)
+    fake=SimpleNamespace(path=private,_private_auth=True,storage_identity=identity,preflight_private=lambda _:identity)
+    start=len(native)
+    with pytest.raises(paths.RuntimePathError):ResearchStore(fake)
+    assert len(native)==start
+
+
+@pytest.mark.parametrize('fault',['inode','file-mode','parent-mode','symlink','sidecar'])
+def test_hot_private_file_drift_is_rejected_before_native_open(private,native,fault):
+    store=ResearchStore(AuthStore(private));start=len(native)
+    if fault in ('inode','symlink'):
+        retired=private.with_name('retired.db');private.rename(retired)
+        if fault=='inode':private.write_bytes(retired.read_bytes());private.chmod(0o600)
+        else:private.symlink_to(retired)
+    elif fault=='file-mode':private.chmod(0o644)
+    elif fault=='parent-mode':private.parent.chmod(0o755)
+    else:
+        side=private.with_name(private.name+'-journal');side.write_bytes(b'unsafe sidecar');side.chmod(0o644)
+    with pytest.raises((RuntimeError,OSError)):
+        with store.transaction():pass
+    assert len(native)==start
+
+
+@pytest.mark.parametrize('fault',['guard','table','marker'])
+def test_cached_formal_store_does_not_hide_current_schema_damage(private,fault):
+    store=ResearchStore(AuthStore(private))
+    with raw(private) as conn:
+        if fault=='guard':conn.execute('DROP TRIGGER research_method_birth')
+        elif fault=='table':conn.execute('CREATE TABLE research_unapproved(value TEXT)')
+        else:conn.execute('UPDATE research_schema SET version=8')
+    before=private.read_bytes()
+    with pytest.raises(ResearchError):
+        with store.transaction():pass
+    assert private.read_bytes()==before
+
+
+def _peer(db,operation,output):
+    db=Path(db)
+    for name,value in [('STATE_ROOT',db.parent),('CACHE_ROOT',db.parent.parent/'cache'),('LOG_ROOT',db.parent/'logs')]:setattr(paths,name,value)
+    os.environ['STRUCTURAL_ENV']='prod';os.environ['AUTH_DATA_DIR']=str(db.parent)
+    try:
+        auth=AuthStore(db);store=ResearchStore(auth)
+        if operation in ('missing-map','missing-lock'):
+            gate=auth.owner_gate_id('a2-owner@example.invalid')
+            with AuthorizationGate(auth).owner_gate_id(gate):pass
+            raise AssertionError('missing owner prerequisite was accepted')
+    except (RuntimeError,OSError) as exc:
+        if not operation.startswith('missing-'):raise
+        output.put(dict(rejected=type(exc).__name__,database_exists=db.exists()));return
+    if operation=='write':
+        with store.transaction(write=True) as conn:conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('child@example.invalid','free','synthetic','g')")
+    with store.transaction() as conn:output.put([r[0] for r in conn.execute('SELECT email FROM auth_users ORDER BY email')])
+
+
+def peer(db,operation):
+    from web.backend.tests.test_research_private_storage import _peer as target
+    ctx=multiprocessing.get_context('spawn');output=ctx.Queue();child=ctx.Process(target=target,args=(str(db),operation,output))
+    try:
+        child.start();value=output.get(timeout=20);child.join(5);assert child.exitcode==0;return value
+    finally:
+        if child.is_alive():child.terminate();child.join(3)
+        child.close();output.close();output.join_thread()
+
+
+def test_same_pid_peer_close_and_cross_process_commits_do_not_drop_wal(private):
+    store=ResearchStore(AuthStore(private))
+    with store.transaction() as parent:
+        parent.execute('SELECT count(*) FROM auth_users').fetchall()
+        with store.transaction() as neighbour:neighbour.execute('SELECT count(*) FROM auth_users').fetchall()
+        assert peer(private,'read')==[]
+        assert all(private.with_name(private.name+s).exists() for s in ('-wal','-shm'))
+    with store.transaction(write=True) as conn:conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('parent@example.invalid','free','synthetic','g')")
+    assert peer(private,'read')==['parent@example.invalid']
+    assert peer(private,'write')==['child@example.invalid','parent@example.invalid']
+    assert peer(private,'read')==['child@example.invalid','parent@example.invalid']
+
+
+def test_new_process_missing_main_database_cannot_create_it(private):
+    private.unlink();before=sorted(p.name for p in private.parent.iterdir())
+    value=peer(private,'missing-db')
+    assert value['rejected'] and value['database_exists'] is False
+    assert sorted(p.name for p in private.parent.iterdir())==before
+
+
+@pytest.mark.parametrize('fault',['missing-map','missing-lock'])
+def test_new_process_missing_owner_prerequisites_cannot_create_mapping_or_lock(prepared,fault):
+    if fault=='missing-map':
+        with raw(prepared['path']) as conn:conn.execute('DELETE FROM auth_owner_gates')
+    else:prepared['lock'].unlink()
+    before=prepared['path'].read_bytes();names=sorted(p.name for p in prepared['lock'].parent.iterdir())
+    value=peer(prepared['path'],fault)
+    assert value['rejected'] and value['database_exists'] is True
+    assert prepared['path'].read_bytes()==before
+    assert sorted(p.name for p in prepared['lock'].parent.iterdir())==names
+
+
+@pytest.mark.parametrize('namespace',['research.store','web.backend.research.store'])
+def test_dual_namespace_consumes_same_auth_inode(private,namespace,monkeypatch):
+    module=importlib.import_module(namespace);auth_module=importlib.import_module('web.backend.services.auth_store' if namespace.startswith('web.') else 'services.auth_store')
+    if namespace.startswith('web.'):
+        from web.backend.services import runtime_paths as other
+        for name in ('STATE_ROOT','CACHE_ROOT','LOG_ROOT'):monkeypatch.setattr(other,name,getattr(paths,name))
+    store=module.ResearchStore(auth_module.AuthStore(private))
+    assert store.storage_identity==(private.stat().st_dev,private.stat().st_ino)
+    with store.transaction() as conn:assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==9
+
+
+def test_checkpoint_busy_is_not_reported_as_erasure_success(private):
+    store=ResearchStore(AuthStore(private));reader=sqlite_utils.connect_private_auth(private,readonly=True)
+    try:
+        reader.execute('BEGIN');reader.execute('SELECT count(*) FROM auth_users').fetchall()
+        with store.transaction(write=True) as conn:conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('checkpoint@example.invalid','free','synthetic','g')")
+        with pytest.raises(ResearchError) as rejected:store.checkpoint_erasure()
+        assert rejected.value.code=='STORE_BUSY'
+    finally:reader.close()
+    store.checkpoint_erasure()
+
+
+@pytest.fixture
+def formal_paid(paid_api,monkeypatch):
+    """Actual offline HTTP composition with captured formal storage objects.
+
+    The public Main remains closed. The test-only route profile is restored
+    after capturing the real preprovisioned Auth object; downgrade cannot turn
+    either storage object into a dev connection or creation path.
+    """
+    from api import auth
+    client,db,_,rid,excerpt,resolver=paid_api;db=db.resolve()
+    cache=db.parent.parent/'private-cache';logs=db.parent/'logs'
+    for folder in (cache,logs):folder.mkdir(mode=0o700,exist_ok=True)
+    for name,value in [('STATE_ROOT',db.parent),('CACHE_ROOT',cache),('LOG_ROOT',logs)]:monkeypatch.setattr(paths,name,value)
+    audit=db.parent/'account_deletion_audit.jsonl';audit.write_bytes(b'');audit.chmod(0o600)
+    monkeypatch.setenv('STRUCTURAL_ENV','prod')
+    held=AuthStore(db);store=ResearchStore(held)
+    monkeypatch.setattr(auth,'_store',lambda:held)
+    monkeypatch.setenv('STRUCTURAL_ENV','test')
+    return client,db,store,rid,excerpt,resolver
+
+
+@pytest.mark.parametrize('withdraw',['paid-grant','source','cancel'])
+def test_formal_native_paid_result_rechecks_withdrawal_and_keeps_cost(formal_paid,withdraw):
+    from .test_research_paid_budget_loop import execution
+    from research.paid_provider_session import persist_budget_return
+    client,_,store,rid,excerpt,_=formal_paid
+    with execution(formal_paid) as (session,result,wire,pid):
+        receipt=session.receive()
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+            persist_budget_return(conn,store=store,lease=lease,receipt=receipt)
+        if withdraw=='cancel':
+            cancelled=post(client,f'/api/research/{rid}/cancel',{'task_id':result['task_id'],'expected_task_version':2},'formal-cancel')
+            assert cancelled.status_code==200,cancelled.text
+        else:
+            with store.transaction(write=True) as conn:
+                if withdraw=='paid-grant':conn.execute("UPDATE research_grants SET status='revoked' WHERE id=(SELECT grant_id FROM research_tasks WHERE id=?)",(result['task_id'],))
+                else:conn.execute("DELETE FROM research_evidence_objects WHERE kind='snapshots' AND research_id=?",(rid,))
+        reconciled=post(client,f'/api/research/{rid}/reconcile',{'task_id':result['task_id'],'expected_task_version':3 if withdraw=='cancel' else 2},'formal-cost-after-withdrawal')
+        assert reconciled.status_code==200 and reconciled.json()['data']['method_result'] is None,reconciled.text
+        with store.transaction() as conn:
+            assert conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone()[:]==(0,2)
+            assert conn.execute('SELECT count(*) FROM research_cost_observations').fetchone()[0]==1
+        assert wire['requests']==1
+
+
+def test_formal_native_typed_http_commit_and_read_keep_original_body(formal_paid):
+    from .test_research_paid_budget_loop import execution
+    from research.paid_provider_session import persist_budget_return
+    client,_,store,rid,_,_=formal_paid
+    with execution(formal_paid) as (session,result,wire,pid):
+        receipt=session.receive()
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:persist_budget_return(conn,store=store,lease=lease,receipt=receipt)
+        response=post(client,f'/api/research/{rid}/reconcile',{'task_id':result['task_id'],'expected_task_version':2},'formal-typed-commit')
+        assert response.status_code==200,response.text
+        report=response.json()['data']['method_result'];assert report['result_ref']==session.id and report['received_at']==receipt._time
+        assert report['model_analysis_ran'] is False and report['evidence']=='INSUFFICIENT'
+        reopened=client.get(f'/api/research/{rid}',params={'task_id':result['task_id']})
+        assert reopened.status_code==200 and reopened.json()['data']['method_result']==report,reopened.text
+        assert wire['requests']==1
+
+
+def test_formal_native_delete_before_late_return_keeps_body_closed(formal_paid,lifecycle):
+    from .test_research_paid_budget_loop import execution
+    from research.paid_provider_session import persist_budget_return
+    from research.paid_budget import observe_in
+    client,_,store,rid,_,_=formal_paid
+    with execution(formal_paid) as (session,result,wire,pid):
+        receipt=session.receive()
+        erased=delete(lifecycle[0]);assert erased.status_code==200,erased.text
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+            persist_budget_return(conn,store=store,lease=lease,receipt=receipt)
+            observe_in(conn,store=store,lease=lease,return_ref=session.id)
+            assert conn.execute('SELECT candidate_json,method_commit_json,body_origin_state FROM research_provider_sessions').fetchone()[:]==(None,None,'closed')
+            assert conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone()[:]==(0,2)
+        assert client.get(f'/api/research/{rid}').status_code==401
+        assert wire['requests']==1
