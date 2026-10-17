@@ -105,7 +105,7 @@ class ResearchService:
         principal = self._principal(identity, create=True)
         payload = request.model_dump(mode="json")
         request_digest = digest(payload)
-        with self.authorization.owner_gate(principal), self.store.transaction(write=True) as conn:
+        with self.authorization.owner_gate(principal) as lease, self.store.transaction(write=True) as conn:
             owner = self.authorization.check(conn, identity, principal)
             replay = self._replay(conn, principal, "create", "new", key, request_digest)
             if replay is not None:
@@ -113,13 +113,15 @@ class ResearchService:
                 self.authorization.check(conn, identity, principal, replay["data"]["research"]["id"])
                 return replay
             rid, timestamp = str(uuid4()), now()
-            require_revision_budget([{'research_id':rid,'revision':1,**payload['problem'],'digest':digest(payload['problem']),'created_at':timestamp}])
+            problem={k:v for k,v in payload['problem'].items() if k!='formula_draft'}
+            require_revision_budget([{'research_id':rid,'revision':1,**problem,'digest':digest(problem),'created_at':timestamp}])
             conn.execute("INSERT INTO research_controls VALUES(?,?,?,?,?,?,?,?,?,?)",
                          (rid, principal, owner["epoch"], 1, 1, 1, "private", "active", timestamp, timestamp))
             conn.execute("INSERT INTO research_grants (id,principal_id,principal_epoch,research_id,acl_epoch,scopes,status,created_at) VALUES(?,?,?,?,?,?,?,?)",
                          (str(uuid4()), principal, owner["epoch"], rid, 1, '["read","write"]', "active", timestamp))
-            problem = payload["problem"]
             conn.execute("INSERT INTO research_revisions VALUES(?,?,?,?,?)", (rid, 1, canonical(problem), digest(problem), timestamp))
+            from .formula_result import save_snapshot
+            save_snapshot(conn,store=self.store,lease=lease,identity=identity,principal=principal,rid=rid,revision=1,draft=request.problem.formula_draft)
             row = self.authorization.check(conn, identity, principal, rid, scope="write")
             result = ResearchProjection.build(conn, row)
             self._remember(conn, principal, "create", "new", key, request_digest, result)
@@ -130,7 +132,7 @@ class ResearchService:
         principal = self._principal(identity)
         payload = request.model_dump(mode="json")
         request_digest = digest(payload)
-        with self.authorization.owner_gate(principal), self.store.transaction(write=True) as conn:
+        with self.authorization.owner_gate(principal) as lease, self.store.transaction(write=True) as conn:
             row = self.authorization.check(conn, identity, principal, rid, scope="write")
             replay = self._replay(conn, principal, "revise", "r:" + rid, key, request_digest)
             if replay is not None:
@@ -140,7 +142,7 @@ class ResearchService:
                 raise ResearchError("REVISION_CONFLICT", 409, "研究已有新修订，请先重新读取，当前输入仍保留在页面。")
             if revision == 2147483647 or row["version"] == 2147483647:
                 raise ResearchError("VERSION_CONFLICT", 409, "研究版本已达上限，当前操作无法保存。")
-            timestamp, problem = now(), payload["problem"]
+            timestamp, problem = now(), {k:v for k,v in payload["problem"].items() if k!="formula_draft"}
             require_revision_budget([*ResearchProjection.revision_records(conn,rid),
                 {'research_id':rid,'revision':revision+1,**problem,'digest':digest(problem),'created_at':timestamp}])
             conn.execute("INSERT INTO research_revisions VALUES(?,?,?,?,?)",
@@ -150,6 +152,8 @@ class ResearchService:
                 (revision + 1, timestamp, rid, row["version"], revision)).rowcount
             if changed != 1:
                 raise ResearchError("REVISION_CONFLICT", 409, "研究已有新修订，请重新读取。")
+            from .formula_result import save_snapshot
+            save_snapshot(conn,store=self.store,lease=lease,identity=identity,principal=principal,rid=rid,revision=revision+1,draft=request.problem.formula_draft)
             result = ResearchProjection.build(conn, self.authorization.check(conn, identity, principal, rid))
             self._remember(conn, principal, "revise", "r:" + rid, key, request_digest, result)
             return result
@@ -371,9 +375,11 @@ class ResearchService:
                 require_authenticated_action(request_source,identity=identity,action='method-reconcile',research_id=rid,task_id=task['id'],key=key,body_digest=digest(payload))
             if not is_paid and operation!='cancel':require_enabled()
             if is_paid and operation=='resume':raise ResearchError('FEATURE_UNAVAILABLE',503,'此任务不能自动继续或重新外发。')
-            if is_paid and operation=='cancel':
+            if (is_paid or task['policy_revision']=='local-formula-v1') and operation=='cancel':
                 from .paid_control import require_authenticated_action
                 require_authenticated_action(request_source,identity=identity,action='cancel',research_id=rid,task_id=task['id'],key=key,body_digest=digest(payload))
+            if task['policy_revision']=='local-formula-v1' and operation!='cancel':
+                raise ResearchError('FEATURE_UNAVAILABLE',503,'公式检查不能自动恢复或重复计算；请核对原结果标识。')
             if task["policy_revision"]=="d1-source-only-v1" and operation!="cancel":
                 raise ResearchError("RECONCILIATION_REQUIRED",409,"来源读取只能闭合旧执行后重新预览并明确批准，不能继续旧调用。")
             replay=self._replay(conn,principal,operation,"r:"+rid,key,digest(payload))
@@ -393,6 +399,9 @@ class ResearchService:
                         authority=mint_stop_authority(conn,store=self.store,lease=lease,principal_id=principal,task_id=task['id'],
                             expected_task_version=task['version'],identity=identity,request_source=request_source,key=key,body_digest=digest(payload))
                         stop_financial_in(conn,store=self.store,lease=lease,authority=authority)
+                    elif task['policy_revision']=='local-formula-v1':
+                        from .formula_result import cancel_in
+                        cancel_in(conn,store=self.store,lease=lease,identity=identity,principal=principal,rid=rid,task_id=task['id'])
                     else:BudgetLedger.release_prepared_in(conn,task["id"])
                     conn.execute("UPDATE research_tasks SET stop_requested=1 WHERE id=?",(task["id"],))
                     conn.execute("UPDATE research_steps SET state='DISCARDED',version=version+1 WHERE task_id=? AND state IN ('PENDING','PREPARED')",(task["id"],))
@@ -479,7 +488,7 @@ class ResearchService:
                              (principal_id,"account",email,generation,1,"active",now(),gate_id))
             else:
                 principal_id = principal["id"]
-            has_paid=conn.execute("SELECT 1 FROM research_tasks WHERE principal_id=? AND policy_revision='bounded_usage_upper_v2' LIMIT 1",(principal_id,)).fetchone()
+            has_paid=conn.execute("SELECT 1 FROM research_tasks WHERE principal_id=? AND policy_revision IN ('bounded_usage_upper_v2','local-formula-v1') LIMIT 1",(principal_id,)).fetchone()
             from .paid_control import require_authenticated_action,create_authenticated_deletion_job
             if request_source is not None:
                 require_authenticated_action(request_source,identity=request_source.identity,action='account-delete')

@@ -44,12 +44,25 @@ def issue_authenticated_action(request,*,action,research_id=None,task_id=None,ke
     """Reverify the real ASGI route and signed direct cookie, not passed claims."""
     from starlette.requests import Request
     routes={'cancel':('POST','cancel_research_task'),'account-delete':('POST','delete_my_account'),
-        'method-read':('GET','view_research'),'method-reconcile':('POST','reconcile_research_task')}
+        'method-read':('GET','view_research'),'method-reconcile':('POST','reconcile_research_task'),
+        'formula-check':('POST','check_research_formula'),'formula-read':('GET','read_research_formula_result'),
+        'formula-revision-read':('GET','read_research_formula_revision')}
     if type(request) is not Request or action not in routes or request.method!=routes[action][0]:
         raise PermissionError('actual authenticated action request required')
     from .provider_schemas import strict_json
     raw=getattr(request,'_body',None)
-    if action=='method-read':
+    if action in ('formula-read','formula-revision-read'):
+        if request.query_params:raise ResearchError('INPUT_INVALID',422,'公式读取不接受查询参数。')
+        research_id=request.path_params.get('research_id')
+        task_id=str(request.path_params.get('result_ref' if action=='formula-read' else 'revision'))
+        body_digest=digest(request.scope.get('query_string',b''));key=''
+    elif action=='formula-check':
+        if type(raw) is not bytes or request.query_params:raise PermissionError('actual formula request required')
+        from .schemas import FormulaCheckEnvelope
+        data=FormulaCheckEnvelope.model_validate(strict_json(raw,65536)).data
+        research_id=request.path_params.get('research_id');task_id=None
+        key=request.headers.get('idempotency-key','');body_digest=digest(canonical(data.model_dump(mode='json')))
+    elif action=='method-read':
         pairs=list(request.query_params.multi_items())
         if len(pairs)>1 or any(name!='task_id' or not value for name,value in pairs):
             raise ResearchError('INPUT_INVALID',422,'研究结果读取参数无效。')
@@ -135,9 +148,9 @@ def _deletion_lease_binding(conn,store,lease,job):
 
 def _job_has_v2(conn,job):
     if job['owner_email'] is not None and job['session_generation'] is not None:
-        return bool(conn.execute("SELECT 1 FROM research_tasks t JOIN research_principals p ON p.id=t.principal_id WHERE p.gate_id=? AND p.normalized_email=? AND p.session_generation=? AND t.policy_revision='bounded_usage_upper_v2' LIMIT 1",
+        return bool(conn.execute("SELECT 1 FROM research_tasks t JOIN research_principals p ON p.id=t.principal_id WHERE p.gate_id=? AND p.normalized_email=? AND p.session_generation=? AND t.policy_revision IN ('bounded_usage_upper_v2','local-formula-v1') LIMIT 1",
             (job['gate_id'],job['owner_email'],job['session_generation'])).fetchone())
-    return bool(conn.execute("SELECT 1 FROM research_tasks t JOIN research_principals p ON p.id=t.principal_id WHERE p.gate_id=? AND t.policy_revision='bounded_usage_upper_v2' LIMIT 1",(job['gate_id'],)).fetchone())
+    return bool(conn.execute("SELECT 1 FROM research_tasks t JOIN research_principals p ON p.id=t.principal_id WHERE p.gate_id=? AND t.policy_revision IN ('bounded_usage_upper_v2','local-formula-v1') LIMIT 1",(job['gate_id'],)).fetchone())
 
 
 def verify_deletion_origin(conn,*,store,lease,job_id):

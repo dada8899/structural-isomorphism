@@ -17,7 +17,7 @@ if __package__ == "web.backend.api":
     from ..research.authorization import AccountIdentity
     from ..research.errors import ResearchError
     from ..research.provider_schemas import ProviderFailure
-    from ..research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery, PaidPreviewEnvelope, PaidConfirmationEnvelope
+    from ..research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery, PaidPreviewEnvelope, PaidConfirmationEnvelope, FormulaCheckEnvelope, FormulaCheckResponse, FormulaResultResponse
     from ..research import source_integration
     from ..research import paid_api_public as paid_public
     from ..research import ResearchService, ResearchStore
@@ -26,7 +26,7 @@ else:
     from research.authorization import AccountIdentity
     from research.errors import ResearchError
     from research.provider_schemas import ProviderFailure
-    from research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery, PaidPreviewEnvelope, PaidConfirmationEnvelope
+    from research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery, PaidPreviewEnvelope, PaidConfirmationEnvelope, FormulaCheckEnvelope, FormulaCheckResponse, FormulaResultResponse
     from research import source_integration
     from research import paid_api_public as paid_public
     from research import ResearchService, ResearchStore
@@ -64,6 +64,16 @@ def _paid_success_response(operation,result):
 def _paid_responses(operation):
     return {200:{'model':paid_public.success_response_model(operation)},
         **{status:{'model':paid_public.ResearchPublicErrorEnvelope} for status in (401,403,404,409,413,422,429,503)}}
+
+
+def _formula_request_body(schema):
+    value=schema.model_json_schema();definitions=value.get('$defs',{})
+    def expand(item):
+        if type(item) is list:return [expand(v) for v in item]
+        if type(item) is not dict:return item
+        if '$ref' in item:return expand(definitions[item['$ref'].split('/')[-1]])
+        return {k:expand(v) for k,v in item.items() if k!='$defs'}
+    return {'required':True,'content':{'application/json':{'schema':expand(value)}}}
 
 
 def enabled():
@@ -147,6 +157,24 @@ async def _dispatch(request, *, research_id=None, operation="view"):
             source=await run_in_threadpool(issue_authenticated_action,request,action='method-read')
             try:result = await run_in_threadpool(service.view, identity, research_id, task_id,request_source=source)
             finally:source.close()
+        elif operation in ('formula-read','formula-revision-read'):
+            if request.query_params:raise ResearchError('INPUT_INVALID',422,'公式读取不接受查询参数。')
+            if __package__=='web.backend.api':
+                from ..research.paid_control import issue_authenticated_action
+                from ..research import formula_result
+            else:
+                from research.paid_control import issue_authenticated_action
+                from research import formula_result
+            source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+            try:
+                if operation=='formula-read':result=await run_in_threadpool(formula_result.read_result,service,identity,research_id,request.path_params['result_ref'],request_source=source)
+                else:
+                    raw_revision=request.path_params['revision']
+                    if type(raw_revision) is not str or re.fullmatch(r'[1-9][0-9]{0,9}',raw_revision) is None:raise ResearchError('INPUT_INVALID',422,'公式修订无效。')
+                    revision=int(raw_revision)
+                    if not 1<=revision<=2147483647:raise ResearchError('INPUT_INVALID',422,'公式修订无效。')
+                    result=await run_in_threadpool(formula_result.read_revision,service,identity,research_id,revision,request_source=source)
+            finally:source.close()
         elif operation == "source-records":
             result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get("task_id",""),request.query_params.get("kind",""),request.query_params.get("cursor"))
         elif operation == "events":
@@ -164,7 +192,7 @@ async def _dispatch(request, *, research_id=None, operation="view"):
             envelope = await _parse(request,{"create":CreateEnvelope,"revise":RevisionEnvelope,"start":StartEnvelope,
                                              'paid-preview':PaidPreviewEnvelope,'paid-confirm':PaidConfirmationEnvelope,
                                              "source-preview":SourcePreviewEnvelope,"source-approve":SourceApprovalEnvelope,"source-start":SourceStartEnvelope,
-                                             "cancel":TaskEnvelope,"reconcile":TaskEnvelope,"resume":TaskEnvelope}[operation])
+                                             "cancel":TaskEnvelope,"reconcile":TaskEnvelope,"resume":TaskEnvelope,"formula-check":FormulaCheckEnvelope}[operation])
             if operation == "create":
                 result = await run_in_threadpool(service.create, identity, envelope.data, key)
             elif operation in ('paid-preview','paid-confirm'):
@@ -173,6 +201,17 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                 resolver=getattr(request.app.state,'research_paid_resolver',None)
                 method=service.paid_preview if operation=='paid-preview' else service.paid_confirm
                 result=await run_in_threadpool(method,identity,research_id,envelope.data,key,funding_resolver=resolver)
+            elif operation=='formula-check':
+                if request.query_params:raise ResearchError('INPUT_INVALID',422,'公式检查不接受查询参数。')
+                if __package__=='web.backend.api':
+                    from ..research.paid_control import issue_authenticated_action
+                    from ..research.formula_result import start as formula_start
+                else:
+                    from research.paid_control import issue_authenticated_action
+                    from research.formula_result import start as formula_start
+                source=await run_in_threadpool(issue_authenticated_action,request,action='formula-check')
+                try:result=await run_in_threadpool(formula_start,service,identity,research_id,envelope.data,key,request_source=source)
+                finally:source.close()
             elif operation == "revise":
                 result = await run_in_threadpool(service.revise, identity, research_id, envelope.data, key)
             elif operation == "start":
@@ -208,7 +247,7 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         return JSONResponse(error.body(), status_code=error.status, headers=_HEADERS)
 
 
-@router.post("/research")
+@router.post("/research",openapi_extra={"requestBody":_formula_request_body(CreateEnvelope)})
 async def create_research(request: Request):
     return await _dispatch(request, operation="create")
 
@@ -218,7 +257,7 @@ async def list_research(request: Request):
     return await _dispatch(request,operation="index")
 
 
-@router.post("/research/{research_id}/revisions")
+@router.post("/research/{research_id}/revisions",openapi_extra={"requestBody":_formula_request_body(RevisionEnvelope)})
 async def revise_research(research_id: str, request: Request):
     return await _dispatch(request, research_id=research_id, operation="revise")
 
@@ -283,3 +322,18 @@ async def paid_preview(research_id:str,request:Request):
     openapi_extra={'requestBody':paid_public.request_body_schema('paid-confirm')},responses=_paid_responses('paid-confirm'))
 async def paid_confirmation(research_id:str,request:Request):
     return await _dispatch(request,research_id=research_id,operation='paid-confirm')
+
+
+@router.post('/research/{research_id}/formula-checks',openapi_extra={'requestBody':_formula_request_body(FormulaCheckEnvelope)},responses={200:{'model':FormulaCheckResponse}})
+async def check_research_formula(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='formula-check')
+
+
+@router.get('/research/{research_id}/formula-results/{result_ref}',responses={200:{'model':FormulaResultResponse}})
+async def read_research_formula_result(research_id:str,result_ref:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='formula-read')
+
+
+@router.get('/research/{research_id}/formula-revisions/{revision}')
+async def read_research_formula_revision(research_id:str,revision:int,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='formula-revision-read')

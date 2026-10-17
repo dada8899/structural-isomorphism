@@ -2922,6 +2922,402 @@
         "title": "FollowupResponse",
         "type": "object"
       },
+      "FormulaCheckData": {
+        "additionalProperties": false,
+        "properties": {
+          "formula_digest": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula Digest"
+          },
+          "input_origin": {
+            "const": "user_provided",
+            "enum": [
+              "user_provided"
+            ],
+            "title": "Input Origin",
+            "type": "string"
+          },
+          "known_cost_units": {
+            "const": 0,
+            "enum": [
+              0
+            ],
+            "title": "Known Cost Units",
+            "type": "integer"
+          },
+          "math_status": {
+            "title": "Math Status",
+            "type": "null"
+          },
+          "result_available": {
+            "title": "Result Available",
+            "type": "boolean"
+          },
+          "result_ref": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "claimed",
+              "returned",
+              "closed",
+              "interrupted"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "task_completed_means_math_passed": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Task Completed Means Math Passed",
+            "type": "boolean"
+          },
+          "task_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+            "title": "Task Id",
+            "type": "string"
+          },
+          "termination_state": {
+            "enum": [
+              "not_attested",
+              "reaped",
+              "pending"
+            ],
+            "title": "Termination State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result_ref",
+          "state",
+          "result_available",
+          "input_origin",
+          "formula_digest",
+          "math_status",
+          "termination_state",
+          "task_completed_means_math_passed",
+          "known_cost_units",
+          "task_id"
+        ],
+        "title": "FormulaCheckData",
+        "type": "object"
+      },
+      "FormulaCheckResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "b1-candidate-01",
+            "enum": [
+              "b1-candidate-01"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FormulaCheckData"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_revision",
+          "data"
+        ],
+        "title": "FormulaCheckResponse",
+        "type": "object"
+      },
+      "FormulaExecutionProvenance": {
+        "additionalProperties": false,
+        "properties": {
+          "code_version": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Code Version",
+            "type": "string"
+          },
+          "display_AST_confirmation": {
+            "const": "user_confirmed_snapshot",
+            "enum": [
+              "user_confirmed_snapshot"
+            ],
+            "title": "Display Ast Confirmation",
+            "type": "string"
+          },
+          "execution_attested": {
+            "title": "Execution Attested",
+            "type": "boolean"
+          },
+          "execution_state": {
+            "enum": [
+              "ok",
+              "unsupported",
+              "limited",
+              "memory_limited",
+              "failed"
+            ],
+            "title": "Execution State",
+            "type": "string"
+          },
+          "formula_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Formula Digest",
+            "type": "string"
+          },
+          "full_input_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Full Input Digest",
+            "type": "string"
+          },
+          "mathematics_is_not_real_world_mechanism": {
+            "const": true,
+            "enum": [
+              true
+            ],
+            "title": "Mathematics Is Not Real World Mechanism",
+            "type": "boolean"
+          },
+          "output_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Output Digest",
+            "type": "string"
+          },
+          "owned_return_ref": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+            "title": "Owned Return Ref",
+            "type": "string"
+          },
+          "problem_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Problem Digest",
+            "type": "string"
+          },
+          "reaped": {
+            "const": true,
+            "enum": [
+              true
+            ],
+            "title": "Reaped",
+            "type": "boolean"
+          },
+          "resource_guard": {
+            "title": "Resource Guard",
+            "type": "string"
+          },
+          "source_facts_verified": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Source Facts Verified",
+            "type": "boolean"
+          },
+          "source_origin": {
+            "const": "user_provided",
+            "enum": [
+              "user_provided"
+            ],
+            "title": "Source Origin",
+            "type": "string"
+          }
+        },
+        "required": [
+          "execution_attested",
+          "execution_state",
+          "resource_guard",
+          "owned_return_ref",
+          "reaped",
+          "code_version",
+          "full_input_digest",
+          "output_digest",
+          "formula_digest",
+          "problem_digest",
+          "display_AST_confirmation",
+          "source_origin",
+          "source_facts_verified",
+          "mathematics_is_not_real_world_mechanism"
+        ],
+        "title": "FormulaExecutionProvenance",
+        "type": "object"
+      },
+      "FormulaResultData": {
+        "additionalProperties": false,
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/FormulaRunMetadata"
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormulaExecutionProvenance"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "state": {
+            "enum": [
+              "available",
+              "unavailable"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "metadata",
+          "state",
+          "result"
+        ],
+        "title": "FormulaResultData",
+        "type": "object"
+      },
+      "FormulaResultResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "b1-candidate-01",
+            "enum": [
+              "b1-candidate-01"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FormulaResultData"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_revision",
+          "data"
+        ],
+        "title": "FormulaResultResponse",
+        "type": "object"
+      },
+      "FormulaRunMetadata": {
+        "additionalProperties": false,
+        "properties": {
+          "formula_digest": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula Digest"
+          },
+          "input_origin": {
+            "const": "user_provided",
+            "enum": [
+              "user_provided"
+            ],
+            "title": "Input Origin",
+            "type": "string"
+          },
+          "known_cost_units": {
+            "const": 0,
+            "enum": [
+              0
+            ],
+            "title": "Known Cost Units",
+            "type": "integer"
+          },
+          "math_status": {
+            "title": "Math Status",
+            "type": "null"
+          },
+          "result_available": {
+            "title": "Result Available",
+            "type": "boolean"
+          },
+          "result_ref": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "claimed",
+              "returned",
+              "closed",
+              "interrupted"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "task_completed_means_math_passed": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Task Completed Means Math Passed",
+            "type": "boolean"
+          },
+          "termination_state": {
+            "enum": [
+              "not_attested",
+              "reaped",
+              "pending"
+            ],
+            "title": "Termination State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result_ref",
+          "state",
+          "result_available",
+          "input_origin",
+          "formula_digest",
+          "math_status",
+          "termination_state",
+          "task_completed_means_math_passed",
+          "known_cost_units"
+        ],
+        "title": "FormulaRunMetadata",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -10355,6 +10751,480 @@
       },
       "post": {
         "operationId": "create_research_api_research_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "contract_revision": {
+                    "const": "b1-candidate-01",
+                    "enum": [
+                      "b1-candidate-01"
+                    ],
+                    "title": "Contract Revision",
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "problem": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "confirmed": {
+                            "title": "Confirmed",
+                            "type": "boolean"
+                          },
+                          "constraints": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "maxItems": 12,
+                            "title": "Constraints",
+                            "type": "array"
+                          },
+                          "entry": {
+                            "enum": [
+                              "phenomenon",
+                              "formula",
+                              "research"
+                            ],
+                            "title": "Entry",
+                            "type": "string"
+                          },
+                          "formula_draft": {
+                            "anyOf": [
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "comparison_scope": {
+                                    "enum": [
+                                      "expression",
+                                      "equation_form",
+                                      "initial_value_problem"
+                                    ],
+                                    "title": "Comparison Scope",
+                                    "type": "string"
+                                  },
+                                  "input_origin": {
+                                    "const": "user_provided",
+                                    "enum": [
+                                      "user_provided"
+                                    ],
+                                    "title": "Input Origin",
+                                    "type": "string"
+                                  },
+                                  "left": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "assumptions": {
+                                        "items": {
+                                          "type": "object"
+                                        },
+                                        "maxItems": 24,
+                                        "title": "Assumptions",
+                                        "type": "array"
+                                      },
+                                      "boundary_conditions": {
+                                        "items": {
+                                          "type": "object"
+                                        },
+                                        "maxItems": 24,
+                                        "title": "Boundary Conditions",
+                                        "type": "array"
+                                      },
+                                      "expression": {
+                                        "anyOf": [
+                                          {
+                                            "type": "object"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ],
+                                        "title": "Expression"
+                                      },
+                                      "family": {
+                                        "enum": [
+                                          "queue_flow",
+                                          "first_order_storage",
+                                          "local_recovery"
+                                        ],
+                                        "title": "Family",
+                                        "type": "string"
+                                      },
+                                      "initial_conditions": {
+                                        "items": {
+                                          "type": "object"
+                                        },
+                                        "maxItems": 1,
+                                        "title": "Initial Conditions",
+                                        "type": "array"
+                                      },
+                                      "measure_scope": {
+                                        "title": "Measure Scope",
+                                        "type": "string"
+                                      },
+                                      "original_display": {
+                                        "title": "Original Display",
+                                        "type": "string"
+                                      },
+                                      "source_refs": {
+                                        "default": [],
+                                        "items": {
+                                          "type": "object"
+                                        },
+                                        "maxItems": 20,
+                                        "title": "Source Refs",
+                                        "type": "array"
+                                      },
+                                      "symbols": {
+                                        "items": {
+                                          "type": "object"
+                                        },
+                                        "maxItems": 12,
+                                        "title": "Symbols",
+                                        "type": "array"
+                                      },
+                                      "template_id": {
+                                        "enum": [
+                                          "little",
+                                          "mm1",
+                                          "passive_decay",
+                                          "linear_stable"
+                                        ],
+                                        "title": "Template Id",
+                                        "type": "string"
+                                      },
+                                      "time_basis": {
+                                        "default": "from_symbol_units",
+                                        "enum": [
+                                          "s",
+                                          "workday",
+                                          "from_symbol_units"
+                                        ],
+                                        "title": "Time Basis",
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "family",
+                                      "template_id",
+                                      "original_display",
+                                      "expression",
+                                      "symbols",
+                                      "assumptions",
+                                      "initial_conditions",
+                                      "boundary_conditions",
+                                      "measure_scope"
+                                    ],
+                                    "title": "FormulaSideDraft",
+                                    "type": "object"
+                                  },
+                                  "requested_checks": {
+                                    "items": {
+                                      "enum": [
+                                        "template",
+                                        "dimensions",
+                                        "canonical_transform",
+                                        "bounded_numeric"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    "maxItems": 4,
+                                    "minItems": 1,
+                                    "title": "Requested Checks",
+                                    "type": "array"
+                                  },
+                                  "right": {
+                                    "anyOf": [
+                                      {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "assumptions": {
+                                            "items": {
+                                              "type": "object"
+                                            },
+                                            "maxItems": 24,
+                                            "title": "Assumptions",
+                                            "type": "array"
+                                          },
+                                          "boundary_conditions": {
+                                            "items": {
+                                              "type": "object"
+                                            },
+                                            "maxItems": 24,
+                                            "title": "Boundary Conditions",
+                                            "type": "array"
+                                          },
+                                          "expression": {
+                                            "anyOf": [
+                                              {
+                                                "type": "object"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ],
+                                            "title": "Expression"
+                                          },
+                                          "family": {
+                                            "enum": [
+                                              "queue_flow",
+                                              "first_order_storage",
+                                              "local_recovery"
+                                            ],
+                                            "title": "Family",
+                                            "type": "string"
+                                          },
+                                          "initial_conditions": {
+                                            "items": {
+                                              "type": "object"
+                                            },
+                                            "maxItems": 1,
+                                            "title": "Initial Conditions",
+                                            "type": "array"
+                                          },
+                                          "measure_scope": {
+                                            "title": "Measure Scope",
+                                            "type": "string"
+                                          },
+                                          "original_display": {
+                                            "title": "Original Display",
+                                            "type": "string"
+                                          },
+                                          "source_refs": {
+                                            "default": [],
+                                            "items": {
+                                              "type": "object"
+                                            },
+                                            "maxItems": 20,
+                                            "title": "Source Refs",
+                                            "type": "array"
+                                          },
+                                          "symbols": {
+                                            "items": {
+                                              "type": "object"
+                                            },
+                                            "maxItems": 12,
+                                            "title": "Symbols",
+                                            "type": "array"
+                                          },
+                                          "template_id": {
+                                            "enum": [
+                                              "little",
+                                              "mm1",
+                                              "passive_decay",
+                                              "linear_stable"
+                                            ],
+                                            "title": "Template Id",
+                                            "type": "string"
+                                          },
+                                          "time_basis": {
+                                            "default": "from_symbol_units",
+                                            "enum": [
+                                              "s",
+                                              "workday",
+                                              "from_symbol_units"
+                                            ],
+                                            "title": "Time Basis",
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "family",
+                                          "template_id",
+                                          "original_display",
+                                          "expression",
+                                          "symbols",
+                                          "assumptions",
+                                          "initial_conditions",
+                                          "boundary_conditions",
+                                          "measure_scope"
+                                        ],
+                                        "title": "FormulaSideDraft",
+                                        "type": "object"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "sample_points": {
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "maxItems": 256,
+                                    "title": "Sample Points",
+                                    "type": "array"
+                                  }
+                                },
+                                "required": [
+                                  "input_origin",
+                                  "comparison_scope",
+                                  "left",
+                                  "right",
+                                  "requested_checks",
+                                  "sample_points"
+                                ],
+                                "title": "FormulaRevisionDraft",
+                                "type": "object"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "objective": {
+                            "title": "Objective",
+                            "type": "string"
+                          },
+                          "original_input": {
+                            "title": "Original Input",
+                            "type": "string"
+                          },
+                          "summary": {
+                            "title": "Summary",
+                            "type": "string"
+                          },
+                          "unknowns": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "maxItems": 12,
+                            "title": "Unknowns",
+                            "type": "array"
+                          },
+                          "variables": {
+                            "items": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "id": {
+                                  "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                  "title": "Id",
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "title": "Label",
+                                  "type": "string"
+                                },
+                                "observation": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ],
+                                  "title": "Observation"
+                                },
+                                "provenance": {
+                                  "enum": [
+                                    "user_observed",
+                                    "user_assumed",
+                                    "system_proposed"
+                                  ],
+                                  "title": "Provenance",
+                                  "type": "string"
+                                },
+                                "role": {
+                                  "enum": [
+                                    "state",
+                                    "parameter",
+                                    "input",
+                                    "constraint",
+                                    "output"
+                                  ],
+                                  "title": "Role",
+                                  "type": "string"
+                                },
+                                "unit_id": {
+                                  "anyOf": [
+                                    {
+                                      "enum": [
+                                        "one",
+                                        "count",
+                                        "s",
+                                        "workday",
+                                        "count_per_s",
+                                        "count_per_workday",
+                                        "inverse_s",
+                                        "inverse_workday",
+                                        "K",
+                                        "J_per_K",
+                                        "K_per_W",
+                                        "V",
+                                        "A",
+                                        "ohm",
+                                        "F"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ],
+                                  "title": "Unit Id"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "role",
+                                "unit_id",
+                                "observation",
+                                "provenance"
+                              ],
+                              "title": "Variable",
+                              "type": "object"
+                            },
+                            "maxItems": 12,
+                            "title": "Variables",
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "entry",
+                          "original_input",
+                          "objective",
+                          "summary",
+                          "variables",
+                          "constraints",
+                          "unknowns",
+                          "confirmed"
+                        ],
+                        "title": "ProblemInput",
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "problem"
+                    ],
+                    "title": "CreateResearchRequest",
+                    "type": "object"
+                  },
+                  "schema_version": {
+                    "const": "structure-research-v1",
+                    "enum": [
+                      "structure-research-v1"
+                    ],
+                    "title": "Schema Version",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "contract_revision",
+                  "data"
+                ],
+                "title": "CreateEnvelope",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -10486,6 +11356,217 @@
           }
         },
         "summary": "Research Task Events",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/formula-checks": {
+      "post": {
+        "operationId": "check_research_formula_api_research__research_id__formula_checks_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "contract_revision": {
+                    "const": "b1-candidate-01",
+                    "enum": [
+                      "b1-candidate-01"
+                    ],
+                    "title": "Contract Revision",
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "confirm_formula_input": {
+                        "title": "Confirm Formula Input",
+                        "type": "boolean"
+                      },
+                      "expected_research_version": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Expected Research Version",
+                        "type": "integer"
+                      },
+                      "formula_digest": {
+                        "pattern": "^[a-f0-9]{64}$",
+                        "title": "Formula Digest",
+                        "type": "string"
+                      },
+                      "input_revision": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Input Revision",
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "input_revision",
+                      "expected_research_version",
+                      "formula_digest",
+                      "confirm_formula_input"
+                    ],
+                    "title": "FormulaCheckRequest",
+                    "type": "object"
+                  },
+                  "schema_version": {
+                    "const": "structure-research-v1",
+                    "enum": [
+                      "structure-research-v1"
+                    ],
+                    "title": "Schema Version",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "contract_revision",
+                  "data"
+                ],
+                "title": "FormulaCheckEnvelope",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormulaCheckResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check Research Formula",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/formula-results/{result_ref}": {
+      "get": {
+        "operationId": "read_research_formula_result_api_research__research_id__formula_results__result_ref__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "result_ref",
+            "required": true,
+            "schema": {
+              "title": "Result Ref",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormulaResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Research Formula Result",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/formula-revisions/{revision}": {
+      "get": {
+        "operationId": "read_research_formula_revision_api_research__research_id__formula_revisions__revision__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "title": "Revision",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Research Formula Revision",
         "tags": [
           "research"
         ]
@@ -11017,6 +12098,487 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "contract_revision": {
+                    "const": "b1-candidate-01",
+                    "enum": [
+                      "b1-candidate-01"
+                    ],
+                    "title": "Contract Revision",
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "expected_revision": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Expected Revision",
+                        "type": "integer"
+                      },
+                      "problem": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "confirmed": {
+                            "title": "Confirmed",
+                            "type": "boolean"
+                          },
+                          "constraints": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "maxItems": 12,
+                            "title": "Constraints",
+                            "type": "array"
+                          },
+                          "entry": {
+                            "enum": [
+                              "phenomenon",
+                              "formula",
+                              "research"
+                            ],
+                            "title": "Entry",
+                            "type": "string"
+                          },
+                          "formula_draft": {
+                            "anyOf": [
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "comparison_scope": {
+                                    "enum": [
+                                      "expression",
+                                      "equation_form",
+                                      "initial_value_problem"
+                                    ],
+                                    "title": "Comparison Scope",
+                                    "type": "string"
+                                  },
+                                  "input_origin": {
+                                    "const": "user_provided",
+                                    "enum": [
+                                      "user_provided"
+                                    ],
+                                    "title": "Input Origin",
+                                    "type": "string"
+                                  },
+                                  "left": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "assumptions": {
+                                        "items": {
+                                          "type": "object"
+                                        },
+                                        "maxItems": 24,
+                                        "title": "Assumptions",
+                                        "type": "array"
+                                      },
+                                      "boundary_conditions": {
+                                        "items": {
+                                          "type": "object"
+                                        },
+                                        "maxItems": 24,
+                                        "title": "Boundary Conditions",
+                                        "type": "array"
+                                      },
+                                      "expression": {
+                                        "anyOf": [
+                                          {
+                                            "type": "object"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ],
+                                        "title": "Expression"
+                                      },
+                                      "family": {
+                                        "enum": [
+                                          "queue_flow",
+                                          "first_order_storage",
+                                          "local_recovery"
+                                        ],
+                                        "title": "Family",
+                                        "type": "string"
+                                      },
+                                      "initial_conditions": {
+                                        "items": {
+                                          "type": "object"
+                                        },
+                                        "maxItems": 1,
+                                        "title": "Initial Conditions",
+                                        "type": "array"
+                                      },
+                                      "measure_scope": {
+                                        "title": "Measure Scope",
+                                        "type": "string"
+                                      },
+                                      "original_display": {
+                                        "title": "Original Display",
+                                        "type": "string"
+                                      },
+                                      "source_refs": {
+                                        "default": [],
+                                        "items": {
+                                          "type": "object"
+                                        },
+                                        "maxItems": 20,
+                                        "title": "Source Refs",
+                                        "type": "array"
+                                      },
+                                      "symbols": {
+                                        "items": {
+                                          "type": "object"
+                                        },
+                                        "maxItems": 12,
+                                        "title": "Symbols",
+                                        "type": "array"
+                                      },
+                                      "template_id": {
+                                        "enum": [
+                                          "little",
+                                          "mm1",
+                                          "passive_decay",
+                                          "linear_stable"
+                                        ],
+                                        "title": "Template Id",
+                                        "type": "string"
+                                      },
+                                      "time_basis": {
+                                        "default": "from_symbol_units",
+                                        "enum": [
+                                          "s",
+                                          "workday",
+                                          "from_symbol_units"
+                                        ],
+                                        "title": "Time Basis",
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "family",
+                                      "template_id",
+                                      "original_display",
+                                      "expression",
+                                      "symbols",
+                                      "assumptions",
+                                      "initial_conditions",
+                                      "boundary_conditions",
+                                      "measure_scope"
+                                    ],
+                                    "title": "FormulaSideDraft",
+                                    "type": "object"
+                                  },
+                                  "requested_checks": {
+                                    "items": {
+                                      "enum": [
+                                        "template",
+                                        "dimensions",
+                                        "canonical_transform",
+                                        "bounded_numeric"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    "maxItems": 4,
+                                    "minItems": 1,
+                                    "title": "Requested Checks",
+                                    "type": "array"
+                                  },
+                                  "right": {
+                                    "anyOf": [
+                                      {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "assumptions": {
+                                            "items": {
+                                              "type": "object"
+                                            },
+                                            "maxItems": 24,
+                                            "title": "Assumptions",
+                                            "type": "array"
+                                          },
+                                          "boundary_conditions": {
+                                            "items": {
+                                              "type": "object"
+                                            },
+                                            "maxItems": 24,
+                                            "title": "Boundary Conditions",
+                                            "type": "array"
+                                          },
+                                          "expression": {
+                                            "anyOf": [
+                                              {
+                                                "type": "object"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ],
+                                            "title": "Expression"
+                                          },
+                                          "family": {
+                                            "enum": [
+                                              "queue_flow",
+                                              "first_order_storage",
+                                              "local_recovery"
+                                            ],
+                                            "title": "Family",
+                                            "type": "string"
+                                          },
+                                          "initial_conditions": {
+                                            "items": {
+                                              "type": "object"
+                                            },
+                                            "maxItems": 1,
+                                            "title": "Initial Conditions",
+                                            "type": "array"
+                                          },
+                                          "measure_scope": {
+                                            "title": "Measure Scope",
+                                            "type": "string"
+                                          },
+                                          "original_display": {
+                                            "title": "Original Display",
+                                            "type": "string"
+                                          },
+                                          "source_refs": {
+                                            "default": [],
+                                            "items": {
+                                              "type": "object"
+                                            },
+                                            "maxItems": 20,
+                                            "title": "Source Refs",
+                                            "type": "array"
+                                          },
+                                          "symbols": {
+                                            "items": {
+                                              "type": "object"
+                                            },
+                                            "maxItems": 12,
+                                            "title": "Symbols",
+                                            "type": "array"
+                                          },
+                                          "template_id": {
+                                            "enum": [
+                                              "little",
+                                              "mm1",
+                                              "passive_decay",
+                                              "linear_stable"
+                                            ],
+                                            "title": "Template Id",
+                                            "type": "string"
+                                          },
+                                          "time_basis": {
+                                            "default": "from_symbol_units",
+                                            "enum": [
+                                              "s",
+                                              "workday",
+                                              "from_symbol_units"
+                                            ],
+                                            "title": "Time Basis",
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "family",
+                                          "template_id",
+                                          "original_display",
+                                          "expression",
+                                          "symbols",
+                                          "assumptions",
+                                          "initial_conditions",
+                                          "boundary_conditions",
+                                          "measure_scope"
+                                        ],
+                                        "title": "FormulaSideDraft",
+                                        "type": "object"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "sample_points": {
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "maxItems": 256,
+                                    "title": "Sample Points",
+                                    "type": "array"
+                                  }
+                                },
+                                "required": [
+                                  "input_origin",
+                                  "comparison_scope",
+                                  "left",
+                                  "right",
+                                  "requested_checks",
+                                  "sample_points"
+                                ],
+                                "title": "FormulaRevisionDraft",
+                                "type": "object"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "objective": {
+                            "title": "Objective",
+                            "type": "string"
+                          },
+                          "original_input": {
+                            "title": "Original Input",
+                            "type": "string"
+                          },
+                          "summary": {
+                            "title": "Summary",
+                            "type": "string"
+                          },
+                          "unknowns": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "maxItems": 12,
+                            "title": "Unknowns",
+                            "type": "array"
+                          },
+                          "variables": {
+                            "items": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "id": {
+                                  "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                  "title": "Id",
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "title": "Label",
+                                  "type": "string"
+                                },
+                                "observation": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ],
+                                  "title": "Observation"
+                                },
+                                "provenance": {
+                                  "enum": [
+                                    "user_observed",
+                                    "user_assumed",
+                                    "system_proposed"
+                                  ],
+                                  "title": "Provenance",
+                                  "type": "string"
+                                },
+                                "role": {
+                                  "enum": [
+                                    "state",
+                                    "parameter",
+                                    "input",
+                                    "constraint",
+                                    "output"
+                                  ],
+                                  "title": "Role",
+                                  "type": "string"
+                                },
+                                "unit_id": {
+                                  "anyOf": [
+                                    {
+                                      "enum": [
+                                        "one",
+                                        "count",
+                                        "s",
+                                        "workday",
+                                        "count_per_s",
+                                        "count_per_workday",
+                                        "inverse_s",
+                                        "inverse_workday",
+                                        "K",
+                                        "J_per_K",
+                                        "K_per_W",
+                                        "V",
+                                        "A",
+                                        "ohm",
+                                        "F"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ],
+                                  "title": "Unit Id"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "role",
+                                "unit_id",
+                                "observation",
+                                "provenance"
+                              ],
+                              "title": "Variable",
+                              "type": "object"
+                            },
+                            "maxItems": 12,
+                            "title": "Variables",
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "entry",
+                          "original_input",
+                          "objective",
+                          "summary",
+                          "variables",
+                          "constraints",
+                          "unknowns",
+                          "confirmed"
+                        ],
+                        "title": "ProblemInput",
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "expected_revision",
+                      "problem"
+                    ],
+                    "title": "RevisionRequest",
+                    "type": "object"
+                  },
+                  "schema_version": {
+                    "const": "structure-research-v1",
+                    "enum": [
+                      "structure-research-v1"
+                    ],
+                    "title": "Schema Version",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "contract_revision",
+                  "data"
+                ],
+                "title": "RevisionEnvelope",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {

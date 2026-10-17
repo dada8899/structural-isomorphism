@@ -107,7 +107,7 @@ def _write(conn,store,lease,table,operation,validate,*,_factory=None):
 
 class FormulaMaintenance:
     """Actual exclusive SQLite owner, pinned files and verified in-memory backup."""
-    __slots__=('store','conn','backup','identity','lockfd','parentfd','parent_identity','pid','active','journal','reference')
+    __slots__=('store','conn','backup','identity','lockfd','parentfd','parent_identity','pid','active','journal','reference','source_version')
     def __init__(self,*,_factory=None,**values):
         if _factory is not _FACTORY:raise TypeError('offline maintenance context required')
         for k,v in values.items():object.__setattr__(self,k,v)
@@ -117,6 +117,7 @@ class FormulaMaintenance:
         if not self.active or self.pid!=os.getpid() or self.store is not store or _MAINTENANCE.get(self.reference) is not self:
             raise PermissionError('actual maintenance capability required')
         _check_database_path(store.path,self.parentfd,self.parent_identity,self.identity)
+        if type(store) is _OfflineFormulaTarget:store.witness.check()
         database=next((row[2] for row in self.conn.execute('PRAGMA database_list') if row[1]=='main'),None)
         if not database or Path(database)!=store.path:raise PermissionError('native database binding changed')
         info=os.fstat(self.lockfd)
@@ -130,7 +131,7 @@ class FormulaMaintenance:
         self.conn.rollback()
         self.backup.backup(self.conn)
         self.conn.execute('PRAGMA foreign_keys=ON');self.conn.execute('BEGIN EXCLUSIVE')
-        self.store._check_structure_version(self.conn,9);self.store._check_v9(self.conn)
+        _check_profile(self.conn,self.store,(self.source_version,))
         if self.conn.execute('PRAGMA foreign_key_check').fetchall():raise PermissionError('restoration FK failure')
         self.conn.commit();self.require(self.store)
 
@@ -141,14 +142,14 @@ def _safe_file(info):
 
 
 @contextmanager
-def formula_maintenance(store):
+def _maintenance_target(store,*,versions=(9,),final_journal=None):
     """Fails boundedly if a live reader/writer prevents exclusive maintenance.
 
     No boolean attests that services stopped. DELETE journal + EXCLUSIVE mode
     obtains SQLite's actual exclusive lock and retains it through migration.
     """
     from .store import ResearchStore
-    if type(store) is not ResearchStore:raise PermissionError('canonical store required')
+    if type(store) not in (ResearchStore,_OfflineFormulaTarget):raise PermissionError('canonical maintenance target required')
     lockfd=parentfd=None;conn=backup=None;cap=None;old_journal=None
     try:
         # Never open/dup/close an ordinary DB FD: POSIX close would release
@@ -164,8 +165,7 @@ def formula_maintenance(store):
             ro.row_factory=sqlite3.Row
             from .financial_guard import install_default_hook
             install_default_hook(ro);ro.execute('PRAGMA foreign_keys=ON');ro.execute('BEGIN')
-            store.auth_store.check_gate_policy(ro)
-            store._check_structure_version(ro,9);store._check_v9(ro);ro.rollback()
+            source_version=_check_profile(ro,store,versions);ro.rollback()
             _check_database_path(store.path,parentfd,parent_identity,identity)
         finally:ro.close()
         lockfd=os.open(str(store.path)+'.formula-maintenance',os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
@@ -179,7 +179,7 @@ def formula_maintenance(store):
         _check_database_path(store.path,parentfd,parent_identity,identity)
         if conn.execute('PRAGMA journal_mode=DELETE').fetchone()[0]!='delete':raise PermissionError('exclusive journal unavailable')
         if conn.execute('PRAGMA locking_mode=EXCLUSIVE').fetchone()[0]!='exclusive':raise PermissionError('exclusive mode unavailable')
-        conn.execute('BEGIN EXCLUSIVE');store.auth_store.check_gate_policy(conn);store._check_structure_version(conn,9);store._check_v9(conn);conn.commit()
+        conn.execute('BEGIN EXCLUSIVE');_check_profile(conn,store,(source_version,));conn.commit()
         backup=sqlite3.connect(':memory:',isolation_level=None);conn.backup(backup)
         restored=sqlite3.connect(':memory:',isolation_level=None)
         try:
@@ -188,7 +188,7 @@ def formula_maintenance(store):
                 raise PermissionError('backup restore proof failed')
         finally:restored.close()
         ref=str(uuid4());cap=FormulaMaintenance(_factory=_FACTORY,store=store,conn=conn,backup=backup,identity=identity,
-            lockfd=lockfd,parentfd=parentfd,parent_identity=parent_identity,pid=os.getpid(),active=True,journal=old_journal,reference=ref)
+            lockfd=lockfd,parentfd=parentfd,parent_identity=parent_identity,pid=os.getpid(),active=True,journal=old_journal,reference=ref,source_version=source_version)
         _MAINTENANCE[ref]=cap;cap.require(store)
         yield cap
     finally:
@@ -203,7 +203,7 @@ def formula_maintenance(store):
                     lambda:conn.execute('PRAGMA foreign_keys=ON'),
                     lambda:_require_fk_on(conn),
                     lambda:conn.execute('PRAGMA locking_mode=NORMAL'),
-                    lambda:conn.execute('PRAGMA journal_mode='+old_journal) if old_journal in ('wal','delete') else None,
+                    lambda:conn.execute('PRAGMA journal_mode='+(final_journal or old_journal)) if (final_journal or old_journal) in ('wal','delete') else None,
                     conn.close):
                 try:cleanup()
                 except BaseException as error:errors.append(error)
@@ -236,8 +236,7 @@ def migrate_v10(store,*,maintenance):
         conn.execute('PRAGMA foreign_keys=OFF')
         if conn.execute('PRAGMA foreign_keys').fetchone()[0]!=0:raise PermissionError('FK disable failed')
         conn.execute('BEGIN EXCLUSIVE');maintenance.require(store)
-        store.auth_store.check_gate_policy(conn)
-        store._check_structure_version(conn,9);store._check_v9(conn)
+        _check_profile(conn,store,(9,))
         overlays=store._formula_tables();objects=store._current_structure_declarations(version=9)
         extras=[forms[0] for kind,target,forms in objects.values() if target in overlays and kind!='table']
         for name,ddl in overlays.items():
@@ -270,5 +269,89 @@ def erase_for_deletion(conn,*,store,lease,pid,job_id):
             raise PermissionError('actual deleting principal required')
     with _write(conn,store,lease,'research_formula_runs','UPDATE',validate,_factory=_FACTORY):
         conn.execute("UPDATE research_formula_runs SET state='closed',admission_json=NULL,receipt_json=NULL,result_json=NULL,commit_json=NULL WHERE state!='closed' AND task_id IN (SELECT id FROM research_tasks WHERE principal_id=?)",(pid,))
-    with _write(conn,store,lease,'research_formula_revisions','UPDATE',validate,_factory=_FACTORY):
-        conn.execute('UPDATE research_formula_revisions SET formula_json=NULL WHERE formula_json IS NOT NULL AND research_id IN (SELECT id FROM research_controls WHERE owner_id=?)',(pid,))
+    with _write(conn,store,lease,'research_formula_revisions','DELETE',validate,_factory=_FACTORY):
+        conn.execute('DELETE FROM research_formula_revisions WHERE research_id IN (SELECT id FROM research_controls WHERE owner_id=?)',(pid,))
+
+
+class _OfflineFormulaTarget:
+    """Only an actual canonical file witness; never a runtime store instance."""
+    __slots__=('path','witness')
+    def __init__(self,witness,*,_factory=None):
+        if _factory is not _FACTORY:raise TypeError('actual canonical private file required')
+        self.path,self.witness=witness.path,witness
+    def __getattr__(self,name):
+        # Fixed static code declarations/checkers, no runtime constructor or
+        # dynamic storage/configuration methods are delegated.
+        if name not in {'_check_structure_version','_check_v9','_check_v10','_formula_tables','_current_structure_declarations'}:
+            raise AttributeError(name)
+        from .store import ResearchStore
+        return getattr(ResearchStore,name)
+
+
+def _check_profile(conn,target,versions):
+    from .store import ResearchStore
+    if __package__=='web.backend.research':from ..services.auth_store import AuthStore,_auth_metadata,_auth_final_contracts
+    else:from services.auth_store import AuthStore,_auth_metadata,_auth_final_contracts
+    allowed=_auth_final_contracts()
+    if _auth_metadata(conn,allowed=allowed) not in allowed:raise PermissionError('complete static Auth metadata required')
+    AuthStore.check_gate_policy(conn)
+    marker=[tuple(row) for row in conn.execute('SELECT id,version FROM research_schema')]
+    if len(marker)!=1 or marker[0][0]!=1 or type(marker[0][1]) is not int or marker[0][1] not in versions:
+        raise PermissionError('exact offline research version required')
+    version=marker[0][1]
+    ResearchStore._check_structure_version(conn,version)
+    if version==9:ResearchStore._check_v9(conn)
+    elif version==10:ResearchStore._check_v10(conn)
+    else:raise PermissionError('offline profile unsupported')
+    return version
+
+
+@contextmanager
+def formula_maintenance(store):
+    """Development/previously bound store port; never an automatic migration."""
+    from .store import ResearchStore
+    if type(store) is not ResearchStore:raise PermissionError('canonical store required')
+    with _maintenance_target(store) as capability:yield capability
+
+
+@contextmanager
+def _offline_maintenance(path,versions):
+    if __package__=='web.backend.research':from ..services.runtime_paths import PrivateAuthFile,private_auth_path
+    else:from services.runtime_paths import PrivateAuthFile,private_auth_path
+    # This entry does not consume an environment boolean, HTTP request, owner
+    # DTO, or a fabricated current store. Only the code-owned static path wins.
+    if type(path) is not type(Path()) or path!=private_auth_path():raise PermissionError('approved canonical Auth path required')
+    witness=PrivateAuthFile.acquire(path)
+    try:
+        target=_OfflineFormulaTarget(witness,_factory=_FACTORY)
+        with _maintenance_target(target,versions=versions,final_journal='wal') as capability:
+            witness.check();yield target,capability
+    finally:witness.close()
+
+
+def provision_formula_v10(path):
+    """Explicit offline provisioning after Ops independently secures a backup.
+
+    The in-memory algorithm backup is not a durable production recovery copy.
+    Never used by normal Auth/Research constructors or any HTTP route.
+    """
+    with _offline_maintenance(path,(9,)) as (target,capability):
+        migrate_v10(target,maintenance=capability)
+        capability.require(target)
+        capability.conn.execute('BEGIN')
+        try:_check_profile(capability.conn,target,(10,))
+        finally:capability.conn.rollback()
+        identity=capability.identity
+    return {'schema_version':10,'journal_mode':'wal','database_identity':list(identity),
+        'backup_scope':'in_memory_algorithm_recovery_only'}
+
+
+def recover_formula_journal(path):
+    """Reconcile a killed maintenance process; no schema repair or replay."""
+    with _offline_maintenance(path,(9,10)) as (target,capability):
+        capability.conn.execute('BEGIN')
+        try:version=_check_profile(capability.conn,target,(9,10))
+        finally:capability.conn.rollback()
+        identity=capability.identity
+    return {'schema_version':version,'journal_mode':'wal','database_identity':list(identity),
+        'current_app_compatible':version==10,'schema_repaired':False}

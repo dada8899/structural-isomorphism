@@ -1,4 +1,5 @@
 """Actual V9/V10 SQLite, HTTP and local-child boundaries; no network/model."""
+from contextlib import closing
 import os
 import sqlite3
 from pathlib import Path
@@ -60,7 +61,7 @@ def test_maintenance_verified_backup_restores_same_database_inode(v9):
 @pytest.mark.parametrize('change',['missing','unknown','half'])
 def test_v9_preflight_rejects_damaged_graph_before_mutation(v9,change):
     _,path,_,store=v9
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         if change=='missing':conn.execute('DROP TRIGGER research_method_no_replace')
         elif change=='unknown':conn.execute('CREATE INDEX unknown_formula_idx ON research_tasks(phase)')
         else:conn.execute('CREATE TABLE research_formula_revisions (id TEXT)')
@@ -113,7 +114,7 @@ def test_v10_default_deny_and_replacement_with_recursive_triggers_off(v9):
         for sql in ("INSERT INTO research_formula_revisions VALUES('forged',1,'{}','"+'a'*64+"')",
                 "UPDATE research_formula_runs SET result_json='{}'",'DELETE FROM research_formula_runs'):
             with pytest.raises(sqlite3.DatabaseError):conn.execute(sql)
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         with pytest.raises(sqlite3.DatabaseError):conn.execute("INSERT INTO research_formula_revisions VALUES('forged',1,'{}','"+'a'*64+"')")
 
 
@@ -190,7 +191,7 @@ def test_v10_retains_exact_method_hook_check(v9):
 
 def test_bad_auth_policy_refuses_maintenance_before_any_mutation(v9):
     _,path,_,store=v9
-    with sqlite3.connect(path) as conn:conn.execute('UPDATE auth_owner_gate_policy SET fingerprint=?',('0'*64,))
+    with closing(sqlite3.connect(path)) as conn, conn:conn.execute('UPDATE auth_owner_gate_policy SET fingerprint=?',('0'*64,))
     before=snapshot(path)
     with pytest.raises(RuntimeError,match='configuration mismatch'):
         with formula_maintenance(store):pass
@@ -230,3 +231,129 @@ def test_native_maintenance_open_does_not_recreate_disappearing_path(v9,monkeypa
     with pytest.raises((PermissionError,sqlite3.OperationalError)):
         with formula_maintenance(store):pass
     assert hit and not path.exists()
+
+
+def _configure_private_root(path,patch=None):
+    import importlib
+    path=Path(path).resolve();state=path.parent
+    state.chmod(0o700);path.chmod(0o600)
+    cache=state.parent/'private-cache';logs=state/'logs'
+    for folder in (cache,logs):folder.mkdir(mode=0o700,exist_ok=True)
+    for namespace in ('services.runtime_paths','web.backend.services.runtime_paths'):
+        module=importlib.import_module(namespace)
+        if patch is None:module.STATE_ROOT=state;module.CACHE_ROOT=cache;module.LOG_ROOT=logs
+        else:
+            for name,value in (('STATE_ROOT',state),('CACHE_ROOT',cache),('LOG_ROOT',logs)):patch.setattr(module,name,value)
+    if patch is None:os.environ['AUTH_DATA_DIR']=str(state);os.environ['STRUCTURAL_ENV']='prod'
+    else:patch.setenv('AUTH_DATA_DIR',str(state));patch.setenv('STRUCTURAL_ENV','prod')
+    return path
+
+
+def test_explicit_offline_provisioning_then_actual_formal_construct_write_and_reopen(v9,monkeypatch):
+    client,path,rid,store=v9
+    from research.formula_runtime import provision_formula_v10,recover_formula_journal
+    from services.auth_store import AuthStore
+    old=dict(os.environ)
+    try:
+        path=_configure_private_root(path,monkeypatch)
+        with pytest.raises((ResearchError,RuntimeError)):AuthStore(path)
+        result=provision_formula_v10(path)
+        assert result['schema_version']==10 and result['backup_scope']=='in_memory_algorithm_recovery_only'
+        real=ResearchStore(AuthStore(path))
+        with real.transaction(write=True) as conn:
+            assert conn.execute('SELECT count(*) FROM research_controls WHERE id=?',(rid,)).fetchone()[0]==1
+            conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('after-provision@example.invalid','free','synthetic','g')")
+        reopened=ResearchStore(AuthStore(path))
+        with reopened.transaction() as conn:
+            assert conn.execute("SELECT 1 FROM auth_users WHERE email='after-provision@example.invalid'").fetchone()
+            assert conn.execute('PRAGMA journal_mode').fetchone()[0]=='wal'
+    finally:
+        os.environ.clear();os.environ.update(old)
+
+
+def _formula_migration_kill(path,cut):
+    path=_configure_private_root(Path(path))
+    from research.formula_runtime import provision_formula_v10
+    native=sqlite3.connect
+    targets={'journal':'PRAGMA journal_mode=DELETE','create':'CREATE TABLE research_tasks_v10',
+        'drop':'DROP TABLE research_tasks','marker':'UPDATE research_schema SET version=10'}
+    class Crash(sqlite3.Connection):
+        def execute(self,sql,*args,**kwargs):
+            value=super().execute(sql,*args,**kwargs)
+            if cut in targets and sql.startswith(targets[cut]):os._exit(81)
+            return value
+        def commit(self):
+            try:version=super().execute('SELECT version FROM research_schema').fetchone()[0]
+            except sqlite3.Error:version=None
+            if version==10 and cut=='before-commit':os._exit(81)
+            value=super().commit()
+            if version==10 and cut=='after-commit':os._exit(82)
+            return value
+    sqlite3.connect=lambda *a,**k:native(*a,**k) if 'factory' in k else native(*a,factory=Crash,**k)
+    provision_formula_v10(path)
+    raise AssertionError('owned kill point was not reached')
+
+
+@pytest.mark.parametrize('cut',['journal','create','drop','marker','before-commit','after-commit'])
+def test_real_process_death_recovers_only_complete_profile_and_wal(v9,cut,monkeypatch):
+    _,path,rid,store=v9
+    import multiprocessing
+    from web.backend.tests.test_research_formula_delivery import _formula_migration_kill as target
+    old=dict(os.environ);inode=path.stat().st_ino
+    context=multiprocessing.get_context('spawn');child=context.Process(target=target,args=(str(path),cut))
+    try:
+        child.start();child.join(10);assert not child.is_alive() and child.exitcode==(82 if cut=='after-commit' else 81)
+        path=_configure_private_root(path,monkeypatch)
+        from research.formula_runtime import recover_formula_journal,provision_formula_v10
+        from services.auth_store import AuthStore
+        recovered=recover_formula_journal(path)
+        assert recovered['schema_version']==(10 if cut=='after-commit' else 9)
+        assert recovered['current_app_compatible']==(cut=='after-commit')
+        assert path.stat().st_ino==inode
+        if cut!='after-commit':
+            with pytest.raises((ResearchError,RuntimeError)):AuthStore(path)
+            provision_formula_v10(path)
+        current=ResearchStore(AuthStore(path))
+        with current.transaction() as conn:
+            current._check_v10(conn)
+            assert conn.execute('PRAGMA journal_mode').fetchone()[0]=='wal'
+            assert conn.execute('SELECT 1 FROM research_controls WHERE id=?',(rid,)).fetchone()
+    finally:
+        if child.is_alive():child.terminate();child.join(2)
+        child.close();os.environ.clear();os.environ.update(old)
+
+
+def test_populated_v9_tasks_events_source_and_legacy_method_financial_refs_survive_exactly(v9,monkeypatch):
+    client,path,rid,store=v9
+    from research import BudgetLedger,ResearchRunner
+    from research.formula_schemas import digest,canonical
+    from .test_research_formula_lifecycle import _seed_source
+    from uuid import uuid4
+    monkeypatch.setenv('STRUCTURAL_C0_ENABLED','true')
+    revised=problem();revised['confirmed']=True
+    response=post(client,f'/api/research/{rid}/revisions',{'expected_revision':1,'problem':revised})
+    assert response.status_code==200,response.text
+    BudgetLedger(store).provision_fixture(1,ttl_seconds=600) # Stored dummy port; never opens transport.
+    response=post(client,f'/api/research/{rid}/tasks',{'input_revision':2,'expected_research_version':2,'mode':'research'})
+    assert response.status_code==200,response.text
+    task=response.json()['data']['task']['id'];ResearchRunner(store).prepare(task)
+    _seed_source(path,rid)
+    with store.transaction(write=True) as conn:
+        pid=conn.execute('SELECT owner_id FROM research_controls WHERE id=?',(rid,)).fetchone()[0]
+        account=conn.execute('SELECT id FROM research_funding_accounts').fetchone()[0]
+        permit=conn.execute('SELECT * FROM research_dispatch_permits').fetchone();approval=str(uuid4());session=str(uuid4())
+        conn.execute("""INSERT INTO research_paid_approvals(id,principal_id,research_id,payload_json,payload_digest,state,mode,policy_revision,funding_source_ref,account_id,task_id,dispatch_id,expires_at,created_at)
+            VALUES(?,?,?,'{}',?,'draft','offline_probe','bounded_usage_upper_v2','synthetic-old-reference',?,?,?,2000000000,'2026-10-17T00:00:00Z')""",(approval,pid,rid,'a'*64,account,task,permit['dispatch_id']))
+        # Genuine legacy_unproved metadata. No fresh body/receipt or execution
+        # attestation is forged to populate a migration test.
+        conn.execute("INSERT INTO research_provider_sessions(id,approval_id,dispatch_id,permit_id,mode,binding_digest,state) VALUES(?,?,?,?,'offline_probe',?,'created')",(session,approval,permit['dispatch_id'],permit['id'],'b'*64))
+    before=snapshot(path)
+    for table in ('research_tasks','research_steps','research_task_events','research_evidence_objects','research_funding_accounts','research_reservations','research_dispatch_permits','research_paid_approvals','research_provider_sessions'):
+        assert before[1][table][1],table
+    with formula_maintenance(store) as capability:store.migrate_formula_v10(maintenance=capability)
+    after=snapshot(path)
+    for table,(columns,values) in before[1].items():
+        if table!='research_schema':assert after[1][table]==(columns,values),table
+    response=client.get(f'/api/research/{rid}')
+    assert response.status_code==200,response.text
+    assert response.json()['data']['task']['id']==task

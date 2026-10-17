@@ -153,13 +153,23 @@ def _worker(send, shared, payload, operation):
             except MemoryError:
                 send.send_bytes(b"memory_limited")
             return
-        if operation != "calculate":
+        if operation not in {"calculate", "owned_calculate"}:
             send.send_bytes(b"failed")
             return
-        request = FormulaCheckInput.parse(json.loads(payload))
+        decoded=json.loads(payload)
+        owned=operation=='owned_calculate'
+        if owned:
+            if set(decoded)!={'request','claim_nonce','code_version'} or decoded['code_version']!=execution_code_version():
+                send.send_bytes(b'failed');return
+            request=FormulaCheckInput.parse(decoded['request'])
+        else:request=FormulaCheckInput.parse(decoded)
         result = evaluate_fixed_templates(request)
         result = replace(result, resource_guard="linux_as_baseline_plus_128mib_cpu1s_wall2s")
-        encoded = canonical(result.data()).encode()
+        output=result.data()
+        if owned:output={'result':output,'child_pid':os.getpid(),'claim_nonce':decoded['claim_nonce'],
+            'input_digest':request.input_digest,'code_version':execution_code_version(),'policy_revision':POLICY,
+            'resource_guard':result.resource_guard}
+        encoded = canonical(output).encode()
         if len(encoded) > RESULT_CAP:
             send.send_bytes(b"limited")
             return
@@ -174,7 +184,7 @@ def _worker(send, shared, payload, operation):
         send.close()
 
 
-def _launch(payload, still_authorized, operation="calculate", wall=WALL_SECONDS):
+def _launch(payload, still_authorized, operation="calculate", wall=WALL_SECONDS, *, _owned=None):
     ctx = multiprocessing.get_context("spawn")
     receive, send = ctx.Pipe(duplex=False)
     shared = ctx.RawArray("B", RESULT_CAP)
@@ -183,6 +193,7 @@ def _launch(payload, still_authorized, operation="calculate", wall=WALL_SECONDS)
     try:
         if still_authorized() is not True: return "revoked", None
         process.start()
+        if _owned is not None:_owned.child_pid=process.pid
         send.close()
         while True:
             if still_authorized() is not True: return "revoked", None
@@ -207,6 +218,9 @@ def _launch(payload, still_authorized, operation="calculate", wall=WALL_SECONDS)
             process.join(timeout=0.25)
             if process.is_alive():
                 process.kill(); process.join(timeout=0.25)
+            if _owned is not None:
+                _owned.reaped=not process.is_alive()
+                _owned.exitcode=process.exitcode
             process.close()
 
 
@@ -240,3 +254,82 @@ def _guard_probe(operation, *, wall=WALL_SECONDS):
     if operation not in {"probe_cpu", "probe_wall", "probe_memory"}:
         raise FormulaInputError("unknown fixed probe")
     return _launch(b"", lambda: True, operation, wall)[0]
+
+
+# Owned-return capability is separate from mathematical content. The existing
+# pure evaluator, public adapter, limits and tolerances are unchanged.
+_OWNED_FACTORY=object()
+_OWNED_RETURNS={}
+
+
+class OwnedFormulaReturn:
+    __slots__=('reference','creator','authority','child_pid','reaped','exitcode','state','payload','receipt','active')
+    def __init__(self,*,_factory=None,**values):
+        if _factory is not _OWNED_FACTORY:raise TypeError('actual owned formula return required')
+        for k,v in values.items():object.__setattr__(self,k,v)
+    def __setattr__(self,*args):raise TypeError('owned formula return immutable')
+    def __reduce__(self):raise TypeError('owned formula return cannot be serialized')
+    def require(self,authority):
+        if (not self.active or self.creator!=os.getpid() or self.authority is not authority
+                or _OWNED_RETURNS.get(self.reference) is not self or not self.reaped):
+            raise PermissionError('actual reaped formula return required')
+        authority.require_identity()
+        if digest(json.loads(self.payload))!=self.receipt['result_digest']:
+            raise PermissionError('owned return bytes changed')
+        return json.loads(self.payload),dict(self.receipt)
+    def close(self):
+        object.__setattr__(self,'active',False);_OWNED_RETURNS.pop(self.reference,None)
+
+
+class _OwnedCapture:
+    child_pid=None
+    reaped=False
+    exitcode=None
+
+
+def owned_check(data,*,authority):
+    from .formula_result import CurrentFormulaExecution
+    if type(authority) is not CurrentFormulaExecution:raise PermissionError('actual formula claim required')
+    authority.require_identity()
+    request=FormulaCheckInput.parse(data)
+    payload=canonical(request.data()).encode()
+    if len(payload)>65536:raise FormulaLimit('request body limit')
+    if request.input_digest!=authority.input_digest:raise PermissionError('claim input mismatch')
+    capture=_OwnedCapture()
+    owned_payload=canonical({'request':request.data(),'claim_nonce':authority.nonce,'code_version':authority.code_version}).encode()
+    state,encoded=_launch(owned_payload,authority.current,operation='owned_calculate',_owned=capture)
+    if capture.child_pid is None or not capture.reaped:raise PermissionError('worker was not owned and reaped')
+    if state=='revoked':raise PermissionError('formula authorization ended before owned return')
+    if state=='ok':
+        envelope=json.loads(encoded)
+        if (type(envelope) is not dict or set(envelope)!={'result','child_pid','claim_nonce','input_digest','code_version','policy_revision','resource_guard'}
+                or envelope['child_pid']!=capture.child_pid or envelope['claim_nonce']!=authority.nonce
+                or envelope['input_digest']!=request.input_digest or envelope['code_version']!=authority.code_version
+                or envelope['policy_revision']!=POLICY or envelope['resource_guard']!='linux_as_baseline_plus_128mib_cpu1s_wall2s'):
+            raise PermissionError('actual owned child return required')
+        raw=envelope['result']
+        if raw.get('input_digest')!=request.input_digest or raw.get('output_digest')!=digest({k:v for k,v in raw.items() if k!='output_digest'}):
+            raise PermissionError('owned worker binding mismatch')
+    else:
+        status='unsupported' if state=='unsupported' else 'resource_limit' if state in {'limited','memory_limited'} else 'failed'
+        reason='memory_guard_unavailable' if state=='unsupported' else 'access_ended' if state=='revoked' else 'worker_stopped_or_resource_limit'
+        raw=_uniform(request,status,reason,'not_executed' if state=='unsupported' else 'isolated_execution_not_completed').data()
+    from uuid import uuid4
+    reference=str(uuid4())
+    receipt={'reference':reference,'child_pid':capture.child_pid,'claim_nonce':authority.nonce,'input_digest':request.input_digest,
+        'policy_revision':POLICY,'code_version':authority.code_version,
+        'resource_guard':raw['resource_guard'],'return_state':state,'return_bytes_digest':__import__('hashlib').sha256(encoded or b'').hexdigest(),
+        'return_bytes':len(encoded or b''),'result_digest':digest(raw),'reaped':capture.reaped,'exitcode':capture.exitcode}
+    value=OwnedFormulaReturn(_factory=_OWNED_FACTORY,reference=reference,creator=os.getpid(),authority=authority,
+        child_pid=capture.child_pid,reaped=capture.reaped,exitcode=capture.exitcode,state=state,payload=canonical(raw),receipt=receipt,active=True)
+    _OWNED_RETURNS[reference]=value
+    return value
+
+
+def execution_code_version():
+    import hashlib
+    base=Path(__file__).parent
+    value=hashlib.sha256()
+    for name in ('formula_check.py','formula_policy.py','formula_schemas.py'):
+        value.update(name.encode());value.update((base/name).read_bytes())
+    return value.hexdigest()
