@@ -9,12 +9,16 @@ The Python controller and mail sink are in-process only, never HTTP endpoints.
 """
 from __future__ import annotations
 import argparse
-from contextlib import AbstractContextManager
+import asyncio
+from contextlib import AbstractContextManager,asynccontextmanager
 from http.cookiejar import CookieJar
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 import http.client
 import json
+import mimetypes
 import os
+import re
+import stat
 from pathlib import Path
 import secrets
 import signal
@@ -34,6 +38,9 @@ ROOT=Path(__file__).resolve().parents[4]
 for source in (ROOT,ROOT/'web/backend'):
     if str(source) not in sys.path:sys.path.insert(0,str(source))
 ORIGIN='https://beta.structural.bytedance.city'
+HOST='beta.structural.bytedance.city'
+BRIDGE_LIMIT=524288
+BRIDGE_WALL=5.0
 OWNER='registered@example.invalid'
 OBSERVATION='我发现团队的到达任务变得集中时，等待时间明显增加。'
 CANDIDATE={'summary':'A controlled fixture plan from a self observation.','candidates':[{'label':'Queue variability','mechanism_hypothesis':'Variable arrivals may accumulate work.','why_considered':'The observation concerns waiting.','method_leads':['queueing model'],'key_unknowns':['Arrival variation is unknown.']}],'query_suggestions':[{'candidate_index':0,'query':'queue variability waiting','intent':'Choose a possible comparison later.'}],'gaps':['No literature or mathematics has been checked.'],'clarification_questions':[]}
@@ -59,15 +66,175 @@ class _OwnedHTTPSHandler(urllib.request.HTTPSHandler):
         self.port=port
         self.context=ssl.create_default_context(cafile=str(certificate))
         super().__init__(context=self.context)
-    def https_open(self,request):
-        if urlsplit(request.full_url).netloc!='beta.structural.bytedance.city':raise PermissionError('fixture canonical origin only')
+    def connection_type(self):
         port=self.port;context=self.context
         class Connection(http.client.HTTPSConnection):
             def connect(self):
                 raw=socket.create_connection(('127.0.0.1',port),self.timeout)
-                try:self.sock=context.wrap_socket(raw,server_hostname='beta.structural.bytedance.city')
+                try:self.sock=context.wrap_socket(raw,server_hostname=HOST)
                 except BaseException:raw.close();raise
-        return self.do_open(Connection,request,context=self.context)
+        return Connection
+    def connection(self,timeout):
+        return self.connection_type()(HOST,timeout=timeout,context=self.context)
+    def https_open(self,request):
+        parsed=urlsplit(request.full_url)
+        if parsed.scheme!='https' or parsed.netloc!=HOST:raise PermissionError('fixture canonical origin only')
+        return self.do_open(self.connection_type(),request,context=self.context)
+
+
+def _read_public_file(relative):
+    """Read only the fixed repo frontend, with no symlink traversal or listing."""
+    parts=relative.split('/')
+    if not parts or any(not part or part in ('.','..') or part.startswith('.') or '\\' in part or '\x00' in part for part in parts):raise FileNotFoundError('unknown public file')
+    descriptors=[]
+    try:
+        parent=os.open(ROOT,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC);descriptors.append(parent)
+        for part in ('web','frontend',*parts[:-1]):
+            parent=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=parent);descriptors.append(parent)
+        fd=os.open(parts[-1],os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC,dir_fd=parent);descriptors.append(fd)
+        info=os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_size>BRIDGE_LIMIT:raise FileNotFoundError('unavailable public file')
+        chunks=[];size=0
+        while chunk:=os.read(fd,min(65536,BRIDGE_LIMIT+1-size)):
+            chunks.append(chunk);size+=len(chunk)
+            if size>BRIDGE_LIMIT:raise FileNotFoundError('public file exceeded bound')
+        return b''.join(chunks)
+    finally:
+        for fd in reversed(descriptors):os.close(fd)
+
+
+def _mount_public_pages(app):
+    from fastapi import Request
+    from fastapi.responses import Response
+    async def public(request:Request):
+        path=request.url.path
+        fixed={'/research':'research.html','/auth/login':'auth-login.html','/auth/verify':'auth-verify.html'}
+        relative=fixed.get(path)
+        if re.fullmatch(r'/research/[a-zA-Z0-9_-]{1,100}',path):relative='research.html'
+        if path.startswith('/assets/'):relative=path[1:]
+        if relative is None:return Response(status_code=404)
+        try:body=_read_public_file(relative)
+        except (OSError,ValueError):return Response(status_code=404)
+        kind=mimetypes.guess_type(relative)[0] or 'application/octet-stream'
+        return Response(body if request.method!='HEAD' else b'',media_type=kind,headers={'Content-Length':str(len(body)),'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'})
+    for path in ('/research','/research/{rid}','/auth/login','/auth/verify','/assets/{asset_path:path}'):
+        app.add_route(path,public,methods=['GET','HEAD'])
+
+
+class BridgeResponse:
+    __slots__=('status','headers','body')
+    def __init__(self,status,headers,body):self.status,self.headers,self.body=status,tuple(headers),body
+    def __repr__(self):return '<BridgeResponse status='+str(self.status)+' body_bytes='+str(len(self.body))+'>'
+
+
+class CanonicalBrowserBridge(AbstractContextManager):
+    """Trusted harness transport only; no CookieJar and no installed identity.
+
+    forward preserves status/raw body/header pairs and never follows redirects.
+    async with bridge.routed(context) owns temporary Playwright interception;
+    the harness owns and closes its dedicated browser context (left offline on
+    route exit). Secure-cookie behavior in
+    that browser is separate evidence from this verified upstream TLS hop.
+    """
+    def __init__(self,service):
+        self.service=service;self.handler=_OwnedHTTPSHandler(service.port,service.certificate)
+        self.active=True;self.pending={};self.condition=threading.Condition()
+        info=os.fstat(service.app_socket.fileno());self.socket_identity=(info.st_dev,info.st_ino)
+    def _shutdown(self,connection):
+        sock=connection.sock
+        if sock is not None:
+            try:sock.shutdown(socket.SHUT_RDWR)
+            except OSError:pass
+    def forward(self,method,url,headers,body=None):
+        if type(url) is not str or len(url)>8192:raise ValueError('bounded canonical URL required')
+        parsed=urlsplit(url)
+        if parsed.scheme!='https' or parsed.netloc!=HOST or parsed.fragment or not parsed.path.startswith('/'):raise PermissionError('canonical fixture origin required')
+        if method not in ('GET','HEAD','POST') or body is not None and type(body) is not bytes:raise ValueError('bounded browser method/body required')
+        if body is not None and len(body)>BRIDGE_LIMIT:raise ValueError('browser request exceeds bound')
+        pairs=list(headers.items()) if isinstance(headers,dict) else list(headers)
+        if len(pairs)>64:raise ValueError('browser headers exceed bound')
+        length=0;names=[]
+        for name,value in pairs:
+            if type(name) is not str or type(value) is not str or len(name)>128 or len(value)>8192 or not re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+",name) or '\r' in value or '\n' in value:raise ValueError('invalid browser header')
+            length+=len(name)+len(value);names.append(name.lower())
+            if name.lower()=='host' and value!=HOST:raise PermissionError('canonical Host required')
+            if name.lower() in ('transfer-encoding','upgrade'):raise ValueError('browser tunneling unsupported')
+            if name.lower()=='content-length' and value!=str(len(body or b'')):raise ValueError('browser Content-Length differs')
+        if length>65536 or names.count('host')>1 or names.count('cookie')>1 or names.count('content-length')>1:raise ValueError('browser headers exceed bound')
+        deadline=time.monotonic()+BRIDGE_WALL;connection=self.handler.connection(BRIDGE_WALL);response=None
+        timer=threading.Timer(BRIDGE_WALL,self._shutdown,args=(connection,));timer.name='controlled-plan-bridge-deadline';timer.daemon=True
+        with self.condition:
+            if not self.active or self.service.stop.is_set() or not self.service.server_thread.is_alive():raise PermissionError('fixture bridge retired')
+            info=os.fstat(self.service.app_socket.fileno())
+            if (info.st_dev,info.st_ino)!=self.socket_identity or self.service.app_socket.getsockname()!=('127.0.0.1',self.handler.port):raise PermissionError('owned fixture TLS socket differs')
+            self.pending[connection]=timer
+        def remaining():
+            value=deadline-time.monotonic()
+            if value<=0:raise TimeoutError('browser fixture wall deadline')
+            return value
+        try:
+            timer.start();connection.connect();connection.sock.settimeout(remaining())
+            target=parsed.path+('?' +parsed.query if parsed.query else '')
+            connection.putrequest(method,target,skip_host=True,skip_accept_encoding=True)
+            for name,value in pairs:connection.putheader(name,value)
+            if 'host' not in names:connection.putheader('Host',HOST)
+            if body is not None and 'content-length' not in names:connection.putheader('Content-Length',str(len(body)))
+            connection.endheaders(body);sock=connection.sock;sock.settimeout(remaining())
+            response=connection.getresponse();result_headers=response.getheaders()
+            if len(result_headers)>64 or sum(len(k)+len(v) for k,v in result_headers)>65536:raise ValueError('upstream headers exceed bound')
+            chunks=[];size=0
+            while True:
+                sock.settimeout(remaining());chunk=response.read1(min(65536,BRIDGE_LIMIT+1-size))
+                if not chunk:break
+                chunks.append(chunk);size+=len(chunk)
+                if size>BRIDGE_LIMIT:raise ValueError('upstream body exceeds bound')
+            return BridgeResponse(response.status,result_headers,b''.join(chunks))
+        finally:
+            primary=sys.exc_info()[1];errors=[]
+            actions=[timer.cancel]
+            if response is not None:actions.append(response.close)
+            actions.append(connection.close)
+            if timer.ident is not None:actions.append(lambda:timer.join(.5))
+            for action in actions:
+                try:action()
+                except BaseException as error:errors.append(type(error).__name__)
+            if timer.is_alive():errors.append('deadline_thread_alive')
+            with self.condition:
+                if not errors:self.pending.pop(connection,None)
+                self.condition.notify_all()
+            if errors:
+                if primary is not None:primary.add_note('browser bridge cleanup uncertain: '+','.join(errors))
+                else:raise RuntimeError('browser bridge cleanup uncertain: '+','.join(errors))
+    @asynccontextmanager
+    async def routed(self,context):
+        async def handle(route,request):
+            try:
+                result=await asyncio.to_thread(self.forward,request.method,request.url,await request.all_headers(),request.post_data_buffer)
+                grouped={}
+                for name,value in result.headers:grouped.setdefault(name.lower(),[]).append(value)
+                headers={name:('\n' if name=='set-cookie' else ', ').join(values) for name,values in grouped.items()}
+                await route.fulfill(status=result.status,body=result.body,headers=headers)
+            except (PermissionError,ValueError,OSError,TimeoutError):await route.abort('blockedbyclient')
+        await context.route('**/*',handle)
+        try:yield self
+        finally:
+            # A dedicated harness context is left offline before removing the
+            # interception, so late page polls cannot escape to public DNS.
+            # Its creator must still close that browser context in finally.
+            try:await context.set_offline(True)
+            finally:
+                try:self.close()
+                finally:await context.unroute('**/*',handle)
+    def close(self):
+        with self.condition:self.active=False;pending=list(self.pending)
+        for connection in pending:self._shutdown(connection)
+        deadline=time.monotonic()+BRIDGE_WALL
+        with self.condition:
+            while self.pending:
+                left=deadline-time.monotonic()
+                if left<=0:raise RuntimeError('browser bridge cleanup uncertain')
+                self.condition.wait(left)
+    def __exit__(self,*args):self.close()
 
 
 class FixtureClient:
@@ -102,7 +269,7 @@ class PlanBrowserFixture(AbstractContextManager):
         self.temp=None;self.root=None;self.provider=None;self.provider_thread=None;self.server=None;self.server_thread=None;self.app_socket=None
         self.worker=None;self.stop=threading.Event();self.mail=[];self.mail_lock=threading.Lock();self.calls=[];self.worker_failures=[]
         self.store=None;self.resource=None;self.identity=None;self.principal=None;self.client=None;self.installed=False;self.environment={};self.saved_globals=None
-        self.cleanup_errors=();self._install_cleanup_errors=();self._failed_native=()
+        self.cleanup_errors=();self._install_cleanup_errors=();self._failed_native=();self._browser_bridges=[]
     def __enter__(self):
         try:self._start();return self
         except BaseException as primary:
@@ -130,6 +297,7 @@ class PlanBrowserFixture(AbstractContextManager):
         import uvicorn
         self.app=FastAPI(title='Controlled fixture only — no real model or funds')
         self.app.include_router(auth.router,prefix='/api');self.app.include_router(research.router,prefix='/api')
+        _mount_public_pages(self.app)
         key,certificate=_certificates(self.root);self.certificate=certificate
         self.app_socket=socket.socket(socket.AF_INET,socket.SOCK_STREAM);self.app_socket.bind(('127.0.0.1',0));self.app_socket.listen(64)
         self.port=self.app_socket.getsockname()[1]
@@ -142,6 +310,8 @@ class PlanBrowserFixture(AbstractContextManager):
             time.sleep(.02)
         self.client=FixtureClient(self.port,certificate)
         self._register()
+    def browser_bridge(self):
+        bridge=CanonicalBrowserBridge(self);self._browser_bridges.append(bridge);return bridge
     def _mail(self,_to,_subject,text):
         with self.mail_lock:self.mail.append(text)
     def take_latest_magic_token(self):
@@ -245,6 +415,7 @@ class PlanBrowserFixture(AbstractContextManager):
             if thread is not None and thread.ident is not None:thread.join(seconds)
         # Stop admission to the controller worker, preserve an already owned
         # response through its financial commit, then retire transport rights.
+        for bridge in self._browser_bridges:attempt(bridge.close)
         attempt(lambda:join(self.worker,8))
         if self.installed:
             from research import plan_native

@@ -123,3 +123,83 @@ def test_uncertain_failed_installation_keeps_references_and_private_root(monkeyp
         assert not [thread for thread in threading.enumerate() if thread.name.startswith('controlled-plan-')]
         if service.temp is not None:shutil.rmtree(service.temp);service.temp=None
         assert not service.root.exists()
+
+
+def test_static_pages_are_actual_repo_bytes_and_canonical_bridge_has_no_owner_cookie():
+    import json
+    from http.cookies import SimpleCookie
+    module=component()
+    with module.PlanBrowserFixture() as service,service.browser_bridge() as bridge:
+        for path,relative in (('/research','research.html'),('/research/01234567-89ab-4def-8123-456789abcdef','research.html'),('/auth/login','auth-login.html'),('/auth/verify','auth-verify.html'),('/assets/research.js','assets/research.js'),('/assets/research.css','assets/research.css')):
+            result=bridge.forward('GET',module.ORIGIN+path,{})
+            assert result.status==200 and result.body==(module.ROOT/'web/frontend'/relative).read_bytes()
+        assert bridge.forward('HEAD',module.ORIGIN+'/research',{}).body==b''
+        redirect=bridge.forward('GET',module.ORIGIN+'/research/',{})
+        assert redirect.status==307 and redirect.body==b'' # Actual upstream redirect; never followed.
+        for path in ('/assets/','/auth.sqlite3','/tls/private.key','/api/fixture/install','/assets/../../state/auth.sqlite3'):
+            assert bridge.forward('GET',module.ORIGIN+path,{}).status==404
+        assert bridge.forward('GET',module.ORIGIN+'/api/auth/me',{}).status==401
+        # The browser signs in through real HTTP. The controller's already
+        # authenticated CookieJar is deliberately never consulted by bridge.
+        payload=json.dumps({'email':module.OWNER}).encode()
+        requested=bridge.forward('POST',module.ORIGIN+'/api/auth/request-link',{'Origin':module.ORIGIN,'Content-Type':'application/json'},payload)
+        assert requested.status==200
+        token=service.take_latest_magic_token()
+        verified=bridge.forward('POST',module.ORIGIN+'/api/auth/verify',{'Origin':module.ORIGIN,'Content-Type':'application/json'},json.dumps({'token':token}).encode())
+        assert verified.status==200
+        cookies=SimpleCookie()
+        for name,value in verified.headers:
+            if name.lower()=='set-cookie':cookies.load(value)
+        assert 'phase_session' in cookies
+        flags=bool(cookies['phase_session']['secure'] and cookies['phase_session']['httponly']);assert flags
+        actual='phase_session='+cookies['phase_session'].value
+        assert bridge.forward('GET',module.ORIGIN+'/api/auth/me',{'Cookie':actual}).status==200
+        assert bridge.forward('GET',module.ORIGIN+'/api/auth/me',{}).status==401
+        denied=bridge.forward('POST',module.ORIGIN+'/api/auth/request-link',{'Origin':'null','Content-Type':'application/json'},payload)
+        assert denied.status==403 and service.calls==[]
+    assert service.cleanup_errors==() and not service.root.exists()
+    assert not [t for t in threading.enumerate() if t.name.startswith('controlled-plan-')]
+
+
+def test_static_reader_never_follows_symlinks_or_lists_directories(tmp_path,monkeypatch):
+    module=component();fake=tmp_path/'public-repo';assets=fake/'web/frontend/assets';assets.mkdir(parents=True)
+    outside=tmp_path/'private-synthetic.txt';outside.write_text('private fixture content')
+    (assets/'leak.txt').symlink_to(outside)
+    (assets/'linked-dir').symlink_to(tmp_path,target_is_directory=True)
+    with module.PlanBrowserFixture() as service,service.browser_bridge() as bridge:
+        with monkeypatch.context() as scope:
+            scope.setattr(module,'ROOT',fake)
+            for suffix in ('leak.txt','linked-dir/private-synthetic.txt','../private-synthetic.txt',''):
+                assert bridge.forward('GET',module.ORIGIN+'/assets/'+suffix,{}).status==404
+        assert outside.read_text()=='private fixture content'
+    assert not service.root.exists()
+
+
+def test_browser_bridge_rejects_foreign_urls_smuggling_and_unroutes_owned_hook():
+    import asyncio
+    module=component()
+    with module.PlanBrowserFixture() as service,service.browser_bridge() as bridge:
+        for url in ('http://beta.structural.bytedance.city/research','https://foreign.example.invalid/research','https://beta.structural.bytedance.city:443/research','https://u@beta.structural.bytedance.city/research'):
+            with pytest.raises(PermissionError):bridge.forward('GET',url,{})
+        for headers in ({'Host':'foreign.example.invalid'},{'Cookie':'bad\r\nHeader: x'},{'Content-Length':'999'},{'Transfer-Encoding':'chunked'}):
+            with pytest.raises((ValueError,PermissionError)):bridge.forward('POST',module.ORIGIN+'/api/auth/me',headers,b'{}')
+        with pytest.raises(ValueError):bridge.forward('POST',module.ORIGIN+'/api/auth/me',{},b'x'*(module.BRIDGE_LIMIT+1))
+        class Context:
+            async def set_offline(self,value):self.offline=value
+            async def route(self,pattern,handler):self.pattern,self.handler=pattern,handler
+            async def unroute(self,pattern,handler):assert (pattern,handler)==(self.pattern,self.handler);self.handler=None
+        class Request:
+            method='GET';url='https://foreign.example.invalid/research';post_data_buffer=None
+            async def all_headers(self):return {}
+        class Route:
+            async def abort(self,reason):self.reason=reason
+            async def fulfill(self,**kwargs):raise AssertionError('foreign request must not be fulfilled')
+        async def exercise():
+            context=Context();route=Route()
+            async with bridge.routed(context):
+                await context.handler(route,Request());assert route.reason=='blockedbyclient'
+            assert context.handler is None and context.offline is True
+        asyncio.run(exercise())
+        with pytest.raises(PermissionError):bridge.forward('GET',module.ORIGIN+'/research',{})
+        assert service.calls==[]
+    assert not service.root.exists()
