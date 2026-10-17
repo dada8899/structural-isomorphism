@@ -95,6 +95,68 @@ jobs:
             slowapi==0.1.9 \
             structlog==25.5.0
           python -m playwright install --with-deps chromium
+      - name: Install complete backend runtime and verify imports
+        run: |
+          set -euo pipefail
+          BROWSER_BACKEND_PYTHON="$(python -c 'import sys; print(sys.executable)')"
+          "$BROWSER_BACKEND_PYTHON" -m pip install uv==0.11.8
+          test "$(uv --version | cut -d ' ' -f 2)" = "0.11.8"
+          uv pip install --python "$BROWSER_BACKEND_PYTHON" --system --torch-backend cpu -r web/backend/requirements.txt
+          uv pip check --python "$BROWSER_BACKEND_PYTHON" --system
+          "$BROWSER_BACKEND_PYTHON" - <<'PY'
+          import importlib.metadata
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import sys
+          import tempfile
+          from packaging.specifiers import SpecifierSet
+
+          if sys.version_info[:2] != (3, 11):
+              raise SystemExit("browser backend runtime requires Python 3.11")
+          root = Path.cwd().resolve()
+          versions = {}
+          for raw in (root / "web/backend/requirements.txt").read_text().splitlines():
+              line = raw.strip()
+              if not line or line.startswith("#"):
+                  continue
+              match = re.fullmatch(r"([A-Za-z0-9_.-]+)(?:\[[A-Za-z0-9_,.-]+\])?==([^\s#]+)", line)
+              if match is None:
+                  raise SystemExit("backend runtime requirements must remain exactly pinned")
+              name, expected = match.groups()
+              actual = importlib.metadata.version(name)
+              if not SpecifierSet("==" + expected).contains(actual, prereleases=True):
+                  raise SystemExit("browser backend runtime differs from its requirements")
+              versions[name] = actual
+          with tempfile.TemporaryDirectory(prefix="structural-browser-import-", dir=os.environ["RUNNER_TEMP"]) as directory:
+              private = Path(directory)
+              for name in ("auth", "reports", "sso", "cache", "hf", "tmp"):
+                  (private / name).mkdir()
+              os.environ.update({
+                  "STRUCTURAL_ENV": "test", "AUTH_ENABLED": "false",
+                  "AUTH_DATA_DIR": str(private / "auth"),
+                  "STRUCTURAL_SSO_DATA_DIR": str(private / "sso"),
+                  "REPORT_DATA_DIR": str(private / "reports"),
+                  "REPORT_DB_PATH": str(private / "reports/history.sqlite3"),
+                  "STRUCTURAL_DATA_DIR": str(private),
+                  "STRUCTURAL_FAVORITES_PATH": str(private / "favorites.jsonl"),
+                  "STRUCTURAL_LOG_FILE": str(private / "application.jsonl"),
+                  "XDG_CACHE_HOME": str(private / "cache"), "HF_HOME": str(private / "hf"),
+                  "TMPDIR": str(private / "tmp"), "HF_HUB_OFFLINE": "1",
+                  "TRANSFORMERS_OFFLINE": "1", "DO_NOT_TRACK": "1",
+              })
+              sys.path[:0] = [str(root / "web/backend"), str(root)]
+              import main
+              import torch
+              if Path(main.__file__).resolve() != root / "web/backend/main.py":
+                  raise SystemExit("browser backend import escaped the current checkout")
+              if torch.version.cuda is not None:
+                  raise SystemExit("browser backend smoke requires CPU-only Torch")
+              print(json.dumps({"event": "browser.backend_import_ok", "versions": versions,
+                                "main": str(Path(main.__file__).resolve().relative_to(root)),
+                                "torch_cuda": torch.version.cuda}, sort_keys=True))
+          PY
       - uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -106,12 +168,14 @@ jobs:
       - name: Install Phase dependencies
         working-directory: web/phase-detector
         run: pnpm install --frozen-lockfile
-      - name: Verify the explicit workbench decision journey
+      - name: Verify the current public research entry journey
         run: >-
           pytest
-          tests/e2e/test_full_public_surface.py::test_beta_workbench_requires_fingerprint_and_explicit_candidate
-          tests/e2e/test_full_public_surface.py::test_beta_header_exposes_one_dynamic_primary_account_entry
-          tests/e2e/test_full_public_surface.py::test_beta_header_never_picks_one_of_two_accounts
+          tests/e2e/test_full_public_surface.py::test_public_entry_actual_owner_index_anchor
+          tests/e2e/test_full_public_surface.py::test_public_entry_default_retirement_and_language
+          tests/e2e/test_full_public_surface.py::test_public_entry_no_script_native_forms_never_send_private_get
+          tests/e2e/test_full_public_surface.py::test_public_entry_real_login_return_owner_and_legacy_resource_links
+          tests/e2e/test_full_public_surface.py::test_public_entry_main_cta_first_login_returns_to_research
           -m "e2e and not requires_internet" -v
       - name: Verify real Next auth, failure states, mobile controls and axe
         run: pytest web/tests/e2e/test_phase_auth_real.py -v
@@ -195,6 +259,69 @@ jobs:
             slowapi==0.1.9 \
             structlog==25.5.0
           python -m playwright install --with-deps chromium
+      - name: Install complete backend runtime and verify imports
+        if: matrix.shard == 'library-auth-reports-favorites'
+        run: |
+          set -euo pipefail
+          BROWSER_BACKEND_PYTHON="$(python -c 'import sys; print(sys.executable)')"
+          "$BROWSER_BACKEND_PYTHON" -m pip install uv==0.11.8
+          test "$(uv --version | cut -d ' ' -f 2)" = "0.11.8"
+          uv pip install --python "$BROWSER_BACKEND_PYTHON" --system --torch-backend cpu -r web/backend/requirements.txt
+          uv pip check --python "$BROWSER_BACKEND_PYTHON" --system
+          "$BROWSER_BACKEND_PYTHON" - <<'PY'
+          import importlib.metadata
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import sys
+          import tempfile
+          from packaging.specifiers import SpecifierSet
+
+          if sys.version_info[:2] != (3, 11):
+              raise SystemExit("browser backend runtime requires Python 3.11")
+          root = Path.cwd().resolve()
+          versions = {}
+          for raw in (root / "web/backend/requirements.txt").read_text().splitlines():
+              line = raw.strip()
+              if not line or line.startswith("#"):
+                  continue
+              match = re.fullmatch(r"([A-Za-z0-9_.-]+)(?:\[[A-Za-z0-9_,.-]+\])?==([^\s#]+)", line)
+              if match is None:
+                  raise SystemExit("backend runtime requirements must remain exactly pinned")
+              name, expected = match.groups()
+              actual = importlib.metadata.version(name)
+              if not SpecifierSet("==" + expected).contains(actual, prereleases=True):
+                  raise SystemExit("browser backend runtime differs from its requirements")
+              versions[name] = actual
+          with tempfile.TemporaryDirectory(prefix="structural-browser-import-", dir=os.environ["RUNNER_TEMP"]) as directory:
+              private = Path(directory)
+              for name in ("auth", "reports", "sso", "cache", "hf", "tmp"):
+                  (private / name).mkdir()
+              os.environ.update({
+                  "STRUCTURAL_ENV": "test", "AUTH_ENABLED": "false",
+                  "AUTH_DATA_DIR": str(private / "auth"),
+                  "STRUCTURAL_SSO_DATA_DIR": str(private / "sso"),
+                  "REPORT_DATA_DIR": str(private / "reports"),
+                  "REPORT_DB_PATH": str(private / "reports/history.sqlite3"),
+                  "STRUCTURAL_DATA_DIR": str(private),
+                  "STRUCTURAL_FAVORITES_PATH": str(private / "favorites.jsonl"),
+                  "STRUCTURAL_LOG_FILE": str(private / "application.jsonl"),
+                  "XDG_CACHE_HOME": str(private / "cache"), "HF_HOME": str(private / "hf"),
+                  "TMPDIR": str(private / "tmp"), "HF_HUB_OFFLINE": "1",
+                  "TRANSFORMERS_OFFLINE": "1", "DO_NOT_TRACK": "1",
+              })
+              sys.path[:0] = [str(root / "web/backend"), str(root)]
+              import main
+              import torch
+              if Path(main.__file__).resolve() != root / "web/backend/main.py":
+                  raise SystemExit("browser backend import escaped the current checkout")
+              if torch.version.cuda is not None:
+                  raise SystemExit("browser backend smoke requires CPU-only Torch")
+              print(json.dumps({"event": "browser.backend_import_ok", "versions": versions,
+                                "main": str(Path(main.__file__).resolve().relative_to(root)),
+                                "torch_cuda": torch.version.cuda}, sort_keys=True))
+          PY
       - name: Run browser surface shard
         run: >-
           pytest ${{ matrix.pytest_args }}
