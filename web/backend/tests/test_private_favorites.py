@@ -545,6 +545,29 @@ else:
  except Exception as exc:
   if getattr(exc,'status',None) is None:raise
   result=exc.status
+  # Only bounded identifiers and code locations; never exception text,
+  # filenames, arguments, locals, headers, bodies or credential values.
+  import re as _diagnostic_re
+  def _identifier(value):
+   return value if type(value) is str and _diagnostic_re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.-]{0,63}',value) else None
+  def _safe_exception(error,relation):
+   slug=getattr(error,'type_slug',None);code=getattr(error,'code',None)
+   frames=[];trace=error.__traceback__
+   while trace is not None:
+    frames.append({'function':_identifier(trace.tb_frame.f_code.co_name) or 'module','line':trace.tb_lineno})
+    trace=trace.tb_next
+   sqlname=getattr(error,'sqlite_errorname',None)
+   return {'relation':relation,'class':_identifier(type(error).__name__),
+    'type_slug':slug if type(slug) is str and slug in {'favorites_storage_unavailable','favorites_storage_result_unknown','upstream_unavailable','unauthenticated','forbidden','credential_conflict'} else None,
+    'code':code if type(code) is str and code in {'STORE_BUSY','STORE_UNAVAILABLE','SCHEMA_UNSUPPORTED','AUTH_REQUIRED','AUTHORIZATION_STALE'} else None,
+    'sqlite_errorname':_identifier(sqlname) if type(sqlname) is str and sqlname.startswith('SQLITE_') else None,
+    'frames':frames[-12:]}
+  _safe_error=[];_pending_errors=[('exception',exc)];_seen_errors=set()
+  while _pending_errors and len(_safe_error)<6:
+   _relation,_error=_pending_errors.pop(0)
+   if _error is None or id(_error) in _seen_errors:continue
+   _seen_errors.add(id(_error));_safe_error.append(_safe_exception(_error,_relation))
+   _pending_errors.extend([('cause',_error.__cause__),('context',_error.__context__)])
 closed_count=0
 for conn in connections:
  try:conn.execute('SELECT 1')
@@ -554,7 +577,7 @@ for fd in list(fdpaths):
  try:os.fstat(fd)
  except OSError:fdpaths.pop(fd,None)
 assert not fdpaths,'descriptor leaked'
-print('FAVORITES_CHILD:'+json.dumps({'status':result,'native':len(connections),'closed':closed_count,'fd':0}))
+print('FAVORITES_CHILD:'+json.dumps({'status':result,'native':len(connections),'closed':closed_count,'fd':0,**({'safe_error':_safe_error} if '_safe_error' in locals() else {})}))
 '''
 
 
