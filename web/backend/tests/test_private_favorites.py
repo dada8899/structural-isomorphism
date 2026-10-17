@@ -98,27 +98,57 @@ def retire_auth_incarnation(email):
             assert response.status_code==200,response.text
 
 
-def deletion_request_source(email):
-    from research.paid_control import issue_authenticated_action
-    token=private_session(email)
-    request=Request({'type':'http','method':'POST','path':'/api/me/delete','scheme':'https',
-        'server':('beta.structural.bytedance.city',443),'headers':[(b'host',b'beta.structural.bytedance.city'),
-            (b'origin',BETA.encode()),(b'cookie',('phase_session='+token).encode())]})
-    return issue_authenticated_action(request,action='account-delete')
-
-
 @contextmanager
 def deletion_context(email=ALICE):
-    service = auth._account_deletion_service()
-    generation = auth._store().user(email)['session_generation']
-    source=deletion_request_source(email)
-    try:
-        with auth.account_owner_transaction(email) as lease:
-            job_id = service.begin_account_deletion_locked(email, generation,
-                auth._store().owner_gate_id(email), auth._account_cleanup_binding(email), owner_lease=lease,request_source=source)
-            with auth._favorites_authority(email, generation, lease, service=service, job_id=job_id) as authority:
-                yield service, job_id, authority
-    finally:source.close()
+    """Pause one actual DELETE request after its protected job commits.
+
+    FastAPI supplies the parsed body and original endpoint. The request keeps
+    its real native owner gate held until the tested snapshot stage ends; no
+    request/source capability is fabricated or retained after that boundary.
+    """
+    import queue
+    import threading
+    entered=queue.Queue(maxsize=1);release=threading.Event();request_thread=[]
+    original=auth._run_account_deletion_locked
+    class FixturePauseEnded(RuntimeError):pass
+    def pause(service,job_id,*,owner_lease=None):
+        # Explicit foreground calls in the original tests still execute the
+        # real eraser/recovery function and return its actual durable result.
+        if request_thread and threading.get_ident()!=request_thread[0]:
+            return original(service,job_id,owner_lease=owner_lease)
+        job=service.deletion_job(job_id)
+        assert job['owner_email']==email and job['state']=='pending'
+        assert job['origin_version']=='authenticated-delete-v1'
+        owner_lease.identity
+        request_thread.append(threading.get_ident())
+        entered.put((service,job_id,owner_lease,job['session_generation']))
+        assert release.wait(30),'snapshot fixture did not release the actual DELETE request'
+        raise FixturePauseEnded('fixture stops after the tested snapshot stage')
+    token=private_session(email)
+    app=FastAPI();app.include_router(auth.router,prefix='/api')
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(auth,'_run_account_deletion_locked',pause)
+        with TestClient(app,base_url=BETA) as client,concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            client.cookies.set('phase_session',token)
+            future=executor.submit(client.post,'/api/me/delete',json={'confirmation':'DELETE'},headers={'Origin':BETA})
+            try:
+                deadline=time.monotonic()+15
+                while True:
+                    try:service,job_id,lease,generation=entered.get(timeout=.05);break
+                    except queue.Empty:
+                        if future.done():
+                            result=future.result()
+                            pytest.fail('actual DELETE did not reach protected snapshot stage: '+str(result.status_code)+' '+result.text)
+                        assert time.monotonic()<deadline,'actual DELETE snapshot stage timed out'
+                # Mint this test scope only while the original request still
+                # holds that exact native FD in this same process. Retire it
+                # before allowing the request's gate/source contexts to end.
+                with auth._favorites_authority(email,generation,lease,service=service,job_id=job_id) as authority:
+                    yield service,job_id,authority
+            finally:
+                release.set()
+                result=future.result(timeout=15)
+                assert result.status_code==500 and result.json()['error']=='account deletion failed'
 
 
 def exchange_material(stack, monkeypatch):
