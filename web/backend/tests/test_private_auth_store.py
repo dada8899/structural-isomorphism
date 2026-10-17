@@ -312,6 +312,33 @@ assert not seen and not (root/'auth.sqlite3').exists()
     assert r.returncode==0,r.stderr
 
 
+@pytest.fixture
+def handler_audit_owner(private,monkeypatch,record_property):
+    """Preprovision only the synthetic owner used by the stubbed handler case."""
+    import stat
+    from uuid import UUID
+    with monkeypatch.context() as setup:
+        setup.setenv('STRUCTURAL_ENV','dev')
+        gate=AuthStore(private).owner_gate_id('fixture@example.invalid')
+        folder=private.parent/'research-locks';folder.mkdir(mode=0o700)
+        lock=folder/(gate+'.lock');lock.write_bytes(b'');lock.chmod(0o600)
+    assert type(gate) is str and str(UUID(gate,version=4))==gate
+    for label,path,directory,mode in (
+        ('state_root',private.parent,True,0o700),('database',private,False,0o600),
+        ('lock_root',folder,True,0o700),('owner_lock',lock,False,0o600),
+        ('audit',private.parent/'account_deletion_audit.jsonl',False,0o600),
+    ):
+        info=path.lstat()
+        assert info.st_uid==os.geteuid() and stat.S_IMODE(info.st_mode)==mode
+        assert stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)
+        assert info.st_nlink>=1 if directory else info.st_nlink==1
+        record_property('handler_audit_fixture.'+label,json.dumps(dict(uid=info.st_uid,
+            mode=format(stat.S_IMODE(info.st_mode),'04o'),nlink=info.st_nlink,
+            type='directory' if directory else 'regular'),sort_keys=True))
+    assert AuthStore(private).owner_gate_id('fixture@example.invalid')==gate
+
+
+@pytest.mark.usefixtures('handler_audit_owner')
 def test_formal_audit_completed_delete_response_boundary_never_retries_core(private,monkeypatch):
     """Handler-only boundary: Core completion/session is explicitly stubbed.
 
