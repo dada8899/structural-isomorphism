@@ -38,11 +38,19 @@ def lifecycle_app():
 
 @pytest.fixture
 def lifecycle(stack, monkeypatch):
+    import importlib
     original, path = stack
     history = path.parent.parent / "legacy-history.db"
-    monkeypatch.setattr(report_account, "_store", ReportStore(history))
-    monkeypatch.setattr(report,"_store",report_account._store)
-    monkeypatch.setattr(favorites,"_legacy_data_file",lambda:path.parent.parent/"unused-legacy-favorites.jsonl")
+    for prefix in ("api", "web.backend.api"):
+        accounts = importlib.import_module(prefix + ".report_account")
+        reports = importlib.import_module(prefix + ".report")
+        favorite_module = importlib.import_module(prefix + ".favorites")
+        services = "web.backend.services" if prefix.startswith("web.") else "services"
+        store_type = importlib.import_module(services + ".report_store").ReportStore
+        legacy = store_type(history)
+        monkeypatch.setattr(accounts, "_store", legacy)
+        monkeypatch.setattr(reports, "_store", legacy)
+        monkeypatch.setattr(favorite_module, "_legacy_data_file", lambda: path.parent.parent / "unused-legacy-favorites.jsonl")
     with TestClient(lifecycle_app()) as client:
         client.cookies.update(original.cookies)
         yield client, path, history
@@ -419,8 +427,8 @@ def test_v1_research_migration_keeps_existing_lock_inode_and_problem(lifecycle,m
     ResearchStore(auth._store())
     assert lock.stat().st_ino == inode
     with sqlite3.connect(path) as conn:
-        from research.financial_guard import FINANCIAL_SCHEMA_VERSION
-        assert conn.execute("SELECT version FROM research_schema").fetchone()[0] == FINANCIAL_SCHEMA_VERSION
+        from research.store import CURRENT_RESEARCH_SCHEMA_VERSION
+        assert conn.execute("SELECT version FROM research_schema").fetchone()[0] == CURRENT_RESEARCH_SCHEMA_VERSION
         assert conn.execute("SELECT gate_id FROM research_principals").fetchone()[0] == principal
     assert client.get(f"/api/research/{rid}").status_code == 200
     assert post(client,f"/api/research/{rid}/revisions",{"expected_revision":1,"problem":problem("迁移后新修订")}).status_code == 200

@@ -1334,3 +1334,915 @@ def test_source_reopen_explains_explicit_read_without_losing_draft_or_refetching
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
             page.screenshot(path=str(server['root'] / 'source-reopen-explicit-read.png'),full_page=True)
         finally:context.close();browser.close()
+
+
+_METHOD_SEED = r'''
+import json,sys
+from pathlib import Path
+from contextlib import ExitStack,contextmanager
+from types import SimpleNamespace
+import pytest
+from web.backend.tests.test_research_persistence import stack,post
+from web.backend.tests.test_research_d1_integration import source_stack
+from web.backend.tests.test_research_paid_approval import approved_inputs
+from web.backend.tests.test_research_paid_api import paid_api,make_preview,confirm_data
+from web.backend.tests.test_research_paid_budget_loop import execution
+from web.backend.tests.test_research_owned_return import response_body,tcp_reply
+from research.authorization import AuthorizationGate
+from research.paid_provider_session import persist_budget_return,BudgetedOwnedSession
+root=Path(sys.argv[1]);output=Path(sys.argv[2]);kind=sys.argv[3];root.mkdir(exist_ok=True)
+with ExitStack() as scope:
+    patch=pytest.MonkeyPatch();scope.callback(patch.undo)
+    def enter(fixture,*args):return scope.enter_context(contextmanager(fixture.__wrapped__)(*args))
+    if kind.startswith('history'):
+        from web.backend.tests import test_research_d1_integration as source_fixture
+        original_problem=source_fixture.problem
+        def full_problem():
+            value=original_problem('原始现象 e\u0301 😀\n原来的第二行，保留原文。'+('原始长问题的每一句都需要保留。'*120))
+            value.update(objective='原来的研究目标',summary='历史种子的原问题摘要与真实保存链',constraints=['原约束一','原约束二'],unknowns=['原来的未知'],
+                variables=[{'id':'arrival','label':'原到达数量','role':'input','unit_id':'count','observation':'原观测 e\u0301','provenance':'user_observed'},
+                           {'id':'service','label':'原服务时间','role':'parameter','unit_id':'s','observation':None,'provenance':'user_assumed'}])
+            return value
+        patch.setattr(source_fixture,'problem',full_problem)
+    base=enter(stack,root,patch)
+    sources=enter(source_stack,base,patch)
+    approved=enter(approved_inputs,sources,SimpleNamespace(param=True))
+    data=enter(paid_api,approved)
+    client,path,store,rid,excerpt,resolver=data
+    selected_handle=make_preview(data)['manifest']['handles'][0]['handle']
+    raw=json.loads(response_body())
+    candidate=json.loads(raw['choices'][0]['message']['content'])
+    candidate['summary']='离线待核记录。'+('仍需核对输入与观察条件。'*35)
+    candidate['mechanisms']=[{'label':'排队关系候选','mechanism':'这是一项需要检验的解释。'+('需要核对当前样本。'*60),
+        'variable_map':[{'source':'arrival','target':'观察中的到达数量','rationale':'变量对应需要进一步检查。'}],
+        'conditions':['测量窗口与样本条件需要核对。'],'nontransferable':['不同样本的结论不能直接沿用。'],'evidence_handles':[selected_handle]}]
+    raw['choices'][0]['message']['content']=json.dumps(candidate,ensure_ascii=False)
+    if kind=='null':raw['choices']=[]
+    with execution(data,body=json.dumps(raw,ensure_ascii=False).encode()) as (session,confirmation,wire,pid):
+        receipt=session.receive()
+        assert (receipt._value.candidate is not None)==(kind!='null')
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+            returned=persist_budget_return(conn,store=store,lease=lease,receipt=receipt)
+        report=None
+        if kind!='pending':
+            response=post(client,f'/api/research/{rid}/reconcile',{'task_id':confirmation['task_id'],'expected_task_version':2},'browser-typed-seed')
+            assert response.status_code==200
+            report=response.json()['data']['method_result']
+            if kind=='null':assert report is None
+            else:assert report and report['result_ref']==returned and report['received_at']==receipt._time
+        with store.transaction() as conn:
+            expected=(3,0) if kind=='pending' else (0,2)
+            assert tuple(conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone())==expected
+            assert conn.execute('SELECT count(*) FROM research_cost_observations').fetchone()[0]==(0 if kind=='pending' else 1)
+        assert wire['requests']==1
+        facts={'research_id':rid,'task_id':confirmation['task_id'],'result_ref':returned if kind=='pending' else (report['result_ref'] if report else None),
+            'received_at':receipt._time if kind=='pending' else (report['received_at'] if report else None), 'excerpt_id':excerpt,'owner_email':'research-a@example.test','auth_path':str(path)}
+        if kind.startswith('history'):
+            facts['original_problem']=client.get(f'/api/research/{rid}').json()['data']['current_problem']
+        if kind=='history-same':
+            from web.backend.tests.test_research_paid_producers import identity
+            draft=make_preview(data,'history-second-preview')
+            approved2=post(client,f'/api/research/{rid}/paid-approvals',confirm_data(draft),'history-second-confirm')
+            assert approved2.status_code==200,approved2.text
+            raw2=json.loads(json.dumps(raw));body2=json.loads(raw2['choices'][0]['message']['content']);body2['summary']='第二份同修订待核记录。';raw2['choices'][0]['message']['content']=json.dumps(body2,ensure_ascii=False)
+            with tcp_reply(json.dumps(raw2,ensure_ascii=False).encode()) as (factory,wire2):
+                with BudgetedOwnedSession.offline_start(store,identity(client),session.proof.source,approved2.json()['data']['approval_ref'],connection_factory=factory) as second:
+                    returned2=second.receive()
+                    with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:persist_budget_return(conn,store=store,lease=lease,receipt=returned2)
+                    completed2=post(client,f'/api/research/{rid}/reconcile',{'task_id':approved2.json()['data']['task_id'],'expected_task_version':2},'history-second-reconcile')
+                    assert completed2.status_code==200 and completed2.json()['data']['method_result']
+                    facts['second_result']=completed2.json()['data']['method_result'];facts['second_task_id']=approved2.json()['data']['task_id']
+                    assert wire2['requests']==1
+        if kind=='history-revision':
+            previous=facts['original_problem'];changed={key:previous[key] for key in ('entry','original_input','objective','summary','variables','constraints','unknowns','confirmed')}
+            changed.update(original_input='这是修订二的新问题，不能替换历史原问题',summary='这是修订二的新问题摘要')
+            revised=post(client,f'/api/research/{rid}/revisions',{'expected_revision':1,'problem':changed},'history-new-revision')
+            assert revised.status_code==200,revised.text
+        if kind=='history-pages':
+            from web.backend.tests.test_research_d1_integration import start_current
+            for number in range(41):
+                started=start_current(client,rid,'history queue '+chr(65+number//26)+chr(65+number%26));assert started.status_code==200,started.text
+                task=started.json()['data']['task']
+                stopped=post(client,f'/api/research/{rid}/cancel',{'task_id':task['id'],'expected_task_version':task['version']},'history-page-stop-'+str(number))
+                assert stopped.status_code==200,stopped.text
+            with store.transaction() as conn:facts['task_order']=[row[0] for row in conn.execute('SELECT id FROM research_tasks WHERE research_id=? ORDER BY start_version DESC,id DESC',(rid,))]
+            assert len(facts['task_order'])==43
+        output.write_text(json.dumps(facts,ensure_ascii=False))
+'''
+
+
+@pytest.fixture
+def method_server(tmp_path,request):
+    """Real B seed -> protected typed commit -> independently started real main.
+
+    Original backend fixtures run unchanged in the release interpreter. There
+    is no successful research GET replacement or fabricated protected body.
+    """
+    seed=tmp_path/'method-seed';metadata=tmp_path/'method-seed.json'
+    runtime=os.getenv('STRUCTURE_RESEARCH_TEST_PYTHON',sys.executable)
+    env=dict(os.environ)
+    env.update({'PYTHONPATH':str(BACKEND)+os.pathsep+str(ROOT),'PYTHONDONTWRITEBYTECODE':'1',
+                'HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1','DO_NOT_TRACK':'1'})
+    for key in ('OPENROUTER_API_KEY','DEEPSEEK_API_KEY','SMTP_PASSWORD'):env.pop(key,None)
+    prepared=subprocess.run([runtime,'-c',_METHOD_SEED,str(seed),str(metadata),getattr(request,'param','normal')],cwd=BACKEND,env=env,capture_output=True,text=True,timeout=60)
+    assert prepared.returncode==0,'Real method seed failed: '+prepared.stderr[-1600:]
+    facts=json.loads(metadata.read_text())
+    listener=socket.socket();listener.bind(('127.0.0.1',0));listener.listen()
+    base=f'http://127.0.0.1:{listener.getsockname()[1]}'
+    env.update({'AUTH_DATA_DIR':str(seed/'auth'),'AUTH_ENABLED':'true','AUTH_DEV_MODE':'true',
+        'JWT_SECRET':'research-synthetic-auth-secret-32-characters','AUTH_LINK_BASE_URL':base,
+        'STRUCTURAL_SSO_SECRET':'research-synthetic-sso-secret-32-characters','STRUCTURAL_SSO_DATA_DIR':str(seed/'sso'),
+        'STRUCTURAL_SSO_BETA_ORIGIN':base,'STRUCTURAL_ENV':'test','STRUCTURAL_RESEARCH_ENABLED':'true',
+        'STRUCTURAL_D1_SOURCES_ENABLED':'true','STRUCTURAL_D1_PUBLIC_GET_ENABLED':'false',
+        'STRUCTURAL_FAVORITES_PATH':str(seed/'favorites.jsonl'),'STRUCTURAL_LOG_FILE':str(seed/'main.jsonl'),
+        'STRUCTURAL_PRIVACY_HMAC_KEY':'0123456789abcdef'*4,'ADMIN_NOTIFICATION_EMAIL':''})
+    launcher=r'''
+import sys
+from pathlib import Path
+from api import report_account,report,favorites
+from services.report_store import ReportStore
+report_account._store=ReportStore(Path(sys.argv[2]))
+report._store=report_account._store
+favorites._legacy_data_file=lambda:Path(sys.argv[2]).parent/'unused-favorites.jsonl'
+import main,uvicorn
+uvicorn.run(main.app,fd=int(sys.argv[1]),lifespan='off',access_log=False,log_level='warning')
+'''
+    processes=[];log=(tmp_path/'method-main.log').open('w+')
+    def stop(process):
+        if process.poll() is None:
+            process.terminate()
+            try:process.wait(timeout=5)
+            except subprocess.TimeoutExpired:process.kill();process.wait(timeout=5)
+    def start(*,auth_enabled=True):
+        run_env={**env,'AUTH_ENABLED':'true' if auth_enabled else 'false'}
+        process=subprocess.Popen([runtime,'-c',launcher,str(listener.fileno()),str(seed/'legacy-history.db')],cwd=BACKEND,env=run_env,
+                                 pass_fds=(listener.fileno(),),stdout=log,stderr=log)
+        processes.append(process)
+        deadline=time.monotonic()+30
+        while time.monotonic()<deadline:
+            assert process.poll() is None,'Real main method server exited'
+            try:
+                if httpx.get(base+'/research',timeout=.5,trust_env=False).status_code==200:return process
+            except httpx.HTTPError:pass
+            time.sleep(.05)
+        raise AssertionError('Real method main readiness timed out')
+    def withdraw_source():
+        code=r'''
+import sys
+from api import auth
+from research import ResearchStore
+from research.authorization import AuthorizationGate
+store=ResearchStore(auth._store())
+with store.transaction() as conn:pid=conn.execute('SELECT owner_id FROM research_controls WHERE id=?',(sys.argv[1],)).fetchone()[0]
+with AuthorizationGate(store).owner_gate(pid),store.transaction(write=True) as conn:
+    conn.execute("DELETE FROM research_evidence_objects WHERE id=? AND kind='excerpts'",(sys.argv[2],))
+'''
+        result=subprocess.run([runtime,'-c',code,facts['research_id'],facts['excerpt_id']],cwd=BACKEND,env=env,capture_output=True,text=True,timeout=15)
+        assert result.returncode==0,'Source withdrawal control failed'
+    try:
+        process=start()
+        yield {'base':base,'facts':facts,'process':process,'start':start,'stop':stop,'root':tmp_path,'env':env,'runtime':runtime,'withdraw_source':withdraw_source}
+    finally:
+        for process in processes:stop(process)
+        listener.close();log.close()
+
+
+@pytest.mark.parametrize('viewport',[{'width':1280,'height':900},{'width':430,'height':932}])
+def test_method_result_real_b_typed_http_reopen_restart_and_local_citations(method_server,viewport):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context(viewport=viewport)
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            url=base+'/research/'+facts['research_id']
+            response=context.request.get(base+'/api/research/'+facts['research_id'])
+            assert response.status==200,response.text()
+            report=response.json()['data']['method_result']
+            assert report['result_ref']==facts['result_ref'] and report['received_at']==facts['received_at']
+            page=context.new_page();page.goto(url)
+            expect(page.locator('#method-body')).to_contain_text(report['sections']['summary'])
+            expect(page.locator('#method-status')).to_contain_text('未运行真实模型')
+            expect(page.locator('#method-status')).to_contain_text('证据不足／未经独立评审')
+            expect(page.locator('#method-revision')).to_have_text(str(report['input_revision']))
+            expect(page.locator('#method-time')).to_have_attribute('datetime',report['received_at'])
+            for citation in report['citations']:
+                expect(page.locator('#method-citations')).to_contain_text(citation['quote'])
+                expect(page.locator('#method-citations')).to_contain_text(citation['attribution'])
+            visible=page.locator('#method-section').inner_text()
+            for internal in ('MethodHypothesisResultView-v1','OwnedMethodBody-v1',report['candidate_digest'],report['input_digest']):assert internal not in visible
+            page.locator('#method-record-details summary').click()
+            expect(page.locator('#method-result-ref')).to_have_text(report['result_ref'])
+            page.locator('#method-record-details summary').click()
+            assert page.locator('#method-section a').count()==0
+            reference=page.get_by_role('button',name='查看引用 1',exact=True)
+            reference.focus();page.keyboard.press('Enter')
+            expect(page.locator('#method-citation-1')).to_be_focused()
+            assert reference.bounding_box()['height']>=44
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+            body=page.locator('#method-body').inner_text();citations=page.locator('#method-citations').inner_text()
+            page.reload()
+            expect(page.locator('#method-body')).to_have_text(body,use_inner_text=True)
+            expect(page.locator('#method-time')).to_have_attribute('datetime',report['received_at'])
+            method_server['stop'](method_server['process']);method_server['start']()
+            page.reload()
+            expect(page.locator('#method-body')).to_have_text(body,use_inner_text=True)
+            expect(page.locator('#method-citations')).to_have_text(citations,use_inner_text=True)
+            assert context.request.get(base+'/api/research/'+facts['research_id']).json()['data']['method_result']==report
+            expect(page.locator('#research-list-items a')).to_have_count(1)
+            with context.expect_page() as opened:page.locator('#research-list-items a').click()
+            expect(opened.value.locator('#method-body')).to_have_text(body,use_inner_text=True)
+            opened.value.close()
+            page.screenshot(path=str(method_server['root']/'method-result.png'),full_page=True)
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('method_server',['pending'],indirect=True)
+def test_method_result_consumes_real_reconcile_view_without_generation(method_server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#method-body')).to_have_text('')
+            expect(page.locator('#task-reconcile')).to_be_visible()
+            with page.expect_response('**/reconcile') as response:page.locator('#task-reconcile').click()
+            assert response.value.status==200
+            report=response.value.json()['data']['method_result']
+            assert report['result_ref']==facts['result_ref']
+            expect(page.locator('#method-body')).to_contain_text(report['sections']['summary'])
+            expect(page.locator('#method-time')).to_have_attribute('datetime',facts['received_at'])
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('method_server',['null'],indirect=True)
+def test_method_result_real_bad_b_never_becomes_visible_body(method_server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            assert context.request.get(base+'/api/research/'+facts['research_id']).json()['data']['method_result'] is None
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#method-status')).to_contain_text('未取得可展示')
+            expect(page.locator('#method-body')).to_have_text('')
+            expect(page.locator('#method-meta')).to_be_hidden()
+            assert page.locator('#method-citations article').count()==0
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('method_server',['pending'],indirect=True)
+def test_method_result_cancelled_pending_body_stays_hidden(method_server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#task-cancel')).to_be_visible()
+            page.locator('#task-cancel').click()
+            expect(page.locator('#task-phase')).to_contain_text('已停止')
+            expect(page.locator('#method-body')).to_have_text('')
+            expect(page.locator('#method-meta')).to_be_hidden()
+        finally:context.close();browser.close()
+
+
+def test_method_result_changed_input_and_late_real_a_cannot_restore_old_body(method_server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();held=[];active_routes=[];listeners=[];page=None
+        observed={"events":[],"request_count":0,"fetch_status":None,"failures":[],"held_ready":False};pattern=None;hold=None
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            target=base+'/api/research/'+facts['research_id'];requests=[]
+            started=time.monotonic();deadline=started+5
+            def record(stage):observed['events'].append({'stage':stage,'seconds':round(time.monotonic()-started,6)})
+            def remaining_ms():
+                remaining=deadline-time.monotonic()
+                assert remaining>0,'real held-response precondition exceeded its own5s deadline: '+json.dumps(observed)
+                return max(1,int(remaining*1000))
+            def capture(request):
+                if request.method=='GET' and request.url==target:
+                    requests.append(request);observed['request_count']=len(requests);record('request')
+            def failed(request):
+                if any(request is item for item in requests):
+                    observed['failures'].append({'stage':'requestfailed','error_type':request.failure.split()[0] if request.failure else 'unknown'});record('requestfailed')
+            def page_error(error):
+                observed['failures'].append({'stage':'pageerror','error_type':error.name});record('pageerror')
+            listeners=[('request',capture),('requestfailed',failed),('pageerror',page_error)]
+            for event,callback in listeners:page.on(event,callback)
+            def hold(route):
+                active_routes.append(route);record('route_enter')
+                try:
+                    assert len(requests)==1 and route.request is requests[0],'route must hold the original GET'
+                    record('fetch_start');response=route.fetch(timeout=remaining_ms());observed['fetch_status']=response.status;record('fetch_returned')
+                    assert response.status==200 and response.url==target,'real original GET must return200'
+                    assert time.monotonic()<=deadline,'real fetch exceeded held-response deadline'
+                    held.append((route,response));observed['held_ready']=True;record('held')
+                except Exception as error:
+                    observed['failures'].append({'stage':'route_fetch','error_type':type(error).__name__});record('fetch_failed')
+                    try:route.abort()
+                    except Exception:pass
+            pattern='**/api/research/'+facts['research_id'];page.route(pattern,hold,times=1)
+            page.locator('#task-refresh').click(timeout=remaining_ms())
+            while not held and not observed['failures'] and time.monotonic()<deadline:
+                page.wait_for_timeout(min(20,remaining_ms()))
+            assert not observed['failures'],'held-response precondition failed: '+json.dumps(observed)
+            assert len(held)==1,'real response not held within5s: '+json.dumps(observed)
+            assert time.monotonic()<=deadline and held[0][0].request is requests[0],json.dumps(observed)
+            page.locator('#original-input').fill('换成新的研究现象，旧方法记录不能沿用')
+            expect(page.locator('#method-body')).to_have_text('')
+            page.locator('#save').click()
+            expect(page.locator('#status')).to_contain_text('已保存修订 2')
+            route,response=held.pop();route.fulfill(response=response);active_routes.remove(route);record('released')
+            expect(page.locator('#task-refresh')).to_be_enabled()
+            expect(page.locator('#method-body')).to_have_text('')
+            expect(page.locator('#original-input')).to_have_value('换成新的研究现象，旧方法记录不能沿用')
+            fresh=context.request.get(base+'/api/research/'+facts['research_id']).json()['data']
+            assert fresh.get('method_result') is None
+        finally:
+            try:
+                for route in active_routes:
+                    try:route.abort()
+                    except Exception:pass
+                if page is not None:
+                    if pattern is not None:page.unroute(pattern,hold)
+                    for event,callback in listeners:page.remove_listener(event,callback)
+                observed['route_unbound']=pattern is not None;observed['listeners_removed']=bool(listeners)
+                (method_server['root']/'method-late-response-wait.json').write_text(json.dumps(observed,indent=2))
+            finally:context.close();browser.close()
+
+
+def test_method_result_actual_auth503_preserves_draft_but_requires_fresh_read(method_server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            snapshot=page.locator('#problem-form').evaluate("f=>Array.from(f.querySelectorAll('input,textarea,select')).map(e=>[e.id,e.value,e.checked])")
+            pending=page.evaluate("Object.fromEntries(Object.entries(sessionStorage))")
+            method_server['stop'](method_server['process']);closed=method_server['start'](auth_enabled=False)
+            requests=[]
+            page.on('request',lambda request:requests.append(request.url) if '/api/research' in request.url else None)
+            page.locator('#research-list-refresh').click()
+            expect(page.locator('#status')).to_contain_text('暂时无法核对')
+            expect(page.locator('#method-body')).to_have_text('')
+            expect(page.locator('#method-meta')).to_be_hidden()
+            assert page.locator('#problem-form').evaluate("f=>Array.from(f.querySelectorAll('input,textarea,select')).map(e=>[e.id,e.value,e.checked])")==snapshot
+            assert page.evaluate("Object.fromEntries(Object.entries(sessionStorage))")==pending and requests==[]
+            method_server['stop'](closed);method_server['start']()
+            page.locator('#research-list-refresh').click()
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            expect(page.locator('#method-body')).to_have_text('')
+            page.locator('#task-refresh').click()
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            context.request.post(base+'/api/auth/logout',headers={'Origin':base})
+            page.locator('#task-refresh').click()
+            expect(page.locator('#problem-form')).to_be_hidden()
+            expect(page.locator('#method-section')).to_be_hidden()
+            expect(page.locator('#method-body')).to_have_text('')
+        finally:context.close();browser.close()
+
+
+def test_method_result_cross_owner_and_source_withdrawal_remove_private_body(method_server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();other=browser.new_context()
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            login(other,base,'method-other@example.test')
+            blocked=other.new_page();blocked.goto(base+'/research/'+facts['research_id'])
+            expect(blocked.locator('#problem-form')).to_be_hidden()
+            expect(blocked.locator('#method-body')).to_have_text('')
+            method_server['withdraw_source']()
+            page.locator('#task-refresh').click()
+            expect(page.locator('#problem-form')).to_be_visible()
+            expect(page.locator('#original-input')).to_be_enabled()
+            expect(page.locator('#method-status')).to_contain_text('正文当前不可用')
+            expect(page.locator('#method-body')).to_have_text('')
+            assert '离线待核记录' not in page.locator('#method-section').inner_text()
+        finally:context.close();other.close();browser.close()
+
+
+def test_method_view_client_schema_rejects_corruption_of_real_backend_view(method_server):
+    """Client-only negative checks use the actual validator, not mock GET proof."""
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            response=context.request.get(base+'/api/research/'+facts['research_id'])
+            assert response.status==200
+            data=response.json()['data']
+            source=(ROOT/'web/frontend/assets/research.js').read_text()
+            start=source.index('  function validMethod(data) {');end=source.index('  function renderMethod(',start)
+            validator=source[start:end]
+            id_line=next(line.strip() for line in source.splitlines() if line.strip().startswith('const validId ='))
+            program="const payload=JSON.parse(require('fs').readFileSync(0,'utf8')); const researchId=payload.research.id; const selectedTask=null;\n"+id_line+'\n'+validator+r'''
+if (!validMethod(payload)) throw Error('real backend view rejected');
+const changes=[
+ v=>delete v.method_result.schema_version,
+ v=>{v.method_result.sections.summary=3},
+ v=>{v.method_result.model_analysis_ran=true},
+ v=>{v.method_result.input_digest='0'.repeat(64)},
+ v=>{v.task.version++},
+ v=>{v.method_result.is_historical=true},
+ v=>{v.research.id='00000000-0000-4000-8000-000000000000'},
+ v=>{v.execution='FAILED'},
+ v=>{v.execution='CANCELLED'},
+ v=>{v.method_result.citations[0].quote='x'},
+ v=>{v.method_result.sections.mechanisms[0].evidence_handles=['missing']},
+ v=>{v.method_result.sections.summary='x'.repeat(1001)},
+ v=>{v.method_result.citations.push(v.method_result.citations[0])}
+];
+for (const change of changes) {
+ const value=JSON.parse(JSON.stringify(payload));change(value);
+ if (validMethod(value)!==null) throw Error('corrupted client shape accepted');
+}
+console.log('13 malformed client views rejected; real HTTP view accepted');
+'''
+            result=subprocess.run(['node','-e',program],input=json.dumps(data),capture_output=True,text=True,timeout=15)
+            assert result.returncode==0,result.stderr
+        finally:context.close();browser.close()
+
+
+def test_method_result_new_explicit_source_task_clears_current_method_body(method_server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context(viewport={'width':430,'height':932})
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            page.locator('#source-query').fill('queue theory');page.locator('#source-preview').click()
+            expect(page.locator('#source-confirm')).to_be_visible()
+            # Merely editing/previewing a query does not generate or execute.
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            with page.expect_response('**/source-tasks') as started:page.locator('#source-confirm').click()
+            assert started.value.status==200
+            assert started.value.json()['data']['task']['id']!=facts['task_id']
+            expect(page.locator('#method-body')).to_have_text('')
+            expect(page.locator('#method-meta')).to_be_hidden()
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('late_status',[404,401])
+@pytest.mark.parametrize('save_new_revision',[True,False],ids=['saved','draft'])
+def test_method_result_late_actual_access_error_cannot_clear_new_problem(method_server,late_status,save_new_revision):
+    """Hold a real rejected GET, then accept a newer save or local edit."""
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();held=[]
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            owner_cookies=context.cookies()
+            if late_status==404:
+                login(context,base,'late-foreign-owner@example.test')
+            else:
+                assert context.request.post(base+'/api/auth/logout',headers={'Origin':base}).status==200
+            def hold(route):
+                response=route.fetch();assert response.status==late_status
+                held.append((route,response))
+            page.route('**/api/research/'+facts['research_id'],hold,times=1)
+            page.locator('#task-refresh').click()
+            for _ in range(50):
+                if held:break
+                page.wait_for_timeout(20)
+            assert len(held)==1
+            if late_status==401:login(context,base,facts['owner_email'])
+            else:
+                context.clear_cookies();context.add_cookies(owner_cookies)
+            draft='另一份新问题，迟到的旧访问错误不应清除当前输入'
+            page.locator('#original-input').fill(draft)
+            if save_new_revision:
+                with page.expect_response('**/revisions') as saved:page.locator('#save').click()
+                assert saved.value.status==200
+                assert saved.value.json()['data']['current_problem']['revision']==2
+                expect(page.locator('#status')).to_contain_text('已保存修订 2')
+            pending=page.evaluate("Object.fromEntries(Object.entries(sessionStorage))")
+            route,response=held.pop();route.fulfill(response=response)
+            expect(page.locator('#task-refresh')).to_be_enabled()
+            expect(page.locator('#problem-form')).to_be_visible()
+            expect(page.locator('#original-input')).to_have_value(draft)
+            assert page.evaluate("Object.fromEntries(Object.entries(sessionStorage))")==pending
+            expect(page.locator('#method-body')).to_have_text('')
+            expect(page.locator('#method-meta')).to_be_hidden()
+            if save_new_revision:
+                fresh=context.request.get(base+'/api/research/'+facts['research_id'])
+                assert fresh.status==200
+                assert fresh.json()['data']['current_problem']['original_input']==draft
+        finally:
+            for route,_ in held:route.abort()
+            context.close();browser.close()
+
+
+def test_method_result_successful_old_write_cannot_revive_revoked_private_view(method_server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();held=[]
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            def hold(route):
+                response=route.fetch();assert response.status==200
+                held.append((route,response))
+            page.route('**/api/research/*/revisions',hold,times=1)
+            page.locator('#original-input').fill('退出前已经提交，迟到成功回执也不能恢复私有页面')
+            page.locator('#save').click()
+            for _ in range(50):
+                if held:break
+                page.wait_for_timeout(20)
+            assert len(held)==1
+            assert held[0][1].json()['data']['current_problem']['revision']==2
+            assert context.request.post(base+'/api/auth/logout',headers={'Origin':base}).status==200
+            page.locator('#research-list-refresh').click()
+            expect(page.locator('#problem-form')).to_be_hidden()
+            pending=page.evaluate("Object.fromEntries(Object.entries(sessionStorage))")
+            assert any(key.startswith('structure-research-pending:') for key in pending)
+            route,response=held.pop();route.fulfill(response=response)
+            expect(page.locator('#status')).to_contain_text('较早的来源读取已失效')
+            expect(page.locator('#problem-form')).to_be_hidden()
+            expect(page.locator('#original-input')).to_have_value('')
+            expect(page.locator('#method-section')).to_be_hidden()
+            expect(page.locator('#method-body')).to_have_text('')
+            assert page.evaluate("Object.fromEntries(Object.entries(sessionStorage))")==pending
+        finally:
+            for route,_ in held:route.abort()
+            context.close();browser.close()
+
+
+@pytest.mark.parametrize('refresh',['task-refresh','source-refresh'])
+def test_method_current_source_unavailable_preserves_problem_and_explains_missing_body(method_server,refresh):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context(viewport={'width':430,'height':932})
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            expect(page.locator('#status')).to_contain_text('已从账户读取保存的问题')
+            method_server['withdraw_source']()
+            with page.expect_response(base+'/api/research/'+facts['research_id']) as response:
+                page.locator('#'+refresh).click()
+            assert response.value.status==200
+            assert response.value.json()['data']['method_result'] is None
+            assert response.value.json()['data']['method_result_state']=='unavailable'
+            assert context.request.get(base+'/api/auth/me').status==200
+            expect(page.locator('#problem-form')).to_be_visible()
+            expect(page.locator('#original-input')).to_be_enabled()
+            expect(page.locator('#method-status')).to_contain_text('正文当前不可用')
+            expect(page.locator('#method-body')).to_have_text('')
+            expect(page.locator('#method-citations')).to_have_text('')
+            expect(page.locator('#method-meta')).to_be_hidden()
+            expect(page.locator('#status')).to_be_visible()
+            expect(page.locator('#status')).to_contain_text('正文当前不可用')
+            expect(page.locator('#status')).to_have_attribute('data-error','true')
+            assert '已从账户读取保存的问题' not in page.locator('body').inner_text()
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+            page.screenshot(path=str(method_server['root']/('body-unavailable-'+refresh+'.png')),full_page=True)
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('method_server',['history-revision','history-same'],indirect=True)
+@pytest.mark.parametrize('viewport',[{'width':1280,'height':900},{'width':430,'height':932}])
+def test_history_real_result_original_problem_native_new_tab_restart_and_readonly(method_server,viewport):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context(viewport=viewport)
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            rid=facts['research_id'];task=facts['task_id'];url=base+'/research/'+rid+'?task_id='+task
+            saved=context.request.get(base+'/api/research/'+rid,params={'task_id':task})
+            assert saved.status==200
+            data=saved.json()['data'];report=data['method_result'];original=facts['original_problem']
+            assert data['is_historical'] is report['is_historical'] is True
+            page=context.new_page();page.goto(base+'/research/'+rid)
+            expect(page.locator('#task-history-items a')).not_to_have_count(0)
+            draft='当前标签里的新草稿，打开历史不能丢失'
+            page.locator('#original-input').fill(draft)
+            link=page.locator('#task-history-items a[href="/research/'+rid+'?task_id='+task+'"]')
+            expect(link).to_have_attribute('target','_blank');expect(link).to_have_attribute('rel','noopener')
+            assert link.bounding_box()['height']>=44
+            link.focus()
+            with context.expect_page() as opened:page.keyboard.press('Enter')
+            history=opened.value
+            expect(history.locator('#view-context')).to_contain_text('历史流程')
+            assert history.evaluate('window.opener===null')
+            expect(page.locator('#original-input')).to_have_value(draft)
+            for identifier,key in [('original-input','original_input'),('objective','objective'),('entry','entry'),('summary','summary')]:
+                expect(history.locator('#'+identifier)).to_have_value(original[key])
+                expect(history.locator('#'+identifier)).to_be_disabled()
+            for identifier in ('constraints','unknowns'):
+                expect(history.locator('#'+identifier)).to_have_value('\n'.join(original[identifier]))
+            assert history.locator('#confirmed').is_checked()==original['confirmed']
+            roles={'state':'状态','parameter':'参数','input':'输入','constraint':'约束','output':'输出'}
+            origins={'user_observed':'用户观察','user_assumed':'用户假设','system_proposed':'系统提议'}
+            for variable in original['variables']:
+                for value in (variable['id'],variable['label'],'角色：'+roles[variable['role']],'单位：'+(variable['unit_id'] or '待确认'),'观测：'+(variable['observation'] if variable['observation'] is not None else '待补充'),'来源：'+origins[variable['provenance']]):
+                    expect(history.locator('#variables')).to_contain_text(value)
+            expect(history.locator('#problem-created')).to_have_attribute('datetime',original['created_at'])
+            assert history.locator('#original-input').evaluate('e=>e.scrollHeight<=e.clientHeight+2')
+            expect(history.locator('#method-body')).to_contain_text(report['sections']['summary'])
+            expect(history.locator('#method-title')).to_have_text('历史方法假说记录')
+            expect(history.locator('#method-revision')).to_have_text(str(original['revision']))
+            expect(history.locator('#method-time')).to_have_attribute('datetime',facts['received_at'])
+            expect(history.locator('#method-record-details details')).not_to_have_attribute('open','')
+            history.locator('#method-record-details summary').focus();history.keyboard.press('Enter')
+            expect(history.locator('#method-result-ref')).to_be_visible()
+            expect(history.locator('#method-result-ref')).to_have_text(facts['result_ref'])
+            expect(history.locator('#task-current')).to_have_attribute('href','/research/'+rid)
+            posts=[];history.on('request',lambda request:posts.append(request.url) if request.method=='POST' and '/api/research' in request.url else None)
+            for identifier in ('save','task-start','task-cancel','task-reconcile','task-resume','source-preview','source-confirm'):
+                history.locator('#'+identifier).dispatch_event('click')
+            history.locator('#problem-form').dispatch_event('submit')
+            history.wait_for_timeout(100)
+            assert posts==[]
+            with history.expect_response(lambda response:response.url==base+'/api/research/'+rid+'?task_id='+task) as refreshed:
+                history.locator('#task-refresh').click()
+            assert refreshed.value.status==200
+            expect(history.locator('#method-time')).to_have_attribute('datetime',facts['received_at'])
+            method_server['stop'](method_server['process']);method_server['start']()
+            history.reload()
+            expect(history.locator('#method-body')).to_contain_text(report['sections']['summary'])
+            expect(history.locator('#method-time')).to_have_attribute('datetime',facts['received_at'])
+            expect(history.locator('#method-result-ref')).to_have_text(facts['result_ref'])
+            expect(history.locator('#original-input')).to_have_value(original['original_input'])
+            assert history.url==url and posts==[]
+            assert history.evaluate('document.documentElement.scrollWidth<=innerWidth')
+            history.screenshot(path=str(method_server['root']/'history-readonly.png'),full_page=True)
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('pending_stage',['source-approvals','source-tasks'])
+def test_fixed_task_and_history_never_replay_real_pending_source_intent(method_server,pending_stage):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();observed=[]
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            rid=facts['research_id'];page=context.new_page();page.goto(base+'/research/'+rid)
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            page.locator('#source-query').fill('queue history pending');page.locator('#source-preview').click()
+            expect(page.locator('#source-confirm')).to_be_visible()
+            def lose_receipt(route):
+                response=route.fetch();assert response.status==200
+                observed.append(response.json());route.abort()
+            page.route('**/api/research/*/'+pending_stage,lose_receipt,times=1)
+            page.locator('#source-confirm').click()
+            expect(page.locator('#source-status')).to_contain_text('fetch')
+            assert len(observed)==1
+            slot='structure-research-pending:source:'+pending_stage+':'+rid
+            storage=page.evaluate('Object.fromEntries(Object.entries(sessionStorage))')
+            assert slot in storage
+            posts=[];page.on('request',lambda request:posts.append(request.url) if request.method=='POST' and '/api/research' in request.url else None)
+            task=facts['task_id'];page.goto(base+'/research/'+rid+'?task_id='+task)
+            view=context.request.get(base+'/api/research/'+rid,params={'task_id':task}).json()['data']
+            assert view['is_historical']==(pending_stage=='source-tasks')
+            expect(page.locator('#view-context')).to_contain_text('历史流程' if view['is_historical'] else '固定任务只读')
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            for identifier in ('save','task-start','task-cancel','task-reconcile','task-resume','source-preview','source-confirm'):
+                page.locator('#'+identifier).dispatch_event('click')
+            page.locator('#problem-form').dispatch_event('submit')
+            page.locator('#reload').click()
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            page.wait_for_timeout(100)
+            assert posts==[]
+            assert page.evaluate('Object.fromEntries(Object.entries(sessionStorage))')==storage
+            expect(page.locator('#task-current')).to_have_attribute('href','/research/'+rid)
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('method_server',['history-pages'],indirect=True)
+def test_history_real_43_tasks_inclusive_pages_no_gaps_duplicates_or_lost_anchor(method_server):
+    from urllib.parse import urlparse,parse_qs
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context(viewport={'width':430,'height':932})
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id']);seen=[];sizes=[]
+            while True:
+                expect(page.locator('#task-history-items a')).not_to_have_count(0)
+                links=page.locator('#task-history-items a').all()
+                identifiers=[parse_qs(urlparse(link.get_attribute('href')).query)['task_id'][0] for link in links]
+                sizes.append(len(identifiers));assert not set(seen).intersection(identifiers);seen+=identifiers
+                if not page.locator('#task-history-more').is_visible():break
+                anchor=parse_qs(urlparse(page.locator('#task-history-more').get_attribute('href')).query)['task_id'][0]
+                assert anchor not in seen
+                with context.expect_page() as opened:page.locator('#task-history-more').click()
+                page=opened.value
+                expect(page.locator('#task-history-items a').first).to_have_attribute('href','/research/'+facts['research_id']+'?task_id='+anchor)
+                expect(page.locator('#view-context')).to_contain_text('历史流程')
+                assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+            assert sizes==[20,20,3] and seen==facts['task_order'] and len(set(seen))==43
+            link=page.locator('#task-history-items a[href="/research/'+facts['research_id']+'?task_id='+facts['task_id']+'"]')
+            with context.expect_page() as opened:link.click()
+            expect(opened.value.locator('#method-result-ref')).to_have_text(facts['result_ref'])
+            expect(opened.value.locator('#method-body')).to_contain_text('离线待核记录')
+            page.screenshot(path=str(method_server['root']/'history-last-page.png'),full_page=True)
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('save_new_revision',[False,True],ids=['draft','saved'])
+def test_late_real_source_unavailable_200_cannot_overwrite_new_problem(method_server,save_new_revision):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();held=[]
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            method_server['withdraw_source']()
+            def hold(route):
+                response=route.fetch();assert response.status==200
+                assert response.json()['data']['method_result'] is None and response.json()['data']['method_result_state']=='unavailable'
+                held.append((route,response))
+            page.route('**/api/research/'+facts['research_id'],hold,times=1)
+            page.locator('#task-refresh').click()
+            for _ in range(50):
+                if held:break
+                page.wait_for_timeout(20)
+            assert len(held)==1
+            draft='这是新的问题，迟到的正文不可用回执不能覆盖它'
+            page.locator('#original-input').fill(draft)
+            if save_new_revision:
+                page.locator('#save').click();expect(page.locator('#status')).to_contain_text('已保存修订 2')
+            notice=page.locator('#status').inner_text();pending=page.evaluate('Object.fromEntries(Object.entries(sessionStorage))')
+            route,response=held.pop();route.fulfill(response=response)
+            expect(page.locator('#task-refresh')).to_be_enabled()
+            expect(page.locator('#original-input')).to_have_value(draft)
+            expect(page.locator('#original-input')).to_be_enabled()
+            expect(page.locator('#status')).to_have_text(notice)
+            expect(page.locator('#method-body')).to_have_text('')
+            assert page.evaluate('Object.fromEntries(Object.entries(sessionStorage))')==pending
+        finally:
+            for route,_ in held:route.abort()
+            context.close();browser.close()
+
+
+@pytest.mark.parametrize('method_server',['history-revision'],indirect=True)
+def test_unavailable_historical_body_preserves_original_readonly_problem_and_navigation(method_server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();url=base+'/research/'+facts['research_id']+'?task_id='+facts['task_id'];page.goto(url)
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            method_server['withdraw_source']()
+            with page.expect_response(base+'/api/research/'+facts['research_id']+'?task_id='+facts['task_id']) as response:page.locator('#task-refresh').click()
+            assert response.value.status==200 and response.value.json()['data']['method_result_state']=='unavailable'
+            expect(page.locator('#original-input')).to_have_value(facts['original_problem']['original_input'])
+            expect(page.locator('#original-input')).to_be_disabled()
+            expect(page.locator('#method-body')).to_have_text('')
+            expect(page.locator('#method-meta')).to_be_hidden()
+            expect(page.locator('#method-record-details')).to_be_hidden()
+            expect(page.locator('#status')).to_contain_text('正文当前不可用')
+            expect(page.locator('#task-history-items a')).not_to_have_count(0)
+            assert context.request.get(base+'/api/auth/me').status==200
+        finally:context.close();browser.close()
+
+
+def test_current_real_cross_owner404_remains_visible_and_clears_private_content(method_server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            page=context.new_page();page.goto(base+'/research/'+facts['research_id'])
+            expect(page.locator('#method-body')).to_contain_text('离线待核记录')
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            login(context,base,'current-foreign-owner@example.test')
+            with page.expect_response(base+'/api/research/'+facts['research_id']) as response:page.locator('#task-refresh').click()
+            assert response.value.status==404 and context.request.get(base+'/api/auth/me').status==200
+            expect(page.locator('#problem-form')).to_be_hidden()
+            expect(page.locator('#method-body')).to_have_text('')
+            expect(page.locator('#task-history-section')).to_be_hidden()
+            expect(page.locator('#status')).to_have_text(response.value.json()['error']['message'])
+            expect(page.locator('#status')).to_be_visible()
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('method_server',['history-same'],indirect=True)
+def test_history_client_validation_rejects_mismatched_task_flags_and_bad_navigation(method_server):
+    """Client-only corruptions of actual historical GET, not fake HTTP success."""
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            response=context.request.get(base+'/api/research/'+facts['research_id'],params={'task_id':facts['task_id']});assert response.status==200
+            data=response.json()['data'];source=(ROOT/'web/frontend/assets/research.js').read_text()
+            validator=source[source.index('  function validMethod(data) {'):source.index('  function renderMethod(')]
+            navigation=source[source.index('  function validTaskHistory(data) {'):source.index('  function renderTaskHistory(')]
+            definitions='\n'.join(line.strip() for line in source.splitlines() if line.strip().startswith(('const validId =','const recordTime =')))
+            program="const payload=JSON.parse(require('fs').readFileSync(0,'utf8')); const researchId=payload.research.id; let selectedTask=payload.task.id;\n"+definitions+'\n'+validator+'\n'+navigation+r"""
+if (!validMethod(payload) || !validTaskHistory(payload)) throw Error('real historical GET rejected');
+const bodyChanges=[v=>{v.method_result.is_historical=false},v=>{v.current_problem.digest='0'.repeat(64)},v=>{v.current_problem.research_id='00000000-0000-4000-8000-000000000000'},v=>{v.method_result.input_revision++},v=>{delete v.research.current_revision},v=>{v.research.current_revision=1.5}];
+for (const change of bodyChanges) {const v=structuredClone(payload);change(v);if(validMethod(v)!==null)throw Error('bad historical body accepted')}
+const navChanges=[v=>{v.research.id='00000000-0000-4000-8000-000000000000'},v=>{v.task_history[0].task_id='javascript:alert(1)'},v=>{v.task_history.push(v.task_history[0])},v=>{v.next_task_id=v.task_history[0].task_id},v=>{v.next_task_id='bad'},v=>{v.task_history[0].research_id='foreign'},v=>{v.task_history[0].input_revision=0},v=>{delete v.research.current_revision},v=>{v.research_version=1.5},v=>{v.task_history[0].start_version=v.research_version+1}];
+for (const change of navChanges) {const v=structuredClone(payload);change(v);if(validTaskHistory(v)!==null)throw Error('bad history navigation accepted')}
+selectedTask='00000000-0000-4000-8000-000000000000';
+if(validMethod(payload)!==null || validTaskHistory(payload)!==null)throw Error('wrong URL task scope accepted');
+console.log('real historical body/nav accepted; '+(bodyChanges.length+navChanges.length+2)+' malformed scope/body/nav checks rejected');
+"""
+            checked=subprocess.run(['node','-e',program],input=json.dumps(data),capture_output=True,text=True,timeout=15)
+            assert checked.returncode==0,checked.stderr
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('transition',['revision','task'])
+def test_fixed_current_task_refresh_becomes_historical_with_server_truth(method_server,transition):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            rid=facts['research_id'];task=facts['task_id'];selected=base+'/api/research/'+rid+'?task_id='+task
+            fixed=context.new_page();fixed.goto(base+'/research/'+rid+'?task_id='+task)
+            expect(fixed.locator('#view-context')).to_contain_text('固定任务只读')
+            assert context.request.get(selected).json()['data']['is_historical'] is False
+            editor=context.new_page();editor.goto(base+'/research/'+rid)
+            expect(editor.locator('#original-input')).to_be_enabled()
+            if transition=='revision':
+                editor.locator('#original-input').fill('另一标签保存了新的问题修订')
+                editor.locator('#save').click();expect(editor.locator('#status')).to_contain_text('已保存修订 2')
+            else:
+                editor.locator('#source-query').fill('queue next task');editor.locator('#source-preview').click()
+                expect(editor.locator('#source-confirm')).to_be_visible()
+                editor.locator('#source-confirm').click();expect(editor.locator('#source-status')).to_contain_text('已排队')
+            with fixed.expect_response(selected) as response:fixed.locator('#task-refresh').click()
+            assert response.value.status==200 and response.value.json()['data']['is_historical'] is True
+            expect(fixed.locator('#method-body')).to_contain_text('离线待核记录')
+            expect(fixed.locator('#method-title')).to_have_text('历史方法假说记录')
+            expect(fixed.locator('#view-context')).to_contain_text('历史流程')
+            expect(fixed.locator('#view-context')).not_to_contain_text('这是当前任务')
+            expect(fixed.locator('#status')).to_contain_text('历史流程')
+            expect(fixed.locator('#status')).not_to_contain_text('仍是当前任务')
+            expect(fixed.locator('#method-result-ref')).to_have_text(facts['result_ref'])
+            expect(fixed.locator('#method-time')).to_have_attribute('datetime',facts['received_at'])
+            expect(fixed.locator('#original-input')).to_be_disabled()
+        finally:context.close();browser.close()
+
+
+
+def test_invalid_or_ambiguous_task_url_never_falls_back_to_editable_current_problem(method_server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=method_server['base'];facts=method_server['facts'];login(context,base,facts['owner_email'])
+            for query in ('task_id=','task_id=bad','task_id='+facts['task_id']+'&task_id='+facts['task_id']):
+                page=context.new_page();requests=[]
+                page.on('request',lambda request:requests.append((request.method,request.url)) if '/api/research' in request.url else None)
+                page.goto(base+'/research/'+facts['research_id']+'?'+query)
+                expect(page.locator('#status')).to_have_text('流程链接无效。')
+                expect(page.locator('#problem-form')).to_be_hidden()
+                expect(page.locator('#task-history-items a')).to_have_count(0)
+                page.locator('#problem-form').dispatch_event('submit')
+                page.locator('#task-start').dispatch_event('click')
+                page.wait_for_timeout(50)
+                assert requests==[]
+                page.close()
+        finally:context.close();browser.close()
+
+
+
+@pytest.mark.parametrize('selector',['','bad','00000000-0000-4000-8000-000000000000'],ids=['empty','malformed','valid-uuid'])
+def test_task_selector_without_research_id_is_explicitly_invalid_and_cannot_create(server,selector):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server['base'];login(context,base);page=context.new_page();requests=[]
+            page.on('request',lambda request:requests.append((request.method,request.url)) if '/api/research' in request.url else None)
+            page.goto(base+'/research?task_id='+selector)
+            expect(page.locator('#status')).not_to_have_text('正在读取研究记录…')
+            observation={'selector':selector,'status':page.locator('#status').inner_text(),'form_visible':page.locator('#problem-form').is_visible(),'requests':requests.copy()}
+            (server['root']/'missing-research-id-observation.json').write_text(json.dumps(observation,ensure_ascii=False,indent=2))
+            expect(page.locator('#status')).to_have_text('流程链接无效。')
+            expect(page.locator('#status')).to_have_attribute('data-error','true')
+            expect(page.locator('#problem-form')).to_be_hidden()
+            expect(page.locator('#method-body')).to_have_text('')
+            expect(page.locator('#task-history-items a')).to_have_count(0)
+            page.locator('#problem-form').dispatch_event('submit')
+            page.locator('#task-start').dispatch_event('click')
+            page.wait_for_timeout(50)
+            assert requests==[]
+            assert context.request.get(base+'/api/auth/me').status==200
+        finally:context.close();browser.close()
+
+
+def test_new_research_without_task_selector_keeps_real_create_and_save(server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server['base'];login(context,base);page=context.new_page();page.goto(base+'/research')
+            expect(page.locator('#status')).to_have_text('新问题尚未保存。')
+            expect(page.locator('#original-input')).to_be_enabled()
+            expect(page.locator('#save')).to_be_enabled()
+            text='普通新建入口应继续真实保存问题'
+            fill(page,text)
+            with page.expect_response(lambda response:response.url==base+'/api/research' and response.request.method=='POST') as saved:
+                page.locator('#save').click()
+            assert saved.value.status==200
+            data=saved.value.json()['data'];rid=data['research']['id']
+            assert data['current_problem']['original_input']==text and data['current_problem']['revision']==1
+            expect(page.locator('#status')).to_contain_text('已保存修订 1')
+            assert page.url==base+'/research/'+rid
+            actual=context.request.get(base+'/api/research/'+rid)
+            assert actual.status==200 and actual.json()['data']['current_problem']['original_input']==text
+        finally:context.close();browser.close()

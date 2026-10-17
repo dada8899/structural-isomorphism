@@ -292,30 +292,12 @@
         <a href="https://phase.bytedance.city/" target="_blank" rel="noopener" class="ask-empty__link">Phase Detector ↗</a>
       </div>
 
-      <!-- W7-D mini-brief 1 (2026-05-24): homepage waitlist section.
-           Sits below the explore cards so it doesn't compete with the
-           primary ask-box CTA; captures the user who scrolled past
-           without asking but wants weekly digest. -->
-      <section class="waitlist" id="waitlist-section" aria-labelledby="waitlist-title">
+      <section class="waitlist" id="research-next" aria-labelledby="research-next-title">
         <div class="waitlist__inner">
-          <h2 class="waitlist__title" id="waitlist-title">获取结构同构研究更新</h2>
-          <p class="waitlist__desc">当新的方法、回测或经复核的案例发布时通知。免费、不定期、随时退订。</p>
-          <form id="waitlist-form" class="waitlist__form" novalidate>
-            <label for="waitlist-email" class="visually-hidden">邮箱</label>
-            <input
-              id="waitlist-email"
-              class="waitlist__input"
-              type="email"
-              name="email"
-              autocomplete="email"
-              required
-              maxlength="200"
-              placeholder="you@example.com"
-              aria-describedby="waitlist-status"
-            >
-            <button type="submit" class="waitlist__submit">获取研究更新</button>
-          </form>
-          <p class="waitlist__status" id="waitlist-status" role="status" aria-live="polite"></p>
+          <h2 class="waitlist__title" id="research-next-title">从一个现象开始研究</h2>
+          <p class="waitlist__desc">先描述你观察到的现象，再比较跨领域模型、来源与适用边界。</p>
+          <a class="btn btn--primary" href="/research">开始研究</a>
+          <p class="waitlist__status">新增订阅暂不可用。本版不收集订阅邮箱；既有订阅请查看原邮件中的退订说明。</p>
         </div>
       </section>
     </section>
@@ -365,78 +347,6 @@
   <script src="/assets/js/evidence-envelope.js?v=20260714n2"></script>
   <script src="/assets/js/ask.js?v=20260714n2"></script>
   <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
-  <!-- W7-D mini-brief 1 (2026-05-24): homepage waitlist submit handler.
-       Captures UTM from URL params; fires Plausible custom event on success. -->
-  <script>
-    (function () {
-      var form = document.getElementById('waitlist-form');
-      if (!form) return;
-      var input = document.getElementById('waitlist-email');
-      var btn = form.querySelector('.waitlist__submit');
-      var status = document.getElementById('waitlist-status');
 
-      function getUtm() {
-        var p = new URLSearchParams(window.location.search);
-        return {
-          utm_source: p.get('utm_source') || null,
-          utm_medium: p.get('utm_medium') || null,
-          utm_campaign: p.get('utm_campaign') || null,
-          utm_term: p.get('utm_term') || null,
-          utm_content: p.get('utm_content') || null
-        };
-      }
-
-      function setStatus(msg, kind) {
-        status.textContent = msg;
-        status.classList.remove('is-ok', 'is-err');
-        if (kind === 'ok') status.classList.add('is-ok');
-        else if (kind === 'err') status.classList.add('is-err');
-      }
-
-      form.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        var email = (input.value || '').trim();
-        if (!email || email.indexOf('@') < 0) {
-          setStatus('请输入有效邮箱', 'err');
-          input.focus();
-          return;
-        }
-        btn.disabled = true;
-        setStatus('提交中…');
-        var body = Object.assign(
-          { email: email, source: 'homepage-hero' },
-          getUtm()
-        );
-        try {
-          var r = await fetch('/api/waitlist', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-          });
-          var data = {};
-          try { data = await r.json(); } catch (_) {}
-          if (r.ok && data.ok) {
-            if (data.created === false) {
-              setStatus('这个邮箱已加入；有经复核的研究更新时会通知你 ✓', 'ok');
-            } else {
-              setStatus('已加入；有经复核的研究更新时会通知你 ✓', 'ok');
-              if (window.plausible) {
-                try { window.plausible('waitlist_signup', { props: { source: 'homepage-hero', placement: 'homepage-hero' } }); } catch (_) {}
-              }
-            }
-            form.reset();
-          } else if (r.status === 429) {
-            setStatus('请求过于频繁，请稍后再试', 'err');
-          } else {
-            setStatus((data && data.error) || '提交失败，请重试', 'err');
-          }
-        } catch (err) {
-          setStatus('网络错误，请重试', 'err');
-        } finally {
-          btn.disabled = false;
-        }
-      });
-    })();
-  </script>
 </body>
 </html>

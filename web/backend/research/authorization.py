@@ -137,44 +137,80 @@ class AuthorizationGate:
 
     @contextmanager
     def owner_gate_id(self, gate_id, *, timeout=5):
-        # IDs are internal UUIDs; no raw identity enters paths.
-        if str(UUID(gate_id, version=4)) != gate_id:
+        if type(gate_id) is not str or str(UUID(gate_id, version=4)) != gate_id:
             raise ValueError("canonical gate id required")
-        root = self.store.path.parent / "research-locks"
-        root.mkdir(mode=0o700, exist_ok=True)
-        info = root.lstat()
-        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
-            raise ResearchError("STORE_UNAVAILABLE", 503, "研究锁目录不可用。")
-        directory = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-        fd = None
-        lease = None
+        if __package__=='web.backend.research':
+            from ..services.auth_store import _formal_auth_mode
+            from ..services.runtime_paths import (PrivateAuthFile,private_auth_path,require_private_auth_lock_dir,
+                _check_current_parent,_auth_forbidden_roots,RuntimePathError)
+        else:
+            from services.auth_store import _formal_auth_mode
+            from services.runtime_paths import (PrivateAuthFile,private_auth_path,require_private_auth_lock_dir,
+                _check_current_parent,_auth_forbidden_roots,RuntimePathError)
+        current=_formal_auth_mode();formal=getattr(self.store,'_private_auth',False)
+        if hasattr(self.store,'_formal_mode'):formal=self.store._formal_mode()
+        if current and not formal:raise RuntimePathError('development owner gate cannot become private')
+        witness=None;directory=None;fd=None;lease=None
+        root=self.store.path.parent/'research-locks';name=gate_id+'.lock'
+        def check_formal_lock():
+            witness.check()
+            if witness.file_identity!=self.store.storage_identity:
+                raise RuntimePathError('private owner gate Auth identity changed')
+            _check_current_parent(root,directory,forbidden=_auth_forbidden_roots())
+            held=os.fstat(fd);entry=os.stat(name,dir_fd=directory,follow_symlinks=False)
+            for info in (held,entry):
+                if (not stat.S_ISREG(info.st_mode) or info.st_uid!=os.geteuid()
+                        or stat.S_IMODE(info.st_mode)!=0o600 or info.st_nlink!=1):
+                    raise RuntimePathError('private owner gate file is unsafe')
+            if (held.st_dev,held.st_ino)!=(entry.st_dev,entry.st_ino):
+                raise RuntimePathError('private owner gate inode changed')
         try:
-            flags = os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC
-            try:
-                fd = os.open(gate_id + ".lock", flags | os.O_CREAT | os.O_EXCL, 0o600, dir_fd=directory)
-            except FileExistsError:
-                # Open an existing inode without O_CREAT. On this macOS target,
-                # concurrent non-exclusive cold create/openat produced ENOENT
-                # even with a stable live directory. Do not retry other errors.
-                fd = os.open(gate_id + ".lock", flags, dir_fd=directory)
-            info = os.fstat(fd)
-            if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
-                    or info.st_nlink != 1 or info.st_mode & 0o077):
-                raise ResearchError("STORE_UNAVAILABLE", 503, "研究锁不可用。")
-            deadline = time.monotonic() + timeout
+            if formal:
+                if (self.store.path!=private_auth_path() or self.store.storage_identity is None):
+                    raise RuntimePathError('private owner gate Auth binding changed')
+                # Research also pins its Auth object/profile, not just a path.
+                if hasattr(self.store,'_formal_mode'):self.store._formal_mode()
+                witness=PrivateAuthFile.acquire(self.store.path)
+                if witness.file_identity!=self.store.storage_identity:
+                    raise RuntimePathError('private owner gate Auth identity changed')
+                root=require_private_auth_lock_dir(self.store.path)
+                directory=os.open('research-locks',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=witness.parent_fd)
+                _check_current_parent(root,directory,forbidden=_auth_forbidden_roots())
+                fd=os.open(name,os.O_RDWR|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=directory)
+                check_formal_lock()
+            else:
+                root.mkdir(mode=0o700,exist_ok=True)
+                info=root.lstat()
+                if not stat.S_ISDIR(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode&0o077:
+                    raise ResearchError('STORE_UNAVAILABLE',503,'研究锁目录不可用。')
+                directory=os.open(root,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+                flags=os.O_RDWR|os.O_NOFOLLOW|os.O_CLOEXEC
+                try:fd=os.open(name,flags|os.O_CREAT|os.O_EXCL,0o600,dir_fd=directory)
+                except FileExistsError:fd=os.open(name,flags,dir_fd=directory)
+                info=os.fstat(fd)
+                if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_nlink!=1 or info.st_mode&0o077:
+                    raise ResearchError('STORE_UNAVAILABLE',503,'研究锁不可用。')
+            deadline=time.monotonic()+timeout
             while True:
                 try:
-                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
                     break
                 except BlockingIOError:
-                    if time.monotonic() >= deadline:
-                        raise ResearchError("STORE_BUSY", 503, "保存暂时繁忙，请用原操作重试。", retryable=True) from None
+                    if time.monotonic()>=deadline:
+                        raise ResearchError('STORE_BUSY',503,'保存暂时繁忙，请用原操作重试。',retryable=True) from None
                     time.sleep(0.01)
+            if formal:check_formal_lock()
             lease=OwnerGateLease(fd,_factory=_LEASE_FACTORY)
-            yield lease
+            try:yield lease
+            finally:
+                if formal:check_formal_lock()
         finally:
             if lease is not None:lease._deactivate()
-            if fd is not None:
-                os.close(fd)  # Closing releases flock, including exception paths.
-            os.close(directory)
-        # Never unlink lock files: waiters must keep the same inode.
+            try:
+                if fd is not None:os.close(fd)
+            finally:
+                try:
+                    if directory is not None:os.close(directory)
+                finally:
+                    if witness is not None:witness.close()
+        # Stable lock inodes are never unlinked, including on failures.

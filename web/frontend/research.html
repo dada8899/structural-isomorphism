@@ -15,9 +15,11 @@
     <p class="intro">先说观察到了什么、希望解决什么。不必先知道数学方法或英文术语。</p>
     <p class="scope" id="page-scope">可保存问题与修订；来源流程开放时可预览查询、确认读取并保存证据笔记。研究结论仍需验证。</p>
     <p id="status" role="status" aria-live="polite">正在读取研究记录…</p>
+    <p id="view-context" class="scope" hidden></p>
     <div id="access" hidden><a href="/auth/login">登录账户</a><p>研究默认私有，请使用保存时的账户读取。</p></div>
     <form id="problem-form" hidden>
       <div class="section-heading"><h2>问题记录</h2><span id="revision-label">未保存</span></div>
+      <p id="problem-meta" class="hint" hidden>原问题保存时间 <time id="problem-created"></time></p>
       <label for="original-input">原始问题 <span>必填 · 最多 4000 字</span></label>
       <textarea id="original-input" required maxlength="4000" rows="5" aria-describedby="input-hint"></textarea>
       <p id="input-hint" class="hint">描述你观察到了什么，先保留原话。</p>
@@ -65,15 +67,30 @@
       </div>
       <div id="task-notes"></div>
     </section>
+    <section id="method-section" hidden aria-labelledby="method-title">
+      <h2 id="method-title">方法假说记录</h2>
+      <p class="scope" id="method-status" aria-live="polite"></p>
+      <p class="hint" id="method-meta" hidden>问题修订 <span id="method-revision"></span> · 原记录时间 <time id="method-time"></time></p>
+      <div id="method-record-details" hidden></div>
+      <div id="method-body"></div>
+      <div id="method-citations"></div>
+    </section>
     <section id="source-section" hidden aria-labelledby="source-title">
       <h2 id="source-title">可选：继续查找方法来源</h2>
-      <p class="hint">先预览，再确认查询内容。最多读取四次 Crossref / PLOS 来源；这里只整理方法材料与短摘录，尚未运行模型分析、行情计算或统计检验。</p>
-      <p class="hint">保存并核对问题后，可自行填写英文关键词。不清楚关键词时可先保留问题；当前尚不提供模型提炼、自动翻译或深度研究结论。</p>
+      <p class="hint source-write-ui">先预览，再确认查询内容。最多读取四次 Crossref / PLOS 来源；这里只整理方法材料与短摘录，尚未运行模型分析、行情计算或统计检验。</p>
+      <p class="hint source-write-ui">保存并核对问题后，可自行填写英文关键词。不清楚关键词时可先保留问题；当前尚不提供模型提炼、自动翻译或深度研究结论。</p>
       <p id="source-reopen-hint" class="hint">重新打开研究后，已保存的来源笔记需手动读取。尚未读取不代表没有记录；请用下方按钮核对本页对应的研究和来源流程。</p>
-      <label for="source-query">英文方法关键词 <span>可编辑 · 仅发送预览中的查询词</span></label>
-      <input id="source-query" type="text" minlength="3" maxlength="160" placeholder="例如 queue theory" autocomplete="off" style="width:100%">
+      <label for="source-query" class="source-write-ui">英文方法关键词 <span>可编辑 · 仅发送预览中的查询词</span></label>
+      <input class="source-write-ui" id="source-query" type="text" minlength="3" maxlength="160" placeholder="例如 queue theory" autocomplete="off" style="width:100%">
       <div class="actions"><button id="source-preview" type="button">预览来源查询</button><button id="source-confirm" type="button" hidden>确认查询内容并启动</button><button id="source-refresh" type="button" class="secondary" aria-describedby="source-reopen-hint">核对并读取已保存来源笔记</button></div>
       <p id="source-status" role="status" aria-live="polite"></p><pre id="source-plan"></pre><div id="source-records"></div>
+    </section>
+    <section id="task-history-section" hidden aria-labelledby="task-history-title">
+      <h2 id="task-history-title">已保存的流程记录</h2>
+      <p class="hint">每页最多 20 条。流程与更早页面在新标签页只读打开，保留本页草稿；已保存不代表正文现在可用。</p>
+      <p id="task-history-status" aria-live="polite"></p><ol id="task-history-items"></ol>
+      <a id="task-history-more" target="_blank" rel="noopener" hidden>更早的流程（新标签页，只读）</a>
+      <a id="task-history-refresh" target="_blank" rel="noopener" hidden>重新读取流程记录（新标签页）</a>
     </section>
     <section id="history" hidden aria-labelledby="history-title"><h2 id="history-title">修订记录</h2><p class="hint">历史版本只读。新修订不会覆盖旧内容。</p><div id="history-items"></div></section>
     <section id="my-research" hidden aria-labelledby="my-research-title">

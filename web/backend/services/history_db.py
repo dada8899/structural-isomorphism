@@ -23,7 +23,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from .sqlite_utils import ClosingConnection
+from .sqlite_utils import ClosingConnection, prepare_private_history, connect_private_history
+from .runtime_paths import formal_history_runtime
 if __package__ == "web.backend.services":
     from ..logging_config import get_logger, new_incident_id
 else:
@@ -97,10 +98,16 @@ class HistoryDB:
 
     def __init__(self, db_path: Path):
         self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._formal_history = formal_history_runtime()
+        if self._formal_history:
+            prepare_private_history(self.db_path)
+        else:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
 
     def _connect(self) -> sqlite3.Connection:
+        if getattr(self, "_formal_history", False) or formal_history_runtime():
+            return connect_private_history(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
         conn = sqlite3.connect(
             str(self.db_path),
             detect_types=sqlite3.PARSE_DECLTYPES,

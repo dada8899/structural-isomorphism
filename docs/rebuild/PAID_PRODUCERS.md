@@ -118,3 +118,13 @@ U仅调用受审usage_upper.preview_bound，用真实服务器clock核≤60秒TT
 新增真实对照覆盖新研究再预留0连接／0POST、已HELD后二次authorize／consume拒、late有效财务核对后正常准入、三状态真实票据保护及本机免费Source两GET／四类记录／重跑0GET／quota读回共存；不为旧fixture撤v2保护，不新增Source适配或权限平台，原DDL／F／adapter／旧A及原断言保留。真实资金、生产发送与B2仍关闭，候选交两原审分别复核。
 
 暂停执行补充：closed仅首次version1登记可按明确offline配置启用；运行后再closed不能被原source新调用自动重开，blocked同样拒新连接。作者验证：原审两缺陷先实证2 fail/1 pass，修后连Source原正控4 pass；主回归337 pass和旧消费者391 pass，随后补这一行暂停门禁后定点13 pass及完整B1专属43 pass（原31＋新增12），均0 skipped。分组证据如实分列，未冒称最后又跑统一新339组；当前SHA待两原审复核。
+
+## B2-A：真实停止调用与删除来源
+
+v2取消从原认证HTTP路由取得短期操作来源，绑定当前账户、动作、研究／任务、请求正文及幂等键；普通AccountIdentity不能直接停止。金融停止与任务状态分别由唯一写者处理：HELD且prepared只释放一次，SENT转UNKNOWN保留held，已记上界不重复记账。v2对账只用持久admission与金融返回，不读旧FixtureTransport回执；resume和自动撤权仍关闭，不能隐式发送。
+
+涉及v2的删除在真实owner锁内重新认证，先在同一事务提交账户／授权栅栏与受保护pending任务，再停止资金票据；非v2保持原未签名任务及调用行为。V8仅给auth_deletion_jobs增加origin_version／origin_digest两列及来源、不可替换／删除和单向阶段守卫；旧NULL／NULL行不补签，关联v2时不能取得停止或擦除权限。摘要固定覆盖version、job_id、owner_key、gate_id、database_binding、cleanup_binding和created_at；它只检查完整性，来源由实际认证请求与同库事务创建。
+
+pending恢复限定原账户代次；scrubbing已清邮箱与代次，只允许原gate下的残留页清理和完成；completed仅验证后回读原结果。每次均核实际数据库、锁和来源，旧同邮箱任务不影响新账户。V7完整性检查及原迁移保留，V8拒绝半迁移或损坏对象。本文为作者候选说明；独立审查、组合CI、正文恢复和真实资金／生产发送另有门禁，尚未放行。
+
+原审两项P2返修：默认recursive_triggers=0时，替换保护同时覆盖INSERT／UPDATE对id、隐式rowid及pending owner_key唯一约束的冲突，阻止SQLite隐式删除受保护任务；保留普通legacy更新。auth工厂按实际包入口选择同一命名空间的service／真实lease／操作来源，严格类型边界保留。作者先实证7 fail／7 pass，再修复至14 pass；候选交原审复核，未修改实际业务数据库。

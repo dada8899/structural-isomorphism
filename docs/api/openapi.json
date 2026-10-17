@@ -3755,18 +3755,6 @@
         "title": "MethodCandidate",
         "type": "object"
       },
-      "NewsletterCountResponse": {
-        "description": "GET /api/newsletter/count — current subscriber count (anon-safe).",
-        "properties": {
-          "count": {
-            "default": 0,
-            "title": "Count",
-            "type": "integer"
-          }
-        },
-        "title": "NewsletterCountResponse",
-        "type": "object"
-      },
       "OriginCandidatePair": {
         "additionalProperties": false,
         "properties": {
@@ -6670,29 +6658,44 @@
         "title": "StructuralState",
         "type": "object"
       },
-      "SubscribeBody": {
+      "SubscriptionUnavailableResponse": {
         "properties": {
-          "email": {
-            "title": "Email",
+          "created": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Created",
+            "type": "boolean"
+          },
+          "detail": {
+            "title": "Detail",
             "type": "string"
           },
-          "source": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
+          "error": {
+            "enum": [
+              "newsletter_unavailable",
+              "waitlist_unavailable"
             ],
-            "default": "unknown",
-            "title": "Source"
+            "title": "Error",
+            "type": "string"
+          },
+          "ok": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Ok",
+            "type": "boolean"
           }
         },
         "required": [
-          "email"
+          "error",
+          "detail"
         ],
-        "title": "SubscribeBody",
+        "title": "SubscriptionUnavailableResponse",
         "type": "object"
       },
       "SummaryResponse": {
@@ -6968,86 +6971,6 @@
           "deployed_at"
         ],
         "title": "VersionResponse",
-        "type": "object"
-      },
-      "WaitlistBody": {
-        "properties": {
-          "email": {
-            "title": "Email",
-            "type": "string"
-          },
-          "source": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "homepage-hero",
-            "title": "Source"
-          },
-          "utm_campaign": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Campaign"
-          },
-          "utm_content": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Content"
-          },
-          "utm_medium": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Medium"
-          },
-          "utm_source": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Source"
-          },
-          "utm_term": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Term"
-          }
-        },
-        "required": [
-          "email"
-        ],
-        "title": "WaitlistBody",
         "type": "object"
       },
       "WhoAmIResponse": {
@@ -9698,14 +9621,14 @@
     },
     "/api/newsletter/count": {
       "get": {
-        "description": "Public count of subscribers (used by future social-proof widgets).\nCheap-but-not-cached — at our scale (~MB jsonl), a full scan is < 5ms.",
+        "description": "The closed endpoint does not read or disclose a subscriber count.",
         "operationId": "count_api_newsletter_count_get",
         "responses": {
-          "200": {
+          "503": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NewsletterCountResponse"
+                  "$ref": "#/components/schemas/SubscriptionUnavailableResponse"
                 }
               }
             },
@@ -9720,35 +9643,18 @@
     },
     "/api/newsletter/subscribe": {
       "post": {
+        "description": "New subscriptions are unavailable; submitted bodies are never consumed.",
         "operationId": "subscribe_api_newsletter_subscribe_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SubscribeBody"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
+          "503": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/SubscriptionUnavailableResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Successful Response"
           }
         },
         "summary": "Subscribe",
@@ -11764,35 +11670,18 @@
     },
     "/api/waitlist": {
       "post": {
+        "description": "New Beta waitlist signups are unavailable; no body is consumed.",
         "operationId": "waitlist_api_waitlist_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WaitlistBody"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
+          "503": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/SubscriptionUnavailableResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Successful Response"
           }
         },
         "summary": "Waitlist",
@@ -11803,13 +11692,15 @@
     },
     "/api/waitlist/count": {
       "get": {
-        "description": "Public count — used by social-proof widgets (\"join 1,234 analysts...\").\nCheap at our scale; refactor to cache if hot.",
+        "description": "Do not open the legacy database or report a fabricated zero.",
         "operationId": "count_api_waitlist_count_get",
         "responses": {
-          "200": {
+          "503": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionUnavailableResponse"
+                }
               }
             },
             "description": "Successful Response"

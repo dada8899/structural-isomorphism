@@ -4,19 +4,33 @@ import json
 from .schemas import CONTRACT_REVISION, SCHEMA_VERSION
 from .schemas import MAX_MONEY
 from .budget import BudgetLedger, enabled, money, money_text
-from .errors import not_found
+from .errors import not_found,ResearchError
+
+REVISION_PROJECTION_BUDGET=384*1024
+RESEARCH_RESPONSE_LIMIT=512*1024
+
+
+def projection_bytes(value):
+    return len(json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode('utf-8'))
+
+
+def require_revision_budget(records):
+    if projection_bytes(records)+max((projection_bytes(record) for record in records),default=0)>REVISION_PROJECTION_BUDGET:
+        raise ResearchError('PAYLOAD_LIMIT',413,'累计问题修订已达保存上限，请保留当前草稿；旧记录没有更改。')
 
 
 class ResearchProjection:
     @staticmethod
-    def build(conn, row, task_id=None):
-        revisions = []
-        for item in conn.execute("SELECT * FROM research_revisions WHERE research_id=? ORDER BY revision", (row["id"],)):
-            revisions.append({"research_id": row["id"], "revision": item["revision"],
-                              **json.loads(item["problem_json"]), "digest": item["digest"],
-                              "created_at": item["created_at"]})
+    def revision_records(conn,rid):
+        return [{'research_id':rid,'revision':item['revision'],**json.loads(item['problem_json']),'digest':item['digest'],'created_at':item['created_at']}
+            for item in conn.execute('SELECT * FROM research_revisions WHERE research_id=? ORDER BY revision',(rid,))]
+
+    @staticmethod
+    def build(conn, row, task_id=None,*,method_result=None,method_authorized=False,method_state=None,task_history=None,next_task_id=None):
+        revisions=ResearchProjection.revision_records(conn,row['id'])
+        current=conn.execute('SELECT id FROM research_tasks WHERE research_id=? AND input_revision=? ORDER BY start_version DESC,id DESC LIMIT 1',(row['id'],row['current_revision'])).fetchone()
         if task_id is None:
-            task=conn.execute("SELECT * FROM research_tasks WHERE research_id=? AND input_revision=? ORDER BY start_version DESC LIMIT 1",(row["id"],row["current_revision"])).fetchone()
+            task=conn.execute("SELECT * FROM research_tasks WHERE research_id=? AND input_revision=? ORDER BY start_version DESC,id DESC LIMIT 1",(row["id"],row["current_revision"])).fetchone()
         else:
             task=conn.execute("SELECT * FROM research_tasks WHERE id=? AND research_id=?",(task_id,row["id"])).fetchone()
             if not task:raise not_found()
@@ -25,11 +39,12 @@ class ResearchProjection:
             "research_version": row["version"], "task_version":task["version"] if task else None,
             "revisions": revisions, "current_problem": next((r for r in revisions if task and r["revision"]==task["input_revision"]),revisions[-1]),
             "execution": None, "evidence": "UNASSESSED", "status": "saved",
-            "task":None,"is_historical":bool(task and task["input_revision"]!=row["current_revision"]),
+            "task":None,"is_historical":bool(task and (task["input_revision"]!=row["current_revision"] or not current or current[0]!=task['id'])),
             "execution_mode":"offline_probe", "report_status":"none", "detail":"normal",
             "allowed_next_actions": ["view", "revise"],
             "capabilities": {"execution":enabled(),"anonymous_claim":False,"account_erasure_integration":True},
         }
+        if task_history is not None:view.update(task_history=task_history,next_task_id=next_task_id)
         active=conn.execute("SELECT id FROM research_tasks WHERE research_id=? AND execution IN ('QUEUED','RUNNING','WAITING_EXTERNAL','RECONCILING') ORDER BY start_version DESC LIMIT 1",(row["id"],)).fetchone()
         from .source_integration import enabled as source_enabled
         view["capabilities"]["source_evidence"]=source_enabled()
@@ -38,6 +53,15 @@ class ResearchProjection:
         if enabled() and view["current_problem"]["confirmed"] and not active and not unresolved_current:
             view["allowed_next_actions"].append("start")
         if task:
+            if task['policy_revision']=='bounded_usage_upper_v2':
+                event=conn.execute('SELECT seq FROM research_task_events WHERE task_id=? ORDER BY seq DESC LIMIT 1',(task['id'],)).fetchone()
+                execution=task['execution'];terminal=execution in ('COMPLETED','FAILED','CANCELLED','ACCESS_REVOKED')
+                view.update(execution=execution,evidence=task['evidence'],status={'COMPLETED':'insufficient','FAILED':'failed','CANCELLED':'cancelled','ACCESS_REVOKED':'cancelled','QUEUED':'queued'}.get(execution,'synthesising'),
+                    report_status='qualified_report' if method_result else 'none',task=dict(id=task['id'],version=task['version'],execution=execution,
+                        phase=task['phase'],attempt=1,input_revision=task['input_revision'],stop_requested=bool(task['stop_requested']),policy_revision=task['policy_revision']),
+                    task_event_cursor=event[0] if event else 0,allowed_next_actions=['view','refresh']+([] if terminal else ['cancel','request_reconciliation']))
+                if method_authorized:view.update(method_result=method_result,method_result_state=method_state or ('available' if method_result else 'none'))
+                return {'schema_version':SCHEMA_VERSION,'contract_revision':CONTRACT_REVISION,'data':view}
             if task["policy_revision"]=="d1-source-only-v1":
                 from .source_integration import project_task
                 project_task(conn,view,task)

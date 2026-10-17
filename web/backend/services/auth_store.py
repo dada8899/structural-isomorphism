@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import hashlib
+import os
+from functools import lru_cache
 import re
 import sqlite3
 import threading
@@ -144,9 +146,68 @@ class DeletedCredentialError(ValueError):
     """A credential predates the owner's latest account deletion."""
 
 
+def _formal_auth_mode():
+    from .runtime_paths import RuntimePathError
+    raw=os.getenv('STRUCTURAL_ENV','dev')
+    if raw.strip().lower()=='prod' and raw.lower()!='prod':
+        raise RuntimePathError('private auth profile contains invalid whitespace')
+    return raw.lower()=='prod'
+
+
+def _auth_sql_tokens(sql):
+    if __package__=='web.backend.services':from ..research.store import ResearchStore
+    else:from research.store import ResearchStore
+    managed={'auth_users','magic_tokens','revoked_sessions','auth_rate_requests','idx_auth_rate',
+             'auth_notification_outbox','account_deletion_epochs','auth_owner_gates','auth_owner_gate_policy','sqlite_sequence'}
+    return tuple(('word',value.lower()) if kind=='quoted_identifier' and value.lower() in managed else (kind,value)
+                 for kind,value in ResearchStore._normalize_sql(sql))
+
+
+def _auth_metadata(conn,*,allowed=None):
+    objects={};columns={};indexes={}
+    for kind,name,target,sql in conn.execute('SELECT type,name,tbl_name,sql FROM main.sqlite_schema'):
+        # Core owns these exact scopes; check_current_structure validates them.
+        if name.startswith('research_') or target.startswith('research_') or target=='auth_deletion_jobs':continue
+        objects[name]=(kind,target,_auth_sql_tokens(sql) if sql is not None else None)
+    if allowed is not None and objects not in [form[0] for form in allowed]:
+        raise RuntimeError('private Auth schema objects are incomplete or unknown')
+    for name,(kind,target,sql) in objects.items():
+        quoted='"'+name.replace('"','""')+'"'
+        if kind=='table':
+            columns[name]=tuple(tuple(r) for r in conn.execute('PRAGMA main.table_xinfo('+quoted+')'))
+        elif kind=='index':
+            indexes[name]=tuple(tuple(r) for r in conn.execute('PRAGMA main.index_xinfo('+quoted+')'))
+    return objects,columns,indexes
+
+
+@lru_cache(maxsize=1)
+def _auth_final_contracts():
+    from .sqlite_utils import ClosingConnection
+    forms=[]
+    for nullable_generation in (False,True):
+        with sqlite3.connect(':memory:',isolation_level=None,factory=ClosingConnection) as conn:
+            for ddl in _BASE_SCHEMA_STATEMENTS:
+                if 'auth_deletion_jobs' in ddl:continue  # Core-owned expanded shapes.
+                if nullable_generation and ddl.startswith('CREATE TABLE IF NOT EXISTS auth_users'):
+                    ddl=ddl.replace('session_generation TEXT NOT NULL','session_generation TEXT')
+                conn.execute(ddl)
+            conn.execute(_AUTH_LIFECYCLE_SQL)
+            forms.append(_auth_metadata(conn))
+    return tuple(forms)
+
+
+_AUTH_LIFECYCLE_SQL="ALTER TABLE auth_users ADD COLUMN lifecycle TEXT NOT NULL DEFAULT 'active' CHECK(lifecycle IN ('active','deleting'))"
+
+
 class AuthStore:
     def __init__(self, path: Path):
-        self.path = path
+        self.path = Path(path)
+        self._private_auth = _formal_auth_mode()
+        self._storage_identity = None
+        if self._private_auth:
+            self._storage_identity = self.preflight_private(self.path)
+            return
+        path = self.path
         path.parent.mkdir(parents=True, exist_ok=True)
         # WAL selection and schema migration are one-time mutable operations.
         # Serialise constructors and avoid asking every request connection to
@@ -185,7 +246,7 @@ class AuthStore:
                         "WHERE session_generation IS NULL"
                     )
                 if "lifecycle" not in user_columns:
-                    conn.execute("ALTER TABLE auth_users ADD COLUMN lifecycle TEXT NOT NULL DEFAULT 'active' CHECK(lifecycle IN ('active','deleting'))")
+                    conn.execute(_AUTH_LIFECYCLE_SQL)
                 deletion_columns = {row[1] for row in conn.execute("PRAGMA table_info(auth_deletion_jobs)")}
                 if "legacy_attempted" not in deletion_columns:
                     conn.execute("ALTER TABLE auth_deletion_jobs ADD COLUMN legacy_attempted INTEGER NOT NULL DEFAULT 0 CHECK(legacy_attempted IN (0,1))")
@@ -224,20 +285,52 @@ class AuthStore:
                 conn.rollback()
                 raise
 
+    @property
+    def storage_identity(self):
+        return self._storage_identity
+
+    @classmethod
+    def preflight_private(cls,path):
+        from .sqlite_utils import connect_private_auth
+        if __package__=='web.backend.services':from ..research.store import ResearchStore
+        else:from research.store import ResearchStore
+        conn=connect_private_auth(path,readonly=True)
+        identity=conn.private_storage_identity
+        try:
+            conn.execute('BEGIN')
+            allowed=_auth_final_contracts()
+            if _auth_metadata(conn,allowed=allowed) not in allowed:
+                raise RuntimeError('private Auth final columns or indexes differ')
+            ResearchStore.check_current_structure(conn)
+            rows=[tuple(row) for row in conn.execute('SELECT id,fingerprint FROM auth_owner_gate_policy')]
+            if len(rows)!=1 or type(rows[0][0]) is not int or rows[0][0]!=1:
+                raise RuntimeError('private Auth policy control row is missing or ambiguous')
+            cls.check_gate_policy(conn,initialize=False)
+            return identity
+        finally:
+            conn.close()
+
     @contextmanager
     def _connection(self, *, bootstrap=False) -> Iterator[sqlite3.Connection]:
-        conn = sqlite3.connect(self.path, timeout=10, isolation_level=None)
-        conn.row_factory = sqlite3.Row
-        if __package__=='web.backend.services':
-            from ..research.financial_guard import install_default_hook
+        from .sqlite_utils import connect_private_auth
+        current_formal=_formal_auth_mode()
+        if current_formal and not getattr(self,'_private_auth',False):
+            raise RuntimeError('a development Auth object cannot become a private runtime object')
+        formal=getattr(self,'_private_auth',False) or current_formal
+        if formal:
+            if bootstrap:raise RuntimeError('private Auth bootstrap is a separate controlled operation')
+            conn=connect_private_auth(self.path,expected_identity=self.storage_identity)
         else:
-            from research.financial_guard import install_default_hook
-        install_default_hook(conn)
-        conn.execute("PRAGMA busy_timeout=10000")
-        # Account erasure must also clear deleted payloads from SQLite pages,
-        # not merely unlink rows into the freelist.
-        conn.execute("PRAGMA secure_delete=ON")
+            conn=sqlite3.connect(self.path,timeout=10,isolation_level=None)
         try:
+            conn.row_factory = sqlite3.Row
+            if __package__=='web.backend.services':
+                from ..research.financial_guard import install_default_hook
+            else:
+                from research.financial_guard import install_default_hook
+            install_default_hook(conn)
+            conn.execute("PRAGMA busy_timeout=10000")
+            conn.execute("PRAGMA secure_delete=ON")
             if not bootstrap:
                 self.check_gate_policy(conn)
             yield conn
@@ -418,12 +511,13 @@ class AuthStore:
     @staticmethod
     def check_gate_policy(conn, *, initialize=False):
         fingerprint = opaque_identifier("account-owner.policy", "single-host-gate-v1", kind="opaque")
-        row = conn.execute("SELECT fingerprint FROM auth_owner_gate_policy WHERE id=1").fetchone()
-        if row is None and initialize:
+        rows = conn.execute("SELECT id,fingerprint FROM auth_owner_gate_policy").fetchall()
+        if not rows and initialize:
             if conn.execute("SELECT 1 FROM auth_owner_gates LIMIT 1").fetchone():
                 raise RuntimeError("account owner gate policy is missing")
             conn.execute("INSERT INTO auth_owner_gate_policy VALUES(1,?)", (fingerprint,))
-        elif row is None or row["fingerprint"] != fingerprint:
+        elif (len(rows)!=1 or type(rows[0]["id"]) is not int or rows[0]["id"]!=1
+              or rows[0]["fingerprint"] != fingerprint):
             raise RuntimeError("account owner gate configuration mismatch")
 
     @classmethod
@@ -435,6 +529,37 @@ class AuthStore:
 
     @classmethod
     def owner_gate_in(cls, conn, email: str, preferred: str | None = None) -> str:
+        # The direct Research principal/deletion callers must not bypass the
+        # existing-only formal owner_gate_id path, including after downgrade.
+        import sys
+        from .sqlite_utils import PrivateAuthConnection
+        native_types=(PrivateAuthConnection,)+tuple(candidate for name in
+            ('services.sqlite_utils','web.backend.services.sqlite_utils')
+            if (module:=sys.modules.get(name)) is not None
+            and isinstance(candidate:=getattr(module,'PrivateAuthConnection',None),type) and candidate is not PrivateAuthConnection)
+        private_native=isinstance(conn,native_types)
+        if _formal_auth_mode() or private_native:
+            from .runtime_paths import PrivateAuthFile,private_auth_path,RuntimePathError
+            if not private_native or not conn.in_transaction:
+                raise RuntimePathError('private owner mapping requires an active native transaction')
+            path=private_auth_path()
+            database=next((row[2] for row in conn.execute('PRAGMA database_list') if row[1]=='main'),None)
+            if database is None or Path(database)!=path:
+                raise RuntimePathError('private owner mapping database differs')
+            witness=PrivateAuthFile.acquire(path)
+            try:
+                if witness.file_identity!=conn.private_storage_identity:
+                    raise RuntimePathError('private owner mapping identity differs')
+                cls.check_gate_policy(conn,initialize=False)
+                row=conn.execute('SELECT gate_id FROM auth_owner_gates WHERE owner_key=?',(cls.owner_key(email),)).fetchone()
+                if row is None or type(row['gate_id']) is not str:
+                    raise RuntimePathError('private owner gate mapping is not provisioned')
+                try:canonical=str(uuid.UUID(row['gate_id'],version=4))
+                except ValueError:raise RuntimePathError('private owner gate identifier is invalid') from None
+                if canonical!=row['gate_id']:raise RuntimePathError('private owner gate identifier is invalid')
+                witness.check()
+                return canonical
+            finally:witness.close()
         key = cls.owner_key(email)
         row = conn.execute("SELECT gate_id FROM auth_owner_gates WHERE owner_key=?", (key,)).fetchone()
         if row is not None:
@@ -449,6 +574,24 @@ class AuthStore:
         return gate_id
 
     def owner_gate_id(self, email: str) -> str:
+        current=_formal_auth_mode();captured=getattr(self,'_private_auth',False)
+        if current and not captured:raise RuntimeError('development Auth cannot become private')
+        if captured:
+            from .sqlite_utils import connect_private_auth
+            from .runtime_paths import private_auth_path,RuntimePathError
+            if self.path!=private_auth_path() or self.storage_identity is None:
+                raise RuntimePathError('private owner gate has no captured Auth identity')
+            conn=connect_private_auth(self.path,readonly=True,expected_identity=self.storage_identity)
+            try:
+                conn.execute('BEGIN');self.check_gate_policy(conn,initialize=False)
+                row=conn.execute('SELECT gate_id FROM auth_owner_gates WHERE owner_key=?',(self.owner_key(email.strip().lower()),)).fetchone()
+                if row is None or type(row['gate_id']) is not str:
+                    raise RuntimePathError('private owner gate mapping is not provisioned')
+                try:canonical=str(uuid.UUID(row['gate_id'],version=4))
+                except ValueError:raise RuntimePathError('private owner gate identifier is invalid') from None
+                if canonical!=row['gate_id']:raise RuntimePathError('private owner gate identifier is invalid')
+                return canonical
+            finally:conn.close()
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
             result = self.owner_gate_in(conn, email.strip().lower())

@@ -1026,28 +1026,10 @@ async def phase_api_deep_report(request: Request):
         return JSONResponse({"error": "LLM call failed"}, status_code=500)
 
 
-@app.post("/phase/api/waitlist", include_in_schema=False)
+@app.post("/phase/api/waitlist", status_code=503, include_in_schema=False)
 async def phase_api_waitlist(request: Request):
-    """Append email to waitlist file."""
-    import json as _json
-    import time as _time
-    try:
-        body = await request.json()
-    except Exception:
-        return JSONResponse({"error": "invalid JSON"}, status_code=400)
-    email = (body.get("email") or "").strip().lower()
-    if not email or "@" not in email or len(email) > 200:
-        return JSONResponse({"error": "invalid email"}, status_code=400)
-    waitlist_file = FRONTEND_DIR / "phase" / "data" / "waitlist.jsonl"
-    waitlist_file.parent.mkdir(parents=True, exist_ok=True)
-    entry = {
-        "email": email,
-        "ts": int(_time.time()),
-        "iso": _time.strftime("%Y-%m-%d %H:%M:%S"),
-    }
-    with open(waitlist_file, "a", encoding="utf-8") as f:
-        f.write(_json.dumps(entry, ensure_ascii=False) + "\n")
-    return JSONResponse({"ok": True})
+    """The same-release legacy capture route is closed without reading a body."""
+    return newsletter.unavailable_response("waitlist")
 
 
 @app.post("/phase/api/analogy", include_in_schema=False)

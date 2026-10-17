@@ -1,49 +1,8 @@
-"""
-POST /api/waitlist — W7-D mini-brief 1 (2026-05-24).
+"""Closed Beta waitlist endpoints for this release.
 
-Email collection for the "weekly structural signals" newsletter. Distinct from
-`/api/newsletter/subscribe` (which is the beta-site essay-end newsletter) — this
-is the homepage Pro/Phase-Detector waitlist that ALSO captures UTM source for
-acquisition-channel attribution.
-
-Storage: SQLite (independent table `waitlist_signups` in `data/waitlist.db`).
-Schema:
-    waitlist_signups(
-        id INTEGER PRIMARY KEY,
-        email TEXT NOT NULL UNIQUE,
-        created_at TEXT NOT NULL,          -- ISO 8601, UTC
-        source TEXT NOT NULL,              -- placement id (homepage-hero, phase-footer, ...)
-        utm_source TEXT,
-        utm_medium TEXT,
-        utm_campaign TEXT,
-        utm_term TEXT,
-        utm_content TEXT,
-        ip TEXT,                           -- legacy column; new rows are NULL
-        ua TEXT                            -- legacy column; new rows are NULL
-    )
-
-Why SQLite vs JSONL (newsletter.py uses JSONL):
-    - We expect waitlist to grow into the auth/user table later — SQLite gives
-      us free UNIQUE constraint, indexable queries, easy migration path.
-    - Newsletter JSONL is OK to leave alone (semantic separation).
-
-Body (JSON):
-    {
-        "email": "user@example.com",
-        "source": "homepage-hero",
-        "utm_source": "twitter",        # optional
-        "utm_medium": "tweet",          # optional
-        "utm_campaign": "phase-launch", # optional
-        "utm_term": "",                 # optional
-        "utm_content": ""               # optional
-    }
-
-Response:
-    200  { "ok": true,  "created": true,  "email": "<normalized>" }
-    200  { "ok": true,  "created": false, "email": "<normalized>" }   # duplicate
-    400  { "ok": false, "error": "invalid email" }
-    400  { "ok": false, "error": "invalid source" }
-    429  { "ok": false, "error": "rate_limited" }
+The existing list, external Phase service and provider relationships remain
+outside this change. HTTP requests declare no body and never invoke the
+legacy SQLite, rate-bucket or UTM helpers retained for separate maintenance.
 """
 from __future__ import annotations
 
@@ -70,6 +29,11 @@ try:
     from services.privacy_identifiers import opaque_identifier
 except ModuleNotFoundError:
     from web.backend.services.privacy_identifiers import opaque_identifier
+
+if __package__ == "web.backend.api":
+    from .newsletter import SubscriptionUnavailableResponse, unavailable_response
+else:
+    from api.newsletter import SubscriptionUnavailableResponse, unavailable_response
 
 router = APIRouter(tags=["waitlist"])
 logger = get_logger("structural.waitlist")
@@ -201,91 +165,13 @@ def _norm_utm(v: Optional[str]) -> Optional[str]:
     return s[:_MAX_UTM_LEN]
 
 
-@router.post("/waitlist")
-async def waitlist(body: WaitlistBody, request: Request):
-    email = (body.email or "").strip().lower()
-    source = (body.source or "homepage-hero").strip().lower()
-    client_address = request.client.host if request.client else "unknown"
-    rate_key = _rate_bucket_key(client_address)
-    legacy_rate_key = _legacy_rate_bucket_key(client_address)
-
-    # --- Validation ---
-    if not email or len(email) > _MAX_EMAIL_LEN or not _EMAIL_RE.match(email):
-        return JSONResponse(
-            {"ok": False, "error": "invalid email"}, status_code=400
-        )
-    if len(source) > _MAX_SOURCE_LEN or source not in _ALLOWED_SOURCES:
-        return JSONResponse(
-            {"ok": False, "error": "invalid source"}, status_code=400
-        )
-
-    # --- Rate limit ---
-    if not _check_rate_limit(rate_key, time.time(), legacy_rate_key):
-        logger.info("waitlist.rate_limited")
-        return JSONResponse(
-            {"ok": False, "error": "rate_limited"}, status_code=429
-        )
-
-    utm_source = _norm_utm(body.utm_source)
-    utm_medium = _norm_utm(body.utm_medium)
-    utm_campaign = _norm_utm(body.utm_campaign)
-    utm_term = _norm_utm(body.utm_term)
-    utm_content = _norm_utm(body.utm_content)
-
-    created_at = _dt.datetime.now(_dt.timezone.utc).isoformat(
-        sep=" ", timespec="seconds"
-    )
-    try:
-        with closing(_connect()) as conn, conn:
-            try:
-                conn.execute(
-                    "INSERT INTO waitlist_signups "
-                    "(email, created_at, source, utm_source, utm_medium, "
-                    " utm_campaign, utm_term, utm_content, ip, ua) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?)",
-                    (
-                        email, created_at, source,
-                        utm_source, utm_medium, utm_campaign,
-                        utm_term, utm_content, None, None,
-                    ),
-                )
-                conn.commit()
-                logger.info("waitlist.signup")
-                return JSONResponse(
-                    {"ok": True, "created": True, "email": email}
-                )
-            except sqlite3.IntegrityError:
-                # UNIQUE constraint on email — duplicate is *not* an error.
-                logger.info("waitlist.duplicate")
-                return JSONResponse(
-                    {"ok": True, "created": False, "email": email}
-                )
-    except sqlite3.Error as exc:
-        logger.error(
-            "waitlist.storage_failed",
-            error_type=type(exc).__name__,
-            incident_id=new_incident_id(),
-        )
-        return JSONResponse(
-            {"ok": False, "error": "storage failure"}, status_code=500
-        )
+@router.post("/waitlist", status_code=503, response_model=SubscriptionUnavailableResponse)
+async def waitlist(request: Request):
+    """New Beta waitlist signups are unavailable; no body is consumed."""
+    return unavailable_response("waitlist")
 
 
-@router.get("/waitlist/count")
+@router.get("/waitlist/count", status_code=503, response_model=SubscriptionUnavailableResponse)
 async def count():
-    """Public count — used by social-proof widgets ("join 1,234 analysts...").
-    Cheap at our scale; refactor to cache if hot."""
-    try:
-        with closing(_connect()) as conn, conn:
-            row = conn.execute(
-                "SELECT COUNT(*) AS n FROM waitlist_signups"
-            ).fetchone()
-            n = int(row["n"] if row else 0)
-            return JSONResponse({"count": n})
-    except sqlite3.Error as exc:  # pragma: no cover
-        logger.error(
-            "waitlist.count_failed",
-            error_type=type(exc).__name__,
-            incident_id=new_incident_id(),
-        )
-        return JSONResponse({"count": 0})
+    """Do not open the legacy database or report a fabricated zero."""
+    return unavailable_response("waitlist")
