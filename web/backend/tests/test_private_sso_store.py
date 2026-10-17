@@ -406,3 +406,88 @@ def test_bad_ledger_issue_never_creates_owner_gate_or_persists_exchange(private,
     with pytest.raises(paths.RuntimePathError):asyncio.run(sso.issue_exchange_code(body,request))
     with auth._store()._connection() as conn:assert conn.execute('SELECT count(*) FROM auth_owner_gates').fetchone()[0]==before
     assert not private.exists()
+
+
+def _parent_cleanup_binding(email):
+    """The pre-SSO-change digest, including its absolute ledger pathname."""
+    import hashlib
+    from api import favorites
+    binding = {
+        "auth": str(auth._store().path.resolve()),
+        "favorites": str(favorites._data_file().resolve()),
+        "favorites_legacy": str(favorites._legacy_data_file().resolve()),
+        "reports": str(report_account._get_store().db_path.resolve()),
+        "sso": str((sso._data_dir() / "sso_replay.sqlite3").resolve()),
+        "subject": sso._subject_id(email),
+        "registry": auth._account_registry().manifest(),
+    }
+    return hashlib.sha256(json.dumps(binding, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def _development_binding_assets(db, monkeypatch, configuration):
+    from api import favorites
+    shared_assets(db, monkeypatch)
+    monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
+    from services.report_store import ReportStore
+    monkeypatch.setattr(report_account, '_store', ReportStore(db.parent / 'history.db'))
+    monkeypatch.chdir(db.parent.parent)
+    if configuration.startswith('explicit'):
+        monkeypatch.setenv('STRUCTURAL_SSO_DATA_DIR',
+            'state' if configuration.endswith('relative') else str(db.parent))
+    else:
+        monkeypatch.delenv('STRUCTURAL_SSO_DATA_DIR', raising=False)
+        monkeypatch.setenv('AUTH_DATA_DIR',
+            'state' if configuration.endswith('relative') else str(db.parent))
+    monkeypatch.setenv('STRUCTURAL_FAVORITES_PATH', str(db.parent / 'favorites.jsonl'))
+    monkeypatch.setattr(favorites, '_legacy_data_file', lambda: db.parent / 'unused-legacy.jsonl')
+    (db.parent / 'favorites.jsonl').write_text(json.dumps({
+        'email': 'fixture@example.invalid', 'tickers': ['AAPL'], 'bookmarks': [],
+    }) + '\n', encoding='utf-8')
+    return favorites
+
+
+@pytest.mark.parametrize('configuration', [
+    'explicit-relative', 'explicit-absolute', 'fallback-relative', 'fallback-absolute',
+])
+def test_existing_cleanup_binding_preserves_parent_digest(private, native, monkeypatch, configuration):
+    _development_binding_assets(private, monkeypatch, configuration)
+    old = _parent_cleanup_binding('fixture@example.invalid')
+    new = auth._account_cleanup_binding('fixture@example.invalid')
+    assert sso.get_replay_store().path.resolve() == private
+    assert old == new
+
+
+@pytest.mark.parametrize('configuration', [
+    'explicit-relative', 'explicit-absolute', 'fallback-relative', 'fallback-absolute',
+])
+def test_parent_pending_deletion_resumes_without_binding_migration(private, native, monkeypatch, configuration):
+    favorites = _development_binding_assets(private, monkeypatch, configuration)
+    email = 'fixture@example.invalid'
+    subject = sso._subject_id(email)
+    reports = report_account._get_store()
+    item = reports.create(query='synthetic pending job', b_id='fixture', lang='en',
+        payload={}, model='fixture', creator_anon_id='pending-device')
+    reports.claim_by_anon('pending-device', subject)
+    sso.get_replay_store().issue('pending-code', subject, 'free', int(time.time()) + 300, email=email)
+    old_binding = _parent_cleanup_binding(email)
+    service = auth._account_deletion_service()
+    with auth.account_owner_transaction(email) as lease:
+        job_id = service.begin_account_deletion_locked(email,
+            auth._store().user(email)['session_generation'], auth._store().owner_gate_id(email),
+            old_binding, owner_lease=lease)
+    before = service.deletion_job(job_id)
+    assert before['state'] == 'pending' and before['cleanup_binding'] == old_binding
+    assert auth._store().user(email)['lifecycle'] == 'deleting'
+    assert auth.pending_account_deletions() == [job_id]
+    result = auth.resume_account_deletion(job_id)
+    assert result['removed']['favorites']['records'] == 1
+    assert result['removed']['claimed_reports']['reports'] == 1
+    assert result['removed']['authentication']['account'] == 1
+    assert auth._store().user(email) is None
+    assert reports.get_by_id(item['id']) is None
+    assert favorites.export_account_favorites(email)['exists'] is False
+    assert sso.get_replay_store().export_issued_for_subject(subject) == []
+    assert auth.pending_account_deletions() == []
+    after = service.deletion_job(job_id)
+    assert after['state'] == 'completed' and after['cleanup_binding'] == old_binding
+    assert auth.resume_account_deletion(job_id) == result

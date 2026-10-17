@@ -1140,7 +1140,7 @@ def _account_cleanup_binding(email):
         "favorites": str(favorites._data_file().resolve()),
         "favorites_legacy": str(favorites._legacy_data_file().resolve()),
         "reports": str(report_account._get_store().db_path.resolve()),
-        "sso": str(ledger.path),
+        "sso": str(ledger.path.resolve()),
         "subject": sso._subject_id(email),
         "registry": _account_registry().manifest(),
     }
