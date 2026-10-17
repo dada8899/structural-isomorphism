@@ -1622,6 +1622,65 @@ export interface PhenomenonEvidenceLedger {
   artifact_sha256?: null;
   url?: null;
 }
+export interface PhenomenonPlanCandidate {
+  summary: string;
+  /**
+   * @maxItems 3
+   */
+  candidates:
+    [] | [PlanNomination] | [PlanNomination, PlanNomination] | [PlanNomination, PlanNomination, PlanNomination];
+  /**
+   * @maxItems 5
+   */
+  query_suggestions:
+    | []
+    | [PlanQuerySuggestion]
+    | [PlanQuerySuggestion, PlanQuerySuggestion]
+    | [PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion]
+    | [PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion]
+    | [PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion];
+  /**
+   * @minItems 1
+   * @maxItems 8
+   */
+  gaps:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string];
+  /**
+   * @maxItems 3
+   */
+  clarification_questions: [] | [string] | [string, string] | [string, string, string];
+}
+export interface PlanNomination {
+  label: string;
+  mechanism_hypothesis: string;
+  why_considered: string;
+  /**
+   * @maxItems 2
+   */
+  method_leads: [] | [string] | [string, string];
+  /**
+   * @minItems 1
+   * @maxItems 5
+   */
+  key_unknowns:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string];
+}
+export interface PlanQuerySuggestion {
+  candidate_index: number | null;
+  query: string;
+  intent: string;
+}
 export interface PhenomenonRecord {
   id: string;
   name: string;
@@ -1962,6 +2021,153 @@ export interface PhenomenonV2Candidate {
   candidate_reason: string;
   retrieval_similarity: number;
   evidence: PhenomenonEvidenceEnvelope;
+}
+export interface PlanConfirmationData {
+  task_id: string;
+  result_ref: string;
+  state: "queued";
+  funding_state: "approved_not_sent";
+  plan_generation_ran: false;
+  recorded_at: null;
+}
+export interface PlanConfirmationEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "b1-candidate-01";
+  data: PlanConfirmationRequest;
+}
+export interface PlanConfirmationRequest {
+  preview_ref: string;
+  preview_digest: string;
+  request_digest: string;
+  expected_research_version: number;
+  approved_upper_units: number;
+  confirm_outbound: true;
+}
+export interface PlanConfirmationResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v1";
+  data: PlanConfirmationData;
+}
+export interface PlanPreviewEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "b1-candidate-01";
+  data: PlanPreviewRequest;
+}
+export interface PlanPreviewRequest {
+  input_revision: number;
+  expected_research_version: number;
+  observation_source: "own_observation";
+  declaration_status: "self_declared";
+}
+export interface PlanPreviewResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v1";
+  data: PlanPreviewView;
+}
+export interface PlanPreviewView {
+  preview_ref: string;
+  preview_digest: string;
+  request_digest: string;
+  research_id: string;
+  input_revision: number;
+  expected_research_version: number;
+  state: "awaiting_confirmation";
+  exact_input: string;
+  purpose: "phenomenon_plan_v1";
+  observation_rights: "self_declared";
+  approved_upper_units: number;
+  currency: "CNY";
+  scale: 6;
+  quote: PlanQuote;
+  expires_at: number;
+  explanation: string;
+}
+export interface PlanQuote {
+  protocol: "financial8-plan-quote-v1";
+  revision: string;
+  purpose: "phenomenon_plan_v1";
+  provider: "deepseek";
+  model: "deepseek-flash";
+  declared_model_version: "DeepSeek-V4.1-Flash-1017";
+  declaration_observed_on: "2026-10-18";
+  currency: "CNY";
+  scale: 6;
+  peak_input_hit_units_per_million: 40000;
+  peak_input_miss_units_per_million: 2000000;
+  peak_output_units_per_million: 8000000;
+  context_bound: 1048576;
+  provider_output_bound: 393216;
+  max_output_tokens: 4096;
+  approved_upper_units: number;
+  codec_digest: string;
+  issued_at: number;
+  valid_until: number;
+  price_source: "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/";
+}
+export interface PlanReadData {
+  task_id: string;
+  result_ref: string;
+  state: "saved" | "failed_insufficient" | "pending_reconciliation" | "cancelled" | "queued" | "generating";
+  financial_state: "unreserved" | "held" | "upper_booked" | "unknown";
+  safe_code: ("saved" | "body_invalid" | "send_unknown" | "not_sent" | "cancelled" | "access_ended") | null;
+  recorded_at: string | null;
+  plan_generation_ran: boolean;
+  real_model_executed: false;
+  execution_mode: "fixture";
+  approved_upper_units: number;
+  usage: PlanUsage | null;
+  content: PlanResult | null;
+}
+export interface PlanUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  usage_priced_estimate_units: number;
+  actual_charge_units: null;
+  cost_kind: "upper_booked";
+  booked_upper_units: number;
+  currency: "CNY";
+  scale: 6;
+}
+export interface PlanResult {
+  protocol: "owned-phenomenon-plan-result-v1";
+  purpose: "phenomenon_plan_v1";
+  result_ref: string;
+  task_id: string;
+  research_id: string;
+  input_revision: number;
+  input_digest: string;
+  request_digest: string;
+  admission_digest: string;
+  recorded_at: string;
+  execution_mode: "fixture";
+  plan_generation_ran: true;
+  real_model_executed: false;
+  literature_status: "not_retrieved";
+  mathematics_status: "not_checked";
+  mechanism_status: "unverified";
+  observation_rights: "self_declared";
+  query_state: "draft_only";
+  automatically_created_sources: 0;
+  proposal: PhenomenonPlanCandidate;
+}
+export interface PlanReadResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v1";
+  data: PlanReadData;
+}
+export interface PlanRunMetadata {
+  task_id: string;
+  result_ref: string;
+  state: "saved" | "failed_insufficient" | "pending_reconciliation" | "cancelled" | "queued" | "generating";
+  financial_state: "unreserved" | "held" | "upper_booked" | "unknown";
+  safe_code: ("saved" | "body_invalid" | "send_unknown" | "not_sent" | "cancelled" | "access_ended") | null;
+  recorded_at: string | null;
+  plan_generation_ran: boolean;
+  real_model_executed: false;
+  execution_mode: "fixture";
+  approved_upper_units: number;
+  usage: PlanUsage | null;
 }
 /**
  * Legacy development-only query shape for DELETE /api/privacy/delete.

@@ -1431,3 +1431,180 @@ class FormulaResultResponse(FormulaPublicObject):
     data: FormulaResultData
 
 __all__ += ['FormulaSideDraft','FormulaRevisionDraft','FormulaCheckRequest','FormulaCheckEnvelope','FormulaRunMetadata','FormulaCheckData','FormulaCheckResponse','FormulaExecutionProvenance','FormulaResultData','FormulaResultResponse']
+
+
+# Financial8 public shapes mirror research/plan_schemas.py. Native authority,
+# ownership checks and runtime proposal validation remain in the actual endpoint.
+PlanDigest=Annotated[str,StringConstraints(strict=True,pattern=r'^[a-f0-9]{64}$')]
+PlanRef=Annotated[str,StringConstraints(strict=True,min_length=1,max_length=100,pattern=r'^[a-zA-Z0-9._:-]+$')]
+PlanUnits=Annotated[StrictInt,Field(ge=0,le=9223372036854775807)]
+PlanText120=Annotated[str,StringConstraints(strict=True,min_length=1,max_length=120)]
+PlanText160=Annotated[str,StringConstraints(strict=True,min_length=1,max_length=160)]
+PlanText240=Annotated[str,StringConstraints(strict=True,min_length=1,max_length=240)]
+PlanText400=Annotated[str,StringConstraints(strict=True,min_length=1,max_length=400)]
+PlanText700=Annotated[str,StringConstraints(strict=True,min_length=1,max_length=700)]
+PlanEnglishQuery=Annotated[str,StringConstraints(strict=True,pattern='^[A-Za-z][A-Za-z -]{2,159}$')]
+
+class PlanNomination(FormulaPublicObject):
+    label: PlanText120
+    mechanism_hypothesis: PlanText700 = Field(repr=False)
+    why_considered: PlanText400 = Field(repr=False)
+    method_leads: Annotated[list[PlanText160], Field(max_length=2)]
+    key_unknowns: Annotated[list[PlanText240], Field(min_length=1, max_length=5)]
+
+class PlanQuerySuggestion(FormulaPublicObject):
+    candidate_index: Annotated[StrictInt, Field(ge=0, le=2)] | None
+    query: PlanEnglishQuery
+    intent: PlanText240
+
+class PhenomenonPlanCandidate(FormulaPublicObject):
+    summary: PlanText700 = Field(repr=False)
+    candidates: Annotated[list[PlanNomination], Field(max_length=3)]
+    query_suggestions: Annotated[list[PlanQuerySuggestion], Field(max_length=5)]
+    gaps: Annotated[list[PlanText400], Field(min_length=1, max_length=8)]
+    clarification_questions: Annotated[list[PlanText240], Field(max_length=3)]
+
+class PlanPreviewRequest(FormulaPublicObject):
+    input_revision: FormulaRevision
+    expected_research_version: FormulaRevision
+    observation_source: Literal['own_observation']
+    declaration_status: Literal['self_declared']
+
+class PlanConfirmationRequest(FormulaPublicObject):
+    preview_ref: PlanRef
+    preview_digest: PlanDigest
+    request_digest: PlanDigest
+    expected_research_version: FormulaRevision
+    approved_upper_units: PlanUnits
+    confirm_outbound: Literal[True]
+
+    @field_validator('confirm_outbound', mode='before')
+    @classmethod
+    def actual_boolean(cls, value):
+        if value is not True:
+            raise ValueError('explicit true required')
+        return value
+
+class PlanPreviewEnvelope(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['b1-candidate-01']
+    data: PlanPreviewRequest
+
+class PlanConfirmationEnvelope(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['b1-candidate-01']
+    data: PlanConfirmationRequest
+
+class PlanQuote(FormulaPublicObject):
+    protocol: Literal['financial8-plan-quote-v1']
+    revision: PlanRef
+    purpose: Literal['phenomenon_plan_v1']
+    provider: Literal['deepseek']
+    model: Literal['deepseek-flash']
+    declared_model_version: Literal['DeepSeek-V4.1-Flash-1017']
+    declaration_observed_on: Literal['2026-10-18']
+    currency: Literal['CNY']
+    scale: Literal[6]
+    peak_input_hit_units_per_million: Literal[40000]
+    peak_input_miss_units_per_million: Literal[2000000]
+    peak_output_units_per_million: Literal[8000000]
+    context_bound: Literal[1048576]
+    provider_output_bound: Literal[393216]
+    max_output_tokens: Literal[4096]
+    approved_upper_units: PlanUnits
+    codec_digest: PlanDigest
+    issued_at: StrictInt
+    valid_until: StrictInt
+    price_source: Literal['https://api-docs.deepseek.com/zh-cn/quick_start/pricing/']
+
+class PlanResult(FormulaPublicObject):
+    protocol: Literal['owned-phenomenon-plan-result-v1']
+    purpose: Literal['phenomenon_plan_v1']
+    result_ref: PlanRef
+    task_id: PlanRef
+    research_id: PlanRef
+    input_revision: FormulaRevision
+    input_digest: PlanDigest
+    request_digest: PlanDigest
+    admission_digest: PlanDigest
+    recorded_at: Annotated[str, StringConstraints(strict=True, pattern='^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$')]
+    execution_mode: Literal['fixture']
+    plan_generation_ran: Literal[True]
+    real_model_executed: Literal[False]
+    literature_status: Literal['not_retrieved']
+    mathematics_status: Literal['not_checked']
+    mechanism_status: Literal['unverified']
+    observation_rights: Literal['self_declared']
+    query_state: Literal['draft_only']
+    automatically_created_sources: Literal[0]
+    proposal: PhenomenonPlanCandidate
+
+class PlanPreviewView(FormulaPublicObject):
+    preview_ref: PlanRef
+    preview_digest: PlanDigest
+    request_digest: PlanDigest
+    research_id: PlanRef
+    input_revision: FormulaRevision
+    expected_research_version: FormulaRevision
+    state: Literal['awaiting_confirmation']
+    exact_input: Annotated[str, StringConstraints(strict=True, min_length=8, max_length=1000)]
+    purpose: Literal['phenomenon_plan_v1']
+    observation_rights: Literal['self_declared']
+    approved_upper_units: PlanUnits
+    currency: Literal['CNY']
+    scale: Literal[6]
+    quote: PlanQuote
+    expires_at: StrictInt
+    explanation: Annotated[str, StringConstraints(strict=True, max_length=160)]
+
+class PlanConfirmationData(FormulaPublicObject):
+    task_id: PlanRef
+    result_ref: PlanRef
+    state: Literal['queued']
+    funding_state: Literal['approved_not_sent']
+    plan_generation_ran: Literal[False]
+    recorded_at: None
+
+class PlanUsage(FormulaPublicObject):
+    prompt_tokens: Annotated[StrictInt, Field(ge=0, le=1048576)]
+    completion_tokens: Annotated[StrictInt, Field(ge=0, le=4096)]
+    total_tokens: Annotated[StrictInt, Field(ge=0, le=1052672)]
+    usage_priced_estimate_units: PlanUnits
+    actual_charge_units: None
+    cost_kind: Literal['upper_booked']
+    booked_upper_units: PlanUnits
+    currency: Literal['CNY']
+    scale: Literal[6]
+
+class PlanRunMetadata(FormulaPublicObject):
+    task_id: PlanRef
+    result_ref: PlanRef
+    state: Literal['saved', 'failed_insufficient', 'pending_reconciliation', 'cancelled', 'queued', 'generating']
+    financial_state: Literal['unreserved', 'held', 'upper_booked', 'unknown']
+    safe_code: Literal['saved', 'body_invalid', 'send_unknown', 'not_sent', 'cancelled', 'access_ended'] | None
+    recorded_at: Annotated[str, StringConstraints(strict=True, pattern='^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$')] | None
+    plan_generation_ran: bool
+    real_model_executed: Literal[False]
+    execution_mode: Literal['fixture']
+    approved_upper_units: PlanUnits
+    usage: PlanUsage | None
+
+class PlanReadData(PlanRunMetadata):
+    content: PlanResult | None
+
+class PlanPreviewResponse(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['funded-plan-v1']
+    data: PlanPreviewView
+
+class PlanConfirmationResponse(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['funded-plan-v1']
+    data: PlanConfirmationData
+
+class PlanReadResponse(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['funded-plan-v1']
+    data: PlanReadData
+
+__all__ += ['PlanNomination', 'PlanQuerySuggestion', 'PhenomenonPlanCandidate', 'PlanPreviewRequest', 'PlanConfirmationRequest', 'PlanPreviewEnvelope', 'PlanConfirmationEnvelope', 'PlanQuote', 'PlanResult', 'PlanPreviewView', 'PlanConfirmationData', 'PlanUsage', 'PlanRunMetadata', 'PlanReadData', 'PlanPreviewResponse', 'PlanConfirmationResponse', 'PlanReadResponse']

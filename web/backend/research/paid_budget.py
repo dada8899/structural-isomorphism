@@ -87,6 +87,9 @@ def _limits(conn,project,account,new):
     if project['status']!='active' or account['status']!='active':raise PermissionError('budget unavailable')
     if conn.execute("SELECT 1 FROM research_reservations WHERE account_id=? AND status='UNKNOWN' LIMIT 1",(account['id'],)).fetchone():
         raise ResearchError('RECONCILIATION_REQUIRED',409,'此资金账户仍有未核对调用，暂停新执行。')
+    if conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_plan_dispatches'").fetchone():
+        from .plan_financial import check_unknown
+        check_unknown(conn,account['id'])
     exposure=account['settled']+account['upper_booked']+account['held']+new
     snapshot=conn.execute('SELECT * FROM research_balance_snapshots WHERE id=? AND account_id=?',(account['snapshot_id'],account['id'])).fetchone()
     if not snapshot or snapshot['expires_at']<=stamp():raise ResearchError('BUDGET_UNVERIFIED',503,'资金依据已过期。')
@@ -136,7 +139,7 @@ def reserve_in(conn,*,store,actor,lease,source,approval_ref):
         (permit,step['id'],reservation,dispatch,context.input_digest,expiry,POLICY,prepared.request_digest,prepared.evidence_digest,cap.quote_digest,cap.basis_digest,
          canonical(payload['funding']['basis']).decode(),digest(canonical(context.model_dump())),task['version'],step['version']+1,approval_ref,now,canonical(lease.identity).decode()))
     descriptor=digest(canonical({'producer':PRODUCER,'dispatch':dispatch,'request':prepared.request_digest,'reservation':reservation}))
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11):
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12):
         from .method_result import fresh_scope
         with fresh_scope(conn,store=store,lease=lease,authority=authority,ref=session):
             _write(conn,lease,'reserve-row',session,'research_provider_sessions',session,"INSERT INTO research_provider_sessions(id,approval_id,dispatch_id,permit_id,mode,binding_digest,state,body_origin_state) VALUES(?,?,?,?,'offline_probe',?,'created','fresh')",(session,approval_ref,dispatch,permit,descriptor))

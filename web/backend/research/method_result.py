@@ -31,10 +31,10 @@ def _scope(conn,store,lease,*,write=False):
     if (not scope or scope.conn is not conn or not scope.active or scope.pid!=os.getpid() or not conn.in_transaction
             or (write and not scope.write) or type(store) is not ResearchStore or type(lease) is not OwnerGateLease
             or not database or Path(database).resolve()!=store.path or conn.execute('PRAGMA foreign_keys').fetchone()[0]!=1
-            or conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (9,10,11)):
+            or conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (9,10,11,12)):
         raise PermissionError('current canonical method scope required')
     lease.identity
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11):ResearchStore.check_runtime_version(conn)
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12):ResearchStore.check_runtime_version(conn)
     else:ResearchStore._check_v9(conn)
     return scope
 
