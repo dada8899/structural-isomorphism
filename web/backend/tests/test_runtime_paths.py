@@ -179,7 +179,9 @@ def test_original_two_open_parent_race_is_rejected_after_real_mutation(layout, m
                     state.chmod(0o755)
                 else:
                     state.rename(state.with_name('held-original-state'))
-                    state.mkdir(mode=0o755 if mutation.endswith('755') else 0o700)
+                    target_mode = 0o755 if mutation.endswith('755') else 0o700
+                    state.mkdir(mode=target_mode)
+                    state.chmod(target_mode)
                 mutations.append((state.stat().st_dev, state.stat().st_ino, stat.S_IMODE(state.stat().st_mode)))
         return original_open(path)
 
