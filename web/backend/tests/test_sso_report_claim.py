@@ -25,7 +25,7 @@ def stack(tmp_path, monkeypatch):
     monkeypatch.setenv("STRUCTURAL_SSO_SECRET", "unit-sso-secret-with-at-least-32-characters")
     monkeypatch.setenv("STRUCTURAL_SSO_PHASE_ORIGIN", "http://phase.test")
     monkeypatch.setenv("STRUCTURAL_SSO_BETA_ORIGIN", "http://beta.test")
-    auth._override_data_dir_for_tests(tmp_path / "auth")
+    monkeypatch.setattr(auth, "_data_dir", lambda: tmp_path / "auth")
     report_account._store = ReportStore(tmp_path / "history.db")
     report._store = report_account._store
     app = FastAPI()
