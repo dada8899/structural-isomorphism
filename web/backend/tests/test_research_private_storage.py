@@ -361,7 +361,7 @@ def _formal_delete(formal_paid,monkeypatch):
 
 
 @pytest.fixture
-def formal_paid(paid_api,monkeypatch,record_property):
+def formal_paid(request,tmp_path,monkeypatch,record_property):
     """Actual offline HTTP composition with captured formal storage objects.
 
     The public Main remains closed. The test-only route profile is restored
@@ -372,7 +372,24 @@ def formal_paid(paid_api,monkeypatch,record_property):
     import stat
     from uuid import UUID
     from api import auth
+    from services.auth_registration import bootstrap_private_runtime
+    # Resolve the original paid/source producers only after a real current
+    # Auth11 runtime and account exist. Legacy Auth + Research11 is not an
+    # admissible maintenance pair and cannot be made current by a marker edit.
+    state=tmp_path.resolve()/'auth';cache=tmp_path.resolve()/'private-cache'
+    for name,value in [('STATE_ROOT',state),('CACHE_ROOT',cache),('LOG_ROOT',state/'logs')]:monkeypatch.setattr(paths,name,value)
+    for name,value in {'STRUCTURAL_ENV':'prod','AUTH_DATA_DIR':str(state),'STRUCTURAL_SSO_DATA_DIR':str(state),
+        'STRUCTURAL_PRIVACY_HMAC_KEY':'0123456789abcdef'*4,
+        'JWT_SECRET':'research-synthetic-auth-secret-32-characters',
+        'STRUCTURAL_SSO_SECRET':'research-synthetic-sso-secret-32-characters'}.items():monkeypatch.setenv(name,value)
+    bootstrap_private_runtime()
+    monkeypatch.setattr(auth,'_AUTH_STORES',{})
+    register_private_user(monkeypatch,'research-a@example.test')
+    original_auth=AuthStore(state/'auth.sqlite3')
+    monkeypatch.setattr(auth,'_store',lambda:original_auth)
+    paid_api=request.getfixturevalue('paid_api')
     client,db,development_store,rid,excerpt,resolver=paid_api
+    assert db==original_auth.path and development_store.auth_store is original_auth
     def inspect(label,path,kind,*,phase,required=True):
         try:info=path.lstat()
         except FileNotFoundError:
@@ -385,15 +402,30 @@ def formal_paid(paid_api,monkeypatch,record_property):
         assert actual==kind and info.st_uid==os.geteuid(),label
         assert info.st_nlink==1 if kind=='regular' else info.st_nlink>=1,label
         return info
-    # This fixture begins with actual legacy synthetic execution rows. Convert
-    # them only through the explicit offline maintainers before formal capture;
-    # no runtime constructor or environment downgrade initializes the new graph.
+    # The actual source/paid producers retain their declared isolated route
+    # profile, while all Auth/Research connections remain captured and native.
     assert db.name=='auth.sqlite3' and db.is_absolute()
     inspect('state_root',db.parent,'directory',phase='before')
     inspect('auth.sqlite3',db,'regular',phase='before')
     with development_store.transaction() as conn:
         gates={row[0] for row in conn.execute('SELECT gate_id FROM auth_owner_gates')}
-        gates.update(row[0] for row in conn.execute('SELECT id FROM research_tasks'))
+        marker=[tuple(row) for row in conn.execute('SELECT id,version FROM research_schema')]
+        assert len(marker)==1 and marker[0][0]==1 and type(marker[0][1]) is int and marker[0][1] in (9,10,11)
+        version=marker[0][1]
+        ResearchStore._check_structure_version(conn,version)
+        source_gates=[]
+        for task in conn.execute('SELECT id,policy_revision FROM research_tasks'):
+            if version==11 and task['policy_revision']=='d1-source-only-v1':
+                resource=conn.execute('SELECT owner_gate_id,admission_version,task_gate_identity FROM research_source_resources WHERE task_id=?',(task['id'],)).fetchone()
+                run=conn.execute('SELECT task_gate_identity FROM research_source_runs WHERE task_id=?',(task['id'],)).fetchone()
+                assert resource and run and resource['admission_version']=='source-admission-v1'
+                assert resource['owner_gate_id'] in gates
+                assert type(resource['task_gate_identity']) is str and resource['task_gate_identity']==run['task_gate_identity']
+                identity=json.loads(resource['task_gate_identity'])
+                assert type(identity) is list and len(identity)==5 and all(type(value) is int for value in identity)
+                assert identity[0]>=0 and identity[1]>0 and identity[2:]==[os.geteuid(),0o600,1]
+                source_gates.append((task['id'],tuple(identity)))
+            else:gates.add(task['id'])
     db.parent.chmod(0o700);db.chmod(0o600)
     assert stat.S_IMODE(inspect('state_root',db.parent,'directory',phase='after').st_mode)==0o700
     assert stat.S_IMODE(inspect('auth.sqlite3',db,'regular',phase='after').st_mode)==0o600
@@ -419,6 +451,10 @@ def formal_paid(paid_api,monkeypatch,record_property):
         assert type(gate) is str and str(UUID(gate,version=4))==gate
         label='lock.'+gate
         assert stat.S_IMODE(inspect(label,lock_root/(gate+'.lock'),'regular',phase='checked').st_mode)==0o600,label
+    for task_id,identity in source_gates:
+        assert type(task_id) is str and str(UUID(task_id,version=4))==task_id
+        info=inspect('source-lock.'+task_id,lock_root/('source-'+task_id+'.lock'),'regular',phase='checked')
+        assert (info.st_dev,info.st_ino,info.st_uid,stat.S_IMODE(info.st_mode),info.st_nlink)==identity
     monkeypatch.setenv('STRUCTURAL_ENV','prod')
     from research.formula_runtime import provision_formula_v10,recover_formula_journal
     from services.auth_registration import migrate_private_auth_registration,admit_private_gate
@@ -426,10 +462,13 @@ def formal_paid(paid_api,monkeypatch,record_property):
     # exclusive maintainer. A numeric marker alone is never fixture admission.
     profile=recover_formula_journal(db)
     if profile['schema_version']==9:provision_formula_v10(db)
-    elif profile['schema_version']!=10:raise AssertionError('unsupported complete offline fixture graph')
+    elif profile['schema_version'] not in (10,11):raise AssertionError('unsupported complete offline fixture graph')
     with raw(db) as conn:
         conn.execute('BEGIN');auth_profile=AuthStore.check_offline_auth_metadata(conn)
     migrate_private_auth_registration()
+    if profile['schema_version'] in (9,10):
+        from research.source_guard import provision_source_v11
+        provision_source_v11(db)
     with raw(db) as conn:owners=[tuple(row) for row in conn.execute('SELECT owner_key,gate_id FROM auth_owner_gates')]
     held=AuthStore(db)
     for owner,gate in owners:
