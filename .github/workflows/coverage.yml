@@ -38,7 +38,8 @@ jobs:
       - name: Run coverage (split by suite, parallel files combined)
         run: |
           export PYTHONPATH=.
-          PYTEST_FLAGS="-q --tb=short"
+          # A failing suite must report its first traceback before the deadline.
+          PYTEST_FLAGS="-x -q --tb=short --durations=10"
           # Each suite gets `-p` (--parallel-mode) so .coverage data lands
           # in suite-specific `.coverage.<host>.<pid>.*` files instead of
           # overwriting `.coverage`. Without -p, sequential `coverage run`

@@ -124,7 +124,8 @@ jobs:
           # --tb=short: brief tracebacks.
           # The baseline as of 2026-05-24 is 781 passing tests; new tests
           # added in 0.1.1+ must also pass here.
-          python -m pytest tests -ra -q --tb=short
+          # Stop on a real failure so its traceback survives the job deadline.
+          python -m pytest tests -x -ra -q --tb=short --durations=10
 
       - name: Install locked TypeScript generator
         run: |
