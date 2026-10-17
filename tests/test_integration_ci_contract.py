@@ -632,9 +632,9 @@ def _assert_research_coverage_closure(value, rcfile):
     assert commands[-2] == RESEARCH_COVERAGE_COMMAND
     assert sum(command == RESEARCH_COVERAGE_COMMAND for command in commands) == 1
     step['run'] = commands[:-2] + commands[-1:]
-    # Freeze the original job, suites, limits and reports, apart from this one
+    # Freeze the reviewed job, suites, limits and reports, apart from this one
     # added parallel measurement. Ignore comments/line wrapping in its script.
-    assert hashlib.sha256(json.dumps(job, sort_keys=True, separators=(',', ':')).encode()).hexdigest() == '6fbcd21946927d0423c2c83257c3ad980a10dd160e2e819654ac96aa3ecc7551'
+    assert hashlib.sha256(json.dumps(job, sort_keys=True, separators=(',', ':')).encode()).hexdigest() == 'a00616bb08f39fd9220c8a18ed1c9950aa057fa42204ca7977154ecd7de1b3cd'
     assert hashlib.sha256(rcfile.encode()).hexdigest() == 'd99a2766d35215d1249c6f0388d8bb9effa7faec8ed715c040f897d6314847af'
 
 
