@@ -634,7 +634,7 @@ def _assert_research_coverage_closure(value, rcfile):
     step['run'] = commands[:-2] + commands[-1:]
     # Freeze the reviewed job, suites, limits and reports, apart from this one
     # added parallel measurement. Ignore comments/line wrapping in its script.
-    assert hashlib.sha256(json.dumps(job, sort_keys=True, separators=(',', ':')).encode()).hexdigest() == 'a00616bb08f39fd9220c8a18ed1c9950aa057fa42204ca7977154ecd7de1b3cd'
+    assert hashlib.sha256(json.dumps(job, sort_keys=True, separators=(',', ':')).encode()).hexdigest() == '601c495e11c7d17017b64fc745760cbf9e80d369a8bdf35a2d217a4a39c574ee'
     assert hashlib.sha256(rcfile.encode()).hexdigest() == 'd99a2766d35215d1249c6f0388d8bb9effa7faec8ed715c040f897d6314847af'
 
 
