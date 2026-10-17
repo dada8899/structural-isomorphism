@@ -159,7 +159,8 @@ def test_fk_data_failure_is_outside_structure_but_full_checker_still_rejects(cur
         _,_,forbidden=deny_nonmetadata(conn);ResearchStore.check_current_structure(conn);assert not forbidden
     with sqlite3.connect(path) as conn:
         conn.row_factory=sqlite3.Row;install_default_hook(conn)
-        with pytest.raises(ResearchError) as rejected:ResearchStore._check_v9(conn)
+        conn.execute('BEGIN')
+        with pytest.raises(ResearchError) as rejected:ResearchStore._check_v10(conn)
         assert rejected.value.code=='SCHEMA_UNSUPPORTED' and rejected.value.message=='金融存储关联不匹配。'
     assert byte_image(path)==before
 
@@ -181,7 +182,8 @@ def test_budget_data_binding_is_outside_structure_but_full_checker_still_rejects
         _,_,forbidden=deny_nonmetadata(conn);ResearchStore.check_current_structure(conn);assert not forbidden
     with sqlite3.connect(path) as conn:
         conn.row_factory=sqlite3.Row;install_default_hook(conn)
-        with pytest.raises(ResearchError) as rejected:ResearchStore._check_v9(conn)
+        conn.execute('BEGIN')
+        with pytest.raises(ResearchError) as rejected:ResearchStore._check_v10(conn)
         assert rejected.value.code=='SCHEMA_UNSUPPORTED' and rejected.value.message=='项目预算数据库绑定不匹配。'
     assert byte_image(path)==before
 
@@ -190,6 +192,7 @@ def test_half_v9_overlay_is_not_repaired_or_accepted(stack,monkeypatch):
     from research.financial_guard import METHOD_COLUMNS
     client,path=stack
     with monkeypatch.context() as old:
+        old.setattr(ResearchStore,'_initialize_current',lambda self,conn:False)
         old.setattr(ResearchStore,'_migrate_v9',lambda self:None)
         create(client);ResearchStore(auth._store())
     with sqlite3.connect(path) as conn:
@@ -199,7 +202,7 @@ def test_half_v9_overlay_is_not_repaired_or_accepted(stack,monkeypatch):
     before=byte_image(path)
     with native_ro(path) as conn:
         _,pragmas,forbidden=deny_nonmetadata(conn)
-        with pytest.raises(ResearchError):ResearchStore.check_current_structure(conn)
+        with pytest.raises(ResearchError):ResearchStore._check_structure_version(conn,9)
         assert not forbidden and pragmas==[]
     assert byte_image(path)==before
 
@@ -222,7 +225,7 @@ def test_existing_read_snapshot_stays_consistent_when_another_writer_changes_sch
     reader=sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,isolation_level=None)
     try:
         reader.execute('BEGIN')
-        assert reader.execute('SELECT version FROM main.research_schema').fetchone()==(9,)
+        assert reader.execute('SELECT version FROM main.research_schema').fetchone()==(10,)
         with sqlite3.connect(path) as writer:writer.execute('ALTER TABLE research_idempotency ADD COLUMN raced_column TEXT')
         _,_,forbidden=deny_nonmetadata(reader)
         ResearchStore.check_current_structure(reader)

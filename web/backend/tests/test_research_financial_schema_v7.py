@@ -34,6 +34,7 @@ from research.provider_schemas import UsageUpperQuote,BudgetBasisSnapshot,Money,
 def v6_data(stack,monkeypatch):
     client,path=stack
     with monkeypatch.context() as boundary:
+        boundary.setattr(ResearchStore,'_initialize_current',lambda self,conn:False)
         boundary.setattr(ResearchStore,'_migrate_v7',lambda self:None)
         rid=create(client);store=ResearchStore(auth._store())
     with store.transaction(write=True) as conn:
@@ -298,6 +299,7 @@ def test_identity_shaped_object_and_mutable_configuration_cannot_register(regist
 def test_isolated_earlier_profile_keeps_its_schema_but_never_gets_v7_capability(stack,monkeypatch):
     client,_=stack
     with monkeypatch.context() as profile:
+        profile.setattr(ResearchStore,'_initialize_current',lambda self,conn:False)
         profile.setattr(ResearchStore,'_migrate_v5',lambda self:None)
         profile.setattr(ResearchStore,'_migrate_v6',lambda self:None)
         create(client);store=ResearchStore(auth._store())

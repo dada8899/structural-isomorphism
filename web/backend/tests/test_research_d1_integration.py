@@ -1,5 +1,6 @@
 """D1 HTTP/auth/database integration with synthetic local-only inputs."""
 import sqlite3
+from contextlib import closing
 import json
 import hashlib
 import os
@@ -451,12 +452,14 @@ def test_real_parent_sigkill_cannot_close_unknown_while_sender_owns_gate(source_
     client,path,rid=source_stack;tid=start(client,rid)
     store=ResearchStore(auth._store());gate=AuthorizationGate(store)
     ready,go=tmp_path/"owned-sender-ready.json",tmp_path/"owned-sender-go"
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn:
         principal=conn.execute("SELECT principal_id FROM research_tasks WHERE id=?",(tid,)).fetchone()[0]
     root=Path(__file__).resolve().parents[3]
     environment={**os.environ,"PYTHONPATH":str(root/"web/backend")+os.pathsep+str(root)}
-    with source_server() as (port,calls):
-        parent=subprocess.Popen([sys.executable,"-m","web.backend.tests.source_http_fixture",tid,str(port),str(ready),str(go)],cwd=root,env=environment,start_new_session=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    guard=sys.modules.get('audit_bootstrap')
+    if guard is not None:environment['PYTHONPATH']=str(Path(guard.__file__).resolve().parent)+os.pathsep+environment['PYTHONPATH']
+    with source_server() as (port,calls),(tmp_path/"owned-sender.log").open("wb") as child_log:
+        parent=subprocess.Popen([sys.executable,"-m","web.backend.tests.source_http_fixture",tid,str(port),str(ready),str(go)],cwd=root,env=environment,start_new_session=True,stdout=child_log,stderr=subprocess.STDOUT)
         try:
             deadline=time.monotonic()+10
             while not ready.exists() and time.monotonic()<deadline:
@@ -464,12 +467,12 @@ def test_real_parent_sigkill_cannot_close_unknown_while_sender_owns_gate(source_
                 time.sleep(.02)
             assert ready.exists(),"owned sender did not arm"
             parent.kill();parent.wait(5)
-            with sqlite3.connect(path) as conn:
+            with closing(sqlite3.connect(path)) as conn:
                 original=conn.execute("SELECT started_at,ended_at FROM research_source_requests WHERE task_id=?",(tid,)).fetchone()
             with pytest.raises(ResearchError) as busy:
                 with gate.owner_gate(principal,timeout=.1):pytest.fail("orphan sender lost owner capability")
             assert busy.value.code=="STORE_BUSY" and calls==[]
-            with sqlite3.connect(path) as conn:
+            with closing(sqlite3.connect(path)) as conn:
                 assert conn.execute("SELECT execution_closed FROM research_source_requests WHERE task_id=?",(tid,)).fetchone()[0]==0
             # Waiting is observation only. Closure still requires a fresh
             # successful exclusive acquisition, followed by task+owner proof.
@@ -477,7 +480,7 @@ def test_real_parent_sigkill_cannot_close_unknown_while_sender_owns_gate(source_
             recovered=ResearchRunner(store)
             assert recovered.run_once(tid)=="FAILED"
             go.write_text("released after kernel lifetime deadline")
-            with sqlite3.connect(path) as conn:
+            with closing(sqlite3.connect(path)) as conn:
                 conn.row_factory=sqlite3.Row
                 closed=conn.execute("SELECT * FROM research_source_requests WHERE task_id=?",(tid,)).fetchone()
                 assert closed["outcome"]=="UNKNOWN" and closed["execution_closed"]==1
@@ -499,12 +502,14 @@ def test_sigkill_expired_sender_then_cancel_still_blocks_sending_until_closure(s
     client,path,rid=source_stack;tid=start(client,rid)
     store=ResearchStore(auth._store());gate=AuthorizationGate(store)
     ready,go=tmp_path/"cancelled-sender-ready.json",tmp_path/"cancelled-sender-go"
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn:
         principal=conn.execute("SELECT principal_id FROM research_tasks WHERE id=?",(tid,)).fetchone()[0]
     root=Path(__file__).resolve().parents[3]
     environment={**os.environ,"PYTHONPATH":str(root/"web/backend")+os.pathsep+str(root)}
-    with source_server() as (port,calls):
-        parent=subprocess.Popen([sys.executable,"-m","web.backend.tests.source_http_fixture",tid,str(port),str(ready),str(go)],cwd=root,env=environment,start_new_session=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    guard=sys.modules.get('audit_bootstrap')
+    if guard is not None:environment['PYTHONPATH']=str(Path(guard.__file__).resolve().parent)+os.pathsep+environment['PYTHONPATH']
+    with source_server() as (port,calls),(tmp_path/"owned-sender.log").open("wb") as child_log:
+        parent=subprocess.Popen([sys.executable,"-m","web.backend.tests.source_http_fixture",tid,str(port),str(ready),str(go)],cwd=root,env=environment,start_new_session=True,stdout=child_log,stderr=subprocess.STDOUT)
         try:
             deadline=time.monotonic()+10
             while not ready.exists() and time.monotonic()<deadline:
@@ -516,17 +521,17 @@ def test_sigkill_expired_sender_then_cancel_still_blocks_sending_until_closure(s
             current=client.get(f"/api/research/{rid}").json()["data"]
             stopped=post(client,f"/api/research/{rid}/cancel",{"task_id":tid,"expected_task_version":current["task_version"]})
             assert stopped.status_code==200 and stopped.json()["data"]["execution"]=="CANCELLED"
-            with sqlite3.connect(path) as conn:
+            with closing(sqlite3.connect(path)) as conn:
                 before=conn.execute("SELECT outcome,execution_closed,closure_ref,started_at,ended_at FROM research_source_requests").fetchone()
             assert before[:3]==("SENDING",0,None)
             blocked=start_current(client,rid)
             assert blocked.status_code==409 and blocked.json()["error"]["code"]=="RECONCILIATION_REQUIRED",blocked.text
             assert calls==[]
-            with sqlite3.connect(path) as conn:
+            with closing(sqlite3.connect(path)) as conn:
                 assert conn.execute("SELECT count(*) FROM research_tasks").fetchone()[0]==1
                 assert conn.execute("SELECT used FROM research_source_chains").fetchone()[0]==1
             assert ResearchRunner(store).run_once(tid)=="CANCELLED"
-            with sqlite3.connect(path) as conn:
+            with closing(sqlite3.connect(path)) as conn:
                 after=conn.execute("SELECT outcome,execution_closed,closure_ref,started_at,ended_at FROM research_source_requests").fetchone()
             assert after[0:2]==("UNKNOWN",1) and after[2] and after[3:]==before[3:]
             next_task=start_current(client,rid)
@@ -644,6 +649,7 @@ def test_true_v3_financial_rows_migrate_or_roll_back_at_each_boundary(legacy_v4_
 
 @pytest.fixture
 def legacy_v4_c0(monkeypatch,request):
+    monkeypatch.setattr(ResearchStore,'_initialize_current',lambda self,conn:False)
     # Keep the original v3->v4 test's real historical shape and every failure
     # boundary. Production has no bypass; v4->v5 is tested independently.
     monkeypatch.setattr(ResearchStore,"_migrate_v5",lambda self:None)

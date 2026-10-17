@@ -397,6 +397,1078 @@ export interface FlagsResponse {
   };
   [k: string]: unknown;
 }
+export interface FormulaCheckData {
+  result_ref: string;
+  state: "claimed" | "returned" | "closed" | "interrupted";
+  result_available: boolean;
+  input_origin: "user_provided";
+  formula_digest: string | null;
+  formula_result_recorded_at: string | null;
+  math_status: null;
+  termination_state: "not_attested" | "reaped" | "pending";
+  task_completed_means_math_passed: false;
+  known_cost_units: 0;
+  task_id: string;
+}
+export interface FormulaCheckEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "b1-candidate-01";
+  data: FormulaCheckRequest;
+}
+export interface FormulaCheckRequest {
+  input_revision: number;
+  expected_research_version: number;
+  formula_digest: string;
+  confirm_formula_input: boolean;
+}
+export interface FormulaCheckResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "b1-candidate-01";
+  data: FormulaCheckData;
+}
+export interface FormulaExecutionProvenance {
+  execution_attested: boolean;
+  execution_state: "ok" | "unsupported" | "limited" | "memory_limited" | "failed";
+  resource_guard: string;
+  owned_return_ref: string;
+  reaped: true;
+  code_version: string;
+  full_input_digest: string;
+  output_digest: string;
+  formula_digest: string;
+  problem_digest: string;
+  display_AST_confirmation: "user_confirmed_snapshot";
+  source_origin: "user_provided";
+  source_facts_verified: false;
+  mathematics_is_not_real_world_mechanism: true;
+}
+export interface FormulaPublicObject {}
+export interface FormulaResultData {
+  metadata: FormulaRunMetadata;
+  state: "available" | "unavailable";
+  result: {
+    [k: string]: unknown;
+  } | null;
+  provenance?: FormulaExecutionProvenance | null;
+}
+export interface FormulaRunMetadata {
+  result_ref: string;
+  state: "claimed" | "returned" | "closed" | "interrupted";
+  result_available: boolean;
+  input_origin: "user_provided";
+  formula_digest: string | null;
+  formula_result_recorded_at: string | null;
+  math_status: null;
+  termination_state: "not_attested" | "reaped" | "pending";
+  task_completed_means_math_passed: false;
+  known_cost_units: 0;
+}
+export interface FormulaResultResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "b1-candidate-01";
+  data: FormulaResultData;
+}
+export interface FormulaRevisionDraft {
+  input_origin: "user_provided";
+  comparison_scope: "expression" | "equation_form" | "initial_value_problem";
+  left: FormulaSideDraft;
+  right: FormulaSideDraft | null;
+  /**
+   * @minItems 1
+   * @maxItems 4
+   */
+  requested_checks:
+    | ["template" | "dimensions" | "canonical_transform" | "bounded_numeric"]
+    | [
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric",
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric"
+      ]
+    | [
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric",
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric",
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric"
+      ]
+    | [
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric",
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric",
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric",
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric"
+      ];
+  /**
+   * @maxItems 256
+   */
+  sample_points: string[];
+}
+export interface FormulaSideDraft {
+  family: "queue_flow" | "first_order_storage" | "local_recovery";
+  template_id: "little" | "mm1" | "passive_decay" | "linear_stable";
+  original_display: string;
+  expression: {
+    [k: string]: unknown;
+  } | null;
+  /**
+   * @maxItems 12
+   */
+  symbols:
+    | []
+    | [
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ];
+  /**
+   * @maxItems 24
+   */
+  assumptions: {
+    [k: string]: unknown;
+  }[];
+  /**
+   * @maxItems 1
+   */
+  initial_conditions:
+    | []
+    | [
+        {
+          [k: string]: unknown;
+        }
+      ];
+  /**
+   * @maxItems 24
+   */
+  boundary_conditions: {
+    [k: string]: unknown;
+  }[];
+  /**
+   * @maxItems 20
+   */
+  source_refs?:
+    | []
+    | [
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ];
+  measure_scope: string;
+  time_basis?: "s" | "workday" | "from_symbol_units";
+}
 /**
  * GET /api/health — liveness/deep-probe response.
  */

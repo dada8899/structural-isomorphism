@@ -20,23 +20,22 @@ from .test_research_d1_integration import source_stack
 from .test_research_paid_approval import approved_inputs
 from .test_research_paid_api import paid_api
 from .test_research_lifecycle import lifecycle,delete
+from .test_private_registration import register_private_user,corrupt_auth_fixture,FIXTURE_SECRET
 
 
 @pytest.fixture
 def prepared(private,monkeypatch):
-    monkeypatch.setenv('STRUCTURAL_ENV','dev')
-    auth=AuthStore(private);email='a2-owner@example.invalid';generation='a2-synthetic-generation'
-    with auth._connection() as conn:
-        conn.execute('INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES(?,?,?,?)',(email,'free','synthetic',generation))
+    email='a2-owner@example.invalid'
+    user,token=register_private_user(monkeypatch,email)
+    import jwt
+    claims=jwt.decode(token,os.getenv('JWT_SECRET') or FIXTURE_SECRET,algorithms=['HS256'])
+    auth=AuthStore(private);generation=user['session_generation']
     gate=auth.owner_gate_id(email)
-    folder=private.parent/'research-locks';folder.mkdir(mode=0o700,exist_ok=True)
-    lock=folder/(gate+'.lock');lock.write_bytes(b'');lock.chmod(0o600)
-    actor=AccountIdentity(email,generation,'a2-synthetic-jti',int(time.time())+3600)
-    dev=ResearchStore(auth)
+    folder=private.parent/'research-locks';lock=folder/(gate+'.lock')
+    actor=AccountIdentity(email,generation,claims['jti'],claims['exp'])
+    store=ResearchStore(auth)
     from research.schemas import CreateResearchRequest
-    rid=ResearchService(dev).create(actor,CreateResearchRequest(problem=problem()),'a2-preprovision')['data']['research']['id']
-    monkeypatch.setenv('STRUCTURAL_ENV','prod')
-    auth=AuthStore(private);store=ResearchStore(auth)
+    rid=ResearchService(store).create(actor,CreateResearchRequest(problem=problem()),'a2-preprovision')['data']['research']['id']
     return dict(path=private,auth=auth,store=store,actor=actor,rid=rid,gate=gate,lock=lock)
 
 
@@ -59,14 +58,14 @@ def test_formal_constructor_and_read_transaction_use_only_native_ro(private,nati
 def test_real_rw_commit_and_rollback_preserve_domain_scope(prepared):
     store=prepared['store']
     with store.transaction(write=True) as conn:
-        conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('commit@example.invalid','free','synthetic','g')")
+        conn.execute("INSERT INTO revoked_sessions(jti,revoked_at) VALUES('synthetic-commit','synthetic')")
     with pytest.raises(RuntimeError):
         with store.transaction(write=True) as conn:
-            conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('rollback@example.invalid','free','synthetic','g')")
+            conn.execute("INSERT INTO revoked_sessions(jti,revoked_at) VALUES('synthetic-rollback','synthetic')")
             raise RuntimeError('synthetic transaction failure')
     with store.transaction() as conn:
-        assert conn.execute("SELECT count(*) FROM auth_users WHERE email='commit@example.invalid'").fetchone()[0]==1
-        assert conn.execute("SELECT count(*) FROM auth_users WHERE email='rollback@example.invalid'").fetchone()[0]==0
+        assert conn.execute("SELECT count(*) FROM revoked_sessions WHERE jti='synthetic-commit'").fetchone()[0]==1
+        assert conn.execute("SELECT count(*) FROM revoked_sessions WHERE jti='synthetic-rollback'").fetchone()[0]==0
 
 
 @pytest.mark.parametrize('operation',['_migrate_v4','_migrate_v5','_migrate_v6','_migrate_v7','_migrate_v8','_migrate_v9','_migrate_v8_if_ready','_migrate_v9_if_ready'])
@@ -88,7 +87,7 @@ def test_captured_profile_and_binding_never_fall_back_to_create(private,native,m
     elif fault=='config':monkeypatch.setenv('AUTH_DATA_DIR','')
     elif fault=='downgrade':monkeypatch.setenv('STRUCTURAL_ENV','dev')
     if fault=='downgrade':
-        with store.transaction() as conn:assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==9
+        with store.transaction() as conn:assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==10
         assert all(args[0].endswith('?mode=ro') for args,_kw,_conn in native[start:])
     else:
         with pytest.raises((RuntimeError,OSError)):
@@ -192,8 +191,8 @@ def _peer(db,operation,output):
         if not operation.startswith('missing-'):raise
         output.put(dict(rejected=type(exc).__name__,database_exists=db.exists()));return
     if operation=='write':
-        with store.transaction(write=True) as conn:conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('child@example.invalid','free','synthetic','g')")
-    with store.transaction() as conn:output.put([r[0] for r in conn.execute('SELECT email FROM auth_users ORDER BY email')])
+        with store.transaction(write=True) as conn:conn.execute("INSERT INTO revoked_sessions(jti,revoked_at) VALUES('synthetic-child','synthetic')")
+    with store.transaction() as conn:output.put([r[0] for r in conn.execute('SELECT jti FROM revoked_sessions ORDER BY jti')])
 
 
 def peer(db,operation):
@@ -213,10 +212,10 @@ def test_same_pid_peer_close_and_cross_process_commits_do_not_drop_wal(private):
         with store.transaction() as neighbour:neighbour.execute('SELECT count(*) FROM auth_users').fetchall()
         assert peer(private,'read')==[]
         assert all(private.with_name(private.name+s).exists() for s in ('-wal','-shm'))
-    with store.transaction(write=True) as conn:conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('parent@example.invalid','free','synthetic','g')")
-    assert peer(private,'read')==['parent@example.invalid']
-    assert peer(private,'write')==['child@example.invalid','parent@example.invalid']
-    assert peer(private,'read')==['child@example.invalid','parent@example.invalid']
+    with store.transaction(write=True) as conn:conn.execute("INSERT INTO revoked_sessions(jti,revoked_at) VALUES('synthetic-parent','synthetic')")
+    assert peer(private,'read')==['synthetic-parent']
+    assert peer(private,'write')==['synthetic-child','synthetic-parent']
+    assert peer(private,'read')==['synthetic-child','synthetic-parent']
 
 
 def test_new_process_missing_main_database_cannot_create_it(private):
@@ -229,7 +228,7 @@ def test_new_process_missing_main_database_cannot_create_it(private):
 @pytest.mark.parametrize('fault',['missing-map','missing-lock'])
 def test_new_process_missing_owner_prerequisites_cannot_create_mapping_or_lock(prepared,fault):
     if fault=='missing-map':
-        with raw(prepared['path']) as conn:conn.execute('DELETE FROM auth_owner_gates')
+        with raw(prepared['path']) as conn,corrupt_auth_fixture(conn,'auth_owner_gates'):conn.execute('DELETE FROM auth_owner_gates')
     else:prepared['lock'].unlink()
     before=prepared['path'].read_bytes();names=sorted(p.name for p in prepared['lock'].parent.iterdir())
     value=peer(prepared['path'],fault)
@@ -246,14 +245,14 @@ def test_dual_namespace_consumes_same_auth_inode(private,namespace,monkeypatch):
         for name in ('STATE_ROOT','CACHE_ROOT','LOG_ROOT'):monkeypatch.setattr(other,name,getattr(paths,name))
     store=module.ResearchStore(auth_module.AuthStore(private))
     assert store.storage_identity==(private.stat().st_dev,private.stat().st_ino)
-    with store.transaction() as conn:assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==9
+    with store.transaction() as conn:assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==10
 
 
 def test_checkpoint_busy_is_not_reported_as_erasure_success(private):
     store=ResearchStore(AuthStore(private));reader=sqlite_utils.connect_private_auth(private,readonly=True)
     try:
         reader.execute('BEGIN');reader.execute('SELECT count(*) FROM auth_users').fetchall()
-        with store.transaction(write=True) as conn:conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('checkpoint@example.invalid','free','synthetic','g')")
+        with store.transaction(write=True) as conn:conn.execute("INSERT INTO revoked_sessions(jti,revoked_at) VALUES('synthetic-checkpoint','synthetic')")
         with pytest.raises(ResearchError) as rejected:store.checkpoint_erasure()
         assert rejected.value.code=='STORE_BUSY'
     finally:reader.close()
@@ -285,8 +284,9 @@ def formal_paid(paid_api,monkeypatch,record_property):
         assert actual==kind and info.st_uid==os.geteuid(),label
         assert info.st_nlink==1 if kind=='regular' else info.st_nlink>=1,label
         return info
-    # This is the explicit synthetic dev provisioning phase, before capture of
-    # any formal store. Normalize only the two known objects and named sidecars.
+    # This fixture begins with actual legacy synthetic execution rows. Convert
+    # them only through the explicit offline maintainers before formal capture;
+    # no runtime constructor or environment downgrade initializes the new graph.
     assert db.name=='auth.sqlite3' and db.is_absolute()
     inspect('state_root',db.parent,'directory',phase='before')
     inspect('auth.sqlite3',db,'regular',phase='before')
@@ -319,6 +319,12 @@ def formal_paid(paid_api,monkeypatch,record_property):
         label='lock.'+gate
         assert stat.S_IMODE(inspect(label,lock_root/(gate+'.lock'),'regular',phase='checked').st_mode)==0o600,label
     monkeypatch.setenv('STRUCTURAL_ENV','prod')
+    from research.formula_runtime import provision_formula_v10
+    from services.auth_registration import migrate_private_auth_registration,admit_private_gate
+    provision_formula_v10(db)
+    migrate_private_auth_registration()
+    with raw(db) as conn:owners=[row[0] for row in conn.execute('SELECT owner_key FROM auth_owner_gates')]
+    for owner in owners:admit_private_gate(owner)
     held=AuthStore(db);store=ResearchStore(held)
     monkeypatch.setattr(auth,'_store',lambda:held)
     monkeypatch.setenv('STRUCTURAL_ENV','test')

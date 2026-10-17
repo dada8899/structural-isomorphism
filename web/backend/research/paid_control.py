@@ -27,6 +27,22 @@ _REQUEST_FACTORY=object()
 _REQUEST_SOURCES={}
 
 
+@dataclass(frozen=True)
+class SsoAccountDeletionIdentity:
+    """Verified SSO deletion subject; deliberately has no direct-session JTI."""
+    email: str
+    generation: str
+    expires_at: int
+    subject: str
+    issued_ns: int
+
+
+def _sso_deletion_ledger():
+    if __package__=='web.backend.research':from ..api import sso
+    else:from api import sso
+    return sso,sso.get_replay_store()
+
+
 class AuthenticatedActionSource:
     """Scoped result of actual route/cookie verification, never an identity DTO."""
     __slots__=('identity','action','research_id','task_id','key_digest','body_digest','pid','reference','active')
@@ -41,15 +57,28 @@ class AuthenticatedActionSource:
 
 
 def issue_authenticated_action(request,*,action,research_id=None,task_id=None,key='',body_digest=''):
-    """Reverify the real ASGI route and signed direct cookie, not passed claims."""
+    """Reverify the real route and credential appropriate to this action."""
     from starlette.requests import Request
     routes={'cancel':('POST','cancel_research_task'),'account-delete':('POST','delete_my_account'),
-        'method-read':('GET','view_research'),'method-reconcile':('POST','reconcile_research_task')}
+        'method-read':('GET','view_research'),'method-reconcile':('POST','reconcile_research_task'),
+        'formula-check':('POST','check_research_formula'),'formula-read':('GET','read_research_formula_result'),
+        'formula-revision-read':('GET','read_research_formula_revision')}
     if type(request) is not Request or action not in routes or request.method!=routes[action][0]:
         raise PermissionError('actual authenticated action request required')
     from .provider_schemas import strict_json
     raw=getattr(request,'_body',None)
-    if action=='method-read':
+    if action in ('formula-read','formula-revision-read'):
+        if request.query_params:raise ResearchError('INPUT_INVALID',422,'公式读取不接受查询参数。')
+        research_id=request.path_params.get('research_id')
+        task_id=str(request.path_params.get('result_ref' if action=='formula-read' else 'revision'))
+        body_digest=digest(request.scope.get('query_string',b''));key=''
+    elif action=='formula-check':
+        if type(raw) is not bytes or request.query_params:raise PermissionError('actual formula request required')
+        from .schemas import FormulaCheckEnvelope
+        data=FormulaCheckEnvelope.model_validate(strict_json(raw,65536)).data
+        research_id=request.path_params.get('research_id');task_id=None
+        key=request.headers.get('idempotency-key','');body_digest=digest(canonical(data.model_dump(mode='json')))
+    elif action=='method-read':
         pairs=list(request.query_params.multi_items())
         if len(pairs)>1 or any(name!='task_id' or not value for name,value in pairs):
             raise ResearchError('INPUT_INVALID',422,'研究结果读取参数无效。')
@@ -92,22 +121,46 @@ def issue_authenticated_action(request,*,action,research_id=None,task_id=None,ke
     unified,status=auth.resolve_account_user(request)
     user,direct=auth.resolve_session_user(request)
     claims=auth._decode_jwt(request.cookies.get(auth._COOKIE_NAME,''))
-    if (status!='valid' or direct!='valid' or not unified or not user or unified['email']!=user['email'] or not claims
-            or type(claims.get('exp')) is not int or not all(type(claims.get(k)) is str and claims[k] for k in ('sub','gen','jti'))
-            or (request.method=='POST' and auth.require_same_origin(request) is not None)):
+    if status!='valid' or not unified or (request.method=='POST' and auth.require_same_origin(request) is not None):
         raise ResearchError('AUTH_REQUIRED',401,'操作来源认证失效。')
-    identity=AccountIdentity(user['email'],claims['gen'],claims['jti'],claims['exp'])
+    if action=='account-delete' and direct=='absent':
+        sso,_ledger=_sso_deletion_ledger()
+        verified,sso_status=sso._resolve_sso_beta_user(request)
+        try:
+            signed=sso.jwt.decode(request.cookies.get(sso._BETA_SESSION_COOKIE,''),sso._secret(),algorithms=[sso._ALG],
+                audience='structural-beta-session',issuer=sso._beta_origin())
+        except sso.jwt.PyJWTError:
+            raise ResearchError('AUTH_REQUIRED',401,'操作来源认证失效。') from None
+        if (sso_status!='valid' or not verified or verified['email']!=unified['email']
+                or type(signed.get('gen')) is not str or not signed['gen'] or signed['gen']!=verified.get('_verified_generation')
+                or type(signed.get('sub')) is not str or signed['sub']!=verified['id']
+                or type(signed.get('exp')) is not int or type(signed.get('issued_ns')) is not int):
+            raise ResearchError('AUTH_REQUIRED',401,'操作来源认证失效。')
+        identity=SsoAccountDeletionIdentity(verified['email'],signed['gen'],signed['exp'],signed['sub'],signed['issued_ns'])
+    else:
+        if (direct!='valid' or not user or unified['email']!=user['email'] or not claims
+                or type(claims.get('exp')) is not int or not all(type(claims.get(k)) is str and claims[k] for k in ('sub','gen','jti'))):
+            raise ResearchError('AUTH_REQUIRED',401,'操作来源认证失效。')
+        identity=AccountIdentity(user['email'],claims['gen'],claims['jti'],claims['exp'])
     return AuthenticatedActionSource(_factory=_REQUEST_FACTORY,identity=identity,action=action,research_id=research_id,task_id=task_id,
         key_digest=digest(key.encode()),body_digest=body_digest)
 
 
 def require_authenticated_action(source,*,identity,action,research_id=None,task_id=None,key=None,body_digest=None):
     if (type(source) is not AuthenticatedActionSource or not source.active or source.pid!=os.getpid()
-            or _REQUEST_SOURCES.get(source.reference) is not source or type(identity) is not AccountIdentity
+            or _REQUEST_SOURCES.get(source.reference) is not source or not (type(identity) is AccountIdentity
+                or (action=='account-delete' and type(identity) is SsoAccountDeletionIdentity))
             or source.identity!=identity or identity.expires_at<=time.time() or source.action!=action
             or source.research_id!=research_id or source.task_id!=task_id
             or (key is not None and source.key_digest!=digest(key.encode())) or (body_digest is not None and source.body_digest!=body_digest)):
         raise PermissionError('verified action source missing or stale')
+    if type(identity) is SsoAccountDeletionIdentity:
+        # This is the existing SSO subject-revocation ledger, never the direct
+        # revoked_sessions JTI path. Recheck during each short capability use.
+        _sso,ledger=_sso_deletion_ledger()
+        revoked=ledger.subject_revoked_at(identity.subject)
+        if revoked is not None and identity.issued_ns<=revoked:
+            raise PermissionError('SSO deletion subject revoked')
     return source.reference
 
 
@@ -134,10 +187,14 @@ def _deletion_lease_binding(conn,store,lease,job):
 
 
 def _job_has_v2(conn,job):
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==10:
+        formula=conn.execute('SELECT 1 FROM research_formula_revisions f JOIN research_controls c ON c.id=f.research_id JOIN research_principals p ON p.id=c.owner_id WHERE p.gate_id=? '+('AND p.normalized_email=? AND p.session_generation=? ' if job['owner_email'] is not None and job['session_generation'] is not None else '')+'LIMIT 1',
+            (job['gate_id'],job['owner_email'],job['session_generation']) if job['owner_email'] is not None and job['session_generation'] is not None else (job['gate_id'],)).fetchone()
+        if formula:return True
     if job['owner_email'] is not None and job['session_generation'] is not None:
-        return bool(conn.execute("SELECT 1 FROM research_tasks t JOIN research_principals p ON p.id=t.principal_id WHERE p.gate_id=? AND p.normalized_email=? AND p.session_generation=? AND t.policy_revision='bounded_usage_upper_v2' LIMIT 1",
+        return bool(conn.execute("SELECT 1 FROM research_tasks t JOIN research_principals p ON p.id=t.principal_id WHERE p.gate_id=? AND p.normalized_email=? AND p.session_generation=? AND t.policy_revision IN ('bounded_usage_upper_v2','local-formula-v1') LIMIT 1",
             (job['gate_id'],job['owner_email'],job['session_generation'])).fetchone())
-    return bool(conn.execute("SELECT 1 FROM research_tasks t JOIN research_principals p ON p.id=t.principal_id WHERE p.gate_id=? AND t.policy_revision='bounded_usage_upper_v2' LIMIT 1",(job['gate_id'],)).fetchone())
+    return bool(conn.execute("SELECT 1 FROM research_tasks t JOIN research_principals p ON p.id=t.principal_id WHERE p.gate_id=? AND t.policy_revision IN ('bounded_usage_upper_v2','local-formula-v1') LIMIT 1",(job['gate_id'],)).fetchone())
 
 
 def verify_deletion_origin(conn,*,store,lease,job_id):
@@ -150,7 +207,8 @@ def verify_deletion_origin(conn,*,store,lease,job_id):
     from .store import ResearchStore
     from .financial_guard import JOB_ORIGIN_VERSION
     _deletion_lease_binding(conn,store,lease,job)
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==10:ResearchStore._check_v10(conn)
+    elif conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
     else:ResearchStore._check_v8(conn)
     if job['origin_version']!=JOB_ORIGIN_VERSION or job['origin_digest']!=deletion_origin_digest(job):
         raise PermissionError('protected deletion origin damaged')
@@ -255,6 +313,8 @@ def _transaction_scope(conn,*,write):
     def authorizer(action,arg1,arg2,database,source):
         if action==sqlite3.SQLITE_TRANSACTION and arg1 in ("COMMIT","ROLLBACK"):
             scope.active=False
+        from .formula_runtime import statement_allowed as formula_statement_allowed
+        if not formula_statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
         if scope.financial_active:
             from .financial_guard import _statement_allowed
             if not _statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
@@ -284,7 +344,7 @@ def _current_scope(conn):
     with _LOCK:scope=_SCOPES.get(id(conn))
     if (not scope or scope.conn is not conn or not scope.active or not scope.write or scope.pid!=os.getpid()
             or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1
-            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7,8,9)):
+            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7,8,9,10)):
         raise PermissionError("current canonical v5 transaction required")
     if conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==7:
         from .store import ResearchStore
@@ -295,6 +355,9 @@ def _current_scope(conn):
     elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==9:
         from .store import ResearchStore
         ResearchStore._check_v9(conn)
+    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==10:
+        from .store import ResearchStore
+        ResearchStore._check_v10(conn)
     return scope
 
 
@@ -393,7 +456,7 @@ def mint_stop_authority(conn,*,store,lease,principal_id,task_id,expected_task_ve
 
 def mint_current_paid_authority(conn,*,store,lease,identity,context,step_id,expected_task_version,expected_step_version,operation,approval_ref):
     _current_scope(conn)
-    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9):
+    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10):
         policy=conn.execute('SELECT policy_revision FROM research_tasks WHERE id=?',(context.task_id,)).fetchone()
         if policy and policy[0]=='bounded_usage_upper_v2':
             from .paid_approval import mint_current_authority
