@@ -8,6 +8,7 @@ import multiprocessing
 import os
 import signal
 import sqlite3
+from contextlib import closing
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -283,7 +284,7 @@ def test_storage_failure_rolls_back_revision_and_idempotency(stack,monkeypatch):
     assert response.status_code == 503 and "synthetic" not in response.text
     current = client.get(f"/api/research/{rid}").json()["data"]
     assert current["research_version"] == 1 and len(current["revisions"]) == 1
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn:
         assert conn.execute("SELECT count(*) FROM research_idempotency").fetchone()[0] == 1
 
 

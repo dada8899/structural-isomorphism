@@ -1,6 +1,7 @@
 """Cache only pure SQL tokens; current database checks remain uncached."""
 from concurrent.futures import ThreadPoolExecutor
 import sqlite3
+from contextlib import closing
 
 import pytest
 
@@ -81,10 +82,10 @@ def test_warm_cache_does_not_hide_drift_in_a_second_database(stack,tmp_path):
     client,path=stack;create(client);store=ResearchStore(auth._store())
     with store.transaction() as conn:store._check_v10(conn)
     target=tmp_path/'other'/'auth.sqlite3';target.parent.mkdir()
-    with sqlite3.connect(path) as original,sqlite3.connect(target) as other:original.backup(other)
+    with closing(sqlite3.connect(path)) as original,closing(sqlite3.connect(target)) as other:original.backup(other)
     other_store=ResearchStore(type(store.auth_store)(target))
     with other_store.transaction() as conn:other_store._check_v10(conn)
-    with sqlite3.connect(target) as other:
+    with closing(sqlite3.connect(target)) as other:
         other.execute('DROP TRIGGER research_revision_no_update')
         other.execute('CREATE TRIGGER research_revision_no_update BEFORE UPDATE ON research_revisions BEGIN SELECT 1; END')
     with pytest.raises(ResearchError) as failure:ResearchStore(type(store.auth_store)(target))
