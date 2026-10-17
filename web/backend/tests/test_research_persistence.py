@@ -266,13 +266,20 @@ def test_disabled_and_production_cannot_be_opted_in(stack, monkeypatch):
     assert post(client, "/api/research", {"problem":problem()}).status_code == 503
 
 
-def test_storage_failure_rolls_back_revision_and_idempotency(stack):
+def test_storage_failure_rolls_back_revision_and_idempotency(stack,monkeypatch):
     client, path = stack
     rid = create(client)
-    with sqlite3.connect(path) as conn:
-        conn.execute("""CREATE TRIGGER research_injected_failure BEFORE INSERT ON research_revisions
-            WHEN NEW.revision=2 BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END""")
-    response = post(client, f"/api/research/{rid}/revisions", {"expected_revision":1,"problem":problem("第二修订")}, "failed-rev")
+    connect=sqlite3.connect;inserted=[]
+    class FaultConnection(sqlite3.Connection):
+        def execute(self,sql,*args,**kwargs):
+            result=super().execute(sql,*args,**kwargs)
+            if sql.startswith('INSERT INTO research_revisions') and args and args[0][1]==2:
+                inserted.append(True);raise sqlite3.OperationalError('synthetic failure')
+            return result
+    with monkeypatch.context() as failed:
+        failed.setattr(sqlite3,'connect',lambda *a,**k:connect(*a,**k) if 'factory' in k else connect(*a,factory=FaultConnection,**k))
+        response = post(client, f"/api/research/{rid}/revisions", {"expected_revision":1,"problem":problem("第二修订")}, "failed-rev")
+    assert inserted
     assert response.status_code == 503 and "synthetic" not in response.text
     current = client.get(f"/api/research/{rid}").json()["data"]
     assert current["research_version"] == 1 and len(current["revisions"]) == 1

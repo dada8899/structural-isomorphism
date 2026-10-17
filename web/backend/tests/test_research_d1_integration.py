@@ -455,6 +455,8 @@ def test_real_parent_sigkill_cannot_close_unknown_while_sender_owns_gate(source_
         principal=conn.execute("SELECT principal_id FROM research_tasks WHERE id=?",(tid,)).fetchone()[0]
     root=Path(__file__).resolve().parents[3]
     environment={**os.environ,"PYTHONPATH":str(root/"web/backend")+os.pathsep+str(root)}
+    guard=sys.modules.get('audit_bootstrap')
+    if guard is not None:environment['PYTHONPATH']=str(Path(guard.__file__).resolve().parent)+os.pathsep+environment['PYTHONPATH']
     with source_server() as (port,calls):
         parent=subprocess.Popen([sys.executable,"-m","web.backend.tests.source_http_fixture",tid,str(port),str(ready),str(go)],cwd=root,env=environment,start_new_session=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         try:
@@ -503,6 +505,8 @@ def test_sigkill_expired_sender_then_cancel_still_blocks_sending_until_closure(s
         principal=conn.execute("SELECT principal_id FROM research_tasks WHERE id=?",(tid,)).fetchone()[0]
     root=Path(__file__).resolve().parents[3]
     environment={**os.environ,"PYTHONPATH":str(root/"web/backend")+os.pathsep+str(root)}
+    guard=sys.modules.get('audit_bootstrap')
+    if guard is not None:environment['PYTHONPATH']=str(Path(guard.__file__).resolve().parent)+os.pathsep+environment['PYTHONPATH']
     with source_server() as (port,calls):
         parent=subprocess.Popen([sys.executable,"-m","web.backend.tests.source_http_fixture",tid,str(port),str(ready),str(go)],cwd=root,env=environment,start_new_session=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         try:

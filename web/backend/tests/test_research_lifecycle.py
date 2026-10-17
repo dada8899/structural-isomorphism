@@ -9,7 +9,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 import threading
 from uuid import uuid4
-from contextlib import contextmanager
+from contextlib import contextmanager, closing
 from pathlib import Path
 
 import pytest
@@ -413,10 +413,11 @@ def test_copied_database_cannot_resume_original_registered_job(lifecycle,monkeyp
 def test_v1_research_migration_keeps_existing_lock_inode_and_problem(lifecycle,monkeypatch):
     client,path,_=lifecycle
     with monkeypatch.context() as legacy:
+        legacy.setattr(ResearchStore,"_initialize_current",lambda self,conn:False)
         legacy.setattr(ResearchStore,"_migrate_v5",lambda self:None)
         legacy.setattr(ResearchStore,"_migrate_v6",lambda self:None)
         rid=create(client)
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         principal=conn.execute("SELECT id FROM research_principals").fetchone()[0]
         conn.execute("DROP TRIGGER research_principal_gate_required")
         conn.execute("ALTER TABLE research_principals DROP COLUMN gate_id")
@@ -424,9 +425,13 @@ def test_v1_research_migration_keeps_existing_lock_inode_and_problem(lifecycle,m
         conn.execute("DELETE FROM auth_owner_gates")
     lock=path.parent/"research-locks"/(principal+".lock")
     inode=lock.stat().st_ino
-    ResearchStore(auth._store())
+    upgraded=ResearchStore(auth._store())
+    with upgraded.transaction() as conn:assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==9
+    path.chmod(0o600) # Actual offline migration permission prerequisite.
+    from research.formula_runtime import formula_maintenance
+    with formula_maintenance(upgraded) as maintenance:upgraded.migrate_formula_v10(maintenance=maintenance)
     assert lock.stat().st_ino == inode
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         from research.store import CURRENT_RESEARCH_SCHEMA_VERSION
         assert conn.execute("SELECT version FROM research_schema").fetchone()[0] == CURRENT_RESEARCH_SCHEMA_VERSION
         assert conn.execute("SELECT gate_id FROM research_principals").fetchone()[0] == principal

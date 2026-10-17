@@ -189,6 +189,8 @@ def _start(tmp_path,port,stage,wall):
         config[name]=str(tmp_path/name)
     path=tmp_path/"config.json";path.write_text(json.dumps(config))
     env={**os.environ,"PYTHONPATH":str(ROOT)+os.pathsep+str(ROOT/"web/backend"),"PYTHONDONTWRITEBYTECODE":"1"}
+    guard=sys.modules.get('audit_bootstrap')
+    if guard is not None:env['PYTHONPATH']=str(Path(guard.__file__).resolve().parent)+os.pathsep+env['PYTHONPATH']
     log=(tmp_path/"parent.log").open("wb")
     process=subprocess.Popen([sys.executable,"-c","from web.backend.tests.test_research_source_lifetime import parent_main; import sys; parent_main(sys.argv[1])",str(path)],cwd=ROOT,env=env,start_new_session=True,stdout=log,stderr=log)
     return process,config,log

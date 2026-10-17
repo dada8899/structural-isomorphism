@@ -59,7 +59,14 @@ def test_metadata_has_self_contained_requests_success_and_safe_errors_only(paid_
             assert declaration['responses'][str(status)]['content']['application/json']['schema']=={'$ref':'#/components/schemas/ResearchPublicErrorEnvelope'}
         route=next(route for route in client.app.routes if getattr(route,'path',None)==path)
         assert route.dependant.body_params==[] and route.response_field is None
-    assert 'requestBody' not in schema['paths']['/api/research']['post']
+    from research.schemas import CreateEnvelope
+    from api.research import _formula_request_body
+    create=schema['paths']['/api/research']['post']['requestBody']
+    from fastapi.encoders import jsonable_encoder
+    assert create==jsonable_encoder(_formula_request_body(CreateEnvelope),exclude_none=True)
+    assert '$ref' not in json.dumps(create) and '$defs' not in json.dumps(create)
+    route=next(route for route in client.app.routes if getattr(route,'path',None)=='/api/research')
+    assert route.dependant.body_params==[] and route.response_field is None
 
 
 @pytest.mark.parametrize('operation',['paid-preview','paid-confirm'])
