@@ -434,37 +434,53 @@ class ResearchStore:
             if existing:
                 try:current=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
                 except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本标记结构不匹配。') from None
-                if current is None or (financial_exists and current[0]!=FINANCIAL_SCHEMA_VERSION):
-                    raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融结构与版本标记不匹配。')
-                if current and current[0]==FINANCIAL_SCHEMA_VERSION:
-                    self._check_v7(conn)
-                    self._check_v7_attachments(conn)
-                    from .source_integration import install_schema
-                    install_schema(conn,existing_required=True)
+                # A peer may finish initialization after our first read. The
+                # write snapshot, not that stale read, decides whether legacy
+                # installation is allowed. Never repair a completed graph.
+                if current and current[0]==METHOD_SCHEMA_VERSION:
+                    self.check_current_structure(conn);self._check_v9(conn)
                     return
-            conn.execute(SCHEMA[0])
-            row = conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()
-            if row is not None and row["version"] not in (1, 2, 3, 4, 5, 6):
-                raise ResearchError("SCHEMA_UNSUPPORTED", 503, "研究数据版本暂不支持。")
-            for statement in SCHEMA[1:]:
-                conn.execute(statement)
-            columns = {item["name"] for item in conn.execute("PRAGMA table_info(research_principals)")}
-            if "gate_id" not in columns:
-                conn.execute("ALTER TABLE research_principals ADD COLUMN gate_id TEXT")
-            for principal in conn.execute("SELECT id,normalized_email FROM research_principals WHERE gate_id IS NULL").fetchall():
-                if not principal["normalized_email"]:
-                    raise ResearchError("SCHEMA_UNSUPPORTED", 503, "研究主体迁移缺少必要绑定。")
-                gate_id = self.auth_store.owner_gate_in(conn, principal["normalized_email"], principal["id"])
-                conn.execute("UPDATE research_principals SET gate_id=? WHERE id=?", (gate_id, principal["id"]))
-            conn.execute("""CREATE TRIGGER IF NOT EXISTS research_principal_gate_required
-                BEFORE INSERT ON research_principals WHEN NEW.gate_id IS NULL
-                BEGIN SELECT RAISE(ABORT, 'principal gate required'); END""")
-            for statement in C0_SCHEMA:
-                conn.execute(statement)
-            for table in ("research_price_revisions","research_balance_snapshots","research_billing_receipts"):
-                conn.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable
-                    BEFORE UPDATE ON {table} BEGIN SELECT RAISE(ABORT,'immutable accounting record'); END""")
-            conn.execute("INSERT INTO research_schema VALUES(1,3) ON CONFLICT(id) DO NOTHING")
+                if current and current[0]==DELETION_SCHEMA_VERSION:
+                    self._check_v8(conn);self._check_v7_attachments(conn)
+                    completed_v8=True
+                elif current and current[0]==FINANCIAL_SCHEMA_VERSION:
+                    self._check_v7(conn);self._check_v7_attachments(conn)
+                    completed_v7=True
+                elif current is None or financial_exists:
+                    raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融结构与版本标记不匹配。')
+            if not (completed_v7 or completed_v8):
+                conn.execute(SCHEMA[0])
+                row = conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()
+                if row is not None and row["version"] not in (1, 2, 3, 4, 5, 6):
+                    raise ResearchError("SCHEMA_UNSUPPORTED", 503, "研究数据版本暂不支持。")
+                for statement in SCHEMA[1:]:
+                    conn.execute(statement)
+                columns = {item["name"] for item in conn.execute("PRAGMA table_info(research_principals)")}
+                if "gate_id" not in columns:
+                    conn.execute("ALTER TABLE research_principals ADD COLUMN gate_id TEXT")
+                for principal in conn.execute("SELECT id,normalized_email FROM research_principals WHERE gate_id IS NULL").fetchall():
+                    if not principal["normalized_email"]:
+                        raise ResearchError("SCHEMA_UNSUPPORTED", 503, "研究主体迁移缺少必要绑定。")
+                    gate_id = self.auth_store.owner_gate_in(conn, principal["normalized_email"], principal["id"])
+                    conn.execute("UPDATE research_principals SET gate_id=? WHERE id=?", (gate_id, principal["id"]))
+                conn.execute("""CREATE TRIGGER IF NOT EXISTS research_principal_gate_required
+                    BEFORE INSERT ON research_principals WHEN NEW.gate_id IS NULL
+                    BEGIN SELECT RAISE(ABORT, 'principal gate required'); END""")
+                for statement in C0_SCHEMA:
+                    conn.execute(statement)
+                for table in ("research_price_revisions","research_balance_snapshots","research_billing_receipts"):
+                    conn.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable
+                        BEFORE UPDATE ON {table} BEGIN SELECT RAISE(ABORT,'immutable accounting record'); END""")
+                conn.execute("INSERT INTO research_schema VALUES(1,3) ON CONFLICT(id) DO NOTHING")
+        # Resume only after releasing the initialization write transaction;
+        # each original migration obtains and validates its own transaction.
+        if completed_v7:
+            self._migrate_v8()
+            self._migrate_v9_if_ready()
+            return
+        if completed_v8:
+            self._migrate_v9()
+            return
         self._migrate_v4()
         self._migrate_v5()
         self._migrate_v6()
@@ -515,6 +531,37 @@ class ResearchStore:
     def _require_development_migration(self):
         if self._formal_mode():raise RuntimeError('private Research migration requires separate provisioning')
 
+    @classmethod
+    def _check_completed_migration_peer(cls,conn,version):
+        """An exact completed peer is an idempotent migration, never authority."""
+        if version not in (DELETION_SCHEMA_VERSION,METHOD_SCHEMA_VERSION):return False
+        if version==METHOD_SCHEMA_VERSION:
+            cls.check_current_structure(conn);cls._check_v9(conn)
+        else:
+            # V8 has the same declared graph except the V9 method overlay.
+            # Check every managed object before the original full V8 domain
+            # checks; unknown auxiliaries cannot hide behind a newer marker.
+            objects=cls._current_structure_declarations()
+            for ddl in METHOD_GUARDS:del objects[ddl.split()[2]]
+            session=next(ddl for ddl in PRODUCER_DDL if ddl.startswith('CREATE TABLE research_provider_sessions'))
+            objects['research_provider_sessions']=('table','research_provider_sessions',(session,))
+            tables={name for name,(kind,_,_) in objects.items() if kind=='table'}
+            catalog={}
+            for value in conn.execute('SELECT type,name,tbl_name,sql FROM main.sqlite_schema'):
+                row=tuple(value);kind,name,target,sql=row
+                if name not in objects and not name.startswith('research_') and target not in tables:continue
+                catalog[name]=row
+                automatic=(kind=='index' and sql is None and target in tables
+                    and re.fullmatch(r'sqlite_autoindex_'+re.escape(target)+r'_[0-9]+',name) is not None)
+                if name not in objects and not automatic:
+                    raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究迁移发现未知对象。')
+            cls._check_declared_structure(conn,objects,catalog=catalog)
+            marker=[tuple(row) for row in conn.execute('SELECT id,version FROM main.research_schema')]
+            if marker!=[(1,DELETION_SCHEMA_VERSION)] or any(type(value) is not int for value in marker[0]):
+                raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究迁移版本标记不匹配。')
+            cls._check_v8(conn);cls._check_v7_attachments(conn)
+        return True
+
     def _migrate_v4(self):
         """Controlled SQLite table replacement, never an application session.
 
@@ -534,6 +581,7 @@ class ResearchStore:
             conn.execute("BEGIN IMMEDIATE")
             self.auth_store.check_gate_policy(conn)
             version=conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0]
+            if self._check_completed_migration_peer(conn,version):conn.commit();return
             if version==FINANCIAL_SCHEMA_VERSION:
                 self._check_v7(conn);self._check_v7_attachments(conn);conn.commit();return
             if version in (4,5,6):
@@ -612,6 +660,7 @@ class ResearchStore:
             conn.execute("BEGIN IMMEDIATE")
             self.auth_store.check_gate_policy(conn)
             version=conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0]
+            if self._check_completed_migration_peer(conn,version):conn.commit();return
             if version==FINANCIAL_SCHEMA_VERSION:
                 self._check_v7(conn);self._check_v7_attachments(conn);conn.commit();return
             if version==6:
@@ -684,6 +733,7 @@ class ResearchStore:
             if conn.execute("PRAGMA foreign_keys").fetchone()[0]!=0:raise ResearchError("SCHEMA_UNSUPPORTED",503,"生产者迁移连接配置失败。")
             conn.execute("BEGIN IMMEDIATE");self.auth_store.check_gate_policy(conn)
             version=conn.execute("SELECT version FROM research_schema").fetchone()[0]
+            if self._check_completed_migration_peer(conn,version):conn.commit();return
             if version==FINANCIAL_SCHEMA_VERSION:
                 self._check_v7(conn);self._check_v7_attachments(conn);conn.commit();return
             if version==6:
@@ -818,6 +868,7 @@ class ResearchStore:
             conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN IMMEDIATE')
             self.auth_store.check_gate_policy(conn)
             version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
+            if self._check_completed_migration_peer(conn,version):conn.commit();return
             if version==FINANCIAL_SCHEMA_VERSION:
                 self._check_v7(conn);self._check_v7_attachments(conn);conn.commit();return
             if version!=PRODUCER_SCHEMA_VERSION:raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融迁移版本不支持。')
@@ -1022,7 +1073,7 @@ class ResearchStore:
             install_default_hook(conn)
             conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN IMMEDIATE');self.auth_store.check_gate_policy(conn)
             version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
-            if version==DELETION_SCHEMA_VERSION:self._check_v8(conn);conn.commit();return
+            if self._check_completed_migration_peer(conn,version):conn.commit();return
             if version!=FINANCIAL_SCHEMA_VERSION:raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除来源迁移版本不支持。')
             self._check_v7(conn);self._check_v7_attachments(conn);self._check_auth_job_schema(conn,expanded=False)
             for ddl in V8_JOB_GUARDS:
