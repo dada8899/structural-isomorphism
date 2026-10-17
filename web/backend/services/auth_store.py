@@ -21,6 +21,7 @@ except ImportError:
 
 
 _INITIALIZATION_LOCK = threading.RLock()
+_PRIVATE_AUTH_PATHS = vars(sqlite3).setdefault('_structural_private_auth_paths_v1',set())
 _RATE_BUCKET_KEY_RE = re.compile(
     r"^(?:global:magic-link-email|[a-z][a-z0-9_.-]{1,63}:v2:[0-9a-f]{64})$"
 )
@@ -180,32 +181,77 @@ def _auth_metadata(conn,*,allowed=None):
     return objects,columns,indexes
 
 
-@lru_cache(maxsize=1)
-def _auth_final_contracts():
+_LEGACY_AUTH_DDL = (
+    'CREATE TABLE IF NOT EXISTS auth_users (email TEXT PRIMARY KEY, tier TEXT NOT NULL, created_at TEXT NOT NULL, session_generation TEXT NOT NULL)',
+    'CREATE TABLE IF NOT EXISTS magic_tokens (token_hash TEXT PRIMARY KEY, email TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL, consumed_at TEXT)',
+    'CREATE TABLE IF NOT EXISTS revoked_sessions (jti TEXT PRIMARY KEY, revoked_at TEXT NOT NULL, email TEXT)',
+    'CREATE TABLE IF NOT EXISTS auth_rate_requests (email TEXT NOT NULL, requested_at INTEGER NOT NULL)',
+    'CREATE INDEX IF NOT EXISTS idx_auth_rate ON auth_rate_requests(email, requested_at)',
+    'CREATE TABLE IF NOT EXISTS auth_notification_outbox (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, email TEXT NOT NULL, created_at TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, last_error TEXT, delivered_at TEXT, claimed_at INTEGER, UNIQUE(kind, email))',
+    'CREATE TABLE IF NOT EXISTS account_deletion_epochs (owner_hash TEXT PRIMARY KEY, deleted_at TEXT NOT NULL)',
+    'CREATE TABLE IF NOT EXISTS auth_owner_gates (owner_key TEXT PRIMARY KEY, gate_id TEXT NOT NULL UNIQUE)',
+    'CREATE TABLE IF NOT EXISTS auth_owner_gate_policy (id INTEGER PRIMARY KEY CHECK(id=1), fingerprint TEXT NOT NULL)',
+)
+
+
+def _build_auth_contracts(declarations, *, registration=False):
     from .sqlite_utils import ClosingConnection
     forms=[]
     for nullable_generation in (False,True):
         with sqlite3.connect(':memory:',isolation_level=None,factory=ClosingConnection) as conn:
-            for ddl in _BASE_SCHEMA_STATEMENTS:
-                if 'auth_deletion_jobs' in ddl:continue  # Core-owned expanded shapes.
+            for ddl in declarations:
                 if nullable_generation and ddl.startswith('CREATE TABLE IF NOT EXISTS auth_users'):
                     ddl=ddl.replace('session_generation TEXT NOT NULL','session_generation TEXT')
                 conn.execute(ddl)
             conn.execute(_AUTH_LIFECYCLE_SQL)
+            if registration:
+                from .auth_registration import AUTH_REGISTRATION_DDL
+                for ddl in AUTH_REGISTRATION_DDL:conn.execute(ddl)
             forms.append(_auth_metadata(conn))
     return tuple(forms)
+
+
+@lru_cache(maxsize=1)
+def _legacy_auth_contracts():
+    return _build_auth_contracts(_LEGACY_AUTH_DDL)
+
+
+@lru_cache(maxsize=1)
+def _auth_final_contracts():
+    return _build_auth_contracts(tuple(ddl for ddl in _BASE_SCHEMA_STATEMENTS if 'auth_deletion_jobs' not in ddl),registration=True)
 
 
 _AUTH_LIFECYCLE_SQL="ALTER TABLE auth_users ADD COLUMN lifecycle TEXT NOT NULL DEFAULT 'active' CHECK(lifecycle IN ('active','deleting'))"
 
 
 class AuthStore:
+    @staticmethod
+    def check_offline_auth_metadata(conn):
+        if not isinstance(conn,sqlite3.Connection) or not conn.in_transaction:
+            raise PermissionError('actual SQLite metadata transaction required')
+        legacy=_legacy_auth_contracts();current=_auth_final_contracts()
+        metadata=_auth_metadata(conn,allowed=legacy+current)
+        if metadata in legacy:return 'legacy_auth'
+        if metadata in current:return 'auth-provision-v1'
+        raise RuntimeError('private Auth complete metadata differs')
+
+    def expected_owner_gate_identity(self,gate_id):
+        from .auth_registration import expected_owner_gate_identity
+        return expected_owner_gate_identity(self,gate_id)
+
+    def _require_legacy_mutation(self):
+        if getattr(self,'_private_auth',False) or _formal_auth_mode():
+            raise PermissionError('private account mutation requires controlled registration')
+
     def __init__(self, path: Path):
         self.path = Path(path)
         self._private_auth = _formal_auth_mode()
+        if not self._private_auth and self.path in _PRIVATE_AUTH_PATHS:
+            raise PermissionError('a captured private Auth path cannot be reopened as development')
         self._storage_identity = None
         if self._private_auth:
             self._storage_identity = self.preflight_private(self.path)
+            _PRIVATE_AUTH_PATHS.add(self.path)
             return
         path = self.path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -329,8 +375,15 @@ class AuthStore:
             else:
                 from research.financial_guard import install_default_hook
             install_default_hook(conn)
+            if formal:
+                from .auth_registration import install_hook
+                install_hook(conn)
             conn.execute("PRAGMA busy_timeout=10000")
             conn.execute("PRAGMA secure_delete=ON")
+            if formal:
+                conn.execute('PRAGMA foreign_keys=ON')
+                if conn.execute('PRAGMA foreign_keys').fetchone()[0]!=1:
+                    raise RuntimeError('private Auth foreign keys unavailable')
             if not bootstrap:
                 self.check_gate_policy(conn)
             yield conn
@@ -426,7 +479,10 @@ class AuthStore:
             conn.commit()
             return True
 
-    def add_token(self, token_hash: str, email: str, created_at: str, expires_at: str) -> None:
+    def add_token(self, token_hash: str, email: str, created_at: str, expires_at: str, *, request=None) -> None:
+        if getattr(self,'_private_auth',False) or _formal_auth_mode():
+            from .auth_registration import add_token
+            return add_token(self,token_hash,email,created_at,expires_at,request=request)
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
             self.require_registration_allowed(conn, email)
@@ -437,6 +493,7 @@ class AuthStore:
             conn.commit()
 
     def consume_token(self, token_hash: str, consumed_at: str) -> tuple[Optional[dict], str]:
+        self._require_legacy_mutation()
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
             row = conn.execute("SELECT * FROM magic_tokens WHERE token_hash=?", (token_hash,)).fetchone()
@@ -457,6 +514,7 @@ class AuthStore:
             return dict(row), "ok"
 
     def ensure_user_and_notification(self, email: str, tier: str, created_at: str) -> tuple[dict, bool]:
+        self._require_legacy_mutation()
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
             self.require_registration_allowed(conn, email)
@@ -478,6 +536,7 @@ class AuthStore:
         self, email: str, tier: str, created_at: str, token_created_at: str,
     ) -> tuple[dict, bool]:
         """Create/login atomically unless the credential predates deletion."""
+        self._require_legacy_mutation()
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
             self.require_registration_allowed(conn, email)
@@ -612,6 +671,14 @@ class AuthStore:
 
     def export_account_data(self, email: str) -> dict:
         """Return every auth-store row linked to ``email``, excluding hashes."""
+        if getattr(self,'_private_auth',False) or _formal_auth_mode():
+            with self._connection() as conn:
+                conn.execute('BEGIN')
+                user=conn.execute('SELECT * FROM auth_users WHERE email=?',(email,)).fetchone()
+                if not user:return {'account':None,'registration_events':[]}
+                events=conn.execute('SELECT kind,state,created_at,updated_at,closed_reason FROM auth_registration_operations WHERE owner_key=? AND target_generation=? ORDER BY created_at,id',
+                    (self.owner_key(email),user['session_generation'])).fetchall()
+                return {'account':{key:user[key] for key in ('email','tier','created_at')},'registration_events':[dict(row) for row in events]}
         with self._connection() as conn:
             user = conn.execute(
                 "SELECT email,tier,created_at FROM auth_users WHERE email=?", (email,)
@@ -649,6 +716,9 @@ class AuthStore:
         rate_keys: tuple[str, ...] = (),
     ) -> dict:
         """Atomically remove all auth rows linked to an account."""
+        if getattr(self,'_private_auth',False) or _formal_auth_mode():
+            from .auth_registration import delete_account_data
+            return delete_account_data(self,email,rate_keys=rate_keys)
         with self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
             deleted_at = datetime.now(timezone.utc).isoformat()
