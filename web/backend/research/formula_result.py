@@ -196,7 +196,7 @@ def start(service,identity,rid,request,key,*,request_source):
     require_authenticated_action(request_source,identity=identity,action='formula-check',research_id=rid,key=key,body_digest=request_digest)
     authority=None;owned=None
     with service.authorization.owner_gate(principal) as lease,service.store.transaction(write=True) as conn:
-        service.store._check_v10(conn)
+        service.store.check_runtime_version(conn)
         control=service.authorization.check(conn,identity,principal,rid,scope='write')
         replay=service._replay(conn,principal,'formula-check','r:'+rid,key,request_digest)
         if replay is not None:

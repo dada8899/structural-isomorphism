@@ -265,6 +265,10 @@ def test_explicit_offline_provisioning_then_actual_formal_construct_write_and_re
         actor=identity(client)
         assert migrate_private_auth_registration()['migrated'] is True
         assert admit_private_gate(AuthStore.owner_key(actor.email))['admitted'] is True
+        assert recover_formula_journal(path)['current_app_compatible'] is False
+        with pytest.raises((ResearchError,RuntimeError)):AuthStore(path)
+        from research.source_guard import provision_source_v11
+        assert provision_source_v11(path)['schema_version']==11
         assert recover_formula_journal(path)['current_app_compatible'] is True
         real=ResearchStore(AuthStore(path))
         with real.transaction(write=True) as conn:
@@ -329,10 +333,14 @@ def test_real_process_death_recovers_only_complete_profile_and_wal(v9,cut,monkey
         from .test_research_paid_producers import identity
         assert migrate_private_auth_registration()['migrated'] is True
         assert admit_private_gate(AuthStore.owner_key(identity(v9[0]).email))['admitted'] is True
+        assert recover_formula_journal(path)['current_app_compatible'] is False
+        with pytest.raises((ResearchError,RuntimeError)):AuthStore(path)
+        from research.source_guard import provision_source_v11
+        assert provision_source_v11(path)['schema_version']==11
         assert recover_formula_journal(path)['current_app_compatible'] is True
         current=ResearchStore(AuthStore(path))
         with current.transaction() as conn:
-            current._check_v10(conn)
+            current._check_v11(conn)
             assert conn.execute('PRAGMA journal_mode').fetchone()[0]=='wal'
             assert conn.execute('SELECT 1 FROM research_controls WHERE id=?',(rid,)).fetchone()
     finally:

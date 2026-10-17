@@ -28,7 +28,7 @@ class ResearchProjection:
     @staticmethod
     def build(conn, row, task_id=None,*,method_result=None,method_authorized=False,method_state=None,task_history=None,next_task_id=None):
         revisions=ResearchProjection.revision_records(conn,row['id'])
-        if conn.execute('SELECT version FROM research_schema').fetchone()[0]==10:
+        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11):
             from .formula_result import revision_metadata
             for record in revisions:record['formula_snapshot']=revision_metadata(conn,row['id'],record['revision'])
         current=conn.execute('SELECT id FROM research_tasks WHERE research_id=? AND input_revision=? ORDER BY start_version DESC,id DESC LIMIT 1',(row['id'],row['current_revision'])).fetchone()

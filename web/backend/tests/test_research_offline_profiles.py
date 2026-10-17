@@ -63,9 +63,9 @@ def test_legacy_auth_research9_provisions10_and_legacy10_recovers_readonly_compa
         assert conn.execute('SELECT id FROM research_controls WHERE id=?',(rid,)).fetchone()[0]==rid
 
 
-def test_current_auth_research10_remains_exactly_supported(roots):
+def test_current_auth_research11_remains_exactly_supported(roots):
     bootstrap_private_runtime();path=roots/'auth.sqlite3'
     result=recover_formula_journal(path)
-    assert result['schema_version']==10 and result['current_app_compatible'] is True and result['schema_repaired'] is False
+    assert result['schema_version']==11 and result['current_app_compatible'] is True and result['schema_repaired'] is False
     store=ResearchStore(AuthStore(path))
-    with store.transaction() as conn:ResearchStore._check_v10(conn)
+    with store.transaction() as conn:ResearchStore._check_v11(conn)
