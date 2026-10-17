@@ -259,6 +259,107 @@ def test_checkpoint_busy_is_not_reported_as_erasure_success(private):
     store.checkpoint_erasure()
 
 
+def _stage_formal_adjacent_assets(db):
+    """Test-only stopped fixture setup, never production partial-root repair.
+
+    Source/paid preparation retains its declared isolated profile. Only the
+    absent empty adjacent resources are materialized from the reviewed offline
+    bootstrap declarations, under the same actual private parent. Existing
+    resources must match their full declaration graph and are never repaired.
+    """
+    from services.auth_registration import (_fresh_history,_fresh_sso,_graph,_expected_graph,_safe_file,_create_file)
+    witness=paths.PrivateAuthFile.acquire(db)
+    try:
+        for name,create in [('history.db',_fresh_history),('sso_replay.sqlite3',_fresh_sso)]:
+            try:info=os.stat(name,dir_fd=witness.parent_fd,follow_symlinks=False);fresh=False
+            except FileNotFoundError:
+                _create_file(witness.parent_fd,name)
+                info=os.stat(name,dir_fd=witness.parent_fd,follow_symlinks=False);fresh=True
+            _safe_file(info);identity=(info.st_dev,info.st_ino)
+            for suffix in ('-wal','-shm','-journal'):
+                try:side=os.stat(name+suffix,dir_fd=witness.parent_fd,follow_symlinks=False)
+                except FileNotFoundError:continue
+                _safe_file(side)
+                assert info.st_size>0,'orphan adjacent fixture sidecar'
+            conn=sqlite3.connect((db.parent/name).as_uri()+('?mode=rw' if fresh else '?mode=ro'),uri=True,
+                isolation_level=None,factory=sqlite_utils.ClosingConnection)
+            try:
+                conn.execute('BEGIN EXCLUSIVE' if fresh else 'BEGIN')
+                if fresh:create(conn)
+                assert _graph(conn)==_expected_graph(create),'complete adjacent fixture graph required'
+                assert not conn.execute('PRAGMA foreign_key_check').fetchall()
+                if fresh:
+                    conn.commit()
+                    assert conn.execute('PRAGMA journal_mode=WAL').fetchone()[0]=='wal'
+                else:
+                    assert conn.execute('PRAGMA journal_mode').fetchone()[0]=='wal'
+                    conn.rollback()
+                assert conn.execute('PRAGMA integrity_check').fetchone()[0]=='ok'
+            finally:conn.close()
+            current=os.stat(name,dir_fd=witness.parent_fd,follow_symlinks=False);_safe_file(current)
+            assert (current.st_dev,current.st_ino)==identity
+        for name in ('favorites.jsonl','favorites.lock','account_deletion_audit.jsonl'):
+            try:info=os.stat(name,dir_fd=witness.parent_fd,follow_symlinks=False)
+            except FileNotFoundError:
+                _create_file(witness.parent_fd,name);info=os.stat(name,dir_fd=witness.parent_fd,follow_symlinks=False)
+            _safe_file(info)
+            # This fixture has not produced any legacy Favorites/audit data;
+            # an unexpected existing payload is refused, never overwritten.
+            assert info.st_size==0,'unexpected existing adjacent fixture payload'
+        witness.check()
+    finally:witness.close()
+
+
+def test_staged_adjacent_existing_resources_keep_actual_identity_and_bytes(private):
+    names=('history.db','sso_replay.sqlite3','favorites.jsonl','favorites.lock','account_deletion_audit.jsonl')
+    before={name:((private.with_name(name).stat().st_dev,private.with_name(name).stat().st_ino),private.with_name(name).read_bytes()) for name in names}
+    _stage_formal_adjacent_assets(private)
+    after={name:((private.with_name(name).stat().st_dev,private.with_name(name).stat().st_ino),private.with_name(name).read_bytes()) for name in names}
+    assert before==after
+
+
+def test_staged_adjacent_drift_is_refused_without_repair(private):
+    target=private.with_name('sso_replay.sqlite3')
+    with raw(target) as conn:conn.execute('CREATE TABLE unexpected_adjacent_data(value TEXT)')
+    before=target.read_bytes()
+    with pytest.raises(AssertionError):_stage_formal_adjacent_assets(private)
+    assert target.read_bytes()==before
+
+
+@pytest.mark.parametrize('fault',['file-mode','sidecar'])
+def test_staged_adjacent_unsafe_file_is_refused_before_native_open(private,native,fault):
+    target=private.with_name('history.db')
+    if fault=='file-mode':target.chmod(0o644)
+    else:
+        side=target.with_name(target.name+'-wal');side.write_bytes(b'unsafe');side.chmod(0o644)
+    with pytest.raises(PermissionError):_stage_formal_adjacent_assets(private)
+    assert not native
+
+
+def _formal_delete(formal_paid,monkeypatch):
+    """Actual prod delete router; original paid route remains isolated."""
+    from api import auth,favorites,sso,report,report_account
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from .test_private_registration import BETA
+    client,db,store,*_=formal_paid;state=db.parent
+    with monkeypatch.context() as formal:
+        for name,value in {'STRUCTURAL_ENV':'prod','AUTH_ENABLED':'true','AUTH_SITE_ROLE':'beta','AUTH_LINK_BASE_URL':BETA,
+            'AUTH_DATA_DIR':str(state),'STRUCTURAL_SSO_DATA_DIR':str(state),'STRUCTURAL_HISTORY_DB':str(state/'history.db'),
+            'STRUCTURAL_FAVORITES_PATH':str(state/'favorites.jsonl'),'STRUCTURAL_SSO_BETA_ORIGIN':BETA,
+            'STRUCTURAL_SSO_PHASE_ORIGIN':'https://phase.bytedance.city','SMTP_HOST':'fixture.invalid','SMTP_PORT':'587',
+            'SMTP_FROM_EMAIL':'sender@example.invalid','ADMIN_NOTIFICATION_EMAIL':'admin@example.invalid',
+            'AUTH_TRUSTED_PROXY_IPS':'127.0.0.1','STRUCTURAL_SHARE_TOKEN_SECRET':'synthetic-share-secret'}.items():formal.setenv(name,value)
+        formal.setattr(report,'_store',None);formal.setattr(report_account,'_store',None)
+        formal.setattr(sso,'_REPLAY_STORES',{})
+        formal.setattr(favorites,'_legacy_data_file',lambda:state/'absent-legacy-favorites.jsonl')
+        assert auth._store() is store.auth_store and store.path==db
+        application=FastAPI();application.include_router(auth.router,prefix='/api')
+        with TestClient(application,base_url=BETA) as deletion:
+            deletion.cookies.set(auth._COOKIE_NAME,client.cookies.get(auth._COOKIE_NAME))
+            return deletion.post('/api/me/delete',json={'confirmation':'DELETE'},headers={'Origin':BETA})
+
+
 @pytest.fixture
 def formal_paid(paid_api,monkeypatch,record_property):
     """Actual offline HTTP composition with captured formal storage objects.
@@ -326,10 +427,17 @@ def formal_paid(paid_api,monkeypatch,record_property):
     profile=recover_formula_journal(db)
     if profile['schema_version']==9:provision_formula_v10(db)
     elif profile['schema_version']!=10:raise AssertionError('unsupported complete offline fixture graph')
+    with raw(db) as conn:
+        conn.execute('BEGIN');auth_profile=AuthStore.check_offline_auth_metadata(conn)
     migrate_private_auth_registration()
-    with raw(db) as conn:owners=[row[0] for row in conn.execute('SELECT owner_key FROM auth_owner_gates')]
-    for owner in owners:admit_private_gate(owner)
-    held=AuthStore(db);store=ResearchStore(held)
+    with raw(db) as conn:owners=[tuple(row) for row in conn.execute('SELECT owner_key,gate_id FROM auth_owner_gates')]
+    held=AuthStore(db)
+    for owner,gate in owners:
+        if auth_profile=='legacy_auth':admit_private_gate(owner)
+        with AuthorizationGate(held).owner_gate_id(gate) as lease:
+            assert lease.identity[:2]==held.expected_owner_gate_identity(gate)
+    _stage_formal_adjacent_assets(db)
+    store=ResearchStore(held)
     monkeypatch.setattr(auth,'_store',lambda:held)
     monkeypatch.setenv('STRUCTURAL_ENV','test')
     return client,db,store,rid,excerpt,resolver
@@ -375,14 +483,14 @@ def test_formal_native_typed_http_commit_and_read_keep_original_body(formal_paid
         assert wire['requests']==1
 
 
-def test_formal_native_delete_before_late_return_keeps_body_closed(formal_paid,lifecycle):
+def test_formal_native_delete_before_late_return_keeps_body_closed(formal_paid,monkeypatch):
     from .test_research_paid_budget_loop import execution
     from research.paid_provider_session import persist_budget_return
     from research.paid_budget import observe_in
     client,_,store,rid,_,_=formal_paid
     with execution(formal_paid) as (session,result,wire,pid):
         receipt=session.receive()
-        erased=delete(lifecycle[0]);assert erased.status_code==200,erased.text
+        erased=_formal_delete(formal_paid,monkeypatch);assert erased.status_code==200,erased.text
         with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
             persist_budget_return(conn,store=store,lease=lease,receipt=receipt)
             observe_in(conn,store=store,lease=lease,return_ref=session.id)
