@@ -3,6 +3,8 @@ from datetime import datetime,timedelta,timezone
 import json
 import pickle
 import sqlite3
+import os
+import multiprocessing
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -217,3 +219,117 @@ def test_registered_user_research_favorites_sso_delete_and_no_inheritance(stack,
     assert all(row['kind']=='new_account' for row in exported['registration_events'])
     serialized=json.dumps(exported)
     for private in ('token_hash','gate_id','lock_ino','database_binding',oldgen):assert private not in serialized
+
+
+def test_expired_link_claim_fails_without_consumption_or_mapping(stack,monkeypatch):
+    client,root,mail=stack
+    actual=auth._TOKEN_TTL_MIN
+    monkeypatch.setattr(auth,'_TOKEN_TTL_MIN',-1)
+    token=link(client,mail)
+    assert verify(client,token).status_code==400
+    with auth._store()._connection() as conn:
+        assert conn.execute('SELECT consumed_at FROM magic_tokens').fetchone()[0] is None
+        assert conn.execute('SELECT count(*) FROM auth_registration_operations').fetchone()[0]==0
+        assert conn.execute('SELECT count(*) FROM auth_owner_gates').fetchone()[0]==0
+
+
+def _verify_process(root,token,barrier,queue):
+    """Real fresh process; safety audit metadata is inherited, no store stubs."""
+    from pathlib import Path
+    from services import runtime_paths as paths
+    paths.STATE_ROOT=Path(root);paths.CACHE_ROOT=Path(root).parent/'cache';paths.LOG_ROOT=Path(root)/'logs'
+    from api import auth as child_auth
+    from starlette.requests import Request
+    from starlette.responses import Response
+    import asyncio
+    request=Request({'type':'http','method':'POST','scheme':'https','path':'/api/auth/verify',
+        'query_string':b'','server':('beta.structural.bytedance.city',443),'client':('127.0.0.1',10000),
+        'headers':[(b'host',b'beta.structural.bytedance.city'),(b'origin',BETA.encode())]})
+    barrier.wait(10)
+    result=asyncio.run(child_auth.verify(child_auth.VerifyBody(token=token),request,Response()))
+    leaked=[];blocked=[]
+    try:
+        import audit_bootstrap as audit
+        blocked=list(audit.blocked)
+        for conn in audit.handles:
+            try:conn.execute('SELECT 1')
+            except sqlite3.Error:pass
+            else:leaked.append('native-open');conn.close()
+    except ImportError:pass
+    queue.put((result.status_code,bool(result.headers.get('set-cookie')),leaked,blocked))
+
+
+@pytest.mark.parametrize('same_token',[False,True])
+def test_two_fresh_processes_one_owner_single_atomic_account(stack,same_token):
+    client,root,mail=stack
+    first=link(client,mail)
+    second=first if same_token else link(client,mail)
+    ctx=multiprocessing.get_context('spawn');barrier=ctx.Barrier(2);queue=ctx.Queue()
+    workers=[ctx.Process(target=_verify_process,args=(str(root),token,barrier,queue)) for token in (first,second)]
+    try:
+        for process in workers:process.start()
+        results=[queue.get(timeout=20) for _ in workers]
+        for process in workers:process.join(20);assert process.exitcode==0
+        assert all(not row[2] and not row[3] for row in results),results
+        assert sum(row[0]==200 for row in results) in (1,2)
+        if same_token:assert sum(row[0]==200 for row in results)==1
+        with auth._store()._connection() as conn:
+            assert conn.execute('SELECT count(*) FROM auth_users').fetchone()[0]==1
+            assert conn.execute('SELECT count(*) FROM auth_notification_outbox').fetchone()[0]==1
+            assert conn.execute("SELECT count(*) FROM auth_registration_receipts WHERE kind='gate_resource'").fetchone()[0]==1
+            assert conn.execute("SELECT count(*) FROM auth_registration_operations WHERE state IN ('claimed','gate_ready')").fetchone()[0]==0
+    finally:
+        for process in workers:
+            if process.is_alive():process.terminate();process.join(5)
+            if process.pid is not None:process.close()
+        queue.close();queue.join_thread()
+
+
+def _die_registration_process(root,token,point):
+    from pathlib import Path
+    from services import runtime_paths as paths,auth_registration as child_registration
+    paths.STATE_ROOT=Path(root);paths.CACHE_ROOT=Path(root).parent/'cache';paths.LOG_ROOT=Path(root)/'logs'
+    if point=='birth':
+        child_registration._mark_ready=lambda *_a,**_k:os._exit(77)
+    else:
+        from services.sqlite_utils import PrivateAuthConnection
+        original=PrivateAuthConnection.commit
+        def commit(self):
+            finalized=self.execute("SELECT 1 FROM auth_registration_operations WHERE state='finalized'").fetchone()
+            original(self)
+            if finalized:os._exit(77)
+        PrivateAuthConnection.commit=commit
+    from api import auth as child_auth
+    from starlette.requests import Request
+    from starlette.responses import Response
+    import asyncio
+    request=Request({'type':'http','method':'POST','scheme':'https','path':'/api/auth/verify',
+        'query_string':b'','server':('beta.structural.bytedance.city',443),'client':('127.0.0.1',10000),
+        'headers':[(b'host',b'beta.structural.bytedance.city'),(b'origin',BETA.encode())]})
+    asyncio.run(child_auth.verify(child_auth.VerifyBody(token=token),request,Response()))
+
+
+@pytest.mark.parametrize('point',['birth','commit'])
+def test_actual_process_death_no_session_replay_and_safe_recovery(stack,point):
+    client,root,mail=stack;token=link(client,mail)
+    ctx=multiprocessing.get_context('spawn')
+    process=ctx.Process(target=_die_registration_process,args=(str(root),token,point))
+    try:
+        process.start();process.join(15)
+        assert process.exitcode==77
+        store=auth._store()
+        with store._connection() as conn:
+            op=conn.execute("SELECT * FROM auth_registration_operations WHERE kind!='offline_gate_admission'").fetchone()
+            consumed=conn.execute('SELECT consumed_at FROM magic_tokens').fetchone()[0]
+        assert client.get('/api/auth/me').status_code==401
+        if point=='birth':
+            assert op['state']=='claimed' and consumed is None
+            with pytest.raises(PermissionError):registration.admit_private_gate(op['owner_key'])
+            assert registration.admit_private_gate(op['owner_key'],operation_id=op['id'])['admitted']
+        else:
+            assert op['state']=='finalized' and consumed is not None
+            assert verify(client,token).status_code==400
+        assert verify(client,link(client,mail)).status_code==200
+    finally:
+        if process.is_alive():process.terminate();process.join(5)
+        if process.pid is not None:process.close()

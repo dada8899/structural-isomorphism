@@ -946,6 +946,14 @@ def admit_private_gate(owner_key, *, operation_id=None):
         prior=conn.execute('SELECT * FROM auth_registration_operations WHERE id=?',(operation_id,)).fetchone() if operation_id else None
         if operation_id and (not prior or prior['owner_key']!=owner_key or prior['gate_id']!=gate_id or prior['database_binding']!=_binding(target) or prior['state'] not in ('claimed','closed')):
             raise PermissionError('actual same orphan operation required')
+        original_token=None
+        if prior:
+            original_token=conn.execute('SELECT * FROM magic_tokens WHERE token_hash=?',(prior['token_hash'],)).fetchone()
+            if (not original_token or original_token['consumed_at'] is not None
+                or AuthStore.owner_key(original_token['email'])!=owner_key
+                or original_token['created_at']!=prior['token_created_at'] or original_token['expires_at']!=prior['token_expires_at']
+                or prior['origin_digest'] is None or prior['request_digest'] is None):
+                raise PermissionError('orphan source token no longer exists or changed')
         if not operation_id and conn.execute("SELECT 1 FROM auth_registration_operations WHERE gate_id=? AND kind!='offline_gate_admission'",(gate_id,)).fetchone():
             raise PermissionError('orphan resource requires exact operation reconciliation')
         root=require_private_auth_lock_dir(target.path)
@@ -970,6 +978,7 @@ def admit_private_gate(owner_key, *, operation_id=None):
                 current=os.stat(gate_id+'.lock',dir_fd=directory,follow_symlinks=False);_safe_file(current)
                 if (current.st_dev,current.st_ino)!=(info.st_dev,info.st_ino):raise PermissionError('offline gate changed')
             permissions={('auth_registration_operations:INSERT',op_id),('auth_registration_operations:UPDATE',op_id),('auth_registration_receipts:INSERT',op_id)}
+            if prior and prior['state']=='claimed':permissions.add(('auth_registration_operations:UPDATE',prior['id']))
             with _write(conn,target,permissions,validate,_factory=_FACTORY):
                 conn.execute("""INSERT INTO auth_registration_operations(id,record_version,kind,owner_key,gate_id,state,version,database_binding,origin_digest,created_at,updated_at)
                     VALUES(?,'auth-provision-operation-v1','offline_gate_admission',?,?,'claimed',1,?,?,?,?)""",
@@ -978,6 +987,9 @@ def admit_private_gate(owner_key, *, operation_id=None):
                 ref=_new_receipt(conn,op,'gate_resource',identity=(info.st_dev,info.st_ino))
                 conn.execute("UPDATE auth_registration_operations SET state='gate_ready',version=version+1,resource_receipt_id=?,updated_at=? WHERE id=?",(ref,now,op_id))
                 conn.execute("UPDATE auth_registration_operations SET state='closed',version=version+1,closed_reason='admitted',updated_at=? WHERE id=?",(now,op_id))
+                if prior and prior['state']=='claimed':
+                    if conn.execute("UPDATE auth_registration_operations SET state='closed',version=version+1,closed_reason='resource_unknown',last_failure_code='resource_unknown',updated_at=? WHERE id=? AND state='claimed' AND version=?",(now,prior['id'],prior['version'])).rowcount!=1:
+                        raise PermissionError('orphan retirement CAS failed')
             conn.commit();return {'admitted':True}
         finally:
             if fd is not None:os.close(fd)
