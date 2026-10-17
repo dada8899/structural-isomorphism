@@ -299,12 +299,14 @@ def _check_profile(conn,target,versions):
     else:from services.auth_store import AuthStore
     # Explicit offline maintenance accepts only the complete static legacy or
     # registration profile. Current formal consumers still require current Auth.
-    AuthStore.check_offline_auth_metadata(conn)
+    auth_profile=AuthStore.check_offline_auth_metadata(conn)
     AuthStore.check_gate_policy(conn)
     marker=[tuple(row) for row in conn.execute('SELECT id,version FROM research_schema')]
     if len(marker)!=1 or marker[0][0]!=1 or type(marker[0][1]) is not int or marker[0][1] not in versions:
         raise PermissionError('exact offline research version required')
     version=marker[0][1]
+    if (auth_profile,version) not in (('legacy_auth',9),('legacy_auth',10),('auth-provision-v1',10)):
+        raise PermissionError('exact offline Auth and research profile pair required')
     ResearchStore._check_structure_version(conn,version)
     if version==9:ResearchStore._check_v9(conn)
     elif version==10:ResearchStore._check_v10(conn)
