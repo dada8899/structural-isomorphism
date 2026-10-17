@@ -10,7 +10,7 @@ import pytest
 
 pytestmark = pytest.mark.e2e
 
-from web.tests.e2e.test_subscriptions_closed import subscription_site, subscription_browser
+from test_subscriptions_closed import subscription_site, subscription_browser
 
 
 def context_for(browser, base, *, javascript=True):
