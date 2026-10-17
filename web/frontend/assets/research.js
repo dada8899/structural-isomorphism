@@ -559,10 +559,19 @@
       // untrusted task404 cannot clear a newer form or acknowledge the POST.
       const response=await fetch(`/api/research/${ticket.rid}?task_id=${encodeURIComponent(ack.task_id)}`,{credentials:'same-origin',cache:'no-store',signal:controller.signal});
       if(!samePrivate())throw Error('账户读取范围已变化，原操作保留待核对。');
-      // Only a still-current401 asks the shared identity gate once. Its
-      // confirmed logout clears private DOM, never the unknown operation key.
+      // A task selector may be wrong while the owner still has access. Only
+      // a current ticket probes the trusted root; discard its view, never rebase.
+      if(response.status===404&&formulaActive(ticket)) {
+        try {await request(`/api/research/${ticket.rid}`,{},()=>formulaActive(ticket));}
+        catch {throw Error('检查回执尚未确认，原key保留待核对。');}
+      }
+      // Confirm identity loss through the shared gate, retaining the unknown key.
       if(response.status===401&&formulaActive(ticket))await authenticated(()=>formulaActive(ticket),controller.signal);
       const envelope=await response.json();if(!samePrivate())throw Error('账户读取范围已变化，原操作保留待核对。');
+      if(response.status===409&&envelope.error?.code==='AUTHORIZATION_STALE'&&formulaActive(ticket)) {
+        await authenticated(()=>formulaActive(ticket),controller.signal);
+        if(!samePrivate())throw Error('账户读取范围已变化，原操作保留待核对。');
+      }
       const view=envelope.data,stored=view?.formula_check,anchor=view?.task_history?.[0];
       if(!response.ok||envelope.schema_version!==schema||envelope.contract_revision!==revision||view?.research?.id!==ticket.rid||view.task?.id!==ack.task_id||view.task.policy_revision!=='local-formula-v1'||view.task.input_revision!==payload.input_revision||view.current_problem?.revision!==payload.input_revision||view.current_problem.formula_snapshot?.revision!==payload.input_revision||view.current_problem.formula_snapshot.formula_digest!==payload.formula_digest||!validateFormulaMetadata(stored,ack.result_ref)||stored.formula_digest!==payload.formula_digest||anchor?.task_id!==ack.task_id||anchor.input_revision!==payload.input_revision||anchor.input_digest!==view.current_problem.digest||anchor.start_version!==payload.expected_research_version+1)throw Error('检查回执尚未与原请求绑定，原key保留待核对。');
     } finally {clearTimeout(timer);}
