@@ -208,6 +208,8 @@ class CanonicalBrowserBridge(AbstractContextManager):
     @asynccontextmanager
     async def routed(self,context):
         async def handle(route,request):
+            if not self.active:
+                await route.abort('blockedbyclient');return
             try:
                 result=await asyncio.to_thread(self.forward,request.method,request.url,await request.all_headers(),request.post_data_buffer)
                 grouped={}
@@ -221,10 +223,23 @@ class CanonicalBrowserBridge(AbstractContextManager):
             # A dedicated harness context is left offline before removing the
             # interception, so late page polls cannot escape to public DNS.
             # Its creator must still close that browser context in finally.
-            try:await context.set_offline(True)
-            finally:
-                try:self.close()
-                finally:await context.unroute('**/*',handle)
+            primary=sys.exc_info()[1];errors=[];offline=False
+            with self.condition:self.active=False
+            try:
+                await context.set_offline(True);offline=True
+            except BaseException as error:errors.append(error)
+            try:self.close()
+            except BaseException as error:errors.append(error)
+            # On an offline failure the retired handler remains installed and
+            # aborts late requests until its creator closes the context.
+            if offline:
+                try:await context.unroute('**/*',handle)
+                except BaseException as error:errors.append(error)
+            if errors:
+                first=primary if primary is not None else errors[0]
+                for error in errors:
+                    if error is not first:first.add_note('browser context cleanup failed: '+type(error).__name__)
+                if primary is None:raise first
     def close(self):
         with self.condition:self.active=False;pending=list(self.pending)
         for connection in pending:self._shutdown(connection)
