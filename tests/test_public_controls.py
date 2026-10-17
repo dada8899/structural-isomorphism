@@ -914,7 +914,7 @@ def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
             assert required_job.get("needs") == ["sanity-backend"]
             backend = _workflow_job(workflow_path, "sanity-backend")
             assert backend.get("name") == "sanity-backend"
-            assert backend.get("timeout-minutes") == 25
+            assert backend.get("timeout-minutes") == 45
             assert "needs" not in backend
             _assert_hard_job_contract(required["workflow"], "sanity-backend", backend)
             gate = required_job["steps"][0]

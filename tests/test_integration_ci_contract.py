@@ -673,7 +673,7 @@ def test_research_coverage_closure_rejects_incomplete_or_relaxed_pipeline(mutati
 # complete jobs remain hard requirements; only the existing sanity context
 # is the branch-protection aggregate.
 SANITY_SPLIT_DIGESTS = {
-    "sanity-backend": "fa8af528ec40abc3203e8eb1f20982f97bf649a66f73537e99d0449411d2dafc",
+    "sanity-backend": "4135a5d81f35ed7c9155fa239f18644f51174d2bd8b9cacfd200cfef7a717798",
     "sanity": "c969dc72598a5d59f4eb6d3d220ea70b0a911590228d3793a4e89225c65664ca",
 }
 
@@ -686,8 +686,9 @@ def _assert_sanity_backend_dependency(value):
     assert aggregate["needs"] == ["sanity-backend"]
     assert aggregate["if"] == "always()"
     assert aggregate["name"] == "sanity"
+    assert backend["timeout-minutes"] == 45
+    assert aggregate["timeout-minutes"] == 25
     for job in (backend, aggregate):
-        assert job["timeout-minutes"] == 25
         assert "continue-on-error" not in job
     assert all("if" not in step and "continue-on-error" not in step
                for step in backend["steps"])
