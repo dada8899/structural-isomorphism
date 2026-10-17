@@ -18,6 +18,7 @@ import os
 from pathlib import Path
 import secrets
 import signal
+import shutil
 import socket
 import ssl
 import subprocess
@@ -101,6 +102,7 @@ class PlanBrowserFixture(AbstractContextManager):
         self.temp=None;self.root=None;self.provider=None;self.provider_thread=None;self.server=None;self.server_thread=None;self.app_socket=None
         self.worker=None;self.stop=threading.Event();self.mail=[];self.mail_lock=threading.Lock();self.calls=[];self.worker_failures=[]
         self.store=None;self.resource=None;self.identity=None;self.principal=None;self.client=None;self.installed=False;self.environment={};self.saved_globals=None
+        self.cleanup_errors=();self._install_cleanup_errors=();self._failed_native=()
     def __enter__(self):
         try:self._start();return self
         except BaseException as primary:
@@ -108,7 +110,9 @@ class PlanBrowserFixture(AbstractContextManager):
             except BaseException as cleanup:primary.add_note('controlled fixture cleanup also failed: '+type(cleanup).__name__)
             raise
     def _start(self):
-        self.temp=tempfile.TemporaryDirectory(prefix='controlled-plan-browser-');self.root=Path(self.temp.name).resolve();self.root.chmod(0o700)
+        # Explicit ownership: uncertain cleanup must not be silently erased by
+        # TemporaryDirectory garbage collection. Only close removes this root.
+        self.temp=Path(tempfile.mkdtemp(prefix='controlled-plan-browser-')).resolve();self.root=self.temp;self.root.chmod(0o700)
         if self.root.is_relative_to(ROOT):raise PermissionError('fixture private root must be outside the repository')
         from services import runtime_paths as paths
         from api import auth,research
@@ -161,7 +165,10 @@ class PlanBrowserFixture(AbstractContextManager):
         self.store=ResearchStore(auth._store());self.principal=ResearchService(self.store)._principal(self.identity,create=True)
     def install_controlled_funding(self):
         """Trusted controller method, deliberately not exposed through HTTP."""
+        if self.stop.is_set():raise RuntimeError('fixture controller is closing')
         if self.installed:raise RuntimeError('fixture funding is already installed')
+        if self._install_cleanup_errors:raise RuntimeError('prior installation cleanup uncertain; reentry rejected')
+        if self.provider is not None and (self.provider.socket.fileno()!=-1 or self.provider_thread is not None and self.provider_thread.is_alive()):raise RuntimeError('prior provider is not retired')
         calls=self.calls
         class Handler(BaseHTTPRequestHandler):
             def log_message(self,*args):pass
@@ -177,17 +184,38 @@ class PlanBrowserFixture(AbstractContextManager):
                 body=json.loads(self.rfile.read(length))
                 if body.get('model')!='deepseek-flash' or body.get('max_tokens')!=4096 or 'tools' in body:self.send_error(422);return
                 calls.append('POST');self.reply({'model':'deepseek-flash','usage':{'prompt_tokens':100,'completion_tokens':80,'total_tokens':180},'choices':[{'finish_reason':'stop','message':{'content':json.dumps(CANDIDATE)}}]})
-        self.provider=ThreadingHTTPServer(('127.0.0.1',0),Handler)
-        self.provider_thread=threading.Thread(target=self.provider.serve_forever,name='controlled-plan-provider');self.provider_thread.start()
         from research import plan_native as native
         authority=provision=permit=resource=None
         try:
+            # Retain each born object before the next operation can fail.
+            self.provider=ThreadingHTTPServer(('127.0.0.1',0),Handler);self.provider_thread=None
+            self.provider_thread=threading.Thread(target=self.provider.serve_forever,name='controlled-plan-provider');self.provider_thread.start()
             authority=native.create_controlled_fixture_authority(self.store,self.identity,self.provider,approved_cap_units=self.approved_cap_units,risk_margin_units=self.risk_margin_units)
             provision=native.issue_native_provision(self.store,authority);permit=native.mint_runtime_permit(provision);resource=native.open_controlled_fixture_resource(permit)
             native.install_native_funding(self.store,provision,resource);self.resource=resource;self.installed=True
-        except BaseException:
-            native.retire_attempts(resource,permit,provision,authority);raise
-        self.worker=threading.Thread(target=self._work,name='controlled-plan-worker');self.worker.start()
+            self.worker=threading.Thread(target=self._work,name='controlled-plan-worker');self.worker.start()
+        except BaseException as primary:
+            errors=native.retire_attempts(resource,permit,provision,authority)
+            errors+=self._close_provider()
+            if errors:
+                self._failed_native=tuple(value for value in (resource,permit,provision,authority) if value is not None)
+                self._install_cleanup_errors=errors;self.cleanup_errors=errors
+                primary.add_note('controlled installation cleanup uncertain: '+','.join(errors))
+            raise
+    def _close_provider(self):
+        errors=[]
+        def attempt(action):
+            try:action()
+            except BaseException as error:errors.append(type(error).__name__)
+        if self.provider is not None:
+            if self.provider_thread is not None and self.provider_thread.is_alive():attempt(self.provider.shutdown)
+            attempt(self.provider.server_close)
+            if self.provider_thread is not None and self.provider_thread.ident is not None:attempt(lambda:self.provider_thread.join(3))
+            if self.provider.socket.fileno()!=-1:errors.append('provider_socket_open')
+            if self.provider_thread is not None and self.provider_thread.is_alive():errors.append('provider_thread_alive')
+        # Closed references remain inspectable; only a proven clean attempt
+        # permits replacement. Uncertain resources are never overwritten.
+        return tuple(errors)
     def _work(self):
         from research import ResearchRunner
         while not self.stop.wait(.05):
@@ -209,7 +237,7 @@ class PlanBrowserFixture(AbstractContextManager):
             time.sleep(.03)
         raise TimeoutError('bounded fixture worker result deadline')
     def close(self):
-        errors=[];self.stop.set()
+        errors=list(self._install_cleanup_errors);self.stop.set()
         def attempt(action):
             try:action()
             except BaseException as error:errors.append(type(error).__name__)
@@ -227,10 +255,10 @@ class PlanBrowserFixture(AbstractContextManager):
         attempt(lambda:join(self.server_thread,5))
         if self.server_thread is not None and self.server_thread.is_alive():
             self.server.force_exit=True;attempt(lambda:join(self.server_thread,1))
-        if self.provider is not None:
-            if self.provider_thread is not None and self.provider_thread.is_alive():attempt(self.provider.shutdown)
-            attempt(self.provider.server_close)
-        attempt(lambda:join(self.provider_thread,3))
+        if self._failed_native:
+            from research import plan_native
+            errors.extend(plan_native.retire_attempts(*self._failed_native))
+        errors.extend(self._close_provider())
         if self.app_socket is not None:attempt(self.app_socket.close)
         active=[t.name for t in (self.worker,self.server_thread,self.provider_thread) if t is not None and t.is_alive()]
         errors.extend(active)
@@ -245,7 +273,10 @@ class PlanBrowserFixture(AbstractContextManager):
                 else:os.environ[key]=value
             self.environment={}
             with self.mail_lock:self.mail.clear()
-            if self.temp is not None:attempt(self.temp.cleanup);self.temp=None
+            if self.temp is not None and not errors:
+                try:shutil.rmtree(self.temp)
+                except BaseException as error:errors.append(type(error).__name__)
+                else:self.temp=None
         self.cleanup_errors=tuple(errors)
         if errors:raise RuntimeError('fixture cleanup uncertain: '+','.join(errors))
     def __exit__(self,exc_type,exc,tb):
