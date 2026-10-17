@@ -93,7 +93,7 @@ def _write(conn,store,lease,table,operation,validate,*,_factory=None):
     from .store import ResearchStore
     scope=_SCOPES.get(id(conn))
     database=next((r[2] for r in conn.execute('PRAGMA database_list') if r[1]=='main'),None)
-    if (type(conn) is not sqlite3.Connection or type(store) is not ResearchStore or type(lease) is not OwnerGateLease
+    if (not isinstance(conn,sqlite3.Connection) or type(store) is not ResearchStore or type(lease) is not OwnerGateLease
             or not scope or scope.conn is not conn or not scope.write or not scope.active or scope.pid!=os.getpid()
             or not conn.in_transaction or not database or Path(database).resolve()!=store.path.resolve()
             or conn.execute('PRAGMA foreign_keys').fetchone()[0]!=1 or id(conn) in _WRITES):
@@ -107,7 +107,7 @@ def _write(conn,store,lease,table,operation,validate,*,_factory=None):
 
 class FormulaMaintenance:
     """Actual exclusive SQLite owner, pinned files and verified in-memory backup."""
-    __slots__=('store','conn','backup','identity','lockfd','dbfd','pid','active','journal','reference')
+    __slots__=('store','conn','backup','identity','lockfd','parentfd','parent_identity','pid','active','journal','reference')
     def __init__(self,*,_factory=None,**values):
         if _factory is not _FACTORY:raise TypeError('offline maintenance context required')
         for k,v in values.items():object.__setattr__(self,k,v)
@@ -116,8 +116,9 @@ class FormulaMaintenance:
     def require(self,store):
         if not self.active or self.pid!=os.getpid() or self.store is not store or _MAINTENANCE.get(self.reference) is not self:
             raise PermissionError('actual maintenance capability required')
-        for info in (os.fstat(self.dbfd),os.stat(store.path,follow_symlinks=False)):
-            if (info.st_dev,info.st_ino)!=self.identity:raise PermissionError('database inode changed')
+        _check_database_path(store.path,self.parentfd,self.parent_identity,self.identity)
+        database=next((row[2] for row in self.conn.execute('PRAGMA database_list') if row[1]=='main'),None)
+        if not database or Path(database)!=store.path:raise PermissionError('native database binding changed')
         info=os.fstat(self.lockfd)
         named=os.stat(str(store.path)+'.formula-maintenance',follow_symlinks=False)
         if (info.st_dev,info.st_ino)!=(named.st_dev,named.st_ino):raise PermissionError('maintenance lock changed')
@@ -148,10 +149,15 @@ def formula_maintenance(store):
     """
     from .store import ResearchStore
     if type(store) is not ResearchStore:raise PermissionError('canonical store required')
-    lockfd=dbfd=None;conn=backup=None;cap=None;old_journal=None
+    lockfd=parentfd=None;conn=backup=None;cap=None;old_journal=None
     try:
-        dbfd=os.open(store.path,os.O_RDWR|os.O_NOFOLLOW|os.O_CLOEXEC);_safe_file(os.fstat(dbfd))
-        identity=(os.fstat(dbfd).st_dev,os.fstat(dbfd).st_ino)
+        # Never open/dup/close an ordinary DB FD: POSIX close would release
+        # same-process SQLite locks held by unrelated native connections.
+        parentfd=os.open(store.path.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        parent_info=os.fstat(parentfd);parent_identity=(parent_info.st_dev,parent_info.st_ino)
+        info=os.stat(store.path.name,dir_fd=parentfd,follow_symlinks=False);_safe_file(info)
+        identity=(info.st_dev,info.st_ino)
+        _check_database_path(store.path,parentfd,parent_identity,identity)
         # Read-only exact V9 preflight precedes journal/DDL mutations.
         ro=sqlite3.connect(store.path.as_uri()+'?mode=ro',uri=True,isolation_level=None,timeout=.1)
         try:
@@ -159,14 +165,17 @@ def formula_maintenance(store):
             from .financial_guard import install_default_hook
             install_default_hook(ro);ro.execute('PRAGMA foreign_keys=ON');ro.execute('BEGIN')
             store._check_structure_version(ro,9);store._check_v9(ro);ro.rollback()
+            _check_database_path(store.path,parentfd,parent_identity,identity)
         finally:ro.close()
         lockfd=os.open(str(store.path)+'.formula-maintenance',os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
         _safe_file(os.fstat(lockfd));fcntl.flock(lockfd,fcntl.LOCK_EX|fcntl.LOCK_NB)
         conn=sqlite3.connect(store.path,isolation_level=None,timeout=.1,cached_statements=0);conn.row_factory=sqlite3.Row
+        _check_database_path(store.path,parentfd,parent_identity,identity)
         install_default_hook(conn);conn.execute('PRAGMA busy_timeout=100');conn.execute('PRAGMA foreign_keys=ON')
         old_journal=conn.execute('PRAGMA journal_mode').fetchone()[0]
         # journal transition requires absent WAL readers; never pretend a flock
         # is evidence that unrelated SQLite consumers honor maintenance.
+        _check_database_path(store.path,parentfd,parent_identity,identity)
         if conn.execute('PRAGMA journal_mode=DELETE').fetchone()[0]!='delete':raise PermissionError('exclusive journal unavailable')
         if conn.execute('PRAGMA locking_mode=EXCLUSIVE').fetchone()[0]!='exclusive':raise PermissionError('exclusive mode unavailable')
         conn.execute('BEGIN EXCLUSIVE');store._check_structure_version(conn,9);store._check_v9(conn);conn.commit()
@@ -178,20 +187,45 @@ def formula_maintenance(store):
                 raise PermissionError('backup restore proof failed')
         finally:restored.close()
         ref=str(uuid4());cap=FormulaMaintenance(_factory=_FACTORY,store=store,conn=conn,backup=backup,identity=identity,
-            lockfd=lockfd,dbfd=dbfd,pid=os.getpid(),active=True,journal=old_journal,reference=ref)
+            lockfd=lockfd,parentfd=parentfd,parent_identity=parent_identity,pid=os.getpid(),active=True,journal=old_journal,reference=ref)
         _MAINTENANCE[ref]=cap;cap.require(store)
         yield cap
     finally:
+        import sys
+        original=sys.exc_info()[0] is not None
+        errors=[]
         if cap:object.__setattr__(cap,'active',False);_MAINTENANCE.pop(cap.reference,None)
+        # Every cleanup is independent. A failed rollback/FK readback/journal
+        # restoration must never skip native close or release owned resources.
         if conn:
-            conn.rollback();conn.execute('PRAGMA foreign_keys=ON')
-            if conn.execute('PRAGMA foreign_keys').fetchone()[0]!=1:raise PermissionError('FK restoration failed')
-            conn.execute('PRAGMA locking_mode=NORMAL')
-            if old_journal in ('wal','delete'):conn.execute('PRAGMA journal_mode='+old_journal)
-            conn.close()
-        if backup:backup.close()
-        if lockfd is not None:os.close(lockfd)
-        if dbfd is not None:os.close(dbfd)
+            for cleanup in (conn.rollback,
+                    lambda:conn.execute('PRAGMA foreign_keys=ON'),
+                    lambda:_require_fk_on(conn),
+                    lambda:conn.execute('PRAGMA locking_mode=NORMAL'),
+                    lambda:conn.execute('PRAGMA journal_mode='+old_journal) if old_journal in ('wal','delete') else None,
+                    conn.close):
+                try:cleanup()
+                except BaseException as error:errors.append(error)
+        if backup:
+            try:backup.close()
+            except BaseException as error:errors.append(error)
+        for fd in (lockfd,parentfd):
+            if fd is not None:
+                try:os.close(fd)
+                except BaseException as error:errors.append(error)
+        if errors and not original:raise errors[0]
+
+
+def _require_fk_on(conn):
+    if conn.execute('PRAGMA foreign_keys').fetchone()[0]!=1:raise PermissionError('FK restoration failed')
+
+
+def _check_database_path(path,parentfd,parent_identity,identity):
+    for info in (os.fstat(parentfd),os.stat(path.parent,follow_symlinks=False)):
+        if not stat.S_ISDIR(info.st_mode) or (info.st_dev,info.st_ino)!=parent_identity:raise PermissionError('database parent changed')
+    for info in (os.stat(path.name,dir_fd=parentfd,follow_symlinks=False),os.stat(path,follow_symlinks=False)):
+        _safe_file(info)
+        if (info.st_dev,info.st_ino)!=identity:raise PermissionError('database inode changed')
 
 
 def migrate_v10(store,*,maintenance):

@@ -126,3 +126,55 @@ def test_exact_cold_install_v10_and_late_completed_peer_reopen(stack):
     reopened=ResearchStore(auth._store())
     with reopened.transaction() as conn:reopened._check_v10(conn)
     assert snapshot(path)==before
+
+
+@pytest.mark.parametrize('maintenance_attempt',[False,True])
+def test_failed_maintenance_preserves_real_peer_wal_and_later_parent_commit(v9,maintenance_attempt):
+    _,path,_,store=v9
+    import subprocess,sys,json
+    child="""import sqlite3,sys,json
+c=sqlite3.connect(sys.argv[1],isolation_level=None,timeout=.2)
+try:
+ if sys.argv[2]=='write':c.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('peer@example.invalid','free','synthetic','generation')")
+ print(json.dumps([r[0] for r in c.execute('SELECT email FROM auth_users ORDER BY email')]))
+finally:c.close()
+"""
+    def peer(operation='read'):
+        result=subprocess.run([sys.executable,'-B','-c',child,str(path),operation],capture_output=True,text=True,timeout=5)
+        assert result.returncode==0,result.stderr
+        return json.loads(result.stdout)
+    parent=sqlite3.connect(path,isolation_level=None)
+    try:
+        parent.execute('BEGIN');parent.execute('SELECT count(*) FROM auth_users').fetchall()
+        if maintenance_attempt:
+            with pytest.raises(sqlite3.OperationalError):
+                with formula_maintenance(store):pass
+        peer()
+        assert path.with_name(path.name+'-wal').exists() and path.with_name(path.name+'-shm').exists()
+        parent.rollback()
+        parent.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('parent@example.invalid','free','synthetic','generation')")
+        parent.commit()
+        assert 'parent@example.invalid' in peer()
+        assert {'parent@example.invalid','peer@example.invalid'}<=set(peer('write'))
+    finally:parent.close()
+
+
+def test_maintenance_closes_every_native_resource_after_cleanup_failure(v9,monkeypatch):
+    _,path,_,store=v9
+    from research import formula_runtime
+    native_connect=sqlite3.connect;opened=[];closed=[]
+    class Fault(sqlite3.Connection):
+        def close(self):
+            closed.append(id(self));return super().close()
+    def connect(*args,**kwargs):
+        conn=native_connect(*args,factory=Fault,**kwargs);opened.append(id(conn));return conn
+    monkeypatch.setattr(sqlite3,'connect',connect)
+    monkeypatch.setattr(formula_runtime,'_require_fk_on',lambda conn:(_ for _ in ()).throw(sqlite3.OperationalError('owned cleanup fault')))
+    with pytest.raises(sqlite3.OperationalError,match='owned cleanup fault'):
+        with formula_maintenance(store):pass
+    assert set(opened)==set(closed)
+    # Acquiring from a new FD proves the maintenance flock was released too.
+    import fcntl
+    fd=os.open(str(path)+'.formula-maintenance',os.O_RDWR|os.O_NOFOLLOW)
+    try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    finally:os.close(fd)
