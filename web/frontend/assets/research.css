@@ -47,5 +47,12 @@ section, .optional-inputs { min-width:0; }
 #kb-results h3, #research-list-items h3 { font-size:17px; margin:0 0 6px; }
 #kb-results p, #research-list-items p { margin:6px 0; }
 #research-list-status, #kb-status { overflow-wrap:anywhere; font-size:14px; }
+#task-history-section { border-top:1px solid var(--line); margin-top:30px; padding-top:20px; overflow-wrap:anywhere; }
+#task-history-items { padding-left:24px; }
+#task-history-items li { border-bottom:1px solid var(--line); padding:12px 0; }
+#task-history-items a, #task-history-more, #task-history-refresh, #task-current { display:inline-flex; align-items:center; min-height:44px; }
+#task-history-items .hint { margin:4px 0; }
+#method-result-ref { overflow-wrap:anywhere; font-size:13px; }
+textarea:disabled, select:disabled { opacity:1; color:var(--ink); background:#e9ece2; }
 @media(max-width:520px) { header { gap:12px; }nav { gap:8px; }#my-research .section-heading { flex-wrap:wrap; }#my-research .section-heading button { width:auto; } }
 @media(max-width:520px) { header { padding:20px; }main { margin-top:38px; padding:0 20px; }label span { display:block; padding:0; }.section-heading { align-items:baseline; }button { width:100%; }footer { padding:24px 20px; } }
