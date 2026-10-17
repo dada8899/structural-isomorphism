@@ -82,3 +82,11 @@ U仅调用受审usage_upper.preview_bound，用真实服务器clock核≤60秒TT
 ## Phase B0：金融准入契约候选
 
 2026-10-17。CONTRACT_SPEC §12选定待审V7最小增量：单例项目预算表将Owner上限P独立绑定唯一经济账户，沿用原账户计数；不可变金融准入表与真实consume同事务保存原quote/F/basis及授权/消费关联。两个上限分别核，删除不改旧擦除规则，仅保新版严格纯金融域，缺失依据UNKNOWN全held，旧A合成票不升级为费用来源。本轮仅文档，未实现表／guard／六writer、迁移或真实资金；B1完整生命周期与observer、B2全部调用者及删号恢复均须后续最小范围GO与独审。
+
+## V7 基础候选：空表、关闭登记与默认拒绝
+
+2026-10-17。追加V7两表／guard、严格纯金融数据模型与连接默认拒绝hook，保留原SCHEMA/C0/v5/v6定义及producer版本6；仅完成6后迁7，已有7先完整校验，部分结构／未知附件不补建。两新表默认空，服务器受控offline配置也只能登记closed单例，项目授权P独立于原资金cap，账户计数不变；普通SQL／DTO、缺hook、旧A合成consumed记录不能取得金融写权。没有Money六writer、资金loader、真实provider或active登记入口，纯快照通过仅表示类型关联正确。
+
+迁移与守卫测试使用临时auth DB及合成数据，覆盖每个DDL／marker／commit故障、进程死亡重开、旧金融值／policy／锁inode保留、真实closed INSERT失败回滚和许可收尾、过期／错conn/PID/lease及复制DB拒。旧隔离v5→v6探针仍真断6；通用当前版本期待才指向7，隐式rollback／cached BEGIN／REPLACE／unknownAux保护保留。API／Source旧路径未实现新收费，Notebook实际组合体验与统一typed读口不由本基础候选预签。
+
+作者最终两组实跑：新基础75＋旧schema／迁移200合组275 passed，原paid／auth／持久化／生命周期／C0／D1及Source期限收尾391 passed，均0 skipped；旧DDL整块逐字不变，两个current-target期待与历史profile隔离的最小测试接缝保留。当前SHA待原独审，实际业务库未迁移，真实资金／模型／生产发送未放行。

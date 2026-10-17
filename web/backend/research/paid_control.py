@@ -43,9 +43,10 @@ class StopBinding:
 
 def schema_requirements():
     from .store import PRODUCER_SCHEMA_VERSION,V5_SCHEMA,V6_SCHEMA,V6_AUX,V5_GUARDS,PRODUCER_DDL
-    return SchemaRequirements(PRODUCER_SCHEMA_VERSION,tuple({**V5_SCHEMA,**V6_SCHEMA})+tuple(s.split()[2] for s in PRODUCER_DDL),
+    from .financial_guard import FINANCIAL_SCHEMA_VERSION,V7_TABLES,V7_GUARDS
+    return SchemaRequirements(FINANCIAL_SCHEMA_VERSION,tuple({**V5_SCHEMA,**V6_SCHEMA})+tuple(s.split()[2] for s in (*PRODUCER_DDL,*V7_TABLES)),
         tuple(s.split()[3] for s in V6_AUX if s.startswith("CREATE UNIQUE INDEX")),
-        digest(canonical({"tables":{**V5_SCHEMA,**V6_SCHEMA},"producer":PRODUCER_DDL,"aux":V6_AUX,"guards":V5_GUARDS})))
+        digest(canonical({"tables":{**V5_SCHEMA,**V6_SCHEMA},"producer":PRODUCER_DDL,"aux":V6_AUX,"guards":V5_GUARDS,'v7_tables':V7_TABLES,'v7_guards':V7_GUARDS})))
 
 
 class _Scope:
@@ -87,8 +88,11 @@ def _current_scope(conn):
     with _LOCK:scope=_SCOPES.get(id(conn))
     if (not scope or scope.conn is not conn or not scope.active or not scope.write or scope.pid!=os.getpid()
             or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1
-            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6)):
+            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7)):
         raise PermissionError("current canonical v5 transaction required")
+    if conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==7:
+        from .store import ResearchStore
+        ResearchStore._check_v7(conn)
     return scope
 
 
@@ -168,7 +172,7 @@ def mint_stop_authority(conn,*,store,lease,principal_id,task_id,expected_task_ve
 
 def mint_current_paid_authority(conn,*,store,lease,identity,context,step_id,expected_task_version,expected_step_version,operation,approval_ref):
     _current_scope(conn)
-    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0]==6:
+    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7):
         policy=conn.execute('SELECT policy_revision FROM research_tasks WHERE id=?',(context.task_id,)).fetchone()
         if policy and policy[0]=='bounded_usage_upper_v2':
             from .paid_approval import mint_current_authority

@@ -20,12 +20,14 @@ def v5(legacy,monkeypatch):
     client,path,old,provider,ids=legacy
     with monkeypatch.context() as boundary:
         boundary.setattr(ResearchStore,'_migrate_v6',lambda self:None)
+        boundary.setattr(ResearchStore,'_migrate_v7',lambda self:None)
         store=ResearchStore(auth._store())
     with store.transaction() as conn:assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==5
     return client,path,store,provider,ids
 
 
-def test_nonempty_v5_upgrade_preserves_old_policies_money_receipts_and_inodes(v5):
+def test_nonempty_v5_upgrade_preserves_old_policies_money_receipts_and_inodes(v5,monkeypatch):
+    monkeypatch.setattr(ResearchStore,'_migrate_v7',lambda self:None)
     _,path,_,_,_=v5;before=rows(path)
     locks={p.name:p.stat().st_ino for p in (path.parent/'research-locks').glob('*.lock')}
     store=ResearchStore(auth._store())

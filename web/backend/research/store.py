@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from .errors import ResearchError
+from .financial_guard import FINANCIAL_SCHEMA_VERSION,V7_TABLES,V7_GUARDS,install_default_hook,require_hook
 
 SCHEMA = (
     "CREATE TABLE IF NOT EXISTS research_schema (id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL)",
@@ -372,6 +373,15 @@ class ResearchStore:
         self.path = Path(auth_store.path).resolve()
         # AuthStore already initializes auth tables and WAL with its own lock.
         with self.transaction(write=True) as conn:
+            existing=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema' AND type='table'").fetchone()
+            if existing:
+                current=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
+                if current and current[0]==FINANCIAL_SCHEMA_VERSION:
+                    self._check_v7(conn)
+                    self._check_v7_attachments(conn)
+                    from .source_integration import install_schema
+                    install_schema(conn,existing_required=True)
+                    return
             conn.execute(SCHEMA[0])
             row = conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()
             if row is not None and row["version"] not in (1, 2, 3, 4, 5, 6):
@@ -398,6 +408,12 @@ class ResearchStore:
         self._migrate_v4()
         self._migrate_v5()
         self._migrate_v6()
+        # Only a completed producer schema is eligible for the additive v7
+        # migration. An explicitly isolated earlier migration profile keeps
+        # its original capabilities; it never becomes a v7 financial source.
+        with self.transaction() as conn:
+            producer_version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
+        if producer_version==PRODUCER_SCHEMA_VERSION:self._migrate_v7()
 
     def _migrate_v4(self):
         """Controlled SQLite table replacement, never an application session.
@@ -408,6 +424,7 @@ class ResearchStore:
         """
         conn=sqlite3.connect(self.path,timeout=5,isolation_level=None)
         conn.row_factory=sqlite3.Row
+        install_default_hook(conn)
         try:
             conn.execute("PRAGMA busy_timeout=5000")
             conn.execute("PRAGMA foreign_keys=OFF")
@@ -416,6 +433,8 @@ class ResearchStore:
             conn.execute("BEGIN IMMEDIATE")
             self.auth_store.check_gate_policy(conn)
             version=conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0]
+            if version==FINANCIAL_SCHEMA_VERSION:
+                self._check_v7(conn);self._check_v7_attachments(conn);conn.commit();return
             if version in (4,5,6):
                 from .source_integration import install_schema
                 install_schema(conn,existing_required=True)
@@ -482,6 +501,7 @@ class ResearchStore:
         """Single-owner graph replacement; no application/upper-budget writes."""
         conn=sqlite3.connect(self.path,timeout=5,isolation_level=None)
         conn.row_factory=sqlite3.Row
+        install_default_hook(conn)
         try:
             conn.execute("PRAGMA foreign_keys=OFF")
             if conn.execute("PRAGMA foreign_keys").fetchone()[0]!=0:
@@ -489,6 +509,8 @@ class ResearchStore:
             conn.execute("BEGIN IMMEDIATE")
             self.auth_store.check_gate_policy(conn)
             version=conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0]
+            if version==FINANCIAL_SCHEMA_VERSION:
+                self._check_v7(conn);self._check_v7_attachments(conn);conn.commit();return
             if version==6:
                 conn.commit();return
             if version==5:
@@ -551,11 +573,14 @@ class ResearchStore:
 
     def _migrate_v6(self):
         conn=sqlite3.connect(self.path,timeout=5,isolation_level=None);conn.row_factory=sqlite3.Row
+        install_default_hook(conn)
         try:
             conn.execute("PRAGMA foreign_keys=OFF")
             if conn.execute("PRAGMA foreign_keys").fetchone()[0]!=0:raise ResearchError("SCHEMA_UNSUPPORTED",503,"生产者迁移连接配置失败。")
             conn.execute("BEGIN IMMEDIATE");self.auth_store.check_gate_policy(conn)
             version=conn.execute("SELECT version FROM research_schema").fetchone()[0]
+            if version==FINANCIAL_SCHEMA_VERSION:
+                self._check_v7(conn);self._check_v7_attachments(conn);conn.commit();return
             if version==6:
                 self._check_v6(conn);conn.commit();return
             if version!=5:raise ResearchError("SCHEMA_UNSUPPORTED",503,"生产者迁移版本不支持。")
@@ -608,10 +633,73 @@ class ResearchStore:
             row=conn.execute('SELECT sql FROM sqlite_schema WHERE name=?',(name,)).fetchone()
             if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):raise ResearchError('SCHEMA_UNSUPPORTED',503,'生产者控制结构不匹配。')
 
+    @classmethod
+    def _check_v7(cls,conn):
+        cls._check_v6(conn)
+        require_hook(conn)
+        for ddl in (*V7_TABLES,*V7_GUARDS):
+            name=ddl.split()[2]
+            row=conn.execute('SELECT sql FROM sqlite_schema WHERE name=?',(name,)).fetchone()
+            if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):
+                raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融基础结构不匹配。')
+        expected={ddl.split()[2]:ddl for ddl in V7_GUARDS}
+        for ddl in V7_TABLES:
+            for row in conn.execute("SELECT name,sql FROM sqlite_schema WHERE tbl_name=? AND type IN ('index','trigger') AND sql IS NOT NULL",(ddl.split()[2],)):
+                if row['name'] not in expected or cls._normalize_sql(row['sql'])!=cls._normalize_sql(expected[row['name']]):
+                    raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融附属结构不匹配。')
+        if conn.execute('PRAGMA foreign_key_check').fetchall():
+            raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融存储关联不匹配。')
+        from .financial_admission_schemas import ProjectBudget
+        row=conn.execute('SELECT * FROM research_project_budgets WHERE id=1').fetchone()
+        if row:
+            try:project=ProjectBudget.model_validate(dict(row))
+            except ValueError:raise ResearchError('SCHEMA_UNSUPPORTED',503,'项目预算结构不匹配。') from None
+            from .provider_schemas import digest
+            database=next((r[2] for r in conn.execute('PRAGMA database_list') if r[1]=='main'),None)
+            if not database or project.database_binding!=digest(str(Path(database).resolve()).encode()):
+                raise ResearchError('SCHEMA_UNSUPPORTED',503,'项目预算数据库绑定不匹配。')
+
+    @classmethod
+    def _check_v7_attachments(cls,conn):
+        allowed={}
+        for ddl in (*SCHEMA,*C0_SCHEMA,*V6_AUX,*V5_GUARDS,*V7_GUARDS):
+            if not ddl.startswith(('CREATE INDEX','CREATE UNIQUE INDEX','CREATE TRIGGER')):continue
+            tokens=ddl.split();offset=3 if tokens[1]=='UNIQUE' else 2
+            if tokens[offset]=='IF':offset+=3
+            allowed[tokens[offset]]=ddl
+        for table in (*V5_SCHEMA,'research_cost_observations','research_paid_approvals','research_provider_sessions'):
+            for row in conn.execute("SELECT name,sql FROM sqlite_schema WHERE tbl_name=? AND type IN ('index','trigger') AND sql IS NOT NULL",(table,)):
+                if row['name'] not in allowed or cls._normalize_sql(row['sql'])!=cls._normalize_sql(allowed[row['name']]):
+                    raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融迁移发现未知附属结构。')
+
+    def _migrate_v7(self):
+        conn=sqlite3.connect(self.path,timeout=5,isolation_level=None);conn.row_factory=sqlite3.Row
+        install_default_hook(conn)
+        try:
+            conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN IMMEDIATE')
+            self.auth_store.check_gate_policy(conn)
+            version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
+            if version==FINANCIAL_SCHEMA_VERSION:
+                self._check_v7(conn);self._check_v7_attachments(conn);conn.commit();return
+            if version!=PRODUCER_SCHEMA_VERSION:raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融迁移版本不支持。')
+            self._check_v6(conn);self._check_v7_attachments(conn)
+            for ddl in (*V7_TABLES,*V7_GUARDS):
+                if conn.execute('SELECT 1 FROM sqlite_schema WHERE name=?',(ddl.split()[2],)).fetchone():
+                    raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融迁移发现部分新结构。')
+            for ddl in (*V7_TABLES,*V7_GUARDS):conn.execute(ddl)
+            conn.execute('UPDATE research_schema SET version=7 WHERE id=1')
+            self._check_v7(conn)
+            if conn.execute('PRAGMA foreign_key_check').fetchall():raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融迁移关联校验失败。')
+            conn.commit()
+        except Exception:
+            conn.rollback();raise
+        finally:conn.close()
+
     @contextmanager
     def transaction(self, *, write=False):
         conn = sqlite3.connect(self.path, timeout=5, isolation_level=None)
         conn.row_factory = sqlite3.Row
+        install_default_hook(conn)
         conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("PRAGMA secure_delete=ON")
         conn.execute("PRAGMA busy_timeout=5000")

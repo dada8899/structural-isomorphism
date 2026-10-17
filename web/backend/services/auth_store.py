@@ -228,6 +228,11 @@ class AuthStore:
     def _connection(self, *, bootstrap=False) -> Iterator[sqlite3.Connection]:
         conn = sqlite3.connect(self.path, timeout=10, isolation_level=None)
         conn.row_factory = sqlite3.Row
+        if __package__=='web.backend.services':
+            from ..research.financial_guard import install_default_hook
+        else:
+            from research.financial_guard import install_default_hook
+        install_default_hook(conn)
         conn.execute("PRAGMA busy_timeout=10000")
         # Account erasure must also clear deleted payloads from SQLite pages,
         # not merely unlink rows into the freelist.
