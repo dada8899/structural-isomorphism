@@ -663,7 +663,8 @@
     const problem=data?.current_problem,task=data?.task;
     if(data?.research?.id!==researchId||problem?.research_id!==researchId||!planInt(problem?.revision)||!planDigest(problem?.digest)||!validId(task?.id)||task.input_revision!==problem.revision||task.input_digest!==problem.digest||
       !planInt(data.research_version)||data.research.version!==data.research_version||data.task_version!==task.version||!planInt(task.version)||typeof data.is_historical!=='boolean'||!['native-plan-v1','funded-plan-v1'].includes(task.policy_revision)||(selectedTask!==null&&task.id!==selectedTask))return null;
-    return {rid:researchId,task_id:task.id,input_revision:problem.revision,input_digest:problem.digest,policy:task.policy_revision};
+    if(task.policy_revision==='native-plan-v1'&&!['controlled_fixture','native_live'].includes(task.execution_mode))return null;
+    return {rid:researchId,task_id:task.id,input_revision:problem.revision,input_digest:problem.digest,policy:task.policy_revision,execution_mode:task.execution_mode};
   }
   function planMeta(value,legacy=false) {
     const fields=legacy?['task_id','result_ref','state','financial_state','safe_code','recorded_at','plan_generation_ran','real_model_executed','execution_mode','approved_upper_units','usage']:
@@ -743,7 +744,7 @@
     if(!planKeys(value,fields)||value.protocol!==(legacy?'owned-phenomenon-plan-result-v1':'owned-native-plan-result-v2')||value.purpose!=='phenomenon_plan_v1'||value.research_id!==anchor.rid||value.task_id!==anchor.task_id||value.result_ref!==meta.result_ref||value.input_revision!==anchor.input_revision||value.input_digest!==anchor.input_digest||!planDigest(value.request_digest)||!planDigest(value.admission_digest)||value.recorded_at!==meta.recorded_at||!recordTime(value.recorded_at)||
       value.literature_status!=='not_retrieved'||value.mathematics_status!=='not_checked'||value.mechanism_status!=='unverified'||value.observation_rights!=='self_declared'||value.query_state!=='draft_only'||value.automatically_created_sources!==0||meta.state!=='saved'||
       (legacy?value.execution_mode!=='fixture'||value.real_model_executed!==false||value.plan_generation_ran!==true:
-      !planDigest(value.consent_digest)||value.weight_identity_verified!==false||!['controlled_fixture','native_live'].includes(value.execution_mode)||!['core-controlled-native-v1','owned-native-plan-runtime-v1'].includes(value.producer)||typeof value.real_model_executed!=='boolean'||value.real_model_executed!==(value.execution_mode==='native_live')||(value.producer==='core-controlled-native-v1'&&value.execution_mode!=='controlled_fixture')||value.execution_mode!==meta.execution_mode||value.real_model_executed!==meta.real_model_executed))throw Error('计划记录与原问题、流程或执行来源无法绑定。');
+      !planDigest(value.consent_digest)||value.weight_identity_verified!==false||!['controlled_fixture','native_live'].includes(value.execution_mode)||!['core-controlled-native-v1','owned-native-plan-runtime-v1'].includes(value.producer)||typeof value.real_model_executed!=='boolean'||value.real_model_executed!==(value.execution_mode==='native_live')||(value.producer==='core-controlled-native-v1'&&value.execution_mode!=='controlled_fixture')||value.execution_mode!==meta.execution_mode||value.execution_mode!==anchor.execution_mode||value.real_model_executed!==meta.real_model_executed))throw Error('计划记录与原问题、流程或执行来源无法绑定。');
     if(pending&&(pending.task_request.anchor.input_revision!==value.input_revision||pending.task_request.anchor.input_digest!==value.input_digest||pending.task_request.data.request_digest!==value.request_digest))throw Error('计划回执与原提交无法绑定，原key仍保留。');
     planCandidate(value.proposal);return value;
   }
@@ -751,7 +752,7 @@
   function planShow(meta,legacy=false) {
     const financial=legacy?meta.financial_state:meta.cost_state;
     const money={unreserved:'尚未预留执行上限',held:'本次上限仍被占用，不是最终实扣',upper_booked:'按上限记账，实际扣费数字尚未确认',unknown:'费用结果尚未确认，原操作与占用保留'};
-    byId('native-plan-status').textContent=`${planStates[meta.state]}。${money[financial]||'费用状态待核对'}。`+(!legacy&&meta.cleanup_state==='uncertain'?'资源清理尚未确认，新增执行已停止；请保留原操作。':'');
+    byId('native-plan-status').textContent=`${planStates[meta.state]}。${money[financial]||'费用状态待核对'}。`+(!legacy&&meta.cleanup_state==='uncertain'?'资源清理尚未确认，新增执行已停止；请保留原操作。':!legacy&&meta.cleanup_state==='pending'?'资源清理仍待完成，原提交暂时保留；可稍后重新读取状态。':'');
   }
   function planDisplay(value,ticket) {
     planClearBody();byId('native-plan-record').hidden=false;byId('native-plan-record-revision').textContent=String(value.input_revision);showTime(byId('native-plan-record-time'),value.recorded_at);byId('native-plan-result-ref').textContent=value.result_ref;
