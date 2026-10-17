@@ -34,12 +34,22 @@ def fixture_html(paragraphs=PARAGRAPHS):
             '<div class="storyContent">' + body + '</div></div></body></html>').encode()
 
 
-def parse(raw=None, **overrides):
+def _synthetic_shapes(paragraphs):
+    import re
+    return tuple(hashlib.sha256(re.sub(r"\$(?:0|[1-9][0-9]{0,17})(?:\.[0-9]{1,6})? billion",
+                     "$<amount> billion", p).encode()).hexdigest() for p in paragraphs)
+
+
+def parse(raw=None, *, context_fixture=PARAGRAPHS, **overrides):
     if raw is None:
         raw = fixture_html()
     args = {"profile": mint.PROFILE, "expected_raw_digest": hashlib.sha256(raw).hexdigest()}
     args.update(overrides)
-    return mint.parse_mint_reported_bytes(raw, **args)
+    # Unit tests use an explicit synthetic full-context expectation. Production
+    # accepts only the retained publisher contexts; no fixture variant ships in
+    # its allowlist. Never derive this expectation from the mutated raw input.
+    with patch.object(mint, "_CONTEXT_DIGESTS", _synthetic_shapes(context_fixture)):
+        return mint.parse_mint_reported_bytes(raw, **args)
 
 
 def test_selected_dom_facts_unknown_currency_and_exact_unicode_spans():
@@ -82,7 +92,7 @@ def test_entities_decomposed_unicode_and_whitespace_are_not_rewritten():
     paragraphs = list(PARAGRAPHS)
     paragraphs[0] = "ByteDance\t discussed cafe\u0301 activity\r\nin the first half of the year."
     raw = fixture_html(paragraphs).replace(b"$120", b"&#36;120")
-    result = parse(raw).data()
+    result = parse(raw, context_fixture=paragraphs).data()
     assert result["extracted_text"] == "\n\n".join(paragraphs)
     assert "cafe\u0301" in result["extracted_text"] and "caf\u00e9" not in result["extracted_text"]
     for fact in result["facts"]:
@@ -234,3 +244,35 @@ def test_complete_scope_has_no_unparsed_corrections_or_hidden_metadata(kind):
     elif kind == "prefix_other_entity":raw = raw.replace(PARAGRAPHS[1].encode(), b'Another entity said '+PARAGRAPHS[1].encode())
     else:raw = raw.replace(b'<meta property="article:published_time"', b'<meta aria-hidden="true" property="article:published_time"')
     with pytest.raises(mint.MintReportedError):parse(raw)
+
+
+@pytest.mark.parametrize("old,new", [
+    ("first half of the year", "first half of the year before last"),
+    ("Net profit eased to $20 billion.", "Net profit eased to $20 billion in the first half of last year."),
+    ("Net profit eased to $20 billion.", "Net profit eased to $20 billion for TikTok alone."),
+    ("ByteDance discussed", "ByteDance competitor Acme discussed"),
+    ("$20 billion.", "$20 billion cents."),
+    ("$20 billion.", "$20 billion excluding subsidiaries."),
+    ("$20 billion.", "$20 billion only for one app."),
+    ("$42 billion.", "$42 billion in a different year."),
+    ("$120 billion during the period", "$120 billion during a different period"),
+])
+def test_complete_finite_context_rejects_every_uncovered_qualification(old,new):
+    # Expected full-context hashes remain those of the unmodified synthetic
+    # fixture, never hashes recomputed from this attacker-modified input.
+    raw = fixture_html().replace(old.encode(), new.encode())
+    assert raw != fixture_html()
+    with pytest.raises(mint.MintReportedError) as err:parse(raw)
+    assert err.value.reason == "ambiguous"
+
+
+def test_synthetic_unit_context_is_not_a_production_template_or_runtime_option():
+    originals = mint._CONTEXT_DIGESTS
+    raw = fixture_html()
+    with pytest.raises(mint.MintReportedError) as err:
+        mint.parse_mint_reported_bytes(raw,profile=mint.PROFILE,expected_raw_digest=hashlib.sha256(raw).hexdigest())
+    assert err.value.reason == "ambiguous"
+    assert parse(raw).data()["facts"][0]["value"] == "120"
+    assert mint._CONTEXT_DIGESTS == originals
+    with pytest.raises(TypeError):
+        mint.parse_mint_reported_bytes(raw,profile=mint.PROFILE,expected_raw_digest=hashlib.sha256(raw).hexdigest(),context_digests=_synthetic_shapes(PARAGRAPHS))

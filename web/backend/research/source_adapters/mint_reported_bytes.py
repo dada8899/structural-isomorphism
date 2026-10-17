@@ -22,6 +22,14 @@ PUBLISHED = "2026-09-16T14:51:54+05:30"
 DATE_TEXT = "Published16 Sep 2026, 02:51 PM IST"
 AUTHOR = "Raffaele Huang"
 REVISION = "mint-selected-dom-3p-v1"
+# Full retained publisher paragraphs with ONLY monetary values replaced by
+# <amount>. Hashes avoid copying the whole copyrighted prose into source code.
+# These are not runtime options and grant no acquisition/source authority.
+_CONTEXT_DIGESTS = (
+    "9812bb307323eb95536d39f70135a004f1666283501f48b54c890022efe81407",
+    "cec6c9c1fa7f86fde25e64226ff35a99ed82ce5890a541d92e43c5d94b2e20e1",
+    "8fb0cfd31a5afc02f28e834fdebfefce34bfcdbe3e188cc9eef7a895eaa4e521",
+)
 _VOID = frozenset("area base br col embed hr img input link meta param source track wbr".split())
 _UNSAFE = frozenset("script style template noscript iframe object embed form input button img br svg math".split())
 _REASONS = frozenset(("unsupported", "ambiguous", "digest", "resource"))
@@ -193,11 +201,25 @@ _DECIMAL = r"(?:0|[1-9][0-9]{0,17})(?:\.[0-9]{1,6})?"
 _AMOUNT = r"(?P<literal>\$(?P<value>" + _DECIMAL + r") billion)"
 
 
-def _match(pattern, text):
-    matches = list(re.finditer(pattern, text))
-    if len(matches) != 1:
-        _fail("ambiguous")
-    return matches[0]
+def _context_slots(paragraphs):
+    slots = []
+    for index, paragraph in enumerate(paragraphs):
+        matches = list(re.finditer(_AMOUNT, paragraph))
+        if len(matches) != (0 if index == 0 else 2):
+            _fail("ambiguous")
+        parts = []
+        cursor = 0
+        for match in matches:
+            start, end = match.span("value")
+            parts.extend((paragraph[cursor:start], "<amount>"))
+            cursor = end
+        parts.append(paragraph[cursor:])
+        # Compare the ENTIRE context, including entity, period, unit suffixes,
+        # qualifications and punctuation. No unexamined prefix/suffix survives.
+        if _hash("".join(parts).encode("utf-8")) != _CONTEXT_DIGESTS[index]:
+            _fail("ambiguous")
+        slots.append(matches)
+    return slots
 
 
 @dataclass(frozen=True, slots=True)
@@ -262,35 +284,15 @@ def _parse(raw, profile, expected_raw_digest):
     selected = "\n\n".join(paragraphs)
     if len(selected.encode()) > TEXT_CAP:
         _fail("resource")
-    if (len(re.findall(r"\bfirst half of the year\b", paragraphs[0])) != 1
-            or not paragraphs[0].startswith("ByteDance") or "$" in paragraphs[0]
-            or not paragraphs[2].startswith("Last year, ByteDance ")):
-        _fail("ambiguous")
-    # Each named metric must bind exactly one amount in its own dated paragraph.
-    percentage = r"[0-9]{1,3}(?:\.[0-9]{1,2})?%"
-    change = r"(?: (?:more than )?" + percentage + r")?"
-    patterns = ((1, "revenue", r"^Revenue (?:rose|increased)" + change + " to " + _AMOUNT + r" during the period\b", 2026),
-                (1, "net_profit", r"\bNet profit (?:eased|declined|fell)" + change + " to " + _AMOUNT, 2026),
-                (2, "revenue", r"\bannual revenue(?: growth of " + percentage + ")? to " + _AMOUNT, 2025),
-                (2, "net_profit", r"\bnet profit (?:jumped|rose|increased)" + change + " to " + _AMOUNT, 2025))
-    if (paragraphs[1].count("$") != 2 or paragraphs[2].count("$") != 2
-            or len(re.findall(r"\bbillion\b", selected)) != 4
-            or re.search(r"\b(?:million|trillion|USD|CNY|RMB|operating profit)\b", selected)):
-        _fail("ambiguous")
+    slots = _context_slots(paragraphs)
     facts = []
     bases = (0, len(paragraphs[0]) + 2, len(paragraphs[0]) + len(paragraphs[1]) + 4)
-    for ordinal, paragraph in enumerate(paragraphs):
-        context = re.sub(r"\$" + _DECIMAL + " billion", "", paragraph)
-        allowed_year = "2025" if ordinal == 2 else "2026"
-        if any(year != allowed_year for year in re.findall(r"\b(?:19|20)[0-9]{2}\b", context)):
-            _fail("ambiguous")
-        if ordinal < 2 and re.search(r"\b(?:annual|full year|second half|quarter)\b|\b(?:FY|H[12]|[1-4]Q)[0-9]*\b", context):
-            _fail("ambiguous")
-        if ordinal == 2 and re.search(r"\b(?:first half|second half|quarter)\b|\b(?:H[12]|[1-4]Q)[0-9]*\b", context):
-            _fail("ambiguous")
-    for ordinal, metric, pattern, year in patterns:
+    # Context hashes above fix the exact metric/period/entity of these four
+    # slots; only their bounded decimal monetary values may differ.
+    for ordinal, slot, metric, year in ((1, 0, "revenue", 2026), (1, 1, "net_profit", 2026),
+                                       (2, 0, "revenue", 2025), (2, 1, "net_profit", 2025)):
         value = paragraphs[ordinal]
-        match = _match(pattern, value)
+        match = slots[ordinal][slot]
         start, end = match.span("literal")
         start, end = start + bases[ordinal], end + bases[ordinal]
         facts.append({"metric": metric, "raw_literal": match["literal"], "value": match["value"],
