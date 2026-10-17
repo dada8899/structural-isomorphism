@@ -2854,3 +2854,158 @@ def test_formula_ack_metadata401_confirms_current_auth_loss_without_retiring_unk
         finally:
             for route,_ in held:route.abort()
             context.close();browser.close()
+
+
+def _formula_real_sso_cookie(browser,base,email):
+    """Obtain a second credential through the mounted app's real SSO exchange."""
+    from urllib.parse import parse_qs,urlsplit
+    other=browser.new_context()
+    try:
+        login(other,base,email)
+        start=other.request.get(base+'/api/sso/start',max_redirects=0)
+        assert start.status==303
+        query=parse_qs(urlsplit(start.headers['location']).query)
+        issued=other.request.post(base+'/api/sso/issue',headers={'Origin':base},data={
+            'audience':'structural-beta','state':query['state'][0],'nonce':query['nonce'][0]})
+        assert issued.status==200
+        exchanged=other.request.post(base+'/api/sso/exchange',headers={'Origin':base},data={
+            'state':query['state'][0],'code':issued.json()['code']})
+        assert exchanged.status==200
+        assert other.request.get(base+'/api/auth/me').json()['user']['email']==email
+        return next(cookie for cookie in other.cookies() if cookie['name']=='structural_beta_session')
+    finally:other.close()
+
+
+@pytest.mark.parametrize('mode',[
+    'account-switch','same-owner-wrong-task','same-owner-new-draft','restored-owner',
+    'late-root-new-draft','late-root-private-scope','credential-conflict','same-owner-dual',
+    'restored-conflict','stale-conflict-draft','stale-conflict-private-scope',
+])
+def test_formula_ack_identity_boundary_preserves_unknown_key_and_current_draft(server,mode):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();held=[];committed=[];posts=[];reads=[];finished=[];metadata_statuses=[];root_statuses=[]
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            page.locator('#original-input').fill('账户A已保存的私有问题')
+            for side in ('left','right'):page.locator('#formula-'+side+'-use-template').click()
+            saved=_save_formula_editor(page,base);rid=saved['research']['id'];original=page.locator('#original-input').input_value()
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            dual=mode in ('credential-conflict','same-owner-dual','restored-conflict','stale-conflict-draft','stale-conflict-private-scope')
+            sso=_formula_real_sso_cookie(browser,base,'browser-a@example.test' if mode=='same-owner-dual' else 'browser-b@example.test') if dual else None
+            assert context.request.get(base+'/api/auth/me').json()['user']['email']=='browser-a@example.test'
+            def capture_post(route):
+                response=route.fetch();assert response.status==200
+                committed.append(response.json()['data']);posts.append(route.request.headers['idempotency-key']);held.append(('ack',route,response))
+            page.route('**/formula-checks',capture_post,times=1)
+            def capture_meta(route):
+                response=route.fetch();held.append(('meta',route,response))
+            if mode in ('restored-owner','restored-conflict','stale-conflict-draft','stale-conflict-private-scope'):
+                page.route('**/api/research/'+rid+'?task_id=*',capture_meta,times=1)
+            def capture_root(route):
+                response=route.fetch();assert response.status==404;held.append(('root',route,response))
+            if mode.startswith('late-root-'):page.route(base+'/api/research/'+rid,capture_root,times=1)
+            page.on('request',lambda request:reads.append(request.url) if request.method=='GET' and request.url in (base+'/api/auth/me',base+'/api/research/'+rid) else None)
+            page.on('requestfinished',lambda request:finished.append(request.url))
+            page.on('response',lambda response:metadata_statuses.append(response.status) if response.url.startswith(base+'/api/research/'+rid+'?task_id=') else None)
+            page.on('response',lambda response:root_statuses.append(response.status) if response.url==base+'/api/research/'+rid else None)
+            def wait_held(kind):
+                deadline=time.monotonic()+5
+                while not any(item[0]==kind for item in held) and time.monotonic()<deadline:page.wait_for_timeout(20)
+                assert any(item[0]==kind for item in held),kind+' did not arrive'
+                item=next(item for item in held if item[0]==kind);held.remove(item);return item[1:]
+            def draft():
+                page.locator('#formula-left-symbol-1-value').fill('7')
+                page.locator('#original-input').fill('账户A的新草稿应保留')
+            page.locator('#formula-confirm').check();page.locator('#formula-run').click();route,response=wait_held('ack')
+            if dual:
+                context.add_cookies([sso])
+                auth=context.request.get(base+'/api/auth/me')
+                assert auth.status==(200 if mode=='same-owner-dual' else 409)
+                if mode!='same-owner-dual':assert auth.json()['error']=='credential_conflict'
+            elif mode not in ('same-owner-wrong-task','same-owner-new-draft'):
+                assert context.request.post(base+'/api/auth/logout',headers={'Origin':base}).status==200
+                login(context,base,'browser-b@example.test')
+                assert context.request.get(base+'/api/auth/me').json()['user']['email']=='browser-b@example.test'
+                assert context.request.get(base+'/api/research/'+rid).status==404
+            if mode=='same-owner-wrong-task':
+                other=context.new_page();other.goto(base+'/research/'+rid)
+                expect(other.locator('#formula-editor-status')).to_contain_text('已按权限读取')
+                other.locator('#formula-left-symbol-1-value').fill('9')
+                other.locator('#original-input').fill('另一窗口已保存的新问题，不得被可信核验装入旧表单')
+                newer=_save_formula_editor(other,base);assert newer['current_problem']['revision']==2;other.close()
+            if mode=='same-owner-new-draft':draft()
+            if mode in ('same-owner-wrong-task','same-owner-new-draft'):
+                ack=response.json();ack['data']['task_id']='00000000-0000-4000-8000-000000000000';route.fulfill(response=response,json=ack)
+            else:route.fulfill(response=response)
+            if mode in ('restored-owner','restored-conflict','stale-conflict-draft','stale-conflict-private-scope'):
+                route,response=wait_held('meta')
+                assert response.status==(404 if mode=='restored-owner' else 409)
+                if mode!='restored-owner':assert response.json()['error']['code']=='AUTHORIZATION_STALE'
+                if mode=='restored-owner':
+                    assert context.request.post(base+'/api/auth/logout',headers={'Origin':base}).status==200;login(context,base)
+                elif mode=='stale-conflict-private-scope':
+                    page.locator('#research-list-refresh').click();expect(page.locator('#problem-form')).to_be_hidden()
+                else:
+                    context.clear_cookies(name='structural_beta_session')
+                    assert context.request.get(base+'/api/auth/me').status==200
+                    if mode=='stale-conflict-draft':draft()
+                read_before=len(reads);route.fulfill(response=response)
+            elif mode.startswith('late-root-'):
+                route,response=wait_held('root')
+                if mode=='late-root-private-scope':
+                    page.locator('#research-list-refresh').click();expect(page.locator('#problem-form')).to_be_hidden()
+                else:
+                    assert context.request.post(base+'/api/auth/logout',headers={'Origin':base}).status==200;login(context,base);draft()
+                read_before=len(reads);route.fulfill(response=response)
+            deadline=time.monotonic()+5
+            while not metadata_statuses and time.monotonic()<deadline:page.wait_for_timeout(20)
+            assert metadata_statuses==[200 if mode=='same-owner-dual' else 409 if dual else 404]
+            # The trusted gate may reject the page before the untrusted metadata
+            # body is consumed. Wait for the real gate's body and resulting DOM.
+            if mode in ('account-switch','same-owner-wrong-task','restored-owner'):
+                while base+'/api/research/'+rid not in finished and time.monotonic()<deadline:page.wait_for_timeout(20)
+                assert base+'/api/research/'+rid in finished,'trusted root body did not finish'
+            elif mode.startswith('late-root-'):
+                # A draft/private-generation change stops the central read before
+                # consuming its body; arrival must not clear or rebase that view.
+                while not root_statuses and time.monotonic()<deadline:page.wait_for_timeout(20)
+                assert root_statuses==[404]
+            elif mode in ('credential-conflict','restored-conflict'):
+                while base+'/api/auth/me' not in finished and time.monotonic()<deadline:page.wait_for_timeout(20)
+                assert base+'/api/auth/me' in finished,'trusted auth body did not finish'
+            elif mode not in ('stale-conflict-private-scope',):
+                while not any(url.startswith(base+'/api/research/'+rid+'?task_id=') for url in finished) and time.monotonic()<deadline:page.wait_for_timeout(20)
+                assert any(url.startswith(base+'/api/research/'+rid+'?task_id=') for url in finished),'consumed metadata body did not finish'
+            if mode in ('account-switch','credential-conflict'):expect(page.locator('#problem-form')).to_be_hidden()
+            if mode in ('same-owner-wrong-task','restored-owner','restored-conflict'):expect(page.locator('#formula-status')).to_contain_text('状态尚未确认')
+            if mode=='same-owner-dual':expect(page.locator('#formula-result-ref')).to_have_text(committed[0]['result_ref'])
+            page.evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+            formula_pending=page.evaluate("Object.entries(sessionStorage).filter(([key])=>key.startsWith('structure-research-pending:formula-check:')).map(([,value])=>JSON.parse(value))")
+            assert len(formula_pending)==(0 if mode=='same-owner-dual' else 1)
+            if formula_pending:assert formula_pending[0]['key']==posts[0]
+            with sqlite3.connect(server['path']) as conn:assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]==1
+            cleared=mode in ('account-switch','credential-conflict','late-root-private-scope','stale-conflict-private-scope')
+            facts={'mode':mode,'private_form_visible':page.locator('#problem-form').is_visible(),'pending':len(formula_pending),'actual_task_count':1,'browser_root_reads':reads.count(base+'/api/research/'+rid),'browser_auth_reads':reads.count(base+'/api/auth/me'),'input_preserved':page.locator('#original-input').input_value()==original,'metadata_statuses':metadata_statuses,'root_statuses':root_statuses}
+            (server['root']/'ack-identity-facts.json').write_text(json.dumps(facts,indent=2))
+            if cleared:
+                expect(page.locator('#problem-form')).to_be_hidden();expect(page.locator('#original-input')).to_have_value('')
+                expect(page.locator('#formula-check-section')).to_be_hidden();expect(page.locator('#formula-results')).to_have_text('')
+            else:
+                expect(page.locator('#problem-form')).to_be_visible()
+                expect(page.locator('#original-input')).to_have_value('账户A的新草稿应保留' if mode in ('same-owner-new-draft','late-root-new-draft','stale-conflict-draft') else original)
+            if mode in ('same-owner-new-draft','stale-conflict-draft','stale-conflict-private-scope'):
+                assert reads.count(base+'/api/research/'+rid)==0
+                if mode!='same-owner-new-draft':assert len(reads)==read_before,'stale metadata must not start an identity read'
+            elif mode in ('account-switch','same-owner-wrong-task','restored-owner','late-root-new-draft','late-root-private-scope'):
+                assert reads.count(base+'/api/research/'+rid)==1
+            if mode in ('credential-conflict','restored-conflict'):assert reads.count(base+'/api/auth/me')==1
+            if mode=='same-owner-wrong-task':
+                expect(page.locator('#revision-label')).to_have_text('当前修订 1')
+                expect(page.locator('#formula-left-symbol-1-value')).to_have_value('3')
+                current_view=context.request.get(base+'/api/research/'+rid)
+                assert current_view.status==200 and current_view.json()['data']['current_problem']['revision']==2
+            if mode.startswith('late-root-'):assert len(reads)==read_before,'late trusted root must not trigger another read'
+            if mode=='same-owner-dual':assert reads.count(base+'/api/auth/me')==0 and len(formula_pending)==0
+        finally:
+            for _,route,_ in held:route.abort()
+            context.close();browser.close()
