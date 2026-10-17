@@ -54,6 +54,11 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 if __package__ == "web.backend.api":
+    from .history import _history_store, _HISTORY_STORE_LOCK
+else:
+    from api.history import _history_store, _HISTORY_STORE_LOCK
+
+if __package__ == "web.backend.api":
     from ..logging_config import get_logger, new_incident_id
 else:
     from logging_config import get_logger, new_incident_id
@@ -81,19 +86,17 @@ def _get_store() -> ConnectionsStore:
     模块全局，测试可 monkeypatch 成 tmp-path store（同 api/report.py 模式）。
     """
     global _store
-    if _store is None:
-        db_path = Path(__file__).parent.parent / "data" / "history.db"
-        _store = ConnectionsStore(db_path)
-    return _store
+    with _HISTORY_STORE_LOCK:
+        _store = _history_store(_store, ConnectionsStore, Path(__file__).parent.parent / "data/history.db")
+        return _store
 
 
 def _get_p3_store() -> ConnectionsP3Store:
     """共享 ConnectionsP3Store（同一 history.db，P3 四张表）。"""
     global _p3_store
-    if _p3_store is None:
-        db_path = Path(__file__).parent.parent / "data" / "history.db"
-        _p3_store = ConnectionsP3Store(db_path)
-    return _p3_store
+    with _HISTORY_STORE_LOCK:
+        _p3_store = _history_store(_p3_store, ConnectionsP3Store, Path(__file__).parent.parent / "data/history.db")
+        return _p3_store
 
 
 # ---------------- 鉴权 helper ---------------------------------------- #

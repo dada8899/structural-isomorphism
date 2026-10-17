@@ -110,8 +110,10 @@ def test_financial_late_return_never_reads_erased_private_approval_or_revives_co
             assert response.status_code==200,response.text
         else:
             with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
-                if ending=='cancel':ledger.cancel_in(conn,store=store,actor=identity(client),lease=lease,task_id=result['task_id'],expected_task_version=2)
-                else:conn.execute("UPDATE research_grants SET status='revoked' WHERE id=(SELECT grant_id FROM research_tasks WHERE id=?)",(result['task_id'],))
+                if ending!='cancel':conn.execute("UPDATE research_grants SET status='revoked' WHERE id=(SELECT grant_id FROM research_tasks WHERE id=?)",(result['task_id'],))
+            if ending=='cancel':
+                response=post(client,f'/api/research/{paid_api[3]}/cancel',{'task_id':result['task_id'],'expected_task_version':2},'late-real-http-cancel')
+                assert response.status_code==200,response.text
         receipt=receipt or session.receive()
         with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
             ref=persist_budget_return(conn,store=store,lease=lease,receipt=receipt)

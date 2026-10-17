@@ -105,14 +105,12 @@ def account_owner_transaction(owner: str):
     normalized = owner.strip().lower()
     if not normalized:
         raise ValueError("account transaction requires an owner")
-    try:
-        from research.authorization import AuthorizationGate
-    except ModuleNotFoundError:
-        from web.backend.research.authorization import AuthorizationGate
+    if __package__=='web.backend.api':from ..research.authorization import AuthorizationGate
+    else:from research.authorization import AuthorizationGate
     store = _store()
     gate_id = store.owner_gate_id(normalized)
-    with AuthorizationGate(store).owner_gate_id(gate_id):
-        yield
+    with AuthorizationGate(store).owner_gate_id(gate_id) as lease:
+        yield lease
 
 
 def _jwt_secret() -> str:
@@ -190,17 +188,27 @@ def _validate_production_config() -> None:
 # --- Storage paths (lazy, overridable in tests) ---
 
 def _data_dir() -> Path:
+    if os.getenv("STRUCTURAL_ENV","dev").strip().lower()=="prod":
+        if __package__=='web.backend.api':from ..services.runtime_paths import private_auth_path
+        else:from services.runtime_paths import private_auth_path
+        return private_auth_path().parent
     configured = os.getenv("AUTH_DATA_DIR", "").strip()
     return Path(configured) if configured else Path(__file__).resolve().parent.parent / "data"
 
 
 def _store() -> AuthStore:
-    path = (_data_dir() / "auth.sqlite3").expanduser().resolve()
+    formal=os.getenv("STRUCTURAL_ENV","dev").strip().lower()=="prod"
+    path=(_data_dir()/"auth.sqlite3")
+    if not formal:path=path.expanduser().resolve()
     with _AUTH_STORES_GUARD:
-        store = _AUTH_STORES.get(path)
+        identity=AuthStore.preflight_private(path) if formal else None
+        key=(True,path,identity) if formal else path
+        store=_AUTH_STORES.get(key)
         if store is None:
-            store = AuthStore(path)
-            _AUTH_STORES[path] = store
+            store=AuthStore(path)
+            _AUTH_STORES[key]=store
+        elif formal and (not store._private_auth or store.storage_identity!=identity):
+            raise RuntimeError('private Auth cache has an inconsistent profile or identity')
         return store
 
 
@@ -288,6 +296,11 @@ def _account_registry() -> AccountDataRegistry:
 
 
 def _append_deletion_audit(record: dict) -> None:
+    if os.getenv("STRUCTURAL_ENV","dev").strip().lower()=="prod":
+        if __package__=='web.backend.api':from ..services.runtime_paths import append_private_auth_audit
+        else:from services.runtime_paths import append_private_auth_audit
+        append_private_auth_audit(record)
+        return
     _append_jsonl(_data_dir() / "account_deletion_audit.jsonl", record)
 
 
@@ -502,6 +515,8 @@ def _ensure_user(email: str) -> tuple[dict, bool]:
 
 def _send_email(to: str, subject: str, text: str) -> None:
     """Deliver through configured SMTP; mock delivery is dev-only."""
+    if os.getenv("STRUCTURAL_ENV","dev").strip().lower()=="prod" and not _is_prod():
+        raise RuntimeError('invalid private Auth profile; mock delivery is forbidden')
     if not _is_prod() and os.getenv("AUTH_DEV_MODE", "").lower() in {"1", "true", "yes"}:
         _append_jsonl(_outbox_file(), {
             "ts": int(time.time()), "to": to, "subject": subject, "text": text,
@@ -891,10 +906,10 @@ async def logout(request: Request):
     origin_error = _require_same_origin(request)
     if origin_error:
         return origin_error
-    try:
-        from api.sso import SsoReplayStore, _data_dir as sso_data_dir, resolve_beta_user
-    except ModuleNotFoundError:
-        from web.backend.api.sso import SsoReplayStore, _data_dir as sso_data_dir, resolve_beta_user
+    if __package__=='web.backend.api':
+        from .sso import get_replay_store,resolve_beta_user
+    else:
+        from api.sso import get_replay_store,resolve_beta_user
     beta_user, beta_status = resolve_beta_user(request)
     resp = JSONResponse(
         {"ok": False, "error": "credential_conflict"} if beta_status == "credential_conflict"
@@ -902,6 +917,7 @@ async def logout(request: Request):
         status_code=409 if beta_status == "credential_conflict" else 200,
     )
     if beta_status == "valid" and beta_user:
+        ledger=get_replay_store()  # Validate before any JTI/subject revocation.
         cookie = request.cookies.get(_COOKIE_NAME)
         if cookie:
             claims = _decode_jwt(cookie)
@@ -911,7 +927,7 @@ async def logout(request: Request):
                 )
                 logger.info("auth.logout")
         if request.cookies.get("structural_beta_session"):
-            SsoReplayStore(sso_data_dir() / "sso_replay.sqlite3").revoke_subject(beta_user["id"])
+            ledger.revoke_subject(beta_user["id"])
     # delete_cookie matches the path the cookie was set on.
     resp.delete_cookie(key=_COOKIE_NAME, path="/")
     _clear_beta_session(resp)
@@ -1011,7 +1027,7 @@ async def delete_my_account(body: DeleteAccountBody, request: Request):
         return JSONResponse({"ok": False, "error": "confirmation must equal DELETE"}, status_code=400)
     job_id = None
     try:
-        with account_owner_transaction(user["email"]):
+        with account_owner_transaction(user["email"]) as owner_lease:
             # The first resolve selects the lock. Re-resolve inside it so a
             # request queued behind another deletion cannot use a stale JWT.
             locked_user, locked_status = resolve_account_user(request)
@@ -1021,12 +1037,22 @@ async def delete_my_account(body: DeleteAccountBody, request: Request):
                 return _account_auth_error("credential_conflict")
             service = _account_deletion_service()
             account = _store().user(locked_user["email"])
-            job_id = service.begin_account_deletion_locked(
-                locked_user["email"], account["session_generation"],
-                _store().owner_gate_id(locked_user["email"]),
-                _account_cleanup_binding(locked_user["email"]),
-            )
-            result = _run_account_deletion_locked(service, job_id)
+            if __package__=='web.backend.api':
+                from ..research.paid_control import issue_authenticated_action
+                from ..research.errors import ResearchError
+            else:
+                from research.paid_control import issue_authenticated_action
+                from research.errors import ResearchError
+            try:request_source=issue_authenticated_action(request,action='account-delete')
+            except (ResearchError,PermissionError,ValueError):request_source=None
+            try:
+                job_id = service.begin_account_deletion_locked(
+                    locked_user["email"], account["session_generation"],
+                    _store().owner_gate_id(locked_user["email"]),
+                    _account_cleanup_binding(locked_user["email"]),owner_lease=owner_lease,request_source=request_source)
+                result = _run_account_deletion_locked(service, job_id,owner_lease=owner_lease)
+            finally:
+                if request_source is not None:request_source.close()
             removed = result["removed"]
     except Exception as exc:
         status_code = 503 if getattr(exc, "status", None) == 503 else 500
@@ -1072,30 +1098,32 @@ async def delete_my_account(body: DeleteAccountBody, request: Request):
 
 
 def _account_deletion_service():
-    try:
-        from research import ResearchService, ResearchStore
-    except ModuleNotFoundError:
-        from web.backend.research import ResearchService, ResearchStore
+    if __package__=='web.backend.api':from ..research import ResearchService,ResearchStore
+    else:from research import ResearchService,ResearchStore
     return ResearchService(ResearchStore(_store()))
 
 
-def _run_account_deletion_locked(service, job_id):
+def _run_account_deletion_locked(service, job_id,*,owner_lease=None):
     job = service.deletion_job(job_id)
+    if __package__=='web.backend.api':from ..research.paid_control import verify_deletion_origin
+    else:from research.paid_control import verify_deletion_origin
+    with service.store.transaction() as conn:verify_deletion_origin(conn,store=service.store,lease=owner_lease,job_id=job_id)
+    lease_args={'owner_lease':owner_lease} if job.get('origin_version') is not None else {}
     if job["state"] == "completed":
         return json.loads(job["result_json"])
     if job["state"] == "scrubbing":
-        return service.finish_account_deletion_locked(job_id, None)
+        return service.finish_account_deletion_locked(job_id, None,**lease_args)
     if not hmac.compare_digest(job["cleanup_binding"], _account_cleanup_binding(job["owner_email"])):
         raise RuntimeError("account deletion recovery binding mismatch")
-    service.erase_research_locked(job_id)
+    service.erase_research_locked(job_id,**lease_args)
     # Generic legacy compensation remains unchanged. The committed auth fence
     # and research epoch are not registry assets and cannot be restored by it.
-    first,receipt = service.prepare_legacy_deletion_locked(job_id)
+    first,receipt = service.prepare_legacy_deletion_locked(job_id,**lease_args)
     if receipt is None:
         removed = _account_registry().delete_all(job["owner_email"])
-        receipt = service.record_legacy_deletion_locked(job_id, removed, first=first)
+        receipt = service.record_legacy_deletion_locked(job_id, removed, first=first,**lease_args)
     removed = service.legacy_deletion_result(receipt)
-    return service.finish_account_deletion_locked(job_id, removed)
+    return service.finish_account_deletion_locked(job_id, removed,**lease_args)
 
 
 def _account_cleanup_binding(email):
@@ -1104,16 +1132,15 @@ def _account_cleanup_binding(email):
     Persist a digest only; neither paths nor private identity material enter
     an API, ordinary log, or a user-supplied recovery argument.
     """
-    try:
-        from api import favorites, report_account, sso
-    except ModuleNotFoundError:
-        from web.backend.api import favorites, report_account, sso
+    if __package__=='web.backend.api':from . import favorites,report_account,sso
+    else:from api import favorites,report_account,sso
+    ledger = sso.get_replay_store()  # Fail before any other asset getter side effect.
     binding = {
         "auth": str(_store().path.resolve()),
         "favorites": str(favorites._data_file().resolve()),
         "favorites_legacy": str(favorites._legacy_data_file().resolve()),
         "reports": str(report_account._get_store().db_path.resolve()),
-        "sso": str((sso._data_dir() / "sso_replay.sqlite3").resolve()),
+        "sso": str(ledger.path.resolve()),
         "subject": sso._subject_id(email),
         "registry": _account_registry().manifest(),
     }
@@ -1136,8 +1163,8 @@ def resume_account_deletion(job_id: str):
     """
     service = _account_deletion_service()
     job = service.deletion_job(job_id)
-    with service.authorization.owner_gate_id(job["gate_id"]):
-        return _run_account_deletion_locked(service, job_id)
+    with service.authorization.owner_gate_id(job["gate_id"]) as owner_lease:
+        return _run_account_deletion_locked(service, job_id,owner_lease=owner_lease)
 
 
 # --- Test helpers ---

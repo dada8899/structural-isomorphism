@@ -419,8 +419,8 @@ def test_v1_research_migration_keeps_existing_lock_inode_and_problem(lifecycle,m
     ResearchStore(auth._store())
     assert lock.stat().st_ino == inode
     with sqlite3.connect(path) as conn:
-        from research.financial_guard import FINANCIAL_SCHEMA_VERSION
-        assert conn.execute("SELECT version FROM research_schema").fetchone()[0] == FINANCIAL_SCHEMA_VERSION
+        from research.store import CURRENT_RESEARCH_SCHEMA_VERSION
+        assert conn.execute("SELECT version FROM research_schema").fetchone()[0] == CURRENT_RESEARCH_SCHEMA_VERSION
         assert conn.execute("SELECT gate_id FROM research_principals").fetchone()[0] == principal
     assert client.get(f"/api/research/{rid}").status_code == 200
     assert post(client,f"/api/research/{rid}/revisions",{"expected_revision":1,"problem":problem("迁移后新修订")}).status_code == 200

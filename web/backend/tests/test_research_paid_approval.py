@@ -128,17 +128,25 @@ def test_two_concurrent_confirm_calls_create_only_one_task_and_grant(approved_in
         assert conn.execute("SELECT count(*) FROM research_grants WHERE scopes LIKE '%execute_paid%'").fetchone()[0]==1
 
 
-def test_confirmation_failure_rolls_back_whole_paid_creation(approved_inputs):
+def test_confirmation_failure_rolls_back_whole_paid_creation(approved_inputs,monkeypatch):
     client,_,store,_,_,_,_=approved_inputs;service,draft=preview(approved_inputs)
-    with store.transaction(write=True) as conn:
-        conn.execute("CREATE TRIGGER owned_paid_fault BEFORE UPDATE OF state ON research_paid_approvals WHEN NEW.state='confirmed' BEGIN SELECT RAISE(ABORT,'owned confirmation fault'); END")
+    connect=sqlite3.connect;armed=[True];failed=[];retried=[]
+    target="UPDATE research_paid_approvals SET payload_json=?,payload_digest=?,state='confirmed',version=version+1 WHERE id=? AND state='draft'"
+    class Fault(sqlite3.Connection):
+        def execute(self,sql,*args,**kwargs):
+            if sql==target and armed[0]:failed.append(True);raise sqlite3.IntegrityError('owned confirmation fault')
+            result=super().execute(sql,*args,**kwargs)
+            if sql==target:retried.append(True)
+            return result
+    monkeypatch.setattr(sqlite3,'connect',lambda *a,**k:connect(*a,**k) if 'factory' in k else connect(*a,factory=Fault,**k))
     with pytest.raises(sqlite3.IntegrityError):service.confirm(identity(client),draft['preview_ref'],draft['preview_digest'],'retry-key')
+    armed[0]=False
     with store.transaction(write=True) as conn:
         assert conn.execute("SELECT count(*) FROM research_tasks WHERE policy_revision='bounded_usage_upper_v2'").fetchone()[0]==0
         assert conn.execute("SELECT count(*) FROM research_grants WHERE scopes LIKE '%execute_paid%'").fetchone()[0]==0
         assert conn.execute('SELECT state FROM research_paid_approvals').fetchone()[0]=='draft'
-        conn.execute('DROP TRIGGER owned_paid_fault')
     assert service.confirm(identity(client),draft['preview_ref'],draft['preview_digest'],'retry-key')['mode']=='offline_probe'
+    assert failed==[True] and retried==[True]
 
 
 @pytest.mark.parametrize('approved_inputs',[False],indirect=True)

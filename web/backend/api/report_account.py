@@ -9,10 +9,15 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 if __package__ == "web.backend.api":
+    from .history import _history_store, _HISTORY_STORE_LOCK
+else:
+    from api.history import _history_store, _HISTORY_STORE_LOCK
+
+if __package__ == "web.backend.api":
     from ..logging_config import get_logger, new_incident_id
     from .auth import account_owner_transaction
     from .sso import (
-        SsoReplayStore, _data_dir, _subject_id, require_beta_origin,
+        SsoReplayStore, _data_dir, get_replay_store, _subject_id, require_beta_origin,
         resolve_anon_proof, resolve_beta_user, set_anon_proof,
     )
     from ..services.report_store import ReportStore
@@ -20,7 +25,7 @@ else:
     from logging_config import get_logger, new_incident_id
     from api.auth import account_owner_transaction
     from api.sso import (
-        SsoReplayStore, _data_dir, _subject_id, require_beta_origin,
+        SsoReplayStore, _data_dir, get_replay_store, _subject_id, require_beta_origin,
         resolve_anon_proof, resolve_beta_user, set_anon_proof,
     )
     from services.report_store import ReportStore
@@ -99,9 +104,9 @@ def _beta_auth_error(status: str) -> JSONResponse:
 
 def _get_store() -> ReportStore:
     global _store
-    if _store is None:
-        _store = ReportStore(Path(__file__).parent.parent / "data" / "history.db")
-    return _store
+    with _HISTORY_STORE_LOCK:
+        _store = _history_store(_store, ReportStore, Path(__file__).parent.parent / "data/history.db")
+        return _store
 
 
 def _revalidate_beta_owner(
@@ -119,9 +124,10 @@ def _revalidate_beta_owner(
 
 
 def export_account_reports(email: str) -> dict:
+    store = _get_store()
     subject = _subject_id(email)
-    ledger = SsoReplayStore(_data_dir() / "sso_replay.sqlite3")
-    snapshot = _get_store().export_by_owner(subject)
+    ledger = get_replay_store()
+    snapshot = store.export_by_owner(subject)
     snapshot["sso_revoked_at"] = ledger.subject_revoked_at(subject)
     snapshot["sso_identity_binding"] = ledger.export_subject_binding(subject)
     snapshot["sso_exchange_events"] = [
@@ -137,9 +143,10 @@ def export_account_reports(email: str) -> dict:
 
 def snapshot_account_reports(email: str) -> dict:
     """Private compensation state, including opaque SSO exchange rows."""
+    store = _get_store()
     subject = _subject_id(email)
-    ledger = SsoReplayStore(_data_dir() / "sso_replay.sqlite3")
-    snapshot = _get_store().export_by_owner(subject)
+    ledger = get_replay_store()
+    snapshot = store.export_by_owner(subject)
     snapshot["sso_revoked_at"] = ledger.subject_revoked_at(subject)
     snapshot["sso_identity_binding"] = ledger.export_subject_binding(subject)
     snapshot["sso_issued_codes"] = ledger.export_issued_for_subject(subject)
@@ -147,19 +154,20 @@ def snapshot_account_reports(email: str) -> dict:
 
 
 def delete_account_reports(email: str) -> dict:
+    store = _get_store()
     subject = _subject_id(email)
-    ledger = SsoReplayStore(_data_dir() / "sso_replay.sqlite3")
+    ledger = get_replay_store()
     previous = ledger.subject_revoked_at(subject)
-    revoked_at = ledger.revoke_subject(subject)
-    report_snapshot = _get_store().export_by_owner(subject)
+    report_snapshot = store.export_by_owner(subject)
     binding_snapshot = ledger.export_subject_binding(subject)
     issued_snapshot = ledger.export_issued_for_subject(subject)
+    revoked_at = ledger.revoke_subject(subject)
     try:
-        removed = _get_store().delete_by_owner(subject)
+        removed = store.delete_by_owner(subject)
         ledger.delete_subject_binding(subject)
         issued_removed = ledger.delete_issued_for_subject(subject)
     except Exception:
-        _get_store().restore_owner_snapshot(report_snapshot)
+        store.restore_owner_snapshot(report_snapshot)
         ledger.restore_subject_revocation(subject, previous, revoked_at)
         ledger.restore_subject_binding(subject, binding_snapshot)
         ledger.restore_issued(issued_snapshot)
@@ -173,20 +181,21 @@ def delete_account_reports(email: str) -> dict:
 
 def restore_account_reports(email: str, snapshot: dict, removed: object = None) -> None:
     subject = _subject_id(email)
+    ledger = get_replay_store()
     _get_store().restore_owner_snapshot(snapshot)
     applied = removed.get("beta_sessions_revoked_at") if isinstance(removed, dict) else None
     if applied is not None:
-        SsoReplayStore(_data_dir() / "sso_replay.sqlite3").restore_subject_revocation(
+        ledger.restore_subject_revocation(
             subject, snapshot.get("sso_revoked_at"), applied,
         )
     binding = snapshot.get("sso_identity_binding")
     if isinstance(binding, dict):
-        SsoReplayStore(_data_dir() / "sso_replay.sqlite3").restore_subject_binding(
+        ledger.restore_subject_binding(
             subject, binding,
         )
     codes = snapshot.get("sso_issued_codes")
     if isinstance(codes, list):
-        SsoReplayStore(_data_dir() / "sso_replay.sqlite3").restore_issued(codes)
+        ledger.restore_issued(codes)
 
 
 @router.post(

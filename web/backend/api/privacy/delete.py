@@ -76,7 +76,11 @@ def _audit_file() -> Path:
 
 def _history_db() -> Path:
     """history.db holds the structural_fingerprints table (G connections)."""
-    return _data_dir() / "history.db"
+    if __package__ == "web.backend.api.privacy":
+        from ..history import _existing_history_path
+    else:
+        from api.history import _existing_history_path
+    return _existing_history_path(_data_dir() / "history.db")
 
 
 def _delete_fingerprints(email: str) -> int:
@@ -87,7 +91,7 @@ def _delete_fingerprints(email: str) -> int:
     DSAR delete scope. Returns rows removed; 0 if the DB doesn't exist yet.
     """
     db = _history_db()
-    if not db.exists():
+    if not _is_prod() and not db.exists():
         return 0
     from services.connections_store import ConnectionsStore
 
@@ -102,7 +106,7 @@ def _delete_p3(email: str) -> dict:
     Returns per-table row counts; all zeros if DB doesn't exist yet.
     """
     db = _history_db()
-    if not db.exists():
+    if not _is_prod() and not db.exists():
         return {
             "match_requests": 0,
             "referrals": 0,
