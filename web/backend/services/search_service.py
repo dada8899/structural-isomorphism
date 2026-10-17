@@ -185,6 +185,24 @@ class SearchService:
     formal = False
 
     def __init__(
+        self, data_dir=None, kb_file="kb-expanded.jsonl", model_path=None,
+        precomputed_embeddings=None, struct_file=None, formal=False, artifact_manifest=None,
+    ):
+        self._formal_snapshot = None
+        try:
+            self._initialize(data_dir, kb_file, model_path, precomputed_embeddings,
+                             struct_file, formal, artifact_manifest)
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self):
+        snapshot = getattr(self, "_formal_snapshot", None)
+        if snapshot is not None:
+            self._formal_snapshot = None
+            snapshot.close()
+
+    def _initialize(
         self,
         data_dir: Optional[str] = None,
         kb_file: str = "kb-expanded.jsonl",
@@ -199,7 +217,7 @@ class SearchService:
         self.formal = formal
         self.artifact = None
         if formal:
-            from .artifact_manifest import validate_artifact_bundle
+            from .artifact_manifest import open_formal_artifact_bundle
 
             try:
                 if _JIEBA is None or struct_file is not None:
@@ -209,13 +227,11 @@ class SearchService:
                     raise ValueError("explicit absolute artifact paths required")
                 if not isinstance(kb_file, str) or Path(kb_file).name != kb_file or kb_file in (".", ".."):
                     raise ValueError("knowledge base filename required")
-                data_dir, model_path, precomputed_embeddings, artifact_manifest = (
-                    str(Path(value).resolve(strict=True)) for value in paths
-                )
-                self.artifact = validate_artifact_bundle(
+                self._formal_snapshot = open_formal_artifact_bundle(
                     artifact_manifest, kb_path=Path(data_dir) / kb_file,
-                    embeddings_path=precomputed_embeddings, model_path=model_path, formal=True,
+                    embeddings_path=precomputed_embeddings, model_path=model_path,
                 )
+                self.artifact = dict(self._formal_snapshot.metadata)
             except Exception:
                 raise RuntimeError("formal search artifacts or dependencies are unavailable") from None
         self.data_dir = Path(data_dir) if data_dir else None
@@ -235,19 +251,13 @@ class SearchService:
         # Load precomputed or encode fresh embeddings
         self._embeddings = None
         if formal:
-            try:
-                self._embeddings = np.load(precomputed_embeddings, allow_pickle=False)
-                if (
-                    self._embeddings.ndim != 2
-                    or list(self._embeddings.shape) != self.artifact["embedding_shape"]
-                    or self._embeddings.shape[0] != len(self.kb)
-                    or str(self._embeddings.dtype) != self.artifact["embedding_dtype"]
-                    or not np.isfinite(self._embeddings).all()
-                ):
-                    raise ValueError("formal embeddings changed after validation")
-            except Exception:
-                raise RuntimeError("formal precomputed embeddings are unavailable") from None
-            self.model = load_model(model_path=model_path, device="cpu", formal=True)
+            self._embeddings = self._formal_snapshot.embeddings
+            self._formal_snapshot.check_model()
+            self.model = load_model(
+                model_path=self._formal_snapshot.model_path, device="cpu", formal=True,
+                directory_fd=self._formal_snapshot.model_fd,
+            )
+            self._formal_snapshot.check_model()
             try:
                 dimension = self.model.get_sentence_embedding_dimension()
                 if (isinstance(dimension, bool) or not isinstance(dimension, (int, np.integer))
@@ -366,6 +376,13 @@ class SearchService:
                 )
 
     def _load_kb(self):
+        if self.formal:
+            # Parse/verify happens once in the bundle reader. Never reopen the
+            # source KB after the hash check, even if its pathname is replaced.
+            self.kb = self._formal_snapshot.rows
+            self.kb_by_id = {row["id"]: row for row in self.kb}
+            self.idx_by_id = {row["id"]: index for index, row in enumerate(self.kb)}
+            return
         if not self.data_dir:
             if self.formal:
                 raise RuntimeError("formal knowledge base directory is missing")

@@ -6,7 +6,7 @@ import sys
 
 import pytest
 
-from tests.test_formal_search_profile import make_bundle, encoder
+from tests.test_formal_search_profile import make_bundle, encoder, synthetic_readonly_mount
 
 
 @pytest.fixture
@@ -69,3 +69,47 @@ def test_production_lifespan_failure_does_not_leave_stale_ready(startup, encoder
     assert "search" not in module.app_state and "artifact" not in module.app_state
     assert len(encoder[0]) == (1 if fault in ("load-failure", "bm25") else 0)
     assert asyncio.run(module.health(deep=1)).status_code == 503
+
+
+@pytest.mark.parametrize('abort', [False, True])
+def test_lifespan_closes_model_and_payload_fds_and_clears_ready(startup, encoder, abort):
+    import os
+    module, _files = startup
+    descriptors = []
+    async def run():
+        async with module.lifespan(module.app):
+            snapshot = module.app_state['search']._formal_snapshot
+            descriptors.extend([snapshot.root_fd, snapshot.model_fd])
+            for fd in descriptors:os.fstat(fd)
+            if abort:raise ValueError('synthetic application failure')
+    if abort:
+        with pytest.raises(ValueError):asyncio.run(run())
+    else:
+        asyncio.run(run())
+    assert 'search' not in module.app_state and 'artifact' not in module.app_state
+    for fd in descriptors:
+        with pytest.raises(OSError):os.fstat(fd)
+    assert asyncio.run(module.health(deep=1)).status_code == 503
+
+
+def test_lifespan_weight_change_after_validation_never_sets_ready(startup, encoder, monkeypatch):
+    from services import artifact_manifest
+    module, files = startup
+    original = artifact_manifest.open_formal_artifact_bundle
+    saved = []
+    def changed(*a, **k):
+        snapshot = original(*a, **k)
+        saved.extend([snapshot.root_fd, snapshot.model_fd])
+        weight = Path(files['model_path']) / 'model.safetensors'
+        weight.write_bytes(b'X' * weight.stat().st_size)
+        return snapshot
+    monkeypatch.setattr(artifact_manifest, 'open_formal_artifact_bundle', changed)
+    async def run():
+        async with module.lifespan(module.app):raise AssertionError('must not become ready')
+    with pytest.raises(RuntimeError):asyncio.run(run())
+    assert 'search' not in module.app_state and 'artifact' not in module.app_state
+    assert encoder[0] == []
+    assert asyncio.run(module.health(deep=1)).status_code == 503
+    import os
+    for fd in saved:
+        with pytest.raises(OSError):os.fstat(fd)

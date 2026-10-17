@@ -203,16 +203,21 @@ async def lifespan(app: FastAPI):
         precomputed_embeddings=precomputed,
         **({"formal": True, "artifact_manifest": manifest_path} if _IS_PROD else {}),
     )
-    if _IS_PROD and search_service.kb_size == 0:
-        raise RuntimeError("production search service loaded an empty knowledge base")
-    if _IS_PROD:
-        app_state["artifact"] = search_service.artifact
-    app_state["search"] = search_service
-    logger.info("startup.search_ready", kb_count=search_service.kb_size)
+    try:
+        if _IS_PROD and search_service.kb_size == 0:
+            raise RuntimeError("production search service loaded an empty knowledge base")
+        if _IS_PROD:
+            app_state["artifact"] = search_service.artifact
+        app_state["search"] = search_service
+        logger.info("startup.search_ready", kb_count=search_service.kb_size)
 
-    yield
-
-    logger.info("shutdown.begin")
+        yield
+    finally:
+        if _IS_PROD:
+            app_state.pop("search", None)
+            app_state.pop("artifact", None)
+            search_service.close()
+        logger.info("shutdown.begin")
 
 
 app = FastAPI(

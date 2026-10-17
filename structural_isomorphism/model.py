@@ -3,6 +3,8 @@ Model loading and encoding utilities.
 """
 
 import logging
+import os
+import stat
 from pathlib import Path
 from typing import List, Union, Optional
 
@@ -21,6 +23,7 @@ def load_model(
     device: Optional[str] = None,
     *,
     formal: bool = False,
+    directory_fd: Optional[int] = None,
 ):
     """
     Load a SentenceTransformer model for structural encoding.
@@ -35,6 +38,7 @@ def load_model(
         model_path: Explicit path or HuggingFace model ID.
         device: Device to load model on ('cpu', 'cuda', 'mps'). Auto-detected if None.
         formal: Application-only local CPU mode; caller validates its manifest.
+        directory_fd: Caller-owned read-only directory anchor, required in formal mode.
 
     Returns:
         SentenceTransformer model instance.
@@ -47,12 +51,15 @@ def load_model(
         if device not in (None, "cpu") or not isinstance(model_path, (str, Path)):
             raise RuntimeError("formal model requires an explicit local CPU directory")
         try:
-            directory = Path(model_path)
-            if not directory.is_absolute():
-                raise ValueError("absolute local directory required")
-            directory = directory.resolve(strict=True)
-            if not directory.is_dir():
-                raise ValueError("local model directory required")
+            # Formal loading has no path-only shortcut: the application must
+            # supply its already validated, read-only model directory FD.
+            if (type(directory_fd) is not int or directory_fd < 0
+                    or str(model_path) != f"/proc/self/fd/{directory_fd}"
+                    or not stat.S_ISDIR(os.fstat(directory_fd).st_mode)
+                    or not os.fstatvfs(directory_fd).f_flag & os.ST_RDONLY):
+                raise ValueError("read-only model directory anchor required")
+            # Resolving this proc path would discard the directory anchor.
+            directory = str(model_path)
         except (OSError, ValueError, RuntimeError):
             raise RuntimeError("formal model directory is unavailable") from None
         try:
@@ -66,6 +73,8 @@ def load_model(
             # Do not expose loader excerpts/paths or try another model.
             raise RuntimeError("formal local CPU model could not be loaded") from None
 
+    if directory_fd is not None:
+        raise ValueError("directory_fd requires formal mode")
     from sentence_transformers import SentenceTransformer
 
     candidates = []
