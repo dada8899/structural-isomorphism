@@ -405,14 +405,15 @@ def child_command(private,operation,worker=''):
     return [sys.executable,'-B','-c',_AUTH_CHILD,str(root/'web/backend'),str(root),str(private.parent),operation,worker]
 
 
-def child_env():
-    return {'PATH':'/usr/bin:/bin:/opt/homebrew/bin','HOME':os.environ.get('TMPDIR','/private/tmp'),
-            'TMPDIR':os.environ.get('TMPDIR','/private/tmp'),'PYTHONDONTWRITEBYTECODE':'1','PYTEST_DISABLE_PLUGIN_AUTOLOAD':'1'}
+def child_env(private):
+    owned=str(private.parent.resolve())
+    return {'PATH':'/usr/bin:/bin:/opt/homebrew/bin','HOME':owned,
+            'TMPDIR':owned,'PYTHONDONTWRITEBYTECODE':'1','PYTEST_DISABLE_PLUGIN_AUTOLOAD':'1'}
 
 
 def auth_peer(private,operation):
     import subprocess
-    result=subprocess.run(child_command(private,operation),env=child_env(),capture_output=True,text=True,timeout=10)
+    result=subprocess.run(child_command(private,operation),env=child_env(private),capture_output=True,text=True,timeout=10)
     assert result.returncode==0,result.stderr
     return json.loads(next(line.split(':',1)[1] for line in result.stdout.splitlines() if line.startswith('AUTH_RESULT:')))
 
@@ -435,12 +436,23 @@ def test_native_auth_wal_ordinary_peer_close_preserves_two_process_commits(priva
     assert auth_peer(private,'read')['users']==['child@example.invalid','parent@example.invalid']
 
 
+@pytest.mark.parametrize('inherited_tmpdir',[None,'unrelated'])
+def test_child_environment_uses_fixture_root_without_inherited_tmpdir(private,tmp_path,monkeypatch,inherited_tmpdir):
+    if inherited_tmpdir is None:monkeypatch.delenv('TMPDIR',raising=False)
+    else:
+        other=tmp_path/'unrelated-temp';other.mkdir(mode=0o700)
+        monkeypatch.setenv('TMPDIR',str(other))
+    env=child_env(private)
+    assert env['TMPDIR']==env['HOME']==str(private.parent.resolve())
+    assert auth_peer(private,'read')['users']==[]
+
+
 def test_existing_audit_real_multi_process_complete_records(private):
     import subprocess
     children=[]
     try:
         for name in ('one','two','three'):
-            children.append(subprocess.Popen(child_command(private,'audit',name),env=child_env(),
+            children.append(subprocess.Popen(child_command(private,'audit',name),env=child_env(private),
                                                stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True))
         for child in children:
             stdout,stderr=child.communicate(timeout=10)
