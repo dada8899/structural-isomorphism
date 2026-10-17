@@ -2,6 +2,7 @@
 from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
 import importlib
+import hashlib
 import json
 from pathlib import Path
 import sqlite3
@@ -34,12 +35,15 @@ def completed_peer(cls, auth, version, monkeypatch):
     # Stop only at a real historical migration boundary. All preceding SQL,
     # native connections, policy checks and connection hooks execute normally.
     with monkeypatch.context() as profile:
+        if version == 6:profile.setattr(cls, '_migrate_v7', lambda self: None)
         if version == 7:profile.setattr(cls, '_migrate_v8', lambda self: None)
         if version == 8:profile.setattr(cls, '_migrate_v9', lambda self: None)
         store = cls(auth)
     with store.transaction() as conn:
         assert conn.execute('SELECT version FROM research_schema').fetchone()[0] == version
-        if version == 7:
+        if version == 6:
+            store._check_v6_inherited(conn);store._check_v7_attachments(conn)
+        elif version == 7:
             store._check_v7(conn);store._check_v7_attachments(conn)
         elif version == 8:
             store._check_v8(conn);store._check_v7_attachments(conn)
@@ -87,7 +91,7 @@ def thread_race(cls, auth, peer, monkeypatch):
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-@pytest.mark.parametrize('version', [9, 7, 8])
+@pytest.mark.parametrize('version', [9, 7, 8, 6])
 def test_stale_empty_read_accepts_only_completed_peer_and_finishes_upgrade(tmp_path, monkeypatch, record_property, namespace, version):
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
     cls = importlib.import_module(namespace).ResearchStore
@@ -243,28 +247,51 @@ def test_completed_peer_still_requires_policy_and_fk_data_even_on_fk_off_migrati
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-@pytest.mark.parametrize('version', [7, 8, 9])
+@pytest.mark.parametrize('version', [6, 7, 8, 9])
 @pytest.mark.parametrize('fault', ['half', 'unknown-aux', 'unknown-version', 'missing-marker'])
 def test_stale_empty_read_never_repairs_or_accepts_bad_peer(tmp_path, monkeypatch, namespace, version, fault):
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
     module = importlib.import_module(namespace);cls = module.ResearchStore
     path = tmp_path/'auth.sqlite3';auth = auth_for(namespace, path)
-    before = []
+    before = [];images = []
 
     def peer():
         store = completed_peer(cls, auth, version, monkeypatch)
         with store.transaction(write=True) as conn:
             if fault == 'half':
-                name = module.V7_GUARDS[0].split()[2] if version == 7 else module.V8_JOB_GUARDS[0].split()[2] if version == 8 else 'research_method_birth'
-                conn.execute('DROP TRIGGER '+name)
+                if version == 6:conn.execute('DROP TABLE research_idempotency')
+                else:
+                    name = module.V7_GUARDS[0].split()[2] if version == 7 else module.V8_JOB_GUARDS[0].split()[2] if version == 8 else 'research_method_birth'
+                    conn.execute('DROP TRIGGER '+name)
             elif fault == 'unknown-aux':conn.execute('CREATE INDEX injected_aux ON research_tasks(phase)')
             elif fault == 'unknown-version':conn.execute('UPDATE research_schema SET version=10')
             else:conn.execute('DROP TABLE research_schema')
         before.extend(catalog(path))
+        images.append(hashlib.sha256(path.read_bytes()).hexdigest())
 
     result = thread_race(cls, auth, peer, monkeypatch)
     assert isinstance(result, module.ResearchError) and result.code == 'SCHEMA_UNSUPPORTED', repr(result)
     assert catalog(path) == before
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == images[0]
+
+
+@pytest.mark.parametrize('namespace', NAMESPACES)
+def test_late_ordinary_sqlite_v6_marker_without_graph_never_installs_missing_tables(tmp_path, monkeypatch, namespace):
+    monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
+    module = importlib.import_module(namespace);cls = module.ResearchStore
+    path = tmp_path/'auth.sqlite3';auth = auth_for(namespace, path);before = [];images = []
+
+    def peer():
+        conn = sqlite3.connect(path)
+        try:
+            conn.execute(module.SCHEMA[0]);conn.execute('INSERT INTO research_schema VALUES(1,6)');conn.commit()
+        finally:conn.close()
+        before.extend(catalog(path));images.append(hashlib.sha256(path.read_bytes()).hexdigest())
+
+    result = thread_race(cls, auth, peer, monkeypatch)
+    assert isinstance(result, module.ResearchError) and result.code == 'SCHEMA_UNSUPPORTED', repr(result)
+    assert catalog(path) == before
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == images[0]
 
 
 # A canonical production import in the fresh interpreter avoids importing a

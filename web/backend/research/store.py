@@ -446,9 +446,14 @@ class ResearchStore:
                 elif current and current[0]==FINANCIAL_SCHEMA_VERSION:
                     self._check_v7(conn);self._check_v7_attachments(conn)
                     completed_v7=True
+                elif current and current[0]==PRODUCER_SCHEMA_VERSION:
+                    self._check_v6_inherited(conn);self._check_v7_attachments(conn)
+                    if conn.execute('PRAGMA foreign_key_check').fetchall():
+                        raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究旧库关联不匹配。')
+                    completed_v6=True
                 elif current is None or financial_exists:
                     raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融结构与版本标记不匹配。')
-            if not (completed_v7 or completed_v8):
+            if not (completed_v6 or completed_v7 or completed_v8):
                 conn.execute(SCHEMA[0])
                 row = conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()
                 if row is not None and row["version"] not in (1, 2, 3, 4, 5, 6):
@@ -474,6 +479,11 @@ class ResearchStore:
                 conn.execute("INSERT INTO research_schema VALUES(1,3) ON CONFLICT(id) DO NOTHING")
         # Resume only after releasing the initialization write transaction;
         # each original migration obtains and validates its own transaction.
+        if completed_v6:
+            self._migrate_v7()
+            self._migrate_v8_if_ready()
+            self._migrate_v9_if_ready()
+            return
         if completed_v7:
             self._migrate_v8()
             self._migrate_v9_if_ready()
