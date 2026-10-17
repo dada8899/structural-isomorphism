@@ -113,7 +113,8 @@ def test_actual_minimal_bbox_values_units_period_and_offsets():
     assert "- 9 -" in text and "-9-" not in text and not text.endswith("\n")
     for fact in result["facts"]:
         where=fact["locator"]
-        assert where["page_index"]==9 and where["printed_page_label"]=="-9-"
+        assert where["page_index"]==9 and where["printed_page_label"]=="- 9 -"
+        assert where["printed_page_label"]==where["page_footer"]["quote"]
         for key in ("table_heading","unit_heading","period_heading","row_label","period_column","comparison_column","page_footer","value_cell"):
             assert_span(text,where[key])
     where=result["facts"][0]["locator"]
