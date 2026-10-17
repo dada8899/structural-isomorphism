@@ -33,6 +33,7 @@ import time
 import urllib.error
 import urllib.request
 from urllib.parse import parse_qs,urlsplit
+from typing import Literal
 
 ROOT=Path(__file__).resolve().parents[4]
 for source in (ROOT,ROOT/'web/backend'):
@@ -279,7 +280,9 @@ class FixtureClient:
 
 class PlanBrowserFixture(AbstractContextManager):
     """Same-process real registered controller, sealed resources and worker."""
-    def __init__(self,*,approved_cap_units=41_000_000,risk_margin_units=1_000_000):
+    def __init__(self,*,approved_cap_units=41_000_000,risk_margin_units=1_000_000,transport:Literal['core','runtime']='core'):
+        if type(transport) is not str or transport not in ('core','runtime'):raise ValueError('fixed controlled transport required')
+        self.transport=transport
         self.approved_cap_units=approved_cap_units;self.risk_margin_units=risk_margin_units
         self.temp=None;self.root=None;self.provider=None;self.provider_thread=None;self.server=None;self.server_thread=None;self.app_socket=None
         self.worker=None;self.stop=threading.Event();self.mail=[];self.mail_lock=threading.Lock();self.calls=[];self.worker_failures=[]
@@ -375,8 +378,13 @@ class PlanBrowserFixture(AbstractContextManager):
             # Retain each born object before the next operation can fail.
             self.provider=ThreadingHTTPServer(('127.0.0.1',0),Handler);self.provider_thread=None
             self.provider_thread=threading.Thread(target=self.provider.serve_forever,name='controlled-plan-provider');self.provider_thread.start()
-            authority=native.create_controlled_fixture_authority(self.store,self.identity,self.provider,approved_cap_units=self.approved_cap_units,risk_margin_units=self.risk_margin_units)
-            provision=native.issue_native_provision(self.store,authority);permit=native.mint_runtime_permit(provision);resource=native.open_controlled_fixture_resource(permit)
+            # A fixed trusted-controller choice only. Both implementations
+            # remain controlled_fixture; absent/mismatched Runtime never falls
+            # back to Core or changes native_live/funding authority.
+            issuer=native.create_controlled_runtime_fixture_authority if self.transport=='runtime' else native.create_controlled_fixture_authority
+            opener=native.open_plan_resource if self.transport=='runtime' else native.open_controlled_fixture_resource
+            authority=issuer(self.store,self.identity,self.provider,approved_cap_units=self.approved_cap_units,risk_margin_units=self.risk_margin_units)
+            provision=native.issue_native_provision(self.store,authority);permit=native.mint_runtime_permit(provision);resource=opener(permit)
             native.install_native_funding(self.store,provision,resource);self.resource=resource;self.installed=True
             self.worker=threading.Thread(target=self._work,name='controlled-plan-worker');self.worker.start()
         except BaseException as primary:
@@ -417,7 +425,10 @@ class PlanBrowserFixture(AbstractContextManager):
         while time.monotonic()<deadline:
             status,body=self.client.request('GET','/api/research/'+rid+'/plan-results/'+ref)
             if status!=200:raise RuntimeError('actual fixture result read failed')
-            if body['data']['state'] not in ('queued','generating'):return body
+            # Consumed is conservatively pending_reconciliation while the
+            # same worker still owns its response; poll only this original ref
+            # until its cleanup audit is committed. Never rerun the worker.
+            if body['data']['state'] not in ('queued','generating') and body['data']['cleanup_state']!='pending':return body
             if self.worker_failures:raise RuntimeError('fixture worker failed: '+','.join(self.worker_failures))
             time.sleep(.03)
         raise TimeoutError('bounded fixture worker result deadline')
