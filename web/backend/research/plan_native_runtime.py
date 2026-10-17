@@ -267,6 +267,11 @@ def run_once(store,task_id):
             ports.retire_attempts(resource)
     finally:
         errors=ports.retire_attempts(send,pending,owned,balance,balance_cap)
+        # The resource may own IO that failed before a balance/pending object
+        # could be handed to Core. This hook never releases funding or flight.
+        try:
+            if resource.retire_unhanded() is not None:raise ResearchError('CLEANUP_UNCERTAIN',503,'原生清场回执不符合约定，需核对原记录。')
+        except BaseException as cleanup_error:errors+=(type(cleanup_error).__name__,)
         if errors:errors+=ports.retire_attempts(resource)
         errors+=ports.retire_attempts(flight=resource.flight)
         try:_cleanup(store,pid,dispatch,errors)
