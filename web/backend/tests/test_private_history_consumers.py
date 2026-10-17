@@ -53,6 +53,21 @@ def private(tmp_path, monkeypatch):
 
 
 @pytest.fixture
+def preprovisioned_sso(private, monkeypatch):
+    """Only positive consumers prepare a real ledger before formal access."""
+    import stat
+    from services.sso_store import SsoReplayStore
+    path = private.parent / 'sso_replay.sqlite3'
+    with monkeypatch.context() as setup:
+        setup.setenv('STRUCTURAL_ENV', 'dev')
+        SsoReplayStore(path)
+        path.chmod(0o600)
+    info = path.stat()
+    assert stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
+    assert stat.S_IMODE(info.st_mode) == 0o600 and info.st_nlink == 1
+
+
+@pytest.fixture
 def native(monkeypatch):
     actual = sqlite3.connect
     class NativeCalls(list):
@@ -214,6 +229,7 @@ def test_history_profile_and_dev_override_switches_do_not_reuse_wrong_store(priv
     assert again is not legacy and again.db_path == private and again._formal_history
 
 
+@pytest.mark.usefixtures("preprovisioned_sso")
 def test_report_account_existing_snapshot_delete_restore_use_same_real_history(private, native):
     email='fixture@example.invalid';owner=report_account._subject_id(email)
     store=report._get_store()
@@ -238,6 +254,7 @@ def test_bad_history_path_rejects_before_real_sso_ledger_creation(private, nativ
     assert native == []
 
 
+@pytest.mark.usefixtures("preprovisioned_sso")
 def test_bad_history_path_never_revokes_preexisting_sso_subject(private, native, monkeypatch):
     from services.sso_store import SsoReplayStore
     email='fixture@example.invalid';owner=report_account._subject_id(email)
@@ -250,6 +267,7 @@ def test_bad_history_path_never_revokes_preexisting_sso_subject(private, native,
     assert ledger.export_issued_for_subject(owner)==before
 
 
+@pytest.mark.usefixtures("preprovisioned_sso")
 def test_real_report_delete_failure_rolls_back_and_compensates_existing_snapshot(private, native, monkeypatch):
     email='fixture@example.invalid';owner=report_account._subject_id(email)
     store=report_account._get_store()

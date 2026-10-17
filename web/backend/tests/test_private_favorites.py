@@ -570,7 +570,8 @@ def child_env(state):
         'STRUCTURAL_PRIVACY_HMAC_KEY', 'STRUCTURAL_SHARE_TOKEN_SECRET', 'SMTP_HOST', 'SMTP_PORT',
         'SMTP_FROM_EMAIL', 'ADMIN_NOTIFICATION_EMAIL', 'AUTH_TRUSTED_PROXY_IPS')
     result = {key: os.environ[key] for key in keys}
-    result.update(PATH='/usr/bin:/bin:/opt/homebrew/bin', HOME=os.environ['TMPDIR'], TMPDIR=os.environ['TMPDIR'],
+    owned = str(state.parent.resolve())
+    result.update(PATH='/usr/bin:/bin:/opt/homebrew/bin', HOME=owned, TMPDIR=owned,
         PYTHONDONTWRITEBYTECODE='1', STRUCTURAL_ENV='prod', AUTH_DATA_DIR=str(state),
         STRUCTURAL_SSO_DATA_DIR=str(state), STRUCTURAL_HISTORY_DB=str(state / 'history.db'))
     return result

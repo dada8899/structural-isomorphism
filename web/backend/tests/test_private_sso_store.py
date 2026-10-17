@@ -322,14 +322,15 @@ def peer_command(private,operation):
     return [sys.executable,'-B','-c',_SSO_CHILD,str(root/'web/backend'),str(root),str(private.parent),operation]
 
 
-def peer_env():
-    return {'PATH':'/usr/bin:/bin:/opt/homebrew/bin','HOME':os.environ.get('TMPDIR','/private/tmp'),
-        'TMPDIR':os.environ.get('TMPDIR','/private/tmp'),'PYTHONDONTWRITEBYTECODE':'1','PYTEST_DISABLE_PLUGIN_AUTOLOAD':'1'}
+def peer_env(private):
+    owned = str(private.parent.parent.resolve())
+    return {'PATH':'/usr/bin:/bin:/opt/homebrew/bin','HOME':owned,
+        'TMPDIR':owned,'PYTHONDONTWRITEBYTECODE':'1','PYTEST_DISABLE_PLUGIN_AUTOLOAD':'1'}
 
 
 def peer(private,operation):
     import subprocess
-    result=subprocess.run(peer_command(private,operation),env=peer_env(),text=True,capture_output=True,timeout=10)
+    result=subprocess.run(peer_command(private,operation),env=peer_env(private),text=True,capture_output=True,timeout=10)
     assert result.returncode==0,result.stderr
     return json.loads(next(line.split(':',1)[1] for line in result.stdout.splitlines() if line.startswith('SSO_RESULT:')))
 
@@ -338,7 +339,7 @@ def test_real_two_processes_consume_same_code_exactly_once(private):
     import subprocess
     children=[];outcomes=[]
     try:
-        for _ in range(2):children.append(subprocess.Popen(peer_command(private,'consume'),env=peer_env(),text=True,
+        for _ in range(2):children.append(subprocess.Popen(peer_command(private,'consume'),env=peer_env(private),text=True,
                                                            stdout=subprocess.PIPE,stderr=subprocess.PIPE))
         for child in children:
             stdout,stderr=child.communicate(timeout=10)

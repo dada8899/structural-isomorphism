@@ -425,8 +425,9 @@ def _wal_peer(private, operation):
     import subprocess
     import sys
     backend = str(Path(__file__).resolve().parents[1])
-    environment = {'PATH': '/usr/bin:/bin:/opt/homebrew/bin', 'HOME': os.environ['TMPDIR'],
-                   'TMPDIR': os.environ['TMPDIR'], 'PYTHONDONTWRITEBYTECODE': '1',
+    owned = str(private.parent.parent.resolve())
+    environment = {'PATH': '/usr/bin:/bin:/opt/homebrew/bin', 'HOME': owned,
+                   'TMPDIR': owned, 'PYTHONDONTWRITEBYTECODE': '1',
                    'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1', 'AUTH_ENABLED': 'false'}
     result = subprocess.run([sys.executable, '-B', '-c', _WAL_CHILD, backend, str(private), operation],
                             env=environment, capture_output=True, text=True, timeout=10)
@@ -579,8 +580,9 @@ def test_two_real_processes_exclusive_create_one_winner_no_existing_file_open(pr
     import subprocess
     import sys
     backend = str(Path(__file__).resolve().parents[1])
-    env = {'PATH': '/usr/bin:/bin:/opt/homebrew/bin', 'HOME': os.environ['TMPDIR'],
-           'TMPDIR': os.environ['TMPDIR'], 'PYTHONDONTWRITEBYTECODE': '1',
+    owned = str(private.parent.parent.resolve())
+    env = {'PATH': '/usr/bin:/bin:/opt/homebrew/bin', 'HOME': owned,
+           'TMPDIR': owned, 'PYTHONDONTWRITEBYTECODE': '1',
            'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1', 'AUTH_ENABLED': 'false'}
     children = []
     outcomes = []
