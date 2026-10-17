@@ -13,7 +13,7 @@ from .authorization import AuthorizationGate,AccountIdentity
 from .errors import ResearchError
 from .provider_schemas import canonical,digest,strict_json
 from . import plan_native_financial as financial
-from .plan_transport import _connect,_send_remaining,_receive
+from .plan_transport import _ready,_send_remaining,_receive
 
 CREDENTIAL_REF='structural-deepseek-api-key'
 _FACTORY=object()
@@ -185,7 +185,7 @@ class OwnedNativeReturn(_Sealed):
 
 
 class ControlledNativeResource(_Sealed):
-    __slots__=('permit','mode','producer','economic_binding','credential_incarnation','flight','pid','reference','active','port','credential_instance')
+    __slots__=('permit','mode','producer','economic_binding','credential_incarnation','flight','pid','reference','active','port','credential_instance','_io','_cleanup_faults')
     def __init__(self,permit,*,_factory=None):
         import threading
         if _factory is not _FACTORY:raise TypeError('fixed controlled resource factory required')
@@ -194,10 +194,54 @@ class ControlledNativeResource(_Sealed):
         self.permit,self.mode,self.producer=permit,'controlled_fixture','core-controlled-native-v1'
         self.economic_binding,self.credential_incarnation=data['economic_binding'],data['credential_incarnation']
         self.flight,self.pid,self.reference,self.active=threading.Lock(),os.getpid(),_uid(),True
-        self.port=permit.provision.authority.server.socket.getsockname()[1];self.credential_instance=None;_RESOURCES[self.reference]=self
+        self.port=permit.provision.authority.server.socket.getsockname()[1];self.credential_instance=None;self._io={};self._cleanup_faults=[];_RESOURCES[self.reference]=self
     def require(self,*,current=True):
         if not self.active or self.pid!=os.getpid() or _RESOURCES.get(self.reference) is not self:raise PermissionError('controlled native resource retired')
         self.permit.require(current=current)
+    def _open(self):
+        # Track the actual socket immediately after allocation, before fstat,
+        # nonblocking configuration or connect can raise without a handoff.
+        self.require();deadline=time.monotonic()+2
+        conn=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        record={'pid':os.getpid(),'identity':None,'holder':None,'fault':False}
+        self._io[conn]=record
+        try:
+            record['identity']=_fd_identity(conn.fileno())[:2]
+            conn.setblocking(False);conn.connect_ex(('127.0.0.1',self.port));_ready(conn,deadline)
+            if conn.getsockopt(socket.SOL_SOCKET,socket.SO_ERROR):raise OSError('controlled fixture connection unavailable')
+            return conn,deadline
+        except BaseException as primary:
+            try:self._close_io(conn)
+            except BaseException as cleanup:primary.add_note('owned connection cleanup uncertain: '+type(cleanup).__name__)
+            raise
+    def _close_io(self,conn):
+        record=self._io.get(conn)
+        if self.pid!=os.getpid() or record is None or record['pid']!=os.getpid():raise PermissionError('actual owned socket required')
+        try:
+            if conn.fileno()!=-1 and record['identity'] is not None and _fd_identity(conn.fileno())[:2]!=record['identity']:raise PermissionError('owned socket identity differs')
+            conn.close()
+            if conn.fileno()!=-1:raise OSError('owned socket not closed')
+        except BaseException as error:
+            record['fault']=True;self._cleanup_faults.append(type(error).__name__)
+            raise
+        else:
+            # Even a physically closed FD cannot erase an observed close
+            # exception. Keep that actual object for uncertainty reconciliation.
+            if not record['fault']:self._io.pop(conn,None)
+    def retire_unhanded(self):
+        """Retire only this resource's residual IO, never funding or flight."""
+        if self.pid!=os.getpid():raise PermissionError('owned IO belongs to another process')
+        errors=[]
+        for conn,record in list(self._io.items()):
+            holder=record['holder']
+            if holder is not None:
+                if type(holder) is not ControlledNativePending or holder.resource is not self:
+                    errors.append('foreign_holder');continue
+                object.__setattr__(holder,'active',False);_PENDING.pop(holder.reference,None)
+            try:self._close_io(conn)
+            except BaseException as error:errors.append(type(error).__name__)
+        if errors or self._cleanup_faults or self._io:
+            raise ResearchError('CLEANUP_UNCERTAIN',503,'原生执行资源清场仍待核对；保留原记录，不会重发。')
     def _bytes(self,method,path,raw):
         return (method+' '+path+' HTTP/1.0\r\nHost: 127.0.0.1\r\nConnection: close\r\nContent-Type: application/json\r\nX-Fixture-Incarnation: '+self.credential_incarnation+'\r\nContent-Length: '+str(len(raw))+'\r\n\r\n').encode()+raw
     def balance(self,capability):
@@ -207,10 +251,16 @@ class ControlledNativeResource(_Sealed):
         # The fixture has no real key; an opaque instance identifies the same
         # controlled credential resource for both actual requests.
         if self.credential_instance is None:object.__setattr__(self,'credential_instance',_uid())
-        conn,deadline=_connect(self.port)
+        conn,deadline=self._open()
+        primary=None
         try:
             _send_remaining(conn,deadline,memoryview(self._bytes('GET','/user/balance',b'')));status,raw=_receive(conn,deadline)
-        finally:conn.close()
+        except BaseException as error:primary=error;raise
+        finally:
+            try:self._close_io(conn)
+            except BaseException as cleanup:
+                if primary is None:raise
+                primary.add_note('owned balance cleanup uncertain: '+type(cleanup).__name__)
         data=strict_json(raw,65536)
         if status!=200 or type(data) is not dict or data.get('is_available') is not True:raise ResearchError('BUDGET_UNVERIFIED',503,'当前余额不可核对。')
         infos=data.get('balance_infos')
@@ -224,9 +274,13 @@ class ControlledNativeResource(_Sealed):
     def prepare_post(self):
         self.require()
         if self.credential_instance is None:raise PermissionError('same controlled credential must observe balance first')
-        conn,deadline=_connect(self.port)
-        return ControlledNativePending(self,conn,deadline,_factory=_FACTORY)
-    def close(self):object.__setattr__(self,'active',False);_RESOURCES.pop(self.reference,None)
+        conn,deadline=self._open()
+        pending=ControlledNativePending(self,conn,deadline,_factory=_FACTORY)
+        self._io[conn]['holder']=pending
+        return pending
+    def close(self):
+        object.__setattr__(self,'active',False);_RESOURCES.pop(self.reference,None)
+        self.retire_unhanded()
 
 
 class ControlledNativePending(_Sealed):
@@ -259,7 +313,7 @@ class ControlledNativePending(_Sealed):
     def close(self):
         if self.active:
             object.__setattr__(self,'active',False);_PENDING.pop(self.reference,None)
-            self.conn.close()
+            self.resource._close_io(self.conn)
 
 
 def open_controlled_fixture_resource(permit):
