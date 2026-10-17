@@ -232,3 +232,111 @@ def resolve_runtime_file(kind, *, formal, development_path, repository, public_r
     if not formal:
         return Path(development_path)
     return RuntimePaths.inspect_formal(repository=repository, public_roots=public_roots).file(kind)
+
+
+def formal_history_runtime():
+    return os.getenv('STRUCTURAL_ENV', 'dev').lower() == 'prod'
+
+
+class PrivateHistoryFile:
+    """Live directory/file witnesses for one bounded native SQLite operation.
+
+    Native sqlite3 opens a pathname, not our FD. This boundary assumes the
+    dedicated service UID, trusted parents and no uncontrolled same-UID path
+    replacement. Maintenance must stop consumers. It is not a hostile-root
+    proof, custom VFS, or permission to admit the unfinished formal app.
+    """
+
+    def __init__(self):
+        self.parent_fd = None
+        self.file_fd = None
+
+    @classmethod
+    def acquire(cls, path, *, create=False):
+        witness = cls()
+        try:
+            supplied = os.fspath(path)
+            expected = STATE_ROOT / 'history.db'
+            if (not isinstance(supplied, str) or supplied.startswith('file:')
+                    or Path(supplied) != expected or '..' in Path(supplied).parts
+                    or not Path(supplied).is_absolute()):
+                raise RuntimePathError('formal history requires the approved canonical file')
+            root = Path(__file__).resolve().parents[3]
+            frontend = root / 'web/frontend'
+            paths = RuntimePaths.inspect_formal(repository=root, public_roots=[
+                frontend, frontend / 'assets', frontend / 'phase/samples', frontend / 'phase/data',
+            ])
+            witness.path = expected
+            witness.forbidden = paths.forbidden
+            witness.parent_fd = _validated_directory_fd(paths.state, forbidden=paths.forbidden)
+            base = witness._entry('history.db')
+            sides = witness._sidecars()
+            if sides and (base is None or base.st_size == 0):
+                raise RuntimePathError('orphan SQLite sidecars cannot initialize a history database')
+            created = False
+            flags = os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK
+            if base is None:
+                if not create:
+                    raise RuntimePathError('formal history database is missing')
+                try:
+                    witness.file_fd = os.open('history.db', flags | os.O_CREAT | os.O_EXCL,
+                                              0o600, dir_fd=witness.parent_fd)
+                    created = True
+                except FileExistsError:
+                    # A competing creator may have won. Validate it once;
+                    # never retry creation, redirect, or implicitly recreate.
+                    base = witness._entry('history.db')
+                    if base is None:
+                        raise RuntimePathError('history creation race has no validated winner')
+            if witness.file_fd is None:
+                witness.file_fd = os.open('history.db', flags, dir_fd=witness.parent_fd)
+            opened = os.fstat(witness.file_fd)
+            witness._require_private_file(opened)
+            if base is not None and (base.st_dev, base.st_ino) != (opened.st_dev, opened.st_ino):
+                raise RuntimePathError('formal history file changed while opening')
+            if created and witness._sidecars():
+                raise RuntimePathError('sidecars appeared during fresh history creation')
+            witness.check()
+            return witness
+        except BaseException:
+            witness.close()
+            raise
+
+    @staticmethod
+    def _require_private_file(info):
+        if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o600):
+            raise RuntimePathError('private history file owner, permissions or links are unsafe')
+
+    def _entry(self, name):
+        try:
+            info = os.stat(name, dir_fd=self.parent_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            return None
+        self._require_private_file(info)
+        return info
+
+    def _sidecars(self):
+        return [info for suffix in ('-wal', '-shm', '-journal')
+                if (info := self._entry('history.db' + suffix)) is not None]
+
+    def check(self):
+        _check_current_parent(self.path.parent, self.parent_fd, forbidden=self.forbidden)
+        held = os.fstat(self.file_fd)
+        self._require_private_file(held)
+        current = self._entry('history.db')
+        if current is None or (held.st_dev, held.st_ino) != (current.st_dev, current.st_ino):
+            raise RuntimePathError('formal history pathname no longer matches its file witness')
+        if self._sidecars() and held.st_size == 0:
+            raise RuntimePathError('empty history database has orphan sidecars')
+
+    @property
+    def uri(self):
+        return self.path.as_uri() + '?mode=rw'
+
+    def close(self):
+        for name in ('file_fd', 'parent_fd'):
+            fd = getattr(self, name)
+            if fd is not None:
+                setattr(self, name, None)
+                os.close(fd)
