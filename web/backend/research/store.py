@@ -374,8 +374,15 @@ class ResearchStore:
         # AuthStore already initializes auth tables and WAL with its own lock.
         with self.transaction(write=True) as conn:
             existing=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema' AND type='table'").fetchone()
+            financial_names=tuple(ddl.split()[2] for ddl in (*V7_TABLES,*V7_GUARDS))
+            financial_exists=conn.execute('SELECT 1 FROM sqlite_schema WHERE name IN ('+','.join('?' for _ in financial_names)+') LIMIT 1',financial_names).fetchone()
+            if not existing and conn.execute("SELECT 1 FROM sqlite_schema WHERE name GLOB 'research_*' LIMIT 1").fetchone():
+                raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究结构缺少版本标记。')
             if existing:
-                current=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
+                try:current=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
+                except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本标记结构不匹配。') from None
+                if current is None or (financial_exists and current[0]!=FINANCIAL_SCHEMA_VERSION):
+                    raise ResearchError('SCHEMA_UNSUPPORTED',503,'金融结构与版本标记不匹配。')
                 if current and current[0]==FINANCIAL_SCHEMA_VERSION:
                     self._check_v7(conn)
                     self._check_v7_attachments(conn)
@@ -634,8 +641,31 @@ class ResearchStore:
             if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):raise ResearchError('SCHEMA_UNSUPPORTED',503,'生产者控制结构不匹配。')
 
     @classmethod
+    def _v7_required_legacy_objects(cls):
+        """Complete inherited baseline, with the reviewed version overlays."""
+        required={}
+        for ddl in (*SCHEMA,*C0_SCHEMA):
+            tokens=ddl.split();offset=3 if tokens[1]=='UNIQUE' else 2
+            if tokens[offset]=='IF':offset+=3
+            required[tokens[offset]]=ddl
+        required.update(V5_SCHEMA);required.update(V6_SCHEMA)
+        for ddl in (*PRODUCER_DDL,*V6_AUX,*V5_GUARDS):
+            tokens=ddl.split();offset=3 if tokens[1]=='UNIQUE' else 2
+            required[tokens[offset]]=ddl
+        required['research_principal_gate_required']="CREATE TRIGGER research_principal_gate_required BEFORE INSERT ON research_principals WHEN NEW.gate_id IS NULL BEGIN SELECT RAISE(ABORT, 'principal gate required'); END"
+        required['research_billing_receipts_immutable']="CREATE TRIGGER research_billing_receipts_immutable BEFORE UPDATE ON research_billing_receipts BEGIN SELECT RAISE(ABORT,'immutable accounting record'); END"
+        return required
+
+    @classmethod
     def _check_v7(cls,conn):
+        for name,ddl in cls._v7_required_legacy_objects().items():
+            row=conn.execute('SELECT type,sql FROM sqlite_schema WHERE name=?',(name,)).fetchone()
+            expected_type='table' if ddl.startswith('CREATE TABLE') else 'trigger' if ddl.startswith('CREATE TRIGGER') else 'index'
+            if not row or row['type']!=expected_type or cls._normalize_sql(row['sql'])!=cls._normalize_sql(ddl):
+                raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究必需基础结构不匹配。')
         cls._check_v6(conn)
+        from .source_integration import install_schema
+        install_schema(conn,existing_required=True)
         require_hook(conn)
         for ddl in (*V7_TABLES,*V7_GUARDS):
             name=ddl.split()[2]
@@ -662,11 +692,13 @@ class ResearchStore:
     @classmethod
     def _check_v7_attachments(cls,conn):
         allowed={}
-        for ddl in (*SCHEMA,*C0_SCHEMA,*V6_AUX,*V5_GUARDS,*V7_GUARDS):
+        for ddl in (*cls._v7_required_legacy_objects().values(),*V7_GUARDS):
             if not ddl.startswith(('CREATE INDEX','CREATE UNIQUE INDEX','CREATE TRIGGER')):continue
             tokens=ddl.split();offset=3 if tokens[1]=='UNIQUE' else 2
             if tokens[offset]=='IF':offset+=3
             allowed[tokens[offset]]=ddl
+        # Preserve the existing extra-attachment policy; required inherited
+        # objects are independently validated above and never recreated.
         for table in (*V5_SCHEMA,'research_cost_observations','research_paid_approvals','research_provider_sessions'):
             for row in conn.execute("SELECT name,sql FROM sqlite_schema WHERE tbl_name=? AND type IN ('index','trigger') AND sql IS NOT NULL",(table,)):
                 if row['name'] not in allowed or cls._normalize_sql(row['sql'])!=cls._normalize_sql(allowed[row['name']]):

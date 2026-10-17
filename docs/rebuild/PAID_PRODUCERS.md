@@ -90,3 +90,9 @@ U仅调用受审usage_upper.preview_bound，用真实服务器clock核≤60秒TT
 迁移与守卫测试使用临时auth DB及合成数据，覆盖每个DDL／marker／commit故障、进程死亡重开、旧金融值／policy／锁inode保留、真实closed INSERT失败回滚和许可收尾、过期／错conn/PID/lease及复制DB拒。旧隔离v5→v6探针仍真断6；通用当前版本期待才指向7，隐式rollback／cached BEGIN／REPLACE／unknownAux保护保留。API／Source旧路径未实现新收费，Notebook实际组合体验与统一typed读口不由本基础候选预签。
 
 作者最终两组实跑：新基础75＋旧schema／迁移200合组275 passed，原paid／auth／持久化／生命周期／C0／D1及Source期限收尾391 passed，均0 skipped；旧DDL整块逐字不变，两个current-target期待与历史profile隔离的最小测试接缝保留。当前SHA待原独审，实际业务库未迁移，真实资金／模型／生产发送未放行。
+
+## V7 原审 P2：必需基础对象完整性
+
+原审指出V7早返仅核金融结构，漏掉原幂等表及修订不可变guard。本轮将SCHEMA／C0及版本overlay的全部必需table／index／trigger、初始化附加guard和Source既有结构一并校验，缺失／漂移即SCHEMA_UNSUPPORTED；研究／V7对象已存在但marker丢表／丢行／列漂移也在初始化前拒绝，不自动补建。原金融未知附件规则、旧DDL、历史profile和原断言保留；只追加损坏／漂移／实际登记与API早拒反例，没有新资金writer或生产放行。
+
+原strict-reopen两反例已先复现后通过；新增21项基础缺失／漂移及早拒用例。最终新旧金融组296 passed、应用／Source期限组391 passed，均0 skipped；正常v1迁移与旧真实存储故障回滚对照保留通过。这里只修完整性检查，旧证据不改，候选仍交原独审复验。

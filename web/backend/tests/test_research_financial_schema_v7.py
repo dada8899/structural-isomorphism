@@ -315,3 +315,62 @@ def test_isolated_earlier_profile_keeps_its_schema_but_never_gets_v7_capability(
         assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==4
         with pytest.raises(PermissionError):mint_trusted_cost_authority(conn,observation={})
     with pytest.raises(ResearchError):store._migrate_v7()
+
+
+@pytest.mark.parametrize('kind,name',[
+    ('table','research_idempotency'),('table','research_revisions'),('table','research_controls'),
+    ('table','research_principals'),('table','research_attempts'),('table','research_task_events'),
+    ('table','research_step_outputs'),('table','research_billing_receipts'),
+    ('trigger','research_revision_no_update'),('trigger','research_principal_gate_required'),
+    ('trigger','research_billing_receipts_immutable'),('index','research_owner_idx'),
+    ('index','research_one_active_task'),('table','research_source_approvals'),('table','research_evidence_objects')])
+def test_missing_required_base_object_rejects_reopen_and_closed_registry_without_repair(registry_inputs,kind,name):
+    _,path,store,pid,actor,_=registry_inputs;dependency=source(registry_inputs)
+    try:
+        # Hold the real lease before damaging even its principal lookup table.
+        with AuthorizationGate(store).owner_gate(pid) as lease:
+            with sqlite3.connect(path) as raw:raw.execute('DROP '+kind.upper()+' '+name)
+            before=snapshot(path)
+            with pytest.raises(ResearchError) as caught:ResearchStore(auth._store())
+            assert caught.value.code=='SCHEMA_UNSUPPORTED' and snapshot(path)==before
+            with store.transaction(write=True) as conn:
+                with pytest.raises(ResearchError) as caught:register_closed_project(conn,store=store,identity=actor,lease=lease,source=dependency)
+                assert caught.value.code=='SCHEMA_UNSUPPORTED'
+            assert snapshot(path)==before
+    finally:dependency.close()
+
+
+@pytest.mark.parametrize('change',['idempotency-ddl','revision-guard-ddl','marker-table','marker-row','marker-column'])
+def test_required_base_drift_and_lost_marker_fail_closed_without_any_rebuild(registry_inputs,change):
+    from research.store import SCHEMA
+    _,path,_,_,_,_=registry_inputs
+    with sqlite3.connect(path) as conn:
+        if change=='idempotency-ddl':
+            conn.execute('DROP TABLE research_idempotency')
+            ddl=next(sql for sql in SCHEMA if sql.startswith('CREATE TABLE IF NOT EXISTS research_idempotency'))
+            conn.execute(ddl.replace('PRIMARY KEY(principal_id, operation, scope_key, key_digest)','PRIMARY KEY(principal_id, operation, key_digest)'))
+        elif change=='revision-guard-ddl':
+            conn.execute('DROP TRIGGER research_revision_no_update')
+            conn.execute('CREATE TRIGGER research_revision_no_update BEFORE UPDATE ON research_revisions BEGIN SELECT 1; END')
+        elif change=='marker-table':conn.execute('DROP TABLE research_schema')
+        elif change=='marker-row':conn.execute('DELETE FROM research_schema')
+        else:conn.execute('ALTER TABLE research_schema RENAME COLUMN version TO revision')
+    before=snapshot(path)
+    with pytest.raises(ResearchError) as caught:ResearchStore(auth._store())
+    assert caught.value.code=='SCHEMA_UNSUPPORTED' and snapshot(path)==before
+
+
+def test_missing_revision_guard_is_not_accepted_for_registration_or_late_store_failure(registry_inputs):
+    from .test_research_persistence import post,problem
+    client,path,store,pid,actor,_=registry_inputs;dependency=source(registry_inputs)
+    try:
+        with store.transaction(write=True) as conn:
+            with pytest.raises(sqlite3.IntegrityError):conn.execute("UPDATE research_revisions SET digest=?",('f'*64,))
+            conn.execute('DROP TRIGGER research_revision_no_update')
+        before=snapshot(path)
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+            with pytest.raises(ResearchError):register_closed_project(conn,store=store,identity=actor,lease=lease,source=dependency)
+        response=post(client,'/api/research',{'problem':problem()},'reject-damaged-guard')
+        assert response.status_code==503 and response.json()['error']['code']=='SCHEMA_UNSUPPORTED'
+        assert snapshot(path)==before
+    finally:dependency.close()
