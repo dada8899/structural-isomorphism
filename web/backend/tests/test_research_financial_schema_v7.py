@@ -10,6 +10,7 @@ from uuid import uuid4
 import pytest
 
 from .test_research_persistence import stack,create
+from web.backend.tests.research_process_fixture import _crash_v7
 from .test_research_paid_schema import snapshot,rows,bounded_rows,insert_cost,_USAGE
 from .test_research_paid_producers import identity
 from .test_research_financial_admission_schemas import financial_sample
@@ -100,22 +101,6 @@ def test_every_v7_dml_or_commit_failure_rolls_back_exact_v6(v6_data,monkeypatch,
     ResearchStore(auth._store())
 
 
-def _crash_v7(path,cut):
-    from services.auth_store import AuthStore
-    store=ResearchStore.__new__(ResearchStore);store.path=Path(path);store.auth_store=AuthStore(Path(path))
-    connect=sqlite3.connect
-    marker={'table':V7_TABLES[0],'guard':V7_GUARDS[-1],'marker':'UPDATE research_schema SET version=7 WHERE id=1'}.get(cut)
-    class Crash(sqlite3.Connection):
-        def execute(self,sql,*a,**k):
-            result=super().execute(sql,*a,**k)
-            if marker==sql:os._exit(61)
-            return result
-        def commit(self):
-            if cut=='before_commit':os._exit(61)
-            super().commit()
-            if cut=='after_commit':os._exit(62)
-    sqlite3.connect=lambda *a,**k:connect(*a,factory=Crash,**k)
-    store._migrate_v7()
 
 
 @pytest.mark.parametrize('cut',['table','guard','marker','before_commit','after_commit'])

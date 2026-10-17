@@ -9,6 +9,7 @@ import os
 import pytest
 
 from .test_research_persistence import stack,post
+from web.backend.tests.research_process_fixture import _observe_child, _reserve_child, _die_after_committed_consumption
 from .test_research_d1_integration import source_stack
 from .test_research_paid_approval import approved_inputs
 from .test_research_paid_api import paid_api,make_preview,confirm_data
@@ -121,14 +122,6 @@ def test_financial_late_return_never_reads_erased_private_approval_or_revives_co
         assert state['requests']==1
 
 
-def _observe_child(path,pid,ref,ready,go,result):
-    from services.auth_store import AuthStore
-    store=ResearchStore(AuthStore(Path(path)))
-    ready.put(True)
-    if not go.wait(10):return
-    with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
-        observed=ledger.observe_in(conn,store=store,lease=lease,return_ref=ref)
-        result.put((observed['id'],observed['booked_upper']))
 
 
 def test_two_fresh_processes_observe_durable_return_once_without_owned_memory(paid_api):
@@ -272,39 +265,6 @@ def test_cached_sql_and_plain_rows_do_not_gain_financial_write_permission(paid_a
             with pytest.raises(sqlite3.DatabaseError):raw.execute("UPDATE research_dispatch_permits SET state='prepared'")
 
 
-def _reserve_child(cookie,rid,excerpt,pid,quote,basis,reference,cap,ready,go,results):
-    from fastapi.testclient import TestClient
-    from web.backend.tests.test_research_persistence import app,post
-    from web.backend.tests.test_research_paid_api import preview_data,confirm_data
-    from web.backend.tests.test_research_paid_producers import identity
-    from research.paid_approval import OfflineFundingResolver
-    from research.provider_schemas import UsageUpperQuote,BudgetBasisSnapshot
-    from api import auth
-    resolver=OfflineFundingResolver(principal_id=pid,quote=UsageUpperQuote.model_validate(quote),basis=BudgetBasisSnapshot.model_validate(basis),
-        approved_upper=Money(currency='CNY',scale=6,amount_units=3))
-    source=None
-    try:
-        application=app();application.state.research_paid_resolver=resolver
-        with TestClient(application) as client:
-            client.cookies.set('phase_session',cookie)
-            draft=post(client,f'/api/research/{rid}/paid-previews',preview_data(client,rid,excerpt),'child-preview')
-            assert draft.status_code==200,draft.text
-            confirmed=post(client,f'/api/research/{rid}/paid-approvals',confirm_data(draft.json()['data']),'child-confirm')
-            assert confirmed.status_code==200,confirmed.text
-            store=ResearchStore(auth._store());actor=identity(client)
-            source=OfflineProjectRegistration(store=store,identity=actor,principal_id=pid,funding_resolver=resolver,
-                authorized_cap=Money(currency='CNY',scale=6,amount_units=cap),authorization_ref=reference)
-            ready.put(True)
-            if not go.wait(10):return
-            try:
-                with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
-                    ledger.activate_offline_in(conn,store=store,actor=actor,lease=lease,source=source)
-                    proof=ledger.reserve_in(conn,store=store,actor=actor,lease=lease,source=source,approval_ref=confirmed.json()['data']['approval_ref'])
-                    results.put(('held',proof.reserved.reserved_upper.amount_units))
-            except ResearchError as error:results.put((error.code,0))
-    finally:
-        if source is not None:source.close()
-        resolver.close()
 
 
 def test_two_processes_different_tasks_share_project_limit_without_new_allowances(paid_api):
@@ -352,33 +312,6 @@ def test_two_processes_different_tasks_share_project_limit_without_new_allowance
     finally:source.close()
 
 
-def _die_after_committed_consumption(cookie,rid,excerpt,pid,quote,basis,cut):
-    from fastapi.testclient import TestClient
-    from web.backend.tests.test_research_persistence import app,post
-    from web.backend.tests.test_research_paid_api import preview_data,confirm_data
-    from web.backend.tests.test_research_paid_producers import identity
-    from web.backend.tests.test_research_owned_return import tcp_reply,response_body
-    from research.paid_approval import OfflineFundingResolver
-    from research.provider_schemas import UsageUpperQuote,BudgetBasisSnapshot
-    from research.provider_adapter import OfflineOwnedTransport
-    from api import auth
-    resolver=OfflineFundingResolver(principal_id=pid,quote=UsageUpperQuote.model_validate(quote),basis=BudgetBasisSnapshot.model_validate(basis),
-        approved_upper=Money(currency='CNY',scale=6,amount_units=3))
-    application=app();application.state.research_paid_resolver=resolver
-    with TestClient(application) as client:
-        client.cookies.set('phase_session',cookie)
-        preview=post(client,f'/api/research/{rid}/paid-previews',preview_data(client,rid,excerpt),'crash-preview').json()['data']
-        confirmed=post(client,f'/api/research/{rid}/paid-approvals',confirm_data(preview),'crash-confirm').json()['data']
-        store=ResearchStore(auth._store());actor=identity(client)
-        source=OfflineProjectRegistration(store=store,identity=actor,principal_id=pid,funding_resolver=resolver,
-            authorized_cap=Money(currency='CNY',scale=6,amount_units=10),authorization_ref=str(uuid4()))
-        def die(*args,**kwargs):os._exit(73)
-        if cut=='before-begin':OfflineOwnedTransport.begin=die
-        with tcp_reply(response_body()) as (factory,state):
-            session=BudgetedOwnedSession.offline_start(store,actor,source,confirmed['approval_ref'],connection_factory=factory)
-            session.receive()
-            assert state['requests']==1
-            os._exit(74)
 
 
 @pytest.mark.parametrize('cut',['before-begin','after-receive'])
