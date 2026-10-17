@@ -23,6 +23,7 @@ from services.auth_store import AuthStore
 from services.report_store import ReportStore
 from errors import install_problem_handlers
 from .test_private_sso_store import private, native, shared_assets, SECRET
+from .test_private_registration import register_private_user
 
 ALICE = 'alice@example.invalid'
 BOB = 'bob@example.invalid'
@@ -34,12 +35,7 @@ PHASE = 'https://phase.bytedance.city'
 def stack(private, monkeypatch):
     shared_assets(private, monkeypatch)
     state = private.parent
-    with monkeypatch.context() as dev:
-        dev.setenv('STRUCTURAL_ENV', 'dev')
-        for email in (ALICE, BOB):
-            auth._store().ensure_user_and_notification(email, 'pro', 'synthetic')
-            with auth.account_owner_transaction(email):
-                pass
+    for email in (ALICE, BOB):register_private_user(monkeypatch,email,'pro')
     for name in ('favorites.jsonl', 'favorites.lock', 'account_deletion_audit.jsonl'):
         (state / name).write_bytes(b'')
         (state / name).chmod(0o600)
@@ -56,7 +52,7 @@ def stack(private, monkeypatch):
         app.include_router(router, prefix='/api')
     install_problem_handlers(app)
     with TestClient(app, base_url=BETA) as client:
-        token, _ = auth._issue_jwt(ALICE, 'pro')
+        token = private_session(ALICE)
         client.cookies.set('phase_session', token)
         yield client, state, app
 
@@ -76,15 +72,53 @@ def request_for(token, *, sso_cookie=False):
         'headers': [(b'host', b'beta.structural.bytedance.city'), (b'cookie', (name + '=' + token).encode())]})
 
 
+def private_session(email,tier='pro'):
+    with pytest.MonkeyPatch.context() as patch:
+        return register_private_user(patch,email,tier)[1]
+
+
+def retire_auth_incarnation(email):
+    """Real protected delete, deliberately retaining separate fixture assets.
+
+    These tests model leftover old Favorites/SSO material, so the explicit
+    fixture registry includes only authentication. No Auth capability is faked.
+    """
+    from services.account_data_registry import AccountDataRegistry
+    original=auth._account_registry
+    def auth_only(**kwargs):
+        registry=original(**kwargs)
+        return AccountDataRegistry([asset for asset in registry.assets if asset.name=='authentication'])
+    token=private_session(email)
+    app=FastAPI();app.include_router(auth.router,prefix='/api')
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(auth,'_account_registry',auth_only)
+        with TestClient(app,base_url=BETA) as client:
+            client.cookies.set('phase_session',token)
+            response=client.post('/api/me/delete',json={'confirmation':'DELETE'},headers={'Origin':BETA})
+            assert response.status_code==200,response.text
+
+
+def deletion_request_source(email):
+    from research.paid_control import issue_authenticated_action
+    token=private_session(email)
+    request=Request({'type':'http','method':'POST','path':'/api/me/delete','scheme':'https',
+        'server':('beta.structural.bytedance.city',443),'headers':[(b'host',b'beta.structural.bytedance.city'),
+            (b'origin',BETA.encode()),(b'cookie',('phase_session='+token).encode())]})
+    return issue_authenticated_action(request,action='account-delete')
+
+
 @contextmanager
 def deletion_context(email=ALICE):
     service = auth._account_deletion_service()
     generation = auth._store().user(email)['session_generation']
-    with auth.account_owner_transaction(email) as lease:
-        job_id = service.begin_account_deletion_locked(email, generation,
-            auth._store().owner_gate_id(email), auth._account_cleanup_binding(email), owner_lease=lease)
-        with auth._favorites_authority(email, generation, lease, service=service, job_id=job_id) as authority:
-            yield service, job_id, authority
+    source=deletion_request_source(email)
+    try:
+        with auth.account_owner_transaction(email) as lease:
+            job_id = service.begin_account_deletion_locked(email, generation,
+                auth._store().owner_gate_id(email), auth._account_cleanup_binding(email), owner_lease=lease,request_source=source)
+            with auth._favorites_authority(email, generation, lease, service=service, job_id=job_id) as authority:
+                yield service, job_id, authority
+    finally:source.close()
 
 
 def exchange_material(stack, monkeypatch):
@@ -92,7 +126,7 @@ def exchange_material(stack, monkeypatch):
     # The actual production issuer and consumer use their distinct origins
     # with the same synthetic authoritative AuthStore, not a copied DTO.
     with TestClient(app, base_url=PHASE) as phase:
-        token, _ = auth._issue_jwt(ALICE, 'pro')
+        token = private_session(ALICE)
         phase.cookies.set('phase_session', token)
         started = client.get('/api/sso/start', follow_redirects=False)
         assert started.status_code == 303
@@ -168,8 +202,8 @@ def test_missing_generation_code_retired_and_new_generation_code_cannot_be_upgra
     old = dict(claims);old.pop('gen')
     assert client.post('/api/sso/exchange', json={'code': jwt.encode(old, SECRET, algorithm='HS256'), 'state': state}).status_code == 401
     # A real account erase/re-registration changes the persisted generation.
-    auth._store().delete_account_data(ALICE)
-    auth._store().ensure_user_and_notification(ALICE, 'pro', 'new synthetic incarnation')
+    retire_auth_incarnation(ALICE)
+    private_session(ALICE)
     assert auth._store().user(ALICE)['session_generation'] != claims['gen']
     assert client.post('/api/sso/exchange', json={'code': code, 'state': state}).status_code == 401
     assert sso.get_replay_store().lookup_issued(claims['jti']) is not None
@@ -179,7 +213,7 @@ def test_wrong_nonce_and_existing_other_cookie_do_not_consume(stack, native, mon
     client, code, state, claims = exchange_material(stack, monkeypatch)
     wrong = dict(claims);wrong['nonce'] = 'other-nonce'
     assert client.post('/api/sso/exchange', json={'code': jwt.encode(wrong, SECRET, algorithm='HS256'), 'state': state}).status_code == 400
-    token, _ = auth._issue_jwt(BOB, 'pro');client.cookies.set('phase_session', token)
+    token = private_session(BOB);client.cookies.set('phase_session', token)
     assert client.post('/api/sso/exchange', json={'code': code, 'state': state}).status_code == 409
     assert sso.get_replay_store().lookup_issued(claims['jti']) is not None
 
@@ -385,7 +419,7 @@ def test_full_formal_delete_recovery_keeps_other_owner_and_new_incarnation_separ
     assert client.post('/api/favorites/AAPL').status_code == 201
     old_token = client.cookies.get('phase_session')
     alice_record = copy.deepcopy(records(state)[0])
-    bob_token, _ = auth._issue_jwt(BOB, 'pro');client.cookies.set('phase_session', bob_token)
+    bob_token = private_session(BOB);client.cookies.set('phase_session', bob_token)
     assert client.post('/api/favorites/MSFT').status_code == 201
     bob_before = next(v for v in records(state) if v.get('email') == BOB)
     client.cookies.set('phase_session', old_token)
@@ -394,8 +428,8 @@ def test_full_formal_delete_recovery_keeps_other_owner_and_new_incarnation_separ
         assert result['removed']['favorites']['records'] == 1
     assert auth.resume_account_deletion(job_id) == result
     assert client.get('/api/favorites').status_code == 401
-    auth._store().ensure_user_and_notification(ALICE, 'pro', 'new synthetic incarnation')
-    new_token, _ = auth._issue_jwt(ALICE, 'pro');client.cookies.set('phase_session', new_token)
+    private_session(ALICE)
+    new_token = private_session(ALICE);client.cookies.set('phase_session', new_token)
     assert client.get('/api/favorites').json()['tickers'] == []
     assert client.post('/api/favorites/GOOG').status_code == 201
     assert not any('_favorites_tombstone' in v and v['_favorites_tombstone']['owner_key'] == alice_record['_favorites_owner']['owner_key'] for v in records(state))
@@ -599,7 +633,7 @@ def test_two_real_processes_rewrite_whole_file_without_lost_other_owner(stack, n
     import subprocess
     client, state, _ = stack
     go = state.parent / 'go'
-    tokens = [client.cookies.get('phase_session'), auth._issue_jwt(BOB, 'pro')[0]]
+    tokens = [client.cookies.get('phase_session'), private_session(BOB)]
     ready = [state.parent / ('ready-' + str(index)) for index in range(2)]
     processes = []
     try:
@@ -669,7 +703,7 @@ def test_both_namespaces_share_lock_and_real_thread_writes_close_native_on_creat
         local.handles.append(conn)
         return conn
     monkeypatch.setattr(sqlite3, 'connect', observed)
-    tokens = [client.cookies.get('phase_session'), auth._issue_jwt(BOB, 'pro')[0]]
+    tokens = [client.cookies.get('phase_session'), private_session(BOB)]
     def work(index):
         local.handles = []
         module = (favorites, other)[index]
@@ -691,9 +725,9 @@ def test_same_email_reregistration_cannot_read_or_replace_leftover_old_generatio
     assert client.post('/api/favorites/AAPL').status_code == 201
     old = copy.deepcopy(records(state)[0]);old_token = client.cookies.get('phase_session')
     # Deliberately leave the separately stored Favorites material in place.
-    auth._store().delete_account_data(ALICE)
-    auth._store().ensure_user_and_notification(ALICE, 'pro', 'new synthetic incarnation')
-    new_token, _ = auth._issue_jwt(ALICE, 'pro');client.cookies.set('phase_session', new_token)
+    retire_auth_incarnation(ALICE)
+    private_session(ALICE)
+    new_token = private_session(ALICE);client.cookies.set('phase_session', new_token)
     assert client.get('/api/favorites').json()['tickers'] == []
     assert client.get('/api/me/export').json()['data']['favorites']['exists'] is False
     assert client.post('/api/favorites/MSFT').status_code == 201
@@ -711,9 +745,9 @@ def test_new_sso_session_old_generation_poison_cannot_fallback_to_fresh_direct_c
     client, code, state, claims = exchange_material(stack, monkeypatch)
     assert client.post('/api/sso/exchange', json={'code': code, 'state': state}).status_code == 200
     old_sso = client.cookies.get('structural_beta_session')
-    auth._store().delete_account_data(ALICE)
-    auth._store().ensure_user_and_notification(ALICE, 'pro', 'new synthetic incarnation')
-    fresh, _ = auth._issue_jwt(ALICE, 'pro');client.cookies.set('phase_session', fresh)
+    retire_auth_incarnation(ALICE)
+    private_session(ALICE)
+    fresh = private_session(ALICE);client.cookies.set('phase_session', fresh)
     assert auth.resolve_account_user(request_for(fresh))[1] == 'valid'
     assert client.get('/api/favorites').status_code == 401
     assert sso.resolve_beta_user(request_for(old_sso, sso_cookie=True))[1] == 'invalid'
@@ -885,9 +919,9 @@ def test_preexisting_old_generation_does_not_block_current_snapshot_compensation
     client, state, _ = stack
     assert client.post('/api/favorites/AAPL').status_code == 201
     previous_incarnation = copy.deepcopy(records(state)[0])
-    auth._store().delete_account_data(ALICE)
-    auth._store().ensure_user_and_notification(ALICE, 'pro', 'new synthetic incarnation')
-    current_token, _ = auth._issue_jwt(ALICE, 'pro')
+    retire_auth_incarnation(ALICE)
+    private_session(ALICE)
+    current_token = private_session(ALICE)
     client.cookies.set('phase_session', current_token)
     assert client.get('/api/favorites').json()['tickers'] == []
     assert client.post('/api/favorites/MSFT').status_code == 201
@@ -927,8 +961,8 @@ def test_real_next_generation_writer_atomically_invalidates_prior_deletion_marke
         assert service.deletion_job(job_id)['state'] == 'completed'
     assert auth.resume_account_deletion(job_id) == result
     assert records(state)[0]['_favorites_tombstone'] == mark
-    auth._store().ensure_user_and_notification(ALICE, 'pro', 'new synthetic incarnation')
-    token, _ = auth._issue_jwt(ALICE, 'pro');client.cookies.set('phase_session', token)
+    private_session(ALICE)
+    token = private_session(ALICE);client.cookies.set('phase_session', token)
     new_generation = auth._store().user(ALICE)['session_generation']
     assert new_generation != old_generation
     assert client.get('/api/favorites').json()['tickers'] == []
