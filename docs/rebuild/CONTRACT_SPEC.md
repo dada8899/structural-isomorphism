@@ -745,17 +745,17 @@ B0只文档独审；B1须完整真实reserve→authorize→consume及快照同�
 | --- | --- |
 | `OwnedMethodBody-v1` | 精确 `{header:MethodBodyBinding-v1,candidate:ModelReportCandidate-v1,candidate_digest:Digest,envelope_digest:Digest}`；candidate是受审parser所得合法候选对象，不是完整provider响应或未核原字符串 |
 | `MethodBodyBinding-v1`：对象／输入 | `result_ref:Id,research_id:Id,task_id:Id,step_id:Id,input_revision:Revision,input_digest:Digest,approval_ref:Id,dispatch_id:Id,permit_id:Id`；全部来自真实已消费的当前B链，引用关系由Core逐项核，不能只验UUID格式 |
-| `MethodBodyBinding-v1`：消费版本 | `approval_consumed_version:Revision,dispatch_consumed_version:Revision,permit_consumed_version:Revision,authorized_task_version:Revision,authorized_step_version:Revision`；指实际准入／消费记录中的精确版本。dispatch无独立可变控制行，dispatch_consumed_version精确引用该dispatch唯一permit的一次性消费版本并等于permit_consumed_version，不虚构新计数器／可写dispatch对象 |
+| `MethodBodyBinding-v1`：消费版本 | `approval_consumed_version:Revision,permit_state:"consumed",session_consumed_version:Revision,authorized_task_version:Revision,authorized_step_version:Revision`；permit仅核真实prepared→consumed状态CAS及唯一dispatch关联，没有独立version，不虚构permit或dispatch版本。session_consumed_version精确取原FinancialAdmission.session_after，是实际session消费版本；不重命名／改写金融admission或自造数值 |
 | `MethodBodyBinding-v1`：内容／出处 | `request_digest:Digest,evidence_digest:Digest,financial_return_ref:Id,financial_return_digest:Digest,candidate_schema:"ModelReportCandidate-v1",body_schema:"OwnedMethodBody-v1",producer_revision:Text(64),execution_mode:"offline_probe",received_at:UtcTime`；跨域摘要不互作替身，时间为该次真实收包原时间，producer须受审Core登记 |
 | 摘要算法 | candidate_digest为规范candidate对象的UTF-8 SHA-256；envelope_digest为规范envelope去掉自身字段后的SHA-256。金融return及response摘要只做实际因果交叉关联，不能替candidate摘要／内容出处；摘要相同不是授权或科学证明 |
 
 整个envelope含header、candidate及摘要合计UTF-8≤32 KiB，仍在现槽范围内；SQL现有字符数CHECK不替代字节校验。旧候选独立上限不被偷偷放宽，若header开销使合法候选装不下，新正文保存明确失败、费用独立处理，不截断、不删引用凑包、不另存无保护旁文件。未来模式若另版本支持offline/live，字段只描述数据，实际来源与模型调用事实仍须受控receipt；传live或纯codec通过不能把旧probe／model_analysis_ran=false改真。
 
-`ExpectedMethodBodyBinding`、期待摘要和纯codec输出仅是数据。Core必须从实际owned／准入／受保护持久来源取得期待值；不得从同份客户端／普通槽JSON取字段、重算hash就自称独立证明，不以`trusted=true`、finance-only authority或恢复后的`_OWNED`模拟来源。后续纯模块只能校结构／canonical／摘要，不生产CurrentBodySource、grant或OwnedReturnReceipt。
+`ExpectedMethodBodyBinding`、期待摘要和纯codec输出仅是数据。Core必须从实际owned／准入／受保护持久来源取得期待值；不得从同份客户端／普通槽JSON取字段、重算hash就自称独立证明，不以`trusted=true`、finance-only authority或恢复后的`_OWNED`模拟来源。后续纯模块只能校结构／canonical／摘要，不生产CurrentBodySource、grant或BudgetOwnedReceipt。
 
 ### 13.2 首次实际收包、重放和不可回填
 
-1. 只有该实际session持有的 `OwnedReturnReceipt` 首次处理路径，经过原B消费admission／permit／request／evidence和producer核验，并核当下正文资格，才可构造上述正文envelope；普通ProviderObservation／candidate DTO／传入callback不能替代它。
+1. 只有该实际B session持有的 `BudgetOwnedReceipt` 首次处理路径（旧A的OwnedReturnReceipt不适用），经过原B消费admission／permit／request／evidence和producer核验，并核当下正文资格，才可构造上述正文envelope；普通ProviderObservation／candidate DTO／传入callback不能替代它。
 2. 同一canonical auth DB的受控短事务，以session及实际消费版本做CAS，在financial_return首次NULL→持久事实的同一次写入中，正文合法且当前可提交时写envelope，否则candidate_json仍NULL。金融usage／费用处理不以正文有效为前置，也不因正文缺失推断免费。
 3. 首次处理后，只允许在当前仍可读且正文仍存在／完好的情况下幂等回读同一result_ref；不重发HTTP、不重建模型响应、不重复生成新的结果或改原时间。金融重复凭证不自动取得正文重放权。
 4. 首次坏正文／权限已终止而为NULL，或后续被擦为NULL，都必须持久防止再次写非NULL。即使后来出现普通候选缓存、源材料重新可读、同邮箱账号或新grant，也不得给该旧收包补签／回填；financial事实不可变与内容关闭条件须被实际guard一起核。
