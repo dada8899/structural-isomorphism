@@ -2763,3 +2763,68 @@ def test_formula_ack_is_confirmed_and_request_bound_before_pending_key_retiremen
                 assert page.evaluate("Object.keys(sessionStorage).filter(key=>key.startsWith('structure-research-pending:formula-check:')).length")==0
                 with sqlite3.connect(server['path']) as conn:assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]==expected
         finally:context.close();browser.close()
+
+
+
+@pytest.mark.parametrize('mode',['current-logout','restored-session','new-draft','private-scope-changed'])
+def test_formula_ack_metadata401_confirms_current_auth_loss_without_retiring_unknown_key(server,mode):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();committed=[];held=[];metadata_statuses=[];auth_reads=[]
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            for side in ('left','right'):page.locator('#formula-'+side+'-use-template').click()
+            saved=_save_formula_editor(page,base);rid=saved['research']['id'];original=page.locator('#original-input').input_value()
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            def lose_auth_after_commit(route):
+                response=route.fetch();assert response.status==200,response.text();committed.append(response.json()['data'])
+                assert context.request.post(base+'/api/auth/logout',headers={'Origin':base}).status==200
+                assert context.request.get(base+'/api/auth/me').status==401
+                route.fulfill(response=response)
+            page.route('**/formula-checks',lose_auth_after_commit,times=1)
+            if mode!='current-logout':
+                def hold401(route):
+                    response=route.fetch();assert response.status==401;metadata_statuses.append(response.status);held.append((route,response))
+                page.route('**/api/research/'+rid+'?task_id=*',hold401,times=1)
+            page.on('response',lambda response:auth_reads.append(response.status) if response.url==base+'/api/auth/me' else None)
+            page.locator('#formula-confirm').check()
+            if mode=='current-logout':
+                with page.expect_response(lambda response:response.status==401 and '/api/research/' in response.url):page.locator('#formula-run').click()
+                expect(page.locator('#formula-status')).not_to_have_text(re.compile(r'^正在'))
+            else:
+                page.locator('#formula-run').click()
+                for _ in range(100):
+                    if held:break
+                    page.wait_for_timeout(20)
+                assert len(held)==1
+                if mode in ('restored-session','new-draft'):
+                    login(context,base)
+                    assert context.request.get(base+'/api/auth/me').status==200
+                    if mode=='new-draft':
+                        page.locator('#formula-left-symbol-1-value').fill('7')
+                        page.locator('#original-input').fill('恢复身份后的新草稿不可被迟到401清除')
+                else:
+                    page.locator('#research-list-refresh').click();expect(page.locator('#problem-form')).to_be_hidden()
+                count_before_release=len(auth_reads)
+                route,response=held.pop();route.fulfill(response=response)
+                if mode=='restored-session':expect(page.locator('#formula-status')).to_contain_text('状态尚未确认')
+                else:page.wait_for_timeout(100)
+                if mode in ('new-draft','private-scope-changed'):assert len(auth_reads)==count_before_release,'stale ticket must not add auth reads'
+            assert len(committed)==1
+            pending=page.evaluate("Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('structure-research-pending:formula-check:')))")
+            (server['root']/'ack-auth-observation.json').write_text(json.dumps({'mode':mode,'pending_count':len(pending),'form_visible':page.locator('#problem-form').is_visible(),'original_input':page.locator('#original-input').input_value(),'status':page.locator('#status').inner_text(),'actual_task_id':committed[0]['task_id'],'metadata_statuses':metadata_statuses,'auth_reads':auth_reads},ensure_ascii=False,indent=2))
+            assert len(pending)==1
+            if mode in ('current-logout','private-scope-changed'):
+                expect(page.locator('#problem-form')).to_be_hidden()
+                expect(page.locator('#original-input')).to_have_value('')
+                expect(page.locator('#formula-check-section')).to_be_hidden()
+                expect(page.locator('#formula-results')).to_have_text('')
+                expect(page.locator('#status')).to_contain_text('登录')
+                assert context.request.get(base+'/api/auth/me').status==401
+            else:
+                expect(page.locator('#problem-form')).to_be_visible()
+                expect(page.locator('#original-input')).to_have_value('恢复身份后的新草稿不可被迟到401清除' if mode=='new-draft' else original)
+                assert context.request.get(base+'/api/auth/me').status==200
+            with sqlite3.connect(server['path']) as conn:assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]==1
+        finally:
+            for route,_ in held:route.abort()
+            context.close();browser.close()
