@@ -64,6 +64,78 @@ def prod_auth_client(monkeypatch):
     return TestClient(main.app)
 
 
+@pytest.fixture(autouse=True)
+def cache_stats_model_boundary(request, monkeypatch):
+    """Isolate only the LRU contract's encoder, independently of route admission.
+
+    This node proves cache behavior, not real model quality or artifact loading.
+    All other tests retain their own dependencies and receive no patches here.
+    """
+    if request.node.name != "test_search_service_cache_stats_shape":
+        yield
+        return
+
+    import builtins
+    import io
+    import os
+    import socket
+    import types
+    import numpy as np
+
+    calls = {"construct": 0, "encode": 0}
+    blocked = []
+    package = types.ModuleType("sentence_transformers")
+
+    class Encoder:
+        def encode(self, texts, **kwargs):
+            assert texts == ["phase transition"]
+            calls["encode"] += 1
+            return np.array([[1.0, 0.0, 0.0]], dtype=np.float32)
+
+    def construct(*args, **kwargs):
+        calls["construct"] += 1
+        return Encoder()
+
+    package.SentenceTransformer = construct
+    monkeypatch.setitem(sys.modules, "sentence_transformers", package)
+
+    def forbidden_socket(*args, **kwargs):
+        blocked.append("socket")
+        raise AssertionError("cache contract must not use real sockets")
+
+    # Also stop aliases of socket.socket captured before this fixture.
+    for name in ("connect", "connect_ex"):
+        monkeypatch.setattr(socket.socket, name, forbidden_socket)
+    for name in ("socket", "SocketType", "create_connection", "getaddrinfo"):
+        monkeypatch.setattr(socket, name, forbidden_socket)
+
+    def model_file(path):
+        if isinstance(path, int):
+            return False
+        value = os.fsdecode(path).replace("\\", "/").lower()
+        return ("/models/" in value or "/huggingface/" in value
+                or value.endswith((".safetensors", ".bin", ".pt", ".pth", ".ckpt"))
+                or value.rsplit("/", 1)[-1] in {
+                    "config.json", "modules.json", "tokenizer.json", "tokenizer_config.json",
+                    "sentence_bert_config.json", "config_sentence_transformers.json",
+                })
+
+    def guarded_open(original):
+        def checked(path, *args, **kwargs):
+            if model_file(path):
+                blocked.append("model-open")
+                raise AssertionError("cache contract must not read real model files")
+            return original(path, *args, **kwargs)
+        return checked
+
+    monkeypatch.setattr(builtins, "open", guarded_open(builtins.open))
+    monkeypatch.setattr(io, "open", guarded_open(io.open))
+    monkeypatch.setattr(os, "open", guarded_open(os.open))
+    yield
+    assert blocked == []
+    assert calls == {"construct": 1, "encode": 1}
+
+
 # --------- P1-4: HEAD / --------- #
 
 
