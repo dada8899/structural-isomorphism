@@ -110,3 +110,11 @@ U仅调用受审usage_upper.preview_bound，用真实服务器clock核≤60秒TT
 写许可绑定实际conn／txn／PID／lease／operation／目标row与version；现有authorizer组合保护活动预算的票／返回／观测写入，私有scope进出刷新同一authorizer以拒缓存SQL越权，原trace／rollback退休保持。P、原C与fresh保守B分别核，项目／账户／票CAS共享；完整可信usage按原F仅一次U→Uobs、actual=null，坏正文不免记用量。缺首次持久return、丢ack或死亡不再begin／重发，UNKNOWN全held；删除后只用允许金融域核对，正文／任务不复活。
 
 新B1专属31项与原金融组组合327 passed，原消费者／auth／保存／生命周期／C0／D1／Source期限391 passed，均0 skipped。覆盖两进程不同任务争P、两新进程同return一次记账、实际SQL各故障点／真实commit丢ack、consume后begin前及完整receive后未持久死亡、P较大而C/B更紧、真实删号／撤权／取消后的财务处理。只使用隔离auth测试DB、合成资金及本机TCP；B2全部真实caller与HELD取消／删号lease封边未签，公开worker仍拒paid，真实Owner/funding/loader/live/新purpose未放行，当前候选待原审。
+
+## B1 原审 P1／P2：账户未决门禁与持续行保护
+
+原审实证：UNKNOWN held尚在时可换研究继续POST；项目从active暂停为blocked后新scope撤掉了行级SQL防线。返修在共享准入_limits核整个稳定funding account的未决UNKNOWN，reserve及发送前authorize／consume均拒新执行，原held不释放；原有效持久return的late observe不走该新准入门禁。行保护按是否已有项目登记启用，与active／blocked／closed执行状态分离；首次closed登记及既有scope的语句缓存同步退权。普通SQL／cached SQL不因此改造既存真实票据，暂停只关闭新执行。
+
+新增真实对照覆盖新研究再预留0连接／0POST、已HELD后二次authorize／consume拒、late有效财务核对后正常准入、三状态真实票据保护及本机免费Source两GET／四类记录／重跑0GET／quota读回共存；不为旧fixture撤v2保护，不新增Source适配或权限平台，原DDL／F／adapter／旧A及原断言保留。真实资金、生产发送与B2仍关闭，候选交两原审分别复核。
+
+暂停执行补充：closed仅首次version1登记可按明确offline配置启用；运行后再closed不能被原source新调用自动重开，blocked同样拒新连接。作者验证：原审两缺陷先实证2 fail/1 pass，修后连Source原正控4 pass；主回归337 pass和旧消费者391 pass，随后补这一行暂停门禁后定点13 pass及完整B1专属43 pass（原31＋新增12），均0 skipped。分组证据如实分列，未冒称最后又跑统一新339组；当前SHA待两原审复核。

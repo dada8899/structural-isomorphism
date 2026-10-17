@@ -433,3 +433,181 @@ def test_fresh_cash_and_balance_floors_are_independent_of_larger_project_cap(pai
             assert conn.execute('SELECT count(*) FROM research_reservations').fetchone()[0]==0
             assert conn.execute('SELECT held FROM research_funding_accounts').fetchone()[0]==0
     finally:resolver.close()
+
+
+def _another_confirmed_paid_research(data,label):
+    from functools import partial
+    from web.backend.tests.source_http_fixture import source_server,get_local,ARTICLE,TITLE
+    from .test_research_d1_integration import start
+    from .test_research_persistence import problem
+    from research import ResearchRunner
+    from research.source_policy import PinnedPublicTransport
+    client,_,store,_,_,resolver=data
+    body=problem(label);body.update(confirmed=True,summary='另一个已确认的合成研究问题')
+    rid=post(client,'/api/research',{'problem':body},label+'-create').json()['data']['research']['id']
+    task=start(client,rid)
+    article=ARTICLE.replace(('Citation: '+TITLE).encode(),('Citation: Example A, Example B (2026) '+TITLE).encode())
+    with source_server(article=article) as (port,calls):
+        assert ResearchRunner(store,source_transport=PinnedPublicTransport(_worker=partial(get_local,port))).run_once(task)=='COMPLETED'
+        assert calls==['/discovery','/article']
+    with store.transaction() as conn:excerpt=conn.execute("SELECT id FROM research_evidence_objects WHERE research_id=? AND kind='excerpts'",(rid,)).fetchone()[0]
+    new_data=(client,data[1],store,rid,excerpt,resolver)
+    draft=make_preview(new_data,label+'-preview')
+    result=post(client,f'/api/research/{rid}/paid-approvals',confirm_data(draft),label+'-confirm')
+    assert result.status_code==200,result.text
+    return result.json()['data']
+
+
+@pytest.mark.parametrize('first_unknown',[False,True])
+def test_account_unknown_blocks_a_different_research_before_any_second_connection(paid_api,first_unknown):
+    from contextlib import nullcontext
+    store=paid_api[2]
+    with execution(paid_api,body=response_body(usage=None) if first_unknown else response_body(),cap=10) as (first,_,wire,pid):
+        receipt=first.receive()
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+            ref=persist_budget_return(conn,store=store,lease=lease,receipt=receipt)
+            assert ledger.observe_in(conn,store=store,lease=lease,return_ref=ref)['kind']==('unknown' if first_unknown else 'estimated_upper')
+        second=_another_confirmed_paid_research(paid_api,'independent-after-first')
+        with tcp_reply(response_body()) as (factory,second_wire):
+            connects=[]
+            def count(deadline):connects.append(True);return factory(deadline)
+            expectation=pytest.raises(ResearchError,match='RECONCILIATION_REQUIRED') if first_unknown else nullcontext()
+            with expectation:
+                with BudgetedOwnedSession.offline_start(store,identity(paid_api[0]),first.proof.source,second['approval_ref'],connection_factory=count) as session:
+                    receipt=session.receive()
+                    with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+                        ref=persist_budget_return(conn,store=store,lease=lease,receipt=receipt)
+                        assert ledger.observe_in(conn,store=store,lease=lease,return_ref=ref)['booked_upper']==2
+            assert len(connects)==(0 if first_unknown else 1) and second_wire['requests']==(0 if first_unknown else 1)
+        with store.transaction() as conn:
+            assert tuple(conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone())==((3,0) if first_unknown else (0,4))
+        assert wire['requests']==1
+
+
+def test_already_reserved_task_cannot_authorize_or_consume_after_account_becomes_unknown_but_late_observe_works(paid_api):
+    client,_,store,_,_,_=paid_api
+    with execution(paid_api,cap=10) as (first,_,wire,pid):
+        receipt=first.receive()
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+            ref=persist_budget_return(conn,store=store,lease=lease,receipt=receipt)
+        second=_another_confirmed_paid_research(paid_api,'reserved-before-unknown')
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+            proof=ledger.reserve_in(conn,store=store,actor=identity(client),lease=lease,source=first.proof.source,approval_ref=second['approval_ref'])
+            assert conn.execute('SELECT held FROM research_funding_accounts').fetchone()[0]==6
+            ledger.unknown_in(conn,first.proof.reservation,store=store,lease=lease)
+        try:
+            with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+                for method in (ledger.authorize_in,ledger.consume_in):
+                    with pytest.raises(ResearchError,match='RECONCILIATION_REQUIRED'):method(conn,proof,lease)
+                assert conn.execute('SELECT state FROM research_dispatch_permits WHERE id=?',(proof.permit,)).fetchone()[0]=='prepared'
+                assert conn.execute('SELECT count(*) FROM research_financial_admissions').fetchone()[0]==1
+            # The original durable valid return may still be financially
+            # observed late without reopening admission for another send.
+            with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+                assert ledger.observe_in(conn,store=store,lease=lease,return_ref=ref)['booked_upper']==2
+                assert ledger.authorize_in(conn,proof,lease)
+                assert tuple(conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone())==(3,2)
+        finally:
+            ledger._PREPARED.pop(proof.session,None);object.__setattr__(proof,'_active',False)
+        assert wire['requests']==1
+
+
+@pytest.mark.parametrize('status',['active','blocked','closed'])
+def test_registered_project_pause_keeps_real_tickets_and_cached_writes_protected_and_allows_late_financial_observe(paid_api,status):
+    store=paid_api[2]
+    with execution(paid_api) as (session,_,wire,pid):
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+            project=conn.execute('SELECT * FROM research_project_budgets').fetchone()
+            ledger._write(conn,lease,'project-update','','research_project_budgets',1,
+                'UPDATE research_project_budgets SET status=?,version=version+1 WHERE id=1 AND version=?',(status,project['version']))
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+            sql='UPDATE research_dispatch_permits SET state=state WHERE id=?'
+            ledger._write(conn,lease,'ticket-noop',session.proof.permit,'research_dispatch_permits',session.proof.permit,sql,(session.proof.permit,))
+            with pytest.raises(sqlite3.DatabaseError):conn.execute(sql,(session.proof.permit,))
+            with pytest.raises(sqlite3.DatabaseError):conn.execute("UPDATE research_dispatch_permits SET state='prepared' WHERE id=?",(session.proof.permit,))
+            assert conn.execute('SELECT state FROM research_dispatch_permits').fetchone()[0]=='consumed'
+        receipt=session.receive()
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+            ref=persist_budget_return(conn,store=store,lease=lease,receipt=receipt)
+            assert ledger.observe_in(conn,store=store,lease=lease,return_ref=ref)['booked_upper']==2
+        assert wire['requests']==1
+
+
+def test_first_closed_registration_protects_rows_in_the_same_existing_transaction(paid_api):
+    from research.financial_guard import register_closed_project
+    client,_,store,rid,_,resolver=paid_api
+    with store.transaction() as conn:pid=conn.execute('SELECT owner_id FROM research_controls WHERE id=?',(rid,)).fetchone()[0]
+    source=OfflineProjectRegistration(store=store,identity=identity(client),principal_id=pid,funding_resolver=resolver,
+        authorized_cap=Money(currency='CNY',scale=6,amount_units=10),authorization_ref=str(uuid4()))
+    try:
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+            assert not conn.execute('SELECT 1 FROM research_project_budgets').fetchone()
+            # Compile an innocuous empty-table write before registration.
+            sql="UPDATE research_dispatch_permits SET state='prepared'"
+            conn.execute(sql)
+            register_closed_project(conn,store=store,identity=identity(client),lease=lease,source=source)
+            with pytest.raises(sqlite3.DatabaseError):conn.execute(sql)
+        with store.transaction(write=True) as conn:
+            with pytest.raises(sqlite3.DatabaseError):conn.execute("UPDATE research_dispatch_permits SET state='prepared'")
+    finally:source.close()
+
+
+@pytest.mark.parametrize('status',['active','blocked','closed'])
+def test_free_source_workflow_coexists_after_project_registration_without_touching_money(paid_api,status):
+    from functools import partial
+    from web.backend.tests.source_http_fixture import source_server,get_local
+    from .test_research_persistence import problem
+    from .test_research_d1_integration import start
+    from research import ResearchRunner
+    from research.source_policy import PinnedPublicTransport
+    client,_,store,_,_,_=paid_api
+    with execution(paid_api) as (session,_,paid_wire,pid):
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+            version=conn.execute('SELECT version FROM research_project_budgets').fetchone()[0]
+            ledger._write(conn,lease,'project-update','','research_project_budgets',1,
+                'UPDATE research_project_budgets SET status=?,version=version+1 WHERE id=1 AND version=?',(status,version))
+            money=tuple(conn.execute('SELECT held,upper_booked,settled FROM research_funding_accounts').fetchone())
+            assert money==(3,0,0)
+        data=problem('free Source independent of registered paid budget');data['confirmed']=True
+        created=post(client,'/api/research',{'problem':data},'coexist-create')
+        assert created.status_code==200,created.text
+        rid=created.json()['data']['research']['id'];task=start(client,rid)
+        with source_server() as (port,calls):
+            runner=ResearchRunner(store,source_transport=PinnedPublicTransport(_worker=partial(get_local,port)))
+            assert runner.run_once(task)=='COMPLETED'
+            assert runner.run_once(task)=='COMPLETED'
+            assert calls==['/discovery','/article']
+        with store.transaction() as conn:
+            assert tuple(conn.execute('SELECT held,upper_booked,settled FROM research_funding_accounts').fetchone())==money
+            assert conn.execute('SELECT count(*) FROM research_reservations WHERE task_id=?',(task,)).fetchone()[0]==0
+            assert conn.execute('SELECT count(*) FROM research_dispatch_permits p JOIN research_steps s ON p.step_id=s.id WHERE s.task_id=?',(task,)).fetchone()[0]==0
+            assert conn.execute("SELECT count(*) FROM research_source_requests WHERE task_id=? AND outcome='SUCCEEDED'",(task,)).fetchone()[0]==2
+        view=client.get(f'/api/research/{rid}').json()['data']
+        assert view['source_quota']['used']==2 and view['evidence']=='INSUFFICIENT' and view['model_analysis_ran'] is False
+        for kind in ('sources','excerpts','claims','reports'):
+            response=client.get(f'/api/research/{rid}/records',params={'task_id':task,'kind':kind})
+            assert response.status_code==200 and len(response.json()['data']['items'])==1
+        assert paid_wire['requests']==1
+
+
+@pytest.mark.parametrize('status',['blocked','closed'])
+def test_paused_execution_cannot_be_automatically_reactivated_by_original_offline_source(paid_api,status):
+    store=paid_api[2]
+    with execution(paid_api) as (first,_,wire,pid):
+        receipt=first.receive()
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+            ref=persist_budget_return(conn,store=store,lease=lease,receipt=receipt)
+            assert ledger.observe_in(conn,store=store,lease=lease,return_ref=ref)['booked_upper']==2
+            version=conn.execute('SELECT version FROM research_project_budgets').fetchone()[0]
+            ledger._write(conn,lease,'project-update','','research_project_budgets',1,
+                'UPDATE research_project_budgets SET status=?,version=version+1 WHERE id=1 AND version=?',(status,version))
+        second=_another_confirmed_paid_research(paid_api,'after-project-pause')
+        connections=[]
+        def forbidden(deadline):connections.append(True);pytest.fail('paused project connected')
+        with pytest.raises(PermissionError):BudgetedOwnedSession.offline_start(store,identity(paid_api[0]),first.proof.source,
+            second['approval_ref'],connection_factory=forbidden)
+        with store.transaction() as conn:
+            assert conn.execute('SELECT status FROM research_project_budgets').fetchone()[0]==status
+            assert conn.execute('SELECT count(*) FROM research_reservations').fetchone()[0]==1
+            assert tuple(conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone())==(0,2)
+        assert connections==[] and wire['requests']==1

@@ -192,6 +192,7 @@ def register_closed_project(conn,*,store,identity,lease,source=None):
     old=conn.execute('SELECT * FROM research_project_budgets WHERE id=1').fetchone()
     if old:
         if dict(old)!=values:raise PermissionError('project authorization already registered')
+        scope.financial_active=True;scope.refresh_authorizer()
         return ProjectBudget.model_validate(dict(old))
     if id(conn) in _WRITES:raise PermissionError('registration scope already active')
     _WRITES[id(conn)]={'conn':conn,'scope':scope,'lease':lease,'values':values}
@@ -199,4 +200,5 @@ def register_closed_project(conn,*,store,identity,lease,source=None):
         columns=','.join(values)
         conn.execute('INSERT INTO research_project_budgets('+columns+') VALUES('+','.join('?' for _ in values)+')',tuple(values.values()))
     finally:_WRITES.pop(id(conn),None)
+    scope.financial_active=True;scope.refresh_authorizer()
     return ProjectBudget.model_validate(values)

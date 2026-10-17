@@ -53,7 +53,8 @@ class _Scope:
     def __init__(self,conn,write):
         self.conn,self.active,self.pid,self.write=conn,True,os.getpid(),write
         table=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_project_budgets'").fetchone()
-        self.financial_active=bool(table and conn.execute("SELECT 1 FROM research_project_budgets WHERE status='active'").fetchone())
+        # Pausing execution never withdraws protection of existing tickets.
+        self.financial_active=bool(table and conn.execute("SELECT 1 FROM research_project_budgets WHERE id=1").fetchone())
         self.authorizer=None
     def refresh_authorizer(self):
         if self.authorizer is not None:self.conn.set_authorizer(self.authorizer)

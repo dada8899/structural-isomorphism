@@ -75,6 +75,7 @@ def activate_offline_in(conn,*,store,actor,lease,source):
     facts,project=_source(conn,store,actor,lease,source)
     if project is None:register_closed_project(conn,store=store,identity=actor,lease=lease,source=source);project=_row(conn,'research_project_budgets',1)
     if project['status']=='closed':
+        if project['version']!=1:raise PermissionError('paused project requires separate explicit authorization')
         if _write(conn,lease,'project-update','','research_project_budgets',1,
                 "UPDATE research_project_budgets SET status='active',version=version+1 WHERE id=1 AND version=? AND status='closed'",(project['version'],)).rowcount!=1:
             raise PermissionError('offline activation CAS failed')
@@ -84,6 +85,8 @@ def activate_offline_in(conn,*,store,actor,lease,source):
 
 def _limits(conn,project,account,new):
     if project['status']!='active' or account['status']!='active':raise PermissionError('budget unavailable')
+    if conn.execute("SELECT 1 FROM research_reservations WHERE account_id=? AND status='UNKNOWN' LIMIT 1",(account['id'],)).fetchone():
+        raise ResearchError('RECONCILIATION_REQUIRED',409,'此资金账户仍有未核对调用，暂停新执行。')
     exposure=account['settled']+account['upper_booked']+account['held']+new
     snapshot=conn.execute('SELECT * FROM research_balance_snapshots WHERE id=? AND account_id=?',(account['snapshot_id'],account['id'])).fetchone()
     if not snapshot or snapshot['expires_at']<=stamp():raise ResearchError('BUDGET_UNVERIFIED',503,'资金依据已过期。')
