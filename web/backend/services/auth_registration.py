@@ -1074,4 +1074,3 @@ def admit_private_gate(owner_key, *, operation_id=None):
         finally:
             if fd is not None:os.close(fd)
             os.close(directory)
-
