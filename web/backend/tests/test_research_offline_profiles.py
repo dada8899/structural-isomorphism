@@ -63,12 +63,12 @@ def test_legacy_auth_research9_provisions10_and_legacy10_recovers_readonly_compa
         assert conn.execute('SELECT id FROM research_controls WHERE id=?',(rid,)).fetchone()[0]==rid
 
 
-def test_current_auth_research12_remains_exactly_supported(roots):
+def test_current_auth_research13_remains_exactly_supported(roots):
     bootstrap_private_runtime();path=roots/'auth.sqlite3'
     result=recover_formula_journal(path)
-    assert result['schema_version']==12 and result['current_app_compatible'] is True and result['schema_repaired'] is False
+    assert result['schema_version']==13 and result['current_app_compatible'] is True and result['schema_repaired'] is False
     store=ResearchStore(AuthStore(path))
-    with store.transaction() as conn:ResearchStore._check_v12(conn)
+    with store.transaction() as conn:ResearchStore._check_v13(conn)
 
 
 def test_historical_current_auth_research11_recovers_without_app_admission(roots,tmp_path):
@@ -86,4 +86,26 @@ def test_historical_current_auth_research11_recovers_without_app_admission(roots
         ResearchStore._check_v11(conn)
         assert [tuple(row) for row in conn.execute('SELECT result_ref,admission_json,receipt_json,result_json,commit_json FROM research_formula_runs')]==before
         assert conn.execute('SELECT result_ref FROM research_formula_runs').fetchone()[0]==original['ref']
+        assert conn.execute('PRAGMA foreign_key_check').fetchall()==[]
+
+
+def test_historical_current_auth_research12_recovers_without_app_admission(roots,tmp_path):
+    # The frozen R12 producer executes the original HTTP/worker path and keeps
+    # its original saved plan, ledger and provenance; recovery only reads it.
+    from .test_research_native_schema_v13 import old12,TABLES
+    import json
+    path,identity,original,before=old12(roots,tmp_path)
+    result=recover_formula_journal(path)
+    assert result['schema_version']==12 and result['current_app_compatible'] is False and result['schema_repaired'] is False
+    assert (path.stat().st_dev,path.stat().st_ino)==identity
+    with closing(sqlite3.connect(path.as_uri()+'?mode=ro',uri=True,isolation_level=None)) as conn:
+        conn.row_factory=sqlite3.Row;install_default_hook(conn)
+        conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN')
+        assert AuthStore.check_offline_auth_metadata(conn)=='auth-provision-v1'
+        ResearchStore._check_v12(conn)
+        assert {table:[tuple(row) for row in conn.execute('SELECT * FROM '+table+' ORDER BY rowid')] for table in TABLES}==before
+        saved=conn.execute('SELECT result_ref,result_json,commit_json FROM research_plan_dispatches').fetchone()
+        assert saved['result_ref']==original['ref']
+        assert json.loads(saved['result_json'])==original['result']['data']['content']
+        assert json.loads(saved['commit_json'])['recorded_at']==original['result']['data']['content']['recorded_at']
         assert conn.execute('PRAGMA foreign_key_check').fetchall()==[]
