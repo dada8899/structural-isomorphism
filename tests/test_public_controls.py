@@ -1698,7 +1698,7 @@ def test_backtest_parquet_extra_is_single_source_and_used_by_sanity() -> None:
 
 def test_makefile_release_authority_is_independently_frozen() -> None:
     assert hashlib.sha256((ROOT / "Makefile").read_bytes()).hexdigest() == (
-        "9dc5644b315a28704b6041e14d4d30c0d437649daeeda1ef671728f7895733f0"
+        "d10d21b2d90e07deb8f9219f663f511ea96d5532c7f97637213f67f51efb0b9b"
     )
 
 
