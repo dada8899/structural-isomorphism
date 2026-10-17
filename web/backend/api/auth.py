@@ -33,6 +33,7 @@ import os
 import re
 import secrets
 import smtplib
+import sqlite3
 import threading
 import time
 import uuid
@@ -747,11 +748,20 @@ def _auth_unavailable() -> Optional[JSONResponse]:
     return None
 
 
-def _issue_jwt(email: str, tier: str) -> tuple[str, str]:
+def _issue_jwt(email: str = None, tier: str = None, *, authority=None) -> tuple[str, str]:
     """Return (jwt_string, jti)."""
     now = datetime.now(timezone.utc)
     jti = uuid.uuid4().hex
-    user = _store().user(email)
+    store = _store()
+    if store._private_auth or _is_prod():
+        if __package__=='web.backend.api':from ..services.auth_registration import SessionIssueAuthority
+        else:from services.auth_registration import SessionIssueAuthority
+        if type(authority) is not SessionIssueAuthority:
+            raise PermissionError('formal JWT requires this request committed finalization')
+        user=authority.consume(store)
+        email,tier=user['email'],user['tier']
+    else:
+        user=store.user(email)
     # Some internal/test-only connection flows mint a signed identity before
     # creating an auth account. Such a token cannot pass resolve_session_user;
     # production verify always supplies the persisted account generation.
@@ -921,6 +931,7 @@ async def request_link(body: RequestLinkBody, request: Request):
         _store().add_token(
             _token_hash(token), email, now.isoformat(),
             (now + timedelta(minutes=_TOKEN_TTL_MIN)).isoformat(),
+            request=request,
         )
     except DeletedCredentialError:
         # Same production acknowledgement: no account-state enumeration, no
@@ -975,6 +986,28 @@ async def verify(body: VerifyBody, request: Request, response: Response):
         return JSONResponse(
             {"ok": False, "error": "missing token"}, status_code=400
         )
+
+    store=_store()
+    if store._private_auth or _is_prod():
+        if __package__=='web.backend.api':from ..services.auth_registration import verify_request,register,RegistrationError
+        else:from services.auth_registration import verify_request,register,RegistrationError
+        try:
+            bucket=opaque_identifier('auth-verify.ip',_client_ip(request),kind='ip')
+            if not store.record_rate_requests([(bucket,120)]):
+                return JSONResponse({'ok':False,'error':'rate limit exceeded; try again later'},status_code=429)
+            with verify_request(request,store) as source:
+                with register(store,source,_token_hash(token),_DEFAULT_TIER) as (user,was_created,authority):
+                    jwt_token,_jti=_issue_jwt(authority=authority)
+                    resp=JSONResponse({'ok':True,'user':{key:user[key] for key in ('email','tier','created_at')}})
+                    resp.set_cookie(key=_COOKIE_NAME,value=jwt_token,**_cookie_args(request))
+                    _clear_beta_session(resp)
+            # Durable notification enqueue is inside the finalization commit.
+            # Delivery/retry remains a separate explicitly configured worker.
+            return resp
+        except (RegistrationError,DeletedCredentialError):
+            return JSONResponse({'ok':False,'error':'invalid token; request a new sign-in link'},status_code=400)
+        except (PermissionError,RuntimeError,OSError,sqlite3.Error):
+            return JSONResponse({'ok':False,'error':'registration unavailable; request a new sign-in link'},status_code=503)
 
     consumed_marker = datetime.now(timezone.utc).isoformat()
     match, status = _store().consume_token(_token_hash(token), consumed_marker)
@@ -1267,8 +1300,10 @@ def _run_account_deletion_locked(service, job_id,*,owner_lease=None):
     first,receipt = service.prepare_legacy_deletion_locked(job_id,**lease_args)
     if receipt is None:
         if _is_prod():
+            if __package__=='web.backend.api':from ..services.auth_registration import deletion_scope
+            else:from services.auth_registration import deletion_scope
             with _favorites_authority(job['owner_email'], job['session_generation'], owner_lease,
-                    service=service, job_id=job_id) as authority:
+                    service=service, job_id=job_id) as authority, deletion_scope(service,owner_lease,job_id):
                 removed = _account_registry(favorites_authority=authority).delete_all(job['owner_email'])
         else:
             removed = _account_registry().delete_all(job["owner_email"])
