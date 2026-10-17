@@ -25,7 +25,7 @@ from .test_research_paid_producers import identity
 CANDIDATE={'summary':'A starting plan from the self observation.','candidates':[{'label':'Queue variability','mechanism_hypothesis':'Variable arrivals may accumulate work.','why_considered':'The observation concerns waiting.','method_leads':['queueing model'],'key_unknowns':['Arrival variation is unknown.']}],'query_suggestions':[{'candidate_index':0,'query':'queue variability waiting','intent':'Find a possible comparison later.'}],'gaps':['No literature or mathematics has been checked.'],'clarification_questions':[]}
 
 @contextmanager
-def provider(*,invalid_body=False,unknown_usage=False,balance='73',before_balance=None,before_post=None):
+def provider(*,invalid_body=False,unknown_usage=False,balance='73',before_balance=None,before_post=None,choices=None):
     calls=[]
     class Handler(BaseHTTPRequestHandler):
         def log_message(self,*args):pass
@@ -41,7 +41,7 @@ def provider(*,invalid_body=False,unknown_usage=False,balance='73',before_balanc
             raw=self.rfile.read(int(self.headers['Content-Length']));request=json.loads(raw)
             calls.append(('POST',self.path,self.headers.get('X-Fixture-Incarnation'),request))
             if before_post:before_post()
-            self.reply({'id':'fixture-plan-1','model':'deepseek-flash','usage':None if unknown_usage else {'prompt_tokens':100,'completion_tokens':80,'total_tokens':180},'choices':[{'finish_reason':'stop','message':{'content':'{}' if invalid_body else json.dumps(CANDIDATE)}}]})
+            self.reply({'id':'fixture-plan-1','model':'deepseek-flash','usage':None if unknown_usage else {'prompt_tokens':100,'completion_tokens':80,'total_tokens':180},'choices':choices if choices is not None else [{'finish_reason':'stop','message':{'content':'{}' if invalid_body else json.dumps(CANDIDATE)}}]})
     server=ThreadingHTTPServer(('127.0.0.1',0),Handler);thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
     try:yield server,calls
     finally:server.shutdown();server.server_close();thread.join(3)
@@ -434,3 +434,125 @@ def test_fresh_balance_keeps_prior_upper_booking_as_unsettled_exposure(stack,mon
         assert failure.value.code=='BUDGET_EXHAUSTED'
         assert [c[0] for c in calls]==['GET','POST','GET']
         with store.transaction() as conn:assert conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone()[:]==(0,UPPER)
+
+
+# Separate registered nonzero-margin fixture; the zero-margin original remains unchanged.
+@contextmanager
+def registered_margin_funding(data,server):
+    client,_,rid,store=data;actor=identity(client)
+    with store.transaction() as conn:pid=conn.execute('SELECT owner_id FROM research_controls WHERE id=?',(rid,)).fetchone()[0]
+    money=lambda n:Money(currency='CNY',scale=6,amount_units=n)
+    fid,binding,sid=[str(uuid4()) for _ in range(3)];now=int(time.time())
+    quote=UsageUpperQuote(revision=str(uuid4()),context_bound=1048576,peak_input_miss_units_per_million=1,peak_output_units_per_million=2,local_guard=1,price_document_digest='a'*64,model_document_digest='b'*64,completion_bound_basis_digest='c'*64,final_request_code_digest=request_codec_digest(),valid_until=now+60)
+    basis=BudgetBasisSnapshot(id=sid,account_id=fid,provider_binding_id=binding,funding_epoch=1,initial_prepaid=money(73_000_000),other_use_margin=money(1_000_000),cap=money(72_000_000),settled_actual=money(0),upper_booked=money(0),held=money(0),available_after_observed_consumption=money(73_000_000),price_revision=quote.revision,valid_until=now+3600)
+    stamp=lambda t:datetime.fromtimestamp(t,timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    with store.transaction(write=True) as conn:
+        conn.execute("INSERT INTO research_funding_accounts(id,binding_id,mode,provider,currency,cap,initial_prepaid_units,other_use_margin_units,status,snapshot_id) VALUES(?,?,'live','deepseek','CNY',72000000,73000000,1000000,'active',?)",(fid,binding,sid))
+        conn.execute('INSERT INTO research_balance_snapshots(id,account_id,balance,settled_at_observation,local_settlement_cursor,observed_at,expires_at,hard_prepaid,auto_topup_off,postpaid_off,basis_evidence_digest) VALUES(?,?,73000000,0,0,?,?,1,1,1,?)',(sid,fid,stamp(now),stamp(now+3600),digest(canonical(basis.model_dump()))))
+        conn.execute("INSERT INTO research_price_revisions(id,account_id,operation,currency,scale,expires_at,policy_revision,quote_json,quote_digest) VALUES(?,?,'model_report','CNY',6,?,'bounded_usage_upper_v2',?,?)",(quote.revision,fid,stamp(now+60),canonical(quote.model_dump()).decode(),digest(canonical(quote.model_dump()))))
+    resolver=OfflineFundingResolver(principal_id=pid,quote=quote,basis=basis,approved_upper=money(3))
+    source=OfflineProjectRegistration(store=store,identity=actor,principal_id=pid,funding_resolver=resolver,authorized_cap=money(72_000_000),authorization_ref=str(uuid4()))
+    resource=fixture_resource(server,economic_binding=binding,credential_incarnation='fixture-credential-1')
+    installation=None
+    try:
+        installation=install_fixture_funding(store,actor,source,resource)
+        yield installation
+    finally:
+        if installation:uninstall_fixture_funding(store,installation)
+        else:resource.close()
+        source.close();resolver.close()
+
+
+
+@pytest.mark.parametrize('choices',[[None],[[]],[0],[{'finish_reason':'stop','message':None}],[]],ids=['null-choice','array-choice','integer-choice','null-message','empty-choices'])
+def test_review_body_shapes_keep_valid_usage_and_independent_cost(stack,monkeypatch,choices):
+    data=saved(stack,monkeypatch);client,_,rid,store=data
+    with provider(choices=choices) as (server,calls),funded(data,server):
+        admitted,_=confirm(client,rid,preview(client,rid))
+        result=ResearchRunner(store).run_once(admitted['task_id'])['data']
+        assert result['state']=='failed_insufficient' and result['safe_code']=='body_invalid'
+        assert result['financial_state']=='upper_booked' and result['usage']['actual_charge_units'] is None
+        with store.transaction() as conn:
+            assert conn.execute('SELECT held,upper_booked,settled FROM research_funding_accounts').fetchone()[:]==(0,UPPER,0)
+            assert conn.execute('SELECT state,cost_state FROM research_plan_dispatches').fetchone()[:]==('returned','upper_booked')
+        assert client.get('/api/research/'+rid+'/plan-results/'+admitted['result_ref']).json()['data']['content'] is None
+        ResearchRunner(store).run_once(admitted['task_id'])
+        assert [call[0] for call in calls]==['GET','POST']
+
+
+@pytest.mark.parametrize('domain',['project','funding','project_version','funding_version','unchanged'])
+def test_review_first_write_rechecks_native_active_states_and_versions(stack,monkeypatch,domain):
+    from research import plan_runtime,plan_transport
+    data=saved(stack,monkeypatch);client,_,rid,store=data;prepare=plan_transport.FixturePlanResource.prepare_post
+    def change(resource):
+        pending=prepare(resource)
+        try:
+            if domain!='unchanged':
+                with store.transaction() as conn:
+                    admission=json.loads(conn.execute('SELECT admission_json FROM research_plan_dispatches').fetchone()[0])
+                with AuthorizationGate(store).owner_gate(admission['principal_id']) as lease,store.transaction(write=True) as conn:
+                    if domain.startswith('project'):
+                        from research.paid_budget import _write
+                        value=conn.execute('SELECT * FROM research_project_budgets').fetchone()
+                        sql="UPDATE research_project_budgets SET "+("status='blocked'," if domain=='project' else '')+"version=version+1 WHERE id=1 AND version=?"
+                        assert _write(conn,lease,'project-update','','research_project_budgets',1,sql,(value['version'],)).rowcount==1
+                    else:
+                        value=conn.execute('SELECT * FROM research_plan_funding').fetchone()
+                        changes={'version':value['version']+1}
+                        if domain=='funding':changes['status']='blocked'
+                        plan_runtime._native_write(conn,lease,'research_plan_funding',1,changes,lambda:plan_runtime._financial_verifier(conn,store,lease,admission))
+            return pending
+        except BaseException:pending.close();raise
+    monkeypatch.setattr(plan_transport.FixturePlanResource,'prepare_post',change)
+    with provider() as (server,calls),funded(data,server):
+        admitted,_=confirm(client,rid,preview(client,rid))
+        if domain=='unchanged':assert ResearchRunner(store).run_once(admitted['task_id'])['data']['state']=='saved'
+        else:
+            with pytest.raises(PermissionError):ResearchRunner(store).run_once(admitted['task_id'])
+            with store.transaction() as conn:
+                assert conn.execute('SELECT state,cost_state FROM research_plan_dispatches').fetchone()[:]==('unknown','unknown')
+                assert conn.execute('SELECT held,upper_booked,settled FROM research_funding_accounts').fetchone()[:]==(UPPER,0,0)
+            ResearchRunner(store).run_once(admitted['task_id'])
+        assert [call[0] for call in calls]==(['GET','POST'] if domain=='unchanged' else ['GET'])
+
+
+@pytest.mark.parametrize('balance,can_send',[('3',False),('4',True)])
+def test_review_fresh_balance_deducts_registered_margin_independently_of_initial_cap(stack,monkeypatch,balance,can_send):
+    from research.errors import ResearchError
+    data=saved(stack,monkeypatch);client,_,rid,store=data
+    with provider(balance=balance) as (server,calls),registered_margin_funding(data,server):
+        admitted,_=confirm(client,rid,preview(client,rid))
+        if can_send:assert ResearchRunner(store).run_once(admitted['task_id'])['data']['state']=='saved'
+        else:
+            with pytest.raises(ResearchError) as failure:ResearchRunner(store).run_once(admitted['task_id'])
+            assert failure.value.code=='BUDGET_EXHAUSTED'
+        with store.transaction() as conn:
+            account=conn.execute('SELECT * FROM research_funding_accounts').fetchone()
+            assert (account['initial_prepaid_units'],account['other_use_margin_units'],account['cap'])==(73_000_000,1_000_000,72_000_000)
+            assert account['held']==0 and account['upper_booked']==(UPPER if can_send else 0)
+        assert [call[0] for call in calls]==(['GET','POST'] if can_send else ['GET'])
+
+
+@pytest.mark.parametrize('domain',['project','funding'])
+def test_review_native_block_after_first_write_does_not_discard_authentic_late_cost(stack,monkeypatch,domain):
+    from research import plan_runtime
+    data=saved(stack,monkeypatch);client,_,rid,store=data
+    def block_after_write():
+        with store.transaction() as conn:
+            admission=json.loads(conn.execute('SELECT admission_json FROM research_plan_dispatches').fetchone()[0])
+        with AuthorizationGate(store).owner_gate(admission['principal_id']) as lease,store.transaction(write=True) as conn:
+            if domain=='project':
+                from research.paid_budget import _write
+                value=conn.execute('SELECT * FROM research_project_budgets').fetchone()
+                assert _write(conn,lease,'project-update','','research_project_budgets',1,"UPDATE research_project_budgets SET status='blocked',version=version+1 WHERE id=1 AND version=?",(value['version'],)).rowcount==1
+            else:
+                value=conn.execute('SELECT * FROM research_plan_funding').fetchone()
+                plan_runtime._native_write(conn,lease,'research_plan_funding',1,{'status':'blocked','version':value['version']+1},lambda:plan_runtime._financial_verifier(conn,store,lease,admission))
+    with provider(before_post=block_after_write) as (server,calls),funded(data,server):
+        admitted,_=confirm(client,rid,preview(client,rid))
+        result=ResearchRunner(store).run_once(admitted['task_id'])['data']
+        assert result['financial_state']=='upper_booked' and result['usage']['actual_charge_units'] is None
+        with store.transaction() as conn:
+            assert conn.execute('SELECT held,upper_booked,settled FROM research_funding_accounts').fetchone()[:]==(0,UPPER,0)
+            assert conn.execute('SELECT usage_json FROM research_plan_dispatches').fetchone()[0] is not None
+        assert [call[0] for call in calls]==['GET','POST']

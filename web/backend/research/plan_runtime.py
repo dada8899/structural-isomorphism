@@ -249,6 +249,23 @@ def _financial_verifier(conn,store,lease,admission,*,owned=None):
     if not f or f['account_id'] is None or (f['principal_id'],f['generation'],f['economic_binding'],f['credential_incarnation'],f['funding_epoch'])!=(admission['principal_id'],admission['generation'],admission['economic_binding'],admission['credential_incarnation'],admission['funding_epoch']):raise PermissionError('original funding identity differs')
 
 
+def _send_financial_current(conn,store,lease,value,admission,*,account_version,project_version,funding_version):
+    """First-write authorization only; authentic late costs use the verifier above."""
+    _financial_verifier(conn,store,lease,admission)
+    funding=row(conn,'research_plan_funding',1)
+    account=row(conn,'research_funding_accounts',value['account_id'])
+    project=row(conn,'research_project_budgets',1)
+    if (not account or not project or funding['status']!='fixture' or project['status']!='active' or account['status']!='active'
+        or funding['version']!=funding_version or project['version']!=project_version or account['version']!=account_version
+        or funding['account_id']!=account['id'] or project['funding_account_id']!=account['id']
+        or account['binding_id']!=admission['economic_binding'] or project['economic_binding']!=admission['economic_binding']
+        or account['funding_epoch']!=admission['funding_epoch'] or account['provider']!='deepseek' or account['currency']!='CNY' or account['scale']!=6):
+        raise PermissionError('current financial permission ended before first write')
+    other=conn.execute("SELECT 1 FROM research_plan_dispatches WHERE account_id=? AND id!=? AND (state IN ('consumed','unknown') OR cost_state='unknown' OR (state='closed' AND cost_state='held')) LIMIT 1",(account['id'],value['id'])).fetchone()
+    legacy=conn.execute("SELECT 1 FROM research_reservations WHERE account_id=? AND status='UNKNOWN' LIMIT 1",(account['id'],)).fetchone()
+    if other or legacy:raise ResearchError('RECONCILIATION_REQUIRED',409,'此资金账户有其他未核对发送，暂停本次外发。')
+
+
 def run_once(store,task_id):
     """Real fixture worker. Restart after consume only reconciles; never sends again."""
     gate=AuthorizationGate(store)
@@ -287,7 +304,7 @@ def run_once(store,task_id):
             if quote.valid_until<=int(time.time()) or codec_digest()!=quote.codec_digest or admission['producer_code_digest']!=producer_code_digest():raise ResearchError('PREVIEW_EXPIRED',409,'报价已过期，请重新预览。')
             finance.check_unknown(conn,account['id'])
             exposure=account['settled']+account['upper_booked']+account['held']+value['upper']
-            if exposure>min(project['authorized_cap'],account['cap']) or balance-account['held']-account['upper_booked']<value['upper']:raise ResearchError('BUDGET_EXHAUSTED',429,'共享预算或当前余额不足；本次未发送模型请求。')
+            if exposure>min(project['authorized_cap'],account['cap']) or balance-account['other_use_margin_units']-account['held']-account['upper_booked']<value['upper']:raise ResearchError('BUDGET_EXHAUSTED',429,'共享预算或当前余额不足；本次未发送模型请求。')
             encoded=plan_preview_request(make_plan_manifest({'input_kind':'user_observation_summary','summary':admission['raw_input']}))
             if encoded.outbound_request_digest!=admission['request_digest'] or encoded.input_manifest_digest!=admission['input_manifest_digest'] or encoded.template_digest!=admission['template_digest']:raise PermissionError('confirmed bytes changed')
             verify=lambda:_financial_verifier(conn,store,lease,admission)
@@ -299,6 +316,8 @@ def run_once(store,task_id):
             from .runner import state_in
             state_in(conn,task_id,'RUNNING',safe_code='plan_dispatch_consumed')
             consumed_account_version=account['version']+1
+            consumed_project_version=project['version']+1
+            consumed_funding_version=funding['version']
         consumed=True
         # Preconnection has no application bytes and waits outside Owner/SQLite.
         pending=resource.prepare_post()
@@ -307,13 +326,15 @@ def run_once(store,task_id):
             with store.transaction() as conn:
                 value=row(conn,'research_plan_dispatches',dispatch);admission_now,task,step,control=_task_current(conn,store,value)
                 account=row(conn,'research_funding_accounts',value['account_id']);funding=row(conn,'research_plan_funding',1)
-                _financial_verifier(conn,store,lease,admission)
+                _send_financial_current(conn,store,lease,value,admission,account_version=consumed_account_version,
+                    project_version=consumed_project_version,funding_version=consumed_funding_version)
                 if (value['state']!='consumed' or value['nonce']!=nonce or value['admission_digest']!=admission_digest or account['version']!=consumed_account_version
                     or funding['balance_claim']!=dispatch or funding['balance_nonce']!=nonce or quote.valid_until<=int(time.time())
                     or admission_now!=admission or step['state']!='SENDING' or task['execution']!='RUNNING'):raise PermissionError('committed consumed dispatch no longer current')
             resource.require()
             # Actual resource + native lifetime, not JSON, authorizes exactly this send.
-            cap=_PlanSendLease(store,resource,lease,dispatch,encoded.raw,consumed_account_version,_factory=_SEND_FACTORY)
+            cap=_PlanSendLease(store,resource,lease,dispatch,encoded.raw,consumed_account_version,
+                consumed_project_version,consumed_funding_version,_factory=_SEND_FACTORY)
             try:pending.write_first(cap)
             finally:cap.close()
         # Neither an Owner lock nor a DB transaction spans response waiting.
@@ -355,8 +376,10 @@ def _commit_return(store,pid,dispatch,admission,owned,balance_digest):
     if data is not None:
         try:
             choices=data.get('choices')
-            if type(choices) is not list or len(choices)!=1 or choices[0].get('finish_reason')!='stop':raise ValueError('incomplete plan body')
-            proposal=parse_plan_candidate(choices[0]['message']['content'])
+            if type(choices) is not list or len(choices)!=1 or type(choices[0]) is not dict or choices[0].get('finish_reason')!='stop':raise ValueError('incomplete plan body')
+            message=choices[0].get('message')
+            if type(message) is not dict or type(message.get('content')) is not str:raise ValueError('invalid plan message')
+            proposal=parse_plan_candidate(message['content'])
         except (ValueError,TypeError,KeyError):pass
     with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
         value=row(conn,'research_plan_dispatches',dispatch)
@@ -414,10 +437,11 @@ def metadata(value):
 
 
 class _PlanSendLease:
-    __slots__=('store','resource','lease','dispatch','raw','account_version','reference','pid','active','used')
-    def __init__(self,store,resource,lease,dispatch,raw,account_version,*,_factory=None):
+    __slots__=('store','resource','lease','dispatch','raw','account_version','project_version','funding_version','reference','pid','active','used')
+    def __init__(self,store,resource,lease,dispatch,raw,account_version,project_version,funding_version,*,_factory=None):
         if _factory is not _SEND_FACTORY:raise TypeError('native committed dispatch required')
         self.store,self.resource,self.lease,self.dispatch,self.raw,self.account_version=store,resource,lease,dispatch,raw,account_version
+        self.project_version,self.funding_version=project_version,funding_version
         self.reference,self.pid,self.active,self.used=uid(),__import__('os').getpid(),True,False
         _SEND_CAPS[self.reference]=self
     def __setattr__(self,name,value):
@@ -430,7 +454,8 @@ class _PlanSendLease:
         with self.store.transaction() as conn:
             value=row(conn,'research_plan_dispatches',self.dispatch)
             admission,task,step,control=_task_current(conn,self.store,value)
-            _financial_verifier(conn,self.store,self.lease,admission)
+            _send_financial_current(conn,self.store,self.lease,value,admission,account_version=self.account_version,
+                project_version=self.project_version,funding_version=self.funding_version)
             account=row(conn,'research_funding_accounts',value['account_id']);funding=row(conn,'research_plan_funding',1)
             if value['state']!='consumed' or task['execution']!='RUNNING' or step['state']!='SENDING' or funding['balance_claim']!=self.dispatch or funding['balance_nonce']!=value['nonce'] or account['version']!=self.account_version or digest(self.raw)!=admission['request_digest'] or codec_digest()!=admission['template_code_digest'] or producer_code_digest()!=admission['producer_code_digest'] or admission['quote']['valid_until']<=int(time.time()):raise PermissionError('committed authorization ended before first socket write')
             result=self.raw,self.dispatch,value['nonce'],value['admission_digest']
