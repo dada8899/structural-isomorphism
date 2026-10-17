@@ -32,6 +32,9 @@
   let kbBusy = false;
   let summaryEdited = false;
   let accountScope = null;
+  let methodGeneration = 0;
+  let methodSeen = false;
+  let methodDirty = false;
   const initialSection = ['#my-research', '#kb-section'].includes(location.hash) ? location.hash.slice(1) : null;
   let initialLoad = true;
   let entryPositioned = false;
@@ -39,6 +42,132 @@
   let researchId = initialPath.length === 2 ? initialPath[1] : null;
   const selectedTask = new URLSearchParams(location.search).get('task_id');
   const validId = value => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value);
+
+  function clearMethod(message, hide = false) {
+    byId('method-body').replaceChildren();
+    byId('method-citations').replaceChildren();
+    byId('method-meta').hidden = true;
+    byId('method-revision').textContent = '';
+    byId('method-time').textContent = '';
+    byId('method-time').removeAttribute('datetime');
+    byId('method-status').textContent = message || '';
+    byId('method-section').hidden = hide || !methodSeen;
+  }
+  function invalidateMethod(message = '本次未取得可展示的方法记录。请重新读取已保存版本。') {
+    methodGeneration++;
+    clearMethod(message);
+  }
+  function beginMethodRead() {
+    invalidateMethod('正在核对已保存的方法记录…');
+    return {generation:methodGeneration, researchId};
+  }
+  function methodFailure(token) {
+    if (token?.generation === methodGeneration) clearMethod('本次未能核对方法记录，旧正文已收起。请重新读取已保存版本。');
+  }
+  async function methodRequest(url, options, token) {
+    try { return await request(url,options); }
+    catch (error) { methodFailure(token); throw error; }
+  }
+  function validMethod(data) {
+    const value = data.method_result;
+    const object = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+    const keys = (v, allowed) => object(v) && Object.keys(v).sort().join('|') === allowed.slice().sort().join('|');
+    const integer = v => Number.isSafeInteger(v) && v > 0 && v <= 2147483647;
+    const text = (v, max) => typeof v === 'string' && v.trim().length > 0 && Array.from(v).length <= max && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/.test(v);
+    const list = (v, max, check) => Array.isArray(v) && v.length <= max && v.every(check);
+    const digest = v => typeof v === 'string' && /^[a-f0-9]{64}$/.test(v);
+    const handle = v => typeof v === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,31}$/.test(v);
+    try {
+      if (!keys(value, ['schema_version','result_ref','input_revision','input_digest','candidate_schema','body_schema','producer_revision','received_at','candidate_digest','envelope_digest','is_historical','execution_mode','model_analysis_ran','status','evidence','assessment','review','sections','citations']) ||
+          value.schema_version !== 'MethodHypothesisResultView-v1' || value.candidate_schema !== 'ModelReportCandidate-v1' ||
+          value.body_schema !== 'OwnedMethodBody-v1' || value.producer_revision !== 'owned-method-offline-v1' ||
+          !validId(value.result_ref) || !integer(value.input_revision) || !digest(value.input_digest) ||
+          !digest(value.candidate_digest) || !digest(value.envelope_digest) || value.is_historical !== false ||
+          value.execution_mode !== 'offline_probe' || value.model_analysis_ran !== false || value.status !== 'qualified_report' ||
+          value.evidence !== 'INSUFFICIENT' || value.assessment !== 'llm_inference' || value.review !== 'unreviewed' ||
+          typeof value.received_at !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/.test(value.received_at) || !Number.isFinite(Date.parse(value.received_at)) ||
+          data.research?.id !== researchId || data.is_historical === true || !integer(data.research_version) || !integer(data.task_version) ||
+          data.research.version !== data.research_version || !validId(data.task?.id) || data.task.version !== data.task_version ||
+          data.task?.policy_revision !== 'bounded_usage_upper_v2' || data.execution !== 'COMPLETED' || data.task.execution !== 'COMPLETED' || data.task.stop_requested !== false ||
+          data.research.current_task_id !== data.task.id || data.evidence !== 'INSUFFICIENT' || data.report_status !== 'qualified_report' || data.execution_mode !== 'offline_probe' ||
+          value.input_revision !== data.research.current_revision || value.input_revision !== data.current_problem?.revision ||
+          value.input_digest !== data.current_problem.digest || data.task.input_revision !== value.input_revision ||
+          new TextEncoder().encode(JSON.stringify(value)).length > 512 * 1024) return null;
+      if (!Array.isArray(value.citations) || value.citations.length < 1 || !list(value.citations, 20, citation => keys(citation,['handle','source_id','source_revision','excerpt_id','title','attribution','start','end','quote','extracted_digest']) &&
+          handle(citation.handle) && validId(citation.source_id) && integer(citation.source_revision) && validId(citation.excerpt_id) &&
+          text(citation.title,300) && text(citation.attribution,400) && text(citation.quote,1000) && digest(citation.extracted_digest) &&
+          Number.isSafeInteger(citation.start) && Number.isSafeInteger(citation.end) && citation.start >= 0 && citation.end <= 200000 &&
+          citation.end > citation.start && Array.from(citation.quote).length === citation.end - citation.start && citation.quote.trim().split(/\s+/).length <= 20)) return null;
+      const handles = new Set(value.citations.map(citation => citation.handle));
+      if (handles.size !== value.citations.length) return null;
+      const section = value.sections;
+      if (!keys(section,['summary','mechanisms','competing_explanations','validation_plan','gaps']) || !text(section.summary,1000) ||
+          !list(section.mechanisms,3, mechanism => keys(mechanism,['label','mechanism','variable_map','conditions','nontransferable','evidence_handles']) &&
+            text(mechanism.label,120) && text(mechanism.mechanism,1200) &&
+            list(mechanism.variable_map,12, mapping => keys(mapping,['source','target','rationale']) && text(mapping.source,120) && text(mapping.target,120) && text(mapping.rationale,400)) &&
+            list(mechanism.conditions,5,v => text(v,400)) && list(mechanism.nontransferable,5,v => text(v,400)) &&
+            list(mechanism.evidence_handles,20,v => handle(v) && handles.has(v)) && new Set(mechanism.evidence_handles).size === mechanism.evidence_handles.length) ||
+          !list(section.competing_explanations,5,v => text(v,400)) || !list(section.gaps,12,v => text(v,400)) ||
+          !keys(section.validation_plan,['measurement','outcome','falsification','stop_rule']) ||
+          !text(section.validation_plan.measurement,700) || !text(section.validation_plan.outcome,240) ||
+          !text(section.validation_plan.falsification,400) || !text(section.validation_plan.stop_rule,400)) return null;
+      return value;
+    } catch (_error) { return null; }
+  }
+  function renderMethod(data, token) {
+    if (!token || token.generation !== methodGeneration || (token.researchId && token.researchId !== data.research?.id)) return;
+    methodSeen = methodSeen || data.task?.policy_revision === 'bounded_usage_upper_v2';
+    if (methodDirty) { clearMethod('表单有未保存改动，已收起旧方法记录。'); return; }
+    if (['FAILED','CANCELLED','ACCESS_REVOKED'].includes(data.execution) || data.task?.stop_requested) {
+      clearMethod('该流程已停止或未完成，本次没有可展示的方法正文。'); return;
+    }
+    const value = validMethod(data);
+    if (!value) { clearMethod('本次未取得可展示的方法记录。请重新读取已保存版本。'); return; }
+    methodSeen = true;
+    clearMethod('离线流程演练，未运行真实模型。证据不足／未经独立评审；以下是待核的方法假说。');
+    byId('method-meta').hidden = false;
+    byId('method-revision').textContent = String(value.input_revision);
+    byId('method-time').dateTime = value.received_at;
+    byId('method-time').textContent = new Intl.DateTimeFormat('zh-CN', {dateStyle:'medium',timeStyle:'long'}).format(new Date(value.received_at));
+    const add = (parent, tag, content, className) => {
+      const node = document.createElement(tag); node.textContent = content;
+      if (className) node.className = className;
+      parent.append(node); return node;
+    };
+    const group = (parent, title, values, heading = 'h4') => {
+      if (!values.length) return;
+      add(parent,heading,title); const list = document.createElement('ul');
+      values.forEach(value => add(list,'li',value)); parent.append(list);
+    };
+    const body = byId('method-body');
+    add(body,'h3','摘要'); add(body,'p',value.sections.summary);
+    const citationIndex = new Map(value.citations.map((citation,index) => [citation.handle,index + 1]));
+    value.sections.mechanisms.forEach((mechanism,index) => {
+      const article = document.createElement('article'); article.className = 'method-mechanism';
+      add(article,'h3',`机制假说 ${index + 1}：${mechanism.label}`); add(article,'p',mechanism.mechanism);
+      if (mechanism.variable_map.length) {
+        add(article,'h4','变量对应'); const mapping = document.createElement('dl'); mapping.className = 'method-mapping';
+        mechanism.variable_map.forEach(item => { add(mapping,'dt',`${item.source} → ${item.target}`); add(mapping,'dd',item.rationale); }); article.append(mapping);
+      }
+      group(article,'适用条件待核',mechanism.conditions); group(article,'不可直接迁移的部分',mechanism.nontransferable);
+      const references = document.createElement('div'); references.className = 'method-references';
+      mechanism.evidence_handles.forEach(handle => {
+        const number = citationIndex.get(handle); const button = add(references,'button',`查看引用 ${number}`,'secondary'); button.type = 'button';
+        button.addEventListener('click',() => { const target = byId('method-citation-' + number); if (target) { target.scrollIntoView({block:'center'}); target.focus(); } });
+      }); article.append(references); body.append(article);
+    });
+    if (!value.sections.mechanisms.length) add(body,'p','这份记录没有机制提名，仍需继续核对。','hint');
+    group(body,'其他可能解释',value.sections.competing_explanations,'h3');
+    add(body,'h3','验证计划'); const plan = value.sections.validation_plan;
+    for (const [title,key] of [['观察与测量','measurement'],['比较结果','outcome'],['反证条件','falsification'],['停止条件','stop_rule']]) { add(body,'h4',title); add(body,'p',plan[key]); }
+    group(body,'仍待补齐的部分',value.sections.gaps,'h3');
+    const citations = byId('method-citations');
+    if (value.citations.length) { add(citations,'h3','引用的原句'); add(citations,'p','引用只对应所列短句，不代表支持整份结论。','hint'); }
+    value.citations.forEach((citation,index) => {
+      const article = document.createElement('article'); article.className = 'method-citation'; article.id = 'method-citation-' + (index + 1); article.tabIndex = -1;
+      add(article,'h4',`引用 ${index + 1}：${citation.title}`); add(article,'p',citation.attribution,'hint'); add(article,'blockquote',citation.quote); citations.append(article);
+    });
+  }
 
   function status(message, error = false) {
     byId('status').textContent = message;
@@ -60,6 +189,7 @@
         observation:variable.observation === null ? null : variable.observation.normalize('NFC')}))};
   }
   function clearPrivateView() {
+    invalidateMethod(); methodSeen = false; methodDirty = false; clearMethod('',true);
     accountScope = null;
     privateGeneration++;
     listGeneration++;
@@ -120,7 +250,8 @@
       return payload.data;
     } finally { clearTimeout(timer); }
   }
-  function render(data) {
+  function render(data, methodToken) {
+    methodDirty = false;
     invalidateKB();
     summaryEdited = true;
     sourceRecordGeneration++;
@@ -162,7 +293,7 @@
     }
     form.hidden = false;
     byId('history').hidden = false;
-    renderTask(data);
+    renderTask(data,{methodToken});
     setBusy(busy);
   }
   function observeServer(data) {
@@ -246,6 +377,7 @@
       if (data.source_quota.unknown_closed) byId('task-message').textContent += ' 旧读取执行已闭合，但原结果仍未知；后续读取是新观测，未恢复旧结果。';
     }
     syncTaskButtons();
+    renderMethod(data,context.methodToken);
     return true;
   }
   function viewUrl() { return `/api/research/${researchId}` + (selectedTask ? `?task_id=${encodeURIComponent(selectedTask)}` : ''); }
@@ -266,6 +398,7 @@
   }
   async function authenticated(isCurrent, signal) {
     const unavailable = () => {
+      if (isCurrent()) invalidateMethod('账户状态暂时无法核对，已收起旧方法记录；草稿仍保留。');
       if (isCurrent()) status('账户状态暂时无法核对；草稿与待核对操作已保留，本次后续请求已停止。请稍后主动重试。', true);
       return false;
     };
@@ -366,6 +499,7 @@
   byId('research-list-more').addEventListener('click', () => loadResearchList(true));
   for (const id of ['original-input','objective','entry','summary','constraints','unknowns','confirmed']) {
     byId(id).addEventListener('input', () => {
+      methodDirty = true; invalidateMethod('表单有未保存改动，已收起旧方法记录。');
       if (id === 'summary') summaryEdited = true;
       if (id === 'original-input') echoDraft();
       invalidateKB();
@@ -417,6 +551,7 @@
     }
   });
   async function load() {
+    const methodToken = beginMethodRead();
     const positionEntry = initialLoad;
     initialLoad = false;
     const privateScope = privateGeneration;
@@ -433,7 +568,9 @@
     }
     if (!validId(researchId)) { clearPrivateView(); status('研究链接无效。', true); return; }
     if (selectedTask && !validId(selectedTask)) { clearPrivateView(); status('流程链接无效。', true); return; }
-    render(await request(viewUrl()));
+    const data = await methodRequest(viewUrl(),{},methodToken);
+    if (methodToken.generation !== methodGeneration) return;
+    render(data,methodToken);
     byId('my-research').hidden = false;
     loadResearchList(false, positionEntry);
     if (positionEntry && initialSection === 'kb-section') positionInitialSection();
@@ -481,6 +618,7 @@
     const pendingStart = sessionStorage.getItem(`structure-research-pending:source:source-tasks:${researchId}`);
     const pendingApproval = sessionStorage.getItem(`structure-research-pending:source:source-approvals:${researchId}`);
     if (!pendingStart && !pendingApproval) return;
+    const methodToken = beginMethodRead();
     sourceBusy = true;
     try {
       let data;
@@ -491,9 +629,9 @@
         data = {input_revision:original.input_revision,expected_research_version:original.expected_research_version,approval_ref:approved.approval_ref};
       }
       const result = await sourcePost('source-tasks',data);
-      renderTask(result,{operation:'start'});
+      renderTask(result,{operation:'start',methodToken});
       byId('source-status').textContent = '已核对上次确认的原操作；没有另启重复流程。';
-    } catch (error) { byId('source-status').textContent = error.message; }
+    } catch (error) { methodFailure(methodToken); byId('source-status').textContent = error.message; }
     finally { sourceBusy = false; }
   }
   async function sourceRecords() {
@@ -559,28 +697,31 @@
   byId('source-confirm').addEventListener('click', async () => {
     if (sourceBusy || busy || taskBusy || !sourcePreview || editBase?.historical) return;
     sourceBusy = true;
+    const methodToken = beginMethodRead();
     const approvedPreview = {...sourcePreview};
     try {
       const approved = sourceApproval || await sourcePost('source-approvals',{...approvedPreview,confirm_external:true});
       sourceApproval = approved;
       const result = await sourcePost('source-tasks',{input_revision:approvedPreview.input_revision,expected_research_version:approvedPreview.expected_research_version,approval_ref:approved.approval_ref});
-      renderTask(result,{operation:'start'});
+      renderTask(result,{operation:'start',methodToken});
       sourceApproval = null;
       byId('source-confirm').hidden = true;
       byId('source-status').textContent = '来源流程已排队；刷新可读取实际执行状态。';
-    } catch (error) { byId('source-status').textContent = error.message; }
+    } catch (error) { methodFailure(methodToken); byId('source-status').textContent = error.message; }
     finally { sourceBusy = false; }
   });
   byId('source-refresh').addEventListener('click', async () => {
     if (sourceBusy || busy || taskBusy || !researchId) return;
     sourceBusy = true;
-    try { renderTask(await request(viewUrl())); await sourceRecords(); }
+    const methodToken = beginMethodRead();
+    try { renderTask(await methodRequest(viewUrl(),{},methodToken),{methodToken}); await sourceRecords(); }
     catch (error) { byId('source-status').textContent = error.message; }
     finally { sourceBusy = false; }
   });
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (busy || editBase?.historical) return;
+    const methodToken = beginMethodRead();
     setBusy(true);
     status('正在保存，请保留当前页面…');
     let pending;
@@ -600,10 +741,10 @@
       pending = await operationKey(scope, body, expectedRevision);
       if (privateScope !== privateGeneration) throw new Error('账户访问已变化，请重新登录后核对原操作。');
       const url = researchId ? `/api/research/${researchId}/revisions` : '/api/research';
-      const saved = await request(url, {method:'POST', headers:{'Content-Type':'application/json', 'Idempotency-Key':pending.key}, body});
+      const saved = await methodRequest(url, {method:'POST', headers:{'Content-Type':'application/json', 'Idempotency-Key':pending.key}, body},methodToken);
       sessionStorage.removeItem(pending.slot);
       history.replaceState(null, '', `/research/${saved.research.id}`);
-      render(saved);
+      render(saved,methodToken);
       loadResearchList();
       status(`已保存修订 ${saved.current_problem.revision}。这是一条问题记录，尚未执行研究。`);
     } catch (error) {
@@ -618,6 +759,7 @@
   async function taskAction(operation) {
     if (taskBusy || !taskData || (operation === 'start' && busy)) return;
     taskBusy = true; syncTaskButtons();
+    const methodToken = beginMethodRead();
     let pending;
     const privateScope = privateGeneration;
     try {
@@ -629,9 +771,9 @@
       const body = JSON.stringify({schema_version:schema, contract_revision:revision, data});
       pending = await operationKey(scope, body, null, data);
       if (privateScope !== privateGeneration) throw new Error('账户访问已变化，请重新打开研究页面。');
-      const result = await request(`/api/research/${researchId}/${operation === 'start' ? 'tasks' : operation}`, {method:'POST', headers:{'Content-Type':'application/json','Idempotency-Key':pending.key}, body});
+      const result = await methodRequest(`/api/research/${researchId}/${operation === 'start' ? 'tasks' : operation}`, {method:'POST', headers:{'Content-Type':'application/json','Idempotency-Key':pending.key}, body},methodToken);
       sessionStorage.removeItem(pending.slot);
-      if (!renderTask(result, {operation, targetTask:operation === 'start' ? null : data.task_id})) {
+      if (!renderTask(result, {operation, targetTask:operation === 'start' ? null : data.task_id,methodToken})) {
         byId('task-message').textContent = '较早流程的操作已确认；当前问题保持不变，可从历史流程查看。';
       }
     } catch (error) {
@@ -645,9 +787,10 @@
   byId('task-refresh').addEventListener('click', async () => {
     if (taskBusy || !researchId) return;
     taskBusy = true; syncTaskButtons();
+    const methodToken = beginMethodRead();
     try {
-      const result = await request(viewUrl());
-      renderTask(result);
+      const result = await methodRequest(viewUrl(),{},methodToken);
+      renderTask(result,{methodToken});
     } catch (error) { byId('task-message').textContent = error.message; }
     finally { taskBusy = false; syncTaskButtons(); }
   });

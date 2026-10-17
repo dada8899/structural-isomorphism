@@ -23,6 +23,17 @@ details { border-bottom:1px solid var(--line); padding:15px 0; }summary { cursor
 #variables { font-size:14px; border-left:2px solid var(--line); padding:8px 12px; white-space:pre-wrap; }
 footer { max-width:1160px; margin:auto; border-top:1px solid var(--line); padding:25px 36px; color:var(--muted); font-size:12px; }
 [hidden] { display:none !important; }
+#method-section { border-top:1px solid var(--line); padding-top:20px; margin-top:30px; overflow-wrap:anywhere; }
+#method-section h3 { margin:28px 0 8px; font-size:17px; }
+#method-section h4 { margin:20px 0 6px; font-size:15px; }
+#method-section p, #method-section li, #method-section dd { white-space:pre-wrap; }
+#method-section ul { padding-left:22px; }
+.method-mechanism, .method-citation { border-left:2px solid var(--line); padding-left:16px; margin:20px 0; }
+.method-mapping { margin:14px 0; }.method-mapping dt { font-weight:600; }.method-mapping dd { margin:4px 0 14px; }
+.method-references { display:flex; flex-wrap:wrap; gap:8px; }
+.method-references button { min-height:44px; font-size:13px; padding:9px 14px; }
+.method-citation:focus { outline:3px solid #89b19b; outline-offset:4px; }
+.method-citation blockquote { margin:12px 0; padding:12px 14px; background:#e9ece2; white-space:pre-wrap; }
 nav { display:flex; gap:16px; flex-wrap:wrap; justify-content:flex-end; }
 nav a, #my-research article a { display:inline-flex; align-items:center; min-height:44px; }
 input[type="text"] { width:100%; min-height:44px; padding:11px 13px; border:1px solid #9ba99e; background:#fffef9; font:inherit; color:var(--ink); }
