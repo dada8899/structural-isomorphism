@@ -23,6 +23,11 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, ValidationError
 
 if __package__ == "web.backend.api":
+    from .history import _history_store, _HISTORY_STORE_LOCK
+else:
+    from api.history import _history_store, _HISTORY_STORE_LOCK
+
+if __package__ == "web.backend.api":
     from ..logging_config import get_logger, new_incident_id
     from ..services.candidate_origin import normalize_origin_candidate
     from ..services.deep_report import (
@@ -46,11 +51,9 @@ _store: Optional[ReportStore] = None
 
 def _get_store() -> ReportStore:
     global _store
-    if _store is None:
-        # Reuse history.db (same file as analyze.py / history_db.py).
-        db_path = Path(__file__).parent.parent / "data" / "history.db"
-        _store = ReportStore(db_path)
-    return _store
+    with _HISTORY_STORE_LOCK:
+        _store = _history_store(_store, ReportStore, Path(__file__).parent.parent / "data/history.db")
+        return _store
 
 
 def _resource_owner_email(row: dict) -> Optional[str]:
