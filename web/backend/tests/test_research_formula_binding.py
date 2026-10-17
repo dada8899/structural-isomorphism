@@ -123,3 +123,23 @@ def test_saved_draft_without_formula_task_uses_authenticated_erase_origin(lifecy
     with closing(sqlite3.connect(path)) as conn,conn:
         assert conn.execute('SELECT count(*) FROM research_formula_revisions').fetchone()[0]==0
         assert conn.execute('SELECT origin_version FROM auth_deletion_jobs').fetchone()[0]=='authenticated-delete-v1'
+
+
+def test_failed_admission_commit_cannot_leave_live_execution_capability(stack,monkeypatch):
+    from research import formula_result
+    client,path=stack;rid,body=create_formula(client)
+    original=sqlite3.connect;failed=[];before=set(formula_result._EXECUTIONS)
+    class Fault(sqlite3.Connection):
+        def commit(self):
+            try:claimed=super().execute("SELECT 1 FROM research_formula_runs WHERE state='claimed'").fetchone()
+            except sqlite3.Error:claimed=None
+            if claimed and not failed:failed.append(True);raise sqlite3.OperationalError('owned admission commit failure')
+            return super().commit()
+    monkeypatch.setattr(sqlite3,'connect',lambda *a,**k:original(*a,**k) if 'factory' in k else original(*a,factory=Fault,**k))
+    try:
+        response=check(client,rid,body)
+        assert response.status_code==503 and failed
+        with closing(original(path)) as conn,conn:assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]==0
+        assert set(formula_result._EXECUTIONS)==before
+    finally:
+        for nonce in set(formula_result._EXECUTIONS)-before:formula_result._EXECUTIONS[nonce].close()

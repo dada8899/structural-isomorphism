@@ -241,10 +241,10 @@ def start(service,identity,rid,request,key,*,request_source):
         event_in(conn,task_id,'step_started','formula_claimed')
         result=_envelope({'task_id':task_id,**run_metadata(conn,task_id)})
         service._remember(conn,principal,'formula-check','r:'+rid,key,request_digest,result)
+    try:
         authority=CurrentFormulaExecution(_factory=_EXEC_FACTORY,store=service.store,identity=identity,principal=principal,rid=rid,task_id=task_id,
             nonce=nonce,admission=admission,input_digest=check_input.input_digest,deadline=time.monotonic()+2,pid=os.getpid(),code_version=admission['code_version'],active=True)
         _EXECUTIONS[nonce]=authority
-    try:
         owned=owned_check(check_input.data(),authority=authority)
         return _commit(service,authority,owned)
     except (PermissionError,FormulaInputError,ValueError,TypeError):
