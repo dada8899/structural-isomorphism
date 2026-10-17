@@ -2937,6 +2937,18 @@
             ],
             "title": "Formula Digest"
           },
+          "formula_result_recorded_at": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula Result Recorded At"
+          },
           "input_origin": {
             "const": "user_provided",
             "enum": [
@@ -3005,6 +3017,7 @@
           "result_available",
           "input_origin",
           "formula_digest",
+          "formula_result_recorded_at",
           "math_status",
           "termination_state",
           "task_completed_means_math_passed",
@@ -3247,6 +3260,18 @@
             ],
             "title": "Formula Digest"
           },
+          "formula_result_recorded_at": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula Result Recorded At"
+          },
           "input_origin": {
             "const": "user_provided",
             "enum": [
@@ -3310,6 +3335,7 @@
           "result_available",
           "input_origin",
           "formula_digest",
+          "formula_result_recorded_at",
           "math_status",
           "termination_state",
           "task_completed_means_math_passed",

@@ -403,6 +403,7 @@ export interface FormulaCheckData {
   result_available: boolean;
   input_origin: "user_provided";
   formula_digest: string | null;
+  formula_result_recorded_at: string | null;
   math_status: null;
   termination_state: "not_attested" | "reaped" | "pending";
   task_completed_means_math_passed: false;
@@ -456,6 +457,7 @@ export interface FormulaRunMetadata {
   result_available: boolean;
   input_origin: "user_provided";
   formula_digest: string | null;
+  formula_result_recorded_at: string | null;
   math_status: null;
   termination_state: "not_attested" | "reaped" | "pending";
   task_completed_means_math_passed: false;

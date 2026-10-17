@@ -147,6 +147,10 @@ def _deletion_lease_binding(conn,store,lease,job):
 
 
 def _job_has_v2(conn,job):
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==10:
+        formula=conn.execute('SELECT 1 FROM research_formula_revisions f JOIN research_controls c ON c.id=f.research_id JOIN research_principals p ON p.id=c.owner_id WHERE p.gate_id=? '+('AND p.normalized_email=? AND p.session_generation=? ' if job['owner_email'] is not None and job['session_generation'] is not None else '')+'LIMIT 1',
+            (job['gate_id'],job['owner_email'],job['session_generation']) if job['owner_email'] is not None and job['session_generation'] is not None else (job['gate_id'],)).fetchone()
+        if formula:return True
     if job['owner_email'] is not None and job['session_generation'] is not None:
         return bool(conn.execute("SELECT 1 FROM research_tasks t JOIN research_principals p ON p.id=t.principal_id WHERE p.gate_id=? AND p.normalized_email=? AND p.session_generation=? AND t.policy_revision IN ('bounded_usage_upper_v2','local-formula-v1') LIMIT 1",
             (job['gate_id'],job['owner_email'],job['session_generation'])).fetchone())

@@ -489,6 +489,8 @@ class ResearchService:
             else:
                 principal_id = principal["id"]
             has_paid=conn.execute("SELECT 1 FROM research_tasks WHERE principal_id=? AND policy_revision IN ('bounded_usage_upper_v2','local-formula-v1') LIMIT 1",(principal_id,)).fetchone()
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0]==10:
+                has_paid=has_paid or conn.execute('SELECT 1 FROM research_formula_revisions f JOIN research_controls c ON c.id=f.research_id WHERE c.owner_id=? LIMIT 1',(principal_id,)).fetchone()
             from .paid_control import require_authenticated_action,create_authenticated_deletion_job
             if request_source is not None:
                 require_authenticated_action(request_source,identity=request_source.identity,action='account-delete')

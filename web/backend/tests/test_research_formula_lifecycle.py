@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 from .test_research_persistence import stack,post,problem,login,app
 from .test_research_formula_public import draft_request,request
+from .test_research_lifecycle import lifecycle
 from api import auth
 from research import ResearchStore
 
@@ -115,8 +116,8 @@ def test_same_result_ref_can_be_read_in_actual_fresh_process(stack):
         child.close();out.close();out.join_thread()
 
 
-def test_actual_delete_erases_formula_snapshots_and_closes_saved_body(stack,monkeypatch):
-    client,path=stack;rid,body=create_formula(client);response=check(client,rid,body)
+def test_actual_delete_erases_formula_snapshots_and_closes_saved_body(lifecycle,monkeypatch):
+    client,path,_=lifecycle;rid,body=create_formula(client);response=check(client,rid,body)
     ref=response.json()['data']['result_ref']
     # The app's existing real delete route handles its normal cleanup adapter.
     response=client.post('/api/me/delete',json={'confirmation':'DELETE'},headers={'Origin':'http://testserver'})
@@ -182,18 +183,13 @@ def _seed_source(path,rid):
     return {'id':excerptid,'revision':1,'content_digest':snapshot.extracted_digest,'provenance':'product_excerpt','locator':f'chars:0:{len(text)}'},snapid
 
 
-def test_real_stored_source_ref_from_older_revision_is_checked_and_currently_unavailable_is_not_404(stack):
+def test_cached_typed_rows_without_actual_source_task_cannot_authorize_a_formula(stack):
     client,path=stack;rid,body=create_formula(client);ref,snapshot_id=_seed_source(path,rid)
     revised=formula_problem();revised['formula_draft']['left']['source_refs']=[ref]
     response=post(client,f'/api/research/{rid}/revisions',{'expected_revision':1,'problem':revised})
-    assert response.status_code==200,response.text
-    response=check(client,rid,response.json()['data']);assert response.status_code==200,response.text
-    result_ref=response.json()['data']['result_ref']
-    assert client.get(f'/api/research/{rid}/formula-results/{result_ref}').json()['data']['state']=='available'
-    with closing(sqlite3.connect(path)) as conn, conn:conn.execute('DELETE FROM research_evidence_objects WHERE id=?',(snapshot_id,))
-    unavailable=client.get(f'/api/research/{rid}/formula-results/{result_ref}')
-    assert unavailable.status_code==200 and unavailable.json()['data']['state']=='unavailable'
-    assert unavailable.json()['data']['result'] is None
+    assert response.status_code==422,response.text
+    with closing(sqlite3.connect(path)) as conn,conn:
+        assert conn.execute('SELECT count(*) FROM research_revisions').fetchone()[0]==1
 
 
 def test_nonexistent_and_forged_source_are_rejected_with_atomic_revision(stack):

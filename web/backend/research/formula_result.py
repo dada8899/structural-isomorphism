@@ -27,32 +27,39 @@ def _envelope(data):
     return result
 
 
-def _sources(conn,rid,revision,formula):
-    """Resolve real same-research excerpt/snapshot versions and current rights."""
-    from .evidence_schemas import decode,DataSnapshot,EvidenceExcerpt,sha256
+def _sources(conn,store,identity,rid,revision,formula):
+    """Use the existing Source reader and its own original task/revision scope."""
+    from .evidence_repository import EvidenceRepository
+    from .source_integration import context_for,authorizer
+    repository=EvidenceRepository(conn,authorizer(store,identity=identity))
     resolved=[]
     for side in ('left','right'):
         form=formula.get(side)
         if form is None:continue
         for ref in form['source_refs']:
             if ref['provenance']!='product_excerpt':raise PermissionError('product source reference required')
-            row=conn.execute("SELECT * FROM research_evidence_objects WHERE id=? AND research_id=? AND kind='excerpts'",(ref['id'],rid)).fetchone()
-            if not row or sha256(row['payload'].encode())!=row['payload_digest']:raise PermissionError('readable excerpt required')
-            excerpt=decode('excerpts',row['payload'])
-            source=conn.execute("SELECT * FROM research_evidence_objects WHERE id=? AND research_id=? AND kind='snapshots'",(excerpt.snapshot_id,rid)).fetchone()
-            if not source or sha256(source['payload'].encode())!=source['payload_digest']:raise PermissionError('readable source required')
-            snapshot=decode('snapshots',source['payload'])
-            if source['input_revision']!=row['input_revision'] or source['task_id']!=row['task_id'] or source['attempt']!=row['attempt']:
-                raise PermissionError('source excerpt binding mismatch')
-            if (not snapshot.licence.display_excerpt or snapshot.source_revision!=ref['revision']
-                    or snapshot.extracted_digest!=ref['content_digest'] or excerpt.extracted_digest!=snapshot.extracted_digest
+            source_row=conn.execute("SELECT task_id,payload_digest FROM research_evidence_objects WHERE id=? AND research_id=? AND kind='excerpts'",(ref['id'],rid)).fetchone()
+            if not source_row:raise PermissionError('readable original Source required')
+            try:
+                context=context_for(conn,source_row['task_id'])
+                excerpt=repository.get(context,'excerpts',ref['id'])
+                snapshot=repository.get(context,'snapshots',excerpt.snapshot_id)
+            except ResearchError as error:
+                if error.code!='NOT_FOUND':raise
+                raise PermissionError('original Source domain unavailable') from None
+            except LookupError:raise PermissionError('original Source unavailable') from None
+            # Public read authorization above is mandatory. Reuse the same
+            # repository's validated cache read for exact range/hash binding.
+            _,raw,extracted=repository._get(context,'snapshots',snapshot.id)
+            if (snapshot.source_revision!=ref['revision'] or snapshot.extracted_digest!=ref['content_digest']
+                    or excerpt.extracted_digest!=snapshot.extracted_digest
                     or ref['locator']!=f'chars:{excerpt.start}:{excerpt.end}'
-                    or type(source['extracted']) is not str or sha256(source['extracted'].encode())!=snapshot.extracted_digest
-                    or source['extracted'][excerpt.start:excerpt.end]!=excerpt.quote
-                    or type(source['raw']) is not bytes or sha256(source['raw'])!=snapshot.raw_digest):
-                raise PermissionError('source permission or immutable content mismatch')
+                    or type(raw) is not bytes or type(extracted) is not str
+                    or extracted[excerpt.start:excerpt.end]!=excerpt.quote):
+                raise PermissionError('Source reference or original content mismatch')
+            snapshot_row=conn.execute('SELECT payload_digest FROM research_evidence_objects WHERE id=?',(snapshot.id,)).fetchone()
             resolved.append({'excerpt_id':excerpt.id,'snapshot_id':snapshot.id,'source_id':snapshot.source_id,
-                'source_revision':snapshot.source_revision,'payload_digest':row['payload_digest'],'snapshot_digest':source['payload_digest'],
+                'source_revision':snapshot.source_revision,'payload_digest':source_row['payload_digest'],'snapshot_digest':snapshot_row[0],
                 'content_digest':snapshot.extracted_digest,'raw_digest':snapshot.raw_digest})
     return resolved
 
@@ -71,11 +78,11 @@ def save_snapshot(conn,*,store,lease,identity,principal,rid,revision,draft):
     def validate():
         gate.check(conn,identity,principal,rid,scope='write')
         if not conn.execute('SELECT 1 FROM research_revisions WHERE research_id=? AND revision=?',(rid,revision)).fetchone():raise PermissionError('problem revision required')
-        _sources(conn,rid,revision,data)
+        _sources(conn,store,identity,rid,revision,data)
     try:
         with _write(conn,store,lease,'research_formula_revisions','INSERT',validate,_factory=_FACTORY):
             conn.execute('INSERT INTO research_formula_revisions VALUES(?,?,?,?)',(rid,revision,encoded,digest(data)))
-    except PermissionError:raise ResearchError('INPUT_INVALID',422,'公式来源不可读取或与该修订不匹配。') from None
+    except (PermissionError,ValueError):raise ResearchError('INPUT_INVALID',422,'公式来源不可读取或与该修订不匹配。') from None
     return {'revision':revision,'formula_digest':digest(data),'executable':data['executable'],'input_origin':data['input_origin']}
 
 
@@ -103,7 +110,7 @@ def read_revision(service,identity,rid,revision,*,request_source):
     with service.authorization.owner_gate(principal),service.store.transaction() as conn:
         service.authorization.check(conn,identity,principal,rid)
         row,formula=_snapshot(conn,rid,revision)
-        try:_sources(conn,rid,revision,formula)
+        try:_sources(conn,service.store,identity,rid,revision,formula)
         except (PermissionError,ValueError):return _envelope({'state':'unavailable','formula_digest':row['formula_digest'],'formula':None})
         return _envelope({'state':'available','formula_digest':row['formula_digest'],'formula':formula,
             'display_assessment':'user_confirmation_required_AST_only','source_facts_verified':False})
@@ -126,7 +133,7 @@ def _current(conn,store,identity,principal,rid,task_id,nonce,admission,*,sources
     problem=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,admission['input_revision'])).fetchone()
     if not problem or problem[0]!=admission['problem_digest'] or revision['formula_digest']!=admission['formula_digest']:
         raise PermissionError('formula revision binding changed')
-    if sources and _sources(conn,rid,admission['input_revision'],formula)!=admission['sources']:raise PermissionError('formula source changed')
+    if sources and _sources(conn,store,identity,rid,admission['input_revision'],formula)!=admission['sources']:raise PermissionError('formula source changed')
     return task,step,control
 
 
@@ -154,7 +161,9 @@ class CurrentFormulaExecution:
             conn.row_factory=sqlite3.Row
             bound=min(self.deadline,time.monotonic()+.025)
             conn.set_progress_handler(lambda:int(time.monotonic()>=bound),100)
-            conn.execute('PRAGMA busy_timeout=5');conn.execute('BEGIN')
+            conn.execute('PRAGMA busy_timeout=5');conn.execute('PRAGMA foreign_keys=ON')
+            if conn.execute('PRAGMA foreign_keys').fetchone()[0]!=1:return False
+            conn.execute('BEGIN')
             _current(conn,self.store,self.identity,self.principal,self.rid,self.task_id,self.nonce,self.admission)
             return time.monotonic()<self.deadline
         except (ResearchError,PermissionError,sqlite3.Error,ValueError,TypeError,OSError):return False
@@ -168,9 +177,11 @@ def run_metadata(conn,task_id):
     if not row:return None
     admission=json.loads(row['admission_json']) if row['admission_json'] else None
     expired=bool(admission and time.time()>admission['claim_expires_at'])
+    commit=json.loads(row['commit_json']) if row['state']=='returned' and row['commit_json'] else None
     return {'result_ref':row['result_ref'],'state':'interrupted' if row['state']=='claimed' and expired else row['state'],
         'result_available':row['state']=='returned','input_origin':'user_provided',
         'formula_digest':admission['formula_digest'] if admission else None,
+        'formula_result_recorded_at':commit.get('recorded_at') if commit else None,
         'math_status':None,'termination_state':'not_attested' if row['state']=='closed' else 'reaped' if row['state']=='returned' else 'pending',
         'task_completed_means_math_passed':False,'known_cost_units':0}
 
@@ -200,7 +211,7 @@ def start(service,identity,rid,request,key,*,request_source):
         if not formula['executable']:raise ResearchError('INPUT_INVALID',422,'公式仍缺少结构表达，请补充后保存新修订。')
         if conn.execute("SELECT 1 FROM research_tasks WHERE research_id=? AND execution IN ('QUEUED','RUNNING','WAITING_EXTERNAL','RECONCILING')",(rid,)).fetchone():
             raise ResearchError('TASK_ACTIVE',409,'该研究已有运行任务，请先查看或停止。')
-        try:sources=_sources(conn,rid,request.input_revision,formula)
+        try:sources=_sources(conn,service.store,identity,rid,request.input_revision,formula)
         except (PermissionError,ValueError):raise ResearchError('INPUT_INVALID',422,'本次公式来源不可读取。') from None
         from .service import now
         task_id,step_id,result_ref,nonce,grant_id=[str(uuid4()) for _ in range(5)];timestamp=now()
@@ -224,7 +235,7 @@ def start(service,identity,rid,request,key,*,request_source):
         if changed!=1:raise ResearchError('VERSION_CONFLICT',409,'研究版本已变化。')
         def validate():
             service.authorization.check(conn,identity,principal,rid,scope='write')
-            if _sources(conn,rid,request.input_revision,formula)!=sources:raise PermissionError('source changed')
+            if _sources(conn,service.store,identity,rid,request.input_revision,formula)!=sources:raise PermissionError('source changed')
         with _write(conn,service.store,lease,'research_formula_runs','INSERT',validate,_factory=_FACTORY):
             conn.execute("INSERT INTO research_formula_runs VALUES(?,?,?,?,'claimed',NULL,NULL,NULL)",(task_id,result_ref,canonical(admission),nonce))
         event_in(conn,task_id,'step_started','formula_claimed')
@@ -277,7 +288,8 @@ def _commit(service,authority,owned):
         def validate():
             owned.require(authority)
             _current(conn,service.store,authority.identity,authority.principal,authority.rid,authority.task_id,authority.nonce,authority.admission)
-        commit={'research_before':control['version'],'research_after':control['version']+1,'task_before':task['version'],
+        from .service import now
+        commit={'recorded_at':now(),'research_before':control['version'],'research_after':control['version']+1,'task_before':task['version'],
             'task_after':task['version']+1,'step_before':step['version'],'step_after':step['version']+1,
             'problem_digest':authority.admission['problem_digest'],'formula_digest':authority.admission['formula_digest'],
             'full_input_digest':request.input_digest,'output_digest':raw['output_digest'],'receipt_ref':receipt['reference']}
@@ -306,13 +318,49 @@ def read_result(service,identity,rid,ref,*,request_source):
         admission=json.loads(row['admission_json']);commit=json.loads(row['commit_json']);receipt=json.loads(row['receipt_json']);raw=json.loads(row['result_json'])
         try:
             _,formula=_snapshot(conn,rid,row['input_revision'])
-            if _sources(conn,rid,row['input_revision'],formula)!=admission['sources']:raise PermissionError('source changed')
+            if _sources(conn,service.store,identity,rid,row['input_revision'],formula)!=admission['sources']:raise PermissionError('source changed')
         except (PermissionError,ValueError):return _envelope({'metadata':metadata,'result':None,'state':'unavailable'})
-        request=FormulaCheckInput.parse(admission['check_input'])
-        if (receipt['claim_nonce']!=row['claim_nonce'] or receipt['input_digest']!=request.input_digest
-                or receipt['code_version']!=admission['code_version'] or receipt['result_digest']!=digest(raw)
-                or receipt['reference']!=commit['receipt_ref'] or commit['full_input_digest']!=request.input_digest
-                or not receipt['reaped']):raise not_found()
+        task=conn.execute('SELECT * FROM research_tasks WHERE id=? AND research_id=?',(row['task_id'],rid)).fetchone()
+        step=conn.execute('SELECT * FROM research_steps WHERE id=? AND task_id=?',(admission['step_id'],row['task_id'])).fetchone()
+        control=service.authorization.check(conn,identity,principal,rid)
+        revision=conn.execute('SELECT digest,problem_json FROM research_revisions WHERE research_id=? AND revision=?',(rid,row['input_revision'])).fetchone()
+        try:
+            service.authorization.check_task(conn,task)
+            if (type(admission['input_revision']) is not int or admission['research_id']!=rid or admission['principal_id']!=principal
+                    or admission['input_revision']!=task['input_revision'] or task['policy_revision']!=TASK_POLICY
+                    or task['execution_mode']!='local_math' or task['execution']!='COMPLETED' or task['attempt']!=1
+                    or not revision or revision['digest']!=admission['problem_digest']
+                    or digest(json.loads(revision['problem_json']))!=admission['problem_digest']
+                    or digest(formula)!=admission['formula_digest'] or control['current_revision']<task['input_revision']
+                    or not step or step['kind']!='formula_check' or step['position']!=0 or step['state']!='SUCCEEDED'
+                    or step['reservation_id'] is not None):raise PermissionError('stored formula domain changed')
+            bindings={'principal_id':principal,'principal_epoch':admission['principal_epoch'],'owner_epoch':admission['owner_epoch'],
+                'acl_epoch':admission['acl_epoch'],'auth_generation':admission['auth_generation'],'grant_id':admission['grant_id'],
+                'input_digest':admission['problem_digest'],'start_version':admission['research_version']}
+            if any(task[name]!=value for name,value in bindings.items()):raise PermissionError('original task binding changed')
+            request=FormulaCheckInput.parse({'research_id':rid,'input_revision':task['input_revision'],'task_id':task['id'],'attempt':task['attempt'],
+                **{name:formula[name] for name in ('comparison_scope','requested_checks','sample_points')},
+                **{name:None if formula[name] is None else {k:v for k,v in formula[name].items() if k!='time_basis'} for name in ('left','right')}})
+            if request.data()!=admission['check_input'] or request.input_digest!=admission['full_input_digest']:
+                raise PermissionError('actual immutable formula input changed')
+            for prefix in ('research','task','step'):
+                if (type(commit.get(prefix+'_before')) is not int or type(commit.get(prefix+'_after')) is not int
+                        or not 1<=commit[prefix+'_before']<2147483647 or commit[prefix+'_after']!=commit[prefix+'_before']+1):
+                    raise PermissionError('strict protected commit versions required')
+            from datetime import datetime
+            if type(commit.get('recorded_at')) is not str or datetime.strptime(commit['recorded_at'],'%Y-%m-%dT%H:%M:%S.%fZ').strftime('%Y-%m-%dT%H:%M:%S.%fZ')!=commit['recorded_at']:
+                raise PermissionError('strict original formula record timestamp required')
+            expected={'recorded_at':commit['recorded_at'],'research_before':admission['research_version'],'research_after':admission['research_version']+1,
+                'task_before':admission['task_version'],'task_after':admission['task_version']+1,
+                'step_before':admission['step_version'],'step_after':admission['step_version']+1,
+                'problem_digest':revision['digest'],'formula_digest':digest(formula),'full_input_digest':request.input_digest,
+                'output_digest':raw['output_digest'],'receipt_ref':receipt['reference']}
+            if (commit!=expected or task['version']!=commit['task_after'] or step['version']!=commit['step_after']
+                    or control['version']<commit['research_after'] or receipt['claim_nonce']!=row['claim_nonce']
+                    or receipt['input_digest']!=request.input_digest or receipt['code_version']!=admission['code_version']
+                    or receipt['result_digest']!=digest(raw) or receipt['reaped'] is not True):
+                raise PermissionError('stored result is not the actual committed task result')
+        except (PermissionError,ValueError,TypeError,KeyError):raise not_found() from None
         content=project_formula_result(raw,expected_input=request,expected_output_digest=commit['output_digest']).data()
         # Public pure-content flags remain false. Trust is a distinct server
         # projection backed by this protected stored return, never client JSON.

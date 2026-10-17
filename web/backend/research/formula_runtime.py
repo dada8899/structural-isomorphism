@@ -259,6 +259,11 @@ def migrate_v10(store,*,maintenance):
 
 
 def erase_for_deletion(conn,*,store,lease,pid,job_id):
+    # Legacy C0/source-only deletion has no formula writer to authorize. Never
+    # require a new lease merely to erase zero protected formula resources.
+    runs=conn.execute("SELECT 1 FROM research_formula_runs WHERE state!='closed' AND task_id IN (SELECT id FROM research_tasks WHERE principal_id=?) LIMIT 1",(pid,)).fetchone()
+    revisions=conn.execute('SELECT 1 FROM research_formula_revisions WHERE research_id IN (SELECT id FROM research_controls WHERE owner_id=?) LIMIT 1',(pid,)).fetchone()
+    if not runs and not revisions:return
     from .paid_control import verify_deletion_origin
     verify_deletion_origin(conn,store=store,lease=lease,job_id=job_id)
     def validate():

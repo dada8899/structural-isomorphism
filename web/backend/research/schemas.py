@@ -328,6 +328,7 @@ class FormulaRunMetadata(StrictObject):
     result_available: StrictBool
     input_origin: Literal['user_provided']
     formula_digest: FormulaDigest | None
+    formula_result_recorded_at: Annotated[str,StringConstraints(strict=True,pattern=r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$')] | None
     math_status: None
     termination_state: Literal['not_attested','reaped','pending']
     task_completed_means_math_passed: Literal[False]
