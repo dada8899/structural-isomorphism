@@ -319,9 +319,13 @@ def formal_paid(paid_api,monkeypatch,record_property):
         label='lock.'+gate
         assert stat.S_IMODE(inspect(label,lock_root/(gate+'.lock'),'regular',phase='checked').st_mode)==0o600,label
     monkeypatch.setenv('STRUCTURAL_ENV','prod')
-    from research.formula_runtime import provision_formula_v10
+    from research.formula_runtime import provision_formula_v10,recover_formula_journal
     from services.auth_registration import migrate_private_auth_registration,admit_private_gate
-    provision_formula_v10(db)
+    # Recovery validates the entire actual Auth/Research graph under the real
+    # exclusive maintainer. A numeric marker alone is never fixture admission.
+    profile=recover_formula_journal(db)
+    if profile['schema_version']==9:provision_formula_v10(db)
+    elif profile['schema_version']!=10:raise AssertionError('unsupported complete offline fixture graph')
     migrate_private_auth_registration()
     with raw(db) as conn:owners=[row[0] for row in conn.execute('SELECT owner_key FROM auth_owner_gates')]
     for owner in owners:admit_private_gate(owner)
