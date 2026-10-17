@@ -109,8 +109,9 @@ def _crash_v8(path,cut):
 
 @pytest.mark.parametrize('cut',['column','guard','marker','before_commit','after_commit'])
 def test_process_death_leaves_only_complete_v7_or_v8_and_same_data(v7,cut):
+    from web.backend.tests.test_research_deletion_schema_v8 import _crash_v8 as target
     path,store=v7;before=snapshot(path)
-    child=multiprocessing.get_context('spawn').Process(target=_crash_v8,args=(str(path),cut))
+    child=multiprocessing.get_context('spawn').Process(target=target,args=(str(path),cut))
     try:
         child.start();child.join(15);assert not child.is_alive() and child.exitcode==(62 if cut=='after_commit' else 61)
     finally:

@@ -196,6 +196,7 @@ def _resume_scrubbing_child(job_id,result):
 
 
 def test_new_process_finishes_scrubbing_without_old_cookie_email_generation_or_new_incarnation(paid_api,lifecycle,monkeypatch):
+    from web.backend.tests.test_research_paid_stop_callers import _resume_scrubbing_child as target
     client,_,store,_,_,_=paid_api
     with execution(paid_api) as (session,_,_,pid):
         def fail(self):raise ResearchError('STORE_BUSY',503,'owned checkpoint fault')
@@ -206,7 +207,7 @@ def test_new_process_finishes_scrubbing_without_old_cookie_email_generation_or_n
             job=dict(conn.execute("SELECT * FROM auth_deletion_jobs WHERE state='scrubbing'").fetchone())
             assert job['owner_email'] is job['session_generation'] is None
             assert job['origin_digest']
-        ctx=multiprocessing.get_context('spawn');result=ctx.Queue();worker=ctx.Process(target=_resume_scrubbing_child,args=(job['id'],result))
+        ctx=multiprocessing.get_context('spawn');result=ctx.Queue();worker=ctx.Process(target=target,args=(job['id'],result))
         try:
             worker.start();completed=result.get(timeout=20);worker.join(10);assert worker.exitcode==0
         finally:
