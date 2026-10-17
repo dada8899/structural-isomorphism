@@ -337,9 +337,40 @@ class PrivateHistoryFile:
         self._require_private_file(info)
         return info
 
+    def _sidecar_entry(self, name):
+        # SQLite may unlink a sidecar after pathname lookup but before stat
+        # copies its link count. Never apply this to the database itself.
+        known = {
+            'history.db-wal', 'history.db-shm', 'history.db-journal',
+            'auth.sqlite3-wal', 'auth.sqlite3-shm', 'auth.sqlite3-journal',
+            'sso_replay.sqlite3-wal', 'sso_replay.sqlite3-shm', 'sso_replay.sqlite3-journal',
+        }
+        if name not in known or not name.startswith(self.path.name + '-'):
+            raise RuntimePathError('unknown private SQLite sidecar')
+        try:
+            info = os.stat(name, dir_fd=self.parent_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            return None
+        try:
+            self._require_private_file(info)
+        except RuntimePathError:
+            if (stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
+                    and stat.S_IMODE(info.st_mode) == 0o600 and info.st_nlink == 0):
+                try:
+                    current = os.stat(name, dir_fd=self.parent_fd, follow_symlinks=False)
+                except FileNotFoundError:
+                    return None
+                # Sidecars are recreated by SQLite. Validate every attribute
+                # of the new snapshot independently, even for a new inode.
+                self._require_private_file(current)
+                return current
+            # No other unsafe snapshot qualifies for a metadata recheck.
+            raise
+        return info
+
     def _sidecars(self):
         return [info for suffix in ('-wal', '-shm', '-journal')
-                if (info := self._entry('history.db' + suffix)) is not None]
+                if (info := self._sidecar_entry('history.db' + suffix)) is not None]
 
     def check(self):
         _check_current_parent(self.path.parent, self.parent_fd, forbidden=self.forbidden)
@@ -406,7 +437,7 @@ class PrivateAuthFile(PrivateHistoryFile):
 
     def _sidecars(self):
         return [info for suffix in ('-wal','-shm','-journal')
-                if (info := self._entry('auth.sqlite3'+suffix)) is not None]
+                if (info := self._sidecar_entry('auth.sqlite3'+suffix)) is not None]
 
     def check(self):
         _check_current_parent(self.path.parent, self.parent_fd, forbidden=self.forbidden)
@@ -501,7 +532,7 @@ class PrivateSsoFile(PrivateHistoryFile):
 
     def _sidecars(self):
         return [info for suffix in ('-wal','-shm','-journal')
-                if (info:=self._entry('sso_replay.sqlite3'+suffix)) is not None]
+                if (info:=self._sidecar_entry('sso_replay.sqlite3'+suffix)) is not None]
 
     def check(self):
         _check_current_parent(self.path.parent,self.parent_fd,forbidden=self.forbidden)
