@@ -9,7 +9,7 @@ from .errors import not_found
 
 class ResearchProjection:
     @staticmethod
-    def build(conn, row, task_id=None):
+    def build(conn, row, task_id=None,*,method_result=None,method_authorized=False):
         revisions = []
         for item in conn.execute("SELECT * FROM research_revisions WHERE research_id=? ORDER BY revision", (row["id"],)):
             revisions.append({"research_id": row["id"], "revision": item["revision"],
@@ -38,6 +38,15 @@ class ResearchProjection:
         if enabled() and view["current_problem"]["confirmed"] and not active and not unresolved_current:
             view["allowed_next_actions"].append("start")
         if task:
+            if task['policy_revision']=='bounded_usage_upper_v2':
+                event=conn.execute('SELECT seq FROM research_task_events WHERE task_id=? ORDER BY seq DESC LIMIT 1',(task['id'],)).fetchone()
+                execution=task['execution'];terminal=execution in ('COMPLETED','FAILED','CANCELLED','ACCESS_REVOKED')
+                view.update(execution=execution,evidence=task['evidence'],status={'COMPLETED':'insufficient','FAILED':'failed','CANCELLED':'cancelled','ACCESS_REVOKED':'cancelled','QUEUED':'queued'}.get(execution,'synthesising'),
+                    report_status='qualified_report' if method_result else 'none',task=dict(id=task['id'],version=task['version'],execution=execution,
+                        phase=task['phase'],attempt=1,input_revision=task['input_revision'],stop_requested=bool(task['stop_requested']),policy_revision=task['policy_revision']),
+                    task_event_cursor=event[0] if event else 0,allowed_next_actions=['view','refresh']+([] if terminal else ['cancel','request_reconciliation']))
+                if method_authorized:view['method_result']=method_result
+                return {'schema_version':SCHEMA_VERSION,'contract_revision':CONTRACT_REVISION,'data':view}
             if task["policy_revision"]=="d1-source-only-v1":
                 from .source_integration import project_task
                 project_task(conn,view,task)

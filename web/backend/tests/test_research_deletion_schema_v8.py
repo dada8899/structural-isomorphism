@@ -15,6 +15,11 @@ from research.errors import ResearchError
 from research.financial_guard import JOB_ORIGIN_COLUMNS,V8_JOB_GUARDS,install_default_hook
 
 
+@pytest.fixture(autouse=True)
+def _historical_v8_profile(monkeypatch):
+    monkeypatch.setattr(ResearchStore,'_migrate_v9',lambda self:None)
+
+
 @pytest.fixture
 def v7(stack,monkeypatch):
     client,path=stack

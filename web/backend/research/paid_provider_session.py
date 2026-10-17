@@ -420,6 +420,22 @@ def persist_budget_return(conn,*,store,lease,receipt):
     raw=canonical(data).decode();stamp=digest(raw.encode())
     if len(raw.encode())>16384:raise ValueError('bounded financial return required')
     allowed=owner._current_content(conn)
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==9 and s['body_origin_state']!='legacy_unproved':
+        from .method_result import receipt_body_scope,receipt_scope
+        values,decision=receipt_body_scope(conn,store=store,lease=lease,receipt=receipt,raw=raw,return_digest=stamp)
+        if s['financial_return_json'] is not None:
+            if s['financial_return_json']!=raw or s['return_digest']!=stamp:raise PermissionError('immutable budget return conflict')
+            if values is not None:
+                with receipt_scope(conn,store=store,lease=lease,receipt=receipt,values=values,decision=decision):
+                    conn.execute("UPDATE research_provider_sessions SET candidate_json=NULL,body_origin_state='closed',body_candidate_digest=NULL,body_envelope_digest=NULL,method_commit_json=NULL WHERE id=?",(owner.id,))
+            return owner.id
+        state='received' if receipt._value.usage is not None else 'unknown'
+        with receipt_scope(conn,store=store,lease=lease,receipt=receipt,values=values,decision=decision):
+            if ledger._write(conn,lease,'return',owner.id,'research_provider_sessions',owner.id,
+                    "UPDATE research_provider_sessions SET state=?,version=version+1,financial_return_json=?,return_digest=?,received_at=?,candidate_json=?,body_origin_state=?,body_candidate_digest=?,body_envelope_digest=?,method_commit_json=? WHERE id=? AND version=? AND financial_return_json IS NULL AND state IN ('consumed','unknown')",
+                    (state,raw,stamp,receipt._time,values['candidate_json'],values['body_origin_state'],values['body_candidate_digest'],values['body_envelope_digest'],values['method_commit_json'],owner.id,s['version'])).rowcount!=1:
+                raise PermissionError('budget body/financial return CAS failed')
+        return owner.id
     if s['financial_return_json'] is not None:
         if s['financial_return_json']!=raw or s['return_digest']!=stamp:raise PermissionError('immutable budget return conflict')
         if not allowed:conn.execute('UPDATE research_provider_sessions SET candidate_json=NULL WHERE id=?',(owner.id,))

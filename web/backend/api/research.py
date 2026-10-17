@@ -142,7 +142,11 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         elif operation == "view":
             task_id=request.query_params.get("task_id")
             if task_id:service._id(task_id)
-            result = await run_in_threadpool(service.view, identity, research_id, task_id)
+            if __package__=='web.backend.api':from ..research.paid_control import issue_authenticated_action
+            else:from research.paid_control import issue_authenticated_action
+            source=await run_in_threadpool(issue_authenticated_action,request,action='method-read')
+            try:result = await run_in_threadpool(service.view, identity, research_id, task_id,request_source=source)
+            finally:source.close()
         elif operation == "source-records":
             result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get("task_id",""),request.query_params.get("kind",""),request.query_params.get("cursor"))
         elif operation == "events":
@@ -180,10 +184,10 @@ async def _dispatch(request, *, research_id=None, operation="view"):
             elif operation == "source-start":
                 result=await run_in_threadpool(source_integration.start_source,service,identity,research_id,envelope.data,key)
             else:
-                if operation=='cancel':
+                if operation in ('cancel','reconcile'):
                     if __package__=='web.backend.api':from ..research.paid_control import issue_authenticated_action
                     else:from research.paid_control import issue_authenticated_action
-                    source=await run_in_threadpool(issue_authenticated_action,request,action='cancel')
+                    source=await run_in_threadpool(issue_authenticated_action,request,action='cancel' if operation=='cancel' else 'method-reconcile')
                     try:result=await run_in_threadpool(service.task_action,identity,research_id,envelope.data,key,operation,request_source=source)
                     finally:source.close()
                 else:result=await run_in_threadpool(service.task_action,identity,research_id,envelope.data,key,operation)

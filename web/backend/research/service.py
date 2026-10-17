@@ -68,6 +68,8 @@ class ResearchService:
 
     @staticmethod
     def _remember(conn, principal, operation, scope, key, request_digest, result):
+        if type(result) is dict and type(result.get('data')) is dict and result['data'].get('method_result') is not None:
+            raise PermissionError('method content cannot be copied into response cache')
         conn.execute("INSERT INTO research_idempotency VALUES(?,?,?,?,?,?)",
                      (principal, operation, scope, hashlib.sha256(key.encode()).hexdigest(), request_digest, canonical(result)))
 
@@ -121,11 +123,29 @@ class ResearchService:
             self._remember(conn, principal, "revise", "r:" + rid, key, request_digest, result)
             return result
 
-    def view(self, identity, research_id, task_id=None):
+    def view(self, identity, research_id, task_id=None,*,request_source=None):
         rid, principal = self._id(research_id), self._principal(identity)
-        with self.store.transaction() as conn:
+        with self.authorization.owner_gate(principal) as lease,self.store.transaction() as conn:
             row = self.authorization.check(conn, identity, principal, rid)
-            return ResearchProjection.build(conn, row, task_id=task_id)
+            return self._method_projection(conn,row,identity,lease,request_source,task_id)
+
+    def _method_projection(self,conn,row,identity,lease,request_source,task_id):
+        result=None;authorized=False
+        if request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:
+            task=conn.execute('SELECT * FROM research_tasks WHERE research_id=? '+('AND id=?' if task_id else 'AND input_revision=? ORDER BY start_version DESC LIMIT 1'),
+                (row['id'],task_id if task_id else row['current_revision'])).fetchone()
+            if task and task['policy_revision']=='bounded_usage_upper_v2':
+                from .method_result import result_view
+                authorized=True
+                if not task['stop_requested'] and task['execution'] not in ('FAILED','CANCELLED','ACCESS_REVOKED'):
+                    try:result=result_view(conn,store=self.store,lease=lease,identity=identity,rid=row['id'],task_id=task['id'],request_source=request_source)
+                    except ResearchError as exc:
+                        if exc.code!='NOT_FOUND' or request_source.action!='method-reconcile':raise
+                    except (PermissionError,ValueError,TypeError,KeyError):
+                        if request_source.action!='method-reconcile':raise not_found() from None
+        view=ResearchProjection.build(conn,row,task_id=task_id,method_result=result,method_authorized=authorized)
+        if authorized and len(canonical(view).encode())>524288:raise ResearchError('PAYLOAD_LIMIT',413,'研究结果超过响应范围。')
+        return view
 
     def paid_preview(self,identity,research_id,request,key,*,funding_resolver=None):
         from .paid_approval import PaidApprovalService,OfflineFundingResolver
@@ -282,6 +302,10 @@ class ResearchService:
             task=conn.execute("SELECT * FROM research_tasks WHERE id=? AND research_id=?",(request.task_id,rid)).fetchone()
             if not task:raise not_found()
             is_paid=task['policy_revision']=='bounded_usage_upper_v2'
+            method_request=is_paid and operation=='reconcile' and request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0]==9
+            if method_request:
+                from .paid_control import require_authenticated_action
+                require_authenticated_action(request_source,identity=identity,action='method-reconcile',research_id=rid,task_id=task['id'],key=key,body_digest=digest(payload))
             if not is_paid and operation!='cancel':require_enabled()
             if is_paid and operation=='resume':raise ResearchError('FEATURE_UNAVAILABLE',503,'此任务不能自动继续或重新外发。')
             if is_paid and operation=='cancel':
@@ -290,7 +314,11 @@ class ResearchService:
             if task["policy_revision"]=="d1-source-only-v1" and operation!="cancel":
                 raise ResearchError("RECONCILIATION_REQUIRED",409,"来源读取只能闭合旧执行后重新预览并明确批准，不能继续旧调用。")
             replay=self._replay(conn,principal,operation,"r:"+rid,key,digest(payload))
-            if replay is not None:return replay
+            if replay is not None:
+                if method_request:return self._method_projection(conn,row,identity,lease,request_source,task['id'])
+                if replay.get('_method_result_replay')==1:
+                    raise PermissionError('fresh authenticated replay source required')
+                return replay
             if task["version"]!=request.expected_task_version:
                 raise ResearchError("VERSION_CONFLICT",409,"任务状态已变化，请先刷新。")
             unresolved=conn.execute("SELECT count(*) FROM research_reservations WHERE task_id=? AND status IN ('SENT','UNKNOWN')",(task["id"],)).fetchone()[0]
@@ -311,6 +339,10 @@ class ResearchService:
                     from .paid_budget import reconcile_task_in
                     reconcile_task_in(conn,store=self.store,lease=lease,task_id=task['id'])
                     conn.execute('UPDATE research_tasks SET reconcile_requested=0 WHERE id=?',(task['id'],))
+                    if method_request and not task['stop_requested'] and task['execution'] not in ('FAILED','CANCELLED','ACCESS_REVOKED'):
+                        from .method_result import commit_result
+                        try:commit_result(conn,store=self.store,lease=lease,identity=identity,rid=rid,task_id=task['id'],request_source=request_source)
+                        except (PermissionError,ValueError,TypeError,KeyError):raise not_found() from None
                 elif unresolved or task["execution"]=="RECONCILING":
                     conn.execute("UPDATE research_tasks SET reconcile_requested=1 WHERE id=?",(task["id"],))
                     state_in(conn,task["id"],task["execution"],kind="reconciling")
@@ -322,8 +354,10 @@ class ResearchService:
                     raise ResearchError("BUDGET_UNVERIFIED",503,"当前演练额度或费率尚不允许继续。")
                 state_in(conn,task["id"],"QUEUED",kind="waiting")
             else:raise ValueError("unregistered task action")
-            result=ResearchProjection.build(conn,row,task_id=task["id"])
-            self._remember(conn,principal,operation,"r:"+rid,key,digest(payload),result)
+            row=self.authorization.check(conn,identity,principal,rid,scope='write')
+            result=self._method_projection(conn,row,identity,lease,request_source if method_request else None,task['id'])
+            cached={'_method_result_replay':1,'task_id':task['id']} if method_request else result
+            self._remember(conn,principal,operation,"r:"+rid,key,digest(payload),cached)
             return result
 
     def events(self,identity,research_id,task_id,after_seq):
@@ -417,7 +451,7 @@ class ResearchService:
                 raise ResearchError("AUTHORIZATION_STALE", 409, "删除任务主体状态不一致。")
             pid = principal["id"]
             from .paid_approval import erase_paid_private_inputs
-            erase_paid_private_inputs(self.store,conn,pid,job_id)
+            erase_paid_private_inputs(self.store,conn,pid,job_id,owner_lease=owner_lease)
             count = lambda table, clause, params: conn.execute(f"SELECT count(*) FROM {table} WHERE {clause}",params).fetchone()[0]
             counts = {
                 "researches": count("research_controls","owner_id=?",(pid,)),

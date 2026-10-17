@@ -5,11 +5,13 @@ import sqlite3
 import re
 from contextlib import contextmanager
 from pathlib import Path
+from functools import lru_cache
 
 from .errors import ResearchError
 from .financial_guard import FINANCIAL_SCHEMA_VERSION,V7_TABLES,V7_GUARDS,install_default_hook,require_hook
 from .financial_guard import DELETION_SCHEMA_VERSION,JOB_ORIGIN_COLUMNS,V8_JOB_GUARDS
-CURRENT_RESEARCH_SCHEMA_VERSION=DELETION_SCHEMA_VERSION
+from .financial_guard import METHOD_SCHEMA_VERSION,METHOD_COLUMNS,METHOD_GUARDS
+CURRENT_RESEARCH_SCHEMA_VERSION=METHOD_SCHEMA_VERSION
 
 SCHEMA = (
     "CREATE TABLE IF NOT EXISTS research_schema (id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL)",
@@ -377,13 +379,16 @@ class ResearchStore:
         # EXISTS installation could hide missing inherited objects.
         completed_v6=False
         completed_v7=False
+        completed_v8=False
         with self.transaction() as conn:
             present=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema' AND type='table'").fetchone()
             if present:
                 try:current=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
                 except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本标记结构不匹配。') from None
+                if current and current[0]==METHOD_SCHEMA_VERSION:
+                    self._check_v9(conn);return
                 if current and current[0]==DELETION_SCHEMA_VERSION:
-                    self._check_v8(conn);self._check_v7_attachments(conn);return
+                    self._check_v8(conn);self._check_v7_attachments(conn);completed_v8=True
                 if current and current[0]==FINANCIAL_SCHEMA_VERSION:
                     self._check_v7(conn);self._check_v7_attachments(conn)
                     completed_v7=True
@@ -396,9 +401,14 @@ class ResearchStore:
         if completed_v6:
             self._migrate_v7()
             self._migrate_v8_if_ready()
+            self._migrate_v9_if_ready()
             return
         if completed_v7:
             self._migrate_v8()
+            self._migrate_v9_if_ready()
+            return
+        if completed_v8:
+            self._migrate_v9()
             return
         # AuthStore already initializes auth tables and WAL with its own lock.
         with self.transaction(write=True) as conn:
@@ -451,6 +461,7 @@ class ResearchStore:
             producer_version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
         if producer_version==PRODUCER_SCHEMA_VERSION:self._migrate_v7()
         self._migrate_v8_if_ready()
+        self._migrate_v9_if_ready()
 
     def _migrate_v4(self):
         """Controlled SQLite table replacement, never an application session.
@@ -514,6 +525,7 @@ class ResearchStore:
                 conn.close()
 
     @staticmethod
+    @lru_cache(maxsize=1024)
     def _normalize_sql(sql):
         # Compare tokens, never flattened SQL text. Only SQLite's automatic
         # quoting of simple managed research_* names is normalized away.
@@ -659,9 +671,10 @@ class ResearchStore:
             finally:conn.close()
 
     @classmethod
-    def _check_v6(cls,conn):
+    def _check_v6(cls,conn,*,method=False):
         tables={**V5_SCHEMA,**V6_SCHEMA}
         tables.update({ddl.split()[2]:ddl for ddl in PRODUCER_DDL})
+        if method:tables['research_provider_sessions']=cls._method_session_sql()
         for name,ddl in tables.items():
             row=conn.execute('SELECT sql FROM sqlite_schema WHERE name=? AND type=\'table\'',(name,)).fetchone()
             if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):raise ResearchError('SCHEMA_UNSUPPORTED',503,'生产者结构不匹配。')
@@ -671,7 +684,7 @@ class ResearchStore:
             if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):raise ResearchError('SCHEMA_UNSUPPORTED',503,'生产者控制结构不匹配。')
 
     @classmethod
-    def _v7_required_legacy_objects(cls):
+    def _v7_required_legacy_objects(cls,*,method=False):
         """Complete inherited baseline, with the reviewed version overlays."""
         required={}
         for ddl in (*SCHEMA,*C0_SCHEMA):
@@ -684,22 +697,23 @@ class ResearchStore:
             required[tokens[offset]]=ddl
         required['research_principal_gate_required']="CREATE TRIGGER research_principal_gate_required BEFORE INSERT ON research_principals WHEN NEW.gate_id IS NULL BEGIN SELECT RAISE(ABORT, 'principal gate required'); END"
         required['research_billing_receipts_immutable']="CREATE TRIGGER research_billing_receipts_immutable BEFORE UPDATE ON research_billing_receipts BEGIN SELECT RAISE(ABORT,'immutable accounting record'); END"
+        if method:required['research_provider_sessions']=cls._method_session_sql()
         return required
 
     @classmethod
-    def _check_v6_inherited(cls,conn):
-        for name,ddl in cls._v7_required_legacy_objects().items():
+    def _check_v6_inherited(cls,conn,*,method=False):
+        for name,ddl in cls._v7_required_legacy_objects(method=method).items():
             row=conn.execute('SELECT type,sql FROM sqlite_schema WHERE name=?',(name,)).fetchone()
             expected_type='table' if ddl.startswith('CREATE TABLE') else 'trigger' if ddl.startswith('CREATE TRIGGER') else 'index'
             if not row or row['type']!=expected_type or cls._normalize_sql(row['sql'])!=cls._normalize_sql(ddl):
                 raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究必需基础结构不匹配。')
-        cls._check_v6(conn)
+        cls._check_v6(conn,method=method)
         from .source_integration import install_schema
         install_schema(conn,existing_required=True)
 
     @classmethod
-    def _check_v7(cls,conn):
-        cls._check_v6_inherited(conn)
+    def _check_v7(cls,conn,*,method=False):
+        cls._check_v6_inherited(conn,method=method)
         require_hook(conn)
         for ddl in (*V7_TABLES,*V7_GUARDS):
             name=ddl.split()[2]
@@ -724,13 +738,14 @@ class ResearchStore:
                 raise ResearchError('SCHEMA_UNSUPPORTED',503,'项目预算数据库绑定不匹配。')
 
     @classmethod
-    def _check_v7_attachments(cls,conn):
+    def _check_v7_attachments(cls,conn,*,method=False):
         allowed={}
         for ddl in (*cls._v7_required_legacy_objects().values(),*V7_GUARDS):
             if not ddl.startswith(('CREATE INDEX','CREATE UNIQUE INDEX','CREATE TRIGGER')):continue
             tokens=ddl.split();offset=3 if tokens[1]=='UNIQUE' else 2
             if tokens[offset]=='IF':offset+=3
             allowed[tokens[offset]]=ddl
+        if method:allowed.update({ddl.split()[2]:ddl for ddl in METHOD_GUARDS})
         # Preserve the existing extra-attachment policy; required inherited
         # objects are independently validated above and never recreated.
         for table in (*V5_SCHEMA,'research_cost_observations','research_paid_approvals','research_provider_sessions'):
@@ -788,8 +803,8 @@ class ResearchStore:
                 raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除任务存在未知附属结构。')
 
     @classmethod
-    def _check_v8(cls,conn):
-        cls._check_v7(conn);cls._check_auth_job_schema(conn,expanded=True)
+    def _check_v8(cls,conn,*,method=False):
+        cls._check_v7(conn,method=method);cls._check_auth_job_schema(conn,expanded=True)
         for ddl in V8_JOB_GUARDS:
             row=conn.execute('SELECT sql FROM sqlite_schema WHERE name=?',(ddl.split()[2],)).fetchone()
             if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除来源守卫不匹配。')
@@ -797,6 +812,42 @@ class ResearchStore:
     def _migrate_v8_if_ready(self):
         with self.transaction() as conn:version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
         if version==FINANCIAL_SCHEMA_VERSION:self._migrate_v8()
+
+    @staticmethod
+    def _method_session_sql():
+        old=next(ddl for ddl in PRODUCER_DDL if ddl.startswith('CREATE TABLE research_provider_sessions'))
+        return old.rstrip()[:-1]+', '+', '.join(name+' '+ddl for name,ddl in METHOD_COLUMNS)+')'
+
+    @classmethod
+    def _check_v9(cls,conn):
+        cls._check_v8(conn,method=True);cls._check_v7_attachments(conn,method=True)
+        for ddl in METHOD_GUARDS:
+            row=conn.execute('SELECT sql FROM sqlite_schema WHERE name=?',(ddl.split()[2],)).fetchone()
+            if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究正文保护结构不匹配。')
+        try:version=conn.execute('SELECT research_method_guard_version(),research_method_write_allowed(?,?,?)',('probe','','{}')).fetchone()
+        except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究正文连接守卫不可用。') from None
+        if tuple(version)!=(9,0):raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究正文连接守卫不匹配。')
+
+    def _migrate_v9_if_ready(self):
+        with self.transaction() as conn:version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
+        if version==DELETION_SCHEMA_VERSION:self._migrate_v9()
+
+    def _migrate_v9(self):
+        conn=sqlite3.connect(self.path,timeout=5,isolation_level=None);conn.row_factory=sqlite3.Row
+        install_default_hook(conn)
+        try:
+            conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN IMMEDIATE');self.auth_store.check_gate_policy(conn)
+            version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
+            if version==METHOD_SCHEMA_VERSION:self._check_v9(conn);conn.commit();return
+            if version!=DELETION_SCHEMA_VERSION:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究正文迁移版本不支持。')
+            self._check_v8(conn);self._check_v7_attachments(conn)
+            for ddl in METHOD_GUARDS:
+                if conn.execute('SELECT 1 FROM sqlite_schema WHERE name=?',(ddl.split()[2],)).fetchone():raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究正文存在部分守卫。')
+            for name,ddl in METHOD_COLUMNS:conn.execute('ALTER TABLE research_provider_sessions ADD COLUMN '+name+' '+ddl)
+            for ddl in METHOD_GUARDS:conn.execute(ddl)
+            conn.execute('UPDATE research_schema SET version=9 WHERE id=1');self._check_v9(conn);conn.commit()
+        except Exception:conn.rollback();raise
+        finally:conn.close()
 
     def _migrate_v8(self):
         conn=sqlite3.connect(self.path,timeout=5,isolation_level=None);conn.row_factory=sqlite3.Row

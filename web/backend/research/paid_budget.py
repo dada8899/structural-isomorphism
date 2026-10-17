@@ -121,8 +121,9 @@ def reserve_in(conn,*,store,actor,lease,source,approval_ref):
         raise PermissionError('existing reservation cannot be resent')
     packet=read_confirmed_provider_packet(conn,store,actor,packet_authority(conn,store,actor,lease,approval_ref))
     prepared=prepare_request(payload['summary'],packet);final_request_bytes(prepared)
-    cap=mint_current_paid_authority(conn,store=store,lease=lease,identity=actor,context=context,step_id=step['id'],
-        expected_task_version=task['version'],expected_step_version=step['version'],operation='reserve',approval_ref=approval_ref).require(conn,'reserve')
+    authority=mint_current_paid_authority(conn,store=store,lease=lease,identity=actor,context=context,step_id=step['id'],
+        expected_task_version=task['version'],expected_step_version=step['version'],operation='reserve',approval_ref=approval_ref)
+    cap=authority.require(conn,'reserve')
     quote=UsageUpperQuote.model_validate(payload['funding']['quote']);now=int(time.time());dispatch=uid()
     reserved=reserve_bound(quote,dispatch_id=dispatch,request_digest=prepared.request_digest,now=now)
     if reserved.reserved_upper!=cap.approved_upper or project['funding_account_id']!=cap.account_id:raise PermissionError('approved reserve mismatch')
@@ -135,7 +136,11 @@ def reserve_in(conn,*,store,actor,lease,source,approval_ref):
         (permit,step['id'],reservation,dispatch,context.input_digest,expiry,POLICY,prepared.request_digest,prepared.evidence_digest,cap.quote_digest,cap.basis_digest,
          canonical(payload['funding']['basis']).decode(),digest(canonical(context.model_dump())),task['version'],step['version']+1,approval_ref,now,canonical(lease.identity).decode()))
     descriptor=digest(canonical({'producer':PRODUCER,'dispatch':dispatch,'request':prepared.request_digest,'reservation':reservation}))
-    _write(conn,lease,'reserve-row',session,'research_provider_sessions',session,"INSERT INTO research_provider_sessions(id,approval_id,dispatch_id,permit_id,mode,binding_digest,state) VALUES(?,?,?,?,'offline_probe',?,'created')",(session,approval_ref,dispatch,permit,descriptor))
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:
+        from .method_result import fresh_scope
+        with fresh_scope(conn,store=store,lease=lease,authority=authority,ref=session):
+            _write(conn,lease,'reserve-row',session,'research_provider_sessions',session,"INSERT INTO research_provider_sessions(id,approval_id,dispatch_id,permit_id,mode,binding_digest,state,body_origin_state) VALUES(?,?,?,?,'offline_probe',?,'created','fresh')",(session,approval_ref,dispatch,permit,descriptor))
+    else:_write(conn,lease,'reserve-row',session,'research_provider_sessions',session,"INSERT INTO research_provider_sessions(id,approval_id,dispatch_id,permit_id,mode,binding_digest,state) VALUES(?,?,?,?,'offline_probe',?,'created')",(session,approval_ref,dispatch,permit,descriptor))
     conn.execute("UPDATE research_steps SET state='PREPARED',reservation_id=?,version=version+1 WHERE id=? AND version=?",(reservation,step['id'],step['version']))
     if _write(conn,lease,'money',account['id'],'research_funding_accounts',account['id'],
             'UPDATE research_funding_accounts SET held=held+?,version=version+1 WHERE id=? AND version=?',(upper,account['id'],account['version'])).rowcount!=1:raise PermissionError('reserve CAS failed')
@@ -217,8 +222,11 @@ class CostReturnBinding:
     project_version:int
 
 
-def _load_admission(conn,store,lease,return_ref):
-    _current_scope(conn)
+def _load_admission(conn,store,lease,return_ref,*,read=False):
+    if read:
+        from .method_result import _scope
+        _scope(conn,store,lease)
+    else:_current_scope(conn)
     row=conn.execute('SELECT * FROM research_financial_admissions WHERE session_id=?',(return_ref,)).fetchone()
     if not row or row['producer_version']!=PRODUCER or row['mode']!='offline_probe':raise PermissionError('new controlled admission required')
     snap=validate_snapshot_json(row['snapshot_json'].encode(),expected_digest=row['snapshot_digest'])
@@ -251,8 +259,8 @@ def _load_admission(conn,store,lease,return_ref):
     return row,snap,project,r,p,s
 
 
-def _validated_return(conn,store,lease,return_ref):
-    admission,snap,project,r,p,s=_load_admission(conn,store,lease,return_ref)
+def _validated_return(conn,store,lease,return_ref,*,read=False):
+    admission,snap,project,r,p,s=_load_admission(conn,store,lease,return_ref,read=read)
     if not s['financial_return_json']:raise PermissionError('no durable owned return')
     raw=s['financial_return_json'].encode()
     data=strict_json(raw,16384)

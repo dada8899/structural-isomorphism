@@ -43,12 +43,24 @@ class AuthenticatedActionSource:
 def issue_authenticated_action(request,*,action,research_id=None,task_id=None,key='',body_digest=''):
     """Reverify the real ASGI route and signed direct cookie, not passed claims."""
     from starlette.requests import Request
-    if type(request) is not Request or action not in ('cancel','account-delete') or request.method!='POST':
+    routes={'cancel':('POST','cancel_research_task'),'account-delete':('POST','delete_my_account'),
+        'method-read':('GET','view_research'),'method-reconcile':('POST','reconcile_research_task')}
+    if type(request) is not Request or action not in routes or request.method!=routes[action][0]:
         raise PermissionError('actual authenticated action request required')
     from .provider_schemas import strict_json
     raw=getattr(request,'_body',None)
-    if type(raw) is not bytes:raise PermissionError('actual parsed request bytes required')
-    if action=='cancel':
+    if action=='method-read':
+        pairs=list(request.query_params.multi_items())
+        if len(pairs)>1 or any(name!='task_id' or not value for name,value in pairs):
+            raise ResearchError('INPUT_INVALID',422,'研究结果读取参数无效。')
+        actual_research=request.path_params.get('research_id');actual_task=request.query_params.get('task_id')
+        if (research_id is not None and research_id!=actual_research) or (task_id is not None and task_id!=actual_task):
+            raise PermissionError('caller cannot change method read query')
+        research_id,task_id=actual_research,actual_task
+        body_digest=digest(request.scope.get('query_string',b''));key=''
+    elif action in ('cancel','method-reconcile'):
+        if type(raw) is not bytes:raise PermissionError('actual parsed request bytes required')
+        if action=='method-reconcile' and request.query_params:raise ResearchError('INPUT_INVALID',422,'研究结果提交不接受查询参数。')
         from .schemas import TaskEnvelope
         data=TaskEnvelope.model_validate(strict_json(raw,65536)).data
         actual_research=request.path_params.get('research_id');actual_task=data.task_id
@@ -59,20 +71,21 @@ def issue_authenticated_action(request,*,action,research_id=None,task_id=None,ke
             raise PermissionError('caller cannot change authenticated action target')
         research_id,task_id,key,body_digest=actual_research,actual_task,actual_key,actual_digest
     else:
+        if type(raw) is not bytes:raise PermissionError('actual parsed request bytes required')
         data=strict_json(raw,65536)
         if type(data) is not dict or set(data)!={'confirmation'} or data['confirmation']!='DELETE':
             raise PermissionError('actual delete confirmation required')
     endpoint=request.scope.get('endpoint')
-    expected='cancel_research_task' if action=='cancel' else 'delete_my_account'
+    expected=routes[action][1]
     if (not request.scope.get('app') or not endpoint or getattr(endpoint,'__name__',None)!=expected
-            or (action=='cancel' and request.path_params.get('research_id')!=research_id)):
+            or (action!='account-delete' and request.path_params.get('research_id')!=research_id)):
         raise PermissionError('action route binding mismatch')
     if __package__=='web.backend.research':from ..api import auth
     else:from api import auth
-    if action=='cancel':
+    if action!='account-delete':
         if __package__=='web.backend.research':from ..api import research as route_module
         else:from api import research as route_module
-        actual_endpoint=route_module.cancel_research_task
+        actual_endpoint=getattr(route_module,expected)
     else:actual_endpoint=auth.delete_my_account
     if endpoint is not actual_endpoint or getattr(request.scope.get('route'),'endpoint',None) is not actual_endpoint:
         raise PermissionError('actual action endpoint required')
@@ -81,7 +94,7 @@ def issue_authenticated_action(request,*,action,research_id=None,task_id=None,ke
     claims=auth._decode_jwt(request.cookies.get(auth._COOKIE_NAME,''))
     if (status!='valid' or direct!='valid' or not unified or not user or unified['email']!=user['email'] or not claims
             or type(claims.get('exp')) is not int or not all(type(claims.get(k)) is str and claims[k] for k in ('sub','gen','jti'))
-            or auth.require_same_origin(request) is not None):
+            or (request.method=='POST' and auth.require_same_origin(request) is not None)):
         raise ResearchError('AUTH_REQUIRED',401,'操作来源认证失效。')
     identity=AccountIdentity(user['email'],claims['gen'],claims['jti'],claims['exp'])
     return AuthenticatedActionSource(_factory=_REQUEST_FACTORY,identity=identity,action=action,research_id=research_id,task_id=task_id,
@@ -137,7 +150,8 @@ def verify_deletion_origin(conn,*,store,lease,job_id):
     from .store import ResearchStore
     from .financial_guard import JOB_ORIGIN_VERSION
     _deletion_lease_binding(conn,store,lease,job)
-    ResearchStore._check_v8(conn)
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
+    else:ResearchStore._check_v8(conn)
     if job['origin_version']!=JOB_ORIGIN_VERSION or job['origin_digest']!=deletion_origin_digest(job):
         raise PermissionError('protected deletion origin damaged')
     if job['state']=='pending':
@@ -270,7 +284,7 @@ def _current_scope(conn):
     with _LOCK:scope=_SCOPES.get(id(conn))
     if (not scope or scope.conn is not conn or not scope.active or not scope.write or scope.pid!=os.getpid()
             or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1
-            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7,8)):
+            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7,8,9)):
         raise PermissionError("current canonical v5 transaction required")
     if conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==7:
         from .store import ResearchStore
@@ -278,6 +292,9 @@ def _current_scope(conn):
     elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==8:
         from .store import ResearchStore
         ResearchStore._check_v8(conn)
+    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==9:
+        from .store import ResearchStore
+        ResearchStore._check_v9(conn)
     return scope
 
 
@@ -376,7 +393,7 @@ def mint_stop_authority(conn,*,store,lease,principal_id,task_id,expected_task_ve
 
 def mint_current_paid_authority(conn,*,store,lease,identity,context,step_id,expected_task_version,expected_step_version,operation,approval_ref):
     _current_scope(conn)
-    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8):
+    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9):
         policy=conn.execute('SELECT policy_revision FROM research_tasks WHERE id=?',(context.task_id,)).fetchone()
         if policy and policy[0]=='bounded_usage_upper_v2':
             from .paid_approval import mint_current_authority
