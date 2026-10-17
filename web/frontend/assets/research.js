@@ -639,6 +639,7 @@
   const planText = (value, max, min=1) => typeof value === 'string' && Array.from(value).length >= min && Array.from(value).length <= max && value.trim().length > 0 && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/.test(value);
   const planRef = value => typeof value === 'string' && /^[A-Za-z0-9._:-]{1,100}$/.test(value);
   const planDigest = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+  const planError = error => ['AbortError','TypeError','SyntaxError'].includes(error.name)?'本次计划状态尚未确认，请保留输入与原操作。':error.message;
   function planTicket(read=false) { return {epoch:planState.epoch,privateScope:privateGeneration,rid:researchId,task:selectedTask,...(read?{read:planState.readGeneration}:{})}; }
   function planActive(ticket) { return ticket.epoch===planState.epoch&&ticket.privateScope===privateGeneration&&ticket.rid===researchId&&ticket.task===selectedTask&&(ticket.read===undefined||ticket.read===planState.readGeneration); }
   function planClearBody() {
@@ -777,7 +778,7 @@
         if(pending&&!planUncertain(metadata)&&metadata.cleanup_state==='clean')formulaRetire(pending);
       }else if(metadata.state==='saved')throw Error('已保存的计划正文尚未读全，原操作仍保留。');
       planSync();return metadata;
-    }catch(error){if(planActive(ticket)){if(display)planClearBody();byId('native-plan-status').textContent=error.message;planSync();}return null;}
+    }catch(error){if(planActive(ticket)){if(display)planClearBody();byId('native-plan-status').textContent=planError(error);planSync();}return null;}
   }
   function planObserve(data,read=true) {
     if(planState.preview&&planState.preview.expected_research_version!==data.research_version)planInvalidate('已保存的流程版本有变化，请重新预览外发范围。');
@@ -815,7 +816,7 @@
       byId('native-plan-quote').textContent=`用途：规划下一步查什么。拟发送至 ${value.quote.provider} / ${value.quote.model}（声明版本 ${value.quote.declared_model_version}）。本次费用上限 CNY ${planMoney(value.approved_upper_units)}；报价有效至 ${new Date(value.expires_at*1000).toLocaleString('zh-CN')}。余额尚未核对，这不是可用余额或已扣费用。`;
       byId('native-plan-status').textContent=value.can_confirm?'请逐字核对上方将外发的已保存原文，并明确确认本次费用上界。':'资金执行入口尚未开放；仅展示本次原文和报价，不能确认外发。保存、账户与公式功能仍可使用。';
       planState.timer=setTimeout(()=>{if(planState.preview?.preview_ref===value.preview_ref){byId('native-plan-consent').checked=false;planSync();byId('native-plan-status').textContent='报价已到期，请重新预览；未自动确认或外发。';}},Math.min(2147483647,Math.max(0,value.expires_at*1000-Date.now())));
-    }catch(error){if(!ticket||planActive(ticket)){if(pending&&error.status>=400&&error.status<500)formulaRetire(pending);byId('native-plan-status').textContent=error.message;}}
+    }catch(error){if(!ticket||planActive(ticket)){if(pending&&error.status>=400&&error.status<500)formulaRetire(pending);byId('native-plan-status').textContent=planError(error);}}
     finally{if(planState.operation===token){planState.busy=false;planState.operation=null;planSync();}}
   }
   async function planConfirm(recover=false) {
@@ -841,7 +842,7 @@
       if(!planActive(ticket))return;const stored=JSON.parse(sessionStorage.getItem(pending.slot));if(stored?.key===pending.key){stored.receipt={task_id:ack.task_id,result_ref:ack.result_ref};sessionStorage.setItem(pending.slot,JSON.stringify(stored));}
       if(methodDirty||formulaState.dirty||bound.is_historical){const originalState=await planRead(meta,planAnchor(bound),planTicket(true),false,false);if(!planActive(ticket)||!originalState)return;byId('native-plan-status').textContent=planStates[originalState.state]+'。已核对原操作，当前草稿未替换；可在新标签页只读查看原流程。';formulaElement(byId('native-plan-body'),'a','只读查看原计划流程',{href:`/research/${ticket.rid}?task_id=${ack.task_id}`,target:'_blank',rel:'noopener'});return;}
       renderTask(bound,{nativePlanRead:false});await planRead(meta,planAnchor(bound),planTicket(true));
-    }catch(error){if(!ticket||planActive(ticket)){const rejected=pending&&error.planPurpose==='confirm'&&['INPUT_INVALID','REVISION_CONFLICT','PREVIEW_EXPIRED','PREVIEW_CHANGED','TASK_ACTIVE','FUNDING_GRANT_REQUIRED'].includes(error.code)&&error.status>=400&&error.status<500;if(rejected)formulaRetire(pending);planClearBody();byId('native-plan-status').textContent=error.message+(rejected?' 当前输入仍保留，请重新预览；不会自动再次外发。':' 请保留草稿与原操作；不会自动再发模型请求。');}}
+    }catch(error){if(!ticket||planActive(ticket)){const rejected=pending&&error.planPurpose==='confirm'&&['INPUT_INVALID','REVISION_CONFLICT','PREVIEW_EXPIRED','PREVIEW_CHANGED','TASK_ACTIVE','FUNDING_GRANT_REQUIRED'].includes(error.code)&&error.status>=400&&error.status<500;if(rejected)formulaRetire(pending);planClearBody();byId('native-plan-status').textContent=planError(error)+(rejected?' 当前输入仍保留，请重新预览；不会自动再次外发。':' 请保留草稿与原操作；不会自动再发模型请求。');}}
     finally{if(planState.operation===token){planState.busy=false;planState.operation=null;planSync();}}
   }
   function initPlan() {
@@ -852,7 +853,7 @@
       planInvalidate('正在按当前账户核对计划状态；不会发送模型请求。');
       const ticket=planTicket(),operation=Symbol();planState.busy=true;planState.operation=operation;planSync();
       try{if(!await planAuthenticate(ticket))return;const view=await request(viewUrl(),{},()=>planActive(ticket));if(planActive(ticket))renderTask(view);}
-      catch(error){if(planActive(ticket)){planClearBody();byId('native-plan-status').textContent=error.message;}}
+      catch(error){if(planActive(ticket)){planClearBody();byId('native-plan-status').textContent=planError(error);}}
       finally{if(planState.operation===operation){planState.busy=false;planState.operation=null;planSync();}}
     });
     byId('native-plan-query-draft').addEventListener('input',planSync);byId('native-plan-use-query').addEventListener('click',()=>{if(readOnlyView()||!taskData?.capabilities?.source_evidence||byId('native-plan-use-query').disabled)return;byId('source-query').value=byId('native-plan-query-draft').value;byId('source-query').dispatchEvent(new Event('input',{bubbles:true}));byId('source-query').focus();byId('source-query').scrollIntoView({block:'center'});byId('native-plan-status').textContent='已填入可编辑的来源查询草稿；尚未预览、批准或读取任何来源。';});
