@@ -20,6 +20,11 @@ _project_root = os.getenv("STRUCTURAL_PROJECT_ROOT") or str(
 )
 sys.path.insert(0, _project_root)
 
+if __package__ == "web.backend":
+    from .services.runtime_paths import FormalAdmissionError, FormalAdmissionMiddleware, require_formal_admission
+else:
+    from services.runtime_paths import FormalAdmissionError, FormalAdmissionMiddleware, require_formal_admission
+
 load_dotenv(Path(__file__).parent / ".env")
 # Session #16: deploy-vps.sh writes a `.env.runtime` next to .env with the
 # git SHA + deploy timestamp so /api/version can return real values (instead
@@ -28,8 +33,9 @@ load_dotenv(Path(__file__).parent / ".env")
 load_dotenv(Path(__file__).parent / ".env.runtime", override=True)
 
 # W14-D: structlog + correlation IDs. configure_logging() installs a
-# JSON-line handler on the root logger (stdout) + a rotating file handler
-# at web/backend/logs/server.jsonl, then routes uvicorn/fastapi/slowapi
+# JSON-line handler on the root logger (stdout). Explicit development setup
+# also adds the rotating file sink; formal stays stdout-only until admission.
+# The same processors route uvicorn/fastapi/slowapi
 # through the same pipeline. Must run *before* any logger.info() call so
 # we don't accidentally bake in the old text format.
 if __package__ == "web.backend":
@@ -132,6 +138,7 @@ async def lifespan(app: FastAPI):
         # A failed startup must not leave a previous candidate marked ready.
         app_state.pop("search", None)
         app_state.pop("artifact", None)
+        require_formal_admission()
 
     # Authentication deployment constraints are runtime security boundaries,
     # not merely deploy-script conventions. A production beta process must
@@ -398,6 +405,12 @@ async def gate_unfinished_production_surfaces(request: Request, call_next):
     return await call_next(request)
 
 
+# Added after every other user middleware so the raw ASGI boundary runs
+# before tier/auth dependencies, legacy gates, static routing or body reads.
+# This applies to ASGITransport and servers with lifespan disabled as well.
+app.add_middleware(FormalAdmissionMiddleware, formal=_IS_PROD)
+
+
 # --- Shared getter for dependency ---
 def get_search_service():
     return app_state.get("search")
@@ -509,6 +522,12 @@ from schemas import HealthResponse, VersionResponse, WhoAmIResponse  # noqa: E40
     },
 )
 async def health(deep: int = 0):
+    if _IS_PROD:
+        try:
+            require_formal_admission()
+        except FormalAdmissionError:
+            return JSONResponse({"status": "unavailable", "checks": {"private_runtime": "not_admitted"}},
+                                status_code=503, headers={"Cache-Control": "no-store"})
     svc = app_state.get("search")
     body = {
         "status": "ok",

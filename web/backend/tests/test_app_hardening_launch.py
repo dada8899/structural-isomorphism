@@ -22,7 +22,16 @@ if str(_BACKEND) not in sys.path:
 
 
 def _fresh_main(monkeypatch, env: str, *, auth_enabled: bool = False):
-    """Reload `main` under a given STRUCTURAL_ENV and return the module."""
+    """Isolate the post-admission route/metadata policy, not R2 readiness.
+
+    Real production import/lifespan-off admission is exercised without stubs
+    in test_runtime_admission's fresh processes. Keep these route assertions.
+    """
+    admission = None
+    if env == "prod":
+        from services import runtime_paths
+        admission = runtime_paths.require_formal_admission
+        monkeypatch.setattr(runtime_paths, "require_formal_admission", lambda: None)
     monkeypatch.setenv("STRUCTURAL_ENV", env)
     # prod path requires the share-token secret env (report_store guards it).
     monkeypatch.setenv("STRUCTURAL_SHARE_TOKEN_SECRET", "test-secret-for-suite")
@@ -30,6 +39,10 @@ def _fresh_main(monkeypatch, env: str, *, auth_enabled: bool = False):
     if "main" in sys.modules:
         del sys.modules["main"]
     import main  # noqa: WPS433 — deliberate reload
+    if admission is not None:
+        # Do not retain a stub imported by value after this fixture restores
+        # the ASGI middleware's module symbol. Lifespan/health stay closed.
+        main.require_formal_admission = admission
     return main
 
 

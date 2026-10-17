@@ -19,6 +19,9 @@ def startup(tmp_path, monkeypatch):
         monkeypatch.delenv(key, raising=False)
     module = importlib.import_module("main")
     monkeypatch.setattr(module, "_IS_PROD", True)
+    # This suite isolates R1's model/artifact lifecycle. R2-A production
+    # admission is independently tested with the real, unpatched gate.
+    monkeypatch.setattr(module, "require_formal_admission", lambda: None)
     monkeypatch.setattr(module.auth_api, "_validate_production_config", lambda: None)
     monkeypatch.setattr(module, "_resolve_git_sha", lambda: "1" * 40)
     monkeypatch.setattr(module, "app_state", {"search": object(), "artifact": {"artifact_id": "stale"}})

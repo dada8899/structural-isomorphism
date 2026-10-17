@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 import asyncio
+import pytest
 
 from fastapi.responses import JSONResponse
 
 import main
+
+
+@pytest.fixture(autouse=True)
+def development_artifact_health(monkeypatch):
+    # Existing artifact/KB unit contract. Real production admission (including
+    # lifespan-off HTTP) is covered by test_runtime_admission, without stubs.
+    monkeypatch.setattr(main, "_IS_PROD", False)
 
 
 class _Search:
