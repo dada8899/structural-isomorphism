@@ -747,11 +747,11 @@ def _fresh_auth(conn):
     for ddl in _BASE_SCHEMA_STATEMENTS:
         if 'auth_deletion_jobs' not in ddl:conn.execute(ddl)
     conn.execute(_AUTH_LIFECYCLE_SQL)
-    objects=ResearchStore._current_structure_declarations(version=12)
+    objects=ResearchStore._current_structure_declarations(version=13)
     for kind in ('table','index','trigger'):
         for _name,(actual_kind,_target,forms) in objects.items():
             if kind==actual_kind:conn.execute(forms[0])
-    conn.execute('INSERT INTO research_schema VALUES(1,12)')
+    conn.execute('INSERT INTO research_schema VALUES(1,13)')
     AuthStore.check_gate_policy(conn,initialize=True)
     for ddl in AUTH_REGISTRATION_DDL:conn.execute(ddl)
 
@@ -872,7 +872,7 @@ def bootstrap_private_runtime():
                     if name=='auth.sqlite3':
                         from .auth_store import AuthStore
                         AuthStore.check_gate_policy(conn)
-                        if list(map(tuple,conn.execute('SELECT * FROM research_schema')))!=[(1,12)]:raise PermissionError('exact Research12 required')
+                        if list(map(tuple,conn.execute('SELECT * FROM research_schema')))!=[(1,13)]:raise PermissionError('exact Research13 required')
                     conn.rollback()
                     if conn.execute('PRAGMA journal_mode').fetchone()[0]!='wal':raise PermissionError('existing private runtime WAL required')
                     if conn.execute('PRAGMA journal_mode=DELETE').fetchone()[0]!='delete':raise PermissionError('offline exclusive journal required')
@@ -892,7 +892,7 @@ def bootstrap_private_runtime():
             if (info.st_dev,info.st_ino)!=identity[name]:raise PermissionError('bootstrap identity changed')
             if name!='research-locks':_safe_file(info)
         paths._check_current_parent(paths.STATE_ROOT,state,forbidden=paths._auth_forbidden_roots())
-        return {'contract':'auth-provision-v1','research_schema':12,'created':fresh}
+        return {'contract':'auth-provision-v1','research_schema':13,'created':fresh}
     finally:
         if lockfd is not None:os.close(lockfd)
         for directory in reversed(directories):os.close(directory)
@@ -914,7 +914,7 @@ def _offline_research_profile(conn):
     else:from research.store import ResearchStore
     profile=AuthStore.check_offline_auth_metadata(conn)
     version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
-    if (profile,version) not in (('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12)):
+    if (profile,version) not in (('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13)):
         raise PermissionError('exact offline Auth research profile required')
     ResearchStore._check_structure_version(conn,version)
     return version

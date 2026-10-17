@@ -33,8 +33,10 @@ else:
 
 if __package__=='web.backend.api':
     from ..research.plan_schemas import PlanPreviewEnvelope,PlanConfirmationEnvelope,PlanPreviewResponse,PlanConfirmationResponse,PlanReadResponse
+    from ..research.plan_native_schemas import NativePlanPreviewEnvelope,NativePlanConfirmationEnvelope,NativePlanPreviewResponse,NativePlanConfirmationResponse,NativePlanReadResponse
 else:
     from research.plan_schemas import PlanPreviewEnvelope,PlanConfirmationEnvelope,PlanPreviewResponse,PlanConfirmationResponse,PlanReadResponse
+    from research.plan_native_schemas import NativePlanPreviewEnvelope,NativePlanConfirmationEnvelope,NativePlanPreviewResponse,NativePlanConfirmationResponse,NativePlanReadResponse
 
 router = APIRouter(tags=["research"])
 _KEY = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z", re.ASCII)
@@ -130,6 +132,10 @@ async def _parse(request, schema):
         raw.extend(chunk)
     try:
         body = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_object, parse_constant=_invalid_constant)
+        if schema in (PlanPreviewEnvelope,PlanConfirmationEnvelope) and type(body) is dict and body.get('contract_revision')=='funded-plan-v2':
+            if __package__=='web.backend.api':from ..research.plan_native_schemas import NativePlanPreviewEnvelope,NativePlanConfirmationEnvelope
+            else:from research.plan_native_schemas import NativePlanPreviewEnvelope,NativePlanConfirmationEnvelope
+            schema=NativePlanPreviewEnvelope if schema is PlanPreviewEnvelope else NativePlanConfirmationEnvelope
         validated=schema.model_validate(body)
         request._body=bytes(raw)
         return validated
@@ -188,7 +194,14 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                 from research.paid_control import issue_authenticated_action
                 from research.plan_result import read
             source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
-            try:result=await run_in_threadpool(read,service,identity,research_id,request.path_params['result_ref'],source)
+            try:
+                if __package__=='web.backend.api':from ..research import plan_native_runtime
+                else:from research import plan_native_runtime
+                with service.store.transaction() as conn:
+                    native=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_plan_native_runs'").fetchone()
+                    native=native and conn.execute('SELECT 1 FROM research_plan_native_runs WHERE result_ref=?',(request.path_params['result_ref'],)).fetchone()
+                if native:result=await run_in_threadpool(plan_native_runtime.read,service,identity,research_id,request.path_params['result_ref'],source)
+                else:result=await run_in_threadpool(read,service,identity,research_id,request.path_params['result_ref'],source)
             finally:source.close()
         elif operation == "source-records":
             result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get("task_id",""),request.query_params.get("kind",""),request.query_params.get("cursor"))
@@ -218,7 +231,11 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                     from research.paid_control import issue_authenticated_action
                     from research import plan_runtime
                 source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
-                function=plan_runtime.preview if operation=='plan-preview' else plan_runtime.confirm
+                if envelope.contract_revision=='funded-plan-v2':
+                    if __package__=='web.backend.api':from ..research import plan_native_runtime
+                    else:from research import plan_native_runtime
+                    function=plan_native_runtime.preview if operation=='plan-preview' else plan_native_runtime.confirm
+                else:function=plan_runtime.preview if operation=='plan-preview' else plan_runtime.confirm
                 try:result=await run_in_threadpool(function,service,identity,research_id,envelope.data,key,source)
                 finally:source.close()
             elif operation == "create":
@@ -264,7 +281,8 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         if operation in _PAID_OPERATIONS:return _paid_success_response(operation,result)
         if operation in ('plan-preview','plan-confirm','plan-read'):
             try:
-                model={'plan-preview':PlanPreviewResponse,'plan-confirm':PlanConfirmationResponse,'plan-read':PlanReadResponse}[operation]
+                models=({'plan-preview':NativePlanPreviewResponse,'plan-confirm':NativePlanConfirmationResponse,'plan-read':NativePlanReadResponse} if result.get('contract_revision')=='funded-plan-v2' else {'plan-preview':PlanPreviewResponse,'plan-confirm':PlanConfirmationResponse,'plan-read':PlanReadResponse})
+                model=models[operation]
                 result=model.model_validate(result).model_dump(mode='json')
             except ValueError:return _paid_response_unavailable()
         if len(json.dumps(result,ensure_ascii=False,allow_nan=False,separators=(',',':')).encode('utf-8'))>524288:
@@ -375,14 +393,14 @@ async def read_research_formula_revision(research_id:str,revision:int,request:Re
     return await _dispatch(request,research_id=research_id,operation='formula-revision-read')
 
 
-@router.post('/research/{research_id}/plan-previews',response_model=PlanPreviewResponse,openapi_extra={'requestBody':_formula_request_body(PlanPreviewEnvelope)})
+@router.post('/research/{research_id}/plan-previews',response_model=PlanPreviewResponse|NativePlanPreviewResponse,openapi_extra={'requestBody':{'required':True,'content':{'application/json':{'schema':{'oneOf':[_formula_request_body(PlanPreviewEnvelope)['content']['application/json']['schema'],_formula_request_body(NativePlanPreviewEnvelope)['content']['application/json']['schema']]}}}}})
 async def preview_research_plan(research_id:str,request:Request):
     return await _dispatch(request,research_id=research_id,operation='plan-preview')
 
-@router.post('/research/{research_id}/plan-approvals',response_model=PlanConfirmationResponse,openapi_extra={'requestBody':_formula_request_body(PlanConfirmationEnvelope)})
+@router.post('/research/{research_id}/plan-approvals',response_model=PlanConfirmationResponse|NativePlanConfirmationResponse,openapi_extra={'requestBody':{'required':True,'content':{'application/json':{'schema':{'oneOf':[_formula_request_body(PlanConfirmationEnvelope)['content']['application/json']['schema'],_formula_request_body(NativePlanConfirmationEnvelope)['content']['application/json']['schema']]}}}}})
 async def confirm_research_plan(research_id:str,request:Request):
     return await _dispatch(request,research_id=research_id,operation='plan-confirm')
 
-@router.get('/research/{research_id}/plan-results/{result_ref}',response_model=PlanReadResponse)
+@router.get('/research/{research_id}/plan-results/{result_ref}',response_model=PlanReadResponse|NativePlanReadResponse)
 async def read_research_plan(research_id:str,result_ref:str,request:Request):
     return await _dispatch(request,research_id=research_id,operation='plan-read')

@@ -20,5 +20,7 @@ def test_plan_actual_http_schema_has_manual_strict_request_and_typed_results():
     for suffix,model in [('plan-previews','PlanPreviewResponse'),('plan-approvals','PlanConfirmationResponse')]:
         value=schema['paths']['/api/research/{research_id}/'+suffix]['post']
         assert '$ref' not in json.dumps(value['requestBody']) and '$defs' not in json.dumps(value['requestBody'])
-        assert value['responses']['200']['content']['application/json']['schema']=={'$ref':'#/components/schemas/'+model}
-    assert schema['paths']['/api/research/{research_id}/plan-results/{result_ref}']['get']['responses']['200']['content']['application/json']['schema']=={'$ref':'#/components/schemas/PlanReadResponse'}
+        response=value['responses']['200']['content']['application/json']['schema']
+        assert response['anyOf']==[{'$ref':'#/components/schemas/'+model},{'$ref':'#/components/schemas/Native'+model}]
+        assert len(value['requestBody']['content']['application/json']['schema']['oneOf'])==2
+    assert schema['paths']['/api/research/{research_id}/plan-results/{result_ref}']['get']['responses']['200']['content']['application/json']['schema']['anyOf']==[{'$ref':'#/components/schemas/PlanReadResponse'},{'$ref':'#/components/schemas/NativePlanReadResponse'}]
