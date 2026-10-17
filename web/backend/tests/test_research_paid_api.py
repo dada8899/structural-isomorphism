@@ -295,7 +295,7 @@ def test_old_worker_skips_paid_queue_and_explicit_paid_is_rejected(paid_api,monk
     from research import ResearchRunner
     from research.errors import ResearchError
     from research.source_policy import PinnedPublicTransport
-    from .source_http_fixture import source_server,get_local
+    from web.backend.tests.source_http_fixture import source_server,get_local
     from .test_research_d1_integration import start as start_source
     client,_,store,rid,_,_=paid_api
     monkeypatch.setenv('STRUCTURAL_C0_ENABLED','true' if fixture_enabled else 'false')
@@ -323,7 +323,7 @@ def test_old_worker_skips_paid_queue_and_explicit_paid_is_rejected(paid_api,monk
 def test_unicode_complete_final_request_limit_is_413_with_zero_new_objects(paid_api,number,expected):
     from research import ResearchRunner
     from research.source_policy import PinnedPublicTransport
-    from .source_http_fixture import source_server,get_local,ARTICLE,TITLE
+    from web.backend.tests.source_http_fixture import source_server,get_local,ARTICLE,TITLE
     from .test_research_d1_integration import start as start_source
     client,_,store,_,_,_=paid_api
     data=problem('saved bounded original input');data.update(confirmed=True,summary='😀'*1000)
@@ -359,3 +359,66 @@ def test_other_codec_failures_are_not_relabelled_payload_limit(paid_api,monkeypa
         actual.cookies.update(client.cookies)
         response=post(actual,'/api/research/'+rid+'/paid-previews',preview_data(client,rid,excerpt),'unrelated')
     assert response.status_code==500 and counts(store)==before
+
+
+def test_paid_source_callbacks_survive_shadowed_tests_namespace_in_real_spawn(tmp_path):
+    from pathlib import Path
+    from web.backend.tests.research_process_fixture import _run_owned_probe
+
+    data_root=tmp_path/'paid-spawn-shadow';data_root.mkdir()
+    program=r'''
+import importlib,pathlib,pickle,subprocess,sys
+from contextlib import contextmanager
+from functools import partial
+from types import SimpleNamespace
+from uuid import uuid4
+backend=pathlib.Path.cwd();root=backend.parents[1]
+sys.path[:]=[str(backend)]+[p for p in sys.path if p not in ('',str(root),str(backend))]
+api=importlib.import_module('tests.test_research_paid_api')
+approval=importlib.import_module('tests.test_research_paid_approval')
+legacy=importlib.import_module('tests.source_http_fixture')
+assert pathlib.Path(sys.modules['tests'].__file__).resolve()==backend/'tests/__init__.py'
+sys.path.remove(str(root))
+importlib.import_module('tests.test_universality_endpoints')
+assert sys.path[0]==str(root)
+# A fresh interpreter resolves tests from the root, so an old pickled callback
+# cannot even be reconstructed. Do not run that callback or touch the network.
+serialized=pickle.dumps(partial(legacy.get_local,1))
+child=subprocess.run([sys.executable,'-c','import pickle;pickle.loads(bytes.fromhex('+repr(serialized.hex())+'))'],
+    cwd=root,capture_output=True,text=True,timeout=15)
+assert child.returncode!=0 and 'tests.source_http_fixture' in child.stderr and 'ModuleNotFoundError' in child.stderr
+import pytest
+from research.authorization import AuthorizationGate
+from research.source_policy import PinnedPublicTransport,SourceFailure,article_target
+from web.backend.tests.source_http_fixture import source_server,DOI
+# Reproduce the actual old pickled callback failure in a fresh child, while
+# the parent's cached tests package still points to backend/tests.
+with source_server() as (port,calls):
+    gate=AuthorizationGate(SimpleNamespace(path=pathlib.Path(DATA_ROOT)/'no-db.sqlite3'))
+    with gate.owner_gate_id(str(uuid4())) as lease:
+        with pytest.raises(SourceFailure):
+            PinnedPublicTransport(_worker=partial(legacy.get_local,port)).get(
+                article_target(DOI),still_authorized=lambda:True,owner_lease=lease)
+    assert calls==[]
+# Exercise all three actual callback import sites through unchanged fixtures
+# and original assertions, not a replacement worker, alias or status stub.
+for index,(kind,number) in enumerate((('queue',None),('unicode',2),('unicode',3))):
+    monkeypatch=pytest.MonkeyPatch();directory=pathlib.Path(DATA_ROOT)/str(index);directory.mkdir()
+    try:
+        with contextmanager(api.stack.__wrapped__)(directory,monkeypatch) as stack:
+            with contextmanager(api.source_stack.__wrapped__)(stack,monkeypatch) as saved_source:
+                with contextmanager(approval.approved_inputs.__wrapped__)(saved_source,SimpleNamespace(param=True)) as approved:
+                    with contextmanager(api.paid_api.__wrapped__)(approved) as paid:
+                        if kind=='queue':
+                            api.test_old_worker_skips_paid_queue_and_explicit_paid_is_rejected(paid,monkeypatch,False)
+                        else:
+                            api.test_unicode_complete_final_request_limit_is_413_with_zero_new_objects(paid,number,200 if number==2 else 413)
+                        actual=api.counts(paid[2])
+                        for table in ('research_reservations','research_dispatch_permits','research_cost_observations','research_provider_sessions'):
+                            assert actual[table]==0
+    finally:monkeypatch.undo()
+print('owned-paid-canonical-spawn-ok')
+'''.replace('DATA_ROOT',repr(str(data_root)))
+    result=_run_owned_probe(program,Path(__file__).resolve().parents[1])
+    assert result.returncode==0,result.stdout+result.stderr
+    assert 'owned-paid-canonical-spawn-ok' in result.stdout

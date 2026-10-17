@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from .test_research_persistence import stack,app,login,problem,post
 from .test_research_d1_integration import source_stack,start
-from .source_http_fixture import ARTICLE,TITLE,source_server,get_local
+from web.backend.tests.source_http_fixture import ARTICLE,TITLE,source_server,get_local
 from .test_research_paid_producers import identity
 from .test_research_lifecycle import lifecycle
 from research import ResearchStore,ResearchRunner
