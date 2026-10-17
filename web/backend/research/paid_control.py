@@ -12,6 +12,8 @@ from pathlib import Path
 import sqlite3
 import stat
 import threading
+import time
+from uuid import uuid4
 
 from .authorization import AccountIdentity,AuthorizationGate,OwnerGateLease
 from .errors import ResearchError
@@ -21,6 +23,176 @@ UPPER_ENTRYPOINTS=("schema_requirements","reserve","authorize","consume","observ
 _FACTORY=object()
 _SCOPES={}
 _LOCK=threading.Lock()
+_REQUEST_FACTORY=object()
+_REQUEST_SOURCES={}
+
+
+class AuthenticatedActionSource:
+    """Scoped result of actual route/cookie verification, never an identity DTO."""
+    __slots__=('identity','action','research_id','task_id','key_digest','body_digest','pid','reference','active')
+    def __init__(self,*,_factory=None,**values):
+        if _factory is not _REQUEST_FACTORY:raise TypeError('verified HTTP action source required')
+        for key,value in values.items():object.__setattr__(self,key,value)
+        object.__setattr__(self,'pid',os.getpid());object.__setattr__(self,'reference',str(uuid4()));object.__setattr__(self,'active',True)
+        _REQUEST_SOURCES[self.reference]=self
+    def __setattr__(self,*args):raise TypeError('request source immutable')
+    def __reduce__(self):raise TypeError('HTTP action source cannot be serialized')
+    def close(self):object.__setattr__(self,'active',False);_REQUEST_SOURCES.pop(self.reference,None)
+
+
+def issue_authenticated_action(request,*,action,research_id=None,task_id=None,key='',body_digest=''):
+    """Reverify the real ASGI route and signed direct cookie, not passed claims."""
+    from starlette.requests import Request
+    if type(request) is not Request or action not in ('cancel','account-delete') or request.method!='POST':
+        raise PermissionError('actual authenticated action request required')
+    from .provider_schemas import strict_json
+    raw=getattr(request,'_body',None)
+    if type(raw) is not bytes:raise PermissionError('actual parsed request bytes required')
+    if action=='cancel':
+        from .schemas import TaskEnvelope
+        data=TaskEnvelope.model_validate(strict_json(raw,65536)).data
+        actual_research=request.path_params.get('research_id');actual_task=data.task_id
+        actual_key=request.headers.get('idempotency-key','')
+        actual_digest=digest(canonical(data.model_dump(mode='json')))
+        if ((research_id is not None and research_id!=actual_research) or (task_id is not None and task_id!=actual_task)
+                or (key and key!=actual_key) or (body_digest and body_digest!=actual_digest)):
+            raise PermissionError('caller cannot change authenticated action target')
+        research_id,task_id,key,body_digest=actual_research,actual_task,actual_key,actual_digest
+    else:
+        data=strict_json(raw,65536)
+        if type(data) is not dict or set(data)!={'confirmation'} or data['confirmation']!='DELETE':
+            raise PermissionError('actual delete confirmation required')
+    endpoint=request.scope.get('endpoint')
+    expected='cancel_research_task' if action=='cancel' else 'delete_my_account'
+    if (not request.scope.get('app') or not endpoint or getattr(endpoint,'__name__',None)!=expected
+            or (action=='cancel' and request.path_params.get('research_id')!=research_id)):
+        raise PermissionError('action route binding mismatch')
+    if __package__=='web.backend.research':from ..api import auth
+    else:from api import auth
+    if action=='cancel':
+        if __package__=='web.backend.research':from ..api import research as route_module
+        else:from api import research as route_module
+        actual_endpoint=route_module.cancel_research_task
+    else:actual_endpoint=auth.delete_my_account
+    if endpoint is not actual_endpoint or getattr(request.scope.get('route'),'endpoint',None) is not actual_endpoint:
+        raise PermissionError('actual action endpoint required')
+    unified,status=auth.resolve_account_user(request)
+    user,direct=auth.resolve_session_user(request)
+    claims=auth._decode_jwt(request.cookies.get(auth._COOKIE_NAME,''))
+    if (status!='valid' or direct!='valid' or not unified or not user or unified['email']!=user['email'] or not claims
+            or type(claims.get('exp')) is not int or not all(type(claims.get(k)) is str and claims[k] for k in ('sub','gen','jti'))
+            or auth.require_same_origin(request) is not None):
+        raise ResearchError('AUTH_REQUIRED',401,'操作来源认证失效。')
+    identity=AccountIdentity(user['email'],claims['gen'],claims['jti'],claims['exp'])
+    return AuthenticatedActionSource(_factory=_REQUEST_FACTORY,identity=identity,action=action,research_id=research_id,task_id=task_id,
+        key_digest=digest(key.encode()),body_digest=body_digest)
+
+
+def require_authenticated_action(source,*,identity,action,research_id=None,task_id=None,key=None,body_digest=None):
+    if (type(source) is not AuthenticatedActionSource or not source.active or source.pid!=os.getpid()
+            or _REQUEST_SOURCES.get(source.reference) is not source or type(identity) is not AccountIdentity
+            or source.identity!=identity or identity.expires_at<=time.time() or source.action!=action
+            or source.research_id!=research_id or source.task_id!=task_id
+            or (key is not None and source.key_digest!=digest(key.encode())) or (body_digest is not None and source.body_digest!=body_digest)):
+        raise PermissionError('verified action source missing or stale')
+    return source.reference
+
+
+_ORIGIN_FIELDS=('id','owner_key','gate_id','database_binding','cleanup_binding','created_at')
+
+
+def deletion_origin_digest(job):
+    from .financial_guard import JOB_ORIGIN_VERSION
+    return digest(canonical({'version':JOB_ORIGIN_VERSION,'job_id':job['id'],**{name:job[name] for name in _ORIGIN_FIELDS if name!='id'}}))
+
+
+def _deletion_lease_binding(conn,store,lease,job):
+    from .store import ResearchStore
+    database=next((row[2] for row in conn.execute('PRAGMA database_list') if row[1]=='main'),None)
+    if type(store) is not ResearchStore or not database or Path(database).resolve()!=store.path:
+        raise PermissionError('canonical deletion database required')
+    if type(lease) is not OwnerGateLease:raise PermissionError('actual deletion owner lease required')
+    if job['database_binding']!=digest(str(store.path).encode()):raise PermissionError('deletion database binding changed')
+    from uuid import UUID
+    if str(UUID(job['gate_id'],version=4))!=job['gate_id']:raise PermissionError('deletion gate malformed')
+    info=(store.path.parent/'research-locks'/(job['gate_id']+'.lock')).lstat()
+    if (info.st_dev,info.st_ino,info.st_uid,stat.S_IMODE(info.st_mode),info.st_nlink)!=lease.identity:
+        raise PermissionError('deletion lease does not belong to this job')
+
+
+def _job_has_v2(conn,job):
+    if job['owner_email'] is not None and job['session_generation'] is not None:
+        return bool(conn.execute("SELECT 1 FROM research_tasks t JOIN research_principals p ON p.id=t.principal_id WHERE p.gate_id=? AND p.normalized_email=? AND p.session_generation=? AND t.policy_revision='bounded_usage_upper_v2' LIMIT 1",
+            (job['gate_id'],job['owner_email'],job['session_generation'])).fetchone())
+    return bool(conn.execute("SELECT 1 FROM research_tasks t JOIN research_principals p ON p.id=t.principal_id WHERE p.gate_id=? AND t.policy_revision='bounded_usage_upper_v2' LIMIT 1",(job['gate_id'],)).fetchone())
+
+
+def verify_deletion_origin(conn,*,store,lease,job_id):
+    job=conn.execute('SELECT * FROM auth_deletion_jobs WHERE id=?',(job_id,)).fetchone()
+    if not job:raise PermissionError('actual deletion job required')
+    protected='origin_version' in job.keys() and job['origin_version'] is not None
+    if not protected:
+        if _job_has_v2(conn,job):raise PermissionError('legacy deletion cannot control v2 resources')
+        return None
+    from .store import ResearchStore
+    from .financial_guard import JOB_ORIGIN_VERSION
+    _deletion_lease_binding(conn,store,lease,job)
+    ResearchStore._check_v8(conn)
+    if job['origin_version']!=JOB_ORIGIN_VERSION or job['origin_digest']!=deletion_origin_digest(job):
+        raise PermissionError('protected deletion origin damaged')
+    if job['state']=='pending':
+        if not job['owner_email'] or not job['session_generation'] or store.auth_store.owner_key(job['owner_email'])!=job['owner_key']:
+            raise PermissionError('pending deletion incarnation binding unavailable')
+        user=conn.execute('SELECT lifecycle,session_generation FROM auth_users WHERE email=?',(job['owner_email'],)).fetchone()
+        if user and (user['lifecycle']!='deleting' or user['session_generation']!=job['session_generation']):
+            raise PermissionError('deletion cannot affect another incarnation')
+    elif job['state'] in ('scrubbing','completed'):
+        if job['owner_email'] is not None or job['session_generation'] is not None or not job['research_erased'] or job['result_json'] is None:
+            raise PermissionError('deletion completion binding unavailable')
+    else:raise PermissionError('unknown deletion stage')
+    return dict(job)
+
+
+def create_authenticated_deletion_job(conn,*,store,lease,source,values):
+    from .financial_guard import JOB_ORIGIN_VERSION,_financial_write_scope
+    _current_scope(conn)
+    require_authenticated_action(source,identity=source.identity,action='account-delete')
+    _deletion_lease_binding(conn,store,lease,values)
+    user=conn.execute('SELECT lifecycle,session_generation FROM auth_users WHERE email=?',(source.identity.email,)).fetchone()
+    if (not user or user['lifecycle']!='deleting' or user['session_generation']!=source.identity.generation
+            or values['owner_email']!=source.identity.email or values['session_generation']!=source.identity.generation
+            or values['owner_key']!=store.auth_store.owner_key(source.identity.email)
+            or conn.execute('SELECT gate_id FROM auth_owner_gates WHERE owner_key=?',(values['owner_key'],)).fetchone()[0]!=values['gate_id']):
+        raise PermissionError('authenticated deletion fence missing')
+    values=dict(values,origin_version=JOB_ORIGIN_VERSION)
+    values['origin_digest']=deletion_origin_digest(values)
+    binding=FinancialWriteBinding('delete-create',values['id'],'auth_deletion_jobs',values['id'],digest(canonical(values)),0)
+    def validate():
+        require_authenticated_action(source,identity=source.identity,action='account-delete')
+        _deletion_lease_binding(conn,store,lease,values)
+        if conn.execute('SELECT 1 FROM auth_deletion_jobs WHERE id=?',(values['id'],)).fetchone():raise PermissionError('job already created')
+        return binding
+    authority=FinancialWriteAuthority(conn,lease,'delete-create',validate,_factory=_FACTORY)
+    with _financial_write_scope(conn,lease,authority):
+        conn.execute('INSERT INTO auth_deletion_jobs('+','.join(values)+') VALUES('+','.join('?' for _ in values)+')',tuple(values.values()))
+
+
+def deletion_job_write(conn,*,store,lease,job_id,sql,args):
+    from .financial_guard import _financial_write_scope
+    _current_scope(conn)
+    protected=verify_deletion_origin(conn,store=store,lease=lease,job_id=job_id)
+    if protected is None:return conn.execute(sql,args)
+    if protected['state']=='completed':raise PermissionError('completed deletion is read only')
+    if protected['state']=='scrubbing' and not sql.startswith("UPDATE auth_deletion_jobs SET state='completed'"):
+        raise PermissionError('scrubbing only permits final completion')
+    before=digest(canonical(protected))
+    binding=FinancialWriteBinding('delete-stage',job_id,'auth_deletion_jobs',job_id,before,0)
+    def validate():
+        current=verify_deletion_origin(conn,store=store,lease=lease,job_id=job_id)
+        if current is None or digest(canonical(current))!=before:raise PermissionError('deletion stage changed')
+        return binding
+    authority=FinancialWriteAuthority(conn,lease,'delete-stage',validate,_factory=_FACTORY)
+    with _financial_write_scope(conn,lease,authority):return conn.execute(sql,args)
 
 
 @dataclass(frozen=True)
@@ -98,11 +270,14 @@ def _current_scope(conn):
     with _LOCK:scope=_SCOPES.get(id(conn))
     if (not scope or scope.conn is not conn or not scope.active or not scope.write or scope.pid!=os.getpid()
             or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1
-            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7)):
+            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7,8)):
         raise PermissionError("current canonical v5 transaction required")
     if conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==7:
         from .store import ResearchStore
         ResearchStore._check_v7(conn)
+    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==8:
+        from .store import ResearchStore
+        ResearchStore._check_v8(conn)
     return scope
 
 
@@ -170,7 +345,8 @@ class StopAuthority(_Authority):
     __slots__=()
 
 
-def mint_stop_authority(conn,*,store,lease,principal_id,task_id,expected_task_version,identity=None,deletion_job_id=None):
+def mint_stop_authority(conn,*,store,lease,principal_id,task_id,expected_task_version,identity=None,deletion_job_id=None,
+        request_source=None,key=None,body_digest=None):
     _current_scope(conn)
     if type(expected_task_version) is not int or expected_task_version<1:
         raise PermissionError("exact task version required")
@@ -180,11 +356,14 @@ def mint_stop_authority(conn,*,store,lease,principal_id,task_id,expected_task_ve
         if not task or task["version"]!=expected_task_version:raise PermissionError("stop task changed")
         if deletion_job_id is None:
             if type(identity) is not AccountIdentity:raise PermissionError("canonical account identity required")
+            if task['policy_revision']=='bounded_usage_upper_v2':
+                require_authenticated_action(request_source,identity=identity,action='cancel',research_id=task['research_id'],task_id=task_id,key=key,body_digest=body_digest)
             research=AuthorizationGate(store).check(conn,identity,principal_id,task["research_id"],scope="write")
             grant_facts=tuple(tuple(row) for row in conn.execute("SELECT id,version,status,scopes,principal_epoch,acl_epoch FROM research_grants WHERE principal_id=? AND research_id=? ORDER BY id",(principal_id,task["research_id"])))
             facts=(principal_id,principal["epoch"],principal["session_generation"],task_id,task["version"],task["input_revision"],task["input_digest"],task["stop_requested"],research["owner_epoch"],research["acl_epoch"],research["version"],grant_facts,lease.identity)
             return StopBinding(principal_id,task_id,task["version"],digest(canonical(facts)),None,lease.identity)
         job=conn.execute("SELECT * FROM auth_deletion_jobs WHERE id=? AND state='pending'",(deletion_job_id,)).fetchone()
+        if task['policy_revision']=='bounded_usage_upper_v2':verify_deletion_origin(conn,store=store,lease=lease,job_id=deletion_job_id)
         if (not job or principal["status"]!="deleting" or job["owner_email"]!=principal["normalized_email"]
                 or job["session_generation"]!=principal["session_generation"] or job["gate_id"]!=principal["gate_id"]
                 or job["database_binding"]!=hashlib.sha256(str(store.path).encode()).hexdigest()
@@ -197,7 +376,7 @@ def mint_stop_authority(conn,*,store,lease,principal_id,task_id,expected_task_ve
 
 def mint_current_paid_authority(conn,*,store,lease,identity,context,step_id,expected_task_version,expected_step_version,operation,approval_ref):
     _current_scope(conn)
-    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7):
+    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8):
         policy=conn.execute('SELECT policy_revision FROM research_tasks WHERE id=?',(context.task_id,)).fetchone()
         if policy and policy[0]=='bounded_usage_upper_v2':
             from .paid_approval import mint_current_authority

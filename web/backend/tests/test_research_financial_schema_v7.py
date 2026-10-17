@@ -18,6 +18,11 @@ from api import auth
 from research import ResearchStore
 from research.authorization import AuthorizationGate
 from research.errors import ResearchError
+
+
+@pytest.fixture(autouse=True)
+def _historical_v7_profile(monkeypatch):
+    monkeypatch.setattr(ResearchStore,'_migrate_v8',lambda self:None)
 from research.financial_guard import (V7_TABLES,V7_GUARDS,OfflineProjectRegistration,register_closed_project,
     install_default_hook,require_hook,FINANCIAL_SCHEMA_VERSION)
 from research.paid_approval import OfflineFundingResolver,request_codec_digest

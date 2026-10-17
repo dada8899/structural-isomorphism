@@ -272,16 +272,21 @@ class ResearchService:
             self._remember(conn,principal,"start","r:"+rid,key,digest(payload),result)
             return result
 
-    def task_action(self,identity,research_id,request,key,operation):
+    def task_action(self,identity,research_id,request,key,operation,*,request_source=None):
         from .budget import BudgetLedger, require_enabled
         from .runner import state_in
-        if operation!="cancel":require_enabled()
         rid,principal=self._id(research_id),self._principal(identity)
         payload=request.model_dump(mode="json")
-        with self.authorization.owner_gate(principal),self.store.transaction(write=True) as conn:
+        with self.authorization.owner_gate(principal) as lease,self.store.transaction(write=True) as conn:
             row=self.authorization.check(conn,identity,principal,rid,scope="write")
             task=conn.execute("SELECT * FROM research_tasks WHERE id=? AND research_id=?",(request.task_id,rid)).fetchone()
             if not task:raise not_found()
+            is_paid=task['policy_revision']=='bounded_usage_upper_v2'
+            if not is_paid and operation!='cancel':require_enabled()
+            if is_paid and operation=='resume':raise ResearchError('FEATURE_UNAVAILABLE',503,'此任务不能自动继续或重新外发。')
+            if is_paid and operation=='cancel':
+                from .paid_control import require_authenticated_action
+                require_authenticated_action(request_source,identity=identity,action='cancel',research_id=rid,task_id=task['id'],key=key,body_digest=digest(payload))
             if task["policy_revision"]=="d1-source-only-v1" and operation!="cancel":
                 raise ResearchError("RECONCILIATION_REQUIRED",409,"来源读取只能闭合旧执行后重新预览并明确批准，不能继续旧调用。")
             replay=self._replay(conn,principal,operation,"r:"+rid,key,digest(payload))
@@ -291,12 +296,22 @@ class ResearchService:
             unresolved=conn.execute("SELECT count(*) FROM research_reservations WHERE task_id=? AND status IN ('SENT','UNKNOWN')",(task["id"],)).fetchone()[0]
             if operation=="cancel":
                 if task["execution"] not in ("COMPLETED","FAILED","ACCESS_REVOKED"):
+                    if is_paid:
+                        from .paid_control import mint_stop_authority
+                        from .paid_budget import stop_financial_in
+                        authority=mint_stop_authority(conn,store=self.store,lease=lease,principal_id=principal,task_id=task['id'],
+                            expected_task_version=task['version'],identity=identity,request_source=request_source,key=key,body_digest=digest(payload))
+                        stop_financial_in(conn,store=self.store,lease=lease,authority=authority)
+                    else:BudgetLedger.release_prepared_in(conn,task["id"])
                     conn.execute("UPDATE research_tasks SET stop_requested=1 WHERE id=?",(task["id"],))
-                    BudgetLedger.release_prepared_in(conn,task["id"])
                     conn.execute("UPDATE research_steps SET state='DISCARDED',version=version+1 WHERE task_id=? AND state IN ('PENDING','PREPARED')",(task["id"],))
-                    state_in(conn,task["id"],"CANCELLED",kind="stop_requested")
+                    if not is_paid or task['execution']!='CANCELLED':state_in(conn,task["id"],"CANCELLED",kind="stop_requested")
             elif operation=="reconcile":
-                if unresolved or task["execution"]=="RECONCILING":
+                if is_paid:
+                    from .paid_budget import reconcile_task_in
+                    reconcile_task_in(conn,store=self.store,lease=lease,task_id=task['id'])
+                    conn.execute('UPDATE research_tasks SET reconcile_requested=0 WHERE id=?',(task['id'],))
+                elif unresolved or task["execution"]=="RECONCILING":
                     conn.execute("UPDATE research_tasks SET reconcile_requested=1 WHERE id=?",(task["id"],))
                     state_in(conn,task["id"],task["execution"],kind="reconciling")
             elif operation=="resume":
@@ -321,7 +336,7 @@ class ResearchService:
             rows=[dict(r) for r in conn.execute("SELECT seq,state_version,kind,safe_code,at FROM research_task_events WHERE task_id=? AND seq>? ORDER BY seq LIMIT 200",(task_id,after_seq))]
             return {"schema_version":"structure-research-v1","contract_revision":"b1-candidate-01","data":{"items":rows,"after_seq":rows[-1]["seq"] if rows else after_seq}}
 
-    def begin_account_deletion_locked(self, email, generation, gate_id, cleanup_binding):
+    def begin_account_deletion_locked(self, email, generation, gate_id, cleanup_binding,*,owner_lease=None,request_source=None):
         """Internal only: caller holds this owner's OS gate and revalidated auth.
 
         The committed fence is intentionally outside the legacy multi-store
@@ -340,22 +355,36 @@ class ResearchService:
                              (principal_id,"account",email,generation,1,"active",now(),gate_id))
             else:
                 principal_id = principal["id"]
+            has_paid=conn.execute("SELECT 1 FROM research_tasks WHERE principal_id=? AND policy_revision='bounded_usage_upper_v2' LIMIT 1",(principal_id,)).fetchone()
+            from .paid_control import require_authenticated_action,create_authenticated_deletion_job
+            if request_source is not None:
+                require_authenticated_action(request_source,identity=request_source.identity,action='account-delete')
+                if request_source.identity.email!=email or request_source.identity.generation!=generation:
+                    raise PermissionError('deletion request incarnation mismatch')
+            elif has_paid:raise ResearchError('AUTHORIZATION_STALE',403,'此删除需要实际认证操作来源。')
             job_id, timestamp = str(uuid4()), now()
             conn.execute("UPDATE auth_users SET lifecycle='deleting' WHERE email=? AND session_generation=?", (email,generation))
             conn.execute("UPDATE research_principals SET status='deleting',epoch=epoch+1 WHERE id=? AND status!='deleted'", (principal_id,))
             conn.execute("UPDATE research_grants SET status='revoked' WHERE principal_id=?", (principal_id,))
             conn.execute("UPDATE research_controls SET lifecycle='deleting' WHERE owner_id=?", (principal_id,))
+            values=dict(id=job_id,owner_key=self.store.auth_store.owner_key(email),gate_id=gate_id,cleanup_binding=cleanup_binding,
+                database_binding=hashlib.sha256(str(self.store.path).encode()).hexdigest(),owner_email=email,session_generation=generation,state='pending',created_at=timestamp)
+            if request_source is not None and has_paid:
+                create_authenticated_deletion_job(conn,store=self.store,lease=owner_lease,source=request_source,values=values)
+            else:
+                conn.execute('INSERT INTO auth_deletion_jobs('+','.join(values)+') VALUES('+','.join('?' for _ in values)+')',tuple(values.values()))
             from .budget import BudgetLedger
             from .runner import state_in
             for task in conn.execute("SELECT * FROM research_tasks WHERE principal_id=?",(principal_id,)).fetchall():
+                if task['policy_revision']=='bounded_usage_upper_v2':
+                    from .paid_control import mint_stop_authority
+                    from .paid_budget import stop_financial_in
+                    authority=mint_stop_authority(conn,store=self.store,lease=owner_lease,principal_id=principal_id,
+                        task_id=task['id'],expected_task_version=task['version'],deletion_job_id=job_id)
+                    stop_financial_in(conn,store=self.store,lease=owner_lease,authority=authority)
+                else:BudgetLedger.release_prepared_in(conn,task["id"])
                 conn.execute("UPDATE research_tasks SET stop_requested=1,reconcile_requested=1 WHERE id=?",(task["id"],))
-                BudgetLedger.release_prepared_in(conn,task["id"])
                 state_in(conn,task["id"],"ACCESS_REVOKED",kind="authorization_changed")
-            conn.execute("""INSERT INTO auth_deletion_jobs
-                (id,owner_key,gate_id,cleanup_binding,database_binding,owner_email,session_generation,state,created_at)
-                VALUES(?,?,?,?,?,?,?,'pending',?)""",
-                (job_id,self.store.auth_store.owner_key(email),gate_id,cleanup_binding,
-                 hashlib.sha256(str(self.store.path).encode()).hexdigest(),email,generation,timestamp))
             return job_id
 
     def deletion_job(self, job_id):
@@ -368,11 +397,13 @@ class ResearchService:
                 raise ResearchError("AUTHORIZATION_STALE",409,"删除任务数据库绑定不一致。")
             return dict(row)
 
-    def erase_research_locked(self, job_id):
+    def erase_research_locked(self, job_id,*,owner_lease=None):
         with self.store.transaction(write=True) as conn:
             job = conn.execute("SELECT * FROM auth_deletion_jobs WHERE id=? AND state='pending'", (job_id,)).fetchone()
             if not job or not job["owner_email"] or not job["session_generation"]:
                 raise ResearchError("AUTHORIZATION_STALE", 409, "删除任务状态已变化。")
+            from .paid_control import verify_deletion_origin,deletion_job_write
+            verify_deletion_origin(conn,store=self.store,lease=owner_lease,job_id=job_id)
             email, generation = job["owner_email"], job["session_generation"]
             if self.store.auth_store.owner_key(email) != job["owner_key"] or self.store.auth_store.owner_gate_in(conn,email) != job["gate_id"]:
                 raise ResearchError("AUTHORIZATION_STALE", 409, "删除任务绑定不一致。")
@@ -407,47 +438,57 @@ class ResearchService:
             conn.execute("DELETE FROM research_revisions WHERE research_id IN (SELECT id FROM research_controls WHERE owner_id=?)",(pid,))
             conn.execute("DELETE FROM research_grants WHERE principal_id=?",(pid,))
             conn.execute("DELETE FROM research_controls WHERE owner_id=?",(pid,))
-            conn.execute("UPDATE auth_deletion_jobs SET research_erased=1,research_counts_json=? WHERE id=?",(canonical(counts),job_id))
+            deletion_job_write(conn,store=self.store,lease=owner_lease,job_id=job_id,
+                sql="UPDATE auth_deletion_jobs SET research_erased=1,research_counts_json=? WHERE id=?",args=(canonical(counts),job_id))
             return counts
 
-    def finish_account_deletion_locked(self, job_id, removed):
+    def finish_account_deletion_locked(self, job_id, removed,*,owner_lease=None):
         # First clear private bindings durably. A crash/busy checkpoint then
         # needs only the opaque job/gate and same DB, never restored identity.
         with self.store.transaction(write=True) as conn:
             job = conn.execute("SELECT * FROM auth_deletion_jobs WHERE id=? AND state!='completed'",(job_id,)).fetchone()
             if not job or not job["research_erased"]:
                 raise ResearchError("AUTHORIZATION_STALE",409,"删除任务尚未完成。")
+            from .paid_control import verify_deletion_origin,deletion_job_write
+            verify_deletion_origin(conn,store=self.store,lease=owner_lease,job_id=job_id)
             if job["state"] == "pending":
                 if removed is None or conn.execute("SELECT 1 FROM auth_users WHERE email=?",(job["owner_email"],)).fetchone():
                     raise ResearchError("AUTHORIZATION_STALE",409,"账户清理尚未完成。")
                 result = {"deleted_at":now(),"removed":{**removed,"research":json.loads(job["research_counts_json"])}}
                 conn.execute("UPDATE research_principals SET status='deleted',normalized_email=NULL,session_generation=NULL WHERE normalized_email=? AND session_generation=? AND status='deleting'",(job["owner_email"],job["session_generation"]))
-                conn.execute("UPDATE auth_deletion_jobs SET state='scrubbing',owner_email=NULL,session_generation=NULL,result_json=? WHERE id=?",(canonical(result),job_id))
+                deletion_job_write(conn,store=self.store,lease=owner_lease,job_id=job_id,
+                    sql="UPDATE auth_deletion_jobs SET state='scrubbing',owner_email=NULL,session_generation=NULL,result_json=? WHERE id=?",args=(canonical(result),job_id))
             else:
                 result = json.loads(job["result_json"])
         # Explicitly truncate old frames, even if another connection keeps WAL
         # alive. A busy historical reader leaves scrubbing and access closed.
         self.store.checkpoint_erasure()
         with self.store.transaction(write=True) as conn:
-            conn.execute("UPDATE auth_deletion_jobs SET state='completed',completed_at=? WHERE id=? AND state='scrubbing'",(now(),job_id))
+            deletion_job_write(conn,store=self.store,lease=owner_lease,job_id=job_id,
+                sql="UPDATE auth_deletion_jobs SET state='completed',completed_at=? WHERE id=? AND state='scrubbing'",args=(now(),job_id))
             return result
 
-    def prepare_legacy_deletion_locked(self, job_id):
+    def prepare_legacy_deletion_locked(self, job_id,*,owner_lease=None):
         """Persist attempted before side effects; never infer a lost receipt."""
         with self.store.transaction(write=True) as conn:
+            from .paid_control import verify_deletion_origin,deletion_job_write
+            verify_deletion_origin(conn,store=self.store,lease=owner_lease,job_id=job_id)
             job=conn.execute("SELECT legacy_attempted,legacy_receipt_json FROM auth_deletion_jobs WHERE id=? AND state='pending'",(job_id,)).fetchone()
             if not job:
                 raise ResearchError("AUTHORIZATION_STALE",409,"删除任务状态已变化。")
             if job["legacy_receipt_json"] is not None:
                 return False,json.loads(job["legacy_receipt_json"])
             first=not bool(job["legacy_attempted"])
-            conn.execute("UPDATE auth_deletion_jobs SET legacy_attempted=1 WHERE id=?",(job_id,))
+            deletion_job_write(conn,store=self.store,lease=owner_lease,job_id=job_id,
+                sql="UPDATE auth_deletion_jobs SET legacy_attempted=1 WHERE id=?",args=(job_id,))
             return first,None
 
-    def record_legacy_deletion_locked(self, job_id, removed, *, first):
+    def record_legacy_deletion_locked(self, job_id, removed, *, first,owner_lease=None):
         receipt={"count_status":"known" if first else "unknown_after_interruption","observed":removed}
         with self.store.transaction(write=True) as conn:
-            changed=conn.execute("UPDATE auth_deletion_jobs SET legacy_receipt_json=? WHERE id=? AND state='pending' AND legacy_attempted=1 AND legacy_receipt_json IS NULL",(canonical(receipt),job_id)).rowcount
+            from .paid_control import deletion_job_write
+            changed=deletion_job_write(conn,store=self.store,lease=owner_lease,job_id=job_id,
+                sql="UPDATE auth_deletion_jobs SET legacy_receipt_json=? WHERE id=? AND state='pending' AND legacy_attempted=1 AND legacy_receipt_json IS NULL",args=(canonical(receipt),job_id)).rowcount
             if changed != 1:
                 raise ResearchError("AUTHORIZATION_STALE",409,"删除收据状态已变化。")
         return receipt

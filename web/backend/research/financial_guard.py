@@ -90,6 +90,47 @@ V7_GUARDS=(
         BEGIN SELECT CASE WHEN research_financial_write_allowed('return',OLD.id)!=1 THEN RAISE(ABORT,'owned financial return unavailable') END; END""",
 )
 
+DELETION_SCHEMA_VERSION=8
+JOB_ORIGIN_VERSION='authenticated-delete-v1'
+JOB_ORIGIN_COLUMNS=(
+    ('origin_version',"TEXT CHECK(origin_version IS NULL OR origin_version='authenticated-delete-v1')"),
+    ('origin_digest',"TEXT CHECK((origin_version IS NULL AND origin_digest IS NULL) OR (origin_version IS NOT NULL AND origin_version='authenticated-delete-v1' AND typeof(origin_digest)='text' AND length(origin_digest)=64 AND origin_digest NOT GLOB '*[^a-f0-9]*'))"),
+)
+V8_JOB_GUARDS=(
+    """CREATE TRIGGER auth_deletion_origin_create BEFORE INSERT ON auth_deletion_jobs WHEN NEW.origin_version IS NOT NULL
+        BEGIN SELECT CASE WHEN research_financial_write_allowed('delete-create',NEW.id)!=1
+            OR NEW.state!='pending' OR NEW.owner_email IS NULL OR NEW.session_generation IS NULL
+            OR NEW.research_erased!=0 OR NEW.legacy_attempted!=0 OR NEW.legacy_receipt_json IS NOT NULL
+            OR NEW.result_json IS NOT NULL OR NEW.completed_at IS NOT NULL
+            THEN RAISE(ABORT,'authenticated deletion creation required') END; END""",
+    """CREATE TRIGGER auth_deletion_origin_no_retro BEFORE UPDATE OF origin_version,origin_digest ON auth_deletion_jobs
+        WHEN OLD.origin_version IS NULL AND (NEW.origin_version IS NOT NULL OR NEW.origin_digest IS NOT NULL)
+        BEGIN SELECT RAISE(ABORT,'legacy deletion origin cannot be signed'); END""",
+    """CREATE TRIGGER auth_deletion_origin_identity BEFORE UPDATE ON auth_deletion_jobs WHEN OLD.origin_version IS NOT NULL
+        AND (NEW.id IS NOT OLD.id OR NEW.owner_key IS NOT OLD.owner_key OR NEW.gate_id IS NOT OLD.gate_id
+            OR NEW.cleanup_binding IS NOT OLD.cleanup_binding OR NEW.database_binding IS NOT OLD.database_binding
+            OR NEW.created_at IS NOT OLD.created_at OR NEW.origin_version IS NOT OLD.origin_version OR NEW.origin_digest IS NOT OLD.origin_digest)
+        BEGIN SELECT RAISE(ABORT,'immutable deletion origin binding'); END""",
+    """CREATE TRIGGER auth_deletion_origin_stage BEFORE UPDATE ON auth_deletion_jobs WHEN OLD.origin_version IS NOT NULL
+        BEGIN SELECT CASE WHEN research_financial_write_allowed('delete-stage',OLD.id)!=1 OR OLD.state='completed'
+            OR NOT ((OLD.state='pending' AND NEW.state IN ('pending','scrubbing')) OR (OLD.state='scrubbing' AND NEW.state='completed'))
+            OR NEW.research_erased<OLD.research_erased OR NEW.legacy_attempted<OLD.legacy_attempted
+            OR (OLD.legacy_receipt_json IS NOT NULL AND NEW.legacy_receipt_json IS NOT OLD.legacy_receipt_json)
+            OR (OLD.result_json IS NOT NULL AND NEW.result_json IS NOT OLD.result_json)
+            OR (NEW.state='pending' AND (NEW.owner_email IS NOT OLD.owner_email OR NEW.session_generation IS NOT OLD.session_generation))
+            OR (NEW.state IN ('scrubbing','completed') AND (NEW.owner_email IS NOT NULL OR NEW.session_generation IS NOT NULL
+                OR NEW.research_erased!=1 OR NEW.result_json IS NULL OR NOT json_valid(NEW.result_json)))
+            OR (NEW.state!='completed' AND NEW.completed_at IS NOT OLD.completed_at)
+            OR (NEW.state='completed' AND NEW.completed_at IS NULL)
+            THEN RAISE(ABORT,'invalid deletion stage transition') END; END""",
+    """CREATE TRIGGER auth_deletion_origin_no_replace BEFORE INSERT ON auth_deletion_jobs
+        WHEN EXISTS(SELECT 1 FROM auth_deletion_jobs j WHERE j.origin_version IS NOT NULL AND
+            (j.id=NEW.id OR (j.owner_key=NEW.owner_key AND j.state!='completed' AND NEW.state!='completed')))
+        BEGIN SELECT RAISE(ABORT,'protected deletion replacement forbidden'); END""",
+    """CREATE TRIGGER auth_deletion_origin_no_delete BEFORE DELETE ON auth_deletion_jobs WHEN OLD.origin_version IS NOT NULL
+        BEGIN SELECT RAISE(ABORT,'deletion provenance retained'); END""",
+)
+
 
 def install_default_hook(conn):
     """No authorizer/trace replacement; private registration is the sole permit."""
@@ -115,7 +156,7 @@ def install_default_hook(conn):
         schema=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema' AND type='table'").fetchone()
         try:version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone() if schema else None
         except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本标记结构不匹配。') from None
-        if version and version[0]==7:
+        if version and version[0] in (7,8):
             conn.set_authorizer(lambda action,table,column,db,trigger:
                 sqlite3.SQLITE_OK if _statement_allowed(conn,action,table,column) else sqlite3.SQLITE_DENY)
 

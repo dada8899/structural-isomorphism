@@ -338,10 +338,13 @@ class PaidApprovalService:
 def erase_paid_private_inputs(store,conn,pid,job_id):
     version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
     if version in (1,2,3,4,5):return
-    if version not in (6,7):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除记录版本不支持。')
+    if version not in (6,7,8):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除记录版本不支持。')
     if version==7:
         from .store import ResearchStore
         ResearchStore._check_v7(conn)
+    elif version==8:
+        from .store import ResearchStore
+        ResearchStore._check_v8(conn)
     job=conn.execute("SELECT * FROM auth_deletion_jobs WHERE id=? AND state='pending'",(job_id,)).fetchone()
     principal=conn.execute('SELECT * FROM research_principals WHERE id=?',(pid,)).fetchone()
     if (not job or not principal or principal['status']!='deleting' or principal['normalized_email']!=job['owner_email']

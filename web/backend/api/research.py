@@ -115,7 +115,9 @@ async def _parse(request, schema):
         raw.extend(chunk)
     try:
         body = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_object, parse_constant=_invalid_constant)
-        return schema.model_validate(body)
+        validated=schema.model_validate(body)
+        request._body=bytes(raw)
+        return validated
     except (ValueError, ValidationError, RecursionError, OverflowError):
         # Never return Pydantic input/ctx or JSON parser excerpts.
         raise ResearchError("INPUT_INVALID", 422, "研究内容、版本或字段不符合要求，请核对后再保存。") from None
@@ -178,7 +180,13 @@ async def _dispatch(request, *, research_id=None, operation="view"):
             elif operation == "source-start":
                 result=await run_in_threadpool(source_integration.start_source,service,identity,research_id,envelope.data,key)
             else:
-                result=await run_in_threadpool(service.task_action,identity,research_id,envelope.data,key,operation)
+                if operation=='cancel':
+                    if __package__=='web.backend.api':from ..research.paid_control import issue_authenticated_action
+                    else:from research.paid_control import issue_authenticated_action
+                    source=await run_in_threadpool(issue_authenticated_action,request,action='cancel')
+                    try:result=await run_in_threadpool(service.task_action,identity,research_id,envelope.data,key,operation,request_source=source)
+                    finally:source.close()
+                else:result=await run_in_threadpool(service.task_action,identity,research_id,envelope.data,key,operation)
         if operation in _PAID_OPERATIONS:return _paid_success_response(operation,result)
         return JSONResponse(result, headers=_HEADERS)
     except ResearchError as exc:

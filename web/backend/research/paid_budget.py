@@ -322,10 +322,18 @@ def unknown_in(conn,reservation_id,*,store,lease):
             "UPDATE research_reservations SET status='UNKNOWN',version=version+1 WHERE id=? AND status='SENT' AND version=?",(r['id'],r['version']))
 
 
-def cancel_in(conn,*,store,actor,lease,task_id,expected_task_version,deletion_job_id=None):
+def cancel_in(conn,*,store,actor,lease,task_id,expected_task_version,deletion_job_id=None,request_source=None,key=None,body_digest=None):
     task=_row(conn,'research_tasks',task_id)
     cap=mint_stop_authority(conn,store=store,lease=lease,principal_id=task['principal_id'],task_id=task_id,
-        expected_task_version=expected_task_version,identity=actor,deletion_job_id=deletion_job_id);cap.require(conn,'cancel')
+        expected_task_version=expected_task_version,identity=actor,deletion_job_id=deletion_job_id,request_source=request_source,key=key,body_digest=body_digest)
+    stop_financial_in(conn,store=store,lease=lease,authority=cap)
+    conn.execute("UPDATE research_tasks SET stop_requested=1,execution='CANCELLED',version=version+1 WHERE id=? AND version=?",(task_id,expected_task_version))
+
+
+def stop_financial_in(conn,*,store,lease,authority):
+    from .paid_control import StopAuthority
+    if type(authority) is not StopAuthority or authority._lease is not lease:raise PermissionError('actual stop source required')
+    facts=authority.require(conn,'cancel');task_id=facts.task_id
     for r in conn.execute("SELECT * FROM research_reservations WHERE task_id=? AND policy_revision=?",(task_id,POLICY)).fetchall():
         p=conn.execute('SELECT * FROM research_dispatch_permits WHERE reservation_id=?',(r['id'],)).fetchone()
         if r['status']=='HELD' and p['state']=='prepared':
@@ -335,5 +343,18 @@ def cancel_in(conn,*,store,actor,lease,task_id,expected_task_version,deletion_jo
             _write(conn,lease,'cancel-row',r['id'],'research_reservations',r['id'],"UPDATE research_reservations SET status='RELEASED',version=version+1 WHERE id=? AND version=?",(r['id'],r['version']))
             _write(conn,lease,'money',account['id'],'research_funding_accounts',account['id'],'UPDATE research_funding_accounts SET held=held-?,version=version+1 WHERE id=? AND version=?',(r['max_cost'],account['id'],account['version']))
         elif r['status']=='SENT':unknown_in(conn,r['id'],store=store,lease=lease)
-    conn.execute("UPDATE research_tasks SET stop_requested=1,execution='CANCELLED',version=version+1 WHERE id=? AND version=?",(task_id,expected_task_version))
-    _bump_project(conn,lease)
+    if _row(conn,'research_project_budgets',1):_bump_project(conn,lease)
+
+
+def reconcile_task_in(conn,*,store,lease,task_id):
+    _current_scope(conn)
+    task=_row(conn,'research_tasks',task_id)
+    if not task or task['policy_revision']!=POLICY:raise PermissionError('v2 task required')
+    _owner_binding(conn,store,task['principal_id'],lease)
+    results=[]
+    for reservation in conn.execute('SELECT * FROM research_reservations WHERE task_id=? AND policy_revision=?',(task_id,POLICY)).fetchall():
+        if reservation['status'] in ('SENT','UNKNOWN','UPPER_BOOKED'):
+            admission=conn.execute('SELECT session_id FROM research_financial_admissions WHERE reservation_id=?',(reservation['id'],)).fetchone()
+            if admission:results.append(observe_in(conn,store=store,lease=lease,return_ref=admission[0]))
+            elif reservation['status']=='SENT':unknown_in(conn,reservation['id'],store=store,lease=lease)
+    return results

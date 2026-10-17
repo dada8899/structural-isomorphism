@@ -8,6 +8,8 @@ from pathlib import Path
 
 from .errors import ResearchError
 from .financial_guard import FINANCIAL_SCHEMA_VERSION,V7_TABLES,V7_GUARDS,install_default_hook,require_hook
+from .financial_guard import DELETION_SCHEMA_VERSION,JOB_ORIGIN_COLUMNS,V8_JOB_GUARDS
+CURRENT_RESEARCH_SCHEMA_VERSION=DELETION_SCHEMA_VERSION
 
 SCHEMA = (
     "CREATE TABLE IF NOT EXISTS research_schema (id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL)",
@@ -374,11 +376,17 @@ class ResearchStore:
         # A completed v6 source must be verified before any legacy IF NOT
         # EXISTS installation could hide missing inherited objects.
         completed_v6=False
+        completed_v7=False
         with self.transaction() as conn:
             present=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema' AND type='table'").fetchone()
             if present:
                 try:current=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
                 except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本标记结构不匹配。') from None
+                if current and current[0]==DELETION_SCHEMA_VERSION:
+                    self._check_v8(conn);self._check_v7_attachments(conn);return
+                if current and current[0]==FINANCIAL_SCHEMA_VERSION:
+                    self._check_v7(conn);self._check_v7_attachments(conn)
+                    completed_v7=True
                 if current and current[0]==PRODUCER_SCHEMA_VERSION:
                     self._check_v6_inherited(conn)
                     self._check_v7_attachments(conn)
@@ -387,6 +395,10 @@ class ResearchStore:
                     completed_v6=True
         if completed_v6:
             self._migrate_v7()
+            self._migrate_v8_if_ready()
+            return
+        if completed_v7:
+            self._migrate_v8()
             return
         # AuthStore already initializes auth tables and WAL with its own lock.
         with self.transaction(write=True) as conn:
@@ -438,6 +450,7 @@ class ResearchStore:
         with self.transaction() as conn:
             producer_version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
         if producer_version==PRODUCER_SCHEMA_VERSION:self._migrate_v7()
+        self._migrate_v8_if_ready()
 
     def _migrate_v4(self):
         """Controlled SQLite table replacement, never an application session.
@@ -746,6 +759,61 @@ class ResearchStore:
             conn.commit()
         except Exception:
             conn.rollback();raise
+        finally:conn.close()
+
+    @staticmethod
+    def _auth_job_baseline_forms():
+        if __package__=='web.backend.research':from ..services.auth_store import _BASE_SCHEMA_STATEMENTS
+        else:from services.auth_store import _BASE_SCHEMA_STATEMENTS
+        full=next(sql for sql in _BASE_SCHEMA_STATEMENTS if sql.startswith('CREATE TABLE IF NOT EXISTS auth_deletion_jobs'))
+        legacy=full.replace("        legacy_attempted INTEGER NOT NULL DEFAULT 0 CHECK(legacy_attempted IN (0,1)),\n",'').replace(
+            "        legacy_receipt_json TEXT CHECK(legacy_receipt_json IS NULL OR json_valid(legacy_receipt_json)),\n",'')
+        legacy=legacy.rstrip()[:-1]+', legacy_attempted INTEGER NOT NULL DEFAULT 0 CHECK(legacy_attempted IN (0,1)), legacy_receipt_json TEXT CHECK(legacy_receipt_json IS NULL OR json_valid(legacy_receipt_json)))'
+        return full,legacy
+
+    @classmethod
+    def _check_auth_job_schema(cls,conn,*,expanded):
+        forms=cls._auth_job_baseline_forms()
+        if expanded:forms=tuple(sql.rstrip()[:-1]+', '+', '.join(name+' '+ddl for name,ddl in JOB_ORIGIN_COLUMNS)+')' for sql in forms)
+        row=conn.execute("SELECT type,sql FROM sqlite_schema WHERE name='auth_deletion_jobs'").fetchone()
+        if not row or row['type']!='table' or cls._normalize_sql(row['sql']) not in {cls._normalize_sql(sql) for sql in forms}:
+            raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除任务结构不匹配。')
+        expected="CREATE UNIQUE INDEX auth_one_pending_deletion ON auth_deletion_jobs(owner_key) WHERE state!='completed'"
+        index=conn.execute("SELECT sql FROM sqlite_schema WHERE name='auth_one_pending_deletion'").fetchone()
+        if not index or cls._normalize_sql(index[0])!=cls._normalize_sql(expected):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除任务索引不匹配。')
+        allowed={'auth_one_pending_deletion':expected}
+        if expanded:allowed.update({ddl.split()[2]:ddl for ddl in V8_JOB_GUARDS})
+        for extra in conn.execute("SELECT name,sql FROM sqlite_schema WHERE tbl_name='auth_deletion_jobs' AND sql IS NOT NULL AND type IN ('index','trigger')"):
+            if extra['name'] not in allowed or cls._normalize_sql(extra['sql'])!=cls._normalize_sql(allowed[extra['name']]):
+                raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除任务存在未知附属结构。')
+
+    @classmethod
+    def _check_v8(cls,conn):
+        cls._check_v7(conn);cls._check_auth_job_schema(conn,expanded=True)
+        for ddl in V8_JOB_GUARDS:
+            row=conn.execute('SELECT sql FROM sqlite_schema WHERE name=?',(ddl.split()[2],)).fetchone()
+            if not row or cls._normalize_sql(row[0])!=cls._normalize_sql(ddl):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除来源守卫不匹配。')
+
+    def _migrate_v8_if_ready(self):
+        with self.transaction() as conn:version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
+        if version==FINANCIAL_SCHEMA_VERSION:self._migrate_v8()
+
+    def _migrate_v8(self):
+        conn=sqlite3.connect(self.path,timeout=5,isolation_level=None);conn.row_factory=sqlite3.Row
+        install_default_hook(conn)
+        try:
+            conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN IMMEDIATE');self.auth_store.check_gate_policy(conn)
+            version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
+            if version==DELETION_SCHEMA_VERSION:self._check_v8(conn);conn.commit();return
+            if version!=FINANCIAL_SCHEMA_VERSION:raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除来源迁移版本不支持。')
+            self._check_v7(conn);self._check_v7_attachments(conn);self._check_auth_job_schema(conn,expanded=False)
+            for ddl in V8_JOB_GUARDS:
+                if conn.execute('SELECT 1 FROM sqlite_schema WHERE name=?',(ddl.split()[2],)).fetchone():raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除来源存在部分守卫。')
+            for name,ddl in JOB_ORIGIN_COLUMNS:conn.execute('ALTER TABLE auth_deletion_jobs ADD COLUMN '+name+' '+ddl)
+            for ddl in V8_JOB_GUARDS:conn.execute(ddl)
+            conn.execute('UPDATE research_schema SET version=8 WHERE id=1');self._check_v8(conn)
+            conn.commit()
+        except Exception:conn.rollback();raise
         finally:conn.close()
 
     @contextmanager

@@ -111,8 +111,8 @@ def account_owner_transaction(owner: str):
         from web.backend.research.authorization import AuthorizationGate
     store = _store()
     gate_id = store.owner_gate_id(normalized)
-    with AuthorizationGate(store).owner_gate_id(gate_id):
-        yield
+    with AuthorizationGate(store).owner_gate_id(gate_id) as lease:
+        yield lease
 
 
 def _jwt_secret() -> str:
@@ -1011,7 +1011,7 @@ async def delete_my_account(body: DeleteAccountBody, request: Request):
         return JSONResponse({"ok": False, "error": "confirmation must equal DELETE"}, status_code=400)
     job_id = None
     try:
-        with account_owner_transaction(user["email"]):
+        with account_owner_transaction(user["email"]) as owner_lease:
             # The first resolve selects the lock. Re-resolve inside it so a
             # request queued behind another deletion cannot use a stale JWT.
             locked_user, locked_status = resolve_account_user(request)
@@ -1021,12 +1021,22 @@ async def delete_my_account(body: DeleteAccountBody, request: Request):
                 return _account_auth_error("credential_conflict")
             service = _account_deletion_service()
             account = _store().user(locked_user["email"])
-            job_id = service.begin_account_deletion_locked(
-                locked_user["email"], account["session_generation"],
-                _store().owner_gate_id(locked_user["email"]),
-                _account_cleanup_binding(locked_user["email"]),
-            )
-            result = _run_account_deletion_locked(service, job_id)
+            if __package__=='web.backend.api':
+                from ..research.paid_control import issue_authenticated_action
+                from ..research.errors import ResearchError
+            else:
+                from research.paid_control import issue_authenticated_action
+                from research.errors import ResearchError
+            try:request_source=issue_authenticated_action(request,action='account-delete')
+            except (ResearchError,PermissionError,ValueError):request_source=None
+            try:
+                job_id = service.begin_account_deletion_locked(
+                    locked_user["email"], account["session_generation"],
+                    _store().owner_gate_id(locked_user["email"]),
+                    _account_cleanup_binding(locked_user["email"]),owner_lease=owner_lease,request_source=request_source)
+                result = _run_account_deletion_locked(service, job_id,owner_lease=owner_lease)
+            finally:
+                if request_source is not None:request_source.close()
             removed = result["removed"]
     except Exception as exc:
         status_code = 503 if getattr(exc, "status", None) == 503 else 500
@@ -1079,23 +1089,27 @@ def _account_deletion_service():
     return ResearchService(ResearchStore(_store()))
 
 
-def _run_account_deletion_locked(service, job_id):
+def _run_account_deletion_locked(service, job_id,*,owner_lease=None):
     job = service.deletion_job(job_id)
+    if __package__=='web.backend.api':from ..research.paid_control import verify_deletion_origin
+    else:from research.paid_control import verify_deletion_origin
+    with service.store.transaction() as conn:verify_deletion_origin(conn,store=service.store,lease=owner_lease,job_id=job_id)
+    lease_args={'owner_lease':owner_lease} if job.get('origin_version') is not None else {}
     if job["state"] == "completed":
         return json.loads(job["result_json"])
     if job["state"] == "scrubbing":
-        return service.finish_account_deletion_locked(job_id, None)
+        return service.finish_account_deletion_locked(job_id, None,**lease_args)
     if not hmac.compare_digest(job["cleanup_binding"], _account_cleanup_binding(job["owner_email"])):
         raise RuntimeError("account deletion recovery binding mismatch")
-    service.erase_research_locked(job_id)
+    service.erase_research_locked(job_id,**lease_args)
     # Generic legacy compensation remains unchanged. The committed auth fence
     # and research epoch are not registry assets and cannot be restored by it.
-    first,receipt = service.prepare_legacy_deletion_locked(job_id)
+    first,receipt = service.prepare_legacy_deletion_locked(job_id,**lease_args)
     if receipt is None:
         removed = _account_registry().delete_all(job["owner_email"])
-        receipt = service.record_legacy_deletion_locked(job_id, removed, first=first)
+        receipt = service.record_legacy_deletion_locked(job_id, removed, first=first,**lease_args)
     removed = service.legacy_deletion_result(receipt)
-    return service.finish_account_deletion_locked(job_id, removed)
+    return service.finish_account_deletion_locked(job_id, removed,**lease_args)
 
 
 def _account_cleanup_binding(email):
@@ -1136,8 +1150,8 @@ def resume_account_deletion(job_id: str):
     """
     service = _account_deletion_service()
     job = service.deletion_job(job_id)
-    with service.authorization.owner_gate_id(job["gate_id"]):
-        return _run_account_deletion_locked(service, job_id)
+    with service.authorization.owner_gate_id(job["gate_id"]) as owner_lease:
+        return _run_account_deletion_locked(service, job_id,owner_lease=owner_lease)
 
 
 # --- Test helpers ---
