@@ -878,3 +878,88 @@ def test_formal_operation_cannot_downgrade_to_development_path_mid_write(stack, 
     response = client.post('/api/favorites/MSFT')
     assert response.status_code == 503 and not escape.exists()
     assert favorite_bytes(state) == before
+
+
+def test_preexisting_old_generation_does_not_block_current_snapshot_compensation(stack, native):
+    client, state, _ = stack
+    assert client.post('/api/favorites/AAPL').status_code == 201
+    previous_incarnation = copy.deepcopy(records(state)[0])
+    auth._store().delete_account_data(ALICE)
+    auth._store().ensure_user_and_notification(ALICE, 'pro', 'new synthetic incarnation')
+    current_token, _ = auth._issue_jwt(ALICE, 'pro')
+    client.cookies.set('phase_session', current_token)
+    assert client.get('/api/favorites').json()['tickers'] == []
+    assert client.post('/api/favorites/MSFT').status_code == 201
+    current_incarnation = copy.deepcopy(records(state)[1])
+    assert current_incarnation['_favorites_owner']['generation'] != previous_incarnation['_favorites_owner']['generation']
+    with deletion_context() as (_, _, authority):
+        item = auth._account_registry(favorites_authority=authority).assets[0]
+        snapshot = item.snapshot(ALICE)
+        removed = item.delete(ALICE)
+        assert removed == {'records': 1, 'tickers': 1, 'bookmarks': 0}
+        assert records(state)[0] == previous_incarnation
+        item.restore(ALICE, snapshot, removed)
+        restored = records(state)
+        assert len(restored) == 2 and restored[0] == previous_incarnation
+        assert restored[1]['tickers'] == ['MSFT']
+        assert restored[1]['_favorites_owner']['generation'] == current_incarnation['_favorites_owner']['generation']
+        assert restored[1]['_favorites_owner']['record_id'] == current_incarnation['_favorites_owner']['record_id']
+        assert restored[1]['_favorites_owner']['revision'] != current_incarnation['_favorites_owner']['revision']
+        before_replay = favorite_bytes(state)
+        with pytest.raises(PermissionError):item.restore(ALICE, snapshot, removed)
+        assert favorite_bytes(state) == before_replay
+
+
+def test_real_next_generation_writer_atomically_invalidates_prior_deletion_marker(stack, native, monkeypatch):
+    client, state, _ = stack
+    assert client.post('/api/favorites/AAPL').status_code == 201
+    original_record = copy.deepcopy(records(state)[0])
+    old_generation = original_record['_favorites_owner']['generation']
+    with deletion_context() as (service, job_id, authority):
+        item = auth._account_registry(favorites_authority=authority).assets[0]
+        snapshot = item.snapshot(ALICE)
+        removed = item.delete(ALICE)
+        mark = copy.deepcopy(records(state)[0]['_favorites_tombstone'])
+        assert mark['operation_id'] == snapshot['operation_id']
+        # Finish the real persisted job before a new incarnation may register.
+        result = auth._run_account_deletion_locked(service, job_id, owner_lease=authority.lease)
+        assert service.deletion_job(job_id)['state'] == 'completed'
+    assert auth.resume_account_deletion(job_id) == result
+    assert records(state)[0]['_favorites_tombstone'] == mark
+    auth._store().ensure_user_and_notification(ALICE, 'pro', 'new synthetic incarnation')
+    token, _ = auth._issue_jwt(ALICE, 'pro');client.cookies.set('phase_session', token)
+    new_generation = auth._store().user(ALICE)['session_generation']
+    assert new_generation != old_generation
+    assert client.get('/api/favorites').json()['tickers'] == []
+    assert records(state)[0]['_favorites_tombstone'] == mark
+    original_replace = os.replace
+    images = []
+    def observe_replace(source, destination, *args, **kwargs):
+        if destination != 'favorites.jsonl':
+            return original_replace(source, destination, *args, **kwargs)
+        before = copy.deepcopy(records(state))
+        returned = original_replace(source, destination, *args, **kwargs)
+        images.append((before, copy.deepcopy(records(state))))
+        return returned
+    # Observe the actual supported HTTP writer and its actual OS replace;
+    # never remove/edit a marker or substitute an in-memory records mapping.
+    monkeypatch.setattr(paths.os, 'replace', observe_replace)
+    written = client.post('/api/favorites/MSFT')
+    assert written.status_code == 201
+    assert len(images) == 1
+    before, after = images[0]
+    assert before == [{'_favorites_tombstone': mark}]
+    assert len(after) == 1 and '_favorites_tombstone' not in after[0]
+    assert after[0]['tickers'] == ['MSFT']
+    assert after[0]['_favorites_owner']['generation'] == new_generation
+    assert after[0]['_favorites_owner']['record_id'] != original_record['_favorites_owner']['record_id']
+    persisted = favorite_bytes(state)
+    with pytest.raises(PermissionError):item.restore(ALICE, snapshot, removed)
+    # Even a newly held correct owner gate cannot reactivate a completed job
+    # or use its old-generation snapshot against the current incarnation.
+    with auth.account_owner_transaction(ALICE) as fresh_lease:
+        with pytest.raises(PermissionError):
+            with auth._favorites_authority(ALICE, old_generation, fresh_lease,
+                    service=service, job_id=job_id):
+                favorites.restore_account_favorites(ALICE, snapshot, removed)
+    assert favorite_bytes(state) == persisted and len(images) == 1

@@ -1502,8 +1502,11 @@ def _restore_private_favorites(email, snapshot):
         expected = {'owner_key': context.owner_key, 'incarnation': snapshot['incarnation'],
             'record_id': meta['record_id'], 'operation_id': snapshot['operation_id'],
             'revision': meta['revision'], 'digest': snapshot['digest']}
+        # Earlier incarnations remain isolated material, not evidence of a
+        # later write. Every supported new write atomically invalidates this
+        # owner's marker; an occupied current-incarnation slot also blocks CAS.
         if (records.get(('tombstone', context.owner_key)) != {'_favorites_tombstone': expected}
-                or any(k[0] == 'owned' and k[1] == context.owner_key for k in records)):
+                or key in records):
             raise PermissionError('Favorites compensation was superseded or already used')
         records[key] = copy.deepcopy(snapshot['record'])
         records.pop(('tombstone', context.owner_key))
