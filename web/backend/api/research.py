@@ -31,6 +31,11 @@ else:
     from research import paid_api_public as paid_public
     from research import ResearchService, ResearchStore
 
+if __package__=='web.backend.api':
+    from ..research.plan_schemas import PlanPreviewEnvelope,PlanConfirmationEnvelope,PlanPreviewResponse,PlanConfirmationResponse,PlanReadResponse
+else:
+    from research.plan_schemas import PlanPreviewEnvelope,PlanConfirmationEnvelope,PlanPreviewResponse,PlanConfirmationResponse,PlanReadResponse
+
 router = APIRouter(tags=["research"])
 _KEY = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z", re.ASCII)
 _HEADERS = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"}
@@ -175,6 +180,16 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                     if not 1<=revision<=2147483647:raise ResearchError('INPUT_INVALID',422,'公式修订无效。')
                     result=await run_in_threadpool(formula_result.read_revision,service,identity,research_id,revision,request_source=source)
             finally:source.close()
+        elif operation=='plan-read':
+            if __package__=='web.backend.api':
+                from ..research.paid_control import issue_authenticated_action
+                from ..research.plan_result import read
+            else:
+                from research.paid_control import issue_authenticated_action
+                from research.plan_result import read
+            source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+            try:result=await run_in_threadpool(read,service,identity,research_id,request.path_params['result_ref'],source)
+            finally:source.close()
         elif operation == "source-records":
             result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get("task_id",""),request.query_params.get("kind",""),request.query_params.get("cursor"))
         elif operation == "events":
@@ -189,11 +204,24 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                 raise ResearchError("INPUT_INVALID", 422, "保存操作标识缺失或不合法。")
             if operation in ('paid-preview','paid-confirm') and request.query_params:
                 raise ResearchError('INPUT_INVALID',422,'付费范围请求不接受查询参数。')
-            envelope = await _parse(request,{"create":CreateEnvelope,"revise":RevisionEnvelope,"start":StartEnvelope,
+            if __package__=='web.backend.api':from ..research.plan_schemas import PlanPreviewEnvelope,PlanConfirmationEnvelope
+            else:from research.plan_schemas import PlanPreviewEnvelope,PlanConfirmationEnvelope
+            envelope = await _parse(request,{'plan-preview':PlanPreviewEnvelope,'plan-confirm':PlanConfirmationEnvelope,"create":CreateEnvelope,"revise":RevisionEnvelope,"start":StartEnvelope,
                                              'paid-preview':PaidPreviewEnvelope,'paid-confirm':PaidConfirmationEnvelope,
                                              "source-preview":SourcePreviewEnvelope,"source-approve":SourceApprovalEnvelope,"source-start":SourceStartEnvelope,
                                              "cancel":TaskEnvelope,"reconcile":TaskEnvelope,"resume":TaskEnvelope,"formula-check":FormulaCheckEnvelope}[operation])
-            if operation == "create":
+            if operation in ('plan-preview','plan-confirm'):
+                if __package__=='web.backend.api':
+                    from ..research.paid_control import issue_authenticated_action
+                    from ..research import plan_runtime
+                else:
+                    from research.paid_control import issue_authenticated_action
+                    from research import plan_runtime
+                source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+                function=plan_runtime.preview if operation=='plan-preview' else plan_runtime.confirm
+                try:result=await run_in_threadpool(function,service,identity,research_id,envelope.data,key,source)
+                finally:source.close()
+            elif operation == "create":
                 result = await run_in_threadpool(service.create, identity, envelope.data, key)
             elif operation in ('paid-preview','paid-confirm'):
                 # Server composition only. Requests/env booleans cannot install
@@ -234,6 +262,11 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                     finally:source.close()
                 else:result=await run_in_threadpool(service.task_action,identity,research_id,envelope.data,key,operation)
         if operation in _PAID_OPERATIONS:return _paid_success_response(operation,result)
+        if operation in ('plan-preview','plan-confirm','plan-read'):
+            try:
+                model={'plan-preview':PlanPreviewResponse,'plan-confirm':PlanConfirmationResponse,'plan-read':PlanReadResponse}[operation]
+                result=model.model_validate(result).model_dump(mode='json')
+            except ValueError:return _paid_response_unavailable()
         if len(json.dumps(result,ensure_ascii=False,allow_nan=False,separators=(',',':')).encode('utf-8'))>524288:
             raise ResearchError('PAYLOAD_LIMIT',413,'响应超过研究范围上限；旧记录未更改。')
         return JSONResponse(result, headers=_HEADERS)
@@ -340,3 +373,16 @@ async def read_research_formula_result(research_id:str,result_ref:str,request:Re
 @router.get('/research/{research_id}/formula-revisions/{revision}')
 async def read_research_formula_revision(research_id:str,revision:int,request:Request):
     return await _dispatch(request,research_id=research_id,operation='formula-revision-read')
+
+
+@router.post('/research/{research_id}/plan-previews',response_model=PlanPreviewResponse,openapi_extra={'requestBody':_formula_request_body(PlanPreviewEnvelope)})
+async def preview_research_plan(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='plan-preview')
+
+@router.post('/research/{research_id}/plan-approvals',response_model=PlanConfirmationResponse,openapi_extra={'requestBody':_formula_request_body(PlanConfirmationEnvelope)})
+async def confirm_research_plan(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='plan-confirm')
+
+@router.get('/research/{research_id}/plan-results/{result_ref}',response_model=PlanReadResponse)
+async def read_research_plan(research_id:str,result_ref:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='plan-read')

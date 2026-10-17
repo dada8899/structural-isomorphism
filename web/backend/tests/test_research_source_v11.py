@@ -133,6 +133,8 @@ def test_actual_archived10_formula_survives11_with_same_ref_time_and_typed_body(
     path=roots/'auth.sqlite3';inode=path.stat().st_ino
     with pytest.raises((RuntimeError,ResearchError)):AuthStore(path)
     upgraded=provision_source_v11(path);assert upgraded['schema_version']==11 and path.stat().st_ino==inode
+    from research.plan_financial import provision_plan_v12
+    assert provision_plan_v12(path)['schema_version']==12 and path.stat().st_ino==inode
     for key,value in {'AUTH_ENABLED':'true','AUTH_SITE_ROLE':'beta','AUTH_LINK_BASE_URL':BETA,'JWT_SECRET':'source11-history-synthetic-secret-0123456789',
         'STRUCTURAL_SSO_SECRET':'source11-history-synthetic-secret-0123456789','SMTP_HOST':'fixture.invalid','SMTP_PORT':'587','SMTP_FROM_EMAIL':'sender@example.invalid',
         'ADMIN_NOTIFICATION_EMAIL':'admin@example.invalid','AUTH_TRUSTED_PROXY_IPS':'127.0.0.1','AUTH_DEV_MODE':'false'}.items():monkeypatch.setenv(key,value)
@@ -321,14 +323,16 @@ def test_source11_real_migration_death_recovers_complete10_or11_and_preserves_fo
         worker.close()
     recovered=recover_formula_journal(path)
     assert recovered['schema_version']==(11 if cut=='after-commit' else 10)
-    assert recovered['current_app_compatible']==(cut=='after-commit')
+    assert recovered['current_app_compatible'] is False # Complete10/11 remain offline historical profiles.
     assert (path.stat().st_dev,path.stat().st_ino)==identity
     if cut!='after-commit':
         with pytest.raises((RuntimeError,ResearchError)):AuthStore(path)
         provision_source_v11(path)
+    from research.plan_financial import provision_plan_v12
+    assert provision_plan_v12(path)['schema_version']==12
     store=ResearchStore(AuthStore(path))
     with store.transaction() as conn:
-        store._check_v11(conn)
+        store._check_v12(conn)
         assert tuple(conn.execute('SELECT result_ref,admission_json,receipt_json,result_json,commit_json FROM research_formula_runs').fetchone())==before
         assert conn.execute('PRAGMA journal_mode').fetchone()[0]=='wal'
         assert not conn.execute('PRAGMA foreign_key_check').fetchall()

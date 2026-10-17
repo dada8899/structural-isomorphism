@@ -5378,6 +5378,63 @@
         "title": "PhenomenonEvidenceSource",
         "type": "object"
       },
+      "PhenomenonPlanCandidate": {
+        "additionalProperties": false,
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/PlanNomination"
+            },
+            "maxItems": 3,
+            "title": "Candidates",
+            "type": "array"
+          },
+          "clarification_questions": {
+            "items": {
+              "maxLength": 240,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 3,
+            "title": "Clarification Questions",
+            "type": "array"
+          },
+          "gaps": {
+            "items": {
+              "maxLength": 400,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Gaps",
+            "type": "array"
+          },
+          "query_suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/PlanQuerySuggestion"
+            },
+            "maxItems": 5,
+            "title": "Query Suggestions",
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 700,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary",
+          "candidates",
+          "query_suggestions",
+          "gaps",
+          "clarification_questions"
+        ],
+        "title": "PhenomenonPlanCandidate",
+        "type": "object"
+      },
       "PhenomenonRecord": {
         "additionalProperties": false,
         "properties": {
@@ -5612,6 +5669,922 @@
           "evidence"
         ],
         "title": "PhenomenonV2Candidate",
+        "type": "object"
+      },
+      "PlanConfirmationData": {
+        "additionalProperties": false,
+        "properties": {
+          "funding_state": {
+            "const": "approved_not_sent",
+            "enum": [
+              "approved_not_sent"
+            ],
+            "title": "Funding State",
+            "type": "string"
+          },
+          "plan_generation_ran": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Plan Generation Ran",
+            "type": "boolean"
+          },
+          "recorded_at": {
+            "title": "Recorded At",
+            "type": "null"
+          },
+          "result_ref": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9._:-]+$",
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "state": {
+            "const": "queued",
+            "enum": [
+              "queued"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "task_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9._:-]+$",
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "result_ref",
+          "state",
+          "funding_state",
+          "plan_generation_ran",
+          "recorded_at"
+        ],
+        "title": "PlanConfirmationData",
+        "type": "object"
+      },
+      "PlanConfirmationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "funded-plan-v1",
+            "enum": [
+              "funded-plan-v1"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PlanConfirmationData"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_revision",
+          "data"
+        ],
+        "title": "PlanConfirmationResponse",
+        "type": "object"
+      },
+      "PlanNomination": {
+        "additionalProperties": false,
+        "properties": {
+          "key_unknowns": {
+            "items": {
+              "maxLength": 240,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Key Unknowns",
+            "type": "array"
+          },
+          "label": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "mechanism_hypothesis": {
+            "maxLength": 700,
+            "minLength": 1,
+            "title": "Mechanism Hypothesis",
+            "type": "string"
+          },
+          "method_leads": {
+            "items": {
+              "maxLength": 160,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 2,
+            "title": "Method Leads",
+            "type": "array"
+          },
+          "why_considered": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Why Considered",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "mechanism_hypothesis",
+          "why_considered",
+          "method_leads",
+          "key_unknowns"
+        ],
+        "title": "PlanNomination",
+        "type": "object"
+      },
+      "PlanPreviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "funded-plan-v1",
+            "enum": [
+              "funded-plan-v1"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PlanPreviewView"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_revision",
+          "data"
+        ],
+        "title": "PlanPreviewResponse",
+        "type": "object"
+      },
+      "PlanPreviewView": {
+        "additionalProperties": false,
+        "properties": {
+          "approved_upper_units": {
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Approved Upper Units",
+            "type": "integer"
+          },
+          "currency": {
+            "const": "CNY",
+            "enum": [
+              "CNY"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "exact_input": {
+            "maxLength": 1000,
+            "minLength": 8,
+            "title": "Exact Input",
+            "type": "string"
+          },
+          "expected_research_version": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Expected Research Version",
+            "type": "integer"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "integer"
+          },
+          "explanation": {
+            "maxLength": 160,
+            "title": "Explanation",
+            "type": "string"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "observation_rights": {
+            "const": "self_declared",
+            "enum": [
+              "self_declared"
+            ],
+            "title": "Observation Rights",
+            "type": "string"
+          },
+          "preview_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Preview Digest",
+            "type": "string"
+          },
+          "preview_ref": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9._:-]+$",
+            "title": "Preview Ref",
+            "type": "string"
+          },
+          "purpose": {
+            "const": "phenomenon_plan_v1",
+            "enum": [
+              "phenomenon_plan_v1"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "quote": {
+            "$ref": "#/components/schemas/PlanQuote"
+          },
+          "request_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Request Digest",
+            "type": "string"
+          },
+          "research_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9._:-]+$",
+            "title": "Research Id",
+            "type": "string"
+          },
+          "scale": {
+            "const": 6,
+            "enum": [
+              6
+            ],
+            "title": "Scale",
+            "type": "integer"
+          },
+          "state": {
+            "const": "awaiting_confirmation",
+            "enum": [
+              "awaiting_confirmation"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "preview_ref",
+          "preview_digest",
+          "request_digest",
+          "research_id",
+          "input_revision",
+          "expected_research_version",
+          "state",
+          "exact_input",
+          "purpose",
+          "observation_rights",
+          "approved_upper_units",
+          "currency",
+          "scale",
+          "quote",
+          "expires_at",
+          "explanation"
+        ],
+        "title": "PlanPreviewView",
+        "type": "object"
+      },
+      "PlanQuerySuggestion": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_index": {
+            "anyOf": [
+              {
+                "maximum": 2.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Index"
+          },
+          "intent": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Intent",
+            "type": "string"
+          },
+          "query": {
+            "pattern": "^[A-Za-z][A-Za-z -]{2,159}$",
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidate_index",
+          "query",
+          "intent"
+        ],
+        "title": "PlanQuerySuggestion",
+        "type": "object"
+      },
+      "PlanQuote": {
+        "additionalProperties": false,
+        "properties": {
+          "approved_upper_units": {
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Approved Upper Units",
+            "type": "integer"
+          },
+          "codec_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Codec Digest",
+            "type": "string"
+          },
+          "context_bound": {
+            "const": 1048576,
+            "enum": [
+              1048576
+            ],
+            "title": "Context Bound",
+            "type": "integer"
+          },
+          "currency": {
+            "const": "CNY",
+            "enum": [
+              "CNY"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "declaration_observed_on": {
+            "const": "2026-10-18",
+            "enum": [
+              "2026-10-18"
+            ],
+            "title": "Declaration Observed On",
+            "type": "string"
+          },
+          "declared_model_version": {
+            "const": "DeepSeek-V4.1-Flash-1017",
+            "enum": [
+              "DeepSeek-V4.1-Flash-1017"
+            ],
+            "title": "Declared Model Version",
+            "type": "string"
+          },
+          "issued_at": {
+            "title": "Issued At",
+            "type": "integer"
+          },
+          "max_output_tokens": {
+            "const": 4096,
+            "enum": [
+              4096
+            ],
+            "title": "Max Output Tokens",
+            "type": "integer"
+          },
+          "model": {
+            "const": "deepseek-flash",
+            "enum": [
+              "deepseek-flash"
+            ],
+            "title": "Model",
+            "type": "string"
+          },
+          "peak_input_hit_units_per_million": {
+            "const": 40000,
+            "enum": [
+              40000
+            ],
+            "title": "Peak Input Hit Units Per Million",
+            "type": "integer"
+          },
+          "peak_input_miss_units_per_million": {
+            "const": 2000000,
+            "enum": [
+              2000000
+            ],
+            "title": "Peak Input Miss Units Per Million",
+            "type": "integer"
+          },
+          "peak_output_units_per_million": {
+            "const": 8000000,
+            "enum": [
+              8000000
+            ],
+            "title": "Peak Output Units Per Million",
+            "type": "integer"
+          },
+          "price_source": {
+            "const": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+            "enum": [
+              "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/"
+            ],
+            "title": "Price Source",
+            "type": "string"
+          },
+          "protocol": {
+            "const": "financial8-plan-quote-v1",
+            "enum": [
+              "financial8-plan-quote-v1"
+            ],
+            "title": "Protocol",
+            "type": "string"
+          },
+          "provider": {
+            "const": "deepseek",
+            "enum": [
+              "deepseek"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
+          "provider_output_bound": {
+            "const": 393216,
+            "enum": [
+              393216
+            ],
+            "title": "Provider Output Bound",
+            "type": "integer"
+          },
+          "purpose": {
+            "const": "phenomenon_plan_v1",
+            "enum": [
+              "phenomenon_plan_v1"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "revision": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9._:-]+$",
+            "title": "Revision",
+            "type": "string"
+          },
+          "scale": {
+            "const": 6,
+            "enum": [
+              6
+            ],
+            "title": "Scale",
+            "type": "integer"
+          },
+          "valid_until": {
+            "title": "Valid Until",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "protocol",
+          "revision",
+          "purpose",
+          "provider",
+          "model",
+          "declared_model_version",
+          "declaration_observed_on",
+          "currency",
+          "scale",
+          "peak_input_hit_units_per_million",
+          "peak_input_miss_units_per_million",
+          "peak_output_units_per_million",
+          "context_bound",
+          "provider_output_bound",
+          "max_output_tokens",
+          "approved_upper_units",
+          "codec_digest",
+          "issued_at",
+          "valid_until",
+          "price_source"
+        ],
+        "title": "PlanQuote",
+        "type": "object"
+      },
+      "PlanReadData": {
+        "additionalProperties": false,
+        "properties": {
+          "approved_upper_units": {
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Approved Upper Units",
+            "type": "integer"
+          },
+          "content": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "execution_mode": {
+            "const": "fixture",
+            "enum": [
+              "fixture"
+            ],
+            "title": "Execution Mode",
+            "type": "string"
+          },
+          "financial_state": {
+            "enum": [
+              "unreserved",
+              "held",
+              "upper_booked",
+              "unknown"
+            ],
+            "title": "Financial State",
+            "type": "string"
+          },
+          "plan_generation_ran": {
+            "title": "Plan Generation Ran",
+            "type": "boolean"
+          },
+          "real_model_executed": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Real Model Executed",
+            "type": "boolean"
+          },
+          "recorded_at": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded At"
+          },
+          "result_ref": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9._:-]+$",
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "safe_code": {
+            "anyOf": [
+              {
+                "enum": [
+                  "saved",
+                  "body_invalid",
+                  "send_unknown",
+                  "not_sent",
+                  "cancelled",
+                  "access_ended"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe Code"
+          },
+          "state": {
+            "enum": [
+              "saved",
+              "failed_insufficient",
+              "pending_reconciliation",
+              "cancelled",
+              "queued",
+              "generating"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "task_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9._:-]+$",
+            "title": "Task Id",
+            "type": "string"
+          },
+          "usage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanUsage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "task_id",
+          "result_ref",
+          "state",
+          "financial_state",
+          "safe_code",
+          "recorded_at",
+          "plan_generation_ran",
+          "real_model_executed",
+          "execution_mode",
+          "approved_upper_units",
+          "usage",
+          "content"
+        ],
+        "title": "PlanReadData",
+        "type": "object"
+      },
+      "PlanReadResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "funded-plan-v1",
+            "enum": [
+              "funded-plan-v1"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PlanReadData"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_revision",
+          "data"
+        ],
+        "title": "PlanReadResponse",
+        "type": "object"
+      },
+      "PlanResult": {
+        "additionalProperties": false,
+        "properties": {
+          "admission_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Admission Digest",
+            "type": "string"
+          },
+          "automatically_created_sources": {
+            "const": 0,
+            "enum": [
+              0
+            ],
+            "title": "Automatically Created Sources",
+            "type": "integer"
+          },
+          "execution_mode": {
+            "const": "fixture",
+            "enum": [
+              "fixture"
+            ],
+            "title": "Execution Mode",
+            "type": "string"
+          },
+          "input_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Input Digest",
+            "type": "string"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "literature_status": {
+            "const": "not_retrieved",
+            "enum": [
+              "not_retrieved"
+            ],
+            "title": "Literature Status",
+            "type": "string"
+          },
+          "mathematics_status": {
+            "const": "not_checked",
+            "enum": [
+              "not_checked"
+            ],
+            "title": "Mathematics Status",
+            "type": "string"
+          },
+          "mechanism_status": {
+            "const": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Mechanism Status",
+            "type": "string"
+          },
+          "observation_rights": {
+            "const": "self_declared",
+            "enum": [
+              "self_declared"
+            ],
+            "title": "Observation Rights",
+            "type": "string"
+          },
+          "plan_generation_ran": {
+            "const": true,
+            "enum": [
+              true
+            ],
+            "title": "Plan Generation Ran",
+            "type": "boolean"
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/PhenomenonPlanCandidate"
+          },
+          "protocol": {
+            "const": "owned-phenomenon-plan-result-v1",
+            "enum": [
+              "owned-phenomenon-plan-result-v1"
+            ],
+            "title": "Protocol",
+            "type": "string"
+          },
+          "purpose": {
+            "const": "phenomenon_plan_v1",
+            "enum": [
+              "phenomenon_plan_v1"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "query_state": {
+            "const": "draft_only",
+            "enum": [
+              "draft_only"
+            ],
+            "title": "Query State",
+            "type": "string"
+          },
+          "real_model_executed": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Real Model Executed",
+            "type": "boolean"
+          },
+          "recorded_at": {
+            "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "request_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Request Digest",
+            "type": "string"
+          },
+          "research_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9._:-]+$",
+            "title": "Research Id",
+            "type": "string"
+          },
+          "result_ref": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9._:-]+$",
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "task_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9._:-]+$",
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "protocol",
+          "purpose",
+          "result_ref",
+          "task_id",
+          "research_id",
+          "input_revision",
+          "input_digest",
+          "request_digest",
+          "admission_digest",
+          "recorded_at",
+          "execution_mode",
+          "plan_generation_ran",
+          "real_model_executed",
+          "literature_status",
+          "mathematics_status",
+          "mechanism_status",
+          "observation_rights",
+          "query_state",
+          "automatically_created_sources",
+          "proposal"
+        ],
+        "title": "PlanResult",
+        "type": "object"
+      },
+      "PlanUsage": {
+        "additionalProperties": false,
+        "properties": {
+          "actual_charge_units": {
+            "title": "Actual Charge Units",
+            "type": "null"
+          },
+          "booked_upper_units": {
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Booked Upper Units",
+            "type": "integer"
+          },
+          "completion_tokens": {
+            "maximum": 4096.0,
+            "minimum": 0.0,
+            "title": "Completion Tokens",
+            "type": "integer"
+          },
+          "cost_kind": {
+            "const": "upper_booked",
+            "enum": [
+              "upper_booked"
+            ],
+            "title": "Cost Kind",
+            "type": "string"
+          },
+          "currency": {
+            "const": "CNY",
+            "enum": [
+              "CNY"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "prompt_tokens": {
+            "maximum": 1048576.0,
+            "minimum": 0.0,
+            "title": "Prompt Tokens",
+            "type": "integer"
+          },
+          "scale": {
+            "const": 6,
+            "enum": [
+              6
+            ],
+            "title": "Scale",
+            "type": "integer"
+          },
+          "total_tokens": {
+            "maximum": 1052672.0,
+            "minimum": 0.0,
+            "title": "Total Tokens",
+            "type": "integer"
+          },
+          "usage_priced_estimate_units": {
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Usage Priced Estimate Units",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "prompt_tokens",
+          "completion_tokens",
+          "total_tokens",
+          "usage_priced_estimate_units",
+          "actual_charge_units",
+          "cost_kind",
+          "booked_upper_units",
+          "currency",
+          "scale"
+        ],
+        "title": "PlanUsage",
         "type": "object"
       },
       "PrefsBody": {
@@ -11985,6 +12958,304 @@
           }
         },
         "summary": "Paid Preview",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/plan-approvals": {
+      "post": {
+        "operationId": "confirm_research_plan_api_research__research_id__plan_approvals_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "contract_revision": {
+                    "const": "b1-candidate-01",
+                    "enum": [
+                      "b1-candidate-01"
+                    ],
+                    "title": "Contract Revision",
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "approved_upper_units": {
+                        "maximum": 9223372036854775807,
+                        "minimum": 0,
+                        "title": "Approved Upper Units",
+                        "type": "integer"
+                      },
+                      "confirm_outbound": {
+                        "const": true,
+                        "enum": [
+                          true
+                        ],
+                        "title": "Confirm Outbound",
+                        "type": "boolean"
+                      },
+                      "expected_research_version": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Expected Research Version",
+                        "type": "integer"
+                      },
+                      "preview_digest": {
+                        "pattern": "^[a-f0-9]{64}$",
+                        "title": "Preview Digest",
+                        "type": "string"
+                      },
+                      "preview_ref": {
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "pattern": "^[a-zA-Z0-9._:-]+$",
+                        "title": "Preview Ref",
+                        "type": "string"
+                      },
+                      "request_digest": {
+                        "pattern": "^[a-f0-9]{64}$",
+                        "title": "Request Digest",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "preview_ref",
+                      "preview_digest",
+                      "request_digest",
+                      "expected_research_version",
+                      "approved_upper_units",
+                      "confirm_outbound"
+                    ],
+                    "title": "PlanConfirmationRequest",
+                    "type": "object"
+                  },
+                  "schema_version": {
+                    "const": "structure-research-v1",
+                    "enum": [
+                      "structure-research-v1"
+                    ],
+                    "title": "Schema Version",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "contract_revision",
+                  "data"
+                ],
+                "title": "PlanConfirmationEnvelope",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanConfirmationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Confirm Research Plan",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/plan-previews": {
+      "post": {
+        "operationId": "preview_research_plan_api_research__research_id__plan_previews_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "contract_revision": {
+                    "const": "b1-candidate-01",
+                    "enum": [
+                      "b1-candidate-01"
+                    ],
+                    "title": "Contract Revision",
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "declaration_status": {
+                        "const": "self_declared",
+                        "enum": [
+                          "self_declared"
+                        ],
+                        "title": "Declaration Status",
+                        "type": "string"
+                      },
+                      "expected_research_version": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Expected Research Version",
+                        "type": "integer"
+                      },
+                      "input_revision": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Input Revision",
+                        "type": "integer"
+                      },
+                      "observation_source": {
+                        "const": "own_observation",
+                        "enum": [
+                          "own_observation"
+                        ],
+                        "title": "Observation Source",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "input_revision",
+                      "expected_research_version",
+                      "observation_source",
+                      "declaration_status"
+                    ],
+                    "title": "PlanPreviewRequest",
+                    "type": "object"
+                  },
+                  "schema_version": {
+                    "const": "structure-research-v1",
+                    "enum": [
+                      "structure-research-v1"
+                    ],
+                    "title": "Schema Version",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "contract_revision",
+                  "data"
+                ],
+                "title": "PlanPreviewEnvelope",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Research Plan",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/plan-results/{result_ref}": {
+      "get": {
+        "operationId": "read_research_plan_api_research__research_id__plan_results__result_ref__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "result_ref",
+            "required": true,
+            "schema": {
+              "title": "Result Ref",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanReadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Research Plan",
         "tags": [
           "research"
         ]

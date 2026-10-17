@@ -146,6 +146,13 @@ class ResearchRunner:
         return self.run_once(task_id,max_steps=1)
 
     def run_once(self,task_id=None,*,max_steps=2):
+        if task_id is None:
+            from .plan_runtime import next_plan_task
+            task_id=next_plan_task(self.store)
+        if task_id is not None and self.task(task_id)['policy_revision']=='funded-plan-v1':
+            from .plan_runtime import run_once
+            return run_once(self.store,task_id)
+
         from .source_integration import enabled as sources_enabled
         from .budget import enabled as c0_enabled
         source_available=sources_enabled()
@@ -169,7 +176,7 @@ class ResearchRunner:
         # owner lock, so they never wait for this task lock or network finish.
         with self.store.transaction() as conn:
             version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
-        lock=self.gate.source_task_gate(task_id) if version==11 and self.task(task_id)['policy_revision']=='d1-source-only-v1' else self.gate.owner_gate_id(task_id)
+        lock=self.gate.source_task_gate(task_id) if version in (11,12) and self.task(task_id)['policy_revision']=='d1-source-only-v1' else self.gate.owner_gate_id(task_id)
         with lock as task_lease:
             task=self.task(task_id)
             if task['policy_revision'] not in supported:
