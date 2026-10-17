@@ -47,9 +47,34 @@
       <div id="variables" hidden></div>
       </div>
       <label class="check"><input id="confirmed" type="checkbox">我已核对这版问题结构；这不代表假设已被验证。</label>
+      <section id="formula-editor" aria-labelledby="formula-editor-title">
+        <h2 id="formula-editor-title">可选：登记公式对照</h2>
+        <label class="check"><input id="formula-enable" type="checkbox">在本修订保存公式对照草稿</label>
+        <p class="hint">选择登记模板并编辑结构；默认数值仅为示例，原文不会自动解析。空结构可以保存草稿，不能执行检查。未登记来源时标为用户提供，不要求 DOI。</p>
+        <p id="formula-editor-status" class="scope" aria-live="polite"></p>
+        <div id="formula-fields" hidden>
+          <label class="check"><input id="formula-use-right" type="checkbox" checked>对照右侧公式（单式只能检查模板与量纲）</label>
+          <label for="formula-scope">本次比较范围</label><select id="formula-scope"><option value="expression">结构表达式</option><option value="equation_form">条件模型 / 方程形式</option><option value="initial_value_problem">初值问题</option></select>
+          <fieldset class="formula-check-options"><legend>要检查什么</legend>
+            <label class="check"><input type="checkbox" value="template" checked>登记模板</label><label class="check"><input type="checkbox" value="dimensions" checked>量纲与变量含义</label>
+            <label class="check"><input type="checkbox" value="canonical_transform" checked>标准变换</label><label class="check"><input type="checkbox" value="bounded_numeric" checked>有限采样</label>
+          </fieldset>
+          <label for="formula-samples">采样点（逗号分隔，最多 256 个）</label><input id="formula-samples" type="text" value="0" maxlength="8192">
+          <p class="hint">采样点的含义由公式和比较范围决定。归一时间不等于两侧相同物理时刻；采样一致不是恒等证明。</p>
+          <div class="formula-grid"><div id="formula-left"></div><div id="formula-right"></div></div>
+        </div>
+      </section>
       <div class="actions"><button id="save" type="submit">保存问题</button><button id="reload" type="button" class="secondary" hidden>重新读取已存版本</button></div>
       <p class="hint">请求结果不明时保留当前内容，再次保存相同内容会核对原操作，不会另存一份。</p>
     </form>
+    <section id="formula-check-section" hidden aria-labelledby="formula-check-title">
+      <h2 id="formula-check-title">检查已保存的公式</h2>
+      <p class="scope">检查只针对已保存并核对的结构式。任务结束不等于数学通过；声明条件与现实机制仍需研究验证。</p>
+      <p id="formula-platform" class="hint"></p><p id="formula-status" aria-live="polite"></p>
+      <label class="check"><input id="formula-confirm" type="checkbox">我已核对已保存的展示式、结构式、变量单位及参数对应；同意检查这份快照</label>
+      <div class="actions"><button id="formula-run" type="button" disabled>检查已保存公式</button><button id="formula-refresh" type="button" class="secondary">重新读取公式与结果</button><button id="formula-recover" type="button" class="secondary" hidden>用原操作核对上次检查</button></div>
+      <div id="formula-results"></div>
+    </section>
     <section id="task-section" hidden aria-labelledby="task-title" aria-live="polite">
       <h2 id="task-title">本机流程演练</h2>
       <p class="scope" id="task-scope">仅验证保存、调用与对账流程，不访问真实供应端、不扣真实费用，也不代表研究成果。</p>

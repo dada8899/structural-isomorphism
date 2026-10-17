@@ -36,6 +36,7 @@
   let methodSeen = false;
   let methodDirty = false;
   let historySeen = false;
+  const formulaState = {draft:null,snapshot:null,scope:null,view:null,dirty:false,loading:false,busy:false,busyToken:null,epoch:0,snapshotEpoch:0,metadata:null};
   const initialSection = ['#my-research', '#kb-section'].includes(location.hash) ? location.hash.slice(1) : null;
   let initialLoad = true;
   let entryPositioned = false;
@@ -192,6 +193,428 @@
     });
   }
 
+
+  // Formula drafts are plain editor data, never execution authority or a parser.
+  const formulaChecks = {template:'登记模板',dimensions:'量纲与变量含义',canonical_transform:'标准变换',bounded_numeric:'有限采样'};
+  const formulaTemplates = {little:'Little：在途量 = 到达率 × 时间',mm1:'M/M/1：系统时间',passive_decay:'一阶无输入储能恢复',linear_stable:'平衡附近局部恢复'};
+  const formulaUnits = {one:'无量纲',count:'个',s:'秒',workday:'工作日',count_per_s:'个/秒',count_per_workday:'个/工作日',inverse_s:'1/秒',inverse_workday:'1/工作日',K:'K（温差）',J_per_K:'J/K',K_per_W:'K/W',V:'V',A:'A',ohm:'Ω',F:'F'};
+  const formulaRoles = {l:'系统/队列内数量',lambda:'有效到达率',w:'系统/排队时间',mu:'服务容量',rho:'利用率',wq:'仅排队时间',lq:'仅队列数量',x:'状态差',t:'时间',r:'阻力参数',c:'容量参数',x0:'初始状态差',tau:'时间常数',delta:'局部状态差',k:'恢复率',delta0:'初始局部状态差'};
+  const formulaQuantities = {system_count:'系统内数量',queue_count:'队列内数量',effective_arrival_rate:'有效到达率',service_capacity:'服务容量',system_time:'系统时间',queue_wait:'仅排队时间',ratio:'比率',state_difference:'状态差',time:'时间',thermal_resistance:'热阻',thermal_capacity:'热容',electrical_resistance:'电阻',electrical_capacity:'电容',initial_state_difference:'初始状态差',time_constant:'时间常数',local_state_difference:'局部状态差',recovery_rate:'恢复率',initial_local_state_difference:'初始局部状态差'};
+  const formulaConditionNames = {same_boundary:'系统边界一致',finite_long_run_means:'长期均值有限',effective_arrivals:'使用有效到达率',same_population:'数量与时间对应同一群体',poisson_arrivals:'泊松到达',independent_exponential_service:'独立指数服务时间',single_server:'单服务台',fcfs:'先到先服务',infinite_capacity:'无限容量',no_abandonment:'无弃队',constant_parameters:'参数保持不变',stable_regime:'存在稳定状态',no_external_input:'没有外部输入',positive_parameters:'相关参数为正',lumped_state:'可用集总状态描述',constant_environment:'环境保持不变',ideal_isolated_rc:'理想孤立 RC',stable_equilibrium:'稳定平衡',local_linear:'局部线性',small_perturbation:'小扰动',fixed_equilibrium:'平衡位置固定'};
+  const formulaConditionSets = {little:['same_boundary','finite_long_run_means','effective_arrivals','same_population'],mm1:['same_boundary','finite_long_run_means','effective_arrivals','same_population','poisson_arrivals','independent_exponential_service','single_server','fcfs','infinite_capacity','no_abandonment','constant_parameters','stable_regime'],passive_decay:['constant_parameters','no_external_input','positive_parameters'],linear_stable:['constant_parameters','no_external_input','positive_parameters','stable_equilibrium','local_linear','small_perturbation','fixed_equilibrium']};
+  const formulaName = value => typeof value === 'string' && /^[a-z][a-z0-9_]{0,31}$/.test(value);
+  function formulaNormalizeDecimal(value) {
+    if(typeof value!=='string'||value.length>64||! /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]{1,3})?$/.test(value))throw Error('须填写有限十进制字符串。');
+    const [mantissa,power='0']=value.toLowerCase().split('e');if(Math.abs(Number(power))>64)throw Error('十进制指数超出范围。');
+    const negative=mantissa.startsWith('-');const plain=negative?mantissa.slice(1):mantissa;const [whole,fraction='']=plain.split('.');
+    let digits=(whole+fraction).replace(/^0+/,'');if(!digits)return '0';let exponent=Number(power)-fraction.length;
+    while(digits.endsWith('0')){digits=digits.slice(0,-1);exponent++;}
+    const adjusted=digits.length-1+exponent;if(digits.length>18||adjusted < -12||adjusted>12)throw Error('数值精度或量级超出范围。');
+    let rendered;
+    if(exponent>0||adjusted < -6)rendered=digits[0]+(digits.length>1?'.'+digits.slice(1):'')+'E'+(adjusted>=0?'+':'')+adjusted;
+    else if(exponent===0)rendered=digits;
+    else {const place=digits.length+exponent;rendered=place>0?digits.slice(0,place)+'.'+digits.slice(place):'0.'+'0'.repeat(-place)+digits;}
+    return (negative?'-':'')+rendered;
+  }
+  const formulaDecimal = value => {try {formulaNormalizeDecimal(value);return true;}catch{return false;}};
+  function formulaScientificSide(value) {
+    if(!value)return null;const side=formulaCopy(value);delete side.time_basis;
+    for(const symbol of side.symbols)if(symbol.value!==null)symbol.value=formulaNormalizeDecimal(symbol.value);
+    const normalize=node=>{if(!node)return;if(node.op==='const')node.value=formulaNormalizeDecimal(node.value);for(const child of Object.values(node))if(child&&typeof child==='object')normalize(child);};normalize(side.expression);
+    for(const item of side.initial_conditions){item.at_time=formulaNormalizeDecimal(item.at_time);if(item.value!==null)item.value=formulaNormalizeDecimal(item.value);}
+    return side;
+  }
+  const formulaDigest = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+  const formulaCopy = value => JSON.parse(JSON.stringify(value));
+  function formulaCanonical(value) { return JSON.stringify((function ordered(v) { return Array.isArray(v) ? v.map(ordered) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map(k=>[k,ordered(v[k])])) : v; })(value)); }
+  async function formulaHash(value) { return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(formulaCanonical(value)))),n=>n.toString(16).padStart(2,'0')).join(''); }
+  function formulaElement(parent,tag,text,options={}) {
+    const node=document.createElement(tag); if (text!==null) node.textContent=text;
+    for (const [key,value] of Object.entries(options)) { if (key==='className') node.className=value; else node.setAttribute(key,String(value)); }
+    parent.append(node);return node;
+  }
+  function formulaField(parent,label,id,value,{select=null,multiline=false,max=400}={}) {
+    const wrap=formulaElement(parent,'div',null,{className:'formula-field'});formulaElement(wrap,'label',label,{for:id});
+    const field=formulaElement(wrap,select?'select':multiline?'textarea':'input',null,{id});
+    if(select) for(const [key,name] of Object.entries(select)) formulaElement(field,'option',name,{value:key});
+    else { if(!multiline)field.type='text';field.maxLength=max;if(multiline)field.rows=2; }
+    field.value=value??'';return field;
+  }
+  function formulaChoice(parent,label,id,value) { return formulaField(parent,label,id,value===null?'':String(value),{select:{'':'未核对',true:'满足（用户声明）',false:'不满足'}}); }
+  function formulaDefaultSide(side,template='little',domain='thermal') {
+    const rows={little:[['l','count','system_count','12'],['lambda','count_per_s','effective_arrival_rate','3'],['w','s','system_time','4']],mm1:[['w','s','system_time','0.5'],['lambda','count_per_s','effective_arrival_rate','3'],['mu','count_per_s','service_capacity','5']],passive_decay:[['x',domain==='thermal'?'K':'V','state_difference',null],['t','s','time',null],['r',domain==='thermal'?'K_per_W':'ohm',domain==='thermal'?'thermal_resistance':'electrical_resistance',domain==='thermal'?'4':'5'],['c',domain==='thermal'?'J_per_K':'F',domain==='thermal'?'thermal_capacity':'electrical_capacity',domain==='thermal'?'2':'1']],linear_stable:[['delta','one','local_state_difference',null],['k','inverse_s','recovery_rate','0.25'],['t','s','time',null]]}[template];
+    const conditions=[...formulaConditionSets[template],...(template==='passive_decay'?(domain==='thermal'?['lumped_state','constant_environment']:['ideal_isolated_rc']):[])];
+    return {family:template==='little'||template==='mm1'?'queue_flow':template==='passive_decay'?'first_order_storage':'local_recovery',template_id:template,original_display:{little:'L = λ × W',mm1:'W = 1 / (μ − λ)',passive_decay:'C × d(x)/dt = −x / R',linear_stable:'d(δ)/dt = −k × δ'}[template],expression:null,symbols:rows.map(([role,unit_id,quantity,value])=>({id:side+'_'+role,role,unit_id,quantity,value})),assumptions:conditions.map(id=>({id,statement:formulaConditionNames[id],declared_satisfied:null})),initial_conditions:[],boundary_conditions:[],source_refs:[],measure_scope:'system',time_basis:'from_symbol_units'};
+  }
+  function formulaRegisteredTree(side) {
+    const role=name=>({op:'symbol',id:side.symbols.find(v=>v.role===name)?.id||name});
+    const binary=(op,left,right)=>({op,left,right});const constant=value=>({op:'const',value});
+    const derivative=name=>({op:'derivative',state_symbol:role(name).id,time_symbol:role('t').id,order:1});
+    if(side.template_id==='little')return binary('eq',role('l'),binary('mul',role('lambda'),role('w')));
+    if(side.template_id==='mm1')return binary('eq',role('w'),binary('div',constant('1'),binary('sub',role('mu'),role('lambda'))));
+    if(side.template_id==='passive_decay')return binary('eq',binary('mul',role('c'),derivative('x')),binary('div',{op:'neg',arg:role('x')},role('r')));
+    return binary('eq',derivative('delta'),{op:'neg',arg:binary('mul',role('k'),role('delta'))});
+  }
+  function formulaNodeText(node,depth=0,count={n:0}) {
+    if(!node)return '尚未填写结构；可保存草稿';if(depth>16||++count.n>128)throw Error('结构最多16层、128节点。');
+    const text=n=>formulaNodeText(n,depth+1,count);
+    if(node.op==='symbol')return node.id;if(node.op==='const')return formulaNormalizeDecimal(node.value);
+    if(node.op==='derivative')return `d(${node.state_symbol})/d(${node.time_symbol})`;
+    if(node.op==='neg')return `−(${text(node.arg)})`;if(node.op==='exp')return `exp(${text(node.arg)})`;
+    if(node.op==='pow_int')return `(${text(node.base)})^${node.exponent}`;
+    const marks={eq:'=',add:'+',sub:'−',mul:'×',div:'/'};
+    if(!(node.op in marks))throw Error('结构中存在未登记运算。');return `(${text(node.left)} ${marks[node.op]} ${text(node.right)})`;
+  }
+  function validateFormulaNode(node,ids,count={n:0},depth=1) {
+    if(!node||typeof node!=='object'||Array.isArray(node)||depth>16||++count.n>128)throw Error('结构须为受限节点，最多16层、128节点。');
+    const fields=(...keys)=>Object.keys(node).sort().join('|')===keys.sort().join('|');
+    if(node.op==='symbol'&&fields('op','id')&&ids.has(node.id))return;
+    if(node.op==='const'&&fields('op','value')&&formulaDecimal(node.value))return;
+    if(node.op==='derivative'&&fields('op','state_symbol','time_symbol','order')&&node.order===1&&ids.has(node.state_symbol)&&ids.has(node.time_symbol))return;
+    let children;
+    if(['neg','exp'].includes(node.op)&&fields('op','arg'))children=[node.arg];
+    else if(['add','sub','mul','div','eq'].includes(node.op)&&fields('op','left','right')&&(node.op!=='eq'||depth===1))children=[node.left,node.right];
+    else if(node.op==='pow_int'&&fields('op','base','exponent')&&Number.isInteger(node.exponent)&&Math.abs(node.exponent)<=2)children=[node.base];
+    else throw Error('结构节点无效；请核对运算、变量与十进制常数。');
+    children.forEach(child=>validateFormulaNode(child,ids,count,depth+1));
+  }
+  function validateFormulaDraft(draft) {
+    if(!draft||draft.input_origin!=='user_provided'||!['expression','equation_form','initial_value_problem'].includes(draft.comparison_scope))throw Error('请选择公式比较范围。');
+    if(!Array.isArray(draft.requested_checks)||!draft.requested_checks.length||new Set(draft.requested_checks).size!==draft.requested_checks.length||draft.requested_checks.some(v=>!Object.hasOwn(formulaChecks,v)))throw Error('至少选择一项已登记检查。');
+    if(!draft.right&&draft.requested_checks.some(v=>!['template','dimensions'].includes(v)))throw Error('单式只能检查模板与量纲。');
+    if(!Array.isArray(draft.sample_points)||draft.sample_points.length>256||new Set(draft.sample_points).size!==draft.sample_points.length||draft.sample_points.some(v=>!formulaDecimal(v)))throw Error('采样点须为不重复的十进制数，最多256个。');
+    for(const side of [draft.left,draft.right].filter(Boolean)) {
+      if(!Object.hasOwn(formulaTemplates,side.template_id)||side.family!==({little:'queue_flow',mm1:'queue_flow',passive_decay:'first_order_storage',linear_stable:'local_recovery'}[side.template_id]))throw Error('公式模板与家族不匹配。');
+      if(typeof side.original_display!=='string'||!side.original_display.trim()||Array.from(side.original_display).length>2048)throw Error('原展示式须填写，最多2048字。');
+      if(!Array.isArray(side.symbols)||side.symbols.length>12||new Set(side.symbols.map(v=>v.id)).size!==side.symbols.length||new Set(side.symbols.map(v=>v.role)).size!==side.symbols.length)throw Error('变量名称和角色须一一对应，每侧最多12项。');
+      for(const symbol of side.symbols)if(!formulaName(symbol.id)||!formulaName(symbol.role)||!Object.hasOwn(formulaUnits,symbol.unit_id)||!formulaName(symbol.quantity)||(symbol.value!==null&&!formulaDecimal(symbol.value)))throw Error('请核对变量名、单位、含义和十进制数值；状态与时间值可留空。');
+      if(side.expression!==null)validateFormulaNode(side.expression,new Set(side.symbols.map(v=>v.id)));
+      const conditions=[...side.assumptions,...side.boundary_conditions];
+      if(conditions.length+side.initial_conditions.length>24||side.initial_conditions.length>1||new Set(conditions.map(v=>v.id)).size!==conditions.length)throw Error('条件最多24项，初值最多1项，条件名称不可重复。');
+      for(const item of conditions)if(!formulaName(item.id)||typeof item.statement!=='string'||!item.statement.trim()||Array.from(item.statement).length>400||![true,false,null].includes(item.declared_satisfied))throw Error('请填写条件说明及满足状态。');
+      for(const item of side.initial_conditions)if(!formulaName(item.state_symbol)||!formulaDecimal(item.at_time)||(item.value!==null&&!formulaDecimal(item.value))||![true,false,null].includes(item.declared_satisfied))throw Error('请核对初值、时点和声明。');
+      if(!['system','queue'].includes(side.measure_scope)||!['from_symbol_units','s','workday'].includes(side.time_basis))throw Error('请选择度量边界和时间基准。');
+      if(!Array.isArray(side.source_refs)||side.source_refs.length>20)throw Error('来源引用过多。');
+      for(const ref of side.source_refs)if(!validId(ref.id)||!Number.isSafeInteger(ref.revision)||ref.revision<1||!formulaDigest(ref.content_digest)||!['curated_reference','product_excerpt'].includes(ref.provenance)||typeof ref.locator!=='string'||ref.locator.length>300)throw Error('已保存来源引用无法核对，请重新读取。');
+    }
+    if(new TextEncoder().encode(formulaCanonical(draft)).length>65536)throw Error('公式草稿超过64KiB，请缩短输入；当前草稿未删除。');
+    return draft;
+  }
+  function formulaDirty(message='公式草稿有修改，请保存新修订后再核对快照。') {
+    if(readOnlyView())return;formulaState.dirty=true;formulaState.epoch++;formulaState.snapshotEpoch++;formulaState.loading=false;
+    methodDirty=true;invalidateMethod('问题包含未保存的公式改动，旧方法记录已收起。');byId('formula-confirm').checked=false;
+    formulaClearResult(message);formulaPreview();syncFormulaControls();
+  }
+  function formulaClearResult(message='') { byId('formula-results').replaceChildren();byId('formula-status').textContent=message; }
+  function formulaErrorText(error) {
+    return error.status===413||error.code==='PAYLOAD_LIMIT'?'公式输入最多64KiB，结果最多512KiB。当前问题和草稿已保留，请缩短输入或重读原记录。':error.message;
+  }
+  function formulaPending() {
+    if(!researchId)return [];
+    const prefix='structure-research-pending:formula-check:'+researchId+':';const result=[];
+    for(const key of Object.keys(sessionStorage))if(key.startsWith(prefix)) {try {const value=JSON.parse(sessionStorage.getItem(key));if(value?.key&&value.task_request)result.push({slot:key,...value});}catch{}}
+    return result;
+  }
+  function syncFormulaControls() {
+    const f=formulaState;const ro=readOnlyView();
+    for(const control of byId('formula-editor').querySelectorAll('input,textarea,select,button'))control.disabled=busy||ro||f.loading;
+    const selected=byId('formula-enable').checked;
+    for(const control of byId('formula-fields').querySelectorAll('.formula-check-options input'))if(!f.draft?.right&&!['template','dimensions'].includes(control.value))control.disabled=true;
+    if(ro)for(const field of byId('formula-editor').querySelectorAll('textarea')){field.style.height='';field.style.height=`${field.scrollHeight+2}px`;}
+    byId('formula-confirm').disabled=ro||f.loading||f.busy||(['claimed','interrupted'].includes(f.metadata?.state)&&!f.metadata?.result_available)||!f.snapshot||f.dirty||methodDirty||!f.snapshot.executable;
+    byId('formula-run').disabled=byId('formula-confirm').disabled||!byId('formula-confirm').checked;
+    byId('formula-refresh').disabled=f.busy||f.loading||!researchId;
+    byId('formula-recover').hidden=formulaPending().length===0;byId('formula-recover').disabled=ro||f.busy;
+    byId('save').disabled=busy||ro||f.loading||(selected&&!f.draft);
+    byId('formula-check-section').hidden=!(selected||f.scope?.meta||f.view?.formula_check||formulaPending().length);
+  }
+  function formulaPreview() {
+    for(const name of ['left','right']) {
+      const side=formulaState.draft?.[name];const preview=byId('formula-'+name+'-preview');if(!side||!preview)continue;
+      try {preview.textContent=formulaNodeText(side.expression);}catch(error){preview.textContent=error.message;}
+    }
+    if(!byId('formula-enable').checked)return;
+    try {validateFormulaDraft(formulaState.draft);byId('formula-editor-status').textContent='草稿结构已登记；仍需保存并核对服务端快照，未执行任何数学检查。';}
+    catch(error){byId('formula-editor-status').textContent=error.message;}
+  }
+  function formulaRenderTree(sideName) {
+    const side=formulaState.draft[sideName],parent=byId('formula-'+sideName+'-tree');parent.replaceChildren();
+    if(side.expression===null){formulaElement(parent,'p','尚无结构。可先保存草稿，或按“填入登记结构”后编辑。',{className:'hint'});return;}
+    const variables=()=>Object.fromEntries(side.symbols.map(v=>[v.id,(formulaRoles[v.role]||v.role)+' · '+v.id]));
+    const first=()=>side.symbols[0]?.id||sideName+'_x';
+    const defaultNode=op=>op==='symbol'?{op,id:first()}:op==='const'?{op,value:'1'}:op==='derivative'?{op,state_symbol:first(),time_symbol:side.symbols.find(v=>v.role==='t')?.id||first(),order:1}:op==='pow_int'?{op,base:{op:'symbol',id:first()},exponent:1}:['neg','exp'].includes(op)?{op,arg:{op:'symbol',id:first()}}:{op,left:{op:'symbol',id:first()},right:{op:'const',value:'1'}};
+    let rendered=0;
+    function render(node,container,path,depth) {
+      if(++rendered>128)return;
+      if(depth>16){formulaElement(container,'p','结构超出16层限制。');return;}
+      const row=formulaElement(container,'fieldset',null,{className:'formula-node'});formulaElement(row,'legend',path.length===1?'结构根节点':'子结构');
+      const ops={symbol:'变量',const:'常数',add:'相加',sub:'相减',mul:'相乘',div:'相除',neg:'取负',exp:'指数',pow_int:'整数次幂',derivative:'一阶导数',...(path.length===1?{eq:'等式'}:{})};
+      const id='formula-'+sideName+'-node-'+(path.join('-')||'root');const select=formulaField(row,'运算',id,node.op,{select:ops});
+      select.addEventListener('change',()=>{let owner=side;for(const key of path.slice(0,-1))owner=owner[key];if(!path.length)side.expression=defaultNode(select.value);else owner[path.at(-1)]=defaultNode(select.value);formulaDirty();formulaRenderTree(sideName);syncFormulaControls();});
+      const field=(label,key,value,choices=null)=>{const input=formulaField(row,label,id+'-'+key,value,{select:choices});input.addEventListener('input',()=>{node[key]=key==='exponent'?Number(input.value):input.value;formulaDirty();});};
+      if(node.op==='symbol')field('引用变量','id',node.id,variables());else if(node.op==='const')field('十进制常数','value',node.value);
+      else if(node.op==='derivative'){field('状态变量','state_symbol',node.state_symbol,variables());field('时间变量','time_symbol',node.time_symbol,variables());}
+      else if(node.op==='pow_int'){field('指数','exponent',node.exponent,{'-2':'−2','-1':'−1',0:'0',1:'1',2:'2'});render(node.base,row,[...path,'base'],depth+1);}
+      else if(['neg','exp'].includes(node.op))render(node.arg,row,[...path,'arg'],depth+1);
+      else {render(node.left,row,[...path,'left'],depth+1);render(node.right,row,[...path,'right'],depth+1);}
+    }
+    // Paths start at expression, so edits replace only the selected node.
+    render(side.expression,parent,['expression'],1);
+    const rootSelect=parent.querySelector('select');if(side.expression.op==='eq'&&!Array.from(rootSelect.options).some(v=>v.value==='eq')){const option=document.createElement('option');option.value='eq';option.textContent='等式';rootSelect.append(option);rootSelect.value='eq';}
+  }
+  function formulaRenderSide(name) {
+    const side=formulaState.draft[name],parent=byId('formula-'+name);parent.replaceChildren();if(!side){parent.hidden=true;return;}parent.hidden=false;
+    formulaElement(parent,'h3',name==='left'?'左侧公式':'右侧公式');
+    const template=formulaField(parent,'登记模板','formula-'+name+'-template',side.template_id,{select:formulaTemplates});
+    template.addEventListener('change',()=>{const next=formulaDefaultSide(name,template.value);if(side.original_display!==formulaDefaultSide(name,side.template_id).original_display)next.original_display=side.original_display;next.source_refs=formulaCopy(side.source_refs);formulaState.draft[name]=next;formulaDirty();formulaRenderSide(name);syncFormulaControls();});
+    if(side.template_id==='passive_decay'){
+      const thermal=side.symbols.find(v=>v.role==='x')?.unit_id==='K'||side.symbols.find(v=>v.role==='r')?.unit_id==='K_per_W';
+      const domain=formulaField(parent,'储能场景','formula-'+name+'-domain',thermal?'thermal':'electrical',{select:{thermal:'集总温差',electrical:'孤立 RC 电压'}});
+      domain.addEventListener('change',()=>{const next=formulaDefaultSide(name,'passive_decay',domain.value);next.original_display=side.original_display;next.source_refs=formulaCopy(side.source_refs);formulaState.draft[name]=next;formulaDirty();formulaRenderSide(name);syncFormulaControls();});
+    }
+    const display=formulaField(parent,'原展示式（不会自动解析）','formula-'+name+'-display',side.original_display,{multiline:true,max:2048});display.addEventListener('input',()=>{side.original_display=display.value;formulaDirty();});
+    const scope=formulaField(parent,'度量边界','formula-'+name+'-measure',side.measure_scope,{select:{system:'整个系统',queue:'仅队列'}});scope.addEventListener('change',()=>{side.measure_scope=scope.value;formulaDirty();});
+    const basis=formulaField(parent,'时间基准','formula-'+name+'-basis',side.time_basis,{select:{from_symbol_units:'按已填变量单位',s:'秒',workday:'工作日'}});basis.addEventListener('change',()=>{side.time_basis=basis.value;formulaDirty();});
+    formulaElement(parent,'h4','变量角色、单位与数值');const rows=formulaElement(parent,'div',null,{className:'formula-symbols'});
+    side.symbols.forEach((symbol,index)=>{
+      const row=formulaElement(rows,'fieldset',null,{className:'formula-symbol'});formulaElement(row,'legend',formulaRoles[symbol.role]||symbol.role);
+      const prefix='formula-'+name+'-symbol-'+index;
+      const id=formulaField(row,'结构内名称（字母开头）',prefix+'-id',symbol.id,{max:32});
+      id.addEventListener('input',()=>{const previous=symbol.id;symbol.id=id.value;const rename=node=>{if(!node||typeof node!=='object')return;for(const key of ['id','state_symbol','time_symbol'])if(node[key]===previous)node[key]=symbol.id;for(const child of Object.values(node))if(child&&typeof child==='object')rename(child);};rename(side.expression);side.initial_conditions.forEach(v=>{if(v.state_symbol===previous)v.state_symbol=symbol.id;});formulaDirty();formulaRenderTree(name);syncFormulaControls();});
+      const role=formulaField(row,'角色',prefix+'-role',symbol.role,{select:formulaRoles});role.addEventListener('change',()=>{symbol.role=role.value;formulaDirty();});
+      const unit=formulaField(row,'单位',prefix+'-unit',symbol.unit_id,{select:formulaUnits});unit.addEventListener('change',()=>{symbol.unit_id=unit.value;formulaDirty();});
+      const quantity=formulaField(row,'量的含义',prefix+'-quantity',symbol.quantity,{select:formulaQuantities});quantity.addEventListener('change',()=>{symbol.quantity=quantity.value;formulaDirty();});
+      const value=formulaField(row,'数值（状态/时间可留空）',prefix+'-value',symbol.value,{max:40});value.addEventListener('input',()=>{symbol.value=value.value===''?null:value.value;formulaDirty();});
+      const remove=formulaElement(row,'button','移除此变量',{type:'button',className:'secondary'});remove.addEventListener('click',()=>{side.symbols.splice(index,1);formulaDirty();formulaRenderSide(name);syncFormulaControls();});
+    });
+    const add=formulaElement(parent,'button','添加变量',{type:'button',className:'secondary'});add.addEventListener('click',()=>{if(side.symbols.length>=12)return;const role=Object.keys(formulaRoles).find(r=>!side.symbols.some(v=>v.role===r));side.symbols.push({id:name+'_'+role,role,unit_id:'one',quantity:'ratio',value:null});formulaDirty();formulaRenderSide(name);syncFormulaControls();});
+    formulaElement(parent,'h4','结构式（与原文分别保存）');const actions=formulaElement(parent,'div',null,{className:'actions'});
+    const use=formulaElement(actions,'button','填入登记结构',{type:'button',id:'formula-'+name+'-use-template',className:'secondary'});use.addEventListener('click',()=>{side.expression=formulaRegisteredTree(side);formulaDirty();formulaRenderTree(name);syncFormulaControls();});
+    const clear=formulaElement(actions,'button','清空结构，仅存草稿',{type:'button',className:'secondary'});clear.addEventListener('click',()=>{side.expression=null;formulaDirty();formulaRenderTree(name);syncFormulaControls();});
+    formulaElement(parent,'pre','',{id:'formula-'+name+'-preview',className:'formula-preview',tabindex:'0','aria-label':(name==='left'?'左':'右')+'侧结构式预览'});const editor=formulaElement(parent,'details',null,{id:'formula-'+name+'-structure-editor'});formulaElement(editor,'summary','调整结构节点（无需 JSON）');formulaElement(editor,'div',null,{id:'formula-'+name+'-tree'});formulaRenderTree(name);
+    for(const group of ['assumptions','boundary_conditions']) {
+      formulaElement(parent,'h4',group==='assumptions'?'条件（不是已验证事实）':'附加边界');
+      side[group].forEach((condition,index)=>{
+        const field=formulaElement(parent,'div',null,{className:'formula-condition'});const id='formula-'+name+'-'+group+'-'+index;
+        const statement=formulaField(field,'条件说明',id+'-statement',condition.statement,{multiline:true,max:400});statement.addEventListener('input',()=>{condition.statement=statement.value;formulaDirty();});
+        const declared=formulaChoice(field,'是否满足',id+'-declared',condition.declared_satisfied);declared.addEventListener('change',()=>{condition.declared_satisfied=declared.value===''?null:declared.value==='true';formulaDirty();});
+      });
+      if(group==='boundary_conditions'){const button=formulaElement(parent,'button','添加附加边界',{type:'button',className:'secondary'});button.addEventListener('click',()=>{if(side.assumptions.length+side.boundary_conditions.length+side.initial_conditions.length>=24)return;side.boundary_conditions.push({id:'extra_boundary_'+side.boundary_conditions.length,statement:'请填写边界；未登记条件可能不受支持',declared_satisfied:null});formulaDirty();formulaRenderSide(name);syncFormulaControls();});}
+    }
+    formulaElement(parent,'h4','初值（独立于状态变量数值）');const initialWrap=formulaElement(parent,'label',null,{className:'check'});const initialCheck=formulaElement(initialWrap,'input',null,{type:'checkbox',id:'formula-'+name+'-initial-enable'});initialCheck.checked=side.initial_conditions.length>0;initialWrap.append('登记一个初值');
+    initialCheck.addEventListener('change',()=>{side.initial_conditions=initialCheck.checked?[{state_symbol:side.symbols.find(v=>['x','delta'].includes(v.role))?.id||side.symbols[0]?.id||name+'_x',at_time:'0',value:null,declared_satisfied:null}]:[];formulaDirty();formulaRenderSide(name);syncFormulaControls();});
+    if(side.initial_conditions.length){const initial=side.initial_conditions[0];const choices=Object.fromEntries(side.symbols.map(v=>[v.id,(formulaRoles[v.role]||v.role)+' · '+v.id]));const state=formulaField(parent,'初值对应状态','formula-'+name+'-initial-state',initial.state_symbol,{select:choices});state.addEventListener('change',()=>{initial.state_symbol=state.value;formulaDirty();});for(const [label,key] of [['初值时点','at_time'],['初值数值','value']]){const input=formulaField(parent,label,'formula-'+name+'-initial-'+key,initial[key],{max:40});input.addEventListener('input',()=>{initial[key]=key==='value'&&input.value===''?null:input.value;formulaDirty();});}const declared=formulaChoice(parent,'初值是否已核对','formula-'+name+'-initial-declared',initial.declared_satisfied);declared.addEventListener('change',()=>{initial.declared_satisfied=declared.value===''?null:declared.value==='true';formulaDirty();});}
+    formulaElement(parent,'p',side.source_refs.length?`保留 ${side.source_refs.length} 项已登记来源；保存与读取均由服务端重新核对权限。`:'来源：用户提供，未登记文献引用。',{className:'hint'});
+    if(side.source_refs.length){const removeRefs=formulaElement(parent,'button','本修订不引用原来源（用户提供）',{type:'button',className:'secondary'});removeRefs.addEventListener('click',()=>{side.source_refs=[];formulaDirty();formulaRenderSide(name);syncFormulaControls();});}
+    formulaPreview();
+  }
+
+
+  function formulaRenderEditor() {
+    const draft=formulaState.draft;byId('formula-fields').hidden=!byId('formula-enable').checked||!draft;
+    if(!draft){byId('formula-left').replaceChildren();byId('formula-right').replaceChildren();syncFormulaControls();return;}
+    byId('formula-use-right').checked=Boolean(draft.right);byId('formula-scope').value=draft.comparison_scope;
+    for(const field of byId('formula-fields').querySelectorAll('.formula-check-options input'))field.checked=draft.requested_checks.includes(field.value);
+    byId('formula-samples').value=draft.sample_points.join(', ');
+    formulaRenderSide('left');formulaRenderSide('right');formulaPreview();syncFormulaControls();
+  }
+  function formulaReset() {
+    const f=formulaState;f.epoch++;f.snapshotEpoch++;f.draft=null;f.snapshot=null;f.scope=null;f.view=null;f.metadata=null;f.dirty=false;f.loading=false;f.busy=false;f.busyToken=null;f.refreshToken=null;
+    byId('formula-enable').checked=false;byId('formula-confirm').checked=false;byId('formula-editor-status').textContent='';byId('formula-platform').textContent='';formulaClearResult();
+    byId('formula-left').replaceChildren();byId('formula-right').replaceChildren();byId('formula-fields').hidden=true;byId('formula-check-section').hidden=true;
+  }
+  function formulaProblemEdited() {
+    formulaState.epoch++;byId('formula-confirm').checked=false;
+    formulaClearResult('问题草稿有修改，已收起旧公式结果；请保存后重新核对。');syncFormulaControls();
+  }
+  function formulaAuthUncertain() {
+    formulaState.epoch++;formulaState.snapshotEpoch++;formulaState.loading=false;formulaState.snapshot=null;
+    byId('formula-confirm').checked=false;formulaClearResult('账户状态尚待核对，已收起公式结果；本页输入仍保留。');syncFormulaControls();
+  }
+  function formulaTicket() { return {epoch:formulaState.epoch,privateScope:privateGeneration,rid:researchId,task:selectedTask}; }
+  function formulaActive(ticket) { return ticket.epoch===formulaState.epoch&&ticket.privateScope===privateGeneration&&ticket.rid===researchId&&ticket.task===selectedTask; }
+  function formulaTakeDraft() {
+    if(!byId('formula-enable').checked)return undefined;
+    if(formulaState.loading||!formulaState.draft)throw Error('公式快照尚未读全。请重读，或明确取消本修订的公式草稿；不会自动覆盖为缺失公式。');
+    return formulaCopy(validateFormulaDraft(formulaState.draft));
+  }
+  async function formulaHydrate(data) {
+    formulaReset();const f=formulaState;f.view=data;
+    const problem=data.current_problem,meta=problem.formula_snapshot;
+    f.scope={rid:data.research.id,revision:problem.revision,problemDigest:problem.digest,researchVersion:data.research_version,meta:meta||null};
+    formulaPlatform(data);
+    if(!meta){syncFormulaControls();return;}
+    byId('formula-enable').checked=true;f.loading=true;byId('formula-editor-status').textContent='正在按当前权限读取已保存的公式快照…';syncFormulaControls();
+    const epoch=++f.snapshotEpoch,privateScope=privateGeneration,scope=f.scope;
+    const active=()=>epoch===f.snapshotEpoch&&privateScope===privateGeneration&&scope===f.scope&&scope.rid===researchId;
+    try {
+      if(!Number.isSafeInteger(meta.revision)||meta.revision!==problem.revision||!formulaDigest(meta.formula_digest)||meta.input_origin!=='user_provided')throw Error('公式快照元数据无法核对。');
+      const body=await request(`/api/research/${researchId}/formula-revisions/${meta.revision}`,{},active);
+      if(!active())return;
+      if(body.state==='unavailable'&&body.formula===null){byId('formula-editor-status').textContent='公式快照当前不可读取；问题仍可编辑。请重读，或明确取消本修订的公式草稿。';formulaClearResult('公式与验证结果当前不可用。');return;}
+      if(body.state!=='available'||body.formula_digest!==meta.formula_digest||body.display_assessment!=='user_confirmation_required_AST_only'||body.source_facts_verified!==false)throw Error('公式快照范围无法核对。');
+      const raw=body.formula;if(!raw||new TextEncoder().encode(formulaCanonical(raw)).length>65536)throw Error('公式快照超过64KiB或格式无效。');
+      for(const side of [raw.left,raw.right].filter(Boolean))if(!validId(side.id)||side.revision!==scope.revision)throw Error('公式原修订无法核对。');
+      if(await formulaHash(raw)!==meta.formula_digest)throw Error('公式快照摘要不匹配。');if(!active())return;
+      const draft=formulaCopy(raw);delete draft.executable;for(const side of [draft.left,draft.right].filter(Boolean)){delete side.id;delete side.revision;}
+      validateFormulaDraft(draft);
+      const executable=[draft.left,draft.right].filter(Boolean).every(v=>v.expression!==null);
+      if(raw.executable!==executable||meta.executable!==executable)throw Error('公式结构状态无法核对。');
+      f.snapshot={raw:formulaCopy(raw),executable,digest:meta.formula_digest};f.draft=draft;f.dirty=false;formulaRenderEditor();
+      byId('formula-editor-status').textContent=executable?'已按权限读取原公式快照。检查前请核对展示式与结构式；修改后须保存新修订。':'这份快照仍缺结构，只能作为草稿；请补充后保存新修订。';
+      f.loading=false;syncFormulaControls();
+      if(data.formula_check&&data.task?.policy_revision==='local-formula-v1')await formulaReadResult(data.formula_check,data.task.id);
+    } catch(error) {if(active()){byId('formula-editor-status').textContent='公式快照未能核对。'+formulaErrorText(error);formulaClearResult('未取得可展示的公式结果。问题输入仍保留。');}}
+    finally {if(active()){f.loading=false;syncFormulaControls();}}
+  }
+  function formulaPlatform(data) {
+    const capability=data.capabilities?.formula_checks;
+    byId('formula-platform').textContent=capability?.host_supported===true?'执行器会在运行时核对 Linux 隔离能力；任务完成不等于各项检查通过。':'当前环境不支持受保护的隔离计算。提交检查仅会保存“未执行/不支持”的真实回执，不会在界面模拟数学通过。';
+  }
+  function formulaObserve(data) {
+    const f=formulaState;f.view=data;formulaPlatform(data);
+    if(!f.scope||!f.snapshot||f.loading||f.dirty||methodDirty)return;
+    if(data.current_problem.revision!==f.scope.revision||data.current_problem.digest!==f.scope.problemDigest){f.epoch++;f.metadata=null;f.snapshot=null;formulaClearResult('服务端问题版本已变化；本页输入未替换，请明确重新读取。');syncFormulaControls();return;}
+    const metadata=data.task?.policy_revision==='local-formula-v1'?data.formula_check:null;
+    if(!metadata){if(f.metadata){f.epoch++;f.metadata=null;formulaClearResult('当前流程没有公式验证记录；旧结果须从原流程只读打开。');}syncFormulaControls();return;}
+    f.epoch++;formulaReadResult(metadata,data.task.id).catch(()=>{});
+  }
+  function validateFormulaMetadata(meta,expectedRef) {
+    return meta&&validId(meta.result_ref)&&(!expectedRef||meta.result_ref===expectedRef)&&['claimed','returned','closed','interrupted'].includes(meta.state)&&
+      typeof meta.result_available==='boolean'&&meta.input_origin==='user_provided'&&(meta.formula_digest===null||formulaDigest(meta.formula_digest))&&
+      (meta.formula_result_recorded_at===null||recordTime(meta.formula_result_recorded_at))&&meta.math_status===null&&
+      ['not_attested','reaped','pending'].includes(meta.termination_state)&&meta.task_completed_means_math_passed===false&&meta.known_cost_units===0;
+  }
+  async function formulaValidateResult(data,meta,taskId) {
+    const f=formulaState,raw=f.snapshot.raw,scope=f.scope,result=data.result,proof=data.provenance;
+    if(data.state!=='available'||!validateFormulaMetadata(data.metadata,meta.result_ref)||data.metadata.state!=='returned'||!data.metadata.result_available||!recordTime(data.metadata.formula_result_recorded_at)||data.metadata.formula_digest!==f.snapshot.digest)throw Error('公式结果元数据无法核对。');
+    if(!proof||typeof proof.execution_attested!=='boolean'||!['ok','unsupported','limited','memory_limited','failed'].includes(proof.execution_state)||proof.execution_attested!==(proof.execution_state==='ok')||proof.reaped!==true||!validId(proof.owned_return_ref)||!formulaDigest(proof.code_version)||proof.formula_digest!==f.snapshot.digest||proof.problem_digest!==scope.problemDigest||proof.display_AST_confirmation!=='user_confirmed_snapshot'||proof.source_origin!=='user_provided'||proof.source_facts_verified!==false||proof.mathematics_is_not_real_world_mechanism!==true)throw Error('独立执行来源无法核对。');
+    const side=formulaScientificSide;
+    const input={research_id:scope.rid,input_revision:scope.revision,task_id:taskId,attempt:1,comparison_scope:raw.comparison_scope,left:side(raw.left),right:side(raw.right),requested_checks:raw.requested_checks,sample_points:raw.sample_points.map(formulaNormalizeDecimal)};
+    const inputDigest=await formulaHash(input);
+    if(proof.execution_attested&&proof.resource_guard!=='linux_as_baseline_plus_128mib_cpu1s_wall2s')throw Error('没有登记的 Linux 隔离执行证明。');
+    if(proof.execution_state==='unsupported'&&proof.resource_guard!=='not_executed')throw Error('不支持平台的执行状态无法核对。');
+    if(result&&new TextEncoder().encode(formulaCanonical(result)).length>524288)throw Error('公式结果超过512KiB；原问题与原记录仍保留。');
+    if(!result||result.schema_version!=='formula-content-view-v1'||result.comparison_scope!==raw.comparison_scope||result.policy_revision!=='formula-policy-v1-d2-candidate'||result.content_input_digest!==inputDigest||proof.full_input_digest!==inputDigest||!formulaDigest(result.content_output_digest)||proof.output_digest!==result.content_output_digest||result.authorization_verified!==false||result.execution_attested!==false||result.source_facts_verified!==false||result.display_checked!==false)throw Error('公式结果内容范围无法核对。');
+    const forms=[raw.left,raw.right].filter(Boolean);
+    if(!Array.isArray(result.provided_formula_refs)||result.provided_formula_refs.length!==forms.length||!Array.isArray(result.formula_displays)||result.formula_displays.length!==forms.length)throw Error('公式输入引用无法核对。');
+    for(let i=0;i<forms.length;i++){
+      const source=forms[i],ref=result.provided_formula_refs[i],display=result.formula_displays[i];
+      if(ref.id!==source.id||ref.revision!==scope.revision||ref.formula_digest!==await formulaHash(side(source))||ref.checked_representation!=='validated_AST'||display.side!==(i===0?'left':'right')||display.original_display!==source.original_display||formulaCanonical(display.checked_AST)!==formulaCanonical(side(source).expression)||formulaCanonical(display.symbols)!==formulaCanonical(side(source).symbols)||formulaCanonical(display.declared_assumptions)!==formulaCanonical(source.assumptions)||formulaCanonical(display.declared_initial_conditions)!==formulaCanonical(side(source).initial_conditions)||formulaCanonical(display.declared_boundary_conditions)!==formulaCanonical(source.boundary_conditions)||display.declaration_assessment!=='not_verified_by_public_adapter')throw Error('原展示式与被检查结构不匹配。');
+    }
+    if(!Array.isArray(result.outcomes)||formulaCanonical(result.outcomes.map(v=>v.check_kind))!==formulaCanonical(raw.requested_checks))throw Error('检查项目集合无法核对。');
+    for(const outcome of result.outcomes){
+      if(!['passed','failed','inconclusive','unsupported','resource_limit'].includes(outcome.status)||!['algebraic_identity','conditional_model_equivalence','local_approximation','partial_structure','not_equivalent','undetermined'].includes(outcome.relation)||typeof outcome.reason!=='string'||outcome.reason.length>400||!Array.isArray(outcome.trace)||outcome.trace.length>64||!Array.isArray(outcome.samples)||outcome.samples.length>256)throw Error('分项结果格式无法核对。');
+      if(outcome.check_kind!=='canonical_transform'&&!['undetermined','not_equivalent'].includes(outcome.relation))throw Error('采样或量纲不能被提升为恒等证明。');
+      if(outcome.check_kind!=='bounded_numeric'&&(outcome.samples.length||outcome.tolerance!==null))throw Error('采样范围不匹配。');
+      if(outcome.samples.length&&formulaCanonical(outcome.samples.map(v=>v.point))!==formulaCanonical(raw.sample_points.map(formulaNormalizeDecimal)))throw Error('原采样点无法核对。');
+      for(const sample of outcome.samples)if(typeof sample.passed!=='boolean'||!['exact','abs1e-10_rel1e-8_normalized_only'].includes(sample.comparison)||!sample.left||!sample.right||typeof sample.left.value!=='string'||typeof sample.right.value!=='string')throw Error('采样值格式无效。');
+      if(!proof.execution_attested&&outcome.status==='passed')throw Error('未执行的回执不能显示数学通过。');
+      if(outcome.samples.length&&outcome.status!==(outcome.samples.every(v=>v.passed)?'passed':'failed'))throw Error('采样状态与所列点不一致。');
+      if(proof.execution_state==='unsupported'&&(outcome.status!=='unsupported'||outcome.relation!=='undetermined'||outcome.samples.length))throw Error('不支持的平台不能给出已通过结论。');
+    }
+    const sourceMap=new Map();for(const form of forms)for(const ref of form.source_refs)sourceMap.set(ref.id,{id:ref.id,revision:ref.revision,content_digest:ref.content_digest,declared_provenance:ref.provenance,reference_status:'supplied_reference_not_authorized_here',locator_exposed:false});
+    if(formulaCanonical(result.source_references)!==formulaCanonical(Array.from(sourceMap.values())))throw Error('公式来源登记范围无法核对。');
+    if(!Array.isArray(result.limitations)||result.limitations.length>100||result.limitations.some(v=>typeof v!=='string'||v.length>2000)||!Array.isArray(result.source_references)||result.source_references.length>40)throw Error('结果边界信息无法核对。');
+    return {result,proof,metadata:data.metadata};
+  }
+  async function formulaReadResult(meta,taskId) {
+    const f=formulaState;if(!f.snapshot||!f.scope||f.dirty||methodDirty||!validId(taskId)||!validateFormulaMetadata(meta)||meta.formula_digest!==f.snapshot.digest||(selectedTask&&taskId!==selectedTask))return;
+    f.metadata=formulaCopy(meta);const ticket=formulaTicket(),snapshot=f.snapshot;formulaClearResult('正在读取原验证记录…');syncFormulaControls();
+    try {
+      const data=await request(`/api/research/${researchId}/formula-results/${meta.result_ref}`,{},()=>formulaActive(ticket)&&f.snapshot===snapshot);
+      if(!formulaActive(ticket)||f.snapshot!==snapshot)return;
+      if(data.state==='unavailable'&&data.result===null){byId('formula-confirm').checked=false;if(data.metadata?.state==='returned')f.snapshot=null;formulaClearResult(['claimed','interrupted'].includes(data.metadata?.state)?'检查状态仍待核对，当前没有结果；请重读原记录，不重复启动。':'公式验证记录当前不可用；问题与本页草稿仍保留。');return;}
+      const checked=await formulaValidateResult(data,meta,taskId);if(!formulaActive(ticket)||f.snapshot!==snapshot)return;
+      f.metadata=checked.metadata;formulaShowResult(checked);
+    } catch(error){if(formulaActive(ticket)){formulaClearResult('未取得可展示的公式结果。'+formulaErrorText(error));byId('formula-confirm').checked=false;}}
+    finally {if(formulaActive(ticket))syncFormulaControls();}
+  }
+  function formulaShowResult({result,proof,metadata}) {
+    formulaClearResult(proof.execution_attested?'已读取真实隔离执行回执；数学结论须逐项查看。':'已保存未执行或未完成的回执；没有隔离计算成功证明。');
+    const parent=byId('formula-results');const saved=formulaElement(parent,'p',null,{className:'hint'});saved.append('验证记录保存时间 ');const time=formulaElement(saved,'time','',{id:'formula-result-time'});showTime(time,metadata.formula_result_recorded_at);
+    const details=formulaElement(parent,'details',null);formulaElement(details,'summary','验证记录编号');formulaElement(details,'p',metadata.result_ref,{id:'formula-result-ref'});
+    formulaElement(parent,'p','范围：'+({expression:'结构表达式',equation_form:'声明条件下的模型 / 方程形式',initial_value_problem:'初值问题'}[result.comparison_scope])+'。来源为用户提供；条件、文献和现实机制未经本检查验证。',{className:'scope'});
+    for(const display of result.formula_displays){const card=formulaElement(parent,'article',null,{className:'formula-original'});formulaElement(card,'h3',display.side==='left'?'左侧原式与被检查结构':'右侧原式与被检查结构');formulaElement(card,'p',display.original_display);formulaElement(card,'pre',formulaNodeText(display.checked_AST));const conditions=[...display.declared_assumptions,...display.declared_boundary_conditions];if(conditions.length)formulaElement(card,'p','条件声明：'+conditions.map(v=>v.statement+'：'+(v.declared_satisfied===null?'未核对':v.declared_satisfied?'用户声明满足':'不满足')).join('；'),{className:'hint'});}
+    const statuses={passed:'此项通过',failed:'此项不满足',inconclusive:'条件不足 / 未判定',unsupported:'不支持',resource_limit:'资源限制，未完成'};
+    const relations={algebraic_identity:'代数恒等（限本结构式）',conditional_model_equivalence:'声明条件下的模型等价',local_approximation:'仅局部近似',partial_structure:'仅部分结构对应',not_equivalent:'不等价',undetermined:'关系未判定'};
+    const traceNames={constant_fold:'常数合并',commute:'交换次序',associate:'结合重排',rename_bijection:'按角色一一对应',substitute_constant:'代入常数',multiply_nonzero:'乘以非零量',divide_nonzero:'除以非零量',positive_time_scale:'正时间尺度变换',state_normalize:'状态归一'};
+    for(const [kind,label] of Object.entries(formulaChecks)){
+      const outcome=result.outcomes.find(v=>v.check_kind===kind);const article=formulaElement(parent,'article',null,{className:'formula-outcome','data-check':kind});formulaElement(article,'h3',label);
+      if(!outcome){formulaElement(article,'p','本次未选择此项。');continue;}
+      formulaElement(article,'p',statuses[outcome.status]+' · '+relations[outcome.relation],{className:'formula-outcome-status','data-status':outcome.status});formulaElement(article,'p','返回依据：'+outcome.reason,{className:'hint'});
+      if(outcome.trace.length){const list=formulaElement(article,'ol',null);outcome.trace.forEach(step=>formulaElement(list,'li',(traceNames[step.kind]||'未登记变换')+(step.precondition_ids?.length?'；前提：'+step.precondition_ids.map(v=>formulaConditionNames[v]||v).join('、'):'')));}
+      if(outcome.samples.length){const list=formulaElement(article,'ul',null);for(const sample of outcome.samples){const value=v=>v.value+(v.physical_time!==undefined?'；实际时间 '+v.physical_time+' 秒':'')+(v.actual_state!==null&&v.actual_state!==undefined?'；实际状态 '+v.actual_state:'');formulaElement(list,'li',`点 ${sample.point}：左 ${value(sample.left)}；右 ${value(sample.right)}；${sample.passed?'本点一致':'本点不一致'}`);}formulaElement(article,'p','有限采样只针对所列点。归一结果一致不证明恒等、现实因果或迁移成功。',{className:'hint'});}
+    }
+    if(result.limitations.length){const list=formulaElement(parent,'ul',null,{className:'hint'});result.limitations.forEach(v=>formulaElement(list,'li',v));}
+  }
+  function formulaRetire(pending) {try {const saved=JSON.parse(sessionStorage.getItem(pending.slot));if(saved?.key===pending.key)sessionStorage.removeItem(pending.slot);}catch{}}
+  async function formulaConfirmAck(ack,payload,ticket) {
+    if(!validateFormulaMetadata(ack)||!validId(ack.task_id)||ack.formula_digest!==payload.formula_digest)throw Error('检查回执格式或公式绑定尚未确认。');
+    const samePrivate=()=>ticket.privateScope===privateGeneration&&ticket.rid===researchId;
+    if(!samePrivate())throw Error('账户读取范围已变化，原操作保留待核对。');
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+    try {
+      // This is acknowledgment verification, not a current-view read. An
+      // untrusted task404 cannot clear a newer form or acknowledge the POST.
+      const response=await fetch(`/api/research/${ticket.rid}?task_id=${encodeURIComponent(ack.task_id)}`,{credentials:'same-origin',cache:'no-store',signal:controller.signal});
+      if(!samePrivate())throw Error('账户读取范围已变化，原操作保留待核对。');
+      // Only a still-current401 asks the shared identity gate once. Its
+      // confirmed logout clears private DOM, never the unknown operation key.
+      if(response.status===401&&formulaActive(ticket))await authenticated(()=>formulaActive(ticket),controller.signal);
+      const envelope=await response.json();if(!samePrivate())throw Error('账户读取范围已变化，原操作保留待核对。');
+      const view=envelope.data,stored=view?.formula_check,anchor=view?.task_history?.[0];
+      if(!response.ok||envelope.schema_version!==schema||envelope.contract_revision!==revision||view?.research?.id!==ticket.rid||view.task?.id!==ack.task_id||view.task.policy_revision!=='local-formula-v1'||view.task.input_revision!==payload.input_revision||view.current_problem?.revision!==payload.input_revision||view.current_problem.formula_snapshot?.revision!==payload.input_revision||view.current_problem.formula_snapshot.formula_digest!==payload.formula_digest||!validateFormulaMetadata(stored,ack.result_ref)||stored.formula_digest!==payload.formula_digest||anchor?.task_id!==ack.task_id||anchor.input_revision!==payload.input_revision||anchor.input_digest!==view.current_problem.digest||anchor.start_version!==payload.expected_research_version+1)throw Error('检查回执尚未与原请求绑定，原key保留待核对。');
+    } finally {clearTimeout(timer);}
+  }
+  async function formulaStart(recover=false) {
+    const f=formulaState;if(readOnlyView()||f.busy||busy||!researchId)return;
+    let payload,pending;
+    try {
+      if(recover){const original=formulaPending()[0];if(!original)throw Error('没有待核对的公式操作。');payload=original.task_request;pending={key:original.key,slot:original.slot};}
+      else {
+        if(!f.snapshot||!f.scope||f.dirty||methodDirty||!f.snapshot.executable||!byId('formula-confirm').checked)throw Error('请先保存并读取完整公式快照，核对展示式与结构式。');
+        payload={input_revision:f.scope.revision,expected_research_version:f.scope.researchVersion,formula_digest:f.snapshot.digest,confirm_formula_input:true};
+      }
+      if(!Number.isSafeInteger(payload.input_revision)||!Number.isSafeInteger(payload.expected_research_version)||!formulaDigest(payload.formula_digest)||payload.confirm_formula_input!==true)throw Error('原检查请求无法核对。');
+      const body=JSON.stringify({schema_version:schema,contract_revision:revision,data:payload});
+      if(!pending)pending=await operationKey(`formula-check:${researchId}:${payload.input_revision}:${payload.formula_digest}`,body,payload.input_revision,payload);
+      f.epoch++;const ticket=formulaTicket(),operation=Symbol();f.busy=true;f.busyToken=operation;byId('formula-confirm').checked=false;formulaClearResult(recover?'正在核对原操作；不会检查当前未保存草稿。':'正在请求已保存公式的检查；结果以真实回执为准。');syncFormulaControls();
+      try {
+        const ack=await request(`/api/research/${researchId}/formula-checks`,{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':pending.key},body},response=>response.ok||formulaActive(ticket));
+        await formulaConfirmAck(ack,payload,ticket);
+        formulaRetire(pending);if(!formulaActive(ticket))return;
+        const view=await request(viewUrl(),{},()=>formulaActive(ticket));if(!formulaActive(ticket))return;
+        const token=beginMethodRead();renderTask(view,{methodToken:token});
+        if(!f.snapshot||!f.scope||f.scope.revision!==payload.input_revision||f.snapshot.digest!==payload.formula_digest||f.dirty||methodDirty||view.task?.id!==ack.task_id){
+          formulaClearResult('原操作已确认，当前草稿和流程未替换。');const link=formulaElement(byId('formula-results'),'a','新标签页只读查看原验证记录',{href:`/research/${researchId}?task_id=${ack.task_id}`,target:'_blank',rel:'noopener'});return;
+        }
+        await formulaReadResult(ack,ack.task_id);
+      } catch(error){if(pending&&error.status>=400&&error.status<500)formulaRetire(pending);if(formulaActive(ticket)){byId('formula-confirm').checked=false;formulaClearResult(error.status?formulaErrorText(error):'检查状态尚未确认。请保留本页输入，用原操作核对；不会另启重复计算。');}}
+      finally {if(f.busyToken===operation){f.busy=false;f.busyToken=null;}if(ticket.privateScope===privateGeneration&&ticket.rid===researchId)syncFormulaControls();}
+    } catch(error){formulaClearResult(error.message);syncFormulaControls();}
+  }
+  function initFormula() {
+    byId('formula-enable').addEventListener('change',()=>{if(readOnlyView())return;if(byId('formula-enable').checked){formulaState.draft={input_origin:'user_provided',comparison_scope:'expression',left:formulaDefaultSide('left'),right:formulaDefaultSide('right'),requested_checks:Object.keys(formulaChecks),sample_points:['0']};}else{formulaState.draft=null;formulaState.snapshot=null;}formulaDirty(byId('formula-enable').checked?undefined:'本次新修订将不包含公式；原修订仍保留。');formulaRenderEditor();});
+    byId('formula-use-right').addEventListener('change',()=>{if(readOnlyView()||!formulaState.draft)return;formulaState.draft.right=byId('formula-use-right').checked?formulaDefaultSide('right'):null;if(!formulaState.draft.right)formulaState.draft.requested_checks=formulaState.draft.requested_checks.filter(v=>['template','dimensions'].includes(v));formulaDirty();formulaRenderEditor();});
+    byId('formula-scope').addEventListener('change',()=>{if(!readOnlyView()&&formulaState.draft){formulaState.draft.comparison_scope=byId('formula-scope').value;formulaDirty();}});
+    for(const field of byId('formula-fields').querySelectorAll('.formula-check-options input'))field.addEventListener('change',()=>{if(!readOnlyView()&&formulaState.draft){formulaState.draft.requested_checks=Array.from(byId('formula-fields').querySelectorAll('.formula-check-options input:checked'),v=>v.value);formulaDirty();}});
+    byId('formula-samples').addEventListener('input',()=>{if(!readOnlyView()&&formulaState.draft){formulaState.draft.sample_points=byId('formula-samples').value.split(',').map(v=>v.trim()).filter(Boolean);formulaDirty();}});
+    byId('formula-confirm').addEventListener('change',syncFormulaControls);byId('formula-run').addEventListener('click',()=>formulaStart(false));byId('formula-recover').addEventListener('click',()=>formulaStart(true));
+    byId('formula-refresh').addEventListener('click',async()=>{
+      const f=formulaState;if(f.busy||f.loading||!researchId)return;
+      if(f.dirty||methodDirty){formulaClearResult('本页有未保存改动。请先保存，或明确重新读取已存版本；不会覆盖草稿。');return;}
+      const ticket=formulaTicket(),refreshToken=Symbol();f.refreshToken=refreshToken;f.loading=true;byId('formula-confirm').checked=false;
+      byId('formula-editor-status').textContent='正在重新读取已保存公式…';formulaClearResult('正在核对原快照与记录，旧结果已收起。');syncFormulaControls();
+      try {
+        const data=await request(viewUrl(),{},()=>formulaActive(ticket));if(!formulaActive(ticket))return;
+        if(data.current_problem?.revision!==editBase?.revision||data.current_problem?.digest!==editBase?.digest){observeServer(data);editNotice();f.epoch++;f.snapshot=null;formulaClearResult('服务端问题版本已变化，请明确重新读取已存版本；本页原问题和公式输入未替换。');return;}
+        const methodToken=beginMethodRead();renderTask(data,{methodToken});await formulaHydrate(data);
+      } catch(error){if(formulaActive(ticket))formulaClearResult('公式未能重读。'+formulaErrorText(error));}
+      finally {if(f.refreshToken===refreshToken){f.refreshToken=null;f.loading=false;syncFormulaControls();}}
+    });
+  }
+
   function status(message, error = false) {
     byId('status').textContent = message;
     byId('status').dataset.error = String(error);
@@ -202,6 +625,7 @@
     // late render could silently replace edits made while fetch was pending.
     for (const control of form.querySelectorAll('input, textarea, select, button')) control.disabled = value || (readOnlyView() && control.id !== 'reload');
     syncTaskButtons();
+    syncFormulaControls();
   }
   function normalizeProblem(problem) {
     // Match ProblemInput exactly; original_input intentionally stays verbatim.
@@ -212,6 +636,7 @@
         observation:variable.observation === null ? null : variable.observation.normalize('NFC')}))};
   }
   function clearPrivateView() {
+    formulaReset();
     historySeen = false; clearTaskHistory();
     byId('view-context').hidden = true; byId('view-context').textContent = '';
     byId('problem-meta').hidden = true; showTime(byId('problem-created'),null);
@@ -327,6 +752,7 @@
     form.hidden = false;
     byId('history').hidden = false;
     renderTask(data,{methodToken});
+    formulaHydrate(data);
     setBusy(busy);
     // A fixed record must show the entire original text, including long inputs.
     for (const field of form.querySelectorAll('textarea')) {
@@ -381,6 +807,7 @@
       byId('source-status').textContent = '';
     }
     taskData = data;
+    formulaObserve(data);
     byId('view-context').hidden = !readOnlyView();
     byId('view-context').textContent = data.is_historical ? '历史流程，只读查看原问题与原记录；不代表当前修订的研究结果。' : selectedTask ? '固定任务只读查看。这是当前任务，不是历史结果；返回当前问题后才能编辑。' : '';
     if (selectedTask) status(data.is_historical ? '已读取历史流程的原问题，只读查看；方法正文以下方状态为准。' : '已读取固定任务，只读查看；该任务仍是当前任务。');
@@ -423,6 +850,10 @@
       byId('task-budget').textContent = `同一观测链已读取 ${data.source_quota.used} / ${data.source_quota.limit} 次；结果未知 ${data.source_quota.unknown_count} 次，其中执行已闭合 ${data.source_quota.unknown_closed} 次，尚未闭合 ${data.source_quota.unknown_unclosed} 次。`;
       byId('task-message').textContent = '尚未运行模型分析、行情计算或统计检验；短摘录不代表已验证结论。';
       if (data.source_quota.unknown_closed) byId('task-message').textContent += ' 旧读取执行已闭合，但原结果仍未知；后续读取是新观测，未恢复旧结果。';
+    }
+    if(data.task?.policy_revision==='local-formula-v1') {
+      byId('task-title').textContent='本地公式检查任务';byId('task-scope').textContent='任务状态只说明检查流程，不等于数学通过。执行证明与四项结论在公式验证记录中分别展示。';
+      byId('task-budget').textContent='此流程不调用模型；不把本地成本字段当供应商账单。';
     }
     syncTaskButtons();
     renderMethod(data,context.methodToken);
@@ -496,7 +927,7 @@
   }
   async function authenticated(isCurrent, signal) {
     const unavailable = () => {
-      if (isCurrent()) { invalidateMethod('账户状态暂时无法核对，已收起旧方法记录；草稿仍保留。'); clearTaskHistory('账户状态暂时无法核对，流程列表已收起；请稍后主动读取。'); }
+      if (isCurrent()) { invalidateMethod('账户状态暂时无法核对，已收起旧方法记录；草稿仍保留。'); formulaAuthUncertain(); clearTaskHistory('账户状态暂时无法核对，流程列表已收起；请稍后主动读取。'); }
       if (isCurrent()) status('账户状态暂时无法核对；草稿与待核对操作已保留，本次后续请求已停止。请稍后主动重试。', true);
       return false;
     };
@@ -598,6 +1029,7 @@
   for (const id of ['original-input','objective','entry','summary','constraints','unknowns','confirmed']) {
     byId(id).addEventListener('input', () => {
       methodDirty = true; invalidateMethod('表单有未保存改动，已收起旧方法记录。');
+      formulaProblemEdited();
       if (id === 'summary') summaryEdited = true;
       if (id === 'original-input') echoDraft();
       invalidateKB();
@@ -829,7 +1261,8 @@
     try {
       const problem = normalizeProblem({entry:byId('entry').value, original_input:byId('original-input').value,
         objective:byId('objective').value, summary:byId('summary').value, variables,
-        constraints:lines('constraints'), unknowns:lines('unknowns'), confirmed:byId('confirmed').checked});
+        constraints:lines('constraints'), unknowns:lines('unknowns'), confirmed:byId('confirmed').checked,
+        ...(byId('formula-enable').checked?{formula_draft:formulaTakeDraft()}: {})});
       const scope = researchId || 'new';
       const prior = sessionStorage.getItem('structure-research-pending:' + scope);
       const priorOperation = prior ? JSON.parse(prior) : null;
@@ -905,5 +1338,6 @@
   window.addEventListener('pageshow', event => {
     if (event.persisted) { clearPrivateView(); load().catch(error => status(error.message, true)); }
   });
+  initFormula();
   load().catch(error => status(error.message, true));
 })();
