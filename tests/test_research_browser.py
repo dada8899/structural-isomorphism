@@ -3048,3 +3048,77 @@ def test_formula_ack_identity_boundary_preserves_unknown_key_and_current_draft(s
         finally:
             for _,route,_ in held:route.abort()
             context.close();browser.close()
+
+
+def _save_native_observation(page,base,text='我发现午间到达任务集中时，团队排队等待时间明显增加。'):
+    page.goto(base+'/research');fill(page,text);page.locator('#confirmed').check()
+    with page.expect_response(base+'/api/research') as saved:page.locator('#save').click()
+    assert saved.value.status==200
+    expect(page.locator('#status')).to_contain_text('已保存修订 1')
+    return saved.value.json()['data']
+
+
+def test_native_plan_actual_closed_preview_discloses_exact_input_without_confirm_or_model(server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context(viewport={'width':390,'height':844});approvals=[]
+        try:
+            base=server['base'];login(context,base);page=context.new_page();saved=_save_native_observation(page,base)
+            page.on('request',lambda request:approvals.append(request) if request.method=='POST' and request.url.endswith('/plan-approvals') else None)
+            expect(page.locator('#native-plan-preview')).to_be_disabled()
+            page.locator('#native-plan-own').check()
+            with page.expect_response('**/plan-previews') as preview:page.locator('#native-plan-preview').click()
+            assert preview.value.status==200
+            actual=preview.value.json();assert actual['contract_revision']=='funded-plan-v2'
+            value=actual['data'];assert value['state']=='funding_closed' and value['can_confirm'] is False and value['cash_evidence']=='not_observed'
+            assert value['exact_input']==saved['current_problem']['original_input']
+            expect(page.locator('#native-plan-exact-input')).to_have_text(value['exact_input'])
+            expect(page.locator('#native-plan-quote')).to_contain_text('余额尚未核对')
+            expect(page.locator('#native-plan-status')).to_contain_text('资金执行入口尚未开放')
+            expect(page.locator('#native-plan-consent')).to_be_disabled();expect(page.locator('#native-plan-confirm')).to_be_disabled()
+            expect(page.locator('#native-plan-body')).to_have_text('');expect(page.locator('#original-input')).to_have_value(value['exact_input'])
+            assert approvals==[]
+            with sqlite3.connect(server['path']) as conn:
+                assert conn.execute('SELECT count(*) FROM research_plan_native_runs').fetchone()[0]==0
+                assert conn.execute('SELECT count(*) FROM research_source_runs').fetchone()[0]==0
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('change',['new-draft','logout'])
+def test_native_plan_late_actual_closed_preview_never_replaces_new_draft_or_private_scope(server,change):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();held=[];route_pattern=None;page=None
+        try:
+            base=server['base'];login(context,base);page=context.new_page();saved=_save_native_observation(page,base)
+            def hold(route):
+                response=route.fetch(timeout=5000);assert response.status==200
+                assert response.json()['contract_revision']=='funded-plan-v2' and response.json()['data']['can_confirm'] is False
+                held.append((route,response))
+            route_pattern='**/plan-previews';page.route(route_pattern,hold,times=1);page.locator('#native-plan-own').check();page.locator('#native-plan-preview').click()
+            deadline=time.monotonic()+5
+            while not held and time.monotonic()<deadline:page.wait_for_timeout(20)
+            assert len(held)==1,'actual closed preview was not held within5s'
+            if change=='new-draft':
+                page.locator('#original-input').fill('我现在换成另一份新的观察草稿，不能被旧预览替换。')
+            else:
+                assert context.request.post(base+'/api/auth/logout',headers={'Origin':base}).status==200
+                page.locator('#research-list-refresh').click();expect(page.locator('#problem-form')).to_be_hidden()
+            pending=page.evaluate("Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('structure-research-pending:native-plan-v2-preview:')))")
+            assert len(pending)==1
+            route,response=held.pop()
+            with page.expect_response('**/plan-previews'):route.fulfill(response=response)
+            # A stale response stops before consuming its body. Observe its
+            # arrival and two render turns, not an impossible requestfinished.
+            page.evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+            expect(page.locator('#native-plan-preview-panel')).to_be_hidden();expect(page.locator('#native-plan-exact-input')).to_have_text('');expect(page.locator('#native-plan-body')).to_have_text('')
+            assert page.evaluate("Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('structure-research-pending:native-plan-v2-preview:')))")==pending
+            if change=='new-draft':
+                expect(page.locator('#original-input')).to_have_value('我现在换成另一份新的观察草稿，不能被旧预览替换。')
+                expect(page.locator('#native-plan-status')).to_contain_text('草稿有修改')
+                stored=context.request.get(base+'/api/research/'+saved['research']['id']).json()['data'];assert stored['current_problem']['revision']==1
+            else:
+                expect(page.locator('#native-plan-section')).to_be_hidden();expect(page.locator('#original-input')).to_have_value('')
+            with sqlite3.connect(server['path']) as conn:assert conn.execute('SELECT count(*) FROM research_plan_native_runs').fetchone()[0]==0
+        finally:
+            for route,_ in held:route.abort()
+            if page is not None and route_pattern is not None:page.unroute(route_pattern)
+            context.close();browser.close()
