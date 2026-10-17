@@ -747,11 +747,11 @@ def _fresh_auth(conn):
     for ddl in _BASE_SCHEMA_STATEMENTS:
         if 'auth_deletion_jobs' not in ddl:conn.execute(ddl)
     conn.execute(_AUTH_LIFECYCLE_SQL)
-    objects=ResearchStore._current_structure_declarations(version=10)
+    objects=ResearchStore._current_structure_declarations(version=11)
     for kind in ('table','index','trigger'):
         for _name,(actual_kind,_target,forms) in objects.items():
             if kind==actual_kind:conn.execute(forms[0])
-    conn.execute('INSERT INTO research_schema VALUES(1,10)')
+    conn.execute('INSERT INTO research_schema VALUES(1,11)')
     AuthStore.check_gate_policy(conn,initialize=True)
     for ddl in AUTH_REGISTRATION_DDL:conn.execute(ddl)
 
@@ -872,7 +872,7 @@ def bootstrap_private_runtime():
                     if name=='auth.sqlite3':
                         from .auth_store import AuthStore
                         AuthStore.check_gate_policy(conn)
-                        if list(map(tuple,conn.execute('SELECT * FROM research_schema')))!=[(1,10)]:raise PermissionError('exact Research10 required')
+                        if list(map(tuple,conn.execute('SELECT * FROM research_schema')))!=[(1,11)]:raise PermissionError('exact Research11 required')
                     conn.rollback()
                     if conn.execute('PRAGMA journal_mode').fetchone()[0]!='wal':raise PermissionError('existing private runtime WAL required')
                     if conn.execute('PRAGMA journal_mode=DELETE').fetchone()[0]!='delete':raise PermissionError('offline exclusive journal required')
@@ -892,7 +892,7 @@ def bootstrap_private_runtime():
             if (info.st_dev,info.st_ino)!=identity[name]:raise PermissionError('bootstrap identity changed')
             if name!='research-locks':_safe_file(info)
         paths._check_current_parent(paths.STATE_ROOT,state,forbidden=paths._auth_forbidden_roots())
-        return {'contract':'auth-provision-v1','research_schema':10,'created':fresh}
+        return {'contract':'auth-provision-v1','research_schema':11,'created':fresh}
     finally:
         if lockfd is not None:os.close(lockfd)
         for directory in reversed(directories):os.close(directory)
@@ -906,6 +906,18 @@ class _OfflineAuthTarget:
     @property
     def storage_identity(self):
         self.witness.check();return self.witness.file_identity
+
+
+def _offline_research_profile(conn):
+    from .auth_store import AuthStore
+    if __package__=='web.backend.services':from ..research.store import ResearchStore
+    else:from research.store import ResearchStore
+    profile=AuthStore.check_offline_auth_metadata(conn)
+    version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
+    if (profile,version) not in (('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11)):
+        raise PermissionError('exact offline Auth research profile required')
+    ResearchStore._check_structure_version(conn,version)
+    return version
 
 
 @contextmanager
@@ -922,7 +934,7 @@ def _offline_auth():
         ro=connect_private_auth(path,readonly=True)
         try:
             ro.execute('BEGIN');AuthStore.check_offline_auth_metadata(ro)
-            ResearchStore.check_current_structure(ro);AuthStore.check_gate_policy(ro)
+            _offline_research_profile(ro);AuthStore.check_gate_policy(ro)
         finally:ro.close()
         target=_OfflineAuthTarget(witness,_factory=_FACTORY)
         # This is an explicit offline control-file birth after exact source
@@ -935,7 +947,7 @@ def _offline_auth():
             if conn.execute('PRAGMA journal_mode=DELETE').fetchone()[0]!='delete':raise PermissionError('offline exclusive journal unavailable')
             if conn.execute('PRAGMA locking_mode=EXCLUSIVE').fetchone()[0]!='exclusive':raise PermissionError('offline exclusive mode unavailable')
             conn.execute('BEGIN EXCLUSIVE')
-            AuthStore.check_offline_auth_metadata(conn);ResearchStore.check_current_structure(conn);AuthStore.check_gate_policy(conn)
+            AuthStore.check_offline_auth_metadata(conn);_offline_research_profile(conn);AuthStore.check_gate_policy(conn)
             conn.commit()
             backup=sqlite3.connect(':memory:',isolation_level=None)
             conn.backup(backup)
@@ -970,10 +982,10 @@ def migrate_private_auth_registration():
         if profile=='legacy_auth':
             for ddl in AUTH_REGISTRATION_DDL:conn.execute(ddl)
         if AuthStore.check_offline_auth_metadata(conn)!='auth-provision-v1':raise PermissionError('registration migration incomplete')
-        ResearchStore.check_current_structure(conn)
+        research_version=_offline_research_profile(conn)
         if conn.execute('PRAGMA foreign_key_check').fetchall():raise PermissionError('registration migration FK failure')
         conn.commit()
-        return {'contract':'auth-provision-v1','research_schema':10,'migrated':profile=='legacy_auth'}
+        return {'contract':'auth-provision-v1','research_schema':research_version,'migrated':profile=='legacy_auth'}
 
 
 def admit_private_gate(owner_key, *, operation_id=None):

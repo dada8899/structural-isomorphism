@@ -218,10 +218,13 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                 result=await run_in_threadpool(service.start,identity,research_id,envelope.data,key)
             elif operation == "source-preview":
                 result=await run_in_threadpool(source_integration.preview,service,identity,research_id,envelope.data)
-            elif operation == "source-approve":
-                result=await run_in_threadpool(source_integration.approve,service,identity,research_id,envelope.data,key)
-            elif operation == "source-start":
-                result=await run_in_threadpool(source_integration.start_source,service,identity,research_id,envelope.data,key)
+            elif operation in ('source-approve','source-start'):
+                if __package__=='web.backend.api':from ..research.paid_control import issue_authenticated_action
+                else:from research.paid_control import issue_authenticated_action
+                source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+                function=source_integration.approve if operation=='source-approve' else source_integration.start_source
+                try:result=await run_in_threadpool(function,service,identity,research_id,envelope.data,key,request_source=source)
+                finally:source.close()
             else:
                 if operation in ('cancel','reconcile'):
                     if __package__=='web.backend.api':from ..research.paid_control import issue_authenticated_action

@@ -135,6 +135,9 @@ class AuthorizationGate:
         with self.owner_gate_id(gate_id, timeout=timeout) as lease:
             yield lease
 
+    def source_task_gate(self,task_id,*,timeout=5):
+        return _source_task_gate(self,task_id,timeout=timeout)
+
     @contextmanager
     def owner_gate_id(self, gate_id, *, timeout=5):
         if type(gate_id) is not str or str(UUID(gate_id, version=4)) != gate_id:
@@ -217,3 +220,128 @@ class AuthorizationGate:
                 finally:
                     if witness is not None:witness.close()
         # Stable lock inodes are never unlinked, including on failures.
+
+
+_TASK_FACTORY=object()
+
+
+class _TaskBirth:
+    __slots__=('store','task_id','fd','parentfd','name','pid','active','_identity')
+    def __init__(self,store,task_id,fd,parentfd,name,*,_factory=None):
+        if _factory is not _TASK_FACTORY:raise TypeError('actual Source task resource required')
+        info=os.fstat(fd)
+        values=dict(store=store,task_id=task_id,fd=fd,parentfd=parentfd,name=name,pid=os.getpid(),active=True,
+            _identity=(info.st_dev,info.st_ino,info.st_uid,stat.S_IMODE(info.st_mode),info.st_nlink))
+        for key,value in values.items():object.__setattr__(self,key,value)
+    def __setattr__(self,*args):raise TypeError('Source task birth is immutable')
+    def __reduce__(self):raise TypeError('Source task birth cannot be serialized')
+    @property
+    def identity(self):
+        self.require(self.store,self.task_id);return self._identity
+    def require(self,store,task_id):
+        if not self.active or self.pid!=os.getpid() or store is not self.store or task_id!=self.task_id:raise PermissionError('Source birth retired')
+        parent=os.fstat(self.parentfd);named=(store.path.parent/'research-locks').lstat()
+        if (parent.st_dev,parent.st_ino)!=(named.st_dev,named.st_ino) or stat.S_IMODE(named.st_mode)!=0o700:raise PermissionError('Source task parent changed')
+        held=os.fstat(self.fd);entry=os.stat(self.name,dir_fd=self.parentfd,follow_symlinks=False)
+        for info in (held,entry):
+            if (not stat.S_ISREG(info.st_mode) or (info.st_dev,info.st_ino,info.st_uid,stat.S_IMODE(info.st_mode),info.st_nlink)!=self._identity
+                    or info.st_uid!=os.geteuid() or stat.S_IMODE(info.st_mode)!=0o600 or info.st_nlink!=1):raise PermissionError('Source task resource changed')
+
+
+class TaskGateLease:
+    """Independent task mutex: never an Auth owner lease or send capability."""
+    __slots__=('_birth','task_id','owner_gate_id','admission_digest','epoch','cleanup','active','pid')
+    def __init__(self,birth,row,cleanup,*,_factory=None):
+        if _factory is not _TASK_FACTORY:raise TypeError('actual held Source task mutex required')
+        values=dict(_birth=birth,task_id=row['task_id'],owner_gate_id=row['owner_gate_id'],admission_digest=row['admission_digest'],
+            epoch=row['write_epoch'],cleanup=cleanup,active=True,pid=os.getpid())
+        for key,value in values.items():object.__setattr__(self,key,value)
+    def __setattr__(self,*args):raise TypeError('Source task lease is immutable')
+    def __reduce__(self):raise TypeError('Source task lease cannot be serialized')
+    @property
+    def identity(self):
+        if not self.active or self.pid!=os.getpid():raise PermissionError('Source task lease retired')
+        return self._birth.identity
+    def require(self,store,conn,*,cleanup=False):
+        from .source_guard import resource
+        from .evidence_schemas import canonical
+        self.identity;self._birth.require(store,self.task_id)
+        row=resource(conn,self.task_id)
+        if row['owner_gate_id']!=self.owner_gate_id or row['admission_digest']!=self.admission_digest or row['task_gate_identity']!=canonical(self.identity):raise PermissionError('Source task binding changed')
+        if store._formal_mode():
+            owner=(store.path.parent/'research-locks'/(self.owner_gate_id+'.lock')).lstat()
+            if (owner.st_dev,owner.st_ino)!=store.auth_store.expected_owner_gate_identity(self.owner_gate_id):raise PermissionError('Source owner resource replaced')
+        if not cleanup and (self.cleanup or row['write_epoch']!=self.epoch or row['state']=='closed'):raise PermissionError('Source task execution authority retired')
+        if cleanup and row['write_epoch']<self.epoch:raise PermissionError('Source task epoch regressed')
+        return row
+
+
+@contextmanager
+def _source_task_gate(gate,task_id,*,timeout=5):
+    """Birth only from protected admission; unknown files are never adopted."""
+    from .source_guard import resource,check_active,birth_scope
+    from .evidence_schemas import canonical
+    if type(task_id) is not str or str(UUID(task_id,version=4))!=task_id:raise ValueError('canonical Source task required')
+    store=gate.store;fd=directory=None;witness=birth=lease=None
+    try:
+        with store.transaction() as conn:row=dict(resource(conn,task_id))
+        formal=store._formal_mode()
+        root=store.path.parent/'research-locks';name='source-'+task_id+'.lock'
+        if formal:
+            if __package__=='web.backend.research':from ..services.runtime_paths import PrivateAuthFile,require_private_auth_lock_dir
+            else:from services.runtime_paths import PrivateAuthFile,require_private_auth_lock_dir
+            witness=PrivateAuthFile.acquire(store.path);root=require_private_auth_lock_dir(store.path)
+            if witness.file_identity!=store.storage_identity:raise PermissionError('Source Auth inode changed')
+            directory=os.open('research-locks',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=witness.parent_fd)
+        else:directory=os.open(root,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        parent=os.fstat(directory);named=root.lstat()
+        if (not stat.S_ISDIR(parent.st_mode) or parent.st_uid!=os.geteuid() or stat.S_IMODE(parent.st_mode)!=0o700 or (parent.st_dev,parent.st_ino)!=(named.st_dev,named.st_ino)):
+            raise PermissionError('Source lock parent changed')
+        if row['task_gate_identity'] is None:
+            with gate.owner_gate_id(row['owner_gate_id']) as owner:
+                try:
+                    with store.transaction(write=True) as conn:
+                        current=check_active(store,conn,task_id)
+                        run=conn.execute('SELECT started FROM research_source_runs WHERE task_id=?',(task_id,)).fetchone()
+                        if not run or run[0]!=0 or current['state']!='admitted' or current['task_gate_identity'] is not None:raise PermissionError('Source birth is no longer available')
+                        fd=os.open(name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=directory)
+                        birth=_TaskBirth(store,task_id,fd,directory,name,_factory=_TASK_FACTORY)
+                        birth.identity;os.fsync(fd);os.fsync(directory)
+                        with birth_scope(conn,store,task_id,birth,owner):
+                            encoded=canonical(birth.identity)
+                            if conn.execute('UPDATE research_source_resources SET task_gate_identity=? WHERE task_id=? AND task_gate_identity IS NULL',(encoded,task_id)).rowcount!=1:raise PermissionError('Source birth CAS failed')
+                            conn.execute('UPDATE research_source_runs SET task_gate_identity=? WHERE task_id=? AND task_gate_identity IS NULL',(encoded,task_id))
+                except BaseException:
+                    # A lost commit ACK is reconciled from this protected row,
+                    # never from the existence/name/content of a filesystem file.
+                    if birth is None:raise
+                    with store.transaction() as conn:committed=resource(conn,task_id)
+                    if committed['task_gate_identity']!=canonical(birth.identity) or committed['admission_digest']!=row['admission_digest']:raise
+        else:
+            fd=os.open(name,os.O_RDWR|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=directory)
+            birth=_TaskBirth(store,task_id,fd,directory,name,_factory=_TASK_FACTORY)
+            if canonical(birth.identity)!=row['task_gate_identity']:raise PermissionError('Source task inode differs from protected binding')
+        # No owner lock while waiting on the independent task mutex.
+        deadline=time.monotonic()+timeout
+        while True:
+            try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB);break
+            except BlockingIOError:
+                if time.monotonic()>=deadline:raise ResearchError('STORE_BUSY',503,'来源任务仍在执行。',retryable=True)
+                time.sleep(.01)
+        with store.transaction() as conn:
+            row=resource(conn,task_id);task=conn.execute('SELECT execution,stop_requested FROM research_tasks WHERE id=?',(task_id,)).fetchone()
+            cleanup=row['state']=='closed' or not task or bool(task['stop_requested']) or task['execution'] in ('COMPLETED','FAILED','CANCELLED','ACCESS_REVOKED')
+            if not cleanup:check_active(store,conn,task_id)
+            lease=TaskGateLease(birth,row,cleanup,_factory=_TASK_FACTORY);lease.require(store,conn,cleanup=cleanup)
+        try:yield lease
+        finally:lease.identity
+    finally:
+        if lease is not None:object.__setattr__(lease,'active',False)
+        if birth is not None:object.__setattr__(birth,'active',False)
+        try:
+            if fd is not None:os.close(fd)
+        finally:
+            try:
+                if directory is not None:os.close(directory)
+            finally:
+                if witness is not None:witness.close()

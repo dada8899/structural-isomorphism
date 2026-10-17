@@ -90,7 +90,7 @@ def test_offline_formula_port_accepts_exact_current_auth_metadata_without_mutati
     from services.auth_registration import bootstrap_private_runtime
     bootstrap_private_runtime();db=roots/'auth.sqlite3';before=db.stat()
     result=recover_formula_journal(db)
-    assert result['schema_version']==10 and result['current_app_compatible'] is True
+    assert result['schema_version']==11 and result['current_app_compatible'] is True
     assert (db.stat().st_dev,db.stat().st_ino)==(before.st_dev,before.st_ino)
     with AuthStore(db)._connection() as conn:
         conn.execute('BEGIN')

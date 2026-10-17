@@ -85,7 +85,7 @@ def test_real_local_http_worker_persists_exact_licensed_evidence(source_stack):
         assert response.status_code==200,response.text
         assert len(response.json()["data"]["items"])==1
         assert not any(key in response.text for key in ('"raw":','"extracted":','"discovery":','"plan_json":'))
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         assert conn.execute("SELECT count(*) FROM research_funding_accounts").fetchone()[0]==0
         assert conn.execute("SELECT count(*) FROM research_source_requests WHERE outcome='SUCCEEDED'").fetchone()[0]==2
         assert conn.execute("PRAGMA foreign_key_check").fetchall()==[]
@@ -416,7 +416,7 @@ def test_real_account_delete_purges_sources_before_task_bindings(source_stack,li
     deletion_client,_,_=lifecycle
     response=deletion_client.post("/api/me/delete",json={"confirmation":"DELETE"},headers={"Origin":"http://testserver"})
     assert response.status_code==200,response.text
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         assert conn.execute("SELECT count(*) FROM research_evidence_objects").fetchone()[0]==0
         assert conn.execute("SELECT count(*) FROM research_source_approvals").fetchone()[0]==0
         assert conn.execute("SELECT fingerprint,approval_id FROM research_source_runs").fetchone()==(None,None)
