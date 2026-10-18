@@ -3843,3 +3843,43 @@ async def _method_draft_formula_picker_identity(tmp_path):
 def test_method_draft_formula_picker_distinguishes_same_revision_original_results(tmp_path):
     import asyncio
     asyncio.run(_method_draft_formula_picker_identity(tmp_path))
+
+
+def _method_draft_refresh_version_unit(source,interleave):
+    """Isolated UI function ordering only: no HTTP/Auth/Source/CAS acceptance."""
+    refresh=source.split('  async function draftRefreshBase(){',1)[1].split('  function initDraft(){',1)[0]
+    observe=source.split('  function observeServer(data) {',1)[1].split('  function editNotice()',1)[0]
+    program=r'''
+const assert=require('node:assert/strict');
+const scenario=process.argv[1],nodes=new Map(),byId=id=>{if(!nodes.has(id))nodes.set(id,{textContent:''});return nodes.get(id);};
+const root=version=>({research:{id:'research',current_revision:1},research_version:version,current_problem:{revision:1,digest:'same'},revisions:[{revision:1,digest:'same'}]});
+let observed={researchVersion:4,revision:1,digest:'same'},editBase={revision:1,digest:'same'},busy=false,authCalls=0,reads=0;
+const rejected={input_revision:1,problem_digest:'same',expected_research_version:4},draftState={casRejected:rejected,busy:false,operation:null};
+const draftTicket=()=>({rid:'research'}),draftActive=()=>true,readOnlyView=()=>false,draftSync=()=>{},draftError=error=>error.message,planInt=value=>Number.isSafeInteger(value)&&value>0;
+let releaseRead,readStarted,releaseAuth,authStarted;
+const reading=new Promise(resolve=>readStarted=resolve),lastAuth=new Promise(resolve=>authStarted=resolve);
+const draftAuth=async()=>{authCalls++;if(authCalls===2&&scenario==='final-auth-wait'){authStarted();return new Promise(resolve=>releaseAuth=resolve);}return true;};
+const draftFetch=async(url,options,ticket,purpose)=>{assert.equal(url,'/api/research/research');assert.deepEqual(options,{});assert.equal(purpose,'root');reads++;readStarted();if(scenario==='final-auth-wait')return root(5);return new Promise(resolve=>releaseRead=resolve);};
+__OBSERVE__
+__REFRESH__
+(async()=>{
+ const pending=draftRefreshBase();
+ if(scenario==='final-auth-wait')await lastAuth;else await reading;
+ if(scenario==='changed-scope')observeServer({...root(6),research:{id:'research',current_revision:2},revisions:[{revision:1,digest:'same'},{revision:2,digest:'new'}]});else observeServer(root(6));
+ assert.equal(observed.researchVersion,6);
+ if(scenario==='final-auth-wait')releaseAuth(true);else releaseRead(root(5));
+ await pending;
+ assert.equal(observed.researchVersion,6,'late refresh must not lower a newer observed version');assert.equal(reads,1);assert.equal(authCalls,2);assert.equal(draftState.busy,false);assert.equal(draftState.operation,null);
+ if(scenario==='changed-scope'){assert.equal(observed.revision,2);assert.equal(observed.digest,'new');assert.equal(draftState.casRejected,rejected);assert.match(byId('method-draft-status').textContent,/基准无法核对/);}else{assert.equal(observed.revision,1);assert.equal(observed.digest,'same');assert.equal(draftState.casRejected,null);assert.match(byId('method-draft-status').textContent,/尚未提交新操作/);}
+ process.stdout.write(JSON.stringify({scenario,observed_version:observed.researchVersion,root_reads:reads,auth_seam_calls:authCalls,scope:'isolated function ordering; no actual HTTP/Auth/Source/CAS'}));
+})().catch(error=>{process.stderr.write(error.stack);process.exitCode=1;});
+'''
+    program=program.replace('__OBSERVE__','function observeServer(data) {'+observe).replace('__REFRESH__','async function draftRefreshBase(){'+refresh)
+    return subprocess.run(['node','-e',program,interleave],capture_output=True,text=True,timeout=15)
+
+
+@pytest.mark.parametrize('interleave',['root-wait','final-auth-wait','changed-scope'])
+def test_method_draft_refresh_preserves_newer_observation_state_unit(interleave):
+    result=_method_draft_refresh_version_unit((ROOT/'web/frontend/assets/research.js').read_text(),interleave)
+    assert result.returncode==0,result.stderr
+    assert json.loads(result.stdout)['observed_version']==6

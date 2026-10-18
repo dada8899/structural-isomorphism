@@ -1149,7 +1149,7 @@
       if(root.research?.id!==ticket.rid||root.current_problem?.revision!==rejected.input_revision||root.current_problem.digest!==rejected.problem_digest||editBase?.revision!==rejected.input_revision||editBase.digest!==rejected.problem_digest||!planInt(root.research_version)||root.research_version<=rejected.expected_research_version||root.research_version>=2147483647)throw Error('问题版本或内容已变化，请明确载入当前问题后重新核对引用；手写内容保留。');
       if(!await draftAuth(ticket)||!draftActive(ticket)||draftState.casRejected!==rejected)return;
       if(!observed||observed.revision!==rejected.input_revision||observed.digest!==rejected.problem_digest)throw Error('当前问题基准无法核对，未刷新或再次保存。');
-      observed.researchVersion=root.research_version;draftState.casRejected=null;
+      observed.researchVersion=Math.max(observed.researchVersion,root.research_version);draftState.casRejected=null;
       byId('method-draft-status').textContent='已核对当前问题内容与版本，手写内容保留。可主动再次保存；尚未提交新操作。';
     }catch(error){if(draftActive(ticket))byId('method-draft-status').textContent=draftError(error);}
     finally{if(draftState.operation===operation){draftState.busy=false;draftState.operation=null;draftSync();}}
