@@ -3466,3 +3466,142 @@ def test_native_plan_terminal_known_outcome_releases_only_original_intent(tmp_pa
 def test_native_plan_terminal_boundary_preserves_unknown_and_current_input(tmp_path,mode):
     import asyncio
     asyncio.run(_native_terminal_case(tmp_path,mode))
+
+
+async def _method_draft_type_manual_fields(page):
+    values={
+        'method-draft-label':'人工提议的等待对照',
+        'method-draft-method':'在明确系统边界和相同时间口径下，对照自己的任务等待记录。',
+        'method-draft-mapping':'任务到达对应流入事件。',
+        'method-draft-nontransferable':'排队结构相似不证明现实机制相同。',
+        'method-draft-competing':'任务复杂度变化也可能解释等待增加。',
+        'method-draft-question':'固定到达条件后，等待是否仍有变化？',
+        'method-draft-measurement':'自行记录到达、完成与等待时刻。',
+        'method-draft-outcome':'同口径的等待中位数。',
+        'method-draft-falsification':'固定口径后差异消失。',
+        'method-draft-stop':'时刻记录不完整时停止。',
+    }
+    for field,value in values.items():await page.locator('#'+field).fill(value)
+    return values
+
+
+async def _method_draft_blank_journey(tmp_path):
+    import asyncio,importlib.util
+    from playwright.async_api import async_playwright,expect as aexpect
+    file=BACKEND/'tests/acceptance/plan_browser_service.py';spec=importlib.util.spec_from_file_location('actual_method_draft_blank_service',file);component=importlib.util.module_from_spec(spec);spec.loader.exec_module(component)
+    requests=[];facts={};fixture=None;root=None;context=None;browser=None;primary=None;cleanup=[]
+    try:
+        with component.PlanBrowserFixture() as fixture,fixture.browser_bridge() as bridge:
+            root=fixture.root
+            async with async_playwright() as p:
+                browser=await p.chromium.launch();context=await browser.new_context(viewport={'width':390,'height':844})
+                try:
+                    async with bridge.routed(context):
+                        page=await context.new_page();page.on('request',lambda request:requests.append(request.url) if '/method-drafts' in request.url or '/records?' in request.url else None)
+                        await page.goto(component.ORIGIN+'/research');await _native_tls_login(page,fixture,component.OWNER,fresh=True);await page.goto(component.ORIGIN+'/research')
+                        await page.locator('#original-input').fill(component.OBSERVATION);await page.locator('#summary').fill('当前观察问题与待验证的条件');await page.locator('#confirmed').check()
+                        async with page.expect_response(component.ORIGIN+'/api/research') as saved:await page.locator('#save').click()
+                        assert (await saved.value).status==200;await aexpect(page.locator('#status')).to_contain_text('已保存修订 1')
+                        for field in ('label','method','mapping','nontransferable','competing','question','measurement','outcome','falsification','stop'):await aexpect(page.locator('#method-draft-'+field)).to_have_value('')
+                        options=await page.locator('#method-draft-origin option').evaluate_all('(nodes)=>nodes.map(node=>node.value)');assert options==['user_proposed','plan_lead']
+                        values=await _method_draft_type_manual_fields(page);await aexpect(page.locator('#method-draft-save')).to_be_disabled()
+                        assert requests==[] and fixture.calls==[]
+                        facts={'schema':14,'no_prefilled_answers':True,'no_catalog_option':True,'zero_references_cannot_save':True,'no_auto_method_or_source_reads':True,'no_provider_calls':True}
+                        with fixture.store.transaction() as conn:assert conn.execute('SELECT count(*) FROM research_method_drafts').fetchone()[0]==0
+                except BaseException as error:primary=error;raise
+                finally:
+                    for value,name in ((context,'close'),(browser,'close')):
+                        if value is not None:
+                            try:await getattr(value,name)()
+                            except BaseException as error:cleanup.append(type(error).__name__)
+                    if cleanup:
+                        if primary:primary.add_note('owned browser cleanup uncertain: '+','.join(cleanup))
+                        else:raise RuntimeError('owned browser cleanup uncertain: '+','.join(cleanup))
+    finally:
+        facts['fixture_root_removed']=root is not None and not root.exists();facts['cleanup_errors']=cleanup;facts['fixture_cleanup_errors']=list(fixture.cleanup_errors) if fixture else ['not_started'];(tmp_path/'method-draft-blank-facts.json').write_text(json.dumps(facts,ensure_ascii=False,indent=2))
+
+
+def test_method_draft_manual_editor_starts_blank_and_requires_actual_references(tmp_path):
+    import asyncio
+    asyncio.run(_method_draft_blank_journey(tmp_path))
+
+
+async def _method_draft_prepare_old_source(page,fixture,component):
+    """Controller-only real Source flow; never insert an excerpt via SQL."""
+    import asyncio
+    from functools import partial
+    from research import ResearchRunner
+    from research.source_policy import PinnedPublicTransport
+    from web.backend.tests.source_http_fixture import source_server,get_local
+    await page.goto(component.ORIGIN+'/research')
+    await page.locator('#original-input').fill(component.OBSERVATION);await page.locator('#summary').fill('用于准备旧修订许可摘录的合成观察');await page.locator('#confirmed').check()
+    async with page.expect_response(component.ORIGIN+'/api/research') as created:await page.locator('#save').click()
+    response=await created.value;assert response.status==200;initial=(await response.json())['data'];rid=initial['research']['id']
+    assert initial['capabilities'].get('source_evidence') is True,'Reviewed controller Source API is closed; do not patch flags or pretend this seed is Main/C3 availability'
+    await page.locator('#source-query').fill('queue theory')
+    async with page.expect_response('**/source-preview') as preview:await page.locator('#source-preview').click()
+    assert (await preview.value).status==200
+    async with page.expect_response('**/source-tasks') as started:await page.locator('#source-confirm').click()
+    start=await started.value;assert start.status==200;task=(await start.json())['data']['task']['id']
+    with source_server() as (port,calls):
+        runner=ResearchRunner(fixture.store,source_transport=PinnedPublicTransport(_worker=partial(get_local,port)))
+        assert await asyncio.to_thread(runner.run_once,task)=='COMPLETED'
+        assert calls==['/discovery','/article']
+    records=await _native_tls_fetch(page,'/api/research/'+rid+'/records?task_id='+task+'&kind=excerpts')
+    assert records['status']==200 and records['body']['data']['items']
+    await page.locator('#original-input').fill('当前新修订问题，引用旧来源时必须保留其原身份。');await page.locator('#summary').fill('新的目标问题与旧来源材料分开记录');await page.locator('#confirmed').check()
+    async with page.expect_response('**/revisions') as updated:await page.locator('#save').click()
+    update=await updated.value;assert update.status==200;current=(await update.json())['data'];assert current['current_problem']['revision']==2
+    return {'rid':rid,'source_task':task,'source_problem_revision':1,'target_problem_revision':2,'source_items':records['body']['data']['items'],'mode':'owned controlled Source, not Main/C3 or external retrieval'}
+
+
+async def _method_draft_save_reopen_journey(tmp_path):
+    import asyncio,importlib.util
+    from playwright.async_api import async_playwright,expect as aexpect
+    path=BACKEND/'tests/acceptance/plan_browser_service.py';spec=importlib.util.spec_from_file_location('actual_method_draft_old_source_service',path);component=importlib.util.module_from_spec(spec);spec.loader.exec_module(component)
+    facts={};fixture=None;root=None;context=None;browser=None;primary=None;cleanup=[]
+    try:
+        with component.PlanBrowserFixture() as fixture,fixture.browser_bridge() as bridge:
+            root=fixture.root
+            async with async_playwright() as p:
+                browser=await p.chromium.launch();context=await browser.new_context(viewport={'width':390,'height':844})
+                try:
+                    async with bridge.routed(context):
+                        page=await context.new_page();await page.goto(component.ORIGIN+'/research');await _native_tls_login(page,fixture,component.OWNER,fresh=True)
+                        actual=await _method_draft_prepare_old_source(page,fixture,component)
+                        await page.locator('#method-draft-task').select_option(actual['source_task'])
+                        async with page.expect_response(lambda response:'/records?' in response.url and 'kind=excerpts' in response.url) as items:await page.locator('#method-draft-read-sources').click()
+                        assert (await items.value).status==200
+                        await aexpect(page.locator('#method-draft-materials input[type=checkbox]')).to_have_count(1);await page.locator('#method-draft-materials input[type=checkbox]').check()
+                        values=await _method_draft_type_manual_fields(page)
+                        async with page.expect_response('**/method-drafts') as saved:await page.locator('#method-draft-save').click()
+                        response=await saved.value;assert response.status==200;record=(await response.json())['data'];meta=record['metadata'];ref=meta['draft_ref']
+                        await aexpect(page.locator('#method-draft-status')).to_contain_text('已保存新的验证草稿')
+                        await aexpect(page.locator('#method-draft-view-ref')).to_have_text(ref);await aexpect(page.locator('#method-draft-view-time')).to_have_attribute('datetime',meta['created_at'])
+                        assert meta['input_revision']==2 and meta['validation_status']=='unverified' and meta['execution_status']=='not_executed'
+                        assert record['content']['sources'][0]['input_revision']==1 and record['content']['sources'][0]['task_id']==actual['source_task']
+                        assert record['content']['request']['excerpt_refs'][0]['content_digest']==actual['source_items'][0]['text_digest']
+                        await page.locator('#method-draft-method').fill('正在编辑的新稿，不应被历史只读加载替换。')
+                        async with page.expect_response(lambda response:'/method-drafts?limit=20' in response.url) as history:await page.locator('#method-draft-read-history').click()
+                        assert (await history.value).status==200
+                        await page.get_by_role('button',name='只读查看原稿',exact=True).click();await aexpect(page.locator('#method-draft-view-ref')).to_have_text(ref)
+                        await aexpect(page.locator('#method-draft-method')).to_have_value('正在编辑的新稿，不应被历史只读加载替换。');await aexpect(page.locator('#method-draft-view-time')).to_have_attribute('datetime',meta['created_at'])
+                        assert fixture.calls==[]
+                        with fixture.store.transaction() as conn:assert conn.execute('SELECT count(*) FROM research_method_drafts').fetchone()[0]==1
+                        facts={'actual_Source_flow':actual['mode'],'source_revision':1,'target_revision':2,'draft_ref':ref,'created_at':meta['created_at'],'history_preserved_new_editor':True,'provider_calls':fixture.calls.copy(),'validation_status':meta['validation_status'],'execution_status':meta['execution_status']}
+                except BaseException as error:primary=error;raise
+                finally:
+                    for value,name in ((context,'close'),(browser,'close')):
+                        if value is not None:
+                            try:await getattr(value,name)()
+                            except BaseException as error:cleanup.append(type(error).__name__)
+                    if cleanup:
+                        if primary:primary.add_note('owned browser cleanup uncertain: '+','.join(cleanup))
+                        else:raise RuntimeError('owned browser cleanup uncertain: '+','.join(cleanup))
+    finally:
+        facts['fixture_root_removed']=root is not None and not root.exists();facts['cleanup_errors']=cleanup;facts['fixture_cleanup_errors']=list(fixture.cleanup_errors) if fixture else ['not_started'];(tmp_path/'method-draft-old-source-facts.json').write_text(json.dumps(facts,ensure_ascii=False,indent=2))
+
+
+def test_method_draft_actual_old_source_to_current_manual_draft_and_readonly_history(tmp_path):
+    import asyncio
+    asyncio.run(_method_draft_save_reopen_journey(tmp_path))

@@ -99,3 +99,17 @@ textarea:disabled, select:disabled { opacity:1; color:var(--ink); background:#e9
 @media(max-width:520px) { #native-plan-section .section-heading { align-items:flex-start; flex-wrap:wrap; }#native-plan-preview-panel { padding-left:12px; padding-right:12px; } }
 
 #native-plan-section button:disabled { cursor:not-allowed; }
+
+#method-draft-section { border-top:1px solid var(--line); margin-top:36px; padding-top:24px; overflow-wrap:anywhere; }
+#method-draft-form { border:0; padding:0; margin-top:18px; }
+#method-draft-section h3 { margin:28px 0 8px; font-size:18px; }
+#method-draft-section h4 { margin:20px 0 7px; font-size:15px; }
+#method-draft-section > details, #method-draft-form > details { border-bottom:1px solid var(--line); padding:18px 0; }
+#method-draft-status { min-height:26px; white-space:pre-wrap; font-size:14px; }
+.draft-material { border-left:2px solid var(--line); padding:10px 14px; margin:16px 0; }
+.draft-material label { margin-top:0; }.draft-material blockquote, #method-draft-view blockquote { margin:12px 0; padding:12px 14px; background:#e9ece2; white-space:pre-wrap; }
+#method-draft-view p, #method-draft-view li { white-space:pre-wrap; }
+#method-draft-view { margin-top:20px; }#method-draft-view details p { overflow-wrap:anywhere; }
+#method-draft-history { padding-left:24px; }#method-draft-history li { border-bottom:1px solid var(--line); padding:12px 0; }
+#method-draft-history button { margin:6px 8px 6px 0; font-size:13px; padding:9px 12px; }
+#method-draft-section button:disabled { cursor:not-allowed; }

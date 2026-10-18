@@ -127,6 +127,40 @@
       <div class="actions"><button id="source-preview" type="button">预览来源查询</button><button id="source-confirm" type="button" hidden>确认查询内容并启动</button><button id="source-refresh" type="button" class="secondary" aria-describedby="source-reopen-hint">核对并读取已保存来源笔记</button></div>
       <p id="source-status" role="status" aria-live="polite"></p><pre id="source-plan"></pre><div id="source-records"></div>
     </section>
+    <section id="method-draft-section" hidden aria-labelledby="method-draft-title">
+      <div class="section-heading"><h2 id="method-draft-title">整理一份方法验证草稿</h2><span class="native-plan-tag">人工整理 · 未执行</span></div>
+      <p class="scope">把已存短摘录与方法线索连到当前问题，写清怎么验证。保存不表示方法成熟、迁移有效或数学通过，也不会自动查询、调用模型或运行统计。</p>
+      <p id="method-draft-target" class="hint"></p><p id="method-draft-hint" class="hint"></p>
+      <details open><summary>1. 明确选择已存材料</summary>
+        <label for="method-draft-task">选择已存流程 <span>可读取以前问题修订的材料；不会启动该流程</span></label><select id="method-draft-task"><option value="">先保存问题并读取流程记录</option></select>
+        <div class="actions"><button id="method-draft-read-sources" type="button" class="secondary">读取所选流程的已存摘录</button><button id="method-draft-read-plan" type="button" class="secondary">读取所选计划的方法线索</button><button id="method-draft-read-formula" type="button" class="secondary">读取所选公式引用</button></div>
+        <p id="method-draft-material-status" class="hint" aria-live="polite">只读取本账户已存记录，不会联网检索。</p><div id="method-draft-materials"></div>
+      </details>
+      <form id="method-draft-form">
+        <details open><summary>2. 选择方法来源，自己填写思路</summary>
+          <label for="method-draft-origin">方法从哪里来</label><select id="method-draft-origin"><option value="user_proposed">我自己的提议（未验证）</option><option value="plan_lead">已保存计划中的线索（未验证）</option></select>
+          <p class="hint">当前没有可信知识库目录可供此处关联，不能把搜索命中或名称伪装成已核对的方法记录。</p>
+          <div id="method-draft-user"><label for="method-draft-label">人工提议的方法名称 <span>最多120字</span></label><input id="method-draft-label" type="text" maxlength="120" autocomplete="off"></div>
+          <div id="method-draft-plan" hidden><p class="hint">先在上方读取实际计划，再选其中一条线索；不会预填方法或验证答案。</p><div id="method-draft-plan-choices"></div></div>
+          <label for="method-draft-method">方法与适用条件 <span>自己说明如何用于当前现象，最多2000字</span></label><textarea id="method-draft-method" rows="4" maxlength="2000" required></textarea>
+          <label for="method-draft-mapping">变量、对象或步骤如何对应 <span>每行一项，1–20项</span></label><textarea id="method-draft-mapping" rows="3" required></textarea>
+          <label for="method-draft-nontransferable">哪些部分不能直接迁移 <span>每行一项，1–20项</span></label><textarea id="method-draft-nontransferable" rows="3" required></textarea>
+          <label for="method-draft-competing">还可能有哪些竞争解释 <span>每行一项，1–20项</span></label><textarea id="method-draft-competing" rows="3" required></textarea>
+        </details>
+        <details open><summary>3. 填写最小验证计划</summary>
+          <label for="method-draft-question">要验证什么问题</label><textarea id="method-draft-question" rows="2" maxlength="2000" required></textarea>
+          <label for="method-draft-measurement">怎样观察与测量</label><textarea id="method-draft-measurement" rows="2" maxlength="2000" required></textarea>
+          <label for="method-draft-outcome">主要结果指标是什么</label><textarea id="method-draft-outcome" rows="2" maxlength="2000" required></textarea>
+          <label for="method-draft-falsification">什么结果会推翻它</label><textarea id="method-draft-falsification" rows="2" maxlength="2000" required></textarea>
+          <label for="method-draft-stop">在什么条件下停止</label><textarea id="method-draft-stop" rows="2" maxlength="2000" required></textarea>
+        </details>
+        <details><summary>可选：关联原记录</summary><label for="method-draft-formula">关联已读取的公式结果</label><select id="method-draft-formula"><option value="">不关联公式记录</option></select><p class="hint">只保留原检查的修订、范围与状态；旧检查通过不升级为本方法已验证。</p><p id="method-draft-parent" class="hint">未关联上一稿。可从下方真实历史选择关联，新稿另生记录。</p><button id="method-draft-clear-parent" type="button" class="secondary">取消上一稿关联</button></details>
+        <div class="actions"><button id="method-draft-save" type="submit" disabled>保存这份未验证草稿</button></div>
+      </form>
+      <p id="method-draft-status" aria-live="polite"></p><div id="method-draft-pending"></div>
+      <h3>已保存的方法草稿</h3><p class="hint">原稿只读查看，不覆盖编辑区。新增或修订都另存新记录。</p><button id="method-draft-read-history" type="button" class="secondary">核对并读取草稿历史</button><p id="method-draft-history-status" class="hint"></p><ol id="method-draft-history"></ol>
+      <p id="method-draft-view-status" class="scope" aria-live="polite"></p><div id="method-draft-view"></div>
+    </section>
     <section id="task-history-section" hidden aria-labelledby="task-history-title">
       <h2 id="task-history-title">已保存的流程记录</h2>
       <p class="hint">每页最多 20 条。流程与更早页面在新标签页只读打开，保留本页草稿；已保存不代表正文现在可用。</p>
