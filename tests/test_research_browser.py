@@ -3293,7 +3293,7 @@ async def _native_terminal_case(tmp_path,mode):
     import asyncio,importlib.util,threading
     from playwright.async_api import async_playwright,expect as aexpect
     file=BACKEND/'tests/acceptance/plan_browser_service.py';spec=importlib.util.spec_from_file_location('actual_native_terminal_service',file);component=importlib.util.module_from_spec(spec);spec.loader.exec_module(component)
-    original=component.CANDIDATE;facts={'mode':mode};fixture=context=browser=root=primary=None;cleanup=[];release=threading.Event();release_report=threading.Event();entered=threading.Event();reported=threading.Event();held=[]
+    original=component.CANDIDATE;facts={'mode':mode};fixture=context=browser=root=primary=None;cleanup=[];release=threading.Event();release_report=threading.Event();entered=threading.Event();reported=threading.Event();held=[];verified=[]
     from research import plan_native as native
     from pytest import MonkeyPatch
     class ReportGate(list):
@@ -3302,7 +3302,7 @@ async def _native_terminal_case(tmp_path,mode):
         def append(self,value):
             super().append(value);reported.set();release_report.wait(15)
     try:
-        if mode in ('invalid-body','cleanup-uncertain','late-B','wrong-ref'):component.CANDIDATE={}
+        if mode in ('invalid-body','cleanup-uncertain','late-B','wrong-ref','cross-owner'):component.CANDIDATE={}
         with component.PlanBrowserFixture() as fixture,fixture.browser_bridge() as bridge,MonkeyPatch.context() as patch:
             root=fixture.root
             async with async_playwright() as p:
@@ -3338,17 +3338,23 @@ async def _native_terminal_case(tmp_path,mode):
                         await page.locator('#native-plan-own').check()
                         async with page.expect_response('**/plan-previews') as draft:await page.locator('#native-plan-preview').click()
                         preview=(await (await draft.value).json())['data'];assert preview['can_confirm']
-                        actual_acks=[]
-                        if mode in ('late-B','wrong-ref'):
+                        actual_acks=[];verified=[];root_read_count=[0]
+                        if mode=='cross-owner':
+                            async def hold_verification(route):
+                                request=route.request;actual=await asyncio.to_thread(bridge.forward,request.method,request.url,await request.all_headers(),request.post_data_buffer);assert actual.status==200;root_read_count[0]+=1
+                                if root_read_count[0]==1:await route.fulfill(status=actual.status,headers=dict(actual.headers),body=actual.body)
+                                else:verified.append((route,actual))
+                            await page.route('**/api/research/'+rid+'?task_id=*',hold_verification)
+                        if mode in ('late-B','wrong-ref','cross-owner'):
                             async def held_ack(route):
                                 request=route.request;actual=await asyncio.to_thread(bridge.forward,request.method,request.url,await request.all_headers(),request.post_data_buffer);assert actual.status==200;actual_acks.append(json.loads(actual.body)['data'])
-                                if mode=='late-B':held.append((route,actual))
+                                if mode in ('late-B','cross-owner'):held.append((route,actual))
                                 else:
                                     altered=json.loads(actual.body);altered['data']['result_ref']='wrong-reference-from-ack'
                                     await route.fulfill(status=actual.status,headers={k:v for k,v in actual.headers if k.lower()!='content-length'},body=json.dumps(altered).encode())
                             await page.route('**/plan-approvals',held_ack,times=1)
                         await page.locator('#native-plan-consent').check()
-                        if mode=='late-B':
+                        if mode in ('late-B','cross-owner'):
                             await page.locator('#native-plan-confirm').click();deadline=time.monotonic()+5
                             while not actual_acks and time.monotonic()<deadline:await asyncio.sleep(.02)
                             assert len(actual_acks)==1;ack=actual_acks[0]
@@ -3359,8 +3365,14 @@ async def _native_terminal_case(tmp_path,mode):
                         if mode in ('cancel-before','cancel-after'):
                             assert await asyncio.to_thread(entered.wait,5),'actual worker pause point not reached'
                             await aexpect(page.locator('#task-cancel')).to_be_visible();await aexpect(page.locator('#native-plan-refresh')).to_be_enabled()
+                            if mode=='cancel-after':
+                                await _native_tls_completed_read(page,component.ORIGIN+'/api/research/'+rid+'/plan-results/'+ref,lambda:page.locator('#native-plan-refresh').click())
+                                await aexpect(page.locator('#native-plan-refresh')).to_be_enabled()
                             async with page.expect_response('**/cancel') as stopped:await page.locator('#task-cancel').click()
-                            assert (await stopped.value).status==200
+                            stop_response=await stopped.value
+                            facts['actual_cancel_status']=stop_response.status
+                            if stop_response.status!=200:facts['actual_cancel_error']=(await stop_response.json()).get('error',{}).get('code')
+                            assert stop_response.status==200
                             assert await page.evaluate("Object.entries(sessionStorage).filter(([k])=>k.startsWith('structure-research-pending:native-plan-v2-confirm:')).length")==1
                             release.set()
                         if mode in ('not-sent','cancel-before','cleanup-uncertain'):assert await asyncio.to_thread(reported.wait,8),'actual worker failure completion not observed'
@@ -3378,6 +3390,20 @@ async def _native_terminal_case(tmp_path,mode):
                         }.get(mode,('failed_insufficient','body_invalid','upper_booked','clean'))
                         assert tuple(result['data'][k] for k in ('state','safe_code','cost_state','cleanup_state'))==expected
                         url=component.ORIGIN+'/api/research/'+rid+'/plan-results/'+ref
+                        if mode=='cross-owner':
+                            route,actual=held.pop()
+                            async with page.expect_response('**/plan-approvals'):await route.fulfill(status=actual.status,headers=dict(actual.headers),body=actual.body)
+                            deadline=time.monotonic()+8
+                            while not verified and time.monotonic()<deadline:await asyncio.sleep(.02)
+                            assert len(verified)==1 and root_read_count[0]==2,'original fixed-task terminal verification was not held'
+                            before=await page.evaluate("Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('structure-research-pending:native-plan-v2-confirm:')))");assert len(before)==1
+                            assert (await _native_tls_fetch(page,'/api/auth/logout','POST',{}))['status']==200
+                            await _native_tls_login(page,fixture,'terminal-other-owner@example.invalid')
+                            route,actual=verified.pop();await route.fulfill(status=actual.status,headers=dict(actual.headers),body=actual.body)
+                            await aexpect(page.locator('#problem-form')).to_be_hidden();await aexpect(page.locator('#native-plan-body')).to_have_text('');await aexpect(page.locator('#original-input')).to_have_value('')
+                            assert await page.evaluate("Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('structure-research-pending:native-plan-v2-confirm:')))")==before
+                            assert fixture.calls==['GET','POST']
+                            facts.update({'cross_owner_terminal_key_preserved':True,'original_verification_response_was_200':True,'pending_count':1,'provider_calls':fixture.calls.copy()});return
                         if mode=='late-B':
                             await page.locator('#original-input').fill('新保存的观察B不能被旧失败记录替换。')
                             async with page.expect_response('**/revisions') as new_b:await page.locator('#save').click()
@@ -3407,11 +3433,17 @@ async def _native_terminal_case(tmp_path,mode):
                             async with page.expect_response('**/plan-previews') as again:await page.locator('#native-plan-preview').click()
                             assert (await again.value).status==200 and fixture.calls==expected_calls
                             status,after=await asyncio.to_thread(fixture.client.request,'GET','/api/research/'+rid+'/plan-results/'+ref);assert status==200 and after==before
+                            if mode=='late-B':
+                                # A revision-save response need not contain the
+                                # task-history page. Explicit GET fills that
+                                # page without replacing B or inferring absence.
+                                await _native_tls_completed_read(page,component.ORIGIN+'/api/research/'+rid,lambda:page.locator('#native-plan-refresh').click())
+                                await aexpect(page.locator('#original-input')).to_have_value('新保存的观察B不能被旧失败记录替换。')
                             assert await page.locator('#native-plan-history a[href$="task_id='+task+'"]').count()==1
                 except BaseException as error:primary=error;raise
                 finally:
                     release.set();release_report.set()
-                    for route,_ in held:
+                    for route,_ in [*held,*verified]:
                         try:await route.abort('blockedbyclient')
                         except BaseException:pass
                     for value,name in ((context,'close'),(browser,'close')):
@@ -3430,7 +3462,7 @@ def test_native_plan_terminal_known_outcome_releases_only_original_intent(tmp_pa
     asyncio.run(_native_terminal_case(tmp_path,mode))
 
 
-@pytest.mark.parametrize('mode',['not-sent','unknown-usage','cleanup-uncertain','cancel-before','cancel-after','late-B','wrong-ref'])
+@pytest.mark.parametrize('mode',['not-sent','unknown-usage','cleanup-uncertain','cancel-before','cancel-after','late-B','wrong-ref','cross-owner'])
 def test_native_plan_terminal_boundary_preserves_unknown_and_current_input(tmp_path,mode):
     import asyncio
     asyncio.run(_native_terminal_case(tmp_path,mode))
