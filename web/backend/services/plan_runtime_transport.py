@@ -108,33 +108,39 @@ class _Channel:
 
     def send_remaining(self, data):
         pending = memoryview(data)
+        read_ready = False
         while pending:
-            self.wait()
+            self.wait(read=read_ready)
             try:
                 sent = self.sock.send(pending)
             except ssl.SSLWantReadError:
-                self.wait(read=True)
+                read_ready = True
                 continue
             except (ssl.SSLWantWriteError, BlockingIOError):
+                read_ready = False
                 continue
             if sent <= 0:
                 raise OSError('native remainder interrupted')
             pending = pending[sent:]
+            read_ready = False
 
     def receive(self):
         raw = bytearray()
+        read_ready = True
         while True:
-            self.wait(read=True)
+            self.wait(read=read_ready)
             try:
                 chunk = self.sock.recv(16384)
             except ssl.SSLWantWriteError:
-                self.wait()
+                read_ready = False
                 continue
             except (ssl.SSLWantReadError, BlockingIOError):
+                read_ready = True
                 continue
             if not chunk:
                 break
             raw.extend(chunk)
+            read_ready = True
             if len(raw) > _HEAD_LIMIT + _BODY_LIMIT:
                 raise ValueError('native HTTP response bound')
             if b'\r\n\r\n' not in raw and len(raw) > _HEAD_LIMIT:

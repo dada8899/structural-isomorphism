@@ -406,6 +406,74 @@ def test_native_channel_deadline_does_not_wait_or_write():
     assert channel.closed
 
 
+def test_receive_retries_same_recv_after_wantwrite_ready(monkeypatch, record_property):
+    client, peer = socket.socketpair(); client.setblocking(False)
+    channel = transport._Channel(client, time.monotonic() + .5, _factory=transport._FACTORY)
+    native_recv = socket.socket.recv; calls = []; retry = threading.Event(); stop = threading.Event()
+    outcome = None; error = None
+    def receive(sock, size, *args, **kwargs):
+        if sock is client:
+            calls.append('recv')
+            if len(calls) == 1:
+                assert native_recv(sock, size, *args, **kwargs) == b'handshake-record'
+                raise ssl.SSLWantWriteError('owned recv needs writable progress')
+            retry.set()
+        return native_recv(sock, size, *args, **kwargs)
+    def serve():
+        peer.sendall(b'handshake-record')
+        if retry.wait(1.5) and not stop.is_set():
+            peer.sendall(b'HTTP/1.0 200 OK\r\nContent-Length: 2\r\n\r\nok')
+            peer.shutdown(socket.SHUT_WR)
+    thread = threading.Thread(target=serve); thread.start()
+    monkeypatch.setattr(socket.socket, 'recv', receive)
+    try:
+        try: outcome = channel.receive()
+        except Exception as exc: error = type(exc).__name__
+        record_property('recv_continuation', json.dumps({'error': error, 'recv_calls': len(calls),
+            'retried_after_writable': retry.is_set(), 'actual_HTTP_body': outcome == (200, b'ok'),
+            'scope': 'actual socketpair/control bytes; explicitly injected SSLWantWrite, not natural TLS/provider'}))
+        assert error is None and outcome == (200, b'ok')
+        assert retry.is_set() and len(calls) >= 2
+    finally:
+        stop.set(); retry.set(); thread.join(2); channel.close(); peer.close()
+        assert not thread.is_alive()
+
+
+def test_remainder_send_retries_same_send_after_wantread_ready(monkeypatch, record_property):
+    client, peer = socket.socketpair(); client.setblocking(False); peer.setblocking(False)
+    client.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 4096)
+    channel = transport._Channel(client, time.monotonic() + .5, _factory=transport._FACTORY)
+    native_send, native_recv = socket.socket.send, socket.socket.recv
+    calls = []; fill = []; error = None; payload = b'owned-current-request-tail'
+    def send(sock, data, *args, **kwargs):
+        if sock is client:
+            calls.append('send')
+            if len(calls) == 1:
+                while True:
+                    try: fill.append(native_send(sock, b'x' * 4096))
+                    except BlockingIOError: break
+                assert sum(fill) > 0
+                assert native_send(peer, b'read-control') == len(b'read-control')
+                raise ssl.SSLWantReadError('owned remainder needs readable progress')
+            if len(calls) == 2:
+                assert native_recv(client, 100) == b'read-control'
+                drained = bytearray()
+                while True:
+                    try: drained.extend(native_recv(peer, 16384))
+                    except BlockingIOError: break
+                assert drained == b'x' * sum(fill)
+        return native_send(sock, data, *args, **kwargs)
+    monkeypatch.setattr(socket.socket, 'send', send)
+    try:
+        try: channel.send_remaining(payload)
+        except Exception as exc: error = type(exc).__name__
+        record_property('send_continuation', json.dumps({'error': error, 'send_calls': len(calls),
+            'retried_after_readable': len(calls) >= 2, 'scope': 'actual filled socket/control bytes plus injected SSLWantRead; remainder only'}))
+        assert error is None and len(calls) >= 2
+        assert native_recv(peer, 4096) == payload
+    finally: channel.close(); peer.close()
+
+
 @pytest.mark.parametrize('fault', ['detached', 'no-close'])
 def test_native_close_needs_actual_fd_proof_and_preserves_unknown(monkeypatch, fault):
     sock, peer = socket.socketpair()
