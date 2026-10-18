@@ -6,6 +6,8 @@ import sqlite3
 import os
 import multiprocessing
 from contextlib import contextmanager
+from pathlib import Path
+import sys
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -18,6 +20,13 @@ from .test_private_runtime_bootstrap import roots
 BETA='https://beta.structural.bytedance.city'
 SECRET='private-registration-synthetic-7a3c95e02b18f6d4'
 FIXTURE_SECRET='A7f9K2m4P8q1R6t3V5x0Y2z8C4d7H9j1L6n3'
+
+# Canonical workers must not depend on which top-level tests package a fresh
+# interpreter resolves. Append only this checkout's fixed root, as in the
+# existing research process fixtures; backend-first precedence is preserved.
+_PROJECT_ROOT=Path(__file__).resolve().parents[3]
+if str(_PROJECT_ROOT) not in sys.path:sys.path.append(str(_PROJECT_ROOT))
+from web.backend.tests.registration_process_fixture import _verify_process,_die_registration_process
 
 
 def register_private_user(monkeypatch,email='fixture@example.invalid',tier='free'):
@@ -288,30 +297,6 @@ def test_expired_link_claim_fails_without_consumption_or_mapping(stack,monkeypat
         assert conn.execute('SELECT count(*) FROM auth_owner_gates').fetchone()[0]==0
 
 
-def _verify_process(root,token,barrier,queue):
-    """Real fresh process; safety audit metadata is inherited, no store stubs."""
-    from pathlib import Path
-    from services import runtime_paths as paths
-    paths.STATE_ROOT=Path(root);paths.CACHE_ROOT=Path(root).parent/'cache';paths.LOG_ROOT=Path(root)/'logs'
-    from api import auth as child_auth
-    from starlette.requests import Request
-    from starlette.responses import Response
-    import asyncio
-    request=Request({'type':'http','method':'POST','scheme':'https','path':'/api/auth/verify',
-        'query_string':b'','server':('beta.structural.bytedance.city',443),'client':('127.0.0.1',10000),
-        'headers':[(b'host',b'beta.structural.bytedance.city'),(b'origin',BETA.encode())]})
-    barrier.wait(10)
-    result=asyncio.run(child_auth.verify(child_auth.VerifyBody(token=token),request,Response()))
-    leaked=[];blocked=[]
-    try:
-        import audit_bootstrap as audit
-        blocked=list(audit.blocked)
-        for conn in audit.handles:
-            try:conn.execute('SELECT 1')
-            except sqlite3.Error:pass
-            else:leaked.append('native-open');conn.close()
-    except ImportError:pass
-    queue.put((result.status_code,bool(result.headers.get('set-cookie')),leaked,blocked))
 
 
 @pytest.mark.parametrize('same_token',[False,True])
@@ -340,30 +325,6 @@ def test_two_fresh_processes_one_owner_single_atomic_account(stack,same_token):
         queue.close();queue.join_thread()
 
 
-def _die_registration_process(root,token,point):
-    from pathlib import Path
-    from services import runtime_paths as paths,auth_registration as child_registration
-    paths.STATE_ROOT=Path(root);paths.CACHE_ROOT=Path(root).parent/'cache';paths.LOG_ROOT=Path(root)/'logs'
-    if point=='birth':
-        child_registration._mark_ready=lambda *_a,**_k:os._exit(77)
-    elif point=='ready':
-        child_registration._finalize=lambda *_a,**_k:os._exit(77)
-    else:
-        from services.sqlite_utils import PrivateAuthConnection
-        original=PrivateAuthConnection.commit
-        def commit(self):
-            finalized=self.execute("SELECT 1 FROM auth_registration_operations WHERE state='finalized'").fetchone()
-            original(self)
-            if finalized:os._exit(77)
-        PrivateAuthConnection.commit=commit
-    from api import auth as child_auth
-    from starlette.requests import Request
-    from starlette.responses import Response
-    import asyncio
-    request=Request({'type':'http','method':'POST','scheme':'https','path':'/api/auth/verify',
-        'query_string':b'','server':('beta.structural.bytedance.city',443),'client':('127.0.0.1',10000),
-        'headers':[(b'host',b'beta.structural.bytedance.city'),(b'origin',BETA.encode())]})
-    asyncio.run(child_auth.verify(child_auth.VerifyBody(token=token),request,Response()))
 
 
 @pytest.mark.parametrize('point',['birth','ready','commit'])
