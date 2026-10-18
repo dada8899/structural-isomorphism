@@ -103,7 +103,7 @@ def test_incomplete_sources_cannot_become_research_results(source_stack,scenario
     with source_server(metadata=json.dumps(metadata).encode(),article=article) as (port,calls):
         result=ResearchRunner(ResearchStore(auth._store()),source_transport=PinnedPublicTransport(_worker=partial(get_local,port))).run_once(tid)
     assert result==("COMPLETED" if scenario=="no-hits" else "FAILED")
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         assert conn.execute("SELECT count(*) FROM research_evidence_objects WHERE kind IN ('snapshots','excerpts','claims','reports')").fetchone()[0]==0
         assert conn.execute("SELECT used FROM research_source_chains").fetchone()[0]==len(calls)
         assert conn.execute("SELECT count(*) FROM research_source_requests WHERE outcome='UNKNOWN' AND execution_closed=0").fetchone()[0]==0
@@ -116,7 +116,7 @@ def test_unknown_closure_preserves_original_observation_and_new_approval_uses_sa
     with source_server() as (port,calls):
         runner=ResearchRunner(ResearchStore(auth._store()),source_transport=PinnedPublicTransport(_worker=partial(drop_after_response,port)))
         assert runner.run_once(tid)=="FAILED" and calls==["/discovery"]
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn,conn:
             conn.row_factory=sqlite3.Row
             old=dict(conn.execute("SELECT * FROM research_source_requests").fetchone())
             assert old["outcome"]=="UNKNOWN" and old["execution_closed"]==1 and old["closure_ref"]
@@ -127,7 +127,7 @@ def test_unknown_closure_preserves_original_observation_and_new_approval_uses_sa
         two=restarted.json()["data"]["task"]["id"]
         good=ResearchRunner(ResearchStore(auth._store()),source_transport=PinnedPublicTransport(_worker=partial(get_local,port)))
         assert good.run_once(two)=="COMPLETED"
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn,conn:
             conn.row_factory=sqlite3.Row
             assert dict(conn.execute("SELECT * FROM research_source_requests WHERE id=?",(old["id"],)).fetchone())==old
             assert conn.execute("SELECT count(*) FROM research_source_chains").fetchone()[0]==1
@@ -151,7 +151,7 @@ def test_cancel_before_worker_has_no_get_or_evidence(source_stack):
     with source_server() as (port,calls):
         runner=ResearchRunner(ResearchStore(auth._store()),source_transport=PinnedPublicTransport(_worker=partial(get_local,port)))
         assert runner.run_once(tid)=="CANCELLED" and calls==[]
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         assert conn.execute("SELECT used FROM research_source_chains").fetchone()[0]==0
         assert conn.execute("SELECT count(*) FROM research_evidence_objects WHERE kind!='plans'").fetchone()[0]==0
 
@@ -171,7 +171,7 @@ def test_local_problem_revision_does_not_reset_same_outbound_query_quota(source_
         refused=start_current(client,rid)
         assert refused.status_code==429,refused.text
         assert len(calls)==4
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         assert conn.execute("SELECT count(*),sum(used) FROM research_source_chains").fetchone()==(1,4)
 
 
@@ -187,7 +187,7 @@ def test_legacy_problem_fingerprinted_chains_are_grouped_without_quota_reset(sou
         assert runner.run_once(second)=="COMPLETED" and len(calls)==4
         # Reproduce the exact old persisted shape: two fully observed chains
         # differing only by the untransmitted problem digest, two reads each.
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn,conn:
             conn.row_factory=sqlite3.Row
             for index,tid in enumerate((first,second)):
                 approval=conn.execute("SELECT a.* FROM research_source_approvals a JOIN research_source_runs r ON r.approval_id=a.id WHERE r.task_id=?",(tid,)).fetchone()
@@ -221,7 +221,7 @@ def test_public_source_versions_resolve_every_excerpt_and_report_reference(sourc
         assert all(ref in {c["id"] for c in records["claims"]} for ref in report["claim_ids"])
         assert all(ref["content_digest"]==sources[(ref["source_id"],ref["revision"])]["content_digest"] for ref in report["source_revisions"])
         assert report["created_at"] and len(report["digest"])==64
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         internal,sid,revision=conn.execute("SELECT id,json_extract(payload,'$.source_id'),json_extract(payload,'$.source_revision') FROM research_evidence_objects WHERE kind='snapshots'").fetchone()
     assert (sid,revision) in sources and internal!=sid
     public=json.dumps(records)
@@ -261,7 +261,7 @@ def test_v2_narrative_scope_keeps_raw_and_exact_excerpt_separate(source_stack):
     assert set(ref)=={"source_id","revision","content_digest","access","read_scope"}
     assert ref["read_scope"]==source["read_scope"]
     assert (ref["source_id"],ref["revision"],ref["content_digest"])==(source["id"],source["revision"],source["content_digest"])
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         payload,payload_digest,raw,extracted=conn.execute(
             "SELECT payload,payload_digest,raw,extracted FROM research_evidence_objects WHERE task_id=? AND kind='snapshots'",(tid,)).fetchone()
     assert raw==article and source["content_digest"]==hashlib.sha256(raw).hexdigest()
@@ -300,7 +300,7 @@ def test_legacy_snapshot_stays_immutable_when_new_v2_source_is_added(source_stac
                 for kind in ("sources","excerpts","reports")}
     assert old_public["sources"][0]["read_scope"]=="legacy_page_unverified"
     assert old_public["reports"][0]["source_revisions"][0]["read_scope"]=="legacy_page_unverified"
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         old_rows=conn.execute("SELECT * FROM research_evidence_objects WHERE task_id=? ORDER BY id",(first,)).fetchall()
     monkeypatch.setattr(CrossrefPlosChain,"fetch",original_fetch)
     next_task=start_current(client,rid)
@@ -311,7 +311,7 @@ def test_legacy_snapshot_stays_immutable_when_new_v2_source_is_added(source_stac
     new_public=client.get(f"/api/research/{rid}/records",params={"task_id":second,"kind":"sources"}).json()["data"]["items"][0]
     assert new_public["read_scope"]=="author_narrative_subset" and new_public["id"]!=old_public["sources"][0]["id"]
     assert new_public["extractor_version"]=="plos-author-narrative-subset-v2"
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         assert conn.execute("SELECT * FROM research_evidence_objects WHERE task_id=? ORDER BY id",(first,)).fetchall()==old_rows
         stored=json.loads(conn.execute("SELECT payload FROM research_evidence_objects WHERE task_id=? AND kind='snapshots'",(second,)).fetchone()[0])
         assert decode("snapshots",json.dumps(stored)).parser_version=="plos-author-narrative-subset-v2"
@@ -336,7 +336,7 @@ def test_new_observation_links_closed_unknown_in_nonselected_compatible_chain(so
         # Restore the supported pre-fix persisted shape without changing any
         # actual observation/outcome/time/closure evidence. The successful
         # chain sorts first; the closed UNKNOWN is deliberately elsewhere.
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn,conn:
             conn.row_factory=sqlite3.Row
             chosen=conn.execute("SELECT chain_id FROM research_source_runs WHERE task_id=?",(first,)).fetchone()[0]
             other="ffffffff-ffff-4fff-bfff-ffffffffffff"
@@ -400,7 +400,7 @@ def test_three_licensed_sources_share_four_request_chain_and_one_report(source_s
     with source_server(metadata=json.dumps(metadata).encode(),article=articles) as (port,calls):
         assert ResearchRunner(ResearchStore(auth._store()),source_transport=PinnedPublicTransport(_worker=partial(get_local_targets,port))).run_once(tid)=="COMPLETED"
         assert len(calls)==4
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         assert conn.execute("SELECT used FROM research_source_chains").fetchone()[0]==4
         assert dict(conn.execute("SELECT kind,count(*) FROM research_evidence_objects GROUP BY kind"))=={"plans":1,"executions":4,"snapshots":3,"excerpts":3,"claims":3,"reports":1}
         assert conn.execute("SELECT count(*) FROM research_funding_accounts").fetchone()[0]==0
@@ -444,7 +444,7 @@ def test_query_rejects_arbitrary_urls_controls_and_unbounded_input(source_stack,
     client,path,rid=source_stack
     response=post(client,f"/api/research/{rid}/source-preview",{"input_revision":1,"expected_research_version":1,"query":query})
     assert response.status_code==422,response.text
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         assert conn.execute("SELECT count(*) FROM research_source_approvals").fetchone()[0]==0
 
 
@@ -547,7 +547,7 @@ def test_sigkill_expired_sender_then_cancel_still_blocks_sending_until_closure(s
 def test_preview_is_read_only_and_start_consumes_approval_atomically(source_stack):
     client,path,rid=source_stack
     payload,view=preview(client,rid)
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         for table in ("research_tasks","research_source_approvals","research_source_chains","research_evidence_objects"):
             assert conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]==0
         assert conn.execute("SELECT count(*) FROM research_idempotency").fetchone()[0]==1
@@ -560,7 +560,7 @@ def test_preview_is_read_only_and_start_consumes_approval_atomically(source_stac
     assert started.status_code==200,started.text
     assert post(client,f"/api/research/{rid}/source-tasks",start,"start").json()==started.json()
     assert post(client,f"/api/research/{rid}/source-tasks",start,"new-key").status_code==409
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         assert conn.execute("SELECT count(*) FROM research_tasks").fetchone()[0]==1
         assert conn.execute("SELECT status FROM research_source_approvals").fetchone()[0]=="consumed"
         assert conn.execute("SELECT count(*) FROM research_steps").fetchone()[0]==3
@@ -577,13 +577,13 @@ def test_stale_or_implicit_confirmation_cannot_create_approval(source_stack,fiel
     body={**payload,"preview_digest":view["preview_digest"],"confirm_external":True,field:value}
     response=post(client,f"/api/research/{rid}/source-approvals",body,"rejected")
     assert response.status_code in (409,422),response.text
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         assert conn.execute("SELECT count(*) FROM research_source_approvals").fetchone()[0]==0
         assert conn.execute("SELECT count(*) FROM research_tasks").fetchone()[0]==0
 
 
 def downgrade_empty_sources_to_true_v3(path):
-    with sqlite3.connect(path,isolation_level=None) as conn:
+    with closing(sqlite3.connect(path,isolation_level=None)) as conn,conn:
         conn.execute("PRAGMA foreign_keys=OFF");conn.execute("BEGIN IMMEDIATE")
         for name in ("research_evidence_objects","research_source_requests","research_source_runs","research_source_chains","research_source_approvals"):
             conn.execute(f"DROP TABLE {name}")
@@ -604,7 +604,7 @@ def downgrade_empty_sources_to_true_v3(path):
 
 
 def database_rows(path):
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         return {name:conn.execute(f'SELECT * FROM "{name}" ORDER BY rowid').fetchall()
             for (name,) in conn.execute("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
 
