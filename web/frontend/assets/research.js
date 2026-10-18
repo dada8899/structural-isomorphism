@@ -768,6 +768,35 @@
     if(value.proposal.query_suggestions.length){add(body,'h3','可手选的英文查询草稿');add(body,'p','选择只填写下方可编辑草稿；不会自动查询来源、批准读取或再次调用模型。',{className:'hint'});}
     for(const suggestion of value.proposal.query_suggestions){const row=add(body,'article','',{className:'native-plan-query'});add(row,'p',suggestion.query);add(row,'p',suggestion.intent,{className:'hint'});const button=add(row,'button','选作可编辑查询草稿',{type:'button',className:'secondary'});button.disabled=readOnlyView();button.addEventListener('click',()=>{if(!planActive(ticket)||readOnlyView())return;byId('native-plan-query-draft').value=suggestion.query;byId('native-plan-query-area').hidden=false;planSync();byId('native-plan-query-draft').focus();});}
   }
+  async function planRetireKnownTerminal(meta,anchor,ticket) {
+    if(!planActive(ticket)||meta.cleanup_state!=='clean')return false;
+    // Only tuples emitted by the current native worker are terminal proof.
+    const tuple=[meta.state,meta.safe_code,meta.cost_state].join(':');
+    const expected={
+      'failed_insufficient:body_invalid:upper_booked':{execution:'FAILED',time:true},
+      'failed_insufficient:not_sent:unreserved':{execution:'FAILED',time:false},
+      'cancelled:cancelled:unreserved':{execution:'CANCELLED',time:false},
+      'cancelled:access_ended:upper_booked':{execution:'CANCELLED',time:true},
+    }[tuple];
+    if(!expected||(expected.time?!recordTime(meta.recorded_at):meta.recorded_at!==null))return false;
+    const pending=planPendingFor(meta),original=pending?.task_request,data=original?.data,scope=original?.anchor;
+    if(!pending||pending.slot!=='structure-research-pending:native-plan-v2-confirm:'+anchor.rid||!validId(pending.key)||!planDigest(pending.digest)||
+      !planKeys(data,['preview_ref','preview_digest','request_digest','expected_research_version','approved_upper_units','confirm_outbound'])||!planRef(data.preview_ref)||!planDigest(data.preview_digest)||!planDigest(data.request_digest)||!planInt(data.expected_research_version)||!planUnits(data.approved_upper_units)||data.confirm_outbound!==true||
+      scope?.rid!==anchor.rid||scope.input_revision!==anchor.input_revision||scope.input_digest!==anchor.input_digest||scope.research_version!==data.expected_research_version||anchor.policy!=='native-plan-v1'||anchor.task_id!==meta.task_id)return false;
+    const body=JSON.stringify({schema_version:schema,contract_revision:planContract,data});
+    const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(body))),n=>n.toString(16).padStart(2,'0')).join('');
+    if(!planActive(ticket)||hash!==pending.digest)return false;
+    // Re-read the original fixed task after the terminal GET, without rendering
+    // or rebasing it. Page generation is a liveness ticket, not stored identity.
+    const bound=await planRequest(`/api/research/${anchor.rid}?task_id=${encodeURIComponent(anchor.task_id)}`,{},ticket,'bind');
+    if(!planActive(ticket))return false;
+    const actual=planAnchor(bound),projected=bound.native_plan,first=bound.task_history?.[0],task=bound.task;
+    const stop=task?.stop_requested===true||task?.stop_requested===1;
+    if(!actual||actual.rid!==anchor.rid||actual.task_id!==anchor.task_id||actual.input_revision!==scope.input_revision||actual.input_digest!==scope.input_digest||actual.policy!=='native-plan-v1'||task.execution!==expected.execution||
+      (expected.execution==='CANCELLED'&&!stop)||!planInt(task.start_version)||task.start_version!==data.expected_research_version+1||first?.task_id!==task.id||first.input_revision!==scope.input_revision||first.input_digest!==scope.input_digest||first.start_version!==task.start_version||!planMeta(projected)||
+      ['task_id','result_ref','state','financial_version','execution_mode','real_model_executed','cost_state','cleanup_state','safe_code','recorded_at'].some(key=>projected[key]!==meta[key]))return false;
+    formulaRetire(pending);return true;
+  }
   async function planRead(meta,anchor,ticket,legacy=false,display=true) {
     try {
       const value=await planRequest(`/api/research/${anchor.rid}/plan-results/${encodeURIComponent(meta.result_ref)}`,{},ticket,legacy?'legacy':'v2');
@@ -777,6 +806,7 @@
       if(content!==null){const pending=legacy?null:planPendingFor(metadata);const result=planValidateResult(content,metadata,anchor,legacy,pending);if(!planActive(ticket))return;if(display)planDisplay(result,ticket);
         if(pending&&!planUncertain(metadata)&&metadata.cleanup_state==='clean')formulaRetire(pending);
       }else if(metadata.state==='saved')throw Error('已保存的计划正文尚未读全，原操作仍保留。');
+      else if(!legacy)await planRetireKnownTerminal(metadata,anchor,ticket);
       planSync();return metadata;
     }catch(error){if(planActive(ticket)){if(display)planClearBody();byId('native-plan-status').textContent=planError(error);planSync();}return null;}
   }
