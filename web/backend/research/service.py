@@ -30,6 +30,10 @@ class ResearchService:
         self.store = store
         self.authorization = AuthorizationGate(store)
 
+    def runtime_capability_facts(self):
+        from .runtime_profile import runtime_capability_facts
+        return runtime_capability_facts(self)
+
     def _principal(self, identity, *, create=False):
         if create and self.store._formal_mode():
             # Existing owner mapping and actual preprovisioned lock come before
