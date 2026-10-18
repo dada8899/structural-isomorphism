@@ -248,3 +248,69 @@ def test_bridge_offline_failure_retains_blocking_route_and_original_error(monkey
         asyncio.run(exercise())
     assert not service.root.exists() and service.cleanup_errors==()
     assert not [t for t in threading.enumerate() if t.name.startswith('controlled-plan-')]
+
+
+def test_fixed_runtime_transport_actual_https_worker_same_ref_time_and_cost():
+    import hashlib,json
+    from services import plan_runtime_transport as runtime
+    from research import plan_native as native,plan_native_runtime as flow
+    module=component()
+    with module.PlanBrowserFixture(transport='runtime') as service:
+        service.install_controlled_funding()
+        assert type(service.resource) is runtime.NativePlanResource
+        assert service.resource.producer=='owned-native-plan-runtime-v1' and service.resource.mode=='controlled_fixture'
+        assert service.resource.permit.data()['runtime_digest']==hashlib.sha256(Path(runtime.__file__).read_bytes()).hexdigest()
+        client=service.client
+        problem={'entry':'phenomenon','original_input':module.OBSERVATION,'summary':'合成排队现象与等待时间的结构描述','objective':'理解合成等待','variables':[],'constraints':[],'unknowns':['到达规律尚未确认'],'confirmed':True}
+        status,saved=client.request('POST','/api/research',module.envelope({'problem':problem}),key='runtime-component-create');assert status==200
+        rid=saved['data']['research']['id'];request={'input_revision':1,'expected_research_version':1,'observation_source':'own_observation','declaration_status':'self_declared'}
+        status,preview=client.request('POST','/api/research/'+rid+'/plan-previews',module.envelope(request,'funded-plan-v2'),key='runtime-component-preview');assert status==200
+        confirmation={key:preview['data'][key] for key in ('preview_ref','preview_digest','request_digest','expected_research_version','approved_upper_units')};confirmation['confirm_outbound']=True
+        status,accepted=client.request('POST','/api/research/'+rid+'/plan-approvals',module.envelope(confirmation,'funded-plan-v2'),key='runtime-component-confirm');assert status==200
+        ref=accepted['data']['result_ref'];result=service.wait_result(rid,ref)
+        assert result['data']['state']=='saved' and result['data']['content']['proposal']==module.CANDIDATE
+        content=result['data']['content']
+        assert content['producer']=='owned-native-plan-runtime-v1' and content['execution_mode']=='controlled_fixture' and content['real_model_executed'] is False
+        assert content['automatically_created_sources']==0 and result['data']['cleanup_state']=='clean'
+        assert client.request('GET','/api/research/'+rid+'/plan-results/'+ref)[1]==result
+        history=client.request('GET','/api/research/'+rid)[1]['data']['native_plan_history']
+        assert any(item['result_ref']==ref and item['recorded_at']==content['recorded_at'] for item in history)
+        with service.store.transaction() as conn:
+            assert conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone()[:]==(0,flow.UPPER)
+            row=conn.execute('SELECT admission_json,receipt_json FROM research_plan_native_runs').fetchone()
+            assert json.loads(row['admission_json'])['producer']=='owned-native-plan-runtime-v1'
+            assert json.loads(row['receipt_json'])['mode']=='controlled_fixture'
+        assert service.calls==['GET','POST'] and not service.worker_failures
+        resource=service.resource
+    assert not service.root.exists() and service.cleanup_errors==()
+    assert not resource.active and not [value for value in runtime._RESOURCES.values() if value is resource]
+    assert not [value for value in runtime._CHANNELS.values() if value.owner is resource]
+    assert not [t for t in threading.enumerate() if t.name.startswith('controlled-plan-')]
+
+
+@pytest.mark.parametrize('transport',['live','native_live','services.plan_runtime_transport',None,True])
+def test_controlled_transport_choice_is_literal_and_not_a_live_flag(transport):
+    module=component()
+    with pytest.raises(ValueError,match='fixed controlled transport'):module.PlanBrowserFixture(transport=transport)
+
+
+def test_missing_fixed_runtime_module_never_falls_back_to_core(monkeypatch):
+    from research import plan_native as native
+    from research.errors import ResearchError
+    module=component();original=native.importlib.import_module
+    def missing(name,*args,**kwargs):
+        if name=='services.plan_runtime_transport':raise ModuleNotFoundError('fixed Runtime absent',name=name)
+        return original(name,*args,**kwargs)
+    def no_core(*args,**kwargs):raise AssertionError('Runtime choice cannot fall back to Core')
+    with module.PlanBrowserFixture(transport='runtime') as service:
+        with monkeypatch.context() as fault:
+            fault.setattr(native.importlib,'import_module',missing)
+            fault.setattr(native,'open_controlled_fixture_resource',no_core)
+            with pytest.raises(ResearchError) as absent:service.install_controlled_funding()
+            assert absent.value.code=='FUNDING_CLOSED'
+        assert service.provider.socket.fileno()==-1 and not service.provider_thread.is_alive()
+        assert service.calls==[] and not service.installed
+        with service.store.transaction() as conn:
+            assert conn.execute('SELECT count(*) FROM research_plan_native_funding').fetchone()[0]==0
+            assert conn.execute('SELECT count(*) FROM research_funding_accounts').fetchone()[0]==0
+    assert not service.root.exists() and service.cleanup_errors==()
