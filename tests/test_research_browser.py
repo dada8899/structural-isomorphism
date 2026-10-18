@@ -3071,6 +3071,31 @@ async def _native_tls_login(page,fixture,owner,*,fresh=False):
     actual=await _native_tls_fetch(page,'/api/auth/me');assert actual['status']==200 and actual['body']['user']['email']==owner
 
 
+async def _native_tls_completed_read(page,url,action):
+    """One real GET body must finish before its UI-outcome assertion starts."""
+    import asyncio
+    loop=asyncio.get_running_loop();terminal=loop.create_future();requests=[];responses=[];deadline=time.monotonic()+15
+    def captured(request):
+        if request.method=='GET' and request.url==url:requests.append(request)
+    def headers(response):
+        if requests and response.request is requests[0]:responses.append(response)
+    def finished(request):
+        if requests and request is requests[0] and not terminal.done():terminal.set_result(('requestfinished',request,time.monotonic()))
+    def failed(request):
+        if requests and request is requests[0] and not terminal.done():terminal.set_result(('requestfailed',request,time.monotonic()))
+    listeners=[('request',captured),('response',headers),('requestfinished',finished),('requestfailed',failed)]
+    for event,callback in listeners:page.on(event,callback)
+    try:
+        await asyncio.wait_for(action(),timeout=max(.001,deadline-time.monotonic()))
+        kind,request,at=await asyncio.wait_for(asyncio.shield(terminal),timeout=max(.001,deadline-time.monotonic()))
+        assert at<=deadline and kind=='requestfinished','original plan read failed or exceeded its15s prerequisite'
+        assert len(requests)==len(responses)==1 and request is requests[0] and responses[0].request is request and responses[0].status==200
+        return responses[0]
+    finally:
+        for event,callback in listeners:page.remove_listener(event,callback)
+        if not terminal.done():terminal.cancel()
+
+
 def _native_owned_browser_pids():
     root=os.environ.get('A006_AUDIT_ROOT','')
     if not root:return []
@@ -3092,6 +3117,10 @@ async def _native_plan_tls_journey(tmp_path,mode):
     spec=importlib.util.spec_from_file_location('native_ui_controlled_browser_service',file);component=importlib.util.module_from_spec(spec);spec.loader.exec_module(component)
     facts={'mode':mode,'scope':'controlled_fixture, not live/Main/real model','canonical_origin':component.ORIGIN,'browser_requests':[],'observed_browser_driver_pids':[]}
     held=[];fixture=None;context=None;browser=None;playwright=None;primary=None;cleanup=[];root=None;ports=[]
+    started=time.monotonic();facts['events']=[]
+    def progress(stage):
+        facts['events'].append({'stage':stage,'seconds':round(time.monotonic()-started,6)})
+        (tmp_path/'native-plan-progress.json').write_text(json.dumps({'mode':mode,'events':facts['events']},indent=2))
     def pending_script():return "Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('structure-research-pending:native-plan-v2-confirm:')))"
     try:
         with component.PlanBrowserFixture() as fixture,fixture.browser_bridge() as bridge:
@@ -3110,11 +3139,11 @@ async def _native_plan_tls_journey(tmp_path,mode):
                     await _native_tls_login(page,fixture,component.OWNER,fresh=True)
                     cookies=[cookie for cookie in await context.cookies() if cookie['name']=='phase_session'];assert len(cookies)==1 and cookies[0]['secure'] and cookies[0]['httpOnly'] and cookies[0]['domain']==component.HOST
                     facts['browser_secure_httponly_canonical_cookie']=True;cookies.clear()
-                    await page.goto(component.ORIGIN+'/research')
+                    await page.goto(component.ORIGIN+'/research');progress('browser_authenticated')
                     await page.locator('#original-input').fill(component.OBSERVATION);await page.locator('#objective').fill('理解合成排队现象');await page.locator('#summary').fill('合成排队现象与等待时间的结构描述');await page.locator('#confirmed').check()
                     async with page.expect_response(component.ORIGIN+'/api/research') as saved:await page.locator('#save').click()
                     saved_response=await saved.value;assert saved_response.status==200;view=(await saved_response.json())['data'];rid=view['research']['id']
-                    await aexpect(page.locator('#status')).to_contain_text('已保存修订 1')
+                    await aexpect(page.locator('#status')).to_contain_text('已保存修订 1');progress('problem_saved')
                     await page.locator('#native-plan-own').check()
                     if mode in ('late-preview-new-draft','late-preview-logout'):
                         async def hold_preview(route):
@@ -3144,7 +3173,7 @@ async def _native_plan_tls_journey(tmp_path,mode):
                         await aexpect(page.locator('#native-plan-exact-input')).to_have_text(component.OBSERVATION);await aexpect(page.locator('#native-plan-quote')).to_contain_text('余额尚未核对');await aexpect(page.locator('#native-plan-confirm')).to_be_disabled();await aexpect(page.locator('#native-plan-body')).to_have_text('')
                         assert fixture.calls==[];facts['actual_closed_preview']=True
                         if mode!='closed':
-                            fixture.install_controlled_funding();ports.append(fixture.provider.server_port)
+                            fixture.install_controlled_funding();ports.append(fixture.provider.server_port);progress('controlled_funding_installed')
                             async with page.expect_response('**/plan-previews') as preview:await page.locator('#native-plan-preview').click()
                             preview_value=(await (await preview.value).json())['data'];assert preview_value['can_confirm'] is True
                             await aexpect(page.locator('#native-plan-confirm')).to_be_disabled();await aexpect(page.locator('#native-plan-exact-input')).to_have_text(component.OBSERVATION)
@@ -3165,11 +3194,11 @@ async def _native_plan_tls_journey(tmp_path,mode):
                             deadline=time.monotonic()+5
                             while not captures and time.monotonic()<deadline:await asyncio.sleep(.02)
                             assert len(captures)==1;ack=captures[0];assert ack['state']=='queued' and ack['recorded_at'] is None and ack['real_model_executed'] is False
-                            ref=ack['result_ref'];task=ack['task_id'];actual_result=await asyncio.to_thread(fixture.wait_result,rid,ref)
+                            ref=ack['result_ref'];task=ack['task_id'];progress('actual_queued_ack_captured');actual_result=await asyncio.to_thread(fixture.wait_result,rid,ref)
                             deadline=time.monotonic()+5
                             while actual_result['data']['cleanup_state']!='clean' and time.monotonic()<deadline:
                                 await asyncio.sleep(.02);status,actual_result=await asyncio.to_thread(fixture.client.request,'GET','/api/research/'+rid+'/plan-results/'+ref);assert status==200
-                            assert actual_result['data']['state']=='saved' and actual_result['data']['cleanup_state']=='clean'
+                            assert actual_result['data']['state']=='saved' and actual_result['data']['cleanup_state']=='clean';progress('actual_worker_saved_clean')
                             content=actual_result['data']['content'];assert content['proposal']==component.CANDIDATE and content['execution_mode']=='controlled_fixture' and content['real_model_executed'] is False
                             if mode=='lost-ack':
                                 await aexpect(page.locator('#native-plan-status')).to_contain_text('状态尚未确认');before=await page.evaluate(pending_script());assert len(before)==1
@@ -3182,12 +3211,12 @@ async def _native_plan_tls_journey(tmp_path,mode):
                                     await page.locator('#original-input').fill('当前已保存的新观察B不能被原计划A替换。')
                                     async with page.expect_response('**/revisions') as saved_b:await page.locator('#save').click()
                                     assert (await (await saved_b.value).json())['data']['current_problem']['revision']==2
-                                    await aexpect(page.locator('#status')).to_contain_text('已保存修订 2')
+                                    await aexpect(page.locator('#status')).to_contain_text('已保存修订 2');progress('new_B_revision_saved')
                                 else:
                                     assert (await _native_tls_fetch(page,'/api/auth/logout','POST',{}))['status']==200
                                     await _native_tls_login(page,fixture,'other-native-owner@example.invalid')
                                 before=await page.evaluate(pending_script());assert len(before)==1
-                                route,actual=held.pop()
+                                route,actual=held.pop();progress('releasing_old_A_ack')
                                 async with page.expect_response('**/plan-approvals'):await route.fulfill(status=actual.status,headers=dict(actual.headers),body=actual.body)
                                 await page.evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
                                 assert await page.evaluate(pending_script())==before
@@ -3195,7 +3224,7 @@ async def _native_plan_tls_journey(tmp_path,mode):
                                 if mode=='account-switch':await aexpect(page.locator('#problem-form')).to_be_hidden();await aexpect(page.locator('#original-input')).to_have_value('')
                                 else:
                                     await aexpect(page.locator('#original-input')).to_have_value('当前已保存的新观察B不能被原计划A替换。')
-                                    await page.locator('#native-plan-recover').click()
+                                    progress('recover_original_A_click');await _native_tls_completed_read(page,component.ORIGIN+'/api/research/'+rid+'/plan-results/'+ref,lambda:page.locator('#native-plan-recover').click());progress('recover_original_A_read_finished')
                                     await aexpect(page.locator('#native-plan-status')).to_contain_text('当前草稿未替换')
                                     await aexpect(page.locator('#original-input')).to_have_value('当前已保存的新观察B不能被原计划A替换。')
                                     await aexpect(page.locator('#revision-label')).to_have_text('当前修订 2')
@@ -3218,7 +3247,8 @@ async def _native_plan_tls_journey(tmp_path,mode):
                                 assert conn.execute('SELECT count(*) FROM research_source_runs').fetchone()[0]==0
                             facts.update({'provider_calls':fixture.calls.copy(),'task_id':task,'result_ref':ref,'recorded_at':content['recorded_at'],'real_model_executed':False,'actual_model_weight_identity_verified':False,'automatically_created_sources':0})
                     facts['observed_browser_driver_pids']+=_native_owned_browser_pids()
-                    await page.screenshot(path=str(tmp_path/'native-plan-'+mode+'.png'),full_page=True)
+                    progress('all_business_assertions_finished')
+                    await page.screenshot(path=str(tmp_path/('native-plan-'+mode+'.png')),full_page=True)
             except BaseException as error:primary=error;raise
             finally:
                 facts['observed_browser_driver_pids']+=_native_owned_browser_pids()
@@ -3233,6 +3263,7 @@ async def _native_plan_tls_journey(tmp_path,mode):
                     if primary is not None:primary.add_note('owned browser cleanup uncertain: '+','.join(cleanup))
                     else:raise RuntimeError('owned browser cleanup uncertain: '+','.join(cleanup))
     finally:
+        facts['elapsed_seconds']=round(time.monotonic()-started,6)
         facts['observed_browser_driver_pids']=sorted(set(facts['observed_browser_driver_pids']));facts['cleanup_errors']=cleanup
         facts['fixture_private_root_removed']=root is not None and not root.exists();facts['owned_ports']=ports
         if fixture is not None:
