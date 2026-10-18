@@ -3660,3 +3660,74 @@ async def _method_draft_actual_plan_choice(tmp_path):
 def test_method_draft_reads_actual_runtime_plan_lead_without_prefilling_or_execution(tmp_path):
     import asyncio
     asyncio.run(_method_draft_actual_plan_choice(tmp_path))
+
+
+async def _method_draft_drain_owned_bridge(page,bridge):
+    """Let owned, already-started TLS reads finish before normal teardown."""
+    import asyncio
+    deadline=time.monotonic()+5
+    while True:
+        with bridge.condition:pending=len(bridge.pending)
+        if not pending:break
+        assert time.monotonic()<deadline,'owned TLS reads did not drain within5s'
+        await asyncio.sleep(.02)
+    await page.evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+
+
+async def _method_draft_late_empty_history(tmp_path,change):
+    import asyncio,importlib.util
+    from playwright.async_api import async_playwright,expect as aexpect
+    path=BACKEND/'tests/acceptance/plan_browser_service.py';spec=importlib.util.spec_from_file_location('actual_method_draft_history_boundary_service',path);component=importlib.util.module_from_spec(spec);spec.loader.exec_module(component)
+    fixture=None;root=None;browser=None;context=None;primary=None;cleanup=[];held=[];facts={'change':change}
+    try:
+        with component.PlanBrowserFixture(transport='runtime') as fixture,fixture.browser_bridge() as bridge:
+            root=fixture.root
+            async with async_playwright() as p:
+                browser=await p.chromium.launch();context=await browser.new_context()
+                try:
+                    async with bridge.routed(context):
+                        page=await context.new_page();await page.goto(component.ORIGIN+'/research');await _native_tls_login(page,fixture,component.OWNER,fresh=True);await page.goto(component.ORIGIN+'/research')
+                        await page.locator('#original-input').fill(component.OBSERVATION);await page.locator('#summary').fill('准备只读历史与手写新稿隔离的合成问题');await page.locator('#confirmed').check()
+                        async with page.expect_response(component.ORIGIN+'/api/research') as saved:await page.locator('#save').click()
+                        assert (await saved.value).status==200;await aexpect(page.locator('#research-list-status')).to_contain_text('已读取 1');values=await _method_draft_type_manual_fields(page)
+                        async def hold_history(route):
+                            request=route.request;actual=await asyncio.to_thread(bridge.forward,request.method,request.url,await request.all_headers(),request.post_data_buffer);assert actual.status==200
+                            parsed=json.loads(actual.body);assert parsed['contract_revision']=='method-draft-v1' and parsed['data']['items']==[];held.append((route,actual))
+                        await page.route('**/method-drafts?limit=20',hold_history,times=1);await page.locator('#method-draft-read-history').click();deadline=time.monotonic()+8
+                        while not held and time.monotonic()<deadline:await asyncio.sleep(.02)
+                        assert len(held)==1
+                        if change=='new-editor':await page.locator('#method-draft-method').fill('新的手写方法B不能被旧历史读取替换。')
+                        else:
+                            assert (await _native_tls_fetch(page,'/api/auth/logout','POST',{}))['status']==200
+                            await page.locator('#research-list-refresh').click();await aexpect(page.locator('#problem-form')).to_be_hidden()
+                        route,actual=held.pop()
+                        async with page.expect_response('**/method-drafts?limit=20'):await route.fulfill(status=actual.status,headers=dict(actual.headers),body=actual.body)
+                        await page.evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+                        await aexpect(page.locator('#method-draft-view')).to_have_text('')
+                        if change=='new-editor':await aexpect(page.locator('#method-draft-method')).to_have_value('新的手写方法B不能被旧历史读取替换。')
+                        else:
+                            await aexpect(page.locator('#method-draft-section')).to_be_hidden()
+                            for field in values:await aexpect(page.locator('#'+field)).to_have_value('')
+                            await aexpect(page.locator('#method-draft-materials')).to_have_text('');await aexpect(page.locator('#method-draft-history')).to_have_text('')
+                        assert fixture.calls==[];facts['real_empty_history_held']=True;facts['no_model_or_source_execution']=True
+                        await _method_draft_drain_owned_bridge(page,bridge)
+                except BaseException as error:primary=error;raise
+                finally:
+                    for route,_ in held:
+                        try:await route.abort('blockedbyclient')
+                        except BaseException:pass
+                    for value,name in ((context,'close'),(browser,'close')):
+                        if value is not None:
+                            try:await getattr(value,name)()
+                            except BaseException as error:cleanup.append(type(error).__name__)
+                    if cleanup:
+                        if primary:primary.add_note('owned browser cleanup uncertain: '+','.join(cleanup))
+                        else:raise RuntimeError('owned browser cleanup uncertain: '+','.join(cleanup))
+    finally:
+        facts['fixture_root_removed']=root is not None and not root.exists();facts['cleanup_errors']=cleanup;facts['fixture_cleanup_errors']=list(fixture.cleanup_errors) if fixture else ['not_started'];(tmp_path/'method-draft-late-history-facts.json').write_text(json.dumps(facts,ensure_ascii=False,indent=2))
+
+
+@pytest.mark.parametrize('change',['new-editor','logout'])
+def test_method_draft_real_late_history_keeps_new_editor_and_private_clear(tmp_path,change):
+    import asyncio
+    asyncio.run(_method_draft_late_empty_history(tmp_path,change))

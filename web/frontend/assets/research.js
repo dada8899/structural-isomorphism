@@ -903,7 +903,7 @@
   function draftReadTicket(){draftState.readEpoch++;return {...draftTicket(),readEpoch:draftState.readEpoch};}
   function draftClearView(){byId('method-draft-view').replaceChildren();byId('method-draft-view-status').textContent='';draftState.view=null;}
   function draftChanged(message='方法草稿有修改；已保存原稿未被改写。'){
-    draftState.epoch++;draftState.dirty=true;draftClearView();byId('method-draft-status').textContent=message;draftSync();
+    draftState.epoch++;draftState.dirty=true;draftClearView();if(byId('method-draft-history-status').textContent==='正在核对草稿历史…')byId('method-draft-history-status').textContent='编辑内容已变化，较早历史读取不再显示；可主动重新读取。';byId('method-draft-status').textContent=message;draftSync();
   }
   function draftHideMaterials(message){
     draftState.epoch++;draftState.excerpts.clear();draftState.plans.clear();draftState.formulas.clear();draftState.origin=null;draftClearView();
