@@ -7,6 +7,7 @@ This is not a sandbox against malicious code running as the same operating UID.
 import io
 import os
 import signal
+import socket
 import subprocess
 import sys
 from multiprocessing import context, reduction, spawn
@@ -21,8 +22,9 @@ _UNCERTAIN = []
 
 
 def require_supported():
-    if (sys.implementation.name != 'cpython' or sys.version_info[:2] != (3, 11)
+    if (sys.implementation.name != 'cpython' or sys.version_info[:3] != (3, 11, 15)
             or os.name != 'posix' or getattr(sys, 'frozen', False)
+            or not getattr(reduction, 'HAVE_SEND_HANDLE', False) or not hasattr(socket, 'SCM_RIGHTS')
             or not all(hasattr(signal, name) for name in ('SIGALRM', 'ITIMER_REAL', 'setitimer', 'pthread_sigmask'))):
         raise RuntimeError('Source safe spawn unavailable')
 

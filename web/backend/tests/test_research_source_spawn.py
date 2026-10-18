@@ -71,6 +71,8 @@ def _assert_retired(records):
 
 
 def test_sender_exec_starts_without_sensitive_environment(tmp_path,monkeypatch):
+    from multiprocessing import resource_tracker
+    original_tracker=(resource_tracker._resource_tracker._pid,resource_tracker._resource_tracker._fd)
     monkeypatch.setenv('STRUCTURAL_ENV','test')
     for name in SENSITIVE_NAMES:monkeypatch.setenv(name,'synthetic-spawn-sentinel')
     records=_observe_exec(monkeypatch)
@@ -91,6 +93,23 @@ def test_sender_exec_starts_without_sensitive_environment(tmp_path,monkeypatch):
     assert 'multiprocessing.resource_tracker' in records[0][1][-1]
     assert len(records[0][2]['pass_fds'])==1
     assert len(records[1][2]['pass_fds'])==5  # tracker, RawArray, duplex channel, payload, sentinel
+    assert (resource_tracker._resource_tracker._pid,resource_tracker._resource_tracker._fd)==original_tracker
+
+
+def test_owned_loopback_response_crosses_standard_rawarray_and_retires_each_tracker(tmp_path,monkeypatch):
+    from web.backend.tests.source_http_fixture import source_server,get_local,METADATA,ARTICLE
+    records=_observe_exec(monkeypatch)
+    gate=AuthorizationGate(SimpleNamespace(path=tmp_path/'unused.sqlite3'))
+    with source_server() as (port,calls),gate.owner_gate_id(str(uuid4())) as owner:
+        transport=source_policy.PinnedPublicTransport(_worker=functools.partial(get_local,port))
+        for target,expected in ((source_policy.discovery_target('queue theory'),METADATA),
+                (source_policy.article_target('10.1371/journal.pone.0015032'),ARTICLE)):
+            result=transport.get(target,still_authorized=lambda:True,owner_lease=owner)
+            assert result[0]==200 and result[2]==result[3]==expected
+        assert calls==['/discovery','/article']
+        assert transport.execution_mode=='offline_probe'
+    _assert_retired(records[:2]);_assert_retired(records[2:])
+    assert records[0][0].pid!=records[2][0].pid
 
 
 def test_sender_exec_failure_retires_already_born_tracker(tmp_path,monkeypatch):
@@ -162,9 +181,10 @@ def test_live_factory_requires_fixed_source_target_without_network():
     finally:process.close()
 
 
-def test_unsupported_runtime_closes_before_exec(tmp_path,monkeypatch):
+@pytest.mark.parametrize('version',[(3,12,0),(3,11,14)])
+def test_unsupported_runtime_closes_before_exec(tmp_path,monkeypatch,version):
     records=_observe_exec(monkeypatch)
-    monkeypatch.setattr(source_spawn.sys,'version_info',(3,12,0))
+    monkeypatch.setattr(source_spawn.sys,'version_info',version)
     with pytest.raises(RuntimeError,match='unavailable'):_get(tmp_path)
     assert records==[]
 
