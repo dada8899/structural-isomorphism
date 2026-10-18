@@ -484,11 +484,35 @@ def _receipt(conn, gate_id):
 
 
 def expected_owner_gate_identity(store, gate_id):
-    with store._connection() as conn:
+    if not _private(store):
+        with store._connection() as conn:
+            row=_receipt(conn,gate_id)
+            if row is None or row['database_binding']!=_binding(store):
+                raise PermissionError('owner gate resource is not admitted')
+            return row['lock_dev'],row['lock_ino']
+    from .runtime_paths import private_auth_path,RuntimePathError
+    from .sqlite_utils import connect_private_auth
+    if store.path!=private_auth_path() or store.storage_identity is None:
+        raise RuntimePathError('private owner gate has no captured Auth identity')
+    conn=connect_private_auth(store.path,readonly=True,expected_identity=store.storage_identity)
+    try:
+        conn.row_factory=sqlite3.Row
+        if __package__=='web.backend.services':from ..research.financial_guard import install_default_hook
+        else:from research.financial_guard import install_default_hook
+        install_default_hook(conn)
+        install_hook(conn)
+        conn.execute('PRAGMA busy_timeout=10000')
+        conn.execute('PRAGMA secure_delete=ON')
+        conn.execute('PRAGMA foreign_keys=ON')
+        if conn.execute('PRAGMA foreign_keys').fetchone()[0]!=1:
+            raise RuntimeError('private Auth foreign keys unavailable')
+        conn.execute('BEGIN')
+        store.check_gate_policy(conn,initialize=False)
         row=_receipt(conn,gate_id)
         if row is None or row['database_binding']!=_binding(store):
             raise PermissionError('owner gate resource is not admitted')
         return row['lock_dev'],row['lock_ino']
+    finally:conn.close()
 
 
 def _new_receipt(conn, op, kind, *, identity=None, generation=None):

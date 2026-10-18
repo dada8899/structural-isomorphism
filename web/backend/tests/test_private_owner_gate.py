@@ -20,6 +20,7 @@ def test_formal_mapping_and_lock_reuse_existing_identity_without_writes(prepared
     assert all(args[0].endswith('?mode=ro') for args,_kw,_conn in native)
     with AuthorizationGate(prepared['store']).owner_gate_id(prepared['gate']) as lease:
         assert lease.identity[:2]==before
+    assert all(args[0].endswith('?mode=ro') for args,_kw,_conn in native)
     with pytest.raises(PermissionError):lease.identity
     assert (lock.stat().st_dev,lock.stat().st_ino)==before
 
@@ -99,6 +100,52 @@ def test_formal_owner_mapping_remains_readonly_after_environment_downgrade(prepa
     assert prepared['auth'].owner_gate_id(prepared['actor'].email)==prepared['gate']
     with AuthorizationGate(prepared['store']).owner_gate_id(prepared['gate']):pass
     assert all(args[0].endswith('?mode=ro') for args,_kw,_conn in native)
+
+
+@pytest.mark.parametrize('profile',['prod','dev'])
+def test_resource_receipt_uses_native_ro_with_both_default_hooks(prepared,native,monkeypatch,profile):
+    from services import auth_registration as registration
+    actual_hook=registration.install_hook;checked=[]
+    def observed_hook(conn):
+        actual_hook(conn)
+        assert conn.execute('SELECT research_method_guard_version()').fetchone()[0]==9
+        assert conn.execute("SELECT auth_registration_write_allowed('insert','auth_users')").fetchone()[0]==0
+        checked.append(conn)
+    monkeypatch.setattr(registration,'install_hook',observed_hook)
+    monkeypatch.setenv('STRUCTURAL_ENV',profile)
+    lock=prepared['lock'].stat()
+    assert prepared['auth'].expected_owner_gate_identity(prepared['gate'])==(lock.st_dev,lock.st_ino)
+    assert len(checked)==len(native)==1
+    assert native[0][0][0]==prepared['path'].as_uri()+'?mode=ro' and native[0][1]['uri'] is True
+    with pytest.raises(sqlite3.ProgrammingError):checked[0].execute('SELECT 1')
+    assert checked[0]._history_file is None
+
+
+@pytest.mark.parametrize('fault',['hook','policy','receipt','binding','path','promotion'])
+def test_resource_receipt_failure_closes_native_without_write_or_fallback(prepared,native,monkeypatch,fault):
+    from services import auth_registration as registration
+    obj=prepared['auth'];gate=prepared['gate']
+    if fault=='hook':
+        actual_hook=registration.install_hook
+        def failed_hook(conn):
+            actual_hook(conn)
+            raise RuntimeError('synthetic receipt hook failure')
+        monkeypatch.setattr(registration,'install_hook',failed_hook)
+    elif fault=='policy':
+        with raw(prepared['path']) as conn:conn.execute("UPDATE auth_owner_gate_policy SET fingerprint='wrong'")
+    elif fault=='receipt':gate=str(uuid4())
+    elif fault=='binding':obj._storage_identity=(0,0)
+    elif fault=='path':obj.path=prepared['path'].with_name('unapproved.sqlite3')
+    else:obj._private_auth=False
+    start=len(native)
+    with pytest.raises((PermissionError,RuntimeError,OSError)):obj.expected_owner_gate_identity(gate)
+    opened=native[start:]
+    assert len(opened)==int(fault in ('hook','policy','receipt'))
+    assert all(args[0]==prepared['path'].as_uri()+'?mode=ro' and kw['uri'] is True for args,kw,_ in opened)
+    for _args,_kw,conn in opened:
+        with pytest.raises(sqlite3.ProgrammingError):conn.execute('SELECT 1')
+        assert conn._history_file is None
+    assert not prepared['path'].with_name('unapproved.sqlite3').exists()
 
 
 @pytest.mark.parametrize('fault',['missing','uuid','type','policy'])
