@@ -550,31 +550,41 @@
     "original_sha256": "62d621470b9b18517b372746f5674a6042b4f70958f185bf21bc03699ad41a4f"
   },
   "web/backend/services/auth_registration.py": {
-    "current_sha256": "8739b50c475fb1106e4e9676dd33be7508608da65afd63bcf9c4816c0a636ce1",
+    "current_sha256": "8b0bcd8a58c09061ebea6e2b91b76aabc63552ffcdfdb0db6a36e2259cb98904",
     "hunks": [
       [
-        749,
-        750,
+        486,
+        510,
+        "    with store._connection() as conn:\n"
+      ],
+      [
+        514,
+        515,
+        ""
+      ],
+      [
+        773,
+        774,
         "    objects=ResearchStore._current_structure_declarations(version=13)\n"
       ],
       [
-        753,
-        754,
+        777,
+        778,
         "    conn.execute('INSERT INTO research_schema VALUES(1,13)')\n"
       ],
       [
-        874,
-        875,
+        898,
+        899,
         "                        if list(map(tuple,conn.execute('SELECT * FROM research_schema')))!=[(1,13)]:raise PermissionError('exact Research13 required')\n"
       ],
       [
-        894,
-        895,
+        918,
+        919,
         "        return {'contract':'auth-provision-v1','research_schema':13,'created':fresh}\n"
       ],
       [
-        916,
-        917,
+        940,
+        941,
         "    if (profile,version) not in (('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13)):\n"
       ]
     ],

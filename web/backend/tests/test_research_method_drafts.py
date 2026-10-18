@@ -278,3 +278,24 @@ def test_reader_rejects_current_control_rollback_instead_of_trusting_self_consis
     with store.transaction(write=True) as conn:conn.execute('UPDATE research_controls SET version=? WHERE id=?',(data['expected_research_version'],rid))
     response=client.get(f'/api/research/{rid}/method-drafts/{ref}')
     assert response.status_code==404 and 'Compare inflow' not in response.text
+
+
+def test_current14_accepted_receipt_helper_is_native_readonly_and_draft_still_saves(stack,monkeypatch):
+    from research.authorization import AuthorizationGate
+    client,root,rid,tid,store,data=prepared(stack,monkeypatch)
+    with closing(sqlite3.connect(store.path.as_uri()+'?mode=ro',uri=True)) as conn:before=conn.serialize()
+    inode=(store.path.stat().st_dev,store.path.stat().st_ino);opened=[];native=sqlite3.connect
+    with monkeypatch.context() as observe:
+        def connect(*args,**kwargs):
+            conn=native(*args,**kwargs);opened.append((args,kwargs,conn));return conn
+        observe.setattr(sqlite3,'connect',connect)
+        gate=store.auth_store.owner_gate_id('fresh@example.invalid')
+        expected=store.auth_store.expected_owner_gate_identity(gate)
+        with AuthorizationGate(store).owner_gate_id(gate) as lease:assert lease.identity[:2]==expected
+        assert opened and all(args[0]==store.path.as_uri()+'?mode=ro' and kwargs.get('uri') is True for args,kwargs,_ in opened)
+        for _,_,conn in opened:
+            with pytest.raises(sqlite3.ProgrammingError):conn.execute('SELECT 1')
+    with closing(native(store.path.as_uri()+'?mode=ro',uri=True)) as conn:assert conn.serialize()==before
+    assert (store.path.stat().st_dev,store.path.stat().st_ino)==inode
+    saved=post(client,rid,data);assert saved.status_code==200,saved.text
+    assert client.get(f"/api/research/{rid}/method-drafts/{saved.json()['data']['metadata']['draft_ref']}").json()==saved.json()
