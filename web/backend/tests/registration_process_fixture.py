@@ -59,4 +59,3 @@ def _die_registration_process(root,token,point):
         'query_string':b'','server':('beta.structural.bytedance.city',443),'client':('127.0.0.1',10000),
         'headers':[(b'host',b'beta.structural.bytedance.city'),(b'origin',BETA.encode())]})
     asyncio.run(child_auth.verify(child_auth.VerifyBody(token=token),request,Response()))
-
