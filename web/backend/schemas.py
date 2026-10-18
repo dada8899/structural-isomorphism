@@ -1726,3 +1726,170 @@ class NativePlanReadResponse(FormulaPublicObject):
     data:NativePlanReadData
 
 __all__ += ['NativePlanQuote', 'NativePlanPreviewEnvelope', 'NativePlanConfirmationEnvelope', 'NativePlanResult', 'NativePlanPreviewView', 'NativePlanConfirmationData', 'NativePlanRunMetadata', 'NativePlanReadData', 'NativePlanPreviewResponse', 'NativePlanConfirmationResponse', 'NativePlanReadResponse']
+
+
+"""Strict manual method drafts. References never confer execution rights."""
+from typing import Annotated, Literal
+from pydantic import Field, StrictInt, StringConstraints, field_validator, model_validator
+import json,unicodedata
+MethodDraftRevision=Annotated[StrictInt,Field(ge=1,le=2147483647)]
+def _method_draft_bounded(value,maximum,minimum):
+    if any(unicodedata.category(c) in {"Cc","Cf","Cs"} and c not in "\t\n" for c in value) or not minimum<=len(unicodedata.normalize("NFC",value))<=maximum:raise ValueError("invalid text")
+
+METHOD_DRAFT_CONTRACT='method-draft-v1'
+MethodDraftUUID=Annotated[str,StringConstraints(strict=True,pattern=r'^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$')]
+MethodDraftDigest=Annotated[str,StringConstraints(strict=True,pattern=r'^[a-f0-9]{64}$')]
+MethodDraftText=Annotated[str,StringConstraints(strict=True,min_length=1,max_length=2000)]
+
+class DraftExcerptRef(FormulaPublicObject):
+    excerpt_id: MethodDraftUUID
+    source_revision: MethodDraftRevision
+    content_digest: MethodDraftDigest
+    start: Annotated[StrictInt,Field(ge=0,le=200000)]
+    end: Annotated[StrictInt,Field(ge=1,le=200000)]
+    @model_validator(mode='after')
+    def range_bound(self):
+        if not self.start<self.end or self.end-self.start>1000:raise ValueError('bounded exact excerpt required')
+        return self
+
+class PlanLeadOrigin(FormulaPublicObject):
+    kind: Literal['plan_lead']
+    plan_contract: Literal['funded-plan-v1','funded-plan-v2']
+    result_ref: MethodDraftUUID
+    candidate_index: Annotated[StrictInt,Field(ge=0,le=4)]
+    lead_index: Annotated[StrictInt,Field(ge=0,le=1)]
+
+class CatalogOrigin(FormulaPublicObject):
+    kind: Literal['kb_record']
+    artifact_id: Annotated[str,StringConstraints(strict=True,min_length=1,max_length=200)]
+    record_id: Annotated[str,StringConstraints(strict=True,min_length=1,max_length=200)]
+    record_digest: MethodDraftDigest
+
+class UserMethodOrigin(FormulaPublicObject):
+    kind: Literal['user_proposed']
+    label: Annotated[str,StringConstraints(strict=True,min_length=1,max_length=120)]
+    description: MethodDraftText
+
+class DraftTestPlan(FormulaPublicObject):
+    question: MethodDraftText
+    measurement: MethodDraftText
+    primary_outcome: MethodDraftText
+    falsification: MethodDraftText
+    stop_rule: MethodDraftText
+
+class MethodDraftRequest(FormulaPublicObject):
+    input_revision: MethodDraftRevision
+    expected_research_version: MethodDraftRevision
+    excerpt_refs: Annotated[list[DraftExcerptRef],Field(min_length=1,max_length=20)]
+    origin: Annotated[PlanLeadOrigin|CatalogOrigin|UserMethodOrigin,Field(discriminator='kind')]
+    method: MethodDraftText
+    mapping: Annotated[list[MethodDraftText],Field(min_length=1,max_length=20)]
+    nontransferable: Annotated[list[MethodDraftText],Field(min_length=1,max_length=20)]
+    competing_explanations: Annotated[list[MethodDraftText],Field(min_length=1,max_length=20)]
+    test_plan: DraftTestPlan
+    formula_result_ref: MethodDraftUUID|None=None
+    supersedes_ref: MethodDraftUUID|None=None
+    @model_validator(mode='after')
+    def bounded(self):
+        if len({r.excerpt_id for r in self.excerpt_refs})!=len(self.excerpt_refs):raise ValueError('unique references required')
+        def check(value):
+            if isinstance(value,str):_method_draft_bounded(value,2000,1)
+            elif isinstance(value,dict):
+                for item in value.values():check(item)
+            elif isinstance(value,list):
+                for item in value:check(item)
+        check(self.model_dump(mode='json'))
+        if len(json.dumps(self.model_dump(mode='json'),ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode())>65536:raise ValueError('bounded request required')
+        return self
+
+class MethodDraftEnvelope(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['method-draft-v1']
+    data: MethodDraftRequest
+
+class MethodDraftMetadata(FormulaPublicObject):
+    draft_ref: MethodDraftUUID
+    input_revision: MethodDraftRevision
+    problem_digest: MethodDraftDigest
+    research_version_before: MethodDraftRevision
+    research_version_after: MethodDraftRevision
+    created_at: Annotated[str,StringConstraints(strict=True,pattern=r'^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z$')]
+    content_digest: MethodDraftDigest
+    is_historical: bool
+    origin_kind: Literal['plan_lead','kb_record','user_proposed']
+    validation_status: Literal['unverified']='unverified'
+    execution_status: Literal['not_executed']='not_executed'
+
+class DraftSourceSummary(FormulaPublicObject):
+    excerpt_id: MethodDraftUUID
+    snapshot_id: MethodDraftUUID
+    source_id: MethodDraftUUID
+    source_revision: MethodDraftRevision
+    content_digest: MethodDraftDigest
+    raw_digest: MethodDraftDigest
+    excerpt_digest: MethodDraftDigest
+    snapshot_digest: MethodDraftDigest
+    start: Annotated[StrictInt,Field(ge=0,le=200000)]
+    end: Annotated[StrictInt,Field(ge=1,le=200000)]
+    quote: Annotated[str,StringConstraints(strict=True,min_length=1,max_length=1000)]
+    title: Annotated[str,StringConstraints(strict=True,max_length=500)]
+    canonical_url: Annotated[str,StringConstraints(strict=True,max_length=2048)]
+    licence_basis: Annotated[str,StringConstraints(strict=True,max_length=700)]
+    task_id: MethodDraftUUID
+    attempt: Literal[1]
+    input_revision: MethodDraftRevision
+
+class ResolvedUserOrigin(UserMethodOrigin):
+    mode: Literal['user_proposed']
+    verification: Literal['unverified']
+
+class ResolvedPlanOrigin(PlanLeadOrigin):
+    label: MethodDraftText
+    lead: MethodDraftText
+    mode: Literal['fixture','controlled_fixture','native_live']
+    producer: Literal['owned-plan-fixture-v1','core-controlled-native-v1','owned-native-plan-runtime-v1']
+    result_digest: MethodDraftDigest
+    input_revision: MethodDraftRevision
+    verification: Literal['unverified']
+
+class DraftFormulaOutcome(FormulaPublicObject):
+    check_kind: Literal['template','dimensions','canonical_transform','bounded_numeric']
+    status: Literal['passed','failed','inconclusive','unsupported','resource_limit']
+    relation: Literal['algebraic_identity','conditional_model_equivalence','local_approximation','partial_structure','not_equivalent','undetermined']
+
+class DraftFormulaLink(FormulaPublicObject):
+    result_ref: MethodDraftUUID
+    metadata: FormulaRunMetadata
+    result_digest: MethodDraftDigest
+    input_revision: MethodDraftRevision
+    comparison_scope: Literal['expression','equation_form','initial_value_problem']
+    outcomes: Annotated[list[DraftFormulaOutcome],Field(min_length=1,max_length=4)]
+    execution_attested: bool
+
+class MethodDraftContent(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['method-draft-v1']
+    request: MethodDraftRequest
+    sources: Annotated[list[DraftSourceSummary],Field(min_length=1,max_length=20)]
+    origin: Annotated[ResolvedPlanOrigin|ResolvedUserOrigin,Field(discriminator='kind')]
+    formula: DraftFormulaLink|None
+
+class MethodDraftData(FormulaPublicObject):
+    metadata: MethodDraftMetadata
+    content: MethodDraftContent
+
+class MethodDraftResponse(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['method-draft-v1']
+    data: MethodDraftData
+
+class MethodDraftHistoryData(FormulaPublicObject):
+    items: Annotated[list[MethodDraftMetadata],Field(max_length=20)]
+    next_cursor: MethodDraftUUID|None
+
+class MethodDraftHistoryResponse(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['method-draft-v1']
+    data: MethodDraftHistoryData
+
+__all__ += ['DraftExcerptRef', 'PlanLeadOrigin', 'CatalogOrigin', 'UserMethodOrigin', 'DraftTestPlan', 'MethodDraftRequest', 'MethodDraftEnvelope', 'MethodDraftMetadata', 'DraftSourceSummary', 'ResolvedUserOrigin', 'ResolvedPlanOrigin', 'DraftFormulaOutcome', 'DraftFormulaLink', 'MethodDraftContent', 'MethodDraftData', 'MethodDraftResponse', 'MethodDraftHistoryData', 'MethodDraftHistoryResponse']

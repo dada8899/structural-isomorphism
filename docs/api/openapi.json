@@ -757,6 +757,44 @@
         "title": "CandidateReference",
         "type": "object"
       },
+      "CatalogOrigin": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "kb_record",
+            "enum": [
+              "kb_record"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "record_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Record Digest",
+            "type": "string"
+          },
+          "record_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Record Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "artifact_id",
+          "record_id",
+          "record_digest"
+        ],
+        "title": "CatalogOrigin",
+        "type": "object"
+      },
       "CheckoutResponse": {
         "description": "Legacy development-only simulator response.\n\nProduction returns HTTP 410 and has no checkout or paid entitlement.\nThis type must not be treated as a current billing contract.",
         "properties": {
@@ -1941,6 +1979,313 @@
           "preregistered"
         ],
         "title": "DiscoveryValidationPlan",
+        "type": "object"
+      },
+      "DraftExcerptRef": {
+        "additionalProperties": false,
+        "properties": {
+          "content_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "end": {
+            "maximum": 200000.0,
+            "minimum": 1.0,
+            "title": "End",
+            "type": "integer"
+          },
+          "excerpt_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+            "title": "Excerpt Id",
+            "type": "string"
+          },
+          "source_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Source Revision",
+            "type": "integer"
+          },
+          "start": {
+            "maximum": 200000.0,
+            "minimum": 0.0,
+            "title": "Start",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "excerpt_id",
+          "source_revision",
+          "content_digest",
+          "start",
+          "end"
+        ],
+        "title": "DraftExcerptRef",
+        "type": "object"
+      },
+      "DraftFormulaLink": {
+        "additionalProperties": false,
+        "properties": {
+          "comparison_scope": {
+            "enum": [
+              "expression",
+              "equation_form",
+              "initial_value_problem"
+            ],
+            "title": "Comparison Scope",
+            "type": "string"
+          },
+          "execution_attested": {
+            "title": "Execution Attested",
+            "type": "boolean"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/FormulaRunMetadata"
+          },
+          "outcomes": {
+            "items": {
+              "$ref": "#/components/schemas/DraftFormulaOutcome"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Outcomes",
+            "type": "array"
+          },
+          "result_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Result Digest",
+            "type": "string"
+          },
+          "result_ref": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+            "title": "Result Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result_ref",
+          "metadata",
+          "result_digest",
+          "input_revision",
+          "comparison_scope",
+          "outcomes",
+          "execution_attested"
+        ],
+        "title": "DraftFormulaLink",
+        "type": "object"
+      },
+      "DraftFormulaOutcome": {
+        "additionalProperties": false,
+        "properties": {
+          "check_kind": {
+            "enum": [
+              "template",
+              "dimensions",
+              "canonical_transform",
+              "bounded_numeric"
+            ],
+            "title": "Check Kind",
+            "type": "string"
+          },
+          "relation": {
+            "enum": [
+              "algebraic_identity",
+              "conditional_model_equivalence",
+              "local_approximation",
+              "partial_structure",
+              "not_equivalent",
+              "undetermined"
+            ],
+            "title": "Relation",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "passed",
+              "failed",
+              "inconclusive",
+              "unsupported",
+              "resource_limit"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "check_kind",
+          "status",
+          "relation"
+        ],
+        "title": "DraftFormulaOutcome",
+        "type": "object"
+      },
+      "DraftSourceSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt": {
+            "const": 1,
+            "enum": [
+              1
+            ],
+            "title": "Attempt",
+            "type": "integer"
+          },
+          "canonical_url": {
+            "maxLength": 2048,
+            "title": "Canonical Url",
+            "type": "string"
+          },
+          "content_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "end": {
+            "maximum": 200000.0,
+            "minimum": 1.0,
+            "title": "End",
+            "type": "integer"
+          },
+          "excerpt_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Excerpt Digest",
+            "type": "string"
+          },
+          "excerpt_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+            "title": "Excerpt Id",
+            "type": "string"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "licence_basis": {
+            "maxLength": 700,
+            "title": "Licence Basis",
+            "type": "string"
+          },
+          "quote": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "raw_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Raw Digest",
+            "type": "string"
+          },
+          "snapshot_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Snapshot Digest",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "source_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Source Revision",
+            "type": "integer"
+          },
+          "start": {
+            "maximum": 200000.0,
+            "minimum": 0.0,
+            "title": "Start",
+            "type": "integer"
+          },
+          "task_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+            "title": "Task Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 500,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "excerpt_id",
+          "snapshot_id",
+          "source_id",
+          "source_revision",
+          "content_digest",
+          "raw_digest",
+          "excerpt_digest",
+          "snapshot_digest",
+          "start",
+          "end",
+          "quote",
+          "title",
+          "canonical_url",
+          "licence_basis",
+          "task_id",
+          "attempt",
+          "input_revision"
+        ],
+        "title": "DraftSourceSummary",
+        "type": "object"
+      },
+      "DraftTestPlan": {
+        "additionalProperties": false,
+        "properties": {
+          "falsification": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Falsification",
+            "type": "string"
+          },
+          "measurement": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Measurement",
+            "type": "string"
+          },
+          "primary_outcome": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Primary Outcome",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "stop_rule": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Stop Rule",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "measurement",
+          "primary_outcome",
+          "falsification",
+          "stop_rule"
+        ],
+        "title": "DraftTestPlan",
         "type": "object"
       },
       "ErrorAcceptedResponse": {
@@ -4175,6 +4520,401 @@
           "evidence"
         ],
         "title": "MethodCandidate",
+        "type": "object"
+      },
+      "MethodDraftContent": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "method-draft-v1",
+            "enum": [
+              "method-draft-v1"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "formula": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DraftFormulaLink"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "origin": {
+            "discriminator": {
+              "mapping": {
+                "plan_lead": "#/components/schemas/ResolvedPlanOrigin",
+                "user_proposed": "#/components/schemas/ResolvedUserOrigin"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ResolvedPlanOrigin"
+              },
+              {
+                "$ref": "#/components/schemas/ResolvedUserOrigin"
+              }
+            ],
+            "title": "Origin"
+          },
+          "request": {
+            "$ref": "#/components/schemas/MethodDraftRequest"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/DraftSourceSummary"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_revision",
+          "request",
+          "sources",
+          "origin",
+          "formula"
+        ],
+        "title": "MethodDraftContent",
+        "type": "object"
+      },
+      "MethodDraftData": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/MethodDraftContent"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MethodDraftMetadata"
+          }
+        },
+        "required": [
+          "metadata",
+          "content"
+        ],
+        "title": "MethodDraftData",
+        "type": "object"
+      },
+      "MethodDraftHistoryData": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MethodDraftMetadata"
+            },
+            "maxItems": 20,
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "MethodDraftHistoryData",
+        "type": "object"
+      },
+      "MethodDraftHistoryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "method-draft-v1",
+            "enum": [
+              "method-draft-v1"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MethodDraftHistoryData"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_revision",
+          "data"
+        ],
+        "title": "MethodDraftHistoryResponse",
+        "type": "object"
+      },
+      "MethodDraftMetadata": {
+        "additionalProperties": false,
+        "properties": {
+          "content_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "created_at": {
+            "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$",
+            "title": "Created At",
+            "type": "string"
+          },
+          "draft_ref": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+            "title": "Draft Ref",
+            "type": "string"
+          },
+          "execution_status": {
+            "const": "not_executed",
+            "default": "not_executed",
+            "enum": [
+              "not_executed"
+            ],
+            "title": "Execution Status",
+            "type": "string"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "is_historical": {
+            "title": "Is Historical",
+            "type": "boolean"
+          },
+          "origin_kind": {
+            "enum": [
+              "plan_lead",
+              "kb_record",
+              "user_proposed"
+            ],
+            "title": "Origin Kind",
+            "type": "string"
+          },
+          "problem_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Problem Digest",
+            "type": "string"
+          },
+          "research_version_after": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Research Version After",
+            "type": "integer"
+          },
+          "research_version_before": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Research Version Before",
+            "type": "integer"
+          },
+          "validation_status": {
+            "const": "unverified",
+            "default": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Validation Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "draft_ref",
+          "input_revision",
+          "problem_digest",
+          "research_version_before",
+          "research_version_after",
+          "created_at",
+          "content_digest",
+          "is_historical",
+          "origin_kind"
+        ],
+        "title": "MethodDraftMetadata",
+        "type": "object"
+      },
+      "MethodDraftRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "competing_explanations": {
+            "items": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Competing Explanations",
+            "type": "array"
+          },
+          "excerpt_refs": {
+            "items": {
+              "$ref": "#/components/schemas/DraftExcerptRef"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Excerpt Refs",
+            "type": "array"
+          },
+          "expected_research_version": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Expected Research Version",
+            "type": "integer"
+          },
+          "formula_result_ref": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula Result Ref"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "mapping": {
+            "items": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Mapping",
+            "type": "array"
+          },
+          "method": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Method",
+            "type": "string"
+          },
+          "nontransferable": {
+            "items": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Nontransferable",
+            "type": "array"
+          },
+          "origin": {
+            "discriminator": {
+              "mapping": {
+                "kb_record": "#/components/schemas/CatalogOrigin",
+                "plan_lead": "#/components/schemas/PlanLeadOrigin",
+                "user_proposed": "#/components/schemas/UserMethodOrigin"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlanLeadOrigin"
+              },
+              {
+                "$ref": "#/components/schemas/CatalogOrigin"
+              },
+              {
+                "$ref": "#/components/schemas/UserMethodOrigin"
+              }
+            ],
+            "title": "Origin"
+          },
+          "supersedes_ref": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes Ref"
+          },
+          "test_plan": {
+            "$ref": "#/components/schemas/DraftTestPlan"
+          }
+        },
+        "required": [
+          "input_revision",
+          "expected_research_version",
+          "excerpt_refs",
+          "origin",
+          "method",
+          "mapping",
+          "nontransferable",
+          "competing_explanations",
+          "test_plan"
+        ],
+        "title": "MethodDraftRequest",
+        "type": "object"
+      },
+      "MethodDraftResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "method-draft-v1",
+            "enum": [
+              "method-draft-v1"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MethodDraftData"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_revision",
+          "data"
+        ],
+        "title": "MethodDraftResponse",
         "type": "object"
       },
       "NativePlanConfirmationData": {
@@ -6550,6 +7290,53 @@
         "title": "PlanConfirmationResponse",
         "type": "object"
       },
+      "PlanLeadOrigin": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_index": {
+            "maximum": 4.0,
+            "minimum": 0.0,
+            "title": "Candidate Index",
+            "type": "integer"
+          },
+          "kind": {
+            "const": "plan_lead",
+            "enum": [
+              "plan_lead"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "lead_index": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Lead Index",
+            "type": "integer"
+          },
+          "plan_contract": {
+            "enum": [
+              "funded-plan-v1",
+              "funded-plan-v2"
+            ],
+            "title": "Plan Contract",
+            "type": "string"
+          },
+          "result_ref": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+            "title": "Result Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "plan_contract",
+          "result_ref",
+          "candidate_index",
+          "lead_index"
+        ],
+        "title": "PlanLeadOrigin",
+        "type": "object"
+      },
       "PlanNomination": {
         "additionalProperties": false,
         "properties": {
@@ -8123,6 +8910,159 @@
         "title": "ResearchPublicErrorEnvelope",
         "type": "object"
       },
+      "ResolvedPlanOrigin": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_index": {
+            "maximum": 4.0,
+            "minimum": 0.0,
+            "title": "Candidate Index",
+            "type": "integer"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "kind": {
+            "const": "plan_lead",
+            "enum": [
+              "plan_lead"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "lead": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Lead",
+            "type": "string"
+          },
+          "lead_index": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Lead Index",
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "fixture",
+              "controlled_fixture",
+              "native_live"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "plan_contract": {
+            "enum": [
+              "funded-plan-v1",
+              "funded-plan-v2"
+            ],
+            "title": "Plan Contract",
+            "type": "string"
+          },
+          "producer": {
+            "enum": [
+              "owned-plan-fixture-v1",
+              "core-controlled-native-v1",
+              "owned-native-plan-runtime-v1"
+            ],
+            "title": "Producer",
+            "type": "string"
+          },
+          "result_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Result Digest",
+            "type": "string"
+          },
+          "result_ref": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "verification": {
+            "const": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "plan_contract",
+          "result_ref",
+          "candidate_index",
+          "lead_index",
+          "label",
+          "lead",
+          "mode",
+          "producer",
+          "result_digest",
+          "input_revision",
+          "verification"
+        ],
+        "title": "ResolvedPlanOrigin",
+        "type": "object"
+      },
+      "ResolvedUserOrigin": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "kind": {
+            "const": "user_proposed",
+            "enum": [
+              "user_proposed"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "mode": {
+            "const": "user_proposed",
+            "enum": [
+              "user_proposed"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "verification": {
+            "const": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "label",
+          "description",
+          "mode",
+          "verification"
+        ],
+        "title": "ResolvedUserOrigin",
+        "type": "object"
+      },
       "SearchRequest": {
         "properties": {
           "lang": {
@@ -8995,6 +9935,38 @@
           "ticker"
         ],
         "title": "TickerMutationResponse",
+        "type": "object"
+      },
+      "UserMethodOrigin": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "kind": {
+            "const": "user_proposed",
+            "enum": [
+              "user_proposed"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "label",
+          "description"
+        ],
+        "title": "UserMethodOrigin",
         "type": "object"
       },
       "ValidationError": {
@@ -13357,6 +14329,489 @@
           }
         },
         "summary": "Read Research Formula Revision",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/method-drafts": {
+      "get": {
+        "operationId": "list_research_method_drafts_api_research__research_id__method_drafts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MethodDraftHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Research Method Drafts",
+        "tags": [
+          "research"
+        ]
+      },
+      "post": {
+        "operationId": "save_research_method_draft_api_research__research_id__method_drafts_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "contract_revision": {
+                    "const": "method-draft-v1",
+                    "enum": [
+                      "method-draft-v1"
+                    ],
+                    "title": "Contract Revision",
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "competing_explanations": {
+                        "items": {
+                          "maxLength": 2000,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "maxItems": 20,
+                        "minItems": 1,
+                        "title": "Competing Explanations",
+                        "type": "array"
+                      },
+                      "excerpt_refs": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "content_digest": {
+                              "pattern": "^[a-f0-9]{64}$",
+                              "title": "Content Digest",
+                              "type": "string"
+                            },
+                            "end": {
+                              "maximum": 200000,
+                              "minimum": 1,
+                              "title": "End",
+                              "type": "integer"
+                            },
+                            "excerpt_id": {
+                              "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+                              "title": "Excerpt Id",
+                              "type": "string"
+                            },
+                            "source_revision": {
+                              "maximum": 2147483647,
+                              "minimum": 1,
+                              "title": "Source Revision",
+                              "type": "integer"
+                            },
+                            "start": {
+                              "maximum": 200000,
+                              "minimum": 0,
+                              "title": "Start",
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "excerpt_id",
+                            "source_revision",
+                            "content_digest",
+                            "start",
+                            "end"
+                          ],
+                          "title": "DraftExcerptRef",
+                          "type": "object"
+                        },
+                        "maxItems": 20,
+                        "minItems": 1,
+                        "title": "Excerpt Refs",
+                        "type": "array"
+                      },
+                      "expected_research_version": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Expected Research Version",
+                        "type": "integer"
+                      },
+                      "formula_result_ref": {
+                        "anyOf": [
+                          {
+                            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "title": "Formula Result Ref"
+                      },
+                      "input_revision": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Input Revision",
+                        "type": "integer"
+                      },
+                      "mapping": {
+                        "items": {
+                          "maxLength": 2000,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "maxItems": 20,
+                        "minItems": 1,
+                        "title": "Mapping",
+                        "type": "array"
+                      },
+                      "method": {
+                        "maxLength": 2000,
+                        "minLength": 1,
+                        "title": "Method",
+                        "type": "string"
+                      },
+                      "nontransferable": {
+                        "items": {
+                          "maxLength": 2000,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "maxItems": 20,
+                        "minItems": 1,
+                        "title": "Nontransferable",
+                        "type": "array"
+                      },
+                      "origin": {
+                        "discriminator": {
+                          "mapping": {
+                            "kb_record": "#/$defs/CatalogOrigin",
+                            "plan_lead": "#/$defs/PlanLeadOrigin",
+                            "user_proposed": "#/$defs/UserMethodOrigin"
+                          },
+                          "propertyName": "kind"
+                        },
+                        "oneOf": [
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "candidate_index": {
+                                "maximum": 4,
+                                "minimum": 0,
+                                "title": "Candidate Index",
+                                "type": "integer"
+                              },
+                              "kind": {
+                                "const": "plan_lead",
+                                "enum": [
+                                  "plan_lead"
+                                ],
+                                "title": "Kind",
+                                "type": "string"
+                              },
+                              "lead_index": {
+                                "maximum": 1,
+                                "minimum": 0,
+                                "title": "Lead Index",
+                                "type": "integer"
+                              },
+                              "plan_contract": {
+                                "enum": [
+                                  "funded-plan-v1",
+                                  "funded-plan-v2"
+                                ],
+                                "title": "Plan Contract",
+                                "type": "string"
+                              },
+                              "result_ref": {
+                                "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+                                "title": "Result Ref",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "plan_contract",
+                              "result_ref",
+                              "candidate_index",
+                              "lead_index"
+                            ],
+                            "title": "PlanLeadOrigin",
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "artifact_id": {
+                                "maxLength": 200,
+                                "minLength": 1,
+                                "title": "Artifact Id",
+                                "type": "string"
+                              },
+                              "kind": {
+                                "const": "kb_record",
+                                "enum": [
+                                  "kb_record"
+                                ],
+                                "title": "Kind",
+                                "type": "string"
+                              },
+                              "record_digest": {
+                                "pattern": "^[a-f0-9]{64}$",
+                                "title": "Record Digest",
+                                "type": "string"
+                              },
+                              "record_id": {
+                                "maxLength": 200,
+                                "minLength": 1,
+                                "title": "Record Id",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "artifact_id",
+                              "record_id",
+                              "record_digest"
+                            ],
+                            "title": "CatalogOrigin",
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "description": {
+                                "maxLength": 2000,
+                                "minLength": 1,
+                                "title": "Description",
+                                "type": "string"
+                              },
+                              "kind": {
+                                "const": "user_proposed",
+                                "enum": [
+                                  "user_proposed"
+                                ],
+                                "title": "Kind",
+                                "type": "string"
+                              },
+                              "label": {
+                                "maxLength": 120,
+                                "minLength": 1,
+                                "title": "Label",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "label",
+                              "description"
+                            ],
+                            "title": "UserMethodOrigin",
+                            "type": "object"
+                          }
+                        ],
+                        "title": "Origin"
+                      },
+                      "supersedes_ref": {
+                        "anyOf": [
+                          {
+                            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "title": "Supersedes Ref"
+                      },
+                      "test_plan": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "falsification": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Falsification",
+                            "type": "string"
+                          },
+                          "measurement": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Measurement",
+                            "type": "string"
+                          },
+                          "primary_outcome": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Primary Outcome",
+                            "type": "string"
+                          },
+                          "question": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Question",
+                            "type": "string"
+                          },
+                          "stop_rule": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Stop Rule",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "question",
+                          "measurement",
+                          "primary_outcome",
+                          "falsification",
+                          "stop_rule"
+                        ],
+                        "title": "DraftTestPlan",
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "input_revision",
+                      "expected_research_version",
+                      "excerpt_refs",
+                      "origin",
+                      "method",
+                      "mapping",
+                      "nontransferable",
+                      "competing_explanations",
+                      "test_plan"
+                    ],
+                    "title": "MethodDraftRequest",
+                    "type": "object"
+                  },
+                  "schema_version": {
+                    "const": "structure-research-v1",
+                    "enum": [
+                      "structure-research-v1"
+                    ],
+                    "title": "Schema Version",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "contract_revision",
+                  "data"
+                ],
+                "title": "MethodDraftEnvelope",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MethodDraftResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Research Method Draft",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/method-drafts/{draft_ref}": {
+      "get": {
+        "operationId": "read_research_method_draft_api_research__research_id__method_drafts__draft_ref__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "draft_ref",
+            "required": true,
+            "schema": {
+              "title": "Draft Ref",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MethodDraftResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Research Method Draft",
         "tags": [
           "research"
         ]

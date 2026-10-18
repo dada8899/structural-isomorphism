@@ -20,6 +20,9 @@ def reconstruct(current_root,destination):
             if parent==current_root:break
             assert not parent.is_symlink(),'historical dependency cannot traverse symlink'
         content=source.read_bytes()
+        if entry['source']=='current_exact':
+            from .method_v13_reference import historical_bytes
+            content=historical_bytes(current_root,relative,entry['sha256'])
         assert hashlib.sha256(content).hexdigest()==entry['sha256'],'historical dependency changed: '+relative
         target=destination/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(content)
     problem=reference/'problem.json'

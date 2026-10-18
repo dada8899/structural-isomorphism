@@ -95,6 +95,23 @@ class EvidenceRepository:
         # must still apply C0's explicit public field whitelist.
         return record
 
+    def excerpt_details(self,context,excerpt_id):
+        """Authorized exact short quote and original identity; no export grant."""
+        excerpt=self.get(context,'excerpts',excerpt_id)
+        snapshot=self.get(context,'snapshots',excerpt.snapshot_id)
+        _,raw,text=self._get(context,'snapshots',snapshot.id)
+        if (type(raw) is not bytes or type(text) is not str or not snapshot.licence.private_cache
+                or not snapshot.licence.display_excerpt or excerpt.extracted_digest!=snapshot.extracted_digest
+                or text[excerpt.start:excerpt.end]!=excerpt.quote):
+            raise PermissionError('original exact readable excerpt required')
+        records={row[0]:row[1] for row in self.conn.execute('SELECT id,payload_digest FROM research_evidence_objects WHERE id IN (?,?)',(excerpt.id,snapshot.id))}
+        return {'excerpt_id':excerpt.id,'snapshot_id':snapshot.id,'source_id':snapshot.source_id,
+            'source_revision':snapshot.source_revision,'content_digest':snapshot.extracted_digest,
+            'raw_digest':snapshot.raw_digest,'excerpt_digest':records[excerpt.id],'snapshot_digest':records[snapshot.id],
+            'start':excerpt.start,'end':excerpt.end,'quote':excerpt.quote,'title':snapshot.title,
+            'canonical_url':snapshot.canonical_url,'licence_basis':snapshot.licence.basis,
+            'task_id':context.task_id,'attempt':context.attempt,'input_revision':context.input_revision}
+
     def provider_eligibility(self,context,excerpt_id):
         """Recheck stored publisher proof; return no grant or outbound handle.
 

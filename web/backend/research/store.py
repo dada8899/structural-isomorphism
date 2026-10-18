@@ -11,7 +11,7 @@ from .errors import ResearchError
 from .financial_guard import FINANCIAL_SCHEMA_VERSION,V7_TABLES,V7_GUARDS,install_default_hook,require_hook
 from .financial_guard import DELETION_SCHEMA_VERSION,JOB_ORIGIN_COLUMNS,V8_JOB_GUARDS
 from .financial_guard import METHOD_SCHEMA_VERSION,METHOD_COLUMNS,METHOD_GUARDS
-CURRENT_RESEARCH_SCHEMA_VERSION=13
+CURRENT_RESEARCH_SCHEMA_VERSION=14
 
 SCHEMA = (
     "CREATE TABLE IF NOT EXISTS research_schema (id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL)",
@@ -399,6 +399,8 @@ class ResearchStore:
             if present:
                 try:current=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
                 except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本标记结构不匹配。') from None
+                if current and current[0]==14:
+                    self._check_v14(conn);return
                 if current and current[0]==13:
                     self._check_v13(conn);return
                 if current and current[0]==12:
@@ -446,6 +448,8 @@ class ResearchStore:
                 # A peer may finish initialization after our first read. The
                 # write snapshot, not that stale read, decides whether legacy
                 # installation is allowed. Never repair a completed graph.
+                if current and current[0]==14:
+                    self._check_v14(conn);return
                 if current and current[0]==13:
                     self._check_v13(conn);return
                 if current and current[0]==12:
@@ -527,14 +531,14 @@ class ResearchStore:
             raise ResearchError('SCHEMA_UNSUPPORTED',503,'冷启动发现未识别研究结构。')
         self._check_auth_job_schema(conn,expanded=False)
         for name,ddl in JOB_ORIGIN_COLUMNS:conn.execute('ALTER TABLE auth_deletion_jobs ADD COLUMN '+name+' '+ddl)
-        objects=self._current_structure_declarations(version=13)
+        objects=self._current_structure_declarations(version=14)
         for kind,target,forms in objects.values():
             if kind=='table' and target!='auth_deletion_jobs':conn.execute(forms[0])
         for kind,target,forms in objects.values():
             if kind!='table' and target!='auth_deletion_jobs':conn.execute(forms[0])
         for ddl in V8_JOB_GUARDS:conn.execute(ddl)
-        conn.execute('INSERT INTO research_schema VALUES(1,13)')
-        self._check_v13(conn)
+        conn.execute('INSERT INTO research_schema VALUES(1,14)')
+        self._check_v14(conn)
         return True
 
     @property
@@ -578,6 +582,8 @@ class ResearchStore:
     @classmethod
     def _check_completed_migration_peer(cls,conn,version):
         """An exact completed peer is an idempotent migration, never authority."""
+        if version==14:
+            cls._check_v14(conn);return True
         if version==13:
             cls._check_v13(conn);return True
         if version==12:
@@ -991,7 +997,8 @@ class ResearchStore:
         self._require_development_migration()
         with self.transaction() as conn:
             version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
-            if version==13:self._check_v13(conn)
+            if version==14:self._check_v14(conn)
+            elif version==13:self._check_v13(conn)
             elif version==12:self._check_v12(conn)
             elif version==11:self._check_v11(conn)
             elif version==10:self._check_v10(conn)
@@ -1014,26 +1021,29 @@ class ResearchStore:
         return objects
 
     @classmethod
-    def _current_structure_declarations(cls,*,version=13):
+    def _current_structure_declarations(cls,*,version=14):
         # Code-owned declarations only. No application objects or constructors.
         from .source_integration import SOURCE_DDL
         from .evidence_repository import DDL as evidence_ddl
         statements=(*cls._v7_required_legacy_objects(method=True).values(),*SOURCE_DDL,*evidence_ddl,
             *V7_TABLES,*V7_GUARDS,*V8_JOB_GUARDS,*METHOD_GUARDS)
         objects=cls._structure_declarations(statements)
-        if version in (10,11,12,13):
+        if version in (10,11,12,13,14):
             from .formula_runtime import FORMULA_DDL
             objects.update(cls._structure_declarations((*cls._formula_tables().values(),*FORMULA_DDL)))
         elif version!=9:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本不支持。')
-        if version in (11,12,13):
+        if version in (11,12,13,14):
             from .source_guard import declarations
             objects.update(cls._structure_declarations(declarations()))
-        if version in (12,13):
+        if version in (12,13,14):
             from .plan_financial import declarations,overlay
             objects.update(cls._structure_declarations((*overlay(cls._formula_tables()).values(),*declarations())))
-        if version==13:
+        if version in (13,14):
             from .plan_native_financial import declarations,overlay
             objects.update(cls._structure_declarations((*overlay(cls._plan_tables()).values(),*declarations())))
+        if version==14:
+            from .method_draft import DDL
+            objects.update(cls._structure_declarations(DDL))
         forms=tuple(sql.rstrip()[:-1]+', '+', '.join(name+' '+ddl for name,ddl in JOB_ORIGIN_COLUMNS)+')'
             for sql in cls._auth_job_baseline_forms())
         objects['auth_deletion_jobs']=('table','auth_deletion_jobs',forms)
@@ -1068,7 +1078,7 @@ class ResearchStore:
 
     @classmethod
     def check_current_structure(cls,conn):
-        return cls._check_structure_version(conn,13)
+        return cls._check_structure_version(conn,14)
 
     @classmethod
     def _check_structure_version(cls,conn,version):
@@ -1140,7 +1150,8 @@ class ResearchStore:
         self._require_development_migration()
         with self.transaction() as conn:
             version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
-            if version==13:self._check_v13(conn)
+            if version==14:self._check_v14(conn)
+            elif version==13:self._check_v13(conn)
             elif version==12:self._check_v12(conn)
             elif version==11:self._check_v11(conn)
             elif version==10:self._check_v10(conn)
@@ -1154,7 +1165,8 @@ class ResearchStore:
             install_default_hook(conn)
             conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN IMMEDIATE');self.auth_store.check_gate_policy(conn)
             version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
-            if version==13:self._check_v13(conn);conn.commit();return
+            if version==14:self._check_v14(conn);conn.commit();return
+            elif version==13:self._check_v13(conn);conn.commit();return
             elif version==12:self._check_v12(conn);conn.commit();return
             elif version==11:self._check_v11(conn);conn.commit();return
             elif version==10:self._check_v10(conn);conn.commit();return
@@ -1253,9 +1265,23 @@ class ResearchStore:
         require_hook(conn)
 
     @classmethod
+    def _check_v14(cls,conn):
+        if __package__=='web.backend.research':from ..services.auth_store import AuthStore
+        else:from services.auth_store import AuthStore
+        AuthStore.check_gate_policy(conn)
+        cls._check_structure_version(conn,14)
+        cls._check_formula_domain(conn,plan=True,native=True)
+        from .source_guard import require_hook as source_hook
+        from .plan_financial import require_hook as plan_hook
+        from .plan_native_financial import require_hook as native_hook
+        from .method_draft import require_hook as draft_hook
+        for hook in (source_hook,plan_hook,native_hook,draft_hook):hook(conn)
+
+    @classmethod
     def check_runtime_version(cls,conn):
         version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
-        if version==13:cls._check_v13(conn)
+        if version==14:cls._check_v14(conn)
+        elif version==13:cls._check_v13(conn)
         elif version==12:cls._check_v12(conn)
         elif version==11:cls._check_v11(conn)
         elif version==10:cls._check_v10(conn)
@@ -1279,7 +1305,7 @@ class ResearchStore:
             conn.execute("BEGIN IMMEDIATE" if write else "BEGIN")
             self.auth_store.check_gate_policy(conn)
             if formal:
-                self._check_v13(conn)
+                self._check_v14(conn)
             from .paid_control import _transaction_scope
             with _transaction_scope(conn,write=write):
                 yield conn
@@ -1304,7 +1330,7 @@ class ResearchStore:
             if formal:
                 install_default_hook(conn)
                 conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN')
-                self._check_v13(conn)
+                self._check_v14(conn)
             self.auth_store.check_gate_policy(conn)
             if formal:conn.commit()
             conn.execute("PRAGMA busy_timeout=5000")

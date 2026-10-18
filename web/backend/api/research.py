@@ -38,6 +38,11 @@ else:
     from research.plan_schemas import PlanPreviewEnvelope,PlanConfirmationEnvelope,PlanPreviewResponse,PlanConfirmationResponse,PlanReadResponse
     from research.plan_native_schemas import NativePlanPreviewEnvelope,NativePlanConfirmationEnvelope,NativePlanPreviewResponse,NativePlanConfirmationResponse,NativePlanReadResponse
 
+if __package__=='web.backend.api':
+    from ..research.method_draft_schemas import MethodDraftEnvelope,MethodDraftResponse,MethodDraftHistoryResponse
+else:
+    from research.method_draft_schemas import MethodDraftEnvelope,MethodDraftResponse,MethodDraftHistoryResponse
+
 router = APIRouter(tags=["research"])
 _KEY = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z", re.ASCII)
 _HEADERS = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"}
@@ -150,7 +155,33 @@ async def _dispatch(request, *, research_id=None, operation="view"):
             raise ResearchError("FEATURE_UNAVAILABLE", 503, "研究保存功能尚未开放。")
         identity = await run_in_threadpool(_identity, request)
         service = await run_in_threadpool(lambda: ResearchService(ResearchStore(auth._store())))
-        if operation == "index":
+        if operation in ('draft-save','draft-read','draft-history'):
+            if __package__=='web.backend.api':
+                from ..research import method_draft
+                from ..research.paid_control import issue_authenticated_action
+            else:
+                from research import method_draft
+                from research.paid_control import issue_authenticated_action
+            if operation=='draft-save':
+                if auth.require_same_origin(request) is not None:raise ResearchError('AUTHORIZATION_STALE',403,'请从本站页面保存草稿。')
+                key=request.headers.get('idempotency-key','')
+                if not _KEY.fullmatch(key):raise ResearchError('INPUT_INVALID',422,'保存操作标识缺失或不合法。')
+                if request.query_params:raise ResearchError('INPUT_INVALID',422,'草稿保存不接受查询参数。')
+                envelope=await _parse(request,MethodDraftEnvelope)
+            elif operation=='draft-history':
+                pairs=list(request.query_params.multi_items());raw_limit=request.query_params.get('limit','20')
+                if len({k for k,_ in pairs})!=len(pairs) or any(k not in ('limit','cursor') for k,_ in pairs) or re.fullmatch(r'[1-9]|1[0-9]|20',raw_limit,re.ASCII) is None:
+                    raise ResearchError('INPUT_INVALID',422,'草稿分页参数无效。')
+                cursor=request.query_params.get('cursor')
+                if cursor is not None:service._id(cursor)
+            elif request.query_params:raise ResearchError('INPUT_INVALID',422,'草稿读取不接受查询参数。')
+            source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+            try:
+                if operation=='draft-save':result=await run_in_threadpool(method_draft.save,service,identity,research_id,envelope.data,key,source)
+                elif operation=='draft-read':result=await run_in_threadpool(method_draft.read,service,identity,research_id,request.path_params['draft_ref'],source)
+                else:result=await run_in_threadpool(method_draft.history,service,identity,research_id,int(raw_limit),cursor,source)
+            finally:source.close()
+        elif operation == "index":
             pairs=list(request.query_params.multi_items())
             if len({key for key,_ in pairs})!=len(pairs) or any(key not in ("limit","cursor") for key,_ in pairs):
                 raise ResearchError("INPUT_INVALID",422,"列表分页参数无效。")
@@ -295,6 +326,10 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         if operation not in ('paid-preview','paid-confirm') or str(exc)!='request_limit':raise
         error=ResearchError('PAYLOAD_LIMIT',413,'最终外发请求超过16KiB上限。')
         return _paid_error_response(error)
+    except PermissionError:
+        if operation not in ('draft-save','draft-read','draft-history'):raise
+        error=ResearchError('AUTHORIZATION_STALE',409,'方法草稿权限已变化，请重新读取后再操作。')
+        return JSONResponse(error.body(),status_code=error.status,headers=_HEADERS)
     except (sqlite3.Error, OSError):
         error = ResearchError("STORE_UNAVAILABLE", 503, "研究存储暂时不可用，请保留当前内容。")
         if operation in _PAID_OPERATIONS:return _paid_error_response(error)
@@ -404,3 +439,16 @@ async def confirm_research_plan(research_id:str,request:Request):
 @router.get('/research/{research_id}/plan-results/{result_ref}',response_model=PlanReadResponse|NativePlanReadResponse)
 async def read_research_plan(research_id:str,result_ref:str,request:Request):
     return await _dispatch(request,research_id=research_id,operation='plan-read')
+
+
+@router.post('/research/{research_id}/method-drafts',response_model=MethodDraftResponse,openapi_extra={'requestBody':_formula_request_body(MethodDraftEnvelope)})
+async def save_research_method_draft(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='draft-save')
+
+@router.get('/research/{research_id}/method-drafts',response_model=MethodDraftHistoryResponse)
+async def list_research_method_drafts(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='draft-history')
+
+@router.get('/research/{research_id}/method-drafts/{draft_ref}',response_model=MethodDraftResponse)
+async def read_research_method_draft(research_id:str,draft_ref:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='draft-read')
