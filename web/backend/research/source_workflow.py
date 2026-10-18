@@ -207,7 +207,7 @@ def close_interrupted(store,task_id,task_lease):
 
 
 def run_source_once(store,task_id,task_lease,transport=None):
-    require_enabled()
+    require_enabled(store=store)
     with store.transaction(write=True) as conn:
         run=conn.execute("SELECT * FROM research_source_runs WHERE task_id=?",(task_id,)).fetchone()
         task=conn.execute("SELECT * FROM research_tasks WHERE id=?",(task_id,)).fetchone()

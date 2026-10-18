@@ -1077,6 +1077,11 @@ class ResearchStore:
             if part and part[0][1] not in constraints)
 
     @classmethod
+    def inspect_formal_profile(cls,conn):
+        from .runtime_profile import inspect_formal_profile
+        return inspect_formal_profile(conn)
+
+    @classmethod
     def check_current_structure(cls,conn):
         return cls._check_structure_version(conn,14)
 
