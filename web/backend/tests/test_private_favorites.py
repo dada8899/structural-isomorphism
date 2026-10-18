@@ -151,6 +151,50 @@ def deletion_context(email=ALICE):
                 assert result.status_code==500 and result.json()['error']=='account deletion failed'
 
 
+@contextmanager
+def queued_deletion_context():
+    """Hold the real DELETE request's gate while a competing caller queues.
+
+    The router creates its own authenticated source and protected job after
+    release. Neither source nor native lease leaves the actual request thread.
+    """
+    import threading
+    entered=threading.Event();release=threading.Event()
+    original=auth.account_owner_transaction
+    original_connect=sqlite3.connect;local=threading.local()
+    def observed(*args,**kwargs):
+        connection=original_connect(*args,**kwargs)
+        if not hasattr(local,'handles'):local.handles=[]
+        local.handles.append(connection)
+        return connection
+    @contextmanager
+    def paused(owner):
+        try:
+            with original(owner) as lease:
+                entered.set()
+                assert release.wait(8),'queued deletion fixture was not released'
+                yield lease
+        finally:
+            for connection in local.handles:
+                with pytest.raises(sqlite3.ProgrammingError):connection.execute('SELECT 1')
+            print('FAVORITES_DELETE_THREAD_CLOSE_CHECKS:'+str(len(local.handles)))
+    token=private_session(ALICE)
+    app=FastAPI();app.include_router(auth.router,prefix='/api')
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(auth,'account_owner_transaction',paused)
+        patch.setattr(sqlite3,'connect',observed)
+        with TestClient(app,base_url=BETA) as client,concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            client.cookies.set('phase_session',token)
+            future=executor.submit(client.post,'/api/me/delete',json={'confirmation':'DELETE'},headers={'Origin':BETA})
+            try:
+                assert entered.wait(5),'actual DELETE did not acquire the owner gate'
+                yield
+            finally:
+                release.set()
+                response=future.result(timeout=10)
+                assert response.status_code==200,response.text
+
+
 def exchange_material(stack, monkeypatch):
     client, state, app = stack
     # The actual production issuer and consumer use their distinct origins
@@ -727,14 +771,10 @@ def test_queued_real_process_write_revalidates_after_account_delete(stack, nativ
     ready, go = state.parent / 'queued-ready', state.parent / 'queued-go'
     process = None
     try:
-        with auth.account_owner_transaction(ALICE) as lease:
+        with queued_deletion_context():
             process = subprocess.Popen(child_command(state, 'queued-write', client.cookies.get('phase_session'), 'MSFT', ready, go),
                 env=child_env(state), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             await_ready([process], [ready]);go.write_text('go')
-            service = auth._account_deletion_service()
-            job_id = service.begin_account_deletion_locked(ALICE, auth._store().user(ALICE)['session_generation'],
-                auth._store().owner_gate_id(ALICE), auth._account_cleanup_binding(ALICE), owner_lease=lease)
-            auth._run_account_deletion_locked(service, job_id, owner_lease=lease)
         result = finish_child(process)
         print('FAVORITES_QUEUED_RESULT:' + json.dumps(result))
         assert result['status'] == 401 and result['native'] == result['closed']
@@ -765,13 +805,13 @@ def test_both_namespaces_share_lock_and_real_thread_writes_close_native_on_creat
         monkeypatch.setattr(other_paths, name, getattr(paths, name))
     assert other_paths.FAVORITES_LOCK is paths.FAVORITES_LOCK
     assert other_paths.FAVORITES_IO is paths.FAVORITES_IO
+    tokens = [client.cookies.get('phase_session'), private_session(BOB)]
     original = sqlite3.connect;local = threading.local();local.handles = []
     def observed(*args, **kwargs):
         conn = original(*args, **kwargs)
         local.handles.append(conn)
         return conn
     monkeypatch.setattr(sqlite3, 'connect', observed)
-    tokens = [client.cookies.get('phase_session'), private_session(BOB)]
     def work(index):
         local.handles = []
         module = (favorites, other)[index]
@@ -899,6 +939,12 @@ def test_stable_lock_inode_is_never_replaced_and_substitution_is_rejected(stack,
 
 @pytest.mark.parametrize('configured', ['', 'relative/favorites.jsonl', 'file:/tmp/favorites.jsonl', '../favorites.jsonl'])
 def test_formal_config_cannot_fallback_or_escape(private, native, monkeypatch, configured):
+    import stat
+    target = private.parent / 'favorites.jsonl'
+    info = target.lstat()
+    assert stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid() and info.st_nlink == 1
+    assert target.read_bytes() == b''
+    target.unlink()  # Explicit missing-file prerequisite after real bootstrap.
     monkeypatch.setenv('STRUCTURAL_FAVORITES_PATH', configured)
     with pytest.raises(paths.RuntimePathError):favorites._data_file()
     assert not native and not (private.parent / 'favorites.jsonl').exists()
@@ -912,6 +958,7 @@ def test_exchange_queued_behind_real_deletion_rechecks_before_consume(stack, nat
     original_connect = sqlite3.connect;local = threading.local();local.handles = []
     def observed(*args, **kwargs):
         connection = original_connect(*args, **kwargs)
+        if not hasattr(local, 'handles'):local.handles = []
         local.handles.append(connection)
         return connection
     monkeypatch.setattr(sqlite3, 'connect', observed)
@@ -935,13 +982,9 @@ def test_exchange_queued_behind_real_deletion_rechecks_before_consume(stack, nat
             with pytest.raises(sqlite3.ProgrammingError):connection.execute('SELECT 1')
         return response
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        with auth.account_owner_transaction(ALICE) as lease:
+        with queued_deletion_context():
             future = executor.submit(exchange)
             assert waiting.wait(timeout=5)
-            service = auth._account_deletion_service()
-            job_id = service.begin_account_deletion_locked(ALICE, auth._store().user(ALICE)['session_generation'],
-                auth._store().owner_gate_id(ALICE), auth._account_cleanup_binding(ALICE), owner_lease=lease)
-            auth._run_account_deletion_locked(service, job_id, owner_lease=lease)
         response = future.result(timeout=10)
     assert response.status_code == 409 and consumed == []
     assert 'set-cookie' not in response.headers
