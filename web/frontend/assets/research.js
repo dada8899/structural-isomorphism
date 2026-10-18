@@ -1077,7 +1077,7 @@
     for(const [title,values] of [['映射',body.request.mapping],['不可直接迁移',body.request.nontransferable],['竞争解释',body.request.competing_explanations]]){add('h4',title);const list=add('ul','');for(const value of values)formulaElement(list,'li',value);}
     for(const [title,key] of [['验证问题','question'],['测量方式','measurement'],['主要结果指标','primary_outcome'],['反证条件','falsification'],['停止条件','stop_rule']]){add('h4',title);add('p',body.request.test_plan[key]);}
     add('h4','原来源短摘录');for(const source of body.sources){add('p',`${source.title||'未提供标题'} · 原问题修订 ${source.input_revision} / 来源修订 ${source.source_revision}`);add('blockquote',source.quote);add('p',source.licence_basis,{className:'hint'});}
-    if(body.formula){add('h4','关联的原公式检查');add('p',`原问题修订 ${body.formula.input_revision} · ${body.formula.comparison_scope} · ${body.formula.execution_attested?'原执行有证明':'原执行未获证明'}；不表示本方法通过验证。`);for(const outcome of body.formula.outcomes)add('p',`${formulaChecks[outcome.check_kind]||'原检查'}：${{passed:'该有限检查通过',failed:'该检查不通过',inconclusive:'不足以下判断',unsupported:'不支持',resource_limit:'达到资源边界'}[outcome.status]||'状态未核对'}；关系为 ${outcome.relation}`);}
+    if(body.formula){add('h4','关联的原公式检查');add('p',`原问题修订 ${body.formula.input_revision} · ${{expression:'表达式',equation_form:'方程形式',initial_value_problem:'初值问题'}[body.formula.comparison_scope]} · ${body.formula.execution_attested?'原执行有证明':'原执行未获证明'}；不表示本方法通过验证。`);for(const outcome of body.formula.outcomes)add('p',`${formulaChecks[outcome.check_kind]||'原检查'}：${{passed:'该有限检查通过',failed:'该检查不通过',inconclusive:'不足以下判断',unsupported:'不支持',resource_limit:'达到资源边界'}[outcome.status]||'状态未核对'}；关系为 ${{algebraic_identity:'代数恒等关系',conditional_model_equivalence:'有条件的模型对应',local_approximation:'局部近似',partial_structure:'部分结构相似',not_equivalent:'不等价',undetermined:'尚未确定'}[outcome.relation]||'尚未确定'}`);}
     byId('method-draft-view-status').textContent='只读查看原稿；编辑区内容未替换。';
   }
   async function draftRead(ref){
@@ -1090,7 +1090,7 @@
     try{if(!await draftSetActor(ticket))return;const [page,root]=await Promise.all([draftFetch(`/api/research/${ticket.rid}/method-drafts?limit=20`+(cursor?'&cursor='+cursor:''),{},ticket),draftFetch(`/api/research/${ticket.rid}`,{},ticket,'root')]);
       if(!planKeys(page,['items','next_cursor'])||!Array.isArray(page.items)||page.items.length>20||(page.next_cursor!==null&&!validId(page.next_cursor)))throw Error('草稿列表页无法完整核对。');if(!draftActive(ticket)||!await draftAuth(ticket))return;draftState.history.clear();const box=byId('method-draft-history');
       for(const value of page.items){const meta=draftMetadata(value,root);draftState.history.set(meta.draft_ref,meta);const row=formulaElement(box,'li','');formulaElement(row,'p',`问题修订 ${meta.input_revision} · ${new Date(meta.created_at).toLocaleString('zh-CN')} · 未验证 / 未执行`);const read=formulaElement(row,'button','只读查看原稿',{type:'button',className:'secondary'});read.addEventListener('click',()=>draftRead(meta.draft_ref));const parent=formulaElement(row,'button','关联为上一稿（不填入答案）',{type:'button',className:'secondary'});parent.disabled=readOnlyView();parent.addEventListener('click',()=>{if(readOnlyView())return;draftState.supersedes=meta.draft_ref;byId('method-draft-parent').textContent=`已关联原问题修订 ${meta.input_revision} 的草稿；保存将生成新记录，不改旧稿。`;draftChanged();});}
-      if(page.next_cursor){const more=formulaElement(box,'button','读取更早列表页',{type:'button',className:'secondary'});more.addEventListener('click',()=>draftHistory(page.next_cursor));}
+      if(page.next_cursor){const more=formulaElement(box,'button','读取下一页草稿',{type:'button',className:'secondary'});more.addEventListener('click',()=>draftHistory(page.next_cursor));}
       byId('method-draft-history-status').textContent=page.items.length?`本页 ${page.items.length} 条；每次查看仍核当前引用权限。`:'此页没有已返回的草稿；不会自动创建。';draftRenderPending();
     }catch(error){if(draftActive(ticket)){draftClearView();draftState.history.clear();byId('method-draft-history').replaceChildren();byId('method-draft-history-status').textContent='历史未完整读取，不能据此判断没有记录。'+draftError(error);}}
   }
@@ -1124,7 +1124,7 @@
   }
   function initDraft(){
     for(const id of draftFields)byId(id).addEventListener('input',()=>draftChanged());
-    byId('method-draft-origin').addEventListener('change',()=>{draftState.origin=null;draftChanged();});byId('method-draft-formula').addEventListener('change',()=>draftChanged());
+    byId('method-draft-origin').addEventListener('change',()=>{draftState.origin=null;for(const radio of byId('method-draft-plan-choices').querySelectorAll('input'))radio.checked=false;draftChanged();});byId('method-draft-formula').addEventListener('change',()=>draftChanged());
     byId('method-draft-task').addEventListener('change',()=>{draftState.epoch++;byId('method-draft-material-status').textContent='选择仅改变待读取流程，不会启动任何任务。';});
     byId('method-draft-read-sources').addEventListener('click',draftMaterials);byId('method-draft-read-plan').addEventListener('click',draftPlan);byId('method-draft-read-formula').addEventListener('click',draftFormula);byId('method-draft-read-history').addEventListener('click',()=>draftHistory());
     byId('method-draft-clear-parent').addEventListener('click',()=>{draftState.supersedes=null;byId('method-draft-parent').textContent='未关联上一稿。';draftChanged();});byId('method-draft-form').addEventListener('submit',event=>{event.preventDefault();draftSave();});
