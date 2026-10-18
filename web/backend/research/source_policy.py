@@ -246,17 +246,20 @@ class PinnedPublicTransport:
 
     def get(self, target, *, still_authorized, owner_lease):
         target = RequestTarget(target.host, target.path)
+        if self.execution_mode!=("live" if self._worker is _network_get else "offline_probe"):
+            raise SourceFailure("source transport provenance mismatch")
         if (os.name!="posix" or not all(hasattr(signal,key) for key in ("SIGALRM","ITIMER_REAL","setitimer","pthread_sigmask"))
                 or type(owner_lease) is not OwnerGateLease):
             raise SourceFailure("source lifetime boundary unavailable")
         identity=owner_lease.identity
         if not callable(still_authorized) or still_authorized() is not True:
             raise PermissionError("source dispatch denied")
+        from .source_spawn import source_process,require_supported
+        require_supported()
         ctx = multiprocessing.get_context("spawn")
         receive, send = ctx.Pipe(duplex=True)
-        shared = ctx.RawArray("B", RAW_CAP * 2)
         deadline = time.monotonic() + self.wall_seconds
-        process = ctx.Process(target=_child, args=(send, target, self._worker, shared,deadline,identity), daemon=True)
+        process = None
         handed_off=False
         def unavailable(message):
             # Kernel expiry can close IPC before the parent's next deadline
@@ -266,6 +269,8 @@ class PinnedPublicTransport:
                 return SourceFailure("source hard deadline")
             return SourceFailure(message)
         try:
+            shared = ctx.RawArray("B", RAW_CAP * 2)
+            process = source_process((send, target, self._worker, shared,deadline,identity))
             process.start()
             send.close()
             while True:
@@ -303,13 +308,18 @@ class PinnedPublicTransport:
                 if not process.is_alive():
                     raise unavailable("source worker exited without result")
         finally:
-            send.close()
-            receive.close()
-            if process.pid is not None:
-                if process.is_alive():
-                    process.terminate()
-                process.join(timeout=0.25)
-                if process.is_alive():
-                    process.kill()
-                    process.join(timeout=0.25)
-                process.close()
+            import sys
+            primary=sys.exc_info()[1]
+            errors=[]
+            for connection in (send,receive):
+                try:connection.close()
+                except BaseException as error:errors.append(error)
+            try:
+                if process is not None:process.close()
+            except BaseException as error:errors.append(error)
+            if errors:
+                from .source_spawn import SourceCleanupUncertain
+                if primary is not None:
+                    primary.add_note('Source transport retirement uncertain')
+                    raise primary
+                raise SourceCleanupUncertain('Source transport retirement uncertain') from errors[0]
