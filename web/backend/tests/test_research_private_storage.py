@@ -87,7 +87,9 @@ def test_captured_profile_and_binding_never_fall_back_to_create(private,native,m
     elif fault=='config':monkeypatch.setenv('AUTH_DATA_DIR','')
     elif fault=='downgrade':monkeypatch.setenv('STRUCTURAL_ENV','dev')
     if fault=='downgrade':
-        with store.transaction() as conn:assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==10
+        with store.transaction() as conn:
+            assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==14
+            store.check_current_structure(conn);store._check_v14(conn)
         assert all(args[0].endswith('?mode=ro') for args,_kw,_conn in native[start:])
     else:
         with pytest.raises((RuntimeError,OSError)):
@@ -245,7 +247,9 @@ def test_dual_namespace_consumes_same_auth_inode(private,namespace,monkeypatch):
         for name in ('STATE_ROOT','CACHE_ROOT','LOG_ROOT'):monkeypatch.setattr(other,name,getattr(paths,name))
     store=module.ResearchStore(auth_module.AuthStore(private))
     assert store.storage_identity==(private.stat().st_dev,private.stat().st_ino)
-    with store.transaction() as conn:assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==10
+    with store.transaction() as conn:
+        assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==14
+        store.check_current_structure(conn);store._check_v14(conn)
 
 
 def test_checkpoint_busy_is_not_reported_as_erasure_success(private):
@@ -410,12 +414,12 @@ def formal_paid(request,tmp_path,monkeypatch,record_property):
     with development_store.transaction() as conn:
         gates={row[0] for row in conn.execute('SELECT gate_id FROM auth_owner_gates')}
         marker=[tuple(row) for row in conn.execute('SELECT id,version FROM research_schema')]
-        assert len(marker)==1 and marker[0][0]==1 and type(marker[0][1]) is int and marker[0][1] in (9,10,11,12,13)
+        assert len(marker)==1 and marker[0][0]==1 and type(marker[0][1]) is int and marker[0][1] in (9,10,11,12,13,14)
         version=marker[0][1]
         ResearchStore._check_structure_version(conn,version)
         source_gates=[]
         for task in conn.execute('SELECT id,policy_revision FROM research_tasks'):
-            if version in (11,12,13) and task['policy_revision']=='d1-source-only-v1':
+            if version in (11,12,13,14) and task['policy_revision']=='d1-source-only-v1':
                 resource=conn.execute('SELECT owner_gate_id,admission_version,task_gate_identity FROM research_source_resources WHERE task_id=?',(task['id'],)).fetchone()
                 run=conn.execute('SELECT task_gate_identity FROM research_source_runs WHERE task_id=?',(task['id'],)).fetchone()
                 assert resource and run and resource['admission_version']=='source-admission-v1'
@@ -462,7 +466,7 @@ def formal_paid(request,tmp_path,monkeypatch,record_property):
     # exclusive maintainer. A numeric marker alone is never fixture admission.
     profile=recover_formula_journal(db)
     if profile['schema_version']==9:provision_formula_v10(db)
-    elif profile['schema_version'] not in (10,11,12,13):raise AssertionError('unsupported complete offline fixture graph')
+    elif profile['schema_version'] not in (10,11,12,13,14):raise AssertionError('unsupported complete offline fixture graph')
     with raw(db) as conn:
         conn.execute('BEGIN');auth_profile=AuthStore.check_offline_auth_metadata(conn)
     migrate_private_auth_registration()
@@ -475,6 +479,9 @@ def formal_paid(request,tmp_path,monkeypatch,record_property):
     if profile['schema_version'] in (9,10,11,12):
         from research.plan_native_financial import provision_native_v13
         provision_native_v13(db)
+    if profile['schema_version'] in (9,10,11,12,13):
+        from research.method_draft import provision_method_drafts_v14
+        provision_method_drafts_v14(db)
     with raw(db) as conn:owners=[tuple(row) for row in conn.execute('SELECT owner_key,gate_id FROM auth_owner_gates')]
     held=AuthStore(db)
     for owner,gate in owners:

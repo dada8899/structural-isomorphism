@@ -14,7 +14,7 @@ def component():
 
 def test_actual_https_registered_controller_worker_typed_same_ref_and_cleanup():
     result=component().self_test()
-    assert result=={'scope':'controlled_fixture_only','schema':13,'financial':9,'actual_https':True,'canonical_origin_preserved':True,'same_process_worker':True,'provider_calls':['GET','POST'],'saved_same_ref_time':True,'real_model_executed':False,'automatically_created_sources':0,'cleanup':'closed'}
+    assert result=={'scope':'controlled_fixture_only','schema':14,'financial':9,'actual_https':True,'canonical_origin_preserved':True,'same_process_worker':True,'provider_calls':['GET','POST'],'saved_same_ref_time':True,'real_model_executed':False,'automatically_created_sources':0,'cleanup':'closed'}
     assert not [t for t in threading.enumerate() if t.name.startswith('controlled-plan-')]
 
 
@@ -256,6 +256,9 @@ def test_fixed_runtime_transport_actual_https_worker_same_ref_time_and_cost():
     from research import plan_native as native,plan_native_runtime as flow
     module=component()
     with module.PlanBrowserFixture(transport='runtime') as service:
+        source_tables=('research_source_approvals','research_source_chains','research_source_runs','research_source_requests','research_source_resources')
+        with service.store.transaction() as conn:
+            source_before={table:conn.execute('SELECT count(*) FROM '+table).fetchone()[0] for table in source_tables}
         service.install_controlled_funding()
         assert type(service.resource) is runtime.NativePlanResource
         assert service.resource.producer=='owned-native-plan-runtime-v1' and service.resource.mode=='controlled_fixture'
@@ -276,6 +279,7 @@ def test_fixed_runtime_transport_actual_https_worker_same_ref_time_and_cost():
         history=client.request('GET','/api/research/'+rid)[1]['data']['native_plan_history']
         assert any(item['result_ref']==ref and item['recorded_at']==content['recorded_at'] for item in history)
         with service.store.transaction() as conn:
+            assert {table:conn.execute('SELECT count(*) FROM '+table).fetchone()[0] for table in source_tables}==source_before
             assert conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone()[:]==(0,flow.UPPER)
             row=conn.execute('SELECT admission_json,receipt_json FROM research_plan_native_runs').fetchone()
             assert json.loads(row['admission_json'])['producer']=='owned-native-plan-runtime-v1'

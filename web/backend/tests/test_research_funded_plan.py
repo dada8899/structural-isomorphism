@@ -99,7 +99,7 @@ def confirm(client,rid,preview,key='plan-confirm'):
     return response.json()['data'],value
 
 
-def test_closed_current12_keeps_auth_save_formula_and_refuses_paid(stack,monkeypatch):
+def test_closed_current14_keeps_auth_save_formula_and_refuses_paid(stack,monkeypatch):
     client,root,rid,store=saved(stack,monkeypatch)
     denied=send(client,rid,'plan-previews',{'input_revision':1,'expected_research_version':1,'observation_source':'own_observation','declaration_status':'self_declared'},'closed-preview')
     assert denied.status_code==503 and denied.json()['error']['code']=='FUNDING_CLOSED'
@@ -110,7 +110,8 @@ def test_closed_current12_keeps_auth_save_formula_and_refuses_paid(stack,monkeyp
     formula_rid=formula.json()['data']['research']['id']
     assert client.get('/api/research/'+formula_rid+'/formula-revisions/1').status_code==200
     with store.transaction() as conn:
-        assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==12
+        assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==14
+        store._check_v14(conn)
         assert conn.execute('SELECT count(*) FROM research_plan_dispatches').fetchone()[0]==0
 
 
