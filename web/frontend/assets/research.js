@@ -36,7 +36,7 @@
   let methodSeen = false;
   let methodDirty = false;
   let historySeen = false;
-  const draftState={epoch:0,readEpoch:0,rid:null,target:null,busy:false,operation:null,actor:null,dirty:false,selected:new Map(),excerpts:new Map(),plans:new Map(),formulas:new Map(),history:new Map(),origin:null,supersedes:null,view:null};
+  const draftState={epoch:0,readEpoch:0,rid:null,target:null,busy:false,operation:null,actor:null,dirty:false,selected:new Map(),excerpts:new Map(),plans:new Map(),formulas:new Map(),history:new Map(),origin:null,supersedes:null,view:null,casRejected:null};
   const planState = {epoch:0,readGeneration:0,view:null,meta:null,preview:null,busy:false,operation:null,timer:null};
   const formulaState = {draft:null,snapshot:null,scope:null,view:null,dirty:false,loading:false,busy:false,busyToken:null,epoch:0,snapshotEpoch:0,metadata:null};
   const initialSection = ['#my-research', '#kb-section'].includes(location.hash) ? location.hash.slice(1) : null;
@@ -896,6 +896,7 @@
 
   // Manual drafts have their own immutable record and read/write purpose.
   const draftContract='method-draft-v1';
+  const draftCasRejection=Symbol('current method draft POST explicitly rejected before write');
   const draftFields=['method-draft-label','method-draft-method','method-draft-mapping','method-draft-nontransferable','method-draft-competing','method-draft-question','method-draft-measurement','method-draft-outcome','method-draft-falsification','method-draft-stop'];
   const draftError=error=>['AbortError','TypeError','SyntaxError'].includes(error.name)?'草稿保存或读取状态尚未确认，请保留输入与原操作。':error.message;
   function draftTicket(){return {epoch:draftState.epoch,privateScope:privateGeneration,rid:researchId};}
@@ -911,7 +912,7 @@
     formulaElement(byId('method-draft-formula'),'option','不关联公式记录',{value:''});byId('method-draft-material-status').textContent=message;draftSync();
   }
   function draftReset(){
-    draftState.epoch++;draftState.readEpoch++;draftState.rid=null;draftState.target=null;draftState.busy=false;draftState.operation=null;draftState.actor=null;draftState.dirty=false;draftState.selected.clear();draftState.excerpts.clear();draftState.plans.clear();draftState.formulas.clear();draftState.history.clear();draftState.supersedes=null;draftState.origin=null;
+    draftState.epoch++;draftState.readEpoch++;draftState.rid=null;draftState.target=null;draftState.busy=false;draftState.operation=null;draftState.actor=null;draftState.dirty=false;draftState.selected.clear();draftState.excerpts.clear();draftState.plans.clear();draftState.formulas.clear();draftState.history.clear();draftState.supersedes=null;draftState.origin=null;draftState.casRejected=null;
     for(const id of draftFields)byId(id).value='';byId('method-draft-origin').value='user_proposed';
     for(const id of ['method-draft-task','method-draft-materials','method-draft-plan-choices','method-draft-formula','method-draft-history','method-draft-pending'])byId(id).replaceChildren();
     formulaElement(byId('method-draft-formula'),'option','不关联公式记录',{value:''});
@@ -931,9 +932,13 @@
       if(!response.ok){
         if(response.status===401||envelope.error?.code==='AUTHORIZATION_STALE')await authenticated(()=>draftActive(ticket),controller.signal);
         else if(response.status===404&&draftActive(ticket)){try{await request(`/api/research/${ticket.rid}`,{},()=>draftActive(ticket));}catch{}}
-        const error=Error(envelope.error?.message||'本次草稿状态无法完整核对，内容仍保留。');error.code=envelope.error?.code;throw error;
+        const error=Error(envelope.error?.message||'本次草稿状态无法完整核对，内容仍保留。');error.code=envelope.error?.code;
+        const failure=envelope.error;
+        // This API checks replay before CAS; only this exact POST refusal proves no write.
+        if(purpose==='save_post'&&options.method==='POST'&&url===`/api/research/${ticket.rid}/method-drafts`&&!response.redirected&&response.url===new URL(url,location.origin).href&&response.status===409&&planKeys(envelope,['error'])&&planKeys(failure,['code','message','retryable','allowed_next_actions','incident_id'])&&failure.code==='VERSION_CONFLICT'&&failure.message==='问题已更新，请重读后保存新草稿。'&&failure.retryable===false&&Array.isArray(failure.allowed_next_actions)&&failure.allowed_next_actions.length===0&&validId(failure.incident_id))error[draftCasRejection]=true;
+        throw error;
       }
-      const expected={draft:draftContract,root:revision,plan_v1:'funded-plan-v1',plan_v2:planContract}[purpose];
+      const expected={draft:draftContract,save_post:draftContract,root:revision,plan_v1:'funded-plan-v1',plan_v2:planContract}[purpose];
       if(!expected||envelope.schema_version!==schema||envelope.contract_revision!==expected||!planObject(envelope.data))throw Error('草稿响应用途或版本不匹配。');
       return envelope.data;
     }finally{clearTimeout(timer);}
@@ -955,9 +960,10 @@
     byId('method-draft-target').textContent=target?`本次目标：问题修订 ${target.input_revision}。引用材料保留各自原修订，保存不会执行验证。`:'先保存并核对问题，再选择已存材料。';
     byId('method-draft-hint').textContent=ro?'当前流程只读；可查看原稿，不能保存新稿。':conflict?'服务端问题已有新版本。本地文字保持不变，保存前请明确载入当前问题。':methodDirty||formulaState.dirty?'问题有未保存改动；先保存问题，此处手写内容已保留。':'手动填写的未验证草稿；保存不会调用模型、查询来源、运行统计或扣费。';
     for(const control of byId('method-draft-form').querySelectorAll('input,textarea,select,button'))control.disabled=ro||busy||(draftState.busy&&control.type==='submit');
-    byId('method-draft-save').disabled=ro||busy||draftState.busy||!valid||!draftState.selected.size||[...draftState.selected.keys()].some(id=>!draftState.excerpts.has(id))||!draftState.dirty;
+    byId('method-draft-save').disabled=ro||busy||draftState.busy||!valid||!draftState.selected.size||[...draftState.selected.keys()].some(id=>!draftState.excerpts.has(id))||!draftState.dirty||Boolean(draftState.casRejected);
     for(const id of ['method-draft-read-sources','method-draft-read-plan','method-draft-read-formula'])byId(id).disabled=ro||busy||draftState.busy||!researchId||!byId('method-draft-task').value;
     byId('method-draft-read-history').disabled=!researchId||draftState.busy;
+    byId('method-draft-refresh-base').hidden=!draftState.casRejected;byId('method-draft-refresh-base').disabled=ro||busy||draftState.busy;
     byId('method-draft-task').disabled=ro||busy||draftState.busy;
     for(const button of byId('method-draft-pending').querySelectorAll('button'))button.disabled=ro||busy||draftState.busy;
     byId('method-draft-user').hidden=byId('method-draft-origin').value!=='user_proposed';byId('method-draft-plan').hidden=byId('method-draft-origin').value!=='plan_lead';
@@ -965,7 +971,7 @@
   function draftObserve(data){
     const same=draftState.rid===data.research.id;const changed=draftState.target&&(draftState.target.input_revision!==editBase?.revision||draftState.target.problem_digest!==editBase?.digest);
     if(draftState.rid&&!same)draftReset();
-    if(changed)draftHideMaterials('目标问题修订已变化。已隐藏旧缓存原文，请重新读取引用；手写内容与原选择标识保留。');
+    if(changed){draftState.casRejected=null;draftHideMaterials('目标问题修订已变化。已隐藏旧缓存原文，请重新读取引用；手写内容与原选择标识保留。');}
     if(accountScope){const ticket=draftTicket(),account=accountScope;formulaHash({account:JSON.parse(account)}).then(actor=>{if(draftActive(ticket)&&account===accountScope){draftState.actor=actor;draftRenderPending();}}).catch(()=>{});}
     draftState.rid=data.research.id;draftState.target=editBase?{input_revision:editBase.revision,problem_digest:editBase.digest}:null;
     const picker=byId('method-draft-task'),selected=picker.value;picker.replaceChildren();formulaElement(picker,'option','选择含材料或线索的已存流程',{value:''});
@@ -1011,8 +1017,8 @@
       if(!await draftSetActor(ticket))return;const view=await draftTask(ticket,['native-plan-v1','funded-plan-v1']),anchor=planAnchor(view),legacy=view.task.policy_revision==='funded-plan-v1',meta=legacy?view.plan:view.native_plan;
       if(!anchor||!planMeta(meta,legacy))throw Error('原计划状态无法核对。');const value=await draftFetch(`/api/research/${ticket.rid}/plan-results/${meta.result_ref}`,{},ticket,legacy?'plan_v1':'plan_v2');const {content,...metadata}=value;
       if(!planMeta(metadata,legacy)||metadata.result_ref!==meta.result_ref||metadata.task_id!==anchor.task_id)throw Error('原计划引用无法核对。');const checked=planValidateResult(content,metadata,anchor,legacy,null);
-      if(!draftActive(ticket)||!await draftAuth(ticket))return;const box=byId('method-draft-plan-choices');box.replaceChildren();draftState.plans.clear();
-      checked.proposal.candidates.forEach((candidate,candidate_index)=>candidate.method_leads.forEach((lead,lead_index)=>{const key=meta.result_ref+':'+candidate_index+':'+lead_index;const origin={kind:'plan_lead',plan_contract:legacy?'funded-plan-v1':planContract,result_ref:meta.result_ref,candidate_index,lead_index};draftState.plans.set(key,origin);const label=formulaElement(box,'label','',{className:'check'});const radio=document.createElement('input');radio.type='radio';radio.name='method-draft-plan-origin';radio.value=key;label.append(radio,document.createTextNode(`${candidate.label}：${lead}（原问题修订 ${checked.input_revision}，待核验线索）`));radio.addEventListener('change',()=>{draftState.origin=origin;draftChanged('已选择原计划线索；方法、条件与验证计划仍需自己填写。');});}));
+      if(!draftActive(ticket)||!await draftAuth(ticket))return;const box=byId('method-draft-plan-choices'),previous=box.querySelector('input[name="method-draft-plan-origin"]:checked'),selected=previous&&draftState.plans.get(previous.value);box.replaceChildren();draftState.plans.clear();draftState.origin=null;draftClearView();
+      checked.proposal.candidates.forEach((candidate,candidate_index)=>candidate.method_leads.forEach((lead,lead_index)=>{const key=meta.result_ref+':'+candidate_index+':'+lead_index;const origin={kind:'plan_lead',plan_contract:legacy?'funded-plan-v1':planContract,result_ref:meta.result_ref,candidate_index,lead_index};draftState.plans.set(key,origin);const label=formulaElement(box,'label','',{className:'check'});const radio=document.createElement('input');radio.type='radio';radio.name='method-draft-plan-origin';radio.value=key;if(selected&&formulaCanonical(selected)===formulaCanonical(origin)){radio.checked=true;draftState.origin=origin;}label.append(radio,document.createTextNode(`${candidate.label}：${lead}（原问题修订 ${checked.input_revision}，待核验线索）`));radio.addEventListener('change',()=>{draftState.origin=origin;draftChanged('已选择原计划线索；方法、条件与验证计划仍需自己填写。');});}));
       if(!box.children.length)formulaElement(box,'p','原计划没有可选择的方法线索，请使用人工提议。');
     }catch(error){if(draftActive(ticket)){draftState.origin=null;draftState.plans.clear();byId('method-draft-plan-choices').replaceChildren();byId('method-draft-status').textContent=draftError(error);}}
     finally{if(draftState.operation===operation){draftState.busy=false;draftState.operation=null;draftSync();}}
@@ -1022,18 +1028,25 @@
     try{
       if(!await draftSetActor(ticket))return;const view=await draftTask(ticket,['local-formula-v1']),meta=view.formula_check;
       if(!validateFormulaMetadata(meta)||!meta.result_available)throw Error('该公式流程没有可读取的已存结果。');const data=await draftFetch(`/api/research/${ticket.rid}/formula-results/${meta.result_ref}`,{},ticket,'root');
-      if(data.state!=='available'||!validateFormulaMetadata(data.metadata,meta.result_ref)||data.metadata.formula_digest!==view.current_problem.formula_snapshot?.formula_digest||data.provenance?.problem_digest!==view.current_problem.digest||typeof data.provenance?.execution_attested!=='boolean')throw Error('原公式结果与问题快照无法核对。');
-      if(!draftActive(ticket)||!await draftAuth(ticket))return;draftState.formulas.set(meta.result_ref,meta);const select=byId('method-draft-formula');if(![...select.options].some(v=>v.value===meta.result_ref))formulaElement(select,'option',`公式记录 · 原问题修订 ${view.current_problem.revision} · ${data.provenance.execution_attested?'原执行有证明':'原执行未获证明'}（不升级本草稿结论）`,{value:meta.result_ref});
+      if(data.state!=='available'||!validateFormulaMetadata(data.metadata,meta.result_ref)||data.metadata.result_available!==true||!recordTime(data.metadata.formula_result_recorded_at)||data.metadata.formula_digest!==view.current_problem.formula_snapshot?.formula_digest||data.provenance?.problem_digest!==view.current_problem.digest||typeof data.provenance?.execution_attested!=='boolean')throw Error('原公式结果与问题快照无法核对。');
+      if(!draftActive(ticket)||!await draftAuth(ticket))return;draftState.formulas.set(meta.result_ref,data.metadata);const select=byId('method-draft-formula');if(![...select.options].some(v=>v.value===meta.result_ref))formulaElement(select,'option',`公式记录 ${meta.result_ref} · 原保存时间 ${data.metadata.formula_result_recorded_at} · 原问题修订 ${view.current_problem.revision} · ${data.provenance.execution_attested?'原执行有证明':'原执行未获证明'}（不升级本草稿结论）`,{value:meta.result_ref});
       byId('method-draft-status').textContent='已读取原公式引用，可选关联；不会重新检查或把旧通过当新问题验证。';
     }catch(error){if(draftActive(ticket))byId('method-draft-status').textContent=draftError(error);}
     finally{if(draftState.operation===operation){draftState.busy=false;draftState.operation=null;draftSync();}}
   }
   function draftLines(id){const values=byId(id).value.split('\n').filter(v=>v.trim().length);if(!values.length||values.length>20||values.some(v=>!planText(v,2000)))throw Error('映射、不可迁移项和竞争解释各需1–20项，每项最多2000字。');return values;}
+  function draftVisiblePlanOrigin(){
+    const selected=byId('method-draft-plan-choices').querySelector('input[name="method-draft-plan-origin"]:checked');
+    const origin=selected&&draftState.plans.get(selected.value);
+    if(!origin||!draftState.origin||formulaCanonical(origin)!==formulaCanonical(draftState.origin))throw Error('请从当前显示的真实计划线索中明确选择一项。');
+    return origin;
+  }
   function draftPayload(){
     if(!editBase||!researchId||methodDirty||formulaState.dirty||(observed&&(observed.revision!==editBase.revision||observed.digest!==editBase.digest)))throw Error('请先保存并明确载入当前问题；方法文字未清空。');
+    const selectedOrigin=byId('method-draft-origin').value==='plan_lead'?draftVisiblePlanOrigin():null;
     if(!draftState.selected.size||draftState.selected.size>20||[...draftState.selected.keys()].some(id=>!draftState.excerpts.has(id)))throw Error('请明确选择1–20条刚核对的已存摘录。');
     const method=byId('method-draft-method').value;if(!planText(method,2000))throw Error('请填写方法及适用条件（最多2000字）。');
-    const origin=byId('method-draft-origin').value==='plan_lead'?draftState.origin:{kind:'user_proposed',label:byId('method-draft-label').value,description:method};
+    const origin=byId('method-draft-origin').value==='plan_lead'?selectedOrigin:{kind:'user_proposed',label:byId('method-draft-label').value,description:method};
     if(!origin||origin.kind==='user_proposed'&&!planText(origin.label,120))throw Error('请填写人工方法名称，或从真实已存计划中选择线索。');
     const data={input_revision:editBase.revision,expected_research_version:observed?.researchVersion||editBase.researchVersion,excerpt_refs:[...draftState.selected.values()],origin,method,mapping:draftLines('method-draft-mapping'),nontransferable:draftLines('method-draft-nontransferable'),competing_explanations:draftLines('method-draft-competing'),test_plan:{question:byId('method-draft-question').value,measurement:byId('method-draft-measurement').value,primary_outcome:byId('method-draft-outcome').value,falsification:byId('method-draft-falsification').value,stop_rule:byId('method-draft-stop').value},formula_result_ref:byId('method-draft-formula').value||null,supersedes_ref:draftState.supersedes};
     if(Object.values(data.test_plan).some(v=>!planText(v,2000)))throw Error('五项验证计划都需自己填写，每项最多2000字。');if(new TextEncoder().encode(formulaCanonical(data)).length>65536)throw Error('草稿请求超过64KiB，请减少文字或引用；未自动截断。');return draftCheckRequest(data);
@@ -1066,7 +1079,7 @@
     if(body.origin.kind==='plan_lead'){if(!planKeys(body.origin,['kind','plan_contract','result_ref','candidate_index','lead_index','label','lead','mode','producer','result_digest','input_revision','verification'])||!['funded-plan-v1','funded-plan-v2'].includes(body.origin.plan_contract)||!validId(body.origin.result_ref)||!planDigest(body.origin.result_digest)||!planInt(body.origin.input_revision)||!planText(body.origin.label,2000)||!planText(body.origin.lead,2000)||!['fixture','controlled_fixture','native_live'].includes(body.origin.mode)||!['owned-plan-fixture-v1','core-controlled-native-v1','owned-native-plan-runtime-v1'].includes(body.origin.producer)||['kind','plan_contract','result_ref','candidate_index','lead_index'].some(key=>body.origin[key]!==req.origin?.[key]))throw Error('计划线索的原记录无法核对。');}
     else if(!planKeys(body.origin,['kind','label','description','mode','verification'])||body.origin.kind!=='user_proposed'||body.origin.mode!=='user_proposed'||body.origin.label!==req.origin?.label||body.origin.description!==req.origin?.description)throw Error('人工提议来源无法核对。');
     if(req.formula_result_ref===null){if(body.formula!==null)throw Error('未选择的公式被加入草稿。');}
-    else if(!planKeys(body.formula,['result_ref','metadata','result_digest','input_revision','comparison_scope','outcomes','execution_attested'])||body.formula?.result_ref!==req.formula_result_ref||!validateFormulaMetadata(body.formula.metadata,req.formula_result_ref)||!planDigest(body.formula.result_digest)||!planInt(body.formula.input_revision)||typeof body.formula.execution_attested!=='boolean'||!['expression','equation_form','initial_value_problem'].includes(body.formula.comparison_scope)||!Array.isArray(body.formula.outcomes)||body.formula.outcomes.length<1||body.formula.outcomes.length>4||body.formula.outcomes.some(outcome=>!planKeys(outcome,['check_kind','status','relation'])||!Object.hasOwn(formulaChecks,outcome.check_kind)||!['passed','failed','inconclusive','unsupported','resource_limit'].includes(outcome.status)||!['algebraic_identity','conditional_model_equivalence','local_approximation','partial_structure','not_equivalent','undetermined'].includes(outcome.relation)))throw Error('原公式关联无法核对。');
+    else if(!planKeys(body.formula,['result_ref','metadata','result_digest','input_revision','comparison_scope','outcomes','execution_attested'])||body.formula?.result_ref!==req.formula_result_ref||!validateFormulaMetadata(body.formula.metadata,req.formula_result_ref)||body.formula.metadata.result_available!==true||!recordTime(body.formula.metadata.formula_result_recorded_at)||!planDigest(body.formula.result_digest)||!planInt(body.formula.input_revision)||typeof body.formula.execution_attested!=='boolean'||!['expression','equation_form','initial_value_problem'].includes(body.formula.comparison_scope)||!Array.isArray(body.formula.outcomes)||body.formula.outcomes.length<1||body.formula.outcomes.length>4||body.formula.outcomes.some(outcome=>!planKeys(outcome,['check_kind','status','relation'])||!Object.hasOwn(formulaChecks,outcome.check_kind)||!['passed','failed','inconclusive','unsupported','resource_limit'].includes(outcome.status)||!['algebraic_identity','conditional_model_equivalence','local_approximation','partial_structure','not_equivalent','undetermined'].includes(outcome.relation)))throw Error('原公式关联无法核对。');
     if(!draftActive(ticket))throw Error('原读取已失效。');return {meta,body,root};
   }
   function draftShow({meta,body,root}){
@@ -1077,7 +1090,7 @@
     for(const [title,values] of [['映射',body.request.mapping],['不可直接迁移',body.request.nontransferable],['竞争解释',body.request.competing_explanations]]){add('h4',title);const list=add('ul','');for(const value of values)formulaElement(list,'li',value);}
     for(const [title,key] of [['验证问题','question'],['测量方式','measurement'],['主要结果指标','primary_outcome'],['反证条件','falsification'],['停止条件','stop_rule']]){add('h4',title);add('p',body.request.test_plan[key]);}
     add('h4','原来源短摘录');for(const source of body.sources){add('p',`${source.title||'未提供标题'} · 原问题修订 ${source.input_revision} / 来源修订 ${source.source_revision}`);add('blockquote',source.quote);add('p',source.licence_basis,{className:'hint'});}
-    if(body.formula){add('h4','关联的原公式检查');add('p',`原问题修订 ${body.formula.input_revision} · ${{expression:'表达式',equation_form:'方程形式',initial_value_problem:'初值问题'}[body.formula.comparison_scope]} · ${body.formula.execution_attested?'原执行有证明':'原执行未获证明'}；不表示本方法通过验证。`);for(const outcome of body.formula.outcomes)add('p',`${formulaChecks[outcome.check_kind]||'原检查'}：${{passed:'该有限检查通过',failed:'该检查不通过',inconclusive:'不足以下判断',unsupported:'不支持',resource_limit:'达到资源边界'}[outcome.status]||'状态未核对'}；关系为 ${{algebraic_identity:'代数恒等关系',conditional_model_equivalence:'有条件的模型对应',local_approximation:'局部近似',partial_structure:'部分结构相似',not_equivalent:'不等价',undetermined:'尚未确定'}[outcome.relation]||'尚未确定'}`);}
+    if(body.formula){add('h4','关联的原公式检查');add('p','原公式结果编号与原保存时间');add('p',body.formula.result_ref,{id:'method-draft-view-formula-ref'});const formulaTime=add('time','',{id:'method-draft-view-formula-time'});showTime(formulaTime,body.formula.metadata.formula_result_recorded_at);add('p',`原问题修订 ${body.formula.input_revision} · ${{expression:'表达式',equation_form:'方程形式',initial_value_problem:'初值问题'}[body.formula.comparison_scope]} · ${body.formula.execution_attested?'原执行有证明':'原执行未获证明'}；不表示本方法通过验证。`);for(const outcome of body.formula.outcomes)add('p',`${formulaChecks[outcome.check_kind]||'原检查'}：${{passed:'该有限检查通过',failed:'该检查不通过',inconclusive:'不足以下判断',unsupported:'不支持',resource_limit:'达到资源边界'}[outcome.status]||'状态未核对'}；关系为 ${{algebraic_identity:'代数恒等关系',conditional_model_equivalence:'有条件的模型对应',local_approximation:'局部近似',partial_structure:'部分结构相似',not_equivalent:'不等价',undetermined:'尚未确定'}[outcome.relation]||'尚未确定'}`);}
     byId('method-draft-view-status').textContent='只读查看原稿；编辑区内容未替换。';
   }
   async function draftRead(ref){
@@ -1098,10 +1111,11 @@
     const box=byId('method-draft-pending');box.replaceChildren();for(const pending of draftPending()){const row=formulaElement(box,'div','');formulaElement(row,'p',`仍有问题修订 ${pending.task_request?.data?.input_revision||'待核对'} 的原保存待确认；新输入不会替换原提交。`,{className:'hint'});const button=formulaElement(row,'button','核对这一笔原保存',{type:'button',className:'secondary'});button.disabled=readOnlyView()||draftState.busy;button.addEventListener('click',()=>draftSave(pending));}
   }
   async function draftSave(recover=null){
-    if(draftState.busy||busy||readOnlyView())return;let ticket=draftTicket(),pending;const operation=Symbol();draftState.busy=true;draftState.operation=operation;draftSync();
+    if(draftState.busy||busy||readOnlyView())return;let ticket=draftTicket(),pending,original;const operation=Symbol();draftState.busy=true;draftState.operation=operation;draftSync();
     try{
       if(!await draftSetActor(ticket))return;
-      let original,scope;
+      if(draftState.casRejected)throw Error('本次保存已明确未写入，请先核对当前问题版本，再主动保存。');
+      let scope;
       if(recover){if(!draftPending().some(v=>v.slot===recover.slot&&v.key===recover.key))throw Error('原保存不属于当前账户读取范围。');original=recover.task_request;scope=recover.slot.slice('structure-research-pending:'.length);}
       else{
         const data=draftPayload(),semantic={...data};delete semantic.expected_research_version;const intent=await formulaHash(semantic);if(!draftActive(ticket))return;
@@ -1113,19 +1127,38 @@
       draftCheckRequest(original.data);
       const body=JSON.stringify({schema_version:schema,contract_revision:draftContract,data:original.data});pending=await operationKey(scope,body,original.data.input_revision,original);if(!draftActive(ticket))return;
       byId('method-draft-status').textContent='正在保存这份人工未验证草稿；不会执行研究或改写旧稿。';
-      const ack=await draftValidate(await draftFetch(`/api/research/${ticket.rid}/method-drafts`,{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':pending.key},body},ticket),ticket,null,original);
+      const ack=await draftValidate(await draftFetch(`/api/research/${ticket.rid}/method-drafts`,{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':pending.key},body},ticket,'save_post'),ticket,null,original);
       const checked=await draftValidate(await draftFetch(`/api/research/${ticket.rid}/method-drafts/${ack.meta.draft_ref}`,{},ticket),ticket,ack.meta.draft_ref,original);
       if(['created_at','content_digest','problem_digest','input_revision','research_version_before','research_version_after'].some(key=>checked.meta[key]!==ack.meta[key]))throw Error('原稿标识或原保存时间无法独立核对，key保留。');
       if(!await draftAuth(ticket)||!draftActive(ticket))return;formulaRetire(pending);
       if(!recover){draftState.dirty=false;draftShow(checked);}byId('method-draft-status').textContent=recover?'原保存已确认；当前编辑区未替换，记录仍未验证/未执行。':'已保存新的验证草稿；未验证、未执行，不代表研究完成。';
       if(observed&&observed.revision===checked.meta.input_revision&&observed.digest===checked.meta.problem_digest&&observed.researchVersion<checked.meta.research_version_after)observed.researchVersion=checked.meta.research_version_after;
-    }catch(error){if(draftActive(ticket)){byId('method-draft-status').textContent=draftError(error)+' 输入与原保存意图仍保留。';if(error.code==='DEPENDENCY_UNAVAILABLE')draftHideMaterials('引用当前不可完整读取，原文缓存已隐藏；手写内容保留，请重新选择。');}}
+    }catch(error){if(draftActive(ticket)){
+      if(pending&&original&&error[draftCasRejection]===true&&await draftAuth(ticket)&&draftActive(ticket)){
+        formulaRetire(pending);draftState.casRejected={input_revision:original.data.input_revision,problem_digest:original.problem_digest,expected_research_version:original.data.expected_research_version};
+        byId('method-draft-status').textContent='本次保存被明确拒绝，未写入；手写内容保留。请先核对当前问题版本，再主动保存为新操作。';
+      }else if(draftActive(ticket)){byId('method-draft-status').textContent=draftError(error)+' 输入与原保存意图仍保留。';if(error.code==='DEPENDENCY_UNAVAILABLE')draftHideMaterials('引用当前不可完整读取，原文缓存已隐藏；手写内容保留，请重新选择。');}
+    }}
     finally{if(draftState.operation===operation){draftState.busy=false;draftState.operation=null;draftRenderPending();draftSync();}}
   }
+  async function draftRefreshBase(){
+    if(!draftState.casRejected||draftState.busy||busy||readOnlyView())return;
+    const rejected=draftState.casRejected,ticket=draftTicket(),operation=Symbol();draftState.busy=true;draftState.operation=operation;draftSync();
+    try{
+      if(!await draftAuth(ticket))return;const root=await draftFetch(`/api/research/${ticket.rid}`,{},ticket,'root');
+      if(root.research?.id!==ticket.rid||root.current_problem?.revision!==rejected.input_revision||root.current_problem.digest!==rejected.problem_digest||editBase?.revision!==rejected.input_revision||editBase.digest!==rejected.problem_digest||!planInt(root.research_version)||root.research_version<=rejected.expected_research_version||root.research_version>=2147483647)throw Error('问题版本或内容已变化，请明确载入当前问题后重新核对引用；手写内容保留。');
+      if(!await draftAuth(ticket)||!draftActive(ticket)||draftState.casRejected!==rejected)return;
+      if(!observed||observed.revision!==rejected.input_revision||observed.digest!==rejected.problem_digest)throw Error('当前问题基准无法核对，未刷新或再次保存。');
+      observed.researchVersion=root.research_version;draftState.casRejected=null;
+      byId('method-draft-status').textContent='已核对当前问题内容与版本，手写内容保留。可主动再次保存；尚未提交新操作。';
+    }catch(error){if(draftActive(ticket))byId('method-draft-status').textContent=draftError(error);}
+    finally{if(draftState.operation===operation){draftState.busy=false;draftState.operation=null;draftSync();}}
+  }
   function initDraft(){
+    byId('method-draft-refresh-base').addEventListener('click',draftRefreshBase);
     for(const id of draftFields)byId(id).addEventListener('input',()=>draftChanged());
     byId('method-draft-origin').addEventListener('change',()=>{draftState.origin=null;for(const radio of byId('method-draft-plan-choices').querySelectorAll('input'))radio.checked=false;draftChanged();});byId('method-draft-formula').addEventListener('change',()=>draftChanged());
-    byId('method-draft-task').addEventListener('change',()=>{draftState.epoch++;byId('method-draft-material-status').textContent='选择仅改变待读取流程，不会启动任何任务。';});
+    byId('method-draft-task').addEventListener('change',()=>{draftState.epoch++;byId('method-draft-material-status').textContent='选择仅改变待读取流程，不会启动任何任务。';draftSync();});
     byId('method-draft-read-sources').addEventListener('click',draftMaterials);byId('method-draft-read-plan').addEventListener('click',draftPlan);byId('method-draft-read-formula').addEventListener('click',draftFormula);byId('method-draft-read-history').addEventListener('click',()=>draftHistory());
     byId('method-draft-clear-parent').addEventListener('click',()=>{draftState.supersedes=null;byId('method-draft-parent').textContent='未关联上一稿。';draftChanged();});byId('method-draft-form').addEventListener('submit',event=>{event.preventDefault();draftSave();});
   }

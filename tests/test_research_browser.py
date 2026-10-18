@@ -3731,3 +3731,115 @@ async def _method_draft_late_empty_history(tmp_path,change):
 def test_method_draft_real_late_history_keeps_new_editor_and_private_clear(tmp_path,change):
     import asyncio
     asyncio.run(_method_draft_late_empty_history(tmp_path,change))
+
+
+async def _method_draft_plan_reselection_boundary(tmp_path,source_script=None):
+    """Real controlled plans; optional archived JS is only a source regression oracle."""
+    import asyncio,importlib.util
+    from playwright.async_api import async_playwright,expect as aexpect
+    path=BACKEND/'tests/acceptance/plan_browser_service.py';spec=importlib.util.spec_from_file_location('actual_method_draft_plan_reselection_service',path);component=importlib.util.module_from_spec(spec);spec.loader.exec_module(component)
+    fixture=None;root=None;browser=None;context=None;primary=None;cleanup=[];facts={};draft_posts=[]
+    try:
+        with component.PlanBrowserFixture(transport='runtime') as fixture,fixture.browser_bridge() as bridge:
+            root=fixture.root
+            async with async_playwright() as p:
+                browser=await p.chromium.launch();context=await browser.new_context()
+                try:
+                    async with bridge.routed(context):
+                        page=await context.new_page()
+                        if source_script is not None:
+                            async def archived_script(route):await route.fulfill(status=200,content_type='application/javascript',body=source_script)
+                            await page.route(component.ORIGIN+'/assets/research.js',archived_script)
+                        page.on('request',lambda request:draft_posts.append(request.url) if request.method=='POST' and request.url.endswith('/method-drafts') else None)
+                        await page.goto(component.ORIGIN+'/research');await _native_tls_login(page,fixture,component.OWNER,fresh=True);await page.goto(component.ORIGIN+'/research')
+                        await page.locator('#original-input').fill(component.OBSERVATION);await page.locator('#summary').fill('核对手选计划线索与可见选择是否一致');await page.locator('#confirmed').check()
+                        async with page.expect_response(component.ORIGIN+'/api/research') as created:await page.locator('#save').click()
+                        assert (await created.value).status==200;rid=(await (await created.value).json())['data']['research']['id'];await aexpect(page.locator('#research-list-status')).to_contain_text('已读取 1');values=await _method_draft_type_manual_fields(page);fixture.install_controlled_funding()
+                        async def explicit_plan():
+                            await page.locator('#native-plan-own').check();await aexpect(page.locator('#native-plan-preview')).to_be_enabled()
+                            async with page.expect_response('**/plan-previews') as preview:await page.locator('#native-plan-preview').click()
+                            assert (await preview.value).status==200;await page.locator('#native-plan-consent').check()
+                            async with page.expect_response('**/plan-approvals') as approved:await page.locator('#native-plan-confirm').click()
+                            response=await approved.value;assert response.status==200;ack=(await response.json())['data'];result=await asyncio.to_thread(fixture.wait_result,rid,ack['result_ref']);deadline=time.monotonic()+8
+                            while result['data']['cleanup_state']=='pending' and time.monotonic()<deadline:
+                                await asyncio.sleep(.02);status,result=await asyncio.to_thread(fixture.client.request,'GET','/api/research/'+rid+'/plan-results/'+ack['result_ref']);assert status==200
+                            assert result['data']['state']=='saved' and result['data']['cleanup_state']=='clean';await aexpect(page.locator('#native-plan-refresh')).to_be_enabled()
+                            await _native_tls_completed_read(page,component.ORIGIN+'/api/research/'+rid+'/plan-results/'+ack['result_ref'],lambda:page.locator('#native-plan-refresh').click());return ack
+                        first=await explicit_plan();await page.locator('#method-draft-task').select_option(first['task_id']);await page.locator('#method-draft-origin').select_option('plan_lead');await page.locator('#method-draft-read-plan').click();choice=page.locator('#method-draft-plan-choices input');await aexpect(choice).to_have_count(1);await aexpect(page.locator('#method-draft-read-plan')).to_be_enabled();await choice.check();await aexpect(choice).to_be_checked()
+                        await page.locator('#method-draft-read-plan').click();await aexpect(page.locator('#method-draft-read-plan')).to_be_enabled();await aexpect(choice).to_be_checked();facts['same_exact_plan_retains_visible_selection']=True
+                        await page.locator('#method-draft-task').select_option('');await aexpect(page.locator('#method-draft-read-plan')).to_be_disabled();await page.locator('#method-draft-task').select_option(first['task_id']);await aexpect(page.locator('#method-draft-read-plan')).to_be_enabled();await aexpect(choice).to_be_checked();facts['task_picker_updates_buttons_without_clearing_choice']=True
+                        second=await explicit_plan();assert second['result_ref']!=first['result_ref'];await page.locator('#method-draft-task').select_option(second['task_id']);await aexpect(choice).to_be_checked();await page.locator('#method-draft-read-plan').click();await aexpect(page.locator('#method-draft-read-plan')).to_be_enabled();await aexpect(choice).not_to_be_checked();await aexpect(choice).to_have_value(second['result_ref']+':0:0')
+                        await page.locator('#method-draft-form').dispatch_event('submit');await aexpect(page.locator('#method-draft-status')).to_contain_text('请从当前显示的真实计划线索中明确选择一项')
+                        await choice.check();await page.locator('#method-draft-form').dispatch_event('submit');await aexpect(page.locator('#method-draft-status')).to_contain_text('请明确选择1–20条刚核对的已存摘录')
+                        for field,value in values.items():await aexpect(page.locator('#'+field)).to_have_value(value)
+                        assert not draft_posts;assert fixture.calls==['GET','POST','GET','POST'];facts.update({'first_ref':first['result_ref'],'second_ref':second['result_ref'],'different_plan_clears_previous_origin':True,'picker_change_alone_keeps_visible_selection':True,'payload_requires_current_checked_plan':True,'zero_source_and_draft_execution':True,'controlled_provider_calls':fixture.calls.copy()});await _method_draft_drain_owned_bridge(page,bridge)
+                except BaseException as error:primary=error;raise
+                finally:
+                    if context is not None and browser is not None:
+                        try:await _method_draft_drain_owned_bridge(page,bridge)
+                        except BaseException as error:
+                            if primary:primary.add_note('owned read drain failed: '+type(error).__name__)
+                            else:cleanup.append('drain_'+type(error).__name__)
+                    for value,name in ((context,'close'),(browser,'close')):
+                        if value is not None:
+                            try:await getattr(value,name)()
+                            except BaseException as error:cleanup.append(type(error).__name__)
+                    if cleanup:
+                        if primary:primary.add_note('owned browser cleanup uncertain: '+','.join(cleanup))
+                        else:raise RuntimeError('owned browser cleanup uncertain: '+','.join(cleanup))
+    finally:
+        facts['fixture_root_removed']=root is not None and not root.exists();facts['cleanup_errors']=cleanup;facts['fixture_cleanup_errors']=list(fixture.cleanup_errors) if fixture else ['not_started'];(tmp_path/'method-draft-plan-reselection-facts.json').write_text(json.dumps(facts,ensure_ascii=False,indent=2))
+
+
+def test_method_draft_plan_reselection_matches_visible_current_choices(tmp_path):
+    import asyncio
+    asyncio.run(_method_draft_plan_reselection_boundary(tmp_path))
+
+
+async def _method_draft_formula_picker_identity(tmp_path):
+    import asyncio,importlib.util
+    from playwright.async_api import async_playwright,expect as aexpect
+    path=BACKEND/'tests/acceptance/plan_browser_service.py';spec=importlib.util.spec_from_file_location('actual_method_draft_formula_picker_service',path);component=importlib.util.module_from_spec(spec);spec.loader.exec_module(component)
+    fixture=None;root=None;browser=None;context=None;primary=None;cleanup=[];facts={}
+    try:
+        with component.PlanBrowserFixture(transport='runtime') as fixture,fixture.browser_bridge() as bridge:
+            root=fixture.root
+            async with async_playwright() as p:
+                browser=await p.chromium.launch();context=await browser.new_context()
+                try:
+                    async with bridge.routed(context):
+                        page=await context.new_page();await page.goto(component.ORIGIN+'/research');await _native_tls_login(page,fixture,component.OWNER,fresh=True);await page.goto(component.ORIGIN+'/research')
+                        await page.locator('#original-input').fill('同一问题修订的两个原公式记录应能明确区分。');await page.locator('#summary').fill('只核对公式原引用、原时间与方法草稿的可选关联展示');await page.locator('#confirmed').check();await page.locator('#entry').select_option('formula');await page.locator('#formula-enable').check()
+                        for name in ('left','right'):await page.locator('#formula-'+name+'-use-template').click()
+                        async with page.expect_response(component.ORIGIN+'/api/research') as created:await page.locator('#save').click()
+                        assert (await created.value).status==200;rid=(await (await created.value).json())['data']['research']['id'];await aexpect(page.locator('#research-list-status')).to_contain_text('已读取 1');await aexpect(page.locator('#formula-editor-status')).to_contain_text('已按权限读取原公式快照')
+                        records=[]
+                        for index in range(2):
+                            if index:
+                                await page.locator('#formula-refresh').click();await aexpect(page.locator('#formula-editor-status')).to_contain_text('已按权限读取')
+                            await page.locator('#formula-confirm').check()
+                            async with page.expect_response('**/formula-checks') as returned:await page.locator('#formula-run').click()
+                            response=await returned.value;assert response.status==200;ack=(await response.json())['data'];await aexpect(page.locator('#formula-result-ref')).to_have_text(ack['result_ref']);await aexpect(page.locator('#formula-refresh')).to_be_enabled()
+                            await page.locator('#method-draft-task').select_option(ack['task_id']);await page.locator('#method-draft-read-formula').click();await aexpect(page.locator('#method-draft-read-formula')).to_be_enabled();option=page.locator('#method-draft-formula option[value="'+ack['result_ref']+'"]');await aexpect(option).to_have_count(1);await aexpect(option).to_contain_text(ack['result_ref']);await aexpect(option).to_contain_text(ack['formula_result_recorded_at']);await aexpect(option).to_contain_text('原问题修订 1');records.append(ack)
+                        assert records[0]['result_ref']!=records[1]['result_ref'];await aexpect(page.locator('#method-draft-formula option')).to_have_count(3);assert fixture.calls==[];await aexpect(page.locator('#method-draft-save')).to_be_disabled();facts.update({'refs':[value['result_ref'] for value in records],'times':[value['formula_result_recorded_at'] for value in records],'same_input_revision':1,'full_original_ref_and_time_in_each_option':True,'no_source_draft_or_model_execution':True,'math_result_not_promoted':True});await _method_draft_drain_owned_bridge(page,bridge)
+                except BaseException as error:primary=error;raise
+                finally:
+                    if context is not None and browser is not None:
+                        try:await _method_draft_drain_owned_bridge(page,bridge)
+                        except BaseException as error:
+                            if primary:primary.add_note('owned read drain failed: '+type(error).__name__)
+                            else:cleanup.append('drain_'+type(error).__name__)
+                    for value,name in ((context,'close'),(browser,'close')):
+                        if value is not None:
+                            try:await getattr(value,name)()
+                            except BaseException as error:cleanup.append(type(error).__name__)
+                    if cleanup:
+                        if primary:primary.add_note('owned browser cleanup uncertain: '+','.join(cleanup))
+                        else:raise RuntimeError('owned browser cleanup uncertain: '+','.join(cleanup))
+    finally:
+        facts['fixture_root_removed']=root is not None and not root.exists();facts['cleanup_errors']=cleanup;facts['fixture_cleanup_errors']=list(fixture.cleanup_errors) if fixture else ['not_started'];(tmp_path/'method-draft-formula-picker-facts.json').write_text(json.dumps(facts,ensure_ascii=False,indent=2))
+
+
+def test_method_draft_formula_picker_distinguishes_same_revision_original_results(tmp_path):
+    import asyncio
+    asyncio.run(_method_draft_formula_picker_identity(tmp_path))

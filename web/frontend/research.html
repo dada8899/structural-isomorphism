@@ -157,7 +157,7 @@
         <details><summary>可选：关联原记录</summary><label for="method-draft-formula">关联已读取的公式结果</label><select id="method-draft-formula"><option value="">不关联公式记录</option></select><p class="hint">只保留原检查的修订、范围与状态；旧检查通过不升级为本方法已验证。</p><p id="method-draft-parent" class="hint">未关联上一稿。可从下方真实历史选择关联，新稿另生记录。</p><button id="method-draft-clear-parent" type="button" class="secondary">取消上一稿关联</button></details>
         <div class="actions"><button id="method-draft-save" type="submit" disabled>保存这份未验证草稿</button></div>
       </form>
-      <p id="method-draft-status" aria-live="polite"></p><div id="method-draft-pending"></div>
+      <p id="method-draft-status" aria-live="polite"></p><button id="method-draft-refresh-base" type="button" class="secondary" hidden>核对当前问题版本（保留手稿）</button><div id="method-draft-pending"></div>
       <h3>已保存的方法草稿</h3><p class="hint">原稿只读查看，不覆盖编辑区。新增或修订都另存新记录。</p><button id="method-draft-read-history" type="button" class="secondary">核对并读取草稿历史</button><p id="method-draft-history-status" class="hint"></p><ol id="method-draft-history"></ol>
       <p id="method-draft-view-status" class="scope" aria-live="polite"></p><div id="method-draft-view"></div>
     </section>
