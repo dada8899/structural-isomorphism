@@ -160,7 +160,7 @@ def test_fk_data_failure_is_outside_structure_but_full_checker_still_rejects(cur
     with closing(sqlite3.connect(path)) as conn,conn:
         conn.row_factory=sqlite3.Row;install_default_hook(conn)
         conn.execute('BEGIN')
-        with pytest.raises(ResearchError) as rejected:ResearchStore._check_v11(conn)
+        with pytest.raises(ResearchError) as rejected:ResearchStore._check_v14(conn)
         assert rejected.value.code=='SCHEMA_UNSUPPORTED' and rejected.value.message=='金融存储关联不匹配。'
     assert byte_image(path)==before
 
@@ -183,7 +183,7 @@ def test_budget_data_binding_is_outside_structure_but_full_checker_still_rejects
     with closing(sqlite3.connect(path)) as conn,conn:
         conn.row_factory=sqlite3.Row;install_default_hook(conn)
         conn.execute('BEGIN')
-        with pytest.raises(ResearchError) as rejected:ResearchStore._check_v11(conn)
+        with pytest.raises(ResearchError) as rejected:ResearchStore._check_v14(conn)
         assert rejected.value.code=='SCHEMA_UNSUPPORTED' and rejected.value.message=='项目预算数据库绑定不匹配。'
     assert byte_image(path)==before
 
@@ -225,7 +225,7 @@ def test_existing_read_snapshot_stays_consistent_when_another_writer_changes_sch
     reader=sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,isolation_level=None)
     try:
         reader.execute('BEGIN')
-        assert reader.execute('SELECT version FROM main.research_schema').fetchone()==(11,)
+        assert reader.execute('SELECT version FROM main.research_schema').fetchone()==(14,)
         with closing(sqlite3.connect(path)) as writer,writer:writer.execute('ALTER TABLE research_idempotency ADD COLUMN raced_column TEXT')
         _,_,forbidden=deny_nonmetadata(reader)
         ResearchStore.check_current_structure(reader)

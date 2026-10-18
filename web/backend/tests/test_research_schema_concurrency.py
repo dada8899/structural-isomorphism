@@ -40,7 +40,7 @@ def completed_peer(cls, auth, version, monkeypatch):
         provenance=produce(auth.path)
         print('HISTORICAL10_COLD_PEER:'+json.dumps({key:provenance[key] for key in ('version','pid','auth_graph_unchanged','native_closed_on_creator')}))
     with monkeypatch.context() as profile:
-        if version not in (10,11):profile.setattr(cls,'_initialize_current',lambda self,conn:False)
+        if version not in (10,14):profile.setattr(cls,'_initialize_current',lambda self,conn:False)
         if version == 6:profile.setattr(cls, '_migrate_v7', lambda self: None)
         if version == 7:profile.setattr(cls, '_migrate_v8', lambda self: None)
         if version == 8:profile.setattr(cls, '_migrate_v9', lambda self: None)
@@ -58,7 +58,7 @@ def completed_peer(cls, auth, version, monkeypatch):
         elif version==10:
             store._check_structure_version(conn,10);store._check_v10(conn)
         else:
-            store.check_current_structure(conn);store._check_v11(conn)
+            store.check_current_structure(conn);store._check_v14(conn)
         assert conn.execute('PRAGMA journal_mode').fetchone()[0] == 'wal'
     return store
 
@@ -101,7 +101,7 @@ def thread_race(cls, auth, peer, monkeypatch):
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-@pytest.mark.parametrize('version', [9, 7, 8, 6, 10, 11])
+@pytest.mark.parametrize('version', [9, 7, 8, 6, 10, 14])
 def test_stale_empty_read_accepts_only_completed_peer_and_finishes_upgrade(tmp_path, monkeypatch, record_property, namespace, version):
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
     cls = importlib.import_module(namespace).ResearchStore
@@ -119,15 +119,15 @@ def test_stale_empty_read_accepts_only_completed_peer_and_finishes_upgrade(tmp_p
     result = thread_race(cls, auth, peer, monkeypatch)
     assert isinstance(result, cls), repr(result)
     with result.transaction() as conn:
-        expected=version if version in (10,11) else 9
+        expected=version if version in (10,14) else 9
         assert conn.execute('SELECT version FROM research_schema').fetchone()[0] == expected
         if expected==9:result._check_structure_version(conn,9);result._check_v9(conn)
         elif expected==10:result._check_structure_version(conn,10);result._check_v10(conn)
-        else:result.check_current_structure(conn);result._check_v11(conn)
+        else:result.check_current_structure(conn);result._check_v14(conn)
         assert conn.execute('SELECT research_financial_guard_version(),research_method_guard_version(),research_method_write_allowed(?,?,?)', ('probe','','{}')).fetchone()[:] == (7,9,0)
         assert conn.execute("SELECT session_generation FROM auth_users WHERE email='peer@example.invalid'").fetchone()[0] == 'peer'
         assert conn.execute('PRAGMA foreign_key_check').fetchall() == []
-    if version in (9,10,11):assert catalog(path) == peer_image
+    if version in (9,10,14):assert catalog(path) == peer_image
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
@@ -165,7 +165,7 @@ def test_peer_finishes_v9_after_legacy_commit_before_first_migration(tmp_path, m
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-@pytest.mark.parametrize('cold_version',[9,11])
+@pytest.mark.parametrize('cold_version',[9,14])
 def test_simultaneous_cold_constructors_finish_every_real_migration_boundary(tmp_path, monkeypatch, namespace,cold_version):
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
     cls = importlib.import_module(namespace).ResearchStore
@@ -194,11 +194,11 @@ def test_simultaneous_cold_constructors_finish_every_real_migration_boundary(tmp
             with store.transaction() as conn:
                 assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==cold_version
                 if cold_version==9:store._check_structure_version(conn,9);store._check_v9(conn)
-                else:store.check_current_structure(conn);store._check_v11(conn)
+                else:store.check_current_structure(conn);store._check_v14(conn)
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-@pytest.mark.parametrize('version', [8, 9, 10, 11])
+@pytest.mark.parametrize('version', [8, 9, 10, 14])
 @pytest.mark.parametrize('operation', MIGRATIONS)
 def test_direct_migration_of_completed_peer_checks_real_native_graph_without_dml(tmp_path, monkeypatch, namespace, version, operation):
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
@@ -228,7 +228,7 @@ def test_direct_migration_of_completed_peer_checks_real_native_graph_without_dml
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-@pytest.mark.parametrize('version', [8, 9, 10, 11])
+@pytest.mark.parametrize('version', [8, 9, 10, 14])
 @pytest.mark.parametrize('operation', MIGRATIONS)
 @pytest.mark.parametrize('fault', ['half', 'unknown-aux', 'future-marker'])
 def test_direct_migration_never_treats_bad_peer_as_completed(tmp_path, monkeypatch, namespace, version, operation, fault):
@@ -238,7 +238,7 @@ def test_direct_migration_never_treats_bad_peer_as_completed(tmp_path, monkeypat
     with store.transaction(write=True) as conn:
         if fault == 'half':conn.execute('DROP TABLE research_idempotency')
         elif fault == 'unknown-aux':conn.execute('CREATE INDEX injected_aux ON research_tasks(phase)')
-        else:conn.execute('UPDATE research_schema SET version='+('12' if version==11 else '11' if version==10 else '10'))
+        else:conn.execute('UPDATE research_schema SET version='+('15' if version==14 else '11' if version==10 else '10'))
     before = catalog(path)
     with pytest.raises(module.ResearchError) as rejected:getattr(store, operation)()
     assert rejected.value.code == 'SCHEMA_UNSUPPORTED'
@@ -246,7 +246,7 @@ def test_direct_migration_never_treats_bad_peer_as_completed(tmp_path, monkeypat
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-@pytest.mark.parametrize('version', [8, 9, 10, 11])
+@pytest.mark.parametrize('version', [8, 9, 10, 14])
 @pytest.mark.parametrize('fault', ['policy', 'foreign-key'])
 def test_completed_peer_still_requires_policy_and_fk_data_even_on_fk_off_migration(tmp_path, monkeypatch, namespace, version, fault):
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
@@ -265,7 +265,7 @@ def test_completed_peer_still_requires_policy_and_fk_data_even_on_fk_off_migrati
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-@pytest.mark.parametrize('version', [6, 7, 8, 9, 10, 11])
+@pytest.mark.parametrize('version', [6, 7, 8, 9, 10, 14])
 @pytest.mark.parametrize('fault', ['half', 'unknown-aux', 'unknown-version', 'missing-marker'])
 def test_stale_empty_read_never_repairs_or_accepts_bad_peer(tmp_path, monkeypatch, namespace, version, fault):
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
@@ -282,7 +282,7 @@ def test_stale_empty_read_never_repairs_or_accepts_bad_peer(tmp_path, monkeypatc
                     name = module.V7_GUARDS[0].split()[2] if version == 7 else module.V8_JOB_GUARDS[0].split()[2] if version == 8 else 'research_method_birth'
                     conn.execute('DROP TRIGGER '+name)
             elif fault == 'unknown-aux':conn.execute('CREATE INDEX injected_aux ON research_tasks(phase)')
-            elif fault == 'unknown-version':conn.execute('UPDATE research_schema SET version='+('12' if version==11 else '11' if version==10 else '10'))
+            elif fault == 'unknown-version':conn.execute('UPDATE research_schema SET version='+('15' if version==14 else '11' if version==10 else '10'))
             else:conn.execute('DROP TABLE research_schema')
         before.extend(catalog(path))
         images.append(hashlib.sha256(path.read_bytes()).hexdigest())
@@ -345,7 +345,7 @@ try:
     store=cls(auth)
     with store.transaction(write=True) as conn:
         if cold_version==9:store._check_structure_version(conn,9);store._check_v9(conn)
-        else:store.check_current_structure(conn);store._check_v11(conn)
+        else:store.check_current_structure(conn);store._check_v14(conn)
         conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('child@example.invalid','free','synthetic','child')")
     guard=sys.modules.get('audit_bootstrap')
     if guard is not None:
@@ -363,7 +363,7 @@ except BaseException as error:
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-@pytest.mark.parametrize('cold_version',[9,11])
+@pytest.mark.parametrize('cold_version',[9,14])
 def test_cold_schema_race_across_processes_and_namespaces_preserves_both_wal_commits(tmp_path, monkeypatch, namespace,cold_version):
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
     path = tmp_path/'auth.sqlite3';auth_for(namespace, path)
@@ -395,7 +395,7 @@ def test_cold_schema_race_across_processes_and_namespaces_preserves_both_wal_com
         assert json.loads(output.read_text()) == {'ok': True, 'version': cold_version}
         with store.transaction() as conn:
             if cold_version==9:store._check_structure_version(conn,9);store._check_v9(conn)
-            else:store.check_current_structure(conn);store._check_v11(conn)
+            else:store.check_current_structure(conn);store._check_v14(conn)
             assert [tuple(row) for row in conn.execute("SELECT email,session_generation FROM auth_users ORDER BY email")] == [('child@example.invalid','child'),('parent@example.invalid','parent')]
     finally:
         if process.poll() is None:process.terminate()
