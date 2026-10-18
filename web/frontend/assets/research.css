@@ -79,3 +79,23 @@ section, .optional-inputs { min-width:0; }
 textarea:disabled, select:disabled { opacity:1; color:var(--ink); background:#e9ece2; }
 @media(max-width:520px) { header { gap:12px; }nav { gap:8px; }#my-research .section-heading { flex-wrap:wrap; }#my-research .section-heading button { width:auto; } }
 @media(max-width:520px) { header { padding:20px; }main { margin-top:38px; padding:0 20px; }label span { display:block; padding:0; }.section-heading { align-items:baseline; }button { width:100%; }footer { padding:24px 20px; } }
+
+#native-plan-section { border-top:1px solid var(--line); margin-top:36px; padding-top:24px; min-width:0; overflow-wrap:anywhere; }
+#native-plan-section h3 { margin:26px 0 8px; font-size:17px; }
+#native-plan-section h4 { margin:18px 0 6px; font-size:15px; }
+.native-plan-tag { color:var(--accent); border:1px solid var(--line); padding:3px 9px; font-size:12px; white-space:nowrap; }
+#native-plan-preview-panel { border-left:3px solid var(--accent); padding:1px 18px 20px; margin-top:22px; background:#e9ece2; }
+#native-plan-exact-input { padding:0; background:none; }
+#native-plan-status { min-height:26px; font-size:14px; white-space:pre-wrap; }
+.native-plan-candidate, .native-plan-query { border-bottom:1px solid var(--line); padding:12px 0 18px; }
+#native-plan-body p, #native-plan-body li { white-space:pre-wrap; }
+#native-plan-body ul { padding-left:22px; }
+#native-plan-history { padding-left:24px; }
+#native-plan-history li { padding:10px 0; border-bottom:1px solid var(--line); }
+#native-plan-history a, #native-plan-body a { display:inline-flex; align-items:center; min-height:44px; }
+#native-plan-record { margin-top:24px; }
+#native-plan-result-ref { overflow-wrap:anywhere; }
+#native-plan-query-area button { margin-top:12px; }
+@media(max-width:520px) { #native-plan-section .section-heading { align-items:flex-start; flex-wrap:wrap; }#native-plan-preview-panel { padding-left:12px; padding-right:12px; } }
+
+#native-plan-section button:disabled { cursor:not-allowed; }

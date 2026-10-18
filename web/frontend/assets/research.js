@@ -36,6 +36,7 @@
   let methodSeen = false;
   let methodDirty = false;
   let historySeen = false;
+  const planState = {epoch:0,readGeneration:0,view:null,meta:null,preview:null,busy:false,operation:null,timer:null};
   const formulaState = {draft:null,snapshot:null,scope:null,view:null,dirty:false,loading:false,busy:false,busyToken:null,epoch:0,snapshotEpoch:0,metadata:null};
   const initialSection = ['#my-research', '#kb-section'].includes(location.hash) ? location.hash.slice(1) : null;
   let initialLoad = true;
@@ -67,6 +68,7 @@
     clearMethod(message);
   }
   function beginMethodRead() {
+    planInvalidate('正在核对已保存记录，旧计划正文已收起。');
     invalidateMethod('正在核对已保存的方法记录…');
     return {generation:methodGeneration, researchId};
   }
@@ -303,6 +305,7 @@
   function formulaDirty(message='公式草稿有修改，请保存新修订后再核对快照。') {
     if(readOnlyView())return;formulaState.dirty=true;formulaState.epoch++;formulaState.snapshotEpoch++;formulaState.loading=false;
     methodDirty=true;invalidateMethod('问题包含未保存的公式改动，旧方法记录已收起。');byId('formula-confirm').checked=false;
+    planInvalidate('公式草稿有未保存改动，旧计划已收起。');
     formulaClearResult(message);formulaPreview();syncFormulaControls();
   }
   function formulaClearResult(message='') { byId('formula-results').replaceChildren();byId('formula-status').textContent=message; }
@@ -327,6 +330,7 @@
     byId('formula-recover').hidden=formulaPending().length===0;byId('formula-recover').disabled=ro||f.busy;
     byId('save').disabled=busy||ro||f.loading||(selected&&!f.draft);
     byId('formula-check-section').hidden=!(selected||f.scope?.meta||f.view?.formula_check||formulaPending().length);
+    planSync();
   }
   function formulaPreview() {
     for(const name of ['left','right']) {
@@ -624,6 +628,269 @@
     });
   }
 
+  // A plan is a purpose-bound record, never execution authority or evidence.
+  const planContract = 'funded-plan-v2';
+  const planStates = {queued:'已排队，尚未确认生成结果',generating:'正在处理，结果尚待核对',saved:'计划已保存，研究判断仍待核验',failed_insufficient:'本次未取得可展示的完整计划',pending_reconciliation:'请求结果与费用待核对，不会自动重试',cancelled:'后续执行已停止'};
+  const planObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+  const planKeys = (value, keys) => planObject(value) && Object.keys(value).sort().join('|') === keys.slice().sort().join('|');
+  const planInt = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
+  const planUnits = value => Number.isSafeInteger(value) && value >= 0;
+  const planMoney = value => {const units=BigInt(value);return String(units/1000000n)+'.'+String(units%1000000n).padStart(6,'0');};
+  const planText = (value, max, min=1) => typeof value === 'string' && Array.from(value).length >= min && Array.from(value).length <= max && value.trim().length > 0 && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/.test(value);
+  const planRef = value => typeof value === 'string' && /^[A-Za-z0-9._:-]{1,100}$/.test(value);
+  const planDigest = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+  const planError = error => ['AbortError','TypeError','SyntaxError'].includes(error.name)?'本次计划状态尚未确认，请保留输入与原操作。':error.message;
+  function planTicket(read=false) { return {epoch:planState.epoch,privateScope:privateGeneration,rid:researchId,task:selectedTask,...(read?{read:planState.readGeneration}:{})}; }
+  function planActive(ticket) { return ticket.epoch===planState.epoch&&ticket.privateScope===privateGeneration&&ticket.rid===researchId&&ticket.task===selectedTask&&(ticket.read===undefined||ticket.read===planState.readGeneration); }
+  function planClearBody() {
+    byId('native-plan-body').replaceChildren();byId('native-plan-record').hidden=true;
+    byId('native-plan-result-ref').textContent='';byId('native-plan-record-revision').textContent='';showTime(byId('native-plan-record-time'),null);
+    byId('native-plan-query-area').hidden=true;byId('native-plan-query-draft').value='';
+  }
+  function planInvalidate(message='') {
+    planState.epoch++;planState.readGeneration++;planState.preview=null;clearTimeout(planState.timer);planState.timer=null;
+    byId('native-plan-consent').checked=false;byId('native-plan-preview-panel').hidden=true;byId('native-plan-exact-input').textContent='';byId('native-plan-quote').textContent='';
+    planClearBody();if(message)byId('native-plan-status').textContent=message;planSync();
+  }
+  function planReset() {
+    planInvalidate();planState.view=null;planState.meta=null;planState.busy=false;planState.operation=null;
+    byId('native-plan-own').checked=false;byId('native-plan-status').textContent='';byId('native-plan-history').replaceChildren();byId('native-plan-history-status').textContent='';byId('native-plan-section').hidden=true;
+  }
+  function planPending() {
+    if(!researchId)return null;const slot='structure-research-pending:native-plan-v2-confirm:'+researchId;
+    try {const value=JSON.parse(sessionStorage.getItem(slot));return value?.key&&value.task_request?{...value,slot}:null;}catch{return null;}
+  }
+  function planAnchor(data) {
+    const problem=data?.current_problem,task=data?.task;
+    if(data?.research?.id!==researchId||problem?.research_id!==researchId||!planInt(problem?.revision)||!planDigest(problem?.digest)||!validId(task?.id)||task.input_revision!==problem.revision||task.input_digest!==problem.digest||
+      !planInt(data.research_version)||data.research.version!==data.research_version||data.task_version!==task.version||!planInt(task.version)||typeof data.is_historical!=='boolean'||!['native-plan-v1','funded-plan-v1'].includes(task.policy_revision)||(selectedTask!==null&&task.id!==selectedTask))return null;
+    if(task.policy_revision==='native-plan-v1'&&!['controlled_fixture','native_live'].includes(task.execution_mode))return null;
+    return {rid:researchId,task_id:task.id,input_revision:problem.revision,input_digest:problem.digest,policy:task.policy_revision,execution_mode:task.execution_mode};
+  }
+  function planMeta(value,legacy=false) {
+    const fields=legacy?['task_id','result_ref','state','financial_state','safe_code','recorded_at','plan_generation_ran','real_model_executed','execution_mode','approved_upper_units','usage']:
+      ['task_id','result_ref','state','financial_version','execution_mode','real_model_executed','cost_state','cleanup_state','safe_code','recorded_at'];
+    return planKeys(value,fields)&&planRef(value.task_id)&&planRef(value.result_ref)&&Object.hasOwn(planStates,value.state)&&
+      [null,'access_ended','saved','body_invalid','send_unknown','not_sent','cancelled'].includes(value.safe_code)&&(value.recorded_at===null||recordTime(value.recorded_at))&&
+      typeof value.real_model_executed==='boolean'&&(legacy?value.execution_mode==='fixture'&&value.real_model_executed===false&&typeof value.plan_generation_ran==='boolean'&&planUnits(value.approved_upper_units)&&['unreserved','held','upper_booked','unknown'].includes(value.financial_state):
+      value.financial_version===9&&[null,'controlled_fixture','native_live'].includes(value.execution_mode)&&['unreserved','held','upper_booked','unknown'].includes(value.cost_state)&&['pending','clean','uncertain'].includes(value.cleanup_state));
+  }
+  function planUncertain(meta) { return meta&&(meta.state==='pending_reconciliation'||meta.cost_state==='unknown'||meta.cleanup_state==='uncertain'); }
+  function planSync() {
+    const ro=readOnlyView(),pending=planPending(),p=planState.preview;
+    byId('native-plan-section').hidden=form.hidden;
+    const conflict=editBase&&observed&&(observed.revision!==editBase.revision||observed.digest!==editBase.digest);
+    const eligible=researchId&&editBase&&current?.current_problem?.entry==='phenomenon'&&current.current_problem.confirmed&&!methodDirty&&!formulaState.dirty&&!conflict;
+    byId('native-plan-own').disabled=ro||busy||planState.busy||!eligible;
+    byId('native-plan-preview').disabled=ro||busy||planState.busy||!eligible||!byId('native-plan-own').checked||Boolean(pending);
+    const expires=Boolean(p&&Date.now()<p.expires_at*1000);
+    byId('native-plan-consent').disabled=ro||busy||planState.busy||!eligible||!p?.can_confirm||!expires||Boolean(pending);
+    byId('native-plan-confirm').disabled=byId('native-plan-consent').disabled||!byId('native-plan-consent').checked;
+    byId('native-plan-recover').hidden=!pending;byId('native-plan-recover').disabled=ro||busy||planState.busy||planUncertain(planState.meta);
+    byId('native-plan-refresh').disabled=!researchId||busy||planState.busy;
+    byId('native-plan-query-draft').disabled=ro;
+    byId('native-plan-use-query').disabled=ro||busy||planState.busy||!taskData?.capabilities?.source_evidence||!planText(byId('native-plan-query-draft').value,160,3);
+    if(!researchId)byId('native-plan-hint').textContent='先保存并核对自己的现象自述，再预览下一步研究计划。';
+    else if(ro)byId('native-plan-hint').textContent='固定流程只读查看原记录；要生成新计划，请返回当前问题。';
+    else if(methodDirty||formulaState.dirty)byId('native-plan-hint').textContent='本页有未保存改动。先保存，再预览；待核对操作始终使用原请求，不会发送当前草稿。';
+    else byId('native-plan-hint').textContent='仅支持已保存的8–1000字自己的观察自述。预览不会调用模型；明确确认后才可进入执行队列。';
+  }
+  async function planAuthenticate(ticket) {
+    if(!planActive(ticket))return false;
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+    try {return await authenticated(()=>planActive(ticket),controller.signal);}finally{clearTimeout(timer);}
+  }
+  async function planRequest(url,options,ticket,purpose='v2') {
+    if(!planActive(ticket))throw Error('较早的计划请求已失效，未追加读取或外发。');
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+    try {
+      const response=await fetch(url,{...options,credentials:'same-origin',cache:'no-store',signal:controller.signal});
+      if(!planActive(ticket))throw Error('较早的计划响应已失效，原操作保留待核对。');
+      const envelope=await response.json();if(!planActive(ticket))throw Error('较早的计划响应已失效，原操作保留待核对。');
+      if(!response.ok) {
+        if(response.status===401||envelope.error?.code==='AUTHORIZATION_STALE')await authenticated(()=>planActive(ticket),controller.signal);
+        else if(response.status===404&&planActive(ticket)) {
+          // A bad result/task reference does not prove loss of the trusted rid.
+          try {await request(`/api/research/${ticket.rid}`,{},()=>planActive(ticket));}catch{}
+        }
+        const error=Error(envelope.error?.message||'本次计划状态无法核对，请保留草稿与原操作。');error.code=envelope.error?.code;
+        // Read/reference errors never acknowledge a pending confirmation.
+        if(['preview','confirm'].includes(purpose)&&planActive(ticket)){error.status=response.status;error.planPurpose=purpose;}
+        throw error;
+      }
+      const expected=purpose==='bind'?revision:purpose==='legacy'?'funded-plan-v1':planContract;
+      if(envelope.schema_version!==schema||envelope.contract_revision!==expected||!planObject(envelope.data))throw Error('计划响应的用途或版本无法核对，原操作已保留。');
+      return envelope.data;
+    } finally {clearTimeout(timer);}
+  }
+  function planValidatePreview(value,anchor) {
+    const quote=value?.quote;
+    if(!planKeys(value,['preview_ref','preview_digest','request_digest','research_id','input_revision','expected_research_version','exact_input','purpose','observation_rights','state','can_confirm','funding_reason','cash_evidence','approved_upper_units','currency','scale','quote','expires_at','explanation'])||
+      !planRef(value.preview_ref)||!planDigest(value.preview_digest)||!planDigest(value.request_digest)||value.research_id!==anchor.rid||value.input_revision!==anchor.input_revision||value.expected_research_version!==anchor.research_version||value.exact_input!==anchor.original_input||!planText(value.exact_input,1000,8)||
+      value.purpose!=='phenomenon_plan_v1'||value.observation_rights!=='self_declared'||!['awaiting_confirmation','funding_closed'].includes(value.state)||typeof value.can_confirm!=='boolean'||value.can_confirm!==(value.state==='awaiting_confirmation')||value.funding_reason!==(value.can_confirm?null:'FUNDING_CLOSED')||value.cash_evidence!=='not_observed'||
+      !planUnits(value.approved_upper_units)||value.currency!=='CNY'||value.scale!==6||!Number.isSafeInteger(value.expires_at)||!planText(value.explanation,160)||!planObject(quote)||quote.protocol!=='financial9-native-quote-v1'||quote.purpose!=='phenomenon_plan_v1'||quote.provider!=='deepseek'||quote.model!=='deepseek-flash'||!planText(quote.declared_model_version,120)||quote.currency!=='CNY'||quote.scale!==6||quote.approved_upper_units!==value.approved_upper_units||quote.valid_until!==value.expires_at||!planDigest(quote.codec_digest))throw Error('外发原文、版本或费用上界无法完整核对，未开放确认。');
+    return value;
+  }
+  function planCandidate(value) {
+    const list=(a,max,check,min=0)=>Array.isArray(a)&&a.length>=min&&a.length<=max&&a.every(check);
+    if(!planKeys(value,['summary','candidates','query_suggestions','gaps','clarification_questions'])||!planText(value.summary,700)||
+      !list(value.candidates,3,v=>planKeys(v,['label','mechanism_hypothesis','why_considered','method_leads','key_unknowns'])&&planText(v.label,120)&&planText(v.mechanism_hypothesis,700)&&planText(v.why_considered,400)&&list(v.method_leads,2,s=>planText(s,160))&&list(v.key_unknowns,5,s=>planText(s,240),1))||
+      !list(value.query_suggestions,5,v=>planKeys(v,['candidate_index','query','intent'])&&(v.candidate_index===null||Number.isSafeInteger(v.candidate_index)&&v.candidate_index>=0&&v.candidate_index<value.candidates.length)&&planText(v.query,160,3)&&/^[\x20-\x7e]+$/.test(v.query)&&planText(v.intent,240))||
+      !list(value.gaps,8,s=>planText(s,400),1)||!list(value.clarification_questions,3,s=>planText(s,240))||(!value.candidates.length&&!value.query_suggestions.length&&!value.clarification_questions.length)||new Set(value.query_suggestions.map(v=>v.query.trim().replace(/\s+/g,' ').toLowerCase())).size!==value.query_suggestions.length||new TextEncoder().encode(JSON.stringify(value)).length>16384)throw Error('计划正文格式无法完整核对，未展示旧内容。');
+    return value;
+  }
+  function planValidateResult(value,meta,anchor,legacy,pending) {
+    const fields=['protocol','purpose','result_ref','task_id','research_id','input_revision','input_digest','request_digest','admission_digest','recorded_at','execution_mode','real_model_executed','literature_status','mathematics_status','mechanism_status','observation_rights','query_state','automatically_created_sources','proposal'];
+    if(legacy)fields.push('plan_generation_ran');else fields.push('consent_digest','producer','weight_identity_verified');
+    if(!planKeys(value,fields)||value.protocol!==(legacy?'owned-phenomenon-plan-result-v1':'owned-native-plan-result-v2')||value.purpose!=='phenomenon_plan_v1'||value.research_id!==anchor.rid||value.task_id!==anchor.task_id||value.result_ref!==meta.result_ref||value.input_revision!==anchor.input_revision||value.input_digest!==anchor.input_digest||!planDigest(value.request_digest)||!planDigest(value.admission_digest)||value.recorded_at!==meta.recorded_at||!recordTime(value.recorded_at)||
+      value.literature_status!=='not_retrieved'||value.mathematics_status!=='not_checked'||value.mechanism_status!=='unverified'||value.observation_rights!=='self_declared'||value.query_state!=='draft_only'||value.automatically_created_sources!==0||meta.state!=='saved'||
+      (legacy?value.execution_mode!=='fixture'||value.real_model_executed!==false||value.plan_generation_ran!==true:
+      !planDigest(value.consent_digest)||value.weight_identity_verified!==false||!['controlled_fixture','native_live'].includes(value.execution_mode)||!['core-controlled-native-v1','owned-native-plan-runtime-v1'].includes(value.producer)||typeof value.real_model_executed!=='boolean'||value.real_model_executed!==(value.execution_mode==='native_live')||(value.producer==='core-controlled-native-v1'&&value.execution_mode!=='controlled_fixture')||value.execution_mode!==meta.execution_mode||value.execution_mode!==anchor.execution_mode||value.real_model_executed!==meta.real_model_executed))throw Error('计划记录与原问题、流程或执行来源无法绑定。');
+    if(pending&&(pending.task_request.anchor.input_revision!==value.input_revision||pending.task_request.anchor.input_digest!==value.input_digest||pending.task_request.data.request_digest!==value.request_digest))throw Error('计划回执与原提交无法绑定，原key仍保留。');
+    planCandidate(value.proposal);return value;
+  }
+  function planPendingFor(meta) {const pending=planPending();return pending?.receipt?.task_id===meta.task_id&&pending.receipt.result_ref===meta.result_ref?pending:null;}
+  function planShow(meta,legacy=false) {
+    const financial=legacy?meta.financial_state:meta.cost_state;
+    const money={unreserved:'尚未预留执行上限',held:'本次上限仍被占用，不是最终实扣',upper_booked:'按上限记账，实际扣费数字尚未确认',unknown:'费用结果尚未确认，原操作与占用保留'};
+    byId('native-plan-status').textContent=`${planStates[meta.state]}。${money[financial]||'费用状态待核对'}。`+(!legacy&&meta.cleanup_state==='uncertain'?'资源清理尚未确认，新增执行已停止；请保留原操作。':!legacy&&meta.cleanup_state==='pending'?'资源清理仍待完成，原提交暂时保留；可稍后重新读取状态。':'');
+  }
+  function planDisplay(value,ticket) {
+    planClearBody();byId('native-plan-record').hidden=false;byId('native-plan-record-revision').textContent=String(value.input_revision);showTime(byId('native-plan-record-time'),value.recorded_at);byId('native-plan-result-ref').textContent=value.result_ref;
+    const body=byId('native-plan-body'),add=(parent,tag,text,options={})=>formulaElement(parent,tag,text,options);
+    add(body,'p',value.execution_mode==='native_live'?'本次记录来自原生模型请求；权重身份未验证，以下只是待核验计划。':value.execution_mode==='fixture'?'历史离线夹具记录，未运行真实模型。':'受控夹具执行记录，未运行真实模型。');
+    add(body,'p','文献尚未检索 · 数学关系尚未核对 · 现实机制未经验证 · 自述权属仅为用户声明',{className:'scope'});
+    const provenance=add(body,'details','');add(provenance,'summary','执行记录的边界');add(provenance,'p',`执行来源：${value.producer==='owned-native-plan-runtime-v1'?'原生请求运行通道':value.producer==='core-controlled-native-v1'?'项目受控夹具通道':'旧版本地演练通道'}。真实模型执行：${value.real_model_executed?'是':'否'}；模型权重身份未验证。`);
+    add(body,'h3','下一步查什么');add(body,'p',value.proposal.summary);
+    const group=(parent,title,items)=>{if(!items.length)return;add(parent,'h4',title);const list=add(parent,'ul','');for(const item of items)add(list,'li',item);};
+    value.proposal.candidates.forEach((candidate,index)=>{const article=add(body,'article','',{className:'native-plan-candidate'});add(article,'h3',`待核验方向 ${index+1}：${candidate.label}`);add(article,'p',candidate.mechanism_hypothesis);add(article,'h4','为什么考虑');add(article,'p',candidate.why_considered);group(article,'可查找的方法线索',candidate.method_leads);group(article,'仍需核对',candidate.key_unknowns);});
+    group(body,'缺口',value.proposal.gaps);group(body,'需要补充的问题',value.proposal.clarification_questions);
+    if(value.proposal.query_suggestions.length){add(body,'h3','可手选的英文查询草稿');add(body,'p','选择只填写下方可编辑草稿；不会自动查询来源、批准读取或再次调用模型。',{className:'hint'});}
+    for(const suggestion of value.proposal.query_suggestions){const row=add(body,'article','',{className:'native-plan-query'});add(row,'p',suggestion.query);add(row,'p',suggestion.intent,{className:'hint'});const button=add(row,'button','选作可编辑查询草稿',{type:'button',className:'secondary'});button.disabled=readOnlyView();button.addEventListener('click',()=>{if(!planActive(ticket)||readOnlyView())return;byId('native-plan-query-draft').value=suggestion.query;byId('native-plan-query-area').hidden=false;planSync();byId('native-plan-query-draft').focus();});}
+  }
+  async function planRetireKnownTerminal(meta,anchor,ticket) {
+    if(!planActive(ticket)||meta.cleanup_state!=='clean')return false;
+    // Only tuples emitted by the current native worker are terminal proof.
+    const tuple=[meta.state,meta.safe_code,meta.cost_state].join(':');
+    const expected={
+      'failed_insufficient:body_invalid:upper_booked':{execution:'FAILED',time:true},
+      'failed_insufficient:not_sent:unreserved':{execution:'FAILED',time:false},
+      'cancelled:cancelled:unreserved':{execution:'CANCELLED',time:false},
+      'cancelled:access_ended:upper_booked':{execution:'CANCELLED',time:true},
+    }[tuple];
+    if(!expected||(expected.time?!recordTime(meta.recorded_at):meta.recorded_at!==null))return false;
+    const pending=planPendingFor(meta),original=pending?.task_request,data=original?.data,scope=original?.anchor;
+    if(!pending||pending.slot!=='structure-research-pending:native-plan-v2-confirm:'+anchor.rid||!validId(pending.key)||!planDigest(pending.digest)||
+      !planKeys(data,['preview_ref','preview_digest','request_digest','expected_research_version','approved_upper_units','confirm_outbound'])||!planRef(data.preview_ref)||!planDigest(data.preview_digest)||!planDigest(data.request_digest)||!planInt(data.expected_research_version)||!planUnits(data.approved_upper_units)||data.confirm_outbound!==true||
+      scope?.rid!==anchor.rid||scope.input_revision!==anchor.input_revision||scope.input_digest!==anchor.input_digest||scope.research_version!==data.expected_research_version||anchor.policy!=='native-plan-v1'||anchor.task_id!==meta.task_id)return false;
+    const body=JSON.stringify({schema_version:schema,contract_revision:planContract,data});
+    const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(body))),n=>n.toString(16).padStart(2,'0')).join('');
+    if(!planActive(ticket)||hash!==pending.digest)return false;
+    // Re-read the original fixed task after the terminal GET, without rendering
+    // or rebasing it. Page generation is a liveness ticket, not stored identity.
+    const bound=await planRequest(`/api/research/${anchor.rid}?task_id=${encodeURIComponent(anchor.task_id)}`,{},ticket,'bind');
+    if(!planActive(ticket))return false;
+    const actual=planAnchor(bound),projected=bound.native_plan,first=bound.task_history?.[0],task=bound.task;
+    const stop=task?.stop_requested===true||task?.stop_requested===1;
+    if(!actual||actual.rid!==anchor.rid||actual.task_id!==anchor.task_id||actual.input_revision!==scope.input_revision||actual.input_digest!==scope.input_digest||actual.policy!=='native-plan-v1'||task.execution!==expected.execution||
+      (expected.execution==='CANCELLED'&&!stop)||!planInt(task.start_version)||task.start_version!==data.expected_research_version+1||first?.task_id!==task.id||first.input_revision!==scope.input_revision||first.input_digest!==scope.input_digest||first.start_version!==task.start_version||!planMeta(projected)||
+      ['task_id','result_ref','state','financial_version','execution_mode','real_model_executed','cost_state','cleanup_state','safe_code','recorded_at'].some(key=>projected[key]!==meta[key]))return false;
+    if(!await planAuthenticate(ticket)||!planActive(ticket))return false;
+    const current=planPendingFor(meta);if(current?.key!==pending.key||current.digest!==hash)return false;
+    formulaRetire(pending);return true;
+  }
+  async function planRead(meta,anchor,ticket,legacy=false,display=true) {
+    try {
+      const value=await planRequest(`/api/research/${anchor.rid}/plan-results/${encodeURIComponent(meta.result_ref)}`,{},ticket,legacy?'legacy':'v2');
+      if(!planActive(ticket))return;const {content,...metadata}=value;
+      if(!planMeta(metadata,legacy)||metadata.task_id!==anchor.task_id||metadata.result_ref!==meta.result_ref||(meta.recorded_at!==null&&metadata.recorded_at!==meta.recorded_at))throw Error('计划状态或原记录时间无法核对。');
+      if(display){planState.meta=metadata;planShow(metadata,legacy);}
+      if(content!==null){const pending=legacy?null:planPendingFor(metadata);const result=planValidateResult(content,metadata,anchor,legacy,pending);if(!planActive(ticket))return;if(display)planDisplay(result,ticket);
+        if(pending&&!planUncertain(metadata)&&metadata.cleanup_state==='clean')formulaRetire(pending);
+      }else if(metadata.state==='saved')throw Error('已保存的计划正文尚未读全，原操作仍保留。');
+      else if(!legacy)await planRetireKnownTerminal(metadata,anchor,ticket);
+      planSync();return metadata;
+    }catch(error){if(planActive(ticket)){if(display)planClearBody();byId('native-plan-status').textContent=planError(error);planSync();}return null;}
+  }
+  function planObserve(data,read=true) {
+    if(planState.preview&&planState.preview.expected_research_version!==data.research_version)planInvalidate('已保存的流程版本有变化，请重新预览外发范围。');
+    planState.readGeneration++;planState.view=data;planState.meta=null;planClearBody();
+    const history=validTaskHistory(data),records=byId('native-plan-history');records.replaceChildren();let count=0,invalidHistory=false;
+    for(const [field,legacy] of [['native_plan_history',false],['plan_history',true]]) {
+      const values=data[field];if(values===undefined)continue;
+      if(!Array.isArray(values)||values.length>20){invalidHistory=true;continue;}
+      if(!values.length)continue;if(!history){invalidHistory=true;continue;}
+      const seen=new Set();for(const meta of values){const item=history.find(v=>v.task_id===meta?.task_id);if(!item||seen.has(meta?.task_id)||!planMeta(meta,legacy)){invalidHistory=true;continue;}seen.add(meta.task_id);count++;const row=formulaElement(records,'li','');formulaElement(row,'a',`修订 ${item.input_revision} · ${legacy?'历史夹具计划':'研究计划'} · ${planStates[meta.state]}（新标签页，只读）`,{href:`/research/${data.research.id}?task_id=${meta.task_id}`,target:'_blank',rel:'noopener'});}
+    }
+    byId('native-plan-history-status').textContent=invalidHistory?'计划流程列表尚未完整核对，请重新读取；不能据此判断没有记录。':count?`本页 ${count} 条计划流程；打开原任务可核对原记录。`:'本页尚无已读取的计划流程；不会自动生成。';
+    const anchor=planAnchor(data),legacy=anchor?.policy==='funded-plan-v1',meta=legacy?data.plan:data.native_plan;
+    if(anchor&&planMeta(meta,legacy)&&meta.task_id===anchor.task_id){planState.meta=meta;
+      if(!methodDirty&&!formulaState.dirty&&anchor.input_revision===editBase?.revision&&anchor.input_digest===editBase?.digest){planShow(meta,legacy);if(read)planRead(meta,anchor,planTicket(true),legacy);}
+      else byId('native-plan-status').textContent='当前草稿或载入修订已变化，原计划未替换本页输入；可从流程列表只读查看。';
+    }else if(!planState.preview)byId('native-plan-status').textContent=methodDirty?'本页有未保存草稿；已存计划只能从流程列表核对。':'当前问题未取得可展示的计划；不会自动生成。';
+    planSync();
+  }
+  function planSavedAnchor() {
+    if(!researchId||!editBase||methodDirty||formulaState.dirty||readOnlyView()||editNotice()||current?.current_problem?.entry!=='phenomenon'||current.current_problem.confirmed!==true)throw Error('请先保存并核对自己的现象自述，再预览。');
+    const original=current.current_problem.original_input;if(!planText(original,1000,8))throw Error('计划输入仅支持8–1000字自己的观察自述；当前原话已保留，可另存合适版本。');
+    return {rid:researchId,input_revision:editBase.revision,input_digest:editBase.digest,original_input:original,research_version:observed?.researchVersion||editBase.researchVersion};
+  }
+  async function planPreview() {
+    if(planState.busy||busy||readOnlyView())return;let pending,ticket;const token=Symbol();
+    try {
+      if(planPending())throw Error('上次提交尚待核对，请先读取或用原操作核对；不会另开计划。');
+      const anchor=planSavedAnchor();if(!byId('native-plan-own').checked)throw Error('请先确认本次仅包含自己的观察自述。');
+      planInvalidate();ticket=planTicket();planState.busy=true;planState.operation=token;planSync();byId('native-plan-status').textContent='正在核对外发原文与费用上限；尚未发送模型请求。';
+      const data={input_revision:anchor.input_revision,expected_research_version:anchor.research_version,observation_source:'own_observation',declaration_status:'self_declared'};
+      const body=JSON.stringify({schema_version:schema,contract_revision:planContract,data});pending=await operationKey(`native-plan-v2-preview:${anchor.rid}:${anchor.input_revision}:${anchor.research_version}`,body,anchor.input_revision,data);
+      if(!planActive(ticket))return;const value=planValidatePreview(await planRequest(`/api/research/${anchor.rid}/plan-previews`,{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':pending.key},body},ticket,'preview'),anchor);
+      if(!planActive(ticket))return;formulaRetire(pending);planState.preview={...value,anchor};byId('native-plan-preview-panel').hidden=false;byId('native-plan-exact-input').textContent=value.exact_input;
+      byId('native-plan-quote').textContent=`用途：规划下一步查什么。拟发送至 ${value.quote.provider} / ${value.quote.model}（声明版本 ${value.quote.declared_model_version}）。本次费用上限 CNY ${planMoney(value.approved_upper_units)}；报价有效至 ${new Date(value.expires_at*1000).toLocaleString('zh-CN')}。余额尚未核对，这不是可用余额或已扣费用。`;
+      byId('native-plan-status').textContent=value.can_confirm?'请逐字核对上方将外发的已保存原文，并明确确认本次费用上界。':'资金执行入口尚未开放；仅展示本次原文和报价，不能确认外发。保存、账户与公式功能仍可使用。';
+      planState.timer=setTimeout(()=>{if(planState.preview?.preview_ref===value.preview_ref){byId('native-plan-consent').checked=false;planSync();byId('native-plan-status').textContent='报价已到期，请重新预览；未自动确认或外发。';}},Math.min(2147483647,Math.max(0,value.expires_at*1000-Date.now())));
+    }catch(error){if(!ticket||planActive(ticket)){if(pending&&error.status>=400&&error.status<500)formulaRetire(pending);byId('native-plan-status').textContent=planError(error);}}
+    finally{if(planState.operation===token){planState.busy=false;planState.operation=null;planSync();}}
+  }
+  async function planConfirm(recover=false) {
+    if(planState.busy||busy||readOnlyView())return;let pending,ticket;const token=Symbol();
+    try {
+      let original;
+      if(recover){pending=planPending();original=pending?.task_request;if(!original||planUncertain(planState.meta))throw Error('请先读取原计划状态；待核对期间不会重复执行。');}
+      else {
+        const preview=planState.preview;if(!preview||!preview.can_confirm||Date.now()>=preview.expires_at*1000||!byId('native-plan-consent').checked||!byId('native-plan-own').checked)throw Error('请重新核对原文、有效报价并明确同意外发。');
+        const anchor=planSavedAnchor();if(anchor.input_revision!==preview.anchor.input_revision||anchor.input_digest!==preview.anchor.input_digest||anchor.research_version!==preview.expected_research_version)throw Error('已保存问题或流程版本有变化，请重新预览。');
+        original={data:{preview_ref:preview.preview_ref,preview_digest:preview.preview_digest,request_digest:preview.request_digest,expected_research_version:preview.expected_research_version,approved_upper_units:preview.approved_upper_units,confirm_outbound:true},anchor:preview.anchor};
+      }
+      const data=original?.data,anchor=original?.anchor;
+      if(!planKeys(data,['preview_ref','preview_digest','request_digest','expected_research_version','approved_upper_units','confirm_outbound'])||!planRef(data.preview_ref)||!planDigest(data.preview_digest)||!planDigest(data.request_digest)||!planInt(data.expected_research_version)||!planUnits(data.approved_upper_units)||data.confirm_outbound!==true||anchor?.rid!==researchId||!planInt(anchor.input_revision)||!planDigest(anchor.input_digest))throw Error('原操作范围无法核对，未发起新的请求。');
+      const body=JSON.stringify({schema_version:schema,contract_revision:planContract,data});ticket=planTicket();pending=await operationKey('native-plan-v2-confirm:'+researchId,body,anchor.input_revision,original);
+      if(!planActive(ticket))return;planState.busy=true;planState.operation=token;planState.preview=null;clearTimeout(planState.timer);byId('native-plan-preview-panel').hidden=true;byId('native-plan-consent').checked=false;planClearBody();planSync();byId('native-plan-status').textContent='正在核对本次明确确认的原操作；排队回执不代表计划已经生成。';
+      if(!await planAuthenticate(ticket))return;
+      const ack=await planRequest(`/api/research/${ticket.rid}/plan-approvals`,{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':pending.key},body},ticket,'confirm');
+      if(!planKeys(ack,['task_id','result_ref','state','cash_evidence','real_model_executed','recorded_at'])||!validId(ack.task_id)||!planRef(ack.result_ref)||ack.state!=='queued'||ack.cash_evidence!=='not_observed'||ack.real_model_executed!==false||ack.recorded_at!==null)throw Error('原排队回执格式无法核对，key已保留。');
+      const bound=await planRequest(`/api/research/${ticket.rid}?task_id=${encodeURIComponent(ack.task_id)}`,{},ticket,'bind');
+      const task=bound.task,first=bound.task_history?.[0],meta=bound.native_plan;
+      if(bound.research?.id!==ticket.rid||task?.id!==ack.task_id||task.policy_revision!=='native-plan-v1'||task.input_revision!==anchor.input_revision||task.input_digest!==anchor.input_digest||bound.current_problem?.revision!==anchor.input_revision||bound.current_problem?.digest!==anchor.input_digest||first?.task_id!==task.id||first.input_revision!==anchor.input_revision||first.input_digest!==anchor.input_digest||first.start_version!==data.expected_research_version+1||!planMeta(meta)||meta.result_ref!==ack.result_ref||meta.task_id!==task.id)throw Error('回执未与原研究、修订和请求绑定，key已保留。');
+      if(!planActive(ticket))return;const stored=JSON.parse(sessionStorage.getItem(pending.slot));if(stored?.key===pending.key){stored.receipt={task_id:ack.task_id,result_ref:ack.result_ref};sessionStorage.setItem(pending.slot,JSON.stringify(stored));}
+      if(methodDirty||formulaState.dirty||bound.is_historical){const originalState=await planRead(meta,planAnchor(bound),planTicket(true),false,false);if(!planActive(ticket)||!originalState)return;byId('native-plan-status').textContent=planStates[originalState.state]+'。已核对原操作，当前草稿未替换；可在新标签页只读查看原流程。';formulaElement(byId('native-plan-body'),'a','只读查看原计划流程',{href:`/research/${ticket.rid}?task_id=${ack.task_id}`,target:'_blank',rel:'noopener'});return;}
+      renderTask(bound,{nativePlanRead:false});await planRead(meta,planAnchor(bound),planTicket(true));
+    }catch(error){if(!ticket||planActive(ticket)){const rejected=pending&&error.planPurpose==='confirm'&&['INPUT_INVALID','REVISION_CONFLICT','PREVIEW_EXPIRED','PREVIEW_CHANGED','TASK_ACTIVE','FUNDING_GRANT_REQUIRED'].includes(error.code)&&error.status>=400&&error.status<500;if(rejected)formulaRetire(pending);planClearBody();byId('native-plan-status').textContent=planError(error)+(rejected?' 当前输入仍保留，请重新预览；不会自动再次外发。':' 请保留草稿与原操作；不会自动再发模型请求。');}}
+    finally{if(planState.operation===token){planState.busy=false;planState.operation=null;planSync();}}
+  }
+  function initPlan() {
+    byId('native-plan-own').addEventListener('change',()=>{planInvalidate('自述声明已变化，请重新预览。');planSync();});
+    byId('native-plan-consent').addEventListener('change',planSync);byId('native-plan-preview').addEventListener('click',planPreview);byId('native-plan-confirm').addEventListener('click',()=>planConfirm());byId('native-plan-recover').addEventListener('click',()=>planConfirm(true));
+    byId('native-plan-refresh').addEventListener('click',async()=>{
+      if(planState.busy||busy||!researchId)return;
+      planInvalidate('正在按当前账户核对计划状态；不会发送模型请求。');
+      const ticket=planTicket(),operation=Symbol();planState.busy=true;planState.operation=operation;planSync();
+      try{if(!await planAuthenticate(ticket))return;const view=await request(viewUrl(),{},()=>planActive(ticket));if(planActive(ticket))renderTask(view);}
+      catch(error){if(planActive(ticket)){planClearBody();byId('native-plan-status').textContent=planError(error);}}
+      finally{if(planState.operation===operation){planState.busy=false;planState.operation=null;planSync();}}
+    });
+    byId('native-plan-query-draft').addEventListener('input',planSync);byId('native-plan-use-query').addEventListener('click',()=>{if(readOnlyView()||!taskData?.capabilities?.source_evidence||byId('native-plan-use-query').disabled)return;byId('source-query').value=byId('native-plan-query-draft').value;byId('source-query').dispatchEvent(new Event('input',{bubbles:true}));byId('source-query').focus();byId('source-query').scrollIntoView({block:'center'});byId('native-plan-status').textContent='已填入可编辑的来源查询草稿；尚未预览、批准或读取任何来源。';});
+  }
+
   function status(message, error = false) {
     byId('status').textContent = message;
     byId('status').dataset.error = String(error);
@@ -635,6 +902,7 @@
     for (const control of form.querySelectorAll('input, textarea, select, button')) control.disabled = value || (readOnlyView() && control.id !== 'reload');
     syncTaskButtons();
     syncFormulaControls();
+    planSync();
   }
   function normalizeProblem(problem) {
     // Match ProblemInput exactly; original_input intentionally stays verbatim.
@@ -645,6 +913,7 @@
         observation:variable.observation === null ? null : variable.observation.normalize('NFC')}))};
   }
   function clearPrivateView() {
+    planReset();
     formulaReset();
     historySeen = false; clearTaskHistory();
     byId('view-context').hidden = true; byId('view-context').textContent = '';
@@ -714,6 +983,7 @@
     } finally { clearTimeout(timer); }
   }
   function render(data, methodToken) {
+    planReset();
     methodDirty = false;
     invalidateKB();
     summaryEdited = true;
@@ -791,10 +1061,11 @@
     const map = {start:'start', cancel:'cancel', reconcile:'request_reconciliation', resume:'resume'};
     for (const [operation, action] of Object.entries(map)) {
       const button = byId('task-' + operation);
-      button.hidden = readOnlyView() || Boolean(taskData?.is_historical) || !actions.includes(action);
+      button.hidden = readOnlyView() || Boolean(taskData?.is_historical) || !actions.includes(action) || (['native-plan-v1','funded-plan-v1'].includes(taskData?.task?.policy_revision)&&operation!=='cancel');
       button.disabled = taskBusy || (operation === 'start' && busy);
     }
     byId('task-refresh').disabled = taskBusy;
+    byId('task-refresh').textContent=['native-plan-v1','funded-plan-v1'].includes(taskData?.task?.policy_revision)?'刷新计划流程状态':'刷新演练状态';
   }
   function renderTask(data, context = {}) {
     if (data.research?.id !== researchId || (selectedTask !== null && selectedTask !== data.task?.id)) return false;
@@ -817,6 +1088,7 @@
     }
     taskData = data;
     formulaObserve(data);
+    planObserve(data,context.nativePlanRead!==false);
     byId('view-context').hidden = !readOnlyView();
     byId('view-context').textContent = data.is_historical ? '历史流程，只读查看原问题与原记录；不代表当前修订的研究结果。' : selectedTask ? '固定任务只读查看。这是当前任务，不是历史结果；返回当前问题后才能编辑。' : '';
     if (selectedTask) status(data.is_historical ? '已读取历史流程的原问题，只读查看；方法正文以下方状态为准。' : '已读取固定任务，只读查看；该任务仍是当前任务。');
@@ -863,6 +1135,12 @@
     if(data.task?.policy_revision==='local-formula-v1') {
       byId('task-title').textContent='本地公式检查任务';byId('task-scope').textContent='任务状态只说明检查流程，不等于数学通过。执行证明与四项结论在公式验证记录中分别展示。';
       byId('task-budget').textContent='此流程不调用模型；不把本地成本字段当供应商账单。';
+    }
+    if(['native-plan-v1','funded-plan-v1'].includes(data.task?.policy_revision)){
+      byId('task-title').textContent='研究计划流程';byId('task-scope').textContent='计划执行与费用分别核对；生成计划不代表文献、数学关系或现实机制已验证。';
+      byId('task-phase').textContent=planStates[planState.meta?.state]||'计划状态待核对';byId('task-budget').textContent='本流程不提供已核实的实扣费用或可用余额。';
+      byId('task-saved-scope').textContent=`本次计划绑定已保存修订 ${data.task.input_revision}；本页表单仍基于修订 ${editBase?.revision}，未保存草稿不会混入原外发范围。`;
+      byId('task-message').textContent='计划正文、执行来源和待核验边界请在上方计划记录中分别核对。';
     }
     syncTaskButtons();
     renderMethod(data,context.methodToken);
@@ -936,8 +1214,10 @@
   }
   async function authenticated(isCurrent, signal) {
     const unavailable = () => {
+      const planWasCurrent=isCurrent();
       if (isCurrent()) { invalidateMethod('账户状态暂时无法核对，已收起旧方法记录；草稿仍保留。'); formulaAuthUncertain(); clearTaskHistory('账户状态暂时无法核对，流程列表已收起；请稍后主动读取。'); }
       if (isCurrent()) status('账户状态暂时无法核对；草稿与待核对操作已保留，本次后续请求已停止。请稍后主动重试。', true);
+      if(planWasCurrent){planInvalidate('账户状态尚待核对，计划正文已收起；草稿与原操作保留。');byId('native-plan-history').replaceChildren();}
       return false;
     };
     try {
@@ -1039,6 +1319,7 @@
     byId(id).addEventListener('input', () => {
       methodDirty = true; invalidateMethod('表单有未保存改动，已收起旧方法记录。');
       formulaProblemEdited();
+      planInvalidate('本页草稿有修改，旧计划已收起；请保存后重新预览。');
       if (id === 'summary') summaryEdited = true;
       if (id === 'original-input') echoDraft();
       invalidateKB();
@@ -1100,6 +1381,8 @@
       // An authenticated read is still required: the account endpoint performs
       // actual session validation; the research API revalidates on every save.
       form.hidden = false;
+      planSync();
+      byId('native-plan-status').textContent='问题尚未保存；没有生成或外发计划。';
       status('新问题尚未保存。');
       byId('my-research').hidden = false;
       loadResearchList(false, positionEntry);
@@ -1348,5 +1631,6 @@
     if (event.persisted) { clearPrivateView(); load().catch(error => status(error.message, true)); }
   });
   initFormula();
+  initPlan();
   load().catch(error => status(error.message, true));
 })();

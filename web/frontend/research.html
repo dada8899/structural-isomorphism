@@ -13,7 +13,7 @@
     <div class="eyebrow">RESEARCH NOTEBOOK / 研究记录</div>
     <h1>从你的现象，<br>开始研究。</h1>
     <p class="intro">先说观察到了什么、希望解决什么。不必先知道数学方法或英文术语。</p>
-    <p class="scope" id="page-scope">可保存问题与修订；来源流程开放时可预览查询、确认读取并保存证据笔记。研究结论仍需验证。</p>
+    <p class="scope" id="page-scope">可保存问题与修订，预览下一步研究计划的外发范围。执行和来源入口开放时须分别明确确认；研究结论仍需验证。</p>
     <p id="status" role="status" aria-live="polite">正在读取研究记录…</p>
     <p id="view-context" class="scope" hidden></p>
     <div id="access" hidden><a href="/auth/login">登录账户</a><p>研究默认私有，请使用保存时的账户读取。</p></div>
@@ -67,6 +67,23 @@
       <div class="actions"><button id="save" type="submit">保存问题</button><button id="reload" type="button" class="secondary" hidden>重新读取已存版本</button></div>
       <p class="hint">请求结果不明时保留当前内容，再次保存相同内容会核对原操作，不会另存一份。</p>
     </form>
+    <section id="native-plan-section" hidden aria-labelledby="native-plan-title">
+      <div class="section-heading"><h2 id="native-plan-title">先规划下一步查什么</h2><span class="native-plan-tag">待核验计划</span></div>
+      <p class="scope">从自己的现象自述出发，提出可查找的机制与方法线索。计划不是已验证的跨域解法，也不是成熟研究结论。</p>
+      <p id="native-plan-hint" class="hint"></p>
+      <label class="check"><input id="native-plan-own" type="checkbox">本次是我自己的观察自述，不包含文献、代码或来源正文。这只是我的声明，不代表权属已核实。</label>
+      <div class="actions"><button id="native-plan-preview" type="button" disabled>预览外发原文与费用上限</button><button id="native-plan-refresh" type="button" class="secondary">读取已保存的计划状态</button><button id="native-plan-recover" type="button" class="secondary" hidden>用原提交核对回执（不另开计划）</button></div>
+      <p id="native-plan-status" aria-live="polite"></p>
+      <div id="native-plan-preview-panel" hidden>
+        <h3>将外发的已保存原文</h3><pre id="native-plan-exact-input"></pre><p id="native-plan-quote" class="hint"></p>
+        <label class="check"><input id="native-plan-consent" type="checkbox" disabled>我已核对上面的逐字原文、接收方与本次费用上限，明确同意此次外发和费用上界。</label>
+        <button id="native-plan-confirm" type="button" disabled>确认本次外发并排队</button>
+      </div>
+      <div id="native-plan-record" class="hint" hidden>原问题修订 <span id="native-plan-record-revision"></span> · 原记录时间 <time id="native-plan-record-time"></time><details><summary>记录编号</summary><p id="native-plan-result-ref"></p></details></div>
+      <div id="native-plan-body"></div>
+      <div id="native-plan-query-area" hidden><label for="native-plan-query-draft">手选的英文查询草稿 <span>可编辑 · 尚未读取来源</span></label><input id="native-plan-query-draft" type="text" minlength="3" maxlength="160" autocomplete="off"><button id="native-plan-use-query" class="secondary" type="button">带入来源查询框（尚未查询）</button></div>
+      <h3>计划流程记录</h3><p id="native-plan-history-status" class="hint"></p><ol id="native-plan-history"></ol>
+    </section>
     <section id="formula-check-section" hidden aria-labelledby="formula-check-title">
       <h2 id="formula-check-title">检查已保存的公式</h2>
       <p class="scope">检查只针对已保存并核对的结构式。任务结束不等于数学通过；声明条件与现实机制仍需研究验证。</p>
@@ -103,7 +120,7 @@
     <section id="source-section" hidden aria-labelledby="source-title">
       <h2 id="source-title">可选：继续查找方法来源</h2>
       <p class="hint source-write-ui">先预览，再确认查询内容。最多读取四次 Crossref / PLOS 来源；这里只整理方法材料与短摘录，尚未运行模型分析、行情计算或统计检验。</p>
-      <p class="hint source-write-ui">保存并核对问题后，可自行填写英文关键词。不清楚关键词时可先保留问题；当前尚不提供模型提炼、自动翻译或深度研究结论。</p>
+      <p class="hint source-write-ui">保存并核对问题后，可自行填写英文关键词。不清楚关键词时可先保留问题；也可从已保存的研究计划手选查询草稿。计划不替代文献核验或深度研究结论。</p>
       <p id="source-reopen-hint" class="hint">重新打开研究后，已保存的来源笔记需手动读取。尚未读取不代表没有记录；请用下方按钮核对本页对应的研究和来源流程。</p>
       <label for="source-query" class="source-write-ui">英文方法关键词 <span>可编辑 · 仅发送预览中的查询词</span></label>
       <input class="source-write-ui" id="source-query" type="text" minlength="3" maxlength="160" placeholder="例如 queue theory" autocomplete="off" style="width:100%">
