@@ -1,10 +1,13 @@
 """Explicit static bootstrap, complete metadata and idempotent file identity."""
 import os
 import sqlite3
+from contextlib import closing
 import pytest
 from services import runtime_paths as paths
 from services.auth_store import AuthStore,_auth_final_contracts,_legacy_auth_contracts,_auth_metadata,_LEGACY_AUTH_DDL,_AUTH_LIFECYCLE_SQL
 from services.auth_registration import bootstrap_private_runtime,AUTH_REGISTRATION_DDL
+from .test_research_formula_delivery import v9,_configure_private_root
+from .test_research_persistence import stack
 
 
 @pytest.fixture
@@ -18,7 +21,7 @@ def roots(tmp_path,monkeypatch):
 
 
 def test_bootstrap_actual_empty_roots_and_identity_idempotence(roots):
-    assert bootstrap_private_runtime()=={'contract':'auth-provision-v1','research_schema':10,'created':True}
+    assert bootstrap_private_runtime()=={'contract':'auth-provision-v1','research_schema':11,'created':True}
     before={p.name:(p.stat().st_dev,p.stat().st_ino) for p in roots.iterdir()}
     assert not bootstrap_private_runtime()['created']
     assert before=={p.name:(p.stat().st_dev,p.stat().st_ino) for p in roots.iterdir()}
@@ -28,7 +31,9 @@ def test_bootstrap_actual_empty_roots_and_identity_idempotence(roots):
         assert AuthStore.check_offline_auth_metadata(conn)=='auth-provision-v1'
         assert conn.execute('SELECT count(*) FROM auth_users').fetchone()[0]==0
         assert conn.execute('SELECT count(*) FROM auth_registration_operations').fetchone()[0]==0
-        assert list(map(tuple,conn.execute('SELECT * FROM research_schema')))==[(1,10)]
+        assert list(map(tuple,conn.execute('SELECT * FROM research_schema')))==[(1,11)]
+        from research import ResearchStore
+        ResearchStore._check_v11(conn)
 
 
 @pytest.mark.parametrize('nullable',[False,True])
@@ -60,20 +65,32 @@ def test_formal_constructor_does_not_bootstrap(roots):
     assert not roots.exists()
 
 
-def test_exact_offline_migration_keeps_research10_and_identity(roots):
+def test_exact_offline_migration_keeps_research10_and_identity(v9,monkeypatch):
     from services.auth_registration import migrate_private_auth_registration
-    bootstrap_private_runtime();db=roots/'auth.sqlite3';identity=(db.stat().st_dev,db.stat().st_ino)
-    conn=sqlite3.connect(db,isolation_level=None)
-    try:
-        for row in conn.execute("SELECT name FROM sqlite_schema WHERE type='trigger' AND name LIKE 'registration_%'").fetchall():conn.execute('DROP TRIGGER '+row[0])
-        conn.execute('DROP TABLE auth_registration_operations');conn.execute('DROP TABLE auth_registration_receipts')
-    finally:conn.close()
+    from research import ResearchStore
+    from research.errors import ResearchError
+    from research.formula_runtime import provision_formula_v10,recover_formula_journal
+    from research.financial_guard import install_default_hook
+    from services.sqlite_utils import connect_private_auth
+    _,db,rid,_=v9;db=_configure_private_root(db,monkeypatch)
+    provision_formula_v10(db)
+    identity=(db.stat().st_dev,db.stat().st_ino)
+    with closing(sqlite3.connect(db,isolation_level=None)) as conn:
+        conn.row_factory=sqlite3.Row;install_default_hook(conn);conn.execute('BEGIN')
+        assert AuthStore.check_offline_auth_metadata(conn)=='legacy_auth'
+        ResearchStore._check_v10(conn)
     with pytest.raises(RuntimeError):AuthStore(db)
     assert migrate_private_auth_registration()['migrated']
     assert not migrate_private_auth_registration()['migrated']
     assert (db.stat().st_dev,db.stat().st_ino)==identity
-    with AuthStore(db)._connection() as conn:
+    with pytest.raises(ResearchError):AuthStore(db)
+    with closing(connect_private_auth(db,readonly=True,expected_identity=identity)) as conn:
+        install_default_hook(conn);conn.execute('BEGIN')
+        assert AuthStore.check_offline_auth_metadata(conn)=='auth-provision-v1'
         assert list(map(tuple,conn.execute('SELECT * FROM research_schema')))==[(1,10)]
+        ResearchStore._check_v10(conn)
+        assert conn.execute('SELECT id FROM research_controls WHERE id=?',(rid,)).fetchone()[0]==rid
+    assert recover_formula_journal(db)['current_app_compatible'] is False
 
 
 def test_current_preflight_metadata_only_no_hooks_or_business_reads(roots,monkeypatch):
