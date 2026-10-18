@@ -1,7 +1,7 @@
-"""Private runtime paths and the deliberately closed R2-A admission gate.
+"""Private runtime paths and the actual Main lifecycle admission boundary.
 
-No filesystem objects are created or migrated here. R2-B/R3 consumers have not
-been connected yet; only a later reviewed source change may admit production.
+No filesystem objects are created or migrated by the admission bridge. Native
+consumers retain the existing path, owner, mode, identity and schema checks.
 """
 from __future__ import annotations
 
@@ -14,12 +14,19 @@ import sqlite3
 
 
 class FormalAdmissionError(RuntimeError):
-    """Formal persistence consumers are not integrated in this candidate."""
+    """An actual formal Main lifespan is missing, stale or unavailable."""
 
 
-def require_formal_admission():
-    # No environment/state/registry switch can attest to completed migration.
-    raise FormalAdmissionError("formal persistence consumers are not integrated")
+def require_formal_admission(app=None):
+    try:
+        if __package__ == 'web.backend.services':
+            from . import formal_admission
+        else:
+            from services import formal_admission
+        if formal_admission.require(app, 'research_basic') is not None:
+            raise RuntimeError('formal admission returned data')
+    except Exception:
+        raise FormalAdmissionError('formal runtime is not admitted') from None
 
 
 class FormalAdmissionMiddleware:
@@ -36,7 +43,7 @@ class FormalAdmissionMiddleware:
     async def __call__(self, scope, receive, send):
         if self.formal and scope["type"] in ("http", "websocket"):
             try:
-                require_formal_admission()
+                require_formal_admission(scope.get('app'))
             except FormalAdmissionError:
                 if scope["type"] == "websocket":
                     await send({"type": "websocket.close", "code": 1013})
