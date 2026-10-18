@@ -1,0 +1,593 @@
+{
+  "web/backend/api/research.py": {
+    "current_sha256": "e29702ae94a656661502eea47acfa043b96fae77a9d1dd9d49002ab8aeec3498",
+    "hunks": [
+      [
+        39,
+        44,
+        ""
+      ],
+      [
+        157,
+        184,
+        "        if operation == \"index\":\n"
+      ],
+      [
+        328,
+        332,
+        ""
+      ],
+      [
+        441,
+        454,
+        ""
+      ]
+    ],
+    "original_sha256": "7fcc218e6f75c1cd88ee4bf1bf68f5fd35a15e8b40ffa2057a8fe72ea5d02a46"
+  },
+  "web/backend/research/evidence_repository.py": {
+    "current_sha256": "342c0c5084f55f3ffdbbbb6329488734d340d8df6dd7bf714da5c1d7b880f85e",
+    "hunks": [
+      [
+        96,
+        113,
+        ""
+      ]
+    ],
+    "original_sha256": "0a1064bab04e2af5490ee20ac52a4ab4fc049e4035e8cffb0793509f762f0b89"
+  },
+  "web/backend/research/financial_guard.py": {
+    "current_sha256": "c081f7fd4b36830d8168c67bc0c4147a356163a9e505916320c4a495ef00c2eb",
+    "hunks": [
+      [
+        20,
+        22,
+        ""
+      ],
+      [
+        199,
+        201,
+        ""
+      ],
+      [
+        227,
+        228,
+        "        if version and version[0] in (7,8,9,10,11,12,13):\n"
+      ],
+      [
+        290,
+        291,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):ResearchStore.check_runtime_version(conn)\n"
+      ]
+    ],
+    "original_sha256": "2be9e0cfe9d81f8f373e2941c68149b03376d23f973ed3703eba3bc9bcad10e6"
+  },
+  "web/backend/research/formula_result.py": {
+    "current_sha256": "597c823e4747ab7f406edf09eb858236ef942efbc7a5802fab96011a69b48ae5",
+    "hunks": [
+      [
+        307,
+        307,
+        "    from .formula_result_adapter import project_formula_result\n"
+      ],
+      [
+        311,
+        377,
+        "        service.authorization.check(conn,identity,principal,rid)\n        row=conn.execute('SELECT r.*,t.input_revision FROM research_formula_runs r JOIN research_tasks t ON t.id=r.task_id WHERE r.result_ref=? AND t.research_id=?',(ref,rid)).fetchone()\n        if not row:raise not_found()\n        metadata=run_metadata(conn,row['task_id'])\n        if row['state']!='returned':return _envelope({'metadata':metadata,'result':None,'state':'unavailable'})\n        admission=json.loads(row['admission_json']);commit=json.loads(row['commit_json']);receipt=json.loads(row['receipt_json']);raw=json.loads(row['result_json'])\n        try:\n            _,formula=_snapshot(conn,rid,row['input_revision'])\n            if _sources(conn,service.store,identity,rid,row['input_revision'],formula)!=admission['sources']:raise PermissionError('source changed')\n        except (PermissionError,ValueError):return _envelope({'metadata':metadata,'result':None,'state':'unavailable'})\n        task=conn.execute('SELECT * FROM research_tasks WHERE id=? AND research_id=?',(row['task_id'],rid)).fetchone()\n        step=conn.execute('SELECT * FROM research_steps WHERE id=? AND task_id=?',(admission['step_id'],row['task_id'])).fetchone()\n        control=service.authorization.check(conn,identity,principal,rid)\n        revision=conn.execute('SELECT digest,problem_json FROM research_revisions WHERE research_id=? AND revision=?',(rid,row['input_revision'])).fetchone()\n        try:\n            service.authorization.check_task(conn,task)\n            if (type(admission['input_revision']) is not int or admission['research_id']!=rid or admission['principal_id']!=principal\n                    or admission['input_revision']!=task['input_revision'] or task['policy_revision']!=TASK_POLICY\n                    or task['execution_mode']!='local_math' or task['execution']!='COMPLETED' or task['attempt']!=1\n                    or not revision or revision['digest']!=admission['problem_digest']\n                    or digest(json.loads(revision['problem_json']))!=admission['problem_digest']\n                    or digest(formula)!=admission['formula_digest'] or control['current_revision']<task['input_revision']\n                    or not step or step['kind']!='formula_check' or step['position']!=0 or step['state']!='SUCCEEDED'\n                    or step['reservation_id'] is not None):raise PermissionError('stored formula domain changed')\n            bindings={'principal_id':principal,'principal_epoch':admission['principal_epoch'],'owner_epoch':admission['owner_epoch'],\n                'acl_epoch':admission['acl_epoch'],'auth_generation':admission['auth_generation'],'grant_id':admission['grant_id'],\n                'input_digest':admission['problem_digest'],'start_version':admission['research_version']}\n            if any(task[name]!=value for name,value in bindings.items()):raise PermissionError('original task binding changed')\n            request=FormulaCheckInput.parse({'research_id':rid,'input_revision':task['input_revision'],'task_id':task['id'],'attempt':task['attempt'],\n                **{name:formula[name] for name in ('comparison_scope','requested_checks','sample_points')},\n                **{name:None if formula[name] is None else {k:v for k,v in formula[name].items() if k!='time_basis'} for name in ('left','right')}})\n            if request.data()!=admission['check_input'] or request.input_digest!=admission['full_input_digest']:\n                raise PermissionError('actual immutable formula input changed')\n            for prefix in ('research','task','step'):\n                if (type(commit.get(prefix+'_before')) is not int or type(commit.get(prefix+'_after')) is not int\n                        or not 1<=commit[prefix+'_before']<2147483647 or commit[prefix+'_after']!=commit[prefix+'_before']+1):\n                    raise PermissionError('strict protected commit versions required')\n            from datetime import datetime\n            if type(commit.get('recorded_at')) is not str or datetime.strptime(commit['recorded_at'],'%Y-%m-%dT%H:%M:%S.%fZ').strftime('%Y-%m-%dT%H:%M:%S.%fZ')!=commit['recorded_at']:\n                raise PermissionError('strict original formula record timestamp required')\n            expected={'recorded_at':commit['recorded_at'],'research_before':admission['research_version'],'research_after':admission['research_version']+1,\n                'task_before':admission['task_version'],'task_after':admission['task_version']+1,\n                'step_before':admission['step_version'],'step_after':admission['step_version']+1,\n                'problem_digest':revision['digest'],'formula_digest':digest(formula),'full_input_digest':request.input_digest,\n                'output_digest':raw['output_digest'],'receipt_ref':receipt['reference']}\n            if (commit!=expected or task['version']!=commit['task_after'] or step['version']!=commit['step_after']\n                    or control['version']<commit['research_after'] or receipt['claim_nonce']!=row['claim_nonce']\n                    or receipt['input_digest']!=request.input_digest or receipt['code_version']!=admission['code_version']\n                    or receipt['result_digest']!=digest(raw) or receipt['reaped'] is not True):\n                raise PermissionError('stored result is not the actual committed task result')\n        except (PermissionError,ValueError,TypeError,KeyError):raise not_found() from None\n        content=project_formula_result(raw,expected_input=request,expected_output_digest=commit['output_digest']).data()\n        # Public pure-content flags remain false. Trust is a distinct server\n        # projection backed by this protected stored return, never client JSON.\n        return _envelope({'metadata':metadata,'state':'available','result':content,'provenance':{\n            'execution_attested':receipt['return_state']=='ok','execution_state':receipt['return_state'],\n            'resource_guard':receipt['resource_guard'],'owned_return_ref':receipt['reference'],'reaped':receipt['reaped'],\n            'code_version':receipt['code_version'],'full_input_digest':request.input_digest,'output_digest':commit['output_digest'],\n            'formula_digest':admission['formula_digest'],'problem_digest':admission['problem_digest'],\n            'display_AST_confirmation':'user_confirmed_snapshot','source_origin':formula['input_origin'],\n            'source_facts_verified':False,'mathematics_is_not_real_world_mechanism':True}})\n"
+      ]
+    ],
+    "original_sha256": "f35d7d317f803a464b609f3365a5827eaeb84f22f8710354a2cf4df47673f2ad"
+  },
+  "web/backend/research/formula_runtime.py": {
+    "current_sha256": "8be00dca7ce8a7b09b7c268a9aecfccd95ece1786ef35d5b5dd17be71de7860a",
+    "hunks": [
+      [
+        289,
+        290,
+        "        if name not in {'_check_structure_version','_check_v9','_check_v10','_check_v11','_check_v12','_check_v13','_formula_tables','_current_structure_declarations'}:\n"
+      ],
+      [
+        307,
+        308,
+        "    if (auth_profile,version) not in (('legacy_auth',9),('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13)):\n"
+      ],
+      [
+        315,
+        316,
+        ""
+      ],
+      [
+        362,
+        363,
+        "    with _offline_maintenance(path,(9,10,11,12,13)) as (target,capability):\n"
+      ],
+      [
+        365,
+        366,
+        "            version=_check_profile(capability.conn,target,(9,10,11,12,13))\n"
+      ],
+      [
+        372,
+        373,
+        "        'current_app_compatible':version==13 and auth_profile=='auth-provision-v1','schema_repaired':False}\n"
+      ]
+    ],
+    "original_sha256": "91c93bc0f5575b7eba9f8b2690779e911a44bbb129a24c0687ea5742934ab31a"
+  },
+  "web/backend/research/method_result.py": {
+    "current_sha256": "0c5b4d8f5a254c222c3d963bfede5cc55a3e6afb71271e7e31aa84f6ec771e97",
+    "hunks": [
+      [
+        33,
+        34,
+        "            or conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (9,10,11,12,13)):\n"
+      ],
+      [
+        36,
+        37,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):ResearchStore.check_runtime_version(conn)\n"
+      ]
+    ],
+    "original_sha256": "cc45319280990f79d29897a33f16184827b4403982432012b52616a6cf11f4f9"
+  },
+  "web/backend/research/paid_approval.py": {
+    "current_sha256": "78fdd2cbca6c8e1992fec5c8e42ca622e7839c482e807d0f6cc11eb34296793f",
+    "hunks": [
+      [
+        340,
+        341,
+        "    if version not in (6,7,8,9,10,11,12,13):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除记录版本不支持。')\n"
+      ],
+      [
+        350,
+        351,
+        "    elif version in (10,11,12,13):\n"
+      ],
+      [
+        358,
+        359,
+        "    if version in (10,11,12,13):\n"
+      ],
+      [
+        362,
+        363,
+        "    if version in (9,10,11,12,13):\n"
+      ]
+    ],
+    "original_sha256": "68267578a7fa9da70b561948a86e1c571ce87049c204b210618e1c2ec1f949f9"
+  },
+  "web/backend/research/paid_control.py": {
+    "current_sha256": "237968ce45b6a357500ddb542f3ab351ff6e34f367c207eff49953eb262ca6a0",
+    "hunks": [
+      [
+        66,
+        67,
+        ""
+      ],
+      [
+        72,
+        85,
+        "    if action=='plan-read':\n"
+      ],
+      [
+        225,
+        228,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        229,
+        230,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):\n"
+      ],
+      [
+        249,
+        250,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):ResearchStore.check_runtime_version(conn)\n"
+      ],
+      [
+        357,
+        359,
+        ""
+      ],
+      [
+        397,
+        398,
+        "            or conn.execute(\"SELECT version FROM research_schema WHERE id=1\").fetchone()[0] not in (5,6,7,8,9,10,11,12,13)):\n"
+      ],
+      [
+        408,
+        409,
+        "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13):\n"
+      ],
+      [
+        509,
+        510,
+        "    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13):\n"
+      ]
+    ],
+    "original_sha256": "f1a9d040d05bdb877f3ca703988f8472d0b31c4f6fc092d7a6ae8475a90cd4a8"
+  },
+  "web/backend/research/paid_provider_session.py": {
+    "current_sha256": "fd6b55f9672ef3012a7161955f341df266ef635580220648e11aa1896e29ac85",
+    "hunks": [
+      [
+        422,
+        423,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13) and s['body_origin_state']!='legacy_unproved':\n"
+      ]
+    ],
+    "original_sha256": "7a3b6dfac4d89e8001ba5ce23bb870d7b7dd0ac90a3999805ecbbecd55fcd5a0"
+  },
+  "web/backend/research/plan_native_runtime.py": {
+    "current_sha256": "885a13cbbd691006735eb28172cd43fc8b2beb5877baab8c0c017b9d8c00eae8",
+    "hunks": [
+      [
+        381,
+        399,
+        "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT r.* FROM '+RUNS+' r JOIN research_tasks t ON t.id=r.task_id WHERE r.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        result=None\n        if value['result_json']:\n            result=NativePlanResult.model_validate(json.loads(value['result_json'])).model_dump(mode='json')\n            consent=json.loads(value['consent_json']);admission=json.loads(value['admission_json']);commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone();step=conn.execute('SELECT * FROM research_steps WHERE id=?',(consent['step_id'],)).fetchone()\n            saved=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,consent['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='native-plan-v1' or task['version']!=3 or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED' or step['version']!=3\n                or digest(canonical(consent))!=value['consent_digest'] or digest(canonical(admission))!=value['admission_digest'] or not saved or saved[0]!=consent['input_digest']\n                or result['result_ref']!=value['result_ref'] or result['task_id']!=task['id'] or result['research_id']!=rid or result['input_digest']!=task['input_digest'] or result['recorded_at']!=commit['recorded_at']\n                or commit['result_digest']!=digest(canonical(result)) or commit['receipt_digest']!=digest(canonical(receipt)) or receipt['admission_digest']!=value['admission_digest']):raise ResearchError('RESULT_UNAVAILABLE',503,'原生计划记录当前无法完整核对；不会重新外发。')\n        return envelope({**metadata(value),'content':result})\n"
+      ]
+    ],
+    "original_sha256": "dba85a647cc44130a703600282dfe2b021b63d41af5d4abacf9b334a38df4d90"
+  },
+  "web/backend/research/plan_result.py": {
+    "current_sha256": "489aa7e0617fc83e01b6659b1f213cbce503b38d1f60b5e9a757ffb7f22658ee",
+    "hunks": [
+      [
+        11,
+        36,
+        "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT d.* FROM research_plan_dispatches d JOIN research_tasks t ON t.id=d.task_id WHERE d.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        body=metadata(value)\n        if value['result_json'] is None:return envelope({**body,'content':None})\n        try:\n            result=PlanResult.model_validate(json.loads(value['result_json']))\n            admission=PlanAdmission.model_validate(json.loads(value['admission_json'])).model_dump(mode='json');commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json']);usage=json.loads(value['usage_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone()\n            step=conn.execute('SELECT * FROM research_steps WHERE id=?',(admission['step_id'],)).fetchone()\n            revision=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,admission['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='funded-plan-v1' or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED'\n                or task['version']!=commit['task_after'] or step['version']!=commit['step_after'] or commit['task_after']!=commit['task_before']+1 or commit['step_after']!=commit['step_before']+1\n                or task['research_id']!=admission['research_id'] or task['principal_id']!=admission['principal_id'] or task['input_revision']!=admission['input_revision'] or task['input_digest']!=admission['input_digest']\n                or not revision or revision[0]!=admission['input_digest'] or digest(canonical(admission))!=value['admission_digest'] or result.admission_digest!=value['admission_digest']\n                or result.result_ref!=value['result_ref'] or result.task_id!=value['task_id'] or result.research_id!=rid or result.input_revision!=admission['input_revision'] or result.input_digest!=admission['input_digest'] or result.request_digest!=admission['request_digest']\n                or commit['result_ref']!=value['result_ref'] or commit['task_id']!=task['id'] or commit['admission_digest']!=value['admission_digest'] or commit['recorded_at']!=result.recorded_at\n                or commit['result_digest']!=digest(canonical(result.model_dump(mode='json'))) or commit['receipt_digest']!=digest(canonical(receipt)) or commit['usage_digest']!=digest(canonical(usage))\n                or receipt['producer_code_digest']!=admission['producer_code_digest'] or receipt['dispatch_id']!=value['id'] or receipt['nonce']!=value['nonce'] or receipt['admission_digest']!=value['admission_digest']):raise ValueError('plan domain mismatch')\n        except (ValueError,TypeError,KeyError):raise ResearchError('RESULT_UNAVAILABLE',503,'原计划记录当前无法完整核对；不会重新调用模型。') from None\n        return envelope({**body,'content':result.model_dump(mode='json')})\n"
+      ]
+    ],
+    "original_sha256": "af06948b4975bff80a1d0a4daf64f45c8b4b64f3e5ec8895b999084e55de6f32"
+  },
+  "web/backend/research/projection.py": {
+    "current_sha256": "ccac8ec899ca6f0f00005d7b5c3441135d8c588b37280334a514babbf8f2feeb",
+    "hunks": [
+      [
+        30,
+        31,
+        "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):\n"
+      ]
+    ],
+    "original_sha256": "cbfef1623ddceaeafe2282f98651cc92e7a61fb25ef7074ebd27862f36391d41"
+  },
+  "web/backend/research/provider_evidence.py": {
+    "current_sha256": "eac12418a3eb2a1ae87271084a6d285ab0e8be3d5ca53bd8d4438d69316637b6",
+    "hunks": [
+      [
+        82,
+        83,
+        "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ]
+    ],
+    "original_sha256": "ea5ec07fa53e3c231c0bf7b6a95b7722758508de67f706e0d56160dc0a46d133"
+  },
+  "web/backend/research/runner.py": {
+    "current_sha256": "30be195f1092af40ca00f4273e67aecee566a54b1d095556e36598f756dc3fd1",
+    "hunks": [
+      [
+        185,
+        186,
+        "        lock=self.gate.source_task_gate(task_id) if version in (11,12,13) and self.task(task_id)['policy_revision']=='d1-source-only-v1' else self.gate.owner_gate_id(task_id)\n"
+      ]
+    ],
+    "original_sha256": "6557a66d2116ae347aa9d50ad95c3789441aa2382acc7d5be6606cb0d1b8f9a8"
+  },
+  "web/backend/research/service.py": {
+    "current_sha256": "0be69ecd1e7ad56200ae2245179aa5bb00c64f61c5db3260f94d341ff8230383",
+    "hunks": [
+      [
+        67,
+        73,
+        ""
+      ],
+      [
+        178,
+        179,
+        "        if request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13):\n"
+      ],
+      [
+        374,
+        375,
+        "                method=bool(candidate and candidate[0]=='bounded_usage_upper_v2' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13))\n"
+      ],
+      [
+        381,
+        382,
+        "            method_request=is_paid and operation=='reconcile' and request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13)\n"
+      ],
+      [
+        387,
+        388,
+        "            if (is_paid or task['policy_revision'] in ('local-formula-v1','funded-plan-v1','native-plan-v1') or (task['policy_revision']=='d1-source-only-v1' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13))) and operation=='cancel':\n"
+      ],
+      [
+        401,
+        402,
+        "                if is_paid and operation=='reconcile' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13):\n"
+      ],
+      [
+        425,
+        426,
+        "                        if task['policy_revision']=='d1-source-only-v1' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        515,
+        516,
+        "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):\n"
+      ],
+      [
+        517,
+        518,
+        "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        587,
+        588,
+        "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        594,
+        595,
+        "            if conn.execute('SELECT version FROM research_schema').fetchone()[0]==13:\n"
+      ],
+      [
+        597,
+        598,
+        "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (12,13):\n"
+      ],
+      [
+        600,
+        603,
+        ""
+      ]
+    ],
+    "original_sha256": "4415e35d9591896e2484bdfb962f0a1bb084704916bbcb70b9e84954f76647f3"
+  },
+  "web/backend/research/source_guard.py": {
+    "current_sha256": "6286b03bfe2b393740839970f2d21b14b717fca1c097d1c6d620aa7076e610bd",
+    "hunks": [
+      [
+        371,
+        372,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
+      ]
+    ],
+    "original_sha256": "eba13596a681d3997672d37d03e9af72159db4b0a0d7dda72d4aad03cf96acaf"
+  },
+  "web/backend/research/source_integration.py": {
+    "current_sha256": "c33382d16ef3a07d82c91f37b72413bd46e162cc595aa3a5bb09a4be31df651d",
+    "hunks": [
+      [
+        168,
+        169,
+        "    if marker and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        277,
+        278,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        319,
+        320,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
+      ],
+      [
+        342,
+        343,
+        "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        372,
+        373,
+        "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        382,
+        383,
+        "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        400,
+        401,
+        "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ]
+    ],
+    "original_sha256": "ba8d65ef360223742776f7b7537ec7434a4252bddf0a8bf6658fc617b5907ed7"
+  },
+  "web/backend/research/source_workflow.py": {
+    "current_sha256": "f16edfbaaa728e20976ce27dca82b008e4fd3923349dc9f2482e595ecaeae88e",
+    "hunks": [
+      [
+        18,
+        19,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
+      ],
+      [
+        39,
+        40,
+        "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        181,
+        182,
+        "        if version in (11,12,13):\n"
+      ],
+      [
+        184,
+        185,
+        "    owner=gate.owner_gate_id(owner_gate) if version in (11,12,13) else gate.owner_gate(principal)\n"
+      ],
+      [
+        198,
+        199,
+        "            if version in (11,12,13):\n"
+      ],
+      [
+        218,
+        219,
+        "            if version in (11,12,13):\n"
+      ]
+    ],
+    "original_sha256": "5a152fcb8fa84ce04746dd74affb6107f8acfc747ff47968086a2a3a1245148e"
+  },
+  "web/backend/research/store.py": {
+    "current_sha256": "6ee30d812f4f00c78205e9ed0e136020889e51c0d89090b588a46c897b7cd9e6",
+    "hunks": [
+      [
+        13,
+        14,
+        "CURRENT_RESEARCH_SCHEMA_VERSION=13\n"
+      ],
+      [
+        401,
+        403,
+        ""
+      ],
+      [
+        450,
+        452,
+        ""
+      ],
+      [
+        533,
+        534,
+        "        objects=self._current_structure_declarations(version=13)\n"
+      ],
+      [
+        539,
+        541,
+        "        conn.execute('INSERT INTO research_schema VALUES(1,13)')\n        self._check_v13(conn)\n"
+      ],
+      [
+        584,
+        586,
+        ""
+      ],
+      [
+        999,
+        1001,
+        "            if version==13:self._check_v13(conn)\n"
+      ],
+      [
+        1023,
+        1024,
+        "    def _current_structure_declarations(cls,*,version=13):\n"
+      ],
+      [
+        1030,
+        1031,
+        "        if version in (10,11,12,13):\n"
+      ],
+      [
+        1034,
+        1035,
+        "        if version in (11,12,13):\n"
+      ],
+      [
+        1037,
+        1038,
+        "        if version in (12,13):\n"
+      ],
+      [
+        1040,
+        1041,
+        "        if version==13:\n"
+      ],
+      [
+        1043,
+        1046,
+        ""
+      ],
+      [
+        1080,
+        1081,
+        "        return cls._check_structure_version(conn,13)\n"
+      ],
+      [
+        1152,
+        1154,
+        "            if version==13:self._check_v13(conn)\n"
+      ],
+      [
+        1167,
+        1169,
+        "            if version==13:self._check_v13(conn);conn.commit();return\n"
+      ],
+      [
+        1267,
+        1280,
+        ""
+      ],
+      [
+        1282,
+        1284,
+        "        if version==13:cls._check_v13(conn)\n"
+      ],
+      [
+        1307,
+        1308,
+        "                self._check_v13(conn)\n"
+      ],
+      [
+        1332,
+        1333,
+        "                self._check_v13(conn)\n"
+      ]
+    ],
+    "original_sha256": "744c196ef6b9cb9c3b6fab2140b966e3b52b4859fafb11ef23a5982d371d2885"
+  },
+  "web/backend/schemas.py": {
+    "current_sha256": "63c42017698b16023f971c691d7922900f6fe4b6a39bb36c860de89135f73614",
+    "hunks": [
+      [
+        1728,
+        1895,
+        ""
+      ]
+    ],
+    "original_sha256": "62d621470b9b18517b372746f5674a6042b4f70958f185bf21bc03699ad41a4f"
+  },
+  "web/backend/services/auth_registration.py": {
+    "current_sha256": "8b0bcd8a58c09061ebea6e2b91b76aabc63552ffcdfdb0db6a36e2259cb98904",
+    "hunks": [
+      [
+        486,
+        510,
+        "    with store._connection() as conn:\n"
+      ],
+      [
+        514,
+        515,
+        ""
+      ],
+      [
+        773,
+        774,
+        "    objects=ResearchStore._current_structure_declarations(version=13)\n"
+      ],
+      [
+        777,
+        778,
+        "    conn.execute('INSERT INTO research_schema VALUES(1,13)')\n"
+      ],
+      [
+        898,
+        899,
+        "                        if list(map(tuple,conn.execute('SELECT * FROM research_schema')))!=[(1,13)]:raise PermissionError('exact Research13 required')\n"
+      ],
+      [
+        918,
+        919,
+        "        return {'contract':'auth-provision-v1','research_schema':13,'created':fresh}\n"
+      ],
+      [
+        940,
+        941,
+        "    if (profile,version) not in (('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13)):\n"
+      ]
+    ],
+    "original_sha256": "17433353693cede4fe196b518134fddadb460d9c21853f1e94b4db9c82cfdf6e"
+  }
+}

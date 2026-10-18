@@ -131,6 +131,12 @@ export interface MappingValidationSuggestion {
   scenario: string;
   failure_signal: string;
 }
+export interface CatalogOrigin {
+  kind: "kb_record";
+  artifact_id: string;
+  record_id: string;
+  record_digest: string;
+}
 /**
  * Legacy development simulator input.
  *
@@ -341,6 +347,79 @@ export interface DiscoveryEvidenceSourceReview {
   reviewer: string;
   reviewed_at: string;
 }
+export interface DraftExcerptRef {
+  excerpt_id: string;
+  source_revision: number;
+  content_digest: string;
+  start: number;
+  end: number;
+}
+export interface DraftFormulaLink {
+  result_ref: string;
+  metadata: FormulaRunMetadata;
+  result_digest: string;
+  input_revision: number;
+  comparison_scope: "expression" | "equation_form" | "initial_value_problem";
+  /**
+   * @minItems 1
+   * @maxItems 4
+   */
+  outcomes:
+    | [DraftFormulaOutcome]
+    | [DraftFormulaOutcome, DraftFormulaOutcome]
+    | [DraftFormulaOutcome, DraftFormulaOutcome, DraftFormulaOutcome]
+    | [DraftFormulaOutcome, DraftFormulaOutcome, DraftFormulaOutcome, DraftFormulaOutcome];
+  execution_attested: boolean;
+}
+export interface FormulaRunMetadata {
+  result_ref: string;
+  state: "claimed" | "returned" | "closed" | "interrupted";
+  result_available: boolean;
+  input_origin: "user_provided";
+  formula_digest: string | null;
+  formula_result_recorded_at: string | null;
+  math_status: null;
+  termination_state: "not_attested" | "reaped" | "pending";
+  task_completed_means_math_passed: false;
+  known_cost_units: 0;
+}
+export interface DraftFormulaOutcome {
+  check_kind: "template" | "dimensions" | "canonical_transform" | "bounded_numeric";
+  status: "passed" | "failed" | "inconclusive" | "unsupported" | "resource_limit";
+  relation:
+    | "algebraic_identity"
+    | "conditional_model_equivalence"
+    | "local_approximation"
+    | "partial_structure"
+    | "not_equivalent"
+    | "undetermined";
+}
+export interface DraftSourceSummary {
+  excerpt_id: string;
+  snapshot_id: string;
+  source_id: string;
+  source_revision: number;
+  content_digest: string;
+  raw_digest: string;
+  excerpt_digest: string;
+  snapshot_digest: string;
+  start: number;
+  end: number;
+  quote: string;
+  title: string;
+  canonical_url: string;
+  licence_basis: string;
+  task_id: string;
+  attempt: 1;
+  input_revision: number;
+}
+export interface DraftTestPlan {
+  question: string;
+  measurement: string;
+  primary_outcome: string;
+  falsification: string;
+  stop_rule: string;
+}
 /**
  * POST /api/errors — accepted/rate_limited/storage_failure envelope.
  *
@@ -450,18 +529,6 @@ export interface FormulaResultData {
     [k: string]: unknown;
   } | null;
   provenance?: FormulaExecutionProvenance | null;
-}
-export interface FormulaRunMetadata {
-  result_ref: string;
-  state: "claimed" | "returned" | "closed" | "interrupted";
-  result_available: boolean;
-  input_origin: "user_provided";
-  formula_digest: string | null;
-  formula_result_recorded_at: string | null;
-  math_status: null;
-  termination_state: "not_attested" | "reaped" | "pending";
-  task_completed_means_math_passed: false;
-  known_cost_units: 0;
 }
 export interface FormulaResultResponse {
   schema_version: "structure-research-v1";
@@ -1551,6 +1618,1196 @@ export interface MappingStreamRequest {
   a_id?: string | null;
   text_a?: string | null;
   lang?: "zh" | "en";
+}
+export interface MethodDraftContent {
+  schema_version: "structure-research-v1";
+  contract_revision: "method-draft-v1";
+  request: MethodDraftRequest;
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  sources:
+    | [DraftSourceSummary]
+    | [DraftSourceSummary, DraftSourceSummary]
+    | [DraftSourceSummary, DraftSourceSummary, DraftSourceSummary]
+    | [DraftSourceSummary, DraftSourceSummary, DraftSourceSummary, DraftSourceSummary]
+    | [DraftSourceSummary, DraftSourceSummary, DraftSourceSummary, DraftSourceSummary, DraftSourceSummary]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ];
+  origin: ResolvedPlanOrigin | ResolvedUserOrigin;
+  formula: DraftFormulaLink | null;
+}
+export interface MethodDraftRequest {
+  input_revision: number;
+  expected_research_version: number;
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  excerpt_refs:
+    | [DraftExcerptRef]
+    | [DraftExcerptRef, DraftExcerptRef]
+    | [DraftExcerptRef, DraftExcerptRef, DraftExcerptRef]
+    | [DraftExcerptRef, DraftExcerptRef, DraftExcerptRef, DraftExcerptRef]
+    | [DraftExcerptRef, DraftExcerptRef, DraftExcerptRef, DraftExcerptRef, DraftExcerptRef]
+    | [DraftExcerptRef, DraftExcerptRef, DraftExcerptRef, DraftExcerptRef, DraftExcerptRef, DraftExcerptRef]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ];
+  origin: PlanLeadOrigin | CatalogOrigin | UserMethodOrigin;
+  method: string;
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  mapping:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ];
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  nontransferable:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ];
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  competing_explanations:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ];
+  test_plan: DraftTestPlan;
+  formula_result_ref?: string | null;
+  supersedes_ref?: string | null;
+}
+export interface PlanLeadOrigin {
+  kind: "plan_lead";
+  plan_contract: "funded-plan-v1" | "funded-plan-v2";
+  result_ref: string;
+  candidate_index: number;
+  lead_index: number;
+}
+export interface UserMethodOrigin {
+  kind: "user_proposed";
+  label: string;
+  description: string;
+}
+export interface ResolvedPlanOrigin {
+  kind: "plan_lead";
+  plan_contract: "funded-plan-v1" | "funded-plan-v2";
+  result_ref: string;
+  candidate_index: number;
+  lead_index: number;
+  label: string;
+  lead: string;
+  mode: "fixture" | "controlled_fixture" | "native_live";
+  producer: "owned-plan-fixture-v1" | "core-controlled-native-v1" | "owned-native-plan-runtime-v1";
+  result_digest: string;
+  input_revision: number;
+  verification: "unverified";
+}
+export interface ResolvedUserOrigin {
+  kind: "user_proposed";
+  label: string;
+  description: string;
+  mode: "user_proposed";
+  verification: "unverified";
+}
+export interface MethodDraftData {
+  metadata: MethodDraftMetadata;
+  content: MethodDraftContent;
+}
+export interface MethodDraftMetadata {
+  draft_ref: string;
+  input_revision: number;
+  problem_digest: string;
+  research_version_before: number;
+  research_version_after: number;
+  created_at: string;
+  content_digest: string;
+  is_historical: boolean;
+  origin_kind: "plan_lead" | "kb_record" | "user_proposed";
+  validation_status?: "unverified";
+  execution_status?: "not_executed";
+}
+export interface MethodDraftEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "method-draft-v1";
+  data: MethodDraftRequest;
+}
+export interface MethodDraftHistoryData {
+  /**
+   * @maxItems 20
+   */
+  items:
+    | []
+    | [MethodDraftMetadata]
+    | [MethodDraftMetadata, MethodDraftMetadata]
+    | [MethodDraftMetadata, MethodDraftMetadata, MethodDraftMetadata]
+    | [MethodDraftMetadata, MethodDraftMetadata, MethodDraftMetadata, MethodDraftMetadata]
+    | [MethodDraftMetadata, MethodDraftMetadata, MethodDraftMetadata, MethodDraftMetadata, MethodDraftMetadata]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ];
+  next_cursor: string | null;
+}
+export interface MethodDraftHistoryResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "method-draft-v1";
+  data: MethodDraftHistoryData;
+}
+export interface MethodDraftResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "method-draft-v1";
+  data: MethodDraftData;
 }
 export interface NativePlanConfirmationData {
   task_id: string;

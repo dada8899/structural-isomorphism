@@ -166,7 +166,7 @@ SOURCE_DDL=(
 def install_schema(conn,*,existing_required=False):
     source=SOURCE_DDL
     marker=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema'").fetchone()
-    if marker and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):
+    if marker and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
         from .source_guard import approval_table
         source=(approval_table(),*SOURCE_DDL[1:])
     statements=(*source,*DDL)
@@ -275,7 +275,7 @@ def purge_for_deletion(store,conn,task_id,job_id):
     if not task or task["policy_revision"]!=POLICY:return
     EvidenceRepository(conn,authorizer(store,delete_job=job_id)).purge(context_for(conn,task_id))
     conn.execute("UPDATE research_source_runs SET approval_id=NULL,fingerprint=NULL WHERE task_id=?",(task_id,))
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
         from .source_guard import erase_resource
         erase_resource(conn,task_id)
         conn.execute("UPDATE research_source_chains SET fingerprint=NULL,research_id=NULL WHERE id IN (SELECT chain_id FROM research_source_runs WHERE task_id=?)",(task_id,))
@@ -317,7 +317,7 @@ def preview(service,identity,rid,request):
 
 def _source_scope(conn,service,owner,identity,rid,request,key,source,*,admit=False):
     from contextlib import nullcontext
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13,14):return nullcontext()
     from .source_guard import approval_scope,admission_scope
     return (admission_scope if admit else approval_scope)(conn,service,owner,identity,rid,request,key,source)
 
@@ -340,7 +340,7 @@ def approve(service,identity,rid,request,key,*,request_source=None):
         values=(aid,pid,row["owner_epoch"],identity.generation,rid,request.input_revision,revision["digest"],request.query,canonical(fields),pd,fp,origin(),now())
         columns='id,principal_id,principal_epoch,auth_generation,research_id,input_revision,problem_digest,query,plan_json,plan_digest,fingerprint,execution_mode,status,created_at'
         placeholders="?,?,?,?,?,?,?,?,?,?,?,?,'active',?"
-        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):
+        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
             from .source_guard import CONSENT_ORIGIN
             columns+=',consent_origin,consent_digest';placeholders+=',?,?'
             values+= (CONSENT_ORIGIN,request_source.body_digest)
@@ -370,7 +370,7 @@ def start_source(service,identity,rid,request,key,*,request_source=None):
                 or approval["execution_mode"]!=origin() or row["current_revision"]!=request.input_revision
                 or row["version"]!=request.expected_research_version):
             raise ResearchError("REVISION_CONFLICT",409,"批准不可用于当前问题与身份。")
-        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):
+        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
             from .source_guard import CONSENT_ORIGIN
             if approval['consent_origin']!=CONSENT_ORIGIN or not approval['consent_digest']:
                 raise ResearchError('SOURCE_PERMISSION_UNAVAILABLE',409,'旧来源批准仅保留历史，请重新预览并明确确认。')
@@ -380,7 +380,7 @@ def start_source(service,identity,rid,request,key,*,request_source=None):
         if conn.execute("SELECT 1 FROM research_tasks WHERE research_id=? AND execution IN ('QUEUED','RUNNING','WAITING_EXTERNAL','RECONCILING')",(rid,)).fetchone():raise ResearchError("VERSION_CONFLICT",409,"研究已有未结束流程。")
         chains=source_chains(conn,pid,rid,approval["query"])
         if chains:
-            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
                 marks=','.join('?' for _ in chains)
                 unproved=conn.execute('SELECT 1 FROM research_source_runs r LEFT JOIN research_source_resources s ON s.task_id=r.task_id WHERE r.chain_id IN ('+marks+') AND s.task_id IS NULL LIMIT 1',tuple(chain['id'] for chain in chains)).fetchone()
                 if unproved:raise ResearchError('RECONCILIATION_REQUIRED',409,'旧来源链仅保留历史，尚无当前受保护执行准入。')
@@ -398,7 +398,7 @@ def start_source(service,identity,rid,request,key,*,request_source=None):
         for position,kind in enumerate(("discover_sources","fetch_source","compose_report")):
             conn.execute("INSERT INTO research_steps(id,task_id,position,kind,state) VALUES(?,?,?,?,'PENDING')",(str(uuid4()),tid,position,kind))
         conn.execute("INSERT INTO research_source_runs(task_id,approval_id,chain_id,plan_id,fingerprint,origin) VALUES(?,?,?,?,?,?)",(tid,approval["id"],chain_id,plan_id,approval["fingerprint"],origin()))
-        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):
+        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
             from .source_guard import admit_resource
             admit_resource(conn,tid)
         task=conn.execute("SELECT * FROM research_tasks WHERE id=?",(tid,)).fetchone()

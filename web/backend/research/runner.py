@@ -183,7 +183,7 @@ class ResearchRunner:
         # owner lock, so they never wait for this task lock or network finish.
         with self.store.transaction() as conn:
             version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
-        lock=self.gate.source_task_gate(task_id) if version in (11,12,13) and self.task(task_id)['policy_revision']=='d1-source-only-v1' else self.gate.owner_gate_id(task_id)
+        lock=self.gate.source_task_gate(task_id) if version in (11,12,13,14) and self.task(task_id)['policy_revision']=='d1-source-only-v1' else self.gate.owner_gate_id(task_id)
         with lock as task_lease:
             task=self.task(task_id)
             if task['policy_revision'] not in supported:

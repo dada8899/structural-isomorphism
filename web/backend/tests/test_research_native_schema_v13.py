@@ -80,6 +80,7 @@ def test_real_v12_reference_producer_is_selfcontained_without_git_or_old_checkou
     manifest=json.loads((current/reference/'manifest.json').read_text())
     required=[Path('web/backend/tests/plan_v12_history_producer.py'),*(reference/path.relative_to(current/reference) for path in (current/reference).rglob('*') if path.is_file())]
     required.extend(Path(path) for path,entry in manifest['files'].items() if entry['source']=='current_exact')
+    required.append(Path('web/backend/tests/reference/method_v13/deltas.json'))
     for relative in required:
         source=current/relative;assert source.is_file() and not source.is_symlink()
         target=sparse/relative;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source,target)

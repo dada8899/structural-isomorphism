@@ -305,72 +305,76 @@ def _commit(service,authority,owned):
 
 
 def read_result(service,identity,rid,ref,*,request_source):
-    from .formula_result_adapter import project_formula_result
     rid=service._id(rid);ref=service._id(ref);principal=service._principal(identity)
     from .paid_control import require_authenticated_action
     require_authenticated_action(request_source,identity=identity,action='formula-read',research_id=rid,task_id=ref)
     with service.authorization.owner_gate(principal),service.store.transaction() as conn:
-        service.authorization.check(conn,identity,principal,rid)
-        row=conn.execute('SELECT r.*,t.input_revision FROM research_formula_runs r JOIN research_tasks t ON t.id=r.task_id WHERE r.result_ref=? AND t.research_id=?',(ref,rid)).fetchone()
-        if not row:raise not_found()
-        metadata=run_metadata(conn,row['task_id'])
-        if row['state']!='returned':return _envelope({'metadata':metadata,'result':None,'state':'unavailable'})
-        admission=json.loads(row['admission_json']);commit=json.loads(row['commit_json']);receipt=json.loads(row['receipt_json']);raw=json.loads(row['result_json'])
-        try:
-            _,formula=_snapshot(conn,rid,row['input_revision'])
-            if _sources(conn,service.store,identity,rid,row['input_revision'],formula)!=admission['sources']:raise PermissionError('source changed')
-        except (PermissionError,ValueError):return _envelope({'metadata':metadata,'result':None,'state':'unavailable'})
-        task=conn.execute('SELECT * FROM research_tasks WHERE id=? AND research_id=?',(row['task_id'],rid)).fetchone()
-        step=conn.execute('SELECT * FROM research_steps WHERE id=? AND task_id=?',(admission['step_id'],row['task_id'])).fetchone()
-        control=service.authorization.check(conn,identity,principal,rid)
-        revision=conn.execute('SELECT digest,problem_json FROM research_revisions WHERE research_id=? AND revision=?',(rid,row['input_revision'])).fetchone()
-        try:
-            service.authorization.check_task(conn,task)
-            if (type(admission['input_revision']) is not int or admission['research_id']!=rid or admission['principal_id']!=principal
-                    or admission['input_revision']!=task['input_revision'] or task['policy_revision']!=TASK_POLICY
-                    or task['execution_mode']!='local_math' or task['execution']!='COMPLETED' or task['attempt']!=1
-                    or not revision or revision['digest']!=admission['problem_digest']
-                    or digest(json.loads(revision['problem_json']))!=admission['problem_digest']
-                    or digest(formula)!=admission['formula_digest'] or control['current_revision']<task['input_revision']
-                    or not step or step['kind']!='formula_check' or step['position']!=0 or step['state']!='SUCCEEDED'
-                    or step['reservation_id'] is not None):raise PermissionError('stored formula domain changed')
-            bindings={'principal_id':principal,'principal_epoch':admission['principal_epoch'],'owner_epoch':admission['owner_epoch'],
-                'acl_epoch':admission['acl_epoch'],'auth_generation':admission['auth_generation'],'grant_id':admission['grant_id'],
-                'input_digest':admission['problem_digest'],'start_version':admission['research_version']}
-            if any(task[name]!=value for name,value in bindings.items()):raise PermissionError('original task binding changed')
-            request=FormulaCheckInput.parse({'research_id':rid,'input_revision':task['input_revision'],'task_id':task['id'],'attempt':task['attempt'],
-                **{name:formula[name] for name in ('comparison_scope','requested_checks','sample_points')},
-                **{name:None if formula[name] is None else {k:v for k,v in formula[name].items() if k!='time_basis'} for name in ('left','right')}})
-            if request.data()!=admission['check_input'] or request.input_digest!=admission['full_input_digest']:
-                raise PermissionError('actual immutable formula input changed')
-            for prefix in ('research','task','step'):
-                if (type(commit.get(prefix+'_before')) is not int or type(commit.get(prefix+'_after')) is not int
-                        or not 1<=commit[prefix+'_before']<2147483647 or commit[prefix+'_after']!=commit[prefix+'_before']+1):
-                    raise PermissionError('strict protected commit versions required')
-            from datetime import datetime
-            if type(commit.get('recorded_at')) is not str or datetime.strptime(commit['recorded_at'],'%Y-%m-%dT%H:%M:%S.%fZ').strftime('%Y-%m-%dT%H:%M:%S.%fZ')!=commit['recorded_at']:
-                raise PermissionError('strict original formula record timestamp required')
-            expected={'recorded_at':commit['recorded_at'],'research_before':admission['research_version'],'research_after':admission['research_version']+1,
-                'task_before':admission['task_version'],'task_after':admission['task_version']+1,
-                'step_before':admission['step_version'],'step_after':admission['step_version']+1,
-                'problem_digest':revision['digest'],'formula_digest':digest(formula),'full_input_digest':request.input_digest,
-                'output_digest':raw['output_digest'],'receipt_ref':receipt['reference']}
-            if (commit!=expected or task['version']!=commit['task_after'] or step['version']!=commit['step_after']
-                    or control['version']<commit['research_after'] or receipt['claim_nonce']!=row['claim_nonce']
-                    or receipt['input_digest']!=request.input_digest or receipt['code_version']!=admission['code_version']
-                    or receipt['result_digest']!=digest(raw) or receipt['reaped'] is not True):
-                raise PermissionError('stored result is not the actual committed task result')
-        except (PermissionError,ValueError,TypeError,KeyError):raise not_found() from None
-        content=project_formula_result(raw,expected_input=request,expected_output_digest=commit['output_digest']).data()
-        # Public pure-content flags remain false. Trust is a distinct server
-        # projection backed by this protected stored return, never client JSON.
-        return _envelope({'metadata':metadata,'state':'available','result':content,'provenance':{
-            'execution_attested':receipt['return_state']=='ok','execution_state':receipt['return_state'],
-            'resource_guard':receipt['resource_guard'],'owned_return_ref':receipt['reference'],'reaped':receipt['reaped'],
-            'code_version':receipt['code_version'],'full_input_digest':request.input_digest,'output_digest':commit['output_digest'],
-            'formula_digest':admission['formula_digest'],'problem_digest':admission['problem_digest'],
-            'display_AST_confirmation':'user_confirmed_snapshot','source_origin':formula['input_origin'],
-            'source_facts_verified':False,'mathematics_is_not_real_world_mechanism':True}})
+        return read_result_in(conn,service,identity,rid,ref)
+
+def read_result_in(conn,service,identity,rid,ref):
+    from .formula_result_adapter import project_formula_result
+    principal=service._principal_in(conn,identity)
+    service.authorization.check(conn,identity,principal,rid)
+    row=conn.execute('SELECT r.*,t.input_revision FROM research_formula_runs r JOIN research_tasks t ON t.id=r.task_id WHERE r.result_ref=? AND t.research_id=?',(ref,rid)).fetchone()
+    if not row:raise not_found()
+    metadata=run_metadata(conn,row['task_id'])
+    if row['state']!='returned':return _envelope({'metadata':metadata,'result':None,'state':'unavailable'})
+    admission=json.loads(row['admission_json']);commit=json.loads(row['commit_json']);receipt=json.loads(row['receipt_json']);raw=json.loads(row['result_json'])
+    try:
+        _,formula=_snapshot(conn,rid,row['input_revision'])
+        if _sources(conn,service.store,identity,rid,row['input_revision'],formula)!=admission['sources']:raise PermissionError('source changed')
+    except (PermissionError,ValueError):return _envelope({'metadata':metadata,'result':None,'state':'unavailable'})
+    task=conn.execute('SELECT * FROM research_tasks WHERE id=? AND research_id=?',(row['task_id'],rid)).fetchone()
+    step=conn.execute('SELECT * FROM research_steps WHERE id=? AND task_id=?',(admission['step_id'],row['task_id'])).fetchone()
+    control=service.authorization.check(conn,identity,principal,rid)
+    revision=conn.execute('SELECT digest,problem_json FROM research_revisions WHERE research_id=? AND revision=?',(rid,row['input_revision'])).fetchone()
+    try:
+        service.authorization.check_task(conn,task)
+        if (type(admission['input_revision']) is not int or admission['research_id']!=rid or admission['principal_id']!=principal
+                or admission['input_revision']!=task['input_revision'] or task['policy_revision']!=TASK_POLICY
+                or task['execution_mode']!='local_math' or task['execution']!='COMPLETED' or task['attempt']!=1
+                or not revision or revision['digest']!=admission['problem_digest']
+                or digest(json.loads(revision['problem_json']))!=admission['problem_digest']
+                or digest(formula)!=admission['formula_digest'] or control['current_revision']<task['input_revision']
+                or not step or step['kind']!='formula_check' or step['position']!=0 or step['state']!='SUCCEEDED'
+                or step['reservation_id'] is not None):raise PermissionError('stored formula domain changed')
+        bindings={'principal_id':principal,'principal_epoch':admission['principal_epoch'],'owner_epoch':admission['owner_epoch'],
+            'acl_epoch':admission['acl_epoch'],'auth_generation':admission['auth_generation'],'grant_id':admission['grant_id'],
+            'input_digest':admission['problem_digest'],'start_version':admission['research_version']}
+        if any(task[name]!=value for name,value in bindings.items()):raise PermissionError('original task binding changed')
+        request=FormulaCheckInput.parse({'research_id':rid,'input_revision':task['input_revision'],'task_id':task['id'],'attempt':task['attempt'],
+            **{name:formula[name] for name in ('comparison_scope','requested_checks','sample_points')},
+            **{name:None if formula[name] is None else {k:v for k,v in formula[name].items() if k!='time_basis'} for name in ('left','right')}})
+        if request.data()!=admission['check_input'] or request.input_digest!=admission['full_input_digest']:
+            raise PermissionError('actual immutable formula input changed')
+        for prefix in ('research','task','step'):
+            if (type(commit.get(prefix+'_before')) is not int or type(commit.get(prefix+'_after')) is not int
+                    or not 1<=commit[prefix+'_before']<2147483647 or commit[prefix+'_after']!=commit[prefix+'_before']+1):
+                raise PermissionError('strict protected commit versions required')
+        from datetime import datetime
+        if type(commit.get('recorded_at')) is not str or datetime.strptime(commit['recorded_at'],'%Y-%m-%dT%H:%M:%S.%fZ').strftime('%Y-%m-%dT%H:%M:%S.%fZ')!=commit['recorded_at']:
+            raise PermissionError('strict original formula record timestamp required')
+        expected={'recorded_at':commit['recorded_at'],'research_before':admission['research_version'],'research_after':admission['research_version']+1,
+            'task_before':admission['task_version'],'task_after':admission['task_version']+1,
+            'step_before':admission['step_version'],'step_after':admission['step_version']+1,
+            'problem_digest':revision['digest'],'formula_digest':digest(formula),'full_input_digest':request.input_digest,
+            'output_digest':raw['output_digest'],'receipt_ref':receipt['reference']}
+        if (commit!=expected or task['version']!=commit['task_after'] or step['version']!=commit['step_after']
+                or control['version']<commit['research_after'] or receipt['claim_nonce']!=row['claim_nonce']
+                or receipt['input_digest']!=request.input_digest or receipt['code_version']!=admission['code_version']
+                or receipt['result_digest']!=digest(raw) or receipt['reaped'] is not True):
+            raise PermissionError('stored result is not the actual committed task result')
+    except (PermissionError,ValueError,TypeError,KeyError):raise not_found() from None
+    content=project_formula_result(raw,expected_input=request,expected_output_digest=commit['output_digest']).data()
+    # Public pure-content flags remain false. Trust is a distinct server
+    # projection backed by this protected stored return, never client JSON.
+    return _envelope({'metadata':metadata,'state':'available','result':content,'provenance':{
+        'execution_attested':receipt['return_state']=='ok','execution_state':receipt['return_state'],
+        'resource_guard':receipt['resource_guard'],'owned_return_ref':receipt['reference'],'reaped':receipt['reaped'],
+        'code_version':receipt['code_version'],'full_input_digest':request.input_digest,'output_digest':commit['output_digest'],
+        'formula_digest':admission['formula_digest'],'problem_digest':admission['problem_digest'],
+        'display_AST_confirmation':'user_confirmed_snapshot','source_origin':formula['input_origin'],
+        'source_facts_verified':False,'mathematics_is_not_real_world_mechanism':True}})
 
 
 def cancel_in(conn,*,store,lease,identity,principal,rid,task_id):

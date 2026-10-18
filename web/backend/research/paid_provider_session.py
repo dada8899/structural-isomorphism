@@ -420,7 +420,7 @@ def persist_budget_return(conn,*,store,lease,receipt):
     raw=canonical(data).decode();stamp=digest(raw.encode())
     if len(raw.encode())>16384:raise ValueError('bounded financial return required')
     allowed=owner._current_content(conn)
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13) and s['body_origin_state']!='legacy_unproved':
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14) and s['body_origin_state']!='legacy_unproved':
         from .method_result import receipt_body_scope,receipt_scope
         values,decision=receipt_body_scope(conn,store=store,lease=lease,receipt=receipt,raw=raw,return_digest=stamp)
         if s['financial_return_json'] is not None:
