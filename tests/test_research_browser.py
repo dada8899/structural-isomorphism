@@ -3290,13 +3290,20 @@ def test_native_plan_real_https_browser_journey(tmp_path,mode):
 
 
 async def _native_terminal_case(tmp_path,mode):
-    import asyncio,importlib.util
+    import asyncio,importlib.util,threading
     from playwright.async_api import async_playwright,expect as aexpect
     file=BACKEND/'tests/acceptance/plan_browser_service.py';spec=importlib.util.spec_from_file_location('actual_native_terminal_service',file);component=importlib.util.module_from_spec(spec);spec.loader.exec_module(component)
-    original=component.CANDIDATE;facts={'mode':mode};fixture=None;context=None;browser=None;root=None;primary=None;cleanup=[]
+    original=component.CANDIDATE;facts={'mode':mode};fixture=context=browser=root=primary=None;cleanup=[];release=threading.Event();release_report=threading.Event();entered=threading.Event();reported=threading.Event();held=[]
+    from research import plan_native as native
+    from pytest import MonkeyPatch
+    class ReportGate(list):
+        # Observe real completed worker failures before the fixture's fatal
+        # report stops its bridge. No error/state/financial data is fabricated.
+        def append(self,value):
+            super().append(value);reported.set();release_report.wait(15)
     try:
-        if mode=='invalid-body':component.CANDIDATE={}
-        with component.PlanBrowserFixture() as fixture,fixture.browser_bridge() as bridge:
+        if mode in ('invalid-body','cleanup-uncertain','late-B','wrong-ref'):component.CANDIDATE={}
+        with component.PlanBrowserFixture() as fixture,fixture.browser_bridge() as bridge,MonkeyPatch.context() as patch:
             root=fixture.root
             async with async_playwright() as p:
                 browser=await p.chromium.launch();context=await browser.new_context(viewport={'width':390,'height':844})
@@ -3306,34 +3313,107 @@ async def _native_terminal_case(tmp_path,mode):
                         await page.locator('#original-input').fill(component.OBSERVATION);await page.locator('#objective').fill('理解自己的排队观察');await page.locator('#summary').fill('真实受控观察的等待规律');await page.locator('#confirmed').check()
                         async with page.expect_response(component.ORIGIN+'/api/research') as saved:await page.locator('#save').click()
                         response=await saved.value;assert response.status==200;rid=(await response.json())['data']['research']['id'];await aexpect(page.locator('#status')).to_contain_text('已保存修订 1');await aexpect(page.locator('#research-list-status')).to_contain_text('已读取 1')
-                        facts['stage']='funding';fixture.install_controlled_funding();await page.locator('#native-plan-own').check()
+                        if mode in ('not-sent','cancel-before','cleanup-uncertain'):fixture.worker_failures=ReportGate()
+                        if mode=='cancel-before':
+                            balance=native.ControlledNativeResource.balance
+                            def paused_balance(resource,capability):entered.set();release.wait(15);return balance(resource,capability)
+                            patch.setattr(native.ControlledNativeResource,'balance',paused_balance)
+                        elif mode=='cancel-after':
+                            receive=native.ControlledNativePending.receive
+                            def paused_return(pending):
+                                value=receive(pending);entered.set();release.wait(15);return value
+                            patch.setattr(native.ControlledNativePending,'receive',paused_return)
+                        elif mode=='cleanup-uncertain':
+                            close=native.OwnedNativeReturn.close
+                            def retirement_error(value):close(value);raise OSError('synthetic after actual receipt retirement')
+                            patch.setattr(native.OwnedNativeReturn,'close',retirement_error)
+                        facts['stage']='funding';fixture.install_controlled_funding()
+                        if mode in ('not-sent','unknown-usage'):
+                            reply=fixture.provider.RequestHandlerClass.reply
+                            def controlled_reply(handler,body):
+                                if mode=='not-sent' and 'balance_infos' in body:body={**body,'balance_infos':[{'currency':'CNY','total_balance':'0'}]}
+                                if mode=='unknown-usage' and 'usage' in body:body={**body,'usage':None}
+                                return reply(handler,body)
+                            patch.setattr(fixture.provider.RequestHandlerClass,'reply',controlled_reply)
+                        await page.locator('#native-plan-own').check()
                         async with page.expect_response('**/plan-previews') as draft:await page.locator('#native-plan-preview').click()
                         preview=(await (await draft.value).json())['data'];assert preview['can_confirm']
+                        actual_acks=[]
+                        if mode in ('late-B','wrong-ref'):
+                            async def held_ack(route):
+                                request=route.request;actual=await asyncio.to_thread(bridge.forward,request.method,request.url,await request.all_headers(),request.post_data_buffer);assert actual.status==200;actual_acks.append(json.loads(actual.body)['data'])
+                                if mode=='late-B':held.append((route,actual))
+                                else:
+                                    altered=json.loads(actual.body);altered['data']['result_ref']='wrong-reference-from-ack'
+                                    await route.fulfill(status=actual.status,headers={k:v for k,v in actual.headers if k.lower()!='content-length'},body=json.dumps(altered).encode())
+                            await page.route('**/plan-approvals',held_ack,times=1)
                         await page.locator('#native-plan-consent').check()
-                        async with page.expect_response('**/plan-approvals') as confirmed:await page.locator('#native-plan-confirm').click()
-                        ack=(await (await confirmed.value).json())['data'];ref=ack['result_ref'];task=ack['task_id'];assert ack['state']=='queued'
-                        facts['stage']='worker_result';result=await asyncio.to_thread(fixture.wait_result,rid,ref)
+                        if mode=='late-B':
+                            await page.locator('#native-plan-confirm').click();deadline=time.monotonic()+5
+                            while not actual_acks and time.monotonic()<deadline:await asyncio.sleep(.02)
+                            assert len(actual_acks)==1;ack=actual_acks[0]
+                        else:
+                            async with page.expect_response('**/plan-approvals') as confirmed:await page.locator('#native-plan-confirm').click()
+                            ack=actual_acks[0] if mode=='wrong-ref' else (await (await confirmed.value).json())['data']
+                        ref=ack['result_ref'];task=ack['task_id'];assert ack['state']=='queued';facts['stage']='worker_result'
+                        if mode in ('cancel-before','cancel-after'):
+                            assert await asyncio.to_thread(entered.wait,5),'actual worker pause point not reached'
+                            await aexpect(page.locator('#task-cancel')).to_be_visible();await aexpect(page.locator('#native-plan-refresh')).to_be_enabled()
+                            async with page.expect_response('**/cancel') as stopped:await page.locator('#task-cancel').click()
+                            assert (await stopped.value).status==200
+                            assert await page.evaluate("Object.entries(sessionStorage).filter(([k])=>k.startsWith('structure-research-pending:native-plan-v2-confirm:')).length")==1
+                            release.set()
+                        if mode in ('not-sent','cancel-before','cleanup-uncertain'):assert await asyncio.to_thread(reported.wait,8),'actual worker failure completion not observed'
+                        status,result=await asyncio.to_thread(fixture.client.request,'GET','/api/research/'+rid+'/plan-results/'+ref);assert status==200
                         deadline=time.monotonic()+8
                         while result['data']['cleanup_state']=='pending' and time.monotonic()<deadline:
                             await asyncio.sleep(.02);status,result=await asyncio.to_thread(fixture.client.request,'GET','/api/research/'+rid+'/plan-results/'+ref);assert status==200
-                        assert result['data']['cleanup_state']=='clean','worker did not reach an observed clean completion'
-                        assert result['data']['state']==('saved' if mode=='saved' else 'failed_insufficient')
+                        expected={
+                            'saved':('saved','saved','upper_booked','clean'),
+                            'unknown-usage':('pending_reconciliation','send_unknown','unknown','clean'),
+                            'cleanup-uncertain':('failed_insufficient','body_invalid','upper_booked','uncertain'),
+                            'not-sent':('failed_insufficient','not_sent','unreserved','clean'),
+                            'cancel-before':('cancelled','cancelled','unreserved','clean'),
+                            'cancel-after':('cancelled','access_ended','upper_booked','clean'),
+                        }.get(mode,('failed_insufficient','body_invalid','upper_booked','clean'))
+                        assert tuple(result['data'][k] for k in ('state','safe_code','cost_state','cleanup_state'))==expected
                         url=component.ORIGIN+'/api/research/'+rid+'/plan-results/'+ref
-                        facts['stage']='refresh_terminal';await aexpect(page.locator('#native-plan-refresh')).to_be_enabled();await _native_tls_completed_read(page,url,lambda:page.locator('#native-plan-refresh').click());await aexpect(page.locator('#native-plan-status')).to_contain_text('按上限记账');await aexpect(page.locator('#native-plan-refresh')).to_be_enabled()
-                        facts['stage']='terminal_pending_check';pending=await page.evaluate("Object.entries(sessionStorage).filter(([key])=>key.startsWith('structure-research-pending:native-plan-v2-confirm:')).length")
+                        if mode=='late-B':
+                            await page.locator('#original-input').fill('新保存的观察B不能被旧失败记录替换。')
+                            async with page.expect_response('**/revisions') as new_b:await page.locator('#save').click()
+                            assert (await (await new_b.value).json())['data']['current_problem']['revision']==2
+                            await aexpect(page.locator('#status')).to_contain_text('已保存修订 2');before=await page.evaluate("Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('structure-research-pending:native-plan-v2-confirm:')))");assert len(before)==1
+                            route,actual=held.pop()
+                            async with page.expect_response('**/plan-approvals'):await route.fulfill(status=actual.status,headers=dict(actual.headers),body=actual.body)
+                            await page.evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');assert await page.evaluate("Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('structure-research-pending:native-plan-v2-confirm:')))")==before
+                            await _native_tls_completed_read(page,url,lambda:page.locator('#native-plan-recover').click())
+                            await aexpect(page.locator('#native-plan-status')).to_contain_text('当前草稿未替换');await aexpect(page.locator('#original-input')).to_have_value('新保存的观察B不能被旧失败记录替换。');await aexpect(page.locator('#revision-label')).to_have_text('当前修订 2')
+                            await page.locator('#native-plan-own').check()
+                        else:
+                            facts['stage']='refresh_terminal';await aexpect(page.locator('#native-plan-refresh')).to_be_enabled();await _native_tls_completed_read(page,url,lambda:page.locator('#native-plan-refresh').click())
+                        keep=mode in ('unknown-usage','cleanup-uncertain','wrong-ref')
+                        if keep:
+                            await aexpect(page.locator('#native-plan-preview')).to_be_disabled()
+                            if mode!='wrong-ref':await aexpect(page.locator('#native-plan-recover')).to_be_disabled()
+                        else:await aexpect(page.locator('#native-plan-preview')).to_be_enabled()
+                        facts['stage']='terminal_pending_check';pending=await page.evaluate("Object.entries(sessionStorage).filter(([k])=>k.startsWith('structure-research-pending:native-plan-v2-confirm:')).length")
                         status,current=await asyncio.to_thread(fixture.client.request,'GET','/api/research/'+rid+'/plan-results/'+ref);assert status==200
-                        facts.update({'backend_state':current['data']['state'],'cost_state':current['data']['cost_state'],'cleanup_state':current['data']['cleanup_state'],'safe_code':current['data']['safe_code'],'recorded_at':current['data']['recorded_at'],'content_present':current['data']['content'] is not None,'pending_count':pending,'preview_disabled':await page.locator('#native-plan-preview').is_disabled(),'provider_calls':fixture.calls.copy()})
-                        assert fixture.calls==['GET','POST'] and not fixture.worker_failures
-                        assert pending==0 and not facts['preview_disabled'],'Bound known terminal outcome must retire only its original intent, even without a plan body'
-                        if mode=='invalid-body':
-                            assert current['data']['content'] is None and current['data']['safe_code']=='body_invalid';await aexpect(page.locator('#native-plan-body')).to_have_text('')
-                        before=current
-                        async with page.expect_response('**/plan-previews') as again:await page.locator('#native-plan-preview').click()
-                        assert (await again.value).status==200 and fixture.calls==['GET','POST']
-                        status,after=await asyncio.to_thread(fixture.client.request,'GET','/api/research/'+rid+'/plan-results/'+ref);assert status==200 and after==before
-                        assert await page.locator('#native-plan-history a[href$="task_id='+task+'"]').count()==1
+                        facts.update({'backend_state':current['data']['state'],'cost_state':current['data']['cost_state'],'cleanup_state':current['data']['cleanup_state'],'safe_code':current['data']['safe_code'],'recorded_at':current['data']['recorded_at'],'content_present':current['data']['content'] is not None,'pending_count':pending,'preview_disabled':await page.locator('#native-plan-preview').is_disabled(),'provider_calls':fixture.calls.copy(),'expected_worker_failures':list(fixture.worker_failures),'status':await page.locator('#native-plan-status').inner_text()})
+                        assert pending==(1 if keep else 0)
+                        expected_calls=[] if mode=='cancel-before' else ['GET'] if mode=='not-sent' else ['GET','POST'];assert fixture.calls==expected_calls
+                        if mode!='saved':await aexpect(page.locator('#native-plan-body')).not_to_contain_text(component.CANDIDATE.get('summary','A controlled fixture plan'))
+                        if not keep:
+                            before=current
+                            async with page.expect_response('**/plan-previews') as again:await page.locator('#native-plan-preview').click()
+                            assert (await again.value).status==200 and fixture.calls==expected_calls
+                            status,after=await asyncio.to_thread(fixture.client.request,'GET','/api/research/'+rid+'/plan-results/'+ref);assert status==200 and after==before
+                            assert await page.locator('#native-plan-history a[href$="task_id='+task+'"]').count()==1
                 except BaseException as error:primary=error;raise
                 finally:
+                    release.set();release_report.set()
+                    for route,_ in held:
+                        try:await route.abort('blockedbyclient')
+                        except BaseException:pass
                     for value,name in ((context,'close'),(browser,'close')):
                         if value is not None:
                             try:await getattr(value,name)()
@@ -3342,11 +3422,15 @@ async def _native_terminal_case(tmp_path,mode):
                         if primary:primary.add_note('owned browser cleanup uncertain: '+','.join(cleanup))
                         else:raise RuntimeError('owned browser cleanup uncertain: '+','.join(cleanup))
     finally:
-        component.CANDIDATE=original
-        facts['browser_cleanup_errors']=cleanup;facts['fixture_root_removed']=root is not None and not root.exists();facts['fixture_cleanup_errors']=list(fixture.cleanup_errors) if fixture else ['not_started'];(tmp_path/'native-terminal-facts.json').write_text(json.dumps(facts,ensure_ascii=False,indent=2))
-
+        release.set();release_report.set();component.CANDIDATE=original;facts['browser_cleanup_errors']=cleanup;facts['fixture_root_removed']=root is not None and not root.exists();facts['fixture_cleanup_errors']=list(fixture.cleanup_errors) if fixture else ['not_started'];(tmp_path/'native-terminal-facts.json').write_text(json.dumps(facts,ensure_ascii=False,indent=2))
 
 @pytest.mark.parametrize('mode',['invalid-body','saved'])
 def test_native_plan_terminal_known_outcome_releases_only_original_intent(tmp_path,mode):
+    import asyncio
+    asyncio.run(_native_terminal_case(tmp_path,mode))
+
+
+@pytest.mark.parametrize('mode',['not-sent','unknown-usage','cleanup-uncertain','cancel-before','cancel-after','late-B','wrong-ref'])
+def test_native_plan_terminal_boundary_preserves_unknown_and_current_input(tmp_path,mode):
     import asyncio
     asyncio.run(_native_terminal_case(tmp_path,mode))

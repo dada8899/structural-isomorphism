@@ -795,6 +795,8 @@
     if(!actual||actual.rid!==anchor.rid||actual.task_id!==anchor.task_id||actual.input_revision!==scope.input_revision||actual.input_digest!==scope.input_digest||actual.policy!=='native-plan-v1'||task.execution!==expected.execution||
       (expected.execution==='CANCELLED'&&!stop)||!planInt(task.start_version)||task.start_version!==data.expected_research_version+1||first?.task_id!==task.id||first.input_revision!==scope.input_revision||first.input_digest!==scope.input_digest||first.start_version!==task.start_version||!planMeta(projected)||
       ['task_id','result_ref','state','financial_version','execution_mode','real_model_executed','cost_state','cleanup_state','safe_code','recorded_at'].some(key=>projected[key]!==meta[key]))return false;
+    if(!await planAuthenticate(ticket)||!planActive(ticket))return false;
+    const current=planPendingFor(meta);if(current?.key!==pending.key||current.digest!==hash)return false;
     formulaRetire(pending);return true;
   }
   async function planRead(meta,anchor,ticket,legacy=false,display=true) {
