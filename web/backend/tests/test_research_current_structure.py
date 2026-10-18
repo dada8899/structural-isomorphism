@@ -1,5 +1,5 @@
 """Native read-only structural preflight; no app constructors or row access."""
-from contextlib import contextmanager
+from contextlib import contextmanager,closing
 import hashlib
 import importlib
 import sqlite3
@@ -17,7 +17,7 @@ from api import auth
 @pytest.fixture
 def current(stack):
     client,path=stack;create(client);store=ResearchStore(auth._store())
-    with sqlite3.connect(path) as conn:conn.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+    with closing(sqlite3.connect(path)) as conn,conn:conn.execute('PRAGMA wal_checkpoint(TRUNCATE)')
     return path,store
 
 
@@ -152,15 +152,15 @@ def test_same_named_temp_or_attached_objects_cannot_mask_bad_main(current,tmp_pa
 def test_fk_data_failure_is_outside_structure_but_full_checker_still_rejects(current):
     from research.financial_guard import install_default_hook
     path,_=current
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         conn.execute('UPDATE research_controls SET owner_id=?',(str(uuid4()),));conn.commit();conn.execute('PRAGMA wal_checkpoint(TRUNCATE)')
     before=byte_image(path)
     with native_ro(path) as conn:
         _,_,forbidden=deny_nonmetadata(conn);ResearchStore.check_current_structure(conn);assert not forbidden
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         conn.row_factory=sqlite3.Row;install_default_hook(conn)
         conn.execute('BEGIN')
-        with pytest.raises(ResearchError) as rejected:ResearchStore._check_v10(conn)
+        with pytest.raises(ResearchError) as rejected:ResearchStore._check_v11(conn)
         assert rejected.value.code=='SCHEMA_UNSUPPORTED' and rejected.value.message=='金融存储关联不匹配。'
     assert byte_image(path)==before
 
@@ -169,7 +169,7 @@ def test_budget_data_binding_is_outside_structure_but_full_checker_still_rejects
     from research.financial_guard import install_default_hook
     from research.financial_admission_schemas import ProjectBudget
     _,path,_,_,_,_=registry_inputs
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         account=conn.execute('SELECT id,binding_id FROM research_funding_accounts').fetchone()
         data=ProjectBudget(id=1,project_key='structure',funding_account_id=account[0],economic_binding=account[1],currency='CNY',scale=6,
             authorized_cap=10,authorization_ref=str(uuid4()),authorization_digest='a'*64,database_binding='0'*64,mode='offline_probe',status='closed',version=1).model_dump()
@@ -180,10 +180,10 @@ def test_budget_data_binding_is_outside_structure_but_full_checker_still_rejects
     before=byte_image(path)
     with native_ro(path) as conn:
         _,_,forbidden=deny_nonmetadata(conn);ResearchStore.check_current_structure(conn);assert not forbidden
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         conn.row_factory=sqlite3.Row;install_default_hook(conn)
         conn.execute('BEGIN')
-        with pytest.raises(ResearchError) as rejected:ResearchStore._check_v10(conn)
+        with pytest.raises(ResearchError) as rejected:ResearchStore._check_v11(conn)
         assert rejected.value.code=='SCHEMA_UNSUPPORTED' and rejected.value.message=='项目预算数据库绑定不匹配。'
     assert byte_image(path)==before
 
@@ -225,8 +225,8 @@ def test_existing_read_snapshot_stays_consistent_when_another_writer_changes_sch
     reader=sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,isolation_level=None)
     try:
         reader.execute('BEGIN')
-        assert reader.execute('SELECT version FROM main.research_schema').fetchone()==(10,)
-        with sqlite3.connect(path) as writer:writer.execute('ALTER TABLE research_idempotency ADD COLUMN raced_column TEXT')
+        assert reader.execute('SELECT version FROM main.research_schema').fetchone()==(11,)
+        with closing(sqlite3.connect(path)) as writer,writer:writer.execute('ALTER TABLE research_idempotency ADD COLUMN raced_column TEXT')
         _,_,forbidden=deny_nonmetadata(reader)
         ResearchStore.check_current_structure(reader)
         assert not forbidden and reader.in_transaction

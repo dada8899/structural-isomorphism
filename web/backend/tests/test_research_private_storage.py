@@ -87,7 +87,9 @@ def test_captured_profile_and_binding_never_fall_back_to_create(private,native,m
     elif fault=='config':monkeypatch.setenv('AUTH_DATA_DIR','')
     elif fault=='downgrade':monkeypatch.setenv('STRUCTURAL_ENV','dev')
     if fault=='downgrade':
-        with store.transaction() as conn:assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==10
+        with store.transaction() as conn:
+            assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==11
+            store.check_current_structure(conn);store._check_v11(conn)
         assert all(args[0].endswith('?mode=ro') for args,_kw,_conn in native[start:])
     else:
         with pytest.raises((RuntimeError,OSError)):
@@ -245,7 +247,9 @@ def test_dual_namespace_consumes_same_auth_inode(private,namespace,monkeypatch):
         for name in ('STATE_ROOT','CACHE_ROOT','LOG_ROOT'):monkeypatch.setattr(other,name,getattr(paths,name))
     store=module.ResearchStore(auth_module.AuthStore(private))
     assert store.storage_identity==(private.stat().st_dev,private.stat().st_ino)
-    with store.transaction() as conn:assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==10
+    with store.transaction() as conn:
+        assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==11
+        store.check_current_structure(conn);store._check_v11(conn)
 
 
 def test_checkpoint_busy_is_not_reported_as_erasure_success(private):
