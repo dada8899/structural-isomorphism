@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import closing
 import sqlite3
 import threading
 import time
@@ -22,7 +23,7 @@ class ResearchHTTPFixture:
         self.drop=set()
         self.received=threading.Event()
         self.release=threading.Event();self.release.set()
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn,conn:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.executescript("CREATE TABLE IF NOT EXISTS calls(dispatch_id TEXT PRIMARY KEY,operation TEXT,receipt TEXT,posts INTEGER); CREATE TABLE IF NOT EXISTS observations(seq INTEGER PRIMARY KEY AUTOINCREMENT,method TEXT,dispatch_id TEXT);")
         fixture=self
@@ -50,7 +51,7 @@ class ResearchHTTPFixture:
                         "cost":{"currency":fixture.currency,"scale":fixture.scale,"amount_units":cost} if cost is not None else None,
                         "note":("合成本机来源笔记；未检索真实资料。" if operation=="discover_sources" else "合成本机整理笔记；没有真实研究结论。") if fixture.notes else None}
                 if fixture.note_override is not None:result["note"]=fixture.note_override
-                with sqlite3.connect(fixture.path,timeout=5) as conn:
+                with closing(sqlite3.connect(fixture.path,timeout=5)) as conn,conn:
                     old=conn.execute("SELECT receipt FROM calls WHERE dispatch_id=?",(dispatch,)).fetchone()
                     if old:
                         result=json.loads(old[0]);conn.execute("UPDATE calls SET posts=posts+1 WHERE dispatch_id=?",(dispatch,))
@@ -65,7 +66,7 @@ class ResearchHTTPFixture:
             def do_GET(self):
                 if not self.path.startswith("/receipts/"):return self.send(404,{})
                 dispatch=self.path.split("/")[-1]
-                with sqlite3.connect(fixture.path,timeout=5) as conn:
+                with closing(sqlite3.connect(fixture.path,timeout=5)) as conn,conn:
                     conn.execute("INSERT INTO observations(method,dispatch_id) VALUES('GET',?)",(dispatch,))
                     row=conn.execute("SELECT receipt FROM calls WHERE dispatch_id=?",(dispatch,)).fetchone()
                 self.send(200,json.loads(row[0])) if row else self.send(404,{})
@@ -76,16 +77,16 @@ class ResearchHTTPFixture:
         self.thread.start()
 
     def count(self):
-        with sqlite3.connect(self.path) as conn:
+        with closing(sqlite3.connect(self.path)) as conn,conn:
             return conn.execute("SELECT COALESCE(SUM(posts),0) FROM calls").fetchone()[0]
 
     def receipt(self,dispatch):
-        with sqlite3.connect(self.path) as conn:
+        with closing(sqlite3.connect(self.path)) as conn,conn:
             return json.loads(conn.execute("SELECT receipt FROM calls WHERE dispatch_id=?",(dispatch,)).fetchone()[0])
 
     def change_receipt(self,dispatch,**changes):
         result=self.receipt(dispatch);result.update(changes)
-        with sqlite3.connect(self.path) as conn:conn.execute("UPDATE calls SET receipt=? WHERE dispatch_id=?",(json.dumps(result,ensure_ascii=False),dispatch))
+        with closing(sqlite3.connect(self.path)) as conn,conn:conn.execute("UPDATE calls SET receipt=? WHERE dispatch_id=?",(json.dumps(result,ensure_ascii=False),dispatch))
 
     def close(self):
         self.closed.set();self.release.set();self.server.shutdown();self.server.server_close();self.thread.join(5)
