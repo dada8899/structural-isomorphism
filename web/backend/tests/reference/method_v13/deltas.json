@@ -156,6 +156,17 @@
     ],
     "original_sha256": "68267578a7fa9da70b561948a86e1c571ce87049c204b210618e1c2ec1f949f9"
   },
+  "web/backend/research/paid_budget.py": {
+    "current_sha256": "9e75276bb9fe5c4cda90053dea06d74322418c924e6bc224abbd36778ee62ecc",
+    "hunks": [
+      [
+        141,
+        142,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13):\n"
+      ]
+    ],
+    "original_sha256": "5ea041c4ecd50a368ed5a0d0a2b4c480fb82e5defffc9614230e2144e8fb5daa"
+  },
   "web/backend/research/paid_control.py": {
     "current_sha256": "237968ce45b6a357500ddb542f3ab351ff6e34f367c207eff49953eb262ca6a0",
     "hunks": [
