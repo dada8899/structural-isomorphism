@@ -4154,3 +4154,83 @@ async def _method_main_saved_formula_attachment(tmp_path):
 def test_method_draft_actual_main_saved_formula_original_identity_and_outcomes(tmp_path):
     import asyncio
     asyncio.run(_method_main_saved_formula_attachment(tmp_path))
+
+
+async def _method_main_catalog_second_page(tmp_path):
+    import asyncio,threading,uuid
+    from playwright.async_api import async_playwright,expect as aexpect
+    from web.backend.tests.acceptance.formal_main_browser_service import FormalMainBrowserService
+    owned=tmp_path/'actual-main';service=None;context=None;browser=None;primary=None;cleanup=[];facts={'scope':'actualMain authorized metadata pagination; no SQL seeding or fabricated Root/ACL'};ports=[];pids=[];posts=[];writes=[]
+    def progress(stage,**extra):
+        facts.update(extra);facts['stage']=stage;(tmp_path/'method-main-pagination-progress.json').write_text(json.dumps(facts,ensure_ascii=False,indent=2))
+    try:
+        with FormalMainBrowserService(owned) as service,service.browser_bridge() as bridge:
+            ports=[service.port,service._smtp.port]
+            async with async_playwright() as playwright:
+                browser=await playwright.chromium.launch();context=await browser.new_context(viewport={'width':390,'height':844});context.set_default_timeout(8000)
+                try:
+                    async with bridge.routed(context):
+                        page=await context.new_page();pids=_method_main_owned_browser_pids();await _method_main_login(page,service);await _method_main_select_old_source_for_new_problem(page,service)
+                        page.on('request',lambda request:posts.append(request.url) if request.method=='POST' and request.url.startswith(service.origin+'/api/research') else None)
+                        await page.locator('#entry').select_option('formula');await page.locator('#formula-enable').check()
+                        for name in ('left','right'):await page.locator('#formula-'+name+'-use-template').click()
+                        await page.locator('#original-input').fill('当前问题及公式输入必须保持在修订3，较早来源只作为明确引用。');await page.locator('#summary').fill('目录分页不得把历史问题或只读标志写进当前编辑表单。');await page.locator('#confirmed').check()
+                        async with page.expect_response('**/revisions') as revised:await page.locator('#save').click()
+                        response=await revised.value;assert response.status==200 and (await response.json())['data']['current_problem']['revision']==3;await aexpect(page.locator('#formula-editor-status')).to_contain_text('已按权限读取原公式快照')
+                        await page.locator('#method-draft-read-tasks').click();await aexpect(page.locator('#method-draft-read-tasks')).to_be_enabled();await page.locator('#method-draft-task').select_option(service.seed.source_task_id);await page.locator('#method-draft-read-sources').click();choice=page.locator('#method-draft-materials input[type=checkbox]').first;await aexpect(choice).to_be_visible();await aexpect(page.locator('#method-draft-read-sources')).to_be_enabled();await choice.check();await _method_draft_type_manual_fields(page)
+                        rid=service.seed.research_id;endpoint=service.origin+'/api/research/'+rid+'/method-drafts'
+                        async def write_route(route):
+                            request=route.request;actual=await asyncio.to_thread(bridge.forward,request.method,request.url,await request.all_headers(),request.post_data_buffer);assert actual.status==200;writes.append({'key':await request.header_value('idempotency-key'),'request':request.post_data_json,'data':json.loads(actual.body)['data']})
+                            if len(writes)==1:await route.abort('failed')
+                            else:await route.fulfill(status=actual.status,headers=dict(actual.headers),body=actual.body)
+                        await page.route(endpoint,write_route);await page.locator('#method-draft-save').click();await aexpect(page.locator('#method-draft-status')).to_contain_text('尚未确认');original_pending=await _method_main_pending(page);assert len(original_pending)==1 and len(writes)==1;original_ref=writes[0]['data']['metadata']['draft_ref']
+                        actual_original=await _native_tls_fetch(page,'/api/research/'+rid+'/method-drafts/'+original_ref);assert actual_original['status']==200 and actual_original['body']['data']==writes[0]['data'];progress('original_saved_unknown_key_preserved')
+                        math_refs=[]
+                        for index in range(20):
+                            current=await _native_tls_fetch(page,'/api/research/'+rid);assert current['status']==200;root=current['body']['data'];assert root['current_problem']['revision']==3
+                            data={'schema_version':'structure-research-v1','contract_revision':'b1-candidate-01','data':{'input_revision':3,'expected_research_version':root['research_version'],'formula_digest':root['current_problem']['formula_snapshot']['formula_digest'],'confirm_formula_input':True}}
+                            actual=await _method_main_post(page,'/api/research/'+rid+'/formula-checks',data,str(uuid.uuid4()));assert actual['status']==200;meta=actual['body']['data'];assert meta['result_available'] and meta['known_cost_units']==0;math_refs.append(meta);progress('legitimate_zero_cost_formula_tasks_created',formula_task_count=index+1)
+                        assert len({meta['task_id'] for meta in math_refs})==20
+                        await page.reload();await aexpect(page.locator('#formula-editor-status')).to_contain_text('已按权限读取原公式快照');await aexpect(page.locator('#method-draft-target')).to_contain_text('问题修订 3');await aexpect(page.get_by_role('button',name='核对这一笔原保存',exact=True)).to_be_visible()
+                        first=await _native_tls_fetch(page,'/api/research/'+rid);assert first['status']==200;first=first['body']['data'];assert len(first['task_history'])==20 and first['next_task_id']==service.seed.source_task_id and all(item['task_id']!=service.seed.source_task_id for item in first['task_history'])
+                        await aexpect(page.locator('#method-draft-task option[value="'+service.seed.source_task_id+'"]')).to_have_count(0)
+                        selected=first['task_history'][0]['task_id'];await page.locator('#method-draft-task').select_option(selected);await page.locator('#method-draft-read-formula').click();await aexpect(page.locator('#method-draft-read-formula')).to_be_enabled();formula_ref=next(meta['result_ref'] for meta in math_refs if meta['task_id']==selected)
+                        await page.locator('#method-draft-form details:has(#method-draft-formula) > summary').click();await page.locator('#method-draft-formula').select_option(formula_ref)
+                        selected_result=await _native_tls_fetch(page,'/api/research/'+rid+'/formula-results/'+formula_ref);assert selected_result['status']==200
+                        if sys.platform=='darwin':assert selected_result['body']['data']['provenance']['execution_state']=='unsupported' and selected_result['body']['data']['provenance']['execution_attested'] is False
+                        values=await _method_draft_type_manual_fields(page);values['method-draft-method']='分页加载时必须保持的手稿B；没有自动代入历史问题。';await page.locator('#method-draft-method').fill(values['method-draft-method'])
+                        pending=await _method_main_pending(page);assert pending==original_pending;question=await page.locator('#original-input').input_value();target_text=await page.locator('#method-draft-target').inner_text();before_posts=len(posts);page_reads=[]
+                        page.on('request',lambda request:page_reads.append(request.url) if request.method=='GET' and request.url==service.origin+'/api/research/'+rid+'?task_id='+service.seed.source_task_id else None)
+                        await page.locator('#method-draft-more-tasks').click();await aexpect(page.locator('#method-draft-more-tasks')).to_be_hidden();await aexpect(page.locator('#method-draft-task option')).to_have_count(22)
+                        assert page_reads==[service.origin+'/api/research/'+rid+'?task_id='+service.seed.source_task_id] and len(posts)==before_posts
+                        await aexpect(page.locator('#method-draft-task')).to_have_value(selected);await aexpect(page.locator('#method-draft-formula')).to_have_value(formula_ref);await aexpect(page.locator('#original-input')).to_have_value(question);await aexpect(page.locator('#original-input')).to_be_enabled();await aexpect(page.locator('#method-draft-target')).to_have_text(target_text)
+                        for field,value in values.items():await aexpect(page.locator('#'+field)).to_have_value(value)
+                        assert await _method_main_pending(page)==pending and page.url==service.origin+'/research/'+rid;progress('second_page_merged_current_form_selection_and_key_unchanged')
+                        await page.locator('#method-draft-task').select_option(service.seed.source_task_id);await page.locator('#method-draft-read-sources').click();choice=page.locator('#method-draft-materials input[type=checkbox]').first;await aexpect(choice).to_be_visible();await aexpect(page.locator('#method-draft-read-sources')).to_be_enabled();await choice.check();await aexpect(page.locator('#method-draft-save')).to_be_enabled()
+                        async with page.expect_response(endpoint) as saved:await page.locator('#method-draft-save').click()
+                        response=await saved.value;assert response.status==200;draft=(await response.json())['data'];ref=draft['metadata']['draft_ref'];await aexpect(page.locator('#method-draft-status')).to_contain_text('已保存新的验证草稿');assert draft['metadata']['input_revision']==3 and draft['metadata']['problem_digest']==first['current_problem']['digest'];assert draft['content']['sources'][0]['task_id']==service.seed.source_task_id and draft['content']['sources'][0]['input_revision']==1
+                        assert draft['content']['request']['method']==values['method-draft-method'] and draft['content']['formula']['result_ref']==formula_ref;assert await _method_main_pending(page)==pending and len(writes)==2 and writes[1]['key']!=writes[0]['key']
+                        await page.get_by_role('button',name='核对这一笔原保存',exact=True).click();await aexpect(page.locator('#method-draft-status')).to_contain_text('原保存已确认');await aexpect(page.locator('#method-draft-method')).to_have_value(values['method-draft-method']);assert await _method_main_pending(page)==[] and len(writes)==3 and writes[2]['key']==writes[0]['key'] and writes[2]['request']==writes[0]['request'] and writes[2]['data']==writes[0]['data']
+                        await page.reload();await aexpect(page.locator('#method-draft-target')).to_contain_text('问题修订 3');await page.locator('#method-draft-read-history').click();buttons=page.get_by_role('button',name='只读查看原稿',exact=True);await aexpect(buttons).to_have_count(2)
+                        for index in range(2):
+                            await buttons.nth(index).click();await aexpect(page.locator('#method-draft-view-status')).to_contain_text('只读查看原稿')
+                            if await page.locator('#method-draft-view-ref').inner_text()==ref:break
+                        await aexpect(page.locator('#method-draft-view-ref')).to_have_text(ref);await aexpect(page.locator('#method-draft-view-time')).to_have_attribute('datetime',draft['metadata']['created_at'])
+                        actual=await _native_tls_fetch(page,'/api/research/'+rid+'/method-drafts/'+ref);assert actual['status']==200 and actual['body']['data']==draft
+                        facts.update({'formula_task_count':20,'first_page_count':20,'actual_next_task_id':service.seed.source_task_id,'catalog_after_page2_count':21,'second_page_reads_before_source_body':1,'post_count_unchanged_by_page_read':True,'source_revision':1,'target_revision':3,'current_problem_digest':draft['metadata']['problem_digest'],'draft_ref':ref,'draft_created_at':draft['metadata']['created_at'],'unknown_original_key_and_body_preserved_during_paging':True,'original_unknown_reconciled_same_key_body':True,'handwriting_formula_selection_task_selection_preserved':True,'history_readonly_flag_not_adopted':True,'source_execute_and_funding':'closed','math_scope':'20 legitimate finite formula tasks; no claim of Linux execution or real fees'});await _method_draft_drain_owned_bridge(page,bridge)
+                except BaseException as error:primary=error;raise
+                finally:
+                    for value,name in ((context,'close'),(browser,'close')):
+                        if value is not None:
+                            try:await getattr(value,name)()
+                            except BaseException as error:cleanup.append(type(error).__name__)
+                    if cleanup:
+                        if primary:primary.add_note('owned browser cleanup uncertain: '+','.join(cleanup))
+                        else:raise RuntimeError('owned browser cleanup uncertain: '+','.join(cleanup))
+    finally:
+        facts.update({'ports':ports,'observed_browser_driver_pids':pids,'fixture_root_removed':not owned.exists(),'browser_cleanup_errors':cleanup,'main_thread_alive':service.server_thread.is_alive() if service and service.server_thread else None,'smtp_thread_alive':service._smtp.thread.is_alive() if service and service._smtp else None,'smtp_worker_alive':any(worker.is_alive() for worker in service._smtp.workers) if service and service._smtp else None,'remaining_owned_threads':[thread.name for thread in threading.enumerate() if thread.name.startswith('formal-main-browser-')]});(tmp_path/'method-main-pagination-facts.json').write_text(json.dumps(facts,ensure_ascii=False,indent=2))
+
+
+def test_method_draft_actual_main_second_catalog_page_preserves_current_form_and_pending(tmp_path):
+    import asyncio
+    asyncio.run(_method_main_catalog_second_page(tmp_path))

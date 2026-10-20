@@ -36,7 +36,7 @@
   let methodSeen = false;
   let methodDirty = false;
   let historySeen = false;
-  const draftState={epoch:0,readEpoch:0,rid:null,target:null,busy:false,operation:null,actor:null,dirty:false,selected:new Map(),excerpts:new Map(),plans:new Map(),formulas:new Map(),history:new Map(),origin:null,supersedes:null,view:null,casRejected:null};
+  const draftState={epoch:0,readEpoch:0,rid:null,target:null,busy:false,operation:null,actor:null,dirty:false,selected:new Map(),excerpts:new Map(),plans:new Map(),formulas:new Map(),history:new Map(),origin:null,supersedes:null,view:null,casRejected:null,catalog:new Map(),catalogNext:null,catalogCursors:new Set(),catalogGeneration:0,catalogKnown:false};
   const planState = {epoch:0,readGeneration:0,view:null,meta:null,preview:null,busy:false,operation:null,timer:null};
   const formulaState = {draft:null,snapshot:null,scope:null,view:null,dirty:false,loading:false,busy:false,busyToken:null,epoch:0,snapshotEpoch:0,metadata:null};
   const initialSection = ['#my-research', '#kb-section'].includes(location.hash) ? location.hash.slice(1) : null;
@@ -912,11 +912,11 @@
     formulaElement(byId('method-draft-formula'),'option','不关联公式记录',{value:''});byId('method-draft-material-status').textContent=message;draftSync();
   }
   function draftReset(){
-    draftState.epoch++;draftState.readEpoch++;draftState.rid=null;draftState.target=null;draftState.busy=false;draftState.operation=null;draftState.actor=null;draftState.dirty=false;draftState.selected.clear();draftState.excerpts.clear();draftState.plans.clear();draftState.formulas.clear();draftState.history.clear();draftState.supersedes=null;draftState.origin=null;draftState.casRejected=null;
+    draftState.epoch++;draftState.readEpoch++;draftState.rid=null;draftState.target=null;draftState.busy=false;draftState.operation=null;draftState.actor=null;draftState.dirty=false;draftState.selected.clear();draftState.excerpts.clear();draftState.plans.clear();draftState.formulas.clear();draftState.history.clear();draftState.supersedes=null;draftState.origin=null;draftState.casRejected=null;draftState.catalog.clear();draftState.catalogNext=null;draftState.catalogCursors.clear();draftState.catalogGeneration++;draftState.catalogKnown=false;
     for(const id of draftFields)byId(id).value='';byId('method-draft-origin').value='user_proposed';
     for(const id of ['method-draft-task','method-draft-materials','method-draft-plan-choices','method-draft-formula','method-draft-history','method-draft-pending'])byId(id).replaceChildren();
     formulaElement(byId('method-draft-formula'),'option','不关联公式记录',{value:''});
-    for(const id of ['method-draft-status','method-draft-material-status','method-draft-history-status','method-draft-parent'])byId(id).textContent='';draftClearView();byId('method-draft-section').hidden=true;
+    for(const id of ['method-draft-status','method-draft-material-status','method-draft-history-status','method-draft-parent'])byId(id).textContent='';draftClearView();byId('method-draft-section').hidden=true;byId('method-draft-more-tasks').hidden=true;
   }
   async function draftAuth(ticket){
     if(!draftActive(ticket))return false;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
@@ -964,6 +964,7 @@
     for(const id of ['method-draft-read-sources','method-draft-read-plan','method-draft-read-formula'])byId(id).disabled=ro||busy||draftState.busy||!researchId||!byId('method-draft-task').value;
     byId('method-draft-read-history').disabled=!researchId||draftState.busy;
     byId('method-draft-read-tasks').disabled=ro||busy||draftState.busy||!researchId;
+    byId('method-draft-more-tasks').hidden=!draftState.catalogNext;byId('method-draft-more-tasks').disabled=ro||busy||draftState.busy||!researchId;
     byId('method-draft-refresh-base').hidden=!draftState.casRejected;byId('method-draft-refresh-base').disabled=ro||busy||draftState.busy;
     byId('method-draft-task').disabled=ro||busy||draftState.busy;
     for(const button of byId('method-draft-pending').querySelectorAll('button'))button.disabled=ro||busy||draftState.busy;
@@ -975,23 +976,41 @@
     if(changed){draftState.casRejected=null;draftHideMaterials('目标问题修订已变化。已隐藏旧缓存原文，请重新读取引用；手写内容与原选择标识保留。');}
     if(accountScope){const ticket=draftTicket(),account=accountScope;formulaHash({account:JSON.parse(account)}).then(actor=>{if(draftActive(ticket)&&account===accountScope){draftState.actor=actor;draftRenderPending();}}).catch(()=>{});}
     draftState.rid=data.research.id;draftState.target=editBase?{input_revision:editBase.revision,problem_digest:editBase.digest}:null;
-    const picker=byId('method-draft-task'),selected=picker.value;picker.replaceChildren();formulaElement(picker,'option','选择含材料或线索的已存流程',{value:''});
-    const history=validTaskHistory(data);
-    if(!history)picker.options[0].textContent='资料目录待刷新，请点击“刷新已有资料”。';
-    if(history)for(const item of history)formulaElement(picker,'option',`问题修订 ${item.input_revision} · ${item.is_historical?'以前的':'当前的'}流程 · ${item.execution==='COMPLETED'?'已结束':item.execution==='FAILED'?'未完成':item.execution==='CANCELLED'?'已停止':'状态需核对'}`,{value:item.task_id});
-    if([...picker.options].some(option=>option.value===selected))picker.value=selected;
-    else if(data.task?.policy_revision==='d1-source-only-v1')picker.value=data.task.id;
-    draftSync();
+    const selected=byId('method-draft-task').value,history=validTaskHistory(data);
+    draftState.catalogGeneration++;draftState.catalog.clear();draftState.catalogCursors.clear();draftState.catalogNext=null;draftState.catalogKnown=Boolean(history);
+    if(history){for(const item of history)draftState.catalog.set(item.task_id,item);draftState.catalogNext=data.next_task_id;}
+    draftRenderCatalog(selected,data.task?.policy_revision==='d1-source-only-v1'?data.task.id:null);draftSync();
   }
-  async function draftTasks(){
-    if(draftState.busy||busy||readOnlyView()||!researchId)return;const ticket=draftTicket(),operation=Symbol();draftState.busy=true;draftState.operation=operation;draftSync();
+  function draftRenderCatalog(selected=byId('method-draft-task').value,fallback=null){
+    const picker=byId('method-draft-task');picker.replaceChildren();formulaElement(picker,'option',draftState.catalogKnown?(draftState.catalog.size?'选择含材料或线索的已存记录':'本页没有已存记录'):'资料目录待刷新，请点击“刷新已有资料”。',{value:''});
+    for(const item of draftState.catalog.values())formulaElement(picker,'option',`问题修订 ${item.input_revision} · ${item.is_historical?'以前的':'当前的'}流程 · ${item.execution==='COMPLETED'?'已结束':item.execution==='FAILED'?'未完成':item.execution==='CANCELLED'?'已停止':'状态需核对'}`,{value:item.task_id});
+    if(draftState.catalog.has(selected))picker.value=selected;else if(fallback&&draftState.catalog.has(fallback))picker.value=fallback;
+  }
+  async function draftTasks(earlier=false){
+    if(draftState.busy||busy||readOnlyView()||!researchId||!draftState.target)return;
+    const cursor=earlier?draftState.catalogNext:null;if(earlier&&(!validId(cursor)||draftState.catalogCursors.has(cursor)))return;
+    const ticket=draftTicket(),target={...draftState.target},generation=draftState.catalogGeneration,operation=Symbol();let actor=null;
+    const active=()=>draftActive(ticket)&&!readOnlyView()&&generation===draftState.catalogGeneration&&actor===draftState.actor&&target.input_revision===draftState.target?.input_revision&&target.problem_digest===draftState.target?.problem_digest&&editBase?.revision===target.input_revision&&editBase?.digest===target.problem_digest;
+    draftState.busy=true;draftState.operation=operation;draftSync();
     try{
-      if(!await draftSetActor(ticket))return;const root=await draftFetch(`/api/research/${ticket.rid}`,{},ticket,'root');
-      if(!validTaskHistory(root))throw Error('已存流程列表无法完整核对，请主动重新读取。');
-      if(!draftActive(ticket)||!await draftAuth(ticket))return;
-      observeServer(root);editNotice();draftObserve(root);
-      byId('method-draft-material-status').textContent='已按当前权限刷新已有资料目录；请自行选择并读取需要的材料，不会启动采集或替换手稿。';
-    }catch(error){if(draftActive(ticket)){draftHideMaterials('资料目录暂时无法核对，已隐藏旧资料正文；手写内容与原操作保留。');byId('method-draft-status').textContent=draftError(error);}}
+      if(!await draftSetActor(ticket))return;actor=draftState.actor;
+      const root=await draftFetch(`/api/research/${ticket.rid}`+(cursor?'?task_id='+encodeURIComponent(cursor):''),{},ticket,'root'),items=validTaskHistory(root);
+      if(!items||(cursor&&(root.task?.id!==cursor||items[0]?.task_id!==cursor)))throw Error('已存资料目录或分页锚点无法完整核对，请主动刷新。');
+      if(!active())return;
+      const latest=root.revisions?.find(item=>item.revision===target.input_revision);
+      if(root.research.current_revision!==target.input_revision||latest?.digest!==target.problem_digest){observeServer(root);editNotice();throw Error('当前问题已有新版本，请明确载入后再读取资料目录；手稿与原操作保留。');}
+      if(!await draftAuth(ticket)||!active())return;
+      const seen=new Set(earlier?draftState.catalogCursors:[]);if(cursor)seen.add(cursor);
+      if(root.next_task_id&&(root.next_task_id===cursor||seen.has(root.next_task_id)))throw Error('资料目录返回了重复分页锚点，已停止追加；不会自动继续读取。');
+      const selected=byId('method-draft-task').value;
+      if(!earlier)draftState.catalog.clear();
+      for(const item of items)draftState.catalog.set(item.task_id,item);
+      draftState.catalogCursors=seen;draftState.catalogNext=root.next_task_id;draftState.catalogKnown=true;draftState.catalogGeneration++;
+      // An anchored history page may describe an older current_problem. Only
+      // its authorized directory metadata enters this picker, never the form.
+      observeServer(root);editNotice();draftRenderCatalog(selected);
+      byId('method-draft-material-status').textContent=earlier?'已追加更早的资料目录；当前问题、手稿与原选择保持不变。读取正文和保存时仍核当前权限。':'已按当前权限刷新已有资料目录；请自行选择并读取需要的材料，不会启动采集或替换手稿。';
+    }catch(error){if(active()){draftState.catalogGeneration++;draftState.catalog.clear();draftState.catalogNext=null;draftState.catalogCursors.clear();draftState.catalogKnown=false;draftRenderCatalog();draftHideMaterials('资料目录暂时无法核对，已隐藏旧资料正文；手写内容与原操作保留。');byId('method-draft-status').textContent=draftError(error);}}
     finally{if(draftState.operation===operation){draftState.busy=false;draftState.operation=null;draftSync();}}
   }
   function draftRenderMaterials(){
@@ -1172,7 +1191,7 @@
     for(const id of draftFields)byId(id).addEventListener('input',()=>draftChanged());
     byId('method-draft-origin').addEventListener('change',()=>{draftState.origin=null;for(const radio of byId('method-draft-plan-choices').querySelectorAll('input'))radio.checked=false;draftChanged();});byId('method-draft-formula').addEventListener('change',()=>draftChanged());
     byId('method-draft-task').addEventListener('change',()=>{draftState.epoch++;byId('method-draft-material-status').textContent='选择仅改变待读取流程，不会启动任何任务。';draftSync();});
-    byId('method-draft-read-tasks').addEventListener('click',draftTasks);byId('method-draft-read-sources').addEventListener('click',draftMaterials);byId('method-draft-read-plan').addEventListener('click',draftPlan);byId('method-draft-read-formula').addEventListener('click',draftFormula);byId('method-draft-read-history').addEventListener('click',()=>draftHistory());
+    byId('method-draft-read-tasks').addEventListener('click',()=>draftTasks());byId('method-draft-more-tasks').addEventListener('click',()=>draftTasks(true));byId('method-draft-read-sources').addEventListener('click',draftMaterials);byId('method-draft-read-plan').addEventListener('click',draftPlan);byId('method-draft-read-formula').addEventListener('click',draftFormula);byId('method-draft-read-history').addEventListener('click',()=>draftHistory());
     byId('method-draft-clear-parent').addEventListener('click',()=>{draftState.supersedes=null;byId('method-draft-parent').textContent='未关联上一稿。';draftChanged();});byId('method-draft-form').addEventListener('submit',event=>{event.preventDefault();draftSave();});
   }
 
