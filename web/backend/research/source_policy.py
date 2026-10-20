@@ -260,6 +260,7 @@ class PinnedPublicTransport:
         receive, send = ctx.Pipe(duplex=True)
         deadline = time.monotonic() + self.wall_seconds
         process = None
+        shared = view = None
         handed_off=False
         def unavailable(message):
             # Kernel expiry can close IPC before the parent's next deadline
@@ -294,8 +295,10 @@ class PinnedPublicTransport:
                             raise SourceFailure("source worker lifetime unavailable")
                         if time.monotonic()>=deadline or still_authorized() is not True:
                             raise PermissionError("source handoff denied")
-                        owner_lease.handoff(receive,process.pid,deadline)
-                        handed_off=True
+                        from .source_supervisor import send_handoff_scope
+                        with send_handoff_scope(still_authorized,deadline_monotonic=deadline):
+                            owner_lease.handoff(receive,process.pid,deadline)
+                            handed_off=True
                         continue
                     if type(message) is list and len(message) == 2 and message[0] is False:
                         raise SourceFailure("source_unavailable", http_status=message[1])
@@ -317,6 +320,16 @@ class PinnedPublicTransport:
             try:
                 if process is not None:process.close()
             except BaseException as error:errors.append(error)
+            if not errors:
+                try:
+                    if view is not None:view.release()
+                except BaseException as error:errors.append(error)
+            if not errors:
+                # Child/tracker and IPC retirement succeeded. Drop only this
+                # call's buffer exports, never the allocator's shared arenas.
+                # The propagated exception keeps its original traceback; this
+                # local alias must not make that traceback retain itself.
+                view = shared = primary = None
             if errors:
                 from .source_spawn import SourceCleanupUncertain,_cleanup_note
                 if primary is not None:
