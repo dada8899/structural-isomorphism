@@ -113,3 +113,8 @@ textarea:disabled, select:disabled { opacity:1; color:var(--ink); background:#e9
 #method-draft-history { padding-left:24px; }#method-draft-history li { border-bottom:1px solid var(--line); padding:12px 0; }
 #method-draft-history button { margin:6px 8px 6px 0; font-size:13px; padding:9px 12px; }
 #method-draft-section button:disabled { cursor:not-allowed; }
+
+#financial-preview-section { border-top:1px solid var(--line); margin-top:36px; padding-top:24px; min-width:0; overflow-wrap:anywhere; }
+#financial-preview-result p, #financial-preview-result blockquote { white-space:pre-wrap; overflow-wrap:anywhere; }
+#financial-preview-status { min-height:26px; white-space:pre-wrap; font-size:14px; }
+#financial-preview-result h4 { margin:20px 0 7px; font-size:15px; }.financial-original-value { font-weight:600; }

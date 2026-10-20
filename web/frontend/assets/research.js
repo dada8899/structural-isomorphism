@@ -36,6 +36,7 @@
   let methodSeen = false;
   let methodDirty = false;
   let historySeen = false;
+  const financialState={epoch:0,busy:false,operation:null,controller:null,basis:null,previewVersion:null};
   const draftState={epoch:0,readEpoch:0,rid:null,target:null,busy:false,operation:null,actor:null,dirty:false,selected:new Map(),excerpts:new Map(),plans:new Map(),formulas:new Map(),history:new Map(),origin:null,supersedes:null,view:null,casRejected:null,catalog:new Map(),catalogNext:null,catalogCursors:new Set(),catalogGeneration:0,catalogKnown:false};
   const planState = {epoch:0,readGeneration:0,view:null,meta:null,preview:null,busy:false,operation:null,timer:null};
   const formulaState = {draft:null,snapshot:null,scope:null,view:null,dirty:false,loading:false,busy:false,busyToken:null,epoch:0,snapshotEpoch:0,metadata:null};
@@ -308,6 +309,7 @@
     methodDirty=true;invalidateMethod('问题包含未保存的公式改动，旧方法记录已收起。');byId('formula-confirm').checked=false;
     planInvalidate('公式草稿有未保存改动，旧计划已收起。');
     draftChanged('问题含未保存的公式改动；方法文字已保留，请先保存问题。');
+    financialInvalidate('问题包含未保存公式，旧预览已失效；CSV 仍暂存在本页。');
     formulaClearResult(message);formulaPreview();syncFormulaControls();
   }
   function formulaClearResult(message='') { byId('formula-results').replaceChildren();byId('formula-status').textContent=message; }
@@ -894,6 +896,105 @@
     byId('native-plan-query-draft').addEventListener('input',planSync);byId('native-plan-use-query').addEventListener('click',()=>{if(readOnlyView()||!taskData?.capabilities?.source_evidence||byId('native-plan-use-query').disabled)return;byId('source-query').value=byId('native-plan-query-draft').value;byId('source-query').dispatchEvent(new Event('input',{bubbles:true}));byId('source-query').focus();byId('source-query').scrollIntoView({block:'center'});byId('native-plan-status').textContent='已填入可编辑的来源查询草稿；尚未预览、批准或读取任何来源。';});
   }
 
+
+  // FIN1 exported response schema50ba1bdd…5792; independent from Root b1/F8/F9.
+  const financialSchema={"$defs":{"FinancialImportPreviewData":{"additionalProperties":false,"properties":{"exact_received_csv_sha256":{"pattern":"^[0-9a-f]{64}$","title":"Exact Received Csv Sha256","type":"string"},"execution_authorized":{"const":false,"default":false,"enum":[false],"title":"Execution Authorized","type":"boolean"},"expected_research_version":{"maximum":2147483647,"minimum":1,"title":"Expected Research Version","type":"integer"},"input_revision":{"maximum":2147483647,"minimum":1,"title":"Input Revision","type":"integer"},"key_based_plan_digest":{"pattern":"^[0-9a-f]{64}$","title":"Key Based Plan Digest","type":"string"},"kind":{"const":"owner_supplied","default":"owner_supplied","enum":["owner_supplied"],"title":"Kind","type":"string"},"original_available":{"const":false,"default":false,"enum":[false],"title":"Original Available","type":"boolean"},"parser_revision":{"const":"owner-financial-csv-v1","default":"owner-financial-csv-v1","enum":["owner-financial-csv-v1"],"title":"Parser Revision","type":"string"},"persisted":{"const":false,"default":false,"enum":[false],"title":"Persisted","type":"boolean"},"plan":{"$ref":"#/$defs/OwnerFinancialImportPlanV2"},"preview_digest":{"pattern":"^[0-9a-f]{64}$","title":"Preview Digest","type":"string"},"problem_digest":{"pattern":"^[0-9a-f]{64}$","title":"Problem Digest","type":"string"},"qualifications":{"default":["owner_declarations_not_verified","claimed_dates_not_verified_as_of","preview_only_no_save_or_execution"],"items":{"enum":["owner_declarations_not_verified","claimed_dates_not_verified_as_of","preview_only_no_save_or_execution"],"type":"string"},"title":"Qualifications","type":"array"},"research_id":{"title":"Research Id","type":"string"},"system_verified":{"const":false,"default":false,"enum":[false],"title":"System Verified","type":"boolean"},"verification":{"const":"unverified","default":"unverified","enum":["unverified"],"title":"Verification","type":"string"}},"required":["research_id","input_revision","problem_digest","expected_research_version","exact_received_csv_sha256","key_based_plan_digest","preview_digest","plan"],"title":"FinancialImportPreviewData","type":"object"},"OwnerFinancialImportPlanV2":{"additionalProperties":false,"properties":{"contract":{"const":"owner-financial-key-plan-v2","default":"owner-financial-key-plan-v2","enum":["owner-financial-key-plan-v2"],"title":"Contract","type":"string"},"parser_revision":{"const":"owner-financial-csv-v1","default":"owner-financial-csv-v1","enum":["owner-financial-csv-v1"],"title":"Parser Revision","type":"string"},"records":{"items":{"discriminator":{"mapping":{"historical_fx":"#/$defs/OwnerHistoricalFXV2","observation":"#/$defs/OwnerObservationV2","source":"#/$defs/OwnerSourceV2"},"propertyName":"row_type"},"oneOf":[{"$ref":"#/$defs/OwnerSourceV2"},{"$ref":"#/$defs/OwnerObservationV2"},{"$ref":"#/$defs/OwnerHistoricalFXV2"}]},"maxItems":96,"title":"Records","type":"array"}},"required":["records"],"title":"OwnerFinancialImportPlanV2","type":"object"},"OwnerHistoricalFXV2":{"additionalProperties":false,"properties":{"declared_basis":{"enum":["disclosed","media_estimate","missing","conflicted"],"title":"Declared Basis","type":"string"},"from_currency":{"enum":["CNY","USD"],"title":"From Currency","type":"string"},"fx_kind":{"enum":["period_average","spot"],"title":"Fx Kind","type":"string"},"key":{"maxLength":32,"minLength":1,"pattern":"^[a-z][a-z0-9_]{0,31}$","title":"Key","type":"string"},"kind":{"const":"owner_supplied","default":"owner_supplied","enum":["owner_supplied"],"title":"Kind","type":"string"},"original_available":{"const":false,"default":false,"enum":[false],"title":"Original Available","type":"boolean"},"period_end":{"title":"Period End","type":"string"},"period_grain":{"enum":["annual","interim","remaining"],"title":"Period Grain","type":"string"},"period_start":{"title":"Period Start","type":"string"},"physical_line_end":{"maximum":131073,"minimum":2,"title":"Physical Line End","type":"integer"},"physical_line_start":{"maximum":131073,"minimum":2,"title":"Physical Line Start","type":"integer"},"record_index":{"maximum":96,"minimum":1,"title":"Record Index","type":"integer"},"row_type":{"const":"historical_fx","enum":["historical_fx"],"title":"Row Type","type":"string"},"source_refs":{"items":{"type":"string"},"maxItems":16,"title":"Source Refs","type":"array"},"system_verified":{"const":false,"default":false,"enum":[false],"title":"System Verified","type":"boolean"},"to_currency":{"enum":["CNY","USD"],"title":"To Currency","type":"string"},"value":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Value"},"verification":{"const":"unverified","default":"unverified","enum":["unverified"],"title":"Verification","type":"string"}},"required":["key","record_index","physical_line_start","physical_line_end","period_start","period_end","period_grain","value","declared_basis","source_refs","row_type","from_currency","to_currency","fx_kind"],"title":"OwnerHistoricalFXV2","type":"object"},"OwnerObservationV2":{"additionalProperties":false,"properties":{"accounting_basis":{"maxLength":240,"minLength":1,"title":"Accounting Basis","type":"string"},"alternative_refs":{"items":{"type":"string"},"maxItems":8,"title":"Alternative Refs","type":"array"},"currency":{"enum":["CNY","USD"],"title":"Currency","type":"string"},"declared_basis":{"enum":["disclosed","media_estimate","missing","conflicted"],"title":"Declared Basis","type":"string"},"entity_scope":{"maxLength":120,"minLength":1,"title":"Entity Scope","type":"string"},"key":{"maxLength":32,"minLength":1,"pattern":"^[a-z][a-z0-9_]{0,31}$","title":"Key","type":"string"},"kind":{"const":"owner_supplied","default":"owner_supplied","enum":["owner_supplied"],"title":"Kind","type":"string"},"metric":{"enum":["revenue","operating_profit","net_profit","operating_cost","operating_expense","shared_cost","depreciation","sbc","operating_adjustment","capex"],"title":"Metric","type":"string"},"original_available":{"const":false,"default":false,"enum":[false],"title":"Original Available","type":"boolean"},"period_end":{"title":"Period End","type":"string"},"period_grain":{"enum":["annual","interim","remaining"],"title":"Period Grain","type":"string"},"period_start":{"title":"Period Start","type":"string"},"physical_line_end":{"maximum":131073,"minimum":2,"title":"Physical Line End","type":"integer"},"physical_line_start":{"maximum":131073,"minimum":2,"title":"Physical Line Start","type":"integer"},"record_index":{"maximum":96,"minimum":1,"title":"Record Index","type":"integer"},"row_type":{"const":"observation","enum":["observation"],"title":"Row Type","type":"string"},"scope_kind":{"enum":["group","segment","app"],"title":"Scope Kind","type":"string"},"source_refs":{"items":{"type":"string"},"maxItems":16,"title":"Source Refs","type":"array"},"system_verified":{"const":false,"default":false,"enum":[false],"title":"System Verified","type":"boolean"},"unit":{"enum":["unit","thousand","million","billion"],"title":"Unit","type":"string"},"value":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Value"},"verification":{"const":"unverified","default":"unverified","enum":["unverified"],"title":"Verification","type":"string"}},"required":["key","record_index","physical_line_start","physical_line_end","period_start","period_end","period_grain","value","declared_basis","source_refs","row_type","entity_scope","scope_kind","metric","currency","unit","accounting_basis","alternative_refs"],"title":"OwnerObservationV2","type":"object"},"OwnerSourceV2":{"additionalProperties":false,"properties":{"claimed_accessed_at":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Claimed Accessed At"},"claimed_published_at":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Claimed Published At"},"declared_original_sha256":{"anyOf":[{"pattern":"^[0-9a-f]{64}$","type":"string"},{"type":"null"}],"title":"Declared Original Sha256"},"excerpt":{"maxLength":1000,"minLength":1,"title":"Excerpt","type":"string"},"key":{"maxLength":32,"minLength":1,"pattern":"^[a-z][a-z0-9_]{0,31}$","title":"Key","type":"string"},"kind":{"const":"owner_supplied","default":"owner_supplied","enum":["owner_supplied"],"title":"Kind","type":"string"},"locator":{"maxLength":240,"minLength":1,"title":"Locator","type":"string"},"original_available":{"const":false,"default":false,"enum":[false],"title":"Original Available","type":"boolean"},"physical_line_end":{"maximum":131073,"minimum":2,"title":"Physical Line End","type":"integer"},"physical_line_start":{"maximum":131073,"minimum":2,"title":"Physical Line Start","type":"integer"},"read_scope":{"maxLength":700,"minLength":1,"title":"Read Scope","type":"string"},"received_excerpt_sha256":{"pattern":"^[0-9a-f]{64}$","title":"Received Excerpt Sha256","type":"string"},"record_index":{"maximum":96,"minimum":1,"title":"Record Index","type":"integer"},"row_type":{"const":"source","enum":["source"],"title":"Row Type","type":"string"},"source_chain":{"items":{"type":"string"},"maxItems":16,"title":"Source Chain","type":"array"},"system_verified":{"const":false,"default":false,"enum":[false],"title":"System Verified","type":"boolean"},"url":{"maxLength":1600,"minLength":1,"title":"Url","type":"string"},"verification":{"const":"unverified","default":"unverified","enum":["unverified"],"title":"Verification","type":"string"}},"required":["key","record_index","physical_line_start","physical_line_end","row_type","url","locator","excerpt","received_excerpt_sha256","declared_original_sha256","claimed_published_at","claimed_accessed_at","read_scope","source_chain"],"title":"OwnerSourceV2","type":"object"}},"additionalProperties":false,"properties":{"contract_revision":{"const":"financial-input-v2","default":"financial-input-v2","enum":["financial-input-v2"],"title":"Contract Revision","type":"string"},"data":{"$ref":"#/$defs/FinancialImportPreviewData"},"schema_version":{"const":"structure-research-v1","default":"structure-research-v1","enum":["structure-research-v1"],"title":"Schema Version","type":"string"}},"required":["data"],"title":"FinancialImportPreviewResponse","type":"object"}
+;
+  const financialContract='financial-input-v2',financialParser='owner-financial-csv-v1',financialLimit=131072;
+  const financialQualifications=['owner_declarations_not_verified','claimed_dates_not_verified_as_of','preview_only_no_save_or_execution'];
+  function financialInvalidate(message='输入已变化，旧预览已失效；尚未保存或计算。'){
+    financialState.previewVersion=null;financialState.epoch++;financialState.controller?.abort();financialState.controller=null;financialState.operation=null;financialState.busy=false;byId('financial-preview-result').replaceChildren();byId('financial-preview-status').textContent=message;financialSync();
+  }
+  function financialReset(){financialInvalidate('');financialState.basis=null;byId('financial-preview-csv').value='';financialSync();byId('financial-preview-section').hidden=true;}
+  function financialBasis(){return researchId&&editBase?JSON.stringify([researchId,editBase.revision,editBase.digest,observed?.researchVersion||editBase.researchVersion]):null;}
+  function financialObserve(){const next=financialBasis();if(financialState.basis&&next!==financialState.basis)financialInvalidate('研究或问题版本已变化，旧预览已失效；CSV 仍暂存在本页。');financialState.basis=next;financialSync();}
+  function financialSync(){
+    if(financialState.previewVersion!==null&&observed&&observed.researchVersion>financialState.previewVersion){financialInvalidate('研究版本已变化，旧预览已失效；CSV 仍暂存在本页。');return;}
+    const ro=readOnlyView(),conflict=editBase&&observed&&(editBase.revision!==observed.revision||editBase.digest!==observed.digest),bytes=new TextEncoder().encode(byId('financial-preview-csv').value).length;
+    byId('financial-preview-section').hidden=form.hidden;
+    byId('financial-preview-context').textContent=ro?'当前是只读或历史问题，不能提交预览。':!researchId?'请先保存问题，再提交有限 CSV 预览。':conflict?'问题版本已变化，请明确读取当前问题后再预览；手稿保持不变。':methodDirty||formulaState.dirty?'问题尚有未保存改动；先保存问题，CSV 仅暂存本页。':`预览目标：问题修订 ${editBase?.revision}。免费本地解析，不需要开启模型或来源采集。`;
+    byId('financial-preview-size').textContent=`当前 ${bytes} / ${financialLimit} UTF-8 字节${bytes>financialLimit?'，已超出预览范围，请减少文本。':''}`;
+    byId('financial-preview-csv').disabled=ro||busy;
+    byId('financial-preview-run').disabled=ro||busy||financialState.busy||!researchId||!editBase||!bytes||bytes>financialLimit||methodDirty||formulaState.dirty||Boolean(conflict);
+    byId('financial-preview-clear').disabled=ro||busy;
+  }
+  function financialTicket(){return {epoch:financialState.epoch,privateScope:privateGeneration,rid:researchId,revision:editBase?.revision,digest:editBase?.digest,account:accountScope,csv:byId('financial-preview-csv').value};}
+  function financialActive(ticket){return ticket.epoch===financialState.epoch&&ticket.privateScope===privateGeneration&&ticket.rid===researchId&&ticket.revision===editBase?.revision&&ticket.digest===editBase?.digest&&ticket.account===accountScope&&(ticket.version===undefined||!observed||observed.researchVersion<=ticket.version)&&ticket.csv===byId('financial-preview-csv').value&&!readOnlyView()&&!methodDirty&&!formulaState.dirty&&(!observed||(observed.revision===ticket.revision&&observed.digest===ticket.digest));}
+  async function financialAuth(ticket){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);try{return await authenticated(()=>financialActive(ticket),controller.signal);}finally{clearTimeout(timer);}}
+  function financialShape(value,shape){
+    if(shape.$ref)return financialShape(value,shape.$ref.split('/').slice(1).reduce((node,key)=>node[key],financialSchema));
+    if(shape.anyOf&&!shape.anyOf.some(child=>financialShape(value,child)))return false;
+    if(shape.oneOf&&shape.oneOf.filter(child=>financialShape(value,child)).length!==1)return false;
+    if(Object.hasOwn(shape,'const')&&value!==shape.const||shape.enum&&!shape.enum.includes(value))return false;
+    if(shape.type==='null'&&value!==null||shape.type==='boolean'&&typeof value!=='boolean')return false;
+    if(shape.type==='integer'&&(!Number.isSafeInteger(value)||value<(shape.minimum??-Infinity)||value>(shape.maximum??Infinity)))return false;
+    if(shape.type==='string'&&(typeof value!=='string'||Array.from(value).length<(shape.minLength??0)||Array.from(value).length>(shape.maxLength??Infinity)||shape.pattern&&!new RegExp(shape.pattern).test(value)))return false;
+    if(shape.type==='array'&&(!Array.isArray(value)||value.length>(shape.maxItems??Infinity)||value.length<(shape.minItems??0)||shape.items&&value.some(item=>!financialShape(item,shape.items))))return false;
+    if(shape.type==='object'){
+      if(!planObject(value)||(shape.required||[]).some(key=>!Object.hasOwn(value,key))||shape.additionalProperties===false&&Object.keys(value).some(key=>!Object.hasOwn(shape.properties,key)))return false;
+      if(Object.entries(value).some(([key,item])=>shape.properties[key]&&!financialShape(item,shape.properties[key])))return false;
+    }
+    return true;
+  }
+  async function financialTextHash(text){const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));return Array.from(new Uint8Array(bytes),v=>v.toString(16).padStart(2,'0')).join('');}
+  async function financialValidate(envelope,ticket,version){
+    if(!financialShape(envelope,financialSchema)||envelope.schema_version!==schema||envelope.contract_revision!==financialContract)throw Error('预览响应格式无法核对，未展示为有效结果。');
+    const data=envelope.data,owner=value=>value.kind==='owner_supplied'&&value.verification==='unverified'&&value.original_available===false&&value.system_verified===false;
+    if(!owner(data)||data.persisted!==false||data.execution_authorized!==false||data.research_id!==ticket.rid||data.input_revision!==ticket.revision||data.problem_digest!==ticket.digest||data.expected_research_version!==version||data.parser_revision!==financialParser||formulaCanonical(data.qualifications)!==formulaCanonical(financialQualifications)||data.plan.contract!=='owner-financial-key-plan-v2'||data.plan.parser_revision!==financialParser||data.plan.records.some((row,index)=>!owner(row)||row.record_index!==index+1)||new Set(data.plan.records.map(row=>row.key)).size!==data.plan.records.length)throw Error('预览与本次输入、问题或来源限定不匹配。');
+    if(new TextEncoder().encode(formulaCanonical(data.plan)).length>financialLimit||await financialTextHash(ticket.csv)!==data.exact_received_csv_sha256||await formulaHash(data.plan)!==data.key_based_plan_digest)throw Error('CSV 或预览内容摘要无法核对。');
+    for(const row of data.plan.records)if(row.row_type==='source'&&await financialTextHash(row.excerpt)!==row.received_excerpt_sha256)throw Error('收到的摘录文本摘要无法核对。');
+    const binding={contract:financialContract,parser_revision:financialParser,research_id:ticket.rid,input_revision:ticket.revision,problem_digest:ticket.digest,expected_research_version:version,exact_received_csv_sha256:data.exact_received_csv_sha256,key_based_plan_digest:data.key_based_plan_digest};
+    if(await formulaHash(binding)!==data.preview_digest)throw Error('预览绑定摘要无法核对。');return data;
+  }
+  function financialRender(data){
+    const box=byId('financial-preview-result');box.replaceChildren();const add=(parent,tag,text,options={})=>formulaElement(parent,tag,text,options),missing=value=>value===null?'缺失（未按 0 处理）':value;
+    add(box,'h3','临时预览 · 未保存 · 未计算');add(box,'p','以下均为账户提交与声明，尚未核验；未取得原件。声明日期不构成已验证的 as-of 时点。',{className:'scope'});
+    const basis={disclosed:'账户声明为披露（未核验）',media_estimate:'账户声明为媒体估计（未核验）',missing:'账户声明为缺失',conflicted:'账户声明为争议'},metrics={revenue:'营收',operating_profit:'营业利润',net_profit:'净利润',operating_cost:'营业成本',operating_expense:'营业费用',shared_cost:'共享成本',depreciation:'折旧',sbc:'股权激励成本',operating_adjustment:'营业调整',capex:'资本开支'};
+    for(const [kind,title] of [['source','账户来源声明'],['observation','历史观察'],['historical_fx','历史汇率']]){
+      const rows=data.plan.records.filter(row=>row.row_type===kind);add(box,'h4',`${title}（${rows.length}）`);
+      for(const row of rows){const card=add(box,'article','',{className:'draft-material'});add(card,'h4',row.key);add(card,'p',`账户提交 · 未核验 · 未取得原件；CSV 记录 ${row.record_index}，物理行 ${row.physical_line_start}–${row.physical_line_end}（不是原件页码或网页位置）`,{className:'hint'});
+        if(kind==='source'){
+          for(const [label,value] of [['声明 URL（仅定位文本，不访问）',row.url],['账户填写的位置说明',row.locator],['账户声明的读取范围',row.read_scope],['声明发布日期',row.claimed_published_at],['声明访问日期',row.claimed_accessed_at],['声明原件 SHA256（未核验）',row.declared_original_sha256]])add(card,'p',`${label}：${value===null?'未声明':value}`);
+          add(card,'blockquote',row.excerpt);add(card,'p',`来源链 key：${row.source_chain.join('；')||'未声明'}`);
+        }else{
+          add(card,'p',kind==='observation'?`${row.entity_scope} · ${{group:'集团',segment:'分部',app:'单 App'}[row.scope_kind]} · ${metrics[row.metric]}`:`${row.from_currency} → ${row.to_currency} · ${row.fx_kind==='period_average'?'期间平均汇率':'即期汇率'}`);
+          add(card,'p',`原数值字符串：${missing(row.value)}`,{className:'financial-original-value'});add(card,'p',`${row.period_start} 至 ${row.period_end} · ${{annual:'年度',interim:'期间',remaining:'剩余期间'}[row.period_grain]} · ${basis[row.declared_basis]}`);
+          if(kind==='observation'){add(card,'p',`币种：${row.currency}；单位：${row.unit}；账户填写的会计口径：${row.accounting_basis}`);add(card,'p',`替代观察 key：${row.alternative_refs.join('；')||'未声明'}`);}
+          add(card,'p',`账户引用的来源 key：${row.source_refs.join('；')||'未声明'}；仍需核对原件与口径。`,{className:'hint'});
+        }
+      }
+    }
+    const detail=add(box,'details','');add(detail,'summary','本次文本与临时预览的校验摘要');add(detail,'p',`收到的精确 CSV UTF-8 摘要：${data.exact_received_csv_sha256}`);add(detail,'p',`临时预览摘要：${data.preview_digest}；它不是已保存记录编号，也不授计算或公开分享权限。`);
+  }
+  async function financialPreview(){
+    if(byId('financial-preview-run').disabled||financialState.busy)return;
+    financialInvalidate('正在核对当前账户、问题版本并预览；尚未保存或计算。');const ticket=financialTicket(),operation=Symbol();financialState.operation=operation;financialState.busy=true;financialSync();
+    try{
+      if(!await financialAuth(ticket)||!financialActive(ticket))return;
+      const root=await request(`/api/research/${ticket.rid}`,{},()=>financialActive(ticket));
+      if(root.research?.id!==ticket.rid||root.current_problem?.revision!==ticket.revision||root.current_problem.digest!==ticket.digest||!planInt(root.research_version))throw Error('问题基准已变化，请明确重新读取后再预览；手稿保持不变。');
+      ticket.version=root.research_version;if(!financialActive(ticket))return;
+      const data={input_revision:ticket.revision,expected_research_version:root.research_version,csv_text:ticket.csv},controller=new AbortController();financialState.controller=controller;const timer=setTimeout(()=>controller.abort(),15000);
+      let response,envelope;
+      try{response=await fetch(`/api/research/${ticket.rid}/financial-import-preview`,{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','Idempotency-Key':crypto.randomUUID()},body:JSON.stringify({schema_version:schema,contract_revision:financialContract,data}),signal:controller.signal});if(!financialActive(ticket))return;envelope=await response.json();}finally{clearTimeout(timer);if(financialState.controller===controller)financialState.controller=null;}
+      if(!financialActive(ticket))return;
+      if(!response.ok){
+        const code=envelope?.error?.code;
+        if(response.status===401||response.status===404||code==='AUTHORIZATION_STALE'){await financialAuth(ticket);if(response.status===404&&financialActive(ticket))try{await request(`/api/research/${ticket.rid}`,{},()=>financialActive(ticket));}catch{}if(!financialActive(ticket))return;}
+        const labels={VERSION_CONFLICT:'问题版本已变化，请明确重新读取后再预览。',AUTHORIZATION_STALE:'当前权限无法核对，请重新确认账户与问题。',NOT_FOUND:'研究不存在或当前无法访问。',PAYLOAD_LIMIT:'CSV 或预览超出有限范围，请减少文本。',INPUT_INVALID:'CSV 无法解析，请修改指定行与字段。'};
+        const detail=envelope?.validation,location=detail&&Number.isSafeInteger(detail.row)&&detail.row>=1&&detail.row<=131073?` 第 ${detail.row} 行`:'',field=detail&&typeof detail.field==='string'&&/^[a-z_]{1,40}$/.test(detail.field)?`，字段 ${detail.field}`:'',safeCode=detail&&typeof detail.code==='string'&&/^[A-Z_]{1,64}$/.test(detail.code)?`（${detail.code}）`:'';
+        throw Error((labels[code]||'本次预览未完成，请保留本页 CSV 后重试。')+location+field+safeCode+' 旧预览已失效，尚未保存或计算。');
+      }
+      const checked=await financialValidate(envelope,ticket,root.research_version);if(!financialActive(ticket))return;
+      if(!await financialAuth(ticket)||!financialActive(ticket))return;
+      const fresh=await request(`/api/research/${ticket.rid}`,{},()=>financialActive(ticket));
+      if(fresh.research?.id!==ticket.rid||fresh.current_problem?.revision!==ticket.revision||fresh.current_problem.digest!==ticket.digest||fresh.research_version!==root.research_version)throw Error('问题或研究版本已变化，旧预览已失效；请重新预览，手稿保持不变。');
+      if(!await financialAuth(ticket)||!financialActive(ticket))return;financialState.basis=JSON.stringify([ticket.rid,ticket.revision,ticket.digest,root.research_version]);financialState.previewVersion=root.research_version;financialRender(checked);byId('financial-preview-status').textContent='临时预览已返回；账户声明未核验，未取得原件，尚未保存或计算。';
+    }catch(error){if(financialActive(ticket)){byId('financial-preview-result').replaceChildren();byId('financial-preview-status').textContent=['AbortError','TypeError','SyntaxError'].includes(error.name)?'本次预览响应尚未确认；旧预览已失效。本入口不保存或计算，请保留本页 CSV 后主动重试。':error.message;}}
+    finally{if(financialState.operation===operation){financialState.operation=null;financialState.busy=false;financialState.controller=null;financialSync();}}
+  }
+  function initFinancialPreview(){byId('financial-preview-csv').addEventListener('input',()=>financialInvalidate());byId('financial-preview-clear').addEventListener('click',()=>{byId('financial-preview-csv').value='';financialInvalidate('已清空本页 CSV 与临时预览；没有删除或保存研究记录。');});byId('financial-preview-run').addEventListener('click',financialPreview);financialSync();}
+
   // Manual drafts have their own immutable record and read/write purpose.
   const draftContract='method-draft-v1';
   const draftCasRejection=Symbol('current method draft POST explicitly rejected before write');
@@ -969,6 +1070,7 @@
     byId('method-draft-task').disabled=ro||busy||draftState.busy;
     for(const button of byId('method-draft-pending').querySelectorAll('button'))button.disabled=ro||busy||draftState.busy;
     byId('method-draft-user').hidden=byId('method-draft-origin').value!=='user_proposed';byId('method-draft-plan').hidden=byId('method-draft-origin').value!=='plan_lead';
+    financialSync();
   }
   function draftObserve(data){
     const same=draftState.rid===data.research.id;const changed=draftState.target&&(draftState.target.input_revision!==editBase?.revision||draftState.target.problem_digest!==editBase?.digest);
@@ -1208,6 +1310,7 @@
     syncFormulaControls();
     planSync();
     draftSync();
+    financialSync();
   }
   function normalizeProblem(problem) {
     // Match ProblemInput exactly; original_input intentionally stays verbatim.
@@ -1218,6 +1321,7 @@
         observation:variable.observation === null ? null : variable.observation.normalize('NFC')}))};
   }
   function clearPrivateView() {
+    financialReset();
     draftReset();
     planReset();
     formulaReset();
@@ -1396,6 +1500,7 @@
     taskData = data;
     formulaObserve(data);
     draftObserve(data);
+    financialObserve();
     planObserve(data,context.nativePlanRead!==false);
     byId('view-context').hidden = !readOnlyView();
     byId('view-context').textContent = data.is_historical ? '历史流程，只读查看原问题与原记录；不代表当前修订的研究结果。' : selectedTask ? '固定任务只读查看。这是当前任务，不是历史结果；返回当前问题后才能编辑。' : '';
@@ -1520,7 +1625,7 @@
       const planWasCurrent=isCurrent();
       if (isCurrent()) { invalidateMethod('账户状态暂时无法核对，已收起旧方法记录；草稿仍保留。'); formulaAuthUncertain(); clearTaskHistory('账户状态暂时无法核对，流程列表已收起；请稍后主动读取。'); }
       if (isCurrent()) status('账户状态暂时无法核对；草稿与待核对操作已保留，本次后续请求已停止。请稍后主动重试。', true);
-      if(planWasCurrent){planInvalidate('账户状态尚待核对，计划正文已收起；草稿与原操作保留。');byId('native-plan-history').replaceChildren();draftHideMaterials('账户状态尚待核对，已隐藏引用原文；手写内容与原操作保留。');}
+      if(planWasCurrent){financialInvalidate('账户状态尚待核对，旧财务预览已收起；CSV 仍暂存在本页。');planInvalidate('账户状态尚待核对，计划正文已收起；草稿与原操作保留。');byId('native-plan-history').replaceChildren();draftHideMaterials('账户状态尚待核对，已隐藏引用原文；手写内容与原操作保留。');}
       return false;
     };
     try {
@@ -1624,6 +1729,7 @@
       formulaProblemEdited();
       planInvalidate('本页草稿有修改，旧计划已收起；请保存后重新预览。');
       draftChanged('问题有未保存改动；此处方法文字保留，保存前先核对问题。');
+      financialInvalidate('问题有未保存改动，旧预览已失效；CSV 仍暂存在本页。');
       if (id === 'summary') summaryEdited = true;
       if (id === 'original-input') echoDraft();
       invalidateKB();
@@ -1951,5 +2057,6 @@
   initFormula();
   initPlan();
   initDraft();
+  initFinancialPreview();
   load().catch(error => status(error.message, true));
 })();
