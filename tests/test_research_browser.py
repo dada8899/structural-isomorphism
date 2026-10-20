@@ -3883,3 +3883,274 @@ def test_method_draft_refresh_preserves_newer_observation_state_unit(interleave)
     result=_method_draft_refresh_version_unit((ROOT/'web/frontend/assets/research.js').read_text(),interleave)
     assert result.returncode==0,result.stderr
     assert json.loads(result.stdout)['observed_version']==6
+
+
+async def _method_main_login(page,service):
+    """Only real canonical browser fetch and the owned in-process SMTP inbox."""
+    await page.goto(service.origin+'/research')
+    before=await _native_tls_fetch(page,'/api/auth/me');assert before['status']==401
+    requested=await _native_tls_fetch(page,'/api/auth/request-link','POST',{'email':service.seed.email});assert requested['status']==200
+    token=service.take_latest_magic_token()
+    try:
+        verified=await _native_tls_fetch(page,'/api/auth/verify','POST',{'token':token})
+    finally:token=None
+    assert verified['status']==200
+    actual=await _native_tls_fetch(page,'/api/auth/me');assert actual['status']==200
+    await page.goto(service.origin+'/research/'+service.seed.research_id)
+
+
+async def _method_main_select_old_source_for_new_problem(page,service):
+    from playwright.async_api import expect as aexpect
+    seed=service.seed
+    assert seed.current_input_revision==seed.source_input_revision==1 and seed.schema_version==14 and seed.mode=='offline_probe'
+    await aexpect(page.locator('#problem-form')).to_be_visible()
+    await page.locator('#original-input').fill('我观察到任务集中到达时，排队等待会随积压增加，需要区分任务复杂度等竞争解释。')
+    await page.locator('#summary').fill('我自己的合成观察；本次只保存验证思路，引用以前问题修订的许可短摘录。')
+    await page.locator('#entry').select_option('phenomenon');await page.locator('#confirmed').check()
+    async with page.expect_response('**/revisions') as saved:await page.locator('#save').click()
+    response=await saved.value;assert response.status==200;current=(await response.json())['data'];assert current['current_problem']['revision']==2
+    await aexpect(page.locator('#method-draft-target')).to_contain_text('问题修订 2')
+    await page.locator('#method-draft-read-tasks').click();await aexpect(page.locator('#method-draft-read-tasks')).to_be_enabled()
+    await page.locator('#method-draft-task').select_option(seed.source_task_id)
+    await aexpect(page.locator('#method-draft-read-sources')).to_be_enabled()
+    async with page.expect_response(lambda response:'/records?' in response.url and 'kind=excerpts' in response.url) as excerpts:await page.locator('#method-draft-read-sources').click()
+    returned=await excerpts.value;assert returned.status==200;items=(await returned.json())['data']['items'];assert items
+    await aexpect(page.locator('#method-draft-materials input[type=checkbox]')).to_have_count(len(items));await aexpect(page.locator('#method-draft-read-sources')).to_be_enabled()
+    await page.locator('#method-draft-materials input[type=checkbox]').first.check()
+    assert all(item['input_revision']==1 and item['task_id']==seed.source_task_id for item in items)
+    return items
+
+
+def _method_main_owned_browser_pids():
+    owned=os.environ.get('TMPDIR','');rows=subprocess.check_output(['ps','-axo','pid=,ppid=,command='],text=True).splitlines();result=[]
+    for row in rows:
+        fields=row.strip().split(None,2)
+        if len(fields)==3 and ((owned and owned in fields[2] and '/ms-playwright/' in fields[2]) or (int(fields[1])==os.getpid() and 'run-driver' in fields[2])):result.append(int(fields[0]))
+    return result
+
+
+async def _method_main_save_reopen_journey(tmp_path):
+    from playwright.async_api import async_playwright,expect as aexpect
+    from web.backend.tests.acceptance.formal_main_browser_service import FormalMainBrowserService
+    import hashlib,threading
+    owned=tmp_path/'actual-main';service=None;context=None;browser=None;primary=None;cleanup=[];facts={'scope':'actual Main / local verified TLS / owned real SMTP / old Source offline_probe','events':[]};ports=[];pids=[];requests=[]
+    started=time.monotonic()
+    def progress(stage):
+        facts['events'].append({'stage':stage,'seconds':round(time.monotonic()-started,6)});(tmp_path/'method-main-progress.json').write_text(json.dumps(facts['events']))
+    try:
+        with FormalMainBrowserService(owned) as service,service.browser_bridge() as bridge:
+            ports=[service.port,service._smtp.port];progress('actual-main-started')
+            async with async_playwright() as playwright:
+                browser=await playwright.chromium.launch();context=await browser.new_context(viewport={'width':390,'height':844});context.set_default_timeout(8000)
+                try:
+                    async with bridge.routed(context):
+                        page=await context.new_page()
+                        page.on('request',lambda request:requests.append({'method':request.method,'path':request.url.split(service.origin,1)[-1]}) if request.url.startswith(service.origin+'/api/research') else None)
+                        async with page.expect_response(service.origin+'/assets/research.js') as actual_script:await page.goto(service.origin+'/research')
+                        assert await (await actual_script.value).body()==(ROOT/'web/frontend/assets/research.js').read_bytes();facts['actual_served_script_sha256']=hashlib.sha256((ROOT/'web/frontend/assets/research.js').read_bytes()).hexdigest()
+                        pids=_method_main_owned_browser_pids();await _method_main_login(page,service);progress('real-smtp-browser-login')
+                        health=await _native_tls_fetch(page,'/api/health');assert health['status']==200 and health['body']['checks']['source_execute']=='SUPERVISED_SOURCE_WORKER_UNBOUND' and health['body']['checks']['native_planner']=='FUNDING_CLOSED'
+                        items=await _method_main_select_old_source_for_new_problem(page,service);progress('old-source-selected-for-revision2')
+                        values=await _method_draft_type_manual_fields(page)
+                        async with page.expect_response('**/method-drafts') as saved:await page.locator('#method-draft-save').click()
+                        response=await saved.value;assert response.status==200;record=(await response.json())['data'];meta=record['metadata'];ref=meta['draft_ref'];progress('draft-post-returned')
+                        await aexpect(page.locator('#method-draft-status')).to_contain_text('已保存新的验证草稿');await aexpect(page.locator('#method-draft-view-ref')).to_have_text(ref);await aexpect(page.locator('#method-draft-view-time')).to_have_attribute('datetime',meta['created_at'])
+                        assert meta['input_revision']==2 and meta['validation_status']=='unverified' and meta['execution_status']=='not_executed'
+                        source=record['content']['sources'][0];assert source['input_revision']==1 and source['task_id']==service.seed.source_task_id and source['licence_basis'] and source['quote']==items[0]['quote']
+                        assert record['content']['request']['excerpt_refs'][0]['content_digest']==items[0]['text_digest']
+                        independent=await _native_tls_fetch(page,'/api/research/'+service.seed.research_id+'/method-drafts/'+ref);assert independent['status']==200 and independent['body']['data']==record
+                        await page.locator('#method-draft-method').fill('正在编辑的新稿B，历史只读加载必须保留这段文字。')
+                        async with page.expect_response('**/method-drafts?limit=20') as history:await page.locator('#method-draft-read-history').click()
+                        assert (await history.value).status==200;await page.get_by_role('button',name='只读查看原稿',exact=True).click();await aexpect(page.locator('#method-draft-view-ref')).to_have_text(ref);await aexpect(page.locator('#method-draft-view-time')).to_have_attribute('datetime',meta['created_at']);await aexpect(page.locator('#method-draft-method')).to_have_value('正在编辑的新稿B，历史只读加载必须保留这段文字。');progress('same-ref-time-reopened-with-new-editor-preserved')
+                        await page.reload();await aexpect(page.locator('#method-draft-target')).to_contain_text('问题修订 2');await page.locator('#method-draft-read-history').click();await page.get_by_role('button',name='只读查看原稿',exact=True).click();await aexpect(page.locator('#method-draft-view-ref')).to_have_text(ref);await aexpect(page.locator('#method-draft-view-time')).to_have_attribute('datetime',meta['created_at']);await aexpect(page.locator('#method-draft-view')).to_contain_text(source['quote']);await aexpect(page.locator('#method-draft-method')).to_have_value('')
+                        assert not [item for item in requests if item['method']=='POST' and any(part in item['path'] for part in ('source-preview','source-tasks','plan-previews','plan-approvals'))]
+                        assert len([item for item in requests if item['method']=='POST' and item['path'].endswith('/method-drafts')])==1
+                        facts.update({'draft_ref':ref,'created_at':meta['created_at'],'source_revision':1,'target_revision':2,'source_licence_basis':source['licence_basis'],'source_quote_sha256':hashlib.sha256(source['quote'].encode()).hexdigest(),'source_ref_digest':source['content_digest'],'unchanged_original_ref_and_time':True,'new_editor_preserved':True,'hard_reload_reopen':True,'validation_status':meta['validation_status'],'execution_status':meta['execution_status'],'source_execute':'closed','funding':'closed','actual_requests':requests})
+                        await _method_draft_drain_owned_bridge(page,bridge);progress('owned-reads-drained')
+                except BaseException as error:primary=error;raise
+                finally:
+                    for value,name in ((context,'close'),(browser,'close')):
+                        if value is not None:
+                            try:await getattr(value,name)()
+                            except BaseException as error:cleanup.append(type(error).__name__)
+                    if cleanup:
+                        if primary:primary.add_note('owned browser cleanup uncertain: '+','.join(cleanup))
+                        else:raise RuntimeError('owned browser cleanup uncertain: '+','.join(cleanup))
+            progress('browser-context-driver-closed')
+        progress('actual-main-and-history-scope-exited')
+    finally:
+        facts.update({'actual_requests':requests,'ports':ports,'observed_browser_driver_pids':pids,'fixture_root_removed':not owned.exists(),'browser_cleanup_errors':cleanup,'main_thread_alive':service.server_thread.is_alive() if service and service.server_thread else None,'smtp_thread_alive':service._smtp.thread.is_alive() if service and service._smtp else None,'smtp_worker_alive':any(worker.is_alive() for worker in service._smtp.workers) if service and service._smtp else None,'remaining_owned_threads':[thread.name for thread in threading.enumerate() if thread.name.startswith('formal-main-browser-')]})
+        (tmp_path/'method-main-save-reopen-facts.json').write_text(json.dumps(facts,ensure_ascii=False,indent=2))
+
+
+def test_method_draft_actual_main_old_source_new_problem_save_and_reopen(tmp_path):
+    import asyncio
+    asyncio.run(_method_main_save_reopen_journey(tmp_path))
+
+
+async def _method_main_post(page,path,data,key):
+    assert path.startswith('/api/research/')
+    return await page.evaluate('''async ({path,data,key})=>{const response=await fetch(path,{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','Idempotency-Key':key},body:JSON.stringify(data)});return {status:response.status,body:await response.json()};}''',{'path':path,'data':data,'key':key})
+
+
+async def _method_main_pending(page):
+    return await page.evaluate("Object.entries(sessionStorage).filter(([slot])=>slot.startsWith('structure-research-pending:method-draft-v1:')).map(([slot,raw])=>({slot,...JSON.parse(raw)}))")
+
+
+def _method_main_other_proposal(root,items,values):
+    item=items[0]
+    return {'schema_version':'structure-research-v1','contract_revision':'method-draft-v1','data':{
+        'input_revision':2,'expected_research_version':root['research_version'],
+        'excerpt_refs':[{'excerpt_id':item['id'],'source_revision':item['source_revision'],'content_digest':item['text_digest'],'start':item['start'],'end':item['end']}],
+        'origin':{'kind':'user_proposed','label':'另一笔明确的人工提议','description':'另一笔真实保存只推进同一研究版本，不更改本页手稿。'},
+        'method':'另一笔真实保存只推进同一研究版本，不更改本页手稿。','mapping':[values['method-draft-mapping']],
+        'nontransferable':[values['method-draft-nontransferable']],'competing_explanations':[values['method-draft-competing']],
+        'test_plan':{key:values[field] for key,field in [('question','method-draft-question'),('measurement','method-draft-measurement'),('primary_outcome','method-draft-outcome'),('falsification','method-draft-falsification'),('stop_rule','method-draft-stop')]},
+        'formula_result_ref':None,'supersedes_ref':None}}
+
+
+async def _method_main_save_boundary(tmp_path,case):
+    import asyncio,hashlib,threading,uuid
+    from playwright.async_api import async_playwright,expect as aexpect
+    from web.backend.tests.acceptance.formal_main_browser_service import FormalMainBrowserService
+    owned=tmp_path/'actual-main';service=None;context=None;browser=None;primary=None;cleanup=[];writes=[];held=[];lost=[];facts={'case':case,'scope':'actualMain canonical TLS, actual stored Source; no source/provider execution'};pids=[];ports=[]
+    try:
+        with FormalMainBrowserService(owned) as service,service.browser_bridge() as bridge:
+            ports=[service.port,service._smtp.port]
+            async with async_playwright() as playwright:
+                browser=await playwright.chromium.launch();context=await browser.new_context(viewport={'width':390,'height':844});context.set_default_timeout(8000)
+                try:
+                    async with bridge.routed(context):
+                        page=await context.new_page();pids=_method_main_owned_browser_pids();await _method_main_login(page,service);items=await _method_main_select_old_source_for_new_problem(page,service);values=await _method_draft_type_manual_fields(page)
+                        rid=service.seed.research_id;endpoint=service.origin+'/api/research/'+rid+'/method-drafts'
+                        async def actual_forward(route):
+                            request=route.request
+                            return await asyncio.to_thread(bridge.forward,request.method,request.url,await request.all_headers(),request.post_data_buffer)
+                        async def write_route(route):
+                            request=route.request;actual=await actual_forward(route);record={'key':await request.header_value('idempotency-key'),'request':request.post_data_json,'status':actual.status,'reply':json.loads(actual.body)};writes.append(record)
+                            if case=='lost-ack' and len(writes)==1:
+                                assert actual.status==200;await route.abort('failed');return
+                            await route.fulfill(status=actual.status,headers=dict(actual.headers),body=actual.body)
+                        await page.route(endpoint,write_route)
+                        if case=='cas':
+                            async def hold_root(route):
+                                actual=await actual_forward(route);assert actual.status==200;held.append((route,actual))
+                            await page.route(service.origin+'/api/research/'+rid,hold_root,times=1)
+                            await page.locator('#method-draft-save').click();deadline=time.monotonic()+8
+                            while not held and time.monotonic()<deadline:await asyncio.sleep(.02)
+                            assert len(held)==1;route,actual=held[0];root=json.loads(actual.body)['data'];other_key=str(uuid.uuid4())
+                            other=await _method_main_post(page,'/api/research/'+rid+'/method-drafts',_method_main_other_proposal(root,items,values),other_key);assert other['status']==200;other_ref=other['body']['data']['metadata']['draft_ref']
+                            held.pop();await route.fulfill(status=actual.status,headers=dict(actual.headers),body=actual.body)
+                            await aexpect(page.locator('#method-draft-refresh-base')).to_be_visible();await aexpect(page.locator('#method-draft-save')).to_be_disabled()
+                            own=[write for write in writes if write['key']!=other_key];assert len(own)==1 and own[0]['status']==409 and own[0]['reply']['error']['code']=='VERSION_CONFLICT';assert await _method_main_pending(page)==[]
+                            for field,value in values.items():await aexpect(page.locator('#'+field)).to_have_value(value)
+                            history=await _native_tls_fetch(page,'/api/research/'+rid+'/method-drafts?limit=20');assert history['status']==200 and [row['draft_ref'] for row in history['body']['data']['items']]==[other_ref]
+                            count=len(writes);await page.locator('#method-draft-refresh-base').click();await aexpect(page.locator('#method-draft-refresh-base')).to_be_hidden();await aexpect(page.locator('#method-draft-status')).to_contain_text('尚未提交新操作');assert len(writes)==count
+                            for field,value in values.items():await aexpect(page.locator('#'+field)).to_have_value(value)
+                            async with page.expect_response(endpoint) as saved:await page.locator('#method-draft-save').click()
+                            response=await saved.value;assert response.status==200;record=(await response.json())['data'];await aexpect(page.locator('#method-draft-status')).to_contain_text('已保存新的验证草稿')
+                            own=[write for write in writes if write['key']!=other_key];assert len(own)==2 and own[0]['key']!=own[1]['key'];before=own[0]['request']['data'].copy();after=own[1]['request']['data'].copy();assert after.pop('expected_research_version')==before.pop('expected_research_version')+1 and before==after
+                            assert await _method_main_pending(page)==[];assert record['metadata']['draft_ref']!=other_ref
+                            history=await _native_tls_fetch(page,'/api/research/'+rid+'/method-drafts?limit=20');assert {row['draft_ref'] for row in history['body']['data']['items']}=={other_ref,record['metadata']['draft_ref']}
+                            facts.update({'actual_post_conflict_before_write':True,'only_other_draft_after_rejection':True,'explicit_refresh_did_not_post':True,'same_content_new_key_after_refresh':True,'new_record_ref':record['metadata']['draft_ref']})
+                        else:
+                            if case=='lost-get':
+                                async def lose_read(route):
+                                    actual=await actual_forward(route);assert actual.status==200;lost.append(json.loads(actual.body));await route.abort('failed')
+                                await page.route(endpoint+'/*',lose_read,times=1)
+                            await page.locator('#method-draft-save').click();await aexpect(page.locator('#method-draft-status')).to_contain_text('尚未确认');pending=await _method_main_pending(page);assert len(pending)==1 and len(writes)==1 and writes[0]['status']==200
+                            if case=='lost-get':assert len(lost)==1
+                            original=writes[0];meta=original['reply']['data']['metadata'];ref=meta['draft_ref'];assert pending[0]['key']==original['key'] and pending[0]['task_request']['data']==original['request']['data']
+                            current=await _native_tls_fetch(page,'/api/research/'+rid+'/method-drafts/'+ref);assert current['status']==200 and current['body']['data']==original['reply']['data'];assert len(writes)==1
+                            await page.locator('#method-draft-method').fill('恢复原提交时必须保留当前手写新稿B。')
+                            if case=='lost-ack':
+                                unavailable=[]
+                                async def lose_directory(route):
+                                    actual=await actual_forward(route);assert actual.status==200;unavailable.append(True);await route.abort('failed')
+                                await page.route(service.origin+'/api/research/'+rid,lose_directory,times=1);await page.locator('#method-draft-read-tasks').click();await aexpect(page.locator('#method-draft-material-status')).to_contain_text('已隐藏旧资料正文');await aexpect(page.locator('#method-draft-materials')).to_have_text('');await aexpect(page.locator('#method-draft-method')).to_have_value('恢复原提交时必须保留当前手写新稿B。');assert unavailable==[True] and await _method_main_pending(page)==pending and len(writes)==1
+                                facts['actual_directory_read_lost_hides_quotes_keeps_pending_and_handwriting']=True
+                            await page.get_by_role('button',name='核对这一笔原保存',exact=True).click();await aexpect(page.locator('#method-draft-status')).to_contain_text('原保存已确认');await aexpect(page.locator('#method-draft-method')).to_have_value('恢复原提交时必须保留当前手写新稿B。')
+                            assert await _method_main_pending(page)==[] and len(writes)==2;assert writes[1]['key']==original['key'] and writes[1]['request']==original['request'] and writes[1]['reply']['data']==original['reply']['data']
+                            history=await _native_tls_fetch(page,'/api/research/'+rid+'/method-drafts?limit=20');assert history['status']==200 and len(history['body']['data']['items'])==1 and history['body']['data']['items'][0]['draft_ref']==ref
+                            facts.update({'real_post_committed_before_network_fault':True,'actual_get_completed_before_fault':case=='lost-get','unknown_key_and_original_body_retained':True,'no_automatic_repost':True,'explicit_recovery_same_key_body_ref_time':True,'new_editor_preserved':True,'original_ref':ref,'created_at':meta['created_at']})
+                        facts['writes']=[{'key':write['key'],'request_sha256':hashlib.sha256(json.dumps(write['request'],sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest(),'status':write['status'],'expected_version':write['request']['data']['expected_research_version'],'reply_ref':write['reply'].get('data',{}).get('metadata',{}).get('draft_ref')} for write in writes]
+                        await _method_draft_drain_owned_bridge(page,bridge)
+                except BaseException as error:primary=error;raise
+                finally:
+                    for route,_ in held:
+                        try:await route.abort('failed')
+                        except BaseException:pass
+                    for value,name in ((context,'close'),(browser,'close')):
+                        if value is not None:
+                            try:await getattr(value,name)()
+                            except BaseException as error:cleanup.append(type(error).__name__)
+                    if cleanup:
+                        if primary:primary.add_note('owned browser cleanup uncertain: '+','.join(cleanup))
+                        else:raise RuntimeError('owned browser cleanup uncertain: '+','.join(cleanup))
+    finally:
+        facts.update({'ports':ports,'observed_browser_driver_pids':pids,'fixture_root_removed':not owned.exists(),'browser_cleanup_errors':cleanup,'main_thread_alive':service.server_thread.is_alive() if service and service.server_thread else None,'smtp_thread_alive':service._smtp.thread.is_alive() if service and service._smtp else None,'smtp_worker_alive':any(worker.is_alive() for worker in service._smtp.workers) if service and service._smtp else None,'remaining_owned_threads':[thread.name for thread in threading.enumerate() if thread.name.startswith('formal-main-browser-')]})
+        (tmp_path/'method-main-save-boundary-facts.json').write_text(json.dumps(facts,ensure_ascii=False,indent=2))
+
+
+@pytest.mark.parametrize('case',['cas','lost-ack','lost-get'])
+def test_method_draft_actual_main_conflict_and_unknown_recovery(tmp_path,case):
+    import asyncio
+    asyncio.run(_method_main_save_boundary(tmp_path,case))
+
+
+async def _method_main_saved_formula_attachment(tmp_path):
+    import threading
+    from playwright.async_api import async_playwright,expect as aexpect
+    from web.backend.tests.acceptance.formal_main_browser_service import FormalMainBrowserService
+    owned=tmp_path/'actual-main';service=None;context=None;browser=None;primary=None;cleanup=[];facts={'scope':'actualMain stored formula attachment; Mac unsupported remains unsupported'};ports=[];pids=[]
+    try:
+        with FormalMainBrowserService(owned) as service,service.browser_bridge() as bridge:
+            ports=[service.port,service._smtp.port]
+            async with async_playwright() as playwright:
+                browser=await playwright.chromium.launch();context=await browser.new_context(viewport={'width':390,'height':844});context.set_default_timeout(8000)
+                try:
+                    async with bridge.routed(context):
+                        page=await context.new_page();pids=_method_main_owned_browser_pids();await _method_main_login(page,service);await _method_main_select_old_source_for_new_problem(page,service)
+                        await page.locator('#entry').select_option('formula');await page.locator('#formula-enable').check()
+                        for name in ('left','right'):await page.locator('#formula-'+name+'-use-template').click()
+                        await page.locator('#original-input').fill('我提供两个登记结构式作有限对照，原结果只能作为方法草稿的附件。');await page.locator('#summary').fill('保存用户提供的公式输入；平台不支持执行时保留其实际未执行状态。');await page.locator('#confirmed').check()
+                        async with page.expect_response('**/revisions') as revised:await page.locator('#save').click()
+                        response=await revised.value;assert response.status==200 and (await response.json())['data']['current_problem']['revision']==3;await aexpect(page.locator('#formula-editor-status')).to_contain_text('已按权限读取原公式快照')
+                        await page.locator('#formula-confirm').check()
+                        async with page.expect_response('**/formula-checks') as returned:await page.locator('#formula-run').click()
+                        response=await returned.value;assert response.status==200;meta=(await response.json())['data'];await aexpect(page.locator('#formula-result-ref')).to_have_text(meta['result_ref']);await aexpect(page.locator('#formula-refresh')).to_be_enabled()
+                        rid=service.seed.research_id;original=await _native_tls_fetch(page,'/api/research/'+rid+'/formula-results/'+meta['result_ref']);assert original['status']==200;formula=original['body']['data'];assert formula['state']=='available' and formula['metadata']['formula_result_recorded_at']==meta['formula_result_recorded_at']
+                        if sys.platform=='darwin':
+                            assert formula['provenance']['execution_state']=='unsupported' and formula['provenance']['execution_attested'] is False
+                            assert all(outcome['status']=='unsupported' and outcome['relation']=='undetermined' for outcome in formula['result']['outcomes'])
+                        await page.locator('#method-draft-read-tasks').click();await aexpect(page.locator('#method-draft-read-tasks')).to_be_enabled();await page.locator('#method-draft-task').select_option(meta['task_id']);await page.locator('#method-draft-read-formula').click();await aexpect(page.locator('#method-draft-read-formula')).to_be_enabled()
+                        option=page.locator('#method-draft-formula option[value="'+meta['result_ref']+'"]');await aexpect(option).to_contain_text(meta['result_ref']);await aexpect(option).to_contain_text(meta['formula_result_recorded_at']);await page.locator('#method-draft-form details:has(#method-draft-formula) > summary').click();await page.locator('#method-draft-formula').select_option(meta['result_ref'])
+                        await page.locator('#method-draft-task').select_option(service.seed.source_task_id);await page.locator('#method-draft-read-sources').click();choice=page.locator('#method-draft-materials input[type=checkbox]').first;await aexpect(choice).to_be_visible();await aexpect(page.locator('#method-draft-read-sources')).to_be_enabled();await choice.uncheck();await choice.check();await _method_draft_type_manual_fields(page)
+                        async with page.expect_response('**/method-drafts') as saved:await page.locator('#method-draft-save').click()
+                        response=await saved.value;assert response.status==200;draft=(await response.json())['data'];ref=draft['metadata']['draft_ref'];await aexpect(page.locator('#method-draft-status')).to_contain_text('已保存新的验证草稿')
+                        expected=[{key:outcome[key] for key in ('check_kind','status','relation')} for outcome in formula['result']['outcomes']]
+                        attached=draft['content']['formula'];assert attached['result_ref']==meta['result_ref'] and attached['metadata']==formula['metadata'] and attached['outcomes']==expected and attached['comparison_scope']==formula['result']['comparison_scope'] and attached['execution_attested']==formula['provenance']['execution_attested']
+                        assert draft['metadata']['validation_status']=='unverified' and draft['metadata']['execution_status']=='not_executed'
+                        await aexpect(page.locator('#method-draft-view-formula-ref')).to_have_text(meta['result_ref']);await aexpect(page.locator('#method-draft-view-formula-time')).to_have_attribute('datetime',meta['formula_result_recorded_at'])
+                        for outcome in expected:
+                            if outcome['status']=='unsupported':await aexpect(page.locator('#method-draft-view')).to_contain_text('不支持；关系为 尚未确定')
+                        await page.locator('#method-draft-method').fill('原公式附件只读重开时必须保留新手稿B。');await page.locator('#method-draft-read-history').click();await page.get_by_role('button',name='只读查看原稿',exact=True).click();await aexpect(page.locator('#method-draft-view-ref')).to_have_text(ref);await aexpect(page.locator('#method-draft-view-formula-ref')).to_have_text(meta['result_ref']);await aexpect(page.locator('#method-draft-view-formula-time')).to_have_attribute('datetime',meta['formula_result_recorded_at']);await aexpect(page.locator('#method-draft-method')).to_have_value('原公式附件只读重开时必须保留新手稿B。')
+                        after=await _native_tls_fetch(page,'/api/research/'+rid+'/method-drafts/'+ref);assert after['status']==200 and after['body']['data']==draft
+                        facts.update({'draft_ref':ref,'draft_created_at':draft['metadata']['created_at'],'target_revision':3,'source_revision':1,'formula_ref':meta['result_ref'],'formula_original_recorded_at':meta['formula_result_recorded_at'],'formula_original_scope':attached['comparison_scope'],'actual_execution_state':formula['provenance']['execution_state'],'actual_execution_attested':attached['execution_attested'],'original_outcomes':expected,'immutable_reopen_original_ref_time_outcomes':True,'new_editor_preserved':True,'draft_status':'unverified/not_executed','no_claim_of_Linux_math_or_mature_method':True});await _method_draft_drain_owned_bridge(page,bridge)
+                except BaseException as error:primary=error;raise
+                finally:
+                    for value,name in ((context,'close'),(browser,'close')):
+                        if value is not None:
+                            try:await getattr(value,name)()
+                            except BaseException as error:cleanup.append(type(error).__name__)
+                    if cleanup:
+                        if primary:primary.add_note('owned browser cleanup uncertain: '+','.join(cleanup))
+                        else:raise RuntimeError('owned browser cleanup uncertain: '+','.join(cleanup))
+    finally:
+        facts.update({'ports':ports,'observed_browser_driver_pids':pids,'fixture_root_removed':not owned.exists(),'browser_cleanup_errors':cleanup,'main_thread_alive':service.server_thread.is_alive() if service and service.server_thread else None,'smtp_thread_alive':service._smtp.thread.is_alive() if service and service._smtp else None,'smtp_worker_alive':any(worker.is_alive() for worker in service._smtp.workers) if service and service._smtp else None,'remaining_owned_threads':[thread.name for thread in threading.enumerate() if thread.name.startswith('formal-main-browser-')]})
+        (tmp_path/'method-main-formula-attachment-facts.json').write_text(json.dumps(facts,ensure_ascii=False,indent=2))
+
+
+def test_method_draft_actual_main_saved_formula_original_identity_and_outcomes(tmp_path):
+    import asyncio
+    asyncio.run(_method_main_saved_formula_attachment(tmp_path))

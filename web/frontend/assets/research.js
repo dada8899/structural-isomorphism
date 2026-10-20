@@ -963,6 +963,7 @@
     byId('method-draft-save').disabled=ro||busy||draftState.busy||!valid||!draftState.selected.size||[...draftState.selected.keys()].some(id=>!draftState.excerpts.has(id))||!draftState.dirty||Boolean(draftState.casRejected);
     for(const id of ['method-draft-read-sources','method-draft-read-plan','method-draft-read-formula'])byId(id).disabled=ro||busy||draftState.busy||!researchId||!byId('method-draft-task').value;
     byId('method-draft-read-history').disabled=!researchId||draftState.busy;
+    byId('method-draft-read-tasks').disabled=ro||busy||draftState.busy||!researchId;
     byId('method-draft-refresh-base').hidden=!draftState.casRejected;byId('method-draft-refresh-base').disabled=ro||busy||draftState.busy;
     byId('method-draft-task').disabled=ro||busy||draftState.busy;
     for(const button of byId('method-draft-pending').querySelectorAll('button'))button.disabled=ro||busy||draftState.busy;
@@ -976,10 +977,22 @@
     draftState.rid=data.research.id;draftState.target=editBase?{input_revision:editBase.revision,problem_digest:editBase.digest}:null;
     const picker=byId('method-draft-task'),selected=picker.value;picker.replaceChildren();formulaElement(picker,'option','选择含材料或线索的已存流程',{value:''});
     const history=validTaskHistory(data);
+    if(!history)picker.options[0].textContent='资料目录待刷新，请点击“刷新已有资料”。';
     if(history)for(const item of history)formulaElement(picker,'option',`问题修订 ${item.input_revision} · ${item.is_historical?'以前的':'当前的'}流程 · ${item.execution==='COMPLETED'?'已结束':item.execution==='FAILED'?'未完成':item.execution==='CANCELLED'?'已停止':'状态需核对'}`,{value:item.task_id});
     if([...picker.options].some(option=>option.value===selected))picker.value=selected;
     else if(data.task?.policy_revision==='d1-source-only-v1')picker.value=data.task.id;
     draftSync();
+  }
+  async function draftTasks(){
+    if(draftState.busy||busy||readOnlyView()||!researchId)return;const ticket=draftTicket(),operation=Symbol();draftState.busy=true;draftState.operation=operation;draftSync();
+    try{
+      if(!await draftSetActor(ticket))return;const root=await draftFetch(`/api/research/${ticket.rid}`,{},ticket,'root');
+      if(!validTaskHistory(root))throw Error('已存流程列表无法完整核对，请主动重新读取。');
+      if(!draftActive(ticket)||!await draftAuth(ticket))return;
+      observeServer(root);editNotice();draftObserve(root);
+      byId('method-draft-material-status').textContent='已按当前权限刷新已有资料目录；请自行选择并读取需要的材料，不会启动采集或替换手稿。';
+    }catch(error){if(draftActive(ticket)){draftHideMaterials('资料目录暂时无法核对，已隐藏旧资料正文；手写内容与原操作保留。');byId('method-draft-status').textContent=draftError(error);}}
+    finally{if(draftState.operation===operation){draftState.busy=false;draftState.operation=null;draftSync();}}
   }
   function draftRenderMaterials(){
     const box=byId('method-draft-materials');box.replaceChildren();
@@ -1159,7 +1172,7 @@
     for(const id of draftFields)byId(id).addEventListener('input',()=>draftChanged());
     byId('method-draft-origin').addEventListener('change',()=>{draftState.origin=null;for(const radio of byId('method-draft-plan-choices').querySelectorAll('input'))radio.checked=false;draftChanged();});byId('method-draft-formula').addEventListener('change',()=>draftChanged());
     byId('method-draft-task').addEventListener('change',()=>{draftState.epoch++;byId('method-draft-material-status').textContent='选择仅改变待读取流程，不会启动任何任务。';draftSync();});
-    byId('method-draft-read-sources').addEventListener('click',draftMaterials);byId('method-draft-read-plan').addEventListener('click',draftPlan);byId('method-draft-read-formula').addEventListener('click',draftFormula);byId('method-draft-read-history').addEventListener('click',()=>draftHistory());
+    byId('method-draft-read-tasks').addEventListener('click',draftTasks);byId('method-draft-read-sources').addEventListener('click',draftMaterials);byId('method-draft-read-plan').addEventListener('click',draftPlan);byId('method-draft-read-formula').addEventListener('click',draftFormula);byId('method-draft-read-history').addEventListener('click',()=>draftHistory());
     byId('method-draft-clear-parent').addEventListener('click',()=>{draftState.supersedes=null;byId('method-draft-parent').textContent='未关联上一稿。';draftChanged();});byId('method-draft-form').addEventListener('submit',event=>{event.preventDefault();draftSave();});
   }
 
