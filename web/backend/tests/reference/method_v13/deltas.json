@@ -1,4 +1,25 @@
 {
+  "web/backend/api/auth.py": {
+    "current_sha256": "ac3707383c1d743f664478d69808a85c20818c83aafbb6d7512e20a0cb3b2761",
+    "hunks": [
+      [
+        1285,
+        1295,
+        ""
+      ],
+      [
+        1296,
+        1300,
+        "    if __package__=='web.backend.api':from ..research.paid_control import verify_deletion_origin\n    else:from research.paid_control import verify_deletion_origin\n"
+      ],
+      [
+        1301,
+        1303,
+        "    lease_args={'owner_lease':owner_lease} if job.get('origin_version') is not None else {}\n"
+      ]
+    ],
+    "original_sha256": "7c46e214178a2bbe0aff75e7a7411a3201d7237d6a812a1a9f75975fde373acb"
+  },
   "web/backend/api/research.py": {
     "current_sha256": "1b855f30106780d0a30c644b46a87a016b9d9c562af091dcfc87e3464210478a",
     "hunks": [
