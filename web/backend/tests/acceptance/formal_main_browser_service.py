@@ -373,7 +373,10 @@ class FormalMainBrowserService(AbstractContextManager):
         if self.server is not None:
             self.server.should_exit = True
         if self.server_thread is not None and self.server_thread.ident is not None:
-            self.server_thread.join(15)
+            try:
+                self.server_thread.join(15)
+            except BaseException as error:
+                errors.append(type(error).__name__)
             if self.server_thread.is_alive():
                 errors.append('MAIN_THREAD_UNREAPED')
         if self.app_socket is not None:
