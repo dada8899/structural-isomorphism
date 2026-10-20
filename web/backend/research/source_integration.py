@@ -100,8 +100,8 @@ def public_record(record,kind,source,reported_at=None):
     return item
 
 
-def records(service,identity,rid,task_id,kind,cursor=None):
-    require_enabled();rid=service._id(rid);task_id=service._id(task_id);pid=service._principal(identity)
+def records(service,identity,rid,task_id,kind,cursor=None,*,request_app=None):
+    require_enabled(request_app,capability="source_history",store=service.store);rid=service._id(rid);task_id=service._id(task_id);pid=service._principal(identity)
     if kind not in PUBLIC_KINDS:raise not_found()
     with service.store.transaction() as conn:
         control=service.authorization.check(conn,identity,pid,rid)
@@ -194,7 +194,14 @@ def enabled():
             and os.getenv("STRUCTURAL_D1_SOURCES_ENABLED","").lower()=="true")
 
 
-def require_enabled():
+def require_enabled(request_app=None,*,capability='source_execute',store=None):
+    from .runtime_profile import formal_request_required,require_formal_application
+    if formal_request_required(request_app) or (store is not None and store._formal_mode()):
+        require_formal_application(request_app,capability)
+        if capability=='source_execute':
+            # C3 has no supervised Source-worker binding in this release.
+            raise ResearchError('FEATURE_UNAVAILABLE',503,'来源执行尚无受监督worker；已存来源可按权限读取。')
+        return
     if not enabled():raise ResearchError("FEATURE_UNAVAILABLE",503,"来源证据子链尚未开放。")
 
 
@@ -301,8 +308,8 @@ def check_approval(conn,task):
     return run,approval
 
 
-def preview(service,identity,rid,request):
-    require_enabled();rid=service._id(rid);pid=service._principal(identity)
+def preview(service,identity,rid,request,*,request_app=None):
+    require_enabled(request_app,store=service.store);rid=service._id(rid);pid=service._principal(identity)
     with service.store.transaction() as conn:
         row=service.authorization.check(conn,identity,pid,rid)
         if row["current_revision"]!=request.input_revision or row["version"]!=request.expected_research_version:
@@ -322,8 +329,8 @@ def _source_scope(conn,service,owner,identity,rid,request,key,source,*,admit=Fal
     return (admission_scope if admit else approval_scope)(conn,service,owner,identity,rid,request,key,source)
 
 
-def approve(service,identity,rid,request,key,*,request_source=None):
-    require_enabled();rid=service._id(rid);pid=service._principal(identity)
+def approve(service,identity,rid,request,key,*,request_source=None,request_app=None):
+    require_enabled(request_app,store=service.store);rid=service._id(rid);pid=service._principal(identity)
     payload=request.model_dump(mode="json")
     from .service import digest
     with service.authorization.owner_gate(pid) as owner,service.store.transaction(write=True) as conn,_source_scope(conn,service,owner,identity,rid,request,key,request_source):
@@ -350,8 +357,8 @@ def approve(service,identity,rid,request,key,*,request_source=None):
         return result
 
 
-def start_source(service,identity,rid,request,key,*,request_source=None):
-    require_enabled();rid=service._id(rid);pid=service._principal(identity)
+def start_source(service,identity,rid,request,key,*,request_source=None,request_app=None):
+    require_enabled(request_app,store=service.store);rid=service._id(rid);pid=service._principal(identity)
     from .service import digest
     from .projection import ResearchProjection
     from .runner import event_in

@@ -151,10 +151,16 @@ async def _parse(request, schema):
 
 async def _dispatch(request, *, research_id=None, operation="view"):
     try:
-        if not enabled():
+        if __package__=='web.backend.api':from ..research.runtime_profile import formal_request_required,require_formal_application
+        else:from research.runtime_profile import formal_request_required,require_formal_application
+        if formal_request_required(request.app):require_formal_application(request.app,'research_basic')
+        elif not enabled():
             raise ResearchError("FEATURE_UNAVAILABLE", 503, "研究保存功能尚未开放。")
         identity = await run_in_threadpool(_identity, request)
         service = await run_in_threadpool(lambda: ResearchService(ResearchStore(auth._store())))
+        # Captured private storage never falls back to a development flag after
+        # environment downgrade, including requests outside canonical Main.
+        if service.store._formal_mode():require_formal_application(request.app,'research_basic')
         if operation in ('draft-save','draft-read','draft-history'):
             if __package__=='web.backend.api':
                 from ..research import method_draft
@@ -235,7 +241,7 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                 else:result=await run_in_threadpool(read,service,identity,research_id,request.path_params['result_ref'],source)
             finally:source.close()
         elif operation == "source-records":
-            result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get("task_id",""),request.query_params.get("kind",""),request.query_params.get("cursor"))
+            result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get("task_id",""),request.query_params.get("kind",""),request.query_params.get("cursor"),request_app=request.app)
         elif operation == "events":
             raw_cursor=request.query_params.get("after_seq","0")
             if not re.fullmatch(r"[0-9]{1,12}",raw_cursor):raise ResearchError("INPUT_INVALID",422,"事件游标无效。")
@@ -293,13 +299,13 @@ async def _dispatch(request, *, research_id=None, operation="view"):
             elif operation == "start":
                 result=await run_in_threadpool(service.start,identity,research_id,envelope.data,key)
             elif operation == "source-preview":
-                result=await run_in_threadpool(source_integration.preview,service,identity,research_id,envelope.data)
+                result=await run_in_threadpool(source_integration.preview,service,identity,research_id,envelope.data,request_app=request.app)
             elif operation in ('source-approve','source-start'):
                 if __package__=='web.backend.api':from ..research.paid_control import issue_authenticated_action
                 else:from research.paid_control import issue_authenticated_action
                 source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
                 function=source_integration.approve if operation=='source-approve' else source_integration.start_source
-                try:result=await run_in_threadpool(function,service,identity,research_id,envelope.data,key,request_source=source)
+                try:result=await run_in_threadpool(function,service,identity,research_id,envelope.data,key,request_source=source,request_app=request.app)
                 finally:source.close()
             else:
                 if operation in ('cancel','reconcile'):
