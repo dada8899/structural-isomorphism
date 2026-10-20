@@ -294,8 +294,10 @@ class PinnedPublicTransport:
                             raise SourceFailure("source worker lifetime unavailable")
                         if time.monotonic()>=deadline or still_authorized() is not True:
                             raise PermissionError("source handoff denied")
-                        owner_lease.handoff(receive,process.pid,deadline)
-                        handed_off=True
+                        from .source_supervisor import send_handoff_scope
+                        with send_handoff_scope(still_authorized,deadline_monotonic=deadline):
+                            owner_lease.handoff(receive,process.pid,deadline)
+                            handed_off=True
                         continue
                     if type(message) is list and len(message) == 2 and message[0] is False:
                         raise SourceFailure("source_unavailable", http_status=message[1])

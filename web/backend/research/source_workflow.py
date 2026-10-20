@@ -33,8 +33,14 @@ class SourceSession:
             self.plan=plan_for(task,approval,run["plan_id"])
             self.mode=run["origin"]
         self.binding={name:getattr(self.plan,name) for name in Binding.__dataclass_fields__}
+        if store._formal_mode():
+            from .source_supervisor import _bind_session
+            _bind_session(self)
 
     def checked(self,conn):
+        if self.store._formal_mode():
+            from .source_supervisor import _require_store_worker
+            _require_store_worker(self.store,operation='send')
         task=conn.execute("SELECT * FROM research_tasks WHERE id=?",(self.task_id,)).fetchone()
         self.gate.check_task(conn,task)
         if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
@@ -185,6 +191,9 @@ def close_interrupted(store,task_id,task_lease):
     owner=gate.owner_gate_id(owner_gate) if version in (11,12,13,14) else gate.owner_gate(principal)
     with owner as fresh_owner:
         with store.transaction(write=True) as conn,_worker_scope(conn,store,task_lease,owner_lease=fresh_owner,close=True):
+            if store._formal_mode():
+                from .source_supervisor import _require_store_worker
+                _require_store_worker(store,operation='cleanup')
             task=conn.execute("SELECT * FROM research_tasks WHERE id=?",(task_id,)).fetchone()
             run=conn.execute("SELECT * FROM research_source_runs WHERE task_id=?",(task_id,)).fetchone()
             if not run:return
@@ -231,11 +240,19 @@ def run_source_once(store,task_id,task_lease,transport=None):
         if transport is None:
             if origin()!="live":raise SourceFailure("explicit local fixture required")
             transport=PinnedPublicTransport()
+        if store._formal_mode():
+            from .source_supervisor import _require_store_worker
+            _require_store_worker(store,operation='send')
+            if (type(transport) is not PinnedPublicTransport or transport._worker is not PinnedPublicTransport()._worker
+                    or run['origin']!='live'):
+                raise SourceFailure('formal Source requires the fixed live transport')
         if type(transport) is not PinnedPublicTransport or transport.execution_mode!=run["origin"]:
             raise SourceFailure("source transport provenance mismatch")
         session=SourceSession(store,task_id,task_lease,transport)
         return session.run()
-    except (ValueError,ResearchError,PermissionError,OSError):
+    except (ValueError,ResearchError,PermissionError,OSError) as error:
+        from .source_spawn import SourceCleanupUncertain
+        if isinstance(error,SourceCleanupUncertain) or getattr(error,'_source_cleanup_uncertainty',None):raise
         if session is not None:
             try:session.save_observation(failed=True)
             except (ValueError,ResearchError,PermissionError):pass

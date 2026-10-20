@@ -197,15 +197,20 @@ def enabled():
 def require_enabled(request_app=None,*,capability='source_execute',store=None):
     from .runtime_profile import formal_request_required,require_formal_application
     if formal_request_required(request_app) or (store is not None and store._formal_mode()):
+        if request_app is None and capability=='source_execute' and store is not None:
+            # Only the supervisor's current native thread/slot can enter here.
+            # Never recurse through HTTP/Main capability admission from a worker.
+            from .source_supervisor import _require_store_worker
+            _require_store_worker(store,operation='send')
+            return
         require_formal_application(request_app,capability)
-        if capability=='source_execute':
-            # C3 has no supervised Source-worker binding in this release.
-            raise ResearchError('FEATURE_UNAVAILABLE',503,'来源执行尚无受监督worker；已存来源可按权限读取。')
         return
     if not enabled():raise ResearchError("FEATURE_UNAVAILABLE",503,"来源证据子链尚未开放。")
 
 
 def origin():
+    from .runtime_profile import formal_request_required
+    if formal_request_required():return 'live'
     return "live" if os.getenv("STRUCTURAL_D1_PUBLIC_GET_ENABLED","").lower()=="true" else "offline_probe"
 
 
