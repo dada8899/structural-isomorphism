@@ -3055,6 +3055,173 @@
         "title": "FeedbackResponse",
         "type": "object"
       },
+      "FinancialImportPreviewData": {
+        "additionalProperties": false,
+        "properties": {
+          "exact_received_csv_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Exact Received Csv Sha256",
+            "type": "string"
+          },
+          "execution_authorized": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Execution Authorized",
+            "type": "boolean"
+          },
+          "expected_research_version": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Expected Research Version",
+            "type": "integer"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "key_based_plan_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Key Based Plan Digest",
+            "type": "string"
+          },
+          "kind": {
+            "const": "owner_supplied",
+            "default": "owner_supplied",
+            "enum": [
+              "owner_supplied"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "original_available": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Original Available",
+            "type": "boolean"
+          },
+          "parser_revision": {
+            "const": "owner-financial-csv-v1",
+            "default": "owner-financial-csv-v1",
+            "enum": [
+              "owner-financial-csv-v1"
+            ],
+            "title": "Parser Revision",
+            "type": "string"
+          },
+          "persisted": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Persisted",
+            "type": "boolean"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/OwnerFinancialImportPlanV2"
+          },
+          "preview_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Preview Digest",
+            "type": "string"
+          },
+          "problem_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Problem Digest",
+            "type": "string"
+          },
+          "qualifications": {
+            "default": [
+              "owner_declarations_not_verified",
+              "claimed_dates_not_verified_as_of",
+              "preview_only_no_save_or_execution"
+            ],
+            "items": {
+              "enum": [
+                "owner_declarations_not_verified",
+                "claimed_dates_not_verified_as_of",
+                "preview_only_no_save_or_execution"
+              ],
+              "type": "string"
+            },
+            "title": "Qualifications",
+            "type": "array"
+          },
+          "research_id": {
+            "title": "Research Id",
+            "type": "string"
+          },
+          "system_verified": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "System Verified",
+            "type": "boolean"
+          },
+          "verification": {
+            "const": "unverified",
+            "default": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "research_id",
+          "input_revision",
+          "problem_digest",
+          "expected_research_version",
+          "exact_received_csv_sha256",
+          "key_based_plan_digest",
+          "preview_digest",
+          "plan"
+        ],
+        "title": "FinancialImportPreviewData",
+        "type": "object"
+      },
+      "FinancialImportPreviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "financial-input-v2",
+            "default": "financial-input-v2",
+            "enum": [
+              "financial-input-v2"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FinancialImportPreviewData"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "default": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "FinancialImportPreviewResponse",
+        "type": "object"
+      },
       "FlagsResponse": {
         "additionalProperties": true,
         "description": "GET /api/flags — resolved feature flags + experiment variants.",
@@ -5890,6 +6057,590 @@
           "share_revoked"
         ],
         "title": "OwnedReportDeleteResponse",
+        "type": "object"
+      },
+      "OwnerFinancialImportPlanV2": {
+        "additionalProperties": false,
+        "properties": {
+          "contract": {
+            "const": "owner-financial-key-plan-v2",
+            "default": "owner-financial-key-plan-v2",
+            "enum": [
+              "owner-financial-key-plan-v2"
+            ],
+            "title": "Contract",
+            "type": "string"
+          },
+          "parser_revision": {
+            "const": "owner-financial-csv-v1",
+            "default": "owner-financial-csv-v1",
+            "enum": [
+              "owner-financial-csv-v1"
+            ],
+            "title": "Parser Revision",
+            "type": "string"
+          },
+          "records": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "historical_fx": "#/components/schemas/OwnerHistoricalFXV2",
+                  "observation": "#/components/schemas/OwnerObservationV2",
+                  "source": "#/components/schemas/OwnerSourceV2"
+                },
+                "propertyName": "row_type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/OwnerSourceV2"
+                },
+                {
+                  "$ref": "#/components/schemas/OwnerObservationV2"
+                },
+                {
+                  "$ref": "#/components/schemas/OwnerHistoricalFXV2"
+                }
+              ]
+            },
+            "maxItems": 96,
+            "title": "Records",
+            "type": "array"
+          }
+        },
+        "required": [
+          "records"
+        ],
+        "title": "OwnerFinancialImportPlanV2",
+        "type": "object"
+      },
+      "OwnerHistoricalFXV2": {
+        "additionalProperties": false,
+        "properties": {
+          "declared_basis": {
+            "enum": [
+              "disclosed",
+              "media_estimate",
+              "missing",
+              "conflicted"
+            ],
+            "title": "Declared Basis",
+            "type": "string"
+          },
+          "from_currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "From Currency",
+            "type": "string"
+          },
+          "fx_kind": {
+            "enum": [
+              "period_average",
+              "spot"
+            ],
+            "title": "Fx Kind",
+            "type": "string"
+          },
+          "key": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "const": "owner_supplied",
+            "default": "owner_supplied",
+            "enum": [
+              "owner_supplied"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "original_available": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Original Available",
+            "type": "boolean"
+          },
+          "period_end": {
+            "title": "Period End",
+            "type": "string"
+          },
+          "period_grain": {
+            "enum": [
+              "annual",
+              "interim",
+              "remaining"
+            ],
+            "title": "Period Grain",
+            "type": "string"
+          },
+          "period_start": {
+            "title": "Period Start",
+            "type": "string"
+          },
+          "physical_line_end": {
+            "maximum": 131073.0,
+            "minimum": 2.0,
+            "title": "Physical Line End",
+            "type": "integer"
+          },
+          "physical_line_start": {
+            "maximum": 131073.0,
+            "minimum": 2.0,
+            "title": "Physical Line Start",
+            "type": "integer"
+          },
+          "record_index": {
+            "maximum": 96.0,
+            "minimum": 1.0,
+            "title": "Record Index",
+            "type": "integer"
+          },
+          "row_type": {
+            "const": "historical_fx",
+            "enum": [
+              "historical_fx"
+            ],
+            "title": "Row Type",
+            "type": "string"
+          },
+          "source_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Source Refs",
+            "type": "array"
+          },
+          "system_verified": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "System Verified",
+            "type": "boolean"
+          },
+          "to_currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "To Currency",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "verification": {
+            "const": "unverified",
+            "default": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "record_index",
+          "physical_line_start",
+          "physical_line_end",
+          "period_start",
+          "period_end",
+          "period_grain",
+          "value",
+          "declared_basis",
+          "source_refs",
+          "row_type",
+          "from_currency",
+          "to_currency",
+          "fx_kind"
+        ],
+        "title": "OwnerHistoricalFXV2",
+        "type": "object"
+      },
+      "OwnerObservationV2": {
+        "additionalProperties": false,
+        "properties": {
+          "accounting_basis": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Accounting Basis",
+            "type": "string"
+          },
+          "alternative_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Alternative Refs",
+            "type": "array"
+          },
+          "currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "declared_basis": {
+            "enum": [
+              "disclosed",
+              "media_estimate",
+              "missing",
+              "conflicted"
+            ],
+            "title": "Declared Basis",
+            "type": "string"
+          },
+          "entity_scope": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Entity Scope",
+            "type": "string"
+          },
+          "key": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "const": "owner_supplied",
+            "default": "owner_supplied",
+            "enum": [
+              "owner_supplied"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "metric": {
+            "enum": [
+              "revenue",
+              "operating_profit",
+              "net_profit",
+              "operating_cost",
+              "operating_expense",
+              "shared_cost",
+              "depreciation",
+              "sbc",
+              "operating_adjustment",
+              "capex"
+            ],
+            "title": "Metric",
+            "type": "string"
+          },
+          "original_available": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Original Available",
+            "type": "boolean"
+          },
+          "period_end": {
+            "title": "Period End",
+            "type": "string"
+          },
+          "period_grain": {
+            "enum": [
+              "annual",
+              "interim",
+              "remaining"
+            ],
+            "title": "Period Grain",
+            "type": "string"
+          },
+          "period_start": {
+            "title": "Period Start",
+            "type": "string"
+          },
+          "physical_line_end": {
+            "maximum": 131073.0,
+            "minimum": 2.0,
+            "title": "Physical Line End",
+            "type": "integer"
+          },
+          "physical_line_start": {
+            "maximum": 131073.0,
+            "minimum": 2.0,
+            "title": "Physical Line Start",
+            "type": "integer"
+          },
+          "record_index": {
+            "maximum": 96.0,
+            "minimum": 1.0,
+            "title": "Record Index",
+            "type": "integer"
+          },
+          "row_type": {
+            "const": "observation",
+            "enum": [
+              "observation"
+            ],
+            "title": "Row Type",
+            "type": "string"
+          },
+          "scope_kind": {
+            "enum": [
+              "group",
+              "segment",
+              "app"
+            ],
+            "title": "Scope Kind",
+            "type": "string"
+          },
+          "source_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Source Refs",
+            "type": "array"
+          },
+          "system_verified": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "System Verified",
+            "type": "boolean"
+          },
+          "unit": {
+            "enum": [
+              "unit",
+              "thousand",
+              "million",
+              "billion"
+            ],
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "verification": {
+            "const": "unverified",
+            "default": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "record_index",
+          "physical_line_start",
+          "physical_line_end",
+          "period_start",
+          "period_end",
+          "period_grain",
+          "value",
+          "declared_basis",
+          "source_refs",
+          "row_type",
+          "entity_scope",
+          "scope_kind",
+          "metric",
+          "currency",
+          "unit",
+          "accounting_basis",
+          "alternative_refs"
+        ],
+        "title": "OwnerObservationV2",
+        "type": "object"
+      },
+      "OwnerSourceV2": {
+        "additionalProperties": false,
+        "properties": {
+          "claimed_accessed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimed Accessed At"
+          },
+          "claimed_published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimed Published At"
+          },
+          "declared_original_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declared Original Sha256"
+          },
+          "excerpt": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Excerpt",
+            "type": "string"
+          },
+          "key": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "const": "owner_supplied",
+            "default": "owner_supplied",
+            "enum": [
+              "owner_supplied"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "locator": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Locator",
+            "type": "string"
+          },
+          "original_available": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Original Available",
+            "type": "boolean"
+          },
+          "physical_line_end": {
+            "maximum": 131073.0,
+            "minimum": 2.0,
+            "title": "Physical Line End",
+            "type": "integer"
+          },
+          "physical_line_start": {
+            "maximum": 131073.0,
+            "minimum": 2.0,
+            "title": "Physical Line Start",
+            "type": "integer"
+          },
+          "read_scope": {
+            "maxLength": 700,
+            "minLength": 1,
+            "title": "Read Scope",
+            "type": "string"
+          },
+          "received_excerpt_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Received Excerpt Sha256",
+            "type": "string"
+          },
+          "record_index": {
+            "maximum": 96.0,
+            "minimum": 1.0,
+            "title": "Record Index",
+            "type": "integer"
+          },
+          "row_type": {
+            "const": "source",
+            "enum": [
+              "source"
+            ],
+            "title": "Row Type",
+            "type": "string"
+          },
+          "source_chain": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Source Chain",
+            "type": "array"
+          },
+          "system_verified": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "System Verified",
+            "type": "boolean"
+          },
+          "url": {
+            "maxLength": 1600,
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          },
+          "verification": {
+            "const": "unverified",
+            "default": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "record_index",
+          "physical_line_start",
+          "physical_line_end",
+          "row_type",
+          "url",
+          "locator",
+          "excerpt",
+          "received_excerpt_sha256",
+          "declared_original_sha256",
+          "claimed_published_at",
+          "claimed_accessed_at",
+          "read_scope",
+          "source_chain"
+        ],
+        "title": "OwnerSourceV2",
         "type": "object"
       },
       "PaidApprovalView": {
@@ -14118,6 +14869,112 @@
           }
         },
         "summary": "Research Task Events",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/financial-import-preview": {
+      "post": {
+        "operationId": "preview_research_financial_import_api_research__research_id__financial_import_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "contract_revision": {
+                    "const": "financial-input-v2",
+                    "enum": [
+                      "financial-input-v2"
+                    ],
+                    "title": "Contract Revision",
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "csv_text": {
+                        "maxLength": 131072,
+                        "title": "Csv Text",
+                        "type": "string"
+                      },
+                      "expected_research_version": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Expected Research Version",
+                        "type": "integer"
+                      },
+                      "input_revision": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Input Revision",
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "input_revision",
+                      "expected_research_version",
+                      "csv_text"
+                    ],
+                    "title": "FinancialImportPreviewRequest",
+                    "type": "object"
+                  },
+                  "schema_version": {
+                    "const": "structure-research-v1",
+                    "enum": [
+                      "structure-research-v1"
+                    ],
+                    "title": "Schema Version",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "contract_revision",
+                  "data"
+                ],
+                "title": "FinancialImportPreviewEnvelope",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialImportPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Research Financial Import",
         "tags": [
           "research"
         ]
