@@ -118,14 +118,19 @@ def test_v10_default_deny_and_replacement_with_recursive_triggers_off(v9):
         with pytest.raises(sqlite3.DatabaseError):conn.execute("INSERT INTO research_formula_revisions VALUES('forged',1,'{}','"+'a'*64+"')")
 
 
-def test_exact_cold_install_v10_and_late_completed_peer_reopen(stack):
+def test_exact_current_cold_install_and_late_completed_peer_reopen(stack):
     client,path=stack
     rid=create(client)
     store=ResearchStore(auth._store())
-    with store.transaction() as conn:store._check_v10(conn)
+    with store.transaction() as conn:
+        store._check_v11(conn)
+        assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==11
+        assert not conn.execute('PRAGMA foreign_key_check').fetchall()
     before=snapshot(path)
     reopened=ResearchStore(auth._store())
-    with reopened.transaction() as conn:reopened._check_v10(conn)
+    with reopened.transaction() as conn:
+        reopened._check_v11(conn)
+        assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==11
     assert snapshot(path)==before
 
 
