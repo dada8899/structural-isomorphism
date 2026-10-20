@@ -15,8 +15,9 @@ on:
 jobs:
   coverage:
     runs-on: ubuntu-latest
-    # The complete offline inventory needs a bounded coverage execution budget.
-    timeout-minutes: 60
+    # Instrumented backend coverage alone needs 55 minutes; keep the remaining
+    # offline suites and reports inside one finite execution budget.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
