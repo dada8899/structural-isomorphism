@@ -54,9 +54,35 @@ def triggers(value: dict) -> dict:
     return value.get("on", value.get(True))
 
 
+FINANCIAL_PREVIEW_BROWSER_STEP = {
+    "name": "Verify financial CSV readonly preview UI",
+    "run": "make PY=python test-financial-preview-browser-contract",
+}
+
+
+def original_browser_product_job(body: dict) -> dict:
+    """Strip only the one exact approved additive FIN1 execution step."""
+    original = copy.deepcopy(body)
+    steps = original["steps"]
+    matches = [index for index, step in enumerate(steps)
+               if step.get("name") == FINANCIAL_PREVIEW_BROWSER_STEP["name"]]
+    assert len(matches) == 1, "financial browser hard step missing or duplicated"
+    index = matches[0]
+    assert steps[index] == FINANCIAL_PREVIEW_BROWSER_STEP, "financial browser step changed or softened"
+    runtime = next(i for i, step in enumerate(steps)
+                   if step.get("name") == "Install complete backend runtime and verify imports")
+    prior = next(i for i, step in enumerate(steps)
+                 if step.get("name") == "Verify the current public research entry journey")
+    assert index == runtime + 1 and index < prior, "financial browser step must follow the full runtime"
+    steps.pop(index)
+    return original
+
+
 def assert_existing_jobs_unchanged(value: dict) -> None:
     for name, expected in BASELINE_JOB_DIGESTS.items():
         body = value["jobs"][name]
+        if name == "browser-product-contract":
+            body = original_browser_product_job(body)
         digest = hashlib.sha256(json.dumps(
             body, sort_keys=True, separators=(",", ":"),
         ).encode()).hexdigest()
@@ -765,3 +791,21 @@ def test_sanity_split_rejects_incomplete_or_softened_dependencies(mutation):
         next(s for s in aggregate["steps"] if s.get("name") == name)["run"] = "true"
     with pytest.raises((AssertionError, KeyError)):
         _assert_sanity_backend_dependency(value)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "path", "soft", "conditional", "duplicate", "position", "old-selector"])
+def test_financial_preview_browser_step_cannot_weaken_existing_hard_job(mutation):
+    value = copy.deepcopy(workflow("ci.yml"))
+    job = value["jobs"]["browser-product-contract"]
+    step = next(item for item in job["steps"] if item.get("name") == FINANCIAL_PREVIEW_BROWSER_STEP["name"])
+    if mutation == "missing": job["steps"].remove(step)
+    elif mutation == "path": step["run"] = "pytest web/backend/tests/test_research_financial_preview_browser.py -v"
+    elif mutation == "soft": step["continue-on-error"] = True
+    elif mutation == "conditional": step["if"] = "false"
+    elif mutation == "duplicate": job["steps"].append(copy.deepcopy(step))
+    elif mutation == "position": job["steps"].remove(step); job["steps"].append(step)
+    else:
+        prior = next(item for item in job["steps"] if item.get("name") == "Verify the current public research entry journey")
+        prior["run"] = "true"
+    with pytest.raises(AssertionError):
+        assert_existing_jobs_unchanged(value)

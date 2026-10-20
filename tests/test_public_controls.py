@@ -1696,8 +1696,27 @@ def test_backtest_parquet_extra_is_single_source_and_used_by_sanity() -> None:
     assert "pyarrow==24.0.0" not in sanity
 
 
+def _original_makefile_without_financial_preview(makefile: str) -> str:
+    # Only the exact approved new target/variable/help/phony token may differ.
+    additions = [
+        "FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS := " + chr(92) + "\n\tweb/tests/e2e/test_research_financial_preview_browser.py\n\n",
+        "test-financial-preview-browser-contract:\n\t$(PYTEST) $(FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS) -v\n\n",
+        '\t@echo "  test-financial-preview-browser-contract  Run all temporary financial CSV preview browser cases"\n',
+    ]
+    assert additions[0] + "PHASE_REAL_BROWSER_CONTRACT_TESTS :=" in makefile
+    assert additions[1] + "test-retrieval-contract:" in makefile
+    assert '\t@echo "  test-browser-contracts  Run the hard browser contract suite"\n' + additions[2] in makefile
+    for addition in additions:
+        assert makefile.count(addition) == 1, "financial Make addition missing or duplicated"
+        makefile = makefile.replace(addition, "", 1)
+    phony = ".PHONY: test-financial-preview-browser-contract test test-unit "
+    assert makefile.count(phony) == 1 and "\n" + phony in makefile
+    return makefile.replace(phony, ".PHONY: test test-unit ", 1)
+
+
 def test_makefile_release_authority_is_independently_frozen() -> None:
-    assert hashlib.sha256((ROOT / "Makefile").read_bytes()).hexdigest() == (
+    original = _original_makefile_without_financial_preview((ROOT / "Makefile").read_text())
+    assert hashlib.sha256(original.encode()).hexdigest() == (
         "d10d21b2d90e07deb8f9219f663f511ea96d5532c7f97637213f67f51efb0b9b"
     )
 
@@ -2485,3 +2504,41 @@ def test_nightly_make_command_resolves_only_existing_reviewed_browser_files():
     assert all(Path(ROOT / path).is_file() for path in actual)
     assert all(token not in {'tests/e2e', 'web/tests/e2e'}
                for command in commands for token in shlex.split(command))
+
+
+
+def test_financial_preview_browser_has_explicit_hard_make_admission() -> None:
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    path = "web/tests/e2e/test_research_financial_preview_browser.py"
+    assert _make_path_list(makefile, "FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS") == [path]
+    assert _make_recipe_commands(makefile, "test-financial-preview-browser-contract") == [
+        "$(PYTEST) $(FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS) -v",
+    ]
+    job = _ci_job("browser-product-contract")
+    steps = job["steps"]
+    matches = [step for step in steps if step.get("name") == "Verify financial CSV readonly preview UI"]
+    assert matches == [{"name": "Verify financial CSV readonly preview UI", "run": "make PY=python test-financial-preview-browser-contract"}]
+    assert steps.index(matches[0]) == next(index for index, step in enumerate(steps)
+        if step.get("name") == "Install complete backend runtime and verify imports") + 1
+    assert _shell_tokens(matches[0]) == ["make", "PY=python", "test-financial-preview-browser-contract"]
+    assert not (ROOT / "web/backend/tests/test_research_financial_preview_browser.py").exists()
+    source = (ROOT / path).read_text(encoding="utf-8")
+    assert "ROOT=Path(__file__).resolve().parents[3]" in source
+    assert "from playwright.async_api import async_playwright,expect" in source
+    assert "importorskip" not in source and "pytest.skip" not in source and "pytest.mark.skip" not in source
+    assert len(_make_recipe_commands(makefile, "test-browser-contracts")) == 6
+
+
+@pytest.mark.parametrize("mutation", ["missing", "duplicate", "command", "old-command", "position"])
+def test_financial_make_allowance_rejects_other_changes(mutation) -> None:
+    makefile = (ROOT / "Makefile").read_text()
+    if mutation == "missing": makefile = makefile.replace("test-financial-preview-browser-contract:\n", "", 1)
+    elif mutation == "duplicate": makefile += "test-financial-preview-browser-contract:\n\t$(PYTEST) $(FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS) -v\n\n"
+    elif mutation == "command": makefile = makefile.replace("$(PYTEST) $(FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS) -v", "true", 1)
+    elif mutation == "position":
+        target = "test-financial-preview-browser-contract:\n\t$(PYTEST) $(FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS) -v\n\n"
+        makefile = makefile.replace(target, "", 1) + target
+    else: makefile = makefile.replace("$(PYTEST) $(PHASE_REAL_BROWSER_CONTRACT_TESTS) -v", "true", 1)
+    with pytest.raises(AssertionError):
+        original = _original_makefile_without_financial_preview(makefile)
+        assert hashlib.sha256(original.encode()).hexdigest() == "d10d21b2d90e07deb8f9219f663f511ea96d5532c7f97637213f67f51efb0b9b"
