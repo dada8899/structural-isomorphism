@@ -1372,6 +1372,7 @@
     }
     byId('task-refresh').disabled = taskBusy;
     byId('task-refresh').textContent=['native-plan-v1','funded-plan-v1'].includes(taskData?.task?.policy_revision)?'刷新计划流程状态':'刷新演练状态';
+    syncSourceAccess();
   }
   function renderTask(data, context = {}) {
     if (data.research?.id !== researchId || (selectedTask !== null && selectedTask !== data.task?.id)) return false;
