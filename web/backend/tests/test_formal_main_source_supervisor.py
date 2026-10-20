@@ -85,6 +85,8 @@ def test_actual_main_ready_same_inode_new_services_preview_and_normal_shutdown(p
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app), base_url=BETA) as client:
                 await login(client, messages)
                 rid = await create(client)
+                view = await client.get('/api/research/' + rid)
+                assert view.status_code == 200 and view.json()['data']['capabilities']['source_evidence'] is True
                 assert await approved_source(client, rid)
                 health = await client.get('/api/health')
                 assert health.status_code == 200 and health.json()['checks']['source_execute'] == 'ready'
@@ -92,6 +94,28 @@ def test_actual_main_ready_same_inode_new_services_preview_and_normal_shutdown(p
         assert binding.source_receipt.supervisor_ref == binding.supervisor.reference
         assert not binding.supervisor._thread.is_alive()
         assert all(witness.parent_fd is None for witness in binding.witnesses)
+    asyncio.run(run())
+
+
+def test_real_started_handle_survives_attachment_failure_and_preserves_primary(prepared, monkeypatch):
+    main, admission, _, _ = prepared
+    captured = []
+    def fail_attachment(app, binding, module, supervisor):
+        # Failure only, after the actual Core.start return. No fake resource,
+        # availability, worker, or successful attachment is supplied.
+        captured.append((binding, module, supervisor))
+        raise OSError('owned post-start attachment failure')
+    monkeypatch.setattr(admission, 'attach_source', fail_attachment)
+    async def run():
+        with pytest.raises(OSError, match='owned post-start attachment failure'):
+            async with main.lifespan(main.app):
+                raise AssertionError('startup must not enter after attachment failure')
+        assert len(captured) == 1
+        binding, module, supervisor = captured[0]
+        assert binding.supervisor is supervisor and binding.source_module is module
+        assert admission.source_closed(binding) and not supervisor._thread.is_alive()
+        assert all(witness.parent_fd is None for witness in binding.witnesses)
+        assert admission._STATE.get(id(main.app)) is None
     asyncio.run(run())
 
 
@@ -185,6 +209,79 @@ def test_actual_http_source_task_cancel_before_native_send(prepared, monkeypatch
                     assert not handoff_attempts
             finally:
                 proceed.set()
+    asyncio.run(run())
+
+
+def test_actual_withdraw_active_native_slot_never_delivers_send_capability(prepared, monkeypatch):
+    main, admission, _, messages = prepared
+    async def run():
+        context = main.lifespan(main.app)
+        await context.__aenter__()
+        binding = await ready(main, admission)
+        from research import authorization
+        from multiprocessing import reduction
+        held, release = threading.Event(), threading.Event()
+        native_flock, native_handoff = fcntl.flock, reduction.send_handle
+        task_code = authorization._source_task_gate.__wrapped__.__code__
+        attempts = []
+        def barrier(descriptor, operation):
+            result = native_flock(descriptor, operation)
+            if (threading.current_thread() is binding.supervisor._thread
+                    and inspect.currentframe().f_back.f_code is task_code
+                    and operation == fcntl.LOCK_EX | fcntl.LOCK_NB):
+                held.set()
+                if not release.wait(5): raise TimeoutError('owned active-slot primitive expired')
+            return result
+        def no_delivery(*args, **kwargs):
+            if threading.current_thread() is binding.supervisor._thread:
+                attempts.append(True); raise PermissionError('public Source send is not authorized here')
+            return native_handoff(*args, **kwargs)
+        monkeypatch.setattr(fcntl, 'flock', barrier)
+        monkeypatch.setattr(reduction, 'send_handle', no_delivery)
+        observer = None
+        exited = False
+        try:
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app), base_url=BETA) as client:
+                await login(client, messages); rid = await create(client)
+                approval = await approved_source(client, rid)
+                response = await client.post('/api/research/' + rid + '/source-tasks', json=envelope({
+                    'input_revision': 1, 'expected_research_version': 1, 'approval_ref': approval}),
+                    headers={'Origin': BETA, 'Idempotency-Key': 'main-active-slot-before-stop'})
+                assert response.status_code == 200
+                tid = response.json()['data']['task']['id']
+                end = time.monotonic() + 3
+                while not held.is_set() and time.monotonic() < end: await asyncio.sleep(.01)
+                assert held.is_set()
+            withdrawn = []
+            def after_real_withdraw():
+                end = time.monotonic() + 3
+                while admission._STATE.get(id(main.app)) is not None and time.monotonic() < end:
+                    time.sleep(.005)
+                withdrawn.append(admission._STATE.get(id(main.app)) is None)
+                release.set()
+            observer = threading.Thread(target=after_real_withdraw, name='owned-main-withdraw-observer')
+            observer.start()
+            await context.__aexit__(None, None, None)
+            exited = True
+            observer.join(3)
+            assert withdrawn == [True] and not observer.is_alive()
+            assert admission.source_closed(binding) and attempts == []
+            assert all(witness.parent_fd is None for witness in binding.witnesses)
+            with binding.service.store.transaction() as connection:
+                assert connection.execute('SELECT count(*) FROM research_source_requests').fetchone()[0] == 0
+                assert connection.execute('SELECT started FROM research_source_runs WHERE task_id=?', (tid,)).fetchone()[0] == 0
+                assert connection.execute('SELECT execution FROM research_tasks WHERE id=?', (tid,)).fetchone()[0] == 'QUEUED'
+        finally:
+            release.set()
+            if observer is not None: observer.join(3)
+            if not exited:
+                primary = sys.exc_info()[1]
+                try:
+                    await context.__aexit__(type(primary) if primary is not None else None, primary,
+                                            primary.__traceback__ if primary is not None else None)
+                except BaseException as cleanup:
+                    if primary is None: raise
+                    primary.add_note('owned active-slot cleanup uncertain: ' + type(cleanup).__name__)
     asyncio.run(run())
 
 
@@ -299,6 +396,8 @@ def test_actual_controller_source_closed_sublifetime_keeps_history_and_original_
             'task_id': service.seed.source_task_id, 'kind': 'excerpts'})
         status, before = service.client.request('GET', path)
         assert status == 200 and before['data']['items']
+        status, initial = service.client.request('GET', '/api/research/' + service.seed.research_id)
+        assert status == 200 and initial['data']['capabilities']['source_evidence'] is True
         assert service.retire_source() == 'unavailable'
         from services import formal_admission as admission
         binding = admission._STATE[id(service.app)]
@@ -308,9 +407,64 @@ def test_actual_controller_source_closed_sublifetime_keeps_history_and_original_
         assert binding.source_receipt is receipt and binding.source_deadline == deadline
         status, after = service.client.request('GET', path)
         assert status == 200 and after == before
+        status, current = service.client.request('GET', '/api/research/' + service.seed.research_id)
+        assert status == 200 and current['data']['capabilities']['source_evidence'] is False
+        blocked = {'schema_version': 'structure-research-v1', 'contract_revision': 'b1-candidate-01',
+            'data': {'input_revision': 1, 'expected_research_version': current['data']['research_version'], 'query': 'queue variability'}}
+        status, denied = service.client.request('POST', '/api/research/' + service.seed.research_id + '/source-preview',
+            blocked, key='closed-real-source-must-reject-post')
+        assert status == 503 and denied['error']['code'] == 'FEATURE_UNAVAILABLE'
         status, health = service.client.request('GET', '/api/health')
         assert status == 200 and health['checks']['base'] == 'ready' and health['checks']['source_execute'] == 'unavailable'
     assert not service.root.exists()
+
+
+def test_running_bad_resource_is_not_normal_withdrawal_and_retains_uncertainty(request, tmp_path, monkeypatch):
+    if os.environ.get('FORMAL_MAIN_BAD_RESOURCE_CHILD') != 'yes':
+        owned = tmp_path / 'bad-resource-child'; owned.mkdir(mode=0o700)
+        (owned / 'home').mkdir(mode=0o700)
+        root = Path(__file__).resolve().parents[3]
+        paths = [str(root / 'web/backend'), str(root)]
+        audit = sys.modules.get('audit_bootstrap')
+        if audit is not None: paths.insert(0, str(Path(audit.__file__).resolve().parent))
+        environment = {'PATH': '/usr/bin:/bin', 'HOME': str(owned / 'home'), 'TMPDIR': str(owned),
+            'A006_AUDIT_ROOT': str(owned), 'REVIEW_SOURCE_ROOT': str(root), 'PYTHONPATH': os.pathsep.join(paths),
+            'PYTHONDONTWRITEBYTECODE': '1', 'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1', 'STRUCTURAL_ENV': 'test',
+            'AUTH_ENABLED': 'false', 'AUTH_DATA_DIR': str(owned / 'auth'), 'STRUCTURAL_LOG_FILE': str(owned / 'bootstrap.jsonl'),
+            'HF_HUB_OFFLINE': '1', 'TRANSFORMERS_OFFLINE': '1', 'FORMAL_MAIN_BAD_RESOURCE_CHILD': 'yes'}
+        target = str(Path(__file__).resolve()) + '::test_running_bad_resource_is_not_normal_withdrawal_and_retains_uncertainty'
+        result = subprocess.run([sys.executable, '-B', '-m', 'pytest', '-q', '-s', '-p', 'no:cacheprovider',
+            '-p', 'no:logging', '--basetemp=' + str(owned / 'cases'), target], cwd=owned,
+            env=environment, capture_output=True, timeout=30)
+        (owned / 'result.log').write_bytes(result.stdout + result.stderr)
+        assert result.returncode == 0, 'isolated bad-resource control failed; retain owned log'
+        assert b'BAD_RESOURCE_NATIVE_FACTS:' in result.stdout
+        return
+    main, admission, paths, _ = request.getfixturevalue('prepared')
+    async def run():
+        with pytest.raises(RuntimeError):
+            async with main.lifespan(main.app):
+                binding = await ready(main, admission)
+                database = paths.STATE_ROOT / 'auth.sqlite3'
+                try:
+                    database.chmod(0o644)  # Real invariant damage; no DB FD copy/close.
+                    with pytest.raises(RuntimeError) as error:
+                        binding.check()
+                    assert type(error.value) is not admission.FormalAdmissionWithdrawn
+                    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app), base_url=BETA) as client:
+                        assert (await client.get('/api/health')).status_code == 503
+                    end = time.monotonic() + 3
+                    while binding.supervisor._thread.is_alive() and time.monotonic() < end:
+                        await asyncio.sleep(.02)
+                    assert binding.supervisor._failure is not None
+                finally:
+                    database.chmod(0o600)
+        assert binding.source_receipt.state == 'CLEANUP_UNCERTAIN'
+        assert any(witness.parent_fd is not None for witness in binding.witnesses)
+        print('BAD_RESOURCE_NATIVE_FACTS:' + json.dumps({'base_rejected': True, 'not_normal_withdrawal': True,
+            'source_receipt': binding.source_receipt.state, 'worker_failure': binding.supervisor._failure,
+            'witnesses_retained': sum(w.parent_fd is not None for w in binding.witnesses)}))
+    asyncio.run(run())
 
 
 def test_actual_main_restarts_real_interrupted_source_debt_without_fetch(prepared, tmp_path, monkeypatch):

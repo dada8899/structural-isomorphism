@@ -186,6 +186,10 @@ async def lifespan(app: FastAPI):
         finally:
             errors = []
             deadline = time.monotonic() + 20
+            # Core may have returned an owned thread before the subsequent
+            # attachment/check raised. Never lose that actual local handle.
+            if binding is not None and supervisor is not None and binding.supervisor is None:
+                binding.source_module, binding.supervisor = source_supervisor, supervisor
             # HTTP withdrawal cannot wait behind the Source dispatch mutex.
             try:
                 withdrawn = formal_admission.withdraw(app)
