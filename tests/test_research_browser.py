@@ -2246,3 +2246,889 @@ def test_new_research_without_task_selector_keeps_real_create_and_save(server):
             actual=context.request.get(base+'/api/research/'+rid)
             assert actual.status==200 and actual.json()['data']['current_problem']['original_input']==text
         finally:context.close();browser.close()
+
+
+
+def _open_formula_editor(page,base,*,left='little',right='little',scope='expression'):
+    page.goto(base+'/research')
+    expect(page.locator('#problem-form')).to_be_visible()
+    fill(page,'用户提供的公式对照实际保存流程')
+    page.locator('#entry').select_option('formula')
+    page.locator('#formula-enable').check()
+    if left!='little':page.locator('#formula-left-template').select_option(left)
+    if right!='little':page.locator('#formula-right-template').select_option(right)
+    page.locator('#formula-scope').select_option(scope)
+
+
+def _save_formula_editor(page,base):
+    with page.expect_response(lambda response:response.request.method=='POST' and response.url.split('?')[0].endswith(('/api/research','/revisions'))) as saved:
+        page.locator('#save').click()
+    assert saved.value.status==200,saved.value.text()
+    body=saved.value.json()['data']
+    expect(page.locator('#formula-editor-status')).to_contain_text('已按权限读取原公式快照')
+    return body
+
+
+@pytest.mark.parametrize('viewport',[{'width':1280,'height':900},{'width':430,'height':932}])
+def test_formula_real_ui_save_snapshot_confirm_actual_return_and_reopen(server,viewport):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context(viewport=viewport)
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            expect(page.locator('#formula-run')).to_be_disabled()
+            page.locator('#formula-left-use-template').click();page.locator('#formula-right-use-template').click()
+            page.locator('#formula-left-symbol-1-value').fill('3.00')
+            body=_save_formula_editor(page,base);rid=body['research']['id'];meta=body['current_problem']['formula_snapshot']
+            assert meta['executable'] and 'formula_draft' not in body['current_problem']
+            snapshot=context.request.get(base+'/api/research/'+rid+'/formula-revisions/1')
+            assert snapshot.status==200 and snapshot.json()['data']['formula_digest']==meta['formula_digest']
+            assert snapshot.json()['data']['formula']['left']['symbols'][1]['value']=='3.00'
+            expect(page.locator('#formula-run')).to_be_disabled()
+            page.locator('#formula-confirm').check()
+            with page.expect_response('**/formula-checks') as checked:page.locator('#formula-run').click()
+            assert checked.value.status==200,checked.value.text()
+            ack=checked.value.json()['data'];ref=ack['result_ref']
+            original=context.request.get(base+'/api/research/'+rid+'/formula-results/'+ref)
+            assert original.status==200,original.text()
+            result=original.json()['data'];assert result['state']=='available'
+            expect(page.locator('#formula-result-ref')).to_have_text(ref)
+            expect(page.locator('#formula-result-time')).to_have_attribute('datetime',ack['formula_result_recorded_at'])
+            assert page.locator('#formula-results .formula-outcome').count()==4
+            assert result['result']['execution_attested'] is False
+            if result['provenance']['execution_state']=='unsupported':
+                assert result['provenance']['execution_attested'] is False
+                expect(page.locator('#formula-status')).to_contain_text('未执行')
+                assert set(page.locator('.formula-outcome-status').all_text_contents())=={'不支持 · 关系未判定'}
+                assert page.locator('.formula-outcome-status[data-status="passed"]').count()==0
+            else:assert result['provenance']['execution_attested'] is (result['provenance']['execution_state']=='ok')
+            server['stop'](server['process']);server['start']()
+            page.reload()
+            expect(page.locator('#formula-result-ref')).to_have_text(ref)
+            expect(page.locator('#formula-result-time')).to_have_attribute('datetime',ack['formula_result_recorded_at'])
+            assert context.request.get(base+'/api/research/'+rid+'/formula-results/'+ref).json()==original.json()
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+            page.screenshot(path=str(server['root']/'formula-real-return.png'),full_page=True)
+        finally:context.close();browser.close()
+
+
+def test_formula_empty_structure_is_real_saved_draft_and_not_executable(server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            with page.expect_response(lambda response:response.request.method=='POST' and response.url==base+'/api/research') as saved:page.locator('#save').click()
+            assert saved.value.status==200,saved.value.text()
+            data=saved.value.json()['data'];assert data['current_problem']['formula_snapshot']['executable'] is False
+            expect(page.locator('#formula-editor-status')).to_contain_text('仍缺结构')
+            expect(page.locator('#formula-confirm')).to_be_disabled();expect(page.locator('#formula-run')).to_be_disabled()
+            requests=[];page.on('request',lambda request:requests.append(request.url) if request.method=='POST' and request.url.endswith('/formula-checks') else None)
+            page.locator('#formula-run').dispatch_event('click');page.wait_for_timeout(50)
+            assert requests==[]
+            with sqlite3.connect(server['path']) as conn:assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]==0
+        finally:context.close();browser.close()
+
+
+
+def _formula_declare_all(page,side):
+    for field in page.locator('#formula-'+side+' select[id*="-assumptions-"][id$="-declared"]').all():field.select_option('true')
+
+
+@pytest.mark.parametrize('variant',[0,1])
+@pytest.mark.parametrize('scenario',['little','mm1','thermal-rc','local'])
+def test_formula_registered_cases_real_inputs_and_honest_execution_status(server,scenario,variant):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server['base'];login(context,base);page=context.new_page()
+            left='passive_decay' if scenario in ('thermal-rc','local') else scenario
+            right='linear_stable' if scenario=='local' else left
+            scope='initial_value_problem' if scenario=='thermal-rc' else 'equation_form' if scenario!='little' else 'expression'
+            _open_formula_editor(page,base,left=left,right=right,scope=scope)
+            if scenario=='thermal-rc':page.locator('#formula-right-domain').select_option('electrical')
+            for name in ('left','right'):
+                page.locator('#formula-'+name+'-use-template').click();_formula_declare_all(page,name)
+            if scenario=='little' and variant:
+                for name in ('left','right'):
+                    for index,value in enumerate(('20','4','5')):page.locator(f'#formula-{name}-symbol-{index}-value').fill(value)
+            if scenario=='mm1' and variant:
+                for name in ('left','right'):
+                    for index,value in enumerate(('0.25','2','6')):page.locator(f'#formula-{name}-symbol-{index}-value').fill(value)
+                    page.locator(f'#formula-{name}-symbol-0-unit').select_option('workday')
+                    for index in (1,2):page.locator(f'#formula-{name}-symbol-{index}-unit').select_option('count_per_workday')
+                    page.locator(f'#formula-{name}-basis').select_option('workday')
+            if scenario=='thermal-rc':
+                for name,value in [('left','4' if variant else '8'),('right','7' if variant else '3')]:
+                    page.locator('#formula-'+name+'-initial-enable').check()
+                    page.locator('#formula-'+name+'-initial-at_time').fill('0.0')
+                    page.locator('#formula-'+name+'-initial-value').fill(value)
+                    page.locator('#formula-'+name+'-initial-declared').select_option('true')
+            if scenario=='local' and variant:
+                page.locator('#formula-right-symbol-1-value').fill('0.5')
+            page.locator('#formula-samples').fill('0,1,2' if scenario in ('thermal-rc','local') else '0')
+            body=_save_formula_editor(page,base);rid=body['research']['id']
+            actual=context.request.get(base+'/api/research/'+rid+'/formula-revisions/1').json()['data']['formula']
+            assert actual['comparison_scope']==scope
+            assert actual['left']['template_id']==left and actual['right']['template_id']==right
+            assert actual['left']['source_refs']==[] and actual['right']['source_refs']==[]
+            if scenario=='thermal-rc':assert actual['left']['symbols'][0]['unit_id']=='K' and actual['right']['symbols'][0]['unit_id']=='V'
+            if scenario=='mm1' and variant:assert actual['left']['time_basis']==actual['right']['time_basis']=='workday'
+            page.locator('#formula-confirm').check()
+            with page.expect_response('**/formula-checks') as returned:page.locator('#formula-run').click()
+            assert returned.value.status==200,returned.value.text()
+            meta=returned.value.json()['data'];response=context.request.get(base+'/api/research/'+rid+'/formula-results/'+meta['result_ref'])
+            assert response.status==200 and response.json()['data']['state']=='available'
+            result=response.json()['data'];expect(page.locator('#formula-result-ref')).to_have_text(meta['result_ref'])
+            assert result['result']['execution_attested'] is False
+            if result['provenance']['execution_state']=='ok':
+                assert result['provenance']['execution_attested'] is True
+                canonical=next(v for v in result['result']['outcomes'] if v['check_kind']=='canonical_transform')
+                assert canonical['status']=='passed'
+                assert canonical['relation']==('algebraic_identity' if scenario=='little' else 'local_approximation' if scenario=='local' else 'conditional_model_equivalence')
+                numeric=next(v for v in result['result']['outcomes'] if v['check_kind']=='bounded_numeric')
+                assert numeric['relation']=='undetermined'
+            else:
+                assert result['provenance']['execution_attested'] is False
+                assert page.locator('.formula-outcome-status[data-status="passed"]').count()==0
+        finally:context.close();browser.close()
+
+
+def test_formula_lost_actual_post_receipt_reopens_and_recovers_same_key_ref_without_second_task(server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();received=[];keys=[]
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            for name in ('left','right'):page.locator('#formula-'+name+'-use-template').click()
+            body=_save_formula_editor(page,base);rid=body['research']['id']
+            page.on('request',lambda request:keys.append((request.headers.get('idempotency-key'),request.post_data)) if request.method=='POST' and request.url.endswith('/formula-checks') else None)
+            def lose(route):
+                response=route.fetch();assert response.status==200;received.append(response.json()['data']);route.abort()
+            page.route('**/formula-checks',lose,times=1)
+            page.locator('#formula-confirm').check();page.locator('#formula-run').click()
+            expect(page.locator('#formula-status')).to_contain_text('状态尚未确认')
+            assert len(received)==1;original=received[0]
+            pending=page.evaluate("Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('structure-research-pending:formula-check:'))) ")
+            assert len(pending)==1
+            page.reload();expect(page.locator('#formula-result-ref')).to_have_text(original['result_ref'])
+            assert len(keys)==1 and page.evaluate("Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('structure-research-pending:formula-check:'))) ")==pending
+            with page.expect_response('**/formula-checks') as replay:page.locator('#formula-recover').click()
+            assert replay.value.status==200 and replay.value.json()['data']['result_ref']==original['result_ref']
+            assert replay.value.json()['data']['formula_result_recorded_at']==original['formula_result_recorded_at']
+            expect(page.locator('#formula-result-ref')).to_have_text(original['result_ref'])
+            assert len(keys)==2 and keys[0]==keys[1]
+            assert page.evaluate("Object.keys(sessionStorage).filter(k=>k.startsWith('structure-research-pending:formula-check:')).length")==0
+            with sqlite3.connect(server['path']) as conn:
+                assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]==1
+                assert conn.execute("SELECT count(*) FROM research_tasks WHERE policy_revision='local-formula-v1'").fetchone()[0]==1
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('save_new_revision',[False,True],ids=['draft','saved'])
+def test_late_actual_formula_post_ack_cannot_replace_new_formula_or_problem(server,save_new_revision):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();held=[]
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            for name in ('left','right'):page.locator('#formula-'+name+'-use-template').click()
+            _save_formula_editor(page,base)
+            def hold(route):
+                response=route.fetch();assert response.status==200;held.append((route,response))
+            page.route('**/formula-checks',hold,times=1)
+            page.locator('#formula-confirm').check();page.locator('#formula-run').click()
+            for _ in range(50):
+                if held:break
+                page.wait_for_timeout(20)
+            assert len(held)==1
+            page.locator('#formula-left-symbol-1-value').fill('9')
+            page.locator('#original-input').fill('公式检查期间新写的问题草稿')
+            if save_new_revision:
+                _save_formula_editor(page,base);expect(page.locator('#revision-label')).to_have_text('当前修订 2')
+            notice=page.locator('#status').inner_text()
+            route,response=held.pop();route.fulfill(response=response)
+            expect(page.locator('#formula-left-symbol-1-value')).to_have_value('9')
+            expect(page.locator('#original-input')).to_have_value('公式检查期间新写的问题草稿')
+            expect(page.locator('#status')).to_have_text(notice)
+            expect(page.locator('#formula-results')).to_have_text('')
+            page.wait_for_timeout(100)
+            expect(page.locator('#formula-recover')).to_be_hidden()
+        finally:
+            for route,_ in held:route.abort()
+            context.close();browser.close()
+
+
+def test_formula_old_real_post_success_after_logout_cannot_restore_private_results(server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();held=[]
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            for name in ('left','right'):page.locator('#formula-'+name+'-use-template').click()
+            _save_formula_editor(page,base);expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            def hold(route):
+                response=route.fetch();assert response.status==200;held.append((route,response))
+            page.route('**/formula-checks',hold,times=1)
+            page.locator('#formula-confirm').check();page.locator('#formula-run').click()
+            for _ in range(50):
+                if held:break
+                page.wait_for_timeout(20)
+            assert held
+            assert context.request.post(base+'/api/auth/logout',headers={'Origin':base}).status==200
+            page.locator('#research-list-refresh').click();expect(page.locator('#problem-form')).to_be_hidden()
+            pending=page.evaluate('Object.fromEntries(Object.entries(sessionStorage))')
+            route,response=held.pop();route.fulfill(response=response)
+            page.wait_for_timeout(100)
+            expect(page.locator('#problem-form')).to_be_hidden();expect(page.locator('#formula-check-section')).to_be_hidden()
+            expect(page.locator('#formula-results')).to_have_text('')
+            assert page.evaluate('Object.fromEntries(Object.entries(sessionStorage))')==pending
+        finally:
+            for route,_ in held:route.abort()
+            context.close();browser.close()
+
+
+def _formula_execute_ui(page):
+    page.locator('#formula-confirm').check()
+    with page.expect_response('**/formula-checks') as returned:page.locator('#formula-run').click()
+    assert returned.value.status==200,returned.value.text()
+    meta=returned.value.json()['data']
+    expect(page.locator('#formula-result-ref')).to_have_text(meta['result_ref'])
+    return meta
+
+
+def test_formula_explicit_refresh_does_not_mix_another_window_revision_into_old_problem(server):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            for name in ('left','right'):page.locator('#formula-'+name+'-use-template').click()
+            body=_save_formula_editor(page,base);rid=body['research']['id'];original=page.locator('#original-input').input_value()
+            other=context.new_page();other.goto(base+'/research/'+rid)
+            expect(other.locator('#formula-editor-status')).to_contain_text('已按权限读取')
+            other.locator('#formula-left-symbol-1-value').fill('9');other.locator('#original-input').fill('另一窗口保存的新问题与公式')
+            _save_formula_editor(other,base)
+            page.locator('#formula-refresh').click()
+            expect(page.locator('#formula-status')).to_contain_text('版本')
+            expect(page.locator('#formula-left-symbol-1-value')).to_have_value('3')
+            expect(page.locator('#original-input')).to_have_value(original)
+            expect(page.locator('#revision-label')).to_have_text('当前修订 1')
+            expect(page.locator('#formula-run')).to_be_disabled()
+            expect(page.locator('#status')).to_contain_text('表单仍基于修订 1')
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('transition',['revision','new-task'])
+def test_formula_real_history_native_tab_original_snapshot_result_time_and_readonly(server,transition):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context(viewport={'width':430,'height':932})
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            for name in ('left','right'):page.locator('#formula-'+name+'-use-template').click()
+            body=_save_formula_editor(page,base);rid=body['research']['id'];first=_formula_execute_ui(page)
+            original=context.request.get(base+'/api/research/'+rid+'/formula-results/'+first['result_ref']).json()
+            if transition=='revision':
+                page.locator('#original-input').fill('新修订的原问题不能替换历史原式');page.locator('#formula-left-symbol-1-value').fill('5')
+                _save_formula_editor(page,base)
+            else:
+                page.locator('#formula-refresh').click();expect(page.locator('#formula-editor-status')).to_contain_text('已按权限读取')
+                second=_formula_execute_ui(page);assert second['result_ref']!=first['result_ref']
+            page.reload();expect(page.locator('#task-history-items a')).not_to_have_count(0)
+            link=page.locator('#task-history-items a[href="/research/'+rid+'?task_id='+first['task_id']+'"]')
+            link.focus()
+            with context.expect_page() as opened:page.keyboard.press('Enter')
+            history=opened.value
+            expect(history.locator('#view-context')).to_contain_text('历史流程')
+            expect(history.locator('#formula-result-ref')).to_have_text(first['result_ref'])
+            expect(history.locator('#formula-result-time')).to_have_attribute('datetime',first['formula_result_recorded_at'])
+            expect(history.locator('#formula-left-symbol-1-value')).to_have_value('3')
+            expect(history.locator('#formula-left-symbol-1-value')).to_be_disabled()
+            expect(history.locator('#formula-confirm')).to_be_disabled()
+            assert history.evaluate('window.opener===null')
+            requests=[];history.on('request',lambda request:requests.append(request.url) if request.method=='POST' and '/api/research' in request.url else None)
+            for identifier in ('formula-run','formula-recover','source-preview','source-confirm','task-start','task-cancel'):
+                history.locator('#'+identifier).dispatch_event('click')
+            history.locator('#problem-form').dispatch_event('submit');history.wait_for_timeout(50)
+            assert requests==[]
+            server['stop'](server['process']);server['start']();history.reload()
+            expect(history.locator('#formula-result-ref')).to_have_text(first['result_ref'])
+            expect(history.locator('#formula-result-time')).to_have_attribute('datetime',first['formula_result_recorded_at'])
+            assert context.request.get(base+'/api/research/'+rid+'/formula-results/'+first['result_ref']).json()==original
+            assert history.evaluate('document.documentElement.scrollWidth<=innerWidth')
+            history.screenshot(path=str(server['root']/'formula-history-430.png'),full_page=True)
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('stage',['formula-checks','source-approvals','source-tasks'])
+def test_formula_fixed_or_historical_view_keeps_genuine_pending_intent_without_any_post(server,stage):
+    server['stop'](server['process']);server['start'](d1_sources=True)
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();seen=[]
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            for name in ('left','right'):page.locator('#formula-'+name+'-use-template').click()
+            if stage!='formula-checks':page.locator('#confirmed').check()
+            body=_save_formula_editor(page,base);rid=body['research']['id']
+            if stage!='formula-checks':
+                first=_formula_execute_ui(page);page.reload();expect(page.locator('#formula-result-ref')).to_have_text(first['result_ref'])
+                page.locator('#source-query').fill('queue pending formula');page.locator('#source-preview').click();expect(page.locator('#source-confirm')).to_be_visible()
+            def lose(route):
+                response=route.fetch()
+                try:
+                    assert response.status==200,response.text();seen.append(response.json()['data'])
+                finally:route.abort()
+            page.route('**/'+stage,lose,times=1)
+            if stage=='formula-checks':
+                page.locator('#formula-confirm').check();page.locator('#formula-run').click();expect(page.locator('#formula-status')).to_contain_text('状态尚未确认')
+                first=seen[0]
+            else:
+                page.locator('#source-confirm').click();expect(page.locator('#source-status')).to_contain_text('fetch')
+            assert len(seen)==1
+            storage=page.evaluate('Object.fromEntries(Object.entries(sessionStorage))')
+            assert any(key.startswith('structure-research-pending:formula-check:' if stage=='formula-checks' else 'structure-research-pending:source:'+stage+':') for key in storage)
+            posts=[];page.on('request',lambda request:posts.append(request.url) if request.method=='POST' and '/api/research' in request.url else None)
+            page.goto(base+'/research/'+rid+'?task_id='+first['task_id'])
+            expect(page.locator('#formula-result-ref')).to_have_text(first['result_ref'])
+            expect(page.locator('#formula-left-symbol-1-value')).to_be_disabled()
+            expect(page.locator('#formula-confirm')).to_be_disabled()
+            for identifier in ('formula-run','formula-recover','source-preview','source-confirm','task-start','task-cancel'):
+                page.locator('#'+identifier).dispatch_event('click')
+            page.locator('#problem-form').dispatch_event('submit');page.wait_for_timeout(100)
+            assert posts==[] and page.evaluate('Object.fromEntries(Object.entries(sessionStorage))')==storage
+            expect(page.locator('#view-context')).to_contain_text('历史流程' if stage=='source-tasks' else '固定任务只读')
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('error_status',[401,404])
+def test_formula_late_actual_result_access_error_cannot_clear_new_saved_problem(server,error_status):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();foreign=browser.new_context();held=[]
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            for name in ('left','right'):page.locator('#formula-'+name+'-use-template').click()
+            body=_save_formula_editor(page,base);rid=body['research']['id'];first=_formula_execute_ui(page)
+            login(foreign,base,'formula-other-owner@example.test')
+            foreign_cookie='; '.join(item['name']+'='+item['value'] for item in foreign.cookies(base))
+            def hold(route):
+                headers={**route.request.headers,'cookie':foreign_cookie if error_status==404 else 'owned_negative=1'}
+                response=route.fetch(headers=headers);assert response.status==error_status
+                held.append((route,response))
+            page.route('**/formula-results/'+first['result_ref'],hold,times=1)
+            page.locator('#formula-refresh').click()
+            for _ in range(50):
+                if held:break
+                page.wait_for_timeout(20)
+            assert held
+            page.locator('#formula-left-symbol-1-value').fill('7')
+            page.locator('#original-input').fill('迟到的公式访问失败不能清除这份新问题')
+            _save_formula_editor(page,base)
+            notice=page.locator('#status').inner_text();pending=page.evaluate('Object.fromEntries(Object.entries(sessionStorage))')
+            route,response=held.pop();route.fulfill(response=response)
+            page.wait_for_timeout(100)
+            expect(page.locator('#original-input')).to_have_value('迟到的公式访问失败不能清除这份新问题')
+            expect(page.locator('#formula-left-symbol-1-value')).to_have_value('7')
+            expect(page.locator('#status')).to_have_text(notice)
+            expect(page.locator('#formula-results')).to_have_text('')
+            assert context.request.get(base+'/api/auth/me').status==200
+            assert page.evaluate('Object.fromEntries(Object.entries(sessionStorage))')==pending
+        finally:
+            for route,_ in held:route.abort()
+            context.close();foreign.close();browser.close()
+
+
+def test_formula_actual_auth503_preserves_all_editor_fields_and_real_pending(method_server):
+    server=method_server
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            for name in ('left','right'):page.locator('#formula-'+name+'-use-template').click()
+            _save_formula_editor(page,base)
+            def lose(route):
+                response=route.fetch();assert response.status==200;route.abort()
+            page.route('**/formula-checks',lose,times=1)
+            page.locator('#formula-confirm').check();page.locator('#formula-run').click()
+            expect(page.locator('#formula-status')).to_contain_text('状态尚未确认')
+            page.locator('#formula-left-symbol-1-value').fill('7.00')
+            snapshot=page.locator('#problem-form').evaluate("f=>Array.from(f.querySelectorAll('input,textarea,select')).map(e=>[e.id,e.value,e.checked])")
+            storage=page.evaluate('Object.fromEntries(Object.entries(sessionStorage))')
+            assert any(key.startswith('structure-research-pending:formula-check:') for key in storage)
+            server['stop'](server['process']);server['start'](auth_enabled=False)
+            page.locator('#research-list-refresh').click()
+            expect(page.locator('#status')).to_contain_text('暂时无法核对')
+            assert page.locator('#problem-form').evaluate("f=>Array.from(f.querySelectorAll('input,textarea,select')).map(e=>[e.id,e.value,e.checked])")==snapshot
+            assert page.evaluate('Object.fromEntries(Object.entries(sessionStorage))')==storage
+            expect(page.locator('#formula-results')).to_have_text('');expect(page.locator('#formula-run')).to_be_disabled()
+        finally:context.close();browser.close()
+
+
+def test_formula_real_source_reader_keeps_old_revision_and_stop_policy_but_hides_withdrawn_result(server):
+    from web.backend.tests.source_http_fixture import source_server
+    server['stop'](server['process']);server['start'](d1_sources=True)
+    with sync_playwright() as playwright,source_server() as (port,calls):
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            for name in ('left','right'):page.locator('#formula-'+name+'-use-template').click()
+            page.locator('#confirmed').check();body=_save_formula_editor(page,base);rid=body['research']['id']
+            page.locator('#source-query').fill('queue source formula');page.locator('#source-preview').click();expect(page.locator('#source-confirm')).to_be_visible()
+            with page.expect_response('**/source-tasks') as started:page.locator('#source-confirm').click()
+            assert started.value.status==200
+            source_task=started.value.json()['data']['task']['id']
+            worker=server['run_source_worker'](source_task,port);assert worker.returncode==0,worker.stderr
+            assert calls==['/discovery','/article']
+            with sqlite3.connect(server['path']) as conn:
+                row=conn.execute("SELECT id,payload FROM research_evidence_objects WHERE task_id=? AND kind='excerpts'",(source_task,)).fetchone();excerpt=json.loads(row[1])
+                source=json.loads(conn.execute('SELECT payload FROM research_evidence_objects WHERE id=?',(excerpt['snapshot_id'],)).fetchone()[0])
+                reference={'id':row[0],'revision':source['source_revision'],'content_digest':source['extracted_digest'],'provenance':'product_excerpt','locator':f"chars:{excerpt['start']}:{excerpt['end']}"}
+            full=context.request.get(base+'/api/research/'+rid+'/formula-revisions/1').json()['data']['formula']
+            draft={key:full[key] for key in ('input_origin','comparison_scope','left','right','requested_checks','sample_points')}
+            for form in (draft['left'],draft['right']):
+                if form:form.pop('id');form.pop('revision')
+            draft['left']['source_refs']=[reference]
+            problem={key:body['current_problem'][key] for key in ('entry','original_input','objective','summary','variables','constraints','unknowns','confirmed')};problem['formula_draft']=draft
+            revised=context.request.post(base+'/api/research/'+rid+'/revisions',headers={'Origin':base,'Idempotency-Key':'formula-real-source-revision'},data={'schema_version':'structure-research-v1','contract_revision':'b1-candidate-01','data':{'expected_revision':1,'problem':problem}})
+            assert revised.status==200,revised.text()
+            page.goto(base+'/research/'+rid);expect(page.locator('#formula-editor-status')).to_contain_text('已按权限读取')
+            meta=_formula_execute_ui(page)
+            with sqlite3.connect(server['path']) as conn:conn.execute('UPDATE research_tasks SET stop_requested=1 WHERE id=?',(source_task,))
+            page.locator('#formula-refresh').click();expect(page.locator('#formula-result-ref')).to_have_text(meta['result_ref'])
+            with sqlite3.connect(server['path']) as conn:conn.execute('DELETE FROM research_evidence_objects WHERE id=?',(excerpt['snapshot_id'],))
+            page.locator('#formula-refresh').click()
+            expect(page.locator('#formula-editor-status')).to_contain_text('当前不可读取')
+            expect(page.locator('#formula-results')).to_have_text('')
+            expect(page.locator('#original-input')).to_be_enabled()
+            expect(page.locator('#formula-run')).to_be_disabled()
+            blocked=context.request.get(base+'/api/research/'+rid+'/formula-results/'+meta['result_ref'])
+            assert blocked.status==200 and blocked.json()['data']['state']=='unavailable' and blocked.json()['data']['result'] is None
+        finally:context.close();browser.close()
+
+
+
+def test_formula_client_canonical_bounds_and_attestation_guards_from_actual_http_record(server):
+    """Client-only malformed clones never substitute for executed mathematics."""
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            for name in ('left','right'):page.locator('#formula-'+name+'-use-template').click()
+            body=_save_formula_editor(page,base);rid=body['research']['id'];meta=_formula_execute_ui(page)
+            snapshot=context.request.get(base+'/api/research/'+rid+'/formula-revisions/1').json()['data']
+            result=context.request.get(base+'/api/research/'+rid+'/formula-results/'+meta['result_ref']).json()['data']
+            source=(ROOT/'web/frontend/assets/research.js').read_text()
+            block=source[source.index('  // Formula drafts are plain editor data'):source.index('  function status(message')]
+            definitions='\n'.join(line.strip() for line in source.splitlines() if line.strip().startswith(('const validId =','const recordTime =')))
+            payload={'rid':rid,'problem_digest':body['current_problem']['digest'],'snapshot':snapshot,'metadata':meta,'result':result}
+            program="const payload=JSON.parse(require('fs').readFileSync(0,'utf8'));const crypto=require('node:crypto').webcrypto;\n"+definitions+"\nconst formulaState={snapshot:{raw:payload.snapshot.formula,digest:payload.snapshot.formula_digest},scope:{rid:payload.rid,revision:1,problemDigest:payload.problem_digest}};\n"+block+r"""
+(async()=>{
+ await formulaValidateResult(payload.result,payload.metadata,payload.metadata.task_id);
+ const pairs=[['3.00','3'],['1000','1E+3'],['0.0000001','1E-7'],['-0.0','0'],['1e-6','0.000001'],['12.300','12.3']];
+ for(const [input,expected]of pairs)if(formulaNormalizeDecimal(input)!==expected)throw Error('decimal protocol mismatch');
+ const bad=[v=>{v.result.execution_attested=true},v=>{v.metadata.formula_result_recorded_at=null},v=>{v.metadata.result_ref='00000000-0000-4000-8000-000000000000'},v=>{v.provenance.problem_digest='0'.repeat(64)},v=>{v.result.content_input_digest='0'.repeat(64)},v=>{v.result.outcomes.find(x=>x.check_kind==='bounded_numeric').relation='algebraic_identity'},v=>{v.result.formula_displays[0].original_display='changed'},v=>{v.result.source_references.push({id:'foreign'})},v=>{v.provenance.execution_state='ok';v.provenance.execution_attested=true;v.provenance.resource_guard='not_executed'}];
+ if(!payload.result.provenance.execution_attested)bad.push(v=>{v.result.outcomes[0].status='passed'});
+ for(const change of bad){const value=structuredClone(payload.result);change(value);let rejected=false;try{await formulaValidateResult(value,payload.metadata,payload.metadata.task_id)}catch{rejected=true}if(!rejected)throw Error('malformed proof accepted')}
+ const hugeResult=structuredClone(payload.result);hugeResult.result.limitations=['x'.repeat(524289)];let outputLimit=false;
+ try{await formulaValidateResult(hugeResult,payload.metadata,payload.metadata.task_id)}catch(error){outputLimit=error.message.includes('512KiB')}if(!outputLimit)throw Error('readable512 bound missing');
+ const draft=structuredClone(payload.snapshot.formula);delete draft.executable;for(const side of [draft.left,draft.right]){delete side.id;delete side.revision;}
+ validateFormulaDraft(draft);
+ for(const side of [draft.left,draft.right]){
+  side.expression=null;side.symbols=[];
+ }
+ validateFormulaDraft(draft);
+ for(const side of [draft.left,draft.right]){
+  side.original_display='x'.repeat(2048);side.symbols=Array.from({length:12},(_,i)=>({id:('symbol_'+i).padEnd(32,'x'),role:('role_'+i).padEnd(32,'x'),unit_id:'one',quantity:'ratio',value:'0.'+'0'.repeat(62)}));
+  side.assumptions=Array.from({length:24},(_,i)=>({id:'condition_'+i,statement:'x'.repeat(400),declared_satisfied:null}));side.boundary_conditions=[];side.initial_conditions=[];
+  side.source_refs=Array.from({length:20},(_,i)=>({id:'00000000-0000-4000-8000-'+i.toString(16).padStart(12,'0'),revision:1,content_digest:'a'.repeat(64),provenance:'product_excerpt',locator:'x'.repeat(300)}));
+  const tree=depth=>depth?{op:'mul',left:tree(depth-1),right:tree(depth-1)}:{op:'const',value:'0.'+'0'.repeat(62)};
+  side.expression={op:'eq',left:tree(5),right:tree(5)};
+ }
+ if(new TextEncoder().encode(formulaCanonical(draft)).length<=65536)throw Error('oversize test setup is not over64KiB');
+ let inputLimit=false;try{validateFormulaDraft(draft)}catch(error){inputLimit=error.message.includes('64KiB')}if(!inputLimit)throw Error('readable64 bound missing');
+ console.log('actual HTTP record accepted; decimal protocol, empty draft, malformed proof and64/512 bounds checked; no mathematical execution inferred');
+})().catch(error=>{console.error(error);process.exitCode=1});
+"""
+            checked=subprocess.run(['node','-e',program],input=json.dumps(payload),capture_output=True,text=True,timeout=20)
+            assert checked.returncode==0,checked.stderr
+            (server['root']/'formula-proof-observation.json').write_text(json.dumps({'result_ref':meta['result_ref'],'recorded_at':meta['formula_result_recorded_at'],'execution_state':result['provenance']['execution_state'],'execution_attested':result['provenance']['execution_attested'],'resource_guard':result['provenance']['resource_guard'],'pure_adapter_execution_attested':result['result']['execution_attested'],'outcomes':[{'check_kind':v['check_kind'],'status':v['status'],'relation':v['relation']} for v in result['result']['outcomes']]},indent=2))
+        finally:context.close();browser.close()
+
+
+
+@pytest.mark.parametrize('mode',['normal','abort','missing-ref','wrong-digest','wrong-task','wrong-ref','other-real-run'])
+def test_formula_ack_is_confirmed_and_request_bound_before_pending_key_retirement(server,mode):
+    """Corrupt only the browser ACK after the actual HTTP operation committed."""
+    from contextlib import closing
+    from urllib.parse import quote
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();actual=[];sent=[]
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            for side in ('left','right'):page.locator('#formula-'+side+'-use-template').click()
+            saved=_save_formula_editor(page,base);rid=saved['research']['id'];older=None
+            stages=[]
+            def keep_stage(stage):
+                stages.append(stage)
+                (server['root']/'ack-phase-terminal-observation.json').write_text(json.dumps(
+                    {'mode':mode,'stages':stages},ensure_ascii=False,indent=2))
+            def completed_previous_refresh(action):
+                requests=[];terminal=[];responses=[]
+                root=base+'/api/research/'+rid
+                snapshot=root+'/formula-revisions/'+str(saved['current_problem']['revision'])
+                result=root+'/formula-results/'+older['result_ref']
+                wanted=(root,snapshot,result)
+                def capture(request):
+                    if request.method=='GET' and request.url in wanted:requests.append(request)
+                def headers(response):
+                    if any(response.request is request for request in requests):responses.append(response)
+                def finished(request):
+                    if any(request is original for original in requests):terminal.append(('requestfinished',request,time.monotonic()))
+                def failed(request):
+                    if any(request is original for original in requests):terminal.append(('requestfailed',request,time.monotonic()))
+                listeners=[('request',capture),('response',headers),('requestfinished',finished),('requestfailed',failed)]
+                for event,callback in listeners:page.on(event,callback)
+                deadline=time.monotonic()+15
+                stage={'phase':'previous-refresh','started':deadline-15,'requests':[]}
+                try:
+                    action()
+                    while True:
+                        complete=all(any(request.url==url for request in requests) for url in wanted)
+                        complete=complete and all(any(event[1] is request for event in terminal) for request in requests)
+                        settled=page.evaluate("""({ref,time})=>{
+                          const e=id=>document.getElementById(id);
+                          return e('formula-result-ref')?.textContent===ref && e('formula-result-time')?.getAttribute('datetime')===time &&
+                            !(e('formula-status')?.textContent||'').startsWith('正在') && !e('formula-refresh').disabled;
+                        }""",{'ref':older['result_ref'],'time':older['formula_result_recorded_at']}) if complete else False
+                        if complete and settled:
+                            assert time.monotonic()<=deadline,'Previous formula refresh DOM settle exceeded15s'
+                            break
+                        remaining=deadline-time.monotonic()
+                        assert remaining>0,'Previous formula refresh did not finish its Root/snapshot/result/body/DOM phase within15s'
+                        page.wait_for_timeout(min(20,remaining*1000))
+                    assert all(event[0]=='requestfinished' and event[2]<=deadline for event in terminal)
+                    assert all(any(response.request is request and response.status==200 for response in responses) for request in requests)
+                    stage['settled']=time.monotonic()
+                finally:
+                    stage['requests']=[{'role':wanted.index(request.url),'terminal':next((event[0] for event in terminal if event[1] is request),None)} for request in requests]
+                    keep_stage(stage)
+                    for event,callback in listeners:page.remove_listener(event,callback)
+            if mode=='other-real-run':
+                older=_formula_execute_ui(page)
+                completed_previous_refresh(lambda:page.locator('#formula-refresh').click());expect(page.locator('#formula-editor-status')).to_contain_text('已按权限读取')
+            page.on('request',lambda request:sent.append((request.headers.get('idempotency-key'),request.post_data)) if request.method=='POST' and request.url.endswith('/formula-checks') else None)
+            if mode!='normal':
+                def fault_after_commit(route):
+                    response=route.fetch();assert response.status==200,response.text();body=response.json();actual.append(body['data'].copy())
+                    if mode=='abort':route.abort();return
+                    if mode=='missing-ref':body['data'].pop('result_ref')
+                    elif mode=='wrong-digest':body['data']['formula_digest']='0'*64
+                    elif mode=='wrong-task':body['data']['task_id']='00000000-0000-4000-8000-000000000000'
+                    elif mode=='wrong-ref':body['data']['result_ref']='00000000-0000-4000-8000-000000000000'
+                    elif mode=='other-real-run':body['data']=older
+                    route.fulfill(response=response,json=body)
+                page.route('**/formula-checks',fault_after_commit,times=1)
+            def completed_ack_post(action,*,expect_ack_get=True):
+                captured=[];responses=[];terminal=[];reads=[];read_responses=[];read_terminal=[]
+                def capture(request):
+                    if request.method=='POST' and request.url==base+'/api/research/'+rid+'/formula-checks' and not captured:captured.append(request)
+                    if request.method=='GET' and request.url.split('?')[0]==base+'/api/research/'+rid:reads.append((request,time.monotonic()))
+                def headers(response):
+                    if captured and response.request is captured[0]:responses.append(response)
+                    if any(response.request is request for request,_ in reads):read_responses.append((response,time.monotonic()))
+                def finished(request):
+                    if captured and request is captured[0] and not terminal:terminal.append(('requestfinished',request,time.monotonic()))
+                    if any(request is original for original,_ in reads):read_terminal.append(('requestfinished',request,time.monotonic()))
+                def failed(request):
+                    if captured and request is captured[0] and not terminal:terminal.append(('requestfailed',request,time.monotonic()))
+                    if any(request is original for original,_ in reads):read_terminal.append(('requestfailed',request,time.monotonic()))
+                listeners=[('request',capture),('response',headers),('requestfinished',finished),('requestfailed',failed)]
+                for event,callback in listeners:page.on(event,callback)
+                deadline=time.monotonic()+15
+                stage={'phase':'ACK-post-and-confirmation','started':deadline-15,'confirmation_reads':[]}
+                try:
+                    action()
+                    while not terminal:
+                        remaining=deadline-time.monotonic()
+                        assert remaining>0,'ACK body did not reach a terminal network event within15s'
+                        page.wait_for_timeout(min(20,remaining*1000))
+                    assert terminal[0][2]<=deadline,'ACK terminal network event exceeded15s'
+                    assert captured and terminal[0][1] is captured[0],'ACK terminal event must identify the original POST'
+                    assert terminal[0][0]=='requestfinished','ACK body requestfailed before completion'
+                    assert len(responses)==1 and responses[0].request is captured[0],'ACK headers and finish must be the same request'
+                    stage['post_terminal']=terminal[0][2]
+                    if expect_ack_get:
+                        ack=responses[0].json()['data']
+                        target=base+'/api/research/'+rid+'?task_id='+quote(ack['task_id'],safe='')
+                        confirmation_deadline=time.monotonic()+15
+                        while not any(request.url==target for request,_ in reads):
+                            remaining=confirmation_deadline-time.monotonic()
+                            assert remaining>0,'ACK confirmation GET was not observed within15s'
+                            page.wait_for_timeout(min(20,remaining*1000))
+                        selected,started=next((request,at) for request,at in reads if request.url==target)
+                        confirmation_deadline=min(confirmation_deadline,started+15)
+                        def completed_read(request):
+                            while not any(event[1] is request for event in read_terminal):
+                                remaining=confirmation_deadline-time.monotonic()
+                                assert remaining>0,'ACK confirmation body did not reach terminal within its original15s phase'
+                                page.wait_for_timeout(min(20,remaining*1000))
+                            event=next(event for event in read_terminal if event[1] is request)
+                            assert event[0]=='requestfinished' and event[2]<=confirmation_deadline,'ACK confirmation failed or exceeded15s'
+                            response,at=next((response,at) for response,at in read_responses if response.request is request)
+                            stage['confirmation_reads'].append({'role':'task' if request is selected else 'trusted-root','terminal':event[0],'at':event[2],'status':response.status})
+                            return response,at
+                        response,headers_at=completed_read(selected)
+                        if response.status==404:
+                            root=base+'/api/research/'+rid
+                            while not any(request.url==root and at>=headers_at for request,at in reads):
+                                remaining=confirmation_deadline-time.monotonic()
+                                assert remaining>0,'ACK trusted Root probe was not observed within15s'
+                                page.wait_for_timeout(min(20,remaining*1000))
+                            trusted=next(request for request,at in reads if request.url==root and at>=headers_at)
+                            completed_read(trusted)
+                    return responses[0]
+                finally:
+                    keep_stage(stage)
+                    for event,callback in listeners:page.remove_listener(event,callback)
+            page.locator('#formula-confirm').check()
+            if mode=='abort':
+                with page.expect_event('requestfailed',predicate=lambda request:request.url.endswith('/formula-checks')):page.locator('#formula-run').click()
+            else:
+                completed_ack_post(lambda:page.locator('#formula-run').click(),expect_ack_get=mode in ('normal','wrong-task','wrong-ref','other-real-run'))
+            if mode=='normal':expect(page.locator('#formula-result-ref')).to_have_text(re.compile(r'[0-9a-f-]{36}'))
+            else:
+                assert len(actual)==1
+                expect(page.locator('#formula-status')).not_to_have_text(re.compile(r'^正在'))
+            pending=page.evaluate("Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('structure-research-pending:formula-check:')))")
+            with closing(sqlite3.connect(server['path'])) as conn:count=conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]
+            expected=2 if mode=='other-real-run' else 1
+            (server['root']/'ack-observation.json').write_text(json.dumps({'mode':mode,'actual_task_count':count,'post_count':len(sent),'pending_count':len(pending),'recover_visible':page.locator('#formula-recover').is_visible(),'status':page.locator('#formula-status').inner_text()},ensure_ascii=False,indent=2))
+            assert count==expected and len(sent)==1
+            if mode=='normal':assert len(pending)==0
+            else:
+                assert len(pending)==1,'Unconfirmed or request-mismatched ACK must keep the original key'
+                expect(page.locator('#formula-recover')).to_be_visible()
+                expect(page.locator('#formula-status')).to_contain_text('状态尚未确认')
+                expect(page.locator('#problem-form')).to_be_visible()
+                replay=completed_ack_post(lambda:page.locator('#formula-recover').click())
+                assert replay.status==200
+                assert replay.json()['data']['result_ref']==actual[0]['result_ref']
+                assert replay.json()['data']['formula_result_recorded_at']==actual[0]['formula_result_recorded_at']
+                expect(page.locator('#formula-result-ref')).to_have_text(actual[0]['result_ref'])
+                assert len(sent)==2 and sent[0]==sent[1]
+                assert page.evaluate("Object.keys(sessionStorage).filter(key=>key.startsWith('structure-research-pending:formula-check:')).length")==0
+                with closing(sqlite3.connect(server['path'])) as conn:assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]==expected
+        finally:context.close();browser.close()
+
+
+
+@pytest.mark.parametrize('mode',['current-logout','restored-session','new-draft','private-scope-changed'])
+def test_formula_ack_metadata401_confirms_current_auth_loss_without_retiring_unknown_key(server,mode):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();committed=[];held=[];metadata_statuses=[];auth_reads=[]
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            for side in ('left','right'):page.locator('#formula-'+side+'-use-template').click()
+            saved=_save_formula_editor(page,base);rid=saved['research']['id'];original=page.locator('#original-input').input_value()
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            def lose_auth_after_commit(route):
+                response=route.fetch();assert response.status==200,response.text();committed.append(response.json()['data'])
+                assert context.request.post(base+'/api/auth/logout',headers={'Origin':base}).status==200
+                assert context.request.get(base+'/api/auth/me').status==401
+                route.fulfill(response=response)
+            page.route('**/formula-checks',lose_auth_after_commit,times=1)
+            if mode!='current-logout':
+                def hold401(route):
+                    response=route.fetch();assert response.status==401;metadata_statuses.append(response.status);held.append((route,response))
+                page.route('**/api/research/'+rid+'?task_id=*',hold401,times=1)
+            page.on('response',lambda response:auth_reads.append(response.status) if response.url==base+'/api/auth/me' else None)
+            page.locator('#formula-confirm').check()
+            if mode=='current-logout':
+                with page.expect_response(lambda response:response.status==401 and '/api/research/' in response.url):page.locator('#formula-run').click()
+                expect(page.locator('#formula-status')).not_to_have_text(re.compile(r'^正在'))
+            else:
+                page.locator('#formula-run').click()
+                for _ in range(100):
+                    if held:break
+                    page.wait_for_timeout(20)
+                assert len(held)==1
+                if mode in ('restored-session','new-draft'):
+                    login(context,base)
+                    assert context.request.get(base+'/api/auth/me').status==200
+                    if mode=='new-draft':
+                        page.locator('#formula-left-symbol-1-value').fill('7')
+                        page.locator('#original-input').fill('恢复身份后的新草稿不可被迟到401清除')
+                else:
+                    page.locator('#research-list-refresh').click();expect(page.locator('#problem-form')).to_be_hidden()
+                count_before_release=len(auth_reads)
+                route,response=held.pop();route.fulfill(response=response)
+                if mode=='restored-session':expect(page.locator('#formula-status')).to_contain_text('状态尚未确认')
+                else:page.wait_for_timeout(100)
+                if mode in ('new-draft','private-scope-changed'):assert len(auth_reads)==count_before_release,'stale ticket must not add auth reads'
+            assert len(committed)==1
+            pending=page.evaluate("Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('structure-research-pending:formula-check:')))")
+            (server['root']/'ack-auth-observation.json').write_text(json.dumps({'mode':mode,'pending_count':len(pending),'form_visible':page.locator('#problem-form').is_visible(),'original_input':page.locator('#original-input').input_value(),'status':page.locator('#status').inner_text(),'actual_task_id':committed[0]['task_id'],'metadata_statuses':metadata_statuses,'auth_reads':auth_reads},ensure_ascii=False,indent=2))
+            assert len(pending)==1
+            if mode in ('current-logout','private-scope-changed'):
+                expect(page.locator('#problem-form')).to_be_hidden()
+                expect(page.locator('#original-input')).to_have_value('')
+                expect(page.locator('#formula-check-section')).to_be_hidden()
+                expect(page.locator('#formula-results')).to_have_text('')
+                expect(page.locator('#status')).to_contain_text('登录')
+                assert context.request.get(base+'/api/auth/me').status==401
+            else:
+                expect(page.locator('#problem-form')).to_be_visible()
+                expect(page.locator('#original-input')).to_have_value('恢复身份后的新草稿不可被迟到401清除' if mode=='new-draft' else original)
+                assert context.request.get(base+'/api/auth/me').status==200
+            with sqlite3.connect(server['path']) as conn:assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]==1
+        finally:
+            for route,_ in held:route.abort()
+            context.close();browser.close()
+
+
+def _formula_real_sso_cookie(browser,base,email):
+    """Obtain a second credential through the mounted app's real SSO exchange."""
+    from urllib.parse import parse_qs,urlsplit
+    other=browser.new_context()
+    try:
+        login(other,base,email)
+        start=other.request.get(base+'/api/sso/start',max_redirects=0)
+        assert start.status==303
+        query=parse_qs(urlsplit(start.headers['location']).query)
+        issued=other.request.post(base+'/api/sso/issue',headers={'Origin':base},data={
+            'audience':'structural-beta','state':query['state'][0],'nonce':query['nonce'][0]})
+        assert issued.status==200
+        exchanged=other.request.post(base+'/api/sso/exchange',headers={'Origin':base},data={
+            'state':query['state'][0],'code':issued.json()['code']})
+        assert exchanged.status==200
+        assert other.request.get(base+'/api/auth/me').json()['user']['email']==email
+        return next(cookie for cookie in other.cookies() if cookie['name']=='structural_beta_session')
+    finally:other.close()
+
+
+@pytest.mark.parametrize('mode',[
+    'account-switch','same-owner-wrong-task','same-owner-new-draft','restored-owner',
+    'late-root-new-draft','late-root-private-scope','credential-conflict','same-owner-dual',
+    'restored-conflict','stale-conflict-draft','stale-conflict-private-scope',
+])
+def test_formula_ack_identity_boundary_preserves_unknown_key_and_current_draft(server,mode):
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context();held=[];committed=[];posts=[];reads=[];finished=[];metadata_statuses=[];root_statuses=[]
+        try:
+            base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
+            page.locator('#original-input').fill('账户A已保存的私有问题')
+            for side in ('left','right'):page.locator('#formula-'+side+'-use-template').click()
+            saved=_save_formula_editor(page,base);rid=saved['research']['id'];original=page.locator('#original-input').input_value()
+            expect(page.locator('#research-list-status')).to_contain_text('已读取 1')
+            dual=mode in ('credential-conflict','same-owner-dual','restored-conflict','stale-conflict-draft','stale-conflict-private-scope')
+            sso=_formula_real_sso_cookie(browser,base,'browser-a@example.test' if mode=='same-owner-dual' else 'browser-b@example.test') if dual else None
+            assert context.request.get(base+'/api/auth/me').json()['user']['email']=='browser-a@example.test'
+            def capture_post(route):
+                response=route.fetch();assert response.status==200
+                committed.append(response.json()['data']);posts.append(route.request.headers['idempotency-key']);held.append(('ack',route,response))
+            page.route('**/formula-checks',capture_post,times=1)
+            def capture_meta(route):
+                response=route.fetch();held.append(('meta',route,response))
+            if mode in ('restored-owner','restored-conflict','stale-conflict-draft','stale-conflict-private-scope'):
+                page.route('**/api/research/'+rid+'?task_id=*',capture_meta,times=1)
+            def capture_root(route):
+                response=route.fetch();assert response.status==404;held.append(('root',route,response))
+            if mode.startswith('late-root-'):page.route(base+'/api/research/'+rid,capture_root,times=1)
+            page.on('request',lambda request:reads.append(request.url) if request.method=='GET' and request.url in (base+'/api/auth/me',base+'/api/research/'+rid) else None)
+            page.on('requestfinished',lambda request:finished.append(request.url))
+            page.on('response',lambda response:metadata_statuses.append(response.status) if response.url.startswith(base+'/api/research/'+rid+'?task_id=') else None)
+            page.on('response',lambda response:root_statuses.append(response.status) if response.url==base+'/api/research/'+rid else None)
+            def wait_held(kind):
+                deadline=time.monotonic()+5
+                while not any(item[0]==kind for item in held) and time.monotonic()<deadline:page.wait_for_timeout(20)
+                assert any(item[0]==kind for item in held),kind+' did not arrive'
+                item=next(item for item in held if item[0]==kind);held.remove(item);return item[1:]
+            def draft():
+                page.locator('#formula-left-symbol-1-value').fill('7')
+                page.locator('#original-input').fill('账户A的新草稿应保留')
+            page.locator('#formula-confirm').check();page.locator('#formula-run').click();route,response=wait_held('ack')
+            if dual:
+                context.add_cookies([sso])
+                auth=context.request.get(base+'/api/auth/me')
+                assert auth.status==(200 if mode=='same-owner-dual' else 409)
+                if mode!='same-owner-dual':assert auth.json()['error']=='credential_conflict'
+            elif mode not in ('same-owner-wrong-task','same-owner-new-draft'):
+                assert context.request.post(base+'/api/auth/logout',headers={'Origin':base}).status==200
+                login(context,base,'browser-b@example.test')
+                assert context.request.get(base+'/api/auth/me').json()['user']['email']=='browser-b@example.test'
+                assert context.request.get(base+'/api/research/'+rid).status==404
+            if mode=='same-owner-wrong-task':
+                other=context.new_page();other.goto(base+'/research/'+rid)
+                expect(other.locator('#formula-editor-status')).to_contain_text('已按权限读取')
+                other.locator('#formula-left-symbol-1-value').fill('9')
+                other.locator('#original-input').fill('另一窗口已保存的新问题，不得被可信核验装入旧表单')
+                newer=_save_formula_editor(other,base);assert newer['current_problem']['revision']==2;other.close()
+            if mode=='same-owner-new-draft':draft()
+            if mode in ('same-owner-wrong-task','same-owner-new-draft'):
+                ack=response.json();ack['data']['task_id']='00000000-0000-4000-8000-000000000000';route.fulfill(response=response,json=ack)
+            else:route.fulfill(response=response)
+            if mode in ('restored-owner','restored-conflict','stale-conflict-draft','stale-conflict-private-scope'):
+                route,response=wait_held('meta')
+                assert response.status==(404 if mode=='restored-owner' else 409)
+                if mode!='restored-owner':assert response.json()['error']['code']=='AUTHORIZATION_STALE'
+                if mode=='restored-owner':
+                    assert context.request.post(base+'/api/auth/logout',headers={'Origin':base}).status==200;login(context,base)
+                elif mode=='stale-conflict-private-scope':
+                    page.locator('#research-list-refresh').click();expect(page.locator('#problem-form')).to_be_hidden()
+                else:
+                    context.clear_cookies(name='structural_beta_session')
+                    assert context.request.get(base+'/api/auth/me').status==200
+                    if mode=='stale-conflict-draft':draft()
+                read_before=len(reads);route.fulfill(response=response)
+            elif mode.startswith('late-root-'):
+                route,response=wait_held('root')
+                if mode=='late-root-private-scope':
+                    page.locator('#research-list-refresh').click();expect(page.locator('#problem-form')).to_be_hidden()
+                else:
+                    assert context.request.post(base+'/api/auth/logout',headers={'Origin':base}).status==200;login(context,base);draft()
+                read_before=len(reads);route.fulfill(response=response)
+            deadline=time.monotonic()+5
+            while not metadata_statuses and time.monotonic()<deadline:page.wait_for_timeout(20)
+            assert metadata_statuses==[200 if mode=='same-owner-dual' else 409 if dual else 404]
+            # The trusted gate may reject the page before the untrusted metadata
+            # body is consumed. Wait for the real gate's body and resulting DOM.
+            if mode in ('account-switch','same-owner-wrong-task','restored-owner'):
+                while base+'/api/research/'+rid not in finished and time.monotonic()<deadline:page.wait_for_timeout(20)
+                assert base+'/api/research/'+rid in finished,'trusted root body did not finish'
+            elif mode.startswith('late-root-'):
+                # A draft/private-generation change stops the central read before
+                # consuming its body; arrival must not clear or rebase that view.
+                while not root_statuses and time.monotonic()<deadline:page.wait_for_timeout(20)
+                assert root_statuses==[404]
+            elif mode in ('credential-conflict','restored-conflict'):
+                while base+'/api/auth/me' not in finished and time.monotonic()<deadline:page.wait_for_timeout(20)
+                assert base+'/api/auth/me' in finished,'trusted auth body did not finish'
+            elif mode not in ('stale-conflict-private-scope',):
+                while not any(url.startswith(base+'/api/research/'+rid+'?task_id=') for url in finished) and time.monotonic()<deadline:page.wait_for_timeout(20)
+                assert any(url.startswith(base+'/api/research/'+rid+'?task_id=') for url in finished),'consumed metadata body did not finish'
+            if mode in ('account-switch','credential-conflict'):expect(page.locator('#problem-form')).to_be_hidden()
+            if mode in ('same-owner-wrong-task','restored-owner','restored-conflict'):expect(page.locator('#formula-status')).to_contain_text('状态尚未确认')
+            if mode=='same-owner-dual':expect(page.locator('#formula-result-ref')).to_have_text(committed[0]['result_ref'])
+            page.evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+            formula_pending=page.evaluate("Object.entries(sessionStorage).filter(([key])=>key.startsWith('structure-research-pending:formula-check:')).map(([,value])=>JSON.parse(value))")
+            assert len(formula_pending)==(0 if mode=='same-owner-dual' else 1)
+            if formula_pending:assert formula_pending[0]['key']==posts[0]
+            with sqlite3.connect(server['path']) as conn:assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]==1
+            cleared=mode in ('account-switch','credential-conflict','late-root-private-scope','stale-conflict-private-scope')
+            facts={'mode':mode,'private_form_visible':page.locator('#problem-form').is_visible(),'pending':len(formula_pending),'actual_task_count':1,'browser_root_reads':reads.count(base+'/api/research/'+rid),'browser_auth_reads':reads.count(base+'/api/auth/me'),'input_preserved':page.locator('#original-input').input_value()==original,'metadata_statuses':metadata_statuses,'root_statuses':root_statuses}
+            (server['root']/'ack-identity-facts.json').write_text(json.dumps(facts,indent=2))
+            if cleared:
+                expect(page.locator('#problem-form')).to_be_hidden();expect(page.locator('#original-input')).to_have_value('')
+                expect(page.locator('#formula-check-section')).to_be_hidden();expect(page.locator('#formula-results')).to_have_text('')
+            else:
+                expect(page.locator('#problem-form')).to_be_visible()
+                expect(page.locator('#original-input')).to_have_value('账户A的新草稿应保留' if mode in ('same-owner-new-draft','late-root-new-draft','stale-conflict-draft') else original)
+            if mode in ('same-owner-new-draft','stale-conflict-draft','stale-conflict-private-scope'):
+                assert reads.count(base+'/api/research/'+rid)==0
+                if mode!='same-owner-new-draft':assert len(reads)==read_before,'stale metadata must not start an identity read'
+            elif mode in ('account-switch','same-owner-wrong-task','restored-owner','late-root-new-draft','late-root-private-scope'):
+                assert reads.count(base+'/api/research/'+rid)==1
+            if mode in ('credential-conflict','restored-conflict'):assert reads.count(base+'/api/auth/me')==1
+            if mode=='same-owner-wrong-task':
+                expect(page.locator('#revision-label')).to_have_text('当前修订 1')
+                expect(page.locator('#formula-left-symbol-1-value')).to_have_value('3')
+                current_view=context.request.get(base+'/api/research/'+rid)
+                assert current_view.status==200 and current_view.json()['data']['current_problem']['revision']==2
+            if mode.startswith('late-root-'):assert len(reads)==read_before,'late trusted root must not trigger another read'
+            if mode=='same-owner-dual':assert reads.count(base+'/api/auth/me')==0 and len(formula_pending)==0
+        finally:
+            for _,route,_ in held:route.abort()
+            context.close();browser.close()

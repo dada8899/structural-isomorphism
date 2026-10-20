@@ -14,6 +14,13 @@ from .source_policy import PinnedPublicTransport,SourceFailure
 from .source_integration import POLICY,authorizer,check_approval,context_for,plan_for,require_enabled,origin,source_chains,unclosed_sources
 
 
+def _worker_scope(conn,store,task_lease,*,owner_lease=None,close=False):
+    from contextlib import nullcontext
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0]!=11:return nullcontext()
+    from .source_guard import worker_scope
+    return worker_scope(conn,store,task_lease,owner_lease=owner_lease,close=close)
+
+
 class SourceSession:
     def __init__(self,store,task_id,task_lease,transport):
         self.store,self.task_id,self.task_lease,self.transport=store,task_id,task_lease,transport
@@ -30,6 +37,9 @@ class SourceSession:
     def checked(self,conn):
         task=conn.execute("SELECT * FROM research_tasks WHERE id=?",(self.task_id,)).fetchone()
         self.gate.check_task(conn,task)
+        if conn.execute('SELECT version FROM research_schema').fetchone()[0]==11:
+            from .source_guard import check_active
+            self.task_lease.require(self.store,conn);check_active(self.store,conn,self.task_id)
         if task["execution"] in TERMINAL:raise PermissionError("source session ended")
         check_approval(conn,task)
         return task
@@ -60,7 +70,7 @@ class SourceSession:
         if plan!=self.plan:raise PermissionError("source plan changed")
         with self.store.transaction() as conn:principal=self.checked(conn)["principal_id"]
         with self.gate.owner_gate(principal) as lease:
-            with self.store.transaction(write=True) as conn:
+            with self.store.transaction(write=True) as conn,_worker_scope(conn,self.store,self.task_lease,owner_lease=lease):
                 task=self.checked(conn);run,_=check_approval(conn,task)
                 step=conn.execute("SELECT * FROM research_steps WHERE id=? AND task_id=?",(self.step_id,self.task_id)).fetchone()
                 if not step or step["state"]!="PREPARED":raise PermissionError("source step changed")
@@ -86,12 +96,12 @@ class SourceSession:
             try:
                 yield lease
             except BaseException as exc:
-                with self.store.transaction(write=True) as conn:
+                with self.store.transaction(write=True) as conn,_worker_scope(conn,self.store,self.task_lease,owner_lease=lease):
                     status=exc.http_status if isinstance(exc,SourceFailure) else None
                     conn.execute("UPDATE research_source_requests SET outcome='UNKNOWN',safe_code='outcome_unknown',http_status=?,ended_at=? WHERE id=? AND outcome='SENDING'",(status,now() if status is not None else None,request_id))
                 raise
             else:
-                with self.store.transaction(write=True) as conn:
+                with self.store.transaction(write=True) as conn,_worker_scope(conn,self.store,self.task_lease,owner_lease=lease):
                     self.checked(conn)
                     conn.execute("UPDATE research_source_requests SET outcome='SUCCEEDED',ended_at=?,http_status=200 WHERE id=? AND outcome='SENDING'",(now(),request_id))
 
@@ -168,8 +178,13 @@ def close_interrupted(store,task_id,task_lease):
     with store.transaction() as conn:
         task=conn.execute("SELECT * FROM research_tasks WHERE id=?",(task_id,)).fetchone()
         principal=task["principal_id"]
-    with gate.owner_gate(principal) as fresh_owner:
-        with store.transaction(write=True) as conn:
+        version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
+        if version==11:
+            from .source_guard import resource
+            owner_gate=resource(conn,task_id)['owner_gate_id']
+    owner=gate.owner_gate_id(owner_gate) if version==11 else gate.owner_gate(principal)
+    with owner as fresh_owner:
+        with store.transaction(write=True) as conn,_worker_scope(conn,store,task_lease,owner_lease=fresh_owner,close=True):
             task=conn.execute("SELECT * FROM research_tasks WHERE id=?",(task_id,)).fetchone()
             run=conn.execute("SELECT * FROM research_source_runs WHERE task_id=?",(task_id,)).fetchone()
             if not run:return
@@ -181,9 +196,11 @@ def close_interrupted(store,task_id,task_lease):
                     raise PermissionError("source gate identity changed")
             retired=run["write_epoch"]
             conn.execute("UPDATE research_source_runs SET write_epoch=write_epoch+1 WHERE task_id=? AND write_epoch=?",(task_id,retired))
+            if version==11:
+                conn.execute("UPDATE research_source_resources SET state='closed',write_epoch=write_epoch+1 WHERE task_id=?",(task_id,))
             conn.execute("UPDATE research_steps SET state='DISCARDED',version=version+1 WHERE task_id=? AND state!='SUCCEEDED'",(task_id,))
             for request in requests:
-                proof=canonical({"policy":POLICY,"executor":EXECUTOR,"task_gate":task_lease.identity,"owner_gate":fresh_owner.identity,"retired_write_epoch":retired,"proof_version":1})
+                proof=canonical({"policy":POLICY,"executor":EXECUTOR,"task_gate":task_lease.identity,"owner_gate":fresh_owner.identity,"retired_write_epoch":request["write_epoch"],"proof_version":1})
                 conn.execute("UPDATE research_source_requests SET outcome='UNKNOWN',safe_code='outcome_unknown',execution_closed=1,closure_ref=?,closure_proof=? WHERE id=? AND execution_closed=0",(str(uuid4()),proof,request["id"]))
             conn.execute("UPDATE research_tasks SET stop_requested=1,reconcile_requested=0 WHERE id=?",(task_id,))
             if task["execution"] not in TERMINAL:state_in(conn,task_id,"FAILED",evidence="INSUFFICIENT",kind="terminal",safe_code="source_incomplete")
@@ -198,7 +215,14 @@ def run_source_once(store,task_id,task_lease,transport=None):
         interrupted=bool(run["started"])
         if not interrupted:
             if task["execution"] in TERMINAL:return task["execution"]
-            conn.execute("UPDATE research_source_runs SET started=1,task_gate_identity=? WHERE task_id=? AND started=0",(canonical(task_lease.identity),task_id))
+            version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
+            if version==11:
+                with _worker_scope(conn,store,task_lease):
+                    if run['task_gate_identity']!=canonical(task_lease.identity):raise PermissionError('Source native task binding changed')
+                    if conn.execute('UPDATE research_source_runs SET started=1 WHERE task_id=? AND started=0',(task_id,)).rowcount!=1:raise PermissionError('Source claim CAS failed')
+                    conn.execute("UPDATE research_source_resources SET state='running' WHERE task_id=? AND state='admitted'",(task_id,))
+            else:
+                conn.execute("UPDATE research_source_runs SET started=1,task_gate_identity=? WHERE task_id=? AND started=0",(canonical(task_lease.identity),task_id))
     if interrupted:
         close_interrupted(store,task_id,task_lease)
         with store.transaction() as conn:return conn.execute("SELECT execution FROM research_tasks WHERE id=?",(task_id,)).fetchone()[0]

@@ -35,7 +35,12 @@ def catalog(path):
 def completed_peer(cls, auth, version, monkeypatch):
     # Stop only at a real historical migration boundary. All preceding SQL,
     # native connections, policy checks and connection hooks execute normally.
+    if version==10:
+        from .source_v10_cold_peer import produce
+        provenance=produce(auth.path)
+        print('HISTORICAL10_COLD_PEER:'+json.dumps({key:provenance[key] for key in ('version','pid','auth_graph_unchanged','native_closed_on_creator')}))
     with monkeypatch.context() as profile:
+        if version not in (10,11):profile.setattr(cls,'_initialize_current',lambda self,conn:False)
         if version == 6:profile.setattr(cls, '_migrate_v7', lambda self: None)
         if version == 7:profile.setattr(cls, '_migrate_v8', lambda self: None)
         if version == 8:profile.setattr(cls, '_migrate_v9', lambda self: None)
@@ -48,8 +53,12 @@ def completed_peer(cls, auth, version, monkeypatch):
             store._check_v7(conn);store._check_v7_attachments(conn)
         elif version == 8:
             store._check_v8(conn);store._check_v7_attachments(conn)
+        elif version==9:
+            store._check_structure_version(conn,9);store._check_v9(conn)
+        elif version==10:
+            store._check_structure_version(conn,10);store._check_v10(conn)
         else:
-            store.check_current_structure(conn);store._check_v9(conn)
+            store.check_current_structure(conn);store._check_v11(conn)
         assert conn.execute('PRAGMA journal_mode').fetchone()[0] == 'wal'
     return store
 
@@ -92,7 +101,7 @@ def thread_race(cls, auth, peer, monkeypatch):
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-@pytest.mark.parametrize('version', [9, 7, 8, 6])
+@pytest.mark.parametrize('version', [9, 7, 8, 6, 10, 11])
 def test_stale_empty_read_accepts_only_completed_peer_and_finishes_upgrade(tmp_path, monkeypatch, record_property, namespace, version):
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
     cls = importlib.import_module(namespace).ResearchStore
@@ -110,12 +119,15 @@ def test_stale_empty_read_accepts_only_completed_peer_and_finishes_upgrade(tmp_p
     result = thread_race(cls, auth, peer, monkeypatch)
     assert isinstance(result, cls), repr(result)
     with result.transaction() as conn:
-        assert conn.execute('SELECT version FROM research_schema').fetchone()[0] == 9
-        result.check_current_structure(conn);result._check_v9(conn)
+        expected=version if version in (10,11) else 9
+        assert conn.execute('SELECT version FROM research_schema').fetchone()[0] == expected
+        if expected==9:result._check_structure_version(conn,9);result._check_v9(conn)
+        elif expected==10:result._check_structure_version(conn,10);result._check_v10(conn)
+        else:result.check_current_structure(conn);result._check_v11(conn)
         assert conn.execute('SELECT research_financial_guard_version(),research_method_guard_version(),research_method_write_allowed(?,?,?)', ('probe','','{}')).fetchone()[:] == (7,9,0)
         assert conn.execute("SELECT session_generation FROM auth_users WHERE email='peer@example.invalid'").fetchone()[0] == 'peer'
         assert conn.execute('PRAGMA foreign_key_check').fetchall() == []
-    if version == 9:assert catalog(path) == peer_image
+    if version in (9,10,11):assert catalog(path) == peer_image
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
@@ -137,6 +149,7 @@ def test_peer_finishes_v9_after_legacy_commit_before_first_migration(tmp_path, m
         except BaseException as error:outcome.append(error)
 
     with monkeypatch.context() as schedule:
+        schedule.setattr(cls,'_initialize_current',lambda self,conn:False)
         schedule.setattr(cls, '_migrate_v4', scheduled)
         thread = threading.Thread(target=construct, name='stale-legacy-initializer')
         thread.start()
@@ -152,7 +165,8 @@ def test_peer_finishes_v9_after_legacy_commit_before_first_migration(tmp_path, m
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-def test_simultaneous_cold_constructors_finish_every_real_migration_boundary(tmp_path, monkeypatch, namespace):
+@pytest.mark.parametrize('cold_version',[9,11])
+def test_simultaneous_cold_constructors_finish_every_real_migration_boundary(tmp_path, monkeypatch, namespace,cold_version):
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
     cls = importlib.import_module(namespace).ResearchStore
     for attempt in range(10):
@@ -172,16 +186,19 @@ def test_simultaneous_cold_constructors_finish_every_real_migration_boundary(tmp
             return cls(auth)
 
         with monkeypatch.context() as schedule:
+            if cold_version==9:schedule.setattr(cls,'_initialize_current',lambda self,conn:False)
             schedule.setattr(cls, 'transaction', scheduled)
             with ThreadPoolExecutor(max_workers=2) as workers:
                 stores = list(workers.map(construct, range(2)))
         for store in stores:
             with store.transaction() as conn:
-                store.check_current_structure(conn);store._check_v9(conn)
+                assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==cold_version
+                if cold_version==9:store._check_structure_version(conn,9);store._check_v9(conn)
+                else:store.check_current_structure(conn);store._check_v11(conn)
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-@pytest.mark.parametrize('version', [8, 9])
+@pytest.mark.parametrize('version', [8, 9, 10, 11])
 @pytest.mark.parametrize('operation', MIGRATIONS)
 def test_direct_migration_of_completed_peer_checks_real_native_graph_without_dml(tmp_path, monkeypatch, namespace, version, operation):
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
@@ -211,7 +228,7 @@ def test_direct_migration_of_completed_peer_checks_real_native_graph_without_dml
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-@pytest.mark.parametrize('version', [8, 9])
+@pytest.mark.parametrize('version', [8, 9, 10, 11])
 @pytest.mark.parametrize('operation', MIGRATIONS)
 @pytest.mark.parametrize('fault', ['half', 'unknown-aux', 'future-marker'])
 def test_direct_migration_never_treats_bad_peer_as_completed(tmp_path, monkeypatch, namespace, version, operation, fault):
@@ -221,7 +238,7 @@ def test_direct_migration_never_treats_bad_peer_as_completed(tmp_path, monkeypat
     with store.transaction(write=True) as conn:
         if fault == 'half':conn.execute('DROP TABLE research_idempotency')
         elif fault == 'unknown-aux':conn.execute('CREATE INDEX injected_aux ON research_tasks(phase)')
-        else:conn.execute('UPDATE research_schema SET version=10')
+        else:conn.execute('UPDATE research_schema SET version='+('12' if version==11 else '11' if version==10 else '10'))
     before = catalog(path)
     with pytest.raises(module.ResearchError) as rejected:getattr(store, operation)()
     assert rejected.value.code == 'SCHEMA_UNSUPPORTED'
@@ -229,7 +246,7 @@ def test_direct_migration_never_treats_bad_peer_as_completed(tmp_path, monkeypat
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-@pytest.mark.parametrize('version', [8, 9])
+@pytest.mark.parametrize('version', [8, 9, 10, 11])
 @pytest.mark.parametrize('fault', ['policy', 'foreign-key'])
 def test_completed_peer_still_requires_policy_and_fk_data_even_on_fk_off_migration(tmp_path, monkeypatch, namespace, version, fault):
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
@@ -248,7 +265,7 @@ def test_completed_peer_still_requires_policy_and_fk_data_even_on_fk_off_migrati
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-@pytest.mark.parametrize('version', [6, 7, 8, 9])
+@pytest.mark.parametrize('version', [6, 7, 8, 9, 10, 11])
 @pytest.mark.parametrize('fault', ['half', 'unknown-aux', 'unknown-version', 'missing-marker'])
 def test_stale_empty_read_never_repairs_or_accepts_bad_peer(tmp_path, monkeypatch, namespace, version, fault):
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
@@ -265,7 +282,7 @@ def test_stale_empty_read_never_repairs_or_accepts_bad_peer(tmp_path, monkeypatc
                     name = module.V7_GUARDS[0].split()[2] if version == 7 else module.V8_JOB_GUARDS[0].split()[2] if version == 8 else 'research_method_birth'
                     conn.execute('DROP TRIGGER '+name)
             elif fault == 'unknown-aux':conn.execute('CREATE INDEX injected_aux ON research_tasks(phase)')
-            elif fault == 'unknown-version':conn.execute('UPDATE research_schema SET version=10')
+            elif fault == 'unknown-version':conn.execute('UPDATE research_schema SET version='+('12' if version==11 else '11' if version==10 else '10'))
             else:conn.execute('DROP TABLE research_schema')
         before.extend(catalog(path))
         images.append(hashlib.sha256(path.read_bytes()).hexdigest())
@@ -299,12 +316,15 @@ def test_late_ordinary_sqlite_v6_marker_without_graph_never_installs_missing_tab
 # target from the ambiguous top-level "tests" package during process spawn.
 CHILD = r'''
 from contextlib import contextmanager
-import importlib,json,sys,time
+import importlib,json,os,sqlite3,sys,time
 from pathlib import Path
-namespace,path,ready,resume,output=sys.argv[1:]
+namespace,path,ready,resume,output,cold_version,backend_root=sys.argv[1:]
+sys.path.insert(0,backend_root)
+cold_version=int(cold_version)
 cls=importlib.import_module(namespace).ResearchStore
 authmod='web.backend.services.auth_store' if namespace.startswith('web.') else 'services.auth_store'
 auth=importlib.import_module(authmod).AuthStore(Path(path))
+if cold_version==9:cls._initialize_current=lambda self,conn:False
 original=cls.transaction;armed=True
 @contextmanager
 def scheduled(self,*,write=False):
@@ -324,9 +344,18 @@ cls.transaction=scheduled
 try:
     store=cls(auth)
     with store.transaction(write=True) as conn:
-        store.check_current_structure(conn);store._check_v9(conn)
+        if cold_version==9:store._check_structure_version(conn,9);store._check_v9(conn)
+        else:store.check_current_structure(conn);store._check_v11(conn)
         conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('child@example.invalid','free','synthetic','child')")
-    Path(output).write_text(json.dumps({'ok':True,'version':9}))
+    guard=sys.modules.get('audit_bootstrap')
+    if guard is not None:
+        closed=0
+        for connection in guard.handles:
+            try:connection.execute('SELECT 1')
+            except sqlite3.ProgrammingError:closed+=1
+            else:raise AssertionError('cold constructor child leaked a native connection')
+        print('SCHEMA_COLD_CHILD_NATIVE:'+json.dumps({'pid':os.getpid(),'closed_on_creator':closed}))
+    Path(output).write_text(json.dumps({'ok':True,'version':cold_version}))
 except BaseException as error:
     Path(output).write_text(json.dumps({'ok':False,'error':type(error).__name__,'code':getattr(error,'code',None),'message':getattr(error,'message',str(error))}))
     raise
@@ -334,14 +363,15 @@ except BaseException as error:
 
 
 @pytest.mark.parametrize('namespace', NAMESPACES)
-def test_cold_schema_race_across_processes_and_namespaces_preserves_both_wal_commits(tmp_path, monkeypatch, namespace):
+@pytest.mark.parametrize('cold_version',[9,11])
+def test_cold_schema_race_across_processes_and_namespaces_preserves_both_wal_commits(tmp_path, monkeypatch, namespace,cold_version):
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
     path = tmp_path/'auth.sqlite3';auth_for(namespace, path)
     ready = tmp_path/'ready';resume = tmp_path/'resume';output = tmp_path/'result.json'
     project_root = Path(__file__).resolve().parents[3]
     child_env = dict(os.environ)
     child_env['PYTHONPATH'] = os.pathsep.join((str(project_root), str(project_root/'web/backend'), child_env.get('PYTHONPATH', '')))
-    process = subprocess.Popen([sys.executable, '-c', CHILD, namespace, str(path), str(ready), str(resume), str(output)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=child_env)
+    process = subprocess.Popen([sys.executable, '-c', CHILD, namespace, str(path), str(ready), str(resume), str(output),str(cold_version),str(Path(__file__).resolve().parents[1])], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=child_env)
     try:
         deadline = time.monotonic()+20
         while not ready.exists():
@@ -350,7 +380,9 @@ def test_cold_schema_race_across_processes_and_namespaces_preserves_both_wal_com
             time.sleep(.005)
         other = NAMESPACES[1] if namespace == NAMESPACES[0] else NAMESPACES[0]
         cls = importlib.import_module(other).ResearchStore
-        store = cls(auth_for(other, path))
+        with monkeypatch.context() as profile:
+            if cold_version==9:profile.setattr(cls,'_initialize_current',lambda self,conn:False)
+            store = cls(auth_for(other, path))
         with store.transaction(write=True) as conn:
             conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('parent@example.invalid','free','synthetic','parent')")
         # Closing a same-PID native peer must not affect the child's WAL write.
@@ -358,9 +390,12 @@ def test_cold_schema_race_across_processes_and_namespaces_preserves_both_wal_com
         resume.write_text('complete v9 peer committed')
         stdout, stderr = process.communicate(timeout=30)
         assert process.returncode == 0, (stdout.decode(), stderr.decode(), output.read_text() if output.exists() else None)
-        assert json.loads(output.read_text()) == {'ok': True, 'version': 9}
+        for line in stdout.decode().splitlines():
+            if line.startswith('SCHEMA_COLD_CHILD_NATIVE:'):print(line)
+        assert json.loads(output.read_text()) == {'ok': True, 'version': cold_version}
         with store.transaction() as conn:
-            store.check_current_structure(conn);store._check_v9(conn)
+            if cold_version==9:store._check_structure_version(conn,9);store._check_v9(conn)
+            else:store.check_current_structure(conn);store._check_v11(conn)
             assert [tuple(row) for row in conn.execute("SELECT email,session_generation FROM auth_users ORDER BY email")] == [('child@example.invalid','child'),('parent@example.invalid','parent')]
     finally:
         if process.poll() is None:process.terminate()

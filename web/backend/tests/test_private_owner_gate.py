@@ -11,6 +11,7 @@ import pytest
 from .test_research_private_storage import prepared,private,native,raw
 from research.authorization import AuthorizationGate
 from services import runtime_paths as paths
+from .test_private_registration import register_private_user,corrupt_auth_fixture,FIXTURE_SECRET
 
 
 def test_formal_mapping_and_lock_reuse_existing_identity_without_writes(prepared,native):
@@ -19,6 +20,7 @@ def test_formal_mapping_and_lock_reuse_existing_identity_without_writes(prepared
     assert all(args[0].endswith('?mode=ro') for args,_kw,_conn in native)
     with AuthorizationGate(prepared['store']).owner_gate_id(prepared['gate']) as lease:
         assert lease.identity[:2]==before
+    assert all(args[0].endswith('?mode=ro') for args,_kw,_conn in native)
     with pytest.raises(PermissionError):lease.identity
     assert (lock.stat().st_dev,lock.stat().st_ino)==before
 
@@ -27,7 +29,7 @@ def test_formal_mapping_and_lock_reuse_existing_identity_without_writes(prepared
 def test_auth_direct_owner_mapping_fails_closed_without_insert(prepared,native,monkeypatch,fault):
     obj=prepared['auth'];path=prepared['path'];email=prepared['actor'].email
     if fault in ('missing','uuid','type','policy'):
-        with raw(path) as conn:
+        with raw(path) as conn,corrupt_auth_fixture(conn,'auth_owner_gates'):
             if fault=='missing':conn.execute('DELETE FROM auth_owner_gates')
             elif fault=='policy':conn.execute("UPDATE auth_owner_gate_policy SET fingerprint='wrong'")
             else:conn.execute('UPDATE auth_owner_gates SET gate_id=?',('wrong' if fault=='uuid' else b'not-text',))
@@ -100,11 +102,57 @@ def test_formal_owner_mapping_remains_readonly_after_environment_downgrade(prepa
     assert all(args[0].endswith('?mode=ro') for args,_kw,_conn in native)
 
 
+@pytest.mark.parametrize('profile',['prod','dev'])
+def test_resource_receipt_uses_native_ro_with_both_default_hooks(prepared,native,monkeypatch,profile):
+    from services import auth_registration as registration
+    actual_hook=registration.install_hook;checked=[]
+    def observed_hook(conn):
+        actual_hook(conn)
+        assert conn.execute('SELECT research_method_guard_version()').fetchone()[0]==9
+        assert conn.execute("SELECT auth_registration_write_allowed('insert','auth_users')").fetchone()[0]==0
+        checked.append(conn)
+    monkeypatch.setattr(registration,'install_hook',observed_hook)
+    monkeypatch.setenv('STRUCTURAL_ENV',profile)
+    lock=prepared['lock'].stat()
+    assert prepared['auth'].expected_owner_gate_identity(prepared['gate'])==(lock.st_dev,lock.st_ino)
+    assert len(checked)==len(native)==1
+    assert native[0][0][0]==prepared['path'].as_uri()+'?mode=ro' and native[0][1]['uri'] is True
+    with pytest.raises(sqlite3.ProgrammingError):checked[0].execute('SELECT 1')
+    assert checked[0]._history_file is None
+
+
+@pytest.mark.parametrize('fault',['hook','policy','receipt','binding','path','promotion'])
+def test_resource_receipt_failure_closes_native_without_write_or_fallback(prepared,native,monkeypatch,fault):
+    from services import auth_registration as registration
+    obj=prepared['auth'];gate=prepared['gate']
+    if fault=='hook':
+        actual_hook=registration.install_hook
+        def failed_hook(conn):
+            actual_hook(conn)
+            raise RuntimeError('synthetic receipt hook failure')
+        monkeypatch.setattr(registration,'install_hook',failed_hook)
+    elif fault=='policy':
+        with raw(prepared['path']) as conn:conn.execute("UPDATE auth_owner_gate_policy SET fingerprint='wrong'")
+    elif fault=='receipt':gate=str(uuid4())
+    elif fault=='binding':obj._storage_identity=(0,0)
+    elif fault=='path':obj.path=prepared['path'].with_name('unapproved.sqlite3')
+    else:obj._private_auth=False
+    start=len(native)
+    with pytest.raises((PermissionError,RuntimeError,OSError)):obj.expected_owner_gate_identity(gate)
+    opened=native[start:]
+    assert len(opened)==int(fault in ('hook','policy','receipt'))
+    assert all(args[0]==prepared['path'].as_uri()+'?mode=ro' and kw['uri'] is True for args,kw,_ in opened)
+    for _args,_kw,conn in opened:
+        with pytest.raises(sqlite3.ProgrammingError):conn.execute('SELECT 1')
+        assert conn._history_file is None
+    assert not prepared['path'].with_name('unapproved.sqlite3').exists()
+
+
 @pytest.mark.parametrize('fault',['missing','uuid','type','policy'])
 @pytest.mark.parametrize('downgrade',[False,True])
 def test_direct_owner_gate_in_cannot_bypass_preprovisioned_mapping(prepared,monkeypatch,fault,downgrade):
     from services.sqlite_utils import connect_private_auth
-    with raw(prepared['path']) as conn:
+    with raw(prepared['path']) as conn,corrupt_auth_fixture(conn,'auth_owner_gates'):
         if fault=='missing':conn.execute('DELETE FROM auth_owner_gates')
         elif fault=='policy':conn.execute("UPDATE auth_owner_gate_policy SET fingerprint='wrong'")
         else:conn.execute('UPDATE auth_owner_gates SET gate_id=?',('bad' if fault=='uuid' else b'bad',))
@@ -148,11 +196,15 @@ def test_formal_first_principal_missing_map_or_lock_does_not_commit_any_research
     from research.authorization import AccountIdentity
     from research.schemas import CreateResearchRequest
     from .test_research_persistence import problem
-    monkeypatch.setenv('STRUCTURAL_ENV','dev');obj=AuthStore(private);email='a2-unprovisioned@example.invalid'
-    with obj._connection() as conn:conn.execute('INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES(?,?,?,?)',(email,'free','synthetic','g'))
-    if mapped:obj.owner_gate_id(email)
-    monkeypatch.setenv('STRUCTURAL_ENV','prod');store=ResearchStore(AuthStore(private))
-    actor=AccountIdentity(email,'g','a2-direct',int(time.time())+3600)
+    email='a2-unprovisioned@example.invalid';user,token=register_private_user(monkeypatch,email)
+    obj=AuthStore(private);gate=obj.owner_gate_id(email)
+    (private.parent/'research-locks'/(gate+'.lock')).unlink();(private.parent/'research-locks').rmdir()
+    if not mapped:
+        with raw(private) as conn,corrupt_auth_fixture(conn,'auth_owner_gates'):conn.execute('DELETE FROM auth_owner_gates')
+    store=ResearchStore(obj)
+    import jwt
+    claims=jwt.decode(token,os.getenv('JWT_SECRET') or FIXTURE_SECRET,algorithms=['HS256'])
+    actor=AccountIdentity(email,user['session_generation'],claims['jti'],claims['exp'])
     with pytest.raises((RuntimeError,OSError)):
         ResearchService(store).create(actor,CreateResearchRequest(problem=problem()),'unprovisioned-create')
     with store.transaction() as conn:
@@ -169,12 +221,12 @@ def first_owner(private,monkeypatch):
     from services.auth_store import AuthStore
     from research import ResearchStore
     from research.authorization import AccountIdentity
-    monkeypatch.setenv('STRUCTURAL_ENV','dev');obj=AuthStore(private);email='a2-first-owner@example.invalid'
-    with obj._connection() as conn:conn.execute('INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES(?,?,?,?)',(email,'free','synthetic','g'))
-    gate=obj.owner_gate_id(email);folder=private.parent/'research-locks';folder.mkdir(mode=0o700)
-    lock=folder/(gate+'.lock');lock.write_bytes(b'');lock.chmod(0o600)
-    monkeypatch.setenv('STRUCTURAL_ENV','prod');auth=AuthStore(private);store=ResearchStore(auth)
-    return dict(path=private,auth=auth,store=store,gate=gate,lock=lock,actor=AccountIdentity(email,'g','a2-first-jti',int(time.time())+3600))
+    email='a2-first-owner@example.invalid';user,token=register_private_user(monkeypatch,email)
+    auth=AuthStore(private);gate=auth.owner_gate_id(email);folder=private.parent/'research-locks';lock=folder/(gate+'.lock')
+    store=ResearchStore(auth)
+    import jwt
+    claims=jwt.decode(token,os.getenv('JWT_SECRET') or FIXTURE_SECRET,algorithms=['HS256'])
+    return dict(path=private,auth=auth,store=store,gate=gate,lock=lock,actor=AccountIdentity(email,user['session_generation'],claims['jti'],claims['exp']))
 
 
 @pytest.mark.parametrize('change',['revoke','generation','lifecycle','mapping'])
@@ -195,9 +247,12 @@ def test_first_principal_rechecks_account_and_mapping_after_waiting_for_actual_l
             assert reached.wait(5)
             with data['auth']._connection() as conn:
                 if change=='revoke':conn.execute('INSERT INTO revoked_sessions(jti,revoked_at,email) VALUES(?,?,?)',(data['actor'].jti,'synthetic',data['actor'].email))
-                elif change=='generation':conn.execute("UPDATE auth_users SET session_generation='changed'")
-                elif change=='lifecycle':conn.execute("UPDATE auth_users SET lifecycle='deleting'")
-                else:conn.execute('UPDATE auth_owner_gates SET gate_id=?',(str(uuid4()),))
+                elif change in ('generation','lifecycle'):
+                    with corrupt_auth_fixture(conn,'auth_users'):
+                        if change=='generation':conn.execute("UPDATE auth_users SET session_generation='changed'")
+                        else:conn.execute("UPDATE auth_users SET lifecycle='deleting'")
+                else:
+                    with corrupt_auth_fixture(conn,'auth_owner_gates'):conn.execute('UPDATE auth_owner_gates SET gate_id=?',(str(uuid4()),))
         with pytest.raises(ResearchError) as rejected:future.result(timeout=10)
         assert rejected.value.code==('AUTHORIZATION_STALE' if change=='mapping' else 'AUTH_REQUIRED')
     finally:pool.shutdown(wait=True)

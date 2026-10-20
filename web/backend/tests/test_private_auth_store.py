@@ -7,6 +7,8 @@ from services import runtime_paths as paths,sqlite_utils
 from services.auth_store import AuthStore
 from research.store import ResearchStore
 from api import auth
+from services.auth_registration import bootstrap_private_runtime,AUTH_REGISTRATION_GUARDS
+from .test_private_registration import register_private_user
 
 KEY='0123456789abcdef'*4
 
@@ -17,10 +19,10 @@ def private(tmp_path,monkeypatch):
     for folder in (state,cache,logs):folder.mkdir(mode=0o700)
     for name,value in [('STATE_ROOT',state),('CACHE_ROOT',cache),('LOG_ROOT',logs)]:monkeypatch.setattr(paths,name,value)
     monkeypatch.setenv('STRUCTURAL_PRIVACY_HMAC_KEY',KEY)
-    monkeypatch.setenv('STRUCTURAL_ENV','dev');monkeypatch.setenv('AUTH_DATA_DIR',str(state))
-    db=state/'auth.sqlite3';source=AuthStore(db);ResearchStore(source);db.chmod(0o600)
-    audit=state/'account_deletion_audit.jsonl';audit.write_bytes(b'');audit.chmod(0o600)
     monkeypatch.setenv('STRUCTURAL_ENV','prod')
+    monkeypatch.setenv('AUTH_DATA_DIR',str(state))
+    bootstrap_private_runtime()
+    db=state/'auth.sqlite3'
     monkeypatch.setattr(auth,'_AUTH_STORES',{})
     return db
 
@@ -114,14 +116,16 @@ def test_preflight_reads_only_schema_version_and_control_policy_no_hooks(private
     assert not any('guard_version(' in q or 'write_allowed(' in q for q in sql)
 
 
-def test_runtime_connection_preserves_autocommit_hook_policy_and_secure_delete(private,native):
+def test_runtime_connection_preserves_autocommit_hook_policy_and_secure_delete(private,native,monkeypatch):
+    register_private_user(monkeypatch,'fixture@example.invalid')
     obj=AuthStore(private)
     with obj._connection() as conn:
         assert conn.isolation_level is None and conn.row_factory is sqlite3.Row and not conn.in_transaction
         assert conn.execute('PRAGMA busy_timeout').fetchone()[0]==10000
         assert conn.execute('PRAGMA secure_delete').fetchone()[0]==1
         assert conn.execute('SELECT research_method_guard_version()').fetchone()[0]==9
-        conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('fixture@example.invalid','free','synthetic','generation')")
+        with pytest.raises(sqlite3.Error):
+            conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('ordinary@example.invalid','free','synthetic','generation')")
     with obj._connection() as conn:
         assert conn.execute("SELECT email FROM auth_users WHERE email='fixture@example.invalid'").fetchone()[0]=='fixture@example.invalid'
     with pytest.raises(RuntimeError):
@@ -163,6 +167,7 @@ def test_missing_database_never_recreated_by_hot_or_cold_factory(private,native)
 
 
 def test_lock_dir_port_is_existing_only_for_later_core_a2(private):
+    (private.parent/'research-locks').rmdir()
     with pytest.raises((OSError,paths.RuntimePathError)):paths.require_private_auth_lock_dir(private)
     folder=private.parent/'research-locks';folder.mkdir(mode=0o700)
     assert paths.require_private_auth_lock_dir(private)==folder
@@ -237,10 +242,13 @@ def test_development_initialization_and_mock_delivery_preserved(tmp_path,monkeyp
 
 def test_legal_alter_nullable_generation_form_is_accepted(private,native):
     with raw(private) as conn:
+        declarations=[row[0] for row in conn.execute("SELECT sql FROM sqlite_schema WHERE type='trigger' AND tbl_name='auth_users'")]
+        for ddl in declarations:conn.execute('DROP TRIGGER '+ddl.split()[2])
         conn.execute('ALTER TABLE auth_users RENAME TO old_auth_users')
         conn.execute("CREATE TABLE auth_users(email TEXT PRIMARY KEY,tier TEXT NOT NULL,created_at TEXT NOT NULL,session_generation TEXT)")
         conn.execute("ALTER TABLE auth_users ADD COLUMN lifecycle TEXT NOT NULL DEFAULT 'active' CHECK(lifecycle IN ('active','deleting'))")
         conn.execute('DROP TABLE old_auth_users')
+        for ddl in declarations:conn.execute(ddl)
     assert AuthStore(private).storage_identity is not None
 
 
@@ -317,11 +325,9 @@ def handler_audit_owner(private,monkeypatch,record_property):
     """Preprovision only the synthetic owner used by the stubbed handler case."""
     import stat
     from uuid import UUID
-    with monkeypatch.context() as setup:
-        setup.setenv('STRUCTURAL_ENV','dev')
-        gate=AuthStore(private).owner_gate_id('fixture@example.invalid')
-        folder=private.parent/'research-locks';folder.mkdir(mode=0o700)
-        lock=folder/(gate+'.lock');lock.write_bytes(b'');lock.chmod(0o600)
+    register_private_user(monkeypatch,'fixture@example.invalid')
+    gate=AuthStore(private).owner_gate_id('fixture@example.invalid')
+    folder=private.parent/'research-locks';lock=folder/(gate+'.lock')
     assert type(gate) is str and str(UUID(gate,version=4))==gate
     for label,path,directory,mode in (
         ('state_root',private.parent,True,0o700),('database',private,False,0o600),
@@ -349,7 +355,7 @@ def test_formal_audit_completed_delete_response_boundary_never_retries_core(priv
     from starlette.requests import Request
     from contextlib import contextmanager
     store=auth._store()
-    user,_=store.ensure_user_and_notification('fixture@example.invalid','free','synthetic')
+    user=store.user('fixture@example.invalid')
     calls=[]
     @contextmanager
     def assumed_lease(_):yield object()
@@ -393,9 +399,9 @@ if sys.argv[4]=='audit':
 from services.auth_store import AuthStore
 obj=AuthStore(root/'auth.sqlite3')
 with obj._connection() as conn:
- if sys.argv[4]=='write':conn.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('child@example.invalid','free','synthetic','generation')")
- rows=sorted(row[0] for row in conn.execute('SELECT email FROM auth_users'))
-print('AUTH_RESULT:'+json.dumps({'users':rows}))
+ if sys.argv[4]=='write':conn.execute("INSERT INTO revoked_sessions(jti,revoked_at) VALUES('synthetic-child','synthetic')")
+ rows=sorted(row[0] for row in conn.execute('SELECT jti FROM revoked_sessions'))
+print('AUTH_RESULT:'+json.dumps({'markers':rows}))
 '''
 
 
@@ -425,15 +431,16 @@ def test_native_auth_wal_ordinary_peer_close_preserves_two_process_commits(priva
         parent.execute('BEGIN');parent.execute('SELECT count(*) FROM auth_users').fetchall()
         peer=sqlite_utils.connect_private_auth(private)
         peer.execute('SELECT count(*) FROM auth_users').fetchall();peer.close()
-        assert auth_peer(private,'read')['users']==[]
+        assert auth_peer(private,'read')['markers']==[]
         assert all(private.with_name(private.name+s).exists() for s in ('-wal','-shm'))
         parent.rollback()
-        parent.execute("INSERT INTO auth_users(email,tier,created_at,session_generation) VALUES('parent@example.invalid','free','synthetic','generation')")
+        # WAL semantics need ordinary rows, not an unauthorized account writer.
+        parent.execute("INSERT INTO revoked_sessions(jti,revoked_at) VALUES('synthetic-parent','synthetic')")
         parent.commit()
-        assert auth_peer(private,'read')['users']==['parent@example.invalid']
-        assert auth_peer(private,'write')['users']==['child@example.invalid','parent@example.invalid']
+        assert auth_peer(private,'read')['markers']==['synthetic-parent']
+        assert auth_peer(private,'write')['markers']==['synthetic-child','synthetic-parent']
     finally:parent.close()
-    assert auth_peer(private,'read')['users']==['child@example.invalid','parent@example.invalid']
+    assert auth_peer(private,'read')['markers']==['synthetic-child','synthetic-parent']
 
 
 @pytest.mark.parametrize('inherited_tmpdir',[None,'unrelated'])
@@ -444,7 +451,7 @@ def test_child_environment_uses_fixture_root_without_inherited_tmpdir(private,tm
         monkeypatch.setenv('TMPDIR',str(other))
     env=child_env(private)
     assert env['TMPDIR']==env['HOME']==str(private.parent.resolve())
-    assert auth_peer(private,'read')['users']==[]
+    assert auth_peer(private,'read')['markers']==[]
 
 
 def test_existing_audit_real_multi_process_complete_records(private):
@@ -477,7 +484,7 @@ def test_audit_hardlink_is_rejected_before_opening_a_database_alias(private,monk
         monkeypatch.setattr(os,'open',no_audit_open)
         with pytest.raises(paths.RuntimePathError):auth._append_deletion_audit({'synthetic':1})
         file.unlink()  # Test-owned fault removed while the native reader stays live.
-        assert not attempted and auth_peer(private,'read')['users']==[]
+        assert not attempted and auth_peer(private,'read')['markers']==[]
         assert all(private.with_name(private.name+suffix).exists() for suffix in ('-wal','-shm'))
     finally:parent.close()
 

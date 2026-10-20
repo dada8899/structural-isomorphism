@@ -5,6 +5,8 @@ import pytest
 from services import runtime_paths as paths,sqlite_utils,sso_store
 from services.sso_store import SsoReplayStore
 from api import sso,auth,report,report_account
+from services.auth_registration import bootstrap_private_runtime
+from .test_private_registration import register_private_user
 
 SECRET='A7f9K2m4P8q1R6t3V5x0Y2z8C4d7H9j1L6n3'
 
@@ -14,11 +16,11 @@ def private(tmp_path,monkeypatch):
     state,cache,logs=tmp_path.resolve()/'state',tmp_path.resolve()/'cache',tmp_path.resolve()/'state/logs'
     for directory in (state,cache,logs):directory.mkdir(mode=0o700)
     for name,value in (('STATE_ROOT',state),('CACHE_ROOT',cache),('LOG_ROOT',logs)):monkeypatch.setattr(paths,name,value)
-    monkeypatch.setenv('STRUCTURAL_ENV','dev');monkeypatch.setenv('AUTH_DATA_DIR',str(state))
+    monkeypatch.setenv('STRUCTURAL_ENV','prod');monkeypatch.setenv('AUTH_DATA_DIR',str(state))
     monkeypatch.setenv('STRUCTURAL_SSO_DATA_DIR',str(state));monkeypatch.setenv('STRUCTURAL_SSO_SECRET',SECRET)
     monkeypatch.setenv('STRUCTURAL_PRIVACY_HMAC_KEY','0123456789abcdef'*4)
     monkeypatch.setenv('STRUCTURAL_SHARE_TOKEN_SECRET','synthetic-share-secret')
-    db=state/'sso_replay.sqlite3';SsoReplayStore(db);db.chmod(0o600)
+    bootstrap_private_runtime();db=state/'sso_replay.sqlite3'
     monkeypatch.setattr(sso,'_REPLAY_STORES',{});monkeypatch.setenv('STRUCTURAL_ENV','prod')
     return db
 
@@ -41,17 +43,9 @@ def raw(db):return sqlite3.connect(db.as_uri()+'?mode=rw',uri=True,factory=sqlit
 
 def shared_assets(db,monkeypatch):
     from services.auth_store import AuthStore
-    from research.store import ResearchStore
-    from services.history_db import HistoryDB
-    from services.report_store import ReportStore
-    from services.connections_store import ConnectionsStore
-    from services.connections_p3_store import ConnectionsP3Store
-    with monkeypatch.context() as setup:
-        setup.setenv('STRUCTURAL_ENV','dev')
-        account=AuthStore(db.parent/'auth.sqlite3');ResearchStore(account)
-        account.ensure_user_and_notification('fixture@example.invalid','free','synthetic')
-        for factory in (HistoryDB,ReportStore,ConnectionsStore,ConnectionsP3Store):factory(db.parent/'history.db')
-    for name in ('auth.sqlite3','history.db'):db.with_name(name).chmod(0o600)
+    monkeypatch.setenv('JWT_SECRET',SECRET)
+    register_private_user(monkeypatch)
+    account=AuthStore(db.parent/'auth.sqlite3')
     monkeypatch.setattr(auth,'_AUTH_STORES',{})
     monkeypatch.setattr(report,'_store',None);monkeypatch.setattr(report_account,'_store',None)
     return account
@@ -221,7 +215,8 @@ def test_real_bad_ledger_logout_never_revokes_auth_jti(private,native,monkeypatc
         'JWT_SECRET':SECRET,'SMTP_HOST':'fixture.invalid','SMTP_PORT':'587','SMTP_FROM_EMAIL':'sender@example.invalid',
         'ADMIN_NOTIFICATION_EMAIL':'owner@example.invalid','AUTH_TRUSTED_PROXY_IPS':'127.0.0.1'}
     for name,value in settings.items():monkeypatch.setenv(name,value)
-    token,jti=auth._issue_jwt('fixture@example.invalid','free')
+    _,token=register_private_user(monkeypatch)
+    jti=auth._decode_jwt(token)['jti']
     private.unlink()
     request=Request({'type':'http','method':'POST','path':'/api/auth/logout','scheme':'https',
         'server':('beta.structural.bytedance.city',443),
@@ -397,7 +392,7 @@ def test_bad_ledger_issue_never_creates_owner_gate_or_persists_exchange(private,
     shared_assets(private,monkeypatch)
     monkeypatch.setenv('AUTH_ENABLED','true');monkeypatch.setenv('JWT_SECRET',SECRET)
     monkeypatch.setenv('AUTH_LINK_BASE_URL','https://phase.bytedance.city')
-    token,_=auth._issue_jwt('fixture@example.invalid','free')
+    _,token=register_private_user(monkeypatch)
     with auth._store()._connection() as conn:before=conn.execute('SELECT count(*) FROM auth_owner_gates').fetchone()[0]
     private.unlink()
     request=Request({'type':'http','method':'POST','path':'/api/sso/issue','scheme':'https',
@@ -427,8 +422,14 @@ def _parent_cleanup_binding(email):
 
 def _development_binding_assets(db, monkeypatch, configuration):
     from api import favorites
-    shared_assets(db, monkeypatch)
     monkeypatch.setenv('STRUCTURAL_ENV', 'dev')
+    # These are explicitly virgin legacy development resources. A formal
+    # initialized root is never downgraded to seed an accepted runtime.
+    from services.auth_store import AuthStore
+    from research.store import ResearchStore
+    account=AuthStore(db.parent/'auth.sqlite3');ResearchStore(account)
+    account.ensure_user_and_notification('fixture@example.invalid','free','synthetic')
+    SsoReplayStore(db)
     from services.report_store import ReportStore
     monkeypatch.setattr(report_account, '_store', ReportStore(db.parent / 'history.db'))
     monkeypatch.chdir(db.parent.parent)
@@ -447,10 +448,22 @@ def _development_binding_assets(db, monkeypatch, configuration):
     return favorites
 
 
+@pytest.fixture
+def legacy_development(tmp_path,monkeypatch):
+    state=tmp_path.resolve()/'state';state.mkdir(mode=0o700)
+    for key,value in {'STRUCTURAL_ENV':'dev','AUTH_DATA_DIR':str(state),'STRUCTURAL_SSO_DATA_DIR':str(state),
+        'STRUCTURAL_SSO_SECRET':SECRET,'STRUCTURAL_PRIVACY_HMAC_KEY':'0123456789abcdef'*4,
+        'STRUCTURAL_SHARE_TOKEN_SECRET':'synthetic-share-secret','JWT_SECRET':SECRET}.items():monkeypatch.setenv(key,value)
+    monkeypatch.setattr(auth,'_AUTH_STORES',{});monkeypatch.setattr(sso,'_REPLAY_STORES',{})
+    monkeypatch.setattr(report,'_store',None);monkeypatch.setattr(report_account,'_store',None)
+    return state/'sso_replay.sqlite3'
+
+
 @pytest.mark.parametrize('configuration', [
     'explicit-relative', 'explicit-absolute', 'fallback-relative', 'fallback-absolute',
 ])
-def test_existing_cleanup_binding_preserves_parent_digest(private, native, monkeypatch, configuration):
+def test_existing_cleanup_binding_preserves_parent_digest(legacy_development, native, monkeypatch, configuration):
+    private=legacy_development
     _development_binding_assets(private, monkeypatch, configuration)
     old = _parent_cleanup_binding('fixture@example.invalid')
     new = auth._account_cleanup_binding('fixture@example.invalid')
@@ -461,7 +474,8 @@ def test_existing_cleanup_binding_preserves_parent_digest(private, native, monke
 @pytest.mark.parametrize('configuration', [
     'explicit-relative', 'explicit-absolute', 'fallback-relative', 'fallback-absolute',
 ])
-def test_parent_pending_deletion_resumes_without_binding_migration(private, native, monkeypatch, configuration):
+def test_parent_pending_deletion_resumes_without_binding_migration(legacy_development, native, monkeypatch, configuration):
+    private=legacy_development
     favorites = _development_binding_assets(private, monkeypatch, configuration)
     email = 'fixture@example.invalid'
     subject = sso._subject_id(email)

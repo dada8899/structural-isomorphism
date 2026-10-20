@@ -564,7 +564,28 @@ def test_dnt_cannot_be_overridden_from_reopened_preferences(dnt_page):
     page, base = dnt_page
     payloads = _capture_plausible_events(page)
     page.goto(base + "/companies", wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(500)
+    # This fresh context has no saved choice. Wait for the actual DNT mount
+    # effect, not DOM readiness: the reopen listener follows in the same flush.
+    page.wait_for_function(
+        """() => {
+          const dnt = [navigator.doNotTrack, window.doNotTrack]
+            .some((value) => value === "1" || value === "yes");
+          if (!dnt) return false;
+          try {
+            const consent = JSON.parse(localStorage.getItem("cookie_consent_v1"));
+            return consent !== null && typeof consent === "object"
+              && !Array.isArray(consent)
+              && Object.keys(consent).sort().join(",")
+                === "analytics,essential,marketing,timestamp,version"
+              && consent.essential === true && consent.version === 1
+              && consent.analytics === false && consent.marketing === false
+              && typeof consent.timestamp === "number"
+              && Number.isFinite(consent.timestamp)
+              && consent.timestamp >= performance.timeOrigin;
+          } catch { return false; }
+        }""",
+        timeout=5000,
+    )
 
     page.evaluate("window.dispatchEvent(new CustomEvent('cookie-consent:open'))")
     page.wait_for_selector(

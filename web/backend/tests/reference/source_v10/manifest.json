@@ -1,0 +1,239 @@
+{
+  "files": {
+    "web/backend/api/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "current_exact"
+    },
+    "web/backend/api/auth.py": {
+      "sha256": "7c46e214178a2bbe0aff75e7a7411a3201d7237d6a812a1a9f75975fde373acb",
+      "source": "current_exact"
+    },
+    "web/backend/api/research.py": {
+      "sha256": "9eeea19ee4df40fd83d78443917751f8c936b9149567ec9270316ade1c3d5fab",
+      "source": "reference"
+    },
+    "web/backend/api/sso.py": {
+      "sha256": "2ecd209af0085d533f3e2fc9280f98569c6bfedef12703b4934468376a3529a5",
+      "source": "current_exact"
+    },
+    "web/backend/logging_config.py": {
+      "sha256": "80c05e1877bdc1e7a6eedd3930977c990f7b8f9508fa66f1c40f405935e93955",
+      "source": "current_exact"
+    },
+    "web/backend/research/__init__.py": {
+      "sha256": "c6d96a85438fd99f5d5598c5b15d74fc2a51c86a1f4863f51c9ce95d99e2b35d",
+      "source": "current_exact"
+    },
+    "web/backend/research/authorization.py": {
+      "sha256": "ca3f1a87186293ac3f190e9ccdee0722547b45bdfb5cd0a2ce04eca15290b78b",
+      "source": "reference"
+    },
+    "web/backend/research/budget.py": {
+      "sha256": "dfc2ec9d681de18fbb6911b8646333561a6a7eb4f7712107fa3d708f6caab23d",
+      "source": "current_exact"
+    },
+    "web/backend/research/errors.py": {
+      "sha256": "66e3b8b34142500b0619183a9448d9557ac13488e1b6ccdf5bcb1005d8b04e1d",
+      "source": "current_exact"
+    },
+    "web/backend/research/evidence_repository.py": {
+      "sha256": "0a1064bab04e2af5490ee20ac52a4ab4fc049e4035e8cffb0793509f762f0b89",
+      "source": "current_exact"
+    },
+    "web/backend/research/evidence_schemas.py": {
+      "sha256": "f72022458fd2ac72a3a19cb833199b037fcff36578827de07352e830b28fe0b7",
+      "source": "current_exact"
+    },
+    "web/backend/research/financial_admission_schemas.py": {
+      "sha256": "7a2d432458a71849b04e9adb6431222770b036ef21c20e42dbaba8f0aec027c4",
+      "source": "current_exact"
+    },
+    "web/backend/research/financial_guard.py": {
+      "sha256": "64cbab2f9cd8cf39792c0c8179c5b9e154735c237c26baaf9ee3e7bfbfbd16dc",
+      "source": "reference"
+    },
+    "web/backend/research/formula_check.py": {
+      "sha256": "b9fbbb85c88e4a71a705c95a83a15623edc78b8a598a0246c8c5ba5672ae0c5e",
+      "source": "current_exact"
+    },
+    "web/backend/research/formula_policy.py": {
+      "sha256": "30a3bf74250d0709f570cde770bb3ac7ce3c14319aec0793477a336cbc61274d",
+      "source": "current_exact"
+    },
+    "web/backend/research/formula_public.py": {
+      "sha256": "9428a2e3ee512ec884a52b99a2b15a788dd0f6a500362202b2db21ff4044e5a4",
+      "source": "current_exact"
+    },
+    "web/backend/research/formula_result.py": {
+      "sha256": "cfaea8cee6887989f093cdabe346fcd7a0950429171cb253fea6dc89ed173720",
+      "source": "reference"
+    },
+    "web/backend/research/formula_result_adapter.py": {
+      "sha256": "0a541bf9f91a2ecfbaf958c91e20f4fa118a13a44f50fa0c5ccaf7ee0a2941ab",
+      "source": "current_exact"
+    },
+    "web/backend/research/formula_runtime.py": {
+      "sha256": "eaaedd72ceff40525da630f52373853c70447ed51ac4e2257210de31649351a5",
+      "source": "reference"
+    },
+    "web/backend/research/formula_schemas.py": {
+      "sha256": "734a6fa1eaaa86380d851e5deea96302af26f0c415e63515c01cd8e852efb1f4",
+      "source": "current_exact"
+    },
+    "web/backend/research/method_result.py": {
+      "sha256": "9a275c250ca71990d01cc9be99a6060e4fb355afd13d490803e43458fa577a58",
+      "source": "reference"
+    },
+    "web/backend/research/paid_api_public.py": {
+      "sha256": "81333486cb064f93d3dcef9e22f550b71fcf7685c60449e4108dda7da8c94f28",
+      "source": "current_exact"
+    },
+    "web/backend/research/paid_control.py": {
+      "sha256": "8d44da493d507da5b7c5b9ede4223fa7812a0af79b27d77cb5158143b30711c8",
+      "source": "reference"
+    },
+    "web/backend/research/projection.py": {
+      "sha256": "2b470f8336e5269c101e30bd0c3d83e7ae048c2b4be0c820cbd9abc1e3a4bebf",
+      "source": "reference"
+    },
+    "web/backend/research/provider_schemas.py": {
+      "sha256": "dfa575d18f72b503f087dcf84113df853f357a57b431ce9920ada2a5615996d5",
+      "source": "current_exact"
+    },
+    "web/backend/research/runner.py": {
+      "sha256": "77e8d4d2a704b1920e549ba10b6997098cff79b7e536c77e411afbf1b052a34c",
+      "source": "reference"
+    },
+    "web/backend/research/schemas.py": {
+      "sha256": "3bd3f68ab6e21f01d0baf80d8c9e69eefa800a237973bf2bdf5ef904a52b6e17",
+      "source": "current_exact"
+    },
+    "web/backend/research/service.py": {
+      "sha256": "88431704f8eb823a6218cdbc122a61108346f61dd82e7eb978bc6537a1141449",
+      "source": "reference"
+    },
+    "web/backend/research/source_integration.py": {
+      "sha256": "b57be9f7ff873369c87f860043ddada6056f0789ccb3f7322164a49e99eb5484",
+      "source": "reference"
+    },
+    "web/backend/research/source_policy.py": {
+      "sha256": "d304c8fcbba51de2b2ffdcae5c6154dde7788ed64a8462cacb3da061cbfe3e11",
+      "source": "current_exact"
+    },
+    "web/backend/research/store.py": {
+      "sha256": "813e49bae527d3fd186ef6f6f83a50a74ce0f5caa42aa815b819ee290a11c195",
+      "source": "reference"
+    },
+    "web/backend/research/transport.py": {
+      "sha256": "3e3af9b5d156c8bd6f41dea9f59a5f801a0bef1df73eb937888a23f6cf0a4fd0",
+      "source": "current_exact"
+    },
+    "web/backend/research/usage_upper.py": {
+      "sha256": "978d79b76836adbdc71463f79b0788fb8c5e70adff22695313d6d9e0774cbb68",
+      "source": "current_exact"
+    },
+    "web/backend/services/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "current_exact"
+    },
+    "web/backend/services/account_data_registry.py": {
+      "sha256": "d33aae8f46e3ffe07447f1b9f150d2b5419f1015b8c362d5555c7b7507587462",
+      "source": "current_exact"
+    },
+    "web/backend/services/auth_registration.py": {
+      "sha256": "7feab5244f121139ca035021513b6c2c5bb7348768beccfc797eaeea7d45b7ef",
+      "source": "reference"
+    },
+    "web/backend/services/auth_store.py": {
+      "sha256": "e9d58769d153702b4aadfbebd30437885b263dd5c4d5585567697a50fa5f3986",
+      "source": "current_exact"
+    },
+    "web/backend/services/candidate_origin.py": {
+      "sha256": "68240508e51e8789bc0da0848f64ad00ff29f95aee7be152194c94630c4bfca6",
+      "source": "current_exact"
+    },
+    "web/backend/services/connections_p3_store.py": {
+      "sha256": "20775c33a6b1a9bd15ca3776349009dc564c175c74594de2d3d1bda88472e9b6",
+      "source": "current_exact"
+    },
+    "web/backend/services/connections_store.py": {
+      "sha256": "d330fc5a97be2046f564a0a4a3c6f28bcb20fd8021fef58712154ef042366e4b",
+      "source": "current_exact"
+    },
+    "web/backend/services/history_db.py": {
+      "sha256": "dd1e52f2141fe47a049c7af53d0ce187d85a318c5a12ea977b11947bcc5e1e9f",
+      "source": "current_exact"
+    },
+    "web/backend/services/privacy_identifiers.py": {
+      "sha256": "0fe7f6c6e847671aee87b217272927e995fef3e17e0d71e61b5623ec755f97a7",
+      "source": "current_exact"
+    },
+    "web/backend/services/report_store.py": {
+      "sha256": "34f9e4d4202ad548ead18fd0eb2bf45c87f78cf92ca5366fb42ddcaf9b59996e",
+      "source": "current_exact"
+    },
+    "web/backend/services/runtime_paths.py": {
+      "sha256": "2d6eae7a4c3345e0db9d4b438e2ae720d1dfa9f8c686e3fb1295f52687309852",
+      "source": "current_exact"
+    },
+    "web/backend/services/sqlite_utils.py": {
+      "sha256": "f527f722930fddde4bf9a92fa39655f4065c80dac34d34c98136cc2ec13ac8e7",
+      "source": "current_exact"
+    },
+    "web/backend/services/sso_store.py": {
+      "sha256": "503dd1f07dbf7797f807e03b34aa1016f3536fdd9f25671cb0ff3d9b15057d7b",
+      "source": "current_exact"
+    }
+  },
+  "loaded_modules": {
+    "api": "web/backend/api/__init__.py",
+    "api.auth": "web/backend/api/auth.py",
+    "api.research": "web/backend/api/research.py",
+    "api.sso": "web/backend/api/sso.py",
+    "logging_config": "web/backend/logging_config.py",
+    "research": "web/backend/research/__init__.py",
+    "research.authorization": "web/backend/research/authorization.py",
+    "research.budget": "web/backend/research/budget.py",
+    "research.errors": "web/backend/research/errors.py",
+    "research.evidence_repository": "web/backend/research/evidence_repository.py",
+    "research.evidence_schemas": "web/backend/research/evidence_schemas.py",
+    "research.financial_admission_schemas": "web/backend/research/financial_admission_schemas.py",
+    "research.financial_guard": "web/backend/research/financial_guard.py",
+    "research.formula_check": "web/backend/research/formula_check.py",
+    "research.formula_policy": "web/backend/research/formula_policy.py",
+    "research.formula_public": "web/backend/research/formula_public.py",
+    "research.formula_result": "web/backend/research/formula_result.py",
+    "research.formula_result_adapter": "web/backend/research/formula_result_adapter.py",
+    "research.formula_runtime": "web/backend/research/formula_runtime.py",
+    "research.formula_schemas": "web/backend/research/formula_schemas.py",
+    "research.method_result": "web/backend/research/method_result.py",
+    "research.paid_api_public": "web/backend/research/paid_api_public.py",
+    "research.paid_control": "web/backend/research/paid_control.py",
+    "research.projection": "web/backend/research/projection.py",
+    "research.provider_schemas": "web/backend/research/provider_schemas.py",
+    "research.runner": "web/backend/research/runner.py",
+    "research.schemas": "web/backend/research/schemas.py",
+    "research.service": "web/backend/research/service.py",
+    "research.source_integration": "web/backend/research/source_integration.py",
+    "research.source_policy": "web/backend/research/source_policy.py",
+    "research.store": "web/backend/research/store.py",
+    "research.transport": "web/backend/research/transport.py",
+    "research.usage_upper": "web/backend/research/usage_upper.py",
+    "services": "web/backend/services/__init__.py",
+    "services.account_data_registry": "web/backend/services/account_data_registry.py",
+    "services.auth_registration": "web/backend/services/auth_registration.py",
+    "services.auth_store": "web/backend/services/auth_store.py",
+    "services.candidate_origin": "web/backend/services/candidate_origin.py",
+    "services.connections_p3_store": "web/backend/services/connections_p3_store.py",
+    "services.connections_store": "web/backend/services/connections_store.py",
+    "services.history_db": "web/backend/services/history_db.py",
+    "services.privacy_identifiers": "web/backend/services/privacy_identifiers.py",
+    "services.report_store": "web/backend/services/report_store.py",
+    "services.runtime_paths": "web/backend/services/runtime_paths.py",
+    "services.sqlite_utils": "web/backend/services/sqlite_utils.py",
+    "services.sso_store": "web/backend/services/sso_store.py"
+  },
+  "problem_sha256": "6f6f2a232b857508c7a3d7e83cc469301c96e241f913eb90a1d6817b018a93f5",
+  "purpose": "synthetic R10 HTTP migration reference only; never a runtime entrypoint",
+  "reference_commit": "10b0919d7e784da9d66ff80ef1d69606457b94b1"
+}
