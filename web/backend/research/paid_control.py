@@ -65,12 +65,22 @@ def issue_authenticated_action(request,*,action,research_id=None,task_id=None,ke
         'formula-revision-read':('GET','read_research_formula_revision'),
         'plan-preview':('POST','preview_research_plan'),'plan-confirm':('POST','confirm_research_plan'),'plan-read':('GET','read_research_plan'),
         'draft-save':('POST','save_research_method_draft'),'draft-read':('GET','read_research_method_draft'),'draft-history':('GET','list_research_method_drafts'),
-        'source-approve':('POST','source_approval'),'source-start':('POST','source_task')}
+        'source-approve':('POST','source_approval'),'source-start':('POST','source_task'),
+        'financial-import-preview':('POST','preview_research_financial_import')}
     if type(request) is not Request or action not in routes or request.method!=routes[action][0]:
         raise PermissionError('actual authenticated action request required')
     from .provider_schemas import strict_json
     raw=getattr(request,'_body',None)
-    if action=='draft-save':
+    if action=='financial-import-preview':
+        from .financial_input_schemas import decode_financial_import_preview
+        import re
+        if type(raw) is not bytes or request.query_params:raise PermissionError('actual financial preview request required')
+        data=decode_financial_import_preview(raw).data
+        research_id=request.path_params.get('research_id');task_id=None
+        key=request.headers.get('idempotency-key','')
+        if re.fullmatch(r'[A-Za-z0-9._:-]{1,128}',key,re.ASCII) is None:raise PermissionError('financial preview key required')
+        body_digest=digest(canonical(data.model_dump(mode='json')))
+    elif action=='draft-save':
         if type(raw) is not bytes or request.query_params:raise PermissionError('actual method draft request required')
         from .method_draft_schemas import MethodDraftEnvelope
         data=MethodDraftEnvelope.model_validate(strict_json(raw,65536)).data
