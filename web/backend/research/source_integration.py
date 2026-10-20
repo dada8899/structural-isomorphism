@@ -194,6 +194,27 @@ def enabled():
             and os.getenv("STRUCTURAL_D1_SOURCES_ENABLED","").lower()=="true")
 
 
+def request_execution_available(app,service)->bool:
+    """Per-request presentation fact; never an execution/send capability."""
+    from .runtime_profile import formal_request_required,require_formal_application
+    if formal_request_required(app) or service.store._formal_mode():
+        # Base admission is mandatory, including captured private stores after
+        # ENV downgrade. Its failure cannot become a successful false snapshot.
+        if require_formal_application(app,'research_basic') is not None:
+            raise RuntimeError('formal base admission result invalid')
+        try:
+            if require_formal_application(app,'source_execute') is not None:
+                raise RuntimeError('formal Source admission result invalid')
+            from .source_supervisor import require_available
+            if require_available(app,service) is not None:
+                raise RuntimeError('Source supervision result invalid')
+        except ResearchError as error:
+            if error.code=='FEATURE_UNAVAILABLE' and error.status==503:return False
+            raise
+        return True
+    return enabled()
+
+
 def require_enabled(request_app=None,*,capability='source_execute',store=None):
     from .runtime_profile import formal_request_required,require_formal_application
     if formal_request_required(request_app) or (store is not None and store._formal_mode()):

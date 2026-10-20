@@ -67,27 +67,37 @@ def test_concurrent_cache_reads_preserve_the_uncached_value(fresh_token_cache):
 
 def test_warm_cache_does_not_hide_schema_changes_on_the_same_connection(stack):
     client,_=stack;create(client);store=ResearchStore(auth._store())
+    from research.store import CURRENT_RESEARCH_SCHEMA_VERSION
+    reached=[]
     with pytest.raises(ResearchError) as failure:
         with store.transaction(write=True) as conn:
-            store._check_v10(conn)
+            assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==CURRENT_RESEARCH_SCHEMA_VERSION
+            store.check_runtime_version(conn)
+            reached.append('warm_current')
             conn.execute('DROP TRIGGER research_revision_no_update')
             conn.execute('CREATE TRIGGER research_revision_no_update BEFORE UPDATE ON research_revisions BEGIN SELECT 1; END')
-            store._check_v10(conn)
+            reached.append('changed_trigger')
+            store.check_runtime_version(conn)
+    assert reached==['warm_current','changed_trigger']
     assert failure.value.code=='SCHEMA_UNSUPPORTED'
     # The rejected transaction rolls back; cached drift tokens cannot poison it.
-    with store.transaction() as conn:store._check_v10(conn)
+    with store.transaction() as conn:store.check_runtime_version(conn)
 
 
 def test_warm_cache_does_not_hide_drift_in_a_second_database(stack,tmp_path):
     client,path=stack;create(client);store=ResearchStore(auth._store())
-    with store.transaction() as conn:store._check_v10(conn)
+    from research.store import CURRENT_RESEARCH_SCHEMA_VERSION
+    with store.transaction() as conn:
+        assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==CURRENT_RESEARCH_SCHEMA_VERSION
+        store.check_runtime_version(conn)
     target=tmp_path/'other'/'auth.sqlite3';target.parent.mkdir()
     with closing(sqlite3.connect(path)) as original,closing(sqlite3.connect(target)) as other:original.backup(other)
+    assert target.stat().st_ino!=path.stat().st_ino
     other_store=ResearchStore(type(store.auth_store)(target))
-    with other_store.transaction() as conn:other_store._check_v10(conn)
+    with other_store.transaction() as conn:other_store.check_runtime_version(conn)
     with closing(sqlite3.connect(target)) as other:
         other.execute('DROP TRIGGER research_revision_no_update')
         other.execute('CREATE TRIGGER research_revision_no_update BEFORE UPDATE ON research_revisions BEGIN SELECT 1; END')
     with pytest.raises(ResearchError) as failure:ResearchStore(type(store.auth_store)(target))
     assert failure.value.code=='SCHEMA_UNSUPPORTED'
-    with store.transaction() as conn:store._check_v10(conn)
+    with store.transaction() as conn:store.check_runtime_version(conn)

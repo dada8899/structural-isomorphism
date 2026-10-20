@@ -4241,3 +4241,63 @@ async def _method_main_catalog_second_page(tmp_path):
 def test_method_draft_actual_main_second_catalog_page_preserves_current_form_and_pending(tmp_path):
     import asyncio
     asyncio.run(_method_main_catalog_second_page(tmp_path))
+
+
+async def _source_history_closed_main_journey(tmp_path):
+    import threading
+    from playwright.async_api import async_playwright,expect as aexpect
+    from web.backend.tests.acceptance.formal_main_browser_service import FormalMainBrowserService
+    owned=tmp_path/'actual-main';service=None;browser=None;context=None;primary=None;cleanup=[];facts={'scope':'actualMain closed collection still reads authorized stored Source'};posts=[];pids=[];ports=[]
+    try:
+        with FormalMainBrowserService(owned) as service,service.browser_bridge() as bridge:
+            ports=[service.port,service._smtp.port]
+            async with async_playwright() as playwright:
+                browser=await playwright.chromium.launch();context=await browser.new_context(viewport={'width':390,'height':844});context.set_default_timeout(8000)
+                try:
+                    async with bridge.routed(context):
+                        page=await context.new_page();pids=_method_main_owned_browser_pids();page.on('request',lambda request:posts.append(request.url) if request.method=='POST' and any('/'+part in request.url for part in ['source-preview','source-approvals','source-tasks']) else None)
+                        await _method_main_login(page,service);rid=service.seed.research_id
+                        actual=await _native_tls_fetch(page,'/api/research/'+rid);assert actual['status']==200 and actual['body']['data']['capabilities']['source_evidence'] is False and actual['body']['data']['task']['id']==service.seed.source_task_id
+                        await aexpect(page.locator('#source-section')).to_be_visible();await aexpect(page.locator('#source-reopen-hint')).to_contain_text('当前不能采集新资料')
+                        for control in ['source-preview','source-confirm']:
+                            await aexpect(page.locator('#'+control)).to_be_hidden();await aexpect(page.locator('#'+control)).to_be_disabled()
+                        await aexpect(page.locator('#source-query')).to_be_disabled();await page.locator('#method-draft-method').fill('读取已有来源时必须保留的手稿B。');before=await _method_main_pending(page)
+                        for control in ['source-preview','source-confirm']:await page.locator('#'+control).dispatch_event('click')
+                        async with page.expect_response(lambda response:'/records?' in response.url and 'kind=excerpts' in response.url) as received:await page.locator('#source-refresh').click()
+                        response=await received.value;assert response.status==200;items=(await response.json())['data']['items'];assert items and items[0]['input_revision']==1
+                        await aexpect(page.locator('#source-status')).to_contain_text('已从账户读取来源与笔记');await aexpect(page.locator('#source-records')).to_contain_text(items[0]['quote']);await aexpect(page.locator('#method-draft-method')).to_have_value('读取已有来源时必须保留的手稿B。');assert await _method_main_pending(page)==before and not posts
+                        original_question=await page.locator('#original-input').input_value()
+                        await page.goto(service.origin+'/research/'+rid+'?task_id='+service.seed.source_task_id);await aexpect(page.locator('#original-input')).to_be_disabled();await aexpect(page.locator('#source-section')).to_be_visible();await page.locator('#source-refresh').click();await aexpect(page.locator('#source-records')).to_contain_text(items[0]['quote']);await aexpect(page.locator('#source-preview')).to_be_hidden();await aexpect(page.locator('#source-confirm')).to_be_hidden();assert not posts
+                        await page.goto(service.origin+'/research');await aexpect(page.locator('#problem-form')).to_be_visible();await page.locator('#original-input').fill('没有来源记录的新观察，只验证关闭状态的清楚空态。');await page.locator('#summary').fill('已有资料可独立读取，当前不能采集新资料。');await page.locator('#confirmed').check()
+                        async with page.expect_response(service.origin+'/api/research') as created:await page.locator('#save').click()
+                        response=await created.value;assert response.status==200;empty=(await response.json())['data'];assert empty['task'] is None and empty['capabilities']['source_evidence'] is False
+                        await aexpect(page.locator('#source-section')).to_be_visible();await aexpect(page.locator('#source-reopen-hint')).to_contain_text('当前未选中已有来源');await aexpect(page.locator('#source-refresh')).to_be_hidden();await aexpect(page.locator('#source-preview')).to_be_hidden();await aexpect(page.locator('#source-records')).to_have_text('');assert not posts
+                        await page.goto(service.origin+'/research/'+rid);await aexpect(page.locator('#source-refresh')).to_be_enabled();await page.locator('#method-draft-method').fill('通用流程刷新后仍需保留的手稿B。');pending=await _method_main_pending(page)
+                        async with page.expect_response(service.origin+'/api/research/'+rid) as refreshed:await page.locator('#task-refresh').click()
+                        response=await refreshed.value;assert response.status==200;view=(await response.json())['data'];assert view['capabilities']['source_evidence'] is False and view['task']['id']==service.seed.source_task_id
+                        await aexpect(page.locator('#task-refresh')).to_be_enabled();await aexpect(page.locator('#source-refresh')).to_be_enabled();await aexpect(page.locator('#source-preview')).to_be_hidden();await aexpect(page.locator('#source-confirm')).to_be_disabled();await aexpect(page.locator('#method-draft-method')).to_have_value('通用流程刷新后仍需保留的手稿B。');assert await _method_main_pending(page)==pending and not posts
+                        async with page.expect_response(lambda response:'/records?' in response.url and 'kind=excerpts' in response.url) as read_after_refresh:await page.locator('#source-refresh').click()
+                        assert (await read_after_refresh.value).status==200;await aexpect(page.locator('#source-status')).to_contain_text('已从账户读取来源与笔记')
+                        async def reload_main_and_its_index():
+                            async with page.expect_response(service.origin+'/api/research/'+rid) as loaded:await page.locator('#reload').click()
+                            assert (await loaded.value).status==200
+                        await _native_tls_completed_read(page,service.origin+'/api/research?limit=20',reload_main_and_its_index)
+                        await aexpect(page.locator('#research-list-status')).to_contain_text('已读取 2 条研究');await aexpect(page.locator('#reload')).to_be_enabled();await aexpect(page.locator('#source-refresh')).to_be_enabled();await aexpect(page.locator('#source-query')).to_be_disabled();await aexpect(page.locator('#source-preview')).to_be_hidden();await aexpect(page.locator('#source-confirm')).to_be_disabled();await aexpect(page.locator('#method-draft-method')).to_have_value('通用流程刷新后仍需保留的手稿B。');assert await _method_main_pending(page)==pending and not posts
+                        facts['busy_completion']={'generic_root_status':200,'source_read_enabled_after_task_refresh':True,'source_read_acl200_after_task_refresh':True,'source_read_enabled_after_global_load':True,'closed_writes_still_disabled':True,'handwriting_and_pending_preserved':True}
+                        facts.update({'actual_capability':False,'actual_source_task':service.seed.source_task_id,'actual_excerpt_id':items[0]['id'],'source_revision':1,'history_read_actual_acl_200':True,'current_and_readonly_history_visible':True,'hidden_disabled_writes_cannot_dispatch':True,'closed_empty_new_research_visible':True,'new_handwriting_and_pending_unchanged':True,'source_write_requests':posts,'original_question_preserved_during_read':bool(original_question)});await _method_draft_drain_owned_bridge(page,bridge)
+                except BaseException as error:primary=error;raise
+                finally:
+                    for value,name in ((context,'close'),(browser,'close')):
+                        if value is not None:
+                            try:await getattr(value,name)()
+                            except BaseException as error:cleanup.append(type(error).__name__)
+                    if cleanup:
+                        if primary:primary.add_note('owned browser cleanup uncertain: '+','.join(cleanup))
+                        else:raise RuntimeError('owned browser cleanup uncertain: '+','.join(cleanup))
+    finally:
+        facts.update({'ports':ports,'observed_browser_driver_pids':pids,'fixture_root_removed':not owned.exists(),'browser_cleanup_errors':cleanup,'main_thread_alive':service.server_thread.is_alive() if service and service.server_thread else None,'smtp_thread_alive':service._smtp.thread.is_alive() if service and service._smtp else None,'remaining_owned_threads':[thread.name for thread in threading.enumerate() if thread.name.startswith('formal-main-browser-')]});(tmp_path/'source-history-closed-facts.json').write_text(json.dumps(facts,ensure_ascii=False,indent=2))
+
+
+def test_source_history_actual_main_closed_collection_keeps_existing_readable(tmp_path):
+    import asyncio
+    asyncio.run(_source_history_closed_main_journey(tmp_path))
