@@ -425,16 +425,22 @@ def test_v1_research_migration_keeps_existing_lock_inode_and_problem(lifecycle,m
         conn.execute("DELETE FROM auth_owner_gates")
     lock=path.parent/"research-locks"/(principal+".lock")
     inode=lock.stat().st_ino
+    database_identity=(path.stat().st_dev,path.stat().st_ino)
     upgraded=ResearchStore(auth._store())
     with upgraded.transaction() as conn:assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==9
     path.chmod(0o600) # Actual offline migration permission prerequisite.
     from research.formula_runtime import formula_maintenance
     with formula_maintenance(upgraded) as maintenance:upgraded.migrate_formula_v10(maintenance=maintenance)
     assert lock.stat().st_ino == inode
-    with closing(sqlite3.connect(path)) as conn,conn:
-        from research.store import CURRENT_RESEARCH_SCHEMA_VERSION
-        assert conn.execute("SELECT version FROM research_schema").fetchone()[0] == CURRENT_RESEARCH_SCHEMA_VERSION
+    assert (path.stat().st_dev,path.stat().st_ino) == database_identity
+    # Explicit formula maintenance ends at historical R10, before Source11.
+    with upgraded.transaction() as conn:
+        upgraded._check_v10(conn)
+        assert conn.execute("SELECT version FROM research_schema").fetchone()[0] == 10
+        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
         assert conn.execute("SELECT gate_id FROM research_principals").fetchone()[0] == principal
+        original=json.loads(conn.execute("SELECT problem_json FROM research_revisions WHERE research_id=? AND revision=1",(rid,)).fetchone()[0])
+        assert original["original_input"] == problem()["original_input"]
     assert client.get(f"/api/research/{rid}").status_code == 200
     assert post(client,f"/api/research/{rid}/revisions",{"expected_revision":1,"problem":problem("迁移后新修订")}).status_code == 200
 
