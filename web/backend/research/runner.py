@@ -183,6 +183,19 @@ class ResearchRunner:
         # owner lock, so they never wait for this task lock or network finish.
         with self.store.transaction() as conn:
             version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
+            if version in (11,12,13,14):
+                # A cancelled, never-born sender needs no new sending lease.
+                # Existing gates/started runs/any request still take the real
+                # task+owner closure path below, including terminal tasks.
+                terminal=conn.execute("""SELECT t.execution FROM research_tasks t
+                    JOIN research_source_runs r ON r.task_id=t.id
+                    JOIN research_source_resources s ON s.task_id=t.id
+                    WHERE t.id=? AND t.policy_revision='d1-source-only-v1'
+                    AND t.execution IN ('COMPLETED','FAILED','CANCELLED','ACCESS_REVOKED')
+                    AND r.started=0 AND r.task_gate_identity IS NULL
+                    AND s.state='closed' AND s.task_gate_identity IS NULL
+                    AND NOT EXISTS(SELECT 1 FROM research_source_requests q WHERE q.task_id=t.id)""",(task_id,)).fetchone()
+                if terminal:return terminal['execution']
         lock=self.gate.source_task_gate(task_id) if version in (11,12,13,14) and self.task(task_id)['policy_revision']=='d1-source-only-v1' else self.gate.owner_gate_id(task_id)
         with lock as task_lease:
             task=self.task(task_id)
