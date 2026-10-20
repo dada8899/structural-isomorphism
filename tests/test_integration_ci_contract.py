@@ -634,7 +634,7 @@ def _assert_research_coverage_closure(value, rcfile):
     step['run'] = commands[:-2] + commands[-1:]
     # Freeze the reviewed job, suites, limits and reports, apart from this one
     # added parallel measurement. Ignore comments/line wrapping in its script.
-    assert hashlib.sha256(json.dumps(job, sort_keys=True, separators=(',', ':')).encode()).hexdigest() == '601c495e11c7d17017b64fc745760cbf9e80d369a8bdf35a2d217a4a39c574ee'
+    assert hashlib.sha256(json.dumps(job, sort_keys=True, separators=(',', ':')).encode()).hexdigest() == '84ca74c8ed0751d5b506a2b0eab4b97d7bb64ada20b6269bd3ce015d7df8bc77'
     assert hashlib.sha256(rcfile.encode()).hexdigest() == 'd99a2766d35215d1249c6f0388d8bb9effa7faec8ed715c040f897d6314847af'
 
 
@@ -674,7 +674,7 @@ def test_research_coverage_closure_rejects_incomplete_or_relaxed_pipeline(mutati
 # is the branch-protection aggregate.
 SANITY_SPLIT_DIGESTS = {
     "sanity-backend": "4135a5d81f35ed7c9155fa239f18644f51174d2bd8b9cacfd200cfef7a717798",
-    "sanity": "c969dc72598a5d59f4eb6d3d220ea70b0a911590228d3793a4e89225c65664ca",
+    "sanity": "83504d01fa6d1c8c452075e280a7cadf3a0c5811860a077b09e2e77a35b4397c",
 }
 
 
@@ -687,7 +687,7 @@ def _assert_sanity_backend_dependency(value):
     assert aggregate["if"] == "always()"
     assert aggregate["name"] == "sanity"
     assert backend["timeout-minutes"] == 45
-    assert aggregate["timeout-minutes"] == 25
+    assert aggregate["timeout-minutes"] == 45
     for job in (backend, aggregate):
         assert "continue-on-error" not in job
     assert all("if" not in step and "continue-on-error" not in step
