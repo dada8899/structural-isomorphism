@@ -457,6 +457,42 @@
     ],
     "original_sha256": "ba8d65ef360223742776f7b7537ec7434a4252bddf0a8bf6658fc617b5907ed7"
   },
+  "web/backend/research/source_policy.py": {
+    "current_sha256": "a8d8b20b54746cfb407f1512e2afdbec103b587de5e9bf9df86c054fa0288bc3",
+    "hunks": [
+      [
+        248,
+        250,
+        ""
+      ],
+      [
+        256,
+        258,
+        ""
+      ],
+      [
+        260,
+        260,
+        "        shared = ctx.RawArray(\"B\", RAW_CAP * 2)\n"
+      ],
+      [
+        261,
+        262,
+        "        process = ctx.Process(target=_child, args=(send, target, self._worker, shared,deadline,identity), daemon=True)\n"
+      ],
+      [
+        271,
+        273,
+        ""
+      ],
+      [
+        310,
+        325,
+        "            send.close()\n            receive.close()\n            if process.pid is not None:\n                if process.is_alive():\n                    process.terminate()\n                process.join(timeout=0.25)\n                if process.is_alive():\n                    process.kill()\n                    process.join(timeout=0.25)\n                process.close()\n"
+      ]
+    ],
+    "original_sha256": "d304c8fcbba51de2b2ffdcae5c6154dde7788ed64a8462cacb3da061cbfe3e11"
+  },
   "web/backend/research/source_workflow.py": {
     "current_sha256": "50e5cceb1b3677d7e6f6a9fe22bc03edd1912cd82de0b4cbb2f8c78c25083e02",
     "hunks": [
