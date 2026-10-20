@@ -157,6 +157,8 @@ jobs:
                                 "main": str(Path(main.__file__).resolve().relative_to(root)),
                                 "torch_cuda": torch.version.cuda}, sort_keys=True))
           PY
+      - name: Verify financial CSV readonly preview UI
+        run: make PY=python test-financial-preview-browser-contract
       - uses: pnpm/action-setup@v4
         with:
           version: 10

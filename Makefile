@@ -55,11 +55,14 @@ BROWSER_CONTRACT_SECONDARY_WHITESPACE_TESTS := \
 	web/tests/e2e/test_secondary_tools_candidate_journeys.py \
 	web/tests/e2e/test_whitespace.py
 
+FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS := \
+	web/tests/e2e/test_research_financial_preview_browser.py
+
 PHASE_REAL_BROWSER_CONTRACT_TESTS := \
 	web/tests/e2e/test_phase_auth_real.py \
 	web/tests/e2e/test_cookie_consent.py
 
-.PHONY: test test-unit test-integration test-phase-python-contract test-e2e test-frontend-node test-browser-contracts test-retrieval-contract test-product-contracts test-release-contracts test-all test-fast openapi-env openapi-generate openapi-check types-check python-syntax-check llm-scaling-env llm-scaling-generate llm-scaling-check verify-release help
+.PHONY: test-financial-preview-browser-contract test test-unit test-integration test-phase-python-contract test-e2e test-frontend-node test-browser-contracts test-retrieval-contract test-product-contracts test-release-contracts test-all test-fast openapi-env openapi-generate openapi-check types-check python-syntax-check llm-scaling-env llm-scaling-generate llm-scaling-check verify-release help
 
 help:
 	@echo "Targets:"
@@ -69,6 +72,7 @@ help:
 	@echo "  test-e2e          Run e2e tests (live network, may be flaky)"
 	@echo "  test-frontend-node  Run every vanilla frontend Node contract"
 	@echo "  test-browser-contracts  Run the hard browser contract suite"
+	@echo "  test-financial-preview-browser-contract  Run all temporary financial CSV preview browser cases"
 	@echo "  test-retrieval-contract  Validate retrieval dataset, determinism, and OOS policy"
 	@echo "  test-product-contracts  Validate public controls, human-review tooling, and research claims"
 	@echo "  test-release-contracts  Run every offline root contract with backend imports enabled"
@@ -109,6 +113,9 @@ test-browser-contracts:
 	$(PYTEST) $(filter web/tests/e2e/%,$(BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS)) -m "e2e and not requires_internet" -v
 	$(PYTEST) $(BROWSER_CONTRACT_SECONDARY_WHITESPACE_TESTS) -m "e2e and not requires_internet" -v
 	$(PYTEST) $(PHASE_REAL_BROWSER_CONTRACT_TESTS) -v
+
+test-financial-preview-browser-contract:
+	$(PYTEST) $(FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS) -v
 
 test-retrieval-contract:
 	$(BACKEND_PYTEST) web/backend/tests/test_retrieval_eval_dataset.py -q
