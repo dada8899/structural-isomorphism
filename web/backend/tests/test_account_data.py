@@ -167,6 +167,53 @@ def test_export_and_delete_include_owner_linked_revocation_events(client):
     assert deleted.json()["removed"]["authentication"]["revoked_session_events"] == 1
 
 
+def test_basic_current14_delete_transfers_live_owner_lease_and_rejects_substitutes(client, monkeypatch):
+    _login(client)
+    auth._ensure_user("bob@example.com")
+    with auth.account_owner_transaction("alice@example.com") as retired:
+        pass
+    original=auth._run_account_deletion_locked
+    observed=[]
+
+    def checked(service,job_id,*,owner_lease=None):
+        with service.store.transaction() as conn:
+            assert conn.execute("SELECT version FROM research_schema").fetchone()[0]==14
+            assert conn.execute("SELECT count(*) FROM research_tasks").fetchone()[0]==0
+            assert conn.execute("SELECT count(*) FROM research_plan_native_runs").fetchone()[0]==0
+            assert conn.execute("SELECT count(*) FROM research_funding_accounts").fetchone()[0]==0
+        before=service.deletion_job(job_id)
+        assert before["origin_version"] is None and before["state"]=="pending"
+        for candidate in (None,object(),retired):
+            with pytest.raises(PermissionError):
+                original(service,job_id,owner_lease=candidate)
+            assert service.deletion_job(job_id)==before
+        with auth.account_owner_transaction("bob@example.com") as other:
+            assert other.identity!=owner_lease.identity
+            with pytest.raises(PermissionError):
+                original(service,job_id,owner_lease=other)
+            assert service.deletion_job(job_id)==before
+        observed.append(owner_lease.identity)
+        return original(service,job_id,owner_lease=owner_lease)
+
+    monkeypatch.setattr(auth,"_run_account_deletion_locked",checked)
+    response=client.post("/api/me/delete",json={"confirmation":"DELETE"},headers={"Origin":"http://testserver"})
+    assert response.status_code==200,response.text
+    assert len(observed)==1
+    assert response.json()["removed"]["authentication"]["account"]==1
+    assert auth._store().user("bob@example.com")["lifecycle"]=="active"
+    with auth._store()._connection() as conn:
+        job_id=conn.execute("SELECT id FROM auth_deletion_jobs").fetchone()[0]
+    monkeypatch.setattr(auth,"_run_account_deletion_locked",original)
+    assert auth.resume_account_deletion(job_id)["removed"]==response.json()["removed"]
+    service=auth._account_deletion_service()
+    for candidate in (None,retired):
+        with pytest.raises(PermissionError):
+            original(service,job_id,owner_lease=candidate)
+    with auth.account_owner_transaction("bob@example.com") as other:
+        with pytest.raises(PermissionError):
+            original(service,job_id,owner_lease=other)
+
+
 def test_export_never_accepts_email_override(client):
     _login(client, "alice@example.com")
     auth._ensure_user("bob@example.com")

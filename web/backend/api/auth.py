@@ -1283,11 +1283,24 @@ def _account_deletion_service():
 
 
 def _run_account_deletion_locked(service, job_id,*,owner_lease=None):
+    import stat
+    if __package__=='web.backend.api':
+        from ..research.paid_control import verify_deletion_origin
+        from ..research.authorization import OwnerGateLease
+    else:
+        from research.paid_control import verify_deletion_origin
+        from research.authorization import OwnerGateLease
+    if type(owner_lease) is not OwnerGateLease:
+        raise PermissionError('actual account deletion owner lease required')
+    identity=owner_lease.identity
     job = service.deletion_job(job_id)
-    if __package__=='web.backend.api':from ..research.paid_control import verify_deletion_origin
-    else:from research.paid_control import verify_deletion_origin
+    gate=service.store.path.parent/'research-locks'/(service._id(job['gate_id'])+'.lock')
+    info=gate.lstat()
+    if identity!=(info.st_dev,info.st_ino,info.st_uid,stat.S_IMODE(info.st_mode),info.st_nlink):
+        raise PermissionError('account deletion owner lease binding mismatch')
     with service.store.transaction() as conn:verify_deletion_origin(conn,store=service.store,lease=owner_lease,job_id=job_id)
-    lease_args={'owner_lease':owner_lease} if job.get('origin_version') is not None else {}
+    # Legacy origin is not a reason to drop the caller's actual held lock.
+    lease_args={'owner_lease':owner_lease}
     if job["state"] == "completed":
         return json.loads(job["result_json"])
     if job["state"] == "scrubbing":
