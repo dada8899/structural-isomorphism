@@ -44,8 +44,10 @@ else:
 
 if __package__=='web.backend.api':
     from ..research.method_draft_schemas import MethodDraftEnvelope,MethodDraftResponse,MethodDraftHistoryResponse
+    from ..research.financial_input_schemas import FinancialImportPreviewEnvelope,FinancialImportPreviewResponse
 else:
     from research.method_draft_schemas import MethodDraftEnvelope,MethodDraftResponse,MethodDraftHistoryResponse
+    from research.financial_input_schemas import FinancialImportPreviewEnvelope,FinancialImportPreviewResponse
 
 router = APIRouter(tags=["research"])
 _KEY = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z", re.ASCII)
@@ -173,6 +175,22 @@ async def _parse(request, schema):
         raise ResearchError("INPUT_INVALID", 422, "研究内容、版本或字段不符合要求，请核对后再保存。") from None
 
 
+async def _parse_financial_import_preview(request):
+    if __package__=='web.backend.api':
+        from ..research.financial_input_schemas import WIRE_LIMIT, FinancialImportError, decode_financial_import_preview
+    else:
+        from research.financial_input_schemas import WIRE_LIMIT, FinancialImportError, decode_financial_import_preview
+    if request.headers.get('content-type','').split(';',1)[0].strip().lower()!='application/json':
+        raise FinancialImportError('JSON_CONTENT_TYPE_REQUIRED')
+    raw=bytearray()
+    async for chunk in request.stream():
+        if len(raw)+len(chunk)>WIRE_LIMIT:raise FinancialImportError('WIRE_LIMIT',limit=True)
+        raw.extend(chunk)
+    envelope=decode_financial_import_preview(bytes(raw))
+    request._body=bytes(raw)
+    return envelope
+
+
 async def _dispatch(request, *, research_id=None, operation="view"):
     try:
         if __package__=='web.backend.api':from ..research.runtime_profile import formal_request_required,require_formal_application
@@ -185,7 +203,23 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         # Captured private storage never falls back to a development flag after
         # environment downgrade, including requests outside canonical Main.
         if service.store._formal_mode():require_formal_application(request.app,'research_basic')
-        if operation in ('draft-save','draft-read','draft-history'):
+        if operation=='financial-import-preview':
+            if __package__=='web.backend.api':
+                from ..research.financial_import import preview_import
+                from ..research.paid_control import issue_authenticated_action
+            else:
+                from research.financial_import import preview_import
+                from research.paid_control import issue_authenticated_action
+            if auth.require_same_origin(request) is not None:raise ResearchError('AUTHORIZATION_STALE',403,'请从本站页面预览财务输入。')
+            if not _KEY.fullmatch(request.headers.get('idempotency-key','')) or request.query_params:
+                raise ResearchError('INPUT_INVALID',422,'预览操作标识或请求参数不合法。')
+            envelope=await _parse_financial_import_preview(request)
+            source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+            try:
+                response=await run_in_threadpool(preview_import,service,identity,research_id,envelope.data,source)
+                result=response.model_dump(mode='json')
+            finally:source.close()
+        elif operation in ('draft-save','draft-read','draft-history'):
             if __package__=='web.backend.api':
                 from ..research import method_draft
                 from ..research.paid_control import issue_authenticated_action
@@ -368,8 +402,8 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         error=ResearchError('PAYLOAD_LIMIT',413,'最终外发请求超过16KiB上限。')
         return _paid_error_response(error)
     except PermissionError:
-        if operation not in ('draft-save','draft-read','draft-history'):raise
-        error=ResearchError('AUTHORIZATION_STALE',409,'方法草稿权限已变化，请重新读取后再操作。')
+        if operation not in ('draft-save','draft-read','draft-history','financial-import-preview'):raise
+        error=ResearchError('AUTHORIZATION_STALE',409,'财务预览权限已变化，请重新读取后再操作。' if operation=='financial-import-preview' else '方法草稿权限已变化，请重新读取后再操作。')
         return JSONResponse(error.body(),status_code=error.status,headers=_HEADERS)
     except (sqlite3.Error, OSError):
         error = ResearchError("STORE_UNAVAILABLE", 503, "研究存储暂时不可用，请保留当前内容。")
@@ -493,3 +527,9 @@ async def list_research_method_drafts(research_id:str,request:Request):
 @router.get('/research/{research_id}/method-drafts/{draft_ref}',response_model=MethodDraftResponse)
 async def read_research_method_draft(research_id:str,draft_ref:str,request:Request):
     return await _dispatch(request,research_id=research_id,operation='draft-read')
+
+
+@router.post('/research/{research_id}/financial-import-preview',response_model=FinancialImportPreviewResponse,
+             openapi_extra={'requestBody':_formula_request_body(FinancialImportPreviewEnvelope)})
+async def preview_research_financial_import(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='financial-import-preview')
