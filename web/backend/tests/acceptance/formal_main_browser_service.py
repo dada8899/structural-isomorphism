@@ -120,22 +120,50 @@ class _StartupErrorObserver:
 
 def _observe_owned_startup(config, capture):
     """Keep the real LifespanOn instance and its original ASGI control flow."""
-    if not config.loaded:
-        config.load()
-    original = config.lifespan_class
+    missing = object()
+    prior_load = vars(config).get('load', missing)
+    original_load = config.load
+    installed = []
     owned = []
+    retired = False
 
-    def construct(actual_config):
-        lifespan = original(actual_config)
-        logger = lifespan.logger
-        lifespan.logger = _StartupErrorObserver(logger, capture)
-        owned.append((lifespan, logger))
-        return lifespan
+    def install():
+        if installed:
+            return
+        original_class = config.lifespan_class
 
-    config.lifespan_class = construct
+        def construct(actual_config):
+            lifespan = original_class(actual_config)
+            logger = lifespan.logger
+            lifespan.logger = _StartupErrorObserver(logger, capture)
+            owned.append((lifespan, logger))
+            return lifespan
+
+        config.lifespan_class = construct
+        installed.append(original_class)
+
+    def load(*args, **kwargs):
+        # Server.serve calls this at its original running-loop position. Never
+        # preload configuration merely to install a diagnostic observer.
+        result = original_load(*args, **kwargs)
+        install()
+        return result
+
+    config.load = load
+    if config.loaded:
+        install()
 
     def retire():
-        config.lifespan_class = original
+        nonlocal retired
+        if retired:
+            return
+        retired = True
+        if prior_load is missing:
+            del config.load
+        else:
+            config.load = prior_load
+        if installed:
+            config.lifespan_class = installed[0]
         for lifespan, logger in owned:
             lifespan.logger = logger
         owned.clear()
