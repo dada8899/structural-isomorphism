@@ -310,3 +310,100 @@ def test_actual_fork_cannot_reuse_parent_main_binding(prepared):
                     os.kill(pid, 9); os.waitpid(pid, 0)
             assert admission.require(main.app, 'research_basic') is None
     asyncio.run(run())
+
+
+@pytest.fixture
+def history_source():
+    return Path(__file__).resolve().parents[3]
+
+
+def test_actual_main_reads_migrated_source_history_and_enforces_current_actor(tmp_path, monkeypatch, smtp, history_source):
+    from web.backend.tests.acceptance.source_history_fixture import prepared_source_history
+    source_root = history_source
+    owned_root = tmp_path / 'source-history'
+    port, messages = smtp
+    # This context precedes all parent signing configuration. It prepares only
+    # the reviewed old13 producer and maintenance, never current Main readiness.
+    with prepared_source_history(source_root, owned_root, target_revision=False) as seed:
+        settings = {'STRUCTURAL_SHARE_TOKEN_SECRET': secrets.token_urlsafe(48),
+            'SMTP_HOST': '127.0.0.1', 'SMTP_PORT': str(port), 'SMTP_FROM_EMAIL': 'sender@example.invalid',
+            'ADMIN_NOTIFICATION_EMAIL': 'admin@example.invalid', 'SMTP_STARTTLS': 'false',
+            'SMTP_USE_SSL': 'false', 'SMTP_TIMEOUT_SECONDS': '2'}
+        for key, value in settings.items(): monkeypatch.setenv(key, value)
+        for key in ('STRUCTURAL_HISTORY_DB', 'STRUCTURAL_FAVORITES_PATH', 'STRUCTURAL_DATA_DIR',
+                    'STRUCTURAL_MODEL_PATH', 'STRUCTURAL_PRECOMPUTED_EMBEDDINGS', 'STRUCTURAL_ARTIFACT_MANIFEST',
+                    'SMTP_USERNAME', 'SMTP_PASSWORD', 'OPENROUTER_API_KEY', 'DEEPSEEK_API_KEY', 'SENTRY_DSN'):
+            monkeypatch.delenv(key, raising=False)
+        main = importlib.import_module('main')
+        from services import formal_admission as admission
+        assert main._IS_PROD and seed.schema_version == 14
+        assert seed.source_input_revision == seed.current_input_revision == 1
+        async def run():
+            transport = httpx.ASGITransport(app=main.app)
+            path = '/api/research/' + seed.research_id
+            async with httpx.AsyncClient(transport=transport, base_url=BETA) as client:
+                async with main.lifespan(main.app):
+                    await login(client, messages, seed.email)
+                    assert admission.require(main.app, 'source_history') is None
+                    original = {}
+                    for kind in ('sources', 'excerpts', 'claims', 'reports'):
+                        response = await client.get(path + '/records', params={'task_id': seed.source_task_id, 'kind': kind})
+                        assert response.status_code == 200, response.text
+                        items = response.json()['data']['items']
+                        assert items and all(item['input_revision'] == 1 and item['task_id'] == seed.source_task_id for item in items)
+                        original[kind] = items
+                    excerpts = {item['id']: item for item in original['excerpts']}
+                    for ref in seed.excerpt_refs:
+                        item = excerpts[ref['excerpt_id']]
+                        assert (item['source_revision'], item['text_digest'], item['start'], item['end']) == (
+                            ref['source_revision'], ref['content_digest'], ref['start'], ref['end'])
+                        assert item['quote']
+                    for item in original['sources']:
+                        assert item['accessed_at'] == seed.acquired_at and item['execution_mode'] == 'offline_probe'
+                        assert item['access'] == 'body_retrieved' and item['license_note']
+                        assert item['revision'] == 1 and item['read_scope'] == 'author_narrative_subset'
+                    report = original['reports'][0]
+                    assert not report['model_analysis_ran'] and not report['statistics_ran']
+                    assert report['execution_mode'] == 'offline_probe' and report['limitations']
+                    assert all(ref['revision'] == 1 and ref['access'] == 'body_retrieved' for ref in report['source_revisions'])
+                    revised = await client.post(path + '/revisions', json=envelope({'expected_revision': 1, 'problem': problem()}),
+                        headers={'Origin': BETA, 'Idempotency-Key': 'actual-main-source-revision'})
+                    assert revised.status_code == 200, revised.text
+                    current = await client.get(path)
+                    assert current.status_code == 200 and current.json()['data']['current_problem']['revision'] == 2
+                    for kind, items in original.items():
+                        reopened = await client.get(path + '/records', params={'task_id': seed.source_task_id, 'kind': kind})
+                        assert reopened.status_code == 200 and reopened.json()['data']['items'] == items
+                    async with httpx.AsyncClient(transport=transport, base_url=BETA) as other:
+                        await login(other, messages, 'other-source-history@example.invalid')
+                        denied = await other.get(path + '/records', params={'task_id': seed.source_task_id, 'kind': 'excerpts'})
+                        assert denied.status_code == 404 and 'data' not in denied.json()
+                    blocked = await client.post(path + '/source-preview', json=envelope({
+                        'input_revision': 2, 'expected_research_version': current.json()['data']['research']['version'], 'query': 'queue theory'}),
+                        headers={'Origin': BETA, 'Idempotency-Key': 'actual-main-history-no-execute'})
+                    assert blocked.status_code == 503 and blocked.json()['error']['code'] == 'FEATURE_UNAVAILABLE'
+                    old_session = httpx.Cookies(client.cookies)
+                    logout = await client.post('/api/auth/logout', headers={'Origin': BETA})
+                    assert logout.status_code == 200
+                    async with httpx.AsyncClient(transport=transport, base_url=BETA, cookies=old_session) as revoked:
+                        denied = await revoked.get(path + '/records', params={'task_id': seed.source_task_id, 'kind': 'excerpts'})
+                        assert denied.status_code == 401 and 'data' not in denied.json()
+                    await login(client, messages, seed.email)
+                assert (await client.get(path + '/records', params={'task_id': seed.source_task_id, 'kind': 'excerpts'})).status_code == 503
+                async with main.lifespan(main.app):
+                    for kind, items in original.items():
+                        reopened = await client.get(path + '/records', params={'task_id': seed.source_task_id, 'kind': kind})
+                        assert reopened.status_code == 200 and reopened.json()['data']['items'] == items
+                    old_session = httpx.Cookies(client.cookies)
+                    deleted = await client.post('/api/me/delete', json={'confirmation': 'DELETE'}, headers={'Origin': BETA})
+                    assert deleted.status_code == 200, deleted.text
+                    async with httpx.AsyncClient(transport=transport, base_url=BETA, cookies=old_session) as revoked:
+                        denied = await revoked.get(path + '/records', params={'task_id': seed.source_task_id, 'kind': 'excerpts'})
+                        assert denied.status_code == 401 and 'data' not in denied.json()
+                    await login(client, messages, seed.email)
+                    denied = await client.get(path + '/records', params={'task_id': seed.source_task_id, 'kind': 'excerpts'})
+                    assert denied.status_code == 404 and 'data' not in denied.json()
+                    with pytest.raises(RuntimeError): admission.require(main.app, 'source_execute')
+        asyncio.run(run())
+        with pytest.raises(RuntimeError): admission.require(main.app, 'research_basic')
+    assert not owned_root.exists()
