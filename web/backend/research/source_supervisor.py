@@ -28,6 +28,7 @@ _REGISTRY = vars(sqlite3).setdefault('_structural_source_supervisor_v1', {})
 _REGISTRY_LOCK = vars(sqlite3).setdefault('_structural_source_supervisor_lock_v1', threading.RLock())
 _BATCH = 16
 _POLL_SECONDS = .2
+_NATIVE_MINT_CODES = {}
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,6 +70,111 @@ def _admission():
     return importlib.import_module(family + '.formal_admission')
 
 
+class _StopIntent:
+    __slots__ = ('factory', 'pid', 'supervisor', 'supervisor_ref', 'binding', 'reference', 'kind')
+    def __init__(self, supervisor, kind, *, _factory=None):
+        frame = inspect.currentframe().f_back
+        caller = frame.f_code
+        if (_factory is not _FACTORY or kind not in ('main-withdraw', 'source-retire')
+                or frame.f_globals is not globals()
+                or caller is not _NATIVE_MINT_CODES.get('request_main_stop' if kind == 'main-withdraw' else 'retire')):
+            raise TypeError('native Source stop controller required')
+        _identity_handle(supervisor)
+        if (supervisor._binding.pid != os.getpid()
+                or supervisor._binding.reference != supervisor._binding_reference):
+            raise RuntimeError('Source stop binding identity changed')
+        for name, value in dict(factory=_factory, pid=os.getpid(), supervisor=supervisor,
+                supervisor_ref=supervisor.reference, binding=supervisor._binding,
+                reference=supervisor._binding_reference, kind=kind).items():
+            object.__setattr__(self, name, value)
+    def __setattr__(self, *args):
+        raise TypeError('Source stop intent is immutable')
+    def __reduce__(self):
+        raise TypeError('Source stop intent cannot cross processes')
+
+
+class _SourceStopping(ResearchError):
+    def __init__(self, supervisor, intent, *, _factory=None):
+        frame = inspect.currentframe().f_back
+        if (_factory is not _FACTORY or frame.f_globals is not globals()
+                or frame.f_code is not _NATIVE_MINT_CODES.get('_check')):
+            raise TypeError('checked native Source stop required')
+        super().__init__('FEATURE_UNAVAILABLE', 503, '来源执行正在受控停止。')
+        self._factory, self._supervisor, self._intent = _factory, supervisor, intent
+        self._pid, self._thread = os.getpid(), threading.current_thread()
+        self._slot = supervisor._slot
+    def __reduce__(self):
+        raise TypeError('Source stopping signal cannot cross processes')
+
+
+def _matching_intent(supervisor, intent, kind):
+    try:
+        return (type(intent) is _StopIntent and intent.factory is _FACTORY and intent.kind == kind
+                and intent.pid == os.getpid() == supervisor._pid and intent.supervisor is supervisor
+                and intent.supervisor_ref == supervisor.reference and intent.binding is supervisor._binding
+                and intent.reference == supervisor._binding_reference == supervisor._binding.reference
+                and supervisor._stop_intents.get(kind) is intent
+                and intent is (supervisor._main_stop_intent if kind == 'main-withdraw' else supervisor._source_stop_intent))
+    except Exception:
+        return False
+
+
+def _controlled_stopping(error, supervisor):
+    if (type(error) is not _SourceStopping or getattr(error, '_factory', None) is not _FACTORY
+            or getattr(error, '_supervisor', None) is not supervisor or getattr(error, '_pid', None) != os.getpid()
+            or getattr(error, '_thread', None) is not threading.current_thread()
+            or error._thread is not supervisor._thread or getattr(error, '_slot', object()) != supervisor._slot
+            or not supervisor._stop.is_set()):
+        return False
+    return any(_matching_intent(supervisor, getattr(error, '_intent', None), kind) for kind in ('main-withdraw', 'source-retire'))
+
+
+def _binding_module(supervisor):
+    binding = supervisor._binding
+    module = sys.modules.get(getattr(binding, 'origin', None))
+    path = Path(__file__).resolve().parents[1] / 'services' / 'formal_admission.py'
+    if (type(module) is not types.ModuleType or Path(module.__file__).resolve() != path
+            or Path(module.__file__).is_symlink() or type(binding) is not getattr(module, '_Binding', None)
+            or binding.factory is not module._FACTORY or binding.pid != os.getpid()
+            or binding.reference != supervisor._binding_reference):
+        raise RuntimeError('actual Main binding identity changed')
+    return module
+
+
+def _canonical_admission_function(module, name):
+    function = getattr(module, name, None)
+    path = Path(__file__).resolve().parents[1] / 'services' / 'formal_admission.py'
+    if (type(function) is not types.FunctionType or function.__globals__ is not vars(module)
+            or function.__module__ != module.__name__ or Path(function.__code__.co_filename).resolve() != path):
+        raise RuntimeError('canonical Main withdrawal function required')
+    codes = [value for value in compile(path.read_bytes(), function.__code__.co_filename, 'exec', dont_inherit=True).co_consts
+             if isinstance(value, types.CodeType) and value.co_name == name]
+    if len(codes) != 1 or codes[0] != function.__code__:
+        raise RuntimeError('Main withdrawal source changed')
+    return function
+
+
+def request_main_stop(supervisor, main_binding) -> None:
+    """First Source action of canonical withdraw; intention, not G retirement."""
+    _identity_handle(supervisor)
+    if main_binding is not supervisor._binding:
+        raise RuntimeError('actual Source Main binding required')
+    module = _binding_module(supervisor)
+    function = _canonical_admission_function(module, 'withdraw')
+    caller = inspect.currentframe().f_back
+    if (caller.f_code is not function.__code__ or caller.f_globals is not vars(module)
+            or caller.f_locals.get('app') is not main_binding.app or caller.f_locals.get('binding') is not main_binding):
+        raise RuntimeError('canonical Main withdraw caller required')
+    main_binding.check()
+    if supervisor._main_stop_intent is None:
+        supervisor._main_stop_intent = supervisor._stop_intents.setdefault('main-withdraw',
+            _StopIntent(supervisor, 'main-withdraw', _factory=_FACTORY))
+    if not _matching_intent(supervisor, supervisor._main_stop_intent, 'main-withdraw'):
+        raise RuntimeError('Main stop intention changed')
+    supervisor._stop.set()
+    supervisor._event.set()
+
+
 def _code_images():
     root = Path(__file__).resolve().parent
     names = ('source_supervisor.py', 'source_workflow.py', 'source_integration.py', 'source_guard.py',
@@ -97,13 +203,17 @@ class SourceSupervisor:
     __slots__ = ('_factory', '_origin', '_pid', '_binding', '_service', '_path', '_identity',
                  '_images', '_lock', '_event', '_state', '_thread', '_slot', '_lease',
                  '_failure', '_start_failed', '_cursor', '_stop', '_dispatch_mutex',
-                 '_slot_epoch', '_deadline', '_reference', '_session', '_guard', '_errors')
+                 '_slot_epoch', '_deadline', '_reference', '_session', '_guard', '_errors',
+                 '_binding_reference', '_main_stop_intent', '_source_stop_intent', '_stop_intents')
 
     def __init__(self, service, binding, *, _factory=None):
         if _factory is not _FACTORY or inspect.currentframe().f_back.f_code is not start.__code__:
             raise TypeError('canonical Main Source start required')
         self._factory, self._origin, self._pid = _factory, __name__, os.getpid()
         self._binding, self._service = binding, service
+        self._binding_reference = binding.reference
+        self._main_stop_intent = self._source_stop_intent = None
+        self._stop_intents = {}
         self._path, self._identity = service.store.path, service.store.storage_identity
         self._images = _code_images()
         self._lock, self._event = threading.RLock(), threading.Event()
@@ -134,15 +244,13 @@ class SourceSupervisor:
                 raise _unavailable()
             while True:
                 with self._lock:
-                    if self._stop.is_set() or self._state in ('STOPPING', 'CLEANUP_UNCERTAIN'):
-                        break
                     _check(self, published=True)
+                    if self._state not in ('STARTING', 'READY'):
+                        raise _unavailable()
                     starting = self._state == 'STARTING'
                 selected = _select(self._service.store, cleanup_only=starting, after=self._cursor)
                 if not selected:
                     self._cursor = ''
-                    if self._stop.is_set():
-                        break
                     if starting:
                         # Do not publish READY while an old, lock-contended debt
                         # remains anywhere in the finite scan.
@@ -157,9 +265,9 @@ class SourceSupervisor:
                 for task_id, operation in selected:
                     self._cursor = task_id
                     with self._lock:
-                        if self._stop.is_set() or self._state in ('STOPPING', 'CLEANUP_UNCERTAIN'):
-                            break
                         _check(self, published=True)
+                        if self._state not in ('STARTING', 'READY'):
+                            raise _unavailable()
                     try:
                         _execute(self, task_id, operation)
                     except ResearchError as error:
@@ -169,8 +277,8 @@ class SourceSupervisor:
                     self._event.clear()
         except BaseException as error:
             with self._lock:
-                if not (self._stop.is_set() and self._slot is None and not self._errors
-                        and isinstance(error, ResearchError) and error.code == 'FEATURE_UNAVAILABLE'):
+                if not (_controlled_stopping(error, self) and self._slot is None
+                        and not self._errors and self._failure is None):
                     self._errors.append(error)
                     self._failure = self._failure or 'WORKER_FAILURE'
                     self._state = 'CLEANUP_UNCERTAIN'
@@ -197,14 +305,23 @@ def _check(supervisor, *, published=False):
         raise _unavailable()
     _same_store(supervisor, supervisor._service.store)
     if published:
-        if supervisor._stop.is_set():
-            raise _unavailable()
+        module = _binding_module(supervisor)
         try:
             supervisor._binding.check()
-        except BaseException:
-            if supervisor._stop.is_set():
-                raise _unavailable() from None
+        except BaseException as error:
+            expected = getattr(module, 'FormalAdmissionWithdrawn', None)
+            if (expected is not None and type(error) is expected and supervisor._stop.is_set()
+                    and _matching_intent(supervisor, supervisor._main_stop_intent, 'main-withdraw')):
+                validate = _canonical_admission_function(module, 'validate_withdrawal')
+                if validate(error, supervisor._binding) is not None:
+                    raise RuntimeError('Main withdrawal validation result invalid')
+                raise _SourceStopping(supervisor, supervisor._main_stop_intent, _factory=_FACTORY) from error
             raise
+        if supervisor._stop.is_set():
+            for kind, intent in (('main-withdraw', supervisor._main_stop_intent), ('source-retire', supervisor._source_stop_intent)):
+                if _matching_intent(supervisor, intent, kind):
+                    raise _SourceStopping(supervisor, intent, _factory=_FACTORY)
+            raise _unavailable()
 
 
 def start(service, main_binding) -> SourceSupervisor:
@@ -314,6 +431,11 @@ def retire(supervisor, *, deadline_monotonic: float) -> None:
     # the sender's task -> owner -> finished transaction -> dispatch order.
     _identity_handle(supervisor)
     remaining = _deadline(supervisor, deadline_monotonic)
+    if supervisor._source_stop_intent is None:
+        supervisor._source_stop_intent = supervisor._stop_intents.setdefault('source-retire',
+            _StopIntent(supervisor, 'source-retire', _factory=_FACTORY))
+    if not _matching_intent(supervisor, supervisor._source_stop_intent, 'source-retire'):
+        raise RuntimeError('Source retirement intention changed')
     supervisor._stop.set()
     supervisor._event.set()
     if not supervisor._dispatch_mutex.acquire(timeout=remaining):
@@ -406,8 +528,7 @@ def _execute(supervisor, task_id, operation):
         except (ResearchError, PermissionError):
             return
     with supervisor._lock:
-        if supervisor._stop.is_set() or supervisor._state == 'STOPPING':
-            return
+        _check(supervisor, published=True)
         if supervisor._slot is not None:
             raise _unavailable()
         supervisor._slot = task_id
@@ -420,20 +541,11 @@ def _execute(supervisor, task_id, operation):
                 require_worker(supervisor, store, task_id, operation='cleanup')
                 close_interrupted(store, task_id, lease)
             else:
-                if not supervisor._stop.is_set():
+                try:
                     require_worker(supervisor, store, task_id, operation='send')
-                    try:
-                        run_source_once(store, task_id, lease, PinnedPublicTransport())
-                    except ResearchError as error:
-                        if error.code != 'FEATURE_UNAVAILABLE' or not supervisor._stop.is_set():
-                            raise
-                        # Retirement can win between the last precheck and the
-                        # original run_source_once entry. Prove no claim/send.
-                        with store.transaction() as conn:
-                            row = conn.execute('SELECT started FROM research_source_runs WHERE task_id=?', (task_id,)).fetchone()
-                            sent = conn.execute('SELECT 1 FROM research_source_requests WHERE task_id=?', (task_id,)).fetchone()
-                            if not row or row[0] != 0 or sent:
-                                raise
+                    run_source_once(store, task_id, lease, PinnedPublicTransport())
+                except _SourceStopping as error:
+                    _close_stopping_slot(supervisor, store, task_id, lease, error)
         clean = True
     except ResearchError as error:
         if error.code == 'STORE_BUSY' and supervisor._lease is None:
@@ -450,6 +562,26 @@ def _execute(supervisor, task_id, operation):
             else:
                 supervisor._failure = 'CLOSE_UNCERTAIN'
                 supervisor._state = 'CLEANUP_UNCERTAIN'
+
+
+def _close_stopping_slot(supervisor, store, task_id, lease, error):
+    if not _controlled_stopping(error, supervisor):
+        raise error
+    from .authorization import TaskGateLease
+    if (store is not supervisor._service.store or task_id != supervisor._slot
+            or type(lease) is not TaskGateLease or lease is not supervisor._lease or lease.task_id != task_id):
+        raise _unavailable()
+    with store.transaction() as conn:
+        lease.require(store, conn, cleanup=True)
+        row = conn.execute('SELECT started FROM research_source_runs WHERE task_id=?', (task_id,)).fetchone()
+        sent = conn.execute('SELECT 1 FROM research_source_requests WHERE task_id=?', (task_id,)).fetchone()
+        if not row:
+            raise _unavailable()
+        debt = row[0] != 0 or sent is not None
+    if debt:
+        from .source_workflow import close_interrupted
+        require_worker(supervisor, store, task_id, operation='cleanup')
+        close_interrupted(store, task_id, lease)
 
 
 def _bind_session(session):
@@ -535,3 +667,8 @@ class SourceDispatchGuard:
             yield
         finally:
             supervisor._dispatch_mutex.release()
+
+
+# The actual native frame remains identifiable when an observer calls the
+# original function through a wrapper; no replacement wrapper can mint itself.
+_NATIVE_MINT_CODES.update({name: globals()[name].__code__ for name in ('request_main_stop', 'retire', '_check')})
