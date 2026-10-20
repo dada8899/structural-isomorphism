@@ -335,18 +335,41 @@ class FormalMainBrowserService(AbstractContextManager):
         status, body = self.client.request('GET', '/api/health')
         if (status != 200 or body['status'] != 'limited' or body['checks']['base'] != 'ready'
                 or body['checks']['source_history'] != 'CURRENT_ACL_AND_STORED_SOURCE_REQUIRED'
-                or body['checks']['source_execute'] != 'SUPERVISED_SOURCE_WORKER_UNBOUND'
+                or body['checks']['source_execute'] not in ('ready', 'unavailable')
                 or body['checks']['native_planner'] != 'FUNDING_CLOSED'):
             raise RuntimeError('actual Main base and closed capabilities differ')
         from services import formal_admission
         formal_admission.require(self.app, 'research_basic')
         formal_admission.require(self.app, 'source_history')
-        try:
-            formal_admission.require(self.app, 'source_execute')
-        except RuntimeError:
-            pass
-        else:
-            raise RuntimeError('test service cannot enable Source execution')
+
+    def source_status(self):
+        """Observation only: no flag, receipt or authority is accepted."""
+        if self.stop.is_set() or self.app is None:
+            return 'unavailable'
+        from services import formal_admission
+        return formal_admission.safe_status(self.app)['source_execute']
+
+    def retire_source(self):
+        """Python-only actual sub-lifetime retirement; no caller authority input.
+
+        A CLOSED Core result completes only this Source object. Main remains
+        live for history; its other resources have a later teardown lifetime.
+        Uncertainty retains the original fixed deadline/handles, never extends it.
+        """
+        if self.stop.is_set() or self.app is None:
+            raise RuntimeError('owned Main service is retired')
+        from services import formal_admission
+        binding = formal_admission._STATE.get(id(self.app))
+        if binding is None:
+            raise RuntimeError('actual Main binding unavailable')
+        binding.check()
+        deadline = binding.source_deadline
+        if deadline is None:
+            deadline = time.monotonic() + 20
+        formal_admission.close_source(binding, deadline_monotonic=deadline)
+        if not formal_admission.source_closed(binding):
+            raise RuntimeError('actual Source sub-lifetime did not close')
+        return self.source_status()
 
     def browser_bridge(self):
         if self.stop.is_set() or self.server_thread is None or not self.server_thread.is_alive():
@@ -374,7 +397,9 @@ class FormalMainBrowserService(AbstractContextManager):
             self.server.should_exit = True
         if self.server_thread is not None and self.server_thread.ident is not None:
             try:
-                self.server_thread.join(15)
+                # Candidate HTTP5 + application20 + observer margin5. This local
+                # test wait is not evidence of a production unit's hard deadline.
+                self.server_thread.join(30)
             except BaseException as error:
                 errors.append(type(error).__name__)
             if self.server_thread.is_alive():
@@ -476,6 +501,7 @@ def self_test(owned_root):
             response = bridge.forward('GET', ORIGIN + '/assets/research.js', [])
             assert response.status == 200 and response.body == (ROOT / 'web/frontend/assets/research.js').read_bytes()
         actual_app = service.app
+        source_status = service.source_status()
     from services import formal_admission
     try:
         formal_admission.require(actual_app, 'research_basic')
@@ -486,7 +512,7 @@ def self_test(owned_root):
     assert not owned_root.exists() and not service.server_thread.is_alive()
     return {'scope': 'actual_main_local_tls_only', 'actual_main': True, 'schema': 14,
             'history_origin': 'offline_probe', 'actual_https_history': True, 'server_issued_secure_httponly_cookie': True,
-            'source_execute': 'closed', 'funding': 'closed', 'real_model_executed': False,
+            'source_execute': source_status, 'funding': 'closed', 'real_model_executed': False,
             'public_tls_verified': False, 'browser_behavior_verified': False, 'shutdown_binding': 'rejected', 'cleanup': 'closed'}
 
 

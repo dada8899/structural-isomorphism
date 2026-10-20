@@ -112,6 +112,18 @@ def problem():
         'objective': '减少等待', 'summary': '受控自述的排队现象', 'variables': [], 'constraints': [], 'unknowns': [], 'confirmed': True}
 
 
+async def source_ready(main, admission):
+    end = time.monotonic() + 8
+    while True:
+        try:
+            admission.require(main.app, 'source_execute')
+            return
+        except RuntimeError:
+            if time.monotonic() >= end:
+                raise AssertionError('actual Source supervisor unavailable') from None
+            await asyncio.sleep(.02)
+
+
 def test_actual_main_lifespan_register_save_reopen_funding_closed_and_shutdown(prepared):
     main, admission, paths, messages = prepared
     async def run():
@@ -126,6 +138,7 @@ def test_actual_main_lifespan_register_save_reopen_funding_closed_and_shutdown(p
             with pytest.raises(RuntimeError): admission.initialize(main.app)
             assert (await client.get('/api/research')).status_code == 503
             async with main.lifespan(main.app):
+                await source_ready(main, admission)
                 assert admission.require(main.app, 'research_basic') is None
                 alternate = importlib.import_module('web.backend.services.formal_admission')
                 assert alternate.require(main.app, 'research_basic') is None
@@ -149,7 +162,7 @@ def test_actual_main_lifespan_register_save_reopen_funding_closed_and_shutdown(p
                 blocked = await client.post('/api/research/' + rid + '/source-preview', json=envelope({
                     'input_revision': 1, 'expected_research_version': 1, 'query': 'queue variability'}),
                     headers={'Origin': BETA, 'Idempotency-Key': 'actual-main-source-closed'})
-                assert blocked.status_code == 503 and blocked.json()['error']['code'] == 'FEATURE_UNAVAILABLE'
+                assert blocked.status_code == 200  # Preview is not a GET/approval/task.
                 quote = await client.post('/api/research/' + rid + '/plan-previews', json={
                     'schema_version': 'structure-research-v1', 'contract_revision': 'funded-plan-v2',
                     'data': {'input_revision': 1, 'expected_research_version': 1, 'observation_source': 'own_observation', 'declaration_status': 'self_declared'}},
@@ -169,7 +182,7 @@ def test_actual_main_lifespan_register_save_reopen_funding_closed_and_shutdown(p
                 assert (await client.get('/api/health?deep=1')).status_code == 503
                 assert (await client.get('/api/search?q=owned')).status_code == 503
                 assert (await client.post('/api/ask', json={'query': 'owned'})).status_code == 503
-                with pytest.raises(RuntimeError): admission.require(main.app, 'source_execute')
+                assert admission.require(main.app, 'source_execute') is None
                 from api import auth
                 with auth._store()._connection() as conn:
                     assert conn.execute('SELECT count(*) FROM research_funding_accounts').fetchone()[0] == 0
@@ -208,6 +221,11 @@ def test_real_main_binding_rejects_late_profile_resource_and_pid_changes(prepare
     async def run():
         async with main.lifespan(main.app):
             assert admission.require(main.app, 'research_basic') is None
+            # This existing test isolates base-profile drift. Retire Source
+            # through its real native lifecycle; no flag/admission override.
+            binding = admission._STATE[id(main.app)]
+            admission.close_source(binding, deadline_monotonic=time.monotonic() + 20)
+            assert admission.source_closed(binding)
             with monkeypatch.context() as drift:
                 if fault == 'env': drift.setenv('STRUCTURAL_ENV', 'dev')
                 elif fault == 'pid':
@@ -343,6 +361,7 @@ def test_actual_main_reads_migrated_source_history_and_enforces_current_actor(tm
             path = '/api/research/' + seed.research_id
             async with httpx.AsyncClient(transport=transport, base_url=BETA) as client:
                 async with main.lifespan(main.app):
+                    await source_ready(main, admission)
                     await login(client, messages, seed.email)
                     assert admission.require(main.app, 'source_history') is None
                     original = {}
@@ -381,7 +400,7 @@ def test_actual_main_reads_migrated_source_history_and_enforces_current_actor(tm
                     blocked = await client.post(path + '/source-preview', json=envelope({
                         'input_revision': 2, 'expected_research_version': current.json()['data']['research']['version'], 'query': 'queue theory'}),
                         headers={'Origin': BETA, 'Idempotency-Key': 'actual-main-history-no-execute'})
-                    assert blocked.status_code == 503 and blocked.json()['error']['code'] == 'FEATURE_UNAVAILABLE'
+                    assert blocked.status_code == 200
                     old_session = httpx.Cookies(client.cookies)
                     logout = await client.post('/api/auth/logout', headers={'Origin': BETA})
                     assert logout.status_code == 200
@@ -403,7 +422,7 @@ def test_actual_main_reads_migrated_source_history_and_enforces_current_actor(tm
                     await login(client, messages, seed.email)
                     denied = await client.get(path + '/records', params={'task_id': seed.source_task_id, 'kind': 'excerpts'})
                     assert denied.status_code == 404 and 'data' not in denied.json()
-                    with pytest.raises(RuntimeError): admission.require(main.app, 'source_execute')
+                    assert admission.require(main.app, 'source_execute') is None
         asyncio.run(run())
         with pytest.raises(RuntimeError): admission.require(main.app, 'research_basic')
     assert not owned_root.exists()

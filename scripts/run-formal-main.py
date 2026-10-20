@@ -286,7 +286,7 @@ def _serve(pid, uid):
             raise EntryFailure('CODE_IDENTITY_INVALID')
         import uvicorn
         config = uvicorn.Config(main.app, host='127.0.0.1', port=5004, workers=1, reload=False,
-                                lifespan='on', access_log=False, log_config=None)
+                                lifespan='on', access_log=False, log_config=None, timeout_graceful_shutdown=5)
         server = uvicorn.Server(config)
     except EntryFailure:
         raise
