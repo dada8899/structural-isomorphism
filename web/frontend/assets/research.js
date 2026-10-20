@@ -1400,14 +1400,9 @@
     byId('view-context').textContent = data.is_historical ? '历史流程，只读查看原问题与原记录；不代表当前修订的研究结果。' : selectedTask ? '固定任务只读查看。这是当前任务，不是历史结果；返回当前问题后才能编辑。' : '';
     if (selectedTask) status(data.is_historical ? '已读取历史流程的原问题，只读查看；方法正文以下方状态为准。' : '已读取固定任务，只读查看；该任务仍是当前任务。');
     renderTaskHistory(data);
-    byId('source-query').disabled = readOnlyView();
-    for (const node of byId('source-section').querySelectorAll('.source-write-ui')) node.hidden = readOnlyView();
-    byId('source-title').textContent = readOnlyView() ? '来源笔记（只读）' : '可选：继续查找方法来源';
-    byId('source-preview').hidden = readOnlyView();
-    if (readOnlyView()) byId('source-confirm').hidden = true;
+    syncSourceAccess();
     byId('task-title').textContent = '本机流程演练';
     byId('task-scope').textContent = '仅验证保存、调用与对账流程，不访问真实供应端、不扣真实费用，也不代表研究成果。';
-    byId('source-section').hidden = !data.capabilities?.source_evidence;
     byId('task-section').hidden = !data.capabilities?.execution && !data.task && !data.other_active_task_id;
     const labels = {QUEUED:'等待本机执行', RUNNING:'本机演练处理中', WAITING_EXTERNAL:'等待演练响应', RECONCILING:'调用结果待核对', COMPLETED:'本机演练结束；尚无真实研究结论', FAILED:'演练未完成', CANCELLED:'已停止后续步骤', ACCESS_REVOKED:'访问已停止'};
     byId('task-phase').textContent = data.task ? labels[data.execution] : '尚未启动演练。启动后进入队列，仅在本机实际执行时推进，可刷新查看状态。';
@@ -1730,8 +1725,21 @@
     }
     return values;
   }
+  function sourceWritesAllowed(){return !readOnlyView()&&Boolean(taskData?.capabilities?.source_evidence);}
+  function syncSourceAccess(){
+    const writable=sourceWritesAllowed(),stored=taskData?.task?.policy_revision==='d1-source-only-v1';
+    byId('source-section').hidden=!taskData||form.hidden;
+    byId('source-title').textContent=writable?'可选：继续查找方法来源':'已有来源笔记';
+    for(const node of byId('source-section').querySelectorAll('.source-write-ui'))node.hidden=!writable;
+    byId('source-query').disabled=!writable||sourceBusy||busy||taskBusy;
+    byId('source-preview').hidden=!writable;byId('source-preview').disabled=!writable||sourceBusy||busy||taskBusy;
+    if(!writable){sourcePreview=null;sourceApproval=null;byId('source-plan').textContent='';}
+    byId('source-confirm').hidden=!writable||!sourcePreview;byId('source-confirm').disabled=!writable||sourceBusy||busy||taskBusy;
+    byId('source-refresh').hidden=!stored;byId('source-refresh').disabled=!stored||sourceBusy||busy||taskBusy;
+    byId('source-reopen-hint').textContent=writable?'已有来源需手动读取；预览和确认后才会尝试新采集。':stored?'可以读取已有来源；当前不能采集新资料。':'当前未选中已有来源，且暂不能采集新资料。可从已有资料目录或历史记录选择来源。';
+  }
   async function sourcePost(operation, data, isCurrent = () => true) {
-    if (readOnlyView()) throw new Error('此页只读，请返回当前问题后操作。');
+    if (!sourceWritesAllowed()) throw new Error('当前不能采集新资料；已有来源仍可按权限读取。');
     const privateScope = privateGeneration;
     const body = JSON.stringify({schema_version:schema, contract_revision:revision, data});
     if (operation === 'source-preview') return request(`/api/research/${researchId}/${operation}`, {method:'POST', headers:{'Content-Type':'application/json','Idempotency-Key':crypto.randomUUID()}, body}, isCurrent);
@@ -1765,7 +1773,7 @@
       renderTask(result,{operation:'start',methodToken});
       byId('source-status').textContent = '已核对上次确认的原操作；没有另启重复流程。';
     } catch (error) { methodFailure(methodToken); byId('source-status').textContent = error.message; }
-    finally { sourceBusy = false; }
+    finally { sourceBusy = false; syncSourceAccess(); }
   }
   async function sourceRecords() {
     const task = taskData?.task;
@@ -1803,7 +1811,7 @@
     byId('source-status').textContent = items.length ? '已从账户读取来源与笔记；证据仍不足。' : '当前尚无可展示的来源材料。';
   }
   byId('source-preview').addEventListener('click', async () => {
-    if (sourceBusy || busy || taskBusy || !editBase || editBase.historical) return;
+    if (sourceBusy || busy || taskBusy || !editBase || !sourceWritesAllowed()) return;
     sourceBusy = true;
     byId('source-preview').disabled = true;
     byId('source-status').textContent = '正在预览关键词；尚未开始读取来源。';
@@ -1818,17 +1826,17 @@
     try {
       const data = {input_revision:editBase.revision,expected_research_version:editBase.researchVersion,query:byId('source-query').value};
       const result = await sourcePost('source-preview',data, active);
-      if (!active()) return;
+      if (!active()||!sourceWritesAllowed()) return;
       sourcePreview = {...data,preview_digest:result.preview_digest};
       byId('source-plan').textContent = `实际对外关键词：${result.query}\n绑定已保存修订 ${result.input_revision}（不含表单中的未保存修改）\n最多读取 ${result.plan.max_requests} 次 GET 来源；不会发送现象原文、目标或私有标签。`;
       byId('source-status').textContent = '预览完成；尚未开始读取来源。';
       byId('source-confirm').hidden = false;
     } catch (error) { if (active()) byId('source-status').textContent = error.message; }
-    finally { sourceBusy = false; byId('source-preview').disabled = false; }
+    finally { sourceBusy = false; syncSourceAccess(); }
   });
   byId('source-query').addEventListener('input', () => { sourcePreviewGeneration++; sourcePreview = null; sourceApproval = null; byId('source-confirm').hidden = true; byId('source-plan').textContent = ''; byId('source-status').textContent = '关键词已变化，请重新预览；尚未开始读取来源。'; });
   byId('source-confirm').addEventListener('click', async () => {
-    if (sourceBusy || busy || taskBusy || !sourcePreview || editBase?.historical) return;
+    if (sourceBusy || busy || taskBusy || !sourcePreview || !sourceWritesAllowed()) return;
     sourceBusy = true;
     const methodToken = beginMethodRead();
     const approvedPreview = {...sourcePreview};
@@ -1841,7 +1849,7 @@
       byId('source-confirm').hidden = true;
       byId('source-status').textContent = '来源流程已排队；刷新可读取实际执行状态。';
     } catch (error) { methodFailure(methodToken); byId('source-status').textContent = error.message; }
-    finally { sourceBusy = false; }
+    finally { sourceBusy = false; syncSourceAccess(); }
   });
   byId('source-refresh').addEventListener('click', async () => {
     if (sourceBusy || busy || taskBusy || !researchId) return;
@@ -1849,7 +1857,7 @@
     const methodToken = beginMethodRead();
     try { renderTask(await methodRequest(viewUrl(),{},methodToken),{methodToken}); await sourceRecords(); }
     catch (error) { byId('source-status').textContent = error.message; }
-    finally { sourceBusy = false; }
+    finally { sourceBusy = false; syncSourceAccess(); }
   });
   form.addEventListener('submit', async event => {
     event.preventDefault();
