@@ -3,7 +3,12 @@ import asyncio
 from contextlib import asynccontextmanager
 import json
 import logging
+from pathlib import Path
 import sys
+
+_REPOSITORY = Path(__file__).resolve().parents[4]
+if str(_REPOSITORY) not in sys.path:
+    sys.path.insert(0, str(_REPOSITORY))
 
 from starlette.applications import Starlette
 from uvicorn import Config, Server
