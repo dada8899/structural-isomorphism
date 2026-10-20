@@ -2,8 +2,10 @@
 Structural Web Backend — FastAPI 入口
 """
 import logging
+import importlib
 import os
 import sys
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -141,13 +143,15 @@ async def lifespan(app: FastAPI):
     """Startup: load the search engine once."""
     logger.info("startup.begin")
     if _IS_PROD:
+        from services import formal_admission
+        if formal_admission._STATE.get(id(app)) is not None:
+            raise RuntimeError('an actual Main lifespan is already active')
         app_state.pop("search", None)
         app_state.pop("artifact", None)
-        from services import formal_admission
         binding = search_service = None
+        source_supervisor = supervisor = None
         primary = None
         try:
-            formal_admission.retire(app)
             auth_api._validate_production_config()
             binding = formal_admission.initialize(app)
             configured = tuple(os.getenv(key) for key in ('STRUCTURAL_DATA_DIR', 'STRUCTURAL_MODEL_PATH',
@@ -160,6 +164,19 @@ async def lifespan(app: FastAPI):
                     precomputed_embeddings=configured[2], artifact_manifest=configured[3],
                     kb_file=os.getenv('STRUCTURAL_KB_FILE', 'kb-expanded.jsonl'), formal=True)
             formal_admission.publish(app, binding, search_service)
+            try:
+                source_supervisor = importlib.import_module(
+                    binding.service.__module__.rsplit('.', 1)[0] + '.source_supervisor')
+                formal_admission.pin_source_module(app, binding, source_supervisor)
+                # Core verifies this direct, actual lifespan caller. STARTING
+                # remains unavailable; neither facts nor this assignment grant it.
+                supervisor = source_supervisor.start(binding.service, binding)
+            except BaseException as error:
+                if source_supervisor is not None and type(error) is source_supervisor.SourceStartFailure:
+                    supervisor = error.supervisor
+                logger.warning('source.supervisor.start_unavailable')
+            if supervisor is not None:
+                formal_admission.attach_source(app, binding, source_supervisor, supervisor)
             if search_service is not None:
                 app_state['search'], app_state['artifact'] = search_service, search_service.artifact
             yield
@@ -168,13 +185,37 @@ async def lifespan(app: FastAPI):
             raise
         finally:
             errors = []
+            deadline = time.monotonic() + 20
+            # Core may have returned an owned thread before the subsequent
+            # attachment/check raised. Never lose that actual local handle.
+            if binding is not None and supervisor is not None and binding.supervisor is None:
+                binding.source_module, binding.supervisor = source_supervisor, supervisor
+            # HTTP withdrawal cannot wait behind the Source dispatch mutex.
             try:
-                formal_admission.retire(app)
+                withdrawn = formal_admission.withdraw(app)
+                if binding is None:
+                    binding = withdrawn
             except BaseException as error:
                 errors.append(type(error).__name__)
             app_state.pop('search', None); app_state.pop('artifact', None)
-            if search_service is not None:
+            source_closed = binding is None
+            if binding is not None:
+                if binding.source_deadline is not None and not formal_admission.source_closed(binding):
+                    deadline = min(deadline, binding.source_deadline)
                 try:
+                    formal_admission.close_source(binding, deadline_monotonic=deadline)
+                except BaseException as error:
+                    errors.append(type(error).__name__)
+                source_closed = formal_admission.source_closed(binding)
+                if source_closed:
+                    try:
+                        formal_admission.release(binding, deadline_monotonic=deadline)
+                    except BaseException as error:
+                        errors.append(type(error).__name__)
+            if search_service is not None and source_closed:
+                try:
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError('Main cleanup deadline ended')
                     search_service.close()
                 except BaseException as error:
                     errors.append(type(error).__name__)

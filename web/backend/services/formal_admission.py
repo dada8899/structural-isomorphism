@@ -4,11 +4,14 @@ import importlib
 import inspect
 import json
 import logging
+import math
 import os
 from pathlib import Path
 import sqlite3
 import sys
 import types
+import time
+import threading
 from uuid import uuid4
 
 _FACTORY = object()
@@ -23,6 +26,33 @@ _CONFIG = ('STRUCTURAL_ENV', 'AUTH_ENABLED', 'AUTH_SITE_ROLE', 'AUTH_LINK_BASE_U
            'ADMIN_NOTIFICATION_EMAIL', 'STRUCTURAL_ARTIFACT_MANIFEST', 'STRUCTURAL_DATA_DIR',
            'STRUCTURAL_KB_FILE', 'STRUCTURAL_MODEL_PATH', 'STRUCTURAL_PRECOMPUTED_EMBEDDINGS')
 _CAPS = ('research_basic', 'source_history', 'source_execute')
+_WITHDRAW_FACTORY = object()
+_LIFETIME_LOCK = vars(sqlite3).setdefault('_structural_main_lifetime_lock_v1', threading.RLock())
+
+
+class _Withdrawal:
+    __slots__ = ('binding', 'reference', 'pid', 'factory')
+    def __init__(self, binding, *, _factory=None):
+        if _factory is not _WITHDRAW_FACTORY or inspect.currentframe().f_back.f_code is not withdraw.__code__:
+            raise TypeError('actual Main withdrawal required')
+        self.binding, self.reference, self.pid, self.factory = binding, binding.reference, os.getpid(), _factory
+
+
+class FormalAdmissionWithdrawn(RuntimeError):
+    """A checked normal HTTP withdrawal fact, never a Source-stop authority."""
+    __slots__ = ('_binding', '_reference', '_pid', '_seal')
+    def __init__(self, binding, *, _factory=None):
+        if _factory is not _WITHDRAW_FACTORY or inspect.currentframe().f_back.f_code is not _Binding.check.__code__:
+            raise TypeError('actual checked Main withdrawal required')
+        super().__init__('formal Main admission withdrawn')
+        self._binding, self._reference, self._pid, self._seal = binding, binding.reference, os.getpid(), binding.withdrawal
+    @property
+    def binding(self): return self._binding
+    @property
+    def reference(self): return self._reference
+    @property
+    def pid(self): return self._pid
+    def __reduce__(self): raise TypeError('Main withdrawal cannot cross processes')
 
 
 def _config():
@@ -62,7 +92,8 @@ def _digest(path):
 
 class _Binding:
     __slots__ = ('app', 'pid', 'reference', 'factory', 'origin', 'config', 'roots', 'paths',
-                 'sources', 'service', 'facts', 'witnesses', 'favorites_lock', 'search', 'active', 'retired')
+                 'sources', 'service', 'facts', 'witnesses', 'favorites_lock', 'search', 'active', 'retired',
+                 'supervisor', 'source_module', 'source_receipt', 'source_deadline', 'source_errors', 'withdrawal')
 
     def __init__(self, app, *, _factory=None):
         if (_factory is not _FACTORY or inspect.currentframe().f_back.f_code is not initialize.__code__):
@@ -70,6 +101,9 @@ class _Binding:
         self.app, self.pid, self.reference = app, os.getpid(), str(uuid4())
         self.factory, self.origin, self.config = _factory, __name__, _config()
         self.witnesses, self.search, self.active, self.retired = [], None, False, False
+        self.supervisor = self.source_module = self.source_receipt = self.source_deadline = None
+        self.source_errors = ()
+        self.withdrawal = None
 
     def __repr__(self):
         return '<formal Main native binding>'
@@ -80,8 +114,7 @@ class _Binding:
     def check(self, *, published=True):
         origin = sys.modules.get(self.origin)
         if (origin is None or type(self) is not getattr(origin, '_Binding', None) or self.factory is not origin._FACTORY
-                or self.pid != os.getpid() or self.retired or _STATE.get(id(self.app)) is not self
-                or (published and not self.active) or self.config != _config()):
+                or self.pid != os.getpid() or self.config != _config()):
             raise RuntimeError('Main lifespan admission unavailable')
         _modules(self.app)
         if self.roots != (self.paths.STATE_ROOT, self.paths.CACHE_ROOT, self.paths.LOG_ROOT):
@@ -98,6 +131,12 @@ class _Binding:
         self.paths.PrivateFavoritesFile._regular(data)
         if self.search is not None:
             self.search._formal_snapshot.check_model()
+        # Resource/config/source diagnostics precede the normal stop fact.
+        with _LIFETIME_LOCK:
+            if self.retired or _STATE.get(id(self.app)) is not self or (published and not self.active):
+                if _withdrawal_record(self):
+                    raise FormalAdmissionWithdrawn(self, _factory=_WITHDRAW_FACTORY)
+                raise RuntimeError('Main lifespan admission unavailable')
 
 
 def initialize(app):
@@ -204,6 +243,13 @@ def require(app, capability):
         raise
     except Exception:
         raise RuntimeError('formal Main native resource unavailable') from None
+    if capability == 'source_execute':
+        try:
+            if source_module(binding).require_available(app, binding.service) is not None:
+                raise RuntimeError('Source availability returned data')
+        except Exception:
+            raise RuntimeError('formal Source supervisor unavailable') from None
+        return None
     facts = binding.facts
     fact = {'research_basic': facts.basic_read_write, 'source_history': facts.source_history,
             'source_execute': facts.source_execute}[capability]
@@ -215,20 +261,163 @@ def require(app, capability):
 def safe_status(app):
     require(app, 'research_basic')
     binding = _STATE[id(app)]
+    try:
+        require(app, 'source_execute')
+        source_status = 'ready'
+    except RuntimeError:
+        source_status = 'unavailable'
     return {'base': 'ready', 'research_basic': binding.facts.basic_read_write.reason,
-            'source_history': binding.facts.source_history.reason, 'source_execute': binding.facts.source_execute.reason,
+            'source_history': binding.facts.source_history.reason, 'source_execute': source_status,
             'math': binding.facts.local_math.reason, 'native_planner': binding.facts.native_planner.reason,
             'search': 'ready' if binding.search is not None else 'ARTIFACTS_UNBOUND'}
 
 
-def retire(app):
-    binding = _STATE.pop(id(app), None)
+def source_module(binding):
+    """Use the startup service's canonical family, including alternate imports."""
+    family = binding.service.__module__.rsplit('.', 1)[0]
+    module = importlib.import_module(family + '.source_supervisor')
+    expected = Path(__file__).resolve().parents[1] / 'research/source_supervisor.py'
+    if Path(module.__file__).resolve() != expected or Path(module.__file__).is_symlink():
+        raise RuntimeError('canonical Source module required')
+    return module
+
+
+def pin_source_module(app, binding, module):
+    _producer(app)
+    binding.check()
+    if source_module(binding) is not module:
+        raise RuntimeError('canonical Source module required')
+    # Freeze code before starting the thread: its binding.check may already
+    # iterate this map as soon as Core.start returns from Thread.start.
+    binding.source_module = module
+    binding.sources[Path(module.__file__)] = _digest(module.__file__)
+
+
+def attach_source(app, binding, module, supervisor):
+    _producer(app)
+    binding.check()
+    if binding.source_module is not module or type(supervisor) is not module.SourceSupervisor:
+        raise RuntimeError('actual Source startup handle required')
+    binding.supervisor = supervisor
+
+
+def withdraw(app):
+    """Revoke HTTP before waiting on G; keep local native witnesses alive."""
+    with _LIFETIME_LOCK:
+        binding = _STATE.get(id(app))
     if binding is None:
         return
-    binding.active, binding.retired = False, True
+    error = None
+    if binding.supervisor is not None and not source_closed(binding):
+        try:
+            if binding.source_module.request_main_stop(binding.supervisor, binding) is not None:
+                raise RuntimeError('Main stop coordination returned data')
+        except BaseException as failure:
+            error = failure
+    with _LIFETIME_LOCK:
+        if _STATE.get(id(app)) is not binding:
+            return None
+        binding.withdrawal = _Withdrawal(binding, _factory=_WITHDRAW_FACTORY) if error is None else None
+        binding.active, binding.retired = False, True
+        _STATE.pop(id(app), None)
+    if error is not None:
+        _RETIRED_UNCERTAIN[binding.reference] = (binding, binding.supervisor, (error,))
+        raise RuntimeError('Main stop coordination uncertain') from None
+    return binding
+
+
+def _withdrawal_record(binding):
+    origin = sys.modules.get(binding.origin)
+    record = binding.withdrawal
+    return (origin is not None and type(record) is origin._Withdrawal
+            and record.factory is origin._WITHDRAW_FACTORY and record.binding is binding
+            and record.reference == binding.reference and record.pid == binding.pid == os.getpid()
+            and binding.retired and not binding.active and _STATE.get(id(binding.app)) is not binding)
+
+
+def validate_withdrawal(error, binding):
+    """No I/O, callback or C2. Core separately checks its native stop intent."""
+    try:
+        _owned(binding)
+        origin = sys.modules[binding.origin]
+        if (type(error) is not origin.FormalAdmissionWithdrawn or error.binding is not binding
+                or error.reference != binding.reference or error.pid != binding.pid
+                or error._seal is not binding.withdrawal or not _withdrawal_record(binding)):
+            raise RuntimeError('Main withdrawal fact mismatch')
+    except Exception:
+        raise RuntimeError('Main withdrawal fact mismatch') from None
+    return None
+
+
+def _owned(binding):
+    origin = sys.modules.get(binding.origin)
+    if (origin is None or type(binding) is not origin._Binding or binding.factory is not origin._FACTORY
+            or binding.pid != os.getpid()):
+        raise RuntimeError('actual Main resource owner required')
+
+
+def close_source(binding, *, deadline_monotonic):
+    """Only actual Core results are recorded; no caller receipt/authority input."""
+    _owned(binding)
+    if type(deadline_monotonic) not in (int, float) or not math.isfinite(deadline_monotonic):
+        raise RuntimeError('finite Main deadline required')
+    if source_closed(binding):
+        return binding.source_receipt
+    if binding.source_deadline is None:
+        binding.source_deadline = deadline_monotonic
+    if binding.source_deadline != deadline_monotonic:
+        raise RuntimeError('Source deadline cannot be reset')
+    supervisor = binding.supervisor
+    if supervisor is None:
+        return None
+    module = binding.source_module
+    errors = []
+    try:
+        module.retire(supervisor, deadline_monotonic=deadline_monotonic)
+    except BaseException as error:
+        errors.append(error)
+    try:
+        receipt = module.join(supervisor, deadline_monotonic=deadline_monotonic)
+        if (type(receipt) is not module.SourceCleanupReceipt
+                or receipt.contract != 'source-supervisor-cleanup-v1'
+                or receipt.supervisor_ref != supervisor.reference):
+            raise RuntimeError('Source cleanup receipt mismatch')
+        binding.source_receipt = receipt
+    except BaseException as error:
+        errors.append(error)
+    binding.source_errors = tuple(errors)
+    if not source_closed(binding):
+        _RETIRED_UNCERTAIN[binding.reference] = (binding, supervisor, tuple(errors))
+        raise RuntimeError('Source retirement uncertain') from None
+    return binding.source_receipt
+
+
+def source_closed(binding):
+    """Recheck the actual Core result and ref, never cache a closure boolean."""
+    _owned(binding)
+    if binding.supervisor is None:
+        return True
+    receipt, module = binding.source_receipt, binding.source_module
+    return (not binding.source_errors and type(receipt) is module.SourceCleanupReceipt
+            and receipt.contract == 'source-supervisor-cleanup-v1'
+            and receipt.supervisor_ref == binding.supervisor.reference
+            and receipt.state == 'CLOSED' and receipt.reason == 'CLOSED' and receipt.pending_task_id is None)
+
+
+def release(binding, *, deadline_monotonic=None):
+    """Close common witnesses only after actual Source ownership is CLOSED."""
+    _owned(binding)
+    if binding.active or _STATE.get(id(binding.app)) is binding:
+        raise RuntimeError('HTTP admission must be withdrawn before common resource release')
+    if not source_closed(binding):
+        _RETIRED_UNCERTAIN[binding.reference] = (binding, binding.supervisor, ('SOURCE_NOT_CLOSED',))
+        raise RuntimeError('Main common resources still owned by Source')
     errors = []
     handles = []
     for value in reversed(binding.witnesses):
+        if deadline_monotonic is not None and time.monotonic() >= deadline_monotonic:
+            errors.append('DEADLINE')
+            break
         # Retain the actual owned handle record if close becomes uncertain;
         # never re-admit it or guess closure from a cleared Python attribute.
         handles.append((value, getattr(value, 'parent_fd', None)))
@@ -239,6 +428,13 @@ def retire(app):
     if errors:
         _RETIRED_UNCERTAIN[binding.reference] = (binding, tuple(handles), tuple(errors))
         raise RuntimeError('Main resource retirement uncertain')
+
+
+def retire(app):
+    """Compatibility for failed initialization/legacy callers, never wait on G."""
+    binding = withdraw(app)
+    if binding is not None:
+        release(binding)
 
 
 def preserve_retirement_uncertainty(app, binding, search, errors):
