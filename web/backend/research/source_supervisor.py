@@ -107,6 +107,28 @@ class _SourceStopping(ResearchError):
         raise TypeError('Source stopping signal cannot cross processes')
 
 
+class _MainStopEntry:
+    __slots__ = ('factory', 'supervisor', 'supervisor_ref', 'binding', 'reference', 'pid', 'app',
+                 'module', 'module_name', 'module_file', 'binding_type', 'binding_factory', 'state',
+                 'withdraw', 'withdraw_code', 'validate', 'validate_code', 'source_identity')
+    def __init__(self, supervisor, module, withdraw, validate, source_identity, *, _factory=None):
+        frame=inspect.currentframe().f_back
+        if (_factory is not _FACTORY or frame.f_globals is not globals()
+                or frame.f_code is not _freeze_main_stop_entry.__code__):
+            raise TypeError('native Source startup proof required')
+        values = dict(factory=_factory, supervisor=supervisor, supervisor_ref=supervisor.reference,
+            binding=supervisor._binding, reference=supervisor._binding_reference, pid=os.getpid(),
+            app=supervisor._binding.app, module=module, module_name=module.__name__, module_file=module.__file__,
+            binding_type=module._Binding, binding_factory=module._FACTORY, state=module._STATE,
+            withdraw=withdraw, withdraw_code=withdraw.__code__, validate=validate,
+            validate_code=validate.__code__, source_identity=source_identity)
+        for name, value in values.items():object.__setattr__(self, name, value)
+    def __setattr__(self, *args):
+        raise TypeError('Main stop startup proof is immutable')
+    def __reduce__(self):
+        raise TypeError('Main stop startup proof cannot cross processes')
+
+
 def _matching_intent(supervisor, intent, kind):
     try:
         return (type(intent) is _StopIntent and intent.factory is _FACTORY and intent.kind == kind
@@ -154,18 +176,53 @@ def _canonical_admission_function(module, name):
     return function
 
 
+def _freeze_main_stop_entry(supervisor):
+    frame=inspect.currentframe().f_back
+    if frame.f_globals is not globals() or frame.f_code is not SourceSupervisor.__init__.__code__:
+        raise TypeError('native Source initialization required')
+    module = _binding_module(supervisor)
+    withdraw = _canonical_admission_function(module, 'withdraw')
+    validate = _canonical_admission_function(module, 'validate_withdrawal')
+    path = Path(module.__file__)
+    identity = hashlib.sha256(path.read_bytes()).digest()
+    if type(module._STATE) is not dict or supervisor._binding.sources.get(path) != identity:
+        raise RuntimeError('Main stop source proof differs from startup binding')
+    return _MainStopEntry(supervisor, module, withdraw, validate, (str(path), identity), _factory=_FACTORY)
+
+
+def _main_stop_entry(supervisor):
+    """Memory only. Resource/source/ENV integrity remains in _check."""
+    entry = supervisor._main_stop_entry
+    binding = supervisor._binding
+    if (type(entry) is not _MainStopEntry or entry.factory is not _FACTORY
+            or entry.supervisor is not supervisor or entry.supervisor_ref != supervisor.reference
+            or entry.binding is not binding or entry.reference != supervisor._binding_reference
+            or binding.reference != entry.reference or entry.pid != os.getpid() or binding.pid != entry.pid
+            or entry.app is not binding.app or type(binding) is not entry.binding_type
+            or binding.factory is not entry.binding_factory or binding.origin != entry.module_name
+            or sys.modules.get(entry.module_name) is not entry.module
+            or entry.module.__file__ != entry.module_file or entry.module._Binding is not entry.binding_type
+            or entry.module._FACTORY is not entry.binding_factory or type(entry.state) is not dict
+            or entry.module._STATE is not entry.state or entry.module.withdraw is not entry.withdraw
+            or entry.withdraw.__code__ is not entry.withdraw_code or entry.withdraw.__globals__ is not vars(entry.module)
+            or entry.module.validate_withdrawal is not entry.validate
+            or entry.validate.__code__ is not entry.validate_code or entry.validate.__globals__ is not vars(entry.module)):
+        raise RuntimeError('Main stop startup proof unavailable')
+    return entry
+
+
 def request_main_stop(supervisor, main_binding) -> None:
     """First Source action of canonical withdraw; intention, not G retirement."""
     _identity_handle(supervisor)
     if main_binding is not supervisor._binding:
         raise RuntimeError('actual Source Main binding required')
-    module = _binding_module(supervisor)
-    function = _canonical_admission_function(module, 'withdraw')
+    entry = _main_stop_entry(supervisor)
     caller = inspect.currentframe().f_back
-    if (caller.f_code is not function.__code__ or caller.f_globals is not vars(module)
+    if (caller.f_code is not entry.withdraw_code or caller.f_globals is not vars(entry.module)
             or caller.f_locals.get('app') is not main_binding.app or caller.f_locals.get('binding') is not main_binding):
         raise RuntimeError('canonical Main withdraw caller required')
-    main_binding.check()
+    if entry.state.get(id(entry.app)) is not main_binding or main_binding.retired or not main_binding.active:
+        raise RuntimeError('Main stop publication identity changed')
     if supervisor._main_stop_intent is None:
         supervisor._main_stop_intent = supervisor._stop_intents.setdefault('main-withdraw',
             _StopIntent(supervisor, 'main-withdraw', _factory=_FACTORY))
@@ -204,7 +261,7 @@ class SourceSupervisor:
                  '_images', '_lock', '_event', '_state', '_thread', '_slot', '_lease',
                  '_failure', '_start_failed', '_cursor', '_stop', '_dispatch_mutex',
                  '_slot_epoch', '_deadline', '_reference', '_session', '_guard', '_errors',
-                 '_binding_reference', '_main_stop_intent', '_source_stop_intent', '_stop_intents')
+                 '_binding_reference', '_main_stop_intent', '_source_stop_intent', '_stop_intents', '_main_stop_entry')
 
     def __init__(self, service, binding, *, _factory=None):
         if _factory is not _FACTORY or inspect.currentframe().f_back.f_code is not start.__code__:
@@ -219,6 +276,7 @@ class SourceSupervisor:
         self._lock, self._event = threading.RLock(), threading.Event()
         self._stop, self._dispatch_mutex = threading.Event(), threading.Lock()
         self._slot_epoch, self._deadline, self._reference = 0, {}, str(uuid4())
+        self._main_stop_entry = _freeze_main_stop_entry(self)
         self._session = self._guard = None
         self._errors = []  # Retain real exception frames/owned close handles.
         self._state, self._slot, self._lease = 'STARTING', None, None
@@ -312,8 +370,8 @@ def _check(supervisor, *, published=False):
             expected = getattr(module, 'FormalAdmissionWithdrawn', None)
             if (expected is not None and type(error) is expected and supervisor._stop.is_set()
                     and _matching_intent(supervisor, supervisor._main_stop_intent, 'main-withdraw')):
-                validate = _canonical_admission_function(module, 'validate_withdrawal')
-                if validate(error, supervisor._binding) is not None:
+                entry = _main_stop_entry(supervisor)
+                if entry.module is not module or entry.validate(error, supervisor._binding) is not None:
                     raise RuntimeError('Main withdrawal validation result invalid')
                 raise _SourceStopping(supervisor, supervisor._main_stop_intent, _factory=_FACTORY) from error
             raise
