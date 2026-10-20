@@ -189,6 +189,14 @@ def parse_owner_csv(csv_text: str) -> OwnerFinancialImportPlanV2:
     return plan
 
 
+def _preview_binding(csv_text,plan,rid,input_revision,problem_digest,expected_research_version):
+    return {'contract':CONTRACT,'parser_revision':PARSER_REVISION,'research_id':rid,
+            'input_revision':input_revision,'problem_digest':problem_digest,
+            'expected_research_version':expected_research_version,
+            'exact_received_csv_sha256':_sha(csv_text.encode('utf-8')),
+            'key_based_plan_digest':_sha(canonical(plan.model_dump(mode='json')).encode('utf-8'))}
+
+
 def preview_import(service: 'ResearchService', identity: AccountIdentity, rid: str,
                    request: FinancialImportPreviewRequest, source: 'AuthenticatedActionSource') -> FinancialImportPreviewResponse:
     from .service import ResearchService
@@ -207,12 +215,7 @@ def preview_import(service: 'ResearchService', identity: AccountIdentity, rid: s
         problem = conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?', (rid, request.input_revision)).fetchone()
         if problem is None: raise ResearchError('STORE_UNAVAILABLE', 503, '当前问题无法核对。')
         plan = parse_owner_csv(request.csv_text)
-        csv_digest = _sha(request.csv_text.encode('utf-8'))
-        plan_digest = _sha(canonical(plan.model_dump(mode='json')).encode('utf-8'))
-        binding = {'contract': CONTRACT, 'parser_revision': PARSER_REVISION, 'research_id': rid,
-                   'input_revision': request.input_revision, 'problem_digest': problem['digest'],
-                   'expected_research_version': request.expected_research_version,
-                   'exact_received_csv_sha256': csv_digest, 'key_based_plan_digest': plan_digest}
+        binding = _preview_binding(request.csv_text,plan,rid,request.input_revision,problem['digest'],request.expected_research_version)
         # Revalidate the actual action and account inside this same native RO snapshot.
         require_authenticated_action(source, identity=identity, action='financial-import-preview', research_id=rid, body_digest=request_digest)
         service.authorization.check(conn, identity, principal, rid, scope='write')

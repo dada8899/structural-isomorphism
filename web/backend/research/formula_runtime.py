@@ -287,7 +287,7 @@ class _OfflineFormulaTarget:
     def __getattr__(self,name):
         # Fixed static code declarations/checkers, no runtime constructor or
         # dynamic storage/configuration methods are delegated.
-        if name not in {'_check_structure_version','_check_v9','_check_v10','_check_v11','_check_v12','_check_v13','_check_v14','_formula_tables','_current_structure_declarations'}:
+        if name not in {'_check_structure_version','_check_v9','_check_v10','_check_v11','_check_v12','_check_v13','_check_v14','_check_v15','_formula_tables','_current_structure_declarations'}:
             raise AttributeError(name)
         from .store import ResearchStore
         return getattr(ResearchStore,name)
@@ -305,7 +305,7 @@ def _check_profile(conn,target,versions):
     if len(marker)!=1 or marker[0][0]!=1 or type(marker[0][1]) is not int or marker[0][1] not in versions:
         raise PermissionError('exact offline research version required')
     version=marker[0][1]
-    if (auth_profile,version) not in (('legacy_auth',9),('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13),('auth-provision-v1',14)):
+    if (auth_profile,version) not in (('legacy_auth',9),('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13),('auth-provision-v1',14),('auth-provision-v1',15)):
         raise PermissionError('exact offline Auth and research profile pair required')
     ResearchStore._check_structure_version(conn,version)
     if version==9:ResearchStore._check_v9(conn)
@@ -314,6 +314,7 @@ def _check_profile(conn,target,versions):
     elif version==12:ResearchStore._check_v12(conn)
     elif version==13:ResearchStore._check_v13(conn)
     elif version==14:ResearchStore._check_v14(conn)
+    elif version==15:ResearchStore._check_v15(conn)
     else:raise PermissionError('offline profile unsupported')
     return version
 
@@ -360,14 +361,14 @@ def provision_formula_v10(path):
 
 def recover_formula_journal(path):
     """Reconcile a killed maintenance process; no schema repair or replay."""
-    with _offline_maintenance(path,(9,10,11,12,13,14)) as (target,capability):
+    with _offline_maintenance(path,(9,10,11,12,13,14,15)) as (target,capability):
         capability.conn.execute('BEGIN')
         try:
-            version=_check_profile(capability.conn,target,(9,10,11,12,13,14))
+            version=_check_profile(capability.conn,target,(9,10,11,12,13,14,15))
             if __package__=='web.backend.research':from ..services.auth_store import AuthStore
             else:from services.auth_store import AuthStore
             auth_profile=AuthStore.check_offline_auth_metadata(capability.conn)
         finally:capability.conn.rollback()
         identity=capability.identity
     return {'schema_version':version,'journal_mode':'wal','database_identity':list(identity),
-        'current_app_compatible':version==14 and auth_profile=='auth-provision-v1','schema_repaired':False}
+        'current_app_compatible':version==15 and auth_profile=='auth-provision-v1','schema_repaired':False}

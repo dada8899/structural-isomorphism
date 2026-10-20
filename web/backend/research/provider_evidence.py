@@ -80,7 +80,7 @@ def read_provider_eligibility(store,identity,research_id,input_revision,research
         for ref in excerpt_ids:
             row=conn.execute("SELECT task_id FROM research_evidence_objects WHERE id=? AND kind='excerpts' AND research_id=? AND input_revision=?",(ref,research_id,input_revision)).fetchone()
             if not row:raise not_found()
-            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):
                 from .source_guard import check_origin
                 try:check_origin(store,conn,row[0])
                 except (PermissionError,ResearchError):raise ResearchError('SOURCE_PERMISSION_UNAVAILABLE',409,'旧来源仅可按原权限读取历史；新外发需要当前受保护来源准入。') from None

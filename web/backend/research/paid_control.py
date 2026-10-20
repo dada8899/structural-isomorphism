@@ -66,12 +66,30 @@ def issue_authenticated_action(request,*,action,research_id=None,task_id=None,ke
         'plan-preview':('POST','preview_research_plan'),'plan-confirm':('POST','confirm_research_plan'),'plan-read':('GET','read_research_plan'),
         'draft-save':('POST','save_research_method_draft'),'draft-read':('GET','read_research_method_draft'),'draft-history':('GET','list_research_method_drafts'),
         'source-approve':('POST','source_approval'),'source-start':('POST','source_task'),
-        'financial-import-preview':('POST','preview_research_financial_import')}
+        'financial-import-preview':('POST','preview_research_financial_import'),
+        'financial-registry-save':('POST','save_research_financial_registry'),
+        'financial-registry-read':('GET','read_research_financial_registry'),
+        'financial-registry-history':('GET','list_research_financial_registries')}
     if type(request) is not Request or action not in routes or request.method!=routes[action][0]:
         raise PermissionError('actual authenticated action request required')
     from .provider_schemas import strict_json
     raw=getattr(request,'_body',None)
-    if action=='financial-import-preview':
+    if action=='financial-registry-save':
+        from .financial_input_schemas import decode_financial_registry_confirmation
+        import re
+        if type(raw) is not bytes or request.query_params:raise PermissionError('actual financial confirmation required')
+        envelope=decode_financial_registry_confirmation(raw)
+        research_id=request.path_params.get('research_id');task_id=None;key=request.headers.get('idempotency-key','')
+        if re.fullmatch(r'[A-Za-z0-9._:-]{1,128}',key,re.ASCII) is None:raise PermissionError('financial confirmation key required')
+        body_digest=digest(canonical(envelope.model_dump(mode='json')))
+    elif action=='financial-registry-read':
+        if request.query_params:raise ResearchError('INPUT_INVALID',422,'财务记录读取不接受查询参数。')
+        research_id=request.path_params.get('research_id');task_id=request.path_params.get('registry_ref');key='';body_digest=digest(b'')
+    elif action=='financial-registry-history':
+        from .financial_input import history_query
+        limit,cursor=history_query(list(request.query_params.multi_items()))
+        research_id=request.path_params.get('research_id');task_id=None;key='';body_digest=digest(canonical({'limit':limit,'cursor':cursor}))
+    elif action=='financial-import-preview':
         from .financial_input_schemas import decode_financial_import_preview
         import re
         if type(raw) is not bytes or request.query_params:raise PermissionError('actual financial preview request required')
@@ -233,11 +251,14 @@ def _deletion_lease_binding(conn,store,lease,job):
 
 
 def _job_has_v2(conn,job):
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==14:
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:
+        for table in ('research_financial_registries','research_financial_results'):
+            if conn.execute('SELECT 1 FROM '+table+' b JOIN research_principals p ON p.id=b.principal_id WHERE p.gate_id=? LIMIT 1',(job['gate_id'],)).fetchone():return True
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15):
         if conn.execute("SELECT 1 FROM research_method_drafts d JOIN research_principals p ON p.id=d.principal_id WHERE p.gate_id=? LIMIT 1",(job['gate_id'],)).fetchone():return True
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):
         if conn.execute("SELECT 1 FROM research_source_approvals a JOIN research_principals p ON p.id=a.principal_id WHERE p.gate_id=? AND (? IS NULL OR (p.normalized_email=? AND p.session_generation=?)) LIMIT 1",(job['gate_id'],job['owner_email'],job['owner_email'],job['session_generation'])).fetchone():return True
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14):
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):
         formula=conn.execute('SELECT 1 FROM research_formula_revisions f JOIN research_controls c ON c.id=f.research_id JOIN research_principals p ON p.id=c.owner_id WHERE p.gate_id=? '+('AND p.normalized_email=? AND p.session_generation=? ' if job['owner_email'] is not None and job['session_generation'] is not None else '')+'LIMIT 1',
             (job['gate_id'],job['owner_email'],job['session_generation']) if job['owner_email'] is not None and job['session_generation'] is not None else (job['gate_id'],)).fetchone()
         if formula:return True
@@ -257,7 +278,7 @@ def verify_deletion_origin(conn,*,store,lease,job_id):
     from .store import ResearchStore
     from .financial_guard import JOB_ORIGIN_VERSION
     _deletion_lease_binding(conn,store,lease,job)
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14):ResearchStore.check_runtime_version(conn)
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)
     elif conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
     else:ResearchStore._check_v8(conn)
     if job['origin_version']!=JOB_ORIGIN_VERSION or job['origin_digest']!=deletion_origin_digest(job):
@@ -365,6 +386,8 @@ def _transaction_scope(conn,*,write):
     def authorizer(action,arg1,arg2,database,source):
         if action==sqlite3.SQLITE_TRANSACTION and arg1 in ("COMMIT","ROLLBACK"):
             scope.active=False
+        from .financial_input_guard import statement_allowed as input_statement_allowed
+        if not input_statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
         from .method_draft import statement_allowed as draft_statement_allowed
         if not draft_statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
         from .plan_native_financial import statement_allowed as native_statement_allowed
@@ -405,7 +428,7 @@ def _current_scope(conn):
     with _LOCK:scope=_SCOPES.get(id(conn))
     if (not scope or scope.conn is not conn or not scope.active or not scope.write or scope.pid!=os.getpid()
             or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1
-            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7,8,9,10,11,12,13,14)):
+            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7,8,9,10,11,12,13,14,15)):
         raise PermissionError("current canonical v5 transaction required")
     if conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==7:
         from .store import ResearchStore
@@ -416,7 +439,7 @@ def _current_scope(conn):
     elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==9:
         from .store import ResearchStore
         ResearchStore._check_v9(conn)
-    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13,14):
+    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13,14,15):
         from .store import ResearchStore
         ResearchStore.check_runtime_version(conn)
     return scope
@@ -517,7 +540,7 @@ def mint_stop_authority(conn,*,store,lease,principal_id,task_id,expected_task_ve
 
 def mint_current_paid_authority(conn,*,store,lease,identity,context,step_id,expected_task_version,expected_step_version,operation,approval_ref):
     _current_scope(conn)
-    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13,14):
+    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13,14,15):
         policy=conn.execute('SELECT policy_revision FROM research_tasks WHERE id=?',(context.task_id,)).fetchone()
         if policy and policy[0]=='bounded_usage_upper_v2':
             from .paid_approval import mint_current_authority

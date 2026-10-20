@@ -338,7 +338,7 @@ class PaidApprovalService:
 def erase_paid_private_inputs(store,conn,pid,job_id,*,owner_lease=None):
     version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
     if version in (1,2,3,4,5):return
-    if version not in (6,7,8,9,10,11,12,13,14):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除记录版本不支持。')
+    if version not in (6,7,8,9,10,11,12,13,14,15):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除记录版本不支持。')
     if version==7:
         from .store import ResearchStore
         ResearchStore._check_v7(conn)
@@ -348,7 +348,7 @@ def erase_paid_private_inputs(store,conn,pid,job_id,*,owner_lease=None):
     elif version==9:
         from .store import ResearchStore
         ResearchStore._check_v9(conn)
-    elif version in (10,11,12,13,14):
+    elif version in (10,11,12,13,14,15):
         from .store import ResearchStore
         ResearchStore.check_runtime_version(conn)
     job=conn.execute("SELECT * FROM auth_deletion_jobs WHERE id=? AND state='pending'",(job_id,)).fetchone()
@@ -356,11 +356,11 @@ def erase_paid_private_inputs(store,conn,pid,job_id,*,owner_lease=None):
     if (not job or not principal or principal['status']!='deleting' or principal['normalized_email']!=job['owner_email']
             or principal['session_generation']!=job['session_generation'] or principal['gate_id']!=job['gate_id']
             or job['database_binding']!=digest(str(store.path).encode())):raise PermissionError('actual deletion job required')
-    if version in (10,11,12,13,14):
+    if version in (10,11,12,13,14,15):
         from .formula_runtime import erase_for_deletion
         erase_for_deletion(conn,store=store,lease=owner_lease,pid=pid,job_id=job_id)
     conn.execute("UPDATE research_paid_approvals SET state='revoked',payload_json=NULL,version=version+1 WHERE principal_id=?",(pid,))
-    if version in (9,10,11,12,13,14):
+    if version in (9,10,11,12,13,14,15):
         from .method_result import erase_for_deletion
         erase_for_deletion(conn,store=store,lease=owner_lease,pid=pid,job_id=job_id)
     else:conn.execute("UPDATE research_provider_sessions SET candidate_json=NULL WHERE approval_id IN (SELECT id FROM research_paid_approvals WHERE principal_id=?)",(pid,))

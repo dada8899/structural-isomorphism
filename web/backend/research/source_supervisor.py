@@ -237,6 +237,7 @@ def _code_images():
     names = ('source_supervisor.py', 'source_workflow.py', 'source_integration.py', 'source_guard.py',
              'source_policy.py', 'source_spawn.py', 'authorization.py', 'runtime_profile.py', 'store.py',
              'service.py', 'runner.py', 'budget.py', 'paid_control.py', 'financial_guard.py',
+             'financial_input.py', 'financial_input_guard.py', 'financial_input_schemas.py',
              'evidence_repository.py', 'evidence_schemas.py', 'source_adapters/crossref_plos.py')
     result = {}
     for name in names:
@@ -296,9 +297,9 @@ class SourceSupervisor:
     def _run(self):
         try:
             from .runtime_profile import runtime_capability_facts
-            # A new native, hook-protected schema14 snapshot in this thread.
+            # A new native, hook-protected schema15 snapshot in this thread.
             facts = runtime_capability_facts(self._service)
-            if facts.profile.checked_pid != self._pid or facts.profile.research_schema != 14:
+            if facts.profile.checked_pid != self._pid or facts.profile.research_schema != 15:
                 raise _unavailable()
             while True:
                 with self._lock:
@@ -546,7 +547,7 @@ def join(supervisor, *, deadline_monotonic: float) -> SourceCleanupReceipt:
 def _select(store, *, cleanup_only=False, after=''):
     """No active/ACL join can hide a terminal or deleted task's old debt."""
     with store.transaction() as conn:
-        if conn.execute('SELECT version FROM research_schema').fetchone()[0] != 14:
+        if conn.execute('SELECT version FROM research_schema').fetchone()[0] != 15:
             raise _unavailable()
         rows = conn.execute("""SELECT t.id,r.started,t.execution,
             EXISTS(SELECT 1 FROM research_source_requests q WHERE q.task_id=t.id

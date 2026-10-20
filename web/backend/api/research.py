@@ -45,9 +45,11 @@ else:
 if __package__=='web.backend.api':
     from ..research.method_draft_schemas import MethodDraftEnvelope,MethodDraftResponse,MethodDraftHistoryResponse
     from ..research.financial_input_schemas import FinancialImportPreviewEnvelope,FinancialImportPreviewResponse
+    from ..research.financial_input_schemas import FinancialRegistryConfirmationEnvelope,FinancialRegistryConfirmationResponse,FinancialRegistryReadResponse,FinancialRegistryHistoryResponse
 else:
     from research.method_draft_schemas import MethodDraftEnvelope,MethodDraftResponse,MethodDraftHistoryResponse
     from research.financial_input_schemas import FinancialImportPreviewEnvelope,FinancialImportPreviewResponse
+    from research.financial_input_schemas import FinancialRegistryConfirmationEnvelope,FinancialRegistryConfirmationResponse,FinancialRegistryReadResponse,FinancialRegistryHistoryResponse
 
 router = APIRouter(tags=["research"])
 _KEY = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z", re.ASCII)
@@ -175,19 +177,35 @@ async def _parse(request, schema):
         raise ResearchError("INPUT_INVALID", 422, "研究内容、版本或字段不符合要求，请核对后再保存。") from None
 
 
-async def _parse_financial_import_preview(request):
+async def _read_financial_import_bytes(request):
     if __package__=='web.backend.api':
-        from ..research.financial_input_schemas import WIRE_LIMIT, FinancialImportError, decode_financial_import_preview
+        from ..research.financial_input_schemas import WIRE_LIMIT, FinancialImportError
     else:
-        from research.financial_input_schemas import WIRE_LIMIT, FinancialImportError, decode_financial_import_preview
+        from research.financial_input_schemas import WIRE_LIMIT, FinancialImportError
     if request.headers.get('content-type','').split(';',1)[0].strip().lower()!='application/json':
         raise FinancialImportError('JSON_CONTENT_TYPE_REQUIRED')
     raw=bytearray()
     async for chunk in request.stream():
         if len(raw)+len(chunk)>WIRE_LIMIT:raise FinancialImportError('WIRE_LIMIT',limit=True)
         raw.extend(chunk)
-    envelope=decode_financial_import_preview(bytes(raw))
+    return bytes(raw)
+
+
+async def _parse_financial_import_preview(request):
+    if __package__=='web.backend.api':from ..research.financial_input_schemas import decode_financial_import_preview
+    else:from research.financial_input_schemas import decode_financial_import_preview
+    raw=await _read_financial_import_bytes(request)
+    envelope=decode_financial_import_preview(raw)
     request._body=bytes(raw)
+    return envelope
+
+
+async def _parse_financial_registry_confirmation(request):
+    if __package__=='web.backend.api':from ..research.financial_input_schemas import decode_financial_registry_confirmation
+    else:from research.financial_input_schemas import decode_financial_registry_confirmation
+    raw=await _read_financial_import_bytes(request)
+    envelope=decode_financial_registry_confirmation(raw)
+    request._body=raw
     return envelope
 
 
@@ -203,7 +221,36 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         # Captured private storage never falls back to a development flag after
         # environment downgrade, including requests outside canonical Main.
         if service.store._formal_mode():require_formal_application(request.app,'research_basic')
-        if operation=='financial-import-preview':
+        if operation in ('financial-registry-save','financial-registry-read','financial-registry-history'):
+            if __package__=='web.backend.api':
+                from ..research import financial_input
+                from ..research.paid_control import issue_authenticated_action
+            else:
+                from research import financial_input
+                from research.paid_control import issue_authenticated_action
+            if operation=='financial-registry-save':
+                if auth.require_same_origin(request) is not None:raise ResearchError('AUTHORIZATION_STALE',403,'请从本站页面确认财务输入。')
+                key=request.headers.get('idempotency-key','')
+                if not _KEY.fullmatch(key) or request.query_params:raise ResearchError('INPUT_INVALID',422,'财务保存操作标识或参数不合法。')
+                envelope=await _parse_financial_registry_confirmation(request)
+            elif operation=='financial-registry-history':limit,cursor=financial_input.history_query(list(request.query_params.multi_items()))
+            elif request.query_params:raise ResearchError('INPUT_INVALID',422,'财务记录读取不接受查询参数。')
+            source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+            try:
+                if operation=='financial-registry-save':response=await run_in_threadpool(financial_input.save_registry,service,identity,research_id,envelope.data,key,source)
+                elif operation=='financial-registry-read':response=await run_in_threadpool(financial_input.read_registry,service,identity,research_id,request.path_params['registry_ref'],source)
+                else:response=await run_in_threadpool(financial_input.history,service,identity,research_id,limit,cursor,source)
+            finally:source.close()
+            try:
+                model={'financial-registry-save':FinancialRegistryConfirmationResponse,'financial-registry-read':FinancialRegistryReadResponse,'financial-registry-history':FinancialRegistryHistoryResponse}[operation]
+                if type(response) is not model:raise ValueError('fixed registry response required')
+                result=model.model_validate_json(response.model_dump_json()).model_dump(mode='json')
+                if projection_bytes(result)>RESEARCH_RESPONSE_LIMIT:raise ValueError('registry response limit')
+                return JSONResponse(result,headers=_HEADERS)
+            except Exception:
+                if operation=='financial-registry-save':return _paid_response_unavailable()
+                return JSONResponse(ResearchError('RESPONSE_UNAVAILABLE',503,'财务记录响应当前无法核对，请重新读取。').body(),status_code=503,headers=_HEADERS)
+        elif operation=='financial-import-preview':
             if __package__=='web.backend.api':
                 from ..research.financial_import import preview_import
                 from ..research.paid_control import issue_authenticated_action
@@ -402,8 +449,8 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         error=ResearchError('PAYLOAD_LIMIT',413,'最终外发请求超过16KiB上限。')
         return _paid_error_response(error)
     except PermissionError:
-        if operation not in ('draft-save','draft-read','draft-history','financial-import-preview'):raise
-        error=ResearchError('AUTHORIZATION_STALE',409,'财务预览权限已变化，请重新读取后再操作。' if operation=='financial-import-preview' else '方法草稿权限已变化，请重新读取后再操作。')
+        if operation not in ('draft-save','draft-read','draft-history','financial-import-preview','financial-registry-save','financial-registry-read','financial-registry-history'):raise
+        error=ResearchError('AUTHORIZATION_STALE',409,'财务操作权限已变化，请重新读取后再操作。' if operation.startswith('financial-') else '方法草稿权限已变化，请重新读取后再操作。')
         return JSONResponse(error.body(),status_code=error.status,headers=_HEADERS)
     except (sqlite3.Error, OSError):
         error = ResearchError("STORE_UNAVAILABLE", 503, "研究存储暂时不可用，请保留当前内容。")
@@ -533,3 +580,19 @@ async def read_research_method_draft(research_id:str,draft_ref:str,request:Reque
              openapi_extra={'requestBody':_formula_request_body(FinancialImportPreviewEnvelope)})
 async def preview_research_financial_import(research_id:str,request:Request):
     return await _dispatch(request,research_id=research_id,operation='financial-import-preview')
+
+
+@router.post('/research/{research_id}/financial-registries',response_model=FinancialRegistryConfirmationResponse,
+             openapi_extra={'requestBody':_formula_request_body(FinancialRegistryConfirmationEnvelope)})
+async def save_research_financial_registry(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='financial-registry-save')
+
+
+@router.get('/research/{research_id}/financial-registries',response_model=FinancialRegistryHistoryResponse)
+async def list_research_financial_registries(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='financial-registry-history')
+
+
+@router.get('/research/{research_id}/financial-registries/{registry_ref}',response_model=FinancialRegistryReadResponse)
+async def read_research_financial_registry(research_id:str,registry_ref:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='financial-registry-read')

@@ -15,7 +15,7 @@ from .errors import ResearchError
 class FormalResearchProfileFacts:
     contract: Literal['core-formal-profile-v1']
     auth_profile: Literal['auth-provision-v1']
-    research_schema: Literal[14]
+    research_schema: Literal[15]
     financial_protocols: tuple[int,...]
     method_protocol: Literal[9]
     database_identity_verified: Literal[True]
@@ -78,10 +78,10 @@ def inspect_formal_profile(conn):
         if auth.check_offline_auth_metadata(conn)!='auth-provision-v1':raise PermissionError()
         auth.check_gate_policy(conn,initialize=False)
         if conn.execute("SELECT auth_registration_write_allowed('__profile_probe__','')").fetchone()[0]!=0:raise PermissionError()
-        ResearchStore._check_v14(conn)
+        ResearchStore._check_v15(conn)
         if conn.execute('PRAGMA foreign_key_check').fetchone() is not None:raise PermissionError()
         witness.check()
-        return FormalResearchProfileFacts('core-formal-profile-v1','auth-provision-v1',14,(7,8,9),9,True,True,True,os.getpid())
+        return FormalResearchProfileFacts('core-formal-profile-v1','auth-provision-v1',15,(7,8,9),9,True,True,True,os.getpid())
     except (ResearchError,PermissionError,ValueError,TypeError,AttributeError,RuntimeError,OSError,sqlite3.Error):
         raise _closed_profile() from None
 

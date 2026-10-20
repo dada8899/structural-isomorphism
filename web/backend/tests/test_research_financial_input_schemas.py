@@ -181,3 +181,32 @@ def test_golden_csv_plan_preview_digest_and_typed_exports(tmp_path):
     with pytest.raises(FinancialImportError) as rejected:parse_owner_csv('\ufeff'+value)
     (tmp_path/'rejected.json').write_text(canonical({'mutation':'BOM_PREFIX','validation':rejected.value.detail})+'\n',encoding='utf-8')
     print('FINANCIAL_GOLDEN:'+json.dumps({'csv':csv_digest,'plan':plan_digest,'preview':preview_digest,'exports':str(tmp_path)}))
+
+
+def test_confirmation_has_fixed_full_envelope_domain_and_independent_finite_reader(tmp_path):
+    from research import financial_input_schemas as types
+    from research.financial_input import confirmation_digest
+    body=preview_body('x'*CSV_LIMIT)
+    body['data'].update(preview_digest='a'*64,confirmed=True)
+    raw=canonical(body).encode();decoded=types.decode_financial_registry_confirmation(raw)
+    assert len(raw)>65536 and decoded.data.csv_text=='x'*CSV_LIMIT
+    assert confirmation_digest(decoded.data)==hashlib.sha256(raw).hexdigest()
+    assert confirmation_digest(decoded.data)!=hashlib.sha256(canonical(body['data']).encode()).hexdigest()
+    assert types.decode_financial_registry_confirmation(raw+b' '*(WIRE_LIMIT-len(raw)))==decoded
+    with pytest.raises(FinancialImportError):decode_financial_import_preview(raw)
+    for value in (0,1,False,'true',None):
+        changed={**body,'data':{**body['data'],'confirmed':value}}
+        with pytest.raises(FinancialImportError):types.decode_financial_registry_confirmation(canonical(changed).encode())
+    for raw_bad in (raw+b' '*(WIRE_LIMIT-len(raw)+1),canonical({**body,'extra':True}).encode(),
+                    raw.replace(b'"confirmed":true',b'"confirmed":true,"confirmed":true'),
+                    raw.replace(b'"input_revision":1',b'"input_revision":true')):
+        with pytest.raises(FinancialImportError):types.decode_financial_registry_confirmation(raw_bad)
+    exports=(types.FinancialRegistryConfirmationEnvelope,types.OwnerFinancialRegistryV2,
+             types.PublicFinancialRegistryProjectionV2,types.FinancialRegistryConfirmationResponse,
+             types.FinancialRegistryReadResponse,types.FinancialRegistryHistoryResponse)
+    for model in exports:
+        schema=model.model_json_schema();assert schema['additionalProperties'] is False
+        (tmp_path/(model.__name__+'.schema.json')).write_text(canonical(schema)+'\n')
+    from research.financial_input_guard import DDL
+    (tmp_path/'financial-input-v15.sql').write_text(';\n'.join(DDL)+';\n')
+    print('FIN2_TYPED_EXPORTS:'+str(tmp_path))

@@ -77,7 +77,7 @@ def prepared(tmp_path, monkeypatch, smtp):
     monkeypatch.setattr(paths, 'CACHE_ROOT', root / 'cache')
     monkeypatch.setattr(paths, 'LOG_ROOT', root / 'state/logs')
     from services.auth_registration import bootstrap_private_runtime
-    assert bootstrap_private_runtime()['research_schema'] == 14
+    assert bootstrap_private_runtime()['research_schema'] == 15
     environment_get = os.environ.get
     def no_provider_read(key, default=None):
         if key in ('OPENROUTER_API_KEY', 'DEEPSEEK_API_KEY'):

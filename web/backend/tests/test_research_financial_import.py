@@ -75,8 +75,8 @@ def test_actual_main_preview_exact_hash_unverified_dynamic_no_db_or_cache_write(
                 assert health['checks']['native_planner']=='FUNDING_CLOSED'
                 assert research_snapshot()==before
                 routes=[r.path for r in main.app.routes if 'financial' in r.path]
-                assert routes==['/api/research/{research_id}/financial-import-preview']
-                print('FINANCIAL_PREVIEW_MAIN_FACTS:'+json.dumps({'actual_main':True,'schema':14,'funding':'closed',
+                assert routes.count('/api/research/{research_id}/financial-import-preview')==1 and not any('calculat' in path for path in routes)
+                print('FINANCIAL_PREVIEW_MAIN_FACTS:'+json.dumps({'actual_main':True,'schema':15,'funding':'closed',
                     'research_before':before,'research_after':research_snapshot(),'preview_digest':data['preview_digest'],
                     'server_generated_ref':False,'source_truth_verified':False}))
         assert admission._STATE.get(id(main.app)) is None

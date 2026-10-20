@@ -543,7 +543,7 @@ def test_worker_does_not_hide_ordinary_failure_even_after_stop(component,monkeyp
     if native_intent:control.retire(supervisor,deadline_monotonic=time.monotonic()+1)
     else:supervisor._stop.set()
     error=ResearchError('FEATURE_UNAVAILABLE',503,'ordinary') if kind=='ordinary-feature' else RuntimeError('unit '+kind)
-    monkeypatch.setattr(runtime_profile,'runtime_capability_facts',lambda service:SimpleNamespace(profile=SimpleNamespace(checked_pid=os.getpid(),research_schema=14)))
+    monkeypatch.setattr(runtime_profile,'runtime_capability_facts',lambda service:SimpleNamespace(profile=SimpleNamespace(checked_pid=os.getpid(),research_schema=15)))
     def fail(*args,**kwargs):raise error
     monkeypatch.setattr(control,'_check',fail)
     # Only the error branch is run; this never installs/passes formal READY.
