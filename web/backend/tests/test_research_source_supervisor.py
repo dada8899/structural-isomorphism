@@ -8,6 +8,9 @@ provided in production and public start/availability remain closed to these.
 from contextlib import contextmanager
 from functools import partial
 import os
+import gc
+import fcntl
+import stat
 from pathlib import Path
 import hashlib
 import json
@@ -181,6 +184,93 @@ def test_real_sender_close_uncertainty_propagates_and_preserves_unknown_debt(cur
         with AuthorizationGate(store).source_task_gate(tid) as lease:
             source_workflow.close_interrupted(store, tid, lease)
         assert calls == ['/discovery'] and control._select(store) == []
+
+
+def _source_arena_fds():
+    """Observe current process FDs only; never close or alter an arena."""
+    directory = Path('/proc/self/fd') if Path('/proc/self/fd').is_dir() else Path('/dev/fd')
+    found = set()
+    for name in os.listdir(directory):
+        if not name.isdecimal():continue
+        fd = int(name)
+        try:
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode) or info.st_size != 4194304:continue
+            try:path = os.readlink(directory / name)
+            except OSError:
+                path = fcntl.fcntl(fd, fcntl.F_GETPATH, b'\0' * 1024).split(b'\0', 1)[0].decode()
+        except (OSError, AttributeError):continue
+        if '/pymp-' in path:found.add((fd, info.st_dev, info.st_ino))
+    return found
+
+
+@pytest.mark.parametrize('outcome', ['completed', 'lost-ack', 'sender-exec-failure'])
+def test_handled_source_return_releases_own_arena_without_gc(current14, monkeypatch, outcome):
+    from research import source_spawn
+    client, store, rid = current14
+    tid = new_task(client, rid)
+    if outcome == 'sender-exec-failure':
+        execute = source_spawn._exec
+        def fail_sender(command, descriptors):
+            if len(descriptors) > 1:raise OSError('synthetic sender exec failure')
+            return execute(command, descriptors)
+        monkeypatch.setattr(source_spawn, '_exec', fail_sender)
+    gc.collect();enabled = gc.isenabled();gc.disable()
+    before = _source_arena_fds()
+    try:
+        with source_server() as (port, calls):
+            worker = drop_after_response if outcome == 'lost-ack' else get_local
+            result = ResearchRunner(store, source_transport=PinnedPublicTransport(_worker=partial(worker, port))).run_once(tid)
+            after_return = _source_arena_fds()
+            with store.transaction() as conn:
+                requests = [tuple(row) for row in conn.execute('SELECT outcome,execution_closed FROM research_source_requests WHERE task_id=? ORDER BY ordinal', (tid,))]
+            if outcome == 'completed':
+                assert result == 'COMPLETED' and calls == ['/discovery', '/article']
+                assert requests == [('SUCCEEDED', 0), ('SUCCEEDED', 0)]
+            else:
+                assert result == 'FAILED' and requests == [('UNKNOWN', 1)]
+                assert calls == (['/discovery'] if outcome == 'lost-ack' else [])
+            assert after_return == before, 'handled Source return retained its own arena FD until GC'
+    finally:
+        if enabled:gc.enable()
+        gc.collect()  # Restore ordinary test cleanup, never production retirement.
+
+
+def test_uncertain_source_close_keeps_own_buffer_and_original_handle_evidence(current14, monkeypatch):
+    from research.source_spawn import SourceSpawnProcess, SourceCleanupUncertain
+    client, store, rid = current14
+    tid = new_task(client, rid)
+    actual_close = SourceSpawnProcess.close
+    gc.collect();enabled = gc.isenabled();gc.disable()
+    before = _source_arena_fds();failure = frame = None
+    try:
+        with source_server() as (port, calls):
+            with monkeypatch.context() as fault:
+                def uncertain(process):
+                    actual_close(process)
+                    raise SourceCleanupUncertain('synthetic post-close observation uncertainty')
+                fault.setattr(SourceSpawnProcess, 'close', uncertain)
+                with pytest.raises(SourceCleanupUncertain) as failure:
+                    ResearchRunner(store, source_transport=PinnedPublicTransport(_worker=partial(get_local, port))).run_once(tid)
+            traceback = failure.value.__traceback__
+            while traceback is not None:
+                if traceback.tb_frame.f_code is PinnedPublicTransport.get.__code__:frame = traceback.tb_frame
+                traceback = traceback.tb_next
+            assert frame is not None and frame.f_locals['shared'] is not None
+            assert frame.f_locals['view'] is not None and frame.f_locals['process'] is not None
+            assert _source_arena_fds() > before and calls == ['/discovery']
+            with store.transaction() as conn:
+                assert tuple(conn.execute('SELECT outcome,execution_closed FROM research_source_requests WHERE task_id=?', (tid,)).fetchone()) == ('UNKNOWN', 0)
+            with AuthorizationGate(store).source_task_gate(tid) as lease:
+                source_workflow.close_interrupted(store, tid, lease)
+            assert calls == ['/discovery']
+    finally:
+        # The fault performed real physical retirement; fresh DB closure above
+        # is separate from the intentionally uncertain caller observation.
+        # Release test-owned exception references only, then ordinary GC.
+        failure = frame = None
+        if enabled:gc.enable()
+        gc.collect()
 
 
 @pytest.mark.parametrize('policy', ['native', 'funded'])

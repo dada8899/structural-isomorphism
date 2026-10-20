@@ -260,6 +260,7 @@ class PinnedPublicTransport:
         receive, send = ctx.Pipe(duplex=True)
         deadline = time.monotonic() + self.wall_seconds
         process = None
+        shared = view = None
         handed_off=False
         def unavailable(message):
             # Kernel expiry can close IPC before the parent's next deadline
@@ -319,6 +320,16 @@ class PinnedPublicTransport:
             try:
                 if process is not None:process.close()
             except BaseException as error:errors.append(error)
+            if not errors:
+                try:
+                    if view is not None:view.release()
+                except BaseException as error:errors.append(error)
+            if not errors:
+                # Child/tracker and IPC retirement succeeded. Drop only this
+                # call's buffer exports, never the allocator's shared arenas.
+                # The propagated exception keeps its original traceback; this
+                # local alias must not make that traceback retain itself.
+                view = shared = primary = None
             if errors:
                 from .source_spawn import SourceCleanupUncertain,_cleanup_note
                 if primary is not None:
