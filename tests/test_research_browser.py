@@ -2752,15 +2752,63 @@ def test_formula_client_canonical_bounds_and_attestation_guards_from_actual_http
 @pytest.mark.parametrize('mode',['normal','abort','missing-ref','wrong-digest','wrong-task','wrong-ref','other-real-run'])
 def test_formula_ack_is_confirmed_and_request_bound_before_pending_key_retirement(server,mode):
     """Corrupt only the browser ACK after the actual HTTP operation committed."""
+    from contextlib import closing
+    from urllib.parse import quote
     with sync_playwright() as playwright:
         browser=playwright.chromium.launch();context=browser.new_context();actual=[];sent=[]
         try:
             base=server['base'];login(context,base);page=context.new_page();_open_formula_editor(page,base)
             for side in ('left','right'):page.locator('#formula-'+side+'-use-template').click()
             saved=_save_formula_editor(page,base);rid=saved['research']['id'];older=None
+            stages=[]
+            def keep_stage(stage):
+                stages.append(stage)
+                (server['root']/'ack-phase-terminal-observation.json').write_text(json.dumps(
+                    {'mode':mode,'stages':stages},ensure_ascii=False,indent=2))
+            def completed_previous_refresh(action):
+                requests=[];terminal=[];responses=[]
+                root=base+'/api/research/'+rid
+                snapshot=root+'/formula-revisions/'+str(saved['current_problem']['revision'])
+                result=root+'/formula-results/'+older['result_ref']
+                wanted=(root,snapshot,result)
+                def capture(request):
+                    if request.method=='GET' and request.url in wanted:requests.append(request)
+                def headers(response):
+                    if any(response.request is request for request in requests):responses.append(response)
+                def finished(request):
+                    if any(request is original for original in requests):terminal.append(('requestfinished',request,time.monotonic()))
+                def failed(request):
+                    if any(request is original for original in requests):terminal.append(('requestfailed',request,time.monotonic()))
+                listeners=[('request',capture),('response',headers),('requestfinished',finished),('requestfailed',failed)]
+                for event,callback in listeners:page.on(event,callback)
+                deadline=time.monotonic()+15
+                stage={'phase':'previous-refresh','started':deadline-15,'requests':[]}
+                try:
+                    action()
+                    while True:
+                        complete=all(any(request.url==url for request in requests) for url in wanted)
+                        complete=complete and all(any(event[1] is request for event in terminal) for request in requests)
+                        settled=page.evaluate("""({ref,time})=>{
+                          const e=id=>document.getElementById(id);
+                          return e('formula-result-ref')?.textContent===ref && e('formula-result-time')?.getAttribute('datetime')===time &&
+                            !(e('formula-status')?.textContent||'').startsWith('正在') && !e('formula-refresh').disabled;
+                        }""",{'ref':older['result_ref'],'time':older['formula_result_recorded_at']}) if complete else False
+                        if complete and settled:
+                            assert time.monotonic()<=deadline,'Previous formula refresh DOM settle exceeded15s'
+                            break
+                        remaining=deadline-time.monotonic()
+                        assert remaining>0,'Previous formula refresh did not finish its Root/snapshot/result/body/DOM phase within15s'
+                        page.wait_for_timeout(min(20,remaining*1000))
+                    assert all(event[0]=='requestfinished' and event[2]<=deadline for event in terminal)
+                    assert all(any(response.request is request and response.status==200 for response in responses) for request in requests)
+                    stage['settled']=time.monotonic()
+                finally:
+                    stage['requests']=[{'role':wanted.index(request.url),'terminal':next((event[0] for event in terminal if event[1] is request),None)} for request in requests]
+                    keep_stage(stage)
+                    for event,callback in listeners:page.remove_listener(event,callback)
             if mode=='other-real-run':
                 older=_formula_execute_ui(page)
-                page.locator('#formula-refresh').click();expect(page.locator('#formula-editor-status')).to_contain_text('已按权限读取')
+                completed_previous_refresh(lambda:page.locator('#formula-refresh').click());expect(page.locator('#formula-editor-status')).to_contain_text('已按权限读取')
             page.on('request',lambda request:sent.append((request.headers.get('idempotency-key'),request.post_data)) if request.method=='POST' and request.url.endswith('/formula-checks') else None)
             if mode!='normal':
                 def fault_after_commit(route):
@@ -2773,19 +2821,24 @@ def test_formula_ack_is_confirmed_and_request_bound_before_pending_key_retiremen
                     elif mode=='other-real-run':body['data']=older
                     route.fulfill(response=response,json=body)
                 page.route('**/formula-checks',fault_after_commit,times=1)
-            def completed_ack_post(action):
-                captured=[];responses=[];terminal=[]
+            def completed_ack_post(action,*,expect_ack_get=True):
+                captured=[];responses=[];terminal=[];reads=[];read_responses=[];read_terminal=[]
                 def capture(request):
                     if request.method=='POST' and request.url==base+'/api/research/'+rid+'/formula-checks' and not captured:captured.append(request)
+                    if request.method=='GET' and request.url.split('?')[0]==base+'/api/research/'+rid:reads.append((request,time.monotonic()))
                 def headers(response):
                     if captured and response.request is captured[0]:responses.append(response)
+                    if any(response.request is request for request,_ in reads):read_responses.append((response,time.monotonic()))
                 def finished(request):
                     if captured and request is captured[0] and not terminal:terminal.append(('requestfinished',request,time.monotonic()))
+                    if any(request is original for original,_ in reads):read_terminal.append(('requestfinished',request,time.monotonic()))
                 def failed(request):
                     if captured and request is captured[0] and not terminal:terminal.append(('requestfailed',request,time.monotonic()))
+                    if any(request is original for original,_ in reads):read_terminal.append(('requestfailed',request,time.monotonic()))
                 listeners=[('request',capture),('response',headers),('requestfinished',finished),('requestfailed',failed)]
                 for event,callback in listeners:page.on(event,callback)
                 deadline=time.monotonic()+15
+                stage={'phase':'ACK-post-and-confirmation','started':deadline-15,'confirmation_reads':[]}
                 try:
                     action()
                     while not terminal:
@@ -2796,20 +2849,51 @@ def test_formula_ack_is_confirmed_and_request_bound_before_pending_key_retiremen
                     assert captured and terminal[0][1] is captured[0],'ACK terminal event must identify the original POST'
                     assert terminal[0][0]=='requestfinished','ACK body requestfailed before completion'
                     assert len(responses)==1 and responses[0].request is captured[0],'ACK headers and finish must be the same request'
+                    stage['post_terminal']=terminal[0][2]
+                    if expect_ack_get:
+                        ack=responses[0].json()['data']
+                        target=base+'/api/research/'+rid+'?task_id='+quote(ack['task_id'],safe='')
+                        confirmation_deadline=time.monotonic()+15
+                        while not any(request.url==target for request,_ in reads):
+                            remaining=confirmation_deadline-time.monotonic()
+                            assert remaining>0,'ACK confirmation GET was not observed within15s'
+                            page.wait_for_timeout(min(20,remaining*1000))
+                        selected,started=next((request,at) for request,at in reads if request.url==target)
+                        confirmation_deadline=min(confirmation_deadline,started+15)
+                        def completed_read(request):
+                            while not any(event[1] is request for event in read_terminal):
+                                remaining=confirmation_deadline-time.monotonic()
+                                assert remaining>0,'ACK confirmation body did not reach terminal within its original15s phase'
+                                page.wait_for_timeout(min(20,remaining*1000))
+                            event=next(event for event in read_terminal if event[1] is request)
+                            assert event[0]=='requestfinished' and event[2]<=confirmation_deadline,'ACK confirmation failed or exceeded15s'
+                            response,at=next((response,at) for response,at in read_responses if response.request is request)
+                            stage['confirmation_reads'].append({'role':'task' if request is selected else 'trusted-root','terminal':event[0],'at':event[2],'status':response.status})
+                            return response,at
+                        response,headers_at=completed_read(selected)
+                        if response.status==404:
+                            root=base+'/api/research/'+rid
+                            while not any(request.url==root and at>=headers_at for request,at in reads):
+                                remaining=confirmation_deadline-time.monotonic()
+                                assert remaining>0,'ACK trusted Root probe was not observed within15s'
+                                page.wait_for_timeout(min(20,remaining*1000))
+                            trusted=next(request for request,at in reads if request.url==root and at>=headers_at)
+                            completed_read(trusted)
                     return responses[0]
                 finally:
+                    keep_stage(stage)
                     for event,callback in listeners:page.remove_listener(event,callback)
             page.locator('#formula-confirm').check()
             if mode=='abort':
                 with page.expect_event('requestfailed',predicate=lambda request:request.url.endswith('/formula-checks')):page.locator('#formula-run').click()
             else:
-                completed_ack_post(lambda:page.locator('#formula-run').click())
+                completed_ack_post(lambda:page.locator('#formula-run').click(),expect_ack_get=mode in ('normal','wrong-task','wrong-ref','other-real-run'))
             if mode=='normal':expect(page.locator('#formula-result-ref')).to_have_text(re.compile(r'[0-9a-f-]{36}'))
             else:
                 assert len(actual)==1
                 expect(page.locator('#formula-status')).not_to_have_text(re.compile(r'^正在'))
             pending=page.evaluate("Object.fromEntries(Object.entries(sessionStorage).filter(([key])=>key.startsWith('structure-research-pending:formula-check:')))")
-            with sqlite3.connect(server['path']) as conn:count=conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]
+            with closing(sqlite3.connect(server['path'])) as conn:count=conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]
             expected=2 if mode=='other-real-run' else 1
             (server['root']/'ack-observation.json').write_text(json.dumps({'mode':mode,'actual_task_count':count,'post_count':len(sent),'pending_count':len(pending),'recover_visible':page.locator('#formula-recover').is_visible(),'status':page.locator('#formula-status').inner_text()},ensure_ascii=False,indent=2))
             assert count==expected and len(sent)==1
@@ -2826,7 +2910,7 @@ def test_formula_ack_is_confirmed_and_request_bound_before_pending_key_retiremen
                 expect(page.locator('#formula-result-ref')).to_have_text(actual[0]['result_ref'])
                 assert len(sent)==2 and sent[0]==sent[1]
                 assert page.evaluate("Object.keys(sessionStorage).filter(key=>key.startsWith('structure-research-pending:formula-check:')).length")==0
-                with sqlite3.connect(server['path']) as conn:assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]==expected
+                with closing(sqlite3.connect(server['path'])) as conn:assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]==expected
         finally:context.close();browser.close()
 
 
