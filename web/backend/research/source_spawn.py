@@ -1,4 +1,4 @@
-"""CPython 3.11 Source-only spawn with per-GET, explicitly owned tracker.
+"""CPython 3.10-3.12 Source-only spawn with per-GET, explicitly owned tracker.
 
 The spawn payload and FD reductions are standard multiprocessing. Only exec,
 stdio and tracker ownership differ: neither child inherits Main's environment.
@@ -22,11 +22,23 @@ _UNCERTAIN = []
 
 
 def require_supported():
-    if (sys.implementation.name != 'cpython' or sys.version_info[:3] != (3, 11, 15)
+    if (sys.implementation.name != 'cpython' or sys.version_info[:2] not in ((3, 10), (3, 11), (3, 12))
             or os.name != 'posix' or getattr(sys, 'frozen', False)
             or not getattr(reduction, 'HAVE_SEND_HANDLE', False) or not hasattr(socket, 'SCM_RIGHTS')
-            or not all(hasattr(signal, name) for name in ('SIGALRM', 'ITIMER_REAL', 'setitimer', 'pthread_sigmask'))):
+            or not all(hasattr(signal, name) for name in ('SIGALRM', 'ITIMER_REAL', 'setitimer', 'pthread_sigmask'))
+            or context.SpawnProcess._start_method != 'spawn' or SpawnPopen.method != 'spawn'
+            or not all(callable(value) for value in (context.set_spawning_popen, spawn.get_preparation_data,
+                spawn.get_command_line, SpawnPopen.duplicate_for_child, SpawnPopen.DupFd))):
         raise RuntimeError('Source safe spawn unavailable')
+
+
+def _cleanup_note(primary, message):
+    # The primary remains the actual exception on 3.10 too, which has no
+    # BaseException.add_note. Metadata never grants execution or clean status.
+    primary._source_cleanup_uncertainty = (*getattr(primary, '_source_cleanup_uncertainty', ()), message)
+    note = getattr(primary, 'add_note', None)
+    if callable(note):
+        note(message)
 
 
 def _exec(command, descriptors):
@@ -55,7 +67,7 @@ class _Tracker:
             try:
                 self.close()
             except BaseException as cleanup:
-                primary.add_note('Source tracker cleanup uncertain: ' + type(cleanup).__name__)
+                _cleanup_note(primary, 'Source tracker cleanup uncertain: ' + type(cleanup).__name__)
             raise
 
     def _close_fd(self, fd):
@@ -126,12 +138,13 @@ class _SourcePopen(SpawnPopen):
                 output.write(payload.getbuffer())
             self._close_fd(child_read)
             self._close_fd(child_write)
-            self._close_fd(parent_write)
+            # The child duplicates this pipe's read end as its parent_sentinel.
+            # Keep the writer until retirement, exactly as standard spawn does.
         except BaseException as primary:
             try:
                 self.retire()
             except BaseException as cleanup:
-                primary.add_note('Source spawn cleanup uncertain: ' + type(cleanup).__name__)
+                _cleanup_note(primary, 'Source spawn cleanup uncertain: ' + type(cleanup).__name__)
             raise
 
     def _close_fd(self, fd):

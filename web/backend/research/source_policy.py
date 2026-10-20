@@ -318,8 +318,8 @@ class PinnedPublicTransport:
                 if process is not None:process.close()
             except BaseException as error:errors.append(error)
             if errors:
-                from .source_spawn import SourceCleanupUncertain
+                from .source_spawn import SourceCleanupUncertain,_cleanup_note
                 if primary is not None:
-                    primary.add_note('Source transport retirement uncertain')
+                    _cleanup_note(primary,'Source transport retirement uncertain')
                     raise primary
                 raise SourceCleanupUncertain('Source transport retirement uncertain') from errors[0]

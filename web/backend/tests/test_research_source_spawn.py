@@ -38,6 +38,17 @@ def _blocked_worker(target):
     return 200,'text/plain',b'late',b'late'
 
 
+def _failing_worker(target):
+    raise OSError('synthetic Source body failure')
+
+
+def _parent_liveness_worker(target):
+    import multiprocessing
+    parent=multiprocessing.parent_process()
+    raw=json.dumps({'alive':parent.is_alive(),'parent_pid':parent.pid,'actual_parent_pid':os.getppid()}).encode()
+    return 200,'application/json',raw,raw
+
+
 def _ignore_term_worker(ready,target):
     signal.signal(signal.SIGTERM,signal.SIG_IGN)
     Path(ready).write_text('sender armed')
@@ -167,6 +178,23 @@ def test_sender_fd_close_failure_still_attempts_tracker_and_other_fds(tmp_path,m
     finally:source_spawn._UNCERTAIN.clear()
 
 
+def test_primary_error_keeps_cleanup_uncertainty_metadata(tmp_path,monkeypatch):
+    records=_observe_exec(monkeypatch);original=source_spawn._Tracker._close_fd;fault=[]
+    def close(self,fd):
+        writer=fd==self.fd
+        original(self,fd)
+        if writer and not fault:
+            fault.append(fd);raise OSError('synthetic post-close failure')
+    monkeypatch.setattr(source_spawn._Tracker,'_close_fd',close)
+    try:
+        with pytest.raises(source_policy.SourceFailure) as failure:_get(tmp_path,_failing_worker)
+        assert failure.value._source_cleanup_uncertainty==('Source transport retirement uncertain',)
+        assert fault and source_spawn._UNCERTAIN
+        assert len(records)==2 and all(process.poll() is not None for process,_,_ in records)
+        with pytest.raises(OSError):os.fstat(fault[0])
+    finally:source_spawn._UNCERTAIN.clear()
+
+
 def test_stop_kills_sender_ignoring_term_then_retires_tracker(tmp_path,monkeypatch):
     records=_observe_exec(monkeypatch);ready=tmp_path/'ready'
     with pytest.raises(PermissionError):
@@ -181,12 +209,27 @@ def test_live_factory_requires_fixed_source_target_without_network():
     finally:process.close()
 
 
-@pytest.mark.parametrize('version',[(3,12,0),(3,11,14)])
-def test_unsupported_runtime_closes_before_exec(tmp_path,monkeypatch,version):
+def test_missing_spawn_mechanism_closes_before_exec(tmp_path,monkeypatch):
     records=_observe_exec(monkeypatch)
-    monkeypatch.setattr(source_spawn.sys,'version_info',version)
+    monkeypatch.setattr(source_spawn.reduction,'HAVE_SEND_HANDLE',False)
     with pytest.raises(RuntimeError,match='unavailable'):_get(tmp_path)
     assert records==[]
+
+
+def test_real_parent_liveness_and_parent_pipe_retirement(tmp_path,monkeypatch):
+    records=_observe_exec(monkeypatch);original=source_spawn._SourcePopen.retire;descriptors=[]
+    def retire(self):
+        if not descriptors:
+            assert len(self._owned_fds)==2
+            descriptors.extend(self._owned_fds)
+            for fd in descriptors:os.fstat(fd)
+        return original(self)
+    monkeypatch.setattr(source_spawn._SourcePopen,'retire',retire)
+    value=json.loads(_get(tmp_path,_parent_liveness_worker)[2])
+    assert value=={'alive':True,'parent_pid':os.getpid(),'actual_parent_pid':os.getpid()}
+    _assert_retired(records)
+    for fd in descriptors:
+        with pytest.raises(OSError):os.fstat(fd)
 
 
 def test_fixture_cannot_be_relabelled_live(tmp_path):
