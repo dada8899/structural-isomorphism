@@ -1,6 +1,6 @@
 {
   "web/backend/api/research.py": {
-    "current_sha256": "ba3e7627fd7f47647609ea252a1eeabaf8f3c76ee643d0d6bedb349d9a0fc323",
+    "current_sha256": "1b855f30106780d0a30c644b46a87a016b9d9c562af091dcfc87e3464210478a",
     "hunks": [
       [
         7,
@@ -19,52 +19,57 @@
       ],
       [
         44,
-        49,
+        51,
         ""
       ],
       [
-        53,
-        73,
+        55,
+        75,
         ""
       ],
       [
         177,
-        181,
+        193,
+        ""
+      ],
+      [
+        195,
+        199,
         "        if not enabled():\n"
       ],
       [
-        184,
-        214,
+        202,
+        248,
         "        if operation == \"index\":\n"
       ],
       [
-        267,
-        268,
+        301,
+        302,
         "            result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get(\"task_id\",\"\"),request.query_params.get(\"kind\",\"\"),request.query_params.get(\"cursor\"))\n"
       ],
       [
-        325,
-        326,
+        359,
+        360,
         "                result=await run_in_threadpool(source_integration.preview,service,identity,research_id,envelope.data)\n"
       ],
       [
-        331,
-        332,
+        365,
+        366,
         "                try:result=await run_in_threadpool(function,service,identity,research_id,envelope.data,key,request_source=source)\n"
       ],
       [
-        348,
-        359,
+        382,
+        393,
         ""
       ],
       [
-        369,
-        373,
+        403,
+        407,
         ""
       ],
       [
-        482,
-        495,
+        516,
+        535,
         ""
       ]
     ],
@@ -213,51 +218,51 @@
     "original_sha256": "5ea041c4ecd50a368ed5a0d0a2b4c480fb82e5defffc9614230e2144e8fb5daa"
   },
   "web/backend/research/paid_control.py": {
-    "current_sha256": "237968ce45b6a357500ddb542f3ab351ff6e34f367c207eff49953eb262ca6a0",
+    "current_sha256": "09debd1f31810ec79bbb8d1b21ca9fe7fd17268484e1b92e3be660c9059f1e74",
     "hunks": [
       [
         66,
-        67,
-        ""
+        69,
+        "        'source-approve':('POST','source_approval'),'source-start':('POST','source_task')}\n"
       ],
       [
-        72,
-        85,
+        73,
+        95,
         "    if action=='plan-read':\n"
       ],
       [
-        225,
-        228,
+        235,
+        238,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        229,
-        230,
+        239,
+        240,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):\n"
       ],
       [
-        249,
-        250,
+        259,
+        260,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):ResearchStore.check_runtime_version(conn)\n"
       ],
       [
-        357,
-        359,
+        367,
+        369,
         ""
       ],
       [
-        397,
-        398,
+        407,
+        408,
         "            or conn.execute(\"SELECT version FROM research_schema WHERE id=1\").fetchone()[0] not in (5,6,7,8,9,10,11,12,13)):\n"
       ],
       [
-        408,
-        409,
+        418,
+        419,
         "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13):\n"
       ],
       [
-        509,
-        510,
+        519,
+        520,
         "    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13):\n"
       ]
     ],
