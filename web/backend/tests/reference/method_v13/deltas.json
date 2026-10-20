@@ -294,11 +294,11 @@
     "original_sha256": "ea5ec07fa53e3c231c0bf7b6a95b7722758508de67f706e0d56160dc0a46d133"
   },
   "web/backend/research/runner.py": {
-    "current_sha256": "30be195f1092af40ca00f4273e67aecee566a54b1d095556e36598f756dc3fd1",
+    "current_sha256": "6fb3efe3b2efd8fca4de646865cc0379d9eafe0cf7b0ea42328d594e24d7c7cc",
     "hunks": [
       [
         185,
-        186,
+        199,
         "        lock=self.gate.source_task_gate(task_id) if version in (11,12,13) and self.task(task_id)['policy_revision']=='d1-source-only-v1' else self.gate.owner_gate_id(task_id)\n"
       ]
     ],
