@@ -127,6 +127,17 @@
       <div class="actions"><button id="source-preview" class="source-write-ui" type="button">预览来源查询</button><button id="source-confirm" class="source-write-ui" type="button" hidden>确认查询内容并启动</button><button id="source-refresh" type="button" class="secondary" aria-describedby="source-reopen-hint">核对并读取已保存来源笔记</button></div>
       <p id="source-status" role="status" aria-live="polite"></p><pre id="source-plan"></pre><div id="source-records"></div>
     </section>
+    <section id="financial-preview-section" hidden aria-labelledby="financial-preview-title">
+      <h2 id="financial-preview-title">财务 CSV 临时预览</h2>
+      <p class="scope">账户提交的材料与来源声明，尚未核验。系统没有取得原件；本页只作临时预览，尚未保存，也没有运行计算。</p>
+      <p id="financial-preview-context" class="hint"></p>
+      <details><summary>CSV 格式与范围</summary><p>固定 UTF-8、逗号与双引号格式，表头必须一致；不接受 BOM。最多 16 条来源、64 条观察、16 条历史汇率，总文本最多 128 KiB。空数值保留为缺失，不当作 0；假设不属于历史行。</p><pre id="financial-preview-header">row_type,key,source_refs,url,locator,excerpt,declared_original_sha256,claimed_published_at,claimed_accessed_at,read_scope,source_chain,entity_scope,scope_kind,metric,period_start,period_end,period_grain,value,currency,unit,accounting_basis,declared_basis,alternative_refs,from_currency,to_currency,fx_kind</pre></details>
+      <label for="financial-preview-csv">粘贴有限 CSV 文本 <span>仅当前页面暂存；离开或退出后不承诺恢复。请自行保留原稿。</span></label>
+      <textarea id="financial-preview-csv" rows="8" autocomplete="off" spellcheck="false" aria-describedby="financial-preview-size financial-preview-status"></textarea>
+      <p id="financial-preview-size" class="hint"></p>
+      <div class="actions"><button id="financial-preview-run" type="button">预览 CSV（不保存、不计算）</button><button id="financial-preview-clear" type="button" class="secondary">清空本页 CSV</button></div>
+      <p id="financial-preview-status" aria-live="polite"></p><div id="financial-preview-result"></div>
+    </section>
     <section id="method-draft-section" hidden aria-labelledby="method-draft-title">
       <div class="section-heading"><h2 id="method-draft-title">整理一份方法验证草稿</h2><span class="native-plan-tag">人工整理 · 未执行</span></div>
       <p class="scope">把已存短摘录与方法线索连到当前问题，写清怎么验证。保存不表示方法成熟、迁移有效或数学通过，也不会自动查询、调用模型或运行统计。</p>
