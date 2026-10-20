@@ -5,7 +5,7 @@ import json
 import os
 import re
 import sqlite3
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -21,6 +21,8 @@ if __package__ == "web.backend.api":
     from ..research import source_integration
     from ..research import paid_api_public as paid_public
     from ..research import ResearchService, ResearchStore
+    from ..research.projection import projection_bytes,RESEARCH_RESPONSE_LIMIT
+    from ..research.schemas import SCHEMA_VERSION,CONTRACT_REVISION
 else:
     from api import auth
     from research.authorization import AccountIdentity
@@ -30,6 +32,8 @@ else:
     from research import source_integration
     from research import paid_api_public as paid_public
     from research import ResearchService, ResearchStore
+    from research.projection import projection_bytes,RESEARCH_RESPONSE_LIMIT
+    from research.schemas import SCHEMA_VERSION,CONTRACT_REVISION
 
 if __package__=='web.backend.api':
     from ..research.plan_schemas import PlanPreviewEnvelope,PlanConfirmationEnvelope,PlanPreviewResponse,PlanConfirmationResponse,PlanReadResponse
@@ -47,6 +51,26 @@ router = APIRouter(tags=["research"])
 _KEY = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z", re.ASCII)
 _HEADERS = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"}
 _PAID_OPERATIONS = ('paid-preview','paid-confirm')
+_ROOT_VIEW_OPERATIONS = ('create','revise','view','start','source-start','cancel','reconcile','resume')
+
+
+def _with_request_source_capability(result,*,app,service,research_id,operation):
+    """Copy only the Root envelope/data/caps; cached typed content stays intact."""
+    if operation not in _ROOT_VIEW_OPERATIONS:return result
+    if (type(result) is not dict or set(result)!={'schema_version','contract_revision','data'}
+            or result['schema_version']!=SCHEMA_VERSION or result['contract_revision']!=CONTRACT_REVISION
+            or type(result['data']) is not dict):
+        raise ValueError('Root envelope unavailable')
+    data=result['data'];research=data.get('research');caps=data.get('capabilities')
+    if (type(research) is not dict or type(research.get('id')) is not str
+            or type(caps) is not dict or type(caps.get('source_evidence')) is not bool):
+        raise ValueError('Root capability shape unavailable')
+    rid=research['id'];parsed=UUID(rid)
+    if parsed.version!=4 or str(parsed)!=rid or (operation!='create' and rid!=research_id):
+        raise ValueError('Root research identity differs')
+    available=source_integration.request_execution_available(app,service)
+    if type(available) is not bool:raise TypeError('Source availability must be boolean')
+    return {**result,'data':{**data,'capabilities':{**caps,'source_evidence':available}}}
 
 
 def _paid_response_unavailable():
@@ -322,6 +346,17 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                 model=models[operation]
                 result=model.model_validate(result).model_dump(mode='json')
             except ValueError:return _paid_response_unavailable()
+        if operation in _ROOT_VIEW_OPERATIONS:
+            try:
+                result=await run_in_threadpool(_with_request_source_capability,result,
+                    app=request.app,service=service,research_id=research_id,operation=operation)
+                if projection_bytes(result)>RESEARCH_RESPONSE_LIMIT:
+                    raise ValueError('Root response exceeds bounded projection')
+                return JSONResponse(result,headers=_HEADERS)
+            except Exception:
+                # Business work may already be committed. Use the fixed safe
+                # possible-save/retain-key response; never claim a rollback.
+                return _paid_response_unavailable()
         if len(json.dumps(result,ensure_ascii=False,allow_nan=False,separators=(',',':')).encode('utf-8'))>524288:
             raise ResearchError('PAYLOAD_LIMIT',413,'响应超过研究范围上限；旧记录未更改。')
         return JSONResponse(result, headers=_HEADERS)
