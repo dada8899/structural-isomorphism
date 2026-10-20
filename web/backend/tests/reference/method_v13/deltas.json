@@ -1,45 +1,70 @@
 {
   "web/backend/api/research.py": {
-    "current_sha256": "fb450430fb99a3299d4f976b9ecdf9abb7196b184739bd03975709cf4626105e",
+    "current_sha256": "ba3e7627fd7f47647609ea252a1eeabaf8f3c76ee643d0d6bedb349d9a0fc323",
     "hunks": [
       [
-        39,
-        44,
+        7,
+        8,
+        "from uuid import uuid4\n"
+      ],
+      [
+        23,
+        25,
         ""
       ],
       [
-        153,
-        157,
+        34,
+        36,
+        ""
+      ],
+      [
+        44,
+        49,
+        ""
+      ],
+      [
+        53,
+        73,
+        ""
+      ],
+      [
+        177,
+        181,
         "        if not enabled():\n"
       ],
       [
-        160,
-        190,
+        184,
+        214,
         "        if operation == \"index\":\n"
       ],
       [
-        243,
-        244,
+        267,
+        268,
         "            result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get(\"task_id\",\"\"),request.query_params.get(\"kind\",\"\"),request.query_params.get(\"cursor\"))\n"
       ],
       [
-        301,
-        302,
+        325,
+        326,
         "                result=await run_in_threadpool(source_integration.preview,service,identity,research_id,envelope.data)\n"
       ],
       [
-        307,
-        308,
+        331,
+        332,
         "                try:result=await run_in_threadpool(function,service,identity,research_id,envelope.data,key,request_source=source)\n"
       ],
       [
-        334,
-        338,
+        348,
+        359,
         ""
       ],
       [
-        447,
-        460,
+        369,
+        373,
+        ""
+      ],
+      [
+        482,
+        495,
         ""
       ]
     ],
@@ -392,7 +417,7 @@
     "original_sha256": "eba13596a681d3997672d37d03e9af72159db4b0a0d7dda72d4aad03cf96acaf"
   },
   "web/backend/research/source_integration.py": {
-    "current_sha256": "f9e4fdfd36203be2f8f7b3b16d1ad9cc3e78e64ee16f5dfcd2038a324e6a469c",
+    "current_sha256": "7eaec1c779ce4aab1d9e5acef42b0dc080b0392c6e895ae03b07c3cc1d64fd01",
     "hunks": [
       [
         102,
@@ -406,57 +431,57 @@
       ],
       [
         196,
-        207,
+        228,
         "def require_enabled():\n"
       ],
       [
-        211,
-        213,
+        232,
+        234,
         ""
       ],
       [
-        289,
-        290,
+        310,
+        311,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
-      ],
-      [
-        315,
-        317,
-        "def preview(service,identity,rid,request):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
-      ],
-      [
-        331,
-        332,
-        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
       ],
       [
         336,
         338,
+        "def preview(service,identity,rid,request):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
+      ],
+      [
+        352,
+        353,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
+      ],
+      [
+        357,
+        359,
         "def approve(service,identity,rid,request,key,*,request_source=None):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
       ],
       [
-        354,
-        355,
+        375,
+        376,
         "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        364,
-        366,
+        385,
+        387,
         "def start_source(service,identity,rid,request,key,*,request_source=None):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
       ],
       [
-        384,
-        385,
+        405,
+        406,
         "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        394,
-        395,
+        415,
+        416,
         "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        412,
-        413,
+        433,
+        434,
         "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ]
     ],
