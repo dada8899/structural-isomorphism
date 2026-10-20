@@ -11,6 +11,7 @@ import os
 import gc
 import fcntl
 import stat
+import sqlite3
 from pathlib import Path
 import hashlib
 import json
@@ -40,8 +41,10 @@ def component(current14, monkeypatch):
     # Test-only memory specimen. It has no real Main binding and cannot pass
     # _same_store(), public start(), require_available() or formal require_worker.
     supervisor = object.__new__(control.SourceSupervisor)
+    binding=SimpleNamespace(app=FastAPI(),reference=str(uuid4()),pid=os.getpid())
     values = dict(_factory=control._FACTORY, _origin=control.__name__, _pid=os.getpid(),
-        _binding=SimpleNamespace(app=FastAPI()), _service=ResearchService(store),
+        _binding=binding, _binding_reference=binding.reference, _main_stop_intent=None, _source_stop_intent=None, _stop_intents={}, _main_stop_entry=None,
+        _service=ResearchService(store),
         _path=store.path, _identity=store.storage_identity, _images=control._code_images(),
         _lock=threading.RLock(), _dispatch_mutex=threading.Lock(), _stop=threading.Event(),
         _event=threading.Event(), _state='READY', _thread=threading.current_thread(),
@@ -459,3 +462,240 @@ def test_source10_plan12_and_both_old13_reconstruct_from_no_git_closure(tmp_path
         manifest = json.loads(manifest_path.read_text())['cases'][mode]['files']
         assert {name: hashlib.sha256((package / name).read_bytes()).hexdigest() for name in manifest} == {name: entry['sha256'] for name, entry in manifest.items()}
     assert not (shallow / '.git').exists()
+
+
+def _stop_signal_specimen(supervisor):
+    """Unit metadata specimen only; never an issued Main withdrawal/READY."""
+    signal = control._SourceStopping.__new__(control._SourceStopping)
+    ResearchError.__init__(signal, 'FEATURE_UNAVAILABLE', 503, 'unit stop specimen')
+    signal._factory, signal._supervisor = control._FACTORY, supervisor
+    signal._intent, signal._pid = supervisor._source_stop_intent, os.getpid()
+    signal._thread, signal._slot = threading.current_thread(), supervisor._slot
+    return signal
+
+
+def test_native_source_retire_intent_is_distinct_from_event_or_main_withdraw(component):
+    supervisor, _, _ = component
+    supervisor._stop.set()
+    assert supervisor._source_stop_intent is supervisor._main_stop_intent is None
+    assert not control._controlled_stopping(ResearchError('FEATURE_UNAVAILABLE',503,'ordinary'),supervisor)
+    deadline=time.monotonic()+1
+    control.retire(supervisor,deadline_monotonic=deadline)
+    intent=supervisor._source_stop_intent
+    assert control._matching_intent(supervisor,intent,'source-retire')
+    assert supervisor._main_stop_intent is None
+    control.retire(supervisor,deadline_monotonic=deadline)
+    assert supervisor._source_stop_intent is intent
+    with pytest.raises(TypeError):intent.kind='main-withdraw'
+    with pytest.raises(TypeError):pickle.dumps(intent)
+    with pytest.raises(TypeError):control._StopIntent(supervisor,'main-withdraw',_factory=control._FACTORY)
+
+
+def test_retire_observer_can_call_original_native_controller_without_minting_itself(component,monkeypatch):
+    from types import FunctionType
+    supervisor, _, _ = component;original=control.retire;observed=[];deadline=time.monotonic()+1
+    clone=FunctionType(original.__code__,dict(original.__globals__))
+    with pytest.raises(TypeError):clone(supervisor,deadline_monotonic=deadline)
+    assert supervisor._source_stop_intent is None and not supervisor._stop.is_set()
+    def observer(value,*,deadline_monotonic):
+        observed.append(value)
+        with pytest.raises(TypeError):control._StopIntent(value,'source-retire',_factory=control._FACTORY)
+        return original(value,deadline_monotonic=deadline_monotonic)
+    monkeypatch.setattr(control,'retire',observer)
+    control.retire(supervisor,deadline_monotonic=deadline)
+    assert observed==[supervisor] and control._matching_intent(supervisor,supervisor._source_stop_intent,'source-retire')
+
+
+@pytest.mark.parametrize('fault',['caller','binding','pid','reference'])
+def test_request_main_stop_cannot_be_called_from_component_or_foreign_binding(component,fault):
+    supervisor, _, _ = component;binding=supervisor._binding
+    if fault=='binding':binding=SimpleNamespace(app=binding.app,reference=binding.reference)
+    if fault=='pid':supervisor._pid=-1
+    if fault=='reference':supervisor._binding_reference='different'
+    with pytest.raises((RuntimeError,ResearchError)):
+        control.request_main_stop(supervisor,binding)
+    assert not supervisor._stop.is_set() and supervisor._main_stop_intent is None
+
+
+@pytest.mark.parametrize('fault',['factory','pid','thread','slot','intent','supervisor','missing'])
+def test_stop_signal_metadata_cannot_launder_wrong_actor_slot_or_intent(component,fault):
+    supervisor, _, _ = component
+    control.retire(supervisor,deadline_monotonic=time.monotonic()+1)
+    signal=_stop_signal_specimen(supervisor)
+    # Metadata classification only: the specimen has no real Main admission.
+    assert control._controlled_stopping(signal,supervisor)
+    if fault=='factory':signal._factory=object()
+    if fault=='pid':signal._pid=-1
+    if fault=='thread':signal._thread=threading.Thread()
+    if fault=='slot':signal._slot=str(uuid4())
+    if fault=='intent':signal._intent={'kind':'source-retire'}
+    if fault=='supervisor':signal._supervisor=object()
+    if fault=='missing':del signal._pid
+    assert not control._controlled_stopping(signal,supervisor)
+    with pytest.raises(TypeError):control._SourceStopping(supervisor,supervisor._source_stop_intent,_factory=control._FACTORY)
+
+
+@pytest.mark.parametrize('native_intent',[False,True])
+@pytest.mark.parametrize('kind',['ordinary-feature','config','source','inode','state-missing'])
+def test_worker_does_not_hide_ordinary_failure_even_after_stop(component,monkeypatch,native_intent,kind):
+    from research import runtime_profile
+    supervisor, _, _ = component;supervisor._slot=None
+    if native_intent:control.retire(supervisor,deadline_monotonic=time.monotonic()+1)
+    else:supervisor._stop.set()
+    error=ResearchError('FEATURE_UNAVAILABLE',503,'ordinary') if kind=='ordinary-feature' else RuntimeError('unit '+kind)
+    monkeypatch.setattr(runtime_profile,'runtime_capability_facts',lambda service:SimpleNamespace(profile=SimpleNamespace(checked_pid=os.getpid(),research_schema=14)))
+    def fail(*args,**kwargs):raise error
+    monkeypatch.setattr(control,'_check',fail)
+    # Only the error branch is run; this never installs/passes formal READY.
+    supervisor._run()
+    assert supervisor._state=='CLEANUP_UNCERTAIN' and supervisor._failure=='WORKER_FAILURE'
+    assert supervisor._errors[-1] is error
+
+
+def test_stop_slot_no_claim_uses_actual_task_lease_and_leaves_queued_metadata(component,current14):
+    supervisor, _, _ = component;client,store,rid=current14;tid=new_task(client,rid)
+    supervisor._slot=tid
+    control.retire(supervisor,deadline_monotonic=time.monotonic()+1)
+    signal=_stop_signal_specimen(supervisor)
+    with AuthorizationGate(store).source_task_gate(tid) as lease:
+        supervisor._lease=lease
+        control._close_stopping_slot(supervisor,store,tid,lease,signal)
+        with store.transaction() as conn:
+            assert conn.execute('SELECT started FROM research_source_runs WHERE task_id=?',(tid,)).fetchone()[0]==0
+            assert conn.execute('SELECT count(*) FROM research_source_requests WHERE task_id=?',(tid,)).fetchone()[0]==0
+            assert conn.execute('SELECT execution FROM research_tasks WHERE id=?',(tid,)).fetchone()[0]=='QUEUED'
+    assert lease.active is False
+    with pytest.raises(PermissionError):control._close_stopping_slot(supervisor,store,tid,lease,signal)
+
+
+def test_stop_slot_terminal_started_debt_uses_original_fresh_closure_without_get(component,current14,monkeypatch):
+    supervisor, _, _ = component;client,store,rid=current14;tid=new_task(client,rid)
+    with source_server() as (port,calls):
+        with monkeypatch.context() as fault:
+            def interrupted(*args):raise OSError('unit closure interruption')
+            fault.setattr(source_workflow,'close_interrupted',interrupted)
+            with pytest.raises(OSError,match='unit closure interruption'):
+                ResearchRunner(store,source_transport=PinnedPublicTransport(_worker=partial(drop_after_response,port))).run_once(tid)
+        cancel(client,rid,tid);supervisor._slot=tid
+        control.retire(supervisor,deadline_monotonic=time.monotonic()+1)
+        signal=_stop_signal_specimen(supervisor);operations=[]
+        with AuthorizationGate(store).source_task_gate(tid) as lease:
+            supervisor._lease=lease;identity=lease.identity
+            def cleanup_port(given,actual_store,task_id,*,operation):
+                assert given is supervisor and actual_store is store and task_id==tid and lease.active
+                operations.append(operation);assert operation=='cleanup'
+            # Lifetime port specimen only. Native task/owner/SQL closure below
+            # remains the original implementation with actual held resources.
+            monkeypatch.setattr(control,'require_worker',cleanup_port)
+            control._close_stopping_slot(supervisor,store,tid,lease,signal)
+        assert lease.active is False and calls==['/discovery'] and operations==['cleanup']
+        with store.transaction() as conn:
+            row=conn.execute('SELECT outcome,execution_closed,closure_proof FROM research_source_requests WHERE task_id=?',(tid,)).fetchone()
+            assert tuple(row[:2])==('UNKNOWN',1)
+            assert tuple(json.loads(row['closure_proof'])['task_gate'])==identity
+            assert conn.execute('SELECT execution FROM research_tasks WHERE id=?',(tid,)).fetchone()[0]=='CANCELLED'
+
+
+def test_generic_feature_or_wrong_slot_never_enters_stop_slot_database(component,monkeypatch):
+    supervisor, _, _ = component;store=supervisor._service.store
+    control.retire(supervisor,deadline_monotonic=time.monotonic()+1)
+    def forbidden(*args,**kwargs):raise AssertionError('untrusted stop must not touch DB')
+    monkeypatch.setattr(store,'transaction',forbidden)
+    for error in (ResearchError('FEATURE_UNAVAILABLE',503,'ordinary'),_stop_signal_specimen(supervisor)):
+        if type(error) is control._SourceStopping:error._slot=str(uuid4())
+        with pytest.raises(type(error)) as raised:control._close_stopping_slot(supervisor,store,supervisor._slot,object(),error)
+        assert raised.value is error
+
+
+@pytest.fixture
+def memory_withdraw_protocol(component,monkeypatch):
+    """Frozen07 withdraw body, isolated memory specimens; no formal READY."""
+    import sys,types
+    supervisor,_,_=component
+    module=types.ModuleType('unit_withdraw_protocol_'+uuid4().hex);module.__file__='<unit-memory-protocol>'
+    module._STATE={};module._FACTORY=object();module._Binding=SimpleNamespace
+    module._LIFETIME_LOCK=threading.RLock();module._RETIRED_UNCERTAIN={}
+    # Exact withdraw body from approved read-only checkpoint 01a87df; the
+    # surrounding state/record specimens cannot pass actual Main admission.
+    exec('''def withdraw(app):
+    """Revoke HTTP before waiting on G; keep local native witnesses alive."""
+    with _LIFETIME_LOCK:
+        binding = _STATE.get(id(app))
+    if binding is None:
+        return
+    error = None
+    if binding.supervisor is not None and not source_closed(binding):
+        try:
+            if binding.source_module.request_main_stop(binding.supervisor, binding) is not None:
+                raise RuntimeError('Main stop coordination returned data')
+        except BaseException as failure:
+            error = failure
+    with _LIFETIME_LOCK:
+        if _STATE.get(id(app)) is not binding:
+            return None
+        binding.withdrawal = _Withdrawal(binding, _factory=_WITHDRAW_FACTORY) if error is None else None
+        binding.active, binding.retired = False, True
+        _STATE.pop(id(app), None)
+    if error is not None:
+        _RETIRED_UNCERTAIN[binding.reference] = (binding, binding.supervisor, (error,))
+        raise RuntimeError('Main stop coordination uncertain') from None
+    return binding
+def validate_withdrawal(error,binding):
+    raise AssertionError('memory request must never invoke withdrawal validator')
+def source_closed(binding):
+    return False
+def _Withdrawal(binding,*,_factory):
+    return 'unit-record-not-a-native-seal'
+''',vars(module))
+    module._WITHDRAW_FACTORY=object();binding=supervisor._binding
+    binding.origin=module.__name__;binding.factory=module._FACTORY;binding.supervisor=supervisor
+    binding.source_module=control;binding.active=True;binding.retired=False;binding.withdrawal=None
+    module._STATE[id(binding.app)]=binding
+    entry=object.__new__(control._MainStopEntry)
+    values=dict(factory=control._FACTORY,supervisor=supervisor,supervisor_ref=supervisor.reference,
+        binding=binding,reference=binding.reference,pid=os.getpid(),app=binding.app,module=module,
+        module_name=module.__name__,module_file=module.__file__,binding_type=SimpleNamespace,
+        binding_factory=module._FACTORY,state=module._STATE,withdraw=module.withdraw,
+        withdraw_code=module.withdraw.__code__,validate=module.validate_withdrawal,
+        validate_code=module.validate_withdrawal.__code__,source_identity=('unit-only',b'not-startup-authority'))
+    for key,value in values.items():object.__setattr__(entry,key,value)
+    supervisor._main_stop_entry=entry
+    monkeypatch.setitem(sys.modules,module.__name__,module)
+    return supervisor,binding,module,entry
+
+
+def test_frozen_withdraw_memory_protocol_sets_intent_without_io_db_owner_or_g(memory_withdraw_protocol,monkeypatch):
+    import builtins,io
+    from research.authorization import AuthorizationGate
+    supervisor,binding,module,entry=memory_withdraw_protocol;traps=[]
+    def forbidden(*args,**kwargs):traps.append('unexpected-I/O');raise AssertionError('stop entry must be memory only')
+    binding.check=forbidden
+    supervisor._dispatch_mutex=SimpleNamespace(acquire=forbidden,release=forbidden,locked=lambda:False)
+    with monkeypatch.context() as blocked:
+        for cls,name in [(Path,'resolve'),(Path,'read_bytes'),(Path,'is_symlink'),(Path,'stat')]:blocked.setattr(cls,name,forbidden)
+        for obj,name in [(builtins,'open'),(builtins,'compile'),(io,'open'),(os,'open'),(sqlite3,'connect'),
+                         (os.environ,'get'),(AuthorizationGate,'owner_gate_id'),(AuthorizationGate,'source_task_gate')]:blocked.setattr(obj,name,forbidden)
+        result=module.withdraw(binding.app)
+    assert result is binding and traps==[] and supervisor._stop.is_set() and supervisor._event.is_set()
+    assert control._matching_intent(supervisor,supervisor._main_stop_intent,'main-withdraw')
+    assert supervisor._source_stop_intent is None and supervisor._state=='READY'
+    assert entry.supervisor is supervisor and entry.binding is binding
+    with pytest.raises(TypeError):entry.pid=-1
+    with pytest.raises(TypeError):pickle.dumps(entry)
+    # State is a test specimen: this asserts no normal retirement/READY proof.
+    with pytest.raises(ResearchError):control.require_available(binding.app,supervisor._service)
+
+
+@pytest.mark.parametrize('fault',['caller','function','reference','pid','app','registry'])
+def test_frozen_stop_entry_rejects_stale_memory_identity_without_io(memory_withdraw_protocol,monkeypatch,fault):
+    supervisor,binding,module,entry=memory_withdraw_protocol
+    if fault=='function':module.withdraw=lambda app:None
+    if fault=='reference':binding.reference='changed'
+    if fault=='pid':binding.pid=-1
+    if fault=='app':binding.app=FastAPI()
+    if fault=='registry':control._REGISTRY.clear()
+    def forbidden(*args,**kwargs):raise AssertionError('rejected stop must not read source')
+    with monkeypatch.context() as blocked:
+        blocked.setattr(Path,'resolve',forbidden);blocked.setattr(Path,'read_bytes',forbidden)
+        with pytest.raises((RuntimeError,ResearchError)):control.request_main_stop(supervisor,binding)
+    assert supervisor._main_stop_intent is None and not supervisor._stop.is_set()
