@@ -1183,12 +1183,9 @@ def test_analyze_static_lang_writes_preserve_full_report_and_late_dictionary(
             page.evaluate('window.__langObserver && window.__langObserver.disconnect()')
 
 
-# Reuse the existing real main/auth/SQLite fixture, with model/search lifespan
-# disabled as in the research acceptance suite. No auth or research API mocks.
-import importlib.util as _entry_import
-_entry_spec = _entry_import.spec_from_file_location("_entry_real_browser", FRONTEND_DIR.parents[1] / "tests/test_research_browser.py")
-_entry_module = _entry_import.module_from_spec(_entry_spec)
-_entry_spec.loader.exec_module(_entry_module)
+# Only this public-entry consumer uses the actual formal Main lifespan/SMTP.
+# The legacy research/source component fixture keeps its original scope.
+from web.backend.tests.acceptance import public_entry_formal_main as _entry_module
 real_entry_server = _entry_module.server
 
 
@@ -1306,10 +1303,10 @@ def test_public_entry_real_login_return_owner_and_legacy_resource_links(page,rea
     account=page.locator(".site-header__account-cta")
     expect(account).to_have_attribute("href","/auth/login?next=%2Fresearch")
     account.click()
-    page.locator("#auth-email").fill("public-entry-owner@example.test")
+    page.locator("#auth-email").fill(_entry_module.synthetic_email("public-entry-owner@example.test"))
     with page.expect_response("**/api/auth/request-link") as response:page.locator("#auth-submit").click()
     assert response.value.status==200
-    link=response.value.json()["dev_link"]
+    link=_entry_module.magic_link(real_entry_server)
     page.goto(link)
     page.wait_for_url(base+"/research")
     expect(page.locator("#problem-form")).to_be_visible()
@@ -1339,10 +1336,10 @@ def test_public_entry_main_cta_first_login_returns_to_research(page,real_entry_s
     page.goto(base+"/");page.locator("#start-research").click()
     expect(page.locator("#access")).to_be_visible()
     page.locator("#access a").click()
-    page.locator("#auth-email").fill("first-entry-new-owner@example.test")
+    page.locator("#auth-email").fill(_entry_module.synthetic_email("first-entry-new-owner@example.test"))
     with page.expect_response("**/api/auth/request-link") as response:page.locator("#auth-submit").click()
     assert response.value.status==200
-    page.goto(response.value.json()["dev_link"])
+    page.goto(_entry_module.magic_link(real_entry_server))
     page.wait_for_url(lambda url:"/auth/" not in url)
     assert page.url==base+"/research"
     expect(page.locator("#problem-form")).to_be_visible()
