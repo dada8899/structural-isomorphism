@@ -589,7 +589,7 @@ def test_only_real_main_browser_jobs_install_complete_authoritative_runtime() ->
     assert product['timeout-minutes']==8 and surface['timeout-minutes']==15
     rows=_ci_matrix_rows(surface)
     assert [row['shard'] for row in rows].count('library-auth-reports-favorites')==1
-    assert next(row for row in rows if row['shard']=='library-auth-reports-favorites')['pytest_args_main']=='tests/e2e/test_full_public_surface.py'
+    assert next(row for row in rows if row['shard']=='library-auth-reports-favorites')['pytest_args_main']=='tests/e2e/test_full_public_surface.py web/tests/e2e/test_auth_login_bootstrap_privacy.py'
 
 
 @pytest.mark.parametrize('mutation', ['missing_step','wrong_shard','unconditional_matrix','no_requirements',
@@ -1697,7 +1697,32 @@ def test_backtest_parquet_extra_is_single_source_and_used_by_sanity() -> None:
     assert "pyarrow==24.0.0" not in sanity
 
 
+def _original_makefile_before_auth_bootstrap_browser(makefile: str) -> str:
+    auth='web/tests/e2e/test_auth_login_bootstrap_privacy.py'
+    variable='BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS'
+    assignment='\ttests/e2e/test_full_public_surface.py \\\n\t'+auth+' \\\n\ttests/e2e/test_unified_research_library.py'
+    formal='\t$(PYTEST) tests/e2e/test_full_public_surface.py '+auth+' -p no:logging -m "e2e and not requires_internet" -v\n'
+    isolated='\t$(PYTEST) $(filter-out '+auth+',$(filter web/tests/e2e/%,$('+variable+'))) -m "e2e and not requires_internet" -v\n'
+    assert makefile.count(auth)==3 and makefile.count(assignment)==1 and makefile.count(formal)==1 and makefile.count(isolated)==1
+    assert makefile.index(formal)<makefile.index(isolated)
+    return makefile.replace(assignment,assignment.replace('\t'+auth+' \\\n',''),1).replace(formal,formal.replace(' '+auth,''),1).replace(isolated,'\t$(PYTEST) $(filter web/tests/e2e/%,$('+variable+')) -m "e2e and not requires_internet" -v\n',1)
+
+
+def _original_makefile_before_backend_isolation(makefile: str) -> str:
+    names=('test_formal_main_admission.py','test_formal_main_source_supervisor.py',
+           'test_research_financial_import.py','test_formal_model_startup.py')
+    commands=['cd web/backend && $(BACKEND_PYTEST)'+''.join(' --ignore=tests/'+n for n in names)+' -q']
+    commands+=['cd web/backend && $(BACKEND_PYTEST) tests/'+n+' -p no:logging -q' for n in names]
+    expanded=''.join('\t'+command+'\n' for command in commands)
+    assert makefile.count(expanded)==1, 'exact five-process Make backend block missing or duplicated'
+    actual=[c for c in _make_recipe_commands(makefile,'verify-release') if c.startswith('cd web/backend ')]
+    assert actual==commands, 'only the fixed Make backend process split is allowed'
+    return makefile.replace(expanded,'\tcd web/backend && $(BACKEND_PYTEST) -q\n',1)
+
+
 def _original_makefile_before_main_logging(makefile: str) -> str:
+    makefile = _original_makefile_before_backend_isolation(makefile)
+    makefile = _original_makefile_before_auth_bootstrap_browser(makefile)
     marker='-m "e2e and not requires_internet" -v'
     variable='BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS'
     split=(f'\t$(PYTEST) tests/e2e/test_full_public_surface.py -p no:logging {marker}\n'
@@ -1768,7 +1793,7 @@ def test_verify_release_dry_run_expands_real_test_and_build_commands() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     output = completed.stdout
-    assert output.count("python -m pytest") == 15
+    assert output.count("python -m pytest") == 19
     assert "scripts/check_python_syntax.py" in output
     assert "scripts/openapi_artifact.py --check" in output
     assert "PY=python bash scripts/check_ts_types.sh" in output
@@ -1865,7 +1890,7 @@ def test_required_browser_workflow_covers_nonenglish_product_surfaces() -> None:
     }
     assert job['steps'].index(main_step)==job['steps'].index(browser_step)+1==job['steps'].index(isolated_step)-1
     for row in rows:
-        assert row['pytest_args_main']==('tests/e2e/test_full_public_surface.py' if row['shard']=='library-auth-reports-favorites' else '')
+        assert row['pytest_args_main']==('tests/e2e/test_full_public_surface.py web/tests/e2e/test_auth_login_bootstrap_privacy.py' if row['shard']=='library-auth-reports-favorites' else '')
     isolated_tokens = _shell_tokens(isolated_step)
     assert isolated_tokens == [
         "pytest", "${{", "matrix.pytest_args_isolated", "}}", "-m",
@@ -2018,9 +2043,9 @@ def test_hard_browser_gate_has_one_make_and_ci_contract_list() -> None:
         root_tests = [path for path in make_shard if path.startswith("tests/e2e/")]
         web_tests = [path for path in make_shard if path.startswith("web/tests/e2e/")]
         if root_tests and web_tests:
-            assert ci_main == ['tests/e2e/test_full_public_surface.py']
-            assert ci_main + ci_primary == root_tests, f"mixed-root primary process: {shard}"
-            assert ci_isolated == web_tests, f"missing web isolation: {shard}"
+            assert ci_main == ['tests/e2e/test_full_public_surface.py', 'web/tests/e2e/test_auth_login_bootstrap_privacy.py']
+            assert [p for p in ci_main if p.startswith('tests/e2e/')] + ci_primary == root_tests, f"mixed-root primary process: {shard}"
+            assert ci_isolated == [p for p in web_tests if p not in ci_main], f"missing web isolation: {shard}"
         else:
             assert ci_primary == make_shard, f"unexpected primary split: {shard}"
             assert ci_main == [], f"unnecessary Main process: {shard}"
@@ -2044,11 +2069,11 @@ def test_hard_browser_gate_has_one_make_and_ci_contract_list() -> None:
     assert _make_recipe_commands(makefile, "test-browser-contracts") == [
         f"$(PYTEST) $({BROWSER_MAKE_SHARDS[0][1]}) {marker}",
         f"$(PYTEST) $({BROWSER_MAKE_SHARDS[1][1]}) {marker}",
-        f"$(PYTEST) tests/e2e/test_full_public_surface.py -p no:logging {marker}",
+        f"$(PYTEST) tests/e2e/test_full_public_surface.py web/tests/e2e/test_auth_login_bootstrap_privacy.py -p no:logging {marker}",
         "$(PYTEST) $(filter-out tests/e2e/test_full_public_surface.py,$(filter tests/e2e/%,$("
         f"{BROWSER_MAKE_SHARDS[2][1]}))) {marker}",
-        "$(PYTEST) $(filter web/tests/e2e/%,$("
-        f"{BROWSER_MAKE_SHARDS[2][1]})) {marker}",
+        "$(PYTEST) $(filter-out web/tests/e2e/test_auth_login_bootstrap_privacy.py,$(filter web/tests/e2e/%,$("
+        f"{BROWSER_MAKE_SHARDS[2][1]}))) {marker}",
         f"$(PYTEST) $({BROWSER_MAKE_SHARDS[3][1]}) {marker}",
         "$(PYTEST) $(PHASE_REAL_BROWSER_CONTRACT_TESTS) -v",
     ]
@@ -2085,7 +2110,7 @@ def test_hard_browser_gate_has_one_make_and_ci_contract_list() -> None:
         "Verify consent-gated official analytics transport"
     ]
 
-    assert _make_recipe_commands(makefile, "verify-release") == [
+    assert _make_recipe_commands(_original_makefile_before_backend_isolation(makefile), "verify-release") == [
         "$(MAKE) python-syntax-check",
         "$(MAKE) openapi-check",
         "$(MAKE) types-check",
@@ -2579,13 +2604,56 @@ def test_financial_make_allowance_rejects_other_changes(mutation) -> None:
 @pytest.mark.parametrize('mutation',['missing','duplicate','wrong_position','other_target','old_selector','soft'])
 def test_main_make_logging_allowance_reverses_only_fixed_processes(mutation) -> None:
     makefile=(ROOT/'Makefile').read_text()
-    main='\t$(PYTEST) tests/e2e/test_full_public_surface.py -p no:logging -m "e2e and not requires_internet" -v\n'
+    main='\t$(PYTEST) tests/e2e/test_full_public_surface.py web/tests/e2e/test_auth_login_bootstrap_privacy.py -p no:logging -m "e2e and not requires_internet" -v\n'
     if mutation=='missing':makefile=makefile.replace(main,main.replace(' -p no:logging',''),1)
     elif mutation=='duplicate':makefile=makefile.replace(main,main+main,1)
     elif mutation=='wrong_position':makefile=makefile.replace(main,'',1)+main
     elif mutation=='other_target':makefile=makefile.replace('$(PYTEST) $(PHASE_REAL_BROWSER_CONTRACT_TESTS) -v','$(PYTEST) $(PHASE_REAL_BROWSER_CONTRACT_TESTS) -p no:logging -v',1)
     elif mutation=='old_selector':makefile=makefile.replace('$(PYTEST) $(BROWSER_CONTRACT_SECONDARY_WHITESPACE_TESTS)','$(PYTEST) web/tests/e2e/test_whitespace.py',1)
     else:makefile=makefile.replace(main,'\t-'+main[1:],1)
+    with pytest.raises(AssertionError):
+        original=_original_makefile_without_financial_preview(makefile)
+        assert hashlib.sha256(original.encode()).hexdigest()=='d10d21b2d90e07deb8f9219f663f511ea96d5532c7f97637213f67f51efb0b9b'
+
+
+def test_auth_bootstrap_browser_is_one_complete_hard_Main_consumer():
+    auth='web/tests/e2e/test_auth_login_bootstrap_privacy.py'
+    rows=_ci_matrix_rows(_ci_job('browser-beta-surface-contract'))
+    assert sum(_ci_matrix_paths([r],field,BROWSER_PATH_PATTERN).count(auth)
+               for r in rows for field in ('pytest_args','pytest_args_main','pytest_args_isolated'))==1
+    assert _ci_matrix_paths([rows[2]],'pytest_args_main',BROWSER_PATH_PATTERN)==['tests/e2e/test_full_public_surface.py',auth]
+    source=(ROOT/auth).read_text();tree=ast.parse(source)
+    assert {n.name for n in tree.body if isinstance(n,ast.FunctionDef) and n.name.startswith('test_')}=={
+        'test_unbound_login_is_inert_and_forced_native_POST_has_no_private_fields',
+        'test_real_script_release_then_JSON_SMTP_verify_cookie_safe_return_and_single_click'}
+    assert 'pytestmark = pytest.mark.e2e' in source
+    assert all(token not in source for token in ('pytest.skip','pytest.xfail','pytest.importorskip','pytest.mark.skip','pytest.mark.xfail','requires_internet'))
+
+
+@pytest.mark.parametrize('mutation',['missing','duplicate','wrong_process','marker'])
+def test_auth_browser_Make_allowance_is_narrow(mutation):
+    makefile=(ROOT/'Makefile').read_text();auth='web/tests/e2e/test_auth_login_bootstrap_privacy.py'
+    if mutation=='missing':makefile=makefile.replace(' '+auth+' -p no:logging',' -p no:logging',1)
+    elif mutation=='duplicate':makefile=makefile.replace(' '+auth+' -p no:logging',' '+auth+' '+auth+' -p no:logging',1)
+    elif mutation=='wrong_process':makefile=makefile.replace(' '+auth+' -p no:logging',' -p no:logging',1).replace('$(PHASE_REAL_BROWSER_CONTRACT_TESTS) -v','$(PHASE_REAL_BROWSER_CONTRACT_TESTS) '+auth+' -v',1)
+    else:makefile=makefile.replace(' '+auth+' -p no:logging',' '+auth+' -m smoke -p no:logging',1)
+    with pytest.raises(AssertionError):
+        original=_original_makefile_without_financial_preview(makefile)
+        assert hashlib.sha256(original.encode()).hexdigest()=='d10d21b2d90e07deb8f9219f663f511ea96d5532c7f97637213f67f51efb0b9b'
+
+
+@pytest.mark.parametrize('mutation',['missing','wrong_path','duplicate','ordinary_no_ignore','ordinary_no_logging','formal_logging','soft','position'])
+def test_Make_backend_split_keeps_exact_full_files_and_hard_order(mutation):
+    makefile=(ROOT/'Makefile').read_text()
+    formal='\tcd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_source_supervisor.py -p no:logging -q\n'
+    if mutation=='missing':makefile=makefile.replace(formal,'',1)
+    elif mutation=='wrong_path':makefile=makefile.replace(formal,formal.replace('test_formal_main_source_supervisor.py','test_formal_search_profile.py'),1)
+    elif mutation=='duplicate':makefile=makefile.replace(formal,formal+formal,1)
+    elif mutation=='ordinary_no_ignore':makefile=makefile.replace(' --ignore=tests/test_formal_main_source_supervisor.py','',1)
+    elif mutation=='ordinary_no_logging':makefile=makefile.replace('$(BACKEND_PYTEST) --ignore','$(BACKEND_PYTEST) -p no:logging --ignore',1)
+    elif mutation=='formal_logging':makefile=makefile.replace(formal,formal.replace(' -p no:logging',''),1)
+    elif mutation=='soft':makefile=makefile.replace(formal,'\t-'+formal[1:],1)
+    else:makefile=makefile.replace(formal,'',1)+formal
     with pytest.raises(AssertionError):
         original=_original_makefile_without_financial_preview(makefile)
         assert hashlib.sha256(original.encode()).hexdigest()=='d10d21b2d90e07deb8f9219f663f511ea96d5532c7f97637213f67f51efb0b9b'

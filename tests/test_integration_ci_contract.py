@@ -60,6 +60,7 @@ FINANCIAL_PREVIEW_BROWSER_STEP = {
 }
 
 MAIN_SURFACE = 'tests/e2e/test_full_public_surface.py'
+AUTH_BOOTSTRAP_BROWSER = 'web/tests/e2e/test_auth_login_bootstrap_privacy.py'
 PUBLIC_ENTRY_RUN = 'pytest ' + ' '.join(MAIN_SURFACE + '::' + name for name in (
     'test_public_entry_actual_owner_index_anchor',
     'test_public_entry_default_retirement_and_language',
@@ -83,7 +84,7 @@ def original_browser_surface_job(body: dict) -> dict:
         'library-auth-reports-favorites', 'secondary-whitespace',
     ]
     for row in rows:
-        expected = MAIN_SURFACE if row['shard'] == 'library-auth-reports-favorites' else ''
+        expected = MAIN_SURFACE + ' ' + AUTH_BOOTSTRAP_BROWSER if row['shard'] == 'library-auth-reports-favorites' else ''
         assert row.pop('pytest_args_main') == expected, 'Main file must have one fixed library consumer'
         if expected:
             assert row['pytest_args'] == 'tests/e2e/test_unified_research_library.py tests/e2e/test_history_sidebar.py'
@@ -98,6 +99,34 @@ def original_browser_surface_job(body: dict) -> dict:
     assert index == prior + 1 == following - 1, 'Main process must occupy the fixed split position'
     steps.pop(index)
     return original
+
+
+BACKEND_FORMAL_FILES = (
+    'test_formal_main_admission.py', 'test_formal_main_source_supervisor.py',
+    'test_research_financial_import.py', 'test_formal_model_startup.py',
+)
+
+
+def backend_process_commands(*, coverage=False):
+    directory = 'web/backend/tests/' if coverage else 'tests'
+    prefix = ('python -m coverage run -p --rcfile=.coveragerc -m pytest ' if coverage else 'python -m pytest ')
+    flags = ' $PYTEST_FLAGS' if coverage else ' -x -ra -q --tb=short --durations=10'
+    file_prefix = 'web/backend/tests/' if coverage else 'tests/'
+    ordinary = prefix + directory + ''.join(' --ignore=' + file_prefix + name for name in BACKEND_FORMAL_FILES) + flags
+    return [ordinary, *(prefix + file_prefix + name + ' -p no:logging' + flags for name in BACKEND_FORMAL_FILES)]
+
+
+def original_backend_script(script, *, coverage=False):
+    """Reverse one exact five-process block; never strip flags from arbitrary commands."""
+    commands = backend_process_commands(coverage=coverage)
+    expanded = '\n'.join(commands)
+    assert script.count(expanded) == 1, 'complete exact backend process block missing or duplicated'
+    relevant = [line for line in script.splitlines() if line.startswith(
+        'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
+    assert relevant == commands, 'backend groups must each run exactly once in the fixed order'
+    original = ('python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/ $PYTEST_FLAGS' if coverage else
+                'python -m pytest tests -x -ra -q --tb=short --durations=10')
+    return script.replace(expanded, original, 1)
 
 
 def original_browser_product_job(body: dict) -> dict:
@@ -698,6 +727,8 @@ RESEARCH_COVERAGE_COMMAND = [
 def _assert_research_coverage_closure(value, rcfile):
     job = copy.deepcopy(value['jobs']['coverage'])
     step = next(s for s in job['steps'] if s.get('name') == 'Run coverage (split by suite, parallel files combined)')
+    assert 'if' not in step and 'continue-on-error' not in step
+    step['run'] = original_backend_script(step['run'], coverage=True)
     commands = [shlex.split(line, comments=True)
                 for line in re.sub(r'\\\n\s*', ' ', step['run']).splitlines()
                 if shlex.split(line, comments=True)]
@@ -771,9 +802,14 @@ def _assert_sanity_backend_dependency(value):
         "SANITY_BACKEND_RESULT": "${{ needs['sanity-backend'].result }}",
     }
     assert "if" not in gate and "continue-on-error" not in gate
+    normalized = copy.deepcopy(jobs)
+    baseline = next(s for s in normalized['sanity-backend']['steps'] if s.get('name') == 'Leg 2 — web/backend pytest baseline')
+    assert baseline['working-directory'] == 'web/backend'
+    assert baseline['env'] == {'PYTHONPATH': '${{ github.workspace }}/web/backend'}
+    baseline['run'] = original_backend_script(baseline['run'])
     for name, expected in SANITY_SPLIT_DIGESTS.items():
         actual = hashlib.sha256(json.dumps(
-            jobs[name], sort_keys=True, separators=(",", ":"),
+            normalized[name], sort_keys=True, separators=(",", ":"),
         ).encode()).hexdigest()
         assert actual == expected, f"complete sanity job changed: {name}"
 
@@ -887,4 +923,39 @@ def test_main_public5_logging_allowance_preserves_exact_old_selector(mutation):
     elif mutation=='wrong_position':step['run']=PUBLIC_ENTRY_RUN+' -p no:logging'
     elif mutation=='soft':step['continue-on-error']=True
     else:step['run']=step['run'].replace('::test_public_entry_actual_owner_index_anchor','::test_other')
+    with pytest.raises(AssertionError):assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('mutation', ['missing', 'wrong_path', 'duplicate', 'missing_ignore', 'ordinary_no_logging',
+    'formal_logging', 'partial_file', 'soft_command', 'step_soft', 'step_conditional', 'missing_measurement'])
+def test_backend_process_isolation_rejects_loss_or_weakened_measurement(kind, mutation):
+    value=workflow(kind+'.yml');job=value['jobs']['sanity-backend' if kind=='sanity' else 'coverage']
+    name='Leg 2 — web/backend pytest baseline' if kind=='sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step=next(s for s in job['steps'] if s.get('name')==name)
+    commands=backend_process_commands(coverage=kind=='coverage');changed=list(commands)
+    if mutation=='missing':changed.pop(2)
+    elif mutation=='wrong_path':changed[3]=changed[3].replace('test_research_financial_import.py','test_formal_search_profile.py')
+    elif mutation=='duplicate':changed.append(changed[2])
+    elif mutation=='missing_ignore':changed[0]=changed[0].replace(' --ignore='+('web/backend/tests/' if kind=='coverage' else 'tests/')+BACKEND_FORMAL_FILES[0],'')
+    elif mutation=='ordinary_no_logging':changed[0]+=' -p no:logging'
+    elif mutation=='formal_logging':changed[1]=changed[1].replace(' -p no:logging','')
+    elif mutation=='partial_file':changed[2]+=' -k smoke'
+    elif mutation=='soft_command':changed[1]+=' || true'
+    elif mutation=='step_soft':step['continue-on-error']=True
+    elif mutation=='step_conditional':step['if']='false'
+    else:changed[1]=changed[1].replace('coverage run -p','coverage run').replace(' -x -ra -q',' -q')
+    step['run']=step['run'].replace('\n'.join(commands),'\n'.join(changed),1)
+    with pytest.raises(AssertionError):
+        if kind=='sanity':_assert_sanity_backend_dependency(value)
+        else:_assert_research_coverage_closure(value,(ROOT/'.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'wrong_group', 'skip'])
+def test_auth_browser_addition_is_only_the_existing_Main_subgroup(mutation):
+    value=workflow('ci.yml');rows=value['jobs']['browser-beta-surface-contract']['strategy']['matrix']['include'];row=rows[2]
+    if mutation=='missing':row['pytest_args_main']=MAIN_SURFACE
+    elif mutation=='duplicate':row['pytest_args_main']+=' '+AUTH_BOOTSTRAP_BROWSER
+    elif mutation=='wrong_group':row['pytest_args_main']=MAIN_SURFACE;row['pytest_args_isolated']+=' '+AUTH_BOOTSTRAP_BROWSER
+    else:row['pytest_args_main']+=' -k smoke'
     with pytest.raises(AssertionError):assert_existing_jobs_unchanged(value)

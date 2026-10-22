@@ -43,6 +43,7 @@ BROWSER_CONTRACT_DISCOVERY_CLASSES_PAPERS_TESTS := \
 
 BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS := \
 	tests/e2e/test_full_public_surface.py \
+	web/tests/e2e/test_auth_login_bootstrap_privacy.py \
 	tests/e2e/test_unified_research_library.py \
 	tests/e2e/test_history_sidebar.py \
 	web/tests/e2e/test_thank_you_copy.py \
@@ -109,9 +110,9 @@ test-frontend-node:
 test-browser-contracts:
 	$(PYTEST) $(BROWSER_CONTRACT_SEARCH_ASK_ANALYZE_PHENOMENON_TESTS) -m "e2e and not requires_internet" -v
 	$(PYTEST) $(BROWSER_CONTRACT_DISCOVERY_CLASSES_PAPERS_TESTS) -m "e2e and not requires_internet" -v
-	$(PYTEST) tests/e2e/test_full_public_surface.py -p no:logging -m "e2e and not requires_internet" -v
+	$(PYTEST) tests/e2e/test_full_public_surface.py web/tests/e2e/test_auth_login_bootstrap_privacy.py -p no:logging -m "e2e and not requires_internet" -v
 	$(PYTEST) $(filter-out tests/e2e/test_full_public_surface.py,$(filter tests/e2e/%,$(BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS))) -m "e2e and not requires_internet" -v
-	$(PYTEST) $(filter web/tests/e2e/%,$(BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS)) -m "e2e and not requires_internet" -v
+	$(PYTEST) $(filter-out web/tests/e2e/test_auth_login_bootstrap_privacy.py,$(filter web/tests/e2e/%,$(BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS))) -m "e2e and not requires_internet" -v
 	$(PYTEST) $(BROWSER_CONTRACT_SECONDARY_WHITESPACE_TESTS) -m "e2e and not requires_internet" -v
 	$(PYTEST) $(PHASE_REAL_BROWSER_CONTRACT_TESTS) -v
 
@@ -173,7 +174,11 @@ verify-release:
 	$(MAKE) types-check
 	$(MAKE) llm-scaling-check
 	$(MAKE) test-fast
-	cd web/backend && $(BACKEND_PYTEST) -q
+	cd web/backend && $(BACKEND_PYTEST) --ignore=tests/test_formal_main_admission.py --ignore=tests/test_formal_main_source_supervisor.py --ignore=tests/test_research_financial_import.py --ignore=tests/test_formal_model_startup.py -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_admission.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_source_supervisor.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_research_financial_import.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_model_startup.py -p no:logging -q
 	cd packages/guarded-llm && $(PYTEST) tests -q
 	cd packages/cross-judge && $(PYTEST) tests -q
 	cd packages/reject-aware-critic && $(PYTEST) tests -q
