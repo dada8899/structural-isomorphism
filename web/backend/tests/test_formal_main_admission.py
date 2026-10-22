@@ -354,7 +354,7 @@ def test_actual_main_reads_migrated_source_history_and_enforces_current_actor(tm
             monkeypatch.delenv(key, raising=False)
         main = importlib.import_module('main')
         from services import formal_admission as admission
-        assert main._IS_PROD and seed.schema_version == 14
+        assert main._IS_PROD and seed.schema_version == 15
         assert seed.source_input_revision == seed.current_input_revision == 1
         async def run():
             transport = httpx.ASGITransport(app=main.app)
