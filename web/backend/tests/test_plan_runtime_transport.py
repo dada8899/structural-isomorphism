@@ -49,14 +49,45 @@ class _ActualMainClient:
     def __init__(self, service, store, actor):
         self.service, self.store, self.actor = service, store, actor
         self.cookies, self.app = _ActualCookieView(service.client), service.app
+        self._delete_attempted = False
     def _request(self, method, path, *, json=None, headers=None, params=None):
         from urllib.parse import urlencode
         headers = headers or {}
         assert headers.get('origin', headers.get('Origin', BETA)) == BETA
         if params: path += ('&' if '?' in path else '?') + urlencode(params)
         key = headers.get('idempotency-key', headers.get('Idempotency-Key'))
+        if method == 'POST' and path == '/api/me/delete':
+            assert json == {'confirmation': 'DELETE'} and key is None
+            return self._delete_after_owned_return()
         status, value = self.service.client.request(method, path, json, key=key)
         return _ActualMainResponse(status, value)
+    def _delete_after_owned_return(self):
+        # This one legacy case used in-process TestClient. Its real HTTPS
+        # observation may wait 10s once, after an actual OwnedReturn only;
+        # Native/Source/Main and the test's wait/join budgets stay unchanged.
+        import urllib.request
+        import urllib.error
+        assert not self._delete_attempted
+        provision, resource = native.installation(self.store)
+        assert type(resource) is transport.NativePlanResource
+        assert provision.authority.store is self.store and provision.authority.identity == self.actor
+        returns = [value for value in tuple(transport._RETURNS.values()) if value.resource is resource]
+        assert len(returns) == 1
+        owned = returns[0]
+        assert type(owned) is transport.OwnedNativeReturn
+        owned.require(resource, owned.dispatch, owned.nonce, owned.admission_digest, owned.producer_digest)
+        self._delete_attempted = True
+        request = urllib.request.Request(self.service.origin + '/api/me/delete',
+            data=b'{"confirmation":"DELETE"}', method='POST',
+            headers={'Origin': BETA, 'Content-Type': 'application/json'})
+        try:
+            response = self.service.client.opener.open(request, timeout=10)
+        except urllib.error.HTTPError as error:
+            response = error
+        with response:
+            body = response.read(524289)
+            assert len(body) <= 524288
+            return _ActualMainResponse(response.status, json.loads(body) if body else None)
     def post(self, path, **kwargs):
         return self._request('POST', path, **kwargs)
     def get(self, path, **kwargs):
