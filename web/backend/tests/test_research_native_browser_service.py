@@ -14,7 +14,7 @@ def component():
 
 def test_actual_https_registered_controller_worker_typed_same_ref_and_cleanup():
     result=component().self_test()
-    assert result=={'scope':'controlled_fixture_only','schema':14,'financial':9,'actual_https':True,'canonical_origin_preserved':True,'same_process_worker':True,'provider_calls':['GET','POST'],'saved_same_ref_time':True,'real_model_executed':False,'automatically_created_sources':0,'cleanup':'closed'}
+    assert result=={'scope':'controlled_fixture_only','schema':15,'financial':9,'actual_https':True,'canonical_origin_preserved':True,'same_process_worker':True,'provider_calls':['GET','POST'],'saved_same_ref_time':True,'real_model_executed':False,'automatically_created_sources':0,'cleanup':'closed'}
     assert not [t for t in threading.enumerate() if t.name.startswith('controlled-plan-')]
 
 
@@ -318,3 +318,81 @@ def test_missing_fixed_runtime_module_never_falls_back_to_core(monkeypatch):
             assert conn.execute('SELECT count(*) FROM research_plan_native_funding').fetchone()[0]==0
             assert conn.execute('SELECT count(*) FROM research_funding_accounts').fetchone()[0]==0
     assert not service.root.exists() and service.cleanup_errors==()
+
+
+@pytest.mark.parametrize('mode', ['unreaped', 'reaped', 'reaped-second-join', 'late-reap', 'bridge-failure'])
+def test_controller_close_orders_shared_main_history_after_worker_join_outcome(tmp_path, mode):
+    """Pure lifecycle inputs with the real shared close and history exit.
+
+    No Main/worker is started. The history context performs real directory
+    removal only on its normal exit, reproducing the original cleanup risk.
+    """
+    import json
+    import shutil
+    from contextlib import contextmanager
+    from web.backend.tests.acceptance.formal_main_browser_service import FormalMainBrowserService
+    service=component().PlanBrowserFixture()
+    outer=tmp_path/'controller';outer.mkdir();inner=outer/'actual-main';inner.mkdir()
+    service.temp=service.root=outer
+    events=[];budgets=[];observations={}
+    class SyntheticWorker:
+        ident=1;name='synthetic-controller-worker'
+        def __init__(self):self.alive=mode in ('unreaped','reaped-second-join','late-reap')
+        def join(self,seconds):
+            budgets.append(seconds);events.append('worker-join-'+str(seconds))
+            if mode=='reaped-second-join' and seconds==3:self.alive=False
+        def is_alive(self):return self.alive
+    worker=service.worker=SyntheticWorker()
+    class SyntheticBridge:
+        failing=mode=='bridge-failure'
+        def close(self):
+            events.append('bridge-close')
+            if self.failing:raise OSError('synthetic bridge cleanup failure')
+    bridge=SyntheticBridge();service._browser_bridges.append(bridge)
+    provider_close=service._close_provider
+    def observed_provider_close():
+        events.append('provider-close');return provider_close()
+    service._close_provider=observed_provider_close
+    shared=FormalMainBrowserService(inner)
+    @contextmanager
+    def history_scope():
+        normal=False
+        try:yield;normal=True
+        finally:
+            events.append('history-exit');observations['history_normal_exit']=normal
+            if normal:shutil.rmtree(inner)
+    shared._history=history_scope();shared._history.__enter__()
+    actual_close=shared._close
+    def observed_main_close(primary=None):
+        events.append('main-close');observations['primary_is_uncertain']=primary is not None
+        observations['worker_alive_before_main']=worker.is_alive()
+        if mode=='late-reap':worker.alive=False
+        return actual_close(primary)
+    shared._close=observed_main_close;service._main_service=shared
+    uncertain=mode in ('unreaped','late-reap','bridge-failure')
+    if uncertain:
+        with pytest.raises(RuntimeError,match='cleanup uncertain'):service.close()
+        assert observations['primary_is_uncertain'] and not observations['history_normal_exit']
+        assert inner.exists() and outer.exists() and service.temp==outer
+        assert service._main_service is shared and service.worker is worker
+        if mode!='bridge-failure':assert worker.name in service.cleanup_errors
+    else:
+        service.close()
+        assert not observations['primary_is_uncertain'] and observations['history_normal_exit']
+        assert not inner.exists() and not outer.exists() and service.temp is None
+        assert service.cleanup_errors==()
+    assert shared._closed and service.stop.is_set()
+    assert budgets==([8,3] if mode in ('unreaped','reaped-second-join','late-reap') else [8])
+    assert events==(['bridge-close','worker-join-8']+
+        (['worker-join-3'] if len(budgets)==2 else [])+
+        ['provider-close','main-close','history-exit'])
+    observations.update(mode=mode,join_budgets=budgets.copy(),first_close_events=events.copy(),
+        inner_retained_after_first_close=inner.exists(),outer_retained_after_first_close=outer.exists(),
+        cleanup_errors_after_first_close=list(service.cleanup_errors))
+    first_close_observations=observations.copy()
+    if uncertain:
+        # An explicit later cleanup may remove the preserved root only after
+        # the worker and the bridge are known to have retired.
+        worker.alive=False;bridge.failing=False;service.close()
+        assert not outer.exists() and service.temp is None and service.cleanup_errors==()
+    (tmp_path/'close-order-facts.json').write_text(json.dumps(first_close_observations,indent=2)+'\n')

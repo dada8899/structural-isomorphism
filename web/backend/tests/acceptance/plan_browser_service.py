@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Explicit controlled-fixture HTTPS service, not Main or live activation.
+"""Actual Main HTTPS with controlled model resources, never live activation.
 
 Run with the release Python and --self-test or --serve. All app/provider sockets
 bind loopback port zero. The app retains its canonical production Auth origin;
@@ -287,7 +287,7 @@ class PlanBrowserFixture(AbstractContextManager):
         self.temp=None;self.root=None;self.provider=None;self.provider_thread=None;self.server=None;self.server_thread=None;self.app_socket=None
         self.worker=None;self.stop=threading.Event();self.mail=[];self.mail_lock=threading.Lock();self.calls=[];self.worker_failures=[]
         self.store=None;self.resource=None;self.identity=None;self.principal=None;self.client=None;self.installed=False;self.environment={};self.saved_globals=None
-        self.cleanup_errors=();self._install_cleanup_errors=();self._failed_native=();self._browser_bridges=[]
+        self.cleanup_errors=();self._install_cleanup_errors=();self._failed_native=();self._browser_bridges=[];self._main_service=None
     def __enter__(self):
         try:self._start();return self
         except BaseException as primary:
@@ -295,38 +295,20 @@ class PlanBrowserFixture(AbstractContextManager):
             except BaseException as cleanup:primary.add_note('controlled fixture cleanup also failed: '+type(cleanup).__name__)
             raise
     def _start(self):
-        # Explicit ownership: uncertain cleanup must not be silently erased by
-        # TemporaryDirectory garbage collection. Only close removes this root.
+        # Keep the outer controller root until every owned resource is closed.
+        # Dynamic import avoids the shared Main helper's fixed bridge imports.
         self.temp=Path(tempfile.mkdtemp(prefix='controlled-plan-browser-')).resolve();self.root=self.temp;self.root.chmod(0o700)
         if self.root.is_relative_to(ROOT):raise PermissionError('fixture private root must be outside the repository')
-        from services import runtime_paths as paths
-        from api import auth,research
-        self.saved_globals=(paths.STATE_ROOT,paths.CACHE_ROOT,paths.LOG_ROOT,auth._send_email,auth._AUTH_STORES,research.enabled)
-        paths.STATE_ROOT=self.root/'state';paths.CACHE_ROOT=self.root/'cache';paths.LOG_ROOT=paths.STATE_ROOT/'logs'
-        secret=secrets.token_urlsafe(48)
-        settings={'STRUCTURAL_ENV':'prod','AUTH_DATA_DIR':str(paths.STATE_ROOT),'STRUCTURAL_SSO_DATA_DIR':str(paths.STATE_ROOT),'STRUCTURAL_PRIVACY_HMAC_KEY':secrets.token_hex(32),
-            'AUTH_ENABLED':'true','AUTH_SITE_ROLE':'beta','AUTH_LINK_BASE_URL':ORIGIN,'JWT_SECRET':secret,'STRUCTURAL_SSO_SECRET':secret,
-            'SMTP_HOST':'fixture.invalid','SMTP_PORT':'587','SMTP_FROM_EMAIL':'sender@example.invalid','ADMIN_NOTIFICATION_EMAIL':'admin@example.invalid','AUTH_TRUSTED_PROXY_IPS':'127.0.0.1','AUTH_DEV_MODE':'false'}
-        self.environment={key:os.environ.get(key) for key in settings};os.environ.update(settings)
-        from services.auth_registration import bootstrap_private_runtime
-        if bootstrap_private_runtime()['research_schema']!=14:raise PermissionError('current reviewed Research14 required')
-        auth._AUTH_STORES={};auth._send_email=self._mail;research.enabled=lambda:True
-        from fastapi import FastAPI
-        import uvicorn
-        self.app=FastAPI(title='Controlled fixture only — no real model or funds')
-        self.app.include_router(auth.router,prefix='/api');self.app.include_router(research.router,prefix='/api')
-        _mount_public_pages(self.app)
-        key,certificate=_certificates(self.root);self.certificate=certificate
-        self.app_socket=socket.socket(socket.AF_INET,socket.SOCK_STREAM);self.app_socket.bind(('127.0.0.1',0));self.app_socket.listen(64)
-        self.port=self.app_socket.getsockname()[1]
-        config=uvicorn.Config(self.app,host='127.0.0.1',port=self.port,ssl_keyfile=str(key),ssl_certfile=str(certificate),loop='asyncio',ws='none',log_config=None,log_level='critical',access_log=False,timeout_graceful_shutdown=3)
-        self.server=uvicorn.Server(config)
-        self.server_thread=threading.Thread(target=self.server.run,kwargs={'sockets':[self.app_socket]},name='controlled-plan-app')
-        self.server_thread.start();deadline=time.monotonic()+5
-        while not self.server.started:
-            if not self.server_thread.is_alive() or time.monotonic()>=deadline:raise RuntimeError('fixture HTTPS app did not start')
-            time.sleep(.02)
-        self.client=FixtureClient(self.port,certificate)
+        from web.backend.tests.acceptance.formal_main_browser_service import FormalMainBrowserService
+        self._main_service=FormalMainBrowserService(self.root/'actual-main')
+        self._main_service.__enter__()
+        service=self._main_service
+        self.app,self.server,self.server_thread=service.app,service.server,service.server_thread
+        self.app_socket,self.port,self.certificate=service.app_socket,service.port,service.certificate
+        # Independent real cookie jar: the historical Source owner is never
+        # used as this controller's observation/funding identity.
+        if service.seed.email==OWNER:raise PermissionError('independent controlled owner required')
+        self.client=FixtureClient(self.port,self.certificate)
         self._register()
     def browser_bridge(self):
         bridge=CanonicalBrowserBridge(self);self._browser_bridges.append(bridge);return bridge
@@ -334,15 +316,14 @@ class PlanBrowserFixture(AbstractContextManager):
         with self.mail_lock:self.mail.append(text)
     def take_latest_magic_token(self):
         """Privileged in-process browser harness only; never logs/HTTP output."""
-        with self.mail_lock:
-            if not self.mail:raise RuntimeError('fixture outbox is empty')
-            text=self.mail.pop()
-        return parse_qs(urlsplit(text.strip().split()[-1]).query)['token'][0]
+        if self._main_service is None:raise RuntimeError('actual Main mail sink unavailable')
+        return self._main_service.take_latest_magic_token()
     def _register(self):
         status,_=self.client.request('POST','/api/auth/request-link',{'email':OWNER})
         if status!=200:raise RuntimeError('actual fixture request-link failed')
         token=self.take_latest_magic_token()
-        status,_=self.client.request('POST','/api/auth/verify',{'token':token})
+        try:status,_=self.client.request('POST','/api/auth/verify',{'token':token})
+        finally:token=None
         if status!=200:raise RuntimeError('actual fixture registration/verify failed')
         from api import auth
         from research import ResearchStore,ResearchService
@@ -351,7 +332,7 @@ class PlanBrowserFixture(AbstractContextManager):
         if not claims or claims.get('sub')!=OWNER:raise PermissionError('actual registered fixture session required')
         self.identity=AccountIdentity(claims['sub'],claims['gen'],claims['jti'],claims['exp'])
         self.store=ResearchStore(auth._store())
-        with self.store.transaction() as conn:ResearchStore._check_v14(conn)
+        with self.store.transaction() as conn:ResearchStore._check_v15(conn)
         self.principal=ResearchService(self.store)._principal(self.identity,create=True)
     def install_controlled_funding(self):
         """Trusted controller method, deliberately not exposed through HTTP."""
@@ -450,27 +431,20 @@ class PlanBrowserFixture(AbstractContextManager):
             attempt(lambda:plan_native.retire_installation(self.store))
             self.installed=False
         if self.worker is not None and self.worker.is_alive():attempt(lambda:join(self.worker,3))
-        if self.server is not None:self.server.should_exit=True
-        attempt(lambda:join(self.server_thread,5))
-        if self.server_thread is not None and self.server_thread.is_alive():
-            self.server.force_exit=True;attempt(lambda:join(self.server_thread,1))
+        if self.worker is not None and self.worker.is_alive():
+            errors.append(self.worker.name)
         if self._failed_native:
             from research import plan_native
             errors.extend(plan_native.retire_attempts(*self._failed_native))
         errors.extend(self._close_provider())
-        if self.app_socket is not None:attempt(self.app_socket.close)
+        # Shared Main owns its TLS/SMTP/Source lifespan and original deadline.
+        # Preserve its private root when controller cleanup was uncertain.
+        if self._main_service is not None:
+            primary=RuntimeError('controlled fixture cleanup uncertain') if errors else None
+            attempt(lambda:self._main_service._close(primary))
         active=[t.name for t in (self.worker,self.server_thread,self.provider_thread) if t is not None and t.is_alive()]
         errors.extend(active)
         if not active:
-            if self.saved_globals is not None:
-                from services import runtime_paths as paths
-                from api import auth,research
-                paths.STATE_ROOT,paths.CACHE_ROOT,paths.LOG_ROOT,auth._send_email,auth._AUTH_STORES,research.enabled=self.saved_globals
-                self.saved_globals=None
-            for key,value in self.environment.items():
-                if value is None:os.environ.pop(key,None)
-                else:os.environ[key]=value
-            self.environment={}
             with self.mail_lock:self.mail.clear()
             if self.temp is not None and not errors:
                 try:shutil.rmtree(self.temp)
@@ -513,7 +487,7 @@ def self_test():
         assert client.request('GET','/api/research/'+rid+'/plan-results/'+ref)[1]==result
         assert client.request('GET','/api/research/'+rid)[0]==200
         assert not fixture.worker_failures
-        root=fixture.root;report={'scope':'controlled_fixture_only','schema':14,'financial':9,'actual_https':True,'canonical_origin_preserved':True,'same_process_worker':True,'provider_calls':fixture.calls.copy(),'saved_same_ref_time':True,'real_model_executed':False,'automatically_created_sources':0}
+        root=fixture.root;report={'scope':'controlled_fixture_only','schema':15,'financial':9,'actual_https':True,'canonical_origin_preserved':True,'same_process_worker':True,'provider_calls':fixture.calls.copy(),'saved_same_ref_time':True,'real_model_executed':False,'automatically_created_sources':0}
     assert not root.exists();report['cleanup']='closed'
     return report
 
