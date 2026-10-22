@@ -101,6 +101,19 @@ def statement_allowed(conn,action,table,column):
     return bool(scope and scope.conn is conn and scope.pid==os.getpid() and scope.active and scope.base.active)
 
 
+def _admission_fields(task,run,approval,principal,grant,revision_digest):
+    """Pure immutable-domain assembly shared by execution and history checks."""
+    # Mutable execution/status fields are excluded; these immutable domain facts
+    # are fixed by the authenticated admission and independently rechecked.
+    fields={'task':{key:task[key] for key in ('id','research_id','principal_id','principal_epoch','owner_epoch','acl_epoch','grant_id','auth_generation','input_revision','input_digest','start_version','policy_revision','execution_mode')},
+      'principal':{key:principal[key] for key in ('id','gate_id','session_generation','epoch')},
+      'grant':{key:grant[key] for key in ('id','principal_id','principal_epoch','research_id','acl_epoch','scopes')},
+      'run':{key:run[key] for key in ('task_id','approval_id','chain_id','plan_id','fingerprint','origin')},
+      'approval':{key:approval[key] for key in ('id','principal_id','principal_epoch','auth_generation','research_id','input_revision','problem_digest','query','plan_json','plan_digest','fingerprint','execution_mode','version','consent_origin','consent_digest')},'revision_digest':revision_digest,
+      'version':'source-admission-v1'}
+    return fields
+
+
 def snapshot(conn,task_id):
     from .source_integration import check_approval
     task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(task_id,)).fetchone()
@@ -111,15 +124,7 @@ def snapshot(conn,task_id):
     grant=conn.execute('SELECT * FROM research_grants WHERE id=?',(task['grant_id'],)).fetchone()
     revision=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(task['research_id'],task['input_revision'])).fetchone()
     if not principal or not grant or not revision:raise PermissionError('Source admission domain unavailable')
-    # Mutable execution/status fields are excluded; these immutable domain facts
-    # are fixed by the authenticated admission and independently rechecked.
-    fields={'task':{key:task[key] for key in ('id','research_id','principal_id','principal_epoch','owner_epoch','acl_epoch','grant_id','auth_generation','input_revision','input_digest','start_version','policy_revision','execution_mode')},
-      'principal':{key:principal[key] for key in ('id','gate_id','session_generation','epoch')},
-      'grant':{key:grant[key] for key in ('id','principal_id','principal_epoch','research_id','acl_epoch','scopes')},
-      'run':{key:run[key] for key in ('task_id','approval_id','chain_id','plan_id','fingerprint','origin')},
-      'approval':{key:approval[key] for key in ('id','principal_id','principal_epoch','auth_generation','research_id','input_revision','problem_digest','query','plan_json','plan_digest','fingerprint','execution_mode','version','consent_origin','consent_digest')},'revision_digest':revision[0],
-      'version':'source-admission-v1'}
-    return fields
+    return _admission_fields(task,run,approval,principal,grant,revision[0])
 
 
 def resource(conn,task_id):
@@ -396,14 +401,59 @@ def check_origin(store,conn,task_id):
     withdrawal. Account deletion removes this private original admission.
     """
     row=resource(conn,task_id)
-    if row['admission_json'] is None:raise PermissionError('Source original admission was erased')
-    recorded=json.loads(row['admission_json'])
-    if sha256(canonical(recorded).encode())!=row['admission_digest']:raise PermissionError('Source original admission digest differs')
-    actual=snapshot(conn,task_id)
-    # These two current execution-authority values may legitimately be retired.
-    # Original task/domain IDs, generations, epochs, approved bytes and hashes
-    # remain independently bound; the current reader uses its own live grants.
-    actual['principal']['epoch']=actual['task']['principal_epoch']
-    actual['grant']['scopes']=recorded['grant']['scopes']
-    if actual!=recorded or actual['principal']['gate_id']!=row['owner_gate_id']:raise PermissionError('Source original domain differs')
+    recorded,mode=_recorded_admission(row)
+    from .source_integration import _canonical_draft,normalized_query
+    task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(task_id,)).fetchone()
+    run=conn.execute('SELECT * FROM research_source_runs WHERE task_id=?',(task_id,)).fetchone()
+    approval=conn.execute('SELECT * FROM research_source_approvals WHERE id=?',(run['approval_id'],)).fetchone() if run else None
+    if (not task or not run or not approval or task['execution_mode']!=mode
+            or run['origin']!=mode or approval['execution_mode']!=mode
+            or approval['consent_origin']!=CONSENT_ORIGIN or not approval['consent_digest']):
+        raise PermissionError('Source recorded acquisition mode differs')
+    fields,pd,fp,inp=_canonical_draft(approval['problem_digest'],approval['query'],mode)
+    legacy=sha256(canonical({'problem_digest':approval['problem_digest'],'query':normalized_query(approval['query']),
+        'operation_family':'crossref-plos-method-get'}).encode())
+    if (canonical(fields)!=approval['plan_json'] or pd!=approval['plan_digest'] or inp!=task['input_digest']
+            or run['fingerprint'] not in (fp,legacy) or run['fingerprint']!=approval['fingerprint']):
+        raise PermissionError('Source recorded plan binding differs')
+    principal=conn.execute('SELECT * FROM research_principals WHERE id=?',(task['principal_id'],)).fetchone()
+    grant=conn.execute('SELECT * FROM research_grants WHERE id=?',(task['grant_id'],)).fetchone()
+    revision=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',
+                          (task['research_id'],task['input_revision'])).fetchone()
+    if not principal or not grant or not revision or revision[0]!=approval['problem_digest']:
+        raise PermissionError('Source original domain unavailable')
+    actual=_admission_fields(task,run,approval,principal,grant,revision[0])
+    _check_recorded_fields(actual,recorded,row['owner_gate_id'])
     return row
+
+
+def _check_recorded_fields(actual,recorded,owner_gate_id):
+    """Pure original-domain comparison, never a current reader/worker grant."""
+    try:
+        # Only the old execution epoch/scope may have legitimately retired.
+        compared={**actual,'principal':{**actual['principal'],'epoch':actual['task']['principal_epoch']},
+                  'grant':{**actual['grant'],'scopes':recorded['grant']['scopes']}}
+        if canonical(compared)!=canonical(recorded) or compared['principal']['gate_id']!=owner_gate_id:
+            raise PermissionError('Source original domain differs')
+    except (KeyError,TypeError,ValueError):
+        raise PermissionError('Source original domain unavailable') from None
+
+
+def _recorded_admission(row):
+    """Decode protected acquisition data only; this returns no capability."""
+    if row['admission_json'] is None:raise PermissionError('Source original admission was erased')
+    try:
+        recorded=json.loads(row['admission_json'])
+        encoded=canonical(recorded)
+        if (row['admission_version']!='source-admission-v1' or type(recorded) is not dict
+                or recorded.get('version')!='source-admission-v1' or encoded!=row['admission_json']
+                or sha256(encoded.encode())!=row['admission_digest']):
+            raise PermissionError('Source original admission digest differs')
+        mode=recorded['task']['execution_mode']
+        modes=(mode,recorded['run']['origin'],recorded['approval']['execution_mode'],
+               json.loads(recorded['approval']['plan_json'])['execution_mode'])
+        if any(type(value) is not str or value not in ('offline_probe','live') or value!=mode for value in modes):
+            raise PermissionError('Source recorded acquisition mode differs')
+    except (KeyError,TypeError,ValueError):
+        raise PermissionError('Source original admission unavailable') from None
+    return recorded,mode

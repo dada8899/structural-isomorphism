@@ -217,7 +217,7 @@
       [
         340,
         341,
-        "    if version not in (6,7,8,9,10,11,12,13):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除记录版本不支持。')\n"
+        "    if version not in (6,7,8,9,10,11,12,13):raise ResearchError('SCHEMA_UNSUPPORTED',503,'\u5220\u9664\u8bb0\u5f55\u7248\u672c\u4e0d\u652f\u6301\u3002')\n"
       ],
       [
         350,
@@ -319,6 +319,7 @@
     "current_sha256": "6732d627fb9faa3ac981a1c6759bc43a1423d4819bccb7654666a503063120c0",
     "hunks": [
       [
+<<<<<<< HEAD
         91,
         130,
         "def _fixture_authority(store,identity,server,approved_cap_units,risk_margin_units,runtime_digest):\n"
@@ -573,6 +574,11 @@
         582,
         585,
         ""
+=======
+        381,
+        399,
+        "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT r.* FROM '+RUNS+' r JOIN research_tasks t ON t.id=r.task_id WHERE r.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        result=None\n        if value['result_json']:\n            result=NativePlanResult.model_validate(json.loads(value['result_json'])).model_dump(mode='json')\n            consent=json.loads(value['consent_json']);admission=json.loads(value['admission_json']);commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone();step=conn.execute('SELECT * FROM research_steps WHERE id=?',(consent['step_id'],)).fetchone()\n            saved=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,consent['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='native-plan-v1' or task['version']!=3 or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED' or step['version']!=3\n                or digest(canonical(consent))!=value['consent_digest'] or digest(canonical(admission))!=value['admission_digest'] or not saved or saved[0]!=consent['input_digest']\n                or result['result_ref']!=value['result_ref'] or result['task_id']!=task['id'] or result['research_id']!=rid or result['input_digest']!=task['input_digest'] or result['recorded_at']!=commit['recorded_at']\n                or commit['result_digest']!=digest(canonical(result)) or commit['receipt_digest']!=digest(canonical(receipt)) or receipt['admission_digest']!=value['admission_digest']):raise ResearchError('RESULT_UNAVAILABLE',503,'\u539f\u751f\u8ba1\u5212\u8bb0\u5f55\u5f53\u524d\u65e0\u6cd5\u5b8c\u6574\u6838\u5bf9\uff1b\u4e0d\u4f1a\u91cd\u65b0\u5916\u53d1\u3002')\n        return envelope({**metadata(value),'content':result})\n"
+>>>>>>> e572ebdaff63b3fef6e3c528ee324b255a800bba
       ]
     ],
     "original_sha256": "dba85a647cc44130a703600282dfe2b021b63d41af5d4abacf9b334a38df4d90"
@@ -583,7 +589,7 @@
       [
         11,
         36,
-        "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT d.* FROM research_plan_dispatches d JOIN research_tasks t ON t.id=d.task_id WHERE d.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        body=metadata(value)\n        if value['result_json'] is None:return envelope({**body,'content':None})\n        try:\n            result=PlanResult.model_validate(json.loads(value['result_json']))\n            admission=PlanAdmission.model_validate(json.loads(value['admission_json'])).model_dump(mode='json');commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json']);usage=json.loads(value['usage_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone()\n            step=conn.execute('SELECT * FROM research_steps WHERE id=?',(admission['step_id'],)).fetchone()\n            revision=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,admission['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='funded-plan-v1' or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED'\n                or task['version']!=commit['task_after'] or step['version']!=commit['step_after'] or commit['task_after']!=commit['task_before']+1 or commit['step_after']!=commit['step_before']+1\n                or task['research_id']!=admission['research_id'] or task['principal_id']!=admission['principal_id'] or task['input_revision']!=admission['input_revision'] or task['input_digest']!=admission['input_digest']\n                or not revision or revision[0]!=admission['input_digest'] or digest(canonical(admission))!=value['admission_digest'] or result.admission_digest!=value['admission_digest']\n                or result.result_ref!=value['result_ref'] or result.task_id!=value['task_id'] or result.research_id!=rid or result.input_revision!=admission['input_revision'] or result.input_digest!=admission['input_digest'] or result.request_digest!=admission['request_digest']\n                or commit['result_ref']!=value['result_ref'] or commit['task_id']!=task['id'] or commit['admission_digest']!=value['admission_digest'] or commit['recorded_at']!=result.recorded_at\n                or commit['result_digest']!=digest(canonical(result.model_dump(mode='json'))) or commit['receipt_digest']!=digest(canonical(receipt)) or commit['usage_digest']!=digest(canonical(usage))\n                or receipt['producer_code_digest']!=admission['producer_code_digest'] or receipt['dispatch_id']!=value['id'] or receipt['nonce']!=value['nonce'] or receipt['admission_digest']!=value['admission_digest']):raise ValueError('plan domain mismatch')\n        except (ValueError,TypeError,KeyError):raise ResearchError('RESULT_UNAVAILABLE',503,'原计划记录当前无法完整核对；不会重新调用模型。') from None\n        return envelope({**body,'content':result.model_dump(mode='json')})\n"
+        "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT d.* FROM research_plan_dispatches d JOIN research_tasks t ON t.id=d.task_id WHERE d.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        body=metadata(value)\n        if value['result_json'] is None:return envelope({**body,'content':None})\n        try:\n            result=PlanResult.model_validate(json.loads(value['result_json']))\n            admission=PlanAdmission.model_validate(json.loads(value['admission_json'])).model_dump(mode='json');commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json']);usage=json.loads(value['usage_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone()\n            step=conn.execute('SELECT * FROM research_steps WHERE id=?',(admission['step_id'],)).fetchone()\n            revision=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,admission['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='funded-plan-v1' or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED'\n                or task['version']!=commit['task_after'] or step['version']!=commit['step_after'] or commit['task_after']!=commit['task_before']+1 or commit['step_after']!=commit['step_before']+1\n                or task['research_id']!=admission['research_id'] or task['principal_id']!=admission['principal_id'] or task['input_revision']!=admission['input_revision'] or task['input_digest']!=admission['input_digest']\n                or not revision or revision[0]!=admission['input_digest'] or digest(canonical(admission))!=value['admission_digest'] or result.admission_digest!=value['admission_digest']\n                or result.result_ref!=value['result_ref'] or result.task_id!=value['task_id'] or result.research_id!=rid or result.input_revision!=admission['input_revision'] or result.input_digest!=admission['input_digest'] or result.request_digest!=admission['request_digest']\n                or commit['result_ref']!=value['result_ref'] or commit['task_id']!=task['id'] or commit['admission_digest']!=value['admission_digest'] or commit['recorded_at']!=result.recorded_at\n                or commit['result_digest']!=digest(canonical(result.model_dump(mode='json'))) or commit['receipt_digest']!=digest(canonical(receipt)) or commit['usage_digest']!=digest(canonical(usage))\n                or receipt['producer_code_digest']!=admission['producer_code_digest'] or receipt['dispatch_id']!=value['id'] or receipt['nonce']!=value['nonce'] or receipt['admission_digest']!=value['admission_digest']):raise ValueError('plan domain mismatch')\n        except (ValueError,TypeError,KeyError):raise ResearchError('RESULT_UNAVAILABLE',503,'\u539f\u8ba1\u5212\u8bb0\u5f55\u5f53\u524d\u65e0\u6cd5\u5b8c\u6574\u6838\u5bf9\uff1b\u4e0d\u4f1a\u91cd\u65b0\u8c03\u7528\u6a21\u578b\u3002') from None\n        return envelope({**body,'content':result.model_dump(mode='json')})\n"
       ]
     ],
     "original_sha256": "af06948b4975bff80a1d0a4daf64f45c8b4b64f3e5ec8895b999084e55de6f32"
@@ -708,18 +714,38 @@
     "original_sha256": "4415e35d9591896e2484bdfb962f0a1bb084704916bbcb70b9e84954f76647f3"
   },
   "web/backend/research/source_guard.py": {
-    "current_sha256": "96fab3ca323336fd12b89a35a62e76a3fe4e75a86d2c0e80bb89cc0ea9a26c9f",
+    "current_sha256": "c008601c81e75c0e59c6f2b8c89aa5af19ccb7840aaca6e6e5a068b07ea7a38e",
     "hunks": [
       [
-        371,
-        372,
+        103,
+        116,
+        ""
+      ],
+      [
+        126,
+        127,
+        "    # Mutable execution/status fields are excluded; these immutable domain facts\n    # are fixed by the authenticated admission and independently rechecked.\n    fields={'task':{key:task[key] for key in ('id','research_id','principal_id','principal_epoch','owner_epoch','acl_epoch','grant_id','auth_generation','input_revision','input_digest','start_version','policy_revision','execution_mode')},\n      'principal':{key:principal[key] for key in ('id','gate_id','session_generation','epoch')},\n      'grant':{key:grant[key] for key in ('id','principal_id','principal_epoch','research_id','acl_epoch','scopes')},\n      'run':{key:run[key] for key in ('task_id','approval_id','chain_id','plan_id','fingerprint','origin')},\n      'approval':{key:approval[key] for key in ('id','principal_id','principal_epoch','auth_generation','research_id','input_revision','problem_digest','query','plan_json','plan_digest','fingerprint','execution_mode','version','consent_origin','consent_digest')},'revision_digest':revision[0],\n      'version':'source-admission-v1'}\n    return fields\n"
+      ],
+      [
+        376,
+        377,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
+      ],
+      [
+        403,
+        426,
+        "    if row['admission_json'] is None:raise PermissionError('Source original admission was erased')\n    recorded=json.loads(row['admission_json'])\n    if sha256(canonical(recorded).encode())!=row['admission_digest']:raise PermissionError('Source original admission digest differs')\n    actual=snapshot(conn,task_id)\n    # These two current execution-authority values may legitimately be retired.\n    # Original task/domain IDs, generations, epochs, approved bytes and hashes\n    # remain independently bound; the current reader uses its own live grants.\n    actual['principal']['epoch']=actual['task']['principal_epoch']\n    actual['grant']['scopes']=recorded['grant']['scopes']\n    if actual!=recorded or actual['principal']['gate_id']!=row['owner_gate_id']:raise PermissionError('Source original domain differs')\n"
+      ],
+      [
+        427,
+        459,
+        ""
       ]
     ],
     "original_sha256": "eba13596a681d3997672d37d03e9af72159db4b0a0d7dda72d4aad03cf96acaf"
   },
   "web/backend/research/source_integration.py": {
-    "current_sha256": "543642997e53b7a3e2fb1c09f1e0f76c647218429201fbd15b52b9e522c62949",
+    "current_sha256": "72a3dc875bdf2825b01f99d114e32ac4b63adf9be487bdab6d930e265d967f70",
     "hunks": [
       [
         102,
@@ -742,48 +768,58 @@
         ""
       ],
       [
-        310,
-        311,
+        238,
+        245,
+        ""
+      ],
+      [
+        250,
+        251,
+        "            \"policy_revision\":POLICY,\"max_requests\":4,\"execution_mode\":origin(),\n"
+      ],
+      [
+        317,
+        318,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        336,
-        338,
+        343,
+        345,
         "def preview(service,identity,rid,request):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
       ],
       [
-        352,
-        353,
+        359,
+        360,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
       ],
       [
-        357,
-        359,
+        364,
+        366,
         "def approve(service,identity,rid,request,key,*,request_source=None):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
       ],
       [
-        375,
-        376,
+        382,
+        383,
         "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        385,
-        387,
+        392,
+        394,
         "def start_source(service,identity,rid,request,key,*,request_source=None):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
       ],
       [
-        405,
-        406,
+        412,
+        413,
         "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        415,
-        416,
+        422,
+        423,
         "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        433,
-        434,
+        440,
+        441,
         "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ]
     ],
