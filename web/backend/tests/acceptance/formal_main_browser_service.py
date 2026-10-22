@@ -510,7 +510,7 @@ def self_test(owned_root):
     else:
         raise AssertionError('shutdown Main binding remained usable')
     assert not owned_root.exists() and not service.server_thread.is_alive()
-    return {'scope': 'actual_main_local_tls_only', 'actual_main': True, 'schema': 14,
+    return {'scope': 'actual_main_local_tls_only', 'actual_main': True, 'schema': service.seed.schema_version,
             'history_origin': 'offline_probe', 'actual_https_history': True, 'server_issued_secure_httponly_cookie': True,
             'source_execute': source_status, 'funding': 'closed', 'real_model_executed': False,
             'public_tls_verified': False, 'browser_behavior_verified': False, 'shutdown_binding': 'rejected', 'cleanup': 'closed'}

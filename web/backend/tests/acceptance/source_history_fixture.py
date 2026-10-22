@@ -130,18 +130,20 @@ def _read_current(state,result,cookie):
     if not claims:raise RuntimeError('actual signed historical session required')
     actor=AccountIdentity(claims['sub'],claims['gen'],claims['jti'],claims['exp']);store=ResearchStore(AuthStore(state/'auth.sqlite3'))
     with store.transaction() as conn:
-        if conn.execute('SELECT version FROM research_schema').fetchone()[0]!=14 or _rows_digest(conn)!=result['rows_digest']:raise RuntimeError('historical bindings changed')
+        schema=conn.execute('SELECT version FROM research_schema').fetchone()[0]
+        if schema!=15 or _rows_digest(conn)!=result['rows_digest']:raise RuntimeError('historical bindings changed')
         repository=EvidenceRepository(conn,authorizer(store,identity=actor));context=context_for(conn,result['source_task_id'])
         for ref in result['excerpt_refs']:
             details=repository.excerpt_details(context,ref['excerpt_id'])
             if any(details[key]!=ref[key] for key in ('source_revision','content_digest','start','end')) or details['input_revision']!=1:raise RuntimeError('historical excerpt changed')
             excerpt=repository.get(context,'excerpts',ref['excerpt_id']);snapshot=repository.get(context,'snapshots',excerpt.snapshot_id)
             if snapshot.acquired_at!=result['acquired_at'] or not snapshot.licence.display_excerpt or snapshot.origin!='offline_probe':raise RuntimeError('original time or permission changed')
+    return schema
 
 
 @contextmanager
 def prepared_source_history(source_root,owned_root,*,origin=ORIGIN,email='source-history@example.invalid',target_revision=False):
-    """Yield safe refs after old controlled13 -> reviewed offline14 -> real reader.
+    """Yield safe refs after controlled13 -> reviewed offline14/15 -> real reader.
 
     Must precede parent signing configuration/Main startup. Synthetic keys stay
     only in parent/child memory and environment for this context; no caller keys
@@ -201,9 +203,16 @@ def prepared_source_history(source_root,owned_root,*,origin=ORIGIN,email='source
         if provision_method_drafts_v14(state/'auth.sqlite3')['schema_version']!=14:raise RuntimeError('complete14 migration required')
         after=(state/'auth.sqlite3').stat()
         if (after.st_dev,after.st_ino)!=identity:raise RuntimeError('historical DB inode changed')
-        _read_current(state,result,cookie);cookie=None
+        from research.financial_input import provision_financial_inputs_v15
+        expected={'schema_version':15,'financial_protocol':9,'financial_input_protocol':2,
+            'journal_mode':'wal','database_identity':list(identity),'backup_scope':'in_memory_algorithm_recovery_only'}
+        receipt=provision_financial_inputs_v15(state/'auth.sqlite3')
+        if receipt!=expected or provision_financial_inputs_v15(state/'auth.sqlite3')!=receipt:raise RuntimeError('complete15 migration and noop required')
+        after=(state/'auth.sqlite3').stat()
+        if (after.st_dev,after.st_ino)!=identity:raise RuntimeError('historical DB inode changed')
+        schema=_read_current(state,result,cookie);cookie=None
         seed=PreparedSourceHistory(owned_root,state,cache,logs,result['research_id'],result['source_task_id'],email,origin,1,
-            result['current_input_revision'],result['research_version'],tuple(result['excerpt_refs']),result['acquired_at'],'offline_probe',14,
+            result['current_input_revision'],result['research_version'],tuple(result['excerpt_refs']),result['acquired_at'],'offline_probe',schema,
             hashlib.sha256(manifest.read_bytes()).hexdigest(),
             hashlib.sha256(json.dumps(result['loaded_old_modules'],sort_keys=True,separators=(',',':')).encode()).hexdigest(),result['rows_digest'])
         # No raw source, cookie, signing key or financial record is yielded.
@@ -228,8 +237,8 @@ if __name__=='__main__':
     elif len(sys.argv)==3 and sys.argv[1]=='--self-test':
         root=Path(__file__).resolve().parents[4];owned=Path(sys.argv[2])
         with prepared_source_history(root,owned) as seed:
-            if seed.schema_version!=14 or seed.current_input_revision!=1 or not seed.excerpt_refs:raise RuntimeError('history preparation assertion failed')
-            print(json.dumps({'schema_version':14,'source_input_revision':1,'current_input_revision':1,'mode':seed.mode,
+            if seed.schema_version!=15 or seed.current_input_revision!=1 or not seed.excerpt_refs:raise RuntimeError('history preparation assertion failed')
+            print(json.dumps({'schema_version':seed.schema_version,'source_input_revision':1,'current_input_revision':1,'mode':seed.mode,
                 'excerpt_count':len(seed.excerpt_refs),'same_ref_time_permission':True,'no_financial_producer':True}))
         if owned.exists():raise RuntimeError('owned history root cleanup incomplete')
     else:raise SystemExit('test-only source history preparation helper')
