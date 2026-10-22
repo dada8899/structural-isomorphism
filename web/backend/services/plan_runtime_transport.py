@@ -15,6 +15,7 @@ import re
 import select
 import socket
 import ssl
+import sys
 import threading
 import time
 from uuid import uuid4
@@ -101,6 +102,26 @@ class _Channel:
         self.require()
         # Exactly one nonblocking syscall. SSLWant*/EAGAIN propagate as an
         # ambiguous consumed send; waiting/retrying here would hold Owner.
+        # Only the actual registered Pending path may mark this observation.
+        # Validate before marking, then enter send even if it wants TLS I/O,
+        # raises, returns zero or writes only part of the request.
+        frame = sys._getframe(1)
+        try:
+            for _ in range(8):
+                if frame is None:
+                    break
+                if frame.f_code is _PENDING_FIRST_WRITE_CODE and frame.f_globals is globals():
+                    pending = frame.f_locals.get('self')
+                    capability = frame.f_locals.get('capability')
+                    _, flow, _ = _core()
+                    if (type(pending) is _Pending and _PENDING.get(pending.reference) is pending
+                            and pending.channel is self and pending.active and pending.pid == os.getpid()
+                            and pending.attempted and type(capability) is flow.NativePlanSendLease and capability.used):
+                        object.__setattr__(pending, 'first_write_syscall_entered', True)
+                    break
+                frame = frame.f_back
+        finally:
+            del frame
         sent = self.sock.send(data)
         if sent <= 0:
             raise OSError('native first write interrupted')
@@ -454,13 +475,14 @@ class OwnedBalanceReceipt(_Sealed):
 
 
 class _Pending(_Sealed):
-    __slots__ = ('resource', 'channel', 'claim', 'credential', 'reference', 'pid', 'active', 'attempted', 'grant', 'remaining', 'received')
+    __slots__ = ('resource', 'channel', 'claim', 'credential', 'reference', 'pid', 'active', 'attempted', 'first_write_syscall_entered', 'grant', 'remaining', 'received')
 
     def __init__(self, resource, channel, claim, credential, *, _factory=None):
         if _factory is not _FACTORY:
             raise TypeError('actual owned pending required')
         self.resource, self.channel, self.claim, self.credential = resource, channel, claim, credential
         self.reference, self.pid, self.active, self.attempted = str(uuid4()), os.getpid(), True, False
+        self.first_write_syscall_entered = False
         self.grant, self.remaining, self.received = None, None, False
         _PENDING[self.reference] = self
 
@@ -472,12 +494,24 @@ class _Pending(_Sealed):
         self.credential.require(self.resource)
 
     def write_first(self, capability):
-        _, flow, _ = _core()
+        ports, flow, _ = _core()
         self.require()
         if self.attempted or type(capability) is not flow.NativePlanSendLease:
             raise PermissionError('actual once-only native send lease required')
         object.__setattr__(self, 'attempted', True)
-        raw, dispatch, nonce, admission, producer = capability.consume(self.resource)
+        if ports.purpose_scope(self.resource) == 'evidence_method_plan_v1':
+            descriptor = capability.inspect_payload(self.resource)
+            if type(descriptor) is not flow.EvidenceMethodPayload:
+                raise TypeError('canonical evidence payload data required')
+            codec = importlib.import_module(flow.__package__ + '.evidence_method_plan_codec')
+            codec.decode_request(descriptor.raw, descriptor.domain, descriptor.exact_input, descriptor.selection_manifest)
+            consumed = capability.consume(self.resource)
+            if type(consumed) is not flow.EvidenceMethodPayload or consumed != descriptor:
+                raise PermissionError('inspected evidence payload changed before consume')
+            raw, dispatch, nonce, admission, producer = (consumed.raw, consumed.dispatch_id,
+                consumed.nonce, consumed.admission_digest, consumed.producer_digest)
+        else:
+            raw, dispatch, nonce, admission, producer = capability.consume(self.resource)
         if (dispatch, nonce) != self.claim:
             raise PermissionError('balance and send claims differ')
         request = self.resource._request('POST', '/chat/completions', raw)
@@ -500,6 +534,9 @@ class _Pending(_Sealed):
         object.__setattr__(self, 'active', False)
         _PENDING.pop(self.reference, None)
         self.channel.close()
+
+
+_PENDING_FIRST_WRITE_CODE = _Pending.write_first.__code__
 
 
 class OwnedNativeReturn(_Sealed):
