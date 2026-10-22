@@ -217,7 +217,7 @@
       [
         340,
         341,
-        "    if version not in (6,7,8,9,10,11,12,13):raise ResearchError('SCHEMA_UNSUPPORTED',503,'\u5220\u9664\u8bb0\u5f55\u7248\u672c\u4e0d\u652f\u6301\u3002')\n"
+        "    if version not in (6,7,8,9,10,11,12,13):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除记录版本不支持。')\n"
       ],
       [
         350,
@@ -319,7 +319,6 @@
     "current_sha256": "6732d627fb9faa3ac981a1c6759bc43a1423d4819bccb7654666a503063120c0",
     "hunks": [
       [
-<<<<<<< HEAD
         91,
         130,
         "def _fixture_authority(store,identity,server,approved_cap_units,risk_margin_units,runtime_digest):\n"
@@ -348,7 +347,7 @@
     "original_sha256": "5204c48b6ed93a3f952a2087b6a36a747686cdf1a49f636b0f4a920befa98873"
   },
   "web/backend/research/plan_native_runtime.py": {
-    "current_sha256": "359cd0eb3276217495097cce3c4914200789e8f4f6c91fd90dc3d52d2a652126",
+    "current_sha256": "b7a50794188bd497df2abdd02eaead5b0f07f972cc0fcd0c79420ceca58be224",
     "hunks": [
       [
         1,
@@ -482,103 +481,98 @@
       ],
       [
         229,
-        241,
+        242,
         ""
       ],
       [
-        242,
         243,
+        244,
         "    __slots__=('store','resource','lease','dispatch','raw','account_version','funding_version','pid','reference','active','used')\n"
       ],
       [
-        246,
-        249,
+        247,
+        250,
         "        self.pid,self.reference,self.active,self.used=os.getpid(),uid(),True,False;_CAPS[self.reference]=self\n    def consume(self,resource):\n        if not self.active or self.used or self.pid!=os.getpid() or _CAPS.get(self.reference) is not self or resource is not self.resource:raise PermissionError('single native send lease required')\n"
       ],
       [
-        250,
-        277,
+        251,
+        278,
         "        with self.store.transaction() as conn:\n            value=row(conn,RUNS,self.dispatch);consent,task,step,control=_current(conn,self.store,value)\n            funding,actual=_authority(conn,self.store,self.lease,consent)\n            account=row(conn,'research_funding_accounts',value['account_id'])\n            if funding['state']!='authorized' or account['status']!='unverified' or account['binding_id']!=consent['economic_binding'] or funding['grant_epoch']!=consent['grant_epoch'] or funding['credential_incarnation']!=consent['credential_incarnation'] or funding['version']!=self.funding_version or account['version']!=self.account_version or funding['balance_claim']!=self.dispatch or funding['balance_nonce']!=value['nonce'] or finance.unresolved(conn,account['id'],excluding=self.dispatch):raise PermissionError('current native money authority ended')\n            if code_digest()!=consent['producer_digest'] or codec_digest()!=consent['template_code_digest'] or consent['quote']['valid_until']<=int(time.time()) or digest(self.raw)!=consent['request_digest']:raise PermissionError('native confirmed source/quote/bytes changed')\n            result=self.raw,self.dispatch,value['nonce'],value['admission_digest'],consent['producer_digest']\n"
       ],
       [
-        319,
         320,
+        321,
         "            funding,actual=_active(conn,store,pid,consent['generation'])\n"
       ],
       [
-        323,
-        326,
+        324,
+        327,
         ""
       ],
       [
-        340,
-        353,
+        341,
+        354,
         "            encoded=plan_preview_request(make_plan_manifest({'input_kind':'user_observation_summary','summary':consent['raw_input']}))\n            if encoded.outbound_request_digest!=consent['request_digest'] or encoded.input_manifest_digest!=consent['input_manifest_digest']:raise PermissionError('native approved bytes differ')\n            admission=dict(protocol='financial-admission-v3',financial_version=9,mode=resource.mode,producer=resource.producer,consent_digest=value['consent_digest'],quote=consent['quote'],\n                observed_balance=balance.audit(),ledger_before=dict(account),funding_before=dict(funding),request_digest=consent['request_digest'],producer_digest=consent['producer_digest'])\n"
       ],
       [
-        364,
-        368,
+        365,
+        369,
         ""
       ],
       [
-        414,
-        424,
+        415,
+        425,
         ""
       ],
       [
-        434,
-        437,
+        435,
+        438,
         ""
       ],
       [
-        439,
         440,
+        441,
         "    try:data,usage=_usage(owned)\n"
       ],
       [
-        443,
         444,
+        445,
         ""
       ],
       [
-        448,
         449,
+        450,
         "            proposal=parse_plan_candidate(message['content'])\n"
       ],
       [
-        458,
-        458,
+        459,
+        459,
         "        if usage is not None:_money(conn,lease,account,-value['upper'],value['upper'],verify)\n"
       ],
       [
-        459,
-        469,
+        460,
+        470,
         "        if active and proposal is not None and usage is not None:\n"
       ],
       [
-        472,
-        477,
+        473,
+        478,
         "        receipt=dict(protocol='owned-native-return-v2',mode=owned.mode,dispatch=dispatch,nonce=consent['nonce'],admission_digest=value['admission_digest'],producer_digest=consent['producer_digest'],runtime_digest=admission['funding_before']['runtime_digest'],response_digest=digest(owned.body),status=owned.status,provider_model_label=None if data is None else data['model'],weight_identity_verified=False)\n        commit=dict(protocol='native-plan-commit-v1',task_id=value['task_id'],result_ref=value['result_ref'],recorded_at=at,consent_digest=value['consent_digest'],admission_digest=value['admission_digest'],\n            result_digest=None if result is None else digest(canonical(result)),receipt_digest=digest(canonical(receipt)),usage_digest=None if usage is None else digest(canonical(usage)),task_before=2,task_after=3,step_before=2,step_after=3)\n"
       ],
       [
-        524,
-        542,
+        525,
+        543,
         "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT r.* FROM '+RUNS+' r JOIN research_tasks t ON t.id=r.task_id WHERE r.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        result=None\n        if value['result_json']:\n            result=NativePlanResult.model_validate(json.loads(value['result_json'])).model_dump(mode='json')\n            consent=json.loads(value['consent_json']);admission=json.loads(value['admission_json']);commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone();step=conn.execute('SELECT * FROM research_steps WHERE id=?',(consent['step_id'],)).fetchone()\n            saved=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,consent['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='native-plan-v1' or task['version']!=3 or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED' or step['version']!=3\n                or digest(canonical(consent))!=value['consent_digest'] or digest(canonical(admission))!=value['admission_digest'] or not saved or saved[0]!=consent['input_digest']\n                or result['result_ref']!=value['result_ref'] or result['task_id']!=task['id'] or result['research_id']!=rid or result['input_digest']!=task['input_digest'] or result['recorded_at']!=commit['recorded_at']\n                or commit['result_digest']!=digest(canonical(result)) or commit['receipt_digest']!=digest(canonical(receipt)) or receipt['admission_digest']!=value['admission_digest']):raise ResearchError('RESULT_UNAVAILABLE',503,'原生计划记录当前无法完整核对；不会重新外发。')\n        return envelope({**metadata(value),'content':result})\n"
       ],
       [
-        550,
         551,
+        552,
         "    return [metadata(value) for value in conn.execute(query+' ORDER BY t.start_version DESC,t.id DESC LIMIT 20',args)]\n"
       ],
       [
-        582,
-        585,
+        583,
+        586,
         ""
-=======
-        381,
-        399,
-        "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT r.* FROM '+RUNS+' r JOIN research_tasks t ON t.id=r.task_id WHERE r.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        result=None\n        if value['result_json']:\n            result=NativePlanResult.model_validate(json.loads(value['result_json'])).model_dump(mode='json')\n            consent=json.loads(value['consent_json']);admission=json.loads(value['admission_json']);commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone();step=conn.execute('SELECT * FROM research_steps WHERE id=?',(consent['step_id'],)).fetchone()\n            saved=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,consent['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='native-plan-v1' or task['version']!=3 or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED' or step['version']!=3\n                or digest(canonical(consent))!=value['consent_digest'] or digest(canonical(admission))!=value['admission_digest'] or not saved or saved[0]!=consent['input_digest']\n                or result['result_ref']!=value['result_ref'] or result['task_id']!=task['id'] or result['research_id']!=rid or result['input_digest']!=task['input_digest'] or result['recorded_at']!=commit['recorded_at']\n                or commit['result_digest']!=digest(canonical(result)) or commit['receipt_digest']!=digest(canonical(receipt)) or receipt['admission_digest']!=value['admission_digest']):raise ResearchError('RESULT_UNAVAILABLE',503,'\u539f\u751f\u8ba1\u5212\u8bb0\u5f55\u5f53\u524d\u65e0\u6cd5\u5b8c\u6574\u6838\u5bf9\uff1b\u4e0d\u4f1a\u91cd\u65b0\u5916\u53d1\u3002')\n        return envelope({**metadata(value),'content':result})\n"
->>>>>>> e572ebdaff63b3fef6e3c528ee324b255a800bba
       ]
     ],
     "original_sha256": "dba85a647cc44130a703600282dfe2b021b63d41af5d4abacf9b334a38df4d90"
@@ -589,7 +583,7 @@
       [
         11,
         36,
-        "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT d.* FROM research_plan_dispatches d JOIN research_tasks t ON t.id=d.task_id WHERE d.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        body=metadata(value)\n        if value['result_json'] is None:return envelope({**body,'content':None})\n        try:\n            result=PlanResult.model_validate(json.loads(value['result_json']))\n            admission=PlanAdmission.model_validate(json.loads(value['admission_json'])).model_dump(mode='json');commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json']);usage=json.loads(value['usage_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone()\n            step=conn.execute('SELECT * FROM research_steps WHERE id=?',(admission['step_id'],)).fetchone()\n            revision=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,admission['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='funded-plan-v1' or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED'\n                or task['version']!=commit['task_after'] or step['version']!=commit['step_after'] or commit['task_after']!=commit['task_before']+1 or commit['step_after']!=commit['step_before']+1\n                or task['research_id']!=admission['research_id'] or task['principal_id']!=admission['principal_id'] or task['input_revision']!=admission['input_revision'] or task['input_digest']!=admission['input_digest']\n                or not revision or revision[0]!=admission['input_digest'] or digest(canonical(admission))!=value['admission_digest'] or result.admission_digest!=value['admission_digest']\n                or result.result_ref!=value['result_ref'] or result.task_id!=value['task_id'] or result.research_id!=rid or result.input_revision!=admission['input_revision'] or result.input_digest!=admission['input_digest'] or result.request_digest!=admission['request_digest']\n                or commit['result_ref']!=value['result_ref'] or commit['task_id']!=task['id'] or commit['admission_digest']!=value['admission_digest'] or commit['recorded_at']!=result.recorded_at\n                or commit['result_digest']!=digest(canonical(result.model_dump(mode='json'))) or commit['receipt_digest']!=digest(canonical(receipt)) or commit['usage_digest']!=digest(canonical(usage))\n                or receipt['producer_code_digest']!=admission['producer_code_digest'] or receipt['dispatch_id']!=value['id'] or receipt['nonce']!=value['nonce'] or receipt['admission_digest']!=value['admission_digest']):raise ValueError('plan domain mismatch')\n        except (ValueError,TypeError,KeyError):raise ResearchError('RESULT_UNAVAILABLE',503,'\u539f\u8ba1\u5212\u8bb0\u5f55\u5f53\u524d\u65e0\u6cd5\u5b8c\u6574\u6838\u5bf9\uff1b\u4e0d\u4f1a\u91cd\u65b0\u8c03\u7528\u6a21\u578b\u3002') from None\n        return envelope({**body,'content':result.model_dump(mode='json')})\n"
+        "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT d.* FROM research_plan_dispatches d JOIN research_tasks t ON t.id=d.task_id WHERE d.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        body=metadata(value)\n        if value['result_json'] is None:return envelope({**body,'content':None})\n        try:\n            result=PlanResult.model_validate(json.loads(value['result_json']))\n            admission=PlanAdmission.model_validate(json.loads(value['admission_json'])).model_dump(mode='json');commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json']);usage=json.loads(value['usage_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone()\n            step=conn.execute('SELECT * FROM research_steps WHERE id=?',(admission['step_id'],)).fetchone()\n            revision=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,admission['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='funded-plan-v1' or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED'\n                or task['version']!=commit['task_after'] or step['version']!=commit['step_after'] or commit['task_after']!=commit['task_before']+1 or commit['step_after']!=commit['step_before']+1\n                or task['research_id']!=admission['research_id'] or task['principal_id']!=admission['principal_id'] or task['input_revision']!=admission['input_revision'] or task['input_digest']!=admission['input_digest']\n                or not revision or revision[0]!=admission['input_digest'] or digest(canonical(admission))!=value['admission_digest'] or result.admission_digest!=value['admission_digest']\n                or result.result_ref!=value['result_ref'] or result.task_id!=value['task_id'] or result.research_id!=rid or result.input_revision!=admission['input_revision'] or result.input_digest!=admission['input_digest'] or result.request_digest!=admission['request_digest']\n                or commit['result_ref']!=value['result_ref'] or commit['task_id']!=task['id'] or commit['admission_digest']!=value['admission_digest'] or commit['recorded_at']!=result.recorded_at\n                or commit['result_digest']!=digest(canonical(result.model_dump(mode='json'))) or commit['receipt_digest']!=digest(canonical(receipt)) or commit['usage_digest']!=digest(canonical(usage))\n                or receipt['producer_code_digest']!=admission['producer_code_digest'] or receipt['dispatch_id']!=value['id'] or receipt['nonce']!=value['nonce'] or receipt['admission_digest']!=value['admission_digest']):raise ValueError('plan domain mismatch')\n        except (ValueError,TypeError,KeyError):raise ResearchError('RESULT_UNAVAILABLE',503,'原计划记录当前无法完整核对；不会重新调用模型。') from None\n        return envelope({**body,'content':result.model_dump(mode='json')})\n"
       ]
     ],
     "original_sha256": "af06948b4975bff80a1d0a4daf64f45c8b4b64f3e5ec8895b999084e55de6f32"
