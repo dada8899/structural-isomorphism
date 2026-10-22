@@ -18,7 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('setup_once_candidate', ROOT/'scripts/verify_ci_chromium_setup.py')
 v = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(v)
-BRANCH = 'codex/structure-chromium-setup-once-20261023-attempt1'
+REAL_SNAPSHOT=v.snapshot
+BRANCH = 'codex/structure-chromium-pinned-keyring-20261023'
 WORKFLOW = ROOT/'.github/workflows/chromium-setup-once.yml'
 
 
@@ -89,15 +90,27 @@ def setup_fixture(tmp_path,monkeypatch):
     root=tmp_path/'owned';root.mkdir(mode=0o700);(root/'public').mkdir(mode=0o700)
     helper=tmp_path/'fixed-helper.py';helper.write_bytes(b'synthetic fixed helper, never executed\n')
     source=tmp_path/'source';source.write_bytes(b'RAW_APT_CONTENT_DO_NOT_UPLOAD\n');source.chmod(0o644)
-    key=tmp_path/'key';key.write_bytes(b'RAW_KEY_CONTENT_DO_NOT_UPLOAD\n');key.chmod(0o644)
+    key=tmp_path/'key';key.write_bytes(b'SYNTHETIC_PUBLIC_KEYRING'.ljust(3607,b'x'));key.chmod(0o777)
+    monkeypatch.setattr(v,'KEYRING_SHA',hashlib.sha256(key.read_bytes()).hexdigest())
     monkeypatch.setattr(v,'HELPER',helper)
     monkeypatch.setattr(v,'HELPER_SHA',hashlib.sha256(helper.read_bytes()).hexdigest())
-    monkeypatch.setattr(v,'snapshot',lambda:{name:v.metadata(path,16384,os.getuid()) for name,path in [('source',source),('keyring',key)]})
+    def snapshot():
+        values={name:v.metadata(path,16384,os.getuid()) for name,path in [('source',source),('keyring',key)]}
+        # Explicit fake root ownership for the typed receipt, no native root.
+        values['keyring'].update(uid=0,gid=0)
+        return values
+    monkeypatch.setattr(v,'snapshot',snapshot)
     monkeypatch.setattr(v,'sdk',lambda:{'python':'3.11.0','versions':dict(v.PINS),'browsers':{'chromium':{'revision':'1217','version':v.VERSION},'chromium-headless-shell':{'revision':'1217','version':v.VERSION}}})
     calls=[]
+    def receipt():
+        original=snapshot()['keyring']
+        return {'profile':v.KEYRING_PROFILE,'reference':'1'*32,'input_trust':'untrusted','original':original,
+                'effective':{**original,'ino':original['ino']+1,'mode':0o644},
+                'directory':{'dev':original['dev'],'ino':original['ino']+2,'uid':0,'gid':0,'mode':0o755,'nlink':2},
+                'original_unchanged':True,'signed_by_bound':True,'retired':True}
     def fake_run(args,**kw):
         calls.append((args,kw))
-        return SimpleNamespace(returncode=0,stdout=b'{"status":"ready","children_closed":true,"source_restored":true}')
+        return SimpleNamespace(returncode=0,stdout=json.dumps({'status':'ready','children_closed':True,'source_restored':True,'keyring':receipt()}).encode())
     monkeypatch.setattr(v.subprocess,'run',fake_run)
     for name,value in {'GITHUB_ACTIONS':'true','RUNNER_ENVIRONMENT':'github-hosted','RUNNER_OS':'Linux','RUNNER_ARCH':'X64','RUNNER_TEMP':str(tmp_path)}.items():monkeypatch.setenv(name,value)
     monkeypatch.setenv('SYNTHETIC_PRIVATE_TOKEN','DO_NOT_FORWARD_OR_UPLOAD')
@@ -112,7 +125,7 @@ def setup_fixture(tmp_path,monkeypatch):
         return result
     monkeypatch.setattr(v,'payloads',fake_payloads)
     header={'schema':v.SCHEMA,'classification':'SETUP_ONLY_NOT_A_GRADE','run_id':'1','event_sha':'a'*40}
-    return SimpleNamespace(root=root,header=header,helper=helper,source=source,key=key,calls=calls,probes=probes)
+    return SimpleNamespace(root=root,header=header,helper=helper,source=source,key=key,calls=calls,probes=probes,receipt=receipt)
 
 
 def test_real_synthetic_inode_hash_snapshots_and_fake_helper_admit_only_one_install(setup_fixture):
@@ -128,6 +141,95 @@ def test_real_synthetic_inode_hash_snapshots_and_fake_helper_admit_only_one_inst
     encoded=json.dumps(records)
     assert all(secret not in encoded for secret in ('RAW_APT_CONTENT','RAW_KEY_CONTENT','DO_NOT_FORWARD_OR_UPLOAD',str(f.root.parent)))
     assert {p.name for p in (f.root/'public').iterdir()}=={'setup-before.json','helper-outcome.json','setup-after.json'}
+
+
+def test_pinned_schema_records_777_as_untrusted_input_and_requires_retired_effective_receipt(setup_fixture):
+    f=setup_fixture;assert f.key.stat().st_mode&0o777==0o777
+    assert v.before(f.root,f.header)==0
+    before=v.read_json(f.root/'public/setup-before.json')
+    assert before['schema']=='chromium-pinned-keyring-setup-v1'
+    assert before['keyring_material']==v.keyring_material() and before['keyring_material']['effective_created'] is False
+    assert v.install(f.root,f.header)==0 and v.after(f.root,f.header)==0
+    receipt=v.read_json(f.root/'public/helper-outcome.json')['keyring_receipt']
+    assert receipt['original']['mode']==0o777 and receipt['input_trust']=='untrusted'
+    assert receipt['effective']['mode']==0o644 and receipt['effective']['uid']==receipt['effective']['gid']==0
+    assert receipt['retired'] is True and receipt['signed_by_bound'] is True
+
+
+@pytest.mark.parametrize('wrong',[False,True])
+def test_original_snapshot_allows_only_independent_content_pin_not_storage_permission(setup_fixture,monkeypatch,wrong):
+    f=setup_fixture;native=v.metadata
+    def root_metadata(path,cap,owner):
+        return {**native(path,cap,os.getuid()),'uid':0,'gid':0}
+    monkeypatch.setattr(v,'SYSTEM_FILES',{'source':(f.source,16384),'keyring':(f.key,1024*1024)})
+    monkeypatch.setattr(v,'metadata',root_metadata)
+    if wrong:f.key.write_bytes(b'wrong'.ljust(3607,b'x'))
+    if wrong:
+        with pytest.raises(v.Unavailable):REAL_SNAPSHOT()
+    else:
+        observed=REAL_SNAPSHOT()
+        assert observed['keyring']['mode']==0o777 and observed['keyring']['sha256']==v.KEYRING_SHA
+
+
+@pytest.mark.parametrize('fault',['missing','bad_pin','bad_mode','not_root','not_bound','not_retired','changed_original','unknown'])
+def test_missing_or_invalid_effective_trust_receipt_never_becomes_ready(setup_fixture,monkeypatch,fault):
+    f=setup_fixture;v.before(f.root,f.header);receipt=f.receipt()
+    if fault=='bad_pin':receipt['effective']['sha256']='0'*64
+    elif fault=='bad_mode':receipt['effective']['mode']=0o777
+    elif fault=='not_root':receipt['effective']['uid']=1001
+    elif fault=='not_bound':receipt['signed_by_bound']=False
+    elif fault=='not_retired':receipt['retired']=False
+    elif fault=='changed_original':receipt['original']['ino']+=100
+    elif fault=='unknown':receipt['path']='/unapproved/private'
+    response={'status':'ready','children_closed':True,'source_restored':True}
+    if fault!='missing':response['keyring']=receipt
+    monkeypatch.setattr(v.subprocess,'run',lambda *a,**k:SimpleNamespace(returncode=0,stdout=json.dumps(response).encode()))
+    assert v.install(f.root,f.header)!=0 and v.after(f.root,f.header)!=0 and not f.probes
+    record=v.read_json(f.root/'public/helper-outcome.json')
+    assert record['status']=='UNKNOWN' and record['keyring_receipt'] is None
+
+
+@pytest.mark.parametrize('mutation',['replacement','same_inode_rewrite'])
+def test_setup_public_reports_remain_bound_at_real_output_open(setup_fixture,monkeypatch,mutation):
+    f=setup_fixture;v.before(f.root,f.header);v.install(f.root,f.header);assert v.after(f.root,f.header)==0
+    output=f.root/'output';output.write_bytes(b'');output.chmod(0o600);monkeypatch.setenv('GITHUB_OUTPUT',str(output))
+    target=f.root/'public/helper-outcome.json';original=v.os.open;changed=[]
+    def exchange(path,flags,*args,**kw):
+        if os.fspath(path)==str(output) and not changed:
+            if mutation=='replacement':target.rename(f.root/'checked-original.json')
+            target.write_bytes(b'UNSAFE_SYNTHETIC_REPORT');target.chmod(0o600);changed.append(True)
+        return original(path,flags,*args,**kw)
+    monkeypatch.setattr(v.os,'open',exchange)
+    try:v.publish_safe_output(f.root,f.header)
+    except (v.Unavailable,OSError):pass
+    assert changed and output.read_bytes()==b''
+
+
+def test_setup_report_fds_survive_output_open_and_fsync_with_a_native_receipt(setup_fixture,monkeypatch):
+    f=setup_fixture;v.before(f.root,f.header);v.install(f.root,f.header);assert v.after(f.root,f.header)==0
+    output=f.root/'output';output.write_bytes(b'prior=safe\n');output.chmod(0o600);monkeypatch.setenv('GITHUB_OUTPUT',str(output))
+    native_open,native_fsync=v.os.open,v.os.fsync;reports=[];outputs=[];synced=[]
+    def opened(path,flags,*a,**kw):
+        fd=native_open(path,flags,*a,**kw)
+        if str(path) in {str(f.root/'public'/name) for name in v.PUBLIC_FILES} and flags&os.O_NONBLOCK:reports.append(fd)
+        if str(path)==str(output):
+            assert len(reports)==3
+            for report in reports:assert os.fstat(report).st_nlink==1
+            outputs.append(fd)
+        return fd
+    def fsync(fd):
+        result=native_fsync(fd)
+        if outputs and fd==outputs[0]:
+            for report in reports:assert os.fstat(report).st_nlink==1
+            synced.append((os.fstat(fd).st_dev,os.fstat(fd).st_ino))
+        return result
+    monkeypatch.setattr(v.os,'open',opened);monkeypatch.setattr(v.os,'fsync',fsync)
+    receipt=v.publish_safe_output(f.root,f.header)
+    assert receipt['fsynced'] is True and synced==[(receipt['output_dev'],receipt['output_ino'])]
+    assert {row['file_id'] for row in receipt['reports']}==set(v.PUBLIC_FILES)
+    assert output.read_bytes()==b'prior=safe\npublic_records_safe=true\n'
+    for fd in reports+outputs:
+        with pytest.raises(OSError):os.fstat(fd)
 
 
 @pytest.mark.parametrize('fault',['source_bytes','source_inode','source_mode','key_bytes','helper_bytes','missing_outcome',

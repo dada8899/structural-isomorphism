@@ -2,7 +2,7 @@ name: Chromium setup only once
 
 on:
   push:
-    branches: [codex/structure-chromium-setup-once-20261023-attempt1]
+    branches: [codex/structure-chromium-pinned-keyring-20261023]
 
 permissions:
   contents: read
@@ -12,7 +12,7 @@ jobs:
     if: >-
       github.event_name == 'push'
       && github.repository == 'dada8899/structural-isomorphism'
-      && github.ref == 'refs/heads/codex/structure-chromium-setup-once-20261023-attempt1'
+      && github.ref == 'refs/heads/codex/structure-chromium-pinned-keyring-20261023'
       && github.event.created == true
       && toJSON(github.event.deleted) == 'false'
       && github.run_attempt == '1'

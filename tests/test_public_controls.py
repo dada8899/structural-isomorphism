@@ -484,7 +484,7 @@ def _assert_ci_chromium_setup(install_step, helper_bytes):
         "uvicorn[standard]==0.27.1", "PyJWT==2.15.1", "slowapi==0.1.9",
         "structlog==25.5.0", "python", "-I", "-B", "scripts/prepare_ci_chromium.py",
     ]
-    assert hashlib.sha256(helper_bytes).hexdigest() == '8ee2a9aa1d31c758f5e12270bdf42e33f252ea9cae18c1c27aabe89802ae5374'
+    assert hashlib.sha256(helper_bytes).hexdigest() == 'd8de7b5ca2cf2f163698b3cb8e5d5f9bd45a682a3dc7de8c11a99bb5e02f6312'
 
 
 def _assert_ci_chromium_runner(job):

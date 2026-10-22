@@ -19,13 +19,16 @@ import subprocess
 import sys
 import time
 
-HELPER_SHA = '8ee2a9aa1d31c758f5e12270bdf42e33f252ea9cae18c1c27aabe89802ae5374'
-BRANCH = 'refs/heads/codex/structure-chromium-setup-once-20261023-attempt1'
+HELPER_SHA = 'd8de7b5ca2cf2f163698b3cb8e5d5f9bd45a682a3dc7de8c11a99bb5e02f6312'
+BRANCH = 'refs/heads/codex/structure-chromium-pinned-keyring-20261023'
 HELPER = Path(__file__).resolve().with_name('prepare_ci_chromium.py')
 SYSTEM_FILES = {'source': (Path('/etc/apt/sources.list.d/ubuntu.sources'), 16384),
                 'keyring': (Path('/usr/share/keyrings/ubuntu-archive-keyring.gpg'), 1024 * 1024)}
 VERSION = '147.0.7727.15'
-SCHEMA = 'chromium-setup-only-v1'
+SCHEMA = 'chromium-pinned-keyring-setup-v1'
+KEYRING_PROFILE = 'ubuntu-noble-archive-pinned-v1'
+KEYRING_SHA = '80a36b0a6de2f69f49d2df75ef473ccde121e9e190b9ea01d20a4f63778d5c31'
+KEYRING_BYTES = 3607
 PINS = {'pytest':'9.0.3', 'playwright':'1.59.0', 'pytest-playwright':'0.7.2',
         'fastapi':'0.135.0', 'pydantic':'2.7.4', 'starlette':'1.3.1',
         'uvicorn':'0.27.1', 'PyJWT':'2.15.1', 'slowapi':'0.1.9', 'structlog':'25.5.0'}
@@ -81,8 +84,23 @@ def metadata(path, cap, owner):
 
 def snapshot():
     value = {role: metadata(path, cap, 0) for role, (path, cap) in SYSTEM_FILES.items()}
-    need(all(row['mode'] == 0o644 for row in value.values()))
+    # The original keyring is an observed untrusted input, never the APT trust
+    # endpoint. Only the root-born effective copy can satisfy that authority.
+    need(value['source']['mode'] == 0o644)
+    need(value['keyring']['size'] == KEYRING_BYTES and value['keyring']['sha256'] == KEYRING_SHA)
     return value
+
+
+def keyring_material():
+    return {'profile':KEYRING_PROFILE,'sha256':KEYRING_SHA,'size':KEYRING_BYTES,
+            'input_trust':'untrusted','effective_created':False}
+
+
+def keyring_material_safe(value):
+    return (type(value) is dict and set(value)=={'profile','sha256','size','input_trust','effective_created'}
+            and value['profile']==KEYRING_PROFILE and value['sha256']==KEYRING_SHA
+            and type(value['size']) is int and value['size']==KEYRING_BYTES
+            and value['input_trust']=='untrusted' and value['effective_created'] is False)
 
 
 def helper_metadata():
@@ -171,7 +189,7 @@ def read_json(path):
 def before(root, header):
     value = {**header, 'phase': 'before', 'status': 'UNKNOWN'}
     try:
-        value.update(helper=helper_metadata(), system=snapshot(), sdk=sdk())
+        value.update(helper=helper_metadata(), system=snapshot(), sdk=sdk(),keyring_material=keyring_material())
         write_json(root/'state.json', {'before': {**value, 'status':'ready'}, 'attempts': 0, 'claim':None}, exclusive=True)
         value['status'] = 'ready'
     finally:
@@ -179,15 +197,16 @@ def before(root, header):
     return 0
 
 
-def outcome(header, code=None, ready=False, attempts=None):
+def outcome(header, code=None, ready=False, attempts=None, keyring=None):
     return {**header, 'phase': 'helper', 'status': 'ready' if ready else 'UNKNOWN',
             'attempts': attempts, 'exit_code': code, 'children_closed': True if ready else None,
-            'source_restored': True if ready else None}
+            'source_restored': True if ready else None,'keyring_receipt':keyring if ready else None}
 
 
 def helper_ready(value, code):
-    return (type(code) is int and code == 0 and type(value) is dict and set(value) == {'status', 'children_closed', 'source_restored'}
-            and value['status'] == 'ready' and value['children_closed'] is True and value['source_restored'] is True)
+    return (type(code) is int and code == 0 and type(value) is dict and set(value) == {'status', 'children_closed', 'source_restored','keyring'}
+            and value['status'] == 'ready' and value['children_closed'] is True and value['source_restored'] is True
+            and keyring_receipt_safe(value['keyring']))
 
 
 def claim_body(header, state_info):
@@ -266,12 +285,14 @@ def install(root, header):
         need(len(result.stdout) <= 4096)
         code = result.returncode if type(result.returncode) is int else None
         need(code is not None)
-        ready = helper_ready(strict_json(result.stdout), code)
+        response = strict_json(result.stdout)
+        ready = helper_ready(response, code)
+        if ready:need(response['keyring']['original'] == state['before']['system']['keyring'])
         need(helper_metadata() == state['before']['helper'])
         need((state_path.lstat().st_dev,state_path.lstat().st_ino) == (first.st_dev,first.st_ino))
         need(os.pread(fd,len(raw)+1,0) == raw and read_json(state_path) == state)
         check_launch_claim(root,header,state,first,claim_fd)
-        value = outcome(header, code, ready, 1)
+        value = outcome(header, code, ready, 1,response['keyring'] if ready else None)
         return code if code != 0 else (0 if ready else 2)
     except BaseException:
         value = outcome(header, code, attempts=1 if attempted else None)
@@ -375,6 +396,21 @@ def sdk_safe(value):
             and all(type(row) is dict and row == {'revision':'1217','version':VERSION} for row in value['browsers'].values()))
 
 
+def keyring_receipt_safe(value):
+    keys={'profile','reference','input_trust','original','effective','directory','original_unchanged','signed_by_bound','retired'}
+    if type(value) is not dict or set(value)!=keys or value['profile']!=KEYRING_PROFILE or value['input_trust']!='untrusted':return False
+    if type(value['reference']) is not str or re.fullmatch('[0-9a-f]{32}',value['reference']) is None:return False
+    if any(value[k] is not True for k in ('original_unchanged','signed_by_bound','retired')):return False
+    for name in ('original','effective'):
+        row=value[name]
+        if not metadata_safe(row,KEYRING_BYTES) or row['uid']!=0 or row['size']!=KEYRING_BYTES or row['sha256']!=KEYRING_SHA:return False
+    if value['effective']['gid']!=0 or value['effective']['mode']!=0o644:return False
+    row=value['directory']
+    return (type(row) is dict and set(row)=={'dev','ino','uid','gid','mode','nlink'}
+            and all(integer(v) for v in row.values()) and row['uid']==row['gid']==0
+            and row['mode']==0o755 and row['nlink']>=2)
+
+
 def probe_safe(value):
     keys = {'status','pid','exit_code','version','direct_process_reaped','group_absent'}
     if type(value) is not dict or set(value) != keys or value['status'] not in ('ready','UNKNOWN'):
@@ -431,18 +467,20 @@ def public_safe(value):
     if value['phase'] == 'before':
         if not ready:
             return set(value) == HEADER_KEYS
-        return (set(value) == HEADER_KEYS|{'helper','system','sdk'}
+        return (set(value) == HEADER_KEYS|{'helper','system','sdk','keyring_material'}
                 and metadata_safe(value['helper'],128*1024) and value['helper']['sha256'] == HELPER_SHA
-                and system_safe(value['system']) and sdk_safe(value['sdk']))
+                and system_safe(value['system']) and sdk_safe(value['sdk'])
+                and keyring_material_safe(value['keyring_material']))
     if value['phase'] == 'helper':
-        if set(value) != HEADER_KEYS|{'attempts','exit_code','children_closed','source_restored'}:
+        if set(value) != HEADER_KEYS|{'attempts','exit_code','children_closed','source_restored','keyring_receipt'}:
             return False
         if ready:
             return (type(value['attempts']) is int and value['attempts'] == 1 and type(value['exit_code']) is int
-                    and value['exit_code'] == 0 and value['children_closed'] is True and value['source_restored'] is True)
+                    and value['exit_code'] == 0 and value['children_closed'] is True and value['source_restored'] is True
+                    and keyring_receipt_safe(value['keyring_receipt']))
         return ((value['attempts'] is None or type(value['attempts']) is int and value['attempts'] == 1)
                 and (value['exit_code'] is None or value['attempts'] == 1 and integer(value['exit_code'],-255,255))
-                and value['children_closed'] is None and value['source_restored'] is None)
+                and value['children_closed'] is None and value['source_restored'] is None and value['keyring_receipt'] is None)
     if value['phase'] == 'after':
         if set(value) != HEADER_KEYS|{'system','system_matches_before','sdk','payloads'} or type(value['system_matches_before']) is not bool:
             return False
@@ -485,22 +523,43 @@ def project_public(root, header):
 
 
 def publish_safe_output(root, header):
-    for name, phase in zip(PUBLIC_FILES, ('before','helper','after')):
-        value = read_json(root/'public'/name)
+    held, records = [], []
+    def identity(info):
+        return (info.st_dev,info.st_ino,info.st_uid,info.st_gid,info.st_mode,info.st_nlink,info.st_size)
+    def valid(raw,phase):
+        value=strict_json(raw)
         need(type(value) is dict and public_safe(value))
-        need(all(value.get(k) == v for k,v in header.items()) and value.get('phase') == phase)
-        need(value.get('status') in ('ready','UNKNOWN'))
-    path = Path(os.environ['GITHUB_OUTPUT'])
-    need(path.is_absolute() and path == path.resolve())
-    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_NOFOLLOW | os.O_CLOEXEC)
+        need(all(value.get(k)==v for k,v in header.items()) and value.get('phase')==phase)
+        return value
     try:
-        info = os.fstat(fd)
-        need(stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid() and info.st_nlink == 1 and not info.st_mode & 0o022)
-        raw = b'public_records_safe=true\n'
-        need(os.write(fd, raw) == len(raw))
-        os.fsync(fd)
+        for name,phase in zip(PUBLIC_FILES,('before','helper','after')):
+            path=root/'public'/name
+            fd=os.open(path,os.O_RDONLY|os.O_NONBLOCK|os.O_NOFOLLOW|os.O_CLOEXEC);held.append(fd)
+            info=os.fstat(fd)
+            need(stat.S_ISREG(info.st_mode) and info.st_uid==os.getuid() and info.st_nlink==1 and stat.S_IMODE(info.st_mode)==0o600 and info.st_size<=32768)
+            raw=os.pread(fd,32769,0);need(len(raw)==info.st_size);valid(raw,phase)
+            need(identity(info)==identity(path.lstat()))
+            records.append((fd,path,info,raw,phase))
+        output=Path(os.environ['GITHUB_OUTPUT']);need(output.is_absolute() and output==output.resolve())
+        before=output.lstat();out_fd=os.open(output,os.O_WRONLY|os.O_APPEND|os.O_NOFOLLOW|os.O_CLOEXEC)
+        try:
+            out_info=os.fstat(out_fd)
+            need(stat.S_ISREG(out_info.st_mode) and out_info.st_uid==os.getuid() and out_info.st_nlink==1 and not out_info.st_mode&0o022)
+            need(identity(out_info)==identity(before)==identity(output.lstat()))
+            # Original FDs remain held across the real output open. This is a
+            # bounded single-writer check, not same-UID adversarial isolation.
+            for fd,path,info,raw,phase in records:
+                need(identity(os.fstat(fd))==identity(info)==identity(path.lstat()))
+                checked=os.pread(fd,len(raw)+1,0);need(checked==raw);parsed=valid(checked,phase)
+                need(read_json(path)==parsed and identity(os.fstat(fd))==identity(path.lstat()))
+            flag=b'public_records_safe=true\n';need(os.write(out_fd,flag)==len(flag));os.fsync(out_fd)
+            after=os.fstat(out_fd)
+            need(identity(after)[:-1]==identity(out_info)[:-1]==identity(output.lstat())[:-1] and after.st_size==before.st_size+len(flag))
+            return {'reports':[{'file_id':path.name,'dev':info.st_dev,'ino':info.st_ino,'sha256':hashlib.sha256(raw).hexdigest()} for _,path,info,raw,_ in records],
+                    'output_dev':out_info.st_dev,'output_ino':out_info.st_ino,'offset':before.st_size,'bytes':len(flag),'fsynced':True}
+        finally:os.close(out_fd)
     finally:
-        os.close(fd)
+        for fd in reversed(held):os.close(fd)
 
 
 def after(root, header):
@@ -513,7 +572,8 @@ def after(root, header):
         check_launch_claim(root,header,state,(root/'state.json').lstat())
         need(read_json(root/'public/setup-before.json') == state['before'])
         need(snapshot() == state['before']['system'] and helper_metadata() == state['before']['helper'])
-        need(recorded == outcome(header, 0, True, 1) and type(recorded['exit_code']) is int
+        need(keyring_receipt_safe(recorded['keyring_receipt']) and recorded['keyring_receipt']['original']==state['before']['system']['keyring'])
+        need(recorded == outcome(header, 0, True, 1,recorded['keyring_receipt']) and type(recorded['exit_code']) is int
              and type(recorded['attempts']) is int and recorded['children_closed'] is True and recorded['source_restored'] is True)
         report['sdk'] = sdk()
         report['payloads'] = {}
