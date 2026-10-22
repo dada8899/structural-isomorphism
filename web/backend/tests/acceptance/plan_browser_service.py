@@ -431,6 +431,8 @@ class PlanBrowserFixture(AbstractContextManager):
             attempt(lambda:plan_native.retire_installation(self.store))
             self.installed=False
         if self.worker is not None and self.worker.is_alive():attempt(lambda:join(self.worker,3))
+        if self.worker is not None and self.worker.is_alive():
+            errors.append(self.worker.name)
         if self._failed_native:
             from research import plan_native
             errors.extend(plan_native.retire_attempts(*self._failed_native))
