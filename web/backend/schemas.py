@@ -1893,3 +1893,20 @@ class MethodDraftHistoryResponse(FormulaPublicObject):
     data: MethodDraftHistoryData
 
 __all__ += ['DraftExcerptRef', 'PlanLeadOrigin', 'CatalogOrigin', 'UserMethodOrigin', 'DraftTestPlan', 'MethodDraftRequest', 'MethodDraftEnvelope', 'MethodDraftMetadata', 'DraftSourceSummary', 'ResolvedUserOrigin', 'ResolvedPlanOrigin', 'DraftFormulaOutcome', 'DraftFormulaLink', 'MethodDraftContent', 'MethodDraftData', 'MethodDraftResponse', 'MethodDraftHistoryData', 'MethodDraftHistoryResponse']
+
+
+# Public exports use the actual strict codecs; no duplicate financial/A schema.
+if __package__ == 'web.backend':
+    from .research.evidence_method_plan_schemas import (EvidenceMethodPreviewEnvelope, EvidenceMethodConfirmEnvelope, EvidenceMethodPreviewResponse, EvidenceMethodConfirmResponse, EvidenceMethodReadResponse, EvidenceMethodListResponse, EvidenceMethodErrorResponse)
+    from .research.financial_input_schemas import (FinancialRegistryConfirmationEnvelope, FinancialRegistryConfirmationResponse, FinancialRegistryReadResponse, FinancialRegistryHistoryResponse)
+else:
+    # The generator loads this module directly without a package; pin the same
+    # adjacent pure schema package rather than copying its field definitions.
+    import sys as _schema_sys
+    from pathlib import Path as _SchemaPath
+    _backend = str(_SchemaPath(__file__).resolve().parent)
+    if _backend not in _schema_sys.path: _schema_sys.path.insert(0, _backend)
+    from research.evidence_method_plan_schemas import (EvidenceMethodPreviewEnvelope, EvidenceMethodConfirmEnvelope, EvidenceMethodPreviewResponse, EvidenceMethodConfirmResponse, EvidenceMethodReadResponse, EvidenceMethodListResponse, EvidenceMethodErrorResponse)
+    from research.financial_input_schemas import (FinancialRegistryConfirmationEnvelope, FinancialRegistryConfirmationResponse, FinancialRegistryReadResponse, FinancialRegistryHistoryResponse)
+
+__all__ += ['EvidenceMethodPreviewEnvelope', 'EvidenceMethodConfirmEnvelope', 'EvidenceMethodPreviewResponse', 'EvidenceMethodConfirmResponse', 'EvidenceMethodReadResponse', 'EvidenceMethodListResponse', 'EvidenceMethodErrorResponse', 'FinancialRegistryConfirmationEnvelope', 'FinancialRegistryConfirmationResponse', 'FinancialRegistryReadResponse', 'FinancialRegistryHistoryResponse']

@@ -66,7 +66,10 @@ class ResearchProjection:
             if task['policy_revision']=='native-plan-v1':
                 from .plan_native_runtime import metadata,RUNS
                 value=conn.execute('SELECT * FROM '+RUNS+' WHERE task_id=?',(task['id'],)).fetchone()
-                view.update(task=dict(task),execution=task['execution'],status='plan_'+metadata(value)['state'],native_plan=metadata(value),execution_mode=task['execution_mode'])
+                from .evidence_method_plan import is_evidence
+                view.update(task=dict(task),execution=task['execution'],execution_mode=task['execution_mode'])
+                if not is_evidence(value):view.update(status='plan_'+metadata(value)['state'],native_plan=metadata(value))
+                else:view['status']={'COMPLETED':'completed','FAILED':'failed','CANCELLED':'cancelled','ACCESS_REVOKED':'cancelled'}.get(task['execution'],'checking')
                 if task['execution'] not in ('COMPLETED','FAILED','CANCELLED','ACCESS_REVOKED'):view['allowed_next_actions'].append('cancel')
                 return {'schema_version':'structure-research-v1','contract_revision':'b1-candidate-01','data':view}
             if task['policy_revision']=='funded-plan-v1':
