@@ -59,6 +59,46 @@ FINANCIAL_PREVIEW_BROWSER_STEP = {
     "run": "make PY=python test-financial-preview-browser-contract",
 }
 
+MAIN_SURFACE = 'tests/e2e/test_full_public_surface.py'
+PUBLIC_ENTRY_RUN = 'pytest ' + ' '.join(MAIN_SURFACE + '::' + name for name in (
+    'test_public_entry_actual_owner_index_anchor',
+    'test_public_entry_default_retirement_and_language',
+    'test_public_entry_no_script_native_forms_never_send_private_get',
+    'test_public_entry_real_login_return_owner_and_legacy_resource_links',
+    'test_public_entry_main_cta_first_login_returns_to_research',
+)) + ' -m "e2e and not requires_internet" -v'
+MAIN_SURFACE_STEP = {
+    'name': 'Run actual Main public surface contract',
+    'if': "matrix.pytest_args_main != ''",
+    'run': 'pytest -p no:logging ${{ matrix.pytest_args_main }} -m "e2e and not requires_internet" -v',
+}
+
+
+def original_browser_surface_job(body: dict) -> dict:
+    """Reverse only the fixed public-file subprocess and its one matrix port."""
+    original = copy.deepcopy(body)
+    rows = original['strategy']['matrix']['include']
+    assert [row['shard'] for row in rows] == [
+        'search-ask-analyze-phenomenon', 'discovery-classes-papers',
+        'library-auth-reports-favorites', 'secondary-whitespace',
+    ]
+    for row in rows:
+        expected = MAIN_SURFACE if row['shard'] == 'library-auth-reports-favorites' else ''
+        assert row.pop('pytest_args_main') == expected, 'Main file must have one fixed library consumer'
+        if expected:
+            assert row['pytest_args'] == 'tests/e2e/test_unified_research_library.py tests/e2e/test_history_sidebar.py'
+            row['pytest_args'] = MAIN_SURFACE + ' ' + row['pytest_args']
+    steps = original['steps']
+    matches = [i for i, step in enumerate(steps) if step.get('name') == MAIN_SURFACE_STEP['name']]
+    assert len(matches) == 1, 'Main public surface step missing or duplicated'
+    index = matches[0]
+    assert steps[index] == MAIN_SURFACE_STEP, 'Main public surface step changed or softened'
+    prior = next(i for i, step in enumerate(steps) if step.get('name') == 'Run browser surface shard')
+    following = next(i for i, step in enumerate(steps) if step.get('name') == 'Run isolated browser surface subgroup')
+    assert index == prior + 1 == following - 1, 'Main process must occupy the fixed split position'
+    steps.pop(index)
+    return original
+
 
 def original_browser_product_job(body: dict) -> dict:
     """Strip only the one exact approved additive FIN1 execution step."""
@@ -73,6 +113,11 @@ def original_browser_product_job(body: dict) -> dict:
                    if step.get("name") == "Install complete backend runtime and verify imports")
     prior = next(i for i, step in enumerate(steps)
                  if step.get("name") == "Verify the current public research entry journey")
+    assert steps[prior] == {
+        'name': 'Verify the current public research entry journey',
+        'run': PUBLIC_ENTRY_RUN.replace('pytest ', 'pytest -p no:logging ', 1),
+    }, 'Only the exact public5 process may disable pytest logging'
+    steps[prior]['run'] = PUBLIC_ENTRY_RUN
     assert index == runtime + 1 and index < prior, "financial browser step must follow the full runtime"
     steps.pop(index)
     return original
@@ -83,6 +128,8 @@ def assert_existing_jobs_unchanged(value: dict) -> None:
         body = value["jobs"][name]
         if name == "browser-product-contract":
             body = original_browser_product_job(body)
+        elif name == 'browser-beta-surface-contract':
+            body = original_browser_surface_job(body)
         digest = hashlib.sha256(json.dumps(
             body, sort_keys=True, separators=(",", ":"),
         ).encode()).hexdigest()
@@ -809,3 +856,35 @@ def test_financial_preview_browser_step_cannot_weaken_existing_hard_job(mutation
         prior["run"] = "true"
     with pytest.raises(AssertionError):
         assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'position', 'soft', 'condition',
+    'missing_flag', 'other_process', 'wrong_file', 'duplicate_file', 'other_shard', 'old_selector'])
+def test_main_library_logging_allowance_is_exact_and_reversible(mutation):
+    value=copy.deepcopy(workflow('ci.yml'));job=value['jobs']['browser-beta-surface-contract']
+    step=next(s for s in job['steps'] if s.get('name')==MAIN_SURFACE_STEP['name'])
+    row=job['strategy']['matrix']['include'][2]
+    if mutation=='missing':job['steps'].remove(step)
+    elif mutation=='duplicate':job['steps'].append(copy.deepcopy(step))
+    elif mutation=='position':job['steps'].remove(step);job['steps'].append(step)
+    elif mutation=='soft':step['continue-on-error']=True
+    elif mutation=='condition':step['if']="matrix.shard == 'library-auth-reports-favorites'"
+    elif mutation=='missing_flag':step['run']=step['run'].replace('-p no:logging ','')
+    elif mutation=='other_process':next(s for s in job['steps'] if s.get('name')=='Run browser surface shard')['run']+=' -p no:logging'
+    elif mutation=='wrong_file':row['pytest_args_main']='tests/e2e/test_history_sidebar.py'
+    elif mutation=='duplicate_file':row['pytest_args']=MAIN_SURFACE+' '+row['pytest_args']
+    elif mutation=='other_shard':job['strategy']['matrix']['include'][0]['pytest_args_main']=MAIN_SURFACE
+    else:row['pytest_args']=row['pytest_args'].replace('tests/e2e/test_history_sidebar.py','')
+    with pytest.raises((AssertionError,KeyError)):assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('mutation',['missing_flag','duplicate_flag','wrong_position','soft','old_selector'])
+def test_main_public5_logging_allowance_preserves_exact_old_selector(mutation):
+    value=copy.deepcopy(workflow('ci.yml'));job=value['jobs']['browser-product-contract']
+    step=next(s for s in job['steps'] if s.get('name')=='Verify the current public research entry journey')
+    if mutation=='missing_flag':step['run']=PUBLIC_ENTRY_RUN
+    elif mutation=='duplicate_flag':step['run']+=' -p no:logging'
+    elif mutation=='wrong_position':step['run']=PUBLIC_ENTRY_RUN+' -p no:logging'
+    elif mutation=='soft':step['continue-on-error']=True
+    else:step['run']=step['run'].replace('::test_public_entry_actual_owner_index_anchor','::test_other')
+    with pytest.raises(AssertionError):assert_existing_jobs_unchanged(value)
