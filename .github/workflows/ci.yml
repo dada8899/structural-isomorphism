@@ -74,7 +74,7 @@ jobs:
 
   browser-product-contract:
     name: browser product contract (local, fail-closed)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
@@ -94,7 +94,7 @@ jobs:
             PyJWT==2.15.1 \
             slowapi==0.1.9 \
             structlog==25.5.0
-          python -m playwright install --with-deps chromium
+          python -I -B scripts/prepare_ci_chromium.py
       - name: Install complete backend runtime and verify imports
         run: |
           set -euo pipefail

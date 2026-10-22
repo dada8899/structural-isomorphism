@@ -474,9 +474,7 @@ def test_product_contract_clean_job_installs_exact_yaml_parser() -> None:
     ]
 
 
-def test_phase_auth_browser_job_installs_canonical_runtime_logging() -> None:
-    job = _ci_job("browser-product-contract")
-    install_step = _named_ci_step(job, "Install browser test dependencies")
+def _assert_ci_chromium_setup(install_step, helper_bytes):
     assert "if" not in install_step and "continue-on-error" not in install_step
     assert _shell_tokens(install_step) == [
         "python", "-m", "pip", "install",
@@ -484,13 +482,45 @@ def test_phase_auth_browser_job_installs_canonical_runtime_logging() -> None:
         "fastapi==0.135.0",
         "pydantic==2.7.4", "starlette==1.3.1",
         "uvicorn[standard]==0.27.1", "PyJWT==2.15.1", "slowapi==0.1.9",
-        "structlog==25.5.0", "python", "-m", "playwright", "install",
-        "--with-deps", "chromium",
+        "structlog==25.5.0", "python", "-I", "-B", "scripts/prepare_ci_chromium.py",
     ]
+    assert hashlib.sha256(helper_bytes).hexdigest() == '8ee2a9aa1d31c758f5e12270bdf42e33f252ea9cae18c1c27aabe89802ae5374'
+
+
+def _assert_ci_chromium_runner(job):
+    assert job['runs-on'] == 'ubuntu-24.04'
+
+
+def test_phase_auth_browser_job_installs_canonical_runtime_logging() -> None:
+    job = _ci_job("browser-product-contract")
+    _assert_ci_chromium_runner(job)
+    install_step = _named_ci_step(job, "Install browser test dependencies")
+    _assert_ci_chromium_setup(install_step, (ROOT/'scripts/prepare_ci_chromium.py').read_bytes())
     requirements = (
         ROOT / "web/backend/requirements.txt"
     ).read_text(encoding="utf-8").splitlines()
     assert "structlog==25.5.0" in requirements
+
+
+@pytest.mark.parametrize('runner', ['ubuntu-latest','ubuntu-22.04','ubuntu-26.04','self-hosted',
+                                  'arbitrary-linux','${{ matrix.os }}',['ubuntu-24.04','self-hosted']])
+def test_ci_chromium_runner_requires_the_one_supported_host(runner):
+    job={'runs-on':runner}
+    with pytest.raises(AssertionError): _assert_ci_chromium_runner(job)
+
+
+@pytest.mark.parametrize('mutation', ['missing', 'direct_apt', 'wrong_python', 'soft', 'skip', 'helper_bytes'])
+def test_ci_chromium_setup_is_one_exact_hard_call_and_frozen_helper(mutation):
+    import copy
+    step=copy.deepcopy(_named_ci_step(_ci_job('browser-product-contract'),'Install browser test dependencies'))
+    helper=(ROOT/'scripts/prepare_ci_chromium.py').read_bytes()
+    if mutation=='missing': step['run']=step['run'].replace('python -I -B scripts/prepare_ci_chromium.py','')
+    elif mutation=='direct_apt': step['run']=step['run'].replace('python -I -B scripts/prepare_ci_chromium.py','python -m playwright install chromium')
+    elif mutation=='wrong_python': step['run']=step['run'].replace('python -I -B scripts/prepare_ci_chromium.py','python3.12 -I -B scripts/prepare_ci_chromium.py')
+    elif mutation=='soft': step['continue-on-error']=True
+    elif mutation=='skip': step['if']='false'
+    else: helper+=b'\n# unreviewed modification\n'
+    with pytest.raises(AssertionError): _assert_ci_chromium_setup(step,helper)
 
 
 def test_backend_release_job_installs_root_package_fail_closed() -> None:
