@@ -595,10 +595,305 @@ def _interrupted_source_probe():
         sink.close(); os.close(fd)
 
 
+def _source_main15_debt_probe(mode):
+    """Two fixed owned fault specimens; neither delivers an SCM capability."""
+    if mode not in ('terminal-unknown', 'sender-close-uncertainty'):
+        raise SystemExit('fixed Main15 debt specimen required')
+    import smtplib
+    import stat
+    from multiprocessing import reduction
+    from research import authorization, source_spawn
+    from services import runtime_paths
+    from web.backend.tests.acceptance.formal_main_browser_service import _MailSink
+    runtime_paths.STATE_ROOT = Path(os.environ['AUTH_DATA_DIR'])
+    runtime_paths.CACHE_ROOT = runtime_paths.STATE_ROOT.parent / 'cache'
+    runtime_paths.LOG_ROOT = runtime_paths.STATE_ROOT / 'logs'
+    sink = _MailSink(); sink.start()
+    os.environ.update(SMTP_HOST='127.0.0.1', SMTP_PORT=str(sink.port),
+        SMTP_FROM_EMAIL='sender@example.invalid', ADMIN_NOTIFICATION_EMAIL='admin@example.invalid',
+        SMTP_STARTTLS='false', SMTP_USE_SSL='false', SMTP_TIMEOUT_SECONDS='2')
+    native_smtp = smtplib.SMTP
+    def local_mail(host, port, *args, **kwargs):
+        assert (host, port) == ('127.0.0.1', sink.port)
+        kwargs.setdefault('local_hostname', 'fixture.invalid')
+        return native_smtp(host, port, *args, **kwargs)
+    smtplib.SMTP = local_mail
+    import main
+    from services import formal_admission as admission
+    fd = int(os.environ['FORMAL_SOURCE_PROBE_FD'])
+    native_handoff, native_close = reduction.send_handle, os.close
+    native_sender_close = source_spawn.SourceSpawnProcess.close
+    owner_code = authorization.AuthorizationGate.owner_gate_id.__wrapped__.__code__
+    denied, owner_released = threading.Event(), threading.Event()
+    owner_pause = threading.Event()
+    handoffs, closed_senders, injected = [], [], []
+    binding = None
+    owner_fd_observation = []
+
+    def reject_before_scm(connection, handle, destination_pid):
+        if binding is not None and threading.current_thread() is binding.supervisor._thread:
+            handoffs.append(destination_pid)
+            denied.set()
+            raise PermissionError('owned Main15 armed sender receives no capability')
+        return native_handoff(connection, handle, destination_pid)
+
+    def after_real_sender_close(process):
+        own = binding is not None and threading.current_thread() is binding.supervisor._thread
+        if not own:
+            return native_sender_close(process)
+        pid, popen = process.pid, process._popen
+        sender, tracker = popen.sender, popen.tracker.process
+        result = native_sender_close(process)
+        assert handoffs == [pid] and process._closed
+        assert sender.poll() is not None and tracker.poll() is not None
+        closed_senders.append(process)
+        if mode == 'sender-close-uncertainty' and not injected:
+            injected.append(True)
+            raise source_spawn.SourceCleanupUncertain('owned Main15 post-close acknowledgement uncertain')
+        return result
+
+    def after_real_owner_close(descriptor):
+        watch = (mode == 'terminal-unknown' and binding is not None
+            and threading.current_thread() is binding.supervisor._thread
+            and sys._getframe(1).f_code is owner_code and denied.is_set()
+            and not owner_released.is_set())
+        old = os.fstat(descriptor) if watch else None
+        result = native_close(descriptor)
+        if watch and stat.S_ISREG(old.st_mode):
+            # A reused number is not evidence that the old description survived.
+            try:
+                current = os.fstat(descriptor)
+                fd_state = ('reused_other_identity' if (current.st_dev, current.st_ino) !=
+                            (old.st_dev, old.st_ino) else 'present_same_identity_unclassified')
+            except OSError:
+                fd_state = 'absent'
+            with binding.service.store.transaction() as conn:
+                row = conn.execute('SELECT outcome,execution_closed FROM research_source_requests WHERE task_id=?',
+                                   (binding.supervisor._slot,)).fetchone()
+            if row is not None and tuple(row) == ('UNKNOWN', 0):
+                owner_fd_observation.append(fd_state)
+                owner_released.set()
+                if not owner_pause.wait(3):
+                    raise TimeoutError('owned Main15 post-owner-close observation expired')
+        return result
+
+    reduction.send_handle = reject_before_scm
+    source_spawn.SourceSpawnProcess.close = after_real_sender_close
+    os.close = after_real_owner_close
+
+    async def run():
+        nonlocal binding
+        async with main.lifespan(main.app):
+            binding = await ready(main, admission)
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app), base_url=BETA) as client:
+                response = await client.post('/api/auth/request-link', json={'email': 'main15-debt@example.invalid'},
+                                             headers={'Origin': BETA})
+                assert response.status_code == 200
+                token = sink.take_latest_magic_token()
+                try: response = await client.post('/api/auth/verify', json={'token': token}, headers={'Origin': BETA})
+                finally: token = None
+                assert response.status_code == 200
+                rid = await create(client); approval = await approved_source(client, rid)
+                response = await client.post('/api/research/' + rid + '/source-tasks', json=envelope({
+                    'input_revision': 1, 'expected_research_version': 1, 'approval_ref': approval}),
+                    headers={'Origin': BETA, 'Idempotency-Key': 'main15-debt-task'})
+                assert response.status_code == 200
+                tid = response.json()['data']['task']['id']
+                deadline = time.monotonic() + 3
+                if mode == 'terminal-unknown':
+                    while not owner_released.is_set() and time.monotonic() < deadline:
+                        await asyncio.sleep(.01)
+                    assert owner_released.is_set() and len(closed_senders) == 1
+                    with binding.service.store.transaction() as conn:
+                        version = conn.execute('SELECT version FROM research_tasks WHERE id=?', (tid,)).fetchone()[0]
+                    cancelled = await client.post('/api/research/' + rid + '/cancel', json=envelope({
+                        'task_id': tid, 'expected_task_version': version}),
+                        headers={'Origin': BETA, 'Idempotency-Key': 'main15-terminal-cancel'})
+                    assert cancelled.status_code == 200
+                else:
+                    while binding.supervisor._thread.is_alive() and time.monotonic() < deadline:
+                        await asyncio.sleep(.01)
+                    assert not binding.supervisor._thread.is_alive() and injected == [True]
+                    assert binding.supervisor._state == 'CLEANUP_UNCERTAIN'
+                    assert binding.supervisor._slot == tid and binding.supervisor._lease is not None
+                    assert binding.supervisor._session.task_id == tid
+                    assert binding.supervisor._guard._session is binding.supervisor._session
+                    assert len(closed_senders) == 1 and closed_senders[0]._closed
+                    assert any(getattr(error, '_source_cleanup_uncertainty', ())
+                               for error in binding.supervisor._errors)
+                with binding.service.store.transaction() as conn:
+                    task = conn.execute('SELECT execution FROM research_tasks WHERE id=?', (tid,)).fetchone()[0]
+                    row = conn.execute('SELECT outcome,execution_closed FROM research_source_requests WHERE task_id=?', (tid,)).fetchone()
+                    assert conn.execute('SELECT version FROM research_schema').fetchone()[0] == 15
+                assert tuple(row) == ('UNKNOWN', 0)
+                assert task == ('CANCELLED' if mode == 'terminal-unknown' else 'RUNNING')
+                assert binding.source_module._select(binding.service.store, cleanup_only=True) == [(tid, 'cleanup')]
+                assert len(handoffs) == 1
+                print('MAIN15_DEBT_NATIVE_FACTS:' + json.dumps({
+                    'mode': mode, 'real_sender_closed': all(item._closed for item in closed_senders),
+                    'typed_close_uncertainty_injected_once': injected == [True],
+                    'owner_fd_after_real_close': owner_fd_observation,
+                    'terminal_unknown_open': task == 'CANCELLED' and tuple(row) == ('UNKNOWN', 0)}), flush=True)
+                os.write(fd, json.dumps({'mode': mode, 'phase': 'main15-debt-open',
+                    'probe_pid': os.getpid(), 'sender_pid': handoffs[0], 'task_id': tid}).encode())
+                await asyncio.sleep(3)
+                raise AssertionError('owned parent did not interrupt the fixed debt specimen')
+    try:
+        asyncio.run(run())
+    finally:
+        owner_pause.set()
+        os.close = native_close
+        reduction.send_handle = native_handoff
+        source_spawn.SourceSpawnProcess.close = native_sender_close
+        sink.close(); os.close(fd)
+
+
+def _actual_main15_debt_recovery(prepared, tmp_path, monkeypatch, mode):
+    """Reuse the existing owned pre-SCM process/pipe recovery protocol."""
+    assert mode in ('terminal-unknown', 'sender-close-uncertainty')
+    main, admission, _, _ = prepared
+    from api import auth
+    from multiprocessing import reduction
+    from research import ResearchStore, authorization, source_workflow
+    root = Path(__file__).resolve().parents[3]
+    owned = tmp_path / mode; owned.mkdir(mode=0o700)
+    home = owned / 'home'; home.mkdir(mode=0o700)
+    read, write = os.pipe()
+    environment = {name: os.environ[name] for name in (
+        'JWT_SECRET', 'STRUCTURAL_SSO_SECRET', 'STRUCTURAL_PRIVACY_HMAC_KEY', 'STRUCTURAL_SHARE_TOKEN_SECRET',
+        'AUTH_DATA_DIR', 'STRUCTURAL_SSO_DATA_DIR', 'AUTH_LINK_BASE_URL', 'AUTH_SITE_ROLE',
+        'AUTH_TRUSTED_PROXY_IPS', 'AUTH_ENABLED', 'AUTH_DEV_MODE', 'STRUCTURAL_ENV')}
+    pythonpath = [str(root / 'web/backend'), str(root)]
+    audit = sys.modules.get('audit_bootstrap')
+    if audit is not None: pythonpath.insert(0, str(Path(audit.__file__).resolve().parent))
+    task_root = os.environ.get('TMPDIR', str(tmp_path))
+    environment.update(PATH='/usr/bin:/bin', HOME=str(home), TMPDIR=task_root, A006_AUDIT_ROOT=task_root,
+        REVIEW_SOURCE_ROOT=str(root), PYTHONPATH=os.pathsep.join(pythonpath), PYTHONDONTWRITEBYTECODE='1',
+        PYTEST_DISABLE_PLUGIN_AUTOLOAD='1', FORMAL_SOURCE_PROBE_FD=str(write),
+        STRUCTURAL_LOG_FILE=str(owned / 'bootstrap.jsonl'), HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1')
+    process = None
+    try:
+        with (owned / 'probe.log').open('wb') as log:
+            process = subprocess.Popen([sys.executable, '-B', str(Path(__file__).resolve()), '--main15-debt-probe', mode],
+                cwd=owned, env=environment, pass_fds=(write,), close_fds=True,
+                stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+            os.close(write); write = None
+            readable, _, _ = select.select([read], [], [], 25)
+            assert readable, 'owned Main15 specimen did not produce its fixed debt phase'
+            raw = os.read(read, 2048)
+            assert raw, 'owned Main15 specimen exited before producing actual debt; retain probe log'
+            frame = json.loads(raw)
+            assert set(frame) == {'mode', 'phase', 'probe_pid', 'sender_pid', 'task_id'}
+            assert frame['mode'] == mode and frame['phase'] == 'main15-debt-open'
+            assert frame['probe_pid'] == process.pid and process.poll() is None
+            assert os.getpgid(process.pid) == process.pid
+            (owned / 'safe-process-frame.json').write_text(json.dumps(frame, sort_keys=True))
+            os.killpg(process.pid, signal.SIGKILL)
+            assert process.wait(timeout=5) == -signal.SIGKILL
+        store = ResearchStore(auth._store())
+        with store.transaction() as conn:
+            before = dict(conn.execute('SELECT * FROM research_source_requests WHERE task_id=?', (frame['task_id'],)).fetchone())
+            execution = conn.execute('SELECT execution FROM research_tasks WHERE id=?', (frame['task_id'],)).fetchone()[0]
+        assert (before['outcome'], before['execution_closed']) == ('UNKNOWN', 0)
+        assert execution == ('CANCELLED' if mode == 'terminal-unknown' else 'RUNNING')
+        module = __import__(store.__class__.__module__.rsplit('.', 1)[0] + '.source_supervisor', fromlist=['_select'])
+        assert module._select(store, cleanup_only=True) == [(frame['task_id'], 'cleanup')]
+        attempts, locks, calls = [], [], []
+        native_handoff, native_flock = reduction.send_handle, fcntl.flock
+        old_profile = threading.getprofile()
+        task_code = authorization._source_task_gate.__wrapped__.__code__
+        owner_code = authorization.AuthorizationGate.owner_gate_id.__wrapped__.__code__
+
+        def actual_worker():
+            handle = module._REGISTRY.get(id(main.app))
+            return (type(handle) is module.SourceSupervisor and threading.current_thread() is handle._thread)
+
+        def observe_lock(descriptor, operation):
+            result = native_flock(descriptor, operation)
+            code = sys._getframe(1).f_code
+            if actual_worker() and operation == fcntl.LOCK_EX | fcntl.LOCK_NB and code in (task_code, owner_code):
+                info = os.fstat(descriptor)
+                import stat
+                locks.append({'kind': 'task' if code is task_code else 'owner',
+                    'identity': [info.st_dev, info.st_ino, info.st_uid, stat.S_IMODE(info.st_mode), info.st_nlink]})
+            return result
+
+        def observe_cleanup(frame_in, event, result):
+            if (event == 'call' and frame_in.f_code is source_workflow.close_interrupted.__code__
+                    and actual_worker()):
+                lease = frame_in.f_locals.get('task_lease')
+                caller = frame_in.f_back
+                calls.append({'pid': os.getpid(), 'actual_worker': True,
+                    'task_matches': frame_in.f_locals.get('task_id') == frame['task_id'],
+                    'native_task_lease': type(lease) is authorization.TaskGateLease,
+                    'same_pid_lease': lease is not None and lease.pid == os.getpid(),
+                    'original_cleanup_dispatch': bool(caller is not None
+                        and caller.f_code is module._execute.__code__
+                        and caller.f_locals.get('operation') == 'cleanup'),
+                    'active_task_lease': bool(lease is not None and lease.active),
+                    'cleanup_task_lease': bool(lease is not None and lease.cleanup)})
+
+        def no_refetch(*args, **kwargs):
+            if sys._getframe(1).f_code is authorization.OwnerGateLease.handoff.__code__:
+                attempts.append(True)
+                raise PermissionError('Main15 recovery never grants a new Source capability')
+            return native_handoff(*args, **kwargs)
+
+        monkeypatch.setattr(fcntl, 'flock', observe_lock)
+        monkeypatch.setattr(reduction, 'send_handle', no_refetch)
+        threading.setprofile(observe_cleanup)
+        try:
+            async def recover():
+                async with published_source_retirement(main, admission) as binding:
+                    assert binding.service.store.storage_identity == store.storage_identity
+                    with binding.service.store.transaction() as conn:
+                        after = dict(conn.execute('SELECT * FROM research_source_requests WHERE id=?', (before['id'],)).fetchone())
+                        state = conn.execute('SELECT execution FROM research_tasks WHERE id=?', (frame['task_id'],)).fetchone()[0]
+                        assert conn.execute('SELECT used FROM research_source_chains').fetchone()[0] == 1
+                        assert conn.execute('SELECT count(*) FROM research_source_requests').fetchone()[0] == 1
+                        assert conn.execute("SELECT count(*) FROM research_evidence_objects WHERE kind IN ('snapshots','reports')").fetchone()[0] == 0
+                    assert (after['outcome'], after['execution_closed']) == ('UNKNOWN', 1)
+                    assert state == ('CANCELLED' if mode == 'terminal-unknown' else 'FAILED')
+                    assert (after['started_at'], after['ended_at']) == (before['started_at'], before['ended_at'])
+                    assert after['closure_ref'] and after['closure_proof']
+                    proof = json.loads(after['closure_proof'])
+                    assert proof['task_gate'] in [item['identity'] for item in locks if item['kind'] == 'task']
+                    assert proof['owner_gate'] in [item['identity'] for item in locks if item['kind'] == 'owner']
+                    assert calls == [{'pid': os.getpid(), 'actual_worker': True, 'task_matches': True,
+                        'native_task_lease': True, 'same_pid_lease': True, 'original_cleanup_dispatch': True,
+                        'active_task_lease': True, 'cleanup_task_lease': mode == 'terminal-unknown'}]
+                    assert module._select(store) == [] and not attempts
+                    (owned / 'safe-recovery-facts.json').write_text(json.dumps({
+                        'mode': mode, 'schema': 15, 'before': ['UNKNOWN', 0], 'after': ['UNKNOWN', 1],
+                        'before_task': execution, 'after_task': state, 'same_auth_inode': True,
+                        'real_cleanup_calls': calls, 'closure_matches_actual_native_locks': True,
+                        'used': 1, 'times_preserved': True, 'source_gets': 0, 'new_handoffs': 0}))
+            asyncio.run(recover())
+        finally:
+            threading.setprofile(old_profile)
+    finally:
+        if write is not None: os.close(write)
+        os.close(read)
+        if process is not None and process.poll() is None:
+            assert os.getpgid(process.pid) == process.pid
+            os.killpg(process.pid, signal.SIGKILL); process.wait(timeout=5)
+
+
+def test_actual_main15_terminal_unknown_debt_uses_fresh_native_cleanup(prepared, tmp_path, monkeypatch):
+    _actual_main15_debt_recovery(prepared, tmp_path, monkeypatch, 'terminal-unknown')
+
+
+def test_actual_main15_sender_close_uncertainty_preserves_debt_until_fresh_main(prepared, tmp_path, monkeypatch):
+    _actual_main15_debt_recovery(prepared, tmp_path, monkeypatch, 'sender-close-uncertainty')
+
+
 if __name__ == '__main__':
-    if sys.argv[1:] != ['--interrupted-source-probe']:
+    if sys.argv[1:] == ['--interrupted-source-probe']:
+        _interrupted_source_probe()
+    elif len(sys.argv) == 3 and sys.argv[1] == '--main15-debt-probe':
+        _source_main15_debt_probe(sys.argv[2])
+    else:
         raise SystemExit('owned test probe only')
-    _interrupted_source_probe()
 
 
 @pytest.mark.parametrize('policy', ['native', 'funded'])
@@ -650,4 +945,92 @@ def test_real_paid_queue_is_not_claimed_by_source_supervisor(prepared, policy):
                             assert row['execution'] == 'QUEUED'
                         assert binding.source_module._select(binding.service.store) == []
                         assert binding.supervisor._slot is None and calls == []
+    asyncio.run(run())
+
+
+def test_actual_main15_periodic_slot_without_hint_selects_real_task_before_cancel(prepared, monkeypatch, tmp_path):
+    main, admission, _, messages = prepared
+
+    async def run():
+        async with published_source_retirement(main, admission) as binding:
+            from research import authorization
+            from multiprocessing import reduction
+            module = admission.source_module(binding)
+            supervisor = binding.supervisor
+            held, release = threading.Event(), threading.Event()
+            dropped, slot_threads, handoffs = [], [], []
+            native_set = supervisor._event.set
+            native_flock = fcntl.flock
+            native_handoff = reduction.send_handle
+            task_code = authorization._source_task_gate.__wrapped__.__code__
+
+            def drop_only_this_hint():
+                if sys._getframe(1).f_code is module.wake.__code__:
+                    dropped.append(True)
+                    return
+                return native_set()
+
+            def after_real_task_lock(descriptor, operation):
+                result = native_flock(descriptor, operation)
+                if (threading.current_thread() is supervisor._thread
+                        and sys._getframe(1).f_code is task_code
+                        and operation == fcntl.LOCK_EX | fcntl.LOCK_NB):
+                    slot_threads.append(threading.get_ident())
+                    held.set()
+                    if not release.wait(3):
+                        raise TimeoutError('owned Main15 task-lock observation expired')
+                return result
+
+            def reject_public_handoff(*args, **kwargs):
+                if threading.current_thread() is supervisor._thread:
+                    handoffs.append(True)
+                    raise PermissionError('Main15 control never delivers a Source capability')
+                return native_handoff(*args, **kwargs)
+
+            monkeypatch.setattr(supervisor._event, 'set', drop_only_this_hint)
+            monkeypatch.setattr(fcntl, 'flock', after_real_task_lock)
+            monkeypatch.setattr(reduction, 'send_handle', reject_public_handoff)
+            try:
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app), base_url=BETA) as client:
+                    await login(client, messages)
+                    rid = await create(client)
+                    approval = await approved_source(client, rid)
+                    response = await client.post('/api/research/' + rid + '/source-tasks', json=envelope({
+                        'input_revision': 1, 'expected_research_version': 1, 'approval_ref': approval}),
+                        headers={'Origin': BETA, 'Idempotency-Key': 'main15-no-hint-task'})
+                    assert response.status_code == 200, response.text
+                    task = response.json()['data']['task']
+                    # Exercise the genuine wake port, but lose only its hint.
+                    # HTTP enqueue currently relies on the periodic scan itself.
+                    module.wake(supervisor)
+                    deadline = time.monotonic() + 3
+                    while not held.is_set() and time.monotonic() < deadline:
+                        await asyncio.sleep(.01)
+                    assert dropped and held.is_set()
+                    assert supervisor._slot == task['id'] and slot_threads == [supervisor._thread.ident]
+                    with binding.service.store.transaction() as conn:
+                        assert conn.execute('SELECT version FROM research_schema').fetchone()[0] == 15
+                        assert conn.execute('SELECT started FROM research_source_runs WHERE task_id=?', (task['id'],)).fetchone()[0] == 0
+                    assert module._select(binding.service.store) == [(task['id'], 'send')]
+                    assert module._select(binding.service.store, cleanup_only=True) == []
+                    cancelled = await client.post('/api/research/' + rid + '/cancel', json=envelope({
+                        'task_id': task['id'], 'expected_task_version': task['version']}),
+                        headers={'Origin': BETA, 'Idempotency-Key': 'main15-no-hint-cancel'})
+                    assert cancelled.status_code == 200, cancelled.text
+                    release.set()
+                    deadline = time.monotonic() + 3
+                    while supervisor._slot is not None and time.monotonic() < deadline:
+                        await asyncio.sleep(.01)
+                    assert supervisor._slot is None
+                    with binding.service.store.transaction() as conn:
+                        assert conn.execute('SELECT execution FROM research_tasks WHERE id=?', (task['id'],)).fetchone()[0] == 'CANCELLED'
+                        assert conn.execute('SELECT count(*) FROM research_source_requests').fetchone()[0] == 0
+                    assert module._select(binding.service.store) == [] and not handoffs
+                    (tmp_path / 'main15-periodic-slot.json').write_text(json.dumps({
+                        'schema': 15, 'hint_dropped': True, 'actual_periodic_worker_slot': True,
+                        'actual_source_select': 'send', 'actual_task_gate_acquired': True,
+                        'cancelled_before_scm': True, 'source_requests': 0, 'source_gets': 0}))
+            finally:
+                release.set()
+
     asyncio.run(run())
