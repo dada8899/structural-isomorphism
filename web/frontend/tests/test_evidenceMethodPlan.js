@@ -70,3 +70,46 @@ test('exact canonical pre-birth refusal permits explicit new preview, but keeps 
 
 
 test('explicit new preview refreshes only actual Root version, without rebasing the editor or reusing an old quote',async()=>{const p=preview();p.data.research_version=4;const r=runtime(url=>response(p));r.setRootVersion(4);await select(r);await r.controller.preview();assert.equal(JSON.parse(r.requests[0].options.body).data.expected_research_version,4);assert.equal(r.scope.version,3);assert.equal(r.scope.revision,1);assert.equal(r.el('preview-panel').hidden,false);r.controller.reset();});
+
+test('successful unavailable read clears an already-consented preview while retaining an unresolved original attempt',async()=>{
+ const p=preview();
+ const unavailable=read(p,{available:true});
+ Object.assign(unavailable.data,{content_state:'unavailable',unavailable_reason:'SOURCE_PERMISSION_UNAVAILABLE',content:null});
+ api.check('read',unavailable,{rid,ref});
+ const r=runtime(url=>response(url.endsWith('previews')?p:unavailable));
+ await select(r);await r.controller.preview();
+ r.el('consent').checked=true;await r.el('consent').fire('change');
+ assert.equal(r.el('preview-panel').hidden,false);
+ assert.match(r.el('exact').textContent,/Waiting changes\./);
+ assert.equal(r.el('confirm').disabled,false);
+ const postsBefore=r.requests.filter(x=>x.options.method==='POST').length;
+ await r.controller.readResult(ref);
+ const observed={
+   preview_hidden:r.el('preview-panel').hidden,
+   exact_cleared:r.el('exact').textContent==='',
+   quote_cleared:r.el('quote').textContent==='',
+   consent_unchecked:!r.el('consent').checked,
+   confirm_disabled:r.el('confirm').disabled,
+   materials_cleared:r.el('materials').textContent==='',
+   unavailable_notice:r.el('body').textContent.includes('已隐藏'),
+   original_ref_preserved:r.el('record-ref').textContent.includes(ref),
+   original_time_preserved:r.el('record-time').textContent.includes('2026-10-23T02:03:04.123456Z'),
+   no_new_POST:r.requests.filter(x=>x.options.method==='POST').length===postsBefore
+ };
+ r.controller.reset();
+ const pending=runtime(url=>{if(url.endsWith('previews'))return response(p);if(url.endsWith('approvals'))throw new TypeError('synthetic lost ACK');return response(unavailable);});
+ await select(pending);await pending.controller.preview();pending.el('consent').checked=true;
+ await pending.controller.confirm();assert.equal(pending.controller.inspect().pending,true);
+ const original=[...pending.values.entries()];
+ const confirmPosts=pending.requests.filter(x=>x.url.endsWith('approvals')).length;
+ await pending.controller.readResult(ref);
+ observed.pending_key_body_unchanged=JSON.stringify([...pending.values.entries()])===JSON.stringify(original);
+ observed.pending_still_unresolved=pending.controller.inspect().pending;
+ observed.no_additional_confirm_POST=pending.requests.filter(x=>x.url.endsWith('approvals')).length===confirmPosts;
+ pending.controller.reset();
+ assert.deepEqual(observed,Object.fromEntries(Object.keys(observed).map(k=>[k,true])));
+});
+
+
+
+test('read DTO content/reason truth table matches the frozen backend validator',()=>{const p=preview();for(const state of ['none','available','unavailable'])for(const content of [null,read(p,{available:true}).data.content])for(const reason of [null,'SOURCE_PERMISSION_UNAVAILABLE','SOURCE_UNAVAILABLE']){const v=read(p,{available:true});Object.assign(v.data,{content_state:state,content,unavailable_reason:reason});const allowed=state==='available'?content!==null&&reason===null:content===null&&(state==='none'?reason===null:reason!==null);if(allowed)assert.equal(api.check('read',v,{rid,ref}),v.data);else assert.throws(()=>api.check('read',v,{rid,ref}));}});
