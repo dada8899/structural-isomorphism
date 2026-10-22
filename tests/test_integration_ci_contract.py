@@ -130,9 +130,18 @@ def original_backend_script(script, *, coverage=False):
 
 
 def original_browser_product_job(body: dict) -> dict:
-    """Strip only the one exact approved additive FIN1 execution step."""
+    """Reverse only the fixed FIN1, Main logging and Chromium setup additions."""
     original = copy.deepcopy(body)
+    assert original['runs-on'] == 'ubuntu-24.04', 'Only the supported Chromium setup runner is admitted'
+    original['runs-on'] = 'ubuntu-latest'
     steps = original["steps"]
+    # Reverse only this reviewed setup call; the old job hash still covers
+    # every SDK pin, CPU import, browser test, job option and time limit.
+    install = next(step for step in steps if step.get('name') == 'Install browser test dependencies')
+    replacement = 'python -I -B scripts/prepare_ci_chromium.py\n'
+    assert set(install) == {'name', 'run'}
+    assert install['run'].count(replacement) == 1 and install['run'].endswith(replacement)
+    install['run'] = install['run'].replace(replacement, 'python -m playwright install --with-deps chromium\n', 1)
     matches = [index for index, step in enumerate(steps)
                if step.get("name") == FINANCIAL_PREVIEW_BROWSER_STEP["name"]]
     assert len(matches) == 1, "financial browser hard step missing or duplicated"
@@ -959,3 +968,27 @@ def test_auth_browser_addition_is_only_the_existing_Main_subgroup(mutation):
     elif mutation=='wrong_group':row['pytest_args_main']=MAIN_SURFACE;row['pytest_args_isolated']+=' '+AUTH_BOOTSTRAP_BROWSER
     else:row['pytest_args_main']+=' -k smoke'
     with pytest.raises(AssertionError):assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'wrong_call', 'soft', 'skip', 'sdk_pin', 'timeout'])
+def test_chromium_setup_inverse_cannot_hide_other_product_job_changes(mutation):
+    value=workflow('ci.yml')
+    job=value['jobs']['browser-product-contract']
+    step=next(s for s in job['steps'] if s.get('name')=='Install browser test dependencies')
+    call='python -I -B scripts/prepare_ci_chromium.py\n'
+    if mutation=='missing': step['run']=step['run'].replace(call,'')
+    elif mutation=='duplicate': step['run']+=call
+    elif mutation=='wrong_call': step['run']=step['run'].replace(call,'python -m playwright install chromium\n')
+    elif mutation=='soft': step['continue-on-error']=True
+    elif mutation=='skip': step['if']='false'
+    elif mutation=='sdk_pin': step['run']=step['run'].replace('playwright==1.59.0','playwright==1.58.0')
+    else: job['timeout-minutes']=9
+    with pytest.raises(AssertionError): assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('runner', ['ubuntu-latest','ubuntu-22.04','ubuntu-26.04','self-hosted',
+                                  'arbitrary-linux','${{ matrix.os }}',['ubuntu-24.04','self-hosted']])
+def test_chromium_runner_inverse_rejects_every_unapproved_label(runner):
+    value=workflow('ci.yml')
+    value['jobs']['browser-product-contract']['runs-on']=runner
+    with pytest.raises(AssertionError): assert_existing_jobs_unchanged(value)
