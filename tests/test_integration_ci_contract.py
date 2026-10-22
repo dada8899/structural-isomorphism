@@ -113,6 +113,7 @@ EVIDENCE_BACKEND_FORMAL_FILES = (
     'test_research_source_origin_history.py',
     'test_research_evidence_method_plan.py',
     'test_research_evidence_method_native.py',
+    'test_plan_runtime_transport.py',
 )
 BACKEND_FORMAL_FILES = ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES + EVIDENCE_BACKEND_FORMAL_FILES
 
@@ -130,10 +131,10 @@ def backend_process_commands(*, coverage=False, before_fin2=False, before_eviden
 
 
 def _backend_script_before_evidence(script, *, coverage=False):
-    """Reverse exactly three actual Main consumers to the reviewed six-file split."""
+    """Reverse exactly four actual Main consumers to the reviewed six-file split."""
     commands = backend_process_commands(coverage=coverage)
     expanded = '\n'.join(commands)
-    assert script.count(expanded) == 1, 'exact ten-process evidence backend block missing or duplicated'
+    assert script.count(expanded) == 1, 'exact eleven-process evidence backend block missing or duplicated'
     relevant = [line for line in script.splitlines() if line.startswith(
         'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
     assert relevant == commands, 'evidence backend groups must each run exactly once in the fixed order'

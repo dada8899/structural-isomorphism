@@ -174,7 +174,7 @@ verify-release:
 	$(MAKE) types-check
 	$(MAKE) llm-scaling-check
 	$(MAKE) test-fast
-	cd web/backend && $(BACKEND_PYTEST) --ignore=tests/test_formal_main_admission.py --ignore=tests/test_formal_main_source_supervisor.py --ignore=tests/test_research_financial_import.py --ignore=tests/test_formal_model_startup.py --ignore=tests/acceptance/test_source_history_fixture_current15.py --ignore=tests/test_research_financial_registries.py --ignore=tests/test_research_source_origin_history.py --ignore=tests/test_research_evidence_method_plan.py --ignore=tests/test_research_evidence_method_native.py -q
+	cd web/backend && $(BACKEND_PYTEST) --ignore=tests/test_formal_main_admission.py --ignore=tests/test_formal_main_source_supervisor.py --ignore=tests/test_research_financial_import.py --ignore=tests/test_formal_model_startup.py --ignore=tests/acceptance/test_source_history_fixture_current15.py --ignore=tests/test_research_financial_registries.py --ignore=tests/test_research_source_origin_history.py --ignore=tests/test_research_evidence_method_plan.py --ignore=tests/test_research_evidence_method_native.py --ignore=tests/test_plan_runtime_transport.py -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_admission.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_source_supervisor.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_research_financial_import.py -p no:logging -q
@@ -184,6 +184,7 @@ verify-release:
 	cd web/backend && $(BACKEND_PYTEST) tests/test_research_source_origin_history.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_research_evidence_method_plan.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_research_evidence_method_native.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py -p no:logging -q
 	cd packages/guarded-llm && $(PYTEST) tests -q
 	cd packages/cross-judge && $(PYTEST) tests -q
 	cd packages/reject-aware-critic && $(PYTEST) tests -q

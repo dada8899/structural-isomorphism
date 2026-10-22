@@ -1739,16 +1739,17 @@ def _original_makefile_before_auth_bootstrap_browser(makefile: str) -> str:
 
 
 def _original_makefile_before_evidence_backend(makefile: str) -> str:
-    """Reverse only the three fixed Source/evidence Main consumers."""
+    """Reverse only the four fixed Source/evidence/runtime Main consumers."""
     prior_names=('test_formal_main_admission.py','test_formal_main_source_supervisor.py',
                  'test_research_financial_import.py','test_formal_model_startup.py',
                  'acceptance/test_source_history_fixture_current15.py','test_research_financial_registries.py')
     names=prior_names+('test_research_source_origin_history.py',
-                       'test_research_evidence_method_plan.py','test_research_evidence_method_native.py')
+                       'test_research_evidence_method_plan.py','test_research_evidence_method_native.py',
+                       'test_plan_runtime_transport.py')
     commands=['cd web/backend && $(BACKEND_PYTEST)'+''.join(' --ignore=tests/'+n for n in names)+' -q']
     commands+=['cd web/backend && $(BACKEND_PYTEST) tests/'+n+' -p no:logging -q' for n in names]
     expanded=''.join('\t'+command+'\n' for command in commands)
-    assert makefile.count(expanded)==1, 'exact ten-process evidence Make backend block missing or duplicated'
+    assert makefile.count(expanded)==1, 'exact eleven-process evidence Make backend block missing or duplicated'
     actual=[c for c in _make_recipe_commands(makefile,'verify-release') if c.startswith('cd web/backend ')]
     assert actual==commands, 'only the fixed evidence Make backend process split is allowed'
     prior=['cd web/backend && $(BACKEND_PYTEST)'+''.join(' --ignore=tests/'+n for n in prior_names)+' -q']
@@ -1860,7 +1861,7 @@ def test_verify_release_dry_run_expands_real_test_and_build_commands() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     output = completed.stdout
-    assert output.count("python -m pytest") == 24
+    assert output.count("python -m pytest") == 25
     assert "scripts/check_python_syntax.py" in output
     assert "scripts/openapi_artifact.py --check" in output
     assert "PY=python bash scripts/check_ts_types.sh" in output
@@ -2743,7 +2744,8 @@ def test_fin2_Make_backend_consumers_cannot_be_omitted_or_partially_run(consumer
 
 @pytest.mark.parametrize('consumer', ['test_research_source_origin_history.py',
                                       'test_research_evidence_method_plan.py',
-                                      'test_research_evidence_method_native.py'])
+                                      'test_research_evidence_method_native.py',
+                                      'test_plan_runtime_transport.py'])
 @pytest.mark.parametrize('mutation', ['missing', 'missing_ignore', 'logging', 'partial_file'])
 def test_evidence_Make_backend_consumers_cannot_be_omitted_or_partially_run(consumer, mutation):
     makefile=(ROOT/'Makefile').read_text()
