@@ -3131,7 +3131,7 @@ async def _native_plan_tls_journey(tmp_path,mode):
                 async with bridge.routed(context):
                     page=await context.new_page()
                     page.on('request',lambda request:facts['browser_requests'].append({'method':request.method,'path':request.url.split(component.ORIGIN,1)[-1]}) if request.url.startswith(component.ORIGIN+'/api/research') else None)
-                    async with page.expect_response(component.ORIGIN+'/assets/research.js') as actual_script:await page.goto(component.ORIGIN+'/research')
+                    async with page.expect_response(component.ORIGIN+'/assets/research.js?v=20261023-evidence1') as actual_script:await page.goto(component.ORIGIN+'/research')
                     script=await actual_script.value
                     assert await script.body()==(ROOT/'web/frontend/assets/research.js').read_bytes()
                     facts['actual_JS_sha256']=hashlib.sha256(await script.body()).hexdigest()
@@ -3244,7 +3244,7 @@ async def _native_plan_tls_journey(tmp_path,mode):
                             assert fixture.calls==['GET','POST'] and not fixture.worker_failures
                             with fixture.store.transaction() as conn:
                                 assert conn.execute('SELECT count(*) FROM research_plan_native_runs').fetchone()[0]==1
-                                assert conn.execute('SELECT count(*) FROM research_source_runs').fetchone()[0]==0
+                                assert conn.execute('SELECT count(*) FROM research_source_runs r JOIN research_tasks t ON t.id=r.task_id WHERE t.research_id=?',(rid,)).fetchone()[0]==0
                             facts.update({'provider_calls':fixture.calls.copy(),'task_id':task,'result_ref':ref,'recorded_at':content['recorded_at'],'real_model_executed':False,'actual_model_weight_identity_verified':False,'automatically_created_sources':0})
                     facts['observed_browser_driver_pids']+=_native_owned_browser_pids()
                     progress('all_business_assertions_finished')

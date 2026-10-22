@@ -227,6 +227,194 @@ def prepared_source_history(source_root,owned_root,*,origin=ORIGIN,email='source
         # Unknown preparation/body/shutdown outcomes deliberately retain root.
 
 
+@dataclass(frozen=True,slots=True)
+class PreparedSourceHistoryEight(PreparedSourceHistory):
+    materials: tuple[dict,...]
+    loopback_requests: int
+
+
+def _eight_child(package,manifest,state,origin,email,target_revision):
+    """Eight distinct actual old13 tasks in one Root; never public networking.
+
+    Original _child/default AST and ARTICLE are unchanged. Only this fixed mode
+    supplies complete synthetic credit and adds seven genuine HTTP approvals.
+    Each task consumes its own original two-GET chain; total loopback GETs=16.
+    """
+    if target_revision:raise ValueError('fixed current revision1 required')
+    import io
+    from contextlib import redirect_stdout
+    from unittest.mock import patch
+    from web.backend.tests import source_http_fixture as fixture
+    original=fixture.source_server
+    credit=fixture.ARTICLE.replace(('Citation: '+fixture.TITLE).encode(),('Citation: Example A, Example B (2026) '+fixture.TITLE).encode())
+    captured=io.StringIO()
+    with patch.object(fixture,'source_server',partial(original,article=credit)),redirect_stdout(captured):
+        _child(package,manifest,state,origin,email,False)
+    frames=[line[len(_FRAME):] for line in captured.getvalue().splitlines() if line.startswith(_FRAME)]
+    if len(frames)!=1:raise RuntimeError('fixed first source acknowledgement required')
+    result=json.loads(frames[0]);captured.close();del frames
+    from api import auth,research
+    from research import ResearchStore,ResearchRunner
+    from research.source_policy import PinnedPublicTransport
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    store=ResearchStore(auth._store());app=FastAPI();app.include_router(auth.router,prefix='/api');app.include_router(research.router,prefix='/api')
+    rid=result['research_id'];base='/api/research/'+rid;materials=[];total=2
+    def facts(tid):
+        with store.transaction() as conn:
+            payloads=[json.loads(row[0]) for row in conn.execute("SELECT payload FROM research_evidence_objects WHERE task_id=? AND kind='excerpts' ORDER BY id",(tid,))]
+            snapshot=json.loads(conn.execute("SELECT payload FROM research_evidence_objects WHERE task_id=? AND kind='snapshots'",(tid,)).fetchone()[0])
+            refs=[dict(excerpt_id=x['id'],source_revision=snapshot['source_revision'],content_digest=snapshot['extracted_digest'],start=x['start'],end=x['end']) for x in payloads]
+            if len(refs)!=1 or conn.execute('SELECT used FROM research_source_chains WHERE id=(SELECT chain_id FROM research_source_runs WHERE task_id=?)',(tid,)).fetchone()[0]!=2:raise RuntimeError('actual two-GET task required')
+            return dict(task_id=tid,acquired_at=snapshot['acquired_at'],excerpt_refs=refs,loopback_gets=2)
+    materials.append(facts(result['source_task_id']))
+    with TestClient(app,base_url=origin) as client:
+        client.cookies.set('phase_session',result['cookie'])
+        def post(path,data,key):
+            response=client.post(path,json={'schema_version':'structure-research-v1','contract_revision':'b1-candidate-01','data':data},headers={'origin':origin,'idempotency-key':key})
+            if response.status_code!=200:raise RuntimeError('fixed eight source HTTP refused')
+            return response.json()['data']
+        for number,word in enumerate(('alpha','beta','gamma','delta','epsilon','zeta','eta'),2):
+            root=client.get(base)
+            if root.status_code!=200:raise RuntimeError('same Root must remain readable')
+            version=root.json()['data']['research_version'];query=dict(input_revision=1,expected_research_version=version,query='queue '+word)
+            preview=post(base+'/source-preview',query,'eight-preview-'+word)
+            approved=post(base+'/source-approvals',{**query,'confirm_external':True,'preview_digest':preview['preview_digest']},'eight-approve-'+word)
+            tid=post(base+'/source-tasks',dict(input_revision=1,expected_research_version=version,approval_ref=approved['approval_ref']),'eight-start-'+word)['task']['id']
+            with original(article=credit) as (port,calls):
+                if ResearchRunner(store,source_transport=PinnedPublicTransport(_worker=partial(fixture.get_local,port))).run_once(tid)!='COMPLETED' or calls!=['/discovery','/article']:raise RuntimeError('fixed eight source task did not complete')
+            total+=len(calls);materials.append(facts(tid))
+    refs=[ref for material in materials for ref in material['excerpt_refs']]
+    if len(refs)!=8 or len({ref['excerpt_id'] for ref in refs})!=8 or total!=16:raise RuntimeError('eight distinct real excerpts required')
+    with store.transaction() as conn:
+        control=conn.execute('SELECT current_revision,version FROM research_controls WHERE id=?',(rid,)).fetchone()
+        if control[0]!=1 or conn.execute('SELECT count(*) FROM research_funding_accounts').fetchone()[0]!=0:raise RuntimeError('no revision or funding mutation allowed')
+        result.update(research_version=control[1],excerpt_refs=refs,materials=materials,loopback_requests=total,rows_digest=_rows_digest(conn))
+    sys.stdout.write(_FRAME+json.dumps(result,separators=(',',':'))+'\n');sys.stdout.flush()
+
+
+def _read_current_eight(state,result,cookie):
+    first=result['materials'][0]
+    schema=_read_current(state,{**result,'excerpt_refs':first['excerpt_refs'],'acquired_at':first['acquired_at']},cookie)
+    from api import auth
+    from services.auth_store import AuthStore
+    from research import ResearchStore
+    from research.authorization import AccountIdentity
+    from research.source_integration import context_for,authorizer
+    from research.evidence_repository import EvidenceRepository
+    claims=auth._decode_jwt(cookie)
+    if not claims:raise RuntimeError('actual synthetic session required')
+    actor=AccountIdentity(claims['sub'],claims['gen'],claims['jti'],claims['exp']);store=ResearchStore(AuthStore(state/'auth.sqlite3'))
+    refs=[]
+    with store.transaction() as conn:
+        repository=EvidenceRepository(conn,authorizer(store,identity=actor))
+        for material in result['materials']:
+            context=context_for(conn,material['task_id'])
+            for ref in material['excerpt_refs']:
+                details=repository.excerpt_details(context,ref['excerpt_id'])
+                if details['input_revision']!=1 or any(details[key]!=ref[key] for key in ('source_revision','content_digest','start','end')):raise RuntimeError('actual eight historical ref changed')
+                eligible,handle=repository.preview_provider_handle(context,ref['excerpt_id'],'e'+str(len(refs)+1))
+                if eligible.acquired_at!=material['acquired_at'] or eligible.origin!='offline_probe' or not handle.attribution.startswith('Example A, Example B (2026) — '):raise RuntimeError('actual complete credit/time required')
+                refs.append(ref['excerpt_id'])
+        if len(refs)!=8 or len(set(refs))!=8 or result['loopback_requests']!=16:raise RuntimeError('fixed eight historical reader required')
+    return schema
+
+@contextmanager
+def prepared_source_history_eight(source_root,owned_root,*,origin=ORIGIN,email='source-history@example.invalid',target_revision=False):
+    """Yield safe refs after controlled13 -> reviewed offline14/15 -> real reader.
+
+    Must precede parent signing configuration/Main startup. Synthetic keys stay
+    only in parent/child memory and environment for this context; no caller keys
+    are read/adopted. Configure any real-Main test SMTP sink separately inside.
+    The default leaves revision1; the actual Main/UI creates revision2 later.
+    Main must shut down before this context exits. Exceptions retain owned data.
+    """
+    source_root=Path(source_root).resolve();owned_root=Path(owned_root).resolve()
+    if origin!=ORIGIN or type(email) is not str or not email.endswith('@example.invalid') or target_revision is not False:
+        raise ValueError('canonical synthetic history fixture only')
+    if owned_root.exists() or any(name in os.environ for name in _KEY_NAMES):raise RuntimeError('use fresh owned root before signing configuration')
+    owned_root.mkdir(mode=0o700);state=owned_root/'state';cache=owned_root/'cache';logs=state/'logs'
+    generated={name:secrets.token_urlsafe(48) for name in _KEY_NAMES}
+    privacy=secrets.token_hex(32)
+    while len(set(privacy))<12:privacy=secrets.token_hex(32)
+    generated['STRUCTURAL_PRIVACY_HMAC_KEY']=privacy
+    settings={**generated,'STRUCTURAL_ENV':'prod','AUTH_DATA_DIR':str(state),'STRUCTURAL_SSO_DATA_DIR':str(state),
+        'AUTH_ENABLED':'true','AUTH_SITE_ROLE':'beta','AUTH_LINK_BASE_URL':origin,'AUTH_DEV_MODE':'false','AUTH_TRUSTED_PROXY_IPS':'127.0.0.1'}
+    prior={name:os.environ.get(name) for name in settings if name not in _KEY_NAMES};bindings=[];completed=False
+    try:
+        os.environ.update(settings)
+        for name in ('services.runtime_paths','web.backend.services.runtime_paths'):
+            module=importlib.import_module(name)
+            for key,value in (('STATE_ROOT',state),('CACHE_ROOT',cache),('LOG_ROOT',logs)):
+                bindings.append((module,key,getattr(module,key)));setattr(module,key,value)
+        from web.backend.tests.method_v13_reference import reconstruct
+        package,manifest=reconstruct(source_root,owned_root/'old13','native')
+        env={key:os.environ[key] for key in ('PATH','PYTHONDONTWRITEBYTECODE') if key in os.environ}
+        env.update(settings);env.update({'PYTHONDONTWRITEBYTECODE':'1','TMPDIR':str(owned_root),
+            'SMTP_HOST':'fixture.invalid','SMTP_PORT':'587','SMTP_FROM_EMAIL':'sender@example.invalid','ADMIN_NOTIFICATION_EMAIL':'admin@example.invalid',
+            'STRUCTURAL_D1_PUBLIC_GET_ENABLED':'false','STRUCTURAL_LOG_FILE':str(owned_root/'child-events.log'),
+            'REVIEW_SOURCE_ROOT':str(package),'A006_AUDIT_ROOT':os.environ.get('A006_AUDIT_ROOT',str(owned_root)),
+            'PYTHONPATH':str(package/'web/backend')+os.pathsep+str(package)})
+        guard=sys.modules.get('audit_bootstrap')
+        if guard:env['PYTHONPATH']=str(Path(guard.__file__).resolve().parent)+os.pathsep+env['PYTHONPATH']
+        command=[sys.executable,str(Path(__file__).resolve()),'--seed-eight-child',str(package),str(manifest),str(state),origin,email,'1' if target_revision else '0']
+        child=subprocess.Popen(command,cwd=package,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True)
+        try:
+            try:stdout,_stderr=child.communicate(timeout=240)
+            except subprocess.TimeoutExpired:
+                os.killpg(child.pid,signal.SIGTERM)
+                try:child.communicate(timeout=2)
+                except subprocess.TimeoutExpired:os.killpg(child.pid,signal.SIGKILL);child.communicate(timeout=2)
+                raise RuntimeError('historical preparation outcome unknown; owned root retained') from None
+            if child.returncode!=0:
+                safe=[line for line in _stderr.decode(errors='replace').splitlines() if line.startswith('HISTORY_PREP_SAFE_ERROR:')]
+                raise RuntimeError('historical preparation failed; owned root retained; '+(safe[-1] if safe else 'no safe child diagnostic'))
+        finally:
+            if child.poll() is None:os.killpg(child.pid,signal.SIGKILL);child.wait(timeout=2)
+            for stream in (child.stdout,child.stderr):
+                if stream is not None:stream.close()
+        frames=[line[len(_FRAME):] for line in stdout.decode().splitlines() if line.startswith(_FRAME)]
+        if len(frames)!=1:raise RuntimeError('historical preparation acknowledgement unknown; owned root retained')
+        result=json.loads(frames[0]);cookie=result.pop('cookie');del frames,stdout,_stderr
+        from research.method_draft import provision_method_drafts_v14
+        inode=(state/'auth.sqlite3').stat();identity=(inode.st_dev,inode.st_ino)
+        if provision_method_drafts_v14(state/'auth.sqlite3')['schema_version']!=14:raise RuntimeError('complete14 migration required')
+        after=(state/'auth.sqlite3').stat()
+        if (after.st_dev,after.st_ino)!=identity:raise RuntimeError('historical DB inode changed')
+        from research.financial_input import provision_financial_inputs_v15
+        expected={'schema_version':15,'financial_protocol':9,'financial_input_protocol':2,
+            'journal_mode':'wal','database_identity':list(identity),'backup_scope':'in_memory_algorithm_recovery_only'}
+        receipt=provision_financial_inputs_v15(state/'auth.sqlite3')
+        if receipt!=expected or provision_financial_inputs_v15(state/'auth.sqlite3')!=receipt:raise RuntimeError('complete15 migration and noop required')
+        after=(state/'auth.sqlite3').stat()
+        if (after.st_dev,after.st_ino)!=identity:raise RuntimeError('historical DB inode changed')
+        schema=_read_current_eight(state,result,cookie);cookie=None
+        seed=PreparedSourceHistory(owned_root,state,cache,logs,result['research_id'],result['source_task_id'],email,origin,1,
+            result['current_input_revision'],result['research_version'],tuple(result['excerpt_refs']),result['acquired_at'],'offline_probe',schema,
+            hashlib.sha256(manifest.read_bytes()).hexdigest(),
+            hashlib.sha256(json.dumps(result['loaded_old_modules'],sort_keys=True,separators=(',',':')).encode()).hexdigest(),result['rows_digest'])
+        seed=PreparedSourceHistoryEight(**{field.name:getattr(seed,field.name) for field in __import__('dataclasses').fields(PreparedSourceHistory)},materials=tuple(result['materials']),loopback_requests=result['loopback_requests'])
+        # No raw source, cookie, signing key or financial record is yielded.
+        yield seed;completed=True
+    finally:
+        for module,key,value in reversed(bindings):setattr(module,key,value)
+        for name in settings:
+            if name in _KEY_NAMES:os.environ.pop(name,None)
+            elif prior[name] is None:os.environ.pop(name,None)
+            else:os.environ[name]=prior[name]
+        if completed:shutil.rmtree(owned_root)
+
+
+
+if __name__=='__main__' and len(sys.argv)>1 and sys.argv[1]=='--seed-eight-child':
+    try:_eight_child(*sys.argv[2:7],sys.argv[7]=='1')
+    except Exception as error:
+        import traceback
+        frames=[{'file':Path(frame.filename).name,'line':frame.lineno,'function':frame.name} for frame in traceback.extract_tb(error.__traceback__)[-8:]]
+        sys.stderr.write('HISTORY_PREP_SAFE_ERROR:'+json.dumps({'type':type(error).__name__,'frames':frames})+'\n');raise SystemExit(1)
+    raise SystemExit(0)
+
+
 if __name__=='__main__':
     if len(sys.argv)>1 and sys.argv[1]=='--seed-child':
         try:_child(*sys.argv[2:7],sys.argv[7]=='1')

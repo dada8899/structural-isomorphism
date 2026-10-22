@@ -32,6 +32,7 @@
   let kbBusy = false;
   let summaryEdited = false;
   let accountScope = null;
+  let evidenceUI = null;
   let methodGeneration = 0;
   let methodSeen = false;
   let methodDirty = false;
@@ -307,6 +308,7 @@
   function formulaDirty(message='公式草稿有修改，请保存新修订后再核对快照。') {
     if(readOnlyView())return;formulaState.dirty=true;formulaState.epoch++;formulaState.snapshotEpoch++;formulaState.loading=false;
     methodDirty=true;invalidateMethod('问题包含未保存的公式改动，旧方法记录已收起。');byId('formula-confirm').checked=false;
+    evidenceUI?.invalidate('问题包含未保存的公式改动，外送预览已失效。',true);
     planInvalidate('公式草稿有未保存改动，旧计划已收起。');
     draftChanged('问题含未保存的公式改动；方法文字已保留，请先保存问题。');
     financialInvalidate('问题包含未保存公式，旧预览已失效；CSV 仍暂存在本页。');
@@ -1311,6 +1313,7 @@
     planSync();
     draftSync();
     financialSync();
+    evidenceUI?.observe();
   }
   function normalizeProblem(problem) {
     // Match ProblemInput exactly; original_input intentionally stays verbatim.
@@ -1321,6 +1324,7 @@
         observation:variable.observation === null ? null : variable.observation.normalize('NFC')}))};
   }
   function clearPrivateView() {
+    evidenceUI?.reset();
     financialReset();
     draftReset();
     planReset();
@@ -1500,6 +1504,7 @@
     taskData = data;
     formulaObserve(data);
     draftObserve(data);
+    evidenceUI?.observe();
     financialObserve();
     planObserve(data,context.nativePlanRead!==false);
     byId('view-context').hidden = !readOnlyView();
@@ -1625,7 +1630,7 @@
       const planWasCurrent=isCurrent();
       if (isCurrent()) { invalidateMethod('账户状态暂时无法核对，已收起旧方法记录；草稿仍保留。'); formulaAuthUncertain(); clearTaskHistory('账户状态暂时无法核对，流程列表已收起；请稍后主动读取。'); }
       if (isCurrent()) status('账户状态暂时无法核对；草稿与待核对操作已保留，本次后续请求已停止。请稍后主动重试。', true);
-      if(planWasCurrent){financialInvalidate('账户状态尚待核对，旧财务预览已收起；CSV 仍暂存在本页。');planInvalidate('账户状态尚待核对，计划正文已收起；草稿与原操作保留。');byId('native-plan-history').replaceChildren();draftHideMaterials('账户状态尚待核对，已隐藏引用原文；手写内容与原操作保留。');}
+      if(planWasCurrent){evidenceUI?.invalidate('账户状态尚待核对，已隐藏方法综合与引用正文；原确认操作保留。',true);financialInvalidate('账户状态尚待核对，旧财务预览已收起；CSV 仍暂存在本页。');planInvalidate('账户状态尚待核对，计划正文已收起；草稿与原操作保留。');byId('native-plan-history').replaceChildren();draftHideMaterials('账户状态尚待核对，已隐藏引用原文；手写内容与原操作保留。');}
       return false;
     };
     try {
@@ -1726,6 +1731,7 @@
   for (const id of ['original-input','objective','entry','summary','constraints','unknowns','confirmed']) {
     byId(id).addEventListener('input', () => {
       methodDirty = true; invalidateMethod('表单有未保存改动，已收起旧方法记录。');
+      evidenceUI?.invalidate('问题有未保存改动，请保存并核对后重新选材预览。',true);
       formulaProblemEdited();
       planInvalidate('本页草稿有修改，旧计划已收起；请保存后重新预览。');
       draftChanged('问题有未保存改动；此处方法文字保留，保存前先核对问题。');
@@ -2058,5 +2064,9 @@
   initPlan();
   initDraft();
   initFinancialPreview();
+  if (window.EvidenceMethodPlan) evidenceUI = window.EvidenceMethodPlan.mount({document,
+    getScope:()=>({account:accountScope,privateGeneration,rid:researchId,revision:editBase?.revision,digest:editBase?.digest,
+      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden}),
+    authenticate:authenticated,fetchRoot:request,onDenied:clearPrivateView});
   load().catch(error => status(error.message, true));
 })();
