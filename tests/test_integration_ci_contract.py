@@ -132,6 +132,8 @@ def original_backend_script(script, *, coverage=False):
 def original_browser_product_job(body: dict) -> dict:
     """Reverse only the fixed FIN1, Main logging and Chromium setup additions."""
     original = copy.deepcopy(body)
+    assert original['runs-on'] == 'ubuntu-24.04', 'Only the supported Chromium setup runner is admitted'
+    original['runs-on'] = 'ubuntu-latest'
     steps = original["steps"]
     # Reverse only this reviewed setup call; the old job hash still covers
     # every SDK pin, CPU import, browser test, job option and time limit.
@@ -981,4 +983,12 @@ def test_chromium_setup_inverse_cannot_hide_other_product_job_changes(mutation):
     elif mutation=='skip': step['if']='false'
     elif mutation=='sdk_pin': step['run']=step['run'].replace('playwright==1.59.0','playwright==1.58.0')
     else: job['timeout-minutes']=9
+    with pytest.raises(AssertionError): assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('runner', ['ubuntu-latest','ubuntu-22.04','ubuntu-26.04','self-hosted',
+                                  'arbitrary-linux','${{ matrix.os }}',['ubuntu-24.04','self-hosted']])
+def test_chromium_runner_inverse_rejects_every_unapproved_label(runner):
+    value=workflow('ci.yml')
+    value['jobs']['browser-product-contract']['runs-on']=runner
     with pytest.raises(AssertionError): assert_existing_jobs_unchanged(value)

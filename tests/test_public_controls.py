@@ -487,14 +487,26 @@ def _assert_ci_chromium_setup(install_step, helper_bytes):
     assert hashlib.sha256(helper_bytes).hexdigest() == '8ee2a9aa1d31c758f5e12270bdf42e33f252ea9cae18c1c27aabe89802ae5374'
 
 
+def _assert_ci_chromium_runner(job):
+    assert job['runs-on'] == 'ubuntu-24.04'
+
+
 def test_phase_auth_browser_job_installs_canonical_runtime_logging() -> None:
     job = _ci_job("browser-product-contract")
+    _assert_ci_chromium_runner(job)
     install_step = _named_ci_step(job, "Install browser test dependencies")
     _assert_ci_chromium_setup(install_step, (ROOT/'scripts/prepare_ci_chromium.py').read_bytes())
     requirements = (
         ROOT / "web/backend/requirements.txt"
     ).read_text(encoding="utf-8").splitlines()
     assert "structlog==25.5.0" in requirements
+
+
+@pytest.mark.parametrize('runner', ['ubuntu-latest','ubuntu-22.04','ubuntu-26.04','self-hosted',
+                                  'arbitrary-linux','${{ matrix.os }}',['ubuntu-24.04','self-hosted']])
+def test_ci_chromium_runner_requires_the_one_supported_host(runner):
+    job={'runs-on':runner}
+    with pytest.raises(AssertionError): _assert_ci_chromium_runner(job)
 
 
 @pytest.mark.parametrize('mutation', ['missing', 'direct_apt', 'wrong_python', 'soft', 'skip', 'helper_bytes'])
