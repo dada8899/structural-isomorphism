@@ -1,6 +1,8 @@
 """Core components, not evidence of formal Main/READY admission.
 
-Real legacy14 tasks exercise selection/leases/GET/closure. Private in-memory
+Real HTTP-queued legacy14 tasks exercise runner/leases/GET/closure; the current
+supervisor selector must reject that legacy profile. Current15 selection and
+Main-thread execution are separate actual-Main controls. Private in-memory
 handles exercise G/retirement without changing any production admission check.
 Only tests replace the registry with a local dictionary; no install bypass is
 provided in production and public start/availability remain closed to these.
@@ -87,26 +89,46 @@ def test_public_ports_reject_fake_binding_legacy_store_and_env_promotion(current
     assert store._private_auth is False
 
 
-def test_real_legacy14_missing_wake_selects_only_source_and_completed_never_replays(current14):
+def _assert_current_selector_rejects_legacy14(store):
+    assert store._formal_mode() is False
+    with store.transaction() as conn:
+        assert conn.execute('SELECT version FROM research_schema').fetchone()[0] == 14
+        ResearchStore._check_v14(conn)
+    for cleanup_only in (False, True):
+        with pytest.raises(ResearchError) as rejected:
+            control._select(store, cleanup_only=cleanup_only)
+        assert rejected.value.code == 'FEATURE_UNAVAILABLE' and rejected.value.status == 503
+
+
+def test_real_legacy14_component_completed_task_never_replays(current14, monkeypatch):
     client, store, rid = current14
+    queued = []
+    actual_post = client.post
+    def observed_post(url, *args, **kwargs):
+        response = actual_post(url, *args, **kwargs)
+        if url == f'/api/research/{rid}/source-tasks':
+            queued.append((url, kwargs['json'], dict(kwargs['headers'])))
+        return response
+    monkeypatch.setattr(client, 'post', observed_post)
     tid = new_task(client, rid)
-    assert control._select(store) == [(tid, 'send')]
-    assert control._select(store, cleanup_only=True) == []
-    # No wake is sent; periodic selection still sees the committed task.
+    _assert_current_selector_rejects_legacy14(store)
+    # This component explicitly runs the actual HTTP-created task. It does not
+    # claim current15 periodic selection or use a wake hint as authority.
     with source_server() as (port, calls):
         runner = ResearchRunner(store, source_transport=PinnedPublicTransport(_worker=partial(get_local, port)))
         assert runner.run_once(tid) == 'COMPLETED'
         assert calls == ['/discovery', '/article']
-        assert control._select(store) == []
+        url, body, headers = queued[0]
+        replay = actual_post(url, json=body, headers=headers)
+        assert replay.status_code == 200 and replay.json()['data']['task']['id'] == tid
         assert runner.run_once(tid) == 'COMPLETED'
         assert calls == ['/discovery', '/article']
-        assert control._select(store, cleanup_only=True) == []
     with store.transaction() as conn:
         assert conn.execute('SELECT used FROM research_source_chains').fetchone()[0] == 2
         assert conn.execute("SELECT COUNT(*) FROM research_tasks WHERE policy_revision!='d1-source-only-v1'").fetchone()[0] == 0
 
 
-def test_real_terminal_unknown_is_selected_and_closed_under_fresh_leases_without_get(current14, monkeypatch):
+def test_real_legacy14_component_terminal_unknown_closes_under_fresh_leases_without_get(current14, monkeypatch):
     client, store, rid = current14
     tid = new_task(client, rid)
     with source_server() as (port, calls):
@@ -119,12 +141,13 @@ def test_real_terminal_unknown_is_selected_and_closed_under_fresh_leases_without
         cancel(client, rid, tid)
         with store.transaction() as conn:
             before = dict(conn.execute('SELECT * FROM research_source_requests WHERE task_id=?', (tid,)).fetchone())
-        assert control._select(store, cleanup_only=True) == [(tid, 'cleanup')]
+        assert (before['outcome'], before['execution_closed']) == ('UNKNOWN', 0)
+        _assert_current_selector_rejects_legacy14(store)
         gate = AuthorizationGate(store)
         with gate.source_task_gate(tid) as lease:
             assert lease.cleanup is True
             source_workflow.close_interrupted(store, tid, lease)
-        assert calls == ['/discovery'] and control._select(store) == []
+        assert calls == ['/discovery']
         with store.transaction() as conn:
             after = dict(conn.execute('SELECT * FROM research_source_requests WHERE id=?', (before['id'],)).fetchone())
             assert (after['outcome'], after['execution_closed']) == ('UNKNOWN', 1)
@@ -133,10 +156,11 @@ def test_real_terminal_unknown_is_selected_and_closed_under_fresh_leases_without
             assert conn.execute('SELECT used FROM research_source_chains').fetchone()[0] == 1
 
 
-def test_real_two_workers_same_selected_task_send_only_once(current14, monkeypatch):
+def test_real_legacy14_component_two_workers_same_task_send_only_once(current14, monkeypatch):
     from research import source_guard
     client, store, rid = current14
     tid = new_task(client, rid)
+    _assert_current_selector_rejects_legacy14(store)
     outcomes, failures = [], []
     go = threading.Barrier(2)
     first_read = threading.Barrier(2)
@@ -164,12 +188,14 @@ def test_real_two_workers_same_selected_task_send_only_once(current14, monkeypat
             for worker in workers: worker.join(8)
             assert not any(worker.is_alive() for worker in workers)
             assert outcomes == ['COMPLETED'] and failures == [('PermissionError', 'Source birth is no longer available')], (outcomes, failures)
-            assert calls == ['/discovery', '/article'] and control._select(store) == []
+            assert calls == ['/discovery', '/article']
+            with store.transaction() as conn:
+                assert conn.execute('SELECT used FROM research_source_chains').fetchone()[0] == 2
         finally:
             for worker in workers: worker.join(13)
 
 
-def test_real_sender_close_uncertainty_propagates_and_preserves_unknown_debt(current14, monkeypatch):
+def test_real_legacy14_component_sender_close_uncertainty_preserves_unknown_debt(current14, monkeypatch):
     from research.source_spawn import SourceSpawnProcess, SourceCleanupUncertain
     client, store, rid = current14
     tid = new_task(client, rid)
@@ -183,10 +209,22 @@ def test_real_sender_close_uncertainty_propagates_and_preserves_unknown_debt(cur
             with pytest.raises(SourceCleanupUncertain):
                 ResearchRunner(store, source_transport=PinnedPublicTransport(_worker=partial(get_local, port))).run_once(tid)
         assert calls == ['/discovery']
-        assert control._select(store, cleanup_only=True) == [(tid, 'cleanup')]
+        with store.transaction() as conn:
+            before = dict(conn.execute('SELECT * FROM research_source_requests WHERE task_id=?', (tid,)).fetchone())
+        assert (before['outcome'], before['execution_closed']) == ('UNKNOWN', 0)
+        _assert_current_selector_rejects_legacy14(store)
         with AuthorizationGate(store).source_task_gate(tid) as lease:
+            # The original close-uncertain run has not become terminal. This
+            # is a fresh native task lease, not a fabricated cleanup-only one.
+            assert lease.cleanup is False
             source_workflow.close_interrupted(store, tid, lease)
-        assert calls == ['/discovery'] and control._select(store) == []
+        assert calls == ['/discovery']
+        with store.transaction() as conn:
+            after = dict(conn.execute('SELECT * FROM research_source_requests WHERE id=?', (before['id'],)).fetchone())
+            assert (after['outcome'], after['execution_closed']) == ('UNKNOWN', 1)
+            assert after['closure_ref'] and after['closure_proof']
+            assert (after['started_at'], after['ended_at']) == (before['started_at'], before['ended_at'])
+            assert conn.execute('SELECT used FROM research_source_chains').fetchone()[0] == 1
 
 
 def _source_arena_fds():
