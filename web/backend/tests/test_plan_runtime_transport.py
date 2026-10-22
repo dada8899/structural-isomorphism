@@ -9,20 +9,364 @@ import pickle
 import shutil
 import socket
 import ssl
+import sys
 import subprocess
 import threading
 import time
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.testclient import TestClient
-from .test_private_registration import stack, BETA
+from .test_private_registration import BETA
 from .test_private_runtime_bootstrap import roots
-from .test_research_funded_plan import saved, CANDIDATE
+from .test_research_funded_plan import CANDIDATE
 from .test_research_native_plan import admitted
 from .test_research_paid_producers import identity
 from research import plan_native as native, plan_native_runtime as flow, ResearchRunner
 from services import plan_runtime_transport as transport
+
+
+class _ActualMainResponse:
+    """Data-only HTTP result adapter; never a native resource or receipt."""
+    def __init__(self, status, value):
+        self.status_code, self._value = status, value
+    def json(self):
+        return self._value
+    @property
+    def text(self):
+        return json.dumps(self._value, ensure_ascii=False)
+
+
+class _ActualCookieView:
+    def __init__(self, client):
+        self.client = client
+    def get(self, name):
+        return next((cookie.value for cookie in self.client.cookies if cookie.name == name), None)
+
+
+class _ActualMainClient:
+    """Preserve old test call shapes over real canonical TLS/cookies only."""
+    def __init__(self, service, store, actor):
+        self.service, self.store, self.actor = service, store, actor
+        self.cookies, self.app = _ActualCookieView(service.client), service.app
+        self._delete_attempted = False
+    def _request(self, method, path, *, json=None, headers=None, params=None):
+        from urllib.parse import urlencode
+        headers = headers or {}
+        assert headers.get('origin', headers.get('Origin', BETA)) == BETA
+        if params: path += ('&' if '?' in path else '?') + urlencode(params)
+        key = headers.get('idempotency-key', headers.get('Idempotency-Key'))
+        if method == 'POST' and path == '/api/me/delete':
+            assert json == {'confirmation': 'DELETE'} and key is None
+            return self._delete_after_owned_return()
+        status, value = self.service.client.request(method, path, json, key=key)
+        return _ActualMainResponse(status, value)
+    def _delete_after_owned_return(self):
+        # This one legacy case used in-process TestClient. Its real HTTPS
+        # observation may wait 10s once, after an actual OwnedReturn only;
+        # Native/Source/Main and the test's wait/join budgets stay unchanged.
+        import urllib.request
+        import urllib.error
+        assert not self._delete_attempted
+        provision, resource = native.installation(self.store)
+        assert type(resource) is transport.NativePlanResource
+        assert provision.authority.store is self.store and provision.authority.identity == self.actor
+        returns = [value for value in tuple(transport._RETURNS.values()) if value.resource is resource]
+        assert len(returns) == 1
+        owned = returns[0]
+        assert type(owned) is transport.OwnedNativeReturn
+        owned.require(resource, owned.dispatch, owned.nonce, owned.admission_digest, owned.producer_digest)
+        self._delete_attempted = True
+        request = urllib.request.Request(self.service.origin + '/api/me/delete',
+            data=b'{"confirmation":"DELETE"}', method='POST',
+            headers={'Origin': BETA, 'Content-Type': 'application/json'})
+        try:
+            response = self.service.client.opener.open(request, timeout=10)
+        except urllib.error.HTTPError as error:
+            response = error
+        with response:
+            body = response.read(524289)
+            assert len(body) <= 524288
+            return _ActualMainResponse(response.status, json.loads(body) if body else None)
+    def post(self, path, **kwargs):
+        return self._request('POST', path, **kwargs)
+    def get(self, path, **kwargs):
+        return self._request('GET', path, **kwargs)
+
+
+@pytest.fixture
+def stack(tmp_path):
+    from .test_research_evidence_method_plan import actual
+    with actual(tmp_path) as (service, _, store, actor):
+        yield _ActualMainClient(service, store, actor), service.root, []
+
+
+def saved(stack, monkeypatch):
+    from .test_formal_main_admission import problem, envelope
+    client, root, _ = stack
+    response = client.post('/api/research', json=envelope({'problem': problem()}),
+        headers={'origin': BETA, 'idempotency-key': 'runtime-local-current-create'})
+    assert response.status_code == 200
+    return client, root, response.json()['data']['research']['id'], client.store
+
+
+@contextmanager
+def full_namespace_on_actual_main(client, monkeypatch):
+    """Fixed test-only router deployment; the real Main binding stays owned."""
+    short_paths = importlib.import_module('services.runtime_paths')
+    full_paths = importlib.import_module('web.backend.services.runtime_paths')
+    for name in ('STATE_ROOT', 'CACHE_ROOT', 'LOG_ROOT'):
+        monkeypatch.setattr(full_paths, name, getattr(short_paths, name))
+    auth = importlib.import_module('web.backend.api.auth')
+    api = importlib.import_module('web.backend.api.research')
+    router = APIRouter()
+    router.include_router(auth.router, prefix='/api')
+    router.include_router(api.router, prefix='/api')
+    paths = {route.path for route in router.routes}
+    original = list(client.app.router.routes)
+    client.app.router.routes[:] = list(router.routes) + [route for route in original if getattr(route, 'path', None) not in paths]
+    try:
+        service = client.service
+        response = client.post('/api/auth/request-link', json={'email': service.seed.email}, headers={'origin': BETA})
+        assert response.status_code == 200
+        token = service.take_latest_magic_token()
+        try: response = client.post('/api/auth/verify', json={'token': token}, headers={'origin': BETA})
+        finally: token = None
+        assert response.status_code == 200
+        package = importlib.import_module('web.backend.research')
+        store = package.ResearchStore(auth._store())
+        claims = auth._decode_jwt(client.cookies.get('phase_session'))
+        actor = importlib.import_module('web.backend.research.authorization').AccountIdentity(
+            claims['sub'], claims['gen'], claims['jti'], claims['exp'])
+        claims = None
+        yield store, actor
+    finally:
+        client.app.router.routes[:] = original
+
+
+@contextmanager
+def installed_evidence_runtime(store, actor, server):
+    authority = native.create_controlled_runtime_evidence_method_fixture_authority(
+        store, actor, server, approved_cap_units=41_000_000, risk_margin_units=1_000_000)
+    provision = native.issue_native_provision(store, authority)
+    permit = native.mint_runtime_permit(provision)
+    resource = native.open_plan_resource(permit)
+    assert type(resource) is transport.NativePlanResource
+    try:
+        native.install_native_funding(store, provision, resource)
+        yield resource
+    finally:
+        native.retire_installation(store)
+
+
+def test_evidence_runtime_actual_main_full_request_owned_return_save_and_read(tmp_path, monkeypatch):
+    from .test_research_evidence_method_plan import actual, preview, approve
+    from .test_research_evidence_method_native import example
+    from .test_research_funded_plan import provider as evidence_provider
+    observed = []
+    original = transport._Pending.write_first
+    def actual_first(pending, capability):
+        assert pending.first_write_syscall_entered is False
+        result = original(pending, capability)
+        assert capability.used and type(capability.inspected) is flow.EvidenceMethodPayload
+        assert pending.first_write_syscall_entered is True
+        observed.append(pending)
+        return result
+    monkeypatch.setattr(transport._Pending, 'write_first', actual_first)
+    with actual(tmp_path) as (service, client, store, actor), evidence_provider(
+            choices=[{'finish_reason': 'stop', 'message': {'content': json.dumps(example())}}]
+            ) as (server, calls), installed_evidence_runtime(store, actor, server) as resource:
+        status, shown = preview(service, client)
+        assert status == 200 and shown['data']['can_confirm'] is True
+        (status, confirmed), _ = approve(service, client, shown['data'])
+        assert status == 200
+        result = flow.run_once(store, confirmed['data']['task_id'])['data']
+        assert result['state'] == 'saved' and result['cleanup_state'] == 'clean'
+        assert len(observed) == 1
+        assert [call[0] for call in calls] == ['GET', 'POST']
+        from research.provider_schemas import canonical, digest
+        assert digest(canonical(calls[1][3])) == shown['data']['request_digest']
+        status, saved_value = client.request('GET', '/api/research/' + service.seed.research_id
+            + '/evidence-method-plans/' + confirmed['data']['result_ref'])
+        assert status == 200 and saved_value['data']['metadata']['state'] == 'saved'
+        status, reopened = client.request('GET', '/api/research/' + service.seed.research_id
+            + '/evidence-method-plans/' + confirmed['data']['result_ref'])
+        assert status == 200 and reopened == saved_value
+        with store.transaction() as conn:
+            assert tuple(conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone()) == (0, flow.UPPER)
+        flow.run_once(store, confirmed['data']['task_id'])
+        assert [call[0] for call in calls] == ['GET', 'POST']
+
+
+@contextmanager
+def actual_evidence_runtime_case(tmp_path):
+    from .test_research_evidence_method_plan import actual, preview, approve
+    from .test_research_evidence_method_native import example
+    from .test_research_funded_plan import provider as evidence_provider
+    with actual(tmp_path) as (service, client, store, actor), evidence_provider(
+            choices=[{'finish_reason': 'stop', 'message': {'content': json.dumps(example())}}]
+            ) as (server, calls), installed_evidence_runtime(store, actor, server) as resource:
+        status, shown = preview(service, client)
+        assert status == 200 and shown['data']['can_confirm'] is True
+        (status, confirmed), _ = approve(service, client, shown['data'])
+        assert status == 200
+        yield service, client, store, actor, resource, calls, confirmed['data'], server
+
+
+def assert_consumed_unknown_hold(store, calls, pending):
+    assert [call[0] for call in calls] == ['GET']
+    with store.transaction() as conn:
+        row = conn.execute('SELECT * FROM research_plan_native_runs').fetchone()
+        assert (row['state'], row['cost_state'], row['cleanup_state']) == ('unknown', 'unknown', 'clean')
+        assert row['receipt_json'] is None and row['result_json'] is None
+        assert tuple(conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone()) == (flow.UPPER, 0)
+    assert not pending.first_write_syscall_entered
+
+
+@pytest.mark.parametrize('fault', ['raw', 'schema', 'purpose', 'handle'])
+def test_evidence_runtime_fixed_decoder_rejects_before_consume_and_first_write(tmp_path, monkeypatch, fault):
+    from dataclasses import replace
+    inspected, pendings = [], []
+    original_inspect, original_write = flow.NativePlanSendLease.inspect_payload, transport._Pending.write_first
+    def tampered_data(capability, resource):
+        descriptor = original_inspect(capability, resource)
+        inspected.append(capability)
+        if fault == 'raw':
+            raw = descriptor.raw + b'\n'
+        else:
+            request = json.loads(descriptor.raw)
+            user = json.loads(request['messages'][1]['content'])
+            if fault == 'schema': user['candidate_schema'] = 'PhenomenonPlanCandidate-v2'
+            elif fault == 'purpose': user['purpose'] = 'phenomenon_plan_v1'
+            else: user['input']['handles'][0]['handle'] = 'E2'
+            request['messages'][1]['content'] = json.dumps(user, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+            raw = json.dumps(request, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
+        return replace(descriptor, raw=raw)
+    def capture_pending(pending, capability):
+        pendings.append(pending)
+        return original_write(pending, capability)
+    monkeypatch.setattr(flow.NativePlanSendLease, 'inspect_payload', tampered_data)
+    monkeypatch.setattr(transport._Pending, 'write_first', capture_pending)
+    with actual_evidence_runtime_case(tmp_path) as (_, _, store, _, _, calls, confirmation, _):
+        with pytest.raises((PermissionError, ValueError, TypeError)):
+            flow.run_once(store, confirmation['task_id'])
+        assert len(inspected) == len(pendings) == 1 and not inspected[0].used
+        assert_consumed_unknown_hold(store, calls, pendings[0])
+        flow.run_once(store, confirmation['task_id'])
+        assert [call[0] for call in calls] == ['GET']
+
+
+@pytest.mark.parametrize('fault', ['source-revoked', 'consume-binding', 'cross-resource'])
+def test_evidence_runtime_actual_recheck_rejects_before_first_write(tmp_path, monkeypatch, fault):
+    from .test_research_evidence_method_native import _reader_grants
+    original_inspect, original_consume = flow.NativePlanSendLease.inspect_payload, flow.NativePlanSendLease.consume
+    original_write = transport._Pending.write_first
+    pendings, withdrawn, consumed = [], [], []
+    other = []
+    with actual_evidence_runtime_case(tmp_path) as (service, _, store, actor, resource, calls, confirmation, server):
+        if fault == 'cross-resource':
+            # A second genuine resource has the same sealed money domain but
+            # a distinct registered object; do not create/reset an account.
+            other.append(native.open_plan_resource(resource.permit))
+        def observed_inspect(capability, resource):
+            if fault == 'cross-resource': return original_inspect(capability, other[0])
+            descriptor = original_inspect(capability, resource)
+            if fault == 'source-revoked':
+                withdrawn.extend(_reader_grants(store, service.seed.research_id, held_owner=capability.lease))
+            return descriptor
+        def changed_consume(capability, resource):
+            consumed.append(capability)
+            if fault == 'consume-binding': object.__setattr__(capability, 'raw', capability.raw + b'\n')
+            return original_consume(capability, resource)
+        def capture_pending(pending, capability):
+            pendings.append(pending)
+            return original_write(pending, capability)
+        monkeypatch.setattr(flow.NativePlanSendLease, 'inspect_payload', observed_inspect)
+        monkeypatch.setattr(flow.NativePlanSendLease, 'consume', changed_consume)
+        monkeypatch.setattr(transport._Pending, 'write_first', capture_pending)
+        try:
+            with pytest.raises((PermissionError, ValueError, TypeError, __import__('research.errors', fromlist=['ResearchError']).ResearchError)):
+                flow.run_once(store, confirmation['task_id'])
+            assert len(pendings) == 1
+            assert_consumed_unknown_hold(store, calls, pendings[0])
+            if fault != 'cross-resource': assert len(consumed) == 1 and not consumed[0].used
+            flow.run_once(store, confirmation['task_id'])
+            assert [call[0] for call in calls] == ['GET']
+        finally:
+            if withdrawn: _reader_grants(store, service.seed.research_id, restore=withdrawn)
+            if other: assert not native.retire_attempts(*other)
+
+
+@pytest.mark.parametrize('fault', ['want-read', 'want-write', 'failure', 'partial', 'pre-syscall'])
+def test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded(tmp_path, monkeypatch, fault):
+    original_send, original_write = socket.socket.send, transport._Pending.write_first
+    original_first = transport._Channel.send_first
+    pendings, entries = [], []
+    def capture_pending(pending, capability):
+        pendings.append(pending)
+        return original_write(pending, capability)
+    def first_socket_send(sock, data, *args, **kwargs):
+        frame = sys._getframe(1)
+        if frame.f_code is transport._Channel.send_first.__code__ and pendings and sock is pendings[-1].channel.sock:
+            assert pendings[-1].first_write_syscall_entered is True
+            entries.append(True)
+            if fault == 'want-read': raise ssl.SSLWantReadError('owned first-send entry requires read')
+            if fault == 'want-write': raise ssl.SSLWantWriteError('owned first-send entry requires write')
+            if fault == 'failure': raise OSError('owned first-send syscall failure')
+            return original_send(sock, data[:7], *args, **kwargs)
+        return original_send(sock, data, *args, **kwargs)
+    monkeypatch.setattr(transport._Pending, 'write_first', capture_pending)
+    monkeypatch.setattr(socket.socket, 'send', first_socket_send)
+    if fault == 'pre-syscall':
+        def expire_before_entry(channel, data):
+            channel.deadline = time.monotonic() - 1
+            return original_first(channel, data)
+        monkeypatch.setattr(transport._Channel, 'send_first', expire_before_entry)
+    with actual_evidence_runtime_case(tmp_path) as (_, _, store, _, _, calls, confirmation, _):
+        if fault == 'partial':
+            assert flow.run_once(store, confirmation['task_id'])['data']['state'] == 'saved'
+            assert [call[0] for call in calls] == ['GET', 'POST']
+        else:
+            with pytest.raises((ssl.SSLWantReadError, ssl.SSLWantWriteError, OSError, TimeoutError)):
+                flow.run_once(store, confirmation['task_id'])
+            assert [call[0] for call in calls] == ['GET']
+            with store.transaction() as conn:
+                assert tuple(conn.execute('SELECT state,cost_state FROM research_plan_native_runs').fetchone()) == ('unknown', 'unknown')
+                assert tuple(conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone()) == (flow.UPPER, 0)
+            flow.run_once(store, confirmation['task_id'])
+            assert [call[0] for call in calls] == ['GET']
+        assert len(pendings) == 1
+        assert len(entries) == (0 if fault == 'pre-syscall' else 1)
+        assert pendings[0].first_write_syscall_entered is (fault != 'pre-syscall')
+
+
+def test_existing_self_runtime_actual_main_original_contract_still_saves(tmp_path):
+    from .test_research_evidence_method_plan import actual
+    from .test_formal_main_admission import problem, envelope
+    with actual(tmp_path) as (service, client, store, actor), provider() as (server, calls, _):
+        status, created = client.request('POST', '/api/research', envelope({'problem': problem()}), key='runtime-self-original-problem')
+        assert status == 200
+        rid = created['data']['research']['id']
+        with installed((client, service.root, rid, store), server, actor=actor):
+            def old_send(suffix, data, key):
+                return client.request('POST', '/api/research/' + rid + '/' + suffix,
+                    {'schema_version': 'structure-research-v1', 'contract_revision': 'funded-plan-v2', 'data': data}, key=key)
+            status, shown = old_send('plan-previews', {
+                'input_revision': 1, 'expected_research_version': 1,
+                'observation_source': 'own_observation', 'declaration_status': 'self_declared'}, 'runtime-self-preview')
+            assert status == 200 and shown['data']['can_confirm']
+            confirmed = {key: shown['data'][key] for key in ('preview_ref', 'preview_digest', 'request_digest',
+                'expected_research_version', 'approved_upper_units')}
+            confirmed['confirm_outbound'] = True
+            status, queued = old_send('plan-approvals', confirmed, 'runtime-self-approve')
+            assert status == 200
+            outcome = flow.run_once(store, queued['data']['task_id'])['data']
+            assert outcome['state'] == 'saved'
+            assert [value[0] for value in calls] == ['GET', 'POST']
+            status, saved_value = client.request('GET', '/api/research/' + rid + '/plan-results/' + queued['data']['result_ref'])
+            assert status == 200 and saved_value['data']['content']['proposal'] == CANDIDATE
+            flow.run_once(store, queued['data']['task_id'])
+            assert [value[0] for value in calls] == ['GET', 'POST']
 
 
 @contextmanager
@@ -95,20 +439,8 @@ def test_actual_canonical_http_worker_same_credential_native_commit_and_saved_hi
     client, root, rid, store = data
     extra = None
     if family.startswith('web.'):
-        short_paths = importlib.import_module('services.runtime_paths')
-        full_paths = importlib.import_module('web.backend.services.runtime_paths')
-        for name in ('STATE_ROOT', 'CACHE_ROOT', 'LOG_ROOT'): monkeypatch.setattr(full_paths, name, getattr(short_paths, name))
-        auth = importlib.import_module('web.backend.api.auth')
-        api = importlib.import_module('web.backend.api.research')
-        monkeypatch.setattr(auth, '_AUTH_STORES', {})
-        monkeypatch.setattr(api, 'enabled', lambda: True)
-        app = FastAPI(); app.include_router(auth.router, prefix='/api'); app.include_router(api.router, prefix='/api')
-        extra = TestClient(app, base_url=BETA); extra.__enter__(); extra.cookies.update(client.cookies)
-        client = extra
-        package = importlib.import_module(family)
-        store = package.ResearchStore(auth._store())
-        claims = auth._decode_jwt(client.cookies.get('phase_session'))
-        actor = importlib.import_module(family + '.authorization').AccountIdentity(claims['sub'], claims['gen'], claims['jti'], claims['exp'])
+        extra = full_namespace_on_actual_main(client, monkeypatch)
+        store, actor = extra.__enter__()
         data = client, root, rid, store
     else:
         actor = identity(client)
@@ -365,7 +697,7 @@ def test_actual_late_return_original_credential_books_fee_without_restoring_body
     data = saved(stack, monkeypatch); client, _, rid, store = data
     ready, go = threading.Event(), threading.Event(); errors = []; original = flow._commit_return
     def delayed(*args):
-        ready.set(); assert go.wait(5)
+        ready.set(); assert go.wait(12 if action == 'delete' else 5)
         return original(*args)
     monkeypatch.setattr(flow, '_commit_return', delayed)
     with provider() as (server, calls, _), installed(data, server):
