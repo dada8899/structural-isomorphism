@@ -8,6 +8,7 @@ from pathlib import Path
 import shlex
 import signal
 import subprocess
+import threading
 from types import SimpleNamespace
 
 import pytest
@@ -103,7 +104,11 @@ def setup_fixture(tmp_path,monkeypatch):
     probes=[]
     def fake_payloads(result):
         probes.append(True)
-        result.update({'chromium':{'probe':{'status':'ready'}},'chromium-headless-shell':{'probe':{'status':'ready'}}})
+        binary={**v.metadata(helper,16384,os.getuid()),'mode':0o755}
+        marker={**binary,'mode':0o644,'size':0,'sha256':hashlib.sha256(b'').hexdigest()}
+        probe={'status':'ready','pid':321,'exit_code':0,'version':v.VERSION,'direct_process_reaped':True,'group_absent':True}
+        result.update({name:{'binary':dict(binary),'installation_marker':dict(marker),'probe':dict(probe)}
+                       for name in ('chromium','chromium-headless-shell')})
         return result
     monkeypatch.setattr(v,'payloads',fake_payloads)
     header={'schema':v.SCHEMA,'classification':'SETUP_ONLY_NOT_A_GRADE','run_id':'1','event_sha':'a'*40}
@@ -191,6 +196,90 @@ def test_replaced_invocation_counter_cannot_launch_or_attest_an_install(setup_fi
     monkeypatch.setattr(v,'snapshot',replace_counter)
     assert v.install(f.root,f.header)!=0 and not f.calls
     assert v.read_json(f.root/'public/helper-outcome.json')['status']=='UNKNOWN'
+
+
+@pytest.mark.parametrize('fault',['state_missing','state_reset','claim_missing','claim_replaced','claim_and_state_lost'])
+def test_named_authority_loss_or_replacement_never_rearms_the_helper(setup_fixture,fault):
+    f=setup_fixture;v.before(f.root,f.header)
+    initial=(f.root/'state.json').read_bytes()
+    assert v.install(f.root,f.header)==0 and len(f.calls)==1
+    state=f.root/'state.json';claim=f.root/'launch-claim.json'
+    if fault=='state_missing':state.unlink()
+    if fault in ('state_reset','claim_and_state_lost'):
+        state.rename(f.root/'used-state.json');state.write_bytes(initial);state.chmod(0o600)
+    if fault in ('claim_missing','claim_and_state_lost'):claim.unlink()
+    elif fault=='claim_replaced':
+        raw=claim.read_bytes();claim.rename(f.root/'used-claim.json');claim.write_bytes(raw);claim.chmod(0o600)
+    try:code=v.install(f.root,f.header)
+    except (OSError,v.Unavailable):code=2
+    assert code!=0 and len(f.calls)==1
+    assert v.after(f.root,f.header)!=0 and not f.probes
+
+
+@pytest.mark.parametrize('replace',[False,True])
+def test_claim_loss_after_attempt_fsync_blocks_launch_and_every_reentry(setup_fixture,monkeypatch,replace):
+    f=setup_fixture;v.before(f.root,f.header)
+    state=f.root/'state.json';identity=(state.stat().st_dev,state.stat().st_ino)
+    original=v.os.fsync;changed=[]
+    def change_after_fsync(fd):
+        result=original(fd);info=v.os.fstat(fd)
+        if not changed and (info.st_dev,info.st_ino)==identity:
+            changed.append(True);claim=f.root/'launch-claim.json';raw=claim.read_bytes()
+            claim.rename(f.root/'used-claim.json')
+            if replace:claim.write_bytes(raw);claim.chmod(0o600)
+        return result
+    monkeypatch.setattr(v.os,'fsync',change_after_fsync)
+    assert v.install(f.root,f.header)!=0
+    monkeypatch.setattr(v.os,'fsync',original)
+    assert v.install(f.root,f.header)!=0 and not f.calls
+    assert v.read_json(state)['attempts']==1
+
+
+def test_concurrent_install_calls_share_one_exclusive_launch_claim(setup_fixture,monkeypatch):
+    f=setup_fixture;v.before(f.root,f.header)
+    entered,release=threading.Event(),threading.Event();results=[]
+    original=v.subprocess.run
+    def wait_helper(*args,**kw):
+        entered.set()
+        assert release.wait(2)
+        return original(*args,**kw)
+    monkeypatch.setattr(v.subprocess,'run',wait_helper)
+    worker=threading.Thread(target=lambda:results.append(v.install(f.root,f.header)))
+    worker.start()
+    try:
+        assert entered.wait(2)
+        denied=v.install(f.root,f.header)
+    finally:
+        release.set();worker.join(2)
+    assert not worker.is_alive() and denied!=0 and results==[0] and len(f.calls)==1
+
+
+@pytest.mark.parametrize('phase',['before','helper','after'])
+@pytest.mark.parametrize('fault',['cross_phase','wrong_pin_or_type','unknown_field','boolean_coercion'])
+def test_each_public_phase_discards_its_whole_invalid_record(setup_fixture,monkeypatch,phase,fault):
+    f=setup_fixture;v.before(f.root,f.header);v.install(f.root,f.header);assert v.after(f.root,f.header)==0
+    name={'before':'setup-before.json','helper':'helper-outcome.json','after':'setup-after.json'}[phase]
+    path=f.root/'public'/name;value=v.read_json(path);canary='7a'*32
+    if fault=='cross_phase':
+        if phase=='before':value['exit_code']=0
+        elif phase=='helper':value['sdk']={'versions':{'pytest':canary}}
+        else:value['helper']=v.helper_metadata()
+    elif fault=='wrong_pin_or_type':
+        if phase=='helper':value['exit_code']=canary
+        else:value['sdk']['versions']['pytest']=canary
+    elif fault=='unknown_field':value['unregistered']=canary
+    elif phase=='before':value['helper']['nlink']=True
+    elif phase=='helper':value['attempts']=True
+    else:value['payloads']['chromium']['probe']['exit_code']=False
+    v.write_json(path,value)
+    assert not v.public_safe(value) and v.project_public(f.root,f.header)
+    assert v.read_json(path)==v.unknown_record(f.header,phase)
+    assert v.read_json(f.root/'public/setup-after.json')==v.unknown_record(f.header,'after')
+    encoded=json.dumps([v.read_json(f.root/'public'/file) for file in v.PUBLIC_FILES])
+    assert canary not in encoded
+    output=f.root/'safe-output';output.write_bytes(b'');output.chmod(0o600)
+    monkeypatch.setenv('GITHUB_OUTPUT',str(output));v.publish_safe_output(f.root,f.header)
+    assert output.read_bytes()==b'public_records_safe=true\n'
 
 
 def test_absent_before_step_writes_unknown_placeholders_without_inventing_an_attempt(setup_fixture):

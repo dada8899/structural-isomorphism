@@ -172,7 +172,7 @@ def before(root, header):
     value = {**header, 'phase': 'before', 'status': 'UNKNOWN'}
     try:
         value.update(helper=helper_metadata(), system=snapshot(), sdk=sdk())
-        write_json(root/'state.json', {'before': {**value, 'status':'ready'}, 'attempts': 0}, exclusive=True)
+        write_json(root/'state.json', {'before': {**value, 'status':'ready'}, 'attempts': 0, 'claim':None}, exclusive=True)
         value['status'] = 'ready'
     finally:
         write_json(root/'public/setup-before.json', value)
@@ -190,25 +190,74 @@ def helper_ready(value, code):
             and value['status'] == 'ready' and value['children_closed'] is True and value['source_restored'] is True)
 
 
+def claim_body(header, state_info):
+    return {'run_id':header['run_id'], 'event_sha':header['event_sha'],
+            'state_dev':state_info.st_dev, 'state_ino':state_info.st_ino}
+
+
+def create_launch_claim(root, header, state_info):
+    """Exclusive durable reservation, never programmatically removed or reused.
+
+    This bounds retries/replacement/concurrency in the fixed single-step job;
+    it cannot isolate an adversary rewriting every authority as the same UID.
+    """
+    directory = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    fd = None
+    try:
+        info = os.fstat(directory)
+        need(info.st_uid == os.getuid() and stat.S_IMODE(info.st_mode) == 0o700)
+        fd = os.open('launch-claim.json', os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600, dir_fd=directory)
+        raw = json.dumps(claim_body(header, state_info), sort_keys=True).encode()
+        need(os.pwrite(fd, raw, 0) == len(raw))
+        os.fsync(fd)
+        os.fsync(directory)
+        value = metadata(root/'launch-claim.json', 4096, os.getuid())
+        current = os.fstat(fd)
+        need((current.st_dev,current.st_ino,current.st_nlink) == (value['dev'],value['ino'],1))
+        need(read_json(root/'launch-claim.json') == claim_body(header,state_info))
+        return fd, value
+    except BaseException:
+        if fd is not None:
+            os.close(fd)
+        raise
+    finally:
+        os.close(directory)
+
+
+def check_launch_claim(root, header, state, state_info, claim_fd=None):
+    need(type(state['attempts']) is int and state['attempts'] == 1 and type(state['claim']) is dict)
+    need(metadata(root/'launch-claim.json',4096,os.getuid()) == state['claim'])
+    need(read_json(root/'launch-claim.json') == claim_body(header,state_info))
+    if claim_fd is not None:
+        current = os.fstat(claim_fd)
+        need((current.st_dev,current.st_ino,current.st_nlink) == (state['claim']['dev'],state['claim']['ino'],1))
+
+
 def install(root, header):
     state_path = root/'state.json'
     fd = os.open(state_path, os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC)
     value = outcome(header)
-    attempted, code = False, None
+    attempted, code, claim_fd = False, None, None
     try:
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         first = os.fstat(fd)
         need(stat.S_ISREG(first.st_mode) and first.st_uid == os.getuid() and first.st_nlink == 1 and stat.S_IMODE(first.st_mode) == 0o600)
+        need(not os.path.lexists(root/'public/helper-outcome.json'))
         state = read_json(state_path)
-        need(state['before']['status'] == 'ready' and type(state['attempts']) is int and state['attempts'] == 0)
+        need(state['before']['status'] == 'ready' and type(state['attempts']) is int and state['attempts'] == 0 and state['claim'] is None)
         need(helper_metadata() == state['before']['helper'] and snapshot() == state['before']['system'])
         current = state_path.lstat()
         need((current.st_dev, current.st_ino) == (first.st_dev, first.st_ino) and os.fstat(fd).st_nlink == 1)
+        claim_fd, state['claim'] = create_launch_claim(root,header,first)
+        attempted = True
         state['attempts'] = 1  # Persist before any possibly post-fork launch failure.
         raw = json.dumps(state).encode()
         need(os.pwrite(fd, raw, 0) == len(raw))
         os.ftruncate(fd, len(raw)); os.fsync(fd)
-        attempted = True
+        current = state_path.lstat()
+        need((current.st_dev,current.st_ino) == (first.st_dev,first.st_ino) and os.fstat(fd).st_nlink == 1)
+        need(os.pread(fd,len(raw)+1,0) == raw and read_json(state_path) == state)
+        check_launch_claim(root,header,state,first,claim_fd)
         value = outcome(header, attempts=1)
         env = {name: os.environ[name] for name in ('GITHUB_ACTIONS', 'RUNNER_ENVIRONMENT', 'RUNNER_OS', 'RUNNER_ARCH', 'RUNNER_TEMP')}
         env.update(PATH=str(Path(sys.executable).parent)+':/usr/local/bin:/usr/bin:/bin', LANG='C.UTF-8')
@@ -219,6 +268,9 @@ def install(root, header):
         need(code is not None)
         ready = helper_ready(strict_json(result.stdout), code)
         need(helper_metadata() == state['before']['helper'])
+        need((state_path.lstat().st_dev,state_path.lstat().st_ino) == (first.st_dev,first.st_ino))
+        need(os.pread(fd,len(raw)+1,0) == raw and read_json(state_path) == state)
+        check_launch_claim(root,header,state,first,claim_fd)
         value = outcome(header, code, ready, 1)
         return code if code != 0 else (0 if ready else 2)
     except BaseException:
@@ -229,6 +281,8 @@ def install(root, header):
             if attempted or not (root/'public/helper-outcome.json').exists():
                 write_json(root/'public/helper-outcome.json', value)
         finally:
+            if claim_fd is not None:
+                os.close(claim_fd)
             os.close(fd)
 
 
@@ -292,26 +346,124 @@ def payloads(result):
 
 
 PUBLIC_FILES = ('setup-before.json', 'helper-outcome.json', 'setup-after.json')
-PUBLIC_KEYS = {'schema','classification','run_id','event_sha','phase','status','helper','system','sdk',
-               'attempts','exit_code','children_closed','source_restored','source','keyring','dev','ino',
-               'uid','gid','mode','nlink','size','sha256','python','versions','browsers','revision','version',
-               'system_matches_before','payloads','binary','installation_marker','probe','pid',
-               'direct_process_reaped','group_absent','chromium','chromium-headless-shell', *PINS}
+HEADER_KEYS = {'schema','classification','run_id','event_sha','phase','status'}
+META_KEYS = {'dev','ino','uid','gid','mode','nlink','size','sha256'}
+BROWSER_NAMES = {'chromium','chromium-headless-shell'}
 
 
-def public_safe(value, depth=0):
-    if depth > 12:
+def integer(value, low=0, high=2**64-1):
+    return type(value) is int and low <= value <= high
+
+
+def metadata_safe(value, cap):
+    return (type(value) is dict and set(value) == META_KEYS
+            and all(integer(value[k]) for k in META_KEYS-{'sha256'})
+            and value['nlink'] == 1 and value['mode'] <= 0o7777 and value['size'] <= cap
+            and type(value['sha256']) is str and re.fullmatch('[0-9a-f]{64}',value['sha256']) is not None)
+
+
+def system_safe(value):
+    return (type(value) is dict and set(value) == {'source','keyring'}
+            and metadata_safe(value['source'],16384) and metadata_safe(value['keyring'],1024*1024))
+
+
+def sdk_safe(value):
+    return (type(value) is dict and set(value) == {'python','versions','browsers'}
+            and type(value['python']) is str and re.fullmatch(r'3\.11\.[0-9]{1,3}',value['python']) is not None
+            and type(value['versions']) is dict and value['versions'] == PINS
+            and type(value['browsers']) is dict and set(value['browsers']) == BROWSER_NAMES
+            and all(type(row) is dict and row == {'revision':'1217','version':VERSION} for row in value['browsers'].values()))
+
+
+def probe_safe(value):
+    keys = {'status','pid','exit_code','version','direct_process_reaped','group_absent'}
+    if type(value) is not dict or set(value) != keys or value['status'] not in ('ready','UNKNOWN'):
         return False
-    if type(value) is dict:
-        return set(value) <= PUBLIC_KEYS and all(public_safe(v, depth+1) for v in value.values())
-    if value is None or type(value) is bool:
-        return True
-    if type(value) is int:
-        return -255 <= value <= 2**64-1
-    if type(value) is str:
-        return (value in {SCHEMA,'SETUP_ONLY_NOT_A_GRADE','ready','UNKNOWN','before','helper','after','1217',VERSION,*PINS.values()}
-                or re.fullmatch(r'(?:[0-9a-f]{40}|[0-9a-f]{64}|[1-9][0-9]{0,19}|3\.11\.[0-9]{1,3})',value) is not None)
+    if value['pid'] is not None and not integer(value['pid'],1,2**31-1):
+        return False
+    if value['exit_code'] is not None and not integer(value['exit_code'],-255,255):
+        return False
+    if value['version'] not in (None,VERSION) or value['direct_process_reaped'] is not None and value['direct_process_reaped'] is not True:
+        return False
+    if value['group_absent'] is not None and type(value['group_absent']) is not bool:
+        return False
+    if value['pid'] is None and any(value[k] is not None for k in keys-{'pid','status'}):
+        return False
+    if value['exit_code'] is not None and value['direct_process_reaped'] is not True:
+        return False
+    if value['direct_process_reaped'] is True and value['exit_code'] is None:
+        return False
+    if value['group_absent'] is not None and value['direct_process_reaped'] is not True:
+        return False
+    return value['status'] == 'UNKNOWN' or (integer(value['pid'],1,2**31-1) and type(value['exit_code']) is int
+            and value['exit_code'] == 0 and value['version'] == VERSION
+            and value['direct_process_reaped'] is True and value['group_absent'] is True)
+
+
+def payloads_safe(value, complete):
+    if type(value) is not dict or not set(value) <= BROWSER_NAMES or complete and set(value) != BROWSER_NAMES:
+        return False
+    for row in value.values():
+        if type(row) is not dict or set(row) != {'binary','installation_marker','probe'}:
+            return False
+        if not metadata_safe(row['binary'],512*1024*1024) or not metadata_safe(row['installation_marker'],64):
+            return False
+        if row['binary']['size'] == 0 or not row['binary']['mode'] & 0o111:
+            return False
+        if row['probe'] is None:
+            if complete:
+                return False
+        elif not probe_safe(row['probe']) or complete and row['probe']['status'] != 'ready':
+            return False
+    return True
+
+
+def public_safe(value):
+    """Exact per-phase DTOs; a valid field in one phase grants no other phase."""
+    if type(value) is not dict or not HEADER_KEYS <= set(value):
+        return False
+    if (value['schema'] != SCHEMA or value['classification'] != 'SETUP_ONLY_NOT_A_GRADE'
+            or type(value['run_id']) is not str or re.fullmatch('[1-9][0-9]{0,19}',value['run_id']) is None
+            or type(value['event_sha']) is not str or re.fullmatch('[0-9a-f]{40}',value['event_sha']) is None
+            or value['status'] not in ('ready','UNKNOWN')):
+        return False
+    ready = value['status'] == 'ready'
+    if value['phase'] == 'before':
+        if not ready:
+            return set(value) == HEADER_KEYS
+        return (set(value) == HEADER_KEYS|{'helper','system','sdk'}
+                and metadata_safe(value['helper'],128*1024) and value['helper']['sha256'] == HELPER_SHA
+                and system_safe(value['system']) and sdk_safe(value['sdk']))
+    if value['phase'] == 'helper':
+        if set(value) != HEADER_KEYS|{'attempts','exit_code','children_closed','source_restored'}:
+            return False
+        if ready:
+            return (type(value['attempts']) is int and value['attempts'] == 1 and type(value['exit_code']) is int
+                    and value['exit_code'] == 0 and value['children_closed'] is True and value['source_restored'] is True)
+        return ((value['attempts'] is None or type(value['attempts']) is int and value['attempts'] == 1)
+                and (value['exit_code'] is None or value['attempts'] == 1 and integer(value['exit_code'],-255,255))
+                and value['children_closed'] is None and value['source_restored'] is None)
+    if value['phase'] == 'after':
+        if set(value) != HEADER_KEYS|{'system','system_matches_before','sdk','payloads'} or type(value['system_matches_before']) is not bool:
+            return False
+        if value['system'] is not None and not system_safe(value['system']) or value['system_matches_before'] and value['system'] is None:
+            return False
+        if value['sdk'] is not None and not sdk_safe(value['sdk']):
+            return False
+        if value['payloads'] is not None and (value['sdk'] is None or not payloads_safe(value['payloads'],ready)):
+            return False
+        return not ready or (value['system_matches_before'] is True and value['system'] is not None
+                             and value['sdk'] is not None and value['payloads'] is not None)
     return False
+
+
+def unknown_record(header, phase):
+    if phase == 'helper':
+        return outcome(header)
+    value = {**header,'phase':phase,'status':'UNKNOWN'}
+    if phase == 'after':
+        value.update(system=None,system_matches_before=False,sdk=None,payloads=None)
+    return value
 
 
 def project_public(root, header):
@@ -322,11 +474,11 @@ def project_public(root, header):
             need(type(value) is dict and public_safe(value))
             need(all(value.get(k) == v for k,v in header.items()) and value.get('phase') == phase)
         except BaseException:
-            value = outcome(header) if phase == 'helper' else {**header,'phase':phase,'status':'UNKNOWN'}
+            value = unknown_record(header,phase)
             rejected = True
         records[name] = value
     if rejected:
-        records['setup-after.json']['status'] = 'UNKNOWN'
+        records['setup-after.json'] = unknown_record(header,'after')
     for name, value in records.items():
         write_json(root/'public'/name, value)
     return rejected
@@ -352,12 +504,13 @@ def publish_safe_output(root, header):
 
 
 def after(root, header):
-    report = {**header, 'phase': 'after', 'status': 'UNKNOWN', 'system_matches_before': False,
+    report = {**header, 'phase': 'after', 'status': 'UNKNOWN', 'system':None, 'system_matches_before': False,
               'payloads': None, 'sdk': None}
     try:
         state = read_json(root/'state.json')
         recorded = read_json(root/'public/helper-outcome.json')
         need(state['before']['status'] == 'ready' and type(state['attempts']) is int and state['attempts'] == 1)
+        check_launch_claim(root,header,state,(root/'state.json').lstat())
         need(read_json(root/'public/setup-before.json') == state['before'])
         need(snapshot() == state['before']['system'] and helper_metadata() == state['before']['helper'])
         need(recorded == outcome(header, 0, True, 1) and type(recorded['exit_code']) is int
