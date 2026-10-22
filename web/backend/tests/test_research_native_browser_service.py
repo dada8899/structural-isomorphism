@@ -14,7 +14,7 @@ def component():
 
 def test_actual_https_registered_controller_worker_typed_same_ref_and_cleanup():
     result=component().self_test()
-    assert result=={'scope':'controlled_fixture_only','schema':14,'financial':9,'actual_https':True,'canonical_origin_preserved':True,'same_process_worker':True,'provider_calls':['GET','POST'],'saved_same_ref_time':True,'real_model_executed':False,'automatically_created_sources':0,'cleanup':'closed'}
+    assert result=={'scope':'controlled_fixture_only','schema':15,'financial':9,'actual_https':True,'canonical_origin_preserved':True,'same_process_worker':True,'provider_calls':['GET','POST'],'saved_same_ref_time':True,'real_model_executed':False,'automatically_created_sources':0,'cleanup':'closed'}
     assert not [t for t in threading.enumerate() if t.name.startswith('controlled-plan-')]
 
 

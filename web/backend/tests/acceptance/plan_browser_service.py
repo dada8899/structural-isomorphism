@@ -309,7 +309,7 @@ class PlanBrowserFixture(AbstractContextManager):
             'SMTP_HOST':'fixture.invalid','SMTP_PORT':'587','SMTP_FROM_EMAIL':'sender@example.invalid','ADMIN_NOTIFICATION_EMAIL':'admin@example.invalid','AUTH_TRUSTED_PROXY_IPS':'127.0.0.1','AUTH_DEV_MODE':'false'}
         self.environment={key:os.environ.get(key) for key in settings};os.environ.update(settings)
         from services.auth_registration import bootstrap_private_runtime
-        if bootstrap_private_runtime()['research_schema']!=14:raise PermissionError('current reviewed Research14 required')
+        if bootstrap_private_runtime()['research_schema']!=15:raise PermissionError('current reviewed Research15 required')
         auth._AUTH_STORES={};auth._send_email=self._mail;research.enabled=lambda:True
         from fastapi import FastAPI
         import uvicorn
@@ -351,7 +351,7 @@ class PlanBrowserFixture(AbstractContextManager):
         if not claims or claims.get('sub')!=OWNER:raise PermissionError('actual registered fixture session required')
         self.identity=AccountIdentity(claims['sub'],claims['gen'],claims['jti'],claims['exp'])
         self.store=ResearchStore(auth._store())
-        with self.store.transaction() as conn:ResearchStore._check_v14(conn)
+        with self.store.transaction() as conn:ResearchStore._check_v15(conn)
         self.principal=ResearchService(self.store)._principal(self.identity,create=True)
     def install_controlled_funding(self):
         """Trusted controller method, deliberately not exposed through HTTP."""
@@ -513,7 +513,7 @@ def self_test():
         assert client.request('GET','/api/research/'+rid+'/plan-results/'+ref)[1]==result
         assert client.request('GET','/api/research/'+rid)[0]==200
         assert not fixture.worker_failures
-        root=fixture.root;report={'scope':'controlled_fixture_only','schema':14,'financial':9,'actual_https':True,'canonical_origin_preserved':True,'same_process_worker':True,'provider_calls':fixture.calls.copy(),'saved_same_ref_time':True,'real_model_executed':False,'automatically_created_sources':0}
+        root=fixture.root;report={'scope':'controlled_fixture_only','schema':15,'financial':9,'actual_https':True,'canonical_origin_preserved':True,'same_process_worker':True,'provider_calls':fixture.calls.copy(),'saved_same_ref_time':True,'real_model_executed':False,'automatically_created_sources':0}
     assert not root.exists();report['cleanup']='closed'
     return report
 
