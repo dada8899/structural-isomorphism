@@ -174,7 +174,7 @@ async def lifespan(app: FastAPI):
             except BaseException as error:
                 if source_supervisor is not None and type(error) is source_supervisor.SourceStartFailure:
                     supervisor = error.supervisor
-                logger.warning('source.supervisor.start_unavailable')
+                logger.warning('startup.source_supervisor_unavailable')
             if supervisor is not None:
                 formal_admission.attach_source(app, binding, source_supervisor, supervisor)
             if search_service is not None:
