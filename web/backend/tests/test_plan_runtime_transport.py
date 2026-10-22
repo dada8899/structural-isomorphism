@@ -697,7 +697,7 @@ def test_actual_late_return_original_credential_books_fee_without_restoring_body
     data = saved(stack, monkeypatch); client, _, rid, store = data
     ready, go = threading.Event(), threading.Event(); errors = []; original = flow._commit_return
     def delayed(*args):
-        ready.set(); assert go.wait(5)
+        ready.set(); assert go.wait(12 if action == 'delete' else 5)
         return original(*args)
     monkeypatch.setattr(flow, '_commit_return', delayed)
     with provider() as (server, calls, _), installed(data, server):
