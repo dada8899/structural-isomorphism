@@ -169,10 +169,27 @@ class _TaskReadAuthorizer:
         return True
 
 
+def _checked_acquisition_admission(original):
+    """Classify missing/erased proof before checking an extant original domain.
+
+    This only validates data; it never authorizes a reader or an execution.
+    """
+    if original is None:raise LookupError('original Source resource unavailable')
+    raw=original['admission_json']
+    if raw is None:
+        if original['state']!='closed':raise ValueError('invalid Source erasure state')
+        raise PermissionError('original Source acquisition proof erased')
+    if type(raw) is not str:raise ValueError('original Source admission object required')
+    recorded=codec.strict_json(raw.encode('utf-8'),32768)
+    encoded=canonical(recorded)
+    if type(recorded) is not dict or encoded.decode('utf-8')!=raw or digest(encoded)!=original['admission_digest']:
+        raise ValueError('original Source admission integrity differs')
+
+
 def _selection(conn,store,scope,excerpt_ids,summary,*,identity=None):
     from .evidence_repository import EvidenceRepository
     from .source_integration import authorizer,context_for
-    from .source_guard import check_origin,resource
+    from .source_guard import check_origin
     scope.require()
     pid=scope.store_principal() if identity is not None else scope.consent.principal_id
     control=conn.execute('SELECT * FROM research_controls WHERE id=?',(scope.rid,)).fetchone()
@@ -185,9 +202,14 @@ def _selection(conn,store,scope,excerpt_ids,summary,*,identity=None):
     for index,ref in enumerate(excerpt_ids,1):
         stored=conn.execute("SELECT task_id FROM research_evidence_objects WHERE id=? AND kind='excerpts' AND research_id=? AND input_revision=?",(ref,scope.rid,scope.revision)).fetchone()
         if stored is None:raise LookupError('selected source unavailable')
-        original=resource(conn,stored[0])
-        if original['admission_json'] is not None and digest(canonical(json.loads(original['admission_json'])))!=original['admission_digest']:raise ValueError('source acquisition integrity differs')
-        check_origin(store,conn,stored[0]);context=context_for(conn,stored[0])
+        original=conn.execute('SELECT * FROM research_source_resources WHERE task_id=?',(stored[0],)).fetchone()
+        _checked_acquisition_admission(original)
+        # check_origin is the fixed original-domain proof, not the current
+        # ACL/licence check below. With a present canonical hashed admission,
+        # its rejection denotes corruption, never a permission withdrawal.
+        try:check_origin(store,conn,stored[0])
+        except PermissionError:raise ValueError('original Source acquisition domain differs') from None
+        context=context_for(conn,stored[0])
         details=repository.excerpt_details(context,ref)
         candidate,handle=repository.preview_provider_handle(context,ref,'e'+str(index))
         if len(candidate.title)>300 or len(handle.attribution)>400 or len(candidate.quote)>1000:raise codec.EvidenceMethodLimit('complete selected source field exceeds evidence scope')

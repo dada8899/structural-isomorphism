@@ -202,3 +202,70 @@ if __name__!='__mp_main__':
             with store.transaction() as conn:
                 assert conn.execute('SELECT count(*) FROM research_plan_native_previews').fetchone()[0]==0
                 assert conn.execute('SELECT count(*) FROM research_plan_native_runs').fetchone()[0]==0
+
+    @pytest.mark.parametrize('damage',['domain','missing_original','current_read_withdrawn'])
+    def test_history_distinguishes_original_domain_damage_from_unavailable_source(tmp_path,damage):
+        from .test_research_evidence_method_native import installed
+        from .test_research_funded_plan import provider
+        from .test_evidence_method_plan_codec import method_candidate
+        from research import plan_native_runtime as flow,evidence_method_plan as core
+        from research.authorization import AuthorizationGate
+        candidate=method_candidate();candidate['formula_proposal']['text']='Waiting time'
+        body=dict(summary='A synthetic unverified candidate for original-domain checking.',candidates=[candidate],gaps=candidate['gaps'],clarification_questions=[])
+        choices=[{'finish_reason':'stop','message':{'content':json.dumps(body)}}]
+        with actual(tmp_path) as (service,client,store,actor),provider(choices=choices) as (server,calls),installed(store,actor,server):
+            status,p=preview(service,client);assert status==200,p
+            (status,c),_=approve(service,client,p['data']);assert status==200,c
+            flow.run_once(store,c['data']['task_id'])
+            rid=service.seed.research_id;source_task=service.seed.source_task_id
+            path='/api/research/'+rid+'/evidence-method-plans/'+c['data']['result_ref']
+            status,saved=client.request('GET',path);assert status==200,saved
+            assert saved['data']['content_state']=='available' and saved['data']['content']['candidate']==body
+            with store.transaction() as conn:
+                pid=conn.execute('SELECT owner_id FROM research_controls WHERE id=?',(rid,)).fetchone()[0]
+                original=conn.execute('SELECT * FROM research_source_resources WHERE task_id=?',(source_task,)).fetchone()
+                source_digest=conn.execute('SELECT input_digest FROM research_tasks WHERE id=?',(source_task,)).fetchone()[0]
+                snapshot=conn.execute("SELECT id FROM research_evidence_objects WHERE task_id=? AND kind='snapshots'",(source_task,)).fetchone()[0]
+                immutable=tuple(conn.execute('SELECT result_json,receipt_json,commit_json,usage_json,cost_state,upper FROM research_plan_native_runs').fetchone())
+                money=tuple(conn.execute('SELECT held,upper_booked,settled FROM research_funding_accounts').fetchone())
+                assert core._checked_acquisition_admission(original) is None
+                # Data-only negative classification from an authentic record;
+                # no Source writer, SQL guard, lease or authority is replaced.
+                with pytest.raises(LookupError):core._checked_acquisition_admission(None)
+                with pytest.raises(PermissionError):core._checked_acquisition_admission({**dict(original),'state':'closed','admission_json':None})
+                with pytest.raises(ValueError):core._checked_acquisition_admission({**dict(original),'state':'running','admission_json':None})
+                with pytest.raises(ValueError):core._checked_acquisition_admission({**dict(original),'admission_digest':'0'*64})
+                noncanonical=' '+original['admission_json']
+                with pytest.raises(ValueError):core._checked_acquisition_admission({**dict(original),'admission_json':noncanonical,'admission_digest':digest(noncanonical.encode())})
+            # A retired old execute grant is not a loss of present read rights
+            # and must remain an intact historical acquisition, not corruption.
+            with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+                lease.identity
+                conn.execute('UPDATE research_tasks SET stop_requested=1 WHERE id=?',(source_task,))
+                conn.execute("UPDATE research_grants SET status='revoked',scopes='[]' WHERE id=(SELECT grant_id FROM research_tasks WHERE id=?)",(source_task,))
+            assert client.request('GET',path)==(200,saved)
+            with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+                lease.identity
+                if damage=='domain':conn.execute('UPDATE research_tasks SET input_digest=? WHERE id=?',('0'*64,source_task))
+                elif damage=='missing_original':conn.execute('DELETE FROM research_evidence_objects WHERE id=?',(snapshot,))
+                else:conn.execute("UPDATE research_grants SET status='revoked' WHERE research_id=? AND EXISTS(SELECT 1 FROM json_each(scopes) WHERE value='read')",(rid,))
+            status,response=client.request('GET',path)
+            if damage=='domain':
+                assert status==503 and response['error']['code']=='RESULT_UNAVAILABLE'
+                assert set(response)=={'error'}
+            elif damage=='missing_original':
+                assert status==200 and response['data']['content_state']=='unavailable'
+                assert response['data']['unavailable_reason']=='SOURCE_UNAVAILABLE' and response['data']['content'] is None
+                assert response['data']['metadata']==saved['data']['metadata']
+            else:
+                assert status==404 and response['error']['code']=='NOT_FOUND'
+                assert set(response)=={'error'}
+            assert 'Waiting time' not in json.dumps(response) and 'candidate_kind' not in json.dumps(response)
+            with store.transaction() as conn:
+                assert tuple(conn.execute('SELECT result_json,receipt_json,commit_json,usage_json,cost_state,upper FROM research_plan_native_runs').fetchone())==immutable
+                assert tuple(conn.execute('SELECT held,upper_booked,settled FROM research_funding_accounts').fetchone())==money==(0,flow.UPPER,0)
+            assert [call[0] for call in calls]==['GET','POST']
+            if damage=='domain':
+                with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+                    lease.identity;conn.execute('UPDATE research_tasks SET input_digest=? WHERE id=?',(source_digest,source_task))
+                assert client.request('GET',path)==(200,saved)
