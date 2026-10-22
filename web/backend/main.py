@@ -2,8 +2,10 @@
 Structural Web Backend — FastAPI 入口
 """
 import logging
+import importlib
 import os
 import sys
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -25,12 +27,18 @@ if __package__ == "web.backend":
 else:
     from services.runtime_paths import FormalAdmissionError, FormalAdmissionMiddleware, require_formal_admission
 
-load_dotenv(Path(__file__).parent / ".env")
+_launch_profile = os.getenv('STRUCTURAL_ENV', 'dev')
+_LAUNCH_FORMAL = _launch_profile.strip().lower() == 'prod'
+if _LAUNCH_FORMAL and _launch_profile != 'prod':
+    raise RuntimeError('formal Main requires canonical production profile')
+if not _LAUNCH_FORMAL:
+    load_dotenv(Path(__file__).parent / ".env")
 # Session #16: deploy-vps.sh writes a `.env.runtime` next to .env with the
 # git SHA + deploy timestamp so /api/version can return real values (instead
 # of "unknown"). Loaded *after* .env so deploy-time values override anything
 # baked into a committed .env (which shouldn't happen, but defense in depth).
-load_dotenv(Path(__file__).parent / ".env.runtime", override=True)
+if not _LAUNCH_FORMAL:
+    load_dotenv(Path(__file__).parent / ".env.runtime", override=True)
 
 # W14-D: structlog + correlation IDs. configure_logging() installs a
 # JSON-line handler on the root logger (stdout). Explicit development setup
@@ -135,10 +143,89 @@ async def lifespan(app: FastAPI):
     """Startup: load the search engine once."""
     logger.info("startup.begin")
     if _IS_PROD:
-        # A failed startup must not leave a previous candidate marked ready.
+        from services import formal_admission
+        if formal_admission._STATE.get(id(app)) is not None:
+            raise RuntimeError('an actual Main lifespan is already active')
         app_state.pop("search", None)
         app_state.pop("artifact", None)
-        require_formal_admission()
+        binding = search_service = None
+        source_supervisor = supervisor = None
+        primary = None
+        try:
+            auth_api._validate_production_config()
+            binding = formal_admission.initialize(app)
+            configured = tuple(os.getenv(key) for key in ('STRUCTURAL_DATA_DIR', 'STRUCTURAL_MODEL_PATH',
+                'STRUCTURAL_PRECOMPUTED_EMBEDDINGS', 'STRUCTURAL_ARTIFACT_MANIFEST'))
+            if any(configured):
+                if not all(configured):
+                    raise RuntimeError('complete approved search artifacts required')
+                from services.search_service import SearchService
+                search_service = SearchService(data_dir=configured[0], model_path=configured[1],
+                    precomputed_embeddings=configured[2], artifact_manifest=configured[3],
+                    kb_file=os.getenv('STRUCTURAL_KB_FILE', 'kb-expanded.jsonl'), formal=True)
+            formal_admission.publish(app, binding, search_service)
+            try:
+                source_supervisor = importlib.import_module(
+                    binding.service.__module__.rsplit('.', 1)[0] + '.source_supervisor')
+                formal_admission.pin_source_module(app, binding, source_supervisor)
+                # Core verifies this direct, actual lifespan caller. STARTING
+                # remains unavailable; neither facts nor this assignment grant it.
+                supervisor = source_supervisor.start(binding.service, binding)
+            except BaseException as error:
+                if source_supervisor is not None and type(error) is source_supervisor.SourceStartFailure:
+                    supervisor = error.supervisor
+                logger.warning('source.supervisor.start_unavailable')
+            if supervisor is not None:
+                formal_admission.attach_source(app, binding, source_supervisor, supervisor)
+            if search_service is not None:
+                app_state['search'], app_state['artifact'] = search_service, search_service.artifact
+            yield
+        except BaseException as error:
+            primary = error
+            raise
+        finally:
+            errors = []
+            deadline = time.monotonic() + 20
+            # Core may have returned an owned thread before the subsequent
+            # attachment/check raised. Never lose that actual local handle.
+            if binding is not None and supervisor is not None and binding.supervisor is None:
+                binding.source_module, binding.supervisor = source_supervisor, supervisor
+            # HTTP withdrawal cannot wait behind the Source dispatch mutex.
+            try:
+                withdrawn = formal_admission.withdraw(app)
+                if binding is None:
+                    binding = withdrawn
+            except BaseException as error:
+                errors.append(type(error).__name__)
+            app_state.pop('search', None); app_state.pop('artifact', None)
+            source_closed = binding is None
+            if binding is not None:
+                if binding.source_deadline is not None and not formal_admission.source_closed(binding):
+                    deadline = min(deadline, binding.source_deadline)
+                try:
+                    formal_admission.close_source(binding, deadline_monotonic=deadline)
+                except BaseException as error:
+                    errors.append(type(error).__name__)
+                source_closed = formal_admission.source_closed(binding)
+                if source_closed:
+                    try:
+                        formal_admission.release(binding, deadline_monotonic=deadline)
+                    except BaseException as error:
+                        errors.append(type(error).__name__)
+            if search_service is not None and source_closed:
+                try:
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError('Main cleanup deadline ended')
+                    search_service.close()
+                except BaseException as error:
+                    errors.append(type(error).__name__)
+            if errors:
+                formal_admission.preserve_retirement_uncertainty(app, binding, search_service, errors)
+            if errors and primary is None:
+                raise RuntimeError('formal Main retirement uncertain')
+            if errors and primary is not None:
+                primary.add_note('formal Main retirement uncertain')
+        return
 
     # Authentication deployment constraints are runtime security boundaries,
     # not merely deploy-script conventions. A production beta process must
@@ -402,6 +489,23 @@ async def gate_unfinished_production_surfaces(request: Request, call_next):
         return JSONResponse(
             {"error": "account_features_not_available"}, status_code=503
         )
+    # A basic native binding does not admit unrelated legacy external writers.
+    if path.startswith('/api/'):
+        basic = ('/api/auth/', '/api/me/', '/api/research', '/api/favorites', '/api/history',
+                 '/api/report', '/api/reports/', '/api/sso/', '/api/privacy/')
+        system = path in ('/api/health', '/api/version')
+        retrieval = path.startswith(('/api/search', '/api/phenomenon', '/api/mapping', '/api/daily',
+            '/api/examples', '/api/suggest', '/api/discoveries')) and request.method in ('GET', 'HEAD')
+        if retrieval:
+            from services import formal_admission
+            try:
+                search_ready = formal_admission.safe_status(request.app)['search'] == 'ready'
+            except RuntimeError:
+                search_ready = False
+            if not search_ready:
+                return JSONResponse({'error': 'search_not_ready'}, status_code=503, headers={'Cache-Control': 'no-store'})
+        elif not system and not path.startswith(basic):
+            return JSONResponse({'error': 'surface_not_admitted'}, status_code=503, headers={'Cache-Control': 'no-store'})
     return await call_next(request)
 
 
@@ -524,10 +628,16 @@ from schemas import HealthResponse, VersionResponse, WhoAmIResponse  # noqa: E40
 async def health(deep: int = 0):
     if _IS_PROD:
         try:
-            require_formal_admission()
-        except FormalAdmissionError:
+            require_formal_admission(app)
+            from services import formal_admission
+            status = formal_admission.safe_status(app)
+        except RuntimeError:
             return JSONResponse({"status": "unavailable", "checks": {"private_runtime": "not_admitted"}},
                                 status_code=503, headers={"Cache-Control": "no-store"})
+        limited = status['search'] != 'ready'
+        return JSONResponse({'status': 'limited' if limited else 'ok', 'kb_size': app_state.get('search').kb_size if not limited else 0,
+            'llm_model': 'not_probed', 'checks': status}, status_code=503 if deep and limited else 200,
+            headers={'Cache-Control': 'no-store'})
     svc = app_state.get("search")
     body = {
         "status": "ok",

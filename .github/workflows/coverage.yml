@@ -15,8 +15,9 @@ on:
 jobs:
   coverage:
     runs-on: ubuntu-latest
-    # The complete offline inventory needs a bounded coverage execution budget.
-    timeout-minutes: 60
+    # Instrumented backend coverage alone needs 55 minutes; keep the remaining
+    # offline suites and reports inside one finite execution budget.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -56,7 +57,11 @@ jobs:
           # Reject-aware critic
           python -m coverage run -p --rcfile=.coveragerc -m pytest packages/reject-aware-critic/tests/ $PYTEST_FLAGS
           # Web backend
-          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/ $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/ --ignore=web/backend/tests/test_formal_main_admission.py --ignore=web/backend/tests/test_formal_main_source_supervisor.py --ignore=web/backend/tests/test_research_financial_import.py --ignore=web/backend/tests/test_formal_model_startup.py $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_formal_main_admission.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_formal_main_source_supervisor.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_research_financial_import.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_formal_model_startup.py -p no:logging $PYTEST_FLAGS
           # V4 sanity. soc-pipeline-primitives is covered separately by the
           # packages/soc-pipeline subset below (avoids double-counting), so
           # it's --ignore'd here. The PYTHONPATH shadow bug that previously

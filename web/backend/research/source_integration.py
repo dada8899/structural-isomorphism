@@ -100,8 +100,8 @@ def public_record(record,kind,source,reported_at=None):
     return item
 
 
-def records(service,identity,rid,task_id,kind,cursor=None):
-    require_enabled();rid=service._id(rid);task_id=service._id(task_id);pid=service._principal(identity)
+def records(service,identity,rid,task_id,kind,cursor=None,*,request_app=None):
+    require_enabled(request_app,capability="source_history",store=service.store);rid=service._id(rid);task_id=service._id(task_id);pid=service._principal(identity)
     if kind not in PUBLIC_KINDS:raise not_found()
     with service.store.transaction() as conn:
         control=service.authorization.check(conn,identity,pid,rid)
@@ -164,7 +164,12 @@ SOURCE_DDL=(
 
 
 def install_schema(conn,*,existing_required=False):
-    statements=(*SOURCE_DDL,*DDL)
+    source=SOURCE_DDL
+    marker=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema'").fetchone()
+    if marker and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
+        from .source_guard import approval_table
+        source=(approval_table(),*SOURCE_DDL[1:])
+    statements=(*source,*DDL)
     existing=[]
     for statement in statements:
         # Exact existing objects are accepted for the legacy v1 gate-column
@@ -189,11 +194,44 @@ def enabled():
             and os.getenv("STRUCTURAL_D1_SOURCES_ENABLED","").lower()=="true")
 
 
-def require_enabled():
+def request_execution_available(app,service)->bool:
+    """Per-request presentation fact; never an execution/send capability."""
+    from .runtime_profile import formal_request_required,require_formal_application
+    if formal_request_required(app) or service.store._formal_mode():
+        # Base admission is mandatory, including captured private stores after
+        # ENV downgrade. Its failure cannot become a successful false snapshot.
+        if require_formal_application(app,'research_basic') is not None:
+            raise RuntimeError('formal base admission result invalid')
+        try:
+            if require_formal_application(app,'source_execute') is not None:
+                raise RuntimeError('formal Source admission result invalid')
+            from .source_supervisor import require_available
+            if require_available(app,service) is not None:
+                raise RuntimeError('Source supervision result invalid')
+        except ResearchError as error:
+            if error.code=='FEATURE_UNAVAILABLE' and error.status==503:return False
+            raise
+        return True
+    return enabled()
+
+
+def require_enabled(request_app=None,*,capability='source_execute',store=None):
+    from .runtime_profile import formal_request_required,require_formal_application
+    if formal_request_required(request_app) or (store is not None and store._formal_mode()):
+        if request_app is None and capability=='source_execute' and store is not None:
+            # Only the supervisor's current native thread/slot can enter here.
+            # Never recurse through HTTP/Main capability admission from a worker.
+            from .source_supervisor import _require_store_worker
+            _require_store_worker(store,operation='send')
+            return
+        require_formal_application(request_app,capability)
+        return
     if not enabled():raise ResearchError("FEATURE_UNAVAILABLE",503,"来源证据子链尚未开放。")
 
 
 def origin():
+    from .runtime_profile import formal_request_required
+    if formal_request_required():return 'live'
     return "live" if os.getenv("STRUCTURAL_D1_PUBLIC_GET_ENABLED","").lower()=="true" else "offline_probe"
 
 
@@ -270,7 +308,12 @@ def purge_for_deletion(store,conn,task_id,job_id):
     if not task or task["policy_revision"]!=POLICY:return
     EvidenceRepository(conn,authorizer(store,delete_job=job_id)).purge(context_for(conn,task_id))
     conn.execute("UPDATE research_source_runs SET approval_id=NULL,fingerprint=NULL WHERE task_id=?",(task_id,))
-    conn.execute("UPDATE research_source_chains SET fingerprint=NULL WHERE id IN (SELECT chain_id FROM research_source_runs WHERE task_id=?)",(task_id,))
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
+        from .source_guard import erase_resource
+        erase_resource(conn,task_id)
+        conn.execute("UPDATE research_source_chains SET fingerprint=NULL,research_id=NULL WHERE id IN (SELECT chain_id FROM research_source_runs WHERE task_id=?)",(task_id,))
+    else:
+        conn.execute("UPDATE research_source_chains SET fingerprint=NULL WHERE id IN (SELECT chain_id FROM research_source_runs WHERE task_id=?)",(task_id,))
 
 
 def check_approval(conn,task):
@@ -291,8 +334,8 @@ def check_approval(conn,task):
     return run,approval
 
 
-def preview(service,identity,rid,request):
-    require_enabled();rid=service._id(rid);pid=service._principal(identity)
+def preview(service,identity,rid,request,*,request_app=None):
+    require_enabled(request_app,store=service.store);rid=service._id(rid);pid=service._principal(identity)
     with service.store.transaction() as conn:
         row=service.authorization.check(conn,identity,pid,rid)
         if row["current_revision"]!=request.input_revision or row["version"]!=request.expected_research_version:
@@ -305,11 +348,18 @@ def preview(service,identity,rid,request):
             "model_analysis_ran":False,"statistics_ran":False,"price_series_available":False}}
 
 
-def approve(service,identity,rid,request,key):
-    require_enabled();rid=service._id(rid);pid=service._principal(identity)
+def _source_scope(conn,service,owner,identity,rid,request,key,source,*,admit=False):
+    from contextlib import nullcontext
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13,14):return nullcontext()
+    from .source_guard import approval_scope,admission_scope
+    return (admission_scope if admit else approval_scope)(conn,service,owner,identity,rid,request,key,source)
+
+
+def approve(service,identity,rid,request,key,*,request_source=None,request_app=None):
+    require_enabled(request_app,store=service.store);rid=service._id(rid);pid=service._principal(identity)
     payload=request.model_dump(mode="json")
     from .service import digest
-    with service.authorization.owner_gate(pid),service.store.transaction(write=True) as conn:
+    with service.authorization.owner_gate(pid) as owner,service.store.transaction(write=True) as conn,_source_scope(conn,service,owner,identity,rid,request,key,request_source):
         row=service.authorization.check(conn,identity,pid,rid,scope="write")
         replay=service._replay(conn,pid,"source-approve","r:"+rid,key,digest(payload))
         if replay is not None:return replay
@@ -320,21 +370,26 @@ def approve(service,identity,rid,request,key):
         fields,pd,fp,inp=draft(revision["digest"],request.query)
         if request.preview_digest!=sha256(canonical({"plan_digest":pd,"input_digest":inp}).encode()):raise ResearchError("REVISION_CONFLICT",409,"预览摘要不一致。")
         aid=str(uuid4())
-        conn.execute("""INSERT INTO research_source_approvals
-            (id,principal_id,principal_epoch,auth_generation,research_id,input_revision,problem_digest,query,plan_json,plan_digest,fingerprint,execution_mode,status,created_at)
-            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,'active',?)""",(aid,pid,row["owner_epoch"],identity.generation,rid,request.input_revision,revision["digest"],request.query,canonical(fields),pd,fp,origin(),now()))
+        values=(aid,pid,row["owner_epoch"],identity.generation,rid,request.input_revision,revision["digest"],request.query,canonical(fields),pd,fp,origin(),now())
+        columns='id,principal_id,principal_epoch,auth_generation,research_id,input_revision,problem_digest,query,plan_json,plan_digest,fingerprint,execution_mode,status,created_at'
+        placeholders="?,?,?,?,?,?,?,?,?,?,?,?,'active',?"
+        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
+            from .source_guard import CONSENT_ORIGIN
+            columns+=',consent_origin,consent_digest';placeholders+=',?,?'
+            values+= (CONSENT_ORIGIN,request_source.body_digest)
+        conn.execute('INSERT INTO research_source_approvals ('+columns+') VALUES('+placeholders+')',values)
         result={"schema_version":"structure-research-v1","contract_revision":"b1-candidate-01","data":{"approval_ref":aid,"input_revision":request.input_revision,"query":request.query,"plan_digest":pd,"execution_mode":origin()}}
         service._remember(conn,pid,"source-approve","r:"+rid,key,digest(payload),result)
         return result
 
 
-def start_source(service,identity,rid,request,key):
-    require_enabled();rid=service._id(rid);pid=service._principal(identity)
+def start_source(service,identity,rid,request,key,*,request_source=None,request_app=None):
+    require_enabled(request_app,store=service.store);rid=service._id(rid);pid=service._principal(identity)
     from .service import digest
     from .projection import ResearchProjection
     from .runner import event_in
     payload=request.model_dump(mode="json")
-    with service.authorization.owner_gate(pid),service.store.transaction(write=True) as conn:
+    with service.authorization.owner_gate(pid) as owner,service.store.transaction(write=True) as conn,_source_scope(conn,service,owner,identity,rid,request,key,request_source,admit=True):
         row=service.authorization.check(conn,identity,pid,rid,scope="write")
         replay=service._replay(conn,pid,"source-start","r:"+rid,key,digest(payload))
         if replay is not None:
@@ -348,12 +403,20 @@ def start_source(service,identity,rid,request,key):
                 or approval["execution_mode"]!=origin() or row["current_revision"]!=request.input_revision
                 or row["version"]!=request.expected_research_version):
             raise ResearchError("REVISION_CONFLICT",409,"批准不可用于当前问题与身份。")
+        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
+            from .source_guard import CONSENT_ORIGIN
+            if approval['consent_origin']!=CONSENT_ORIGIN or not approval['consent_digest']:
+                raise ResearchError('SOURCE_PERMISSION_UNAVAILABLE',409,'旧来源批准仅保留历史，请重新预览并明确确认。')
         fields,pd,fp,inp=draft(approval["problem_digest"],approval["query"])
         revision=conn.execute("SELECT digest FROM research_revisions WHERE research_id=? AND revision=?",(rid,request.input_revision)).fetchone()
         if not revision or revision[0]!=approval["problem_digest"] or pd!=approval["plan_digest"] or canonical(fields)!=approval["plan_json"]:raise ResearchError("REVISION_CONFLICT",409,"批准内容已变化。")
         if conn.execute("SELECT 1 FROM research_tasks WHERE research_id=? AND execution IN ('QUEUED','RUNNING','WAITING_EXTERNAL','RECONCILING')",(rid,)).fetchone():raise ResearchError("VERSION_CONFLICT",409,"研究已有未结束流程。")
         chains=source_chains(conn,pid,rid,approval["query"])
         if chains:
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
+                marks=','.join('?' for _ in chains)
+                unproved=conn.execute('SELECT 1 FROM research_source_runs r LEFT JOIN research_source_resources s ON s.task_id=r.task_id WHERE r.chain_id IN ('+marks+') AND s.task_id IS NULL LIMIT 1',tuple(chain['id'] for chain in chains)).fetchone()
+                if unproved:raise ResearchError('RECONCILIATION_REQUIRED',409,'旧来源链仅保留历史，尚无当前受保护执行准入。')
             if unclosed_sources(conn,chains):raise ResearchError("RECONCILIATION_REQUIRED",409,"相同来源读取仍未核实执行闭合。")
             if sum(chain["used"] for chain in chains)>=4:raise ResearchError("RESOURCE_LIMIT",429,"同一观测链已用完四次读取。")
             chain_id=chains[0]["id"]
@@ -368,6 +431,9 @@ def start_source(service,identity,rid,request,key):
         for position,kind in enumerate(("discover_sources","fetch_source","compose_report")):
             conn.execute("INSERT INTO research_steps(id,task_id,position,kind,state) VALUES(?,?,?,?,'PENDING')",(str(uuid4()),tid,position,kind))
         conn.execute("INSERT INTO research_source_runs(task_id,approval_id,chain_id,plan_id,fingerprint,origin) VALUES(?,?,?,?,?,?)",(tid,approval["id"],chain_id,plan_id,approval["fingerprint"],origin()))
+        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14):
+            from .source_guard import admit_resource
+            admit_resource(conn,tid)
         task=conn.execute("SELECT * FROM research_tasks WHERE id=?",(tid,)).fetchone()
         EvidenceRepository(conn,authorizer(service.store)).put(context_for(conn,tid),plan_for(task,approval,plan_id))
         conn.execute("UPDATE research_source_approvals SET status='consumed',consumed_task_id=? WHERE id=?",(tid,approval["id"]))

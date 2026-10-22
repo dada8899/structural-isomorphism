@@ -131,6 +131,12 @@ export interface MappingValidationSuggestion {
   scenario: string;
   failure_signal: string;
 }
+export interface CatalogOrigin {
+  kind: "kb_record";
+  artifact_id: string;
+  record_id: string;
+  record_digest: string;
+}
 /**
  * Legacy development simulator input.
  *
@@ -341,6 +347,79 @@ export interface DiscoveryEvidenceSourceReview {
   reviewer: string;
   reviewed_at: string;
 }
+export interface DraftExcerptRef {
+  excerpt_id: string;
+  source_revision: number;
+  content_digest: string;
+  start: number;
+  end: number;
+}
+export interface DraftFormulaLink {
+  result_ref: string;
+  metadata: FormulaRunMetadata;
+  result_digest: string;
+  input_revision: number;
+  comparison_scope: "expression" | "equation_form" | "initial_value_problem";
+  /**
+   * @minItems 1
+   * @maxItems 4
+   */
+  outcomes:
+    | [DraftFormulaOutcome]
+    | [DraftFormulaOutcome, DraftFormulaOutcome]
+    | [DraftFormulaOutcome, DraftFormulaOutcome, DraftFormulaOutcome]
+    | [DraftFormulaOutcome, DraftFormulaOutcome, DraftFormulaOutcome, DraftFormulaOutcome];
+  execution_attested: boolean;
+}
+export interface FormulaRunMetadata {
+  result_ref: string;
+  state: "claimed" | "returned" | "closed" | "interrupted";
+  result_available: boolean;
+  input_origin: "user_provided";
+  formula_digest: string | null;
+  formula_result_recorded_at: string | null;
+  math_status: null;
+  termination_state: "not_attested" | "reaped" | "pending";
+  task_completed_means_math_passed: false;
+  known_cost_units: 0;
+}
+export interface DraftFormulaOutcome {
+  check_kind: "template" | "dimensions" | "canonical_transform" | "bounded_numeric";
+  status: "passed" | "failed" | "inconclusive" | "unsupported" | "resource_limit";
+  relation:
+    | "algebraic_identity"
+    | "conditional_model_equivalence"
+    | "local_approximation"
+    | "partial_structure"
+    | "not_equivalent"
+    | "undetermined";
+}
+export interface DraftSourceSummary {
+  excerpt_id: string;
+  snapshot_id: string;
+  source_id: string;
+  source_revision: number;
+  content_digest: string;
+  raw_digest: string;
+  excerpt_digest: string;
+  snapshot_digest: string;
+  start: number;
+  end: number;
+  quote: string;
+  title: string;
+  canonical_url: string;
+  licence_basis: string;
+  task_id: string;
+  attempt: 1;
+  input_revision: number;
+}
+export interface DraftTestPlan {
+  question: string;
+  measurement: string;
+  primary_outcome: string;
+  falsification: string;
+  stop_rule: string;
+}
 /**
  * POST /api/errors — accepted/rate_limited/storage_failure envelope.
  *
@@ -396,6 +475,1066 @@ export interface FlagsResponse {
     [k: string]: string;
   };
   [k: string]: unknown;
+}
+export interface FormulaCheckData {
+  result_ref: string;
+  state: "claimed" | "returned" | "closed" | "interrupted";
+  result_available: boolean;
+  input_origin: "user_provided";
+  formula_digest: string | null;
+  formula_result_recorded_at: string | null;
+  math_status: null;
+  termination_state: "not_attested" | "reaped" | "pending";
+  task_completed_means_math_passed: false;
+  known_cost_units: 0;
+  task_id: string;
+}
+export interface FormulaCheckEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "b1-candidate-01";
+  data: FormulaCheckRequest;
+}
+export interface FormulaCheckRequest {
+  input_revision: number;
+  expected_research_version: number;
+  formula_digest: string;
+  confirm_formula_input: boolean;
+}
+export interface FormulaCheckResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "b1-candidate-01";
+  data: FormulaCheckData;
+}
+export interface FormulaExecutionProvenance {
+  execution_attested: boolean;
+  execution_state: "ok" | "unsupported" | "limited" | "memory_limited" | "failed";
+  resource_guard: string;
+  owned_return_ref: string;
+  reaped: true;
+  code_version: string;
+  full_input_digest: string;
+  output_digest: string;
+  formula_digest: string;
+  problem_digest: string;
+  display_AST_confirmation: "user_confirmed_snapshot";
+  source_origin: "user_provided";
+  source_facts_verified: false;
+  mathematics_is_not_real_world_mechanism: true;
+}
+export interface FormulaPublicObject {}
+export interface FormulaResultData {
+  metadata: FormulaRunMetadata;
+  state: "available" | "unavailable";
+  result: {
+    [k: string]: unknown;
+  } | null;
+  provenance?: FormulaExecutionProvenance | null;
+}
+export interface FormulaResultResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "b1-candidate-01";
+  data: FormulaResultData;
+}
+export interface FormulaRevisionDraft {
+  input_origin: "user_provided";
+  comparison_scope: "expression" | "equation_form" | "initial_value_problem";
+  left: FormulaSideDraft;
+  right: FormulaSideDraft | null;
+  /**
+   * @minItems 1
+   * @maxItems 4
+   */
+  requested_checks:
+    | ["template" | "dimensions" | "canonical_transform" | "bounded_numeric"]
+    | [
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric",
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric"
+      ]
+    | [
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric",
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric",
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric"
+      ]
+    | [
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric",
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric",
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric",
+        "template" | "dimensions" | "canonical_transform" | "bounded_numeric"
+      ];
+  /**
+   * @maxItems 256
+   */
+  sample_points: string[];
+}
+export interface FormulaSideDraft {
+  family: "queue_flow" | "first_order_storage" | "local_recovery";
+  template_id: "little" | "mm1" | "passive_decay" | "linear_stable";
+  original_display: string;
+  expression: {
+    [k: string]: unknown;
+  } | null;
+  /**
+   * @maxItems 12
+   */
+  symbols:
+    | []
+    | [
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ];
+  /**
+   * @maxItems 24
+   */
+  assumptions: {
+    [k: string]: unknown;
+  }[];
+  /**
+   * @maxItems 1
+   */
+  initial_conditions:
+    | []
+    | [
+        {
+          [k: string]: unknown;
+        }
+      ];
+  /**
+   * @maxItems 24
+   */
+  boundary_conditions: {
+    [k: string]: unknown;
+  }[];
+  /**
+   * @maxItems 20
+   */
+  source_refs?:
+    | []
+    | [
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ]
+    | [
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        },
+        {
+          [k: string]: unknown;
+        }
+      ];
+  measure_scope: string;
+  time_basis?: "s" | "workday" | "from_symbol_units";
 }
 /**
  * GET /api/health — liveness/deep-probe response.
@@ -479,6 +1618,1394 @@ export interface MappingStreamRequest {
   a_id?: string | null;
   text_a?: string | null;
   lang?: "zh" | "en";
+}
+export interface MethodDraftContent {
+  schema_version: "structure-research-v1";
+  contract_revision: "method-draft-v1";
+  request: MethodDraftRequest;
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  sources:
+    | [DraftSourceSummary]
+    | [DraftSourceSummary, DraftSourceSummary]
+    | [DraftSourceSummary, DraftSourceSummary, DraftSourceSummary]
+    | [DraftSourceSummary, DraftSourceSummary, DraftSourceSummary, DraftSourceSummary]
+    | [DraftSourceSummary, DraftSourceSummary, DraftSourceSummary, DraftSourceSummary, DraftSourceSummary]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ]
+    | [
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary,
+        DraftSourceSummary
+      ];
+  origin: ResolvedPlanOrigin | ResolvedUserOrigin;
+  formula: DraftFormulaLink | null;
+}
+export interface MethodDraftRequest {
+  input_revision: number;
+  expected_research_version: number;
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  excerpt_refs:
+    | [DraftExcerptRef]
+    | [DraftExcerptRef, DraftExcerptRef]
+    | [DraftExcerptRef, DraftExcerptRef, DraftExcerptRef]
+    | [DraftExcerptRef, DraftExcerptRef, DraftExcerptRef, DraftExcerptRef]
+    | [DraftExcerptRef, DraftExcerptRef, DraftExcerptRef, DraftExcerptRef, DraftExcerptRef]
+    | [DraftExcerptRef, DraftExcerptRef, DraftExcerptRef, DraftExcerptRef, DraftExcerptRef, DraftExcerptRef]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ]
+    | [
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef,
+        DraftExcerptRef
+      ];
+  origin: PlanLeadOrigin | CatalogOrigin | UserMethodOrigin;
+  method: string;
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  mapping:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ];
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  nontransferable:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ];
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  competing_explanations:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ];
+  test_plan: DraftTestPlan;
+  formula_result_ref?: string | null;
+  supersedes_ref?: string | null;
+}
+export interface PlanLeadOrigin {
+  kind: "plan_lead";
+  plan_contract: "funded-plan-v1" | "funded-plan-v2";
+  result_ref: string;
+  candidate_index: number;
+  lead_index: number;
+}
+export interface UserMethodOrigin {
+  kind: "user_proposed";
+  label: string;
+  description: string;
+}
+export interface ResolvedPlanOrigin {
+  kind: "plan_lead";
+  plan_contract: "funded-plan-v1" | "funded-plan-v2";
+  result_ref: string;
+  candidate_index: number;
+  lead_index: number;
+  label: string;
+  lead: string;
+  mode: "fixture" | "controlled_fixture" | "native_live";
+  producer: "owned-plan-fixture-v1" | "core-controlled-native-v1" | "owned-native-plan-runtime-v1";
+  result_digest: string;
+  input_revision: number;
+  verification: "unverified";
+}
+export interface ResolvedUserOrigin {
+  kind: "user_proposed";
+  label: string;
+  description: string;
+  mode: "user_proposed";
+  verification: "unverified";
+}
+export interface MethodDraftData {
+  metadata: MethodDraftMetadata;
+  content: MethodDraftContent;
+}
+export interface MethodDraftMetadata {
+  draft_ref: string;
+  input_revision: number;
+  problem_digest: string;
+  research_version_before: number;
+  research_version_after: number;
+  created_at: string;
+  content_digest: string;
+  is_historical: boolean;
+  origin_kind: "plan_lead" | "kb_record" | "user_proposed";
+  validation_status?: "unverified";
+  execution_status?: "not_executed";
+}
+export interface MethodDraftEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "method-draft-v1";
+  data: MethodDraftRequest;
+}
+export interface MethodDraftHistoryData {
+  /**
+   * @maxItems 20
+   */
+  items:
+    | []
+    | [MethodDraftMetadata]
+    | [MethodDraftMetadata, MethodDraftMetadata]
+    | [MethodDraftMetadata, MethodDraftMetadata, MethodDraftMetadata]
+    | [MethodDraftMetadata, MethodDraftMetadata, MethodDraftMetadata, MethodDraftMetadata]
+    | [MethodDraftMetadata, MethodDraftMetadata, MethodDraftMetadata, MethodDraftMetadata, MethodDraftMetadata]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ]
+    | [
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata,
+        MethodDraftMetadata
+      ];
+  next_cursor: string | null;
+}
+export interface MethodDraftHistoryResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "method-draft-v1";
+  data: MethodDraftHistoryData;
+}
+export interface MethodDraftResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "method-draft-v1";
+  data: MethodDraftData;
+}
+export interface NativePlanConfirmationData {
+  task_id: string;
+  result_ref: string;
+  state: "queued";
+  cash_evidence: "not_observed";
+  real_model_executed: false;
+  recorded_at: null;
+}
+export interface NativePlanConfirmationEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v2";
+  data: PlanConfirmationRequest;
+}
+export interface PlanConfirmationRequest {
+  preview_ref: string;
+  preview_digest: string;
+  request_digest: string;
+  expected_research_version: number;
+  approved_upper_units: number;
+  confirm_outbound: true;
+}
+export interface NativePlanConfirmationResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v2";
+  data: NativePlanConfirmationData;
+}
+export interface NativePlanPreviewEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v2";
+  data: PlanPreviewRequest;
+}
+export interface PlanPreviewRequest {
+  input_revision: number;
+  expected_research_version: number;
+  observation_source: "own_observation";
+  declaration_status: "self_declared";
+}
+export interface NativePlanPreviewResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v2";
+  data: NativePlanPreviewView;
+}
+export interface NativePlanPreviewView {
+  preview_ref: string;
+  preview_digest: string;
+  request_digest: string;
+  research_id: string;
+  input_revision: number;
+  expected_research_version: number;
+  exact_input: string;
+  purpose: "phenomenon_plan_v1";
+  observation_rights: "self_declared";
+  state: "awaiting_confirmation" | "funding_closed";
+  can_confirm: boolean;
+  funding_reason: "FUNDING_CLOSED" | null;
+  cash_evidence: "not_observed";
+  approved_upper_units: number;
+  currency: "CNY";
+  scale: 6;
+  quote: NativePlanQuote;
+  expires_at: number;
+  explanation: string;
+}
+export interface NativePlanQuote {
+  protocol: "financial9-native-quote-v1";
+  revision: string;
+  purpose: "phenomenon_plan_v1";
+  provider: "deepseek";
+  model: "deepseek-flash";
+  declared_model_version: "DeepSeek-V4.1-Flash-1017";
+  declaration_observed_on: "2026-10-18";
+  currency: "CNY";
+  scale: 6;
+  peak_input_hit_units_per_million: 40000;
+  peak_input_miss_units_per_million: 2000000;
+  peak_output_units_per_million: 8000000;
+  context_bound: 1048576;
+  provider_output_bound: 393216;
+  max_output_tokens: 4096;
+  approved_upper_units: number;
+  codec_digest: string;
+  issued_at: number;
+  valid_until: number;
+  price_source: "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/";
+}
+export interface NativePlanReadData {
+  task_id: string;
+  result_ref: string;
+  state: "saved" | "failed_insufficient" | "pending_reconciliation" | "cancelled" | "queued" | "generating";
+  financial_version: 9;
+  execution_mode: ("controlled_fixture" | "native_live") | null;
+  real_model_executed: boolean;
+  cost_state: "unreserved" | "held" | "upper_booked" | "unknown";
+  cleanup_state: "pending" | "clean" | "uncertain";
+  safe_code: ("saved" | "body_invalid" | "send_unknown" | "not_sent" | "cancelled" | "access_ended") | null;
+  recorded_at: string | null;
+  content: NativePlanResult | null;
+}
+export interface NativePlanResult {
+  protocol: "owned-native-plan-result-v2";
+  purpose: "phenomenon_plan_v1";
+  result_ref: string;
+  task_id: string;
+  research_id: string;
+  input_revision: number;
+  input_digest: string;
+  request_digest: string;
+  consent_digest: string;
+  admission_digest: string;
+  recorded_at: string;
+  execution_mode: "controlled_fixture" | "native_live";
+  producer: "core-controlled-native-v1" | "owned-native-plan-runtime-v1";
+  real_model_executed: boolean;
+  weight_identity_verified: false;
+  literature_status: "not_retrieved";
+  mathematics_status: "not_checked";
+  mechanism_status: "unverified";
+  observation_rights: "self_declared";
+  query_state: "draft_only";
+  automatically_created_sources: 0;
+  proposal: PhenomenonPlanCandidate;
+}
+export interface PhenomenonPlanCandidate {
+  summary: string;
+  /**
+   * @maxItems 3
+   */
+  candidates:
+    [] | [PlanNomination] | [PlanNomination, PlanNomination] | [PlanNomination, PlanNomination, PlanNomination];
+  /**
+   * @maxItems 5
+   */
+  query_suggestions:
+    | []
+    | [PlanQuerySuggestion]
+    | [PlanQuerySuggestion, PlanQuerySuggestion]
+    | [PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion]
+    | [PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion]
+    | [PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion, PlanQuerySuggestion];
+  /**
+   * @minItems 1
+   * @maxItems 8
+   */
+  gaps:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string];
+  /**
+   * @maxItems 3
+   */
+  clarification_questions: [] | [string] | [string, string] | [string, string, string];
+}
+export interface PlanNomination {
+  label: string;
+  mechanism_hypothesis: string;
+  why_considered: string;
+  /**
+   * @maxItems 2
+   */
+  method_leads: [] | [string] | [string, string];
+  /**
+   * @minItems 1
+   * @maxItems 5
+   */
+  key_unknowns:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string];
+}
+export interface PlanQuerySuggestion {
+  candidate_index: number | null;
+  query: string;
+  intent: string;
+}
+export interface NativePlanReadResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v2";
+  data: NativePlanReadData;
+}
+export interface NativePlanRunMetadata {
+  task_id: string;
+  result_ref: string;
+  state: "saved" | "failed_insufficient" | "pending_reconciliation" | "cancelled" | "queued" | "generating";
+  financial_version: 9;
+  execution_mode: ("controlled_fixture" | "native_live") | null;
+  real_model_executed: boolean;
+  cost_state: "unreserved" | "held" | "upper_booked" | "unknown";
+  cleanup_state: "pending" | "clean" | "uncertain";
+  safe_code: ("saved" | "body_invalid" | "send_unknown" | "not_sent" | "cancelled" | "access_ended") | null;
+  recorded_at: string | null;
 }
 /**
  * GET /api/newsletter/count — current subscriber count (anon-safe).
@@ -890,6 +3417,139 @@ export interface PhenomenonV2Candidate {
   candidate_reason: string;
   retrieval_similarity: number;
   evidence: PhenomenonEvidenceEnvelope;
+}
+export interface PlanConfirmationData {
+  task_id: string;
+  result_ref: string;
+  state: "queued";
+  funding_state: "approved_not_sent";
+  plan_generation_ran: false;
+  recorded_at: null;
+}
+export interface PlanConfirmationEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "b1-candidate-01";
+  data: PlanConfirmationRequest;
+}
+export interface PlanConfirmationResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v1";
+  data: PlanConfirmationData;
+}
+export interface PlanPreviewEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "b1-candidate-01";
+  data: PlanPreviewRequest;
+}
+export interface PlanPreviewResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v1";
+  data: PlanPreviewView;
+}
+export interface PlanPreviewView {
+  preview_ref: string;
+  preview_digest: string;
+  request_digest: string;
+  research_id: string;
+  input_revision: number;
+  expected_research_version: number;
+  state: "awaiting_confirmation";
+  exact_input: string;
+  purpose: "phenomenon_plan_v1";
+  observation_rights: "self_declared";
+  approved_upper_units: number;
+  currency: "CNY";
+  scale: 6;
+  quote: PlanQuote;
+  expires_at: number;
+  explanation: string;
+}
+export interface PlanQuote {
+  protocol: "financial8-plan-quote-v1";
+  revision: string;
+  purpose: "phenomenon_plan_v1";
+  provider: "deepseek";
+  model: "deepseek-flash";
+  declared_model_version: "DeepSeek-V4.1-Flash-1017";
+  declaration_observed_on: "2026-10-18";
+  currency: "CNY";
+  scale: 6;
+  peak_input_hit_units_per_million: 40000;
+  peak_input_miss_units_per_million: 2000000;
+  peak_output_units_per_million: 8000000;
+  context_bound: 1048576;
+  provider_output_bound: 393216;
+  max_output_tokens: 4096;
+  approved_upper_units: number;
+  codec_digest: string;
+  issued_at: number;
+  valid_until: number;
+  price_source: "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/";
+}
+export interface PlanReadData {
+  task_id: string;
+  result_ref: string;
+  state: "saved" | "failed_insufficient" | "pending_reconciliation" | "cancelled" | "queued" | "generating";
+  financial_state: "unreserved" | "held" | "upper_booked" | "unknown";
+  safe_code: ("saved" | "body_invalid" | "send_unknown" | "not_sent" | "cancelled" | "access_ended") | null;
+  recorded_at: string | null;
+  plan_generation_ran: boolean;
+  real_model_executed: false;
+  execution_mode: "fixture";
+  approved_upper_units: number;
+  usage: PlanUsage | null;
+  content: PlanResult | null;
+}
+export interface PlanUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  usage_priced_estimate_units: number;
+  actual_charge_units: null;
+  cost_kind: "upper_booked";
+  booked_upper_units: number;
+  currency: "CNY";
+  scale: 6;
+}
+export interface PlanResult {
+  protocol: "owned-phenomenon-plan-result-v1";
+  purpose: "phenomenon_plan_v1";
+  result_ref: string;
+  task_id: string;
+  research_id: string;
+  input_revision: number;
+  input_digest: string;
+  request_digest: string;
+  admission_digest: string;
+  recorded_at: string;
+  execution_mode: "fixture";
+  plan_generation_ran: true;
+  real_model_executed: false;
+  literature_status: "not_retrieved";
+  mathematics_status: "not_checked";
+  mechanism_status: "unverified";
+  observation_rights: "self_declared";
+  query_state: "draft_only";
+  automatically_created_sources: 0;
+  proposal: PhenomenonPlanCandidate;
+}
+export interface PlanReadResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-plan-v1";
+  data: PlanReadData;
+}
+export interface PlanRunMetadata {
+  task_id: string;
+  result_ref: string;
+  state: "saved" | "failed_insufficient" | "pending_reconciliation" | "cancelled" | "queued" | "generating";
+  financial_state: "unreserved" | "held" | "upper_booked" | "unknown";
+  safe_code: ("saved" | "body_invalid" | "send_unknown" | "not_sent" | "cancelled" | "access_ended") | null;
+  recorded_at: string | null;
+  plan_generation_ran: boolean;
+  real_model_executed: false;
+  execution_mode: "fixture";
+  approved_upper_units: number;
+  usage: PlanUsage | null;
 }
 /**
  * Legacy development-only query shape for DELETE /api/privacy/delete.

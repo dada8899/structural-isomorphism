@@ -17,7 +17,7 @@ def maximum_problem():
     emoji='😀'
     return ProblemInput.model_validate(dict(entry='phenomenon',original_input=emoji*4000,objective=emoji*1000,summary=emoji*1000,
         variables=[dict(id='v'+str(i).zfill(31),label=emoji*120,role='constraint',unit_id='count_per_workday',observation=emoji*400,provenance='system_proposed') for i in range(12)],
-        constraints=[emoji*120]*12,unknowns=[emoji*120]*12,confirmed=False)).model_dump(mode='json')
+        constraints=[emoji*120]*12,unknowns=[emoji*120]*12,confirmed=False)).model_dump(mode='json',exclude={'formula_draft'})
 
 
 def test_cumulative_actual_unicode_revision_save_is_atomic_and_old_records_remain_readable(stack):

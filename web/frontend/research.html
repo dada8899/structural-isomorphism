@@ -13,7 +13,7 @@
     <div class="eyebrow">RESEARCH NOTEBOOK / 研究记录</div>
     <h1>从你的现象，<br>开始研究。</h1>
     <p class="intro">先说观察到了什么、希望解决什么。不必先知道数学方法或英文术语。</p>
-    <p class="scope" id="page-scope">可保存问题与修订；来源流程开放时可预览查询、确认读取并保存证据笔记。研究结论仍需验证。</p>
+    <p class="scope" id="page-scope">可保存问题与修订，预览下一步研究计划的外发范围。执行和来源入口开放时须分别明确确认；研究结论仍需验证。</p>
     <p id="status" role="status" aria-live="polite">正在读取研究记录…</p>
     <p id="view-context" class="scope" hidden></p>
     <div id="access" hidden><a href="/auth/login">登录账户</a><p>研究默认私有，请使用保存时的账户读取。</p></div>
@@ -47,9 +47,51 @@
       <div id="variables" hidden></div>
       </div>
       <label class="check"><input id="confirmed" type="checkbox">我已核对这版问题结构；这不代表假设已被验证。</label>
+      <section id="formula-editor" aria-labelledby="formula-editor-title">
+        <h2 id="formula-editor-title">可选：登记公式对照</h2>
+        <label class="check"><input id="formula-enable" type="checkbox">在本修订保存公式对照草稿</label>
+        <p class="hint">选择登记模板并编辑结构；默认数值仅为示例，原文不会自动解析。空结构可以保存草稿，不能执行检查。未登记来源时标为用户提供，不要求 DOI。</p>
+        <p id="formula-editor-status" class="scope" aria-live="polite"></p>
+        <div id="formula-fields" hidden>
+          <label class="check"><input id="formula-use-right" type="checkbox" checked>对照右侧公式（单式只能检查模板与量纲）</label>
+          <label for="formula-scope">本次比较范围</label><select id="formula-scope"><option value="expression">结构表达式</option><option value="equation_form">条件模型 / 方程形式</option><option value="initial_value_problem">初值问题</option></select>
+          <fieldset class="formula-check-options"><legend>要检查什么</legend>
+            <label class="check"><input type="checkbox" value="template" checked>登记模板</label><label class="check"><input type="checkbox" value="dimensions" checked>量纲与变量含义</label>
+            <label class="check"><input type="checkbox" value="canonical_transform" checked>标准变换</label><label class="check"><input type="checkbox" value="bounded_numeric" checked>有限采样</label>
+          </fieldset>
+          <label for="formula-samples">采样点（逗号分隔，最多 256 个）</label><input id="formula-samples" type="text" value="0" maxlength="8192">
+          <p class="hint">采样点的含义由公式和比较范围决定。归一时间不等于两侧相同物理时刻；采样一致不是恒等证明。</p>
+          <div class="formula-grid"><div id="formula-left"></div><div id="formula-right"></div></div>
+        </div>
+      </section>
       <div class="actions"><button id="save" type="submit">保存问题</button><button id="reload" type="button" class="secondary" hidden>重新读取已存版本</button></div>
       <p class="hint">请求结果不明时保留当前内容，再次保存相同内容会核对原操作，不会另存一份。</p>
     </form>
+    <section id="native-plan-section" hidden aria-labelledby="native-plan-title">
+      <div class="section-heading"><h2 id="native-plan-title">先规划下一步查什么</h2><span class="native-plan-tag">待核验计划</span></div>
+      <p class="scope">从自己的现象自述出发，提出可查找的机制与方法线索。计划不是已验证的跨域解法，也不是成熟研究结论。</p>
+      <p id="native-plan-hint" class="hint"></p>
+      <label class="check"><input id="native-plan-own" type="checkbox">本次是我自己的观察自述，不包含文献、代码或来源正文。这只是我的声明，不代表权属已核实。</label>
+      <div class="actions"><button id="native-plan-preview" type="button" disabled>预览外发原文与费用上限</button><button id="native-plan-refresh" type="button" class="secondary">读取已保存的计划状态</button><button id="native-plan-recover" type="button" class="secondary" hidden>用原提交核对回执（不另开计划）</button></div>
+      <p id="native-plan-status" aria-live="polite"></p>
+      <div id="native-plan-preview-panel" hidden>
+        <h3>将外发的已保存原文</h3><pre id="native-plan-exact-input"></pre><p id="native-plan-quote" class="hint"></p>
+        <label class="check"><input id="native-plan-consent" type="checkbox" disabled>我已核对上面的逐字原文、接收方与本次费用上限，明确同意此次外发和费用上界。</label>
+        <button id="native-plan-confirm" type="button" disabled>确认本次外发并排队</button>
+      </div>
+      <div id="native-plan-record" class="hint" hidden>原问题修订 <span id="native-plan-record-revision"></span> · 原记录时间 <time id="native-plan-record-time"></time><details><summary>记录编号</summary><p id="native-plan-result-ref"></p></details></div>
+      <div id="native-plan-body"></div>
+      <div id="native-plan-query-area" hidden><label for="native-plan-query-draft">手选的英文查询草稿 <span>可编辑 · 尚未读取来源</span></label><input id="native-plan-query-draft" type="text" minlength="3" maxlength="160" autocomplete="off"><button id="native-plan-use-query" class="secondary" type="button">带入来源查询框（尚未查询）</button></div>
+      <h3>计划流程记录</h3><p id="native-plan-history-status" class="hint"></p><ol id="native-plan-history"></ol>
+    </section>
+    <section id="formula-check-section" hidden aria-labelledby="formula-check-title">
+      <h2 id="formula-check-title">检查已保存的公式</h2>
+      <p class="scope">检查只针对已保存并核对的结构式。任务结束不等于数学通过；声明条件与现实机制仍需研究验证。</p>
+      <p id="formula-platform" class="hint"></p><p id="formula-status" aria-live="polite"></p>
+      <label class="check"><input id="formula-confirm" type="checkbox">我已核对已保存的展示式、结构式、变量单位及参数对应；同意检查这份快照</label>
+      <div class="actions"><button id="formula-run" type="button" disabled>检查已保存公式</button><button id="formula-refresh" type="button" class="secondary">重新读取公式与结果</button><button id="formula-recover" type="button" class="secondary" hidden>用原操作核对上次检查</button></div>
+      <div id="formula-results"></div>
+    </section>
     <section id="task-section" hidden aria-labelledby="task-title" aria-live="polite">
       <h2 id="task-title">本机流程演练</h2>
       <p class="scope" id="task-scope">仅验证保存、调用与对账流程，不访问真实供应端、不扣真实费用，也不代表研究成果。</p>
@@ -78,12 +120,57 @@
     <section id="source-section" hidden aria-labelledby="source-title">
       <h2 id="source-title">可选：继续查找方法来源</h2>
       <p class="hint source-write-ui">先预览，再确认查询内容。最多读取四次 Crossref / PLOS 来源；这里只整理方法材料与短摘录，尚未运行模型分析、行情计算或统计检验。</p>
-      <p class="hint source-write-ui">保存并核对问题后，可自行填写英文关键词。不清楚关键词时可先保留问题；当前尚不提供模型提炼、自动翻译或深度研究结论。</p>
+      <p class="hint source-write-ui">保存并核对问题后，可自行填写英文关键词。不清楚关键词时可先保留问题；也可从已保存的研究计划手选查询草稿。计划不替代文献核验或深度研究结论。</p>
       <p id="source-reopen-hint" class="hint">重新打开研究后，已保存的来源笔记需手动读取。尚未读取不代表没有记录；请用下方按钮核对本页对应的研究和来源流程。</p>
       <label for="source-query" class="source-write-ui">英文方法关键词 <span>可编辑 · 仅发送预览中的查询词</span></label>
       <input class="source-write-ui" id="source-query" type="text" minlength="3" maxlength="160" placeholder="例如 queue theory" autocomplete="off" style="width:100%">
-      <div class="actions"><button id="source-preview" type="button">预览来源查询</button><button id="source-confirm" type="button" hidden>确认查询内容并启动</button><button id="source-refresh" type="button" class="secondary" aria-describedby="source-reopen-hint">核对并读取已保存来源笔记</button></div>
+      <div class="actions"><button id="source-preview" class="source-write-ui" type="button">预览来源查询</button><button id="source-confirm" class="source-write-ui" type="button" hidden>确认查询内容并启动</button><button id="source-refresh" type="button" class="secondary" aria-describedby="source-reopen-hint">核对并读取已保存来源笔记</button></div>
       <p id="source-status" role="status" aria-live="polite"></p><pre id="source-plan"></pre><div id="source-records"></div>
+    </section>
+    <section id="financial-preview-section" hidden aria-labelledby="financial-preview-title">
+      <h2 id="financial-preview-title">财务 CSV 临时预览</h2>
+      <p class="scope">账户提交的材料与来源声明，尚未核验。系统没有取得原件；本页只作临时预览，尚未保存，也没有运行计算。</p>
+      <p id="financial-preview-context" class="hint"></p>
+      <details><summary>CSV 格式与范围</summary><p>固定 UTF-8、逗号与双引号格式，表头必须一致；不接受 BOM。最多 16 条来源、64 条观察、16 条历史汇率，总文本最多 128 KiB。空数值保留为缺失，不当作 0；假设不属于历史行。</p><pre id="financial-preview-header">row_type,key,source_refs,url,locator,excerpt,declared_original_sha256,claimed_published_at,claimed_accessed_at,read_scope,source_chain,entity_scope,scope_kind,metric,period_start,period_end,period_grain,value,currency,unit,accounting_basis,declared_basis,alternative_refs,from_currency,to_currency,fx_kind</pre></details>
+      <label for="financial-preview-csv">粘贴有限 CSV 文本 <span>仅当前页面暂存；离开或退出后不承诺恢复。请自行保留原稿。</span></label>
+      <textarea id="financial-preview-csv" rows="8" autocomplete="off" spellcheck="false" aria-describedby="financial-preview-size financial-preview-status"></textarea>
+      <p id="financial-preview-size" class="hint"></p>
+      <div class="actions"><button id="financial-preview-run" type="button">预览 CSV（不保存、不计算）</button><button id="financial-preview-clear" type="button" class="secondary">清空本页 CSV</button></div>
+      <p id="financial-preview-status" aria-live="polite"></p><div id="financial-preview-result"></div>
+    </section>
+    <section id="method-draft-section" hidden aria-labelledby="method-draft-title">
+      <div class="section-heading"><h2 id="method-draft-title">整理一份方法验证草稿</h2><span class="native-plan-tag">人工整理 · 未执行</span></div>
+      <p class="scope">把已存短摘录与方法线索连到当前问题，写清怎么验证。保存不表示方法成熟、迁移有效或数学通过，也不会自动查询、调用模型或运行统计。</p>
+      <p id="method-draft-target" class="hint"></p><p id="method-draft-hint" class="hint"></p>
+      <details open><summary>1. 明确选择已存材料</summary>
+        <label for="method-draft-task">选择已存流程 <span>可读取以前问题修订的材料；不会启动该流程</span></label><select id="method-draft-task"><option value="">先保存问题并读取流程记录</option></select>
+        <div class="actions"><button id="method-draft-read-tasks" type="button" class="secondary">刷新已有资料</button><button id="method-draft-more-tasks" type="button" class="secondary" hidden>更早资料</button><button id="method-draft-read-sources" type="button" class="secondary">读取所选流程的已存摘录</button><button id="method-draft-read-plan" type="button" class="secondary">读取所选计划的方法线索</button><button id="method-draft-read-formula" type="button" class="secondary">读取所选公式引用</button></div>
+        <p id="method-draft-material-status" class="hint" aria-live="polite">只读取本账户已存记录，不会联网检索。</p><div id="method-draft-materials"></div>
+      </details>
+      <form id="method-draft-form">
+        <details open><summary>2. 选择方法来源，自己填写思路</summary>
+          <label for="method-draft-origin">方法从哪里来</label><select id="method-draft-origin"><option value="user_proposed">我自己的提议（未验证）</option><option value="plan_lead">已保存计划中的线索（未验证）</option></select>
+          <p class="hint">当前没有可信知识库目录可供此处关联，不能把搜索命中或名称伪装成已核对的方法记录。</p>
+          <div id="method-draft-user"><label for="method-draft-label">人工提议的方法名称 <span>最多120字</span></label><input id="method-draft-label" type="text" maxlength="120" autocomplete="off"></div>
+          <div id="method-draft-plan" hidden><p class="hint">先在上方读取实际计划，再选其中一条线索；不会预填方法或验证答案。</p><div id="method-draft-plan-choices"></div></div>
+          <label for="method-draft-method">方法与适用条件 <span>自己说明如何用于当前现象，最多2000字</span></label><textarea id="method-draft-method" rows="4" maxlength="2000" required></textarea>
+          <label for="method-draft-mapping">变量、对象或步骤如何对应 <span>每行一项，1–20项</span></label><textarea id="method-draft-mapping" rows="3" required></textarea>
+          <label for="method-draft-nontransferable">哪些部分不能直接迁移 <span>每行一项，1–20项</span></label><textarea id="method-draft-nontransferable" rows="3" required></textarea>
+          <label for="method-draft-competing">还可能有哪些竞争解释 <span>每行一项，1–20项</span></label><textarea id="method-draft-competing" rows="3" required></textarea>
+        </details>
+        <details open><summary>3. 填写最小验证计划</summary>
+          <label for="method-draft-question">要验证什么问题</label><textarea id="method-draft-question" rows="2" maxlength="2000" required></textarea>
+          <label for="method-draft-measurement">怎样观察与测量</label><textarea id="method-draft-measurement" rows="2" maxlength="2000" required></textarea>
+          <label for="method-draft-outcome">主要结果指标是什么</label><textarea id="method-draft-outcome" rows="2" maxlength="2000" required></textarea>
+          <label for="method-draft-falsification">什么结果会推翻它</label><textarea id="method-draft-falsification" rows="2" maxlength="2000" required></textarea>
+          <label for="method-draft-stop">在什么条件下停止</label><textarea id="method-draft-stop" rows="2" maxlength="2000" required></textarea>
+        </details>
+        <details><summary>可选：关联原记录</summary><label for="method-draft-formula">关联已读取的公式结果</label><select id="method-draft-formula"><option value="">不关联公式记录</option></select><p class="hint">只保留原检查的修订、范围与状态；旧检查通过不升级为本方法已验证。</p><p id="method-draft-parent" class="hint">未关联上一稿。可从下方真实历史选择关联，新稿另生记录。</p><button id="method-draft-clear-parent" type="button" class="secondary">取消上一稿关联</button></details>
+        <div class="actions"><button id="method-draft-save" type="submit" disabled>保存这份未验证草稿</button></div>
+      </form>
+      <p id="method-draft-status" aria-live="polite"></p><button id="method-draft-refresh-base" type="button" class="secondary" hidden>核对当前问题版本（保留手稿）</button><div id="method-draft-pending"></div>
+      <h3>已保存的方法草稿</h3><p class="hint">原稿只读查看，不覆盖编辑区。新增或修订都另存新记录。</p><button id="method-draft-read-history" type="button" class="secondary">核对并读取草稿历史</button><p id="method-draft-history-status" class="hint"></p><ol id="method-draft-history"></ol>
+      <p id="method-draft-view-status" class="scope" aria-live="polite"></p><div id="method-draft-view"></div>
     </section>
     <section id="task-history-section" hidden aria-labelledby="task-history-title">
       <h2 id="task-history-title">已保存的流程记录</h2>

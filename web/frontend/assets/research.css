@@ -53,6 +53,68 @@ section, .optional-inputs { min-width:0; }
 #task-history-items a, #task-history-more, #task-history-refresh, #task-current { display:inline-flex; align-items:center; min-height:44px; }
 #task-history-items .hint { margin:4px 0; }
 #method-result-ref { overflow-wrap:anywhere; font-size:13px; }
+#formula-editor, #formula-check-section { border-top:1px solid var(--line); margin-top:30px; padding-top:20px; min-width:0; overflow-wrap:anywhere; }
+.formula-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:24px; }
+.formula-grid > div { min-width:0; border-left:2px solid var(--line); padding-left:14px; }
+.formula-grid h3 { font-size:18px; }.formula-grid h4 { font-size:15px; margin-top:25px; }
+.formula-field { min-width:0; }.formula-field label { margin:14px 0 5px; font-size:13px; font-weight:500; }
+.formula-field input, .formula-field select, .formula-field textarea { min-width:0; width:100%; }
+.formula-symbol, .formula-node, .formula-check-options { border:1px solid var(--line); padding:10px; margin:12px 0; min-width:0; }
+.formula-symbol legend, .formula-node legend, .formula-check-options legend { color:var(--muted); font-size:13px; }
+.formula-symbol { display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; }
+.formula-symbol button { grid-column:1/-1; }
+.formula-node { margin:8px 0; padding:8px; }.formula-node select { font-size:13px; padding:8px; }
+.formula-condition { border-bottom:1px solid var(--line); padding-bottom:12px; }
+.formula-grid button { font-size:13px; padding:9px 12px; min-height:44px; }
+.formula-preview { font-size:14px; min-height:58px; overflow-wrap:anywhere; white-space:pre-wrap; }
+.formula-preview:focus { outline:3px solid #89b19b; }
+.formula-check-options { display:grid; grid-template-columns:1fr 1fr; gap:8px; }.formula-check-options label { margin:0; }
+.formula-original, .formula-outcome { border-top:1px solid var(--line); padding:18px 0; }
+.formula-original p, .formula-outcome li { white-space:pre-wrap; overflow-wrap:anywhere; }
+.formula-outcome h3 { font-size:18px; }.formula-outcome-status { font-weight:600; }
+.formula-outcome-status[data-status="failed"], .formula-outcome-status[data-status="resource_limit"] { color:#89391e; }
+#formula-results > details p { font-size:13px; overflow-wrap:anywhere; }
+#formula-results a { display:inline-flex; align-items:center; min-height:44px; }
+@media(max-width:640px) { .formula-grid { grid-template-columns:1fr; gap:30px; }.formula-symbol { grid-template-columns:1fr; }.formula-check-options { grid-template-columns:1fr; } }
 textarea:disabled, select:disabled { opacity:1; color:var(--ink); background:#e9ece2; }
 @media(max-width:520px) { header { gap:12px; }nav { gap:8px; }#my-research .section-heading { flex-wrap:wrap; }#my-research .section-heading button { width:auto; } }
 @media(max-width:520px) { header { padding:20px; }main { margin-top:38px; padding:0 20px; }label span { display:block; padding:0; }.section-heading { align-items:baseline; }button { width:100%; }footer { padding:24px 20px; } }
+
+#native-plan-section { border-top:1px solid var(--line); margin-top:36px; padding-top:24px; min-width:0; overflow-wrap:anywhere; }
+#native-plan-section h3 { margin:26px 0 8px; font-size:17px; }
+#native-plan-section h4 { margin:18px 0 6px; font-size:15px; }
+.native-plan-tag { color:var(--accent); border:1px solid var(--line); padding:3px 9px; font-size:12px; white-space:nowrap; }
+#native-plan-preview-panel { border-left:3px solid var(--accent); padding:1px 18px 20px; margin-top:22px; background:#e9ece2; }
+#native-plan-exact-input { padding:0; background:none; }
+#native-plan-status { min-height:26px; font-size:14px; white-space:pre-wrap; }
+.native-plan-candidate, .native-plan-query { border-bottom:1px solid var(--line); padding:12px 0 18px; }
+#native-plan-body p, #native-plan-body li { white-space:pre-wrap; }
+#native-plan-body ul { padding-left:22px; }
+#native-plan-history { padding-left:24px; }
+#native-plan-history li { padding:10px 0; border-bottom:1px solid var(--line); }
+#native-plan-history a, #native-plan-body a { display:inline-flex; align-items:center; min-height:44px; }
+#native-plan-record { margin-top:24px; }
+#native-plan-result-ref { overflow-wrap:anywhere; }
+#native-plan-query-area button { margin-top:12px; }
+@media(max-width:520px) { #native-plan-section .section-heading { align-items:flex-start; flex-wrap:wrap; }#native-plan-preview-panel { padding-left:12px; padding-right:12px; } }
+
+#native-plan-section button:disabled { cursor:not-allowed; }
+
+#method-draft-section { border-top:1px solid var(--line); margin-top:36px; padding-top:24px; overflow-wrap:anywhere; }
+#method-draft-form { border:0; padding:0; margin-top:18px; }
+#method-draft-section h3 { margin:28px 0 8px; font-size:18px; }
+#method-draft-section h4 { margin:20px 0 7px; font-size:15px; }
+#method-draft-section > details, #method-draft-form > details { border-bottom:1px solid var(--line); padding:18px 0; }
+#method-draft-status { min-height:26px; white-space:pre-wrap; font-size:14px; }
+.draft-material { border-left:2px solid var(--line); padding:10px 14px; margin:16px 0; }
+.draft-material label { margin-top:0; }.draft-material blockquote, #method-draft-view blockquote { margin:12px 0; padding:12px 14px; background:#e9ece2; white-space:pre-wrap; }
+#method-draft-view p, #method-draft-view li { white-space:pre-wrap; }
+#method-draft-view { margin-top:20px; }#method-draft-view details p { overflow-wrap:anywhere; }
+#method-draft-history { padding-left:24px; }#method-draft-history li { border-bottom:1px solid var(--line); padding:12px 0; }
+#method-draft-history button { margin:6px 8px 6px 0; font-size:13px; padding:9px 12px; }
+#method-draft-section button:disabled { cursor:not-allowed; }
+
+#financial-preview-section { border-top:1px solid var(--line); margin-top:36px; padding-top:24px; min-width:0; overflow-wrap:anywhere; }
+#financial-preview-result p, #financial-preview-result blockquote { white-space:pre-wrap; overflow-wrap:anywhere; }
+#financial-preview-status { min-height:26px; white-space:pre-wrap; font-size:14px; }
+#financial-preview-result h4 { margin:20px 0 7px; font-size:15px; }.financial-original-value { font-weight:600; }

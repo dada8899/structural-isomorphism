@@ -5,7 +5,7 @@ import json
 import os
 import re
 import sqlite3
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -17,24 +17,62 @@ if __package__ == "web.backend.api":
     from ..research.authorization import AccountIdentity
     from ..research.errors import ResearchError
     from ..research.provider_schemas import ProviderFailure
-    from ..research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery, PaidPreviewEnvelope, PaidConfirmationEnvelope
+    from ..research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery, PaidPreviewEnvelope, PaidConfirmationEnvelope, FormulaCheckEnvelope, FormulaCheckResponse, FormulaResultResponse
     from ..research import source_integration
     from ..research import paid_api_public as paid_public
     from ..research import ResearchService, ResearchStore
+    from ..research.projection import projection_bytes,RESEARCH_RESPONSE_LIMIT
+    from ..research.schemas import SCHEMA_VERSION,CONTRACT_REVISION
 else:
     from api import auth
     from research.authorization import AccountIdentity
     from research.errors import ResearchError
     from research.provider_schemas import ProviderFailure
-    from research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery, PaidPreviewEnvelope, PaidConfirmationEnvelope
+    from research.schemas import CreateEnvelope, RevisionEnvelope, StartEnvelope, TaskEnvelope, SourcePreviewEnvelope, SourceApprovalEnvelope, SourceStartEnvelope, ResearchIndexQuery, PaidPreviewEnvelope, PaidConfirmationEnvelope, FormulaCheckEnvelope, FormulaCheckResponse, FormulaResultResponse
     from research import source_integration
     from research import paid_api_public as paid_public
     from research import ResearchService, ResearchStore
+    from research.projection import projection_bytes,RESEARCH_RESPONSE_LIMIT
+    from research.schemas import SCHEMA_VERSION,CONTRACT_REVISION
+
+if __package__=='web.backend.api':
+    from ..research.plan_schemas import PlanPreviewEnvelope,PlanConfirmationEnvelope,PlanPreviewResponse,PlanConfirmationResponse,PlanReadResponse
+    from ..research.plan_native_schemas import NativePlanPreviewEnvelope,NativePlanConfirmationEnvelope,NativePlanPreviewResponse,NativePlanConfirmationResponse,NativePlanReadResponse
+else:
+    from research.plan_schemas import PlanPreviewEnvelope,PlanConfirmationEnvelope,PlanPreviewResponse,PlanConfirmationResponse,PlanReadResponse
+    from research.plan_native_schemas import NativePlanPreviewEnvelope,NativePlanConfirmationEnvelope,NativePlanPreviewResponse,NativePlanConfirmationResponse,NativePlanReadResponse
+
+if __package__=='web.backend.api':
+    from ..research.method_draft_schemas import MethodDraftEnvelope,MethodDraftResponse,MethodDraftHistoryResponse
+    from ..research.financial_input_schemas import FinancialImportPreviewEnvelope,FinancialImportPreviewResponse
+else:
+    from research.method_draft_schemas import MethodDraftEnvelope,MethodDraftResponse,MethodDraftHistoryResponse
+    from research.financial_input_schemas import FinancialImportPreviewEnvelope,FinancialImportPreviewResponse
 
 router = APIRouter(tags=["research"])
 _KEY = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z", re.ASCII)
 _HEADERS = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"}
 _PAID_OPERATIONS = ('paid-preview','paid-confirm')
+_ROOT_VIEW_OPERATIONS = ('create','revise','view','start','source-start','cancel','reconcile','resume')
+
+
+def _with_request_source_capability(result,*,app,service,research_id,operation):
+    """Copy only the Root envelope/data/caps; cached typed content stays intact."""
+    if operation not in _ROOT_VIEW_OPERATIONS:return result
+    if (type(result) is not dict or set(result)!={'schema_version','contract_revision','data'}
+            or result['schema_version']!=SCHEMA_VERSION or result['contract_revision']!=CONTRACT_REVISION
+            or type(result['data']) is not dict):
+        raise ValueError('Root envelope unavailable')
+    data=result['data'];research=data.get('research');caps=data.get('capabilities')
+    if (type(research) is not dict or type(research.get('id')) is not str
+            or type(caps) is not dict or type(caps.get('source_evidence')) is not bool):
+        raise ValueError('Root capability shape unavailable')
+    rid=research['id'];parsed=UUID(rid)
+    if parsed.version!=4 or str(parsed)!=rid or (operation!='create' and rid!=research_id):
+        raise ValueError('Root research identity differs')
+    available=source_integration.request_execution_available(app,service)
+    if type(available) is not bool:raise TypeError('Source availability must be boolean')
+    return {**result,'data':{**data,'capabilities':{**caps,'source_evidence':available}}}
 
 
 def _paid_response_unavailable():
@@ -64,6 +102,16 @@ def _paid_success_response(operation,result):
 def _paid_responses(operation):
     return {200:{'model':paid_public.success_response_model(operation)},
         **{status:{'model':paid_public.ResearchPublicErrorEnvelope} for status in (401,403,404,409,413,422,429,503)}}
+
+
+def _formula_request_body(schema):
+    value=schema.model_json_schema();definitions=value.get('$defs',{})
+    def expand(item):
+        if type(item) is list:return [expand(v) for v in item]
+        if type(item) is not dict:return item
+        if '$ref' in item:return expand(definitions[item['$ref'].split('/')[-1]])
+        return {k:expand(v) for k,v in item.items() if k!='$defs'}
+    return {'required':True,'content':{'application/json':{'schema':expand(value)}}}
 
 
 def enabled():
@@ -115,6 +163,10 @@ async def _parse(request, schema):
         raw.extend(chunk)
     try:
         body = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_object, parse_constant=_invalid_constant)
+        if schema in (PlanPreviewEnvelope,PlanConfirmationEnvelope) and type(body) is dict and body.get('contract_revision')=='funded-plan-v2':
+            if __package__=='web.backend.api':from ..research.plan_native_schemas import NativePlanPreviewEnvelope,NativePlanConfirmationEnvelope
+            else:from research.plan_native_schemas import NativePlanPreviewEnvelope,NativePlanConfirmationEnvelope
+            schema=NativePlanPreviewEnvelope if schema is PlanPreviewEnvelope else NativePlanConfirmationEnvelope
         validated=schema.model_validate(body)
         request._body=bytes(raw)
         return validated
@@ -123,13 +175,77 @@ async def _parse(request, schema):
         raise ResearchError("INPUT_INVALID", 422, "研究内容、版本或字段不符合要求，请核对后再保存。") from None
 
 
+async def _parse_financial_import_preview(request):
+    if __package__=='web.backend.api':
+        from ..research.financial_input_schemas import WIRE_LIMIT, FinancialImportError, decode_financial_import_preview
+    else:
+        from research.financial_input_schemas import WIRE_LIMIT, FinancialImportError, decode_financial_import_preview
+    if request.headers.get('content-type','').split(';',1)[0].strip().lower()!='application/json':
+        raise FinancialImportError('JSON_CONTENT_TYPE_REQUIRED')
+    raw=bytearray()
+    async for chunk in request.stream():
+        if len(raw)+len(chunk)>WIRE_LIMIT:raise FinancialImportError('WIRE_LIMIT',limit=True)
+        raw.extend(chunk)
+    envelope=decode_financial_import_preview(bytes(raw))
+    request._body=bytes(raw)
+    return envelope
+
+
 async def _dispatch(request, *, research_id=None, operation="view"):
     try:
-        if not enabled():
+        if __package__=='web.backend.api':from ..research.runtime_profile import formal_request_required,require_formal_application
+        else:from research.runtime_profile import formal_request_required,require_formal_application
+        if formal_request_required(request.app):require_formal_application(request.app,'research_basic')
+        elif not enabled():
             raise ResearchError("FEATURE_UNAVAILABLE", 503, "研究保存功能尚未开放。")
         identity = await run_in_threadpool(_identity, request)
         service = await run_in_threadpool(lambda: ResearchService(ResearchStore(auth._store())))
-        if operation == "index":
+        # Captured private storage never falls back to a development flag after
+        # environment downgrade, including requests outside canonical Main.
+        if service.store._formal_mode():require_formal_application(request.app,'research_basic')
+        if operation=='financial-import-preview':
+            if __package__=='web.backend.api':
+                from ..research.financial_import import preview_import
+                from ..research.paid_control import issue_authenticated_action
+            else:
+                from research.financial_import import preview_import
+                from research.paid_control import issue_authenticated_action
+            if auth.require_same_origin(request) is not None:raise ResearchError('AUTHORIZATION_STALE',403,'请从本站页面预览财务输入。')
+            if not _KEY.fullmatch(request.headers.get('idempotency-key','')) or request.query_params:
+                raise ResearchError('INPUT_INVALID',422,'预览操作标识或请求参数不合法。')
+            envelope=await _parse_financial_import_preview(request)
+            source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+            try:
+                response=await run_in_threadpool(preview_import,service,identity,research_id,envelope.data,source)
+                result=response.model_dump(mode='json')
+            finally:source.close()
+        elif operation in ('draft-save','draft-read','draft-history'):
+            if __package__=='web.backend.api':
+                from ..research import method_draft
+                from ..research.paid_control import issue_authenticated_action
+            else:
+                from research import method_draft
+                from research.paid_control import issue_authenticated_action
+            if operation=='draft-save':
+                if auth.require_same_origin(request) is not None:raise ResearchError('AUTHORIZATION_STALE',403,'请从本站页面保存草稿。')
+                key=request.headers.get('idempotency-key','')
+                if not _KEY.fullmatch(key):raise ResearchError('INPUT_INVALID',422,'保存操作标识缺失或不合法。')
+                if request.query_params:raise ResearchError('INPUT_INVALID',422,'草稿保存不接受查询参数。')
+                envelope=await _parse(request,MethodDraftEnvelope)
+            elif operation=='draft-history':
+                pairs=list(request.query_params.multi_items());raw_limit=request.query_params.get('limit','20')
+                if len({k for k,_ in pairs})!=len(pairs) or any(k not in ('limit','cursor') for k,_ in pairs) or re.fullmatch(r'[1-9]|1[0-9]|20',raw_limit,re.ASCII) is None:
+                    raise ResearchError('INPUT_INVALID',422,'草稿分页参数无效。')
+                cursor=request.query_params.get('cursor')
+                if cursor is not None:service._id(cursor)
+            elif request.query_params:raise ResearchError('INPUT_INVALID',422,'草稿读取不接受查询参数。')
+            source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+            try:
+                if operation=='draft-save':result=await run_in_threadpool(method_draft.save,service,identity,research_id,envelope.data,key,source)
+                elif operation=='draft-read':result=await run_in_threadpool(method_draft.read,service,identity,research_id,request.path_params['draft_ref'],source)
+                else:result=await run_in_threadpool(method_draft.history,service,identity,research_id,int(raw_limit),cursor,source)
+            finally:source.close()
+        elif operation == "index":
             pairs=list(request.query_params.multi_items())
             if len({key for key,_ in pairs})!=len(pairs) or any(key not in ("limit","cursor") for key,_ in pairs):
                 raise ResearchError("INPUT_INVALID",422,"列表分页参数无效。")
@@ -147,8 +263,43 @@ async def _dispatch(request, *, research_id=None, operation="view"):
             source=await run_in_threadpool(issue_authenticated_action,request,action='method-read')
             try:result = await run_in_threadpool(service.view, identity, research_id, task_id,request_source=source)
             finally:source.close()
+        elif operation in ('formula-read','formula-revision-read'):
+            if request.query_params:raise ResearchError('INPUT_INVALID',422,'公式读取不接受查询参数。')
+            if __package__=='web.backend.api':
+                from ..research.paid_control import issue_authenticated_action
+                from ..research import formula_result
+            else:
+                from research.paid_control import issue_authenticated_action
+                from research import formula_result
+            source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+            try:
+                if operation=='formula-read':result=await run_in_threadpool(formula_result.read_result,service,identity,research_id,request.path_params['result_ref'],request_source=source)
+                else:
+                    raw_revision=request.path_params['revision']
+                    if type(raw_revision) is not str or re.fullmatch(r'[1-9][0-9]{0,9}',raw_revision) is None:raise ResearchError('INPUT_INVALID',422,'公式修订无效。')
+                    revision=int(raw_revision)
+                    if not 1<=revision<=2147483647:raise ResearchError('INPUT_INVALID',422,'公式修订无效。')
+                    result=await run_in_threadpool(formula_result.read_revision,service,identity,research_id,revision,request_source=source)
+            finally:source.close()
+        elif operation=='plan-read':
+            if __package__=='web.backend.api':
+                from ..research.paid_control import issue_authenticated_action
+                from ..research.plan_result import read
+            else:
+                from research.paid_control import issue_authenticated_action
+                from research.plan_result import read
+            source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+            try:
+                if __package__=='web.backend.api':from ..research import plan_native_runtime
+                else:from research import plan_native_runtime
+                with service.store.transaction() as conn:
+                    native=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_plan_native_runs'").fetchone()
+                    native=native and conn.execute('SELECT 1 FROM research_plan_native_runs WHERE result_ref=?',(request.path_params['result_ref'],)).fetchone()
+                if native:result=await run_in_threadpool(plan_native_runtime.read,service,identity,research_id,request.path_params['result_ref'],source)
+                else:result=await run_in_threadpool(read,service,identity,research_id,request.path_params['result_ref'],source)
+            finally:source.close()
         elif operation == "source-records":
-            result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get("task_id",""),request.query_params.get("kind",""),request.query_params.get("cursor"))
+            result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get("task_id",""),request.query_params.get("kind",""),request.query_params.get("cursor"),request_app=request.app)
         elif operation == "events":
             raw_cursor=request.query_params.get("after_seq","0")
             if not re.fullmatch(r"[0-9]{1,12}",raw_cursor):raise ResearchError("INPUT_INVALID",422,"事件游标无效。")
@@ -161,11 +312,28 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                 raise ResearchError("INPUT_INVALID", 422, "保存操作标识缺失或不合法。")
             if operation in ('paid-preview','paid-confirm') and request.query_params:
                 raise ResearchError('INPUT_INVALID',422,'付费范围请求不接受查询参数。')
-            envelope = await _parse(request,{"create":CreateEnvelope,"revise":RevisionEnvelope,"start":StartEnvelope,
+            if __package__=='web.backend.api':from ..research.plan_schemas import PlanPreviewEnvelope,PlanConfirmationEnvelope
+            else:from research.plan_schemas import PlanPreviewEnvelope,PlanConfirmationEnvelope
+            envelope = await _parse(request,{'plan-preview':PlanPreviewEnvelope,'plan-confirm':PlanConfirmationEnvelope,"create":CreateEnvelope,"revise":RevisionEnvelope,"start":StartEnvelope,
                                              'paid-preview':PaidPreviewEnvelope,'paid-confirm':PaidConfirmationEnvelope,
                                              "source-preview":SourcePreviewEnvelope,"source-approve":SourceApprovalEnvelope,"source-start":SourceStartEnvelope,
-                                             "cancel":TaskEnvelope,"reconcile":TaskEnvelope,"resume":TaskEnvelope}[operation])
-            if operation == "create":
+                                             "cancel":TaskEnvelope,"reconcile":TaskEnvelope,"resume":TaskEnvelope,"formula-check":FormulaCheckEnvelope}[operation])
+            if operation in ('plan-preview','plan-confirm'):
+                if __package__=='web.backend.api':
+                    from ..research.paid_control import issue_authenticated_action
+                    from ..research import plan_runtime
+                else:
+                    from research.paid_control import issue_authenticated_action
+                    from research import plan_runtime
+                source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+                if envelope.contract_revision=='funded-plan-v2':
+                    if __package__=='web.backend.api':from ..research import plan_native_runtime
+                    else:from research import plan_native_runtime
+                    function=plan_native_runtime.preview if operation=='plan-preview' else plan_native_runtime.confirm
+                else:function=plan_runtime.preview if operation=='plan-preview' else plan_runtime.confirm
+                try:result=await run_in_threadpool(function,service,identity,research_id,envelope.data,key,source)
+                finally:source.close()
+            elif operation == "create":
                 result = await run_in_threadpool(service.create, identity, envelope.data, key)
             elif operation in ('paid-preview','paid-confirm'):
                 # Server composition only. Requests/env booleans cannot install
@@ -173,16 +341,30 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                 resolver=getattr(request.app.state,'research_paid_resolver',None)
                 method=service.paid_preview if operation=='paid-preview' else service.paid_confirm
                 result=await run_in_threadpool(method,identity,research_id,envelope.data,key,funding_resolver=resolver)
+            elif operation=='formula-check':
+                if request.query_params:raise ResearchError('INPUT_INVALID',422,'公式检查不接受查询参数。')
+                if __package__=='web.backend.api':
+                    from ..research.paid_control import issue_authenticated_action
+                    from ..research.formula_result import start as formula_start
+                else:
+                    from research.paid_control import issue_authenticated_action
+                    from research.formula_result import start as formula_start
+                source=await run_in_threadpool(issue_authenticated_action,request,action='formula-check')
+                try:result=await run_in_threadpool(formula_start,service,identity,research_id,envelope.data,key,request_source=source)
+                finally:source.close()
             elif operation == "revise":
                 result = await run_in_threadpool(service.revise, identity, research_id, envelope.data, key)
             elif operation == "start":
                 result=await run_in_threadpool(service.start,identity,research_id,envelope.data,key)
             elif operation == "source-preview":
-                result=await run_in_threadpool(source_integration.preview,service,identity,research_id,envelope.data)
-            elif operation == "source-approve":
-                result=await run_in_threadpool(source_integration.approve,service,identity,research_id,envelope.data,key)
-            elif operation == "source-start":
-                result=await run_in_threadpool(source_integration.start_source,service,identity,research_id,envelope.data,key)
+                result=await run_in_threadpool(source_integration.preview,service,identity,research_id,envelope.data,request_app=request.app)
+            elif operation in ('source-approve','source-start'):
+                if __package__=='web.backend.api':from ..research.paid_control import issue_authenticated_action
+                else:from research.paid_control import issue_authenticated_action
+                source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+                function=source_integration.approve if operation=='source-approve' else source_integration.start_source
+                try:result=await run_in_threadpool(function,service,identity,research_id,envelope.data,key,request_source=source,request_app=request.app)
+                finally:source.close()
             else:
                 if operation in ('cancel','reconcile'):
                     if __package__=='web.backend.api':from ..research.paid_control import issue_authenticated_action
@@ -192,6 +374,23 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                     finally:source.close()
                 else:result=await run_in_threadpool(service.task_action,identity,research_id,envelope.data,key,operation)
         if operation in _PAID_OPERATIONS:return _paid_success_response(operation,result)
+        if operation in ('plan-preview','plan-confirm','plan-read'):
+            try:
+                models=({'plan-preview':NativePlanPreviewResponse,'plan-confirm':NativePlanConfirmationResponse,'plan-read':NativePlanReadResponse} if result.get('contract_revision')=='funded-plan-v2' else {'plan-preview':PlanPreviewResponse,'plan-confirm':PlanConfirmationResponse,'plan-read':PlanReadResponse})
+                model=models[operation]
+                result=model.model_validate(result).model_dump(mode='json')
+            except ValueError:return _paid_response_unavailable()
+        if operation in _ROOT_VIEW_OPERATIONS:
+            try:
+                result=await run_in_threadpool(_with_request_source_capability,result,
+                    app=request.app,service=service,research_id=research_id,operation=operation)
+                if projection_bytes(result)>RESEARCH_RESPONSE_LIMIT:
+                    raise ValueError('Root response exceeds bounded projection')
+                return JSONResponse(result,headers=_HEADERS)
+            except Exception:
+                # Business work may already be committed. Use the fixed safe
+                # possible-save/retain-key response; never claim a rollback.
+                return _paid_response_unavailable()
         if len(json.dumps(result,ensure_ascii=False,allow_nan=False,separators=(',',':')).encode('utf-8'))>524288:
             raise ResearchError('PAYLOAD_LIMIT',413,'响应超过研究范围上限；旧记录未更改。')
         return JSONResponse(result, headers=_HEADERS)
@@ -202,13 +401,17 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         if operation not in ('paid-preview','paid-confirm') or str(exc)!='request_limit':raise
         error=ResearchError('PAYLOAD_LIMIT',413,'最终外发请求超过16KiB上限。')
         return _paid_error_response(error)
+    except PermissionError:
+        if operation not in ('draft-save','draft-read','draft-history','financial-import-preview'):raise
+        error=ResearchError('AUTHORIZATION_STALE',409,'财务预览权限已变化，请重新读取后再操作。' if operation=='financial-import-preview' else '方法草稿权限已变化，请重新读取后再操作。')
+        return JSONResponse(error.body(),status_code=error.status,headers=_HEADERS)
     except (sqlite3.Error, OSError):
         error = ResearchError("STORE_UNAVAILABLE", 503, "研究存储暂时不可用，请保留当前内容。")
         if operation in _PAID_OPERATIONS:return _paid_error_response(error)
         return JSONResponse(error.body(), status_code=error.status, headers=_HEADERS)
 
 
-@router.post("/research")
+@router.post("/research",openapi_extra={"requestBody":_formula_request_body(CreateEnvelope)})
 async def create_research(request: Request):
     return await _dispatch(request, operation="create")
 
@@ -218,7 +421,7 @@ async def list_research(request: Request):
     return await _dispatch(request,operation="index")
 
 
-@router.post("/research/{research_id}/revisions")
+@router.post("/research/{research_id}/revisions",openapi_extra={"requestBody":_formula_request_body(RevisionEnvelope)})
 async def revise_research(research_id: str, request: Request):
     return await _dispatch(request, research_id=research_id, operation="revise")
 
@@ -283,3 +486,50 @@ async def paid_preview(research_id:str,request:Request):
     openapi_extra={'requestBody':paid_public.request_body_schema('paid-confirm')},responses=_paid_responses('paid-confirm'))
 async def paid_confirmation(research_id:str,request:Request):
     return await _dispatch(request,research_id=research_id,operation='paid-confirm')
+
+
+@router.post('/research/{research_id}/formula-checks',openapi_extra={'requestBody':_formula_request_body(FormulaCheckEnvelope)},responses={200:{'model':FormulaCheckResponse}})
+async def check_research_formula(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='formula-check')
+
+
+@router.get('/research/{research_id}/formula-results/{result_ref}',responses={200:{'model':FormulaResultResponse}})
+async def read_research_formula_result(research_id:str,result_ref:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='formula-read')
+
+
+@router.get('/research/{research_id}/formula-revisions/{revision}')
+async def read_research_formula_revision(research_id:str,revision:int,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='formula-revision-read')
+
+
+@router.post('/research/{research_id}/plan-previews',response_model=PlanPreviewResponse|NativePlanPreviewResponse,openapi_extra={'requestBody':{'required':True,'content':{'application/json':{'schema':{'oneOf':[_formula_request_body(PlanPreviewEnvelope)['content']['application/json']['schema'],_formula_request_body(NativePlanPreviewEnvelope)['content']['application/json']['schema']]}}}}})
+async def preview_research_plan(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='plan-preview')
+
+@router.post('/research/{research_id}/plan-approvals',response_model=PlanConfirmationResponse|NativePlanConfirmationResponse,openapi_extra={'requestBody':{'required':True,'content':{'application/json':{'schema':{'oneOf':[_formula_request_body(PlanConfirmationEnvelope)['content']['application/json']['schema'],_formula_request_body(NativePlanConfirmationEnvelope)['content']['application/json']['schema']]}}}}})
+async def confirm_research_plan(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='plan-confirm')
+
+@router.get('/research/{research_id}/plan-results/{result_ref}',response_model=PlanReadResponse|NativePlanReadResponse)
+async def read_research_plan(research_id:str,result_ref:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='plan-read')
+
+
+@router.post('/research/{research_id}/method-drafts',response_model=MethodDraftResponse,openapi_extra={'requestBody':_formula_request_body(MethodDraftEnvelope)})
+async def save_research_method_draft(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='draft-save')
+
+@router.get('/research/{research_id}/method-drafts',response_model=MethodDraftHistoryResponse)
+async def list_research_method_drafts(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='draft-history')
+
+@router.get('/research/{research_id}/method-drafts/{draft_ref}',response_model=MethodDraftResponse)
+async def read_research_method_draft(research_id:str,draft_ref:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='draft-read')
+
+
+@router.post('/research/{research_id}/financial-import-preview',response_model=FinancialImportPreviewResponse,
+             openapi_extra={'requestBody':_formula_request_body(FinancialImportPreviewEnvelope)})
+async def preview_research_financial_import(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='financial-import-preview')

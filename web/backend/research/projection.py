@@ -22,12 +22,15 @@ def require_revision_budget(records):
 class ResearchProjection:
     @staticmethod
     def revision_records(conn,rid):
-        return [{'research_id':rid,'revision':item['revision'],**json.loads(item['problem_json']),'digest':item['digest'],'created_at':item['created_at']}
+        return [{'research_id':rid,'revision':item['revision'],**{k:v for k,v in json.loads(item['problem_json']).items() if k!='formula_draft'},'digest':item['digest'],'created_at':item['created_at']}
             for item in conn.execute('SELECT * FROM research_revisions WHERE research_id=? ORDER BY revision',(rid,))]
 
     @staticmethod
     def build(conn, row, task_id=None,*,method_result=None,method_authorized=False,method_state=None,task_history=None,next_task_id=None):
         revisions=ResearchProjection.revision_records(conn,row['id'])
+        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14):
+            from .formula_result import revision_metadata
+            for record in revisions:record['formula_snapshot']=revision_metadata(conn,row['id'],record['revision'])
         current=conn.execute('SELECT id FROM research_tasks WHERE research_id=? AND input_revision=? ORDER BY start_version DESC,id DESC LIMIT 1',(row['id'],row['current_revision'])).fetchone()
         if task_id is None:
             task=conn.execute("SELECT * FROM research_tasks WHERE research_id=? AND input_revision=? ORDER BY start_version DESC,id DESC LIMIT 1",(row["id"],row["current_revision"])).fetchone()
@@ -44,6 +47,13 @@ class ResearchProjection:
             "allowed_next_actions": ["view", "revise"],
             "capabilities": {"execution":enabled(),"anonymous_claim":False,"account_erasure_integration":True},
         }
+        import sys
+        view['capabilities']['formula_checks']={'host_supported':sys.platform=='linux','availability':'guard_checked_at_execution' if sys.platform=='linux' else 'unsupported',
+            'known_cost_units':0,'math_is_not_causal_evidence':True}
+        from .plan_result import history as plan_history
+        view['plan_history']=plan_history(conn,row['id'],task_ids=None if task_history is None else [item['task_id'] for item in task_history])
+        from .plan_native_runtime import history as native_history
+        view['native_plan_history']=native_history(conn,row['id'],task_ids=None if task_history is None else [item['task_id'] for item in task_history])
         if task_history is not None:view.update(task_history=task_history,next_task_id=next_task_id)
         active=conn.execute("SELECT id FROM research_tasks WHERE research_id=? AND execution IN ('QUEUED','RUNNING','WAITING_EXTERNAL','RECONCILING') ORDER BY start_version DESC LIMIT 1",(row["id"],)).fetchone()
         from .source_integration import enabled as source_enabled
@@ -53,6 +63,29 @@ class ResearchProjection:
         if enabled() and view["current_problem"]["confirmed"] and not active and not unresolved_current:
             view["allowed_next_actions"].append("start")
         if task:
+            if task['policy_revision']=='native-plan-v1':
+                from .plan_native_runtime import metadata,RUNS
+                value=conn.execute('SELECT * FROM '+RUNS+' WHERE task_id=?',(task['id'],)).fetchone()
+                view.update(task=dict(task),execution=task['execution'],status='plan_'+metadata(value)['state'],native_plan=metadata(value),execution_mode=task['execution_mode'])
+                if task['execution'] not in ('COMPLETED','FAILED','CANCELLED','ACCESS_REVOKED'):view['allowed_next_actions'].append('cancel')
+                return {'schema_version':'structure-research-v1','contract_revision':'b1-candidate-01','data':view}
+            if task['policy_revision']=='funded-plan-v1':
+                from .plan_runtime import metadata
+                value=conn.execute('SELECT * FROM research_plan_dispatches WHERE task_id=?',(task['id'],)).fetchone()
+                view.update(task=dict(task),execution=task['execution'],status='plan_'+metadata(value)['state'],plan=metadata(value),execution_mode='offline_probe')
+                if task['execution'] not in ('COMPLETED','FAILED','CANCELLED','ACCESS_REVOKED'):view['allowed_next_actions'].append('cancel')
+                return {'schema_version':'structure-research-v1','contract_revision':'b1-candidate-01','data':view}
+            if task['policy_revision']=='local-formula-v1':
+                from .formula_result import run_metadata
+                event=conn.execute('SELECT seq FROM research_task_events WHERE task_id=? ORDER BY seq DESC LIMIT 1',(task['id'],)).fetchone()
+                execution=task['execution'];terminal=execution in ('COMPLETED','FAILED','CANCELLED','ACCESS_REVOKED')
+                view.update(execution=execution,execution_mode='local_math',evidence=task['evidence'],
+                    status={'COMPLETED':'completed','FAILED':'failed','CANCELLED':'cancelled','ACCESS_REVOKED':'cancelled'}.get(execution,'checking'),
+                    formula_check=run_metadata(conn,task['id']),report_status='none',task=dict(id=task['id'],version=task['version'],
+                        execution=execution,phase=task['phase'],attempt=1,input_revision=task['input_revision'],
+                        stop_requested=bool(task['stop_requested']),policy_revision=task['policy_revision']),
+                    task_event_cursor=event[0] if event else 0,allowed_next_actions=['view','refresh']+([] if terminal else ['cancel']))
+                return {'schema_version':SCHEMA_VERSION,'contract_revision':CONTRACT_REVISION,'data':view}
             if task['policy_revision']=='bounded_usage_upper_v2':
                 event=conn.execute('SELECT seq FROM research_task_events WHERE task_id=? ORDER BY seq DESC LIMIT 1',(task['id'],)).fetchone()
                 execution=task['execution'];terminal=execution in ('COMPLETED','FAILED','CANCELLED','ACCESS_REVOKED')
