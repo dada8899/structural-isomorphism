@@ -1,0 +1,233 @@
+"""Synthetic files/processes only: never sudo, APT, network or a browser."""
+import importlib.util
+import io
+import json
+import os
+from pathlib import Path
+import signal
+import time
+from types import SimpleNamespace
+
+import pytest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+spec = importlib.util.spec_from_file_location('ci_chromium_candidate', ROOT/'scripts/prepare_ci_chromium.py')
+setup = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(setup)
+SOURCE = (b'# original comment\nTypes: deb\nURIs: http://azure.archive.ubuntu.com/ubuntu/\n'
+          b'Suites: noble noble-updates noble-backports noble-security\n'
+          b'Components: main restricted universe multiverse\n'
+          b'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n')
+
+
+def test_only_mirror_uri_changes_and_all_four_suites_fonts_profile_are_retained():
+    assert setup.mirror_source(SOURCE) == SOURCE.replace(b'http://azure.archive.ubuntu.com', b'https://archive.ubuntu.com')
+    split = SOURCE.replace(b'noble noble-updates noble-backports noble-security', b'noble noble-updates noble-backports')
+    split += b'\n' + SOURCE.replace(b'noble noble-updates noble-backports noble-security', b'noble-security')
+    assert setup.mirror_source(split) == split.replace(b'http://azure.archive.ubuntu.com', b'https://archive.ubuntu.com')
+    comment = b'# URIs: http://azure.archive.ubuntu.com/ubuntu/\n'
+    assert setup.mirror_source(comment+SOURCE) == comment+setup.mirror_source(SOURCE)
+
+
+@pytest.mark.parametrize('change', [
+    (b'Types: deb', b'Types: deb deb-src'),
+    (b'noble-security', b'other-security'),
+    (b'/usr/share/keyrings/ubuntu-archive-keyring.gpg', b'/tmp/other-key'),
+    (b'http://azure.archive.ubuntu.com/ubuntu/', b'https://user:private@example.invalid/'),
+    (b'Components: main restricted universe multiverse', b'Components: main'),
+    (b'URIs: ', b' URIs: '),
+    (b'Types: deb', b'Types: deb\nTrusted: yes'),
+    (b'Types: deb', b'Types: deb\nTypes: deb'),
+    (b'\n', b'\r\n'),
+])
+def test_unknown_layout_or_trust_expansion_refuses_without_printing_source(change):
+    with pytest.raises(setup.Refused) as error:
+        setup.mirror_source(SOURCE.replace(*change))
+    assert str(error.value) == 'ci_chromium_setup_refused'
+
+
+def source_lease(tmp_path):
+    path = tmp_path/'ubuntu.sources'
+    path.write_bytes(SOURCE)
+    path.chmod(0o644)
+    lease = setup.SourceLease(path, tmp_path/'backup', expected_uid=os.getuid())
+    return path, lease
+
+
+def test_native_source_inode_bytes_mode_owner_and_backup_survive_restore(tmp_path):
+    path, lease = source_lease(tmp_path)
+    before = setup.identity(path.stat())
+    try:
+        lease.apply()
+        assert path.read_bytes() == setup.mirror_source(SOURCE)
+        assert (tmp_path/'backup').read_bytes() == SOURCE
+        assert (tmp_path/'backup').stat().st_mode & 0o777 == 0o600
+        lease.restore()
+        assert path.read_bytes() == SOURCE and setup.identity(path.stat()) == before
+        assert not lease.changed
+    finally:
+        lease.close()
+
+
+@pytest.mark.parametrize('fault', ['replaced_inode', 'foreign_bytes', 'symlink'])
+def test_restore_never_overwrites_replaced_or_concurrently_changed_source(tmp_path, fault):
+    path, lease = source_lease(tmp_path)
+    try:
+        lease.apply()
+        if fault == 'foreign_bytes':
+            path.write_bytes(b'concurrent writer')
+        else:
+            path.rename(tmp_path/'original-inode')
+            if fault == 'symlink': path.symlink_to(tmp_path/'original-inode')
+            else: path.write_bytes(b'new inode')
+        snapshot = path.read_bytes()
+        with pytest.raises(setup.CleanupUnknown): lease.restore()
+        assert path.read_bytes() == snapshot and (tmp_path/'backup').read_bytes() == SOURCE
+    finally:
+        lease.close()
+
+
+def test_partial_native_write_is_unknown_instead_of_a_false_restore(tmp_path, monkeypatch):
+    path, lease = source_lease(tmp_path)
+    def partial(fd, data):
+        os.pwrite(fd, b'partial', 0)
+        raise OSError('synthetic interrupted write')
+    monkeypatch.setattr(lease, '_write', partial)
+    try:
+        with pytest.raises(OSError): lease.apply()
+        with pytest.raises(setup.CleanupUnknown): lease.restore()
+        assert lease.changed and (tmp_path/'backup').read_bytes() == SOURCE
+    finally:
+        lease.close()
+
+
+def test_descendant_walk_tracks_sudo_children_outside_the_launcher_group():
+    # Rows contain only native parent and start time, not an assumed PGID.
+    assert setup.descendants({10:(1,1), 11:(10,2), 12:(11,3), 19:(1,4)}, 10) == {11:(10,2),12:(11,3)}
+
+
+@pytest.mark.parametrize('reused', [False, True])
+def test_root_signals_pidfd_only_after_rechecking_pid_identity(monkeypatch, reused):
+    own = os.getpid()
+    tables = iter([{44:(own,77)}, {44:(own,78 if reused else 77)}])
+    calls = []
+    monkeypatch.setattr(setup.os, 'geteuid', lambda:0)
+    monkeypatch.setattr(setup, 'proc_rows', lambda:next(tables))
+    monkeypatch.setattr(setup.os, 'pidfd_open', lambda pid: calls.append(('open',pid)) or 101, raising=False)
+    monkeypatch.setattr(setup.signal, 'pidfd_send_signal', lambda fd,sig:calls.append(('signal',fd,sig)), raising=False)
+    monkeypatch.setattr(setup.os, 'close', lambda fd:calls.append(('close',fd)))
+    setup.signal_children(signal.SIGKILL)
+    assert calls[0] == ('open',44) and calls[-1] == ('close',101)
+    assert (('signal',101,signal.SIGKILL) in calls) is not reused
+
+
+@pytest.mark.parametrize('stubborn', [False, True])
+def test_cleanup_uses_the_shared_deadline_and_never_claims_stubborn_root_children_closed(monkeypatch, stubborn):
+    now, sent = [86.0], []
+    monkeypatch.setattr(setup.time, 'monotonic', lambda:now[0])
+    monkeypatch.setattr(setup.time, 'sleep', lambda n:now.__setitem__(0,now[0]+max(n,0.02)))
+    monkeypatch.setattr(setup, 'signal_children', lambda sig:sent.append(sig))
+    monkeypatch.setattr(setup, 'proc_rows', lambda:{})
+    monkeypatch.setattr(setup, 'descendants', lambda *_: {42:(1,7)} if stubborn or signal.SIGKILL not in sent else {})
+    monkeypatch.setattr(setup.os, 'waitpid', lambda *_: (_ for _ in ()).throw(ChildProcessError()))
+    process = SimpleNamespace(poll=lambda:0)
+    if stubborn:
+        with pytest.raises(setup.CleanupUnknown): setup.finish_children(process,100.0)
+    else:
+        setup.finish_children(process,100.0)
+    assert signal.SIGTERM in sent and signal.SIGKILL in sent and now[0] <= 95.03
+
+
+def test_empty_proc_snapshot_is_not_retirement_when_kernel_still_has_a_child(monkeypatch):
+    now=[86.0]
+    monkeypatch.setattr(setup.time,'monotonic',lambda:now[0])
+    monkeypatch.setattr(setup.time,'sleep',lambda n:now.__setitem__(0,now[0]+max(n,0.02)))
+    monkeypatch.setattr(setup,'signal_children',lambda *_:None)
+    monkeypatch.setattr(setup,'proc_rows',lambda:{})
+    monkeypatch.setattr(setup.os,'waitpid',lambda *_:(0,0))
+    with pytest.raises(setup.CleanupUnknown):
+        setup.finish_children(SimpleNamespace(poll=lambda:0),100.0)
+
+
+def test_nonroot_worker_refuses_before_reading_or_mutating_system_files(monkeypatch):
+    monkeypatch.setattr(setup.os,'geteuid',lambda:501)
+    with pytest.raises(setup.Refused): setup.root_worker({})
+
+
+def test_installer_environment_preserves_sdk_and_user_cache_without_home_or_secrets():
+    env = setup.child_environment('/approved/python3.11','/original/user/.cache/ms-playwright','/owned/tmp')
+    assert set(env) == {'PATH','LANG','LC_ALL','CI','PLAYWRIGHT_BROWSERS_PATH','TMPDIR'}
+    assert env['PATH'].startswith('/approved:') and env['PLAYWRIGHT_BROWSERS_PATH']=='/original/user/.cache/ms-playwright'
+    assert setup.COMMAND == ('-m','playwright','install','--with-deps','chromium')
+
+
+@pytest.mark.parametrize('fault', ['none','exit','launch','cleanup','cancel'])
+def test_fake_install_failure_and_root_cleanup_are_ordered_before_native_restore(tmp_path, monkeypatch, fault):
+    path, lease = source_lease(tmp_path)
+    events=[]
+    process=SimpleNamespace(poll=lambda:1 if fault=='exit' else 0)
+    def launch(argv, **kw):
+        events.append(('launch',argv,kw))
+        if fault=='launch': raise OSError('synthetic child launch failure')
+        return process
+    def finish(p, deadline):
+        assert p is process
+        events.append(('retire',))
+        if fault=='cleanup': raise setup.CleanupUnknown('synthetic cleanup uncertainty')
+    original=lease.restore
+    def restore():
+        events.append(('restore',))
+        original()
+    monkeypatch.setattr(setup.subprocess,'Popen',launch)
+    monkeypatch.setattr(setup,'finish_children',finish)
+    monkeypatch.setattr(setup.os,'getgrouplist',lambda *_:[os.getgid()])
+    monkeypatch.setattr(lease,'restore',restore)
+    request={'cache':'/original/user/.cache/ms-playwright','temporary':str(tmp_path),
+             'uid':os.getuid(),'gid':os.getgid()}
+    try:
+        if fault=='cleanup':
+            with pytest.raises(setup.CleanupUnknown):
+                setup.install_with_lease(lease,request,SimpleNamespace(pw_name='synthetic'),time.monotonic()+100,[False])
+            assert events[-1]==('retire',) and path.read_bytes()==setup.mirror_source(SOURCE)
+        else:
+            result=setup.install_with_lease(lease,request,SimpleNamespace(pw_name='synthetic'),time.monotonic()+100,[fault=='cancel'])
+            assert result['status']==('ready' if fault=='none' else 'failed')
+            assert result['source_restored'] and path.read_bytes()==SOURCE
+            assert events[-1]==('restore',)
+            if fault=='cancel': assert events==[('restore',)]
+        if fault!='cancel':
+            assert events[0][1][-5:]==list(setup.COMMAND)
+            assert events[0][2]['user']==os.getuid() and events[0][2]['group']==os.getgid()
+    finally:
+        lease.close()
+
+
+@pytest.mark.parametrize('result', [
+    {'status':'ready','children_closed':True,'source_restored':True},
+    {'status':'ready','children_closed':False,'source_restored':True},
+    {'status':'ready','children_closed':True,'source_restored':False},
+    {'status':'ready','children_closed':1,'source_restored':True},
+    {'status':'failed','children_closed':True,'source_restored':True},
+])
+def test_only_both_retirement_and_restoration_admit_the_next_step(tmp_path, monkeypatch, result):
+    calls=[]
+    class Process:
+        stdin=io.BytesIO()
+        stdout=io.BytesIO(json.dumps(result).encode())
+        def wait(self,timeout):
+            calls.append(('wait',timeout))
+            return 1 if result['status']=='failed' else 0
+    monkeypatch.setattr(setup, 'host_guard', lambda:None)
+    monkeypatch.setenv('RUNNER_TEMP',str(tmp_path))
+    monkeypatch.setenv('PRIVATE_TEST_CREDENTIAL','must-not-forward')
+    monkeypatch.setattr(setup.subprocess,'Popen',lambda argv,**kw:calls.append((argv,kw)) or Process())
+    if result['children_closed'] is True and result['source_restored'] is True:
+        assert setup.prepare()==result
+        assert not list(tmp_path.iterdir())
+    else:
+        with pytest.raises(setup.Refused): setup.prepare()
+        assert len(list(tmp_path.iterdir()))==1  # Retain uncertainty, never fake cleanup.
+    argv,kw=calls[0]
+    assert argv[:3]==['/usr/bin/sudo','-n','--'] and argv[-1]=='--root-worker'
+    assert set(kw['env'])=={'PATH','LANG'} and 0<calls[1][1]<=100
