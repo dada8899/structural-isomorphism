@@ -233,6 +233,7 @@ class EvidenceMethodPayload:
     domain:evidence_types.OutboundDomain
     exact_input:evidence_types.SelectedEvidenceMethodInput
     selection_manifest:evidence_types.SelectionManifest
+    task_outbound_scope_digest:str
     dispatch_id:str
     nonce:str
     admission_digest:str
@@ -251,7 +252,7 @@ class NativePlanSendLease(ports._Sealed):
     def _money_binding(self,conn,value,consent,resource):
         funding,actual=_authority(conn,self.store,self.lease,consent);account=row(conn,'research_funding_accounts',value['account_id'])
         if actual is not resource or funding['state']!='authorized' or account['status']!='unverified' or account['binding_id']!=consent['economic_binding'] or funding['grant_epoch']!=consent['grant_epoch'] or funding['credential_incarnation']!=consent['credential_incarnation'] or funding['version']!=self.funding_version or account['version']!=self.account_version or funding['balance_claim']!=self.dispatch or funding['balance_nonce']!=value['nonce'] or finance.unresolved(conn,account['id'],excluding=self.dispatch):raise PermissionError('current native money authority ended')
-    def inspect_payload(self,resource):
+    def inspect_payload(self,resource)->EvidenceMethodPayload:
         self._require(resource);store=self.store;lease=self.lease
         with store.transaction() as conn:
             value=row(conn,RUNS,self.dispatch)
@@ -259,10 +260,10 @@ class NativePlanSendLease(ports._Sealed):
             consent=evidence.parse_consent(value);self._money_binding(conn,value,consent.model_dump(mode='json'),resource)
             _,_,encoded=evidence.read_evidence_send_in(conn,self)
             if encoded.raw!=self.raw or consent.quote.valid_until<=int(time.time()):raise PermissionError('confirmed evidence bytes or quote changed')
-            result=EvidenceMethodPayload(encoded.raw,consent.domain,consent.exact_input,consent.selection_manifest,self.dispatch,value['nonce'],value['admission_digest'],consent.domain.producer_digest)
+            result=EvidenceMethodPayload(encoded.raw,consent.domain,consent.exact_input,consent.selection_manifest,consent.task_outbound_scope_digest,self.dispatch,value['nonce'],value['admission_digest'],consent.domain.producer_digest)
         if self.inspected is not None and self.inspected!=result:raise PermissionError('evidence inspected descriptor changed')
         object.__setattr__(self,'inspected',result);return result
-    def consume(self,resource):
+    def consume(self,resource)->EvidenceMethodPayload|tuple[bytes,str,str,str,str]:
         self._require(resource);store=self.store;lease=self.lease
         with store.transaction() as conn:
             value=row(conn,RUNS,self.dispatch);consent,task,step,control=_current(conn,store,value)
@@ -270,7 +271,7 @@ class NativePlanSendLease(ports._Sealed):
             if evidence.is_evidence(value):
                 checked=evidence.parse_consent(value)
                 _,_,encoded=evidence.read_evidence_send_in(conn,self)
-                result=EvidenceMethodPayload(encoded.raw,checked.domain,checked.exact_input,checked.selection_manifest,self.dispatch,value['nonce'],value['admission_digest'],checked.domain.producer_digest)
+                result=EvidenceMethodPayload(encoded.raw,checked.domain,checked.exact_input,checked.selection_manifest,checked.task_outbound_scope_digest,self.dispatch,value['nonce'],value['admission_digest'],checked.domain.producer_digest)
                 if type(self.inspected) is not EvidenceMethodPayload or self.inspected!=result or self.raw!=encoded.raw or checked.quote.valid_until<=int(time.time()):raise PermissionError('evidence requires same independently inspected bytes')
             else:
                 if code_digest()!=consent['producer_digest'] or codec_digest()!=consent['template_code_digest'] or consent['quote']['valid_until']<=int(time.time()) or digest(self.raw)!=consent['request_digest']:raise PermissionError('native confirmed source/quote/bytes changed')

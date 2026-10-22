@@ -62,7 +62,10 @@ if __name__!='__mp_main__':
             claims=auth._decode_jwt(next(c.value for c in client.cookies if c.name=='phase_session'))
             actor=AccountIdentity(claims['sub'],claims['gen'],claims['jti'],claims['exp']);claims=None
             store=ResearchStore(auth._store())
-            yield service,client,store,actor
+            try:yield service,client,store,actor
+            finally:
+                from research import evidence_method_plan as core
+                assert not core._READERS
         assert not service.root.exists()
 
 
@@ -168,6 +171,34 @@ if __name__!='__mp_main__':
         with actual(tmp_path,full_credit=False) as (service,client,store,actor):
             status,value=preview(service,client)
             assert status==409 and value['error']['code']=='SOURCE_PERMISSION_UNAVAILABLE'
+            with store.transaction() as conn:
+                assert conn.execute('SELECT count(*) FROM research_plan_native_previews').fetchone()[0]==0
+                assert conn.execute('SELECT count(*) FROM research_plan_native_runs').fetchone()[0]==0
+
+    def test_actual_cross_account_and_readonly_current_owner_cannot_preview(tmp_path):
+        from .test_formal_main_admission import envelope,problem
+        from research.authorization import AuthorizationGate
+        with actual(tmp_path) as (service,client,store,actor):
+            rid=service.seed.research_id
+            assert client.request('POST','/api/auth/request-link',{'email':'other-evidence@example.invalid'})[0]==200
+            token=service.take_latest_magic_token()
+            try:assert client.request('POST','/api/auth/verify',{'token':token})[0]==200
+            finally:token=None
+            status,other=client.request('POST','/api/research',envelope({'problem':problem()}),key='other-evidence-root')
+            assert status==200,other
+            status,denied=preview(service,client);assert status==404 and denied['error']['code']=='NOT_FOUND'
+            assert client.request('GET','/api/research/'+rid+'/evidence-method-plans')[0]==404
+            # Restore a fresh genuine session for the original current owner.
+            assert client.request('POST','/api/auth/request-link',{'email':service.seed.email})[0]==200
+            token=service.take_latest_magic_token()
+            try:assert client.request('POST','/api/auth/verify',{'token':token})[0]==200
+            finally:token=None
+            with store.transaction() as conn:pid=conn.execute('SELECT owner_id FROM research_controls WHERE id=?',(rid,)).fetchone()[0]
+            with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
+                lease.identity
+                conn.execute("UPDATE research_grants SET scopes='[\"read\"]' WHERE research_id=? AND EXISTS(SELECT 1 FROM json_each(scopes) WHERE value='write')",(rid,))
+            status,denied=preview(service,client);assert status==404 and denied['error']['code']=='NOT_FOUND'
+            assert client.request('GET','/api/research/'+rid+'/evidence-method-plans')[0]==200
             with store.transaction() as conn:
                 assert conn.execute('SELECT count(*) FROM research_plan_native_previews').fetchone()[0]==0
                 assert conn.execute('SELECT count(*) FROM research_plan_native_runs').fetchone()[0]==0

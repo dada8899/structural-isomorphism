@@ -64,7 +64,7 @@ class EvidenceMethodRequestBytes:
     template_digest:str
 
 
-def request_bytes(value):
+def request_bytes(value)->EvidenceMethodRequestBytes:
     if type(value) is not types.SelectedEvidenceMethodInput:raise TypeError('exact selected evidence input required')
     value=types.SelectedEvidenceMethodInput.model_validate(value.model_dump(mode='json'))
     input_raw=bounded(value,INPUT_CAP);template_digest();protocol=strict_json(PROTOCOL_BYTES,8192)
@@ -90,7 +90,7 @@ def _scope_data(manifest,domain):
         scopes=['execute','provider_outbound'],domain=domain.model_dump(mode='json'),provider='deepseek',model='deepseek-flash',method='POST',target='https://api.deepseek.com/chat/completions')
 
 
-def decode_request(raw,domain,exact_input,manifest):
+def decode_request(raw,domain,exact_input,manifest)->types.SelectedEvidenceMethodInput:
     if type(domain) is not types.OutboundDomain or type(manifest) is not types.SelectionManifest:raise TypeError('fixed evidence descriptor data required')
     data=strict_json(raw,REQUEST_CAP)
     if type(data) is not dict or type(data.get('messages')) is not list or len(data['messages'])!=2:raise ValueError('fixed evidence request required')
@@ -107,7 +107,7 @@ def decode_request(raw,domain,exact_input,manifest):
     return parsed
 
 
-def parse_candidate(raw,exact_input):
+def parse_candidate(raw,exact_input)->types.EvidenceMethodPlanCandidate:
     value=parse_model(types.EvidenceMethodPlanCandidate,raw,CANDIDATE_CAP)
     quotes={h.handle:h.quote for h in exact_input.handles}
     pending=[value]

@@ -347,7 +347,7 @@
     "original_sha256": "5204c48b6ed93a3f952a2087b6a36a747686cdf1a49f636b0f4a920befa98873"
   },
   "web/backend/research/plan_native_runtime.py": {
-    "current_sha256": "b7a50794188bd497df2abdd02eaead5b0f07f972cc0fcd0c79420ceca58be224",
+    "current_sha256": "2166a7cc8ffff8c736afc7191025ee738265ceb2cc7358c2fd9e601c11af8c0e",
     "hunks": [
       [
         1,

@@ -121,7 +121,9 @@ class _ReadScope(AbstractContextManager):
     def __setattr__(self,name,value):
         if hasattr(self,name):raise TypeError('evidence read scope immutable')
         object.__setattr__(self,name,value)
-    def __enter__(self):self.require();return self
+    def __enter__(self):
+        try:self.require();return self
+        except BaseException:self.close();raise
     def __exit__(self,*args):self.close()
     def close(self):object.__setattr__(self,'active',False);_READERS.pop(self.reference,None)
     def require(self):
@@ -129,7 +131,7 @@ class _ReadScope(AbstractContextManager):
             raise PermissionError('evidence read scope retired')
         if self.kind in ('preview','confirm','history'):
             from .paid_control import require_authenticated_action
-            require_authenticated_action(self.source,identity=self.identity,action='evidence-method-read' if self.kind=='history' else 'evidence-method-'+self.kind,research_id=self.rid)
+            require_authenticated_action(self.source,identity=self.identity,action='evidence-method-read' if self.kind=='history' else 'evidence-method-'+self.kind,research_id=self.rid,task_id=self.consent.result_ref if self.kind=='history' else None)
             control=AuthorizationGate(self.store).check(self.conn,self.identity,self.store_principal(),self.rid,scope='read' if self.kind=='history' else 'write')
             AuthorizationGate(self.store).check(self.conn,self.identity,self.store_principal(),self.rid)
             if self.kind!='history' and (control['version']!=self.version or control['current_revision']!=self.revision):raise ResearchError('REVISION_CONFLICT',409,'问题或研究版本已变化，请重新预览。')
