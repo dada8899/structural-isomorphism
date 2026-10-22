@@ -47,6 +47,129 @@ _FOREIGN_INPUTS = ('STRUCTURAL_HISTORY_DB', 'STRUCTURAL_FAVORITES_PATH', 'STRUCT
                    'STRUCTURAL_MODEL_PATH', 'STRUCTURAL_PRECOMPUTED_EMBEDDINGS',
                    'STRUCTURAL_ARTIFACT_MANIFEST', 'STRUCTURAL_KB_FILE')
 
+# Only these literal names can leave the owned startup observer. In particular,
+# a basename or a syntactically valid Python identifier is not an allowlist.
+_STARTUP_REPO_FRAMES = {
+    'web/backend/main.py': ('lifespan',),
+    'web/backend/services/formal_admission.py': (
+        'initialize', 'publish', 'check', '_producer', '_modules', '_config',
+        '_digest', 'pin_source_module', 'attach_source', 'retire', 'release'),
+    'web/backend/services/runtime_paths.py': (
+        'inspect_formal', '_directory_fd', '_validated_directory_fd',
+        '_validate_directory', '_check_current_parent', '_repository_roots',
+        'acquire', '_acquire_locked', 'check', '_sidecars', '_sidecar_entry',
+        '_require_private_file', 'formal_favorites', 'private_favorites_path'),
+    'web/backend/api/auth.py': ('_validate_production_config', '_store'),
+    'web/backend/research/runtime_profile.py': (),
+    'web/backend/research/store.py': ('__init__',),
+    'web/backend/research/service.py': ('__init__', 'runtime_capability_facts'),
+}
+_STARTUP_DEPENDENCY_FRAMES = {
+    'starlette.routing': ('starlette/routing.py', ('lifespan',)),
+    'uvicorn.lifespan.on': ('uvicorn/lifespan/on.py', ('main', 'send', 'startup')),
+    'contextlib': ('stdlib/contextlib.py', ('__aenter__', '__aexit__')),
+}
+_STARTUP_ERROR_TYPES = (RuntimeError, PermissionError, OSError, ValueError,
+    TypeError, AssertionError, ImportError, ModuleNotFoundError, TimeoutError,
+    SystemExit, Exception, BaseException)
+
+
+def _safe_startup_error(error):
+    """Copy bounded coordinates only; never retain or render the exception."""
+    files = {str(ROOT / relative): (relative, functions)
+             for relative, functions in _STARTUP_REPO_FRAMES.items()}
+    for module_name, (relative, functions) in _STARTUP_DEPENDENCY_FRAMES.items():
+        module = sys.modules.get(module_name)
+        filename = vars(module).get('__file__') if module is not None else None
+        if type(filename) is str:
+            files[filename] = (relative, functions)
+    error_type = next((kind.__name__ for kind in _STARTUP_ERROR_TYPES
+                       if type(error) is kind), 'OTHER')
+    frames = []
+    traceback = error.__traceback__
+    for _ in range(64):
+        if traceback is None:
+            break
+        code = traceback.tb_frame.f_code
+        filename, functions = files.get(code.co_filename, ('OTHER', ()))
+        function = code.co_name if code.co_name in functions else 'OTHER'
+        line = traceback.tb_lineno
+        frames.append({'file': filename, 'function': function,
+                       'line': line if type(line) is int and 0 < line <= 1000000 else 0})
+        traceback = traceback.tb_next
+    return {'type': error_type, 'frames': frames[-8:]}
+
+
+class _StartupErrorObserver:
+    """Observe before the original logger's level check, without changing it."""
+    def __init__(self, logger, capture):
+        self._logger, self._capture = logger, capture
+
+    def __getattr__(self, name):
+        return getattr(self._logger, name)
+
+    def error(self, *args, **kwargs):
+        explicit = kwargs.get('exc_info')
+        error = (explicit if isinstance(explicit, BaseException) else
+                 explicit[1] if type(explicit) is tuple and len(explicit) == 3 else
+                 sys.exc_info()[1])
+        if isinstance(error, BaseException):
+            self._capture(error)
+        return self._logger.error(*args, **kwargs)
+
+
+def _observe_owned_startup(config, capture):
+    """Keep the real LifespanOn instance and its original ASGI control flow."""
+    missing = object()
+    prior_load = vars(config).get('load', missing)
+    original_load = config.load
+    installed = []
+    owned = []
+    retired = False
+
+    def install():
+        if installed:
+            return
+        original_class = config.lifespan_class
+
+        def construct(actual_config):
+            lifespan = original_class(actual_config)
+            logger = lifespan.logger
+            lifespan.logger = _StartupErrorObserver(logger, capture)
+            owned.append((lifespan, logger))
+            return lifespan
+
+        config.lifespan_class = construct
+        installed.append(original_class)
+
+    def load(*args, **kwargs):
+        # Server.serve calls this at its original running-loop position. Never
+        # preload configuration merely to install a diagnostic observer.
+        result = original_load(*args, **kwargs)
+        install()
+        return result
+
+    config.load = load
+    if config.loaded:
+        install()
+
+    def retire():
+        nonlocal retired
+        if retired:
+            return
+        retired = True
+        if prior_load is missing:
+            del config.load
+        else:
+            config.load = prior_load
+        if installed:
+            config.lifespan_class = installed[0]
+        for lifespan, logger in owned:
+            lifespan.logger = logger
+        owned.clear()
+
+    return retire
+
 
 class _MailHandler(socketserver.StreamRequestHandler):
     timeout = 3
@@ -261,6 +384,7 @@ class FormalMainBrowserService(AbstractContextManager):
         self.seed = self.app = self.main = self.server = self.server_thread = None
         self.app_socket = self.certificate = self.client = self._smtp = self._history = None
         self._prior, self._bridges, self._server_errors = {}, [], []
+        self._startup_diagnostics = []
         self._entered = self._closed = False
 
     def __repr__(self):
@@ -320,16 +444,27 @@ class FormalMainBrowserService(AbstractContextManager):
             log_config=None, log_level='critical', access_log=False, timeout_graceful_shutdown=5)
         self.server = uvicorn.Server(config)
         def serve():
+            retire_observer = None
             try:
+                retire_observer = _observe_owned_startup(config, self._capture_startup_error)
                 self.server.run(sockets=[self.app_socket])
             except BaseException as error:
-                self._server_errors.append(type(error).__name__)
+                self._capture_startup_error(error)
+                self._server_errors.append(next((kind.__name__ for kind in _STARTUP_ERROR_TYPES
+                    if type(error) is kind), 'OTHER'))
+            finally:
+                if retire_observer is not None:
+                    retire_observer()
         self.server_thread = threading.Thread(target=serve, name=PREFIX + 'app')
         self.server_thread.start()
         deadline = time.monotonic() + 15
         while not self.server.started:
             if not self.server_thread.is_alive() or time.monotonic() >= deadline:
-                raise RuntimeError('actual Main HTTPS startup unavailable')
+                failure = RuntimeError('actual Main HTTPS startup unavailable')
+                if self._startup_diagnostics:
+                    failure.add_note('owned Main startup coordinates: ' +
+                        json.dumps(self._startup_diagnostics, sort_keys=True, separators=(',', ':')))
+                raise failure
             time.sleep(.02)
         self.client = _HttpsClient(self.port, self.certificate)
         status, body = self.client.request('GET', '/api/health')
@@ -341,6 +476,15 @@ class FormalMainBrowserService(AbstractContextManager):
         from services import formal_admission
         formal_admission.require(self.app, 'research_basic')
         formal_admission.require(self.app, 'source_history')
+
+    def _capture_startup_error(self, error):
+        if self.server.started or len(self._startup_diagnostics) >= 2:
+            return
+        try:
+            self._startup_diagnostics.append(_safe_startup_error(error))
+        except BaseException:
+            # A diagnostic failure must never replace the actual startup error.
+            self._startup_diagnostics.append({'type': 'OTHER', 'frames': []})
 
     def source_status(self):
         """Observation only: no flag, receipt or authority is accepted."""
