@@ -109,13 +109,14 @@ test-frontend-node:
 test-browser-contracts:
 	$(PYTEST) $(BROWSER_CONTRACT_SEARCH_ASK_ANALYZE_PHENOMENON_TESTS) -m "e2e and not requires_internet" -v
 	$(PYTEST) $(BROWSER_CONTRACT_DISCOVERY_CLASSES_PAPERS_TESTS) -m "e2e and not requires_internet" -v
-	$(PYTEST) $(filter tests/e2e/%,$(BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS)) -m "e2e and not requires_internet" -v
+	$(PYTEST) tests/e2e/test_full_public_surface.py -p no:logging -m "e2e and not requires_internet" -v
+	$(PYTEST) $(filter-out tests/e2e/test_full_public_surface.py,$(filter tests/e2e/%,$(BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS))) -m "e2e and not requires_internet" -v
 	$(PYTEST) $(filter web/tests/e2e/%,$(BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS)) -m "e2e and not requires_internet" -v
 	$(PYTEST) $(BROWSER_CONTRACT_SECONDARY_WHITESPACE_TESTS) -m "e2e and not requires_internet" -v
 	$(PYTEST) $(PHASE_REAL_BROWSER_CONTRACT_TESTS) -v
 
 test-financial-preview-browser-contract:
-	$(PYTEST) $(FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS) -v
+	$(PYTEST) $(FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS) -p no:logging -v
 
 test-retrieval-contract:
 	$(BACKEND_PYTEST) web/backend/tests/test_retrieval_eval_dataset.py -q

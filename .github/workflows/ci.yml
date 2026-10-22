@@ -172,7 +172,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Verify the current public research entry journey
         run: >-
-          pytest
+          pytest -p no:logging
           tests/e2e/test_full_public_surface.py::test_public_entry_actual_owner_index_anchor
           tests/e2e/test_full_public_surface.py::test_public_entry_default_retirement_and_language
           tests/e2e/test_full_public_surface.py::test_public_entry_no_script_native_forms_never_send_private_get
@@ -193,6 +193,7 @@ jobs:
       matrix:
         include:
           - shard: search-ask-analyze-phenomenon
+            pytest_args_main: ''
             pytest_args: >-
               tests/e2e/test_search_private_navigation.py
               tests/e2e/test_phenomenon_evidence_mobile.py
@@ -205,6 +206,7 @@ jobs:
               web/frontend/tests/test_analyzeTrust.js
               web/frontend/tests/test_buildAnalyzeUrl.js
           - shard: discovery-classes-papers
+            pytest_args_main: ''
             pytest_args: >-
               tests/e2e/test_discovery_validation_plan.py
               tests/e2e/test_classes_language_mobile.py
@@ -212,8 +214,8 @@ jobs:
             pytest_args_isolated: ''
             node_tests: ''
           - shard: library-auth-reports-favorites
+            pytest_args_main: tests/e2e/test_full_public_surface.py
             pytest_args: >-
-              tests/e2e/test_full_public_surface.py
               tests/e2e/test_unified_research_library.py
               tests/e2e/test_history_sidebar.py
             pytest_args_isolated: >-
@@ -229,6 +231,7 @@ jobs:
               web/frontend/tests/test_historySidebarPerformance.js
               web/frontend/tests/test_newsletterClosed.js
           - shard: secondary-whitespace
+            pytest_args_main: ''
             pytest_args: >-
               web/tests/e2e/test_secondary_tools_candidate_journeys.py
               web/tests/e2e/test_whitespace.py
@@ -344,6 +347,11 @@ jobs:
       - name: Run browser surface shard
         run: >-
           pytest ${{ matrix.pytest_args }}
+          -m "e2e and not requires_internet" -v
+      - name: Run actual Main public surface contract
+        if: matrix.pytest_args_main != ''
+        run: >-
+          pytest -p no:logging ${{ matrix.pytest_args_main }}
           -m "e2e and not requires_internet" -v
       - name: Run isolated browser surface subgroup
         if: matrix.pytest_args_isolated != ''
