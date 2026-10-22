@@ -389,9 +389,10 @@ def test_controller_close_orders_shared_main_history_after_worker_join_outcome(t
     observations.update(mode=mode,join_budgets=budgets.copy(),first_close_events=events.copy(),
         inner_retained_after_first_close=inner.exists(),outer_retained_after_first_close=outer.exists(),
         cleanup_errors_after_first_close=list(service.cleanup_errors))
+    first_close_observations=observations.copy()
     if uncertain:
         # An explicit later cleanup may remove the preserved root only after
         # the worker and the bridge are known to have retired.
         worker.alive=False;bridge.failing=False;service.close()
         assert not outer.exists() and service.temp is None and service.cleanup_errors==()
-    (tmp_path/'close-order-facts.json').write_text(json.dumps(observations,indent=2)+'\n')
+    (tmp_path/'close-order-facts.json').write_text(json.dumps(first_close_observations,indent=2)+'\n')
