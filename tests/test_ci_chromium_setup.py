@@ -172,7 +172,7 @@ def test_fake_install_failure_and_root_cleanup_are_ordered_before_native_restore
         if fault=='launch': raise OSError('synthetic child launch failure')
         return process
     def finish(p, deadline):
-        assert p is process
+        assert p is (None if fault=='launch' else process)
         events.append(('retire',))
         if fault=='cleanup': raise setup.CleanupUnknown('synthetic cleanup uncertainty')
     original=lease.restore
@@ -201,6 +201,100 @@ def test_fake_install_failure_and_root_cleanup_are_ordered_before_native_restore
             assert events[0][2]['user']==os.getuid() and events[0][2]['group']==os.getgid()
     finally:
         lease.close()
+
+
+@pytest.mark.parametrize('retirement_known', [True, False])
+def test_postfork_constructor_failure_must_retire_without_a_popen_object(tmp_path, monkeypatch, retirement_known):
+    path,lease=source_lease(tmp_path)
+    events=[]
+    alive=[False]
+    def postfork(*args,**kwargs):
+        alive[0]=True
+        raise MemoryError('synthetic failure after child creation')
+    def retire(process,deadline):
+        assert process is None
+        events.append('native_retirement_proof')
+        if not retirement_known: raise setup.CleanupUnknown()
+        alive[0]=False
+    original=lease.restore
+    def restore():
+        assert not alive[0], 'restore ran before native child retirement'
+        events.append('restore')
+        original()
+    monkeypatch.setattr(setup.subprocess,'Popen',postfork)
+    monkeypatch.setattr(setup,'finish_children',retire)
+    monkeypatch.setattr(setup.os,'getgrouplist',lambda *_:[os.getgid()])
+    monkeypatch.setattr(lease,'restore',restore)
+    request={'uid':os.getuid(),'gid':os.getgid(),'cache':'/original/user/.cache/ms-playwright','temporary':str(tmp_path)}
+    try:
+        if retirement_known:
+            result=setup.install_with_lease(lease,request,SimpleNamespace(pw_name='synthetic'),time.monotonic()+100,[False])
+            assert result=={'status':'failed','children_closed':True,'source_restored':True}
+            assert events==['native_retirement_proof','restore'] and path.read_bytes()==SOURCE
+        else:
+            with pytest.raises(setup.CleanupUnknown):
+                setup.install_with_lease(lease,request,SimpleNamespace(pw_name='synthetic'),time.monotonic()+100,[False])
+            assert events==['native_retirement_proof'] and path.read_bytes()==setup.mirror_source(SOURCE)
+            assert (tmp_path/'backup').read_bytes()==SOURCE
+    finally:
+        lease.close()
+
+
+@pytest.mark.parametrize('kernel_empty', [True, False])
+def test_none_launch_result_still_requires_kernel_and_descendant_retirement(monkeypatch, kernel_empty):
+    now=[86.0]
+    monkeypatch.setattr(setup.time,'monotonic',lambda:now[0])
+    monkeypatch.setattr(setup.time,'sleep',lambda n:now.__setitem__(0,now[0]+max(n,0.02)))
+    monkeypatch.setattr(setup,'signal_children',lambda *_:None)
+    monkeypatch.setattr(setup,'proc_rows',lambda:{})
+    def wait(*_):
+        if kernel_empty: raise ChildProcessError()
+        return (0,0)
+    monkeypatch.setattr(setup.os,'waitpid',wait)
+    if kernel_empty: setup.finish_children(None,100.0)
+    else:
+        with pytest.raises(setup.CleanupUnknown): setup.finish_children(None,100.0)
+    assert now[0]<=95.03
+
+
+@pytest.mark.parametrize('retirement_known', [True, False])
+def test_failure_after_popen_return_also_retires_before_source_restore(tmp_path, monkeypatch, retirement_known):
+    path,lease=source_lease(tmp_path)
+    process=SimpleNamespace(poll=lambda: (_ for _ in ()).throw(MemoryError('synthetic late poll failure')))
+    events=[]
+    monkeypatch.setattr(setup.subprocess,'Popen',lambda *a,**kw:process)
+    monkeypatch.setattr(setup.os,'getgrouplist',lambda *_:[os.getgid()])
+    def retire(value,deadline):
+        assert value is process
+        events.append('retired')
+        if not retirement_known: raise setup.CleanupUnknown()
+    monkeypatch.setattr(setup,'finish_children',retire)
+    original=lease.restore
+    def restore():
+        events.append('restore')
+        original()
+    monkeypatch.setattr(lease,'restore',restore)
+    request={'uid':os.getuid(),'gid':os.getgid(),'cache':'/original/user/.cache/ms-playwright','temporary':str(tmp_path)}
+    try:
+        if retirement_known:
+            result=setup.install_with_lease(lease,request,SimpleNamespace(pw_name='synthetic'),time.monotonic()+100,[False])
+            assert result=={'status':'failed','children_closed':True,'source_restored':True}
+            assert events==['retired','restore'] and path.read_bytes()==SOURCE
+        else:
+            with pytest.raises(setup.CleanupUnknown):
+                setup.install_with_lease(lease,request,SimpleNamespace(pw_name='synthetic'),time.monotonic()+100,[False])
+            assert events==['retired'] and path.read_bytes()==setup.mirror_source(SOURCE)
+    finally:
+        lease.close()
+
+
+@pytest.mark.parametrize('error', [OSError, MemoryError])
+def test_outer_sudo_constructor_failure_is_unknown_and_retains_task_directory(tmp_path, monkeypatch, error):
+    monkeypatch.setattr(setup,'host_guard',lambda:None)
+    monkeypatch.setenv('RUNNER_TEMP',str(tmp_path))
+    monkeypatch.setattr(setup.subprocess,'Popen',lambda *a,**kw: (_ for _ in ()).throw(error('synthetic unobservable launch')))
+    with pytest.raises(setup.CleanupUnknown): setup.prepare()
+    assert len(list(tmp_path.iterdir()))==1
 
 
 @pytest.mark.parametrize('result', [

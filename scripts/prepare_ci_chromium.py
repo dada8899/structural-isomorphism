@@ -218,7 +218,7 @@ def finish_children(process, deadline):
     term_until = min(time.monotonic() + 2, deadline - 8)
     while time.monotonic() < deadline - 5:
         signal_children(signal.SIGTERM if time.monotonic() < term_until else signal.SIGKILL)
-        if process.poll() is not None:
+        if process is None or process.poll() is not None:
             no_kernel_children = False
             while True:
                 try:
@@ -252,10 +252,11 @@ def child_environment(python, cache, temporary):
 
 
 def install_with_lease(lease, request, account, deadline, stopped):
-    process, success = None, False
+    process, success, launch_attempted = None, False, False
     try:
         require(not stopped[0] and time.monotonic() < deadline - 12)
         lease.apply()
+        launch_attempted = True
         process = subprocess.Popen([sys.executable, '-I', '-B', *COMMAND],
             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             env=child_environment(sys.executable, request['cache'], request['temporary']),
@@ -269,7 +270,7 @@ def install_with_lease(lease, request, account, deadline, stopped):
         success = False
     finally:
         # A failed retirement must not be followed by a false restoration claim.
-        if process is not None:
+        if launch_attempted:
             finish_children(process, deadline)
         lease.restore()
         require(time.monotonic() < deadline)
@@ -356,10 +357,15 @@ def prepare():
     request = {'uid': os.getuid(), 'gid': os.getgid(), 'python': sys.executable,
                'cache': str(Path(pwd.getpwuid(os.getuid()).pw_dir) / '.cache/ms-playwright'),
                'temporary': str(temporary), 'deadline': deadline}
-    process = subprocess.Popen(['/usr/bin/sudo', '-n', '--', sys.executable, '-I', '-B',
-                                str(Path(__file__).resolve()), '--root-worker'],
-        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-        env={'PATH': '/usr/local/bin:/usr/bin:/bin', 'LANG': 'C.UTF-8'})
+    try:
+        process = subprocess.Popen(['/usr/bin/sudo', '-n', '--', sys.executable, '-I', '-B',
+                                    str(Path(__file__).resolve()), '--root-worker'],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            env={'PATH': '/usr/local/bin:/usr/bin:/bin', 'LANG': 'C.UTF-8'})
+    except BaseException:
+        # The caller cannot infer whether sudo forked before the constructor
+        # failed. Retain its task directory and never report a clean non-start.
+        raise CleanupUnknown() from None
     try:
         process.stdin.write((json.dumps(request) + '\n').encode())
         process.stdin.flush()  # Keep the control pipe open during installation.
