@@ -81,6 +81,11 @@
         submit.disabled = false;
       }
     });
+    // The HTML stays inert until this page's real submit listener is installed.
+    email.disabled = false;
+    submit.disabled = false;
+    status.textContent = '登录后可在同一账户中访问收藏、研究报告和账户数据。';
+    form.dataset.authReady = 'true';
   }
 
   async function verifyOnce(token, returnTo) {
