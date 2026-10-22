@@ -63,6 +63,8 @@ def issue_authenticated_action(request,*,action,research_id=None,task_id=None,ke
         'method-read':('GET','view_research'),'method-reconcile':('POST','reconcile_research_task'),
         'formula-check':('POST','check_research_formula'),'formula-read':('GET','read_research_formula_result'),
         'formula-revision-read':('GET','read_research_formula_revision'),
+        'evidence-method-preview':('POST','preview_evidence_method_plan'),'evidence-method-confirm':('POST','confirm_evidence_method_plan'),
+        'evidence-method-read':('GET','read_evidence_method_plan'),'evidence-method-list':('GET','list_evidence_method_plans'),
         'plan-preview':('POST','preview_research_plan'),'plan-confirm':('POST','confirm_research_plan'),'plan-read':('GET','read_research_plan'),
         'draft-save':('POST','save_research_method_draft'),'draft-read':('GET','read_research_method_draft'),'draft-history':('GET','list_research_method_drafts'),
         'source-approve':('POST','source_approval'),'source-start':('POST','source_task'),
@@ -74,7 +76,24 @@ def issue_authenticated_action(request,*,action,research_id=None,task_id=None,ke
         raise PermissionError('actual authenticated action request required')
     from .provider_schemas import strict_json
     raw=getattr(request,'_body',None)
-    if action=='financial-registry-save':
+    if action in ('evidence-method-preview','evidence-method-confirm'):
+        from .evidence_method_plan_schemas import EvidenceMethodPreviewEnvelope,EvidenceMethodConfirmEnvelope
+        from .evidence_method_plan_codec import parse_model
+        import re
+        if type(raw) is not bytes or request.query_params:raise PermissionError('actual fixed evidence request required')
+        model=EvidenceMethodPreviewEnvelope if action=='evidence-method-preview' else EvidenceMethodConfirmEnvelope
+        data=parse_model(model,raw,65536).data
+        research_id=request.path_params.get('research_id');task_id=None;key=request.headers.get('idempotency-key','')
+        if re.fullmatch(r'[A-Za-z0-9._:-]{1,128}',key,re.ASCII) is None:raise PermissionError('evidence operation key required')
+        body_digest=digest(canonical(data.model_dump(mode='json')))
+    elif action=='evidence-method-read':
+        if request.query_params:raise ResearchError('INPUT_INVALID',422,'方法计划读取不接受查询参数。')
+        research_id=request.path_params.get('research_id');task_id=request.path_params.get('result_ref');key='';body_digest=digest(b'')
+    elif action=='evidence-method-list':
+        from .evidence_method_plan import list_query
+        limit,cursor=list_query(list(request.query_params.multi_items()))
+        research_id=request.path_params.get('research_id');task_id=None;key='';body_digest=digest(canonical({'limit':limit,'cursor':cursor}))
+    elif action=='financial-registry-save':
         from .financial_input_schemas import decode_financial_registry_confirmation
         import re
         if type(raw) is not bytes or request.query_params:raise PermissionError('actual financial confirmation required')

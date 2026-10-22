@@ -419,6 +419,56 @@
         "title": "AnonProofResponse",
         "type": "object"
       },
+      "Applicability": {
+        "additionalProperties": false,
+        "properties": {
+          "condition": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Condition",
+            "type": "string"
+          },
+          "evidence_handles": {
+            "items": {
+              "enum": [
+                "e1",
+                "e2",
+                "e3",
+                "e4",
+                "e5",
+                "e6",
+                "e7",
+                "e8"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 0,
+            "title": "Evidence Handles",
+            "type": "array"
+          },
+          "gap": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap"
+          }
+        },
+        "required": [
+          "condition",
+          "evidence_handles",
+          "gap"
+        ],
+        "title": "Applicability",
+        "type": "object"
+      },
       "AskRequest": {
         "additionalProperties": false,
         "description": "Body for /api/ask/stream.\n\n`query` remains the normalized research input bound to its optional\nconfirmed fingerprint. Validation is retained while generation is retired;\naccepting this request shape does not promise an answer or an SSE stream.",
@@ -2556,6 +2606,1096 @@
         "title": "EvidenceLedger",
         "type": "object"
       },
+      "EvidenceLink": {
+        "additionalProperties": false,
+        "properties": {
+          "handle": {
+            "enum": [
+              "e1",
+              "e2",
+              "e3",
+              "e4",
+              "e5",
+              "e6",
+              "e7",
+              "e8"
+            ],
+            "title": "Handle",
+            "type": "string"
+          },
+          "missing_support": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Missing Support",
+            "type": "string"
+          },
+          "proposed_support": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Proposed Support",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "context",
+              "mechanism",
+              "method_identity",
+              "formula",
+              "assumption",
+              "condition",
+              "counterexample"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle",
+          "role",
+          "proposed_support",
+          "missing_support"
+        ],
+        "title": "EvidenceLink",
+        "type": "object"
+      },
+      "EvidenceMethodConfirmData": {
+        "additionalProperties": false,
+        "properties": {
+          "cash_evidence": {
+            "const": "not_observed",
+            "enum": [
+              "not_observed"
+            ],
+            "title": "Cash Evidence",
+            "type": "string"
+          },
+          "cost_state": {
+            "const": "unreserved",
+            "enum": [
+              "unreserved"
+            ],
+            "title": "Cost State",
+            "type": "string"
+          },
+          "execution_research_version": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Execution Research Version",
+            "type": "integer"
+          },
+          "financial_version": {
+            "const": 9,
+            "enum": [
+              9
+            ],
+            "title": "Financial Version",
+            "type": "integer"
+          },
+          "funding_state": {
+            "const": "approved_not_sent",
+            "enum": [
+              "approved_not_sent"
+            ],
+            "title": "Funding State",
+            "type": "string"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "model_analysis_ran": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Model Analysis Ran",
+            "type": "boolean"
+          },
+          "purpose": {
+            "const": "evidence_method_plan_v1",
+            "enum": [
+              "evidence_method_plan_v1"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "real_model_executed": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Real Model Executed",
+            "type": "boolean"
+          },
+          "recorded_at": {
+            "title": "Recorded At",
+            "type": "null"
+          },
+          "request_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Request Digest",
+            "type": "string"
+          },
+          "result_ref": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "selection_manifest_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Selection Manifest Digest",
+            "type": "string"
+          },
+          "state": {
+            "const": "queued",
+            "enum": [
+              "queued"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "task_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "result_ref",
+          "input_revision",
+          "execution_research_version",
+          "purpose",
+          "selection_manifest_digest",
+          "request_digest",
+          "state",
+          "funding_state",
+          "cost_state",
+          "cash_evidence",
+          "financial_version",
+          "real_model_executed",
+          "model_analysis_ran",
+          "recorded_at"
+        ],
+        "title": "EvidenceMethodConfirmData",
+        "type": "object"
+      },
+      "EvidenceMethodConfirmResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "funded-evidence-method-v1",
+            "enum": [
+              "funded-evidence-method-v1"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EvidenceMethodConfirmData"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_revision",
+          "data"
+        ],
+        "title": "EvidenceMethodConfirmResponse",
+        "type": "object"
+      },
+      "EvidenceMethodErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/EvidenceMethodPublicError"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "EvidenceMethodErrorResponse",
+        "type": "object"
+      },
+      "EvidenceMethodListData": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceMethodMeta"
+            },
+            "maxItems": 20,
+            "minItems": 0,
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "maxLength": 2048,
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "EvidenceMethodListData",
+        "type": "object"
+      },
+      "EvidenceMethodListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "funded-evidence-method-v1",
+            "enum": [
+              "funded-evidence-method-v1"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EvidenceMethodListData"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_revision",
+          "data"
+        ],
+        "title": "EvidenceMethodListResponse",
+        "type": "object"
+      },
+      "EvidenceMethodMeta": {
+        "additionalProperties": false,
+        "properties": {
+          "cleanup_state": {
+            "enum": [
+              "pending",
+              "clean",
+              "uncertain"
+            ],
+            "title": "Cleanup State",
+            "type": "string"
+          },
+          "cost_state": {
+            "enum": [
+              "unreserved",
+              "held",
+              "upper_booked",
+              "unknown"
+            ],
+            "title": "Cost State",
+            "type": "string"
+          },
+          "execution_mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "controlled_fixture",
+                  "native_live"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Mode"
+          },
+          "input_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Input Digest",
+            "type": "string"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "is_historical": {
+            "title": "Is Historical",
+            "type": "boolean"
+          },
+          "purpose": {
+            "const": "evidence_method_plan_v1",
+            "enum": [
+              "evidence_method_plan_v1"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "real_model_executed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real Model Executed"
+          },
+          "recorded_at": {
+            "anyOf": [
+              {
+                "maxLength": 27,
+                "minLength": 27,
+                "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded At"
+          },
+          "request_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Request Digest",
+            "type": "string"
+          },
+          "research_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Research Id",
+            "type": "string"
+          },
+          "result_ref": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "safe_code": {
+            "anyOf": [
+              {
+                "enum": [
+                  "access_ended",
+                  "saved",
+                  "body_invalid",
+                  "send_unknown",
+                  "not_sent",
+                  "cancelled"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe Code"
+          },
+          "selection_manifest_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Selection Manifest Digest",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "queued",
+              "generating",
+              "saved",
+              "failed_insufficient",
+              "pending_reconciliation",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "task_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "result_ref",
+          "research_id",
+          "input_revision",
+          "input_digest",
+          "selection_manifest_digest",
+          "request_digest",
+          "purpose",
+          "state",
+          "cost_state",
+          "cleanup_state",
+          "safe_code",
+          "recorded_at",
+          "execution_mode",
+          "real_model_executed",
+          "is_historical"
+        ],
+        "title": "EvidenceMethodMeta",
+        "type": "object"
+      },
+      "EvidenceMethodPlanCandidate": {
+        "additionalProperties": false,
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/research__evidence_method_plan_schemas__MethodCandidate"
+            },
+            "maxItems": 3,
+            "minItems": 0,
+            "title": "Candidates",
+            "type": "array"
+          },
+          "clarification_questions": {
+            "items": {
+              "maxLength": 240,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 0,
+            "title": "Clarification Questions",
+            "type": "array"
+          },
+          "gaps": {
+            "items": {
+              "$ref": "#/components/schemas/Gap"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Gaps",
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 700,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary",
+          "candidates",
+          "gaps",
+          "clarification_questions"
+        ],
+        "title": "EvidenceMethodPlanCandidate",
+        "type": "object"
+      },
+      "EvidenceMethodPreviewData": {
+        "additionalProperties": false,
+        "properties": {
+          "approved_upper_units": {
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Approved Upper Units",
+            "type": "integer"
+          },
+          "can_confirm": {
+            "title": "Can Confirm",
+            "type": "boolean"
+          },
+          "candidate_schema": {
+            "const": "EvidenceMethodPlanCandidate-v1",
+            "enum": [
+              "EvidenceMethodPlanCandidate-v1"
+            ],
+            "title": "Candidate Schema",
+            "type": "string"
+          },
+          "cash_evidence": {
+            "const": "not_observed",
+            "enum": [
+              "not_observed"
+            ],
+            "title": "Cash Evidence",
+            "type": "string"
+          },
+          "exact_input": {
+            "$ref": "#/components/schemas/SelectedEvidenceMethodInput"
+          },
+          "expires_at": {
+            "maximum": 253402300799.0,
+            "minimum": 0.0,
+            "title": "Expires At",
+            "type": "integer"
+          },
+          "funding_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "FUNDING_CLOSED",
+                  "FUNDING_GRANT_REQUIRED",
+                  "FUNDING_STALE"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Funding Reason"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "input_template": {
+            "const": "SelectedEvidenceMethodInput-v1",
+            "enum": [
+              "SelectedEvidenceMethodInput-v1"
+            ],
+            "title": "Input Template",
+            "type": "string"
+          },
+          "model_analysis_ran": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Model Analysis Ran",
+            "type": "boolean"
+          },
+          "outbound_scope_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Outbound Scope Digest",
+            "type": "string"
+          },
+          "preview_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Preview Digest",
+            "type": "string"
+          },
+          "preview_ref": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Preview Ref",
+            "type": "string"
+          },
+          "purpose": {
+            "const": "evidence_method_plan_v1",
+            "enum": [
+              "evidence_method_plan_v1"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "quote": {
+            "$ref": "#/components/schemas/EvidenceMethodQuote"
+          },
+          "real_model_executed": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Real Model Executed",
+            "type": "boolean"
+          },
+          "request_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Request Digest",
+            "type": "string"
+          },
+          "research_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Research Id",
+            "type": "string"
+          },
+          "research_version": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Research Version",
+            "type": "integer"
+          },
+          "selected_input_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Selected Input Digest",
+            "type": "string"
+          },
+          "selection_manifest_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Selection Manifest Digest",
+            "type": "string"
+          },
+          "source_references": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSourceRef"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Source References",
+            "type": "array"
+          },
+          "state": {
+            "enum": [
+              "awaiting_confirmation",
+              "funding_closed"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "template_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Template Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "preview_ref",
+          "preview_digest",
+          "research_id",
+          "input_revision",
+          "research_version",
+          "purpose",
+          "input_template",
+          "candidate_schema",
+          "selection_manifest_digest",
+          "selected_input_digest",
+          "request_digest",
+          "template_digest",
+          "outbound_scope_digest",
+          "exact_input",
+          "source_references",
+          "quote",
+          "approved_upper_units",
+          "expires_at",
+          "cash_evidence",
+          "state",
+          "can_confirm",
+          "funding_reason",
+          "model_analysis_ran",
+          "real_model_executed"
+        ],
+        "title": "EvidenceMethodPreviewData",
+        "type": "object"
+      },
+      "EvidenceMethodPreviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "funded-evidence-method-v1",
+            "enum": [
+              "funded-evidence-method-v1"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EvidenceMethodPreviewData"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_revision",
+          "data"
+        ],
+        "title": "EvidenceMethodPreviewResponse",
+        "type": "object"
+      },
+      "EvidenceMethodPublicError": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_next_actions": {
+            "items": {
+              "const": "sign_in",
+              "enum": [
+                "sign_in"
+              ],
+              "type": "string"
+            },
+            "maxItems": 1,
+            "minItems": 0,
+            "title": "Allowed Next Actions",
+            "type": "array"
+          },
+          "code": {
+            "enum": [
+              "AUTH_REQUIRED",
+              "AUTHORIZATION_STALE",
+              "FUNDING_GRANT_REQUIRED",
+              "NOT_FOUND",
+              "REVISION_CONFLICT",
+              "IDEMPOTENCY_CONFLICT",
+              "PREVIEW_CHANGED",
+              "PREVIEW_EXPIRED",
+              "TASK_ACTIVE",
+              "FUNDING_BUSY",
+              "FUNDING_STALE",
+              "SOURCE_PERMISSION_UNAVAILABLE",
+              "RECONCILIATION_REQUIRED",
+              "PAYLOAD_LIMIT",
+              "INPUT_INVALID",
+              "BUDGET_EXHAUSTED",
+              "FEATURE_UNAVAILABLE",
+              "FUNDING_CLOSED",
+              "STORE_UNAVAILABLE",
+              "RESULT_UNAVAILABLE",
+              "RESPONSE_UNAVAILABLE",
+              "CLEANUP_UNCERTAIN"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "incident_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Incident Id",
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable",
+          "allowed_next_actions",
+          "incident_id"
+        ],
+        "title": "EvidenceMethodPublicError",
+        "type": "object"
+      },
+      "EvidenceMethodQuote": {
+        "additionalProperties": false,
+        "properties": {
+          "approved_upper_units": {
+            "const": 2129920,
+            "enum": [
+              2129920
+            ],
+            "title": "Approved Upper Units",
+            "type": "integer"
+          },
+          "codec_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Codec Digest",
+            "type": "string"
+          },
+          "context_bound": {
+            "const": 1048576,
+            "enum": [
+              1048576
+            ],
+            "title": "Context Bound",
+            "type": "integer"
+          },
+          "currency": {
+            "const": "CNY",
+            "enum": [
+              "CNY"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "declaration_observed_on": {
+            "const": "2026-10-18",
+            "enum": [
+              "2026-10-18"
+            ],
+            "title": "Declaration Observed On",
+            "type": "string"
+          },
+          "declared_model_version": {
+            "const": "DeepSeek-V4.1-Flash-1017",
+            "enum": [
+              "DeepSeek-V4.1-Flash-1017"
+            ],
+            "title": "Declared Model Version",
+            "type": "string"
+          },
+          "issued_at": {
+            "maximum": 253402300799.0,
+            "minimum": 0.0,
+            "title": "Issued At",
+            "type": "integer"
+          },
+          "max_output_tokens": {
+            "const": 4096,
+            "enum": [
+              4096
+            ],
+            "title": "Max Output Tokens",
+            "type": "integer"
+          },
+          "model": {
+            "const": "deepseek-flash",
+            "enum": [
+              "deepseek-flash"
+            ],
+            "title": "Model",
+            "type": "string"
+          },
+          "peak_input_hit_units_per_million": {
+            "const": 40000,
+            "enum": [
+              40000
+            ],
+            "title": "Peak Input Hit Units Per Million",
+            "type": "integer"
+          },
+          "peak_input_miss_units_per_million": {
+            "const": 2000000,
+            "enum": [
+              2000000
+            ],
+            "title": "Peak Input Miss Units Per Million",
+            "type": "integer"
+          },
+          "peak_output_units_per_million": {
+            "const": 8000000,
+            "enum": [
+              8000000
+            ],
+            "title": "Peak Output Units Per Million",
+            "type": "integer"
+          },
+          "price_source": {
+            "const": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+            "enum": [
+              "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/"
+            ],
+            "title": "Price Source",
+            "type": "string"
+          },
+          "protocol": {
+            "const": "financial9-evidence-method-quote-v1",
+            "enum": [
+              "financial9-evidence-method-quote-v1"
+            ],
+            "title": "Protocol",
+            "type": "string"
+          },
+          "provider": {
+            "const": "deepseek",
+            "enum": [
+              "deepseek"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
+          "provider_output_bound": {
+            "const": 393216,
+            "enum": [
+              393216
+            ],
+            "title": "Provider Output Bound",
+            "type": "integer"
+          },
+          "purpose": {
+            "const": "evidence_method_plan_v1",
+            "enum": [
+              "evidence_method_plan_v1"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "revision": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Revision",
+            "type": "string"
+          },
+          "scale": {
+            "const": 6,
+            "enum": [
+              6
+            ],
+            "title": "Scale",
+            "type": "integer"
+          },
+          "valid_until": {
+            "maximum": 253402300799.0,
+            "minimum": 0.0,
+            "title": "Valid Until",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "protocol",
+          "revision",
+          "purpose",
+          "provider",
+          "model",
+          "declared_model_version",
+          "declaration_observed_on",
+          "currency",
+          "scale",
+          "peak_input_hit_units_per_million",
+          "peak_input_miss_units_per_million",
+          "peak_output_units_per_million",
+          "context_bound",
+          "provider_output_bound",
+          "max_output_tokens",
+          "approved_upper_units",
+          "codec_digest",
+          "issued_at",
+          "valid_until",
+          "price_source"
+        ],
+        "title": "EvidenceMethodQuote",
+        "type": "object"
+      },
+      "EvidenceMethodReadData": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OwnedEvidenceMethodPlanResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_state": {
+            "enum": [
+              "none",
+              "available",
+              "unavailable"
+            ],
+            "title": "Content State",
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/EvidenceMethodMeta"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "SOURCE_PERMISSION_UNAVAILABLE",
+                  "SOURCE_UNAVAILABLE"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          }
+        },
+        "required": [
+          "metadata",
+          "content_state",
+          "unavailable_reason",
+          "content"
+        ],
+        "title": "EvidenceMethodReadData",
+        "type": "object"
+      },
+      "EvidenceMethodReadResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "funded-evidence-method-v1",
+            "enum": [
+              "funded-evidence-method-v1"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EvidenceMethodReadData"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_revision",
+          "data"
+        ],
+        "title": "EvidenceMethodReadResponse",
+        "type": "object"
+      },
       "EvidenceResult": {
         "additionalProperties": false,
         "properties": {
@@ -2794,6 +3934,42 @@
           }
         },
         "title": "ExperimentInput",
+        "type": "object"
+      },
+      "Falsifier": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_handles": {
+            "items": {
+              "enum": [
+                "e1",
+                "e2",
+                "e3",
+                "e4",
+                "e5",
+                "e6",
+                "e7",
+                "e8"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 0,
+            "title": "Evidence Handles",
+            "type": "array"
+          },
+          "statement": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "statement",
+          "evidence_handles"
+        ],
+        "title": "Falsifier",
         "type": "object"
       },
       "FavoritesMergeInput": {
@@ -3220,6 +4396,357 @@
           "data"
         ],
         "title": "FinancialImportPreviewResponse",
+        "type": "object"
+      },
+      "FinancialRegistryConfirmationData": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "$ref": "#/components/schemas/RegistryCurrentV2"
+          },
+          "execution_authorized": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Execution Authorized",
+            "type": "boolean"
+          },
+          "is_historical": {
+            "title": "Is Historical",
+            "type": "boolean"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/RegistryMetadataV2"
+          },
+          "persisted": {
+            "const": true,
+            "default": true,
+            "enum": [
+              true
+            ],
+            "title": "Persisted",
+            "type": "boolean"
+          },
+          "public_projection_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Public Projection Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "metadata",
+          "current",
+          "is_historical",
+          "public_projection_digest"
+        ],
+        "title": "FinancialRegistryConfirmationData",
+        "type": "object"
+      },
+      "FinancialRegistryConfirmationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "financial-input-v2",
+            "default": "financial-input-v2",
+            "enum": [
+              "financial-input-v2"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FinancialRegistryConfirmationData"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "default": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "FinancialRegistryConfirmationResponse",
+        "type": "object"
+      },
+      "FinancialRegistryHistoryData": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "$ref": "#/components/schemas/RegistryCurrentV2"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FinancialRegistryHistoryItem"
+            },
+            "maxItems": 20,
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "research_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Research Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "research_id",
+          "current",
+          "items",
+          "next_cursor"
+        ],
+        "title": "FinancialRegistryHistoryData",
+        "type": "object"
+      },
+      "FinancialRegistryHistoryItem": {
+        "additionalProperties": false,
+        "properties": {
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "is_historical": {
+            "title": "Is Historical",
+            "type": "boolean"
+          },
+          "kind": {
+            "const": "owner_supplied",
+            "default": "owner_supplied",
+            "enum": [
+              "owner_supplied"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "original_available": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Original Available",
+            "type": "boolean"
+          },
+          "problem_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Problem Digest",
+            "type": "string"
+          },
+          "public_projection_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Public Projection Digest",
+            "type": "string"
+          },
+          "qualification": {
+            "const": "conditional_on_owner_supplied_data",
+            "default": "conditional_on_owner_supplied_data",
+            "enum": [
+              "conditional_on_owner_supplied_data"
+            ],
+            "title": "Qualification",
+            "type": "string"
+          },
+          "received_at": {
+            "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$",
+            "title": "Received At",
+            "type": "string"
+          },
+          "registry_ref": {
+            "$ref": "#/components/schemas/FinancialRegistryRefV2"
+          },
+          "research_version_after": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Research Version After",
+            "type": "integer"
+          },
+          "research_version_before": {
+            "maximum": 2147483646.0,
+            "minimum": 1.0,
+            "title": "Research Version Before",
+            "type": "integer"
+          },
+          "system_verified": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "System Verified",
+            "type": "boolean"
+          },
+          "verification": {
+            "const": "unverified",
+            "default": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "registry_ref",
+          "input_revision",
+          "problem_digest",
+          "research_version_before",
+          "research_version_after",
+          "received_at",
+          "is_historical",
+          "public_projection_digest"
+        ],
+        "title": "FinancialRegistryHistoryItem",
+        "type": "object"
+      },
+      "FinancialRegistryHistoryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "financial-input-v2",
+            "default": "financial-input-v2",
+            "enum": [
+              "financial-input-v2"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FinancialRegistryHistoryData"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "default": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "FinancialRegistryHistoryResponse",
+        "type": "object"
+      },
+      "FinancialRegistryReadData": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "$ref": "#/components/schemas/RegistryCurrentV2"
+          },
+          "execution_authorized": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Execution Authorized",
+            "type": "boolean"
+          },
+          "is_historical": {
+            "title": "Is Historical",
+            "type": "boolean"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/RegistryMetadataV2"
+          },
+          "projection": {
+            "$ref": "#/components/schemas/PublicFinancialRegistryProjectionV2"
+          },
+          "public_projection_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Public Projection Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "metadata",
+          "current",
+          "is_historical",
+          "projection",
+          "public_projection_digest"
+        ],
+        "title": "FinancialRegistryReadData",
+        "type": "object"
+      },
+      "FinancialRegistryReadResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "financial-input-v2",
+            "default": "financial-input-v2",
+            "enum": [
+              "financial-input-v2"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FinancialRegistryReadData"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "default": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "FinancialRegistryReadResponse",
+        "type": "object"
+      },
+      "FinancialRegistryRefV2": {
+        "additionalProperties": false,
+        "properties": {
+          "digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Digest",
+            "type": "string"
+          },
+          "id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "revision": {
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "digest"
+        ],
+        "title": "FinancialRegistryRefV2",
         "type": "object"
       },
       "FlagsResponse": {
@@ -3682,6 +5209,51 @@
         "title": "FormulaExecutionProvenance",
         "type": "object"
       },
+      "FormulaProposal": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "enum": [
+              "quoted_subset",
+              "unverified_proposal"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "evidence_handles": {
+            "items": {
+              "enum": [
+                "e1",
+                "e2",
+                "e3",
+                "e4",
+                "e5",
+                "e6",
+                "e7",
+                "e8"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 0,
+            "title": "Evidence Handles",
+            "type": "array"
+          },
+          "text": {
+            "maxLength": 700,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "basis",
+          "evidence_handles"
+        ],
+        "title": "FormulaProposal",
+        "type": "object"
+      },
       "FormulaResultData": {
         "additionalProperties": false,
         "properties": {
@@ -3856,6 +5428,56 @@
         "title": "FormulaRunMetadata",
         "type": "object"
       },
+      "Gap": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "enum": [
+              "method_identity_missing",
+              "formula_not_recoverable",
+              "assumptions_not_supported",
+              "maturity_not_established",
+              "evidence_scope_limited",
+              "source_not_live",
+              "no_transfer_validation"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Detail",
+            "type": "string"
+          },
+          "evidence_handles": {
+            "items": {
+              "enum": [
+                "e1",
+                "e2",
+                "e3",
+                "e4",
+                "e5",
+                "e6",
+                "e7",
+                "e8"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 0,
+            "title": "Evidence Handles",
+            "type": "array"
+          }
+        },
+        "required": [
+          "code",
+          "detail",
+          "evidence_handles"
+        ],
+        "title": "Gap",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -4005,6 +5627,58 @@
           "nonce"
         ],
         "title": "IssueBody",
+        "type": "object"
+      },
+      "KeyMapEntryV2": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "physical_line_end": {
+            "maximum": 131073.0,
+            "minimum": 2.0,
+            "title": "Physical Line End",
+            "type": "integer"
+          },
+          "physical_line_start": {
+            "maximum": 131073.0,
+            "minimum": 2.0,
+            "title": "Physical Line Start",
+            "type": "integer"
+          },
+          "record_index": {
+            "maximum": 96.0,
+            "minimum": 1.0,
+            "title": "Record Index",
+            "type": "integer"
+          },
+          "registered_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Registered Id",
+            "type": "string"
+          },
+          "row_type": {
+            "enum": [
+              "source",
+              "observation",
+              "historical_fx"
+            ],
+            "title": "Row Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "row_type",
+          "registered_id",
+          "record_index",
+          "physical_line_start",
+          "physical_line_end"
+        ],
+        "title": "KeyMapEntryV2",
         "type": "object"
       },
       "LegacyCheckoutRetiredResponse": {
@@ -4555,7 +6229,7 @@
         "properties": {
           "candidates": {
             "items": {
-              "$ref": "#/components/schemas/MethodCandidate"
+              "$ref": "#/components/schemas/services__secondary_tool_contracts__MethodCandidate"
             },
             "maxItems": 20,
             "title": "Candidates",
@@ -4624,69 +6298,6 @@
           "evidence"
         ],
         "title": "MethodApplyResponse",
-        "type": "object"
-      },
-      "MethodCandidate": {
-        "additionalProperties": false,
-        "properties": {
-          "candidate_note": {
-            "anyOf": [
-              {
-                "maxLength": 240,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Candidate Note"
-          },
-          "description": {
-            "maxLength": 600,
-            "title": "Description",
-            "type": "string"
-          },
-          "domain": {
-            "maxLength": 120,
-            "title": "Domain",
-            "type": "string"
-          },
-          "evidence": {
-            "$ref": "#/components/schemas/CandidateEvidenceEnvelope"
-          },
-          "id": {
-            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
-            "title": "Id",
-            "type": "string"
-          },
-          "name": {
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Name",
-            "type": "string"
-          },
-          "retrieval_rank": {
-            "maximum": 20.0,
-            "minimum": 1.0,
-            "title": "Retrieval Rank",
-            "type": "integer"
-          },
-          "type_id": {
-            "maxLength": 120,
-            "title": "Type Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "domain",
-          "type_id",
-          "description",
-          "retrieval_rank",
-          "evidence"
-        ],
-        "title": "MethodCandidate",
         "type": "object"
       },
       "MethodDraftContent": {
@@ -5615,12 +7226,12 @@
             "anyOf": [
               {
                 "enum": [
+                  "access_ended",
                   "saved",
                   "body_invalid",
                   "send_unknown",
                   "not_sent",
-                  "cancelled",
-                  "access_ended"
+                  "cancelled"
                 ],
                 "type": "string"
               },
@@ -5941,6 +7552,116 @@
         "title": "OriginCandidateResponse",
         "type": "object"
       },
+      "OutboundDomain": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_schema": {
+            "const": "EvidenceMethodPlanCandidate-v1",
+            "enum": [
+              "EvidenceMethodPlanCandidate-v1"
+            ],
+            "title": "Candidate Schema",
+            "type": "string"
+          },
+          "codec_revision": {
+            "const": "evidence-method-codec-v1-candidate",
+            "enum": [
+              "evidence-method-codec-v1-candidate"
+            ],
+            "title": "Codec Revision",
+            "type": "string"
+          },
+          "input_template": {
+            "const": "SelectedEvidenceMethodInput-v1",
+            "enum": [
+              "SelectedEvidenceMethodInput-v1"
+            ],
+            "title": "Input Template",
+            "type": "string"
+          },
+          "outbound_scope_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Outbound Scope Digest",
+            "type": "string"
+          },
+          "producer_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Producer Digest",
+            "type": "string"
+          },
+          "purpose": {
+            "const": "evidence_method_plan_v1",
+            "enum": [
+              "evidence_method_plan_v1"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "request_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Request Digest",
+            "type": "string"
+          },
+          "result_schema": {
+            "const": "OwnedEvidenceMethodPlanResult-v1",
+            "enum": [
+              "OwnedEvidenceMethodPlanResult-v1"
+            ],
+            "title": "Result Schema",
+            "type": "string"
+          },
+          "selected_input_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Selected Input Digest",
+            "type": "string"
+          },
+          "selection_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Selection Digest",
+            "type": "string"
+          },
+          "template_code_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Template Code Digest",
+            "type": "string"
+          },
+          "template_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Template Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "purpose",
+          "input_template",
+          "candidate_schema",
+          "result_schema",
+          "codec_revision",
+          "template_digest",
+          "template_code_digest",
+          "producer_digest",
+          "selection_digest",
+          "selected_input_digest",
+          "request_digest",
+          "outbound_scope_digest"
+        ],
+        "title": "OutboundDomain",
+        "type": "object"
+      },
       "OutcomeDetailInput": {
         "additionalProperties": false,
         "properties": {
@@ -6005,6 +7726,209 @@
           }
         },
         "title": "OutcomeDetailInput",
+        "type": "object"
+      },
+      "OwnedEvidenceMethodPlanResult": {
+        "additionalProperties": false,
+        "properties": {
+          "admission_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Admission Digest",
+            "type": "string"
+          },
+          "automatically_created_sources": {
+            "const": 0,
+            "enum": [
+              0
+            ],
+            "title": "Automatically Created Sources",
+            "type": "integer"
+          },
+          "candidate": {
+            "$ref": "#/components/schemas/EvidenceMethodPlanCandidate"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/ResultCitation"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Citations",
+            "type": "array"
+          },
+          "consent_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Consent Digest",
+            "type": "string"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/OutboundDomain"
+          },
+          "execution_mode": {
+            "enum": [
+              "controlled_fixture",
+              "native_live"
+            ],
+            "title": "Execution Mode",
+            "type": "string"
+          },
+          "input_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Input Digest",
+            "type": "string"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "literature_status": {
+            "const": "selected_stored_excerpts_only",
+            "enum": [
+              "selected_stored_excerpts_only"
+            ],
+            "title": "Literature Status",
+            "type": "string"
+          },
+          "mathematics_status": {
+            "const": "not_checked",
+            "enum": [
+              "not_checked"
+            ],
+            "title": "Mathematics Status",
+            "type": "string"
+          },
+          "maturity_status": {
+            "const": "candidate_unverified",
+            "enum": [
+              "candidate_unverified"
+            ],
+            "title": "Maturity Status",
+            "type": "string"
+          },
+          "mechanism_status": {
+            "const": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Mechanism Status",
+            "type": "string"
+          },
+          "producer": {
+            "enum": [
+              "core-controlled-native-v1",
+              "owned-native-plan-runtime-v1"
+            ],
+            "title": "Producer",
+            "type": "string"
+          },
+          "protocol": {
+            "const": "owned-evidence-method-plan-result-v1",
+            "enum": [
+              "owned-evidence-method-plan-result-v1"
+            ],
+            "title": "Protocol",
+            "type": "string"
+          },
+          "real_model_executed": {
+            "title": "Real Model Executed",
+            "type": "boolean"
+          },
+          "recorded_at": {
+            "maxLength": 27,
+            "minLength": 27,
+            "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "research_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Research Id",
+            "type": "string"
+          },
+          "result_ref": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "source_origin": {
+            "enum": [
+              "live",
+              "offline_probe",
+              "mixed"
+            ],
+            "title": "Source Origin",
+            "type": "string"
+          },
+          "task_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_outbound_scope_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Task Outbound Scope Digest",
+            "type": "string"
+          },
+          "transfer_status": {
+            "const": "not_validated",
+            "enum": [
+              "not_validated"
+            ],
+            "title": "Transfer Status",
+            "type": "string"
+          },
+          "weight_identity_verified": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Weight Identity Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "protocol",
+          "domain",
+          "task_outbound_scope_digest",
+          "result_ref",
+          "task_id",
+          "research_id",
+          "input_revision",
+          "input_digest",
+          "consent_digest",
+          "admission_digest",
+          "recorded_at",
+          "execution_mode",
+          "producer",
+          "real_model_executed",
+          "weight_identity_verified",
+          "literature_status",
+          "maturity_status",
+          "mathematics_status",
+          "mechanism_status",
+          "transfer_status",
+          "automatically_created_sources",
+          "source_origin",
+          "citations",
+          "candidate"
+        ],
+        "title": "OwnedEvidenceMethodPlanResult",
         "type": "object"
       },
       "OwnedReportDeleteResponse": {
@@ -8580,12 +10504,12 @@
             "anyOf": [
               {
                 "enum": [
+                  "access_ended",
                   "saved",
                   "body_invalid",
                   "send_unknown",
                   "not_sent",
-                  "cancelled",
-                  "access_ended"
+                  "cancelled"
                 ],
                 "type": "string"
               },
@@ -9193,6 +11117,308 @@
         "title": "PrivacyRemovalCounts",
         "type": "object"
       },
+      "ProblemContext": {
+        "additionalProperties": false,
+        "properties": {
+          "declaration": {
+            "const": "self_declared",
+            "enum": [
+              "self_declared"
+            ],
+            "title": "Declaration",
+            "type": "string"
+          },
+          "kind": {
+            "const": "owner_problem_summary",
+            "enum": [
+              "owner_problem_summary"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "summary": {
+            "maxLength": 1000,
+            "minLength": 8,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "declaration",
+          "summary"
+        ],
+        "title": "ProblemContext",
+        "type": "object"
+      },
+      "PublicFinancialRegistryProjectionV2": {
+        "additionalProperties": false,
+        "properties": {
+          "csv_text": {
+            "maxLength": 131072,
+            "title": "Csv Text",
+            "type": "string"
+          },
+          "registry": {
+            "$ref": "#/components/schemas/PublicOwnerFinancialRegistryV2"
+          }
+        },
+        "required": [
+          "csv_text",
+          "registry"
+        ],
+        "title": "PublicFinancialRegistryProjectionV2",
+        "type": "object"
+      },
+      "PublicOwnerFinancialRegistryV2": {
+        "additionalProperties": false,
+        "properties": {
+          "binding": {
+            "$ref": "#/components/schemas/RegistryBindingV2"
+          },
+          "format_version": {
+            "const": "owner-financial-registry-public-v2",
+            "enum": [
+              "owner-financial-registry-public-v2"
+            ],
+            "title": "Format Version",
+            "type": "string"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/RegistryIdentityV2"
+          },
+          "key_map": {
+            "items": {
+              "$ref": "#/components/schemas/KeyMapEntryV2"
+            },
+            "maxItems": 96,
+            "title": "Key Map",
+            "type": "array"
+          },
+          "parser_revision": {
+            "const": "owner-financial-csv-v1",
+            "enum": [
+              "owner-financial-csv-v1"
+            ],
+            "title": "Parser Revision",
+            "type": "string"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/PublicRegistryReceiptV2"
+          },
+          "records": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "historical_fx": "#/components/schemas/RegisteredFXV2",
+                  "observation": "#/components/schemas/RegisteredObservationV2",
+                  "source": "#/components/schemas/RegisteredSourceV2"
+                },
+                "propertyName": "row_type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/RegisteredSourceV2"
+                },
+                {
+                  "$ref": "#/components/schemas/RegisteredObservationV2"
+                },
+                {
+                  "$ref": "#/components/schemas/RegisteredFXV2"
+                }
+              ]
+            },
+            "maxItems": 96,
+            "title": "Records",
+            "type": "array"
+          }
+        },
+        "required": [
+          "format_version",
+          "parser_revision",
+          "identity",
+          "binding",
+          "receipt",
+          "key_map",
+          "records"
+        ],
+        "title": "PublicOwnerFinancialRegistryV2",
+        "type": "object"
+      },
+      "PublicRegistryReceiptV2": {
+        "additionalProperties": false,
+        "properties": {
+          "exact_received_csv_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Exact Received Csv Sha256",
+            "type": "string"
+          },
+          "key_based_plan_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Key Based Plan Digest",
+            "type": "string"
+          },
+          "preview_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Preview Digest",
+            "type": "string"
+          },
+          "received_at": {
+            "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$",
+            "title": "Received At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "received_at",
+          "exact_received_csv_sha256",
+          "key_based_plan_digest",
+          "preview_digest"
+        ],
+        "title": "PublicRegistryReceiptV2",
+        "type": "object"
+      },
+      "PublicSourceRef": {
+        "additionalProperties": false,
+        "properties": {
+          "acquired_at": {
+            "maxLength": 27,
+            "minLength": 27,
+            "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$",
+            "title": "Acquired At",
+            "type": "string"
+          },
+          "canonical_url": {
+            "maxLength": 160,
+            "pattern": "^https://journals\\.plos\\.org/plosone/article\\?id=10\\.1371/journal\\.pone\\.[0-9]{7}$",
+            "title": "Canonical Url",
+            "type": "string"
+          },
+          "discovery_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Discovery Digest",
+            "type": "string"
+          },
+          "end": {
+            "maximum": 200000.0,
+            "minimum": 1.0,
+            "title": "End",
+            "type": "integer"
+          },
+          "excerpt_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Excerpt Id",
+            "type": "string"
+          },
+          "extracted_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Extracted Digest",
+            "type": "string"
+          },
+          "handle": {
+            "enum": [
+              "e1",
+              "e2",
+              "e3",
+              "e4",
+              "e5",
+              "e6",
+              "e7",
+              "e8"
+            ],
+            "title": "Handle",
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "live",
+              "offline_probe"
+            ],
+            "title": "Origin",
+            "type": "string"
+          },
+          "quote_sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Quote Sha256",
+            "type": "string"
+          },
+          "raw_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Raw Digest",
+            "type": "string"
+          },
+          "read_scope": {
+            "const": "author_narrative_subset",
+            "enum": [
+              "author_narrative_subset"
+            ],
+            "title": "Read Scope",
+            "type": "string"
+          },
+          "source_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Source Input Revision",
+            "type": "integer"
+          },
+          "source_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Source Revision",
+            "type": "integer"
+          },
+          "source_task_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Source Task Id",
+            "type": "string"
+          },
+          "start": {
+            "maximum": 199999.0,
+            "minimum": 0.0,
+            "title": "Start",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "handle",
+          "source_id",
+          "source_revision",
+          "excerpt_id",
+          "source_task_id",
+          "source_input_revision",
+          "raw_digest",
+          "extracted_digest",
+          "discovery_digest",
+          "start",
+          "end",
+          "quote_sha256",
+          "canonical_url",
+          "read_scope",
+          "origin",
+          "acquired_at"
+        ],
+        "title": "PublicSourceRef",
+        "type": "object"
+      },
       "ReferralBody": {
         "properties": {
           "reason": {
@@ -9223,6 +11449,775 @@
           "referee_b_email"
         ],
         "title": "ReferralBody",
+        "type": "object"
+      },
+      "RegisteredFXV2": {
+        "additionalProperties": false,
+        "properties": {
+          "declared_basis": {
+            "enum": [
+              "disclosed",
+              "media_estimate",
+              "missing",
+              "conflicted"
+            ],
+            "title": "Declared Basis",
+            "type": "string"
+          },
+          "from_currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "From Currency",
+            "type": "string"
+          },
+          "fx_kind": {
+            "enum": [
+              "period_average",
+              "spot"
+            ],
+            "title": "Fx Kind",
+            "type": "string"
+          },
+          "id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "const": "owner_supplied",
+            "default": "owner_supplied",
+            "enum": [
+              "owner_supplied"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "original_available": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Original Available",
+            "type": "boolean"
+          },
+          "period_end": {
+            "title": "Period End",
+            "type": "string"
+          },
+          "period_grain": {
+            "enum": [
+              "annual",
+              "interim",
+              "remaining"
+            ],
+            "title": "Period Grain",
+            "type": "string"
+          },
+          "period_start": {
+            "title": "Period Start",
+            "type": "string"
+          },
+          "physical_line_end": {
+            "maximum": 131073.0,
+            "minimum": 2.0,
+            "title": "Physical Line End",
+            "type": "integer"
+          },
+          "physical_line_start": {
+            "maximum": 131073.0,
+            "minimum": 2.0,
+            "title": "Physical Line Start",
+            "type": "integer"
+          },
+          "record_index": {
+            "maximum": 96.0,
+            "minimum": 1.0,
+            "title": "Record Index",
+            "type": "integer"
+          },
+          "row_type": {
+            "const": "historical_fx",
+            "enum": [
+              "historical_fx"
+            ],
+            "title": "Row Type",
+            "type": "string"
+          },
+          "source_refs": {
+            "items": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Source Refs",
+            "type": "array"
+          },
+          "system_verified": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "System Verified",
+            "type": "boolean"
+          },
+          "to_currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "To Currency",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "verification": {
+            "const": "unverified",
+            "default": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "record_index",
+          "physical_line_start",
+          "physical_line_end",
+          "period_start",
+          "period_end",
+          "period_grain",
+          "value",
+          "declared_basis",
+          "source_refs",
+          "row_type",
+          "from_currency",
+          "to_currency",
+          "fx_kind",
+          "id"
+        ],
+        "title": "RegisteredFXV2",
+        "type": "object"
+      },
+      "RegisteredObservationV2": {
+        "additionalProperties": false,
+        "properties": {
+          "accounting_basis": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Accounting Basis",
+            "type": "string"
+          },
+          "alternative_refs": {
+            "items": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Alternative Refs",
+            "type": "array"
+          },
+          "currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "declared_basis": {
+            "enum": [
+              "disclosed",
+              "media_estimate",
+              "missing",
+              "conflicted"
+            ],
+            "title": "Declared Basis",
+            "type": "string"
+          },
+          "entity_scope": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Entity Scope",
+            "type": "string"
+          },
+          "id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "const": "owner_supplied",
+            "default": "owner_supplied",
+            "enum": [
+              "owner_supplied"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "metric": {
+            "enum": [
+              "revenue",
+              "operating_profit",
+              "net_profit",
+              "operating_cost",
+              "operating_expense",
+              "shared_cost",
+              "depreciation",
+              "sbc",
+              "operating_adjustment",
+              "capex"
+            ],
+            "title": "Metric",
+            "type": "string"
+          },
+          "original_available": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Original Available",
+            "type": "boolean"
+          },
+          "period_end": {
+            "title": "Period End",
+            "type": "string"
+          },
+          "period_grain": {
+            "enum": [
+              "annual",
+              "interim",
+              "remaining"
+            ],
+            "title": "Period Grain",
+            "type": "string"
+          },
+          "period_start": {
+            "title": "Period Start",
+            "type": "string"
+          },
+          "physical_line_end": {
+            "maximum": 131073.0,
+            "minimum": 2.0,
+            "title": "Physical Line End",
+            "type": "integer"
+          },
+          "physical_line_start": {
+            "maximum": 131073.0,
+            "minimum": 2.0,
+            "title": "Physical Line Start",
+            "type": "integer"
+          },
+          "record_index": {
+            "maximum": 96.0,
+            "minimum": 1.0,
+            "title": "Record Index",
+            "type": "integer"
+          },
+          "row_type": {
+            "const": "observation",
+            "enum": [
+              "observation"
+            ],
+            "title": "Row Type",
+            "type": "string"
+          },
+          "scope_kind": {
+            "enum": [
+              "group",
+              "segment",
+              "app"
+            ],
+            "title": "Scope Kind",
+            "type": "string"
+          },
+          "source_refs": {
+            "items": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Source Refs",
+            "type": "array"
+          },
+          "system_verified": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "System Verified",
+            "type": "boolean"
+          },
+          "unit": {
+            "enum": [
+              "unit",
+              "thousand",
+              "million",
+              "billion"
+            ],
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "verification": {
+            "const": "unverified",
+            "default": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "record_index",
+          "physical_line_start",
+          "physical_line_end",
+          "period_start",
+          "period_end",
+          "period_grain",
+          "value",
+          "declared_basis",
+          "source_refs",
+          "row_type",
+          "entity_scope",
+          "scope_kind",
+          "metric",
+          "currency",
+          "unit",
+          "accounting_basis",
+          "alternative_refs",
+          "id"
+        ],
+        "title": "RegisteredObservationV2",
+        "type": "object"
+      },
+      "RegisteredSourceV2": {
+        "additionalProperties": false,
+        "properties": {
+          "claimed_accessed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimed Accessed At"
+          },
+          "claimed_published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimed Published At"
+          },
+          "declared_original_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declared Original Sha256"
+          },
+          "excerpt": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Excerpt",
+            "type": "string"
+          },
+          "id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "const": "owner_supplied",
+            "default": "owner_supplied",
+            "enum": [
+              "owner_supplied"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "locator": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Locator",
+            "type": "string"
+          },
+          "original_available": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Original Available",
+            "type": "boolean"
+          },
+          "physical_line_end": {
+            "maximum": 131073.0,
+            "minimum": 2.0,
+            "title": "Physical Line End",
+            "type": "integer"
+          },
+          "physical_line_start": {
+            "maximum": 131073.0,
+            "minimum": 2.0,
+            "title": "Physical Line Start",
+            "type": "integer"
+          },
+          "read_scope": {
+            "maxLength": 700,
+            "minLength": 1,
+            "title": "Read Scope",
+            "type": "string"
+          },
+          "received_excerpt_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Received Excerpt Sha256",
+            "type": "string"
+          },
+          "record_index": {
+            "maximum": 96.0,
+            "minimum": 1.0,
+            "title": "Record Index",
+            "type": "integer"
+          },
+          "row_type": {
+            "const": "source",
+            "enum": [
+              "source"
+            ],
+            "title": "Row Type",
+            "type": "string"
+          },
+          "source_chain": {
+            "items": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Source Chain",
+            "type": "array"
+          },
+          "system_verified": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "System Verified",
+            "type": "boolean"
+          },
+          "url": {
+            "maxLength": 1600,
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          },
+          "verification": {
+            "const": "unverified",
+            "default": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "record_index",
+          "physical_line_start",
+          "physical_line_end",
+          "row_type",
+          "url",
+          "locator",
+          "excerpt",
+          "received_excerpt_sha256",
+          "declared_original_sha256",
+          "claimed_published_at",
+          "claimed_accessed_at",
+          "read_scope",
+          "source_chain",
+          "id"
+        ],
+        "title": "RegisteredSourceV2",
+        "type": "object"
+      },
+      "RegistryBindingV2": {
+        "additionalProperties": false,
+        "properties": {
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "problem_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Problem Digest",
+            "type": "string"
+          },
+          "research_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Research Id",
+            "type": "string"
+          },
+          "research_version_after": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Research Version After",
+            "type": "integer"
+          },
+          "research_version_before": {
+            "maximum": 2147483646.0,
+            "minimum": 1.0,
+            "title": "Research Version Before",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "research_id",
+          "input_revision",
+          "problem_digest",
+          "research_version_before",
+          "research_version_after"
+        ],
+        "title": "RegistryBindingV2",
+        "type": "object"
+      },
+      "RegistryCurrentV2": {
+        "additionalProperties": false,
+        "properties": {
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "research_version": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Research Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "input_revision",
+          "research_version"
+        ],
+        "title": "RegistryCurrentV2",
+        "type": "object"
+      },
+      "RegistryIdentityV2": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "revision": {
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "revision"
+        ],
+        "title": "RegistryIdentityV2",
+        "type": "object"
+      },
+      "RegistryMetadataV2": {
+        "additionalProperties": false,
+        "properties": {
+          "exact_received_csv_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Exact Received Csv Sha256",
+            "type": "string"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "key_based_plan_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Key Based Plan Digest",
+            "type": "string"
+          },
+          "kind": {
+            "const": "owner_supplied",
+            "default": "owner_supplied",
+            "enum": [
+              "owner_supplied"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "original_available": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "Original Available",
+            "type": "boolean"
+          },
+          "parser_revision": {
+            "const": "owner-financial-csv-v1",
+            "enum": [
+              "owner-financial-csv-v1"
+            ],
+            "title": "Parser Revision",
+            "type": "string"
+          },
+          "preview_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Preview Digest",
+            "type": "string"
+          },
+          "problem_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Problem Digest",
+            "type": "string"
+          },
+          "qualification": {
+            "const": "conditional_on_owner_supplied_data",
+            "default": "conditional_on_owner_supplied_data",
+            "enum": [
+              "conditional_on_owner_supplied_data"
+            ],
+            "title": "Qualification",
+            "type": "string"
+          },
+          "received_at": {
+            "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$",
+            "title": "Received At",
+            "type": "string"
+          },
+          "registry_ref": {
+            "$ref": "#/components/schemas/FinancialRegistryRefV2"
+          },
+          "request_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Request Digest",
+            "type": "string"
+          },
+          "research_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Research Id",
+            "type": "string"
+          },
+          "research_version_after": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Research Version After",
+            "type": "integer"
+          },
+          "research_version_before": {
+            "maximum": 2147483646.0,
+            "minimum": 1.0,
+            "title": "Research Version Before",
+            "type": "integer"
+          },
+          "system_verified": {
+            "const": false,
+            "default": false,
+            "enum": [
+              false
+            ],
+            "title": "System Verified",
+            "type": "boolean"
+          },
+          "verification": {
+            "const": "unverified",
+            "default": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "research_id",
+          "input_revision",
+          "problem_digest",
+          "research_version_before",
+          "research_version_after",
+          "registry_ref",
+          "received_at",
+          "parser_revision",
+          "exact_received_csv_sha256",
+          "key_based_plan_digest",
+          "preview_digest",
+          "request_digest"
+        ],
+        "title": "RegistryMetadataV2",
         "type": "object"
       },
       "ReportClaimResponse": {
@@ -9814,6 +12809,160 @@
         "title": "ResolvedUserOrigin",
         "type": "object"
       },
+      "ResultCitation": {
+        "additionalProperties": false,
+        "properties": {
+          "acquired_at": {
+            "maxLength": 27,
+            "minLength": 27,
+            "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$",
+            "title": "Acquired At",
+            "type": "string"
+          },
+          "attribution": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Attribution",
+            "type": "string"
+          },
+          "canonical_url": {
+            "maxLength": 160,
+            "pattern": "^https://journals\\.plos\\.org/plosone/article\\?id=10\\.1371/journal\\.pone\\.[0-9]{7}$",
+            "title": "Canonical Url",
+            "type": "string"
+          },
+          "discovery_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Discovery Digest",
+            "type": "string"
+          },
+          "end": {
+            "maximum": 200000.0,
+            "minimum": 1.0,
+            "title": "End",
+            "type": "integer"
+          },
+          "excerpt_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Excerpt Id",
+            "type": "string"
+          },
+          "extracted_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Extracted Digest",
+            "type": "string"
+          },
+          "handle": {
+            "enum": [
+              "e1",
+              "e2",
+              "e3",
+              "e4",
+              "e5",
+              "e6",
+              "e7",
+              "e8"
+            ],
+            "title": "Handle",
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "live",
+              "offline_probe"
+            ],
+            "title": "Origin",
+            "type": "string"
+          },
+          "quote": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "raw_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Raw Digest",
+            "type": "string"
+          },
+          "read_scope": {
+            "const": "author_narrative_subset",
+            "enum": [
+              "author_narrative_subset"
+            ],
+            "title": "Read Scope",
+            "type": "string"
+          },
+          "source_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Source Input Revision",
+            "type": "integer"
+          },
+          "source_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Source Revision",
+            "type": "integer"
+          },
+          "source_task_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Source Task Id",
+            "type": "string"
+          },
+          "start": {
+            "maximum": 199999.0,
+            "minimum": 0.0,
+            "title": "Start",
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle",
+          "source_id",
+          "source_revision",
+          "excerpt_id",
+          "source_task_id",
+          "source_input_revision",
+          "raw_digest",
+          "extracted_digest",
+          "discovery_digest",
+          "start",
+          "end",
+          "quote",
+          "title",
+          "canonical_url",
+          "attribution",
+          "read_scope",
+          "origin",
+          "acquired_at"
+        ],
+        "title": "ResultCitation",
+        "type": "object"
+      },
       "SearchRequest": {
         "properties": {
           "lang": {
@@ -9846,6 +12995,110 @@
           "query"
         ],
         "title": "SearchRequest",
+        "type": "object"
+      },
+      "SelectedEvidenceMethodInput": {
+        "additionalProperties": false,
+        "properties": {
+          "handles": {
+            "items": {
+              "$ref": "#/components/schemas/SelectedHandle"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Handles",
+            "type": "array"
+          },
+          "input_template": {
+            "const": "SelectedEvidenceMethodInput-v1",
+            "enum": [
+              "SelectedEvidenceMethodInput-v1"
+            ],
+            "title": "Input Template",
+            "type": "string"
+          },
+          "problem_context": {
+            "$ref": "#/components/schemas/ProblemContext"
+          },
+          "purpose": {
+            "const": "evidence_method_plan_v1",
+            "enum": [
+              "evidence_method_plan_v1"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          }
+        },
+        "required": [
+          "input_template",
+          "purpose",
+          "problem_context",
+          "handles"
+        ],
+        "title": "SelectedEvidenceMethodInput",
+        "type": "object"
+      },
+      "SelectedHandle": {
+        "additionalProperties": false,
+        "properties": {
+          "attribution": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Attribution",
+            "type": "string"
+          },
+          "handle": {
+            "enum": [
+              "e1",
+              "e2",
+              "e3",
+              "e4",
+              "e5",
+              "e6",
+              "e7",
+              "e8"
+            ],
+            "title": "Handle",
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "live",
+              "offline_probe"
+            ],
+            "title": "Origin",
+            "type": "string"
+          },
+          "quote": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "read_scope": {
+            "const": "author_narrative_subset",
+            "enum": [
+              "author_narrative_subset"
+            ],
+            "title": "Read Scope",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle",
+          "title",
+          "attribution",
+          "quote",
+          "read_scope",
+          "origin"
+        ],
+        "title": "SelectedHandle",
         "type": "object"
       },
       "SetVisibilityBody": {
@@ -10760,6 +14013,124 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "VariableMap": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_handles": {
+            "items": {
+              "enum": [
+                "e1",
+                "e2",
+                "e3",
+                "e4",
+                "e5",
+                "e6",
+                "e7",
+                "e8"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 0,
+            "title": "Evidence Handles",
+            "type": "array"
+          },
+          "method_variable": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Method Variable",
+            "type": "string"
+          },
+          "rationale": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Rationale",
+            "type": "string"
+          },
+          "target_variable": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Target Variable",
+            "type": "string"
+          }
+        },
+        "required": [
+          "method_variable",
+          "target_variable",
+          "rationale",
+          "evidence_handles"
+        ],
+        "title": "VariableMap",
+        "type": "object"
+      },
+      "VerificationPlan": {
+        "additionalProperties": false,
+        "properties": {
+          "comparison": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Comparison",
+            "type": "string"
+          },
+          "falsification": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Falsification",
+            "type": "string"
+          },
+          "inputs_needed": {
+            "items": {
+              "maxLength": 240,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Inputs Needed",
+            "type": "array"
+          },
+          "measurements": {
+            "items": {
+              "maxLength": 240,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Measurements",
+            "type": "array"
+          },
+          "primary_outcome": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Primary Outcome",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "stop_rule": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Stop Rule",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "measurements",
+          "comparison",
+          "primary_outcome",
+          "falsification",
+          "stop_rule",
+          "inputs_needed"
+        ],
+        "title": "VerificationPlan",
+        "type": "object"
+      },
       "VerifyBody": {
         "properties": {
           "token": {
@@ -11002,6 +14373,204 @@
           "email"
         ],
         "title": "CheckoutBody",
+        "type": "object"
+      },
+      "research__evidence_method_plan_schemas__MethodCandidate": {
+        "additionalProperties": false,
+        "properties": {
+          "applicability": {
+            "items": {
+              "$ref": "#/components/schemas/Applicability"
+            },
+            "maxItems": 6,
+            "minItems": 1,
+            "title": "Applicability",
+            "type": "array"
+          },
+          "candidate_kind": {
+            "enum": [
+              "mechanism",
+              "mathematical_method"
+            ],
+            "title": "Candidate Kind",
+            "type": "string"
+          },
+          "competing_explanations": {
+            "items": {
+              "maxLength": 400,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Competing Explanations",
+            "type": "array"
+          },
+          "counterexamples_or_falsifiers": {
+            "items": {
+              "$ref": "#/components/schemas/Falsifier"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Counterexamples Or Falsifiers",
+            "type": "array"
+          },
+          "evidence_links": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceLink"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Evidence Links",
+            "type": "array"
+          },
+          "formula_proposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormulaProposal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gaps": {
+            "items": {
+              "$ref": "#/components/schemas/Gap"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Gaps",
+            "type": "array"
+          },
+          "label": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "mechanism_hypothesis": {
+            "maxLength": 700,
+            "minLength": 1,
+            "title": "Mechanism Hypothesis",
+            "type": "string"
+          },
+          "method_name": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method Name"
+          },
+          "nontransferable": {
+            "items": {
+              "maxLength": 240,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Nontransferable",
+            "type": "array"
+          },
+          "variable_map": {
+            "items": {
+              "$ref": "#/components/schemas/VariableMap"
+            },
+            "maxItems": 10,
+            "minItems": 0,
+            "title": "Variable Map",
+            "type": "array"
+          },
+          "verification_plan": {
+            "$ref": "#/components/schemas/VerificationPlan"
+          }
+        },
+        "required": [
+          "candidate_kind",
+          "label",
+          "mechanism_hypothesis",
+          "method_name",
+          "formula_proposal",
+          "evidence_links",
+          "variable_map",
+          "applicability",
+          "competing_explanations",
+          "nontransferable",
+          "counterexamples_or_falsifiers",
+          "verification_plan",
+          "gaps"
+        ],
+        "title": "MethodCandidate",
+        "type": "object"
+      },
+      "services__secondary_tool_contracts__MethodCandidate": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_note": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Note"
+          },
+          "description": {
+            "maxLength": 600,
+            "title": "Description",
+            "type": "string"
+          },
+          "domain": {
+            "maxLength": 120,
+            "title": "Domain",
+            "type": "string"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/CandidateEvidenceEnvelope"
+          },
+          "id": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "retrieval_rank": {
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Retrieval Rank",
+            "type": "integer"
+          },
+          "type_id": {
+            "maxLength": 120,
+            "title": "Type Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "domain",
+          "type_id",
+          "description",
+          "retrieval_rank",
+          "evidence"
+        ],
+        "title": "MethodCandidate",
         "type": "object"
       }
     },
@@ -14874,6 +18443,642 @@
         ]
       }
     },
+    "/api/research/{research_id}/evidence-method-plan-approvals": {
+      "post": {
+        "operationId": "confirm_evidence_method_plan_api_research__research_id__evidence_method_plan_approvals_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "contract_revision": {
+                    "const": "funded-evidence-method-v1",
+                    "enum": [
+                      "funded-evidence-method-v1"
+                    ],
+                    "title": "Contract Revision",
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "approved_upper_units": {
+                        "maximum": 9223372036854775807,
+                        "minimum": 0,
+                        "title": "Approved Upper Units",
+                        "type": "integer"
+                      },
+                      "confirm_outbound": {
+                        "const": true,
+                        "enum": [
+                          true
+                        ],
+                        "title": "Confirm Outbound",
+                        "type": "boolean"
+                      },
+                      "expected_research_version": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Expected Research Version",
+                        "type": "integer"
+                      },
+                      "preview_digest": {
+                        "maxLength": 64,
+                        "minLength": 64,
+                        "pattern": "^[0-9a-f]{64}$",
+                        "title": "Preview Digest",
+                        "type": "string"
+                      },
+                      "preview_ref": {
+                        "maxLength": 36,
+                        "minLength": 36,
+                        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                        "title": "Preview Ref",
+                        "type": "string"
+                      },
+                      "request_digest": {
+                        "maxLength": 64,
+                        "minLength": 64,
+                        "pattern": "^[0-9a-f]{64}$",
+                        "title": "Request Digest",
+                        "type": "string"
+                      },
+                      "selection_manifest_digest": {
+                        "maxLength": 64,
+                        "minLength": 64,
+                        "pattern": "^[0-9a-f]{64}$",
+                        "title": "Selection Manifest Digest",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "preview_ref",
+                      "preview_digest",
+                      "request_digest",
+                      "selection_manifest_digest",
+                      "expected_research_version",
+                      "approved_upper_units",
+                      "confirm_outbound"
+                    ],
+                    "title": "EvidenceMethodConfirmRequest",
+                    "type": "object"
+                  },
+                  "schema_version": {
+                    "const": "structure-research-v1",
+                    "enum": [
+                      "structure-research-v1"
+                    ],
+                    "title": "Schema Version",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "contract_revision",
+                  "data"
+                ],
+                "title": "EvidenceMethodConfirmEnvelope",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodConfirmResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Confirm Evidence Method Plan",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/evidence-method-plan-previews": {
+      "post": {
+        "operationId": "preview_evidence_method_plan_api_research__research_id__evidence_method_plan_previews_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "contract_revision": {
+                    "const": "funded-evidence-method-v1",
+                    "enum": [
+                      "funded-evidence-method-v1"
+                    ],
+                    "title": "Contract Revision",
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "context_declaration": {
+                        "const": "self_declared",
+                        "enum": [
+                          "self_declared"
+                        ],
+                        "title": "Context Declaration",
+                        "type": "string"
+                      },
+                      "excerpt_refs": {
+                        "items": {
+                          "maxLength": 36,
+                          "minLength": 36,
+                          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                          "type": "string"
+                        },
+                        "maxItems": 8,
+                        "minItems": 1,
+                        "title": "Excerpt Refs",
+                        "type": "array"
+                      },
+                      "expected_research_version": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Expected Research Version",
+                        "type": "integer"
+                      },
+                      "input_revision": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Input Revision",
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "input_revision",
+                      "expected_research_version",
+                      "excerpt_refs",
+                      "context_declaration"
+                    ],
+                    "title": "EvidenceMethodPreviewRequest",
+                    "type": "object"
+                  },
+                  "schema_version": {
+                    "const": "structure-research-v1",
+                    "enum": [
+                      "structure-research-v1"
+                    ],
+                    "title": "Schema Version",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "contract_revision",
+                  "data"
+                ],
+                "title": "EvidenceMethodPreviewEnvelope",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Preview Evidence Method Plan",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/evidence-method-plans": {
+      "get": {
+        "operationId": "list_evidence_method_plans_api_research__research_id__evidence_method_plans_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "List Evidence Method Plans",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/evidence-method-plans/{result_ref}": {
+      "get": {
+        "operationId": "read_evidence_method_plan_api_research__research_id__evidence_method_plans__result_ref__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "result_ref",
+            "required": true,
+            "schema": {
+              "title": "Result Ref",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodReadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceMethodErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Read Evidence Method Plan",
+        "tags": [
+          "research"
+        ]
+      }
+    },
     "/api/research/{research_id}/financial-import-preview": {
       "post": {
         "operationId": "preview_research_financial_import_api_research__research_id__financial_import_preview_post",
@@ -14975,6 +19180,218 @@
           }
         },
         "summary": "Preview Research Financial Import",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/financial-registries": {
+      "get": {
+        "operationId": "list_research_financial_registries_api_research__research_id__financial_registries_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialRegistryHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Research Financial Registries",
+        "tags": [
+          "research"
+        ]
+      },
+      "post": {
+        "operationId": "save_research_financial_registry_api_research__research_id__financial_registries_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "contract_revision": {
+                    "const": "financial-input-v2",
+                    "enum": [
+                      "financial-input-v2"
+                    ],
+                    "title": "Contract Revision",
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "confirmed": {
+                        "const": true,
+                        "enum": [
+                          true
+                        ],
+                        "title": "Confirmed",
+                        "type": "boolean"
+                      },
+                      "csv_text": {
+                        "maxLength": 131072,
+                        "title": "Csv Text",
+                        "type": "string"
+                      },
+                      "expected_research_version": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Expected Research Version",
+                        "type": "integer"
+                      },
+                      "input_revision": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Input Revision",
+                        "type": "integer"
+                      },
+                      "preview_digest": {
+                        "pattern": "^[0-9a-f]{64}$",
+                        "title": "Preview Digest",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "input_revision",
+                      "expected_research_version",
+                      "csv_text",
+                      "preview_digest",
+                      "confirmed"
+                    ],
+                    "title": "FinancialRegistryConfirmation",
+                    "type": "object"
+                  },
+                  "schema_version": {
+                    "const": "structure-research-v1",
+                    "enum": [
+                      "structure-research-v1"
+                    ],
+                    "title": "Schema Version",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "contract_revision",
+                  "data"
+                ],
+                "title": "FinancialRegistryConfirmationEnvelope",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialRegistryConfirmationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Research Financial Registry",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/financial-registries/{registry_ref}": {
+      "get": {
+        "operationId": "read_research_financial_registry_api_research__research_id__financial_registries__registry_ref__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "registry_ref",
+            "required": true,
+            "schema": {
+              "title": "Registry Ref",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialRegistryReadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Research Financial Registry",
         "tags": [
           "research"
         ]

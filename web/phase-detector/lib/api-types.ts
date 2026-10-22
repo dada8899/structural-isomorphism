@@ -449,6 +449,886 @@ export interface ErrorReportBody {
   timestamp?: number | null;
   fatal?: boolean;
 }
+export interface EvidenceMethodConfirmEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-evidence-method-v1";
+  data: EvidenceMethodConfirmRequest;
+}
+export interface EvidenceMethodConfirmRequest {
+  preview_ref: string;
+  preview_digest: string;
+  request_digest: string;
+  selection_manifest_digest: string;
+  expected_research_version: number;
+  approved_upper_units: number;
+  confirm_outbound: true;
+}
+export interface EvidenceMethodConfirmResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-evidence-method-v1";
+  data: EvidenceMethodConfirmData;
+}
+export interface EvidenceMethodConfirmData {
+  task_id: string;
+  result_ref: string;
+  input_revision: number;
+  execution_research_version: number;
+  purpose: "evidence_method_plan_v1";
+  selection_manifest_digest: string;
+  request_digest: string;
+  state: "queued";
+  funding_state: "approved_not_sent";
+  cost_state: "unreserved";
+  cash_evidence: "not_observed";
+  financial_version: 9;
+  real_model_executed: false;
+  model_analysis_ran: false;
+  recorded_at: null;
+}
+export interface EvidenceMethodErrorResponse {
+  error: EvidenceMethodPublicError;
+}
+export interface EvidenceMethodPublicError {
+  code:
+    | "AUTH_REQUIRED"
+    | "AUTHORIZATION_STALE"
+    | "FUNDING_GRANT_REQUIRED"
+    | "NOT_FOUND"
+    | "REVISION_CONFLICT"
+    | "IDEMPOTENCY_CONFLICT"
+    | "PREVIEW_CHANGED"
+    | "PREVIEW_EXPIRED"
+    | "TASK_ACTIVE"
+    | "FUNDING_BUSY"
+    | "FUNDING_STALE"
+    | "SOURCE_PERMISSION_UNAVAILABLE"
+    | "RECONCILIATION_REQUIRED"
+    | "PAYLOAD_LIMIT"
+    | "INPUT_INVALID"
+    | "BUDGET_EXHAUSTED"
+    | "FEATURE_UNAVAILABLE"
+    | "FUNDING_CLOSED"
+    | "STORE_UNAVAILABLE"
+    | "RESULT_UNAVAILABLE"
+    | "RESPONSE_UNAVAILABLE"
+    | "CLEANUP_UNCERTAIN";
+  message: string;
+  retryable: false;
+  /**
+   * @minItems 0
+   * @maxItems 1
+   */
+  allowed_next_actions: [] | ["sign_in"];
+  incident_id: string;
+}
+export interface EvidenceMethodListResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-evidence-method-v1";
+  data: EvidenceMethodListData;
+}
+export interface EvidenceMethodListData {
+  /**
+   * @minItems 0
+   * @maxItems 20
+   */
+  items:
+    | []
+    | [EvidenceMethodMeta]
+    | [EvidenceMethodMeta, EvidenceMethodMeta]
+    | [EvidenceMethodMeta, EvidenceMethodMeta, EvidenceMethodMeta]
+    | [EvidenceMethodMeta, EvidenceMethodMeta, EvidenceMethodMeta, EvidenceMethodMeta]
+    | [EvidenceMethodMeta, EvidenceMethodMeta, EvidenceMethodMeta, EvidenceMethodMeta, EvidenceMethodMeta]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ]
+    | [
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta,
+        EvidenceMethodMeta
+      ];
+  next_cursor: string | null;
+}
+export interface EvidenceMethodMeta {
+  task_id: string;
+  result_ref: string;
+  research_id: string;
+  input_revision: number;
+  input_digest: string;
+  selection_manifest_digest: string;
+  request_digest: string;
+  purpose: "evidence_method_plan_v1";
+  state: "queued" | "generating" | "saved" | "failed_insufficient" | "pending_reconciliation" | "cancelled";
+  cost_state: "unreserved" | "held" | "upper_booked" | "unknown";
+  cleanup_state: "pending" | "clean" | "uncertain";
+  safe_code: ("access_ended" | "saved" | "body_invalid" | "send_unknown" | "not_sent" | "cancelled") | null;
+  recorded_at: string | null;
+  execution_mode: ("controlled_fixture" | "native_live") | null;
+  real_model_executed: boolean | null;
+  is_historical: boolean;
+}
+export interface EvidenceMethodPreviewEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-evidence-method-v1";
+  data: EvidenceMethodPreviewRequest;
+}
+export interface EvidenceMethodPreviewRequest {
+  input_revision: number;
+  expected_research_version: number;
+  /**
+   * @minItems 1
+   * @maxItems 8
+   */
+  excerpt_refs:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string];
+  context_declaration: "self_declared";
+}
+export interface EvidenceMethodPreviewResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-evidence-method-v1";
+  data: EvidenceMethodPreviewData;
+}
+export interface EvidenceMethodPreviewData {
+  preview_ref: string;
+  preview_digest: string;
+  research_id: string;
+  input_revision: number;
+  research_version: number;
+  purpose: "evidence_method_plan_v1";
+  input_template: "SelectedEvidenceMethodInput-v1";
+  candidate_schema: "EvidenceMethodPlanCandidate-v1";
+  selection_manifest_digest: string;
+  selected_input_digest: string;
+  request_digest: string;
+  template_digest: string;
+  outbound_scope_digest: string;
+  exact_input: SelectedEvidenceMethodInput;
+  /**
+   * @minItems 1
+   * @maxItems 8
+   */
+  source_references:
+    | [PublicSourceRef]
+    | [PublicSourceRef, PublicSourceRef]
+    | [PublicSourceRef, PublicSourceRef, PublicSourceRef]
+    | [PublicSourceRef, PublicSourceRef, PublicSourceRef, PublicSourceRef]
+    | [PublicSourceRef, PublicSourceRef, PublicSourceRef, PublicSourceRef, PublicSourceRef]
+    | [PublicSourceRef, PublicSourceRef, PublicSourceRef, PublicSourceRef, PublicSourceRef, PublicSourceRef]
+    | [
+        PublicSourceRef,
+        PublicSourceRef,
+        PublicSourceRef,
+        PublicSourceRef,
+        PublicSourceRef,
+        PublicSourceRef,
+        PublicSourceRef
+      ]
+    | [
+        PublicSourceRef,
+        PublicSourceRef,
+        PublicSourceRef,
+        PublicSourceRef,
+        PublicSourceRef,
+        PublicSourceRef,
+        PublicSourceRef,
+        PublicSourceRef
+      ];
+  quote: EvidenceMethodQuote;
+  approved_upper_units: number;
+  expires_at: number;
+  cash_evidence: "not_observed";
+  state: "awaiting_confirmation" | "funding_closed";
+  can_confirm: boolean;
+  funding_reason: ("FUNDING_CLOSED" | "FUNDING_GRANT_REQUIRED" | "FUNDING_STALE") | null;
+  model_analysis_ran: false;
+  real_model_executed: false;
+}
+export interface SelectedEvidenceMethodInput {
+  input_template: "SelectedEvidenceMethodInput-v1";
+  purpose: "evidence_method_plan_v1";
+  problem_context: ProblemContext;
+  /**
+   * @minItems 1
+   * @maxItems 8
+   */
+  handles:
+    | [SelectedHandle]
+    | [SelectedHandle, SelectedHandle]
+    | [SelectedHandle, SelectedHandle, SelectedHandle]
+    | [SelectedHandle, SelectedHandle, SelectedHandle, SelectedHandle]
+    | [SelectedHandle, SelectedHandle, SelectedHandle, SelectedHandle, SelectedHandle]
+    | [SelectedHandle, SelectedHandle, SelectedHandle, SelectedHandle, SelectedHandle, SelectedHandle]
+    | [SelectedHandle, SelectedHandle, SelectedHandle, SelectedHandle, SelectedHandle, SelectedHandle, SelectedHandle]
+    | [
+        SelectedHandle,
+        SelectedHandle,
+        SelectedHandle,
+        SelectedHandle,
+        SelectedHandle,
+        SelectedHandle,
+        SelectedHandle,
+        SelectedHandle
+      ];
+}
+export interface ProblemContext {
+  kind: "owner_problem_summary";
+  declaration: "self_declared";
+  summary: string;
+}
+export interface SelectedHandle {
+  handle: "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8";
+  title: string;
+  attribution: string;
+  quote: string;
+  read_scope: "author_narrative_subset";
+  origin: "live" | "offline_probe";
+}
+export interface PublicSourceRef {
+  handle: "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8";
+  source_id: string;
+  source_revision: number;
+  excerpt_id: string;
+  source_task_id: string;
+  source_input_revision: number;
+  raw_digest: string;
+  extracted_digest: string;
+  discovery_digest: string;
+  start: number;
+  end: number;
+  quote_sha256: string;
+  canonical_url: string;
+  read_scope: "author_narrative_subset";
+  origin: "live" | "offline_probe";
+  acquired_at: string;
+}
+export interface EvidenceMethodQuote {
+  protocol: "financial9-evidence-method-quote-v1";
+  revision: string;
+  purpose: "evidence_method_plan_v1";
+  provider: "deepseek";
+  model: "deepseek-flash";
+  declared_model_version: "DeepSeek-V4.1-Flash-1017";
+  declaration_observed_on: "2026-10-18";
+  currency: "CNY";
+  scale: 6;
+  peak_input_hit_units_per_million: 40000;
+  peak_input_miss_units_per_million: 2000000;
+  peak_output_units_per_million: 8000000;
+  context_bound: 1048576;
+  provider_output_bound: 393216;
+  max_output_tokens: 4096;
+  approved_upper_units: 2129920;
+  codec_digest: string;
+  issued_at: number;
+  valid_until: number;
+  price_source: "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/";
+}
+export interface EvidenceMethodReadResponse {
+  schema_version: "structure-research-v1";
+  contract_revision: "funded-evidence-method-v1";
+  data: EvidenceMethodReadData;
+}
+export interface EvidenceMethodReadData {
+  metadata: EvidenceMethodMeta;
+  content_state: "none" | "available" | "unavailable";
+  unavailable_reason: ("SOURCE_PERMISSION_UNAVAILABLE" | "SOURCE_UNAVAILABLE") | null;
+  content: OwnedEvidenceMethodPlanResult | null;
+}
+export interface OwnedEvidenceMethodPlanResult {
+  protocol: "owned-evidence-method-plan-result-v1";
+  domain: OutboundDomain;
+  task_outbound_scope_digest: string;
+  result_ref: string;
+  task_id: string;
+  research_id: string;
+  input_revision: number;
+  input_digest: string;
+  consent_digest: string;
+  admission_digest: string;
+  recorded_at: string;
+  execution_mode: "controlled_fixture" | "native_live";
+  producer: "core-controlled-native-v1" | "owned-native-plan-runtime-v1";
+  real_model_executed: boolean;
+  weight_identity_verified: false;
+  literature_status: "selected_stored_excerpts_only";
+  maturity_status: "candidate_unverified";
+  mathematics_status: "not_checked";
+  mechanism_status: "unverified";
+  transfer_status: "not_validated";
+  automatically_created_sources: 0;
+  source_origin: "live" | "offline_probe" | "mixed";
+  /**
+   * @minItems 1
+   * @maxItems 8
+   */
+  citations:
+    | [ResultCitation]
+    | [ResultCitation, ResultCitation]
+    | [ResultCitation, ResultCitation, ResultCitation]
+    | [ResultCitation, ResultCitation, ResultCitation, ResultCitation]
+    | [ResultCitation, ResultCitation, ResultCitation, ResultCitation, ResultCitation]
+    | [ResultCitation, ResultCitation, ResultCitation, ResultCitation, ResultCitation, ResultCitation]
+    | [ResultCitation, ResultCitation, ResultCitation, ResultCitation, ResultCitation, ResultCitation, ResultCitation]
+    | [
+        ResultCitation,
+        ResultCitation,
+        ResultCitation,
+        ResultCitation,
+        ResultCitation,
+        ResultCitation,
+        ResultCitation,
+        ResultCitation
+      ];
+  candidate: EvidenceMethodPlanCandidate;
+}
+export interface OutboundDomain {
+  purpose: "evidence_method_plan_v1";
+  input_template: "SelectedEvidenceMethodInput-v1";
+  candidate_schema: "EvidenceMethodPlanCandidate-v1";
+  result_schema: "OwnedEvidenceMethodPlanResult-v1";
+  codec_revision: "evidence-method-codec-v1-candidate";
+  template_digest: string;
+  template_code_digest: string;
+  producer_digest: string;
+  selection_digest: string;
+  selected_input_digest: string;
+  request_digest: string;
+  outbound_scope_digest: string;
+}
+export interface ResultCitation {
+  handle: "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8";
+  source_id: string;
+  source_revision: number;
+  excerpt_id: string;
+  source_task_id: string;
+  source_input_revision: number;
+  raw_digest: string;
+  extracted_digest: string;
+  discovery_digest: string;
+  start: number;
+  end: number;
+  quote: string;
+  title: string;
+  canonical_url: string;
+  attribution: string;
+  read_scope: "author_narrative_subset";
+  origin: "live" | "offline_probe";
+  acquired_at: string;
+}
+export interface EvidenceMethodPlanCandidate {
+  summary: string;
+  /**
+   * @minItems 0
+   * @maxItems 3
+   */
+  candidates:
+    [] | [MethodCandidate] | [MethodCandidate, MethodCandidate] | [MethodCandidate, MethodCandidate, MethodCandidate];
+  /**
+   * @minItems 1
+   * @maxItems 8
+   */
+  gaps:
+    | [Gap]
+    | [Gap, Gap]
+    | [Gap, Gap, Gap]
+    | [Gap, Gap, Gap, Gap]
+    | [Gap, Gap, Gap, Gap, Gap]
+    | [Gap, Gap, Gap, Gap, Gap, Gap]
+    | [Gap, Gap, Gap, Gap, Gap, Gap, Gap]
+    | [Gap, Gap, Gap, Gap, Gap, Gap, Gap, Gap];
+  /**
+   * @minItems 0
+   * @maxItems 3
+   */
+  clarification_questions: [] | [string] | [string, string] | [string, string, string];
+}
+export interface MethodCandidate {
+  candidate_kind: "mechanism" | "mathematical_method";
+  label: string;
+  mechanism_hypothesis: string;
+  method_name: string | null;
+  formula_proposal: FormulaProposal | null;
+  /**
+   * @minItems 1
+   * @maxItems 8
+   */
+  evidence_links:
+    | [EvidenceLink]
+    | [EvidenceLink, EvidenceLink]
+    | [EvidenceLink, EvidenceLink, EvidenceLink]
+    | [EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink]
+    | [EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink]
+    | [EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink]
+    | [EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink]
+    | [EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink, EvidenceLink];
+  /**
+   * @minItems 0
+   * @maxItems 10
+   */
+  variable_map:
+    | []
+    | [VariableMap]
+    | [VariableMap, VariableMap]
+    | [VariableMap, VariableMap, VariableMap]
+    | [VariableMap, VariableMap, VariableMap, VariableMap]
+    | [VariableMap, VariableMap, VariableMap, VariableMap, VariableMap]
+    | [VariableMap, VariableMap, VariableMap, VariableMap, VariableMap, VariableMap]
+    | [VariableMap, VariableMap, VariableMap, VariableMap, VariableMap, VariableMap, VariableMap]
+    | [VariableMap, VariableMap, VariableMap, VariableMap, VariableMap, VariableMap, VariableMap, VariableMap]
+    | [
+        VariableMap,
+        VariableMap,
+        VariableMap,
+        VariableMap,
+        VariableMap,
+        VariableMap,
+        VariableMap,
+        VariableMap,
+        VariableMap
+      ]
+    | [
+        VariableMap,
+        VariableMap,
+        VariableMap,
+        VariableMap,
+        VariableMap,
+        VariableMap,
+        VariableMap,
+        VariableMap,
+        VariableMap,
+        VariableMap
+      ];
+  /**
+   * @minItems 1
+   * @maxItems 6
+   */
+  applicability:
+    | [Applicability]
+    | [Applicability, Applicability]
+    | [Applicability, Applicability, Applicability]
+    | [Applicability, Applicability, Applicability, Applicability]
+    | [Applicability, Applicability, Applicability, Applicability, Applicability]
+    | [Applicability, Applicability, Applicability, Applicability, Applicability, Applicability];
+  /**
+   * @minItems 1
+   * @maxItems 4
+   */
+  competing_explanations: [string] | [string, string] | [string, string, string] | [string, string, string, string];
+  /**
+   * @minItems 1
+   * @maxItems 5
+   */
+  nontransferable:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string];
+  /**
+   * @minItems 1
+   * @maxItems 4
+   */
+  counterexamples_or_falsifiers:
+    | [Falsifier]
+    | [Falsifier, Falsifier]
+    | [Falsifier, Falsifier, Falsifier]
+    | [Falsifier, Falsifier, Falsifier, Falsifier];
+  verification_plan: VerificationPlan;
+  /**
+   * @minItems 1
+   * @maxItems 8
+   */
+  gaps:
+    | [Gap]
+    | [Gap, Gap]
+    | [Gap, Gap, Gap]
+    | [Gap, Gap, Gap, Gap]
+    | [Gap, Gap, Gap, Gap, Gap]
+    | [Gap, Gap, Gap, Gap, Gap, Gap]
+    | [Gap, Gap, Gap, Gap, Gap, Gap, Gap]
+    | [Gap, Gap, Gap, Gap, Gap, Gap, Gap, Gap];
+}
+export interface FormulaProposal {
+  text: string;
+  basis: "quoted_subset" | "unverified_proposal";
+  /**
+   * @minItems 0
+   * @maxItems 4
+   */
+  evidence_handles:
+    | []
+    | ["e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"]
+    | ["e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8", "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"]
+    | [
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"
+      ]
+    | [
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"
+      ];
+}
+export interface EvidenceLink {
+  handle: "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8";
+  role: "context" | "mechanism" | "method_identity" | "formula" | "assumption" | "condition" | "counterexample";
+  proposed_support: string;
+  missing_support: string;
+}
+export interface VariableMap {
+  method_variable: string;
+  target_variable: string;
+  rationale: string;
+  /**
+   * @minItems 0
+   * @maxItems 4
+   */
+  evidence_handles:
+    | []
+    | ["e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"]
+    | ["e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8", "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"]
+    | [
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"
+      ]
+    | [
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"
+      ];
+}
+export interface Applicability {
+  condition: string;
+  /**
+   * @minItems 0
+   * @maxItems 4
+   */
+  evidence_handles:
+    | []
+    | ["e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"]
+    | ["e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8", "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"]
+    | [
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"
+      ]
+    | [
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"
+      ];
+  gap: string | null;
+}
+export interface Falsifier {
+  statement: string;
+  /**
+   * @minItems 0
+   * @maxItems 4
+   */
+  evidence_handles:
+    | []
+    | ["e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"]
+    | ["e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8", "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"]
+    | [
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"
+      ]
+    | [
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"
+      ];
+}
+export interface VerificationPlan {
+  question: string;
+  /**
+   * @minItems 1
+   * @maxItems 5
+   */
+  measurements:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string];
+  comparison: string;
+  primary_outcome: string;
+  falsification: string;
+  stop_rule: string;
+  /**
+   * @minItems 1
+   * @maxItems 8
+   */
+  inputs_needed:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string];
+}
+export interface Gap {
+  code:
+    | "method_identity_missing"
+    | "formula_not_recoverable"
+    | "assumptions_not_supported"
+    | "maturity_not_established"
+    | "evidence_scope_limited"
+    | "source_not_live"
+    | "no_transfer_validation";
+  detail: string;
+  /**
+   * @minItems 0
+   * @maxItems 4
+   */
+  evidence_handles:
+    | []
+    | ["e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"]
+    | ["e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8", "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"]
+    | [
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"
+      ]
+    | [
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8",
+        "e1" | "e2" | "e3" | "e4" | "e5" | "e6" | "e7" | "e8"
+      ];
+}
 /**
  * GET /api/examples — handpicked example phenomenon pairs.
  *
@@ -460,6 +1340,635 @@ export interface ExamplesResponse {
   examples?: {
     [k: string]: unknown;
   }[];
+}
+export interface FinancialRegistryConfirmationEnvelope {
+  schema_version: "structure-research-v1";
+  contract_revision: "financial-input-v2";
+  data: FinancialRegistryConfirmation;
+}
+export interface FinancialRegistryConfirmation {
+  input_revision: number;
+  expected_research_version: number;
+  csv_text: string;
+  preview_digest: string;
+  confirmed: true;
+}
+export interface FinancialRegistryConfirmationResponse {
+  schema_version?: "structure-research-v1";
+  contract_revision?: "financial-input-v2";
+  data: FinancialRegistryConfirmationData;
+}
+export interface FinancialRegistryConfirmationData {
+  execution_authorized?: false;
+  metadata: RegistryMetadataV2;
+  current: RegistryCurrentV2;
+  is_historical: boolean;
+  public_projection_digest: string;
+  persisted?: true;
+}
+export interface RegistryMetadataV2 {
+  research_id: string;
+  input_revision: number;
+  problem_digest: string;
+  research_version_before: number;
+  research_version_after: number;
+  kind?: "owner_supplied";
+  verification?: "unverified";
+  original_available?: false;
+  system_verified?: false;
+  registry_ref: FinancialRegistryRefV2;
+  received_at: string;
+  parser_revision: "owner-financial-csv-v1";
+  exact_received_csv_sha256: string;
+  key_based_plan_digest: string;
+  preview_digest: string;
+  request_digest: string;
+  qualification?: "conditional_on_owner_supplied_data";
+}
+export interface FinancialRegistryRefV2 {
+  id: string;
+  revision: number;
+  digest: string;
+}
+export interface RegistryCurrentV2 {
+  input_revision: number;
+  research_version: number;
+}
+export interface FinancialRegistryHistoryResponse {
+  schema_version?: "structure-research-v1";
+  contract_revision?: "financial-input-v2";
+  data: FinancialRegistryHistoryData;
+}
+export interface FinancialRegistryHistoryData {
+  research_id: string;
+  current: RegistryCurrentV2;
+  /**
+   * @maxItems 20
+   */
+  items:
+    | []
+    | [FinancialRegistryHistoryItem]
+    | [FinancialRegistryHistoryItem, FinancialRegistryHistoryItem]
+    | [FinancialRegistryHistoryItem, FinancialRegistryHistoryItem, FinancialRegistryHistoryItem]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ]
+    | [
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem,
+        FinancialRegistryHistoryItem
+      ];
+  next_cursor: string | null;
+}
+export interface FinancialRegistryHistoryItem {
+  kind?: "owner_supplied";
+  verification?: "unverified";
+  original_available?: false;
+  system_verified?: false;
+  registry_ref: FinancialRegistryRefV2;
+  input_revision: number;
+  problem_digest: string;
+  research_version_before: number;
+  research_version_after: number;
+  received_at: string;
+  is_historical: boolean;
+  public_projection_digest: string;
+  qualification?: "conditional_on_owner_supplied_data";
+}
+export interface FinancialRegistryReadResponse {
+  schema_version?: "structure-research-v1";
+  contract_revision?: "financial-input-v2";
+  data: FinancialRegistryReadData;
+}
+export interface FinancialRegistryReadData {
+  execution_authorized?: false;
+  metadata: RegistryMetadataV2;
+  current: RegistryCurrentV2;
+  is_historical: boolean;
+  projection: PublicFinancialRegistryProjectionV2;
+  public_projection_digest: string;
+}
+export interface PublicFinancialRegistryProjectionV2 {
+  csv_text: string;
+  registry: PublicOwnerFinancialRegistryV2;
+}
+export interface PublicOwnerFinancialRegistryV2 {
+  format_version: "owner-financial-registry-public-v2";
+  parser_revision: "owner-financial-csv-v1";
+  identity: RegistryIdentityV2;
+  binding: RegistryBindingV2;
+  receipt: PublicRegistryReceiptV2;
+  /**
+   * @maxItems 96
+   */
+  key_map: KeyMapEntryV2[];
+  /**
+   * @maxItems 96
+   */
+  records: (RegisteredSourceV2 | RegisteredObservationV2 | RegisteredFXV2)[];
+}
+export interface RegistryIdentityV2 {
+  id: string;
+  revision: number;
+}
+export interface RegistryBindingV2 {
+  research_id: string;
+  input_revision: number;
+  problem_digest: string;
+  research_version_before: number;
+  research_version_after: number;
+}
+export interface PublicRegistryReceiptV2 {
+  received_at: string;
+  exact_received_csv_sha256: string;
+  key_based_plan_digest: string;
+  preview_digest: string;
+}
+export interface KeyMapEntryV2 {
+  key: string;
+  row_type: "source" | "observation" | "historical_fx";
+  registered_id: string;
+  record_index: number;
+  physical_line_start: number;
+  physical_line_end: number;
+}
+export interface RegisteredSourceV2 {
+  kind?: "owner_supplied";
+  verification?: "unverified";
+  original_available?: false;
+  system_verified?: false;
+  key: string;
+  record_index: number;
+  physical_line_start: number;
+  physical_line_end: number;
+  row_type: "source";
+  url: string;
+  locator: string;
+  excerpt: string;
+  received_excerpt_sha256: string;
+  declared_original_sha256: string | null;
+  claimed_published_at: string | null;
+  claimed_accessed_at: string | null;
+  read_scope: string;
+  /**
+   * @maxItems 16
+   */
+  source_chain:
+    | []
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ];
+  id: string;
+}
+export interface RegisteredObservationV2 {
+  kind?: "owner_supplied";
+  verification?: "unverified";
+  original_available?: false;
+  system_verified?: false;
+  key: string;
+  record_index: number;
+  physical_line_start: number;
+  physical_line_end: number;
+  period_start: string;
+  period_end: string;
+  period_grain: "annual" | "interim" | "remaining";
+  value: string | null;
+  declared_basis: "disclosed" | "media_estimate" | "missing" | "conflicted";
+  /**
+   * @maxItems 16
+   */
+  source_refs:
+    | []
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ];
+  row_type: "observation";
+  entity_scope: string;
+  scope_kind: "group" | "segment" | "app";
+  metric:
+    | "revenue"
+    | "operating_profit"
+    | "net_profit"
+    | "operating_cost"
+    | "operating_expense"
+    | "shared_cost"
+    | "depreciation"
+    | "sbc"
+    | "operating_adjustment"
+    | "capex";
+  currency: "CNY" | "USD";
+  unit: "unit" | "thousand" | "million" | "billion";
+  accounting_basis: string;
+  /**
+   * @maxItems 8
+   */
+  alternative_refs:
+    | []
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string];
+  id: string;
+}
+export interface RegisteredFXV2 {
+  kind?: "owner_supplied";
+  verification?: "unverified";
+  original_available?: false;
+  system_verified?: false;
+  key: string;
+  record_index: number;
+  physical_line_start: number;
+  physical_line_end: number;
+  period_start: string;
+  period_end: string;
+  period_grain: "annual" | "interim" | "remaining";
+  value: string | null;
+  declared_basis: "disclosed" | "media_estimate" | "missing" | "conflicted";
+  /**
+   * @maxItems 16
+   */
+  source_refs:
+    | []
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ];
+  row_type: "historical_fx";
+  from_currency: "CNY" | "USD";
+  to_currency: "CNY" | "USD";
+  fx_kind: "period_average" | "spot";
+  id: string;
 }
 /**
  * GET /api/flags — resolved feature flags + experiment variants.

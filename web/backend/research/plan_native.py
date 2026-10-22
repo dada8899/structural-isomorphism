@@ -89,8 +89,51 @@ def create_controlled_runtime_fixture_authority(store,identity,server,*,approved
     return _fixture_authority(store,identity,server,approved_cap_units,risk_margin_units,digest(Path(module.__file__).read_bytes()))
 
 
-def _fixture_authority(store,identity,server,approved_cap_units,risk_margin_units,runtime_digest):
+def _evidence_purpose_domain():
+    from . import evidence_method_plan_schemas as types,evidence_method_plan_codec as codec
+    return dict(purpose=types.PURPOSE,input_template=types.INPUT_TEMPLATE,candidate_schema=types.CANDIDATE_SCHEMA,
+        result_schema=types.RESULT_SCHEMA,codec_revision=types.CODEC_REVISION,template_digest=codec.template_digest(),
+        provider='deepseek',model='deepseek-flash',method='POST',target='https://api.deepseek.com/chat/completions')
+
+
+def create_controlled_evidence_method_fixture_authority(store,identity,server,*,approved_cap_units,risk_margin_units=0):
+    """Only the fixed evidence purpose; never the self-declaration factory."""
+    return _fixture_authority(store,identity,server,approved_cap_units,risk_margin_units,_module_digest(),_evidence=True)
+
+
+def create_controlled_runtime_evidence_method_fixture_authority(store,identity,server,*,approved_cap_units,risk_margin_units=0):
+    module=_runtime_module()
+    return _fixture_authority(store,identity,server,approved_cap_units,risk_margin_units,digest(Path(module.__file__).read_bytes()),_evidence=True)
+
+
+def purpose_scope(resource):
+    facts=strict_json(resource.permit.facts,16384)
+    domain=facts.get('purpose_domain')
+    if domain is None:return 'phenomenon_plan_v1'
+    if domain!=_evidence_purpose_domain():raise PermissionError('sealed evidence purpose domain differs')
+    return 'evidence_method_plan_v1'
+
+
+def require_purpose(store,purpose,*,current=True):
+    pair=installation(store)
+    if pair is None:raise ResearchError('FUNDING_CLOSED',503,'该目的的原生资源当前关闭。')
+    provision,resource=pair
+    if type(provision) is not NativePlanProvision:raise PermissionError('actual purpose provision required')
+    if type(resource) is not ControlledNativeResource:
+        module=_runtime_module()
+        if type(resource) is not module.NativePlanResource:raise PermissionError('actual purpose resource required')
+    provision.require(current=current);resource.require(current=current)
+    if resource.permit.provision is not provision or purpose_scope(resource)!=purpose:raise ResearchError('FUNDING_CLOSED',503,'原资源未授权此目的，请使用独立授权。')
+    return resource
+
+
+def _fixture_authority(store,identity,server,approved_cap_units,risk_margin_units,runtime_digest,*,_evidence=False):
     """Explicit server fixture bootstrap, never a real/live funding issuer."""
+    if _evidence:
+        frame=__import__('sys')._getframe(1)
+        try:
+            if _evidence is not True or frame.f_globals is not globals() or frame.f_code not in _EVIDENCE_FACTORY_CODES:raise PermissionError('fixed evidence fixture issuer required')
+        finally:del frame
     from .service import ResearchService
     if type(identity) is not AccountIdentity or type(server) not in (HTTPServer,ThreadingHTTPServer) or server.server_address[0]!='127.0.0.1':raise PermissionError('actual registered owner and loopback fixture required')
     if any(type(v) is not int or not 0<=v<=9223372036854775807 for v in (approved_cap_units,risk_margin_units)):raise ValueError('native fixed-unit declaration required')
@@ -112,6 +155,8 @@ def _fixture_authority(store,identity,server,approved_cap_units,risk_margin_unit
         facts=dict(version='controlled-owner-provision-v1',mode='controlled_fixture',principal_id=principal,generation=identity.generation,
             owner_gate_id=gate,authority_ref=reference,account_id=_uid(),economic_binding=_uid(),credential_incarnation='controlled-'+_uid(),grant_epoch=1,
             approved_cap_units=approved_cap_units,risk_margin_units=risk_margin_units,runtime_digest=runtime_digest,network_ref='owned-loopback-'+reference)
+        if _evidence:
+            facts['purpose_domain']=_evidence_purpose_domain()
         value=OwnerFundingAuthorityLease(_factory=_FACTORY,store=store,identity=identity,principal=principal,owner_gate_id=gate,fd=fd,path=path,native_identity=native,pid=os.getpid(),reference=reference,
             facts=canonical(facts),server=server,server_identity=_fd_identity(server.socket.fileno())[:2],active=True)
         _AUTHORITIES[reference]=value;return value
@@ -295,7 +340,14 @@ class ControlledNativePending(_Sealed):
         from .plan_native_runtime import NativePlanSendLease
         self.require()
         if type(capability) is not NativePlanSendLease or self.grant is not None:raise PermissionError('actual native first-write lease required')
-        raw,dispatch,nonce,admission_digest,producer_digest=capability.consume(self.resource)
+        if purpose_scope(self.resource)=='evidence_method_plan_v1':
+            from .evidence_method_plan_codec import decode_request
+            descriptor=capability.inspect_payload(self.resource)
+            decode_request(descriptor.raw,descriptor.domain,descriptor.exact_input,descriptor.selection_manifest)
+            consumed=capability.consume(self.resource)
+            if consumed!=descriptor:raise PermissionError('inspected evidence payload changed before consume')
+            raw,dispatch,nonce,admission_digest,producer_digest=consumed.raw,consumed.dispatch_id,consumed.nonce,consumed.admission_digest,consumed.producer_digest
+        else:raw,dispatch,nonce,admission_digest,producer_digest=capability.consume(self.resource)
         data=self.resource._bytes('POST','/chat/completions',raw)
         if time.monotonic()>=self.deadline:raise TimeoutError('controlled native wall limit')
         count=self.conn.send(data)
@@ -387,3 +439,4 @@ def retire_attempts(*resources,flight=None):
 
 # Fixed code origins, captured before test wrappers or caller attribute aliases.
 _WRITE_PRODUCERS=(install_native_funding,)
+_EVIDENCE_FACTORY_CODES=(create_controlled_evidence_method_fixture_authority.__code__,create_controlled_runtime_evidence_method_fixture_authority.__code__)

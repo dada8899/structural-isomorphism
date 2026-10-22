@@ -51,6 +51,37 @@ else:
     from research.financial_input_schemas import FinancialImportPreviewEnvelope,FinancialImportPreviewResponse
     from research.financial_input_schemas import FinancialRegistryConfirmationEnvelope,FinancialRegistryConfirmationResponse,FinancialRegistryReadResponse,FinancialRegistryHistoryResponse
 
+if __package__=='web.backend.api':
+    from ..research.evidence_method_plan_schemas import EvidenceMethodPreviewEnvelope,EvidenceMethodConfirmEnvelope,EvidenceMethodPreviewResponse,EvidenceMethodConfirmResponse,EvidenceMethodReadResponse,EvidenceMethodListResponse,EvidenceMethodErrorResponse
+    from ..research import evidence_method_plan as evidence_method,evidence_method_plan_codec as evidence_codec
+else:
+    from research.evidence_method_plan_schemas import EvidenceMethodPreviewEnvelope,EvidenceMethodConfirmEnvelope,EvidenceMethodPreviewResponse,EvidenceMethodConfirmResponse,EvidenceMethodReadResponse,EvidenceMethodListResponse,EvidenceMethodErrorResponse
+    from research import evidence_method_plan as evidence_method,evidence_method_plan_codec as evidence_codec
+_EVIDENCE_OPERATIONS=('evidence-method-preview','evidence-method-confirm','evidence-method-read','evidence-method-list')
+_EVIDENCE_MODELS=(EvidenceMethodPreviewResponse,EvidenceMethodConfirmResponse,EvidenceMethodReadResponse,EvidenceMethodListResponse)
+
+
+def _evidence_error(error):
+    allowed={401:{'AUTH_REQUIRED'},403:{'AUTHORIZATION_STALE','FUNDING_GRANT_REQUIRED'},404:{'NOT_FOUND'},409:{'REVISION_CONFLICT','IDEMPOTENCY_CONFLICT','PREVIEW_CHANGED','PREVIEW_EXPIRED','TASK_ACTIVE','FUNDING_BUSY','FUNDING_STALE','SOURCE_PERMISSION_UNAVAILABLE','RECONCILIATION_REQUIRED'},413:{'PAYLOAD_LIMIT'},422:{'INPUT_INVALID'},429:{'BUDGET_EXHAUSTED'},503:{'FEATURE_UNAVAILABLE','FUNDING_CLOSED','STORE_UNAVAILABLE','RESULT_UNAVAILABLE','RESPONSE_UNAVAILABLE','CLEANUP_UNCERTAIN'}}
+    if error.code=='AUTHORIZATION_STALE':error=ResearchError('AUTHORIZATION_STALE',403,'当前权限已变化，请重新登录并读取研究。')
+    if error.code not in allowed.get(error.status,set()):error=ResearchError('RESULT_UNAVAILABLE',503,'方法计划记录当前无法核对，请保留原操作标识。')
+    body=EvidenceMethodErrorResponse.model_validate(error.body()).model_dump(mode='json')
+    if len(evidence_codec.bounded(body,4096))>4096:raise ValueError('bounded evidence error required')
+    return JSONResponse(body,status_code=error.status,headers=_HEADERS)
+
+
+async def _parse_evidence(request,model):
+    if request.headers.get('content-type','').split(';',1)[0].strip().lower()!='application/json':raise ResearchError('INPUT_INVALID',422,'请提交 JSON 格式的方法计划请求。')
+    raw=bytearray()
+    async for chunk in request.stream():
+        if len(raw)+len(chunk)>65536:raise ResearchError('PAYLOAD_LIMIT',413,'方法计划请求超过上限。')
+        raw.extend(chunk)
+    try:value=evidence_codec.parse_model(model,bytes(raw),65536)
+    except evidence_codec.EvidenceMethodLimit:raise ResearchError('PAYLOAD_LIMIT',413,'方法计划请求超过上限。') from None
+    except (ValueError,TypeError,RecursionError,OverflowError):raise ResearchError('INPUT_INVALID',422,'方法计划字段或版本不符合要求。') from None
+    request._body=bytes(raw);return value
+
+
 router = APIRouter(tags=["research"])
 _KEY = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z", re.ASCII)
 _HEADERS = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"}
@@ -221,6 +252,33 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         # Captured private storage never falls back to a development flag after
         # environment downgrade, including requests outside canonical Main.
         if service.store._formal_mode():require_formal_application(request.app,'research_basic')
+        if operation in _EVIDENCE_OPERATIONS:
+            if __package__=='web.backend.api':
+                from ..research.paid_control import issue_authenticated_action
+                from ..research import plan_native_runtime
+            else:
+                from research.paid_control import issue_authenticated_action
+                from research import plan_native_runtime
+            if operation in _EVIDENCE_OPERATIONS[:2]:
+                if auth.require_same_origin(request) is not None:raise ResearchError('AUTHORIZATION_STALE',403,'请从本站页面确认外发范围。')
+                key=request.headers.get('idempotency-key','')
+                if not _KEY.fullmatch(key) or request.query_params:raise ResearchError('INPUT_INVALID',422,'方法计划操作标识或参数不合法。')
+                parsed=await _parse_evidence(request,EvidenceMethodPreviewEnvelope if operation=='evidence-method-preview' else EvidenceMethodConfirmEnvelope)
+            elif operation=='evidence-method-list':limit,cursor=evidence_method.list_query(list(request.query_params.multi_items()))
+            elif request.query_params:raise ResearchError('INPUT_INVALID',422,'方法计划读取不接受查询参数。')
+            source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+            try:
+                if operation in _EVIDENCE_OPERATIONS[:2]:
+                    function=plan_native_runtime.preview if operation=='evidence-method-preview' else plan_native_runtime.confirm
+                    result=await run_in_threadpool(function,service,identity,research_id,parsed.data,key,source)
+                elif operation=='evidence-method-read':result=await run_in_threadpool(evidence_method.read,service,identity,research_id,request.path_params['result_ref'],source)
+                else:result=await run_in_threadpool(evidence_method.list_results,service,identity,research_id,limit,cursor,source)
+            finally:source.close()
+            try:
+                checked=_EVIDENCE_MODELS[_EVIDENCE_OPERATIONS.index(operation)].model_validate(result)
+                evidence_codec.bounded(checked,(32768,4096,49152,49152)[_EVIDENCE_OPERATIONS.index(operation)])
+                return JSONResponse(checked.model_dump(mode='json'),headers=_HEADERS)
+            except Exception:return _paid_response_unavailable()
         if operation in ('financial-registry-save','financial-registry-read','financial-registry-history'):
             if __package__=='web.backend.api':
                 from ..research import financial_input
@@ -442,13 +500,22 @@ async def _dispatch(request, *, research_id=None, operation="view"):
             raise ResearchError('PAYLOAD_LIMIT',413,'响应超过研究范围上限；旧记录未更改。')
         return JSONResponse(result, headers=_HEADERS)
     except ResearchError as exc:
+        if operation in _EVIDENCE_OPERATIONS:return _evidence_error(exc)
         if operation in _PAID_OPERATIONS:return _paid_error_response(exc)
         return JSONResponse(exc.body(), status_code=exc.status, headers=_HEADERS)
     except ProviderFailure as exc:
         if operation not in ('paid-preview','paid-confirm') or str(exc)!='request_limit':raise
         error=ResearchError('PAYLOAD_LIMIT',413,'最终外发请求超过16KiB上限。')
         return _paid_error_response(error)
+    except evidence_codec.EvidenceMethodLimit:
+        if operation not in _EVIDENCE_OPERATIONS:raise
+        if operation in ('evidence-method-read','evidence-method-list'):return _evidence_error(ResearchError('RESULT_UNAVAILABLE',503,'原方法计划记录当前无法完整核对。'))
+        return _evidence_error(ResearchError('PAYLOAD_LIMIT',413,'完整方法计划或引用超过上限，请缩小选择范围。'))
+    except (ValueError,TypeError,LookupError):
+        if operation not in _EVIDENCE_OPERATIONS:raise
+        return _evidence_error(ResearchError('RESULT_UNAVAILABLE',503,'方法计划完整性当前无法核对，请保留原标识。'))
     except PermissionError:
+        if operation in _EVIDENCE_OPERATIONS:return _evidence_error(ResearchError('AUTHORIZATION_STALE',403,'当前权限已变化，请重新读取。'))
         if operation not in ('draft-save','draft-read','draft-history','financial-import-preview','financial-registry-save','financial-registry-read','financial-registry-history'):raise
         error=ResearchError('AUTHORIZATION_STALE',409,'财务操作权限已变化，请重新读取后再操作。' if operation.startswith('financial-') else '方法草稿权限已变化，请重新读取后再操作。')
         return JSONResponse(error.body(),status_code=error.status,headers=_HEADERS)
@@ -596,3 +663,20 @@ async def list_research_financial_registries(research_id:str,request:Request):
 @router.get('/research/{research_id}/financial-registries/{registry_ref}',response_model=FinancialRegistryReadResponse)
 async def read_research_financial_registry(research_id:str,registry_ref:str,request:Request):
     return await _dispatch(request,research_id=research_id,operation='financial-registry-read')
+
+
+@router.post('/research/{research_id}/evidence-method-plan-previews',response_model=EvidenceMethodPreviewResponse,responses={s:{'model':EvidenceMethodErrorResponse} for s in (401,403,404,409,413,422,429,503)},openapi_extra={'requestBody':_formula_request_body(EvidenceMethodPreviewEnvelope)})
+async def preview_evidence_method_plan(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='evidence-method-preview')
+
+@router.post('/research/{research_id}/evidence-method-plan-approvals',response_model=EvidenceMethodConfirmResponse,responses={s:{'model':EvidenceMethodErrorResponse} for s in (401,403,404,409,413,422,429,503)},openapi_extra={'requestBody':_formula_request_body(EvidenceMethodConfirmEnvelope)})
+async def confirm_evidence_method_plan(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='evidence-method-confirm')
+
+@router.get('/research/{research_id}/evidence-method-plans/{result_ref}',response_model=EvidenceMethodReadResponse,responses={s:{'model':EvidenceMethodErrorResponse} for s in (401,403,404,409,413,422,429,503)})
+async def read_evidence_method_plan(research_id:str,result_ref:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='evidence-method-read')
+
+@router.get('/research/{research_id}/evidence-method-plans',response_model=EvidenceMethodListResponse,responses={s:{'model':EvidenceMethodErrorResponse} for s in (401,403,404,409,413,422,429,503)})
+async def list_evidence_method_plans(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='evidence-method-list')
