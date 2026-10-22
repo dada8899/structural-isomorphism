@@ -236,12 +236,19 @@ def origin():
 
 
 def draft(problem_digest,query):
+    return _canonical_draft(problem_digest,query,origin())
+
+
+def _canonical_draft(problem_digest,query,recorded_mode):
+    """Pure fixed plan bytes, never an execution permit or caller mode switch."""
+    if type(recorded_mode) is not str or recorded_mode not in ('offline_probe','live'):
+        raise PermissionError('invalid Source plan mode')
     discovery_target(query)  # The already-reviewed fixed target grammar.
     fields={"query":query,"objective":"Collect licensed method evidence; no market or causal conclusion.",
             "competing_explanations":["Common external drivers","Measurement and sample-window effects"],
             "required_evidence":["Identified licensed originals","Exact short excerpts and unresolved limits"],
             "stop_rule":"At most four fixed GET requests; stop on unavailable permission or execution uncertainty.",
-            "policy_revision":POLICY,"max_requests":4,"execution_mode":origin(),
+            "policy_revision":POLICY,"max_requests":4,"execution_mode":recorded_mode,
             "samples":["NASDAQ:GFS","SSE:688981","HKEX:00981"],"exploration":"2024-01-01/2025-12-31",
             "validation":"2026-01-01/2026-09-30","price_series_available":False}
     plan_digest=sha256(canonical(fields).encode())
