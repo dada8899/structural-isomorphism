@@ -201,10 +201,12 @@ def test_single_report_schema_rejects_foreign_or_sensitive_fields(diagnostic,fau
 def test_publish_only_fixed_schema_and_safe_output_after_native_readback(diagnostic,monkeypatch):
     f=diagnostic;d.run_checks(f.frozen,f.trace,f.root);value=f.report()
     output=f.root/'output';output.write_bytes(b'');output.chmod(0o600)
-    monkeypatch.setenv('GITHUB_OUTPUT',str(output));d.publish(f.root,value)
+    monkeypatch.setenv('GITHUB_OUTPUT',str(output));receipt=d.publish(f.root,value)
     raw=(f.root/'preflight-diagnostic.json').read_bytes()
     assert len(raw)<=8192 and json.loads(raw)==value and output.read_bytes()==b'diagnostic_safe=true\n'
     assert (f.root/'preflight-diagnostic.json').stat().st_mode&0o777==0o600
+    assert receipt['fsynced'] is True and receipt['output_ino']==output.stat().st_ino
+    assert receipt['bytes']==len(b'diagnostic_safe=true\n') and receipt['report_sha256']==hashlib.sha256(raw).hexdigest()
 
 
 def test_unsafe_schema_never_creates_an_upload_gate(diagnostic,monkeypatch):
@@ -228,3 +230,54 @@ def test_replaced_report_after_fsync_cannot_sign_an_upload(diagnostic,monkeypatc
     monkeypatch.setattr(d.os,'fsync',replace)
     with pytest.raises(d.Closed):d.publish(f.root,value)
     assert replaced and output.read_bytes()==b''
+
+
+def test_changed_but_schema_valid_report_at_output_open_is_not_the_checked_report(diagnostic,monkeypatch):
+    f=diagnostic;d.run_checks(f.frozen,f.trace,f.root);value=f.report()
+    output=f.root/'output';output.write_bytes(b'');output.chmod(0o600);monkeypatch.setenv('GITHUB_OUTPUT',str(output))
+    original=d.os.open;changed=[]
+    def exchange(path,flags,*args,**kw):
+        if os.fspath(path)==str(output) and not changed:
+            report=f.root/'preflight-diagnostic.json';modified=json.loads(report.read_bytes());modified['event_sha']='b'*40
+            assert d.valid_record(modified)
+            report.write_text(json.dumps(modified,sort_keys=True));changed.append(True)
+        return original(path,flags,*args,**kw)
+    monkeypatch.setattr(d.os,'open',exchange)
+    with pytest.raises(d.Closed):d.publish(f.root,value)
+    assert changed and output.read_bytes()==b''
+
+
+def test_output_replacement_cannot_be_accepted_as_the_original_channel(diagnostic,monkeypatch):
+    f=diagnostic;d.run_checks(f.frozen,f.trace,f.root);value=f.report()
+    output=f.root/'output';output.write_bytes(b'');output.chmod(0o600);monkeypatch.setenv('GITHUB_OUTPUT',str(output))
+    original=d.os.open;changed=[]
+    def exchange(path,flags,*args,**kw):
+        if os.fspath(path)==str(output) and not changed:
+            output.rename(f.root/'original-output');output.write_bytes(b'');output.chmod(0o600);changed.append(True)
+        return original(path,flags,*args,**kw)
+    monkeypatch.setattr(d.os,'open',exchange)
+    with pytest.raises(d.Closed):d.publish(f.root,value)
+    assert changed and output.read_bytes()==b'' and (f.root/'original-output').read_bytes()==b''
+
+
+def test_report_fd_is_held_until_output_fsync_and_both_fds_are_closed(diagnostic,monkeypatch):
+    f=diagnostic;d.run_checks(f.frozen,f.trace,f.root);value=f.report()
+    output=f.root/'output';output.write_bytes(b'prior=unchanged\n');output.chmod(0o600);monkeypatch.setenv('GITHUB_OUTPUT',str(output))
+    original_open,original_fsync=d.os.open,d.os.fsync;fds={};synced=[]
+    def opened(path,flags,*args,**kw):
+        fd=original_open(path,flags,*args,**kw)
+        if os.fspath(path)==str(f.root/'preflight-diagnostic.json') and flags&os.O_EXCL:fds['report']=fd
+        if os.fspath(path)==str(output):fds['output']=fd;assert os.fstat(fds['report']).st_nlink==1
+        return fd
+    def fsync(fd):
+        result=original_fsync(fd)
+        if fd==fds.get('output'):
+            assert os.fstat(fds['report']).st_nlink==1
+            synced.append((os.fstat(fd).st_dev,os.fstat(fd).st_ino))
+        return result
+    monkeypatch.setattr(d.os,'open',opened);monkeypatch.setattr(d.os,'fsync',fsync)
+    receipt=d.publish(f.root,value)
+    assert synced==[(receipt['output_dev'],receipt['output_ino'])] and receipt['offset']==len(b'prior=unchanged\n')
+    assert output.read_bytes()==b'prior=unchanged\ndiagnostic_safe=true\n'
+    for fd in fds.values():
+        with pytest.raises(OSError):os.fstat(fd)

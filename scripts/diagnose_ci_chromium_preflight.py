@@ -363,17 +363,35 @@ def publish(root, value):
     need(valid_record(value))
     raw=json.dumps(value,sort_keys=True,allow_nan=False).encode();need(len(raw)<=8192)
     path=root/'preflight-diagnostic.json';fd=os.open(path,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
+    def identity(info):
+        return (info.st_dev,info.st_ino,info.st_uid,info.st_gid,info.st_mode,info.st_nlink)
     try:
         info=os.fstat(fd);need(stat.S_ISREG(info.st_mode) and info.st_uid==os.getuid() and info.st_nlink==1 and stat.S_IMODE(info.st_mode)==0o600)
         need(os.write(fd,raw)==len(raw));os.fsync(fd);need(os.pread(fd,len(raw)+1,0)==raw)
         current=path.lstat();need((current.st_dev,current.st_ino)==(info.st_dev,info.st_ino) and os.fstat(fd).st_nlink==1)
         need(read_regular(path,8192)==raw)
-    finally:os.close(fd)
-    output=Path(os.environ['GITHUB_OUTPUT']);need(output.is_absolute() and output==output.resolve())
-    fd=os.open(output,os.O_WRONLY|os.O_APPEND|os.O_NOFOLLOW|os.O_CLOEXEC)
-    try:
-        info=os.fstat(fd);need(stat.S_ISREG(info.st_mode) and info.st_uid==os.getuid() and info.st_nlink==1 and not info.st_mode&0o022)
-        flag=b'diagnostic_safe=true\n';need(os.write(fd,flag)==len(flag));os.fsync(fd)
+        output=Path(os.environ['GITHUB_OUTPUT']);need(output.is_absolute() and output==output.resolve())
+        output_before=output.lstat()
+        out_fd=os.open(output,os.O_WRONLY|os.O_APPEND|os.O_NOFOLLOW|os.O_CLOEXEC)
+        try:
+            out_info=os.fstat(out_fd)
+            need(stat.S_ISREG(out_info.st_mode) and out_info.st_uid==os.getuid() and out_info.st_nlink==1 and not out_info.st_mode&0o022)
+            need(identity(out_info)==identity(output_before)==identity(output.lstat()) and out_info.st_size==output_before.st_size)
+            # Bind the held report and its name *after* the real output open.
+            # This is an adjacent single-writer check, not isolation from an
+            # adversary changing every anchor under the same UID afterwards.
+            held=os.fstat(fd);named=path.lstat()
+            need(identity(held)==identity(info)==identity(named) and held.st_size==named.st_size==len(raw))
+            checked=os.pread(fd,len(raw)+1,0)
+            need(checked==raw and read_regular(path,8192)==checked and valid_record(json.loads(checked)))
+            need(identity(os.fstat(fd))==identity(info)==identity(path.lstat()))
+            flag=b'diagnostic_safe=true\n';need(os.write(out_fd,flag)==len(flag));os.fsync(out_fd)
+            output_after=os.fstat(out_fd)
+            need(identity(output_after)==identity(out_info)==identity(output.lstat()) and output_after.st_size==out_info.st_size+len(flag))
+            return {'report_dev':info.st_dev,'report_ino':info.st_ino,'report_sha256':hashlib.sha256(checked).hexdigest(),
+                    'output_dev':out_info.st_dev,'output_ino':out_info.st_ino,'output_uid':out_info.st_uid,
+                    'output_mode':stat.S_IMODE(out_info.st_mode),'offset':out_info.st_size,'bytes':len(flag),'fsynced':True}
+        finally:os.close(out_fd)
     finally:os.close(fd)
 
 
