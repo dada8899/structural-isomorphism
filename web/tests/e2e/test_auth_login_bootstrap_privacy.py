@@ -54,10 +54,20 @@ async def actual_browser(tmp_path, *, javascript=True):
                             yield page, service, context, facts, releases
                         finally:
                             for release in releases: release.set()
+                            # Retire routing only after its existing callbacks
+                            # finish. Offline blocks late fallback/public DNS;
+                            # the original bridge stays alive for real replies.
+                            await context.set_offline(True)
+                            await asyncio.wait_for(context.unroute_all(behavior='wait'), 8)
+                            facts['route_handlers_drained'] = True
+                            with bridge.condition:
+                                facts['bridge_pending_after_drain'] = len(bridge.pending)
                 finally:
                     for release in releases: release.set()
-                    await context.close()
-                    await browser.close()
+                    try:
+                        await context.close()
+                    finally:
+                        await browser.close()
     finally:
         facts.update(browser_disconnected=browser is None or not browser.is_connected(),
             main_thread_alive=bool(service and service.server_thread and service.server_thread.is_alive()),
