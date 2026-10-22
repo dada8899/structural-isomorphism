@@ -109,11 +109,18 @@ FIN2_BACKEND_FORMAL_FILES = (
     'acceptance/test_source_history_fixture_current15.py',
     'test_research_financial_registries.py',
 )
-BACKEND_FORMAL_FILES = ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES
+EVIDENCE_BACKEND_FORMAL_FILES = (
+    'test_research_source_origin_history.py',
+    'test_research_evidence_method_plan.py',
+    'test_research_evidence_method_native.py',
+)
+BACKEND_FORMAL_FILES = ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES + EVIDENCE_BACKEND_FORMAL_FILES
 
 
-def backend_process_commands(*, coverage=False, before_fin2=False):
-    names = ORIGINAL_BACKEND_FORMAL_FILES if before_fin2 else BACKEND_FORMAL_FILES
+def backend_process_commands(*, coverage=False, before_fin2=False, before_evidence=False):
+    names = (ORIGINAL_BACKEND_FORMAL_FILES if before_fin2 else
+             ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES if before_evidence else
+             BACKEND_FORMAL_FILES)
     directory = 'web/backend/tests/' if coverage else 'tests'
     prefix = ('python -m coverage run -p --rcfile=.coveragerc -m pytest ' if coverage else 'python -m pytest ')
     flags = ' $PYTEST_FLAGS' if coverage else ' -x -ra -q --tb=short --durations=10'
@@ -122,9 +129,22 @@ def backend_process_commands(*, coverage=False, before_fin2=False):
     return [ordinary, *(prefix + file_prefix + name + ' -p no:logging' + flags for name in names)]
 
 
+def _backend_script_before_evidence(script, *, coverage=False):
+    """Reverse exactly three actual Main consumers to the reviewed six-file split."""
+    commands = backend_process_commands(coverage=coverage)
+    expanded = '\n'.join(commands)
+    assert script.count(expanded) == 1, 'exact ten-process evidence backend block missing or duplicated'
+    relevant = [line for line in script.splitlines() if line.startswith(
+        'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
+    assert relevant == commands, 'evidence backend groups must each run exactly once in the fixed order'
+    prior = '\n'.join(backend_process_commands(coverage=coverage, before_evidence=True))
+    return script.replace(expanded, prior, 1)
+
+
 def _backend_script_before_fin2(script, *, coverage=False):
     """Reverse only the two exact current15 consumers to the reviewed 301 block."""
-    commands = backend_process_commands(coverage=coverage)
+    script = _backend_script_before_evidence(script, coverage=coverage)
+    commands = backend_process_commands(coverage=coverage, before_evidence=True)
     expanded = '\n'.join(commands)
     assert script.count(expanded) == 1, 'exact seven-process FIN2 backend block missing or duplicated'
     relevant = [line for line in script.splitlines() if line.startswith(
@@ -1034,3 +1054,26 @@ def test_chromium_runner_inverse_rejects_every_unapproved_label(runner):
     value=workflow('ci.yml')
     value['jobs']['browser-product-contract']['runs-on']=runner
     with pytest.raises(AssertionError): assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('consumer', EVIDENCE_BACKEND_FORMAL_FILES)
+@pytest.mark.parametrize('mutation', ['missing', 'missing_ignore', 'logging', 'partial_file'])
+def test_evidence_backend_consumers_cannot_be_omitted_or_partially_run(kind, consumer, mutation):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    name = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step = next(s for s in job['steps'] if s.get('name') == name)
+    commands = backend_process_commands(coverage=kind == 'coverage')
+    changed = list(commands)
+    index = BACKEND_FORMAL_FILES.index(consumer) + 1
+    if mutation == 'missing': changed.pop(index)
+    elif mutation == 'missing_ignore':
+        prefix = 'web/backend/tests/' if kind == 'coverage' else 'tests/'
+        changed[0] = changed[0].replace(' --ignore=' + prefix + consumer, '', 1)
+    elif mutation == 'logging': changed[index] = changed[index].replace(' -p no:logging', '', 1)
+    else: changed[index] += ' -k smoke'
+    step['run'] = step['run'].replace('\n'.join(commands), '\n'.join(changed), 1)
+    with pytest.raises(AssertionError):
+        if kind == 'sanity': _assert_sanity_backend_dependency(value)
+        else: _assert_research_coverage_closure(value, (ROOT / '.coveragerc').read_text())
