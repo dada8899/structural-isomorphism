@@ -1708,7 +1708,25 @@ def _original_makefile_before_auth_bootstrap_browser(makefile: str) -> str:
     return makefile.replace(assignment,assignment.replace('\t'+auth+' \\\n',''),1).replace(formal,formal.replace(' '+auth,''),1).replace(isolated,'\t$(PYTEST) $(filter web/tests/e2e/%,$('+variable+')) -m "e2e and not requires_internet" -v\n',1)
 
 
+def _original_makefile_before_fin2_backend(makefile: str) -> str:
+    """Restore the reviewed 301 block only from the exact current15 extension."""
+    original=('test_formal_main_admission.py','test_formal_main_source_supervisor.py',
+              'test_research_financial_import.py','test_formal_model_startup.py')
+    names=original+('acceptance/test_source_history_fixture_current15.py',
+                    'test_research_financial_registries.py')
+    commands=['cd web/backend && $(BACKEND_PYTEST)'+''.join(' --ignore=tests/'+n for n in names)+' -q']
+    commands+=['cd web/backend && $(BACKEND_PYTEST) tests/'+n+' -p no:logging -q' for n in names]
+    expanded=''.join('\t'+command+'\n' for command in commands)
+    assert makefile.count(expanded)==1, 'exact seven-process FIN2 Make backend block missing or duplicated'
+    actual=[c for c in _make_recipe_commands(makefile,'verify-release') if c.startswith('cd web/backend ')]
+    assert actual==commands, 'only the fixed FIN2 Make backend process split is allowed'
+    prior=['cd web/backend && $(BACKEND_PYTEST)'+''.join(' --ignore=tests/'+n for n in original)+' -q']
+    prior+=['cd web/backend && $(BACKEND_PYTEST) tests/'+n+' -p no:logging -q' for n in original]
+    return makefile.replace(expanded,''.join('\t'+command+'\n' for command in prior),1)
+
+
 def _original_makefile_before_backend_isolation(makefile: str) -> str:
+    makefile = _original_makefile_before_fin2_backend(makefile)
     names=('test_formal_main_admission.py','test_formal_main_source_supervisor.py',
            'test_research_financial_import.py','test_formal_model_startup.py')
     commands=['cd web/backend && $(BACKEND_PYTEST)'+''.join(' --ignore=tests/'+n for n in names)+' -q']
@@ -2654,6 +2672,21 @@ def test_Make_backend_split_keeps_exact_full_files_and_hard_order(mutation):
     elif mutation=='formal_logging':makefile=makefile.replace(formal,formal.replace(' -p no:logging',''),1)
     elif mutation=='soft':makefile=makefile.replace(formal,'\t-'+formal[1:],1)
     else:makefile=makefile.replace(formal,'',1)+formal
+    with pytest.raises(AssertionError):
+        original=_original_makefile_without_financial_preview(makefile)
+        assert hashlib.sha256(original.encode()).hexdigest()=='d10d21b2d90e07deb8f9219f663f511ea96d5532c7f97637213f67f51efb0b9b'
+
+
+@pytest.mark.parametrize('consumer', ['acceptance/test_source_history_fixture_current15.py',
+                                      'test_research_financial_registries.py'])
+@pytest.mark.parametrize('mutation', ['missing', 'missing_ignore', 'logging', 'partial_file'])
+def test_fin2_Make_backend_consumers_cannot_be_omitted_or_partially_run(consumer, mutation):
+    makefile=(ROOT/'Makefile').read_text()
+    formal='\tcd web/backend && $(BACKEND_PYTEST) tests/'+consumer+' -p no:logging -q\n'
+    if mutation=='missing': makefile=makefile.replace(formal,'',1)
+    elif mutation=='missing_ignore': makefile=makefile.replace(' --ignore=tests/'+consumer,'',1)
+    elif mutation=='logging': makefile=makefile.replace(formal,formal.replace(' -p no:logging',''),1)
+    else: makefile=makefile.replace(formal,formal.rstrip('\n')+' -k smoke\n',1)
     with pytest.raises(AssertionError):
         original=_original_makefile_without_financial_preview(makefile)
         assert hashlib.sha256(original.encode()).hexdigest()=='d10d21b2d90e07deb8f9219f663f511ea96d5532c7f97637213f67f51efb0b9b'

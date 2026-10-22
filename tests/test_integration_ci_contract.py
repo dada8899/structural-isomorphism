@@ -101,24 +101,43 @@ def original_browser_surface_job(body: dict) -> dict:
     return original
 
 
-BACKEND_FORMAL_FILES = (
+ORIGINAL_BACKEND_FORMAL_FILES = (
     'test_formal_main_admission.py', 'test_formal_main_source_supervisor.py',
     'test_research_financial_import.py', 'test_formal_model_startup.py',
 )
+FIN2_BACKEND_FORMAL_FILES = (
+    'acceptance/test_source_history_fixture_current15.py',
+    'test_research_financial_registries.py',
+)
+BACKEND_FORMAL_FILES = ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES
 
 
-def backend_process_commands(*, coverage=False):
+def backend_process_commands(*, coverage=False, before_fin2=False):
+    names = ORIGINAL_BACKEND_FORMAL_FILES if before_fin2 else BACKEND_FORMAL_FILES
     directory = 'web/backend/tests/' if coverage else 'tests'
     prefix = ('python -m coverage run -p --rcfile=.coveragerc -m pytest ' if coverage else 'python -m pytest ')
     flags = ' $PYTEST_FLAGS' if coverage else ' -x -ra -q --tb=short --durations=10'
     file_prefix = 'web/backend/tests/' if coverage else 'tests/'
-    ordinary = prefix + directory + ''.join(' --ignore=' + file_prefix + name for name in BACKEND_FORMAL_FILES) + flags
-    return [ordinary, *(prefix + file_prefix + name + ' -p no:logging' + flags for name in BACKEND_FORMAL_FILES)]
+    ordinary = prefix + directory + ''.join(' --ignore=' + file_prefix + name for name in names) + flags
+    return [ordinary, *(prefix + file_prefix + name + ' -p no:logging' + flags for name in names)]
+
+
+def _backend_script_before_fin2(script, *, coverage=False):
+    """Reverse only the two exact current15 consumers to the reviewed 301 block."""
+    commands = backend_process_commands(coverage=coverage)
+    expanded = '\n'.join(commands)
+    assert script.count(expanded) == 1, 'exact seven-process FIN2 backend block missing or duplicated'
+    relevant = [line for line in script.splitlines() if line.startswith(
+        'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
+    assert relevant == commands, 'FIN2 backend groups must each run exactly once in the fixed order'
+    prior = '\n'.join(backend_process_commands(coverage=coverage, before_fin2=True))
+    return script.replace(expanded, prior, 1)
 
 
 def original_backend_script(script, *, coverage=False):
     """Reverse one exact five-process block; never strip flags from arbitrary commands."""
-    commands = backend_process_commands(coverage=coverage)
+    script = _backend_script_before_fin2(script, coverage=coverage)
+    commands = backend_process_commands(coverage=coverage, before_fin2=True)
     expanded = '\n'.join(commands)
     assert script.count(expanded) == 1, 'complete exact backend process block missing or duplicated'
     relevant = [line for line in script.splitlines() if line.startswith(
@@ -959,3 +978,26 @@ def test_auth_browser_addition_is_only_the_existing_Main_subgroup(mutation):
     elif mutation=='wrong_group':row['pytest_args_main']=MAIN_SURFACE;row['pytest_args_isolated']+=' '+AUTH_BOOTSTRAP_BROWSER
     else:row['pytest_args_main']+=' -k smoke'
     with pytest.raises(AssertionError):assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('consumer', FIN2_BACKEND_FORMAL_FILES)
+@pytest.mark.parametrize('mutation', ['missing', 'missing_ignore', 'logging', 'partial_file'])
+def test_fin2_backend_consumers_cannot_be_omitted_or_partially_run(kind, consumer, mutation):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    name = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step = next(s for s in job['steps'] if s.get('name') == name)
+    commands = backend_process_commands(coverage=kind == 'coverage')
+    changed = list(commands)
+    index = BACKEND_FORMAL_FILES.index(consumer) + 1
+    if mutation == 'missing': changed.pop(index)
+    elif mutation == 'missing_ignore':
+        prefix = 'web/backend/tests/' if kind == 'coverage' else 'tests/'
+        changed[0] = changed[0].replace(' --ignore=' + prefix + consumer, '', 1)
+    elif mutation == 'logging': changed[index] = changed[index].replace(' -p no:logging', '', 1)
+    else: changed[index] += ' -k smoke'
+    step['run'] = step['run'].replace('\n'.join(commands), '\n'.join(changed), 1)
+    with pytest.raises(AssertionError):
+        if kind == 'sanity': _assert_sanity_backend_dependency(value)
+        else: _assert_research_coverage_closure(value, (ROOT / '.coveragerc').read_text())
