@@ -1,4 +1,4 @@
-"""Actual R12 formal HTTP/worker, synthetic loopback only; no external credentials."""
+"""Actual legacy-auth funded components, synthetic loopback only."""
 from contextlib import contextmanager,closing
 from datetime import datetime,timezone
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
@@ -17,8 +17,7 @@ from research.provider_schemas import UsageUpperQuote,BudgetBasisSnapshot,Money,
 from research.plan_runtime import install_fixture_funding,uninstall_fixture_funding,UPPER
 from research.plan_transport import fixture_resource
 from .test_private_runtime_bootstrap import roots
-from .test_private_registration import stack,link,verify,BETA
-from .test_research_account_bridge import configure
+from .research_component_fixture import stack,BETA,after_native_commit
 from .test_research_persistence import envelope,problem
 from .test_research_paid_producers import identity
 
@@ -51,8 +50,7 @@ def send(client,rid,suffix,payload,key):return client.post('/api/research/'+rid+
 
 
 def saved(stack,monkeypatch):
-    client,root,mail=stack;configure(client,root,monkeypatch)
-    assert verify(client,link(client,mail)).status_code==200
+    client,root,_=stack
     data=problem();data.update(entry='phenomenon',original_input='我发现团队的到达任务变得集中时，等待时间明显增加。',confirmed=True)
     response=client.post('/api/research',json=envelope({'problem':data}),headers={'origin':BETA,'idempotency-key':'plan-create'})
     assert response.status_code==200
@@ -140,7 +138,7 @@ def test_actual_plan_http_confirm_worker_return_read_same_ref_and_history(stack,
 
 def test_plan_new_process_read_keeps_exact_ref_content_time_without_funding(stack,monkeypatch,tmp_path):
     import multiprocessing
-    from .plan_process_fixture import read_plan
+    from .research_component_process_fixture import read_plan
     data=saved(stack,monkeypatch);client,_,rid,store=data
     with provider() as (server,calls),funded(data,server):
         admitted,_=confirm(client,rid,preview(client,rid));ResearchRunner(store).run_once(admitted['task_id'])
@@ -198,7 +196,7 @@ def test_confirmation_cannot_change_raw_template_upper_or_reuse_preview(stack,mo
         assert calls==[]
 
 
-@pytest.mark.parametrize('native',['ordinary','private'])
+@pytest.mark.parametrize('native',['ordinary','auth_factory'])
 def test_f8_native_sql_default_deny_and_rowid_replace_never_rewrites_consent(stack,monkeypatch,native):
     data=saved(stack,monkeypatch);client,_,rid,store=data
     with provider() as (server,calls),funded(data,server):
@@ -315,21 +313,17 @@ def test_actual_owned_return_after_http_stop_never_restores_plan_body(stack,monk
 
 
 @pytest.mark.parametrize('cut',['consume','return'])
-def test_actual_native_commit_ack_loss_keeps_ref_and_never_repeats_model(stack,monkeypatch,cut):
-    from services.sqlite_utils import PrivateAuthConnection
+def test_actual_native_commit_ack_loss_keeps_ref_and_never_repeats_model(stack,monkeypatch,cut,tmp_path):
+    from research import plan_runtime
     from research.errors import ResearchError
     data=saved(stack,monkeypatch);client,_,rid,store=data
     with provider() as (server,calls),funded(data,server):
-        admitted,_=confirm(client,rid,preview(client,rid));original=PrivateAuthConnection.commit;lost=[]
-        def commit(conn):
-            result=original(conn)
-            if not lost:
-                value=conn.execute('SELECT state FROM research_plan_dispatches').fetchone()
-                if value and value[0]==('consumed' if cut=='consume' else 'returned'):
-                    lost.append(True);raise sqlite3.OperationalError('synthetic committed ACK lost')
-            return result
-        monkeypatch.setattr(PrivateAuthConnection,'commit',commit)
-        with pytest.raises(ResearchError):ResearchRunner(store).run_once(admitted['task_id'])
+        admitted,_=confirm(client,rid,preview(client,rid))
+        with after_native_commit(store,caller=(plan_runtime.run_once if cut=='consume' else plan_runtime._commit_return).__code__,
+                query='SELECT state FROM research_plan_dispatches WHERE task_id=?',parameters=(admitted['task_id'],),
+                expected=('consumed' if cut=='consume' else 'returned',),proof_path=tmp_path/(cut+'-proof.json')) as hits:
+            with pytest.raises(ResearchError):ResearchRunner(store).run_once(admitted['task_id'])
+        lost=[True for hit in hits]
         assert lost==[True]
         read=client.get('/api/research/'+rid+'/plan-results/'+admitted['result_ref'])
         assert read.status_code==200 and read.json()['data']['result_ref']==admitted['result_ref']

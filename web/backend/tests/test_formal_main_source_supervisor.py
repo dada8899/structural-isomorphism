@@ -192,6 +192,33 @@ def test_actual_http_source_task_cancel_before_native_send(prepared, monkeypatch
                     while not held.is_set() and time.monotonic() < end:
                         await asyncio.sleep(.01)
                     assert held.is_set()
+                    # Keep the private-connection promise on the actual Main15
+                    # supervisor. The legacy component suite uses AuthFactory.
+                    from services.sqlite_utils import PrivateAuthConnection
+                    store = binding.service.store
+                    with store.auth_store._connection() as connection:
+                        assert type(connection) is PrivateAuthConnection
+                        connection.execute('BEGIN IMMEDIATE')
+                        before = connection.execute('SELECT started,task_gate_identity FROM research_source_runs WHERE task_id=?',
+                            (task['id'],)).fetchone()[:]
+                        assert before[0] == 0 and before[1] is not None
+                        statements = [
+                            ('UPDATE research_source_runs SET started=1,task_gate_identity=? WHERE task_id=?', ('[1,2,3,384,1]', task['id'])),
+                            ("UPDATE research_source_approvals SET query='forged',plan_json='{}'", ()),
+                            ('UPDATE research_source_chains SET used=1', ()),
+                            ("UPDATE research_source_resources SET admission_json='{}' WHERE task_id=?", (task['id'],)),
+                        ]
+                        for sql, arguments in statements:
+                            with pytest.raises(sqlite3.Error):
+                                connection.execute(sql, arguments)
+                        with pytest.raises(sqlite3.DatabaseError) as denied_finance:
+                            connection.execute('DELETE FROM research_cost_observations')
+                        assert denied_finance.value.sqlite_errorcode == sqlite3.SQLITE_AUTH
+                        connection.rollback()
+                    with store.transaction() as connection:
+                        assert connection.execute('SELECT started,task_gate_identity FROM research_source_runs WHERE task_id=?',
+                            (task['id'],)).fetchone()[:] == before
+                        assert connection.execute('SELECT used FROM research_source_chains').fetchone()[0] == 0
                     if action == 'cancel':
                         cancelled = await client.post('/api/research/' + rid + '/cancel', json=envelope({
                             'task_id': task['id'], 'expected_task_version': task['version']}),
@@ -207,6 +234,13 @@ def test_actual_http_source_task_cancel_before_native_send(prepared, monkeypatch
                         assert connection.execute('SELECT count(*) FROM research_source_requests').fetchone()[0] == 0
                         state = connection.execute('SELECT execution FROM research_tasks WHERE id=?', (task['id'],)).fetchone()[0]
                         assert state in (('CANCELLED',) if action == 'cancel' else ('CANCELLED', 'ACCESS_REVOKED'))
+                        resource = connection.execute('SELECT state,admission_json,task_gate_identity,write_epoch FROM research_source_resources WHERE task_id=?',
+                            (task['id'],)).fetchone()
+                        assert resource['state'] == 'closed' and resource['write_epoch'] == 2
+                        assert resource['task_gate_identity'] == before[1]
+                        if action == 'delete':
+                            assert resource['admission_json'] is None
+                            assert connection.execute('SELECT count(*) FROM research_source_approvals').fetchone()[0] == 0
                     assert not handoff_attempts
             finally:
                 proceed.set()
