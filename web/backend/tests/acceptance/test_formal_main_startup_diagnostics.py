@@ -17,6 +17,8 @@ from uvicorn.lifespan.on import LifespanOn
 from web.backend.tests.acceptance.formal_main_browser_service import (
     ROOT, _safe_startup_error, _StartupErrorObserver, _observe_owned_startup,
     _safe_lifespan_errors, FormalMainBrowserService,
+    _safe_retirement_snapshot, _retirement_json, _retirement_error_chain,
+    _retirement_frames, _retirement_thread, _RETIREMENT_LIMIT,
 )
 
 MARKER = 'SYNTHETIC_PRIVATE_MARKER'
@@ -313,3 +315,222 @@ def test_original_server_load_failure_is_unchanged_and_creates_no_observer_state
             logging.getLogger(name).setLevel(level)
     assert config.load is prior_load
     assert 'lifespan_class' not in vars(config)
+
+
+def _retirement_fixture():
+    """Projection-only canonical classes; no admitted lifetime or authority."""
+    import os
+    from services import formal_admission as admission
+    from research import source_supervisor as source, source_sec_access as sec
+    from research import native_plan_supervisor as native
+    app = object()
+    binding = object.__new__(admission._Binding)
+    supervisor = object.__new__(source.SourceSupervisor)
+    governor = object.__new__(sec._Governor)
+    native_sup = object.__new__(native.NativePlanSupervisor)
+    def put(value, **fields):
+        for name, item in fields.items(): object.__setattr__(value, name, item)
+    put(binding, app=app, pid=os.getpid(), factory=admission._FACTORY,
+        supervisor=supervisor, source_errors=(), native_supervisor=native_sup,
+        native_errors=(), source_receipt=source.SourceCleanupReceipt(
+            'source-supervisor-cleanup-v1', MARKER, 'CLOSED', None, 'CLOSED'),
+        native_receipt=native.NativePlanCleanupReceipt(
+            'native-plan-supervisor-cleanup-v1', MARKER, 'CLOSED', 'CLOSED', None))
+    put(supervisor, _binding=binding, _state='STOPPED', _failure=None,
+        _slot=None, _lease=None, _thread=None, _errors=[], _sec_access=governor)
+    put(governor, supervisor=supervisor, binding=binding, state='CLOSED',
+        reason=None, fd=None, errors=[])
+    put(native_sup, binding=binding, _state='CLOSED', _slot=None,
+        worker=None, _thread=None, _errors=())
+    return app, binding, supervisor, governor, native_sup
+
+
+class _RetirementCanary:
+    def __getattribute__(self, name): raise AssertionError('canary callback')
+    def __repr__(self): raise AssertionError('canary callback')
+    def __str__(self): raise AssertionError('canary callback')
+    def __eq__(self, other): raise AssertionError('canary callback')
+    def __bool__(self): raise AssertionError('canary callback')
+
+
+def test_retirement_projection_copies_only_closed_schema_and_keeps_raw_records():
+    app, binding, source, gov, native = _retirement_fixture()
+    before = (binding.source_receipt, binding.source_errors, source._errors,
+              binding.native_receipt, binding.native_errors, native._errors, gov.errors)
+    value = _safe_retirement_snapshot(binding, app)
+    assert value['observation'] == 'OBSERVED'
+    assert value['source']['receipt']['state'] == value['native']['receipt']['state'] == 'CLOSED'
+    assert value['source']['supervisor']['slot_retained'] is False
+    assert value['source']['supervisor']['lease_retained'] is False
+    assert value['source']['governor']['fd_retained'] is False
+    assert value['source']['supervisor']['thread'] == {'known': True, 'alive': False}
+    after = (binding.source_receipt, binding.source_errors, source._errors,
+             binding.native_receipt, binding.native_errors, native._errors, gov.errors)
+    assert all(first is second for first, second in zip(before, after))
+    assert MARKER not in json.dumps(value) and str(ROOT) not in json.dumps(value)
+
+
+def test_retirement_fake_types_and_wrong_actual_binding_never_gain_known_fields():
+    app, binding, source, gov, native = _retirement_fixture()
+    fake = type('SourceSupervisor', (), {'__module__': 'research.source_supervisor'})()
+    fake._state = MARKER
+    object.__setattr__(binding, 'supervisor', fake)
+    value = _safe_retirement_snapshot(binding, app)
+    assert value['source']['supervisor'] == {'present': True, 'known': False}
+    assert _safe_retirement_snapshot(binding, object()) == {'observation': 'UNAVAILABLE'}
+    fake_binding = type('_Binding', (), {'__module__': 'services.formal_admission'})()
+    assert _safe_retirement_snapshot(fake_binding, app) == {'observation': 'UNAVAILABLE'}
+    object.__setattr__(binding, 'factory', _RetirementCanary())
+    assert _safe_retirement_snapshot(binding, app) == {'observation': 'UNAVAILABLE'}
+    assert MARKER not in json.dumps(value)
+
+
+def test_retirement_damaged_fields_and_private_extras_do_not_dispatch_callbacks():
+    app, binding, source, gov, native = _retirement_fixture()
+    bad = _RetirementCanary()
+    object.__setattr__(source, '_state', bad)
+    object.__setattr__(source, '_failure', MARKER * 1000)
+    object.__setattr__(source, '_slot', bad)
+    object.__setattr__(source, '_lease', bad)
+    object.__setattr__(source, '_thread', bad)
+    object.__setattr__(gov, 'state', bad)
+    object.__setattr__(gov, 'reason', bad)
+    object.__setattr__(gov, 'fd', bad)
+    object.__setattr__(binding, 'source_errors', bad)
+    object.__setattr__(binding.source_receipt, 'pending_task_id', bad)
+    object.__setattr__(binding.source_receipt, 'state', bad)
+    value = _safe_retirement_snapshot(binding, app)
+    assert value['source']['supervisor']['state'] == 'OTHER'
+    assert value['source']['supervisor']['failure'] == 'OTHER'
+    assert value['source']['supervisor']['thread'] == {'known': False, 'alive': False}
+    assert value['source']['errors']['valid'] is False
+    assert value['source']['receipt']['valid'] is False
+    assert value['source']['governor']['fd_known'] is False
+    assert MARKER not in _retirement_json(binding, app)
+
+
+def test_retirement_errors_use_exact_type_code_errno_and_ignore_all_private_extras():
+    from research.errors import ResearchError
+    class PrivateError(RuntimeError):
+        def __getattribute__(self, name): raise AssertionError('private callback')
+        def __str__(self): raise AssertionError('private callback')
+        def __repr__(self): raise AssertionError('private callback')
+    private = PrivateError(MARKER)
+    BaseException.__setattr__(private, '__notes__', [MARKER])
+    result = _retirement_error_chain(private)
+    assert result == [{'type': 'OTHER', 'code': None, 'errno': None, 'frames': []}]
+    error = ResearchError('STORE_BUSY', 503, MARKER)
+    error.headers = {'Cookie': MARKER}
+    error.extra = _RetirementCanary()
+    error.add_note(MARKER)
+    assert _retirement_error_chain(error)[0]['code'] == 'STORE_BUSY'
+    error.code = _RetirementCanary()
+    assert _retirement_error_chain(error)[0]['code'] == 'OTHER'
+    assert _retirement_error_chain(OSError(9, MARKER))[0]['errno'] == 9
+    assert _retirement_error_chain(OSError(999999, MARKER))[0]['errno'] is None
+    assert MARKER not in json.dumps([result, _retirement_error_chain(error)])
+
+
+def test_retirement_module_metadata_canary_is_not_compared_or_rendered():
+    from research import errors
+    error = errors.ResearchError('STORE_BUSY', 503, MARKER)
+    prior = vars(errors)['__file__']
+    vars(errors)['__file__'] = _RetirementCanary()
+    try: value = _retirement_error_chain(error)
+    finally: vars(errors)['__file__'] = prior
+    assert value[0]['type'] == 'OTHER' and value[0]['code'] is None
+    assert MARKER not in json.dumps(value)
+
+
+def test_retirement_coordinates_require_actual_code_identity_not_caller_filename_or_equal_code():
+    import types
+    from research import source_supervisor as source
+    def observe(function):
+        try: function(None, None)
+        except ValueError as error: return _retirement_frames(error)
+    actual = observe(source._deadline)
+    assert actual[-1]['file'] == 'web/backend/research/source_supervisor.py'
+    assert actual[-1]['function'] == '_deadline'
+    clone = types.FunctionType(source._deadline.__code__.replace(), vars(source))
+    assert clone.__code__ == source._deadline.__code__ and clone.__code__ is not source._deadline.__code__
+    assert observe(clone) == []
+
+
+def test_retirement_error_lists_chains_and_json_bytes_are_bounded(monkeypatch):
+    from web.backend.tests.acceptance import formal_main_browser_service as entry
+    app, binding, source, gov, native = _retirement_fixture()
+    chain = RuntimeError(MARKER)
+    for _ in range(20):
+        following = ValueError(MARKER)
+        following.__cause__ = chain
+        chain = following
+    for value, field in ((binding, 'source_errors'), (source, '_errors'),
+                         (binding, 'native_errors'), (native, '_errors'), (gov, 'errors')):
+        object.__setattr__(value, field, [chain] * 100)
+    encoded = _retirement_json(binding, app)
+    assert len(encoded.encode('ascii')) <= _RETIREMENT_LIMIT and MARKER not in encoded
+    value = json.loads(encoded)
+    for errors in (value['source']['errors'], value['source']['supervisor']['errors'],
+                   value['source']['governor']['errors'], value['native']['errors'],
+                   value['native']['supervisor']['errors']):
+        assert errors['truncated'] and len(errors['items']) == 2
+        assert all(len(chain) == 2 for chain in errors['items'])
+        assert all(len(error['frames']) <= 4 for chain in errors['items'] for error in chain)
+    monkeypatch.setattr(entry, '_safe_retirement_snapshot', lambda *_: {'observation': 'X' * 20000})
+    assert entry._retirement_json(binding, app) == '{"observation":"LIMIT"}'
+
+
+def test_retirement_raw_thread_observation_never_calls_overridden_instance_methods():
+    import threading
+    thread = threading.Thread()
+    thread.is_alive = _RetirementCanary()
+    thread._wait_for_tstate_lock = _RetirementCanary()
+    assert _retirement_thread(thread) == {'known': True, 'alive': False}
+    thread._tstate_lock = _RetirementCanary()
+    assert _retirement_thread(thread) == {'known': False, 'alive': False}
+    thread._tstate_lock = None
+
+
+def test_close_observation_precedes_environment_history_restore_and_preserves_original_failure(tmp_path, monkeypatch):
+    import os
+    from web.backend.tests.acceptance import formal_main_browser_service as entry
+    app, binding, source, gov, native = _retirement_fixture()
+    service = FormalMainBrowserService(tmp_path / 'unused-root')
+    service.app, service._retirement_binding = app, binding
+    service._server_errors = ['RuntimeError']
+    service._prior = {'SYNTHETIC_RETIREMENT_TEST': 'before'}
+    monkeypatch.setenv('SYNTHETIC_RETIREMENT_TEST', 'during')
+    original = entry._retirement_json
+    calls = []
+    def observe(actual_binding, actual_app):
+        assert actual_binding is binding and actual_app is app
+        calls.append(os.environ['SYNTHETIC_RETIREMENT_TEST'])
+        return original(actual_binding, actual_app)
+    monkeypatch.setattr(entry, '_retirement_json', observe)
+    class History:
+        def __exit__(self, kind, error, traceback):
+            assert service._retirement_binding is None
+            assert os.environ['SYNTHETIC_RETIREMENT_TEST'] == 'before'
+            assert json.loads(service._retirement_diagnostics)['observation'] == 'OBSERVED'
+    service._history = History()
+    primary = ValueError(MARKER)
+    assert service.__exit__(ValueError, primary, None) is False
+    assert calls == ['during'] and type(primary) is ValueError and str(primary) == MARKER
+    assert any(note.startswith('owned Main retirement snapshot: ') for note in primary.__notes__)
+    assert service._closed is False and service._server_errors == ['RuntimeError']
+
+
+def test_retirement_diagnostic_failure_does_not_replace_main_cleanup_error(tmp_path, monkeypatch):
+    from web.backend.tests.acceptance import formal_main_browser_service as entry
+    app, binding, *_ = _retirement_fixture()
+    service = FormalMainBrowserService(tmp_path / 'unused-root')
+    service.app, service._retirement_binding = app, binding
+    service._server_errors = ['MAIN_LIFESPAN_FAILED']
+    def broken(*_): raise PermissionError(MARKER)
+    monkeypatch.setattr(entry, '_safe_retirement_snapshot', broken)
+    try: service._close()
+    except RuntimeError as error:
+        assert str(error) == 'owned Main cleanup uncertain: MAIN_LIFESPAN_FAILED'
+        assert any('{"observation":"ERROR"}' in note for note in error.__notes__)
+    else: raise AssertionError('original cleanup failure was swallowed')
+    assert service._retirement_binding is None and service._closed is False
