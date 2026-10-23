@@ -1137,7 +1137,7 @@
     "original_sha256": "5a152fcb8fa84ce04746dd74affb6107f8acfc747ff47968086a2a3a1245148e"
   },
   "web/backend/research/store.py": {
-    "current_sha256": "66a3b4dfe86cf4500b165d67149411cb0e25dc26db051234e9eeab5fd3a78002",
+    "current_sha256": "7c25dcb46c0e0f26e1348a297ab4af9ae18b33ad7bbf6eaad15794b7400852eb",
     "hunks": [
       [
         13,
@@ -1245,13 +1245,23 @@
         ""
       ],
       [
+        1346,
+        1349,
+        ""
+      ],
+      [
+        1352,
         1353,
-        1354,
+        "            conn.execute(\"PRAGMA busy_timeout=5000\")\n"
+      ],
+      [
+        1356,
+        1357,
         "                self._check_v13(conn)\n"
       ],
       [
-        1378,
-        1379,
+        1381,
+        1382,
         "                self._check_v13(conn)\n"
       ]
     ],
@@ -1269,41 +1279,41 @@
     "original_sha256": "62d621470b9b18517b372746f5674a6042b4f70958f185bf21bc03699ad41a4f"
   },
   "web/backend/services/auth_registration.py": {
-    "current_sha256": "573ad8192c8f1bb9e5349f7350f8e193b00090419786d6a30d14dea2586d34b7",
+    "current_sha256": "15ebf5fdec905014b96f26c01b16856b60e07300556828afc7f4a69c762698eb",
     "hunks": [
       [
         486,
-        510,
+        512,
         "    with store._connection() as conn:\n"
       ],
       [
-        514,
-        515,
+        516,
+        517,
         ""
       ],
       [
-        773,
-        774,
+        775,
+        776,
         "    objects=ResearchStore._current_structure_declarations(version=13)\n"
       ],
       [
-        777,
-        778,
+        779,
+        780,
         "    conn.execute('INSERT INTO research_schema VALUES(1,13)')\n"
       ],
       [
-        898,
-        899,
+        900,
+        901,
         "                        if list(map(tuple,conn.execute('SELECT * FROM research_schema')))!=[(1,13)]:raise PermissionError('exact Research13 required')\n"
       ],
       [
-        918,
-        919,
+        920,
+        921,
         "        return {'contract':'auth-provision-v1','research_schema':13,'created':fresh}\n"
       ],
       [
-        940,
-        941,
+        942,
+        943,
         "    if (profile,version) not in (('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13)):\n"
       ]
     ],
@@ -1350,5 +1360,108 @@
       ]
     ],
     "original_sha256": "e8ccf7d79108c0a7bf94812f31bb053668f895d7cb4b85500b6bc31fc7791304"
+  },
+  "web/backend/research/authorization.py": {
+    "current_sha256": "f6ec75f7021aa1325c07724e1a72f490302d9da7d498ddb3fd40ac3514df375e",
+    "hunks": [
+      [
+        152,
+        156,
+        ""
+      ],
+      [
+        162,
+        163,
+        ""
+      ],
+      [
+        204,
+        207,
+        ""
+      ],
+      [
+        212,
+        213,
+        ""
+      ],
+      [
+        215,
+        216,
+        "                    time.sleep(0.01)\n"
+      ],
+      [
+        294,
+        298,
+        ""
+      ],
+      [
+        338,
+        341,
+        ""
+      ],
+      [
+        342,
+        343,
+        ""
+      ],
+      [
+        346,
+        347,
+        "                time.sleep(.01)\n"
+      ]
+    ],
+    "original_sha256": "06483fcdf246248cb09ff53a88064893b040549b28e869029894080607153f9c"
+  },
+  "web/backend/services/auth_store.py": {
+    "current_sha256": "d6159f4a03c6d6811dfe9480556aaf468d5594d22ceb3f65e2bd9674c537c3ef",
+    "hunks": [
+      [
+        360,
+        361,
+        "        from .sqlite_utils import connect_private_auth\n"
+      ],
+      [
+        372,
+        373,
+        ""
+      ],
+      [
+        381,
+        382,
+        "            conn.execute(\"PRAGMA busy_timeout=10000\")\n"
+      ]
+    ],
+    "original_sha256": "e9d58769d153702b4aadfbebd30437885b263dd5c4d5585567697a50fa5f3986"
+  },
+  "web/backend/services/sqlite_utils.py": {
+    "current_sha256": "a97726490644965765c3e55a4e8fe9606e0f7af299d849ca14ec84fc439c30c5",
+    "hunks": [
+      [
+        129,
+        159,
+        ""
+      ],
+      [
+        164,
+        166,
+        "    witness=None;connection=None\n"
+      ],
+      [
+        167,
+        173,
+        "        with HISTORY_OPEN_LOCK:\n"
+      ],
+      [
+        178,
+        179,
+        "                timeout=timeout,isolation_level=None,factory=PrivateAuthConnection)\n"
+      ],
+      [
+        180,
+        184,
+        ""
+      ]
+    ],
+    "original_sha256": "f527f722930fddde4bf9a92fa39655f4065c80dac34d34c98136cc2ec13ac8e7"
   }
 }

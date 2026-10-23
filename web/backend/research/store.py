@@ -1344,10 +1344,13 @@ class ResearchStore:
         conn=self._connect(readonly=not write)
         try:
             conn.row_factory = sqlite3.Row
+            if __package__=='web.backend.research':from ..services.sqlite_utils import configure_native_wait
+            else:from services.sqlite_utils import configure_native_wait
+            configure_native_wait(conn,self.path,self.storage_identity,legacy_ms=5000)
             install_default_hook(conn)
             conn.execute("PRAGMA foreign_keys=ON")
             conn.execute("PRAGMA secure_delete=ON")
-            conn.execute("PRAGMA busy_timeout=5000")
+            configure_native_wait(conn,self.path,self.storage_identity,legacy_ms=5000)
             conn.execute("BEGIN IMMEDIATE" if write else "BEGIN")
             self.auth_store.check_gate_policy(conn)
             if formal:

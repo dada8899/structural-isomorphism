@@ -127,8 +127,16 @@ def test_partial_cleanup_attempts_every_owned_item_without_erasing_errors():
     with pytest.raises(TypeError):pickle.dumps(failure)
 
 
-def test_missing_code_closure_never_becomes_synthetic_approval():
-    assert len(live.APPROVED_PATHS)==len(set(live.APPROVED_PATHS))==19
+def test_missing_code_closure_never_becomes_synthetic_approval(tmp_path,monkeypatch):
+    # Pure fixed-path hashing over owned bytes, never a grant/factory positive.
+    assert len(live.APPROVED_PATHS)==len(set(live.APPROVED_PATHS))==25
+    root=tmp_path/'synthetic-closure'
+    for relative in live.APPROVED_PATHS:
+        path=root/relative;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'# synthetic hash input only\n')
+    monkeypatch.setattr(live,'__file__',str(root/'web/backend/research/native_live_grant.py'))
+    expected=digest(canonical({path:digest((root/path).read_bytes()) for path in live.APPROVED_PATHS}))
+    assert live.approved_code_digest()==expected
+    (root/live.APPROVED_PATHS[-1]).unlink()
     with pytest.raises(ResearchError) as error:live.approved_code_digest()
     assert error.value.code=='FUNDING_CLOSED'
 

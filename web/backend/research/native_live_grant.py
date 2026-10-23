@@ -42,6 +42,8 @@ APPROVED_PATHS=(
  'web/backend/main.py','web/backend/services/formal_admission.py','web/backend/research/runtime_profile.py',
  'scripts/run-formal-main.py','web/backend/research/plan_preview_codec.py',
  'web/backend/research/phenomenon_plan.py','web/backend/research/plan_runtime.py',
+ 'web/backend/research/store.py','web/backend/research/authorization.py','web/backend/services/auth_store.py',
+ 'web/backend/services/auth_registration.py','web/backend/services/sqlite_utils.py','web/backend/research/source_supervisor.py',
 )
 FIELDS=frozenset(('protocol','project_ref','state','grant_id','grant_epoch','principal_id',
  'auth_generation','principal_epoch','owner_gate_id','database_identity','owner_gate_identity',
@@ -212,7 +214,7 @@ def require_slot(scope,store,session,*,task_id,purpose,mode):
 
 
 def approved_code_digest():
-    """Fixed bounded 19-file closure; no caller paths or directory traversal."""
+    """Fixed bounded 25-file closure; no caller paths or directory traversal."""
     root=Path(__file__).resolve().parents[3];files={};total=0
     try:
         for relative in APPROVED_PATHS:

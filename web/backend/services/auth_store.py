@@ -358,7 +358,7 @@ class AuthStore:
 
     @contextmanager
     def _connection(self, *, bootstrap=False) -> Iterator[sqlite3.Connection]:
-        from .sqlite_utils import connect_private_auth
+        from .sqlite_utils import connect_private_auth,configure_native_wait
         current_formal=_formal_auth_mode()
         if current_formal and not getattr(self,'_private_auth',False):
             raise RuntimeError('a development Auth object cannot become a private runtime object')
@@ -370,6 +370,7 @@ class AuthStore:
             conn=sqlite3.connect(self.path,timeout=10,isolation_level=None)
         try:
             conn.row_factory = sqlite3.Row
+            configure_native_wait(conn,self.path,self.storage_identity,legacy_ms=10000)
             if __package__=='web.backend.services':
                 from ..research.financial_guard import install_default_hook
             else:
@@ -378,7 +379,7 @@ class AuthStore:
             if formal:
                 from .auth_registration import install_hook
                 install_hook(conn)
-            conn.execute("PRAGMA busy_timeout=10000")
+            configure_native_wait(conn,self.path,self.storage_identity,legacy_ms=10000)
             conn.execute("PRAGMA secure_delete=ON")
             if formal:
                 conn.execute('PRAGMA foreign_keys=ON')

@@ -150,12 +150,17 @@ class AuthorizationGate:
             from services.auth_store import _formal_auth_mode
             from services.runtime_paths import (PrivateAuthFile,private_auth_path,require_private_auth_lock_dir,
                 _check_current_parent,_auth_forbidden_roots,RuntimePathError)
+        if __package__=='web.backend.research':from ..services.sqlite_utils import native_thread_budget
+        else:from services.sqlite_utils import native_thread_budget
+        budget=native_thread_budget(self.store.path,self.store.storage_identity)
+        if budget is not None:budget.check()
         current=_formal_auth_mode();formal=getattr(self.store,'_private_auth',False)
         if hasattr(self.store,'_formal_mode'):formal=self.store._formal_mode()
         if current and not formal:raise RuntimePathError('development owner gate cannot become private')
         witness=None;directory=None;fd=None;lease=None
         root=self.store.path.parent/'research-locks';name=gate_id+'.lock'
         def check_formal_lock():
+            if budget is not None:budget.check()
             witness.check()
             if witness.file_identity!=self.store.storage_identity:
                 raise RuntimePathError('private owner gate Auth identity changed')
@@ -197,14 +202,18 @@ class AuthorizationGate:
                 if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_nlink!=1 or info.st_mode&0o077:
                     raise ResearchError('STORE_UNAVAILABLE',503,'研究锁不可用。')
             deadline=time.monotonic()+timeout
+            if budget is not None:
+                budget.check();limit=budget.limit()
+                if limit is not None:deadline=min(deadline,limit)
             while True:
                 try:
                     fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
                     break
                 except BlockingIOError:
+                    if budget is not None:budget.check()
                     if time.monotonic()>=deadline:
                         raise ResearchError('STORE_BUSY',503,'保存暂时繁忙，请用原操作重试。',retryable=True) from None
-                    time.sleep(0.01)
+                    time.sleep(min(0.01,max(0.,deadline-time.monotonic())))
             if formal:check_formal_lock()
             lease=OwnerGateLease(fd,_factory=_LEASE_FACTORY)
             try:yield lease
@@ -283,6 +292,10 @@ def _source_task_gate(gate,task_id,*,timeout=5):
     from .evidence_schemas import canonical
     if type(task_id) is not str or str(UUID(task_id,version=4))!=task_id:raise ValueError('canonical Source task required')
     store=gate.store;fd=directory=None;witness=birth=lease=None
+    if __package__=='web.backend.research':from ..services.sqlite_utils import native_thread_budget
+    else:from services.sqlite_utils import native_thread_budget
+    budget=native_thread_budget(store.path,store.storage_identity)
+    if budget is not None:budget.check()
     try:
         with store.transaction() as conn:row=dict(resource(conn,task_id))
         formal=store._formal_mode()
@@ -323,11 +336,15 @@ def _source_task_gate(gate,task_id,*,timeout=5):
             if canonical(birth.identity)!=row['task_gate_identity']:raise PermissionError('Source task inode differs from protected binding')
         # No owner lock while waiting on the independent task mutex.
         deadline=time.monotonic()+timeout
+        if budget is not None:
+            budget.check();limit=budget.limit()
+            if limit is not None:deadline=min(deadline,limit)
         while True:
+            if budget is not None:budget.check()
             try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB);break
             except BlockingIOError:
                 if time.monotonic()>=deadline:raise ResearchError('STORE_BUSY',503,'来源任务仍在执行。',retryable=True)
-                time.sleep(.01)
+                time.sleep(min(.01,max(0.,deadline-time.monotonic())))
         with store.transaction() as conn:
             row=resource(conn,task_id);task=conn.execute('SELECT execution,stop_requested FROM research_tasks WHERE id=?',(task_id,)).fetchone()
             cleanup=row['state']=='closed' or not task or bool(task['stop_requested']) or task['execution'] in ('COMPLETED','FAILED','CANCELLED','ACCESS_REVOKED')

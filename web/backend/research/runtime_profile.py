@@ -108,11 +108,26 @@ def runtime_capability_facts(service):
             conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN')
             profile=inspect_formal_profile(conn)
         finally:conn.close()
-    except (ResearchError,PermissionError,ValueError,TypeError,AttributeError,RuntimeError,OSError,sqlite3.Error):
+    except (ResearchError,PermissionError,ValueError,TypeError,AttributeError,RuntimeError,OSError,sqlite3.Error) as error:
+        # Only a real zero-wait C thread's native lock contention may be
+        # retried before any Source slot/claim. Integrity stays closed.
+        from . import native_plan_supervisor as supervisor
+        budget=supervisor.database_budget(store.path,store.storage_identity)
+        if budget is not None and ((type(error) is ResearchError and error.code=='STORE_BUSY') or
+                (type(error) is sqlite3.OperationalError and getattr(error,'sqlite_errorcode',0)&255 in (5,6))):
+            raise ResearchError('STORE_BUSY',503,'原生存储快照暂时繁忙；未取得任务。',retryable=True) from None
         raise _closed_profile() from None
     planner=CapabilityFact('closed','FUNDING_CLOSED')
     from . import plan_native
-    pair=plan_native.installation(store)
+    session=plan_native.live_session(store)
+    pair=plan_native.installation(store) if session is None else None
+    if session is not None:
+        try:
+            module=importlib.import_module(__package__+'.native_plan_supervisor')
+            module.require_available(session.startup_scope.binding.app,service)
+            for purpose in ('phenomenon_plan_v1','evidence_method_plan_v1'):plan_native.require_purpose(store,purpose)
+            planner=CapabilityFact('per_run_guard_required','NATIVE_OWNER_READY_SLOT_REQUIRED')
+        except (ResearchError,PermissionError,ValueError,TypeError,AttributeError,KeyError,RuntimeError,OSError,sqlite3.Error):pass
     if pair is not None:
         try:
             provision,resource=pair

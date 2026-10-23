@@ -150,6 +150,7 @@ async def lifespan(app: FastAPI):
         app_state.pop("artifact", None)
         binding = search_service = None
         source_supervisor = supervisor = None
+        native_module = native_context = native_supervisor = None
         primary = None
         try:
             auth_api._validate_production_config()
@@ -164,6 +165,8 @@ async def lifespan(app: FastAPI):
                     precomputed_embeddings=configured[2], artifact_manifest=configured[3],
                     kb_file=os.getenv('STRUCTURAL_KB_FILE', 'kb-expanded.jsonl'), formal=True)
             formal_admission.publish(app, binding, search_service)
+            native_module=importlib.import_module(binding.service.__module__.rsplit('.',1)[0]+'.native_plan_supervisor')
+            native_context=native_module.prepare_main_context(binding.service,binding)
             try:
                 source_supervisor = importlib.import_module(
                     binding.service.__module__.rsplit('.', 1)[0] + '.source_supervisor')
@@ -177,6 +180,12 @@ async def lifespan(app: FastAPI):
                 logger.warning('startup.source_supervisor_unavailable')
             if supervisor is not None:
                 formal_admission.attach_source(app, binding, source_supervisor, supervisor)
+            try:
+                native_supervisor=native_module.start(binding.service,binding)
+            except BaseException as error:
+                if type(error) is native_module.NativePlanStartFailure:native_supervisor=error.supervisor
+                logger.warning('startup.native_plan_unavailable')
+            if native_supervisor is not None:formal_admission.attach_native(app,binding,native_module,native_supervisor)
             if search_service is not None:
                 app_state['search'], app_state['artifact'] = search_service, search_service.artifact
             yield
@@ -186,6 +195,12 @@ async def lifespan(app: FastAPI):
         finally:
             errors = []
             deadline = time.monotonic() + 20
+            if binding is not None and binding.source_deadline is not None and not formal_admission.source_closed(binding):deadline=min(deadline,binding.source_deadline)
+            if native_context is not None:
+                try:deadline=native_module.shrink_main_deadline(native_context,deadline_monotonic=deadline)
+                except BaseException as error:errors.append(type(error).__name__)
+            if binding is not None and native_supervisor is not None and binding.native_supervisor is None:
+                binding.native_module,binding.native_context,binding.native_supervisor=native_module,native_context,native_supervisor
             # Core may have returned an owned thread before the subsequent
             # attachment/check raised. Never lose that actual local handle.
             if binding is not None and supervisor is not None and binding.supervisor is None:
@@ -199,6 +214,7 @@ async def lifespan(app: FastAPI):
                 errors.append(type(error).__name__)
             app_state.pop('search', None); app_state.pop('artifact', None)
             source_closed = binding is None
+            native_closed = binding is None
             if binding is not None:
                 if binding.source_deadline is not None and not formal_admission.source_closed(binding):
                     deadline = min(deadline, binding.source_deadline)
@@ -207,12 +223,15 @@ async def lifespan(app: FastAPI):
                 except BaseException as error:
                     errors.append(type(error).__name__)
                 source_closed = formal_admission.source_closed(binding)
-                if source_closed:
+                try:formal_admission.close_native(binding,deadline_monotonic=deadline)
+                except BaseException as error:errors.append(type(error).__name__)
+                native_closed=formal_admission.native_closed(binding)
+                if source_closed and native_closed:
                     try:
                         formal_admission.release(binding, deadline_monotonic=deadline)
                     except BaseException as error:
                         errors.append(type(error).__name__)
-            if search_service is not None and source_closed:
+            if search_service is not None and source_closed and native_closed:
                 try:
                     if time.monotonic() >= deadline:
                         raise RuntimeError('Main cleanup deadline ended')
