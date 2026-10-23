@@ -150,12 +150,13 @@ def check_active(store,conn,task_id):
 
 
 class _Scope:
-    def __init__(self,conn,store,mode,*,lease,source=None,identity=None,rid=None,request=None,key=None,task_id=None,owner_lease=None,job_id=None,birth=None):
+    def __init__(self,conn,store,mode,*,lease,source=None,identity=None,rid=None,request=None,key=None,task_id=None,owner_lease=None,job_id=None,birth=None,doc_request=None,doc_completion=None):
         from .paid_control import _current_scope
         if mode not in ('approve','admit','worker','close','birth','stop','erase'):raise PermissionError('unsupported Source write operation')
         self.conn,self.store,self.mode,self.pid,self.active=conn,store,mode,os.getpid(),True
         self.base=_current_scope(conn);self.lease=lease;self.source=source;self.identity=identity;self.rid=rid;self.request=request;self.key=key
         self.task_id=task_id;self.owner_lease=owner_lease;self.job_id=job_id;self.birth=birth
+        self.doc_request,self.doc_completion=doc_request,doc_completion
         self.images={}
         self.validate()
     def validate(self):
@@ -171,10 +172,12 @@ class _Scope:
             from .schemas import RawPrepApprovalRequest,RawPrepStartRequest
             if type(self.request) in (RawPrepApprovalRequest,RawPrepStartRequest):
                 from .source_document_access import require_execution
-                require_execution()
+                require_execution(store=self.store)
             from .service import digest
             self.lease.identity
-            require_authenticated_action(self.source,identity=self.identity,action='source-approve' if self.mode=='approve' else 'source-start',research_id=self.rid,key=self.key,body_digest=digest(self.request.model_dump(mode='json')))
+            from .schemas import source_request_digest
+            action='source-approve' if self.mode=='approve' else 'source-start'
+            require_authenticated_action(self.source,identity=self.identity,action=action,research_id=self.rid,key=self.key,body_digest=source_request_digest(self.request,action))
             from .authorization import AuthorizationGate
             control=AuthorizationGate(self.store).check(self.conn,self.identity,self._principal(),self.rid,scope='write')
             gate=self.conn.execute('SELECT gate_id FROM research_principals WHERE id=?',(control['owner_id'],)).fetchone()[0]
@@ -209,6 +212,14 @@ class _Scope:
             if self.mode!='close':check_active(self.store,self.conn,self.task_id)
             if self.mode=='close' and self.owner_lease is None:raise PermissionError('fresh actual owner lease required for Source closure')
             if self.owner_lease is not None:self._owner(resource(self.conn,self.task_id)['owner_gate_id'],self.owner_lease)
+            if self.doc_request is not None:
+                from .source_document_access import DocRequestWitness
+                if type(self.doc_request) is not DocRequestWitness or self.doc_request.owner is not self.owner_lease or self.doc_request.session.task_lease is not self.lease:raise PermissionError('DOC actual request scope differs')
+                self.doc_request.check(network=True)
+            if self.doc_completion is not None:
+                from .source_document_access import DocCompletion
+                if type(self.doc_completion) is not DocCompletion or self.doc_completion.witness.owner is not self.owner_lease or self.doc_completion.session.task_lease is not self.lease:raise PermissionError('DOC completion scope differs')
+                self.doc_completion.check(self.conn)
     def _principal(self):
         row=self.conn.execute("SELECT id FROM research_principals WHERE normalized_email=? AND session_generation=? AND status='active'",(self.identity.email,self.identity.generation)).fetchone()
         if not row:raise PermissionError('actual Source principal unavailable')
@@ -237,11 +248,16 @@ class _Scope:
             if table!='research_source_approvals' or operation!='INSERT':return False
             from .source_integration import draft,origin
             revision=self.conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(self.rid,self.request.input_revision)).fetchone()
-            fields,pd,fp,inp=draft(revision[0],self.request.query)
+            from .schemas import RawPrepApprovalRequest
+            if type(self.request) is RawPrepApprovalRequest:
+                from .source_integration import native_raw_draft
+                from .source_document_access import require_execution
+                fields,pd,fp,inp=native_raw_draft(revision[0],require_execution(store=self.store));query=None;mode='live'
+            else:fields,pd,fp,inp=draft(revision[0],self.request.query);query=self.request.query;mode=origin()
             if (row['principal_id']!=self._principal() or row['research_id']!=self.rid or row['auth_generation']!=self.identity.generation
                 or row['principal_epoch']!=self.conn.execute('SELECT epoch FROM research_principals WHERE id=?',(self._principal(),)).fetchone()[0]
-                or row['input_revision']!=self.request.input_revision or row['problem_digest']!=revision[0] or row['query']!=self.request.query
-                or row['plan_json']!=canonical(fields) or row['plan_digest']!=pd or row['fingerprint']!=fp or row['execution_mode']!=origin()
+                or row['input_revision']!=self.request.input_revision or row['problem_digest']!=revision[0] or row['query']!=query
+                or row['plan_json']!=canonical(fields) or row['plan_digest']!=pd or row['fingerprint']!=fp or row['execution_mode']!=mode
                 or row['status']!='active' or row['consumed_task_id'] is not None or row['version']!=1
                 or row['consent_origin']!=CONSENT_ORIGIN or row['consent_digest']!=self.source.body_digest):return False
         elif self.mode=='admit':
@@ -292,7 +308,20 @@ class _Scope:
             if any(row[k]!=before[k] for k in row if k!='task_gate_identity'):return False
         else:
             binding=json.loads(resource(self.conn,self.task_id)['admission_json']) if resource(self.conn,self.task_id)['admission_json'] else None
-            if self.mode=='worker' and raw_completion_forbidden(binding,table,row):return False
+            raw=bool(binding and binding['approval']['query'] is None)
+            if self.mode=='worker' and raw:
+                from .source_supervisor import _require_store_worker
+                _require_store_worker(self.store,operation='send')
+                if table=='research_source_requests':
+                    if operation=='INSERT':
+                        from .source_document_access import guard_doc_request
+                        if self.doc_request is None or not guard_doc_request(self.doc_request,self.conn,row):return False
+                    elif self.doc_completion is not None:
+                        if before is None or not self.doc_completion.allow_update(self.conn,before,after):return False
+                    elif (before is None or before['outcome']!='SENDING' or row['outcome']!='UNKNOWN'
+                            or row['execution_closed']!=0 or row['closure_ref'] is not None or row['closure_proof'] is not None):return False
+                elif table=='research_source_chains' and self.doc_request is None:return False
+            elif self.mode=='worker' and raw_completion_forbidden(binding,table,row):return False
             if table in ('research_source_runs','research_source_resources'):
                 if row_id!=self.task_id or operation!='UPDATE':return False
                 if self.mode=='worker':
@@ -335,8 +364,8 @@ def admission_scope(conn,service,lease,identity,rid,request,key,source):
     return _scope(conn,service.store,'admit',lease=lease,identity=identity,rid=rid,request=request,key=key,source=source)
 
 
-def worker_scope(conn,store,task_lease,*,owner_lease=None,close=False):
-    return _scope(conn,store,'close' if close else 'worker',lease=task_lease,task_id=task_lease.task_id,owner_lease=owner_lease)
+def worker_scope(conn,store,task_lease,*,owner_lease=None,close=False,doc_request=None,doc_completion=None):
+    return _scope(conn,store,'close' if close else 'worker',lease=task_lease,task_id=task_lease.task_id,owner_lease=owner_lease,doc_request=doc_request,doc_completion=doc_completion)
 
 
 def birth_scope(conn,store,task_id,birth,owner_lease):

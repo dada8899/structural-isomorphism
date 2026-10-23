@@ -1,0 +1,118 @@
+"""Pure DOC framing/data controls. No native send/profile positive is minted."""
+from dataclasses import asdict,replace
+import math
+
+import pytest
+
+from research.source_document_raw import (DocWireTarget,catalog,decode_doc_wire,doc_ipc,decode_doc_ipc,
+    request_output_data,decode_commitment,RAW_CAP)
+from research.source_document_access import (material_data,material_bytes,validate_material,APPROVED_FROM,
+    approved_references,DocRequestWitness)
+from research.source_policy import (_doc_response,_network_get,ActualDocOutcome,ActualTransportRetirement,
+    require_doc_outcome,require_doc_retirement)
+from research.source_sec_access import DocRequestFlight
+from research.source_spawn import SourceSpawnProcess
+from research.evidence_schemas import canonical,sha256
+from web.backend.tests.test_source_document_raw import data_records,uid,T,H
+
+
+def wire_data():
+    profile,rights=approved_references()
+    return DocWireTarget(record_schema='DocWireTarget-v1',target=catalog()[0],access_profile_ref=profile,
+        rights_digest=rights,request_id=uid(5),dispatch_id=uid(6),task_id=uid(2),write_epoch=1,slot_epoch=1,
+        attempted_at=T,user_agent='StructureResearch/1 codec@example.invalid',valid_from=APPROVED_FROM,
+        expires_at='2026-11-22T22:24:04Z',send_not_after=12.5)
+
+
+def test_wire_codec_is_private_data_and_direct_network_or_process_is_denied():
+    wire=wire_data()
+    assert decode_doc_wire(asdict(wire))==wire
+    assert 'example.invalid' not in repr(wire)
+    assert wire.job_digest==sha256(canonical(asdict(wire)).encode())
+    with pytest.raises(PermissionError):_network_get(wire)
+    with pytest.raises(PermissionError):SourceSpawnProcess((None,wire,_network_get,None,12.5,(1,2,3,384,1)))
+    for change in ({'send_not_after':True},{'send_not_after':math.inf},{'slot_epoch':True},{'user_agent':'bad\r\nheader'}):
+        with pytest.raises(ValueError):replace(wire,**change)
+    altered=asdict(wire);altered['extra']=True
+    with pytest.raises(ValueError):decode_doc_wire(altered)
+
+
+def test_public_material_codec_does_not_supply_approved_identity_or_runtime_authority():
+    data=material_data(APPROVED_FROM,'StructureResearch/1 codec@example.invalid')
+    encoded=material_bytes(data)
+    assert validate_material(encoded)==data
+    assert sha256(encoded)!=approved_references()[0].digest
+    for alter in ('bool_revision','extra','expiry'):
+        changed=material_data(APPROVED_FROM,'StructureResearch/1 codec@example.invalid')
+        if alter=='bool_revision':changed['revision']=True
+        elif alter=='extra':changed['ready']=True
+        else:changed['network_identity']['expires_at']='2026-11-23T22:24:04Z'
+        with pytest.raises(ValueError):validate_material(material_bytes(changed))
+
+
+class ResponseData:
+    """A pure parsed-header/body example, never a socket or native result."""
+    def __init__(self,status=200,body=b'<html>codec</html>',headers=None):
+        self.status,self.body,self.reads=status,body,[]
+        self.headers={'Content-Type':'text/html','Content-Length':str(len(body))} if headers is None else headers
+    def getheader(self,key):return self.headers.get(key)
+    def read(self,cap):self.reads.append(cap);return self.body[:cap]
+
+
+@pytest.mark.parametrize('status',[302,403,429,500])
+def test_non200_observation_never_reads_body_or_assigns_complete_hash(status):
+    data=ResponseData(status=status)
+    observation,raw=_doc_response(wire_data(),data,T)
+    assert not data.reads and raw==b'' and observation.http_status==status
+    assert not observation.body_complete and observation.raw_length is None and observation.raw_sha256 is None
+    assert observation.observed_failure_at is not None
+
+
+@pytest.mark.parametrize('headers,body,code,complete,lower',[
+    ({'Content-Type':'text/html'},b'<html>codec</html>','none',True,None),
+    ({'Content-Type':'text/html'},b'<html>CAPTCHA</html>','access_denied',True,None),
+    ({'Content-Type':'text/plain'},b'codec','invalid_source',True,None),
+    ({'Content-Type':'text/html','Content-Encoding':'gzip'},b'encoded','invalid_source',False,None),
+    ({'Content-Type':'text/html','Content-Length':str(RAW_CAP+1)},b'not-read','limit',False,None),
+    ({'Content-Type':'text/html'},b'x'*(RAW_CAP+1),'limit',False,RAW_CAP+1),
+    ({'Content-Type':'text/html','Content-Length':'8'},b'short','invalid_source',False,None),
+    ({'Content-Type':'text/html','Transfer-Encoding':'chunked','Content-Length':'4'},b'body','invalid_source',False,None),
+],ids=["identity","quarantine","media","encoding","declared-limit","stream-limit","short-body","ambiguous-framing"])
+def test_data_framing_full_raw_or_explicit_no_body(headers,body,code,complete,lower):
+    observation,raw=_doc_response(wire_data(),ResponseData(body=body,headers=headers),T)
+    assert (observation.safe_code,observation.body_complete,observation.observed_lower_bound)==(code,complete,lower)
+    if complete:assert raw==body and observation.raw_length==len(body) and observation.raw_sha256==sha256(body)
+    else:assert raw==b'' and observation.raw_sha256 is None
+    packet=doc_ipc(observation)
+    assert len(packet)<=4096 and decode_doc_ipc(packet,wire_data())==observation
+    assert b'example.invalid' not in packet
+
+
+def test_ipc_foreign_job_and_unknown_native_capabilities_are_rejected():
+    wire=wire_data();observation,_=_doc_response(wire,ResponseData(),T)
+    with pytest.raises(ValueError):decode_doc_ipc(doc_ipc(replace(observation,job_digest=H)),wire)
+    for factory in (ActualDocOutcome,ActualTransportRetirement,DocRequestFlight,DocRequestWitness):
+        with pytest.raises((PermissionError,TypeError)):factory(True,True,True)
+    with pytest.raises(PermissionError):require_doc_outcome(True,True)
+
+
+@pytest.mark.parametrize('status,body,headers',[
+    (200,b'<html>codec</html>',None),(200,b'<html>captcha</html>',None),(403,b'rejected',None),(302,b'redirect',None)])
+def test_expected_first_commitment_data_recomputes_exact_refs_without_native_permission(status,body,headers):
+    plan,_,receipt,_=data_records();wire=wire_data()
+    observation,raw=_doc_response(wire,ResponseData(status,body,headers),T)
+    retirement=replace(receipt.retirement,job_digest=wire.job_digest)
+    row={'id':uid(5),'dispatch_id':uid(6),'task_id':plan.task_id,'chain_id':uid(8),'step_id':uid(9),
+        'semantic':'fetch_source','target_digest':sha256(canonical({'host':wire.host,'path':wire.path}).encode()),
+        'ordinal':1,'write_epoch':1,'outcome':'SENDING','execution_closed':0,'closure_ref':None,'closure_proof':None,
+        'owner_gate_identity':'[1,2,501,384,1]','task_gate_identity':'[1,3,501,384,1]','started_at':T}
+    artifact,result,c=request_output_data(plan,row,observation,retirement,artifact_ref=uid(4) if raw else None,
+        receipt_ref=uid(7),admission_digest=H,producer_code_digest=H)
+    assert decode_commitment(canonical(c))==c
+    assert (artifact is None)==(status!=200)
+    assert result.output_variant==('failed_no_body' if status!=200 else 'quarantined_complete' if b'captcha' in body else 'complete_candidate')
+    assert c['result']['request_outcome']==('SUCCEEDED' if result.output_variant=='complete_candidate' else 'FAILED')
+    # A fully consistent data commitment still cannot mint native permission.
+    with pytest.raises(PermissionError):require_doc_outcome(c,plan)
+    with pytest.raises(ValueError):request_output_data(plan,dict(row,outcome='SUCCEEDED'),observation,retirement,
+        artifact_ref=uid(4) if raw else None,receipt_ref=uid(7),admission_digest=H,producer_code_digest=H)

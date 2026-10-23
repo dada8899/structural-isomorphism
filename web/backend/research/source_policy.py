@@ -2,8 +2,8 @@
 
 All DNS, connect, TLS, headers, wire/decompressed reads happen in an owned
 spawned process. The parent enforces an independent wall deadline and reaps it.
-This transport is unwired: the caller must hold/consume C0's external-send
-permit at the start boundary and persist request quota/unknown state there.
+The canonical Source session supplies the external-send boundary. DOC additionally
+requires its actual governor flight and a first protected SENDING witness.
 """
 from dataclasses import dataclass
 import http.client
@@ -18,6 +18,8 @@ import socket
 import ssl
 import time
 import zlib
+import inspect
+import threading
 from urllib.parse import urlencode
 
 from .authorization import OwnerGateLease
@@ -142,10 +144,155 @@ class _ResponseSocket:
         return io.BufferedReader(_Reader(self.sock, self.header), buffer_size=8192)
 
 
+_DOC_CHILD=None
+_DOC_FACTORY=object()
+_DOC_OUTCOMES={}
+_DOC_RETIREMENTS={}
+
+
+def _doc_now():
+    from datetime import datetime,timezone
+    return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+
+
+def _require_doc_child(wire):
+    from .source_document_raw import DocWireTarget,decode_doc_wire
+    from .source_document_access import (APPROVED_DIGEST,APPROVED_FROM,APPROVED_UNTIL,approved_references,
+        material_bytes,material_data,_stamp)
+    from .evidence_schemas import sha256
+    from dataclasses import asdict
+    context=_DOC_CHILD
+    if (type(wire) is not DocWireTarget or context is None or context[0]!=os.getpid() or context[1] is not wire
+            or inspect.currentframe().f_back.f_code is not _network_get.__code__
+            or os.geteuid()!=981 or os.getegid()!=976 or wire.send_not_after>context[4]
+            or (wire.valid_from,wire.expires_at)!=(APPROVED_FROM,APPROVED_UNTIL)
+            or time.monotonic()>=min(context[4],wire.send_not_after)
+            or not _stamp(wire.valid_from).timestamp()<=time.time()<_stamp(wire.expires_at).timestamp()):
+        raise PermissionError('actual bounded DOC child required')
+    decode_doc_wire(asdict(wire))
+    ref,rights=approved_references()
+    if wire.access_profile_ref!=ref or wire.rights_digest!=rights or sha256(material_bytes(material_data(APPROVED_FROM,wire.user_agent)))!=APPROVED_DIGEST:
+        raise PermissionError('DOC private material differs')
+    info=os.fstat(context[2])
+    if (info.st_dev,info.st_ino,info.st_uid,stat.S_IMODE(info.st_mode),info.st_nlink)!=context[3]:
+        raise PermissionError('DOC transferred lease differs')
+
+
+def _doc_response(wire,response,sent_at):
+    """Observe one response. Rejected/partial bodies never leave this child."""
+    from .source_document_raw import DocObservation
+    from .evidence_schemas import sha256
+    status=response.status
+    def bounded_header(name,limit):
+        value=response.getheader(name)
+        if value is not None and (not value or len(value)>limit or any(ord(c)<32 or ord(c)>126 for c in value)):
+            raise SourceFailure('DOC response header invalid',http_status=status)
+        return value
+    content_type=bounded_header('Content-Type',300)
+    content_encoding=bounded_header('Content-Encoding',64)
+    transfer=bounded_header('Transfer-Encoding',64)
+    location=bounded_header('Location',512)
+    length_text=bounded_header('Content-Length',24)
+    if length_text is not None and (not length_text.isdecimal() or int(length_text)>9223372036854775807):
+        raise SourceFailure('DOC response length invalid',http_status=status)
+    length=int(length_text) if length_text is not None else None
+    media=content_type.split(';',1)[0].strip().lower() if content_type else None
+    data=dict(requested_target=wire.target,observed_final_target=wire.target,http_status=status,
+        content_type_header=content_type,media_type=media,content_encoding_header=content_encoding,
+        effective_content_encoding=None,content_length=length,transfer_encoding_header=transfer,
+        location_header=location,attempted_at=wire.attempted_at,request_sent_at=sent_at,received_at=None,
+        observed_failure_at=None,safe_code='invalid_source',body_complete=False,raw_length=None,
+        raw_sha256=None,observed_lower_bound=None,job_digest=wire.job_digest)
+    raw=b''
+    if type(status) is not int or not 100<=status<=599:raise SourceFailure('DOC response status invalid')
+    if status!=200:
+        data['safe_code']='access_denied' if status in (401,403,429) else 'unavailable'
+    elif (transfer not in (None,'chunked') or (transfer is not None and length is not None)
+            or (content_encoding is not None and content_encoding.strip().lower()!='identity')):
+        pass
+    elif length is not None and length>RAW_CAP:
+        data['safe_code']='limit'
+    else:
+        try:raw=response.read(RAW_CAP+1)
+        except (OSError,http.client.IncompleteRead):raw=b''
+        if len(raw)>RAW_CAP:
+            raw=b'';data.update(safe_code='limit',observed_lower_bound=RAW_CAP+1)
+        elif not raw or (length is not None and len(raw)!=length):
+            raw=b''
+        else:
+            # This is a quarantine classifier, never document identity/parser
+            # verification. Preserve full 200 bytes for independent inspection.
+            soft=any(marker in raw[:65536].lower() for marker in
+                (b'access denied',b'captcha',b'undeclared automated tool',b'request rate threshold',b'your request originates'))
+            data.update(effective_content_encoding='identity',body_complete=True,raw_length=len(raw),raw_sha256=sha256(raw),
+                received_at=_doc_now(),safe_code='access_denied' if soft else 'none' if media=='text/html' else 'invalid_source')
+    if not data['body_complete']:data['observed_failure_at']=_doc_now()
+    return DocObservation(**data),raw
+
+
+class ActualDocOutcome:
+    __slots__=('flight','observation','raw','retirement','pid','thread','_factory')
+    def __init__(self,flight,observation,raw,*,_factory=None):
+        if _factory is not _DOC_FACTORY or inspect.currentframe().f_back.f_code is not PinnedPublicTransport.get.__code__:
+            raise PermissionError('actual DOC transport outcome required')
+        self.flight,self.observation,self.raw,self.retirement=flight,observation,raw,None
+        self.pid,self.thread,self._factory=os.getpid(),threading.current_thread(),_factory
+        _DOC_OUTCOMES[id(self)]=(self,flight,observation,raw,self.pid,self.thread)
+    def __repr__(self):return '<native DOC outcome>'
+    def __reduce__(self):raise TypeError('DOC outcome cannot be serialized')
+
+
+class ActualTransportRetirement:
+    __slots__=('flight','process','popen','connections','monotonic_at','audit','pid','thread','_factory')
+    def __init__(self,flight,process,popen,connections,*,_factory=None):
+        if _factory is not _DOC_FACTORY or inspect.currentframe().f_back.f_code is not PinnedPublicTransport.get.__code__:
+            raise PermissionError('original DOC retirement required')
+        # The real Process.close has retired its private Popen and tracker.
+        if (process is not flight.process or popen is not flight.popen or not process._closed
+                or (popen is not None and (popen.sender is not None and popen.sender.poll() is None
+                    or popen._owned_fds or popen.tracker is not None and
+                    (popen.tracker._owned_fds or popen.tracker.process is not None)))
+                or any(not connection.closed for connection in connections)):
+            raise PermissionError('DOC actual resources remain')
+        from .source_document_raw import TransportRetirementAudit
+        self.flight,self.process,self.popen,self.connections=flight,process,popen,connections
+        self.monotonic_at,self.pid,self.thread,self._factory=time.monotonic(),os.getpid(),threading.current_thread(),_factory
+        self.audit=TransportRetirementAudit(protocol='doc-transport-retirement-audit-v1',request_id=flight.witness.row['id'],
+            dispatch_id=flight.witness.row['dispatch_id'],job_digest=flight.wire.job_digest,retired_at=_doc_now(),
+            sender_reaped=True,tracker_reaped=True,ipc_closed=True,pipe_fds_closed=True,buffer_released=True)
+        _DOC_RETIREMENTS[id(self)]=(self,flight,process,popen,connections,self.monotonic_at,self.audit,self.pid,self.thread)
+    def __repr__(self):return '<native DOC transport retirement>'
+    def __reduce__(self):raise TypeError('DOC retirement cannot be serialized')
+
+
+def require_doc_retirement(value,flight):
+    flight.identity()
+    if (type(value) is not ActualTransportRetirement or _DOC_RETIREMENTS.get(id(value))!=(value,flight,value.process,value.popen,value.connections,value.monotonic_at,value.audit,value.pid,value.thread)
+            or value._factory is not _DOC_FACTORY or value.flight is not flight or value.pid!=os.getpid()
+            or value.thread is not threading.current_thread() or value.process is not flight.process
+            or value.popen is not flight.popen):raise PermissionError('actual DOC retirement required')
+    return value
+
+
+def require_doc_outcome(value,session):
+    if (type(value) is not ActualDocOutcome or _DOC_OUTCOMES.get(id(value))!=(value,value.flight,value.observation,value.raw,value.pid,value.thread)
+            or value._factory is not _DOC_FACTORY or value.pid!=os.getpid() or value.thread is not threading.current_thread()
+            or value.flight.session is not session or value.flight.outcome is not value
+            or value.flight.state!='RETIRED' or value.retirement is not value.flight.retirement):
+        raise PermissionError('actual DOC outcome required')
+    require_doc_retirement(value.retirement,value.flight)
+    return value
+
+
 def _network_get(target):
     # Revalidate in child. Resolve once and connect the numeric address only;
     # do not re-resolve the hostname during connection or follow Location.
-    target = RequestTarget(target.host, target.path)
+    from .source_document_raw import DocWireTarget
+    doc = type(target) is DocWireTarget
+    if doc:
+        _require_doc_child(target)
+    else:
+        target = RequestTarget(target.host, target.path)
     ip = public_addresses(target.host)[0]
     context = ssl.create_default_context()
     raw = socket.create_connection((ip, 443), timeout=5)
@@ -154,8 +301,13 @@ def _network_get(target):
             raise SourceFailure("source peer mismatch")
         with context.wrap_socket(raw, server_hostname=target.host) as tls:
             tls.settimeout(5)
+            if doc:
+                _require_doc_child(target)
+                sent_at=_doc_now()
+                agent,encoding=target.user_agent,'identity'
+            else:agent,encoding='StructureMethodEvidence/1','gzip'
             tls.sendall((f"GET {target.path} HTTP/1.1\r\nHost: {target.host}\r\n"
-                         "User-Agent: StructureMethodEvidence/1\r\nAccept-Encoding: gzip\r\nConnection: close\r\n\r\n").encode("ascii"))
+                         f"User-Agent: {agent}\r\nAccept-Encoding: {encoding}\r\nConnection: close\r\n\r\n").encode("ascii"))
             header = bytearray()
             while b"\r\n\r\n" not in header:
                 chunk = tls.recv(1024)
@@ -169,6 +321,7 @@ def _network_get(target):
             response = http.client.HTTPResponse(_ResponseSocket(tls, header))
             try:
                 response.begin()
+                if doc:return _doc_response(target,response,sent_at)
                 if response.status != 200:
                     # Redirect/403 bodies are not read and cannot become source.
                     raise SourceFailure("source HTTP status " + str(response.status), http_status=response.status)
@@ -211,7 +364,29 @@ def _child(send, target, worker, shared, deadline, identity):
         if (actual!=identity or not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid()
                 or info.st_mode & 0o077 or info.st_nlink!=1 or time.monotonic()>=deadline):
             raise PermissionError("invalid source owner lease")
+        from .source_document_raw import DocWireTarget,doc_ipc
+        doc=type(target) is DocWireTarget
+        if doc:
+            global _DOC_CHILD
+            from .source_spawn import SourceSpawnProcess
+            current=multiprocessing.current_process()
+            if (type(current) is not SourceSpawnProcess or current._target is not _child
+                    or current._args[1] is not target or worker is not _network_get):
+                raise PermissionError('native DOC child required')
+            _DOC_CHILD=(os.getpid(),target,lease_fd,identity,deadline)
         value = worker(target)
+        if doc:
+            observation,raw=value
+            if type(raw) is not bytes or len(raw)>RAW_CAP:raise SourceFailure('DOC body limit')
+            if observation.body_complete:
+                from .evidence_schemas import sha256
+                if len(raw)!=observation.raw_length or sha256(raw)!=observation.raw_sha256:raise SourceFailure('DOC observed body differs')
+            elif raw:raise SourceFailure('DOC rejected body retained')
+            view=memoryview(shared).cast('B')
+            try:view[:len(raw)]=raw
+            finally:view.release()
+            send.send_bytes(doc_ipc(observation))
+            return
         # Only bounded, typed results can cross the process boundary.
         status, content_type, raw, decoded = value
         if (type(status) is not int or status != 200 or type(content_type) is not str or len(content_type) > 300
@@ -233,6 +408,7 @@ def _child(send, target, worker, shared, deadline, identity):
         except (OSError, EOFError):
             pass  # parent cancelled/timed out and has already closed its end
     finally:
+        _DOC_CHILD=None
         if lease_fd is not None:os.close(lease_fd)
         send.close()
 
@@ -245,7 +421,22 @@ class PinnedPublicTransport:
         self.execution_mode = "live" if _worker is _network_get else "offline_probe"
 
     def get(self, target, *, still_authorized, owner_lease):
-        target = RequestTarget(target.host, target.path)
+        from .source_document_raw import DocTarget,decode_doc_ipc
+        doc=type(target) is DocTarget
+        flight=outcome=retirement=popen=None
+        if doc:
+            import types
+            from .source_workflow import SourceSession
+            from .source_document_access import session_supervisor
+            from .source_sec_access import begin_request
+            if (type(still_authorized) is not types.MethodType or still_authorized.__func__ is not SourceSession.still_authorized
+                    or self._worker is not _network_get):raise SourceFailure('canonical DOC authority required')
+            session=still_authorized.__self__;supervisor=session_supervisor(session)
+            if session._doc_request is None or session._doc_request.owner is not owner_lease:raise PermissionError('DOC Owner differs')
+            doc_deadline=float(time.monotonic()+self.wall_seconds)
+            flight=begin_request(supervisor._sec_access,session,target)
+            target=flight.wire
+        else:target = RequestTarget(target.host, target.path)
         if self.execution_mode!=("live" if self._worker is _network_get else "offline_probe"):
             raise SourceFailure("source transport provenance mismatch")
         if (os.name!="posix" or not all(hasattr(signal,key) for key in ("SIGALRM","ITIMER_REAL","setitimer","pthread_sigmask"))
@@ -258,7 +449,7 @@ class PinnedPublicTransport:
         require_supported()
         ctx = multiprocessing.get_context("spawn")
         receive, send = ctx.Pipe(duplex=True)
-        deadline = time.monotonic() + self.wall_seconds
+        deadline = doc_deadline if doc else time.monotonic() + self.wall_seconds
         process = None
         shared = view = None
         handed_off=False
@@ -273,6 +464,7 @@ class PinnedPublicTransport:
             shared = ctx.RawArray("B", RAW_CAP * 2)
             process = source_process((send, target, self._worker, shared,deadline,identity))
             process.start()
+            popen=process._popen
             send.close()
             while True:
                 if still_authorized() is not True:
@@ -283,7 +475,8 @@ class PinnedPublicTransport:
                 if receive.poll(min(0.025, remaining)):
                     import json
                     try:
-                        message = json.loads(receive.recv_bytes(1024))
+                        packet=receive.recv_bytes(4096 if doc else 1024)
+                        message = json.loads(packet)
                     except (EOFError, OSError, ValueError):
                         raise unavailable("source worker result unavailable") from None
                     if time.monotonic() >= deadline:
@@ -299,7 +492,21 @@ class PinnedPublicTransport:
                         with send_handoff_scope(still_authorized,deadline_monotonic=deadline):
                             owner_lease.handoff(receive,process.pid,deadline)
                             handed_off=True
+                            if doc:flight.handed_off=True;flight.state='SENT'
                         continue
+                    if doc:
+                        if type(message) is list:
+                            if len(message)==2 and message[0] is False:raise SourceFailure('DOC outcome unknown',http_status=message[1])
+                            raise SourceFailure('DOC outcome unknown')
+                        observation=decode_doc_ipc(packet,target)
+                        view=memoryview(shared).cast('B')
+                        raw=bytes(view[:observation.raw_length]) if observation.body_complete else b''
+                        from .evidence_schemas import sha256
+                        if observation.body_complete and (len(raw)!=observation.raw_length or sha256(raw)!=observation.raw_sha256):
+                            raise SourceFailure('DOC original body differs')
+                        outcome=ActualDocOutcome(flight,observation,raw,_factory=_DOC_FACTORY)
+                        flight.outcome=outcome
+                        return outcome
                     if type(message) is list and len(message) == 2 and message[0] is False:
                         raise SourceFailure("source_unavailable", http_status=message[1])
                     if (type(message) is not list or len(message) != 5 or message[0] is not True
@@ -329,10 +536,31 @@ class PinnedPublicTransport:
                 # call's buffer exports, never the allocator's shared arenas.
                 # The propagated exception keeps its original traceback; this
                 # local alias must not make that traceback retain itself.
+                if doc and process is not None and process._closed:
+                    # BaseProcess.start deletes these after successful spawn;
+                    # a failed start can still retain this call's RawArray.
+                    for name in ('_target','_args','_kwargs'):
+                        if name in vars(process):delattr(process,name)
                 view = shared = primary = None
             if errors:
                 from .source_spawn import SourceCleanupUncertain,_cleanup_note
+                if doc:flight.unknown(errors[0])
                 if primary is not None:
                     _cleanup_note(primary,'Source transport retirement uncertain')
                     raise primary
                 raise SourceCleanupUncertain('Source transport retirement uncertain') from errors[0]
+            if doc:
+                try:
+                    # If construction/start failed, the flight still retains
+                    # any partial Popen registered before its first resource.
+                    popen=flight.popen
+                    if process is None:raise PermissionError('DOC sender construction incomplete')
+                    retirement=ActualTransportRetirement(flight,process,popen,(send,receive),_factory=_DOC_FACTORY)
+                    from .source_sec_access import finish_request
+                    finish_request(flight,retirement)
+                    if outcome is not None:outcome.retirement=retirement
+                except BaseException as error:
+                    flight.unknown(error)
+                    from .source_spawn import SourceCleanupUncertain
+                    debt=SourceCleanupUncertain('DOC transport retirement uncertain');debt._doc_flight=flight
+                    raise debt from error

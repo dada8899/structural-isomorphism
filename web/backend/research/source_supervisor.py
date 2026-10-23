@@ -627,12 +627,21 @@ def _execute(supervisor, task_id, operation):
                 if not task or task['execution'] != 'QUEUED':
                     return
                 AuthorizationGate(store).check_task(conn, task)
-                run, _ = check_approval(conn, task)
+                run, approval = check_approval(conn, task)
+                raw=approval['query'] is None
                 check_active(store, conn, task_id)
                 if run['started'] or run['origin'] != 'live':
                     return
         except (ResearchError, PermissionError):
             return
+        if raw:
+            from .source_sec_access import wait_before_claim
+            from .source_document_access import require_execution
+            try:
+                require_execution(store=store)
+                wait_before_claim(supervisor._sec_access)
+                require_execution(store=store)
+            except (ResearchError,PermissionError):return
     with supervisor._lock:
         _check(supervisor, published=True)
         if supervisor._slot is not None:
@@ -750,6 +759,9 @@ class SourceDispatchGuard:
     @contextmanager
     def handoff_scope(self, session, transport, *, deadline_monotonic):
         supervisor = self._supervisor
+        from .source_document_raw import RawPrepPlan
+        from .source_sec_access import DocRequestFlight
+        doc=type(session.plan) is RawPrepPlan
         remaining = max(0., deadline_monotonic - time.monotonic())
         if not supervisor._dispatch_mutex.acquire(timeout=remaining):
             raise PermissionError('Source dispatch deadline ended')
@@ -770,6 +782,10 @@ class SourceDispatchGuard:
                     or supervisor._stop.is_set() or supervisor._state != 'READY'
                     or supervisor._failure is not None):
                 raise PermissionError('Source dispatch authority retired')
+            if doc:
+                flight=supervisor._sec_access.flight
+                if type(flight) is not DocRequestFlight:raise PermissionError('actual DOC flight absent')
+                flight.memory_handoff(session,transport)
             yield
         finally:
             supervisor._dispatch_mutex.release()
