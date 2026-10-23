@@ -170,17 +170,101 @@ def validate_receipt(value):
 
 class Controller:
     def __init__(self,meta,budget,python):
-        self.meta,self.budget,self.python=meta,budget,python;self.result=empty_receipt(meta['head']);self.children=[];self.paths=[];self.user=False;self.group=False;self.unit_written=False;self.invocations=[];self.server=None;self.uid=self.gid=None;self.password=None;self.rpc_buffer=b'';self.uncertain=False
+        self.meta,self.budget,self.python=meta,budget,python;self.result=empty_receipt(meta['head']);self.children=[];self.paths=[];self.user=False;self.group=False;self.unit_written=False;self.invocations=[];self.server=None;self.uid=self.gid=None;self.password=None;self.rpc_buffer=b'';self.uncertain=False;self.attempts={};self.group_attempted=False;self.user_attempted=False;self.group_record=None;self.user_record=None
+    def _process_identity(self,process):
+        # PID alone is not a birth witness. The start tick, proc inode, parent,
+        # process group and session must still describe this owned child.
+        pid=process.pid
+        if type(pid) is not int or pid<=0:raise ProbeFailure('CLEANUP')
+        root=Path('/proc')/str(pid)
+        def snapshot():
+            info=root.stat();raw=(root/'stat').read_text();end=raw.rfind(') ')
+            fields=raw[end+2:].split()
+            if end<0 or raw[:raw.find(' (')]!=str(pid) or len(fields)<20:raise ProbeFailure('CLEANUP')
+            parent,group,session,tick=(int(fields[i]) for i in (1,2,3,19))
+            if parent!=os.getpid() or group!=pid or session!=pid or tick<0:raise ProbeFailure('CLEANUP')
+            return info.st_dev,info.st_ino,parent,group,session,tick
+        before=snapshot()
+        if snapshot()!=before:raise ProbeFailure('CLEANUP')
+        return before
+    def _spawn(self,argv,*,new=True,**kwargs):
+        self.budget.require(new=new)
+        kind=subprocess.Popen
+        if not isinstance(kind,type):raise ProbeFailure('PRECHECK')
+        process=kind.__new__(kind)
+        # Retain the actual object before __init__: it may fork and then raise.
+        self.children.append(process)
+        record={'complete':False,'birth':'unborn','identity':None,'reaped':False}
+        self.attempts[id(process)]=record
+        try:
+            # Allocation has no native resources. Once initialization is entered,
+            # even _child_created=False cannot exclude an interrupted birth.
+            record['birth']='unknown'
+            kind.__init__(process,argv,**kwargs)
+            record['complete']=True
+            try:record['identity']=self._process_identity(process)
+            except FileNotFoundError:
+                if process.poll() is None:raise ProbeFailure('CLEANUP')
+                record['reaped']=True
+            record['birth']='born'
+        except BaseException:
+            # Retain every incomplete constructor; neither numeric PID fields
+            # nor a default false _child_created establish physical retirement.
+            self.uncertain=True
+            raise
+        return process
+    def _signal(self,process,sig):
+        record=self.attempts[id(process)]
+        if not record['complete'] or record['identity'] is None or self._process_identity(process)!=record['identity']:raise ProbeFailure('CLEANUP')
+        os.killpg(process.pid,sig)
     def command(self,argv,*,input=None,clean=False,limit=30,env=None):
         timeout=self.budget.require(new=not clean,ceiling=limit)
-        process=subprocess.Popen(argv,stdin=subprocess.PIPE if input is not None else subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,cwd=ROOT,env=env or {'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8'},start_new_session=True)
-        self.children.append(process)
+        process=self._spawn(argv,new=not clean,stdin=subprocess.PIPE if input is not None else subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,cwd=ROOT,env=env or {'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8'},start_new_session=True)
         try:out,_=process.communicate(input,timeout=timeout)
         except subprocess.TimeoutExpired:
             self.uncertain=True;self.result['resources']['forced']=True
-            os.killpg(process.pid,signal.SIGKILL);process.wait(timeout=self.budget.require(ceiling=2));raise ProbeFailure('CLOCK')
+            self._signal(process,signal.SIGKILL);process.wait(timeout=self.budget.require(ceiling=2));raise ProbeFailure('CLOCK')
+        self.attempts[id(process)]['reaped']=process.returncode is not None
         if process.returncode or len(out)>1048576:raise ProbeFailure('PRECHECK')
         return out
+    def _account_record(self,kind,expected_id=None):
+        group=kind=='group';name=GROUP if group else USER
+        rows=[tuple(line.split(':')) for line in Path('/etc/group' if group else '/etc/passwd').read_text().splitlines()]
+        matches=[row for row in rows if row[0]==name]
+        if len(matches)!=1:raise ProbeFailure('CLEANUP')
+        row=matches[0]
+        if len(row)!=(4 if group else 7) or not row[2].isdecimal() or not 0<int(row[2])<2147483648 or str(int(row[2]))!=row[2]:raise ProbeFailure('CLEANUP')
+        number=int(row[2])
+        if expected_id is not None and number!=expected_id:raise ProbeFailure('CLEANUP')
+        if sum(len(other)>2 and other[2]==row[2] for other in rows)!=1:raise ProbeFailure('CLEANUP')
+        if group:
+            if row!=(GROUP,'x',str(number),''):raise ProbeFailure('CLEANUP')
+        elif row!=(USER,'x',str(number),str(self.gid),'',str(STATE),'/usr/sbin/nologin'):raise ProbeFailure('CLEANUP')
+        return row
+    def _account_absent(self,kind,record):
+        name=GROUP if kind=='group' else USER
+        rows=[line.split(':') for line in Path('/etc/group' if kind=='group' else '/etc/passwd').read_text().splitlines()]
+        return not any(row[0]==name or len(row)>2 and row[2]==record[2] for row in rows)
+    def _require_account_births(self):
+        # A failed command may have changed the account database. Neither the
+        # attempt nor a matching name supplies deletion ownership.
+        if self.user_attempted and self.user_record is None or self.group_attempted and self.group_record is None:raise ProbeFailure('CLEANUP')
+        if self.group_record is not None and self._account_record('group',self.gid)!=self.group_record:raise ProbeFailure('CLEANUP')
+        if self.user_record is not None and self._account_record('user',self.uid)!=self.user_record:raise ProbeFailure('CLEANUP')
+    def _remove_accounts(self):
+        self._require_account_births()
+        if self.user_record is not None:
+            # Recheck immediately before the name-taking system command.
+            if self._account_record('user',self.uid)!=self.user_record:raise ProbeFailure('CLEANUP')
+            self.command(['/usr/sbin/userdel',USER],clean=True,limit=3)
+            if not self._account_absent('user',self.user_record):raise ProbeFailure('CLEANUP')
+        if self.group_record is not None:
+            # Ubuntu userdel may already remove the matching empty user group.
+            # Confirm name AND original GID absent; never delete a replacement.
+            if not self._account_absent('group',self.group_record):
+                if self._account_record('group',self.gid)!=self.group_record:raise ProbeFailure('CLEANUP')
+                self.command(['/usr/sbin/groupdel',GROUP],clean=True,limit=3)
+                if not self._account_absent('group',self.group_record):raise ProbeFailure('CLEANUP')
     def absent(self,path):
         self.budget.require(new=True)
         if path.exists() or path.is_symlink():raise ProbeFailure('PRECHECK')
@@ -211,10 +295,11 @@ class Controller:
         if self.command([*GIT,'rev-parse','HEAD']).decode().strip()!=self.meta['head'] or self.command([*GIT,'status','--porcelain','--untracked-files=all']).strip():raise ProbeFailure('SOURCE')
         self.result['tree']=self.command([*GIT,'rev-parse','HEAD^{tree}']).decode().strip()
     def prepare(self):
-        self.group=True;self.command(['/usr/sbin/groupadd','--system',GROUP])
-        self.user=True;self.command(['/usr/sbin/useradd','--system','--gid',GROUP,'--no-create-home','--no-log-init','-K','CREATE_MAIL_SPOOL=no','--home-dir',str(STATE),'--shell','/usr/sbin/nologin',USER])
-        self.uid=int(next(line.split(':')[2] for line in Path('/etc/passwd').read_text().splitlines() if line.startswith(USER+':')))
-        self.gid=int(next(line.split(':')[2] for line in Path('/etc/group').read_text().splitlines() if line.startswith(GROUP+':')))
+        self.group_attempted=True;self.command(['/usr/sbin/groupadd','--system',GROUP])
+        self.group_record=self._account_record('group');self.gid=int(self.group_record[2]);self.group=True
+        self.user_attempted=True;self.command(['/usr/sbin/useradd','--system','--gid',GROUP,'--no-create-home','--no-log-init','-K','CREATE_MAIL_SPOOL=no','--home-dir',str(STATE),'--shell','/usr/sbin/nologin',USER])
+        self.user_record=self._account_record('user');self.uid=int(self.user_record[2]);self.user=True
+        if self._account_record('group',self.gid)!=self.group_record:raise ProbeFailure('CLEANUP')
         for path in (WORK,STATE,CACHE):self.directory(path,self.uid,self.gid)
         self.directory(STATE/'logs',self.uid,self.gid);self.directory(SECRETS);self.directory(DEPOT,mode=0o755)
         entries=self.command([*GIT,'ls-tree','-r','-z','HEAD']).decode().split('\0');total=0;expected_papers=None;copied_papers=set()
@@ -292,7 +377,7 @@ class Controller:
             if not stat.S_ISREG(info.st_mode) or (info.st_uid,stat.S_IMODE(info.st_mode),info.st_nlink)!=(self.uid,0o400,1):raise ProbeFailure('UNIT')
         self.invocations[-1]=(*self.invocations[-1],(directory.stat().st_dev,directory.stat().st_ino))
         args=['/usr/bin/nsenter','--net=/proc/'+str(pid)+'/ns/net',*self.as_user([self.python,'-I','-B',str(DEPOT/FIXTURE),'serve'])]
-        self.server=subprocess.Popen(args,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','HOME':str(WORK)},start_new_session=True);self.children.append(self.server)
+        self.server=self._spawn(args,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','HOME':str(WORK)},start_new_session=True)
         self.server.stdin.write(canonical({'password':self.password,'deadline':self.budget.deadline-30})+b'\n');self.server.stdin.flush();self.rpc_buffer=b''
         if self.read_line()!=b'READY':raise ProbeFailure('HTTP')
     def read_line(self):
@@ -403,7 +488,7 @@ class Controller:
         self.result['phases']['instrumented']=True
     def cleanup(self):
         failed=self.uncertain;actors_retired=True
-        if not self.paths and not self.children and not self.group and not self.user:
+        if not self.paths and not self.children and not self.group_attempted and not self.user_attempted:
             self.result['resources']['cleanup_uncertain']=False
             return
         if self.unit_written:
@@ -420,22 +505,34 @@ class Controller:
                     cg=Path('/sys/fs/cgroup/system.slice')/UNIT/'cgroup.procs'
                     actors_retired=self.unit_info(clean=True)['MainPID']=='0' and (not cg.exists() or not cg.read_text().strip())
                 except BaseException:pass
-        for p in self.children:
-            if p.poll() is None:
-                try:
-                    if p is self.server and p.stdin:p.stdin.close()
-                    else:os.killpg(p.pid,signal.SIGTERM)
-                    p.wait(timeout=self.budget.require(ceiling=3))
-                except BaseException:
-                    failed=True;self.result['resources']['forced']=True
-                    try:os.killpg(p.pid,signal.SIGKILL);p.wait(timeout=self.budget.require(ceiling=2))
-                    except BaseException:pass
-            try:os.killpg(p.pid,0)
-            except ProcessLookupError:pass
-            else:failed=True;actors_retired=False
-            if p.poll() is None:actors_retired=False
+        for p in list(self.children):
+            record=self.attempts.get(id(p))
+            if record is None or not record['complete']:
+                failed=True;actors_retired=False
+                continue
+            try:
+                if p.poll() is None:
+                    try:
+                        if p is self.server and p.stdin:p.stdin.close()
+                        else:self._signal(p,signal.SIGTERM)
+                        p.wait(timeout=self.budget.require(ceiling=3))
+                    except BaseException:
+                        failed=True;self.result['resources']['forced']=True
+                        self._signal(p,signal.SIGKILL);p.wait(timeout=self.budget.require(ceiling=2))
+                record['reaped']=p.poll() is not None
+                # This is an existence query only. If the leader has gone but
+                # a group remains, do not signal a group with unproved identity.
+                try:os.killpg(p.pid,0)
+                except ProcessLookupError:pass
+                else:failed=True;actors_retired=False
+                if not record['reaped']:actors_retired=False
+                for stream in (p.stdin,p.stdout,p.stderr):
+                    if stream is not None and not stream.closed:stream.close()
+            except BaseException:
+                failed=True;actors_retired=False
         try:
             if not actors_retired:raise ProbeFailure('CLEANUP')
+            self._require_account_births()
             if self.unit_written:
                 UNIT_FILE.unlink();self.paths.remove(UNIT_FILE);self.command(['/usr/bin/systemctl','daemon-reload'],clean=True,limit=3);self.unit_written=False
             self.result['resources']['unit_removed']=not UNIT_FILE.exists()
@@ -445,12 +542,10 @@ class Controller:
                 if top in self.paths:shutil.rmtree(top)
             self.result['resources']['directories_removed']=all(not p.exists() for p in (DEPOT,WORK,SECRETS,STATE,CACHE,GRANT_DIR))
             if not self.result['resources']['directories_removed']:raise ProbeFailure('CLEANUP')
-            if self.user:self.command(['/usr/sbin/userdel',USER],clean=True,limit=3)
-            if self.group:self.command(['/usr/sbin/groupdel',GROUP],clean=True,limit=3)
-            if any(line.split(':',1)[0]==USER for line in Path('/etc/passwd').read_text().splitlines()) or any(line.split(':',1)[0]==GROUP for line in Path('/etc/group').read_text().splitlines()):raise ProbeFailure('CLEANUP')
+            self._remove_accounts()
             self.result['resources']['user_removed']=True
         except BaseException:failed=True
-        self.result['resources'].update(children_started=len(self.children),children_reaped=sum(p.poll() is not None for p in self.children),cleanup_uncertain=failed)
+        self.result['resources'].update(children_started=len(self.children),children_reaped=sum(self.attempts[id(p)]['reaped'] for p in self.children if id(p) in self.attempts),cleanup_uncertain=failed)
         if failed:self.result['outcome']='FAIL';self.result['reason']='CLEANUP'
 
 
