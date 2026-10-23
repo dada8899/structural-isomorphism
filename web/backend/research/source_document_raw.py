@@ -315,6 +315,7 @@ class RawArtifact(Record):
         for value in (self.plan_id,self.request_id,self.dispatch_id): identifier(value)
         if type(self.doc_ref) is not DocRef or type(self.access_profile_ref) is not ProfileRef or type(self.observation) is not DocObservation: raise ValueError('strict DOC acquisition records required')
         self.doc_ref.__post_init__(); self.access_profile_ref.__post_init__(); self.observation.__post_init__(); digest(self.rights_digest)
+        _literal(self.observation.http_status,200)
         _integer(self.raw_length,1,RAW_CAP); digest(self.raw_sha256)
         if not self.observation.body_complete or self.observation.requested_target.doc_ref != self.doc_ref or (self.raw_length,self.raw_sha256)!=(self.observation.raw_length,self.observation.raw_sha256): raise ValueError('DOC body observation differs')
         for value,expected in ((self.origin,'live'),(self.document_identity,'unverified'),(self.parser_profile,None),(self.extracted_digest,None),(self.regions,())): _literal(value,expected)
@@ -345,6 +346,7 @@ class RawPrepRequestReceipt(Record):
         if self.doc_ref != self.observation.requested_target.doc_ref or (self.request_id,self.dispatch_id,self.observation.job_digest)!=(self.retirement.request_id,self.retirement.dispatch_id,self.retirement.job_digest): raise ValueError('DOC receipt domain mismatch')
         if (self.artifact_ref is not None) != self.observation.body_complete: raise ValueError('DOC complete body reference required')
         if self.output_variant=='complete_candidate' and (self.observation.http_status!=200 or self.observation.media_type!='text/html' or self.observation.safe_code!='none'): raise ValueError('DOC candidate HTTP required')
+        if self.output_variant=='quarantined_complete':_literal(self.observation.http_status,200)
         if self.output_variant!='complete_candidate' and self.observation.safe_code not in ('access_denied','unavailable','limit','invalid_source'): raise ValueError('DOC unknown is not known rejection')
 
 
@@ -471,6 +473,7 @@ def decode_commitment(payload):
         _literal(variant,'complete_candidate'); _literal(result['safe_code'],'none'); _literal(result['actual_http_status'],200)
     elif outcome=='FAILED':
         if variant not in ('quarantined_complete','failed_no_body') or result['safe_code'] not in ('access_denied','unavailable','limit','invalid_source'): raise ValueError('DOC known failure required')
+        if variant=='quarantined_complete':_literal(result['actual_http_status'],200)
     else: raise ValueError('DOC commitment is not UNKNOWN closure proof')
     if variant=='failed_no_body':
         if any(v is not None for v in artifact.values()): raise ValueError('DOC no-body artifact must be null')

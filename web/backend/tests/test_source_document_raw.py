@@ -166,3 +166,44 @@ def test_known_no_body_and_unknown_data_cannot_be_interchanged():
     observation=replace(receipt.observation,observed_final_target=None,http_status=None,request_sent_at=None,received_at=None,
         content_length=None,effective_content_encoding=None,safe_code='unavailable',body_complete=False,raw_length=None,raw_sha256=None)
     with pytest.raises(ValueError):replace(receipt,output_variant='failed_no_body',artifact_ref=None,observation=observation)
+
+
+@pytest.mark.parametrize('status',[302,403])
+def test_non_200_complete_body_cannot_enter_artifact_quarantine_or_commitment(status):
+    plan,artifact,receipt,_=data_records()
+    observed=replace(artifact.observation,http_status=status,safe_code='access_denied')
+    with pytest.raises(ValueError):replace(artifact,observation=observed)
+    with pytest.raises(ValueError):replace(receipt,output_variant='quarantined_complete',observation=observed)
+    c=commitment_data(plan,artifact,receipt)
+    c['result'].update(request_outcome='FAILED',output_variant='quarantined_complete',actual_http_status=status,safe_code='access_denied')
+    with pytest.raises(ValueError):decode_commitment(canonical(c))
+
+
+def test_200_quarantine_and_non_200_no_body_remain_valid_data_only():
+    plan,artifact,receipt,_=data_records()
+    observed=replace(artifact.observation,safe_code='invalid_source')
+    isolated=replace(artifact,observation=observed)
+    isolated_receipt=replace(receipt,output_variant='quarantined_complete',observation=observed)
+    assert decode('snapshots',encode(isolated))==isolated
+    assert decode('executions',encode(isolated_receipt))==isolated_receipt
+    c=commitment_data(plan,isolated,isolated_receipt)
+    c['result'].update(request_outcome='FAILED',output_variant='quarantined_complete',safe_code='invalid_source')
+    assert decode_commitment(canonical(c))==c
+    for status in (302,403):
+        headers_only=replace(receipt.observation,http_status=status,safe_code='access_denied',body_complete=False,
+            raw_length=None,raw_sha256=None,received_at=None,observed_failure_at=T)
+        no_body=replace(receipt,output_variant='failed_no_body',artifact_ref=None,observation=headers_only)
+        assert decode('executions',encode(no_body))==no_body
+        c=commitment_data(plan,artifact,receipt)
+        c['result'].update(request_outcome='FAILED',output_variant='failed_no_body',actual_http_status=status,safe_code='access_denied')
+        c['artifact']={key:None for key in c['artifact']}
+        assert decode_commitment(canonical(c))==c
+
+
+@pytest.mark.parametrize('status',[True,200.0,'200'])
+def test_complete_http_status_requires_integer_200_without_coercion(status):
+    plan,artifact,receipt,_=data_records()
+    with pytest.raises(ValueError):replace(artifact.observation,http_status=status)
+    c=commitment_data(plan,artifact,receipt)
+    c['result'].update(request_outcome='FAILED',output_variant='quarantined_complete',actual_http_status=status,safe_code='invalid_source')
+    with pytest.raises(ValueError):decode_commitment(canonical(c))
