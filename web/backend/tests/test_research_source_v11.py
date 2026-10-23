@@ -1,4 +1,4 @@
-"""Actual formal Source approval -> protected resource -> independent worker."""
+"""Real legacy-auth Source components; formal private contracts live in Main tests."""
 from contextlib import closing
 from functools import partial
 import json,multiprocessing,sqlite3
@@ -8,11 +8,10 @@ from api import auth
 from research import ResearchStore,ResearchRunner,source_integration
 from research.source_policy import PinnedPublicTransport
 from .test_private_runtime_bootstrap import roots
-from .test_private_registration import stack,link,verify,BETA
-from .test_research_account_bridge import configure
+from .research_component_fixture import stack,BETA,after_native_commit
 from .test_research_persistence import envelope,problem
 from web.backend.tests.source_http_fixture import source_server,get_local
-from web.backend.tests.source_v11_process_fixture import reopen
+from web.backend.tests.research_component_process_fixture import reopen
 
 
 def send(client,rid,suffix,payload,key=None):
@@ -20,10 +19,8 @@ def send(client,rid,suffix,payload,key=None):
 
 
 def admitted(stack,monkeypatch):
-    client,root,mail=stack;configure(client,root,monkeypatch)
-    monkeypatch.setattr(source_integration,'enabled',lambda:True)
+    client,root,_=stack
     monkeypatch.setenv('STRUCTURAL_D1_PUBLIC_GET_ENABLED','false')
-    assert verify(client,link(client,mail)).status_code==200
     data=problem();data['confirmed']=True
     created=client.post('/api/research',json=envelope({'problem':data}),headers={'origin':BETA,'idempotency-key':'source11-create'})
     assert created.status_code==200,created.text
@@ -37,7 +34,7 @@ def admitted(stack,monkeypatch):
     return client,root,rid,tid,ResearchStore(auth._store())
 
 
-def test_formal_actual_source_worker_and_new_process_keep_same_task_inode(stack,monkeypatch,tmp_path):
+def test_component_actual_source_worker_and_new_process_keep_same_task_inode(stack,monkeypatch,tmp_path):
     client,root,rid,tid,store=admitted(stack,monkeypatch)
     with source_server() as (port,calls):
         transport=PinnedPublicTransport(_worker=partial(get_local,port))
@@ -63,7 +60,7 @@ def test_formal_actual_source_worker_and_new_process_keep_same_task_inode(stack,
     assert client.get('/api/research/'+rid).status_code==200
 
 
-@pytest.mark.parametrize('native',['ordinary','private'])
+@pytest.mark.parametrize('native',['ordinary','auth_factory'])
 def test_source11_native_sql_cannot_reinterpret_admission_or_reset_counters(stack,monkeypatch,native):
     _,root,_,tid,store=admitted(stack,monkeypatch)
     context=closing(sqlite3.connect(store.path,isolation_level=None)) if native=='ordinary' else store.auth_store._connection()
@@ -81,7 +78,7 @@ def test_source11_native_sql_cannot_reinterpret_admission_or_reset_counters(stac
         assert conn.execute('SELECT used FROM research_source_chains').fetchone()[0]==0
 
 
-def test_formal_source_delete_erases_private_admission_and_retains_only_closure_binding(stack,monkeypatch):
+def test_component_source_delete_erases_private_admission_and_retains_only_closure_binding(stack,monkeypatch):
     client,root,rid,tid,store=admitted(stack,monkeypatch)
     from research.authorization import AuthorizationGate,TaskGateLease
     with AuthorizationGate(store).source_task_gate(tid) as lease:
@@ -106,14 +103,9 @@ def test_formal_source_delete_erases_private_admission_and_retains_only_closure_
 
 def test_actual_archived10_formula_survives11_with_same_ref_time_and_typed_body(roots,monkeypatch,tmp_path):
     import os,subprocess,sys
-    from api import research
-    from fastapi import FastAPI
-    from fastapi.testclient import TestClient
     from research.source_guard import provision_source_v11
     from research.errors import ResearchError
     from services.auth_store import AuthStore
-    from services import runtime_paths as paths
-    from .test_private_registration import SECRET
     from .source_v10_reference import reconstruct
     project=Path(__file__).resolve().parents[3]
     archive,problem_path,manifest_path=reconstruct(project,tmp_path/'source10')
@@ -135,38 +127,31 @@ def test_actual_archived10_formula_survives11_with_same_ref_time_and_typed_body(
     upgraded=provision_source_v11(path);assert upgraded['schema_version']==11 and path.stat().st_ino==inode
     from research.plan_financial import provision_plan_v12
     assert provision_plan_v12(path)['schema_version']==12 and path.stat().st_ino==inode
-    for key,value in {'AUTH_ENABLED':'true','AUTH_SITE_ROLE':'beta','AUTH_LINK_BASE_URL':BETA,'JWT_SECRET':'source11-history-synthetic-secret-0123456789',
-        'STRUCTURAL_SSO_SECRET':'source11-history-synthetic-secret-0123456789','SMTP_HOST':'fixture.invalid','SMTP_PORT':'587','SMTP_FROM_EMAIL':'sender@example.invalid',
-        'ADMIN_NOTIFICATION_EMAIL':'admin@example.invalid','AUTH_TRUSTED_PROXY_IPS':'127.0.0.1','AUTH_DEV_MODE':'false'}.items():monkeypatch.setenv(key,value)
-    monkeypatch.setattr(auth,'_AUTH_STORES',{});mail=[];monkeypatch.setattr(auth,'_send_email',lambda to,subject,text:mail.append(text))
-    monkeypatch.setattr(research,'enabled',lambda:True)
-    app=FastAPI();app.include_router(auth.router,prefix='/api');app.include_router(research.router,prefix='/api')
-    with TestClient(app,base_url=BETA) as client:
-        assert verify(client,link(client,mail)).status_code==200
-        reopened=client.get(f"/api/research/{original['rid']}/formula-results/{original['ref']}")
-        assert reopened.status_code==200,reopened.text
-        assert reopened.json()['data']==original['result']
-        history=client.get('/api/research/'+original['rid']).json()['data']
-        assert history['formula_check']['result_ref']==original['ref']
-        assert history['formula_check']['formula_result_recorded_at']==original['result']['metadata']['formula_result_recorded_at']
-        monkeypatch.setattr(source_integration,'enabled',lambda:True)
-        refused=send(client,original['rid'],'source-tasks',{'input_revision':1,'expected_research_version':original['research_version'],'approval_ref':original['old_approval']},'do-not-retrosign-old-source')
-        assert refused.status_code==409 and refused.json()['error']['code']=='SOURCE_PERMISSION_UNAVAILABLE',refused.text
-
-    with ResearchStore(AuthStore(path)).transaction() as conn:
+    from web.backend.tests.research_component_process_fixture import archived_formula_read
+    consumed=archived_formula_read(project,tmp_path,path,output)
+    assert consumed['reopened']==original['result']
+    assert consumed['history']['formula_check']['result_ref']==original['ref']
+    assert consumed['history']['formula_check']['formula_result_recorded_at']==original['result']['metadata']['formula_result_recorded_at']
+    assert consumed['refused_status']==409 and consumed['refused_code']=='SOURCE_PERMISSION_UNAVAILABLE'
+    with closing(sqlite3.connect(path.as_uri()+'?mode=ro',uri=True,isolation_level=None)) as conn:
         assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]==1
         assert conn.execute('SELECT count(*) FROM research_source_resources').fetchone()[0]==0
 
 
+
 def test_real_worker_claim_crash_reopens_same_inode_and_closes_without_refetch(stack,monkeypatch,tmp_path):
-    from web.backend.tests.source_v11_process_fixture import crash_after_claim
+    from web.backend.tests.research_component_process_fixture import crash_after_claim
     client,root,rid,tid,store=admitted(stack,monkeypatch)
-    child=multiprocessing.get_context('spawn').Process(target=crash_after_claim,args=(str(store.path),tid))
+    proof=tmp_path/'claim-proof.json'
+    child=multiprocessing.get_context('spawn').Process(target=crash_after_claim,args=(str(store.path),tid,str(proof)))
     try:
         child.start();child.join(10);assert not child.is_alive() and child.exitcode==81
     finally:
         if child.is_alive():child.kill();child.join(2)
         child.close()
+    hit=json.loads(proof.read_text());assert hit['hits']==1 and hit['persisted']==[1]
+    assert hit['pid']!=__import__('os').getpid() and hit['task_parameters']==[tid]
+    with store.transaction() as conn:assert conn.execute('SELECT started FROM research_source_runs WHERE task_id=?',(tid,)).fetchone()[0]==1
     path=root/'research-locks'/('source-'+tid+'.lock');inode=path.stat().st_ino
     output=tmp_path/'closed.json';worker=multiprocessing.get_context('spawn').Process(target=reopen,args=(str(store.path),tid,str(output)))
     try:
@@ -206,21 +191,14 @@ def test_task_resource_never_adopts_or_replaces_unknown_inode(stack,monkeypatch,
         if fault!='orphan':saved.rename(path)
 
 
-def test_birth_lost_commit_ack_reads_protected_binding_and_does_not_rebirth(stack,monkeypatch):
-    from services.sqlite_utils import PrivateAuthConnection
-    from research.authorization import AuthorizationGate
+def test_birth_lost_commit_ack_reads_protected_binding_and_does_not_rebirth(stack,monkeypatch,tmp_path):
+    from research.authorization import AuthorizationGate,_source_task_gate
     _,root,_,tid,store=admitted(stack,monkeypatch)
-    execute,commit=PrivateAuthConnection.execute,PrivateAuthConnection.commit;pending=set();lost=[]
-    def on_execute(self,sql,*a,**k):
-        result=execute(self,sql,*a,**k)
-        if sql.startswith('UPDATE research_source_resources SET task_gate_identity='):pending.add(id(self))
-        return result
-    def on_commit(self):
-        commit(self)
-        if id(self) in pending and not lost:lost.append(True);raise sqlite3.OperationalError('owned birth ACK lost')
-    with monkeypatch.context() as failure:
-        failure.setattr(PrivateAuthConnection,'execute',on_execute);failure.setattr(PrivateAuthConnection,'commit',on_commit)
+    with after_native_commit(store,caller=_source_task_gate.__wrapped__.__code__,
+            query='SELECT task_gate_identity IS NOT NULL FROM research_source_resources WHERE task_id=?',
+            parameters=(tid,),expected=(1,),proof_path=tmp_path/'birth-proof.json') as hits:
         with AuthorizationGate(store).source_task_gate(tid) as lease:identity=lease.identity
+    lost=[True for hit in hits]
     assert lost==[True]
     with AuthorizationGate(store).source_task_gate(tid) as lease:assert lease.identity==identity
     assert len(list((root/'research-locks').glob('source-'+tid+'.lock')))==1
@@ -330,9 +308,12 @@ def test_source11_real_migration_death_recovers_complete10_or11_and_preserves_fo
         provision_source_v11(path)
     from research.plan_financial import provision_plan_v12
     assert provision_plan_v12(path)['schema_version']==12
-    store=ResearchStore(AuthStore(path))
-    with store.transaction() as conn:
-        store._check_v12(conn)
+    # Historical12 is an offline profile, so inspect its native readonly image
+    # without asking the current private Auth factory to admit it as Main15.
+    with closing(sqlite3.connect(path.as_uri()+'?mode=ro',uri=True,isolation_level=None)) as conn:
+        from research.financial_guard import install_default_hook
+        conn.row_factory=sqlite3.Row;install_default_hook(conn);conn.execute('BEGIN')
+        ResearchStore._check_v12(conn)
         assert tuple(conn.execute('SELECT result_ref,admission_json,receipt_json,result_json,commit_json FROM research_formula_runs').fetchone())==before
         assert conn.execute('PRAGMA journal_mode').fetchone()[0]=='wal'
         assert not conn.execute('PRAGMA foreign_key_check').fetchall()
