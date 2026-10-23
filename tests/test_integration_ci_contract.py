@@ -974,6 +974,12 @@ SANITY_SPLIT_DIGESTS = {
 }
 
 
+def _sanity_backend_env_before_root_namespace(value):
+    """Reverse exactly one repository-root suffix while retaining backend first."""
+    assert value == {'PYTHONPATH': '${{ github.workspace }}/web/backend:${{ github.workspace }}'}, 'sanity backend namespace must contain exactly backend then repository root'
+    return {'PYTHONPATH': '${{ github.workspace }}/web/backend'}
+
+
 def _assert_sanity_backend_dependency(value):
     jobs = value["jobs"]
     assert set(jobs) == {"sanity-backend", "sanity"}
@@ -997,6 +1003,7 @@ def _assert_sanity_backend_dependency(value):
     normalized = copy.deepcopy(jobs)
     baseline = next(s for s in normalized['sanity-backend']['steps'] if s.get('name') == 'Leg 2 — web/backend pytest baseline')
     assert baseline['working-directory'] == 'web/backend'
+    baseline['env'] = _sanity_backend_env_before_root_namespace(baseline.get('env'))
     assert baseline['env'] == {'PYTHONPATH': '${{ github.workspace }}/web/backend'}
     baseline['run'] = original_backend_script(baseline['run'])
     for name, expected in SANITY_SPLIT_DIGESTS.items():
@@ -1361,3 +1368,25 @@ def test_gov_lifecycle_ci_delta_rejects_weakened_or_missing_consumer(kind, mutat
     with pytest.raises(AssertionError):
         if kind == 'sanity': _assert_sanity_backend_dependency(value)
         else: _assert_research_coverage_closure(value, (ROOT / '.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('mutation', [
+    'missing', 'old_only', 'root_only', 'root_first', 'duplicate_root',
+    'duplicate_backend', 'extra_namespace', 'modified_root', 'extra_env', 'job_env',
+])
+def test_sanity_backend_root_namespace_inverse_rejects_drift(mutation):
+    value = workflow('sanity.yml')
+    job = value['jobs']['sanity-backend']
+    step = next(s for s in job['steps'] if s.get('name') == 'Leg 2 — web/backend pytest baseline')
+    backend, root = '${{ github.workspace }}/web/backend', '${{ github.workspace }}'
+    if mutation == 'missing': step.pop('env')
+    elif mutation == 'old_only': step['env']['PYTHONPATH'] = backend
+    elif mutation == 'root_only': step['env']['PYTHONPATH'] = root
+    elif mutation == 'root_first': step['env']['PYTHONPATH'] = root + ':' + backend
+    elif mutation == 'duplicate_root': step['env']['PYTHONPATH'] += ':' + root
+    elif mutation == 'duplicate_backend': step['env']['PYTHONPATH'] = backend + ':' + step['env']['PYTHONPATH']
+    elif mutation == 'extra_namespace': step['env']['PYTHONPATH'] += ':/unapproved/source'
+    elif mutation == 'modified_root': step['env']['PYTHONPATH'] = backend + ':' + root + '/other'
+    elif mutation == 'extra_env': step['env']['PYTEST_ADDOPTS'] = '-k smoke'
+    else: job['env'] = {'PYTHONPATH': root}
+    with pytest.raises(AssertionError): _assert_sanity_backend_dependency(value)
