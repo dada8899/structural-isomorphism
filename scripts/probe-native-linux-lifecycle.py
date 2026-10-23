@@ -21,7 +21,7 @@ import time
 from uuid import uuid4
 
 ROOT=Path(__file__).resolve().parents[1]
-BRANCH='refs/heads/codex/structure-native-linux-lifecycle-attempt3-20261024'
+BRANCH='refs/heads/codex/structure-native-linux-lifecycle-attempt4-20261024'
 REPOSITORY='dada8899/structural-isomorphism'
 USER=GROUP='structural-native-probe'
 UNIT='structural-web.service'
@@ -80,7 +80,9 @@ def stat_key(info):return (info.st_dev,info.st_ino,info.st_uid,info.st_gid,info.
 
 
 def mirror_selected(relative):
-    if type(relative) is not str or Path(relative).is_absolute() or '..' in Path(relative).parts or any(part.startswith('.env') for part in Path(relative).parts):raise ProbeFailure('SOURCE')
+    if type(relative) is not str or Path(relative).is_absolute() or '..' in Path(relative).parts:raise ProbeFailure('SOURCE')
+    # Environment paths are excluded from the mirror before any content IO.
+    if any(part.startswith('.env') for part in Path(relative).parts):return False
     if relative in ('web/__init__.py','scripts/run-formal-main.py',FIXTURE,'web/frontend/auth-login.html','web/frontend/auth-verify.html','web/frontend/assets/data/papers-manifest.json'):return True
     if relative in ('structural_isomorphism/__init__.py','structural_isomorphism/search.py','structural_isomorphism/model.py','structural_isomorphism/data.py','structural_isomorphism/discovery_evidence.py'):return True
     if relative.startswith('web/frontend/assets/data/papers/') and Path(relative).suffix=='.md':return True
