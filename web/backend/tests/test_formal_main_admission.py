@@ -204,6 +204,48 @@ def test_actual_main_lifespan_register_save_reopen_funding_closed_and_shutdown(p
     asyncio.run(run())
 
 
+def test_registered_user_research_favorites_sso_delete_and_no_inheritance(prepared):
+    """The complete registration chain uses the admitted Main and SMTP sink."""
+    main, admission, paths, messages = prepared
+    from api import auth, sso
+    from .test_research_persistence import problem, envelope
+    import jwt
+    async def run():
+        async with main.lifespan(main.app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app), base_url=BETA) as client:
+                await login(client, messages, 'fresh@example.invalid')
+                user = auth._store().user('fresh@example.invalid'); oldgen = user['session_generation']
+                oldcookie = client.cookies.get('phase_session')
+                response = await client.post('/api/research', json=envelope({'problem': problem()}), headers={'origin': BETA, 'idempotency-key': 'registration-save'})
+                assert response.status_code == 200, response.text
+                rid = response.json()['data']['research']['id']
+                assert (await client.get('/api/research/' + rid)).status_code == 200
+                assert (await client.post('/api/favorites/AAPL', headers={'origin': BETA})).status_code == 201
+                assert (await client.get('/api/favorites')).json()['tickers'] == ['AAPL']
+                start = await client.get('/api/sso/start', follow_redirects=False)
+                assert start.status_code == 303, start.text
+                binding = jwt.decode(start.cookies.get(sso._STATE_COOKIE), os.environ['STRUCTURAL_SSO_SECRET'], algorithms=['HS256'], audience='structural-beta-start', issuer=BETA)
+                issued = await client.post('/api/sso/issue', json={'audience': 'structural-beta', 'state': binding['state'], 'nonce': binding['nonce']}, headers={'origin': BETA})
+                assert issued.status_code == 200, issued.text
+                code = issued.json()['code']
+                exchanged = await client.post('/api/sso/exchange', json={'code': code, 'state': binding['state']}, headers={'origin': BETA})
+                assert exchanged.status_code == 200, exchanged.text
+                assert (await client.post('/api/sso/exchange', json={'code': code, 'state': binding['state']}, headers={'origin': BETA})).status_code == 400
+                deleted = await client.post('/api/me/delete', json={'confirmation': 'DELETE'}, headers={'origin': BETA})
+                assert deleted.status_code == 200, deleted.text
+                assert auth._store().user(user['email']) is None
+                await login(client, messages, 'fresh@example.invalid')
+                assert auth._store().user(user['email'])['session_generation'] != oldgen
+                assert (await client.get('/api/research/' + rid)).status_code == 404
+                assert (await client.get('/api/favorites')).json()['tickers'] == []
+                exported = auth._store().export_account_data(user['email'])
+                assert all(row['kind'] == 'new_account' for row in exported['registration_events'])
+                serialized = json.dumps(exported)
+                for private in ('token_hash', 'gate_id', 'lock_ino', 'database_binding', oldgen):
+                    assert private not in serialized
+    asyncio.run(run())
+
+
 @pytest.mark.parametrize('profile', ['PROD', ' prod '])
 def test_noncanonical_formal_launcher_refuses_before_dotenv(prepared, profile):
     main, _, _, _ = prepared
