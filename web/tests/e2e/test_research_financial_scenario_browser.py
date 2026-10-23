@@ -219,3 +219,54 @@ async def late_recovery_catalog(tmp_path):
 
 
 def test_fin3_actual_main_late_recovery_catalog_not_revived_after_delete(tmp_path):asyncio.run(late_recovery_catalog(tmp_path))
+
+
+async def mode_drafts(tmp_path):
+    async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
+        facts['scope']='FIN3 repaired cost/allocation modes, explicit units, isolated drafts and actual save'
+        await choose_material(page,service);facts['loaded_scripts']=service._fin3_loaded_scripts;await fill_form(page)
+        posts=[];page.on('request',lambda r:posts.append(r.post_data) if r.method=='POST' and r.url.endswith('/financial-calculations') else None)
+        await page.locator('#financial-scenario-s0-cost-panel').evaluate('(n)=>n.open=true');await page.locator('#financial-scenario-s0-add-cost').click()
+        await page.locator('#financial-scenario-s0-cost0-label').fill('合成五项成本');await page.locator('#financial-scenario-s0-cost0-coverage').fill('五项均明确包含，无重复，仅合成条件。')
+        for tag in ['base_operating_cost','base_operating_expense','shared_cost','depreciation','sbc']:await page.locator('#financial-scenario-s0-cost0-'+tag).check()
+        await page.locator('#financial-scenario-s0-cost0-mode').select_option('revenue_ratio')
+        for year in [2026,2027]:
+            await page.locator(f'#financial-scenario-s0-cost0-enabled-{year}').check();await page.locator(f'#financial-scenario-s0-cost0-{year}-value').fill('25');await page.locator(f'#financial-scenario-s0-cost0-{year}-reason').fill('原25%成本条件')
+        await page.locator('#financial-scenario-s0-cost0-mode').select_option('amount')
+        for year in [2026,2027]:
+            for field in ['value','unit','currency']:await expect(page.locator(f'#financial-scenario-s0-cost0-{year}-{field}')).to_have_value('')
+            await page.locator(f'#financial-scenario-s0-cost0-{year}-value').fill('50');await page.locator(f'#financial-scenario-s0-cost0-{year}-reason').fill('重新明确50百万美元成本条件')
+        await page.locator('#financial-scenario-consent').check();await page.locator('#financial-scenario-calculate').click();await expect(page.locator('#financial-scenario-status')).to_contain_text('成本金额/比例单位或币种不匹配');assert posts==[] and await pending(page)=={} and await count(service)==0
+        for year in [2026,2027]:
+            await page.locator(f'#financial-scenario-s0-cost0-{year}-unit').select_option('million');await page.locator(f'#financial-scenario-s0-cost0-{year}-currency').select_option('USD')
+        await page.locator('#financial-scenario-s0-cost0-mode').select_option('revenue_ratio')
+        for year in [2026,2027]:
+            await expect(page.locator(f'#financial-scenario-s0-cost0-{year}-value')).to_have_value('25');await expect(page.locator(f'#financial-scenario-s0-cost0-{year}-unit')).to_have_count(0)
+        await page.locator('#financial-scenario-s0-cost0-mode').select_option('amount')
+        for year in [2026,2027]:
+            await expect(page.locator(f'#financial-scenario-s0-cost0-{year}-value')).to_have_value('50');await expect(page.locator(f'#financial-scenario-s0-cost0-{year}-unit')).to_have_value('million');await expect(page.locator(f'#financial-scenario-s0-cost0-{year}-currency')).to_have_value('USD')
+        await page.locator('#financial-scenario-categories-panel').evaluate('(n)=>n.open=true');await page.locator('#financial-scenario-add-category').click();await page.locator('#financial-scenario-category-0-label').fill('合成业务');await page.locator('#financial-scenario-category-0-definition').fill('独立业务部分，其余收入进入未分配。');await page.locator('#financial-scenario-categories-confirmed').check()
+        await page.locator('#financial-scenario-s0-allocations-panel').evaluate('(n)=>n.open=true');await page.locator('#financial-scenario-s0-add-allocation').click();await page.locator('#financial-scenario-s0-allocation0-category').select_option('0')
+        for year in [2026,2027]:
+            await page.locator(f'#financial-scenario-s0-allocation0-enabled-{year}').check();await page.locator(f'#financial-scenario-s0-allocation0-{year}-value').fill('30');await page.locator(f'#financial-scenario-s0-allocation0-{year}-reason').fill('独立30百万美元业务条件')
+        await page.locator('#financial-scenario-s0-allocation0-mode').select_option('share')
+        for year in [2026,2027]:
+            await expect(page.locator(f'#financial-scenario-s0-allocation0-{year}-value')).to_have_value('');await expect(page.locator(f'#financial-scenario-s0-allocation0-{year}-unit')).to_have_count(0);await page.locator(f'#financial-scenario-s0-allocation0-{year}-value').fill('25');await page.locator(f'#financial-scenario-s0-allocation0-{year}-reason').fill('独立25%业务条件')
+        await page.locator('#financial-scenario-s0-allocation0-mode').select_option('amount')
+        for year in [2026,2027]:
+            await expect(page.locator(f'#financial-scenario-s0-allocation0-{year}-value')).to_have_value('30');await expect(page.locator(f'#financial-scenario-s0-allocation0-{year}-unit')).to_have_value('million');await expect(page.locator(f'#financial-scenario-s0-allocation0-{year}-currency')).to_have_value('USD')
+        await page.locator('#financial-scenario-s0-allocation0-mode').select_option('share');await expect(page.locator('#financial-scenario-s0-allocation0-2026-value')).to_have_value('25');await page.locator('#financial-scenario-s0-allocation0-mode').select_option('amount');await expect(page.locator('#financial-scenario-consent')).not_to_be_checked()
+        await page.locator('#financial-scenario-s0-allocation0-2027-currency').select_option('');await page.locator('#financial-scenario-consent').check();await page.locator('#financial-scenario-calculate').click();await expect(page.locator('#financial-scenario-status')).to_contain_text('分配金额/比例单位或币种不匹配');assert posts==[] and await pending(page)=={} and await count(service)==0
+        await page.locator('#financial-scenario-s0-allocation0-2027-currency').select_option('USD');await page.locator('#financial-scenario-consent').check()
+        async with page.expect_response('**/financial-calculations') as saved:await page.locator('#financial-scenario-calculate').click()
+        response=await saved.value;assert response.status==200,await response.text();data=(await response.json())['data'];await expect(page.locator('#financial-scenario-status')).to_contain_text('条件计算已保存');assert len(posts)==1 and await count(service)==1
+        request=json.loads(posts[0])['data']['request']['scenarios'][0]
+        assert request['costs'][0]['mode']==request['allocations'][0]['mode']=='amount'
+        for name,value in [('costs','50'),('allocations','30')]:
+            assert len(request[name][0]['values'])==2
+            for item in request[name][0]['values']:assert item['parameter']['value']==value and item['parameter']['unit']=='million' and item['parameter']['currency']=='USD'
+        await page.get_by_role('button',name='年度底表',exact=True).click();await expect(page.locator('#financial-scenario-result')).to_contain_text('150.000000');await expect(page.locator('#financial-scenario-result')).to_contain_text('30.000000')
+        facts.update({'active_years':[2026,2027],'cost_ratio_amount_roundtrip_preserved':True,'allocation_amount_share_roundtrip_preserved':True,'first_other_mode_clears_numeric_and_monetary_requires_selection':True,'unconfirmed_consent_reset':True,'bad_unit_or_currency_preflight_posts':0,'successful_posts':1,'actual_result_rows':1,'saved_modes_units_currency_correct':True,'result_ref':data['metadata']['result_ref']})
+
+
+def test_fin3_actual_main_mode_drafts_units_preflight_and_save(tmp_path):asyncio.run(mode_drafts(tmp_path))
