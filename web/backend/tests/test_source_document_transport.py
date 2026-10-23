@@ -9,7 +9,7 @@ from research.source_document_raw import (DocWireTarget,catalog,decode_doc_wire,
 from research.source_document_access import (material_data,material_bytes,validate_material,APPROVED_FROM,
     approved_references,DocRequestWitness)
 from research.source_policy import (_doc_response,_network_get,ActualDocOutcome,ActualTransportRetirement,
-    require_doc_outcome,require_doc_retirement)
+    require_doc_outcome,require_doc_retirement,SourceFailure)
 from research.source_sec_access import DocRequestFlight
 from research.source_spawn import SourceSpawnProcess
 from research.evidence_schemas import canonical,sha256
@@ -66,6 +66,14 @@ def test_non200_observation_never_reads_body_or_assigns_complete_hash(status):
     assert not data.reads and raw==b'' and observation.http_status==status
     assert not observation.body_complete and observation.raw_length is None and observation.raw_sha256 is None
     assert observation.observed_failure_at is not None
+
+
+@pytest.mark.parametrize('status',[200,403])
+@pytest.mark.parametrize('headers',[{'Content-Length':'invalid'},{'Content-Encoding':'x'*65}])
+def test_malformed_headers_keep_limited_actual_status_without_body(status,headers):
+    data=ResponseData(status=status,headers=headers)
+    with pytest.raises(SourceFailure) as observed:_doc_response(wire_data(),data,T)
+    assert observed.value.http_status==status and not data.reads
 
 
 @pytest.mark.parametrize('headers,body,code,complete,lower',[

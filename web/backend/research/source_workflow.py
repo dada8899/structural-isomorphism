@@ -240,9 +240,20 @@ class SourceSession:
                     from .source_spawn import SourceCleanupUncertain
                     if isinstance(error,SourceCleanupUncertain) or getattr(error,'_source_cleanup_uncertainty',None):raise
                     if not completion.reconcile_ack():raise
-            except BaseException:
+            except BaseException as error:
                 # A physically uncertain transport is retained by its native
                 # flight. Original fresh-lock cleanup owns UNKNOWN closure.
+                from .source_spawn import SourceCleanupUncertain
+                if (isinstance(error,SourceFailure) and error.http_status is not None
+                        and not isinstance(error,SourceCleanupUncertain) and not getattr(error,'_source_cleanup_uncertainty',None)
+                        and supervisor._sec_access.flight is None and self._doc_request is not None and self._doc_request.issued):
+                    # A malformed/partial response can still have an actually
+                    # observed status. Keep that limited fact in UNKNOWN; it
+                    # neither creates Raw/R/C nor changes proof_version1.
+                    with DocTransaction(self) as conn,worker_scope(conn,self.store,self.task_lease,owner_lease=lease):
+                        self.checked(conn)
+                        conn.execute("UPDATE research_source_requests SET outcome='UNKNOWN',safe_code='outcome_unknown',http_status=?,ended_at=? WHERE id=? AND outcome='SENDING' AND execution_closed=0",
+                            (error.http_status,now(),self._doc_request.row['id']))
                 raise
             finally:
                 flight=supervisor._sec_access.flight
