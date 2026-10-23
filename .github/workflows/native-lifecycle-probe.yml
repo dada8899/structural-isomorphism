@@ -2,7 +2,7 @@ name: Native Linux lifecycle probe
 
 on:
   push:
-    branches: [codex/structure-native-linux-lifecycle-attempt6-20261024]
+    branches: [codex/structure-native-linux-lifecycle-attempt7-20261024]
 
 permissions:
   contents: read
@@ -16,7 +16,7 @@ jobs:
     if: >-
       github.event_name == 'push'
       && github.repository == 'dada8899/structural-isomorphism'
-      && github.ref == 'refs/heads/codex/structure-native-linux-lifecycle-attempt6-20261024'
+      && github.ref == 'refs/heads/codex/structure-native-linux-lifecycle-attempt7-20261024'
       && github.run_attempt == '1'
       && github.event.created == true
       && toJSON(github.event.deleted) == 'false'
@@ -109,6 +109,8 @@ jobs:
                   raise SystemExit('PUBLIC_RECEIPT_REFUSED')
               value = module.strict_json(os.read(fd, 32769))
               module.validate_receipt(value)
+              if value['protocol'] != 'native-linux-lifecycle-probe-v4':
+                  raise SystemExit('PUBLIC_RECEIPT_REFUSED')
               if value['head'] != os.environ['GITHUB_SHA'] or module.stat_key(os.fstat(fd)) != module.stat_key(before) or module.stat_key(path.lstat()) != module.stat_key(before):
                   raise SystemExit('PUBLIC_RECEIPT_REFUSED')
           finally:
