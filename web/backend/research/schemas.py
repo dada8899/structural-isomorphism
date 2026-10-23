@@ -260,6 +260,63 @@ class SourceStartEnvelope(StrictObject):
     data: SourceStartRequest
 
 
+class RawPrepPreviewRequest(StrictObject):
+    input_revision: Revision
+    expected_research_version: Revision
+    rawprep_profile_id: Literal['gfs-2025-rawprep-v1']
+
+
+class RawPrepApprovalRequest(RawPrepPreviewRequest):
+    preview_digest: Annotated[str, StringConstraints(strict=True, pattern=r'^[0-9a-f]{64}$')]
+    confirm_external: StrictBool
+
+    @field_validator('confirm_external')
+    @classmethod
+    def explicit_raw_consent(cls, value):
+        if value is not True: raise ValueError('explicit DOC confirmation required')
+        return value
+
+
+class RawPrepStartRequest(SourceStartRequest):
+    pass
+
+
+class RawPrepPreviewEnvelope(StrictObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['official-document-rawprep-v1']
+    data: RawPrepPreviewRequest
+
+
+class RawPrepApprovalEnvelope(StrictObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['official-document-rawprep-v1']
+    data: RawPrepApprovalRequest
+
+
+class RawPrepStartEnvelope(StrictObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['official-document-rawprep-v1']
+    data: RawPrepStartRequest
+
+
+def source_envelope(model, body):
+    """One strict contract dispatch for HTTP and native action verification."""
+    raw_models = {SourcePreviewEnvelope:RawPrepPreviewEnvelope,
+        SourceApprovalEnvelope:RawPrepApprovalEnvelope, SourceStartEnvelope:RawPrepStartEnvelope}
+    if type(body) is dict and body.get('contract_revision') == 'official-document-rawprep-v1':
+        model = raw_models[model]
+    return model.model_validate(body)
+
+
+def source_request_digest(request, operation):
+    from .source_document_raw import idempotency_digest
+    from .service import digest
+    data = request.model_dump(mode='json')
+    if type(request) in (RawPrepApprovalRequest,RawPrepStartRequest):
+        return idempotency_digest(operation,data)
+    return digest(data)
+
+
 PaidId=Annotated[str,StringConstraints(strict=True,pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")]
 PaidDigest=Annotated[str,StringConstraints(strict=True,pattern=r"^[a-f0-9]{64}$")]
 

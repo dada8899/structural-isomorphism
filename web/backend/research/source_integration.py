@@ -261,6 +261,11 @@ def _canonical_draft(problem_digest,query,recorded_mode):
 
 def plan_for(task,approval,plan_id):
     fields=json.loads(approval["plan_json"])
+    if approval['query'] is None:
+        from .source_document_raw import RawPrepPlan,decode_plan_spec
+        return RawPrepPlan(id=plan_id,research_id=task['research_id'],input_revision=task['input_revision'],
+            task_id=task['id'],attempt=1,input_digest=task['input_digest'],record_schema='RawPrepPlan-v1',
+            plan=decode_plan_spec(fields),created_at=task['created_at'])
     return AnalysisPlan(id=plan_id,research_id=task["research_id"],input_revision=task["input_revision"],
         task_id=task["id"],attempt=1,input_digest=task["input_digest"],query=fields["query"],external_query_approved=True,
         objective=fields["objective"],competing_explanations=tuple(fields["competing_explanations"]),
@@ -332,6 +337,12 @@ def check_approval(conn,task):
             or approval["auth_generation"]!=task["auth_generation"] or approval["research_id"]!=task["research_id"]
             or approval["input_revision"]!=task["input_revision"] or approval["execution_mode"]!=task["execution_mode"]):
         raise PermissionError("source approval unavailable")
+    if approval['query'] is None:
+        # A NULL query is not a new execution discriminator or permit.
+        from .source_document_raw import recorded_draft
+        recorded_draft(approval['problem_digest'],approval['plan_json'])
+        from .source_document_access import require_execution
+        require_execution()
     fields,pd,fp,inp=draft(approval["problem_digest"],approval["query"])
     legacy=sha256(canonical({"problem_digest":approval["problem_digest"],"query":normalized_query(approval["query"]),"operation_family":"crossref-plos-method-get"}).encode())
     if pd!=approval["plan_digest"] or canonical(fields)!=approval["plan_json"] or inp!=task["input_digest"] or run["fingerprint"] not in (fp,legacy) or run["fingerprint"]!=approval["fingerprint"]:
@@ -342,6 +353,9 @@ def check_approval(conn,task):
 
 
 def preview(service,identity,rid,request,*,request_app=None):
+    from .schemas import RawPrepPreviewRequest
+    if type(request) is RawPrepPreviewRequest:
+        return raw_preview(service,identity,rid,request,request_app=request_app)
     require_enabled(request_app,store=service.store);rid=service._id(rid);pid=service._principal(identity)
     with service.store.transaction() as conn:
         row=service.authorization.check(conn,identity,pid,rid)
@@ -363,6 +377,9 @@ def _source_scope(conn,service,owner,identity,rid,request,key,source,*,admit=Fal
 
 
 def approve(service,identity,rid,request,key,*,request_source=None,request_app=None):
+    from .schemas import RawPrepApprovalRequest
+    if type(request) is RawPrepApprovalRequest:
+        return _raw_blocked_action(service,identity,rid,request,key,request_source,'source-approve',request_app)
     require_enabled(request_app,store=service.store);rid=service._id(rid);pid=service._principal(identity)
     payload=request.model_dump(mode="json")
     from .service import digest
@@ -391,6 +408,9 @@ def approve(service,identity,rid,request,key,*,request_source=None,request_app=N
 
 
 def start_source(service,identity,rid,request,key,*,request_source=None,request_app=None):
+    from .schemas import RawPrepStartRequest
+    if type(request) is RawPrepStartRequest:
+        return _raw_blocked_action(service,identity,rid,request,key,request_source,'source-start',request_app)
     require_enabled(request_app,store=service.store);rid=service._id(rid);pid=service._principal(identity)
     from .service import digest
     from .projection import ResearchProjection
@@ -449,3 +469,75 @@ def start_source(service,identity,rid,request,key,*,request_source=None,request_
         result=ResearchProjection.build(conn,service.authorization.check(conn,identity,pid,rid))
         service._remember(conn,pid,"source-start","r:"+rid,key,digest(payload),result)
         return result
+
+
+def raw_source_chains(conn,principal_id,research_id):
+    from .source_document_raw import common_fingerprint
+    return conn.execute('SELECT * FROM research_source_chains WHERE principal_id=? AND research_id=? AND fingerprint=? ORDER BY id',
+        (principal_id,research_id,common_fingerprint())).fetchall()
+
+
+def raw_preview(service,identity,rid,request,*,request_app=None):
+    from .source_document_raw import rawprep_draft,quota_state,PUBLIC_CAP,CONTRACT
+    require_enabled(request_app,capability='research_basic',store=service.store)
+    rid=service._id(rid);pid=service._principal(identity)
+    with service.store.transaction() as conn:
+        row=service.authorization.check(conn,identity,pid,rid)
+        if row['current_revision']!=request.input_revision or row['version']!=request.expected_research_version:
+            raise ResearchError('REVISION_CONFLICT',409,'预览基准已变化，请载入最新问题。')
+        problem=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,request.input_revision)).fetchone()
+        fields,pd,fp,inp=rawprep_draft(problem[0],request.rawprep_profile_id)
+        chains=raw_source_chains(conn,pid,rid)
+        quota=quota_state(list(chains),unclosed_sources(conn,chains))
+        blocked=['ACCESS_IDENTITY_UNBOUND','DOC_NATIVE_UNAVAILABLE']
+        if quota['unclosed']:blocked.append('RECONCILIATION_REQUIRED')
+        if quota['remaining']<2:blocked.append('QUOTA_INSUFFICIENT')
+        result={'schema_version':'structure-research-v1','contract_revision':CONTRACT,'data':{
+            'input_revision':request.input_revision,'research_version':row['version'],'plan':fields,
+            'preview_digest':sha256(canonical({'contract_revision':CONTRACT,'plan_digest':pd,'input_digest':inp}).encode()),
+            'availability':'unavailable','can_confirm':False,'blocked_reasons':blocked,'quota':quota,
+            'document_identity':'unverified','model_analysis_ran':False,'statistics_ran':False,
+            'display_excerpt_allowed':False,'provider_allowed':False,'export_allowed':False}}
+        if len(canonical(result).encode())>PUBLIC_CAP:raise ResearchError('RESOURCE_LIMIT',413,'准备信息超过上限。')
+        return result
+
+
+def _raw_blocked_action(service,identity,rid,request,key,source,operation,app):
+    from .schemas import source_request_digest
+    from .paid_control import require_authenticated_action
+    from .source_document_access import require_execution
+    require_enabled(app,capability='research_basic',store=service.store)
+    rid=service._id(rid);pid=service._principal(identity)
+    body_digest=source_request_digest(request,operation)
+    require_authenticated_action(source,identity=identity,action=operation,research_id=rid,key=key,body_digest=body_digest)
+    with service.store.transaction() as conn:
+        service.authorization.check(conn,identity,pid,rid,scope='write')
+        # Preserve cross-contract key conflicts; even a matching old stored
+        # response cannot reopen B1 execution or create an approval/task.
+        service._replay(conn,pid,operation,'r:'+rid,key,body_digest)
+        require_execution()
+
+
+def raw_preparations(service,identity,rid,task_id,*,request_source=None,request_app=None):
+    from .source_document_access import rawprep_read_scope,require_private_cache
+    require_enabled(request_app,capability='source_history',store=service.store)
+    rid=service._id(rid);task_id=service._id(task_id);pid=service._principal(identity)
+    with service.store.transaction() as conn:
+        service.authorization.check(conn,identity,pid,rid)
+        task=conn.execute('SELECT * FROM research_tasks WHERE id=? AND research_id=? AND policy_revision=?',(task_id,rid,POLICY)).fetchone()
+        if not task:raise not_found()
+        context=context_for(conn,task_id)
+        with rawprep_read_scope(conn,service,identity,request_source,rid,task_id) as scope:
+            scope.check(conn,context)
+            repository=EvidenceRepository(conn,authorizer(service.store,identity=identity))
+            rows=conn.execute("SELECT id FROM research_evidence_objects WHERE task_id=? AND kind='snapshots' ORDER BY id LIMIT 5",(task_id,)).fetchall()
+            if len(rows)>4:raise ResearchError('STORE_UNAVAILABLE',503,'原始材料记录当前无法核对。')
+            try:
+                for row in rows:repository.read_raw_candidate(context,row[0],read_scope=scope)
+                # B1 never substitutes a self-hash row, empty list, old paper
+                # receipt or completed task for current private-cache rights.
+                require_private_cache()
+            except PermissionError:
+                raise ResearchError('SOURCE_PERMISSION_UNAVAILABLE',503,'原始材料尚无可用的受保护读取依据。') from None
+            except (ValueError,LookupError):
+                raise ResearchError('STORE_UNAVAILABLE',503,'原始材料记录当前无法核对。') from None

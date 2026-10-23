@@ -80,6 +80,9 @@ class EvidenceRepository:
             raise ValueError("persisted evidence digest mismatch")
         record = decode(kind, row[0])
         self._same(context, record)
+        from .source_document_raw import RAW_TYPES
+        if type(record) in RAW_TYPES:
+            raise PermissionError('DOC records require the protected raw reader')
         if type(record) is DataSnapshot and any(v is not None for v in (row[1], row[2], row[4])):
             if (not record.licence.private_cache or type(row[1]) is not bytes or type(row[2]) is not str or type(row[4]) is not bytes
                     or sha256(row[1]) != record.raw_digest or sha256(row[2].encode()) != record.extracted_digest
@@ -191,6 +194,8 @@ class EvidenceRepository:
             start=candidate.start,end=candidate.end,quote=candidate.quote)
 
     def _permissions(self, context, record, *, export=False):
+        from .source_document_raw import RAW_TYPES
+        if type(record) in RAW_TYPES:raise PermissionError('raw DOC is not display/export/provider evidence')
         snapshots = []
         if type(record) is DataSnapshot:
             snapshots = [record]
@@ -210,6 +215,9 @@ class EvidenceRepository:
                 raise PermissionError("evidence export not permitted")
 
     def put(self, context, record, *, raw=None, extracted=None, discovery=None):
+        from .source_document_raw import RAW_TYPES
+        if type(record) in RAW_TYPES:
+            raise PermissionError('B1 ordinary put cannot create native DOC output')
         self._guard(context, "write")
         self._same(context, record)
         payload = encode(record)
@@ -299,3 +307,84 @@ class EvidenceRepository:
         """
         self._guard(context, "delete")
         return self.conn.execute("DELETE FROM research_evidence_objects WHERE research_id=?", (context.research_id,)).rowcount
+
+    def _raw_anchor(self, context, artifact_ref, store):
+        """Reverse-check protected C and all original records; no read permit.
+
+        This never treats evidence INSERT, self hashes, UUIDs or UNKNOWN's old
+        fresh-lock closure as acquisition. B1's writer cannot issue a valid C.
+        """
+        from dataclasses import asdict
+        from .source_document_raw import (RawArtifact,RawPrepPlan,RawPrepRequestReceipt,decode_commitment,
+            target_digest,decode_raw,encode_raw)
+        from .source_guard import check_origin
+        def row_record(ref,kind,expected):
+            row=self.conn.execute('SELECT * FROM research_evidence_objects WHERE id=? AND kind=?',(ref,kind)).fetchone()
+            if row is None:raise ValueError('DOC output reference absent')
+            if sha256(row['payload'].encode())!=row['payload_digest']:raise ValueError('DOC payload digest differs')
+            record=decode_raw(kind,row['payload'])
+            if type(record) is not expected or encode_raw(record)!=row['payload']:raise ValueError('DOC exact canonical output required')
+            self._same(context,record)
+            if (row['research_id'],row['input_revision'],row['task_id'],row['attempt'])!=(context.research_id,context.input_revision,context.task_id,context.attempt):raise ValueError('DOC row binding differs')
+            return row,record
+        arow,artifact=row_record(artifact_ref,'snapshots',RawArtifact)
+        request=self.conn.execute('SELECT * FROM research_source_requests WHERE id=?',(artifact.request_id,)).fetchone()
+        if (request is None or request['task_id']!=context.task_id or request['outcome'] not in ('SUCCEEDED','FAILED')
+                or request['execution_closed']!=1 or request['closure_ref'] is None or request['closure_proof'] is None):
+            raise ValueError('DOC protected first output commitment absent')
+        c=decode_commitment(request['closure_proof'])
+        if canonical(c)!=request['closure_proof']:raise ValueError('DOC canonical commitment required')
+        expected_scope={key:getattr(context,key) for key in ('research_id','input_revision','attempt','input_digest')}
+        if c['scope']!=expected_scope:raise ValueError('DOC commitment scope differs')
+        for key in ('dispatch_id','chain_id','ordinal','task_id','step_id','semantic','target_digest','write_epoch'):
+            if c['request'][key]!=request[key]:raise ValueError('DOC committed dispatch differs')
+        if c['request']['request_id']!=request['id'] or artifact.dispatch_id!=request['dispatch_id']:raise ValueError('DOC request differs')
+        for key in ('owner_gate_identity','task_gate_identity'):
+            if canonical(c['request'][key])!=request[key]:raise ValueError('DOC committed gate differs')
+        if c['receipt_ref']!=request['closure_ref']:raise ValueError('DOC receipt anchor differs')
+        rrow,receipt=row_record(c['receipt_ref'],'executions',RawPrepRequestReceipt)
+        if any(rrow[key] is not None for key in ('raw','extracted','discovery')):raise ValueError('DOC receipt has cached body')
+        if c['receipt_payload_digest']!=rrow['payload_digest']:raise ValueError('DOC receipt payload differs')
+        if (receipt.request_id,receipt.dispatch_id,receipt.ordinal,receipt.artifact_ref)!=(request['id'],request['dispatch_id'],request['ordinal'],artifact.id):raise ValueError('DOC receipt references another output')
+        result=c['result']
+        observed=asdict(receipt.observation)
+        if (result['request_outcome'],result['output_variant'],result['actual_http_status'],result['safe_code'])!=(request['outcome'],receipt.output_variant,request['http_status'],request['safe_code']):raise ValueError('DOC final observation differs')
+        completion=receipt.observation.received_at if receipt.observation.body_complete else receipt.observation.observed_failure_at
+        if result['completion_observed_at']!=completion or request['ended_at']!=completion:raise ValueError('DOC completion timestamp differs')
+        if receipt.observation.attempted_at!=request['started_at'] or receipt.observation.http_status!=request['http_status'] or receipt.observation.safe_code!=request['safe_code']:raise ValueError('DOC original observation differs')
+        if sha256(canonical(observed).encode())!=c['observation_digest'] or sha256(canonical(asdict(receipt.retirement)).encode())!=c['retirement_digest']:raise ValueError('DOC observation/retirement digest differs')
+        if artifact.observation!=receipt.observation or artifact.doc_ref!=receipt.doc_ref:raise ValueError('DOC artifact observation differs')
+        if (c['artifact']['artifact_ref'],c['artifact']['artifact_payload_digest'],c['artifact']['raw_length'],c['artifact']['raw_sha256'])!=(artifact.id,arow['payload_digest'],artifact.raw_length,artifact.raw_sha256):raise ValueError('DOC protected artifact commitment differs')
+        if (type(arow['raw']) is not bytes or len(arow['raw'])!=artifact.raw_length or sha256(arow['raw'])!=artifact.raw_sha256
+                or arow['extracted'] is not None or arow['discovery'] is not None):raise ValueError('DOC full original bytes differ')
+        # Original acquisition proof is distinct from the run/resource epochs
+        # legitimately advanced by later stop. C's epoch was checked against
+        # the immutable request above, never against today's write_epoch.
+        try:resource=check_origin(store,self.conn,context.task_id)
+        except (PermissionError,ValueError,KeyError):raise ValueError('DOC original protected admission unavailable') from None
+        run=self.conn.execute('SELECT * FROM research_source_runs WHERE task_id=?',(context.task_id,)).fetchone()
+        if run is None:raise ValueError('DOC original run absent')
+        prow,plan=row_record(run['plan_id'],'plans',RawPrepPlan)
+        if any(prow[key] is not None for key in ('raw','extracted','discovery')):raise ValueError('DOC plan has cached body')
+        document=c['document']
+        if (document['plan_id'],artifact.plan_id,receipt.plan_id)!=(plan.id,plan.id,plan.id):raise ValueError('DOC plan ref differs')
+        if document['plan_digest']!=sha256(canonical(asdict(plan.plan)).encode()) or document['admission_digest']!=resource['admission_digest']:raise ValueError('DOC original plan/admission digest differs')
+        if plan.plan.access_profile_ref is None or plan.plan.rights_digest is None:raise ValueError('DOC acquisition profile absent')
+        if (document['catalog_digest'],document['selection_digest'],document['access_profile_ref'],document['rights_digest'])!=(plan.plan.catalog_digest,plan.plan.selection_digest,asdict(plan.plan.access_profile_ref),plan.plan.rights_digest):raise ValueError('DOC original acquisition references differ')
+        if asdict(artifact.access_profile_ref)!=document['access_profile_ref'] or artifact.rights_digest!=document['rights_digest'] or asdict(artifact.doc_ref)!=document['doc_ref']:raise ValueError('DOC artifact acquisition differs')
+        if document['job_digest']!=receipt.observation.job_digest or document['job_digest']!=receipt.retirement.job_digest or target_digest(receipt.observation.requested_target)!=request['target_digest']:raise ValueError('DOC job/target differs')
+        return {'artifact_ref':artifact.id,'receipt_ref':receipt.id,'request_ref':request['id'],
+            'doc_ref':asdict(artifact.doc_ref),'raw_length':artifact.raw_length,'raw_sha256':artifact.raw_sha256,
+            'http_status':request['http_status'],'received_at':receipt.observation.received_at,'document_identity':'unverified'}
+
+    def read_raw_candidate(self,context,artifact_ref,*,read_scope):
+        from .source_document_access import RawReadScope,require_private_cache
+        self._guard(context,'read')
+        if type(read_scope) is not RawReadScope:raise PermissionError('actual DOC read lifetime required')
+        read_scope.check(self.conn,context)
+        result=self._raw_anchor(context,artifact_ref,read_scope.service.store)
+        require_private_cache()
+        return result
+
+    def put_raw_in_completion(self,*args,**kwargs):
+        raise PermissionError('B1 DOC native completion write is closed')

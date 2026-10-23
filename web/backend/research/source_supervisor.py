@@ -238,13 +238,17 @@ def _code_images():
              'source_policy.py', 'source_spawn.py', 'authorization.py', 'runtime_profile.py', 'store.py',
              'service.py', 'runner.py', 'budget.py', 'paid_control.py', 'financial_guard.py',
              'financial_input.py', 'financial_input_guard.py', 'financial_input_schemas.py',
-             'evidence_repository.py', 'evidence_schemas.py', 'source_adapters/crossref_plos.py')
+             'evidence_repository.py', 'evidence_schemas.py', 'source_adapters/crossref_plos.py',
+             'source_document_raw.py', 'source_document_access.py', 'schemas.py')
     result = {}
     for name in names:
         path = root / name
         if path.is_symlink() or not path.is_file():
             raise _unavailable()
         result[path] = hashlib.sha256(path.read_bytes()).digest()
+    path = root.parent / 'api' / 'research.py'
+    if path.is_symlink() or not path.is_file():raise _unavailable()
+    result[path] = hashlib.sha256(path.read_bytes()).digest()
     return result
 
 

@@ -73,6 +73,10 @@ class SourceSession:
 
     @contextmanager
     def request_gate(self,plan,local_ordinal,target):
+        from .source_document_raw import RawPrepPlan
+        if type(plan) is RawPrepPlan:
+            from .source_document_access import require_execution
+            require_execution()
         if plan!=self.plan:raise PermissionError("source plan changed")
         with self.store.transaction() as conn:principal=self.checked(conn)["principal_id"]
         with self.gate.owner_gate(principal) as lease:
@@ -149,6 +153,10 @@ class SourceSession:
             EvidenceRepository(conn,authorizer(self.store)).put(context,record)
 
     def run(self):
+        from .source_document_raw import RawPrepPlan
+        if type(self.plan) is RawPrepPlan:
+            from .source_document_access import require_execution
+            require_execution()
         chain=CrossrefPlosChain(self.plan,self.transport,request_gate=self.request_gate,still_authorized=self.still_authorized,origin=self.mode)
         self.begin(0);hits=chain.discover();self.save_observation();self.finish_step()
         self.begin(1)

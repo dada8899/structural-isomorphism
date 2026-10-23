@@ -168,6 +168,10 @@ class _Scope:
             else:from services.auth_registration import _native
             _native(self.conn,self.store.auth_store)
         if self.mode in ('approve','admit'):
+            from .schemas import RawPrepApprovalRequest,RawPrepStartRequest
+            if type(self.request) in (RawPrepApprovalRequest,RawPrepStartRequest):
+                from .source_document_access import require_execution
+                require_execution()
             from .service import digest
             self.lease.identity
             require_authenticated_action(self.source,identity=self.identity,action='source-approve' if self.mode=='approve' else 'source-start',research_id=self.rid,key=self.key,body_digest=digest(self.request.model_dump(mode='json')))
@@ -288,6 +292,7 @@ class _Scope:
             if any(row[k]!=before[k] for k in row if k!='task_gate_identity'):return False
         else:
             binding=json.loads(resource(self.conn,self.task_id)['admission_json']) if resource(self.conn,self.task_id)['admission_json'] else None
+            if self.mode=='worker' and raw_completion_forbidden(binding,table,row):return False
             if table in ('research_source_runs','research_source_resources'):
                 if row_id!=self.task_id or operation!='UPDATE':return False
                 if self.mode=='worker':
@@ -410,9 +415,14 @@ def check_origin(store,conn,task_id):
             or run['origin']!=mode or approval['execution_mode']!=mode
             or approval['consent_origin']!=CONSENT_ORIGIN or not approval['consent_digest']):
         raise PermissionError('Source recorded acquisition mode differs')
-    fields,pd,fp,inp=_canonical_draft(approval['problem_digest'],approval['query'],mode)
-    legacy=sha256(canonical({'problem_digest':approval['problem_digest'],'query':normalized_query(approval['query']),
-        'operation_family':'crossref-plos-method-get'}).encode())
+    if approval['query'] is None:
+        from .source_document_raw import recorded_draft
+        fields,pd,fp,inp=recorded_draft(approval['problem_digest'],approval['plan_json'])
+        legacy=fp
+    else:
+        fields,pd,fp,inp=_canonical_draft(approval['problem_digest'],approval['query'],mode)
+        legacy=sha256(canonical({'problem_digest':approval['problem_digest'],'query':normalized_query(approval['query']),
+            'operation_family':'crossref-plos-method-get'}).encode())
     if (canonical(fields)!=approval['plan_json'] or pd!=approval['plan_digest'] or inp!=task['input_digest']
             or run['fingerprint'] not in (fp,legacy) or run['fingerprint']!=approval['fingerprint']):
         raise PermissionError('Source recorded plan binding differs')
@@ -457,3 +467,19 @@ def _recorded_admission(row):
     except (KeyError,TypeError,ValueError):
         raise PermissionError('Source original admission unavailable') from None
     return recorded,mode
+
+
+def raw_completion_forbidden(binding,table,row):
+    """B1 refusal; a data-shaped C cannot unlock the generic native writer.
+
+    close mode does not call this: UNKNOWN proof_version1 keeps its original
+    fresh-lock debt meaning, independent of new DOC readiness/decoders.
+    """
+    if table=='research_source_requests' and row.get('closure_proof') is not None:
+        proof=json.loads(row['closure_proof'])
+        if type(proof) is dict and proof.get('record_schema')=='DocRawRequestCommitment-v1':return True
+    if binding and binding['approval']['query'] is None:
+        from .source_document_raw import recorded_draft
+        recorded_draft(binding['approval']['problem_digest'],binding['approval']['plan_json'])
+        return True
+    return False
