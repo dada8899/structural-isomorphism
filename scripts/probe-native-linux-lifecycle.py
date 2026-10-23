@@ -42,7 +42,7 @@ PHASES=('stock_base','stock_genesis','stock_restart','instrumented')
 TOOLS=('/usr/bin/systemctl','/usr/bin/nsenter','/usr/bin/setpriv','/usr/bin/openssl','/usr/sbin/useradd','/usr/sbin/userdel','/usr/sbin/groupadd','/usr/sbin/groupdel')
 SDKS={'pytest':'9.0.3','playwright':'1.59.0','pytest-playwright':'0.7.2','fastapi':'0.135.0','pydantic':'2.7.4','starlette':'1.3.1','uvicorn':'0.27.1','PyJWT':'2.15.1','slowapi':'0.1.9','structlog':'25.5.0'}
 IMPORT_SDKS={'httpx':'0.27.2','numpy':'1.26.3'}
-GIT=('git','-c','filter.lfs.process=','-c','filter.lfs.clean=cat','-c','filter.lfs.smudge=cat','-c','filter.lfs.required=false')
+GIT=('git','-c','safe.directory='+str(ROOT),'-c','filter.lfs.process=','-c','filter.lfs.clean=cat','-c','filter.lfs.smudge=cat','-c','filter.lfs.required=false')
 
 
 class ProbeFailure(RuntimeError):
