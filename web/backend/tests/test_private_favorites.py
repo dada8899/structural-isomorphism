@@ -954,7 +954,7 @@ def test_formal_config_cannot_fallback_or_escape(private, native, monkeypatch, c
 def test_exchange_queued_behind_real_deletion_rechecks_before_consume(stack, native, monkeypatch):
     import threading
     client, code, state, claims = exchange_material(stack, monkeypatch)
-    waiting = threading.Event();original_gate = sso.account_owner_transaction
+    waiting = threading.Event();go = threading.Event();original_gate = sso.account_owner_transaction
     original_consume = sso.SsoReplayStore.consume_issued;consumed = []
     original_connect = sqlite3.connect;local = threading.local();local.handles = []
     def observed(*args, **kwargs):
@@ -966,6 +966,7 @@ def test_exchange_queued_behind_real_deletion_rechecks_before_consume(stack, nat
     @contextmanager
     def announced(owner):
         waiting.set()
+        assert go.wait(timeout=10), 'queued exchange was not released after actual DELETE'
         with original_gate(owner) as lease:yield lease
     def consume(self, jti):
         consumed.append(jti);return original_consume(self, jti)
@@ -983,10 +984,14 @@ def test_exchange_queued_behind_real_deletion_rechecks_before_consume(stack, nat
             with pytest.raises(sqlite3.ProgrammingError):connection.execute('SELECT 1')
         return response
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        with queued_deletion_context():
-            future = executor.submit(exchange)
-            assert waiting.wait(timeout=5)
-        response = future.result(timeout=10)
+        future = None
+        try:
+            with queued_deletion_context():
+                future = executor.submit(exchange)
+                assert waiting.wait(timeout=5)
+        finally:
+            go.set()
+            if future is not None:response = future.result(timeout=10)
     assert response.status_code == 409 and consumed == []
     assert 'set-cookie' not in response.headers
     assert auth._store().user(ALICE) is None

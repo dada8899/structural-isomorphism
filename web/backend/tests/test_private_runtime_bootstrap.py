@@ -21,7 +21,7 @@ def roots(tmp_path,monkeypatch):
 
 
 def test_bootstrap_actual_empty_roots_and_identity_idempotence(roots):
-    assert bootstrap_private_runtime()=={'contract':'auth-provision-v1','research_schema':14,'created':True}
+    assert bootstrap_private_runtime()=={'contract':'auth-provision-v1','research_schema':15,'created':True}
     before={p.name:(p.stat().st_dev,p.stat().st_ino) for p in roots.iterdir()}
     assert not bootstrap_private_runtime()['created']
     assert before=={p.name:(p.stat().st_dev,p.stat().st_ino) for p in roots.iterdir()}
@@ -31,9 +31,9 @@ def test_bootstrap_actual_empty_roots_and_identity_idempotence(roots):
         assert AuthStore.check_offline_auth_metadata(conn)=='auth-provision-v1'
         assert conn.execute('SELECT count(*) FROM auth_users').fetchone()[0]==0
         assert conn.execute('SELECT count(*) FROM auth_registration_operations').fetchone()[0]==0
-        assert list(map(tuple,conn.execute('SELECT * FROM research_schema')))==[(1,14)]
+        assert list(map(tuple,conn.execute('SELECT * FROM research_schema')))==[(1,15)]
         from research import ResearchStore
-        ResearchStore._check_v14(conn)
+        ResearchStore._check_v15(conn)
 
 
 @pytest.mark.parametrize('nullable',[False,True])
