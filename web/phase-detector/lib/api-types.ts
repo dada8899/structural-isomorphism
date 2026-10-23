@@ -777,7 +777,7 @@ export interface EvidenceMethodMeta {
   state: "queued" | "generating" | "saved" | "failed_insufficient" | "pending_reconciliation" | "cancelled";
   cost_state: "unreserved" | "held" | "upper_booked" | "unknown";
   cleanup_state: "pending" | "clean" | "uncertain";
-  safe_code: ("access_ended" | "saved" | "body_invalid" | "send_unknown" | "not_sent" | "cancelled") | null;
+  safe_code: ("saved" | "body_invalid" | "send_unknown" | "not_sent" | "cancelled" | "access_ended") | null;
   recorded_at: string | null;
   execution_mode: ("controlled_fixture" | "native_live") | null;
   real_model_executed: boolean | null;

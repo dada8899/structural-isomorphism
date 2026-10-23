@@ -237,6 +237,39 @@
         "title": "AccountReportsResponse",
         "type": "object"
       },
+      "AllocationV2": {
+        "additionalProperties": false,
+        "properties": {
+          "category_id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Category Id",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "amount",
+              "share"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "$ref": "#/components/schemas/AnnualV2"
+            },
+            "maxItems": 6,
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "category_id",
+          "mode",
+          "values"
+        ],
+        "title": "AllocationV2",
+        "type": "object"
+      },
       "AnalyzeFingerprint": {
         "additionalProperties": false,
         "description": "User-confirmed structure, bound to exactly one source question.",
@@ -400,6 +433,26 @@
           "b_id"
         ],
         "title": "AnalyzeStreamRequest",
+        "type": "object"
+      },
+      "AnnualV2": {
+        "additionalProperties": false,
+        "properties": {
+          "parameter": {
+            "$ref": "#/components/schemas/ParameterV2"
+          },
+          "year": {
+            "maximum": 2031.0,
+            "minimum": 2026.0,
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "year",
+          "parameter"
+        ],
+        "title": "AnnualV2",
         "type": "object"
       },
       "AnonProofResponse": {
@@ -570,6 +623,30 @@
         "title": "AuthUserResponse",
         "type": "object"
       },
+      "AvailabilityV2": {
+        "additionalProperties": false,
+        "properties": {
+          "net_profit": {
+            "title": "Net Profit",
+            "type": "boolean"
+          },
+          "operating_profit": {
+            "title": "Operating Profit",
+            "type": "boolean"
+          },
+          "revenue": {
+            "title": "Revenue",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "revenue",
+          "operating_profit",
+          "net_profit"
+        ],
+        "title": "AvailabilityV2",
+        "type": "object"
+      },
       "BookmarkMutationResponse": {
         "additionalProperties": false,
         "properties": {
@@ -595,6 +672,40 @@
           "bookmark"
         ],
         "title": "BookmarkMutationResponse",
+        "type": "object"
+      },
+      "BridgeV2": {
+        "additionalProperties": false,
+        "properties": {
+          "interim": {
+            "$ref": "#/components/schemas/CellV2"
+          },
+          "qualification": {
+            "const": "2026E, never annualized historical actual",
+            "enum": [
+              "2026E, never annualized historical actual"
+            ],
+            "title": "Qualification",
+            "type": "string"
+          },
+          "remaining_assumption": {
+            "$ref": "#/components/schemas/CellV2"
+          },
+          "target_interim": {
+            "$ref": "#/components/schemas/CellV2"
+          },
+          "target_remaining": {
+            "$ref": "#/components/schemas/CellV2"
+          }
+        },
+        "required": [
+          "interim",
+          "remaining_assumption",
+          "target_interim",
+          "target_remaining",
+          "qualification"
+        ],
+        "title": "BridgeV2",
         "type": "object"
       },
       "CandidateEvidenceEnvelope": {
@@ -845,6 +956,220 @@
         "title": "CatalogOrigin",
         "type": "object"
       },
+      "CategoryV2": {
+        "additionalProperties": false,
+        "properties": {
+          "definition": {
+            "title": "Definition",
+            "type": "string"
+          },
+          "dimension": {
+            "const": "monetization",
+            "enum": [
+              "monetization"
+            ],
+            "title": "Dimension",
+            "type": "string"
+          },
+          "excludes": {
+            "items": {
+              "pattern": "^[a-z][a-z0-9_]{0,31}$",
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Excludes",
+            "type": "array"
+          },
+          "id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "segment",
+              "unallocated"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "definition",
+          "dimension",
+          "excludes",
+          "kind"
+        ],
+        "title": "CategoryV2",
+        "type": "object"
+      },
+      "CellV2": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "enum": [
+              "disclosed",
+              "media_estimate",
+              "missing",
+              "conflicted",
+              "scenario_assumption",
+              "derived_conditional"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "enum": [
+                  "CNY",
+                  "USD"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display"
+          },
+          "provenance_ref": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Provenance Ref",
+            "type": "string"
+          },
+          "raw_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Value"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "title": "Reasons",
+            "type": "array"
+          },
+          "unit": {
+            "enum": [
+              "million",
+              "ratio"
+            ],
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "raw_value",
+          "display",
+          "currency",
+          "unit",
+          "basis",
+          "reasons",
+          "provenance_ref"
+        ],
+        "title": "CellV2",
+        "type": "object"
+      },
+      "ChartSpecV2": {
+        "additionalProperties": false,
+        "properties": {
+          "connect_nulls": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Connect Nulls",
+            "type": "boolean"
+          },
+          "probability_calibrated": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Probability Calibrated",
+            "type": "boolean"
+          },
+          "sensitivity": {
+            "items": {
+              "$ref": "#/components/schemas/SensitivityResultV2"
+            },
+            "title": "Sensitivity",
+            "type": "array"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/SeriesV2"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "snapshot_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Snapshot Digest",
+            "type": "string"
+          },
+          "value_kind": {
+            "const": "absolute_amounts_display_rounded",
+            "enum": [
+              "absolute_amounts_display_rounded"
+            ],
+            "title": "Value Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_digest",
+          "series",
+          "connect_nulls",
+          "probability_calibrated",
+          "value_kind",
+          "sensitivity"
+        ],
+        "title": "ChartSpecV2",
+        "type": "object"
+      },
+      "ChartValueV2": {
+        "additionalProperties": false,
+        "properties": {
+          "chart_spec": {
+            "$ref": "#/components/schemas/ChartSpecV2"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/EvidenceV2"
+          }
+        },
+        "required": [
+          "chart_spec",
+          "evidence"
+        ],
+        "title": "ChartValueV2",
+        "type": "object"
+      },
       "CheckoutResponse": {
         "description": "Legacy development-only simulator response.\n\nProduction returns HTTP 410 and has no checkout or paid entitlement.\nThis type must not be treated as a current billing contract.",
         "properties": {
@@ -939,6 +1264,85 @@
           "status"
         ],
         "title": "CheckoutResponse",
+        "type": "object"
+      },
+      "CompositionRowV2": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/CellV2"
+          },
+          "category_id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Category Id",
+            "type": "string"
+          },
+          "included_in_allocated_sum": {
+            "title": "Included In Allocated Sum",
+            "type": "boolean"
+          },
+          "share": {
+            "$ref": "#/components/schemas/CellV2"
+          }
+        },
+        "required": [
+          "category_id",
+          "amount",
+          "share",
+          "included_in_allocated_sum"
+        ],
+        "title": "CompositionRowV2",
+        "type": "object"
+      },
+      "CompositionV2": {
+        "additionalProperties": false,
+        "properties": {
+          "coverage": {
+            "enum": [
+              "group_missing",
+              "undefined_zero_revenue",
+              "unallocated_only",
+              "partial",
+              "declared_scenario_partition_complete_not_audited"
+            ],
+            "title": "Coverage",
+            "type": "string"
+          },
+          "rounding_delta_million": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rounding Delta Million"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/CompositionRowV2"
+            },
+            "maxItems": 8,
+            "title": "Rows",
+            "type": "array"
+          },
+          "scope": {
+            "const": "unallocated includes all unmodelled revenue; missing named categories are not extra summands",
+            "enum": [
+              "unallocated includes all unmodelled revenue; missing named categories are not extra summands"
+            ],
+            "title": "Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "coverage",
+          "rows",
+          "rounding_delta_million",
+          "scope"
+        ],
+        "title": "CompositionV2",
         "type": "object"
       },
       "ConfirmedResearchFingerprint": {
@@ -1058,6 +1462,108 @@
           "publish_to_insights"
         ],
         "title": "ConsentWithdrawalResponse",
+        "type": "object"
+      },
+      "CostCellV2": {
+        "additionalProperties": false,
+        "properties": {
+          "coverage": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Coverage",
+            "type": "array"
+          },
+          "coverage_basis": {
+            "title": "Coverage Basis",
+            "type": "string"
+          },
+          "id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/CellV2"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "coverage",
+          "coverage_basis",
+          "value"
+        ],
+        "title": "CostCellV2",
+        "type": "object"
+      },
+      "CostV2": {
+        "additionalProperties": false,
+        "properties": {
+          "coverage": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Coverage",
+            "type": "array"
+          },
+          "coverage_basis": {
+            "title": "Coverage Basis",
+            "type": "string"
+          },
+          "id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "operating_cost",
+              "operating_expense",
+              "shared_cost",
+              "depreciation",
+              "sbc",
+              "operating_adjustment"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "amount",
+              "revenue_ratio"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "$ref": "#/components/schemas/AnnualV2"
+            },
+            "maxItems": 6,
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "mode",
+          "coverage",
+          "coverage_basis",
+          "values"
+        ],
+        "title": "CostV2",
         "type": "object"
       },
       "CreateFingerprintBody": {
@@ -1187,6 +1693,236 @@
           "confirmation"
         ],
         "title": "DeleteAccountBody",
+        "type": "object"
+      },
+      "DerivedFXChoiceV2": {
+        "additionalProperties": false,
+        "properties": {
+          "derivation_id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Derivation Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "derived",
+            "enum": [
+              "derived"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "observation_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Observation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "observation_id",
+          "derivation_id"
+        ],
+        "title": "DerivedFXChoiceV2",
+        "type": "object"
+      },
+      "DerivedFXEvidenceV1": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm": {
+            "const": "arithmetic_mean_nonmissing_v1",
+            "enum": [
+              "arithmetic_mean_nonmissing_v1"
+            ],
+            "title": "Algorithm",
+            "type": "string"
+          },
+          "basis": {
+            "const": "derived_conditional",
+            "enum": [
+              "derived_conditional"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "calculation_precision": {
+            "maximum": 50.0,
+            "minimum": 50.0,
+            "title": "Calculation Precision",
+            "type": "integer"
+          },
+          "calculation_status": {
+            "const": "recomputed_from_supplied_series",
+            "enum": [
+              "recomputed_from_supplied_series"
+            ],
+            "title": "Calculation Status",
+            "type": "string"
+          },
+          "decimal_places": {
+            "maximum": 10.0,
+            "minimum": 10.0,
+            "title": "Decimal Places",
+            "type": "integer"
+          },
+          "input": {
+            "$ref": "#/components/schemas/DerivedFXInputV1"
+          },
+          "input_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Input Digest",
+            "type": "string"
+          },
+          "nd_count": {
+            "maximum": 129.0,
+            "minimum": 0.0,
+            "title": "Nd Count",
+            "type": "integer"
+          },
+          "rounding": {
+            "const": "HALF_EVEN",
+            "enum": [
+              "HALF_EVEN"
+            ],
+            "title": "Rounding",
+            "type": "string"
+          },
+          "source_verification": {
+            "const": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Source Verification",
+            "type": "string"
+          },
+          "valid_count": {
+            "maximum": 129.0,
+            "minimum": 1.0,
+            "title": "Valid Count",
+            "type": "integer"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          },
+          "values_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Values Sha256",
+            "type": "string"
+          },
+          "verification_scope": {
+            "const": "arithmetic_only",
+            "enum": [
+              "arithmetic_only"
+            ],
+            "title": "Verification Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "input",
+          "input_digest",
+          "algorithm",
+          "calculation_precision",
+          "rounding",
+          "decimal_places",
+          "valid_count",
+          "nd_count",
+          "values_sha256",
+          "value",
+          "verification_scope",
+          "source_verification",
+          "basis",
+          "calculation_status"
+        ],
+        "title": "DerivedFXEvidenceV1",
+        "type": "object"
+      },
+      "DerivedFXInputV1": {
+        "additionalProperties": false,
+        "properties": {
+          "claimed_accessed_on": {
+            "title": "Claimed Accessed On",
+            "type": "string"
+          },
+          "claimed_source_version": {
+            "title": "Claimed Source Version",
+            "type": "string"
+          },
+          "declared_nd_count": {
+            "maximum": 129.0,
+            "minimum": 0.0,
+            "title": "Declared Nd Count",
+            "type": "integer"
+          },
+          "declared_valid_count": {
+            "maximum": 129.0,
+            "minimum": 0.0,
+            "title": "Declared Valid Count",
+            "type": "integer"
+          },
+          "declared_values_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Declared Values Sha256",
+            "type": "string"
+          },
+          "from_currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "From Currency",
+            "type": "string"
+          },
+          "id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "locator": {
+            "title": "Locator",
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/PeriodV2"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/FXPointV1"
+            },
+            "maxItems": 129,
+            "minItems": 1,
+            "title": "Points",
+            "type": "array"
+          },
+          "source_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "to_currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "To Currency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source_id",
+          "claimed_source_version",
+          "claimed_accessed_on",
+          "locator",
+          "from_currency",
+          "to_currency",
+          "period",
+          "points",
+          "declared_valid_count",
+          "declared_nd_count",
+          "declared_values_sha256"
+        ],
+        "title": "DerivedFXInputV1",
         "type": "object"
       },
       "DiagnoseRequest": {
@@ -3010,12 +3746,12 @@
             "anyOf": [
               {
                 "enum": [
-                  "access_ended",
                   "saved",
                   "body_invalid",
                   "send_unknown",
                   "not_sent",
-                  "cancelled"
+                  "cancelled",
+                  "access_ended"
                 ],
                 "type": "string"
               },
@@ -3791,6 +4527,67 @@
         "title": "EvidenceSource",
         "type": "object"
       },
+      "EvidenceV2": {
+        "additionalProperties": false,
+        "properties": {
+          "assumptions": {
+            "$ref": "#/components/schemas/FinancialRequestV2"
+          },
+          "derived_fx_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/DerivedFXEvidenceV1"
+            },
+            "title": "Derived Fx Evidence",
+            "type": "array"
+          },
+          "historical_fx": {
+            "items": {
+              "$ref": "#/components/schemas/RegisteredFXV2"
+            },
+            "title": "Historical Fx",
+            "type": "array"
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/RegisteredObservationV2"
+            },
+            "title": "Observations",
+            "type": "array"
+          },
+          "provenance_table": {
+            "items": {
+              "$ref": "#/components/schemas/ProvenanceV2"
+            },
+            "title": "Provenance Table",
+            "type": "array"
+          },
+          "qualifications": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Qualifications",
+            "type": "array"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/RegisteredSourceV2"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sources",
+          "observations",
+          "historical_fx",
+          "assumptions",
+          "derived_fx_evidence",
+          "provenance_table",
+          "qualifications"
+        ],
+        "title": "EvidenceV2",
+        "type": "object"
+      },
       "ExamplesResponse": {
         "description": "GET /api/examples — handpicked example phenomenon pairs.\n\nItems are intentionally loose (raw KB rows are reshaped at render\ntime) so we keep `List[Dict[str, Any]]` instead of pinning a strict\nKB-row shape.",
         "properties": {
@@ -3826,6 +4623,35 @@
           "state"
         ],
         "title": "ExchangeBody",
+        "type": "object"
+      },
+      "ExclusionV2": {
+        "additionalProperties": false,
+        "properties": {
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "source_refs": {
+            "items": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Source Refs",
+            "type": "array"
+          },
+          "tag": {
+            "title": "Tag",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tag",
+          "rationale",
+          "source_refs"
+        ],
+        "title": "ExclusionV2",
         "type": "object"
       },
       "ExperimentInput": {
@@ -3934,6 +4760,32 @@
           }
         },
         "title": "ExperimentInput",
+        "type": "object"
+      },
+      "FXPointV1": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "date",
+          "value"
+        ],
+        "title": "FXPointV1",
         "type": "object"
       },
       "Falsifier": {
@@ -4749,6 +5601,270 @@
         "title": "FinancialRegistryRefV2",
         "type": "object"
       },
+      "FinancialRequestV2": {
+        "additionalProperties": false,
+        "properties": {
+          "baseline_selection_reason": {
+            "title": "Baseline Selection Reason",
+            "type": "string"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryV2"
+            },
+            "maxItems": 8,
+            "title": "Categories",
+            "type": "array"
+          },
+          "derived_fx_inputs": {
+            "items": {
+              "$ref": "#/components/schemas/DerivedFXInputV1"
+            },
+            "maxItems": 1,
+            "title": "Derived Fx Inputs",
+            "type": "array"
+          },
+          "entity_scope": {
+            "title": "Entity Scope",
+            "type": "string"
+          },
+          "historical_context_refs": {
+            "items": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Historical Context Refs",
+            "type": "array"
+          },
+          "historical_fx_choices": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "derived": "#/components/schemas/DerivedFXChoiceV2",
+                  "registry": "#/components/schemas/RegistryFXChoiceV2"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/RegistryFXChoiceV2"
+                },
+                {
+                  "$ref": "#/components/schemas/DerivedFXChoiceV2"
+                }
+              ]
+            },
+            "maxItems": 16,
+            "title": "Historical Fx Choices",
+            "type": "array"
+          },
+          "information_cutoff": {
+            "title": "Information Cutoff",
+            "type": "string"
+          },
+          "interim_revenue_ref": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Interim Revenue Ref",
+            "type": "string"
+          },
+          "policy_revision": {
+            "const": "financial-scenario-v1-candidate",
+            "enum": [
+              "financial-scenario-v1-candidate"
+            ],
+            "title": "Policy Revision",
+            "type": "string"
+          },
+          "scenarios": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioV2"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Scenarios",
+            "type": "array"
+          },
+          "sensitivity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SensitivityV2"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "target_currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Target Currency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_scope",
+          "information_cutoff",
+          "interim_revenue_ref",
+          "baseline_selection_reason",
+          "historical_context_refs",
+          "historical_fx_choices",
+          "target_currency",
+          "categories",
+          "scenarios",
+          "sensitivity",
+          "policy_revision",
+          "derived_fx_inputs"
+        ],
+        "title": "FinancialRequestV2",
+        "type": "object"
+      },
+      "FinancialResultDataV2": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "$ref": "#/components/schemas/RegistryCurrentV2"
+          },
+          "is_historical": {
+            "title": "Is Historical",
+            "type": "boolean"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/ResultMetadataV2"
+          },
+          "persisted": {
+            "const": true,
+            "enum": [
+              true
+            ],
+            "title": "Persisted",
+            "type": "boolean"
+          },
+          "public_result": {
+            "$ref": "#/components/schemas/PublicFinancialResultV2"
+          },
+          "public_result_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Public Result Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "metadata",
+          "current",
+          "is_historical",
+          "public_result",
+          "public_result_digest",
+          "persisted"
+        ],
+        "title": "FinancialResultDataV2",
+        "type": "object"
+      },
+      "FinancialResultHistoryDataV2": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "$ref": "#/components/schemas/RegistryCurrentV2"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryItemV2"
+            },
+            "maxItems": 20,
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "research_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Research Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "research_id",
+          "current",
+          "items",
+          "next_cursor"
+        ],
+        "title": "FinancialResultHistoryDataV2",
+        "type": "object"
+      },
+      "FinancialResultHistoryResponseV2": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "financial-result-v2",
+            "default": "financial-result-v2",
+            "enum": [
+              "financial-result-v2"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FinancialResultHistoryDataV2"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "default": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "FinancialResultHistoryResponseV2",
+        "type": "object"
+      },
+      "FinancialResultResponseV2": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_revision": {
+            "const": "financial-result-v2",
+            "default": "financial-result-v2",
+            "enum": [
+              "financial-result-v2"
+            ],
+            "title": "Contract Revision",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FinancialResultDataV2"
+          },
+          "schema_version": {
+            "const": "structure-research-v1",
+            "default": "structure-research-v1",
+            "enum": [
+              "structure-research-v1"
+            ],
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "FinancialResultResponseV2",
+        "type": "object"
+      },
       "FlagsResponse": {
         "additionalProperties": true,
         "description": "GET /api/flags — resolved feature flags + experiment variants.",
@@ -5428,6 +6544,37 @@
         "title": "FormulaRunMetadata",
         "type": "object"
       },
+      "FutureFXV2": {
+        "additionalProperties": false,
+        "properties": {
+          "from_currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "From Currency",
+            "type": "string"
+          },
+          "parameter": {
+            "$ref": "#/components/schemas/ParameterV2"
+          },
+          "to_currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "To Currency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from_currency",
+          "to_currency",
+          "parameter"
+        ],
+        "title": "FutureFXV2",
+        "type": "object"
+      },
       "Gap": {
         "additionalProperties": false,
         "properties": {
@@ -5567,6 +6714,130 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "HistoricalCellV2": {
+        "additionalProperties": false,
+        "properties": {
+          "observation_ref": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Observation Ref",
+            "type": "string"
+          },
+          "target_value": {
+            "$ref": "#/components/schemas/CellV2"
+          }
+        },
+        "required": [
+          "observation_ref",
+          "target_value"
+        ],
+        "title": "HistoricalCellV2",
+        "type": "object"
+      },
+      "HistoryItemV2": {
+        "additionalProperties": false,
+        "properties": {
+          "calculation_status": {
+            "const": "calculated_under_assumptions",
+            "enum": [
+              "calculated_under_assumptions"
+            ],
+            "title": "Calculation Status",
+            "type": "string"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "is_historical": {
+            "title": "Is Historical",
+            "type": "boolean"
+          },
+          "model_analysis_ran": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Model Analysis Ran",
+            "type": "boolean"
+          },
+          "problem_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Problem Digest",
+            "type": "string"
+          },
+          "qualification": {
+            "const": "conditional_on_owner_supplied_data",
+            "enum": [
+              "conditional_on_owner_supplied_data"
+            ],
+            "title": "Qualification",
+            "type": "string"
+          },
+          "recorded_at": {
+            "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "registry_ref": {
+            "$ref": "#/components/schemas/FinancialRegistryRefV2"
+          },
+          "request_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Request Digest",
+            "type": "string"
+          },
+          "research_version_after": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Research Version After",
+            "type": "integer"
+          },
+          "research_version_before": {
+            "maximum": 2147483646.0,
+            "minimum": 1.0,
+            "title": "Research Version Before",
+            "type": "integer"
+          },
+          "result_ref": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "snapshot_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Snapshot Digest",
+            "type": "string"
+          },
+          "u2_goal_status": {
+            "enum": [
+              "not_met",
+              "not_assessed"
+            ],
+            "title": "U2 Goal Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result_ref",
+          "snapshot_digest",
+          "registry_ref",
+          "input_revision",
+          "problem_digest",
+          "research_version_before",
+          "research_version_after",
+          "recorded_at",
+          "request_digest",
+          "is_historical",
+          "calculation_status",
+          "qualification",
+          "u2_goal_status",
+          "model_analysis_ran"
+        ],
+        "title": "HistoryItemV2",
+        "type": "object"
+      },
       "HistoryRecordRequest": {
         "description": "Body for POST /api/history.\n\nMirrors HistoryDB.record fields. `result_summary` is optional and any\nJSON-serialisable shape is accepted; HistoryDB normalises to a string.",
         "properties": {
@@ -5598,6 +6869,60 @@
           "kind"
         ],
         "title": "HistoryRecordRequest",
+        "type": "object"
+      },
+      "InputStatusV2": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "owner_supplied",
+            "enum": [
+              "owner_supplied"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "original_available": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Original Available",
+            "type": "boolean"
+          },
+          "qualification": {
+            "const": "conditional_on_owner_supplied_data",
+            "enum": [
+              "conditional_on_owner_supplied_data"
+            ],
+            "title": "Qualification",
+            "type": "string"
+          },
+          "system_verified": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "System Verified",
+            "type": "boolean"
+          },
+          "verification": {
+            "const": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "verification",
+          "original_available",
+          "system_verified",
+          "qualification"
+        ],
+        "title": "InputStatusV2",
         "type": "object"
       },
       "IssueBody": {
@@ -6695,6 +8020,40 @@
         "title": "MethodDraftResponse",
         "type": "object"
       },
+      "MetricsV2": {
+        "additionalProperties": false,
+        "properties": {
+          "composition": {
+            "$ref": "#/components/schemas/CompositionV2"
+          },
+          "cost_bridge": {
+            "items": {
+              "$ref": "#/components/schemas/CostCellV2"
+            },
+            "maxItems": 16,
+            "title": "Cost Bridge",
+            "type": "array"
+          },
+          "net_profit": {
+            "$ref": "#/components/schemas/CellV2"
+          },
+          "operating_profit": {
+            "$ref": "#/components/schemas/CellV2"
+          },
+          "revenue": {
+            "$ref": "#/components/schemas/CellV2"
+          }
+        },
+        "required": [
+          "revenue",
+          "operating_profit",
+          "net_profit",
+          "cost_bridge",
+          "composition"
+        ],
+        "title": "MetricsV2",
+        "type": "object"
+      },
       "NativePlanConfirmationData": {
         "additionalProperties": false,
         "properties": {
@@ -7226,12 +8585,12 @@
             "anyOf": [
               {
                 "enum": [
-                  "access_ended",
                   "saved",
                   "body_invalid",
                   "send_unknown",
                   "not_sent",
-                  "cancelled"
+                  "cancelled",
+                  "access_ended"
                 ],
                 "type": "string"
               },
@@ -9217,6 +10576,128 @@
         "title": "PaidPreviewView",
         "type": "object"
       },
+      "ParameterV2": {
+        "additionalProperties": false,
+        "properties": {
+          "anchor_observation_id": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Anchor Observation Id"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "enum": [
+                  "CNY",
+                  "USD"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "independent": {
+            "title": "Independent",
+            "type": "boolean"
+          },
+          "period": {
+            "$ref": "#/components/schemas/PeriodV2"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "source_refs": {
+            "items": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Source Refs",
+            "type": "array"
+          },
+          "unit": {
+            "enum": [
+              "unit",
+              "thousand",
+              "million",
+              "billion",
+              "ratio",
+              "fx"
+            ],
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "id",
+          "value",
+          "unit",
+          "currency",
+          "period",
+          "rationale",
+          "source_refs",
+          "anchor_observation_id",
+          "independent"
+        ],
+        "title": "ParameterV2",
+        "type": "object"
+      },
+      "PeriodV2": {
+        "additionalProperties": false,
+        "properties": {
+          "end": {
+            "title": "End",
+            "type": "string"
+          },
+          "grain": {
+            "enum": [
+              "annual",
+              "interim",
+              "remaining"
+            ],
+            "title": "Grain",
+            "type": "string"
+          },
+          "start": {
+            "title": "Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "grain"
+        ],
+        "title": "PeriodV2",
+        "type": "object"
+      },
       "PhaseCompanyBookmark": {
         "additionalProperties": false,
         "description": "Canonical public projection of one legacy Phase company ticker.",
@@ -10504,12 +11985,12 @@
             "anyOf": [
               {
                 "enum": [
-                  "access_ended",
                   "saved",
                   "body_invalid",
                   "send_unknown",
                   "not_sent",
-                  "cancelled"
+                  "cancelled",
+                  "access_ended"
                 ],
                 "type": "string"
               },
@@ -11151,6 +12632,70 @@
         "title": "ProblemContext",
         "type": "object"
       },
+      "ProvenanceV2": {
+        "additionalProperties": false,
+        "properties": {
+          "derivation_refs": {
+            "items": {
+              "pattern": "^[a-z][a-z0-9_]{0,31}$",
+              "type": "string"
+            },
+            "maxItems": 1,
+            "title": "Derivation Refs",
+            "type": "array"
+          },
+          "historical_fx_refs": {
+            "items": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Historical Fx Refs",
+            "type": "array"
+          },
+          "id": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "observation_refs": {
+            "items": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            },
+            "maxItems": 64,
+            "title": "Observation Refs",
+            "type": "array"
+          },
+          "parameter_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 498,
+            "title": "Parameter Refs",
+            "type": "array"
+          },
+          "source_refs": {
+            "items": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Source Refs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "observation_refs",
+          "parameter_refs",
+          "derivation_refs",
+          "historical_fx_refs",
+          "source_refs"
+        ],
+        "title": "ProvenanceV2",
+        "type": "object"
+      },
       "PublicFinancialRegistryProjectionV2": {
         "additionalProperties": false,
         "properties": {
@@ -11168,6 +12713,44 @@
           "registry"
         ],
         "title": "PublicFinancialRegistryProjectionV2",
+        "type": "object"
+      },
+      "PublicFinancialResultV2": {
+        "additionalProperties": false,
+        "properties": {
+          "input_status": {
+            "$ref": "#/components/schemas/InputStatusV2"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SummaryValueV2"
+              },
+              {
+                "$ref": "#/components/schemas/TableValueV2"
+              },
+              {
+                "$ref": "#/components/schemas/ChartValueV2"
+              }
+            ],
+            "title": "Value"
+          },
+          "view": {
+            "enum": [
+              "summary",
+              "table",
+              "chart"
+            ],
+            "title": "View",
+            "type": "string"
+          }
+        },
+        "required": [
+          "view",
+          "input_status",
+          "value"
+        ],
+        "title": "PublicFinancialResultV2",
         "type": "object"
       },
       "PublicOwnerFinancialRegistryV2": {
@@ -12068,6 +13651,36 @@
         "title": "RegistryCurrentV2",
         "type": "object"
       },
+      "RegistryFXChoiceV2": {
+        "additionalProperties": false,
+        "properties": {
+          "fx_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Fx Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "registry",
+            "enum": [
+              "registry"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "observation_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Observation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "observation_id",
+          "fx_id"
+        ],
+        "title": "RegistryFXChoiceV2",
+        "type": "object"
+      },
       "RegistryIdentityV2": {
         "additionalProperties": false,
         "properties": {
@@ -12963,6 +14576,323 @@
         "title": "ResultCitation",
         "type": "object"
       },
+      "ResultMetadataV2": {
+        "additionalProperties": false,
+        "properties": {
+          "calculation_status": {
+            "const": "calculated_under_assumptions",
+            "enum": [
+              "calculated_under_assumptions"
+            ],
+            "title": "Calculation Status",
+            "type": "string"
+          },
+          "evaluation_input_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Evaluation Input Digest",
+            "type": "string"
+          },
+          "execution_code_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Execution Code Digest",
+            "type": "string"
+          },
+          "execution_profile": {
+            "const": "financial-scenario-owner-v2",
+            "enum": [
+              "financial-scenario-owner-v2"
+            ],
+            "title": "Execution Profile",
+            "type": "string"
+          },
+          "input_revision": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Revision",
+            "type": "integer"
+          },
+          "model_analysis_ran": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Model Analysis Ran",
+            "type": "boolean"
+          },
+          "parameters_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Parameters Digest",
+            "type": "string"
+          },
+          "policy_revision": {
+            "const": "financial-scenario-v1-candidate",
+            "enum": [
+              "financial-scenario-v1-candidate"
+            ],
+            "title": "Policy Revision",
+            "type": "string"
+          },
+          "problem_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Problem Digest",
+            "type": "string"
+          },
+          "producer_revision": {
+            "const": "owned-financial-local-v2-r1",
+            "enum": [
+              "owned-financial-local-v2-r1"
+            ],
+            "title": "Producer Revision",
+            "type": "string"
+          },
+          "qualification": {
+            "const": "conditional_on_owner_supplied_data",
+            "enum": [
+              "conditional_on_owner_supplied_data"
+            ],
+            "title": "Qualification",
+            "type": "string"
+          },
+          "recorded_at": {
+            "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "registry_ref": {
+            "$ref": "#/components/schemas/FinancialRegistryRefV2"
+          },
+          "request_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Request Digest",
+            "type": "string"
+          },
+          "research_id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Research Id",
+            "type": "string"
+          },
+          "research_version_after": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Research Version After",
+            "type": "integer"
+          },
+          "research_version_before": {
+            "maximum": 2147483646.0,
+            "minimum": 1.0,
+            "title": "Research Version Before",
+            "type": "integer"
+          },
+          "result_ref": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "result_type": {
+            "const": "financial_scenario_v2",
+            "enum": [
+              "financial_scenario_v2"
+            ],
+            "title": "Result Type",
+            "type": "string"
+          },
+          "snapshot_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Snapshot Digest",
+            "type": "string"
+          },
+          "u2_goal_status": {
+            "enum": [
+              "not_met",
+              "not_assessed"
+            ],
+            "title": "U2 Goal Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result_ref",
+          "result_type",
+          "research_id",
+          "input_revision",
+          "problem_digest",
+          "registry_ref",
+          "research_version_before",
+          "research_version_after",
+          "recorded_at",
+          "request_digest",
+          "parameters_digest",
+          "evaluation_input_digest",
+          "snapshot_digest",
+          "policy_revision",
+          "producer_revision",
+          "execution_profile",
+          "execution_code_digest",
+          "calculation_status",
+          "qualification",
+          "u2_goal_status",
+          "model_analysis_ran"
+        ],
+        "title": "ResultMetadataV2",
+        "type": "object"
+      },
+      "SameTargetV2": {
+        "additionalProperties": false,
+        "properties": {
+          "same_as": {
+            "const": "target",
+            "enum": [
+              "target"
+            ],
+            "title": "Same As",
+            "type": "string"
+          }
+        },
+        "required": [
+          "same_as"
+        ],
+        "title": "SameTargetV2",
+        "type": "object"
+      },
+      "ScenarioResultV2": {
+        "additionalProperties": false,
+        "properties": {
+          "accounting_basis": {
+            "title": "Accounting Basis",
+            "type": "string"
+          },
+          "bridge": {
+            "$ref": "#/components/schemas/BridgeV2"
+          },
+          "exclusions": {
+            "items": {
+              "$ref": "#/components/schemas/ExclusionV2"
+            },
+            "title": "Exclusions",
+            "type": "array"
+          },
+          "id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "parameter_basis": {
+            "const": "scenario_assumption",
+            "enum": [
+              "scenario_assumption"
+            ],
+            "title": "Parameter Basis",
+            "type": "string"
+          },
+          "qualification": {
+            "enum": [
+              "source_linked_conditional_unreviewed",
+              "mechanical_assumption_demonstration_not_validated_forecast"
+            ],
+            "title": "Qualification",
+            "type": "string"
+          },
+          "years": {
+            "items": {
+              "$ref": "#/components/schemas/YearResultV2"
+            },
+            "maxItems": 6,
+            "minItems": 6,
+            "title": "Years",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "accounting_basis",
+          "bridge",
+          "years",
+          "parameter_basis",
+          "exclusions",
+          "qualification"
+        ],
+        "title": "ScenarioResultV2",
+        "type": "object"
+      },
+      "ScenarioV2": {
+        "additionalProperties": false,
+        "properties": {
+          "accounting_basis": {
+            "title": "Accounting Basis",
+            "type": "string"
+          },
+          "allocations": {
+            "items": {
+              "$ref": "#/components/schemas/AllocationV2"
+            },
+            "maxItems": 8,
+            "title": "Allocations",
+            "type": "array"
+          },
+          "costs": {
+            "items": {
+              "$ref": "#/components/schemas/CostV2"
+            },
+            "maxItems": 16,
+            "title": "Costs",
+            "type": "array"
+          },
+          "exclusions": {
+            "items": {
+              "$ref": "#/components/schemas/ExclusionV2"
+            },
+            "maxItems": 5,
+            "title": "Exclusions",
+            "type": "array"
+          },
+          "future_fx": {
+            "items": {
+              "$ref": "#/components/schemas/FutureFXV2"
+            },
+            "maxItems": 16,
+            "title": "Future Fx",
+            "type": "array"
+          },
+          "growth": {
+            "items": {
+              "$ref": "#/components/schemas/AnnualV2"
+            },
+            "maxItems": 5,
+            "title": "Growth",
+            "type": "array"
+          },
+          "id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "remaining_revenue": {
+            "$ref": "#/components/schemas/ParameterV2"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "accounting_basis",
+          "remaining_revenue",
+          "growth",
+          "costs",
+          "exclusions",
+          "allocations",
+          "future_fx"
+        ],
+        "title": "ScenarioV2",
+        "type": "object"
+      },
       "SearchRequest": {
         "properties": {
           "lang": {
@@ -13099,6 +15029,182 @@
           "origin"
         ],
         "title": "SelectedHandle",
+        "type": "object"
+      },
+      "SensitivityResultV2": {
+        "additionalProperties": false,
+        "properties": {
+          "case_input_digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Case Input Digest",
+            "type": "string"
+          },
+          "parameter_ref": {
+            "title": "Parameter Ref",
+            "type": "string"
+          },
+          "point": {
+            "title": "Point",
+            "type": "string"
+          },
+          "target_operating_profit": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Target Operating Profit",
+            "type": "array"
+          },
+          "target_revenue": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Target Revenue",
+            "type": "array"
+          },
+          "years": {
+            "items": {
+              "maximum": 2031.0,
+              "minimum": 2026.0,
+              "type": "integer"
+            },
+            "title": "Years",
+            "type": "array"
+          }
+        },
+        "required": [
+          "parameter_ref",
+          "point",
+          "case_input_digest",
+          "years",
+          "target_revenue",
+          "target_operating_profit"
+        ],
+        "title": "SensitivityResultV2",
+        "type": "object"
+      },
+      "SensitivityV2": {
+        "additionalProperties": false,
+        "properties": {
+          "parameter_id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Parameter Id",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 21,
+            "title": "Points",
+            "type": "array"
+          },
+          "scenario_id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Scenario Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scenario_id",
+          "parameter_id",
+          "points"
+        ],
+        "title": "SensitivityV2",
+        "type": "object"
+      },
+      "SeriesV2": {
+        "additionalProperties": false,
+        "properties": {
+          "category_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "metric": {
+            "enum": [
+              "revenue",
+              "operating_profit",
+              "net_profit",
+              "segment_revenue"
+            ],
+            "title": "Metric",
+            "type": "string"
+          },
+          "scenario_id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Scenario Id",
+            "type": "string"
+          },
+          "unit": {
+            "const": "million",
+            "enum": [
+              "million"
+            ],
+            "title": "Unit",
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Values",
+            "type": "array"
+          },
+          "years": {
+            "items": {
+              "maximum": 2031.0,
+              "minimum": 2026.0,
+              "type": "integer"
+            },
+            "title": "Years",
+            "type": "array"
+          }
+        },
+        "required": [
+          "scenario_id",
+          "metric",
+          "currency",
+          "unit",
+          "years",
+          "values"
+        ],
+        "title": "SeriesV2",
         "type": "object"
       },
       "SetVisibilityBody": {
@@ -13845,6 +15951,210 @@
         "title": "SummaryResponse",
         "type": "object"
       },
+      "SummaryScenarioV2": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "qualification": {
+            "title": "Qualification",
+            "type": "string"
+          },
+          "years": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryYearV2"
+            },
+            "title": "Years",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "qualification",
+          "years"
+        ],
+        "title": "SummaryScenarioV2",
+        "type": "object"
+      },
+      "SummarySourceV2": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "owner_supplied",
+            "enum": [
+              "owner_supplied"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "original_available": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "Original Available",
+            "type": "boolean"
+          },
+          "read_scope": {
+            "title": "Read Scope",
+            "type": "string"
+          },
+          "source_chain": {
+            "items": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            },
+            "title": "Source Chain",
+            "type": "array"
+          },
+          "system_verified": {
+            "const": false,
+            "enum": [
+              false
+            ],
+            "title": "System Verified",
+            "type": "boolean"
+          },
+          "verification": {
+            "const": "unverified",
+            "enum": [
+              "unverified"
+            ],
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "verification",
+          "original_available",
+          "system_verified",
+          "read_scope",
+          "source_chain"
+        ],
+        "title": "SummarySourceV2",
+        "type": "object"
+      },
+      "SummaryValueV2": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_unit": {
+            "const": "million",
+            "enum": [
+              "million"
+            ],
+            "title": "Amount Unit",
+            "type": "string"
+          },
+          "assumption_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assumption Refs",
+            "type": "array"
+          },
+          "derivation_refs": {
+            "items": {
+              "pattern": "^[a-z][a-z0-9_]{0,31}$",
+              "type": "string"
+            },
+            "title": "Derivation Refs",
+            "type": "array"
+          },
+          "gap_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Gap Codes",
+            "type": "array"
+          },
+          "information_cutoff": {
+            "title": "Information Cutoff",
+            "type": "string"
+          },
+          "qualifications": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Qualifications",
+            "type": "array"
+          },
+          "scenarios": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryScenarioV2"
+            },
+            "title": "Scenarios",
+            "type": "array"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/SummarySourceV2"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "target_currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Target Currency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "information_cutoff",
+          "target_currency",
+          "amount_unit",
+          "sources",
+          "scenarios",
+          "qualifications",
+          "gap_codes",
+          "assumption_refs",
+          "derivation_refs"
+        ],
+        "title": "SummaryValueV2",
+        "type": "object"
+      },
+      "SummaryYearV2": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "$ref": "#/components/schemas/AvailabilityV2"
+          },
+          "composition_coverage": {
+            "title": "Composition Coverage",
+            "type": "string"
+          },
+          "year": {
+            "maximum": 2031.0,
+            "minimum": 2026.0,
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "year",
+          "available",
+          "composition_coverage"
+        ],
+        "title": "SummaryYearV2",
+        "type": "object"
+      },
       "SynthesizeCandidateRef": {
         "additionalProperties": false,
         "description": "One client-selected reference; canonical content is always reloaded.",
@@ -13910,6 +16220,35 @@
           "results"
         ],
         "title": "SynthesizeRequest",
+        "type": "object"
+      },
+      "TableValueV2": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "$ref": "#/components/schemas/EvidenceV2"
+          },
+          "historical_context": {
+            "items": {
+              "$ref": "#/components/schemas/HistoricalCellV2"
+            },
+            "title": "Historical Context",
+            "type": "array"
+          },
+          "scenarios": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioResultV2"
+            },
+            "title": "Scenarios",
+            "type": "array"
+          }
+        },
+        "required": [
+          "scenarios",
+          "historical_context",
+          "evidence"
+        ],
+        "title": "TableValueV2",
         "type": "object"
       },
       "TickerMutationResponse": {
@@ -14270,6 +16609,69 @@
           "api_key_supplied"
         ],
         "title": "WhoAmIResponse",
+        "type": "object"
+      },
+      "YearResultV2": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "enum": [
+              "bridge_estimate",
+              "conditional_scenario"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "native": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetricsV2"
+              },
+              {
+                "$ref": "#/components/schemas/SameTargetV2"
+              }
+            ],
+            "title": "Native"
+          },
+          "native_currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Native Currency",
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/PeriodV2"
+          },
+          "target": {
+            "$ref": "#/components/schemas/MetricsV2"
+          },
+          "target_currency": {
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Target Currency",
+            "type": "string"
+          },
+          "year": {
+            "maximum": 2031.0,
+            "minimum": 2026.0,
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "year",
+          "period",
+          "basis",
+          "native_currency",
+          "target_currency",
+          "native",
+          "target"
+        ],
+        "title": "YearResultV2",
         "type": "object"
       },
       "api__billing__CheckoutBody": {
@@ -19079,6 +21481,1369 @@
         ]
       }
     },
+    "/api/research/{research_id}/financial-calculations": {
+      "post": {
+        "operationId": "calculate_research_financial_api_research__research_id__financial_calculations_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "contract_revision": {
+                    "const": "financial-result-v2",
+                    "enum": [
+                      "financial-result-v2"
+                    ],
+                    "title": "Contract Revision",
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "expected_research_version": {
+                        "maximum": 2147483646,
+                        "minimum": 1,
+                        "title": "Expected Research Version",
+                        "type": "integer"
+                      },
+                      "input_revision": {
+                        "maximum": 2147483647,
+                        "minimum": 1,
+                        "title": "Input Revision",
+                        "type": "integer"
+                      },
+                      "registry_ref": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "digest": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "title": "Digest",
+                            "type": "string"
+                          },
+                          "id": {
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                            "title": "Id",
+                            "type": "string"
+                          },
+                          "revision": {
+                            "maximum": 1,
+                            "minimum": 1,
+                            "title": "Revision",
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "revision",
+                          "digest"
+                        ],
+                        "title": "FinancialRegistryRefV2",
+                        "type": "object"
+                      },
+                      "request": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "baseline_selection_reason": {
+                            "title": "Baseline Selection Reason",
+                            "type": "string"
+                          },
+                          "categories": {
+                            "items": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "definition": {
+                                  "title": "Definition",
+                                  "type": "string"
+                                },
+                                "dimension": {
+                                  "const": "monetization",
+                                  "enum": [
+                                    "monetization"
+                                  ],
+                                  "title": "Dimension",
+                                  "type": "string"
+                                },
+                                "excludes": {
+                                  "items": {
+                                    "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                    "type": "string"
+                                  },
+                                  "maxItems": 8,
+                                  "title": "Excludes",
+                                  "type": "array"
+                                },
+                                "id": {
+                                  "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                  "title": "Id",
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "enum": [
+                                    "segment",
+                                    "unallocated"
+                                  ],
+                                  "title": "Kind",
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "title": "Label",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "definition",
+                                "dimension",
+                                "excludes",
+                                "kind"
+                              ],
+                              "title": "CategoryV2",
+                              "type": "object"
+                            },
+                            "maxItems": 8,
+                            "title": "Categories",
+                            "type": "array"
+                          },
+                          "derived_fx_inputs": {
+                            "items": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "claimed_accessed_on": {
+                                  "title": "Claimed Accessed On",
+                                  "type": "string"
+                                },
+                                "claimed_source_version": {
+                                  "title": "Claimed Source Version",
+                                  "type": "string"
+                                },
+                                "declared_nd_count": {
+                                  "maximum": 129,
+                                  "minimum": 0,
+                                  "title": "Declared Nd Count",
+                                  "type": "integer"
+                                },
+                                "declared_valid_count": {
+                                  "maximum": 129,
+                                  "minimum": 0,
+                                  "title": "Declared Valid Count",
+                                  "type": "integer"
+                                },
+                                "declared_values_sha256": {
+                                  "pattern": "^[0-9a-f]{64}$",
+                                  "title": "Declared Values Sha256",
+                                  "type": "string"
+                                },
+                                "from_currency": {
+                                  "enum": [
+                                    "CNY",
+                                    "USD"
+                                  ],
+                                  "title": "From Currency",
+                                  "type": "string"
+                                },
+                                "id": {
+                                  "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                  "title": "Id",
+                                  "type": "string"
+                                },
+                                "locator": {
+                                  "title": "Locator",
+                                  "type": "string"
+                                },
+                                "period": {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "end": {
+                                      "title": "End",
+                                      "type": "string"
+                                    },
+                                    "grain": {
+                                      "enum": [
+                                        "annual",
+                                        "interim",
+                                        "remaining"
+                                      ],
+                                      "title": "Grain",
+                                      "type": "string"
+                                    },
+                                    "start": {
+                                      "title": "Start",
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "start",
+                                    "end",
+                                    "grain"
+                                  ],
+                                  "title": "PeriodV2",
+                                  "type": "object"
+                                },
+                                "points": {
+                                  "items": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "date": {
+                                        "title": "Date",
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ],
+                                        "title": "Value"
+                                      }
+                                    },
+                                    "required": [
+                                      "date",
+                                      "value"
+                                    ],
+                                    "title": "FXPointV1",
+                                    "type": "object"
+                                  },
+                                  "maxItems": 129,
+                                  "minItems": 1,
+                                  "title": "Points",
+                                  "type": "array"
+                                },
+                                "source_id": {
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                  "title": "Source Id",
+                                  "type": "string"
+                                },
+                                "to_currency": {
+                                  "enum": [
+                                    "CNY",
+                                    "USD"
+                                  ],
+                                  "title": "To Currency",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "source_id",
+                                "claimed_source_version",
+                                "claimed_accessed_on",
+                                "locator",
+                                "from_currency",
+                                "to_currency",
+                                "period",
+                                "points",
+                                "declared_valid_count",
+                                "declared_nd_count",
+                                "declared_values_sha256"
+                              ],
+                              "title": "DerivedFXInputV1",
+                              "type": "object"
+                            },
+                            "maxItems": 1,
+                            "title": "Derived Fx Inputs",
+                            "type": "array"
+                          },
+                          "entity_scope": {
+                            "title": "Entity Scope",
+                            "type": "string"
+                          },
+                          "historical_context_refs": {
+                            "items": {
+                              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                              "type": "string"
+                            },
+                            "maxItems": 16,
+                            "title": "Historical Context Refs",
+                            "type": "array"
+                          },
+                          "historical_fx_choices": {
+                            "items": {
+                              "discriminator": {
+                                "mapping": {
+                                  "derived": "#/$defs/DerivedFXChoiceV2",
+                                  "registry": "#/$defs/RegistryFXChoiceV2"
+                                },
+                                "propertyName": "kind"
+                              },
+                              "oneOf": [
+                                {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "fx_id": {
+                                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                      "title": "Fx Id",
+                                      "type": "string"
+                                    },
+                                    "kind": {
+                                      "const": "registry",
+                                      "enum": [
+                                        "registry"
+                                      ],
+                                      "title": "Kind",
+                                      "type": "string"
+                                    },
+                                    "observation_id": {
+                                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                      "title": "Observation Id",
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "observation_id",
+                                    "fx_id"
+                                  ],
+                                  "title": "RegistryFXChoiceV2",
+                                  "type": "object"
+                                },
+                                {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "derivation_id": {
+                                      "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                      "title": "Derivation Id",
+                                      "type": "string"
+                                    },
+                                    "kind": {
+                                      "const": "derived",
+                                      "enum": [
+                                        "derived"
+                                      ],
+                                      "title": "Kind",
+                                      "type": "string"
+                                    },
+                                    "observation_id": {
+                                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                      "title": "Observation Id",
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "observation_id",
+                                    "derivation_id"
+                                  ],
+                                  "title": "DerivedFXChoiceV2",
+                                  "type": "object"
+                                }
+                              ]
+                            },
+                            "maxItems": 16,
+                            "title": "Historical Fx Choices",
+                            "type": "array"
+                          },
+                          "information_cutoff": {
+                            "title": "Information Cutoff",
+                            "type": "string"
+                          },
+                          "interim_revenue_ref": {
+                            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                            "title": "Interim Revenue Ref",
+                            "type": "string"
+                          },
+                          "policy_revision": {
+                            "const": "financial-scenario-v1-candidate",
+                            "enum": [
+                              "financial-scenario-v1-candidate"
+                            ],
+                            "title": "Policy Revision",
+                            "type": "string"
+                          },
+                          "scenarios": {
+                            "items": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "accounting_basis": {
+                                  "title": "Accounting Basis",
+                                  "type": "string"
+                                },
+                                "allocations": {
+                                  "items": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "category_id": {
+                                        "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                        "title": "Category Id",
+                                        "type": "string"
+                                      },
+                                      "mode": {
+                                        "enum": [
+                                          "amount",
+                                          "share"
+                                        ],
+                                        "title": "Mode",
+                                        "type": "string"
+                                      },
+                                      "values": {
+                                        "items": {
+                                          "additionalProperties": false,
+                                          "properties": {
+                                            "parameter": {
+                                              "additionalProperties": false,
+                                              "properties": {
+                                                "anchor_observation_id": {
+                                                  "anyOf": [
+                                                    {
+                                                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "null"
+                                                    }
+                                                  ],
+                                                  "title": "Anchor Observation Id"
+                                                },
+                                                "currency": {
+                                                  "anyOf": [
+                                                    {
+                                                      "enum": [
+                                                        "CNY",
+                                                        "USD"
+                                                      ],
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "null"
+                                                    }
+                                                  ],
+                                                  "title": "Currency"
+                                                },
+                                                "id": {
+                                                  "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                                  "title": "Id",
+                                                  "type": "string"
+                                                },
+                                                "independent": {
+                                                  "title": "Independent",
+                                                  "type": "boolean"
+                                                },
+                                                "period": {
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "end": {
+                                                      "title": "End",
+                                                      "type": "string"
+                                                    },
+                                                    "grain": {
+                                                      "enum": [
+                                                        "annual",
+                                                        "interim",
+                                                        "remaining"
+                                                      ],
+                                                      "title": "Grain",
+                                                      "type": "string"
+                                                    },
+                                                    "start": {
+                                                      "title": "Start",
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "start",
+                                                    "end",
+                                                    "grain"
+                                                  ],
+                                                  "title": "PeriodV2",
+                                                  "type": "object"
+                                                },
+                                                "rationale": {
+                                                  "title": "Rationale",
+                                                  "type": "string"
+                                                },
+                                                "source_refs": {
+                                                  "items": {
+                                                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                                    "type": "string"
+                                                  },
+                                                  "maxItems": 16,
+                                                  "title": "Source Refs",
+                                                  "type": "array"
+                                                },
+                                                "unit": {
+                                                  "enum": [
+                                                    "unit",
+                                                    "thousand",
+                                                    "million",
+                                                    "billion",
+                                                    "ratio",
+                                                    "fx"
+                                                  ],
+                                                  "title": "Unit",
+                                                  "type": "string"
+                                                },
+                                                "value": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "null"
+                                                    }
+                                                  ],
+                                                  "title": "Value"
+                                                }
+                                              },
+                                              "required": [
+                                                "id",
+                                                "value",
+                                                "unit",
+                                                "currency",
+                                                "period",
+                                                "rationale",
+                                                "source_refs",
+                                                "anchor_observation_id",
+                                                "independent"
+                                              ],
+                                              "title": "ParameterV2",
+                                              "type": "object"
+                                            },
+                                            "year": {
+                                              "maximum": 2031,
+                                              "minimum": 2026,
+                                              "title": "Year",
+                                              "type": "integer"
+                                            }
+                                          },
+                                          "required": [
+                                            "year",
+                                            "parameter"
+                                          ],
+                                          "title": "AnnualV2",
+                                          "type": "object"
+                                        },
+                                        "maxItems": 6,
+                                        "title": "Values",
+                                        "type": "array"
+                                      }
+                                    },
+                                    "required": [
+                                      "category_id",
+                                      "mode",
+                                      "values"
+                                    ],
+                                    "title": "AllocationV2",
+                                    "type": "object"
+                                  },
+                                  "maxItems": 8,
+                                  "title": "Allocations",
+                                  "type": "array"
+                                },
+                                "costs": {
+                                  "items": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "coverage": {
+                                        "items": {
+                                          "type": "string"
+                                        },
+                                        "maxItems": 5,
+                                        "title": "Coverage",
+                                        "type": "array"
+                                      },
+                                      "coverage_basis": {
+                                        "title": "Coverage Basis",
+                                        "type": "string"
+                                      },
+                                      "id": {
+                                        "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                        "title": "Id",
+                                        "type": "string"
+                                      },
+                                      "kind": {
+                                        "enum": [
+                                          "operating_cost",
+                                          "operating_expense",
+                                          "shared_cost",
+                                          "depreciation",
+                                          "sbc",
+                                          "operating_adjustment"
+                                        ],
+                                        "title": "Kind",
+                                        "type": "string"
+                                      },
+                                      "label": {
+                                        "title": "Label",
+                                        "type": "string"
+                                      },
+                                      "mode": {
+                                        "enum": [
+                                          "amount",
+                                          "revenue_ratio"
+                                        ],
+                                        "title": "Mode",
+                                        "type": "string"
+                                      },
+                                      "values": {
+                                        "items": {
+                                          "additionalProperties": false,
+                                          "properties": {
+                                            "parameter": {
+                                              "additionalProperties": false,
+                                              "properties": {
+                                                "anchor_observation_id": {
+                                                  "anyOf": [
+                                                    {
+                                                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "null"
+                                                    }
+                                                  ],
+                                                  "title": "Anchor Observation Id"
+                                                },
+                                                "currency": {
+                                                  "anyOf": [
+                                                    {
+                                                      "enum": [
+                                                        "CNY",
+                                                        "USD"
+                                                      ],
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "null"
+                                                    }
+                                                  ],
+                                                  "title": "Currency"
+                                                },
+                                                "id": {
+                                                  "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                                  "title": "Id",
+                                                  "type": "string"
+                                                },
+                                                "independent": {
+                                                  "title": "Independent",
+                                                  "type": "boolean"
+                                                },
+                                                "period": {
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "end": {
+                                                      "title": "End",
+                                                      "type": "string"
+                                                    },
+                                                    "grain": {
+                                                      "enum": [
+                                                        "annual",
+                                                        "interim",
+                                                        "remaining"
+                                                      ],
+                                                      "title": "Grain",
+                                                      "type": "string"
+                                                    },
+                                                    "start": {
+                                                      "title": "Start",
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "start",
+                                                    "end",
+                                                    "grain"
+                                                  ],
+                                                  "title": "PeriodV2",
+                                                  "type": "object"
+                                                },
+                                                "rationale": {
+                                                  "title": "Rationale",
+                                                  "type": "string"
+                                                },
+                                                "source_refs": {
+                                                  "items": {
+                                                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                                    "type": "string"
+                                                  },
+                                                  "maxItems": 16,
+                                                  "title": "Source Refs",
+                                                  "type": "array"
+                                                },
+                                                "unit": {
+                                                  "enum": [
+                                                    "unit",
+                                                    "thousand",
+                                                    "million",
+                                                    "billion",
+                                                    "ratio",
+                                                    "fx"
+                                                  ],
+                                                  "title": "Unit",
+                                                  "type": "string"
+                                                },
+                                                "value": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "null"
+                                                    }
+                                                  ],
+                                                  "title": "Value"
+                                                }
+                                              },
+                                              "required": [
+                                                "id",
+                                                "value",
+                                                "unit",
+                                                "currency",
+                                                "period",
+                                                "rationale",
+                                                "source_refs",
+                                                "anchor_observation_id",
+                                                "independent"
+                                              ],
+                                              "title": "ParameterV2",
+                                              "type": "object"
+                                            },
+                                            "year": {
+                                              "maximum": 2031,
+                                              "minimum": 2026,
+                                              "title": "Year",
+                                              "type": "integer"
+                                            }
+                                          },
+                                          "required": [
+                                            "year",
+                                            "parameter"
+                                          ],
+                                          "title": "AnnualV2",
+                                          "type": "object"
+                                        },
+                                        "maxItems": 6,
+                                        "title": "Values",
+                                        "type": "array"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "kind",
+                                      "label",
+                                      "mode",
+                                      "coverage",
+                                      "coverage_basis",
+                                      "values"
+                                    ],
+                                    "title": "CostV2",
+                                    "type": "object"
+                                  },
+                                  "maxItems": 16,
+                                  "title": "Costs",
+                                  "type": "array"
+                                },
+                                "exclusions": {
+                                  "items": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "rationale": {
+                                        "title": "Rationale",
+                                        "type": "string"
+                                      },
+                                      "source_refs": {
+                                        "items": {
+                                          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                          "type": "string"
+                                        },
+                                        "maxItems": 16,
+                                        "title": "Source Refs",
+                                        "type": "array"
+                                      },
+                                      "tag": {
+                                        "title": "Tag",
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "tag",
+                                      "rationale",
+                                      "source_refs"
+                                    ],
+                                    "title": "ExclusionV2",
+                                    "type": "object"
+                                  },
+                                  "maxItems": 5,
+                                  "title": "Exclusions",
+                                  "type": "array"
+                                },
+                                "future_fx": {
+                                  "items": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "from_currency": {
+                                        "enum": [
+                                          "CNY",
+                                          "USD"
+                                        ],
+                                        "title": "From Currency",
+                                        "type": "string"
+                                      },
+                                      "parameter": {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "anchor_observation_id": {
+                                            "anyOf": [
+                                              {
+                                                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ],
+                                            "title": "Anchor Observation Id"
+                                          },
+                                          "currency": {
+                                            "anyOf": [
+                                              {
+                                                "enum": [
+                                                  "CNY",
+                                                  "USD"
+                                                ],
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ],
+                                            "title": "Currency"
+                                          },
+                                          "id": {
+                                            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                            "title": "Id",
+                                            "type": "string"
+                                          },
+                                          "independent": {
+                                            "title": "Independent",
+                                            "type": "boolean"
+                                          },
+                                          "period": {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "end": {
+                                                "title": "End",
+                                                "type": "string"
+                                              },
+                                              "grain": {
+                                                "enum": [
+                                                  "annual",
+                                                  "interim",
+                                                  "remaining"
+                                                ],
+                                                "title": "Grain",
+                                                "type": "string"
+                                              },
+                                              "start": {
+                                                "title": "Start",
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "start",
+                                              "end",
+                                              "grain"
+                                            ],
+                                            "title": "PeriodV2",
+                                            "type": "object"
+                                          },
+                                          "rationale": {
+                                            "title": "Rationale",
+                                            "type": "string"
+                                          },
+                                          "source_refs": {
+                                            "items": {
+                                              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                              "type": "string"
+                                            },
+                                            "maxItems": 16,
+                                            "title": "Source Refs",
+                                            "type": "array"
+                                          },
+                                          "unit": {
+                                            "enum": [
+                                              "unit",
+                                              "thousand",
+                                              "million",
+                                              "billion",
+                                              "ratio",
+                                              "fx"
+                                            ],
+                                            "title": "Unit",
+                                            "type": "string"
+                                          },
+                                          "value": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ],
+                                            "title": "Value"
+                                          }
+                                        },
+                                        "required": [
+                                          "id",
+                                          "value",
+                                          "unit",
+                                          "currency",
+                                          "period",
+                                          "rationale",
+                                          "source_refs",
+                                          "anchor_observation_id",
+                                          "independent"
+                                        ],
+                                        "title": "ParameterV2",
+                                        "type": "object"
+                                      },
+                                      "to_currency": {
+                                        "enum": [
+                                          "CNY",
+                                          "USD"
+                                        ],
+                                        "title": "To Currency",
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "from_currency",
+                                      "to_currency",
+                                      "parameter"
+                                    ],
+                                    "title": "FutureFXV2",
+                                    "type": "object"
+                                  },
+                                  "maxItems": 16,
+                                  "title": "Future Fx",
+                                  "type": "array"
+                                },
+                                "growth": {
+                                  "items": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "parameter": {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "anchor_observation_id": {
+                                            "anyOf": [
+                                              {
+                                                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ],
+                                            "title": "Anchor Observation Id"
+                                          },
+                                          "currency": {
+                                            "anyOf": [
+                                              {
+                                                "enum": [
+                                                  "CNY",
+                                                  "USD"
+                                                ],
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ],
+                                            "title": "Currency"
+                                          },
+                                          "id": {
+                                            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                            "title": "Id",
+                                            "type": "string"
+                                          },
+                                          "independent": {
+                                            "title": "Independent",
+                                            "type": "boolean"
+                                          },
+                                          "period": {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "end": {
+                                                "title": "End",
+                                                "type": "string"
+                                              },
+                                              "grain": {
+                                                "enum": [
+                                                  "annual",
+                                                  "interim",
+                                                  "remaining"
+                                                ],
+                                                "title": "Grain",
+                                                "type": "string"
+                                              },
+                                              "start": {
+                                                "title": "Start",
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "start",
+                                              "end",
+                                              "grain"
+                                            ],
+                                            "title": "PeriodV2",
+                                            "type": "object"
+                                          },
+                                          "rationale": {
+                                            "title": "Rationale",
+                                            "type": "string"
+                                          },
+                                          "source_refs": {
+                                            "items": {
+                                              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                              "type": "string"
+                                            },
+                                            "maxItems": 16,
+                                            "title": "Source Refs",
+                                            "type": "array"
+                                          },
+                                          "unit": {
+                                            "enum": [
+                                              "unit",
+                                              "thousand",
+                                              "million",
+                                              "billion",
+                                              "ratio",
+                                              "fx"
+                                            ],
+                                            "title": "Unit",
+                                            "type": "string"
+                                          },
+                                          "value": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ],
+                                            "title": "Value"
+                                          }
+                                        },
+                                        "required": [
+                                          "id",
+                                          "value",
+                                          "unit",
+                                          "currency",
+                                          "period",
+                                          "rationale",
+                                          "source_refs",
+                                          "anchor_observation_id",
+                                          "independent"
+                                        ],
+                                        "title": "ParameterV2",
+                                        "type": "object"
+                                      },
+                                      "year": {
+                                        "maximum": 2031,
+                                        "minimum": 2026,
+                                        "title": "Year",
+                                        "type": "integer"
+                                      }
+                                    },
+                                    "required": [
+                                      "year",
+                                      "parameter"
+                                    ],
+                                    "title": "AnnualV2",
+                                    "type": "object"
+                                  },
+                                  "maxItems": 5,
+                                  "title": "Growth",
+                                  "type": "array"
+                                },
+                                "id": {
+                                  "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                  "title": "Id",
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "title": "Label",
+                                  "type": "string"
+                                },
+                                "remaining_revenue": {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "anchor_observation_id": {
+                                      "anyOf": [
+                                        {
+                                          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ],
+                                      "title": "Anchor Observation Id"
+                                    },
+                                    "currency": {
+                                      "anyOf": [
+                                        {
+                                          "enum": [
+                                            "CNY",
+                                            "USD"
+                                          ],
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ],
+                                      "title": "Currency"
+                                    },
+                                    "id": {
+                                      "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                      "title": "Id",
+                                      "type": "string"
+                                    },
+                                    "independent": {
+                                      "title": "Independent",
+                                      "type": "boolean"
+                                    },
+                                    "period": {
+                                      "additionalProperties": false,
+                                      "properties": {
+                                        "end": {
+                                          "title": "End",
+                                          "type": "string"
+                                        },
+                                        "grain": {
+                                          "enum": [
+                                            "annual",
+                                            "interim",
+                                            "remaining"
+                                          ],
+                                          "title": "Grain",
+                                          "type": "string"
+                                        },
+                                        "start": {
+                                          "title": "Start",
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "start",
+                                        "end",
+                                        "grain"
+                                      ],
+                                      "title": "PeriodV2",
+                                      "type": "object"
+                                    },
+                                    "rationale": {
+                                      "title": "Rationale",
+                                      "type": "string"
+                                    },
+                                    "source_refs": {
+                                      "items": {
+                                        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                                        "type": "string"
+                                      },
+                                      "maxItems": 16,
+                                      "title": "Source Refs",
+                                      "type": "array"
+                                    },
+                                    "unit": {
+                                      "enum": [
+                                        "unit",
+                                        "thousand",
+                                        "million",
+                                        "billion",
+                                        "ratio",
+                                        "fx"
+                                      ],
+                                      "title": "Unit",
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ],
+                                      "title": "Value"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "value",
+                                    "unit",
+                                    "currency",
+                                    "period",
+                                    "rationale",
+                                    "source_refs",
+                                    "anchor_observation_id",
+                                    "independent"
+                                  ],
+                                  "title": "ParameterV2",
+                                  "type": "object"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "accounting_basis",
+                                "remaining_revenue",
+                                "growth",
+                                "costs",
+                                "exclusions",
+                                "allocations",
+                                "future_fx"
+                              ],
+                              "title": "ScenarioV2",
+                              "type": "object"
+                            },
+                            "maxItems": 3,
+                            "minItems": 1,
+                            "title": "Scenarios",
+                            "type": "array"
+                          },
+                          "sensitivity": {
+                            "anyOf": [
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "parameter_id": {
+                                    "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                    "title": "Parameter Id",
+                                    "type": "string"
+                                  },
+                                  "points": {
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "maxItems": 21,
+                                    "title": "Points",
+                                    "type": "array"
+                                  },
+                                  "scenario_id": {
+                                    "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                                    "title": "Scenario Id",
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "scenario_id",
+                                  "parameter_id",
+                                  "points"
+                                ],
+                                "title": "SensitivityV2",
+                                "type": "object"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "target_currency": {
+                            "enum": [
+                              "CNY",
+                              "USD"
+                            ],
+                            "title": "Target Currency",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "entity_scope",
+                          "information_cutoff",
+                          "interim_revenue_ref",
+                          "baseline_selection_reason",
+                          "historical_context_refs",
+                          "historical_fx_choices",
+                          "target_currency",
+                          "categories",
+                          "scenarios",
+                          "sensitivity",
+                          "policy_revision",
+                          "derived_fx_inputs"
+                        ],
+                        "title": "FinancialRequestV2",
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "input_revision",
+                      "expected_research_version",
+                      "registry_ref",
+                      "request"
+                    ],
+                    "title": "FinancialCalculationDataV2",
+                    "type": "object"
+                  },
+                  "schema_version": {
+                    "const": "structure-research-v1",
+                    "enum": [
+                      "structure-research-v1"
+                    ],
+                    "title": "Schema Version",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "contract_revision",
+                  "data"
+                ],
+                "title": "FinancialCalculationEnvelopeV2",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialResultResponseV2"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Calculate Research Financial",
+        "tags": [
+          "research"
+        ]
+      }
+    },
     "/api/research/{research_id}/financial-import-preview": {
       "post": {
         "operationId": "preview_research_financial_import_api_research__research_id__financial_import_preview_post",
@@ -19392,6 +23157,99 @@
           }
         },
         "summary": "Read Research Financial Registry",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/financial-results": {
+      "get": {
+        "operationId": "list_research_financial_results_api_research__research_id__financial_results_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialResultHistoryResponseV2"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Research Financial Results",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/financial-results/{result_ref}": {
+      "get": {
+        "operationId": "read_research_financial_result_api_research__research_id__financial_results__result_ref__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "result_ref",
+            "required": true,
+            "schema": {
+              "title": "Result Ref",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialResultResponseV2"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Research Financial Result",
         "tags": [
           "research"
         ]

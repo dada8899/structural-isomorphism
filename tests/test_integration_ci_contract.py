@@ -285,6 +285,7 @@ def original_ci_before_financial_registry(value: dict) -> dict:
     assert seen == 1, 'one financial registry Node consumer required'
     needs = jobs['release-gate-summary']['needs']
     assert needs.count(FINANCIAL_REGISTRY_JOB) == 1
+    assert needs.count(EVIDENCE_METHOD_JOB) == 1, 'one evidence predecessor hard edge required'
     assert needs.index(FINANCIAL_REGISTRY_JOB) == needs.index(EVIDENCE_METHOD_JOB) + 1
     needs.remove(FINANCIAL_REGISTRY_JOB)
     return original

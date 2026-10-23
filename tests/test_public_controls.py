@@ -1827,7 +1827,7 @@ def _original_makefile_before_evidence_method(makefile: str) -> str:
     additions = [
         "\tweb/frontend/tests/test_evidenceMethodPlan.js " + chr(92) + "\n",
         "EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS := " + chr(92) + "\n\tweb/tests/e2e/test_evidence_method_plan_browser.py\n\n",
-        "test-evidence-method-browser-contract:\n\t$(PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v\n\n",
+        "test-evidence-method-browser-contract:\n\t$(BACKEND_PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v\n\n",
         '\t@echo "  test-evidence-method-browser-contract  Run all saved-evidence method browser cases"\n',
         "\t$(MAKE) test-evidence-method-browser-contract\n",
     ]
@@ -2835,7 +2835,7 @@ def test_evidence_method_browser_is_one_complete_hard_consumer():
     browser_path = 'web/tests/e2e/test_evidence_method_plan_browser.py'
     assert _make_path_list(makefile, 'EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS') == [browser_path]
     assert _make_recipe_commands(makefile, 'test-evidence-method-browser-contract') == [
-        '$(PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v']
+        '$(BACKEND_PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v']
     assert _make_recipe_commands(makefile, 'verify-release').count('$(MAKE) test-evidence-method-browser-contract') == 1
     rows = _ci_matrix_rows(_ci_job('browser-beta-surface-contract'))
     assert _ci_matrix_paths(rows, 'node_tests', NODE_PATH_PATTERN).count(node_path) == 1
@@ -2853,11 +2853,11 @@ def test_evidence_method_browser_is_one_complete_hard_consumer():
 @pytest.mark.parametrize('mutation', ['missing_target','duplicate_target','logging','soft','path','verify_release'])
 def test_evidence_method_make_delta_rejects_weakened_or_missing_consumer(mutation):
     value = (ROOT / 'Makefile').read_text()
-    target = 'test-evidence-method-browser-contract:\n\t$(PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v\n\n'
+    target = 'test-evidence-method-browser-contract:\n\t$(BACKEND_PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v\n\n'
     if mutation == 'missing_target': value = value.replace(target, '', 1)
     elif mutation == 'duplicate_target': value += target
     elif mutation == 'logging': value = value.replace(target, target.replace(' -p no:logging', ''), 1)
-    elif mutation == 'soft': value = value.replace(target, target.replace('\t$(PYTEST)', '\t-$(PYTEST)'), 1)
+    elif mutation == 'soft': value = value.replace(target, target.replace('\t$(BACKEND_PYTEST)', '\t-$(BACKEND_PYTEST)'), 1)
     elif mutation == 'path': value = value.replace('web/tests/e2e/test_evidence_method_plan_browser.py', 'web/backend/tests/test_evidence_method_plan_browser.py', 1)
     else: value = value.replace('\t$(MAKE) test-evidence-method-browser-contract\n', '', 1)
     with pytest.raises(AssertionError): _original_makefile_without_financial_preview(value)

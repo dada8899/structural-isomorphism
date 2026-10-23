@@ -133,7 +133,7 @@ test-financial-registry-browser-contract:
 	$(PYTEST) $(FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS) -p no:logging -v
 
 test-evidence-method-browser-contract:
-	$(PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v
+	$(BACKEND_PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v
 
 test-retrieval-contract:
 	$(BACKEND_PYTEST) web/backend/tests/test_retrieval_eval_dataset.py -q
