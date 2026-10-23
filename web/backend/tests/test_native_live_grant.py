@@ -130,11 +130,12 @@ def test_partial_cleanup_attempts_every_owned_item_without_erasing_errors():
 @pytest.mark.parametrize('missing_relative', [
     'web/backend/research/source_supervisor.py',
     'web/backend/research/source_sec_access.py',
+    'web/backend/systemd_credential_metadata.py',
 ])
 def test_missing_code_closure_never_becomes_synthetic_approval(tmp_path,monkeypatch,missing_relative):
     # Pure fixed-path hashing over owned bytes, never a grant/factory positive.
-    assert len(live.APPROVED_PATHS)==len(set(live.APPROVED_PATHS))==26
-    assert live.APPROVED_PATHS[-1]=='web/backend/research/source_sec_access.py'
+    assert len(live.APPROVED_PATHS)==len(set(live.APPROVED_PATHS))==27
+    assert live.APPROVED_PATHS[-2:] == ('web/backend/research/source_sec_access.py','web/backend/systemd_credential_metadata.py')
     root=tmp_path/'synthetic-closure'
     for relative in live.APPROVED_PATHS:
         path=root/relative;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'# synthetic hash input only\n')
@@ -196,3 +197,8 @@ def test_credential_bootstrap_and_pairing_never_accept_dto_or_unregistered_exact
         assert error.value.code=='FUNDING_CLOSED'
     for session in ({'credential':True},object(),object.__new__(live.NativeLiveSession)):
         assert live.credential_session_binding(session,object()) is False
+
+
+def test_original_26_order_is_an_exact_prefix_of_fixed_27():
+    assert live.APPROVED_PATHS[:-1] == ('web/backend/research/plan_native.py', 'web/backend/research/plan_native_runtime.py', 'web/backend/research/plan_native_schemas.py', 'web/backend/research/plan_native_financial.py', 'web/backend/research/evidence_method_plan.py', 'web/backend/research/evidence_method_plan_schemas.py', 'web/backend/research/evidence_method_plan_codec.py', 'web/backend/services/plan_runtime_transport.py', 'web/backend/research/native_live_grant.py', 'web/backend/services/native_live_credentials.py', 'web/backend/services/native_dns_process.py', 'web/backend/research/native_plan_supervisor.py', 'web/backend/main.py', 'web/backend/services/formal_admission.py', 'web/backend/research/runtime_profile.py', 'scripts/run-formal-main.py', 'web/backend/research/plan_preview_codec.py', 'web/backend/research/phenomenon_plan.py', 'web/backend/research/plan_runtime.py', 'web/backend/research/store.py', 'web/backend/research/authorization.py', 'web/backend/services/auth_store.py', 'web/backend/services/auth_registration.py', 'web/backend/services/sqlite_utils.py', 'web/backend/research/source_supervisor.py', 'web/backend/research/source_sec_access.py')
+    assert live.APPROVED_PATHS[-1] == 'web/backend/systemd_credential_metadata.py'

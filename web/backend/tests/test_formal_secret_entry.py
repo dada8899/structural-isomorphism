@@ -38,7 +38,15 @@ def synthetic_values(entry):
 
 
 @pytest.fixture
-def credentials(tmp_path, entry):
+def credentials(tmp_path, entry, monkeypatch):
+    import systemd_credential_metadata as metadata
+    entry._METADATA_HELPER = metadata
+    def collect_owned(descriptor):
+        info = os.fstat(descriptor)
+        return dict(zip(metadata.SNAPSHOT_FIELDS, (info.st_dev, info.st_ino, info.st_uid, info.st_gid, info.st_mode, info.st_nlink, info.st_size, info.st_mtime_ns, info.st_ctime_ns, ('ABSENT', (), None), ('ABSENT', (), None), True, 23, True)))
+    # Only the new collector is synthetic; every strict predicate and original
+    # byte/mutation/close rule still executes on these actual owned files.
+    monkeypatch.setattr(entry, '_capture_metadata', collect_owned)
     root = tmp_path / 'synthetic-credentials'
     root.mkdir(mode=0o700)
     values = synthetic_values(entry)
@@ -289,3 +297,33 @@ def test_entry_failure_retains_failed_descriptor_and_attempts_remaining(entry,mo
     monkeypatch.setattr(entry.os,'close',close)
     with pytest.raises(entry.EntryFailure,match='FD_CLOSE_FAILED'):entry._close_all(descriptors)
     assert closed==[103,102,101] and descriptors==[102] and entry._UNCERTAIN_FDS[-1]==(102,)
+
+
+def test_preinjected_metadata_helper_and_untrusted_source_refused(entry, monkeypatch, tmp_path):
+    from types import ModuleType
+    fake = ModuleType('systemd_credential_metadata')
+    with monkeypatch.context() as patch:
+        patch.setattr(sys, 'modules', {name:value for name,value in sys.modules.items() if not name.startswith(('services', 'api', 'research', 'web.backend'))})
+        patch.setitem(sys.modules, 'systemd_credential_metadata', fake)
+        with pytest.raises(entry.EntryFailure, match='CODE_IDENTITY_INVALID'):entry._code_paths()
+    owned = tmp_path/'helper.py';owned.write_bytes(b'# owned synthetic source\n')
+    with pytest.raises((entry.EntryFailure, OSError)):entry._source_bytes(owned)
+
+
+def test_metadata_snapshot_mutation_and_group_pre_publish_recheck(entry, credentials, monkeypatch):
+    root, _ = credentials
+    read_owned(entry, root)
+    native = entry._capture_metadata;calls = []
+    def changed(descriptor):
+        value = native(descriptor);calls.append(descriptor)
+        if len(calls) == 2:value['mount_id'] += 1
+        return value
+    directory = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+    try:
+        with monkeypatch.context() as patch:
+            patch.setattr(entry, '_capture_metadata', changed)
+            with pytest.raises(entry.EntryFailure, match='CREDENTIAL_CHANGED'):entry._check_group(directory, os.geteuid())
+        root.chmod(0o700)
+        target = root/'structural-jwt-secret';target.chmod(0o600);target.write_bytes(b'changed synthetic bytes');target.chmod(0o400);root.chmod(0o500)
+        with pytest.raises(entry.EntryFailure):entry._check_group(directory, os.geteuid())
+    finally:os.close(directory)

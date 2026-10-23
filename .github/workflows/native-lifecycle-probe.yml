@@ -2,7 +2,7 @@ name: Native Linux lifecycle probe
 
 on:
   push:
-    branches: [codex/structure-native-linux-lifecycle-attempt5-20261024]
+    branches: [codex/structure-native-linux-lifecycle-attempt6-20261024]
 
 permissions:
   contents: read
@@ -16,7 +16,7 @@ jobs:
     if: >-
       github.event_name == 'push'
       && github.repository == 'dada8899/structural-isomorphism'
-      && github.ref == 'refs/heads/codex/structure-native-linux-lifecycle-attempt5-20261024'
+      && github.ref == 'refs/heads/codex/structure-native-linux-lifecycle-attempt6-20261024'
       && github.run_attempt == '1'
       && github.event.created == true
       && toJSON(github.event.deleted) == 'false'

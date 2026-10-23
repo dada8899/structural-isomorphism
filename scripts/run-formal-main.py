@@ -23,6 +23,9 @@ _KNOWN_SENSITIVE = frozenset(('AZURE_OPENAI_KEY', 'ANTHROPIC_AUTH_TOKEN', 'GOOGL
     'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN', 'HF_TOKEN', 'HUGGING_FACE_HUB_TOKEN'))
 _CODE_OVERRIDES = frozenset(('STRUCTURAL_PROJECT_ROOT', 'PYTHONPATH', 'PYTHONHOME', 'PYTHONINSPECT'))
 _UNCERTAIN_FDS = []
+_METADATA_HELPER = None
+_CONSUMER = None
+_GROUP_METADATA = ()
 _CODES = frozenset(('ENTRY_ARGUMENTS', 'INTERPRETER_FLAGS', 'INHERITED_SECRET', 'CODE_OVERRIDE',
     'PROFILE_INVALID', 'SMTP_AUTH_REQUIRED', 'CREDENTIAL_DIRECTORY_INVALID', 'UNSUPPORTED_PLATFORM',
     'SERVICE_IDENTITY_INVALID', 'CORE_HARDENING_FAILED', 'DUMP_HARDENING_FAILED', 'BOUNDARY_CHANGED',
@@ -119,7 +122,7 @@ def _check_boundary(pid, uid):
 
 
 def _identity(info):
-    return (info.st_dev, info.st_ino, info.st_uid, info.st_mode, info.st_nlink, info.st_size,
+    return (info.st_dev, info.st_ino, info.st_uid, info.st_gid, info.st_mode, info.st_nlink, info.st_size,
             info.st_mtime_ns, info.st_ctime_ns)
 
 
@@ -144,21 +147,156 @@ def _close_all(descriptors):
         raise EntryFailure('FD_CLOSE_FAILED')
 
 
+def _read_proc(path, limit):
+    descriptors = []
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        descriptors.append(descriptor)
+        raw = os.read(descriptor, limit + 1)
+        if not 0 < len(raw) <= limit:
+            raise EntryFailure('CREDENTIAL_METADATA_INVALID')
+        return raw
+    finally:
+        _close_all(descriptors)
+
+
+def _source_bytes(path):
+    # Root-managed source and every physical ancestor must be non-writable by
+    # the service. Mode group bits include a POSIX ACL's effective mask.
+    from pathlib import Path
+    descriptors = []
+    try:
+        parts = Path(path).parts
+        descriptor = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        descriptors.append(descriptor)
+        root_info = os.fstat(descriptor)
+        if root_info.st_uid != 0 or root_info.st_mode & 0o022:raise EntryFailure('CODE_IDENTITY_INVALID')
+        for component in parts[1:]:
+            parent = descriptors[-1]
+            flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC
+            if component != parts[-1]:flags |= os.O_DIRECTORY
+            descriptor = os.open(component, flags, dir_fd=parent)
+            descriptors.append(descriptor)
+            info = os.fstat(descriptor)
+            named = os.stat(component, dir_fd=parent, follow_symlinks=False)
+            if (info.st_uid != 0 or info.st_mode & 0o022 or _identity(info) != _identity(named)
+                    or not (stat.S_ISREG(info.st_mode) if component == parts[-1] else stat.S_ISDIR(info.st_mode))):
+                raise EntryFailure('CODE_IDENTITY_INVALID')
+        before = os.fstat(descriptor)
+        if before.st_nlink != 1 or not 0 < before.st_size <= 65536:
+            raise EntryFailure('CODE_IDENTITY_INVALID')
+        raw = os.read(descriptor, 65537)
+        if len(raw) != before.st_size or _identity(before) != _identity(os.fstat(descriptor)):
+            raise EntryFailure('CODE_IDENTITY_INVALID')
+        return raw
+    finally:
+        _close_all(descriptors)
+
+
+def _require_metadata_helper():
+    import types
+    from pathlib import Path
+    path = Path(__file__).absolute().parent.parent / 'web/backend/systemd_credential_metadata.py'
+    module = _METADATA_HELPER
+    if (type(module) is not types.ModuleType or sys.modules.get('systemd_credential_metadata') is not module
+            or module.__name__ != 'systemd_credential_metadata' or module.__file__ != str(path)):
+        raise EntryFailure('CODE_IDENTITY_INVALID')
+    raw = _source_bytes(path)
+    expected = {'__name__': module.__name__, '__file__': str(path)}
+    exec(compile(raw, str(path), 'exec', dont_inherit=True), expected)
+    names = {key for key in expected if not key.startswith('__')}
+    if {key for key in vars(module) if not key.startswith('__')} != names:
+        raise EntryFailure('CODE_IDENTITY_INVALID')
+    for name in names:
+        actual, original = vars(module)[name], expected[name]
+        if type(original) is types.FunctionType:
+            if (type(actual) is not types.FunctionType or actual.__globals__ is not vars(module)
+                    or actual.__module__ != module.__name__ or actual.__code__ != original.__code__
+                    or actual.__defaults__ != original.__defaults__ or actual.__kwdefaults__ != original.__kwdefaults__):
+                raise EntryFailure('CODE_IDENTITY_INVALID')
+        elif type(actual) is not type(original) or (actual is not original if isinstance(original, types.ModuleType) else actual != original):
+            raise EntryFailure('CODE_IDENTITY_INVALID')
+    if _source_bytes(path) != raw:
+        raise EntryFailure('CODE_IDENTITY_INVALID')
+    return module
+
+
+def _load_metadata_helper(backend):
+    global _METADATA_HELPER
+    import importlib
+    path = backend / 'systemd_credential_metadata.py'
+    if _METADATA_HELPER is not None or 'systemd_credential_metadata' in sys.modules:
+        raise EntryFailure('CODE_IDENTITY_INVALID')
+    before = _source_bytes(path)
+    sys.path.insert(0, str(backend))
+    _METADATA_HELPER = importlib.import_module('systemd_credential_metadata')
+    module = _require_metadata_helper()
+    if _source_bytes(path) != before:
+        raise EntryFailure('CODE_IDENTITY_INVALID')
+    return module
+
+
+def _capture_metadata(descriptor):
+    module = _require_metadata_helper()
+    if _CONSUMER is None or _capture_consumer() != _CONSUMER:raise EntryFailure('BOUNDARY_CHANGED')
+    before = _identity(os.fstat(descriptor))
+    snapshot = module.capture_fd(descriptor, _read_proc('/proc/self/fdinfo/' + str(descriptor), 4096), _read_proc('/proc/thread-self/mountinfo', 262144))
+    if before != _identity(os.fstat(descriptor)):raise EntryFailure('CREDENTIAL_CHANGED')
+    if _capture_consumer() != _CONSUMER:raise EntryFailure('BOUNDARY_CHANGED')
+    return snapshot
+
+
+def _capture_consumer():
+    import threading
+    thread_id = threading.get_native_id()
+    module = _require_metadata_helper()
+    user = os.stat('/proc/thread-self/ns/user');mount = os.stat('/proc/thread-self/ns/mnt')
+    before = (user.st_dev, user.st_ino), (mount.st_dev, mount.st_ino)
+    value = module.parse_consumer(_read_proc('/proc/thread-self/status', 65536), _read_proc('/proc/thread-self/uid_map', 65536),
+        _read_proc('/proc/thread-self/gid_map', 65536), _read_proc('/proc/self/stat', 65536), os.getpid(), *before)
+    user = os.stat('/proc/thread-self/ns/user');mount = os.stat('/proc/thread-self/ns/mnt')
+    if (threading.get_native_id() != thread_id
+            or before != ((user.st_dev, user.st_ino), (mount.st_dev, mount.st_ino))
+            or value['uid'] != os.geteuid() or value['gid'] != os.getegid()
+            or os.getresuid() != (value['uid'],) * 3 or os.getresgid() != (value['gid'],) * 3):
+        raise EntryFailure('BOUNDARY_CHANGED')
+    return value
+
+
+def _metadata_pair(parent, name, descriptor, uid, role):
+    descriptors = []
+    module = _METADATA_HELPER
+    try:
+        held = _capture_metadata(descriptor)
+        flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC
+        if role != 'file':flags |= os.O_DIRECTORY
+        named = os.open(name, flags, dir_fd=parent) if parent is not None else os.open('/', flags)
+        descriptors.append(named)
+        current = _capture_metadata(named)
+        if not module.same_snapshot(held, current):raise EntryFailure('CREDENTIAL_CHANGED')
+        shape = module.validate_snapshot(held, role, uid, os.getegid())
+        return held, shape
+    except ValueError:
+        raise EntryFailure('CREDENTIAL_METADATA_INVALID') from None
+    finally:
+        _close_all(descriptors)
+
+
 def _credential_directory(uid):
     descriptors = []
     try:
         flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
         descriptors.append(os.open('/', flags))
-        _directory_metadata(os.fstat(descriptors[-1]), uid, final=False)
+        _metadata_pair(None, '/', descriptors[-1], uid, 'ancestor')
         for component in ('run', 'credentials', 'structural-web.service'):
             parent = descriptors[-1]
             before = os.stat(component, dir_fd=parent, follow_symlinks=False)
             final = component == 'structural-web.service'
-            _directory_metadata(before, uid, final=final)
+            if not stat.S_ISDIR(before.st_mode):raise EntryFailure('CREDENTIAL_METADATA_INVALID')
             descriptor = os.open(component, flags, dir_fd=parent)
             descriptors.append(descriptor)
             after = os.fstat(descriptor)
-            _directory_metadata(after, uid, final=final)
+            _metadata_pair(parent, component, descriptor, uid, 'directory' if final else 'ancestor')
             if _identity(before) != _identity(after):
                 raise EntryFailure('CREDENTIAL_CHANGED')
         return descriptors
@@ -168,16 +306,11 @@ def _credential_directory(uid):
 
 
 def _check_directories(descriptors, uid):
-    _directory_metadata(os.fstat(descriptors[0]), uid, final=False)
+    _metadata_pair(None, '/', descriptors[0], uid, 'ancestor')
     for parent, descriptor, component in zip(descriptors, descriptors[1:], ('run', 'credentials', 'structural-web.service')):
-        held = os.fstat(descriptor)
-        named = os.stat(component, dir_fd=parent, follow_symlinks=False)
-        final = component == 'structural-web.service'
-        _directory_metadata(held, uid, final=final)
-        _directory_metadata(named, uid, final=final)
-        if (held.st_dev, held.st_ino, held.st_uid, held.st_mode, held.st_nlink) != (
-                named.st_dev, named.st_ino, named.st_uid, named.st_mode, named.st_nlink):
-            raise EntryFailure('CREDENTIAL_CHANGED')
+        _metadata_pair(parent, component, descriptor, uid, 'directory' if component == 'structural-web.service' else 'ancestor')
+    if _CONSUMER is None or _capture_consumer() != _CONSUMER:
+        raise EntryFailure('BOUNDARY_CHANGED')
 
 
 def _validate_value(target, raw):
@@ -206,16 +339,19 @@ def _read_group(directory, uid):
     Formal entry obtains this FD exclusively through the fixed directory walk.
     Nothing here is a Main readiness, funding, or secret-loader authority port.
     """
+    global _GROUP_METADATA
+    _GROUP_METADATA = ()
     values, descriptors, fingerprints, total = {}, [], [], 0
     try:
-        _directory_metadata(os.fstat(directory), uid, final=True)
+        directory_snapshot = _capture_metadata(directory)
+        directory_shape = _METADATA_HELPER.validate_snapshot(directory_snapshot, 'directory', uid, os.getegid())
         for credential, target in CREDENTIAL_IDS:
             descriptor = os.open(credential, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC,
                                  dir_fd=directory)
             descriptors.append(descriptor)
             before = os.fstat(descriptor)
-            if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or before.st_uid != uid
-                    or stat.S_IMODE(before.st_mode) != 0o400):
+            initial, shape = _metadata_pair(directory, credential, descriptor, uid, 'file')
+            if shape != directory_shape or initial['mount_id'] != directory_snapshot['mount_id']:
                 raise EntryFailure('CREDENTIAL_METADATA_INVALID')
             if not 1 <= before.st_size <= 4096 or total + before.st_size > 20480:
                 raise EntryFailure('CREDENTIAL_SIZE_INVALID')
@@ -225,14 +361,20 @@ def _read_group(directory, uid):
             if (_identity(before) != _identity(after) or _identity(after) != _identity(named)
                     or len(raw) != before.st_size):
                 raise EntryFailure('CREDENTIAL_CHANGED')
+            current, _ = _metadata_pair(directory, credential, descriptor, uid, 'file')
+            if not _METADATA_HELPER.same_snapshot(initial, current):raise EntryFailure('CREDENTIAL_CHANGED')
             total += len(raw)
             values[target] = _validate_value(target, raw)
-            fingerprints.append((credential, descriptor, _identity(after)))
-        _directory_metadata(os.fstat(directory), uid, final=True)
-        for credential, descriptor, fingerprint in fingerprints:
+            fingerprints.append((credential, descriptor, _identity(after), initial))
+        if not _METADATA_HELPER.same_snapshot(directory_snapshot, _capture_metadata(directory)):
+            raise EntryFailure('CREDENTIAL_CHANGED')
+        for credential, descriptor, fingerprint, initial in fingerprints:
             if (fingerprint != _identity(os.fstat(descriptor))
                     or fingerprint != _identity(os.stat(credential, dir_fd=directory, follow_symlinks=False))):
                 raise EntryFailure('CREDENTIAL_CHANGED')
+            current, _ = _metadata_pair(directory, credential, descriptor, uid, 'file')
+            if not _METADATA_HELPER.same_snapshot(initial, current):raise EntryFailure('CREDENTIAL_CHANGED')
+        _GROUP_METADATA = tuple((credential, initial) for credential, _, _, initial in fingerprints)
         return values
     except EntryFailure:
         values.clear()
@@ -240,6 +382,20 @@ def _read_group(directory, uid):
     except Exception:
         values.clear()
         raise EntryFailure('CREDENTIAL_IO_FAILED') from None
+    finally:
+        _close_all(descriptors)
+
+
+def _check_group(directory, uid):
+    descriptors = []
+    if tuple(name for name, _ in _GROUP_METADATA) != tuple(name for name, _ in CREDENTIAL_IDS):
+        raise EntryFailure('CREDENTIAL_CHANGED')
+    try:
+        for name, expected in _GROUP_METADATA:
+            fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, dir_fd=directory)
+            descriptors.append(fd)
+            current, _ = _metadata_pair(directory, name, fd, uid, 'file')
+            if not _METADATA_HELPER.same_snapshot(current, expected):raise EntryFailure('CREDENTIAL_CHANGED')
     finally:
         _close_all(descriptors)
 
@@ -273,15 +429,18 @@ def _code_paths(*, entry_module=None, entry_witness=None):
     backend = root / 'web/backend'
     source = backend / 'main.py'
     allowed = set()
+    if _METADATA_HELPER is not None:
+        _require_metadata_helper()
+        allowed.add('systemd_credential_metadata')
     if entry_module is not None:
         _validate_entry_module(entry_module, root)
         entry_module._require_entry_preimport(entry_witness)
-        allowed = {'services', 'services.native_live_credentials'}
+        allowed.update(('services', 'services.native_live_credentials'))
     elif entry_witness is not None:
         raise EntryFailure('CODE_IDENTITY_INVALID')
     if (source.is_symlink() or not source.is_file() or backend != backend.resolve()
             or any((name == 'main' or name.startswith(('api.', 'services.', 'research.', 'web.backend'))
-                    or name in ('api', 'services', 'research')) and name not in allowed for name in sys.modules)):
+                    or name in ('api', 'services', 'research', 'systemd_credential_metadata')) and name not in allowed for name in sys.modules)):
         raise EntryFailure('CODE_IDENTITY_INVALID')
     return root, backend, source
 
@@ -338,6 +497,7 @@ def _serve(pid, uid, *, entry_module=None, entry_witness=None):
 
 
 def main():
+    global _CONSUMER
     values, descriptors, installed = {}, [], False
     entry_module = entry_witness = None
     uncertain_entry_resources = ()
@@ -351,11 +511,14 @@ def main():
         pid, uid = _harden_current_process()
         # Original pre-import source gate still runs before even B is imported.
         root, backend, _ = _code_paths()
+        _load_metadata_helper(backend)
         _check_boundary(pid, uid)
+        _CONSUMER = _capture_consumer()
         descriptors = _credential_directory(uid)
         try:
             values = _read_group(descriptors[-1], uid)
             _check_directories(descriptors, uid)
+            _check_group(descriptors[-1], uid)
             import importlib
             sys.path[:0] = [str(backend), str(root)]
             entry_module = importlib.import_module('services.native_live_credentials')
@@ -365,6 +528,9 @@ def main():
         finally:
             _close_all(descriptors)
         _check_boundary(pid, uid)
+        if _capture_consumer() != _CONSUMER:raise EntryFailure('BOUNDARY_CHANGED')
+        entry_witness.require_runtime()
+        _check_group(entry_witness.fds[-1], uid)
         _publish_environment(values)
         installed = True
         _serve(pid, uid, entry_module=entry_module, entry_witness=entry_witness)
