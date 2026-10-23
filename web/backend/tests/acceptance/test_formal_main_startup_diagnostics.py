@@ -16,6 +16,7 @@ from uvicorn.lifespan.on import LifespanOn
 
 from web.backend.tests.acceptance.formal_main_browser_service import (
     ROOT, _safe_startup_error, _StartupErrorObserver, _observe_owned_startup,
+    _safe_lifespan_errors, FormalMainBrowserService,
 )
 
 MARKER = 'SYNTHETIC_PRIVATE_MARKER'
@@ -57,6 +58,37 @@ def test_literal_repository_coordinates_are_preserved_without_exception_text():
         'file': 'web/backend/services/formal_admission.py',
         'function': 'initialize', 'line': 2}
     assert MARKER not in json.dumps(result)
+
+
+def test_lifespan_chain_and_deep_router_wrappers_keep_bounded_original_coordinates():
+    namespace = {'marker': MARKER}
+    exec(compile('def initialize():\n    raise PermissionError(marker)\n',
+                 str(ROOT / 'web/backend/services/formal_admission.py'), 'exec'), namespace)
+    def nested(depth):
+        if depth: return nested(depth-1)
+        namespace['initialize']()
+    try:
+        try: nested(90)
+        except PermissionError as error: raise RuntimeError(MARKER) from error
+    except RuntimeError as error:
+        result = _safe_lifespan_errors(error)
+    assert [item['type'] for item in result] == ['RuntimeError', 'PermissionError']
+    assert result[-1]['frames'][-1] == {
+        'file': 'web/backend/services/formal_admission.py', 'function': 'initialize', 'line': 2}
+    assert all(len(item['frames']) <= 8 for item in result)
+    assert MARKER not in json.dumps(result)
+
+
+def test_shutdown_observer_keeps_failure_after_server_started_without_private_fields(tmp_path):
+    from types import SimpleNamespace
+    service = FormalMainBrowserService(tmp_path / 'unused-owned-root')
+    service.server = SimpleNamespace(started=True)
+    try:
+        raise PermissionError(MARKER)
+    except PermissionError as error:
+        service._capture_startup_error(error)
+    assert service._startup_diagnostics[0]['type'] == 'PermissionError'
+    assert MARKER not in json.dumps(service._startup_diagnostics)
 
 
 def test_explicit_exception_observation_preserves_original_logger_arguments():

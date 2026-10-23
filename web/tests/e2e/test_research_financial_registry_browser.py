@@ -25,12 +25,14 @@ async def ready_preview(page,service,csv=None):
     return preview
 
 
-async def save_from_ui(page,service,csv=None):
+async def save_from_ui(page,service,bridge,csv=None):
     preview=await ready_preview(page,service,csv)
-    async with page.expect_response(service.origin+'/api/research/'+service.seed.research_id+'/financial-registries') as saved:
-        await page.locator('#financial-registry-confirm').click()
-    response=await saved.value;assert response.status==200
-    body=await response.json()
+    url=service.origin+'/api/research/'+service.seed.research_id+'/financial-registries'
+    async with bridge.capture_response(page,'POST',url) as captured:
+        async with page.expect_response(url) as saved:
+            await page.locator('#financial-registry-confirm').click()
+        response=await saved.value;assert response.status==200
+        body=await captured.json(response)
     await expect(page.locator('#financial-registry-status')).to_contain_text('已保存并核对读回')
     return preview,body['data']
 
@@ -53,7 +55,7 @@ async def minimum_chain(tmp_path):
         # Preserve unrelated manual work and its existing original intent.
         await page.locator('#method-draft-method').fill('保存财务材料不得覆盖的人工手稿。')
         original_pending=await helpers._method_main_pending(page)
-        preview,saved=await save_from_ui(page,service)
+        preview,saved=await save_from_ui(page,service,bridge)
         ref=saved['metadata']['registry_ref']['id'];at=saved['metadata']['received_at']
         assert saved['metadata']['preview_digest']==preview['data']['preview_digest']
         assert saved['metadata']['research_version_after']==saved['metadata']['research_version_before']+1
@@ -77,7 +79,7 @@ async def minimum_chain(tmp_path):
         await expect(page.locator('#financial-registry-status')).to_contain_text('已读取原保存材料')
         await expect(page.locator('#financial-registry-detail time')).to_have_attribute('datetime',at)
         # A second ref at the same problem revision preserves the original row.
-        _,second=await save_from_ui(page,service,fin1.LEGAL_CSV)
+        _,second=await save_from_ui(page,service,bridge,fin1.LEGAL_CSV)
         assert second['metadata']['registry_ref']['id']!=ref and second['metadata']['input_revision']==saved['metadata']['input_revision']
         assert await actual_count(service)==2
         original=await helpers._native_tls_fetch(page,'/api/research/'+rid+'/financial-registries/'+ref)
@@ -181,7 +183,7 @@ def test_fin2_actual_main_real_conflict_preserves_csv_without_new_key(tmp_path):
 async def unknown_navigation_logout(tmp_path,delete):
     async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
         facts['scope']='FIN2 auth unknown/navigation and confirmed account loss'
-        _,first=await save_from_ui(page,service);ref=first['metadata']['registry_ref']['id'];await lose_ack(page,service,bridge);descriptors=await pending(page);assert len(descriptors)==1
+        _,first=await save_from_ui(page,service,bridge);ref=first['metadata']['registry_ref']['id'];await lose_ack(page,service,bridge);descriptors=await pending(page);assert len(descriptors)==1
         await page.locator('#financial-registry-history').click();await expect(page.locator('#financial-registry-status')).to_contain_text('已读取 2 份')
         await page.get_by_role('button',name='打开材料 '+ref[:8],exact=True).click();await expect(page.locator('#financial-registry-detail')).to_contain_text('owner supplied only')
         async def unknown(route):await route.fulfill(status=503,body='owned transient observation failure')
