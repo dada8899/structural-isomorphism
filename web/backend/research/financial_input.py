@@ -287,3 +287,61 @@ def provision_financial_inputs_v15(path)->FinancialInputProvisionReceipt:
 # Capture actual native producers once. Replacing an exported function with a
 # caller wrapper cannot turn that wrapper's frame into a permitted writer.
 _WRITE_PRODUCERS=(save_registry,erase_in)
+
+
+_RESOLVED_OWNER={}
+_RESOLVER_FACTORY=object()
+
+
+class ResolvedOwnerFinancialRegistryV2:
+    """Actual transaction-bound registry origin, never deserializable data."""
+    __slots__=('_entry',)
+    def __init__(self,entry,*,_factory=None):
+        import sys
+        frame=sys._getframe(1)
+        if (_factory is not _RESOLVER_FACTORY or frame.f_code is not resolve_owner_registry_v2.__code__
+                or frame.f_globals is not globals()):raise TypeError('native resolver birth required')
+        object.__setattr__(self,'_entry',entry);_RESOLVED_OWNER[id(self)]=self
+    def __setattr__(self,*a):raise TypeError('resolved owner registry immutable')
+    def __reduce__(self):raise TypeError('resolved owner registry cannot be serialized')
+    @property
+    def owner_data(self):self.require();return self._entry['body']
+    def require(self):
+        import os,threading
+        from .paid_control import _current_scope,_owner_binding,require_authenticated_action
+        e=getattr(self,'_entry',None)
+        if (_RESOLVED_OWNER.get(id(self)) is not self or not e or e['pid']!=os.getpid()
+                or e['thread']!=threading.get_ident() or _current_scope(e['conn']) is not e['scope']):
+            raise PermissionError('owner registry origin retired')
+        _owner_binding(e['conn'],e['service'].store,e['principal_id'],e['lease'])
+        require_authenticated_action(e['source'],identity=e['identity'],action='financial-calculate',
+            research_id=e['rid'],body_digest=_hash(e['envelope'].data_dict()))
+        e['service'].authorization.check(e['conn'],e['identity'],e['principal_id'],e['rid'],scope='read')
+        return e
+    def close(self):
+        _RESOLVED_OWNER.pop(id(self),None);self._entry.clear()
+
+
+def resolve_owner_registry_v2(conn,service,identity,rid,envelope,lease,source):
+    import os,threading
+    from .financial_execution import require_calculate_frame,require_native_scope
+    from .financial_result_v2 import input_binding
+    from .paid_control import _current_scope
+    require_calculate_frame({'conn':conn,'service':service,'identity':identity,'rid':rid,
+        'envelope':envelope,'lease':lease,'source':source})
+    pid,control=_context(conn,service,identity,rid,write=True)
+    require_native_scope(conn,service,identity,pid,lease)
+    service.authorization.check(conn,identity,pid,rid,scope='read')
+    ref=envelope.data.registry_ref
+    row=conn.execute('SELECT * FROM '+REGISTRIES+' WHERE registry_ref=? AND registry_revision=? AND registry_digest=? AND research_id=? AND principal_id=? AND input_revision=?',
+        (ref.id,ref.revision,ref.digest,rid,pid,envelope.data.input_revision)).fetchone()
+    if row is None:raise not_found()
+    body=_decode_row(conn,row);input_binding(envelope,body)
+    original=conn.execute('SELECT digest,problem_json FROM research_revisions WHERE research_id=? AND revision=?',(rid,envelope.data.input_revision)).fetchone()
+    if (original is None or original['digest']!=row['problem_digest'] or _hash(json.loads(original['problem_json']))!=row['problem_digest']
+            or control['current_revision']!=row['input_revision'] or control['version']!=envelope.data.expected_research_version):
+        raise ResearchError('REVISION_CONFLICT',409,'研究或财务注册已变化。')
+    entry={'conn':conn,'service':service,'identity':identity,'principal_id':pid,'rid':rid,'envelope':envelope,
+        'lease':lease,'source':source,'body':body,'row':dict(row),'scope':_current_scope(conn),
+        'pid':os.getpid(),'thread':threading.get_ident()}
+    return ResolvedOwnerFinancialRegistryV2(entry,_factory=_RESOLVER_FACTORY)

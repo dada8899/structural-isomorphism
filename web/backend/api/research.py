@@ -60,6 +60,73 @@ else:
 _EVIDENCE_OPERATIONS=('evidence-method-preview','evidence-method-confirm','evidence-method-read','evidence-method-list')
 _EVIDENCE_MODELS=(EvidenceMethodPreviewResponse,EvidenceMethodConfirmResponse,EvidenceMethodReadResponse,EvidenceMethodListResponse)
 
+if __package__=='web.backend.api':
+    from ..research.financial_result_v2 import FinancialCalculationEnvelopeV2,FinancialResultResponseV2,FinancialResultHistoryResponseV2
+else:
+    from research.financial_result_v2 import FinancialCalculationEnvelopeV2,FinancialResultResponseV2,FinancialResultHistoryResponseV2
+_FINANCIAL_RESULT_OPERATIONS=('financial-calculate','financial-result-read','financial-result-history')
+
+
+def _calculate_financial_in_request(request,service,identity,rid,envelope,key,source):
+    if __package__=='web.backend.api':from ..research.financial_result_v2 import calculate
+    else:from research.financial_result_v2 import calculate
+    return calculate(service,identity,rid,envelope,key,source,request_app=request.app)
+
+
+_FINANCIAL_BRIDGE=_calculate_financial_in_request
+
+
+async def _dispatch_financial_result(request,service,identity,rid,operation):
+    if __package__=='web.backend.api':
+        from ..research import financial_result_v2 as result
+        from ..research.financial_policy import FinancialError,FinancialResourceLimit
+        from ..research.paid_control import issue_authenticated_action
+    else:
+        from research import financial_result_v2 as result
+        from research.financial_policy import FinancialError,FinancialResourceLimit
+        from research.paid_control import issue_authenticated_action
+    source=None
+    try:
+        if operation=='financial-calculate':
+            if auth.require_same_origin(request) is not None:raise ResearchError('AUTHORIZATION_STALE',403,'请从本站页面计算。')
+            key=request.headers.get('idempotency-key','')
+            if not _KEY.fullmatch(key) or request.query_params:raise FinancialError('invalid calculation key/query')
+            if request.headers.get('content-type','').split(';',1)[0].strip().lower()!='application/json':raise FinancialError('JSON required')
+            raw=bytearray()
+            async for chunk in request.stream():
+                if len(raw)+len(chunk)>65536:raise FinancialResourceLimit('operation wire limit')
+                raw.extend(chunk)
+            envelope=result.decode_financial_calculation(bytes(raw));request._body=bytes(raw)
+        elif operation=='financial-result-read':view=result.result_view_query(list(request.query_params.multi_items()))
+        else:limit,cursor=result.result_history_query(list(request.query_params.multi_items()))
+        source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+        if operation=='financial-calculate':
+            response=await run_in_threadpool(_FINANCIAL_BRIDGE,request,service,identity,rid,envelope,key,source)
+        elif operation=='financial-result-read':
+            response=await run_in_threadpool(result.read_result,service,identity,rid,request.path_params['result_ref'],source,view=view)
+        else:response=await run_in_threadpool(result.history,service,identity,rid,limit,cursor,source)
+        try:
+            model=result.FinancialResultHistoryResponseV2 if operation=='financial-result-history' else result.FinancialResultResponseV2
+            if type(response) is not model:raise ValueError('fixed result response required')
+            data=model.model_validate_json(response.model_dump_json()).model_dump(mode='json')
+            result.bounded(data,524288)
+            return JSONResponse(data,headers=_HEADERS)
+        except Exception:
+            if operation=='financial-calculate':return _paid_response_unavailable()
+            raise ResearchError('RESPONSE_UNAVAILABLE',503,'计算结果响应当前无法核对。') from None
+    except FinancialResourceLimit:
+        error=ResearchError('PAYLOAD_LIMIT',413,'计算输入或完整结果超过上限，请缩小输入。')
+    except (FinancialError,ValidationError):
+        error=ResearchError('INPUT_INVALID',422,'财务计算字段、数值或版本不符合要求。')
+    except PermissionError:
+        error=ResearchError('AUTHORIZATION_STALE',409,'计算权限已变化，请重新读取后操作。')
+    except ResearchError as exc:error=exc
+    except (sqlite3.Error,OSError,ValueError,TypeError,LookupError):
+        error=ResearchError('STORE_UNAVAILABLE',503,'计算记录当前无法完整核对，请保留原操作标识。')
+    finally:
+        if source is not None:source.close()
+    return JSONResponse(error.body(),status_code=error.status,headers=_HEADERS)
+
 
 def _evidence_error(error):
     allowed={401:{'AUTH_REQUIRED'},403:{'AUTHORIZATION_STALE','FUNDING_GRANT_REQUIRED'},404:{'NOT_FOUND'},409:{'REVISION_CONFLICT','IDEMPOTENCY_CONFLICT','PREVIEW_CHANGED','PREVIEW_EXPIRED','TASK_ACTIVE','FUNDING_BUSY','FUNDING_STALE','SOURCE_PERMISSION_UNAVAILABLE','RECONCILIATION_REQUIRED'},413:{'PAYLOAD_LIMIT'},422:{'INPUT_INVALID'},429:{'BUDGET_EXHAUSTED'},503:{'FEATURE_UNAVAILABLE','FUNDING_CLOSED','STORE_UNAVAILABLE','RESULT_UNAVAILABLE','RESPONSE_UNAVAILABLE','CLEANUP_UNCERTAIN'}}
@@ -252,6 +319,8 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         # Captured private storage never falls back to a development flag after
         # environment downgrade, including requests outside canonical Main.
         if service.store._formal_mode():require_formal_application(request.app,'research_basic')
+        if operation in _FINANCIAL_RESULT_OPERATIONS:
+            return await _dispatch_financial_result(request,service,identity,research_id,operation)
         if operation in _EVIDENCE_OPERATIONS:
             if __package__=='web.backend.api':
                 from ..research.paid_control import issue_authenticated_action
@@ -663,6 +732,22 @@ async def list_research_financial_registries(research_id:str,request:Request):
 @router.get('/research/{research_id}/financial-registries/{registry_ref}',response_model=FinancialRegistryReadResponse)
 async def read_research_financial_registry(research_id:str,registry_ref:str,request:Request):
     return await _dispatch(request,research_id=research_id,operation='financial-registry-read')
+
+
+@router.post('/research/{research_id}/financial-calculations',response_model=FinancialResultResponseV2,
+    openapi_extra={'requestBody':_formula_request_body(FinancialCalculationEnvelopeV2)})
+async def calculate_research_financial(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='financial-calculate')
+
+
+@router.get('/research/{research_id}/financial-results',response_model=FinancialResultHistoryResponseV2)
+async def list_research_financial_results(research_id:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='financial-result-history')
+
+
+@router.get('/research/{research_id}/financial-results/{result_ref}',response_model=FinancialResultResponseV2)
+async def read_research_financial_result(research_id:str,result_ref:str,request:Request):
+    return await _dispatch(request,research_id=research_id,operation='financial-result-read')
 
 
 @router.post('/research/{research_id}/evidence-method-plan-previews',response_model=EvidenceMethodPreviewResponse,responses={s:{'model':EvidenceMethodErrorResponse} for s in (401,403,404,409,413,422,429,503)},openapi_extra={'requestBody':_formula_request_body(EvidenceMethodPreviewEnvelope)})

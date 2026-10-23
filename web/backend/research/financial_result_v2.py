@@ -948,3 +948,445 @@ def project_financial_snapshot_v2(envelope,registry,snapshot,*,view):
     result=PublicFinancialResultV2.model_validate_json(bounded({'view':view,'input_status':INPUT_STATUS,'value':value},PUBLIC_LIMIT))
     bounded(result.model_dump(mode='json'),PUBLIC_LIMIT)
     return result
+
+
+# Saved data remains inert: native/service imports exist only in runtime calls.
+from .financial_input_schemas import RegistryCurrentV2, UTC, _utc
+
+_Producer = Literal['owned-financial-local-v2-r1']
+_Profile = Literal['financial-scenario-owner-v2']
+_Qualification = Literal['conditional_on_owner_supplied_data']
+_Goal = Literal['not_met','not_assessed']
+_Count = Annotated[StrictInt,Field(ge=0,le=5000)]
+_UInt = Annotated[StrictInt,Field(ge=0,le=18446744073709551615)]
+_Before = Annotated[StrictInt,Field(ge=1,le=2147483646)]
+
+
+class _SavedData(FrozenData):
+    model_config={**FrozenData.model_config,'protected_namespaces':()}
+    @field_validator('model_analysis_ran','os_isolation_attested','persisted',mode='before',check_fields=False)
+    @classmethod
+    def literal_flags(cls,value,info):
+        if value is not (True if info.field_name=='persisted' else False):raise FinancialError('literal saved flag required')
+        return value
+
+
+class FinancialReceiptHTTPV2(_SavedData):
+    action: Literal['financial-calculate']
+    method: Literal['POST']
+    endpoint: Literal['calculate_research_financial']
+    source_ref: UUID4
+    key_digest: Digest
+    request_digest: Digest
+    session_jti_digest: Digest
+    session_expires_at: _UInt
+
+
+class FinancialReceiptBindingV2(_SavedData):
+    research_id: UUID4
+    principal_id: UUID4
+    principal_epoch: V
+    auth_generation_digest: Digest
+    owner_epoch: V
+    acl_epoch: V
+    input_revision: V
+    problem_digest: Digest
+    registry_ref: FinancialRegistryRefV2
+    registry_origin_digest: Digest
+
+
+class FinancialReceiptNativeV2(_SavedData):
+    pid: _UInt
+    thread_id: _UInt
+    transaction_ref: UUID4
+    main_binding_ref: UUID4
+    database_identity: Annotated[tuple[_UInt,...],Field(min_length=2,max_length=2)]
+    owner_gate_identity: Annotated[tuple[_UInt,...],Field(min_length=5,max_length=5)]
+
+
+class FinancialReceiptTimingV2(_SavedData):
+    started_at: UTC
+    completed_at: UTC
+    recorded_at: UTC
+    elapsed_monotonic_ns: Annotated[StrictInt,Field(ge=0,le=2000000000)]
+    _time=field_validator('started_at','completed_at','recorded_at')(_utc)
+
+
+class FinancialReceiptGuardV2(_SavedData):
+    kind: Literal['cooperative']
+    deadline_ms: Annotated[StrictInt,Field(ge=2000,le=2000)]
+    max_operations: Annotated[StrictInt,Field(ge=5000,le=5000)]
+    operations_used: _Count
+    os_isolation_attested: Literal[False]
+
+
+class FinancialExecutionReceiptV2(_SavedData):
+    receipt_schema: Literal['financial-local-execution-v2']
+    producer_revision: _Producer
+    execution_profile: _Profile
+    policy_revision: Literal['financial-scenario-v1-candidate']
+    execution_code_digest: Digest
+    run_id: UUID4
+    status: Literal['completed']
+    http: FinancialReceiptHTTPV2
+    binding: FinancialReceiptBindingV2
+    native: FinancialReceiptNativeV2
+    parameters_digest: Digest
+    evaluation_input_digest: Digest
+    snapshot_digest: Digest
+    timing: FinancialReceiptTimingV2
+    guard: FinancialReceiptGuardV2
+    qualification: _Qualification
+    model_analysis_ran: Literal[False]
+
+
+class FinancialResultExpectationV2(_SavedData):
+    expectation_schema: Literal['financial-result-expectation-v2']
+    result_ref: UUID4
+    research_id: UUID4
+    principal_id: UUID4
+    input_revision: V
+    problem_digest: Digest
+    registry_ref: FinancialRegistryRefV2
+    request_digest: Digest
+    parameters_digest: Digest
+    evaluation_input_digest: Digest
+    producer_revision: _Producer
+    execution_profile: _Profile
+    policy_revision: Literal['financial-scenario-v1-candidate']
+    execution_code_digest: Digest
+    run_id: UUID4
+    snapshot_digest: Digest
+    receipt_digest: Digest
+    recorded_at: UTC
+    research_version_before: _Before
+    research_version_after: V
+    calculation_status: Literal['calculated_under_assumptions']
+    qualification: _Qualification
+    u2_goal_status: _Goal
+    model_analysis_ran: Literal[False]
+    _time=field_validator('recorded_at')(_utc)
+
+
+class ResultRowBindingV2(_SavedData):
+    research_id: UUID4
+    principal_id: UUID4
+    input_revision: V
+    problem_digest: Digest
+    principal_epoch: V
+    owner_epoch: V
+    acl_epoch: V
+    auth_generation_digest: Digest
+    owner_gate_identity: Annotated[tuple[_UInt,...],Field(min_length=5,max_length=5)]
+    research_version_before: _Before
+    research_version_after: V
+    request_digest: Digest
+    result_ref: UUID4
+    result_type: Literal['financial_scenario_v2']
+    registry_ref: UUID4
+    registry_revision: Annotated[StrictInt,Field(ge=1,le=1)]
+    registry_digest: Digest
+    run_id: UUID4
+    recorded_at: UTC
+    policy_revision: Literal['financial-scenario-v1-candidate']
+    producer_revision: _Producer
+    execution_code_digest: Digest
+    execution_status: Literal['completed']
+    operations_used: _Count
+    snapshot_digest: Digest
+    _time=field_validator('recorded_at')(_utc)
+
+
+class StoredFinancialResultV2(_SavedData):
+    row_binding: ResultRowBindingV2
+    operation: FinancialCalculationEnvelopeV2
+    expectation: FinancialResultExpectationV2
+    execution_receipt: FinancialExecutionReceiptV2
+    snapshot: FinancialSnapshotV2
+
+
+class ResultMetadataV2(_SavedData):
+    result_ref: UUID4
+    result_type: Literal['financial_scenario_v2']
+    research_id: UUID4
+    input_revision: V
+    problem_digest: Digest
+    registry_ref: FinancialRegistryRefV2
+    research_version_before: _Before
+    research_version_after: V
+    recorded_at: UTC
+    request_digest: Digest
+    parameters_digest: Digest
+    evaluation_input_digest: Digest
+    snapshot_digest: Digest
+    policy_revision: Literal['financial-scenario-v1-candidate']
+    producer_revision: _Producer
+    execution_profile: _Profile
+    execution_code_digest: Digest
+    calculation_status: Literal['calculated_under_assumptions']
+    qualification: _Qualification
+    u2_goal_status: _Goal
+    model_analysis_ran: Literal[False]
+
+
+class FinancialResultDataV2(_SavedData):
+    metadata: ResultMetadataV2
+    current: RegistryCurrentV2
+    is_historical: bool
+    public_result: PublicFinancialResultV2
+    public_result_digest: Digest
+    persisted: Literal[True]
+
+
+class FinancialResultResponseV2(_SavedData):
+    schema_version: Literal['structure-research-v1']='structure-research-v1'
+    contract_revision: Literal['financial-result-v2']='financial-result-v2'
+    data: FinancialResultDataV2
+
+
+class HistoryItemV2(_SavedData):
+    result_ref: UUID4
+    snapshot_digest: Digest
+    registry_ref: FinancialRegistryRefV2
+    input_revision: V
+    problem_digest: Digest
+    research_version_before: _Before
+    research_version_after: V
+    recorded_at: UTC
+    request_digest: Digest
+    is_historical: bool
+    calculation_status: Literal['calculated_under_assumptions']
+    qualification: _Qualification
+    u2_goal_status: _Goal
+    model_analysis_ran: Literal[False]
+
+
+class FinancialResultHistoryDataV2(_SavedData):
+    research_id: UUID4
+    current: RegistryCurrentV2
+    items: Annotated[tuple[HistoryItemV2,...],Field(max_length=20)]
+    next_cursor: UUID4 | None
+
+
+class FinancialResultHistoryResponseV2(_SavedData):
+    schema_version: Literal['structure-research-v1']='structure-research-v1'
+    contract_revision: Literal['financial-result-v2']='financial-result-v2'
+    data: FinancialResultHistoryDataV2
+
+
+def result_view_query(pairs):
+    if len(pairs)>1 or any(k!='view' or v not in ('summary','table','chart') for k,v in pairs):
+        raise FinancialError('invalid result query')
+    return pairs[0][1] if pairs else 'summary'
+
+
+def result_history_query(pairs):
+    if len(pairs)>2 or len({k for k,_ in pairs})!=len(pairs) or any(k not in ('limit','cursor') for k,_ in pairs):
+        raise FinancialError('invalid history query')
+    data=dict(pairs);value=data.get('limit','20');cursor=data.get('cursor')
+    if type(value) is not str or re.fullmatch(r'[1-9]|1[0-9]|20',value,re.ASCII) is None:
+        raise FinancialError('invalid history limit')
+    if cursor is not None:
+        from .financial_schemas import uid
+        uid(cursor)
+    return int(value),cursor
+
+
+def _u2_status(snapshot):
+    return 'not_met' if any(s.qualification=='mechanical_assumption_demonstration_not_validated_forecast'
+        or any(y.target.revenue.raw_value is None or y.target.operating_profit.raw_value is None
+            or y.target.composition.coverage!='declared_scenario_partition_complete_not_audited'
+            for y in s.years) for s in snapshot.scenarios) else 'not_assessed'
+
+
+def _validate_stored(stored,registry):
+    """Read persisted cross-bindings; no live run, code key or reevaluation."""
+    if type(stored) is not StoredFinancialResultV2:raise FinancialError('exact saved result required')
+    data=stored.model_dump(mode='json');bounded(data,SNAPSHOT_LIMIT)
+    # Roundtrip also detects mutation through model_construct/model_copy.
+    saved=StoredFinancialResultV2.model_validate_json(canonical(data))
+    b=saved.row_binding;e=saved.expectation;r=saved.execution_receipt;s=saved.snapshot;op=saved.operation
+    validate_snapshot(op,registry,s)
+    if (b.research_id!=registry.binding.research_id or b.input_revision!=registry.binding.input_revision
+            or b.problem_digest!=registry.binding.problem_digest or b.registry_ref!=registry.identity.id
+            or b.registry_revision!=1 or b.registry_digest!=digest(registry.model_dump(mode='json'))
+            or b.research_version_after!=b.research_version_before+1
+            or b.research_version_before!=op.data.expected_research_version
+            or op.data.input_revision!=b.input_revision):raise FinancialError('saved registry/version binding differs')
+    for name in ('result_ref','research_id','principal_id','input_revision','problem_digest','request_digest',
+        'producer_revision','policy_revision','execution_code_digest','run_id','snapshot_digest','recorded_at',
+        'research_version_before','research_version_after'):
+        if getattr(e,name)!=getattr(b,name):raise FinancialError('saved expectation scalar differs')
+    if (e.registry_ref!=op.data.registry_ref or e.receipt_digest!=digest(r.model_dump(mode='json'))
+            or e.snapshot_digest!=s.digest or e.request_digest!=s.request_digest
+            or e.parameters_digest!=s.parameters_digest or e.evaluation_input_digest!=s.evaluation_input_digest
+            or e.u2_goal_status!=_u2_status(s)):raise FinancialError('saved expectation output differs')
+    for name in ('producer_revision','execution_profile','policy_revision','execution_code_digest','run_id',
+        'parameters_digest','evaluation_input_digest','snapshot_digest','qualification','model_analysis_ran'):
+        if getattr(r,name)!=getattr(e,name):raise FinancialError('saved receipt differs')
+    for name in ('research_id','principal_id','principal_epoch','auth_generation_digest','owner_epoch','acl_epoch','input_revision','problem_digest'):
+        if getattr(r.binding,name)!=getattr(b,name):raise FinancialError('saved receipt binding differs')
+    origin=digest({'registry_ref':op.data.registry_ref.model_dump(mode='json'),'parser_revision':registry.parser_revision,
+        **registry.receipt.model_dump(mode='json')})
+    if (r.binding.registry_ref!=e.registry_ref or r.binding.registry_origin_digest!=origin
+            or r.http.request_digest!=e.request_digest or r.timing.recorded_at!=b.recorded_at
+            or r.guard.operations_used!=b.operations_used or s.operations_used!=b.operations_used
+            or r.native.owner_gate_identity!=b.owner_gate_identity
+            or not r.timing.started_at<=r.timing.completed_at<=r.timing.recorded_at):
+        raise FinancialError('saved receipt audit differs')
+    bounded(r.model_dump(mode='json'),8192);bounded(e.model_dump(mode='json'),8192)
+    if sum(len(canonical(v).encode()) for v in (data['operation'],data['expectation'],data['execution_receipt'],data['snapshot']))>131072:
+        raise FinancialResourceLimit('saved columns byte limit')
+    return saved
+
+
+def _saved_values(stored):
+    data=stored.row_binding.model_dump(mode='json');gate=data.pop('owner_gate_identity')
+    data['owner_gate_identity_json']=canonical(gate)
+    for key,value in (('operation_json',stored.operation),('expectation_json',stored.expectation),
+        ('execution_receipt_json',stored.execution_receipt),('snapshot_json',stored.snapshot)):
+        data[key]=canonical(value.model_dump(mode='json'))
+    return data
+
+
+def _saved_response(stored,registry,control,view,*,future=False):
+    b=stored.row_binding;e=stored.expectation
+    if control['current_revision']<b.input_revision or control['version']<b.research_version_after:
+        raise FinancialError('current state precedes saved result')
+    metadata=e.model_dump(mode='json')
+    for name in ('expectation_schema','principal_id','run_id','receipt_digest'):metadata.pop(name)
+    metadata['result_type']='financial_scenario_v2'
+    projected=project_financial_snapshot_v2(stored.operation,registry,stored.snapshot,view=view)
+    result=FinancialResultResponseV2.model_validate_json(canonical({'schema_version':'structure-research-v1',
+        'contract_revision':'financial-result-v2','data':{'metadata':metadata,
+            'current':{'input_revision':control['current_revision'],'research_version':control['version']},
+            'is_historical':control['current_revision']!=b.input_revision,'public_result':projected.model_dump(mode='json'),
+            'public_result_digest':digest(projected.model_dump(mode='json')),'persisted':True}}))
+    raw=bounded(result.model_dump(mode='json'),PUBLIC_LIMIT)
+    extra=(sum(10-len(str(v)) for v in (control['current_revision'],control['version']))
+        +5-len(str(result.data.is_historical).lower())) if future else 0
+    if len(raw.encode())+extra>PUBLIC_LIMIT:raise FinancialResourceLimit('future public response byte limit')
+    return result
+
+
+def _read_saved_in(conn,service,identity,rid,ref):
+    from . import financial_input as native
+    from .financial_input_guard import RESULTS,COLUMNS
+    from .errors import not_found,ResearchError
+    pid,control=native._context(conn,service,identity,rid)
+    row=conn.execute('SELECT * FROM '+RESULTS+' WHERE result_ref=? AND research_id=? AND principal_id=?',(ref,rid,pid)).fetchone()
+    if row is None:raise not_found()
+    try:
+        registry_row=conn.execute('SELECT * FROM research_financial_registries WHERE registry_ref=? AND research_id=? AND principal_id=?',
+            (row['registry_ref'],rid,pid)).fetchone()
+        if registry_row is None:raise FinancialError('registry missing')
+        registry=native._decode_row(conn,registry_row)
+        fields={k:row[k] for k in COLUMNS[RESULTS] if k not in ('operation_json','expectation_json','execution_receipt_json','snapshot_json','owner_gate_identity_json')}
+        fields['owner_gate_identity']=native._json(row['owner_gate_identity_json'],1024)
+        data={'row_binding':fields}
+        for name,column,cap in (('operation','operation_json',65536),('expectation','expectation_json',8192),
+            ('execution_receipt','execution_receipt_json',8192),('snapshot','snapshot_json',131072)):
+            data[name]=native._json(row[column],cap)
+        saved=_validate_stored(StoredFinancialResultV2.model_validate_json(bounded(data,SNAPSHOT_LIMIT)),registry)
+        if _saved_values(saved)!={k:row[k] for k in COLUMNS[RESULTS]}:raise FinancialError('saved row canonical binding differs')
+        if control['current_revision']<saved.row_binding.input_revision or control['version']<saved.row_binding.research_version_after:
+            raise FinancialError('saved current binding differs')
+        return saved,registry,control
+    except (ValueError,TypeError,KeyError,RecursionError):
+        raise ResearchError('STORE_UNAVAILABLE',503,'计算结果当前无法完整核对。') from None
+
+
+def calculate(service,identity,rid,envelope,key,source,*,request_app):
+    from . import financial_execution as execution,financial_input as native
+    from .paid_control import require_authenticated_action
+    from .financial_input_guard import RESULTS,COLUMNS,_write_scope
+    from .errors import ResearchError
+    execution.require_request(service,identity,rid,envelope,key,source,request_app)
+    rid=service._id(rid);request_digest=digest(envelope.data_dict());pid=service._principal(identity)
+    context=registry=None
+    try:
+        with native._save_transaction(service,pid) as (conn,lease,commit_ready):
+            _,control=native._context(conn,service,identity,rid,write=True)
+            service.authorization.check(conn,identity,pid,rid,scope='read')
+            replay=service._replay(conn,pid,'financial-calculate','r:'+rid,key,request_digest)
+            if replay is not None:
+                if type(replay) is not dict or set(replay)!={'result_ref'}:raise FinancialError('invalid result replay')
+                stored,body,current=_read_saved_in(conn,service,identity,rid,service._id(replay['result_ref']))
+                if stored.expectation.request_digest!=request_digest:raise FinancialError('replay digest differs')
+                return _saved_response(stored,body,current,'summary')
+            if control['version']>=2147483647:raise ResearchError('VERSION_CONFLICT',409,'研究版本已达上限。')
+            if control['current_revision']!=envelope.data.input_revision or control['version']!=envelope.data.expected_research_version:
+                raise ResearchError('REVISION_CONFLICT',409,'研究已变化，请重新读取后计算。')
+            registry=native.resolve_owner_registry_v2(conn,service,identity,rid,envelope,lease,source)
+            context=execution.begin(conn,service,identity,rid,envelope,key,source,lease,registry,request_app)
+            owned=execution.execute(context,envelope.data.request,registry)
+            stored=owned.stored;values=_saved_values(stored)
+            future={**dict(control),'version':control['version']+1}
+            responses={v:_saved_response(stored,registry.owner_data,future,v,future=True) for v in ('summary','table','chart')}
+            context.require()
+            columns=COLUMNS[RESULTS];ordered=tuple(values[k] for k in columns)
+            with _write_scope(conn,service,lease,RESULTS,'INSERT',ordered,identity=identity,source=source,key=key,
+                    request=envelope,execution=context,owned_return=owned):
+                conn.execute('INSERT INTO '+RESULTS+'('+','.join(columns)+') VALUES('+','.join('?' for _ in columns)+')',ordered)
+            context.require()
+            at=stored.row_binding.recorded_at
+            if conn.execute('UPDATE research_controls SET version=version+1,updated_at=? WHERE id=? AND current_revision=? AND version=? AND owner_epoch=? AND acl_epoch=?',
+                (at,rid,envelope.data.input_revision,control['version'],control['owner_epoch'],control['acl_epoch'])).rowcount!=1:
+                raise ResearchError('REVISION_CONFLICT',409,'研究已变化，未保存此结果。')
+            service._remember(conn,pid,'financial-calculate','r:'+rid,key,request_digest,{'result_ref':stored.row_binding.result_ref})
+            execution.consume(owned);commit_ready[0]=True
+            return responses['summary']
+    finally:
+        if context is not None:context.close()
+        if registry is not None:registry.close()
+
+
+def read_result(service,identity,rid,result_ref,source,*,view):
+    from .paid_control import require_authenticated_action
+    rid=service._id(rid);result_ref=service._id(result_ref)
+    if view not in ('summary','table','chart'):raise FinancialError('invalid result view')
+    body_digest=digest({'view':view})
+    require_authenticated_action(source,identity=identity,action='financial-result-read',research_id=rid,task_id=result_ref,body_digest=body_digest)
+    with service.store.transaction() as conn:
+        saved,registry,control=_read_saved_in(conn,service,identity,rid,result_ref)
+        result=_saved_response(saved,registry,control,view)
+        service.authorization.check(conn,identity,saved.row_binding.principal_id,rid,scope='read')
+        require_authenticated_action(source,identity=identity,action='financial-result-read',research_id=rid,task_id=result_ref,body_digest=body_digest)
+        return result
+
+
+def history(service,identity,rid,limit,cursor,source):
+    from .paid_control import require_authenticated_action
+    from . import financial_input as native
+    from .errors import ResearchError
+    rid=service._id(rid)
+    if type(limit) is not int or not 1<=limit<=20:raise FinancialError('history limit')
+    if cursor is not None:service._id(cursor)
+    body_digest=digest({'limit':limit,'cursor':cursor})
+    require_authenticated_action(source,identity=identity,action='financial-result-history',research_id=rid,body_digest=body_digest)
+    with service.store.transaction() as conn:
+        pid,control=native._context(conn,service,identity,rid);args=[rid,pid];where=''
+        if cursor is not None:
+            try:anchor,_,_=_read_saved_in(conn,service,identity,rid,cursor)
+            except ResearchError as error:
+                if error.code!='NOT_FOUND':raise
+                raise ResearchError('REVISION_CONFLICT',409,'历史页已变化，请重新读取。') from None
+            at=anchor.row_binding.recorded_at;where=' AND (recorded_at<? OR (recorded_at=? AND result_ref<?))';args.extend((at,at,cursor))
+        rows=conn.execute('SELECT result_ref FROM research_financial_results WHERE research_id=? AND principal_id=?'+where+
+            ' ORDER BY recorded_at DESC,result_ref DESC LIMIT ?',(*args,limit+1)).fetchall()
+        items=[]
+        names=tuple(HistoryItemV2.model_fields)
+        for row in rows[:limit]:
+            saved,_,_=_read_saved_in(conn,service,identity,rid,row[0]);data=saved.expectation.model_dump(mode='json')
+            data['is_historical']=control['current_revision']!=saved.row_binding.input_revision
+            items.append({k:data[k] for k in names})
+        result=FinancialResultHistoryResponseV2.model_validate_json(canonical({'data':{'research_id':rid,
+            'current':{'input_revision':control['current_revision'],'research_version':control['version']},'items':items,
+            'next_cursor':rows[limit-1][0] if len(rows)>limit else None}}))
+        bounded(result.model_dump(mode='json'),PUBLIC_LIMIT)
+        require_authenticated_action(source,identity=identity,action='financial-result-history',research_id=rid,body_digest=body_digest)
+        service.authorization.check(conn,identity,pid,rid,scope='read')
+        return result
+
+
+_CALCULATE_PRODUCER=calculate
