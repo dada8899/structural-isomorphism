@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import shlex
 import signal
+import stat
 import subprocess
 from types import SimpleNamespace,CodeType
 
@@ -84,6 +85,18 @@ def child_fixture(tmp_path,monkeypatch):
         value['importlib']=SimpleNamespace(metadata=SimpleNamespace(version=lambda _:'1.59.0',distribution=lambda _:SimpleNamespace(locate_file=lambda _:registry)))
         return value
     monkeypatch.setattr(d,'load_readonly',loader)
+    # Target-only Linux unlink observation. Local APFS keeps stale directory
+    # nlink after removal, so this explicit fake is not native Linux evidence.
+    native_stat,native_rmdir=d.os.fstat,d.os.rmdir;retired=set()
+    def rmdir(path,*a,**kw):
+        info=os.stat(path,dir_fd=kw.get('dir_fd'),follow_symlinks=False)
+        result=native_rmdir(path,*a,**kw);retired.add((info.st_dev,info.st_ino));return result
+    def fstat(fd):
+        info=native_stat(fd)
+        if stat.S_ISDIR(info.st_mode) and (info.st_dev,info.st_ino) in retired:
+            return SimpleNamespace(**{name:getattr(info,name) for name in ('st_dev','st_ino','st_uid','st_gid','st_mode','st_size')},st_nlink=0)
+        return info
+    monkeypatch.setattr(d.os,'rmdir',rmdir);monkeypatch.setattr(d.os,'fstat',fstat)
     return SimpleNamespace(root=root,source=source,release=release,registry=registry,env=env)
 
 def test_child_pass_has_no_parent_authorization_or_installer_permission(child_fixture):
@@ -141,6 +154,65 @@ def test_temp_creation_then_validation_failure_is_not_reported_as_cleanup_succes
     value=d.child_observation()
     assert d.valid_child(value) and value['first_failed_check_id']=='temporary_owner'
     assert value['checks'][-1]=={'check_id':'cleanup','status':'fail'} and created[0].exists()
+
+def test_partial_constructor_birth_is_unknown_and_never_swept_by_prefix(child_fixture,monkeypatch):
+    original=d.tempfile.mkdtemp;created=[]
+    def partial(*a,**kw):
+        result=original(*a,**kw);created.append(Path(result))
+        raise MemoryError('synthetic after directory creation')
+    monkeypatch.setattr(d.tempfile,'mkdtemp',partial)
+    value=d.child_observation()
+    assert d.valid_child(value) and value['first_failed_check_id']=='temporary_owner'
+    assert value['checks'][-1]['status']=='fail' and created[0].exists()
+
+@pytest.mark.parametrize('after_open',[False,True])
+def test_directory_open_failure_cannot_claim_no_resource_or_cleanup(child_fixture,monkeypatch,after_open):
+    native_open=d.os.open;unobserved=[]
+    def opened(path,flags,*a,**kw):
+        if str(path).startswith('structure-chromium-entry-child-') and flags&os.O_DIRECTORY:
+            if after_open:unobserved.append(native_open(path,flags,*a,**kw))
+            raise MemoryError('synthetic directory handle construction failure')
+        return native_open(path,flags,*a,**kw)
+    monkeypatch.setattr(d.os,'open',opened)
+    try:
+        value=d.child_observation()
+        assert d.valid_child(value) and value['first_failed_check_id']=='temporary_owner' and value['checks'][-1]['status']=='fail'
+        assert len(list(child_fixture.root.glob('structure-chromium-entry-child-*')))==1
+    finally:
+        # Test-only closure of the FD deliberately hidden from the producer.
+        for fd in unobserved:os.close(fd)
+
+def test_close_uncertainty_fails_cleanup_but_all_known_handles_are_attempted(child_fixture,monkeypatch):
+    native_open,native_close=d.os.open,d.os.close;directories=[];closed=[];injected=[]
+    def opened(path,flags,*a,**kw):
+        fd=native_open(path,flags,*a,**kw)
+        if flags&os.O_DIRECTORY:directories.append(fd)
+        return fd
+    def close(fd):
+        result=native_close(fd)
+        if fd in directories:
+            closed.append(fd)
+            if fd==directories[-1] and not injected:
+                injected.append(True);raise OSError('synthetic acknowledgement after real close')
+        return result
+    monkeypatch.setattr(d.os,'open',opened);monkeypatch.setattr(d.os,'close',close)
+    value=d.child_observation()
+    assert d.valid_child(value) and value['first_failed_check_id']=='cleanup' and value['checks'][-1]['status']=='fail'
+    assert len(directories)==2 and set(closed)==set(directories)
+    for fd in directories:
+        with pytest.raises(OSError):os.fstat(fd)
+
+def test_parent_chain_replacement_never_retires_the_substitute(child_fixture,monkeypatch):
+    f=child_fixture;native=d.read_regular;retained=f.root.with_name('retained-original-parent');changed=[]
+    def exchange(path,cap):
+        raw=native(path,cap)
+        if path==f.source and not changed:
+            f.root.rename(retained);f.root.mkdir(mode=0o700);changed.append(True)
+        return raw
+    monkeypatch.setattr(d,'read_regular',exchange)
+    value=d.child_observation()
+    assert d.valid_child(value) and value['checks'][-1]['status']=='fail'
+    assert len(list(retained.glob('structure-chromium-entry-child-*')))==1 and not list(f.root.iterdir())
 
 @pytest.mark.parametrize('fault',['none','timeout','constructor','bad_schema','live_group'])
 def test_parent_fixed_companion_reports_actual_exit_reaping_or_unknown(child_fixture,monkeypatch,fault):

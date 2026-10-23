@@ -142,16 +142,37 @@ def source_summary(raw):
 
 def child_observation():
     trace=Trace();temporary=None;source=None
+    parent_fd=directory_fd=None;parent_birth=birth=None;base=None
+    parent_open_attempted=creation_attempted=False
+    def identity(info):return (info.st_dev,info.st_ino,info.st_uid,info.st_gid,info.st_mode)
+    def parent_bound():
+        need(parent_fd is not None and parent_birth is not None and base==base.resolve())
+        need(identity(os.fstat(parent_fd))==parent_birth==identity(base.lstat()))
+    def directory_bound():
+        parent_bound()
+        need(directory_fd is not None and birth is not None and temporary.parent==base)
+        held=os.fstat(directory_fd);named=os.stat(temporary.name,dir_fd=parent_fd,follow_symlinks=False)
+        need(identity(held)==birth==identity(named) and stat.S_ISDIR(held.st_mode)
+             and held.st_uid==os.getuid() and stat.S_IMODE(held.st_mode)==0o700)
     try:
         frozen=trace.call('helper_code',lambda:load_readonly(trace))
         trace.call('env_scope',lambda:need(all(name not in os.environ for name in ('GITHUB_EVENT_NAME','GITHUB_REF','GITHUB_REPOSITORY','GITHUB_RUN_ID','GITHUB_RUN_ATTEMPT','GITHUB_SHA','GITHUB_TOKEN','GITHUB_WORKSPACE','GITHUB_EVENT_PATH'))))
         trace.call('host_guard',frozen['host_guard'])
         def own_temp():
-            nonlocal temporary
+            nonlocal temporary,parent_fd,directory_fd,parent_birth,birth,base,parent_open_attempted,creation_attempted
             base=Path(os.environ['RUNNER_TEMP']);need(base.is_absolute() and base==base.resolve() and base.stat().st_uid==os.getuid())
-            root=Path(tempfile.mkdtemp(prefix='structure-chromium-entry-child-',dir=base));temporary=root
-            info=root.lstat();need(stat.S_ISDIR(info.st_mode) and info.st_uid==os.getuid() and stat.S_IMODE(info.st_mode)==0o700)
-            return root
+            parent_open_attempted=True
+            parent_fd=os.open(base,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+            info=os.fstat(parent_fd);parent_birth=identity(info)
+            need(stat.S_ISDIR(info.st_mode) and info.st_uid==os.getuid());parent_bound()
+            creation_attempted=True
+            temporary=Path(tempfile.mkdtemp(prefix='structure-chromium-entry-child-',dir=base))
+            need(temporary.parent==base)
+            info=os.stat(temporary.name,dir_fd=parent_fd,follow_symlinks=False);birth=identity(info)
+            need(stat.S_ISDIR(info.st_mode) and info.st_uid==os.getuid() and stat.S_IMODE(info.st_mode)==0o700)
+            directory_fd=os.open(temporary.name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=parent_fd)
+            directory_bound()
+            return temporary
         temporary=trace.call('temporary_owner',own_temp)
         account=pwd.getpwuid(os.getuid())
         request={'uid':os.getuid(),'gid':os.getgid(),'python':sys.executable,'cache':str(Path(account.pw_dir)/'.cache/ms-playwright'),
@@ -164,20 +185,35 @@ def child_observation():
     except BaseException:
         if trace.first is None:trace.mark(trace.active,False)
     finally:
+        cleanup_ok=True
         try:
-            if temporary is not None:
-                info=temporary.lstat();need(stat.S_ISDIR(info.st_mode) and temporary==temporary.resolve()
-                    and info.st_uid==os.getuid() and stat.S_IMODE(info.st_mode)==0o700)
-                path=temporary/'entry-probe.json';fd=os.open(path,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
+            need(not parent_open_attempted or parent_fd is not None)
+            if creation_attempted:
+                need(temporary is not None and birth is not None and directory_fd is not None)
+                directory_bound()
+                fd=os.open('entry-probe.json',os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=directory_fd)
                 try:
                     first=os.fstat(fd);need(stat.S_ISREG(first.st_mode) and first.st_uid==os.getuid()
                         and first.st_nlink==1 and stat.S_IMODE(first.st_mode)==0o600)
                     raw=b'{"probe":"entry_only_not_authority"}';need(os.write(fd,raw)==len(raw));os.fsync(fd);need(os.pread(fd,len(raw)+1,0)==raw)
-                    current=path.lstat();need((current.st_dev,current.st_ino)==(first.st_dev,first.st_ino) and current.st_nlink==1)
+                    current=os.stat('entry-probe.json',dir_fd=directory_fd,follow_symlinks=False)
+                    need((current.st_dev,current.st_ino)==(first.st_dev,first.st_ino) and current.st_nlink==1)
+                    directory_bound();os.unlink('entry-probe.json',dir_fd=directory_fd)
                 finally:os.close(fd)
-                path.unlink();temporary.rmdir()
-            trace.mark('cleanup',True)
-        except BaseException:trace.mark('cleanup',False)
+                directory_bound();os.rmdir(temporary.name,dir_fd=parent_fd)
+                # Retiring a same-named substitute cannot satisfy this held
+                # birth descriptor proof. Never chase a renamed old path.
+                need(os.fstat(directory_fd).st_nlink==0);parent_bound()
+                try:os.stat(temporary.name,dir_fd=parent_fd,follow_symlinks=False)
+                except FileNotFoundError:pass
+                else:raise Closed()
+        except BaseException:cleanup_ok=False
+        finally:
+            for fd in (directory_fd,parent_fd):
+                if fd is not None:
+                    try:os.close(fd)
+                    except BaseException:cleanup_ok=False
+        trace.mark('cleanup',cleanup_ok)
     return {'schema':'helper-entry-child-v1','classification':'HELPER_ENTRY_READONLY_CHILD','source_head':SOURCE_HEAD,
             'status':'PASS' if trace.first is None else 'FAIL','first_failed_check_id':trace.first,'failed_site':trace.site,
             'checks':[{'check_id':name,'status':trace.results[name]} for name in CHECKS],'source':source,
