@@ -1642,6 +1642,14 @@
     "zh": "正在显示本机与账户收藏；账户收藏可在其他已登录设备恢复。",
     "en": "Showing device and account bookmarks. Account bookmarks can be restored on other signed-in devices."
   },
+  "page.reports.favorites_locked": {
+    "zh": "账户身份需要重新确认；收藏保持锁定，未读取本机或任何账户资产。",
+    "en": "Account identity needs to be confirmed again. Bookmarks remain locked; no device or account assets have been read."
+  },
+  "page.reports.favorites_identity_unavailable": {
+    "zh": "身份确认失败；未读取本机或账户收藏。",
+    "en": "Identity could not be confirmed; no device or account bookmarks have been read."
+  },
   "page.reports.favorites_read_failed": {
     "zh": "账户收藏暂时无法读取；本机收藏仍然可用。",
     "en": "Account bookmarks are temporarily unavailable; device bookmarks still work."

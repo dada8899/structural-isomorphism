@@ -36,15 +36,16 @@
     <section class="auth-card" aria-labelledby="auth-title">
       <h1 id="auth-title">注册或登录</h1>
       <p class="auth-lede">输入邮箱，我们会发送一封 15 分钟内有效的一次性登录链接。首次登录会自动创建账户，无需密码。</p>
-      <form id="auth-login-form" novalidate>
+      <form id="auth-login-form" method="post" action="/auth/login" data-auth-ready="false" novalidate>
         <label for="auth-email">邮箱</label>
-        <input id="auth-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="200" required placeholder="you@example.com">
-        <button id="auth-submit" type="submit">发送登录链接</button>
+        <input id="auth-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="200" required placeholder="you@example.com" disabled>
+        <button id="auth-submit" type="submit" disabled>发送登录链接</button>
       </form>
-      <div id="auth-status" class="auth-status" role="status" aria-live="polite">登录后可在同一账户中访问收藏、研究报告和账户数据。</div>
+      <div id="auth-status" class="auth-status" role="status" aria-live="polite">正在准备安全登录表单，请稍候…</div>
+      <noscript><p class="auth-note">请启用 JavaScript 后重新打开此页，才能安全发送登录链接。当前表单不会发送邮箱。</p></noscript>
       <p class="auth-note">为保护隐私，无论邮箱是否已注册，成功提示都相同。继续即表示你同意按<a href="/privacy">隐私说明</a>处理账户数据。</p>
     </section>
   </main>
-  <script defer src="/assets/js/auth-pages.js?v=20260713n1"></script>
+  <script defer src="/assets/js/auth-pages.js?v=20261023-bootstrap1"></script>
 </body>
 </html>

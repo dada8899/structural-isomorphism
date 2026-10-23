@@ -23,6 +23,10 @@ FRONTEND_NODE_TESTS := \
 	web/frontend/tests/test_analyzeTrust.js \
 	web/frontend/tests/test_askTrust.js \
 	web/frontend/tests/test_buildAnalyzeUrl.js \
+	web/frontend/tests/test_evidenceMethodPlan.js \
+	web/frontend/tests/test_financialRegistry.js \
+	web/frontend/tests/test_financialScenario.js \
+	web/frontend/tests/test_headerScroll.js \
 	web/frontend/tests/test_historyPrivacy.js \
 	web/frontend/tests/test_historySidebarPerformance.js \
 	web/frontend/tests/test_newsletterClosed.js \
@@ -43,6 +47,7 @@ BROWSER_CONTRACT_DISCOVERY_CLASSES_PAPERS_TESTS := \
 
 BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS := \
 	tests/e2e/test_full_public_surface.py \
+	web/tests/e2e/test_auth_login_bootstrap_privacy.py \
 	tests/e2e/test_unified_research_library.py \
 	tests/e2e/test_history_sidebar.py \
 	web/tests/e2e/test_thank_you_copy.py \
@@ -55,11 +60,23 @@ BROWSER_CONTRACT_SECONDARY_WHITESPACE_TESTS := \
 	web/tests/e2e/test_secondary_tools_candidate_journeys.py \
 	web/tests/e2e/test_whitespace.py
 
+FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS := \
+	web/tests/e2e/test_research_financial_preview_browser.py
+
+FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS := \
+	web/tests/e2e/test_research_financial_scenario_browser.py
+
+FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS := \
+	web/tests/e2e/test_research_financial_registry_browser.py
+
+EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS := \
+	web/tests/e2e/test_evidence_method_plan_browser.py
+
 PHASE_REAL_BROWSER_CONTRACT_TESTS := \
 	web/tests/e2e/test_phase_auth_real.py \
 	web/tests/e2e/test_cookie_consent.py
 
-.PHONY: test test-unit test-integration test-phase-python-contract test-e2e test-frontend-node test-browser-contracts test-retrieval-contract test-product-contracts test-release-contracts test-all test-fast openapi-env openapi-generate openapi-check types-check python-syntax-check llm-scaling-env llm-scaling-generate llm-scaling-check verify-release help
+.PHONY: test-financial-scenario-browser-contract test-financial-registry-browser-contract test-evidence-method-browser-contract test-financial-preview-browser-contract test test-unit test-integration test-phase-python-contract test-e2e test-frontend-node test-browser-contracts test-retrieval-contract test-product-contracts test-release-contracts test-all test-fast openapi-env openapi-generate openapi-check types-check python-syntax-check llm-scaling-env llm-scaling-generate llm-scaling-check verify-release help
 
 help:
 	@echo "Targets:"
@@ -69,6 +86,10 @@ help:
 	@echo "  test-e2e          Run e2e tests (live network, may be flaky)"
 	@echo "  test-frontend-node  Run every vanilla frontend Node contract"
 	@echo "  test-browser-contracts  Run the hard browser contract suite"
+	@echo "  test-financial-preview-browser-contract  Run all temporary financial CSV preview browser cases"
+	@echo "  test-evidence-method-browser-contract  Run all saved-evidence method browser cases"
+	@echo "  test-financial-registry-browser-contract  Run all financial registry save and account lifecycle browser cases"
+	@echo "  test-financial-scenario-browser-contract  Run all seven financial scenario actual Main browser cases"
 	@echo "  test-retrieval-contract  Validate retrieval dataset, determinism, and OOS policy"
 	@echo "  test-product-contracts  Validate public controls, human-review tooling, and research claims"
 	@echo "  test-release-contracts  Run every offline root contract with backend imports enabled"
@@ -105,10 +126,23 @@ test-frontend-node:
 test-browser-contracts:
 	$(PYTEST) $(BROWSER_CONTRACT_SEARCH_ASK_ANALYZE_PHENOMENON_TESTS) -m "e2e and not requires_internet" -v
 	$(PYTEST) $(BROWSER_CONTRACT_DISCOVERY_CLASSES_PAPERS_TESTS) -m "e2e and not requires_internet" -v
-	$(PYTEST) $(filter tests/e2e/%,$(BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS)) -m "e2e and not requires_internet" -v
-	$(PYTEST) $(filter web/tests/e2e/%,$(BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS)) -m "e2e and not requires_internet" -v
+	$(PYTEST) tests/e2e/test_full_public_surface.py web/tests/e2e/test_auth_login_bootstrap_privacy.py -p no:logging -m "e2e and not requires_internet" -v
+	$(PYTEST) $(filter-out tests/e2e/test_full_public_surface.py,$(filter tests/e2e/%,$(BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS))) -m "e2e and not requires_internet" -v
+	$(PYTEST) $(filter-out web/tests/e2e/test_auth_login_bootstrap_privacy.py,$(filter web/tests/e2e/%,$(BROWSER_CONTRACT_LIBRARY_AUTH_REPORTS_FAVORITES_TESTS))) -m "e2e and not requires_internet" -v
 	$(PYTEST) $(BROWSER_CONTRACT_SECONDARY_WHITESPACE_TESTS) -m "e2e and not requires_internet" -v
 	$(PYTEST) $(PHASE_REAL_BROWSER_CONTRACT_TESTS) -v
+
+test-financial-preview-browser-contract:
+	$(PYTEST) $(FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS) -p no:logging -v
+
+test-financial-scenario-browser-contract:
+	$(BACKEND_PYTEST) $(FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS) -p no:logging -v
+
+test-financial-registry-browser-contract:
+	$(PYTEST) $(FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS) -p no:logging -v
+
+test-evidence-method-browser-contract:
+	$(BACKEND_PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v
 
 test-retrieval-contract:
 	$(BACKEND_PYTEST) web/backend/tests/test_retrieval_eval_dataset.py -q
@@ -165,7 +199,23 @@ verify-release:
 	$(MAKE) types-check
 	$(MAKE) llm-scaling-check
 	$(MAKE) test-fast
-	cd web/backend && $(BACKEND_PYTEST) -q
+	cd web/backend && $(BACKEND_PYTEST) --ignore=tests/test_formal_main_admission.py --ignore=tests/test_formal_main_source_supervisor.py --ignore=tests/test_research_financial_import.py --ignore=tests/test_formal_model_startup.py --ignore=tests/acceptance/test_source_history_fixture_current15.py --ignore=tests/test_research_financial_registries.py --ignore=tests/test_research_source_origin_history.py --ignore=tests/test_research_evidence_method_plan.py --ignore=tests/test_research_evidence_method_native.py --ignore=tests/test_plan_runtime_transport.py --ignore=tests/test_research_native_browser_service.py --ignore=tests/test_native_live_grant.py --ignore=tests/test_formal_native_plan_supervisor.py --ignore=tests/test_research_financial_execution_v2.py --ignore=tests/test_research_financial_results_v2.py --ignore=tests/test_source_sec_access_lifecycle.py -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_admission.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_source_supervisor.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_research_financial_import.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_model_startup.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/acceptance/test_source_history_fixture_current15.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_research_financial_registries.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_research_source_origin_history.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_research_evidence_method_plan.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_research_evidence_method_native.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_research_native_browser_service.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_native_live_grant.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_native_plan_supervisor.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_research_financial_execution_v2.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_research_financial_results_v2.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_source_sec_access_lifecycle.py -p no:logging -q
 	cd packages/guarded-llm && $(PYTEST) tests -q
 	cd packages/cross-judge && $(PYTEST) tests -q
 	cd packages/reject-aware-critic && $(PYTEST) tests -q
@@ -174,4 +224,7 @@ verify-release:
 	$(MAKE) test-release-contracts
 	$(MAKE) test-frontend-node
 	$(MAKE) test-browser-contracts
+	$(MAKE) test-evidence-method-browser-contract
+	$(MAKE) test-financial-registry-browser-contract
+	$(MAKE) test-financial-scenario-browser-contract
 	cd web/phase-detector && pnpm lint && pnpm build

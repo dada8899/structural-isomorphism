@@ -217,7 +217,7 @@ def test_browser_contract_jobs_use_the_release_target_runtime_pins():
         "starlette==1.3.1",
         "uvicorn[standard]==0.27.1",
     )
-    for job_name in ("browser-product-contract", "browser-beta-surface-contract"):
+    for job_name in ("browser-product-contract", "browser-identity-consent-contract", "browser-beta-surface-contract"):
         run_scripts = "\n".join(
             str(step.get("run", "")) for step in workflow["jobs"][job_name]["steps"]
         )

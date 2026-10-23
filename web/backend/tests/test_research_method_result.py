@@ -403,6 +403,7 @@ def test_process_death_during_first_body_write_or_after_commit_recovers_without_
 @pytest.fixture
 def v8_origin_profile(monkeypatch):
     with monkeypatch.context() as profile:
+        profile.setattr(ResearchStore,'_initialize_current',lambda self,conn:False)
         profile.setattr(ResearchStore,'_migrate_v9',lambda self:None)
         yield profile
 

@@ -15,8 +15,9 @@ on:
 jobs:
   coverage:
     runs-on: ubuntu-latest
-    # The complete offline inventory needs a bounded coverage execution budget.
-    timeout-minutes: 60
+    # Instrumented backend coverage alone needs 55 minutes; keep the remaining
+    # offline suites and reports inside one finite execution budget.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -56,7 +57,23 @@ jobs:
           # Reject-aware critic
           python -m coverage run -p --rcfile=.coveragerc -m pytest packages/reject-aware-critic/tests/ $PYTEST_FLAGS
           # Web backend
-          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/ $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/ --ignore=web/backend/tests/test_formal_main_admission.py --ignore=web/backend/tests/test_formal_main_source_supervisor.py --ignore=web/backend/tests/test_research_financial_import.py --ignore=web/backend/tests/test_formal_model_startup.py --ignore=web/backend/tests/acceptance/test_source_history_fixture_current15.py --ignore=web/backend/tests/test_research_financial_registries.py --ignore=web/backend/tests/test_research_source_origin_history.py --ignore=web/backend/tests/test_research_evidence_method_plan.py --ignore=web/backend/tests/test_research_evidence_method_native.py --ignore=web/backend/tests/test_plan_runtime_transport.py --ignore=web/backend/tests/test_research_native_browser_service.py --ignore=web/backend/tests/test_native_live_grant.py --ignore=web/backend/tests/test_formal_native_plan_supervisor.py --ignore=web/backend/tests/test_research_financial_execution_v2.py --ignore=web/backend/tests/test_research_financial_results_v2.py --ignore=web/backend/tests/test_source_sec_access_lifecycle.py $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_formal_main_admission.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_formal_main_source_supervisor.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_research_financial_import.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_formal_model_startup.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/acceptance/test_source_history_fixture_current15.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_research_financial_registries.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_research_source_origin_history.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_research_evidence_method_plan.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_research_evidence_method_native.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_plan_runtime_transport.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_research_native_browser_service.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_native_live_grant.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_formal_native_plan_supervisor.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_research_financial_execution_v2.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_research_financial_results_v2.py -p no:logging $PYTEST_FLAGS
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_source_sec_access_lifecycle.py -p no:logging $PYTEST_FLAGS
           # V4 sanity. soc-pipeline-primitives is covered separately by the
           # packages/soc-pipeline subset below (avoids double-counting), so
           # it's --ignore'd here. The PYTHONPATH shadow bug that previously

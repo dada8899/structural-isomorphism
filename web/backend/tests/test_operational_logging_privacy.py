@@ -48,9 +48,52 @@ def _production_files() -> list[Path]:
     )
 
 
+def _has_unshadowed_stdlib_sys(tree: ast.AST) -> bool:
+    """Recognize the stdlib exception query without exempting a logger alias."""
+    if not isinstance(tree, ast.Module):
+        return False
+    imported = any(
+        isinstance(node, ast.Import)
+        and any(alias.name == "sys" and alias.asname in (None, "sys") for alias in node.names)
+        for node in tree.body
+    )
+    if not imported:
+        return False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and node.id == "sys" and isinstance(node.ctx, (ast.Store, ast.Del)):
+            return False
+        if isinstance(node, ast.arg) and node.arg == "sys":
+            return False
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name == "sys":
+            return False
+        if isinstance(node, ast.ExceptHandler) and node.name == "sys":
+            return False
+        if isinstance(node, (ast.MatchAs, ast.MatchStar)) and node.name == "sys":
+            return False
+        if isinstance(node, ast.MatchMapping) and node.rest == "sys":
+            return False
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                bound = alias.asname or alias.name.split(".")[0]
+                if bound == "sys" and not (isinstance(node, ast.Import) and alias.name == "sys"):
+                    return False
+                if isinstance(node, ast.ImportFrom) and alias.name == "*":
+                    return False
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "sys" and isinstance(node.ctx, (ast.Store, ast.Del)):
+            return False
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in ("setattr", "delattr") and node.args and isinstance(node.args[0], ast.Name) and node.args[0].id == "sys":
+            return False
+    return True
+
+
 def _logging_calls(tree: ast.AST):
+    stdlib_sys = _has_unshadowed_stdlib_sys(tree)
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        if (stdlib_sys and node.func.attr == "exception"
+                and isinstance(node.func.value, ast.Name) and node.func.value.id == "sys"
+                and not node.args and not node.keywords):
             continue
         if node.func.attr in LOG_METHODS:
             yield node
@@ -103,3 +146,32 @@ def test_production_logging_is_content_free_and_allowlisted() -> None:
                         f"{location}: non-allowlisted field {keyword.arg or '**kwargs'}"
                     )
     assert not issues, "\n" + "\n".join(issues)
+
+
+def test_stdlib_active_exception_query_is_not_operational_logging() -> None:
+    tree = ast.parse("import sys\ndef cleanup(primary):\n    return sys.exception() is primary\n")
+    assert list(_logging_calls(tree)) == []
+    tree = ast.parse("import sys\nlogger.exception('structural.cleanup_failed')\nsys.exception()\n")
+    calls = list(_logging_calls(tree))
+    assert len(calls) == 1 and calls[0].func.value.id == "logger"
+
+
+def test_sys_name_or_attribute_shadowing_keeps_exception_calls_under_review() -> None:
+    sources = (
+        "sys.exception()",
+        "import sys\nsys = logger\nsys.exception()",
+        "import sys\ndef f(sys):\n    sys.exception()",
+        "import sys\nfrom logging import logger as sys\nsys.exception()",
+        "import sys\ndef sys(): pass\nsys.exception()",
+        "import sys\nsys.exception = logger.exception\nsys.exception()",
+        "import sys\nsetattr(sys, 'exception', logger.exception)\nsys.exception()",
+        "import sys\nfrom other import *\nsys.exception()",
+        "import sys\nsys.exception('structural.event')",
+        "import sys\nsys.exception(error_type='X')",
+        "import sys\nmatch logger:\n    case sys:\n        sys.exception()",
+        "import sys\nmatch [logger]:\n    case [*sys]:\n        sys.exception()",
+        "import sys\nmatch {'logger': logger}:\n    case {**sys}:\n        sys.exception()",
+    )
+    for source in sources:
+        calls = list(_logging_calls(ast.parse(source)))
+        assert any(call.func.attr == "exception" for call in calls), source

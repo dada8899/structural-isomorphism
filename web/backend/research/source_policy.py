@@ -246,17 +246,21 @@ class PinnedPublicTransport:
 
     def get(self, target, *, still_authorized, owner_lease):
         target = RequestTarget(target.host, target.path)
+        if self.execution_mode!=("live" if self._worker is _network_get else "offline_probe"):
+            raise SourceFailure("source transport provenance mismatch")
         if (os.name!="posix" or not all(hasattr(signal,key) for key in ("SIGALRM","ITIMER_REAL","setitimer","pthread_sigmask"))
                 or type(owner_lease) is not OwnerGateLease):
             raise SourceFailure("source lifetime boundary unavailable")
         identity=owner_lease.identity
         if not callable(still_authorized) or still_authorized() is not True:
             raise PermissionError("source dispatch denied")
+        from .source_spawn import source_process,require_supported
+        require_supported()
         ctx = multiprocessing.get_context("spawn")
         receive, send = ctx.Pipe(duplex=True)
-        shared = ctx.RawArray("B", RAW_CAP * 2)
         deadline = time.monotonic() + self.wall_seconds
-        process = ctx.Process(target=_child, args=(send, target, self._worker, shared,deadline,identity), daemon=True)
+        process = None
+        shared = view = None
         handed_off=False
         def unavailable(message):
             # Kernel expiry can close IPC before the parent's next deadline
@@ -266,6 +270,8 @@ class PinnedPublicTransport:
                 return SourceFailure("source hard deadline")
             return SourceFailure(message)
         try:
+            shared = ctx.RawArray("B", RAW_CAP * 2)
+            process = source_process((send, target, self._worker, shared,deadline,identity))
             process.start()
             send.close()
             while True:
@@ -289,8 +295,10 @@ class PinnedPublicTransport:
                             raise SourceFailure("source worker lifetime unavailable")
                         if time.monotonic()>=deadline or still_authorized() is not True:
                             raise PermissionError("source handoff denied")
-                        owner_lease.handoff(receive,process.pid,deadline)
-                        handed_off=True
+                        from .source_supervisor import send_handoff_scope
+                        with send_handoff_scope(still_authorized,deadline_monotonic=deadline):
+                            owner_lease.handoff(receive,process.pid,deadline)
+                            handed_off=True
                         continue
                     if type(message) is list and len(message) == 2 and message[0] is False:
                         raise SourceFailure("source_unavailable", http_status=message[1])
@@ -303,13 +311,28 @@ class PinnedPublicTransport:
                 if not process.is_alive():
                     raise unavailable("source worker exited without result")
         finally:
-            send.close()
-            receive.close()
-            if process.pid is not None:
-                if process.is_alive():
-                    process.terminate()
-                process.join(timeout=0.25)
-                if process.is_alive():
-                    process.kill()
-                    process.join(timeout=0.25)
-                process.close()
+            import sys
+            primary=sys.exc_info()[1]
+            errors=[]
+            for connection in (send,receive):
+                try:connection.close()
+                except BaseException as error:errors.append(error)
+            try:
+                if process is not None:process.close()
+            except BaseException as error:errors.append(error)
+            if not errors:
+                try:
+                    if view is not None:view.release()
+                except BaseException as error:errors.append(error)
+            if not errors:
+                # Child/tracker and IPC retirement succeeded. Drop only this
+                # call's buffer exports, never the allocator's shared arenas.
+                # The propagated exception keeps its original traceback; this
+                # local alias must not make that traceback retain itself.
+                view = shared = primary = None
+            if errors:
+                from .source_spawn import SourceCleanupUncertain,_cleanup_note
+                if primary is not None:
+                    _cleanup_note(primary,'Source transport retirement uncertain')
+                    raise primary
+                raise SourceCleanupUncertain('Source transport retirement uncertain') from errors[0]

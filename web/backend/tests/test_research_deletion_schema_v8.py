@@ -24,6 +24,7 @@ def _historical_v8_profile(monkeypatch):
 def v7(stack,monkeypatch):
     client,path=stack
     with monkeypatch.context() as old:
+        old.setattr(ResearchStore,'_initialize_current',lambda self,conn:False)
         old.setattr(ResearchStore,'_migrate_v8',lambda self:None)
         create(client);store=ResearchStore(auth._store())
     # Genuine legacy schema with a nonempty unsigned job; no synthetic source.

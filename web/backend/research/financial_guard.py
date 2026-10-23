@@ -18,6 +18,16 @@ _ERASABLE={'research_dispatch_permits':{'input_digest','authorization_context_js
 
 
 def _statement_allowed(conn,action,table,column):
+    from .financial_input_guard import statement_allowed as input_statement_allowed
+    if not input_statement_allowed(conn,action,table,column):return False
+    from .method_draft import statement_allowed as draft_statement_allowed
+    if not draft_statement_allowed(conn,action,table,column):return False
+    from .plan_native_financial import statement_allowed as native_statement_allowed
+    if not native_statement_allowed(conn,action,table,column):return False
+    from .plan_financial import statement_allowed as plan_statement_allowed
+    if not plan_statement_allowed(conn,action,table,column):return False
+    from .formula_runtime import statement_allowed
+    if not statement_allowed(conn,action,table,column):return False
     if action not in (sqlite3.SQLITE_INSERT,sqlite3.SQLITE_UPDATE,sqlite3.SQLITE_DELETE) or table not in _LEDGER_ROWS:return True
     if action==sqlite3.SQLITE_UPDATE and column in _ERASABLE.get(table,set()):return True
     if action==sqlite3.SQLITE_UPDATE and table=='research_provider_sessions' and column in dict(METHOD_COLUMNS):
@@ -183,6 +193,16 @@ METHOD_GUARDS=(
 
 def install_default_hook(conn):
     """No authorizer/trace replacement; private registration is the sole permit."""
+    from .financial_input_guard import install_hook as input_hook
+    input_hook(conn)
+    from .source_guard import install_hook as install_source_hook
+    install_source_hook(conn)
+    from .plan_financial import install_hook as install_plan_hook
+    install_plan_hook(conn)
+    from .plan_native_financial import install_hook as native_hook
+    native_hook(conn)
+    from .method_draft import install_hook as draft_hook
+    draft_hook(conn)
     pid=os.getpid()
     def allowed(operation,raw):
         permit=_WRITES.get(id(conn))
@@ -201,13 +221,15 @@ def install_default_hook(conn):
     conn.create_function('research_financial_guard_version',0,lambda:7 if os.getpid()==pid else 0)
     from .method_result import install_hook
     install_hook(conn)
+    from .formula_runtime import install_hook as formula_hook
+    formula_hook(conn)
     from .paid_control import _SCOPES
     if id(conn) not in _SCOPES:
         # Fresh factory connections have no transaction observer to replace.
         schema=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema' AND type='table'").fetchone()
         try:version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone() if schema else None
         except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本标记结构不匹配。') from None
-        if version and version[0] in (7,8,9):
+        if version and version[0] in (7,8,9,10,11,12,13,14,15):
             conn.set_authorizer(lambda action,table,column,db,trigger:
                 sqlite3.SQLITE_OK if _statement_allowed(conn,action,table,column) else sqlite3.SQLITE_DENY)
 
@@ -270,7 +292,8 @@ def register_closed_project(conn,*,store,identity,lease,source=None):
     if (type(source) is not OfflineProjectRegistration or not source._active or source._pid!=os.getpid()
             or _SOURCES.get(source._ref) is not source or source._store is not store or source._identity!=identity):
         raise PermissionError('explicit offline project registration source required')
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)
+    elif conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
     else:ResearchStore._check_v7(conn);ResearchStore._check_v7_attachments(conn)
     _owner_binding(conn,store,source._principal,lease)
     AuthorizationGate(store).check(conn,identity,source._principal)
