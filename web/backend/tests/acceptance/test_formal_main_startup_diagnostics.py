@@ -577,3 +577,99 @@ def test_capture_accepts_actual_alternate_family_registry_without_accepting_call
         assert service._retirement_binding is None
     finally:
         plain._STATE.pop(key, None)
+
+
+def test_retirement_sqlite_real_native_error_keeps_only_finite_code_and_name():
+    import sqlite3
+    from contextlib import closing
+    with closing(sqlite3.connect(':memory:')) as connection:
+        try: connection.execute('SELECT * FROM missing_synthetic_retirement_table')
+        except sqlite3.OperationalError as error:
+            value = _retirement_error_chain(error)[0]
+        else: raise AssertionError('synthetic native SQLite failure did not occur')
+    assert value['type'] == 'OperationalError'
+    assert value['sqlite_primary_code'] == 1 and value['sqlite_errorname'] == 'SQLITE_ERROR'
+    assert 'missing_synthetic_retirement_table' not in json.dumps(value)
+
+
+def test_retirement_sqlite_primary_enum_rejects_boolean_non_int_and_out_of_bound_codes():
+    import sqlite3
+    from web.backend.tests.acceptance import formal_main_browser_service as entry
+    class CallbackInt(int):
+        def __and__(self, other): raise AssertionError('numeric callback')
+    error = sqlite3.OperationalError(MARKER)
+    error.sqlite_errorname = 'SQLITE_BUSY_SNAPSHOT'
+    for raw, expected in ((5, 5), (9, 9), (17, 17), (10, 10), (517, 5),
+                          (-1, None), (False, None), (True, None), (None, None),
+                          ('5', None), (5.0, None), (CallbackInt(5), None),
+                          (0, None), (29, None), (100, None), (101, None),
+                          (65535, None), (65541, None), (1 << 63, None)):
+        error.sqlite_errorcode = raw
+        assert entry._retirement_sqlite_fields(error)['sqlite_primary_code'] == expected
+
+
+def test_retirement_sqlite_names_extras_and_damaged_fields_never_coerce_callbacks():
+    import sqlite3
+    from web.backend.tests.acceptance import formal_main_browser_service as entry
+    class CallbackName(str):
+        def __hash__(self): raise AssertionError('name callback')
+        def __eq__(self, other): raise AssertionError('name callback')
+    error = sqlite3.OperationalError(MARKER)
+    error.sqlite_errorcode = 5
+    error.sqlite_errorname = 'SQLITE_BUSY'
+    error.extra = {'headers': MARKER, 'opaque': _RetirementCanary()}
+    error.add_note(MARKER)
+    assert entry._retirement_sqlite_fields(error) == {
+        'sqlite_primary_code': 5, 'sqlite_errorname': 'SQLITE_BUSY'}
+    for unknown in (MARKER, 'SQLITE_ARBITRARY_IDENTIFIER', 'SQLITE_' + MARKER * 1000,
+                    False, None, _RetirementCanary(), CallbackName('SQLITE_BUSY')):
+        error.sqlite_errorname = unknown
+        assert entry._retirement_sqlite_fields(error)['sqlite_errorname'] is None
+    error.sqlite_errorcode = _RetirementCanary()
+    assert entry._retirement_sqlite_fields(error)['sqlite_primary_code'] is None
+    assert MARKER not in json.dumps(_retirement_error_chain(error))
+    for index in range(100): vars(error)['private_extra_' + str(index)] = _RetirementCanary()
+    assert entry._retirement_sqlite_fields(error) == {
+        'sqlite_primary_code': None, 'sqlite_errorname': None}
+
+
+def test_retirement_sqlite_subclasses_and_same_named_caller_types_are_not_read():
+    import sqlite3
+    from web.backend.tests.acceptance import formal_main_browser_service as entry
+    calls = []
+    class CallbackError(sqlite3.OperationalError):
+        @property
+        def sqlite_errorcode(self): calls.append('code'); raise AssertionError('property callback')
+        @property
+        def sqlite_errorname(self): calls.append('name'); raise AssertionError('property callback')
+        def __getattribute__(self, name):
+            calls.append('attribute'); raise AssertionError('attribute callback')
+    error = CallbackError(MARKER)
+    assert entry._retirement_sqlite_fields(error) == {}
+    value = _retirement_error_chain(error)
+    assert value[0]['type'] == 'OTHER' and 'sqlite_primary_code' not in value[0]
+    fake = type('OperationalError', (RuntimeError,), {'__module__': 'sqlite3'})
+    assert entry._retirement_sqlite_fields(fake(MARKER)) == {}
+    assert calls == [] and MARKER not in json.dumps(value)
+
+
+def test_retirement_sqlite_extended_fields_keep_whole_dto_under_original_byte_bound():
+    import sqlite3
+    app, binding, source, gov, native = _retirement_fixture()
+    original = sqlite3.OperationalError(MARKER)
+    original.sqlite_errorcode = 10 | (18 << 8)
+    original.sqlite_errorname = 'SQLITE_IOERR_SHMOPEN'
+    outer = sqlite3.DatabaseError(MARKER)
+    outer.sqlite_errorcode = 17
+    outer.sqlite_errorname = 'SQLITE_SCHEMA'
+    outer.__cause__ = original
+    for value, field in ((binding, 'source_errors'), (source, '_errors'),
+                         (binding, 'native_errors'), (native, '_errors'), (gov, 'errors')):
+        object.__setattr__(value, field, [outer] * 100)
+    encoded = _retirement_json(binding, app)
+    assert len(encoded.encode('ascii')) <= _RETIREMENT_LIMIT and MARKER not in encoded
+    value = json.loads(encoded)
+    assert value['observation'] == 'OBSERVED'
+    chain = value['source']['errors']['items'][0]
+    assert chain[0]['sqlite_primary_code'] == 17 and chain[1]['sqlite_primary_code'] == 10
+    assert chain[0]['sqlite_errorname'] == 'SQLITE_SCHEMA' and chain[1]['sqlite_errorname'] == 'SQLITE_IOERR_SHMOPEN'

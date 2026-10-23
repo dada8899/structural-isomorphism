@@ -129,6 +129,47 @@ _RETIREMENT_REASONS = frozenset(('CLOSED', 'DEADLINE', 'WORKER_FAILURE',
     'BlockingIOError', 'RuntimeError'))
 _RETIREMENT_CODES = frozenset(('FEATURE_UNAVAILABLE', 'FUNDING_CLOSED',
     'STORE_BUSY', 'CLEANUP_UNCERTAIN', 'SCHEMA_UNSUPPORTED', 'RECONCILIATION_REQUIRED'))
+_RETIREMENT_SQLITE_TYPES = (
+    (sqlite3.Error, 'Error'), (sqlite3.Warning, 'Warning'),
+    (sqlite3.InterfaceError, 'InterfaceError'), (sqlite3.DatabaseError, 'DatabaseError'),
+    (sqlite3.DataError, 'DataError'), (sqlite3.OperationalError, 'OperationalError'),
+    (sqlite3.IntegrityError, 'IntegrityError'), (sqlite3.InternalError, 'InternalError'),
+    (sqlite3.ProgrammingError, 'ProgrammingError'), (sqlite3.NotSupportedError, 'NotSupportedError'),
+)
+_RETIREMENT_SQLITE_PRIMARY = frozenset((1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+    11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28))
+_RETIREMENT_SQLITE_NAMES = frozenset((
+    'SQLITE_ERROR', 'SQLITE_INTERNAL', 'SQLITE_PERM', 'SQLITE_ABORT',
+    'SQLITE_BUSY', 'SQLITE_LOCKED', 'SQLITE_NOMEM', 'SQLITE_READONLY',
+    'SQLITE_INTERRUPT', 'SQLITE_IOERR', 'SQLITE_CORRUPT', 'SQLITE_NOTFOUND',
+    'SQLITE_FULL', 'SQLITE_CANTOPEN', 'SQLITE_PROTOCOL', 'SQLITE_EMPTY',
+    'SQLITE_SCHEMA', 'SQLITE_TOOBIG', 'SQLITE_CONSTRAINT', 'SQLITE_MISMATCH',
+    'SQLITE_MISUSE', 'SQLITE_NOLFS', 'SQLITE_AUTH', 'SQLITE_FORMAT',
+    'SQLITE_RANGE', 'SQLITE_NOTADB', 'SQLITE_NOTICE', 'SQLITE_WARNING',
+    'SQLITE_ERROR_MISSING_COLLSEQ', 'SQLITE_ERROR_RETRY', 'SQLITE_ERROR_SNAPSHOT',
+    'SQLITE_ABORT_ROLLBACK', 'SQLITE_BUSY_RECOVERY', 'SQLITE_BUSY_SNAPSHOT',
+    'SQLITE_BUSY_TIMEOUT', 'SQLITE_LOCKED_SHAREDCACHE', 'SQLITE_LOCKED_VTAB',
+    'SQLITE_READONLY_RECOVERY', 'SQLITE_READONLY_CANTLOCK',
+    'SQLITE_READONLY_ROLLBACK', 'SQLITE_READONLY_DBMOVED',
+    'SQLITE_READONLY_CANTINIT', 'SQLITE_READONLY_DIRECTORY',
+    'SQLITE_IOERR_READ', 'SQLITE_IOERR_SHORT_READ', 'SQLITE_IOERR_WRITE',
+    'SQLITE_IOERR_FSYNC', 'SQLITE_IOERR_DIR_FSYNC', 'SQLITE_IOERR_TRUNCATE',
+    'SQLITE_IOERR_FSTAT', 'SQLITE_IOERR_UNLOCK', 'SQLITE_IOERR_RDLOCK',
+    'SQLITE_IOERR_DELETE', 'SQLITE_IOERR_BLOCKED', 'SQLITE_IOERR_NOMEM',
+    'SQLITE_IOERR_ACCESS', 'SQLITE_IOERR_CHECKRESERVEDLOCK', 'SQLITE_IOERR_LOCK',
+    'SQLITE_IOERR_CLOSE', 'SQLITE_IOERR_DIR_CLOSE', 'SQLITE_IOERR_SHMOPEN',
+    'SQLITE_IOERR_SHMSIZE', 'SQLITE_IOERR_SHMLOCK', 'SQLITE_IOERR_SHMMAP',
+    'SQLITE_IOERR_SEEK', 'SQLITE_IOERR_DELETE_NOENT', 'SQLITE_IOERR_MMAP',
+    'SQLITE_IOERR_GETTEMPPATH', 'SQLITE_IOERR_CONVPATH', 'SQLITE_IOERR_VNODE',
+    'SQLITE_IOERR_AUTH', 'SQLITE_IOERR_BEGIN_ATOMIC', 'SQLITE_IOERR_COMMIT_ATOMIC',
+    'SQLITE_IOERR_ROLLBACK_ATOMIC', 'SQLITE_IOERR_DATA', 'SQLITE_IOERR_CORRUPTFS',
+    'SQLITE_CONSTRAINT_CHECK', 'SQLITE_CONSTRAINT_COMMITHOOK',
+    'SQLITE_CONSTRAINT_FOREIGNKEY', 'SQLITE_CONSTRAINT_FUNCTION',
+    'SQLITE_CONSTRAINT_NOTNULL', 'SQLITE_CONSTRAINT_PRIMARYKEY',
+    'SQLITE_CONSTRAINT_TRIGGER', 'SQLITE_CONSTRAINT_UNIQUE',
+    'SQLITE_CONSTRAINT_VTAB', 'SQLITE_CONSTRAINT_ROWID',
+    'SQLITE_CONSTRAINT_PINNED', 'SQLITE_CONSTRAINT_DATATYPE',
+))
 _RETIREMENT_MODULES = (
     ('services.formal_admission', 'web/backend/services/formal_admission.py'),
     ('web.backend.services.formal_admission', 'web/backend/services/formal_admission.py'),
@@ -214,6 +255,19 @@ def _retirement_enum(value, allowed):
     return value if type(value) is str and len(value) <= 64 and value in allowed else None if value is None else 'OTHER'
 
 
+def _retirement_sqlite_fields(error):
+    if not any(type(error) is kind for kind, _ in _RETIREMENT_SQLITE_TYPES):
+        return {}
+    value = _retirement_read(error, 'sqlite_errorcode')
+    primary = value & 255 if type(value) is int and 0 <= value <= 65535 else None
+    if primary not in _RETIREMENT_SQLITE_PRIMARY:
+        primary = None
+    name = _retirement_read(error, 'sqlite_errorname')
+    return {'sqlite_primary_code': primary,
+        'sqlite_errorname': name if type(name) is str and len(name) <= 64
+            and name in _RETIREMENT_SQLITE_NAMES else None}
+
+
 def _retirement_frames(error):
     codes = []
     for module, relative in _retirement_modules():
@@ -246,6 +300,8 @@ def _retirement_error_chain(error):
         seen.add(id(error))
         kind = next((kind.__name__ for kind in _STARTUP_ERROR_TYPES
                      if type(error) is kind), 'OTHER')
+        kind = next((name for actual, name in _RETIREMENT_SQLITE_TYPES
+                     if type(error) is actual), kind)
         research = False
         for module, relative in _retirement_modules():
             for name in _RETIREMENT_ERROR_CLASSES.get(relative, ()):
@@ -254,9 +310,11 @@ def _retirement_error_chain(error):
                     research = name in ('ResearchError', '_SourceStopping')
         code = _retirement_enum(_retirement_read(error, 'code'), _RETIREMENT_CODES) if research else None
         number = OSError.errno.__get__(error) if issubclass(type(error), OSError) else None
-        chain.append({'type': kind, 'code': code,
+        record = {'type': kind, 'code': code,
             'errno': number if type(number) is int and 0 < number < 256 else None,
-            'frames': _retirement_frames(error)})
+            'frames': _retirement_frames(error)}
+        record.update(_retirement_sqlite_fields(error))
+        chain.append(record)
         cause = BaseException.__cause__.__get__(error)
         error = cause if cause is not None else BaseException.__context__.__get__(error)
     return chain or [{'type': 'OTHER', 'code': None, 'errno': None, 'frames': []}]
