@@ -128,6 +128,51 @@ class BridgeResponse:
     def __repr__(self):return '<BridgeResponse status='+str(self.status)+' body_bytes='+str(len(self.body))+'>'
 
 
+class _BrowserResponseCapture:
+    """Ephemeral evidence for one actual browser request and forwarded response."""
+    def __init__(self,page,method,url,timeout):
+        self.page,self.method,self.url,self.timeout=page,method,url,timeout
+        self.request=self.request_body=self.request_headers=self.actual=None
+        loop=asyncio.get_running_loop()
+        self.future=loop.create_future()
+        self.deadline=loop.time()+timeout
+        self.ambiguous=self.expired=False
+        self.timer=loop.call_later(timeout,self._expire)
+
+    def __repr__(self):return '<owned browser response capture>'
+
+    def bind(self,request,headers,body):
+        if self.expired:return False
+        if request.method!=self.method or request.url!=self.url or request.frame.page is not self.page:return False
+        if self.request is not None:
+            self.ambiguous=True
+            return False
+        self.request,self.request_headers,self.request_body=request,dict(headers),body
+        return True
+
+    async def json(self,response):
+        if self.expired:raise TimeoutError('original browser response capture expired')
+        await asyncio.wait_for(asyncio.shield(self.future),max(0,self.deadline-asyncio.get_running_loop().time()))
+        if self.expired:raise TimeoutError('original browser response capture expired')
+        if (self.ambiguous or self.actual is None or response.request is not self.request
+                or response.request.method!=self.method or response.url!=self.url
+                or response.request.post_data_buffer!=self.request_body
+                or await response.request.all_headers()!=self.request_headers
+                or response.status!=self.actual.status):
+            raise AssertionError('original forwarded browser response identity differs')
+        return json.loads(self.actual.body)
+
+    def _expire(self):
+        self.expired=True
+        self.page=self.request=self.request_body=self.request_headers=self.actual=None
+        if not self.future.done():self.future.set_result(None)
+
+    def clear(self):
+        self.timer.cancel()
+        self.future.cancel()
+        self.page=self.request=self.request_body=self.request_headers=self.actual=None
+
+
 class CanonicalBrowserBridge(AbstractContextManager):
     """Trusted harness transport only; no CookieJar and no installed identity.
 
@@ -140,7 +185,26 @@ class CanonicalBrowserBridge(AbstractContextManager):
     def __init__(self,service):
         self.service=service;self.handler=_OwnedHTTPSHandler(service.port,service.certificate)
         self.active=True;self.pending={};self.condition=threading.Condition()
+        self._captures=[];self._routed_context=None
         info=os.fstat(service.app_socket.fileno());self.socket_identity=(info.st_dev,info.st_ino)
+
+    @asynccontextmanager
+    async def capture_response(self,page,method,url,*,timeout=10):
+        """Retain only the original forwarded bytes, never repeat an HTTP call."""
+        parsed=urlsplit(url)
+        if (not self.active or page.context is not self._routed_context or method not in ('GET','HEAD','POST')
+                or parsed.scheme!='https' or parsed.netloc!=HOST or parsed.fragment
+                or not parsed.path.startswith('/') or len(url)>8192
+                or type(timeout) not in (int,float) or not 0<timeout<=30):
+            raise ValueError('active bounded canonical response capture required')
+        if self._captures:
+            raise RuntimeError('one response capture per bridge required')
+        capture=_BrowserResponseCapture(page,method,url,timeout)
+        self._captures.append(capture)
+        try:yield capture
+        finally:
+            self._captures.remove(capture)
+            capture.clear()
     def _shutdown(self,connection):
         sock=connection.sock
         if sock is not None:
@@ -208,23 +272,32 @@ class CanonicalBrowserBridge(AbstractContextManager):
                 else:raise RuntimeError('browser bridge cleanup uncertain: '+','.join(errors))
     @asynccontextmanager
     async def routed(self,context):
+        if self._routed_context is not None:raise RuntimeError('one routed context per bridge required')
         async def handle(route,request):
             if not self.active:
                 await route.abort('blockedbyclient');return
             try:
-                result=await asyncio.to_thread(self.forward,request.method,request.url,await request.all_headers(),request.post_data_buffer)
+                request_headers=await request.all_headers();request_body=request.post_data_buffer
+                captures=[item for item in self._captures if item.bind(request,request_headers,request_body)]
+                result=await asyncio.to_thread(self.forward,request.method,request.url,request_headers,request_body)
                 grouped={}
                 for name,value in result.headers:grouped.setdefault(name.lower(),[]).append(value)
                 headers={name:('\n' if name=='set-cookie' else ', ').join(values) for name,values in grouped.items()}
                 await route.fulfill(status=result.status,body=result.body,headers=headers)
+                for capture in captures:
+                    if not capture.future.done():
+                        capture.actual=result
+                        capture.future.set_result(None)
             except (PermissionError,ValueError,OSError,TimeoutError):await route.abort('blockedbyclient')
         await context.route('**/*',handle)
+        self._routed_context=context
         try:yield self
         finally:
             # A dedicated harness context is left offline before removing the
             # interception, so late page polls cannot escape to public DNS.
             # Its creator must still close that browser context in finally.
             primary=sys.exc_info()[1];errors=[];offline=False
+            self._routed_context=None
             with self.condition:self.active=False
             try:
                 await context.set_offline(True);offline=True

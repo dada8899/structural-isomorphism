@@ -112,13 +112,15 @@ async def select_materials(page,count,*,keyboard=False):
     await expect(page.locator('#evidence-method-selection-count')).to_have_text(f'已选 {count} / 8 条短引')
 
 
-async def preview_and_confirm(page,count,*,keyboard=False):
+async def preview_and_confirm(page,bridge,count,*,keyboard=False):
     await select_materials(page,count,keyboard=keyboard)
     await expect(page.locator('#evidence-method-confirm')).to_be_disabled()
-    async with page.expect_response('**/evidence-method-plan-previews') as pending:
-        await page.locator('#evidence-method-preview').click()
-    response=await pending.value;assert response.status==200
-    original=(await response.json())['data']
+    url=bridge.service.origin+'/api/research/'+bridge.service.seed.research_id
+    async with bridge.capture_response(page,'POST',url+'/evidence-method-plan-previews') as captured:
+        async with page.expect_response('**/evidence-method-plan-previews') as pending:
+            await page.locator('#evidence-method-preview').click()
+        response=await pending.value;assert response.status==200
+        original=(await captured.json(response))['data']
     await expect(page.locator('#evidence-method-preview-panel')).to_be_visible()
     assert len(original['exact_input']['handles'])==count
     for handle in original['exact_input']['handles']:
@@ -129,12 +131,13 @@ async def preview_and_confirm(page,count,*,keyboard=False):
     if keyboard:
         await page.locator('#evidence-method-consent').focus();await page.keyboard.press('Space')
     else:await page.locator('#evidence-method-consent').check()
-    async with page.expect_response('**/evidence-method-plan-approvals') as pending:
-        if keyboard:
-            await page.locator('#evidence-method-confirm').focus();await page.keyboard.press('Enter')
-        else:await page.locator('#evidence-method-confirm').click()
-    response=await pending.value;assert response.status==200
-    confirmed=(await response.json())['data']
+    async with bridge.capture_response(page,'POST',url+'/evidence-method-plan-approvals') as captured:
+        async with page.expect_response('**/evidence-method-plan-approvals') as pending:
+            if keyboard:
+                await page.locator('#evidence-method-confirm').focus();await page.keyboard.press('Enter')
+            else:await page.locator('#evidence-method-confirm').click()
+        response=await pending.value;assert response.status==200
+        confirmed=(await captured.json(response))['data']
     await expect(page.locator('#evidence-method-status')).to_contain_text('等待实际执行')
     return original,confirmed
 
@@ -154,7 +157,7 @@ def test_actual_main_https_select_preview_confirm_runtime_save_refresh_original_
         from research import ResearchRunner
         async with actual_browser(tmp_path,eight=count==8) as (page,service,store,actor,calls,bridge,facts):
             await page.locator('#method-draft-method').fill('本轮A综合不应改写的人工草稿。')
-            preview,confirmed=await preview_and_confirm(page,count)
+            preview,confirmed=await preview_and_confirm(page,bridge,count)
             assert calls==[]
             # This is a test-controller step after actual browser consent, not
             # an automatic Main worker or a product execution affordance.
@@ -200,7 +203,7 @@ def test_actual_browser_separates_failed_candidate_and_unknown_cost_without_new_
     async def run():
         from research import ResearchRunner
         async with actual_browser(tmp_path,unknown_usage=kind=='unknown_usage',bad_body=kind=='bad_body') as (page,service,store,actor,calls,bridge,facts):
-            _,confirmed=await preview_and_confirm(page,1)
+            _,confirmed=await preview_and_confirm(page,bridge,1)
             await asyncio.to_thread(ResearchRunner(store).run_once,confirmed['task_id'])
             await page.locator('#evidence-method-pending button').filter(has_text='读取这条原记录').click()
             await expect(page.locator('#evidence-method-status')).to_contain_text('费用未知' if kind=='unknown_usage' else '未取得可用候选')
@@ -235,7 +238,7 @@ def test_actual_browser_full_candidate_has_conditions_competing_explanations_and
     async def run():
         from research import ResearchRunner
         async with actual_browser(tmp_path,candidate=True) as (page,service,store,actor,calls,bridge,facts):
-            _,confirmed=await preview_and_confirm(page,1,keyboard=True)
+            _,confirmed=await preview_and_confirm(page,bridge,1,keyboard=True)
             await asyncio.to_thread(ResearchRunner(store).run_once,confirmed['task_id'])
             await page.locator('#evidence-method-pending button').filter(has_text='读取这条原记录').click()
             for text in ('到达集中与等待累积','机制假说（待验证）','公式提议（未经核验的提议）','变量对应','适用条件','竞争解释','不可迁移部分','反例或反证条件','最小验证计划','完整署名'):
@@ -313,7 +316,7 @@ def test_actual_browser_account_delete_discards_late_private_result(tmp_path):
     async def run():
         from research import ResearchRunner
         async with actual_browser(tmp_path,candidate=True) as (page,service,store,actor,calls,bridge,facts):
-            _,confirmed=await preview_and_confirm(page,1)
+            _,confirmed=await preview_and_confirm(page,bridge,1)
             await asyncio.to_thread(ResearchRunner(store).run_once,confirmed['task_id'])
             arrived=asyncio.Event();release=asyncio.Event()
             suffix='/api/research/'+service.seed.research_id+'/evidence-method-plans/'+confirmed['result_ref']

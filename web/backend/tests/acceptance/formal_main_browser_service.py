@@ -7,6 +7,7 @@ feature predicates, credentials or funding installations are substituted.
 from __future__ import annotations
 
 import argparse
+import asyncio
 from contextlib import AbstractContextManager
 from email import policy
 from email.parser import BytesParser
@@ -71,7 +72,10 @@ _STARTUP_DEPENDENCY_FRAMES = {
 }
 _STARTUP_ERROR_TYPES = (RuntimeError, PermissionError, OSError, ValueError,
     TypeError, AssertionError, ImportError, ModuleNotFoundError, TimeoutError,
-    SystemExit, Exception, BaseException)
+    RecursionError, FileNotFoundError, FileExistsError, BlockingIOError,
+    BrokenPipeError, ConnectionError, sqlite3.OperationalError,
+    sqlite3.ProgrammingError, sqlite3.IntegrityError, sqlite3.DatabaseError,
+    asyncio.CancelledError, GeneratorExit, SystemExit, Exception, BaseException)
 
 
 def _safe_startup_error(error):
@@ -87,7 +91,7 @@ def _safe_startup_error(error):
                        if type(error) is kind), 'OTHER')
     frames = []
     traceback = error.__traceback__
-    for _ in range(64):
+    for _ in range(256):
         if traceback is None:
             break
         code = traceback.tb_frame.f_code
@@ -98,6 +102,18 @@ def _safe_startup_error(error):
                        'line': line if type(line) is int and 0 < line <= 1000000 else 0})
         traceback = traceback.tb_next
     return {'type': error_type, 'frames': frames[-8:]}
+
+
+def _safe_lifespan_errors(error):
+    """Keep a small cause/context chain using the same literal coordinate policy."""
+    errors, seen = [], set()
+    for _ in range(4):
+        if not isinstance(error, BaseException) or id(error) in seen:
+            break
+        seen.add(id(error))
+        errors.append(_safe_startup_error(error))
+        error = error.__cause__ if error.__cause__ is not None else error.__context__
+    return errors
 
 
 class _StartupErrorObserver:
@@ -478,10 +494,10 @@ class FormalMainBrowserService(AbstractContextManager):
         formal_admission.require(self.app, 'source_history')
 
     def _capture_startup_error(self, error):
-        if self.server.started or len(self._startup_diagnostics) >= 2:
+        if len(self._startup_diagnostics) >= 4:
             return
         try:
-            self._startup_diagnostics.append(_safe_startup_error(error))
+            self._startup_diagnostics.extend(_safe_lifespan_errors(error)[:4-len(self._startup_diagnostics)])
         except BaseException:
             # A diagnostic failure must never replace the actual startup error.
             self._startup_diagnostics.append({'type': 'OTHER', 'frames': []})
@@ -588,7 +604,11 @@ class FormalMainBrowserService(AbstractContextManager):
                 errors.append(type(error).__name__)
         self._closed = not errors
         if errors:
-            raise RuntimeError('owned Main cleanup uncertain: ' + ','.join(errors))
+            failure = RuntimeError('owned Main cleanup uncertain: ' + ','.join(errors))
+            if self._startup_diagnostics:
+                failure.add_note('owned Main lifespan coordinates: ' +
+                    json.dumps(self._startup_diagnostics, sort_keys=True, separators=(',', ':')))
+            raise failure
 
     def close(self):
         self._close()
