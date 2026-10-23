@@ -42,6 +42,8 @@ APPROVED_PATHS=(
  'web/backend/main.py','web/backend/services/formal_admission.py','web/backend/research/runtime_profile.py',
  'scripts/run-formal-main.py','web/backend/research/plan_preview_codec.py',
  'web/backend/research/phenomenon_plan.py','web/backend/research/plan_runtime.py',
+ 'web/backend/research/store.py','web/backend/research/authorization.py','web/backend/services/auth_store.py',
+ 'web/backend/services/auth_registration.py','web/backend/services/sqlite_utils.py','web/backend/research/source_supervisor.py',
 )
 FIELDS=frozenset(('protocol','project_ref','state','grant_id','grant_epoch','principal_id',
  'auth_generation','principal_epoch','owner_gate_id','database_identity','owner_gate_identity',
@@ -212,7 +214,7 @@ def require_slot(scope,store,session,*,task_id,purpose,mode):
 
 
 def approved_code_digest():
-    """Fixed bounded 19-file closure; no caller paths or directory traversal."""
+    """Fixed bounded 25-file closure; no caller paths or directory traversal."""
     root=Path(__file__).resolve().parents[3];files={};total=0
     try:
         for relative in APPROVED_PATHS:
@@ -291,6 +293,30 @@ class NativeLiveStartFailure(RuntimeError):
         self.handle,self.resources,self.uncertain=handle,tuple(resources),bool(uncertain)
     def __setattr__(self,name,value):_Sealed.__setattr__(self,name,value)
     def __reduce__(self):raise TypeError('native partial start is not serializable')
+
+
+_ABSENT_READS={}
+
+
+class NativeLiveGrantAbsent(RuntimeError):
+    """Only a fixed optional read whose own IO has actually retired."""
+    def __init__(self,store,main_context,io,*,_factory=None):
+        _birth(_factory,'read_native_live_grant')
+        if not io.closed or io.fds or io.errors:raise _closed()
+        RuntimeError.__init__(self,'optional native grant absent')
+        self._reference=object()
+        _ABSENT_READS[self._reference]=(self,store,main_context,os.getpid(),io)
+    def __reduce__(self):raise TypeError('optional read proof cannot be serialized')
+
+
+def require_optional_grant_absent(error,store,*,main_context):
+    if type(error) is not NativeLiveGrantAbsent:raise _closed()
+    record=_ABSENT_READS.get(getattr(error,'_reference',None))
+    if record is None or record[:4]!=(error,store,main_context,os.getpid()):raise _closed()
+    io=record[4]
+    if type(io) is not _ControlReadHandle or not io.closed or io.fds or io.errors:raise _closed()
+    _startup(main_context,store)
+    _ABSENT_READS.pop(error._reference,None)
 
 
 class NativeLiveGrantWitness(_Sealed):
@@ -398,16 +424,20 @@ def read_native_live_grant(store,*,main_context):
     _b_module()  # Module presence is not key access or a credential.
     if sys.platform!='linux' or not hasattr(os,'O_NOFOLLOW'):raise _closed()
     if str(store.path) in _BOOTSTRAPS or any(value.store.path==store.path and not value.closed for value in _GRANTS.values()):raise _closed()
-    io=_ControlReadHandle(_factory=_FACTORY);directories=[];result=None
+    io=_ControlReadHandle(_factory=_FACTORY);directories=[];result=None;optional_name=None
     try:
         current,metadata=io.open('/',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
         directories.append((current,metadata))
         for part in ('etc','structural'):
+            optional_name=part if part=='structural' else None
             child,metadata=io.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=current)
+            optional_name=None
             directories.append((child,metadata))
             if FileMetadata.from_stat(os.stat(part,dir_fd=current,follow_symlinks=False))!=metadata:raise _closed()
             current=child
-        fd,before=io.open('native-live-grant.json',os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=current)
+        optional_name='native-live-grant.json'
+        fd,before=io.open(optional_name,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=current)
+        optional_name=None
         if before.kind!=stat.S_IFREG or not 0<before.size<=GRANT_CAP:raise _closed()
         raw=os.read(fd,GRANT_CAP+1);after=FileMetadata.from_stat(os.fstat(fd))
         if len(raw)!=before.size or after!=before or FileMetadata.from_stat(os.stat('native-live-grant.json',dir_fd=current,follow_symlinks=False))!=before:raise _closed()
@@ -419,6 +449,20 @@ def read_native_live_grant(store,*,main_context):
         io.transfer(result)
         result.require_bootstrap(main_context);return result
     except BaseException as primary:
+        # Only the optional fixed directory/leaf open may be absent. Existing
+        # parents must retain their real identities and trusted metadata.
+        absent=False
+        if (type(primary) is FileNotFoundError and primary.errno==2 and optional_name is not None
+                and primary.filename==optional_name and result is None):
+            absent=True
+            try:
+                for index,(descriptor,metadata) in enumerate(directories):
+                    current_meta=FileMetadata.from_stat(os.fstat(descriptor))
+                    named=FileMetadata.from_stat(os.lstat('/')) if index==0 else FileMetadata.from_stat(os.stat(('etc','structural')[index-1],dir_fd=directories[index-1][0],follow_symlinks=False))
+                    if (current_meta!=metadata or named!=metadata or metadata.kind!=stat.S_IFDIR
+                            or metadata.uid!=0 or metadata.mode&0o022):raise _closed()
+                    if index==2 and (metadata.gid,metadata.mode)!=(os.getegid(),0o750):raise _closed()
+            except BaseException:absent=False
         if result is not None:
             owned={fd for fd,_ in (*result._directories,(result._fd,result._metadata))}
             object.__setattr__(io,'fds',tuple(pair for pair in io.fds if pair[0] not in owned))
@@ -426,6 +470,7 @@ def read_native_live_grant(store,*,main_context):
             raise NativeLiveStartFailure(result,(result,io),uncertain=bool(errors)) from primary
         errors=_close_all((io,))
         if errors:raise NativeLiveStartFailure(io,(io,),uncertain=True) from primary
+        if absent:raise NativeLiveGrantAbsent(store,main_context,io,_factory=_FACTORY) from None
         raise
 
 

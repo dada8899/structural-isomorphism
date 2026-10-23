@@ -295,10 +295,23 @@ class SourceSupervisor:
         return '<canonical Source supervisor>'
 
     def _run(self):
+        from .native_plan_supervisor import source_thread_budget
+        try:
+            with source_thread_budget(self):self._run_with_budget()
+        except BaseException as error:
+            with self._lock:
+                self._errors.append(error);self._failure=self._failure or 'BUDGET_FAILURE';self._state='CLEANUP_UNCERTAIN';self._event.set()
+
+    def _run_with_budget(self):
         try:
             from .runtime_profile import runtime_capability_facts
             # A new native, hook-protected schema15 snapshot in this thread.
-            facts = runtime_capability_facts(self._service)
+            while True:
+                try: facts = runtime_capability_facts(self._service);break
+                except ResearchError as error:
+                    if type(error) is not ResearchError or error.code!='STORE_BUSY' or self._slot is not None or self._lease is not None:raise
+                    with self._lock:_check(self,published=True)
+                    self._event.wait(.01);self._event.clear()
             if facts.profile.checked_pid != self._pid or facts.profile.research_schema != 15:
                 raise _unavailable()
             while True:
@@ -307,13 +320,21 @@ class SourceSupervisor:
                     if self._state not in ('STARTING', 'READY'):
                         raise _unavailable()
                     starting = self._state == 'STARTING'
-                selected = _select(self._service.store, cleanup_only=starting, after=self._cursor)
+                try:
+                    selected = _select(self._service.store, cleanup_only=starting, after=self._cursor)
+                    pending = bool(_select(self._service.store, cleanup_only=True)) if not selected and starting else False
+                except ResearchError as error:
+                    # A zero-wait C budget makes transient opening-lock
+                    # contention visible. No task/slot was claimed here.
+                    if type(error) is not ResearchError or error.code!='STORE_BUSY' or self._slot is not None or self._lease is not None:raise
+                    with self._lock:_check(self,published=True)
+                    self._event.wait(.01);self._event.clear();continue
                 if not selected:
                     self._cursor = ''
                     if starting:
                         # Do not publish READY while an old, lock-contended debt
                         # remains anywhere in the finite scan.
-                        if not _select(self._service.store, cleanup_only=True):
+                        if not pending:
                             with self._lock:
                                 _check(self, published=True)
                                 if self._state == 'STARTING':

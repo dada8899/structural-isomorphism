@@ -93,7 +93,8 @@ def _digest(path):
 class _Binding:
     __slots__ = ('app', 'pid', 'reference', 'factory', 'origin', 'config', 'roots', 'paths',
                  'sources', 'service', 'facts', 'witnesses', 'favorites_lock', 'search', 'active', 'retired',
-                 'supervisor', 'source_module', 'source_receipt', 'source_deadline', 'source_errors', 'withdrawal')
+                 'supervisor', 'source_module', 'source_receipt', 'source_deadline', 'source_errors', 'withdrawal',
+                 'native_module','native_context','native_supervisor','native_receipt','native_deadline','native_errors')
 
     def __init__(self, app, *, _factory=None):
         if (_factory is not _FACTORY or inspect.currentframe().f_back.f_code is not initialize.__code__):
@@ -104,6 +105,8 @@ class _Binding:
         self.supervisor = self.source_module = self.source_receipt = self.source_deadline = None
         self.source_errors = ()
         self.withdrawal = None
+        self.native_module=self.native_context=self.native_supervisor=self.native_receipt=self.native_deadline=None
+        self.native_errors=()
 
     def __repr__(self):
         return '<formal Main native binding>'
@@ -268,7 +271,7 @@ def safe_status(app):
         source_status = 'unavailable'
     return {'base': 'ready', 'research_basic': binding.facts.basic_read_write.reason,
             'source_history': binding.facts.source_history.reason, 'source_execute': source_status,
-            'math': binding.facts.local_math.reason, 'native_planner': binding.facts.native_planner.reason,
+            'math': binding.facts.local_math.reason, 'native_planner': (binding.native_module.safe_status(app)[1] if binding.native_context is not None else binding.facts.native_planner.reason),
             'search': 'ready' if binding.search is not None else 'ARTIFACTS_UNBOUND'}
 
 
@@ -301,6 +304,12 @@ def attach_source(app, binding, module, supervisor):
     binding.supervisor = supervisor
 
 
+def attach_native(app,binding,module,supervisor):
+    _producer(app);binding.check()
+    if binding.native_module is not module or type(supervisor) is not module.NativePlanSupervisor or supervisor.binding is not binding or supervisor.context is not binding.native_context:raise RuntimeError('actual native startup handle required')
+    binding.native_supervisor=supervisor
+
+
 def withdraw(app):
     """Revoke HTTP before waiting on G; keep local native witnesses alive."""
     with _LIFETIME_LOCK:
@@ -308,6 +317,10 @@ def withdraw(app):
     if binding is None:
         return
     error = None
+    if binding.native_context is not None:
+        try:
+            if binding.native_module.request_main_stop(binding.native_supervisor,binding) is not None:raise RuntimeError('native stop returned data')
+        except BaseException as failure:error=failure
     if binding.supervisor is not None and not source_closed(binding):
         try:
             if binding.source_module.request_main_stop(binding.supervisor, binding) is not None:
@@ -404,13 +417,44 @@ def source_closed(binding):
             and receipt.state == 'CLOSED' and receipt.reason == 'CLOSED' and receipt.pending_task_id is None)
 
 
+def close_native(binding,*,deadline_monotonic):
+    _owned(binding)
+    if binding.native_context is None:return None
+    if type(deadline_monotonic) not in (int,float) or not math.isfinite(deadline_monotonic):raise RuntimeError('finite Main deadline required')
+    binding.native_deadline=deadline_monotonic if binding.native_deadline is None else min(binding.native_deadline,deadline_monotonic)
+    if binding.native_supervisor is None:
+        if not binding.native_module.no_native_birth(binding.native_context):raise RuntimeError('native partial handle missing')
+        return None
+    errors=[]
+    try:binding.native_module.retire(binding.native_supervisor,deadline_monotonic=binding.native_deadline)
+    except BaseException as error:errors.append(error)
+    try:
+        receipt=binding.native_module.join(binding.native_supervisor,deadline_monotonic=binding.native_deadline)
+        if type(receipt) is not binding.native_module.NativePlanCleanupReceipt or receipt.contract!='native-plan-supervisor-cleanup-v1' or receipt.supervisor_ref!=binding.native_supervisor.reference:raise RuntimeError('native cleanup receipt mismatch')
+        binding.native_receipt=receipt
+    except BaseException as error:errors.append(error)
+    binding.native_errors=tuple(errors)
+    if not native_closed(binding):raise RuntimeError('native retirement uncertain')
+    return binding.native_receipt
+
+
+def native_closed(binding):
+    _owned(binding)
+    if binding.native_context is None:return True
+    if binding.native_errors:return False
+    if binding.native_supervisor is None:return binding.native_module.no_native_birth(binding.native_context)
+    receipt=binding.native_receipt
+    return (type(receipt) is binding.native_module.NativePlanCleanupReceipt and receipt.supervisor_ref==binding.native_supervisor.reference
+        and receipt.contract=='native-plan-supervisor-cleanup-v1' and receipt.state=='CLOSED' and binding.native_module.closed(binding.native_supervisor))
+
+
 def release(binding, *, deadline_monotonic=None):
     """Close common witnesses only after actual Source ownership is CLOSED."""
     _owned(binding)
     if binding.active or _STATE.get(id(binding.app)) is binding:
         raise RuntimeError('HTTP admission must be withdrawn before common resource release')
-    if not source_closed(binding):
-        _RETIRED_UNCERTAIN[binding.reference] = (binding, binding.supervisor, ('SOURCE_NOT_CLOSED',))
+    if not source_closed(binding) or not native_closed(binding):
+        _RETIRED_UNCERTAIN[binding.reference] = (binding, binding.supervisor,binding.native_supervisor, ('WORKER_NOT_CLOSED',))
         raise RuntimeError('Main common resources still owned by Source')
     errors = []
     handles = []
@@ -428,6 +472,7 @@ def release(binding, *, deadline_monotonic=None):
     if errors:
         _RETIRED_UNCERTAIN[binding.reference] = (binding, tuple(handles), tuple(errors))
         raise RuntimeError('Main resource retirement uncertain')
+    if binding.native_context is not None:binding.native_module.release_main_context(binding.native_context)
 
 
 def retire(app):

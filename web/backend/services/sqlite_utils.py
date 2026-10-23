@@ -127,21 +127,61 @@ class PrivateAuthConnection(PrivateHistoryConnection):
         return self._history_file.file_identity if self._history_file is not None else None
 
 
+def native_thread_budget(path,expected_identity=None):
+    """Only either canonical C family's registered thread may shorten waits."""
+    import sys,types
+    from pathlib import Path
+    found=[]
+    for name in ('research.native_plan_supervisor','web.backend.research.native_plan_supervisor'):
+        module=sys.modules.get(name)
+        if module is None:continue
+        expected=Path(__file__).resolve().parents[1]/'research/native_plan_supervisor.py'
+        function=getattr(module,'database_budget',None);codes=getattr(module,'_NATIVE_CODES',{})
+        if (type(module) is not types.ModuleType or Path(module.__file__).resolve()!=expected or Path(module.__file__).is_symlink()
+                or type(function) is not types.FunctionType or function.__globals__ is not vars(module)
+                or function.__code__ is not codes.get('database_budget')):raise RuntimeError('canonical native wait scope required')
+        budget=function(path,expected_identity)
+        if budget is not None:
+            if type(budget) is not module._ThreadBudget:raise RuntimeError('actual registered native wait scope required')
+            budget.check();found.append(budget)
+    if len(found)>1 and any(value is not found[0] for value in found):raise RuntimeError('ambiguous native wait scope')
+    return found[0] if found else None
+
+
+def configure_native_wait(conn,path,expected_identity=None,*,legacy_ms):
+    budget=native_thread_budget(path,expected_identity)
+    if budget is not None:
+        budget.check();conn.execute('PRAGMA busy_timeout=0')
+        conn.set_progress_handler(budget.progress,1000)
+    else:conn.execute('PRAGMA busy_timeout=%d'%legacy_ms)
+    return budget
+
+
 def connect_private_auth(path, *, readonly=False, timeout=10.0, expected_identity=None):
     """Existing static Auth role only. Caller owns BEGIN/hooks/policy/close."""
     from .runtime_paths import PrivateAuthFile, RuntimePathError, HISTORY_OPEN_LOCK
     if type(readonly) is not bool:
         raise TypeError('readonly must be a boolean')
-    witness=None;connection=None
+    witness=None;connection=None;locked=False
+    budget=native_thread_budget(path,expected_identity)
     try:
-        with HISTORY_OPEN_LOCK:
+        if budget is not None:
+            budget.check();locked=HISTORY_OPEN_LOCK.acquire(blocking=False)
+            if not locked:raise __import__(budget.__class__.__module__,fromlist=['_busy'])._busy()
+        else:HISTORY_OPEN_LOCK.acquire();locked=True
+        try:
+            if budget is not None:budget.check()
             witness=PrivateAuthFile.acquire(path)
             if expected_identity is not None and witness.file_identity!=expected_identity:
                 raise RuntimePathError('private auth object has an obsolete file identity')
             mode='ro' if readonly else 'rw'
             connection=sqlite3.connect(witness.path.as_uri()+'?mode='+mode,uri=True,
-                timeout=timeout,isolation_level=None,factory=PrivateAuthConnection)
+                timeout=0 if budget is not None else timeout,isolation_level=None,factory=PrivateAuthConnection)
             connection._history_file=witness
+            configure_native_wait(connection,path,expected_identity,legacy_ms=int(timeout*1000))
+        finally:
+            if locked:HISTORY_OPEN_LOCK.release();locked=False
+        if budget is not None:budget.check()
         witness.check()
         connection.row_factory=sqlite3.Row
         if connection.execute('PRAGMA journal_mode').fetchone()[0].lower()!='wal':

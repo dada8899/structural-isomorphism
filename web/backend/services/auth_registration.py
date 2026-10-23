@@ -496,12 +496,14 @@ def expected_owner_gate_identity(store, gate_id):
         raise RuntimePathError('private owner gate has no captured Auth identity')
     conn=connect_private_auth(store.path,readonly=True,expected_identity=store.storage_identity)
     try:
+        from .sqlite_utils import configure_native_wait
+        configure_native_wait(conn,store.path,store.storage_identity,legacy_ms=10000)
         conn.row_factory=sqlite3.Row
         if __package__=='web.backend.services':from ..research.financial_guard import install_default_hook
         else:from research.financial_guard import install_default_hook
         install_default_hook(conn)
         install_hook(conn)
-        conn.execute('PRAGMA busy_timeout=10000')
+        configure_native_wait(conn,store.path,store.storage_identity,legacy_ms=10000)
         conn.execute('PRAGMA secure_delete=ON')
         conn.execute('PRAGMA foreign_keys=ON')
         if conn.execute('PRAGMA foreign_keys').fetchone()[0]!=1:
