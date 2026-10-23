@@ -21,7 +21,7 @@ import time
 from uuid import uuid4
 
 ROOT=Path(__file__).resolve().parents[1]
-BRANCH='refs/heads/codex/structure-native-linux-lifecycle-20261023'
+BRANCH='refs/heads/codex/structure-native-linux-lifecycle-attempt2-20261023'
 REPOSITORY='dada8899/structural-isomorphism'
 USER=GROUP='structural-native-probe'
 UNIT='structural-web.service'
@@ -39,6 +39,11 @@ MARKER_NAME='native-lifecycle-clock.json'
 RECEIPT_NAME='native-lifecycle-receipt.json'
 REASONS=('OK','PRECHECK','CLOCK','SOURCE','UNIT','HTTP','OBSERVER','FACTS','CLEANUP','INTERNAL')
 PHASES=('stock_base','stock_genesis','stock_restart','instrumented')
+FAILURE_PHASES=('preflight','prepare',*PHASES,'cleanup','unknown')
+FAILURE_OPERATIONS=('unknown','platform','sdk','target_absence','account_absence','checkout','command_start','command_wait','command_result','command_output','process_birth','process_identity','process_cleanup','process_group','group_create','user_create','group_record','user_record','account_record','account_cleanup','directory_create','directory_owner','directory_mode','file_open','file_write','file_close','mirror_entry','mirror_mode','mirror_link','mirror_open','mirror_metadata','mirror_read','mirror_identity','mirror_size','mirror_hash','mirror_catalog','mirror_close','secret_prepare','certificate_metadata','bootstrap','unit_install','unit_start','unit_info','unit_isolation','credential_metadata','helper_start','helper_ready','exercise','stop','facts','facts_close','grant','events','unit_cleanup','directory_cleanup','cleanup_summary')
+FAILURE_COMMANDS=('unknown','systemd_version','git_head','git_status','git_tree','git_listing','group_add','user_add','certificate','bootstrap','code_export','unit_reload','unit_show','unit_start','unit_stop','unit_kill','user_delete','group_delete','helper')
+FAILURE_EXCEPTIONS=('PROBE_FAILURE','OS_ERROR','TIMEOUT','VALUE_ERROR','TYPE_ERROR','KEY_ERROR','ASSERTION_ERROR','OTHER')
+ACCOUNT_CHECKS=('read','record_count','shape','id_format','id_match','id_unique','fields','birth','absence','record_changed')
 TOOLS=('/usr/bin/systemctl','/usr/bin/nsenter','/usr/bin/setpriv','/usr/bin/openssl','/usr/sbin/useradd','/usr/sbin/userdel','/usr/sbin/groupadd','/usr/sbin/groupdel')
 SDKS={'pytest':'9.0.3','playwright':'1.59.0','pytest-playwright':'0.7.2','fastapi':'0.135.0','pydantic':'2.7.4','starlette':'1.3.1','uvicorn':'0.27.1','PyJWT':'2.15.1','slowapi':'0.1.9','structlog':'25.5.0'}
 IMPORT_SDKS={'httpx':'0.27.2','numpy':'1.26.3'}
@@ -120,7 +125,7 @@ class Budget:
 
 
 def empty_receipt(head):
-    return {'protocol':'native-linux-lifecycle-probe-v1','head':head,'tree':None,'code_digest':None,'outcome':'FAIL','reason':'PRECHECK','elapsed_ms':0,
+    return {'protocol':'native-linux-lifecycle-probe-v2','first_failure':None,'head':head,'tree':None,'code_digest':None,'outcome':'FAIL','reason':'PRECHECK','elapsed_ms':0,
         'phases':{k:False for k in PHASES},'stock':{'typed_receipts':None,'creator_connections':None,'creator_fds':None,'clean_exit_inferred':False,'credential_invocation_changed':None},
         'instrumented':{'source_closed':None,'native_closed':None,'proof_taken':None,'component_woken':None,'component_ms':None,'same_deadline_ref':None,'within_main_deadline':None,'main_stop_to_closed_ms':None,'connections_born':None,'connections_creator_closed':None,'connections_property_closed':None,'fds_born':None,'fds_creator_closed':None,'fds_property_closed':None,'observer_failed':None},
         'financial':{'initial_empty':False,'normal_restart_unchanged':False,'pre_get_closed_unreserved':False,'held':None,'upper_booked':None,'settled':None,'native_unknown_held_verified':False},
@@ -139,6 +144,18 @@ def validate_receipt(value):
         if type(value[key]) is not dict or set(value[key])!=set(template[key]):raise ProbeFailure('PRECHECK')
     if any(type(v) is not bool for v in value['phases'].values()):raise ProbeFailure('PRECHECK')
     if value['scope']!=template['scope'] or any(value['stock'][k] is not None for k in ('typed_receipts','creator_connections','creator_fds')) or type(value['stock']['clean_exit_inferred']) is not bool or value['stock']['credential_invocation_changed'] is not None and type(value['stock']['credential_invocation_changed']) is not bool:raise ProbeFailure('PRECHECK')
+    failure=value['first_failure']
+    if failure is not None:
+        fields={'phase','operation','command','command_exit','exception','errno','account_check','account_mismatch_mask'}
+        if type(failure) is not dict or set(failure)!=fields:raise ProbeFailure('PRECHECK')
+        for key,allowed,nullable in (('phase',FAILURE_PHASES,False),('operation',FAILURE_OPERATIONS,False),('command',FAILURE_COMMANDS,True),('exception',FAILURE_EXCEPTIONS,True),('account_check',ACCOUNT_CHECKS,True)):
+            item=failure[key]
+            if not (nullable and item is None) and (type(item) is not str or item not in allowed):raise ProbeFailure('PRECHECK')
+        for key,low,high in (('command_exit',-255,255),('errno',0,4095),('account_mismatch_mask',0,127)):
+            item=failure[key]
+            if item is not None and (type(item) is not int or not low<=item<=high):raise ProbeFailure('PRECHECK')
+        if failure['command'] is None and failure['command_exit'] is not None or failure['exception'] is None and failure['errno'] is not None or failure['account_check'] is None and failure['account_mismatch_mask'] is not None:raise ProbeFailure('PRECHECK')
+        if value['outcome']=='PASS':raise ProbeFailure('PRECHECK')
     bools={'source_closed','native_closed','proof_taken','component_woken','same_deadline_ref','within_main_deadline','observer_failed'}
     for key,item in value['instrumented'].items():
         if key in bools:
@@ -170,27 +187,60 @@ def validate_receipt(value):
 
 class Controller:
     def __init__(self,meta,budget,python):
-        self.meta,self.budget,self.python=meta,budget,python;self.result=empty_receipt(meta['head']);self.children=[];self.paths=[];self.user=False;self.group=False;self.unit_written=False;self.invocations=[];self.server=None;self.uid=self.gid=None;self.password=None;self.rpc_buffer=b'';self.uncertain=False;self.attempts={};self.group_attempted=False;self.user_attempted=False;self.group_record=None;self.user_record=None
+        self.meta,self.budget,self.python=meta,budget,python;self.result=empty_receipt(meta['head']);self.children=[];self.paths=[];self.user=False;self.group=False;self.unit_written=False;self.invocations=[];self.server=None;self.uid=self.gid=None;self.password=None;self.rpc_buffer=b'';self.uncertain=False;self.attempts={};self.group_attempted=False;self.user_attempted=False;self.group_record=None;self.user_record=None;self._first_reason=None;self._phase='preflight';self._where={'operation':'unknown','command':None,'command_exit':None,'account_check':None,'account_mismatch_mask':None}
+    def _mark(self,operation,*,command=None,command_exit=None,account_check=None,account_mismatch_mask=None):
+        self._where=dict(operation=operation,command=command,command_exit=command_exit,account_check=account_check,account_mismatch_mask=account_mismatch_mask)
+    def _capture(self,error=None):
+        if self.result['first_failure'] is not None:return
+        # Never format an exception, argv, account field, path or traceback.
+        category=None;number=None
+        if error is not None:
+            category=('TIMEOUT' if isinstance(error,subprocess.TimeoutExpired) else 'PROBE_FAILURE' if isinstance(error,ProbeFailure) else 'OS_ERROR' if isinstance(error,OSError) else 'VALUE_ERROR' if isinstance(error,ValueError) else 'TYPE_ERROR' if isinstance(error,TypeError) else 'KEY_ERROR' if isinstance(error,KeyError) else 'ASSERTION_ERROR' if isinstance(error,AssertionError) else 'OTHER')
+            if isinstance(error,OSError):
+                try:number=error.errno
+                except BaseException:number=None
+                if type(number) is not int or not 0<=number<=4095:number=None
+        where=self._where
+        # A corrupt diagnostic marker cannot inject private text into artifact.
+        failure={'phase':self._phase if type(self._phase) is str and self._phase in FAILURE_PHASES else 'unknown','operation':where['operation'] if type(where['operation']) is str and where['operation'] in FAILURE_OPERATIONS else 'unknown','command':where['command'] if type(where['command']) is str and where['command'] in FAILURE_COMMANDS else None,'command_exit':where['command_exit'] if type(where['command_exit']) is int and -255<=where['command_exit']<=255 else None,'exception':category,'errno':number,'account_check':where['account_check'] if type(where['account_check']) is str and where['account_check'] in ACCOUNT_CHECKS else None,'account_mismatch_mask':where['account_mismatch_mask'] if type(where['account_mismatch_mask']) is int and 0<=where['account_mismatch_mask']<=127 else None}
+        if failure['command'] is None:failure['command_exit']=None
+        if failure['account_check'] is None:failure['account_mismatch_mask']=None
+        self.result['first_failure']=failure
+        self._first_reason=('CLEANUP' if failure['phase']=='cleanup' else error.reason if isinstance(error,ProbeFailure) else 'CLOCK' if isinstance(error,subprocess.TimeoutExpired) else 'INTERNAL')
+    def _reject(self,reason):
+        error=ProbeFailure(reason);self._capture(error);raise error
+    def _account_reject(self,check,mask=None):
+        operation=self._where['operation']
+        self._mark(operation if operation in ('group_record','user_record') else 'account_record',account_check=check,account_mismatch_mask=mask)
+        self._reject('CLEANUP')
+    def _command_name(self,argv):
+        # Only fixed labels leave this private controller, never argument text.
+        if argv[:len(GIT)]==list(GIT):
+            return {('rev-parse','HEAD'):'git_head',('status','--porcelain','--untracked-files=all'):'git_status',('rev-parse','HEAD^{tree}'):'git_tree',('ls-tree','-r','-z','HEAD'):'git_listing'}.get(tuple(argv[len(GIT):]),'unknown')
+        if argv and argv[0]=='/usr/bin/systemctl':
+            return {'--version':'systemd_version','daemon-reload':'unit_reload','show':'unit_show','start':'unit_start','stop':'unit_stop','kill':'unit_kill'}.get(argv[1] if len(argv)>1 else None,'unknown')
+        if argv and argv[0]=='/usr/bin/setpriv':return 'bootstrap' if argv[-1]=='bootstrap' else 'code_export'
+        return {'/usr/sbin/groupadd':'group_add','/usr/sbin/useradd':'user_add','/usr/sbin/userdel':'user_delete','/usr/sbin/groupdel':'group_delete','/usr/bin/openssl':'certificate'}.get(argv[0] if argv else None,'unknown')
     def _process_identity(self,process):
         # PID alone is not a birth witness. The start tick, proc inode, parent,
         # process group and session must still describe this owned child.
         pid=process.pid
-        if type(pid) is not int or pid<=0:raise ProbeFailure('CLEANUP')
+        if type(pid) is not int or pid<=0:self._reject('CLEANUP')
         root=Path('/proc')/str(pid)
         def snapshot():
             info=root.stat();raw=(root/'stat').read_text();end=raw.rfind(') ')
             fields=raw[end+2:].split()
-            if end<0 or raw[:raw.find(' (')]!=str(pid) or len(fields)<20:raise ProbeFailure('CLEANUP')
+            if end<0 or raw[:raw.find(' (')]!=str(pid) or len(fields)<20:self._reject('CLEANUP')
             parent,group,session,tick=(int(fields[i]) for i in (1,2,3,19))
-            if parent!=os.getpid() or group!=pid or session!=pid or tick<0:raise ProbeFailure('CLEANUP')
+            if parent!=os.getpid() or group!=pid or session!=pid or tick<0:self._reject('CLEANUP')
             return info.st_dev,info.st_ino,parent,group,session,tick
         before=snapshot()
-        if snapshot()!=before:raise ProbeFailure('CLEANUP')
+        if snapshot()!=before:self._reject('CLEANUP')
         return before
     def _spawn(self,argv,*,new=True,**kwargs):
         self.budget.require(new=new)
         kind=subprocess.Popen
-        if not isinstance(kind,type):raise ProbeFailure('PRECHECK')
+        if not isinstance(kind,type):self._reject('PRECHECK')
         process=kind.__new__(kind)
         # Retain the actual object before __init__: it may fork and then raise.
         self.children.append(process)
@@ -200,11 +250,13 @@ class Controller:
             # Allocation has no native resources. Once initialization is entered,
             # even _child_created=False cannot exclude an interrupted birth.
             record['birth']='unknown'
+            self._mark('process_birth',command=self._where['command'])
             kind.__init__(process,argv,**kwargs)
             record['complete']=True
+            self._mark('process_identity',command=self._where['command'])
             try:record['identity']=self._process_identity(process)
             except FileNotFoundError:
-                if process.poll() is None:raise ProbeFailure('CLEANUP')
+                if process.poll() is None:self._reject('CLEANUP')
                 record['reaped']=True
             record['birth']='born'
         except BaseException:
@@ -215,112 +267,155 @@ class Controller:
         return process
     def _signal(self,process,sig):
         record=self.attempts[id(process)]
-        if not record['complete'] or record['identity'] is None or self._process_identity(process)!=record['identity']:raise ProbeFailure('CLEANUP')
+        if not record['complete'] or record['identity'] is None or self._process_identity(process)!=record['identity']:self._reject('CLEANUP')
         os.killpg(process.pid,sig)
     def command(self,argv,*,input=None,clean=False,limit=30,env=None):
-        timeout=self.budget.require(new=not clean,ceiling=limit)
-        process=self._spawn(argv,new=not clean,stdin=subprocess.PIPE if input is not None else subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,cwd=ROOT,env=env or {'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8'},start_new_session=True)
-        try:out,_=process.communicate(input,timeout=timeout)
-        except subprocess.TimeoutExpired:
-            self.uncertain=True;self.result['resources']['forced']=True
-            self._signal(process,signal.SIGKILL);process.wait(timeout=self.budget.require(ceiling=2));raise ProbeFailure('CLOCK')
-        self.attempts[id(process)]['reaped']=process.returncode is not None
-        if process.returncode or len(out)>1048576:raise ProbeFailure('PRECHECK')
-        return out
+        prior=self._where;name=self._command_name(argv)
+        self._mark('command_start',command=name)
+        try:
+            timeout=self.budget.require(new=not clean,ceiling=limit)
+            process=self._spawn(argv,new=not clean,stdin=subprocess.PIPE if input is not None else subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,cwd=ROOT,env=env or {'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8'},start_new_session=True)
+            self._mark('command_wait',command=name)
+            try:out,_=process.communicate(input,timeout=timeout)
+            except subprocess.TimeoutExpired as error:
+                self._capture(error);self.uncertain=True;self.result['resources']['forced']=True
+                self._signal(process,signal.SIGKILL);process.wait(timeout=self.budget.require(ceiling=2));self._reject('CLOCK')
+            self.attempts[id(process)]['reaped']=process.returncode is not None
+            self._mark('command_result',command=name,command_exit=process.returncode)
+            if process.returncode or len(out)>1048576:self._reject('PRECHECK')
+            return out
+        except BaseException as error:self._capture(error);raise
+        finally:self._where=prior
     def _account_record(self,kind,expected_id=None):
         group=kind=='group';name=GROUP if group else USER
+        operation='group_record' if group else 'user_record'
+        self._mark(operation,account_check='read')
         rows=[tuple(line.split(':')) for line in Path('/etc/group' if group else '/etc/passwd').read_text().splitlines()]
         matches=[row for row in rows if row[0]==name]
-        if len(matches)!=1:raise ProbeFailure('CLEANUP')
+        if len(matches)!=1:self._account_reject('record_count')
         row=matches[0]
-        if len(row)!=(4 if group else 7) or not row[2].isdecimal() or not 0<int(row[2])<2147483648 or str(int(row[2]))!=row[2]:raise ProbeFailure('CLEANUP')
+        if len(row)!=(4 if group else 7):self._account_reject('shape')
+        self._mark(operation,account_check='id_format',account_mismatch_mask=4)
+        if not row[2].isdecimal() or not 0<int(row[2])<2147483648 or str(int(row[2]))!=row[2]:self._account_reject('id_format',4)
         number=int(row[2])
-        if expected_id is not None and number!=expected_id:raise ProbeFailure('CLEANUP')
-        if sum(len(other)>2 and other[2]==row[2] for other in rows)!=1:raise ProbeFailure('CLEANUP')
+        if expected_id is not None and number!=expected_id:self._account_reject('id_match',4)
+        if sum(len(other)>2 and other[2]==row[2] for other in rows)!=1:self._account_reject('id_unique',4)
         if group:
-            if row!=(GROUP,'x',str(number),''):raise ProbeFailure('CLEANUP')
-        elif row!=(USER,'x',str(number),str(self.gid),'',str(STATE),'/usr/sbin/nologin'):raise ProbeFailure('CLEANUP')
+            if row!=(GROUP,'x',str(number),''):self._account_reject('fields',sum(1<<i for i,(actual,expected) in enumerate(zip(row,(GROUP,'x',str(number),''))) if actual!=expected))
+        elif row!=(USER,'x',str(number),str(self.gid),'',str(STATE),'/usr/sbin/nologin'):self._account_reject('fields',sum(1<<i for i,(actual,expected) in enumerate(zip(row,(USER,'x',str(number),str(self.gid),'',str(STATE),'/usr/sbin/nologin'))) if actual!=expected))
         return row
     def _account_absent(self,kind,record):
+        self._mark('group_record' if kind=='group' else 'user_record',account_check='absence')
         name=GROUP if kind=='group' else USER
         rows=[line.split(':') for line in Path('/etc/group' if kind=='group' else '/etc/passwd').read_text().splitlines()]
         return not any(row[0]==name or len(row)>2 and row[2]==record[2] for row in rows)
     def _require_account_births(self):
+        self._mark('account_cleanup',account_check='birth')
         # A failed command may have changed the account database. Neither the
         # attempt nor a matching name supplies deletion ownership.
-        if self.user_attempted and self.user_record is None or self.group_attempted and self.group_record is None:raise ProbeFailure('CLEANUP')
-        if self.group_record is not None and self._account_record('group',self.gid)!=self.group_record:raise ProbeFailure('CLEANUP')
-        if self.user_record is not None and self._account_record('user',self.uid)!=self.user_record:raise ProbeFailure('CLEANUP')
+        if self.user_attempted and self.user_record is None or self.group_attempted and self.group_record is None:self._reject('CLEANUP')
+        if self.group_record is not None and self._account_record('group',self.gid)!=self.group_record:self._reject('CLEANUP')
+        if self.user_record is not None and self._account_record('user',self.uid)!=self.user_record:self._reject('CLEANUP')
     def _remove_accounts(self):
         self._require_account_births()
         if self.user_record is not None:
             # Recheck immediately before the name-taking system command.
-            if self._account_record('user',self.uid)!=self.user_record:raise ProbeFailure('CLEANUP')
+            if self._account_record('user',self.uid)!=self.user_record:self._reject('CLEANUP')
             self.command(['/usr/sbin/userdel',USER],clean=True,limit=3)
-            if not self._account_absent('user',self.user_record):raise ProbeFailure('CLEANUP')
+            if not self._account_absent('user',self.user_record):self._reject('CLEANUP')
         if self.group_record is not None:
             # Ubuntu userdel may already remove the matching empty user group.
             # Confirm name AND original GID absent; never delete a replacement.
             if not self._account_absent('group',self.group_record):
-                if self._account_record('group',self.gid)!=self.group_record:raise ProbeFailure('CLEANUP')
+                if self._account_record('group',self.gid)!=self.group_record:self._reject('CLEANUP')
                 self.command(['/usr/sbin/groupdel',GROUP],clean=True,limit=3)
-                if not self._account_absent('group',self.group_record):raise ProbeFailure('CLEANUP')
+                if not self._account_absent('group',self.group_record):self._reject('CLEANUP')
     def absent(self,path):
+        self._mark('target_absence')
         self.budget.require(new=True)
-        if path.exists() or path.is_symlink():raise ProbeFailure('PRECHECK')
+        if path.exists() or path.is_symlink():self._reject('PRECHECK')
     def directory(self,path,uid=0,gid=0,mode=0o700):
-        self.absent(path);path.mkdir(mode=mode);self.paths.append(path);os.chown(path,uid,gid);path.chmod(mode)
+        self._mark('directory_create')
+        self.absent(path);self._mark('directory_create');path.mkdir(mode=mode);self.paths.append(path);self._mark('directory_owner');os.chown(path,uid,gid);self._mark('directory_mode');path.chmod(mode)
     def write(self,path,data,uid=0,gid=0,mode=0o600):
+        self._mark('file_open')
         self.budget.require(new=True);self.absent(path)
+        self._mark('file_open')
         fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,mode)
         self.paths.append(path)
         try:
+            self._mark('file_write')
             os.fchown(fd,uid,gid);os.fchmod(fd,mode)
-            if os.write(fd,data)!=len(data):raise ProbeFailure('PRECHECK')
+            if os.write(fd,data)!=len(data):self._reject('PRECHECK')
             os.fsync(fd)
-        finally:os.close(fd)
+        except BaseException as error:self._capture(error);raise
+        finally:
+            self._mark('file_close')
+            try:os.close(fd)
+            except BaseException as error:self._capture(error);raise
     def preflight(self):
-        if sys.platform!='linux' or os.geteuid()!=0 or os.getuid()!=0 or sys.version_info[:2]!=(3,11) or sys.implementation.name!='cpython' or not sys.flags.isolated or not sys.flags.dont_write_bytecode:raise ProbeFailure('PRECHECK')
-        if os.uname().machine!='x86_64' or Path('/proc/1/comm').read_text().strip()!='systemd':raise ProbeFailure('PRECHECK')
+        self._mark('platform')
+        if sys.platform!='linux' or os.geteuid()!=0 or os.getuid()!=0 or sys.version_info[:2]!=(3,11) or sys.implementation.name!='cpython' or not sys.flags.isolated or not sys.flags.dont_write_bytecode:self._reject('PRECHECK')
+        if os.uname().machine!='x86_64' or Path('/proc/1/comm').read_text().strip()!='systemd':self._reject('PRECHECK')
         os_release=Path('/etc/os-release').read_text()
-        if 'ID=ubuntu\n' not in os_release or 'VERSION_ID="24.04"' not in os_release:raise ProbeFailure('PRECHECK')
+        if 'ID=ubuntu\n' not in os_release or 'VERSION_ID="24.04"' not in os_release:self._reject('PRECHECK')
         for tool in TOOLS:
-            if not Path(tool).is_file():raise ProbeFailure('PRECHECK')
+            if not Path(tool).is_file():self._reject('PRECHECK')
+        self._mark('sdk')
         from importlib.metadata import version
-        if any(version(name)!=expected for name,expected in {**SDKS,**IMPORT_SDKS}.items()):raise ProbeFailure('PRECHECK')
-        if not self.command(['/usr/bin/systemctl','--version']).startswith(b'systemd 255 '):raise ProbeFailure('PRECHECK')
+        if any(version(name)!=expected for name,expected in {**SDKS,**IMPORT_SDKS}.items()):self._reject('PRECHECK')
+        self._mark('platform')
+        if not self.command(['/usr/bin/systemctl','--version']).startswith(b'systemd 255 '):self._reject('PRECHECK')
         for path in (WORK,SECRETS,DEPOT,STATE,CACHE,GRANT_DIR,UNIT_FILE,Path('/run/systemd/system')/UNIT,Path('/run/credentials')/UNIT):self.absent(path)
+        self._mark('account_absence')
         for path,name in ((Path('/etc/passwd'),USER),(Path('/etc/group'),GROUP)):
-            if any(line.split(':',1)[0]==name for line in path.read_text().splitlines()):raise ProbeFailure('PRECHECK')
-        if self.command([*GIT,'rev-parse','HEAD']).decode().strip()!=self.meta['head'] or self.command([*GIT,'status','--porcelain','--untracked-files=all']).strip():raise ProbeFailure('SOURCE')
+            if any(line.split(':',1)[0]==name for line in path.read_text().splitlines()):self._reject('PRECHECK')
+        self._mark('checkout')
+        if self.command([*GIT,'rev-parse','HEAD']).decode().strip()!=self.meta['head'] or self.command([*GIT,'status','--porcelain','--untracked-files=all']).strip():self._reject('SOURCE')
         self.result['tree']=self.command([*GIT,'rev-parse','HEAD^{tree}']).decode().strip()
     def prepare(self):
+        self._phase='prepare';self._mark('group_create')
         self.group_attempted=True;self.command(['/usr/sbin/groupadd','--system',GROUP])
         self.group_record=self._account_record('group');self.gid=int(self.group_record[2]);self.group=True
+        self._mark('user_create')
         self.user_attempted=True;self.command(['/usr/sbin/useradd','--system','--gid',GROUP,'--no-create-home','--no-log-init','-K','CREATE_MAIL_SPOOL=no','--home-dir',str(STATE),'--shell','/usr/sbin/nologin',USER])
         self.user_record=self._account_record('user');self.uid=int(self.user_record[2]);self.user=True
-        if self._account_record('group',self.gid)!=self.group_record:raise ProbeFailure('CLEANUP')
+        if self._account_record('group',self.gid)!=self.group_record:self._reject('CLEANUP')
         for path in (WORK,STATE,CACHE):self.directory(path,self.uid,self.gid)
         self.directory(STATE/'logs',self.uid,self.gid);self.directory(SECRETS);self.directory(DEPOT,mode=0o755)
         entries=self.command([*GIT,'ls-tree','-r','-z','HEAD']).decode().split('\0');total=0;expected_papers=None;copied_papers=set()
         for entry in entries:
             if not entry:continue
+            self._mark('mirror_entry')
             metadata,relative=entry.split('\t');mode,kind,oid=metadata.split()
             if not mirror_selected(relative):continue
-            if mode not in ('100644','100755') or kind!='blob':raise ProbeFailure('SOURCE')
+            self._mark('mirror_mode')
+            if mode not in ('100644','100755') or kind!='blob':self._reject('SOURCE')
             source=ROOT/relative
-            if source.is_symlink() or any(parent.is_symlink() for parent in source.parents if parent!=ROOT and ROOT in parent.parents):raise ProbeFailure('SOURCE')
+            self._mark('mirror_link')
+            if source.is_symlink() or any(parent.is_symlink() for parent in source.parents if parent!=ROOT and ROOT in parent.parents):self._reject('SOURCE')
             self.budget.require(new=True)
+            self._mark('mirror_open')
             descriptor=os.open(source,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
             try:
+                self._mark('mirror_metadata')
                 before=os.fstat(descriptor)
-                if not stat.S_ISREG(before.st_mode) or not 0<=before.st_size<=1048576:raise ProbeFailure('SOURCE')
+                if not stat.S_ISREG(before.st_mode) or not 0<=before.st_size<=1048576:self._reject('SOURCE')
+                self._mark('mirror_read')
                 raw=os.read(descriptor,1048577)
-                if stat_key(os.fstat(descriptor))!=stat_key(before) or stat_key(source.lstat())!=stat_key(before):raise ProbeFailure('SOURCE')
-            finally:os.close(descriptor)
+                self._mark('mirror_identity')
+                if stat_key(os.fstat(descriptor))!=stat_key(before) or stat_key(source.lstat())!=stat_key(before):self._reject('SOURCE')
+            except BaseException as error:self._capture(error);raise
+            finally:
+                self._mark('mirror_close')
+                try:os.close(descriptor)
+                except BaseException as error:self._capture(error);raise
+            self._mark('mirror_size')
             total+=len(raw)
-            if len(raw)>1048576 or total>16777216 or raw.startswith(b'version https://git-lfs.github.com/spec/'):raise ProbeFailure('SOURCE')
-            if hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()!=oid:raise ProbeFailure('SOURCE')
+            if len(raw)>1048576 or total>16777216 or raw.startswith(b'version https://git-lfs.github.com/spec/'):self._reject('SOURCE')
+            self._mark('mirror_hash')
+            if hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()!=oid:self._reject('SOURCE')
+            self._mark('mirror_catalog')
             if relative=='web/frontend/assets/data/papers-manifest.json':expected_papers=catalog_paths(raw)
             if relative.startswith('web/frontend/assets/data/papers/') and relative.endswith('.md'):copied_papers.add(relative)
             target=DEPOT/relative
@@ -328,112 +423,132 @@ class Controller:
                 if parent==DEPOT or DEPOT not in parent.parents:continue
                 if not parent.exists():self.directory(parent,mode=0o755)
             self.write(target,raw,mode=0o644)
-        if expected_papers is None or copied_papers!=expected_papers:raise ProbeFailure('SOURCE')
+        self._mark('mirror_catalog')
+        if expected_papers is None or copied_papers!=expected_papers:self._reject('SOURCE')
         if not (DEPOT/'web/frontend/assets').exists():self.directory(DEPOT/'web/frontend/assets',mode=0o755)
-        if not (DEPOT/FIXTURE).is_file():raise ProbeFailure('SOURCE')
+        if not (DEPOT/FIXTURE).is_file():self._reject('SOURCE')
+        self._mark('secret_prepare')
         import secrets
         values=[secrets.token_urlsafe(48),secrets.token_urlsafe(48),secrets.token_hex(32),secrets.token_urlsafe(48),secrets.token_urlsafe(32)]
         self.password=values[-1]
         for name,value in zip(IDS,values):self.write(SECRETS/name,value.encode())
         self.write(SECRETS/PROVIDER_ID,('synthetic-no-provider-permission-'+uuid4().hex).encode())
         self.command(['/usr/bin/openssl','req','-x509','-newkey','rsa:2048','-nodes','-days','1','-subj','/CN=beta.structural.bytedance.city','-addext','subjectAltName=DNS:beta.structural.bytedance.city','-keyout',str(WORK/'local-key.pem'),'-out',str(WORK/'local-cert.pem')],limit=10)
+        self._mark('certificate_metadata')
         for path in (WORK/'local-key.pem',WORK/'local-cert.pem'):self.paths.append(path);os.chown(path,self.uid,self.gid);path.chmod(0o400)
         self.command(self.as_user([self.python,'-I','-B',str(DEPOT/FIXTURE),'bootstrap']),env=self.environment())
     def as_user(self,argv):return ['/usr/bin/setpriv','--reuid',str(self.uid),'--regid',str(self.gid),'--clear-groups',*argv]
     def environment(self):
         return {'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','HOME':str(STATE),'STRUCTURAL_ENV':'prod','AUTH_ENABLED':'true','AUTH_DEV_MODE':'false','AUTH_SITE_ROLE':'beta','AUTH_LINK_BASE_URL':'https://beta.structural.bytedance.city','AUTH_DATA_DIR':str(STATE),'STRUCTURAL_SSO_DATA_DIR':str(STATE),'AUTH_TRUSTED_PROXY_IPS':'127.0.0.1','SMTP_HOST':'127.0.0.1','SMTP_PORT':'18025','SMTP_USERNAME':'native-probe','SMTP_FROM_EMAIL':'native-linux-sender@example.invalid','ADMIN_NOTIFICATION_EMAIL':'native-linux-admin@example.invalid','SMTP_STARTTLS':'false','SMTP_USE_SSL':'false','SMTP_TIMEOUT_SECONDS':'2'}
     def install_unit(self,provider=False,observed=False):
+        self._mark('unit_install')
         self.budget.require(new=True)
         if self.unit_written:
             UNIT_FILE.unlink();self.paths.remove(UNIT_FILE);self.unit_written=False
         command=[self.python,'-I','-B',str(DEPOT/FIXTURE),'observe'] if observed else [self.python,'-I','-B',str(DEPOT/'scripts/run-formal-main.py')]
-        if any(any(c in arg for c in ('\n','\r','%','"',' ')) for arg in command):raise ProbeFailure('SOURCE')
+        if any(any(c in arg for c in ('\n','\r','%','"',' ')) for arg in command):self._reject('SOURCE')
         lines=['[Unit]','Description=Owned disposable native lifecycle probe','[Service]','Type=simple','User='+USER,'Group='+GROUP,'UMask=0077','LimitCORE=0','NoNewPrivileges=yes','PrivateNetwork=yes','TimeoutStartSec=30','TimeoutStopSec=30','KillMode=control-group','Restart=no','WorkingDirectory='+str(DEPOT/'web/backend'),'ExecStart='+' '.join(command),'StandardOutput=null','StandardError=null']
         for key,value in self.environment().items():lines.append('Environment="'+key+'='+value+'"')
         for name in (*IDS,*((PROVIDER_ID,) if provider else ())):lines.append('LoadCredential='+name+':'+str(SECRETS/name))
         self.write(UNIT_FILE,('\n'.join(lines)+'\n').encode(),mode=0o644);self.unit_written=True
         self.command(['/usr/bin/systemctl','daemon-reload'])
     def unit_info(self,clean=False):
+        self._mark('unit_info')
         raw=self.command(['/usr/bin/systemctl','show',UNIT,'--property=MainPID,ControlGroup,InvocationID,ActiveState,Result,ExecMainStatus'],clean=clean,limit=3).decode()
         rows=dict(line.split('=',1) for line in raw.splitlines() if '=' in line)
-        if set(rows)!= {'MainPID','ControlGroup','InvocationID','ActiveState','Result','ExecMainStatus'}:raise ProbeFailure('UNIT')
+        if set(rows)!= {'MainPID','ControlGroup','InvocationID','ActiveState','Result','ExecMainStatus'}:self._reject('UNIT')
         return rows
     def start(self):
+        self._mark('unit_start')
         self.command(['/usr/bin/systemctl','start',UNIT],limit=15)
-        info=self.unit_info();pid=int(info['MainPID'])
-        if pid<=1 or info['ControlGroup']!='/system.slice/'+UNIT or not re.fullmatch('[0-9a-f]{32}',info['InvocationID']):raise ProbeFailure('UNIT')
-        if '0::/system.slice/'+UNIT not in Path('/proc/'+str(pid)+'/cgroup').read_text():raise ProbeFailure('UNIT')
+        info=self.unit_info();self._mark('unit_isolation');pid=int(info['MainPID'])
+        if pid<=1 or info['ControlGroup']!='/system.slice/'+UNIT or not re.fullmatch('[0-9a-f]{32}',info['InvocationID']):self._reject('UNIT')
+        if '0::/system.slice/'+UNIT not in Path('/proc/'+str(pid)+'/cgroup').read_text():self._reject('UNIT')
         namespace=os.stat('/proc/'+str(pid)+'/ns/net');host=os.stat('/proc/self/ns/net')
-        if (namespace.st_dev,namespace.st_ino)==(host.st_dev,host.st_ino):raise ProbeFailure('UNIT')
+        if (namespace.st_dev,namespace.st_ino)==(host.st_dev,host.st_ino):self._reject('UNIT')
         self.invocations.append((pid,info['InvocationID']));self.result['resources']['unit_invocations']+=1
         # The fresh private netns must have no non-loopback IPv4/IPv6 route.
         routes=Path('/proc/'+str(pid)+'/net/route').read_text().splitlines()[1:]
-        if any(line.split()[0]!='lo' for line in routes if line.strip()):raise ProbeFailure('UNIT')
-        if any(line.split()[-1]!='lo' for line in Path('/proc/'+str(pid)+'/net/ipv6_route').read_text().splitlines()):raise ProbeFailure('UNIT')
+        if any(line.split()[0]!='lo' for line in routes if line.strip()):self._reject('UNIT')
+        if any(line.split()[-1]!='lo' for line in Path('/proc/'+str(pid)+'/net/ipv6_route').read_text().splitlines()):self._reject('UNIT')
+        self._mark('credential_metadata')
         directory=Path('/proc/'+str(pid)+'/root/run/credentials')/UNIT
-        if (directory.stat().st_uid,stat.S_IMODE(directory.stat().st_mode))!=(self.uid,0o500):raise ProbeFailure('UNIT')
+        if (directory.stat().st_uid,stat.S_IMODE(directory.stat().st_mode))!=(self.uid,0o500):self._reject('UNIT')
         for name in (*IDS,*((PROVIDER_ID,) if (SECRETS/PROVIDER_ID).exists() and any('LoadCredential='+PROVIDER_ID+':' in line for line in UNIT_FILE.read_text().splitlines()) else ())):
             info=(directory/name).lstat()
-            if not stat.S_ISREG(info.st_mode) or (info.st_uid,stat.S_IMODE(info.st_mode),info.st_nlink)!=(self.uid,0o400,1):raise ProbeFailure('UNIT')
+            if not stat.S_ISREG(info.st_mode) or (info.st_uid,stat.S_IMODE(info.st_mode),info.st_nlink)!=(self.uid,0o400,1):self._reject('UNIT')
         self.invocations[-1]=(*self.invocations[-1],(directory.stat().st_dev,directory.stat().st_ino))
         args=['/usr/bin/nsenter','--net=/proc/'+str(pid)+'/ns/net',*self.as_user([self.python,'-I','-B',str(DEPOT/FIXTURE),'serve'])]
+        self._mark('helper_start',command='helper')
         self.server=self._spawn(args,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','HOME':str(WORK)},start_new_session=True)
+        self._mark('helper_ready',command='helper')
         self.server.stdin.write(canonical({'password':self.password,'deadline':self.budget.deadline-30})+b'\n');self.server.stdin.flush();self.rpc_buffer=b''
-        if self.read_line()!=b'READY':raise ProbeFailure('HTTP')
+        if self.read_line()!=b'READY':self._reject('HTTP')
     def read_line(self):
         while b'\n' not in self.rpc_buffer:
             timeout=self.budget.require(new=True,ceiling=10)
-            if not select.select([self.server.stdout],[],[],timeout)[0]:raise ProbeFailure('HTTP')
+            if not select.select([self.server.stdout],[],[],timeout)[0]:self._reject('HTTP')
             raw=os.read(self.server.stdout.fileno(),65536)
-            if not raw or len(self.rpc_buffer)+len(raw)>65536:raise ProbeFailure('HTTP')
+            if not raw or len(self.rpc_buffer)+len(raw)>65536:self._reject('HTTP')
             self.rpc_buffer+=raw
         line,self.rpc_buffer=self.rpc_buffer.split(b'\n',1);return line
     def exercise(self,rid,approve=False):
+        self._mark('exercise')
         self.server.stdin.write(canonical({'rid':rid,'approve':approve})+b'\n');self.server.stdin.flush();value=strict_json(self.read_line(),65536)
-        if type(value) is not dict or set(value)!= {'rid','identity_digest','native_ready'} or not re.fullmatch('[0-9a-f-]{36}',value['rid']) or not re.fullmatch('[0-9a-f]{64}',value['identity_digest']) or type(value['native_ready']) is not bool:raise ProbeFailure('HTTP')
+        if type(value) is not dict or set(value)!= {'rid','identity_digest','native_ready'} or not re.fullmatch('[0-9a-f-]{36}',value['rid']) or not re.fullmatch('[0-9a-f]{64}',value['identity_digest']) or type(value['native_ready']) is not bool:self._reject('HTTP')
         return value
     def stop(self):
+        self._mark('stop')
         self.command(['/usr/bin/systemctl','stop',UNIT],clean=True,limit=30)
         info=self.unit_info(clean=True)
         if info['MainPID']!='0' or info['ActiveState']!='inactive' or info['Result']!='success' or info['ExecMainStatus']!='0':
             self.uncertain=True
             if info['Result']=='timeout':self.result['resources']['forced']=True
-            raise ProbeFailure('UNIT')
+            self._reject('UNIT')
         self.result['resources']['unit_exited']+=1
         group=Path('/sys/fs/cgroup/system.slice')/UNIT/'cgroup.procs'
-        if group.exists() and group.read_text().strip():raise ProbeFailure('CLEANUP')
+        if group.exists() and group.read_text().strip():self._reject('CLEANUP')
         self.result['resources']['cgroup_empty']=True
         if self.server is not None:
             self.server.stdin.close();self.server.wait(timeout=self.budget.require(ceiling=4))
-            if self.server.returncode!=0:self.uncertain=True;raise ProbeFailure('CLEANUP')
+            if self.server.returncode!=0:self.uncertain=True;self._reject('CLEANUP')
             self.server=None
-        if (Path('/run/credentials')/UNIT).exists():raise ProbeFailure('CLEANUP')
+        if (Path('/run/credentials')/UNIT).exists():self._reject('CLEANUP')
         self.result['resources']['credential_mount_gone']=True
     def facts(self):
-        if self.unit_info(clean=True)['MainPID']!='0':raise ProbeFailure('FACTS')
+        self._mark('facts')
+        if self.unit_info(clean=True)['MainPID']!='0':self._reject('FACTS')
+        self._mark('facts')
         # A stopped, fully checkpointed specimen only. A root-owned reader must
         # not create root-owned WAL/SHM files or silently ignore a remaining WAL.
         database=STATE/'auth.sqlite3'
-        if any(Path(str(database)+suffix).exists() for suffix in ('-wal','-shm','-journal')):raise ProbeFailure('FACTS')
+        if any(Path(str(database)+suffix).exists() for suffix in ('-wal','-shm','-journal')):self._reject('FACTS')
         conn=sqlite3.connect(database.as_uri()+'?mode=ro&immutable=1',uri=True,timeout=0)
         try:
             conn.row_factory=sqlite3.Row;conn.execute('PRAGMA query_only=ON');conn.execute('BEGIN')
-            if conn.execute('SELECT version FROM research_schema').fetchone()[0]!=15:raise ProbeFailure('FACTS')
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0]!=15:self._reject('FACTS')
             principals=conn.execute("SELECT * FROM research_principals WHERE status='active'").fetchall()
-            if len(principals)!=1:raise ProbeFailure('FACTS')
+            if len(principals)!=1:self._reject('FACTS')
             p=dict(principals[0]);receipt=conn.execute("SELECT * FROM auth_registration_receipts WHERE gate_id=? AND kind='gate_resource'",(p['gate_id'],)).fetchone()
-            if receipt is None:raise ProbeFailure('FACTS')
+            if receipt is None:self._reject('FACTS')
             tables=[row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND (name LIKE 'research_funding_%' OR name LIKE 'research_plan_native_%' OR name IN ('research_reservations','research_attempts','research_plan_dispatches')) ORDER BY name")]
             ledger={table:[dict(row) for row in conn.execute('SELECT * FROM '+table+' ORDER BY rowid')] for table in tables}
-            if conn.execute('SELECT count(*) FROM research_source_requests').fetchone()[0]:raise ProbeFailure('FACTS')
+            if conn.execute('SELECT count(*) FROM research_source_requests').fetchone()[0]:self._reject('FACTS')
             conn.rollback()
-        finally:conn.close()
+        except BaseException as error:self._capture(error);raise
+        finally:
+            self._mark('facts_close')
+            try:conn.close()
+            except BaseException as error:self._capture(error);raise
+        self._mark('facts')
         db=(STATE/'auth.sqlite3').stat();gate=(STATE/'research-locks'/(p['gate_id']+'.lock')).stat()
-        if (receipt['lock_dev'],receipt['lock_ino'])!=(gate.st_dev,gate.st_ino):raise ProbeFailure('FACTS')
+        if (receipt['lock_dev'],receipt['lock_ino'])!=(gate.st_dev,gate.st_ino):self._reject('FACTS')
         return p,ledger,[db.st_dev,db.st_ino],[gate.st_dev,gate.st_ino,gate.st_uid,stat.S_IMODE(gate.st_mode),gate.st_nlink]
     def grant(self,principal,db,gate):
+        self._mark('grant')
         self.directory(GRANT_DIR,0,self.gid,0o750)
         flight=STATE/'native-plan-flight.lock';self.write(flight,b'',self.uid,self.gid);f=flight.stat()
+        self._mark('grant')
         # Pure production exporters; no witness, session or authority is made.
         code="import sys,json;sys.path[:0]=["+repr(str(DEPOT/'web/backend'))+","+repr(str(DEPOT))+"];from research.native_live_grant import fixed_purpose_domains,approved_code_digest;print(json.dumps([fixed_purpose_domains(),approved_code_digest()]))"
         domains,code_digest=strict_json(self.command(self.as_user([self.python,'-I','-B','-c',code])),32768)
@@ -441,74 +556,81 @@ class Controller:
         grant={'protocol':'native-live-owner-grant-v1','project_ref':'structure-rebuild-v1','state':'active','grant_id':str(uuid4()),'grant_epoch':1,'principal_id':principal['id'],'auth_generation':principal['session_generation'],'principal_epoch':principal['epoch'],'owner_gate_id':principal['gate_id'],'database_identity':db,'owner_gate_identity':gate,'flight_identity':[f.st_dev,f.st_ino,f.st_uid,f.st_gid,stat.S_IMODE(f.st_mode),f.st_nlink],'account_id':str(uuid4()),'economic_binding':str(uuid4()),'credential_incarnation':'synthetic-'+uuid4().hex,'approved_cap_units':300000000,'risk_margin_units':2129920,'runtime_uid':self.uid,'runtime_gid':self.gid,'provider':'deepseek','model':'deepseek-flash','network_policy':'deepseek-fixed-https-v1','runtime_digest':hashlib.sha256((DEPOT/'web/backend/services/plan_runtime_transport.py').read_bytes()).hexdigest(),'approved_code_digest':code_digest,'purpose_domains':domains}
         self.write(GRANT_DIR/'native-live-grant.json',canonical(grant),0,self.gid,0o440)
     def events(self):
+        self._mark('events')
         p=WORK/'observed.jsonl'
         if not p.exists():return []
         fd=os.open(p,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
         try:
             info=os.fstat(fd)
-            if not stat.S_ISREG(info.st_mode) or info.st_uid!=self.uid or stat.S_IMODE(info.st_mode)!=0o600 or info.st_nlink!=1:raise ProbeFailure('OBSERVER')
+            if not stat.S_ISREG(info.st_mode) or info.st_uid!=self.uid or stat.S_IMODE(info.st_mode)!=0o600 or info.st_nlink!=1:self._reject('OBSERVER')
             raw=os.read(fd,32769)
         finally:os.close(fd)
-        if len(raw)>32768:raise ProbeFailure('OBSERVER')
+        if len(raw)>32768:self._reject('OBSERVER')
         # A concurrent append may be incomplete; parse only complete frames.
         values=[strict_json(line[:-1],2048) for line in raw.splitlines(keepends=True) if line.endswith(b'\n')]
         fields={'SLOT_BEFORE_GET':set(),'SLOT_WOKEN':{'elapsed_ms'},'PROOF_TAKEN':set(),'SOURCE_JOIN':{'closed'},'NATIVE_JOIN':{'closed'},'FINAL':set(self.result['instrumented']),'OBSERVER_FAILED':set(),'NETWORK_ENTRY':set()}
         for item in values:
-            if type(item) is not dict or set(item)!= {'event','values'} or item['event'] not in fields or type(item['values']) is not dict or set(item['values'])!=fields[item['event']] or any(type(v) not in (int,bool,type(None)) for v in item['values'].values()):raise ProbeFailure('OBSERVER')
-        if any(sum(v['event']==event for v in values)>1 for event in fields):raise ProbeFailure('OBSERVER')
+            if type(item) is not dict or set(item)!= {'event','values'} or item['event'] not in fields or type(item['values']) is not dict or set(item['values'])!=fields[item['event']] or any(type(v) not in (int,bool,type(None)) for v in item['values'].values()):self._reject('OBSERVER')
+        if any(sum(v['event']==event for v in values)>1 for event in fields):self._reject('OBSERVER')
         return values
     def run(self):
-        self.preflight();self.prepare();self.install_unit();self.start();first=self.exercise(None)
-        if first['native_ready']:raise ProbeFailure('FACTS')
+        self.preflight();self.prepare();self._phase='stock_base';self.install_unit();self.start();first=self.exercise(None)
+        if first['native_ready']:self._reject('FACTS')
         self.stop();principal,ledger,db,gate=self.facts()
-        if any(ledger.values()):raise ProbeFailure('FACTS')
+        if any(ledger.values()):self._reject('FACTS')
         self.result['financial']['initial_empty']=True;self.result['phases']['stock_base']=True
+        self._phase='stock_genesis'
         self.grant(principal,db,gate);self.install_unit(provider=True);self.start();second=self.exercise(first['rid'])
-        if not second['native_ready'] or first['identity_digest']!=second['identity_digest']:raise ProbeFailure('FACTS')
+        if not second['native_ready'] or first['identity_digest']!=second['identity_digest']:self._reject('FACTS')
         self.stop();_,before,db2,gate2=self.facts()
-        if db2!=db or gate2!=gate or len(before['research_plan_native_funding'])!=1 or len(before['research_funding_accounts'])!=1:raise ProbeFailure('FACTS')
+        if db2!=db or gate2!=gate or len(before['research_plan_native_funding'])!=1 or len(before['research_funding_accounts'])!=1:self._reject('FACTS')
         self.result['phases']['stock_genesis']=True
+        self._phase='stock_restart'
         self.start();third=self.exercise(first['rid'])
-        if not third['native_ready'] or third['identity_digest']!=first['identity_digest']:raise ProbeFailure('FACTS')
+        if not third['native_ready'] or third['identity_digest']!=first['identity_digest']:self._reject('FACTS')
         self.stop();_,after,db3,gate3=self.facts()
-        if after!=before or db3!=db or gate3!=gate or after['research_plan_native_funding'][0]['state']!='authorized':raise ProbeFailure('FACTS')
+        if after!=before or db3!=db or gate3!=gate or after['research_plan_native_funding'][0]['state']!='authorized':self._reject('FACTS')
         self.result['phases']['stock_restart']=True;self.result['stock']['clean_exit_inferred']=True;self.result['financial']['normal_restart_unchanged']=True
         self.result['stock']['credential_invocation_changed']=self.invocations[-1][2]!=self.invocations[-2][2]
+        self._phase='instrumented'
         self.write(WORK/'observer.json',canonical({'head':self.meta['head'],'deadline':self.budget.deadline-30}),self.uid,self.gid,0o400)
         self.install_unit(provider=True,observed=True);self.start();observed=self.exercise(first['rid'],True)
-        if observed['identity_digest']!=first['identity_digest'] or not observed['native_ready']:raise ProbeFailure('FACTS')
+        if observed['identity_digest']!=first['identity_digest'] or not observed['native_ready']:self._reject('FACTS')
         while not any(v['event']=='SLOT_BEFORE_GET' for v in self.events()):self.budget.require(new=True);time.sleep(.02)
         self.stop();final=next((v['values'] for v in self.events() if v['event']=='FINAL'),None)
-        if final is None or set(final)!=set(self.result['instrumented']):raise ProbeFailure('OBSERVER')
+        if final is None or set(final)!=set(self.result['instrumented']):self._reject('OBSERVER')
         self.result['instrumented']=final
-        if not all(final[k] for k in ('source_closed','native_closed','proof_taken','component_woken','same_deadline_ref','within_main_deadline')) or final['observer_failed']:raise ProbeFailure('OBSERVER')
+        if not all(final[k] for k in ('source_closed','native_closed','proof_taken','component_woken','same_deadline_ref','within_main_deadline')) or final['observer_failed']:self._reject('OBSERVER')
         _,last,_,_=self.facts();run=last['research_plan_native_runs'];account=last['research_funding_accounts'][0]
-        if len(run)!=1 or (run[0]['state'],run[0]['cost_state'])!=('closed','unreserved') or last['research_plan_native_funding'][0]['balance_claim'] is not None or any(account[k] for k in ('held','upper_booked','settled')):raise ProbeFailure('FACTS')
+        if len(run)!=1 or (run[0]['state'],run[0]['cost_state'])!=('closed','unreserved') or last['research_plan_native_funding'][0]['balance_claim'] is not None or any(account[k] for k in ('held','upper_booked','settled')):self._reject('FACTS')
         self.result['financial'].update(pre_get_closed_unreserved=True,held=account['held'],upper_booked=account['upper_booked'],settled=account['settled'])
         self.result['phases']['instrumented']=True
     def cleanup(self):
+        self._phase='cleanup';self._mark('cleanup_summary')
         failed=self.uncertain;actors_retired=True
         if not self.paths and not self.children and not self.group_attempted and not self.user_attempted:
             self.result['resources']['cleanup_uncertain']=False
             return
         if self.unit_written:
+            self._mark('unit_cleanup')
             try:
                 self.command(['/usr/bin/systemctl','stop',UNIT],clean=True,limit=25)
-                if self.unit_info(clean=True)['MainPID']!='0':raise ProbeFailure('CLEANUP')
+                if self.unit_info(clean=True)['MainPID']!='0':self._reject('CLEANUP')
                 cg=Path('/sys/fs/cgroup/system.slice')/UNIT/'cgroup.procs'
-                if cg.exists() and cg.read_text().strip():raise ProbeFailure('CLEANUP')
+                if cg.exists() and cg.read_text().strip():self._reject('CLEANUP')
                 self.result['resources']['cgroup_empty']=True
-            except BaseException:
-                failed=True;actors_retired=False;self.result['resources']['forced']=True
+            except BaseException as error:
+                self._capture(error);failed=True;actors_retired=False;self.result['resources']['forced']=True
                 try:
                     self.command(['/usr/bin/systemctl','kill','--kill-whom=all','--signal=KILL',UNIT],clean=True,limit=2)
                     cg=Path('/sys/fs/cgroup/system.slice')/UNIT/'cgroup.procs'
                     actors_retired=self.unit_info(clean=True)['MainPID']=='0' and (not cg.exists() or not cg.read_text().strip())
-                except BaseException:pass
+                except BaseException as error:self._capture(error)
         for p in list(self.children):
+            self._mark('process_cleanup')
             record=self.attempts.get(id(p))
             if record is None or not record['complete']:
-                failed=True;actors_retired=False
+                self._capture();failed=True;actors_retired=False
                 continue
             try:
                 if p.poll() is None:
@@ -516,37 +638,44 @@ class Controller:
                         if p is self.server and p.stdin:p.stdin.close()
                         else:self._signal(p,signal.SIGTERM)
                         p.wait(timeout=self.budget.require(ceiling=3))
-                    except BaseException:
-                        failed=True;self.result['resources']['forced']=True
+                    except BaseException as error:
+                        self._capture(error);failed=True;self.result['resources']['forced']=True
                         self._signal(p,signal.SIGKILL);p.wait(timeout=self.budget.require(ceiling=2))
                 record['reaped']=p.poll() is not None
                 # This is an existence query only. If the leader has gone but
                 # a group remains, do not signal a group with unproved identity.
+                self._mark('process_group')
                 try:os.killpg(p.pid,0)
                 except ProcessLookupError:pass
-                else:failed=True;actors_retired=False
-                if not record['reaped']:actors_retired=False
+                else:self._capture();failed=True;actors_retired=False
+                if not record['reaped']:self._capture();actors_retired=False
+                self._mark('process_cleanup')
                 for stream in (p.stdin,p.stdout,p.stderr):
                     if stream is not None and not stream.closed:stream.close()
-            except BaseException:
-                failed=True;actors_retired=False
+            except BaseException as error:
+                self._capture(error);failed=True;actors_retired=False
         try:
-            if not actors_retired:raise ProbeFailure('CLEANUP')
+            if not actors_retired:self._reject('CLEANUP')
             self._require_account_births()
+            self._mark('unit_cleanup')
             if self.unit_written:
                 UNIT_FILE.unlink();self.paths.remove(UNIT_FILE);self.command(['/usr/bin/systemctl','daemon-reload'],clean=True,limit=3);self.unit_written=False
             self.result['resources']['unit_removed']=not UNIT_FILE.exists()
-            if (Path('/run/credentials')/UNIT).exists():raise ProbeFailure('CLEANUP')
+            if (Path('/run/credentials')/UNIT).exists():self._reject('CLEANUP')
             self.result['resources']['credential_mount_gone']=True
+            self._mark('directory_cleanup')
             for top in (DEPOT,WORK,SECRETS,STATE,CACHE,GRANT_DIR):
                 if top in self.paths:shutil.rmtree(top)
             self.result['resources']['directories_removed']=all(not p.exists() for p in (DEPOT,WORK,SECRETS,STATE,CACHE,GRANT_DIR))
-            if not self.result['resources']['directories_removed']:raise ProbeFailure('CLEANUP')
+            if not self.result['resources']['directories_removed']:self._reject('CLEANUP')
             self._remove_accounts()
             self.result['resources']['user_removed']=True
-        except BaseException:failed=True
+        except BaseException as error:self._capture(error);failed=True
         self.result['resources'].update(children_started=len(self.children),children_reaped=sum(self.attempts[id(p)]['reaped'] for p in self.children if id(p) in self.attempts),cleanup_uncertain=failed)
-        if failed:self.result['outcome']='FAIL';self.result['reason']='CLEANUP'
+        if failed:
+            self.result['outcome']='FAIL'
+            failure=self.result['first_failure']
+            if failure is None or failure['phase']=='cleanup':self.result['reason']='CLEANUP'
 
 
 def metadata_from_environment():
@@ -578,8 +707,8 @@ def main():
         if not cleaning:raise ProbeFailure('CLOCK')
     prior={sig:signal.signal(sig,stop) for sig in (signal.SIGTERM,signal.SIGINT)}
     try:controller.run();controller.result['outcome']='PASS';controller.result['reason']='OK'
-    except ProbeFailure as error:controller.result['reason']=error.reason
-    except BaseException:controller.result['reason']='INTERNAL'
+    except ProbeFailure as error:controller._capture(error);controller.result['reason']=controller._first_reason or error.reason
+    except BaseException as error:controller._capture(error);controller.result['reason']=controller._first_reason or 'INTERNAL'
     finally:
         cleaning=True
         controller.cleanup();controller.result['elapsed_ms']=int((time.monotonic()-budget.started)*1000)
