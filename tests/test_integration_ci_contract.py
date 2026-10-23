@@ -125,11 +125,15 @@ NATIVE_FINANCIAL_BACKEND_FORMAL_FILES = (
 BACKEND_FORMAL_FILES = ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES + EVIDENCE_BACKEND_FORMAL_FILES + NATIVE_FINANCIAL_BACKEND_FORMAL_FILES
 
 
-def backend_process_commands(*, coverage=False, before_fin2=False, before_evidence=False, before_native_financial=False):
+GOV_BACKEND_FORMAL_FILE = 'test_source_sec_access_lifecycle.py'
+
+
+def backend_process_commands(*, coverage=False, before_fin2=False, before_evidence=False, before_native_financial=False, before_gov=False):
     names = (ORIGINAL_BACKEND_FORMAL_FILES if before_fin2 else
              ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES if before_evidence else
              ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES + EVIDENCE_BACKEND_FORMAL_FILES if before_native_financial else
-             BACKEND_FORMAL_FILES)
+             BACKEND_FORMAL_FILES if before_gov else
+             BACKEND_FORMAL_FILES + (GOV_BACKEND_FORMAL_FILE,))
     directory = 'web/backend/tests/' if coverage else 'tests'
     prefix = ('python -m coverage run -p --rcfile=.coveragerc -m pytest ' if coverage else 'python -m pytest ')
     flags = ' $PYTEST_FLAGS' if coverage else ' -x -ra -q --tb=short --durations=10'
@@ -138,9 +142,22 @@ def backend_process_commands(*, coverage=False, before_fin2=False, before_eviden
     return [ordinary, *(prefix + file_prefix + name + ' -p no:logging' + flags for name in names)]
 
 
+def _backend_script_before_gov(script, *, coverage=False):
+    """Reverse one exact Gov lifecycle module to the prior fifteen-file split."""
+    commands = backend_process_commands(coverage=coverage)
+    expanded = '\n'.join(commands)
+    assert script.count(expanded) == 1, 'exact seventeen-process Gov backend block missing or duplicated'
+    relevant = [line for line in script.splitlines() if line.startswith(
+        'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
+    assert relevant == commands, 'Gov lifecycle must run once after the prior fifteen full modules'
+    prior = '\n'.join(backend_process_commands(coverage=coverage, before_gov=True))
+    return script.replace(expanded, prior, 1)
+
+
 def _backend_script_before_native_financial(script, *, coverage=False):
     """Reverse exactly four native/financial Main modules to the reviewed eleven."""
-    commands = backend_process_commands(coverage=coverage)
+    script = _backend_script_before_gov(script, coverage=coverage)
+    commands = backend_process_commands(coverage=coverage, before_gov=True)
     expanded = '\n'.join(commands)
     assert script.count(expanded) == 1, 'exact sixteen-process native financial block missing or duplicated'
     relevant = [line for line in script.splitlines() if line.startswith(
@@ -1291,3 +1308,56 @@ def test_financial_scenario_hard_gate_rejects_drift(mutation):
     else: rows[2]['node_tests'] += '; true'
     with pytest.raises((AssertionError, KeyError)):
         assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+def test_gov_lifecycle_joins_complete_backend_isolation(kind):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    name = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    script = next(s['run'] for s in job['steps'] if s.get('name') == name)
+    commands = backend_process_commands(coverage=kind == 'coverage')
+    prior = backend_process_commands(coverage=kind == 'coverage', before_gov=True)
+    assert len(prior) == 16 and len(commands) == 17
+    assert commands[1:-1] == prior[1:]
+    assert script.count('\n'.join(commands)) == 1
+    assert GOV_BACKEND_FORMAL_FILE in commands[-1] and ' -p no:logging' in commands[-1]
+    assert '--ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + GOV_BACKEND_FORMAL_FILE in commands[0]
+    assert ' -p no:logging' not in commands[0]
+    assert 'test_source_sec_access.py' not in script
+    if kind == 'sanity': _assert_sanity_backend_dependency(value)
+    else: _assert_research_coverage_closure(value, (ROOT / '.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('mutation', [
+    'missing', 'missing_ignore', 'duplicate', 'duplicate_ignore', 'partial_file',
+    'formal_logging', 'ordinary_no_logging', 'order', 'soft', 'wrong_file',
+    'pure_ignore', 'measurement',
+])
+def test_gov_lifecycle_ci_delta_rejects_weakened_or_missing_consumer(kind, mutation):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    name = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step = next(s for s in job['steps'] if s.get('name') == name)
+    commands = backend_process_commands(coverage=kind == 'coverage'); changed = list(commands)
+    ignore = ' --ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + GOV_BACKEND_FORMAL_FILE
+    if mutation == 'missing': changed.pop()
+    elif mutation == 'missing_ignore': changed[0] = changed[0].replace(ignore, '', 1)
+    elif mutation == 'duplicate': changed.append(changed[-1])
+    elif mutation == 'duplicate_ignore': changed[0] = changed[0].replace(ignore, ignore + ignore, 1)
+    elif mutation == 'partial_file': changed[-1] += ' -k smoke'
+    elif mutation == 'formal_logging': changed[-1] = changed[-1].replace(' -p no:logging', '', 1)
+    elif mutation == 'ordinary_no_logging': changed[0] += ' -p no:logging'
+    elif mutation == 'order': changed[-2], changed[-1] = changed[-1], changed[-2]
+    elif mutation == 'soft': changed[-1] += ' || true'
+    elif mutation == 'wrong_file': changed[-1] = changed[-1].replace(GOV_BACKEND_FORMAL_FILE, 'test_source_sec_access.py')
+    elif mutation == 'pure_ignore': changed[0] += ' --ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + 'test_source_sec_access.py'
+    else: changed[-1] = changed[-1].replace('coverage run -p', 'coverage run').replace(' -x -ra -q', ' -q')
+    assert changed != commands
+    expanded = '\n'.join(commands)
+    assert step['run'].count(expanded) == 1
+    step['run'] = step['run'].replace(expanded, '\n'.join(changed), 1)
+    with pytest.raises(AssertionError):
+        if kind == 'sanity': _assert_sanity_backend_dependency(value)
+        else: _assert_research_coverage_closure(value, (ROOT / '.coveragerc').read_text())
