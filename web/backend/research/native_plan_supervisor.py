@@ -26,6 +26,7 @@ _CONTEXTS=vars(sqlite3).setdefault('_structural_native_main_contexts_v1',{})
 _SUPERVISORS=vars(sqlite3).setdefault('_structural_native_supervisors_v1',{})
 _WORKERS={};_SLOTS={};_LIFECYCLES={};_THREADS={}
 _CONTEXT_BIRTHS={};_SLOT_BIRTHS={};_LIFECYCLE_BIRTHS={}
+_STOP_BIRTHS={};_STOP_SIGNALS={}
 _THREAD_ALIVE=threading.Thread.is_alive
 _THREAD_JOIN=threading.Thread.join
 
@@ -86,7 +87,7 @@ class MainStartupScope(_Sealed):
         self._main,self._main_code=main,main.lifespan.__wrapped__.__code__
         self._withdraw,self._withdraw_code=admission.withdraw,admission.withdraw.__code__
         self._images={Path(module.__file__):_code_digest(module.__file__) for module in
-            (sys.modules[__name__],importlib.import_module(__package__+'.authorization'),importlib.import_module(__package__+'.store'),
+            (sys.modules[__name__],_LIVE_MODULE,importlib.import_module(__package__+'.authorization'),importlib.import_module(__package__+'.store'),
              _module(_family()+'.auth_store',Path('services/auth_store.py')),_module(_family()+'.auth_registration',Path('services/auth_registration.py')),
              _module(_family()+'.sqlite_utils',Path('services/sqlite_utils.py')))}
         self.budget=None
@@ -306,7 +307,9 @@ def require_slot(scope,store,session,*,task_id,purpose,mode)->None:
             or scope.epoch!=sup._slot_epoch or scope.task_id!=task_id or scope.purpose!=purpose
             or sup._slot is not scope or _pipe_identity(scope.stop_fd)!=scope.stop_fd_identity or _pipe_identity(scope._write_fd)!=scope._write_identity):raise _closed()
     if mode=='execute':
-        if sup._stop.is_set() or sup._state!='READY' or session.state!='executable':raise _closed()
+        if sup._stop.is_set() or sup._state!='READY' or session.state!='executable':
+            _raise_stopping(sup,scope)
+            raise _closed()
         _full_context(sup.context,published=True)
 
 
@@ -316,17 +319,89 @@ def require_worker_retired(worker,store,session,*,lifecycle_scope)->None:
     if worker is None:
         if sup.worker is not None or sup._worker_born or sup._thread is not None:raise _uncertain()
     elif type(worker) is not NativePlanWorkerLease or _WORKERS.get(getattr(worker,'reference',None)) is not worker or worker is not sup.worker or worker.session is not session or worker.thread is not sup._thread or worker.pid!=os.getpid() or worker.epoch is not sup.epoch:raise _uncertain()
-    if worker is not None and (type(worker.thread) is not threading.Thread or _THREAD_ALIVE(worker.thread) or type(worker._native_lock) is not _thread.LockType or worker._native_lock.locked()):raise _uncertain()
-    from .plan_native_financial import unresolved
-    with store.transaction() as conn:
-        account=__import__('json').loads(session.facts)['account_id']
-        funding=conn.execute('SELECT account_id,authority_digest FROM research_plan_native_funding WHERE id=1').fetchone()
-        if funding and (funding['account_id']!=account or funding['authority_digest']!=hashlib.sha256(session.facts).hexdigest()):raise _uncertain()
-        if unresolved(conn,account):raise _uncertain()
+    if worker is not None:_require_thread_retired(worker.thread,worker._native_lock)
+    # Physical retirement grants no financial reconciliation or new readiness.
+    # A has already attempted every B resource before asking for this proof.
+
+
+def _require_thread_retired(thread,native_lock):
+    if type(thread) is not threading.Thread or _THREAD_ALIVE(thread) or type(native_lock) is not _thread.LockType or native_lock.locked():raise _uncertain()
+
+
+def _direct_error_origin(error,code,name,status):
+    """Pure origin predicate, never a stop/authority proof by itself."""
+    if type(error) is not ResearchError or error.code!=name or error.status!=status:return False
+    trace=error.__traceback__
+    if trace is None:return False
+    while trace.tb_next is not None:trace=trace.tb_next
+    return trace.tb_frame.f_code is code
+
+
+def _direct_denial(error,code):return _direct_error_origin(error,code,'FUNDING_CLOSED',503)
+
+
+class _NativeStopping(Exception):
+    def __init__(self,supervisor,intent,slot,*,_factory=None):
+        _birth(_factory,'_raise_stopping')
+        Exception.__init__(self,'native preclaim stop')
+        _STOP_SIGNALS[self]=(supervisor,intent,slot)
+    def __reduce__(self):raise TypeError('native stop cannot be serialized')
+
+
+def _stop_proof(sup,slot):
+    _supervisor_identity(sup)
+    intent=_STOP_BIRTHS.get(sup.reference)
+    if intent is None or intent[:5]!=(sup,sup.context,sup.session,sup.epoch,sup.pid):raise _closed()
+    kind,origin_slot,slot_epoch=intent[5:]
+    if threading.current_thread() is not sup._thread or not sup._stop.is_set():raise _closed()
+    if slot is not None and slot is not origin_slot:
+        # The same selected task may have crossed the last stop check before
+        # withdrawal, then born its pipe. It has not entered runtime's try.
+        if origin_slot is not None or slot.supervisor is not sup or slot.session is not sup.session or slot.epoch!=slot_epoch+1:raise _closed()
+    if kind=='main':
+        try:_full_context(sup.context,published=False)
+        except BaseException as error:_admission().validate_withdrawal(error,sup.binding)
+    elif kind=='retire':require_lifecycle_scope(sup._retire_scope,sup.service.store,sup.session,action='retire')
+    else:raise _closed()
+    session=sup.session;live=_live()
+    if type(session) is not live.NativeLiveSession or live._SESSIONS.get(session.reference) is not session or session.startup_scope is not sup.context or session.uncertainty or session.state not in ('executable','cleanup_only'):raise _closed()
+    # Do not normalize simultaneous grant/Auth/code/key/inode damage as a stop.
+    session.grant._current();session.flight._held();session.credential.require_current(session)
+    return intent
+
+
+def _raise_stopping(sup,slot):
+    intent=_stop_proof(sup,slot)
+    raise _NativeStopping(sup,intent,slot,_factory=_FACTORY)
+
+
+def _expected_preclaim_stop(sup,error):
+    # Only the loop's current check or runtime's pre-try installation/slot
+    # check can exit normally. Post-claim runtime cleanup errors are not lost.
+    from . import plan_native_runtime as runtime
+    record=_STOP_SIGNALS.pop(error,None) if type(error) is _NativeStopping else None
+    if runtime.run_once.__code__ is not _RUNTIME_STOP_CODE or _live().NativeLiveSession.require.__code__ is not _LIVE_REQUIRE_CODE:return False
+    trace=error.__traceback__;seen_runtime=False
+    while trace is not None:
+        if trace.tb_frame.f_code is runtime.run_once.__code__:
+            seen_runtime=True
+            if trace.tb_lineno>=_RUNTIME_TRY_LINE:return False
+        trace=trace.tb_next
+    if type(error) is _NativeStopping:
+        if record is None or record[0] is not sup or record[1] is not _STOP_BIRTHS.get(sup.reference):return False
+        _stop_proof(sup,record[2]);return True
+    live=_live()
+    if not _direct_denial(error,live.NativeLiveSession.require.__code__):return False
+    tail=error.__traceback__
+    while tail.tb_next is not None:tail=tail.tb_next
+    if tail.tb_frame.f_locals.get('self') is not sup.session:return False
+    # A nested intrinsic failure has another final frame and cannot pass this.
+    if sup.session.state!='cleanup_only':return False
+    _stop_proof(sup,sup._slot if seen_runtime else None);return True
 
 
 class NativePlanSupervisor(_Sealed):
-    __slots__=('service','binding','context','reference','epoch','pid','session','worker','_thread','_worker_born','_activation','_event','_stop','_slot','_slot_epoch','_state','_deadline','_main_stop','_resources','_errors','_receipt','_start_failed','_retire_scope','_pending_task_id')
+    __slots__=('service','binding','context','reference','epoch','pid','session','worker','_thread','_worker_born','_activation','_event','_stop','_slot','_slot_epoch','_state','_deadline','_main_stop','_resources','_errors','_readiness','_receipt','_start_failed','_retire_scope','_pending_task_id')
     def __init__(self,service,binding,context,*,_factory=None):
         _birth(_factory,'start')
         self.service,self.binding,self.context=service,binding,context
@@ -334,7 +409,7 @@ class NativePlanSupervisor(_Sealed):
         self.session=self.worker=self._thread=None;self._worker_born=False
         self._activation,self._event,self._stop=threading.Event(),threading.Event(),threading.Event()
         self._slot=None;self._slot_epoch=0;self._state='STARTING';self._deadline=None;self._main_stop=False
-        self._resources=();self._errors=();self._receipt=None;self._start_failed=False;self._retire_scope=None;self._pending_task_id=None
+        self._resources=();self._errors=();self._readiness=();self._receipt=None;self._start_failed=False;self._retire_scope=None;self._pending_task_id=None
 
 
 def start(service,binding):
@@ -342,7 +417,7 @@ def start(service,binding):
     scope=_CONTEXTS.get(id(binding.app));require_startup_scope(scope,service.store)
     if scope.binding is not binding or binding.service is not service or id(binding.app) in _SUPERVISORS:raise _closed()
     sup=NativePlanSupervisor(service,binding,scope,_factory=_FACTORY);_SUPERVISORS[id(binding.app)]=sup
-    live=_live()
+    live=_live();stage='entry'
     try:
         with _ThreadBudget(scope,supervisor=sup,_factory=_FACTORY):
             b=live._b_module()
@@ -352,7 +427,9 @@ def start(service,binding):
             expected=next((value for value in compile(raw,str(bpath),'exec').co_consts if type(value) is types.CodeType and value.co_name=='entry_directory_witness'),None)
             if type(getter) is not types.FunctionType or getter.__globals__ is not vars(b) or getter.__code__!=expected:raise _closed()
             entry=getter(scope)
+            stage='grant'
             grant=live.read_native_live_grant(service.store,main_context=scope);object.__setattr__(sup,'_resources',sup._resources+(grant,))
+            stage='flight'
             flight=live.claim_live_flight(service.store,grant,main_context=scope);object.__setattr__(sup,'_resources',sup._resources+(flight,))
             credential=b.load_native_live_credential(entry,grant,flight,main_context=scope);object.__setattr__(sup,'_resources',sup._resources+(credential,))
             session=live.bind_live_authority(service.store,grant,flight,credential,main_context=scope)
@@ -363,7 +440,12 @@ def start(service,binding):
                 account=__import__('json').loads(session.facts)['account_id']
                 pending=conn.execute("SELECT task_id FROM research_plan_native_runs WHERE account_id=? AND (state IN ('approved','reserved','consumed','unknown') OR cost_state IN ('held','unknown')) ORDER BY id LIMIT 1",(account,)).fetchone()
                 object.__setattr__(sup,'_pending_task_id',pending[0] if pending else None)
-            with _ThreadBudget(scope,supervisor=sup,lifecycle=recovery,_factory=_FACTORY):live.recover_live_session(session,lifecycle_scope=recovery)
+            try:
+                with _ThreadBudget(scope,supervisor=sup,lifecycle=recovery,_factory=_FACTORY):live.recover_live_session(session,lifecycle_scope=recovery)
+            except ResearchError as error:
+                if live.recover_live_session.__code__ is not _LIVE_RECOVER_CODE or not _direct_error_origin(error,_LIVE_RECOVER_CODE,'RECONCILIATION_REQUIRED',409):raise
+                object.__setattr__(sup,'_readiness',(error,));object.__setattr__(sup,'_state','STOPPING')
+                return sup  # No activation; real partial resources still need join.
             object.__setattr__(sup,'_pending_task_id',None)
             thread=threading.Thread(target=_worker_main,args=(sup,),name='structure-native-plan-supervisor',daemon=False)
             object.__setattr__(sup,'_thread',thread);worker=NativePlanWorkerLease(sup,_factory=_FACTORY);object.__setattr__(sup,'worker',worker)
@@ -374,9 +456,16 @@ def start(service,binding):
             object.__setattr__(sup,'_state','READY');sup._activation.set()
             return sup
     except BaseException as error:
+        if stage=='grant' and not sup._resources and type(error) is live.NativeLiveGrantAbsent:
+            try:
+                _full_context(scope,published=True)
+                live.require_optional_grant_absent(error,service.store,main_context=scope)
+            except BaseException as invalid:error=invalid
+            else:
+                object.__setattr__(sup,'_state','CLOSED');return sup
         # A missing implementation/configuration before any resource birth is
         # native-only closed, and cannot poison base/Source/history admission.
-        if not sup._resources and type(error) is ResearchError and error.code=='FUNDING_CLOSED':
+        if stage=='entry' and not sup._resources and type(error) is ResearchError and error.code=='FUNDING_CLOSED':
             object.__setattr__(sup,'_state','CLOSED');return sup
         if type(error) is live.NativeLiveStartFailure:
             if type(error.handle) is live.NativeLiveSession:object.__setattr__(sup,'session',error.handle)
@@ -445,11 +534,17 @@ def _worker_main(sup):
                     if slot is not None:object.__setattr__(slot,'active',False);_SLOTS.pop(slot.reference,None);_SLOT_BIRTHS.pop(slot.reference,None)
                     object.__setattr__(sup,'_slot',None)
     except BaseException as error:
+        try:expected=_expected_preclaim_stop(sup,error)
+        except BaseException as invalid:error=invalid;expected=False
+        if expected:return
         object.__setattr__(sup,'_errors',sup._errors+(error,));object.__setattr__(sup,'_state','CLEANUP_UNCERTAIN')
         if authority_error and not sup._main_stop and sup._retire_scope is None:
             try:_revoke_invalid(sup)
             except BaseException as cleanup:object.__setattr__(sup,'_errors',sup._errors+(cleanup,))
-    finally:sup._event.set()
+    finally:
+        for signal,record in tuple(_STOP_SIGNALS.items()):
+            if record[0] is sup:_STOP_SIGNALS.pop(signal,None)
+        sup._event.set()
 
 
 def request_session_stop(session)->None:
@@ -484,6 +579,7 @@ def request_main_stop(supervisor,binding)->None:
         if id(binding.app) in _SUPERVISORS:raise _uncertain()
         return
     _supervisor_memory(supervisor);object.__setattr__(supervisor,'_main_stop',True)
+    _STOP_BIRTHS.setdefault(supervisor.reference,(supervisor,scope,supervisor.session,supervisor.epoch,supervisor.pid,'main',supervisor._slot,supervisor._slot_epoch))
     supervisor._stop.set();supervisor._activation.set();supervisor._event.set()
     if supervisor.session is not None:request_session_stop(supervisor.session)
 
@@ -536,11 +632,14 @@ def bounded_revoke_transaction(lifecycle_scope,store,session):
 def retire(supervisor,*,deadline_monotonic):
     _supervisor_identity(supervisor);deadline=min(_deadline(deadline_monotonic),time.monotonic()+20)
     object.__setattr__(supervisor,'_deadline',deadline if supervisor._deadline is None else min(deadline,supervisor._deadline))
-    supervisor._stop.set();supervisor._activation.set();supervisor._event.set()
     if supervisor.session is not None:
-        request_session_stop(supervisor.session)
         scope=NativeLifecycleScope(supervisor,'retire',supervisor._deadline,_factory=_FACTORY)
         object.__setattr__(supervisor,'_retire_scope',scope)
+        _STOP_BIRTHS.setdefault(supervisor.reference,(supervisor,supervisor.context,supervisor.session,supervisor.epoch,supervisor.pid,'retire',supervisor._slot,supervisor._slot_epoch))
+    supervisor._stop.set();supervisor._activation.set();supervisor._event.set()
+    if supervisor.session is not None:
+        require_lifecycle_scope(scope,supervisor.service.store,supervisor.session,action='retire')
+        request_session_stop(supervisor.session)
         with _ThreadBudget(supervisor.context,supervisor=supervisor,lifecycle=scope,_factory=_FACTORY):supervisor.session.retire(lifecycle_scope=scope)
     object.__setattr__(supervisor,'_state','STOPPING')
 
@@ -635,8 +734,20 @@ def release_main_context(scope):
     if sup is not None and not closed(sup):raise _uncertain()
     if any(value.scope is scope for values in _THREADS.values() for value in values):raise _uncertain()
     if sup is not None:_SUPERVISORS.pop(id(scope.binding.app),None)
+    if sup is not None:_STOP_BIRTHS.pop(sup.reference,None)
     _CONTEXTS.pop(id(scope.binding.app),None);_CONTEXT_BIRTHS.pop(id(scope),None)
 
 
 _NATIVE_CODES={name:value.__code__ for name,value in tuple(globals().items()) if type(value) is types.FunctionType and value.__globals__ is globals()}
 _NATIVE_CODES['BoundedRevokeTransaction.__enter__']=BoundedRevokeTransaction.__enter__.__code__
+
+# Freeze the existing runtime pre-claim try boundary from its actual source;
+# no caller-supplied line number or mutable stage marker can grant normal exit.
+import ast as _ast
+from . import plan_native_runtime as _runtime_stop_source
+_runtime_tree=_ast.parse(Path(_runtime_stop_source.__file__).read_bytes())
+_runtime_function=next(n for n in _runtime_tree.body if isinstance(n,_ast.FunctionDef) and n.name=='run_once')
+_RUNTIME_TRY_LINE=next(n.lineno for n in _runtime_function.body if isinstance(n,_ast.Try))
+_RUNTIME_STOP_CODE=_runtime_stop_source.run_once.__code__
+_LIVE_REQUIRE_CODE=_LIVE_MODULE.NativeLiveSession.require.__code__
+_LIVE_RECOVER_CODE=_LIVE_MODULE.recover_live_session.__code__

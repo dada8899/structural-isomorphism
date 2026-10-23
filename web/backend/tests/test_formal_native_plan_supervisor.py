@@ -235,3 +235,63 @@ def test_actual_main_startup_scope_rejects_changed_birth_and_other_callers(tmp_p
         with pytest.raises(ResearchError):c.require_startup_scope(scope,scope.store)
         with pytest.raises(RuntimeError):c.prepare_main_context(scope.binding.service,scope.binding)
         assert scope.binding.native_context is scope and scope.binding.native_supervisor.session is None
+
+
+def test_stop_origin_probe_is_narrow_and_grants_no_runtime_authority():
+    # Pure traceback classification only, with no C/A registry or live birth.
+    def direct():raise ResearchError('FUNDING_CLOSED',503,'probe')
+    def nested():direct()
+    for fn,expected in ((direct,True),(nested,False)):
+        try:fn()
+        except ResearchError as error:
+            assert c._direct_denial(error,fn.__code__)==expected
+    for error in (PermissionError(),OSError(),ResearchError('CLEANUP_UNCERTAIN',503,'probe')):
+        assert not c._direct_denial(error,direct.__code__)
+    with pytest.raises((TypeError,ResearchError)):
+        c._NativeStopping(object(),object(),None)
+
+
+def test_physical_thread_retirement_probe_is_independent_of_financial_rows():
+    # A real owned ordinary thread proves this pure physical predicate only.
+    release=threading.Event();thread=threading.Thread(target=release.wait)
+    thread.start();native=thread._tstate_lock
+    try:
+        with pytest.raises(ResearchError):c._require_thread_retired(thread,native)
+    finally:release.set();thread.join(2)
+    assert not thread.is_alive()
+    c._require_thread_retired(thread,native)
+    import ast,inspect,textwrap
+    tree=ast.parse(textwrap.dedent(inspect.getsource(c.require_worker_retired)))
+    assert not any(isinstance(n,ast.Attribute) and n.attr=='transaction' for n in ast.walk(tree))
+    assert 'unresolved' not in inspect.getsource(c.require_worker_retired)
+
+
+def test_optional_grant_absence_dto_cannot_become_clean_base_only():
+    from research import native_live_grant as live
+    for value in (FileNotFoundError(),{'closed':True},object()):
+        with pytest.raises((ResearchError,TypeError)):
+            live.require_optional_grant_absent(value,object(),main_context=object())
+    with pytest.raises((ResearchError,TypeError)):
+        live.NativeLiveGrantAbsent(object(),object(),object())
+
+
+def test_readiness_debt_origin_probe_is_not_a_cleanup_or_authority_error():
+    def recovery():raise ResearchError('RECONCILIATION_REQUIRED',409,'debt retained')
+    def wrapped():recovery()
+    for fn,expected in ((recovery,True),(wrapped,False)):
+        try:fn()
+        except ResearchError as error:
+            assert c._direct_error_origin(error,fn.__code__,'RECONCILIATION_REQUIRED',409)==expected
+    for error in (PermissionError(),OSError(),ResearchError('RECONCILIATION_REQUIRED',503,'wrong phase'),ResearchError('CLEANUP_UNCERTAIN',503,'cleanup')):
+        assert not c._direct_error_origin(error,recovery.__code__,'RECONCILIATION_REQUIRED',409)
+
+
+def test_stop_event_and_forged_signal_cannot_normalize_an_error():
+    from types import SimpleNamespace
+    event=threading.Event();event.set()
+    dto=SimpleNamespace(_stop=event,_main_stop=True,_errors=())
+    for error in (ResearchError('FUNDING_CLOSED',503,'untrusted'),PermissionError(),OSError()):
+        assert not c._expected_preclaim_stop(dto,error)
+    forged=c._NativeStopping.__new__(c._NativeStopping)
+    assert not c._expected_preclaim_stop(dto,forged)
+    with pytest.raises(ResearchError):c._stop_proof(dto,None)
