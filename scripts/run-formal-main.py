@@ -22,6 +22,7 @@ PROFILE = {'STRUCTURAL_ENV': 'prod', 'AUTH_ENABLED': 'true', 'AUTH_DEV_MODE': 'f
 _KNOWN_SENSITIVE = frozenset(('AZURE_OPENAI_KEY', 'ANTHROPIC_AUTH_TOKEN', 'GOOGLE_APPLICATION_CREDENTIALS',
     'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN', 'HF_TOKEN', 'HUGGING_FACE_HUB_TOKEN'))
 _CODE_OVERRIDES = frozenset(('STRUCTURAL_PROJECT_ROOT', 'PYTHONPATH', 'PYTHONHOME', 'PYTHONINSPECT'))
+_UNCERTAIN_FDS = []
 _CODES = frozenset(('ENTRY_ARGUMENTS', 'INTERPRETER_FLAGS', 'INHERITED_SECRET', 'CODE_OVERRIDE',
     'PROFILE_INVALID', 'SMTP_AUTH_REQUIRED', 'CREDENTIAL_DIRECTORY_INVALID', 'UNSUPPORTED_PLATFORM',
     'SERVICE_IDENTITY_INVALID', 'CORE_HARDENING_FAILED', 'DUMP_HARDENING_FAILED', 'BOUNDARY_CHANGED',
@@ -129,14 +130,17 @@ def _directory_metadata(info, uid, *, final):
 
 
 def _close_all(descriptors):
-    failed = False
-    for descriptor in reversed(descriptors):
+    failed = []
+    for descriptor in reversed(tuple(descriptors)):
         try:
             os.close(descriptor)
         except BaseException:
-            failed = True
-    descriptors.clear()
+            failed.append(descriptor)
+    descriptors[:] = list(reversed(failed))
     if failed:
+        # Retain failed native handles; a later numeric FD reuse is not proof
+        # that this retirement succeeded, and must not trigger a blind retry.
+        _UNCERTAIN_FDS.append(tuple(failed))
         raise EntryFailure('FD_CLOSE_FAILED')
 
 
@@ -260,7 +264,7 @@ def _publish_environment(values):
         raise EntryFailure('ENV_INSTALL_FAILED') from None
 
 
-def _code_paths():
+def _code_paths(*, entry_module=None, entry_witness=None):
     from pathlib import Path
     script = Path(__file__).absolute()
     if script != script.resolve(strict=True) or script.name != 'run-formal-main.py' or script.parent.name != 'scripts':
@@ -268,17 +272,47 @@ def _code_paths():
     root = script.parent.parent
     backend = root / 'web/backend'
     source = backend / 'main.py'
+    allowed = set()
+    if entry_module is not None:
+        _validate_entry_module(entry_module, root)
+        entry_module._require_entry_preimport(entry_witness)
+        allowed = {'services', 'services.native_live_credentials'}
+    elif entry_witness is not None:
+        raise EntryFailure('CODE_IDENTITY_INVALID')
     if (source.is_symlink() or not source.is_file() or backend != backend.resolve()
-            or any(name == 'main' or name.startswith(('api.', 'services.', 'research.', 'web.backend'))
-                   or name in ('api', 'services', 'research') for name in sys.modules)):
+            or any((name == 'main' or name.startswith(('api.', 'services.', 'research.', 'web.backend'))
+                    or name in ('api', 'services', 'research')) and name not in allowed for name in sys.modules)):
         raise EntryFailure('CODE_IDENTITY_INVALID')
     return root, backend, source
 
 
-def _serve(pid, uid):
+def _validate_entry_module(module, root):
+    import types
+    path = root / 'web/backend/services/native_live_credentials.py'
+    package = sys.modules.get('services')
+    parent = root / 'web/backend/services/__init__.py'
+    if (type(module) is not types.ModuleType or sys.modules.get('services.native_live_credentials') is not module
+            or module.__name__ != 'services.native_live_credentials' or module.__file__ != str(path)
+            or path.is_symlink() or path != path.resolve() or len(path.read_bytes()) > 262144
+            or type(package) is not types.ModuleType or package.__file__ != str(parent)
+            or parent.is_symlink() or parent != parent.resolve()):
+        raise EntryFailure('CODE_IDENTITY_INVALID')
+    codes = {value.co_name:value for value in compile(path.read_bytes(), str(path), 'exec', dont_inherit=True).co_consts
+             if isinstance(value, types.CodeType)}
+    for name in ('_publish_entry_directory', '_require_entry_preimport', '_require_entry_for_serve'):
+        function = getattr(module, name, None)
+        if (type(function) is not types.FunctionType or function.__globals__ is not vars(module)
+                or function.__module__ != module.__name__ or function.__code__ != codes.get(name)):
+            raise EntryFailure('CODE_IDENTITY_INVALID')
+
+
+def _serve(pid, uid, *, entry_module=None, entry_witness=None):
     from pathlib import Path
     import importlib
-    root, backend, source = _code_paths()
+    if entry_module is not None:
+        _validate_entry_module(entry_module, Path(__file__).absolute().parent.parent)
+        entry_module._require_entry_for_serve(entry_witness)
+    root, backend, source = _code_paths(entry_module=entry_module, entry_witness=entry_witness)
     sys.path[:0] = [str(backend), str(root)]
     try:
         main = importlib.import_module('main')
@@ -305,6 +339,9 @@ def _serve(pid, uid):
 
 def main():
     values, descriptors, installed = {}, [], False
+    entry_module = entry_witness = None
+    uncertain_entry_resources = ()
+    result = 78
     try:
         if len(sys.argv) != 1:
             raise EntryFailure('ENTRY_ARGUMENTS')
@@ -312,29 +349,48 @@ def main():
             raise EntryFailure('INTERPRETER_FLAGS')
         _initial_environment()
         pid, uid = _harden_current_process()
-        _code_paths()
+        # Original pre-import source gate still runs before even B is imported.
+        root, backend, _ = _code_paths()
         _check_boundary(pid, uid)
         descriptors = _credential_directory(uid)
         try:
             values = _read_group(descriptors[-1], uid)
             _check_directories(descriptors, uid)
+            import importlib
+            sys.path[:0] = [str(backend), str(root)]
+            entry_module = importlib.import_module('services.native_live_credentials')
+            _validate_entry_module(entry_module, root)
+            _check_boundary(pid, uid)
+            entry_witness = entry_module._publish_entry_directory(descriptors)
         finally:
             _close_all(descriptors)
         _check_boundary(pid, uid)
         _publish_environment(values)
         installed = True
-        _serve(pid, uid)
-        return 0
+        _serve(pid, uid, entry_module=entry_module, entry_witness=entry_witness)
+        result = 0
     except BaseException as error:
+        if entry_module is not None and type(error) is entry_module.NativeCredentialStartFailure:
+            uncertain_entry_resources = error.resources
         code = error.code if isinstance(error, EntryFailure) else 'CREDENTIAL_IO_FAILED'
         os.write(2, ('FORMAL_ENTRY:' + code + '\n').encode('ascii'))
-        return 78
     finally:
-        # Python strings cannot be promised erased. Never emit or persist them.
+        # Existing five ENV values retain their original consumers. Provider
+        # material is never added to this batch or inherited by a DNS child.
+        for handle in uncertain_entry_resources:
+            try:handle.close()
+            except BaseException:result = 78
+        if entry_witness is not None:
+            try:
+                entry_witness.close()
+            except BaseException:
+                result = 78
+                os.write(2, b'FORMAL_ENTRY:FD_CLOSE_FAILED\n')
         for _, target in CREDENTIAL_IDS:
             if installed and target in values:
                 os.environ.pop(target, None)
         values.clear()
+    return result
 
 
 if __name__ == '__main__':

@@ -266,3 +266,26 @@ if __name__ == '__main__':
     print(json.dumps({'scope': 'linux_boundary_only', 'pid_unchanged': before == os.getpid() == pid,
         'core': resource.getrlimit(resource.RLIMIT_CORE), 'dumpable': module._prctl()(3, 0, 0, 0, 0),
         'credential_reads': len(credential_reads), 'formal_main_or_systemd_verified': False}))
+
+
+def test_provider_is_not_added_to_existing_environment_group(entry):
+    assert len(entry.CREDENTIAL_IDS)==5
+    assert not any('deepseek' in name.lower() or 'API_KEY' in target for name,target in entry.CREDENTIAL_IDS)
+    code=ast.parse(SCRIPT.read_bytes())
+    publish=next(n for n in code.body if isinstance(n,ast.FunctionDef) and n.name=='main')
+    assert any(isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr=='_publish_entry_directory' for n in ast.walk(publish))
+
+
+def test_same_named_preimport_module_cannot_get_entry_source_exception(entry):
+    from types import SimpleNamespace
+    with pytest.raises(entry.EntryFailure):entry._code_paths(entry_module=SimpleNamespace(),entry_witness=object())
+
+
+def test_entry_failure_retains_failed_descriptor_and_attempts_remaining(entry,monkeypatch):
+    descriptors=[101,102,103];closed=[]
+    def close(fd):
+        closed.append(fd)
+        if fd==102:raise OSError('synthetic close uncertainty')
+    monkeypatch.setattr(entry.os,'close',close)
+    with pytest.raises(entry.EntryFailure,match='FD_CLOSE_FAILED'):entry._close_all(descriptors)
+    assert closed==[103,102,101] and descriptors==[102] and entry._UNCERTAIN_FDS[-1]==(102,)
