@@ -1,5 +1,6 @@
 """Synthetic files/processes only: never sudo, APT, network or a browser."""
 import importlib.util
+import hashlib
 import io
 import json
 import os
@@ -19,6 +20,73 @@ SOURCE = (b'# original comment\nTypes: deb\nURIs: http://azure.archive.ubuntu.co
           b'Suites: noble noble-updates noble-backports noble-security\n'
           b'Components: main restricted universe multiverse\n'
           b'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n')
+
+
+def synthetic_source_pin(monkeypatch, raw):
+    # Explicit synthetic complete-input pin; never a claimed native 2995B sample.
+    monkeypatch.setattr(setup,'SOURCE_PROFILE_BYTES',len(raw),raising=False)
+    monkeypatch.setattr(setup,'SOURCE_PROFILE_SHA',hashlib.sha256(raw).hexdigest(),raising=False)
+
+
+def test_exact_synthetic_source_pin_maps_opaque_tokens_only_to_independent_fixed_target(monkeypatch):
+    first=SOURCE.replace(b'http://azure.archive.ubuntu.com/ubuntu/',b'UNTRUSTED_SECRET_TOKEN_A').replace(
+        b'noble noble-updates noble-backports noble-security',b'noble noble-updates noble-backports')
+    second=SOURCE.replace(b'http://azure.archive.ubuntu.com/ubuntu/',b'UNTRUSTED_SECRET_TOKEN_B/').replace(
+        b'noble noble-updates noble-backports noble-security',b'noble-security')
+    raw=first+b'\n'+second;synthetic_source_pin(monkeypatch,raw)
+    rendered=setup.mirror_source(raw)
+    assert rendered == raw.replace(b'UNTRUSTED_SECRET_TOKEN_A',b'https://archive.ubuntu.com/ubuntu').replace(
+        b'UNTRUSTED_SECRET_TOKEN_B/',b'https://archive.ubuntu.com/ubuntu')
+    assert b'UNTRUSTED_SECRET' not in rendered
+    with pytest.raises(setup.Refused):setup.mirror_source(raw+b'# unpinned\n')
+
+
+@pytest.mark.parametrize('change',[
+    (b'Types: deb',b'Types: deb-src'),(b'Suites: noble ',b'Suites: unknown '),
+    (b'Components: main ',b'Components: unknown '),
+    (b'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg',b'Signed-By: unknown'),
+    (b'Types: deb',b'Types: deb\nTypes: deb'),(b'Types: deb',b'Unknown: yes\nTypes: deb'),
+    (b'Types: deb',b' Types: deb'),(b'OPAQUE_SECRET',b'OPAQUE_SECRET SECOND'),
+    (b'# original comment',b'# original\rcomment'),(b'# original comment',b'# original\x00comment'),
+])
+def test_pinned_source_still_runs_every_strict_field_predicate_without_leaking(monkeypatch,change):
+    raw=SOURCE.replace(b'http://azure.archive.ubuntu.com/ubuntu/',b'OPAQUE_SECRET').replace(*change)
+    synthetic_source_pin(monkeypatch,raw)
+    with pytest.raises(setup.Refused) as error:setup.mirror_source(raw)
+    assert 'OPAQUE_SECRET' not in str(error.value)
+
+
+@pytest.mark.parametrize('mutation',['none','extra','phase','stage','status','duplicate','code','bool_code'])
+def test_parent_projects_only_closed_failure_from_returned_fake_child(tmp_path,monkeypatch,mutation):
+    reply={'protocol':'ci-chromium-failure-v1','status':'UNKNOWN','failure_phase':'root-worker','failure_stage':'source'}
+    code=2
+    if mutation=='extra':reply['raw']='CANARY_SECRET'
+    elif mutation in ('phase','stage','status'):reply['failure_'+mutation if mutation!='status' else 'status']='CANARY_SECRET'
+    elif mutation=='code':code=1
+    elif mutation=='bool_code':code=True
+    raw=json.dumps(reply).encode()
+    if mutation=='duplicate':raw=raw[:-1]+b',"failure_stage":"source"}'
+    class Process:
+        stdin=io.BytesIO();stdout=io.BytesIO(raw)
+        def wait(self,timeout):return code
+    monkeypatch.setattr(setup,'host_guard',lambda:None);monkeypatch.setenv('RUNNER_TEMP',str(tmp_path))
+    monkeypatch.setattr(setup.subprocess,'Popen',lambda *a,**kw:Process())
+    with pytest.raises(setup.Refused) as error:setup.prepare()
+    if mutation=='none':assert type(error.value) is setup.StagedFailure and error.value.value==reply
+    else:assert type(error.value) is not setup.StagedFailure
+    assert 'CANARY_SECRET' not in str(error.value) and len(list(tmp_path.iterdir()))==1
+
+
+def test_main_keeps_success_exact_four_keys_and_failure_only_fixed_stages(monkeypatch,capsys):
+    success={'status':'ready','children_closed':True,'source_restored':True,'keyring':fake_keyring_receipt()}
+    monkeypatch.setattr(setup.sys,'argv',['fixed-helper']);monkeypatch.setattr(setup,'prepare',lambda:success)
+    assert setup.main()==0 and json.loads(capsys.readouterr().out)==success
+    def fail():
+        setup.entering('parent','host');raise RuntimeError('CANARY_SECRET_PATH_URI')
+    monkeypatch.setattr(setup,'prepare',fail)
+    assert setup.main()==2
+    value=json.loads(capsys.readouterr().out)
+    assert setup.failure_valid(value,2) and value['failure_stage']=='host' and 'CANARY' not in json.dumps(value)
 
 
 def fake_keyring_receipt():

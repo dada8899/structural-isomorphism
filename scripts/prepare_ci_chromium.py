@@ -32,6 +32,15 @@ SOURCE = Path('/etc/apt/sources.list.d/ubuntu.sources')
 KEYRING = Path('/usr/share/keyrings/ubuntu-archive-keyring.gpg')
 COMMAND = ('-m', 'playwright', 'install', '--with-deps', 'chromium')
 TOTAL_SECONDS = 100
+SOURCE_PROFILE_BYTES = 2995
+SOURCE_PROFILE_SHA = '4508181e0dd5578c33d1247db48ab4847910b25da85e0789c8e7b3140d1fb289'
+FIXED_ARCHIVE_URI = 'https://archive.ubuntu.com/ubuntu'
+FAILURE_PROTOCOL = 'ci-chromium-failure-v1'
+FAILURE_STAGES = {
+    'parent': ('entry', 'host', 'request', 'launch', 'response', 'retirement'),
+    'root-worker': ('entry', 'request', 'sdk', 'subreaper', 'keyring', 'source', 'install', 'retirement'),
+}
+_failure_phase, _failure_stage = 'parent', 'entry'
 KEYRING_PROFILE = 'ubuntu-noble-archive-pinned-v1'
 KEYRING_SHA = '80a36b0a6de2f69f49d2df75ef473ccde121e9e190b9ea01d20a4f63778d5c31'
 KEYRING_BYTES = 3607
@@ -57,9 +66,47 @@ def require(condition):
         raise Refused('ci_chromium_setup_refused')
 
 
+def failure_record(phase, stage):
+    require(type(phase) is str and phase in FAILURE_STAGES
+            and type(stage) is str and stage in FAILURE_STAGES[phase])
+    return {'protocol': FAILURE_PROTOCOL, 'status': 'UNKNOWN', 'failure_phase': phase, 'failure_stage': stage}
+
+
+def failure_valid(value, code):
+    return (type(code) is int and code == 2 and type(value) is dict
+            and set(value) == {'protocol', 'status', 'failure_phase', 'failure_stage'}
+            and value['protocol'] == FAILURE_PROTOCOL and value['status'] == 'UNKNOWN'
+            and type(value['failure_phase']) is str and value['failure_phase'] in FAILURE_STAGES
+            and type(value['failure_stage']) is str and value['failure_stage'] in FAILURE_STAGES[value['failure_phase']])
+
+
+def entering(phase, stage):
+    global _failure_phase, _failure_stage
+    failure_record(phase, stage)
+    _failure_phase, _failure_stage = phase, stage
+
+
+class StagedFailure(Refused):
+    def __init__(self, value):
+        require(failure_valid(value, 2))
+        super().__init__('ci_chromium_failure')
+        self.value = value
+
+
+def strict_json(raw):
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            require(key not in result)
+            result[key] = value
+        return result
+    return json.loads(raw, object_pairs_hook=pairs)
+
+
 def mirror_source(raw: bytes, effective=None) -> bytes:
     """Accept only the fixed Noble deb822 fields; preserve all non-URI bytes."""
     require(type(raw) is bytes and 0 < len(raw) <= 16384)
+    pinned = len(raw) == SOURCE_PROFILE_BYTES and hashlib.sha256(raw).hexdigest() == SOURCE_PROFILE_SHA
     try:
         text = raw.decode('utf-8')
     except UnicodeError:
@@ -86,9 +133,12 @@ def mirror_source(raw: bytes, effective=None) -> bytes:
         if name == 'URIs':
             require(len(fields[name]) == 1)
             uri = fields[name][0]
-            require(uri in ('http://azure.archive.ubuntu.com/ubuntu',
-                            'http://azure.archive.ubuntu.com/ubuntu/'))
-            mapped = 'https://archive.ubuntu.com/ubuntu' + ('/' if uri.endswith('/') else '')
+            azure = uri in ('http://azure.archive.ubuntu.com/ubuntu',
+                           'http://azure.archive.ubuntu.com/ubuntu/')
+            # The exact complete input pin grants no network authority. Its URI
+            # is opaque data; both destination and keyring are independently fixed.
+            require(azure or pinned and len(uri) <= 2048)
+            mapped = FIXED_ARCHIVE_URI + ('/' if azure and uri.endswith('/') else '')
             replacements.append((index, line.replace(uri, mapped, 1)))
         elif name == 'Signed-By' and effective is not None:
             require(fields[name] == [str(KEYRING)])
@@ -421,6 +471,7 @@ def install_with_lease(lease, request, account, deadline, stopped):
 
 
 def root_worker(request):
+    entering('root-worker', 'request')
     require(os.geteuid() == 0)
     uid, gid = int(os.environ.get('SUDO_UID', '0')), int(os.environ.get('SUDO_GID', '0'))
     os.environ.clear()
@@ -435,8 +486,10 @@ def root_worker(request):
             and info.st_uid == uid and stat.S_IMODE(info.st_mode) == 0o700)
     deadline = request['deadline']
     require(type(deadline) is float and math.isfinite(deadline) and 20 < deadline - time.monotonic() <= TOTAL_SECONDS)
+    entering('root-worker', 'sdk')
     sdk_profile()
     # Root-only subreaper ownership survives sudo's own process-group choices.
+    entering('root-worker', 'subreaper')
     require(hasattr(os, 'pidfd_open') and hasattr(signal, 'pidfd_send_signal'))
     require(ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) == 0)
     probe = os.pidfd_open(os.getpid())
@@ -444,6 +497,7 @@ def root_worker(request):
         signal.pidfd_send_signal(probe, 0)
     finally:
         os.close(probe)
+    entering('root-worker', 'keyring')
     trust = PinnedArchiveKeyring(deadline)
     recovery = None
     try:
@@ -455,8 +509,11 @@ def root_worker(request):
         try:
             try:
                 trust.require()
+                entering('root-worker', 'source')
                 lease = SourceLease(SOURCE, recovery / 'ubuntu.sources.backup',effective=trust)
+                entering('root-worker', 'install')
                 result = install_with_lease(lease, request, account, deadline, stopped)
+                entering('root-worker', 'retirement')
                 lease._verify(lease.original,False)
                 result['keyring']=trust.retire(result['source_restored'],result['children_closed'],lease.signed_by_bound)
                 require(keyring_receipt_ok(result['keyring'],bound=result['status']=='ready'))
@@ -491,8 +548,10 @@ def host_guard():
 
 
 def prepare():
+    entering('parent', 'host')
     deadline = time.monotonic() + TOTAL_SECONDS
     host_guard()
+    entering('parent', 'request')
     directory = Path(os.environ['RUNNER_TEMP'])
     require(directory.is_absolute() and directory == directory.resolve() and directory.stat().st_uid == os.getuid())
     temporary = Path(tempfile.mkdtemp(prefix='structure-ci-chromium-user-', dir=directory))
@@ -500,6 +559,7 @@ def prepare():
     request = {'uid': os.getuid(), 'gid': os.getgid(), 'python': sys.executable,
                'cache': str(Path(pwd.getpwuid(os.getuid()).pw_dir) / '.cache/ms-playwright'),
                'temporary': str(temporary), 'deadline': deadline}
+    entering('parent', 'launch')
     try:
         process = subprocess.Popen(['/usr/bin/sudo', '-n', '--', sys.executable, '-I', '-B',
                                     str(Path(__file__).resolve()), '--root-worker'],
@@ -517,13 +577,19 @@ def prepare():
         except BaseException:
             process.stdin.close()  # The privileged controller owns termination.
             raise CleanupUnknown('ci_chromium_cleanup_unknown') from None
+        entering('parent', 'response')
         output = process.stdout.read(8193)
         require(len(output) <= 8192 and time.monotonic() < deadline)
-        result = json.loads(output)
+        result = strict_json(output)
+        require(type(code) is int)
+        if failure_valid(result, code):
+            require(result['failure_phase'] == 'root-worker')
+            raise StagedFailure(result)
         require(type(result) is dict and set(result) == {'status', 'children_closed', 'source_restored','keyring'})
         require((code, result['status']) in ((0, 'ready'), (1, 'failed')))
         require(result['children_closed'] is True and result['source_restored'] is True)
         require(keyring_receipt_ok(result['keyring'],bound=result['status']=='ready'))
+        entering('parent', 'retirement')
         require(identity(temporary.lstat()) == temporary_identity and temporary == temporary.resolve())
         require(shutil.rmtree.avoids_symlink_attacks and time.monotonic() < deadline)
         shutil.rmtree(temporary)
@@ -538,19 +604,22 @@ def prepare():
 
 
 def main():
+    entering('root-worker' if sys.argv[1:] == ['--root-worker'] else 'parent', 'entry')
     try:
         if sys.argv[1:] == ['--root-worker']:
             raw = sys.stdin.buffer.readline(4097)
             require(len(raw) <= 4096 and raw.endswith(b'\n'))
-            result = root_worker(json.loads(raw))
+            result = root_worker(strict_json(raw))
         else:
             require(not sys.argv[1:])
             result = prepare()
     except BaseException as error:
-        result = {'status': 'cleanup_unknown', 'children_closed': False, 'source_restored': False}
-        if type(error) is CleanupUnknown and error.recovery is not None:
-            result['recovery_ref'] = error.recovery
+        result = (error.value if type(error) is StagedFailure and failure_valid(error.value, 2)
+                  else failure_record(_failure_phase, _failure_stage))
         print(json.dumps(result))
+        return 2
+    if result['status'] != 'ready':
+        print(json.dumps(failure_record(_failure_phase, _failure_stage)))
         return 2
     print(json.dumps(result, sort_keys=True))
     return 0 if result['status'] == 'ready' else 1
