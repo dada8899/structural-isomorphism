@@ -305,7 +305,7 @@
     ]
   },
   "web/backend/research/paid_provider_session.py": {
-    "current_sha256": "fd6b55f9672ef3012a7161955f341df266ef635580220648e11aa1896e29ac85",
+    "current_sha256": "a05a3780c500374cf28c2e1acb9e6420fa913dbd46555b653771d75dc990b483",
     "hunks": [
       [
         422,
@@ -1298,11 +1298,11 @@
     "original_sha256": "744c196ef6b9cb9c3b6fab2140b966e3b52b4859fafb11ef23a5982d371d2885"
   },
   "web/backend/schemas.py": {
-    "current_sha256": "63c42017698b16023f971c691d7922900f6fe4b6a39bb36c860de89135f73614",
+    "current_sha256": "6ace022157e54c32509e300c0b116a70361685530ee1cf4affd5c7bdb522eca4",
     "hunks": [
       [
         1728,
-        1895,
+        1912,
         ""
       ]
     ],
