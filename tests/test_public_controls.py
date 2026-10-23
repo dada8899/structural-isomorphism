@@ -492,7 +492,7 @@ def _assert_ci_chromium_runner(job):
 
 
 def test_phase_auth_browser_job_installs_canonical_runtime_logging() -> None:
-    job = _ci_job("browser-product-contract")
+    job = _ci_job("browser-identity-consent-contract")
     _assert_ci_chromium_runner(job)
     install_step = _named_ci_step(job, "Install browser test dependencies")
     _assert_ci_chromium_setup(install_step, (ROOT/'scripts/prepare_ci_chromium.py').read_bytes())
@@ -841,6 +841,7 @@ def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
         "site-docs-contract",
         "phase-python-contract",
         "browser-product-contract",
+        "browser-identity-consent-contract",
         "browser-beta-surface-contract",
         "browser-evidence-method-contract",
         "browser-financial-registry-contract",
@@ -2270,7 +2271,7 @@ def test_hard_browser_gate_has_one_make_and_ci_contract_list() -> None:
         "web/tests/e2e/test_phase_auth_real.py",
         "web/tests/e2e/test_cookie_consent.py",
     ]
-    phase_job = _ci_job("browser-product-contract")
+    phase_job = _ci_job("browser-identity-consent-contract")
     assert "if" not in phase_job
     assert not any(
         "if" in step
