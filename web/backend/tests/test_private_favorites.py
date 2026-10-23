@@ -774,7 +774,8 @@ def test_queued_real_process_write_revalidates_after_account_delete(stack, nativ
         with queued_deletion_context():
             process = subprocess.Popen(child_command(state, 'queued-write', client.cookies.get('phase_session'), 'MSFT', ready, go),
                 env=child_env(state), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            await_ready([process], [ready]);go.write_text('go')
+            await_ready([process], [ready])
+        go.write_text('go')
         result = finish_child(process)
         print('FAVORITES_QUEUED_RESULT:' + json.dumps(result))
         assert result['status'] == 401 and result['native'] == result['closed']
