@@ -74,6 +74,53 @@ MAIN_SURFACE_STEP = {
     'run': 'pytest -p no:logging ${{ matrix.pytest_args_main }} -m "e2e and not requires_internet" -v',
 }
 
+IDENTITY_CONSENT_JOB = 'browser-identity-consent-contract'
+IDENTITY_CONSENT_STEPS = [
+    {'name': 'Verify real Next auth, failure states, mobile controls and axe',
+     'run': 'pytest web/tests/e2e/test_phase_auth_real.py -v'},
+    {'name': 'Verify consent-gated official analytics transport',
+     'run': 'pytest web/tests/e2e/test_cookie_consent.py -v'},
+]
+HEADER_SCROLL_STEPS = [
+    {'name': 'Verify header scroll JavaScript trust contract',
+     'run': 'node web/frontend/tests/test_headerScroll.js'},
+    {'name': 'Verify complete header scroll browser contract',
+     'run': 'pytest tests/e2e/test_header_scroll.py -v'},
+]
+
+
+def original_ci_before_identity_consent(value: dict, *, manifest=None) -> dict:
+    """Reverse one exact job split and hard edge before any golden comparison."""
+    original = copy.deepcopy(value)
+    jobs = original['jobs']
+    product_steps = jobs['browser-product-contract']['steps']
+    assert len(product_steps) == 9, 'product keeps its complete runtime, FIN1 and public steps'
+    assert product_steps[4] == FINANCIAL_PREVIEW_BROWSER_STEP
+    assert product_steps[-1] == {
+        'name': 'Verify the current public research entry journey',
+        'run': PUBLIC_ENTRY_RUN.replace('pytest ', 'pytest -p no:logging ', 1),
+    }, 'original public selector/logging must remain exact'
+    assert [step.get('uses', step.get('name')) for step in product_steps[5:8]] == [
+        'pnpm/action-setup@v4', 'actions/setup-node@v4', 'Install Phase dependencies']
+    expected = {'name': 'browser identity and consent contract (local, fail-closed)',
+        'runs-on': 'ubuntu-24.04', 'timeout-minutes': 8,
+        'steps': copy.deepcopy(product_steps[:4] + product_steps[5:8]
+                               + IDENTITY_CONSENT_STEPS + HEADER_SCROLL_STEPS)}
+    # Canonical JSON also rejects numeric-type drift in timeout and tool pins.
+    assert json.dumps(jobs.pop(IDENTITY_CONSENT_JOB), sort_keys=True) == json.dumps(expected, sort_keys=True), (
+        'identity/consent hard job, setup pins or full-file consumers changed')
+    needs = jobs['release-gate-summary']['needs']
+    assert needs.count(IDENTITY_CONSENT_JOB) == 1
+    assert needs.index(IDENTITY_CONSENT_JOB) == needs.index('browser-product-contract') + 1
+    if manifest is None:
+        manifest = json.loads((ROOT / '.github/release-gate-manifest.json').read_text())
+    assert manifest['ci_aggregator']['workflow'] == '.github/workflows/ci.yml'
+    assert manifest['ci_aggregator']['job'] == 'release-gate-summary'
+    assert manifest['ci_aggregator']['needs'] == needs, 'manifest must bind the same exact hard edge'
+    needs.remove(IDENTITY_CONSENT_JOB)
+    product_steps.extend(copy.deepcopy(IDENTITY_CONSENT_STEPS))
+    return original
+
 
 def original_browser_surface_job(body: dict) -> dict:
     """Reverse only the fixed public-file subprocess and its one matrix port."""
@@ -342,6 +389,7 @@ def original_ci_before_financial_registry(value: dict) -> dict:
 
 
 def assert_existing_jobs_unchanged(value: dict) -> None:
+    value = original_ci_before_identity_consent(value)
     value = original_ci_before_financial_registry(value)
     value = original_ci_before_evidence_method(value)
     for name, expected in BASELINE_JOB_DIGESTS.items():
@@ -410,8 +458,93 @@ def test_optional_existing_checks_keep_scoped_paths_and_gain_branches(name):
 def test_existing_hard_work_and_aggregator_are_preserved():
     value = workflow("ci.yml")
     assert_existing_jobs_unchanged(value)
-    original = original_ci_before_evidence_method(original_ci_before_financial_registry(value))
+    original = original_ci_before_evidence_method(original_ci_before_financial_registry(
+        original_ci_before_identity_consent(value)))
     assert original["jobs"]["release-gate-summary"]["needs"] == list(BASELINE_JOB_DIGESTS)[:-1]
+
+
+def test_identity_consent_split_restores_exact_old_steps_before_immutable_goldens():
+    value = workflow('ci.yml')
+    original = original_ci_before_identity_consent(value)
+    assert original['jobs']['browser-product-contract']['steps'][-2:] == IDENTITY_CONSENT_STEPS
+    assert IDENTITY_CONSENT_JOB not in original['jobs']
+    assert IDENTITY_CONSENT_JOB not in original['jobs']['release-gate-summary']['needs']
+    assert value['jobs']['browser-product-contract']['timeout-minutes'] == 8
+    assert value['jobs'][IDENTITY_CONSENT_JOB]['timeout-minutes'] == 8
+    assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('mutation', [
+    'job_missing', 'job_if', 'job_soft', 'step_if', 'step_soft',
+    'auth_missing', 'consent_missing', 'header_node_missing', 'header_browser_missing',
+    'auth_duplicate', 'header_duplicate', 'header_node_path', 'header_browser_partial',
+    'header_browser_marker', 'auth_partial', 'consent_shell', 'runtime_pin',
+    'runtime_smoke', 'node_pin', 'pnpm_pin', 'phase_install', 'timeout',
+    'numeric_timeout', 'runner', 'need_missing', 'need_duplicate', 'need_order',
+    'manifest_missing', 'manifest_duplicate', 'manifest_wrong_edge',
+    'product_duplicate', 'copied_both_pin',
+])
+def test_identity_consent_hard_split_rejects_missing_soft_partial_or_drifted_work(mutation):
+    value = workflow('ci.yml')
+    manifest = json.loads((ROOT / '.github/release-gate-manifest.json').read_text())
+    jobs = value['jobs']; job = jobs[IDENTITY_CONSENT_JOB]
+    steps = job['steps']; needs = jobs['release-gate-summary']['needs']
+    if mutation == 'job_missing': jobs.pop(IDENTITY_CONSENT_JOB)
+    elif mutation == 'job_if': job['if'] = 'always()'
+    elif mutation == 'job_soft': job['continue-on-error'] = True
+    elif mutation == 'step_if': steps[-1]['if'] = 'false'
+    elif mutation == 'step_soft': steps[-1]['continue-on-error'] = True
+    elif mutation in ('auth_missing', 'consent_missing', 'header_node_missing', 'header_browser_missing'):
+        steps.pop({'auth_missing': 7, 'consent_missing': 8,
+                   'header_node_missing': 9, 'header_browser_missing': 10}[mutation])
+    elif mutation == 'auth_duplicate': steps.append(copy.deepcopy(steps[7]))
+    elif mutation == 'header_duplicate': steps.append(copy.deepcopy(steps[-1]))
+    elif mutation == 'header_node_path': steps[9]['run'] = 'node web/frontend/tests/test_sidebar.js'
+    elif mutation == 'header_browser_partial': steps[10]['run'] += ' -k home'
+    elif mutation == 'header_browser_marker': steps[10]['run'] += ' -m smoke'
+    elif mutation == 'auth_partial': steps[7]['run'] += ' -k smoke'
+    elif mutation == 'consent_shell': steps[8]['run'] += ' || true'
+    elif mutation in ('runtime_pin', 'copied_both_pin'):
+        steps[2]['run'] = steps[2]['run'].replace('playwright==1.59.0', 'playwright==1.58.0')
+        if mutation == 'copied_both_pin':
+            product = jobs['browser-product-contract']['steps'][2]
+            product['run'] = product['run'].replace('playwright==1.59.0', 'playwright==1.58.0')
+    elif mutation == 'runtime_smoke': steps[3]['run'] = steps[3]['run'].replace('import main', 'import types as main')
+    elif mutation == 'node_pin': steps[5]['with']['node-version'] = '22'
+    elif mutation == 'pnpm_pin': steps[4]['with']['version'] = 9
+    elif mutation == 'phase_install': steps[6]['run'] = 'pnpm install'
+    elif mutation == 'timeout': job['timeout-minutes'] = 9
+    elif mutation == 'numeric_timeout': job['timeout-minutes'] = 8.0
+    elif mutation == 'runner': job['runs-on'] = 'ubuntu-latest'
+    elif mutation == 'need_missing': needs.remove(IDENTITY_CONSENT_JOB)
+    elif mutation == 'need_duplicate': needs.append(IDENTITY_CONSENT_JOB)
+    elif mutation == 'need_order': needs.remove(IDENTITY_CONSENT_JOB); needs.append(IDENTITY_CONSENT_JOB)
+    elif mutation == 'manifest_missing': manifest['ci_aggregator']['needs'].remove(IDENTITY_CONSENT_JOB)
+    elif mutation == 'manifest_duplicate': manifest['ci_aggregator']['needs'].append(IDENTITY_CONSENT_JOB)
+    elif mutation == 'manifest_wrong_edge': manifest['ci_aggregator']['needs'].remove(IDENTITY_CONSENT_JOB); manifest['ci_aggregator']['needs'].append('browser-identity-consent-optional')
+    else: jobs['browser-product-contract']['steps'].extend(copy.deepcopy(IDENTITY_CONSENT_STEPS))
+    with pytest.raises((AssertionError, KeyError)):
+        original_ci_before_identity_consent(value, manifest=manifest)
+        assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('identity_result', ['success', 'failure', 'cancelled', 'skipped', 'missing', 'extra'])
+def test_actual_release_summary_requires_the_new_identity_job_success(tmp_path, identity_result):
+    manifest = json.loads((ROOT / '.github/release-gate-manifest.json').read_text())
+    (tmp_path / '.github').mkdir()
+    (tmp_path / '.github/release-gate-manifest.json').write_text(json.dumps(manifest))
+    results = {name: {'result': 'success'} for name in manifest['ci_aggregator']['needs']}
+    if identity_result == 'missing': results.pop(IDENTITY_CONSENT_JOB)
+    elif identity_result == 'extra': results['unreviewed-extra-job'] = {'result': 'success'}
+    else: results[IDENTITY_CONSENT_JOB]['result'] = identity_result
+    step = workflow('ci.yml')['jobs']['release-gate-summary']['steps'][-1]
+    script = step['run'].split("python - <<'PY'\n", 1)[1].rsplit('\nPY', 1)[0]
+    result = subprocess.run([os.sys.executable, '-B', '-c', script], cwd=tmp_path,
+        env={'PATH': os.environ['PATH'], 'REQUIRED_RESULTS': json.dumps(results)},
+        capture_output=True, text=True, timeout=5)
+    assert (result.returncode == 0) is (identity_result == 'success')
+    if identity_result == 'success':
+        assert result.stdout.strip() == 'all CI-internal release dependencies succeeded'
 
 
 @pytest.mark.parametrize("mutation", ["remove-job", "empty-steps", "soften", "conditional"])
