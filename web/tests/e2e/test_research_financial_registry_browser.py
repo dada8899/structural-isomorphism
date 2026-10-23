@@ -59,6 +59,7 @@ async def minimum_chain(tmp_path):
         assert saved['metadata']['research_version_after']==saved['metadata']['research_version_before']+1
         await expect(page.locator('#financial-registry-selection')).to_contain_text('尚未选择')
         await expect(page.locator('#financial-registry-detail')).to_contain_text('1e+02')
+        await expect(page.locator('#financial-registry-detail')).to_contain_text('USD · 百万（million）')
         await expect(page.locator('#financial-registry-detail')).to_contain_text('缺失／争议，未按0处理')
         await expect(page.locator('#financial-registry-detail')).to_contain_text('é reported')
         await expect(page.locator('#financial-registry-detail img,#financial-registry-detail a')).to_have_count(0)

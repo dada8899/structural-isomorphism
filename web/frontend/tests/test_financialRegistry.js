@@ -78,7 +78,7 @@ test('historical flag and pagination use original refs and do not treat higher v
 test('double confirm sends once, verifies GET, leaves original editor and no automatic selection',async()=>{
  const f=await fixture();let resolve;const gate=new Promise(r=>{resolve=r;});let posts=0;const r=runtime(async(url,options)=>{if(options.method==='POST'){posts++;await gate;r.root(4);return response(f.confirm);}return response(f.read);});await prepare(r,f);
  const wait=r.controller.confirm();await new Promise(resolve=>setImmediate(resolve));await r.controller.confirm();resolve();await wait;
- assert.equal(posts,1);assert.equal(r.requests.length,2);assert.match(r.el('status').textContent,/已保存并核对读回/);assert.equal(r.scope.version,3);assert.equal(r.controller.getSelectedRegistry(),null);r.controller.choose();assert.ok(r.controller.getSelectedRegistry());assert.equal(Object.isFrozen(r.controller.getSelectedRegistry()),true);assert.match(r.el('detail').textContent,/缺失／争议，未按0处理/);assert.equal(r.el('detail').querySelectorAll('img').length,0);
+ assert.equal(posts,1);assert.equal(r.requests.length,2);assert.match(r.el('status').textContent,/已保存并核对读回/);assert.equal(r.scope.version,3);assert.equal(r.controller.getSelectedRegistry(),null);r.controller.choose();assert.ok(r.controller.getSelectedRegistry());assert.equal(Object.isFrozen(r.controller.getSelectedRegistry()),true);assert.match(r.el('detail').textContent,/缺失／争议，未按0处理/);assert.match(r.el('detail').textContent,/USD · 百万（million）/);assert.doesNotMatch(r.el('detail').textContent,/USD · 百万元/);assert.equal(r.el('detail').querySelectorAll('img').length,0);
  assert.equal(r.storage.values.size,0);
 });
 
