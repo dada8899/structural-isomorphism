@@ -2241,7 +2241,9 @@ def test_hard_browser_gate_has_one_make_and_ci_contract_list() -> None:
         "Verify consent-gated official analytics transport"
     ]
 
-    assert _make_recipe_commands(_original_makefile_before_backend_isolation(makefile), "verify-release") == [
+    original = _original_makefile_before_evidence_method(
+        _original_makefile_before_financial_registry_browser(makefile))
+    assert _make_recipe_commands(_original_makefile_before_backend_isolation(original), "verify-release") == [
         "$(MAKE) python-syntax-check",
         "$(MAKE) openapi-check",
         "$(MAKE) types-check",

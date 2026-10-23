@@ -359,7 +359,8 @@ def test_optional_existing_checks_keep_scoped_paths_and_gain_branches(name):
 def test_existing_hard_work_and_aggregator_are_preserved():
     value = workflow("ci.yml")
     assert_existing_jobs_unchanged(value)
-    assert value["jobs"]["release-gate-summary"]["needs"] == list(BASELINE_JOB_DIGESTS)[:-1]
+    original = original_ci_before_evidence_method(original_ci_before_financial_registry(value))
+    assert original["jobs"]["release-gate-summary"]["needs"] == list(BASELINE_JOB_DIGESTS)[:-1]
 
 
 @pytest.mark.parametrize("mutation", ["remove-job", "empty-steps", "soften", "conditional"])
