@@ -114,7 +114,7 @@
     function reset(){invalidate('',true);state.scope=null;state.busy=false;state.operation=null;state.meta=null;state.catalog.clear();el('task').replaceChildren();el('history').replaceChildren();el('pending').replaceChildren();el('section').hidden=true;}
     function observe(){const s=getScope(),scope=stamp(s);if(state.scope!==scope){reset();state.scope=scope;if(s.account&&s.rid)recoverPending().then(sync).catch(()=>{});}if(state.preview&&(s.version!==state.previewBasis?.pageVersion||s.dirty||s.readonly))invalidate('问题或保存版本已变化，请重新预览；原确认操作保持不变。');sync();}
     function sync(){const s=getScope(),locked=state.busy||s.busy,blocked=!s.rid||s.dirty||s.readonly||!s.visible;
-      el('section').hidden=!s.visible;el('context').textContent=s.rid?`当前问题修订 ${s.revision} · 选材与人工草稿分别保存`:'先保存并核对问题，再选择已存短引。';
+      el('section').hidden=!s.visible;el('context').textContent=s.rid?`当前问题修订 ${s.revision} · 本次选材独立于人工草稿；离开页面后需重新选择`:'先保存并核对问题，再选择已存短引。';
       el('tasks').disabled=locked||blocked;el('more-tasks').hidden=!state.catalogCursor;el('more-tasks').disabled=locked||blocked;el('task').disabled=locked||blocked;el('read-materials').disabled=locked||blocked||!el('task').value;
       el('preview').disabled=locked||blocked||state.selected.size<1||state.selected.size>8||Boolean(state.operation&&!state.operation.resolved);
       const p=state.preview;el('consent').disabled=locked||blocked||!p?.can_confirm||p.expires_at*1000<=Date.now();el('confirm').disabled=el('consent').disabled||!el('consent').checked||Boolean(state.operation&&!state.operation.resolved);
