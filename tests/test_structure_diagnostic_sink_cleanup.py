@@ -151,11 +151,11 @@ class NavigationObserverControls(unittest.TestCase):
     class TimeoutError(Exception): pass
     CANARY='SECRET_CANARY_do_not_export_cookie_password_token'
 
-    def bind(self, behavior, writer=None):
+    def bind(self, behavior, writer=None, error_type=None, timeout_type=None):
         class Target:
             def goto(self,*args,**kwargs):return behavior(*args,**kwargs)
         target=Target(); c=capture(); writer=writer or Writer()
-        collector.bind_navigation_observer(target,writer,c,time.monotonic()+120,self.Error,self.TimeoutError)
+        collector.bind_navigation_observer(target,writer,c,time.monotonic()+120,error_type or self.Error,timeout_type or self.TimeoutError)
         return target,writer,c
 
     def record(self,writer):
@@ -233,6 +233,45 @@ class NavigationObserverControls(unittest.TestCase):
         self.assertIs(raised.exception,error);self.assertIn('navigation_observer_receipt_unknown',c.errors)
         response=object();target,writer,c=self.bind(lambda *a,**k:response,BrokenWriter())
         self.assertIs(target.goto('ignored'),response);self.assertIn('navigation_observer_receipt_unknown',c.errors)
+
+    def test_receipt_cancellation_wins_with_real_sdk_error_and_safe_primary(self):
+        from playwright.sync_api import Error as SDKError, TimeoutError as SDKTimeout
+        for cancellation in (KeyboardInterrupt(self.CANARY),SystemExit(self.CANARY)):
+            with self.subTest(cancellation=type(cancellation).__name__):
+                original=SDKError('Page.goto: net::ERR_ABORTED at https://example.invalid/'+self.CANARY)
+                class CancelWriter(Writer):
+                    def write_json(self,name,value,**kwargs):
+                        self.attempted=copy.deepcopy(value)
+                        raise cancellation
+                calls=[]
+                def goto(*args,**kwargs):calls.append((args,kwargs));raise original
+                target,writer,c=self.bind(goto,CancelWriter(),SDKError,SDKTimeout)
+                caught=None
+                try:target.goto('synthetic-local-only',wait_until='domcontentloaded',timeout=30000)
+                except BaseException as raised:caught=raised
+                self.assertTrue(caught is cancellation,'receipt cancellation identity must take priority')
+                self.assertTrue(caught.__context__ is original,'original SDK exception identity must remain in context')
+                self.assertEqual(len(calls),1)
+                self.assertEqual(c.primary_failure,{'stage':'navigation','error':'navigation_failed','error_detail':{'code':'navigation_failed','type':'Error'}})
+                self.assertIn('navigation_observer_receipt_unknown',c.errors)
+                raw=json.dumps({'attempted':writer.attempted,'primary':c.primary_failure,'errors':c.errors})
+                self.assertNotIn(self.CANARY,raw)
+                self.assertNotIn('https://',raw)
+                self.assertNotIn('traceback',raw)
+
+    def test_real_sdk_error_keeps_identity_for_ordinary_receipt_failure(self):
+        from playwright.sync_api import Error as SDKError, TimeoutError as SDKTimeout
+        original=SDKError('net::ERR_FAILED '+self.CANARY)
+        class BrokenWriter(Writer):
+            def write_json(self,*args,**kwargs):raise RuntimeError('synthetic receipt failure')
+        def goto(*args,**kwargs):raise original
+        target,writer,c=self.bind(goto,BrokenWriter(),SDKError,SDKTimeout)
+        caught=None
+        try:target.goto('synthetic-local-only',timeout=30000)
+        except BaseException as raised:caught=raised
+        self.assertTrue(caught is original,'ordinary receipt failure must preserve original SDK error identity')
+        self.assertIn('navigation_observer_receipt_unknown',c.errors)
+        self.assertEqual(writer.records,{})
 
     def test_expired_observer_budget_does_not_repeat_or_alter_goto(self):
         calls=[];response=object()

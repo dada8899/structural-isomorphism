@@ -199,7 +199,7 @@ def navigation_failure_category(error,error_type,timeout_type):
  return label,'other'
 def bind_navigation_observer(page,writer,capture,capture_deadline,error_type,timeout_type):
  original=page.goto;calls=0
- def publish(outcome,error=None,preserve_original=False):
+ def publish(outcome,error=None):
   try:
    need(calls==1)
    label,category=navigation_failure_category(error,error_type,timeout_type) if error is not None else (None,None)
@@ -208,13 +208,17 @@ def bind_navigation_observer(page,writer,capture,capture_deadline,error_type,tim
    bounded_action(capture_deadline,lambda:writer.write_json('navigation-outcome.json',record,control=True))
   except BaseException as observation_error:
    capture.error('navigation_observer_receipt_unknown')
-   if not preserve_original and isinstance(observation_error,(KeyboardInterrupt,SystemExit)):raise
+   if isinstance(observation_error,(KeyboardInterrupt,SystemExit)):
+    if error is not None and capture.primary_failure is None:
+     label='Error' if type(error) is error_type else 'TimeoutError' if type(error) is timeout_type else 'other'
+     capture.primary_failure={'stage':'navigation','error':'navigation_failed','error_detail':{'code':'navigation_failed','type':label}}
+    raise  # New cancellation wins; the original goto error stays in context.
  def observed(*args,**kwargs):
   nonlocal calls
   calls+=1
   try:value=original(*args,**kwargs)
   except BaseException as error:
-   publish('raised',error,preserve_original=True)
+   publish('raised',error)
    raise  # Preserve the exact original exception object and cancellation.
   publish('returned')
   return value
