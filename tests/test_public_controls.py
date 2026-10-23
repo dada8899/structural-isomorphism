@@ -842,6 +842,7 @@ def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
         "phase-python-contract",
         "browser-product-contract",
         "browser-beta-surface-contract",
+        "browser-evidence-method-contract",
         "backend",
         "packages",
         "frontend",
@@ -1739,17 +1740,17 @@ def _original_makefile_before_auth_bootstrap_browser(makefile: str) -> str:
 
 
 def _original_makefile_before_evidence_backend(makefile: str) -> str:
-    """Reverse only the four fixed Source/evidence/runtime Main consumers."""
+    """Reverse only the five fixed Source/evidence/runtime Main consumers."""
     prior_names=('test_formal_main_admission.py','test_formal_main_source_supervisor.py',
                  'test_research_financial_import.py','test_formal_model_startup.py',
                  'acceptance/test_source_history_fixture_current15.py','test_research_financial_registries.py')
     names=prior_names+('test_research_source_origin_history.py',
                        'test_research_evidence_method_plan.py','test_research_evidence_method_native.py',
-                       'test_plan_runtime_transport.py')
+                       'test_plan_runtime_transport.py','test_research_native_browser_service.py')
     commands=['cd web/backend && $(BACKEND_PYTEST)'+''.join(' --ignore=tests/'+n for n in names)+' -q']
     commands+=['cd web/backend && $(BACKEND_PYTEST) tests/'+n+' -p no:logging -q' for n in names]
     expanded=''.join('\t'+command+'\n' for command in commands)
-    assert makefile.count(expanded)==1, 'exact eleven-process evidence Make backend block missing or duplicated'
+    assert makefile.count(expanded)==1, 'exact twelve-process evidence Make backend block missing or duplicated'
     actual=[c for c in _make_recipe_commands(makefile,'verify-release') if c.startswith('cd web/backend ')]
     assert actual==commands, 'only the fixed evidence Make backend process split is allowed'
     prior=['cd web/backend && $(BACKEND_PYTEST)'+''.join(' --ignore=tests/'+n for n in prior_names)+' -q']
@@ -1805,7 +1806,27 @@ def _original_makefile_before_main_logging(makefile: str) -> str:
     return makefile.replace(split,original,1).replace(financial,financial.replace(' -p no:logging',''),1)
 
 
+def _original_makefile_before_evidence_method(makefile: str) -> str:
+    additions = [
+        "\tweb/frontend/tests/test_evidenceMethodPlan.js " + chr(92) + "\n",
+        "EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS := " + chr(92) + "\n\tweb/tests/e2e/test_evidence_method_plan_browser.py\n\n",
+        "test-evidence-method-browser-contract:\n\t$(PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v\n\n",
+        '\t@echo "  test-evidence-method-browser-contract  Run all saved-evidence method browser cases"\n',
+        "\t$(MAKE) test-evidence-method-browser-contract\n",
+    ]
+    assert additions[0] in makefile
+    assert additions[1] + "PHASE_REAL_BROWSER_CONTRACT_TESTS :=" in makefile
+    assert additions[2] + "test-retrieval-contract:" in makefile
+    for addition in additions:
+        assert makefile.count(addition) == 1, "evidence method Make consumer missing or duplicated"
+        makefile = makefile.replace(addition, "", 1)
+    phony = ".PHONY: test-evidence-method-browser-contract test-financial-preview-browser-contract "
+    assert makefile.count(phony) == 1
+    return makefile.replace(phony, ".PHONY: test-financial-preview-browser-contract ", 1)
+
+
 def _original_makefile_without_financial_preview(makefile: str) -> str:
+    makefile = _original_makefile_before_evidence_method(makefile)
     makefile = _original_makefile_before_main_logging(makefile)
     # Only the exact approved new target/variable/help/phony token may differ.
     additions = [
@@ -1861,7 +1882,7 @@ def test_verify_release_dry_run_expands_real_test_and_build_commands() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     output = completed.stdout
-    assert output.count("python -m pytest") == 25
+    assert output.count("python -m pytest") == 27
     assert "scripts/check_python_syntax.py" in output
     assert "scripts/openapi_artifact.py --check" in output
     assert "PY=python bash scripts/check_ts_types.sh" in output
@@ -2745,7 +2766,8 @@ def test_fin2_Make_backend_consumers_cannot_be_omitted_or_partially_run(consumer
 @pytest.mark.parametrize('consumer', ['test_research_source_origin_history.py',
                                       'test_research_evidence_method_plan.py',
                                       'test_research_evidence_method_native.py',
-                                      'test_plan_runtime_transport.py'])
+                                      'test_plan_runtime_transport.py',
+                                      'test_research_native_browser_service.py'])
 @pytest.mark.parametrize('mutation', ['missing', 'missing_ignore', 'logging', 'partial_file'])
 def test_evidence_Make_backend_consumers_cannot_be_omitted_or_partially_run(consumer, mutation):
     makefile=(ROOT/'Makefile').read_text()
@@ -2757,3 +2779,37 @@ def test_evidence_Make_backend_consumers_cannot_be_omitted_or_partially_run(cons
     with pytest.raises(AssertionError):
         original=_original_makefile_without_financial_preview(makefile)
         assert hashlib.sha256(original.encode()).hexdigest()=='d10d21b2d90e07deb8f9219f663f511ea96d5532c7f97637213f67f51efb0b9b'
+
+
+def test_evidence_method_browser_is_one_complete_hard_consumer():
+    makefile = (ROOT / 'Makefile').read_text()
+    node_path = 'web/frontend/tests/test_evidenceMethodPlan.js'
+    browser_path = 'web/tests/e2e/test_evidence_method_plan_browser.py'
+    assert _make_path_list(makefile, 'EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS') == [browser_path]
+    assert _make_recipe_commands(makefile, 'test-evidence-method-browser-contract') == [
+        '$(PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v']
+    assert _make_recipe_commands(makefile, 'verify-release').count('$(MAKE) test-evidence-method-browser-contract') == 1
+    rows = _ci_matrix_rows(_ci_job('browser-beta-surface-contract'))
+    assert _ci_matrix_paths(rows, 'node_tests', NODE_PATH_PATTERN).count(node_path) == 1
+    job = _ci_job('browser-evidence-method-contract')
+    assert set(job) == {'name', 'runs-on', 'timeout-minutes', 'steps'}
+    assert job['runs-on'] == 'ubuntu-24.04' and job['timeout-minutes'] == 8
+    product = _ci_job('browser-product-contract')
+    assert job['steps'][:4] == product['steps'][:4]
+    assert job['steps'][4:] == [{'name': 'Verify evidence method selection and saved results',
+                               'run': 'make PY=python test-evidence-method-browser-contract'}]
+    assert 'browser-evidence-method-contract' in _ci_job('release-gate-summary')['needs']
+    assert node_path in _make_path_list(makefile, 'FRONTEND_NODE_TESTS')
+
+
+@pytest.mark.parametrize('mutation', ['missing_target','duplicate_target','logging','soft','path','verify_release'])
+def test_evidence_method_make_delta_rejects_weakened_or_missing_consumer(mutation):
+    value = (ROOT / 'Makefile').read_text()
+    target = 'test-evidence-method-browser-contract:\n\t$(PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v\n\n'
+    if mutation == 'missing_target': value = value.replace(target, '', 1)
+    elif mutation == 'duplicate_target': value += target
+    elif mutation == 'logging': value = value.replace(target, target.replace(' -p no:logging', ''), 1)
+    elif mutation == 'soft': value = value.replace(target, target.replace('\t$(PYTEST)', '\t-$(PYTEST)'), 1)
+    elif mutation == 'path': value = value.replace('web/tests/e2e/test_evidence_method_plan_browser.py', 'web/backend/tests/test_evidence_method_plan_browser.py', 1)
+    else: value = value.replace('\t$(MAKE) test-evidence-method-browser-contract\n', '', 1)
+    with pytest.raises(AssertionError): _original_makefile_without_financial_preview(value)

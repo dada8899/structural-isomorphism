@@ -9,6 +9,7 @@
       "phase-python-contract",
       "browser-product-contract",
       "browser-beta-surface-contract",
+      "browser-evidence-method-contract",
       "backend",
       "packages",
       "frontend"

@@ -114,6 +114,7 @@ EVIDENCE_BACKEND_FORMAL_FILES = (
     'test_research_evidence_method_plan.py',
     'test_research_evidence_method_native.py',
     'test_plan_runtime_transport.py',
+    'test_research_native_browser_service.py',
 )
 BACKEND_FORMAL_FILES = ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES + EVIDENCE_BACKEND_FORMAL_FILES
 
@@ -131,10 +132,10 @@ def backend_process_commands(*, coverage=False, before_fin2=False, before_eviden
 
 
 def _backend_script_before_evidence(script, *, coverage=False):
-    """Reverse exactly four actual Main consumers to the reviewed six-file split."""
+    """Reverse exactly five actual Main consumers to the reviewed six-file split."""
     commands = backend_process_commands(coverage=coverage)
     expanded = '\n'.join(commands)
-    assert script.count(expanded) == 1, 'exact eleven-process evidence backend block missing or duplicated'
+    assert script.count(expanded) == 1, 'exact twelve-process evidence backend block missing or duplicated'
     relevant = [line for line in script.splitlines() if line.startswith(
         'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
     assert relevant == commands, 'evidence backend groups must each run exactly once in the fixed order'
@@ -201,7 +202,42 @@ def original_browser_product_job(body: dict) -> dict:
     return original
 
 
+EVIDENCE_METHOD_JOB = 'browser-evidence-method-contract'
+EVIDENCE_METHOD_NODE = 'web/frontend/tests/test_evidenceMethodPlan.js'
+
+
+def original_ci_before_evidence_method(value: dict) -> dict:
+    original = copy.deepcopy(value)
+    jobs = original['jobs']
+    product = jobs['browser-product-contract']
+    expected = {'name': 'evidence method browser contract (local, fail-closed)',
+                'runs-on': 'ubuntu-24.04', 'timeout-minutes': 8,
+                'steps': copy.deepcopy(product['steps'][:4]) + [
+                    {'name': 'Verify evidence method selection and saved results',
+                     'run': 'make PY=python test-evidence-method-browser-contract'}]}
+    assert jobs.pop(EVIDENCE_METHOD_JOB) == expected, 'evidence browser hard job missing or softened'
+    rows = jobs['browser-beta-surface-contract']['strategy']['matrix']['include']
+    seen = 0
+    for row in rows:
+        tests = row['node_tests'].split()
+        if EVIDENCE_METHOD_NODE in tests:
+            assert row['shard'] == 'library-auth-reports-favorites' and tests.count(EVIDENCE_METHOD_NODE) == 1
+            assert tests[-1] == EVIDENCE_METHOD_NODE
+            # Literal suffix inverse preserves the existing job snapshot byte semantics.
+            suffix = ' ' + EVIDENCE_METHOD_NODE
+            assert row['node_tests'].endswith(suffix)
+            row['node_tests'] = row['node_tests'][:-len(suffix)]
+            seen += 1
+    assert seen == 1, 'one evidence Node consumer required'
+    needs = jobs['release-gate-summary']['needs']
+    assert needs.count(EVIDENCE_METHOD_JOB) == 1
+    assert needs.index(EVIDENCE_METHOD_JOB) == needs.index('browser-beta-surface-contract') + 1
+    needs.remove(EVIDENCE_METHOD_JOB)
+    return original
+
+
 def assert_existing_jobs_unchanged(value: dict) -> None:
+    value = original_ci_before_evidence_method(value)
     for name, expected in BASELINE_JOB_DIGESTS.items():
         body = value["jobs"][name]
         if name == "browser-product-contract":
@@ -1078,3 +1114,30 @@ def test_evidence_backend_consumers_cannot_be_omitted_or_partially_run(kind, con
     with pytest.raises(AssertionError):
         if kind == 'sanity': _assert_sanity_backend_dependency(value)
         else: _assert_research_coverage_closure(value, (ROOT / '.coveragerc').read_text())
+
+
+def test_evidence_method_exact_ci_delta_preserves_every_existing_job():
+    assert_existing_jobs_unchanged(workflow('ci.yml'))
+
+
+@pytest.mark.parametrize('mutation', ['job_missing','job_soft','job_if','step_soft','step_if','runner','timeout','path','sdk','need','node_duplicate','node_wrong_shard'])
+def test_evidence_method_hard_gate_rejects_drift(mutation):
+    value = copy.deepcopy(workflow('ci.yml'))
+    jobs = value['jobs']; job = jobs[EVIDENCE_METHOD_JOB]
+    if mutation == 'job_missing': jobs.pop(EVIDENCE_METHOD_JOB)
+    elif mutation == 'job_soft': job['continue-on-error'] = True
+    elif mutation == 'job_if': job['if'] = 'false'
+    elif mutation == 'step_soft': job['steps'][-1]['continue-on-error'] = True
+    elif mutation == 'step_if': job['steps'][-1]['if'] = 'false'
+    elif mutation == 'runner': job['runs-on'] = 'ubuntu-latest'
+    elif mutation == 'timeout': job['timeout-minutes'] = 9
+    elif mutation == 'path': job['steps'][-1]['run'] = 'pytest tests/e2e/test_full_public_surface.py -v'
+    elif mutation == 'sdk': job['steps'][2]['run'] = job['steps'][2]['run'].replace('playwright==1.59.0','playwright==1.58.0')
+    elif mutation == 'need': jobs['release-gate-summary']['needs'].remove(EVIDENCE_METHOD_JOB)
+    elif mutation == 'node_duplicate': jobs['browser-beta-surface-contract']['strategy']['matrix']['include'][2]['node_tests'] += ' ' + EVIDENCE_METHOD_NODE
+    else:
+        rows = jobs['browser-beta-surface-contract']['strategy']['matrix']['include']
+        rows[0]['node_tests'] += ' ' + EVIDENCE_METHOD_NODE
+        rows[2]['node_tests'] = rows[2]['node_tests'].replace(' ' + EVIDENCE_METHOD_NODE,'')
+    with pytest.raises((AssertionError,KeyError)):
+        assert_existing_jobs_unchanged(value)

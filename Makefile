@@ -23,6 +23,7 @@ FRONTEND_NODE_TESTS := \
 	web/frontend/tests/test_analyzeTrust.js \
 	web/frontend/tests/test_askTrust.js \
 	web/frontend/tests/test_buildAnalyzeUrl.js \
+	web/frontend/tests/test_evidenceMethodPlan.js \
 	web/frontend/tests/test_historyPrivacy.js \
 	web/frontend/tests/test_historySidebarPerformance.js \
 	web/frontend/tests/test_newsletterClosed.js \
@@ -59,11 +60,14 @@ BROWSER_CONTRACT_SECONDARY_WHITESPACE_TESTS := \
 FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS := \
 	web/tests/e2e/test_research_financial_preview_browser.py
 
+EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS := \
+	web/tests/e2e/test_evidence_method_plan_browser.py
+
 PHASE_REAL_BROWSER_CONTRACT_TESTS := \
 	web/tests/e2e/test_phase_auth_real.py \
 	web/tests/e2e/test_cookie_consent.py
 
-.PHONY: test-financial-preview-browser-contract test test-unit test-integration test-phase-python-contract test-e2e test-frontend-node test-browser-contracts test-retrieval-contract test-product-contracts test-release-contracts test-all test-fast openapi-env openapi-generate openapi-check types-check python-syntax-check llm-scaling-env llm-scaling-generate llm-scaling-check verify-release help
+.PHONY: test-evidence-method-browser-contract test-financial-preview-browser-contract test test-unit test-integration test-phase-python-contract test-e2e test-frontend-node test-browser-contracts test-retrieval-contract test-product-contracts test-release-contracts test-all test-fast openapi-env openapi-generate openapi-check types-check python-syntax-check llm-scaling-env llm-scaling-generate llm-scaling-check verify-release help
 
 help:
 	@echo "Targets:"
@@ -74,6 +78,7 @@ help:
 	@echo "  test-frontend-node  Run every vanilla frontend Node contract"
 	@echo "  test-browser-contracts  Run the hard browser contract suite"
 	@echo "  test-financial-preview-browser-contract  Run all temporary financial CSV preview browser cases"
+	@echo "  test-evidence-method-browser-contract  Run all saved-evidence method browser cases"
 	@echo "  test-retrieval-contract  Validate retrieval dataset, determinism, and OOS policy"
 	@echo "  test-product-contracts  Validate public controls, human-review tooling, and research claims"
 	@echo "  test-release-contracts  Run every offline root contract with backend imports enabled"
@@ -118,6 +123,9 @@ test-browser-contracts:
 
 test-financial-preview-browser-contract:
 	$(PYTEST) $(FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS) -p no:logging -v
+
+test-evidence-method-browser-contract:
+	$(PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v
 
 test-retrieval-contract:
 	$(BACKEND_PYTEST) web/backend/tests/test_retrieval_eval_dataset.py -q
@@ -174,7 +182,7 @@ verify-release:
 	$(MAKE) types-check
 	$(MAKE) llm-scaling-check
 	$(MAKE) test-fast
-	cd web/backend && $(BACKEND_PYTEST) --ignore=tests/test_formal_main_admission.py --ignore=tests/test_formal_main_source_supervisor.py --ignore=tests/test_research_financial_import.py --ignore=tests/test_formal_model_startup.py --ignore=tests/acceptance/test_source_history_fixture_current15.py --ignore=tests/test_research_financial_registries.py --ignore=tests/test_research_source_origin_history.py --ignore=tests/test_research_evidence_method_plan.py --ignore=tests/test_research_evidence_method_native.py --ignore=tests/test_plan_runtime_transport.py -q
+	cd web/backend && $(BACKEND_PYTEST) --ignore=tests/test_formal_main_admission.py --ignore=tests/test_formal_main_source_supervisor.py --ignore=tests/test_research_financial_import.py --ignore=tests/test_formal_model_startup.py --ignore=tests/acceptance/test_source_history_fixture_current15.py --ignore=tests/test_research_financial_registries.py --ignore=tests/test_research_source_origin_history.py --ignore=tests/test_research_evidence_method_plan.py --ignore=tests/test_research_evidence_method_native.py --ignore=tests/test_plan_runtime_transport.py --ignore=tests/test_research_native_browser_service.py -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_admission.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_source_supervisor.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_research_financial_import.py -p no:logging -q
@@ -185,6 +193,7 @@ verify-release:
 	cd web/backend && $(BACKEND_PYTEST) tests/test_research_evidence_method_plan.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_research_evidence_method_native.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_research_native_browser_service.py -p no:logging -q
 	cd packages/guarded-llm && $(PYTEST) tests -q
 	cd packages/cross-judge && $(PYTEST) tests -q
 	cd packages/reject-aware-critic && $(PYTEST) tests -q
@@ -193,4 +202,5 @@ verify-release:
 	$(MAKE) test-release-contracts
 	$(MAKE) test-frontend-node
 	$(MAKE) test-browser-contracts
+	$(MAKE) test-evidence-method-browser-contract
 	cd web/phase-detector && pnpm lint && pnpm build
