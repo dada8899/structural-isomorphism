@@ -295,6 +295,8 @@ def test_v3_complete_pass_dto_and_missing_observation_rejections():
                 acl = data[key];item[key] = dict(state=acl[0], entries=[list(row) for row in acl[1]], count=acl[2])
             record['objects'].append(item)
         value['credential_metadata'].append(record)
+    from .test_native_ready_diagnostics import complete_diagnostics
+    complete_diagnostics(probe,value)
     raw = probe.validate_receipt(value);assert len(raw) <= 32768
     assert probe.validate_receipt(probe.strict_json(raw)) == raw
     for fault in ('unknown_consumer', 'missing_phase', 'missing_object', 'too_many_without_count'):
@@ -411,6 +413,8 @@ def _complete_policy_receipt(probe, shape='ROOT_ACL_RO'):
                 acl = data[key];item[key] = dict(state=acl[0], entries=[list(row) for row in acl[1]], count=acl[2])
             record['objects'].append(item)
         value['credential_metadata'].append(record)
+    from .test_native_ready_diagnostics import complete_diagnostics
+    complete_diagnostics(probe,value)
     return value
 
 
