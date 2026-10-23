@@ -260,8 +260,10 @@ class _OwnedTCP(_Workers,socketserver.ThreadingTCPServer):pass
 
 class _OwnedHTTP(_Workers,http.server.ThreadingHTTPServer):
     def get_request(self):
-        sock,address=self.socket.accept();sock.settimeout(absolute_remaining(self.io_deadline,2))
-        try:return self.tls.wrap_socket(sock,server_side=True),address
+        sock,address=self.socket.accept()
+        try:
+            sock.settimeout(absolute_remaining(self.io_deadline,2))
+            return self.tls.wrap_socket(sock,server_side=True),address
         except BaseException:sock.close();raise
 
 

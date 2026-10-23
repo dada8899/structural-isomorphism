@@ -405,3 +405,32 @@ def test_failure_snapshot_has_at_most_one_extra_show_and_preserves_primary():
     first=copy.deepcopy(controller.result['first_failure'])
     controller._diag_failure_snapshot();controller._diag_failure_snapshot()
     assert calls==[{'clean':True,'limit':.5}] and controller.result['first_failure']==first and controller._first_reason=='HTTP'
+
+
+@pytest.mark.parametrize('fault',['deadline_after_accept','settimeout_failure','tls_wrap_failure'])
+def test_accepted_http_socket_is_closed_before_initialization_error_escapes(monkeypatch,fault):
+    left,right=socket.socketpair();fd=left.fileno();closed=[];calls=[]
+    failure=OSError(errno.EIO,'finite owned initialization failure')
+    class Accepted:
+        def settimeout(self,value):
+            calls.append('settimeout')
+            if fault=='settimeout_failure':raise failure
+            left.settimeout(value)
+        def close(self):closed.append(True);left.close()
+    def take():calls.append('accept');return Accepted(),None
+    def wrap(*args,**kwargs):
+        calls.append('wrap')
+        if fault!='tls_wrap_failure':pytest.fail('initialization must fail before TLS')
+        raise failure
+    owner=SimpleNamespace(socket=SimpleNamespace(accept=take),io_deadline=1.0,tls=SimpleNamespace(wrap_socket=wrap))
+    monkeypatch.setattr(F.time,'monotonic',lambda:2.0 if fault=='deadline_after_accept' else 0.0)
+    try:
+        with pytest.raises(F.FixtureFailure if fault=='deadline_after_accept' else OSError) as caught:
+            F._OwnedHTTP.get_request(owner)
+        if fault!='deadline_after_accept':assert caught.value is failure
+        assert calls==({'deadline_after_accept':['accept'],'settimeout_failure':['accept','settimeout'],'tls_wrap_failure':['accept','settimeout','wrap']}[fault])
+        # Observe candidate closure before the test's own finally retires pairs.
+        assert closed==[True] and left.fileno()==-1
+        with pytest.raises(OSError) as retired:os.fstat(fd)
+        assert retired.value.errno==errno.EBADF
+    finally:left.close();right.close()
