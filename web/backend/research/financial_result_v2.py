@@ -1301,7 +1301,7 @@ def calculate(service,identity,rid,envelope,key,source,*,request_app):
     from .paid_control import require_authenticated_action
     from .financial_input_guard import RESULTS,COLUMNS,_write_scope
     from .errors import ResearchError
-    execution.require_request(service,identity,rid,envelope,key,source,request_app)
+    execution._function(execution.require_request)(service,identity,rid,envelope,key,source,request_app)
     rid=service._id(rid);request_digest=digest(envelope.data_dict());pid=service._principal(identity)
     context=registry=None
     try:
@@ -1317,9 +1317,9 @@ def calculate(service,identity,rid,envelope,key,source,*,request_app):
             if control['version']>=2147483647:raise ResearchError('VERSION_CONFLICT',409,'研究版本已达上限。')
             if control['current_revision']!=envelope.data.input_revision or control['version']!=envelope.data.expected_research_version:
                 raise ResearchError('REVISION_CONFLICT',409,'研究已变化，请重新读取后计算。')
-            registry=native.resolve_owner_registry_v2(conn,service,identity,rid,envelope,lease,source)
-            context=execution.begin(conn,service,identity,rid,envelope,key,source,lease,registry,request_app)
-            owned=execution.execute(context,envelope.data.request,registry)
+            registry=execution._function(native.resolve_owner_registry_v2)(conn,service,identity,rid,envelope,lease,source)
+            context=execution._function(execution.begin)(conn,service,identity,rid,envelope,key,source,lease,registry,request_app)
+            owned=execution._function(execution.execute)(context,envelope.data.request,registry)
             stored=owned.stored;values=_saved_values(stored)
             future={**dict(control),'version':control['version']+1}
             responses={v:_saved_response(stored,registry.owner_data,future,v,future=True) for v in ('summary','table','chart')}
@@ -1334,7 +1334,7 @@ def calculate(service,identity,rid,envelope,key,source,*,request_app):
                 (at,rid,envelope.data.input_revision,control['version'],control['owner_epoch'],control['acl_epoch'])).rowcount!=1:
                 raise ResearchError('REVISION_CONFLICT',409,'研究已变化，未保存此结果。')
             service._remember(conn,pid,'financial-calculate','r:'+rid,key,request_digest,{'result_ref':stored.row_binding.result_ref})
-            execution.consume(owned);commit_ready[0]=True
+            execution._function(execution.consume)(owned);commit_ready[0]=True
             return responses['summary']
     finally:
         if context is not None:context.close()

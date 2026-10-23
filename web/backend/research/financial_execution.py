@@ -19,14 +19,29 @@ _CONTEXTS={}
 _RETURNS={}
 _CODE_FILES=('financial_execution.py','financial_result_v2.py','financial_evaluator.py','financial_policy.py',
     'financial_schemas.py','financial_input_schemas.py','financial_input.py','financial_input_guard.py','financial_import.py')
+_FUNCTION_PATHS={
+    **{name:'research/financial_execution.py' for name in ('begin','execute','consume','require_request','validate_insert','CurrentFinancialExecution.require')},
+    **{name:'research/financial_result_v2.py' for name in ('calculate','validate_snapshot','_validate_stored','project_financial_snapshot_v2')},
+    'evaluate_owner_financial_v2':'research/financial_evaluator.py',
+    'resolve_owner_registry_v2':'research/financial_input.py',
+    'require_formal_application':'research/runtime_profile.py',
+    'require':'services/formal_admission.py','_Binding.check':'services/formal_admission.py',
+    '_calculate_financial_in_request':'api/research.py','calculate_research_financial':'api/research.py','_identity':'api/research.py',
+    'ResearchService._principal_in':'research/service.py','ResearchStore._check_v15':'research/store.py',
+    'AuthorizationGate.check':'research/authorization.py','AuthorizationGate.check_account':'research/authorization.py',
+    **{name:'research/paid_control.py' for name in ('require_authenticated_action','_current_scope','_owner_binding')},
+}
 
 
 def _function(function):
+    if type(function) is not types.FunctionType:raise PermissionError('fixed native function required')
     module=sys.modules.get(function.__module__)
-    path=Path(getattr(module,'__file__','')).resolve()
-    if (type(function) is not types.FunctionType or function.__globals__ is not vars(module)
-            or Path(function.__code__.co_filename).resolve()!=path or path.is_symlink()
-            or not path.is_relative_to(Path(__file__).resolve().parents[1]) or path.stat().st_size>1048576):
+    relative=_FUNCTION_PATHS.get(function.__qualname__)
+    raw=Path(getattr(module,'__file__',''));path=raw.resolve()
+    expected=Path(__file__).resolve().parents[1]/relative if relative else None
+    if (relative is None or module is None or function.__globals__ is not vars(module)
+            or Path(function.__code__.co_filename).resolve()!=path or raw.is_symlink()
+            or path!=expected or path.stat().st_size>1048576):
         raise PermissionError('canonical native function required')
     def codes(code):
         yield code
@@ -213,10 +228,12 @@ def execute(context,request,registry):
     if context._started or context._owned is not None or request is not e['envelope'].data.request or registry is not e['registry']:
         raise PermissionError('single fixed financial execution required')
     object.__setattr__(context,'_started',True)
-    _function(engine.evaluate_owner_financial_v2)
+    evaluator=_function(engine.evaluate_owner_financial_v2)
+    validator=_function(data.validate_snapshot)
+    _function(data._validate_stored);_function(data.project_financial_snapshot_v2)
     owner=registry.owner_data;started_at=now();started_ns=time.monotonic_ns();meter=Meter()
-    snapshot=engine.evaluate_owner_financial_v2(e['envelope'],owner,meter=meter)
-    data.validate_snapshot(e['envelope'],owner,snapshot)
+    snapshot=evaluator(e['envelope'],owner,meter=meter)
+    validator(e['envelope'],owner,snapshot)
     if time.monotonic()>meter.deadline or snapshot.operations_used!=meter.operations:
         raise FinancialResourceLimit('financial completion deadline or count')
     completed=now();elapsed=time.monotonic_ns()-started_ns
