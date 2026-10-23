@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import _thread
 from contextlib import AbstractContextManager
 from email import policy
 from email.parser import BytesParser
@@ -24,6 +25,7 @@ import sqlite3
 import sys
 import threading
 import time
+import types
 import urllib.error
 import urllib.request
 from urllib.parse import parse_qs, urlencode, urlsplit
@@ -114,6 +116,305 @@ def _safe_lifespan_errors(error):
         errors.append(_safe_startup_error(error))
         error = error.__cause__ if error.__cause__ is not None else error.__context__
     return errors
+
+
+# Retirement observation is test evidence, never a Core closure predicate.
+_RETIREMENT_LIMIT = 16384
+_RETIREMENT_STATES = frozenset(('STARTING', 'READY', 'STOPPING', 'STOPPED',
+    'CLOSED', 'CLEANUP_UNCERTAIN', 'UNBOUND', 'HELD_CLEANUP', 'COOLDOWN',
+    'RECHECK_REQUIRED', 'RETIRED'))
+_RETIREMENT_REASONS = frozenset(('CLOSED', 'DEADLINE', 'WORKER_FAILURE',
+    'CLOSE_UNCERTAIN', 'START_FAILED', 'RETIREMENT_UNCERTAIN', 'BUDGET_FAILURE',
+    'CLEANUP_UNCERTAIN', 'FileNotFoundError', 'PermissionError', 'OSError',
+    'BlockingIOError', 'RuntimeError'))
+_RETIREMENT_CODES = frozenset(('FEATURE_UNAVAILABLE', 'FUNDING_CLOSED',
+    'STORE_BUSY', 'CLEANUP_UNCERTAIN', 'SCHEMA_UNSUPPORTED', 'RECONCILIATION_REQUIRED'))
+_RETIREMENT_SQLITE_TYPES = (
+    (sqlite3.Error, 'Error'), (sqlite3.Warning, 'Warning'),
+    (sqlite3.InterfaceError, 'InterfaceError'), (sqlite3.DatabaseError, 'DatabaseError'),
+    (sqlite3.DataError, 'DataError'), (sqlite3.OperationalError, 'OperationalError'),
+    (sqlite3.IntegrityError, 'IntegrityError'), (sqlite3.InternalError, 'InternalError'),
+    (sqlite3.ProgrammingError, 'ProgrammingError'), (sqlite3.NotSupportedError, 'NotSupportedError'),
+)
+_RETIREMENT_SQLITE_PRIMARY = frozenset((1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+    11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28))
+_RETIREMENT_SQLITE_NAMES = frozenset((
+    'SQLITE_ERROR', 'SQLITE_INTERNAL', 'SQLITE_PERM', 'SQLITE_ABORT',
+    'SQLITE_BUSY', 'SQLITE_LOCKED', 'SQLITE_NOMEM', 'SQLITE_READONLY',
+    'SQLITE_INTERRUPT', 'SQLITE_IOERR', 'SQLITE_CORRUPT', 'SQLITE_NOTFOUND',
+    'SQLITE_FULL', 'SQLITE_CANTOPEN', 'SQLITE_PROTOCOL', 'SQLITE_EMPTY',
+    'SQLITE_SCHEMA', 'SQLITE_TOOBIG', 'SQLITE_CONSTRAINT', 'SQLITE_MISMATCH',
+    'SQLITE_MISUSE', 'SQLITE_NOLFS', 'SQLITE_AUTH', 'SQLITE_FORMAT',
+    'SQLITE_RANGE', 'SQLITE_NOTADB', 'SQLITE_NOTICE', 'SQLITE_WARNING',
+    'SQLITE_ERROR_MISSING_COLLSEQ', 'SQLITE_ERROR_RETRY', 'SQLITE_ERROR_SNAPSHOT',
+    'SQLITE_ABORT_ROLLBACK', 'SQLITE_BUSY_RECOVERY', 'SQLITE_BUSY_SNAPSHOT',
+    'SQLITE_BUSY_TIMEOUT', 'SQLITE_LOCKED_SHAREDCACHE', 'SQLITE_LOCKED_VTAB',
+    'SQLITE_READONLY_RECOVERY', 'SQLITE_READONLY_CANTLOCK',
+    'SQLITE_READONLY_ROLLBACK', 'SQLITE_READONLY_DBMOVED',
+    'SQLITE_READONLY_CANTINIT', 'SQLITE_READONLY_DIRECTORY',
+    'SQLITE_IOERR_READ', 'SQLITE_IOERR_SHORT_READ', 'SQLITE_IOERR_WRITE',
+    'SQLITE_IOERR_FSYNC', 'SQLITE_IOERR_DIR_FSYNC', 'SQLITE_IOERR_TRUNCATE',
+    'SQLITE_IOERR_FSTAT', 'SQLITE_IOERR_UNLOCK', 'SQLITE_IOERR_RDLOCK',
+    'SQLITE_IOERR_DELETE', 'SQLITE_IOERR_BLOCKED', 'SQLITE_IOERR_NOMEM',
+    'SQLITE_IOERR_ACCESS', 'SQLITE_IOERR_CHECKRESERVEDLOCK', 'SQLITE_IOERR_LOCK',
+    'SQLITE_IOERR_CLOSE', 'SQLITE_IOERR_DIR_CLOSE', 'SQLITE_IOERR_SHMOPEN',
+    'SQLITE_IOERR_SHMSIZE', 'SQLITE_IOERR_SHMLOCK', 'SQLITE_IOERR_SHMMAP',
+    'SQLITE_IOERR_SEEK', 'SQLITE_IOERR_DELETE_NOENT', 'SQLITE_IOERR_MMAP',
+    'SQLITE_IOERR_GETTEMPPATH', 'SQLITE_IOERR_CONVPATH', 'SQLITE_IOERR_VNODE',
+    'SQLITE_IOERR_AUTH', 'SQLITE_IOERR_BEGIN_ATOMIC', 'SQLITE_IOERR_COMMIT_ATOMIC',
+    'SQLITE_IOERR_ROLLBACK_ATOMIC', 'SQLITE_IOERR_DATA', 'SQLITE_IOERR_CORRUPTFS',
+    'SQLITE_CONSTRAINT_CHECK', 'SQLITE_CONSTRAINT_COMMITHOOK',
+    'SQLITE_CONSTRAINT_FOREIGNKEY', 'SQLITE_CONSTRAINT_FUNCTION',
+    'SQLITE_CONSTRAINT_NOTNULL', 'SQLITE_CONSTRAINT_PRIMARYKEY',
+    'SQLITE_CONSTRAINT_TRIGGER', 'SQLITE_CONSTRAINT_UNIQUE',
+    'SQLITE_CONSTRAINT_VTAB', 'SQLITE_CONSTRAINT_ROWID',
+    'SQLITE_CONSTRAINT_PINNED', 'SQLITE_CONSTRAINT_DATATYPE',
+))
+_RETIREMENT_MODULES = (
+    ('services.formal_admission', 'web/backend/services/formal_admission.py'),
+    ('web.backend.services.formal_admission', 'web/backend/services/formal_admission.py'),
+    ('research.source_supervisor', 'web/backend/research/source_supervisor.py'),
+    ('web.backend.research.source_supervisor', 'web/backend/research/source_supervisor.py'),
+    ('research.source_sec_access', 'web/backend/research/source_sec_access.py'),
+    ('web.backend.research.source_sec_access', 'web/backend/research/source_sec_access.py'),
+    ('research.native_plan_supervisor', 'web/backend/research/native_plan_supervisor.py'),
+    ('web.backend.research.native_plan_supervisor', 'web/backend/research/native_plan_supervisor.py'),
+    ('research.errors', 'web/backend/research/errors.py'),
+    ('web.backend.research.errors', 'web/backend/research/errors.py'),
+)
+_RETIREMENT_FUNCTIONS = {
+    'web/backend/services/formal_admission.py': ('withdraw', 'close_source',
+        'source_closed', 'close_native', 'native_closed', 'release',
+        'preserve_retirement_uncertainty', '_owned', '_Binding.check'),
+    'web/backend/research/source_supervisor.py': ('_check', '_identity_handle',
+        '_same_store', '_binding_module', '_main_stop_entry', '_matching_intent',
+        '_controlled_stopping', '_select', '_execute', 'request_main_stop',
+        'retire', 'join', '_deadline', 'SourceSupervisor._run',
+        'SourceSupervisor._run_with_budget'),
+    'web/backend/research/source_sec_access.py': ('_identity', '_parent',
+        '_regular', '_held', '_uncertain', '_close_owned', 'attach',
+        'cleanup_completed', 'wait_before_claim', 'retire', 'close'),
+    'web/backend/research/native_plan_supervisor.py': ('_scope_identity',
+        '_full_context', '_supervisor_memory', '_supervisor_identity',
+        '_select', '_worker_main', 'request_main_stop', 'request_session_stop',
+        'retire', 'join', 'closed', 'release_main_context', 'shrink_main_deadline',
+        '_ThreadBudget.__enter__', '_ThreadBudget.__exit__'),
+}
+_RETIREMENT_ERROR_CLASSES = {
+    'web/backend/research/errors.py': ('ResearchError',),
+    'web/backend/research/source_supervisor.py': ('_SourceStopping',
+        'SourceStartFailure', 'SourceRetirementUncertain'),
+    'web/backend/research/native_plan_supervisor.py': ('NativePlanStartFailure',),
+    'web/backend/services/formal_admission.py': ('FormalAdmissionWithdrawn',),
+}
+_MISSING_RETIREMENT_FIELD = object()
+
+
+def _retirement_modules():
+    result = []
+    for name, relative in _RETIREMENT_MODULES:
+        module = sys.modules.get(name)
+        filename = vars(module).get('__file__') if type(module) is types.ModuleType else None
+        if type(filename) is str and filename == str(ROOT / relative):
+            result.append((module, relative))
+    return result
+
+
+def _retirement_type(value, class_name, relative):
+    for module, path in _retirement_modules():
+        if path == relative and type(value) is vars(module).get(class_name):
+            return module
+    return None
+
+
+def _retirement_read(value, name):
+    try:
+        # Bypass caller properties/getattribute and inspect only native slots
+        # or a small plain instance dictionary. No arbitrary descriptor runs.
+        hierarchy = type.__getattribute__(type(value), '__mro__')[:16]
+        for cls in hierarchy:
+            fields = type.__getattribute__(cls, '__dict__')
+            descriptor = fields.get(name)
+            if type(descriptor) is types.MemberDescriptorType:
+                return descriptor.__get__(value, type(value))
+        for cls in hierarchy:
+            descriptor = type.__getattribute__(cls, '__dict__').get('__dict__')
+            if type(descriptor) is types.GetSetDescriptorType:
+                fields = descriptor.__get__(value, type(value))
+                if type(fields) is dict and len(fields) <= 32:
+                    for key, item in dict.items(fields):
+                        if type(key) is str and key == name:
+                            return item
+                break
+    except BaseException:
+        pass
+    return _MISSING_RETIREMENT_FIELD
+
+
+def _retirement_enum(value, allowed):
+    return value if type(value) is str and len(value) <= 64 and value in allowed else None if value is None else 'OTHER'
+
+
+def _retirement_sqlite_fields(error):
+    if not any(type(error) is kind for kind, _ in _RETIREMENT_SQLITE_TYPES):
+        return {}
+    value = _retirement_read(error, 'sqlite_errorcode')
+    primary = value & 255 if type(value) is int and 0 <= value <= 65535 else None
+    if primary not in _RETIREMENT_SQLITE_PRIMARY:
+        primary = None
+    name = _retirement_read(error, 'sqlite_errorname')
+    return {'sqlite_primary_code': primary,
+        'sqlite_errorname': name if type(name) is str and len(name) <= 64
+            and name in _RETIREMENT_SQLITE_NAMES else None}
+
+
+def _retirement_frames(error):
+    codes = []
+    for module, relative in _retirement_modules():
+        for literal in _RETIREMENT_FUNCTIONS.get(relative, ()):
+            parts = literal.split('.')
+            function = vars(module).get(parts[0])
+            if len(parts) == 2:
+                function = vars(function).get(parts[1]) if type(function) is type else None
+            if type(function) is types.FunctionType:
+                codes.append((function.__code__, relative, literal))
+    frames = []
+    traceback = BaseException.__traceback__.__get__(error)
+    for _ in range(64):
+        if traceback is None:
+            break
+        coordinate = next(((relative, literal) for code, relative, literal in codes
+                           if code is traceback.tb_frame.f_code), None)
+        if coordinate is not None:
+            frames.append({'file': coordinate[0], 'function': coordinate[1],
+                           'line': min(1000000, max(0, traceback.tb_lineno))})
+        traceback = traceback.tb_next
+    return frames[-4:]
+
+
+def _retirement_error_chain(error):
+    chain, seen = [], set()
+    for _ in range(2):
+        if not issubclass(type(error), BaseException) or id(error) in seen:
+            break
+        seen.add(id(error))
+        kind = next((kind.__name__ for kind in _STARTUP_ERROR_TYPES
+                     if type(error) is kind), 'OTHER')
+        kind = next((name for actual, name in _RETIREMENT_SQLITE_TYPES
+                     if type(error) is actual), kind)
+        research = False
+        for module, relative in _retirement_modules():
+            for name in _RETIREMENT_ERROR_CLASSES.get(relative, ()):
+                if type(error) is vars(module).get(name):
+                    kind = name
+                    research = name in ('ResearchError', '_SourceStopping')
+        code = _retirement_enum(_retirement_read(error, 'code'), _RETIREMENT_CODES) if research else None
+        number = OSError.errno.__get__(error) if issubclass(type(error), OSError) else None
+        record = {'type': kind, 'code': code,
+            'errno': number if type(number) is int and 0 < number < 256 else None,
+            'frames': _retirement_frames(error)}
+        record.update(_retirement_sqlite_fields(error))
+        chain.append(record)
+        cause = BaseException.__cause__.__get__(error)
+        error = cause if cause is not None else BaseException.__context__.__get__(error)
+    return chain or [{'type': 'OTHER', 'code': None, 'errno': None, 'frames': []}]
+
+
+def _retirement_errors(values):
+    if type(values) not in (tuple, list):
+        return {'valid': False, 'truncated': False, 'items': []}
+    return {'valid': True, 'truncated': len(values) > 2,
+            'items': [_retirement_error_chain(error) for error in values[:2]]}
+
+
+def _retirement_thread(thread):
+    if thread is None:
+        return {'known': True, 'alive': False}
+    if type(thread) is not threading.Thread:
+        return {'known': False, 'alive': False}
+    # Read native lock state without dispatching caller-overridable methods.
+    stopped = _retirement_read(thread, '_is_stopped')
+    event = _retirement_read(thread, '_started')
+    flag = _retirement_read(event, '_flag') if type(event) is threading.Event else None
+    lock = _retirement_read(thread, '_tstate_lock')
+    if type(stopped) is not bool or type(flag) is not bool or (lock is not None and type(lock) is not _thread.LockType):
+        return {'known': False, 'alive': False}
+    return {'known': True, 'alive': flag and not stopped and lock is not None and _thread.LockType.locked(lock)}
+
+
+def _retirement_receipt(receipt, class_name, relative):
+    if receipt is None:
+        return {'present': False, 'valid': True}
+    if _retirement_type(receipt, class_name, relative) is None:
+        return {'present': True, 'valid': False}
+    state = _retirement_enum(_retirement_read(receipt, 'state'), frozenset(('CLOSED', 'CLEANUP_UNCERTAIN')))
+    reason = _retirement_enum(_retirement_read(receipt, 'reason'), _RETIREMENT_REASONS)
+    pending = _retirement_read(receipt, 'pending_task_id')
+    valid = state not in (None, 'OTHER') and reason not in (None, 'OTHER') and (
+        pending is None or type(pending) is str and len(pending) <= 128)
+    return {'present': True, 'valid': valid, 'state': state, 'reason': reason,
+            'pending': pending is not None}
+
+
+def _retirement_binding_module(binding, app):
+    module = _retirement_type(binding, '_Binding', 'web/backend/services/formal_admission.py')
+    if (module is None or _retirement_read(binding, 'app') is not app
+            or _retirement_read(binding, 'factory') is not vars(module).get('_FACTORY')
+            or type(_retirement_read(binding, 'pid')) is not int
+            or _retirement_read(binding, 'pid') != os.getpid()):
+        return None
+    return module
+
+
+def _safe_retirement_snapshot(binding, app):
+    admission = _retirement_binding_module(binding, app)
+    if admission is None:
+        return {'observation': 'UNAVAILABLE'}
+    source_path = 'web/backend/research/source_supervisor.py'
+    native_path = 'web/backend/research/native_plan_supervisor.py'
+    source = _retirement_read(binding, 'supervisor')
+    native = _retirement_read(binding, 'native_supervisor')
+    source_known = (_retirement_type(source, 'SourceSupervisor', source_path) is not None
+                    and _retirement_read(source, '_binding') is binding)
+    native_known = (_retirement_type(native, 'NativePlanSupervisor', native_path) is not None
+                    and _retirement_read(native, 'binding') is binding)
+    def supervisor(value, known, *, native=False):
+        if not known:
+            return {'present': value is not None, 'known': False}
+        return {'present': True, 'known': True,
+            'state': _retirement_enum(_retirement_read(value, '_state'), _RETIREMENT_STATES),
+            'failure': None if native else _retirement_enum(_retirement_read(value, '_failure'), _RETIREMENT_REASONS),
+            'slot_retained': _retirement_read(value, '_slot') is not None,
+            'lease_retained': _retirement_read(value, 'worker' if native else '_lease') is not None,
+            'thread': _retirement_thread(_retirement_read(value, '_thread')),
+            'errors': _retirement_errors(_retirement_read(value, '_errors'))}
+    governor = _retirement_read(source, '_sec_access') if source_known else None
+    gov_known = (_retirement_type(governor, '_Governor', 'web/backend/research/source_sec_access.py') is not None
+                 and _retirement_read(governor, 'supervisor') is source
+                 and _retirement_read(governor, 'binding') is binding)
+    gov = {'present': governor is not None, 'known': gov_known}
+    if gov_known:
+        descriptor = _retirement_read(governor, 'fd')
+        gov.update(state=_retirement_enum(_retirement_read(governor, 'state'), _RETIREMENT_STATES),
+            reason=_retirement_enum(_retirement_read(governor, 'reason'), _RETIREMENT_REASONS),
+            fd_known=descriptor is None or type(descriptor) is int and descriptor >= 0,
+            fd_retained=descriptor is not None,
+            errors=_retirement_errors(_retirement_read(governor, 'errors')))
+    return {'observation': 'OBSERVED',
+        'source': {'receipt': _retirement_receipt(_retirement_read(binding, 'source_receipt'), 'SourceCleanupReceipt', source_path),
+            'errors': _retirement_errors(_retirement_read(binding, 'source_errors')),
+            'supervisor': supervisor(source, source_known), 'governor': gov},
+        'native': {'receipt': _retirement_receipt(_retirement_read(binding, 'native_receipt'), 'NativePlanCleanupReceipt', native_path),
+            'errors': _retirement_errors(_retirement_read(binding, 'native_errors')),
+            'supervisor': supervisor(native, native_known, native=True)}}
+
+
+def _retirement_json(binding, app):
+    try:
+        value = json.dumps(_safe_retirement_snapshot(binding, app), sort_keys=True, separators=(',', ':'))
+        return value if len(value.encode('ascii')) <= _RETIREMENT_LIMIT else '{"observation":"LIMIT"}'
+    except BaseException:
+        return '{"observation":"ERROR"}'
 
 
 class _StartupErrorObserver:
@@ -401,6 +702,7 @@ class FormalMainBrowserService(AbstractContextManager):
         self.app_socket = self.certificate = self.client = self._smtp = self._history = None
         self._prior, self._bridges, self._server_errors = {}, [], []
         self._startup_diagnostics = []
+        self._retirement_binding = self._retirement_diagnostics = None
         self._entered = self._closed = False
 
     def __repr__(self):
@@ -492,6 +794,38 @@ class FormalMainBrowserService(AbstractContextManager):
         from services import formal_admission
         formal_admission.require(self.app, 'research_basic')
         formal_admission.require(self.app, 'source_history')
+        self._remember_retirement_binding(formal_admission._STATE)
+
+    def _remember_retirement_binding(self, state):
+        # Retain only this actually admitted lifetime; retirement removes STATE.
+        # Both canonical module families use the same actual registry. A copy
+        # supplied by a caller is not the observed admission entry.
+        try:
+            if type(state) is not dict:
+                return
+            binding = dict.get(state, id(self.app))
+            module = _retirement_binding_module(binding, self.app)
+            if module is not None and vars(module).get('_STATE') is state:
+                self._retirement_binding = binding
+        except BaseException:
+            pass
+
+    def _observe_retirement(self):
+        try:
+            if self._retirement_binding is not None:
+                self._retirement_diagnostics = _retirement_json(self._retirement_binding, self.app)
+        except BaseException:
+            self._retirement_diagnostics = '{"observation":"ERROR"}'
+        finally:
+            self._retirement_binding = None
+
+    def _note_retirement(self, error):
+        try:
+            value = self._retirement_diagnostics
+            if type(value) is str and len(value.encode('ascii')) <= _RETIREMENT_LIMIT:
+                BaseException.add_note(error, 'owned Main retirement snapshot: ' + value)
+        except BaseException:
+            pass
 
     def _capture_startup_error(self, error):
         if len(self._startup_diagnostics) >= 4:
@@ -587,8 +921,13 @@ class FormalMainBrowserService(AbstractContextManager):
         live = self.server_thread is not None and self.server_thread.is_alive()
         if self._smtp is not None:
             live = live or self._smtp.thread.is_alive() or any(t.is_alive() for t in self._smtp.workers)
+        # No Core check/close/receipt mutation: observe the retained actual
+        # binding after the original join, before ENV/history are restored.
+        self._observe_retirement()
         if live:
-            raise RuntimeError('owned Main resources remain live; root and scope retained')
+            failure = RuntimeError('owned Main resources remain live; root and scope retained')
+            self._note_retirement(failure)
+            raise failure
         for name, value in self._prior.items():
             if value is None:
                 os.environ.pop(name, None)
@@ -608,6 +947,7 @@ class FormalMainBrowserService(AbstractContextManager):
             if self._startup_diagnostics:
                 failure.add_note('owned Main lifespan coordinates: ' +
                     json.dumps(self._startup_diagnostics, sort_keys=True, separators=(',', ':')))
+            self._note_retirement(failure)
             raise failure
 
     def close(self):
@@ -620,6 +960,7 @@ class FormalMainBrowserService(AbstractContextManager):
             if error is None:
                 raise
             error.add_note('owned Main cleanup uncertain: ' + type(cleanup).__name__)
+            self._note_retirement(error)
         return False
 
 
