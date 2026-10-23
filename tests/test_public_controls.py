@@ -1867,8 +1867,27 @@ def _original_makefile_before_evidence_method(makefile: str) -> str:
     return makefile.replace(phony, ".PHONY: test-financial-preview-browser-contract ", 1)
 
 
+def _original_makefile_before_header_scroll_node(makefile: str) -> str:
+    """Validate the complete live Make contract, then reverse one exact entry."""
+    _assert_make_release_closure(makefile)
+    _assert_frontend_node_gate(_workflow_data(ROOT / '.github/workflows/ci.yml'), makefile)
+    start_marker = 'FRONTEND_NODE_TESTS := ' + chr(92) + '\n'
+    end_marker = '\nBROWSER_CONTRACT_SEARCH_ASK_ANALYZE_PHENOMENON_TESTS :='
+    assert makefile.count(start_marker) == makefile.count(end_marker) == 1
+    start = makefile.index(start_marker)
+    end = makefile.index(end_marker, start)
+    block = makefile[start:end]
+    header = '\tweb/frontend/tests/test_headerScroll.js ' + chr(92) + '\n'
+    exact = ('\tweb/frontend/tests/test_financialScenario.js ' + chr(92) + '\n'
+             + header + '\tweb/frontend/tests/test_historyPrivacy.js ' + chr(92) + '\n')
+    assert makefile.count('web/frontend/tests/test_headerScroll.js') == 1
+    assert block.count(exact) == 1, 'header entry must occupy its one approved Make position'
+    return makefile[:start] + block.replace(exact, exact.replace(header, '', 1), 1) + makefile[end:]
+
+
 def _original_makefile_before_financial_scenario_browser(makefile: str) -> str:
     """Remove the exact FIN3 delta before applying the unchanged FIN2 chain."""
+    makefile = _original_makefile_before_header_scroll_node(makefile)
     additions = [
         "\tweb/frontend/tests/test_financialScenario.js " + chr(92) + "\n",
         "FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS := " + chr(92) + "\n\tweb/tests/e2e/test_research_financial_scenario_browser.py\n\n",
@@ -2187,18 +2206,41 @@ def test_contract_path_parser_rejects_a_file_symlink(tmp_path: Path) -> None:
         _assert_legal_repo_file("tests/e2e/linked.py", root=test_root)
 
 
-def test_frontend_node_gate_cannot_silently_skip_a_contract() -> None:
-    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
-    rows = _ci_matrix_rows(_ci_job("browser-beta-surface-contract"))
+def _frontend_node_ci_paths(value: dict) -> list[str]:
+    """Count files only behind actual hard Node commands in the two CI jobs."""
+    assert 'defaults' not in value, 'workflow defaults may not redirect Node execution'
+    jobs = value['jobs']
+    surface = jobs['browser-beta-surface-contract']
+    identity = jobs['browser-identity-consent-contract']
+    for name, job in (('browser-beta-surface-contract', surface),
+                      ('browser-identity-consent-contract', identity)):
+        _assert_hard_job_contract('.github/workflows/ci.yml', name, job)
+        assert 'defaults' not in job, 'job defaults may not redirect Node execution'
+    loop = _named_ci_step(surface, 'Run JavaScript trust contracts')
+    assert set(loop) == {'name', 'if', 'shell', 'run'}
+    assert loop['if'] == "matrix.node_tests != ''" and loop['shell'] == 'bash'
+    assert _shell_tokens(loop) == [
+        'set', '-euo', 'pipefail', 'for', 'test_file', 'in', '${{',
+        'matrix.node_tests', '}};', 'do', 'node', '$test_file', 'done',
+    ]
+    paths = _ci_matrix_paths(_ci_matrix_rows(surface), 'node_tests', NODE_PATH_PATTERN)
+    direct = _named_ci_step(identity, 'Verify header scroll JavaScript trust contract')
+    assert set(direct) == {'name', 'run'}, 'direct Node consumer must execute at the repository root'
+    tokens = _shell_tokens(direct)
+    assert len(tokens) == 2 and tokens[0] == 'node', 'contract must run Node, not collect or echo paths'
+    assert NODE_PATH_PATTERN.fullmatch(tokens[1])
+    _assert_legal_repo_file(tokens[1])
+    return paths + [tokens[1]]
+
+
+def _assert_frontend_node_gate(value: dict, makefile: str) -> None:
 
     disk_tests = {
         str(path.relative_to(ROOT))
         for path in (ROOT / "web/frontend/tests").glob("*.js")
     }
     make_tests = _make_path_list(makefile, "FRONTEND_NODE_TESTS")
-    ci_tests = _ci_matrix_paths(
-        rows, "node_tests", NODE_PATH_PATTERN
-    )
+    ci_tests = _frontend_node_ci_paths(value)
 
     assert len(make_tests) == len(set(make_tests)), "duplicate Make Node contract"
     assert len(ci_tests) == len(set(ci_tests)), "duplicate CI Node contract"
@@ -2207,6 +2249,56 @@ def test_frontend_node_gate_cannot_silently_skip_a_contract() -> None:
     assert _make_recipe_commands(makefile, "test-frontend-node") == [
         '@set -eu; for test_file in $(FRONTEND_NODE_TESTS); do node "$$test_file"; done'
     ]
+
+
+def test_frontend_node_gate_cannot_silently_skip_a_contract() -> None:
+    _assert_frontend_node_gate(
+        _workflow_data(ROOT / '.github/workflows/ci.yml'),
+        (ROOT / 'Makefile').read_text(encoding='utf-8'),
+    )
+
+
+@pytest.mark.parametrize('mutation', [
+    'missing_job', 'missing_step', 'echo', 'collect_only', 'shell_fallback',
+    'soft_step', 'soft_job', 'conditional_job', 'step_cwd', 'job_cwd',
+    'workflow_cwd', 'matrix_collect_only', 'matrix_cwd', 'duplicate_contract',
+    'make_missing', 'make_duplicate', 'make_collect_only', 'make_soft', 'make_cwd', 'make_position',
+])
+def test_frontend_node_inventory_rejects_omitted_or_nonexecuting_consumers(mutation):
+    value = _workflow_data(ROOT / '.github/workflows/ci.yml')
+    jobs = value['jobs']; identity = jobs['browser-identity-consent-contract']
+    direct = _named_ci_step(identity, 'Verify header scroll JavaScript trust contract')
+    surface = jobs['browser-beta-surface-contract']
+    loop = _named_ci_step(surface, 'Run JavaScript trust contracts')
+    makefile = (ROOT / 'Makefile').read_text(encoding='utf-8')
+    header = '\tweb/frontend/tests/test_headerScroll.js ' + chr(92) + '\n'
+    if mutation == 'missing_job': jobs.pop('browser-identity-consent-contract')
+    elif mutation == 'missing_step': identity['steps'].remove(direct)
+    elif mutation == 'echo': direct['run'] = 'echo ' + direct['run']
+    elif mutation == 'collect_only': direct['run'] = direct['run'].replace('node ', 'node --check ', 1)
+    elif mutation == 'shell_fallback': direct['run'] += ' || true'
+    elif mutation == 'soft_step': direct['continue-on-error'] = True
+    elif mutation == 'soft_job': identity['continue-on-error'] = True
+    elif mutation == 'conditional_job': identity['if'] = 'false'
+    elif mutation == 'step_cwd': direct['working-directory'] = 'web/frontend'
+    elif mutation == 'job_cwd': identity['defaults'] = {'run': {'working-directory': 'web/frontend'}}
+    elif mutation == 'workflow_cwd': value['defaults'] = {'run': {'working-directory': 'web/frontend'}}
+    elif mutation == 'matrix_collect_only': loop['run'] = loop['run'].replace('node ', 'node --check ', 1)
+    elif mutation == 'matrix_cwd': loop['working-directory'] = 'web/frontend'
+    elif mutation == 'duplicate_contract': _ci_matrix_rows(surface)[0]['node_tests'] += ' web/frontend/tests/test_headerScroll.js'
+    elif mutation == 'make_missing': makefile = makefile.replace(header, '', 1)
+    elif mutation == 'make_duplicate': makefile = makefile.replace(header, header + header, 1)
+    elif mutation == 'make_collect_only': makefile = makefile.replace('do node "$$test_file"', 'do node --check "$$test_file"', 1)
+    elif mutation == 'make_soft': makefile = makefile.replace('do node "$$test_file"; done', 'do node "$$test_file"; done || true', 1)
+    elif mutation == 'make_cwd': makefile = makefile.replace('do node "$$test_file"', 'do cd web/frontend; node "$$test_file"', 1)
+    else:
+        makefile = makefile.replace(header, '', 1).replace(
+            'FRONTEND_NODE_TESTS := ' + chr(92) + '\n',
+            'FRONTEND_NODE_TESTS := ' + chr(92) + '\n' + header, 1)
+    with pytest.raises((AssertionError, KeyError)):
+        _assert_frontend_node_gate(value, makefile)
+        original = _original_makefile_without_financial_preview(makefile)
+        assert hashlib.sha256(original.encode()).hexdigest() == 'd10d21b2d90e07deb8f9219f663f511ea96d5532c7f97637213f67f51efb0b9b'
 
 
 def test_hard_browser_gate_has_one_make_and_ci_contract_list() -> None:

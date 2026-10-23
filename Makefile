@@ -26,6 +26,7 @@ FRONTEND_NODE_TESTS := \
 	web/frontend/tests/test_evidenceMethodPlan.js \
 	web/frontend/tests/test_financialRegistry.js \
 	web/frontend/tests/test_financialScenario.js \
+	web/frontend/tests/test_headerScroll.js \
 	web/frontend/tests/test_historyPrivacy.js \
 	web/frontend/tests/test_historySidebarPerformance.js \
 	web/frontend/tests/test_newsletterClosed.js \
