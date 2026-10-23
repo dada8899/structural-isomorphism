@@ -1898,7 +1898,12 @@ def test_verify_release_dry_run_expands_real_test_and_build_commands() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     output = completed.stdout
-    assert output.count("python -m pytest") == 27
+    assert output.count("python -m pytest") == 31
+    for consumer in (
+        "test_native_live_grant.py", "test_formal_native_plan_supervisor.py",
+        "test_research_financial_execution_v2.py", "test_research_financial_results_v2.py",
+    ):
+        assert output.count("python -m pytest tests/" + consumer + " -p no:logging -q") == 1
     assert "scripts/check_python_syntax.py" in output
     assert "scripts/openapi_artifact.py --check" in output
     assert "PY=python bash scripts/check_ts_types.sh" in output
