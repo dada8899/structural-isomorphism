@@ -2,6 +2,7 @@
 import ast
 import copy
 import importlib.util
+import json
 import os
 from pathlib import Path
 import signal
@@ -143,6 +144,105 @@ class SinkControls(unittest.TestCase):
         self.assertFalse(c.close())
         self.assertEqual(c.primary_failure['error'],'navigation_failed')
         self.assertIn('browser_close_unknown',c.errors)
+
+
+class NavigationObserverControls(unittest.TestCase):
+    class Error(Exception): pass
+    class TimeoutError(Exception): pass
+    CANARY='SECRET_CANARY_do_not_export_cookie_password_token'
+
+    def bind(self, behavior, writer=None):
+        class Target:
+            def goto(self,*args,**kwargs):return behavior(*args,**kwargs)
+        target=Target(); c=capture(); writer=writer or Writer()
+        collector.bind_navigation_observer(target,writer,c,time.monotonic()+120,self.Error,self.TimeoutError)
+        return target,writer,c
+
+    def record(self,writer):
+        record=writer.records['navigation-outcome.json']
+        self.assertEqual(set(record),{'classification','kind','outcome','calls_observed','exception_type','failure_category'})
+        self.assertEqual(record['calls_observed'],1)
+        raw=json.dumps(record)
+        self.assertNotIn(self.CANARY,raw)
+        self.assertNotIn('http',raw)
+        self.assertLessEqual(len(raw.encode()),512)
+        return record
+
+    def test_success_preserves_single_call_all_arguments_and_return_identity(self):
+        response=object();seen=[]
+        def original(*args,**kwargs):seen.append((args,kwargs));return response
+        target,writer,c=self.bind(original)
+        url='http://127.0.0.1/analyze.html?'+self.CANARY
+        self.assertIs(target.goto(url,wait_until='domcontentloaded',timeout=30000),response)
+        self.assertEqual(seen,[((url,),{'wait_until':'domcontentloaded','timeout':30000})])
+        self.assertEqual(c.errors,[])
+        record=self.record(writer);self.assertEqual(record['outcome'],'returned');self.assertIsNone(record['failure_category'])
+
+    def test_error_identity_and_secret_canary_are_preserved_only_in_original(self):
+        error=self.Error('Page.goto: net::ERR_ABORTED at https://example.invalid/'+self.CANARY)
+        def original(*args,**kwargs):raise error
+        target,writer,c=self.bind(original)
+        with self.assertRaises(self.Error) as raised:target.goto('ignored',timeout=30000)
+        self.assertIs(raised.exception,error)
+        record=self.record(writer);self.assertEqual(record['exception_type'],'Error');self.assertEqual(record['failure_category'],'net::ERR_ABORTED')
+
+    def test_timeout_is_finite_without_exporting_message(self):
+        error=self.TimeoutError(self.CANARY)
+        target,writer,c=self.bind(lambda *a,**k:(_ for _ in ()).throw(error))
+        with self.assertRaises(self.TimeoutError) as raised:target.goto('ignored')
+        self.assertIs(raised.exception,error)
+        self.assertEqual(self.record(writer)['failure_category'],'timeout')
+
+    def test_unknown_class_is_other_without_even_stringifying_it(self):
+        class UnknownError(Exception):
+            def __str__(self):raise AssertionError('unknown exception was stringified')
+        error=UnknownError();target,writer,c=self.bind(lambda *a,**k:(_ for _ in ()).throw(error))
+        with self.assertRaises(UnknownError) as raised:target.goto('ignored')
+        self.assertIs(raised.exception,error)
+        record=self.record(writer);self.assertEqual(record['exception_type'],'other');self.assertEqual(record['failure_category'],'other')
+
+    def test_unknown_network_code_and_prefixed_canary_are_other(self):
+        for text in ['net::ERR_PRIVATE_'+self.CANARY,'net::ERR_ABORTED_'+self.CANARY]:
+            with self.subTest(text_kind='unknown_network'):
+                error=self.Error(text);target,writer,c=self.bind(lambda *a,**k:(_ for _ in ()).throw(error))
+                with self.assertRaises(self.Error):target.goto('ignored')
+                self.assertEqual(self.record(writer)['failure_category'],'other')
+
+    def test_known_non_network_categories_remain_finite(self):
+        for message,expected in [('Target page, context or browser has been closed','target_closed'),('Navigation interrupted by another navigation','navigation_interrupted'),('Protocol error '+self.CANARY,'other')]:
+            with self.subTest(category=expected):
+                error=self.Error(message);target,writer,c=self.bind(lambda *a,**k:(_ for _ in ()).throw(error))
+                with self.assertRaises(self.Error):target.goto('ignored')
+                self.assertEqual(self.record(writer)['failure_category'],expected)
+
+    def test_original_cancellation_object_is_not_swallowed(self):
+        for error in [KeyboardInterrupt(self.CANARY),SystemExit(self.CANARY)]:
+            with self.subTest(cancellation=type(error).__name__):
+                target,writer,c=self.bind(lambda *a,**k:(_ for _ in ()).throw(error))
+                try:target.goto('ignored')
+                except BaseException as raised:self.assertIs(raised,error)
+                else:self.fail('original cancellation swallowed')
+                self.assertEqual(self.record(writer)['failure_category'],'navigation_interrupted')
+
+    def test_receipt_failure_cannot_replace_original_error_or_success(self):
+        class BrokenWriter(Writer):
+            def write_json(self,*args,**kwargs):raise RuntimeError(self.CANARY if hasattr(self,'CANARY') else 'synthetic storage error')
+        error=self.Error('net::ERR_FAILED '+self.CANARY)
+        target,writer,c=self.bind(lambda *a,**k:(_ for _ in ()).throw(error),BrokenWriter())
+        with self.assertRaises(self.Error) as raised:target.goto('ignored')
+        self.assertIs(raised.exception,error);self.assertIn('navigation_observer_receipt_unknown',c.errors)
+        response=object();target,writer,c=self.bind(lambda *a,**k:response,BrokenWriter())
+        self.assertIs(target.goto('ignored'),response);self.assertIn('navigation_observer_receipt_unknown',c.errors)
+
+    def test_expired_observer_budget_does_not_repeat_or_alter_goto(self):
+        calls=[];response=object()
+        class Target:
+            def goto(self,*args,**kwargs):calls.append(1);return response
+        target=Target();writer=Writer();c=capture()
+        collector.bind_navigation_observer(target,writer,c,time.monotonic()-1,self.Error,self.TimeoutError)
+        self.assertIs(target.goto('ignored',timeout=30000),response)
+        self.assertEqual(calls,[1]);self.assertEqual(writer.records,{})
+        self.assertIn('navigation_observer_receipt_unknown',c.errors)
 
 
 class RetirementControls(unittest.TestCase):

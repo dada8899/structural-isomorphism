@@ -3,11 +3,12 @@ import argparse,hashlib,select,importlib,importlib.metadata,json,math,os,re,sign
 from pathlib import Path
 from urllib.parse import urlsplit
 SOURCE_SHA='88830a33000c3190901efd629081e9c41e259108'
-BRANCH='refs/heads/codex/structure-analyze-mobile-setup-fixed-88830-attempt3' # proposal only; no trigger GO
+BRANCH='refs/heads/codex/structure-analyze-mobile-failure-classifier-88830-attempt4' # proposal only; no trigger GO
 BASE='http://127.0.0.1:4173'
 MAX_PROJECTED_BYTES=32*1024*1024
 MAX_EVENTS=100000
 STOP_SECONDS=10
+NAVIGATION_NET_ERRORS=('ERR_ABORTED','ERR_CONNECTION_REFUSED','ERR_CONNECTION_CLOSED','ERR_CONNECTION_RESET','ERR_NAME_NOT_RESOLVED','ERR_FAILED','ERR_BLOCKED_BY_CLIENT','ERR_TIMED_OUT','ERR_SSL_PROTOCOL_ERROR','ERR_EMPTY_RESPONSE')
 PINS={'scripts/perf_audit.py': '6bca7e272d7c534b64fcd62cb6898154cd829047054caa04202eb7f7858b1433', 'scripts/beta_perf_audit.py': 'e3360ea983d06d88908afa95cff43e714ea0d969f2a7da1dfca2d31b0d6655a4', 'scripts/beta_perf_diagnostics.py': '2669423ae7f9e03f208bd58c01b41ed77feb087a7a0198f666eadcb4605cdab4', 'perf-budget.json': 'fe2442643030ddf61fcda85053b4a3242abc68e88fc2f870e1e3874bfa319ad9', 'web/frontend/analyze.html': '3e903191903f48cf2ba360c871a06dec821e57e2f11d48ec3afe66da61ef36b1', 'web/frontend/assets/js/analyze.js': 'c767858002433f325ddb8230a9347e443a5cfc3f318c0981243ce428830b5367', 'web/frontend/assets/css/analyze.css': '86c7c9dbcd946ac6ae58dcedf8740bc430d7211f92c5df89809fb9dcf67bdf84'}
 ALLOWED_ENV=frozenset(('PATH','HOME','TMPDIR','LANG','LC_ALL','LC_CTYPE','LD_LIBRARY_PATH','PYTHONDONTWRITEBYTECODE','PLAYWRIGHT_BROWSERS_PATH','RUNNER_TEMP','RUNNER_OS','RUNNER_ARCH','RUNNER_TRACKING_ID','GITHUB_WORKSPACE','GITHUB_REPOSITORY','GITHUB_EVENT_NAME','GITHUB_EVENT_PATH','GITHUB_REF','GITHUB_SHA','GITHUB_RUN_ID','GITHUB_RUN_ATTEMPT'))
 TRACE_NAMES=frozenset(('RunTask','ThreadControllerImpl::RunTask','FunctionCall','EvaluateScript','Layout','UpdateLayoutTree','RecalculateStyles','ParseHTML','ParseAuthorStyleSheet','Paint','CompositeLayers','EventDispatch','FireAnimationFrame','TimerFire','RunMicrotasks','RequestAnimationFrame','ScheduleStyleRecalculation','ResourceFinish','ResourceSendRequest','CommitLoad','navigationStart','firstContentfulPaint','MarkDOMContent','MarkLoad','TracingStartedInBrowser','thread_name','process_name'))
@@ -181,6 +182,43 @@ def bounded_action(deadline,action):
   signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,old_handler)
   remaining=max(0,old_deadline-time.monotonic()) if old_deadline is not None else 0
   if remaining>0:signal.setitimer(signal.ITIMER_REAL,remaining)
+def navigation_failure_category(error,error_type,timeout_type):
+ # Inspect only the two actual SDK exception classes. Never export the text,
+ # arbitrary class names, URLs, tracebacks, headers or any page/account data.
+ label='Error' if type(error) is error_type else 'TimeoutError' if type(error) is timeout_type else 'other'
+ if isinstance(error,(KeyboardInterrupt,SystemExit)):return label,'navigation_interrupted'
+ if label=='TimeoutError':return label,'timeout'
+ if label!='Error':return label,'other'
+ try:text=str(error)
+ except BaseException:return label,'other'
+ if len(text)>8192:return label,'other'
+ for code in NAVIGATION_NET_ERRORS:
+  if re.search(r'(?<![A-Z0-9_])net::'+code+r'(?![A-Z0-9_])',text):return label,'net::'+code
+ if 'Target page, context or browser has been closed' in text or 'Target closed' in text:return label,'target_closed'
+ if 'interrupted by another navigation' in text or 'Navigation interrupted' in text:return label,'navigation_interrupted'
+ return label,'other'
+def bind_navigation_observer(page,writer,capture,capture_deadline,error_type,timeout_type):
+ original=page.goto;calls=0
+ def publish(outcome,error=None,preserve_original=False):
+  try:
+   need(calls==1)
+   label,category=navigation_failure_category(error,error_type,timeout_type) if error is not None else (None,None)
+   record={'classification':'NOT_GATE','kind':'navigation_observer_v1','outcome':outcome,'calls_observed':calls,'exception_type':label,'failure_category':category}
+   need(len(json.dumps(record,allow_nan=False).encode())<=512)
+   bounded_action(capture_deadline,lambda:writer.write_json('navigation-outcome.json',record,control=True))
+  except BaseException as observation_error:
+   capture.error('navigation_observer_receipt_unknown')
+   if not preserve_original and isinstance(observation_error,(KeyboardInterrupt,SystemExit)):raise
+ def observed(*args,**kwargs):
+  nonlocal calls
+  calls+=1
+  try:value=original(*args,**kwargs)
+  except BaseException as error:
+   publish('raised',error,preserve_original=True)
+   raise  # Preserve the exact original exception object and cancellation.
+  publish('returned')
+  return value
+ page.goto=observed
 def safe_path(value):
  need(type(value) is str and len(value)<=4096);u=urlsplit(value)
  if (u.scheme,u.hostname,u.port)==('http','127.0.0.1',4173) and (u.path=='/analyze.html' or re.fullmatch(r'/assets/[A-Za-z0-9_./-]{1,220}',u.path) and '..' not in u.path.split('/')):return u.path
@@ -382,14 +420,14 @@ def run(root,out):
   writer.write_json('runner-before.json',diag.runner_snapshot());server=subprocess.Popen([sys.executable,'-I','-B','-m','http.server','4173','--bind','127.0.0.1','--directory',str(root/'web/frontend')],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True,env={'PATH':os.environ['PATH'],'LANG':'C.UTF-8','PYTHONDONTWRITEBYTECODE':'1','HOME':os.environ['HOME'],'RUNNER_TRACKING_ID':os.environ.get('RUNNER_TRACKING_ID','')});saved=server_identity(server);writer.write_json('server-actor.json',{'pid':saved[0],'starttime':saved[1],'port':4173},control=True)
   deadline=time.monotonic()+10
   while not owned_listening(server):need(time.monotonic()<deadline);time.sleep(.05)
-  from playwright.sync_api import sync_playwright
+  from playwright.sync_api import sync_playwright,Error as NavigationError,TimeoutError as NavigationTimeout
   driver=sync_playwright().start();binary=Path(driver.chromium.executable_path);need(binary.is_file());h=hashlib.sha256()
   with binary.open('rb') as f:
    while b:=f.read(1048576):h.update(b)
   writer.write_json('versions.json',{'python':sys.version.split()[0],'playwright':importlib.metadata.version('playwright'),'browser_binary_sha256':h.hexdigest()},control=True)
   request,stream=beta._analyze_fixture();case=beta.PAGES['analyze'];capture=Capture(writer,beta,perf,capture_deadline);original=beta._page_setup_factory('analyze',case,('http','127.0.0.1',4173),request,stream);validator=beta._page_validator('analyze',case)
   def setup(page,viewport,index):
-   need(viewport=='mobile' and index==0);state=original(page,viewport,index);capture.setup(page);writer.write_json('browser-version.json',{'version':page.context.browser.version},control=True);return state
+   need(viewport=='mobile' and index==0);state=original(page,viewport,index);capture.setup(page);bind_navigation_observer(page,writer,capture,capture_deadline,NavigationError,NavigationTimeout);writer.write_json('browser-version.json',{'version':page.context.browser.version},control=True);return state
   perf.audit_one(driver,BASE,case.path,'mobile',beta.VIEWPORTS['mobile'],case.interaction_selector,runs=1,page_setup=setup,ready_selector=case.ready_selector,page_validator=lambda page,state:capture.validated(page,state,validator),post_interaction_validator=beta._post_interaction_validator('analyze'),interaction_mode=case.interaction_mode,run_evidence_sink=capture.sink)
   need(capture.final and capture.final['audit_status']=='passed' and capture.final['cleanup_status']=='passed' and capture.seen=={'pending','final'} and capture.captured and capture.metric_verified and not capture.errors)
   source_need(time.monotonic()<capture_deadline,'capture_deadline');result['capture_evidence_verified']=True
