@@ -320,6 +320,9 @@ class SourceSupervisor:
                 with self._lock:
                     _check(self, published=True)
                     if self._state not in ('STARTING', 'READY'):
+                        # Retirement can follow the check without taking this
+                        # lock. Only the native check may prove a normal stop.
+                        _check(self, published=True)
                         raise _unavailable()
                     starting = self._state == 'STARTING'
                 try:
@@ -351,6 +354,7 @@ class SourceSupervisor:
                     with self._lock:
                         _check(self, published=True)
                         if self._state not in ('STARTING', 'READY'):
+                            _check(self, published=True)
                             raise _unavailable()
                     try:
                         _execute(self, task_id, operation)
