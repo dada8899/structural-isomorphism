@@ -69,7 +69,7 @@ jobs:
       run: make PY=python openapi-check
     - name: Leg 2 — web/backend pytest baseline
       env:
-        PYTHONPATH: ${{ github.workspace }}/web/backend
+        PYTHONPATH: ${{ github.workspace }}/web/backend:${{ github.workspace }}
       working-directory: web/backend
       run: '# -ra: surface skipped/xfailed reasons. -q: compact output.
 
