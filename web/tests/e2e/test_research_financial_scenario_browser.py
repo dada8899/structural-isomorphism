@@ -51,8 +51,11 @@ async def saved_chain(tmp_path):
         assert (await helpers._native_tls_fetch(page,'/api/health'))['body']['checks']['native_planner']=='FUNDING_CLOSED'
         await page.locator('#method-draft-method').fill('FIN3不替换的人工方法草稿。');old_pending=await helpers._method_main_pending(page)
         await fill_form(page,sensitivity=True)
-        async with page.expect_response('**/financial-calculations') as saved:await page.locator('#financial-scenario-calculate').click()
-        result=await saved.value;assert result.status==200,await result.text();body=await result.json();m=body['data']['metadata'];ref=m['result_ref'];at=m['recorded_at']
+        url=service.origin+'/api/research/'+service.seed.research_id+'/financial-calculations'
+        async with bridge.capture_response(page,'POST',url) as captured:
+            async with page.expect_response(url) as saved:await page.locator('#financial-scenario-calculate').click()
+            result=await saved.value;assert result.status==200,await result.text();body=await captured.json(result)
+        m=body['data']['metadata'];ref=m['result_ref'];at=m['recorded_at']
         await expect(page.locator('#financial-scenario-status')).to_contain_text('条件计算已保存')
         await expect(page.locator('#financial-scenario-result')).to_contain_text('营业利润缺失')
         assert body['data']['public_result']['view']=='summary' and await count(service)==1
@@ -134,8 +137,11 @@ async def covered_advanced(tmp_path):
             await page.locator('#financial-scenario-add-scenario').click();await page.locator(f'#financial-scenario-s{index}-label').fill('明确缺口情景'+str(index));await page.locator(f'#financial-scenario-s{index}-remaining-reason').fill('剩余收入未知，保持null')
             for year in range(2027,2032):await page.locator(f'#financial-scenario-s{index}-growth-{year}-reason').fill('未来增长未知，保持null')
         await page.locator('#financial-scenario-sensitivity-panel').evaluate('(n)=>n.open=true');await page.locator('#financial-scenario-sensitivity-enabled').check();await page.locator('#financial-scenario-sensitivity-target').select_option('growth:2027');await page.locator('#financial-scenario-sensitivity-points').fill(','.join(str(x) for x in range(21)));await page.locator('#financial-scenario-consent').check()
-        async with page.expect_response('**/financial-calculations') as saved:await page.locator('#financial-scenario-calculate').click()
-        response=await saved.value;assert response.status==200,await response.text();data=(await response.json())['data'];await expect(page.locator('#financial-scenario-status')).to_contain_text('条件计算已保存')
+        url=service.origin+'/api/research/'+service.seed.research_id+'/financial-calculations'
+        async with bridge.capture_response(page,'POST',url) as captured:
+            async with page.expect_response(url) as saved:await page.locator('#financial-scenario-calculate').click()
+            response=await saved.value;assert response.status==200,await response.text();data=(await captured.json(response))['data']
+        await expect(page.locator('#financial-scenario-status')).to_contain_text('条件计算已保存')
         assert len(data['public_result']['value']['scenarios'])==3 and data['public_result']['value']['scenarios'][0]['years'][0]['available']['operating_profit'] is True
         await page.get_by_role('button',name='年度底表',exact=True).click();await expect(page.locator('#financial-scenario-result')).to_contain_text('150.000000')
         await page.get_by_role('button',name='条件曲线与敏感性',exact=True).click();await expect(page.locator('#financial-scenario-result svg')).to_have_count(12)
@@ -258,8 +264,11 @@ async def mode_drafts(tmp_path):
         await page.locator('#financial-scenario-s0-allocation0-mode').select_option('share');await expect(page.locator('#financial-scenario-s0-allocation0-2026-value')).to_have_value('25');await page.locator('#financial-scenario-s0-allocation0-mode').select_option('amount');await expect(page.locator('#financial-scenario-consent')).not_to_be_checked()
         await page.locator('#financial-scenario-s0-allocation0-2027-currency').select_option('');await page.locator('#financial-scenario-consent').check();await page.locator('#financial-scenario-calculate').click();await expect(page.locator('#financial-scenario-status')).to_contain_text('分配金额/比例单位或币种不匹配');assert posts==[] and await pending(page)=={} and await count(service)==0
         await page.locator('#financial-scenario-s0-allocation0-2027-currency').select_option('USD');await page.locator('#financial-scenario-consent').check()
-        async with page.expect_response('**/financial-calculations') as saved:await page.locator('#financial-scenario-calculate').click()
-        response=await saved.value;assert response.status==200,await response.text();data=(await response.json())['data'];await expect(page.locator('#financial-scenario-status')).to_contain_text('条件计算已保存');assert len(posts)==1 and await count(service)==1
+        url=service.origin+'/api/research/'+service.seed.research_id+'/financial-calculations'
+        async with bridge.capture_response(page,'POST',url) as captured:
+            async with page.expect_response(url) as saved:await page.locator('#financial-scenario-calculate').click()
+            response=await saved.value;assert response.status==200,await response.text();data=(await captured.json(response))['data']
+        await expect(page.locator('#financial-scenario-status')).to_contain_text('条件计算已保存');assert len(posts)==1 and await count(service)==1
         request=json.loads(posts[0])['data']['request']['scenarios'][0]
         assert request['costs'][0]['mode']==request['allocations'][0]['mode']=='amount'
         for name,value in [('costs','50'),('allocations','30')]:
