@@ -311,7 +311,8 @@ def test_source11_real_migration_death_recovers_complete10_or11_and_preserves_fo
     # Historical12 is an offline profile, so inspect its native readonly image
     # without asking the current private Auth factory to admit it as Main15.
     with closing(sqlite3.connect(path.as_uri()+'?mode=ro',uri=True,isolation_level=None)) as conn:
-        conn.row_factory=sqlite3.Row;conn.execute('BEGIN')
+        from research.financial_guard import install_default_hook
+        conn.row_factory=sqlite3.Row;install_default_hook(conn);conn.execute('BEGIN')
         ResearchStore._check_v12(conn)
         assert tuple(conn.execute('SELECT result_ref,admission_json,receipt_json,result_json,commit_json FROM research_formula_runs').fetchone())==before
         assert conn.execute('PRAGMA journal_mode').fetchone()[0]=='wal'

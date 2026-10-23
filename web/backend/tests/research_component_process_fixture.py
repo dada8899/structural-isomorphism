@@ -104,6 +104,14 @@ def _archived12(path, original, output):
     from urllib.parse import parse_qs, urlsplit
     root = Path(os.environ['ARCHIVED12_ROOT']).resolve()
     manifest = json.loads(Path(os.environ['ARCHIVED12_MANIFEST']).read_text())['files']
+    compiled = {}
+    def observe_compile(event, arguments):
+        if event == 'compile' and isinstance(arguments[1], str) and isinstance(arguments[0], (bytes, str)):
+            filename = Path(arguments[1])
+            if filename.is_absolute() and filename.is_relative_to(root):
+                raw = arguments[0].encode() if isinstance(arguments[0], str) else arguments[0]
+                compiled[filename.relative_to(root).as_posix()] = hashlib.sha256(raw).hexdigest()
+    sys.addaudithook(observe_compile)
     def verified_sources():
         hashes = {}
         for name, module in tuple(sys.modules.items()):
@@ -164,7 +172,29 @@ def _archived12(path, original, output):
         assert conn.execute('SELECT version FROM research_schema').fetchone()[0] == 12
         assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0] == 1
         assert conn.execute('SELECT count(*) FROM research_source_resources').fetchone()[0] == 0
-    Path(output).write_text(json.dumps({'schema_version': 12, 'source_hashes_verified': verified_sources(),
+    sources = verified_sources()
+    assert all(compiled[name] == sha for name, sha in sources.items())
+    resources = None
+    guard = sys.modules.get('audit_bootstrap')
+    if guard is not None:
+        import sqlite3
+        import threading
+        opened = []
+        for conn in guard.handles:
+            try:
+                conn.in_transaction
+            except sqlite3.ProgrammingError:
+                continue
+            opened.append(id(conn))
+        resources = dict(pid=os.getpid(), native_created=len(guard.handles), open_by_property=opened,
+                         tracked_fds=len(guard.fdpaths), threads=[t.name for t in threading.enumerate()
+                             if t is not threading.main_thread() and t.is_alive()], guard_denials=guard.blocked)
+        assert not opened and not resources['threads'] and not resources['tracked_fds'] and not guard.blocked
+    Path(output).write_text(json.dumps({'schema_version': 12, 'source_hashes_verified': sources,
+                                      'compiled_source': compiled, 'compiled_source_match': True,
+                                      'live_overrides': ['auth._send_email', 'research.enabled', 'source_integration.enabled',
+                                                         'runtime_paths.STATE_ROOT', 'runtime_paths.CACHE_ROOT', 'runtime_paths.LOG_ROOT'],
+                                      'resources': resources,
                                       'reopened': reopened.json()['data'], 'history': history,
                                       'refused_status': refused.status_code, 'refused_code': refused.json()['error']['code']}))
 
