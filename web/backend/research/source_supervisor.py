@@ -234,7 +234,7 @@ def request_main_stop(supervisor, main_binding) -> None:
 
 def _code_images():
     root = Path(__file__).resolve().parent
-    names = ('source_supervisor.py', 'source_workflow.py', 'source_integration.py', 'source_guard.py',
+    names = ('source_supervisor.py', 'source_sec_access.py', 'source_workflow.py', 'source_integration.py', 'source_guard.py',
              'source_policy.py', 'source_spawn.py', 'authorization.py', 'runtime_profile.py', 'store.py',
              'service.py', 'runner.py', 'budget.py', 'paid_control.py', 'financial_guard.py',
              'financial_input.py', 'financial_input_guard.py', 'financial_input_schemas.py',
@@ -262,7 +262,8 @@ class SourceSupervisor:
                  '_images', '_lock', '_event', '_state', '_thread', '_slot', '_lease',
                  '_failure', '_start_failed', '_cursor', '_stop', '_dispatch_mutex',
                  '_slot_epoch', '_deadline', '_reference', '_session', '_guard', '_errors',
-                 '_binding_reference', '_main_stop_intent', '_source_stop_intent', '_stop_intents', '_main_stop_entry')
+                 '_binding_reference', '_main_stop_intent', '_source_stop_intent', '_stop_intents', '_main_stop_entry',
+                 '_sec_access')
 
     def __init__(self, service, binding, *, _factory=None):
         if _factory is not _FACTORY or inspect.currentframe().f_back.f_code is not start.__code__:
@@ -279,6 +280,7 @@ class SourceSupervisor:
         self._slot_epoch, self._deadline, self._reference = 0, {}, str(uuid4())
         self._main_stop_entry = _freeze_main_stop_entry(self)
         self._session = self._guard = None
+        self._sec_access = None
         self._errors = []  # Retain real exception frames/owned close handles.
         self._state, self._slot, self._lease = 'STARTING', None, None
         self._failure, self._start_failed, self._cursor = None, False, ''
@@ -338,6 +340,8 @@ class SourceSupervisor:
                             with self._lock:
                                 _check(self, published=True)
                                 if self._state == 'STARTING':
+                                    from .source_sec_access import cleanup_completed
+                                    cleanup_completed(self._sec_access)
                                     self._state = 'READY'
                     self._event.wait(_POLL_SECONDS)
                     self._event.clear()
@@ -429,6 +433,8 @@ def start(service, main_binding) -> SourceSupervisor:
         supervisor = SourceSupervisor(service, main_binding, _factory=_FACTORY)
         _REGISTRY[id(main_binding.app)] = supervisor
     try:
+        from .source_sec_access import attach
+        attach(supervisor)
         supervisor._thread.start()
     except BaseException as error:
         with supervisor._lock:
@@ -510,7 +516,7 @@ def retire(supervisor, *, deadline_monotonic: float) -> None:
     # No DB/Main/owner/task lock here: dispatch retirement must not reverse
     # the sender's task -> owner -> finished transaction -> dispatch order.
     _identity_handle(supervisor)
-    remaining = _deadline(supervisor, deadline_monotonic)
+    _deadline(supervisor, deadline_monotonic)
     if supervisor._source_stop_intent is None:
         supervisor._source_stop_intent = supervisor._stop_intents.setdefault('source-retire',
             _StopIntent(supervisor, 'source-retire', _factory=_FACTORY))
@@ -518,7 +524,12 @@ def retire(supervisor, *, deadline_monotonic: float) -> None:
         raise RuntimeError('Source retirement intention changed')
     supervisor._stop.set()
     supervisor._event.set()
-    if not supervisor._dispatch_mutex.acquire(timeout=remaining):
+    if getattr(supervisor, '_sec_access', None) is not None:
+        from .source_sec_access import retire as retire_sec_access
+        retire_sec_access(supervisor._sec_access)
+    # SEC metadata checks consume the same original Main budget. Recompute
+    # remaining time rather than adding their duration to dispatch retirement.
+    if not supervisor._dispatch_mutex.acquire(timeout=_deadline(supervisor, deadline_monotonic)):
         supervisor._state = 'CLEANUP_UNCERTAIN'
         supervisor._failure = 'RETIREMENT_UNCERTAIN'
         raise SourceRetirementUncertain(supervisor)
@@ -552,7 +563,14 @@ def join(supervisor, *, deadline_monotonic: float) -> SourceCleanupReceipt:
                                     'CLEANUP_UNCERTAIN', supervisor._slot, 'DEADLINE')
     try:
         if (not supervisor._thread.is_alive() and supervisor._state == 'STOPPED'
-                and supervisor._slot is None and supervisor._failure is None):
+                and supervisor._slot is None and supervisor._lease is None and supervisor._failure is None):
+            if getattr(supervisor, '_sec_access', None) is not None:
+                from .source_sec_access import close as close_sec_access
+                if not close_sec_access(supervisor._sec_access, deadline_monotonic):
+                    supervisor._state = 'CLEANUP_UNCERTAIN'
+                    supervisor._failure = 'CLOSE_UNCERTAIN'
+                    return SourceCleanupReceipt('source-supervisor-cleanup-v1', supervisor.reference,
+                                                'CLEANUP_UNCERTAIN', None, 'CLOSE_UNCERTAIN')
             with _REGISTRY_LOCK:
                 if _REGISTRY.get(id(supervisor._binding.app)) is supervisor:
                     del _REGISTRY[id(supervisor._binding.app)]
