@@ -248,9 +248,11 @@ def test_actual_browser_full_candidate_has_conditions_competing_explanations_and
             # A saved native run increments Root version without editing the
             # problem. A deliberate fresh preview must use the actual version,
             # without forcing the user to replace their main editor/draft.
-            async with page.expect_response('**/evidence-method-plan-previews') as latest:
-                await page.locator('#evidence-method-preview').click()
-            newer=(await (await latest.value).json())['data']
+            url=service.origin+'/api/research/'+service.seed.research_id+'/evidence-method-plan-previews'
+            async with bridge.capture_response(page,'POST',url) as captured:
+                async with page.expect_response(url) as latest:
+                    await page.locator('#evidence-method-preview').click()
+                newer=(await captured.json(await latest.value))['data']
             await expect(page.locator('#evidence-method-preview-panel')).to_be_visible()
             assert newer['research_version']==confirmed['execution_research_version']
             assert newer['preview_ref']!=confirmed['result_ref']
