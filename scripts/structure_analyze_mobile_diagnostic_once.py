@@ -190,6 +190,7 @@ def navigation_failure_category(error,error_type,timeout_type):
  if label=='TimeoutError':return label,'timeout'
  if label!='Error':return label,'other'
  try:text=str(error)
+ except (KeyboardInterrupt,SystemExit):raise
  except BaseException:return label,'other'
  if len(text)>8192:return label,'other'
  for code in NAVIGATION_NET_ERRORS:

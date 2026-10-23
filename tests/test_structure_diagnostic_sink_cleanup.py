@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import sys
 import time
 import unittest
 from unittest.mock import patch
@@ -272,6 +273,62 @@ class NavigationObserverControls(unittest.TestCase):
         self.assertTrue(caught is original,'ordinary receipt failure must preserve original SDK error identity')
         self.assertIn('navigation_observer_receipt_unknown',c.errors)
         self.assertEqual(writer.records,{})
+
+    def test_classifier_cancellation_wins_with_real_sdk_error_context(self):
+        from playwright.sync_api import Error as SDKError, TimeoutError as SDKTimeout
+        for cancellation in (KeyboardInterrupt(self.CANARY),SystemExit(self.CANARY)):
+            with self.subTest(cancellation=type(cancellation).__name__):
+                original=SDKError('net::ERR_ABORTED '+self.CANARY)
+                def bad_str(error):raise cancellation
+                def goto(*args,**kwargs):raise original
+                target,writer,c=self.bind(goto,Writer(),SDKError,SDKTimeout)
+                caught=None
+                with patch.object(SDKError,'__str__',bad_str):
+                    try:target.goto('synthetic-local-only',timeout=30000)
+                    except BaseException as raised:caught=raised
+                self.assertTrue(caught is cancellation,'classifier cancellation identity must take priority')
+                self.assertTrue(caught.__context__ is original,'original SDK error must remain in context')
+                self.assertEqual(writer.records,{})
+                self.assertEqual(c.primary_failure,{'stage':'navigation','error':'navigation_failed','error_detail':{'code':'navigation_failed','type':'Error'}})
+                self.assertNotIn(self.CANARY,json.dumps({'primary':c.primary_failure,'errors':c.errors}))
+
+    def test_classifier_real_self_SIGINT_propagates_and_restores_handler(self):
+        from playwright.sync_api import Error as SDKError, TimeoutError as SDKTimeout
+        original=SDKError('net::ERR_ABORTED '+self.CANARY);cancellation=KeyboardInterrupt(self.CANARY)
+        previous=signal.getsignal(signal.SIGINT);previous_trace=sys.gettrace()
+        def interrupt(signum,frame):raise cancellation
+        def interrupted_str(error):
+            os.kill(os.getpid(),signal.SIGINT)
+            raise AssertionError('self signal must interrupt stringification')
+        def goto(*args,**kwargs):raise original
+        target,writer,c=self.bind(goto,Writer(),SDKError,SDKTimeout);caught=None
+        try:
+            signal.signal(signal.SIGINT,interrupt)
+            with patch.object(SDKError,'__str__',interrupted_str):
+                try:target.goto('synthetic-local-only',timeout=30000)
+                except BaseException as raised:caught=raised
+        finally:signal.signal(signal.SIGINT,previous)
+        self.assertTrue(caught is cancellation,'real self SIGINT must propagate with original identity')
+        self.assertTrue(caught.__context__ is original,'real self SIGINT must retain original SDK error context')
+        self.assertIs(signal.getsignal(signal.SIGINT),previous)
+        self.assertIs(sys.gettrace(),previous_trace)
+        self.assertEqual(writer.records,{})
+        self.assertEqual(c.primary_failure['error_detail'],{'code':'navigation_failed','type':'Error'})
+
+    def test_ordinary_real_sdk_stringification_failure_is_safe_other(self):
+        from playwright.sync_api import Error as SDKError, TimeoutError as SDKTimeout
+        original=SDKError('net::ERR_FAILED '+self.CANARY)
+        def bad_str(error):raise RuntimeError(self.CANARY)
+        def goto(*args,**kwargs):raise original
+        target,writer,c=self.bind(goto,Writer(),SDKError,SDKTimeout);caught=None
+        with patch.object(SDKError,'__str__',bad_str):
+            try:target.goto('synthetic-local-only',timeout=30000)
+            except BaseException as raised:caught=raised
+        self.assertTrue(caught is original,'ordinary stringification error must not replace original SDK exception')
+        record=self.record(writer)
+        self.assertEqual(record['outcome'],'raised')
+        self.assertEqual(record['exception_type'],'Error')
+        self.assertEqual(record['failure_category'],'other')
 
     def test_expired_observer_budget_does_not_repeat_or_alter_goto(self):
         calls=[];response=object()
