@@ -1,11 +1,12 @@
-"""Fixed native-plan transport. Real credentials and native_live stay closed.
+"""Canonical native-plan transport with separate controlled/live lifetimes.
 
-Importing this module performs no credential, CA, DNS or connection work.
-Controlled resources come only from Core's actual permit/claim chain. TLS
-primitives below are isolated components, not a live activation route.
+Import performs no credential, CA, DNS or connection work. Live construction
+requires genuine A/C bootstrap resources; network operations additionally need
+an executable session and the current actual C slot. Missing ports stay closed.
 """
 from decimal import Decimal, InvalidOperation
 import errno
+import _thread
 import hashlib
 import importlib
 import json
@@ -15,6 +16,7 @@ import re
 import select
 import socket
 import ssl
+import stat
 import sys
 import threading
 import time
@@ -25,6 +27,8 @@ _FACTORY = object()
 _RESOURCES, _CREDENTIALS, _PENDING, _BALANCES, _RETURNS, _CHANNELS = ({}, {}, {}, {}, {}, {})
 _WALL = 8.0
 _HEAD_LIMIT, _BODY_LIMIT = 16384, 65536
+_PAST_RESOURCES = {}
+_LIVE_WIRE_BODY_LIMIT = 393216 + 65536
 _TLS_SERVER_NAME = 'api.deepseek.com'
 _REF = re.compile(r'[a-zA-Z0-9._:-]{1,100}\Z')
 
@@ -69,6 +73,7 @@ class _Channel:
         self.sock, self.deadline, self.owner = sock, deadline, owner
         self.pid, self.reference, self.identity, self.fd = os.getpid(), str(uuid4()), None, sock.fileno()
         self.active, self.closed, self.close_error = True, False, False
+        self.slot_scope = getattr(owner, '_slot_scope', None)
         _CHANNELS[self.reference] = self
         if owner is not None:
             owner._channels[self.reference] = self
@@ -88,13 +93,24 @@ class _Channel:
             raise PermissionError('native channel lifetime ended')
         if time.monotonic() >= self.deadline:
             raise TimeoutError('bounded native transport deadline')
+        if self.owner is not None and self.owner.mode == 'native_live':
+            self.owner._require_live_execute(self.slot_scope)
+            if time.monotonic() >= self.deadline:
+                raise TimeoutError('bounded native transport deadline')
 
     def wait(self, *, read=False):
         self.require()
+        if self.owner is not None and self.owner.mode == 'native_live':
+            stop = self.owner._stop_fd(self.slot_scope)
+            if select.select([stop], [], [], 0)[0]:raise InterruptedError('native live slot stopped')
         if read and isinstance(self.sock, ssl.SSLSocket) and self.sock.pending():
             return
         remaining = self.deadline - time.monotonic()
-        r, w, failed = select.select([self.sock] if read else [], [] if read else [self.sock], [self.sock], max(0, remaining))
+        stop = self.owner._stop_fd(self.slot_scope) if self.owner is not None and self.owner.mode == 'native_live' else None
+        readers = ([self.sock] if read else []) + ([stop] if stop is not None else [])
+        r, w, failed = select.select(readers, [] if read else [self.sock], [self.sock], max(0, remaining))
+        if stop is not None and stop in r:
+            raise InterruptedError('native live slot stopped')
         if failed or not (r if read else w):
             raise TimeoutError('bounded native transport deadline')
 
@@ -146,6 +162,17 @@ class _Channel:
             read_ready = False
 
     def receive(self):
+        if self.owner is not None and self.owner.mode == 'native_live':
+            parser = _LiveHTTPParser(self.owner._body_limit())
+            read_ready = True
+            while not parser.done:
+                self.wait(read=read_ready)
+                try:chunk = self.sock.recv(16384)
+                except ssl.SSLWantWriteError:read_ready = False;continue
+                except (ssl.SSLWantReadError, BlockingIOError):read_ready = True;continue
+                if not chunk:return parser.finish()
+                parser.feed(chunk);read_ready = True
+            return parser.finish()
         raw = bytearray()
         read_ready = True
         while True:
@@ -212,10 +239,10 @@ class _Channel:
 
 
 def _upgrade_tls(channel, context):
-    """Fixed-host TLS component over an already owned socket, no DNS/secret.
+    """Fixed-host TLS over an owned socket, with no DNS or secret here.
 
-    Not reachable through a native_live permit in this release. Tests supply
-    an actual owned CA context; verification and hostname checks remain on.
+    Controlled components may supply their owned test CA. The gated live
+    caller constructs the default CA context; verification stays enabled.
     """
     channel.require()
     if type(context) is not ssl.SSLContext or not context.check_hostname or context.verify_mode != ssl.CERT_REQUIRED:
@@ -258,6 +285,97 @@ def _parse_response(raw):
     return int(status[1]), body
 
 
+class _LiveHTTPParser:
+    """Pure incremental strict framing, with no credential or network port."""
+    def __init__(self, body_limit):
+        if type(body_limit) is not int or body_limit not in (65536, 393216):
+            raise ValueError('fixed live response limit required')
+        self.limit, self.buffer, self.body = body_limit, bytearray(), bytearray()
+        self.status, self.mode, self.remaining = None, 'headers', None
+        self.chunks, self.wire, self.header_size, self.done = 0, 0, 0, False
+    def _body(self, data):
+        if len(self.body) + len(data) > self.limit:
+            raise ValueError('native decoded response bound')
+        self.body.extend(data)
+    def feed(self, data):
+        if type(data) is not bytes or (self.done and data):
+            raise ValueError('native response trailing bytes')
+        self.wire += len(data)
+        if self.wire > _HEAD_LIMIT + _LIVE_WIRE_BODY_LIMIT:
+            raise ValueError('native wire response bound')
+        if self.header_size and self.wire - self.header_size > _LIVE_WIRE_BODY_LIMIT:
+            raise ValueError('native wire body bound')
+        self.buffer.extend(data)
+        while not self.done:
+            if self.mode == 'headers':
+                end = self.buffer.find(b'\r\n\r\n')
+                if end < 0:
+                    if len(self.buffer) > _HEAD_LIMIT:raise ValueError('native response header bound')
+                    return
+                self.header_size = end + 4
+                if self.wire - self.header_size > _LIVE_WIRE_BODY_LIMIT:raise ValueError('native wire body bound')
+                if self.header_size > _HEAD_LIMIT:raise ValueError('native response header bound')
+                lines = bytes(self.buffer[:end]).split(b'\r\n');del self.buffer[:end + 4]
+                status = re.fullmatch(rb'HTTP/1\.[01] ([1-5][0-9]{2})(?: [\x20-\x7e]*)?', lines[0])
+                if status is None:raise ValueError('native HTTP status invalid')
+                self.status = int(status[1])
+                if self.status < 200 or 300 <= self.status < 400:raise ValueError('native HTTP redirect/information refused')
+                headers = {}
+                for line in lines[1:]:
+                    key, colon, value = line.partition(b':');key = key.lower()
+                    if (not colon or re.fullmatch(rb"[!#$%&'*+.^_`|~0-9a-z-]+", key) is None or key in headers
+                            or any(c < 32 and c != 9 for c in value) or b'\x7f' in value):
+                        raise ValueError('native HTTP headers ambiguous')
+                    headers[key] = value.strip()
+                if headers.get(b'content-encoding', b'identity').lower() != b'identity':raise ValueError('native compression refused')
+                transfer, length = headers.get(b'transfer-encoding'), headers.get(b'content-length')
+                if transfer is not None:
+                    if length is not None or transfer.lower() != b'chunked':raise ValueError('native HTTP framing conflict')
+                    self.mode = 'chunk-size'
+                elif length is not None:
+                    if re.fullmatch(rb'[0-9]{1,9}', length) is None or int(length) > self.limit:raise ValueError('native HTTP length invalid')
+                    self.remaining, self.mode = int(length), 'length'
+                else:self.mode = 'eof'
+            elif self.mode == 'length':
+                count = min(len(self.buffer), self.remaining)
+                self._body(self.buffer[:count]);del self.buffer[:count];self.remaining -= count
+                if self.remaining:return
+                self.done = True
+            elif self.mode == 'eof':
+                self._body(self.buffer);self.buffer.clear();return
+            elif self.mode == 'chunk-size':
+                end = self.buffer.find(b'\r\n')
+                if end < 0:
+                    if len(self.buffer) > 128:raise ValueError('native chunk line bound')
+                    return
+                line = bytes(self.buffer[:end]);del self.buffer[:end + 2]
+                if len(line) > 128 or re.fullmatch(rb'[0-9a-fA-F]{1,8}', line) is None:raise ValueError('native chunk syntax')
+                self.chunks += 1
+                if self.chunks > 1024:raise ValueError('native chunk count bound')
+                self.remaining = int(line, 16)
+                if self.remaining > self.limit - len(self.body):raise ValueError('native decoded response bound')
+                self.mode = 'chunk-data' if self.remaining else 'chunk-end'
+            elif self.mode == 'chunk-data':
+                count = min(len(self.buffer), self.remaining)
+                self._body(self.buffer[:count]);del self.buffer[:count];self.remaining -= count
+                if self.remaining:return
+                self.mode = 'chunk-crlf'
+            elif self.mode == 'chunk-crlf':
+                if len(self.buffer) < 2:return
+                if self.buffer[:2] != b'\r\n':raise ValueError('native chunk separator invalid')
+                del self.buffer[:2];self.mode = 'chunk-size'
+            elif self.mode == 'chunk-end':
+                if len(self.buffer) < 2:return
+                if self.buffer[:2] != b'\r\n':raise ValueError('native trailers refused')
+                del self.buffer[:2];self.done = True
+        if self.buffer:raise ValueError('native response trailing bytes')
+        if self.wire - self.header_size > _LIVE_WIRE_BODY_LIMIT:raise ValueError('native wire body bound')
+    def finish(self):
+        if self.mode == 'eof':self.done = True
+        if not self.done or self.buffer:raise ValueError('native response incomplete')
+        return self.status, bytes(self.body)
+
+
 class _FixtureCredential(_Sealed):
     __slots__ = ('resource', 'economic_binding', 'incarnation', 'reference', 'pid', 'active')
 
@@ -282,27 +400,49 @@ class _FixtureCredential(_Sealed):
 class NativePlanResource(_Sealed):
     __slots__ = ('permit', 'mode', 'producer', 'economic_binding', 'credential_incarnation', 'flight',
                  'pid', 'reference', 'active', '_runtime_digest', '_credential', '_balance', '_deadline',
-                 '_endpoint', '_channels', '_uncertain_channels', '_cleanup_unknown')
+                 '_endpoint', '_channels', '_uncertain_channels', '_cleanup_unknown', '_live_session', '_slot_scope', '_dns_processes')
 
-    def __init__(self, permit, *, _factory=None):
+    def __init__(self, permit, *, startup_scope=None, _factory=None):
         core, _, error = _core()
         if _factory is not _FACTORY or type(permit) is not core.NativeRuntimePermit:
             raise PermissionError('fixed Core runtime permit required')
-        facts = permit.data()
-        if facts['mode'] != 'controlled_fixture':
-            raise error('FUNDING_CLOSED', 503, '真实凭据和原生资金资源尚未绑定。')
+        live = getattr(permit.provision.authority, 'live_session', None)
+        if live is not None:
+            from . import native_live_credentials as credentials
+            a = credentials._a()
+            if type(live) is not a.NativeLiveSession:
+                raise error('FUNDING_CLOSED', 503, '真实模型会话未绑定。')
+            permit.require_bootstrap(startup_scope)
+            live.require_bootstrap(startup_scope)
+            facts = permit.data_bootstrap(startup_scope)
+            if (facts['mode'] != 'native_live' or type(live.credential) is not credentials.NativeLiveCredential
+                    or type(live.thread_flight) is not _thread.LockType):
+                raise error('FUNDING_CLOSED', 503, '实际凭据和共享线程锁尚未绑定。')
+            live.credential.require_bootstrap(live.grant, live.flight, main_context=startup_scope)
+        else:
+            facts = permit.data()
+            if facts['mode'] != 'controlled_fixture':
+                raise error('FUNDING_CLOSED', 503, '真实凭据和原生资金资源尚未绑定。')
         if (Path(__file__).is_symlink() or hashlib.sha256(Path(__file__).read_bytes()).hexdigest() != facts['runtime_digest']
                 or any(type(facts[k]) is not str or _REF.fullmatch(facts[k]) is None for k in ('economic_binding', 'credential_incarnation'))):
             raise PermissionError('fixed Runtime code and controlled identity required')
         self.permit, self.mode, self.producer = permit, facts['mode'], 'owned-native-plan-runtime-v1'
         self.economic_binding, self.credential_incarnation = facts['economic_binding'], facts['credential_incarnation']
-        self.flight, self.pid, self.reference, self.active = threading.Lock(), os.getpid(), str(uuid4()), True
+        self.flight, self.pid, self.reference, self.active = (live.thread_flight if live is not None else threading.Lock()), os.getpid(), str(uuid4()), True
         self._runtime_digest, self._credential, self._balance, self._deadline = facts['runtime_digest'], None, None, None
         self._endpoint, self._channels, self._cleanup_unknown = None, {}, False
         self._uncertain_channels = {}
+        self._live_session, self._slot_scope, self._dns_processes = live, None, {}
+        if live is not None:
+            object.__setattr__(self, '_credential', live.credential)
         _RESOURCES[self.reference] = self
+        if live is not None:_PAST_RESOURCES[self.reference] = self
 
     def require(self, *, current=True):
+        if self.mode == 'native_live':
+            if current:self._require_live_execute(self._slot_scope)
+            else:self._require_live_past(self._slot_scope)
+            return
         if not self.active or self.pid != os.getpid() or _RESOURCES.get(self.reference) is not self:
             raise PermissionError('native Runtime resource retired')
         if self._cleanup_unknown:
@@ -314,7 +454,95 @@ class NativePlanResource(_Sealed):
         if Path(__file__).is_symlink() or hashlib.sha256(Path(__file__).read_bytes()).hexdigest() != self._runtime_digest:
             raise PermissionError('native Runtime code changed')
 
+    def require_bootstrap(self, startup_scope):
+        if self.mode != 'native_live':
+            self.require()
+            return
+        self._live_birth()
+        self.permit.require_bootstrap(startup_scope)
+        session = self._live_session
+        session.require_bootstrap(startup_scope)
+        if (self.permit.provision.authority.live_session is not session
+                or self.flight is not session.thread_flight or self._credential is not session.credential):
+            raise PermissionError('actual bootstrap resource/session pairing required')
+        self._credential.require_bootstrap(session.grant, session.flight, main_context=startup_scope)
+
+    def _mark_cleanup_uncertain(self):
+        object.__setattr__(self, '_cleanup_unknown', True)
+
+    def _live_birth(self, *, past=False):
+        registry = _PAST_RESOURCES if past else _RESOURCES
+        if (self.pid != os.getpid() or registry.get(self.reference) is not self or self.mode != 'native_live'
+                or self._cleanup_unknown or (not self.active and not past)
+                or hashlib.sha256(Path(__file__).read_bytes()).hexdigest() != self._runtime_digest):
+            raise _core()[2]('FUNDING_CLOSED', 503, '实际原生资源当前关闭。')
+
+    def _require_live_execute(self, scope):
+        self._live_birth()
+        from . import native_live_credentials as credentials
+        c = credentials._c()
+        if type(scope) is not c.NativePlanSlotLease or scope is not self._slot_scope:
+            raise credentials._closed()
+        session = self._live_session
+        if (c.require_slot(scope, session.store, session, task_id=scope.task_id,
+                purpose=_core()[0].purpose_scope(self), mode='execute') is not None):
+            raise credentials._closed()
+        session.require()
+        self._credential.require_current(session)
+        self.permit.require()
+
+    def _require_live_past(self, scope):
+        self._live_birth(past=True)
+        self.permit.require(current=False, past_scope=scope)
+        self._credential.require_past(self._live_session, scope)
+
+    def _stop_fd(self, scope):
+        self._require_live_execute(scope)
+        import fcntl
+        fd, identity = scope.stop_fd, scope.stop_fd_identity
+        if (type(fd) is not int or fd < 0 or type(identity) is not tuple or len(identity) != 2
+                or any(type(v) is not int or v < 0 for v in identity)):
+            raise PermissionError('actual slot stop FD required')
+        info = os.fstat(fd)
+        if (not stat.S_ISFIFO(info.st_mode) or (info.st_dev, info.st_ino) != identity
+                or not fcntl.fcntl(fd, fcntl.F_GETFL) & os.O_NONBLOCK or os.get_inheritable(fd)):
+            raise PermissionError('original nonblocking slot stop FD required')
+        return fd
+
+    def _body_limit(self):
+        return 393216 if _core()[0].purpose_scope(self) == 'evidence_method_plan_v1' else 65536
+
+    def _connect_live(self):
+        self._require_live_execute(self._slot_scope)
+        if any(name in os.environ for name in ('SSL_CERT_FILE','SSL_CERT_DIR','SSLKEYLOGFILE')):
+            raise PermissionError('native CA/keylog override refused')
+        from . import native_dns_process
+        addresses = native_dns_process.resolve_native_host(self, self._slot_scope, deadline=self._deadline)
+        address = addresses[0]
+        import ipaddress
+        family = socket.AF_INET6 if ipaddress.ip_address(address).version == 6 else socket.AF_INET
+        sock = socket.socket(family, socket.SOCK_STREAM)
+        channel = _Channel(sock, self._deadline, self, _factory=_FACTORY)
+        try:
+            sock.setblocking(False)
+            target = (address, 443, 0, 0) if family == socket.AF_INET6 else (address, 443)
+            self._require_live_execute(self._slot_scope)
+            result = sock.connect_ex(target)
+            if result not in (0, errno.EINPROGRESS, errno.EWOULDBLOCK, errno.EALREADY):raise OSError('native TLS connection unavailable')
+            channel.wait()
+            if sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR) or ipaddress.ip_address(sock.getpeername()[0]) != ipaddress.ip_address(address):
+                raise PermissionError('native numeric peer differs')
+            context = ssl.create_default_context()
+            if not context.check_hostname or context.verify_mode != ssl.CERT_REQUIRED or context.keylog_filename is not None:
+                raise PermissionError('fixed verified default TLS context required')
+            return _upgrade_tls(channel, context)
+        except BaseException:
+            try:channel.close()
+            except BaseException:self._mark_cleanup_uncertain()
+            raise
+
     def _connect(self):
+        if self.mode == 'native_live':return self._connect_live()
         self.require()
         endpoint = self.permit.controlled_endpoint()
         if (type(endpoint) is not tuple or len(endpoint) != 2 or endpoint[0] != '127.0.0.1'
@@ -343,6 +571,12 @@ class NativePlanResource(_Sealed):
             raise
 
     def _request(self, method, path, raw):
+        if self.mode == 'native_live':
+            self._require_live_execute(self._slot_scope)
+            if type(raw) is not bytes or (method,path) not in (('GET','/user/balance'),('POST','/chat/completions')):
+                raise PermissionError('fixed live HTTP operation required')
+            authorization = self._credential._authorization(self._live_session, self, self._slot_scope)
+            return (method + ' ' + path + ' HTTP/1.1\r\nHost: api.deepseek.com\r\nConnection: close\r\nContent-Type: application/json\r\nAccept-Encoding: identity\r\nAuthorization: ').encode('ascii') + authorization + ('\r\nContent-Length: ' + str(len(raw)) + '\r\n\r\n').encode('ascii') + raw
         self._credential.require(self)
         if type(raw) is not bytes or (method, path) not in (('GET', '/user/balance'), ('POST', '/chat/completions')):
             raise PermissionError('fixed controlled HTTP operation required')
@@ -354,10 +588,14 @@ class NativePlanResource(_Sealed):
         _, flow, error = _core()
         if type(capability) is not flow.NativeBalanceLease:
             raise PermissionError('actual pre-GET balance lease required')
+        if self.mode == 'native_live':
+            scope = getattr(capability, 'slot_scope', None)
+            object.__setattr__(self, '_slot_scope', scope)
+            self._require_live_execute(scope)
         claim = capability.consume(self)
         self.require()
         object.__setattr__(self, '_balance', None)
-        object.__setattr__(self, '_deadline', time.monotonic() + _WALL)
+        object.__setattr__(self, '_deadline', time.monotonic() + (10.0 if self.mode == 'native_live' else _WALL))
         if self._credential is None:
             object.__setattr__(self, '_credential', _FixtureCredential(self, _factory=_FACTORY))
         channel = self._connect()
@@ -400,6 +638,7 @@ class NativePlanResource(_Sealed):
         self._balance.require(self, self._balance.claim)
         if any(p.resource is self and p.active for p in _PENDING.values()):
             raise PermissionError('one pending POST per controlled resource')
+        if self.mode == 'native_live':object.__setattr__(self, '_deadline', time.monotonic() + 10.0)
         channel = self._connect()
         try:
             return _Pending(self, channel, self._balance.claim, self._credential, _factory=_FACTORY)
@@ -419,6 +658,9 @@ class NativePlanResource(_Sealed):
         if self.pid != os.getpid():
             raise PermissionError('only this native resource PID can retire IO')
         errors = []
+        for process in tuple(self._dns_processes.values()):
+            try:process.close()
+            except BaseException as error:errors.append(type(error).__name__)
         channels = {**self._uncertain_channels, **self._channels}
         for channel in tuple(channels.values()):
             try:
@@ -436,7 +678,8 @@ class NativePlanResource(_Sealed):
         errors = []
         values = [p for p in tuple(_PENDING.values()) if p.resource is self]
         values += [v for registry in (_BALANCES, _RETURNS) for v in tuple(registry.values()) if v.resource is self]
-        values += list({**self._uncertain_channels, **self._channels}.values()) + ([self._credential] if self._credential else [])
+        values += list({**self._uncertain_channels, **self._channels}.values()) + ([self._credential] if self._credential and self.mode != 'native_live' else [])
+        values += list(self._dns_processes.values())
         for value in values:
             try:
                 value.close()
@@ -448,13 +691,14 @@ class NativePlanResource(_Sealed):
 
 
 class OwnedBalanceReceipt(_Sealed):
-    __slots__ = ('resource', 'claim', 'balance_units', 'response_digest', 'observed_at', 'credential_incarnation', 'reference', 'pid', 'active')
+    __slots__ = ('resource', 'claim', 'balance_units', 'response_digest', 'observed_at', 'credential_incarnation', 'reference', 'pid', 'active', 'slot_scope')
 
     def __init__(self, resource, claim, units, response_digest, *, _factory=None):
         if _factory is not _FACTORY:
             raise TypeError('owned actual balance factory required')
         self.resource, self.claim, self.balance_units, self.response_digest = resource, claim, units, response_digest
         self.observed_at, self.credential_incarnation = int(time.time()), resource.credential_incarnation
+        self.slot_scope = resource._slot_scope
         self.reference, self.pid, self.active = str(uuid4()), os.getpid(), True
         _BALANCES[self.reference] = self
 
@@ -462,7 +706,10 @@ class OwnedBalanceReceipt(_Sealed):
         if (not self.active or self.pid != os.getpid() or _BALANCES.get(self.reference) is not self
                 or self.resource is not resource or self.claim != claim or self.credential_incarnation != resource.credential_incarnation):
             raise PermissionError('owned current balance claim required')
-        resource.require()
+        if resource.mode == 'native_live':
+            if self.slot_scope is not resource._slot_scope:raise PermissionError('original live balance slot required')
+            resource._require_live_execute(self.slot_scope)
+        else:resource.require()
 
     def audit(self):
         self.require(self.resource, self.claim)
@@ -475,7 +722,7 @@ class OwnedBalanceReceipt(_Sealed):
 
 
 class _Pending(_Sealed):
-    __slots__ = ('resource', 'channel', 'claim', 'credential', 'reference', 'pid', 'active', 'attempted', 'first_write_syscall_entered', 'grant', 'remaining', 'received')
+    __slots__ = ('resource', 'channel', 'claim', 'credential', 'reference', 'pid', 'active', 'attempted', 'first_write_syscall_entered', 'grant', 'remaining', 'received', 'slot_scope')
 
     def __init__(self, resource, channel, claim, credential, *, _factory=None):
         if _factory is not _FACTORY:
@@ -483,6 +730,7 @@ class _Pending(_Sealed):
         self.resource, self.channel, self.claim, self.credential = resource, channel, claim, credential
         self.reference, self.pid, self.active, self.attempted = str(uuid4()), os.getpid(), True, False
         self.first_write_syscall_entered = False
+        self.slot_scope = resource._slot_scope
         self.grant, self.remaining, self.received = None, None, False
         _PENDING[self.reference] = self
 
@@ -491,13 +739,18 @@ class _Pending(_Sealed):
             raise PermissionError('native pending retired')
         self.channel.require()
         self.resource.require(current=False)
-        self.credential.require(self.resource)
+        if self.resource.mode == 'native_live':
+            self.resource._require_live_execute(self.slot_scope)
+            self.credential.require_current(self.resource._live_session)
+        else:self.credential.require(self.resource)
 
     def write_first(self, capability):
         ports, flow, _ = _core()
         self.require()
         if self.attempted or type(capability) is not flow.NativePlanSendLease:
             raise PermissionError('actual once-only native send lease required')
+        if self.resource.mode == 'native_live' and getattr(capability, 'slot_scope', None) is not self.slot_scope:
+            raise PermissionError('original live send slot required')
         object.__setattr__(self, 'attempted', True)
         if ports.purpose_scope(self.resource) == 'evidence_method_plan_v1':
             descriptor = capability.inspect_payload(self.resource)
@@ -515,7 +768,9 @@ class _Pending(_Sealed):
         if (dispatch, nonce) != self.claim:
             raise PermissionError('balance and send claims differ')
         request = self.resource._request('POST', '/chat/completions', raw)
+        entered = time.monotonic()
         sent = self.channel.send_first(request)
+        if self.resource.mode == 'native_live':self.channel.deadline = entered + 180.0
         object.__setattr__(self, 'grant', (dispatch, nonce, admission, producer))
         object.__setattr__(self, 'remaining', request[sent:])
 
@@ -525,14 +780,16 @@ class _Pending(_Sealed):
             raise PermissionError('one actual first write and return required')
         object.__setattr__(self, 'received', True)
         self.channel.send_remaining(self.remaining)
+        if self.resource.mode == 'native_live':object.__setattr__(self, 'remaining', b'')
         status, body = self.channel.receive()
         # Ownership transfers before any fallible close. Core commits the
         # financial return before independently attempting pending.close().
-        return OwnedNativeReturn(self.resource, self.grant, status, body, _factory=_FACTORY)
+        return OwnedNativeReturn(self.resource, self.grant, status, body, slot_scope=self.slot_scope, _factory=_FACTORY)
 
     def close(self):
         object.__setattr__(self, 'active', False)
         _PENDING.pop(self.reference, None)
+        if self.resource.mode == 'native_live':object.__setattr__(self, 'remaining', b'')
         self.channel.close()
 
 
@@ -540,12 +797,13 @@ _PENDING_FIRST_WRITE_CODE = _Pending.write_first.__code__
 
 
 class OwnedNativeReturn(_Sealed):
-    __slots__ = ('resource', 'dispatch', 'nonce', 'admission_digest', 'producer_digest', 'status', 'body', 'mode', 'reference', 'pid', 'active')
+    __slots__ = ('resource', 'dispatch', 'nonce', 'admission_digest', 'producer_digest', 'status', 'body', 'mode', 'reference', 'pid', 'active', 'slot_scope')
 
-    def __init__(self, resource, grant, status, body, *, _factory=None):
-        if _factory is not _FACTORY or type(body) is not bytes or len(body) > _BODY_LIMIT:
+    def __init__(self, resource, grant, status, body, *, slot_scope=None, _factory=None):
+        if _factory is not _FACTORY or type(body) is not bytes or len(body) > (resource._body_limit() if resource.mode == 'native_live' else _BODY_LIMIT):
             raise TypeError('actual bounded native return required')
         self.resource = resource
+        self.slot_scope = slot_scope
         self.dispatch, self.nonce, self.admission_digest, self.producer_digest = grant
         self.status, self.body, self.mode = status, body, resource.mode
         self.reference, self.pid, self.active = str(uuid4()), os.getpid(), True
@@ -556,16 +814,18 @@ class OwnedNativeReturn(_Sealed):
                 or (self.dispatch, self.nonce, self.admission_digest, self.producer_digest) != (dispatch, nonce, admission_digest, producer_digest)
                 or self.mode != resource.mode):
             raise PermissionError('original owned native return required')
-        resource.require(current=False)
+        if resource.mode == 'native_live':resource._require_live_past(self.slot_scope)
+        else:resource.require(current=False)
 
     def close(self):
         object.__setattr__(self, 'active', False)
         _RETURNS.pop(self.reference, None)
 
 
-def open_plan_resource(permit):
+def open_plan_resource(permit, *, startup_scope=None):
     core, _, _ = _core()
     if type(permit) is not core.NativeRuntimePermit:
         raise PermissionError('fixed Core runtime permit required')
-    permit.require()
-    return NativePlanResource(permit, _factory=_FACTORY)
+    if getattr(permit.provision.authority, 'live_session', None) is not None:permit.require_bootstrap(startup_scope)
+    else:permit.require()
+    return NativePlanResource(permit, startup_scope=startup_scope, _factory=_FACTORY)
