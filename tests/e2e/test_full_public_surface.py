@@ -995,10 +995,44 @@ def test_my_research_authenticated_asset_preflight_never_partially_commits(
     expect(page.get_by_text("Staged report", exact=True)).to_have_count(0)
 
 
+def hold_research_dictionaries(page: Page):
+    held = {}
+    catalog = json.loads(
+        (FRONTEND_DIR / "assets/data/i18n/content.json").read_text(encoding="utf-8")
+    )
+    page.route("https://**", lambda route: route.abort())
+    page.route("**/assets/data/i18n/*.json?*", lambda route: held.__setitem__(
+        "ui" if "/ui.json" in route.request.url else "content", route,
+    ))
+    return held, catalog
+
+
+def assert_research_copy_survives_dictionaries(page: Page, held, catalog, state):
+    key = "page.reports.favorites_" + state
+    copy = page.locator("#myr-favorites-copy")
+    # The API/identity result must be visible before releasing either catalog.
+    expect(copy).to_have_text(catalog[key]["zh"])
+    assert set(held) == {"ui", "content"}
+    for name in ("ui", "content"):
+        body = (FRONTEND_DIR / f"assets/data/i18n/{name}.json").read_text(encoding="utf-8")
+        held[name].fulfill(status=200, content_type="application/json", body=body)
+    page.wait_for_function(
+        "([key, value]) => window.__i18n_strings?.en?.[key] === value",
+        arg=[key, catalog[key]["en"]], timeout=5_000,
+    )
+    expect(copy).to_have_text(catalog[key]["zh"])
+    for lang in ("en", "zh"):
+        page.evaluate("lang => window.i18n.setLang(lang)", lang)
+        expect(copy).to_have_text(catalog[key][lang])
+        expect(copy).to_have_attribute("data-i18n", key)
+        expect(copy).to_have_attribute("data-i18n-orig", catalog[key]["zh"])
+
+
 @pytest.mark.parametrize("failed_surface", ("reports", "favorites"))
 def test_my_research_authenticated_partial_failure_is_explicit(
     page: Page, local_beta_origin: str, failed_surface: str
 ):
+    held, catalog = hold_research_dictionaries(page)
     page.add_init_script(
         "localStorage.setItem('structural_favorites', JSON.stringify(["
         "{query:'Local candidate', analyze_url:'/analyze?id=partial'}]));"
@@ -1027,6 +1061,12 @@ def test_my_research_authenticated_partial_failure_is_explicit(
             body='{"error":"unavailable"}' if failed_surface == "favorites" else '{"tickers":["AAPL"]}',
         ),
     )
+    page.route(
+        "**/api/favorites/merge",
+        lambda route: route.fulfill(
+            status=503, content_type="application/json", body='{"error":"unavailable"}',
+        ),
+    )
     page.goto(local_beta_origin + "/reports.html", wait_until="domcontentloaded")
     if failed_surface == "reports":
         expect(page.locator("#myr-list")).to_contain_text("报告暂时无法读取")
@@ -1035,6 +1075,93 @@ def test_my_research_authenticated_partial_failure_is_explicit(
         expect(page.locator("#myr-list")).to_contain_text("还没有保存的报告")
         expect(page.locator("#myr-favorites-copy")).to_contain_text("账户收藏暂时无法读取")
         expect(page.get_by_text("Local candidate", exact=True)).to_be_visible()
+    assert_research_copy_survives_dictionaries(
+        page, held, catalog, "sync_failed" if failed_surface == "reports" else "read_failed",
+    )
+
+
+@pytest.mark.parametrize("state", (
+    "anonymous", "account", "locked", "identity_unavailable",
+    "sync_failed", "partial", "synced",
+))
+def test_my_research_favorite_state_survives_late_dictionary(
+    page: Page, local_beta_origin: str, state: str,
+):
+    held, catalog = hold_research_dictionaries(page)
+    pending = state in ("sync_failed", "partial", "synced")
+    local = [{"query": "Pending candidate", "b_id": "candidate", "b_name": "Candidate"}] if pending else []
+    page.add_init_script("(() => { const local = " + json.dumps(local) + ";" + """
+      localStorage.setItem('structural_favorites', JSON.stringify(local));
+      window.__assetReads = 0;
+      const original = Storage.prototype.getItem;
+      Storage.prototype.getItem = function(key) {
+        if (['anonId','structural_favorites','structural_local_reminders'].includes(key))
+          window.__assetReads += 1;
+        return original.call(this, key);
+      };
+    })();""")
+    requests = []
+    bookmark = {
+        "schema_version": "bookmark-v2", "bookmark_id": "bm_" + "a" * 24,
+        "kind": "structural_analysis", "title": "Candidate", "query": "Pending candidate",
+        "source_id": None, "target_id": "candidate", "source": "Structural",
+        "href": "/analyze?id=candidate",
+    }
+
+    def api(route):
+        path = route.request.url.split("?", 1)[0].split(local_beta_origin)[-1]
+        requests.append((route.request.method, path))
+        status = 200
+        if path == "/api/auth/me":
+            if state == "anonymous":
+                status, data = 401, {"error": "unauthorized"}
+            elif state == "identity_unavailable":
+                status, data = 503, {"error": "unavailable"}
+            else:
+                data = {"ok": True, "user": {"email": "owner@example.test"}}
+        elif path == "/api/me/reports":
+            status = 401 if state == "anonymous" else 200
+            data = {"items": [], "has_more": False}
+        elif path == "/api/favorites":
+            status = 409 if state == "locked" else 200
+            data = {"error": "credential_conflict"} if state == "locked" else {"tickers": [], "bookmarks": []}
+        elif path == "/api/favorites/merge" and pending:
+            assert route.request.method == "POST"
+            assert len(route.request.post_data_json["bookmarks"]) == 1
+            if state == "sync_failed":
+                status, data = 503, {"error": "unavailable"}
+            else:
+                data = {
+                    "bookmarks": [bookmark] if state == "synced" else [],
+                    "confirmed_bookmark_ids": [bookmark["bookmark_id"]] if state == "synced" else [],
+                    "dropped_bookmark_ids": ["bm_" + "b" * 24] if state == "partial" else [],
+                }
+        else:
+            pytest.fail("unexpected research API: " + path)
+        route.fulfill(status=status, content_type="application/json", body=json.dumps(data))
+
+    page.route("**/api/**", api)
+    page.goto(local_beta_origin + "/reports.html", wait_until="domcontentloaded")
+    expect(page.locator("#myr-favorites-copy")).to_have_text(
+        catalog["page.reports.favorites_" + state]["zh"]
+    )
+    before = list(requests)
+    assert_research_copy_survives_dictionaries(page, held, catalog, state)
+    assert requests == before
+    if state in ("locked", "identity_unavailable"):
+        assert page.evaluate("window.__assetReads") == 0
+    if state == "identity_unavailable":
+        # The shared header also checks identity; neither caller may read assets.
+        assert requests and set(requests) == {("GET", "/api/auth/me")}
+    if state == "account":
+        assert ("POST", "/api/favorites/merge") not in requests
+        expect(page.locator("#myr-list")).to_contain_text("还没有保存的报告")
+    if pending:
+        remaining = page.evaluate("JSON.parse(localStorage.getItem('structural_favorites'))")
+        assert remaining == ([] if state == "synced" else local)
+    before = list(requests)
+    page.evaluate("window.i18n.render()")
+    assert requests == before
 
 
 def test_my_research_mobile_language_switch_persists(

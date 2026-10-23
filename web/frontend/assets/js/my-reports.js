@@ -29,6 +29,18 @@
   var currentAccountFavorites = { tickers: [], bookmarks: [] };
   var displayedFavorites = [];
   var favoriteMessages = {};
+  var favoritesCopyState = 'loading';
+  var FAVORITES_COPY = {
+    loading: '正在读取与你当前身份关联的收藏。',
+    anonymous: '当前显示这台浏览器的研究收藏；登录后可同步并跨设备恢复。',
+    account: '正在显示本机与账户收藏；账户收藏可在其他已登录设备恢复。',
+    read_failed: '账户收藏暂时无法读取；本机收藏仍然可用。',
+    sync_failed: '账户同步暂时不可用；本机收藏仍完整保留，可继续使用。',
+    partial: '部分收藏已同步到账户；达到配额的项目仍保存在本机。',
+    synced: '收藏已与账户同步，可在其他已登录设备恢复。',
+    locked: '账户身份需要重新确认；收藏保持锁定，未读取本机或任何账户资产。',
+    identity_unavailable: '身份确认失败；未读取本机或账户收藏。'
+  };
   var REMINDER_KEY = 'structural_local_reminders';
   var TERMINAL_EXPERIMENTS = ['completed', 'stopped', 'abandoned'];
   var ENTITY_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/;
@@ -55,6 +67,18 @@
       }
     } catch (_error) {}
     return fallback;
+  }
+
+  function renderFavoritesCopy(state) {
+    if (state) favoritesCopyState = state;
+    if (!favoritesCopy) return;
+    var key = 'page.reports.favorites_' + favoritesCopyState;
+    var fallback = FAVORITES_COPY[favoritesCopyState];
+    // Keep the shared translator's key and fallback aligned with the latest
+    // asset state, including when its dictionaries arrive after the API.
+    favoritesCopy.setAttribute('data-i18n', key);
+    favoritesCopy.setAttribute('data-i18n-orig', escapeHtml(fallback));
+    favoritesCopy.textContent = tr(key, fallback);
   }
 
   function getAnonId() {
@@ -343,7 +367,7 @@
       accountEl.innerHTML = '<p class="myr-state__hint">检测到两个不同账户的登录凭据。为避免操作错账户，所有账户资产保持锁定。</p>' +
         '<div class="myr-account-actions"><a href="/auth/login?next=%2Freports">重新确认账户</a></div>';
     }
-    if (favoritesCopy) favoritesCopy.textContent = '账户身份需要重新确认；收藏保持锁定，未读取本机或任何账户资产。';
+    renderFavoritesCopy('locked');
     if (favoritesEl) favoritesEl.innerHTML = '<span class="myr-state__hint">重新确认账户后再显示收藏。</span>';
     if (reminderSummary) {
       reminderSummary.textContent = '账户身份需要重新确认；未读取本机实验提醒。';
@@ -359,7 +383,7 @@
   function loadFavorites(authenticated) {
     if (!favoritesEl || credentialLocked) return;
     if (!authenticated) {
-      if (favoritesCopy) favoritesCopy.textContent = tr('page.reports.favorites_anonymous', '当前显示这台浏览器的研究收藏；登录后可同步并跨设备恢复。');
+      renderFavoritesCopy('anonymous');
       renderFavorites({ tickers: [], bookmarks: [] });
       return;
     }
@@ -373,7 +397,7 @@
       })
       .then(function (data) {
         if (credentialLocked) return;
-        if (favoritesCopy) favoritesCopy.textContent = tr('page.reports.favorites_account', '正在显示本机与账户收藏；账户收藏可在其他已登录设备恢复。');
+        renderFavoritesCopy('account');
         renderFavorites(data);
       })
       .catch(function (error) {
@@ -382,7 +406,7 @@
           return;
         }
         if (credentialLocked) return;
-        if (favoritesCopy) favoritesCopy.textContent = tr('page.reports.favorites_read_failed', '账户收藏暂时无法读取；本机收藏仍然可用。');
+        renderFavoritesCopy('read_failed');
         renderFavorites({ tickers: [], bookmarks: [] });
       });
   }
@@ -392,6 +416,7 @@
     var rawLocal = localFavorites();
     var submitted = rawLocal.map(normalizeLocalBookmark).filter(Boolean);
     if (!submitted.length) {
+      renderFavoritesCopy('account');
       renderFavorites(accountData);
       return Promise.resolve({ kind: 'ok', data: accountData });
     }
@@ -417,7 +442,7 @@
           return result;
         }
         if (result.kind !== 'ok') {
-          if (favoritesCopy) favoritesCopy.textContent = tr('page.reports.favorites_sync_failed', '账户同步暂时不可用；本机收藏仍完整保留，可继续使用。');
+          renderFavoritesCopy('sync_failed');
           renderFavorites(accountData);
           return result;
         }
@@ -441,11 +466,7 @@
         writeLocalFavorites(remaining);
         var dropped = Array.isArray(result.data.dropped_bookmark_ids)
           ? result.data.dropped_bookmark_ids.length : 0;
-        if (favoritesCopy) {
-          favoritesCopy.textContent = dropped
-            ? tr('page.reports.favorites_partial', '部分收藏已同步到账户；达到配额的项目仍保存在本机。')
-            : tr('page.reports.favorites_synced', '收藏已与账户同步，可在其他已登录设备恢复。');
-        }
+        renderFavoritesCopy(dropped ? 'partial' : 'synced');
         renderFavorites(result.data);
         return result;
       });
@@ -676,7 +697,7 @@
       .catch(function (error) {
         console.error('[my-reports] identity classification failed');
         accountEl.innerHTML = '<p class="myr-state__hint">暂时无法确认账户状态。为避免读错资产，本机与账户研究均未读取。</p>';
-        if (favoritesCopy) favoritesCopy.textContent = '身份确认失败；未读取本机或账户收藏。';
+        renderFavoritesCopy('identity_unavailable');
         if (favoritesEl) favoritesEl.innerHTML = '<span class="myr-state__hint">确认身份后再显示收藏。</span>';
         if (reminderSummary) reminderSummary.textContent = '身份确认失败；未读取本机实验提醒。';
         renderState('暂时无法确认账户', '没有读取本机或账户报告。请刷新后重试。', '重试', '/reports');
@@ -953,7 +974,7 @@
       if (favorites.kind === 'ok') {
         favoriteCommit = syncLocalFavorites(favorites.data);
       } else {
-        if (favoritesCopy) favoritesCopy.textContent = '账户收藏暂时无法读取；本机收藏仍然可用。';
+        renderFavoritesCopy('read_failed');
         renderFavorites({ tickers: [], bookmarks: [] });
         favoriteCommit = Promise.resolve({ kind: 'error' });
       }
@@ -1175,9 +1196,12 @@
 
   if (window.i18n && typeof window.i18n.onChange === 'function') {
     window.i18n.onChange(function () {
+      renderFavoritesCopy();
       if (!credentialLocked && localFeaturesEnabled) renderFavorites(currentAccountFavorites);
     });
   }
+
+  renderFavoritesCopy();
 
   loadAccount().then(function (identity) {
     if (!identity || identity.kind === 'conflict' || identity.kind === 'unavailable') return;
