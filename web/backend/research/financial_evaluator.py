@@ -623,10 +623,14 @@ def evaluate_owner_financial_v2(envelope,registry,*,meter):
                 'provenance_table':[provenance[k] for k in sorted(provenance)],'operations_used':meter.operations,
                 'qualifications':list(QUALIFICATIONS),'decimal50_inexact_encountered':context.flags[Inexact],
                 'input_status':INPUT_STATUS}
-            # Charge final verification before freezing the recorded count.
+            snapshot=FinancialSnapshotV2.model_validate_json(bounded(payload,SNAPSHOT_LIMIT))
+            # Symbolic path/dependency checks consume this same caller Meter,
+            # before its final count is frozen. Projection never changes it.
+            validate_snapshot(envelope,registry,snapshot,_meter=meter)
             meter.tick(); payload['operations_used']=meter.operations
             snapshot=FinancialSnapshotV2.model_validate_json(bounded(payload,SNAPSHOT_LIMIT))
-            validate_snapshot(envelope,registry,snapshot)
+            from .financial_result_v2 import PURE_LIMIT
+            bounded({'operation':envelope.data_dict(),'snapshot':snapshot.data()},PURE_LIMIT)
             import time
             if time.monotonic()>meter.deadline:raise FinancialResourceLimit('cooperative deadline limit')
             return snapshot

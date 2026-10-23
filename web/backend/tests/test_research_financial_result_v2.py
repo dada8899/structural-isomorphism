@@ -186,3 +186,169 @@ def test_size_limits_exact_utf8_and_shape(cap):
     nested=0
     for _ in range(34):nested=[nested]
     with pytest.raises(FinancialResourceLimit):bounded(nested,cap)
+
+
+def _repoint_provenance(envelope,registry,snapshot,path,change,*,source_override=False):
+    """Keep hashes, source closure, and used-entry integrity valid when corrupting."""
+    from web.backend.research.financial_result_v2 import provenance_sources
+    data=snapshot.data();cell=data
+    for key in path:cell=cell[key]
+    row=deepcopy(next(r for r in data['provenance_table'] if r['id']==cell['provenance_ref']))
+    change(row)
+    if not source_override:row['source_refs']=provenance_sources(registry,envelope.data.request,row)
+    for key in row:
+        if key!='id':row[key]=sorted(set(row[key]))
+    row['id']=digest({k:v for k,v in row.items() if k!='id'});cell['provenance_ref']=row['id']
+    used=set()
+    def walk(value):
+        if type(value) is dict:
+            if 'provenance_ref' in value:used.add(value['provenance_ref'])
+            for v in value.values():walk(v)
+        elif type(value) is list:
+            for v in value:walk(v)
+    walk(data)
+    entries={r['id']:r for r in data['provenance_table']};entries[row['id']]=row
+    data['provenance_table']=[entries[k] for k in sorted(used)]
+    return FinancialSnapshotV2.model_validate_json(canonical(data))
+
+
+@pytest.mark.parametrize('case',['historical_future','bridge_future','missing_growth','wrong_year',
+    'cross_scenario','missing_cost','empty_allocation','missing_observation','extra_observation','missing_cost_year'])
+def test_cell_dependency_template_rejects_existing_but_inapplicable_refs(case):
+    envelope,registry=owner_fixture()
+    if case=='cross_scenario':
+        def add(d):
+            other=deepcopy(d['data']['request']['scenarios'][0]);other['id']='other'
+            d['data']['request']['scenarios'].append(other)
+        envelope=mutate(envelope,add)
+    if case=='missing_cost_year':
+        envelope=mutate(envelope,lambda d:d['data']['request']['scenarios'][0]['costs'][0]['values'].pop(2))
+    snapshot=evaluate_owner_financial_v2(envelope,registry,meter=Meter())
+    year=('scenarios',0,'years')
+    path,ref,remove={
+        'historical_future':(('historical_context',0,'target_value'),'base:g_2031',False),
+        'bridge_future':(('scenarios',0,'bridge','interim'),'base:remaining',False),
+        'missing_growth':((*year,1,'target','revenue'),'base:g_2027',True),
+        'wrong_year':((*year,1,'target','revenue'),'base:g_2031',False),
+        'cross_scenario':((*year,0,'target','operating_profit'),'other:cost_2026',False),
+        'missing_cost':((*year,2,'target','cost_bridge',0,'value'),'base:cost_2028',True),
+        'empty_allocation':((*year,0,'target','composition','rows',0,'amount'),'base:g_2031',False),
+        'missing_observation':(('historical_context',0,'target_value'),None,False),
+        'extra_observation':(('historical_context',0,'target_value'),envelope.data.request.historical_context_refs[0],False),
+        'missing_cost_year':((*year,2,'target','cost_bridge',0,'value'),'base:cost_2026',False),
+    }[case]
+    def change(row):
+        if case=='missing_observation':row['observation_refs']=[]
+        elif case=='extra_observation':row['observation_refs'].append(ref)
+        elif remove:row['parameter_refs'].remove(ref)
+        else:row['parameter_refs'].append(ref)
+    changed=_repoint_provenance(envelope,registry,snapshot,path,change)
+    with pytest.raises(FinancialError,match='actual dependency'):
+        project_financial_snapshot_v2(envelope,registry,changed,view='table')
+
+
+@pytest.mark.parametrize('kind',['registry','derived'])
+def test_cell_dependency_template_requires_actual_selected_fx(kind):
+    if kind=='derived':envelope,registry=owner_fixture('USD',True)
+    else:
+        from web.backend.tests.test_research_financial_evaluator_v2 import registry_fx
+        envelope,registry=registry_fx()
+    snapshot=evaluate_owner_financial_v2(envelope,registry,meter=Meter())
+    field='derivation_refs' if kind=='derived' else 'historical_fx_refs'
+    changed=_repoint_provenance(envelope,registry,snapshot,('historical_context',0,'target_value'),
+        lambda row:row.__setitem__(field,[]))
+    with pytest.raises(FinancialError,match='actual dependency'):
+        project_financial_snapshot_v2(envelope,registry,changed,view='chart')
+
+
+@pytest.mark.parametrize('scope',['other_operating_profit','same_scenario_cost'])
+def test_exclusion_sources_apply_only_to_own_scenario_operating_profit(scope):
+    envelope,registry=owner_fixture();data=registry.model_dump(mode='json')
+    source=deepcopy(data['records'][0]);index=len(data['records'])+1
+    source.update(id=str(uuid4()),key='exclusion_source',record_index=index,
+        physical_line_start=index+1,physical_line_end=index+1)
+    data['records'].append(source)
+    data['key_map'].append({'key':source['key'],'row_type':'source','registered_id':source['id'],
+        'record_index':index,'physical_line_start':index+1,'physical_line_end':index+1})
+    registry=OwnerFinancialRegistryV2.model_validate_json(canonical(data))
+    def setup(d):
+        d['data']['registry_ref']['digest']=digest(data);scenario=d['data']['request']['scenarios'][0]
+        other=deepcopy(scenario);other['id']='other';d['data']['request']['scenarios'].append(other)
+        scenario['costs'][0]['coverage'].remove('sbc')
+        scenario['exclusions']=[{'tag':'sbc','rationale':'explicit synthetic exclusion','source_refs':[source['id']]}]
+    envelope=mutate(envelope,setup);snapshot=evaluate_owner_financial_v2(envelope,registry,meter=Meter())
+    path=(('scenarios',1,'years',0,'target','operating_profit') if scope=='other_operating_profit'
+        else ('scenarios',0,'years',0,'target','cost_bridge',0,'value'))
+    changed=_repoint_provenance(envelope,registry,snapshot,path,
+        lambda row:row['source_refs'].append(source['id']),source_override=True)
+    with pytest.raises(FinancialError,match='actual dependency'):
+        project_financial_snapshot_v2(envelope,registry,changed,view='summary')
+
+
+def test_symbolic_null_allocation_branches_and_views_do_not_run_numeric_kernel(monkeypatch):
+    envelope,registry=owner_fixture('USD',True)
+    def setup(d):
+        scenario=d['data']['request']['scenarios'][0]
+        template=deepcopy(scenario['remaining_revenue'])
+        def parameter(name,value,period,unit='fx'):
+            item=deepcopy(template);item.update(id=name,value=value,period=period,unit=unit,currency=None if unit=='fx' else 'USD')
+            return item
+        scenario['future_fx']=[{'from_currency':'USD','to_currency':'CNY',
+            'parameter':parameter('remaining_fx','7',template['period'])}]
+        values=[]
+        for year in range(2026,2032):
+            period={'start':f'{year}-01-01','end':f'{year}-12-31','grain':'annual'}
+            scenario['future_fx'].append({'from_currency':'USD','to_currency':'CNY',
+                'parameter':parameter(f'fx_{year}',None if year==2028 else '7',period)})
+            values.append({'year':year,'parameter':parameter(f'amount_{year}','10',period,'million')})
+        scenario['allocations']=[{'category_id':'advertising','mode':'amount','values':values}]
+        scenario['costs'][0]['mode']='amount'
+        for value in scenario['costs'][0]['values']:
+            value['parameter'].update(value='50',unit='million',currency='USD')
+    envelope=mutate(envelope,setup);meter=Meter()
+    snapshot=evaluate_owner_financial_v2(envelope,registry,meter=meter)
+    year=snapshot.scenarios[0].years[2]
+    assert year.target.revenue.raw_value is None and year.native.revenue.raw_value is not None
+    unallocated=next(p for p in snapshot.provenance_table if p.id==year.target.composition.rows[-1].amount.provenance_ref)
+    assert 'base:fx_2028' in unallocated.parameter_refs and 'base:amount_2028' not in unallocated.parameter_refs
+    count=meter.operations
+    def forbidden(*a,**k):pytest.fail('projection ran numerical evaluator or new Meter')
+    monkeypatch.setattr('web.backend.research.financial_evaluator._OwnerEvaluation.scenario',forbidden)
+    monkeypatch.setattr(Meter,'__init__',forbidden);monkeypatch.setattr(Meter,'calculate',forbidden)
+    for view in ('summary','table','chart'):
+        assert project_financial_snapshot_v2(envelope,registry,snapshot,view=view).view==view
+    assert snapshot.operations_used==meter.operations==count
+
+
+@pytest.mark.parametrize('baseline',['zero','missing'])
+def test_symbolic_composition_keeps_zero_and_null_dependencies(baseline):
+    envelope,registry=owner_fixture();data=registry.model_dump(mode='json')
+    data['records'][1].update(value='0' if baseline=='zero' else None,
+        declared_basis='media_estimate' if baseline=='zero' else 'missing')
+    registry=OwnerFinancialRegistryV2.model_validate_json(canonical(data))
+    def setup(d):
+        d['data']['registry_ref']['digest']=digest(data);scenario=d['data']['request']['scenarios'][0]
+        scenario['remaining_revenue']['value']='0'
+        values=[]
+        for year in range(2026,2032):
+            p=deepcopy(scenario['remaining_revenue']);p.update(id=f'allocated_{year}',unit='million',value='0',
+                period={'start':f'{year}-01-01','end':f'{year}-12-31','grain':'annual'})
+            values.append({'year':year,'parameter':p})
+        scenario['allocations']=[{'category_id':'advertising','mode':'amount','values':values}]
+    envelope=mutate(envelope,setup);snapshot=evaluate_owner_financial_v2(envelope,registry,meter=Meter())
+    rows=snapshot.scenarios[0].years[0].target.composition.rows
+    assert rows[0].share.raw_value is None
+    assert 'base:allocated_2026' in next(p for p in snapshot.provenance_table
+        if p.id==rows[-1].amount.provenance_ref).parameter_refs
+    assert project_financial_snapshot_v2(envelope,registry,snapshot,view='table').view=='table'
+
+
+def test_symbolic_sensitivity_rejects_unjustified_null_without_recalculation():
+    envelope,registry=owner_fixture()
+    envelope=mutate(envelope,lambda d:d['data']['request'].__setitem__('sensitivity',
+        {'scenario_id':'base','parameter_id':'g_2027','points':['0.1']}))
+    snapshot=evaluate_owner_financial_v2(envelope,registry,meter=Meter());data=snapshot.data()
+    data['sensitivity'][0]['target_revenue'][0]=None
+    changed=FinancialSnapshotV2.model_validate_json(canonical(data))
+    with pytest.raises(FinancialError,match='sensitivity input availability'):
+        project_financial_snapshot_v2(envelope,registry,changed,view='chart')

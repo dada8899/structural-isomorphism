@@ -1,5 +1,6 @@
 """Pure owner-declared finance data. No execution authority, I/O or persistence."""
 from datetime import timedelta
+from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN
 import json
 import re
@@ -11,7 +12,7 @@ from .financial_input_schemas import (FrozenData, FinancialRegistryRefV2,
     OwnerFinancialRegistryV2, RegisteredSourceV2, RegisteredObservationV2,
     RegisteredFXV2, UUID4, Digest)
 from .financial_policy import (POLICY, YEARS, FinancialError, FinancialResourceLimit,
-    canonical, digest, number, MAX_ABS, arithmetic_context)
+    canonical, digest, number, MAX_ABS, arithmetic_context, Meter)
 from .financial_schemas import FinancialRequest, Period, day, label, text
 
 OPERATION_LIMIT = 65536
@@ -515,7 +516,181 @@ def provenance_sources(registry,request,data):
     return source_closure(registry,refs)
 
 
-def validate_snapshot(envelope,registry,snapshot):
+@dataclass(frozen=True)
+class _SymbolicCell:
+    """Dependency and availability only. No financial numbers are evaluated."""
+    known: bool | None
+    currency: str | None
+    observation_refs: tuple = ()
+    parameter_refs: tuple = ()
+    derivation_refs: tuple = ()
+    historical_fx_refs: tuple = ()
+    source_refs: tuple = ()
+
+
+_INHERIT = object()
+
+
+def _symbol_union(*cells,known=_INHERIT,currency=_INHERIT):
+    return _SymbolicCell(all(c.known for c in cells) if known is _INHERIT else known,
+        cells[0].currency if currency is _INHERIT else currency,
+        **{name:tuple(sorted({r for c in cells for r in getattr(c,name)})) for name in
+            ('observation_refs','parameter_refs','derivation_refs','historical_fx_refs','source_refs')})
+
+
+class _DependencyPlan:
+    """Finite template expectation derived exclusively from immutable inputs.
+
+    Presence/null checks choose branches; no Decimal operations, raw result
+    values, evaluator calls or newly created Meter participate in this plan.
+    """
+    def __init__(self,request,registry):
+        self.request=request; self.registry=registry; self.parsed=request.legacy()
+        self.observations={r.id:r for r in registry.records if type(r) is RegisteredObservationV2}
+        self.rates={r.id:r for r in registry.records if type(r) is RegisteredFXV2}
+        self.params={s.id+':'+p.id:p for s in self.parsed.scenarios for p in s.parameters()}
+        self.derived={v.id:v for v in request.derived_fx_inputs}
+        self.choices={v.observation_id:v for v in request.historical_fx_choices}
+        if request.interim_revenue_ref not in self.observations:raise FinancialError('baseline outside input')
+        self.native=self.observations[request.interim_revenue_ref].currency
+
+    def observation(self,ref):
+        if ref not in self.observations:raise FinancialError('historical reference outside input')
+        row=self.observations[ref]
+        return _SymbolicCell(row.value is not None,row.currency,observation_refs=(ref,))
+
+    def parameter(self,p,scenario):
+        return _SymbolicCell(p.value is not None,p.currency,
+            observation_refs=(p.anchor_observation_id,) if p.anchor_observation_id and not p.independent else (),
+            parameter_refs=(scenario.id+':'+p.id,))
+
+    def future(self,cell,currency,period,scenario):
+        if cell.currency==currency:return cell
+        fx=next((v['parameter'] for v in scenario.future_fx
+            if (v['from_currency'],v['to_currency'],v['parameter'].period)==(cell.currency,currency,period)),None)
+        if fx is None:return _symbol_union(cell,known=False,currency=currency)
+        # The numerical future() consumes the FX Parameter, not its optional
+        # contextual anchor as an additional observed amount.
+        rate=_SymbolicCell(fx.value is not None,None,parameter_refs=(scenario.id+':'+fx.id,))
+        return _symbol_union(cell,rate,currency=currency)
+
+    def money(self,p,currency,scenario):
+        return self.future(self.parameter(p,scenario),currency,p.period,scenario)
+
+    def historical(self,ref):
+        cell=self.observation(ref)
+        if cell.currency==self.request.target_currency:return cell
+        choice=self.choices.get(ref)
+        if choice is None:return _symbol_union(cell,known=False,currency=self.request.target_currency)
+        if type(choice) is DerivedFXChoiceV2:
+            if choice.derivation_id not in self.derived:raise FinancialError('derived reference outside input')
+            rate=_SymbolicCell(True,None,derivation_refs=(choice.derivation_id,))
+        else:
+            if choice.fx_id not in self.rates:raise FinancialError('FX reference outside input')
+            rate=_SymbolicCell(self.rates[choice.fx_id].value is not None,None,historical_fx_refs=(choice.fx_id,))
+        return _symbol_union(cell,rate,currency=self.request.target_currency)
+
+    def scale(self,cell,p,scenario):
+        return _symbol_union(cell,self.parameter(p,scenario),currency=cell.currency)
+
+    def share(self,amount,group):
+        # Zero-denominator and null branches have the same dependency union;
+        # determining a numerical zero here would repeat financial arithmetic.
+        return _symbol_union(amount,group,known=None,currency=None)
+
+    def metrics(self,revenue,scenario,year):
+        from .financial_policy import COST_TAGS
+        costs=[]; covered=set(); profit=revenue
+        for line in scenario.costs:
+            covered.update(line.coverage)
+            item=next((v for v in line.values if v.year==year),None)
+            if item is None:cost=_SymbolicCell(False,revenue.currency)
+            elif line.mode=='revenue_ratio':cost=self.scale(revenue,item.parameter,scenario)
+            else:cost=self.money(item.parameter,revenue.currency,scenario)
+            costs.append(cost); profit=_symbol_union(profit,cost)
+        covered.update(e['tag'] for e in scenario.exclusions)
+        profit=_symbol_union(profit,_SymbolicCell(True,revenue.currency,
+            source_refs=tuple(sorted({r for e in scenario.exclusions for r in e['source_refs']}))),
+            known=profit.known and not (COST_TAGS-covered))
+        composition=[]; total=_SymbolicCell(True,revenue.currency)
+        for category in self.request.categories:
+            if category.kind=='unallocated':continue
+            allocation=next((a for a in scenario.allocations if a['category_id']==category.id),None)
+            item=next((v for v in allocation['values'] if v.year==year),None) if allocation else None
+            if item is None:amount=_SymbolicCell(False,revenue.currency)
+            elif allocation['mode']=='share':amount=self.scale(revenue,item.parameter,scenario)
+            else:amount=self.money(item.parameter,revenue.currency,scenario)
+            composition.append((amount,self.share(amount,revenue)))
+            # Only a numerically present allocation enters the allocated sum.
+            # Its presence follows input null/FX availability, not snapshot data.
+            if amount.known:total=_symbol_union(total,amount)
+        residue=_symbol_union(revenue,total)
+        composition.append((residue,self.share(residue,revenue)))
+        return {'revenue':revenue,'operating_profit':profit,
+            'net_profit':_SymbolicCell(False,revenue.currency),'costs':costs,'composition':composition}
+
+    def scenario(self,scenario):
+        h1=self.observation(self.request.interim_revenue_ref)
+        h2=self.money(scenario.remaining_revenue,self.native,scenario)
+        target_h1=self.historical(self.request.interim_revenue_ref)
+        target_h2=self.money(scenario.remaining_revenue,self.request.target_currency,scenario)
+        bridge={'interim':h1,'remaining_assumption':h2,'target_interim':target_h1,'target_remaining':target_h2}
+        native=_symbol_union(h1,h2); target=_symbol_union(target_h1,target_h2); years=[]
+        for year in YEARS:
+            if year>2026:
+                growth=next(v.parameter for v in scenario.growth if v.year==year)
+                native=self.scale(native,growth,scenario)
+                target=self.future(native,self.request.target_currency,
+                    Period(f'{year}-01-01',f'{year}-12-31','annual'),scenario)
+            row={'target':self.metrics(target,scenario,year)}
+            if self.native!=self.request.target_currency:row['native']=self.metrics(native,scenario,year)
+            years.append(row)
+        return bridge,years
+
+    def entries(self):
+        for i,ref in enumerate((self.request.interim_revenue_ref,)+self.request.historical_context_refs):
+            yield ('historical_context',i,'target_value'),self.historical(ref)
+        for i,scenario in enumerate(self.parsed.scenarios):
+            bridge,years=self.scenario(scenario)
+            for name,cell in bridge.items():yield ('scenarios',i,'bridge',name),cell
+            for j,row in enumerate(years):
+                for currency,values in row.items():
+                    prefix=('scenarios',i,'years',j,currency)
+                    for name in ('revenue','operating_profit','net_profit'):yield (*prefix,name),values[name]
+                    for k,cell in enumerate(values['costs']):yield (*prefix,'cost_bridge',k,'value'),cell
+                    for k,(amount,share) in enumerate(values['composition']):
+                        yield (*prefix,'composition','rows',k,'amount'),amount
+                        yield (*prefix,'composition','rows',k,'share'),share
+
+    def provenance(self,cell):
+        entry={name:list(getattr(cell,name)) for name in
+            ('observation_refs','parameter_refs','derivation_refs','historical_fx_refs')}
+        refs=list(cell.source_refs)
+        for name,items in (('observation_refs',self.observations),('parameter_refs',self.params),('historical_fx_refs',self.rates)):
+            for ref in entry[name]:
+                if ref not in items:raise FinancialError('dependency outside input')
+                refs.extend(items[ref].source_refs)
+        for ref in entry['derivation_refs']:refs.append(self.derived[ref].source_id)
+        entry['source_refs']=source_closure(self.registry,refs)
+        return {'id':digest(entry),**entry}
+
+
+def _validate_dependencies(request,registry,data,by_id,*,meter=None):
+    plan=_DependencyPlan(request,registry)
+    for path,expected in plan.entries():
+        if meter is not None:meter.tick()
+        cell=data
+        try:
+            for key in path:cell=cell[key]
+            actual=by_id[cell['provenance_ref']].model_dump(mode='json')
+        except (KeyError,IndexError,TypeError):raise FinancialError('dependency cell path differs') from None
+        if actual!=plan.provenance(expected):raise FinancialError('cell actual dependency differs')
+        if expected.known is not None and (cell['raw_value'] is not None)!=expected.known:
+            raise FinancialError('cell input availability differs')
+
+
+def validate_snapshot(envelope,registry,snapshot,*,_meter=None):
+    if _meter is not None and type(_meter) is not Meter:raise FinancialError('exact validation Meter required')
     envelope,registry,bindings=input_binding(envelope,registry)
     if type(snapshot) is not FinancialSnapshotV2: raise FinancialError('exact v2 snapshot required')
     raw=bounded(snapshot.data(),SNAPSHOT_LIMIT)
@@ -531,13 +706,6 @@ def validate_snapshot(envelope,registry,snapshot):
     if len(snapshot.scenarios)!=len(parsed.scenarios):raise FinancialError('scenario count differs')
     by_id={p.id:p for p in snapshot.provenance_table}
     if [p.id for p in snapshot.provenance_table]!=sorted(by_id):raise FinancialError('provenance order or duplicates')
-    for entry in snapshot.provenance_table:
-        item=entry.model_dump(mode='json')
-        required=set(provenance_sources(registry,request,item))
-        exclusions=source_closure(registry,[r for s in parsed.scenarios for e in s.exclusions for r in e['source_refs']])
-        if (not required.issubset(item['source_refs']) or set(item['source_refs'])-required-set(exclusions)
-                or item['source_refs']!=source_closure(registry,item['source_refs'])):
-            raise FinancialError('provenance ancestry differs')
     used=set()
     def walk(value):
         if type(value) is dict:
@@ -592,6 +760,7 @@ def validate_snapshot(envelope,registry,snapshot):
         if historical.target_value.currency!=request.target_currency or historical.target_value.unit!='million':
             raise FinancialError('historical cell scope differs')
     if [e.input for e in snapshot.derived_fx_evidence]!=list(request.derived_fx_inputs):raise FinancialError('derived input differs')
+    _validate_dependencies(request,registry,data,by_id,meter=_meter)
     expected=parsed.sensitivity
     if len(snapshot.sensitivity)!=(len(expected['points']) if expected else 0):raise FinancialError('sensitivity length differs')
     if expected:
@@ -605,6 +774,15 @@ def validate_snapshot(envelope,registry,snapshot):
             for value in row.target_revenue+row.target_operating_profit:
                 if value is not None and re.fullmatch(r'-?(?:0|[1-9][0-9]*)\.[0-9]{6}',value) is None:
                     raise FinancialError('invalid sensitivity display')
+            variant_request=FinancialRequestV2.model_validate_json(canonical(variant))
+            plan=_DependencyPlan(variant_request,registry)
+            scenario=next(s for s in plan.parsed.scenarios if s.id==expected['scenario_id'])
+            _,years=plan.scenario(scenario)
+            for i,year in enumerate(years):
+                for key,values in (('revenue',row.target_revenue),('operating_profit',row.target_operating_profit)):
+                    if _meter is not None:_meter.tick()
+                    if (values[i] is not None)!=year['target'][key].known:
+                        raise FinancialError('sensitivity input availability differs')
     return envelope,registry,snapshot
 
 
