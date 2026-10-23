@@ -1741,8 +1741,31 @@ def _original_makefile_before_auth_bootstrap_browser(makefile: str) -> str:
     return makefile.replace(assignment,assignment.replace('\t'+auth+' \\\n',''),1).replace(formal,formal.replace(' '+auth,''),1).replace(isolated,'\t$(PYTEST) $(filter web/tests/e2e/%,$('+variable+')) -m "e2e and not requires_internet" -v\n',1)
 
 
+def _original_makefile_before_gov_backend(makefile: str) -> str:
+    """Reverse only the Gov lifecycle exclusion and full fresh process."""
+    prior_names = ('test_formal_main_admission.py', 'test_formal_main_source_supervisor.py',
+                   'test_research_financial_import.py', 'test_formal_model_startup.py',
+                   'acceptance/test_source_history_fixture_current15.py', 'test_research_financial_registries.py',
+                   'test_research_source_origin_history.py', 'test_research_evidence_method_plan.py',
+                   'test_research_evidence_method_native.py', 'test_plan_runtime_transport.py',
+                   'test_research_native_browser_service.py', 'test_native_live_grant.py',
+                   'test_formal_native_plan_supervisor.py', 'test_research_financial_execution_v2.py',
+                   'test_research_financial_results_v2.py')
+    names = prior_names + ('test_source_sec_access_lifecycle.py',)
+    commands = ['cd web/backend && $(BACKEND_PYTEST)' + ''.join(' --ignore=tests/' + n for n in names) + ' -q']
+    commands += ['cd web/backend && $(BACKEND_PYTEST) tests/' + n + ' -p no:logging -q' for n in names]
+    expanded = ''.join('\t' + command + '\n' for command in commands)
+    assert makefile.count(expanded) == 1, 'exact seventeen-process Gov Make block missing or duplicated'
+    actual = [c for c in _make_recipe_commands(makefile, 'verify-release') if c.startswith('cd web/backend ')]
+    assert actual == commands, 'Gov lifecycle must be the only new full Make backend consumer'
+    prior = ['cd web/backend && $(BACKEND_PYTEST)' + ''.join(' --ignore=tests/' + n for n in prior_names) + ' -q']
+    prior += ['cd web/backend && $(BACKEND_PYTEST) tests/' + n + ' -p no:logging -q' for n in prior_names]
+    return makefile.replace(expanded, ''.join('\t' + command + '\n' for command in prior), 1)
+
+
 def _original_makefile_before_native_financial_backend(makefile: str) -> str:
     """Reverse only the four exact native/financial whole-module consumers."""
+    makefile = _original_makefile_before_gov_backend(makefile)
     prior_names=('test_formal_main_admission.py', 'test_formal_main_source_supervisor.py', 'test_research_financial_import.py', 'test_formal_model_startup.py', 'acceptance/test_source_history_fixture_current15.py', 'test_research_financial_registries.py', 'test_research_source_origin_history.py', 'test_research_evidence_method_plan.py', 'test_research_evidence_method_native.py', 'test_plan_runtime_transport.py', 'test_research_native_browser_service.py')
     names=prior_names+('test_native_live_grant.py', 'test_formal_native_plan_supervisor.py', 'test_research_financial_execution_v2.py', 'test_research_financial_results_v2.py')
     commands=['cd web/backend && $(BACKEND_PYTEST)'+''.join(' --ignore=tests/'+n for n in names)+' -q']
@@ -1939,6 +1962,13 @@ def test_verify_release_dry_run_expands_real_test_and_build_commands() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     output = completed.stdout
+    gov = next(line for line in output.splitlines() if "python -m pytest tests/test_source_sec_access_lifecycle.py" in line)
+    assert output.splitlines().count(gov) == 1
+    assert gov.endswith("python -m pytest tests/test_source_sec_access_lifecycle.py -p no:logging -q")
+    assert gov.startswith("cd web/backend && PYTHONPATH=" + str(ROOT / "web/backend") + ":")
+    assert output.count("--ignore=tests/test_source_sec_access_lifecycle.py") == 1
+    assert "--ignore=tests/test_source_sec_access.py" not in output
+    output = output.replace(gov + "\n", "", 1)
     scenario = next(line for line in output.splitlines() if "python -m pytest web/tests/e2e/test_research_financial_scenario_browser.py" in line)
     assert output.splitlines().count(scenario) == 1
     assert scenario.endswith("python -m pytest web/tests/e2e/test_research_financial_scenario_browser.py -p no:logging -v")
@@ -2976,3 +3006,45 @@ def test_financial_scenario_make_delta_rejects_weakened_or_missing_consumer(muta
     with pytest.raises(AssertionError):
         original = _original_makefile_without_financial_preview(value)
         assert hashlib.sha256(original.encode()).hexdigest() == 'd10d21b2d90e07deb8f9219f663f511ea96d5532c7f97637213f67f51efb0b9b'
+
+
+def test_gov_lifecycle_has_one_full_make_backend_process():
+    makefile = (ROOT / 'Makefile').read_text()
+    commands = [c for c in _make_recipe_commands(makefile, 'verify-release') if c.startswith('cd web/backend ')]
+    assert len(commands) == 17
+    assert commands[-1] == 'cd web/backend && $(BACKEND_PYTEST) tests/test_source_sec_access_lifecycle.py -p no:logging -q'
+    assert commands[0].count(' --ignore=tests/test_source_sec_access_lifecycle.py') == 1
+    assert ' -p no:logging' not in commands[0]
+    assert 'test_source_sec_access.py' not in makefile
+    prior = _original_makefile_before_gov_backend(makefile)
+    assert len([c for c in _make_recipe_commands(prior, 'verify-release') if c.startswith('cd web/backend ')]) == 16
+    assert 'test_source_sec_access_lifecycle.py' not in prior
+    _assert_make_release_closure(makefile)
+
+
+@pytest.mark.parametrize('mutation', [
+    'missing', 'missing_ignore', 'duplicate', 'duplicate_ignore', 'partial_file',
+    'formal_logging', 'ordinary_no_logging', 'order', 'soft', 'wrong_file',
+    'pure_ignore', 'namespace',
+])
+def test_gov_lifecycle_make_delta_rejects_weakened_or_missing_consumer(mutation):
+    value = (ROOT / 'Makefile').read_text()
+    formal = '\tcd web/backend && $(BACKEND_PYTEST) tests/test_source_sec_access_lifecycle.py -p no:logging -q\n'
+    ignore = ' --ignore=tests/test_source_sec_access_lifecycle.py'
+    if mutation == 'missing': value = value.replace(formal, '', 1)
+    elif mutation == 'missing_ignore': value = value.replace(ignore, '', 1)
+    elif mutation == 'duplicate': value = value.replace(formal, formal + formal, 1)
+    elif mutation == 'duplicate_ignore': value = value.replace(ignore, ignore + ignore, 1)
+    elif mutation == 'partial_file': value = value.replace(formal, formal.rstrip('\n') + ' -k smoke\n', 1)
+    elif mutation == 'formal_logging': value = value.replace(formal, formal.replace(' -p no:logging', ''), 1)
+    elif mutation == 'ordinary_no_logging': value = value.replace('$(BACKEND_PYTEST) --ignore', '$(BACKEND_PYTEST) -p no:logging --ignore', 1)
+    elif mutation == 'order':
+        previous = '\tcd web/backend && $(BACKEND_PYTEST) tests/test_research_financial_results_v2.py -p no:logging -q\n'
+        assert previous + formal in value
+        value = value.replace(previous + formal, formal + previous, 1)
+    elif mutation == 'soft': value = value.replace(formal, formal.rstrip('\n') + ' || true\n', 1)
+    elif mutation == 'wrong_file': value = value.replace(formal, formal.replace('test_source_sec_access_lifecycle.py', 'test_source_sec_access.py'), 1)
+    elif mutation == 'pure_ignore': value = value.replace(ignore, ignore + ' --ignore=tests/test_source_sec_access.py', 1)
+    else: value = value.replace(formal, formal.replace('$(BACKEND_PYTEST)', '$(PYTEST)'), 1)
+    assert value != (ROOT / 'Makefile').read_text()
+    with pytest.raises(AssertionError): _original_makefile_before_gov_backend(value)
