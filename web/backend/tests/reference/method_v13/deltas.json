@@ -1167,7 +1167,7 @@
     "original_sha256": "5a152fcb8fa84ce04746dd74affb6107f8acfc747ff47968086a2a3a1245148e"
   },
   "web/backend/research/store.py": {
-    "current_sha256": "7c25dcb46c0e0f26e1348a297ab4af9ae18b33ad7bbf6eaad15794b7400852eb",
+    "current_sha256": "0bb5c9533b1c5fee739a5db4fe39e07d76d3ba9eb381c0f9d10b6423a961ecae",
     "hunks": [
       [
         13,
@@ -1275,23 +1275,48 @@
         ""
       ],
       [
+        1343,
+        1344,
+        "        conn=self._connect(readonly=not write)\n"
+      ],
+      [
+        1345,
         1346,
-        1349,
         ""
       ],
       [
-        1352,
+        1347,
+        1350,
+        ""
+      ],
+      [
         1353,
+        1354,
         "            conn.execute(\"PRAGMA busy_timeout=5000\")\n"
       ],
       [
-        1356,
         1357,
+        1358,
         "                self._check_v13(conn)\n"
       ],
       [
-        1381,
+        1363,
+        1364,
+        "            conn.rollback()\n"
+      ],
+      [
+        1368,
+        1369,
+        "            conn.rollback()\n"
+      ],
+      [
+        1371,
+        1372,
+        "            conn.close()\n"
+      ],
+      [
         1382,
+        1383,
         "                self._check_v13(conn)\n"
       ]
     ],
