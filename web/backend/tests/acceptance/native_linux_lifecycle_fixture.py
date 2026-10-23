@@ -260,11 +260,19 @@ class _OwnedTCP(_Workers,socketserver.ThreadingTCPServer):pass
 
 class _OwnedHTTP(_Workers,http.server.ThreadingHTTPServer):
     def get_request(self):
+        if getattr(self,'worker_uncertain',False):raise FixtureFailure('CLEANUP')
         sock,address=self.socket.accept()
         try:
             sock.settimeout(absolute_remaining(self.io_deadline,2))
             return self.tls.wrap_socket(sock,server_side=True),address
-        except BaseException:sock.close();raise
+        except BaseException:
+            try:sock.close()
+            except BaseException:
+                # One retained object: uncertainty stops this accept loop and
+                # remains sticky even if physical retirement happened first.
+                self.worker_uncertain=True;self._unretired_accepted=sock
+                self._BaseServer__shutdown_request=True
+            raise
 
 
 class _Bridge(http.server.BaseHTTPRequestHandler):

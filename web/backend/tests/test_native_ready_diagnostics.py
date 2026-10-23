@@ -434,3 +434,45 @@ def test_accepted_http_socket_is_closed_before_initialization_error_escapes(monk
         with pytest.raises(OSError) as retired:os.fstat(fd)
         assert retired.value.errno==errno.EBADF
     finally:left.close();right.close()
+
+
+@pytest.mark.parametrize('retire_first',[False,True])
+def test_accepted_close_error_keeps_original_failure_and_sticky_owned_uncertainty(monkeypatch,retire_first):
+    left,right=socket.socketpair();fd=left.fileno();calls=[];closed=[];server_closed=[]
+    primary=F.FixtureFailure('CLOCK');secondary=OSError(errno.EIO,'finite owned close receipt failure')
+    class Accepted:
+        def settimeout(self,value):pytest.fail('deadline must fail before timeout setter')
+        def close(self):
+            closed.append(True)
+            if retire_first:left.close()
+            raise secondary
+    accepted=Accepted()
+    def take():calls.append(True);return accepted,None
+    def expired(*args):raise primary
+    owner=SimpleNamespace(socket=SimpleNamespace(accept=take),io_deadline=1.0,worker_uncertain=False,
+                          server_close=lambda:server_closed.append(True))
+    monkeypatch.setattr(F,'absolute_remaining',expired)
+    try:
+        with pytest.raises(F.FixtureFailure) as caught:F._OwnedHTTP.get_request(owner)
+        assert caught.value is primary and caught.value.args==('CLOCK',)
+        assert owner.worker_uncertain and owner._unretired_accepted is accepted
+        assert owner._BaseServer__shutdown_request is True and closed==[True]
+        if retire_first:
+            assert left.fileno()==-1
+            with pytest.raises(OSError) as gone:os.fstat(fd)
+            assert gone.value.errno==errno.EBADF
+        else:assert left.fileno()==fd and os.fstat(fd)
+        # No fresh accept or close retry, even after the test physically retires
+        # a socket whose candidate close failed. Late retirement cannot prove it.
+        for late_retirement in (False,True):
+            if late_retirement:left.close()
+            with pytest.raises(F.FixtureFailure,match='CLEANUP'):F._OwnedHTTP.get_request(owner)
+            assert calls==[True] and closed==[True]
+            assert owner.worker_uncertain and owner._unretired_accepted is accepted
+        service=object.__new__(F.LocalService)
+        service.ready=False;service.ready_deadline=3;service.servers=[owner];service.threads=[]
+        monkeypatch.setattr(F.time,'monotonic',lambda:2.0)
+        with pytest.raises(F.FixtureFailure,match='CLEANUP'):service.close()
+        assert server_closed==[True] and closed==[True]
+        assert owner.worker_uncertain and owner._unretired_accepted is accepted
+    finally:left.close();right.close()
