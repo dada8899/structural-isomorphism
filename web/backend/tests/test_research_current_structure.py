@@ -8,6 +8,9 @@ from uuid import uuid4
 import pytest
 
 from .test_research_persistence import stack,create
+from .test_private_runtime_bootstrap import roots
+from services.auth_registration import bootstrap_private_runtime
+from services.auth_store import AuthStore
 from .test_research_financial_schema_v7 import registry_inputs
 from research import ResearchStore
 from research.errors import ResearchError
@@ -15,8 +18,23 @@ from api import auth
 
 
 @pytest.fixture
-def current(stack):
+def current(roots):
+    assert bootstrap_private_runtime()=={'contract':'auth-provision-v1','research_schema':15,'created':True}
+    path=roots/'auth.sqlite3';store=ResearchStore(AuthStore(path))
+    with store.transaction() as conn:
+        assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==15
+        ResearchStore._check_v15(conn)
+    with closing(sqlite3.connect(path)) as conn,conn:conn.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+    return path,store
+
+
+@pytest.fixture
+def historical14(stack):
     client,path=stack;create(client);store=ResearchStore(auth._store())
+    with store.transaction() as conn:
+        assert AuthStore.check_offline_auth_metadata(conn)=='legacy_auth'
+        assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==14
+        ResearchStore._check_v14(conn)
     with closing(sqlite3.connect(path)) as conn,conn:conn.execute('PRAGMA wal_checkpoint(TRUNCATE)')
     return path,store
 
@@ -88,7 +106,7 @@ def test_snapshot_must_already_exist_and_checker_never_starts_it(current):
 @pytest.mark.parametrize('marker',['missing','multiple','old','unknown','text'])
 def test_invalid_version_markers_are_rejected_without_writes(current,marker):
     path,_=current
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         if marker=='missing':conn.execute('DELETE FROM research_schema')
         elif marker=='multiple':conn.execute('PRAGMA ignore_check_constraints=ON');conn.execute('INSERT INTO research_schema VALUES(2,9)')
         else:conn.execute('UPDATE research_schema SET version=?',(8 if marker=='old' else 99 if marker=='unknown' else 'unrecognized',))
@@ -104,7 +122,7 @@ def test_invalid_version_markers_are_rejected_without_writes(current,marker):
 @pytest.mark.parametrize('change',['table','column','guard','partial-unique','unknown-aux','unknown-table','view','vtab'])
 def test_bad_main_objects_are_rejected_before_any_pragma_probe(current,change):
     path,_=current
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         if change=='table':conn.execute('DROP TABLE research_idempotency')
         elif change=='column':conn.execute('ALTER TABLE research_idempotency ADD COLUMN unexpected TEXT')
         elif change=='guard':
@@ -131,7 +149,7 @@ def test_bad_main_objects_are_rejected_before_any_pragma_probe(current,change):
 @pytest.mark.parametrize('shadow',['temp','attached'])
 def test_same_named_temp_or_attached_objects_cannot_mask_bad_main(current,tmp_path,shadow):
     path,_=current
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         conn.execute('UPDATE research_schema SET version=99');conn.commit();conn.execute('PRAGMA wal_checkpoint(TRUNCATE)')
     before=byte_image(path)
     with native_ro(path) as conn:
@@ -141,7 +159,7 @@ def test_same_named_temp_or_attached_objects_cannot_mask_bad_main(current,tmp_pa
             conn.execute('CREATE TEMP VIEW research_idempotency AS SELECT email FROM main.auth_users')
         else:
             good=tmp_path/'attached.sqlite3'
-            with sqlite3.connect(good) as other:other.execute('CREATE TABLE research_schema(id INTEGER,version INTEGER)');other.execute('INSERT INTO research_schema VALUES(1,9)')
+            with closing(sqlite3.connect(good)) as other,other:other.execute('CREATE TABLE research_schema(id INTEGER,version INTEGER)');other.execute('INSERT INTO research_schema VALUES(1,9)')
             conn.execute('ATTACH DATABASE ? AS approved_shadow',(good.resolve().as_uri()+'?mode=ro&immutable=1',))
         _,_,forbidden=deny_nonmetadata(conn)
         with pytest.raises(ResearchError):ResearchStore.check_current_structure(conn)
@@ -149,14 +167,15 @@ def test_same_named_temp_or_attached_objects_cannot_mask_bad_main(current,tmp_pa
     assert byte_image(path)==before
 
 
-def test_fk_data_failure_is_outside_structure_but_full_checker_still_rejects(current):
+def test_fk_data_failure_is_outside_structure_but_full_checker_still_rejects(historical14):
     from research.financial_guard import install_default_hook
-    path,_=current
+    # Historical14 DATA failure; it is not a current15 structure specimen.
+    path,_=historical14
     with closing(sqlite3.connect(path)) as conn,conn:
         conn.execute('UPDATE research_controls SET owner_id=?',(str(uuid4()),));conn.commit();conn.execute('PRAGMA wal_checkpoint(TRUNCATE)')
     before=byte_image(path)
     with native_ro(path) as conn:
-        _,_,forbidden=deny_nonmetadata(conn);ResearchStore.check_current_structure(conn);assert not forbidden
+        _,_,forbidden=deny_nonmetadata(conn);ResearchStore._check_structure_version(conn,14);assert not forbidden
     with closing(sqlite3.connect(path)) as conn,conn:
         conn.row_factory=sqlite3.Row;install_default_hook(conn)
         conn.execute('BEGIN')
@@ -168,8 +187,10 @@ def test_fk_data_failure_is_outside_structure_but_full_checker_still_rejects(cur
 def test_budget_data_binding_is_outside_structure_but_full_checker_still_rejects(registry_inputs):
     from research.financial_guard import install_default_hook
     from research.financial_admission_schemas import ProjectBudget
+    # The existing registry producer supplies real legacy Auth/Research14 data.
     _,path,_,_,_,_=registry_inputs
     with closing(sqlite3.connect(path)) as conn,conn:
+        assert conn.execute('SELECT version FROM research_schema').fetchone()==(14,)
         account=conn.execute('SELECT id,binding_id FROM research_funding_accounts').fetchone()
         data=ProjectBudget(id=1,project_key='structure',funding_account_id=account[0],economic_binding=account[1],currency='CNY',scale=6,
             authorized_cap=10,authorization_ref=str(uuid4()),authorization_digest='a'*64,database_binding='0'*64,mode='offline_probe',status='closed',version=1).model_dump()
@@ -179,7 +200,7 @@ def test_budget_data_binding_is_outside_structure_but_full_checker_still_rejects
         conn.commit();conn.execute('PRAGMA wal_checkpoint(TRUNCATE)')
     before=byte_image(path)
     with native_ro(path) as conn:
-        _,_,forbidden=deny_nonmetadata(conn);ResearchStore.check_current_structure(conn);assert not forbidden
+        _,_,forbidden=deny_nonmetadata(conn);ResearchStore._check_structure_version(conn,14);assert not forbidden
     with closing(sqlite3.connect(path)) as conn,conn:
         conn.row_factory=sqlite3.Row;install_default_hook(conn)
         conn.execute('BEGIN')
@@ -195,7 +216,7 @@ def test_half_v9_overlay_is_not_repaired_or_accepted(stack,monkeypatch):
         old.setattr(ResearchStore,'_initialize_current',lambda self,conn:False)
         old.setattr(ResearchStore,'_migrate_v9',lambda self:None)
         create(client);ResearchStore(auth._store())
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         name,ddl=METHOD_COLUMNS[0]
         conn.execute('ALTER TABLE research_provider_sessions ADD COLUMN '+name+' '+ddl)
         conn.commit();conn.execute('PRAGMA wal_checkpoint(TRUNCATE)')
@@ -209,7 +230,7 @@ def test_half_v9_overlay_is_not_repaired_or_accepted(stack,monkeypatch):
 
 def test_unrecognized_aux_on_versioned_auth_job_is_also_rejected(current):
     path,_=current
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         conn.execute('CREATE TRIGGER foreign_job_aux BEFORE UPDATE ON auth_deletion_jobs BEGIN SELECT 1; END')
         conn.commit();conn.execute('PRAGMA wal_checkpoint(TRUNCATE)')
     before=byte_image(path)
@@ -225,7 +246,7 @@ def test_existing_read_snapshot_stays_consistent_when_another_writer_changes_sch
     reader=sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,isolation_level=None)
     try:
         reader.execute('BEGIN')
-        assert reader.execute('SELECT version FROM main.research_schema').fetchone()==(14,)
+        assert reader.execute('SELECT version FROM main.research_schema').fetchone()==(15,)
         with closing(sqlite3.connect(path)) as writer,writer:writer.execute('ALTER TABLE research_idempotency ADD COLUMN raced_column TEXT')
         _,_,forbidden=deny_nonmetadata(reader)
         ResearchStore.check_current_structure(reader)
@@ -242,7 +263,7 @@ def test_auth_job_historical_alter_column_order_remains_accepted(current):
     path,_=current
     legacy=ResearchStore._auth_job_baseline_forms()[1]
     expanded=legacy.rstrip()[:-1]+', '+', '.join(name+' '+ddl for name,ddl in JOB_ORIGIN_COLUMNS)+')'
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         conn.execute('DROP TABLE auth_deletion_jobs')
         conn.execute(expanded)
         conn.execute("CREATE UNIQUE INDEX auth_one_pending_deletion ON auth_deletion_jobs(owner_key) WHERE state!='completed'")
