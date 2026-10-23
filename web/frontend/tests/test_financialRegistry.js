@@ -134,3 +134,36 @@ test('canonical explicit pre-birth refusal retires the intent, malformed rejecti
  for(const valid of [true,false]){const r=runtime(()=>{const payload={error:{code:'REVISION_CONFLICT',message:'问题或版本已变化。',retryable:false,allowed_next_actions:[],incident_id:uid(50)}};if(!valid)payload.extra=true;const response=new Response(JSON.stringify(payload),{status:409});Object.defineProperty(response,'url',{value:globalThis.location.origin+'/api/research/'+rid+'/financial-registries'});return response;});await prepare(r,f);await r.controller.confirm();assert.equal(r.controller.inspect().pending,!valid);assert.equal(r.requests.length,1);assert.equal(r.el('confirm').disabled,true);if(valid)assert.match(r.el('status').textContent,/原保存已明确拒绝/);else assert.match(r.el('status').textContent,/可能已经保存/);}
  delete globalThis.location;
 });
+
+async function unresolvedStore(){const f=await fixture(),store=memory(),r=runtime(()=>{throw new TypeError('owned lost ACK');},{storage:store});await prepare(r,f);await r.controller.confirm();assert.equal(store.values.size,1);return {f,store};}
+
+test('fresh cached scope alone cannot restore metadata; verified initial research activation does without FIN2 action',async()=>{
+ const {f,store}=await unresolvedStore(),r=runtime(()=>{throw Error('activation must not fetch');},{storage:store});r.controller.observe();assert.equal(r.controller.inspect().actorBound,false);assert.equal(r.controller.inspect().pending,false);assert.equal(r.el('pending').textContent,'');
+ assert.equal(await r.controller.activateVerifiedAccount(r.scope.account,()=>true),true);assert.equal(r.requests.length,0);assert.equal(r.controller.inspect().pending,true);assert.match(r.el('pending').textContent,/原 CSV 未保留/);assert.equal(r.el('confirm').disabled,true);assert.equal(r.el('detail').textContent,'');
+});
+
+test('verified actor before research becomes visible restores only after exact research activation',async()=>{
+ const {store}=await unresolvedStore(),r=runtime(()=>{throw Error('no I/O');},{storage:store,scope:{visible:false,revision:undefined,digest:undefined}});await r.controller.activateVerifiedAccount(r.scope.account,()=>true);assert.equal(r.controller.inspect().actorBound,true);assert.equal(r.controller.inspect().pending,false);
+ r.scope.visible=true;r.scope.revision=1;r.scope.digest=digest;r.controller.observe();assert.equal(r.controller.inspect().pending,true);assert.match(r.el('pending').textContent,/原 CSV 未保留/);
+});
+
+test('definitive loss before any activation clears only own prefix; research deletion stays rid scoped',async()=>{
+ for(const cause of ['confirmed_logout','credential_conflict','actor_changed','confirmed_research_deleted']){const {store}=await unresolvedStore();const [key,raw]=[...store.values.entries()][0],other=JSON.parse(raw);other.rid=uid(90);store.setItem(key.slice(0,key.lastIndexOf(':')+1)+other.rid,JSON.stringify(other));store.setItem('structure-research-pending:other-module','keep');const r=runtime(()=>{throw Error('no FIN2 I/O');},{storage:store});assert.equal(r.controller.inspect().actorBound,false);r.controller.reset(cause);assert.equal(store.getItem(key),null);assert.equal(store.getItem('structure-research-pending:other-module'),'keep');assert.equal(store.values.size,cause==='confirmed_research_deleted'?2:1);assert.equal(r.requests.length,0);}
+});
+
+test('late asynchronous verified actor cannot bind after confirmed logout or restore erased intent',async()=>{
+ const {store}=await unresolvedStore(),r=runtime(()=>{throw Error('no fetch');},{storage:store});const late=r.controller.activateVerifiedAccount(r.scope.account,()=>true);r.controller.reset('confirmed_logout');assert.equal(await late,false);r.controller.observe();assert.equal(r.controller.inspect().actorBound,false);assert.equal(r.controller.inspect().verified,false);assert.equal(r.controller.inspect().pending,false);assert.equal(store.values.size,0);assert.equal(r.el('pending').textContent,'');
+});
+
+test('unknown/bfcache/navigation invalidate freshness and late bind, preserving exact unresolved metadata',async()=>{
+ for(const cause of ['auth_unknown','page_suspended','bfcache_restore','inflight_navigation']){const {store}=await unresolvedStore(),before=[...store.values.entries()],r=runtime(()=>{throw Error('no fetch');},{storage:store});const late=r.controller.activateVerifiedAccount(r.scope.account,()=>true);r.controller.invalidate(cause);assert.equal(await late,false);r.controller.observe();assert.deepEqual([...store.values.entries()],before);assert.equal(r.controller.inspect().verified,false);assert.equal(r.el('detail').textContent,'');await r.controller.activateVerifiedAccount(r.scope.account,()=>true);assert.equal(r.controller.inspect().pending,true);assert.match(r.el('pending').textContent,/原 CSV 未保留/);}
+});
+
+test('verified activation cannot move the old research intent to a different rid',async()=>{
+ const {store}=await unresolvedStore(),r=runtime(()=>{throw Error('no fetch');},{storage:store});const before=[...store.values.entries()];r.scope.rid=uid(99);r.controller.observe();await r.controller.activateVerifiedAccount(r.scope.account,()=>true);assert.equal(r.controller.inspect().pending,false);assert.deepEqual([...store.values.entries()],before);r.scope.rid=rid;r.controller.observe();assert.equal(r.controller.inspect().pending,false);await r.controller.activateVerifiedAccount(r.scope.account,()=>true);assert.equal(r.controller.inspect().pending,true);assert.equal(r.requests.length,0);
+});
+
+
+test('research deletion without a known rid never sweeps unrelated research metadata',async()=>{
+ const {store}=await unresolvedStore(),before=[...store.values.entries()],r=runtime(()=>{throw Error('no fetch');},{storage:store,scope:{rid:null}});r.controller.reset('confirmed_research_deleted');assert.deepEqual([...store.values.entries()],before);assert.equal(r.requests.length,0);
+});

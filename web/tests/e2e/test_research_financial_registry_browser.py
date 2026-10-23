@@ -245,3 +245,88 @@ async def pagination(tmp_path):
 
 def test_fin2_actual_main_twenty_one_registry_pagination_while_dirty(tmp_path):
     asyncio.run(pagination(tmp_path))
+
+
+async def restored_pending_without_fin2_click(tmp_path):
+    async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
+        facts['scope']='FIN2 actor repair: lost successful ACK / reload / no FIN2 action / real logout'
+        original=await lose_ack(page,service,bridge);before=await pending(page);assert len(before)==1
+        await helpers._native_tls_completed_read(page,service.origin+'/api/research?limit=20',lambda:page.reload())
+        await expect(page.locator('#research-list-status')).to_contain_text('已读取 1 条研究')
+        # No history, preview, choose or recovery action after this reload.
+        banner=await page.locator('#financial-registry-pending').inner_text()
+        assert (await helpers._native_tls_fetch(page,'/api/auth/logout','POST',{}))['status']==200
+        await page.locator('#research-list-refresh').click();await expect(page.locator('#problem-form')).to_be_hidden()
+        after=await pending(page)
+        facts.update({'original_ref':original['data']['metadata']['registry_ref']['id'],'pending_before':len(before),'pending_after':len(after),'pending_unchanged':before==after,'initial_banner_has_pending':'原 CSV 未保留' in banner,'no_fin2_action_after_reload':True})
+        (tmp_path/'actor-repair-counter.json').write_text(json.dumps({'before':len(before),'after':len(after),'unchanged':before==after,'banner':banner},ensure_ascii=False,indent=2))
+        assert after=={},'confirmed logout must erase own restored descriptors without a FIN2 action'
+        assert '原 CSV 未保留' in banner,'verified initial activation must expose its unresolved original intent'
+
+
+def test_fin2_actual_main_restored_pending_logout_without_fin2_click(tmp_path):
+    asyncio.run(restored_pending_without_fin2_click(tmp_path))
+
+
+async def restored_unknown_bfcache_delete(tmp_path):
+    async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
+        facts['scope']='FIN2 actor repair: unknown and bfcache preserve, real deletion clears without FIN2 click'
+        await lose_ack(page,service,bridge);before=await pending(page);assert len(before)==1
+        await helpers._native_tls_completed_read(page,service.origin+'/api/research?limit=20',lambda:page.reload())
+        await expect(page.locator('#research-list-status')).to_contain_text('已读取 1 条研究')
+        await expect(page.locator('#financial-registry-pending')).to_contain_text('原 CSV 未保留')
+        posted=[];page.on('request',lambda request:posted.append(request.url) if request.method=='POST' and request.url.endswith('/financial-registries') else None)
+        async def unknown(route):await route.fulfill(status=503,body='owned unavailable observation')
+        await page.route(service.origin+'/api/auth/me',unknown)
+        await page.locator('#research-list-refresh').click();await expect(page.locator('#status')).to_contain_text('账户状态暂时无法核对')
+        assert await pending(page)==before
+        await expect(page.locator('#financial-registry-detail')).to_have_text('')
+        await page.unroute(service.origin+'/api/auth/me',unknown)
+        # Exercise the actual page lifecycle handlers with an explicit persisted
+        # event. A real browser cache hit is not asserted by this event control.
+        await page.evaluate('dispatchEvent(new PageTransitionEvent("pagehide",{persisted:true}))')
+        assert await pending(page)==before
+        await helpers._native_tls_completed_read(page,service.origin+'/api/research?limit=20',lambda:page.evaluate('dispatchEvent(new PageTransitionEvent("pageshow",{persisted:true}))'))
+        await expect(page.locator('#research-list-status')).to_contain_text('已读取 1 条研究')
+        await expect(page.locator('#financial-registry-pending')).to_contain_text('上次保存尚待核对')
+        assert await pending(page)==before
+        await helpers._native_tls_completed_read(page,service.origin+'/api/research?limit=20',lambda:page.goto(service.origin+'/research'))
+        await helpers._native_tls_completed_read(page,service.origin+'/api/research?limit=20',lambda:page.go_back())
+        await expect(page.locator('#research-list-status')).to_contain_text('已读取 1 条研究')
+        assert await pending(page)==before and posted==[]
+        deleted=await helpers._native_tls_fetch(page,'/api/me/delete','POST',{'confirmation':'DELETE'});assert deleted['status']==200
+        await page.locator('#research-list-refresh').click();await expect(page.locator('#problem-form')).to_be_hidden()
+        assert await pending(page)=={} and await actual_count(service)==0
+        facts.update({'no_fin2_action_after_reload':True,'auth_unknown_preserved':True,'persisted_event_handler_preserved':True,'native_bfcache_cache_hit_not_claimed':True,'navigation_preserved':True,'real_delete_cleared_metadata':True,'automatic_financial_posts':len(posted)})
+
+
+def test_fin2_actual_main_restored_unknown_bfcache_and_delete_without_fin2_click(tmp_path):
+    asyncio.run(restored_unknown_bfcache_delete(tmp_path))
+
+
+async def restored_actor_change(tmp_path):
+    async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
+        facts['scope']='FIN2 actor repair: verified actor change clears without FIN2 click'
+        await lose_ack(page,service,bridge);before=await pending(page);assert len(before)==1
+        await helpers._native_tls_completed_read(page,service.origin+'/api/research?limit=20',lambda:page.reload())
+        await expect(page.locator('#research-list-status')).to_contain_text('已读取 1 条研究')
+        await expect(page.locator('#financial-registry-pending')).to_contain_text('原 CSV 未保留')
+        await page.evaluate('sessionStorage.setItem("structure-research-pending:actor-repair-sentinel","unrelated")')
+        # Change the actual account cookie before any UI revalidation. The next
+        # actual /auth/me proves actor_changed rather than a synthetic flag.
+        assert (await helpers._native_tls_fetch(page,'/api/auth/logout','POST',{}))['status']==200
+        requested=await helpers._native_tls_fetch(page,'/api/auth/request-link','POST',{'email':'actor-repair-other@example.invalid'});assert requested['status']==200
+        token=service.take_latest_magic_token()
+        try:verified=await helpers._native_tls_fetch(page,'/api/auth/verify','POST',{'token':token})
+        finally:token=None
+        assert verified['status']==200
+        await page.locator('#research-list-refresh').click();await expect(page.locator('#problem-form')).to_be_hidden()
+        await expect(page.locator('#status')).to_contain_text('账户已变化')
+        assert await pending(page)=={}
+        assert await page.evaluate('sessionStorage.getItem("structure-research-pending:actor-repair-sentinel")')=='unrelated'
+        await page.evaluate('sessionStorage.removeItem("structure-research-pending:actor-repair-sentinel")')
+        facts.update({'no_fin2_action_after_reload':True,'real_smtp_verified_actor_change':True,'old_actor_descriptor_cleared':True,'other_module_sentinel_preserved':True})
+
+
+def test_fin2_actual_main_restored_actor_change_without_fin2_click(tmp_path):
+    asyncio.run(restored_actor_change(tmp_path))

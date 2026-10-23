@@ -1659,7 +1659,8 @@
         clearPrivateView('actor_changed'); status('账户已变化，请重新打开研究页面。', true); return false;
       }
       accountScope = identity;
-      return true;
+      if (registryUI && !await registryUI.activateVerifiedAccount(identity, isCurrent)) return false;
+      return isCurrent();
     } catch (error) {
       return unavailable();
     }

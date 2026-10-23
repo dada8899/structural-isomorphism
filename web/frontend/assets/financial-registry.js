@@ -113,7 +113,7 @@
   function freeze(v){if(object(v)||Array.isArray(v)){Object.values(v).forEach(freeze);Object.freeze(v);}return v;}
   function mount({document:doc,getScope,authenticate,fetchRoot,onObservedRoot=()=>{},fetch:send=(...args)=>globalThis.fetch(...args),storage=globalThis.sessionStorage}) {
     const el=k=>doc.getElementById('financial-registry-'+k);
-    const state={epoch:0,busy:null,controllers:new Set(),preview:null,view:null,selected:null,actor:null,operations:new Map(),operation:null,fence:false,scope:null,list:new Map(),cursor:null,cursors:new Set(),currentVersion:0,currentRevision:0,restored:false};
+    const state={epoch:0,busy:null,controllers:new Set(),preview:null,view:null,selected:null,actor:null,verified:null,operations:new Map(),operation:null,fence:false,scope:null,list:new Map(),cursor:null,cursors:new Set(),currentVersion:0,currentRevision:0,restored:false};
     function node(parent,tag,value,attrs={}){const n=doc.createElement(tag);if(value!==null)n.textContent=value;for(const [k,v] of Object.entries(attrs)){if(k==='className')n.className=v;else n.setAttribute(k,String(v));}parent.append(n);return n;}
     const status=message=>{el('status').textContent=message;};
     const scopeKey=s=>canonical([s.account,s.privateGeneration,s.rid]);
@@ -123,11 +123,17 @@
     function hide(){state.view=null;state.selected=null;el('detail').replaceChildren();el('list').replaceChildren();state.list.clear();state.cursor=null;state.cursors.clear();el('selection').textContent='尚未选择已保存材料。';el('consent').checked=false;state.preview=null;}
     function slots(){try{return Array.from({length:storage?.length||0},(_,i)=>storage.key(i)).filter(k=>typeof k==='string'&&k.startsWith(PREFIX));}catch{return [];}}
     const slot=(actor,rid)=>PREFIX+actor+':'+rid;
-    function purge(actor,rid=null){if(!actor)return;for(const key of slots())if(key.startsWith(PREFIX+actor+':')&&(!rid||key===slot(actor,rid)))try{storage.removeItem(key);}catch{}for(const [key,op] of state.operations)if(op.meta.actor===actor&&(!rid||op.meta.rid===rid))state.operations.delete(key);}
+    function purge(actor,rid=null){
+      // A definitive loss may precede the asynchronous initial actor hash.
+      // Only this module's prefix is eligible for that unbound fallback.
+      for(const key of slots())if((!actor||key.startsWith(PREFIX+actor+':'))&&(!rid||key.endsWith(':'+rid)))try{storage.removeItem(key);}catch{}
+      for(const [key,op] of state.operations)if((!actor||op.meta.actor===actor)&&(!rid||op.meta.rid===rid))state.operations.delete(key);
+    }
     function invalidate(cause='preview_changed',message='输入已变化，请重新预览；原操作保持待核对。'){
       if(!CAUSES.includes(cause))throw Error('unknown financial registry lifecycle cause');stop();hide();
+      if([...CLEAR_ACTOR,'confirmed_research_deleted','auth_unknown','page_suspended','bfcache_restore','inflight_navigation'].includes(cause))state.verified=null;
       if(CLEAR_ACTOR.includes(cause)){purge(state.actor);state.actor=null;state.operation=null;state.fence=false;state.restored=false;}
-      else if(cause==='confirmed_research_deleted'){purge(state.actor,getScope().rid||state.scope?.rid);state.operation=null;state.fence=false;state.restored=false;}
+      else if(cause==='confirmed_research_deleted'){const rid=getScope().rid||state.scope?.rid;if(id(rid)){purge(state.actor,rid);state.operation=null;state.fence=false;}state.restored=false;}
       status(message);renderPending();sync();
     }
     const reset=cause=>invalidate(cause||'inflight_navigation','');
@@ -144,14 +150,27 @@
       const button=node(el('pending'),'button','核对上次保存（可能完成原保存）',{type:'button',className:'secondary'});button.disabled=Boolean(state.busy)||getScope().busy;button.addEventListener('click',()=>recover());
     }
     async function auth(t){const c=new AbortController();state.controllers.add(c);const timer=setTimeout(()=>c.abort(),15000);try{const ok=await authenticate(()=>same(t),c.signal);return ok&&same(t);}finally{clearTimeout(timer);state.controllers.delete(c);}}
-    async function actor(t){if(!await auth(t))return false;const s=getScope();let value;try{const a=JSON.parse(s.account);if(!Array.isArray(a)||a.length!==2||a.some(v=>typeof v!=='string'||!v))fail();value=await hash({account:a});}catch{state.fence=true;status('当前账户标识无法核对，未开放新保存。');return false;}if(!same(t))return false;
-      if(state.actor&&state.actor!==value){invalidate('actor_changed','账户已变化，旧私有材料已清除。');return false;}state.actor=value;
+    const verifiedScope=s=>state.verified&&state.verified.account===s.account&&state.verified.privateGeneration===s.privateGeneration&&state.verified.rid===s.rid;
+    function restoreActivePending(){
+      const s=getScope();if(!state.actor||!verifiedScope(s)||!s.visible||!id(s.rid)||!integer(s.revision)||!digest(s.digest))return;
+      const key=slot(state.actor,s.rid);state.operation=state.operations.get(key)||null;state.fence=false;
+      if(!state.operation){let raw;try{raw=storage?.getItem(key);}catch{}if(raw){try{const meta=descriptor(strictJSON(raw,2048));if(meta.actor!==state.actor||meta.rid!==s.rid)fail();state.operation={meta,body:null,stored:true};state.operations.set(key,state.operation);}catch{state.fence=true;}}}
+      state.restored=true;renderPending();sync();
+    }
+    async function activateVerifiedAccount(account,isCurrent=()=>true){
+      // Called only after the actual authentication adapter verified identity.
+      // A cached getScope().account alone cannot activate metadata on mount.
+      const t=ticket(),s=getScope();if(!isCurrent()||account!==s.account||!account)return false;
+      let value;try{const a=JSON.parse(account);if(!Array.isArray(a)||a.length!==2||a.some(v=>typeof v!=='string'||!v))fail();value=await hash({account:a});}
+      catch{if(same(t)&&isCurrent()){state.fence=true;status('当前账户标识无法核对，未开放新保存。');}return false;}
+      if(!same(t)||!isCurrent()||account!==getScope().account)return false;
+      if(state.actor&&state.actor!==value){invalidate('actor_changed','账户已变化，旧私有材料已清除。');return false;}
+      state.actor=value;state.verified={account,privateGeneration:s.privateGeneration,rid:s.rid};
       for(const foreign of slots())if(!foreign.startsWith(PREFIX+value+':'))try{storage.removeItem(foreign);}catch{}
       for(const [key,op] of state.operations)if(op.meta.actor!==value)state.operations.delete(key);
-      const key=slot(value,s.rid);state.operation=state.operations.get(key)||null;state.fence=false;
-      if(!state.operation){let raw;try{raw=storage?.getItem(key);}catch{}if(raw){try{const meta=descriptor(strictJSON(raw,2048));if(meta.actor!==value||meta.rid!==s.rid)fail();state.operation={meta,body:null,stored:true};state.operations.set(key,state.operation);}catch{state.fence=true;}}}
-      state.restored=true;renderPending();sync();return true;
+      restoreActivePending();return true;
     }
+    async function actor(t){if(!await auth(t)||!same(t))return false;return activateVerifiedAccount(getScope().account,()=>same(t));}
     async function root(t){const v=await fetchRoot(`/api/research/${t.rid}`,{},()=>same(t));if(!same(t))throw Error('较早读取已失效。');if(v.research?.id!==t.rid||!integer(v.research.current_revision)||!integer(v.research_version)||!Array.isArray(v.revisions)||v.research_version<state.currentVersion||v.research_version<getScope().version||v.research.current_revision<state.currentRevision)fail();state.currentVersion=v.research_version;state.currentRevision=v.research.current_revision;onObservedRoot(v);state.scope={...getScope()};return v;}
     function bindRoot(d,v){const c=d.current;if(c.input_revision!==v.research.current_revision||c.research_version>v.research_version)fail();const items=d.items||[d.metadata];for(const m of items){const p=v.revisions.find(x=>x.revision===m.input_revision);if(!p||p.digest!==m.problem_digest)fail();}}
     function errorResponse(v,statusCode){exact(v,Object.hasOwn(v,'validation')?['error','validation']:['error']);exact(v.error,['code','message','retryable','allowed_next_actions','incident_id']);const e=v.error;
@@ -202,11 +221,11 @@
       if(cursor)state.cursors.add(cursor);if(d.next_cursor&&state.cursors.has(d.next_cursor))fail();for(const m of d.items){if(state.list.has(m.registry_ref.id))fail();state.list.set(m.registry_ref.id,m);}state.cursor=d.next_cursor;el('list').replaceChildren();for(const m of state.list.values()){const row=node(el('list'),'article',null,{className:'financial-registry-row'});node(row,'p',`问题修订 ${m.input_revision} · ${m.is_historical?'历史，只读':'当前问题材料'} · ${new Date(m.received_at).toLocaleString('zh-CN')} · 账户声明未核验`);const button=node(row,'button',`打开材料 ${m.registry_ref.id.slice(0,8)}`,{type:'button',className:'secondary'});button.addEventListener('click',()=>readRecord(m.registry_ref.id,m));const info=node(row,'details',null);node(info,'summary','原编号与时间');node(info,'p',m.registry_ref.id);node(info,'time',m.received_at,{datetime:m.received_at});}status(state.list.size?`已读取 ${state.list.size} 份已保存材料；请按原记录打开。`:'当前账户尚无已保存财务材料；请先预览并确认保存。');});}
     function choose(){if(state.busy||!state.view)return;state.selected={data:state.view,scope:scopeKey(getScope()),revision:getScope().revision,digest:getScope().digest,version:getScope().version};el('selection').textContent=`已手动选择材料 ${state.view.metadata.registry_ref.id}（${state.view.is_historical?'历史，只读':'当前问题材料'}）；未运行计算。`;}
     function getSelectedRegistry(){const x=state.selected,s=getScope();if(!x||x.scope!==scopeKey(s)||x.revision!==s.revision||x.digest!==s.digest||x.version!==s.version||s.dirty||s.readonly||!s.visible||x.data.is_historical||x.data.metadata.input_revision!==s.revision||x.data.metadata.problem_digest!==s.digest||s.version>state.currentVersion)return null;return freeze(copy(x.data));}
-    function observe(){const s=getScope(),old=state.scope;if(old&&(old.account!==s.account||old.rid!==s.rid||old.privateGeneration!==s.privateGeneration)){invalidate(old.account&&s.account&&old.account!==s.account?'actor_changed':'inflight_navigation','页面范围已变化，请按当前账户重新读取材料。');state.currentVersion=0;state.currentRevision=0;state.restored=false;state.operation=null;}
-      else if(old&&(old.revision!==s.revision||old.digest!==s.digest||old.version!==s.version||s.dirty&&!old.dirty))invalidate(s.dirty?'dirty':'version_changed','问题或版本有变化，预览与选择已失效；原操作仍可主动核对。');state.scope={...s};sync();
+    function observe(){const s=getScope(),old=state.scope,proof=verifiedScope(s)?state.verified:null;if(old&&(old.account!==s.account||old.rid!==s.rid||old.privateGeneration!==s.privateGeneration)){invalidate(old.account&&s.account&&old.account!==s.account?'actor_changed':'inflight_navigation','页面范围已变化，请按当前账户重新读取材料。');state.currentVersion=0;state.currentRevision=0;state.restored=false;state.operation=null;state.verified=proof;}
+      else if(old&&(old.revision!==s.revision||old.digest!==s.digest||old.version!==s.version||s.dirty&&!old.dirty))invalidate(s.dirty?'dirty':'version_changed','问题或版本有变化，预览与选择已失效；原操作仍可主动核对。');state.scope={...s};restoreActivePending();sync();
     }
     el('consent').addEventListener('change',sync);el('confirm').addEventListener('click',confirm);el('history').addEventListener('click',()=>history());el('more').addEventListener('click',()=>history(true));el('reopen').addEventListener('click',()=>{const v=state.view;if(v)readRecord(v.metadata.registry_ref.id,{...v.metadata,public_projection_digest:v.public_projection_digest});});el('choose').addEventListener('click',choose);
-    observe();return {acceptPreview,confirm,recover,history,readRecord,choose,getSelectedRegistry,observe,invalidate,reset,inspect:()=>({pending:Boolean(state.operation),fence:state.fence,busy:Boolean(state.busy),selected:Boolean(state.selected),view:state.view?.metadata.registry_ref.id||null})};
+    observe();return {activateVerifiedAccount,acceptPreview,confirm,recover,history,readRecord,choose,getSelectedRegistry,observe,invalidate,reset,inspect:()=>({pending:Boolean(state.operation),fence:state.fence,actorBound:Boolean(state.actor),verified:Boolean(verifiedScope(getScope())),busy:Boolean(state.busy),selected:Boolean(state.selected),view:state.view?.metadata.registry_ref.id||null})};
   }
   return {mount,check,strictJSON,body,validate,canonical,sha,hash,descriptor,SCHEMAS,EXPORTS,SOURCE_SHA256,CONTRACT};
 });
