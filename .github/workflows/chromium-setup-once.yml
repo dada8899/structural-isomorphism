@@ -1,0 +1,67 @@
+name: Chromium setup only once
+
+on:
+  push:
+    branches: [codex/structure-chromium-pinned-keyring-20261023]
+
+permissions:
+  contents: read
+
+jobs:
+  setup-only:
+    if: >-
+      github.event_name == 'push'
+      && github.repository == 'dada8899/structural-isomorphism'
+      && github.ref == 'refs/heads/codex/structure-chromium-pinned-keyring-20261023'
+      && github.event.created == true
+      && toJSON(github.event.deleted) == 'false'
+      && github.run_attempt == '1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          lfs: false
+          submodules: false
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            scripts/prepare_ci_chromium.py
+            scripts/verify_ci_chromium_setup.py
+            .github/workflows/chromium-setup-once.yml
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install the original ten SDK pins only
+        run: |
+          python -m pip install \
+            pytest==9.0.3 \
+            playwright==1.59.0 \
+            pytest-playwright==0.7.2 \
+            fastapi==0.135.0 \
+            pydantic==2.7.4 \
+            starlette==1.3.1 \
+            'uvicorn[standard]==0.27.1' \
+            PyJWT==2.15.1 \
+            slowapi==0.1.9 \
+            structlog==25.5.0
+      - name: Verify fixed helper and snapshot metadata before setup
+        run: python -I -B scripts/verify_ci_chromium_setup.py before
+      - name: Invoke the fixed helper once without masking its exit
+        run: python -I -B scripts/verify_ci_chromium_setup.py install
+      - name: Always verify restoration and installed payload metadata
+        id: postflight
+        if: always()
+        run: python -I -B scripts/verify_ci_chromium_setup.py after
+      - name: Upload only the three public metadata records
+        if: ${{ always() && steps.postflight.outputs.public_records_safe == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromium-setup-only-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/structure-chromium-setup-once-${{ github.run_id }}-${{ github.run_attempt }}/public/setup-before.json
+            ${{ runner.temp }}/structure-chromium-setup-once-${{ github.run_id }}-${{ github.run_attempt }}/public/helper-outcome.json
+            ${{ runner.temp }}/structure-chromium-setup-once-${{ github.run_id }}-${{ github.run_attempt }}/public/setup-after.json
+          if-no-files-found: error
+          include-hidden-files: false

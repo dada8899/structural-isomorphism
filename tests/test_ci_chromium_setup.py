@@ -21,6 +21,165 @@ SOURCE = (b'# original comment\nTypes: deb\nURIs: http://azure.archive.ubuntu.co
           b'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n')
 
 
+def fake_keyring_receipt():
+    original={'dev':1,'ino':11,'uid':0,'gid':0,'mode':0o777,'nlink':1,'size':setup.KEYRING_BYTES,'sha256':setup.KEYRING_SHA}
+    return {'profile':setup.KEYRING_PROFILE,'reference':'1'*32,'input_trust':'untrusted','original':original,
+            'effective':{**original,'ino':12,'mode':0o644},'directory':{'dev':1,'ino':13,'uid':0,'gid':0,'mode':0o755,'nlink':2},
+            'original_unchanged':True,'signed_by_bound':True,'retired':True}
+
+
+@pytest.fixture
+def pinned_factory(tmp_path,monkeypatch):
+    original=tmp_path/'original.gpg';raw=b'SYNTHETIC_APPROVED_PUBLIC_BYTES'.ljust(3607,b'x')
+    original.write_bytes(raw);original.chmod(0o777)
+    copies=tmp_path/'copies';copies.mkdir(mode=0o700)
+    monkeypatch.setattr(setup,'KEYRING_SHA',__import__('hashlib').sha256(raw).hexdigest())
+    monkeypatch.setattr(setup.os,'geteuid',lambda:0)
+    monkeypatch.setattr(setup.PinnedArchiveKeyring,'_input_path',staticmethod(lambda:original))
+    monkeypatch.setattr(setup.PinnedArchiveKeyring,'_parent_path',staticmethod(lambda:copies))
+    native=setup.PinnedArchiveKeyring._info
+    def root_info(path=None,fd=None):
+        info=native(path=path,fd=fd)
+        # Fake root ownership only; actual ordinary test files/FDs stay user-owned.
+        return SimpleNamespace(**{name:getattr(info,name) for name in ('st_dev','st_ino','st_mode','st_nlink','st_size')},st_uid=0,st_gid=0)
+    monkeypatch.setattr(setup.PinnedArchiveKeyring,'_info',staticmethod(root_info))
+    resources=[]
+    def create():
+        item=setup.PinnedArchiveKeyring(time.monotonic()+100);resources.append(item);return item
+    yield SimpleNamespace(original=original,raw=raw,copies=copies,create=create)
+    for item in resources:
+        try:
+            if item.active:item.retire(True,True,False)
+        except setup.Refused:pass
+        finally:item.close_handles()
+
+
+def test_777_input_is_only_data_and_root_copy_is_separately_pinned_and_retired(pinned_factory):
+    f=pinned_factory;before=f.original.stat();item=f.create()
+    assert item.path.read_bytes()==f.raw and item.path.stat().st_mode&0o777==0o644
+    assert item.directory.stat().st_mode&0o777==0o755
+    assert f.original.read_bytes()==f.raw and f.original.stat().st_mode&0o777==0o777
+    assert (f.original.stat().st_ino,f.original.stat().st_mtime_ns,f.original.stat().st_ctime_ns)==(before.st_ino,before.st_mtime_ns,before.st_ctime_ns)
+    receipt=item.retire(True,True,True)
+    assert setup.keyring_receipt_ok(receipt) and receipt['original']['mode']==0o777
+    assert not item.path.exists() and not item.directory.exists()
+
+
+def test_same_777_mode_with_wrong_content_pin_is_never_materialized(pinned_factory):
+    f=pinned_factory;f.original.write_bytes(b'wrong'.ljust(3607,b'x'))
+    with pytest.raises(setup.Refused):f.create()
+    assert not list(f.copies.iterdir()) and f.original.stat().st_mode&0o777==0o777
+
+
+@pytest.mark.parametrize('fault',['bytes','inode','mode','directory'])
+def test_private_copy_late_mutation_or_permissions_never_remain_authority(pinned_factory,fault):
+    item=pinned_factory.create()
+    if fault=='bytes':item.path.write_bytes(b'changed'.ljust(3607,b'x'))
+    elif fault=='mode':item.path.chmod(0o666)
+    elif fault=='directory':item.directory.chmod(0o777)
+    else:
+        item.path.rename(item.directory/'old-key');item.path.write_bytes(pinned_factory.raw);item.path.chmod(0o644)
+    with pytest.raises(setup.Refused):item.require()
+    with pytest.raises(setup.Refused):item.retire(True,True,True)
+    assert item.directory.exists()
+
+
+def test_signed_by_uses_only_factory_copy_and_source_restores_before_key_retirement(pinned_factory,tmp_path):
+    item=pinned_factory.create();source=tmp_path/'ubuntu.sources';source.write_bytes(SOURCE);source.chmod(0o644)
+    lease=setup.SourceLease(source,tmp_path/'backup',expected_uid=os.getuid(),effective=item)
+    try:
+        lease.apply()
+        assert ('Signed-By: '+str(item.path)).encode() in source.read_bytes() and lease.signed_by_bound
+        with pytest.raises(setup.Refused):item.retire(False,True,True)
+        with pytest.raises(setup.Refused):item.retire(True,False,True)
+        lease.restore();assert source.read_bytes()==SOURCE
+        receipt=item.retire(True,True,lease.signed_by_bound)
+        assert setup.keyring_receipt_ok(receipt)
+    finally:lease.close()
+
+
+def test_corrupted_copy_does_not_block_restoring_known_source_but_retains_uncertainty(pinned_factory,tmp_path):
+    item=pinned_factory.create();source=tmp_path/'ubuntu.sources';source.write_bytes(SOURCE);source.chmod(0o644)
+    lease=setup.SourceLease(source,tmp_path/'backup',expected_uid=os.getuid(),effective=item)
+    try:
+        lease.apply();item.path.write_bytes(b'changed'.ljust(3607,b'x'))
+        lease.restore();assert source.read_bytes()==SOURCE
+        with pytest.raises(setup.Refused):item.retire(True,True,True)
+        assert item.path.exists() and (tmp_path/'backup').read_bytes()==SOURCE
+    finally:lease.close()
+
+
+def test_external_input_change_is_not_repaired_or_retrusted(pinned_factory):
+    f=pinned_factory;item=f.create();f.original.write_bytes(b'external change'.ljust(3607,b'x'))
+    with pytest.raises(setup.Refused):item.require()
+    with pytest.raises(setup.Refused):item.retire(True,True,True)
+    assert f.original.read_bytes().startswith(b'external change') and f.original.stat().st_mode&0o777==0o777
+    assert item.path.exists()
+
+
+def test_partial_destination_copy_failure_does_not_touch_original_or_leave_an_authority(pinned_factory,monkeypatch):
+    f=pinned_factory
+    def fail(fd,data):
+        os.pwrite(fd,data[:17],0)
+        raise OSError('synthetic partial copy')
+    monkeypatch.setattr(setup.SourceLease,'_write',staticmethod(fail))
+    with pytest.raises(OSError):f.create()
+    assert f.original.read_bytes()==f.raw and f.original.stat().st_mode&0o777==0o777
+    assert not list(f.copies.iterdir())
+
+
+@pytest.mark.parametrize('valid_receipt',[True,False])
+def test_recovery_cleanup_requires_effective_retirement_and_strict_receipt(tmp_path,monkeypatch,valid_receipt):
+    uid,gid=os.getuid(),os.getgid();source=tmp_path/'source';source.write_bytes(SOURCE);source.chmod(0o644)
+    temporary=tmp_path/'user';temporary.mkdir(mode=0o700);copydir=tmp_path/'copy';created=[];recoveries=[]
+    class Trust:
+        def __init__(self,deadline):
+            self.directory=copydir;copydir.mkdir();self.path=copydir/'key';self.path.write_bytes(b'synthetic-public-key')
+            self.closed=False;created.append(self)
+        def require(self):pass
+        def retire(self,*args):
+            assert source.read_bytes()==SOURCE
+            value=fake_keyring_receipt()
+            if valid_receipt:self.path.unlink();self.directory.rmdir()
+            else:value['retired']=False
+            return value
+        def close_handles(self):self.closed=True
+    monkeypatch.setattr(setup.os,'geteuid',lambda:0)
+    monkeypatch.setattr(setup.os,'environ',{'SUDO_UID':str(uid),'SUDO_GID':str(gid)})
+    monkeypatch.setattr(setup.pwd,'getpwuid',lambda _:SimpleNamespace(pw_gid=gid,pw_name='synthetic',pw_dir=str(tmp_path)))
+    monkeypatch.setattr(setup,'sdk_profile',lambda:None)
+    monkeypatch.setattr(setup.ctypes,'CDLL',lambda *a,**k:SimpleNamespace(prctl=lambda *a:0))
+    probe=tmp_path/'pidfd';probe.write_bytes(b'')
+    monkeypatch.setattr(setup.os,'pidfd_open',lambda *_:os.open(probe,os.O_RDONLY),raising=False)
+    monkeypatch.setattr(setup.signal,'pidfd_send_signal',lambda *a:None,raising=False)
+    monkeypatch.setattr(setup.signal,'signal',lambda *a:None)
+    monkeypatch.setattr(setup,'PinnedArchiveKeyring',Trust);monkeypatch.setattr(setup,'SOURCE',source)
+    original_lease=setup.SourceLease
+    monkeypatch.setattr(setup,'SourceLease',lambda path,backup,**kw:original_lease(path,backup,expected_uid=uid,**kw))
+    native=setup.tempfile.mkdtemp
+    def recovery(**kw):
+        value=native(prefix=kw['prefix'],dir=tmp_path);recoveries.append(Path(value));return value
+    monkeypatch.setattr(setup.tempfile,'mkdtemp',recovery)
+    def completed(lease,*args):
+        lease.apply();lease.restore()
+        return {'status':'ready','children_closed':True,'source_restored':True}
+    monkeypatch.setattr(setup,'install_with_lease',completed)
+    request={'uid':uid,'gid':gid,'python':setup.sys.executable,'cache':str(tmp_path/'.cache/ms-playwright'),
+             'temporary':str(temporary),'deadline':time.monotonic()+100}
+    if valid_receipt:
+        result=setup.root_worker(request)
+        assert result['status']=='ready' and not recoveries[0].exists() and not copydir.exists()
+    else:
+        with pytest.raises(setup.CleanupUnknown) as error:setup.root_worker(request)
+        assert error.value.recovery==recoveries[0].name and recoveries[0].is_dir()
+        assert (recoveries[0]/'ubuntu.sources.backup').read_bytes()==SOURCE and copydir.exists()
+    assert source.read_bytes()==SOURCE and created[0].closed
+
+
+def test_arbitrary_signed_by_reference_cannot_replace_root_factory_resource():
+    with pytest.raises(setup.Refused):setup.mirror_source(SOURCE,effective=Path('/unapproved/key.gpg'))
+
+
 def test_only_mirror_uri_changes_and_all_four_suites_fonts_profile_are_retained():
     assert setup.mirror_source(SOURCE) == SOURCE.replace(b'http://azure.archive.ubuntu.com', b'https://archive.ubuntu.com')
     split = SOURCE.replace(b'noble noble-updates noble-backports noble-security', b'noble noble-updates noble-backports')
@@ -306,9 +465,10 @@ def test_outer_sudo_constructor_failure_is_unknown_and_retains_task_directory(tm
 ])
 def test_only_both_retirement_and_restoration_admit_the_next_step(tmp_path, monkeypatch, result):
     calls=[]
+    reply={**result,'keyring':fake_keyring_receipt()}
     class Process:
         stdin=io.BytesIO()
-        stdout=io.BytesIO(json.dumps(result).encode())
+        stdout=io.BytesIO(json.dumps(reply).encode())
         def wait(self,timeout):
             calls.append(('wait',timeout))
             return 1 if result['status']=='failed' else 0
@@ -317,7 +477,7 @@ def test_only_both_retirement_and_restoration_admit_the_next_step(tmp_path, monk
     monkeypatch.setenv('PRIVATE_TEST_CREDENTIAL','must-not-forward')
     monkeypatch.setattr(setup.subprocess,'Popen',lambda argv,**kw:calls.append((argv,kw)) or Process())
     if result['children_closed'] is True and result['source_restored'] is True:
-        assert setup.prepare()==result
+        assert setup.prepare()==reply
         assert not list(tmp_path.iterdir())
     else:
         with pytest.raises(setup.Refused): setup.prepare()

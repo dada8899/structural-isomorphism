@@ -26,11 +26,20 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 
 SOURCE = Path('/etc/apt/sources.list.d/ubuntu.sources')
 KEYRING = Path('/usr/share/keyrings/ubuntu-archive-keyring.gpg')
 COMMAND = ('-m', 'playwright', 'install', '--with-deps', 'chromium')
 TOTAL_SECONDS = 100
+KEYRING_PROFILE = 'ubuntu-noble-archive-pinned-v1'
+KEYRING_SHA = '80a36b0a6de2f69f49d2df75ef473ccde121e9e190b9ea01d20a4f63778d5c31'
+KEYRING_BYTES = 3607
+# Approved basis: official archive HTTPS + package identity/content, not a
+# separately verified Release/package-index signature. No runtime download.
+KEYRING_PACKAGE = ('ubuntu-keyring','2023.11.28.1','all',
+    '36de43b15853ccae0028e9a767613770c704833f82586f28eb262f0311adb8a8')
+KEYRING_PACKAGE_URL = 'https://archive.ubuntu.com/ubuntu/pool/main/u/ubuntu-keyring/ubuntu-keyring_2023.11.28.1_all.deb'
 
 
 class Refused(RuntimeError):
@@ -48,7 +57,7 @@ def require(condition):
         raise Refused('ci_chromium_setup_refused')
 
 
-def mirror_source(raw: bytes) -> bytes:
+def mirror_source(raw: bytes, effective=None) -> bytes:
     """Accept only the fixed Noble deb822 fields; preserve all non-URI bytes."""
     require(type(raw) is bytes and 0 < len(raw) <= 16384)
     try:
@@ -58,6 +67,9 @@ def mirror_source(raw: bytes) -> bytes:
     require('\r' not in text and '\x00' not in text)
     records, fields, replacements = [], {}, []
     lines = text.splitlines(keepends=True)
+    if effective is not None:
+        require(type(effective) is PinnedArchiveKeyring)
+        effective.require()
     for index, line in enumerate(lines + ['\n']):
         if not line.strip():
             if fields:
@@ -78,6 +90,9 @@ def mirror_source(raw: bytes) -> bytes:
                             'http://azure.archive.ubuntu.com/ubuntu/'))
             mapped = 'https://archive.ubuntu.com/ubuntu' + ('/' if uri.endswith('/') else '')
             replacements.append((index, line.replace(uri, mapped, 1)))
+        elif name == 'Signed-By' and effective is not None:
+            require(fields[name] == [str(KEYRING)])
+            replacements.append((index,line.replace(str(KEYRING),str(effective.path),1)))
     require(len(records) in (1, 2))
     suites = []
     for item in records:
@@ -89,10 +104,12 @@ def mirror_source(raw: bytes) -> bytes:
                                    ['noble', 'noble-updates', 'noble-backports'], ['noble-security']))
         suites.extend(item['Suites'])
     require(len(suites) == 4 and set(suites) == {'noble', 'noble-updates', 'noble-backports', 'noble-security'})
-    require(len(replacements) == len(records))
+    require(len(replacements) == len(records) * (2 if effective is not None else 1))
     for index, mapped in replacements:
         lines[index] = mapped
-    return ''.join(lines).encode('utf-8')
+    result=''.join(lines).encode('utf-8')
+    require(len(result)<=16384)  # Expansion must remain restorable through the original bound.
+    return result
 
 
 def identity(info):
@@ -106,9 +123,132 @@ def checked_read(fd, cap):
     return value
 
 
+class PinnedArchiveKeyring:
+    """One root-born public copy, never authority derived from input mode777."""
+    @staticmethod
+    def _info(path=None,fd=None):
+        return os.fstat(fd) if fd is not None else path.lstat()
+
+    @staticmethod
+    def _input_path():return KEYRING
+
+    @staticmethod
+    def _parent_path():return Path('/tmp')
+
+    def __init__(self,deadline):
+        require(os.geteuid()==0 and time.monotonic()<deadline-12)
+        self.deadline,self.original_path,self.original_fd=deadline,self._input_path(),None
+        self.directory,self.directory_fd,self.path,self.fd=None,None,None,None
+        self.reference,self.active=uuid.uuid4().hex,False
+        try:
+            require(self.original_path==self.original_path.resolve())
+            self.original_fd=os.open(self.original_path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
+            info=self._info(fd=self.original_fd)
+            require(stat.S_ISREG(info.st_mode) and info.st_uid==0 and info.st_nlink==1 and info.st_size==KEYRING_BYTES)
+            self.original_identity=identity(info)
+            raw=checked_read(self.original_fd,KEYRING_BYTES)
+            require(len(raw)==KEYRING_BYTES and hashlib.sha256(raw).hexdigest()==KEYRING_SHA)
+            self.original_metadata=self._metadata(info,KEYRING_SHA)
+            self._original_unchanged()
+            self.directory=Path(tempfile.mkdtemp(prefix='structure-ci-archive-keyring-',dir=self._parent_path()))
+            self.directory_fd=os.open(self.directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+            os.fchmod(self.directory_fd,0o755)
+            self.directory_identity=identity(self._info(fd=self.directory_fd))[:-1]
+            self.path=self.directory/'ubuntu-archive-keyring.gpg'
+            self.fd=os.open(self.path.name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=self.directory_fd)
+            self.effective_identity=identity(self._info(fd=self.fd))
+            SourceLease._write(self.fd,raw)
+            require(hashlib.sha256(checked_read(self.fd,KEYRING_BYTES)).hexdigest()==KEYRING_SHA)
+            os.fchmod(self.fd,0o644);os.fsync(self.fd);os.fsync(self.directory_fd)
+            self.effective_identity=identity(self._info(fd=self.fd))
+            write_fd=self.fd;self.fd=None;os.close(write_fd)
+            self.fd=os.open(self.path.name,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=self.directory_fd)
+            self.active=True
+            self.require()
+        except BaseException:
+            # Before any SourceLease exists, retire only our own named objects.
+            try:self._retire_created()
+            except BaseException:raise CleanupUnknown(recovery=self.directory.name if self.directory else None) from None
+            finally:self.close_handles()
+            raise
+
+    @staticmethod
+    def _metadata(info,digest):
+        return {'dev':info.st_dev,'ino':info.st_ino,'uid':info.st_uid,'gid':info.st_gid,
+                'mode':stat.S_IMODE(info.st_mode),'nlink':info.st_nlink,'size':info.st_size,'sha256':digest}
+
+    def _original_unchanged(self):
+        require(identity(self._info(fd=self.original_fd))==self.original_identity==identity(self._info(path=self.original_path)))
+        raw=checked_read(self.original_fd,KEYRING_BYTES)
+        require(len(raw)==KEYRING_BYTES and hashlib.sha256(raw).hexdigest()==KEYRING_SHA)
+
+    def require(self):
+        require(self.active and os.geteuid()==0 and time.monotonic()<self.deadline)
+        directory=self._info(fd=self.directory_fd);named=self._info(path=self.directory)
+        require(identity(directory)[:-1]==self.directory_identity==identity(named)[:-1]
+                and stat.S_ISDIR(directory.st_mode) and directory.st_uid==directory.st_gid==0 and stat.S_IMODE(directory.st_mode)==0o755)
+        info=self._info(fd=self.fd)
+        require(identity(info)==self.effective_identity==identity(self._info(path=self.path))
+                and stat.S_ISREG(info.st_mode) and info.st_uid==info.st_gid==0
+                and stat.S_IMODE(info.st_mode)==0o644 and info.st_nlink==1 and info.st_size==KEYRING_BYTES)
+        raw=checked_read(self.fd,KEYRING_BYTES)
+        require(len(raw)==KEYRING_BYTES and hashlib.sha256(raw).hexdigest()==KEYRING_SHA)
+        self._original_unchanged()
+
+    def _retire_created(self):
+        if self.path is not None:
+            require(identity(self._info(path=self.path))==self.effective_identity)
+            self.path.unlink()
+        if self.fd is not None:os.close(self.fd);self.fd=None
+        if self.directory_fd is not None:os.close(self.directory_fd);self.directory_fd=None
+        if self.directory is not None:
+            require(identity(self._info(path=self.directory))[:-1]==self.directory_identity)
+            self.directory.rmdir()
+        if self.original_fd is not None:os.close(self.original_fd);self.original_fd=None
+        self.active=False
+
+    def close_handles(self):
+        for name in ('fd','directory_fd','original_fd'):
+            fd=getattr(self,name,None)
+            if fd is not None:os.close(fd);setattr(self,name,None)
+        self.active=False
+
+    def retire(self,source_restored,children_closed,signed_by_bound):
+        require(source_restored is True and children_closed is True and type(signed_by_bound) is bool)
+        self.require()
+        effective=self._metadata(self._info(fd=self.fd),KEYRING_SHA)
+        directory=self._info(fd=self.directory_fd)
+        parent={'dev':directory.st_dev,'ino':directory.st_ino,'uid':directory.st_uid,'gid':directory.st_gid,'mode':stat.S_IMODE(directory.st_mode),'nlink':directory.st_nlink}
+        result={'profile':KEYRING_PROFILE,'reference':self.reference,'input_trust':'untrusted',
+                'original':self.original_metadata,'effective':effective,'directory':parent,
+                'original_unchanged':True,'signed_by_bound':signed_by_bound,'retired':True}
+        path,directory_path=self.path,self.directory
+        self._retire_created()
+        require(not os.path.lexists(path) and not os.path.lexists(directory_path) and time.monotonic()<self.deadline)
+        return result
+
+
+def keyring_receipt_ok(value,bound=True):
+    keys={'profile','reference','input_trust','original','effective','directory','original_unchanged','signed_by_bound','retired'}
+    meta={'dev','ino','uid','gid','mode','nlink','size','sha256'}
+    if type(value) is not dict or set(value)!=keys or value['profile']!=KEYRING_PROFILE or value['input_trust']!='untrusted':return False
+    if type(value['reference']) is not str or len(value['reference'])!=32 or any(c not in '0123456789abcdef' for c in value['reference']):return False
+    if value['original_unchanged'] is not True or value['retired'] is not True or type(value['signed_by_bound']) is not bool or bound and value['signed_by_bound'] is not True:return False
+    for name in ('original','effective'):
+        row=value[name]
+        if type(row) is not dict or set(row)!=meta or any(type(row[k]) is not int or not 0<=row[k]<=2**64-1 for k in meta-{'sha256'}):return False
+        if row['uid']!=0 or row['nlink']!=1 or row['size']!=KEYRING_BYTES or row['sha256']!=KEYRING_SHA:return False
+    if value['effective']['gid']!=0 or value['effective']['mode']!=0o644:return False
+    row=value['directory']
+    return (type(row) is dict and set(row)=={'dev','ino','uid','gid','mode','nlink'}
+            and all(type(v) is int and 0<=v<=2**64-1 for v in row.values())
+            and row['uid']==row['gid']==0 and row['mode']==0o755 and row['nlink']>=2)
+
+
 class SourceLease:
-    def __init__(self, path, backup, expected_uid=0):
+    def __init__(self, path, backup, expected_uid=0, effective=None):
         self.path, self.fd, self.changed = path, None, False
+        self.effective,self.signed_by_bound=effective,False
         try:
             require(path.is_absolute() and path == path.resolve())
             self.fd = os.open(path, os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC)
@@ -117,7 +257,7 @@ class SourceLease:
             require(stat.S_ISREG(info.st_mode) and info.st_uid == expected_uid and stat.S_IMODE(info.st_mode) == 0o644 and info.st_nlink == 1)
             self.original_identity = identity(info)
             self.original = checked_read(self.fd, 16384)
-            self.mapped = mirror_source(self.original)
+            self.mapped = mirror_source(self.original,effective)
             require(identity(path.lstat()) == self.original_identity)
             fd = os.open(backup, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
             try:
@@ -138,28 +278,30 @@ class SourceLease:
         os.ftruncate(fd, len(data))
         os.fsync(fd)
 
-    def _verify(self, value):
+    def _verify(self, value,check_effective=True):
         require(identity(os.fstat(self.fd)) == self.original_identity)
         require(identity(self.path.lstat()) == self.original_identity)
         require(checked_read(self.fd, 16384) == value)
+        if check_effective and self.effective is not None:self.effective.require()
 
     def apply(self):
         self._verify(self.original)
         self.changed = True  # Also recover a partial write, rather than claiming no change.
         self._write(self.fd, self.mapped)
         self._verify(self.mapped)
+        self.signed_by_bound=self.effective is not None
 
     def restore(self):
         try:
             if not self.changed:
-                self._verify(self.original)
+                self._verify(self.original,False)
                 return
             require(identity(os.fstat(self.fd)) == self.original_identity)
             require(identity(self.path.lstat()) == self.original_identity)
             # Do not overwrite a concurrent writer or an ambiguous partial write.
             require(checked_read(self.fd, 16384) in (self.original, self.mapped))
             self._write(self.fd, self.original)
-            self._verify(self.original)
+            self._verify(self.original,False)
             self.changed = False
         except BaseException:
             raise CleanupUnknown('ci_chromium_cleanup_unknown') from None
@@ -302,29 +444,28 @@ def root_worker(request):
         signal.pidfd_send_signal(probe, 0)
     finally:
         os.close(probe)
-    require(KEYRING == KEYRING.resolve())
-    keyfd = os.open(KEYRING, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    trust = PinnedArchiveKeyring(deadline)
+    recovery = None
     try:
-        keyinfo = os.fstat(keyfd)
-        require(stat.S_ISREG(keyinfo.st_mode) and keyinfo.st_uid == 0 and keyinfo.st_nlink == 1 and stat.S_IMODE(keyinfo.st_mode) == 0o644)
-        key_identity = identity(keyinfo)
-        key_digest = hashlib.sha256(checked_read(keyfd, 1024 * 1024)).digest()
         recovery = Path(tempfile.mkdtemp(prefix='structure-ci-chromium-', dir='/tmp'))
-        lease, result = None, None
+        lease, result, retirement_verified = None, None, False
         stopped = [False]
         for number in (signal.SIGTERM, signal.SIGINT):
             signal.signal(number, lambda *_: stopped.__setitem__(0, True))
         try:
             try:
-                lease = SourceLease(SOURCE, recovery / 'ubuntu.sources.backup')
+                trust.require()
+                lease = SourceLease(SOURCE, recovery / 'ubuntu.sources.backup',effective=trust)
                 result = install_with_lease(lease, request, account, deadline, stopped)
+                lease._verify(lease.original,False)
+                result['keyring']=trust.retire(result['source_restored'],result['children_closed'],lease.signed_by_bound)
+                require(keyring_receipt_ok(result['keyring'],bound=result['status']=='ready'))
+                retirement_verified = True
             finally:
                 if lease is not None:
                     lease.close()
-                require(identity(os.fstat(keyfd)) == key_identity and identity(KEYRING.lstat()) == key_identity)
-                require(hashlib.sha256(checked_read(keyfd, 1024 * 1024)).digest() == key_digest)
                 require(time.monotonic() < deadline)
-                if result is not None and result['children_closed'] and result['source_restored']:
+                if retirement_verified and result is not None and result['children_closed'] and result['source_restored']:
                     backup = recovery / 'ubuntu.sources.backup'
                     if backup.exists():
                         backup.unlink()
@@ -335,7 +476,9 @@ def root_worker(request):
         require(time.monotonic() < deadline)
         return result
     finally:
-        os.close(keyfd)
+        # On uncertainty keep the named public copy/recovery material; closing
+        # controller handles is not a claim that any child has retired.
+        trust.close_handles()
 
 
 def host_guard():
@@ -377,9 +520,10 @@ def prepare():
         output = process.stdout.read(8193)
         require(len(output) <= 8192 and time.monotonic() < deadline)
         result = json.loads(output)
-        require(type(result) is dict and set(result) == {'status', 'children_closed', 'source_restored'})
+        require(type(result) is dict and set(result) == {'status', 'children_closed', 'source_restored','keyring'})
         require((code, result['status']) in ((0, 'ready'), (1, 'failed')))
         require(result['children_closed'] is True and result['source_restored'] is True)
+        require(keyring_receipt_ok(result['keyring'],bound=result['status']=='ready'))
         require(identity(temporary.lstat()) == temporary_identity and temporary == temporary.resolve())
         require(shutil.rmtree.avoids_symlink_attacks and time.monotonic() < deadline)
         shutil.rmtree(temporary)
