@@ -4,10 +4,11 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <title>研究记录 · Structure</title>
-  <link rel="stylesheet" href="/assets/research.css?v=20261023-fin2-registry1">
+  <link rel="stylesheet" href="/assets/research.css?v=20261023-fin3-scenario1">
   <script src="/assets/evidenceMethodPlan.js?v=20261023-evidence1" defer></script>
   <script src="/assets/financial-registry.js?v=20261023-fin2-registry1" defer></script>
-  <script src="/assets/research.js?v=20261023-fin2-registry1" defer></script>
+  <script src="/assets/financial-scenario.js?v=20261023-fin3-scenario1" defer></script>
+  <script src="/assets/research.js?v=20261023-fin3-scenario1" defer></script>
 </head>
 <body>
   <header><a href="/" class="brand">Structure<span>结构研究</span></a><nav aria-label="研究导航"><a href="#my-research">我的研究</a><a href="/auth/login">账户</a></nav></header>
@@ -179,6 +180,20 @@
       <p id="financial-registry-selection" class="hint" aria-live="polite">尚未选择已保存材料。</p>
       <div class="actions"><button id="financial-registry-choose" type="button" class="secondary" disabled>选择这份材料</button><button id="financial-registry-reopen" type="button" class="secondary" disabled>重新读取原记录</button></div>
       <div id="financial-registry-detail"></div>
+    </section>
+    <section id="financial-scenario-section" hidden aria-labelledby="financial-scenario-title">
+      <h2 id="financial-scenario-title">条件情景：计算并保存</h2>
+      <p class="scope">先选择已保存财务材料，再明确采用。数值默认空；条件计算免费在本地完成，不调用模型，不代表原件已核验或预测成立。</p>
+      <div class="actions"><button id="financial-scenario-adopt" type="button">采用／刷新当前已选材料（保留参数稿）</button><button id="financial-scenario-history" type="button" class="secondary">读取条件结果历史</button><button id="financial-scenario-recovery-material" type="button" class="secondary" hidden>读取原操作材料供核对</button></div>
+      <p id="financial-scenario-status" role="status" aria-live="polite"></p>
+      <div id="financial-scenario-pending"></div>
+      <div id="financial-scenario-form"></div>
+      <label class="check"><input id="financial-scenario-consent" type="checkbox" disabled> 我已核对材料、条件、缺口与来源声明；本次仅计算并保存条件结果，不代表原件核验或真实目标验收。</label>
+      <button id="financial-scenario-calculate" type="button" disabled>免费本地计算并保存条件结果</button>
+      <div id="financial-scenario-record"></div>
+      <div id="financial-scenario-tabs" class="actions" role="group" aria-label="原结果视图"><button type="button" class="secondary" data-view="summary" disabled>概览</button><button type="button" class="secondary" data-view="table" disabled>年度底表</button><button type="button" class="secondary" data-view="chart" disabled>条件曲线与敏感性</button></div>
+      <div id="financial-scenario-result"></div>
+      <div id="financial-scenario-history-items"></div><button id="financial-scenario-more" type="button" class="secondary" hidden>加载更多条件结果</button>
     </section>
     <section id="method-draft-section" hidden aria-labelledby="method-draft-title">
       <div class="section-heading"><h2 id="method-draft-title">整理一份方法验证草稿</h2><span class="native-plan-tag">人工整理 · 未执行</span></div>

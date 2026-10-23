@@ -34,6 +34,7 @@
   let accountScope = null;
   let evidenceUI = null;
   let registryUI = null;
+  let scenarioUI = null;
   let methodGeneration = 0;
   let methodSeen = false;
   let methodDirty = false;
@@ -1327,6 +1328,7 @@
   }
   function clearPrivateView(cause = 'inflight_navigation') {
     registryUI?.reset(cause);
+    scenarioUI?.reset(cause);
     evidenceUI?.reset();
     financialReset();
     draftReset();
@@ -1373,6 +1375,7 @@
     sourceRecordScope = null;
     sourceRecordGeneration++;
     registryUI?.observe();
+    scenarioUI?.observe();
   }
   async function request(url, options = {}, isCurrent = () => true) {
     const privateScope = privateGeneration;
@@ -1511,6 +1514,7 @@
     evidenceUI?.observe();
     financialObserve();
     registryUI?.observe();
+    scenarioUI?.observe();
     planObserve(data,context.nativePlanRead!==false);
     byId('view-context').hidden = !readOnlyView();
     byId('view-context').textContent = data.is_historical ? '历史流程，只读查看原问题与原记录；不代表当前修订的研究结果。' : selectedTask ? '固定任务只读查看。这是当前任务，不是历史结果；返回当前问题后才能编辑。' : '';
@@ -1635,7 +1639,7 @@
       const planWasCurrent=isCurrent();
       if (isCurrent()) { invalidateMethod('账户状态暂时无法核对，已收起旧方法记录；草稿仍保留。'); formulaAuthUncertain(); clearTaskHistory('账户状态暂时无法核对，流程列表已收起；请稍后主动读取。'); }
       if (isCurrent()) status('账户状态暂时无法核对；草稿与待核对操作已保留，本次后续请求已停止。请稍后主动重试。', true);
-      if(planWasCurrent){registryUI?.invalidate('auth_unknown','账户状态尚待核对，已隐藏私有材料；原操作保留。');evidenceUI?.invalidate('账户状态尚待核对，已隐藏方法综合与引用正文；原确认操作保留。',true);financialInvalidate('账户状态尚待核对，旧财务预览已收起；CSV 仍暂存在本页。');planInvalidate('账户状态尚待核对，计划正文已收起；草稿与原操作保留。');byId('native-plan-history').replaceChildren();draftHideMaterials('账户状态尚待核对，已隐藏引用原文；手写内容与原操作保留。');}
+      if(planWasCurrent){scenarioUI?.invalidate('auth_unknown','账户状态待核对，私有计算结果已收起；原操作保留。');registryUI?.invalidate('auth_unknown','账户状态尚待核对，已隐藏私有材料；原操作保留。');evidenceUI?.invalidate('账户状态尚待核对，已隐藏方法综合与引用正文；原确认操作保留。',true);financialInvalidate('账户状态尚待核对，旧财务预览已收起；CSV 仍暂存在本页。');planInvalidate('账户状态尚待核对，计划正文已收起；草稿与原操作保留。');byId('native-plan-history').replaceChildren();draftHideMaterials('账户状态尚待核对，已隐藏引用原文；手写内容与原操作保留。');}
       return false;
     };
     try {
@@ -1660,6 +1664,7 @@
       }
       accountScope = identity;
       if (registryUI && !await registryUI.activateVerifiedAccount(identity, isCurrent)) return false;
+      if (scenarioUI && !await scenarioUI.activateVerifiedAccount(identity, isCurrent)) return false;
       return isCurrent();
     } catch (error) {
       return unavailable();
@@ -2063,7 +2068,7 @@
     finally { setBusy(false); }
   });
   // Clear existing private DOM on restored bfcache pages before revalidating.
-  window.addEventListener('pagehide', () => registryUI?.invalidate('page_suspended','页面已暂离，请重新核对账户后主动读取。'));
+  window.addEventListener('pagehide', () => { registryUI?.invalidate('page_suspended','页面已暂离，请重新核对账户后主动读取。'); scenarioUI?.invalidate('page_suspended','页面已暂离，结果已收起；原操作保留。'); });
   window.addEventListener('pageshow', event => {
     if (event.persisted) { clearPrivateView('bfcache_restore'); load().catch(error => status(error.message, true)); }
   });
@@ -2078,16 +2083,24 @@
   if (window.FinancialRegistry) registryUI = window.FinancialRegistry.mount({document,
     getScope:()=>({account:accountScope,privateGeneration,rid:researchId,revision:editBase?.revision,digest:editBase?.digest,
       version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden}),
-    authenticate:authenticated,fetchRoot:request,onObservedRoot:data=>{
-      const before=observed?.researchVersion||0;
-      observeServer(data);
-      if(observed.researchVersion>before){
-        financialInvalidate('研究版本已变化，旧预览已失效；CSV 仍暂存在本页。',false);
-        financialState.basis=financialBasis();
-        evidenceUI?.observe();
-        if(planState.preview&&planState.preview.expected_research_version!==observed.researchVersion)planInvalidate('研究版本已变化，请重新核对外发预览。');
-        editNotice();
-      }
-    }});
+    authenticate:authenticated,fetchRoot:request,onObservedRoot:data=>observeFinancialRoot(data,'registry')});
+  if (window.FinancialScenario) scenarioUI = window.FinancialScenario.mount({document,
+    getScope:()=>({account:accountScope,privateGeneration,rid:researchId,revision:editBase?.revision,digest:editBase?.digest,
+      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden}),
+    getSelectedRegistry:()=>registryUI?.getSelectedRegistry()||null,
+    authenticate:authenticated,fetchRoot:request,onObservedRoot:data=>observeFinancialRoot(data,'scenario')});
+  for(const id of ['financial-registry-choose','financial-registry-history','financial-registry-reopen','financial-preview-csv'])
+    byId(id).addEventListener(id==='financial-preview-csv'?'input':'click',()=>queueMicrotask(()=>scenarioUI?.observeRegistrySelection()));
+  function observeFinancialRoot(data,origin){
+    const before=observed?.researchVersion||0;observeServer(data);
+    if(observed.researchVersion>before){
+      financialInvalidate('研究版本已变化，旧预览已失效；CSV 仍暂存在本页。',false);
+      financialState.basis=financialBasis();evidenceUI?.observe();
+      if(planState.preview&&planState.preview.expected_research_version!==observed.researchVersion)planInvalidate('研究版本已变化，请重新核对外发预览。');
+      if(origin!=='registry')registryUI?.observe();
+      if(origin!=='scenario')scenarioUI?.observe();
+      editNotice();
+    }
+  }
   load().catch(error => status(error.message, true));
 })();

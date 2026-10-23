@@ -125,6 +125,20 @@ textarea:disabled, select:disabled { opacity:1; color:var(--ink); background:#e9
 .financial-registry-row { padding:14px 0; border-bottom:1px solid var(--line); }
 #financial-registry-section :focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 @media(max-width:480px) { #financial-registry-section .actions { align-items:stretch; } #financial-registry-section button { max-width:100%; white-space:normal; } }
+#financial-scenario-section { border-top:1px solid var(--line); margin-top:32px; padding-top:24px; min-width:0; overflow-wrap:anywhere; }
+#financial-scenario-section p, #financial-scenario-section blockquote { white-space:pre-wrap; overflow-wrap:anywhere; }
+#financial-scenario-section input:not([type=checkbox]), #financial-scenario-section select { width:100%; min-height:44px; border:1px solid #9ba99e; padding:10px; background:#fffef9; font:inherit; }
+#financial-scenario-section label { margin:14px 0 7px; }
+#financial-scenario-section fieldset { min-width:0; margin:16px 0; border:1px solid var(--line); padding:12px; }
+#financial-scenario-section legend { font-size:14px; font-weight:600; padding:0 6px; }
+#financial-scenario-section .scenario-card { margin:20px 0; }
+.scenario-table-wrap { max-width:100%; overflow:auto; }
+#financial-scenario-section table { border-collapse:collapse; font-size:13px; }
+#financial-scenario-section th, #financial-scenario-section td { padding:8px; border:1px solid var(--line); vertical-align:top; }
+#financial-scenario-section .scenario-cell { padding:6px; min-height:44px; background:transparent; color:var(--accent); font-size:13px; }
+#financial-scenario-section svg { display:block; width:100%; max-width:600px; height:auto; color:var(--accent); }
+#financial-scenario-section :focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+@media(max-width:480px) { #financial-scenario-section button { max-width:100%; white-space:normal; } }
 
 #evidence-method-section { border-top:1px solid var(--line); margin-top:36px; padding-top:24px; min-width:0; overflow-wrap:anywhere; }
 .evidence-step { border-top:1px solid var(--line); margin-top:26px; padding-top:12px; }
