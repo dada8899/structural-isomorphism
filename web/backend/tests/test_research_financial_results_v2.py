@@ -246,3 +246,27 @@ def test_actual_main15_corrupt_owned_result_fails_read_and_history_without_repai
                     denied=await client.get(f'/api/research/{rid}/financial-results'+suffix)
                     assert denied.status_code==503 and denied.json()['error']['code']=='STORE_UNAVAILABLE',denied.text
     asyncio.run(run())
+
+
+def test_actual_main15_noncanonical_executor_is_rejected_before_invocation(prepared,monkeypatch):
+    main,_,_,messages=prepared
+    async def run():
+        async with main.lifespan(main.app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
+                await login(client,messages);rid=await create(client);body=await setup_financial(client,rid)
+                from research import financial_execution as execution,ResearchStore
+                from api import auth
+                calls=[]
+                def substituted(*args,**kwargs):
+                    calls.append('unapproved executor entered')
+                    raise PermissionError('synthetic substitute must never run')
+                with monkeypatch.context() as fault:
+                    fault.setattr(execution,'execute',substituted)
+                    response=await calculate(client,rid,body,'noncanonical-executor')
+                    assert response.status_code==409,response.text
+                    assert calls==[],'a substituted executor ran before code/globals verification'
+                with ResearchStore(auth._store()).transaction() as conn:
+                    assert conn.execute('SELECT count(*) FROM research_financial_results').fetchone()[0]==0
+                    assert conn.execute('SELECT version FROM research_controls WHERE id=?',(rid,)).fetchone()[0]==2
+                assert execution._CONTEXTS==execution._RETURNS=={}
+    asyncio.run(run())
