@@ -260,9 +260,42 @@ FINANCIAL_REGISTRY_JOB = 'browser-financial-registry-contract'
 FINANCIAL_REGISTRY_NODE = 'web/frontend/tests/test_financialRegistry.js'
 
 
-def original_ci_before_financial_registry(value: dict) -> dict:
-    """Reverse only one complete FIN2 job and its exact Node/release edges."""
+FINANCIAL_SCENARIO_JOB = 'browser-financial-scenario-contract'
+FINANCIAL_SCENARIO_NODE = 'web/frontend/tests/test_financialScenario.js'
+
+
+def original_ci_before_financial_scenario(value: dict) -> dict:
+    """Reverse only the complete FIN3 hard job and exact Node/release edges."""
     original = copy.deepcopy(value)
+    jobs = original['jobs']
+    expected = {'name': 'financial scenario browser contract (local, fail-closed)',
+                'runs-on': 'ubuntu-24.04', 'timeout-minutes': 8,
+                'steps': copy.deepcopy(jobs[FINANCIAL_REGISTRY_JOB]['steps'][:4]) + [
+                    {'name': 'Verify all financial scenario actual Main browser cases',
+                     'run': 'make PY=python test-financial-scenario-browser-contract'}]}
+    assert jobs.pop(FINANCIAL_SCENARIO_JOB) == expected, 'financial scenario hard job missing or softened'
+    rows = jobs['browser-beta-surface-contract']['strategy']['matrix']['include']
+    seen = 0
+    for row in rows:
+        tests = row['node_tests'].split()
+        if FINANCIAL_SCENARIO_NODE in tests:
+            assert row['shard'] == 'library-auth-reports-favorites' and tests.count(FINANCIAL_SCENARIO_NODE) == 1
+            suffix = ' ' + FINANCIAL_SCENARIO_NODE
+            assert row['node_tests'].endswith(suffix), 'FIN3 Node must be the exact library suffix'
+            row['node_tests'] = row['node_tests'][:-len(suffix)]
+            seen += 1
+    assert seen == 1, 'one financial scenario Node consumer required'
+    needs = jobs['release-gate-summary']['needs']
+    assert needs.count(FINANCIAL_SCENARIO_JOB) == 1
+    assert needs.count(FINANCIAL_REGISTRY_JOB) == 1
+    assert needs.index(FINANCIAL_SCENARIO_JOB) == needs.index(FINANCIAL_REGISTRY_JOB) + 1
+    needs.remove(FINANCIAL_SCENARIO_JOB)
+    return original
+
+
+def original_ci_before_financial_registry(value: dict) -> dict:
+    """Reverse FIN3 first, then only the complete FIN2 job and its edges."""
+    original = original_ci_before_financial_scenario(value)
     jobs = original['jobs']
     product = jobs['browser-product-contract']
     expected = {'name': 'financial registry browser contract (local, fail-closed)',
@@ -1220,4 +1253,41 @@ def test_financial_registry_hard_gate_rejects_drift(mutation):
         rows[0]['node_tests'] += ' ' + FINANCIAL_REGISTRY_NODE
         rows[2]['node_tests'] = rows[2]['node_tests'].replace(' ' + FINANCIAL_REGISTRY_NODE,'')
     with pytest.raises((AssertionError,KeyError)):
+        assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('mutation', [
+    'job_missing', 'job_soft', 'job_if', 'step_missing', 'step_duplicate',
+    'step_soft', 'step_if', 'runner', 'timeout', 'shell', 'partial_module',
+    'sdk', 'runtime', 'need_missing', 'need_duplicate', 'need_order',
+    'node_missing', 'node_duplicate', 'node_wrong_shard', 'node_shell',
+])
+def test_financial_scenario_hard_gate_rejects_drift(mutation):
+    value = workflow('ci.yml')
+    jobs = value['jobs']; job = jobs[FINANCIAL_SCENARIO_JOB]
+    rows = jobs['browser-beta-surface-contract']['strategy']['matrix']['include']
+    needs = jobs['release-gate-summary']['needs']
+    if mutation == 'job_missing': jobs.pop(FINANCIAL_SCENARIO_JOB)
+    elif mutation == 'job_soft': job['continue-on-error'] = True
+    elif mutation == 'job_if': job['if'] = 'false'
+    elif mutation == 'step_missing': job['steps'].pop()
+    elif mutation == 'step_duplicate': job['steps'].append(copy.deepcopy(job['steps'][-1]))
+    elif mutation == 'step_soft': job['steps'][-1]['continue-on-error'] = True
+    elif mutation == 'step_if': job['steps'][-1]['if'] = 'false'
+    elif mutation == 'runner': job['runs-on'] = 'ubuntu-latest'
+    elif mutation == 'timeout': job['timeout-minutes'] = 9
+    elif mutation == 'shell': job['steps'][-1]['run'] += ' || true'
+    elif mutation == 'partial_module': job['steps'][-1]['run'] += ' PYTEST_ADDOPTS="-k smoke"'
+    elif mutation == 'sdk': job['steps'][2]['run'] = job['steps'][2]['run'].replace('playwright==1.59.0', 'playwright==1.58.0')
+    elif mutation == 'runtime': job['steps'][3]['run'] = job['steps'][3]['run'].replace('import main', 'import types as main')
+    elif mutation == 'need_missing': needs.remove(FINANCIAL_SCENARIO_JOB)
+    elif mutation == 'need_duplicate': needs.append(FINANCIAL_SCENARIO_JOB)
+    elif mutation == 'need_order': needs.remove(FINANCIAL_SCENARIO_JOB); needs.insert(0, FINANCIAL_SCENARIO_JOB)
+    elif mutation == 'node_missing': rows[2]['node_tests'] = rows[2]['node_tests'].replace(' ' + FINANCIAL_SCENARIO_NODE, '')
+    elif mutation == 'node_duplicate': rows[2]['node_tests'] += ' ' + FINANCIAL_SCENARIO_NODE
+    elif mutation == 'node_wrong_shard':
+        rows[2]['node_tests'] = rows[2]['node_tests'].replace(' ' + FINANCIAL_SCENARIO_NODE, '')
+        rows[0]['node_tests'] += ' ' + FINANCIAL_SCENARIO_NODE
+    else: rows[2]['node_tests'] += '; true'
+    with pytest.raises((AssertionError, KeyError)):
         assert_existing_jobs_unchanged(value)
