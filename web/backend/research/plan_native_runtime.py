@@ -1,5 +1,5 @@
 """Financial9 single native plan. No external activation is installed."""
-import json,os,time,threading
+import json,os,time,threading,sys
 from dataclasses import dataclass,field
 from pathlib import Path
 from uuid import uuid4
@@ -340,6 +340,116 @@ def _require_live_slot(store,resource,task_id,consent,slot_scope):
     require_slot(slot_scope,store,resource.permit.provision.authority.live_session,task_id=task_id,purpose=purpose,mode='execute')
 
 
+_CLEANUP_ATTEMPTS={};_CLEANUP_PROOFS={};_CLEANUP_FACTORY=object()
+
+
+def _run_cleanup_frame():
+    frame=sys._getframe(2)
+    if frame.f_globals is not globals() or frame.f_code is not _RUN_ONCE_CODE or run_once.__code__ is not _RUN_ONCE_CODE:raise PermissionError('original native attempt frame required')
+    return frame
+
+
+class _NativeCleanupAttempt(ports._Sealed):
+    __slots__=('record','reference','retired')
+    def __init__(self,record,*,_factory=None):
+        frame=sys._getframe(1)
+        if _factory is not _CLEANUP_FACTORY or frame.f_globals is not globals() or frame.f_code is not _CLEANUP_CODES['_begin_native_attempt']:raise PermissionError('native cleanup birth required')
+        self.record,self.reference,self.retired=record,object(),False
+    def __reduce__(self):raise TypeError('native attempt cannot be serialized')
+    def __copy__(self):raise TypeError('native attempt cannot be copied')
+    __deepcopy__=__copy__
+
+
+class NativeAttemptCleanupProof(ports._Sealed):
+    __slots__=('_record','_primary')
+    def __init__(self,record,primary,*,_factory=None):
+        frame=sys._getframe(1)
+        if _factory is not _CLEANUP_FACTORY or frame.f_globals is not globals() or frame.f_code is not _CLEANUP_CODES['_finish_native_attempt']:raise PermissionError('native cleanup completion required')
+        self._record,self._primary=record,primary
+    def __reduce__(self):raise TypeError('native cleanup proof cannot be serialized')
+    def __copy__(self):raise TypeError('native cleanup proof cannot be copied')
+    __deepcopy__=__copy__
+    def __repr__(self):return '<NativeAttemptCleanupProof redacted>'
+
+
+def _check_cleanup_record(record):
+    from . import native_live_grant as live
+    store,session,resource,slot,task,purpose,dispatch,pid,thread,epoch,read_fd,read_identity,write_fd,write_identity,store_identity,permit=record
+    module=ports._runtime_module();c=live._c_module()
+    if (type(resource) is not module.NativePlanResource or resource.mode!='native_live'
+            or type(session) is not live.NativeLiveSession or live._SESSIONS.get(session.reference) is not session
+            or session.store is not store or store.storage_identity!=store_identity or resource.permit is not permit
+            or resource._live_session is not session or resource.permit.provision.authority.live_session is not session
+            or resource.flight is not session.thread_flight or pid!=os.getpid() or thread is not threading.current_thread()
+            or slot.dispatch!=dispatch or slot.epoch!=epoch or slot.stop_fd!=read_fd or slot.stop_fd_identity!=read_identity
+            or slot._write_fd!=write_fd or slot._write_identity!=write_identity):raise PermissionError('original native cleanup pairing required')
+    c.require_slot(slot,store,session,task_id=task,purpose=purpose,mode='cleanup')
+
+
+def _begin_native_attempt(store,resource,slot,task,purpose,dispatch):
+    frame=_run_cleanup_frame()
+    if frame.f_locals.get('resource') is not resource or frame.f_locals.get('slot_scope') is not slot:raise PermissionError('original native locals required')
+    session=resource.permit.provision.authority.live_session
+    record=(store,session,resource,slot,task,purpose,dispatch,os.getpid(),threading.current_thread(),slot.epoch,slot.stop_fd,slot.stop_fd_identity,slot._write_fd,slot._write_identity,store.storage_identity,resource.permit)
+    _check_cleanup_record(record)
+    if slot.reference in _CLEANUP_PROOFS or any(value.record[3] is slot for value in _CLEANUP_ATTEMPTS.values()):raise PermissionError('native attempt already born')
+    attempt=_NativeCleanupAttempt(record,_factory=_CLEANUP_FACTORY);_CLEANUP_ATTEMPTS[attempt.reference]=attempt
+    return attempt
+
+
+def _retire_native_attempt(attempt):
+    if attempt is None:return
+    frame=_run_cleanup_frame()
+    if type(attempt) is not _NativeCleanupAttempt or frame.f_locals.get('attempt') is not attempt or _CLEANUP_ATTEMPTS.get(attempt.reference) is not attempt:raise PermissionError('original native attempt retirement required')
+    _CLEANUP_ATTEMPTS.pop(attempt.reference);object.__setattr__(attempt,'retired',True)
+
+
+def _finish_native_attempt(attempt,primary,acks,secondary):
+    frame=_run_cleanup_frame()
+    if type(attempt) is not _NativeCleanupAttempt or frame.f_locals.get('attempt') is not attempt or frame.f_locals.get('primary') is not primary or not attempt.retired:raise PermissionError('original completed native attempt required')
+    if primary is None or not _cleanup_acknowledged(acks,secondary):return
+    _check_cleanup_record(attempt.record)
+    proof=NativeAttemptCleanupProof(attempt.record,primary,_factory=_CLEANUP_FACTORY)
+    _CLEANUP_PROOFS[attempt.record[3].reference]=proof
+
+
+def _cleanup_acknowledged(acks,secondary):
+    # Pure fact conjunction; this predicate alone can never mint a proof.
+    return type(acks) is tuple and len(acks)==5 and all(value is True for value in acks) and type(secondary) is tuple and not secondary
+
+
+def _cleanup_caller(slot):
+    from .native_live_grant import _c_module
+    c=_c_module();frame=sys._getframe(2)
+    if (frame.f_globals is not vars(c) or frame.f_code is not c._NATIVE_CODES['_worker_main']
+            or c._worker_main.__code__ is not frame.f_code or frame.f_locals.get('slot') is not slot
+            or threading.current_thread() is not slot.thread or os.getpid()!=slot.pid):raise PermissionError('original native worker cleanup caller required')
+    return c
+
+
+def take_native_attempt_cleanup(store,session,slot_scope,*,task_id:str,primary:BaseException)->NativeAttemptCleanupProof|None:
+    c=_cleanup_caller(slot_scope)
+    c.require_slot(slot_scope,store,session,task_id=task_id,purpose=slot_scope.purpose,mode='cleanup')
+    if sys.exception() is not primary:raise PermissionError('same active native primary required')
+    proof=_CLEANUP_PROOFS.get(slot_scope.reference)
+    if proof is None:return None
+    if type(proof) is not NativeAttemptCleanupProof or proof._primary is not primary:raise PermissionError('original native cleanup primary required')
+    record=proof._record
+    if record[0] is not store or record[1] is not session or record[3] is not slot_scope or record[4]!=task_id:raise PermissionError('original native cleanup scope required')
+    _check_cleanup_record(record)
+    _CLEANUP_PROOFS.pop(slot_scope.reference)
+    return proof
+
+
+def _discard_native_attempt_cleanup(slot):
+    # Memory retirement only; it never closes or releases real resources.
+    _cleanup_caller(slot)
+    proof=_CLEANUP_PROOFS.get(slot.reference)
+    if proof is not None and proof._record[3] is slot:_CLEANUP_PROOFS.pop(slot.reference)
+    for reference,attempt in tuple(_CLEANUP_ATTEMPTS.items()):
+        if attempt.record[3] is slot:_CLEANUP_ATTEMPTS.pop(reference)
+
+
 def run_once(store,task_id,*,slot_scope=None):
     gate=AuthorizationGate(store)
     with store.transaction() as conn:
@@ -354,7 +464,9 @@ def run_once(store,task_id,*,slot_scope=None):
     if resource.mode=='native_live':_require_live_slot(store,resource,task_id,consent,slot_scope)
     if not resource.flight.acquire(blocking=False):raise ResearchError('FUNDING_BUSY',409,'同一原生资金资源正在执行。')
     balance=balance_cap=pending=send=owned=None;primary=None;admission=None
+    attempt=None;secondary=();failure_ack=False;objects_ack=io_ack=flight_ack=cleanup_ack=False
     try:
+        if resource.mode=='native_live':attempt=_begin_native_attempt(store,resource,slot_scope,task_id,purpose,dispatch)
         with gate.owner_gate(pid) as lease,store.transaction(write=True) as conn:
             value=row(conn,RUNS,dispatch);consent,task,step,control=_current(conn,store,value)
             funding,actual=_active(conn,store,pid,consent['generation'],purpose=evidence_types.PURPOSE if evidence.is_evidence(value) else 'phenomenon_plan_v1')
@@ -420,24 +532,31 @@ def run_once(store,task_id,*,slot_scope=None):
         _commit_return(store,pid,dispatch,owned,consent,admission)
     except BaseException as error:
         primary=error
-        try:_fail(store,pid,dispatch)
+        try:_fail(store,pid,dispatch);failure_ack=True
         except BaseException:
             # Keep the original failure; durable claim/held remains fail closed.
-            ports.retire_attempts(resource)
+            secondary+=('fail',);secondary+=ports.retire_attempts(resource)
     finally:
-        errors=ports.retire_attempts(send,pending,owned,balance,balance_cap)
-        # The resource may own IO that failed before a balance/pending object
-        # could be handed to Core. This hook never releases funding or flight.
         try:
-            if resource.retire_unhanded() is not None:raise ResearchError('CLEANUP_UNCERTAIN',503,'原生清场回执不符合约定，需核对原记录。')
-        except BaseException as cleanup_error:errors+=(type(cleanup_error).__name__,)
-        if errors:errors+=ports.retire_attempts(resource)
-        errors+=ports.retire_attempts(flight=resource.flight)
-        try:_cleanup(store,pid,dispatch,errors)
-        except BaseException as cleanup_error:
-            ports.retire_attempts(resource)
-            if primary is None:primary=cleanup_error
-        if errors and primary is None:primary=ResearchError('CLEANUP_UNCERTAIN',503,'原生资源退休不完整；保留原结果标识，不会重发。')
+            errors=ports.retire_attempts(send,pending,owned,balance,balance_cap);objects_ack=not errors
+            # The resource may own IO that failed before a balance/pending object
+            # could be handed to Core. This hook never releases funding or flight.
+            try:
+                if resource.retire_unhanded() is not None:raise ResearchError('CLEANUP_UNCERTAIN',503,'原生清场回执不符合约定，需核对原记录。')
+                io_ack=True
+            except BaseException as cleanup_error:errors+=(type(cleanup_error).__name__,)
+            if errors:errors+=ports.retire_attempts(resource)
+            flight_errors=ports.retire_attempts(flight=resource.flight);flight_ack=not flight_errors;errors+=flight_errors
+            try:_cleanup(store,pid,dispatch,errors);cleanup_ack=True
+            except BaseException as cleanup_error:
+                secondary+=('cleanup',);secondary+=ports.retire_attempts(resource)
+                if primary is None:primary=cleanup_error
+            secondary+=errors
+            if errors and primary is None:primary=ResearchError('CLEANUP_UNCERTAIN',503,'原生资源退休不完整；保留原结果标识，不会重发。')
+        finally:_retire_native_attempt(attempt)
+    if attempt is not None and primary is not None:
+        try:_finish_native_attempt(attempt,primary,(objects_ack,io_ack,flight_ack,failure_ack,cleanup_ack),secondary)
+        except BaseException:pass  # No proof; retain the original primary verbatim.
     if primary is not None:raise primary
     with store.transaction() as conn:return envelope(metadata(row(conn,RUNS,dispatch)))
 
@@ -630,3 +749,6 @@ _WRITE_PRODUCERS=(preview,confirm,run_once,_commit_return,_fail,_cleanup,stop_in
 
 _EVIDENCE_TASK_READ_PRODUCERS=(run_once,NativeBalanceLease.consume)
 _EVIDENCE_SEND_READ_PRODUCERS=(NativePlanSendLease.inspect_payload,NativePlanSendLease.consume)
+
+_RUN_ONCE_CODE=run_once.__code__
+_CLEANUP_CODES={name:globals()[name].__code__ for name in ('_begin_native_attempt','_finish_native_attempt')}

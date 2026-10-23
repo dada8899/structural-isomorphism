@@ -295,3 +295,63 @@ def test_stop_event_and_forged_signal_cannot_normalize_an_error():
     forged=c._NativeStopping.__new__(c._NativeStopping)
     assert not c._expected_preclaim_stop(dto,forged)
     with pytest.raises(ResearchError):c._stop_proof(dto,None)
+
+
+def test_attempt_acknowledgements_reject_each_missing_or_secondary_fact():
+    from research import plan_native_runtime as runtime
+    assert runtime._cleanup_acknowledged((True,True,True,True,True),())
+    for index in range(5):
+        values=[True]*5;values[index]=False
+        assert not runtime._cleanup_acknowledged(tuple(values),())
+    for secondary in (('fail',),('cleanup',),('OSError',)):
+        assert not runtime._cleanup_acknowledged((True,)*5,secondary)
+    assert not runtime._cleanup_acknowledged((1,)*5,())
+    assert not runtime._cleanup_acknowledged((True,)*4,())
+    assert runtime._CLEANUP_ATTEMPTS==runtime._CLEANUP_PROOFS=={}
+
+
+def test_cleanup_proof_dto_and_wrong_callers_cannot_mint_or_consume():
+    import copy,pickle
+    from research import plan_native_runtime as runtime
+    for cls,args in ((runtime.NativeAttemptCleanupProof,((),RuntimeError())),(runtime._NativeCleanupAttempt,((),))):
+        with pytest.raises(PermissionError):cls(*args,_factory=runtime._CLEANUP_FACTORY)
+    forged=runtime.NativeAttemptCleanupProof.__new__(runtime.NativeAttemptCleanupProof)
+    for action in (lambda:copy.copy(forged),lambda:pickle.dumps(forged)):
+        with pytest.raises(TypeError):action()
+    for action in (
+        lambda:runtime.take_native_attempt_cleanup(object(),object(),object(),task_id='fake',primary=RuntimeError()),
+        lambda:runtime._discard_native_attempt_cleanup(object()),
+        lambda:runtime._begin_native_attempt(object(),object(),object(),'fake','phenomenon_plan_v1','fake'),
+    ):
+        with pytest.raises((PermissionError,ResearchError)):action()
+    assert runtime._CLEANUP_ATTEMPTS==runtime._CLEANUP_PROOFS=={}
+
+
+def test_published_slot_boundary_keeps_exact_withdrawal_validation():
+    # Source interleaving regression: not an executed live-slot positive.
+    import ast,inspect,textwrap
+    tree=ast.parse(textwrap.dedent(inspect.getsource(c.require_slot)))
+    boundary=next(n for n in ast.walk(tree) if isinstance(n,ast.Try) and any(isinstance(x,ast.Call) and isinstance(x.func,ast.Name) and x.func.id=='_full_context' for x in ast.walk(n)))
+    handler=boundary.handlers[0]
+    assert any(isinstance(n,ast.Attribute) and n.attr=='FormalAdmissionWithdrawn' for n in ast.walk(handler))
+    calls=[n for n in ast.walk(handler) if isinstance(n,ast.Call)]
+    assert any(isinstance(n.func,ast.Attribute) and n.func.attr=='validate_withdrawal' for n in calls)
+    assert any(isinstance(n.func,ast.Name) and n.func.id=='_raise_stopping' for n in calls)
+
+
+def test_controlled_primary_object_survives_secondary_cleanup_error(tmp_path,monkeypatch):
+    # Real existing controlled producer; this is not a live cleanup proof.
+    from .test_research_evidence_method_native import actual,provider,installed,preview,approve
+    from research import plan_native as native,plan_native_runtime as runtime
+    primary=OSError('owned primary');secondary=PermissionError('owned cleanup');visited=[]
+    with actual(tmp_path) as (service,client,store,actor),provider() as (server,calls),installed(store,actor,server):
+        status,response=preview(service,client);assert status==200
+        (status,confirmed),body=approve(service,client,response['data']);assert status==200
+        def fail_balance(resource,cap):raise primary
+        def fail_cleanup(*args):visited.append('cleanup');raise secondary
+        with monkeypatch.context() as patch:
+            patch.setattr(native.ControlledNativeResource,'balance',fail_balance)
+            patch.setattr(runtime,'_cleanup',fail_cleanup)
+            with pytest.raises(OSError) as caught:runtime.run_once(store,confirmed['data']['task_id'])
+        assert caught.value is primary and visited==['cleanup'] and calls==[]
+        assert runtime._CLEANUP_ATTEMPTS==runtime._CLEANUP_PROOFS=={}

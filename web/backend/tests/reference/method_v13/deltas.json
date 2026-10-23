@@ -507,7 +507,7 @@
     "original_sha256": "5204c48b6ed93a3f952a2087b6a36a747686cdf1a49f636b0f4a920befa98873"
   },
   "web/backend/research/plan_native_runtime.py": {
-    "current_sha256": "21ac7a1589455b5f5680d4c60aea0cf0ba5930052627e9276b9b6da75fb37403",
+    "current_sha256": "ce9db3f9af5f4df18a31a9f9c4d7c78f873100a181a8ea3b4b9af4a6cfa43073",
     "hunks": [
       [
         1,
@@ -676,112 +676,142 @@
       ],
       [
         336,
-        343,
+        453,
         "def run_once(store,task_id):\n"
       ],
       [
-        349,
-        351,
+        459,
+        461,
         "    pair=ports.installation(store)\n"
       ],
       [
-        353,
-        354,
-        ""
-      ],
-      [
-        359,
-        360,
-        "            funding,actual=_active(conn,store,pid,consent['generation'])\n"
-      ],
-      [
-        363,
-        366,
-        ""
-      ],
-      [
-        370,
-        371,
-        "        balance_cap=NativeBalanceLease(store,resource,claim,consent,baseline,_factory=_FACTORY)\n"
-      ],
-      [
-        380,
-        393,
-        "            encoded=plan_preview_request(make_plan_manifest({'input_kind':'user_observation_summary','summary':consent['raw_input']}))\n            if encoded.outbound_request_digest!=consent['request_digest'] or encoded.input_manifest_digest!=consent['input_manifest_digest']:raise PermissionError('native approved bytes differ')\n            admission=dict(protocol='financial-admission-v3',financial_version=9,mode=resource.mode,producer=resource.producer,consent_digest=value['consent_digest'],quote=consent['quote'],\n                observed_balance=balance.audit(),ledger_before=dict(account),funding_before=dict(funding),request_digest=consent['request_digest'],producer_digest=consent['producer_digest'])\n"
-      ],
-      [
-        404,
-        408,
-        ""
-      ],
-      [
-        415,
-        416,
-        "            send=NativePlanSendLease(store,resource,lease,dispatch,encoded.raw,account_version,funding_version,_factory=_FACTORY)\n"
-      ],
-      [
-        454,
+        463,
         464,
         ""
       ],
       [
-        465,
-        465,
-        "    resource=ports.installation(store)[1]\n"
+        466,
+        467,
+        ""
       ],
       [
-        473,
-        480,
+        468,
+        469,
+        ""
+      ],
+      [
+        471,
+        472,
+        "            funding,actual=_active(conn,store,pid,consent['generation'])\n"
+      ],
+      [
+        475,
+        478,
         ""
       ],
       [
         482,
         483,
-        "    try:data,usage=_usage(owned)\n"
+        "        balance_cap=NativeBalanceLease(store,resource,claim,consent,baseline,_factory=_FACTORY)\n"
       ],
       [
-        486,
-        487,
-        ""
-      ],
-      [
-        491,
         492,
-        "            proposal=parse_plan_candidate(message['content'])\n"
-      ],
-      [
-        501,
         505,
-        "        if usage is not None:_money(conn,lease,account,-value['upper'],value['upper'],verify)\n"
+        "            encoded=plan_preview_request(make_plan_manifest({'input_kind':'user_observation_summary','summary':consent['raw_input']}))\n            if encoded.outbound_request_digest!=consent['request_digest'] or encoded.input_manifest_digest!=consent['input_manifest_digest']:raise PermissionError('native approved bytes differ')\n            admission=dict(protocol='financial-admission-v3',financial_version=9,mode=resource.mode,producer=resource.producer,consent_digest=value['consent_digest'],quote=consent['quote'],\n                observed_balance=balance.audit(),ledger_before=dict(account),funding_before=dict(funding),request_digest=consent['request_digest'],producer_digest=consent['producer_digest'])\n"
       ],
       [
-        506,
         516,
-        "        if active and proposal is not None and usage is not None:\n"
-      ],
-      [
-        519,
-        524,
-        "        receipt=dict(protocol='owned-native-return-v2',mode=owned.mode,dispatch=dispatch,nonce=consent['nonce'],admission_digest=value['admission_digest'],producer_digest=consent['producer_digest'],runtime_digest=admission['funding_before']['runtime_digest'],response_digest=digest(owned.body),status=owned.status,provider_model_label=None if data is None else data['model'],weight_identity_verified=False)\n        commit=dict(protocol='native-plan-commit-v1',task_id=value['task_id'],result_ref=value['result_ref'],recorded_at=at,consent_digest=value['consent_digest'],admission_digest=value['admission_digest'],\n            result_digest=None if result is None else digest(canonical(result)),receipt_digest=digest(canonical(receipt)),usage_digest=None if usage is None else digest(canonical(usage)),task_before=2,task_after=3,step_before=2,step_after=3)\n"
+        520,
+        ""
       ],
       [
         527,
         528,
+        "            send=NativePlanSendLease(store,resource,lease,dispatch,encoded.raw,account_version,funding_version,_factory=_FACTORY)\n"
+      ],
+      [
+        534,
+        535,
+        "        try:_fail(store,pid,dispatch)\n"
+      ],
+      [
+        537,
+        538,
+        "            ports.retire_attempts(resource)\n"
+      ],
+      [
+        539,
+        539,
+        "        errors=ports.retire_attempts(send,pending,owned,balance,balance_cap)\n        # The resource may own IO that failed before a balance/pending object\n        # could be handed to Core. This hook never releases funding or flight.\n"
+      ],
+      [
+        540,
+        559,
+        "            if resource.retire_unhanded() is not None:raise ResearchError('CLEANUP_UNCERTAIN',503,'原生清场回执不符合约定，需核对原记录。')\n        except BaseException as cleanup_error:errors+=(type(cleanup_error).__name__,)\n        if errors:errors+=ports.retire_attempts(resource)\n        errors+=ports.retire_attempts(flight=resource.flight)\n        try:_cleanup(store,pid,dispatch,errors)\n        except BaseException as cleanup_error:\n            ports.retire_attempts(resource)\n            if primary is None:primary=cleanup_error\n        if errors and primary is None:primary=ResearchError('CLEANUP_UNCERTAIN',503,'原生资源退休不完整；保留原结果标识，不会重发。')\n"
+      ],
+      [
+        573,
+        583,
+        ""
+      ],
+      [
+        584,
+        584,
+        "    resource=ports.installation(store)[1]\n"
+      ],
+      [
+        592,
+        599,
+        ""
+      ],
+      [
+        601,
+        602,
+        "    try:data,usage=_usage(owned)\n"
+      ],
+      [
+        605,
+        606,
+        ""
+      ],
+      [
+        610,
+        611,
+        "            proposal=parse_plan_candidate(message['content'])\n"
+      ],
+      [
+        620,
+        624,
+        "        if usage is not None:_money(conn,lease,account,-value['upper'],value['upper'],verify)\n"
+      ],
+      [
+        625,
+        635,
+        "        if active and proposal is not None and usage is not None:\n"
+      ],
+      [
+        638,
+        643,
+        "        receipt=dict(protocol='owned-native-return-v2',mode=owned.mode,dispatch=dispatch,nonce=consent['nonce'],admission_digest=value['admission_digest'],producer_digest=consent['producer_digest'],runtime_digest=admission['funding_before']['runtime_digest'],response_digest=digest(owned.body),status=owned.status,provider_model_label=None if data is None else data['model'],weight_identity_verified=False)\n        commit=dict(protocol='native-plan-commit-v1',task_id=value['task_id'],result_ref=value['result_ref'],recorded_at=at,consent_digest=value['consent_digest'],admission_digest=value['admission_digest'],\n            result_digest=None if result is None else digest(canonical(result)),receipt_digest=digest(canonical(receipt)),usage_digest=None if usage is None else digest(canonical(usage)),task_before=2,task_after=3,step_before=2,step_after=3)\n"
+      ],
+      [
+        646,
+        647,
         "        if active:\n"
       ],
       [
-        571,
-        589,
+        690,
+        708,
         "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT r.* FROM '+RUNS+' r JOIN research_tasks t ON t.id=r.task_id WHERE r.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        result=None\n        if value['result_json']:\n            result=NativePlanResult.model_validate(json.loads(value['result_json'])).model_dump(mode='json')\n            consent=json.loads(value['consent_json']);admission=json.loads(value['admission_json']);commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone();step=conn.execute('SELECT * FROM research_steps WHERE id=?',(consent['step_id'],)).fetchone()\n            saved=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,consent['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='native-plan-v1' or task['version']!=3 or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED' or step['version']!=3\n                or digest(canonical(consent))!=value['consent_digest'] or digest(canonical(admission))!=value['admission_digest'] or not saved or saved[0]!=consent['input_digest']\n                or result['result_ref']!=value['result_ref'] or result['task_id']!=task['id'] or result['research_id']!=rid or result['input_digest']!=task['input_digest'] or result['recorded_at']!=commit['recorded_at']\n                or commit['result_digest']!=digest(canonical(result)) or commit['receipt_digest']!=digest(canonical(receipt)) or receipt['admission_digest']!=value['admission_digest']):raise ResearchError('RESULT_UNAVAILABLE',503,'原生计划记录当前无法完整核对；不会重新外发。')\n        return envelope({**metadata(value),'content':result})\n"
       ],
       [
-        597,
-        598,
+        716,
+        717,
         "    return [metadata(value) for value in conn.execute(query+' ORDER BY t.start_version DESC,t.id DESC LIMIT 20',args)]\n"
       ],
       [
-        629,
-        632,
+        748,
+        754,
         ""
       ]
     ],

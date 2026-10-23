@@ -27,6 +27,7 @@ _SUPERVISORS=vars(sqlite3).setdefault('_structural_native_supervisors_v1',{})
 _WORKERS={};_SLOTS={};_LIFECYCLES={};_THREADS={}
 _CONTEXT_BIRTHS={};_SLOT_BIRTHS={};_LIFECYCLE_BIRTHS={}
 _STOP_BIRTHS={};_STOP_SIGNALS={}
+_COMPLETED_CLEANUPS={}
 _THREAD_ALIVE=threading.Thread.is_alive
 _THREAD_JOIN=threading.Thread.join
 
@@ -87,7 +88,7 @@ class MainStartupScope(_Sealed):
         self._main,self._main_code=main,main.lifespan.__wrapped__.__code__
         self._withdraw,self._withdraw_code=admission.withdraw,admission.withdraw.__code__
         self._images={Path(module.__file__):_code_digest(module.__file__) for module in
-            (sys.modules[__name__],_LIVE_MODULE,importlib.import_module(__package__+'.authorization'),importlib.import_module(__package__+'.store'),
+            (sys.modules[__name__],_LIVE_MODULE,importlib.import_module(__package__+'.plan_native_runtime'),importlib.import_module(__package__+'.authorization'),importlib.import_module(__package__+'.store'),
              _module(_family()+'.auth_store',Path('services/auth_store.py')),_module(_family()+'.auth_registration',Path('services/auth_registration.py')),
              _module(_family()+'.sqlite_utils',Path('services/sqlite_utils.py')))}
         self.budget=None
@@ -310,7 +311,15 @@ def require_slot(scope,store,session,*,task_id,purpose,mode)->None:
         if sup._stop.is_set() or sup._state!='READY' or session.state!='executable':
             _raise_stopping(sup,scope)
             raise _closed()
-        _full_context(sup.context,published=True)
+        try:_full_context(sup.context,published=True)
+        except BaseException as error:
+            # Main may withdraw after the preceding execute-state check.
+            # The canonical withdrawal seal and actual stop birth are both
+            # necessary; intrinsic corruption is never a normal stop.
+            admission=_admission()
+            if type(error) is not admission.FormalAdmissionWithdrawn:raise
+            admission.validate_withdrawal(error,sup.binding)
+            _raise_stopping(sup,scope)
 
 
 def require_worker_retired(worker,store,session,*,lifecycle_scope)->None:
@@ -398,6 +407,87 @@ def _expected_preclaim_stop(sup,error):
     # A nested intrinsic failure has another final frame and cannot pass this.
     if sup.session.state!='cleanup_only':return False
     _stop_proof(sup,sup._slot if seen_runtime else None);return True
+
+
+def _stop_raise_sites(raw,filename,kind):
+    """Pure exact-source coordinates, not a stop or cleanup capability."""
+    tree=_ast.parse(raw)
+    if kind=='channel':
+        body=next(n for n in tree.body if isinstance(n,_ast.ClassDef) and n.name=='_Channel')
+        function=next(n for n in body.body if isinstance(n,_ast.FunctionDef) and n.name=='wait')
+        expected=('select.select([stop], [], [], 0)[0]','stop is not None and stop in r')
+        outer=next(v for v in compile(raw,filename,'exec').co_consts if type(v) is types.CodeType and v.co_name=='_Channel')
+        code=next(v for v in outer.co_consts if type(v) is types.CodeType and v.co_name=='wait')
+    elif kind=='dns':
+        function=next(n for n in tree.body if isinstance(n,_ast.FunctionDef) and n.name=='_wait')
+        expected=('stop_fd in ready',)
+        code=next(v for v in compile(raw,filename,'exec').co_consts if type(v) is types.CodeType and v.co_name=='_wait')
+    else:raise ValueError('fixed native stop source required')
+    sites=[]
+    for expression in expected:
+        test=_ast.dump(_ast.parse(expression,mode='eval').body)
+        matches=[n for n in _ast.walk(function) if isinstance(n,_ast.If) and _ast.dump(n.test)==test]
+        if len(matches)!=1 or len(matches[0].body)!=1:raise ValueError('fixed native stop branch required')
+        node=matches[0].body[0]
+        if not isinstance(node,_ast.Raise) or not isinstance(node.exc,_ast.Call) or not isinstance(node.exc.func,_ast.Name) or node.exc.func.id!='InterruptedError':raise ValueError('fixed native stop raise required')
+        sites.append(node.lineno)
+    return code,tuple(sites)
+
+
+def _io_stop_snapshot(sup,error,slot,proof):
+    if type(error) is not InterruptedError:return None
+    trace=error.__traceback__
+    if trace is None:return None
+    while trace.tb_next is not None:trace=trace.tb_next
+    resource=proof._record[2]
+    for name,relative,kind in (('plan_runtime_transport','services/plan_runtime_transport.py','channel'),('native_dns_process','services/native_dns_process.py','dns')):
+        module=sys.modules.get(_family()+'.'+name)
+        if module is None:continue
+        path=Path(__file__).resolve().parents[1]/relative
+        if Path(module.__file__)!=path or path.is_symlink():raise _closed()
+        raw=path.read_bytes()
+        if len(raw)>262144:raise _closed()
+        code,sites=_stop_raise_sites(raw,str(path),kind)
+        actual=module._Channel.wait if kind=='channel' else module._wait
+        if actual.__code__!=code or trace.tb_frame.f_globals is not vars(module) or trace.tb_frame.f_code is not actual.__code__ or trace.tb_lineno not in sites:continue
+        values=trace.tb_frame.f_locals;fd=values.get('stop' if kind=='channel' else 'stop_fd')
+        if type(fd) is not int or fd!=slot.stop_fd or _pipe_identity(fd)!=slot.stop_fd_identity:raise _closed()
+        if kind=='channel':
+            channel=values.get('self')
+            if type(channel) is not module._Channel or channel.owner is not resource or channel.slot_scope is not slot or channel.pid!=os.getpid():raise _closed()
+            if trace.tb_lineno==sites[1] and fd not in values.get('r',()):raise _closed()
+        else:
+            if fd not in values.get('ready',()):raise _closed()
+            compiled=compile(raw,str(path),'exec')
+            resolve_code=next(v for v in compiled.co_consts if type(v) is types.CodeType and v.co_name=='resolve_native_host')
+            if module.resolve_native_host.__code__!=resolve_code:raise _closed()
+            chain=error.__traceback__;matched=False
+            while chain is not None:
+                if (chain.tb_frame.f_code is module.resolve_native_host.__code__ and chain.tb_frame.f_globals is vars(module)
+                        and chain.tb_frame.f_locals.get('resource') is resource and chain.tb_frame.f_locals.get('scope') is slot):matched=True
+                chain=chain.tb_next
+            if not matched:raise _closed()
+        import select
+        if not select.select([fd],[],[],0)[0]:raise _closed()
+        intent=_stop_proof(sup,slot)
+        return (error,intent,slot,kind,trace.tb_lineno)
+    return None
+
+
+def _expected_attempt_stop(sup,error):
+    candidate=_COMPLETED_CLEANUPS.pop(error,None)
+    if candidate is None:return False
+    owner,slot,proof,io_stop=candidate
+    if owner is not sup or type(proof) is not _runtime_stop_source.NativeAttemptCleanupProof or proof._primary is not error or proof._record[1] is not sup.session or proof._record[3] is not slot:raise _closed()
+    if type(error) is _NativeStopping:
+        record=_STOP_SIGNALS.pop(error,None)
+        if record is None or record[0] is not sup or record[2] is not slot or record[1] is not _STOP_BIRTHS.get(sup.reference):return False
+    elif _direct_denial(error,_LIVE_REQUIRE_CODE):
+        trace=error.__traceback__
+        while trace.tb_next is not None:trace=trace.tb_next
+        if trace.tb_frame.f_locals.get('self') is not sup.session or sup.session.state!='cleanup_only':return False
+    elif io_stop is None or io_stop[:3]!=(error,_STOP_BIRTHS.get(sup.reference),slot):return False
+    _stop_proof(sup,slot);return True
 
 
 class NativePlanSupervisor(_Sealed):
@@ -506,35 +596,45 @@ def _worker_main(sup):
                 if selected is None:sup._event.wait(.1);sup._event.clear();continue
                 if sup._stop.is_set():break
                 task,purpose,dispatch=selected;object.__setattr__(sup,'_pending_task_id',task);read_fd=write_fd=None;slot=None
+                cleanup_primary=cleanup_candidate=io_stop=None
                 try:
                     read_fd,write_fd=os.pipe2(os.O_NONBLOCK|os.O_CLOEXEC) if hasattr(os,'pipe2') else os.pipe()
                     os.set_blocking(read_fd,False);os.set_blocking(write_fd,False);os.set_inheritable(read_fd,False);os.set_inheritable(write_fd,False)
                     object.__setattr__(sup,'_slot_epoch',sup._slot_epoch+1)
                     slot=NativePlanSlotLease(sup,task,purpose,dispatch,read_fd,write_fd,_factory=_FACTORY);object.__setattr__(sup,'_slot',slot)
                     from .plan_native_runtime import run_once
-                    run_once(sup.service.store,task,slot_scope=slot)
+                    try:run_once(sup.service.store,task,slot_scope=slot)
+                    except BaseException as error:
+                        cleanup_primary=error
+                        cleanup_candidate=_runtime_stop_source.take_native_attempt_cleanup(sup.service.store,sup.session,slot,task_id=task,primary=error)
+                        if cleanup_candidate is not None:io_stop=_io_stop_snapshot(sup,error,slot,cleanup_candidate)
+                        raise
                 finally:
                     # B's synchronous attempt must have retired every borrowed
                     # FD/DNS actor before this slot can retire its own pipe.
                     faults=[]
-                    if slot is not None:
-                        for resource in sup.session.resources:
+                    try:
+                        if slot is not None:
+                            for resource in sup.session.resources:
+                                try:
+                                    if resource.retire_unhanded() is not None:raise _uncertain()
+                                except BaseException as error:faults.append(error)
+                        if faults:raise _uncertain() from faults[0]
+                        if slot is not None:object.__setattr__(slot,'active',False)
+                        for fd,identity in ((read_fd,slot.stop_fd_identity if slot else None),(write_fd,slot._write_identity if slot else None)):
+                            if fd is None:continue
                             try:
-                                if resource.retire_unhanded() is not None:raise _uncertain()
+                                if identity is not None and _pipe_identity(fd)!=identity:raise _uncertain()
+                                os.close(fd)
                             except BaseException as error:faults.append(error)
-                    if faults:raise _uncertain() from faults[0]
-                    if slot is not None:object.__setattr__(slot,'active',False)
-                    for fd,identity in ((read_fd,slot.stop_fd_identity if slot else None),(write_fd,slot._write_identity if slot else None)):
-                        if fd is None:continue
-                        try:
-                            if identity is not None and _pipe_identity(fd)!=identity:raise _uncertain()
-                            os.close(fd)
-                        except BaseException as error:faults.append(error)
-                    if faults:raise _uncertain() from faults[0]
-                    if slot is not None:object.__setattr__(slot,'active',False);_SLOTS.pop(slot.reference,None);_SLOT_BIRTHS.pop(slot.reference,None)
-                    object.__setattr__(sup,'_slot',None)
+                        if faults:raise _uncertain() from faults[0]
+                        if slot is not None:object.__setattr__(slot,'active',False);_SLOTS.pop(slot.reference,None);_SLOT_BIRTHS.pop(slot.reference,None)
+                        object.__setattr__(sup,'_slot',None)
+                        if cleanup_candidate is not None:_COMPLETED_CLEANUPS[cleanup_primary]=(sup,slot,cleanup_candidate,io_stop)
+                    finally:
+                        if slot is not None:_runtime_stop_source._discard_native_attempt_cleanup(slot)
     except BaseException as error:
-        try:expected=_expected_preclaim_stop(sup,error)
+        try:expected=_expected_attempt_stop(sup,error) or _expected_preclaim_stop(sup,error)
         except BaseException as invalid:error=invalid;expected=False
         if expected:return
         object.__setattr__(sup,'_errors',sup._errors+(error,));object.__setattr__(sup,'_state','CLEANUP_UNCERTAIN')
@@ -542,6 +642,8 @@ def _worker_main(sup):
             try:_revoke_invalid(sup)
             except BaseException as cleanup:object.__setattr__(sup,'_errors',sup._errors+(cleanup,))
     finally:
+        for primary,record in tuple(_COMPLETED_CLEANUPS.items()):
+            if record[0] is sup:_COMPLETED_CLEANUPS.pop(primary,None)
         for signal,record in tuple(_STOP_SIGNALS.items()):
             if record[0] is sup:_STOP_SIGNALS.pop(signal,None)
         sup._event.set()
