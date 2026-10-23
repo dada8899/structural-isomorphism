@@ -161,3 +161,21 @@ def test_live_native_capability_classes_have_no_callback_dictionary():
                 ports.OwnerFundingAuthorityLease,ports.NativePlanProvision,ports.NativeRuntimePermit):
         # Uninitialized layout observation only; no registry, scope or authority.
         assert not hasattr(object.__new__(cls),'__dict__')
+
+
+def test_credential_message_is_exact_canonical_input_without_key_or_authority():
+    value=declaration();data=live.decode_grant(canonical(value))
+    message=live._credential_message(data)
+    assert type(message) is bytes and message==canonical(['native-live-credential-v1',value])
+    value['state']='revoke_requested'
+    with pytest.raises(ValueError):live._credential_message(live.decode_grant(canonical(value)))
+    with pytest.raises(ValueError):live._credential_message({'grant':True})
+
+
+def test_credential_bootstrap_and_pairing_never_accept_dto_or_unregistered_exact_objects():
+    for grant,flight in ((declaration(),{'flight':True}),
+            (object.__new__(live.NativeLiveGrantWitness),object.__new__(live.NativeLiveFlightLease))):
+        with pytest.raises(ResearchError) as error:live.credential_bootstrap_binding(grant,flight,main_context={'ready':True})
+        assert error.value.code=='FUNDING_CLOSED'
+    for session in ({'credential':True},object(),object.__new__(live.NativeLiveSession)):
+        assert live.credential_session_binding(session,object()) is False

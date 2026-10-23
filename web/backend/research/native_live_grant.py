@@ -16,6 +16,9 @@ import stat
 import sys
 import threading
 import types
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .store import ResearchStore
 from .errors import ResearchError
 from .provider_schemas import canonical,digest
 
@@ -707,3 +710,32 @@ def activate_live_session(session,*,startup_scope,worker):
 # Original native code identities survive read-only observation wrappers.
 _BIRTH_CODES={name:globals()[name].__code__ for name in
     ('read_native_live_grant','claim_live_flight','bind_live_authority')}
+
+
+def _credential_message(data):
+    """Pure HMAC input encoding; not a key, witness or send authority."""
+    if type(data) is not NativeLiveGrantData:raise ValueError('validated grant content required')
+    value=decode_grant(data.encoded).data()
+    if value['state']!='active':raise ValueError('active credential birth grant required')
+    return canonical(['native-live-credential-v1',value])
+
+
+def credential_bootstrap_binding(grant,flight,*,main_context)->tuple['ResearchStore',bytes]:
+    """B receives the captured store and exact message only after actual C."""
+    if (type(grant) is not NativeLiveGrantWitness or type(flight) is not NativeLiveFlightLease
+            or _GRANTS.get(getattr(grant,'reference',None)) is not grant
+            or _FLIGHTS.get(getattr(flight,'reference',None)) is not flight):raise _closed()
+    store=grant.store;_startup(main_context,store)
+    if flight.store is not store or flight.grant is not grant:raise _closed()
+    grant.require_bootstrap(main_context);flight.require_bootstrap(main_context)
+    return store,_credential_message(grant._data)
+
+
+def credential_session_binding(session,credential)->bool:
+    """Memory-only birth pairing. True grants no current or network rights."""
+    if type(session) is not NativeLiveSession or _SESSIONS.get(getattr(session,'reference',None)) is not session:return False
+    if session.pid!=os.getpid() or session.uid!=os.geteuid():return False
+    return (session.credential is credential and type(session.grant) is NativeLiveGrantWitness
+        and type(session.flight) is NativeLiveFlightLease and session.grant.store is session.store
+        and session.flight.store is session.store and session.flight.grant is session.grant
+        and session.flight.session is session)
