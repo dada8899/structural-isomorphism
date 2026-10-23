@@ -91,6 +91,46 @@ def test_shutdown_observer_keeps_failure_after_server_started_without_private_fi
     assert MARKER not in json.dumps(service._startup_diagnostics)
 
 
+def test_actual_starlette_shutdown_failure_is_observed_after_started_without_private_text(tmp_path):
+    from types import SimpleNamespace
+
+    @asynccontextmanager
+    async def lifespan(app):
+        yield
+        raise PermissionError(MARKER)
+
+    service = FormalMainBrowserService(tmp_path / 'unused-owned-root')
+    service.server = SimpleNamespace(started=True)
+    names = ('uvicorn.error', 'uvicorn.access', 'uvicorn.asgi')
+    levels = {name: logging.getLogger(name).level for name in names}
+    config = Config(Starlette(lifespan=lifespan), lifespan='on',
+                    log_config=None, log_level='critical', ws='none')
+    retire = _observe_owned_startup(config, service._capture_startup_error)
+    try:
+        async def run():
+            config.load()
+            actual = config.lifespan_class(config)
+            assert type(actual) is LifespanOn and actual.main.__func__ is LifespanOn.main
+            await actual.startup()
+            assert not actual.startup_failed and not actual.error_occured
+            await actual.shutdown()
+            await asyncio.sleep(0)
+            assert actual.shutdown_failed and actual.should_exit and actual.error_occured
+            return actual
+
+        actual = asyncio.run(run())
+        assert service._startup_diagnostics[0]['type'] == 'PermissionError'
+        assert any(frame['file'] == 'starlette/routing.py' and frame['function'] == 'lifespan'
+                   for frame in service._startup_diagnostics[0]['frames'])
+        assert MARKER not in json.dumps(service._startup_diagnostics)
+    finally:
+        retire()
+        for name, level in levels.items():
+            logging.getLogger(name).setLevel(level)
+    assert not isinstance(actual.logger, _StartupErrorObserver)
+    assert config.lifespan_class is LifespanOn
+
+
 def test_explicit_exception_observation_preserves_original_logger_arguments():
     error = RuntimeError(MARKER)
     message, extra, answer = object(), object(), object()

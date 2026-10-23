@@ -20,11 +20,11 @@ async def count(service):
         return conn.execute('SELECT count(*) FROM research_financial_results').fetchone()[0]
 
 
-async def choose_material(page,service):
+async def choose_material(page,service,bridge):
     loaded=await page.evaluate('''async()=>{const names=['financial-scenario.js','research.js','financial-registry.js'];const out={};for(const name of names){const script=[...document.scripts].find(s=>new URL(s.src).pathname==='/assets/'+name);if(!script)throw Error('required script not loaded');const raw=await (await fetch(script.src,{cache:'no-store'})).arrayBuffer();const sha=[...new Uint8Array(await crypto.subtle.digest('SHA-256',raw))].map(n=>n.toString(16).padStart(2,'0')).join('');out[name]={sha,script_resource:performance.getEntriesByName(script.src).some(e=>e.initiatorType==='script')};}return out;}''')
     for name,value in loaded.items():assert value['script_resource'] and value['sha']==hashlib.sha256((ROOT/'web/frontend/assets'/name).read_bytes()).hexdigest()
     service._fin3_loaded_scripts=loaded
-    _,saved=await fin2.save_from_ui(page,service,fin1.LEGAL_CSV)
+    _,saved=await fin2.save_from_ui(page,service,bridge,fin1.LEGAL_CSV)
     await page.locator('#financial-registry-choose').click()
     await page.locator('#financial-scenario-adopt').click()
     await expect(page.locator('#financial-scenario-status')).to_contain_text('已采用原材料')
@@ -47,7 +47,7 @@ async def fill_form(page,*,sensitivity=False,recovery=False):
 async def saved_chain(tmp_path):
     async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
         facts['scope']='FIN3 actualMain15 ordinary form -> save -> three views/history'
-        registry=await choose_material(page,service);facts['loaded_scripts']=service._fin3_loaded_scripts
+        registry=await choose_material(page,service,bridge);facts['loaded_scripts']=service._fin3_loaded_scripts
         assert (await helpers._native_tls_fetch(page,'/api/health'))['body']['checks']['native_planner']=='FUNDING_CLOSED'
         await page.locator('#method-draft-method').fill('FIN3不替换的人工方法草稿。');old_pending=await helpers._method_main_pending(page)
         await fill_form(page,sensitivity=True)
@@ -93,7 +93,7 @@ async def lost_calculation(page,service,bridge,*,mutate_structure=False):
 async def reload_replay(tmp_path):
     async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
         facts['scope']='FIN3 original key/body deterministic IDs after reload and historical registry catalog'
-        await choose_material(page,service);facts['loaded_scripts']=service._fin3_loaded_scripts;original=await lost_calculation(page,service,bridge,mutate_structure=True);descriptors=await pending(page)
+        await choose_material(page,service,bridge);facts['loaded_scripts']=service._fin3_loaded_scripts;original=await lost_calculation(page,service,bridge,mutate_structure=True);descriptors=await pending(page)
         assert all(len(v.encode())<=2048 and '独立增长合成条件' not in v and 'request"' not in v for v in descriptors.values())
         await fin2.new_revision(page,service)
         posted=[];page.on('request',lambda request:posted.append({'body':request.post_data,'key':request.headers.get('idempotency-key')}) if request.method=='POST' and request.url.endswith('/financial-calculations') else None)
@@ -120,7 +120,7 @@ def test_fin3_actual_main_reload_rebuild_exact_request_with_historical_catalog(t
 async def covered_advanced(tmp_path):
     async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
         facts['scope']='FIN3 actual explicit five-cost coverage, three scenarios, 21 discrete points'
-        await choose_material(page,service);facts['loaded_scripts']=service._fin3_loaded_scripts;await fill_form(page)
+        await choose_material(page,service,bridge);facts['loaded_scripts']=service._fin3_loaded_scripts;await fill_form(page)
         await page.locator('#financial-scenario-s0-cost-panel').evaluate('(n)=>n.open=true')
         await page.locator('#financial-scenario-s0-add-cost').click()
         await page.locator('#financial-scenario-s0-cost0-label').fill('五项合并条件成本')
@@ -149,7 +149,7 @@ def test_fin3_actual_main_coverage_three_scenarios_and_twenty_one_points(tmp_pat
 async def unknown_delete(tmp_path):
     async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
         facts['scope']='FIN3 initial actor no-click cleanup; unknown/bfcache preserve pending'
-        await choose_material(page,service);facts['loaded_scripts']=service._fin3_loaded_scripts;await lost_calculation(page,service,bridge);descriptors=await pending(page)
+        await choose_material(page,service,bridge);facts['loaded_scripts']=service._fin3_loaded_scripts;await lost_calculation(page,service,bridge);descriptors=await pending(page)
         await helpers._native_tls_completed_read(page,service.origin+'/api/research?limit=20',lambda:page.reload());await expect(page.locator('#research-list-status')).to_contain_text('已读取 1 条研究')
         await expect(page.locator('#financial-scenario-pending')).to_contain_text('原表单未保留')
         async def unknown(route):await route.fulfill(status=503,body='owned observation unavailable')
@@ -170,7 +170,7 @@ async def derived_readonly(tmp_path):
     import hashlib
     async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
         facts['scope']='FIN3 read-only old stored derived evidence; no daily-input widget'
-        registry=await choose_material(page,service);facts['loaded_scripts']=service._fin3_loaded_scripts;await fill_form(page);posted=[]
+        registry=await choose_material(page,service,bridge);facts['loaded_scripts']=service._fin3_loaded_scripts;await fill_form(page);posted=[]
         page.on('request',lambda request:posted.append(request.post_data) if request.method=='POST' and request.url.endswith('/financial-calculations') else None)
         async with page.expect_response('**/financial-calculations') as saved:await page.locator('#financial-scenario-calculate').click()
         assert (await saved.value).status==200;await expect(page.locator('#financial-scenario-status')).to_contain_text('条件计算已保存');assert len(posted)==1
@@ -202,7 +202,7 @@ def test_fin3_actual_main_old_derived_result_complete_readonly(tmp_path):asyncio
 async def late_recovery_catalog(tmp_path):
     async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
         facts['scope']='FIN3 actual late original registry recovery read after confirmed deletion'
-        saved_registry=await choose_material(page,service);facts['loaded_scripts']=service._fin3_loaded_scripts;await lost_calculation(page,service,bridge)
+        saved_registry=await choose_material(page,service,bridge);facts['loaded_scripts']=service._fin3_loaded_scripts;await lost_calculation(page,service,bridge)
         await helpers._native_tls_completed_read(page,service.origin+'/api/research?limit=20',lambda:page.reload());await expect(page.locator('#research-list-status')).to_contain_text('已读取 1 条研究')
         held=[]
         async def hold(route):
@@ -224,7 +224,7 @@ def test_fin3_actual_main_late_recovery_catalog_not_revived_after_delete(tmp_pat
 async def mode_drafts(tmp_path):
     async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
         facts['scope']='FIN3 repaired cost/allocation modes, explicit units, isolated drafts and actual save'
-        await choose_material(page,service);facts['loaded_scripts']=service._fin3_loaded_scripts;await fill_form(page)
+        await choose_material(page,service,bridge);facts['loaded_scripts']=service._fin3_loaded_scripts;await fill_form(page)
         posts=[];page.on('request',lambda r:posts.append(r.post_data) if r.method=='POST' and r.url.endswith('/financial-calculations') else None)
         await page.locator('#financial-scenario-s0-cost-panel').evaluate('(n)=>n.open=true');await page.locator('#financial-scenario-s0-add-cost').click()
         await page.locator('#financial-scenario-s0-cost0-label').fill('合成五项成本');await page.locator('#financial-scenario-s0-cost0-coverage').fill('五项均明确包含，无重复，仅合成条件。')
