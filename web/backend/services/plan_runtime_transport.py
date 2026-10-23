@@ -163,6 +163,7 @@ class _Channel:
 
     def receive(self):
         if self.owner is not None and self.owner.mode == 'native_live':
+            self.owner._require_live_execute(self.slot_scope)
             parser = _LiveHTTPParser(self.owner._body_limit())
             read_ready = True
             while not parser.done:
@@ -440,7 +441,7 @@ class NativePlanResource(_Sealed):
 
     def require(self, *, current=True):
         if self.mode == 'native_live':
-            if current:self._require_live_execute(self._slot_scope)
+            if current:self._require_live_current()
             else:self._require_live_past(self._slot_scope)
             return
         if not self.active or self.pid != os.getpid() or _RESOURCES.get(self.reference) is not self:
@@ -477,6 +478,27 @@ class NativePlanResource(_Sealed):
                 or hashlib.sha256(Path(__file__).read_bytes()).hexdigest() != self._runtime_digest):
             raise _core()[2]('FUNDING_CLOSED', 503, '实际原生资源当前关闭。')
 
+    def _require_live_current(self):
+        # Presence/preview/confirmation is not permission to begin IO. It may
+        # precede slot birth, but still needs the real executable A/B pairing.
+        self._live_birth()
+        from . import native_live_credentials as credentials
+        a = credentials._a()
+        session = self._live_session
+        if (type(session) is not a.NativeLiveSession or type(self._credential) is not credentials.NativeLiveCredential
+                or a.credential_session_binding(session, self._credential) is not True
+                or self.permit.provision.authority.live_session is not session
+                or self._credential is not session.credential or self.flight is not session.thread_flight
+                or type(self.flight) is not _thread.LockType):
+            raise credentials._closed()
+        session.require()  # Native starting/cleanup-only states remain closed.
+        self._credential.require_current(session)
+        facts = self.permit.data()
+        if (facts['mode'], facts['economic_binding'], facts['credential_incarnation'], facts['runtime_digest']) != (
+                self.mode, self.economic_binding, self.credential_incarnation, self._runtime_digest):
+            raise credentials._closed()
+        _core()[0].purpose_scope(self)
+
     def _require_live_execute(self, scope):
         self._live_birth()
         from . import native_live_credentials as credentials
@@ -487,9 +509,7 @@ class NativePlanResource(_Sealed):
         if (c.require_slot(scope, session.store, session, task_id=scope.task_id,
                 purpose=_core()[0].purpose_scope(self), mode='execute') is not None):
             raise credentials._closed()
-        session.require()
-        self._credential.require_current(session)
-        self.permit.require()
+        self._require_live_current()
 
     def _require_live_past(self, scope):
         self._live_birth(past=True)
@@ -633,6 +653,7 @@ class NativePlanResource(_Sealed):
 
     def prepare_post(self):
         self.require()
+        if self.mode == 'native_live':self._require_live_execute(self._slot_scope)
         if self._credential is None or self._balance is None:
             raise PermissionError('same credential must complete balance first')
         self._balance.require(self, self._balance.claim)

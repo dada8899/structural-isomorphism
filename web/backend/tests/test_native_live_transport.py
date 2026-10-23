@@ -240,3 +240,57 @@ def test_synthetic_directory_helper_cannot_read_systemd_shaped_directory(tmp_pat
             with pytest.raises(ValueError):credentials._read_provider(directory,os.geteuid())
         assert opened==[] and not credentials._KEYS and not credentials._ENTRIES
     finally:tmp_path.chmod(0o700);os.close(directory)
+
+
+class _PresenceOrderProbe:
+    """Pure dispatcher probe, never a native object or live registry entry."""
+    mode='native_live'
+    _slot_scope=None
+    def __init__(self,state='executable'):self.state=state;self.events=[]
+    def _require_live_current(self):
+        self.events.append('presence')
+        if self.state!='executable':raise PermissionError('starting presence refused')
+    def _require_live_execute(self,scope):
+        self.events.append('execute-slot')
+        raise PermissionError('original execute slot required')
+    def _require_live_past(self,scope):
+        self.events.append('past')
+        raise PermissionError('original past scope required')
+    require=transport.NativePlanResource.require
+
+
+def test_live_presence_call_order_has_no_slot_and_no_io():
+    probe=_PresenceOrderProbe()
+    # Only dispatch ordering is proved; this probe cannot mint native ready.
+    probe.require()
+    assert probe.events==['presence'] and probe._slot_scope is None
+
+
+def test_live_starting_presence_and_unbound_past_never_borrow_bootstrap():
+    probe=_PresenceOrderProbe('starting')
+    with pytest.raises(PermissionError,match='starting presence'):probe.require()
+    with pytest.raises(PermissionError,match='past scope'):probe.require(current=False)
+    assert probe.events==['presence','past']
+
+
+@pytest.mark.parametrize('operation',['prepare','connect','request'])
+def test_live_no_slot_io_is_denied_even_if_presence_dispatch_was_satisfied(operation):
+    probe=_PresenceOrderProbe();probe._credential=object()
+    probe._balance=SimpleNamespace(claim=('dispatch','nonce'),require=lambda *a:probe.events.append('balance-read'))
+    probe._connect=lambda:pytest.fail('no slot may reach a connection')
+    with pytest.raises(PermissionError,match='execute slot'):
+        if operation=='prepare':transport.NativePlanResource.prepare_post(probe)
+        elif operation=='connect':transport.NativePlanResource._connect_live(probe)
+        else:transport.NativePlanResource._request(probe,'GET','/user/balance',b'')
+    assert probe.events==(['presence','execute-slot'] if operation=='prepare' else ['execute-slot'])
+
+
+def test_forged_live_presence_or_bootstrap_does_not_register_or_touch_io(monkeypatch):
+    before=(tuple(transport._RESOURCES),tuple(transport._PAST_RESOURCES));calls=[]
+    def forbidden(*a,**k):calls.append(True);raise AssertionError('no forged resource may touch IO')
+    monkeypatch.setattr(socket,'socket',forbidden)
+    resource=object.__new__(transport.NativePlanResource)
+    object.__setattr__(resource,'mode','native_live');object.__setattr__(resource,'pid',os.getpid());object.__setattr__(resource,'reference','unregistered')
+    for action in (lambda:resource.require(),lambda:resource.require_bootstrap(object())):
+        with pytest.raises((ResearchError,PermissionError)):action()
+    assert not calls and before==(tuple(transport._RESOURCES),tuple(transport._PAST_RESOURCES))
