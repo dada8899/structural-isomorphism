@@ -167,6 +167,20 @@ def source_postflight(root,out,initial_coordinates,capture_deadline):
  source_need(result['status']=='source_verified' and result['bound_to_initial'] and time.monotonic()<deadline,'source_postflight_refused');return coordinates
 
 def number(v):need(type(v) in (int,float) and math.isfinite(v));return v
+def bounded_action(deadline,action):
+ # A nested phase may shorten, never renew, the existing absolute alarm.
+ now=time.monotonic();need(now<deadline);old_delay,interval=signal.getitimer(signal.ITIMER_REAL);need(interval==0)
+ old_deadline=now+old_delay if old_delay>0 else None
+ effective=min(deadline,old_deadline) if old_deadline is not None else deadline
+ def expired(signum,frame):raise Refused('diagnostic_phase_deadline')
+ old_handler=signal.signal(signal.SIGALRM,expired)
+ try:
+  signal.setitimer(signal.ITIMER_REAL,max(.000001,effective-time.monotonic()))
+  value=action();need(time.monotonic()<effective);return value
+ finally:
+  signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,old_handler)
+  remaining=max(0,old_deadline-time.monotonic()) if old_deadline is not None else 0
+  if remaining>0:signal.setitimer(signal.ITIMER_REAL,remaining)
 def safe_path(value):
  need(type(value) is str and len(value)<=4096);u=urlsplit(value)
  if (u.scheme,u.hostname,u.port)==('http','127.0.0.1',4173) and (u.path=='/analyze.html' or re.fullmatch(r'/assets/[A-Za-z0-9_./-]{1,220}',u.path) and '..' not in u.path.split('/')):return u.path
@@ -200,8 +214,9 @@ def snapshot_projection(raw,ready):
  need(type(raw) is dict and len(raw['longTasks'])<=4096 and len(raw['resources'])<=1024)
  return {'classification':'NOT_GATE','timeOrigin':number(raw['timeOrigin']),'now':number(raw['now']),'fcp':number(raw['fcp']),'window_end':number(raw['fcp'])+5000,'longTasks':[{'start':number(x['start']),'duration':number(x['duration'])} for x in raw['longTasks']],'click':{k:number(raw['click'][k]) for k in ('count','pointerDown','pointerUp','at')},'validated_ready_browser_ms':ready,'navigation':None if raw['navigation'] is None else {k:number(raw['navigation'][k]) for k in ('startTime','responseEnd','domContentLoadedEventEnd','loadEventEnd')},'resources':[{'path':safe_path(x['url']),**{k:number(x[k]) for k in ('start','duration','responseEnd','bytes')}} for x in raw['resources']]}
 class Capture:
- def __init__(self,writer,beta,perf):
+ def __init__(self,writer,beta,perf,capture_deadline=None):
   self.writer,self.beta,self.perf=writer,beta,perf;self.page=self.cdp=None;self.tracing=False;self.stop_requested=False;self.stop_deadline=None;self.terminal_received=False;self.loss=None;self.projected=[];self.projected_bytes=0;self.source_events=0;self.overflow=False;self.ready=[];self.seen=set();self.final=None;self.captured=False;self.errors=[];self.browser=None
+  self.capture_deadline=capture_deadline;self.trace_finished=False;self.metric_verified=False;self.primary_failure=None
  def error(self,code):
   if code not in self.errors:self.errors.append(code)
  def on_data(self,message):
@@ -232,18 +247,34 @@ class Capture:
  def validated(self,page,state,original):
   original(page,state);need(len(self.ready)<2);self.ready.append({'phase':'before_click' if not self.ready else 'after_window','ms':number(page.evaluate('performance.now()'))})
  def sink(self,sample):
-  phase=sample.get('cleanup_status');need(phase in ('pending','passed','failed'));key='pending' if phase=='pending' else 'final';need(key not in self.seen);self.seen.add(key);safe=self.beta._checkpoint_run_evidence(sample);self.writer.write_json('audit-'+key+'.json',{'classification':'NOT_GATE','sample':safe})
+  phase=sample.get('cleanup_status');need(phase in ('pending','passed','failed'));key='pending' if phase=='pending' else 'final';need(key not in self.seen);self.seen.add(key);safe=self.beta._checkpoint_run_evidence(sample)
+  if key=='pending' and safe.get('audit_status')!='passed':self.primary_failure={k:safe[k] for k in ('stage','error','error_detail') if k in safe}
+  self.writer.write_json('audit-'+key+'.json',{'classification':'NOT_GATE','sample':safe})
   if key=='final':self.final=safe;return
   try:
+   # Failed primary evidence has no valid metric. Preserve it and let the
+   # original audit publish its real browser-close result before returning.
+   if safe.get('audit_status')!='passed':return
    need(not self.captured);self.captured=True;raw=snapshot_projection(self.page.evaluate(SNAPSHOT),self.ready);self.writer.write_json('browser-window.json',raw)
    fcp=raw['fcp'];parts=[]
    for task in raw['longTasks']:
     overlap=max(0,min(task['start']+task['duration'],fcp+5000)-max(task['start'],fcp));parts.append({'start':task['start'],'duration':task['duration'],'clipped_overlap':overlap,'blocking_ms':max(0,overlap-50)})
    tbt=self.perf.compute_tbt(raw['longTasks'],fcp,fcp+5000);self.writer.write_json('tbt-contributions.json',{'classification':'NOT_GATE','tasks':parts,'recomputed_tbt_ms':tbt,'original_single_sample_tbt_ms':safe.get('tbt_ms'),'matches_original_sample':safe.get('tbt_ms')==round(tbt,1),'historical888_grade_unchanged':'failed'})
-   need(safe.get('tbt_ms')==round(tbt,1));self.end_trace()
+   need(safe.get('tbt_ms')==round(tbt,1));self.metric_verified=True
   except BaseException:
-   self.errors.append('capture_incomplete');raise
-  finally:self.close_trace()
+   self.error('capture_incomplete')
+  finally:self.finish_trace()
+ def finish_trace(self):
+  if self.trace_finished:return
+  self.trace_finished=True
+  deadline=min(self.capture_deadline,time.monotonic()+STOP_SECONDS) if self.capture_deadline is not None else time.monotonic()+STOP_SECONDS
+  def finish():
+   try:
+    if self.cdp is not None and not self.stop_requested:self.end_trace()
+    elif self.cdp is not None and not self.terminal_received:self.error('trace_terminal_missing')
+   finally:self.close_trace(deadline)
+  try:bounded_action(deadline,finish)
+  except BaseException:self.error('trace_finalize_unknown')
  def write_trace(self,trusted):
   terminal={'classification':'NOT_GATE','transport':'ReportEvents','trace_complete':trusted,'terminal_received':self.terminal_received,'dataLossOccurred':self.loss,'overflow':self.overflow,'source_events_observed':self.source_events,'retained_projected_events':len(self.projected),'retained_encoded_bytes_with_separators':self.projected_bytes,'application_projection_byte_limit':MAX_PROJECTED_BYTES,'raw_trace_artifact_written_by_collector':False,'native_browser_driver_memory_or_storage_hardcap_proven':False,'unknown_reasons':list(self.errors)}
   self.writer.write_json('trace-terminal.json',terminal,control=True)
@@ -255,27 +286,31 @@ class Capture:
    yield b']}'
   self.writer.write_chunks('timeline.json',chunks())
  def end_trace(self):
-  self.stop_deadline=time.monotonic()+STOP_SECONDS;self.stop_requested=True;self.tracing=False;self.cdp.send('Tracing.end')
+  self.stop_deadline=time.monotonic()+STOP_SECONDS
+  if self.capture_deadline is not None:self.stop_deadline=min(self.stop_deadline,self.capture_deadline)
+  self.stop_requested=True;self.tracing=False;self.cdp.send('Tracing.end')
   while not self.terminal_received and time.monotonic()<self.stop_deadline:self.page.wait_for_timeout(20)
   if not self.terminal_received:self.error('trace_terminal_missing')
   if time.monotonic()>self.stop_deadline:self.error('trace_stop_deadline')
   if self.source_events==0 or not self.projected:self.error('trace_data_missing')
   trusted=self.terminal_received and self.loss is False and not self.overflow and not self.errors
   self.write_trace(trusted);need(trusted)
- def close_trace(self):
+ def close_trace(self,deadline=None):
   if self.cdp is None:return
   try:
+   if deadline is not None:need(time.monotonic()<deadline)
    if self.tracing and not self.stop_requested:
     self.stop_requested=True;self.tracing=False;self.cdp.send('Tracing.end')
+   if deadline is not None:need(time.monotonic()<deadline)
    self.cdp.detach()
   except BaseException:self.error('trace_close_unknown')
   finally:self.cdp=None
  def close(self):
-  self.close_trace()
-  if self.browser is not None and self.browser.is_connected():
-   try:self.browser.close()
-   except BaseException:self.error('browser_close_unknown')
-  return self.browser is not None and not self.browser.is_connected() and not self.errors
+  # Closure is a native-state observation, separate from diagnostic validity.
+  try:
+   if self.browser is not None and self.browser.is_connected():self.browser.close()
+   return self.browser is not None and not self.browser.is_connected()
+  except BaseException:self.error('browser_close_unknown');return False
 
 def server_identity(p):
  text=regular(Path('/proc')/str(p.pid)/'stat',8192).decode();v=text[text.rfind(')')+2:].split();return (p.pid,int(v[19]))
@@ -307,14 +342,41 @@ def cleanup_work(out):
  for path in reversed(dirs):path.rmdir()
  return not work.exists()
 
+def finalize_diagnostic(result,capture,driver,server,saved,root,out,initial_coordinates,capture_deadline):
+ def failed(code):
+  if code not in result['secondary_errors']:result['secondary_errors'].append(code)
+  if result['error'] is None:result['error']=code
+ if capture is not None:
+  result['primary_failure']=capture.primary_failure
+  capture.finish_trace()
+ # A failed navigation must not suppress the independent end-of-source check.
+ try:
+  bounded_action(min(capture_deadline,time.monotonic()+SOURCE_WALL_SECONDS),lambda:source_postflight(root,out,initial_coordinates,capture_deadline));result['source_postflight_verified']=True
+ except BaseException:failed('source_postflight_unknown')
+ # Capture work keeps its original absolute120s budget. Only resource
+ # retirement uses up to the existing10s outer reserve, never a new capture.
+ signal.alarm(0);cleanup_deadline=min(capture_deadline+STOP_SECONDS,time.monotonic()+STOP_SECONDS)
+ operations=[('browser_closed',lambda:capture.close() if capture is not None else False),('driver_closed',lambda:(driver.stop() is None) if driver is not None else False),('server_closed',lambda:stop_server(server,saved))]
+ for name,action in operations:
+  try:result[name]=bounded_action(cleanup_deadline,action) is True
+  except BaseException:result[name]=False
+  if not result[name]:failed(name+'_unknown')
+ if all(result[x] for x in ('server_closed','browser_closed','driver_closed')):
+  try:result['work_removed']=bounded_action(cleanup_deadline,lambda:cleanup_work(out)) is True
+  except BaseException:result['work_removed']=False
+  if not result['work_removed']:failed('work_cleanup_unknown')
+ valid=(result['capture_evidence_verified'] and result['source_postflight_verified'] and not result['secondary_errors'] and capture is not None and not capture.errors and all(result[x] for x in ('server_closed','browser_closed','driver_closed','work_removed')))
+ result['status']='diagnostic_capture_complete_not_a_grade' if valid else 'UNKNOWN'
+ if capture is not None:result['capture_errors']=list(capture.errors)
+
 def run(root,out):
  initial_source_coordinates=source_preflight(root,out);need(not(out/'attempt.started.json').exists())
  sys.path.insert(0,str(root));beta=importlib.import_module('scripts.beta_perf_audit');perf=importlib.import_module('scripts.perf_audit');diag=importlib.import_module('scripts.beta_perf_diagnostics')
  for m in (beta,perf,diag):need(Path(m.__file__).resolve()==root/'scripts'/(m.__name__.split('.')[-1]+'.py'))
  need(importlib.metadata.version('playwright')=='1.59.0' and importlib.metadata.version('pydantic')=='2.7.4');writer=diag.ArtifactWriter(out,64*1024*1024);writer.write_json('attempt.started.json',{'classification':'NOT_GATE','source_sha':SOURCE_SHA,'collector_sha256':sha(regular(Path(__file__),262144)),'diagnostic_sha':os.environ['GITHUB_SHA'],'run_id':os.environ['GITHUB_RUN_ID'],'attempt':1,'trigger':'first_branch_push_created_true_deleted_strict_false','page':'analyze','viewport':'mobile','runs':1},control=True)
- started=time.monotonic();server=None;saved=None;capture=None;driver=None;result={'classification':'NOT_GATE','status':'UNKNOWN','historical888_grade_unchanged':'failed','retry':False,'server_closed':False,'browser_closed':False,'driver_closed':False,'work_removed':False,'error':None};cleaning=False
+ started=time.monotonic();server=None;saved=None;capture=None;driver=None;result={'classification':'NOT_GATE','status':'UNKNOWN','historical888_grade_unchanged':'failed','retry':False,'server_closed':False,'browser_closed':False,'driver_closed':False,'work_removed':False,'error':None,'primary_failure':None,'secondary_errors':[],'capture_evidence_verified':False,'source_postflight_verified':False}
  def interrupt(signum,frame):
-  if not cleaning:raise KeyboardInterrupt()
+  raise KeyboardInterrupt()
  prior={s:signal.signal(s,interrupt) for s in (signal.SIGTERM,signal.SIGINT,signal.SIGALRM)};capture_deadline=time.monotonic()+120;signal.alarm(120)
  try:
   writer.write_json('runner-before.json',diag.runner_snapshot());server=subprocess.Popen([sys.executable,'-I','-B','-m','http.server','4173','--bind','127.0.0.1','--directory',str(root/'web/frontend')],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True,env={'PATH':os.environ['PATH'],'LANG':'C.UTF-8','PYTHONDONTWRITEBYTECODE':'1','HOME':os.environ['HOME'],'RUNNER_TRACKING_ID':os.environ.get('RUNNER_TRACKING_ID','')});saved=server_identity(server);writer.write_json('server-actor.json',{'pid':saved[0],'starttime':saved[1],'port':4173},control=True)
@@ -325,27 +387,19 @@ def run(root,out):
   with binary.open('rb') as f:
    while b:=f.read(1048576):h.update(b)
   writer.write_json('versions.json',{'python':sys.version.split()[0],'playwright':importlib.metadata.version('playwright'),'browser_binary_sha256':h.hexdigest()},control=True)
-  request,stream=beta._analyze_fixture();case=beta.PAGES['analyze'];capture=Capture(writer,beta,perf);original=beta._page_setup_factory('analyze',case,('http','127.0.0.1',4173),request,stream);validator=beta._page_validator('analyze',case)
+  request,stream=beta._analyze_fixture();case=beta.PAGES['analyze'];capture=Capture(writer,beta,perf,capture_deadline);original=beta._page_setup_factory('analyze',case,('http','127.0.0.1',4173),request,stream);validator=beta._page_validator('analyze',case)
   def setup(page,viewport,index):
    need(viewport=='mobile' and index==0);state=original(page,viewport,index);capture.setup(page);writer.write_json('browser-version.json',{'version':page.context.browser.version},control=True);return state
   perf.audit_one(driver,BASE,case.path,'mobile',beta.VIEWPORTS['mobile'],case.interaction_selector,runs=1,page_setup=setup,ready_selector=case.ready_selector,page_validator=lambda page,state:capture.validated(page,state,validator),post_interaction_validator=beta._post_interaction_validator('analyze'),interaction_mode=case.interaction_mode,run_evidence_sink=capture.sink)
-  need(capture.final and capture.final['audit_status']=='passed' and capture.final['cleanup_status']=='passed' and capture.seen=={'pending','final'} and capture.captured and not capture.errors)
-  source_postflight(root,out,initial_source_coordinates,capture_deadline);source_need(time.monotonic()<capture_deadline,'capture_deadline');result['status']='diagnostic_capture_complete_not_a_grade'
+  need(capture.final and capture.final['audit_status']=='passed' and capture.final['cleanup_status']=='passed' and capture.seen=={'pending','final'} and capture.captured and capture.metric_verified and not capture.errors)
+  source_need(time.monotonic()<capture_deadline,'capture_deadline');result['capture_evidence_verified']=True
  except BaseException:result['error']='diagnostic_incomplete_no_retry'
  finally:
-  cleaning=True;signal.alarm(0)
-  if capture is not None:result['browser_closed']=capture.close()
-  if driver is not None:
-   try:driver.stop();result['driver_closed']=True
-   except BaseException:result['error']='driver_close_unknown'
-  try:result['server_closed']=stop_server(server,saved)
-  except BaseException:result['error']='server_close_unknown'
-  if all(result[x] for x in ('server_closed','browser_closed','driver_closed')):
-   try:result['work_removed']=cleanup_work(out)
-   except BaseException:result['error']='work_cleanup_unknown'
-  if not all(result[x] for x in ('server_closed','browser_closed','driver_closed','work_removed')):result['status']='UNKNOWN'
-  try:writer.write_json('runner-after.json',diag.runner_snapshot());result['elapsed_seconds']=round(time.monotonic()-started,3);writer.write_json('diagnostic.json',result,control=True)
+  try:
+   finalize_diagnostic(result,capture,driver,server,saved,root,out,initial_source_coordinates,capture_deadline)
+   writer.write_json('runner-after.json',diag.runner_snapshot());result['elapsed_seconds']=round(time.monotonic()-started,3);writer.write_json('diagnostic.json',result,control=True)
   finally:
+   signal.alarm(0)
    for s,h in prior.items():signal.signal(s,h)
  return result
 if __name__=='__main__':
