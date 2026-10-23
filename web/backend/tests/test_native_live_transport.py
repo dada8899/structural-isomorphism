@@ -294,3 +294,18 @@ def test_forged_live_presence_or_bootstrap_does_not_register_or_touch_io(monkeyp
     for action in (lambda:resource.require(),lambda:resource.require_bootstrap(object())):
         with pytest.raises((ResearchError,PermissionError)):action()
     assert not calls and before==(tuple(transport._RESOURCES),tuple(transport._PAST_RESOURCES))
+
+
+def test_legacy_directory_metadata_cannot_accept_root_acl_stat_alone():
+    import stat
+    from types import SimpleNamespace
+    with pytest.raises(ResearchError):credentials._directory_metadata(SimpleNamespace(st_mode=stat.S_IFDIR|0o500,st_uid=0),1234,True)
+
+
+def test_real_metadata_consumer_can_only_use_original_formal_module(monkeypatch):
+    import sys
+    from types import ModuleType
+    fake=ModuleType('__main__');fake.__file__=str(credentials._ROOT/'scripts/run-formal-main.py')
+    monkeypatch.setitem(sys.modules,'__main__',fake)
+    with pytest.raises(ResearchError):credentials._formal_metadata_entry()
+    assert not credentials._KEYS and not credentials._ENTRIES

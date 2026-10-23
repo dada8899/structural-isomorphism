@@ -76,6 +76,49 @@ def _c():
         ('MainStartupScope', 'NativePlanSlotLease', 'NativeLifecycleScope'))
 
 
+def _formal_metadata_entry():
+    import builtins
+    # The sole helper is the one attested before Formal read its five files.
+    # Never import a second package spelling or accept a caller-supplied policy.
+    path = _ROOT / 'scripts/run-formal-main.py'
+    module = sys.modules.get('__main__')
+    if (type(module) is not types.ModuleType or getattr(module, '__file__', None) != str(path)
+            or path.is_symlink() or path != path.resolve()):raise _closed()
+    trusted_builtins = vars(builtins)
+    binding = vars(module).get('__builtins__')
+    if binding is not trusted_builtins and binding is not builtins:raise _closed()
+    codes = {c.co_name:c for c in compile(path.read_bytes(), str(path), 'exec', dont_inherit=True).co_consts
+             if isinstance(c, types.CodeType)}
+    for name in ('_require_metadata_helper', '_capture_metadata', '_capture_consumer', '_metadata_pair'):
+        function = getattr(module, name, None)
+        if (type(function) is not types.FunctionType or function.__globals__ is not vars(module)
+                or function.__module__ != '__main__' or function.__code__ != codes.get(name)
+                or function.__builtins__ is not trusted_builtins or function.__closure__ is not None):raise _closed()
+    helper = module._require_metadata_helper()
+    if helper is not sys.modules.get('systemd_credential_metadata'):raise _closed()
+    return module
+
+
+def _directory_snapshots(descriptors, uid):
+    entry = _formal_metadata_entry()
+    identities = []
+    for i, fd in enumerate(descriptors):
+        parent, name = (None, '/') if i == 0 else (descriptors[i-1], _COMPONENTS[i-1])
+        snapshot, _ = entry._metadata_pair(parent, name, fd, uid, 'directory' if i == 3 else 'ancestor')
+        identities.append(entry._require_metadata_helper().persistent_identity(snapshot, 'directory' if i == 3 else 'ancestor'))
+    return tuple(identities)
+
+
+def _provider_snapshot(fd, directory, uid):
+    entry = _formal_metadata_entry();helper = entry._require_metadata_helper()
+    directory_snapshot = entry._capture_metadata(directory)
+    directory_shape = helper.validate_snapshot(directory_snapshot, 'directory', uid, os.getegid())
+    snapshot, shape = entry._metadata_pair(directory, _PROVIDER, fd, uid, 'file')
+    if (shape != directory_shape or snapshot['mount_id'] != directory_snapshot['mount_id']
+            or not 1 <= snapshot['size'] <= 4096):raise _closed()
+    return tuple(snapshot[key] for key in helper.SNAPSHOT_FIELDS)
+
+
 def _runtime_boundary(*, single=False):
     uid = os.geteuid()
     if sys.platform != 'linux' or os.name != 'posix' or uid <= 0 or os.getuid() != uid:
@@ -89,6 +132,8 @@ def _runtime_boundary(*, single=False):
         raise _closed()
     if single and (threading.current_thread() is not threading.main_thread() or threading.active_count() != 1):
         raise _closed()
+    entry = _formal_metadata_entry()
+    if entry._CONSUMER is None or entry._capture_consumer() != entry._CONSUMER:raise _closed()
     return uid
 
 
@@ -122,16 +167,10 @@ def _directory_metadata(info, uid, final):
 def _check_directories(descriptors, identities, uid):
     if len(descriptors) != 4 or len(identities) != 4:
         raise _closed()
-    for i, descriptor in enumerate(descriptors):
-        held = os.fstat(descriptor)
-        if _directory_metadata(held, uid, i == 3) != identities[i]:
-            raise _closed()
-        named = os.lstat('/') if i == 0 else os.stat(_COMPONENTS[i - 1], dir_fd=descriptors[i - 1], follow_symlinks=False)
-        if _directory_metadata(named, uid, i == 3) != identities[i]:
-            raise _closed()
-        if os.get_inheritable(descriptor):
-            raise _closed()
-
+    current = _directory_snapshots(descriptors, uid)
+    if current != tuple(identities):
+        raise _closed()
+    if any(os.get_inheritable(fd) for fd in descriptors):raise _closed()
 
 
 class _Sealed:
@@ -260,7 +299,7 @@ def _publish_entry_directory(descriptors):
     uid = _runtime_boundary(single=True)
     if actual is not descriptors or type(descriptors) is not list or len(descriptors) != 4 or _ENTRIES:
         raise _closed()
-    identities = tuple(_directory_metadata(os.fstat(fd), uid, i == 3) for i, fd in enumerate(descriptors))
+    identities = _directory_snapshots(descriptors, uid)
     _check_directories(descriptors, identities, uid)
     duplicated = []
     io = _CredentialFDHandle(_factory=_FACTORY)
@@ -346,13 +385,13 @@ def _read_provider(directory, uid, *, _entry=None, _grant=None, _flight=None, _c
     fd = os.open(_PROVIDER, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, dir_fd=directory)
     try:
         io.record(fd)
-        before = validate_provider_metadata(os.fstat(fd), uid)
+        before = validate_provider_metadata(os.fstat(fd), uid) if _entry is None else _provider_snapshot(fd, directory, uid)
         raw = os.read(fd, 4097)
         os.lseek(fd, 0, os.SEEK_SET)
         again = os.read(fd, 4097)
-        if (before != validate_provider_metadata(os.fstat(fd), uid)
-                or before != validate_provider_metadata(os.stat(_PROVIDER, dir_fd=directory, follow_symlinks=False), uid)
-                or len(raw) != before[6] or raw != again):
+        current = validate_provider_metadata(os.fstat(fd), uid) if _entry is None else _provider_snapshot(fd, directory, uid)
+        named = validate_provider_metadata(os.stat(_PROVIDER, dir_fd=directory, follow_symlinks=False), uid) if _entry is None else current
+        if (before != current or before != named or len(raw) != before[6] or raw != again):
             raise ValueError('provider credential changed')
         validate_provider_bytes(raw)
         return bytearray(raw), fd, before, io
@@ -403,8 +442,7 @@ class NativeLiveCredential(_Sealed):
     def _current_file(self):
         self._birth()
         self.entry.require_runtime()
-        if (self.metadata != validate_provider_metadata(os.fstat(self.fd), self.uid)
-                or self.metadata != validate_provider_metadata(os.stat(_PROVIDER, dir_fd=self.entry.fds[-1], follow_symlinks=False), self.uid)):
+        if self.metadata != _provider_snapshot(self.fd, self.entry.fds[-1], self.uid):
             raise _closed()
     def require_bootstrap(self, grant, flight, *, main_context):
         if grant is not self.grant or flight is not self.flight:

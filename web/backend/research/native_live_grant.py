@@ -44,6 +44,7 @@ APPROVED_PATHS=(
  'web/backend/research/phenomenon_plan.py','web/backend/research/plan_runtime.py',
  'web/backend/research/store.py','web/backend/research/authorization.py','web/backend/services/auth_store.py',
  'web/backend/services/auth_registration.py','web/backend/services/sqlite_utils.py','web/backend/research/source_supervisor.py', 'web/backend/research/source_sec_access.py',
+ 'web/backend/systemd_credential_metadata.py',
 )
 FIELDS=frozenset(('protocol','project_ref','state','grant_id','grant_epoch','principal_id',
  'auth_generation','principal_epoch','owner_gate_id','database_identity','owner_gate_identity',
@@ -214,7 +215,7 @@ def require_slot(scope,store,session,*,task_id,purpose,mode):
 
 
 def approved_code_digest():
-    """Fixed bounded 26-file closure; no caller paths or directory traversal."""
+    """Fixed bounded 27-file closure; no caller paths or directory traversal."""
     root=Path(__file__).resolve().parents[3];files={};total=0
     try:
         for relative in APPROVED_PATHS:

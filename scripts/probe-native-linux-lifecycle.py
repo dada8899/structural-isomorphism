@@ -21,7 +21,7 @@ import time
 from uuid import uuid4
 
 ROOT=Path(__file__).resolve().parents[1]
-BRANCH='refs/heads/codex/structure-native-linux-lifecycle-attempt5-20261024'
+BRANCH='refs/heads/codex/structure-native-linux-lifecycle-attempt6-20261024'
 REPOSITORY='dada8899/structural-isomorphism'
 USER=GROUP='structural-native-probe'
 UNIT='structural-web.service'
@@ -127,12 +127,113 @@ class Budget:
 
 
 def empty_receipt(head):
-    return {'protocol':'native-linux-lifecycle-probe-v2','first_failure':None,'head':head,'tree':None,'code_digest':None,'outcome':'FAIL','reason':'PRECHECK','elapsed_ms':0,
+    return {'protocol':'native-linux-lifecycle-probe-v3','first_failure':None,'credential_metadata':[],'head':head,'tree':None,'code_digest':None,'outcome':'FAIL','reason':'PRECHECK','elapsed_ms':0,
         'phases':{k:False for k in PHASES},'stock':{'typed_receipts':None,'creator_connections':None,'creator_fds':None,'clean_exit_inferred':False,'credential_invocation_changed':None},
         'instrumented':{'source_closed':None,'native_closed':None,'proof_taken':None,'component_woken':None,'component_ms':None,'same_deadline_ref':None,'within_main_deadline':None,'main_stop_to_closed_ms':None,'connections_born':None,'connections_creator_closed':None,'connections_property_closed':None,'fds_born':None,'fds_creator_closed':None,'fds_property_closed':None,'observer_failed':None},
         'financial':{'initial_empty':False,'normal_restart_unchanged':False,'pre_get_closed_unreserved':False,'held':None,'upper_booked':None,'settled':None,'native_unknown_held_verified':False},
         'resources':{'children_started':0,'children_reaped':0,'unit_invocations':0,'unit_exited':0,'cgroup_empty':False,'credential_mount_gone':False,'unit_removed':False,'directories_removed':False,'user_removed':False,'cleanup_uncertain':True,'forced':False},
         'scope':{'stock':'systemd-entry-finite-inference','instrumented':'original-entry-runpy-observation','counts':'instrumented-observed-subset-only','component':'active-slot-stopfd-select-only','provider':'not_run','public_source':'not_run'}}
+
+
+METADATA_SLOTS=('DIRECTORY',*IDS,PROVIDER_ID)
+METADATA_CHECKS=('DIR_OWNER','FILE_OWNER','MODE','ACL_SHAPE','ACL_MASK','DEFAULT_ACL','LINK','MOUNT_RO','MOUNT_ID','IDENTITY','CONSUMER','NAMESPACE','IO','PROCESS_GONE')
+METADATA_DECISIONS=('ROOT_ACL_RO','SERVICE_OWNER_RO','REJECT','UNKNOWN')
+
+
+def empty_metadata(phase):
+    return {'phase':phase,'location':'controller_pre_main_check','formal_pre_read':None,'native_pre_read':None,
+        'consumer':{'uid':None,'gid':None,'identity_matches':None,'instance_stable':None,'namespace_stable':None,'initial_maps':None},
+        'objects':[],'decision':'UNKNOWN','check':None}
+
+
+def empty_metadata_object(slot):
+    return {'slot':slot,'kind':None,'uid':None,'gid':None,'mode':None,'nlink':None,'held_named_same':None,
+        'access':None,'default':None,'readonly':None,'mount_matches':None,'decision':'UNKNOWN','check':None,'legacy_owner_only':None}
+
+
+def _receipt_metadata_policy():
+    # Decoder-side source is the fixed checkout, not a credential path or a
+    # pre-injected module. Fresh functions use the interpreter's builtin dict.
+    import builtins,types
+    path=ROOT/'web/backend/systemd_credential_metadata.py'
+    try:
+        fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+        try:
+            before=os.fstat(fd)
+            if not stat.S_ISREG(before.st_mode) or before.st_nlink!=1 or not 0<before.st_size<=65536:raise ProbeFailure('PRECHECK')
+            raw=os.read(fd,65537)
+            if len(raw)!=before.st_size or stat_key(os.fstat(fd))!=stat_key(before) or stat_key(path.lstat())!=stat_key(before):raise ProbeFailure('PRECHECK')
+        finally:os.close(fd)
+        trusted_builtins=vars(builtins)
+        namespace={'__name__':'systemd_credential_metadata','__file__':str(path),'__builtins__':trusted_builtins}
+        exec(compile(raw,str(path),'exec',dont_inherit=True),namespace)
+        predicate=namespace.get('validate_projection')
+        if type(predicate) is not types.FunctionType or predicate.__globals__ is not namespace or predicate.__builtins__ is not trusted_builtins or predicate.__closure__ is not None:raise ProbeFailure('PRECHECK')
+        return predicate
+    except Exception:raise ProbeFailure('PRECHECK') from None
+
+
+def _public_projection(item):
+    projection={key:item[key] for key in ('kind','uid','gid','mode','nlink','readonly','mount_matches')}
+    for key in ('access','default'):
+        value=item[key]
+        if value is None:raise ProbeFailure('PRECHECK')
+        projection[key]=(value['state'],tuple(tuple(row) for row in value['entries']),value['count'])
+    return projection
+
+
+def validate_credential_metadata(values):
+    if type(values) is not list or len(values)>4:raise ProbeFailure('PRECHECK')
+    phases=[];policy=None
+    for record in values:
+        if type(record) is not dict or set(record)!=set(empty_metadata('stock_base')):raise ProbeFailure('PRECHECK')
+        if record['phase'] not in PHASES or record['phase'] in phases or record['location']!='controller_pre_main_check' or record['formal_pre_read'] is not None or record['native_pre_read'] is not None:raise ProbeFailure('PRECHECK')
+        phases.append(record['phase'])
+        if record['decision'] not in METADATA_DECISIONS or record['check'] is not None and record['check'] not in METADATA_CHECKS:raise ProbeFailure('PRECHECK')
+        consumer=record['consumer']
+        if type(consumer) is not dict or set(consumer)!=set(empty_metadata('stock_base')['consumer']):raise ProbeFailure('PRECHECK')
+        for key,item in consumer.items():
+            if key in ('uid','gid'):
+                if item is not None and (type(item) is not int or not 0<=item<4294967295):raise ProbeFailure('PRECHECK')
+            elif item is not None and type(item) is not bool:raise ProbeFailure('PRECHECK')
+        objects=record['objects'];slots=[]
+        if type(objects) is not list or len(objects)>7:raise ProbeFailure('PRECHECK')
+        for item in objects:
+            if type(item) is not dict or set(item)!=set(empty_metadata_object('DIRECTORY')):raise ProbeFailure('PRECHECK')
+            if item['slot'] not in METADATA_SLOTS or item['slot'] in slots:raise ProbeFailure('PRECHECK')
+            slots.append(item['slot'])
+            if item['kind'] is not None and item['kind'] not in ('directory','regular','other'):raise ProbeFailure('PRECHECK')
+            for key,maximum in (('uid',4294967294),('gid',4294967294),('mode',4095),('nlink',4294967295)):
+                if item[key] is not None and (type(item[key]) is not int or not 0<=item[key]<=maximum):raise ProbeFailure('PRECHECK')
+            for key in ('held_named_same','readonly','mount_matches','legacy_owner_only'):
+                if item[key] is not None and type(item[key]) is not bool:raise ProbeFailure('PRECHECK')
+            if item['decision'] not in METADATA_DECISIONS or item['check'] is not None and item['check'] not in METADATA_CHECKS:raise ProbeFailure('PRECHECK')
+            for key in ('access','default'):
+                acl=item[key]
+                if acl is None:continue
+                if type(acl) is not dict or set(acl)!= {'state','entries','count'} or acl['state'] not in ('ABSENT','PRESENT','UNSUPPORTED','IO','INVALID','TOO_MANY') or type(acl['entries']) is not list or len(acl['entries'])>5:raise ProbeFailure('PRECHECK')
+                if acl['count'] is not None and (type(acl['count']) is not int or not 0<=acl['count']<=65535):raise ProbeFailure('PRECHECK')
+                for row in acl['entries']:
+                    if type(row) is not list or len(row)!=3 or any(type(v) is not int for v in row) or row[0] not in (1,2,4,8,16,32) or not 0<=row[1]<=4294967295 or not 0<=row[2]<=7:raise ProbeFailure('PRECHECK')
+                if acl['state']=='PRESENT':
+                    if acl['count']!=len(acl['entries']) or len({(r[0],r[1]) for r in acl['entries']})!=len(acl['entries']):raise ProbeFailure('PRECHECK')
+                elif acl['entries']:raise ProbeFailure('PRECHECK')
+                if acl['state']=='PRESENT' and (acl['count'] not in (3,5) or acl['entries']!=sorted(acl['entries'])):raise ProbeFailure('PRECHECK')
+                if acl['state']=='TOO_MANY' and (type(acl['count']) is not int or not 5<acl['count']<=65535):raise ProbeFailure('PRECHECK')
+                if acl['state'] in ('ABSENT','UNSUPPORTED','IO') and acl['count'] is not None:raise ProbeFailure('PRECHECK')
+                if any((row[0] in (1,4,16,32) and row[1]!=4294967295) or (row[0] in (2,8) and row[1]==4294967295) for row in acl['entries']):raise ProbeFailure('PRECHECK')
+        for item in objects:
+            if item['decision'] not in ('ROOT_ACL_RO','SERVICE_OWNER_RO'):continue
+            if item['check'] is not None or item['held_named_same'] is not True:raise ProbeFailure('PRECHECK')
+            if policy is None:policy=_receipt_metadata_policy()
+            role='directory' if item['slot']=='DIRECTORY' else 'file'
+            try:selected=policy(_public_projection(item),role,consumer['uid'],consumer['gid'])
+            except (ValueError,TypeError,KeyError):raise ProbeFailure('PRECHECK') from None
+            legacy=(item['uid']==consumer['uid'] and item['mode']==(0o500 if role=='directory' else 0o400) and (role=='directory' or item['kind']=='regular' and item['nlink']==1))
+            if selected!=item['decision'] or item['legacy_owner_only'] is not legacy:raise ProbeFailure('PRECHECK')
+        if record['decision'] in ('ROOT_ACL_RO','SERVICE_OWNER_RO'):
+            if slots!=list(METADATA_SLOTS[:-1] if record['phase']=='stock_base' else METADATA_SLOTS):raise ProbeFailure('PRECHECK')
+            if consumer['uid'] is None or consumer['uid']==0 or consumer['gid'] is None or record['check'] is not None or not objects or slots[0]!='DIRECTORY' or any(v['decision']!=record['decision'] or v['check'] is not None for v in objects) or not all(v is True for k,v in consumer.items() if k not in ('uid','gid')) or any(v['readonly'] is not True or v['held_named_same'] is not True or v['mount_matches'] is not True or v['access'] is None or v['default'] is None or v['kind']!=('directory' if v['slot']=='DIRECTORY' else 'regular') for v in objects):raise ProbeFailure('PRECHECK')
 
 
 def validate_receipt(value):
@@ -158,6 +259,7 @@ def validate_receipt(value):
             if item is not None and (type(item) is not int or not low<=item<=high):raise ProbeFailure('PRECHECK')
         if failure['command'] is None and failure['command_exit'] is not None or failure['exception'] is None and failure['errno'] is not None or failure['account_check'] is None and failure['account_mismatch_mask'] is not None:raise ProbeFailure('PRECHECK')
         if value['outcome']=='PASS':raise ProbeFailure('PRECHECK')
+    validate_credential_metadata(value['credential_metadata'])
     bools={'source_closed','native_closed','proof_taken','component_woken','same_deadline_ref','within_main_deadline','observer_failed'}
     for key,item in value['instrumented'].items():
         if key in bools:
@@ -176,6 +278,7 @@ def validate_receipt(value):
             if type(item) is not int or not 0<=item<=1000:raise ProbeFailure('PRECHECK')
         elif type(item) is not bool:raise ProbeFailure('PRECHECK')
     if value['outcome']=='PASS':
+        if {record['phase'] for record in value['credential_metadata']}!=set(PHASES) or any(record['decision'] not in ('ROOT_ACL_RO','SERVICE_OWNER_RO') for record in value['credential_metadata']):raise ProbeFailure('PRECHECK')
         required=('cgroup_empty','credential_mount_gone','unit_removed','directories_removed','user_removed')
         if (not all(value['phases'].values()) or value['reason']!='OK' or value['resources']['cleanup_uncertain'] or value['resources']['forced']
                 or not all(value['resources'][k] for k in required) or value['resources']['children_started']!=value['resources']['children_reaped']
@@ -189,7 +292,7 @@ def validate_receipt(value):
 
 class Controller:
     def __init__(self,meta,budget,python):
-        self.meta,self.budget,self.python=meta,budget,python;self.result=empty_receipt(meta['head']);self.children=[];self.paths=[];self.user=False;self.group=False;self.unit_written=False;self.invocations=[];self.server=None;self.uid=self.gid=None;self.password=None;self.rpc_buffer=b'';self.uncertain=False;self.attempts={};self.group_attempted=False;self.user_attempted=False;self.group_record=None;self.user_record=None;self._first_reason=None;self._phase='preflight';self._where={'operation':'unknown','command':None,'command_exit':None,'account_check':None,'account_mismatch_mask':None}
+        self.meta,self.budget,self.python=meta,budget,python;self.result=empty_receipt(meta['head']);self.children=[];self.paths=[];self.user=False;self.group=False;self.unit_written=False;self.invocations=[];self.server=None;self.uid=self.gid=None;self.password=None;self.rpc_buffer=b'';self.uncertain=False;self.attempts={};self.group_attempted=False;self.user_attempted=False;self.group_record=None;self.user_record=None;self._first_reason=None;self._phase='preflight';self._metadata_module=None;self._metadata_uncertain=[];self._where={'operation':'unknown','command':None,'command_exit':None,'account_check':None,'account_mismatch_mask':None}
     def _mark(self,operation,*,command=None,command_exit=None,account_check=None,account_mismatch_mask=None):
         self._where=dict(operation=operation,command=command,command_exit=command_exit,account_check=account_check,account_mismatch_mask=account_mismatch_mask)
     def _capture(self,error=None):
@@ -474,18 +577,137 @@ class Controller:
         if any(line.split()[0]!='lo' for line in routes if line.strip()):self._reject('UNIT')
         if any(line.split()[-1]!='lo' for line in Path('/proc/'+str(pid)+'/net/ipv6_route').read_text().splitlines()):self._reject('UNIT')
         self._mark('credential_metadata')
-        directory=Path('/proc/'+str(pid)+'/root/run/credentials')/UNIT
-        if (directory.stat().st_uid,stat.S_IMODE(directory.stat().st_mode))!=(self.uid,0o500):self._reject('UNIT')
-        for name in (*IDS,*((PROVIDER_ID,) if (SECRETS/PROVIDER_ID).exists() and any('LoadCredential='+PROVIDER_ID+':' in line for line in UNIT_FILE.read_text().splitlines()) else ())):
-            info=(directory/name).lstat()
-            if not stat.S_ISREG(info.st_mode) or (info.st_uid,stat.S_IMODE(info.st_mode),info.st_nlink)!=(self.uid,0o400,1):self._reject('UNIT')
-        self.invocations[-1]=(*self.invocations[-1],(directory.stat().st_dev,directory.stat().st_ino))
+        directory_identity=self._credential_metadata(pid,info['InvocationID'])
+        self.invocations[-1]=(*self.invocations[-1],directory_identity)
         args=['/usr/bin/nsenter','--net=/proc/'+str(pid)+'/ns/net',*self.as_user([self.python,'-I','-B',str(DEPOT/FIXTURE),'serve'])]
         self._mark('helper_start',command='helper')
         self.server=self._spawn(args,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','HOME':str(WORK)},start_new_session=True)
         self._mark('helper_ready',command='helper')
         self.server.stdin.write(canonical({'password':self.password,'deadline':self.budget.deadline-30})+b'\n');self.server.stdin.flush();self.rpc_buffer=b''
         if self.read_line()!=b'READY':self._reject('HTTP')
+    def _metadata_close(self,descriptors):
+        failed=[]
+        for fd in reversed(descriptors):
+            try:os.close(fd)
+            except BaseException:failed.append(fd)
+        if failed:
+            self._metadata_uncertain.append(tuple(failed));self.uncertain=True;self._reject('CLEANUP')
+    def _metadata_read(self,path,limit):
+        descriptors=[]
+        try:
+            fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC);descriptors.append(fd)
+            value=os.read(fd,limit+1)
+            if not 0<len(value)<=limit:self._reject('UNIT')
+            return value
+        finally:self._metadata_close(descriptors)
+    def _metadata_helper(self):
+        import builtins,importlib.util,types
+        path=DEPOT/'web/backend/systemd_credential_metadata.py'
+        before=path.lstat()
+        if not stat.S_ISREG(before.st_mode) or before.st_uid!=0 or before.st_mode&0o022 or before.st_nlink!=1 or not 0<before.st_size<=65536:self._reject('SOURCE')
+        raw=self._metadata_read(path,65536)
+        if stat_key(path.lstat())!=stat_key(before):self._reject('SOURCE')
+        if hashlib.sha256(raw).digest()!=hashlib.sha256((ROOT/'web/backend/systemd_credential_metadata.py').read_bytes()).digest():self._reject('SOURCE')
+        if self._metadata_module is None:
+            if 'systemd_credential_metadata' in sys.modules:self._reject('SOURCE')
+            spec=importlib.util.spec_from_file_location('systemd_credential_metadata',path)
+            module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module
+            exec(compile(raw,str(path),'exec',dont_inherit=True),vars(module));self._metadata_module=module
+        module=self._metadata_module
+        if sys.modules.get('systemd_credential_metadata') is not module or module.__file__!=str(path):self._reject('SOURCE')
+        trusted_builtins=vars(builtins)
+        if vars(module).get('__builtins__') is not trusted_builtins:self._reject('SOURCE')
+        expected={'__name__':module.__name__,'__file__':str(path),'__builtins__':trusted_builtins};exec(compile(raw,str(path),'exec',dont_inherit=True),expected)
+        names={name for name in expected if not name.startswith('__')}
+        if {name for name in vars(module) if not name.startswith('__')}!=names:self._reject('SOURCE')
+        for name in names:
+            actual,original=vars(module)[name],expected[name]
+            if type(original) is types.FunctionType:
+                if type(actual) is not types.FunctionType or actual.__globals__ is not vars(module) or actual.__module__!=module.__name__ or actual.__code__!=original.__code__ or actual.__defaults__!=original.__defaults__ or actual.__kwdefaults__!=original.__kwdefaults__ or actual.__builtins__ is not trusted_builtins or actual.__closure__ is not None:self._reject('SOURCE')
+            elif type(actual) is not type(original) or (actual is not original if isinstance(original,types.ModuleType) else actual!=original):self._reject('SOURCE')
+        return module
+    def _consumer_metadata(self,pid,module):
+        proc=Path('/proc')/str(pid)
+        user=(proc/'ns/user').stat();mount=(proc/'ns/mnt').stat()
+        namespaces=(user.st_dev,user.st_ino),(mount.st_dev,mount.st_ino)
+        value=module.parse_consumer(self._metadata_read(proc/'status',65536),self._metadata_read(proc/'uid_map',65536),self._metadata_read(proc/'gid_map',65536),self._metadata_read(proc/'stat',65536),pid,*namespaces)
+        user=(proc/'ns/user').stat();mount=(proc/'ns/mnt').stat()
+        if namespaces!=((user.st_dev,user.st_ino),(mount.st_dev,mount.st_ino)) or value['uid']!=self.uid or value['gid']!=self.gid:raise ValueError('CONSUMER')
+        return value
+    def _metadata_capture(self,fd,pid,module,consumer):
+        if self._consumer_metadata(pid,module)!=consumer:raise ValueError('CONSUMER')
+        before=stat_key(os.fstat(fd))
+        snapshot=module.capture_fd(fd,self._metadata_read('/proc/self/fdinfo/'+str(fd),4096),self._metadata_read(Path('/proc')/str(pid)/'mountinfo',262144))
+        if stat_key(os.fstat(fd))!=before:raise ValueError('IDENTITY')
+        if self._consumer_metadata(pid,module)!=consumer:raise ValueError('CONSUMER')
+        return snapshot
+    def _credential_metadata(self,pid,invocation):
+        # Controller observes after unit start; Formal independently gates reads.
+        if any(v['phase']==self._phase for v in self.result['credential_metadata']):self._reject('UNIT')
+        record=empty_metadata(self._phase);self.result['credential_metadata'].append(record)
+        descriptors=[];module=None;directory_snapshot=None;shape=None;fingerprints=[];item=None
+        try:
+            module=self._metadata_helper();before=self._consumer_metadata(pid,module)
+            record['consumer'].update(uid=before['uid'],gid=before['gid'],identity_matches=True,initial_maps=True)
+            directory=Path('/proc')/str(pid)/'root/run/credentials'/UNIT
+            # The target root magic-link is the already-bound unit namespace;
+            # each actual credential component below it is opened nofollow.
+            flags=os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC
+            parent=os.open(Path('/proc')/str(pid)/'root',os.O_RDONLY|os.O_DIRECTORY|os.O_CLOEXEC);descriptors.append(parent)
+            module.validate_snapshot(self._metadata_capture(parent,pid,module,before),'ancestor',self.uid,self.gid)
+            for component in ('run','credentials',UNIT):
+                child=os.open(component,flags,dir_fd=parent);descriptors.append(child);parent=child
+                if component!=UNIT:
+                    snapshot=self._metadata_capture(child,pid,module,before)
+                    module.validate_snapshot(snapshot,'ancestor',self.uid,self.gid)
+            directory_fd=parent
+            for index,component in enumerate(('run','credentials',UNIT),1):
+                named=os.open(component,flags,dir_fd=descriptors[index-1]);descriptors.append(named)
+                if not module.same_snapshot(self._metadata_capture(descriptors[index],pid,module,before),self._metadata_capture(named,pid,module,before)):raise ValueError('IDENTITY')
+            ids=(*IDS,*((PROVIDER_ID,) if (SECRETS/PROVIDER_ID).exists() and any('LoadCredential='+PROVIDER_ID+':' in line for line in UNIT_FILE.read_text().splitlines()) else ()))
+            for slot in ('DIRECTORY',*ids):
+                item=empty_metadata_object(slot);record['objects'].append(item)
+                role='directory' if slot=='DIRECTORY' else 'file'
+                fd=directory_fd if slot=='DIRECTORY' else os.open(slot,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC,dir_fd=directory_fd)
+                if slot!='DIRECTORY':descriptors.append(fd)
+                info=os.fstat(fd)
+                item.update(kind='directory' if stat.S_ISDIR(info.st_mode) else 'regular' if stat.S_ISREG(info.st_mode) else 'other',uid=info.st_uid,gid=info.st_gid,mode=stat.S_IMODE(info.st_mode),nlink=info.st_nlink,legacy_owner_only=(info.st_uid==self.uid and stat.S_IMODE(info.st_mode)==(0o500 if role=='directory' else 0o400) and (role=='directory' or stat.S_ISREG(info.st_mode) and info.st_nlink==1)))
+                snapshot=self._metadata_capture(fd,pid,module,before)
+                for key in ('access','default'):
+                    value=snapshot[key];item[key]={'state':value[0],'entries':[list(row) for row in value[1]],'count':value[2]}
+                item['readonly']=snapshot['readonly']
+                named=os.open(UNIT if role=='directory' else slot,flags if role=='directory' else os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC,dir_fd=descriptors[2] if role=='directory' else directory_fd);descriptors.append(named)
+                named_snapshot=self._metadata_capture(named,pid,module,before)
+                item['held_named_same']=module.same_snapshot(snapshot,named_snapshot)
+                if not item['held_named_same']:raise ValueError('IDENTITY')
+                # Use the unit consumer's view, never host/self mountinfo.
+                module.mount_matches(self._metadata_read(Path('/proc')/str(pid)/'mountinfo',262144),snapshot['mount_id']);item['mount_matches']=True
+                selected=module.validate_snapshot(snapshot,role,self.uid,self.gid)
+                if shape is None:shape=selected;directory_snapshot=snapshot
+                if selected!=shape or snapshot['mount_id']!=directory_snapshot['mount_id']:raise ValueError('MOUNT_ID')
+                item['decision']=selected;fingerprints.append((fd,UNIT if role=='directory' else slot,descriptors[2] if role=='directory' else directory_fd,snapshot,item,role))
+            for fd,name,parent,expected,item,role in fingerprints:
+                current=self._metadata_capture(fd,pid,module,before)
+                named=os.open(name,flags if role=='directory' else os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC,dir_fd=parent);descriptors.append(named)
+                named_snapshot=self._metadata_capture(named,pid,module,before)
+                if not module.same_snapshot(expected,current) or not module.same_snapshot(current,named_snapshot):raise ValueError('IDENTITY')
+                module.mount_matches(self._metadata_read(Path('/proc')/str(pid)/'mountinfo',262144),current['mount_id'])
+            for index,component in enumerate(('run','credentials',UNIT),1):
+                named=os.open(component,flags,dir_fd=descriptors[index-1]);descriptors.append(named)
+                if not module.same_snapshot(self._metadata_capture(descriptors[index],pid,module,before),self._metadata_capture(named,pid,module,before)):raise ValueError('IDENTITY')
+            after=self._consumer_metadata(pid,module)
+            record['consumer']['namespace_stable']=before['user_ns']==after['user_ns'] and before['mount_ns']==after['mount_ns']
+            current=self.unit_info();self._mark('credential_metadata')
+            record['consumer']['instance_stable']=before==after and current['MainPID']==str(pid) and current['InvocationID']==invocation
+            if not all(v is True for k,v in record['consumer'].items() if k not in ('uid','gid')):raise ValueError('CONSUMER')
+            record['decision']=shape
+            return directory_snapshot['dev'],directory_snapshot['ino']
+        except BaseException as error:
+            check='PROCESS_GONE' if isinstance(error,FileNotFoundError) else error.args[0] if type(error) is ValueError and len(error.args)==1 and error.args[0] in METADATA_CHECKS else 'IO'
+            record['check']=check;record['decision']='UNKNOWN' if check in ('PROCESS_GONE','IO') else 'REJECT'
+            if item is not None:item.update(check=check,decision=record['decision'])
+            self._mark('credential_metadata');self._reject('UNIT')
+        finally:self._metadata_close(descriptors)
     def read_line(self):
         while b'\n' not in self.rpc_buffer:
             timeout=self.budget.require(new=True,ceiling=10)
