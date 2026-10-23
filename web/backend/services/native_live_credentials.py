@@ -77,18 +77,23 @@ def _c():
 
 
 def _formal_metadata_entry():
+    import builtins
     # The sole helper is the one attested before Formal read its five files.
     # Never import a second package spelling or accept a caller-supplied policy.
     path = _ROOT / 'scripts/run-formal-main.py'
     module = sys.modules.get('__main__')
     if (type(module) is not types.ModuleType or getattr(module, '__file__', None) != str(path)
             or path.is_symlink() or path != path.resolve()):raise _closed()
+    trusted_builtins = vars(builtins)
+    binding = vars(module).get('__builtins__')
+    if binding is not trusted_builtins and binding is not builtins:raise _closed()
     codes = {c.co_name:c for c in compile(path.read_bytes(), str(path), 'exec', dont_inherit=True).co_consts
              if isinstance(c, types.CodeType)}
     for name in ('_require_metadata_helper', '_capture_metadata', '_capture_consumer', '_metadata_pair'):
         function = getattr(module, name, None)
         if (type(function) is not types.FunctionType or function.__globals__ is not vars(module)
-                or function.__module__ != '__main__' or function.__code__ != codes.get(name)):raise _closed()
+                or function.__module__ != '__main__' or function.__code__ != codes.get(name)
+                or function.__builtins__ is not trusted_builtins or function.__closure__ is not None):raise _closed()
     helper = module._require_metadata_helper()
     if helper is not sys.modules.get('systemd_credential_metadata'):raise _closed()
     return module
@@ -100,7 +105,7 @@ def _directory_snapshots(descriptors, uid):
     for i, fd in enumerate(descriptors):
         parent, name = (None, '/') if i == 0 else (descriptors[i-1], _COMPONENTS[i-1])
         snapshot, _ = entry._metadata_pair(parent, name, fd, uid, 'directory' if i == 3 else 'ancestor')
-        identities.append(tuple(snapshot[key] for key in entry._require_metadata_helper().SNAPSHOT_FIELDS))
+        identities.append(entry._require_metadata_helper().persistent_identity(snapshot, 'directory' if i == 3 else 'ancestor'))
     return tuple(identities)
 
 

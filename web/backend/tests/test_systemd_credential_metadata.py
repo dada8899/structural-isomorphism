@@ -333,3 +333,243 @@ def test_current_thread_collection_keeps_process_binding_without_persisting_tid(
             value = entry._capture_consumer();assert value['pid']==pid and set(value)==set(metadata.CONSUMER_FIELDS)
             assert 'tid' not in value and 'thread_id' not in value
     assert '/proc/thread-self/status' in seen and '/proc/self/stat' in seen
+
+
+def _canonical_helper_input(monkeypatch, entry):
+    import sys
+    import types
+    path = ROOT/'web/backend/systemd_credential_metadata.py';raw = path.read_bytes()
+    module = types.ModuleType('systemd_credential_metadata');module.__file__ = str(path)
+    exec(compile(raw, str(path), 'exec', dont_inherit=True), vars(module))
+    entry._METADATA_HELPER = module
+    monkeypatch.setattr(entry, '_source_bytes', lambda path:raw)
+    monkeypatch.setitem(sys.modules, module.__name__, module)
+    return module, raw
+
+
+def _different_function_builtins(module, name):
+    import builtins
+    import types
+    original = getattr(module, name);trusted = module.__builtins__
+    altered = dict(vars(builtins));altered['bool'] = lambda value:True
+    module.__builtins__ = altered
+    replacement = types.FunctionType(original.__code__, vars(module), original.__name__, original.__defaults__)
+    replacement.__kwdefaults__ = original.__kwdefaults__
+    module.__builtins__ = trusted;setattr(module, name, replacement)
+    assert replacement.__code__ == original.__code__ and replacement.__globals__ is original.__globals__
+    assert replacement.__builtins__ is altered and module.__builtins__ is trusted
+    return replacement
+
+
+def test_repair_function_actual_builtins_refused_before_collector(monkeypatch):
+    path = ROOT/'scripts/run-formal-main.py'
+    spec = importlib.util.spec_from_file_location('repair_formal_builtins', path);entry = importlib.util.module_from_spec(spec);spec.loader.exec_module(entry)
+    module, _ = _canonical_helper_input(monkeypatch, entry)
+    assert entry._require_metadata_helper() is module
+    _different_function_builtins(module, 'capture_fd')
+    with pytest.raises(entry.EntryFailure, match='CODE_IDENTITY_INVALID'):entry._require_metadata_helper()
+
+
+def _ancestor_chain_input(monkeypatch, tmp_path):
+    from services import native_live_credentials as native
+    ancestor = tmp_path/'owned-ancestor';ancestor.mkdir();info = ancestor.stat()
+    before = snapshot('directory');before.update(dev=info.st_dev, ino=info.st_ino, uid=0, gid=0,
+        mode=stat.S_IFDIR|0o755, nlink=info.st_nlink, size=info.st_size, mtime=info.st_mtime_ns, ctime=info.st_ctime_ns,
+        access=('ABSENT', (), None), readonly=False, mount_matches=False)
+    states = [dict(before) for _ in range(3)] + [snapshot('directory')]
+    entry = SimpleNamespace(_require_metadata_helper=lambda:metadata)
+    entry._metadata_pair = lambda parent,name,fd,uid,role:(states[fd], metadata.validate_snapshot(states[fd], role, UID, GID))
+    monkeypatch.setattr(native, '_formal_metadata_entry', lambda:entry)
+    monkeypatch.setattr(native.os, 'get_inheritable', lambda fd:False)
+    return native, ancestor, states
+
+
+def test_repair_ancestor_unrelated_add_remove_preserves_credential_chain(tmp_path, monkeypatch):
+    native, ancestor, states = _ancestor_chain_input(monkeypatch, tmp_path)
+    original = native._directory_snapshots((0, 1, 2, 3), UID)
+    for create in (True, False):
+        if create:(ancestor/'unrelated.pid').write_bytes(b'owned synthetic data');(ancestor/'unrelated-child').mkdir()
+        else:(ancestor/'unrelated.pid').unlink();(ancestor/'unrelated-child').rmdir()
+        info = ancestor.stat();states[1] = dict(states[1], nlink=info.st_nlink, size=info.st_size, mtime=info.st_mtime_ns, ctime=info.st_ctime_ns)
+        native._check_directories((0, 1, 2, 3), original, UID)
+
+
+def _complete_policy_receipt(probe, shape='ROOT_ACL_RO'):
+    value = probe.empty_receipt('a'*40);value.update(outcome='PASS', reason='OK')
+    value['phases'] = {phase:True for phase in probe.PHASES}
+    for key in ('initial_empty', 'normal_restart_unchanged', 'pre_get_closed_unreserved'):value['financial'][key] = True
+    value['resources'].update(cgroup_empty=True, credential_mount_gone=True, unit_removed=True, directories_removed=True, user_removed=True, cleanup_uncertain=False)
+    for key in ('source_closed', 'native_closed', 'proof_taken', 'component_woken', 'same_deadline_ref', 'within_main_deadline'):value['instrumented'][key] = True
+    value['instrumented']['observer_failed'] = False
+    for phase in probe.PHASES:
+        record = probe.empty_metadata(phase);record['decision'] = shape
+        record['consumer'] = dict(uid=UID, gid=GID, identity_matches=True, instance_stable=True, namespace_stable=True, initial_maps=True)
+        for slot in probe.METADATA_SLOTS[:-1] if phase=='stock_base' else probe.METADATA_SLOTS:
+            role = 'directory' if slot=='DIRECTORY' else 'file';data = snapshot(role, shape);item = probe.empty_metadata_object(slot)
+            item.update(kind='directory' if role=='directory' else 'regular', uid=data['uid'], gid=data['gid'], mode=stat.S_IMODE(data['mode']), nlink=data['nlink'], held_named_same=True, readonly=True, mount_matches=True, decision=shape, legacy_owner_only=shape=='SERVICE_OWNER_RO')
+            for key in ('access', 'default'):
+                acl = data[key];item[key] = dict(state=acl[0], entries=[list(row) for row in acl[1]], count=acl[2])
+            record['objects'].append(item)
+        value['credential_metadata'].append(record)
+    return value
+
+
+@pytest.mark.parametrize('fault', ['wrong_owner', 'writable_mode', 'no_acl', 'default_acl', 'wrong_acl_user'])
+def test_repair_v3_contradictory_success_projection_rejected(fault):
+    path = ROOT/'scripts/probe-native-linux-lifecycle.py'
+    spec = importlib.util.spec_from_file_location('repair_projection_probe', path);probe = importlib.util.module_from_spec(spec);spec.loader.exec_module(probe)
+    value = _complete_policy_receipt(probe);leaf = value['credential_metadata'][0]['objects'][1]
+    if fault=='wrong_owner':leaf['uid'] = 9876
+    elif fault=='writable_mode':leaf['mode'] = 0o666
+    elif fault=='no_acl':leaf['access'] = dict(state='ABSENT', entries=[], count=None)
+    elif fault=='default_acl':leaf['default'] = copy.deepcopy(leaf['access'])
+    else:leaf['access']['entries'][1][1] = 9876
+    with pytest.raises(probe.ProbeFailure):probe.validate_receipt(value)
+
+
+def test_function_builtins_controller_seam_rejects_same_code_mapping(monkeypatch, tmp_path):
+    import sys
+    import types
+    path = ROOT/'scripts/probe-native-linux-lifecycle.py'
+    spec = importlib.util.spec_from_file_location('repair_controller_builtins', path);probe = importlib.util.module_from_spec(spec);spec.loader.exec_module(probe)
+    source = ROOT/'web/backend/systemd_credential_metadata.py';raw = source.read_bytes()
+    monkeypatch.setattr(probe, 'DEPOT', tmp_path/'owned-source-input')
+    frozen = probe.DEPOT/'web/backend/systemd_credential_metadata.py';frozen.parent.mkdir(parents=True);frozen.write_bytes(raw)
+    module = types.ModuleType('systemd_credential_metadata');module.__file__ = str(frozen)
+    exec(compile(raw, str(frozen), 'exec', dont_inherit=True), vars(module))
+    controller = probe.Controller({'head':'a'*40}, None, None);controller._metadata_module = module
+    monkeypatch.setitem(sys.modules, module.__name__, module)
+    native_lstat = Path.lstat
+    def source_info(path, *a, **kw):
+        info = native_lstat(path, *a, **kw)
+        if path != frozen:return info
+        # Finite source-owner collector input; no root-owned FS is simulated as
+        # evidence. This isolates the subsequent function identity predicate.
+        return SimpleNamespace(st_uid=0, **{name:getattr(info, name) for name in ('st_dev','st_ino','st_gid','st_mode','st_nlink','st_size','st_mtime_ns','st_ctime_ns')})
+    monkeypatch.setattr(Path, 'lstat', source_info)
+    assert controller._metadata_helper() is module
+    _different_function_builtins(module, 'capture_fd')
+    with pytest.raises(probe.ProbeFailure):controller._metadata_helper()
+
+
+def test_function_builtins_native_to_formal_seam_rejects_before_capture(monkeypatch):
+    import builtins
+    import sys
+    import types
+    from services import native_live_credentials as native
+    path = ROOT/'scripts/run-formal-main.py';raw = path.read_bytes()
+    entry = types.ModuleType('__main__');entry.__file__ = str(path)
+    definitions = ast.parse(raw)
+    assert isinstance(definitions.body[-1], ast.If) and ast.unparse(definitions.body[-1].test) == "__name__ == '__main__'"
+    definitions.body.pop()  # Keep function code/lineno; never invoke Formal main.
+    exec(compile(definitions, str(path), 'exec', dont_inherit=True), vars(entry))
+    _canonical_helper_input(monkeypatch, entry)
+    monkeypatch.setitem(sys.modules, '__main__', entry)
+    # __main__ may expose the interpreter module rather than its same dict;
+    # functions still must hold that interpreter's actual builtin dictionary.
+    entry.__builtins__ = builtins
+    assert native._formal_metadata_entry() is entry
+    _different_function_builtins(entry, '_capture_metadata')
+    with pytest.raises(Exception) as rejected:native._formal_metadata_entry()
+    assert rejected.value.code == 'FUNDING_CLOSED'
+
+
+def test_function_builtins_formal_to_native_seam_rejects_before_publish(monkeypatch):
+    import sys
+    import types
+    from services import native_live_credentials as original
+    path = ROOT/'scripts/run-formal-main.py'
+    spec = importlib.util.spec_from_file_location('repair_formal_native_seam', path);entry = importlib.util.module_from_spec(spec);spec.loader.exec_module(entry)
+    path = ROOT/'web/backend/services/native_live_credentials.py'
+    module = types.ModuleType('services.native_live_credentials');module.__file__ = str(path)
+    exec(compile(path.read_bytes(), str(path), 'exec', dont_inherit=True), vars(module))
+    monkeypatch.setitem(sys.modules, module.__name__, module)
+    entry._validate_entry_module(module, ROOT)
+    _different_function_builtins(module, '_publish_entry_directory')
+    with pytest.raises(entry.EntryFailure):entry._validate_entry_module(module, ROOT)
+    assert not module._ENTRIES and not module._KEYS and not original._ENTRIES and not original._KEYS
+
+
+@pytest.mark.parametrize('field', ['dev','ino','uid','gid','mode','access','default','readonly','mount_id','mount_matches'])
+def test_ancestor_security_projection_drift_still_refused(tmp_path, monkeypatch, field):
+    native, _, states = _ancestor_chain_input(monkeypatch, tmp_path)
+    original = native._directory_snapshots((0,1,2,3), UID)
+    changed = dict(states[1])
+    if field == 'access':changed[field] = ('PRESENT', ((1, metadata.UNDEFINED, 7), (4, metadata.UNDEFINED, 5), (32, metadata.UNDEFINED, 5)), 3)
+    elif field == 'default':changed[field] = ('UNSUPPORTED', (), None)
+    elif field in ('readonly','mount_matches'):changed[field] = not changed[field]
+    elif field == 'mode':changed[field] = stat.S_IFDIR|0o700
+    else:changed[field] += 1
+    states[1] = changed
+    with pytest.raises(Exception):native._check_directories((0,1,2,3), original, UID)
+
+
+@pytest.mark.parametrize('field', ['size','mtime','ctime','nlink'])
+def test_final_credential_directory_stays_full_snapshot(tmp_path, monkeypatch, field):
+    native, _, states = _ancestor_chain_input(monkeypatch, tmp_path)
+    original = native._directory_snapshots((0,1,2,3), UID)
+    states[3] = dict(states[3]);states[3][field] += 1
+    with pytest.raises(Exception):native._check_directories((0,1,2,3), original, UID)
+
+
+@pytest.mark.parametrize('shape', metadata.SHAPES)
+def test_public_projection_and_complete_receipt_use_the_same_policy(shape):
+    path = ROOT/'scripts/probe-native-linux-lifecycle.py'
+    spec = importlib.util.spec_from_file_location('repair_shared_projection_probe', path);probe = importlib.util.module_from_spec(spec);spec.loader.exec_module(probe)
+    value = _complete_policy_receipt(probe, shape);raw = probe.validate_receipt(value)
+    assert probe.validate_receipt(probe.strict_json(raw)) == raw
+    for role in ('directory','file'):
+        current = snapshot(role, shape);projection = metadata.snapshot_projection(current)
+        assert metadata.validate_projection(projection, role, UID, GID) == metadata.validate_snapshot(current, role, UID, GID) == shape
+        assert set(projection) == set(metadata.PROJECTION_FIELDS)
+        assert not {'dev','ino','size','mtime','ctime','mount_id'}.intersection(projection)
+
+
+@pytest.mark.parametrize('field,value', [('gid',9876),('mode',0o500),('nlink',2),('readonly',False),('mount_matches',False),('held_named_same',False),('legacy_owner_only',False)])
+def test_owner_fallback_receipt_requires_all_success_facts(field, value):
+    path = ROOT/'scripts/probe-native-linux-lifecycle.py'
+    spec = importlib.util.spec_from_file_location('repair_owner_projection_probe', path);probe = importlib.util.module_from_spec(spec);spec.loader.exec_module(probe)
+    receipt = _complete_policy_receipt(probe, 'SERVICE_OWNER_RO');receipt['credential_metadata'][0]['objects'][1][field] = value
+    with pytest.raises(probe.ProbeFailure):probe.validate_receipt(receipt)
+
+
+def test_public_projection_fixed_source_ignores_preinjected_module(monkeypatch):
+    import sys
+    import types
+    path = ROOT/'scripts/probe-native-linux-lifecycle.py'
+    spec = importlib.util.spec_from_file_location('repair_projection_injection_probe', path);probe = importlib.util.module_from_spec(spec);spec.loader.exec_module(probe)
+    fake = types.ModuleType('systemd_credential_metadata');fake.validate_projection = lambda *a:'ROOT_ACL_RO'
+    monkeypatch.setitem(sys.modules, fake.__name__, fake)
+    receipt = _complete_policy_receipt(probe);receipt['credential_metadata'][0]['objects'][1]['mode'] = 0o666
+    with pytest.raises(probe.ProbeFailure):probe.validate_receipt(receipt)
+
+
+def test_capture_atomicity_still_observes_full_stat_change(monkeypatch, tmp_path):
+    path = tmp_path/'owned-metadata-only';path.write_bytes(b'owned synthetic bytes')
+    fd = os.open(path, os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC);original = os.fstat;calls = 0
+    def changed(descriptor):
+        nonlocal calls
+        info = original(descriptor)
+        if descriptor != fd:return info
+        calls += 1
+        data = {name:getattr(info,name) for name in ('st_dev','st_ino','st_uid','st_gid','st_mode','st_nlink','st_size','st_mtime_ns','st_ctime_ns')}
+        if calls == 2:data['st_mtime_ns'] += 1
+        return SimpleNamespace(**data)
+    try:
+        with monkeypatch.context() as patch:
+            patch.setattr(metadata.os, 'fstat', changed)
+            with pytest.raises(ValueError, match='IDENTITY'):metadata.capture_fd(fd,b'mnt_id: 23\n',mountinfo())
+    finally:os.close(fd)
+
+
+def test_public_projection_source_close_failure_cannot_serialize_pass(monkeypatch):
+    path = ROOT/'scripts/probe-native-linux-lifecycle.py'
+    spec = importlib.util.spec_from_file_location('repair_projection_close_probe', path);probe = importlib.util.module_from_spec(spec);spec.loader.exec_module(probe)
+    value = _complete_policy_receipt(probe);before = probe.canonical(value);closed = [];native_close = os.close
+    def close_after(descriptor):
+        native_close(descriptor);closed.append(descriptor);raise OSError('owned code-reader close uncertainty')
+    with monkeypatch.context() as patch:
+        patch.setattr(probe.os, 'close', close_after)
+        with pytest.raises(probe.ProbeFailure):probe.validate_receipt(value)
+    assert len(closed) == 1 and probe.canonical(value) == before
+    with pytest.raises(OSError):os.fstat(closed[0])

@@ -151,9 +151,40 @@ def empty_metadata_object(slot):
         'access':None,'default':None,'readonly':None,'mount_matches':None,'decision':'UNKNOWN','check':None,'legacy_owner_only':None}
 
 
+def _receipt_metadata_policy():
+    # Decoder-side source is the fixed checkout, not a credential path or a
+    # pre-injected module. Fresh functions use the interpreter's builtin dict.
+    import builtins,types
+    path=ROOT/'web/backend/systemd_credential_metadata.py'
+    try:
+        fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+        try:
+            before=os.fstat(fd)
+            if not stat.S_ISREG(before.st_mode) or before.st_nlink!=1 or not 0<before.st_size<=65536:raise ProbeFailure('PRECHECK')
+            raw=os.read(fd,65537)
+            if len(raw)!=before.st_size or stat_key(os.fstat(fd))!=stat_key(before) or stat_key(path.lstat())!=stat_key(before):raise ProbeFailure('PRECHECK')
+        finally:os.close(fd)
+        trusted_builtins=vars(builtins)
+        namespace={'__name__':'systemd_credential_metadata','__file__':str(path),'__builtins__':trusted_builtins}
+        exec(compile(raw,str(path),'exec',dont_inherit=True),namespace)
+        predicate=namespace.get('validate_projection')
+        if type(predicate) is not types.FunctionType or predicate.__globals__ is not namespace or predicate.__builtins__ is not trusted_builtins or predicate.__closure__ is not None:raise ProbeFailure('PRECHECK')
+        return predicate
+    except Exception:raise ProbeFailure('PRECHECK') from None
+
+
+def _public_projection(item):
+    projection={key:item[key] for key in ('kind','uid','gid','mode','nlink','readonly','mount_matches')}
+    for key in ('access','default'):
+        value=item[key]
+        if value is None:raise ProbeFailure('PRECHECK')
+        projection[key]=(value['state'],tuple(tuple(row) for row in value['entries']),value['count'])
+    return projection
+
+
 def validate_credential_metadata(values):
     if type(values) is not list or len(values)>4:raise ProbeFailure('PRECHECK')
-    phases=[]
+    phases=[];policy=None
     for record in values:
         if type(record) is not dict or set(record)!=set(empty_metadata('stock_base')):raise ProbeFailure('PRECHECK')
         if record['phase'] not in PHASES or record['phase'] in phases or record['location']!='controller_pre_main_check' or record['formal_pre_read'] is not None or record['native_pre_read'] is not None:raise ProbeFailure('PRECHECK')
@@ -191,6 +222,15 @@ def validate_credential_metadata(values):
                 if acl['state']=='TOO_MANY' and (type(acl['count']) is not int or not 5<acl['count']<=65535):raise ProbeFailure('PRECHECK')
                 if acl['state'] in ('ABSENT','UNSUPPORTED','IO') and acl['count'] is not None:raise ProbeFailure('PRECHECK')
                 if any((row[0] in (1,4,16,32) and row[1]!=4294967295) or (row[0] in (2,8) and row[1]==4294967295) for row in acl['entries']):raise ProbeFailure('PRECHECK')
+        for item in objects:
+            if item['decision'] not in ('ROOT_ACL_RO','SERVICE_OWNER_RO'):continue
+            if item['check'] is not None or item['held_named_same'] is not True:raise ProbeFailure('PRECHECK')
+            if policy is None:policy=_receipt_metadata_policy()
+            role='directory' if item['slot']=='DIRECTORY' else 'file'
+            try:selected=policy(_public_projection(item),role,consumer['uid'],consumer['gid'])
+            except (ValueError,TypeError,KeyError):raise ProbeFailure('PRECHECK') from None
+            legacy=(item['uid']==consumer['uid'] and item['mode']==(0o500 if role=='directory' else 0o400) and (role=='directory' or item['kind']=='regular' and item['nlink']==1))
+            if selected!=item['decision'] or item['legacy_owner_only'] is not legacy:raise ProbeFailure('PRECHECK')
         if record['decision'] in ('ROOT_ACL_RO','SERVICE_OWNER_RO'):
             if slots!=list(METADATA_SLOTS[:-1] if record['phase']=='stock_base' else METADATA_SLOTS):raise ProbeFailure('PRECHECK')
             if consumer['uid'] is None or consumer['uid']==0 or consumer['gid'] is None or record['check'] is not None or not objects or slots[0]!='DIRECTORY' or any(v['decision']!=record['decision'] or v['check'] is not None for v in objects) or not all(v is True for k,v in consumer.items() if k not in ('uid','gid')) or any(v['readonly'] is not True or v['held_named_same'] is not True or v['mount_matches'] is not True or v['access'] is None or v['default'] is None or v['kind']!=('directory' if v['slot']=='DIRECTORY' else 'regular') for v in objects):raise ProbeFailure('PRECHECK')
@@ -561,7 +601,7 @@ class Controller:
             return value
         finally:self._metadata_close(descriptors)
     def _metadata_helper(self):
-        import importlib.util,types
+        import builtins,importlib.util,types
         path=DEPOT/'web/backend/systemd_credential_metadata.py'
         before=path.lstat()
         if not stat.S_ISREG(before.st_mode) or before.st_uid!=0 or before.st_mode&0o022 or before.st_nlink!=1 or not 0<before.st_size<=65536:self._reject('SOURCE')
@@ -575,13 +615,15 @@ class Controller:
             exec(compile(raw,str(path),'exec',dont_inherit=True),vars(module));self._metadata_module=module
         module=self._metadata_module
         if sys.modules.get('systemd_credential_metadata') is not module or module.__file__!=str(path):self._reject('SOURCE')
-        expected={'__name__':module.__name__,'__file__':str(path)};exec(compile(raw,str(path),'exec',dont_inherit=True),expected)
+        trusted_builtins=vars(builtins)
+        if vars(module).get('__builtins__') is not trusted_builtins:self._reject('SOURCE')
+        expected={'__name__':module.__name__,'__file__':str(path),'__builtins__':trusted_builtins};exec(compile(raw,str(path),'exec',dont_inherit=True),expected)
         names={name for name in expected if not name.startswith('__')}
         if {name for name in vars(module) if not name.startswith('__')}!=names:self._reject('SOURCE')
         for name in names:
             actual,original=vars(module)[name],expected[name]
             if type(original) is types.FunctionType:
-                if type(actual) is not types.FunctionType or actual.__globals__ is not vars(module) or actual.__module__!=module.__name__ or actual.__code__!=original.__code__ or actual.__defaults__!=original.__defaults__ or actual.__kwdefaults__!=original.__kwdefaults__:self._reject('SOURCE')
+                if type(actual) is not types.FunctionType or actual.__globals__ is not vars(module) or actual.__module__!=module.__name__ or actual.__code__!=original.__code__ or actual.__defaults__!=original.__defaults__ or actual.__kwdefaults__!=original.__kwdefaults__ or actual.__builtins__ is not trusted_builtins or actual.__closure__ is not None:self._reject('SOURCE')
             elif type(actual) is not type(original) or (actual is not original if isinstance(original,types.ModuleType) else actual!=original):self._reject('SOURCE')
         return module
     def _consumer_metadata(self,pid,module):

@@ -194,6 +194,7 @@ def _source_bytes(path):
 
 
 def _require_metadata_helper():
+    import builtins
     import types
     from pathlib import Path
     path = Path(__file__).absolute().parent.parent / 'web/backend/systemd_credential_metadata.py'
@@ -201,8 +202,11 @@ def _require_metadata_helper():
     if (type(module) is not types.ModuleType or sys.modules.get('systemd_credential_metadata') is not module
             or module.__name__ != 'systemd_credential_metadata' or module.__file__ != str(path)):
         raise EntryFailure('CODE_IDENTITY_INVALID')
+    trusted_builtins = vars(builtins)
+    if vars(module).get('__builtins__') is not trusted_builtins:
+        raise EntryFailure('CODE_IDENTITY_INVALID')
     raw = _source_bytes(path)
-    expected = {'__name__': module.__name__, '__file__': str(path)}
+    expected = {'__name__': module.__name__, '__file__': str(path), '__builtins__': trusted_builtins}
     exec(compile(raw, str(path), 'exec', dont_inherit=True), expected)
     names = {key for key in expected if not key.startswith('__')}
     if {key for key in vars(module) if not key.startswith('__')} != names:
@@ -212,7 +216,8 @@ def _require_metadata_helper():
         if type(original) is types.FunctionType:
             if (type(actual) is not types.FunctionType or actual.__globals__ is not vars(module)
                     or actual.__module__ != module.__name__ or actual.__code__ != original.__code__
-                    or actual.__defaults__ != original.__defaults__ or actual.__kwdefaults__ != original.__kwdefaults__):
+                    or actual.__defaults__ != original.__defaults__ or actual.__kwdefaults__ != original.__kwdefaults__
+                    or actual.__builtins__ is not trusted_builtins or actual.__closure__ is not None):
                 raise EntryFailure('CODE_IDENTITY_INVALID')
         elif type(actual) is not type(original) or (actual is not original if isinstance(original, types.ModuleType) else actual != original):
             raise EntryFailure('CODE_IDENTITY_INVALID')
@@ -446,6 +451,7 @@ def _code_paths(*, entry_module=None, entry_witness=None):
 
 
 def _validate_entry_module(module, root):
+    import builtins
     import types
     path = root / 'web/backend/services/native_live_credentials.py'
     package = sys.modules.get('services')
@@ -456,12 +462,16 @@ def _validate_entry_module(module, root):
             or type(package) is not types.ModuleType or package.__file__ != str(parent)
             or parent.is_symlink() or parent != parent.resolve()):
         raise EntryFailure('CODE_IDENTITY_INVALID')
+    trusted_builtins = vars(builtins)
+    if vars(module).get('__builtins__') is not trusted_builtins:
+        raise EntryFailure('CODE_IDENTITY_INVALID')
     codes = {value.co_name:value for value in compile(path.read_bytes(), str(path), 'exec', dont_inherit=True).co_consts
              if isinstance(value, types.CodeType)}
     for name in ('_publish_entry_directory', '_require_entry_preimport', '_require_entry_for_serve'):
         function = getattr(module, name, None)
         if (type(function) is not types.FunctionType or function.__globals__ is not vars(module)
-                or function.__module__ != module.__name__ or function.__code__ != codes.get(name)):
+                or function.__module__ != module.__name__ or function.__code__ != codes.get(name)
+                or function.__builtins__ is not trusted_builtins or function.__closure__ is not None):
             raise EntryFailure('CODE_IDENTITY_INVALID')
 
 

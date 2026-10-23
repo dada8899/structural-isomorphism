@@ -17,6 +17,8 @@ TAGS = (1, 2, 4, 8, 16, 32)
 UNDEFINED = 4294967295
 SNAPSHOT_FIELDS = ('dev', 'ino', 'uid', 'gid', 'mode', 'nlink', 'size', 'mtime', 'ctime',
                    'access', 'default', 'readonly', 'mount_id', 'mount_matches')
+PROJECTION_FIELDS = ('kind', 'uid', 'gid', 'mode', 'nlink', 'access', 'default', 'readonly', 'mount_matches')
+ANCESTOR_IDENTITY_FIELDS = ('dev', 'ino', 'uid', 'gid', 'mode', 'access', 'default', 'readonly', 'mount_id', 'mount_matches')
 CONSUMER_FIELDS = ('pid', 'start', 'uid', 'gid', 'user_ns', 'mount_ns')
 
 
@@ -116,18 +118,41 @@ def validate_snapshot(snapshot, role, uid, gid):
             or type(snapshot['readonly']) is not bool or type(snapshot['mount_matches']) is not bool or type(snapshot['mount_id']) is not int
             or not 0 < snapshot['mount_id'] < 2**63 or not _acl_valid(snapshot['access']) or not _acl_valid(snapshot['default'])):
         raise ValueError('IO')
-    mode = snapshot['mode'];directory = role != 'file'
-    if not (stat.S_ISDIR(mode) if directory else stat.S_ISREG(mode)):
+    return validate_projection(snapshot_projection(snapshot), role, uid, gid)
+
+
+def snapshot_projection(snapshot):
+    """Only recorded policy facts, without inventing dev/ino/mount identity."""
+    kind = 'directory' if stat.S_ISDIR(snapshot['mode']) else 'regular' if stat.S_ISREG(snapshot['mode']) else 'other'
+    return {key:(kind if key == 'kind' else stat.S_IMODE(snapshot['mode']) if key == 'mode' else snapshot[key])
+            for key in PROJECTION_FIELDS}
+
+
+def validate_projection(projection, role, uid, gid):
+    """Shared pure shape predicate for FD snapshots and public projections."""
+    if (type(projection) is not dict or set(projection) != set(PROJECTION_FIELDS)
+            or role not in ('directory', 'file', 'ancestor')
+            or type(uid) is not int or not 0 < uid < UNDEFINED or type(gid) is not int or not 0 <= gid < UNDEFINED):
+        raise ValueError('CONSUMER')
+    if (projection['kind'] not in ('directory', 'regular', 'other')
+            or any(type(projection[k]) is not int or not 0 <= projection[k] < UNDEFINED for k in ('uid', 'gid'))
+            or type(projection['mode']) is not int or not 0 <= projection['mode'] <= 0o7777
+            or type(projection['nlink']) is not int
+            or type(projection['readonly']) is not bool or type(projection['mount_matches']) is not bool
+            or not _acl_valid(projection['access']) or not _acl_valid(projection['default'])):
+        raise ValueError('IO')
+    mode = projection['mode'];directory = role != 'file'
+    if projection['kind'] != ('directory' if directory else 'regular'):
         raise ValueError('MODE')
-    if (not 1 <= snapshot['nlink'] < 2**32 or not directory and snapshot['nlink'] != 1):
+    if (not 1 <= projection['nlink'] < 2**32 or not directory and projection['nlink'] != 1):
         raise ValueError('LINK')
-    access, default = snapshot['access'], snapshot['default']
-    if role != 'ancestor' and snapshot['readonly'] is not True:raise ValueError('MOUNT_RO')
+    access, default = projection['access'], projection['default']
+    if role != 'ancestor' and projection['readonly'] is not True:raise ValueError('MOUNT_RO')
     if access[0] == 'IO' or default[0] == 'IO':raise ValueError('IO')
     if default[0] not in ('ABSENT', 'UNSUPPORTED'):
         raise ValueError('DEFAULT_ACL')
     if role == 'ancestor':
-        if snapshot['uid'] != 0 or mode & 0o022:
+        if projection['uid'] != 0 or mode & 0o022:
             raise ValueError('DIR_OWNER')
         if access[0] not in ('ABSENT', 'UNSUPPORTED', 'PRESENT'):
             raise ValueError('ACL_SHAPE')
@@ -140,24 +165,33 @@ def validate_snapshot(snapshot, role, uid, gid):
             if any(p & mask & 2 for tag, q, p in access[1] if tag in (2, 4, 8) and (tag != 2 or q != 0)):
                 raise ValueError('ACL_SHAPE')
         return 'ANCESTOR'
-    if snapshot['readonly'] is not True:
+    if projection['readonly'] is not True:
         raise ValueError('MOUNT_RO')
-    if snapshot['mount_matches'] is not True:raise ValueError('MOUNT_ID')
+    if projection['mount_matches'] is not True:raise ValueError('MOUNT_ID')
     permission = 5 if directory else 4
-    if snapshot['uid'] == 0 and snapshot['gid'] == 0:
+    if projection['uid'] == 0 and projection['gid'] == 0:
         shape = 'ROOT_ACL_RO';expected_mode = 0o550 if directory else 0o440
         expected = ((1, UNDEFINED, permission), (2, uid, permission), (4, UNDEFINED, 0), (16, UNDEFINED, permission), (32, UNDEFINED, 0))
         if access != ('PRESENT', expected, 5):raise ValueError('ACL_SHAPE')
         if default[0] != 'ABSENT':raise ValueError('DEFAULT_ACL')
-    elif snapshot['uid'] == uid and snapshot['gid'] == gid:
+    elif projection['uid'] == uid and projection['gid'] == gid:
         shape = 'SERVICE_OWNER_RO';expected_mode = 0o500 if directory else 0o400
         base = ((1, UNDEFINED, permission), (4, UNDEFINED, 0), (32, UNDEFINED, 0))
         if access[0] not in ('ABSENT', 'UNSUPPORTED') and access != ('PRESENT', base, 3):raise ValueError('ACL_SHAPE')
     else:
         raise ValueError('DIR_OWNER' if directory else 'FILE_OWNER')
-    if stat.S_IMODE(mode) != expected_mode:
+    if mode != expected_mode:
         raise ValueError('ACL_MASK' if access[0] == 'PRESENT' else 'MODE')
     return shape
+
+
+
+def persistent_identity(snapshot, role):
+    """Ancestor contents may change; physical/security identity must not."""
+    if type(snapshot) is not dict or set(snapshot) != set(SNAPSHOT_FIELDS) or role not in ('ancestor', 'directory', 'file'):
+        raise ValueError('IDENTITY')
+    fields = ANCESTOR_IDENTITY_FIELDS if role == 'ancestor' else SNAPSHOT_FIELDS
+    return tuple(snapshot[key] for key in fields)
 
 
 def same_snapshot(a, b):
