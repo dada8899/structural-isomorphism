@@ -60,7 +60,7 @@ jobs:
       - name: Check fixed collector helper and verifier bytes
         working-directory: diagnostic
         run: |
-          echo "c93e6d05fadd8fe907145507279dc6e9816d2e95d8698134d3aca7235f88be40  scripts/structure_analyze_mobile_diagnostic_once.py" | sha256sum --check --strict
+          echo "42b27109541eb37eb78efd261fb0a57809eff691c0ff2e600a25a05c33bcac59  scripts/structure_analyze_mobile_diagnostic_once.py" | sha256sum --check --strict
           echo "6801bdfc0678eec08343e8ec43753d54270df096ed7a3103bb10c0ea80376db2  scripts/prepare_ci_chromium.py" | sha256sum --check --strict
           echo "aef27006052141bfc35ffa556d705ff34ca210964a2866424ac566439dd79375  scripts/verify_ci_chromium_setup.py" | sha256sum --check --strict
       - name: Verify fixed helper and snapshot metadata before setup
