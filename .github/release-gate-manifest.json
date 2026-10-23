@@ -11,6 +11,7 @@
       "browser-beta-surface-contract",
       "browser-evidence-method-contract",
       "browser-financial-registry-contract",
+      "browser-financial-scenario-contract",
       "backend",
       "packages",
       "frontend"

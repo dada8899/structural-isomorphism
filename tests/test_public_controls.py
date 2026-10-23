@@ -844,6 +844,7 @@ def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
         "browser-beta-surface-contract",
         "browser-evidence-method-contract",
         "browser-financial-registry-contract",
+        "browser-financial-scenario-contract",
         "backend",
         "packages",
         "frontend",
@@ -1842,7 +1843,27 @@ def _original_makefile_before_evidence_method(makefile: str) -> str:
     return makefile.replace(phony, ".PHONY: test-financial-preview-browser-contract ", 1)
 
 
+def _original_makefile_before_financial_scenario_browser(makefile: str) -> str:
+    """Remove the exact FIN3 delta before applying the unchanged FIN2 chain."""
+    additions = [
+        "\tweb/frontend/tests/test_financialScenario.js " + chr(92) + "\n",
+        "FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS := " + chr(92) + "\n\tweb/tests/e2e/test_research_financial_scenario_browser.py\n\n",
+        "test-financial-scenario-browser-contract:\n\t$(BACKEND_PYTEST) $(FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS) -p no:logging -v\n\n",
+        '\t@echo "  test-financial-scenario-browser-contract  Run all seven financial scenario actual Main browser cases"\n',
+        "\t$(MAKE) test-financial-scenario-browser-contract\n",
+    ]
+    assert additions[1] + 'FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS :=' in makefile
+    assert additions[2] + 'test-financial-registry-browser-contract:' in makefile
+    for addition in additions:
+        assert makefile.count(addition) == 1, 'financial scenario Make consumer missing or duplicated'
+        makefile = makefile.replace(addition, '', 1)
+    phony = '.PHONY: test-financial-scenario-browser-contract test-financial-registry-browser-contract '
+    assert makefile.count(phony) == 1
+    return makefile.replace(phony, '.PHONY: test-financial-registry-browser-contract ', 1)
+
+
 def _original_makefile_before_financial_registry_browser(makefile: str) -> str:
+    makefile = _original_makefile_before_financial_scenario_browser(makefile)
     additions = [
         "\tweb/frontend/tests/test_financialRegistry.js " + chr(92) + "\n",
         "FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS := " + chr(92) + "\n\tweb/tests/e2e/test_research_financial_registry_browser.py\n\n",
@@ -1918,6 +1939,11 @@ def test_verify_release_dry_run_expands_real_test_and_build_commands() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     output = completed.stdout
+    scenario = next(line for line in output.splitlines() if "python -m pytest web/tests/e2e/test_research_financial_scenario_browser.py" in line)
+    assert output.splitlines().count(scenario) == 1
+    assert scenario.endswith("python -m pytest web/tests/e2e/test_research_financial_scenario_browser.py -p no:logging -v")
+    assert scenario.startswith("PYTHONPATH=" + str(ROOT / "web/backend") + ":")
+    output = output.replace(scenario + "\n", "", 1)
     assert output.count("python -m pytest") == 32
     assert output.count("python -m pytest web/tests/e2e/test_research_financial_registry_browser.py -p no:logging -v") == 1
     for consumer in (
@@ -2895,3 +2921,58 @@ def test_financial_registry_make_delta_rejects_weakened_or_missing_consumer(muta
     elif mutation == 'path': value = value.replace('web/tests/e2e/test_research_financial_registry_browser.py', 'web/backend/tests/test_research_financial_registry_browser.py', 1)
     else: value = value.replace('\t$(MAKE) test-financial-registry-browser-contract\n', '', 1)
     with pytest.raises(AssertionError): _original_makefile_without_financial_preview(value)
+
+
+def test_financial_scenario_browser_is_one_complete_hard_consumer():
+    makefile = (ROOT / 'Makefile').read_text()
+    node_path = 'web/frontend/tests/test_financialScenario.js'
+    browser_path = 'web/tests/e2e/test_research_financial_scenario_browser.py'
+    _assert_legal_repo_file(browser_path)
+    _assert_legal_repo_file(node_path)
+    assert _make_path_list(makefile, 'FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS') == [browser_path]
+    assert _make_recipe_commands(makefile, 'test-financial-scenario-browser-contract') == [
+        '$(BACKEND_PYTEST) $(FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS) -p no:logging -v']
+    assert _make_recipe_commands(makefile, 'verify-release').count('$(MAKE) test-financial-scenario-browser-contract') == 1
+    assert _make_path_list(makefile, 'FRONTEND_NODE_TESTS').count(node_path) == 1
+    rows = _ci_matrix_rows(_ci_job('browser-beta-surface-contract'))
+    assert _ci_matrix_paths(rows, 'node_tests', NODE_PATH_PATTERN).count(node_path) == 1
+    assert next(row for row in rows if node_path in row['node_tests'].split())['shard'] == 'library-auth-reports-favorites'
+    job = _ci_job('browser-financial-scenario-contract')
+    assert set(job) == {'name', 'runs-on', 'timeout-minutes', 'steps'}
+    assert job['runs-on'] == 'ubuntu-24.04' and job['timeout-minutes'] == 8
+    assert job['steps'][:4] == _ci_job('browser-financial-registry-contract')['steps'][:4]
+    assert job['steps'][4:] == [{'name': 'Verify all financial scenario actual Main browser cases',
+                               'run': 'make PY=python test-financial-scenario-browser-contract'}]
+    assert _ci_job('release-gate-summary')['needs'].count('browser-financial-scenario-contract') == 1
+    module = ast.parse((ROOT / browser_path).read_text())
+    cases = [node.name for node in module.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith('test_')]
+    assert len(cases) == 7 and all(name.startswith('test_fin3_actual_main_') for name in cases)
+
+
+@pytest.mark.parametrize('mutation', [
+    'missing_target', 'duplicate_target', 'logging', 'soft', 'partial_module',
+    'shell', 'path', 'parent_namespace', 'verify_release', 'duplicate_release',
+    'node_missing', 'node_duplicate', 'variable_duplicate', 'phony',
+])
+def test_financial_scenario_make_delta_rejects_weakened_or_missing_consumer(mutation):
+    value = (ROOT / 'Makefile').read_text()
+    target = 'test-financial-scenario-browser-contract:\n\t$(BACKEND_PYTEST) $(FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS) -p no:logging -v\n\n'
+    node = '\tweb/frontend/tests/test_financialScenario.js ' + chr(92) + '\n'
+    release = '\t$(MAKE) test-financial-scenario-browser-contract\n'
+    if mutation == 'missing_target': value = value.replace(target, '', 1)
+    elif mutation == 'duplicate_target': value += target
+    elif mutation == 'logging': value = value.replace(target, target.replace(' -p no:logging', ''), 1)
+    elif mutation == 'soft': value = value.replace(target, target.replace('\t$(BACKEND_PYTEST)', '\t-$(BACKEND_PYTEST)'), 1)
+    elif mutation == 'partial_module': value = value.replace(target, target.replace(' -v', ' -v -k smoke'), 1)
+    elif mutation == 'shell': value = value.replace(target, target.replace(' -v', ' -v || true'), 1)
+    elif mutation == 'path': value = value.replace('web/tests/e2e/test_research_financial_scenario_browser.py', 'web/backend/tests/test_research_financial_scenario_browser.py', 1)
+    elif mutation == 'parent_namespace': value = value.replace(target, target.replace('$(BACKEND_PYTEST)', '$(PYTEST)'), 1)
+    elif mutation == 'verify_release': value = value.replace(release, '', 1)
+    elif mutation == 'duplicate_release': value = value.replace(release, release + release, 1)
+    elif mutation == 'node_missing': value = value.replace(node, '', 1)
+    elif mutation == 'node_duplicate': value = value.replace(node, node + node, 1)
+    elif mutation == 'variable_duplicate': value += '\nFINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS += ignored.py\n'
+    else: value = value.replace('.PHONY: test-financial-scenario-browser-contract ', '.PHONY: ', 1)
+    with pytest.raises(AssertionError):
+        original = _original_makefile_without_financial_preview(value)
+        assert hashlib.sha256(original.encode()).hexdigest() == 'd10d21b2d90e07deb8f9219f663f511ea96d5532c7f97637213f67f51efb0b9b'
