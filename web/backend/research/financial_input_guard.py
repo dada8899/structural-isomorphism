@@ -1,4 +1,4 @@
-"""Financial-input protocol 2. Fixed native registry writers; results stay closed."""
+"""Financial-input protocol 2. Fixed native registry and owned-result writers."""
 from contextlib import contextmanager
 import json
 import os
@@ -108,7 +108,11 @@ def _validate(entry):
         row=conn.execute('SELECT '+','.join(COLUMNS[entry['table']])+' FROM '+entry['table']+' WHERE '+KEYS[entry['table']]+'=?',(values[KEYS[entry['table']]],)).fetchone()
         if row is None or tuple(row)!=entry['values']:raise PermissionError('financial deletion row changed')
         return
-    if entry['table']!=REGISTRIES or entry['operation']!='INSERT':raise PermissionError('financial execution remains closed')
+    if entry['table']==RESULTS and entry['operation']=='INSERT':
+        from .financial_execution import validate_insert,_function
+        _function(validate_insert)(entry,values)
+        return
+    if entry['table']!=REGISTRIES or entry['operation']!='INSERT':raise PermissionError('financial producer unavailable')
     identity=entry['identity']
     require_authenticated_action(entry['source'],identity=identity,action='financial-registry-save',research_id=values['research_id'],key=entry['key'],body_digest=confirmation_digest(entry['request']))
     control=service.authorization.check(conn,identity,values['principal_id'],values['research_id'],scope='write')
@@ -122,14 +126,14 @@ def _validate(entry):
 def install_hook(conn):
     pid=os.getpid()
     def allowed(table,operation,raw):
-        # No FIN-3 constructor/flag/receipt can make this branch true.
-        if table==RESULTS and operation=='INSERT':return 0
         entry=_WRITES.get(id(conn))
         if (not entry or pid!=os.getpid() or entry['conn'] is not conn or not conn.in_transaction
                 or entry['table']!=table or entry['operation']!=operation):return 0
         try:
+            # Reject probes/wrong images before _current_scope's v15 hook check.
+            if type(raw) is not str or len(raw.encode('utf-8'))>1048576 or json.loads(raw)!=list(entry['values']):return 0
             _validate(entry)
-            return int(json.loads(raw)==list(entry['values']))
+            return 1
         except (PermissionError,ResearchError,ValueError,TypeError,OSError,sqlite3.Error):return 0
     conn.create_function('research_financial_input_allowed',3,allowed)
     conn.create_function('research_financial_input_guard_version',0,lambda:2 if pid==os.getpid() else 0)
@@ -143,7 +147,7 @@ def require_hook(conn):
 
 def statement_allowed(conn,action,table,column):
     if action not in (sqlite3.SQLITE_INSERT,sqlite3.SQLITE_UPDATE,sqlite3.SQLITE_DELETE) or table not in PROTECTED:return True
-    if action==sqlite3.SQLITE_UPDATE or (table==RESULTS and action==sqlite3.SQLITE_INSERT):return False
+    if action==sqlite3.SQLITE_UPDATE:return False
     entry=_WRITES.get(id(conn))
     return bool(entry and entry['conn'] is conn and entry['table']==table and entry['pid']==os.getpid()
                 and entry['thread']==threading.get_ident() and entry['scope'].active and conn.in_transaction
@@ -151,7 +155,7 @@ def statement_allowed(conn,action,table,column):
 
 
 @contextmanager
-def _write_scope(conn,service,lease,table,operation,values,*,identity=None,source=None,key=None,request=None,job_id=None):
+def _write_scope(conn,service,lease,table,operation,values,*,identity=None,source=None,key=None,request=None,job_id=None,execution=None,owned_return=None):
     from . import financial_input
     from .service import ResearchService
     from .store import ResearchStore
@@ -161,19 +165,26 @@ def _write_scope(conn,service,lease,table,operation,values,*,identity=None,sourc
     else:from services.sqlite_utils import PrivateAuthConnection
     frame=sys._getframe(1)
     try:
-        producer=financial_input._WRITE_PRODUCERS[0 if operation=='INSERT' else 1]
+        owner_module=financial_input
+        if table==RESULTS and operation=='INSERT':
+            from . import financial_result_v2
+            owner_module=financial_result_v2;producer=financial_result_v2._CALCULATE_PRODUCER
+            from .financial_execution import _function
+            _function(producer)
+        else:producer=financial_input._WRITE_PRODUCERS[0 if operation=='INSERT' else 1]
         while frame is not None and frame.f_code is not producer.__code__:frame=frame.f_back
-        if (not frame or frame.f_globals is not vars(financial_input) or frame.f_locals.get('conn') is not conn or frame.f_locals.get('lease') is not lease or frame.f_locals.get('service') is not service):
+        if (not frame or frame.f_globals is not vars(owner_module) or frame.f_locals.get('conn') is not conn or frame.f_locals.get('lease') is not lease or frame.f_locals.get('service') is not service):
             raise PermissionError('fixed financial input producer required')
     finally:del frame
     if (type(service) is not ResearchService or type(service.store) is not ResearchStore or type(lease) is not OwnerGateLease
             or type(conn) is not PrivateAuthConnection or service.store.storage_identity is None
             or conn.private_storage_identity!=service.store.storage_identity or table not in PROTECTED
-            or operation not in ('INSERT','DELETE') or (table==RESULTS and operation=='INSERT') or id(conn) in _WRITES):
+            or operation not in ('INSERT','DELETE') or id(conn) in _WRITES):
         raise PermissionError('actual native financial input transaction required')
     scope=_current_scope(conn)
     entry={'conn':conn,'service':service,'lease':lease,'table':table,'operation':operation,'values':tuple(values),
-           'identity':identity,'source':source,'key':key,'request':request,'job_id':job_id,'scope':scope,'pid':os.getpid(),'thread':threading.get_ident()}
+           'identity':identity,'source':source,'key':key,'request':request,'job_id':job_id,'scope':scope,'pid':os.getpid(),'thread':threading.get_ident(),
+           'execution':execution,'owned_return':owned_return}
     _validate(entry);_WRITES[id(conn)]=entry;scope.refresh_authorizer()
     try:yield
     finally:_WRITES.pop(id(conn),None);scope.refresh_authorizer()

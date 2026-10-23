@@ -90,7 +90,12 @@ def test_actual_main15_save_private_public_mapping_replay_and_default_result_clo
                 listed=await client.get('/api/research/'+rid+'/financial-registries')
                 assert listed.status_code==200 and listed.json()['data']['items'][0]['registry_ref']==m['registry_ref']
                 health=(await client.get('/api/health')).json();assert health['checks']['native_planner']=='FUNDING_CLOSED'
-                assert not any('calculat' in route.path for route in main.app.routes)
+                calculation_routes={(route.path,tuple(sorted(route.methods)),route.endpoint.__name__)
+                                    for route in main.app.routes if 'calculat' in route.path or '/financial-results' in route.path}
+                assert calculation_routes=={
+                    ('/api/research/{research_id}/financial-calculations',('POST',),'calculate_research_financial'),
+                    ('/api/research/{research_id}/financial-results',('GET',),'list_research_financial_results'),
+                    ('/api/research/{research_id}/financial-results/{result_ref}',('GET',),'read_research_financial_result')}
                 (tmp_path/'confirmation.json').write_text(json.dumps(result,ensure_ascii=False,indent=2))
                 (tmp_path/'read.json').write_text(json.dumps(opened.json(),ensure_ascii=False,indent=2))
                 print('FIN2_MAIN:'+json.dumps({'actual_main':True,'schema':15,'no_funding_or_tasks':True,'result_insert_closed':True,'registry_ref':ref,'public_projection_digest':data['public_projection_digest']}))

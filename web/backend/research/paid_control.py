@@ -71,12 +71,31 @@ def issue_authenticated_action(request,*,action,research_id=None,task_id=None,ke
         'financial-import-preview':('POST','preview_research_financial_import'),
         'financial-registry-save':('POST','save_research_financial_registry'),
         'financial-registry-read':('GET','read_research_financial_registry'),
-        'financial-registry-history':('GET','list_research_financial_registries')}
+        'financial-registry-history':('GET','list_research_financial_registries'),
+        'financial-calculate':('POST','calculate_research_financial'),
+        'financial-result-read':('GET','read_research_financial_result'),
+        'financial-result-history':('GET','list_research_financial_results')}
     if type(request) is not Request or action not in routes or request.method!=routes[action][0]:
         raise PermissionError('actual authenticated action request required')
     from .provider_schemas import strict_json
     raw=getattr(request,'_body',None)
-    if action in ('evidence-method-preview','evidence-method-confirm'):
+    if action in ('financial-calculate','financial-result-read','financial-result-history'):
+        from .financial_result_v2 import decode_financial_calculation,result_view_query,result_history_query
+        import re
+        if action=='financial-calculate':
+            if type(raw) is not bytes or request.query_params:raise PermissionError('actual financial calculation required')
+            envelope=decode_financial_calculation(raw)
+            key=request.headers.get('idempotency-key','')
+            if re.fullmatch(r'[A-Za-z0-9._:-]{1,128}',key,re.ASCII) is None:raise PermissionError('financial key required')
+            task_id=None;body_digest=digest(canonical(envelope.model_dump(mode='json')))
+        elif action=='financial-result-read':
+            view=result_view_query(list(request.query_params.multi_items()))
+            key='';task_id=request.path_params.get('result_ref');body_digest=digest(canonical({'view':view}))
+        else:
+            limit,cursor=result_history_query(list(request.query_params.multi_items()))
+            key='';task_id=None;body_digest=digest(canonical({'limit':limit,'cursor':cursor}))
+        research_id=request.path_params.get('research_id')
+    elif action in ('evidence-method-preview','evidence-method-confirm'):
         from .evidence_method_plan_schemas import EvidenceMethodPreviewEnvelope,EvidenceMethodConfirmEnvelope
         from .evidence_method_plan_codec import parse_model
         import re
