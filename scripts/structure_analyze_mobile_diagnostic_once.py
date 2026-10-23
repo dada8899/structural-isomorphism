@@ -347,7 +347,7 @@ def finalize_diagnostic(result,capture,driver,server,saved,root,out,initial_coor
   if code not in result['secondary_errors']:result['secondary_errors'].append(code)
   if result['error'] is None:result['error']=code
  if capture is not None:
-  result['primary_failure']=capture.primary_failure
+  if result['primary_failure'] is None:result['primary_failure']=capture.primary_failure
   capture.finish_trace()
  # A failed navigation must not suppress the independent end-of-source check.
  try:
@@ -365,7 +365,7 @@ def finalize_diagnostic(result,capture,driver,server,saved,root,out,initial_coor
   try:result['work_removed']=bounded_action(cleanup_deadline,lambda:cleanup_work(out)) is True
   except BaseException:result['work_removed']=False
   if not result['work_removed']:failed('work_cleanup_unknown')
- valid=(result['capture_evidence_verified'] and result['source_postflight_verified'] and not result['secondary_errors'] and capture is not None and not capture.errors and all(result[x] for x in ('server_closed','browser_closed','driver_closed','work_removed')))
+ valid=(result['error'] is None and result['primary_failure'] is None and result['capture_evidence_verified'] and result['source_postflight_verified'] and not result['secondary_errors'] and capture is not None and not capture.errors and all(result[x] for x in ('server_closed','browser_closed','driver_closed','work_removed')))
  result['status']='diagnostic_capture_complete_not_a_grade' if valid else 'UNKNOWN'
  if capture is not None:result['capture_errors']=list(capture.errors)
 

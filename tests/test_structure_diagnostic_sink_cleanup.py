@@ -1,6 +1,8 @@
 """Tiny in-memory controls: no Source imports, browser, server or network."""
+import ast
 import copy
 import importlib.util
+import os
 from pathlib import Path
 import signal
 import time
@@ -144,6 +146,25 @@ class SinkControls(unittest.TestCase):
 
 
 class RetirementControls(unittest.TestCase):
+    def exact_run_boundary(self, state, interrupt):
+        """Execute the real final assignment/except, without running Source."""
+        tree=ast.parse(SOURCE.read_bytes())
+        run=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='run')
+        handler=next(n for n in run.body if isinstance(n,ast.FunctionDef) and n.name=='interrupt')
+        body=next(n for n in run.body if isinstance(n,ast.Try))
+        assignment=body.body[-1]
+        self.assertIsInstance(assignment,ast.Assign)
+        self.assertEqual(ast.literal_eval(assignment.targets[0].slice),'capture_evidence_verified')
+        self.assertIs(ast.literal_eval(assignment.value),True)
+        actions=[copy.deepcopy(assignment)]
+        if interrupt:actions+=ast.parse('os.kill(os.getpid(), signal.SIGINT)').body
+        trial=ast.Try(body=actions,handlers=copy.deepcopy(body.handlers),orelse=[],finalbody=[])
+        namespace={'result':state,'os':os,'signal':signal}
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[copy.deepcopy(handler)],type_ignores=[])),'exact-run-handler','exec'),namespace)
+        previous=signal.signal(signal.SIGINT,namespace['interrupt'])
+        try:exec(compile(ast.fix_missing_locations(ast.Module(body=[trial],type_ignores=[])),'exact-run-boundary','exec'),namespace)
+        finally:signal.signal(signal.SIGINT,previous)
+
     def retire(self, state, c, postflight_failure=False, driver_failure=False, server_failure=False):
         calls=[]
         class Driver:
@@ -191,6 +212,34 @@ class RetirementControls(unittest.TestCase):
         self.retire(state,c)
         self.assertEqual(state['status'],'diagnostic_capture_complete_not_a_grade')
         state=result(False); self.retire(state,c)
+        self.assertEqual(state['status'],'UNKNOWN')
+
+    def test_exact_after_verified_SIGINT_never_becomes_complete(self):
+        c=capture();c.sink(pending(True,tbt_ms=50.0));state=result(True)
+        state['capture_evidence_verified']=False
+        self.exact_run_boundary(state,interrupt=True)
+        self.assertTrue(state['capture_evidence_verified'])
+        self.assertEqual(state['error'],'diagnostic_incomplete_no_retry')
+        self.retire(state,c)
+        self.assertEqual(state['status'],'UNKNOWN')
+        self.assertEqual(state['error'],'diagnostic_incomplete_no_retry')
+        self.assertTrue(all(state[k] for k in ('source_postflight_verified','browser_closed','driver_closed','server_closed','work_removed')))
+        self.assertEqual(0 if state['status']=='diagnostic_capture_complete_not_a_grade' else 2,2)
+
+    def test_exact_without_interrupt_keeps_original_success(self):
+        c=capture();c.sink(pending(True,tbt_ms=50.0));state=result(True)
+        state['capture_evidence_verified']=False
+        self.exact_run_boundary(state,interrupt=False)
+        self.retire(state,c)
+        self.assertEqual(state['status'],'diagnostic_capture_complete_not_a_grade')
+        self.assertIsNone(state['error'])
+
+    def test_existing_primary_failure_is_sticky_without_capture_primary(self):
+        c=capture();c.sink(pending(True,tbt_ms=50.0));state=result(True)
+        primary={'stage':'cancelled','error':'previous_failure'}
+        state['primary_failure']=dict(primary)
+        self.retire(state,c)
+        self.assertEqual(state['primary_failure'],primary)
         self.assertEqual(state['status'],'UNKNOWN')
 
     def test_expired_action_never_launches(self):
