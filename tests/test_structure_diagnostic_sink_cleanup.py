@@ -1,6 +1,7 @@
 """Tiny in-memory controls: no Source imports, browser, server or network."""
 import ast
 import copy
+import hashlib
 import importlib.util
 import json
 import os
@@ -10,6 +11,7 @@ import sys
 import time
 import unittest
 from unittest.mock import patch
+from urllib.parse import urlsplit, urljoin
 
 SOURCE = Path(__file__).resolve().parents[1] / 'scripts/structure_analyze_mobile_diagnostic_once.py'
 SPEC = importlib.util.spec_from_file_location('sink_collector_under_test', SOURCE)
@@ -339,6 +341,96 @@ class NavigationObserverControls(unittest.TestCase):
         self.assertIs(target.goto('ignored',timeout=30000),response)
         self.assertEqual(calls,[1]);self.assertEqual(writer.records,{})
         self.assertIn('navigation_observer_receipt_unknown',c.errors)
+
+
+class FixtureNavigationControls(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Read immutable contract data through AST only; never import Source.
+        beta=SOURCE.with_name('beta_perf_audit.py').read_bytes()
+        perf=SOURCE.with_name('perf_audit.py').read_bytes()
+        assert hashlib.sha256(beta).hexdigest()=='e3360ea983d06d88908afa95cff43e714ea0d969f2a7da1dfca2d31b0d6655a4'
+        assert hashlib.sha256(perf).hexdigest()=='6bca7e272d7c534b64fcd62cb6898154cd829047054caa04202eb7f7858b1433'
+        bt,pt=ast.parse(beta),ast.parse(perf)
+        pages=next(n.value for n in bt.body if isinstance(n,ast.AnnAssign) and isinstance(n.target,ast.Name) and n.target.id=='PAGES')
+        case=next(v for k,v in zip(pages.keys,pages.values) if ast.literal_eval(k)=='analyze')
+        cls.relative=ast.literal_eval(case.args[0])
+        audit=next(n for n in pt.body if isinstance(n,ast.FunctionDef) and n.name=='audit_one')
+        cls.concat=next(n.value for n in ast.walk(audit) if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='url' for t in n.targets))
+        cls.goto=next(n for n in ast.walk(audit) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and isinstance(n.func.value,ast.Name) and n.func.value.id=='page' and n.func.attr=='goto')
+
+    def test_actual_relative_contract_reproduces_original_defect_then_normalizes(self):
+        self.assertFalse(self.relative.startswith('/'))
+        self.assertIsInstance(self.concat,ast.JoinedStr)
+        self.assertEqual([v.value.id for v in self.concat.values],['base_url','path'])
+        with self.assertRaises(ValueError):urlsplit(collector.BASE+self.relative).port
+        base=collector.fixture_audit_base(collector.BASE,self.relative)
+        target=urlsplit(base+self.relative)
+        self.assertEqual((target.scheme,target.hostname,target.port,target.path),('http','127.0.0.1',4173,'/analyze.html'))
+        self.assertEqual(target.query,urlsplit(self.relative).query)
+        self.assertEqual(base+self.relative,urljoin(base,self.relative))
+
+    def test_with_and_without_terminal_slash_are_equivalent(self):
+        self.assertEqual(collector.fixture_audit_base(collector.BASE,self.relative),'http://127.0.0.1:4173/')
+        self.assertEqual(collector.fixture_audit_base(collector.BASE+'/',self.relative),'http://127.0.0.1:4173/')
+        self.assertEqual(collector.fixture_audit_base(collector.BASE,self.relative),collector.BASE.rstrip('/')+'/')
+
+    def test_authoritative_goto_shape_is_one_call_with_original_query_and_timeout(self):
+        base=collector.fixture_audit_base(collector.BASE,self.relative);seen=[];response=object()
+        class Target:
+            def goto(self,*args,**kwargs):seen.append((args,kwargs));return response
+        self.assertEqual([k.arg for k in self.goto.keywords],['wait_until','timeout'])
+        kwargs={k.arg:ast.literal_eval(k.value) for k in self.goto.keywords}
+        self.assertIs(Target().goto(base+self.relative,**kwargs),response)
+        self.assertEqual(seen,[((urljoin(base,self.relative),),{'wait_until':'domcontentloaded','timeout':30000})])
+
+    def test_run_handoff_uses_normalized_base_and_unchanged_source_case(self):
+        run=next(n for n in ast.parse(SOURCE.read_bytes()).body if isinstance(n,ast.FunctionDef) and n.name=='run')
+        assignment=next(n for n in ast.walk(run) if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='normalized_base' for t in n.targets))
+        self.assertEqual(assignment.value.func.id,'fixture_audit_base')
+        self.assertEqual(ast.dump(assignment.value.args[0]),ast.dump(ast.Name(id='BASE',ctx=ast.Load())))
+        self.assertEqual(ast.dump(assignment.value.args[1]),ast.dump(ast.Attribute(value=ast.Name(id='case',ctx=ast.Load()),attr='path',ctx=ast.Load())))
+        audit=next(n for n in ast.walk(run) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and isinstance(n.func.value,ast.Name) and n.func.value.id=='perf' and n.func.attr=='audit_one')
+        self.assertEqual(audit.args[1].id,'normalized_base')
+        self.assertEqual(ast.dump(audit.args[2]),ast.dump(assignment.value.args[1]))
+        self.assertEqual(next(k.value.value for k in audit.keywords if k.arg=='runs'),1)
+
+    def test_scheme_host_port_userinfo_and_base_path_escape_are_refused(self):
+        bad=['https://127.0.0.1:4173','http://example.invalid:4173','http://localhost:4173',
+             'http://127.0.0.1:4174','http://127.0.0.1:80','http://127.0.0.1:04173',
+             'http://user@127.0.0.1:4173','http://127.0.0.1:4173/app',
+             'http://127.0.0.1:4173//','http://127.0.0.1:4173?x=1',
+             'http://127.0.0.1:4173#fragment',' http://127.0.0.1:4173',
+             'http://127.0.0.1:4173\n','http://[']
+        for base in bad:
+            with self.subTest(base_kind='noncanonical_or_escaped'):
+                with self.assertRaises(collector.Refused):collector.fixture_audit_base(base,self.relative)
+
+    def test_absolute_or_cross_origin_page_targets_are_refused(self):
+        bad=['https://example.invalid/analyze.html','http://127.0.0.1:4173/analyze.html',
+             '//example.invalid/analyze.html','//127.0.0.1:4174/analyze.html',
+             'javascript:alert(1)','\\\\example.invalid\\analyze.html']
+        for relative in bad:
+            with self.subTest(target_kind='absolute_or_escape'):
+                with self.assertRaises(collector.Refused):collector.fixture_audit_base(collector.BASE,relative)
+
+    def test_double_slash_traversal_or_swallowed_path_is_refused(self):
+        bad=['/analyze.html','//analyze.html','../analyze.html','assets/../analyze.html',
+             '%2e%2e/analyze.html','%61nalyze.html','analyze.html/extra','fooanalyze.html',
+             'analyze.html#fragment','analyze.html?id=1#fragment','analyze.html?',
+             'analyze.html\n','analyze.html\\extra']
+        for relative in bad:
+            with self.subTest(target_kind='ambiguous_path'):
+                with self.assertRaises(collector.Refused):collector.fixture_audit_base(collector.BASE,relative)
+
+    def test_query_bytes_preserved_and_non_strings_fail_closed(self):
+        relative='analyze.html?id=a%2Fb&a_id=b%26c'
+        base=collector.fixture_audit_base(collector.BASE,relative)
+        self.assertEqual(base+relative,'http://127.0.0.1:4173/'+relative)
+        for bad in [None,b'analyze.html',42,'']:
+            with self.assertRaises(collector.Refused):collector.fixture_audit_base(collector.BASE,bad)
+        for bad in [None,b'http://127.0.0.1:4173',42,'']:
+            with self.assertRaises(collector.Refused):collector.fixture_audit_base(bad,self.relative)
 
 
 class RetirementControls(unittest.TestCase):

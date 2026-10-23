@@ -20,7 +20,7 @@ import sys
 import time
 
 HELPER_SHA = '6801bdfc0678eec08343e8ec43753d54270df096ed7a3103bb10c0ea80376db2'
-BRANCH = 'refs/heads/codex/structure-analyze-mobile-failure-classifier-88830-attempt4'
+BRANCH = 'refs/heads/codex/structure-analyze-mobile-origin-fix-88830-attempt5'
 HELPER = Path(__file__).resolve().with_name('prepare_ci_chromium.py')
 SYSTEM_FILES = {'source': (Path('/etc/apt/sources.list.d/ubuntu.sources'), 16384),
                 'keyring': (Path('/usr/share/keyrings/ubuntu-archive-keyring.gpg'), 1024 * 1024)}

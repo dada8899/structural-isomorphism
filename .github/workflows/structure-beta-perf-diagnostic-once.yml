@@ -1,7 +1,7 @@
 name: Structure Analyze mobile NOT_GATE once
 on:
   push:
-    branches: [codex/structure-analyze-mobile-failure-classifier-88830-attempt4]
+    branches: [codex/structure-analyze-mobile-origin-fix-88830-attempt5]
 permissions:
   contents: read
 concurrency:
@@ -12,7 +12,7 @@ jobs:
     if: >-
       ${{ github.event_name == 'push'
           && github.repository == 'dada8899/structural-isomorphism'
-          && github.ref == 'refs/heads/codex/structure-analyze-mobile-failure-classifier-88830-attempt4'
+          && github.ref == 'refs/heads/codex/structure-analyze-mobile-origin-fix-88830-attempt5'
           && github.event.created == true
           && toJSON(github.event.deleted) == 'false'
           && github.run_attempt == '1' }}
@@ -60,9 +60,9 @@ jobs:
       - name: Check fixed collector helper and verifier bytes
         working-directory: diagnostic
         run: |
-          echo "42b27109541eb37eb78efd261fb0a57809eff691c0ff2e600a25a05c33bcac59  scripts/structure_analyze_mobile_diagnostic_once.py" | sha256sum --check --strict
+          echo "a252eac97adb6fae31cc5edd60dc0458b2f9a28e2ba8a2eb6db068759e1ccaeb  scripts/structure_analyze_mobile_diagnostic_once.py" | sha256sum --check --strict
           echo "6801bdfc0678eec08343e8ec43753d54270df096ed7a3103bb10c0ea80376db2  scripts/prepare_ci_chromium.py" | sha256sum --check --strict
-          echo "aef27006052141bfc35ffa556d705ff34ca210964a2866424ac566439dd79375  scripts/verify_ci_chromium_setup.py" | sha256sum --check --strict
+          echo "1118af3293ba34f62da7a40131c7d699837004666f8fca503b10264d81a0bb6d  scripts/verify_ci_chromium_setup.py" | sha256sum --check --strict
       - name: Verify fixed helper and snapshot metadata before setup
         id: setup_before
         working-directory: diagnostic

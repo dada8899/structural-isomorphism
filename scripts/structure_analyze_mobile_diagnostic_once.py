@@ -1,9 +1,9 @@
 """Candidate only: one fixed Analyze/mobile NOT_GATE capture; no grade/retry path."""
 import argparse,hashlib,select,importlib,importlib.metadata,json,math,os,re,signal,stat,subprocess,sys,time
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit,urljoin
 SOURCE_SHA='88830a33000c3190901efd629081e9c41e259108'
-BRANCH='refs/heads/codex/structure-analyze-mobile-failure-classifier-88830-attempt4' # proposal only; no trigger GO
+BRANCH='refs/heads/codex/structure-analyze-mobile-origin-fix-88830-attempt5' # proposal only; no trigger GO
 BASE='http://127.0.0.1:4173'
 MAX_PROJECTED_BYTES=32*1024*1024
 MAX_EVENTS=100000
@@ -168,6 +168,23 @@ def source_postflight(root,out,initial_coordinates,capture_deadline):
  source_need(result['status']=='source_verified' and result['bound_to_initial'] and time.monotonic()<deadline,'source_postflight_refused');return coordinates
 
 def number(v):need(type(v) in (int,float) and math.isfinite(v));return v
+def fixture_audit_base(base,relative_path):
+ # Source audit_one concatenates base+path. Match the official normalizedbase
+ # contract, and independently prove its target equals the standard URLjoin.
+ need(type(base) is str and 0<len(base)<=256 and type(relative_path) is str and 0<len(relative_path)<=1024)
+ need(base.isascii() and relative_path.isascii() and not any(ord(c)<33 or ord(c)==127 or c=='\\' for c in base+relative_path))
+ try:
+  origin=urlsplit(base);relative=urlsplit(relative_path);port=origin.port
+ except ValueError:raise Refused('fixture_navigation_refused') from None
+ need((origin.scheme,origin.hostname,port)==('http','127.0.0.1',4173) and origin.username is None and origin.password is None)
+ need(origin.path in ('','/') and not origin.query and not origin.fragment)
+ need(base=='http://127.0.0.1:4173'+origin.path)
+ need(not relative.scheme and not relative.netloc and relative.path=='analyze.html' and not relative.fragment)
+ need(relative_path==relative.path+('?' + relative.query if relative.query else ''))
+ normalized=base.rstrip('/')+'/';target=urljoin(normalized,relative_path);parsed=urlsplit(target)
+ need((parsed.scheme,parsed.hostname,parsed.port,parsed.path)==('http','127.0.0.1',4173,'/analyze.html'))
+ need(parsed.query==relative.query and not parsed.fragment and target==normalized+relative_path)
+ return normalized
 def bounded_action(deadline,action):
  # A nested phase may shorten, never renew, the existing absolute alarm.
  now=time.monotonic();need(now<deadline);old_delay,interval=signal.getitimer(signal.ITIMER_REAL);need(interval==0)
@@ -430,10 +447,10 @@ def run(root,out):
   with binary.open('rb') as f:
    while b:=f.read(1048576):h.update(b)
   writer.write_json('versions.json',{'python':sys.version.split()[0],'playwright':importlib.metadata.version('playwright'),'browser_binary_sha256':h.hexdigest()},control=True)
-  request,stream=beta._analyze_fixture();case=beta.PAGES['analyze'];capture=Capture(writer,beta,perf,capture_deadline);original=beta._page_setup_factory('analyze',case,('http','127.0.0.1',4173),request,stream);validator=beta._page_validator('analyze',case)
+  request,stream=beta._analyze_fixture();case=beta.PAGES['analyze'];normalized_base=fixture_audit_base(BASE,case.path);capture=Capture(writer,beta,perf,capture_deadline);original=beta._page_setup_factory('analyze',case,('http','127.0.0.1',4173),request,stream);validator=beta._page_validator('analyze',case)
   def setup(page,viewport,index):
    need(viewport=='mobile' and index==0);state=original(page,viewport,index);capture.setup(page);bind_navigation_observer(page,writer,capture,capture_deadline,NavigationError,NavigationTimeout);writer.write_json('browser-version.json',{'version':page.context.browser.version},control=True);return state
-  perf.audit_one(driver,BASE,case.path,'mobile',beta.VIEWPORTS['mobile'],case.interaction_selector,runs=1,page_setup=setup,ready_selector=case.ready_selector,page_validator=lambda page,state:capture.validated(page,state,validator),post_interaction_validator=beta._post_interaction_validator('analyze'),interaction_mode=case.interaction_mode,run_evidence_sink=capture.sink)
+  perf.audit_one(driver,normalized_base,case.path,'mobile',beta.VIEWPORTS['mobile'],case.interaction_selector,runs=1,page_setup=setup,ready_selector=case.ready_selector,page_validator=lambda page,state:capture.validated(page,state,validator),post_interaction_validator=beta._post_interaction_validator('analyze'),interaction_mode=case.interaction_mode,run_evidence_sink=capture.sink)
   need(capture.final and capture.final['audit_status']=='passed' and capture.final['cleanup_status']=='passed' and capture.seen=={'pending','final'} and capture.captured and capture.metric_verified and not capture.errors)
   source_need(time.monotonic()<capture_deadline,'capture_deadline');result['capture_evidence_verified']=True
  except BaseException:result['error']='diagnostic_incomplete_no_retry'
