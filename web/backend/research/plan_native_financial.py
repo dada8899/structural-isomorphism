@@ -161,6 +161,8 @@ def _producer(conn,lease,verify,table,before,after):
             from .provider_schemas import canonical,digest
             if not receipt or receipt['database_binding']!=digest(canonical(list(store.storage_identity))):raise PermissionError('native admitted gate/database differs')
             if owner['gate_id']!=funding['owner_gate_id'] or lease.identity[:2]!=(receipt['lock_dev'],receipt['lock_ino']):raise PermissionError('native funding Owner domain differs')
+        if frame.f_code is native.revoke_live_funding.__code__:
+            if table!=NAMES[0] or before is None or before['mode']!='native_live' or before['state']!='authorized' or after['state']!='blocked' or after['version']!=before['version']+1 or {key for key in after if after[key]!=before.get(key)}!={'state','version'}:raise PermissionError('native revoke can only block original funding')
         if table==MONEY:
             if not funding or before is None or before['id']!=funding['account_id'] or before['binding_id']!=funding['economic_binding']:raise PermissionError('native economic account differs')
             changed={name for name in after if after[name]!=before.get(name)}

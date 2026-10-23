@@ -140,7 +140,7 @@ class _ReadScope(AbstractContextManager):
             actual,_,_,_=current_task_binding_in(self.conn,self.store,value)
             if actual!=self.consent:raise PermissionError('evidence read task changed')
             from . import plan_native
-            plan_native.require_purpose(self.store,types.PURPOSE,current=True)
+            if self.kind!='return' or plan_native.live_session(self.store) is None:plan_native.require_purpose(self.store,types.PURPOSE,current=True)
     def store_principal(self):
         row=self.conn.execute('SELECT id FROM research_principals WHERE normalized_email=? AND session_generation=?',(self.identity.email,self.identity.generation)).fetchone()
         if not row:raise not_found()
@@ -305,7 +305,7 @@ def read_evidence_return_in(conn,store,lease,owned,consent):
     _caller((runtime._WRITE_PRODUCERS[3],),conn,lease,store)
     if type(consent) is not types.ConfirmedConsent:raise PermissionError('fixed original return domain required')
     value=conn.execute('SELECT * FROM research_plan_native_runs WHERE id=?',(consent.dispatch_id,)).fetchone()
-    pair=ports.installation(store)
+    pair=ports.installation(store,purpose=types.PURPOSE)
     if not pair:raise PermissionError('original return resource unavailable')
     runtime.require_return(owned,pair[1],consent.dispatch_id,consent.nonce,value['admission_digest'],consent.domain.producer_digest)
     current,_,_,_=current_task_binding_in(conn,store,value)

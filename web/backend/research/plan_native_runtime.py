@@ -26,22 +26,39 @@ def code_digest():
     return digest(canonical({Path(m.__file__).name:digest(Path(m.__file__).read_bytes()) for m in (plan_native,plan_native_runtime,plan_native_schemas,plan_native_financial,evidence,evidence_types,evidence_codec)}))
 
 
+def _confirmed_purpose(consent):
+    if type(consent) is not dict:raise PermissionError('protected native consent required')
+    if consent.get('protocol')=='evidence-method-consent-v1':
+        # _current adds three compatibility aliases only after validating CC.
+        aliases={'producer_digest','template_code_digest','request_digest','admission_digest'}
+        if set(consent)-set(evidence_types.ConfirmedConsent.model_fields)-aliases:raise PermissionError('strict evidence consent required')
+        checked=evidence_types.ConfirmedConsent.model_validate({key:consent[key] for key in evidence_types.ConfirmedConsent.model_fields})
+        for key in aliases-{'admission_digest'}:
+            if key in consent and consent[key]!=getattr(checked.domain,key):raise PermissionError('evidence consent alias differs')
+        return evidence_types.PURPOSE
+    if consent.get('protocol')!='native-plan-consent-v1':raise PermissionError('original self native consent required')
+    # Existing self protocol stays unchanged; its original task/domain checks
+    # and protected digest remain in _current/_authority.
+    if 'domain' in consent or 'exact_input' in consent or 'selection_manifest' in consent:raise PermissionError('self consent cannot carry evidence domain')
+    return 'phenomenon_plan_v1'
+
+
 def _authority(conn,store,lease,consent,*,owned=None):
     _owner_binding(conn,store,consent['principal_id'],lease)
-    funding=row(conn,FUNDING,1);pair=ports.installation(store)
+    purpose=_confirmed_purpose(consent)
+    funding=row(conn,FUNDING,1);pair=ports.installation(store,purpose=purpose)
     if not funding or not pair:raise PermissionError('native economic binding unavailable')
     provision,resource=pair
     if owned is not None:
         require_return(owned,resource,consent['dispatch_id'],consent['nonce'],consent['admission_digest'],consent['producer_digest'])
     else:provision.require()
-    purpose='evidence_method_plan_v1' if consent.get('protocol')=='evidence-method-consent-v1' else 'phenomenon_plan_v1'
     if ports.purpose_scope(resource)!=purpose:raise PermissionError('original native purpose authority differs')
     if (funding['account_id'],funding['economic_binding'],funding['authority_digest'])!=(consent['account_id'],consent['economic_binding'],consent['authority_digest']):raise PermissionError('native original economic binding differs')
     return funding,resource
 
 
 def _active(conn,store,pid,generation,*,purpose='phenomenon_plan_v1'):
-    funding=row(conn,FUNDING,1);pair=ports.installation(store)
+    funding=row(conn,FUNDING,1);pair=ports.installation(store,purpose=purpose)
     if not funding or not pair:raise ResearchError('FUNDING_CLOSED',503,'原生资金执行尚未绑定；当前仅可预览本次费用上限。')
     if funding['principal_id']!=pid or funding['generation']!=generation:raise ResearchError('FUNDING_GRANT_REQUIRED',403,'当前账户未获得原生资金授权。')
     if finance.unresolved(conn,funding['account_id']):raise ResearchError('RECONCILIATION_REQUIRED',409,'同一账本仍有未核对发送。')
@@ -62,6 +79,9 @@ def quote(*,evidence_method=False):
 def preview(service,identity,rid,request,key,source):
     pid=service._principal(identity);operation=digest(canonical(request.model_dump(mode='json')))
     is_new=type(request) is evidence_types.EvidenceMethodPreviewRequest
+    if not is_new:
+        from .plan_schemas import PlanPreviewRequest
+        if type(request) is not PlanPreviewRequest:raise PermissionError('exact native preview request required')
     require_authenticated_action(source,identity=identity,action='evidence-method-preview' if is_new else 'plan-preview',research_id=rid,key=key,body_digest=operation)
     with service.authorization.owner_gate(pid) as lease,service.store.transaction(write=True) as conn:
         if is_new:
@@ -109,10 +129,10 @@ def preview_view(value,conn,store):
             if error.code not in ('FUNDING_CLOSED','FUNDING_GRANT_REQUIRED','FUNDING_STALE'):raise
             reason=error.code
         return evidence.preview_data(value,checked,quote_value,can_confirm=reason is None,reason=reason)
-    authorized=bool(ports.installation(store) and funding and funding['state']=='authorized' and funding['principal_id']==value['principal_id'] and funding['generation']==consent['generation'])
+    authorized=bool(ports.installation(store,purpose='phenomenon_plan_v1') and funding and funding['state']=='authorized' and funding['principal_id']==value['principal_id'] and funding['generation']==consent['generation'])
     if authorized:
         try:
-            provision,resource=ports.installation(store)
+            provision,resource=ports.installation(store,purpose='phenomenon_plan_v1')
             provision.require();resource.require()
             ports.require_purpose(store,'phenomenon_plan_v1')
         except (PermissionError,OSError,ResearchError):authorized=False
@@ -125,6 +145,9 @@ def preview_view(value,conn,store):
 def confirm(service,identity,rid,request,key,source):
     pid=service._principal(identity);operation=digest(canonical(request.model_dump(mode='json')))
     is_new=type(request) is evidence_types.EvidenceMethodConfirmRequest
+    if not is_new:
+        from .plan_schemas import PlanConfirmationRequest
+        if type(request) is not PlanConfirmationRequest:raise PermissionError('exact native confirmation request required')
     require_authenticated_action(source,identity=identity,action='evidence-method-confirm' if is_new else 'plan-confirm',research_id=rid,key=key,body_digest=operation)
     with service.authorization.owner_gate(pid) as lease,service.store.transaction(write=True) as conn:
         service.authorization.check(conn,identity,pid,rid,scope='write')
@@ -157,6 +180,7 @@ def confirm(service,identity,rid,request,key,source):
             if value['expires_at']<=int(time.time()) or consent.get('protocol')!='native-plan-consent-v1' or consent['producer_digest']!=code_digest() or q.codec_digest!=codec_digest() or encoded.outbound_request_digest!=consent['request_digest']:raise ResearchError('PREVIEW_EXPIRED',409,'输入、代码或报价已变化，请重新预览。')
         if request.approved_upper_units!=q.approved_upper_units or request.expected_research_version!=control['version']:raise ResearchError('INPUT_INVALID',422,'请确认原修订和本次费用上限。')
         funding,resource=_active(conn,service.store,pid,identity.generation,purpose=evidence_types.PURPOSE if is_new else 'phenomenon_plan_v1')
+        if resource.mode=='native_live' and conn.execute("SELECT 1 FROM "+RUNS+" WHERE account_id=? AND (state IN ('approved','reserved','consumed','unknown') OR cost_state='unknown' OR (state='closed' AND cost_state='held')) LIMIT 1",(funding['account_id'],)).fetchone():raise ResearchError('TASK_ACTIVE',409,'共享原生资金已有未结束工作，请先核对原任务。')
         if conn.execute("SELECT 1 FROM research_tasks WHERE research_id=? AND execution IN ('QUEUED','RUNNING','WAITING_EXTERNAL','RECONCILING')",(rid,)).fetchone():raise ResearchError('TASK_ACTIVE',409,'当前研究已有未结束任务。')
         task,step,grant,dispatch,ref,nonce=[uid() for _ in range(6)];at=stamp()
         consent.update(task_id=task,step_id=step,grant_id=grant,grant_version=1,dispatch_id=dispatch,result_ref=ref,nonce=nonce,
@@ -206,14 +230,17 @@ def _current(conn,store,value):
 
 
 class NativeBalanceLease(ports._Sealed):
-    __slots__=('store','resource','claim','consent','baseline','pid','reference','active','used')
-    def __init__(self,store,resource,claim,consent,baseline,*,_factory=None):
+    __slots__=('store','resource','claim','consent','baseline','pid','reference','active','used','slot_scope')
+    def __init__(self,store,resource,claim,consent,baseline,*,_factory=None,slot_scope=None):
         if _factory is not _FACTORY:raise TypeError('actual committed native balance claim required')
         self.store,self.resource,self.claim,self.consent,self.baseline=store,resource,claim,canonical({k:consent[k] for k in evidence_types.ConfirmedConsent.model_fields} if consent.get('protocol')=='evidence-method-consent-v1' else consent),canonical(baseline)
+        self.slot_scope=slot_scope
+        if resource.mode=='native_live':_require_live_slot(store,resource,consent['task_id'],consent,slot_scope)
         self.pid,self.reference,self.active,self.used=os.getpid(),uid(),True,False;_CAPS[self.reference]=self
     def consume(self,resource):
         if not self.active or self.used or self.pid!=os.getpid() or _CAPS.get(self.reference) is not self or resource is not self.resource:raise PermissionError('native balance lease retired')
         consent=strict_json(self.consent,32768);store=self.store
+        if resource.mode=='native_live':_require_live_slot(store,resource,consent['task_id'],consent,self.slot_scope)
         with AuthorizationGate(store).owner_gate(consent['principal_id']) as lease,store.transaction() as conn:
             value=row(conn,RUNS,consent['dispatch_id']);_current(conn,store,value)
             if consent['quote']['valid_until']<=int(time.time()):raise PermissionError('native balance quote expired')
@@ -241,14 +268,18 @@ class EvidenceMethodPayload:
 
 
 class NativePlanSendLease(ports._Sealed):
-    __slots__=('store','resource','lease','dispatch','raw','account_version','funding_version','pid','thread','reference','active','used','inspected')
-    def __init__(self,store,resource,lease,dispatch,raw,account_version,funding_version,*,_factory=None):
+    __slots__=('store','resource','lease','dispatch','raw','account_version','funding_version','pid','thread','reference','active','used','inspected','slot_scope')
+    def __init__(self,store,resource,lease,dispatch,raw,account_version,funding_version,*,_factory=None,slot_scope=None):
         if _factory is not _FACTORY:raise TypeError('actual native consumed claim required')
         self.store,self.resource,self.lease,self.dispatch,self.raw,self.account_version,self.funding_version=store,resource,lease,dispatch,raw,account_version,funding_version
+        self.slot_scope=slot_scope
         self.pid,self.thread,self.reference,self.active,self.used,self.inspected=os.getpid(),threading.get_ident(),uid(),True,False,None;_CAPS[self.reference]=self
     def _require(self,resource):
         if not self.active or self.used or self.pid!=os.getpid() or self.thread!=threading.get_ident() or _CAPS.get(self.reference) is not self or resource is not self.resource:raise PermissionError('single native send lease required')
         self.lease.identity;resource.require()
+        if resource.mode=='native_live':
+            from .native_live_grant import require_slot
+            require_slot(self.slot_scope,self.store,resource.permit.provision.authority.live_session,task_id=self.slot_scope.task_id,purpose=ports.purpose_scope(resource),mode='execute')
     def _money_binding(self,conn,value,consent,resource):
         funding,actual=_authority(conn,self.store,self.lease,consent);account=row(conn,'research_funding_accounts',value['account_id'])
         if actual is not resource or funding['state']!='authorized' or account['status']!='unverified' or account['binding_id']!=consent['economic_binding'] or funding['grant_epoch']!=consent['grant_epoch'] or funding['credential_incarnation']!=consent['credential_incarnation'] or funding['version']!=self.funding_version or account['version']!=self.account_version or funding['balance_claim']!=self.dispatch or funding['balance_nonce']!=value['nonce'] or finance.unresolved(conn,account['id'],excluding=self.dispatch):raise PermissionError('current native money authority ended')
@@ -303,16 +334,24 @@ def _money(conn,lease,account,held_delta,booked_delta,verify):
     _write(conn,lease,'research_funding_accounts',account['id'],dict(held=account['held']+held_delta,upper_booked=account['upper_booked']+booked_delta,version=account['version']+1),verify)
 
 
-def run_once(store,task_id):
+def _require_live_slot(store,resource,task_id,consent,slot_scope):
+    from .native_live_grant import require_slot
+    purpose=_confirmed_purpose(consent)
+    require_slot(slot_scope,store,resource.permit.provision.authority.live_session,task_id=task_id,purpose=purpose,mode='execute')
+
+
+def run_once(store,task_id,*,slot_scope=None):
     gate=AuthorizationGate(store)
     with store.transaction() as conn:
         value=conn.execute('SELECT * FROM '+RUNS+' WHERE task_id=?',(task_id,)).fetchone()
         if not value:raise not_found()
         if value['state']!='approved':return envelope(metadata(value))
         consent,task,step,control=_current(conn,store,value);pid=consent['principal_id'];dispatch=value['id']
-    pair=ports.installation(store)
+    purpose=evidence_types.PURPOSE if evidence.is_evidence(value) else 'phenomenon_plan_v1'
+    pair=ports.installation(store,purpose=purpose)
     if not pair:raise ResearchError('FUNDING_CLOSED',503,'原生执行资源当前关闭。')
     provision,resource=pair
+    if resource.mode=='native_live':_require_live_slot(store,resource,task_id,consent,slot_scope)
     if not resource.flight.acquire(blocking=False):raise ResearchError('FUNDING_BUSY',409,'同一原生资金资源正在执行。')
     balance=balance_cap=pending=send=owned=None;primary=None;admission=None
     try:
@@ -329,7 +368,7 @@ def run_once(store,task_id):
             _write(conn,lease,FUNDING,1,dict(balance_claim=dispatch,balance_nonce=value['nonce'],version=funding['version']+1),verify)
             baseline=[dict(row(conn,FUNDING,1)),dict(account)]
         claim=(dispatch,consent['nonce'])
-        balance_cap=NativeBalanceLease(store,resource,claim,consent,baseline,_factory=_FACTORY)
+        balance_cap=NativeBalanceLease(store,resource,claim,consent,baseline,_factory=_FACTORY,slot_scope=slot_scope)
         balance=resource.balance(balance_cap);require_balance(balance,resource,claim)
         with gate.owner_gate(pid) as lease,store.transaction(write=True) as conn:
             value=row(conn,RUNS,dispatch);current,task,step,control=_current(conn,store,value)
@@ -374,7 +413,7 @@ def run_once(store,task_id):
             state_in(conn,task_id,'RUNNING',safe_code='native_plan_consumed')
         with gate.owner_gate(pid) as lease:
             # Send cap checks the durable consumption using another connection.
-            send=NativePlanSendLease(store,resource,lease,dispatch,encoded.raw,account_version,funding_version,_factory=_FACTORY)
+            send=NativePlanSendLease(store,resource,lease,dispatch,encoded.raw,account_version,funding_version,_factory=_FACTORY,slot_scope=slot_scope)
             pending.write_first(send)
         owned=pending.receive()
         require_return(owned,resource,dispatch,consent['nonce'],digest(canonical(admission)),consent['producer_digest'])
@@ -424,7 +463,6 @@ def _evidence_usage(owned):
 
 
 def _commit_return(store,pid,dispatch,owned,original_consent,original_admission):
-    resource=ports.installation(store)[1]
     with store.transaction() as conn:
         value=row(conn,RUNS,dispatch);consent=json.loads(value['consent_json']) if value['consent_json'] else original_consent
         # The exact original consent remains in the worker-owned immutable send
@@ -436,6 +474,10 @@ def _commit_return(store,pid,dispatch,owned,original_consent,original_admission)
     if consent.get('protocol')=='evidence-method-consent-v1':
         consent={**consent,'producer_digest':consent['domain']['producer_digest']}
         context={**consent,'admission_digest':value['admission_digest']}
+    purpose=_confirmed_purpose(consent)
+    pair=ports.installation(store,purpose=purpose)
+    if not pair:raise PermissionError('original native return resource unavailable')
+    resource=pair[1]
     require_return(owned,resource,dispatch,consent['nonce'],value['admission_digest'],consent['producer_digest'])
     data=usage=proposal=None
     try:data,usage=_evidence_usage(owned) if consent.get('protocol')=='evidence-method-consent-v1' else _usage(owned)
@@ -457,6 +499,10 @@ def _commit_return(store,pid,dispatch,owned,original_consent,original_admission)
         active=True
         try:_current(conn,store,value)
         except (PermissionError,ResearchError):active=False
+        task_active=active
+        if resource.mode=='native_live':
+            try:resource.permit.provision.require()
+            except (PermissionError,ResearchError,OSError):active=False
         at=stamp();result=None
         is_new=consent.get('protocol')=='evidence-method-consent-v1'
         if is_new:
@@ -479,7 +525,7 @@ def _commit_return(store,pid,dispatch,owned,original_consent,original_admission)
         state='closed' if value['state']=='closed' else 'returned' if usage else 'unknown'
         _write(conn,lease,RUNS,dispatch,dict(state=state,cost_state='upper_booked' if usage else 'unknown',version=value['version']+1,receipt_json=canonical(receipt).decode(),usage_json=None if usage is None else canonical(usage).decode(),result_json=None if result is None else canonical(result).decode(),commit_json=canonical(commit).decode(),safe_code='access_ended' if not active else 'saved' if result else 'body_invalid' if usage else 'send_unknown'),verify)
         funding=row(conn,FUNDING,1);_write(conn,lease,FUNDING,1,dict(balance_claim=None,balance_nonce=None,version=funding['version']+1),verify)
-        if active:
+        if task_active:
             from .runner import state_in
             conn.execute('UPDATE research_steps SET state=?,version=version+1 WHERE id=?',('SUCCEEDED' if result else 'FAILED' if usage else 'UNKNOWN',consent['step_id']))
             state_in(conn,value['task_id'],'COMPLETED' if result else 'FAILED' if usage else 'RECONCILING',safe_code='native_plan_saved' if result else 'native_plan_body_invalid' if usage else 'native_send_unknown')

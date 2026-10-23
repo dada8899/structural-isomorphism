@@ -44,6 +44,7 @@ def _fd_identity(fd):
 
 
 class _Sealed:
+    __slots__=()
     def __setattr__(self,name,value):
         if hasattr(self,name):raise TypeError('native capability immutable')
         object.__setattr__(self,name,value)
@@ -51,11 +52,19 @@ class _Sealed:
 
 
 class OwnerFundingAuthorityLease(_Sealed):
-    __slots__=('store','identity','principal','owner_gate_id','fd','path','native_identity','pid','reference','facts','server','server_identity','active')
+    __slots__=('store','identity','principal','owner_gate_id','fd','path','native_identity','pid','reference','facts','server','server_identity','active','live_session')
     def __init__(self,*,_factory=None,**values):
         if _factory is not _FACTORY:raise TypeError('fixed native bootstrap required')
+        self.live_session=values.pop('live_session',None)
         for name,value in values.items():setattr(self,name,value)
-    def require(self,*,current=True):
+    def require(self,*,current=True,past_scope=None):
+        if self.live_session is not None:
+            from .native_live_grant import NativeLiveSession
+            if type(self.live_session) is not NativeLiveSession or self.live_session.authority is not self:raise PermissionError('actual live session authority required')
+            if not self.active or self.pid!=os.getpid() or _AUTHORITIES.get(self.reference) is not self:raise PermissionError('native authority lifetime ended')
+            if current:self.live_session.require()
+            else:self.live_session.require_past(past_scope)
+            return
         if not self.active or self.pid!=os.getpid() or _AUTHORITIES.get(self.reference) is not self or _fd_identity(self.fd)!=self.native_identity:raise PermissionError('native authority lifetime ended')
         named=self.path.lstat()
         if (named.st_dev,named.st_ino)!=(self.native_identity[0],self.native_identity[1]) or not stat.S_ISREG(named.st_mode) or named.st_uid!=os.getuid() or named.st_nlink!=1 or stat.S_IMODE(named.st_mode)!=0o600:raise PermissionError('native authority resource replaced')
@@ -64,19 +73,33 @@ class OwnerFundingAuthorityLease(_Sealed):
             with self.store.transaction() as conn:
                 principal=AuthorizationGate(self.store).check(conn,self.identity,self.principal)
                 if principal['gate_id']!=self.owner_gate_id or self.store.auth_store.owner_gate_in(conn,self.identity.email)!=self.owner_gate_id:raise PermissionError('native authority current incarnation differs')
+    def require_bootstrap(self,startup_scope):
+        from .native_live_grant import NativeLiveSession
+        if type(self.live_session) is not NativeLiveSession or self.live_session.authority is not self:raise PermissionError('live bootstrap authority required')
+        if not self.active or self.pid!=os.getpid() or _AUTHORITIES.get(self.reference) is not self:raise PermissionError('native authority lifetime ended')
+        self.live_session.require_bootstrap(startup_scope)
     def close(self):
         if self.active:
             object.__setattr__(self,'active',False);_AUTHORITIES.pop(self.reference,None)
-            os.close(self.fd)
+            if self.live_session is None:os.close(self.fd)
 
 
 def bootstrap_native_owner_authority(store):
-    """No approved native provision resource is bound in this release.
-
-    In particular, a Markdown/JSON statement, its hash, an email, a caller FD,
-    environment flag, or provider balance cannot create this authority.
-    """
+    """Ordinary callers cannot read root control files or mint live authority."""
     raise ResearchError('FUNDING_CLOSED',503,'受信原生资金资源尚未绑定；账户和已存研究仍可使用。')
+
+
+def _live_authority(session,startup_scope):
+    from . import native_live_grant as live
+    frame=__import__('sys')._getframe(1)
+    try:
+        if frame.f_globals is not vars(live) or frame.f_code is not live._BIRTH_CODES['bind_live_authority'] or type(session) is not live.NativeLiveSession:raise PermissionError('fixed live authority factory required')
+    finally:del frame
+    session.require_bootstrap(startup_scope);facts=__import__('json').loads(session.facts)
+    value=OwnerFundingAuthorityLease(_factory=_FACTORY,store=session.store,identity=None,principal=facts['principal_id'],
+        owner_gate_id=facts['owner_gate_id'],fd=None,path=None,native_identity=None,pid=os.getpid(),reference=_uid(),
+        facts=session.facts,server=None,server_identity=None,active=True,live_session=session)
+    _AUTHORITIES[value.reference]=value;return value
 
 
 def create_controlled_fixture_authority(store,identity,server,*,approved_cap_units,risk_margin_units=0):
@@ -109,20 +132,25 @@ def create_controlled_runtime_evidence_method_fixture_authority(store,identity,s
 def purpose_scope(resource):
     facts=strict_json(resource.permit.facts,16384)
     domain=facts.get('purpose_domain')
+    if facts.get('mode')=='native_live':
+        from .native_live_grant import fixed_purpose_domains
+        for approved in fixed_purpose_domains():
+            if domain==approved:return approved['purpose']
+        raise PermissionError('fixed live purpose domain required')
     if domain is None:return 'phenomenon_plan_v1'
     if domain!=_evidence_purpose_domain():raise PermissionError('sealed evidence purpose domain differs')
     return 'evidence_method_plan_v1'
 
 
-def require_purpose(store,purpose,*,current=True):
-    pair=installation(store)
+def require_purpose(store,purpose,*,current=True,past_scope=None):
+    pair=installation(store,purpose=purpose)
     if pair is None:raise ResearchError('FUNDING_CLOSED',503,'该目的的原生资源当前关闭。')
     provision,resource=pair
     if type(provision) is not NativePlanProvision:raise PermissionError('actual purpose provision required')
     if type(resource) is not ControlledNativeResource:
         module=_runtime_module()
         if type(resource) is not module.NativePlanResource:raise PermissionError('actual purpose resource required')
-    provision.require(current=current);resource.require(current=current)
+    provision.require(current=current,past_scope=past_scope);resource.require(current=current)
     if resource.permit.provision is not provision or purpose_scope(resource)!=purpose:raise ResearchError('FUNDING_CLOSED',503,'原资源未授权此目的，请使用独立授权。')
     return resource
 
@@ -168,30 +196,49 @@ def _fixture_authority(store,identity,server,approved_cap_units,risk_margin_unit
 
 class NativePlanProvision(_Sealed):
     __slots__=('authority','facts','reference','pid','active')
-    def __init__(self,authority,*,_factory=None):
+    def __init__(self,authority,*,_factory=None,startup_scope=None):
         if _factory is not _FACTORY or type(authority) is not OwnerFundingAuthorityLease:raise TypeError('native owner authority required')
-        authority.require();self.authority,self.facts,self.reference,self.pid,self.active=authority,authority.facts,_uid(),os.getpid(),True;_PROVISIONS[self.reference]=self
-    def require(self,*,current=True):
+        if authority.live_session is None:authority.require()
+        else:authority.require_bootstrap(startup_scope)
+        self.authority,self.facts,self.reference,self.pid,self.active=authority,authority.facts,_uid(),os.getpid(),True;_PROVISIONS[self.reference]=self
+    def require(self,*,current=True,past_scope=None):
         if not self.active or self.pid!=os.getpid() or _PROVISIONS.get(self.reference) is not self:raise PermissionError('actual native provision required')
-        self.authority.require(current=current)
+        self.authority.require(current=current,past_scope=past_scope)
+    def require_bootstrap(self,startup_scope):
+        if not self.active or self.pid!=os.getpid() or _PROVISIONS.get(self.reference) is not self:raise PermissionError('actual native provision required')
+        self.authority.require_bootstrap(startup_scope)
     def data(self):self.require();return strict_json(self.facts,16384)
+    def data_bootstrap(self,startup_scope):self.require_bootstrap(startup_scope);return strict_json(self.facts,16384)
     def close(self):object.__setattr__(self,'active',False);_PROVISIONS.pop(self.reference,None)
 
 
-def issue_native_provision(store,authority_lease):
+def issue_native_provision(store,authority_lease,*,startup_scope=None):
     if type(authority_lease) is not OwnerFundingAuthorityLease or authority_lease.store is not store:raise PermissionError('actual fixed owner authority required')
-    return NativePlanProvision(authority_lease,_factory=_FACTORY)
+    return NativePlanProvision(authority_lease,_factory=_FACTORY,startup_scope=startup_scope)
 
 
 class NativeRuntimePermit(_Sealed):
     __slots__=('provision','facts','reference','pid','active')
-    def __init__(self,provision,*,_factory=None):
+    def __init__(self,provision,*,_factory=None,purpose=None,startup_scope=None):
         if _factory is not _FACTORY:raise TypeError('fixed Core permit producer required')
-        provision.require();self.provision,self.facts,self.reference,self.pid,self.active=provision,provision.facts,_uid(),os.getpid(),True;_PERMITS[self.reference]=self
-    def require(self,*,current=True):
+        if provision.authority.live_session is None:
+            if purpose is not None:raise PermissionError('controlled original purpose cannot expand')
+            provision.require();facts=provision.facts
+        else:
+            data=provision.data_bootstrap(startup_scope)
+            from .native_live_grant import fixed_purpose_domains,PURPOSES
+            if purpose not in PURPOSES:raise PermissionError('explicit fixed live purpose required')
+            data['purpose_domain']=fixed_purpose_domains()[PURPOSES.index(purpose)];facts=canonical(data)
+            if len(facts)>16384:raise PermissionError('bounded native permit required')
+        self.provision,self.facts,self.reference,self.pid,self.active=provision,facts,_uid(),os.getpid(),True;_PERMITS[self.reference]=self
+    def require(self,*,current=True,past_scope=None):
         if not self.active or self.pid!=os.getpid() or _PERMITS.get(self.reference) is not self:raise PermissionError('native runtime permit retired')
-        self.provision.require(current=current)
-    def data(self,*,current=True):self.require(current=current);return strict_json(self.facts,16384)
+        self.provision.require(current=current,past_scope=past_scope)
+    def require_bootstrap(self,startup_scope):
+        if not self.active or self.pid!=os.getpid() or _PERMITS.get(self.reference) is not self:raise PermissionError('native runtime permit retired')
+        self.provision.require_bootstrap(startup_scope)
+    def data(self,*,current=True,past_scope=None):self.require(current=current,past_scope=past_scope);return strict_json(self.facts,16384)
+    def data_bootstrap(self,startup_scope):self.require_bootstrap(startup_scope);return strict_json(self.facts,16384)
     def controlled_endpoint(self):
         self.require()
         if strict_json(self.facts,16384)['mode']!='controlled_fixture':raise PermissionError('controlled endpoint only')
@@ -199,9 +246,9 @@ class NativeRuntimePermit(_Sealed):
     def close(self):object.__setattr__(self,'active',False);_PERMITS.pop(self.reference,None)
 
 
-def mint_runtime_permit(provision):
+def mint_runtime_permit(provision,*,purpose=None,startup_scope=None):
     if type(provision) is not NativePlanProvision:raise PermissionError('fixed native provision required')
-    return NativeRuntimePermit(provision,_factory=_FACTORY)
+    return NativeRuntimePermit(provision,_factory=_FACTORY,purpose=purpose,startup_scope=startup_scope)
 
 
 class OwnedBalanceReceipt(_Sealed):
@@ -373,48 +420,128 @@ def open_controlled_fixture_resource(permit):
     return ControlledNativeResource(permit,_factory=_FACTORY)
 
 
-def open_plan_resource(permit):
+def open_plan_resource(permit,*,startup_scope=None):
     """Fixed Runtime installation seam; no ducktype or mutable registry escape."""
     if type(permit) is not NativeRuntimePermit:raise PermissionError('fixed Core runtime permit required')
-    data=permit.data();module=_runtime_module()
+    live=permit.provision.authority.live_session is not None
+    data=permit.data_bootstrap(startup_scope) if live else permit.data();module=_runtime_module()
     actual=digest(Path(module.__file__).read_bytes())
     if actual!=data['runtime_digest']:raise PermissionError('approved native Runtime code digest differs')
-    resource=module.open_plan_resource(permit)
+    resource=module.open_plan_resource(permit,startup_scope=startup_scope) if live else module.open_plan_resource(permit)
     if type(resource) is not module.NativePlanResource:raise PermissionError('exact canonical Runtime resource required')
-    resource.require();return resource
+    if live:
+        from .native_live_grant import NativeLiveStartFailure,_close_all
+        try:
+            resource.require_bootstrap(startup_scope)
+            if resource.permit is not permit or resource.flight is not permit.provision.authority.live_session.thread_flight:raise PermissionError('shared live session/flight pairing differs')
+        except BaseException as primary:
+            errors=_close_all((resource,))
+            raise NativeLiveStartFailure(permit.provision.authority.live_session,(resource,),uncertain=bool(errors)) from primary
+    else:resource.require()
+    return resource
 
 
-def install_native_funding(store,provision,resource):
+def install_native_funding(store,provision,resource,*,startup_scope=None):
     from .paid_control import _owner_binding
     if type(provision) is not NativePlanProvision:raise PermissionError('actual native provision required')
-    provision.require();facts=provision.data()
+    live=provision.authority.live_session is not None
+    if live:provision.require_bootstrap(startup_scope);facts=provision.data_bootstrap(startup_scope)
+    else:provision.require();facts=provision.data()
     if type(resource) is ControlledNativeResource:resource.require()
     else:
         module=_runtime_module()
         if type(resource) is not module.NativePlanResource or digest(Path(module.__file__).read_bytes())!=facts['runtime_digest']:raise PermissionError('fixed accepted Runtime module required')
-        resource.require()
+        if live:resource.require_bootstrap(startup_scope)
+        else:resource.require()
     expected_producer='core-controlled-native-v1' if type(resource) is ControlledNativeResource else 'owned-native-plan-runtime-v1'
     if resource.permit.provision is not provision or (resource.mode,resource.producer,resource.economic_binding,resource.credential_incarnation)!=(facts['mode'],expected_producer,facts['economic_binding'],facts['credential_incarnation']):raise PermissionError('resource/provision mode/origin pairing differs')
     pid=facts['principal_id']
+    if live:
+        # A restart with the exact grant is genuinely read-only. The shared
+        # POSIX flight was acquired before this point; no ledger is adopted.
+        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction() as conn:
+            provision.require_bootstrap(startup_scope);_owner_binding(conn,store,pid,lease)
+            existing=conn.execute('SELECT * FROM '+FUNDING_TABLE+' WHERE id=1').fetchone()
+            if existing:
+                from .native_live_grant import require_funding_snapshot
+                require_funding_snapshot(conn,provision.facts)
+        if existing:
+            _INSTALLATIONS[str(store.path)]=provision.authority.live_session
+            return resource
     with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
-        def verify():provision.require();_owner_binding(conn,store,pid,lease)
+        def verify():
+            if live:provision.require_bootstrap(startup_scope)
+            else:provision.require()
+            _owner_binding(conn,store,pid,lease)
         verify()
         if conn.execute('SELECT 1 FROM '+FUNDING_TABLE+' LIMIT 1').fetchone():raise ResearchError('LEDGER_BINDING_REQUIRED',409,'原生资金已绑定；不能另建或清零。')
         if conn.execute('SELECT 1 FROM research_funding_accounts LIMIT 1').fetchone():raise ResearchError('LEDGER_BINDING_REQUIRED',409,'现有账本必须由受信原生资源显式接续。')
+        if live:
+            for table in ('research_project_budgets','research_reservations','research_plan_dispatches'):
+                if conn.execute('SELECT 1 FROM '+table+' LIMIT 1').fetchone():raise ResearchError('LEDGER_BINDING_REQUIRED',409,'非空旧资金域不能被自动收养。')
         # Genesis is explicit native authority and empty finance only. The
         # declaration cap is not a deposit or a cash-balance observation.
         conn.execute("INSERT INTO research_funding_accounts(id,binding_id,mode,provider,currency,status,cap) VALUES(?,?,'live','deepseek','CNY','unverified',0)",(facts['account_id'],facts['economic_binding']))
         values={k:facts[k] for k in ('mode','principal_id','generation','owner_gate_id','authority_ref','account_id','economic_binding','credential_incarnation','grant_epoch','approved_cap_units','risk_margin_units','runtime_digest','network_ref')}
         values.update(state='authorized',authority_digest=digest(provision.facts),balance_claim=None,balance_nonce=None,version=1)
         financial._write(conn,lease,FUNDING_TABLE,1,values,verify,_factory=financial._FACTORY)
-    _INSTALLATIONS[str(store.path)]=(provision,resource)
+    _INSTALLATIONS[str(store.path)]=provision.authority.live_session if live else (provision,resource)
     return resource
 
 
-def installation(store):return _INSTALLATIONS.get(str(store.path))
+def live_session(store):
+    value=_INSTALLATIONS.get(str(store.path))
+    if type(value) is tuple or value is None:return None
+    from .native_live_grant import NativeLiveSession
+    from .store import ResearchStore
+    if type(value) is not NativeLiveSession or type(store) is not ResearchStore or store.storage_identity is None or store.path!=value.store.path or store.storage_identity!=value.store.storage_identity:raise PermissionError('actual installed live store binding required')
+    store._formal_mode()
+    value._identity();return value
+
+
+def revoke_live_funding(store,session,*,lifecycle_scope):
+    """Only C's bounded original lifecycle can persist conservative blocking."""
+    from . import native_live_grant as live
+    from .paid_control import _owner_binding,_current_scope
+    from .authorization import OwnerGateLease
+    if type(session) is not live.NativeLiveSession or session.store is not store:raise live._closed()
+    try:module=live._lifecycle(lifecycle_scope,store,session,'revoke');live._c_caller(module)
+    except ResearchError as error:
+        if error.code!='FUNDING_CLOSED':raise
+        raise ResearchError('CLEANUP_UNCERTAIN',503,'原生撤权未取得受信有界清场口；保留原资源和资金事实。') from None
+    session._identity();object.__setattr__(session,'state','cleanup_only');session._request_stop()
+    # This exact C bridge owns the remaining deadline across Auth, Owner and
+    # SQLite. There is deliberately no ordinary transaction fallback.
+    context=module.bounded_revoke_transaction(lifecycle_scope,store,session)
+    if type(context) is not module.BoundedRevokeTransaction:raise ResearchError('CLEANUP_UNCERTAIN',503,'原生撤权清场尚未获得有界资源。')
+    with context as (lease,conn):
+        pid=__import__('json').loads(session.facts)['principal_id']
+        def verify():
+            live._lifecycle(lifecycle_scope,store,session,'revoke')
+            session.require_past(lifecycle_scope)
+            _current_scope(conn);_owner_binding(conn,store,pid,lease)
+        if type(lease) is not OwnerGateLease:raise PermissionError('actual bounded Owner lease required')
+        verify();funding,_=live.require_funding_snapshot(conn,session.facts,allow_blocked=True)
+        if funding['state'] in ('blocked','retired'):return False
+        financial._write(conn,lease,FUNDING_TABLE,1,dict(state='blocked',version=funding['version']+1),verify,_factory=financial._FACTORY)
+        return True
+
+
+def installation(store,*,purpose=None):
+    value=_INSTALLATIONS.get(str(store.path))
+    if value is None:return None
+    if type(value) is tuple:return value
+    session=live_session(store)
+    from .native_live_grant import PURPOSES
+    if purpose not in PURPOSES:raise ResearchError('FUNDING_CLOSED',503,'实时资源必须明确原确认用途。')
+    if len(session.resources)!=2:return None
+    resource=session.resources[PURPOSES.index(purpose)]
+    if purpose_scope(resource)!=purpose:raise PermissionError('installed native purpose differs')
+    return session.provision,resource
 
 
 def retire_installation(store):
+    if live_session(store) is not None:raise PermissionError('live retirement requires canonical lifecycle scope')
     pair=_INSTALLATIONS.pop(str(store.path),None)
     if pair:
         errors=[]
@@ -438,5 +565,5 @@ def retire_attempts(*resources,flight=None):
 
 
 # Fixed code origins, captured before test wrappers or caller attribute aliases.
-_WRITE_PRODUCERS=(install_native_funding,)
+_WRITE_PRODUCERS=(install_native_funding,revoke_live_funding)
 _EVIDENCE_FACTORY_CODES=(create_controlled_evidence_method_fixture_authority.__code__,create_controlled_runtime_evidence_method_fixture_authority.__code__)
