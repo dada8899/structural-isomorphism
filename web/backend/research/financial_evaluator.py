@@ -359,3 +359,276 @@ def evaluate_financial(data, registry):
             return snapshot
     except DecimalException:
         raise FinancialResourceLimit("Decimal arithmetic condition") from None
+
+
+# The v1 facade above is unchanged. These private views expose only numeric
+# fields to the existing scenario/profit/composition kernel. They are neither a
+# SourceRegistry nor a SourceSnapshot and never grant source or native authority.
+@dataclass(frozen=True)
+class _OwnerObservation:
+    row: object
+
+    def __getattr__(self, name):
+        return getattr(self.row, name)
+
+    @property
+    def period(self): return Period(self.row.period_start, self.row.period_end, self.row.period_grain)
+
+    @property
+    def amount(self):
+        from .financial_schemas import FinancialAmount
+        return FinancialAmount(self.row.value, self.row.currency, self.row.unit)
+
+    @property
+    def evidence_basis(self): return self.row.declared_basis
+
+
+@dataclass(frozen=True)
+class _OwnerSourceDates:
+    row: object
+
+    @property
+    def id(self): return self.row.id
+
+    @property
+    def published_at(self): return self.row.claimed_published_at
+
+    @property
+    def accessed_at(self): return self.row.claimed_accessed_at
+
+
+@dataclass(frozen=True)
+class _OwnerFX:
+    row: object
+
+    def __getattr__(self, name): return getattr(self.row, name)
+
+    @property
+    def period(self): return Period(self.row.period_start, self.row.period_end, self.row.period_grain)
+
+    @property
+    def kind(self): return self.row.fx_kind
+
+    @property
+    def rate(self): return self.row.value
+
+
+class _OwnerNumericIndex:
+    def __init__(self, registry):
+        from .financial_input_schemas import RegisteredSourceV2, RegisteredObservationV2, RegisteredFXV2
+        self.sources=tuple(_OwnerSourceDates(r) for r in registry.records if type(r) is RegisteredSourceV2)
+        self.observations=tuple(_OwnerObservation(r) for r in registry.records if type(r) is RegisteredObservationV2)
+        self.historical_fx=tuple(_OwnerFX(r) for r in registry.records if type(r) is RegisteredFXV2)
+
+    def observation(self, ref):
+        found=next((r for r in self.observations if r.id==ref),None)
+        if found is None: raise FinancialError('observation outside owner registry')
+        return found
+
+
+@dataclass(frozen=True)
+class _OwnerCell(Cell):
+    historical_fx: tuple[str,...] = ()
+    derivations: tuple[str,...] = ()
+    sources: tuple[str,...] = ()
+
+
+def _owner_merge(*cells):
+    return {name:tuple(sorted({ref for cell in cells for ref in getattr(cell,name,())}))
+        for name in ('observations','parameters','historical_fx','derivations','sources')}
+
+
+class _OwnerEvaluation(_Evaluation):
+    """Same Decimal scenario kernel, with a distinct owner-data boundary."""
+    def __init__(self, request, registry, meter, evidence, provenance):
+        self.owner_request=request; self.owner_registry=registry
+        self.evidence={e.input.id:e for e in evidence}; self.provenance=provenance
+        super().__init__(request.legacy(),_OwnerNumericIndex(registry),meter)
+        self.choices={v.observation_id:v for v in request.historical_fx_choices}
+
+    def validate(self):
+        from .financial_result_v2 import DerivedFXChoiceV2, source_closure
+        super().validate()
+        cutoff=day(self.r.information_cutoff)
+        historic={self.base.id,*self.r.historical_context_refs}
+        consumed=historic | {p.anchor_observation_id for s in self.r.scenarios for p in s.parameters() if p.anchor_observation_id}
+        for ref in consumed:
+            if day(self.registry.observation(ref).period.end)>cutoff:
+                raise FinancialError('future period is not historical actual')
+        for choice in self.owner_request.historical_fx_choices:
+            if choice.observation_id not in historic:raise FinancialError('FX choice outside selected history')
+            obs=self.registry.observation(choice.observation_id)
+            if type(choice) is DerivedFXChoiceV2:
+                evidence=self.evidence[choice.derivation_id]; raw=evidence.input
+                source_closure(self.owner_registry,[raw.source_id])
+                if (raw.period.model_dump(mode='json')!=asdict(obs.period)
+                        or (raw.from_currency,raw.to_currency)!=(obs.amount.currency,self.r.target_currency)
+                        or day(raw.period.end)>cutoff or day(raw.claimed_accessed_on)>cutoff):
+                    raise FinancialError('derived FX period direction or cutoff differs')
+            else:
+                rate=next(v for v in self.registry.historical_fx if v.id==choice.fx_id)
+                if day(rate.period.end)>cutoff:raise FinancialError('future FX is not historical actual')
+
+    def record(self, cell, *, scoped=False):
+        from .financial_result_v2 import computed, provenance_sources, source_closure
+        self.m.tick()
+        deps=_owner_merge(cell)
+        entry={'observation_refs':list(deps['observations']),'parameter_refs':list(deps['parameters']),
+            'historical_fx_refs':list(deps['historical_fx']),'derivation_refs':list(deps['derivations'])}
+        entry['source_refs']=source_closure(self.owner_registry,
+            provenance_sources(self.owner_registry,self.owner_request,entry)+list(deps['sources']))
+        ref=digest(entry); self.provenance[ref]={'id':ref,**entry}
+        if len(self.provenance)>512:raise FinancialResourceLimit('provenance table limit')
+        return {'raw_value':None if cell.value is None else computed(cell.value),'display':self.m.display(cell.value),
+            'currency':None if cell.unit=='ratio' else cell.currency,'unit':cell.unit,'basis':cell.basis,
+            'reasons':list(cell.reasons),'provenance_ref':ref}
+
+    def combine(self,a,b,operation):
+        if a.currency!=b.currency or a.unit!=b.unit:raise FinancialError('mixed currency/unit arithmetic')
+        deps=_owner_merge(a,b)
+        if a.value is None or b.value is None:
+            return _OwnerCell(None,a.currency,a.unit,'conflicted' if 'conflicted' in (a.basis,b.basis) else 'missing',
+                tuple(sorted(set(a.reasons+b.reasons))),**deps)
+        return _OwnerCell(self.m.calculate(operation,a.value,b.value),a.currency,a.unit,**deps)
+
+    def missing(self,cell,currency,reason):
+        return _OwnerCell(None,currency,cell.unit,'conflicted' if cell.basis=='conflicted' else 'missing',
+            tuple(sorted(set(cell.reasons+(reason,)))),**_owner_merge(cell))
+
+    def historical(self,obs):
+        from .financial_result_v2 import DerivedFXChoiceV2
+        cell=self.observation(obs)
+        if cell.currency==self.r.target_currency:return cell
+        choice=self.choices.get(obs.id)
+        if choice is None:return self.missing(cell,self.r.target_currency,'historical_fx_missing')
+        if type(choice) is DerivedFXChoiceV2:
+            evidence=self.evidence[choice.derivation_id]
+            rate=Decimal(evidence.value)
+            dependency=_OwnerCell(rate,None,'ratio',derivations=(choice.derivation_id,))
+        else:
+            row=next(v for v in self.registry.historical_fx if v.id==choice.fx_id)
+            dependency=_OwnerCell(None if row.rate is None else number(row.rate),None,'ratio',row.row.declared_basis,
+                historical_fx=(row.id,))
+            rate=dependency.value
+        deps=_owner_merge(cell,dependency)
+        if rate is None:
+            basis='conflicted' if 'conflicted' in (cell.basis,dependency.basis) else 'missing'
+            return _OwnerCell(None,self.r.target_currency,basis=basis,
+                reasons=tuple(sorted(set(cell.reasons+('historical_fx_conflicted' if dependency.basis=='conflicted' else 'historical_fx_missing',)))),**deps)
+        if cell.value is None:return _OwnerCell(None,self.r.target_currency,basis=cell.basis,
+            reasons=tuple(sorted(set(cell.reasons+('historical_value_missing',)))),**deps)
+        return _OwnerCell(self.m.calculate('mul',cell.value,rate),self.r.target_currency,**deps)
+
+    def future(self,cell,currency,period,scenario):
+        if cell.currency==currency:return cell
+        fx=next((v for v in scenario.future_fx if (v['from_currency'],v['to_currency'],v['parameter'].period)==(cell.currency,currency,period)),None)
+        if fx is None:return self.missing(cell,currency,'future_fx_assumption_missing')
+        p=fx['parameter']; deps=_owner_merge(cell,_OwnerCell(None,None,parameters=(scenario.id+':'+p.id,)))
+        if p.value is None or cell.value is None:
+            return _OwnerCell(None,currency,basis='conflicted' if cell.basis=='conflicted' else 'missing',
+                reasons=tuple(sorted(set(cell.reasons+('future_fx_assumption_missing' if p.value is None else 'amount_missing',)))),**deps)
+        return _OwnerCell(self.m.calculate('mul',cell.value,number(p.value)),currency,**deps)
+
+    def money_parameter(self,p,currency,scenario):
+        obs=(p.anchor_observation_id,) if p.anchor_observation_id and not p.independent else ()
+        deps={'observations':obs,'parameters':(scenario.id+':'+p.id,)}
+        if p.value is None:cell=_OwnerCell(None,p.currency,basis='missing',reasons=('parameter_missing:'+p.id,),**deps)
+        else:cell=_OwnerCell(self.m.calculate('mul',number(p.value),MILLION_FACTORS[p.unit]),p.currency,basis='scenario_assumption',**deps)
+        return self.future(cell,currency,p.period,scenario)
+
+    def scale(self,cell,p,scenario,*,growth=False):
+        anchor=(p.anchor_observation_id,) if p.anchor_observation_id and not p.independent else ()
+        deps=_owner_merge(cell,_OwnerCell(None,None,observations=anchor,parameters=(scenario.id+':'+p.id,)))
+        if cell.value is None or p.value is None:
+            return _OwnerCell(None,cell.currency,basis='conflicted' if cell.basis=='conflicted' else 'missing',
+                reasons=tuple(sorted(set(cell.reasons+('rate_or_base_missing',)))),**deps)
+        rate=number(p.value)
+        if growth:rate=self.m.calculate('add',Decimal(1),rate)
+        return _OwnerCell(self.m.calculate('mul',cell.value,rate),cell.currency,**deps)
+
+    def share(self,amount,group):
+        deps=_owner_merge(amount,group)
+        if amount.value is None or group.value is None:
+            return _OwnerCell(None,None,'ratio','conflicted' if 'conflicted' in (amount.basis,group.basis) else 'missing',('share_input_missing',),**deps)
+        if group.value==0:return _OwnerCell(None,None,'ratio','missing',('zero_revenue_denominator',),**deps)
+        return _OwnerCell(self.m.calculate('div',amount.value,group.value),None,'ratio',**deps)
+
+    def profit(self,revenue,scenario,year,*,details=True):
+        value,rendered=super().profit(revenue,scenario,year,details=details)
+        sources=tuple(sorted({r for e in scenario.exclusions for r in e['source_refs']}))
+        return _OwnerCell(value.value,value.currency,value.unit,value.basis,value.reasons,
+            **_owner_merge(value,_OwnerCell(None,None,sources=sources))),rendered
+
+
+def _derived_fx_evidence(request,meter):
+    from decimal import localcontext, ROUND_HALF_EVEN
+    from .financial_result_v2 import DerivedFXEvidenceV1
+    results=[]
+    for item in request.derived_fx_inputs:
+        total=Decimal(0)
+        for point in item.points:
+            meter.tick()
+            if point.value is not None:total=meter.calculate('add',total,number(point.value))
+        mean=meter.calculate('div',total,Decimal(item.declared_valid_count))
+        meter.tick()
+        with localcontext(): value=mean.quantize(Decimal('.0000000001'),rounding=ROUND_HALF_EVEN)
+        if value<=0:raise FinancialError('derived FX not representable at ten decimals')
+        results.append(DerivedFXEvidenceV1.model_validate_json(canonical({
+            'input':item.model_dump(mode='json'),'input_digest':digest(item.model_dump(mode='json')),
+            'algorithm':'arithmetic_mean_nonmissing_v1','calculation_precision':50,'rounding':'HALF_EVEN','decimal_places':10,
+            'valid_count':item.declared_valid_count,'nd_count':item.declared_nd_count,'values_sha256':item.declared_values_sha256,
+            'value':format(value,'.10f'),'verification_scope':'arithmetic_only','source_verification':'unverified',
+            'basis':'derived_conditional','calculation_status':'recomputed_from_supplied_series'})))
+    return results
+
+
+def evaluate_owner_financial_v2(envelope,registry,*,meter):
+    """Pure exact-data evaluation; caller Meter, no permission or save claim."""
+    from .financial_result_v2 import (FinancialSnapshotV2,FinancialRequestV2,input_binding,
+        validate_snapshot,bounded,SNAPSHOT_LIMIT,INPUT_STATUS,QUALIFICATIONS,PROFILE,_change_parameter)
+    if type(meter) is not Meter:raise FinancialError('exact caller Meter required')
+    meter.tick()
+    envelope,registry,bindings=input_binding(envelope,registry)
+    request=envelope.data.request; provenance={}
+    try:
+        with arithmetic_context() as context:
+            evidence=_derived_fx_evidence(request,meter)
+            engine=_OwnerEvaluation(request,registry,meter,evidence,provenance); engine.validate()
+            scenarios=[engine.scenario(v) for v in engine.r.scenarios]
+            sensitivity=[]; selection=engine.r.sensitivity
+            if selection:
+                scenario=next((s for s in engine.r.scenarios if s.id==selection['scenario_id']),None)
+                param=next((p for p in scenario.parameters() if p.id==selection['parameter_id']),None) if scenario else None
+                allowed={v.parameter.id for v in scenario.growth}|{v.parameter.id for c in scenario.costs for v in c.values}|{v['parameter'].id for v in scenario.future_fx} if scenario else set()
+                if param is None or param.id not in allowed or not param.independent:
+                    raise FinancialError('sensitivity requires independent growth cost or FX')
+                for point in selection['points']:
+                    meter.tick(); variant=request.data(); variant['sensitivity']=None
+                    _change_parameter(variant,scenario.id,param.id,point)
+                    parsed=FinancialRequestV2.model_validate_json(canonical(variant))
+                    other=_OwnerEvaluation(parsed,registry,meter,evidence,{})
+                    other.validate()
+                    rows=other.scenario(next(s for s in other.r.scenarios if s.id==scenario.id),compact=True)['years']
+                    sensitivity.append({'parameter_ref':scenario.id+':'+param.id,'point':point,
+                        'case_input_digest':digest({'execution_profile':PROFILE,'request':variant,'registry':registry.model_dump(mode='json')}),
+                        'years':list(YEARS),'target_revenue':[r['target']['revenue']['display'] for r in rows],
+                        'target_operating_profit':[r['target']['operating_profit']['display'] for r in rows]})
+            historical=[{'observation_ref':ref,'target_value':engine.record(engine.historical(engine.registry.observation(ref)))}
+                for ref in (request.interim_revenue_ref,)+request.historical_context_refs]
+            payload={'snapshot_schema':'financial-snapshot-owner-v2','policy_revision':POLICY,**bindings,
+                'registry_ref':envelope.data.registry_ref.model_dump(mode='json'),'target_currency':request.target_currency,
+                'amount_unit':'million','display_quantization':'6 decimals HALF_EVEN','calculation_precision':50,
+                'categories':[v.model_dump(mode='json') for v in request.categories],'historical_context':historical,
+                'scenarios':scenarios,'sensitivity':sensitivity,'derived_fx_evidence':[e.model_dump(mode='json') for e in evidence],
+                'provenance_table':[provenance[k] for k in sorted(provenance)],'operations_used':meter.operations,
+                'qualifications':list(QUALIFICATIONS),'decimal50_inexact_encountered':context.flags[Inexact],
+                'input_status':INPUT_STATUS}
+            # Charge final verification before freezing the recorded count.
+            meter.tick(); payload['operations_used']=meter.operations
+            snapshot=FinancialSnapshotV2.model_validate_json(bounded(payload,SNAPSHOT_LIMIT))
+            validate_snapshot(envelope,registry,snapshot)
+            import time
+            if time.monotonic()>meter.deadline:raise FinancialResourceLimit('cooperative deadline limit')
+            return snapshot
+    except DecimalException:
+        raise FinancialResourceLimit('Decimal arithmetic condition') from None
