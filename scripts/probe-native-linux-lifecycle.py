@@ -21,7 +21,7 @@ import time
 from uuid import uuid4
 
 ROOT=Path(__file__).resolve().parents[1]
-BRANCH='refs/heads/codex/structure-native-linux-lifecycle-attempt2-20261023'
+BRANCH='refs/heads/codex/structure-native-linux-lifecycle-attempt3-20261024'
 REPOSITORY='dada8899/structural-isomorphism'
 USER=GROUP='structural-native-probe'
 UNIT='structural-web.service'
@@ -378,7 +378,7 @@ class Controller:
         self.group_attempted=True;self.command(['/usr/sbin/groupadd','--system',GROUP])
         self.group_record=self._account_record('group');self.gid=int(self.group_record[2]);self.group=True
         self._mark('user_create')
-        self.user_attempted=True;self.command(['/usr/sbin/useradd','--system','--gid',GROUP,'--no-create-home','--no-log-init','-K','CREATE_MAIL_SPOOL=no','--home-dir',str(STATE),'--shell','/usr/sbin/nologin',USER])
+        self.user_attempted=True;self.command(['/usr/sbin/useradd','--system','--gid',GROUP,'--no-create-home','--no-log-init','--home-dir',str(STATE),'--shell','/usr/sbin/nologin',USER])
         self.user_record=self._account_record('user');self.uid=int(self.user_record[2]);self.user=True
         if self._account_record('group',self.gid)!=self.group_record:self._reject('CLEANUP')
         for path in (WORK,STATE,CACHE):self.directory(path,self.uid,self.gid)
