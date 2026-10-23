@@ -564,7 +564,10 @@ class Controller:
             info=os.fstat(fd)
             if not stat.S_ISREG(info.st_mode) or info.st_uid!=self.uid or stat.S_IMODE(info.st_mode)!=0o600 or info.st_nlink!=1:self._reject('OBSERVER')
             raw=os.read(fd,32769)
-        finally:os.close(fd)
+        except BaseException as error:self._capture(error);raise
+        finally:
+            try:os.close(fd)
+            except BaseException as error:self._capture(error);raise
         if len(raw)>32768:self._reject('OBSERVER')
         # A concurrent append may be incomplete; parse only complete frames.
         values=[strict_json(line[:-1],2048) for line in raw.splitlines(keepends=True) if line.endswith(b'\n')]
