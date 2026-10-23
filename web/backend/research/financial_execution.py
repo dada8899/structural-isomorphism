@@ -2,6 +2,7 @@
 import hashlib
 import importlib
 import os
+import sqlite3
 from pathlib import Path
 import sys
 import threading
@@ -104,15 +105,22 @@ def require_request(service,identity,rid,envelope,key,source,request_app):
 def require_native_scope(conn,service,identity,pid,lease):
     from .authorization import OwnerGateLease
     from .paid_control import _current_scope,_owner_binding
-    from .runtime_profile import inspect_formal_profile
     family='web.backend.services' if __package__=='web.backend.research' else 'services'
     module=importlib.import_module(family+'.sqlite_utils')
     if (type(conn) is not module.PrivateAuthConnection or type(lease) is not OwnerGateLease
             or conn.private_storage_identity!=service.store.storage_identity
-            or type(conn.execute) is not types.BuiltinMethodType):raise PermissionError('actual private transaction required')
+            or type(conn.execute) is not types.BuiltinMethodType or conn.execute.__self__ is not conn
+            or getattr(type(conn),'execute') is not sqlite3.Connection.execute or conn.row_factory is not sqlite3.Row
+            or conn.text_factory is not str or conn.isolation_level is not None):
+        raise PermissionError('actual private transaction required')
     scope=_function(_current_scope)(conn)
     if not scope.write:raise PermissionError('financial write scope required')
-    _function(inspect_formal_profile)(conn)
+    # Request transactions have the complete Research15 hooks; C1's separate
+    # admission inspection also probes an Auth-maintenance writer hook which
+    # is deliberately absent here. Verify the exact current research closure,
+    # without installing any Auth write capability into a calculation.
+    checker=type(service.store)._check_v15
+    _function(checker.__func__)(type(service.store),conn)
     principal=_function(_owner_binding)(conn,service.store,pid,lease)
     service.authorization.check_account(conn,identity)
     return scope,principal
