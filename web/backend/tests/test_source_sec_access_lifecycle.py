@@ -221,7 +221,7 @@ def test_real_terminal_debt_blocks_cooldown_until_native_cleanup_finishes(prepar
         assert not thread.is_alive()
 
 
-@pytest.mark.parametrize('fault', ['replace', 'close-before', 'close-after'])
+@pytest.mark.parametrize('fault', ['replace', 'close-before', 'close-after', 'checkpoint-mode', 'checkpoint-event'])
 def test_actual_main_uncertain_owned_fd_never_returns_closed(request, tmp_path, monkeypatch, fault):
     # Each uncertainty control owns a fresh process. Logical uncertain records
     # are deliberately retained until that process exits; no registry reset or
@@ -252,16 +252,43 @@ def test_actual_main_uncertain_owned_fd_never_returns_closed(request, tmp_path, 
     lock = provision_lock(paths)
     original_close = os.close
     captured, failures = [], []
+    old_trace = threading.gettrace()
+    if fault in ('checkpoint-mode', 'checkpoint-event'):
+        sourcepath = Path(main.__file__).parent / 'research/source_supervisor.py'
+        checkpoint_line = next(i for i, line in enumerate(sourcepath.read_text().splitlines(), 1)
+            if 'cleanup_completed(self._sec_access)' in line)
+        def damage_at_real_checkpoint(frame, event, argument):
+            if (not failures and event == 'line' and frame.f_code.co_filename == str(sourcepath)
+                    and frame.f_lineno == checkpoint_line):
+                supervisor = frame.f_locals['self']
+                assert not supervisor._stop.is_set() and supervisor._slot is None
+                if fault == 'checkpoint-mode':
+                    lock.chmod(0o640)  # Owned physical failure, no logical substitution.
+                else:
+                    # Negative fault: the actual Event is not sealed native
+                    # stop provenance and must remain WORKER_FAILURE.
+                    supervisor._stop.set()
+                failures.append(True)
+            return damage_at_real_checkpoint
+        threading.settrace(damage_at_real_checkpoint)
     async def run():
         context = main.lifespan(main.app)
         await context.__aenter__()
-        binding = await ready(main, admission)
+        if fault in ('checkpoint-mode', 'checkpoint-event'):
+            binding = admission._STATE[id(main.app)]
+            end = time.monotonic() + 4
+            while binding.supervisor._thread.is_alive() and time.monotonic() < end: await asyncio.sleep(.01)
+            assert failures and not binding.supervisor._thread.is_alive()
+            assert binding.supervisor._stop.is_set() == (fault == 'checkpoint-event')
+            assert binding.supervisor._failure == 'WORKER_FAILURE'
+        else:
+            binding = await ready(main, admission)
         governor = binding.supervisor._sec_access
         descriptor = governor.fd
         captured.extend([binding, governor, descriptor])
         if fault == 'replace':
             lock.rename(lock.with_name('owned-original-lock')); provision_lock(paths)
-        else:
+        elif fault not in ('checkpoint-mode', 'checkpoint-event'):
             def fail_close(fd):
                 if fd == descriptor and not failures:
                     failures.append(True)
@@ -272,7 +299,8 @@ def test_actual_main_uncertain_owned_fd_never_returns_closed(request, tmp_path, 
         # Main correctly reports incomplete resource retirement as an error.
         with pytest.raises(RuntimeError): await context.__aexit__(None, None, None)
         assert binding.source_receipt.state == 'CLEANUP_UNCERTAIN'
-        assert governor.state == 'CLEANUP_UNCERTAIN' and governor.fd == descriptor
+        assert governor.state == ('RETIRED' if fault == 'checkpoint-event' else 'CLEANUP_UNCERTAIN')
+        assert governor.fd == descriptor
         assert not binding.supervisor._thread.is_alive()
         assert any(w.parent_fd is not None for w in binding.witnesses)
         if fault != 'close-after': assert os.fstat(descriptor).st_ino == governor.identity[1]
@@ -284,9 +312,59 @@ def test_actual_main_uncertain_owned_fd_never_returns_closed(request, tmp_path, 
     try: asyncio.run(run())
     finally:
         # Explicit physical test teardown only; no forged logical CLOSED.
+        threading.settrace(old_trace)
         monkeypatch.setattr(os, 'close', original_close)
         if captured:
             binding, governor, descriptor = captured
             if fault != 'close-after': original_close(descriptor)
+            for witness in binding.witnesses:
+                if witness.parent_fd is not None: witness.close()
+
+
+def test_actual_main_stop_between_cleanup_check_and_checkpoint_is_clean(prepared):
+    """Native trace barrier reproduces DOC-GOV-STOP-01 without a fake stop."""
+    main, admission, paths, _ = prepared
+    provision_lock(paths)
+    entered, released = threading.Event(), threading.Event()
+    seen, observer_errors, captured = [], [], []
+    sourcepath = Path(main.__file__).parent / 'research/source_supervisor.py'
+    checkpoint_line = next(i for i, line in enumerate(sourcepath.read_text().splitlines(), 1)
+        if 'cleanup_completed(self._sec_access)' in line)
+    def trace(frame, event, argument):
+        if (not seen and event == 'line' and frame.f_code.co_filename == str(sourcepath)
+                and frame.f_lineno == checkpoint_line):
+            seen.append(frame.f_locals['self']); entered.set()
+            if not released.wait(5): raise TimeoutError('owned checkpoint barrier expired')
+        return trace
+    def release_after_native_stop():
+        try:
+            assert entered.wait(5)
+            assert seen[0]._stop.wait(5)
+        except BaseException as error: observer_errors.append(error)
+        finally: released.set()
+    old_trace = threading.gettrace(); threading.settrace(trace)
+    observer = threading.Thread(target=release_after_native_stop, name='owned-sec-checkpoint-stop-observer')
+    observer.start()
+    async def run():
+        context = main.lifespan(main.app); await context.__aenter__()
+        binding = admission._STATE[id(main.app)]; captured.append(binding)
+        end = time.monotonic() + 5
+        while not entered.is_set() and time.monotonic() < end: await asyncio.sleep(.01)
+        assert entered.is_set()
+        await context.__aexit__(None, None, None)
+        assert binding.source_receipt.state == 'CLOSED' and binding.supervisor._failure is None
+        assert not binding.supervisor._thread.is_alive() and binding.supervisor._slot is None
+        assert binding.supervisor._sec_access.fd is None
+        assert not observer_errors
+        print('SEC_CHECKPOINT_STOP:' + json.dumps({'receipt': 'CLOSED', 'worker_failure': None,
+            'slot': None, 'public_gets': 0, 'actual_main_withdrawal': True}))
+    try: asyncio.run(run())
+    finally:
+        released.set(); threading.settrace(old_trace); observer.join(6)
+        assert not observer.is_alive()
+        # Physical teardown if a future regression fails; never forge CLOSED.
+        for binding in captured:
+            assert not binding.supervisor._thread.is_alive()
+            if binding.supervisor._sec_access.fd is not None: os.close(binding.supervisor._sec_access.fd)
             for witness in binding.witnesses:
                 if witness.parent_fd is not None: witness.close()

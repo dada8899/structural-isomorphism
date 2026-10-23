@@ -184,12 +184,20 @@ def cleanup_completed(governor):
     source = _source()
     frame = inspect.currentframe().f_back
     if (frame.f_globals is not vars(source) or frame.f_code is not source.SourceSupervisor._run_with_budget.__code__
-            or threading.current_thread() is not supervisor._thread or supervisor._state != 'STARTING'
-            or supervisor._slot is not None or supervisor._lease is not None or supervisor._stop.is_set()):
+            or threading.current_thread() is not supervisor._thread
+            or supervisor._slot is not None or supervisor._lease is not None):
+        raise RuntimeError('actual Source cleanup checkpoint required')
+    # The earlier scan check can precede a real Main withdrawal. Only the
+    # original check can establish sealed stopping provenance; an Event or
+    # retired flag alone must never turn a resource/integrity failure normal.
+    source._check(supervisor, published=True)
+    if supervisor._state != 'STARTING' or supervisor._stop.is_set() or governor.retired:
+        source._check(supervisor, published=True)
         raise RuntimeError('actual Source cleanup checkpoint required')
     if governor.state == 'UNBOUND':
         return
-    if governor.state != 'HELD_CLEANUP' or governor.retired:
+    if governor.state != 'HELD_CLEANUP':
+        source._check(supervisor, published=True)
         raise RuntimeError('Source SEC cleanup unavailable')
     _held(governor)
     governor.cadence.cleared(time.monotonic())
