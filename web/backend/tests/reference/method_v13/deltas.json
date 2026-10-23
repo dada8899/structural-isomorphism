@@ -316,38 +316,198 @@
     "original_sha256": "7a3b6dfac4d89e8001ba5ce23bb870d7b7dd0ac90a3999805ecbbecd55fcd5a0"
   },
   "web/backend/research/plan_native.py": {
-    "current_sha256": "6732d627fb9faa3ac981a1c6759bc43a1423d4819bccb7654666a503063120c0",
+    "current_sha256": "2312b72ba96255f3310e79a352523143d3f2c2bcc19af5837dcc3101a6895702",
     "hunks": [
       [
-        91,
-        130,
+        46,
+        47,
+        ""
+      ],
+      [
+        54,
+        55,
+        "    __slots__=('store','identity','principal','owner_gate_id','fd','path','native_identity','pid','reference','facts','server','server_identity','active')\n"
+      ],
+      [
+        57,
+        58,
+        ""
+      ],
+      [
+        59,
+        67,
+        "    def require(self,*,current=True):\n"
+      ],
+      [
+        75,
+        80,
+        ""
+      ],
+      [
+        83,
+        84,
+        "            os.close(self.fd)\n"
+      ],
+      [
+        87,
+        88,
+        "    \"\"\"No approved native provision resource is bound in this release.\n\n    In particular, a Markdown/JSON statement, its hash, an email, a caller FD,\n    environment flag, or provider balance cannot create this authority.\n    \"\"\"\n"
+      ],
+      [
+        89,
+        102,
+        ""
+      ],
+      [
+        114,
+        158,
         "def _fixture_authority(store,identity,server,approved_cap_units,risk_margin_units,runtime_digest):\n"
       ],
       [
-        131,
-        136,
-        ""
-      ],
-      [
-        157,
         159,
+        164,
         ""
       ],
       [
-        342,
-        350,
+        185,
+        187,
+        ""
+      ],
+      [
+        198,
+        199,
+        "    def __init__(self,authority,*,_factory=None):\n"
+      ],
+      [
+        200,
+        204,
+        "        authority.require();self.authority,self.facts,self.reference,self.pid,self.active=authority,authority.facts,_uid(),os.getpid(),True;_PROVISIONS[self.reference]=self\n    def require(self,*,current=True):\n"
+      ],
+      [
+        205,
+        209,
+        "        self.authority.require(current=current)\n"
+      ],
+      [
+        210,
+        211,
+        ""
+      ],
+      [
+        214,
+        215,
+        "def issue_native_provision(store,authority_lease):\n"
+      ],
+      [
+        216,
+        217,
+        "    return NativePlanProvision(authority_lease,_factory=_FACTORY)\n"
+      ],
+      [
+        221,
+        222,
+        "    def __init__(self,provision,*,_factory=None):\n"
+      ],
+      [
+        223,
+        234,
+        "        provision.require();self.provision,self.facts,self.reference,self.pid,self.active=provision,provision.facts,_uid(),os.getpid(),True;_PERMITS[self.reference]=self\n    def require(self,*,current=True):\n"
+      ],
+      [
+        235,
+        241,
+        "        self.provision.require(current=current)\n    def data(self,*,current=True):self.require(current=current);return strict_json(self.facts,16384)\n"
+      ],
+      [
+        248,
+        249,
+        "def mint_runtime_permit(provision):\n"
+      ],
+      [
+        250,
+        251,
+        "    return NativeRuntimePermit(provision,_factory=_FACTORY)\n"
+      ],
+      [
+        389,
+        397,
         "        raw,dispatch,nonce,admission_digest,producer_digest=capability.consume(self.resource)\n"
       ],
       [
+        422,
+        423,
+        "def open_plan_resource(permit):\n"
+      ],
+      [
+        425,
+        427,
+        "    data=permit.data();module=_runtime_module()\n"
+      ],
+      [
+        429,
+        430,
+        "    resource=module.open_plan_resource(permit)\n"
+      ],
+      [
+        431,
         441,
-        442,
+        "    resource.require();return resource\n"
+      ],
+      [
+        443,
+        444,
+        "def install_native_funding(store,provision,resource):\n"
+      ],
+      [
+        446,
+        449,
+        "    provision.require();facts=provision.data()\n"
+      ],
+      [
+        453,
+        455,
+        "        resource.require()\n"
+      ],
+      [
+        458,
+        470,
         ""
+      ],
+      [
+        471,
+        475,
+        "        def verify():provision.require();_owner_binding(conn,store,pid,lease)\n"
+      ],
+      [
+        478,
+        481,
+        ""
+      ],
+      [
+        487,
+        488,
+        "    _INSTALLATIONS[str(store.path)]=(provision,resource)\n"
+      ],
+      [
+        491,
+        540,
+        "def installation(store):return _INSTALLATIONS.get(str(store.path))\n"
+      ],
+      [
+        543,
+        544,
+        ""
+      ],
+      [
+        567,
+        569,
+        "_WRITE_PRODUCERS=(install_native_funding,)\n"
       ]
     ],
     "original_sha256": "5204c48b6ed93a3f952a2087b6a36a747686cdf1a49f636b0f4a920befa98873"
   },
   "web/backend/research/plan_native_runtime.py": {
-    "current_sha256": "2166a7cc8ffff8c736afc7191025ee738265ceb2cc7358c2fd9e601c11af8c0e",
+    "current_sha256": "21ac7a1589455b5f5680d4c60aea0cf0ba5930052627e9276b9b6da75fb37403",
     "hunks": [
       [
         1,
@@ -361,217 +521,267 @@
       ],
       [
         25,
-        26,
+        43,
         "    return digest(canonical({Path(m.__file__).name:digest(Path(m.__file__).read_bytes()) for m in (plan_native,plan_native_runtime,plan_native_schemas,plan_native_financial)}))\n"
       ],
       [
-        36,
-        38,
-        ""
-      ],
-      [
-        42,
-        43,
-        "def _active(conn,store,pid,generation):\n"
-      ],
-      [
+        47,
         49,
-        50,
+        "    funding=row(conn,FUNDING,1);pair=ports.installation(store)\n"
+      ],
+      [
+        54,
+        55,
         ""
       ],
       [
-        53,
-        54,
-        "def quote():\n"
-      ],
-      [
-        55,
-        57,
-        "    return NativePlanQuote(protocol='financial9-native-quote-v1',revision=uid(),purpose='phenomenon_plan_v1',provider='deepseek',model='deepseek-flash',declared_model_version='DeepSeek-V4.1-Flash-1017',declaration_observed_on='2026-10-18',currency='CNY',scale=6,\n"
-      ],
-      [
-        58,
         59,
-        "        approved_upper_units=UPPER,codec_digest=codec_digest(),issued_at=now,valid_until=now+60,price_source='https://api-docs.deepseek.com/zh-cn/quick_start/pricing/')\n"
-      ],
-      [
-        63,
-        65,
-        "    require_authenticated_action(source,identity=identity,action='plan-preview',research_id=rid,key=key,body_digest=operation)\n"
+        61,
+        "def _active(conn,store,pid,generation):\n    funding=row(conn,FUNDING,1);pair=ports.installation(store)\n"
       ],
       [
         66,
+        67,
+        ""
+      ],
+      [
+        70,
+        71,
+        "def quote():\n"
+      ],
+      [
         72,
+        74,
+        "    return NativePlanQuote(protocol='financial9-native-quote-v1',revision=uid(),purpose='phenomenon_plan_v1',provider='deepseek',model='deepseek-flash',declared_model_version='DeepSeek-V4.1-Flash-1017',declaration_observed_on='2026-10-18',currency='CNY',scale=6,\n"
+      ],
+      [
+        75,
+        76,
+        "        approved_upper_units=UPPER,codec_digest=codec_digest(),issued_at=now,valid_until=now+60,price_source='https://api-docs.deepseek.com/zh-cn/quick_start/pricing/')\n"
+      ],
+      [
+        80,
+        85,
+        "    require_authenticated_action(source,identity=identity,action='plan-preview',research_id=rid,key=key,body_digest=operation)\n"
+      ],
+      [
+        86,
+        92,
         "        control,saved,encoded=_input(conn,service,identity,pid,rid,request.input_revision,request.expected_research_version)\n"
       ],
       [
-        76,
-        88,
+        96,
+        108,
         "            return envelope(preview_view(old,conn,service.store))\n        q=quote();ref=uid()\n        consent=dict(protocol='native-plan-consent-v1',principal_id=pid,generation=identity.generation,research_id=rid,input_revision=request.input_revision,research_version=control['version'],\n"
       ],
       [
-        90,
-        95,
+        110,
+        115,
         "        cd=digest(canonical({'consent':consent,'quote':q.model_dump()}))\n"
       ],
       [
-        96,
-        99,
+        116,
+        119,
         "        _write(conn,lease,PREVIEWS,ref,dict(research_id=rid,principal_id=pid,input_revision=request.input_revision,research_version=control['version'],consent_json=canonical(consent).decode(),consent_digest=cd,request_digest=encoded.outbound_request_digest,quote_json=canonical(q.model_dump()).decode(),expires_at=q.valid_until,state='draft',task_id=None,key_digest=digest(key.encode()),operation_digest=operation),verify)\n        return envelope(preview_view(row(conn,PREVIEWS,ref),conn,service.store))\n"
       ],
       [
-        103,
-        111,
+        123,
+        132,
+        "    authorized=bool(ports.installation(store) and funding and funding['state']=='authorized' and funding['principal_id']==value['principal_id'] and funding['generation']==consent['generation'])\n"
+      ],
+      [
+        134,
+        135,
+        "            provision,resource=ports.installation(store)\n"
+      ],
+      [
+        136,
+        137,
         ""
       ],
       [
-        116,
-        117,
-        ""
-      ],
-      [
-        126,
-        128,
+        146,
+        151,
         "    require_authenticated_action(source,identity=identity,action='plan-confirm',research_id=rid,key=key,body_digest=operation)\n"
       ],
       [
-        130,
-        140,
+        153,
+        163,
         "        replay=service._replay(conn,pid,'native-plan-confirm','r:'+rid,key,operation)\n        if replay is not None:return replay\n"
       ],
       [
-        143,
-        157,
+        166,
+        180,
         "        control,saved,encoded=_input(conn,service,identity,pid,rid,value['input_revision'],value['research_version'])\n        q=NativePlanQuote.model_validate(json.loads(value['quote_json']));consent=json.loads(value['consent_json'])\n        if value['expires_at']<=int(time.time()) or consent['producer_digest']!=code_digest() or q.codec_digest!=codec_digest() or encoded.outbound_request_digest!=consent['request_digest']:raise ResearchError('PREVIEW_EXPIRED',409,'输入、代码或报价已变化，请重新预览。')\n"
       ],
       [
-        158,
-        159,
+        181,
+        183,
         "        funding,resource=_active(conn,service.store,pid,identity.generation)\n"
       ],
       [
-        163,
-        170,
+        187,
+        194,
         "        conn.execute(\"INSERT INTO research_grants(id,principal_id,principal_epoch,research_id,acl_epoch,scopes,status,created_at) VALUES(?,?,?,?,?,'[\\\"execute\\\"]','active',?)\",(grant,pid,control['owner_epoch'],rid,control['acl_epoch'],at))\n"
       ],
       [
-        180,
-        183,
+        204,
+        207,
         "        result=envelope(dict(task_id=task,result_ref=ref,state='queued',cash_evidence='not_observed',real_model_executed=False,recorded_at=None))\n        service._remember(conn,pid,'native-plan-confirm','r:'+rid,key,operation,result);return result\n"
       ],
       [
-        186,
-        190,
+        210,
+        214,
         ""
       ],
       [
-        211,
-        212,
+        232,
+        234,
+        "    __slots__=('store','resource','claim','consent','baseline','pid','reference','active','used')\n    def __init__(self,store,resource,claim,consent,baseline,*,_factory=None):\n"
+      ],
+      [
+        235,
+        238,
         "        self.store,self.resource,self.claim,self.consent,self.baseline=store,resource,claim,canonical(consent),canonical(baseline)\n"
       ],
       [
-        215,
-        223,
+        241,
+        250,
         "        with self.store.transaction() as conn:\n            consent=strict_json(self.consent,32768)\n            value=row(conn,RUNS,consent['dispatch_id']);_current(conn,self.store,value)\n"
       ],
       [
-        224,
-        225,
+        251,
+        252,
         "            if canonical([dict(funding),dict(account)])!=self.baseline or finance.unresolved(conn,account['id']):raise PermissionError('balance pre-GET claim/ledger changed')\n"
       ],
       [
-        229,
-        242,
+        256,
+        269,
         ""
       ],
       [
-        243,
-        244,
-        "    __slots__=('store','resource','lease','dispatch','raw','account_version','funding_version','pid','reference','active','used')\n"
+        270,
+        272,
+        "    __slots__=('store','resource','lease','dispatch','raw','account_version','funding_version','pid','reference','active','used')\n    def __init__(self,store,resource,lease,dispatch,raw,account_version,funding_version,*,_factory=None):\n"
       ],
       [
-        247,
-        250,
+        274,
+        278,
         "        self.pid,self.reference,self.active,self.used=os.getpid(),uid(),True,False;_CAPS[self.reference]=self\n    def consume(self,resource):\n        if not self.active or self.used or self.pid!=os.getpid() or _CAPS.get(self.reference) is not self or resource is not self.resource:raise PermissionError('single native send lease required')\n"
       ],
       [
-        251,
-        278,
+        279,
+        309,
         "        with self.store.transaction() as conn:\n            value=row(conn,RUNS,self.dispatch);consent,task,step,control=_current(conn,self.store,value)\n            funding,actual=_authority(conn,self.store,self.lease,consent)\n            account=row(conn,'research_funding_accounts',value['account_id'])\n            if funding['state']!='authorized' or account['status']!='unverified' or account['binding_id']!=consent['economic_binding'] or funding['grant_epoch']!=consent['grant_epoch'] or funding['credential_incarnation']!=consent['credential_incarnation'] or funding['version']!=self.funding_version or account['version']!=self.account_version or funding['balance_claim']!=self.dispatch or funding['balance_nonce']!=value['nonce'] or finance.unresolved(conn,account['id'],excluding=self.dispatch):raise PermissionError('current native money authority ended')\n            if code_digest()!=consent['producer_digest'] or codec_digest()!=consent['template_code_digest'] or consent['quote']['valid_until']<=int(time.time()) or digest(self.raw)!=consent['request_digest']:raise PermissionError('native confirmed source/quote/bytes changed')\n            result=self.raw,self.dispatch,value['nonce'],value['admission_digest'],consent['producer_digest']\n"
       ],
       [
-        320,
-        321,
-        "            funding,actual=_active(conn,store,pid,consent['generation'])\n"
+        336,
+        343,
+        "def run_once(store,task_id):\n"
       ],
       [
-        324,
-        327,
+        349,
+        351,
+        "    pair=ports.installation(store)\n"
+      ],
+      [
+        353,
+        354,
         ""
       ],
       [
-        341,
-        354,
+        359,
+        360,
+        "            funding,actual=_active(conn,store,pid,consent['generation'])\n"
+      ],
+      [
+        363,
+        366,
+        ""
+      ],
+      [
+        370,
+        371,
+        "        balance_cap=NativeBalanceLease(store,resource,claim,consent,baseline,_factory=_FACTORY)\n"
+      ],
+      [
+        380,
+        393,
         "            encoded=plan_preview_request(make_plan_manifest({'input_kind':'user_observation_summary','summary':consent['raw_input']}))\n            if encoded.outbound_request_digest!=consent['request_digest'] or encoded.input_manifest_digest!=consent['input_manifest_digest']:raise PermissionError('native approved bytes differ')\n            admission=dict(protocol='financial-admission-v3',financial_version=9,mode=resource.mode,producer=resource.producer,consent_digest=value['consent_digest'],quote=consent['quote'],\n                observed_balance=balance.audit(),ledger_before=dict(account),funding_before=dict(funding),request_digest=consent['request_digest'],producer_digest=consent['producer_digest'])\n"
       ],
       [
-        365,
-        369,
+        404,
+        408,
         ""
       ],
       [
         415,
-        425,
+        416,
+        "            send=NativePlanSendLease(store,resource,lease,dispatch,encoded.raw,account_version,funding_version,_factory=_FACTORY)\n"
+      ],
+      [
+        454,
+        464,
         ""
       ],
       [
-        435,
-        438,
-        ""
-      ],
-      [
-        440,
-        441,
-        "    try:data,usage=_usage(owned)\n"
-      ],
-      [
-        444,
-        445,
-        ""
-      ],
-      [
-        449,
-        450,
-        "            proposal=parse_plan_candidate(message['content'])\n"
-      ],
-      [
-        459,
-        459,
-        "        if usage is not None:_money(conn,lease,account,-value['upper'],value['upper'],verify)\n"
-      ],
-      [
-        460,
-        470,
-        "        if active and proposal is not None and usage is not None:\n"
+        465,
+        465,
+        "    resource=ports.installation(store)[1]\n"
       ],
       [
         473,
-        478,
+        480,
+        ""
+      ],
+      [
+        482,
+        483,
+        "    try:data,usage=_usage(owned)\n"
+      ],
+      [
+        486,
+        487,
+        ""
+      ],
+      [
+        491,
+        492,
+        "            proposal=parse_plan_candidate(message['content'])\n"
+      ],
+      [
+        501,
+        505,
+        "        if usage is not None:_money(conn,lease,account,-value['upper'],value['upper'],verify)\n"
+      ],
+      [
+        506,
+        516,
+        "        if active and proposal is not None and usage is not None:\n"
+      ],
+      [
+        519,
+        524,
         "        receipt=dict(protocol='owned-native-return-v2',mode=owned.mode,dispatch=dispatch,nonce=consent['nonce'],admission_digest=value['admission_digest'],producer_digest=consent['producer_digest'],runtime_digest=admission['funding_before']['runtime_digest'],response_digest=digest(owned.body),status=owned.status,provider_model_label=None if data is None else data['model'],weight_identity_verified=False)\n        commit=dict(protocol='native-plan-commit-v1',task_id=value['task_id'],result_ref=value['result_ref'],recorded_at=at,consent_digest=value['consent_digest'],admission_digest=value['admission_digest'],\n            result_digest=None if result is None else digest(canonical(result)),receipt_digest=digest(canonical(receipt)),usage_digest=None if usage is None else digest(canonical(usage)),task_before=2,task_after=3,step_before=2,step_after=3)\n"
       ],
       [
-        525,
-        543,
+        527,
+        528,
+        "        if active:\n"
+      ],
+      [
+        571,
+        589,
         "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT r.* FROM '+RUNS+' r JOIN research_tasks t ON t.id=r.task_id WHERE r.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        result=None\n        if value['result_json']:\n            result=NativePlanResult.model_validate(json.loads(value['result_json'])).model_dump(mode='json')\n            consent=json.loads(value['consent_json']);admission=json.loads(value['admission_json']);commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone();step=conn.execute('SELECT * FROM research_steps WHERE id=?',(consent['step_id'],)).fetchone()\n            saved=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,consent['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='native-plan-v1' or task['version']!=3 or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED' or step['version']!=3\n                or digest(canonical(consent))!=value['consent_digest'] or digest(canonical(admission))!=value['admission_digest'] or not saved or saved[0]!=consent['input_digest']\n                or result['result_ref']!=value['result_ref'] or result['task_id']!=task['id'] or result['research_id']!=rid or result['input_digest']!=task['input_digest'] or result['recorded_at']!=commit['recorded_at']\n                or commit['result_digest']!=digest(canonical(result)) or commit['receipt_digest']!=digest(canonical(receipt)) or receipt['admission_digest']!=value['admission_digest']):raise ResearchError('RESULT_UNAVAILABLE',503,'原生计划记录当前无法完整核对；不会重新外发。')\n        return envelope({**metadata(value),'content':result})\n"
       ],
       [
-        551,
-        552,
+        597,
+        598,
         "    return [metadata(value) for value in conn.execute(query+' ORDER BY t.start_version DESC,t.id DESC LIMIT 20',args)]\n"
       ],
       [
-        583,
-        586,
+        629,
+        632,
         ""
       ]
     ],
@@ -1129,5 +1339,16 @@
       ]
     ],
     "original_sha256": "2d6eae7a4c3345e0db9d4b438e2ae720d1dfa9f8c686e3fb1295f52687309852"
+  },
+  "web/backend/research/plan_native_financial.py": {
+    "current_sha256": "41df4e1d96657de5f956a3894d7f6bf0d74563bbe324329ffb2d338557a458dc",
+    "hunks": [
+      [
+        163,
+        165,
+        ""
+      ]
+    ],
+    "original_sha256": "e8ccf7d79108c0a7bf94812f31bb053668f895d7cb4b85500b6bc31fc7791304"
   }
 }
