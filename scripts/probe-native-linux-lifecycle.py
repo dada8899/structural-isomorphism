@@ -21,7 +21,7 @@ import time
 from uuid import uuid4
 
 ROOT=Path(__file__).resolve().parents[1]
-BRANCH='refs/heads/codex/structure-native-linux-lifecycle-attempt4-20261024'
+BRANCH='refs/heads/codex/structure-native-linux-lifecycle-attempt5-20261024'
 REPOSITORY='dada8899/structural-isomorphism'
 USER=GROUP='structural-native-probe'
 UNIT='structural-web.service'
@@ -438,7 +438,7 @@ class Controller:
         self.command(['/usr/bin/openssl','req','-x509','-newkey','rsa:2048','-nodes','-days','1','-subj','/CN=beta.structural.bytedance.city','-addext','subjectAltName=DNS:beta.structural.bytedance.city','-keyout',str(WORK/'local-key.pem'),'-out',str(WORK/'local-cert.pem')],limit=10)
         self._mark('certificate_metadata')
         for path in (WORK/'local-key.pem',WORK/'local-cert.pem'):self.paths.append(path);os.chown(path,self.uid,self.gid);path.chmod(0o400)
-        self.command(self.as_user([self.python,'-I','-B',str(DEPOT/FIXTURE),'bootstrap']),env=self.environment())
+        self.command(self.as_user([self.python,'-I','-B',str(DEPOT/FIXTURE),'bootstrap']),env={**self.environment(),'STRUCTURAL_PRIVACY_HMAC_KEY':values[2]})
     def as_user(self,argv):return ['/usr/bin/setpriv','--reuid',str(self.uid),'--regid',str(self.gid),'--clear-groups',*argv]
     def environment(self):
         return {'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','HOME':str(STATE),'STRUCTURAL_ENV':'prod','AUTH_ENABLED':'true','AUTH_DEV_MODE':'false','AUTH_SITE_ROLE':'beta','AUTH_LINK_BASE_URL':'https://beta.structural.bytedance.city','AUTH_DATA_DIR':str(STATE),'STRUCTURAL_SSO_DATA_DIR':str(STATE),'AUTH_TRUSTED_PROXY_IPS':'127.0.0.1','SMTP_HOST':'127.0.0.1','SMTP_PORT':'18025','SMTP_USERNAME':'native-probe','SMTP_FROM_EMAIL':'native-linux-sender@example.invalid','ADMIN_NOTIFICATION_EMAIL':'native-linux-admin@example.invalid','SMTP_STARTTLS':'false','SMTP_USE_SSL':'false','SMTP_TIMEOUT_SECONDS':'2'}
