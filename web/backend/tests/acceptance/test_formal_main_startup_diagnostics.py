@@ -534,3 +534,46 @@ def test_retirement_diagnostic_failure_does_not_replace_main_cleanup_error(tmp_p
         assert any('{"observation":"ERROR"}' in note for note in error.__notes__)
     else: raise AssertionError('original cleanup failure was swallowed')
     assert service._retirement_binding is None and service._closed is False
+
+
+def test_capture_accepts_actual_alternate_family_registry_without_accepting_caller_substitutes(tmp_path):
+    import importlib
+    import os
+    from services import formal_admission as plain
+    alternate = importlib.import_module('web.backend.services.formal_admission')
+    assert alternate is not plain and alternate._Binding is not plain._Binding
+    assert alternate._STATE is plain._STATE
+    service = FormalMainBrowserService(tmp_path / 'unused-root')
+    service.app = object()
+    binding = object.__new__(alternate._Binding)
+    for name, value in {'app': service.app, 'factory': alternate._FACTORY,
+                        'pid': os.getpid()}.items():
+        object.__setattr__(binding, name, value)
+    key = id(service.app)
+    assert key not in plain._STATE
+    try:
+        plain._STATE[key] = binding
+        service._remember_retirement_binding(plain._STATE)
+        assert service._retirement_binding is binding
+        service._retirement_binding = None
+        service._remember_retirement_binding(dict(plain._STATE))
+        assert service._retirement_binding is None
+        class CallbackRegistry(dict):
+            def get(self, *_): raise AssertionError('caller callback')
+        service._remember_retirement_binding(CallbackRegistry(plain._STATE))
+        assert service._retirement_binding is None
+        fake = type('_Binding', (), {'__module__': alternate.__name__,
+            '__getattribute__': _RetirementCanary.__getattribute__})()
+        plain._STATE[key] = fake
+        service._remember_retirement_binding(plain._STATE)
+        assert service._retirement_binding is None
+        plain._STATE[key] = binding
+        object.__setattr__(binding, 'factory', plain._FACTORY)
+        service._remember_retirement_binding(plain._STATE)
+        assert service._retirement_binding is None
+        object.__setattr__(binding, 'factory', alternate._FACTORY)
+        object.__setattr__(binding, 'pid', _RetirementCanary())
+        service._remember_retirement_binding(plain._STATE)
+        assert service._retirement_binding is None
+    finally:
+        plain._STATE.pop(key, None)

@@ -736,11 +736,18 @@ class FormalMainBrowserService(AbstractContextManager):
         from services import formal_admission
         formal_admission.require(self.app, 'research_basic')
         formal_admission.require(self.app, 'source_history')
+        self._remember_retirement_binding(formal_admission._STATE)
+
+    def _remember_retirement_binding(self, state):
         # Retain only this actually admitted lifetime; retirement removes STATE.
-        # This observation must never make a healthy startup fail.
+        # Both canonical module families use the same actual registry. A copy
+        # supplied by a caller is not the observed admission entry.
         try:
-            binding = formal_admission._STATE.get(id(self.app))
-            if _retirement_binding_module(binding, self.app) is formal_admission:
+            if type(state) is not dict:
+                return
+            binding = dict.get(state, id(self.app))
+            module = _retirement_binding_module(binding, self.app)
+            if module is not None and vars(module).get('_STATE') is state:
                 self._retirement_binding = binding
         except BaseException:
             pass
