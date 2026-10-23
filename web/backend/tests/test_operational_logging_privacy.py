@@ -68,6 +68,10 @@ def _has_unshadowed_stdlib_sys(tree: ast.AST) -> bool:
             return False
         if isinstance(node, ast.ExceptHandler) and node.name == "sys":
             return False
+        if isinstance(node, (ast.MatchAs, ast.MatchStar)) and node.name == "sys":
+            return False
+        if isinstance(node, ast.MatchMapping) and node.rest == "sys":
+            return False
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             for alias in node.names:
                 bound = alias.asname or alias.name.split(".")[0]
@@ -164,6 +168,9 @@ def test_sys_name_or_attribute_shadowing_keeps_exception_calls_under_review() ->
         "import sys\nfrom other import *\nsys.exception()",
         "import sys\nsys.exception('structural.event')",
         "import sys\nsys.exception(error_type='X')",
+        "import sys\nmatch logger:\n    case sys:\n        sys.exception()",
+        "import sys\nmatch [logger]:\n    case [*sys]:\n        sys.exception()",
+        "import sys\nmatch {'logger': logger}:\n    case {**sys}:\n        sys.exception()",
     )
     for source in sources:
         calls = list(_logging_calls(ast.parse(source)))
