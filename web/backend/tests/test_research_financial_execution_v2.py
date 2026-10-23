@@ -15,6 +15,9 @@ def test_json_candidate_and_direct_native_constructors_cannot_issue_execution():
         with pytest.raises(TypeError):constructor(*args)
     for forged in (object.__new__(execution.CurrentFinancialExecution),object.__new__(native.ResolvedOwnerFinancialRegistryV2)):
         with pytest.raises(PermissionError):forged.require()
+    unowned=object.__new__(execution.CurrentFinancialExecution)
+    with pytest.raises(PermissionError):unowned.check_deadline()
+    with pytest.raises(TypeError):unowned.deadline=10**20
     with pytest.raises(PermissionError):object.__new__(execution.OwnedFinancialReturnV2).stored
     with pytest.raises(PermissionError):execution.execute({'trusted':True},None,None)
     with pytest.raises(FinancialError):_validate_stored({'snapshot':{},'receipt':{}},None)

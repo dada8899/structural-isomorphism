@@ -1,6 +1,7 @@
 """Fixed local financial producer. No provider, external I/O or paid admission."""
 import hashlib
 import importlib
+import math
 import os
 import sqlite3
 from pathlib import Path
@@ -20,7 +21,8 @@ _RETURNS={}
 _CODE_FILES=('financial_execution.py','financial_result_v2.py','financial_evaluator.py','financial_policy.py',
     'financial_schemas.py','financial_input_schemas.py','financial_input.py','financial_input_guard.py','financial_import.py')
 _FUNCTION_PATHS={
-    **{name:'research/financial_execution.py' for name in ('begin','execute','consume','require_request','validate_insert','CurrentFinancialExecution.require')},
+    **{name:'research/financial_execution.py' for name in ('begin','execute','consume','require_request','validate_insert',
+        'CurrentFinancialExecution.require','CurrentFinancialExecution.check_deadline')},
     **{name:'research/financial_result_v2.py' for name in ('calculate','validate_snapshot','_validate_stored','project_financial_snapshot_v2')},
     'evaluate_owner_financial_v2':'research/financial_evaluator.py',
     'resolve_owner_registry_v2':'research/financial_input.py',
@@ -151,21 +153,44 @@ def _code_digest():
 
 
 class CurrentFinancialExecution:
-    __slots__=('_entry','_owned','_started')
+    __slots__=('_entry','_owned','_started','_timer')
     def __init__(self,entry,*,_factory=None):
         frame=sys._getframe(1)
         if _factory is not _FACTORY or frame.f_code is not begin.__code__ or frame.f_globals is not globals():
             raise TypeError('fixed calculation context birth required')
         object.__setattr__(self,'_entry',entry);object.__setattr__(self,'_owned',None);object.__setattr__(self,'_started',False)
+        object.__setattr__(self,'_timer',None)
         _CONTEXTS[id(self)]=self
     def __setattr__(self,*args):raise TypeError('financial execution immutable')
     def __reduce__(self):raise TypeError('financial execution cannot be serialized')
     @property
     def envelope(self):return self._entry['envelope']
+    def check_deadline(self):
+        """Check-only against the one execute-born Meter; never re-arm or tick."""
+        e=getattr(self,'_entry',None)
+        if (_CONTEXTS.get(id(self)) is not self or not e or e['pid']!=os.getpid()
+                or e['thread']!=threading.get_ident() or not e['scope'].active or not e['conn'].in_transaction):
+            raise PermissionError('financial timer origin retired')
+        timer=self._timer
+        if not self._started:
+            if timer is not None or any(e[k] is not None for k in ('meter','deadline','final_operations')):
+                raise PermissionError('financial timer was not born in execute')
+            return
+        if type(timer) is not tuple or len(timer)!=2:raise PermissionError('financial timer binding missing')
+        meter,deadline=timer
+        if (type(meter) is not Meter or e['meter'] is not meter or type(deadline) is not float
+                or not math.isfinite(deadline) or type(e['deadline']) is not float or e['deadline']!=deadline
+                or type(meter.deadline) is not float or meter.deadline!=deadline):
+            raise PermissionError('financial original timer changed')
+        frozen=e['final_operations']
+        if frozen is not None and (type(frozen) is not int or type(meter.operations) is not int or meter.operations!=frozen):
+            raise PermissionError('financial frozen operation count changed')
+        if time.monotonic()>deadline:raise FinancialResourceLimit('financial original deadline exceeded')
     def require(self):
         e=getattr(self,'_entry',None)
         if (_CONTEXTS.get(id(self)) is not self or not e or e['pid']!=os.getpid() or e['thread']!=threading.get_ident()):
             raise PermissionError('financial execution retired')
+        _function(type(self).check_deadline)(self)
         require_calculate_frame({k:e[k] for k in ('conn','service','identity','rid','envelope','lease','source','registry')})
         request,binding=require_request(e['service'],e['identity'],e['rid'],e['envelope'],e['key'],e['source'],e['app'])
         scope,principal=require_native_scope(e['conn'],e['service'],e['identity'],e['principal_id'],e['lease'])
@@ -179,10 +204,11 @@ class CurrentFinancialExecution:
                 ('owner_epoch',e['owner_epoch']),('acl_epoch',e['acl_epoch'])):
             if control[name]!=value:raise PermissionError('financial current authorization changed')
         if principal['epoch']!=e['principal_epoch']:raise PermissionError('financial principal changed')
+        _function(type(self).check_deadline)(self)
         return e
     def close(self):
         if self._owned is not None:_RETURNS.pop(id(self._owned),None)
-        _CONTEXTS.pop(id(self),None);self._entry.clear()
+        _CONTEXTS.pop(id(self),None);self._entry.clear();object.__setattr__(self,'_timer',None)
 
 
 class OwnedFinancialReturnV2:
@@ -214,7 +240,8 @@ def begin(conn,service,identity,rid,envelope,key,source,lease,registry,request_a
         'lease':lease,'registry':registry,'request':request,'app':request_app,'main':binding,'scope':scope,'principal_id':pid,
         'principal_epoch':principal['epoch'],'owner_epoch':control['owner_epoch'],'acl_epoch':control['acl_epoch'],
         'before':control['version'],'gate':tuple(lease.identity),'pid':os.getpid(),'thread':threading.get_ident(),
-        'code_digest':_code_digest(),'run_id':str(uuid4()),'result_ref':str(uuid4()),'transaction_ref':str(uuid4())}
+        'code_digest':_code_digest(),'run_id':str(uuid4()),'result_ref':str(uuid4()),'transaction_ref':str(uuid4()),
+        'meter':None,'deadline':None,'final_operations':None}
     return CurrentFinancialExecution(entry,_factory=_FACTORY)
 
 
@@ -227,15 +254,22 @@ def execute(context,request,registry):
     e=_function(type(context).require)(context)
     if context._started or context._owned is not None or request is not e['envelope'].data.request or registry is not e['registry']:
         raise PermissionError('single fixed financial execution required')
-    object.__setattr__(context,'_started',True)
     evaluator=_function(engine.evaluate_owner_financial_v2)
     validator=_function(data.validate_snapshot)
     _function(data._validate_stored);_function(data.project_financial_snapshot_v2)
     owner=registry.owner_data;started_at=now();started_ns=time.monotonic_ns();meter=Meter()
+    # The only timer birth is at the original mathematical start, after owner/
+    # database preparation. Keep a separate immutable identity/value anchor.
+    object.__setattr__(context,'_timer',(meter,meter.deadline))
+    e['meter']=meter;e['deadline']=meter.deadline
+    object.__setattr__(context,'_started',True)
+    _function(type(context).check_deadline)(context)
     snapshot=evaluator(e['envelope'],owner,meter=meter)
     validator(e['envelope'],owner,snapshot)
     if time.monotonic()>meter.deadline or snapshot.operations_used!=meter.operations:
         raise FinancialResourceLimit('financial completion deadline or count')
+    e['final_operations']=snapshot.operations_used
+    _function(type(context).check_deadline)(context)
     completed=now();elapsed=time.monotonic_ns()-started_ns
     recorded=completed;ref=e['envelope'].data.registry_ref.model_dump(mode='json')
     origin=digest({'registry_ref':ref,'parser_revision':owner.parser_revision,**owner.receipt.model_dump(mode='json')})
@@ -269,7 +303,7 @@ def execute(context,request,registry):
     stored=data.StoredFinancialResultV2.model_validate_json(data.bounded({'row_binding':row,'operation':e['envelope'].data_dict(),
         'expectation':expectation,'execution_receipt':receipt,'snapshot':snapshot.data()},131072))
     stored=data._validate_stored(stored,owner)
-    if time.monotonic()>meter.deadline:raise FinancialResourceLimit('financial final deadline')
+    _function(type(context).check_deadline)(context)
     owned=OwnedFinancialReturnV2(context,stored,_factory=_FACTORY);object.__setattr__(context,'_owned',owned)
     return owned
 
@@ -286,7 +320,9 @@ def validate_insert(entry,values):
     if entry.get('request') is not e['envelope'] or entry['scope'] is not e['scope']:
         raise PermissionError('financial insert operation differs')
     _validate_stored(owned.stored,e['registry'].owner_data)
+    _function(type(context).check_deadline)(context)
     if values!=_saved_values(owned.stored):raise PermissionError('financial insert image differs')
+    _function(type(context).check_deadline)(context)
 
 
 def consume(owned):

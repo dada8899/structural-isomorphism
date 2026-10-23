@@ -1320,21 +1320,34 @@ def calculate(service,identity,rid,envelope,key,source,*,request_app):
             registry=execution._function(native.resolve_owner_registry_v2)(conn,service,identity,rid,envelope,lease,source)
             context=execution._function(execution.begin)(conn,service,identity,rid,envelope,key,source,lease,registry,request_app)
             owned=execution._function(execution.execute)(context,envelope.data.request,registry)
+            execution._function(type(context).check_deadline)(context)
             stored=owned.stored;values=_saved_values(stored)
+            execution._function(type(context).check_deadline)(context)
             future={**dict(control),'version':control['version']+1}
-            responses={v:_saved_response(stored,registry.owner_data,future,v,future=True) for v in ('summary','table','chart')}
+            responses={}
+            for view in ('summary','table','chart'):
+                execution._function(type(context).check_deadline)(context)
+                responses[view]=_saved_response(stored,registry.owner_data,future,view,future=True)
+                execution._function(type(context).check_deadline)(context)
             context.require()
             columns=COLUMNS[RESULTS];ordered=tuple(values[k] for k in columns)
             with _write_scope(conn,service,lease,RESULTS,'INSERT',ordered,identity=identity,source=source,key=key,
                     request=envelope,execution=context,owned_return=owned):
+                execution._function(type(context).check_deadline)(context)
                 conn.execute('INSERT INTO '+RESULTS+'('+','.join(columns)+') VALUES('+','.join('?' for _ in columns)+')',ordered)
+                execution._function(type(context).check_deadline)(context)
             context.require()
             at=stored.row_binding.recorded_at
+            execution._function(type(context).check_deadline)(context)
             if conn.execute('UPDATE research_controls SET version=version+1,updated_at=? WHERE id=? AND current_revision=? AND version=? AND owner_epoch=? AND acl_epoch=?',
                 (at,rid,envelope.data.input_revision,control['version'],control['owner_epoch'],control['acl_epoch'])).rowcount!=1:
                 raise ResearchError('REVISION_CONFLICT',409,'研究已变化，未保存此结果。')
+            execution._function(type(context).check_deadline)(context)
             service._remember(conn,pid,'financial-calculate','r:'+rid,key,request_digest,{'result_ref':stored.row_binding.result_ref})
-            execution._function(execution.consume)(owned);commit_ready[0]=True
+            execution._function(type(context).check_deadline)(context)
+            execution._function(execution.consume)(owned)
+            execution._function(type(context).check_deadline)(context)
+            commit_ready[0]=True
             return responses['summary']
     finally:
         if context is not None:context.close()

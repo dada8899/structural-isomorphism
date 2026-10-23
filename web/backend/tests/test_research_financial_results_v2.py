@@ -3,6 +3,7 @@ import asyncio
 from copy import deepcopy
 import json
 import sqlite3
+import time
 from uuid import uuid4
 
 import httpx
@@ -267,6 +268,129 @@ def test_actual_main15_noncanonical_executor_is_rejected_before_invocation(prepa
                         response=await calculate(client,rid,body,'noncanonical-'+name)
                         assert response.status_code==409,response.text
                         assert calls==[],'a substituted producer/validator ran before fixed code/globals verification'
+                with ResearchStore(auth._store()).transaction() as conn:
+                    assert conn.execute('SELECT count(*) FROM research_financial_results').fetchone()[0]==0
+                    assert conn.execute('SELECT version FROM research_controls WHERE id=?',(rid,)).fetchone()[0]==2
+                assert execution._CONTEXTS==execution._RETURNS=={}
+    asyncio.run(run())
+
+
+def test_actual_main15_deadline_retry_same_meter_ops_and_late_reads(prepared,monkeypatch):
+    main,_,_,messages=prepared
+    async def run():
+        async with main.lifespan(main.app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
+                await login(client,messages);rid=await create(client);body=await setup_financial(client,rid)
+                from research import financial_result_v2 as result,financial_execution as execution,financial_input as native,ResearchStore
+                from api import auth
+                original=result._saved_response;expired=[]
+                def slow_once(*args,**kwargs):
+                    response=original(*args,**kwargs)
+                    if not expired:
+                        context=next(iter(execution._CONTEXTS.values()));entry=context._entry
+                        meter=entry['meter'];deadline=entry['deadline'];ops=meter.operations
+                        assert context._timer==(meter,deadline) and type(meter) is execution.Meter
+                        time.sleep(2.1)
+                        expired.append({'deadline':deadline,'same_meter':entry['meter'] is meter,
+                            'same_deadline':meter.deadline==deadline,'ops_before':ops,'ops_after':meter.operations})
+                    return response
+                with monkeypatch.context() as fault:
+                    fault.setattr(result,'_saved_response',slow_once)
+                    denied=await calculate(client,rid,body,'deadline-retry')
+                assert denied.status_code!=200 and expired[0]['same_meter'] and expired[0]['same_deadline'],denied.text
+                assert expired[0]['ops_before']==expired[0]['ops_after']
+                with ResearchStore(auth._store()).transaction() as conn:
+                    assert conn.execute('SELECT count(*) FROM research_financial_results').fetchone()[0]==0
+                    assert conn.execute('SELECT version FROM research_controls WHERE id=?',(rid,)).fetchone()[0]==2
+                    assert conn.execute("SELECT count(*) FROM research_idempotency WHERE operation='financial-calculate'").fetchone()[0]==0
+                assert execution._CONTEXTS==execution._RETURNS==native._RESOLVED_OWNER=={}
+                observed=[]
+                def measured(*args,**kwargs):
+                    contexts=list(execution._CONTEXTS.values())
+                    if contexts:
+                        context=contexts[0];entry=context._entry;meter=entry['meter']
+                        stamp=(id(meter),entry['deadline'],meter.operations)
+                        assert context._timer==(meter,entry['deadline']) and meter.deadline==entry['deadline']
+                        assert entry['final_operations']==meter.operations==args[0].snapshot.operations_used
+                    value=original(*args,**kwargs)
+                    if contexts:
+                        assert stamp==(id(meter),meter.deadline,meter.operations);observed.append(stamp)
+                    return value
+                with monkeypatch.context() as fault:
+                    fault.setattr(result,'_saved_response',measured)
+                    saved=await calculate(client,rid,body,'deadline-retry')
+                assert saved.status_code==200,saved.text
+                assert len(observed)==3 and len(set(observed))==1
+                meta=saved.json()['data']['metadata'];ref=meta['result_ref']
+                # A completed historical read/replay must not inherit the run's D.
+                time.sleep(2.1)
+                assert time.monotonic()>observed[0][1]
+                for suffix in ('',f'/{ref}?view=table',f'/{ref}?view=chart'):
+                    response=await client.get(f'/api/research/{rid}/financial-results'+suffix)
+                    assert response.status_code==200,response.text
+                replay=await calculate(client,rid,body,'deadline-retry')
+                assert replay.status_code==200 and replay.json()['data']['metadata']==meta,replay.text
+                assert execution._CONTEXTS==execution._RETURNS==native._RESOLVED_OWNER=={}
+                print('DEADLINE_RETRY:'+json.dumps({'expired':expired,'success_meter_observations':observed,
+                    'late_read_and_replay':True,'no_new_ticks_after_snapshot':True}))
+    asyncio.run(run())
+
+
+def test_actual_main15_trigger_rejects_original_deadline_after_real_guard_work(prepared,monkeypatch):
+    main,_,_,messages=prepared
+    async def run():
+        async with main.lifespan(main.app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
+                await login(client,messages);rid=await create(client);body=await setup_financial(client,rid)
+                from research import financial_result_v2 as result,financial_execution as execution,financial_input as native,financial_input_guard as guard,ResearchStore
+                from api import auth
+                original=result._saved_values;observed=[]
+                def slow_inside_trigger(stored):
+                    values=original(stored)
+                    active=[e for e in guard._WRITES.values() if e['table']==guard.RESULTS and e['operation']=='INSERT']
+                    if active and not observed:
+                        context=active[0]['execution'];entry=context._entry;meter=entry['meter'];deadline=entry['deadline'];ops=meter.operations
+                        assert context._owned is active[0]['owned_return']
+                        started=time.monotonic();time.sleep(2.1)
+                        observed.append({'actual_active_result_guard':True,'delay_seconds':time.monotonic()-started,
+                            'same_meter':entry['meter'] is context._timer[0] is meter,
+                            'same_deadline':entry['deadline']==context._timer[1]==meter.deadline==deadline,
+                            'ops_before':ops,'ops_after':meter.operations})
+                    return values
+                with monkeypatch.context() as fault:
+                    fault.setattr(result,'_saved_values',slow_inside_trigger)
+                    denied=await calculate(client,rid,body,'trigger-deadline')
+                assert observed and observed[0]['actual_active_result_guard'] and denied.status_code!=200,denied.text
+                assert observed[0]['same_meter'] and observed[0]['same_deadline']
+                assert observed[0]['ops_before']==observed[0]['ops_after']
+                with ResearchStore(auth._store()).transaction() as conn:
+                    assert conn.execute('SELECT count(*) FROM research_financial_results').fetchone()[0]==0
+                    assert conn.execute('SELECT version FROM research_controls WHERE id=?',(rid,)).fetchone()[0]==2
+                assert execution._CONTEXTS==execution._RETURNS==native._RESOLVED_OWNER==guard._WRITES=={}
+                print('TRIGGER_DEADLINE:'+json.dumps(observed))
+    asyncio.run(run())
+
+
+def test_actual_main15_context_original_deadline_cannot_be_extended(prepared,monkeypatch):
+    main,_,_,messages=prepared
+    async def run():
+        async with main.lifespan(main.app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
+                await login(client,messages);rid=await create(client);body=await setup_financial(client,rid)
+                from research import financial_result_v2 as result,financial_execution as execution,ResearchStore
+                from api import auth
+                original=result._saved_response;attempts=[]
+                def tamper(*args,**kwargs):
+                    value=original(*args,**kwargs)
+                    if not attempts:
+                        context=next(iter(execution._CONTEXTS.values()));entry=context._entry
+                        original_deadline=entry['deadline'];entry['meter'].deadline=original_deadline+10
+                        attempts.append({'original_deadline':original_deadline,'anchor_preserved':context._timer[1]==original_deadline})
+                    return value
+                with monkeypatch.context() as fault:
+                    fault.setattr(result,'_saved_response',tamper)
+                    denied=await calculate(client,rid,body,'no-deadline-extension')
+                assert attempts[0]['anchor_preserved'] and denied.status_code!=200,denied.text
                 with ResearchStore(auth._store()).transaction() as conn:
                     assert conn.execute('SELECT count(*) FROM research_financial_results').fetchone()[0]==0
                     assert conn.execute('SELECT version FROM research_controls WHERE id=?',(rid,)).fetchone()[0]==2
