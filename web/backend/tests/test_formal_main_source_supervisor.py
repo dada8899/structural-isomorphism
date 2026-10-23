@@ -1034,3 +1034,170 @@ def test_actual_main15_periodic_slot_without_hint_selects_real_task_before_cance
                 release.set()
 
     asyncio.run(run())
+
+
+def _source_state_stop_control(prepared, point):
+    """Two real worker windows; pause scheduling, never fabricate stop authority."""
+    main, admission, _, messages = prepared
+    from research import source_supervisor as source
+    lines = Path(source.__file__).read_text().splitlines()
+    state_lines = [i for i, line in enumerate(lines, 1) if "if self._state not in ('STARTING', 'READY'):" in line]
+    target = state_lines[0 if point == 'loop' else 1]
+    idle_line = next(i for i, line in enumerate(lines, 1) if 'self._event.wait(_POLL_SECONDS)' in line)
+    idle, idle_release = threading.Event(), threading.Event()
+    entered, release = threading.Event(), threading.Event()
+    seen, errors, captured = [], [], []
+    def trace(frame, event, argument):
+        if frame.f_code is not source.SourceSupervisor._run_with_budget.__code__:
+            return None
+        supervisor = source._REGISTRY.get(id(main.app))
+        if (event == 'line' and supervisor is not None and threading.current_thread() is supervisor._thread
+                and supervisor._state == 'READY'):
+            if point == 'selected' and frame.f_lineno == idle_line and not idle.is_set():
+                idle.set()
+                if not idle_release.wait(10): raise TimeoutError('owned idle scheduling barrier expired')
+            if frame.f_lineno == target and not seen:
+                seen.append(True); entered.set()
+                if not release.wait(5): raise TimeoutError('owned Source state barrier expired')
+        return trace
+    def release_after_actual_retire():
+        try:
+            assert entered.wait(10)
+            end = time.monotonic() + 5
+            while time.monotonic() < end:
+                supervisor = source._REGISTRY.get(id(main.app))
+                if supervisor is not None and supervisor._state == 'STOPPING' and supervisor._stop.is_set(): break
+                time.sleep(.001)
+            else: raise TimeoutError('actual Source retirement not observed')
+        except BaseException as error:
+            errors.append('TIMEOUT' if type(error) is TimeoutError else 'OBSERVER_FAILURE')
+        finally: release.set()
+    old_trace = threading.gettrace(); threading.settrace(trace)
+    observer = threading.Thread(target=release_after_actual_retire, name='owned-source-state-stop-observer')
+    async def run():
+        context = main.lifespan(main.app); await context.__aenter__()
+        binding = admission._STATE[id(main.app)]; captured.append(binding)
+        if point == 'selected':
+            end = time.monotonic() + 5
+            while not idle.is_set() and time.monotonic() < end: await asyncio.sleep(.01)
+            assert idle.is_set()
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app), base_url=BETA) as client:
+                await login(client, messages)
+                rid = await create(client); approval = await approved_source(client, rid)
+                response = await client.post('/api/research/' + rid + '/source-tasks', json=envelope({
+                    'input_revision': 1, 'expected_research_version': 1, 'approval_ref': approval}),
+                    headers={'Origin': BETA, 'Idempotency-Key': 'source-state-window-task'})
+                assert response.status_code == 200, response.text
+                task_id = response.json()['data']['task']['id']
+            # The actual HTTP action/Owner admission has returned before the
+            # worker takes its state lock. No response is fabricated here.
+            idle_release.set(); source.wake(binding.supervisor)
+        end = time.monotonic() + 5
+        while not entered.is_set() and time.monotonic() < end: await asyncio.sleep(.01)
+        assert entered.is_set()
+        assert binding.supervisor._slot is None and binding.supervisor._lease is None
+        if point == 'selected': assert binding.supervisor._cursor == task_id
+        observer.start()  # Startup/HTTP preparation must not consume this observation window.
+        await context.__aexit__(None, None, None)
+        assert not errors and binding.source_receipt.state == 'CLOSED'
+        assert binding.source_receipt.reason == 'CLOSED' and binding.supervisor._failure is None
+        assert not binding.supervisor._thread.is_alive()
+        assert all(witness.parent_fd is None for witness in binding.witnesses)
+        with binding.service.store.transaction() as conn:
+            assert conn.execute('SELECT count(*) FROM research_source_requests').fetchone()[0] == 0
+            if point == 'selected':
+                assert conn.execute('SELECT started FROM research_source_runs WHERE task_id=?', (task_id,)).fetchone()[0] == 0
+        print('SOURCE_STATE_NATIVE_STOP:' + json.dumps({'point': point, 'receipt': 'CLOSED',
+            'worker_failure': None, 'actual_selected_http_task': point == 'selected', 'claims': 0, 'requests': 0, 'gets': 0}))
+    try: asyncio.run(run())
+    finally:
+        idle_release.set(); release.set(); threading.settrace(old_trace)
+        if observer.ident is not None: observer.join(11)
+        assert not observer.is_alive()
+        for binding in captured:
+            assert not binding.supervisor._thread.is_alive()
+            # Physical teardown only if a later regression failed; no logical
+            # CLOSED/registry entry is supplied or repaired by the test.
+            governor = binding.supervisor._sec_access
+            if governor.fd is not None: os.close(governor.fd)
+            for witness in binding.witnesses:
+                if witness.parent_fd is not None: witness.close()
+
+
+@pytest.mark.parametrize('point', ['loop', 'selected'])
+def test_actual_main_native_stop_between_check_and_source_state_is_closed(prepared, point):
+    _source_state_stop_control(prepared, point)
+
+
+@pytest.mark.parametrize('fault', ['state', 'event', 'integrity'])
+def test_actual_main_unsealed_source_state_or_integrity_fault_stays_uncertain(request, tmp_path, monkeypatch, fault):
+    if os.environ.get('SOURCE_STATE_FAULT_CHILD') != fault:
+        owned = tmp_path / fault; owned.mkdir(mode=0o700)
+        home = owned / 'home'; home.mkdir(mode=0o700)
+        root = Path(__file__).resolve().parents[3]
+        audit = sys.modules.get('audit_bootstrap')
+        assert audit is not None, 'owned lifecycle guard required for isolated uncertainty control'
+        guard = sys.modules.get('main_smtp_task_guard')
+        assert guard is not None, 'approved owned Main guard required'
+        packet = Path(guard.__file__).resolve().parent
+        environment = {'PATH': os.environ['PATH'], 'PYTHONPATH': os.pathsep.join((str(Path(audit.__file__).resolve().parent),
+            str(root / 'web/backend'), str(root), str(packet))), 'REVIEW_SOURCE_ROOT': str(root),
+            'HOME': str(home), 'TMPDIR': str(owned), 'A006_AUDIT_ROOT': str(owned),
+            'PYTHONDONTWRITEBYTECODE': '1', 'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1',
+            'STRUCTURAL_ENV': 'test', 'AUTH_ENABLED': 'false', 'AUTH_DATA_DIR': str(owned / 'auth'),
+            'STRUCTURAL_LOG_FILE': str(owned / 'bootstrap.jsonl'), 'HF_HUB_OFFLINE': '1', 'TRANSFORMERS_OFFLINE': '1',
+            'SOURCE_STATE_FAULT_CHILD': fault}
+        target = str(Path(__file__).resolve()) + '::test_actual_main_unsealed_source_state_or_integrity_fault_stays_uncertain[' + fault + ']'
+        result = subprocess.run([sys.executable, '-B', str(packet / 'run_tests.py'),
+            '-p', 'controller_mail_observer', '-p', 'a_evidence_resource_observer', target,
+            '--basetemp=' + str(owned / 'cases'), '--junitxml=' + str(owned / 'result.xml')],
+            cwd=owned, env=environment, capture_output=True, timeout=25)
+        (owned / 'result.log').write_bytes(result.stdout + result.stderr)
+        assert result.returncode == 0, 'isolated Source state fault failed; retain owned result.log'
+        assert b'SOURCE_STATE_UNCERTAINTY:' in result.stdout
+        return
+    prepared = request.getfixturevalue('prepared')
+    main, admission, paths, _ = prepared
+    from research import source_supervisor as source
+    target = next(i for i, line in enumerate(Path(source.__file__).read_text().splitlines(), 1)
+        if "if self._state not in ('STARTING', 'READY'):" in line)
+    injected, captured = [], []
+    def trace(frame, event, argument):
+        if frame.f_code is not source.SourceSupervisor._run_with_budget.__code__: return None
+        supervisor = source._REGISTRY.get(id(main.app))
+        if (event == 'line' and frame.f_lineno == target and not injected and supervisor is not None
+                and threading.current_thread() is supervisor._thread and supervisor._state == 'READY'):
+            if fault == 'state': supervisor._state = 'STOPPING'
+            elif fault == 'event': supervisor._stop.set()
+            else: (paths.STATE_ROOT / 'history.db').chmod(0o640)
+            injected.append(True)
+        return trace
+    old_trace = threading.gettrace(); threading.settrace(trace)
+    async def run():
+        context = main.lifespan(main.app); await context.__aenter__()
+        binding = admission._STATE[id(main.app)]; captured.append(binding)
+        end = time.monotonic() + 5
+        while binding.supervisor._thread.is_alive() and time.monotonic() < end: await asyncio.sleep(.01)
+        assert injected and not binding.supervisor._thread.is_alive()
+        assert binding.supervisor._failure == 'WORKER_FAILURE'
+        assert binding.supervisor._stop.is_set() == (fault == 'event')
+        assert binding.supervisor._main_stop_intent is None and binding.supervisor._source_stop_intent is None
+        assert binding.supervisor._errors and all(type(error) is not source._SourceStopping for error in binding.supervisor._errors)
+        with pytest.raises(RuntimeError): await context.__aexit__(None, None, None)
+        assert binding.source_receipt.state == 'CLEANUP_UNCERTAIN'
+        assert binding.source_receipt.reason == 'WORKER_FAILURE'
+        assert binding.supervisor._slot is None and binding.supervisor._lease is None
+        assert any(witness.parent_fd is not None for witness in binding.witnesses)
+        with binding.service.store.transaction() as conn:
+            assert conn.execute('SELECT count(*) FROM research_source_requests').fetchone()[0] == 0
+        print('SOURCE_STATE_UNCERTAINTY:' + json.dumps({'fault': fault, 'receipt': 'CLEANUP_UNCERTAIN',
+            'reason': 'WORKER_FAILURE', 'sealed_stop_signal': False, 'worker_alive': False, 'requests': 0, 'gets': 0}))
+    try: asyncio.run(run())
+    finally:
+        threading.settrace(old_trace)
+        for binding in captured:
+            assert not binding.supervisor._thread.is_alive()
+            governor = binding.supervisor._sec_access
+            if governor.fd is not None: os.close(governor.fd)
+            for witness in binding.witnesses:
+                if witness.parent_fd is not None: witness.close()
