@@ -10,6 +10,7 @@
       "browser-product-contract",
       "browser-beta-surface-contract",
       "browser-evidence-method-contract",
+      "browser-financial-registry-contract",
       "backend",
       "packages",
       "frontend"

@@ -24,6 +24,7 @@ FRONTEND_NODE_TESTS := \
 	web/frontend/tests/test_askTrust.js \
 	web/frontend/tests/test_buildAnalyzeUrl.js \
 	web/frontend/tests/test_evidenceMethodPlan.js \
+	web/frontend/tests/test_financialRegistry.js \
 	web/frontend/tests/test_historyPrivacy.js \
 	web/frontend/tests/test_historySidebarPerformance.js \
 	web/frontend/tests/test_newsletterClosed.js \
@@ -60,6 +61,9 @@ BROWSER_CONTRACT_SECONDARY_WHITESPACE_TESTS := \
 FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS := \
 	web/tests/e2e/test_research_financial_preview_browser.py
 
+FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS := \
+	web/tests/e2e/test_research_financial_registry_browser.py
+
 EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS := \
 	web/tests/e2e/test_evidence_method_plan_browser.py
 
@@ -67,7 +71,7 @@ PHASE_REAL_BROWSER_CONTRACT_TESTS := \
 	web/tests/e2e/test_phase_auth_real.py \
 	web/tests/e2e/test_cookie_consent.py
 
-.PHONY: test-evidence-method-browser-contract test-financial-preview-browser-contract test test-unit test-integration test-phase-python-contract test-e2e test-frontend-node test-browser-contracts test-retrieval-contract test-product-contracts test-release-contracts test-all test-fast openapi-env openapi-generate openapi-check types-check python-syntax-check llm-scaling-env llm-scaling-generate llm-scaling-check verify-release help
+.PHONY: test-financial-registry-browser-contract test-evidence-method-browser-contract test-financial-preview-browser-contract test test-unit test-integration test-phase-python-contract test-e2e test-frontend-node test-browser-contracts test-retrieval-contract test-product-contracts test-release-contracts test-all test-fast openapi-env openapi-generate openapi-check types-check python-syntax-check llm-scaling-env llm-scaling-generate llm-scaling-check verify-release help
 
 help:
 	@echo "Targets:"
@@ -79,6 +83,7 @@ help:
 	@echo "  test-browser-contracts  Run the hard browser contract suite"
 	@echo "  test-financial-preview-browser-contract  Run all temporary financial CSV preview browser cases"
 	@echo "  test-evidence-method-browser-contract  Run all saved-evidence method browser cases"
+	@echo "  test-financial-registry-browser-contract  Run all financial registry save and account lifecycle browser cases"
 	@echo "  test-retrieval-contract  Validate retrieval dataset, determinism, and OOS policy"
 	@echo "  test-product-contracts  Validate public controls, human-review tooling, and research claims"
 	@echo "  test-release-contracts  Run every offline root contract with backend imports enabled"
@@ -123,6 +128,9 @@ test-browser-contracts:
 
 test-financial-preview-browser-contract:
 	$(PYTEST) $(FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS) -p no:logging -v
+
+test-financial-registry-browser-contract:
+	$(PYTEST) $(FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS) -p no:logging -v
 
 test-evidence-method-browser-contract:
 	$(PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v
@@ -207,4 +215,5 @@ verify-release:
 	$(MAKE) test-frontend-node
 	$(MAKE) test-browser-contracts
 	$(MAKE) test-evidence-method-browser-contract
+	$(MAKE) test-financial-registry-browser-contract
 	cd web/phase-detector && pnpm lint && pnpm build

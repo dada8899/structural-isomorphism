@@ -843,6 +843,7 @@ def test_release_gate_manifest_binds_internal_and_external_checks() -> None:
         "browser-product-contract",
         "browser-beta-surface-contract",
         "browser-evidence-method-contract",
+        "browser-financial-registry-contract",
         "backend",
         "packages",
         "frontend",
@@ -1841,7 +1842,26 @@ def _original_makefile_before_evidence_method(makefile: str) -> str:
     return makefile.replace(phony, ".PHONY: test-financial-preview-browser-contract ", 1)
 
 
+def _original_makefile_before_financial_registry_browser(makefile: str) -> str:
+    additions = [
+        "\tweb/frontend/tests/test_financialRegistry.js " + chr(92) + "\n",
+        "FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS := " + chr(92) + "\n\tweb/tests/e2e/test_research_financial_registry_browser.py\n\n",
+        "test-financial-registry-browser-contract:\n\t$(PYTEST) $(FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS) -p no:logging -v\n\n",
+        '\t@echo "  test-financial-registry-browser-contract  Run all financial registry save and account lifecycle browser cases"\n',
+        "\t$(MAKE) test-financial-registry-browser-contract\n",
+    ]
+    assert additions[1] + 'EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS :=' in makefile
+    assert additions[2] + 'test-evidence-method-browser-contract:' in makefile
+    for addition in additions:
+        assert makefile.count(addition) == 1, 'financial registry Make consumer missing or duplicated'
+        makefile = makefile.replace(addition, '', 1)
+    phony = '.PHONY: test-financial-registry-browser-contract test-evidence-method-browser-contract '
+    assert makefile.count(phony) == 1
+    return makefile.replace(phony, '.PHONY: test-evidence-method-browser-contract ', 1)
+
+
 def _original_makefile_without_financial_preview(makefile: str) -> str:
+    makefile = _original_makefile_before_financial_registry_browser(makefile)
     makefile = _original_makefile_before_evidence_method(makefile)
     makefile = _original_makefile_before_main_logging(makefile)
     # Only the exact approved new target/variable/help/phony token may differ.
@@ -1898,7 +1918,8 @@ def test_verify_release_dry_run_expands_real_test_and_build_commands() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     output = completed.stdout
-    assert output.count("python -m pytest") == 31
+    assert output.count("python -m pytest") == 32
+    assert output.count("python -m pytest web/tests/e2e/test_research_financial_registry_browser.py -p no:logging -v") == 1
     for consumer in (
         "test_native_live_grant.py", "test_formal_native_plan_supervisor.py",
         "test_research_financial_execution_v2.py", "test_research_financial_results_v2.py",
@@ -2837,4 +2858,38 @@ def test_evidence_method_make_delta_rejects_weakened_or_missing_consumer(mutatio
     elif mutation == 'soft': value = value.replace(target, target.replace('\t$(PYTEST)', '\t-$(PYTEST)'), 1)
     elif mutation == 'path': value = value.replace('web/tests/e2e/test_evidence_method_plan_browser.py', 'web/backend/tests/test_evidence_method_plan_browser.py', 1)
     else: value = value.replace('\t$(MAKE) test-evidence-method-browser-contract\n', '', 1)
+    with pytest.raises(AssertionError): _original_makefile_without_financial_preview(value)
+
+
+def test_financial_registry_browser_is_one_complete_hard_consumer():
+    makefile = (ROOT / 'Makefile').read_text()
+    node_path = 'web/frontend/tests/test_financialRegistry.js'
+    browser_path = 'web/tests/e2e/test_research_financial_registry_browser.py'
+    assert _make_path_list(makefile, 'FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS') == [browser_path]
+    assert _make_recipe_commands(makefile, 'test-financial-registry-browser-contract') == [
+        '$(PYTEST) $(FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS) -p no:logging -v']
+    assert _make_recipe_commands(makefile, 'verify-release').count('$(MAKE) test-financial-registry-browser-contract') == 1
+    rows = _ci_matrix_rows(_ci_job('browser-beta-surface-contract'))
+    assert _ci_matrix_paths(rows, 'node_tests', NODE_PATH_PATTERN).count(node_path) == 1
+    job = _ci_job('browser-financial-registry-contract')
+    assert set(job) == {'name', 'runs-on', 'timeout-minutes', 'steps'}
+    assert job['runs-on'] == 'ubuntu-24.04' and job['timeout-minutes'] == 8
+    product = _ci_job('browser-product-contract')
+    assert job['steps'][:4] == product['steps'][:4]
+    assert job['steps'][4:] == [{'name': 'Verify financial registry save selection and restored account lifecycle',
+                               'run': 'make PY=python test-financial-registry-browser-contract'}]
+    assert 'browser-financial-registry-contract' in _ci_job('release-gate-summary')['needs']
+    assert node_path in _make_path_list(makefile, 'FRONTEND_NODE_TESTS')
+
+
+@pytest.mark.parametrize('mutation', ['missing_target','duplicate_target','logging','soft','path','verify_release'])
+def test_financial_registry_make_delta_rejects_weakened_or_missing_consumer(mutation):
+    value = (ROOT / 'Makefile').read_text()
+    target = 'test-financial-registry-browser-contract:\n\t$(PYTEST) $(FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS) -p no:logging -v\n\n'
+    if mutation == 'missing_target': value = value.replace(target, '', 1)
+    elif mutation == 'duplicate_target': value += target
+    elif mutation == 'logging': value = value.replace(target, target.replace(' -p no:logging', ''), 1)
+    elif mutation == 'soft': value = value.replace(target, target.replace('\t$(PYTEST)', '\t-$(PYTEST)'), 1)
+    elif mutation == 'path': value = value.replace('web/tests/e2e/test_research_financial_registry_browser.py', 'web/backend/tests/test_research_financial_registry_browser.py', 1)
+    else: value = value.replace('\t$(MAKE) test-financial-registry-browser-contract\n', '', 1)
     with pytest.raises(AssertionError): _original_makefile_without_financial_preview(value)

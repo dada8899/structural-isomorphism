@@ -256,7 +256,42 @@ def original_ci_before_evidence_method(value: dict) -> dict:
     return original
 
 
+FINANCIAL_REGISTRY_JOB = 'browser-financial-registry-contract'
+FINANCIAL_REGISTRY_NODE = 'web/frontend/tests/test_financialRegistry.js'
+
+
+def original_ci_before_financial_registry(value: dict) -> dict:
+    """Reverse only one complete FIN2 job and its exact Node/release edges."""
+    original = copy.deepcopy(value)
+    jobs = original['jobs']
+    product = jobs['browser-product-contract']
+    expected = {'name': 'financial registry browser contract (local, fail-closed)',
+                'runs-on': 'ubuntu-24.04', 'timeout-minutes': 8,
+                'steps': copy.deepcopy(product['steps'][:4]) + [
+                    {'name': 'Verify financial registry save selection and restored account lifecycle',
+                     'run': 'make PY=python test-financial-registry-browser-contract'}]}
+    assert jobs.pop(FINANCIAL_REGISTRY_JOB) == expected, 'financial registry browser hard job missing or softened'
+    rows = jobs['browser-beta-surface-contract']['strategy']['matrix']['include']
+    seen = 0
+    for row in rows:
+        tests = row['node_tests'].split()
+        if FINANCIAL_REGISTRY_NODE in tests:
+            assert row['shard'] == 'library-auth-reports-favorites' and tests.count(FINANCIAL_REGISTRY_NODE) == 1
+            assert tests[-1] == FINANCIAL_REGISTRY_NODE
+            suffix = ' ' + FINANCIAL_REGISTRY_NODE
+            assert row['node_tests'].endswith(suffix)
+            row['node_tests'] = row['node_tests'][:-len(suffix)]
+            seen += 1
+    assert seen == 1, 'one financial registry Node consumer required'
+    needs = jobs['release-gate-summary']['needs']
+    assert needs.count(FINANCIAL_REGISTRY_JOB) == 1
+    assert needs.index(FINANCIAL_REGISTRY_JOB) == needs.index(EVIDENCE_METHOD_JOB) + 1
+    needs.remove(FINANCIAL_REGISTRY_JOB)
+    return original
+
+
 def assert_existing_jobs_unchanged(value: dict) -> None:
+    value = original_ci_before_financial_registry(value)
     value = original_ci_before_evidence_method(value)
     for name, expected in BASELINE_JOB_DIGESTS.items():
         body = value["jobs"][name]
@@ -1159,5 +1194,28 @@ def test_evidence_method_hard_gate_rejects_drift(mutation):
         rows = jobs['browser-beta-surface-contract']['strategy']['matrix']['include']
         rows[0]['node_tests'] += ' ' + EVIDENCE_METHOD_NODE
         rows[2]['node_tests'] = rows[2]['node_tests'].replace(' ' + EVIDENCE_METHOD_NODE,'')
+    with pytest.raises((AssertionError,KeyError)):
+        assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('mutation', ['job_missing','job_soft','job_if','step_soft','step_if','runner','timeout','path','sdk','need','node_duplicate','node_wrong_shard'])
+def test_financial_registry_hard_gate_rejects_drift(mutation):
+    value = copy.deepcopy(workflow('ci.yml'))
+    jobs = value['jobs']; job = jobs[FINANCIAL_REGISTRY_JOB]
+    if mutation == 'job_missing': jobs.pop(FINANCIAL_REGISTRY_JOB)
+    elif mutation == 'job_soft': job['continue-on-error'] = True
+    elif mutation == 'job_if': job['if'] = 'false'
+    elif mutation == 'step_soft': job['steps'][-1]['continue-on-error'] = True
+    elif mutation == 'step_if': job['steps'][-1]['if'] = 'false'
+    elif mutation == 'runner': job['runs-on'] = 'ubuntu-latest'
+    elif mutation == 'timeout': job['timeout-minutes'] = 9
+    elif mutation == 'path': job['steps'][-1]['run'] = 'pytest tests/e2e/test_full_public_surface.py -v'
+    elif mutation == 'sdk': job['steps'][2]['run'] = job['steps'][2]['run'].replace('playwright==1.59.0','playwright==1.58.0')
+    elif mutation == 'need': jobs['release-gate-summary']['needs'].remove(FINANCIAL_REGISTRY_JOB)
+    elif mutation == 'node_duplicate': jobs['browser-beta-surface-contract']['strategy']['matrix']['include'][2]['node_tests'] += ' ' + FINANCIAL_REGISTRY_NODE
+    else:
+        rows = jobs['browser-beta-surface-contract']['strategy']['matrix']['include']
+        rows[0]['node_tests'] += ' ' + FINANCIAL_REGISTRY_NODE
+        rows[2]['node_tests'] = rows[2]['node_tests'].replace(' ' + FINANCIAL_REGISTRY_NODE,'')
     with pytest.raises((AssertionError,KeyError)):
         assert_existing_jobs_unchanged(value)
