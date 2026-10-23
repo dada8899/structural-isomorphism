@@ -335,6 +335,16 @@ class EvidenceRepository:
 
     def _raw_receipt_anchor(self,context,request_id,store):
         """Recompute a stored first output from its protected request anchor."""
+        from .store import ResearchStore
+        from .source_guard import require_hook
+        if __package__=='web.backend.research':from ..services.sqlite_utils import PrivateAuthConnection
+        else:from services.sqlite_utils import PrivateAuthConnection
+        if type(store) is not ResearchStore or not store._formal_mode() or type(self.conn) is not PrivateAuthConnection or not self.conn.in_transaction:
+            raise ValueError('DOC actual protected private transaction required')
+        witness=self.conn._history_file
+        if witness is None or witness.path!=store.path or witness.file_identity!=store.storage_identity:
+            raise ValueError('DOC protected private object differs')
+        witness.check();require_hook(self.conn)
         from .source_document_raw import (RawPrepPlan,RawArtifact,RawPrepRequestReceipt,decode_raw,
             decode_commitment,encode_raw,request_output_data)
         from .source_guard import check_origin
