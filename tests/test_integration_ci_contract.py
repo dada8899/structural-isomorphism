@@ -116,12 +116,19 @@ EVIDENCE_BACKEND_FORMAL_FILES = (
     'test_plan_runtime_transport.py',
     'test_research_native_browser_service.py',
 )
-BACKEND_FORMAL_FILES = ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES + EVIDENCE_BACKEND_FORMAL_FILES
+NATIVE_FINANCIAL_BACKEND_FORMAL_FILES = (
+    'test_native_live_grant.py',
+    'test_formal_native_plan_supervisor.py',
+    'test_research_financial_execution_v2.py',
+    'test_research_financial_results_v2.py',
+)
+BACKEND_FORMAL_FILES = ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES + EVIDENCE_BACKEND_FORMAL_FILES + NATIVE_FINANCIAL_BACKEND_FORMAL_FILES
 
 
-def backend_process_commands(*, coverage=False, before_fin2=False, before_evidence=False):
+def backend_process_commands(*, coverage=False, before_fin2=False, before_evidence=False, before_native_financial=False):
     names = (ORIGINAL_BACKEND_FORMAL_FILES if before_fin2 else
              ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES if before_evidence else
+             ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES + EVIDENCE_BACKEND_FORMAL_FILES if before_native_financial else
              BACKEND_FORMAL_FILES)
     directory = 'web/backend/tests/' if coverage else 'tests'
     prefix = ('python -m coverage run -p --rcfile=.coveragerc -m pytest ' if coverage else 'python -m pytest ')
@@ -131,9 +138,22 @@ def backend_process_commands(*, coverage=False, before_fin2=False, before_eviden
     return [ordinary, *(prefix + file_prefix + name + ' -p no:logging' + flags for name in names)]
 
 
+def _backend_script_before_native_financial(script, *, coverage=False):
+    """Reverse exactly four native/financial Main modules to the reviewed eleven."""
+    commands = backend_process_commands(coverage=coverage)
+    expanded = '\n'.join(commands)
+    assert script.count(expanded) == 1, 'exact sixteen-process native financial block missing or duplicated'
+    relevant = [line for line in script.splitlines() if line.startswith(
+        'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
+    assert relevant == commands, 'native financial whole-file groups must run exactly once in fixed order'
+    prior = '\n'.join(backend_process_commands(coverage=coverage, before_native_financial=True))
+    return script.replace(expanded, prior, 1)
+
+
 def _backend_script_before_evidence(script, *, coverage=False):
     """Reverse exactly five actual Main consumers to the reviewed six-file split."""
-    commands = backend_process_commands(coverage=coverage)
+    script = _backend_script_before_native_financial(script, coverage=coverage)
+    commands = backend_process_commands(coverage=coverage, before_native_financial=True)
     expanded = '\n'.join(commands)
     assert script.count(expanded) == 1, 'exact twelve-process evidence backend block missing or duplicated'
     relevant = [line for line in script.splitlines() if line.startswith(
@@ -1094,7 +1114,7 @@ def test_chromium_runner_inverse_rejects_every_unapproved_label(runner):
 
 
 @pytest.mark.parametrize('kind', ['sanity', 'coverage'])
-@pytest.mark.parametrize('consumer', EVIDENCE_BACKEND_FORMAL_FILES)
+@pytest.mark.parametrize('consumer', EVIDENCE_BACKEND_FORMAL_FILES + NATIVE_FINANCIAL_BACKEND_FORMAL_FILES)
 @pytest.mark.parametrize('mutation', ['missing', 'missing_ignore', 'logging', 'partial_file'])
 def test_evidence_backend_consumers_cannot_be_omitted_or_partially_run(kind, consumer, mutation):
     value = workflow(kind + '.yml')

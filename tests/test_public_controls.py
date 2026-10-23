@@ -1739,8 +1739,24 @@ def _original_makefile_before_auth_bootstrap_browser(makefile: str) -> str:
     return makefile.replace(assignment,assignment.replace('\t'+auth+' \\\n',''),1).replace(formal,formal.replace(' '+auth,''),1).replace(isolated,'\t$(PYTEST) $(filter web/tests/e2e/%,$('+variable+')) -m "e2e and not requires_internet" -v\n',1)
 
 
+def _original_makefile_before_native_financial_backend(makefile: str) -> str:
+    """Reverse only the four exact native/financial whole-module consumers."""
+    prior_names=('test_formal_main_admission.py', 'test_formal_main_source_supervisor.py', 'test_research_financial_import.py', 'test_formal_model_startup.py', 'acceptance/test_source_history_fixture_current15.py', 'test_research_financial_registries.py', 'test_research_source_origin_history.py', 'test_research_evidence_method_plan.py', 'test_research_evidence_method_native.py', 'test_plan_runtime_transport.py', 'test_research_native_browser_service.py')
+    names=prior_names+('test_native_live_grant.py', 'test_formal_native_plan_supervisor.py', 'test_research_financial_execution_v2.py', 'test_research_financial_results_v2.py')
+    commands=['cd web/backend && $(BACKEND_PYTEST)'+''.join(' --ignore=tests/'+n for n in names)+' -q']
+    commands+=['cd web/backend && $(BACKEND_PYTEST) tests/'+n+' -p no:logging -q' for n in names]
+    expanded=''.join('\t'+command+'\n' for command in commands)
+    assert makefile.count(expanded)==1, 'exact sixteen-process native financial Make block missing or duplicated'
+    actual=[c for c in _make_recipe_commands(makefile,'verify-release') if c.startswith('cd web/backend ')]
+    assert actual==commands, 'only exact native financial Make backend process split is allowed'
+    prior=['cd web/backend && $(BACKEND_PYTEST)'+''.join(' --ignore=tests/'+n for n in prior_names)+' -q']
+    prior+=['cd web/backend && $(BACKEND_PYTEST) tests/'+n+' -p no:logging -q' for n in prior_names]
+    return makefile.replace(expanded,''.join('\t'+command+'\n' for command in prior),1)
+
+
 def _original_makefile_before_evidence_backend(makefile: str) -> str:
     """Reverse only the five fixed Source/evidence/runtime Main consumers."""
+    makefile = _original_makefile_before_native_financial_backend(makefile)
     prior_names=('test_formal_main_admission.py','test_formal_main_source_supervisor.py',
                  'test_research_financial_import.py','test_formal_model_startup.py',
                  'acceptance/test_source_history_fixture_current15.py','test_research_financial_registries.py')
@@ -2767,7 +2783,11 @@ def test_fin2_Make_backend_consumers_cannot_be_omitted_or_partially_run(consumer
                                       'test_research_evidence_method_plan.py',
                                       'test_research_evidence_method_native.py',
                                       'test_plan_runtime_transport.py',
-                                      'test_research_native_browser_service.py'])
+                                      'test_research_native_browser_service.py',
+                                      'test_native_live_grant.py',
+                                      'test_formal_native_plan_supervisor.py',
+                                      'test_research_financial_execution_v2.py',
+                                      'test_research_financial_results_v2.py'])
 @pytest.mark.parametrize('mutation', ['missing', 'missing_ignore', 'logging', 'partial_file'])
 def test_evidence_Make_backend_consumers_cannot_be_omitted_or_partially_run(consumer, mutation):
     makefile=(ROOT/'Makefile').read_text()
