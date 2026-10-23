@@ -9,6 +9,7 @@ import httpx
 import pytest
 
 from web.backend.tests.test_research_financial_registries import prepared,smtp,create,preview,save,login,BETA
+from web.backend.tests.test_formal_main_admission import smtp as base_smtp
 from web.backend.tests.test_research_financial_input_schemas import csv_text,CSV_HEADER
 from web.backend.tests.test_research_financial_result_v2 import owner_fixture
 
