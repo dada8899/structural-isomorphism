@@ -448,7 +448,7 @@ def root_worker(request):
     recovery = None
     try:
         recovery = Path(tempfile.mkdtemp(prefix='structure-ci-chromium-', dir='/tmp'))
-        lease, result = None, None
+        lease, result, retirement_verified = None, None, False
         stopped = [False]
         for number in (signal.SIGTERM, signal.SIGINT):
             signal.signal(number, lambda *_: stopped.__setitem__(0, True))
@@ -460,11 +460,12 @@ def root_worker(request):
                 lease._verify(lease.original,False)
                 result['keyring']=trust.retire(result['source_restored'],result['children_closed'],lease.signed_by_bound)
                 require(keyring_receipt_ok(result['keyring'],bound=result['status']=='ready'))
+                retirement_verified = True
             finally:
                 if lease is not None:
                     lease.close()
                 require(time.monotonic() < deadline)
-                if result is not None and result['children_closed'] and result['source_restored']:
+                if retirement_verified and result is not None and result['children_closed'] and result['source_restored']:
                     backup = recovery / 'ubuntu.sources.backup'
                     if backup.exists():
                         backup.unlink()

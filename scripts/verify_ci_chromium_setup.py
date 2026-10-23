@@ -19,7 +19,7 @@ import subprocess
 import sys
 import time
 
-HELPER_SHA = 'd8de7b5ca2cf2f163698b3cb8e5d5f9bd45a682a3dc7de8c11a99bb5e02f6312'
+HELPER_SHA = '332cae8e6ce61c8bdc9417b0cafd374fba96293b27f7f5769cf70d7efd07f316'
 BRANCH = 'refs/heads/codex/structure-chromium-pinned-keyring-20261023'
 HELPER = Path(__file__).resolve().with_name('prepare_ci_chromium.py')
 SYSTEM_FILES = {'source': (Path('/etc/apt/sources.list.d/ubuntu.sources'), 16384),

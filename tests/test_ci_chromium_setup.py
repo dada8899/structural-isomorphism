@@ -128,6 +128,54 @@ def test_partial_destination_copy_failure_does_not_touch_original_or_leave_an_au
     assert not list(f.copies.iterdir())
 
 
+@pytest.mark.parametrize('valid_receipt',[True,False])
+def test_recovery_cleanup_requires_effective_retirement_and_strict_receipt(tmp_path,monkeypatch,valid_receipt):
+    uid,gid=os.getuid(),os.getgid();source=tmp_path/'source';source.write_bytes(SOURCE);source.chmod(0o644)
+    temporary=tmp_path/'user';temporary.mkdir(mode=0o700);copydir=tmp_path/'copy';created=[];recoveries=[]
+    class Trust:
+        def __init__(self,deadline):
+            self.directory=copydir;copydir.mkdir();self.path=copydir/'key';self.path.write_bytes(b'synthetic-public-key')
+            self.closed=False;created.append(self)
+        def require(self):pass
+        def retire(self,*args):
+            assert source.read_bytes()==SOURCE
+            value=fake_keyring_receipt()
+            if valid_receipt:self.path.unlink();self.directory.rmdir()
+            else:value['retired']=False
+            return value
+        def close_handles(self):self.closed=True
+    monkeypatch.setattr(setup.os,'geteuid',lambda:0)
+    monkeypatch.setattr(setup.os,'environ',{'SUDO_UID':str(uid),'SUDO_GID':str(gid)})
+    monkeypatch.setattr(setup.pwd,'getpwuid',lambda _:SimpleNamespace(pw_gid=gid,pw_name='synthetic',pw_dir=str(tmp_path)))
+    monkeypatch.setattr(setup,'sdk_profile',lambda:None)
+    monkeypatch.setattr(setup.ctypes,'CDLL',lambda *a,**k:SimpleNamespace(prctl=lambda *a:0))
+    probe=tmp_path/'pidfd';probe.write_bytes(b'')
+    monkeypatch.setattr(setup.os,'pidfd_open',lambda *_:os.open(probe,os.O_RDONLY),raising=False)
+    monkeypatch.setattr(setup.signal,'pidfd_send_signal',lambda *a:None,raising=False)
+    monkeypatch.setattr(setup.signal,'signal',lambda *a:None)
+    monkeypatch.setattr(setup,'PinnedArchiveKeyring',Trust);monkeypatch.setattr(setup,'SOURCE',source)
+    original_lease=setup.SourceLease
+    monkeypatch.setattr(setup,'SourceLease',lambda path,backup,**kw:original_lease(path,backup,expected_uid=uid,**kw))
+    native=setup.tempfile.mkdtemp
+    def recovery(**kw):
+        value=native(prefix=kw['prefix'],dir=tmp_path);recoveries.append(Path(value));return value
+    monkeypatch.setattr(setup.tempfile,'mkdtemp',recovery)
+    def completed(lease,*args):
+        lease.apply();lease.restore()
+        return {'status':'ready','children_closed':True,'source_restored':True}
+    monkeypatch.setattr(setup,'install_with_lease',completed)
+    request={'uid':uid,'gid':gid,'python':setup.sys.executable,'cache':str(tmp_path/'.cache/ms-playwright'),
+             'temporary':str(temporary),'deadline':time.monotonic()+100}
+    if valid_receipt:
+        result=setup.root_worker(request)
+        assert result['status']=='ready' and not recoveries[0].exists() and not copydir.exists()
+    else:
+        with pytest.raises(setup.CleanupUnknown) as error:setup.root_worker(request)
+        assert error.value.recovery==recoveries[0].name and recoveries[0].is_dir()
+        assert (recoveries[0]/'ubuntu.sources.backup').read_bytes()==SOURCE and copydir.exists()
+    assert source.read_bytes()==SOURCE and created[0].closed
+
+
 def test_arbitrary_signed_by_reference_cannot_replace_root_factory_resource():
     with pytest.raises(setup.Refused):setup.mirror_source(SOURCE,effective=Path('/unapproved/key.gpg'))
 
