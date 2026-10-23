@@ -14,6 +14,7 @@ import sys
 import select
 import signal
 import json
+import sqlite3
 import threading
 import time
 
@@ -1201,3 +1202,146 @@ def test_actual_main_unsealed_source_state_or_integrity_fault_stays_uncertain(re
             if governor.fd is not None: os.close(governor.fd)
             for witness in binding.witnesses:
                 if witness.parent_fd is not None: witness.close()
+
+
+_PENDING_BYTE_HOLDER = '''
+import os,sys,stat,fcntl,select,json
+from pathlib import Path
+if len(sys.argv)==4:
+    import main_smtp_guard
+    main_smtp_guard.install()
+path,root=Path(sys.argv[1]),Path(sys.argv[2]).resolve()
+assert path.resolve().is_relative_to(root) and path.name=='auth.sqlite3' and not path.is_symlink()
+fd=None;locked=False
+try:
+    fd=os.open(path,os.O_RDWR|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK)
+    held=os.fstat(fd);named=os.stat(path,follow_symlinks=False)
+    assert stat.S_ISREG(held.st_mode) and held.st_uid==os.geteuid()
+    assert stat.S_IMODE(held.st_mode)==0o600 and held.st_nlink==1
+    assert (held.st_dev,held.st_ino)==(named.st_dev,named.st_ino)
+    fcntl.lockf(fd,fcntl.LOCK_EX|fcntl.LOCK_NB,1,0x40000000,os.SEEK_SET);locked=True
+    print('HELD',flush=True)
+    readable,_,_=select.select([sys.stdin],[],[],8)
+    assert readable and sys.stdin.readline()=='RELEASE\\n'
+finally:
+    if locked:fcntl.lockf(fd,fcntl.LOCK_UN,1,0x40000000,os.SEEK_SET)
+    if fd is not None:os.close(fd)
+print(json.dumps({'lock_released':locked,'fd_closed':fd is not None,'data_io':0,'sql':0}),flush=True)
+'''
+
+
+@pytest.mark.parametrize('stop_while_locked', [False, True])
+def test_actual_source_native_open_busy_retries_or_stops_without_worker_failure(prepared, tmp_path, stop_while_locked):
+    """A different process holds SQLite's real PENDING byte; no SQL is mocked."""
+    main, admission, _, _ = prepared
+    from research import source_supervisor as source
+    from research.errors import ResearchError
+    from services import sqlite_utils
+    entered, release, busy, reopened = (threading.Event() for _ in range(4))
+    unlocked = threading.Event(); captured = []; native_codes = []; observer_errors = []
+    target = source._select.__code__.co_firstlineno + 2
+    assert Path(source.__file__).read_text().splitlines()[target-1].strip() == 'with store.transaction() as conn:'
+    def trace(frame, event, argument):
+        if frame.f_code not in (source._select.__code__, sqlite_utils.connect_private_auth.__code__): return None
+        supervisor = source._REGISTRY.get(id(main.app))
+        if supervisor is None or threading.current_thread() is not supervisor._thread: return None
+        if (event == 'line' and frame.f_code is source._select.__code__ and frame.f_lineno == target
+                and supervisor._state == 'READY' and not entered.is_set()):
+            entered.set()
+            if not release.wait(8): observer_errors.append('BARRIER_TIMEOUT')
+        if event == 'exception' and entered.is_set():
+            error = argument[1]
+            if type(error) is sqlite3.OperationalError:
+                native_codes.append(getattr(error, 'sqlite_errorcode', None))
+            if type(error) is ResearchError and error.code == 'STORE_BUSY': busy.set()
+        if (event == 'return' and frame.f_code is source._select.__code__
+                and type(argument) is list and unlocked.is_set()): reopened.set()
+        return trace
+    old_trace = threading.gettrace(); threading.settrace(trace)
+    child = None
+    async def run():
+        nonlocal child
+        context = main.lifespan(main.app); await context.__aenter__()
+        binding = admission._STATE[id(main.app)]; captured.append(binding)
+        try:
+            end = time.monotonic() + 5
+            while not entered.is_set() and time.monotonic() < end: await asyncio.sleep(.005)
+            assert entered.is_set()
+            # Only infrastructure paths reach this born-owned child. Synthetic
+            # signing settings and the parent's other environment do not.
+            environment = {key: os.environ[key] for key in ('PATH', 'HOME', 'TMPDIR', 'A006_AUDIT_ROOT',
+                'REVIEW_SOURCE_ROOT', 'PYTHONPATH', 'PYTHONDONTWRITEBYTECODE', 'HF_HUB_OFFLINE', 'TRANSFORMERS_OFFLINE')
+                if key in os.environ}
+            guard = sys.modules.get('main_smtp_task_guard')
+            extra = ['guarded'] if guard is not None else []
+            with (tmp_path / 'pending-child.log').open('w') as log:
+                child = subprocess.Popen([sys.executable, '-B', '-c', _PENDING_BYTE_HOLDER,
+                    str(binding.service.store.path), str(tmp_path.resolve()), *extra],
+                    env=environment, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=log,
+                    text=True, start_new_session=True)
+                assert select.select([child.stdout], [], [], 5)[0] and child.stdout.readline() == 'HELD\n'
+                release.set()
+                end = time.monotonic() + 2
+                while not busy.is_set() and time.monotonic() < end: await asyncio.sleep(.005)
+                assert busy.is_set() and any(type(code) is int and code & 255 == 5 for code in native_codes)
+                assert binding.supervisor._thread.is_alive() and binding.supervisor._failure is None
+                assert not binding.supervisor._errors and binding.supervisor._slot is None and binding.supervisor._lease is None
+                if stop_while_locked: await context.__aexit__(None, None, None)
+                child.stdin.write('RELEASE\n'); child.stdin.flush()
+                output, _ = child.communicate(timeout=5)
+                assert child.returncode == 0 and json.loads(output) == {
+                    'lock_released': True, 'fd_closed': True, 'data_io': 0, 'sql': 0}
+                unlocked.set()
+            if not stop_while_locked:
+                end = time.monotonic() + 3
+                while not reopened.is_set() and time.monotonic() < end: await asyncio.sleep(.005)
+                assert reopened.is_set()
+                assert await ready(main, admission) is binding
+                await context.__aexit__(None, None, None)
+            assert binding.source_receipt.state == binding.native_receipt.state == 'CLOSED'
+            assert binding.supervisor._failure is None and not binding.supervisor._errors
+            assert not binding.supervisor._thread.is_alive() and not observer_errors
+            assert all(w.parent_fd is None for w in binding.witnesses)
+            with binding.service.store.transaction() as conn:
+                assert conn.execute('PRAGMA journal_mode').fetchone()[0] == 'wal'
+                assert conn.execute('SELECT count(*) FROM research_source_requests').fetchone()[0] == 0
+            print('SOURCE_NATIVE_OPEN_BUSY:' + json.dumps({'stop_while_locked': stop_while_locked,
+                'native_busy': True, 'source_reopened': reopened.is_set(), 'source_receipt': 'CLOSED',
+                'worker_failure': None, 'requests': 0, 'gets': 0, 'child_pid': child.pid, 'child_reaped': True}))
+        finally:
+            release.set()
+            if child is not None and child.poll() is None:
+                try: child.communicate('RELEASE\n', timeout=9)
+                except subprocess.TimeoutExpired: child.kill(); child.wait(timeout=3)
+            if admission._STATE.get(id(main.app)) is binding: await context.__aexit__(None, None, None)
+    try: asyncio.run(run())
+    finally:
+        release.set(); threading.settrace(old_trace)
+        for binding in captured:
+            assert not binding.supervisor._thread.is_alive()
+            if binding.supervisor._sec_access.fd is not None: os.close(binding.supervisor._sec_access.fd)
+            for witness in binding.witnesses:
+                if witness.parent_fd is not None: witness.close()
+
+
+@pytest.mark.parametrize('fault', ['busy', 'locked', 'io', 'identity', 'partial_close'])
+def test_transaction_opening_failure_keeps_original_classification(fault):
+    """Failure-only unit boundary; these objects do not prove native contention."""
+    from research.store import ResearchStore
+    from research.errors import ResearchError
+    error = RuntimeError('owned identity failure') if fault == 'identity' else OSError('owned partial close failure')
+    if fault in ('busy', 'locked', 'io'):
+        error = sqlite3.OperationalError('owned opening failure')
+        error.sqlite_errorcode = {'busy': sqlite3.SQLITE_BUSY, 'locked': sqlite3.SQLITE_LOCKED, 'io': sqlite3.SQLITE_IOERR}[fault]
+    class OpeningFailure:
+        transaction = ResearchStore.transaction
+        def _formal_mode(self): return False
+        def _connect(self, *, readonly): raise error
+    with pytest.raises(BaseException) as observed:
+        with OpeningFailure().transaction(): raise AssertionError('failed open must never yield')
+    if fault in ('busy', 'locked', 'io'):
+        assert type(observed.value) is ResearchError
+        assert observed.value.code == ('STORE_UNAVAILABLE' if fault == 'io' else 'STORE_BUSY')
+        assert observed.value.retryable == (fault != 'io')
+    else:
+        assert observed.value is error

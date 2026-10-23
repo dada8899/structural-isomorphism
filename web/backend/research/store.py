@@ -1341,8 +1341,9 @@ class ResearchStore:
     @contextmanager
     def transaction(self, *, write=False):
         formal=self._formal_mode()
-        conn=self._connect(readonly=not write)
+        conn=None
         try:
+            conn=self._connect(readonly=not write)
             conn.row_factory = sqlite3.Row
             if __package__=='web.backend.research':from ..services.sqlite_utils import configure_native_wait
             else:from services.sqlite_utils import configure_native_wait
@@ -1360,15 +1361,15 @@ class ResearchStore:
                 yield conn
                 conn.commit()
         except sqlite3.OperationalError as exc:
-            conn.rollback()
+            if conn is not None:conn.rollback()
             if getattr(exc, "sqlite_errorcode", 0) & 255 in (5, 6):
                 raise ResearchError("STORE_BUSY", 503, "保存暂时繁忙，请用原操作重试。", retryable=True) from None
             raise ResearchError("STORE_UNAVAILABLE", 503, "研究存储暂时不可用。") from None
         except BaseException:
-            conn.rollback()
+            if conn is not None:conn.rollback()
             raise
         finally:
-            conn.close()
+            if conn is not None:conn.close()
 
     def checkpoint_erasure(self):
         """Do not report erasure while old WAL frames are held by a reader."""
