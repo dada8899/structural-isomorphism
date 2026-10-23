@@ -33,6 +33,7 @@
   let summaryEdited = false;
   let accountScope = null;
   let evidenceUI = null;
+  let registryUI = null;
   let methodGeneration = 0;
   let methodSeen = false;
   let methodDirty = false;
@@ -904,7 +905,8 @@
 ;
   const financialContract='financial-input-v2',financialParser='owner-financial-csv-v1',financialLimit=131072;
   const financialQualifications=['owner_declarations_not_verified','claimed_dates_not_verified_as_of','preview_only_no_save_or_execution'];
-  function financialInvalidate(message='输入已变化，旧预览已失效；尚未保存或计算。'){
+  function financialInvalidate(message='输入已变化，旧预览已失效；尚未保存或计算。', notifyRegistry=true){
+    if(notifyRegistry)registryUI?.invalidate('preview_changed');
     financialState.previewVersion=null;financialState.epoch++;financialState.controller?.abort();financialState.controller=null;financialState.operation=null;financialState.busy=false;byId('financial-preview-result').replaceChildren();byId('financial-preview-status').textContent=message;financialSync();
   }
   function financialReset(){financialInvalidate('');financialState.basis=null;byId('financial-preview-csv').value='';financialSync();byId('financial-preview-section').hidden=true;}
@@ -991,7 +993,7 @@
       if(!await financialAuth(ticket)||!financialActive(ticket))return;
       const fresh=await request(`/api/research/${ticket.rid}`,{},()=>financialActive(ticket));
       if(fresh.research?.id!==ticket.rid||fresh.current_problem?.revision!==ticket.revision||fresh.current_problem.digest!==ticket.digest||fresh.research_version!==root.research_version)throw Error('问题或研究版本已变化，旧预览已失效；请重新预览，手稿保持不变。');
-      if(!await financialAuth(ticket)||!financialActive(ticket))return;financialState.basis=JSON.stringify([ticket.rid,ticket.revision,ticket.digest,root.research_version]);financialState.previewVersion=root.research_version;financialRender(checked);byId('financial-preview-status').textContent='临时预览已返回；账户声明未核验，未取得原件，尚未保存或计算。';
+      if(!await financialAuth(ticket)||!financialActive(ticket))return;financialState.basis=JSON.stringify([ticket.rid,ticket.revision,ticket.digest,root.research_version]);financialState.previewVersion=root.research_version;financialRender(checked);await registryUI?.acceptPreview({checked,csv:ticket.csv});byId('financial-preview-status').textContent='临时预览已返回；账户声明未核验，未取得原件，尚未保存或计算。';
     }catch(error){if(financialActive(ticket)){byId('financial-preview-result').replaceChildren();byId('financial-preview-status').textContent=['AbortError','TypeError','SyntaxError'].includes(error.name)?'本次预览响应尚未确认；旧预览已失效。本入口不保存或计算，请保留本页 CSV 后主动重试。':error.message;}}
     finally{if(financialState.operation===operation){financialState.operation=null;financialState.busy=false;financialState.controller=null;financialSync();}}
   }
@@ -1323,7 +1325,8 @@
       variables:problem.variables.map(variable => ({...variable, label:variable.label.normalize('NFC'),
         observation:variable.observation === null ? null : variable.observation.normalize('NFC')}))};
   }
-  function clearPrivateView() {
+  function clearPrivateView(cause = 'inflight_navigation') {
+    registryUI?.reset(cause);
     evidenceUI?.reset();
     financialReset();
     draftReset();
@@ -1369,6 +1372,7 @@
     byId('source-records').replaceChildren();
     sourceRecordScope = null;
     sourceRecordGeneration++;
+    registryUI?.observe();
   }
   async function request(url, options = {}, isCurrent = () => true) {
     const privateScope = privateGeneration;
@@ -1385,7 +1389,7 @@
         error.status = response.status;
         error.code = payload.error?.code;
         if (response.status === 401 || response.status === 404 || payload.error?.code === 'AUTHORIZATION_STALE') {
-          clearPrivateView();
+          clearPrivateView(response.status === 401 ? 'confirmed_logout' : 'auth_unknown');
           status(error.message, true);
         }
         throw error;
@@ -1506,6 +1510,7 @@
     draftObserve(data);
     evidenceUI?.observe();
     financialObserve();
+    registryUI?.observe();
     planObserve(data,context.nativePlanRead!==false);
     byId('view-context').hidden = !readOnlyView();
     byId('view-context').textContent = data.is_historical ? '历史流程，只读查看原问题与原记录；不代表当前修订的研究结果。' : selectedTask ? '固定任务只读查看。这是当前任务，不是历史结果；返回当前问题后才能编辑。' : '';
@@ -1630,7 +1635,7 @@
       const planWasCurrent=isCurrent();
       if (isCurrent()) { invalidateMethod('账户状态暂时无法核对，已收起旧方法记录；草稿仍保留。'); formulaAuthUncertain(); clearTaskHistory('账户状态暂时无法核对，流程列表已收起；请稍后主动读取。'); }
       if (isCurrent()) status('账户状态暂时无法核对；草稿与待核对操作已保留，本次后续请求已停止。请稍后主动重试。', true);
-      if(planWasCurrent){evidenceUI?.invalidate('账户状态尚待核对，已隐藏方法综合与引用正文；原确认操作保留。',true);financialInvalidate('账户状态尚待核对，旧财务预览已收起；CSV 仍暂存在本页。');planInvalidate('账户状态尚待核对，计划正文已收起；草稿与原操作保留。');byId('native-plan-history').replaceChildren();draftHideMaterials('账户状态尚待核对，已隐藏引用原文；手写内容与原操作保留。');}
+      if(planWasCurrent){registryUI?.invalidate('auth_unknown','账户状态尚待核对，已隐藏私有材料；原操作保留。');evidenceUI?.invalidate('账户状态尚待核对，已隐藏方法综合与引用正文；原确认操作保留。',true);financialInvalidate('账户状态尚待核对，旧财务预览已收起；CSV 仍暂存在本页。');planInvalidate('账户状态尚待核对，计划正文已收起；草稿与原操作保留。');byId('native-plan-history').replaceChildren();draftHideMaterials('账户状态尚待核对，已隐藏引用原文；手写内容与原操作保留。');}
       return false;
     };
     try {
@@ -1639,19 +1644,19 @@
       // /auth/me confirms missing, invalid or revoked sessions with 401.
       // Other HTTP failures alone say nothing about the account's authority.
       if (response.status === 401) {
-        clearPrivateView(); status('账户访问已失效，请重新登录。', true); return false;
+        clearPrivateView('confirmed_logout'); status('账户访问已失效，请重新登录。', true); return false;
       }
       if (!response.ok && response.status !== 409) return unavailable();
       const payload = await response.json();
       if (!isCurrent()) return false;
       if (response.status === 409 && payload?.ok === false && payload.error === 'credential_conflict') {
-        clearPrivateView(); status('账户凭据存在冲突，请重新确认账户。', true); return false;
+        clearPrivateView('credential_conflict'); status('账户凭据存在冲突，请重新确认账户。', true); return false;
       }
       if (!response.ok || payload?.ok !== true || typeof payload.user?.email !== 'string' || !payload.user.email.trim() ||
           typeof payload.user.created_at !== 'string' || !payload.user.created_at.trim()) return unavailable();
       const identity = JSON.stringify([payload.user.email, payload.user.created_at]);
       if (accountScope && accountScope !== identity) {
-        clearPrivateView(); status('账户已变化，请重新打开研究页面。', true); return false;
+        clearPrivateView('actor_changed'); status('账户已变化，请重新打开研究页面。', true); return false;
       }
       accountScope = identity;
       return true;
@@ -1764,7 +1769,7 @@
       if (!active()) return;
       const data = await response.json();
       if (!active()) return;
-      if (response.status === 401 || response.status === 404 || data.error?.code === 'AUTHORIZATION_STALE') { clearPrivateView(); status('账户访问已失效，请重新登录。', true); return; }
+      if (response.status === 401 || response.status === 404 || data.error?.code === 'AUTHORIZATION_STALE') { clearPrivateView(response.status === 401 ? 'confirmed_logout' : 'auth_unknown'); status('账户访问已失效，请重新登录。', true); return; }
       if (!response.ok) throw new Error(response.status === 503 ? '知识库当前不可用；当前问题仍可保存。未启动模型或收费研究。' : '知识库查询未完成；当前输入已保留。');
       if (!Array.isArray(data.results)) throw new Error('知识库返回格式暂时无法核对。');
       if (!await authenticated(active, controller.signal)) {
@@ -2057,8 +2062,9 @@
     finally { setBusy(false); }
   });
   // Clear existing private DOM on restored bfcache pages before revalidating.
+  window.addEventListener('pagehide', () => registryUI?.invalidate('page_suspended','页面已暂离，请重新核对账户后主动读取。'));
   window.addEventListener('pageshow', event => {
-    if (event.persisted) { clearPrivateView(); load().catch(error => status(error.message, true)); }
+    if (event.persisted) { clearPrivateView('bfcache_restore'); load().catch(error => status(error.message, true)); }
   });
   initFormula();
   initPlan();
@@ -2068,5 +2074,19 @@
     getScope:()=>({account:accountScope,privateGeneration,rid:researchId,revision:editBase?.revision,digest:editBase?.digest,
       version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden}),
     authenticate:authenticated,fetchRoot:request,onDenied:clearPrivateView});
+  if (window.FinancialRegistry) registryUI = window.FinancialRegistry.mount({document,
+    getScope:()=>({account:accountScope,privateGeneration,rid:researchId,revision:editBase?.revision,digest:editBase?.digest,
+      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden}),
+    authenticate:authenticated,fetchRoot:request,onObservedRoot:data=>{
+      const before=observed?.researchVersion||0;
+      observeServer(data);
+      if(observed.researchVersion>before){
+        financialInvalidate('研究版本已变化，旧预览已失效；CSV 仍暂存在本页。',false);
+        financialState.basis=financialBasis();
+        evidenceUI?.observe();
+        if(planState.preview&&planState.preview.expected_research_version!==observed.researchVersion)planInvalidate('研究版本已变化，请重新核对外发预览。');
+        editNotice();
+      }
+    }});
   load().catch(error => status(error.message, true));
 })();
