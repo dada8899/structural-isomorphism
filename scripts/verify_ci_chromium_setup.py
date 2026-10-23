@@ -19,8 +19,8 @@ import subprocess
 import sys
 import time
 
-HELPER_SHA = '332cae8e6ce61c8bdc9417b0cafd374fba96293b27f7f5769cf70d7efd07f316'
-BRANCH = 'refs/heads/codex/structure-chromium-pinned-keyring-20261023'
+HELPER_SHA = '6801bdfc0678eec08343e8ec43753d54270df096ed7a3103bb10c0ea80376db2'
+BRANCH = 'refs/heads/codex/structure-chromium-source-fix-20261023'
 HELPER = Path(__file__).resolve().with_name('prepare_ci_chromium.py')
 SYSTEM_FILES = {'source': (Path('/etc/apt/sources.list.d/ubuntu.sources'), 16384),
                 'keyring': (Path('/usr/share/keyrings/ubuntu-archive-keyring.gpg'), 1024 * 1024)}
@@ -29,6 +29,11 @@ SCHEMA = 'chromium-pinned-keyring-setup-v1'
 KEYRING_PROFILE = 'ubuntu-noble-archive-pinned-v1'
 KEYRING_SHA = '80a36b0a6de2f69f49d2df75ef473ccde121e9e190b9ea01d20a4f63778d5c31'
 KEYRING_BYTES = 3607
+FAILURE_PROTOCOL = 'ci-chromium-failure-v1'
+FAILURE_STAGES = {
+    'parent': ('entry', 'host', 'request', 'launch', 'response', 'retirement'),
+    'root-worker': ('entry', 'request', 'sdk', 'subreaper', 'keyring', 'source', 'install', 'retirement'),
+}
 PINS = {'pytest':'9.0.3', 'playwright':'1.59.0', 'pytest-playwright':'0.7.2',
         'fastapi':'0.135.0', 'pydantic':'2.7.4', 'starlette':'1.3.1',
         'uvicorn':'0.27.1', 'PyJWT':'2.15.1', 'slowapi':'0.1.9', 'structlog':'25.5.0'}
@@ -186,10 +191,42 @@ def read_json(path):
         os.close(fd)
 
 
+def source_predicate(expected):
+    """Check the complete held source bytes with the hash-locked pure parser."""
+    path, cap = SYSTEM_FILES['source']
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        info = os.fstat(fd)
+        need(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_uid == 0)
+        need({name:getattr(info,'st_'+name) for name in ('dev','ino','uid','gid','nlink','size')}
+             == {name:expected[name] for name in ('dev','ino','uid','gid','nlink','size')})
+        need(stat.S_IMODE(info.st_mode) == expected['mode'])
+        raw = os.pread(fd, cap + 1, 0)
+        need(len(raw) == expected['size'] <= cap and hashlib.sha256(raw).hexdigest() == expected['sha256'])
+        stable = lambda row: (row.st_dev,row.st_ino,row.st_uid,row.st_gid,row.st_mode,
+                              row.st_nlink,row.st_size,row.st_mtime_ns,row.st_ctime_ns)
+        need(stable(os.fstat(fd)) == stable(info) == stable(path.lstat()))
+        need(helper_metadata()['sha256'] == HELPER_SHA)
+        helper_fd = os.open(HELPER, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        try:
+            helper_raw = os.pread(helper_fd, 128 * 1024 + 1, 0)
+            need(len(helper_raw) <= 128 * 1024 and hashlib.sha256(helper_raw).hexdigest() == HELPER_SHA)
+        finally:
+            os.close(helper_fd)
+        # Execute the actual hash-locked source bytes, never a loader cache.
+        module = {'__name__':'fixed_ci_chromium_predicate','__file__':str(HELPER)}
+        exec(compile(helper_raw, str(HELPER), 'exec'), module)
+        module['mirror_source'](raw, None)  # Discard render; never access/log an input URI.
+        need(helper_metadata()['sha256'] == HELPER_SHA)
+    finally:
+        os.close(fd)
+
+
 def before(root, header):
     value = {**header, 'phase': 'before', 'status': 'UNKNOWN'}
     try:
         value.update(helper=helper_metadata(), system=snapshot(), sdk=sdk(),keyring_material=keyring_material())
+        source_predicate(value['system']['source'])
         write_json(root/'state.json', {'before': {**value, 'status':'ready'}, 'attempts': 0, 'claim':None}, exclusive=True)
         value['status'] = 'ready'
     finally:
@@ -197,10 +234,24 @@ def before(root, header):
     return 0
 
 
-def outcome(header, code=None, ready=False, attempts=None, keyring=None):
+def outcome(header, code=None, ready=False, attempts=None, keyring=None, failure=None):
     return {**header, 'phase': 'helper', 'status': 'ready' if ready else 'UNKNOWN',
             'attempts': attempts, 'exit_code': code, 'children_closed': True if ready else None,
-            'source_restored': True if ready else None,'keyring_receipt':keyring if ready else None}
+            'source_restored': True if ready else None,'keyring_receipt':keyring if ready else None,
+            'failure_phase':failure['failure_phase'] if failure is not None else None,
+            'failure_stage':failure['failure_stage'] if failure is not None else None}
+
+
+def failure_stage_safe(phase, stage):
+    return (type(phase) is str and phase in FAILURE_STAGES
+            and type(stage) is str and stage in FAILURE_STAGES[phase])
+
+
+def helper_failure(value, code):
+    return (type(code) is int and code == 2 and type(value) is dict
+            and set(value) == {'protocol','status','failure_phase','failure_stage'}
+            and value['protocol'] == FAILURE_PROTOCOL and value['status'] == 'UNKNOWN'
+            and failure_stage_safe(value['failure_phase'],value['failure_stage']))
 
 
 def helper_ready(value, code):
@@ -292,7 +343,8 @@ def install(root, header):
         need((state_path.lstat().st_dev,state_path.lstat().st_ino) == (first.st_dev,first.st_ino))
         need(os.pread(fd,len(raw)+1,0) == raw and read_json(state_path) == state)
         check_launch_claim(root,header,state,first,claim_fd)
-        value = outcome(header, code, ready, 1,response['keyring'] if ready else None)
+        value = outcome(header, code, ready, 1,response['keyring'] if ready else None,
+                        response if helper_failure(response, code) else None)
         return code if code != 0 else (0 if ready else 2)
     except BaseException:
         value = outcome(header, code, attempts=1 if attempted else None)
@@ -472,15 +524,19 @@ def public_safe(value):
                 and system_safe(value['system']) and sdk_safe(value['sdk'])
                 and keyring_material_safe(value['keyring_material']))
     if value['phase'] == 'helper':
-        if set(value) != HEADER_KEYS|{'attempts','exit_code','children_closed','source_restored','keyring_receipt'}:
+        if set(value) != HEADER_KEYS|{'attempts','exit_code','children_closed','source_restored','keyring_receipt','failure_phase','failure_stage'}:
             return False
         if ready:
             return (type(value['attempts']) is int and value['attempts'] == 1 and type(value['exit_code']) is int
                     and value['exit_code'] == 0 and value['children_closed'] is True and value['source_restored'] is True
-                    and keyring_receipt_safe(value['keyring_receipt']))
+                    and keyring_receipt_safe(value['keyring_receipt'])
+                    and value['failure_phase'] is None and value['failure_stage'] is None)
         return ((value['attempts'] is None or type(value['attempts']) is int and value['attempts'] == 1)
                 and (value['exit_code'] is None or value['attempts'] == 1 and integer(value['exit_code'],-255,255))
-                and value['children_closed'] is None and value['source_restored'] is None and value['keyring_receipt'] is None)
+                and value['children_closed'] is None and value['source_restored'] is None and value['keyring_receipt'] is None
+                and ((value['failure_phase'] is None and value['failure_stage'] is None)
+                     or value['attempts'] == 1 and type(value['exit_code']) is int and value['exit_code'] == 2
+                     and failure_stage_safe(value['failure_phase'],value['failure_stage'])))
     if value['phase'] == 'after':
         if set(value) != HEADER_KEYS|{'system','system_matches_before','sdk','payloads'} or type(value['system_matches_before']) is not bool:
             return False

@@ -19,7 +19,7 @@ spec = importlib.util.spec_from_file_location('setup_once_candidate', ROOT/'scri
 v = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(v)
 REAL_SNAPSHOT=v.snapshot
-BRANCH = 'codex/structure-chromium-pinned-keyring-20261023'
+BRANCH = 'codex/structure-chromium-source-fix-20261023'
 WORKFLOW = ROOT/'.github/workflows/chromium-setup-once.yml'
 
 
@@ -100,6 +100,7 @@ def setup_fixture(tmp_path,monkeypatch):
         values['keyring'].update(uid=0,gid=0)
         return values
     monkeypatch.setattr(v,'snapshot',snapshot)
+    monkeypatch.setattr(v,'source_predicate',lambda expected:None)
     monkeypatch.setattr(v,'sdk',lambda:{'python':'3.11.0','versions':dict(v.PINS),'browsers':{'chromium':{'revision':'1217','version':v.VERSION},'chromium-headless-shell':{'revision':'1217','version':v.VERSION}}})
     calls=[]
     def receipt():
@@ -275,6 +276,78 @@ def test_helper_failure_or_contradiction_preserves_failure_and_unknown(setup_fix
     assert v.after(f.root,f.header)!=0 and not f.probes
     outcome=v.read_json(f.root/'public/helper-outcome.json')
     assert outcome['status']=='UNKNOWN' and outcome['exit_code']==code and outcome['children_closed'] is None
+
+
+@pytest.mark.parametrize('mutation',['none','extra','phase','stage','status','duplicate','code','bool_code'])
+def test_only_closed_helper_failure_stage_reaches_its_own_public_phase(setup_fixture,monkeypatch,mutation):
+    f=setup_fixture;v.before(f.root,f.header)
+    reply={'protocol':'ci-chromium-failure-v1','status':'UNKNOWN','failure_phase':'root-worker','failure_stage':'source'}
+    code=2
+    if mutation=='extra':reply['extra']='CANARY_SECRET'
+    elif mutation in ('phase','stage','status'):reply['failure_'+mutation if mutation!='status' else 'status']='CANARY_SECRET'
+    elif mutation=='code':code=1
+    elif mutation=='bool_code':code=True
+    raw=json.dumps(reply).encode()
+    if mutation=='duplicate':raw=raw[:-1]+b',"failure_stage":"source"}'
+    monkeypatch.setattr(v.subprocess,'run',lambda *a,**kw:SimpleNamespace(returncode=code,stdout=raw))
+    assert v.install(f.root,f.header)!=0
+    value=v.read_json(f.root/'public/helper-outcome.json')
+    assert value['status']=='UNKNOWN' and value['children_closed'] is None and value['source_restored'] is None
+    assert value['failure_stage']==('source' if mutation=='none' else None)
+    assert value['failure_phase']==('root-worker' if mutation=='none' else None)
+    assert v.public_safe(value) and 'CANARY_SECRET' not in json.dumps(value)
+    assert v.after(f.root,f.header)!=0 and not f.probes
+
+
+@pytest.mark.parametrize('fault',['stage','phase','ready'])
+def test_invalid_failure_field_discards_whole_helper_dto_before_safe_upload(setup_fixture,monkeypatch,fault):
+    f=setup_fixture;v.before(f.root,f.header);v.install(f.root,f.header);assert v.after(f.root,f.header)==0
+    value=v.outcome(f.header,2,False,1,failure={'failure_phase':'root-worker','failure_stage':'source'})
+    if fault=='ready':value={**v.read_json(f.root/'public/helper-outcome.json'),'failure_phase':'root-worker','failure_stage':'source'}
+    else:value['failure_'+fault]='CANARY_SECRET'
+    v.write_json(f.root/'public/helper-outcome.json',value)
+    assert not v.public_safe(value) and v.project_public(f.root,f.header)
+    projected=v.read_json(f.root/'public/helper-outcome.json')
+    assert projected==v.unknown_record(f.header,'helper') and projected['failure_stage'] is None
+    output=f.root/'safe-output';output.write_bytes(b'');output.chmod(0o600)
+    monkeypatch.setenv('GITHUB_OUTPUT',str(output));v.publish_safe_output(f.root,f.header)
+    assert output.read_bytes()==b'public_records_safe=true\n' and 'CANARY_SECRET' not in json.dumps(projected)
+
+
+def test_before_checks_complete_source_predicate_before_any_attempt(setup_fixture,monkeypatch):
+    f=setup_fixture;calls=[]
+    def refuse(expected):calls.append(expected);raise v.Unavailable('fixed refusal')
+    monkeypatch.setattr(v,'source_predicate',refuse)
+    with pytest.raises(v.Unavailable):v.before(f.root,f.header)
+    assert calls==[v.snapshot()['source']] and not f.calls and not (f.root/'state.json').exists()
+
+
+@pytest.mark.parametrize('fault',['none','raw_hash','invalid_profile','late_metadata','helper_hash'])
+def test_held_source_preflight_executes_only_hash_locked_pure_parser(monkeypatch,fault):
+    raw=(b'Types: deb\nURIs: http://azure.archive.ubuntu.com/ubuntu\n'
+         b'Suites: noble noble-updates noble-backports noble-security\n'
+         b'Components: main restricted universe multiverse\n'
+         b'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n')
+    if fault=='invalid_profile':raw=raw.replace(b'Types: deb',b'Types: deb-src')
+    source=Path('/synthetic/source-not-opened');closed=[]
+    row=SimpleNamespace(st_dev=1,st_ino=2,st_uid=0,st_gid=0,st_mode=0o100644,st_nlink=1,
+                        st_size=len(raw),st_mtime_ns=1,st_ctime_ns=1)
+    expected={k:getattr(row,'st_'+k) for k in ('dev','ino','uid','gid','nlink','size')}
+    expected.update(mode=0o644,sha256=hashlib.sha256(raw).hexdigest())
+    monkeypatch.setattr(v,'SYSTEM_FILES',{'source':(source,16384)})
+    native_open,native_pread,native_fstat,native_close=v.os.open,v.os.pread,v.os.fstat,v.os.close
+    monkeypatch.setattr(v.os,'open',lambda path,*a:123 if path==source else native_open(path,*a))
+    monkeypatch.setattr(v.os,'pread',lambda fd,*a:raw+(b'x' if fault=='raw_hash' else b'') if fd==123 else
+                        (b'raise RuntimeError("CANARY_MUST_NEVER_EXECUTE")' if fault=='helper_hash' else native_pread(fd,*a)))
+    monkeypatch.setattr(v.os,'fstat',lambda fd:row if fd==123 else native_fstat(fd))
+    monkeypatch.setattr(v.os,'close',lambda fd:closed.append(fd) if fd==123 else native_close(fd))
+    native_lstat=Path.lstat
+    monkeypatch.setattr(Path,'lstat',lambda path,*a,**kw:(SimpleNamespace(**{**vars(row),'st_ctime_ns':2}) if fault=='late_metadata' else row) if path==source else native_lstat(path,*a,**kw))
+    monkeypatch.setattr(v,'helper_metadata',lambda:{'sha256':v.HELPER_SHA})
+    if fault=='none':v.source_predicate(expected)
+    else:
+        with pytest.raises(RuntimeError if fault=='invalid_profile' else v.Unavailable):v.source_predicate(expected)
+    assert closed==[123]
 
 
 def test_unobservable_helper_launch_records_an_attempt_without_claiming_retirement(setup_fixture,monkeypatch):
