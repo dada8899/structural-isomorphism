@@ -26,47 +26,6 @@ def configure(client,root,monkeypatch):
     install_problem_handlers(client.app)
 
 
-@pytest.mark.parametrize('resources',['none','question','draft','formula'])
-def test_actual_formal_delete_protects_every_job_and_erases_registration_in_research_txn(stack,monkeypatch,resources):
-    client,root,mail=stack;configure(client,root,monkeypatch)
-    assert verify(client,link(client,mail)).status_code==200
-    old_cookie=client.cookies.get('phase_session');user=auth._store().user('fresh@example.invalid')
-    rid=None
-    if resources!='none':
-        data=formula_problem()
-        if resources=='question':data.pop('formula_draft')
-        result=client.post('/api/research',json=envelope({'problem':data}),headers={'origin':BETA,'idempotency-key':'account-bridge-create'})
-        assert result.status_code==200,result.text
-        body=result.json()['data'];rid=body['research']['id']
-        if resources=='formula':
-            snapshot=body['current_problem']['formula_snapshot']
-            checked=client.post(f'/api/research/{rid}/formula-checks',json=envelope({
-                'input_revision':1,'expected_research_version':body['research_version'],'formula_digest':snapshot['formula_digest'],
-                'confirm_formula_input':True}),headers={'origin':BETA,'idempotency-key':'account-bridge-check'})
-            assert checked.status_code==200,checked.text
-    from research.service import ResearchService
-    original=ResearchService.erase_research_locked;observed=[]
-    def erase(service,job_id,**kwargs):
-        result=original(service,job_id,**kwargs)
-        with service.store.transaction() as conn:
-            job=conn.execute('SELECT * FROM auth_deletion_jobs WHERE id=?',(job_id,)).fetchone()
-            rows=conn.execute('SELECT * FROM auth_registration_operations WHERE owner_key=?',(job['owner_key'],)).fetchall()
-            assert job['origin_version']=='authenticated-delete-v1'
-            assert rows and all(row['state']=='closed' and row['target_generation'] is None and row['token_hash'] is None for row in rows)
-            assert conn.execute('SELECT lifecycle FROM auth_users WHERE email=?',(user['email'],)).fetchone()[0]=='deleting'
-        observed.append(True);return result
-    monkeypatch.setattr(ResearchService,'erase_research_locked',erase)
-    deleted=client.post('/api/me/delete',json={'confirmation':'DELETE'},headers={'origin':BETA})
-    assert deleted.status_code==200,deleted.text
-    assert observed==[True] and auth._store().user(user['email']) is None
-    with auth._store()._connection() as conn:
-        assert conn.execute('SELECT origin_version,state FROM auth_deletion_jobs').fetchone()[:]==('authenticated-delete-v1','completed')
-        assert conn.execute('SELECT count(*) FROM research_formula_revisions').fetchone()[0]==0
-    assert verify(client,link(client,mail)).status_code==200
-    assert auth._store().user(user['email'])['session_generation']!=user['session_generation']
-    if rid:assert client.get('/api/research/'+rid).status_code==404
-    client.cookies.clear();client.cookies.set('phase_session',old_cookie,domain='beta.structural.bytedance.city',path='/')
-    assert client.get('/api/auth/me').status_code==401
 
 
 def test_formal_gate_rejects_safe_replacement_inode_even_before_any_research(stack):
@@ -89,12 +48,21 @@ def test_formal_gate_rejects_safe_replacement_inode_even_before_any_research(sta
 def test_offline_formula_port_accepts_exact_current_auth_metadata_without_mutation(roots):
     from services.auth_registration import bootstrap_private_runtime
     bootstrap_private_runtime();db=roots/'auth.sqlite3';before=db.stat()
+    store=AuthStore(db)
+    with store._connection() as conn:
+        conn.execute('BEGIN')
+        assert list(map(tuple,conn.execute('SELECT * FROM research_schema')))==[(1,15)]
+        ResearchStore._check_v15(conn)
+        schema_before=list(map(tuple,conn.execute('SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name')))
     result=recover_formula_journal(db)
-    assert result['schema_version']==11 and result['current_app_compatible'] is True
+    assert result['schema_version']==15 and result['current_app_compatible'] is True
     assert (db.stat().st_dev,db.stat().st_ino)==(before.st_dev,before.st_ino)
     with AuthStore(db)._connection() as conn:
         conn.execute('BEGIN')
         assert AuthStore.check_offline_auth_metadata(conn)=='auth-provision-v1'
+        assert list(map(tuple,conn.execute('SELECT * FROM research_schema')))==[(1,15)]
+        ResearchStore._check_v15(conn)
+        assert list(map(tuple,conn.execute('SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name')))==schema_before
 
 
 def exchange_sso(client):
@@ -157,52 +125,8 @@ def test_real_sso_delete_rejects_invalid_or_withdrawn_credentials_before_fence(s
         assert conn.execute('SELECT count(*) FROM auth_deletion_jobs').fetchone()[0]==0
 
 
-def test_sso_delete_proof_does_not_grant_formula_or_paid_direct_session_access(stack,monkeypatch):
-    client,root,mail=stack;configure(client,root,monkeypatch)
-    assert verify(client,link(client,mail)).status_code==200
-    response=client.post('/api/research',json=envelope({'problem':formula_problem()}),headers={'origin':BETA,'idempotency-key':'direct-only-create'})
-    assert response.status_code==200,response.text
-    body=response.json()['data'];rid=body['research']['id'];snapshot=body['current_problem']['formula_snapshot']
-    exchange_sso(client)
-    assert client.get('/api/auth/me').status_code==200
-    assert client.get('/api/research/'+rid).status_code==401
-    for path,data in [('formula-checks',{'input_revision':1,'expected_research_version':body['research_version'],
-        'formula_digest':snapshot['formula_digest'],'confirm_formula_input':True}),('paid-previews',{})]:
-        refused=client.post(f'/api/research/{rid}/{path}',json=envelope(data),headers={'origin':BETA,'idempotency-key':'sso-direct-only'})
-        assert refused.status_code==401,refused.text
-    with auth._store()._connection() as conn:
-        assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0]==0
-        assert conn.execute('SELECT count(*) FROM research_provider_sessions').fetchone()[0]==0
 
 
-def test_registration_erase_fault_rolls_back_with_research_then_same_job_resumes(stack,monkeypatch):
-    from services import auth_registration as registration
-    from research import ResearchService
-    client,root,mail=stack;configure(client,root,monkeypatch)
-    assert verify(client,link(client,mail)).status_code==200
-    response=client.post('/api/research',json=envelope({'problem':formula_problem()}),headers={'origin':BETA,'idempotency-key':'atomic-erase-create'})
-    assert response.status_code==200,response.text
-    rid=response.json()['data']['research']['id'];original=registration.erase_registration_for_job;observed=[]
-    def fail(conn,**kwargs):
-        original(conn,**kwargs)
-        assert conn.execute("SELECT count(*) FROM auth_registration_operations WHERE state='closed'").fetchone()[0]==1
-        observed.append(True);raise sqlite3.OperationalError('owned after-registration-erase fault')
-    with monkeypatch.context() as fault:
-        fault.setattr(registration,'erase_registration_for_job',fail)
-        result=client.post('/api/me/delete',json={'confirmation':'DELETE'},headers={'origin':BETA})
-        assert result.status_code==503,result.text
-    assert observed==[True]
-    store=ResearchStore(auth._store());service=ResearchService(store)
-    with store.transaction() as conn:
-        job=dict(conn.execute('SELECT * FROM auth_deletion_jobs').fetchone())
-        assert job['state']=='pending' and job['research_erased']==0 and job['origin_version']=='authenticated-delete-v1'
-        assert conn.execute("SELECT state,target_generation FROM auth_registration_operations WHERE kind='new_account'").fetchone()[:]==('finalized',job['session_generation'])
-        assert conn.execute('SELECT research_id FROM research_formula_revisions').fetchone()[0]==rid
-        assert conn.execute('SELECT lifecycle FROM auth_users').fetchone()[0]=='deleting'
-    with service.authorization.owner_gate_id(job['gate_id']) as lease:
-        resumed=auth._run_account_deletion_locked(service,job['id'],owner_lease=lease)
-        assert resumed['removed']['research']['researches']==1
-    assert auth._store().user('fresh@example.invalid') is None
 
 
 def test_ssosubject_revocation_during_real_capability_use_prevents_fence(stack,monkeypatch):

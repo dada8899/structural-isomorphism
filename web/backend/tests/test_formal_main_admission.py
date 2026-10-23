@@ -246,6 +246,146 @@ def test_registered_user_research_favorites_sso_delete_and_no_inheritance(prepar
     asyncio.run(run())
 
 
+async def _exchange_main_sso(client):
+    import jwt
+    from api import sso
+    started = await client.get('/api/sso/start', follow_redirects=False)
+    assert started.status_code == 303, started.text
+    state = jwt.decode(started.cookies.get(sso._STATE_COOKIE), os.environ['STRUCTURAL_SSO_SECRET'], algorithms=['HS256'], audience='structural-beta-start', issuer=BETA)
+    issued = await client.post('/api/sso/issue', json={'audience': 'structural-beta', 'state': state['state'], 'nonce': state['nonce']}, headers={'origin': BETA})
+    assert issued.status_code == 200, issued.text
+    exchanged = await client.post('/api/sso/exchange', json={'code': issued.json()['code'], 'state': state['state']}, headers={'origin': BETA})
+    assert exchanged.status_code == 200, exchanged.text
+    assert not client.cookies.get('phase_session')
+    return client.cookies.get(sso._BETA_SESSION_COOKIE)
+
+
+@pytest.mark.parametrize('resources', ['none', 'question', 'draft', 'formula'])
+def test_actual_formal_delete_protects_every_job_and_erases_registration_in_research_txn(prepared, monkeypatch, resources):
+    main, _, _, messages = prepared
+    from api import auth
+    from .test_research_formula_lifecycle import formula_problem
+
+    async def run():
+        async with main.lifespan(main.app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app), base_url=BETA) as client:
+                await login(client, messages, 'fresh@example.invalid')
+                old_cookie = client.cookies.get('phase_session')
+                user = auth._store().user('fresh@example.invalid')
+                rid = None
+                if resources != 'none':
+                    data = formula_problem()
+                    if resources == 'question':
+                        data.pop('formula_draft')
+                    result = await client.post('/api/research', json=envelope({'problem': data}), headers={'origin': BETA, 'idempotency-key': 'account-bridge-create'})
+                    assert result.status_code == 200, result.text
+                    body = result.json()['data']
+                    rid = body['research']['id']
+                    if resources == 'formula':
+                        snapshot = body['current_problem']['formula_snapshot']
+                        checked = await client.post(f'/api/research/{rid}/formula-checks', json=envelope({'input_revision': 1, 'expected_research_version': body['research_version'], 'formula_digest': snapshot['formula_digest'], 'confirm_formula_input': True}), headers={'origin': BETA, 'idempotency-key': 'account-bridge-check'})
+                        assert checked.status_code == 200, checked.text
+                from research.service import ResearchService
+                original = ResearchService.erase_research_locked
+                observed = []
+
+                def erase(service, job_id, **kwargs):
+                    result = original(service, job_id, **kwargs)
+                    with service.store.transaction() as conn:
+                        job = conn.execute('SELECT * FROM auth_deletion_jobs WHERE id=?', (job_id,)).fetchone()
+                        rows = conn.execute('SELECT * FROM auth_registration_operations WHERE owner_key=?', (job['owner_key'],)).fetchall()
+                        assert job['origin_version'] == 'authenticated-delete-v1'
+                        assert rows and all((row['state'] == 'closed' and row['target_generation'] is None and (row['token_hash'] is None) for row in rows))
+                        assert conn.execute('SELECT lifecycle FROM auth_users WHERE email=?', (user['email'],)).fetchone()[0] == 'deleting'
+                    observed.append(True)
+                    return result
+                monkeypatch.setattr(ResearchService, 'erase_research_locked', erase)
+                deleted = await client.post('/api/me/delete', json={'confirmation': 'DELETE'}, headers={'origin': BETA})
+                assert deleted.status_code == 200, deleted.text
+                assert observed == [True] and auth._store().user(user['email']) is None
+                with auth._store()._connection() as conn:
+                    assert conn.execute('SELECT origin_version,state FROM auth_deletion_jobs').fetchone()[:] == ('authenticated-delete-v1', 'completed')
+                    assert conn.execute('SELECT count(*) FROM research_formula_revisions').fetchone()[0] == 0
+                await login(client, messages, 'fresh@example.invalid')
+                assert auth._store().user(user['email'])['session_generation'] != user['session_generation']
+                if rid:
+                    assert (await client.get('/api/research/' + rid)).status_code == 404
+                client.cookies.clear()
+                client.cookies.set('phase_session', old_cookie, domain='beta.structural.bytedance.city', path='/')
+                assert (await client.get('/api/auth/me')).status_code == 401
+    asyncio.run(run())
+
+
+def test_sso_delete_proof_does_not_grant_formula_or_paid_direct_session_access(prepared, monkeypatch):
+    main, _, _, messages = prepared
+    from api import auth
+    from .test_research_formula_lifecycle import formula_problem
+
+    async def run():
+        async with main.lifespan(main.app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app), base_url=BETA) as client:
+                await login(client, messages, 'fresh@example.invalid')
+                response = await client.post('/api/research', json=envelope({'problem': formula_problem()}), headers={'origin': BETA, 'idempotency-key': 'direct-only-create'})
+                assert response.status_code == 200, response.text
+                body = response.json()['data']
+                rid = body['research']['id']
+                snapshot = body['current_problem']['formula_snapshot']
+                await _exchange_main_sso(client)
+                assert (await client.get('/api/auth/me')).status_code == 200
+                assert (await client.get('/api/research/' + rid)).status_code == 401
+                for path, data in [('formula-checks', {'input_revision': 1, 'expected_research_version': body['research_version'], 'formula_digest': snapshot['formula_digest'], 'confirm_formula_input': True}), ('paid-previews', {})]:
+                    refused = await client.post(f'/api/research/{rid}/{path}', json=envelope(data), headers={'origin': BETA, 'idempotency-key': 'sso-direct-only'})
+                    assert refused.status_code == 401, refused.text
+                with auth._store()._connection() as conn:
+                    assert conn.execute('SELECT count(*) FROM research_formula_runs').fetchone()[0] == 0
+                    assert conn.execute('SELECT count(*) FROM research_provider_sessions').fetchone()[0] == 0
+    asyncio.run(run())
+
+
+def test_registration_erase_fault_rolls_back_with_research_then_same_job_resumes(prepared, monkeypatch):
+    main, _, _, messages = prepared
+    from api import auth
+    from research import ResearchStore
+    from .test_research_formula_lifecycle import formula_problem
+    import sqlite3
+
+    async def run():
+        async with main.lifespan(main.app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app), base_url=BETA) as client:
+                from services import auth_registration as registration
+                from research import ResearchService
+                await login(client, messages, 'fresh@example.invalid')
+                response = await client.post('/api/research', json=envelope({'problem': formula_problem()}), headers={'origin': BETA, 'idempotency-key': 'atomic-erase-create'})
+                assert response.status_code == 200, response.text
+                rid = response.json()['data']['research']['id']
+                original = registration.erase_registration_for_job
+                observed = []
+
+                def fail(conn, **kwargs):
+                    original(conn, **kwargs)
+                    assert conn.execute("SELECT count(*) FROM auth_registration_operations WHERE state='closed'").fetchone()[0] == 1
+                    observed.append(True)
+                    raise sqlite3.OperationalError('owned after-registration-erase fault')
+                with monkeypatch.context() as fault:
+                    fault.setattr(registration, 'erase_registration_for_job', fail)
+                    result = await client.post('/api/me/delete', json={'confirmation': 'DELETE'}, headers={'origin': BETA})
+                    assert result.status_code == 503, result.text
+                assert observed == [True]
+                store = ResearchStore(auth._store())
+                service = ResearchService(store)
+                with store.transaction() as conn:
+                    job = dict(conn.execute('SELECT * FROM auth_deletion_jobs').fetchone())
+                    assert job['state'] == 'pending' and job['research_erased'] == 0 and (job['origin_version'] == 'authenticated-delete-v1')
+                    assert conn.execute("SELECT state,target_generation FROM auth_registration_operations WHERE kind='new_account'").fetchone()[:] == ('finalized', job['session_generation'])
+                    assert conn.execute('SELECT research_id FROM research_formula_revisions').fetchone()[0] == rid
+                    assert conn.execute('SELECT lifecycle FROM auth_users').fetchone()[0] == 'deleting'
+                with service.authorization.owner_gate_id(job['gate_id']) as lease:
+                    resumed = auth._run_account_deletion_locked(service, job['id'], owner_lease=lease)
+                    assert resumed['removed']['research']['researches'] == 1
+                assert auth._store().user('fresh@example.invalid') is None
+    asyncio.run(run())
+
+
 @pytest.mark.parametrize('profile', ['PROD', ' prod '])
 def test_noncanonical_formal_launcher_refuses_before_dotenv(prepared, profile):
     main, _, _, _ = prepared
