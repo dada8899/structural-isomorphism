@@ -177,7 +177,7 @@ def test_local_problem_revision_does_not_reset_same_outbound_query_quota(source_
 
 
 def test_legacy_problem_fingerprinted_chains_are_grouped_without_quota_reset(tmp_path,monkeypatch):
-    """Real R10 quota behavior survives complete R14 maintenance and ACL reads."""
+    """Real R10 quota behavior survives complete R15 maintenance and ACL reads."""
     with legacy_source_history(tmp_path,monkeypatch,"quota") as (store,path,history,identity):
         calls=history["first_calls"]+history["second_calls"]
         assert calls==["/discovery","/article","/discovery","/article"]
@@ -304,7 +304,7 @@ def test_legacy_snapshot_stays_immutable_when_new_v2_source_is_added(source_stac
 
 
 def test_new_observation_links_closed_unknown_in_nonselected_compatible_chain(tmp_path,monkeypatch):
-    """Real R10 UNKNOWN linkage stays immutable through R14 authenticated reads."""
+    """Real R10 UNKNOWN linkage stays immutable through R15 authenticated reads."""
     with legacy_source_history(tmp_path,monkeypatch,"unknown") as (store,path,history,identity):
         chosen=history["chosen"];other=history["other"];unknown=history["unknown"]
         assert history["first_calls"]==["/discovery"]

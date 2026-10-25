@@ -1,8 +1,8 @@
-"""Stopped-service R10 history followed by real maintenance and an R14 reader.
+"""Stopped-service R10 history followed by real maintenance and an R15 reader.
 
 The child owns a fresh, never-captured development store. Only that old,
 unprotected schema receives the supported historical fingerprint fixture.
-Current R14 only reads this history; no Main or new Source sender is admitted.
+Current R15 only reads this history; no Main or new Source sender is admitted.
 """
 from contextlib import contextmanager
 import hashlib
@@ -172,6 +172,7 @@ def legacy_source_history(tmp_path, monkeypatch, mode):
     from research.plan_financial import provision_plan_v12
     from research.plan_native_financial import provision_native_v13
     from research.method_draft import provision_method_drafts_v14
+    from research.financial_input import provision_financial_inputs_v15
     from research.store import ResearchStore
     current=Path(__file__).resolve().parents[3];state=tmp_path/'auth'
     package,_,manifest_path=reconstruct(current,tmp_path/'frozen-source10')
@@ -215,6 +216,7 @@ def legacy_source_history(tmp_path, monkeypatch, mode):
     for entry in lock_root.iterdir():
         assert entry.is_file() and not entry.is_symlink();entry.chmod(0o600)
     gate_identity={row['gate_id']:(lock_root/(row['gate_id']+'.lock')).stat().st_ino for row in history['owners']}
+    lock_identity={entry.name:(entry.stat().st_dev,entry.stat().st_ino) for entry in lock_root.iterdir()}
     for name,value in [('STATE_ROOT',state),('CACHE_ROOT',tmp_path/'cache'),('LOG_ROOT',state/'logs')]:monkeypatch.setattr(paths,name,value)
     for name,value in {'STRUCTURAL_ENV':'prod','AUTH_DATA_DIR':str(state),'STRUCTURAL_SSO_DATA_DIR':str(state),
         'STRUCTURAL_PRIVACY_HMAC_KEY':'0123456789abcdef'*4,'JWT_SECRET':'research-synthetic-auth-secret-32-characters',
@@ -222,11 +224,14 @@ def legacy_source_history(tmp_path, monkeypatch, mode):
     assert migrate_private_auth_registration()=={'contract':'auth-provision-v1','research_schema':10,'migrated':True}
     assert provision_source_v11(path)['schema_version']==11
     for row in history['owners']:admit_private_gate(row['owner_key'])
-    for operation,version in ((provision_plan_v12,12),(provision_native_v13,13),(provision_method_drafts_v14,14)):
+    for operation,version in ((provision_plan_v12,12),(provision_native_v13,13),(provision_method_drafts_v14,14),
+            (provision_financial_inputs_v15,15)):
         assert operation(path)['schema_version']==version
     auth_store=AuthStore(path);store=ResearchStore(auth_store)
+    assert auth_store._private_auth and store._formal_mode()
     with store.transaction() as conn:
-        ResearchStore._check_v14(conn)
+        assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==15
+        ResearchStore._check_v15(conn)
         assert conn.execute('PRAGMA foreign_key_check').fetchall()==[]
         assert dict(conn.execute('SELECT * FROM auth_users').fetchone())==history['user']
         assert dict(conn.execute('SELECT * FROM research_principals').fetchone())==history['principal']
@@ -242,6 +247,7 @@ def legacy_source_history(tmp_path, monkeypatch, mode):
             assert dict(conn.execute('SELECT * FROM research_source_requests WHERE id=?',(history['unknown']['id'],)).fetchone())==history['unknown']
     assert (path.stat().st_dev,path.stat().st_ino)==identity
     assert gate_identity=={row['gate_id']:(lock_root/(row['gate_id']+'.lock')).stat().st_ino for row in history['owners']}
+    assert lock_identity=={entry.name:(entry.stat().st_dev,entry.stat().st_ino) for entry in lock_root.iterdir()}
     monkeypatch.setattr(auth,'_store',lambda:auth_store)
     user,token=register_private_user(monkeypatch,'research-a@example.test')
     assert user==history['user']
