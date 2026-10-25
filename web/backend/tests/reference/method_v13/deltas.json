@@ -21,7 +21,7 @@
     "original_sha256": "7c46e214178a2bbe0aff75e7a7411a3201d7237d6a812a1a9f75975fde373acb"
   },
   "web/backend/api/research.py": {
-    "current_sha256": "83c5d9b1aea509f902a3f589acf9a0a6f7a02463138fb717c568759db3ffc877",
+    "current_sha256": "ac9f1243ca801f1ae0f9102ca631c5a8a9c6772ce1c0995cf503bfb6c65ceb06",
     "original_sha256": "7fcc218e6f75c1cd88ee4bf1bf68f5fd35a15e8b40ffa2057a8fe72ea5d02a46",
     "hunks": [
       [
@@ -106,12 +106,12 @@
       ],
       [
         713,
-        718,
+        722,
         ""
       ],
       [
-        766,
-        834,
+        770,
+        838,
         ""
       ]
     ]

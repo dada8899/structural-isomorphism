@@ -711,7 +711,11 @@ async def source_records(research_id: str,request: Request):
     return await _dispatch(request,research_id=research_id,operation="source-records")
 
 
-@router.get('/research/{research_id}/source-raw-preparations')
+@router.get('/research/{research_id}/source-raw-preparations', openapi_extra={
+    'parameters': [{'name': 'task_id', 'in': 'query', 'required': True,
+        'description': '准备任务的规范 UUIDv4；必须且只能出现一次 task_id，不接受其他查询参数。',
+        'schema': {'type': 'string', 'format': 'uuid',
+            'pattern': r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'}}]})
 async def source_raw_preparations(research_id: str,request: Request):
     return await _dispatch(request,research_id=research_id,operation='source-raw-read')
 
