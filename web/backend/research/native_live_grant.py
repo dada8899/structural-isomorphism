@@ -45,6 +45,20 @@ APPROVED_PATHS=(
  'web/backend/research/store.py','web/backend/research/authorization.py','web/backend/services/auth_store.py',
  'web/backend/services/auth_registration.py','web/backend/services/sqlite_utils.py','web/backend/research/source_supervisor.py', 'web/backend/research/source_sec_access.py',
  'web/backend/systemd_credential_metadata.py',
+ 'web/backend/api/research.py',
+ 'web/backend/research/evidence_repository.py',
+ 'web/backend/research/evidence_schemas.py',
+ 'web/backend/research/paid_control.py',
+ 'web/backend/research/schemas.py',
+ 'web/backend/research/source_document_access.py',
+ 'web/backend/research/source_document_raw.py',
+ 'web/backend/research/source_guard.py',
+ 'web/backend/research/source_integration.py',
+ 'web/backend/research/source_policy.py',
+ 'web/backend/research/source_spawn.py',
+ 'web/backend/research/source_workflow.py',
+ 'web/backend/services/runtime_paths.py',
+ 'web/backend/research/provider_schemas.py',
 )
 FIELDS=frozenset(('protocol','project_ref','state','grant_id','grant_epoch','principal_id',
  'auth_generation','principal_epoch','owner_gate_id','database_identity','owner_gate_identity',
@@ -215,7 +229,7 @@ def require_slot(scope,store,session,*,task_id,purpose,mode):
 
 
 def approved_code_digest():
-    """Fixed bounded 27-file closure; no caller paths or directory traversal."""
+    """Fixed bounded 41-file closure; no caller paths or directory traversal."""
     root=Path(__file__).resolve().parents[3];files={};total=0
     try:
         for relative in APPROVED_PATHS:
