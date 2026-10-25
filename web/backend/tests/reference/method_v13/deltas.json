@@ -117,7 +117,7 @@
     ]
   },
   "web/backend/research/evidence_repository.py": {
-    "current_sha256": "a60d9b29f247d320b642722ec0344e914a8da9f06f5cdefe4d0bc292c8573ce1",
+    "current_sha256": "8c35765b9e1c2bafca0c9012861a2cec87f90feff5e41bfaffdcdf555f2b83f9",
     "original_sha256": "0a1064bab04e2af5490ee20ac52a4ab4fc049e4035e8cffb0793509f762f0b89",
     "hunks": [
       [
@@ -137,12 +137,17 @@
       ],
       [
         217,
-        220,
+        231,
         ""
       ],
       [
-        309,
-        390,
+        288,
+        391,
+        ""
+      ],
+      [
+        423,
+        446,
         ""
       ]
     ]
@@ -998,7 +1003,7 @@
     "original_sha256": "4415e35d9591896e2484bdfb962f0a1bb084704916bbcb70b9e84954f76647f3"
   },
   "web/backend/research/source_guard.py": {
-    "current_sha256": "ac4fcbe3811d14ca696cda7564a7f9828edadebeb786ce4998c0bb0e92a79aa8",
+    "current_sha256": "4212719fbd57d8bc0cba907c96711d5b18a92d8cdac373d051de8373f72d8e35",
     "original_sha256": "eba13596a681d3997672d37d03e9af72159db4b0a0d7dda72d4aad03cf96acaf",
     "hunks": [
       [
@@ -1012,171 +1017,286 @@
         "    # Mutable execution/status fields are excluded; these immutable domain facts\n    # are fixed by the authenticated admission and independently rechecked.\n    fields={'task':{key:task[key] for key in ('id','research_id','principal_id','principal_epoch','owner_epoch','acl_epoch','grant_id','auth_generation','input_revision','input_digest','start_version','policy_revision','execution_mode')},\n      'principal':{key:principal[key] for key in ('id','gate_id','session_generation','epoch')},\n      'grant':{key:grant[key] for key in ('id','principal_id','principal_epoch','research_id','acl_epoch','scopes')},\n      'run':{key:run[key] for key in ('task_id','approval_id','chain_id','plan_id','fingerprint','origin')},\n      'approval':{key:approval[key] for key in ('id','principal_id','principal_epoch','auth_generation','research_id','input_revision','problem_digest','query','plan_json','plan_digest','fingerprint','execution_mode','version','consent_origin','consent_digest')},'revision_digest':revision[0],\n      'version':'source-admission-v1'}\n    return fields\n"
       ],
       [
-        170,
-        174,
+        152,
+        153,
+        "    def __init__(self,conn,store,mode,*,lease,source=None,identity=None,rid=None,request=None,key=None,task_id=None,owner_lease=None,job_id=None,birth=None):\n"
+      ],
+      [
+        158,
+        159,
         ""
       ],
       [
-        294,
-        295,
+        171,
+        175,
         ""
       ],
       [
-        381,
-        382,
+        177,
+        180,
+        "            require_authenticated_action(self.source,identity=self.identity,action='source-approve' if self.mode=='approve' else 'source-start',research_id=self.rid,key=self.key,body_digest=digest(self.request.model_dump(mode='json')))\n"
+      ],
+      [
+        214,
+        222,
+        ""
+      ],
+      [
+        250,
+        256,
+        "            fields,pd,fp,inp=draft(revision[0],self.request.query)\n"
+      ],
+      [
+        258,
+        260,
+        "                or row['input_revision']!=self.request.input_revision or row['problem_digest']!=revision[0] or row['query']!=self.request.query\n                or row['plan_json']!=canonical(fields) or row['plan_digest']!=pd or row['fingerprint']!=fp or row['execution_mode']!=origin()\n"
+      ],
+      [
+        310,
+        324,
+        ""
+      ],
+      [
+        366,
+        368,
+        "def worker_scope(conn,store,task_lease,*,owner_lease=None,close=False):\n    return _scope(conn,store,'close' if close else 'worker',lease=task_lease,task_id=task_lease.task_id,owner_lease=owner_lease)\n"
+      ],
+      [
+        410,
+        411,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
       ],
       [
-        408,
-        436,
+        437,
+        465,
         "    if row['admission_json'] is None:raise PermissionError('Source original admission was erased')\n    recorded=json.loads(row['admission_json'])\n    if sha256(canonical(recorded).encode())!=row['admission_digest']:raise PermissionError('Source original admission digest differs')\n    actual=snapshot(conn,task_id)\n    # These two current execution-authority values may legitimately be retired.\n    # Original task/domain IDs, generations, epochs, approved bytes and hashes\n    # remain independently bound; the current reader uses its own live grants.\n    actual['principal']['epoch']=actual['task']['principal_epoch']\n    actual['grant']['scopes']=recorded['grant']['scopes']\n    if actual!=recorded or actual['principal']['gate_id']!=row['owner_gate_id']:raise PermissionError('Source original domain differs')\n"
       ],
       [
-        437,
-        485,
+        466,
+        514,
         ""
       ]
     ]
   },
   "web/backend/research/source_integration.py": {
-    "current_sha256": "21aa3c695199a1d5d5f5e78cc1e52c1f79881d4ec6742a116afe2d1eaeb27bd0",
+    "current_sha256": "818906758dcd74fff150f0187f1d77050eb6aeec07215ca51eb68d40ae538bb0",
     "original_sha256": "ba8d65ef360223742776f7b7537ec7434a4252bddf0a8bf6658fc617b5907ed7",
     "hunks": [
       [
-        102,
-        104,
+        44,
+        50,
+        "    run=conn.execute(\"SELECT a.query FROM research_source_runs r JOIN research_source_approvals a ON a.id=r.approval_id WHERE r.task_id=?\",(task[\"id\"],)).fetchone()\n    chains=source_chains(conn,task[\"principal_id\"],task[\"research_id\"],run[\"query\"]) if run else []\n"
+      ],
+      [
+        75,
+        76,
+        ""
+      ],
+      [
+        107,
+        109,
         "def records(service,identity,rid,task_id,kind,cursor=None):\n    require_enabled();rid=service._id(rid);task_id=service._id(task_id);pid=service._principal(identity)\n"
       ],
       [
-        168,
-        169,
+        173,
+        174,
         "    if marker and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        196,
-        228,
+        201,
+        233,
         "def require_enabled():\n"
       ],
       [
-        232,
-        234,
+        237,
+        239,
         ""
       ],
       [
-        238,
-        245,
-        ""
-      ],
-      [
+        243,
         250,
-        251,
+        ""
+      ],
+      [
+        255,
+        256,
         "            \"policy_revision\":POLICY,\"max_requests\":4,\"execution_mode\":origin(),\n"
       ],
       [
-        263,
         268,
+        273,
         ""
       ],
       [
-        322,
-        323,
+        327,
+        328,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        339,
-        345,
+        344,
+        358,
         ""
       ],
       [
-        354,
-        359,
+        367,
+        372,
         "def preview(service,identity,rid,request):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
       ],
       [
-        373,
-        374,
+        386,
+        387,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
       ],
       [
-        378,
-        383,
+        391,
+        396,
         "def approve(service,identity,rid,request,key,*,request_source=None):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
       ],
       [
-        399,
-        400,
+        412,
+        413,
         "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        409,
-        414,
+        422,
+        427,
         "def start_source(service,identity,rid,request,key,*,request_source=None):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
       ],
       [
-        432,
-        433,
+        445,
+        446,
         "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        442,
-        443,
+        455,
+        456,
         "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        460,
-        461,
+        473,
+        474,
         "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        471,
-        543,
+        484,
+        621,
         ""
       ]
     ]
   },
   "web/backend/research/source_policy.py": {
-    "current_sha256": "7acb5535cbdfc8c252b51408eb6739908030fdd932808fe477a8005c5b97da58",
+    "current_sha256": "bc6c76b4a8d9f17a2a7acc4a8b08ef87ba5fada4e22dfead39a087f291aa78eb",
+    "original_sha256": "d304c8fcbba51de2b2ffdcae5c6154dde7788ed64a8462cacb3da061cbfe3e11",
     "hunks": [
       [
-        248,
-        250,
+        4,
+        6,
+        "This transport is unwired: the caller must hold/consume C0's external-send\npermit at the start boundary and persist request quota/unknown state there.\n"
+      ],
+      [
+        20,
+        22,
         ""
       ],
       [
-        256,
-        258,
+        117,
+        120,
         ""
       ],
       [
-        260,
-        260,
-        "        shared = ctx.RawArray(\"B\", RAW_CAP * 2)\n"
-      ],
-      [
-        261,
-        263,
-        "        process = ctx.Process(target=_child, args=(send, target, self._worker, shared,deadline,identity), daemon=True)\n"
-      ],
-      [
-        272,
-        274,
+        149,
+        308,
         ""
       ],
       [
-        297,
-        301,
+        311,
+        317,
+        "    target = RequestTarget(target.host, target.path)\n"
+      ],
+      [
+        325,
+        330,
+        ""
+      ],
+      [
+        331,
+        332,
+        "                         \"User-Agent: StructureMethodEvidence/1\\r\\nAccept-Encoding: gzip\\r\\nConnection: close\\r\\n\\r\\n\").encode(\"ascii\"))\n"
+      ],
+      [
+        342,
+        343,
+        ""
+      ],
+      [
+        346,
+        347,
+        ""
+      ],
+      [
+        389,
+        399,
+        ""
+      ],
+      [
+        400,
+        412,
+        ""
+      ],
+      [
+        433,
+        434,
+        ""
+      ],
+      [
+        446,
+        464,
+        "        target = RequestTarget(target.host, target.path)\n"
+      ],
+      [
+        470,
+        472,
+        ""
+      ],
+      [
+        474,
+        477,
+        "        shared = ctx.RawArray(\"B\", RAW_CAP * 2)\n        deadline = time.monotonic() + self.wall_seconds\n        process = ctx.Process(target=_child, args=(send, target, self._worker, shared,deadline,identity), daemon=True)\n"
+      ],
+      [
+        486,
+        488,
+        ""
+      ],
+      [
+        489,
+        490,
+        ""
+      ],
+      [
+        500,
+        502,
+        "                        message = json.loads(receive.recv_bytes(1024))\n"
+      ],
+      [
+        513,
+        518,
         "                        owner_lease.handoff(receive,process.pid,deadline)\n                        handed_off=True\n"
       ],
       [
-        313,
-        338,
+        519,
+        532,
+        ""
+      ],
+      [
+        543,
+        589,
         "            send.close()\n            receive.close()\n            if process.pid is not None:\n                if process.is_alive():\n                    process.terminate()\n                process.join(timeout=0.25)\n                if process.is_alive():\n                    process.kill()\n                    process.join(timeout=0.25)\n                process.close()\n"
       ]
-    ],
-    "original_sha256": "d304c8fcbba51de2b2ffdcae5c6154dde7788ed64a8462cacb3da061cbfe3e11"
+    ]
   },
   "web/backend/research/source_workflow.py": {
-    "current_sha256": "5297d48d490585ac66824557f40481e59817e2722e02418dbdc29c4c8b65b1f0",
+    "current_sha256": "0f527be5e5a2b7deb06963c85aa1cb5696c6677461bbb914ae975934fe4c3fea",
     "original_sha256": "5a152fcb8fa84ce04746dd74affb6107f8acfc747ff47968086a2a3a1245148e",
     "hunks": [
       [
@@ -1185,68 +1305,98 @@
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
       ],
       [
-        35,
-        38,
-        ""
+        29,
+        34,
+        "        with store.transaction() as conn:\n"
       ],
       [
         40,
-        43,
+        48,
         ""
       ],
       [
-        45,
-        46,
+        49,
+        52,
+        ""
+      ],
+      [
+        54,
+        55,
         "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        75,
-        79,
+        63,
+        69,
+        "            with self.store.transaction() as conn:self.checked(conn)\n"
+      ],
+      [
+        73,
+        74,
+        "        with self.store.transaction(write=True) as conn:\n"
+      ],
+      [
+        82,
+        83,
+        "        with self.store.transaction(write=True) as conn:\n"
+      ],
+      [
+        89,
+        93,
         ""
       ],
       [
-        155,
-        159,
+        154,
+        156,
         ""
       ],
       [
-        195,
+        171,
+        174,
+        ""
+      ],
+      [
         196,
+        311,
+        ""
+      ],
+      [
+        325,
+        326,
         "        if version in (11,12,13):\n"
       ],
       [
-        198,
-        199,
+        328,
+        329,
         "    owner=gate.owner_gate_id(owner_gate) if version in (11,12,13) else gate.owner_gate(principal)\n"
       ],
       [
-        201,
-        204,
+        331,
+        334,
         ""
       ],
       [
-        215,
-        216,
+        345,
+        346,
         "            if version in (11,12,13):\n"
       ],
       [
-        226,
-        227,
+        356,
+        357,
         "    require_enabled()\n"
       ],
       [
-        235,
-        236,
+        365,
+        366,
         "            if version in (11,12,13):\n"
       ],
       [
-        250,
-        256,
+        380,
+        386,
         ""
       ],
       [
-        260,
-        263,
+        390,
+        393,
         "    except (ValueError,ResearchError,PermissionError,OSError):\n"
       ]
     ]
@@ -1858,6 +2008,17 @@
         262,
         319,
         ""
+      ]
+    ]
+  },
+  "web/backend/tests/source_http_fixture.py": {
+    "current_sha256": "26b1cf335d2aa02676bca5756011e3143a87b8b940cf4b1e75f1cd119e8e9194",
+    "original_sha256": "1a854163af26ff37550b511bd6c3d6f6430ed2a2882a0dab4c7cc3aa2b6cdf26",
+    "hunks": [
+      [
+        58,
+        62,
+        "    transport=PinnedPublicTransport(_worker=partial(wait_before_get,int(port),ready,go))\n"
       ]
     ]
   }
