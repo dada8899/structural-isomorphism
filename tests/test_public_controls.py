@@ -1746,7 +1746,24 @@ B3_FRESH_MAIN_MODULES = ('test_source_document_raw_lifecycle.py',
     'test_formal_main_history_read_borrow.py', 'test_source_document_cached_history.py')
 
 
+OBSERVER_FRESH_MODULE = 'test_financial_limit_observer.py'
+
+
+def _original_makefile_before_observer_backend(makefile: str) -> str:
+    commands = [c for c in _make_recipe_commands(makefile, 'verify-release') if c.startswith('cd web/backend ')]
+    assert len(commands) == 21, 'ordinary plus twenty fresh full modules required'
+    formal = 'cd web/backend && $(BACKEND_PYTEST) tests/' + OBSERVER_FRESH_MODULE + ' -p no:logging -q'
+    ignore = ' --ignore=tests/' + OBSERVER_FRESH_MODULE
+    assert commands[-1] == formal and commands.count(formal) == 1
+    assert commands[0].count(ignore) == 1 and commands[0].endswith(ignore + ' -q')
+    prior = [commands[0].replace(ignore + ' -q', ' -q', 1), *commands[1:-1]]
+    expanded = ''.join('\t' + c + '\n' for c in commands)
+    assert makefile.count(expanded) == 1, 'observer process must extend the exact contiguous backend block'
+    return makefile.replace(expanded, ''.join('\t' + c + '\n' for c in prior), 1)
+
+
 def _original_makefile_before_b3_backend(makefile: str) -> str:
+    makefile = _original_makefile_before_observer_backend(makefile)
     commands = [c for c in _make_recipe_commands(makefile, 'verify-release') if c.startswith('cd web/backend ')]
     assert len(commands) == 20, 'ordinary plus nineteen fresh full modules required'
     fresh = ['cd web/backend && $(BACKEND_PYTEST) tests/' + n + ' -p no:logging -q'
@@ -1989,11 +2006,27 @@ def _original_dry_run_before_b3_backend(output: str) -> str:
     ))
     backend = "PYTHONPATH=" + pythonpath + " python -m pytest"
     prefix = "cd web/backend && " + backend
+    observer_lines = output.splitlines(keepends=True)
+    current_makefile = (ROOT / "Makefile").read_text()
+    _original_makefile_before_b3_backend(current_makefile)
+    expected = [command.replace("$(BACKEND_PYTEST)", backend, 1) + "\n"
+                for command in _make_recipe_commands(current_makefile, "verify-release")
+                if command.startswith("cd web/backend ")]
+    actual = [line for line in observer_lines if line.startswith("cd web/backend ")]
+    assert actual == expected, "actual dryrun must execute every exact backend command once"
+    formal = prefix + " tests/" + OBSERVER_FRESH_MODULE + " -p no:logging -q\n"
+    assert observer_lines.count(formal) == 1
+    ignore = " --ignore=tests/" + OBSERVER_FRESH_MODULE
+    assert expected[0].count(ignore) == 1 and expected[0].endswith(ignore + " -q\n")
+    assert observer_lines.count(expected[0]) == 1
+    observer_lines.remove(formal)
+    output = "".join(observer_lines).replace(expected[0], expected[0].replace(ignore + " -q\n", " -q\n", 1), 1)
     lines = output.splitlines(keepends=True)
     ordinary = [line for line in lines if line.startswith(prefix + " --ignore=")]
     assert len(ordinary) == 1, "one exact ordinary backend command required"
-    makefile = (ROOT / "Makefile").read_text()
-    _original_makefile_before_b3_backend(makefile)
+    current_makefile = (ROOT / "Makefile").read_text()
+    _original_makefile_before_b3_backend(current_makefile)
+    makefile = _original_makefile_before_observer_backend(current_makefile)
     expected_ordinary = next(command for command in
         _make_recipe_commands(makefile, "verify-release")
         if command.startswith("cd web/backend && $(BACKEND_PYTEST) --ignore="))
@@ -3247,6 +3280,8 @@ def test_b3_fresh_make_consumers_reject_drift(consumer, mutation):
 
 def test_b3_make_complete_module_inventory_stays_in_exactly_one_process():
     makefile = (ROOT / 'Makefile').read_text()
+    current_makefile = makefile
+    makefile = _original_makefile_before_observer_backend(makefile)
     commands = [c for c in _make_recipe_commands(makefile, 'verify-release') if c.startswith('cd web/backend ')]
     assert len(commands) == 20
     fresh = [shlex.split(c)[4] for c in commands[1:]]
@@ -3265,5 +3300,56 @@ def test_b3_make_complete_module_inventory_stays_in_exactly_one_process():
                  'test_source_document_transport.py', 'test_financial_limit_observer.py'):
         assert 'tests/' + name not in ignored and 'tests/' + name not in fresh
         assert name in ordinary
-    prior = _original_makefile_before_b3_backend(makefile)
+    prior = _original_makefile_before_b3_backend(current_makefile)
     assert len([c for c in _make_recipe_commands(prior, 'verify-release') if c.startswith('cd web/backend ')]) == 17
+
+
+def test_observer_whole_make_process_preserves_prior_nineteen_and_inventory():
+    makefile = (ROOT / 'Makefile').read_text()
+    prior = _original_makefile_before_observer_backend(makefile)
+    commands = [c for c in _make_recipe_commands(makefile, 'verify-release') if c.startswith('cd web/backend ')]
+    old = [c for c in _make_recipe_commands(prior, 'verify-release') if c.startswith('cd web/backend ')]
+    assert commands[1:-1] == old[1:] and len(old) == 20
+    fresh = [shlex.split(c)[4].removeprefix('tests/') for c in commands[1:]]
+    ignored = [t.removeprefix('--ignore=tests/') for t in shlex.split(commands[0]) if t.startswith('--ignore=')]
+    assert fresh == ignored and len(set(fresh)) == 20
+    inventory = {p.relative_to(ROOT / 'web/backend/tests').as_posix() for p in (ROOT / 'web/backend/tests').rglob('test_*.py')}
+    assert set(fresh) <= inventory
+    assert all(int(name not in fresh) + fresh.count(name) == 1 for name in inventory)
+    _original_makefile_before_b3_backend(makefile)
+
+
+@pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'ignore_only', 'missing_ignore', 'duplicate_ignore', 'partial', 'logging'])
+def test_observer_make_process_cannot_be_omitted_or_weakened(mutation):
+    value = (ROOT / 'Makefile').read_text()
+    formal = '\tcd web/backend && $(BACKEND_PYTEST) tests/' + OBSERVER_FRESH_MODULE + ' -p no:logging -q\n'
+    ignore = ' --ignore=tests/' + OBSERVER_FRESH_MODULE
+    if mutation in ('missing', 'ignore_only'): value = value.replace(formal, '', 1)
+    elif mutation == 'duplicate': value = value.replace(formal, formal + formal, 1)
+    elif mutation == 'missing_ignore': value = value.replace(ignore, '', 1)
+    elif mutation == 'duplicate_ignore': value = value.replace(ignore, ignore + ignore, 1)
+    elif mutation == 'partial': value = value.replace(formal, formal.rstrip('\n') + ' -k smoke\n', 1)
+    else: value = value.replace(formal, formal.replace(' -p no:logging', ''), 1)
+    with pytest.raises(AssertionError): _original_makefile_before_observer_backend(value)
+
+
+@pytest.mark.parametrize('mutation', ['echo_prefix', 'true_command', 'missing_ignore', 'missing', 'duplicate', 'partial', 'logging'])
+def test_actual_observer_make_dryrun_inverse_rejects_nonexecution_and_drift(mutation):
+    environment = os.environ.copy()
+    for variable in ('MAKEFLAGS', 'MAKEOVERRIDES', 'PYTEST', 'BACKEND_PYTEST', 'OPENAPI_PY', 'TYPES_PY'):
+        environment.pop(variable, None)
+    completed = subprocess.run(['make', '-n', '--no-print-directory', 'PY=python', 'verify-release'],
+        cwd=ROOT, env=environment, capture_output=True, text=True, timeout=20, check=False)
+    assert completed.returncode == 0
+    output = completed.stdout
+    formal = next(line for line in output.splitlines(keepends=True)
+                  if ' tests/' + OBSERVER_FRESH_MODULE + ' -p no:logging -q\n' in line)
+    if mutation == 'echo_prefix': changed = output.replace(formal, 'echo ' + formal, 1)
+    elif mutation == 'true_command': changed = output.replace(formal, formal.replace('python -m pytest', 'true', 1), 1)
+    elif mutation == 'missing_ignore': changed = output.replace(' --ignore=tests/' + OBSERVER_FRESH_MODULE, '', 1)
+    elif mutation == 'missing': changed = output.replace(formal, '', 1)
+    elif mutation == 'duplicate': changed = output.replace(formal, formal + formal, 1)
+    elif mutation == 'partial': changed = output.replace(formal, formal.rstrip('\n') + ' -k smoke\n', 1)
+    else: changed = output.replace(formal, formal.replace(' -p no:logging', '', 1), 1)
+    assert changed != output
+    with pytest.raises(AssertionError): _original_dry_run_before_b3_backend(changed)

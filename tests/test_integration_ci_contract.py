@@ -177,13 +177,14 @@ B3_BACKEND_FORMAL_FILES = ('test_source_document_raw_lifecycle.py',
     'test_formal_main_history_read_borrow.py', 'test_source_document_cached_history.py')
 
 
-def backend_process_commands(*, coverage=False, before_fin2=False, before_evidence=False, before_native_financial=False, before_gov=False, before_b3=False):
+def backend_process_commands(*, coverage=False, before_fin2=False, before_evidence=False, before_native_financial=False, before_gov=False, before_b3=False, before_observer=False):
     names = (ORIGINAL_BACKEND_FORMAL_FILES if before_fin2 else
              ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES if before_evidence else
              ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES + EVIDENCE_BACKEND_FORMAL_FILES if before_native_financial else
              BACKEND_FORMAL_FILES if before_gov else
              BACKEND_FORMAL_FILES + (GOV_BACKEND_FORMAL_FILE,) if before_b3 else
-             BACKEND_FORMAL_FILES + (GOV_BACKEND_FORMAL_FILE,) + B3_BACKEND_FORMAL_FILES)
+             BACKEND_FORMAL_FILES + (GOV_BACKEND_FORMAL_FILE,) + B3_BACKEND_FORMAL_FILES if before_observer else
+             BACKEND_FORMAL_FILES + (GOV_BACKEND_FORMAL_FILE,) + B3_BACKEND_FORMAL_FILES + ('test_financial_limit_observer.py',))
     directory = 'web/backend/tests/' if coverage else 'tests'
     prefix = ('python -m coverage run -p --rcfile=.coveragerc -m pytest ' if coverage else 'python -m pytest ')
     flags = ' $PYTEST_FLAGS' if coverage else ' -x -ra -q --tb=short --durations=10'
@@ -192,8 +193,19 @@ def backend_process_commands(*, coverage=False, before_fin2=False, before_eviden
     return [ordinary, *(prefix + file_prefix + name + ' -p no:logging' + flags for name in names)]
 
 
-def _backend_script_before_b3(script, *, coverage=False):
+def _backend_script_before_observer(script, *, coverage=False):
     commands = backend_process_commands(coverage=coverage)
+    expanded = '\n'.join(commands)
+    assert script.count(expanded) == 1, 'exact twenty-one-process observer backend block required'
+    relevant = [line for line in script.splitlines() if line.startswith(
+        'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
+    assert relevant == commands, 'one ordinary and twenty full fresh modules required once'
+    return script.replace(expanded, '\n'.join(backend_process_commands(coverage=coverage, before_observer=True)), 1)
+
+
+def _backend_script_before_b3(script, *, coverage=False):
+    script = _backend_script_before_observer(script, coverage=coverage)
+    commands = backend_process_commands(coverage=coverage, before_observer=True)
     expanded = '\n'.join(commands)
     assert script.count(expanded) == 1, 'exact twenty-process B3 backend block required'
     relevant = [line for line in script.splitlines() if line.startswith(
@@ -1550,7 +1562,7 @@ def test_b3_fresh_ci_consumers_reject_drift(kind, consumer, mutation):
     title = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
     step = next(s for s in job['steps'] if s.get('name') == title)
     commands = backend_process_commands(coverage=kind == 'coverage')
-    changed = list(commands); index = len(commands) - 3 + B3_BACKEND_FORMAL_FILES.index(consumer)
+    changed = list(commands); index = len(BACKEND_FORMAL_FILES) + 2 + B3_BACKEND_FORMAL_FILES.index(consumer)
     ignore = ' --ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + consumer
     if mutation in ('missing', 'ignore_only'): changed.pop(index)
     elif mutation == 'duplicate': changed.append(changed[index])
@@ -1574,7 +1586,9 @@ def test_b3_complete_ci_argv_partition_preserves_sixteen_prefix_and_pure_ordinar
     job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
     title = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
     script = next(s['run'] for s in job['steps'] if s.get('name') == title)
-    commands = backend_process_commands(coverage=kind == 'coverage')
+    current_script = script
+    script = _backend_script_before_observer(script, coverage=kind == 'coverage')
+    commands = backend_process_commands(coverage=kind == 'coverage', before_observer=True)
     prior = backend_process_commands(coverage=kind == 'coverage', before_b3=True)
     assert len(commands) == 20 and len(prior) == 17
     assert commands[1:17] == prior[1:]
@@ -1589,7 +1603,7 @@ def test_b3_complete_ci_argv_partition_preserves_sixteen_prefix_and_pure_ordinar
     ordinary = inventory - set(relative)
     assert all(int(name in ordinary) + relative.count(name) == 1 for name in inventory)
     assert script.count('\n'.join(commands)) == 1
-    assert _backend_script_before_b3(script, coverage=kind == 'coverage').count('\n'.join(prior)) == 1
+    assert _backend_script_before_b3(current_script, coverage=kind == 'coverage').count('\n'.join(prior)) == 1
     for name in B3_BACKEND_FORMAL_FILES:
         path = ROOT / 'web/backend/tests' / name
         assert path.is_file() and not path.is_symlink(), 'full actual module must be present in the composed source'
@@ -1598,3 +1612,38 @@ def test_b3_complete_ci_argv_partition_preserves_sixteen_prefix_and_pure_ordinar
                  'test_source_document_transport.py', 'test_financial_limit_observer.py'):
         assert prefix + name not in ignored and prefix + name not in fresh
         assert name in ordinary
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+def test_observer_full_ci_process_preserves_prior_nineteen_and_inventory(kind):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    title = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    script = next(s['run'] for s in job['steps'] if s.get('name') == title)
+    current = backend_process_commands(coverage=kind == 'coverage')
+    prior = backend_process_commands(coverage=kind == 'coverage', before_observer=True)
+    assert current[1:-1] == prior[1:] and len(current) == 21 and len(prior) == 20
+    assert 'test_financial_limit_observer.py' in current[-1] and ' -p no:logging' in current[-1]
+    assert _backend_script_before_observer(script, coverage=kind == 'coverage').count('\n'.join(prior)) == 1
+    _backend_script_before_b3(script, coverage=kind == 'coverage')
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'ignore_only', 'missing_ignore', 'duplicate_ignore', 'partial', 'logging', 'measurement'])
+def test_observer_ci_process_cannot_be_omitted_or_weakened(kind, mutation):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    title = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step = next(s for s in job['steps'] if s.get('name') == title)
+    commands = backend_process_commands(coverage=kind == 'coverage'); changed = list(commands)
+    ignore = ' --ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + 'test_financial_limit_observer.py'
+    if mutation in ('missing', 'ignore_only'): changed.pop()
+    elif mutation == 'duplicate': changed.append(changed[-1])
+    elif mutation == 'missing_ignore': changed[0] = changed[0].replace(ignore, '', 1)
+    elif mutation == 'duplicate_ignore': changed[0] = changed[0].replace(ignore, ignore + ignore, 1)
+    elif mutation == 'partial': changed[-1] += ' -k smoke'
+    elif mutation == 'logging': changed[-1] = changed[-1].replace(' -p no:logging', '', 1)
+    else: changed[-1] = changed[-1].replace('coverage run -p', 'coverage run').replace(' -x -ra -q', ' -q')
+    assert changed != commands
+    step['run'] = step['run'].replace('\n'.join(commands), '\n'.join(changed), 1)
+    with pytest.raises(AssertionError): _backend_script_before_observer(step['run'], coverage=kind == 'coverage')
