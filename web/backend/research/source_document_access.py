@@ -447,19 +447,37 @@ class RawReadScope:
     def __setattr__(self,*args): raise TypeError('DOC read scope is immutable')
     def __reduce__(self): raise TypeError('DOC read scope cannot be serialized')
 
-    def check(self, conn, context):
-        from .paid_control import require_authenticated_action
+    def check_native(self, conn=None):
+        """Context-free identity/loan checks before any context query or SQL."""
         from .service import ResearchService
-        from .source_document_raw import read_query_digest
         if (type(self) is not RawReadScope or _READS.get(id(self)) is not self or not self.active
                 or self.pid!=os.getpid() or self.thread is not threading.current_thread()
-                or self.conn is not conn or not conn.in_transaction or type(self.service) is not ResearchService
-                or self.research_id!=context.research_id or self.task_id!=context.task_id):
+                or type(self.service) is not ResearchService):
             raise PermissionError('actual current DOC read scope required')
+        if conn is None:conn=self.conn
+        if __package__=='web.backend.research':
+            from ..services.sqlite_utils import PrivateAuthConnection
+            from ..services import formal_admission as admission
+        else:
+            from services.sqlite_utils import PrivateAuthConnection
+            from services import formal_admission as admission
+        if self.conn is not conn or type(conn) is not PrivateAuthConnection:
+            raise PermissionError('actual borrowed DOC connection required')
         worker=require_cache_consumer(self.service,self.identity,self.source)
         resource=getattr(conn,'_history_read_resource',None)
         if resource is None or resource.worker is not worker or resource.handle is not conn or resource.state!='LIVE':
             raise PermissionError('DOC connection is not borrowed by the current Main worker')
+        try:read=admission._history_resource_owned(resource)
+        except RuntimeError:raise PermissionError('actual registered DOC connection resource required') from None
+        if read is not worker.read or not conn.in_transaction:
+            raise PermissionError('actual active DOC read transaction required')
+
+    def check(self, conn, context):
+        from .paid_control import require_authenticated_action
+        from .source_document_raw import read_query_digest
+        self.check_native(conn)
+        if self.research_id!=context.research_id or self.task_id!=context.task_id:
+            raise PermissionError('DOC read context differs')
         require_authenticated_action(self.source,identity=self.identity,action='source-raw-read',research_id=self.research_id,
             task_id=self.task_id,key='',body_digest=read_query_digest(self.task_id))
         # Recheck account/JTI/Owner ACL in a fresh snapshot on every read use;
@@ -498,7 +516,7 @@ def _cache_read(*args,**kwargs):
     if len(args)!=2 or set(kwargs)!={'purpose'}:raise PermissionError('actual DOC cache read scope required')
     scope,doc_ref=args
     if type(scope) is not RawReadScope or type(doc_ref) is not DocRef:raise PermissionError('actual DOC cache read scope required')
-    require_cache_consumer(scope.service,scope.identity,scope.source)
+    scope.check_native()
     context=context_for(scope.conn,scope.task_id)
     scope.check(scope.conn,context)
     policy=current_cache_policy_data()

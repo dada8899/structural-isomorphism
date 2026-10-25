@@ -132,6 +132,23 @@ def test_direct_consumer_calls_without_actual_worker_do_no_private_io():
         with pytest.raises((RuntimeError,PermissionError,ResearchError)):raw_preparations(None,None,uid(1),uid(2),request_source=source)
 
 
+@pytest.mark.parametrize('shape',['empty','complete','subclass'])
+def test_unregistered_scope_identity_precedes_every_claimed_connection_operation(shape):
+    from research.source_document_access import RawReadScope
+    calls=[]
+    class ConnectionTrap:
+        @property
+        def in_transaction(self):calls.append('property');raise AssertionError('claimed property used')
+        def execute(self,*args,**kwargs):calls.append('execute');raise AssertionError('claimed SQL used')
+    class ForeignScope(RawReadScope):pass
+    fake=object.__new__(ForeignScope if shape=='subclass' else RawReadScope)
+    if shape!='empty':
+        for key,value in {'conn':ConnectionTrap(),'service':None,'identity':None,'source':None,'research_id':uid(1),
+                'task_id':uid(2),'pid':os.getpid(),'thread':threading.current_thread(),'active':True}.items():object.__setattr__(fake,key,value)
+    with pytest.raises(PermissionError):require_private_cache(fake,catalog()[0].doc_ref,purpose=CONTRACT)
+    assert calls==[]
+
+
 async def queued_then_cancelled(client,binding,main,monkeypatch):
     """Actual paper admission; original task mutex excludes every sender."""
     from research import authorization
@@ -173,19 +190,42 @@ async def queued_then_cancelled(client,binding,main,monkeypatch):
 def test_actual_closed_source_consumer_reaches_protected_anchor_rejection_and_current_owner(prepared,monkeypatch):
     from research import source_integration
     from research.evidence_repository import EvidenceRepository
-    from research.source_document_access import _READS
+    from research.source_document_access import _READS,RawReadScope
     from web.backend.tests.test_source_document_access import insert_data
     main,admission,_,messages=prepared
     missing_line=next(i for i,line in enumerate(Path(EvidenceRepository._raw_receipt_anchor.__code__.co_filename).read_text().splitlines(),1)
         if "raise ValueError('DOC protected first output absent')" in line)
-    hit=[];profile_opens=[];watch={'on':False}
+    hit=[];profile_opens=[];watch={'on':False};scope_denials=[];trap_calls=[]
     def audit(event,args):
         if watch['on'] and event=='open' and str(args[0]).endswith('source-sec-access-profile.json'):
             profile_opens.append(True);raise AssertionError('history must not reopen the network profile')
     import sys
     sys.addaudithook(audit)
-    code=EvidenceRepository._raw_receipt_anchor.__code__;prior=threading.gettrace()
+    code=EvidenceRepository._raw_receipt_anchor.__code__;scope_code=RawReadScope.check.__code__;prior=threading.gettrace()
+    class ConnectionTrap:
+        @property
+        def in_transaction(self):trap_calls.append('property');raise AssertionError('foreign property used')
+        def execute(self,*args,**kwargs):trap_calls.append('execute');raise AssertionError('foreign SQL used')
     def trace(frame,event,arg):
+        if frame.f_code is scope_code:
+            if event=='call' and not scope_denials:
+                scope=frame.f_locals['self']
+                # Fault only a genuine, registered scope produced by this real
+                # consumer; restore its exact original fields, never a registry.
+                for key,bad in (('pid',os.getpid()+1),('thread',object()),('active',False)):
+                    previous=getattr(scope,key);object.__setattr__(scope,key,bad)
+                    try:
+                        with pytest.raises(PermissionError):require_private_cache(scope,catalog()[0].doc_ref,purpose=CONTRACT)
+                        scope_denials.append(key)
+                    finally:object.__setattr__(scope,key,previous)
+                with pytest.raises(PermissionError):scope.check_native(ConnectionTrap())
+                original_conn=scope.conn;object.__setattr__(scope,'conn',ConnectionTrap())
+                try:
+                    with pytest.raises(PermissionError):require_private_cache(scope,catalog()[0].doc_ref,purpose=CONTRACT)
+                    scope_denials.append('foreign_connection')
+                finally:object.__setattr__(scope,'conn',original_conn)
+                assert not trap_calls
+            return trace
         if frame.f_code is not code:return None
         if event=='exception' and frame.f_lineno==missing_line and arg[0] is ValueError:hit.append(True)
         return trace
@@ -205,7 +245,7 @@ def test_actual_closed_source_consumer_reaches_protected_anchor_rejection_and_cu
                 watch['on']=True
                 response=await client.get('/api/research/'+rid+'/source-raw-preparations',params={'task_id':tid})
                 assert response.status_code==503 and response.json()['error']['code']=='STORE_UNAVAILABLE' and 'data' not in response.json()
-                assert hit and not profile_opens and not _READS
+                assert hit and scope_denials==['pid','thread','active','foreign_connection'] and not trap_calls and not profile_opens and not _READS
                 assert admission.history_reads_closed(binding) and binding.source_receipt is receipt and not binding.source_errors
                 # A different real authenticated owner cannot read this task.
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as other:
@@ -225,7 +265,8 @@ def test_actual_closed_source_consumer_reaches_protected_anchor_rejection_and_cu
                 watch['on']=False
                 assert not profile_opens and admission.history_reads_closed(binding) and binding.source_receipt is receipt and not binding.source_errors
                 print('B3_ACTUAL_ORPHAN_DENIAL:'+json.dumps({'actual_closed_source':True,'actual_borrow_consumer':True,
-                    'protected_request_absence_reached':True,'profile_opens':0,'owner_denials':True,'gets':0}))
+                    'protected_request_absence_reached':True,'profile_opens':0,'owner_denials':True,'gets':0,
+                    'registered_scope_identity_denials':scope_denials,'claimed_connection_operations':len(trap_calls)}))
         assert binding.source_receipt.state==binding.native_receipt.state=='CLOSED' and not binding.history_errors
     try:asyncio.run(run())
     finally:watch['on']=False;threading.settrace(prior)
