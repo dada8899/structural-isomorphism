@@ -173,14 +173,17 @@ BACKEND_FORMAL_FILES = ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES
 
 
 GOV_BACKEND_FORMAL_FILE = 'test_source_sec_access_lifecycle.py'
+B3_BACKEND_FORMAL_FILES = ('test_source_document_raw_lifecycle.py',
+    'test_formal_main_history_read_borrow.py', 'test_source_document_cached_history.py')
 
 
-def backend_process_commands(*, coverage=False, before_fin2=False, before_evidence=False, before_native_financial=False, before_gov=False):
+def backend_process_commands(*, coverage=False, before_fin2=False, before_evidence=False, before_native_financial=False, before_gov=False, before_b3=False):
     names = (ORIGINAL_BACKEND_FORMAL_FILES if before_fin2 else
              ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES if before_evidence else
              ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES + EVIDENCE_BACKEND_FORMAL_FILES if before_native_financial else
              BACKEND_FORMAL_FILES if before_gov else
-             BACKEND_FORMAL_FILES + (GOV_BACKEND_FORMAL_FILE,))
+             BACKEND_FORMAL_FILES + (GOV_BACKEND_FORMAL_FILE,) if before_b3 else
+             BACKEND_FORMAL_FILES + (GOV_BACKEND_FORMAL_FILE,) + B3_BACKEND_FORMAL_FILES)
     directory = 'web/backend/tests/' if coverage else 'tests'
     prefix = ('python -m coverage run -p --rcfile=.coveragerc -m pytest ' if coverage else 'python -m pytest ')
     flags = ' $PYTEST_FLAGS' if coverage else ' -x -ra -q --tb=short --durations=10'
@@ -189,9 +192,20 @@ def backend_process_commands(*, coverage=False, before_fin2=False, before_eviden
     return [ordinary, *(prefix + file_prefix + name + ' -p no:logging' + flags for name in names)]
 
 
+def _backend_script_before_b3(script, *, coverage=False):
+    commands = backend_process_commands(coverage=coverage)
+    expanded = '\n'.join(commands)
+    assert script.count(expanded) == 1, 'exact twenty-process B3 backend block required'
+    relevant = [line for line in script.splitlines() if line.startswith(
+        'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
+    assert relevant == commands, 'ordinary plus nineteen exact fresh modules required once'
+    return script.replace(expanded, '\n'.join(backend_process_commands(coverage=coverage, before_b3=True)), 1)
+
+
 def _backend_script_before_gov(script, *, coverage=False):
     """Reverse one exact Gov lifecycle module to the prior fifteen-file split."""
-    commands = backend_process_commands(coverage=coverage)
+    script = _backend_script_before_b3(script, coverage=coverage)
+    commands = backend_process_commands(coverage=coverage, before_b3=True)
     expanded = '\n'.join(commands)
     assert script.count(expanded) == 1, 'exact seventeen-process Gov backend block missing or duplicated'
     relevant = [line for line in script.splitlines() if line.startswith(
@@ -1456,7 +1470,8 @@ def test_gov_lifecycle_joins_complete_backend_isolation(kind):
     job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
     name = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
     script = next(s['run'] for s in job['steps'] if s.get('name') == name)
-    commands = backend_process_commands(coverage=kind == 'coverage')
+    script = _backend_script_before_b3(script, coverage=kind == 'coverage')
+    commands = backend_process_commands(coverage=kind == 'coverage', before_b3=True)
     prior = backend_process_commands(coverage=kind == 'coverage', before_gov=True)
     assert len(prior) == 16 and len(commands) == 17
     assert commands[1:-1] == prior[1:]
@@ -1481,19 +1496,20 @@ def test_gov_lifecycle_ci_delta_rejects_weakened_or_missing_consumer(kind, mutat
     name = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
     step = next(s for s in job['steps'] if s.get('name') == name)
     commands = backend_process_commands(coverage=kind == 'coverage'); changed = list(commands)
+    gov_index = len(BACKEND_FORMAL_FILES) + 1
     ignore = ' --ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + GOV_BACKEND_FORMAL_FILE
-    if mutation == 'missing': changed.pop()
+    if mutation == 'missing': changed.pop(gov_index)
     elif mutation == 'missing_ignore': changed[0] = changed[0].replace(ignore, '', 1)
-    elif mutation == 'duplicate': changed.append(changed[-1])
+    elif mutation == 'duplicate': changed.append(changed[gov_index])
     elif mutation == 'duplicate_ignore': changed[0] = changed[0].replace(ignore, ignore + ignore, 1)
-    elif mutation == 'partial_file': changed[-1] += ' -k smoke'
-    elif mutation == 'formal_logging': changed[-1] = changed[-1].replace(' -p no:logging', '', 1)
+    elif mutation == 'partial_file': changed[gov_index] += ' -k smoke'
+    elif mutation == 'formal_logging': changed[gov_index] = changed[gov_index].replace(' -p no:logging', '', 1)
     elif mutation == 'ordinary_no_logging': changed[0] += ' -p no:logging'
-    elif mutation == 'order': changed[-2], changed[-1] = changed[-1], changed[-2]
-    elif mutation == 'soft': changed[-1] += ' || true'
-    elif mutation == 'wrong_file': changed[-1] = changed[-1].replace(GOV_BACKEND_FORMAL_FILE, 'test_source_sec_access.py')
+    elif mutation == 'order': changed[gov_index - 1], changed[gov_index] = changed[gov_index], changed[gov_index - 1]
+    elif mutation == 'soft': changed[gov_index] += ' || true'
+    elif mutation == 'wrong_file': changed[gov_index] = changed[gov_index].replace(GOV_BACKEND_FORMAL_FILE, 'test_source_sec_access.py')
     elif mutation == 'pure_ignore': changed[0] += ' --ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + 'test_source_sec_access.py'
-    else: changed[-1] = changed[-1].replace('coverage run -p', 'coverage run').replace(' -x -ra -q', ' -q')
+    else: changed[gov_index] = changed[gov_index].replace('coverage run -p', 'coverage run').replace(' -x -ra -q', ' -q')
     assert changed != commands
     expanded = '\n'.join(commands)
     assert step['run'].count(expanded) == 1
@@ -1523,3 +1539,62 @@ def test_sanity_backend_root_namespace_inverse_rejects_drift(mutation):
     elif mutation == 'extra_env': step['env']['PYTEST_ADDOPTS'] = '-k smoke'
     else: job['env'] = {'PYTHONPATH': root}
     with pytest.raises(AssertionError): _assert_sanity_backend_dependency(value)
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('consumer', B3_BACKEND_FORMAL_FILES)
+@pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'wrong_file', 'selector', 'logging', 'ignore_only', 'missing_ignore', 'duplicate_ignore', 'ordinary_logging', 'pure_ignore', 'extra'])
+def test_b3_fresh_ci_consumers_reject_drift(kind, consumer, mutation):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    title = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step = next(s for s in job['steps'] if s.get('name') == title)
+    commands = backend_process_commands(coverage=kind == 'coverage')
+    changed = list(commands); index = len(commands) - 3 + B3_BACKEND_FORMAL_FILES.index(consumer)
+    ignore = ' --ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + consumer
+    if mutation in ('missing', 'ignore_only'): changed.pop(index)
+    elif mutation == 'duplicate': changed.append(changed[index])
+    elif mutation == 'wrong_file': changed[index] = changed[index].replace(consumer, 'test_source_document_raw.py')
+    elif mutation == 'selector': changed[index] += ' -k smoke'
+    elif mutation == 'logging': changed[index] = changed[index].replace(' -p no:logging', '')
+    elif mutation == 'missing_ignore': changed[0] = changed[0].replace(ignore, '', 1)
+    elif mutation == 'duplicate_ignore': changed[0] = changed[0].replace(ignore, ignore + ignore, 1)
+    elif mutation == 'ordinary_logging': changed[0] += ' -p no:logging'
+    elif mutation == 'pure_ignore': changed[0] += ' --ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + 'test_source_document_raw.py'
+    else: changed.append(changed[index].replace(consumer, 'test_source_document_access.py'))
+    step['run'] = step['run'].replace('\n'.join(commands), '\n'.join(changed), 1)
+    with pytest.raises(AssertionError):
+        if kind == 'sanity': _assert_sanity_backend_dependency(value)
+        else: _assert_research_coverage_closure(value, (ROOT / '.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+def test_b3_complete_ci_argv_partition_preserves_sixteen_prefix_and_pure_ordinary(kind):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    title = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    script = next(s['run'] for s in job['steps'] if s.get('name') == title)
+    commands = backend_process_commands(coverage=kind == 'coverage')
+    prior = backend_process_commands(coverage=kind == 'coverage', before_b3=True)
+    assert len(commands) == 20 and len(prior) == 17
+    assert commands[1:17] == prior[1:]
+    prefix = 'web/backend/tests/' if kind == 'coverage' else 'tests/'
+    fresh = [next(t for t in shlex.split(c) if t.startswith(prefix)) for c in commands[1:]]
+    ignored = [t.removeprefix('--ignore=') for t in shlex.split(commands[0]) if t.startswith('--ignore=')]
+    assert len(fresh) == len(set(fresh)) == 19 and fresh == ignored
+    inventory = {p.relative_to(ROOT / 'web/backend/tests').as_posix()
+                 for p in (ROOT / 'web/backend/tests').rglob('test_*.py')}
+    relative = [p.removeprefix(prefix) for p in fresh]
+    assert set(relative) <= inventory
+    ordinary = inventory - set(relative)
+    assert all(int(name in ordinary) + relative.count(name) == 1 for name in inventory)
+    assert script.count('\n'.join(commands)) == 1
+    assert _backend_script_before_b3(script, coverage=kind == 'coverage').count('\n'.join(prior)) == 1
+    for name in B3_BACKEND_FORMAL_FILES:
+        path = ROOT / 'web/backend/tests' / name
+        assert path.is_file() and not path.is_symlink(), 'full actual module must be present in the composed source'
+        ast.parse(path.read_text())
+    for name in ('test_source_document_raw.py', 'test_source_document_access.py',
+                 'test_source_document_transport.py', 'test_financial_limit_observer.py'):
+        assert prefix + name not in ignored and prefix + name not in fresh
+        assert name in ordinary

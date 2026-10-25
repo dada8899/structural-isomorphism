@@ -81,7 +81,7 @@ jobs:
 
         # Stop on a real failure so its traceback survives the job deadline.
 
-        python -m pytest tests --ignore=tests/test_formal_main_admission.py --ignore=tests/test_formal_main_source_supervisor.py --ignore=tests/test_research_financial_import.py --ignore=tests/test_formal_model_startup.py --ignore=tests/acceptance/test_source_history_fixture_current15.py --ignore=tests/test_research_financial_registries.py --ignore=tests/test_research_source_origin_history.py --ignore=tests/test_research_evidence_method_plan.py --ignore=tests/test_research_evidence_method_native.py --ignore=tests/test_plan_runtime_transport.py --ignore=tests/test_research_native_browser_service.py --ignore=tests/test_native_live_grant.py --ignore=tests/test_formal_native_plan_supervisor.py --ignore=tests/test_research_financial_execution_v2.py --ignore=tests/test_research_financial_results_v2.py --ignore=tests/test_source_sec_access_lifecycle.py -x -ra -q --tb=short --durations=10
+        python -m pytest tests --ignore=tests/test_formal_main_admission.py --ignore=tests/test_formal_main_source_supervisor.py --ignore=tests/test_research_financial_import.py --ignore=tests/test_formal_model_startup.py --ignore=tests/acceptance/test_source_history_fixture_current15.py --ignore=tests/test_research_financial_registries.py --ignore=tests/test_research_source_origin_history.py --ignore=tests/test_research_evidence_method_plan.py --ignore=tests/test_research_evidence_method_native.py --ignore=tests/test_plan_runtime_transport.py --ignore=tests/test_research_native_browser_service.py --ignore=tests/test_native_live_grant.py --ignore=tests/test_formal_native_plan_supervisor.py --ignore=tests/test_research_financial_execution_v2.py --ignore=tests/test_research_financial_results_v2.py --ignore=tests/test_source_sec_access_lifecycle.py --ignore=tests/test_source_document_raw_lifecycle.py --ignore=tests/test_formal_main_history_read_borrow.py --ignore=tests/test_source_document_cached_history.py -x -ra -q --tb=short --durations=10
 
         python -m pytest tests/test_formal_main_admission.py -p no:logging -x -ra -q --tb=short --durations=10
 
@@ -114,6 +114,12 @@ jobs:
         python -m pytest tests/test_research_financial_results_v2.py -p no:logging -x -ra -q --tb=short --durations=10
 
         python -m pytest tests/test_source_sec_access_lifecycle.py -p no:logging -x -ra -q --tb=short --durations=10
+
+        python -m pytest tests/test_source_document_raw_lifecycle.py -p no:logging -x -ra -q --tb=short --durations=10
+
+        python -m pytest tests/test_formal_main_history_read_borrow.py -p no:logging -x -ra -q --tb=short --durations=10
+
+        python -m pytest tests/test_source_document_cached_history.py -p no:logging -x -ra -q --tb=short --durations=10
 
         '
 
