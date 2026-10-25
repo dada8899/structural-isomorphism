@@ -311,15 +311,62 @@ async def _parse_financial_registry_confirmation(request):
     return envelope
 
 
+def _history_worker(slot):
+    from importlib import import_module
+    admission=import_module('web.backend.services.formal_admission' if __package__=='web.backend.api' else 'services.formal_admission')
+    read=admission.enter_history_worker(slot)
+    try:
+        request=read.request
+        if slot.stage=='identity':result=_identity(request)
+        elif slot.stage=='service':result=ResearchService(ResearchStore(auth._store()))
+        elif slot.stage=='action':
+            module=import_module('web.backend.research.paid_control' if __package__=='web.backend.api' else 'research.paid_control')
+            result=module.issue_authenticated_action(request,action='source-raw-read')
+        elif slot.stage=='records':
+            admission.require_history_read_consumer(read.service,read.identity,consumer='records')
+            result=source_integration.records(read.service,read.identity,request.path_params['research_id'],
+                request.query_params.get('task_id',''),request.query_params.get('kind',''),request.query_params.get('cursor'),request_app=request.app)
+        elif slot.stage=='raw':
+            admission.require_history_read_consumer(read.service,read.identity,read.source,consumer='raw')
+            result=source_integration.raw_preparations(read.service,read.identity,request.path_params['research_id'],
+                request.query_params.get('task_id',''),request_source=read.source,request_app=request.app)
+        else:raise RuntimeError('fixed history worker required')
+        admission.complete_history_worker(slot,result)
+        return result
+    finally:admission.end_history_worker(slot)
+
+
+async def _history_threadpool(request,stage):
+    from importlib import import_module
+    admission=import_module('web.backend.services.formal_admission' if __package__=='web.backend.api' else 'services.formal_admission')
+    slot=None
+    try:
+        slot=admission.reserve_history_worker(request,stage)
+        return await run_in_threadpool(_history_worker,slot)
+    except admission.HistoryReadUnavailable:
+        raise ResearchError('FEATURE_UNAVAILABLE',503,'正式研究能力尚未就绪。') from None
+    finally:
+        if slot is not None:admission.cancel_history_worker(slot)
+
+
 async def _dispatch(request, *, research_id=None, operation="view"):
     try:
+        history_read=False
+        if operation in ('source-records','source-raw-read'):
+            if __package__=='web.backend.api':from ..services import formal_admission as history_admission
+            else:from services import formal_admission as history_admission
+            history_read=history_admission.enter_history_dispatch(request)
         if __package__=='web.backend.api':from ..research.runtime_profile import formal_request_required,require_formal_application
         else:from research.runtime_profile import formal_request_required,require_formal_application
         if formal_request_required(request.app):require_formal_application(request.app,'research_basic')
         elif not enabled():
             raise ResearchError("FEATURE_UNAVAILABLE", 503, "研究保存功能尚未开放。")
-        identity = await run_in_threadpool(_identity, request)
-        service = await run_in_threadpool(lambda: ResearchService(ResearchStore(auth._store())))
+        if history_read:
+            identity = await _history_threadpool(request,'identity')
+            service = await _history_threadpool(request,'service')
+        else:
+            identity = await run_in_threadpool(_identity, request)
+            service = await run_in_threadpool(lambda: ResearchService(ResearchStore(auth._store())))
         # Captured private storage never falls back to a development flag after
         # environment downgrade, including requests outside canonical Main.
         if service.store._formal_mode():require_formal_application(request.app,'research_basic')
@@ -479,12 +526,16 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         elif operation == 'source-raw-read':
             if __package__=='web.backend.api':from ..research.paid_control import issue_authenticated_action
             else:from research.paid_control import issue_authenticated_action
-            source=await run_in_threadpool(issue_authenticated_action,request,action='source-raw-read')
-            try:result=await run_in_threadpool(source_integration.raw_preparations,service,identity,research_id,
-                request.query_params.get('task_id',''),request_source=source,request_app=request.app)
-            finally:source.close()
+            source=await _history_threadpool(request,'action') if history_read else await run_in_threadpool(issue_authenticated_action,request,action='source-raw-read')
+            try:
+                if history_read:result=await _history_threadpool(request,'raw')
+                else:result=await run_in_threadpool(source_integration.raw_preparations,service,identity,research_id,
+                    request.query_params.get('task_id',''),request_source=source,request_app=request.app)
+            finally:
+                if not history_read:source.close()
         elif operation == "source-records":
-            result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get("task_id",""),request.query_params.get("kind",""),request.query_params.get("cursor"),request_app=request.app)
+            if history_read:result=await _history_threadpool(request,'records')
+            else:result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get("task_id",""),request.query_params.get("kind",""),request.query_params.get("cursor"),request_app=request.app)
         elif operation == "events":
             raw_cursor=request.query_params.get("after_seq","0")
             if not re.fullmatch(r"[0-9]{1,12}",raw_cursor):raise ResearchError("INPUT_INVALID",422,"事件游标无效。")

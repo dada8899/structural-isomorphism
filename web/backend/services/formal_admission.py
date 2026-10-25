@@ -1,5 +1,8 @@
 """Process/lifespan-bound Main admission; Core facts and ENV grant nothing."""
 import hashlib
+import asyncio
+from contextvars import ContextVar
+import re
 import importlib
 import inspect
 import json
@@ -94,7 +97,8 @@ class _Binding:
     __slots__ = ('app', 'pid', 'reference', 'factory', 'origin', 'config', 'roots', 'paths',
                  'sources', 'service', 'facts', 'witnesses', 'favorites_lock', 'search', 'active', 'retired',
                  'supervisor', 'source_module', 'source_receipt', 'source_deadline', 'source_errors', 'withdrawal',
-                 'native_module','native_context','native_supervisor','native_receipt','native_deadline','native_errors')
+                 'native_module','native_context','native_supervisor','native_receipt','native_deadline','native_errors',
+                 'history_reads','history_errors','history_deadline','history_accepting')
 
     def __init__(self, app, *, _factory=None):
         if (_factory is not _FACTORY or inspect.currentframe().f_back.f_code is not initialize.__code__):
@@ -107,6 +111,8 @@ class _Binding:
         self.withdrawal = None
         self.native_module=self.native_context=self.native_supervisor=self.native_receipt=self.native_deadline=None
         self.native_errors=()
+        self.history_reads, self.history_errors, self.history_deadline = {}, (), None
+        self.history_accepting = True
 
     def __repr__(self):
         return '<formal Main native binding>'
@@ -203,7 +209,8 @@ def initialize(app):
         finally:
             favorites.close()
         binding.sources = {Path(module.__file__): _digest(module.__file__) for module in
-            (main, sys.modules[__name__], paths, importlib.import_module(research_family + '.runtime_profile'),
+            (main, sys.modules[__name__], paths, importlib.import_module(service_family + '.sqlite_utils'),
+             importlib.import_module(api_family + '.research'), importlib.import_module(research_family + '.runtime_profile'),
              importlib.import_module(research_family + '.store'))}
         binding.check(published=False)
         return binding
@@ -314,6 +321,11 @@ def withdraw(app):
     """Revoke HTTP before waiting on G; keep local native witnesses alive."""
     with _LIFETIME_LOCK:
         binding = _STATE.get(id(app))
+        if binding is not None:
+            binding.history_accepting = False
+            for read in tuple(binding.history_reads.values()):
+                for worker in read.workers.values():
+                    if worker.state == 'PENDING':object.__setattr__(worker,'state','CANCELLED')
     if binding is None:
         return
     error = None
@@ -332,6 +344,9 @@ def withdraw(app):
             return None
         binding.withdrawal = _Withdrawal(binding, _factory=_WITHDRAW_FACTORY) if error is None else None
         binding.active, binding.retired = False, True
+        for read in tuple(binding.history_reads.values()):
+            for worker in read.workers.values():
+                if worker.state == 'PENDING':object.__setattr__(worker, 'state', 'CANCELLED')
         _STATE.pop(id(app), None)
     if error is not None:
         _RETIRED_UNCERTAIN[binding.reference] = (binding, binding.supervisor, (error,))
@@ -453,6 +468,9 @@ def release(binding, *, deadline_monotonic=None):
     _owned(binding)
     if binding.active or _STATE.get(id(binding.app)) is binding:
         raise RuntimeError('HTTP admission must be withdrawn before common resource release')
+    if not history_reads_closed(binding):
+        _hold_history(binding)
+        raise RuntimeError('Main history reads still own resources')
     if not source_closed(binding) or not native_closed(binding):
         _RETIRED_UNCERTAIN[binding.reference] = (binding, binding.supervisor,binding.native_supervisor, ('WORKER_NOT_CLOSED',))
         raise RuntimeError('Main common resources still owned by Source')
@@ -487,3 +505,411 @@ def preserve_retirement_uncertainty(app, binding, search, errors):
     # Retired native objects are evidence, never a usable admission entry.
     reference = binding.reference if binding is not None else str(uuid4())
     _RETIRED_UNCERTAIN[reference] = (binding, search, tuple(errors))
+
+
+# These native records account for two HTTP read lifetimes. They are not
+# authentication, SQL, cache, Source or funding capabilities.
+_HISTORY_ROUTE = re.compile(r'/api/research/[^/]+/(records|source-raw-preparations)\Z')
+class HistoryReadUnavailable(RuntimeError):
+    pass
+
+
+_READ_FACTORY = object()
+_READ_CONTEXT = vars(sqlite3).setdefault('_structural_main_history_request_v1', ContextVar('main_history_request', default=None))
+_READ_WORKER = vars(sqlite3).setdefault('_structural_main_history_worker_v1', ContextVar('main_history_worker', default=None))
+_READ_FDS = vars(sqlite3).setdefault('_structural_main_history_directories_v1', {})
+_READ_CODE_CACHE = {}
+
+
+class _ReadRecord:
+    __slots__ = ('origin', 'factory', 'pid', 'reference')
+    def __init__(self, *args, **kwargs): raise TypeError('actual Main read factory required')
+    def __setattr__(self, *args): raise TypeError('Main read record is immutable')
+    def __reduce__(self): raise TypeError('Main read record cannot be serialized')
+    def __repr__(self): return '<native Main history read record>'
+
+
+class MainHistoryReadBorrow(_ReadRecord):
+    __slots__ = ('binding','scope','operation','request','outer_task','api_task','thread','ended',
+                 'workers','resources','identity','service','source','request_token','worker_token','event_worker')
+
+
+class _HistoryWorker(_ReadRecord):
+    __slots__ = ('read','stage','state','thread','token')
+
+
+class _HistoryResource(_ReadRecord):
+    __slots__ = ('worker','kind','state','handle','witness','identity','errors')
+
+
+def _new_read_record(cls, **fields):
+    frame=inspect.currentframe().f_back
+    if frame.f_code not in (begin_history_read.__code__, reserve_history_worker.__code__, reserve_history_resource.__code__):
+        raise TypeError('actual Main read birth required')
+    value=object.__new__(cls)
+    for key,item in dict(origin=__name__,factory=_READ_FACTORY,pid=os.getpid(),reference=object(),**fields).items():
+        object.__setattr__(value,key,item)
+    return value
+
+
+def _read_origin(value, cls_name):
+    origin=sys.modules.get(getattr(value,'origin',None))
+    if (origin is None or type(value) is not getattr(origin,cls_name,None)
+            or value.factory is not origin._READ_FACTORY or value.pid!=os.getpid()):
+        raise RuntimeError('actual native Main read record required')
+    return origin
+
+
+def _read_owner(read):
+    _read_origin(read,'MainHistoryReadBorrow');_owned(read.binding)
+    if read.binding.history_reads.get(read.reference) is not read:
+        raise HistoryReadUnavailable('Main history read has ended')
+    return read.binding
+
+
+def _native_read_caller(frame, relative, names):
+    """Match native globals and compiled fixed source, not callback names."""
+    module=sys.modules.get(frame.f_globals.get('__name__'))
+    expected=Path(__file__).resolve().parents[1]/relative
+    if (module is None or frame.f_globals is not vars(module) or Path(module.__file__).resolve()!=expected
+            or Path(module.__file__).is_symlink()):
+        raise RuntimeError('fixed Main read caller required')
+    key=(str(expected),_digest(expected))
+    code=_READ_CODE_CACHE.get(key)
+    if code is None:
+        code=compile(expected.read_bytes(),str(expected),'exec',dont_inherit=True)
+        _READ_CODE_CACHE[key]=code
+    for name in names:
+        candidate=code
+        try:
+            for part in name.split('.'):
+                candidate=next(c for c in candidate.co_consts if isinstance(c,types.CodeType) and c.co_name==part)
+        except StopIteration:continue
+        if frame.f_code==candidate:return module
+    raise RuntimeError('fixed Main read caller required')
+
+
+def history_read_path(scope):
+    return (scope.get('type')=='http' and scope.get('method')=='GET'
+            and type(scope.get('path')) is str and _HISTORY_ROUTE.fullmatch(scope['path']) is not None)
+
+
+def begin_history_read(app, scope):
+    frame=inspect.currentframe().f_back
+    paths=_native_read_caller(frame,'services/runtime_paths.py',('FormalAdmissionMiddleware.__call__',))
+    middleware=frame.f_locals.get('self');current=getattr(app,'middleware_stack',None)
+    while current is not None and current is not middleware:current=getattr(current,'app',None)
+    if (current is not middleware or type(middleware) is not paths.FormalAdmissionMiddleware
+            or middleware.formal is not True or frame.f_locals.get('scope') is not scope
+            or scope.get('app') is not app or not history_read_path(scope)):
+        raise RuntimeError('actual Main history middleware required')
+    binding=_STATE.get(id(app));_owned(binding)
+    task=asyncio.current_task();thread=threading.current_thread()
+    with _LIFETIME_LOCK:
+        if binding.retired or not binding.active or not binding.history_accepting or _STATE.get(id(app)) is not binding:
+            raise HistoryReadUnavailable('Main history admission withdrawn')
+        read=_new_read_record(MainHistoryReadBorrow,binding=binding,scope=scope,
+            operation='records' if scope['path'].endswith('/records') else 'raw',request=None,
+            outer_task=task,api_task=None,thread=thread,ended=False,workers={},resources={},
+            identity=None,service=None,source=None,request_token=None,worker_token=None,event_worker=None)
+        worker=_new_read_record(_HistoryWorker,read=read,stage='request',state='ACTIVE',thread=thread,token=None)
+        object.__setattr__(read,'event_worker',worker);read.workers[worker.reference]=worker
+        binding.history_reads[read.reference]=read
+    object.__setattr__(read,'request_token',_READ_CONTEXT.set(read))
+    object.__setattr__(read,'worker_token',_READ_WORKER.set(worker))
+    try:
+        # Account for the original admission check's transient directory FDs
+        # before authentication, without granting downstream admission early.
+        require(app,'research_basic')
+        return read
+    except BaseException:
+        _end_history_read(read)
+        raise
+
+
+def enter_history_dispatch(request):
+    _native_read_caller(inspect.currentframe().f_back,'api/research.py',('_dispatch',))
+    read=_READ_CONTEXT.get()
+    if read is None:return False
+    _read_owner(read)
+    if (request.scope is not read.scope or request.app is not read.binding.app or read.ended
+            or threading.current_thread() is not read.thread):
+        raise RuntimeError('actual history request required')
+    task=asyncio.current_task()
+    with _LIFETIME_LOCK:
+        if read.api_task is not None and read.api_task is not task:raise RuntimeError('history task differs')
+        object.__setattr__(read,'api_task',task);object.__setattr__(read,'request',request)
+    return True
+
+
+def _history_worker_current():
+    read=_READ_CONTEXT.get();worker=_READ_WORKER.get()
+    if read is None and worker is None:return None
+    _read_owner(read);_read_origin(worker,'_HistoryWorker')
+    if (worker.read is not read or read.workers.get(worker.reference) is not worker or worker.state!='ACTIVE'
+            or worker.thread is not threading.current_thread()):
+        raise RuntimeError('actual active Main read worker required')
+    if worker.stage=='request':
+        task=asyncio.current_task()
+        if read.ended or task not in (read.outer_task,read.api_task):raise RuntimeError('history request task differs')
+    return worker
+
+
+
+def _history_request_cancelled(read):
+    return any(task is not None and task.cancelling() for task in (read.outer_task, read.api_task))
+
+def reserve_history_worker(request, stage):
+    _native_read_caller(inspect.currentframe().f_back,'api/research.py',('_history_threadpool',))
+    read=_READ_CONTEXT.get();_read_owner(read)
+    if (read.request is not request or request.scope is not read.scope or asyncio.current_task() is not read.api_task
+            or stage not in ('identity','service','action','records','raw')):
+        raise RuntimeError('fixed history stage required')
+    with _LIFETIME_LOCK:
+        if read.ended or _history_request_cancelled(read) or read.binding.retired or not read.binding.active or not read.binding.history_accepting or _STATE.get(id(read.binding.app)) is not read.binding:raise HistoryReadUnavailable('Main history admission withdrawn')
+        if any(w.state in ('PENDING','ACTIVE') and w.stage!='request' for w in read.workers.values()):
+            raise RuntimeError('history stage already pending')
+        if ((stage=='identity' and read.identity is not None) or (stage=='service' and (read.identity is None or read.service is not None))
+                or (stage=='action' and (read.operation!='raw' or read.service is None or read.source is not None))
+                or (stage in ('records','raw') and (stage!=read.operation or read.service is None or (stage=='raw' and read.source is None)))):
+            raise RuntimeError('history stage order differs')
+        worker=_new_read_record(_HistoryWorker,read=read,stage=stage,state='PENDING',thread=None,token=None)
+        read.workers[worker.reference]=worker
+        return worker
+
+
+def enter_history_worker(worker):
+    _native_read_caller(inspect.currentframe().f_back,'api/research.py',('_history_worker',))
+    _read_origin(worker,'_HistoryWorker');read=worker.read;_read_owner(read)
+    with _LIFETIME_LOCK:
+        if (read.workers.get(worker.reference) is not worker or worker.state!='PENDING' or read.ended or _history_request_cancelled(read)
+                or read.binding.retired or not read.binding.active or not read.binding.history_accepting or _STATE.get(id(read.binding.app)) is not read.binding):
+            if worker.state=='PENDING':object.__setattr__(worker,'state','CANCELLED')
+            raise HistoryReadUnavailable('Main history worker withdrawn before IO')
+        object.__setattr__(worker,'state','ACTIVE');object.__setattr__(worker,'thread',threading.current_thread())
+    object.__setattr__(worker,'token',_READ_WORKER.set(worker))
+    return read
+
+
+def complete_history_worker(worker, result):
+    api=_native_read_caller(inspect.currentframe().f_back,'api/research.py',('_history_worker',))
+    if _history_worker_current() is not worker:raise RuntimeError('actual history worker required')
+    if worker.stage=='identity' and type(result) is not api.AccountIdentity:
+        raise RuntimeError('actual history identity required')
+    if worker.stage=='service' and (type(result) is not api.ResearchService or type(result.store) is not api.ResearchStore
+            or result.store.path!=worker.read.binding.service.store.path
+            or result.store.storage_identity!=worker.read.binding.service.store.storage_identity):
+        raise RuntimeError('actual bound history service required')
+    key={'identity':'identity','service':'service','action':'source'}.get(worker.stage)
+    if key is not None:object.__setattr__(worker.read,key,result)
+
+
+def cancel_history_worker(worker):
+    _native_read_caller(inspect.currentframe().f_back,'api/research.py',('_history_threadpool',))
+    _read_origin(worker,'_HistoryWorker')
+    with _LIFETIME_LOCK:
+        if worker.state=='PENDING':object.__setattr__(worker,'state','CANCELLED')
+
+
+def _hold_history(binding):
+    _RETIRED_UNCERTAIN[binding.reference]=(binding,tuple(binding.history_reads.values()),binding.history_errors)
+
+
+def _history_failure(read, error):
+    object.__setattr__(read.binding,'history_errors',(*read.binding.history_errors,error))
+    _hold_history(read.binding)
+
+
+def _finish_history_if_possible(read):
+    # Caller owns the lifetime lock. Sticky errors are never upgraded to closed.
+    if read.ended and read.source is None and not read.resources and all(w.state in ('RETIRED','CANCELLED') for w in read.workers.values()):
+        read.binding.history_reads.pop(read.reference,None)
+
+
+def _close_history_action(read):
+    source=read.source
+    if source is not None:
+        try:source.close()
+        except BaseException as error:
+            with _LIFETIME_LOCK:_history_failure(read,error)
+        else:object.__setattr__(read,'source',None)
+
+
+def end_history_worker(worker):
+    _native_read_caller(inspect.currentframe().f_back,'api/research.py',('_history_worker',))
+    _read_origin(worker,'_HistoryWorker');read=worker.read
+    if worker.thread is not threading.current_thread():raise RuntimeError('history creator thread required')
+    try:
+        if read.ended:_close_history_action(read)
+    finally:
+        _READ_WORKER.reset(worker.token)
+        with _LIFETIME_LOCK:
+            object.__setattr__(worker,'state','RETIRED');_finish_history_if_possible(read)
+
+
+def end_history_read(read):
+    _native_read_caller(inspect.currentframe().f_back,'services/runtime_paths.py',('FormalAdmissionMiddleware.__call__',))
+    _end_history_read(read)
+
+
+def _end_history_read(read):
+    if inspect.currentframe().f_back.f_code not in (begin_history_read.__code__,end_history_read.__code__):
+        raise RuntimeError('actual history request end required')
+    _read_owner(read)
+    with _LIFETIME_LOCK:
+        object.__setattr__(read,'ended',True)
+        for worker in read.workers.values():
+            if worker.state=='PENDING':object.__setattr__(worker,'state','CANCELLED')
+        object.__setattr__(read.event_worker,'state','RETIRED')
+    try:
+        # An active raw worker retains its original request source through its
+        # own finally, even when the outer coroutine has been cancelled.
+        with _LIFETIME_LOCK:
+            active=any(w.stage!='request' and w.state=='ACTIVE' for w in read.workers.values())
+        if not active:_close_history_action(read)
+    finally:
+        _READ_WORKER.reset(read.worker_token);_READ_CONTEXT.reset(read.request_token)
+        with _LIFETIME_LOCK:_finish_history_if_possible(read)
+
+
+def reserve_history_resource(kind):
+    if _READ_CONTEXT.get() is None and _READ_WORKER.get() is None:return None
+    frame=inspect.currentframe().f_back
+    if kind=='directory':_native_read_caller(frame,'services/runtime_paths.py',('_open_runtime_directory',))
+    elif kind=='connection':_native_read_caller(frame,'services/sqlite_utils.py',('connect_private_history','connect_private_auth','connect_private_sso'))
+    else:raise RuntimeError('fixed history resource required')
+    worker=_history_worker_current()
+    if worker is None:return None
+    with _LIFETIME_LOCK:
+        resource=_new_read_record(_HistoryResource,worker=worker,kind=kind,state='OPENING',handle=None,witness=None,identity=None,errors=())
+        worker.read.resources[resource.reference]=resource
+    return resource
+
+
+def _history_resource_owned(resource):
+    _read_origin(resource,'_HistoryResource');read=resource.worker.read;_read_owner(read)
+    if read.resources.get(resource.reference) is not resource or resource.worker.thread is not threading.current_thread():
+        raise RuntimeError('actual creator-owned history resource required')
+    return read
+
+
+def bind_history_directory(resource, fd):
+    if resource is None:return
+    _native_read_caller(inspect.currentframe().f_back,'services/runtime_paths.py',('_open_runtime_directory',))
+    if resource is None:return
+    _history_resource_owned(resource)
+    if type(fd) is not int or resource.kind!='directory' or resource.state!='OPENING':raise RuntimeError('actual directory birth required')
+    with _LIFETIME_LOCK:
+        object.__setattr__(resource,'handle',fd);object.__setattr__(resource,'state','LIVE')
+        _READ_FDS[(os.getpid(),threading.get_ident(),fd)]=resource
+    info=os.fstat(fd)
+    object.__setattr__(resource,'identity',(info.st_dev,info.st_ino))
+
+
+def history_directory_resource(fd):
+    if (os.getpid(),threading.get_ident(),fd) not in _READ_FDS:return None
+    _native_read_caller(inspect.currentframe().f_back,'services/runtime_paths.py',('_close_runtime_fd','_attach_history_parent',))
+    return _READ_FDS.get((os.getpid(),threading.get_ident(),fd))
+
+
+def bind_history_witness(resource, witness):
+    if resource is None:return
+    _native_read_caller(inspect.currentframe().f_back,'services/runtime_paths.py',('_attach_history_parent',))
+    if resource is not None:
+        _history_resource_owned(resource);object.__setattr__(resource,'witness',witness)
+
+
+def bind_history_connection(resource, conn, witness):
+    if resource is None:return
+    _native_read_caller(inspect.currentframe().f_back,'services/sqlite_utils.py',('connect_private_history','connect_private_auth','connect_private_sso'))
+    if resource is None:return
+    _history_resource_owned(resource)
+    if not isinstance(conn,sqlite3.Connection) or resource.kind!='connection' or resource.state!='OPENING':raise RuntimeError('actual SQLite birth required')
+    object.__setattr__(resource,'handle',conn);object.__setattr__(resource,'witness',witness)
+    object.__setattr__(resource,'identity',witness.file_identity);object.__setattr__(resource,'state','LIVE')
+
+
+
+
+def validate_history_resource_creator(resource):
+    if resource is None:return
+    _native_read_caller(inspect.currentframe().f_back,'services/runtime_paths.py',('PrivateHistoryFile.close',))
+    if resource is not None:_history_resource_owned(resource)
+
+def begin_history_resource_close(resource):
+    if resource is None:return
+    frame=inspect.currentframe().f_back
+    if frame.f_code.co_name=='_close_runtime_fd':_native_read_caller(frame,'services/runtime_paths.py',('_close_runtime_fd',))
+    else:_native_read_caller(frame,'services/sqlite_utils.py',('PrivateHistoryConnection.close',))
+    if resource is None:return
+    _history_resource_owned(resource)
+    with _LIFETIME_LOCK:
+        if resource.state not in ('LIVE','OPENING'):raise RuntimeError('history resource close cannot be retried')
+        object.__setattr__(resource,'state','CLOSING')
+
+def finish_history_resource(resource, error=None):
+    if resource is None:return
+    frame=inspect.currentframe().f_back
+    if frame.f_code.co_name=='_close_runtime_fd':_native_read_caller(frame,'services/runtime_paths.py',('_close_runtime_fd',))
+    else:_native_read_caller(frame,'services/sqlite_utils.py',('PrivateHistoryConnection.close','connect_private_history','connect_private_auth','connect_private_sso'))
+    if resource is None:return
+    read=_history_resource_owned(resource)
+    with _LIFETIME_LOCK:
+        handle = resource.handle
+        if error is not None:
+            object.__setattr__(resource,'state','UNCERTAIN');object.__setattr__(resource,'errors',(*resource.errors,error))
+            _history_failure(read,error)
+        elif resource.state!='UNCERTAIN':
+            object.__setattr__(resource,'state','CLOSED');read.resources.pop(resource.reference,None)
+            object.__setattr__(resource,'handle',None);object.__setattr__(resource,'witness',None)
+        if resource.kind=='directory':
+            key=(os.getpid(),threading.get_ident(),handle)
+            if _READ_FDS.get(key) is resource:_READ_FDS.pop(key,None)
+        _finish_history_if_possible(read)
+
+
+def fail_history_directory_birth(resource):
+    if resource is None:return
+    _native_read_caller(inspect.currentframe().f_back,'services/runtime_paths.py',('_open_runtime_directory',))
+    if resource is None:return
+    read=_history_resource_owned(resource)
+    with _LIFETIME_LOCK:
+        if resource.handle is None:
+            read.resources.pop(resource.reference,None);object.__setattr__(resource,'state','CLOSED')
+        _finish_history_if_possible(read)
+
+
+def require_history_read_consumer(service, identity, request_source=None, *, consumer='raw'):
+    worker=_history_worker_current()
+    if (worker is None or worker.stage!=consumer or consumer not in ('raw','records')
+            or worker.read.ended or worker.read.scope.get('app') is not worker.read.binding.app
+            or worker.read.service is not service or worker.read.identity is not identity
+            or (consumer=='raw' and worker.read.source is not request_source)):
+        raise RuntimeError('actual fixed Main history consumer required')
+    return None
+
+
+def history_reads_closed(binding):
+    _owned(binding)
+    with _LIFETIME_LOCK:return not binding.history_reads and not binding.history_errors
+
+
+async def drain_history_reads(binding, *, deadline_monotonic):
+    _producer(binding.app)
+    frame=inspect.currentframe().f_back
+    if frame.f_locals.get('binding') is not binding or frame.f_locals.get('deadline')!=deadline_monotonic:
+        raise RuntimeError('original Main history deadline required')
+    _owned(binding)
+    if type(deadline_monotonic) not in (int,float) or not math.isfinite(deadline_monotonic):raise RuntimeError('finite Main deadline required')
+    with _LIFETIME_LOCK:
+        binding.history_deadline=deadline_monotonic if binding.history_deadline is None else min(binding.history_deadline,deadline_monotonic)
+    while True:
+        with _LIFETIME_LOCK:
+            if not binding.history_reads and not binding.history_errors:return None
+            if binding.history_errors:
+                _hold_history(binding);raise RuntimeError('Main history cleanup uncertain')
+            remaining=binding.history_deadline-time.monotonic()
+            if remaining<=0:
+                _history_failure(next(iter(binding.history_reads.values())),RuntimeError('Main history drain deadline'))
+                raise RuntimeError('Main history drain deadline')
+        await asyncio.sleep(min(.01,remaining))
