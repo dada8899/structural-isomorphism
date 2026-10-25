@@ -267,7 +267,11 @@ async def _parse(request, schema):
             if __package__=='web.backend.api':from ..research.plan_native_schemas import NativePlanPreviewEnvelope,NativePlanConfirmationEnvelope
             else:from research.plan_native_schemas import NativePlanPreviewEnvelope,NativePlanConfirmationEnvelope
             schema=NativePlanPreviewEnvelope if schema is PlanPreviewEnvelope else NativePlanConfirmationEnvelope
-        validated=schema.model_validate(body)
+        if schema in (SourcePreviewEnvelope,SourceApprovalEnvelope,SourceStartEnvelope):
+            if __package__=='web.backend.api':from ..research.schemas import source_envelope
+            else:from research.schemas import source_envelope
+            validated=source_envelope(schema,body)
+        else:validated=schema.model_validate(body)
         request._body=bytes(raw)
         return validated
     except (ValueError, ValidationError, RecursionError, OverflowError):
@@ -472,6 +476,13 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                 if native:result=await run_in_threadpool(plan_native_runtime.read,service,identity,research_id,request.path_params['result_ref'],source)
                 else:result=await run_in_threadpool(read,service,identity,research_id,request.path_params['result_ref'],source)
             finally:source.close()
+        elif operation == 'source-raw-read':
+            if __package__=='web.backend.api':from ..research.paid_control import issue_authenticated_action
+            else:from research.paid_control import issue_authenticated_action
+            source=await run_in_threadpool(issue_authenticated_action,request,action='source-raw-read')
+            try:result=await run_in_threadpool(source_integration.raw_preparations,service,identity,research_id,
+                request.query_params.get('task_id',''),request_source=source,request_app=request.app)
+            finally:source.close()
         elif operation == "source-records":
             result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get("task_id",""),request.query_params.get("kind",""),request.query_params.get("cursor"),request_app=request.app)
         elif operation == "events":
@@ -647,6 +658,11 @@ async def source_preview(research_id: str,request: Request):
 @router.get("/research/{research_id}/records")
 async def source_records(research_id: str,request: Request):
     return await _dispatch(request,research_id=research_id,operation="source-records")
+
+
+@router.get('/research/{research_id}/source-raw-preparations')
+async def source_raw_preparations(research_id: str,request: Request):
+    return await _dispatch(request,research_id=research_id,operation='source-raw-read')
 
 
 @router.post("/research/{research_id}/source-approvals")

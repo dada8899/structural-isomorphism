@@ -305,7 +305,8 @@ RECORD_TYPES = dict(zip(KINDS, (DataSnapshot, AnalysisPlan, ExecutionRecord, Evi
 
 def encode(record):
     if type(record) not in RECORD_TYPES.values():
-        raise ValueError("unsupported record type")
+        from .source_document_raw import encode_raw
+        return encode_raw(record)
     # Revalidate even instances constructed through unsafe deserialization.
     decode(next(k for k, t in RECORD_TYPES.items() if t is type(record)), canonical(asdict(record)))
     return canonical(asdict(record))
@@ -322,6 +323,9 @@ def decode(kind, payload):
             result[k] = v
         return result
     data = json.loads(payload, object_pairs_hook=pairs, parse_constant=lambda _: (_ for _ in ()).throw(ValueError("nonfinite")))
+    if type(data) is dict and 'record_schema' in data:
+        from .source_document_raw import decode_raw
+        return decode_raw(kind,payload)
     if kind == "snapshots":
         data["licence"] = Licence(**data["licence"])
     for key in ("competing_explanations", "required_evidence", "samples", "snapshot_refs", "excerpt_refs", "limitations", "execution_refs", "claim_refs", "outstanding_requirements", "artifact_refs"):

@@ -68,6 +68,7 @@ def issue_authenticated_action(request,*,action,research_id=None,task_id=None,ke
         'plan-preview':('POST','preview_research_plan'),'plan-confirm':('POST','confirm_research_plan'),'plan-read':('GET','read_research_plan'),
         'draft-save':('POST','save_research_method_draft'),'draft-read':('GET','read_research_method_draft'),'draft-history':('GET','list_research_method_drafts'),
         'source-approve':('POST','source_approval'),'source-start':('POST','source_task'),
+        'source-raw-read':('GET','source_raw_preparations'),
         'financial-import-preview':('POST','preview_research_financial_import'),
         'financial-registry-save':('POST','save_research_financial_registry'),
         'financial-registry-read':('GET','read_research_financial_registry'),
@@ -169,11 +170,16 @@ def issue_authenticated_action(request,*,action,research_id=None,task_id=None,ke
         body_digest=digest(request.scope.get('query_string',b''));key=''
     elif action in ('source-approve','source-start'):
         if type(raw) is not bytes or request.query_params:raise PermissionError('actual Source request required')
-        from .schemas import SourceApprovalEnvelope,SourceStartEnvelope
+        from .schemas import SourceApprovalEnvelope,SourceStartEnvelope,source_envelope,source_request_digest
         model=SourceApprovalEnvelope if action=='source-approve' else SourceStartEnvelope
-        data=model.model_validate(strict_json(raw,65536)).data
+        data=source_envelope(model,strict_json(raw,65536)).data
         research_id=request.path_params.get('research_id');task_id=None
-        key=request.headers.get('idempotency-key','');body_digest=digest(canonical(data.model_dump(mode='json')))
+        key=request.headers.get('idempotency-key','');body_digest=source_request_digest(data,action)
+    elif action=='source-raw-read':
+        from .source_document_raw import read_query,read_query_digest
+        try:task_id=read_query(list(request.query_params.multi_items()))
+        except ValueError:raise ResearchError('INPUT_INVALID',422,'原始材料读取参数无效。') from None
+        research_id=request.path_params.get('research_id');key='';body_digest=read_query_digest(task_id)
     elif action=='formula-check':
         if type(raw) is not bytes or request.query_params:raise PermissionError('actual formula request required')
         from .schemas import FormulaCheckEnvelope
