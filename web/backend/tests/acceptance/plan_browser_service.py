@@ -173,6 +173,88 @@ class _BrowserResponseCapture:
         self.page=self.request=self.request_body=self.request_headers=self.actual=None
 
 
+class _MaterialReadPhase:
+    """One click's five real GETs, ending at the final permission read."""
+    def __init__(self,page,origin,rid,tid):
+        root=origin+'/api/research/'+rid
+        self.page=page
+        self.urls=(origin+'/api/auth/me',root+'?task_id='+tid,
+                   root+'/records?task_id='+tid+'&kind=sources',
+                   root+'/records?task_id='+tid+'&kind=excerpts',origin+'/api/auth/me')
+        self.methods=('GET',)*len(self.urls)
+        self.requests=[];self.statuses=[];self.finished=[];self.invalid=False
+
+    def bind(self,request):
+        if request.frame.page is not self.page or request.url not in self.urls:return
+        index=len(self.requests)
+        if (index>=len(self.urls) or request.url!=self.urls[index]
+                or request.method!=self.methods[index]
+                or (request.method=='GET' and request.post_data_buffer is not None)
+                or (request.method=='POST' and type(request.post_data_buffer) is not bytes)):
+            self.invalid=True;return
+        self.requests.append(request);self.statuses.append(None)
+
+    def forwarded(self,request,response,headers=None):
+        for index,actual in enumerate(self.requests):
+            if request is actual:self.statuses[index]=response.status
+
+    def record_finished(self,request):
+        if any(request is actual for actual in self.requests):self.finished.append(request)
+
+    def is_stage(self,index,request):
+        return len(self.requests)>index and request is self.requests[index]
+
+    def check_stage(self,index):
+        assert not self.invalid and len(self.requests)>index, 'material read request chain differs'
+        assert self.statuses[index]==200, 'actual browser phase response refused'
+        assert len(self.finished)>index and self.finished[index] is self.requests[index], 'browser phase request did not finish'
+
+    def check(self):
+        assert not self.invalid and len(self.requests)==len(self.urls), 'material read request chain differs'
+        assert self.statuses==[200]*len(self.urls), 'material read actual permission/record response differs'
+        assert len(self.finished)==len(self.urls) and all(a is b for a,b in zip(self.finished,self.requests)), 'material read did not finish in order'
+
+    def clear(self):
+        self.page=None;self.requests.clear();self.statuses.clear();self.finished.clear();self.urls=self.methods=()
+
+
+class _OriginalDraftReplayPhase(_MaterialReadPhase):
+    """Observe the original replay; never create or resend an operation."""
+    def __init__(self,page,origin,rid,pending,original):
+        super().__init__(page,origin,rid,'')
+        root=origin+'/api/research/'+rid;post=root+'/method-drafts'
+        self.urls=(origin+'/api/auth/me',post,root,post+'/'+original['metadata']['draft_ref'],root,origin+'/api/auth/me')
+        self.methods=('GET','POST','GET','GET','GET','GET')
+        self.pending,self.original=pending,original;self.same_operation=self.same_receipt=False
+
+    def forwarded(self,request,response,headers=None):
+        super().forwarded(request,response,headers)
+        if len(self.requests)>1 and request is self.requests[1] and response.status==200:
+            try:
+                sent=json.loads(request.post_data_buffer)
+                self.same_operation=((headers or {}).get('idempotency-key')==self.pending['key']
+                    and sent=={'schema_version':'structure-research-v1','contract_revision':'method-draft-v1','data':self.pending['task_request']['data']})
+                self.same_receipt=json.loads(response.body).get('data')==self.original
+            except (ValueError,TypeError,KeyError,AttributeError):self.invalid=True
+
+    def check_stage(self,index):
+        super().check_stage(index)
+        if index==1:assert self.same_operation and self.same_receipt, 'original save replay identity differs'
+
+    def check(self):
+        super().check()
+        assert self.same_operation and self.same_receipt, 'original save replay identity differs'
+
+    def clear(self):
+        super().clear();self.pending=self.original=None
+
+
+def _route_error_kind(error):
+    return next((kind.__name__ for kind in (PermissionError,ValueError,OSError,TimeoutError,
+        RuntimeError,AssertionError,TypeError,ConnectionResetError,BrokenPipeError,
+        asyncio.CancelledError) if type(error) is kind),'OTHER')
+
+
 class CanonicalBrowserBridge(AbstractContextManager):
     """Trusted harness transport only; no CookieJar and no installed identity.
 
@@ -185,7 +267,7 @@ class CanonicalBrowserBridge(AbstractContextManager):
     def __init__(self,service):
         self.service=service;self.handler=_OwnedHTTPSHandler(service.port,service.certificate)
         self.active=True;self.pending={};self.condition=threading.Condition()
-        self._captures=[];self._routed_context=None
+        self._captures=[];self._routed_context=None;self._material_read=None;self._handler_tasks=set();self._route_uncertain=False
         info=os.fstat(service.app_socket.fileno());self.socket_identity=(info.st_dev,info.st_ino)
 
     @asynccontextmanager
@@ -205,6 +287,46 @@ class CanonicalBrowserBridge(AbstractContextManager):
         finally:
             self._captures.remove(capture)
             capture.clear()
+    @asynccontextmanager
+    async def material_read(self,page,task_id):
+        """Wait on existing browser events; use its unchanged default timeout."""
+        seed=self.service.seed
+        tasks={seed.source_task_id}|{item['task_id'] for item in getattr(seed,'materials',())}
+        if (not self.active or page.context is not self._routed_context or self._material_read is not None
+                or task_id not in tasks or page.url!=self.service.origin+'/research/'+seed.research_id):
+            raise ValueError('current owned material read required')
+        phase=_MaterialReadPhase(page,self.service.origin,seed.research_id,task_id)
+        async with self._request_phase(page,phase):yield
+
+    @asynccontextmanager
+    async def original_draft_replay(self,page,pending,original):
+        seed=self.service.seed
+        if (not self.active or page.context is not self._routed_context or self._material_read is not None
+                or page.url!=self.service.origin+'/research/'+seed.research_id):
+            raise ValueError('current owned original draft replay required')
+        phase=_OriginalDraftReplayPhase(page,self.service.origin,seed.research_id,pending,original)
+        async with self._request_phase(page,phase):yield
+
+    @asynccontextmanager
+    async def _request_phase(self,page,phase):
+        self._material_read=phase
+        page.on('request',phase.bind)
+        page.on('requestfinished',phase.record_finished)
+        try:
+            yield
+            # Fixed real stages, each using the existing per-operation
+            # browser default. No aggregate timeout is invented or renewed HTTP.
+            for index in range(len(phase.urls)):
+                if len(phase.finished)<=index:
+                    await page.wait_for_event('requestfinished',predicate=lambda request:phase.is_stage(index,request))
+                phase.check_stage(index)
+            phase.check()
+        finally:
+            page.remove_listener('request',phase.bind)
+            page.remove_listener('requestfinished',phase.record_finished)
+            self._material_read=None
+            phase.clear()
+
     def _shutdown(self,connection):
         sock=connection.sock
         if sock is not None:
@@ -273,57 +395,85 @@ class CanonicalBrowserBridge(AbstractContextManager):
     @asynccontextmanager
     async def routed(self,context):
         if self._routed_context is not None:raise RuntimeError('one routed context per bridge required')
+        handler_errors=[]
         async def handle(route,request):
-            if not self.active:
-                await route.abort('blockedbyclient');return
+            task=asyncio.current_task();self._handler_tasks.add(task)
             try:
-                request_headers=await request.all_headers();request_body=request.post_data_buffer
-                captures=[item for item in self._captures if item.bind(request,request_headers,request_body)]
-                result=await asyncio.to_thread(self.forward,request.method,request.url,request_headers,request_body)
-                grouped={}
-                for name,value in result.headers:grouped.setdefault(name.lower(),[]).append(value)
-                headers={name:('\n' if name=='set-cookie' else ', ').join(values) for name,values in grouped.items()}
+                if not self.active:
+                    await route.abort('blockedbyclient');return
+                try:
+                    request_headers=await request.all_headers();request_body=request.post_data_buffer
+                    captures=[item for item in self._captures if item.bind(request,request_headers,request_body)]
+                    result=await asyncio.to_thread(self.forward,request.method,request.url,request_headers,request_body)
+                    if self._material_read is not None:self._material_read.forwarded(request,result,request_headers)
+                    grouped={}
+                    for name,value in result.headers:grouped.setdefault(name.lower(),[]).append(value)
+                    headers={name:('\n' if name=='set-cookie' else ', ').join(values) for name,values in grouped.items()}
+                except (PermissionError,ValueError,OSError,TimeoutError) as first:
+                    try:await route.abort('blockedbyclient')
+                    except BaseException as cleanup:
+                        first.add_note('owned browser route abort failed: '+_route_error_kind(cleanup))
+                        raise first from None
+                    return
+                # A terminal fulfill failure must never attempt a second abort.
                 await route.fulfill(status=result.status,body=result.body,headers=headers)
                 for capture in captures:
                     if not capture.future.done():
                         capture.actual=result
                         capture.future.set_result(None)
-            except (PermissionError,ValueError,OSError,TimeoutError):await route.abort('blockedbyclient')
+            except BaseException as error:
+                if len(handler_errors)<8:handler_errors.append(error)
+                raise
+            finally:self._handler_tasks.discard(task)
         await context.route('**/*',handle)
         self._routed_context=context
         try:yield self
         finally:
-            # A dedicated harness context is left offline before removing the
-            # interception, so late page polls cannot escape to public DNS.
-            # Its creator must still close that browser context in finally.
+            # One original bridge close budget covers offline, TLS and handlers.
             primary=sys.exc_info()[1];errors=[];offline=False
+            deadline=time.monotonic()+BRIDGE_WALL
+            async def bounded(awaitable):
+                return await asyncio.wait_for(awaitable,max(0,deadline-time.monotonic()))
             self._routed_context=None
             with self.condition:self.active=False
             try:
-                await context.set_offline(True);offline=True
+                await bounded(context.set_offline(True));offline=True
             except BaseException as error:errors.append(error)
-            try:self.close()
+            try:await bounded(asyncio.to_thread(self.close,deadline=deadline))
             except BaseException as error:errors.append(error)
-            # On an offline failure the retired handler remains installed and
-            # aborts late requests until its creator closes the context.
-            if offline:
-                try:await context.unroute('**/*',handle)
+            if self._handler_tasks:
+                try:
+                    _,pending=await asyncio.wait(tuple(self._handler_tasks),timeout=max(0,deadline-time.monotonic()))
+                    if pending:errors.append(RuntimeError('owned browser route handlers remain live'))
                 except BaseException as error:errors.append(error)
+            errors.extend(handler_errors)
+            # Leave an uncertain retired handler installed until creator close.
+            if offline and not self._handler_tasks:
+                try:await bounded(context.unroute('**/*',handle))
+                except BaseException as error:errors.append(error)
+            handler_errors.clear()
             if errors:
+                self._route_uncertain=True
                 first=primary if primary is not None else errors[0]
                 for error in errors:
-                    if error is not first:first.add_note('browser context cleanup failed: '+type(error).__name__)
+                    if error is not first:first.add_note('browser context cleanup failed: '+_route_error_kind(error))
                 if primary is None:raise first
-    def close(self):
+    def close(self,*,deadline=None):
+        if self._route_uncertain:raise RuntimeError('owned browser route cleanup remains uncertain')
+        deadline=min(time.monotonic()+BRIDGE_WALL,deadline) if deadline is not None else time.monotonic()+BRIDGE_WALL
         with self.condition:self.active=False;pending=list(self.pending)
         for connection in pending:self._shutdown(connection)
-        deadline=time.monotonic()+BRIDGE_WALL
         with self.condition:
             while self.pending:
                 left=deadline-time.monotonic()
                 if left<=0:raise RuntimeError('browser bridge cleanup uncertain')
                 self.condition.wait(left)
-    def __exit__(self,*args):self.close()
+    def __exit__(self,kind,error,traceback):
+        try:self.close()
+        except BaseException as cleanup:
+            if error is None:raise
+            error.add_note('owned browser bridge cleanup failed: '+_route_error_kind(cleanup))
+        return False
 
 
 class FixtureClient:

@@ -95,14 +95,15 @@ async def actual_browser(tmp_path,*,eight=False,funded=True,unknown_usage=False,
     assert not service.root.exists()
 
 
-async def select_materials(page,count,*,keyboard=False):
+async def select_materials(page,bridge,count,*,keyboard=False):
     await page.locator('#evidence-method-tasks').click()
     await expect(page.locator('#evidence-method-task option')).to_have_count(count+1)
     # Each item is produced by a separate real Source task, never cloned IDs.
     values=await page.locator('#evidence-method-task option').evaluate_all('(xs)=>xs.map(x=>x.value).filter(Boolean)')
     for value in values:
         await page.locator('#evidence-method-task').select_option(value)
-        await page.locator('#evidence-method-read-materials').click()
+        async with bridge.material_read(page,value):
+            await page.locator('#evidence-method-read-materials').click()
         await expect(page.locator('#evidence-method-status')).to_contain_text('短引已按当前权限读回')
     await expect(page.locator('#evidence-method-materials input')).to_have_count(count)
     for index,checkbox in enumerate(await page.locator('#evidence-method-materials input').all()):
@@ -113,7 +114,7 @@ async def select_materials(page,count,*,keyboard=False):
 
 
 async def preview_and_confirm(page,bridge,count,*,keyboard=False):
-    await select_materials(page,count,keyboard=keyboard)
+    await select_materials(page,bridge,count,keyboard=keyboard)
     await expect(page.locator('#evidence-method-confirm')).to_be_disabled()
     url=bridge.service.origin+'/api/research/'+bridge.service.seed.research_id
     async with bridge.capture_response(page,'POST',url+'/evidence-method-plan-previews') as captured:
@@ -220,7 +221,7 @@ def test_actual_browser_separates_failed_candidate_and_unknown_cost_without_new_
 def test_actual_browser_funding_closed_preview_not_sent_and_problem_edit_invalidates(tmp_path):
     async def run():
         async with actual_browser(tmp_path,funded=False) as (page,service,store,actor,calls,bridge,facts):
-            await select_materials(page,1)
+            await select_materials(page,bridge,1)
             await page.locator('#evidence-method-preview').click()
             await expect(page.locator('#evidence-method-status')).to_contain_text('资金执行尚未开放')
             await expect(page.locator('#evidence-method-confirm')).to_be_disabled()
@@ -266,7 +267,7 @@ def test_actual_browser_lost_ack_reuses_original_confirm_then_cancel_never_sends
     async def run():
         from research import ResearchRunner
         async with actual_browser(tmp_path) as (page,service,store,actor,calls,bridge,facts):
-            await select_materials(page,1)
+            await select_materials(page,bridge,1)
             await page.locator('#evidence-method-preview').click()
             await expect(page.locator('#evidence-method-preview-panel')).to_be_visible()
             await page.locator('#evidence-method-consent').check()
@@ -349,3 +350,153 @@ def test_actual_browser_account_delete_discards_late_private_result(tmp_path):
             finally:
                 release.set();await page.context.unroute('**'+suffix,hold_result)
     asyncio.run(run())
+
+
+# Pure route lifecycle controls; they do not claim an actual product receipt.
+from web.backend.tests.acceptance import plan_browser_service as component
+import threading
+
+class _BridgeControlContext:
+ async def route(self,pattern,handler):self.handler=handler
+ async def set_offline(self,value):pass
+ async def unroute(self,pattern,handler):assert handler is self.handler
+class _BridgeControlRoute:
+ def __init__(self,error=None):self.handled=False;self.aborts=0;self.fulfills=0;self.error=error
+ async def fulfill(self,**kwargs):
+  self.fulfills+=1;self.handled=True
+  if self.error:raise self.error
+ async def abort(self,*args):
+  self.aborts+=1
+  if self.handled:raise RuntimeError('synthetic already handled masks first error')
+  self.handled=True
+class _BridgeControlRequest:
+ method='GET';url='https://beta.structural.bytedance.city/api/synthetic';post_data_buffer=None
+ async def all_headers(self):return {}
+def _bridge_control(forward):
+ value=component.CanonicalBrowserBridge.__new__(component.CanonicalBrowserBridge);value._routed_context=None;value.active=True;value._captures=[];value.condition=threading.Condition();value.pending={};value._handler_tasks=set();value._material_read=None;value._route_uncertain=False;value.forward=forward
+ return value
+@pytest.mark.parametrize('error_type',[ValueError,OSError,TimeoutError])
+def test_terminal_fulfill_failure_preserves_first_error_without_second_abort(error_type):
+ async def run():
+  first=error_type('synthetic canary');route=_BridgeControlRoute(first);context=_BridgeControlContext();owned=_bridge_control(lambda *args:component.BridgeResponse(200,(),b'{}'))
+  with pytest.raises(error_type) as caught:
+   async with owned.routed(context):await context.handler(route,_BridgeControlRequest())
+  assert caught.value is first and route.aborts==0 and route.fulfills==1
+ asyncio.run(run())
+
+
+def test_retirement_waits_for_owned_handler_before_unroute():
+ async def run():
+  started=threading.Event();release=threading.Event();finished=[]
+  def forward(*args):
+   started.set();assert release.wait(1);return component.BridgeResponse(200,(),b'{}')
+  class Retiring_BridgeControlContext(_BridgeControlContext):
+   async def set_offline(self,value):release.set()
+   async def unroute(self,pattern,handler):assert finished==[True]
+  class Finishing_BridgeControlRoute(_BridgeControlRoute):
+   async def fulfill(self,**kwargs):await super().fulfill(**kwargs);finished.append(True)
+  owned=_bridge_control(forward);context=Retiring_BridgeControlContext();route=Finishing_BridgeControlRoute()
+  async with owned.routed(context):
+   task=asyncio.create_task(context.handler(route,_BridgeControlRequest()))
+   assert await asyncio.to_thread(started.wait,1)
+  await task
+  assert finished==[True] and not owned._handler_tasks and route.aborts==0
+ asyncio.run(run())
+
+
+@pytest.mark.parametrize('difference',['wrong_task','wrong_method','body','page','duplicate_auth','non200','unfinished','identity'])
+def test_material_phase_rejects_wrong_binding_or_incomplete_actual_chain(difference):
+    from types import SimpleNamespace
+    page=object();phase=component._MaterialReadPhase(page,component.ORIGIN,'research','task')
+    requests=[SimpleNamespace(frame=SimpleNamespace(page=page),url=url,method='GET',post_data_buffer=None) for url in phase.urls]
+    if difference=='wrong_task':requests[2].url=requests[2].url.replace('task_id=task','task_id=other')
+    elif difference=='wrong_method':requests[2].method='POST'
+    elif difference=='body':requests[2].post_data_buffer=b'{}'
+    elif difference=='page':requests[2].frame.page=object()
+    try:
+        for index,request in enumerate(requests):
+            phase.bind(request)
+            if difference=='duplicate_auth' and index==0:phase.bind(request)
+            phase.forwarded(request,SimpleNamespace(status=403 if difference=='non200' and index==2 else 200))
+            if difference=='unfinished' and index==2:continue
+            phase.record_finished(SimpleNamespace(**vars(request)) if difference=='identity' and index==2 else request)
+        with pytest.raises(AssertionError):phase.check()
+    finally:phase.clear()
+    assert phase.page is None and phase.urls==() and phase.requests==phase.finished==phase.statuses==[]
+
+
+def test_route_retirement_stays_uncertain_when_owned_handler_misses_original_budget(monkeypatch):
+    async def run():
+        entered=asyncio.Event();release=asyncio.Event();unrouted=[]
+        class HeldRoute(_BridgeControlRoute):
+            async def fulfill(self,**kwargs):entered.set();await release.wait();await super().fulfill(**kwargs)
+        class HeldContext(_BridgeControlContext):
+            async def unroute(self,*args):unrouted.append(True)
+        owned=_bridge_control(lambda *args:component.BridgeResponse(200,(),b'{}'));context=HeldContext();task=None
+        # A shorter pure control deadline proves bounded failure; runtime value is unchanged.
+        monkeypatch.setattr(component,'BRIDGE_WALL',.01)
+        try:
+            with pytest.raises(RuntimeError,match='handlers remain live'):
+                async with owned.routed(context):
+                    task=asyncio.create_task(context.handler(HeldRoute(),_BridgeControlRequest()))
+                    await entered.wait()
+            assert owned._route_uncertain and owned._handler_tasks and unrouted==[]
+            with pytest.raises(RuntimeError,match='remains uncertain'):owned.close()
+        finally:
+            release.set()
+            if task is not None:await task
+        assert not owned._handler_tasks
+        with pytest.raises(RuntimeError,match='remains uncertain'):owned.close()
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize('error_type',[PermissionError,ValueError,OSError,TimeoutError])
+def test_forward_refusal_aborts_once_without_fulfilling(error_type):
+    async def run():
+        def forward(*args):raise error_type('synthetic upstream refusal')
+        owned=_bridge_control(forward);route=_BridgeControlRoute();context=_BridgeControlContext()
+        async with owned.routed(context):await context.handler(route,_BridgeControlRequest())
+        assert route.aborts==1 and route.fulfills==0 and not owned._route_uncertain
+    asyncio.run(run())
+
+
+def test_failed_abort_preserves_original_forward_error_and_bounds_cleanup_type():
+    async def run():
+        first=OSError('synthetic original');canary_type=type('CANARY_PRIVATE_TYPE',(RuntimeError,),{})
+        class FailedAbort(_BridgeControlRoute):
+            async def abort(self,*args):self.aborts+=1;raise canary_type('CANARY_PRIVATE_BODY')
+        def forward(*args):raise first
+        owned=_bridge_control(forward);route=FailedAbort();context=_BridgeControlContext()
+        with pytest.raises(OSError) as caught:
+            async with owned.routed(context):await context.handler(route,_BridgeControlRequest())
+        assert caught.value is first and route.aborts==1 and route.fulfills==0
+        assert all('CANARY' not in note for note in first.__notes__)
+        assert any(note.endswith('OTHER') for note in first.__notes__)
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize('difference',['key','body','receipt','status','method','duplicate_auth','invalid_json'])
+def test_original_replay_phase_rejects_substitution_without_replacing_forwarded_response(difference):
+    from types import SimpleNamespace
+    page=object();pending={'key':'synthetic-original','task_request':{'data':{'scope':'synthetic'}}}
+    original={'metadata':{'draft_ref':'synthetic-ref'}}
+    phase=component._OriginalDraftReplayPhase(page,component.ORIGIN,'research',pending,original)
+    requests=[SimpleNamespace(frame=SimpleNamespace(page=page),url=url,method=method,post_data_buffer=None) for url,method in zip(phase.urls,phase.methods)]
+    data={'schema_version':'structure-research-v1','contract_revision':'method-draft-v1','data':pending['task_request']['data']}
+    if difference=='body':data['data']={'scope':'different'}
+    requests[1].post_data_buffer=json.dumps(data).encode()
+    if difference=='method':requests[1].method='GET'
+    body=b'not-json' if difference=='invalid_json' else json.dumps({'data':{} if difference=='receipt' else original}).encode()
+    status=403 if difference=='status' else 200
+    actual=component.BridgeResponse(status,(),body)
+    try:
+        for index,request in enumerate(requests):
+            phase.bind(request)
+            if difference=='duplicate_auth' and index==0:phase.bind(request)
+            phase.forwarded(request,actual if index==1 else component.BridgeResponse(200,(),b'{}'),{'idempotency-key':'different' if difference=='key' else pending['key']})
+            phase.record_finished(request)
+        # Failed observation never edits the actual bytes/status given to fulfill.
+        assert actual.status==status and actual.body is body
+        with pytest.raises(AssertionError):phase.check_stage(1)
+    finally:phase.clear()
+    assert phase.pending is phase.original is phase.page is None
