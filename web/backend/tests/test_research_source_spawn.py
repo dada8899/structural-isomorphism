@@ -7,15 +7,22 @@ import signal
 import subprocess
 import sys
 import time
-from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
 
 from web.backend.research.authorization import AuthorizationGate
+from web.backend.services.auth_store import AuthStore
 from web.backend.research import source_policy,source_spawn
 
 SENSITIVE_NAMES=('JWT_SECRET','STRUCTURAL_SSO_SECRET','STRUCTURAL_PRIVACY_HMAC_KEY','SMTP_PASSWORD')
+
+
+@pytest.fixture
+def development_auth(tmp_path,monkeypatch):
+    # Birth precedes deliberate sensitive-environment sentinels in the test.
+    monkeypatch.setenv('STRUCTURAL_ENV','test')
+    return AuthStore(tmp_path/'unused.sqlite3')
 
 
 def _observe_worker(target, forbidden_identity=None):
@@ -66,8 +73,8 @@ def _observe_exec(monkeypatch):
     return records
 
 
-def _get(tmp_path,worker=_observe_worker,*,wall=12,authorized=lambda:True):
-    gate=AuthorizationGate(SimpleNamespace(path=tmp_path/'unused.sqlite3'))
+def _get(auth_store,worker=_observe_worker,*,wall=12,authorized=lambda:True):
+    gate=AuthorizationGate(auth_store)
     with gate.owner_gate_id(str(uuid4())) as owner:
         return source_policy.PinnedPublicTransport(wall_seconds=wall,_worker=worker).get(
             source_policy.article_target('10.1371/journal.pone.0015032'),still_authorized=authorized,owner_lease=owner)
@@ -81,7 +88,7 @@ def _assert_retired(records):
     assert not source_spawn._UNCERTAIN
 
 
-def test_sender_exec_starts_without_sensitive_environment(tmp_path,monkeypatch):
+def test_sender_exec_starts_without_sensitive_environment(tmp_path,monkeypatch,development_auth):
     from multiprocessing import resource_tracker
     original_tracker=(resource_tracker._resource_tracker._pid,resource_tracker._resource_tracker._fd)
     monkeypatch.setenv('STRUCTURAL_ENV','test')
@@ -91,7 +98,7 @@ def test_sender_exec_starts_without_sensitive_environment(tmp_path,monkeypatch):
     fd=os.open(witness,os.O_RDONLY);os.set_inheritable(fd,True)
     try:
         info=os.fstat(fd)
-        response=_get(tmp_path,functools.partial(_observe_worker,forbidden_identity=(info.st_dev,info.st_ino)))
+        response=_get(development_auth,functools.partial(_observe_worker,forbidden_identity=(info.st_dev,info.st_ino)))
     finally:os.close(fd)
     observed=json.loads(response[2])
     assert observed['inherited_sensitive_names']==[]
@@ -107,10 +114,10 @@ def test_sender_exec_starts_without_sensitive_environment(tmp_path,monkeypatch):
     assert (resource_tracker._resource_tracker._pid,resource_tracker._resource_tracker._fd)==original_tracker
 
 
-def test_owned_loopback_response_crosses_standard_rawarray_and_retires_each_tracker(tmp_path,monkeypatch):
+def test_owned_loopback_response_crosses_standard_rawarray_and_retires_each_tracker(tmp_path,monkeypatch,development_auth):
     from web.backend.tests.source_http_fixture import source_server,get_local,METADATA,ARTICLE
     records=_observe_exec(monkeypatch)
-    gate=AuthorizationGate(SimpleNamespace(path=tmp_path/'unused.sqlite3'))
+    gate=AuthorizationGate(development_auth)
     with source_server() as (port,calls),gate.owner_gate_id(str(uuid4())) as owner:
         transport=source_policy.PinnedPublicTransport(_worker=functools.partial(get_local,port))
         for target,expected in ((source_policy.discovery_target('queue theory'),METADATA),
@@ -123,27 +130,27 @@ def test_owned_loopback_response_crosses_standard_rawarray_and_retires_each_trac
     assert records[0][0].pid!=records[2][0].pid
 
 
-def test_sender_exec_failure_retires_already_born_tracker(tmp_path,monkeypatch):
+def test_sender_exec_failure_retires_already_born_tracker(tmp_path,monkeypatch,development_auth):
     records=_observe_exec(monkeypatch);original=source_spawn._exec
     def execute(command,descriptors):
         if len(records)==1:raise OSError('synthetic sender exec failure')
         return original(command,descriptors)
     monkeypatch.setattr(source_spawn,'_exec',execute)
-    with pytest.raises(OSError,match='synthetic sender exec failure'):_get(tmp_path)
+    with pytest.raises(OSError,match='synthetic sender exec failure'):_get(development_auth)
     assert len(records)==1 and records[0][0].poll() is not None
     assert not source_spawn._UNCERTAIN
 
 
 @pytest.mark.parametrize('end',['stop','deadline'])
-def test_sender_stop_or_deadline_reaps_both_processes(tmp_path,monkeypatch,end):
+def test_sender_stop_or_deadline_reaps_both_processes(tmp_path,monkeypatch,end,development_auth):
     records=_observe_exec(monkeypatch);started=time.monotonic()
     def authorized():return end!='stop' or time.monotonic()-started<.25
     with pytest.raises((PermissionError,source_policy.SourceFailure)):
-        _get(tmp_path,_blocked_worker,wall=.45,authorized=authorized)
+        _get(development_auth,_blocked_worker,wall=.45,authorized=authorized)
     _assert_retired(records)
 
 
-def test_tracker_close_after_real_close_is_uncertain_and_sender_still_reaped(tmp_path,monkeypatch):
+def test_tracker_close_after_real_close_is_uncertain_and_sender_still_reaped(tmp_path,monkeypatch,development_auth):
     records=_observe_exec(monkeypatch);original=source_spawn._Tracker._close_fd;fault=[]
     def close(self,fd):
         is_writer=fd==self.fd
@@ -152,7 +159,7 @@ def test_tracker_close_after_real_close_is_uncertain_and_sender_still_reaped(tmp
             fault.append(fd);raise OSError('synthetic post-close observation failure')
     monkeypatch.setattr(source_spawn._Tracker,'_close_fd',close)
     try:
-        with pytest.raises(source_spawn.SourceCleanupUncertain):_get(tmp_path)
+        with pytest.raises(source_spawn.SourceCleanupUncertain):_get(development_auth)
         assert len(records)==2 and all(process.poll() is not None for process,_,_ in records)
         assert fault and source_spawn._UNCERTAIN
         with pytest.raises(OSError):os.fstat(fault[0])
@@ -162,7 +169,7 @@ def test_tracker_close_after_real_close_is_uncertain_and_sender_still_reaped(tmp
         source_spawn._UNCERTAIN.clear()
 
 
-def test_sender_fd_close_failure_still_attempts_tracker_and_other_fds(tmp_path,monkeypatch):
+def test_sender_fd_close_failure_still_attempts_tracker_and_other_fds(tmp_path,monkeypatch,development_auth):
     records=_observe_exec(monkeypatch);original=source_spawn._SourcePopen._close_fd;fault=[]
     def close(self,fd):
         is_sentinel=fd==self.sentinel
@@ -171,14 +178,14 @@ def test_sender_fd_close_failure_still_attempts_tracker_and_other_fds(tmp_path,m
             fault.append(fd);raise OSError('synthetic sender post-close failure')
     monkeypatch.setattr(source_spawn._SourcePopen,'_close_fd',close)
     try:
-        with pytest.raises(source_spawn.SourceCleanupUncertain):_get(tmp_path)
+        with pytest.raises(source_spawn.SourceCleanupUncertain):_get(development_auth)
         assert len(records)==2 and all(process.poll() is not None for process,_,_ in records)
         assert fault and source_spawn._UNCERTAIN
         with pytest.raises(OSError):os.fstat(fault[0])
     finally:source_spawn._UNCERTAIN.clear()
 
 
-def test_primary_error_keeps_cleanup_uncertainty_metadata(tmp_path,monkeypatch):
+def test_primary_error_keeps_cleanup_uncertainty_metadata(tmp_path,monkeypatch,development_auth):
     records=_observe_exec(monkeypatch);original=source_spawn._Tracker._close_fd;fault=[]
     def close(self,fd):
         writer=fd==self.fd
@@ -187,7 +194,7 @@ def test_primary_error_keeps_cleanup_uncertainty_metadata(tmp_path,monkeypatch):
             fault.append(fd);raise OSError('synthetic post-close failure')
     monkeypatch.setattr(source_spawn._Tracker,'_close_fd',close)
     try:
-        with pytest.raises(source_policy.SourceFailure) as failure:_get(tmp_path,_failing_worker)
+        with pytest.raises(source_policy.SourceFailure) as failure:_get(development_auth,_failing_worker)
         assert failure.value._source_cleanup_uncertainty==('Source transport retirement uncertain',)
         assert fault and source_spawn._UNCERTAIN
         assert len(records)==2 and all(process.poll() is not None for process,_,_ in records)
@@ -195,10 +202,10 @@ def test_primary_error_keeps_cleanup_uncertainty_metadata(tmp_path,monkeypatch):
     finally:source_spawn._UNCERTAIN.clear()
 
 
-def test_stop_kills_sender_ignoring_term_then_retires_tracker(tmp_path,monkeypatch):
+def test_stop_kills_sender_ignoring_term_then_retires_tracker(tmp_path,monkeypatch,development_auth):
     records=_observe_exec(monkeypatch);ready=tmp_path/'ready'
     with pytest.raises(PermissionError):
-        _get(tmp_path,functools.partial(_ignore_term_worker,str(ready)),wall=2,authorized=lambda:not ready.exists())
+        _get(development_auth,functools.partial(_ignore_term_worker,str(ready)),wall=2,authorized=lambda:not ready.exists())
     _assert_retired(records)
     assert records[1][0].returncode==-signal.SIGKILL
 
@@ -209,14 +216,14 @@ def test_live_factory_requires_fixed_source_target_without_network():
     finally:process.close()
 
 
-def test_missing_spawn_mechanism_closes_before_exec(tmp_path,monkeypatch):
+def test_missing_spawn_mechanism_closes_before_exec(tmp_path,monkeypatch,development_auth):
     records=_observe_exec(monkeypatch)
     monkeypatch.setattr(source_spawn.reduction,'HAVE_SEND_HANDLE',False)
-    with pytest.raises(RuntimeError,match='unavailable'):_get(tmp_path)
+    with pytest.raises(RuntimeError,match='unavailable'):_get(development_auth)
     assert records==[]
 
 
-def test_real_parent_liveness_and_parent_pipe_retirement(tmp_path,monkeypatch):
+def test_real_parent_liveness_and_parent_pipe_retirement(tmp_path,monkeypatch,development_auth):
     records=_observe_exec(monkeypatch);original=source_spawn._SourcePopen.retire;descriptors=[]
     def retire(self):
         if not descriptors:
@@ -225,16 +232,16 @@ def test_real_parent_liveness_and_parent_pipe_retirement(tmp_path,monkeypatch):
             for fd in descriptors:os.fstat(fd)
         return original(self)
     monkeypatch.setattr(source_spawn._SourcePopen,'retire',retire)
-    value=json.loads(_get(tmp_path,_parent_liveness_worker)[2])
+    value=json.loads(_get(development_auth,_parent_liveness_worker)[2])
     assert value=={'alive':True,'parent_pid':os.getpid(),'actual_parent_pid':os.getpid()}
     _assert_retired(records)
     for fd in descriptors:
         with pytest.raises(OSError):os.fstat(fd)
 
 
-def test_fixture_cannot_be_relabelled_live(tmp_path):
+def test_fixture_cannot_be_relabelled_live(tmp_path,development_auth):
     transport=source_policy.PinnedPublicTransport(_worker=_observe_worker);transport.execution_mode='live'
-    gate=AuthorizationGate(SimpleNamespace(path=tmp_path/'unused.sqlite3'))
+    gate=AuthorizationGate(development_auth)
     with gate.owner_gate_id(str(uuid4())) as owner:
         with pytest.raises(source_policy.SourceFailure,match='provenance'):
             transport.get(source_policy.article_target('10.1371/journal.pone.0015032'),still_authorized=lambda:True,owner_lease=owner)
