@@ -615,7 +615,24 @@ def native_raw_draft(problem_digest,profile):
 
 
 def raw_preparations(service,identity,rid,task_id,*,request_source=None,request_app=None):
-    from .source_document_access import unavailable
-    # Root's real Main/Auth read-borrow ownership is a separate prerequisite.
-    # Do not create a new read connection or graft debt onto CLOSED Source.
-    raise unavailable()
+    from .source_document_access import require_cache_consumer,rawprep_read_scope
+    from .source_document_raw import CONTRACT,PUBLIC_CAP
+    # This must precede the first Store/auth/private-resource operation. Main
+    # owns both the actual worker and every native connection/directory it opens.
+    try:require_cache_consumer(service,identity,request_source,request_app=request_app)
+    except (RuntimeError,PermissionError):raise ResearchError('SOURCE_PERMISSION_UNAVAILABLE',503,'当前官方材料历史读取作用域不可用。') from None
+    rid=service._id(rid);task_id=service._id(task_id)
+    with service.store.transaction() as conn:
+        pid=service._principal_in(conn,identity)
+        control=service.authorization.check(conn,identity,pid,rid)
+        task=conn.execute('SELECT * FROM research_tasks WHERE id=? AND research_id=? AND policy_revision=?',(task_id,rid,POLICY)).fetchone()
+        if task is None:raise not_found()
+        context=context_for(conn,task_id)
+        with rawprep_read_scope(conn,service,identity,request_source,rid,task_id) as scope:
+            try:package=EvidenceRepository(conn,authorizer(service.store,identity=identity)).read_raw_package(context,read_scope=scope)
+            except (ValueError,LookupError,KeyError,TypeError):raise ResearchError('STORE_UNAVAILABLE',503,'官方原始材料记录当前无法核对。') from None
+            scope.check(conn,context)
+            data={'kind':'raw-preparations','research_id':rid,'task_id':task_id,'input_revision':task['input_revision'],
+                'research_version':control['version'],'task_version':task['version'],'task_execution':task['execution'],**package}
+            if len(canonical(data).encode())>PUBLIC_CAP:raise ResearchError('STORE_UNAVAILABLE',503,'官方原始材料元数据超出读取范围。')
+            return {'schema_version':'structure-research-v1','contract_revision':CONTRACT,'data':data}

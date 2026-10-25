@@ -247,6 +247,54 @@ def require_private_cache(*args,**kwargs):
     return _cache_read(*args,**kwargs)
 
 
+def current_cache_policy_data():
+    """Root-approved current mapping data, never a read/send capability.
+
+    Replacing this code requires the controlled Main/worker/rollback retirement
+    barrier. This function does not implement hot revocation or anti-rollback.
+    """
+    return {'revision':1,'purpose':'official-document-rawprep-v1','capability':'private_cache',
+        'docs':[{'doc_id':'gfs_2025_20f','doc_version':1},{'doc_id':'gfs_2025_20f_index','doc_version':1}],
+        'current_access_ref':{'id':APPROVED_ID,'revision':1,'digest':APPROVED_DIGEST},
+        'current_policy_sha256':POLICY_SHA,'allowed':True,'private_cache_expires_at':None,
+        'display_excerpt':False,'provider_input':False,'export':False,
+        'basis_record':'d6acbfb5f77cd0d829a0c4996a8ee47dce3368964a8059b8b6e20dd272d9eb5c'}
+
+
+def cache_policy_matches(mapping,*,doc_id,doc_version,purpose):
+    """Pure policy data comparison; True supplies no native read authority."""
+    from .source_document_raw import ProfileRef
+    from .evidence_schemas import digest
+    keys={'revision','purpose','capability','docs','current_access_ref','current_policy_sha256','allowed',
+        'private_cache_expires_at','display_excerpt','provider_input','export','basis_record'}
+    if type(mapping) is not dict or set(mapping)!=keys:return False
+    if (type(mapping['revision']) is not int or mapping['revision']<1 or type(doc_version) is not int
+            or type(doc_id) is not str or purpose!='official-document-rawprep-v1' or mapping['purpose']!=purpose
+            or mapping['capability']!='private_cache' or mapping['allowed'] is not True or mapping['private_cache_expires_at'] is not None
+            or any(mapping[name] is not False for name in ('display_excerpt','provider_input','export'))):return False
+    docs=mapping['docs'];ref=mapping['current_access_ref']
+    if (type(docs) is not list or docs!=[{'doc_id':'gfs_2025_20f','doc_version':1},{'doc_id':'gfs_2025_20f_index','doc_version':1}]
+            or any(type(item) is not dict or set(item)!={'doc_id','doc_version'} or type(item['doc_version']) is not int for item in docs)
+            or type(ref) is not dict or set(ref)!={'id','revision','digest'}):return False
+    try:ProfileRef(**ref);digest(mapping['current_policy_sha256']);digest(mapping['basis_record'])
+    except (TypeError,ValueError):return False
+    return {'doc_id':doc_id,'doc_version':doc_version} in docs
+
+
+def require_cache_consumer(service,identity,source,*,request_app=None):
+    """Use the actual ACTIVE Main worker, never a caller app or ContextVar."""
+    if __package__=='web.backend.research':from ..services import formal_admission as admission
+    else:from services import formal_admission as admission
+    if admission.require_history_read_consumer(service,identity,source,consumer='raw') is not None:
+        raise PermissionError('actual fixed Main history consumer required')
+    worker=admission._history_worker_current()
+    app=worker.read.binding.app
+    if request_app is not None and request_app is not app:raise PermissionError('DOC read application differs')
+    from .runtime_profile import require_formal_application
+    require_formal_application(app,'source_history')
+    return worker
+
+
 _COMPLETION_FACTORY = object()
 _COMPLETIONS = {}
 _COMPLETION_DOMAINS = {}
@@ -408,22 +456,32 @@ class RawReadScope:
                 or self.conn is not conn or not conn.in_transaction or type(self.service) is not ResearchService
                 or self.research_id!=context.research_id or self.task_id!=context.task_id):
             raise PermissionError('actual current DOC read scope required')
+        worker=require_cache_consumer(self.service,self.identity,self.source)
+        resource=getattr(conn,'_history_read_resource',None)
+        if resource is None or resource.worker is not worker or resource.handle is not conn or resource.state!='LIVE':
+            raise PermissionError('DOC connection is not borrowed by the current Main worker')
         require_authenticated_action(self.source,identity=self.identity,action='source-raw-read',research_id=self.research_id,
             task_id=self.task_id,key='',body_digest=read_query_digest(self.task_id))
-        pid=self.service._principal(self.identity)
-        self.service.authorization.check(conn,self.identity,pid,self.research_id)
+        # Recheck account/JTI/Owner ACL in a fresh snapshot on every read use;
+        # original task/DocC integrity stays in the caller's stable snapshot.
+        with self.service.store.transaction() as current:
+            pid=self.service._principal_in(current,self.identity)
+            self.service.authorization.check(current,self.identity,pid,self.research_id)
 
 
 @contextmanager
 def rawprep_read_scope(conn, service, identity, source, research_id, task_id):
-    from . import source_integration
     from .paid_control import require_authenticated_action
     from .source_document_raw import read_query_digest
     caller=inspect.currentframe().f_back
     # contextmanager resumes through contextlib; inspect the caller of __enter__.
     caller=caller.f_back if caller is not None else None
-    if caller is None or caller.f_code is not source_integration.raw_preparations.__code__:
-        raise PermissionError('canonical actual raw read action required')
+    if caller is None:raise PermissionError('canonical actual raw read action required')
+    if __package__=='web.backend.research':from ..services import formal_admission as admission
+    else:from services import formal_admission as admission
+    try:admission._native_read_caller(caller,'research/source_integration.py',('raw_preparations',))
+    except RuntimeError:raise PermissionError('canonical actual raw read action required') from None
+    require_cache_consumer(service,identity,source)
     identifier(research_id);identifier(task_id)
     require_authenticated_action(source,identity=identity,action='source-raw-read',research_id=research_id,
         task_id=task_id,key='',body_digest=read_query_digest(task_id))
@@ -435,9 +493,18 @@ def rawprep_read_scope(conn, service, identity, source, research_id, task_id):
 
 
 def _cache_read(*args,**kwargs):
-    # Root is freezing the current, revocable code-mapped cache policy. Never
-    # open a new UA/profile FD after Source has already closed.
-    raise PermissionError('current DOC cache policy binding pending')
+    from .source_document_raw import DocRef
+    from .source_integration import context_for
+    if len(args)!=2 or set(kwargs)!={'purpose'}:raise PermissionError('actual DOC cache read scope required')
+    scope,doc_ref=args
+    if type(scope) is not RawReadScope or type(doc_ref) is not DocRef:raise PermissionError('actual DOC cache read scope required')
+    require_cache_consumer(scope.service,scope.identity,scope.source)
+    context=context_for(scope.conn,scope.task_id)
+    scope.check(scope.conn,context)
+    policy=current_cache_policy_data()
+    if not cache_policy_matches(policy,doc_id=doc_ref.doc_id,doc_version=doc_ref.doc_version,purpose=kwargs['purpose']):
+        raise ResearchError('SOURCE_PERMISSION_UNAVAILABLE',503,'当前官方原始材料缓存许可不可用。')
+    return None
 
 
 _REQUEST_FACTORY = object()
