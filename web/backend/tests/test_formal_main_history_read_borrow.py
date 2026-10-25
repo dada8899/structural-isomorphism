@@ -669,6 +669,7 @@ def test_actual_action_close_inflight_holds_main_and_failure_remains_sticky(requ
         assert callable(read_query)
     paused=threading.Event();release=threading.Event();held=[]
     close_paused=threading.Event();close_release=threading.Event();attempts=[]
+    known_before_fault_cleanup=[]
     previous=_pause_native_raw_retirement(admission,paused,release,held,monkeypatch)
     original_close=AuthenticatedActionSource.close
     def close(source):
@@ -679,6 +680,7 @@ def test_actual_action_close_inflight_holds_main_and_failure_remains_sticky(requ
             attempts.append(threading.current_thread());close_paused.set()
             assert close_release.wait(10),'owned action close not released'
             if when=='after':original_close(source)
+            else:known_before_fault_cleanup.append(source)
             raise OSError('owned action close fault')
         return original_close(source)
     async def run():
@@ -728,8 +730,65 @@ def test_actual_action_close_inflight_holds_main_and_failure_remains_sticky(requ
         finally:
             release.set();close_release.set()
             if exit_task is None:await context.__aexit__(None,None,None)
-            if held and when=='before':original_close(held[0].read.source)
+            _cleanup_known_before_fault_source(known_before_fault_cleanup,original_close,primary=sys.exception())
             for witness in binding.witnesses:
                 if witness.parent_fd is not None:witness.close()
     try:asyncio.run(run())
     finally:release.set();close_release.set();threading.settrace(previous)
+
+
+def _cleanup_known_before_fault_source(responsibility,close,*,primary=None):
+    # Only the fixture's explicit before-physical-close fault creates this
+    # responsibility. Consume it before the one attempt, even if close fails.
+    source=responsibility.pop() if responsibility else None
+    if source is None or not source.active:return
+    try:close(source)
+    except BaseException as cleanup:
+        if primary is None:raise
+        primary.add_note('known before-fault cleanup failed: '+type(cleanup).__name__)
+
+
+class _CleanupOnlyState:
+    """Pure fixture input: no native Source, Main, Task or permission object."""
+    def __init__(self,active):self.active=active
+
+
+@pytest.mark.parametrize('state',['none','closed','no_responsibility'])
+def test_before_fault_cleanup_preserves_wait_failure_without_live_responsibility(state):
+    item=None if state=='none' else _CleanupOnlyState(state!='closed')
+    responsibility=[] if state=='no_responsibility' else [item]
+    attempts=[];primary=AssertionError('synthetic initial wait failed')
+    with pytest.raises(AssertionError) as observed:
+        try:raise primary
+        finally:_cleanup_known_before_fault_source(responsibility,attempts.append,primary=sys.exception())
+    assert observed.value is primary and attempts==[] and responsibility==[]
+
+
+def test_before_fault_cleanup_consumes_known_held_responsibility_once():
+    item=_CleanupOnlyState(True);responsibility=[item];attempts=[]
+    def close(actual):
+        assert actual is item
+        attempts.append(actual);actual.active=False
+    _cleanup_known_before_fault_source(responsibility,close)
+    _cleanup_known_before_fault_source(responsibility,close)
+    assert attempts==[item] and responsibility==[] and not item.active
+
+
+@pytest.mark.parametrize('has_primary',[False,True])
+def test_before_fault_cleanup_failure_is_not_retried_or_allowed_to_mask_primary(has_primary):
+    item=_CleanupOnlyState(True);responsibility=[item];attempts=[]
+    cleanup=OSError('synthetic cleanup failure');primary=AssertionError('synthetic initial wait failed')
+    def close(actual):
+        assert actual is item
+        attempts.append(actual);raise cleanup
+    if has_primary:
+        with pytest.raises(AssertionError) as observed:
+            try:raise primary
+            finally:_cleanup_known_before_fault_source(responsibility,close,primary=sys.exception())
+        assert observed.value is primary
+        assert primary.__notes__==['known before-fault cleanup failed: OSError']
+    else:
+        with pytest.raises(OSError) as observed:_cleanup_known_before_fault_source(responsibility,close)
+        assert observed.value is cleanup
+    _cleanup_known_before_fault_source(responsibility,close)
+    assert attempts==[item] and responsibility==[] and item.active
