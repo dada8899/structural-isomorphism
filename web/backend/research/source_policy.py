@@ -115,6 +115,9 @@ def decompress(data, encoding):
 class _Reader(io.RawIOBase):
     def __init__(self, sock, prefix):
         self.sock, self.prefix, self.received = sock, bytearray(prefix), 0
+        # Passive bounded evidence only. Legacy paper parsing is unchanged;
+        # DOC rejects interim responses before HTTPResponse.begin can skip one.
+        self.header_prefix=bytes(prefix[:HEADER_CAP+1])
 
     def readable(self):
         return True
@@ -155,6 +158,19 @@ def _doc_now():
     return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
 
+def _doc_header(prefix):
+    """One complete final DOC header, bounded before the HTTP parser runs."""
+    end=prefix.find(b'\r\n\r\n')
+    if end<0 or end+4>HEADER_CAP:raise SourceFailure('DOC response header limit')
+    status_line=bytes(prefix[:end]).split(b'\r\n',1)[0].split(None,2)
+    if (len(status_line)<2 or status_line[0] not in (b'HTTP/1.0',b'HTTP/1.1')
+            or len(status_line[1])!=3 or not status_line[1].isdigit()):raise SourceFailure('DOC response status unavailable')
+    status=int(status_line[1])
+    if not 200<=status<=599:
+        raise SourceFailure('DOC final response required',http_status=status if 100<=status<=599 else None)
+    return status
+
+
 def _require_doc_child(wire):
     from .source_document_raw import DocWireTarget,decode_doc_wire
     from .source_document_access import (APPROVED_DIGEST,APPROVED_FROM,APPROVED_UNTIL,approved_references,
@@ -183,6 +199,9 @@ def _doc_response(wire,response,sent_at):
     from .source_document_raw import DocObservation
     from .evidence_schemas import sha256
     status=response.status
+    if type(response) is http.client.HTTPResponse:
+        reader=getattr(response.fp,'raw',None)
+        if type(reader) is _Reader:_doc_header(reader.header_prefix)
     def bounded_header(name,limit):
         value=response.getheader(name)
         if value is not None and (not value or len(value)>limit or any(ord(c)<32 or ord(c)>126 for c in value)):
@@ -214,10 +233,13 @@ def _doc_response(wire,response,sent_at):
         data['safe_code']='limit'
     else:
         try:raw=response.read(RAW_CAP+1)
-        except (OSError,http.client.IncompleteRead):raw=b''
+        except (OSError,http.client.IncompleteRead) as error:
+            raise SourceFailure('DOC response outcome unknown',http_status=status) from error
         if len(raw)>RAW_CAP:
             raw=b'';data.update(safe_code='limit',observed_lower_bound=RAW_CAP+1)
-        elif not raw or (length is not None and len(raw)!=length):
+        elif length is not None and len(raw)!=length:
+            raise SourceFailure('DOC incomplete response body',http_status=status)
+        elif not raw:
             raw=b''
         else:
             # This is a quarantine classifier, never document identity/parser
@@ -318,6 +340,7 @@ def _network_get(target):
                     raise SourceFailure("response header limit")
             if header.index(b"\r\n\r\n") + 4 > HEADER_CAP:
                 raise SourceFailure("response header limit")
+            if doc:_doc_header(header)
             response = http.client.HTTPResponse(_ResponseSocket(tls, header))
             try:
                 response.begin()

@@ -1,6 +1,8 @@
 """Pure DOC framing/data controls. No native send/profile positive is minted."""
 from dataclasses import asdict,replace
 import math
+import http.client
+import io
 
 import pytest
 
@@ -9,7 +11,7 @@ from research.source_document_raw import (DocWireTarget,catalog,decode_doc_wire,
 from research.source_document_access import (material_data,material_bytes,validate_material,APPROVED_FROM,
     approved_references,DocRequestWitness)
 from research.source_policy import (_doc_response,_network_get,ActualDocOutcome,ActualTransportRetirement,
-    require_doc_outcome,require_doc_retirement,SourceFailure)
+    require_doc_outcome,require_doc_retirement,SourceFailure,_doc_header,_ResponseSocket,HEADER_CAP)
 from research.source_sec_access import DocRequestFlight
 from research.source_spawn import SourceSpawnProcess
 from research.evidence_schemas import canonical,sha256
@@ -83,9 +85,8 @@ def test_malformed_headers_keep_limited_actual_status_without_body(status,header
     ({'Content-Type':'text/html','Content-Encoding':'gzip'},b'encoded','invalid_source',False,None),
     ({'Content-Type':'text/html','Content-Length':str(RAW_CAP+1)},b'not-read','limit',False,None),
     ({'Content-Type':'text/html'},b'x'*(RAW_CAP+1),'limit',False,RAW_CAP+1),
-    ({'Content-Type':'text/html','Content-Length':'8'},b'short','invalid_source',False,None),
     ({'Content-Type':'text/html','Transfer-Encoding':'chunked','Content-Length':'4'},b'body','invalid_source',False,None),
-],ids=["identity","quarantine","media","encoding","declared-limit","stream-limit","short-body","ambiguous-framing"])
+],ids=["identity","quarantine","media","encoding","declared-limit","stream-limit","ambiguous-framing"])
 def test_data_framing_full_raw_or_explicit_no_body(headers,body,code,complete,lower):
     observation,raw=_doc_response(wire_data(),ResponseData(body=body,headers=headers),T)
     assert (observation.safe_code,observation.body_complete,observation.observed_lower_bound)==(code,complete,lower)
@@ -94,6 +95,51 @@ def test_data_framing_full_raw_or_explicit_no_body(headers,body,code,complete,lo
     packet=doc_ipc(observation)
     assert len(packet)<=4096 and decode_doc_ipc(packet,wire_data())==observation
     assert b'example.invalid' not in packet
+
+
+@pytest.mark.parametrize('body',[b'',b'short'])
+def test_declared_length_premature_eof_is_unknown_not_known_policy_rejection(body):
+    response=ResponseData(body=body,headers={'Content-Type':'text/html','Content-Length':'8'})
+    with pytest.raises(SourceFailure) as unknown:_doc_response(wire_data(),response,T)
+    assert unknown.value.http_status==200 and response.reads==[RAW_CAP+1]
+
+
+@pytest.mark.parametrize('error',[OSError('synthetic read'),TimeoutError('synthetic timeout'),http.client.IncompleteRead(b'partial',8)])
+def test_interrupted_body_keeps_known_status_but_creates_no_output_observation(error):
+    class Interrupted(ResponseData):
+        def read(self,cap):raise error
+    with pytest.raises(SourceFailure) as unknown:_doc_response(wire_data(),Interrupted(),T)
+    assert unknown.value.http_status==200 and unknown.value.__cause__ is error
+
+
+@pytest.mark.parametrize('status',[100,101,103])
+def test_doc_interim_is_rejected_before_any_final_header_read(status):
+    initial=f'HTTP/1.1 {status} Interim\r\n\r\n'.encode()
+    with pytest.raises(SourceFailure) as unknown:_doc_header(initial)
+    assert unknown.value.http_status==status
+
+
+@pytest.mark.parametrize('size',[HEADER_CAP,HEADER_CAP+1])
+def test_doc_complete_final_header_exact_bound_and_no_trusted_oversize(size):
+    fixed=b'HTTP/1.1 200 OK\r\nX-Padding: '+b'\r\nContent-Length: 0\r\n\r\n'
+    header=b'HTTP/1.1 200 OK\r\nX-Padding: '+b'x'*(size-len(fixed))+b'\r\nContent-Length: 0\r\n\r\n'
+    assert len(header)==size
+    if size==HEADER_CAP:assert _doc_header(header)==200
+    else:
+        with pytest.raises(SourceFailure):_doc_header(header)
+
+
+def test_original_paper_parser_still_skips_100_and_reads_final_body():
+    prefix=b'HTTP/1.1 100 Continue\r\n\r\n'
+    final=b'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 6\r\n\r\n<html>'
+    class BytesOnly:
+        def __init__(self):self.stream=io.BytesIO(final)
+        def recv(self,count):return self.stream.read(count)
+    response=http.client.HTTPResponse(_ResponseSocket(BytesOnly(),prefix))
+    try:
+        response.begin()
+        assert response.status==200 and response.read()==b'<html>'
+    finally:response.close()
 
 
 def test_ipc_foreign_job_and_unknown_native_capabilities_are_rejected():
