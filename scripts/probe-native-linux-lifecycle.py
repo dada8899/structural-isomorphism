@@ -23,7 +23,7 @@ import time
 from uuid import uuid4
 
 ROOT=Path(__file__).resolve().parents[1]
-BRANCH='refs/heads/codex/structure-native-linux-lifecycle-attempt7-20261024'
+BRANCH='refs/heads/codex/structure-native-linux-lifecycle-attempt8-20261025'
 REPOSITORY='dada8899/structural-isomorphism'
 USER=GROUP='structural-native-probe'
 UNIT='structural-web.service'
@@ -129,7 +129,7 @@ class Budget:
 
 
 def empty_receipt(head):
-    return {'protocol':'native-linux-lifecycle-probe-v4','first_failure':None,'credential_metadata':[],'startup_diagnostics':{phase:None for phase in PHASES},'diagnostic_resources':empty_diagnostic_resources(),'head':head,'tree':None,'code_digest':None,'outcome':'FAIL','reason':'PRECHECK','elapsed_ms':0,
+    return {'protocol':'native-linux-lifecycle-probe-v5','first_failure':None,'credential_metadata':[],'startup_diagnostics':{phase:None for phase in PHASES},'diagnostic_resources':empty_diagnostic_resources(),'head':head,'tree':None,'code_digest':None,'outcome':'FAIL','reason':'PRECHECK','elapsed_ms':0,
         'phases':{k:False for k in PHASES},'stock':{'typed_receipts':None,'creator_connections':None,'creator_fds':None,'clean_exit_inferred':False,'credential_invocation_changed':None},
         'instrumented':{'source_closed':None,'native_closed':None,'proof_taken':None,'component_woken':None,'component_ms':None,'same_deadline_ref':None,'within_main_deadline':None,'main_stop_to_closed_ms':None,'connections_born':None,'connections_creator_closed':None,'connections_property_closed':None,'fds_born':None,'fds_creator_closed':None,'fds_property_closed':None,'observer_failed':None},
         'financial':{'initial_empty':False,'normal_restart_unchanged':False,'pre_get_closed_unreserved':False,'held':None,'upper_booked':None,'settled':None,'native_unknown_held_verified':False},
@@ -288,6 +288,10 @@ def validate_ready_diagnostics(receipt):
         if formal['code'] is not None and formal['code'] not in FORMAL_CODES or formal['close_code'] not in (None,'FD_CLOSE_FAILED'):raise ProbeFailure('PRECHECK')
         if formal['binding']=='UNPROVED' and (formal['code'] is not None or formal['close_code'] is not None):raise ProbeFailure('PRECHECK')
         if formal['close_code'] is not None and formal['code'] is None:raise ProbeFailure('PRECHECK')
+        try:validate_identity(formal['identity'])
+        except ValueError:raise ProbeFailure('PRECHECK') from None
+        if formal['identity'] is not None and (formal['binding']!='BOUND' or formal['code']!='CODE_IDENTITY_INVALID' or formal['stream'] not in ('OPEN','UNKNOWN_LINES','EOF')):raise ProbeFailure('PRECHECK')
+        if receipt['phases'][phase] and formal['identity'] is not None:raise ProbeFailure('PRECHECK')
         for key,maximum in (('read_bytes',16384),('unknown_lines',16384),('receive_buffer',32768)):
             if formal[key] is not None and (type(formal[key]) is not int or not 0<=formal[key]<=maximum):raise ProbeFailure('PRECHECK')
         if formal['peer_root'] is not None and type(formal['peer_root']) is not bool:raise ProbeFailure('PRECHECK')
@@ -455,7 +459,9 @@ class StartupFrames:
 
 OBSERVATION=Path('/run/structural-native-probe-observation')
 FORMAL_CODES=('ENTRY_ARGUMENTS', 'INTERPRETER_FLAGS', 'INHERITED_SECRET', 'CODE_OVERRIDE', 'PROFILE_INVALID', 'SMTP_AUTH_REQUIRED', 'CREDENTIAL_DIRECTORY_INVALID', 'UNSUPPORTED_PLATFORM', 'SERVICE_IDENTITY_INVALID', 'CORE_HARDENING_FAILED', 'DUMP_HARDENING_FAILED', 'BOUNDARY_CHANGED', 'CREDENTIAL_METADATA_INVALID', 'CREDENTIAL_CHANGED', 'CREDENTIAL_SIZE_INVALID', 'CREDENTIAL_ENCODING_INVALID', 'CREDENTIAL_FORMAT_INVALID', 'CREDENTIAL_IO_FAILED', 'FD_CLOSE_FAILED', 'ENV_INSTALL_FAILED', 'CODE_IDENTITY_INVALID', 'APP_IMPORT_FAILED', 'SERVER_FAILED')
-STREAM_STATES=('LISTENING','OPEN','EOF','UNKNOWN_LINES','READ_LIMIT','LINE_TOO_LONG','TRUNCATED','EXTRA_CODE','PEER_INVALID','DUPLICATE_PEER','BINDING_UNPROVED','IO','CLOSE_UNKNOWN')
+IDENTITY_SITES = ('SRC_ROOT', 'SRC_COMPONENT', 'SRC_LEAF_BOUNDS', 'SRC_READBACK', 'HELPER_MODULE', 'HELPER_BUILTINS', 'HELPER_MEMBERS', 'HELPER_FUNCTION', 'HELPER_CONSTANT', 'HELPER_SOURCE_REREAD', 'LOAD_PREINJECT', 'LOAD_SOURCE_CHANGED', 'ENTRY_PATH', 'ENTRY_WITNESS_PAIR', 'APP_PREIMPORT', 'ENTRY_MODULE', 'ENTRY_BUILTINS', 'ENTRY_FUNCTION', 'MAIN_IDENTITY')
+IDENTITY_MASKS = {'SRC_ROOT': 3, 'SRC_COMPONENT': 15, 'SRC_LEAF_BOUNDS': 48, 'SRC_READBACK': 192}
+STREAM_STATES=('IDENTITY_INVALID','LISTENING','OPEN','EOF','UNKNOWN_LINES','READ_LIMIT','LINE_TOO_LONG','TRUNCATED','EXTRA_CODE','PEER_INVALID','DUPLICATE_PEER','BINDING_UNPROVED','IO','CLOSE_UNKNOWN')
 PARENT_FAILURES=('TIMEOUT','EOF','FRAME_INVALID','FRAME_LIMIT','HELPER_EXIT','HELPER_FAILED','STDERR_INVALID','BINDING_UNPROVED','IO')
 UNIT_ACTIVE=('active','activating','deactivating','inactive','failed','reloading','OTHER')
 UNIT_RESULTS=('success','exit-code','signal','core-dump','timeout','watchdog','oom-kill','start-limit-hit','resources','protocol','OTHER')
@@ -464,7 +470,7 @@ UNIT_RESULTS=('success','exit-code','signal','core-dump','timeout','watchdog','o
 def empty_startup_diagnostic():
     return {'last_stage':None,'failed_at':None,'exception':None,'errno':None,'health':empty_health(),
         'parent_failure':None,'helper_returncode':None,'deadline_reached':None,'ready_observed':None,'frames':None,'startup_bytes':None,
-        'formal':{'binding':'UNPROVED','code':None,'close_code':None,'stream':'LISTENING','read_bytes':0,'unknown_lines':0,'receive_buffer':None,'peer_root':None},
+        'formal':{'binding':'UNPROVED','code':None,'close_code':None,'identity':None,'stream':'LISTENING','read_bytes':0,'unknown_lines':0,'receive_buffer':None,'peer_root':None},
         'unit_before':None,'unit_after':None}
 
 
@@ -473,27 +479,62 @@ def empty_diagnostic_resources():
         'directory_born':False,'directory_closed':False,'directory_removed':False,'uncertain':False}
 
 
+def validate_identity(value):
+    if value is None:return None
+    if type(value) is not dict or set(value)!={'site','component_index','predicate_mask'}:raise ValueError('IDENTITY_INVALID')
+    site,component,mask=value['site'],value['component_index'],value['predicate_mask']
+    if type(site) is not str or site not in IDENTITY_SITES:raise ValueError('IDENTITY_INVALID')
+    if site in IDENTITY_MASKS:
+        if component is not None and (type(component) is not int or (component!=0 if site=='SRC_ROOT' else not 1<=component<=31)):raise ValueError('IDENTITY_INVALID')
+        if mask is not None and (type(mask) is not int or mask<=0 or mask & ~IDENTITY_MASKS[site]):raise ValueError('IDENTITY_INVALID')
+    elif component is not None or mask is not None:raise ValueError('IDENTITY_INVALID')
+    return value
+
+
+def parse_identity_line(line):
+    parts=line[:-1].split(b':')
+    if len(parts)!=4 or parts[0]!=b'FORMAL_IDENTITY_V1' or not line.endswith(b'\n'):raise ValueError('IDENTITY_INVALID')
+    def number(raw):
+        if raw==b'-':return None
+        if not 0<len(raw)<=3 or not raw.isdigit() or str(int(raw)).encode('ascii')!=raw:raise ValueError('IDENTITY_INVALID')
+        return int(raw)
+    try:site=parts[1].decode('ascii')
+    except UnicodeDecodeError:raise ValueError('IDENTITY_INVALID') from None
+    return validate_identity({'site':site,'component_index':number(parts[2]),'predicate_mask':number(parts[3])})
+
+
 class FormalCodeBytes:
-    def __init__(self):self.total=0;self.pending=bytearray();self.codes=[];self.unknown=0;self.state='OPEN'
+    def __init__(self):self.total=0;self.pending=bytearray();self.codes=[];self.identity=None;self.identity_adjacent=False;self.unknown=0;self.state='OPEN'
+    def _fail(self,state):
+        self.identity=None;self.identity_adjacent=False;self.state=state;raise ValueError(state)
     def feed(self,raw):
-        if type(raw) is not bytes or not 0<len(raw)<=1024:raise ValueError('IO')
-        if self.state not in ('OPEN','UNKNOWN_LINES'):raise ValueError(self.state)
-        if self.total+len(raw)>16384:self.state='READ_LIMIT';raise ValueError(self.state)
+        if type(raw) is not bytes or not 0<len(raw)<=1024:self._fail('IO')
+        if self.state not in ('OPEN','UNKNOWN_LINES'):self._fail(self.state)
+        if self.total+len(raw)>16384:self._fail('READ_LIMIT')
         self.total+=len(raw)
         for byte in raw:
             self.pending.append(byte)
-            if len(self.pending)>128:self.state='LINE_TOO_LONG';self.pending.clear();raise ValueError(self.state)
+            if len(self.pending)>128:self.pending.clear();self._fail('LINE_TOO_LONG')
             if byte==10:
-                matched=next((code for code in FORMAL_CODES if bytes(self.pending)==b'FORMAL_ENTRY:'+code.encode('ascii')+b'\n'),None)
-                self.pending.clear()
-                if matched is None:self.unknown+=1;self.state='UNKNOWN_LINES'
+                line=bytes(self.pending);self.pending.clear()
+                if line.startswith(b'FORMAL_IDENTITY'):
+                    if not self.identity_adjacent or self.identity is not None or self.codes!=['CODE_IDENTITY_INVALID']:self._fail('IDENTITY_INVALID')
+                    try:self.identity=parse_identity_line(line)
+                    except ValueError:self._fail('IDENTITY_INVALID')
+                    self.identity_adjacent=False
                 else:
-                    if len(self.codes)>=2 or self.codes and matched!='FD_CLOSE_FAILED':self.state='EXTRA_CODE';raise ValueError(self.state)
-                    self.codes.append(matched)
-        if self.total==16384:self.state='READ_LIMIT';raise ValueError(self.state)
+                    matched=next((code for code in FORMAL_CODES if line==b'FORMAL_ENTRY:'+code.encode('ascii')+b'\n'),None)
+                    self.identity_adjacent=False
+                    if matched is None:self.unknown+=1;self.state='UNKNOWN_LINES'
+                    else:
+                        if len(self.codes)>=2 or self.codes and matched!='FD_CLOSE_FAILED':self._fail('EXTRA_CODE')
+                        self.codes.append(matched)
+                        self.identity_adjacent=self.codes==['CODE_IDENTITY_INVALID']
+        if self.total==16384:self._fail('READ_LIMIT')
     def finish(self):
-        if self.pending:self.pending.clear();self.state='TRUNCATED';raise ValueError(self.state)
+        if self.pending:self.pending.clear();self._fail('TRUNCATED')
         if self.state in ('OPEN','UNKNOWN_LINES'):self.state='EOF'
+
 
 
 def unit_diagnostic(raw,expected,now):
@@ -583,6 +624,8 @@ class Controller:
     def _diag_uncertain(self):
         self.uncertain=True;self.result['diagnostic_resources']['uncertain']=True
     def _diag_fault(self,state,clean=False):
+        if self._diag is not None:
+            self._diag['record']['formal']['identity']=None;self._diag['stream'].identity=None
         if self._diag is not None and self._diag['record']['formal']['stream'] in ('LISTENING','OPEN','EOF','UNKNOWN_LINES'):self._diag['record']['formal']['stream']=state
         self._diag_uncertain()
         if not clean:
@@ -671,6 +714,7 @@ class Controller:
         formal['binding']='BOUND' if bound else 'UNPROVED'
         formal['code']=item['stream'].codes[0] if bound and item['stream'].codes else None
         formal['close_code']=item['stream'].codes[1] if bound and len(item['stream'].codes)>1 else None
+        formal['identity']=item['stream'].identity if bound and formal['code']=='CODE_IDENTITY_INVALID' and item['stream'].state in ('OPEN','UNKNOWN_LINES','EOF') else None
     def _diag_sources(self):
         if self._diag is None:return []
         out=[];item=self._diag
@@ -726,8 +770,11 @@ class Controller:
                 try:
                     if raw:item['stream'].feed(raw)
                     else:item['stream'].finish()
-                except ValueError as error:self._diag_fault(error.args[0] if error.args and error.args[0] in STREAM_STATES else 'IO',clean)
-                formal=item['record']['formal'];formal.update(read_bytes=item['stream'].total,unknown_lines=item['stream'].unknown,stream=item['stream'].state)
+                except ValueError as error:
+                    self._diag_refresh_binding()  # Keep an observed primary even if its annotation is invalid.
+                    self._diag_fault(error.args[0] if error.args and error.args[0] in STREAM_STATES else 'IO',clean)
+                finally:
+                    formal=item['record']['formal'];formal.update(read_bytes=item['stream'].total,unknown_lines=item['stream'].unknown,stream=item['stream'].state)
                 self._diag_refresh_binding()
         except ProbeFailure:raise
         except BaseException:self._diag_fault('IO',clean)

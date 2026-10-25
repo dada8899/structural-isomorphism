@@ -476,3 +476,187 @@ def test_accepted_close_error_keeps_original_failure_and_sticky_owned_uncertaint
         assert server_closed==[True] and closed==[True]
         assert owner.worker_uncertain and owner._unretired_accepted is accepted
     finally:left.close();right.close()
+
+
+def test_identity_v5_default_is_unknown_and_primary_annotation_is_separate():
+    assert P.empty_receipt('a'*40)['protocol']=='native-linux-lifecycle-probe-v5'
+    assert P.empty_startup_diagnostic()['formal']['identity'] is None
+    stream=P.FormalCodeBytes()
+    stream.feed(b'FORMAL_ENTRY:CODE_IDENTITY_INVALID\nFORMAL_IDENTITY_V1:SRC_ROOT:0:2\nFORMAL_ENTRY:FD_CLOSE_FAILED\n')
+    stream.finish()
+    assert stream.codes==['CODE_IDENTITY_INVALID','FD_CLOSE_FAILED']
+    assert stream.identity=={'site':'SRC_ROOT','component_index':0,'predicate_mask':2}
+
+
+def identity_wire(site='SRC_COMPONENT',component='1',mask='2'):
+    return ('FORMAL_IDENTITY_V1:'+site+':'+component+':'+mask+'\n').encode('ascii')
+
+
+@pytest.mark.parametrize('split',[1,2,17,128,1024])
+def test_identity_stream_fragmentation_keeps_two_codes_and_separate_identity(split):
+    wire=b'FORMAL_ENTRY:CODE_IDENTITY_INVALID\n'+identity_wire()+b'FORMAL_ENTRY:FD_CLOSE_FAILED\n'
+    stream=P.FormalCodeBytes()
+    for offset in range(0,len(wire),split):stream.feed(wire[offset:offset+split])
+    stream.finish()
+    assert stream.state=='EOF' and stream.codes==['CODE_IDENTITY_INVALID','FD_CLOSE_FAILED']
+    assert stream.identity=={'site':'SRC_COMPONENT','component_index':1,'predicate_mask':2}
+
+
+@pytest.mark.parametrize('fault',['before','other_primary','duplicate','after_close','noise_between','unknown_site','bad_version','extra_field','zero_mask','wrong_bit','bool_mask','negative','plus','leading_zero','root_index','component_zero','component32','non_src_index','non_src_mask','truncated','line_limit','read_limit'])
+def test_identity_invalid_stream_never_projects_a_site_or_replaces_primary(fault):
+    primary=b'FORMAL_ENTRY:CODE_IDENTITY_INVALID\n';annotation=identity_wire()
+    wire=primary+annotation
+    if fault=='before':wire=annotation+primary
+    elif fault=='other_primary':wire=b'FORMAL_ENTRY:APP_IMPORT_FAILED\n'+annotation
+    elif fault=='duplicate':wire+=annotation
+    elif fault=='after_close':wire=primary+b'FORMAL_ENTRY:FD_CLOSE_FAILED\n'+annotation
+    elif fault=='noise_between':wire=primary+b'noise\n'+annotation
+    elif fault=='unknown_site':wire=primary+identity_wire('OTHER')
+    elif fault=='bad_version':wire=primary+annotation.replace(b'_V1:',b'_V2:')
+    elif fault=='extra_field':wire=primary+annotation[:-1]+b':extra\n'
+    elif fault=='zero_mask':wire=primary+identity_wire(mask='0')
+    elif fault=='wrong_bit':wire=primary+identity_wire(mask='16')
+    elif fault=='bool_mask':wire=primary+identity_wire(mask='True')
+    elif fault=='negative':wire=primary+identity_wire(component='-1')
+    elif fault=='plus':wire=primary+identity_wire(component='+1')
+    elif fault=='leading_zero':wire=primary+identity_wire(component='01')
+    elif fault=='root_index':wire=primary+identity_wire('SRC_ROOT','1','2')
+    elif fault=='component_zero':wire=primary+identity_wire(component='0')
+    elif fault=='component32':wire=primary+identity_wire(component='32')
+    elif fault=='non_src_index':wire=primary+identity_wire('HELPER_MODULE','1','-')
+    elif fault=='non_src_mask':wire=primary+identity_wire('HELPER_MODULE','-','2')
+    elif fault=='truncated':wire=wire[:-1]
+    elif fault=='line_limit':wire+=b'x'*129
+    stream=P.FormalCodeBytes()
+    with pytest.raises(ValueError):
+        if fault=='read_limit':
+            stream.feed(wire)
+            for _ in range(256):stream.feed(b'x\n'*32)
+        else:
+            for offset in range(0,len(wire),37):stream.feed(wire[offset:offset+37])
+            stream.finish()
+    assert stream.identity is None
+    if fault not in ('before',):assert stream.codes[0]==('APP_IMPORT_FAILED' if fault=='other_primary' else 'CODE_IDENTITY_INVALID')
+    assert len(stream.codes)<=2
+
+
+@pytest.mark.parametrize('site',P.IDENTITY_SITES)
+def test_identity_null_source_inputs_remain_unknown_and_sites_are_closed(site):
+    item={'site':site,'component_index':None,'predicate_mask':None}
+    assert P.validate_identity(item)==item
+    assert P.parse_identity_line(identity_wire(site,'-','-'))==item
+    assert len(identity_wire(site,'-','-'))<=128
+
+
+def test_identity_schema_bound_primary_phase_and_exact_keys():
+    from .test_systemd_credential_metadata import _complete_policy_receipt
+    value=_complete_policy_receipt(P);value.update(outcome='FAIL',reason='HTTP');value['phases']={phase:False for phase in P.PHASES}
+    formal=value['startup_diagnostics']['stock_base']['formal']
+    formal.update(code='CODE_IDENTITY_INVALID',identity={'site':'SRC_COMPONENT','component_index':1,'predicate_mask':2})
+    P.validate_receipt(value)
+    for change in ({'binding':'UNPROVED'},{'code':'APP_IMPORT_FAILED'},{'stream':'IDENTITY_INVALID'},
+                   {'identity':{'site':'SRC_ROOT','component_index':True,'predicate_mask':2}},
+                   {'identity':{'site':'SRC_COMPONENT','component_index':1,'predicate_mask':False}},
+                   {'identity':{'site':'HELPER_MODULE','component_index':None,'predicate_mask':1}},
+                   {'identity':{'site':'SRC_ROOT','component_index':0,'predicate_mask':2,'raw':'forbidden'}}):
+        bad=copy.deepcopy(value);bad['startup_diagnostics']['stock_base']['formal'].update(change)
+        with pytest.raises(P.ProbeFailure):P.validate_receipt(bad)
+    bad=copy.deepcopy(value);bad['phases']['stock_base']=True
+    with pytest.raises(P.ProbeFailure):P.validate_receipt(bad)
+    bad=copy.deepcopy(value);bad['protocol']='native-linux-lifecycle-probe-v4'
+    with pytest.raises(P.ProbeFailure):P.validate_receipt(bad)
+    bad=copy.deepcopy(value);bad['startup_diagnostics']['stock_base']['formal'].pop('identity')
+    with pytest.raises(P.ProbeFailure):P.validate_receipt(bad)
+
+
+def test_identity_binding_requires_both_samples_and_epoch_loss_clears_every_code():
+    controller=P.Controller({'head':'a'*40},None,None);stream=P.FormalCodeBytes()
+    stream.feed(b'FORMAL_ENTRY:CODE_IDENTITY_INVALID\n'+identity_wire()+b'FORMAL_ENTRY:FD_CLOSE_FAILED\n');stream.finish()
+    row=P.empty_startup_diagnostic();row['formal'].update(peer_root=True,receive_buffer=16384)
+    controller._diag={'record':row,'credentials':(123,0,0),'first_unit':None,'last_unit':None,'window_start':.5,'window_end':None,'unit_count':0,'accepted_at_count':0,'stream':stream}
+    controller._diag_note_unit(unit());assert row['formal']['identity'] is None and row['formal']['code'] is None
+    controller._diag_note_unit(unit());assert row['formal']['identity']==stream.identity
+    first=copy.deepcopy(controller.result['first_failure'])
+    with pytest.raises(P.ProbeFailure):controller._diag_note_unit(unit(invocation='b'*32))
+    assert row['formal']['identity'] is None and row['formal']['code'] is None and row['formal']['close_code'] is None
+    assert stream.identity is None and controller.result['diagnostic_resources']['uncertain']
+    assert controller.result['first_failure'] is not None or first is not None
+
+
+def test_four_identity_diagnostics_fit_original_caps_without_success_claim():
+    from .test_systemd_credential_metadata import _complete_policy_receipt
+    value=_complete_policy_receipt(P);value.update(outcome='FAIL',reason='HTTP');value['phases']={phase:False for phase in P.PHASES}
+    value['resources'].update(forced=True,cleanup_uncertain=True);value['diagnostic_resources']['uncertain']=True
+    for row in value['startup_diagnostics'].values():
+        row.update(last_stage='FAILED',failed_at='HEALTH_WAIT',exception='OS_ERROR',errno=4095,parent_failure='HELPER_FAILED',helper_returncode=255,deadline_reached=True,ready_observed=False,frames=7,startup_bytes=8192)
+        row['health']={'http_status':599,'base':'UNAVAILABLE','source_execute':'UNAVAILABLE','transport':'HTTP_ERROR'}
+        row['formal'].update(code='CODE_IDENTITY_INVALID',close_code='FD_CLOSE_FAILED',stream='UNKNOWN_LINES',read_bytes=16383,unknown_lines=16000,receive_buffer=32768,identity={'site':'SRC_READBACK','component_index':31,'predicate_mask':192})
+        unitrow={'active':'deactivating','result':'start-limit-hit','exit_kind':'OTHER','exit_status':255,'invocation_matches':True,'pid_matches':True,'start_matches':True,'start_elapsed_ms':300000,'exit_elapsed_ms':300000}
+        row['unit_before']=dict(unitrow);row['unit_after']=dict(unitrow)
+        assert len(P.canonical(row))<=2048
+    base=value['credential_metadata'][0];base['decision']='REJECT';base['check']='IO'
+    extra=copy.deepcopy(base['objects'][-1]);extra['slot']=P.PROVIDER_ID;base['objects'].append(extra)
+    raw=P.validate_receipt(value);assert len(raw)<=32768
+    assert P.strict_json(raw)['resources']['forced'] and P.strict_json(raw)['resources']['cleanup_uncertain']
+
+
+def test_identity_format_fault_clears_public_slot_and_preserves_first_failure():
+    controller=P.Controller({'head':'a'*40},None,None);stream=P.FormalCodeBytes()
+    stream.feed(b'FORMAL_ENTRY:CODE_IDENTITY_INVALID\n'+identity_wire())
+    row=P.empty_startup_diagnostic();row['formal'].update(binding='BOUND',code='CODE_IDENTITY_INVALID',identity=stream.identity,stream='OPEN')
+    controller._diag={'record':row,'stream':stream};controller._phase='stock_base'
+    controller._mark('helper_ready',command='helper');controller._capture(P.ProbeFailure('HTTP'))
+    first=copy.deepcopy(controller.result['first_failure'])
+    with pytest.raises(ValueError):stream.feed(identity_wire())
+    with pytest.raises(P.ProbeFailure):controller._diag_fault('IDENTITY_INVALID')
+    assert row['formal']['identity'] is None and row['formal']['code']=='CODE_IDENTITY_INVALID'
+    assert stream.identity is None and row['formal']['stream']=='IDENTITY_INVALID'
+    assert controller.result['first_failure']==first and controller.result['diagnostic_resources']['uncertain']
+
+
+@pytest.mark.parametrize('noise',[b'',b'finite-noise\n'])
+@pytest.mark.parametrize('clean',[False,True])
+@pytest.mark.parametrize('fragmented',[False,True])
+def test_invalid_identity_in_same_read_preserves_bound_primary(monkeypatch,tmp_path,noise,clean,fragmented):
+    left,right=socket.socketpair();controller=P.Controller({'head':'a'*40},None,None)
+    path=tmp_path/'owned-stream-path';path.write_bytes(b'finite owned input')
+    stream=P.FormalCodeBytes();row=P.empty_startup_diagnostic();row['formal'].update(peer_root=True,receive_buffer=16384,stream='OPEN')
+    controller.result['startup_diagnostics']['stock_base']=row
+    peer=P.DiagnosticHandle('accepted');peer.remember(left)
+    controller._diag={'record':row,'path':path,'path_identity':P.stat_key(path.lstat()),'listener':None,'peer':peer,
+                      'credentials':(123,0,0),'first_unit':unit(),'last_unit':unit(),'window_start':.5,'window_end':2,
+                      'unit_count':2,'accepted_at_count':0,'stream':stream}
+    monkeypatch.setattr(controller,'_diag_directory_check',lambda:None)
+    controller._phase='stock_base';controller._mark('helper_ready',command='helper');controller._capture(P.ProbeFailure('HTTP'))
+    first=copy.deepcopy(controller.result['first_failure'])
+    try:
+        primary=noise+b'FORMAL_ENTRY:CODE_IDENTITY_INVALID\n';annotation=identity_wire('UNKNOWN');wire=primary+annotation
+        if fragmented:
+            right.sendall(primary);controller._diag_pump([left],clean=clean)
+            assert row['formal']['read_bytes']==len(primary) and row['formal']['unknown_lines']==int(bool(noise))
+            right.sendall(annotation)
+        else:right.sendall(wire)
+        if clean:controller._diag_pump([left],clean=True)
+        else:
+            with pytest.raises(P.ProbeFailure):controller._diag_pump([left])
+        assert row['formal']['code']=='CODE_IDENTITY_INVALID' and row['formal']['identity'] is None
+        assert row['formal']['stream']=='IDENTITY_INVALID' and controller.result['first_failure']==first
+        assert stream.total==len(wire) and stream.unknown==int(bool(noise))
+        assert row['formal']['read_bytes']==stream.total and row['formal']['unknown_lines']==stream.unknown
+        assert controller.result['diagnostic_resources']['uncertain']
+        assert P.validate_receipt(controller.result)
+    finally:left.close();right.close()
+
+
+def test_identity_closed_bitsets_and_integer_types_exhaust_original_byte_range():
+    for site,allowed in P.IDENTITY_MASKS.items():
+        for mask in range(256):
+            value={'site':site,'component_index':0 if site=='SRC_ROOT' else 1,'predicate_mask':mask}
+            if mask and not mask & ~allowed:assert P.validate_identity(value)==value
+            else:
+                with pytest.raises(ValueError):P.validate_identity(value)
+        for component in (False,True,-1,32,1.0,'1'):
+            value={'site':site,'component_index':component,'predicate_mask':None}
+            with pytest.raises(ValueError):P.validate_identity(value)
+    for value in (False,True,[],{}, {'site':'SRC_ROOT','component_index':0,'predicate_mask':True}):
+        with pytest.raises(ValueError):P.validate_identity(value)
