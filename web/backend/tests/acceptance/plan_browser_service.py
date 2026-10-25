@@ -235,7 +235,7 @@ class _OriginalDraftReplayPhase(_MaterialReadPhase):
                 self.same_operation=((headers or {}).get('idempotency-key')==self.pending['key']
                     and sent=={'schema_version':'structure-research-v1','contract_revision':'method-draft-v1','data':self.pending['task_request']['data']})
                 self.same_receipt=json.loads(response.body).get('data')==self.original
-            except (ValueError,TypeError,KeyError,AttributeError):self.invalid=True
+            except (ValueError,TypeError,KeyError,AttributeError,RecursionError):self.invalid=True
 
     def check_stage(self,index):
         super().check_stage(index)

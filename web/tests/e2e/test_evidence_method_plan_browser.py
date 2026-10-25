@@ -500,3 +500,69 @@ def test_original_replay_phase_rejects_substitution_without_replacing_forwarded_
         with pytest.raises(AssertionError):phase.check_stage(1)
     finally:phase.clear()
     assert phase.pending is phase.original is phase.page is None
+
+
+@pytest.mark.parametrize('kind',['deep_response','deep_request','bad_response','valid'])
+def test_replay_observer_decode_failure_still_fulfills_original_response_once(kind):
+    """Exercise the routed callback, not only the observation object in isolation."""
+    from types import SimpleNamespace
+    async def run():
+        page=object();pending={'key':'synthetic-original','task_request':{'data':{'scope':'synthetic'}}}
+        original={'metadata':{'draft_ref':'synthetic-ref'}}
+        phase=component._OriginalDraftReplayPhase(page,component.ORIGIN,'research',pending,original)
+        deep=b'{"data":'+b'['*2000+b'0'+b']'*2000+b'}'
+        assert len(deep)==4010
+        body=deep if kind=='deep_response' else b'not-json' if kind=='bad_response' else json.dumps({'data':original}).encode()
+        actual=component.BridgeResponse(200,(('X-Owned-Control','one'),),body)
+        first=SimpleNamespace(frame=SimpleNamespace(page=page),url=phase.urls[0],method='GET',post_data_buffer=None)
+        phase.bind(first);phase.forwarded(first,component.BridgeResponse(200,(),b'{}'));phase.record_finished(first)
+        class ReplayRequest(_BridgeControlRequest):
+            method='POST';url=phase.urls[1]
+            post_data_buffer=deep if kind=='deep_request' else json.dumps({'schema_version':'structure-research-v1','contract_revision':'method-draft-v1','data':pending['task_request']['data']}).encode()
+            frame=SimpleNamespace(page=page)
+            async def all_headers(self):return {'idempotency-key':pending['key']}
+        request=ReplayRequest();phase.bind(request);delivered=[]
+        class RecordedRoute(_BridgeControlRoute):
+            async def fulfill(self,**kwargs):delivered.append(kwargs);await super().fulfill(**kwargs)
+        route=RecordedRoute();context=_BridgeControlContext();owned=_bridge_control(lambda *args:actual);owned._material_read=phase
+        try:
+            async with owned.routed(context):await context.handler(route,request)
+            assert route.fulfills==1 and route.aborts==0 and len(delivered)==1
+            same_forwarded=(delivered[0]['status']==actual.status and delivered[0]['body'] is actual.body
+                            and delivered[0]['headers']=={'x-owned-control':'one'})
+            assert same_forwarded
+            if kind=='valid':
+                assert not phase.invalid and phase.same_operation and phase.same_receipt
+            else:
+                assert phase.invalid
+                with pytest.raises(AssertionError):phase.check_stage(1)
+        finally:phase.clear()
+        assert phase.pending is phase.original is phase.page is None
+    asyncio.run(run())
+
+
+def test_replay_observer_does_not_consume_decode_cancellation(monkeypatch):
+    from types import SimpleNamespace
+    first=asyncio.CancelledError();page=object()
+    pending={'key':'synthetic-original','task_request':{'data':{'scope':'synthetic'}}}
+    phase=component._OriginalDraftReplayPhase(page,component.ORIGIN,'research',pending,{'metadata':{'draft_ref':'synthetic-ref'}})
+    request0=SimpleNamespace(frame=SimpleNamespace(page=page),url=phase.urls[0],method='GET',post_data_buffer=None)
+    request1=SimpleNamespace(frame=SimpleNamespace(page=page),url=phase.urls[1],method='POST',post_data_buffer=b'{}')
+    phase.bind(request0);phase.bind(request1)
+    def cancelled(*args,**kwargs):raise first
+    try:
+        monkeypatch.setattr(component.json,'loads',cancelled)
+        with pytest.raises(asyncio.CancelledError) as caught:
+            phase.forwarded(request1,component.BridgeResponse(200,(),b'{}'),{'idempotency-key':pending['key']})
+        assert caught.value is first and not phase.invalid and not phase.same_receipt
+    finally:phase.clear()
+
+
+def test_terminal_fulfill_cancellation_keeps_original_instance_without_abort():
+    async def run():
+        first=asyncio.CancelledError();route=_BridgeControlRoute(first);context=_BridgeControlContext()
+        owned=_bridge_control(lambda *args:component.BridgeResponse(200,(),b'{}'))
+        with pytest.raises(asyncio.CancelledError) as caught:
+            async with owned.routed(context):await context.handler(route,_BridgeControlRequest())
+        assert caught.value is first and route.fulfills==1 and route.aborts==0
+    asyncio.run(run())
