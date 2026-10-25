@@ -1742,8 +1742,29 @@ def _original_makefile_before_auth_bootstrap_browser(makefile: str) -> str:
     return makefile.replace(assignment,assignment.replace('\t'+auth+' \\\n',''),1).replace(formal,formal.replace(' '+auth,''),1).replace(isolated,'\t$(PYTEST) $(filter web/tests/e2e/%,$('+variable+')) -m "e2e and not requires_internet" -v\n',1)
 
 
+B3_FRESH_MAIN_MODULES = ('test_source_document_raw_lifecycle.py',
+    'test_formal_main_history_read_borrow.py', 'test_source_document_cached_history.py')
+
+
+def _original_makefile_before_b3_backend(makefile: str) -> str:
+    commands = [c for c in _make_recipe_commands(makefile, 'verify-release') if c.startswith('cd web/backend ')]
+    assert len(commands) == 20, 'ordinary plus nineteen fresh full modules required'
+    fresh = ['cd web/backend && $(BACKEND_PYTEST) tests/' + n + ' -p no:logging -q'
+             for n in B3_FRESH_MAIN_MODULES]
+    assert commands[-3:] == fresh
+    extra = ''.join(' --ignore=tests/' + n for n in B3_FRESH_MAIN_MODULES)
+    suffix = ' --ignore=tests/test_source_sec_access_lifecycle.py'
+    assert commands[0].count(suffix + extra + ' -q') == 1
+    assert all(commands[0].count(' --ignore=tests/' + n) == 1 for n in B3_FRESH_MAIN_MODULES)
+    prior = [commands[0].replace(suffix + extra + ' -q', suffix + ' -q', 1), *commands[1:-3]]
+    expanded = ''.join('\t' + c + '\n' for c in commands)
+    assert makefile.count(expanded) == 1, 'B3 fresh processes must be one exact contiguous block'
+    return makefile.replace(expanded, ''.join('\t' + c + '\n' for c in prior), 1)
+
+
 def _original_makefile_before_gov_backend(makefile: str) -> str:
     """Reverse only the Gov lifecycle exclusion and full fresh process."""
+    makefile = _original_makefile_before_b3_backend(makefile)
     prior_names = ('test_formal_main_admission.py', 'test_formal_main_source_supervisor.py',
                    'test_research_financial_import.py', 'test_formal_model_startup.py',
                    'acceptance/test_source_history_fixture_current15.py', 'test_research_financial_registries.py',
@@ -3103,7 +3124,8 @@ def test_financial_scenario_make_delta_rejects_weakened_or_missing_consumer(muta
 
 def test_gov_lifecycle_has_one_full_make_backend_process():
     makefile = (ROOT / 'Makefile').read_text()
-    commands = [c for c in _make_recipe_commands(makefile, 'verify-release') if c.startswith('cd web/backend ')]
+    legacy = _original_makefile_before_b3_backend(makefile)
+    commands = [c for c in _make_recipe_commands(legacy, 'verify-release') if c.startswith('cd web/backend ')]
     assert len(commands) == 17
     assert commands[-1] == 'cd web/backend && $(BACKEND_PYTEST) tests/test_source_sec_access_lifecycle.py -p no:logging -q'
     assert commands[0].count(' --ignore=tests/test_source_sec_access_lifecycle.py') == 1
@@ -3141,3 +3163,46 @@ def test_gov_lifecycle_make_delta_rejects_weakened_or_missing_consumer(mutation)
     else: value = value.replace(formal, formal.replace('$(BACKEND_PYTEST)', '$(PYTEST)'), 1)
     assert value != (ROOT / 'Makefile').read_text()
     with pytest.raises(AssertionError): _original_makefile_before_gov_backend(value)
+
+
+@pytest.mark.parametrize('consumer', B3_FRESH_MAIN_MODULES)
+@pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'wrong_file', 'selector', 'logging', 'ignore_only', 'missing_ignore', 'duplicate_ignore', 'ordinary_logging', 'pure_ignore', 'extra'])
+def test_b3_fresh_make_consumers_reject_drift(consumer, mutation):
+    value = (ROOT / 'Makefile').read_text()
+    formal = '\tcd web/backend && $(BACKEND_PYTEST) tests/' + consumer + ' -p no:logging -q\n'
+    ignore = ' --ignore=tests/' + consumer
+    if mutation in ('missing', 'ignore_only'): value = value.replace(formal, '', 1)
+    elif mutation == 'duplicate': value = value.replace(formal, formal + formal, 1)
+    elif mutation == 'wrong_file': value = value.replace(formal, formal.replace(consumer, 'test_source_document_raw.py'), 1)
+    elif mutation == 'selector': value = value.replace(formal, formal.rstrip('\n') + ' -k smoke\n', 1)
+    elif mutation == 'logging': value = value.replace(formal, formal.replace(' -p no:logging', ''), 1)
+    elif mutation == 'missing_ignore': value = value.replace(ignore, '', 1)
+    elif mutation == 'duplicate_ignore': value = value.replace(ignore, ignore + ignore, 1)
+    elif mutation == 'ordinary_logging': value = value.replace('$(BACKEND_PYTEST) --ignore', '$(BACKEND_PYTEST) -p no:logging --ignore', 1)
+    elif mutation == 'pure_ignore': value = value.replace(ignore, ignore + ' --ignore=tests/test_source_document_raw.py', 1)
+    else: value = value.replace(formal, formal + formal.replace(consumer, 'test_source_document_access.py'), 1)
+    with pytest.raises(AssertionError): _original_makefile_without_financial_preview(value)
+
+
+def test_b3_make_complete_module_inventory_stays_in_exactly_one_process():
+    makefile = (ROOT / 'Makefile').read_text()
+    commands = [c for c in _make_recipe_commands(makefile, 'verify-release') if c.startswith('cd web/backend ')]
+    assert len(commands) == 20
+    fresh = [shlex.split(c)[4] for c in commands[1:]]
+    assert len(fresh) == len(set(fresh)) == 19
+    ignored = [t.removeprefix('--ignore=') for t in shlex.split(commands[0]) if t.startswith('--ignore=')]
+    assert ignored == fresh
+    inventory = {p.relative_to(ROOT / 'web/backend/tests').as_posix()
+                 for p in (ROOT / 'web/backend/tests').rglob('test_*.py')}
+    relative = [p.removeprefix('tests/') for p in fresh]
+    assert set(relative) <= inventory
+    ordinary = inventory - set(relative)
+    assert all(int(name in ordinary) + relative.count(name) == 1 for name in inventory)
+    for name in B3_FRESH_MAIN_MODULES:
+        _assert_legal_repo_file('web/backend/tests/' + name)
+    for name in ('test_source_document_raw.py', 'test_source_document_access.py',
+                 'test_source_document_transport.py', 'test_financial_limit_observer.py'):
+        assert 'tests/' + name not in ignored and 'tests/' + name not in fresh
+        assert name in ordinary
+    prior = _original_makefile_before_b3_backend(makefile)
+    assert len([c for c in _make_recipe_commands(prior, 'verify-release') if c.startswith('cd web/backend ')]) == 17
