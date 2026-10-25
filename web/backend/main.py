@@ -215,6 +215,7 @@ async def lifespan(app: FastAPI):
             app_state.pop('search', None); app_state.pop('artifact', None)
             source_closed = binding is None
             native_closed = binding is None
+            history_closed = binding is None
             if binding is not None:
                 if binding.source_deadline is not None and not formal_admission.source_closed(binding):
                     deadline = min(deadline, binding.source_deadline)
@@ -226,12 +227,15 @@ async def lifespan(app: FastAPI):
                 try:formal_admission.close_native(binding,deadline_monotonic=deadline)
                 except BaseException as error:errors.append(type(error).__name__)
                 native_closed=formal_admission.native_closed(binding)
-                if source_closed and native_closed:
+                try:await formal_admission.drain_history_reads(binding,deadline_monotonic=deadline)
+                except BaseException as error:errors.append(type(error).__name__)
+                history_closed=formal_admission.history_reads_closed(binding)
+                if source_closed and native_closed and history_closed:
                     try:
                         formal_admission.release(binding, deadline_monotonic=deadline)
                     except BaseException as error:
                         errors.append(type(error).__name__)
-            if search_service is not None and source_closed and native_closed:
+            if search_service is not None and source_closed and native_closed and history_closed:
                 try:
                     if time.monotonic() >= deadline:
                         raise RuntimeError('Main cleanup deadline ended')

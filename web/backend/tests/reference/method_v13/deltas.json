@@ -21,7 +21,7 @@
     "original_sha256": "7c46e214178a2bbe0aff75e7a7411a3201d7237d6a812a1a9f75975fde373acb"
   },
   "web/backend/api/research.py": {
-    "current_sha256": "3b3934c2a9a0583f41a39e5d7de8c5f28072d3c524ab8c86ca2e9df95b9daa21",
+    "current_sha256": "83c5d9b1aea509f902a3f589acf9a0a6f7a02463138fb717c568759db3ffc877",
     "original_sha256": "7fcc218e6f75c1cd88ee4bf1bf68f5fd35a15e8b40ffa2057a8fe72ea5d02a46",
     "hunks": [
       [
@@ -50,67 +50,102 @@
         ""
       ],
       [
-        277,
-        309,
+        269,
+        274,
+        "        validated=schema.model_validate(body)\n"
+      ],
+      [
+        281,
+        351,
         ""
       ],
       [
-        311,
-        315,
+        353,
+        362,
         "        if not enabled():\n"
       ],
       [
-        318,
-        422,
-        "        if operation == \"index\":\n"
+        363,
+        473,
+        "        identity = await run_in_threadpool(_identity, request)\n        service = await run_in_threadpool(lambda: ResearchService(ResearchStore(auth._store())))\n        if operation == \"index\":\n"
       ],
       [
-        475,
-        476,
+        525,
+        535,
+        ""
+      ],
+      [
+        536,
+        538,
         "            result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get(\"task_id\",\"\"),request.query_params.get(\"kind\",\"\"),request.query_params.get(\"cursor\"))\n"
       ],
       [
-        533,
-        534,
+        595,
+        596,
         "                result=await run_in_threadpool(source_integration.preview,service,identity,research_id,envelope.data)\n"
       ],
       [
-        539,
-        540,
+        601,
+        602,
         "                try:result=await run_in_threadpool(function,service,identity,research_id,envelope.data,key,request_source=source)\n"
       ],
       [
-        556,
-        567,
+        618,
+        629,
         ""
       ],
       [
-        571,
-        572,
+        633,
+        634,
         ""
       ],
       [
-        578,
-        590,
+        640,
+        652,
         ""
       ],
       [
-        699,
-        767,
+        713,
+        718,
+        ""
+      ],
+      [
+        766,
+        834,
         ""
       ]
     ]
   },
   "web/backend/research/evidence_repository.py": {
-    "current_sha256": "342c0c5084f55f3ffdbbbb6329488734d340d8df6dd7bf714da5c1d7b880f85e",
+    "current_sha256": "a60d9b29f247d320b642722ec0344e914a8da9f06f5cdefe4d0bc292c8573ce1",
+    "original_sha256": "0a1064bab04e2af5490ee20ac52a4ab4fc049e4035e8cffb0793509f762f0b89",
     "hunks": [
       [
-        96,
-        113,
+        82,
+        85,
+        ""
+      ],
+      [
+        99,
+        116,
+        ""
+      ],
+      [
+        196,
+        198,
+        ""
+      ],
+      [
+        217,
+        220,
+        ""
+      ],
+      [
+        309,
+        390,
         ""
       ]
-    ],
-    "original_sha256": "0a1064bab04e2af5490ee20ac52a4ab4fc049e4035e8cffb0793509f762f0b89"
+    ]
   },
   "web/backend/research/financial_guard.py": {
     "current_sha256": "e857a966f3086e74bd72d2c312a2824a6773382751b43932b24bfea9c0caa124",
@@ -249,7 +284,7 @@
     "original_sha256": "5ea041c4ecd50a368ed5a0d0a2b4c480fb82e5defffc9614230e2144e8fb5daa"
   },
   "web/backend/research/paid_control.py": {
-    "current_sha256": "e5f8caa7286e0d322af25a47bf8329c0e6b17e36937774a492b895b93a1e58f7",
+    "current_sha256": "1e4d9d94119fa8ae6ad8b90b781432d6c7c9f60859cbc13e20fb6e8b6b7be360",
     "original_sha256": "f1a9d040d05bdb877f3ca703988f8472d0b31c4f6fc092d7a6ae8475a90cd4a8",
     "hunks": [
       [
@@ -259,47 +294,62 @@
       ],
       [
         68,
-        77,
+        78,
         "        'source-approve':('POST','source_approval'),'source-start':('POST','source_task')}\n"
       ],
       [
-        81,
-        151,
+        82,
+        152,
         "    if action=='plan-read':\n"
       ],
       [
-        291,
+        172,
+        173,
+        "        from .schemas import SourceApprovalEnvelope,SourceStartEnvelope\n"
+      ],
+      [
+        174,
+        175,
+        "        data=model.model_validate(strict_json(raw,65536)).data\n"
+      ],
+      [
+        176,
+        182,
+        "        key=request.headers.get('idempotency-key','');body_digest=digest(canonical(data.model_dump(mode='json')))\n"
+      ],
+      [
         297,
+        303,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        298,
-        299,
+        304,
+        305,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):\n"
       ],
       [
-        318,
-        319,
+        324,
+        325,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):ResearchStore.check_runtime_version(conn)\n"
       ],
       [
-        426,
-        430,
+        432,
+        436,
         ""
       ],
       [
-        468,
-        469,
+        474,
+        475,
         "            or conn.execute(\"SELECT version FROM research_schema WHERE id=1\").fetchone()[0] not in (5,6,7,8,9,10,11,12,13)):\n"
       ],
       [
-        479,
-        480,
+        485,
+        486,
         "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13):\n"
       ],
       [
-        580,
-        581,
+        586,
+        587,
         "    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13):\n"
       ]
     ]
@@ -948,7 +998,8 @@
     "original_sha256": "4415e35d9591896e2484bdfb962f0a1bb084704916bbcb70b9e84954f76647f3"
   },
   "web/backend/research/source_guard.py": {
-    "current_sha256": "c008601c81e75c0e59c6f2b8c89aa5af19ccb7840aaca6e6e5a068b07ea7a38e",
+    "current_sha256": "ac4fcbe3811d14ca696cda7564a7f9828edadebeb786ce4998c0bb0e92a79aa8",
+    "original_sha256": "eba13596a681d3997672d37d03e9af72159db4b0a0d7dda72d4aad03cf96acaf",
     "hunks": [
       [
         103,
@@ -961,25 +1012,35 @@
         "    # Mutable execution/status fields are excluded; these immutable domain facts\n    # are fixed by the authenticated admission and independently rechecked.\n    fields={'task':{key:task[key] for key in ('id','research_id','principal_id','principal_epoch','owner_epoch','acl_epoch','grant_id','auth_generation','input_revision','input_digest','start_version','policy_revision','execution_mode')},\n      'principal':{key:principal[key] for key in ('id','gate_id','session_generation','epoch')},\n      'grant':{key:grant[key] for key in ('id','principal_id','principal_epoch','research_id','acl_epoch','scopes')},\n      'run':{key:run[key] for key in ('task_id','approval_id','chain_id','plan_id','fingerprint','origin')},\n      'approval':{key:approval[key] for key in ('id','principal_id','principal_epoch','auth_generation','research_id','input_revision','problem_digest','query','plan_json','plan_digest','fingerprint','execution_mode','version','consent_origin','consent_digest')},'revision_digest':revision[0],\n      'version':'source-admission-v1'}\n    return fields\n"
       ],
       [
-        376,
-        377,
+        170,
+        174,
+        ""
+      ],
+      [
+        294,
+        295,
+        ""
+      ],
+      [
+        381,
+        382,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
       ],
       [
-        403,
-        426,
+        408,
+        436,
         "    if row['admission_json'] is None:raise PermissionError('Source original admission was erased')\n    recorded=json.loads(row['admission_json'])\n    if sha256(canonical(recorded).encode())!=row['admission_digest']:raise PermissionError('Source original admission digest differs')\n    actual=snapshot(conn,task_id)\n    # These two current execution-authority values may legitimately be retired.\n    # Original task/domain IDs, generations, epochs, approved bytes and hashes\n    # remain independently bound; the current reader uses its own live grants.\n    actual['principal']['epoch']=actual['task']['principal_epoch']\n    actual['grant']['scopes']=recorded['grant']['scopes']\n    if actual!=recorded or actual['principal']['gate_id']!=row['owner_gate_id']:raise PermissionError('Source original domain differs')\n"
       ],
       [
-        427,
-        459,
+        437,
+        485,
         ""
       ]
-    ],
-    "original_sha256": "eba13596a681d3997672d37d03e9af72159db4b0a0d7dda72d4aad03cf96acaf"
+    ]
   },
   "web/backend/research/source_integration.py": {
-    "current_sha256": "72a3dc875bdf2825b01f99d114e32ac4b63adf9be487bdab6d930e265d967f70",
+    "current_sha256": "21aa3c695199a1d5d5f5e78cc1e52c1f79881d4ec6742a116afe2d1eaeb27bd0",
+    "original_sha256": "ba8d65ef360223742776f7b7537ec7434a4252bddf0a8bf6658fc617b5907ed7",
     "hunks": [
       [
         102,
@@ -1012,52 +1073,66 @@
         "            \"policy_revision\":POLICY,\"max_requests\":4,\"execution_mode\":origin(),\n"
       ],
       [
-        317,
-        318,
+        263,
+        268,
+        ""
+      ],
+      [
+        322,
+        323,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        343,
+        339,
         345,
+        ""
+      ],
+      [
+        354,
+        359,
         "def preview(service,identity,rid,request):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
       ],
       [
-        359,
-        360,
+        373,
+        374,
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
       ],
       [
-        364,
-        366,
+        378,
+        383,
         "def approve(service,identity,rid,request,key,*,request_source=None):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
       ],
       [
-        382,
-        383,
+        399,
+        400,
         "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        392,
-        394,
+        409,
+        414,
         "def start_source(service,identity,rid,request,key,*,request_source=None):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
       ],
       [
-        412,
-        413,
+        432,
+        433,
         "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        422,
-        423,
+        442,
+        443,
         "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        440,
-        441,
+        460,
+        461,
         "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        471,
+        543,
+        ""
       ]
-    ],
-    "original_sha256": "ba8d65ef360223742776f7b7537ec7434a4252bddf0a8bf6658fc617b5907ed7"
+    ]
   },
   "web/backend/research/source_policy.py": {
     "current_sha256": "7acb5535cbdfc8c252b51408eb6739908030fdd932808fe477a8005c5b97da58",
@@ -1101,7 +1176,8 @@
     "original_sha256": "d304c8fcbba51de2b2ffdcae5c6154dde7788ed64a8462cacb3da061cbfe3e11"
   },
   "web/backend/research/source_workflow.py": {
-    "current_sha256": "de9e1506b1809d868fd7bafd9c72a88181ce8cf6da5943caab3ea6d4762fc52b",
+    "current_sha256": "5297d48d490585ac66824557f40481e59817e2722e02418dbdc29c4c8b65b1f0",
+    "original_sha256": "5a152fcb8fa84ce04746dd74affb6107f8acfc747ff47968086a2a3a1245148e",
     "hunks": [
       [
         18,
@@ -1124,47 +1200,56 @@
         "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ],
       [
-        187,
-        188,
+        75,
+        79,
+        ""
+      ],
+      [
+        155,
+        159,
+        ""
+      ],
+      [
+        195,
+        196,
         "        if version in (11,12,13):\n"
       ],
       [
-        190,
-        191,
+        198,
+        199,
         "    owner=gate.owner_gate_id(owner_gate) if version in (11,12,13) else gate.owner_gate(principal)\n"
       ],
       [
-        193,
-        196,
+        201,
+        204,
         ""
       ],
       [
-        207,
-        208,
+        215,
+        216,
         "            if version in (11,12,13):\n"
       ],
       [
-        218,
-        219,
+        226,
+        227,
         "    require_enabled()\n"
       ],
       [
-        227,
-        228,
+        235,
+        236,
         "            if version in (11,12,13):\n"
       ],
       [
-        242,
-        248,
+        250,
+        256,
         ""
       ],
       [
-        252,
-        255,
+        260,
+        263,
         "    except (ValueError,ResearchError,PermissionError,OSError):\n"
       ]
-    ],
-    "original_sha256": "5a152fcb8fa84ce04746dd74affb6107f8acfc747ff47968086a2a3a1245148e"
+    ]
   },
   "web/backend/research/store.py": {
     "current_sha256": "0bb5c9533b1c5fee739a5db4fe39e07d76d3ba9eb381c0f9d10b6423a961ecae",
@@ -1375,7 +1460,8 @@
     "original_sha256": "17433353693cede4fe196b518134fddadb460d9c21853f1e94b4db9c82cfdf6e"
   },
   "web/backend/services/runtime_paths.py": {
-    "current_sha256": "e1cd64c975e082ce6c03af89a5ec1496337594030dc2a1a4650abacd373c3e2b",
+    "current_sha256": "3d4b4e87db18bc2e127d770bd79a2048f2693b169cc519f167c725e6ca97c780",
+    "original_sha256": "2d6eae7a4c3345e0db9d4b438e2ae720d1dfa9f8c686e3fb1295f52687309852",
     "hunks": [
       [
         0,
@@ -1398,12 +1484,151 @@
         "def require_formal_admission():\n    # No environment/state/registry switch can attest to completed migration.\n    raise FormalAdmissionError(\"formal persistence consumers are not integrated\")\n"
       ],
       [
-        45,
+        43,
+        44,
+        ""
+      ],
+      [
         46,
-        "                require_formal_admission()\n"
+        52,
+        "                require_formal_admission()\n            except FormalAdmissionError:\n"
+      ],
+      [
+        63,
+        68,
+        "        await self.app(scope, receive, send)\n"
+      ],
+      [
+        93,
+        132,
+        ""
+      ],
+      [
+        136,
+        137,
+        "    fd = os.open(\"/\", os.O_RDONLY | os.O_DIRECTORY)\n"
+      ],
+      [
+        139,
+        148,
+        "            child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)\n            os.close(fd)\n            fd = child\n        return fd\n    except BaseException:\n        os.close(fd)\n"
+      ],
+      [
+        191,
+        194,
+        "    except BaseException:\n        os.close(fd)\n"
+      ],
+      [
+        200,
+        201,
+        "    os.close(fd)\n"
+      ],
+      [
+        208,
+        209,
+        ""
+      ],
+      [
+        215,
+        218,
+        ""
+      ],
+      [
+        219,
+        223,
+        "        os.close(current_fd)\n"
+      ],
+      [
+        289,
+        290,
+        "                os.close(fd)\n"
+      ],
+      [
+        332,
+        334,
+        ""
+      ],
+      [
+        358,
+        359,
+        ""
+      ],
+      [
+        383,
+        384,
+        "                        os.close(fd)\n"
+      ],
+      [
+        390,
+        393,
+        "        except BaseException:\n            witness.close()\n"
+      ],
+      [
+        457,
+        462,
+        "        self.file_identity = None\n"
+      ],
+      [
+        463,
+        475,
+        "        self.parent_fd = None\n        if fd is not None:\n            os.close(fd)\n"
+      ],
+      [
+        510,
+        511,
+        ""
+      ],
+      [
+        517,
+        520,
+        "        except BaseException:\n            witness.close()\n"
+      ],
+      [
+        540,
+        541,
+        "    os.close(fd)\n"
+      ],
+      [
+        584,
+        586,
+        "        if fd is not None:os.close(fd)  # Releases this non-DB journal's flock.\n        os.close(directory)\n"
+      ],
+      [
+        609,
+        610,
+        ""
+      ],
+      [
+        615,
+        619,
+        "        except BaseException:\n            inspected.close();raise\n"
+      ],
+      [
+        747,
+        748,
+        "            os.close(fd)\n"
+      ],
+      [
+        773,
+        774,
+        "            os.close(closing)\n"
+      ],
+      [
+        797,
+        798,
+        "                    os.close(fd)\n"
+      ],
+      [
+        823,
+        824,
+        "                    os.close(closing)\n"
+      ],
+      [
+        827,
+        828,
+        "                    os.close(closing)\n"
       ]
-    ],
-    "original_sha256": "2d6eae7a4c3345e0db9d4b438e2ae720d1dfa9f8c686e3fb1295f52687309852"
+    ]
   },
   "web/backend/research/plan_native_financial.py": {
     "current_sha256": "41df4e1d96657de5f956a3894d7f6bf0d74563bbe324329ffb2d338557a458dc",
@@ -1489,34 +1714,151 @@
     "original_sha256": "e9d58769d153702b4aadfbebd30437885b263dd5c4d5585567697a50fa5f3986"
   },
   "web/backend/services/sqlite_utils.py": {
-    "current_sha256": "a97726490644965765c3e55a4e8fe9606e0f7af299d849ca14ec84fc439c30c5",
+    "current_sha256": "7945aa789acc5be50f6d351f2005b17eb3fb7184c2e7403a80cdd381d2b5ec2f",
+    "original_sha256": "f527f722930fddde4bf9a92fa39655f4065c80dac34d34c98136cc2ec13ac8e7",
     "hunks": [
       [
-        129,
-        159,
+        27,
+        31,
         ""
       ],
       [
-        164,
-        166,
-        "    witness=None;connection=None\n"
+        35,
+        38,
+        "        except BaseException:\n            self.close()\n"
       ],
       [
-        167,
-        173,
+        41,
+        42,
+        ""
+      ],
+      [
+        49,
+        53,
+        ""
+      ],
+      [
+        54,
+        58,
+        "            self.close()\n"
+      ],
+      [
+        61,
+        63,
+        "        if witness is not None:\n            witness.check()\n        try:\n            return sqlite3.Connection.commit(self)\n"
+      ],
+      [
+        64,
+        65,
+        "            if witness is not None:\n                witness.check()\n"
+      ],
+      [
+        68,
+        69,
+        "        try:\n            return sqlite3.Connection.rollback(self)\n"
+      ],
+      [
+        70,
+        74,
+        "            if witness is not None:\n                witness.check()\n"
+      ],
+      [
+        76,
+        100,
+        "        witness = self._history_file\n        self._history_file = None\n        try:\n            sqlite3.Connection.close(self)\n        finally:\n            if witness is not None:\n                try:\n                    witness.check()\n                finally:\n                    witness.close()\n"
+      ],
+      [
+        112,
+        114,
+        ""
+      ],
+      [
+        126,
+        128,
+        ""
+      ],
+      [
+        141,
+        150,
+        "    except BaseException:\n        try:\n            if conn is not None:\n                conn.close()\n        finally:\n            if witness is not None:\n                witness.close()\n"
+      ],
+      [
+        160,
+        190,
+        ""
+      ],
+      [
+        193,
+        197,
+        "    if type(readonly) is not bool:\n        raise TypeError('readonly must be a boolean')\n    witness=None;connection=None\n"
+      ],
+      [
+        198,
+        206,
         "        with HISTORY_OPEN_LOCK:\n"
       ],
       [
-        178,
-        179,
+        211,
+        212,
         "                timeout=timeout,isolation_level=None,factory=PrivateAuthConnection)\n"
       ],
       [
-        180,
-        184,
+        213,
+        219,
+        ""
+      ],
+      [
+        225,
+        234,
+        "    except BaseException:\n        try:\n            if connection is not None:connection.close()\n        finally:\n            if witness is not None:witness.close()\n"
+      ],
+      [
+        246,
+        248,
+        "    if type(readonly) is not bool:raise TypeError('readonly must be a boolean')\n"
+      ],
+      [
+        250,
+        251,
+        ""
+      ],
+      [
+        258,
+        260,
+        ""
+      ],
+      [
+        266,
+        275,
+        "    except BaseException:\n        try:\n            if conn is not None:conn.close()\n        finally:\n            if inspected is not None:inspected.close()\n"
+      ]
+    ]
+  },
+  "web/backend/research/evidence_schemas.py": {
+    "current_sha256": "f2b7aa83235f72811ec4e7775a89cebc5fe0402906dbad645a7bab3f4645652d",
+    "original_sha256": "f72022458fd2ac72a3a19cb833199b037fcff36578827de07352e830b28fe0b7",
+    "hunks": [
+      [
+        307,
+        309,
+        "        raise ValueError(\"unsupported record type\")\n"
+      ],
+      [
+        325,
+        328,
         ""
       ]
-    ],
-    "original_sha256": "f527f722930fddde4bf9a92fa39655f4065c80dac34d34c98136cc2ec13ac8e7"
+    ]
+  },
+  "web/backend/research/schemas.py": {
+    "current_sha256": "420aadd2de58332b6236a0933ea90dc48113073a743bb47faf67c883fde0a5b7",
+    "original_sha256": "3bd3f68ab6e21f01d0baf80d8c9e69eefa800a237973bf2bdf5ef904a52b6e17",
+    "hunks": [
+      [
+        262,
+        319,
+        ""
+      ]
+    ]
   }
 }
