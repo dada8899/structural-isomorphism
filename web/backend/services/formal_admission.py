@@ -531,7 +531,7 @@ class _ReadRecord:
 
 class MainHistoryReadBorrow(_ReadRecord):
     __slots__ = ('binding','scope','operation','request','outer_task','api_task','thread','ended',
-                 'workers','resources','identity','service','source','request_token','worker_token','event_worker')
+                 'workers','resources','identity','service','source','source_close_state','source_closer','request_token','worker_token','event_worker')
 
 
 class _HistoryWorker(_ReadRecord):
@@ -603,15 +603,17 @@ def begin_history_read(app, scope):
             or middleware.formal is not True or frame.f_locals.get('scope') is not scope
             or scope.get('app') is not app or not history_read_path(scope)):
         raise RuntimeError('actual Main history middleware required')
-    binding=_STATE.get(id(app));_owned(binding)
     task=asyncio.current_task();thread=threading.current_thread()
     with _LIFETIME_LOCK:
+        binding=_STATE.get(id(app))
+        if binding is None:raise HistoryReadUnavailable('Main history admission unavailable')
+        _owned(binding)
         if binding.retired or not binding.active or not binding.history_accepting or _STATE.get(id(app)) is not binding:
             raise HistoryReadUnavailable('Main history admission withdrawn')
         read=_new_read_record(MainHistoryReadBorrow,binding=binding,scope=scope,
             operation='records' if scope['path'].endswith('/records') else 'raw',request=None,
             outer_task=task,api_task=None,thread=thread,ended=False,workers={},resources={},
-            identity=None,service=None,source=None,request_token=None,worker_token=None,event_worker=None)
+            identity=None,service=None,source=None,source_close_state='NONE',source_closer=None,request_token=None,worker_token=None,event_worker=None)
         worker=_new_read_record(_HistoryWorker,read=read,stage='request',state='ACTIVE',thread=thread,token=None)
         object.__setattr__(read,'event_worker',worker);read.workers[worker.reference]=worker
         binding.history_reads[read.reference]=read
@@ -701,7 +703,10 @@ def complete_history_worker(worker, result):
             or result.store.storage_identity!=worker.read.binding.service.store.storage_identity):
         raise RuntimeError('actual bound history service required')
     key={'identity':'identity','service':'service','action':'source'}.get(worker.stage)
-    if key is not None:object.__setattr__(worker.read,key,result)
+    if key is not None:
+        with _LIFETIME_LOCK:
+            object.__setattr__(worker.read,key,result)
+            if worker.stage=='action':object.__setattr__(worker.read,'source_close_state','LIVE')
 
 
 def cancel_history_worker(worker):
@@ -722,29 +727,56 @@ def _history_failure(read, error):
 
 def _finish_history_if_possible(read):
     # Caller owns the lifetime lock. Sticky errors are never upgraded to closed.
-    if read.ended and read.source is None and not read.resources and all(w.state in ('RETIRED','CANCELLED') for w in read.workers.values()):
+    if (read.ended and read.source is None and read.source_close_state in ('NONE','CLOSED')
+            and not read.resources and all(w.state in ('RETIRED','CANCELLED') for w in read.workers.values())):
         read.binding.history_reads.pop(read.reference,None)
 
 
-def _close_history_action(read):
-    source=read.source
-    if source is not None:
-        try:source.close()
-        except BaseException as error:
-            with _LIFETIME_LOCK:_history_failure(read,error)
-        else:object.__setattr__(read,'source',None)
+def _claim_history_action_close(read, closer):
+    if inspect.currentframe().f_back.f_code not in (end_history_worker.__code__,_end_history_read.__code__):
+        raise RuntimeError('actual Main action close transition required')
+    # The caller holds the same lock as the ended/retired transition. A live
+    # worker keeps the action; otherwise exactly one native closer claims it.
+    if (not read.ended or read.source is None or read.source_close_state!='LIVE'
+            or any(w.stage!='request' and w.state=='ACTIVE' for w in read.workers.values())):
+        return None
+    object.__setattr__(read,'source_close_state','CLOSING')
+    object.__setattr__(read,'source_closer',closer)
+    return read.source
+
+
+def _close_history_action(read, source, closer):
+    if inspect.currentframe().f_back.f_code not in (end_history_worker.__code__,_end_history_read.__code__):
+        raise RuntimeError('actual Main action close transition required')
+    if source is None:return
+    with _LIFETIME_LOCK:
+        _read_owner(read)
+        if (read.source is not source or read.source_close_state!='CLOSING'
+                or read.source_closer is not closer or closer.thread is not threading.current_thread()):
+            raise RuntimeError('actual claimed Main action closer required')
+    try:source.close()
+    except BaseException as error:
+        with _LIFETIME_LOCK:
+            object.__setattr__(read,'source_close_state','UNCERTAIN')
+            _history_failure(read,error)
+    else:
+        with _LIFETIME_LOCK:
+            object.__setattr__(read,'source',None)
+            object.__setattr__(read,'source_close_state','CLOSED')
+            object.__setattr__(read,'source_closer',None)
+            _finish_history_if_possible(read)
 
 
 def end_history_worker(worker):
     _native_read_caller(inspect.currentframe().f_back,'api/research.py',('_history_worker',))
     _read_origin(worker,'_HistoryWorker');read=worker.read
     if worker.thread is not threading.current_thread():raise RuntimeError('history creator thread required')
-    try:
-        if read.ended:_close_history_action(read)
-    finally:
-        _READ_WORKER.reset(worker.token)
-        with _LIFETIME_LOCK:
-            object.__setattr__(worker,'state','RETIRED');_finish_history_if_possible(read)
+    _READ_WORKER.reset(worker.token)
+    with _LIFETIME_LOCK:
+        object.__setattr__(worker,'state','RETIRED')
+        source=_claim_history_action_close(read,worker)
+        _finish_history_if_possible(read)
+    _close_history_action(read,source,worker)
 
 
 def end_history_read(read):
@@ -761,12 +793,9 @@ def _end_history_read(read):
         for worker in read.workers.values():
             if worker.state=='PENDING':object.__setattr__(worker,'state','CANCELLED')
         object.__setattr__(read.event_worker,'state','RETIRED')
-    try:
-        # An active raw worker retains its original request source through its
-        # own finally, even when the outer coroutine has been cancelled.
-        with _LIFETIME_LOCK:
-            active=any(w.stage!='request' and w.state=='ACTIVE' for w in read.workers.values())
-        if not active:_close_history_action(read)
+        source=_claim_history_action_close(read,read.event_worker)
+        _finish_history_if_possible(read)
+    try:_close_history_action(read,source,read.event_worker)
     finally:
         _READ_WORKER.reset(read.worker_token);_READ_CONTEXT.reset(read.request_token)
         with _LIFETIME_LOCK:_finish_history_if_possible(read)

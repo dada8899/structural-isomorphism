@@ -531,3 +531,205 @@ def test_real_alternate_namespace_connection_uses_the_same_active_request(prepar
                 assert response.status_code==404,response.text
                 assert observed and admission.history_reads_closed(binding)
     asyncio.run(run())
+
+
+def test_actual_main_missing_history_binding_is_unavailable_before_and_after_lifespan(prepared):
+    main,admission,_,_=prepared
+    async def check(client):
+        assert id(main.app) not in admission._STATE
+        assert (await client.get('/api/research')).status_code==503
+        for suffix in ('records','source-raw-preparations'):
+            response=await client.get('/api/research/not-a-uuid/'+suffix)
+            assert response.status_code==503,response.text
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app,raise_app_exceptions=False),base_url=BETA) as client:
+            await check(client)
+            async with main.lifespan(main.app):
+                binding=admission._STATE[id(main.app)]
+                assert admission.history_reads_closed(binding)
+            assert binding.retired and admission.history_reads_closed(binding)
+            await check(client)
+            assert not binding.history_reads and not binding.history_errors
+    asyncio.run(run())
+
+
+def _pause_native_raw_retirement(admission,paused,release,held,monkeypatch):
+    import inspect
+    lines,start=inspect.getsourcelines(admission.end_history_worker)
+    target=start+next(i for i,line in enumerate(lines) if '_READ_WORKER.reset(worker.token)' in line)
+    native_code=admission.end_history_worker.__code__
+    from api import research
+    native_worker=research._history_worker
+    previous=threading.gettrace();paused.observations=[]
+    def observe(frame,event,arg):
+        if event=='call' and frame.f_code.co_name=='end_history_worker':
+            actual=frame.f_locals.get('worker')
+            paused.observations.append({'stage':getattr(actual,'stage',None),'same_code':frame.f_code is native_code})
+        if frame.f_code is not native_code:return None
+        if event=='line' and frame.f_lineno==target:
+            worker=frame.f_locals['worker']
+            paused.observations.append({'line':target,'stage':worker.stage,'ended':worker.read.ended})
+            if worker.stage=='raw' and not held and not worker.read.ended:
+                assert worker.read.source is not None and worker.read.source.active
+                held.append(worker);paused.set()
+                assert release.wait(5),'owned retirement point not released'
+        return observe
+    def traced_worker(slot):
+        if slot.stage!='raw':
+            import time,json
+            started=time.monotonic();outcome='returned';kind=None
+            paused.observations.append({'entered_stage':slot.stage})
+            try:
+                result=native_worker(slot);kind=type(result).__name__;return result
+            except BaseException as error:
+                outcome='raised:'+type(error).__name__;raise
+            finally:
+                print('BORROW_R1_STAGE:'+json.dumps({'stage':slot.stage,'seconds':time.monotonic()-started,
+                    'outcome':outcome,'result_kind':kind,'thread':threading.get_ident()}),flush=True)
+        import time,json,hashlib
+        started=time.monotonic();old=sys.gettrace();sys.settrace(observe);outcome='returned'
+        try:return native_worker(slot)
+        except BaseException as error:
+            outcome='raised:'+type(error).__name__;raise
+        finally:
+            sys.settrace(old)
+            print('BORROW_R1_TRACE:'+json.dumps({'native_module':native_worker.__module__,
+                'native_worker_sha256':hashlib.sha256(Path(native_worker.__code__.co_filename).read_bytes()).hexdigest(),
+                'same_input_slot':slot is held[0] if held else False,'stage':slot.stage,'thread':threading.get_ident(),
+                'seconds':time.monotonic()-started,'trace_restored':sys.gettrace() is old,'outcome':outcome}),flush=True)
+    monkeypatch.setattr(research,'_history_worker',traced_worker)
+    return previous
+
+
+async def _settle_actual_read_cancellation(task,target):
+    if target=='outer':
+        with pytest.raises(asyncio.CancelledError):await task
+    else:
+        try:await task
+        except asyncio.CancelledError:pass
+        except RuntimeError as error:assert str(error)=='No response returned.'
+
+
+@pytest.mark.parametrize('cancel_target',['api','outer'])
+def test_actual_request_cancel_and_worker_retirement_hand_off_one_action_closer(prepared,monkeypatch,cancel_target):
+    from .test_formal_main_admission import envelope,problem
+    main,admission,_,messages=prepared
+    paused=threading.Event();release=threading.Event();held=[]
+    previous=_pause_native_raw_retirement(admission,paused,release,held,monkeypatch)
+    async def run():
+        context=main.lifespan(main.app);await context.__aenter__()
+        binding=admission._STATE[id(main.app)];task=None
+        try:
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
+                await login(client,messages)
+                made=await client.post('/api/research',json=envelope({'problem':problem()}),headers={'Origin':BETA,'Idempotency-Key':'borrow-retirement-race-create'})
+                assert made.status_code==200,made.text
+                rid=made.json()['data']['research']['id']
+                task=asyncio.create_task(client.get('/api/research/'+rid+'/source-raw-preparations',params={'task_id':str(uuid4())}))
+                try:
+                    try:await wait_event(paused,timeout=15)
+                    except AssertionError:pytest.fail(repr(paused.observations))
+                    worker=held[0];read=worker.read;source=read.source
+                    (read.api_task if cancel_target=='api' else task).cancel()
+                    end=asyncio.get_running_loop().time()+2
+                    while not read.ended and asyncio.get_running_loop().time()<end:await asyncio.sleep(.005)
+                    assert read.ended==(cancel_target=='api')
+                    assert worker.state=='ACTIVE' and source.active and read.source_close_state=='LIVE'
+                finally:release.set()
+                await _settle_actual_read_cancellation(task,cancel_target)
+                end=asyncio.get_running_loop().time()+5
+                while not admission.history_reads_closed(binding):
+                    assert asyncio.get_running_loop().time()<end;await asyncio.sleep(.005)
+                assert worker.state=='RETIRED' and not read.resources and read.source is None
+                assert read.source_close_state=='CLOSED' and read.source_closer is None and not source.active
+                assert not binding.history_errors
+        finally:
+            release.set()
+            if task is not None and not task.done():
+                task.cancel()
+                try:await task
+                except (asyncio.CancelledError,RuntimeError):pass
+            await context.__aexit__(None,None,None)
+        assert admission.source_closed(binding) and not binding.source_errors
+        assert all(w.parent_fd is None for w in binding.witnesses)
+    try:asyncio.run(run())
+    finally:release.set();threading.settrace(previous)
+
+
+@pytest.mark.parametrize('when',['before','after'])
+def test_actual_action_close_inflight_holds_main_and_failure_remains_sticky(request,tmp_path,monkeypatch,when):
+    if isolated_fault_case(request,tmp_path,'action-'+when):return
+    from .test_formal_main_admission import envelope,problem
+    from research.paid_control import AuthenticatedActionSource
+    main,admission,_,messages=request.getfixturevalue('prepared')
+    if when=='after':
+        # Fixed parsing dependency is ordinary setup, before the timed live
+        # scheduling observation. No second request or runtime grant is added.
+        from research.source_document_raw import read_query
+        assert callable(read_query)
+    paused=threading.Event();release=threading.Event();held=[]
+    close_paused=threading.Event();close_release=threading.Event();attempts=[]
+    previous=_pause_native_raw_retirement(admission,paused,release,held,monkeypatch)
+    original_close=AuthenticatedActionSource.close
+    def close(source):
+        if held and source is held[0].read.source:
+            read=held[0].read
+            assert not admission._LIFETIME_LOCK._is_owned()
+            assert read.source_close_state=='CLOSING' and read.source_closer is held[0]
+            attempts.append(threading.current_thread());close_paused.set()
+            assert close_release.wait(10),'owned action close not released'
+            if when=='after':original_close(source)
+            raise OSError('owned action close fault')
+        return original_close(source)
+    async def run():
+        context=main.lifespan(main.app);await context.__aenter__()
+        binding=admission._STATE[id(main.app)];task=None;exit_task=None
+        try:
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
+                await login(client,messages)
+                made=await client.post('/api/research',json=envelope({'problem':problem()}),headers={'Origin':BETA,'Idempotency-Key':'borrow-action-close-fault'})
+                assert made.status_code==200,made.text
+                rid=made.json()['data']['research']['id']
+                task=asyncio.create_task(client.get('/api/research/'+rid+'/source-raw-preparations',params={'task_id':str(uuid4())}))
+                try:
+                    try:await wait_event(paused,timeout=15)
+                    except AssertionError:pytest.fail(repr(paused.observations))
+                    worker=held[0];read=worker.read;source=read.source
+                    # Fault only after the real request, action, and raw worker
+                    # have been born under their unchanged production methods.
+                    monkeypatch.setattr(AuthenticatedActionSource,'close',close)
+                    read.api_task.cancel()
+                    end=asyncio.get_running_loop().time()+2
+                    while not read.ended:
+                        assert asyncio.get_running_loop().time()<end;await asyncio.sleep(.005)
+                    release.set();await wait_event(close_paused)
+                    assert worker.state=='RETIRED' and not read.resources
+                    assert read.source_close_state=='CLOSING' and binding.history_reads
+                    exit_task=asyncio.create_task(context.__aexit__(None,None,None))
+                    end=asyncio.get_running_loop().time()+5
+                    while binding.history_deadline is None:
+                        assert asyncio.get_running_loop().time()<end;await asyncio.sleep(.005)
+                    deadline=binding.history_deadline
+                    assert binding.retired and id(main.app) not in admission._STATE
+                    assert not exit_task.done() and all(w.parent_fd is not None for w in binding.witnesses)
+                finally:release.set();close_release.set()
+                await _settle_actual_read_cancellation(task,'api')
+                with pytest.raises(RuntimeError,match='formal Main retirement uncertain'):await exit_task
+                assert binding.history_deadline==deadline and len(attempts)==1
+                assert read.source is source and read.source_close_state=='UNCERTAIN'
+                assert read.source_closer is worker and binding.history_reads and binding.history_errors
+                assert binding.reference in admission._RETIRED_UNCERTAIN and not admission.history_reads_closed(binding)
+                assert admission.source_closed(binding) and not binding.source_errors
+                assert source.active==(when=='before')
+                # A second end notification cannot claim or retry the uncertain
+                # close. The original read and source remain retained.
+                assert all(w.state in ('RETIRED','CANCELLED') for w in read.workers.values())
+                assert len(attempts)==1
+        finally:
+            release.set();close_release.set()
+            if exit_task is None:await context.__aexit__(None,None,None)
+            if held and when=='before':original_close(held[0].read.source)
+            for witness in binding.witnesses:
+                if witness.parent_fd is not None:witness.close()
+    try:asyncio.run(run())
+    finally:release.set();close_release.set();threading.settrace(previous)
