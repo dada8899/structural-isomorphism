@@ -138,9 +138,12 @@ async def covered_advanced(tmp_path):
             for year in range(2027,2032):await page.locator(f'#financial-scenario-s{index}-growth-{year}-reason').fill('未来增长未知，保持null')
         await page.locator('#financial-scenario-sensitivity-panel').evaluate('(n)=>n.open=true');await page.locator('#financial-scenario-sensitivity-enabled').check();await page.locator('#financial-scenario-sensitivity-target').select_option('growth:2027');await page.locator('#financial-scenario-sensitivity-points').fill(','.join(str(x) for x in range(21)));await page.locator('#financial-scenario-consent').check()
         url=service.origin+'/api/research/'+service.seed.research_id+'/financial-calculations'
-        async with bridge.capture_response(page,'POST',url) as captured:
-            async with page.expect_response(url) as saved:await page.locator('#financial-scenario-calculate').click()
-            response=await saved.value;assert response.status==200,await response.text();data=(await captured.json(response))['data']
+        from web.backend.tests.acceptance.financial_limit_observer import observe_financial_limit
+        with observe_financial_limit(service.app) as observation:
+            async with bridge.capture_response(page,'POST',url) as captured:
+                async with page.expect_response(url) as saved:await page.locator('#financial-scenario-calculate').click()
+                response=await saved.value;observation.response(response.status)
+                assert response.status==200,await response.text();data=(await captured.json(response))['data']
         await expect(page.locator('#financial-scenario-status')).to_contain_text('条件计算已保存')
         assert len(data['public_result']['value']['scenarios'])==3 and data['public_result']['value']['scenarios'][0]['years'][0]['available']['operating_profit'] is True
         await page.get_by_role('button',name='年度底表',exact=True).click();await expect(page.locator('#financial-scenario-result')).to_contain_text('150.000000')
