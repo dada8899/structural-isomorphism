@@ -126,19 +126,23 @@ def test_actual_main_unanchored_cache_reader_and_protected_write_refusal(prepare
                     # Ordinary evidence INSERT is possible, but cannot mint C.
                     conn.execute('INSERT INTO research_evidence_objects VALUES(?,?,?,?,?,?,?,?,?,?,?)',
                         (artifact.id,'snapshots',rid,1,tid,1,payload,sha256(payload.encode()),body,None,None))
+                    with pytest.raises(sqlite3.DatabaseError):conn.execute('UPDATE research_source_runs SET started=1 WHERE task_id=?',(tid,))
+                cancelled=await client.post(base+'/cancel',json=envelope({'task_id':tid,'expected_task_version':task.json()['data']['task']['version']}),headers={**headers,'Idempotency-Key':'cancel-before-worker-release'})
+                assert cancelled.status_code==200
+                release.set()
+                admission.close_source(binding,deadline_monotonic=time.monotonic()+10)
+                receipt=binding.source_receipt
+                assert admission.source_closed(binding)
                 rawread=await client.get(base+'/source-raw-preparations',params={'task_id':tid})
-                # B2 keeps this entire history consumer closed pending Main's
-                # real read-borrow owner. It does not open an extra cache scope.
-                assert rawread.status_code==503 and rawread.json()['error']['code']=='SOURCE_PERMISSION_UNAVAILABLE'
+                # B3 now reaches the real borrowed consumer, but this ordinary
+                # orphan lacks the protected request/C and remains unreadable.
+                assert rawread.status_code==503 and rawread.json()['error']['code']=='STORE_UNAVAILABLE'
+                assert admission.history_reads_closed(binding) and binding.source_receipt is receipt
                 assert not _READS
                 oldread=await client.get(base+'/records',params={'task_id':tid,'kind':'sources'})
                 assert oldread.status_code==404
                 badquery=await client.get(base+'/source-raw-preparations?task_id='+tid+'&task_id='+tid)
                 assert badquery.status_code==422
-                with binding.service.store.transaction(write=True) as conn:
-                    with pytest.raises(sqlite3.DatabaseError):conn.execute('UPDATE research_source_runs SET started=1 WHERE task_id=?',(tid,))
-                cancelled=await client.post(base+'/cancel',json=envelope({'task_id':tid,'expected_task_version':task.json()['data']['task']['version']}),headers={**headers,'Idempotency-Key':'cancel-before-worker-release'})
-                assert cancelled.status_code==200
                 assert not observer_errors and not handoff_attempts
             release.set()
         assert binding.source_receipt.state==binding.native_receipt.state=='CLOSED'

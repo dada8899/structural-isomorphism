@@ -21,7 +21,7 @@
     "original_sha256": "7c46e214178a2bbe0aff75e7a7411a3201d7237d6a812a1a9f75975fde373acb"
   },
   "web/backend/api/research.py": {
-    "current_sha256": "83c5d9b1aea509f902a3f589acf9a0a6f7a02463138fb717c568759db3ffc877",
+    "current_sha256": "ac9f1243ca801f1ae0f9102ca631c5a8a9c6772ce1c0995cf503bfb6c65ceb06",
     "original_sha256": "7fcc218e6f75c1cd88ee4bf1bf68f5fd35a15e8b40ffa2057a8fe72ea5d02a46",
     "hunks": [
       [
@@ -106,48 +106,53 @@
       ],
       [
         713,
-        718,
+        722,
         ""
       ],
       [
-        766,
-        834,
+        770,
+        838,
         ""
       ]
     ]
   },
   "web/backend/research/evidence_repository.py": {
-    "current_sha256": "8c35765b9e1c2bafca0c9012861a2cec87f90feff5e41bfaffdcdf555f2b83f9",
+    "current_sha256": "edbc3654f5480d77aece0b04fd152d2a67c6d7c9045353d6d469b7d16023d848",
     "original_sha256": "0a1064bab04e2af5490ee20ac52a4ab4fc049e4035e8cffb0793509f762f0b89",
     "hunks": [
       [
-        82,
-        85,
+        50,
+        108,
         ""
       ],
       [
-        99,
-        116,
+        140,
+        143,
         ""
       ],
       [
-        196,
-        198,
+        157,
+        174,
         ""
       ],
       [
-        217,
-        231,
+        254,
+        256,
         ""
       ],
       [
-        288,
-        391,
+        275,
+        289,
         ""
       ],
       [
-        423,
-        446,
+        346,
+        444,
+        ""
+      ],
+      [
+        476,
+        603,
         ""
       ]
     ]
@@ -1079,7 +1084,7 @@
     ]
   },
   "web/backend/research/source_integration.py": {
-    "current_sha256": "818906758dcd74fff150f0187f1d77050eb6aeec07215ca51eb68d40ae538bb0",
+    "current_sha256": "eeeee6a340c131be347e62060ac3f806e785f9aeff3cd67cf9c08a46a79687ac",
     "original_sha256": "ba8d65ef360223742776f7b7537ec7434a4252bddf0a8bf6658fc617b5907ed7",
     "hunks": [
       [
@@ -1179,7 +1184,7 @@
       ],
       [
         484,
-        621,
+        638,
         ""
       ]
     ]

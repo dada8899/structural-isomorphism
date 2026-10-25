@@ -25553,6 +25553,17 @@
               "title": "Research Id",
               "type": "string"
             }
+          },
+          {
+            "description": "准备任务的规范 UUIDv4；必须且只能出现一次 task_id，不接受其他查询参数。",
+            "in": "query",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
