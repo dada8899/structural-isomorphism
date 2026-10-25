@@ -33,11 +33,36 @@ _CODES = frozenset(('ENTRY_ARGUMENTS', 'INTERPRETER_FLAGS', 'INHERITED_SECRET', 
     'CREDENTIAL_ENCODING_INVALID', 'CREDENTIAL_FORMAT_INVALID', 'CREDENTIAL_IO_FAILED',
     'FD_CLOSE_FAILED', 'ENV_INSTALL_FAILED', 'CODE_IDENTITY_INVALID', 'APP_IMPORT_FAILED', 'SERVER_FAILED'))
 
+_IDENTITY_SITES = ('SRC_ROOT', 'SRC_COMPONENT', 'SRC_LEAF_BOUNDS', 'SRC_READBACK', 'HELPER_MODULE', 'HELPER_BUILTINS', 'HELPER_MEMBERS', 'HELPER_FUNCTION', 'HELPER_CONSTANT', 'HELPER_SOURCE_REREAD', 'LOAD_PREINJECT', 'LOAD_SOURCE_CHANGED', 'ENTRY_PATH', 'ENTRY_WITNESS_PAIR', 'APP_PREIMPORT', 'ENTRY_MODULE', 'ENTRY_BUILTINS', 'ENTRY_FUNCTION', 'MAIN_IDENTITY')
+_IDENTITY_MASKS = {'SRC_ROOT': 3, 'SRC_COMPONENT': 15, 'SRC_LEAF_BOUNDS': 48, 'SRC_READBACK': 192}
+
 
 class EntryFailure(RuntimeError):
-    def __init__(self, code):
+    def __init__(self, code, identity=None):
+        self._identity_site = identity if code == 'CODE_IDENTITY_INVALID' and type(identity) is tuple else None
         self.code = code if code in _CODES else 'SERVER_FAILED'
         super().__init__(self.code)
+
+    @property
+    def identity_site(self):
+        return self._identity_site
+
+
+def _identity_annotation(error):
+    # Inspect only the actual primary instance, never context or a global tag.
+    if not isinstance(error, EntryFailure) or error.code != 'CODE_IDENTITY_INVALID':return b''
+    value = error.identity_site
+    if type(value) is not tuple or len(value) != 3:return b''
+    site, component, mask = value
+    if type(site) is not str or site not in _IDENTITY_SITES:return b''
+    if site in _IDENTITY_MASKS:
+        if component is not None and (type(component) is not int or
+                (component != 0 if site == 'SRC_ROOT' else not 1 <= component <= 31)):return b''
+        if mask is not None and (type(mask) is not int or mask <= 0 or mask & ~_IDENTITY_MASKS[site]):return b''
+    elif component is not None or mask is not None:return b''
+    component_text = '-' if component is None else str(component)
+    mask_text = '-' if mask is None else str(mask)
+    return ('FORMAL_IDENTITY_V1:' + site + ':' + component_text + ':' + mask_text + '\n').encode('ascii')
 
 
 def _initial_environment():
@@ -170,8 +195,12 @@ def _source_bytes(path):
         descriptor = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
         descriptors.append(descriptor)
         root_info = os.fstat(descriptor)
-        if root_info.st_uid != 0 or root_info.st_mode & 0o022:raise EntryFailure('CODE_IDENTITY_INVALID')
+        owner_bad = write_bad = False
+        if (owner_bad := root_info.st_uid != 0) or (write_bad := root_info.st_mode & 0o022):
+            raise EntryFailure('CODE_IDENTITY_INVALID', ('SRC_ROOT', 0, (1 if owner_bad else 0) | (2 if write_bad else 0)))
+        component_index = 0
         for component in parts[1:]:
+            component_index += 1
             parent = descriptors[-1]
             flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC
             if component != parts[-1]:flags |= os.O_DIRECTORY
@@ -179,15 +208,21 @@ def _source_bytes(path):
             descriptors.append(descriptor)
             info = os.fstat(descriptor)
             named = os.stat(component, dir_fd=parent, follow_symlinks=False)
-            if (info.st_uid != 0 or info.st_mode & 0o022 or _identity(info) != _identity(named)
-                    or not (stat.S_ISREG(info.st_mode) if component == parts[-1] else stat.S_ISDIR(info.st_mode))):
-                raise EntryFailure('CODE_IDENTITY_INVALID')
+            owner_bad = write_bad = identity_bad = type_bad = False
+            if ((owner_bad := info.st_uid != 0) or (write_bad := info.st_mode & 0o022) or (identity_bad := _identity(info) != _identity(named))
+                    or (type_bad := not (stat.S_ISREG(info.st_mode) if component == parts[-1] else stat.S_ISDIR(info.st_mode)))):
+                raise EntryFailure('CODE_IDENTITY_INVALID', ('SRC_COMPONENT', component_index if 1 <= component_index <= 31 else None,
+                    (1 if owner_bad else 0) | (2 if write_bad else 0) | (4 if identity_bad else 0) | (8 if type_bad else 0)))
         before = os.fstat(descriptor)
-        if before.st_nlink != 1 or not 0 < before.st_size <= 65536:
-            raise EntryFailure('CODE_IDENTITY_INVALID')
+        link_bad = size_bad = False
+        if (link_bad := before.st_nlink != 1) or (size_bad := not 0 < before.st_size <= 65536):
+            raise EntryFailure('CODE_IDENTITY_INVALID', ('SRC_LEAF_BOUNDS', component_index if 1 <= component_index <= 31 else None,
+                (16 if link_bad else 0) | (32 if size_bad else 0)))
         raw = os.read(descriptor, 65537)
-        if len(raw) != before.st_size or _identity(before) != _identity(os.fstat(descriptor)):
-            raise EntryFailure('CODE_IDENTITY_INVALID')
+        length_bad = identity_bad = False
+        if (length_bad := len(raw) != before.st_size) or (identity_bad := _identity(before) != _identity(os.fstat(descriptor))):
+            raise EntryFailure('CODE_IDENTITY_INVALID', ('SRC_READBACK', component_index if 1 <= component_index <= 31 else None,
+                (64 if length_bad else 0) | (128 if identity_bad else 0)))
         return raw
     finally:
         _close_all(descriptors)
@@ -201,16 +236,16 @@ def _require_metadata_helper():
     module = _METADATA_HELPER
     if (type(module) is not types.ModuleType or sys.modules.get('systemd_credential_metadata') is not module
             or module.__name__ != 'systemd_credential_metadata' or module.__file__ != str(path)):
-        raise EntryFailure('CODE_IDENTITY_INVALID')
+        raise EntryFailure('CODE_IDENTITY_INVALID', ('HELPER_MODULE', None, None))
     trusted_builtins = vars(builtins)
     if vars(module).get('__builtins__') is not trusted_builtins:
-        raise EntryFailure('CODE_IDENTITY_INVALID')
+        raise EntryFailure('CODE_IDENTITY_INVALID', ('HELPER_BUILTINS', None, None))
     raw = _source_bytes(path)
     expected = {'__name__': module.__name__, '__file__': str(path), '__builtins__': trusted_builtins}
     exec(compile(raw, str(path), 'exec', dont_inherit=True), expected)
     names = {key for key in expected if not key.startswith('__')}
     if {key for key in vars(module) if not key.startswith('__')} != names:
-        raise EntryFailure('CODE_IDENTITY_INVALID')
+        raise EntryFailure('CODE_IDENTITY_INVALID', ('HELPER_MEMBERS', None, None))
     for name in names:
         actual, original = vars(module)[name], expected[name]
         if type(original) is types.FunctionType:
@@ -218,11 +253,11 @@ def _require_metadata_helper():
                     or actual.__module__ != module.__name__ or actual.__code__ != original.__code__
                     or actual.__defaults__ != original.__defaults__ or actual.__kwdefaults__ != original.__kwdefaults__
                     or actual.__builtins__ is not trusted_builtins or actual.__closure__ is not None):
-                raise EntryFailure('CODE_IDENTITY_INVALID')
+                raise EntryFailure('CODE_IDENTITY_INVALID', ('HELPER_FUNCTION', None, None))
         elif type(actual) is not type(original) or (actual is not original if isinstance(original, types.ModuleType) else actual != original):
-            raise EntryFailure('CODE_IDENTITY_INVALID')
+            raise EntryFailure('CODE_IDENTITY_INVALID', ('HELPER_CONSTANT', None, None))
     if _source_bytes(path) != raw:
-        raise EntryFailure('CODE_IDENTITY_INVALID')
+        raise EntryFailure('CODE_IDENTITY_INVALID', ('HELPER_SOURCE_REREAD', None, None))
     return module
 
 
@@ -231,13 +266,13 @@ def _load_metadata_helper(backend):
     import importlib
     path = backend / 'systemd_credential_metadata.py'
     if _METADATA_HELPER is not None or 'systemd_credential_metadata' in sys.modules:
-        raise EntryFailure('CODE_IDENTITY_INVALID')
+        raise EntryFailure('CODE_IDENTITY_INVALID', ('LOAD_PREINJECT', None, None))
     before = _source_bytes(path)
     sys.path.insert(0, str(backend))
     _METADATA_HELPER = importlib.import_module('systemd_credential_metadata')
     module = _require_metadata_helper()
     if _source_bytes(path) != before:
-        raise EntryFailure('CODE_IDENTITY_INVALID')
+        raise EntryFailure('CODE_IDENTITY_INVALID', ('LOAD_SOURCE_CHANGED', None, None))
     return module
 
 
@@ -429,7 +464,7 @@ def _code_paths(*, entry_module=None, entry_witness=None):
     from pathlib import Path
     script = Path(__file__).absolute()
     if script != script.resolve(strict=True) or script.name != 'run-formal-main.py' or script.parent.name != 'scripts':
-        raise EntryFailure('CODE_IDENTITY_INVALID')
+        raise EntryFailure('CODE_IDENTITY_INVALID', ('ENTRY_PATH', None, None))
     root = script.parent.parent
     backend = root / 'web/backend'
     source = backend / 'main.py'
@@ -442,11 +477,11 @@ def _code_paths(*, entry_module=None, entry_witness=None):
         entry_module._require_entry_preimport(entry_witness)
         allowed.update(('services', 'services.native_live_credentials'))
     elif entry_witness is not None:
-        raise EntryFailure('CODE_IDENTITY_INVALID')
+        raise EntryFailure('CODE_IDENTITY_INVALID', ('ENTRY_WITNESS_PAIR', None, None))
     if (source.is_symlink() or not source.is_file() or backend != backend.resolve()
             or any((name == 'main' or name.startswith(('api.', 'services.', 'research.', 'web.backend'))
                     or name in ('api', 'services', 'research', 'systemd_credential_metadata')) and name not in allowed for name in sys.modules)):
-        raise EntryFailure('CODE_IDENTITY_INVALID')
+        raise EntryFailure('CODE_IDENTITY_INVALID', ('APP_PREIMPORT', None, None))
     return root, backend, source
 
 
@@ -461,10 +496,10 @@ def _validate_entry_module(module, root):
             or path.is_symlink() or path != path.resolve() or len(path.read_bytes()) > 262144
             or type(package) is not types.ModuleType or package.__file__ != str(parent)
             or parent.is_symlink() or parent != parent.resolve()):
-        raise EntryFailure('CODE_IDENTITY_INVALID')
+        raise EntryFailure('CODE_IDENTITY_INVALID', ('ENTRY_MODULE', None, None))
     trusted_builtins = vars(builtins)
     if vars(module).get('__builtins__') is not trusted_builtins:
-        raise EntryFailure('CODE_IDENTITY_INVALID')
+        raise EntryFailure('CODE_IDENTITY_INVALID', ('ENTRY_BUILTINS', None, None))
     codes = {value.co_name:value for value in compile(path.read_bytes(), str(path), 'exec', dont_inherit=True).co_consts
              if isinstance(value, types.CodeType)}
     for name in ('_publish_entry_directory', '_require_entry_preimport', '_require_entry_for_serve'):
@@ -472,7 +507,7 @@ def _validate_entry_module(module, root):
         if (type(function) is not types.FunctionType or function.__globals__ is not vars(module)
                 or function.__module__ != module.__name__ or function.__code__ != codes.get(name)
                 or function.__builtins__ is not trusted_builtins or function.__closure__ is not None):
-            raise EntryFailure('CODE_IDENTITY_INVALID')
+            raise EntryFailure('CODE_IDENTITY_INVALID', ('ENTRY_FUNCTION', None, None))
 
 
 def _serve(pid, uid, *, entry_module=None, entry_witness=None):
@@ -486,7 +521,7 @@ def _serve(pid, uid, *, entry_module=None, entry_witness=None):
     try:
         main = importlib.import_module('main')
         if Path(main.__file__).resolve() != source or not main._IS_PROD or not main._LAUNCH_FORMAL:
-            raise EntryFailure('CODE_IDENTITY_INVALID')
+            raise EntryFailure('CODE_IDENTITY_INVALID', ('MAIN_IDENTITY', None, None))
         import uvicorn
         config = uvicorn.Config(main.app, host='127.0.0.1', port=5004, workers=1, reload=False,
                                 lifespan='on', access_log=False, log_config=None, timeout_graceful_shutdown=5)
@@ -549,7 +584,10 @@ def main():
         if entry_module is not None and type(error) is entry_module.NativeCredentialStartFailure:
             uncertain_entry_resources = error.resources
         code = error.code if isinstance(error, EntryFailure) else 'CREDENTIAL_IO_FAILED'
-        os.write(2, ('FORMAL_ENTRY:' + code + '\n').encode('ascii'))
+        output = ('FORMAL_ENTRY:' + code + '\n').encode('ascii')
+        try:output += _identity_annotation(error)
+        except BaseException:pass  # Diagnostic formatting cannot replace primary.
+        os.write(2, output)
     finally:
         # Existing five ENV values retain their original consumers. Provider
         # material is never added to this batch or inherited by a DNS child.
