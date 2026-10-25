@@ -15,11 +15,6 @@ from research.authorization import AccountIdentity,AuthorizationGate
 from research.errors import ResearchError
 from services.auth_store import AuthStore
 from services import runtime_paths as paths,sqlite_utils
-from .test_research_persistence import stack,post
-from .test_research_d1_integration import source_stack
-from .test_research_paid_approval import approved_inputs
-from .test_research_paid_api import paid_api
-from .test_research_lifecycle import lifecycle,delete
 from .test_private_registration import register_private_user,corrupt_auth_fixture,FIXTURE_SECRET
 
 
@@ -340,213 +335,59 @@ def test_staged_adjacent_unsafe_file_is_refused_before_native_open(private,nativ
     assert not native
 
 
-def _formal_delete(formal_paid,monkeypatch):
-    """Actual prod delete router; original paid route remains isolated."""
-    from api import auth,favorites,sso,report,report_account
+def test_current15_private_binding_does_not_admit_bare_research_app(private,monkeypatch):
+    """Private native storage is real; an unbound prod app gains no HTTP right.
+
+    The captured-store ENV downgrade is covered separately by the existing
+    native-RO control. This request never splices environments or factories.
+    """
+    import socket
+    from api import auth,research
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
     from .test_private_registration import BETA
-    client,db,store,*_=formal_paid;state=db.parent
-    with monkeypatch.context() as formal:
-        for name,value in {'STRUCTURAL_ENV':'prod','AUTH_ENABLED':'true','AUTH_SITE_ROLE':'beta','AUTH_LINK_BASE_URL':BETA,
-            'AUTH_DATA_DIR':str(state),'STRUCTURAL_SSO_DATA_DIR':str(state),'STRUCTURAL_HISTORY_DB':str(state/'history.db'),
-            'STRUCTURAL_FAVORITES_PATH':str(state/'favorites.jsonl'),'STRUCTURAL_SSO_BETA_ORIGIN':BETA,
-            'STRUCTURAL_SSO_PHASE_ORIGIN':'https://phase.bytedance.city','SMTP_HOST':'fixture.invalid','SMTP_PORT':'587',
-            'SMTP_FROM_EMAIL':'sender@example.invalid','ADMIN_NOTIFICATION_EMAIL':'admin@example.invalid',
-            'AUTH_TRUSTED_PROXY_IPS':'127.0.0.1','STRUCTURAL_SHARE_TOKEN_SECRET':'synthetic-share-secret'}.items():formal.setenv(name,value)
-        formal.setattr(report,'_store',None);formal.setattr(report_account,'_store',None)
-        formal.setattr(sso,'_REPLAY_STORES',{})
-        formal.setattr(favorites,'_legacy_data_file',lambda:state/'absent-legacy-favorites.jsonl')
-        assert auth._store() is store.auth_store and store.path==db
-        application=FastAPI();application.include_router(auth.router,prefix='/api')
-        with TestClient(application,base_url=BETA) as deletion:
-            deletion.cookies.set(auth._COOKIE_NAME,client.cookies.get(auth._COOKIE_NAME))
-            return deletion.post('/api/me/delete',json={'confirmation':'DELETE'},headers={'Origin':BETA})
-
-
-@pytest.fixture
-def formal_paid(request,tmp_path,monkeypatch,record_property):
-    """Actual offline HTTP composition with captured formal storage objects.
-
-    The public Main remains closed. The test-only route profile is restored
-    after capturing the real preprovisioned Auth object; downgrade cannot turn
-    either storage object into a dev connection or creation path.
-    """
-    import json
-    import stat
-    from uuid import UUID
-    from api import auth
-    from services.auth_registration import bootstrap_private_runtime
-    # Resolve the original paid/source producers only after a real current
-    # Auth runtime and account exist. Legacy Auth + Research11 is not an
-    # admissible maintenance pair and cannot be made current by a marker edit.
-    state=tmp_path.resolve()/'auth';cache=tmp_path.resolve()/'private-cache'
-    for name,value in [('STATE_ROOT',state),('CACHE_ROOT',cache),('LOG_ROOT',state/'logs')]:monkeypatch.setattr(paths,name,value)
-    for name,value in {'STRUCTURAL_ENV':'prod','AUTH_DATA_DIR':str(state),'STRUCTURAL_SSO_DATA_DIR':str(state),
-        'STRUCTURAL_PRIVACY_HMAC_KEY':'0123456789abcdef'*4,
-        'JWT_SECRET':'research-synthetic-auth-secret-32-characters',
-        'STRUCTURAL_SSO_SECRET':'research-synthetic-sso-secret-32-characters'}.items():monkeypatch.setenv(name,value)
-    bootstrap_private_runtime()
-    monkeypatch.setattr(auth,'_AUTH_STORES',{})
-    register_private_user(monkeypatch,'research-a@example.test')
-    original_auth=AuthStore(state/'auth.sqlite3')
-    monkeypatch.setattr(auth,'_store',lambda:original_auth)
-    paid_api=request.getfixturevalue('paid_api')
-    client,db,development_store,rid,excerpt,resolver=paid_api
-    assert db==original_auth.path and development_store.auth_store is original_auth
-    def inspect(label,path,kind,*,phase,required=True):
-        try:info=path.lstat()
-        except FileNotFoundError:
-            record_property('formal_paid_mode.'+label+'.'+phase,json.dumps({'exists':False}))
-            assert not required,'missing synthetic prerequisite: '+label
-            return None
-        actual='directory' if stat.S_ISDIR(info.st_mode) else 'regular' if stat.S_ISREG(info.st_mode) else 'symlink' if stat.S_ISLNK(info.st_mode) else 'other'
-        record_property('formal_paid_mode.'+label+'.'+phase,json.dumps(dict(exists=True,type=actual,uid=info.st_uid,
-            mode=format(stat.S_IMODE(info.st_mode),'04o'),nlink=info.st_nlink),sort_keys=True))
-        assert actual==kind and info.st_uid==os.geteuid(),label
-        assert info.st_nlink==1 if kind=='regular' else info.st_nlink>=1,label
-        return info
-    # The actual source/paid producers retain their declared isolated route
-    # profile, while all Auth/Research connections remain captured and native.
-    assert db.name=='auth.sqlite3' and db.is_absolute()
-    inspect('state_root',db.parent,'directory',phase='before')
-    inspect('auth.sqlite3',db,'regular',phase='before')
-    with development_store.transaction() as conn:
-        gates={row[0] for row in conn.execute('SELECT gate_id FROM auth_owner_gates')}
-        marker=[tuple(row) for row in conn.execute('SELECT id,version FROM research_schema')]
-        assert len(marker)==1 and marker[0][0]==1 and type(marker[0][1]) is int and marker[0][1] in (9,10,11,12,13,14)
-        version=marker[0][1]
-        ResearchStore._check_structure_version(conn,version)
-        source_gates=[]
-        for task in conn.execute('SELECT id,policy_revision FROM research_tasks'):
-            if version in (11,12,13,14) and task['policy_revision']=='d1-source-only-v1':
-                resource=conn.execute('SELECT owner_gate_id,admission_version,task_gate_identity FROM research_source_resources WHERE task_id=?',(task['id'],)).fetchone()
-                run=conn.execute('SELECT task_gate_identity FROM research_source_runs WHERE task_id=?',(task['id'],)).fetchone()
-                assert resource and run and resource['admission_version']=='source-admission-v1'
-                assert resource['owner_gate_id'] in gates
-                assert type(resource['task_gate_identity']) is str and resource['task_gate_identity']==run['task_gate_identity']
-                identity=json.loads(resource['task_gate_identity'])
-                assert type(identity) is list and len(identity)==5 and all(type(value) is int for value in identity)
-                assert identity[0]>=0 and identity[1]>0 and identity[2:]==[os.geteuid(),0o600,1]
-                source_gates.append((task['id'],tuple(identity)))
-            else:gates.add(task['id'])
-    db.parent.chmod(0o700);db.chmod(0o600)
-    assert stat.S_IMODE(inspect('state_root',db.parent,'directory',phase='after').st_mode)==0o700
-    assert stat.S_IMODE(inspect('auth.sqlite3',db,'regular',phase='after').st_mode)==0o600
-    for suffix in ('-wal','-shm','-journal'):
-        path=db.with_name(db.name+suffix);label=db.name+suffix
-        if inspect(label,path,'regular',phase='before',required=False) is not None:path.chmod(0o600)
-        after=inspect(label,path,'regular',phase='after',required=False)
-        if after is not None:assert stat.S_IMODE(after.st_mode)==0o600,label
-    db=db.resolve()
-    cache=db.parent.parent/'private-cache';logs=db.parent/'logs'
-    for label,folder in (('cache',cache),('logs',logs)):
-        inspect(label,folder,'directory',phase='before',required=False)
-        folder.mkdir(mode=0o700,exist_ok=True)
-        assert stat.S_IMODE(inspect(label,folder,'directory',phase='after').st_mode)==0o700,label
-    for name,value in [('STATE_ROOT',db.parent),('CACHE_ROOT',cache),('LOG_ROOT',logs)]:monkeypatch.setattr(paths,name,value)
-    audit=db.parent/'account_deletion_audit.jsonl'
-    inspect('audit',audit,'regular',phase='before',required=False)
-    audit.write_bytes(b'');audit.chmod(0o600)
-    assert stat.S_IMODE(inspect('audit',audit,'regular',phase='after').st_mode)==0o600
-    lock_root=db.parent/'research-locks'
-    assert stat.S_IMODE(inspect('lock_root',lock_root,'directory',phase='checked').st_mode)==0o700
-    for gate in sorted(gates):
-        assert type(gate) is str and str(UUID(gate,version=4))==gate
-        label='lock.'+gate
-        assert stat.S_IMODE(inspect(label,lock_root/(gate+'.lock'),'regular',phase='checked').st_mode)==0o600,label
-    for task_id,identity in source_gates:
-        assert type(task_id) is str and str(UUID(task_id,version=4))==task_id
-        info=inspect('source-lock.'+task_id,lock_root/('source-'+task_id+'.lock'),'regular',phase='checked')
-        assert (info.st_dev,info.st_ino,info.st_uid,stat.S_IMODE(info.st_mode),info.st_nlink)==identity
-    monkeypatch.setenv('STRUCTURAL_ENV','prod')
-    from research.formula_runtime import provision_formula_v10,recover_formula_journal
-    from services.auth_registration import migrate_private_auth_registration,admit_private_gate
-    # Recovery validates the entire actual Auth/Research graph under the real
-    # exclusive maintainer. A numeric marker alone is never fixture admission.
-    profile=recover_formula_journal(db)
-    if profile['schema_version']==9:provision_formula_v10(db)
-    elif profile['schema_version'] not in (10,11,12,13,14):raise AssertionError('unsupported complete offline fixture graph')
-    with raw(db) as conn:
-        conn.execute('BEGIN');auth_profile=AuthStore.check_offline_auth_metadata(conn)
-    migrate_private_auth_registration()
-    if profile['schema_version'] in (9,10):
-        from research.source_guard import provision_source_v11
-        provision_source_v11(db)
-    if profile['schema_version'] in (9,10,11):
-        from research.plan_financial import provision_plan_v12
-        provision_plan_v12(db)
-    if profile['schema_version'] in (9,10,11,12):
-        from research.plan_native_financial import provision_native_v13
-        provision_native_v13(db)
-    if profile['schema_version'] in (9,10,11,12,13):
-        from research.method_draft import provision_method_drafts_v14
-        provision_method_drafts_v14(db)
-    with raw(db) as conn:owners=[tuple(row) for row in conn.execute('SELECT owner_key,gate_id FROM auth_owner_gates')]
-    held=AuthStore(db)
-    for owner,gate in owners:
-        if auth_profile=='legacy_auth':admit_private_gate(owner)
-        with AuthorizationGate(held).owner_gate_id(gate) as lease:
-            assert lease.identity[:2]==held.expected_owner_gate_identity(gate)
-    _stage_formal_adjacent_assets(db)
-    store=ResearchStore(held)
-    monkeypatch.setattr(auth,'_store',lambda:held)
-    monkeypatch.setenv('STRUCTURAL_ENV','test')
-    return client,db,store,rid,excerpt,resolver
-
-
-@pytest.mark.parametrize('withdraw',['paid-grant','source','cancel'])
-def test_formal_native_paid_result_rechecks_withdrawal_and_keeps_cost(formal_paid,withdraw):
-    from .test_research_paid_budget_loop import execution
-    from research.paid_provider_session import persist_budget_return
-    client,_,store,rid,excerpt,_=formal_paid
-    with execution(formal_paid) as (session,result,wire,pid):
-        receipt=session.receive()
-        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
-            persist_budget_return(conn,store=store,lease=lease,receipt=receipt)
-        if withdraw=='cancel':
-            cancelled=post(client,f'/api/research/{rid}/cancel',{'task_id':result['task_id'],'expected_task_version':2},'formal-cancel')
-            assert cancelled.status_code==200,cancelled.text
-        else:
-            with store.transaction(write=True) as conn:
-                if withdraw=='paid-grant':conn.execute("UPDATE research_grants SET status='revoked' WHERE id=(SELECT grant_id FROM research_tasks WHERE id=?)",(result['task_id'],))
-                else:conn.execute("DELETE FROM research_evidence_objects WHERE kind='snapshots' AND research_id=?",(rid,))
-        reconciled=post(client,f'/api/research/{rid}/reconcile',{'task_id':result['task_id'],'expected_task_version':3 if withdraw=='cancel' else 2},'formal-cost-after-withdrawal')
-        assert reconciled.status_code==200 and reconciled.json()['data']['method_result'] is None,reconciled.text
+    from .test_research_persistence import envelope
+    for name,value in {'AUTH_ENABLED':'true','AUTH_SITE_ROLE':'beta',
+        'AUTH_LINK_BASE_URL':BETA,'JWT_SECRET':FIXTURE_SECRET,
+        'STRUCTURAL_SSO_SECRET':FIXTURE_SECRET,'STRUCTURAL_RESEARCH_ENABLED':'true',
+        'STRUCTURAL_SSO_DATA_DIR':str(private.parent),
+        'SMTP_HOST':'fixture.invalid','SMTP_PORT':'587',
+        'SMTP_FROM_EMAIL':'sender@example.invalid','ADMIN_NOTIFICATION_EMAIL':'admin@example.invalid',
+        'AUTH_TRUSTED_PROXY_IPS':'127.0.0.1','AUTH_DEV_MODE':'false'}.items():
+        monkeypatch.setenv(name,value)
+    email='private-main-refusal@example.invalid'
+    _,cookie=register_private_user(monkeypatch,email)
+    captured=auth._store();store=ResearchStore(captured)
+    identity=(private.stat().st_dev,private.stat().st_ino)
+    assert captured._private_auth and store._formal_mode()
+    assert captured.storage_identity==store.storage_identity==identity
+    def image():
         with store.transaction() as conn:
-            assert conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone()[:]==(0,2)
-            assert conn.execute('SELECT count(*) FROM research_cost_observations').fetchone()[0]==1
-        assert wire['requests']==1
-
-
-def test_formal_native_typed_http_commit_and_read_keep_original_body(formal_paid):
-    from .test_research_paid_budget_loop import execution
-    from research.paid_provider_session import persist_budget_return
-    client,_,store,rid,_,_=formal_paid
-    with execution(formal_paid) as (session,result,wire,pid):
-        receipt=session.receive()
-        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:persist_budget_return(conn,store=store,lease=lease,receipt=receipt)
-        response=post(client,f'/api/research/{rid}/reconcile',{'task_id':result['task_id'],'expected_task_version':2},'formal-typed-commit')
-        assert response.status_code==200,response.text
-        report=response.json()['data']['method_result'];assert report['result_ref']==session.id and report['received_at']==receipt._time
-        assert report['model_analysis_ran'] is False and report['evidence']=='INSUFFICIENT'
-        reopened=client.get(f'/api/research/{rid}',params={'task_id':result['task_id']})
-        assert reopened.status_code==200 and reopened.json()['data']['method_result']==report,reopened.text
-        assert wire['requests']==1
-
-
-def test_formal_native_delete_before_late_return_keeps_body_closed(formal_paid,monkeypatch):
-    from .test_research_paid_budget_loop import execution
-    from research.paid_provider_session import persist_budget_return
-    from research.paid_budget import observe_in
-    client,_,store,rid,_,_=formal_paid
-    with execution(formal_paid) as (session,result,wire,pid):
-        receipt=session.receive()
-        erased=_formal_delete(formal_paid,monkeypatch);assert erased.status_code==200,erased.text
-        with AuthorizationGate(store).owner_gate(pid) as lease,store.transaction(write=True) as conn:
-            persist_budget_return(conn,store=store,lease=lease,receipt=receipt)
-            observe_in(conn,store=store,lease=lease,return_ref=session.id)
-            assert conn.execute('SELECT candidate_json,method_commit_json,body_origin_state FROM research_provider_sessions').fetchone()[:]==(None,None,'closed')
-            assert conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone()[:]==(0,2)
-        assert client.get(f'/api/research/{rid}').status_code==401
-        assert wire['requests']==1
+            assert type(conn) is sqlite_utils.PrivateAuthConnection
+            assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==15
+            store._check_v15(conn)
+            tables=[row[0] for row in conn.execute("SELECT name FROM sqlite_schema WHERE type='table' AND name GLOB 'research_*' ORDER BY name")]
+            return {table:[tuple(row) for row in conn.execute('SELECT * FROM '+table+' ORDER BY rowid')] for table in tables}
+    application=FastAPI()
+    application.include_router(auth.router,prefix='/api')
+    application.include_router(research.router,prefix='/api')
+    attempts=[]
+    def no_network(*args,**kwargs):
+        attempts.append(True)
+        raise AssertionError('bare research refusal must not open a network connection')
+    with TestClient(application,base_url=BETA) as client:
+        client.cookies.set('phase_session',cookie)
+        me=client.get('/api/auth/me')
+        assert me.status_code==200 and me.json()['user']['email']==email
+        before=image()
+        with monkeypatch.context() as stopped:
+            stopped.setattr(socket.socket,'connect',no_network)
+            stopped.setattr(socket.socket,'connect_ex',no_network)
+            response=client.post('/api/research',json=envelope({'problem':problem()}),
+                headers={'Origin':BETA,'Idempotency-Key':'private15-bare-app-refused'})
+        assert response.status_code==503 and response.json()['error']['code']=='FEATURE_UNAVAILABLE',response.text
+        assert image()==before and not attempts
+        assert auth._store() is captured and store.auth_store is captured
+        assert captured._private_auth and store._formal_mode()
+        assert captured.storage_identity==store.storage_identity==identity
+        assert (private.stat().st_dev,private.stat().st_ino)==identity

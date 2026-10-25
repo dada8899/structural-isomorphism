@@ -1,5 +1,5 @@
 """New current14 sessions use actual protected birth; no historical re-signing."""
-from .test_research_private_storage import formal_paid
+from .test_research_legacy_paid_component import legacy_paid as formal_paid
 from .test_research_method_result import stack,source_stack,approved_inputs,paid_api,lifecycle
 from .test_research_paid_budget_loop import execution
 from research.authorization import AuthorizationGate
