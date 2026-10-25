@@ -27,15 +27,24 @@ class SourceSession:
         self.gate=AuthorizationGate(store)
         self.step_id=None
         self.last_request=None
-        with store.transaction() as conn:
+        self._doc_request=None
+        if store._formal_mode():
+            from .source_supervisor import _bind_session
+            _bind_session(self)
+        with self._transaction() as conn:
             task=self.checked(conn)
             run,approval=check_approval(conn,task)
             self.plan=plan_for(task,approval,run["plan_id"])
             self.mode=run["origin"]
         self.binding={name:getattr(self.plan,name) for name in Binding.__dataclass_fields__}
-        if store._formal_mode():
-            from .source_supervisor import _bind_session
-            _bind_session(self)
+
+    def _transaction(self,*,write=False):
+        # This is a live Source producer lifetime, never a historical consumer.
+        # The original Store continues to own opening, C budget and SQL.
+        if self.store._formal_mode():
+            from .source_document_access import DocTransaction
+            return DocTransaction(self,write=write)
+        return self.store.transaction(write=write)
 
     def checked(self,conn):
         if self.store._formal_mode():
@@ -52,12 +61,17 @@ class SourceSession:
 
     def still_authorized(self):
         try:
-            with self.store.transaction() as conn:self.checked(conn)
+            with self._transaction() as conn:self.checked(conn)
+            from .source_document_raw import RawPrepPlan
+            if type(self.plan) is RawPrepPlan:
+                from .source_document_access import session_supervisor
+                governor=session_supervisor(self)._sec_access
+                governor.profile.check(network=governor.flight is None or not governor.flight.handed_off)
             return True
         except (ResearchError,PermissionError):return False
 
     def begin(self,position):
-        with self.store.transaction(write=True) as conn:
+        with self._transaction(write=True) as conn:
             self.checked(conn)
             step=conn.execute("SELECT * FROM research_steps WHERE task_id=? AND position=?",(self.task_id,position)).fetchone()
             if not step or step["state"]!="PENDING":raise PermissionError("source step cannot replay")
@@ -66,7 +80,7 @@ class SourceSession:
             self.step_id=step["id"]
 
     def finish_step(self):
-        with self.store.transaction(write=True) as conn:
+        with self._transaction(write=True) as conn:
             self.checked(conn)
             conn.execute("UPDATE research_steps SET state='SUCCEEDED',version=version+1 WHERE id=? AND state='PREPARED'",(self.step_id,))
             state_in(conn,self.task_id,"RUNNING",kind="step_finished")
@@ -75,8 +89,8 @@ class SourceSession:
     def request_gate(self,plan,local_ordinal,target):
         from .source_document_raw import RawPrepPlan
         if type(plan) is RawPrepPlan:
-            from .source_document_access import require_execution
-            require_execution()
+            from .source_document_access import unavailable
+            raise unavailable()
         if plan!=self.plan:raise PermissionError("source plan changed")
         with self.store.transaction() as conn:principal=self.checked(conn)["principal_id"]
         with self.gate.owner_gate(principal) as lease:
@@ -138,6 +152,8 @@ class SourceSession:
         return snapshot.id,claim.id,execution.id
 
     def save_observation(self,*,failed=False):
+        from .source_document_raw import RawPrepPlan
+        if type(self.plan) is RawPrepPlan:return
         if not self.last_request or not self.step_id:return
         with self.store.transaction(write=True) as conn:
             self.checked(conn)
@@ -155,8 +171,7 @@ class SourceSession:
     def run(self):
         from .source_document_raw import RawPrepPlan
         if type(self.plan) is RawPrepPlan:
-            from .source_document_access import require_execution
-            require_execution()
+            return SourceSession._run_raw(self)
         chain=CrossrefPlosChain(self.plan,self.transport,request_gate=self.request_gate,still_authorized=self.still_authorized,origin=self.mode)
         self.begin(0);hits=chain.discover();self.save_observation();self.finish_step()
         self.begin(1)
@@ -178,6 +193,121 @@ class SourceSession:
             state_in(conn,self.task_id,"COMPLETED",evidence="INSUFFICIENT",kind="terminal")
             conn.execute("UPDATE research_controls SET version=version+1,updated_at=? WHERE id=?",(now(),task["research_id"]))
         return "COMPLETED"
+
+    @contextmanager
+    def _raw_request_gate(self,target):
+        from .source_document_access import (session_supervisor,request_witness,DocTransaction,
+            freeze_doc_completion,finalize_doc_request)
+        from .source_document_raw import target_digest
+        from .source_integration import raw_source_chains
+        from .source_guard import worker_scope
+        from .source_sec_access import wait_before_request,release_request
+        supervisor=session_supervisor(self)
+        # Both waits precede Owner acquisition and every DB transaction.
+        wait_before_request(supervisor._sec_access,self)
+        with self._transaction() as conn:principal=self.checked(conn)['principal_id']
+        with self.gate.owner_gate(principal) as lease:
+            completion=None
+            try:
+                with DocTransaction(self) as conn:
+                    task=self.checked(conn);run,_=check_approval(conn,task)
+                    chains=raw_source_chains(conn,task['principal_id'],task['research_id'])
+                    if unclosed_sources(conn,chains) or sum(c['used'] for c in chains)>=4:raise PermissionError('DOC quota or debt unavailable')
+                    step=conn.execute('SELECT * FROM research_steps WHERE id=? AND task_id=?',(self.step_id,self.task_id)).fetchone()
+                    if step is None or step['state']!='PREPARED' or step['kind']!='fetch_source':raise PermissionError('DOC original step unavailable')
+                    if type(step['position']) is not int or not 0<=step['position']<2 or self.plan.plan.documents[step['position']]!=target:raise PermissionError('DOC fixed step target differs')
+                    chain=conn.execute('SELECT * FROM research_source_chains WHERE id=?',(run['chain_id'],)).fetchone()
+                    prior=conn.execute("SELECT dispatch_id FROM research_source_requests WHERE chain_id=? AND semantic='fetch_source' AND target_digest=? AND outcome='UNKNOWN' AND execution_closed=1 ORDER BY ordinal DESC LIMIT 1",(run['chain_id'],target_digest(target))).fetchone()
+                    row=dict(id=str(uuid4()),chain_id=run['chain_id'],task_id=self.task_id,step_id=self.step_id,semantic='fetch_source',
+                        target_digest=target_digest(target),dispatch_id=str(uuid4()),ordinal=chain['used']+1,write_epoch=run['write_epoch'],
+                        outcome='SENDING',execution_closed=0,closure_ref=None,closure_proof=None,owner_gate_identity=canonical(lease.identity),
+                        task_gate_identity=canonical(self.task_lease.identity),started_at=now(),ended_at=None,http_status=None,safe_code='none',prior_dispatch_id=prior[0] if prior else None)
+                    witness=request_witness(self,conn,lease,row);self._doc_request=witness
+                    with worker_scope(conn,self.store,self.task_lease,owner_lease=lease,doc_request=witness):
+                        if conn.execute('UPDATE research_source_chains SET used=used+1 WHERE id=? AND used=?',(run['chain_id'],chain['used'])).rowcount!=1:raise PermissionError('DOC quota CAS failed')
+                        keys=tuple(row)
+                        conn.execute('INSERT INTO research_source_requests('+','.join(keys)+') VALUES('+','.join('?' for _ in keys)+')',tuple(row[k] for k in keys))
+                        self.last_request=row['id']
+                outcome=yield lease
+                completion=freeze_doc_completion(self,outcome)
+                try:
+                    with DocTransaction(self) as conn,worker_scope(conn,self.store,self.task_lease,owner_lease=lease,doc_completion=completion):
+                        completion.enter(conn)
+                        EvidenceRepository(conn,authorizer(self.store)).put_raw_in_completion(context_for(conn,self.task_id,self.step_id),completion)
+                        finalize_doc_request(conn,completion)
+                    completion.acknowledge()
+                except BaseException as error:
+                    from .source_spawn import SourceCleanupUncertain
+                    if isinstance(error,SourceCleanupUncertain) or getattr(error,'_source_cleanup_uncertainty',None):raise
+                    if not completion.reconcile_ack():raise
+            except BaseException as error:
+                # A physically uncertain transport is retained by its native
+                # flight. Original fresh-lock cleanup owns UNKNOWN closure.
+                from .source_spawn import SourceCleanupUncertain
+                if (isinstance(error,SourceFailure) and error.http_status is not None
+                        and not isinstance(error,SourceCleanupUncertain) and not getattr(error,'_source_cleanup_uncertainty',None)
+                        and supervisor._sec_access.flight is None and self._doc_request is not None and self._doc_request.issued):
+                    # A malformed/partial response can still have an actually
+                    # observed status. Keep that limited fact in UNKNOWN; it
+                    # neither creates Raw/R/C nor changes proof_version1.
+                    with DocTransaction(self) as conn,worker_scope(conn,self.store,self.task_lease,owner_lease=lease):
+                        self.checked(conn)
+                        conn.execute("UPDATE research_source_requests SET outcome='UNKNOWN',safe_code='outcome_unknown',http_status=?,ended_at=? WHERE id=? AND outcome='SENDING' AND execution_closed=0",
+                            (error.http_status,now(),self._doc_request.row['id']))
+                raise
+            finally:
+                flight=supervisor._sec_access.flight
+                if flight is None:
+                    witness=self._doc_request
+                    if witness is not None:
+                        release_request(witness)
+                        witness.retire();self._doc_request=None
+
+    def _run_raw(self):
+        from .source_document_access import session_supervisor,DocTransaction
+        from .source_document_raw import RawPrepBundleReceipt,decode_commitment,decode_raw
+        session_supervisor(self)
+        receipts=[];digests=[];artifacts=[];variants=[]
+        for position,target in enumerate(self.plan.plan.documents):
+            self.begin(position)
+            # Contextmanager send is explicit: the genuine native outcome,
+            # rather than a data DTO or bool, resumes the completion boundary.
+            gate=self._raw_request_gate(target)
+            lease=gate.__enter__()
+            try:outcome=self.transport.get(target,still_authorized=self.still_authorized,owner_lease=lease)
+            except BaseException:
+                import sys
+                gate.__exit__(*sys.exc_info());raise
+            else:
+                try:gate.gen.send(outcome)
+                except StopIteration:pass
+                else:raise PermissionError('DOC request gate did not retire')
+            with self._transaction() as conn:
+                self.checked(conn)
+                request=conn.execute('SELECT * FROM research_source_requests WHERE id=?',(self.last_request,)).fetchone()
+                c=decode_commitment(request['closure_proof'])
+                r=decode_raw('executions',conn.execute('SELECT payload FROM research_evidence_objects WHERE id=?',(request['closure_ref'],)).fetchone()[0])
+                receipts.append(r.id);digests.append(sha256(request['closure_proof'].encode()));variants.append(r.output_variant)
+                if r.artifact_ref is not None:artifacts.append(r.artifact_ref)
+            self.finish_step()
+            if request['outcome']!='SUCCEEDED':break
+        # Skip any remaining fetch after a known failure; no retry/new GET.
+        with DocTransaction(self) as conn:
+            self.checked(conn)
+            conn.execute("UPDATE research_steps SET state='DISCARDED',version=version+1 WHERE task_id=? AND position<2 AND state='PENDING'",(self.task_id,))
+        self.begin(2)
+        state=('RAW_PAIR_COMPLETE_UNVERIFIED' if len(variants)==2 and all(v=='complete_candidate' for v in variants)
+            else 'QUARANTINED' if 'quarantined_complete' in variants else 'FAILED')
+        bundle=RawPrepBundleReceipt(**self.binding,id=str(uuid4()),record_schema='RawPrepBundleReceipt-v1',plan_id=self.plan.id,
+            request_receipt_refs=tuple(receipts),commitment_digests=tuple(digests),raw_artifact_refs=tuple(artifacts),package_state=state,
+            evidence='INSUFFICIENT',document_identity='unverified',model_analysis_ran=False,statistics_ran=False)
+        with DocTransaction(self) as conn:
+            task=self.checked(conn)
+            EvidenceRepository(conn,authorizer(self.store)).put_raw_bundle(context_for(conn,self.task_id,self.step_id),bundle,self.store)
+            conn.execute("UPDATE research_steps SET state='SUCCEEDED',version=version+1 WHERE id=?",(self.step_id,))
+            state_in(conn,self.task_id,'COMPLETED',evidence='INSUFFICIENT',kind='terminal')
+            conn.execute('UPDATE research_controls SET version=version+1,updated_at=? WHERE id=?',(now(),task['research_id']))
+        return 'COMPLETED'
 
 
 def close_interrupted(store,task_id,task_lease):

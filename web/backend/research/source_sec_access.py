@@ -1,8 +1,8 @@
 """Optional, existing-only SEC resource owned by the actual Source lifetime.
 
-This module grants no request authority. The current transport has no DOC
-target/profile decoder, so begin_request always refuses a request. In particular,
-holding a flock or observing a pacing state never enables a public GET.
+Holding a flock or observing a pacing state never grants a request. A DOC flight
+also requires the actual registered session, protected SENDING request, private
+profile and original transport. Retirement is minted by its real finally only.
 """
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ class _Cadence:
 
 class _Governor:
     __slots__ = ('supervisor', 'binding', 'reference', 'context', 'pid', 'factory',
-                 'fd', 'identity', 'state', 'reason', 'errors', 'cadence', 'retired')
+                 'fd', 'identity', 'state', 'reason', 'errors', 'cadence', 'retired', 'profile', 'flight')
 
     def __init__(self, supervisor, *, _factory=None):
         frame = inspect.currentframe().f_back
@@ -67,6 +67,8 @@ class _Governor:
         self.reference, self.context = self.binding.reference, self.binding.native_context
         self.pid, self.factory = os.getpid(), _factory
         self.fd = self.identity = None
+        self.profile = None
+        self.flight = None
         self.state, self.reason = 'UNBOUND', None
         self.errors, self.cadence, self.retired = [], _Cadence(), False
 
@@ -167,6 +169,8 @@ def attach(supervisor):
         fcntl.flock(governor.fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         _held(governor)
         governor.state = 'HELD_CLEANUP'
+        from .source_document_access import attach_access
+        attach_access(governor)
     except (OSError, RuntimeError) as error:
         # Optional absence/invalid configuration/contended flock closes only
         # our own FD. A failed close remains an owned uncertain resource.
@@ -228,14 +232,38 @@ def wait_before_claim(governor):
 
 
 def begin_request(governor, actual_session, fixed_target):
-    _identity(governor)
-    raise PermissionError('native DOC target, access profile and transport retirement are not installed')
+    from .source_policy import PinnedPublicTransport
+    from .source_document_access import session_supervisor
+    from .source_document_raw import DocTarget,target_digest
+    supervisor=_identity(governor);caller=inspect.currentframe().f_back
+    transport=caller.f_locals.get('self')
+    if (caller.f_code is not PinnedPublicTransport.get.__code__ or type(transport) is not PinnedPublicTransport
+            or transport is not actual_session.transport or session_supervisor(actual_session) is not supervisor
+            or type(fixed_target) is not DocTarget or governor.flight is not None):raise PermissionError('actual DOC transport request required')
+    _source()._check(supervisor,published=True);_held(governor)
+    if governor.retired or governor.errors or governor.profile is None:raise PermissionError('DOC access retired')
+    governor.profile.check(network=True)
+    witness=actual_session._doc_request
+    if witness is None or not witness.issued:raise PermissionError('actual DOC SENDING required')
+    if target_digest(fixed_target)!=witness.row['target_digest']:raise PermissionError('DOC SENDING target differs')
+    with actual_session._transaction() as conn:witness.check(conn,network=True)
+    deadline=caller.f_locals.get('doc_deadline')
+    if type(deadline) is not float or not math.isfinite(deadline) or not 0<deadline-time.monotonic()<=12:raise PermissionError('original DOC deadline required')
+    token=governor.cadence.begin(time.monotonic())
+    flight=DocRequestFlight(governor,actual_session,transport,fixed_target,witness,token,deadline,_factory=_FACTORY)
+    governor.flight=flight
+    return flight
 
 
 def finish_request(flight, actual_retirement):
-    # No native flight can be minted in this engineering slice. Accepting a
-    # bool/receipt here would pre-authorize a later transport integration.
-    raise PermissionError('no native DOC flight exists')
+    from .source_policy import PinnedPublicTransport,require_doc_retirement
+    frame=inspect.currentframe().f_back
+    if frame.f_code is not PinnedPublicTransport.get.__code__:raise PermissionError('actual DOC transport retirement required')
+    flight.identity()
+    require_doc_retirement(actual_retirement,flight)
+    governor=flight.governor
+    governor.cadence.finished(flight.token,actual_retirement.monotonic_at)
+    governor.flight=None;flight.retirement=actual_retirement;flight.state='RETIRED'
 
 
 def retire(governor):
@@ -249,6 +277,8 @@ def retire(governor):
             raise RuntimeError('Source SEC source image changed')
         if governor.fd is not None:
             _held(governor)
+        if governor.profile is not None and governor.profile.state=='BOUND':
+            governor.profile.check(network=False)
     except BaseException as error:
         _uncertain(governor, error)
 
@@ -263,6 +293,7 @@ def close(governor, original_deadline):
             or governor.state == 'CLEANUP_UNCERTAIN' or governor.cadence.flight is not None
             or governor.cadence.uncertain):
         return False
+
     if governor.state == 'CLOSED':
         return True
     try:
@@ -270,6 +301,7 @@ def close(governor, original_deadline):
             return False
         if governor.fd is not None:
             _held(governor)
+        if governor.profile is not None and not governor.profile.close():return False
         if not _close_owned(governor):
             return False
         governor.state = 'CLOSED'
@@ -277,3 +309,114 @@ def close(governor, original_deadline):
     except BaseException as error:
         _uncertain(governor, error)
         return False
+
+
+_FLIGHTS = {}
+_JOBS = {}
+
+
+class DocRequestFlight:
+    """Parent-only identity, tied to one actual request and owned transport."""
+    __slots__=('governor','session','transport','target','witness','profile','token','deadline','wire','pid','thread',
+        'epoch','state','process','popen','handed_off','retirement','outcome','_factory',
+        'valid_from_epoch','expires_epoch','_profiles','_requests')
+    def __new__(cls,*args,**kwargs):
+        if cls is not DocRequestFlight or kwargs.get('_factory') is not _FACTORY:raise PermissionError('native DOC flight factory required')
+        return object.__new__(cls)
+    def __init__(self,governor,session,transport,target,witness,token,deadline,*,_factory=None):
+        from .source_document_raw import DocWireTarget
+        from .source_document_access import approved_references,_stamp,_PROFILES,_DOC_REQUESTS
+        if inspect.currentframe().f_back.f_code is not begin_request.__code__:raise PermissionError('canonical DOC flight issuer required')
+        profile=governor.profile;ref,rights=approved_references()
+        self.governor,self.session,self.transport,self.target,self.witness,self.profile=governor,session,transport,target,witness,profile
+        self.token,self.deadline,self.pid,self.thread,self.epoch=token,deadline,os.getpid(),threading.current_thread(),governor.supervisor._slot_epoch
+        self.state='OPENING';self.process=self.popen=self.retirement=self.outcome=None;self.handed_off=False;self._factory=_factory
+        self._profiles,self._requests=_PROFILES,_DOC_REQUESTS
+        identity=profile._data['network_identity']
+        self.valid_from_epoch,self.expires_epoch=_stamp(identity['valid_from']).timestamp(),_stamp(identity['expires_at']).timestamp()
+        send_limit=min(deadline,time.monotonic()+max(0.,_stamp(identity['expires_at']).timestamp()-time.time()))
+        self.wire=DocWireTarget(record_schema='DocWireTarget-v1',target=target,access_profile_ref=ref,rights_digest=rights,
+            request_id=witness.row['id'],dispatch_id=witness.row['dispatch_id'],task_id=session.task_id,
+            write_epoch=witness.row['write_epoch'],slot_epoch=self.epoch,attempted_at=witness.row['started_at'],
+            user_agent=profile._data['operator']['user_agent'],valid_from=identity['valid_from'],expires_at=identity['expires_at'],
+            send_not_after=float(send_limit))
+        _FLIGHTS[id(self)]=self
+        _JOBS[id(self)]=(self,governor,session,transport,target,witness,profile,token,deadline,self.wire,self.pid,self.thread,self.epoch)
+    def __repr__(self):return '<native DOC request flight>'
+    def __reduce__(self):raise TypeError('DOC flight cannot cross processes')
+    def _job_memory(self):
+        original=_JOBS.get(id(self))
+        current=(self,self.governor,self.session,self.transport,self.target,self.witness,self.profile,self.token,
+            self.deadline,self.wire,self.pid,self.thread,self.epoch)
+        return original is not None and all(before is after for before,after in zip(original,current))
+    def identity(self):
+        if (type(self) is not DocRequestFlight or _FLIGHTS.get(id(self)) is not self or self._factory is not _FACTORY
+                or not self._job_memory()
+                or self.pid!=os.getpid() or self.thread is not threading.current_thread()):raise PermissionError('actual DOC flight required')
+        _identity(self.governor)
+        if self.governor.supervisor._slot_epoch!=self.epoch or self.governor.supervisor._session is not self.session:raise PermissionError('DOC flight slot retired')
+    def check_spawn(self,arguments,process=None):
+        from .source_document_access import session_supervisor
+        from .source_policy import _network_get
+        self.identity();supervisor=session_supervisor(self.session)
+        _source()._check(supervisor,published=True);self.profile.check(network=True);_held(self.governor)
+        with self.session._transaction() as conn:self.witness.check(conn,network=True)
+        if (self.governor.flight is not self or self.state!='OPENING' or time.monotonic()>=self.deadline
+                or type(arguments) is not tuple or len(arguments)!=6 or arguments[1] is not self.wire
+                or arguments[2] is not _network_get or arguments[4]!=self.deadline or arguments[5]!=self.witness.owner.identity
+                or (process is not None and self.process is not process)):raise PermissionError('DOC spawn job differs')
+    def memory_handoff(self,session,transport):
+        governor=self.governor;supervisor=governor.supervisor
+        if (type(self) is not DocRequestFlight or _FLIGHTS.get(id(self)) is not self or self._factory is not _FACTORY or self.pid!=os.getpid()
+                or not self._job_memory()
+                or self.thread is not threading.current_thread() or governor.flight is not self
+                or governor.cadence.flight is not self.token or governor.cadence.uncertain or governor.retired or governor.errors
+                or self.state!='OPENING' or self.handed_off or self.session is not session or self.transport is not transport
+                or supervisor._slot_epoch!=self.epoch or supervisor._session is not session
+                or self._profiles.get(id(self.profile)) is not self.profile or self.profile is not governor.profile
+                or self.profile.state!='BOUND' or self.profile.fd is None or self.witness is not session._doc_request
+                or self._requests.get(id(self.witness)) is not self.witness
+                or not self.witness.active or not self.witness.issued or self.witness.epoch!=self.epoch
+                or self.process is None or self.popen is None or time.monotonic()>=self.wire.send_not_after
+                or not self.valid_from_epoch<=time.time()<self.expires_epoch):
+            raise PermissionError('DOC flight handoff retired')
+    def unknown(self,error):
+        self.identity();self.state='CLEANUP_UNCERTAIN'
+        self.governor.cadence.unknown(self.token);_uncertain(self.governor,error)
+
+
+def wait_before_request(governor,actual_session):
+    from .source_document_access import session_supervisor
+    supervisor=_identity(governor)
+    if session_supervisor(actual_session) is not supervisor or actual_session._doc_request is not None or supervisor._lock._is_owned():
+        raise PermissionError('DOC request pacing outside Owner/DB/G required')
+    while True:
+        _source()._check(supervisor,published=True)
+        if governor.retired or governor.errors or governor.profile is None or governor.flight is not None:raise PermissionError('DOC request pacing unavailable')
+        governor.profile.check(network=True);_held(governor)
+        delay=governor.cadence.delay(time.monotonic())
+        if delay==0:return
+        supervisor._stop.wait(delay)
+
+
+def release_request(witness):
+    """Forget only physically retired handles at the original gate's exit."""
+    from .source_workflow import SourceSession
+    from . import source_policy,source_spawn
+    if inspect.currentframe().f_back.f_code is not SourceSession._raw_request_gate.__wrapped__.__code__:
+        raise PermissionError('canonical DOC request release required')
+    for flight in tuple(_FLIGHTS.values()):
+        if flight.witness is not witness:continue
+        flight.identity()
+        if flight.state!='RETIRED' or flight.governor.flight is flight:raise PermissionError('DOC physical retirement absent')
+        source_policy.require_doc_retirement(flight.retirement,flight)
+        if flight.outcome is not None:source_policy._DOC_OUTCOMES.pop(id(flight.outcome),None)
+        source_policy._DOC_RETIREMENTS.pop(id(flight.retirement),None)
+        source_spawn._DOC_PROCESSES.pop(id(flight.process),None)
+        _FLIGHTS.pop(id(flight),None)
+        _JOBS.pop(id(flight),None)
+    from .source_document_access import _COMPLETIONS,_COMPLETION_DOMAINS
+    for completion in tuple(_COMPLETIONS.values()):
+        if completion.witness is witness:
+            completion.state='ABORTED';_COMPLETIONS.pop(id(completion),None)
+            _COMPLETION_DOMAINS.pop(id(completion),None)

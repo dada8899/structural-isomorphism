@@ -19,6 +19,19 @@ class SourceCleanupUncertain(OSError):
 
 
 _UNCERTAIN = []
+_DOC_PROCESSES = {}
+
+
+def _doc_process(process):
+    from .source_document_raw import DocWireTarget
+    entry=_DOC_PROCESSES.get(id(process))
+    doc=type(process._args[1]) is DocWireTarget
+    if doc:
+        if entry is None or entry[0] is not process:raise PermissionError('actual DOC process binding required')
+        entry[1].check_spawn(process._args,process)
+        return entry[1]
+    if entry is not None:raise PermissionError('DOC process job changed')
+    return None
 
 
 def require_supported():
@@ -110,6 +123,10 @@ class _SourcePopen(SpawnPopen):
         self.pid = None
         self.sentinel = None
         self._owned_fds = []
+        flight=_doc_process(process_obj)
+        if flight is not None:
+            if flight.popen is not None:raise PermissionError('DOC Popen already assigned')
+            flight.popen=self
         try:
             self.tracker = _Tracker()
             tracker_fd = self.tracker.fd
@@ -207,6 +224,19 @@ class SourceSpawnProcess(context.SpawnProcess):
         from .source_policy import _child, _network_get
         if type(arguments) is not tuple or len(arguments) != 6:
             raise TypeError('fixed Source sender arguments required')
+        from .source_document_raw import DocWireTarget
+        flight=None
+        if type(arguments[1]) is DocWireTarget:
+            import inspect
+            from .source_policy import PinnedPublicTransport
+            frame=inspect.currentframe().f_back
+            if frame.f_code is not source_process.__code__:raise PermissionError('canonical DOC process factory required')
+            parent=frame.f_back
+            flight=parent.f_locals.get('flight')
+            from .source_sec_access import DocRequestFlight
+            if parent.f_code is not PinnedPublicTransport.get.__code__ or type(flight) is not DocRequestFlight:
+                raise PermissionError('canonical DOC transport flight required')
+            flight.check_spawn(arguments)
         if arguments[2] is _network_get:
             # Live never accepts a caller target or a filename-only substitute.
             import types
@@ -218,10 +248,18 @@ class SourceSpawnProcess(context.SpawnProcess):
                 if len(codes) != 1 or function.__code__ != codes[0]:
                     raise PermissionError('fixed live Source sender required')
         super().__init__(target=_child, args=arguments, daemon=True)
+        if flight is not None:
+            if flight.process is not None:raise PermissionError('DOC process already assigned')
+            flight.process=self;_DOC_PROCESSES[id(self)]=(self,flight)
+
+    def start(self):
+        _doc_process(self)
+        return super().start()
 
     @staticmethod
     def _Popen(process_obj):
         require_supported()
+        _doc_process(process_obj)
         return _SourcePopen(process_obj)
 
     def close(self):

@@ -1,14 +1,15 @@
 """Strict DOC raw-preparation data. No type, digest or reference is authority.
 
-B1 deliberately supplies no native completion or outbound transport. The fixed
+These data codecs supply no native completion or outbound permission. The fixed
 target version describes a mapping, never a verified filing/body identity.
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, fields, field
 from datetime import datetime
 import json
 import re
+import math
 
 from .evidence_schemas import Record, canonical, digest, identifier, positive, sha256
 
@@ -437,6 +438,122 @@ def recorded_draft(problem_digest, plan_json):
     fields=asdict(spec);pd=sha256(canonical(fields).encode())
     inp=sha256(canonical({'contract_revision':CONTRACT,'purpose':PURPOSE,'problem_digest':problem_digest,'plan_digest':pd}).encode())
     return fields,pd,common_fingerprint(),inp
+
+
+@dataclass(frozen=True,kw_only=True,repr=False)
+class DocWireTarget:
+    """Private bounded data, never a request/flight/profile capability."""
+    record_schema: str
+    target: DocTarget
+    access_profile_ref: ProfileRef
+    rights_digest: str
+    request_id: str
+    dispatch_id: str
+    task_id: str
+    write_epoch: int
+    slot_epoch: int
+    attempted_at: str
+    user_agent: str = field(repr=False)
+    valid_from: str
+    expires_at: str
+    send_not_after: float
+
+    def __post_init__(self):
+        _literal(self.record_schema,'DocWireTarget-v1')
+        if type(self.target) is not DocTarget or type(self.access_profile_ref) is not ProfileRef:raise ValueError('strict DOC wire target required')
+        self.target.__post_init__();self.access_profile_ref.__post_init__();digest(self.rights_digest)
+        for value in (self.request_id,self.dispatch_id,self.task_id):identifier(value)
+        positive(self.write_epoch);positive(self.slot_epoch);_utc(self.attempted_at)
+        from .source_document_access import _stamp,_user_agent
+        _user_agent(self.user_agent)
+        if _stamp(self.expires_at)<=_stamp(self.valid_from):raise ValueError('DOC wire identity interval')
+        if type(self.send_not_after) is not float or not math.isfinite(self.send_not_after) or self.send_not_after<=0:raise ValueError('DOC wire hard expiry')
+
+    @property
+    def host(self):return self.target.host
+    @property
+    def path(self):return self.target.path
+    @property
+    def job_digest(self):return sha256(canonical(asdict(self)).encode())
+    def __repr__(self):return '<private DOC wire data>'
+
+
+def decode_doc_wire(value):
+    """Strict private round trip; serializable material is still not authority."""
+    if type(value) is not dict or set(value)!={f.name for f in fields(DocWireTarget)}:raise ValueError('exact DOC wire fields')
+    data=dict(value);data['target']=_construct(DocTarget,data['target']);data['access_profile_ref']=_construct(ProfileRef,data['access_profile_ref'])
+    result=DocWireTarget(**data)
+    if len(canonical(value).encode())>4096:raise ValueError('DOC wire control limit')
+    return result
+
+
+def decode_doc_observation(value):
+    return _construct(DocObservation,value)
+
+
+def doc_ipc(observation):
+    if type(observation) is not DocObservation:raise ValueError('strict DOC observation required')
+    observation.__post_init__()
+    data={'record_schema':'DocObservedResult-v1','observation':asdict(observation)}
+    encoded=canonical(data).encode()
+    if len(encoded)>4096:raise ValueError('DOC observation IPC limit')
+    return encoded
+
+
+def decode_doc_ipc(raw,wire):
+    # Unlike persisted DOC records, send_not_after is a finite private float.
+    if type(wire) is not DocWireTarget:raise ValueError('DOC wire binding required')
+    value=strict_json(raw,4096)
+    if type(value) is not dict or set(value)!={'record_schema','observation'} or value['record_schema']!='DocObservedResult-v1':raise ValueError('DOC IPC discriminator')
+    observation=decode_doc_observation(value['observation'])
+    if observation.requested_target!=wire.target or observation.job_digest!=wire.job_digest or observation.attempted_at!=wire.attempted_at:raise ValueError('DOC IPC job differs')
+    return observation
+
+
+def request_output_data(plan,request,observation,retirement,*,artifact_ref,receipt_ref,admission_digest,producer_code_digest):
+    """Pure expected A/R/C math. It neither writes nor issues a completion."""
+    if type(plan) is not RawPrepPlan or type(observation) is not DocObservation or type(retirement) is not TransportRetirementAudit:
+        raise ValueError('strict DOC output data required')
+    plan.__post_init__();observation.__post_init__();retirement.__post_init__()
+    if plan.plan.access_profile_ref is None or plan.plan.rights_digest is None:raise ValueError('DOC acquired profile references absent')
+    if request['outcome']!='SENDING' or request['execution_closed']!=0 or request['closure_ref'] is not None or request['closure_proof'] is not None:
+        raise ValueError('DOC first SENDING required')
+    target=observation.requested_target
+    if (target not in plan.plan.documents or request['target_digest']!=target_digest(target) or request['task_id']!=plan.task_id
+            or observation.attempted_at!=request['started_at'] or retirement.request_id!=request['id']
+            or retirement.dispatch_id!=request['dispatch_id'] or retirement.job_digest!=observation.job_digest):raise ValueError('DOC output request domain differs')
+    binding={key:getattr(plan,key) for key in ('research_id','input_revision','task_id','attempt','input_digest')}
+    artifact=None
+    if observation.body_complete:
+        artifact=RawArtifact(**binding,id=artifact_ref,record_schema='RawArtifact-v1',doc_ref=target.doc_ref,
+            plan_id=plan.id,request_id=request['id'],dispatch_id=request['dispatch_id'],access_profile_ref=plan.plan.access_profile_ref,
+            rights_digest=plan.plan.rights_digest,observation=observation,raw_length=observation.raw_length,raw_sha256=observation.raw_sha256,
+            origin='live',document_identity='unverified',parser_profile=None,extracted_digest=None,regions=())
+        variant='complete_candidate' if observation.safe_code=='none' else 'quarantined_complete'
+    else:
+        if artifact_ref is not None:raise ValueError('DOC no-body artifact reference must be null')
+        variant='failed_no_body'
+    receipt=RawPrepRequestReceipt(**binding,id=receipt_ref,record_schema='RawPrepRequestReceipt-v1',plan_id=plan.id,
+        request_id=request['id'],dispatch_id=request['dispatch_id'],ordinal=request['ordinal'],doc_ref=target.doc_ref,
+        artifact_ref=artifact_ref,output_variant=variant,observation=observation,retirement=retirement)
+    completed_at=observation.received_at if observation.body_complete else observation.observed_failure_at
+    c={'record_schema':'DocRawRequestCommitment-v1',
+        'scope':{key:binding[key] for key in ('research_id','input_revision','attempt','input_digest')},
+        'request':{'request_id':request['id'],**{key:request[key] for key in ('dispatch_id','chain_id','ordinal','task_id','step_id','semantic','target_digest','write_epoch')},
+            'owner_gate_identity':json.loads(request['owner_gate_identity']),'task_gate_identity':json.loads(request['task_gate_identity'])},
+        'document':{'doc_ref':asdict(target.doc_ref),'semantic_object_id':target.semantic_object_id,'document_group_id':target.document_group_id,
+            'document_role':target.document_role,'plan_id':plan.id,'plan_digest':sha256(canonical(asdict(plan.plan)).encode()),
+            'catalog_digest':plan.plan.catalog_digest,'selection_digest':plan.plan.selection_digest,'admission_digest':admission_digest,
+            'access_profile_ref':asdict(plan.plan.access_profile_ref),'rights_digest':plan.plan.rights_digest,'job_digest':observation.job_digest},
+        'result':{'request_outcome':'SUCCEEDED' if variant=='complete_candidate' else 'FAILED','output_variant':variant,
+            'actual_http_status':observation.http_status,'safe_code':observation.safe_code,'completion_observed_at':completed_at},
+        'artifact':{'artifact_ref':artifact_ref,'artifact_payload_digest':sha256(encode_raw(artifact).encode()) if artifact else None,
+            'raw_length':observation.raw_length if artifact else None,'raw_sha256':observation.raw_sha256 if artifact else None},
+        'receipt_ref':receipt_ref,'receipt_payload_digest':sha256(encode_raw(receipt).encode()),
+        'observation_digest':sha256(canonical(asdict(observation)).encode()),'retirement_digest':sha256(canonical(asdict(retirement)).encode()),
+        'producer_protocol':'doc-raw-completion-v1','producer_code_digest':producer_code_digest}
+    decode_commitment(canonical(c))
+    return artifact,receipt,c
 
 
 def decode_commitment(payload):
