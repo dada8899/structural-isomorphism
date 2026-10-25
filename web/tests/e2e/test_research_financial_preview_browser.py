@@ -169,7 +169,10 @@ def test_fin1_actual_main_real_conflict_and_readonly(tmp_path):asyncio.run(confl
 
 async def real_unknown_and_network(tmp_path):
     async with actual_browser(tmp_path) as (page,service,bridge,facts):
-        rid=service.seed.research_id;await page.locator('#method-draft-task').select_option(service.seed.source_task_id);await page.locator('#method-draft-read-sources').click();choice=page.locator('#method-draft-materials input[type=checkbox]').first;await expect(choice).to_be_visible();await expect(page.locator('#method-draft-read-sources')).to_be_enabled();await choice.check();await helpers._method_draft_type_manual_fields(page);saved=[]
+        rid=service.seed.research_id;await page.locator('#method-draft-task').select_option(service.seed.source_task_id)
+        async with bridge.material_read(page,service.seed.source_task_id):
+            await page.locator('#method-draft-read-sources').click()
+        choice=page.locator('#method-draft-materials input[type=checkbox]').first;await expect(choice).to_be_visible();await expect(page.locator('#method-draft-read-sources')).to_be_enabled();await choice.check();await helpers._method_draft_type_manual_fields(page);saved=[]
         async def lose_method_ack(route):
             request=route.request;actual=await asyncio.to_thread(bridge.forward,request.method,request.url,await request.all_headers(),request.post_data_buffer);assert actual.status==200;saved.append(json.loads(actual.body)['data']);await route.abort('failed')
         await page.route(service.origin+'/api/research/'+rid+'/method-drafts',lose_method_ack,times=1);await page.locator('#method-draft-save').click();await expect(page.locator('#method-draft-status')).to_contain_text('尚未确认');pending=await helpers._method_main_pending(page);assert len(pending)==1 and len(saved)==1;await page.locator('#method-draft-method').fill('金融预览及网络失败时必须保留的原手稿B。')
@@ -182,7 +185,9 @@ async def real_unknown_and_network(tmp_path):
             request=route.request;actual=await asyncio.to_thread(bridge.forward,request.method,request.url,await request.all_headers(),request.post_data_buffer);assert actual.status==200;lost.append(True);await route.abort('failed')
         await page.route(service.origin+'/api/research/'+rid+'/financial-import-preview',lose_preview,times=1);text=with_missing();await page.locator('#financial-preview-csv').fill(text);await page.locator('#financial-preview-run').click();await expect(page.locator('#financial-preview-status')).to_contain_text('响应尚未确认');await expect(page.locator('#financial-preview-result')).to_have_text('');await expect(page.locator('#financial-preview-csv')).to_have_value(text);await expect(page.locator('#method-draft-method')).to_have_value('金融预览及网络失败时必须保留的原手稿B。');assert lost==[True] and await helpers._method_main_pending(page)==pending
         after=await helpers._native_tls_fetch(page,'/api/research/'+rid);assert before['body']['data']['research_version']==after['body']['data']['research_version'];again=await helpers._native_tls_fetch(page,'/api/research/'+rid+'/method-drafts/'+saved[0]['metadata']['draft_ref']);assert again['status']==200 and again['body']['data']==saved[0]
-        await page.get_by_role('button',name='核对这一笔原保存',exact=True).click();await expect(page.locator('#method-draft-status')).to_contain_text('原保存已确认');await expect(page.locator('#method-draft-method')).to_have_value('金融预览及网络失败时必须保留的原手稿B。');assert await helpers._method_main_pending(page)==[]
+        async with bridge.original_draft_replay(page,pending[0],saved[0]):
+            await page.get_by_role('button',name='核对这一笔原保存',exact=True).click()
+        await expect(page.locator('#method-draft-status')).to_contain_text('原保存已确认');await expect(page.locator('#method-draft-method')).to_have_value('金融预览及网络失败时必须保留的原手稿B。');assert await helpers._method_main_pending(page)==[]
         facts.update({'same_revision_method_save_invalidates_old_preview':True,'real_nonempty_original_key_body_ref_time_preserved':True,'original_ref':saved[0]['metadata']['draft_ref'],'original_time':saved[0]['metadata']['created_at'],'original_body_digest':saved[0]['metadata']['content_digest'],'actual_preview200_then_network_loss':True,'csv_B_preserved_preview_invalid':True,'preview_did_not_update_root_version':True,'original_key_explicitly_reconciled':True})
 
 
