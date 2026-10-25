@@ -1981,6 +1981,32 @@ def test_python_syntax_release_authority_is_independently_frozen() -> None:
     )
 
 
+def _original_dry_run_before_b3_backend(output: str) -> str:
+    """Validate the three B3 consumers before removing only their full commands."""
+    pythonpath = ":".join(str(ROOT / path) for path in (
+        "web/backend", "packages/guarded-llm/src", "packages/cross-judge/src",
+        "packages/reject-aware-critic/src", "packages/soc-pipeline/src",
+    ))
+    backend = "PYTHONPATH=" + pythonpath + " python -m pytest"
+    prefix = "cd web/backend && " + backend
+    lines = output.splitlines(keepends=True)
+    ordinary = [line for line in lines if line.startswith(prefix + " --ignore=")]
+    assert len(ordinary) == 1, "one exact ordinary backend command required"
+    makefile = (ROOT / "Makefile").read_text()
+    _original_makefile_before_b3_backend(makefile)
+    expected_ordinary = next(command for command in
+        _make_recipe_commands(makefile, "verify-release")
+        if command.startswith("cd web/backend && $(BACKEND_PYTEST) --ignore="))
+    assert ordinary[0] == expected_ordinary.replace("$(BACKEND_PYTEST)", backend, 1) + "\n"
+    ordinary_args = shlex.split(ordinary[0])
+    for consumer in B3_FRESH_MAIN_MODULES:
+        assert ordinary_args.count("--ignore=tests/" + consumer) == 1
+        formal = prefix + " tests/" + consumer + " -p no:logging -q\n"
+        assert lines.count(formal) == 1, "one complete B3 fresh command required"
+        lines.remove(formal)
+    return "".join(lines)
+
+
 def test_verify_release_dry_run_expands_real_test_and_build_commands() -> None:
     environment = os.environ.copy()
     for variable in (
@@ -2002,7 +2028,7 @@ def test_verify_release_dry_run_expands_real_test_and_build_commands() -> None:
         check=False,
     )
     assert completed.returncode == 0, completed.stderr
-    output = completed.stdout
+    output = _original_dry_run_before_b3_backend(completed.stdout)
     gov = next(line for line in output.splitlines() if "python -m pytest tests/test_source_sec_access_lifecycle.py" in line)
     assert output.splitlines().count(gov) == 1
     assert gov.endswith("python -m pytest tests/test_source_sec_access_lifecycle.py -p no:logging -q")
@@ -2028,6 +2054,41 @@ def test_verify_release_dry_run_expands_real_test_and_build_commands() -> None:
     assert 'node "$test_file"' in output
     assert "pnpm lint && pnpm build" in output
     assert re.search(r"(?:^|\s)(?:true|false)(?:\s|$)", output) is None
+
+
+@pytest.mark.parametrize("consumer", B3_FRESH_MAIN_MODULES)
+def test_verify_release_actual_dry_run_rejects_b3_consumer_drift(consumer, monkeypatch):
+    environment = os.environ.copy()
+    for variable in ("MAKEFLAGS", "MAKEOVERRIDES", "PYTEST", "BACKEND_PYTEST", "OPENAPI_PY", "TYPES_PY"):
+        environment.pop(variable, None)
+    completed = subprocess.run(
+        ["make", "-n", "--no-print-directory", "PY=python", "verify-release"],
+        cwd=ROOT, env=environment, capture_output=True, text=True, timeout=20, check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
+    output = completed.stdout
+    formal = next(line + "\n" for line in output.splitlines()
+                  if line.endswith("python -m pytest tests/" + consumer + " -p no:logging -q"))
+    ignore = " --ignore=tests/" + consumer
+    mutations = {
+        "missing": output.replace(formal, "", 1),
+        "duplicate": output.replace(formal, formal + formal, 1),
+        "wrong_file": output.replace(formal, formal.replace(consumer, "test_source_document_raw.py"), 1),
+        "selector": output.replace(formal, formal.rstrip("\n") + " -k smoke\n", 1),
+        "logging": output.replace(formal, formal.replace(" -p no:logging", ""), 1),
+        "missing_ignore": output.replace(ignore, "", 1),
+        "duplicate_ignore": output.replace(ignore, ignore + ignore, 1),
+        "ordinary_logging": output.replace("python -m pytest --ignore", "python -m pytest -p no:logging --ignore", 1),
+        "pure_ignore": output.replace(ignore, ignore + " --ignore=tests/test_source_document_raw.py", 1),
+        "extra": output.replace(formal, formal + formal.replace(consumer, "test_source_document_access.py"), 1),
+    }
+    for mutation, changed in mutations.items():
+        assert changed != output, mutation
+        result = subprocess.CompletedProcess(completed.args, 0, changed, "")
+        with monkeypatch.context() as patch:
+            patch.setattr(subprocess, "run", lambda *args, **kwargs: result)
+            with pytest.raises(AssertionError):
+                test_verify_release_dry_run_expands_real_test_and_build_commands()
 
 
 def test_required_browser_workflow_covers_nonenglish_product_surfaces() -> None:
