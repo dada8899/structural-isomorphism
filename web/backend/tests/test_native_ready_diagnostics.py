@@ -614,10 +614,14 @@ def test_identity_format_fault_clears_public_slot_and_preserves_first_failure():
     assert controller.result['first_failure']==first and controller.result['diagnostic_resources']['uncertain']
 
 
-def test_invalid_identity_in_same_read_preserves_bound_primary(monkeypatch,tmp_path):
+@pytest.mark.parametrize('noise',[b'',b'finite-noise\n'])
+@pytest.mark.parametrize('clean',[False,True])
+@pytest.mark.parametrize('fragmented',[False,True])
+def test_invalid_identity_in_same_read_preserves_bound_primary(monkeypatch,tmp_path,noise,clean,fragmented):
     left,right=socket.socketpair();controller=P.Controller({'head':'a'*40},None,None)
     path=tmp_path/'owned-stream-path';path.write_bytes(b'finite owned input')
     stream=P.FormalCodeBytes();row=P.empty_startup_diagnostic();row['formal'].update(peer_root=True,receive_buffer=16384,stream='OPEN')
+    controller.result['startup_diagnostics']['stock_base']=row
     peer=P.DiagnosticHandle('accepted');peer.remember(left)
     controller._diag={'record':row,'path':path,'path_identity':P.stat_key(path.lstat()),'listener':None,'peer':peer,
                       'credentials':(123,0,0),'first_unit':unit(),'last_unit':unit(),'window_start':.5,'window_end':2,
@@ -626,10 +630,21 @@ def test_invalid_identity_in_same_read_preserves_bound_primary(monkeypatch,tmp_p
     controller._phase='stock_base';controller._mark('helper_ready',command='helper');controller._capture(P.ProbeFailure('HTTP'))
     first=copy.deepcopy(controller.result['first_failure'])
     try:
-        right.sendall(b'FORMAL_ENTRY:CODE_IDENTITY_INVALID\n'+identity_wire('UNKNOWN'))
-        with pytest.raises(P.ProbeFailure):controller._diag_pump([left])
+        primary=noise+b'FORMAL_ENTRY:CODE_IDENTITY_INVALID\n';annotation=identity_wire('UNKNOWN');wire=primary+annotation
+        if fragmented:
+            right.sendall(primary);controller._diag_pump([left],clean=clean)
+            assert row['formal']['read_bytes']==len(primary) and row['formal']['unknown_lines']==int(bool(noise))
+            right.sendall(annotation)
+        else:right.sendall(wire)
+        if clean:controller._diag_pump([left],clean=True)
+        else:
+            with pytest.raises(P.ProbeFailure):controller._diag_pump([left])
         assert row['formal']['code']=='CODE_IDENTITY_INVALID' and row['formal']['identity'] is None
         assert row['formal']['stream']=='IDENTITY_INVALID' and controller.result['first_failure']==first
+        assert stream.total==len(wire) and stream.unknown==int(bool(noise))
+        assert row['formal']['read_bytes']==stream.total and row['formal']['unknown_lines']==stream.unknown
+        assert controller.result['diagnostic_resources']['uncertain']
+        assert P.validate_receipt(controller.result)
     finally:left.close();right.close()
 
 

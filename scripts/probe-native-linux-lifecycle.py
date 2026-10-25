@@ -773,7 +773,8 @@ class Controller:
                 except ValueError as error:
                     self._diag_refresh_binding()  # Keep an observed primary even if its annotation is invalid.
                     self._diag_fault(error.args[0] if error.args and error.args[0] in STREAM_STATES else 'IO',clean)
-                formal=item['record']['formal'];formal.update(read_bytes=item['stream'].total,unknown_lines=item['stream'].unknown,stream=item['stream'].state)
+                finally:
+                    formal=item['record']['formal'];formal.update(read_bytes=item['stream'].total,unknown_lines=item['stream'].unknown,stream=item['stream'].state)
                 self._diag_refresh_binding()
         except ProbeFailure:raise
         except BaseException:self._diag_fault('IO',clean)
