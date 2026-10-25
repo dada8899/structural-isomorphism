@@ -500,3 +500,13 @@ def test_poison_module_dictionary_fields_are_not_user_callbacks(loaded, monkeypa
         def member(self):
             raise AssertionError('untrusted class descriptor callback')
     assert observer._function_code({'Owner': Owner, '__name__': 'synthetic'}, 'Owner.member') is None
+
+
+def test_class_dictionary_probe_never_invokes_metaclass_property():
+    class DangerousMeta(type):
+        @property
+        def __dict__(cls):
+            raise AssertionError('metaclass dictionary property must not execute')
+    class Owner(metaclass=DangerousMeta):
+        member = property(lambda self: None)
+    assert observer._function_code({'Owner': Owner, '__name__': 'synthetic'}, 'Owner.member') is None

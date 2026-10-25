@@ -80,6 +80,7 @@ SOURCE_PINS = {'web/backend/research/financial_evaluator.py': 'b6f4d2474680a0bc8
 
 _CAPS = frozenset((8192, 65536, 110592, 131072, 524288))
 _ACTIVE = None
+_TYPE_DICT = vars(type)['__dict__']
 _OBSERVATION_KEYS = frozenset(('event', 'site', 'category', 'cap', 'operations', 'nodes', 'depth'))
 _RECORD_KEYS = frozenset(('schema', 'case', 'setup', 'response', 'events', 'observations',
     'overflow', 'observer_fault', 'restore', 'catch_link'))
@@ -133,10 +134,14 @@ def _function_code(namespace, qualname):
         return None
     value = namespace.get(parts[0])
     for part in parts[1:]:
-        hierarchy = type.__getattribute__(type(value), '__mro__')
-        if len(hierarchy) > 16 or not any(kind is type for kind in hierarchy):
+        try:
+            # Calling type.__getattribute__ still runs metaclass data
+            # descriptors. This captured native getset reads only tp_dict.
+            fields = _TYPE_DICT.__get__(value, type(value))
+        except TypeError:
             return None
-        fields = type.__getattribute__(value, '__dict__')
+        if type(fields) is not types.MappingProxyType:
+            return None
         value = fields.get(part)
     if (type(value) is not types.FunctionType or value.__globals__ is not namespace
             or type(value.__module__) is not str or type(namespace.get('__name__')) is not str
