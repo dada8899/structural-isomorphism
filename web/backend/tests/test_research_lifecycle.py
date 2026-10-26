@@ -203,9 +203,9 @@ def _crash_child(history,cookie,phase):
         from research.service import ResearchService
         # Crash after the real durable fence, before erasing research contents.
         if phase == "fence":
-            ResearchService.erase_research_locked=lambda *args:os._exit(73)
+            ResearchService.erase_research_locked=lambda *args,**kwargs:os._exit(73)
         elif phase == "after-auth-delete":
-            ResearchService.finish_account_deletion_locked=lambda *args:os._exit(74)
+            ResearchService.finish_account_deletion_locked=lambda *args,**kwargs:os._exit(74)
         else:
             ResearchService.record_legacy_deletion_locked=lambda *args,**kwargs:os._exit(75)
         delete(client)
