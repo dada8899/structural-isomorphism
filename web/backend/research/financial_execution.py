@@ -4,6 +4,7 @@ import importlib
 import math
 import os
 import sqlite3
+import stat
 from pathlib import Path
 import sys
 import threading
@@ -55,6 +56,88 @@ def _function(function):
     return function
 
 
+
+def _same_source_functions(*references):
+    """Cold checks sharing one full-module compile inside this batch only."""
+    def resolve(reference):
+        if type(reference) is not tuple or len(reference) not in (3,4):
+            raise PermissionError('fixed immutable native locator required')
+        container,name,qualname=reference[:3]
+        if (type(name) is not str or type(qualname) is not str
+                or qualname not in _FUNCTION_PATHS
+                or len(reference)==4 and type(reference[3]) is not types.FunctionType):
+            raise PermissionError('fixed native member required')
+        if type(container) is types.ModuleType:
+            namespace=vars(container);module=container
+            module_name=namespace.get('__name__')
+            if type(module_name) is not str or sys.modules.get(module_name) is not module:
+                raise PermissionError('current native module required')
+            function=namespace.get(name)
+        elif type(container) is type:
+            fields=vars(container);module_name=fields.get('__module__')
+            if type(module_name) is not str:raise PermissionError('native class module required')
+            module=sys.modules.get(module_name)
+            class_name=type.__getattribute__(container,'__qualname__')
+            if ('.' not in qualname or type(module) is not types.ModuleType or type(class_name) is not str
+                    or class_name!=qualname.rsplit('.',1)[0] or vars(module).get(class_name) is not container):
+                raise PermissionError('current plain native class required')
+            namespace=vars(module)
+            if type(namespace.get('__name__')) is not str or namespace['__name__']!=module_name:
+                raise PermissionError('native class namespace required')
+            descriptor=fields.get(name)
+            function=descriptor.__func__ if type(descriptor) is staticmethod else descriptor
+        else:raise PermissionError('native module or plain class required')
+        if (type(function) is not types.FunctionType or type(function.__module__) is not str
+                or type(function.__qualname__) is not str or function.__qualname__!=qualname
+                or function.__module__!=namespace.get('__name__') or function.__globals__ is not namespace
+                or len(reference)==4 and function is not reference[3]):
+            raise PermissionError('current native function reference required')
+        return function,module,namespace
+
+    def generation(info):
+        return info.st_dev,info.st_ino,info.st_mode,info.st_size,info.st_mtime_ns,info.st_ctime_ns
+
+    def codes(code):
+        yield code
+        for child in code.co_consts:
+            if type(child) is types.CodeType:yield from codes(child)
+
+    full=anchor=matches=raw=witness=output=function=module=namespace=None
+    try:
+        if len(references) not in (2,3):raise PermissionError('fixed two or three native members required')
+        output=()
+        for reference in references:
+            function,module,namespace=resolve(reference)
+            qualname=reference[2];filename=namespace.get('__file__')
+            if type(filename) is not str:raise PermissionError('native source filename required')
+            original=Path(filename);path=original.resolve()
+            expected=Path(__file__).resolve().parents[1]/_FUNCTION_PATHS[qualname]
+            if (original.is_symlink() or path!=expected
+                    or Path(function.__code__.co_filename).resolve()!=path):
+                raise PermissionError('canonical native source required')
+            before=path.stat()
+            if not stat.S_ISREG(before.st_mode) or before.st_size>1048576:
+                raise PermissionError('bounded regular native source required')
+            raw=path.read_bytes();after=path.stat()
+            if (type(raw) is not bytes or original.is_symlink() or generation(before)!=generation(after)
+                    or len(raw)!=after.st_size):raise PermissionError('native source read changed')
+            witness=(module,namespace,path,filename,function.__code__.co_filename,raw,generation(after),hashlib.sha256(raw).digest())
+            if full is None:
+                full=compile(raw,function.__code__.co_filename,'exec',dont_inherit=True)
+                anchor=witness
+            elif (witness[0] is not anchor[0] or witness[1] is not anchor[1] or witness[2:]!=anchor[2:]):
+                raise PermissionError('native batch source generation changed')
+            current,current_module,current_namespace=resolve(reference)
+            if current is not function or current_module is not module or current_namespace is not namespace:
+                raise PermissionError('native function changed during source read')
+            matches=tuple(code for code in codes(full) if code.co_qualname==qualname)
+            if len(matches)!=1 or matches[0]!=function.__code__:raise PermissionError('native function source changed')
+            output+=(function,)
+        return output
+    finally:
+        full=anchor=matches=raw=witness=output=function=module=namespace=None
+
+
 def require_calculate_frame(values):
     from . import financial_result_v2 as result
     function=_function(result._CALCULATE_PRODUCER)
@@ -94,12 +177,17 @@ def require_request(service,identity,rid,envelope,key,source,request_app):
     from .paid_control import require_authenticated_action
     family='web.backend.api' if __package__=='web.backend.research' else 'api'
     route=importlib.import_module(family+'.research')
-    bridge=_function(route._FINANCIAL_BRIDGE);endpoint=_function(route.calculate_research_financial)
+    bridge,endpoint=_same_source_functions((route,'_FINANCIAL_BRIDGE','_calculate_financial_in_request'),
+        (route,'calculate_research_financial','calculate_research_financial'))
     if (type(service) is not ResearchService or type(service.store) is not ResearchStore or type(identity) is not AccountIdentity
             or type(service.authorization) is not AuthorizationGate or service.authorization.store is not service.store
             or type(envelope) is not result.FinancialCalculationEnvelopeV2):raise PermissionError('actual account calculation required')
-    for fn in (ResearchService._principal_in,AuthorizationGate.check,AuthorizationGate.check_account,
-            require_authenticated_action,route._identity,result._CALCULATE_PRODUCER):_function(fn)
+    functions=(ResearchService._principal_in,AuthorizationGate.check,AuthorizationGate.check_account,
+            require_authenticated_action,route._identity,result._CALCULATE_PRODUCER)
+    _function(functions[0])
+    _same_source_functions((AuthorizationGate,'check','AuthorizationGate.check',functions[1]),
+        (AuthorizationGate,'check_account','AuthorizationGate.check_account',functions[2]))
+    for fn in functions[3:]:_function(fn)
     frame=sys._getframe(1)
     try:
         while frame and frame.f_code is not bridge.__code__:frame=frame.f_back
@@ -255,8 +343,9 @@ def execute(context,request,registry):
     if context._started or context._owned is not None or request is not e['envelope'].data.request or registry is not e['registry']:
         raise PermissionError('single fixed financial execution required')
     evaluator=_function(engine.evaluate_owner_financial_v2)
-    validator=_function(data.validate_snapshot)
-    _function(data._validate_stored);_function(data.project_financial_snapshot_v2)
+    validator=_same_source_functions((data,'validate_snapshot','validate_snapshot'),
+        (data,'_validate_stored','_validate_stored'),
+        (data,'project_financial_snapshot_v2','project_financial_snapshot_v2'))[0]
     owner=registry.owner_data;started_at=now();started_ns=time.monotonic_ns();meter=Meter()
     # The only timer birth is at the original mathematical start, after owner/
     # database preparation. Keep a separate immutable identity/value anchor.
