@@ -488,8 +488,18 @@ def _observe_owned_startup(config, capture):
     return retire
 
 
-class _MailHandler(socketserver.StreamRequestHandler):
+from web.backend.tests.acceptance.owned_smtp_tls import owned_smtp_tls, StartTLSHandler
+
+
+class _MailHandler(StartTLSHandler):
     timeout = 3
+
+    def smtp_socket_upgraded(self,old,new):
+        with self.server.owner.lock:
+            self.server.owner.sockets.discard(old);self.server.owner.sockets.add(new)
+
+    def smtp_socket_closed(self,connection):
+        with self.server.owner.lock:self.server.owner.sockets.discard(connection)
 
     def handle(self):
         deadline = time.monotonic() + 5
@@ -511,9 +521,10 @@ class _MailHandler(socketserver.StreamRequestHandler):
             if not command:
                 return
             verb = command.split(None, 1)[0].upper()
-            if verb in (b'EHLO', b'HELO'):
-                self.wfile.write(b'250 fixture.invalid\r\n')
-            elif verb == b'MAIL':
+            if self.smtp_tls_command(verb):
+                if self.smtp_tls_failed:return
+                continue
+            if verb == b'MAIL':
                 self.wfile.write(b'250 ok\r\n')
             elif verb == b'RCPT':
                 address = command.partition(b':')[2].strip().strip(b'<>')
@@ -586,6 +597,7 @@ class _MailSink:
         self.lock = threading.Lock()
         self.messages, self.workers, self.failures = [], [], []
         self.sockets = set()
+        self._smtp_tls_scope=None;self._smtp_tls_active=False
         self.server = _MailServer(('127.0.0.1', 0), _MailHandler)
         self.server.owner = self
         self.thread = threading.Thread(target=self.server.serve_forever,
@@ -596,6 +608,9 @@ class _MailSink:
         return self.server.server_address[1]
 
     def start(self):
+        self._smtp_tls_scope=owned_smtp_tls()
+        context,_=self._smtp_tls_scope.__enter__();self._smtp_tls_active=True
+        self.server.smtp_tls_context=context
         self.thread.start()
 
     def take_latest_magic_token(self):
@@ -651,6 +666,8 @@ class _MailSink:
         with self.lock:
             self.messages.clear()
             errors.extend(self.failures)
+        if self._smtp_tls_active:
+            self._smtp_tls_scope.__exit__(None,None,None);self._smtp_tls_active=False
         if errors:
             raise RuntimeError('owned SMTP cleanup uncertain: ' + ','.join(errors))
 
@@ -744,7 +761,7 @@ class FormalMainBrowserService(AbstractContextManager):
         settings = {'STRUCTURAL_SHARE_TOKEN_SECRET': secrets.token_urlsafe(48),
             'SMTP_HOST': '127.0.0.1', 'SMTP_PORT': str(self._smtp.port),
             'SMTP_FROM_EMAIL': 'sender@example.invalid', 'ADMIN_NOTIFICATION_EMAIL': 'admin@example.invalid',
-            'SMTP_STARTTLS': 'false', 'SMTP_USE_SSL': 'false', 'SMTP_TIMEOUT_SECONDS': '2'}
+            'SMTP_STARTTLS': 'true', 'SMTP_USE_SSL': 'false', 'SMTP_TIMEOUT_SECONDS': '2'}
         self._prior = {name: os.environ.get(name) for name in settings}
         os.environ.update(settings)
         self.main = importlib.import_module('main')

@@ -2,7 +2,7 @@
 
 The recovery subprocess receives only synthetic runtime settings over stdin.
 It opens the existing fresh-15 specimen, never bootstraps/seeds/migrates it.
-Neither phase installs a Source worker, resolver, TLS context or receipt.
+Neither phase installs a Source worker, resolver, provider TLS context or receipt.
 """
 import asyncio
 from contextlib import contextmanager
@@ -26,7 +26,7 @@ SETTING_KEYS = (
     'STRUCTURAL_ENV', 'AUTH_ENABLED', 'AUTH_SITE_ROLE', 'AUTH_LINK_BASE_URL',
     'AUTH_DATA_DIR', 'STRUCTURAL_SSO_DATA_DIR', 'AUTH_TRUSTED_PROXY_IPS',
     'JWT_SECRET', 'STRUCTURAL_SSO_SECRET', 'STRUCTURAL_PRIVACY_HMAC_KEY',
-    'STRUCTURAL_SHARE_TOKEN_SECRET', 'AUTH_DEV_MODE',
+    'STRUCTURAL_SHARE_TOKEN_SECRET', 'AUTH_DEV_MODE', 'SSL_CERT_FILE',
 )
 
 
@@ -144,7 +144,7 @@ async def recover(frame):
     mail = owned_smtp()
     port, messages = mail.__enter__()
     os.environ.update(SMTP_HOST='127.0.0.1', SMTP_PORT=str(port), SMTP_FROM_EMAIL='sender@example.invalid',
-        ADMIN_NOTIFICATION_EMAIL='admin@example.invalid', SMTP_STARTTLS='false', SMTP_USE_SSL='false', SMTP_TIMEOUT_SECONDS='2')
+        ADMIN_NOTIFICATION_EMAIL='admin@example.invalid', SMTP_STARTTLS='true', SMTP_USE_SSL='false', SMTP_TIMEOUT_SECONDS='2')
     try:
         main = importlib.import_module('main')
         from services import formal_admission as admission

@@ -666,10 +666,13 @@ def _send_email(to: str, subject: str, text: str) -> None:
     message.set_content(text)
     timeout = float(os.getenv("SMTP_TIMEOUT_SECONDS", "10"))
     use_ssl = port == 465 or os.getenv("SMTP_USE_SSL", "false").lower() in {"1", "true", "yes"}
+    use_starttls = not use_ssl and os.getenv("SMTP_STARTTLS", "true").lower() in {"1", "true", "yes"}
+    if _is_prod() and not (use_ssl or use_starttls):
+        raise RuntimeError("production SMTP requires verified TLS")
     smtp_cls = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
     tls_options = {"context": ssl.create_default_context()} if use_ssl else {}
     with smtp_cls(host, port, timeout=timeout, **tls_options) as smtp:
-        if not use_ssl and os.getenv("SMTP_STARTTLS", "true").lower() in {"1", "true", "yes"}:
+        if use_starttls:
             smtp.starttls(context=ssl.create_default_context())
         username = os.getenv("SMTP_USERNAME", "").strip()
         password = os.getenv("SMTP_PASSWORD", "")

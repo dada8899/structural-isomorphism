@@ -446,7 +446,7 @@ def test_source_closed_real_history_records_keep_current_acl_and_original_receip
         port,messages=smtp
         for key,value in {'STRUCTURAL_SHARE_TOKEN_SECRET':secrets.token_urlsafe(48),
                 'SMTP_HOST':'127.0.0.1','SMTP_PORT':str(port),'SMTP_FROM_EMAIL':'sender@example.invalid',
-                'ADMIN_NOTIFICATION_EMAIL':'admin@example.invalid','SMTP_STARTTLS':'false',
+                'ADMIN_NOTIFICATION_EMAIL':'admin@example.invalid','SMTP_STARTTLS':'true',
                 'SMTP_USE_SSL':'false','SMTP_TIMEOUT_SECONDS':'2'}.items():monkeypatch.setenv(key,value)
         for key in ('STRUCTURAL_HISTORY_DB','STRUCTURAL_FAVORITES_PATH','STRUCTURAL_DATA_DIR',
                 'STRUCTURAL_MODEL_PATH','STRUCTURAL_PRECOMPUTED_EMBEDDINGS','STRUCTURAL_ARTIFACT_MANIFEST',

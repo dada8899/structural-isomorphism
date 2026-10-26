@@ -132,3 +132,69 @@ def test_dev_outbox_bypasses_smtp(configured,monkeypatch):
     rows=[json.loads(line) for line in auth._outbox_file().read_text().splitlines()]
     assert len(rows)==1 and rows[0]['to']=='recipient@example.invalid'
     assert rows[0]['subject']=='synthetic subject' and rows[0]['text']=='synthetic body'
+
+
+@pytest.mark.parametrize('host',['smtp.example.invalid','127.0.0.1'])
+def test_production_plaintext_refuses_before_connection_or_credential_read(configured,monkeypatch,host):
+    events,opened,tls,_=configured
+    monkeypatch.setenv('STRUCTURAL_ENV','prod');monkeypatch.setenv('SMTP_HOST',host)
+    monkeypatch.setenv('SMTP_PORT','2525');monkeypatch.setenv('SMTP_USE_SSL','false');monkeypatch.setenv('SMTP_STARTTLS','false')
+    original=auth.os.getenv
+    def no_credentials(name,*args):
+        if name in ('SMTP_USERNAME','SMTP_PASSWORD'):raise AssertionError('plaintext must not read credentials')
+        return original(name,*args)
+    monkeypatch.setattr(auth.os,'getenv',no_credentials)
+    with pytest.raises(RuntimeError,match='production SMTP requires verified TLS'):send()
+    assert events==opened==tls==[]
+
+
+@pytest.fixture
+def owned_tls_smtp(request):
+    from contextlib import closing
+    import socketserver,threading
+    from web.backend.tests.acceptance.owned_smtp_tls import owned_smtp_tls,StartTLSHandler
+    case=request.param;messages=[];commands=[]
+    with owned_smtp_tls(trust=case!='untrusted',server_ip='127.0.0.2' if case=='wrong_san' else '127.0.0.1') as (context,ca_file):
+        class Handler(StartTLSHandler):
+            timeout=3
+            def handle(self):
+                self.wfile.write(b'220 owned SMTP\r\n')
+                while True:
+                    line=self.rfile.readline(8192)
+                    if not line:return
+                    verb=line.split(None,1)[0].upper()
+                    if self.smtp_tls_command(verb):
+                        if self.smtp_tls_failed:return
+                        continue
+                    if verb in (b'AUTH',b'MAIL',b'DATA'):commands.append(verb)
+                    if verb==b'DATA':
+                        self.wfile.write(b'354 data\r\n');body=bytearray()
+                        while True:
+                            part=self.rfile.readline(8192)
+                            if part==b'.\r\n':break
+                            if not part or len(body)+len(part)>65536:return
+                            body.extend(part)
+                        messages.append(bytes(body));self.wfile.write(b'250 stored\r\n')
+                    elif verb==b'QUIT':self.wfile.write(b'221 done\r\n');return
+                    else:self.wfile.write(b'250 ok\r\n')
+        server=socketserver.ThreadingTCPServer(('127.0.0.1',0),Handler)
+        server.daemon_threads=True;server.smtp_tls_context=context
+        thread=threading.Thread(target=server.serve_forever);thread.start()
+        try:yield server.server_address[1],messages,commands,case
+        finally:
+            server.shutdown();server.server_close();thread.join(4)
+            assert not thread.is_alive()
+
+
+@pytest.mark.parametrize('owned_tls_smtp',['valid','untrusted','wrong_san'],indirect=True)
+def test_actual_owned_starttls_verifies_chain_and_san_before_send(owned_tls_smtp,monkeypatch):
+    port,messages,commands,case=owned_tls_smtp
+    for name,value in {'STRUCTURAL_ENV':'prod','AUTH_DEV_MODE':'false','SMTP_HOST':'127.0.0.1',
+        'SMTP_PORT':str(port),'SMTP_FROM_EMAIL':'sender@example.invalid','SMTP_TIMEOUT_SECONDS':'2',
+        'SMTP_USE_SSL':'false','SMTP_STARTTLS':'true'}.items():monkeypatch.setenv(name,value)
+    monkeypatch.delenv('SMTP_USERNAME',raising=False);monkeypatch.delenv('SMTP_PASSWORD',raising=False)
+    if case=='valid':
+        send();assert len(messages)==1 and commands.count(b'DATA')==1
+    else:
+        with pytest.raises(ssl.SSLCertVerificationError):send()
+        assert messages==[] and commands==[]
