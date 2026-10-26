@@ -1,5 +1,6 @@
 """Actual research routes/auth/SQLite; no index, permission or DB mocks."""
 import base64
+from contextlib import closing
 import json
 import sqlite3
 import importlib
@@ -43,7 +44,7 @@ def listing(client,**params):
 
 
 def business_rows(path):
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         tables=[r[0] for r in conn.execute("SELECT name FROM sqlite_schema WHERE type='table' AND name LIKE 'research_%'")]
         return {name:conn.execute('SELECT * FROM "'+name+'" ORDER BY rowid').fetchall() for name in tables}
 
@@ -58,7 +59,7 @@ def test_empty_index_does_not_create_principal_research_grants_tasks_or_fees(sta
     before=business_rows(path)
     assert listing(client)=={"items":[],"next_cursor":None}
     assert business_rows(path)==before
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         for table in ("research_principals","research_controls","research_grants","research_tasks","research_funding_accounts","research_reservations","research_cost_observations"):
             assert conn.execute("SELECT count(*) FROM "+table).fetchone()[0]==0
 
@@ -66,7 +67,7 @@ def test_empty_index_does_not_create_principal_research_grants_tasks_or_fees(sta
 def test_twenty_one_tied_records_paginate_without_duplicates_and_survive_reopen(stack):
     client,path=stack
     ids=[save(client,f"研究摘要第{n:02d}项：当前问题待验证") for n in range(21)]
-    with sqlite3.connect(path) as conn:conn.execute("UPDATE research_controls SET updated_at='2026-10-17T00:00:00.000000Z'")
+    with closing(sqlite3.connect(path)) as conn, conn:conn.execute("UPDATE research_controls SET updated_at='2026-10-17T00:00:00.000000Z'")
     before=business_rows(path)
     first=listing(client)
     assert len(first["items"])==20 and first["next_cursor"]
@@ -75,7 +76,7 @@ def test_twenty_one_tied_records_paginate_without_duplicates_and_survive_reopen(
     assert [r["research_id"] for r in result]==sorted(ids,reverse=True)
     assert len({r["research_id"] for r in result})==21 and second["next_cursor"] is None
     assert all(r["current_task"] is None and r["current_input_revision"]==1 for r in result)
-    with sqlite3.connect(path) as conn:pid=conn.execute("SELECT id FROM research_principals").fetchone()[0]
+    with closing(sqlite3.connect(path)) as conn, conn:pid=conn.execute("SELECT id FROM research_principals").fetchone()[0]
     cursor=decode(first["next_cursor"])
     assert set(cursor)=={"operation","scope","updated_at","research_id"} and pid not in json.dumps(cursor)
     with TestClient(app()) as reopened:
@@ -147,12 +148,12 @@ def test_revoked_acl_hidden_on_each_page_and_principal_revocation_denied(stack):
     client,path=stack
     ids=[save(client,f"权限核对第{n}条研究摘要") for n in range(3)]
     first=listing(client,limit=1);anchor=first["items"][0]["research_id"]
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         conn.execute("UPDATE research_grants SET status='revoked' WHERE research_id=?",(anchor,))
     assert anchor not in {r["research_id"] for r in listing(client)["items"]}
     response=client.get("/api/research",params={"cursor":first["next_cursor"]})
     assert response.status_code==409 and anchor not in response.text
-    with sqlite3.connect(path) as conn:conn.execute("UPDATE research_principals SET status='revoked'")
+    with closing(sqlite3.connect(path)) as conn, conn:conn.execute("UPDATE research_principals SET status='revoked'")
     assert client.get("/api/research").status_code==404
 
 
