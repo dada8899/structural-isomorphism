@@ -175,14 +175,20 @@ def test_query_leaves_url_and_survives_reload_edit_back_and_mobile_keyboard(
     expect(editor).to_be_focused()
     second = "confidential queue collapse after threshold"
     editor.fill(second)
-    with page.expect_response(
+    with page.expect_event(
+        "requestfinished",
+        predicate=lambda request: request.method == "POST"
+        and request.url == search_origin + "/api/search"
+        and request.post_data_json["query"] == second,
+        timeout=5000,
+    ) as second_finished, page.expect_response(
         lambda response: response.request.method == "POST"
         and response.url == search_origin + "/api/search"
         and response.request.post_data_json["query"] == second,
         timeout=5000,
     ) as second_search:
         editor.press("Control+Enter")
-    second_search.value.finished()
+    assert second_finished.value is second_search.value.request
     expect(page.locator(".search-question__text")).to_have_text(second)
     assert second not in page.url and "q=" not in page.url and "context=" not in page.url
 
