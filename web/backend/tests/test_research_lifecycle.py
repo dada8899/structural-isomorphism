@@ -260,11 +260,11 @@ def _ordered_api_child(history,cookie,rid,operation,attempted,held,release,done,
     @contextmanager
     def controlled_gate(self,*args,**kwargs):
         attempted.set()
-        with original(self,*args,**kwargs):
+        with original(self,*args,**kwargs) as lease:
             if held is not None:
                 held.set()
                 if not release.wait(15):raise RuntimeError("barrier expired")
-            yield
+            yield lease
     AuthorizationGate.owner_gate_id=controlled_gate
     try:
         if legacy_failure:
