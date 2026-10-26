@@ -206,9 +206,9 @@ def test_legal_large_request_is_rejected_whole_when_actual_result_does_not_fit()
     def change(d):
         request=d['data']['request'];scenario=request['scenarios'][0]
         # A legal 400-character note repeats in every year/currency cost bridge.
-        scenario['costs'][0]['coverage_basis']='synthetic coverage; '*20
+        scenario['costs'][0]['coverage_basis']='费用范围'*100
         template=deepcopy(scenario['costs'][0])
-        for i in range(5):
+        for i in range(1):
             cost=deepcopy(template)
             cost.update(id=f'adjust_{i}',kind='operating_adjustment',coverage=[])
             for item in cost['values']:
