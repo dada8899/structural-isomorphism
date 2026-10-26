@@ -33,6 +33,7 @@ import os
 import re
 import secrets
 import smtplib
+import ssl
 import sqlite3
 import threading
 import time
@@ -664,11 +665,12 @@ def _send_email(to: str, subject: str, text: str) -> None:
     message["Subject"] = subject
     message.set_content(text)
     timeout = float(os.getenv("SMTP_TIMEOUT_SECONDS", "10"))
-    use_ssl = os.getenv("SMTP_USE_SSL", "false").lower() in {"1", "true", "yes"}
+    use_ssl = port == 465 or os.getenv("SMTP_USE_SSL", "false").lower() in {"1", "true", "yes"}
     smtp_cls = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
-    with smtp_cls(host, port, timeout=timeout) as smtp:
+    tls_options = {"context": ssl.create_default_context()} if use_ssl else {}
+    with smtp_cls(host, port, timeout=timeout, **tls_options) as smtp:
         if not use_ssl and os.getenv("SMTP_STARTTLS", "true").lower() in {"1", "true", "yes"}:
-            smtp.starttls()
+            smtp.starttls(context=ssl.create_default_context())
         username = os.getenv("SMTP_USERNAME", "").strip()
         password = os.getenv("SMTP_PASSWORD", "")
         if username and password:
