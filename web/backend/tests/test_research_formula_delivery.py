@@ -255,6 +255,22 @@ def _configure_private_root(path,patch=None):
     return path
 
 
+def _provision_current_formula_fixture(path):
+    from research.plan_financial import provision_plan_v12
+    from research.plan_native_financial import provision_native_v13
+    from research.method_draft import provision_method_drafts_v14
+    from research.financial_input import provision_financial_inputs_v15
+    before=path.stat();identity=[before.st_dev,before.st_ino]
+    for producer,version in ((provision_plan_v12,12),(provision_native_v13,13),
+            (provision_method_drafts_v14,14),(provision_financial_inputs_v15,15)):
+        receipt=producer(path)
+        assert receipt['schema_version']==version
+        assert receipt['database_identity']==identity
+        assert receipt['backup_scope']=='in_memory_algorithm_recovery_only'
+        after=path.stat();assert [after.st_dev,after.st_ino]==identity
+    assert provision_financial_inputs_v15(path)==receipt
+
+
 def test_explicit_offline_provisioning_then_actual_formal_construct_write_and_reopen(v9,monkeypatch):
     client,path,rid,store=v9
     from research.formula_runtime import provision_formula_v10,recover_formula_journal
@@ -275,6 +291,8 @@ def test_explicit_offline_provisioning_then_actual_formal_construct_write_and_re
         with pytest.raises((ResearchError,RuntimeError)):AuthStore(path)
         from research.source_guard import provision_source_v11
         assert provision_source_v11(path)['schema_version']==11
+        assert recover_formula_journal(path)['current_app_compatible'] is False
+        _provision_current_formula_fixture(path)
         assert recover_formula_journal(path)['current_app_compatible'] is True
         real=ResearchStore(AuthStore(path))
         with real.transaction(write=True) as conn:
@@ -343,10 +361,12 @@ def test_real_process_death_recovers_only_complete_profile_and_wal(v9,cut,monkey
         with pytest.raises((ResearchError,RuntimeError)):AuthStore(path)
         from research.source_guard import provision_source_v11
         assert provision_source_v11(path)['schema_version']==11
+        assert recover_formula_journal(path)['current_app_compatible'] is False
+        _provision_current_formula_fixture(path)
         assert recover_formula_journal(path)['current_app_compatible'] is True
         current=ResearchStore(AuthStore(path))
         with current.transaction() as conn:
-            current._check_v11(conn)
+            current._check_v15(conn)
             assert conn.execute('PRAGMA journal_mode').fetchone()[0]=='wal'
             assert conn.execute('SELECT 1 FROM research_controls WHERE id=?',(rid,)).fetchone()
     finally:
