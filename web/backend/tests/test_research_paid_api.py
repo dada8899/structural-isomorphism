@@ -423,13 +423,16 @@ from research.source_policy import PinnedPublicTransport,SourceFailure,article_t
 from web.backend.tests.source_http_fixture import source_server,DOI
 # Reproduce the actual old pickled callback failure in a fresh child, while
 # the parent's cached tests package still points to backend/tests.
-with source_server() as (port,calls):
-    gate=AuthorizationGate(SimpleNamespace(path=pathlib.Path(DATA_ROOT)/'no-db.sqlite3'))
-    with gate.owner_gate_id(str(uuid4())) as lease:
-        with pytest.raises(SourceFailure):
-            PinnedPublicTransport(_worker=partial(legacy.get_local,port)).get(
-                article_target(DOI),still_authorized=lambda:True,owner_lease=lease)
-    assert calls==[]
+from web.backend.tests.test_research_source_spawn import development_auth
+with pytest.MonkeyPatch.context() as backing_setup:
+    backing=development_auth.__wrapped__(pathlib.Path(DATA_ROOT),backing_setup)
+    with source_server() as (port,calls):
+        gate=AuthorizationGate(backing)
+        with gate.owner_gate_id(str(uuid4())) as lease:
+            with pytest.raises(SourceFailure):
+                PinnedPublicTransport(_worker=partial(legacy.get_local,port)).get(
+                    article_target(DOI),still_authorized=lambda:True,owner_lease=lease)
+        assert calls==[]
 # Exercise all three actual callback import sites through unchanged fixtures
 # and original assertions, not a replacement worker, alias or status stub.
 for index,(kind,number) in enumerate((('queue',None),('unicode',2),('unicode',3))):
