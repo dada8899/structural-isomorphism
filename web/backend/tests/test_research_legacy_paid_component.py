@@ -4,10 +4,11 @@ The real source, funding, transport, receipt, cost and typed HTTP producers are
 unchanged. Current15 private storage and Main admission are separate controls.
 """
 import pytest
-from .test_research_persistence import stack,post
+from fastapi.testclient import TestClient
+from .test_research_persistence import stack,post,app
 from .test_research_d1_integration import source_stack
 from .test_research_paid_approval import approved_inputs
-from .test_research_paid_api import paid_api
+from .test_research_paid_api import paid_api,preview_data,confirm_data,counts,PREVIEW_FIELDS,APPROVAL_FIELDS
 from .test_research_lifecycle import lifecycle,delete
 from research import ResearchStore
 from research.authorization import AuthorizationGate
@@ -81,3 +82,23 @@ def test_legacy14_delete_before_late_return_keeps_body_closed(legacy_paid,lifecy
             assert conn.execute('SELECT held,upper_booked FROM research_funding_accounts').fetchone()[:]==(0,2)
         assert client.get(f'/api/research/{rid}').status_code==401
         assert wire['requests']==1
+
+
+def test_legacy14_router_mount_public_projection_and_zero_send(legacy_paid):
+    """The former raw-Main positive belongs to this explicit legacy router."""
+    client,_,store,rid,excerpt,resolver=legacy_paid
+    application=app()
+    application.state.research_paid_resolver=resolver
+    with TestClient(application) as mounted:
+        mounted.cookies.update(client.cookies)
+        response=post(mounted,'/api/research/'+rid+'/paid-previews',preview_data(client,rid,excerpt),'mounted')
+        assert response.status_code==200,response.text
+        draft=response.json()['data'];assert set(draft)==PREVIEW_FIELDS
+        approved=post(mounted,'/api/research/'+rid+'/paid-approvals',confirm_data(draft),'mounted-confirm')
+        assert approved.status_code==200,approved.text
+        assert set(approved.json()['data'])==APPROVAL_FIELDS
+        for forbidden in ('"funding"','"account_id"','"provider_binding_id"','"context"','"extracted_text"','"maximum_approved_upper"','"preview_view"'):
+            assert forbidden not in response.text and forbidden not in approved.text
+        assert all(counts(store)[name]==0 for name in ('research_reservations','research_dispatch_permits','research_cost_observations','research_provider_sessions'))
+        application.state.research_paid_resolver=None
+        assert post(mounted,'/api/research/'+rid+'/paid-previews',preview_data(client,rid,excerpt),'normal-default').status_code==503
