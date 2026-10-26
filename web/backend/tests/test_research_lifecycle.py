@@ -80,7 +80,7 @@ def assert_fenced(client, rid):
 
 
 def assert_minimal_completed(path):
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         conn.row_factory=sqlite3.Row
         job=dict(conn.execute("SELECT * FROM auth_deletion_jobs").fetchone())
         assert job["state"] == "completed"
@@ -203,9 +203,9 @@ def _crash_child(history,cookie,phase):
         from research.service import ResearchService
         # Crash after the real durable fence, before erasing research contents.
         if phase == "fence":
-            ResearchService.erase_research_locked=lambda *args:os._exit(73)
+            ResearchService.erase_research_locked=lambda *args,**kwargs:os._exit(73)
         elif phase == "after-auth-delete":
-            ResearchService.finish_account_deletion_locked=lambda *args:os._exit(74)
+            ResearchService.finish_account_deletion_locked=lambda *args,**kwargs:os._exit(74)
         else:
             ResearchService.record_legacy_deletion_locked=lambda *args,**kwargs:os._exit(75)
         delete(client)
@@ -222,7 +222,7 @@ def test_real_process_crash_after_fence_keeps_access_closed_and_recovers(lifecyc
         process.join(15)
         assert process.exitcode == {"fence":73,"after-auth-delete":74,"before-legacy-receipt":75}[phase]
         assert_fenced(client,rid)
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn, conn:
             if phase == "fence":
                 assert CANARY in conn.execute("SELECT problem_json FROM research_revisions").fetchone()[0]
                 assert conn.execute("SELECT status,epoch FROM research_principals").fetchone() == ("deleting",2)
@@ -231,12 +231,12 @@ def test_real_process_crash_after_fence_keeps_access_closed_and_recovers(lifecyc
             else:
                 assert conn.execute("SELECT count(*) FROM auth_users").fetchone()[0] == 0
             job_id=conn.execute("SELECT id FROM auth_deletion_jobs WHERE state='pending'").fetchone()[0]
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn, conn:
             tokens_before=conn.execute("SELECT count(*) FROM magic_tokens WHERE email=?",(EMAIL,)).fetchone()[0]
         requested=client.post("/api/auth/request-link",json={"email":EMAIL})
         assert requested.status_code == 200 and requested.json() == {"ok":True}
         assert client.post("/api/auth/verify",json={"token":"unissued-pending-token"}).status_code == 400
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn, conn:
             assert conn.execute("SELECT count(*) FROM magic_tokens WHERE email=?",(EMAIL,)).fetchone()[0] == tokens_before
         _resume_in_new_process(history,job_id)
         completed=assert_minimal_completed(path)
