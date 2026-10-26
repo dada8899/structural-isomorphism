@@ -220,32 +220,79 @@ def test_boundary_update_expires_cursor_without_showing_stale_data(stack):
     assert listing(client)["items"][0]["title"]==revised["summary"]
 
 
-def test_actual_main_app_mount_uses_same_owner_auth_and_persistent_records(stack):
-    client,path=stack
-    rid=save(client,"原应用挂载的研究列表，仍按本人权限读取")
-    paths=list(sys.path);logger=logging.getLogger();handlers=list(logger.handlers);level=logger.level
-    mounted=None
-    try:
-        # Constructing TestClient without entering its lifespan leaves unrelated
-        # model/index startup off. Routers, middleware, auth and DB are real.
-        main=importlib.import_module("main")
-        sys.path[:]=paths
-        mounted=TestClient(main.app)
-        mounted.cookies.update(client.cookies)
-        result=listing(mounted)
-        assert [item["research_id"] for item in result["items"]]==[rid]
-        assert mounted.get(f"/api/research/{rid}").status_code==200
-        mounted.cookies.clear()
-        assert mounted.get("/api/research").status_code==401
-        with sqlite3.connect(path) as conn:assert conn.execute("SELECT count(*) FROM research_controls").fetchone()[0]==1
-    finally:
-        if mounted is not None:mounted.close()
-        sys.path[:]=paths
-        for handler in list(logger.handlers):
-            if handler not in handlers:logger.removeHandler(handler);handler.close()
-        for handler in handlers:
-            if handler not in logger.handlers:logger.addHandler(handler)
-        logger.setLevel(level)
+def _actual_main_index_probe(root):
+    """Current15 Owner/session and records persist across two genuine Main scopes.
+
+    This is not a legacy_auth/Research11 migration claim: the existing current
+    production fixture creates the database and actual registration authority.
+    """
+    from contextlib import contextmanager, closing
+    from urllib.parse import parse_qs, urlsplit
+    from .test_formal_main_admission import smtp, prepared, BETA, envelope
+    with pytest.MonkeyPatch.context() as patch:
+        with contextmanager(smtp.__wrapped__)() as mail:
+            with contextmanager(prepared.__wrapped__)(root,patch,mail) as configured:
+                main,admission,paths,messages=configured
+                path=paths.STATE_ROOT/'auth.sqlite3'
+                email='research-a@example.test'
+                with TestClient(main.app,base_url=BETA) as client:
+                    assert admission.require(main.app,'research_basic') is None
+                    assert 'search' not in main.app_state
+                    requested=client.post('/api/auth/request-link',json={'email':email},headers={'Origin':BETA})
+                    assert requested.status_code==200 and 'dev_token' not in requested.json()
+                    message=next(m for m in reversed(messages) if m['To']==email)
+                    link=message.get_body(preferencelist=('plain',)).get_content().strip().split()[-1]
+                    token=parse_qs(urlsplit(link).query)['token'][0]
+                    try:verified=client.post('/api/auth/verify',json={'token':token},headers={'Origin':BETA})
+                    finally:token=None;link=None
+                    assert verified.status_code==200
+                    body=problem('PRIVATE-ORIGINAL-INDEX-CANARY')
+                    body.update(summary='原应用挂载的研究列表，仍按本人权限读取',objective='PRIVATE-OBJECTIVE-INDEX-CANARY')
+                    made=client.post('/api/research',json=envelope({'problem':body}),
+                                     headers={'Origin':BETA,'Idempotency-Key':str(uuid4())})
+                    assert made.status_code==200
+                    rid=made.json()['data']['research']['id']
+                    cookie=client.cookies.get('phase_session');assert cookie
+                    before=path.stat()
+                    tables=('research_controls','research_revisions','research_principals','research_grants')
+                    with closing(sqlite3.connect(path)) as conn:
+                        rows={name:conn.execute('SELECT * FROM '+name+' ORDER BY rowid').fetchall() for name in tables}
+                assert id(main.app) not in admission._STATE
+                with TestClient(main.app,base_url=BETA) as mounted:
+                    assert admission.require(main.app,'research_basic') is None
+                    assert 'search' not in main.app_state
+                    mounted.cookies.update(client.cookies)
+                    same_cookie=mounted.cookies.get('phase_session')==cookie;assert same_cookie
+                    result=listing(mounted)
+                    assert [item['research_id'] for item in result['items']]==[rid]
+                    assert mounted.get(f'/api/research/{rid}').status_code==200
+                    mounted.cookies.clear()
+                    assert mounted.get('/api/research').status_code==401
+                    with closing(sqlite3.connect(path)) as conn:
+                        assert conn.execute('SELECT count(*) FROM research_controls').fetchone()[0]==1
+                        assert {name:conn.execute('SELECT * FROM '+name+' ORDER BY rowid').fetchall() for name in tables}==rows
+                    after=path.stat();assert (after.st_dev,after.st_ino)==(before.st_dev,before.st_ino)
+                assert id(main.app) not in admission._STATE
+    print('owned-index-real-main-ok')
+
+
+def test_actual_main_app_mount_uses_same_owner_auth_and_persistent_records(tmp_path):
+    from .research_process_fixture import _run_owned_probe
+    from pathlib import Path
+    root=tmp_path/'actual-main-index';root.mkdir()
+    program="""
+import sys
+from pathlib import Path
+source=Path(SOURCE_ROOT)
+sys.path[:0]=[str(source/'web/backend'),str(source)]
+from web.backend.tests.test_research_index import _actual_main_index_probe
+_actual_main_index_probe(Path(DATA_ROOT))
+""".replace('DATA_ROOT',repr(str(root))).replace('SOURCE_ROOT',repr(str(Path(__file__).resolve().parents[3])))
+    # Offline producers use dir_fd-relative mkdir. The existing probe's data
+    # working directory is owned scratch; source imports stay absolute.
+    result=_run_owned_probe(program,root)
+    assert result.returncode==0,result.stdout+result.stderr
+    assert 'owned-index-real-main-ok' in result.stdout
 
 
 def test_duplicate_valid_cursor_is_rejected_not_silently_collapsed(stack):
