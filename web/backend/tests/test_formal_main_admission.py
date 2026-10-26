@@ -18,13 +18,15 @@ from urllib.parse import parse_qs, urlsplit
 import httpx
 import pytest
 
+from web.backend.tests.acceptance.owned_smtp_tls import owned_smtp_tls, StartTLSHandler
+
 BETA = 'https://beta.structural.bytedance.city'
 
 
 @pytest.fixture
 def smtp():
     messages = []
-    class Handler(socketserver.StreamRequestHandler):
+    class Handler(StartTLSHandler):
         timeout = 3
         def handle(self):
             self.wfile.write(b'220 owned SMTP\r\n')
@@ -32,9 +34,10 @@ def smtp():
                 line = self.rfile.readline(8192)
                 if not line: return
                 verb = line.split(None, 1)[0].upper()
-                if verb in (b'EHLO', b'HELO'):
-                    self.wfile.write(b'250-owned\r\n250 SIZE 65536\r\n')
-                elif verb == b'DATA':
+                if self.smtp_tls_command(verb):
+                    if self.smtp_tls_failed:return
+                    continue
+                if verb == b'DATA':
                     self.wfile.write(b'354 send message\r\n'); raw = bytearray()
                     while True:
                         part = self.rfile.readline(8192)
@@ -46,13 +49,15 @@ def smtp():
                 elif verb == b'QUIT':
                     self.wfile.write(b'221 done\r\n'); return
                 else: self.wfile.write(b'250 ok\r\n')
-    server = socketserver.ThreadingTCPServer(('127.0.0.1', 0), Handler)
-    server.daemon_threads = True
-    thread = threading.Thread(target=server.serve_forever); thread.start()
-    try: yield server.server_address[1], messages
-    finally:
-        server.shutdown(); server.server_close(); thread.join(4)
-        assert not thread.is_alive()
+    with owned_smtp_tls() as (tls_context,ca_file):
+        server = socketserver.ThreadingTCPServer(('127.0.0.1', 0), Handler)
+        server.smtp_tls_context = tls_context
+        server.daemon_threads = True
+        thread = threading.Thread(target=server.serve_forever); thread.start()
+        try: yield server.server_address[1], messages
+        finally:
+            server.shutdown(); server.server_close(); thread.join(4)
+            assert not thread.is_alive()
 
 
 @pytest.fixture
@@ -65,7 +70,7 @@ def prepared(tmp_path, monkeypatch, smtp):
         'JWT_SECRET': secrets.token_urlsafe(48), 'STRUCTURAL_SSO_SECRET': secrets.token_urlsafe(48),
         'STRUCTURAL_PRIVACY_HMAC_KEY': secrets.token_hex(32), 'STRUCTURAL_SHARE_TOKEN_SECRET': secrets.token_urlsafe(48),
         'SMTP_HOST': '127.0.0.1', 'SMTP_PORT': str(port), 'SMTP_FROM_EMAIL': 'sender@example.invalid',
-        'ADMIN_NOTIFICATION_EMAIL': 'admin@example.invalid', 'SMTP_STARTTLS': 'false', 'SMTP_USE_SSL': 'false',
+        'ADMIN_NOTIFICATION_EMAIL': 'admin@example.invalid', 'SMTP_STARTTLS': 'true', 'SMTP_USE_SSL': 'false',
         'SMTP_TIMEOUT_SECONDS': '2', 'AUTH_DEV_MODE': 'false'}
     for key, value in settings.items(): monkeypatch.setenv(key, value)
     for key in ('STRUCTURAL_HISTORY_DB', 'STRUCTURAL_FAVORITES_PATH', 'STRUCTURAL_DATA_DIR', 'STRUCTURAL_MODEL_PATH',
@@ -527,7 +532,7 @@ def test_actual_main_reads_migrated_source_history_and_enforces_current_actor(tm
     with prepared_source_history(source_root, owned_root, target_revision=False) as seed:
         settings = {'STRUCTURAL_SHARE_TOKEN_SECRET': secrets.token_urlsafe(48),
             'SMTP_HOST': '127.0.0.1', 'SMTP_PORT': str(port), 'SMTP_FROM_EMAIL': 'sender@example.invalid',
-            'ADMIN_NOTIFICATION_EMAIL': 'admin@example.invalid', 'SMTP_STARTTLS': 'false',
+            'ADMIN_NOTIFICATION_EMAIL': 'admin@example.invalid', 'SMTP_STARTTLS': 'true',
             'SMTP_USE_SSL': 'false', 'SMTP_TIMEOUT_SECONDS': '2'}
         for key, value in settings.items(): monkeypatch.setenv(key, value)
         for key in ('STRUCTURAL_HISTORY_DB', 'STRUCTURAL_FAVORITES_PATH', 'STRUCTURAL_DATA_DIR',

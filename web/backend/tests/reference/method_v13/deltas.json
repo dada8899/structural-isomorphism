@@ -1,20 +1,35 @@
 {
   "web/backend/api/auth.py": {
-    "current_sha256": "ac3707383c1d743f664478d69808a85c20818c83aafbb6d7512e20a0cb3b2761",
+    "current_sha256": "3b7c0f2c8ffbb26cc1cb27b98238afb8104b8528def8b431db51a853595334c1",
     "hunks": [
       [
-        1285,
-        1295,
+        35,
+        36,
         ""
       ],
       [
-        1296,
+        667,
+        671,
+        "    use_ssl = os.getenv(\"SMTP_USE_SSL\", \"false\").lower() in {\"1\", \"true\", \"yes\"}\n"
+      ],
+      [
+        672,
+        676,
+        "    with smtp_cls(host, port, timeout=timeout) as smtp:\n        if not use_ssl and os.getenv(\"SMTP_STARTTLS\", \"true\").lower() in {\"1\", \"true\", \"yes\"}:\n            smtp.starttls()\n"
+      ],
+      [
+        1290,
         1300,
-        "    if __package__=='web.backend.api':from ..research.paid_control import verify_deletion_origin\n    else:from research.paid_control import verify_deletion_origin\n"
+        ""
       ],
       [
         1301,
-        1303,
+        1305,
+        "    if __package__=='web.backend.api':from ..research.paid_control import verify_deletion_origin\n    else:from research.paid_control import verify_deletion_origin\n"
+      ],
+      [
+        1306,
+        1308,
         "    lease_args={'owner_lease':owner_lease} if job.get('origin_version') is not None else {}\n"
       ]
     ],

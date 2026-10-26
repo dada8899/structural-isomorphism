@@ -3946,7 +3946,7 @@ async def _method_main_save_reopen_journey(tmp_path):
                     async with bridge.routed(context):
                         page=await context.new_page()
                         page.on('request',lambda request:requests.append({'method':request.method,'path':request.url.split(service.origin,1)[-1]}) if request.url.startswith(service.origin+'/api/research') else None)
-                        async with page.expect_response(service.origin+'/assets/research.js') as actual_script:await page.goto(service.origin+'/research')
+                        async with page.expect_response(lambda response:response.request.method=='GET' and response.url.split('?',1)[0]==service.origin+'/assets/research.js') as actual_script:await page.goto(service.origin+'/research')
                         assert await (await actual_script.value).body()==(ROOT/'web/frontend/assets/research.js').read_bytes();facts['actual_served_script_sha256']=hashlib.sha256((ROOT/'web/frontend/assets/research.js').read_bytes()).hexdigest()
                         pids=_method_main_owned_browser_pids();await _method_main_login(page,service);progress('real-smtp-browser-login')
                         health=await _native_tls_fetch(page,'/api/health');assert health['status']==200 and health['body']['checks']['source_execute']=='SUPERVISED_SOURCE_WORKER_UNBOUND' and health['body']['checks']['native_planner']=='FUNDING_CLOSED'

@@ -587,7 +587,7 @@ def _interrupted_source_probe():
     runtime_paths.LOG_ROOT = runtime_paths.STATE_ROOT / 'logs'
     sink = _MailSink(); sink.start()
     os.environ.update(SMTP_HOST='127.0.0.1', SMTP_PORT=str(sink.port), SMTP_FROM_EMAIL='sender@example.invalid',
-        ADMIN_NOTIFICATION_EMAIL='admin@example.invalid', SMTP_STARTTLS='false', SMTP_USE_SSL='false', SMTP_TIMEOUT_SECONDS='2')
+        ADMIN_NOTIFICATION_EMAIL='admin@example.invalid', SMTP_STARTTLS='true', SMTP_USE_SSL='false', SMTP_TIMEOUT_SECONDS='2')
     native_smtp = smtplib.SMTP
     def local_mail(host, port, *args, **kwargs):
         assert (host, port) == ('127.0.0.1', sink.port)
@@ -646,7 +646,7 @@ def _source_main15_debt_probe(mode):
     sink = _MailSink(); sink.start()
     os.environ.update(SMTP_HOST='127.0.0.1', SMTP_PORT=str(sink.port),
         SMTP_FROM_EMAIL='sender@example.invalid', ADMIN_NOTIFICATION_EMAIL='admin@example.invalid',
-        SMTP_STARTTLS='false', SMTP_USE_SSL='false', SMTP_TIMEOUT_SECONDS='2')
+        SMTP_STARTTLS='true', SMTP_USE_SSL='false', SMTP_TIMEOUT_SECONDS='2')
     native_smtp = smtplib.SMTP
     def local_mail(host, port, *args, **kwargs):
         assert (host, port) == ('127.0.0.1', sink.port)
