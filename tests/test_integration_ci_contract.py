@@ -209,7 +209,7 @@ def draft_backend_process_commands(*, coverage=False):
     prefix = 'python -m coverage run -p --rcfile=.coveragerc -m pytest ' if coverage else 'python -m pytest '
     assert prior[0].endswith(flags)
     ordinary = prior[0][:-len(flags)] + ' --ignore=' + path + flags
-    fresh = prefix + path + ' --deselect=' + path + '::' + DRAFT_DEFERRED_FUNCTION + ' -p no:logging' + flags
+    fresh = prefix + path + ' --deselect=web/backend/tests/' + DRAFT_HISTORY_MODULE + '::' + DRAFT_DEFERRED_FUNCTION + ' -p no:logging' + flags
     return [ordinary, *prior[1:], fresh]
 
 
@@ -1710,7 +1710,7 @@ def test_draft_history_full_ci_collection_reconstructs_prior_script_exactly(kind
 
 @pytest.mark.parametrize('kind', ['sanity', 'coverage'])
 @pytest.mark.parametrize('mutation', ['missing','duplicate','ignore_only','missing_ignore','duplicate_ignore',
-    'wrong_deselect','extra_deselect','parameter','partial_module','selector','logging','measurement','folded','extra'])
+    'wrong_deselect','wrong_cwd_deselect','extra_deselect','parameter','partial_module','selector','logging','measurement','folded','extra'])
 def test_draft_history_ci_collection_rejects_missing_or_weakened_work(kind, mutation):
     coverage = kind == 'coverage'
     value = yaml.safe_load((ROOT / '.github/workflows' / (kind + '.yml')).read_text())
@@ -1725,6 +1725,7 @@ def test_draft_history_ci_collection_rejects_missing_or_weakened_work(kind, muta
     elif mutation == 'missing_ignore': changed[0] = changed[0].replace(ignore, '', 1)
     elif mutation == 'duplicate_ignore': changed[0] = changed[0].replace(ignore, ignore + ignore, 1)
     elif mutation == 'wrong_deselect': changed[-1] = changed[-1].replace(DRAFT_DEFERRED_FUNCTION, 'test_method_draft_public_models_exactly_match_runtime_contract')
+    elif mutation == 'wrong_cwd_deselect': changed[-1] = changed[-1].replace('--deselect=web/backend/tests/', '--deselect=tests/', 1)
     elif mutation == 'extra_deselect': changed[-1] += ' --deselect=' + path + '::test_method_draft_public_models_exactly_match_runtime_contract'
     elif mutation == 'parameter': changed[-1] = changed[-1].replace(DRAFT_DEFERRED_FUNCTION, DRAFT_DEFERRED_FUNCTION + '[native]')
     elif mutation == 'partial_module': changed[-1] = changed[-1].replace('pytest ' + path + ' ', 'pytest ' + path + '::test_method_draft_public_models_exactly_match_runtime_contract ', 1)

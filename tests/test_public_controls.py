@@ -1754,7 +1754,7 @@ DRAFT_PRIOR_MAKE_SHA256 = '4ef388277d85ba42380a6ac21672c44ef608221ef0ea09c8d548b
 def _original_makefile_before_draft_collection(makefile: str) -> str:
     commands = [c for c in _make_recipe_commands(makefile, 'verify-release') if c.startswith('cd web/backend ')]
     path = 'tests/' + DRAFT_HISTORY_MODULE
-    formal = 'cd web/backend && $(BACKEND_PYTEST) ' + path + ' --deselect=' + path + '::' + DRAFT_DEFERRED_FUNCTION + ' -p no:logging -q'
+    formal = 'cd web/backend && $(BACKEND_PYTEST) ' + path + ' --deselect=web/backend/tests/' + DRAFT_HISTORY_MODULE + '::' + DRAFT_DEFERRED_FUNCTION + ' -p no:logging -q'
     ignore = ' --ignore=' + path
     assert len(commands) == 22 and commands[-1] == formal and commands.count(formal) == 1
     assert commands[0].count(ignore) == 1 and commands[0].endswith(ignore + ' -q')
@@ -3409,17 +3409,18 @@ def test_draft_history_make_outer_inverse_retains_every_prior_assertion_and_comm
 
 
 @pytest.mark.parametrize('mutation', ['missing','duplicate','ignore_only','missing_ignore','duplicate_ignore',
-    'wrong_deselect','extra_deselect','parameter','partial_module','selector','logging','extra'])
+    'wrong_deselect','wrong_cwd_deselect','extra_deselect','parameter','partial_module','selector','logging','extra'])
 def test_draft_history_make_collection_rejects_missing_or_weakened_work(mutation):
     raw = (ROOT / 'Makefile').read_text()
     path = 'tests/' + DRAFT_HISTORY_MODULE
-    formal = '\tcd web/backend && $(BACKEND_PYTEST) ' + path + ' --deselect=' + path + '::' + DRAFT_DEFERRED_FUNCTION + ' -p no:logging -q\n'
+    formal = '\tcd web/backend && $(BACKEND_PYTEST) ' + path + ' --deselect=web/backend/tests/' + DRAFT_HISTORY_MODULE + '::' + DRAFT_DEFERRED_FUNCTION + ' -p no:logging -q\n'
     ignore = ' --ignore=' + path
     if mutation in ('missing','ignore_only'): value = raw.replace(formal, '', 1)
     elif mutation == 'duplicate': value = raw.replace(formal, formal + formal, 1)
     elif mutation == 'missing_ignore': value = raw.replace(ignore, '', 1)
     elif mutation == 'duplicate_ignore': value = raw.replace(ignore, ignore + ignore, 1)
     elif mutation == 'wrong_deselect': value = raw.replace(formal, formal.replace(DRAFT_DEFERRED_FUNCTION, 'test_method_draft_public_models_exactly_match_runtime_contract'), 1)
+    elif mutation == 'wrong_cwd_deselect': value = raw.replace(formal, formal.replace('--deselect=web/backend/tests/', '--deselect=tests/', 1), 1)
     elif mutation == 'extra_deselect': value = raw.replace(formal, formal.rstrip('\n') + ' --deselect=' + path + '::test_method_draft_public_models_exactly_match_runtime_contract\n', 1)
     elif mutation == 'parameter': value = raw.replace(formal, formal.replace(DRAFT_DEFERRED_FUNCTION, DRAFT_DEFERRED_FUNCTION + '[native]'), 1)
     elif mutation == 'partial_module': value = raw.replace(formal, formal.replace('$(BACKEND_PYTEST) ' + path + ' ', '$(BACKEND_PYTEST) ' + path + '::test_method_draft_public_models_exactly_match_runtime_contract ', 1), 1)
@@ -3430,7 +3431,7 @@ def test_draft_history_make_collection_rejects_missing_or_weakened_work(mutation
     with pytest.raises(AssertionError): _original_makefile_before_draft_collection(value)
 
 
-@pytest.mark.parametrize('mutation', ['echo_prefix','true_command','missing','duplicate','wrong_deselect','extra_deselect'])
+@pytest.mark.parametrize('mutation', ['echo_prefix','true_command','missing','duplicate','wrong_deselect','wrong_cwd_deselect','extra_deselect'])
 def test_draft_history_actual_make_dryrun_rejects_nonexecution(mutation):
     environment = os.environ.copy()
     for variable in ('MAKEFLAGS','MAKEOVERRIDES','PYTEST','BACKEND_PYTEST','OPENAPI_PY','TYPES_PY'):
@@ -3438,12 +3439,13 @@ def test_draft_history_actual_make_dryrun_rejects_nonexecution(mutation):
     result = subprocess.run(['make','-n','--no-print-directory','PY=python','verify-release'],cwd=ROOT,env=environment,capture_output=True,text=True,timeout=20,check=False)
     assert result.returncode == 0
     output = result.stdout
-    formal = next(line for line in output.splitlines(keepends=True) if '--deselect=tests/' + DRAFT_HISTORY_MODULE in line)
+    formal = next(line for line in output.splitlines(keepends=True) if '--deselect=web/backend/tests/' + DRAFT_HISTORY_MODULE in line)
     if mutation == 'echo_prefix': value = output.replace(formal, 'echo ' + formal, 1)
     elif mutation == 'true_command': value = output.replace(formal, formal.replace('python -m pytest','true',1),1)
     elif mutation == 'missing': value = output.replace(formal,'',1)
     elif mutation == 'duplicate': value = output.replace(formal,formal+formal,1)
     elif mutation == 'wrong_deselect': value = output.replace(formal,formal.replace(DRAFT_DEFERRED_FUNCTION,'test_method_draft_public_models_exactly_match_runtime_contract'),1)
+    elif mutation == 'wrong_cwd_deselect': value = output.replace(formal,formal.replace('--deselect=web/backend/tests/','--deselect=tests/',1),1)
     else: value = output.replace(formal,formal.rstrip('\n')+' --deselect=tests/'+DRAFT_HISTORY_MODULE+'::test_method_draft_public_models_exactly_match_runtime_contract\n',1)
     assert value != output
     with pytest.raises(AssertionError): _original_dry_run_before_draft_collection(value)
