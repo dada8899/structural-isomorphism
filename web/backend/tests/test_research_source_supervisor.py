@@ -634,10 +634,28 @@ def test_worker_does_not_hide_ordinary_failure_even_after_stop(component,monkeyp
     def fail(*args,**kwargs):raise error
     monkeypatch.setattr(control,'_check',fail)
     # Only the error branch is run; this never installs/passes formal READY.
-    supervisor._run()
+    supervisor._run_with_budget()
     assert supervisor._state=='CLEANUP_UNCERTAIN' and supervisor._failure=='WORKER_FAILURE'
     assert supervisor._errors[-1] is error
 
+
+
+def test_memory_worker_specimen_cannot_enter_real_source_thread_budget(component,monkeypatch):
+    from research import runtime_profile, native_plan_supervisor
+    supervisor, _, _ = component
+    app=supervisor._binding.app;entered=[]
+    assert id(app) not in native_plan_supervisor._CONTEXTS
+    def forbidden(service):
+        entered.append(True)
+        raise AssertionError('unadmitted specimen entered Source worker body')
+    monkeypatch.setattr(runtime_profile,'runtime_capability_facts',forbidden)
+    supervisor._run()
+    assert entered == []
+    assert supervisor._state == 'CLEANUP_UNCERTAIN' and supervisor._failure == 'BUDGET_FAILURE'
+    assert len(supervisor._errors) == 1
+    error=supervisor._errors[0]
+    assert type(error) is ResearchError and error.code == 'FUNDING_CLOSED' and error.status == 503
+    assert id(app) not in native_plan_supervisor._CONTEXTS
 
 def test_stop_slot_no_claim_uses_actual_task_lease_and_leaves_queued_metadata(component,current14):
     supervisor, _, _ = component;client,store,rid=current14;tid=new_task(client,rid)
