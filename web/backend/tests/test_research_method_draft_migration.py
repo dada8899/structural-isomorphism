@@ -6,6 +6,8 @@ import pytest
 from services.auth_store import AuthStore
 from research import ResearchStore
 from research.method_draft import provision_method_drafts_v14
+from research.financial_input import provision_financial_inputs_v15
+from research.errors import ResearchError
 from research.formula_runtime import recover_formula_journal
 from research.financial_guard import install_default_hook
 from .test_private_runtime_bootstrap import roots
@@ -54,9 +56,22 @@ def test_real_13_source_formula_saved_and_unknown_finance_survive_14_same_inode_
     assert (path.stat().st_dev,path.stat().st_ino)==inode
     assert provision_method_drafts_v14(path)==migrated
     check(path,14,before)
-    with ResearchStore(AuthStore(path)).transaction() as conn:
-        assert tuple(conn.execute('SELECT held,upper_booked,settled FROM research_funding_accounts').fetchone())==tuple(original['money'])
-        with pytest.raises(sqlite3.Error):conn.execute('UPDATE research_funding_accounts SET held=0')
+    with closing(sqlite3.connect(path,isolation_level=None)) as conn:
+        conn.row_factory=sqlite3.Row;install_default_hook(conn);conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN')
+        try:
+            ResearchStore._check_v14(conn)
+            assert not conn.execute('PRAGMA foreign_key_check').fetchall()
+            assert tuple(conn.execute('SELECT held,upper_booked,settled FROM research_funding_accounts').fetchone())==tuple(original['money'])
+            with pytest.raises(sqlite3.Error):conn.execute('UPDATE research_funding_accounts SET held=0')
+        finally:conn.rollback()
+    with pytest.raises(ResearchError) as rejected:AuthStore(path)
+    assert rejected.value.code=='SCHEMA_UNSUPPORTED'
+    before14=snapshot(path)
+    assert provision_financial_inputs_v15(path)['schema_version']==15
+    assert (path.stat().st_dev,path.stat().st_ino)==inode
+    after15=snapshot(path)
+    assert {name:after15[name] for name in before14}==before14
+    with ResearchStore(AuthStore(path)).transaction() as conn:ResearchStore._check_v15(conn)
     output=tmp_path/'read.json'
     assert spawn(read_migrated,(str(path),original,str(output)))==0
     assert json.loads(output.read_text())=={'plan_results_unchanged':True,'formula_result_unchanged':True,'original_source_readable':True}
@@ -68,11 +83,17 @@ def test_actual_migration_kill_recovers_complete13_or14_and_preserves_original_r
     assert spawn(kill_upgrade,(str(path),cut))==(82 if cut=='after-commit' else 81)
     version=14 if cut=='after-commit' else 13
     recovered=recover_formula_journal(path)
-    assert recovered['schema_version']==version and recovered['current_app_compatible'] is (version==14)
+    assert recovered['schema_version']==version and recovered['current_app_compatible'] is False
     assert (path.stat().st_dev,path.stat().st_ino)==inode
     check(path,version,before)
     if version==13:provision_method_drafts_v14(path)
-    with ResearchStore(AuthStore(path)).transaction() as conn:ResearchStore._check_v14(conn)
+    check(path,14,before)
+    before14=snapshot(path)
+    assert provision_financial_inputs_v15(path)['schema_version']==15
+    assert (path.stat().st_dev,path.stat().st_ino)==inode
+    after15=snapshot(path)
+    assert {name:after15[name] for name in before14}==before14
+    with ResearchStore(AuthStore(path)).transaction() as conn:ResearchStore._check_v15(conn)
 
 
 def test_reference_13_real_producer_is_selfcontained_in_no_git_shallow_source(tmp_path):
