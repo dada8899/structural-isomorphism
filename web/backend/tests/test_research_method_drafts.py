@@ -168,18 +168,72 @@ def test_actual_account_delete_erases_draft_and_old_ref_cannot_return_after_rere
     assert client.get(f'/api/research/{rid}/method-drafts/{ref}').status_code==404
 
 
-def test_fresh_process_reopens_original_draft_ref_time_and_historical_body(stack,monkeypatch,tmp_path):
-    import multiprocessing
+def _fresh_draft_history_probe(tmp_path):
+    import importlib,multiprocessing,os,secrets
+    from pathlib import Path
+    from .method_v13_reference import produce
+    from .test_research_method_draft_migration import snapshot,check
     from .method_draft_process_fixture import read_draft
-    client,root,rid,tid,store,data=prepared(stack,monkeypatch)
-    saved=post(client,rid,data);assert saved.status_code==200,saved.text
-    ref=saved.json()['data']['metadata']['draft_ref']
-    revised=client.post('/api/research/'+rid+'/revisions',json=envelope({'expected_revision':2,'problem':problem('A further observation kept separate from the old draft.')}),headers={'origin':BETA,'idempotency-key':'method-further-revision'})
-    assert revised.status_code==200,revised.text
-    expected=client.get(f'/api/research/{rid}/method-drafts/{ref}').json()
-    assert expected['data']['metadata']['is_historical'] is True
-    assert expected['data']['content']==saved.json()['data']['content']
-    assert expected['data']['metadata']['created_at']==saved.json()['data']['metadata']['created_at']
+    from .test_private_registration import SECRET
+    from research.method_draft import provision_method_drafts_v14
+    from research.financial_input import provision_financial_inputs_v15
+    from fastapi.testclient import TestClient
+    tmp_path=Path(tmp_path)
+    state=tmp_path/'state'
+    original=produce(Path(__file__).resolve().parents[3],tmp_path/'old13',state,tmp_path/'original.json',mode='native')
+    path=state/'auth.sqlite3';inode=(path.stat().st_dev,path.stat().st_ino)
+    before13=snapshot(path);check(path,13,before13)
+    assert provision_method_drafts_v14(path)['schema_version']==14
+    check(path,14,before13);before14=snapshot(path)
+    assert provision_financial_inputs_v15(path)['schema_version']==15
+    assert (path.stat().st_dev,path.stat().st_ino)==inode
+    after15=snapshot(path)
+    assert {name:after15[name] for name in before14}==before14
+    for namespace in ('services.runtime_paths','web.backend.services.runtime_paths'):
+        paths=importlib.import_module(namespace)
+        paths.STATE_ROOT=state;paths.CACHE_ROOT=tmp_path/'cache';paths.LOG_ROOT=state/'logs'
+    os.environ.update({'STRUCTURAL_ENV':'prod','AUTH_DATA_DIR':str(state),'STRUCTURAL_SSO_DATA_DIR':str(state),
+        'AUTH_ENABLED':'true','AUTH_SITE_ROLE':'beta','AUTH_LINK_BASE_URL':BETA,'JWT_SECRET':SECRET,'STRUCTURAL_SSO_SECRET':SECRET,
+        'SMTP_HOST':'fixture.invalid','SMTP_PORT':'587','SMTP_FROM_EMAIL':'sender@example.invalid','ADMIN_NOTIFICATION_EMAIL':'admin@example.invalid',
+        'AUTH_TRUSTED_PROXY_IPS':'127.0.0.1','AUTH_DEV_MODE':'false','STRUCTURAL_PRIVACY_HMAC_KEY':'0123456789abcdef'*4,
+        'STRUCTURAL_SHARE_TOKEN_SECRET':secrets.token_urlsafe(48)})
+    for key in ('STRUCTURAL_DATA_DIR','STRUCTURAL_MODEL_PATH','STRUCTURAL_PRECOMPUTED_EMBEDDINGS',
+        'STRUCTURAL_ARTIFACT_MANIFEST','STRUCTURAL_HISTORY_DB','STRUCTURAL_FAVORITES_PATH'):
+        os.environ.pop(key,None)
+    import main
+    from services import formal_admission
+    mail=[];auth._send_email=lambda to,subject,text:mail.append(text)
+    assert main._IS_PROD and main.auth_api is auth
+    with TestClient(main.app,base_url=BETA) as client:
+        assert formal_admission.require(main.app,'research_basic') is None
+        assert verify(client,link(client,mail)).status_code==200
+        rid=original['results'][0]['rid'];tid=original['source_task'];root=state
+        store=ResearchStore(auth._store())
+        with store.transaction() as conn:
+            ResearchStore._check_v15(conn)
+            task=conn.execute('SELECT research_id,input_revision FROM research_tasks WHERE id=?',(tid,)).fetchone()
+            assert tuple(task)==(rid,1)
+            assert conn.execute('SELECT current_revision FROM research_controls WHERE id=?',(rid,)).fetchone()[0]==2
+            row=conn.execute("SELECT payload FROM research_evidence_objects WHERE kind='excerpts' AND task_id=?",(tid,)).fetchone()
+            excerpt=json.loads(row[0]);snapshot_value=json.loads(conn.execute('SELECT payload FROM research_evidence_objects WHERE id=?',(excerpt['snapshot_id'],)).fetchone()[0])
+        current=client.get('/api/research/'+rid);assert current.status_code==200,current.text
+        assert current.json()['data']['current_problem']['revision']==2
+        version=current.json()['data']['research_version']
+        ref={'excerpt_id':excerpt['id'],'source_revision':snapshot_value['source_revision'],'content_digest':snapshot_value['extracted_digest'],'start':excerpt['start'],'end':excerpt['end']}
+        data={'input_revision':2,'expected_research_version':version,'excerpt_refs':[ref],
+                'origin':{'kind':'user_proposed','label':'Queue observation','description':'A proposed measurement method, not a verified technique.'},
+                'method':'Compare inflow and time in process.','mapping':['Requests correspond to work items.'],
+                'nontransferable':['The two systems do not share a physical mechanism.'],'competing_explanations':['A changing arrival rate may explain the apparent delay.'],
+                'test_plan':{'question':'Does the delay persist at a fixed arrival rate?','measurement':'Record counts and timestamps.','primary_outcome':'Median wait.','falsification':'No increase at the same arrival rate.','stop_rule':'Stop if timestamps are incomplete.'}}
+        saved=post(client,rid,data);assert saved.status_code==200,saved.text
+        ref=saved.json()['data']['metadata']['draft_ref']
+        revised=client.post('/api/research/'+rid+'/revisions',json=envelope({'expected_revision':2,'problem':problem('A further observation kept separate from the old draft.')}),headers={'origin':BETA,'idempotency-key':'method-further-revision'})
+        assert revised.status_code==200,revised.text
+        expected=client.get(f'/api/research/{rid}/method-drafts/{ref}').json()
+        assert expected['data']['metadata']['is_historical'] is True
+        assert expected['data']['content']==saved.json()['data']['content']
+        assert expected['data']['metadata']['created_at']==saved.json()['data']['metadata']['created_at']
+    assert (path.stat().st_dev,path.stat().st_ino)==inode
     output=tmp_path/'reopened.json';child=multiprocessing.get_context('spawn').Process(target=read_draft,args=(str(store.path),rid,ref,str(output)))
     try:
         child.start();child.join(15);assert not child.is_alive() and child.exitcode==0
@@ -187,6 +241,18 @@ def test_fresh_process_reopens_original_draft_ref_time_and_historical_body(stack
     finally:
         if child.is_alive():child.kill();child.join(2)
         child.close()
+
+
+def test_fresh_process_reopens_original_draft_ref_time_and_historical_body(tmp_path):
+    from pathlib import Path
+    from .research_process_fixture import _run_owned_probe
+    source=Path(__file__).resolve().parents[3]
+    program=("import sys\nfrom pathlib import Path\n"
+        +"sys.path[:0]="+repr([str(source/'web/backend'),str(source)])+"\n"
+        +"from web.backend.tests.test_research_method_drafts import _fresh_draft_history_probe\n"
+        +"_fresh_draft_history_probe(Path("+repr(str(tmp_path))+"))\n")
+    result=_run_owned_probe(program,cwd=tmp_path)
+    assert result.returncode==0,result.stderr
 
 
 @pytest.mark.parametrize('damage',['raw_hash','licence','missing_snapshot'])
