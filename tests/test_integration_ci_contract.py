@@ -47,7 +47,7 @@ BASELINE_JOB_DIGESTS = {
 
 
 def workflow(name: str) -> dict:
-    value = yaml.safe_load((ROOT / ".github/workflows" / name).read_text())
+    value = _workflow_source_before_preowned(name)
     if name == "sanity.yml": value = _workflow_before_sanity_groups(value)
     if name in {"sanity.yml", "coverage.yml"}: value = _workflow_before_native_split(value, name)
     return _workflow_before_draft_collection(value, name) if name in {"sanity.yml", "coverage.yml"} else value
@@ -197,6 +197,54 @@ def backend_process_commands(*, coverage=False, before_fin2=False, before_eviden
 
 
 NATIVE_ORIGINAL_MODULE_SHA256 = 'e89292a1441cfe75a9c491a18b4a1a261820faffc8743adc581b9f42843c4376'
+# First-live historical deferral only: before Native live/drop-in/paid activation,
+# all six unchanged dynamic ownership/physical-close/retry/retire obligations must run.
+PREOWNED_ORIGINAL_SHA256 = 'e135e43a883ca18fba48543f712f7c65dd2fcbc5ca3b5da2bf60f4fe152c2cc0'
+PREOWNED_DEFERRED_NODES = ('web/backend/tests/test_research_native_preowned.py::test_preowned_real_get_socket_close_after_physical_close_is_not_clean',
+ 'web/backend/tests/test_research_native_preowned.py::test_clean_low_balance_keeps_same_resource_for_new_legal_attempt',
+ 'web/backend/tests/test_research_native_preowned.py::test_allocated_connection_failure_is_owned_and_clean_retry_uses_same_resource',
+ 'web/backend/tests/test_research_native_preowned.py::test_all_core_retirements_precede_hook_and_flight_release_after_close_fault',
+ 'web/backend/tests/test_research_native_preowned.py::test_unreturned_allocated_socket_close_failure_keeps_original_error_and_uncertainty',
+ 'web/backend/tests/test_research_native_preowned.py::test_retire_hook_never_accepts_a_status_dto_as_clean')
+PREOWNED_PRIOR_JOBS_SHA256 = {'sanity.yml': '92c9354ff7e1164f0c3c0294f63f0aa92b1d7ca6d60d4abf8fa4f18f011b96bf', 'coverage.yml': 'b32f4fabd40203b9b6d60cb3ba5e6fd24c239d9829ff69654db57febff13d1a4'}
+
+def _preowned_flags():
+    return ''.join(' --deselect="'+node+'"' for node in PREOWNED_DEFERRED_NODES)
+
+
+def _workflow_before_preowned_six(value,name):
+    original=copy.deepcopy(value)
+    jobs=original['jobs']
+    if name=='sanity.yml':
+        targets=[jobs['sanity-backend-ordinary-a'],jobs['sanity-backend-ordinary-b']]
+        title='Leg 2 — web/backend pytest baseline'
+    else:
+        assert name=='coverage.yml'
+        targets=[jobs['coverage']]
+        title='Run coverage (split by suite, parallel files combined)'
+    for job in targets:
+        steps=[step for step in job['steps'] if step.get('name')==title]
+        assert len(steps)==1
+        script=steps[0]['run']
+        assert script.count(_preowned_flags())==1
+        matching=[line for line in script.splitlines() if _preowned_flags() in line]
+        assert len(matching)==1 and matching[0].startswith('python -m ')
+        selected=[token.removeprefix('--deselect=') for token in shlex.split(matching[0]) if token.startswith('--deselect=') and 'test_research_native_preowned.py' in token]
+        assert selected==list(PREOWNED_DEFERRED_NODES) and len(set(selected))==6
+        steps[0]['run']=script.replace(_preowned_flags(),'',1)
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==PREOWNED_PRIOR_JOBS_SHA256[name], 'six-only inverse restores exact current jobs/flags/batches'
+    return original
+
+
+def _workflow_source_before_preowned(name):
+    value=yaml.safe_load((ROOT/'.github/workflows'/name).read_text())
+    return _workflow_before_preowned_six(value,name) if name in {'sanity.yml','coverage.yml'} else value
+
+
+def _sanity_source_before_preowned():
+    return _workflow_source_before_preowned('sanity.yml')
+
+
 SANITY_GROUP_IDS = ('sanity-backend-ordinary-a', 'sanity-backend-ordinary-b', 'sanity-backend-fresh')
 SANITY_GROUP_MODULE_SHA256 = {'sanity-backend-ordinary-a': 'bb40d0d7697a66759fc93def64c9972cd684b45ae33b590dacd2f3df39784faf', 'sanity-backend-ordinary-b': 'a582078265ae585e573e823dedc74220a5cd22d98264a2f1ea4299be2a3d8055', 'sanity-backend-fresh': 'c5808735773d6c4c9ac37db23221b2098ec3b86e792d95bb99dcb08228429c2f'}
 SANITY_GROUP_HEADER = '# -ra: surface skipped/xfailed reasons. -q: compact output.\n# --tb=short: brief tracebacks.\n# The baseline as of 2026-05-24 is 781 passing tests; new tests\n# added in 0.1.1+ must also pass here.\n# Stop on a real failure so its traceback survives the job deadline.\n'
@@ -284,7 +332,7 @@ def _sanity_native_logical_commands():
 
 
 def _workflow_source_before_sanity_groups(name):
-    value=yaml.safe_load((ROOT/'.github/workflows'/name).read_text())
+    value=_workflow_source_before_preowned(name)
     return _workflow_before_sanity_groups(value) if name=='sanity.yml' else value
 
 
@@ -1984,7 +2032,7 @@ def _changed_sanity_batch(value,mutation):
 
 
 def test_sanity_groups_fixed_inventory_setup_processes_and_required_gate():
-    value=yaml.safe_load((ROOT/'.github/workflows/sanity.yml').read_text())
+    value=_sanity_source_before_preowned()
     restored=_workflow_before_sanity_groups(value)
     assert set(restored['jobs'])=={'sanity-backend','sanity'}
     assert restored['jobs']['sanity-backend']['name']=='sanity-backend'
@@ -1993,7 +2041,7 @@ def test_sanity_groups_fixed_inventory_setup_processes_and_required_gate():
 
 @pytest.mark.parametrize('mutation', ['missing_file','duplicate_file','boundary','order','partial_module','fresh_in_ordinary','merge_fresh','logging','wrong_cwd','wrong_defer','extra_selector','extra_ignore','setup','permission','timeout','soft','missing_child','missing_needs','missing_always','required_name','aggregate_or','sanity_bypass'])
 def test_sanity_groups_reject_every_inventory_setup_or_strict_gate_drift(mutation):
-    value=yaml.safe_load((ROOT/'.github/workflows/sanity.yml').read_text())
+    value=_sanity_source_before_preowned()
     changed=_changed_sanity_batch(value,mutation)
     assert changed!=value
     with pytest.raises(AssertionError):_workflow_before_sanity_groups(changed)
@@ -2014,3 +2062,46 @@ def test_sanity_groups_actual_aggregate_shell_accepts_only_three_successes(tmp_p
     environment={'PATH':os.environ.get('PATH','/usr/bin:/bin'),'BACKEND_ORDINARY_A_RESULT':'success','BACKEND_ORDINARY_B_RESULT':'success','BACKEND_FRESH_RESULT':'success'}
     result=subprocess.run(['bash','-u','-e','-o','pipefail','-c',SANITY_GROUP_AGGREGATE['steps'][0]['run']],cwd=tmp_path,env=environment,capture_output=True,text=True,timeout=10,check=False)
     assert result.returncode==0
+
+
+@pytest.mark.parametrize('kind', ['sanity','coverage'])
+def test_preowned_six_exact_deferred_only_and_original_inverse_chain(kind):
+    value=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text())
+    prior=_workflow_before_preowned_six(value,kind+'.yml')
+    if kind=='sanity':prior=_workflow_before_sanity_groups(prior)
+    prior=_workflow_before_native_split(prior,kind+'.yml')
+    prior=_workflow_before_draft_collection(prior,kind+'.yml')
+    if kind=='sanity':_assert_sanity_backend_dependency(prior)
+    else:_assert_research_coverage_closure(prior,(ROOT/'.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('kind', ['sanity','coverage'])
+@pytest.mark.parametrize('mutation', ['missing','duplicate','wrong_relative','wrong_param','extra_pure','module_ignore','wrong_process','order'])
+def test_preowned_six_ci_collection_rejects_any_wider_or_missing_deferral(kind,mutation):
+    value=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text());coverage=kind=='coverage'
+    job=value['jobs']['coverage' if coverage else 'sanity-backend-ordinary-b']
+    title='Run coverage (split by suite, parallel files combined)' if coverage else 'Leg 2 — web/backend pytest baseline'
+    step=next(step for step in job['steps'] if step.get('name')==title)
+    token=' --deselect="'+PREOWNED_DEFERRED_NODES[0]+'"'
+    if mutation=='missing':step['run']=step['run'].replace(token,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(token,token+token,1)
+    elif mutation=='wrong_relative':step['run']=step['run'].replace(' --deselect="web/backend/tests/test_research_native_preowned.py',' --deselect="tests/test_research_native_preowned.py',1)
+    elif mutation=='wrong_param':step['run']=step['run'].replace(PREOWNED_DEFERRED_NODES[0],PREOWNED_DEFERRED_NODES[0]+'[unexpected]',1)
+    elif mutation=='extra_pure':step['run']+=' --deselect="'+NATIVE_PURE_NODES[0]+'"'
+    elif mutation=='module_ignore':step['run']+=' --ignore=web/backend/tests/test_research_native_preowned.py'
+    elif mutation=='wrong_process':
+        step['run']=step['run'].replace(token,'',1)
+        if coverage:step['run']+='\npython -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_research_native_preowned.py'+token+' $PYTEST_FLAGS\n'
+        else:_sanity_group_script(value['jobs']['sanity-backend-fresh'])['run']+=token
+    else:
+        second=' --deselect="'+PREOWNED_DEFERRED_NODES[1]+'"'
+        step['run']=step['run'].replace(token,'',1).replace(second,second+token,1)
+    with pytest.raises(AssertionError):_workflow_before_preowned_six(value,kind+'.yml')
+
+
+def test_preowned_six_original_module_entire_bytes_and_bodies_retained():
+    path=ROOT/'web/backend/tests/test_research_native_preowned.py'
+    assert hashlib.sha256(path.read_bytes()).hexdigest()==PREOWNED_ORIGINAL_SHA256
+    tree=ast.parse(path.read_text())
+    nodes=['web/backend/tests/test_research_native_preowned.py::'+n.name for n in tree.body if isinstance(n,ast.FunctionDef) and n.name.startswith('test_')]
+    assert nodes==list(PREOWNED_DEFERRED_NODES) and len(nodes)==6
