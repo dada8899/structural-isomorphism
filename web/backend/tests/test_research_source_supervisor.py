@@ -39,7 +39,25 @@ from .test_private_registration import stack
 
 @pytest.fixture
 def component(current14, monkeypatch):
-    _, store, _ = current14
+    client, store, _ = current14
+    from .test_research_persistence import post, problem
+    from research.source_integration import check_approval, plan_for
+    from research.evidence_schemas import AnalysisPlan
+    # A dedicated research keeps this queued data plan from occupying the
+    # original current14 research used by the stop-slot consumer controls.
+    value = problem();value['confirmed'] = True
+    made = post(client, '/api/research', {'problem': value}, 'memory-g-plan-research')
+    assert made.status_code == 200
+    plan_rid = made.json()['data']['research']['id']
+    task_id = new_task(client, plan_rid)
+    with store.transaction() as conn:
+        task = conn.execute('SELECT * FROM research_tasks WHERE id=?', (task_id,)).fetchone()
+        run, approval = check_approval(conn, task)
+        assert task['research_id'] == plan_rid and approval['query'] is not None
+        plan = plan_for(task, approval, run['plan_id'])
+        assert type(plan) is AnalysisPlan
+        assert (plan.task_id, plan.research_id, plan.input_revision, plan.input_digest) == (
+            task['id'], task['research_id'], task['input_revision'], task['input_digest'])
     # Test-only memory specimen. It has no real Main binding and cannot pass
     # _same_store(), public start(), require_available() or formal require_worker.
     supervisor = object.__new__(control.SourceSupervisor)
@@ -50,13 +68,14 @@ def component(current14, monkeypatch):
         _path=store.path, _identity=store.storage_identity, _images=control._code_images(),
         _lock=threading.RLock(), _dispatch_mutex=threading.Lock(), _stop=threading.Event(),
         _event=threading.Event(), _state='READY', _thread=threading.current_thread(),
-        _slot=str(uuid4()), _lease=None, _failure=None, _start_failed=False, _cursor='',
+        _slot=task_id, _lease=None, _failure=None, _start_failed=False, _cursor='',
         _slot_epoch=1, _deadline={}, _reference=str(uuid4()), _session=None, _guard=None, _errors=[])
     for key, value in values.items():
         setattr(supervisor, key, value)
     monkeypatch.setattr(control, '_REGISTRY', {id(supervisor._binding.app): supervisor})
     session = object.__new__(source_workflow.SourceSession)
     session.store, session.task_id, session.transport = store, supervisor._slot, PinnedPublicTransport()
+    session.plan = plan
     guard = object.__new__(control.SourceDispatchGuard)
     for key, value in dict(_supervisor=supervisor, _session=session, _task_id=session.task_id,
         _epoch=1, _pid=os.getpid(), _thread=threading.current_thread(),
