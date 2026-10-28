@@ -1,5 +1,5 @@
 """Actual HTTP manual drafts, original Source rights and immutable persistence."""
-from contextlib import closing
+from contextlib import closing,contextmanager
 from functools import partial
 import copy,json,sqlite3
 from uuid import uuid4
@@ -8,29 +8,80 @@ from api import auth
 from research import ResearchStore,ResearchRunner
 from research.source_policy import PinnedPublicTransport
 from .test_private_runtime_bootstrap import roots
-from .test_private_registration import stack,link,verify,BETA
+from .test_private_registration import link,verify,BETA
 from .test_research_source_v11 import admitted
 from .test_research_persistence import problem,envelope
 from web.backend.tests.source_http_fixture import source_server,get_local
 
 
+@contextmanager
+def _draft_history_stack(tmp_path,monkeypatch):
+    import hashlib,importlib,secrets
+    from pathlib import Path
+    from .method_v13_reference import produce
+    from .test_research_method_draft_migration import snapshot,check
+    from .test_private_registration import SECRET
+    from research.method_draft import provision_method_drafts_v14
+    from research.financial_input import provision_financial_inputs_v15
+    from fastapi.testclient import TestClient
+    state=tmp_path/'state'
+    for namespace in ('services.runtime_paths','web.backend.services.runtime_paths'):
+        paths=importlib.import_module(namespace)
+        monkeypatch.setattr(paths,'STATE_ROOT',state);monkeypatch.setattr(paths,'CACHE_ROOT',tmp_path/'cache');monkeypatch.setattr(paths,'LOG_ROOT',state/'logs')
+    settings={'STRUCTURAL_ENV':'prod','AUTH_DATA_DIR':str(state),'STRUCTURAL_SSO_DATA_DIR':str(state),
+        'AUTH_ENABLED':'true','AUTH_SITE_ROLE':'beta','AUTH_LINK_BASE_URL':BETA,'JWT_SECRET':SECRET,'STRUCTURAL_SSO_SECRET':SECRET,
+        'SMTP_HOST':'fixture.invalid','SMTP_PORT':'587','SMTP_FROM_EMAIL':'sender@example.invalid','ADMIN_NOTIFICATION_EMAIL':'admin@example.invalid',
+        'AUTH_TRUSTED_PROXY_IPS':'127.0.0.1','AUTH_DEV_MODE':'false','STRUCTURAL_PRIVACY_HMAC_KEY':'0123456789abcdef'*4,
+        'STRUCTURAL_SHARE_TOKEN_SECRET':secrets.token_urlsafe(48)}
+    for key,value in settings.items():monkeypatch.setenv(key,value)
+    for key in ('STRUCTURAL_DATA_DIR','STRUCTURAL_MODEL_PATH','STRUCTURAL_PRECOMPUTED_EMBEDDINGS',
+        'STRUCTURAL_ARTIFACT_MANIFEST','STRUCTURAL_HISTORY_DB','STRUCTURAL_FAVORITES_PATH'):
+        monkeypatch.delenv(key,raising=False)
+    original=produce(Path(__file__).resolve().parents[3],tmp_path/'old13',state,tmp_path/'original.json',mode='native')
+    path=state/'auth.sqlite3';inode=(path.stat().st_dev,path.stat().st_ino)
+    before13=snapshot(path);check(path,13,before13)
+    assert provision_method_drafts_v14(path)['schema_version']==14
+    check(path,14,before13);before14=snapshot(path)
+    assert provision_financial_inputs_v15(path)['schema_version']==15
+    assert (path.stat().st_dev,path.stat().st_ino)==inode
+    after15=snapshot(path);assert {name:after15[name] for name in before14}==before14
+    import main
+    from services import formal_admission
+    mail=[];monkeypatch.setattr(auth,'_send_email',lambda to,subject,text:mail.append(text))
+    assert main._IS_PROD and main.auth_api is auth
+    history={'research_id':original['results'][0]['rid'],'source_task_id':original['source_task'],
+        'plan_result_ref':original['results'][0]['ref'],
+        'plan_result_sha256':hashlib.sha256(json.dumps(original['results'][0]['result'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()}
+    with TestClient(main.app,base_url=BETA) as client:
+        assert formal_admission.require(main.app,'research_basic') is None
+        assert verify(client,link(client,mail)).status_code==200
+        with ResearchStore(auth._store()).transaction() as conn:ResearchStore._check_v15(conn)
+        yield client,state,mail,history
+    assert (path.stat().st_dev,path.stat().st_ino)==inode
+
+
+@pytest.fixture
+def stack(tmp_path,monkeypatch):
+    with _draft_history_stack(tmp_path,monkeypatch) as value:yield value
+
+
 def prepared(stack,monkeypatch):
-    client,root,rid,tid,store=admitted(stack,monkeypatch)
-    with source_server() as (port,calls):
-        assert ResearchRunner(store,source_transport=PinnedPublicTransport(_worker=partial(get_local,port))).run_once(tid)=='COMPLETED'
-        assert calls==['/discovery','/article']
+    client,root,_mail,history=stack
+    rid=history['research_id'];tid=history['source_task_id'];store=ResearchStore(auth._store())
     with store.transaction() as conn:
+        task=conn.execute('SELECT research_id,input_revision FROM research_tasks WHERE id=?',(tid,)).fetchone()
+        assert tuple(task)==(rid,1)
         row=conn.execute("SELECT payload FROM research_evidence_objects WHERE kind='excerpts' AND task_id=?",(tid,)).fetchone()
         excerpt=json.loads(row[0]);snapshot=json.loads(conn.execute('SELECT payload FROM research_evidence_objects WHERE id=?',(excerpt['snapshot_id'],)).fetchone()[0])
-    revised=client.post('/api/research/'+rid+'/revisions',json=envelope({'expected_revision':1,'problem':problem('Current problem with a new observation')}),headers={'origin':BETA,'idempotency-key':'method-current-revision'})
-    assert revised.status_code==200,revised.text
-    version=revised.json()['data']['research_version']
+    current=client.get('/api/research/'+rid);assert current.status_code==200,current.text
+    assert current.json()['data']['current_problem']['revision']==2
+    version=current.json()['data']['research_version']
     ref={'excerpt_id':excerpt['id'],'source_revision':snapshot['source_revision'],'content_digest':snapshot['extracted_digest'],'start':excerpt['start'],'end':excerpt['end']}
     data={'input_revision':2,'expected_research_version':version,'excerpt_refs':[ref],
-        'origin':{'kind':'user_proposed','label':'Queue observation','description':'A proposed measurement method, not a verified technique.'},
-        'method':'Compare inflow and time in process.','mapping':['Requests correspond to work items.'],
-        'nontransferable':['The two systems do not share a physical mechanism.'],'competing_explanations':['A changing arrival rate may explain the apparent delay.'],
-        'test_plan':{'question':'Does the delay persist at a fixed arrival rate?','measurement':'Record counts and timestamps.','primary_outcome':'Median wait.','falsification':'No increase at the same arrival rate.','stop_rule':'Stop if timestamps are incomplete.'}}
+            'origin':{'kind':'user_proposed','label':'Queue observation','description':'A proposed measurement method, not a verified technique.'},
+            'method':'Compare inflow and time in process.','mapping':['Requests correspond to work items.'],
+            'nontransferable':['The two systems do not share a physical mechanism.'],'competing_explanations':['A changing arrival rate may explain the apparent delay.'],
+            'test_plan':{'question':'Does the delay persist at a fixed arrival rate?','measurement':'Record counts and timestamps.','primary_outcome':'Median wait.','falsification':'No increase at the same arrival rate.','stop_rule':'Stop if timestamps are incomplete.'}}
     return client,root,rid,tid,store,data
 
 
@@ -168,18 +219,72 @@ def test_actual_account_delete_erases_draft_and_old_ref_cannot_return_after_rere
     assert client.get(f'/api/research/{rid}/method-drafts/{ref}').status_code==404
 
 
-def test_fresh_process_reopens_original_draft_ref_time_and_historical_body(stack,monkeypatch,tmp_path):
-    import multiprocessing
+def _fresh_draft_history_probe(tmp_path):
+    import importlib,multiprocessing,os,secrets
+    from pathlib import Path
+    from .method_v13_reference import produce
+    from .test_research_method_draft_migration import snapshot,check
     from .method_draft_process_fixture import read_draft
-    client,root,rid,tid,store,data=prepared(stack,monkeypatch)
-    saved=post(client,rid,data);assert saved.status_code==200,saved.text
-    ref=saved.json()['data']['metadata']['draft_ref']
-    revised=client.post('/api/research/'+rid+'/revisions',json=envelope({'expected_revision':2,'problem':problem('A further observation kept separate from the old draft.')}),headers={'origin':BETA,'idempotency-key':'method-further-revision'})
-    assert revised.status_code==200,revised.text
-    expected=client.get(f'/api/research/{rid}/method-drafts/{ref}').json()
-    assert expected['data']['metadata']['is_historical'] is True
-    assert expected['data']['content']==saved.json()['data']['content']
-    assert expected['data']['metadata']['created_at']==saved.json()['data']['metadata']['created_at']
+    from .test_private_registration import SECRET
+    from research.method_draft import provision_method_drafts_v14
+    from research.financial_input import provision_financial_inputs_v15
+    from fastapi.testclient import TestClient
+    tmp_path=Path(tmp_path)
+    state=tmp_path/'state'
+    for namespace in ('services.runtime_paths','web.backend.services.runtime_paths'):
+        paths=importlib.import_module(namespace)
+        paths.STATE_ROOT=state;paths.CACHE_ROOT=tmp_path/'cache';paths.LOG_ROOT=state/'logs'
+    os.environ.update({'STRUCTURAL_ENV':'prod','AUTH_DATA_DIR':str(state),'STRUCTURAL_SSO_DATA_DIR':str(state),
+        'AUTH_ENABLED':'true','AUTH_SITE_ROLE':'beta','AUTH_LINK_BASE_URL':BETA,'JWT_SECRET':SECRET,'STRUCTURAL_SSO_SECRET':SECRET,
+        'SMTP_HOST':'fixture.invalid','SMTP_PORT':'587','SMTP_FROM_EMAIL':'sender@example.invalid','ADMIN_NOTIFICATION_EMAIL':'admin@example.invalid',
+        'AUTH_TRUSTED_PROXY_IPS':'127.0.0.1','AUTH_DEV_MODE':'false','STRUCTURAL_PRIVACY_HMAC_KEY':'0123456789abcdef'*4,
+        'STRUCTURAL_SHARE_TOKEN_SECRET':secrets.token_urlsafe(48)})
+    for key in ('STRUCTURAL_DATA_DIR','STRUCTURAL_MODEL_PATH','STRUCTURAL_PRECOMPUTED_EMBEDDINGS',
+        'STRUCTURAL_ARTIFACT_MANIFEST','STRUCTURAL_HISTORY_DB','STRUCTURAL_FAVORITES_PATH'):
+        os.environ.pop(key,None)
+    original=produce(Path(__file__).resolve().parents[3],tmp_path/'old13',state,tmp_path/'original.json',mode='native')
+    path=state/'auth.sqlite3';inode=(path.stat().st_dev,path.stat().st_ino)
+    before13=snapshot(path);check(path,13,before13)
+    assert provision_method_drafts_v14(path)['schema_version']==14
+    check(path,14,before13);before14=snapshot(path)
+    assert provision_financial_inputs_v15(path)['schema_version']==15
+    assert (path.stat().st_dev,path.stat().st_ino)==inode
+    after15=snapshot(path)
+    assert {name:after15[name] for name in before14}==before14
+    import main
+    from services import formal_admission
+    mail=[];auth._send_email=lambda to,subject,text:mail.append(text)
+    assert main._IS_PROD and main.auth_api is auth
+    with TestClient(main.app,base_url=BETA) as client:
+        assert formal_admission.require(main.app,'research_basic') is None
+        assert verify(client,link(client,mail)).status_code==200
+        rid=original['results'][0]['rid'];tid=original['source_task'];root=state
+        store=ResearchStore(auth._store())
+        with store.transaction() as conn:
+            ResearchStore._check_v15(conn)
+            task=conn.execute('SELECT research_id,input_revision FROM research_tasks WHERE id=?',(tid,)).fetchone()
+            assert tuple(task)==(rid,1)
+            assert conn.execute('SELECT current_revision FROM research_controls WHERE id=?',(rid,)).fetchone()[0]==2
+            row=conn.execute("SELECT payload FROM research_evidence_objects WHERE kind='excerpts' AND task_id=?",(tid,)).fetchone()
+            excerpt=json.loads(row[0]);snapshot_value=json.loads(conn.execute('SELECT payload FROM research_evidence_objects WHERE id=?',(excerpt['snapshot_id'],)).fetchone()[0])
+        current=client.get('/api/research/'+rid);assert current.status_code==200,current.text
+        assert current.json()['data']['current_problem']['revision']==2
+        version=current.json()['data']['research_version']
+        ref={'excerpt_id':excerpt['id'],'source_revision':snapshot_value['source_revision'],'content_digest':snapshot_value['extracted_digest'],'start':excerpt['start'],'end':excerpt['end']}
+        data={'input_revision':2,'expected_research_version':version,'excerpt_refs':[ref],
+                'origin':{'kind':'user_proposed','label':'Queue observation','description':'A proposed measurement method, not a verified technique.'},
+                'method':'Compare inflow and time in process.','mapping':['Requests correspond to work items.'],
+                'nontransferable':['The two systems do not share a physical mechanism.'],'competing_explanations':['A changing arrival rate may explain the apparent delay.'],
+                'test_plan':{'question':'Does the delay persist at a fixed arrival rate?','measurement':'Record counts and timestamps.','primary_outcome':'Median wait.','falsification':'No increase at the same arrival rate.','stop_rule':'Stop if timestamps are incomplete.'}}
+        saved=post(client,rid,data);assert saved.status_code==200,saved.text
+        ref=saved.json()['data']['metadata']['draft_ref']
+        revised=client.post('/api/research/'+rid+'/revisions',json=envelope({'expected_revision':2,'problem':problem('A further observation kept separate from the old draft.')}),headers={'origin':BETA,'idempotency-key':'method-further-revision'})
+        assert revised.status_code==200,revised.text
+        expected=client.get(f'/api/research/{rid}/method-drafts/{ref}').json()
+        assert expected['data']['metadata']['is_historical'] is True
+        assert expected['data']['content']==saved.json()['data']['content']
+        assert expected['data']['metadata']['created_at']==saved.json()['data']['metadata']['created_at']
+    assert (path.stat().st_dev,path.stat().st_ino)==inode
     output=tmp_path/'reopened.json';child=multiprocessing.get_context('spawn').Process(target=read_draft,args=(str(store.path),rid,ref,str(output)))
     try:
         child.start();child.join(15);assert not child.is_alive() and child.exitcode==0
@@ -187,6 +292,18 @@ def test_fresh_process_reopens_original_draft_ref_time_and_historical_body(stack
     finally:
         if child.is_alive():child.kill();child.join(2)
         child.close()
+
+
+def test_fresh_process_reopens_original_draft_ref_time_and_historical_body(tmp_path):
+    from pathlib import Path
+    from .research_process_fixture import _run_owned_probe
+    source=Path(__file__).resolve().parents[3]
+    program=("import sys\nfrom pathlib import Path\n"
+        +"sys.path[:0]="+repr([str(source/'web/backend'),str(source)])+"\n"
+        +"from web.backend.tests.test_research_method_drafts import _fresh_draft_history_probe\n"
+        +"_fresh_draft_history_probe(Path("+repr(str(tmp_path))+"))\n")
+    result=_run_owned_probe(program,cwd=tmp_path)
+    assert result.returncode==0,result.stderr
 
 
 @pytest.mark.parametrize('damage',['raw_hash','licence','missing_snapshot'])
@@ -280,22 +397,84 @@ def test_reader_rejects_current_control_rollback_instead_of_trusting_self_consis
     assert response.status_code==404 and 'Compare inflow' not in response.text
 
 
-def test_current14_accepted_receipt_helper_is_native_readonly_and_draft_still_saves(stack,monkeypatch):
+def _accepted_receipt_history_probe(tmp_path):
+    from pathlib import Path
     from research.authorization import AuthorizationGate
+    from fastapi.testclient import TestClient
+    from services import formal_admission
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        with _draft_history_stack(Path(tmp_path),monkeypatch) as stack:
+            client,root,rid,tid,store,data=prepared(stack,monkeypatch)
+            cookie=client.cookies.get('phase_session')
+        with closing(sqlite3.connect(store.path.as_uri()+'?mode=ro',uri=True)) as conn:before=conn.serialize()
+        inode=(store.path.stat().st_dev,store.path.stat().st_ino);opened=[];native=sqlite3.connect
+        with monkeypatch.context() as observe:
+            def connect(*args,**kwargs):
+                conn=native(*args,**kwargs);opened.append((args,kwargs,conn));return conn
+            observe.setattr(sqlite3,'connect',connect)
+            gate=store.auth_store.owner_gate_id('fresh@example.invalid')
+            expected=store.auth_store.expected_owner_gate_identity(gate)
+            with AuthorizationGate(store).owner_gate_id(gate) as lease:assert lease.identity[:2]==expected
+            assert opened and all(args[0]==store.path.as_uri()+'?mode=ro' and kwargs.get('uri') is True for args,kwargs,_ in opened)
+            for _,_,conn in opened:
+                with pytest.raises(sqlite3.ProgrammingError):conn.execute('SELECT 1')
+        with closing(native(store.path.as_uri()+'?mode=ro',uri=True)) as conn:assert conn.serialize()==before
+        assert (store.path.stat().st_dev,store.path.stat().st_ino)==inode
+        import main
+        with TestClient(main.app,base_url=BETA) as client:
+            assert formal_admission.require(main.app,'research_basic') is None
+            client.cookies.set('phase_session',cookie)
+            saved=post(client,rid,data);assert saved.status_code==200,saved.text
+            assert client.get(f"/api/research/{rid}/method-drafts/{saved.json()['data']['metadata']['draft_ref']}").json()==saved.json()
+
+
+def test_current14_accepted_receipt_helper_is_native_readonly_and_draft_still_saves(tmp_path):
+    from pathlib import Path
+    from .research_process_fixture import _run_owned_probe
+    source=Path(__file__).resolve().parents[3]
+    program=("import sys\nfrom pathlib import Path\n"
+        +"sys.path[:0]="+repr([str(source/'web/backend'),str(source)])+"\n"
+        +"from web.backend.tests.test_research_method_drafts import _accepted_receipt_history_probe\n"
+        +"_accepted_receipt_history_probe(Path("+repr(str(tmp_path))+"))\n")
+    result=_run_owned_probe(program,cwd=tmp_path)
+    assert result.returncode==0,result.stderr
+
+
+def test_stored_native_plan_lead_consumption_preserves_provenance_and_current_read_permission(stack,monkeypatch):
+    import hashlib
+    from research.provider_schemas import canonical,digest
+    from research.plan_native_financial import NAMES
     client,root,rid,tid,store,data=prepared(stack,monkeypatch)
-    with closing(sqlite3.connect(store.path.as_uri()+'?mode=ro',uri=True)) as conn:before=conn.serialize()
-    inode=(store.path.stat().st_dev,store.path.stat().st_ino);opened=[];native=sqlite3.connect
-    with monkeypatch.context() as observe:
-        def connect(*args,**kwargs):
-            conn=native(*args,**kwargs);opened.append((args,kwargs,conn));return conn
-        observe.setattr(sqlite3,'connect',connect)
-        gate=store.auth_store.owner_gate_id('fresh@example.invalid')
-        expected=store.auth_store.expected_owner_gate_identity(gate)
-        with AuthorizationGate(store).owner_gate_id(gate) as lease:assert lease.identity[:2]==expected
-        assert opened and all(args[0]==store.path.as_uri()+'?mode=ro' and kwargs.get('uri') is True for args,kwargs,_ in opened)
-        for _,_,conn in opened:
-            with pytest.raises(sqlite3.ProgrammingError):conn.execute('SELECT 1')
-    with closing(native(store.path.as_uri()+'?mode=ro',uri=True)) as conn:assert conn.serialize()==before
-    assert (store.path.stat().st_dev,store.path.stat().st_ino)==inode
-    saved=post(client,rid,data);assert saved.status_code==200,saved.text
-    assert client.get(f"/api/research/{rid}/method-drafts/{saved.json()['data']['metadata']['draft_ref']}").json()==saved.json()
+    plan_ref=stack[3]['plan_result_ref'];path='/api/research/'+rid+'/plan-results/'+plan_ref
+    original=client.get(path);assert original.status_code==200,original.text
+    assert hashlib.sha256(json.dumps(original.json(),sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==stack[3]['plan_result_sha256']
+    content=original.json()['data']['content'];candidate=content['proposal']['candidates'][0]
+    assert len(candidate['method_leads'])==1
+    tables=('research_funding_accounts','research_project_budgets','research_reservations','research_plan_dispatches',*NAMES,'research_tasks')
+    def ledger():
+        with store.transaction() as conn:
+            return {name:[tuple(row) for row in conn.execute('SELECT * FROM '+name+' ORDER BY rowid')] for name in tables}
+    before=ledger()
+    data['origin']={'kind':'plan_lead','plan_contract':'funded-plan-v2','result_ref':plan_ref,'candidate_index':0,'lead_index':0}
+    saved=post(client,rid,data,'stored-native-lead');assert saved.status_code==200,saved.text
+    value=saved.json()['data'];origin=value['content']['origin']
+    assert origin['result_ref']==plan_ref and origin['lead']==candidate['method_leads'][0]
+    assert origin['result_digest']==digest(canonical(content)) and origin['input_revision']==content['input_revision']
+    assert origin['mode']=='controlled_fixture' and origin['producer']=='core-controlled-native-v1'
+    assert origin['verification']=='unverified' and value['metadata']['validation_status']=='unverified'
+    assert value['metadata']['execution_status']=='not_executed'
+    draft_ref=value['metadata']['draft_ref']
+    assert client.get(f'/api/research/{rid}/method-drafts/{draft_ref}').json()==saved.json()
+    assert post(client,rid,data,'stored-native-lead').json()==saved.json()
+    invalid={**data,'expected_research_version':client.get('/api/research/'+rid).json()['data']['research_version'],
+        'origin':{**data['origin'],'lead_index':1}}
+    assert post(client,rid,invalid,'stored-native-lead-out-of-range').status_code==422
+    assert verify(client,link(client,stack[2],'other@example.invalid')).status_code==200
+    assert client.get(path).status_code==404
+    assert post(client,rid,data,'stored-native-lead').status_code==404
+    assert verify(client,link(client,stack[2])).status_code==200
+    with store.transaction(write=True) as conn:conn.execute("UPDATE research_grants SET status='revoked' WHERE research_id=? AND EXISTS(SELECT 1 FROM json_each(scopes) WHERE value='read')",(rid,))
+    for response in (client.get(path),client.get(f'/api/research/{rid}/method-drafts/{draft_ref}'),post(client,rid,data,'stored-native-lead')):
+        assert response.status_code==404,response.text
+        assert 'queueing model' not in response.text and 'Compare inflow' not in response.text
+    assert ledger()==before

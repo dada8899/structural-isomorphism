@@ -4,25 +4,34 @@ from pathlib import Path
 
 
 def read_draft(path,rid,ref,output):
+    import secrets
     from urllib.parse import parse_qs,urlsplit
     from .source_v11_process_fixture import configure
     from .test_private_registration import SECRET,BETA
     path=configure(path)
+    inode=(path.stat().st_dev,path.stat().st_ino)
     os.environ.update({'STRUCTURAL_ENV':'prod','AUTH_DATA_DIR':str(path.parent),'STRUCTURAL_SSO_DATA_DIR':str(path.parent),
         'AUTH_ENABLED':'true','AUTH_SITE_ROLE':'beta','AUTH_LINK_BASE_URL':BETA,'JWT_SECRET':SECRET,'STRUCTURAL_SSO_SECRET':SECRET,
         'SMTP_HOST':'fixture.invalid','SMTP_PORT':'587','SMTP_FROM_EMAIL':'sender@example.invalid','ADMIN_NOTIFICATION_EMAIL':'admin@example.invalid',
-        'AUTH_TRUSTED_PROXY_IPS':'127.0.0.1','AUTH_DEV_MODE':'false','STRUCTURAL_PRIVACY_HMAC_KEY':'0123456789abcdef'*4})
-    from api import auth,research
-    from fastapi import FastAPI
+        'AUTH_TRUSTED_PROXY_IPS':'127.0.0.1','AUTH_DEV_MODE':'false','STRUCTURAL_PRIVACY_HMAC_KEY':'0123456789abcdef'*4,
+        'STRUCTURAL_SHARE_TOKEN_SECRET':secrets.token_urlsafe(48)})
+    for key in ('STRUCTURAL_DATA_DIR','STRUCTURAL_MODEL_PATH','STRUCTURAL_PRECOMPUTED_EMBEDDINGS',
+        'STRUCTURAL_ARTIFACT_MANIFEST','STRUCTURAL_HISTORY_DB','STRUCTURAL_FAVORITES_PATH'):
+        os.environ.pop(key,None)
+    from api import auth
+    import main
+    from services import formal_admission
     from fastapi.testclient import TestClient
-    mail=[];auth._send_email=lambda to,subject,text:mail.append(text);research.enabled=lambda:True
-    app=FastAPI();app.include_router(auth.router,prefix='/api');app.include_router(research.router,prefix='/api')
-    with TestClient(app,base_url=BETA) as client:
+    mail=[];auth._send_email=lambda to,subject,text:mail.append(text)
+    assert main._IS_PROD and main.auth_api is auth
+    with TestClient(main.app,base_url=BETA) as client:
+        assert formal_admission.require(main.app,'research_basic') is None
         response=client.post('/api/auth/request-link',json={'email':'fresh@example.invalid'},headers={'origin':BETA});assert response.status_code==200
         token=parse_qs(urlsplit(mail[-1].strip().split()[-1]).query)['token'][0]
         response=client.post('/api/auth/verify',json={'token':token},headers={'origin':BETA});assert response.status_code==200
         value=client.get(f'/api/research/{rid}/method-drafts/{ref}');assert value.status_code==200,value.text
         Path(output).write_text(json.dumps(value.json()))
+    assert (path.stat().st_dev,path.stat().st_ino)==inode
 
 
 def kill_upgrade(path,cut):

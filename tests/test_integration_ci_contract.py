@@ -47,7 +47,8 @@ BASELINE_JOB_DIGESTS = {
 
 
 def workflow(name: str) -> dict:
-    return yaml.safe_load((ROOT / ".github/workflows" / name).read_text())
+    value = yaml.safe_load((ROOT / ".github/workflows" / name).read_text())
+    return _workflow_before_draft_collection(value, name) if name in {"sanity.yml", "coverage.yml"} else value
 
 
 def triggers(value: dict) -> dict:
@@ -191,6 +192,48 @@ def backend_process_commands(*, coverage=False, before_fin2=False, before_eviden
     file_prefix = 'web/backend/tests/' if coverage else 'tests/'
     ordinary = prefix + directory + ''.join(' --ignore=' + file_prefix + name for name in names) + flags
     return [ordinary, *(prefix + file_prefix + name + ' -p no:logging' + flags for name in names)]
+
+
+DRAFT_HISTORY_MODULE = 'test_research_method_drafts.py'
+DRAFT_DEFERRED_FUNCTION = 'test_actual_native_plan_lead_is_bound_without_promoting_literature_or_formula'
+DRAFT_PRIOR_SCRIPT_SHA256 = {
+    False: 'a04ed47acf97784dd8a8ec4d90c6474c1f0053d8c01168f520290a7ac216d26e',
+    True: 'b2e2964dd0db6d5e32e1a15f4561e586dda0bd9de918dfcc2fd39d7e44b13293',
+}
+
+
+def draft_backend_process_commands(*, coverage=False):
+    prior = backend_process_commands(coverage=coverage)
+    path = ('web/backend/tests/' if coverage else 'tests/') + DRAFT_HISTORY_MODULE
+    flags = ' $PYTEST_FLAGS' if coverage else ' -x -ra -q --tb=short --durations=10'
+    prefix = 'python -m coverage run -p --rcfile=.coveragerc -m pytest ' if coverage else 'python -m pytest '
+    assert prior[0].endswith(flags)
+    ordinary = prior[0][:-len(flags)] + ' --ignore=' + path + flags
+    fresh = prefix + path + ' --deselect=web/backend/tests/' + DRAFT_HISTORY_MODULE + '::' + DRAFT_DEFERRED_FUNCTION + ' -p no:logging' + flags
+    return [ordinary, *prior[1:], fresh]
+
+
+def _backend_script_before_draft_collection(script, *, coverage=False):
+    current = draft_backend_process_commands(coverage=coverage)
+    expanded = '\n'.join(current)
+    prefix = 'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests'
+    assert [line for line in script.splitlines() if line.startswith(prefix)] == current
+    assert script.count(expanded) == 1, 'one complete twenty-two-command draft block required'
+    assert script.count(DRAFT_HISTORY_MODULE) == 3, 'one ignore, one full module, one exact node deselection'
+    prior = script.replace(expanded, '\n'.join(backend_process_commands(coverage=coverage)), 1)
+    assert hashlib.sha256(prior.encode()).hexdigest() == DRAFT_PRIOR_SCRIPT_SHA256[coverage], 'draft inverse must restore the exact prior twenty-one-command script'
+    return prior
+
+
+def _workflow_before_draft_collection(value, name):
+    original = copy.deepcopy(value)
+    coverage = name == 'coverage.yml'
+    job = original['jobs']['coverage' if coverage else 'sanity-backend']
+    title = 'Run coverage (split by suite, parallel files combined)' if coverage else 'Leg 2 — web/backend pytest baseline'
+    steps = [step for step in job['steps'] if step.get('name') == title]
+    assert len(steps) == 1
+    steps[0]['run'] = _backend_script_before_draft_collection(steps[0]['run'], coverage=coverage)
+    return original
 
 
 def _backend_script_before_observer(script, *, coverage=False):
@@ -1647,3 +1690,50 @@ def test_observer_ci_process_cannot_be_omitted_or_weakened(kind, mutation):
     assert changed != commands
     step['run'] = step['run'].replace('\n'.join(commands), '\n'.join(changed), 1)
     with pytest.raises(AssertionError): _backend_script_before_observer(step['run'], coverage=kind == 'coverage')
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+def test_draft_history_full_ci_collection_reconstructs_prior_script_exactly(kind):
+    value = yaml.safe_load((ROOT / '.github/workflows' / (kind + '.yml')).read_text())
+    prior = _workflow_before_draft_collection(value, kind + '.yml')
+    job = value['jobs']['coverage' if kind == 'coverage' else 'sanity-backend']
+    title = 'Run coverage (split by suite, parallel files combined)' if kind == 'coverage' else 'Leg 2 — web/backend pytest baseline'
+    script = next(step['run'] for step in job['steps'] if step.get('name') == title)
+    commands = draft_backend_process_commands(coverage=kind == 'coverage')
+    old = backend_process_commands(coverage=kind == 'coverage')
+    assert len(commands) == 22 and len(old) == 21
+    assert commands[1:-1] == old[1:]
+    assert script.count('\n'.join(commands)) == 1
+    if kind == 'sanity': _assert_sanity_backend_dependency(prior)
+    else: _assert_research_coverage_closure(prior, (ROOT / '.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('mutation', ['missing','duplicate','ignore_only','missing_ignore','duplicate_ignore',
+    'wrong_deselect','wrong_cwd_deselect','extra_deselect','parameter','partial_module','selector','logging','measurement','folded','extra'])
+def test_draft_history_ci_collection_rejects_missing_or_weakened_work(kind, mutation):
+    coverage = kind == 'coverage'
+    value = yaml.safe_load((ROOT / '.github/workflows' / (kind + '.yml')).read_text())
+    job = value['jobs']['coverage' if coverage else 'sanity-backend']
+    title = 'Run coverage (split by suite, parallel files combined)' if coverage else 'Leg 2 — web/backend pytest baseline'
+    script = next(step['run'] for step in job['steps'] if step.get('name') == title)
+    commands = draft_backend_process_commands(coverage=coverage); changed = list(commands)
+    path = ('web/backend/tests/' if coverage else 'tests/') + DRAFT_HISTORY_MODULE
+    ignore = ' --ignore=' + path
+    if mutation in ('missing','ignore_only'): changed.pop()
+    elif mutation == 'duplicate': changed.append(changed[-1])
+    elif mutation == 'missing_ignore': changed[0] = changed[0].replace(ignore, '', 1)
+    elif mutation == 'duplicate_ignore': changed[0] = changed[0].replace(ignore, ignore + ignore, 1)
+    elif mutation == 'wrong_deselect': changed[-1] = changed[-1].replace(DRAFT_DEFERRED_FUNCTION, 'test_method_draft_public_models_exactly_match_runtime_contract')
+    elif mutation == 'wrong_cwd_deselect': changed[-1] = changed[-1].replace('--deselect=web/backend/tests/', '--deselect=tests/', 1)
+    elif mutation == 'extra_deselect': changed[-1] += ' --deselect=' + path + '::test_method_draft_public_models_exactly_match_runtime_contract'
+    elif mutation == 'parameter': changed[-1] = changed[-1].replace(DRAFT_DEFERRED_FUNCTION, DRAFT_DEFERRED_FUNCTION + '[native]')
+    elif mutation == 'partial_module': changed[-1] = changed[-1].replace('pytest ' + path + ' ', 'pytest ' + path + '::test_method_draft_public_models_exactly_match_runtime_contract ', 1)
+    elif mutation == 'selector': changed[-1] += ' -k smoke'
+    elif mutation == 'logging': changed[-1] = changed[-1].replace(' -p no:logging', '', 1)
+    elif mutation == 'measurement': changed[-1] = changed[-1].replace('coverage run -p --rcfile=.coveragerc -m pytest', 'pytest').replace(' -x -ra -q', ' -q')
+    elif mutation == 'extra': changed.append(changed[-1].replace(DRAFT_HISTORY_MODULE, 'test_research_method_draft_migration.py'))
+    candidate = script.replace('\n'.join(commands), '\n'.join(changed), 1)
+    if mutation == 'folded': candidate = candidate.replace('\n', ' ')
+    assert candidate != script
+    with pytest.raises(AssertionError): _backend_script_before_draft_collection(candidate, coverage=coverage)

@@ -199,7 +199,7 @@ verify-release:
 	$(MAKE) types-check
 	$(MAKE) llm-scaling-check
 	$(MAKE) test-fast
-	cd web/backend && $(BACKEND_PYTEST) --ignore=tests/test_formal_main_admission.py --ignore=tests/test_formal_main_source_supervisor.py --ignore=tests/test_research_financial_import.py --ignore=tests/test_formal_model_startup.py --ignore=tests/acceptance/test_source_history_fixture_current15.py --ignore=tests/test_research_financial_registries.py --ignore=tests/test_research_source_origin_history.py --ignore=tests/test_research_evidence_method_plan.py --ignore=tests/test_research_evidence_method_native.py --ignore=tests/test_plan_runtime_transport.py --ignore=tests/test_research_native_browser_service.py --ignore=tests/test_native_live_grant.py --ignore=tests/test_formal_native_plan_supervisor.py --ignore=tests/test_research_financial_execution_v2.py --ignore=tests/test_research_financial_results_v2.py --ignore=tests/test_source_sec_access_lifecycle.py --ignore=tests/test_source_document_raw_lifecycle.py --ignore=tests/test_formal_main_history_read_borrow.py --ignore=tests/test_source_document_cached_history.py --ignore=tests/test_financial_limit_observer.py -q
+	cd web/backend && $(BACKEND_PYTEST) --ignore=tests/test_formal_main_admission.py --ignore=tests/test_formal_main_source_supervisor.py --ignore=tests/test_research_financial_import.py --ignore=tests/test_formal_model_startup.py --ignore=tests/acceptance/test_source_history_fixture_current15.py --ignore=tests/test_research_financial_registries.py --ignore=tests/test_research_source_origin_history.py --ignore=tests/test_research_evidence_method_plan.py --ignore=tests/test_research_evidence_method_native.py --ignore=tests/test_plan_runtime_transport.py --ignore=tests/test_research_native_browser_service.py --ignore=tests/test_native_live_grant.py --ignore=tests/test_formal_native_plan_supervisor.py --ignore=tests/test_research_financial_execution_v2.py --ignore=tests/test_research_financial_results_v2.py --ignore=tests/test_source_sec_access_lifecycle.py --ignore=tests/test_source_document_raw_lifecycle.py --ignore=tests/test_formal_main_history_read_borrow.py --ignore=tests/test_source_document_cached_history.py --ignore=tests/test_financial_limit_observer.py --ignore=tests/test_research_method_drafts.py -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_admission.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_source_supervisor.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_research_financial_import.py -p no:logging -q
@@ -220,6 +220,7 @@ verify-release:
 	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_history_read_borrow.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_source_document_cached_history.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_financial_limit_observer.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_research_method_drafts.py --deselect=web/backend/tests/test_research_method_drafts.py::test_actual_native_plan_lead_is_bound_without_promoting_literature_or_formula -p no:logging -q
 	cd packages/guarded-llm && $(PYTEST) tests -q
 	cd packages/cross-judge && $(PYTEST) tests -q
 	cd packages/reject-aware-critic && $(PYTEST) tests -q

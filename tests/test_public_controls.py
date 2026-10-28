@@ -714,7 +714,7 @@ def test_release_dependency_sets_share_one_satisfiable_httpx_contract() -> None:
 
 
 def test_types_artifact_is_reproducible_in_make_and_sanity() -> None:
-    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    makefile = _makefile_before_draft_contracts()
     generator = (ROOT / "scripts/gen_ts_types.sh").read_text(encoding="utf-8")
     checker = (ROOT / "scripts/check_ts_types.sh").read_text(encoding="utf-8")
     assert 'OUT="${OUT:-web/phase-detector/lib/api-types.ts}"' in generator
@@ -1651,7 +1651,7 @@ def test_privileged_dispatch_payloads_cannot_execute_in_bash(
 
 
 def test_make_release_targets_form_a_fail_closed_recipe_closure() -> None:
-    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    makefile = _makefile_before_draft_contracts()
     _assert_make_release_closure(makefile)
 
     mutations = [
@@ -1744,6 +1744,49 @@ def _original_makefile_before_auth_bootstrap_browser(makefile: str) -> str:
 
 B3_FRESH_MAIN_MODULES = ('test_source_document_raw_lifecycle.py',
     'test_formal_main_history_read_borrow.py', 'test_source_document_cached_history.py')
+
+
+DRAFT_HISTORY_MODULE = 'test_research_method_drafts.py'
+DRAFT_DEFERRED_FUNCTION = 'test_actual_native_plan_lead_is_bound_without_promoting_literature_or_formula'
+DRAFT_PRIOR_MAKE_SHA256 = '4ef388277d85ba42380a6ac21672c44ef608221ef0ea09c8d548b9574f4e1030'
+
+
+def _original_makefile_before_draft_collection(makefile: str) -> str:
+    commands = [c for c in _make_recipe_commands(makefile, 'verify-release') if c.startswith('cd web/backend ')]
+    path = 'tests/' + DRAFT_HISTORY_MODULE
+    formal = 'cd web/backend && $(BACKEND_PYTEST) ' + path + ' --deselect=web/backend/tests/' + DRAFT_HISTORY_MODULE + '::' + DRAFT_DEFERRED_FUNCTION + ' -p no:logging -q'
+    ignore = ' --ignore=' + path
+    assert len(commands) == 22 and commands[-1] == formal and commands.count(formal) == 1
+    assert commands[0].count(ignore) == 1 and commands[0].endswith(ignore + ' -q')
+    assert makefile.count(DRAFT_HISTORY_MODULE) == 3, 'one ignore/full module/exact node only'
+    expanded = ''.join('\t' + c + '\n' for c in commands)
+    assert makefile.count(expanded) == 1, 'one contiguous complete backend block required'
+    prior = [commands[0].replace(ignore + ' -q', ' -q', 1), *commands[1:-1]]
+    result = makefile.replace(expanded, ''.join('\t' + c + '\n' for c in prior), 1)
+    assert hashlib.sha256(result.encode()).hexdigest() == DRAFT_PRIOR_MAKE_SHA256, 'inverse must restore exact prior Makefile and twenty-one backend commands'
+    return result
+
+
+def _makefile_before_draft_contracts() -> str:
+    # New outer inverse is mandatory before every unchanged legacy Make contract.
+    return _original_makefile_before_draft_collection((ROOT / 'Makefile').read_text(encoding='utf-8'))
+
+
+def _original_dry_run_before_draft_collection(output: str) -> str:
+    raw = (ROOT / 'Makefile').read_text(encoding='utf-8')
+    _original_makefile_before_draft_collection(raw)
+    pythonpath = ':'.join(str(ROOT / path) for path in ('web/backend', 'packages/guarded-llm/src',
+        'packages/cross-judge/src', 'packages/reject-aware-critic/src', 'packages/soc-pipeline/src'))
+    backend = 'PYTHONPATH=' + pythonpath + ' python -m pytest'
+    expected = [c.replace('$(BACKEND_PYTEST)', backend, 1) + '\n' for c in _make_recipe_commands(raw, 'verify-release') if c.startswith('cd web/backend ')]
+    lines = output.splitlines(keepends=True)
+    assert [line for line in lines if line.startswith('cd web/backend ')] == expected
+    formal = expected[-1]
+    assert lines.count(formal) == 1 and lines.count(expected[0]) == 1
+    ignore = ' --ignore=tests/' + DRAFT_HISTORY_MODULE
+    assert expected[0].endswith(ignore + ' -q\n')
+    lines.remove(formal)
+    return ''.join(lines).replace(expected[0], expected[0].replace(ignore + ' -q\n', ' -q\n', 1), 1)
 
 
 OBSERVER_FRESH_MODULE = 'test_financial_limit_observer.py'
@@ -1984,7 +2027,7 @@ def _original_makefile_without_financial_preview(makefile: str) -> str:
 
 
 def test_makefile_release_authority_is_independently_frozen() -> None:
-    original = _original_makefile_without_financial_preview((ROOT / "Makefile").read_text())
+    original = _original_makefile_without_financial_preview(_makefile_before_draft_contracts())
     assert hashlib.sha256(original.encode()).hexdigest() == (
         "d10d21b2d90e07deb8f9219f663f511ea96d5532c7f97637213f67f51efb0b9b"
     )
@@ -2000,6 +2043,7 @@ def test_python_syntax_release_authority_is_independently_frozen() -> None:
 
 def _original_dry_run_before_b3_backend(output: str) -> str:
     """Validate the three B3 consumers before removing only their full commands."""
+    output = _original_dry_run_before_draft_collection(output)
     pythonpath = ":".join(str(ROOT / path) for path in (
         "web/backend", "packages/guarded-llm/src", "packages/cross-judge/src",
         "packages/reject-aware-critic/src", "packages/soc-pipeline/src",
@@ -2007,7 +2051,7 @@ def _original_dry_run_before_b3_backend(output: str) -> str:
     backend = "PYTHONPATH=" + pythonpath + " python -m pytest"
     prefix = "cd web/backend && " + backend
     observer_lines = output.splitlines(keepends=True)
-    current_makefile = (ROOT / "Makefile").read_text()
+    current_makefile = _makefile_before_draft_contracts()
     _original_makefile_before_b3_backend(current_makefile)
     expected = [command.replace("$(BACKEND_PYTEST)", backend, 1) + "\n"
                 for command in _make_recipe_commands(current_makefile, "verify-release")
@@ -2024,7 +2068,7 @@ def _original_dry_run_before_b3_backend(output: str) -> str:
     lines = output.splitlines(keepends=True)
     ordinary = [line for line in lines if line.startswith(prefix + " --ignore=")]
     assert len(ordinary) == 1, "one exact ordinary backend command required"
-    current_makefile = (ROOT / "Makefile").read_text()
+    current_makefile = _makefile_before_draft_contracts()
     _original_makefile_before_b3_backend(current_makefile)
     makefile = _original_makefile_before_observer_backend(current_makefile)
     expected_ordinary = next(command for command in
@@ -2369,7 +2413,7 @@ def _assert_frontend_node_gate(value: dict, makefile: str) -> None:
 def test_frontend_node_gate_cannot_silently_skip_a_contract() -> None:
     _assert_frontend_node_gate(
         _workflow_data(ROOT / '.github/workflows/ci.yml'),
-        (ROOT / 'Makefile').read_text(encoding='utf-8'),
+        _makefile_before_draft_contracts(),
     )
 
 
@@ -2385,7 +2429,7 @@ def test_frontend_node_inventory_rejects_omitted_or_nonexecuting_consumers(mutat
     direct = _named_ci_step(identity, 'Verify header scroll JavaScript trust contract')
     surface = jobs['browser-beta-surface-contract']
     loop = _named_ci_step(surface, 'Run JavaScript trust contracts')
-    makefile = (ROOT / 'Makefile').read_text(encoding='utf-8')
+    makefile = _makefile_before_draft_contracts()
     header = '\tweb/frontend/tests/test_headerScroll.js ' + chr(92) + '\n'
     if mutation == 'missing_job': jobs.pop('browser-identity-consent-contract')
     elif mutation == 'missing_step': identity['steps'].remove(direct)
@@ -2417,7 +2461,7 @@ def test_frontend_node_inventory_rejects_omitted_or_nonexecuting_consumers(mutat
 
 
 def test_hard_browser_gate_has_one_make_and_ci_contract_list() -> None:
-    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    makefile = _makefile_before_draft_contracts()
     rows = _ci_matrix_rows(_ci_job("browser-beta-surface-contract"))
     assert [row.get("shard") for row in rows] == [
         shard for shard, _ in BROWSER_MAKE_SHARDS
@@ -2920,7 +2964,7 @@ def _assert_nightly_has_only_reviewed_local_browser_admission(value):
 
 def test_nightly_removes_vendor_key_branch_in_favor_of_reviewed_local_contracts():
     _assert_nightly_has_only_reviewed_local_browser_admission(_workflow_data(ROOT / '.github/workflows/nightly.yml'))
-    _assert_make_release_closure((ROOT / 'Makefile').read_text())
+    _assert_make_release_closure(_makefile_before_draft_contracts())
 
 
 @pytest.mark.parametrize('mutation', ['vendor_step', 'vendor_job', 'has_key', 'scan_root',
@@ -2951,7 +2995,7 @@ def test_nightly_make_command_resolves_only_existing_reviewed_browser_files():
     commands = [line for line in result.stdout.splitlines() if line.strip()]
     assert len(commands) == 7
     actual = BROWSER_PATH_PATTERN.findall(result.stdout)
-    makefile = (ROOT / 'Makefile').read_text()
+    makefile = _makefile_before_draft_contracts()
     expected = [path for _, variable in BROWSER_MAKE_SHARDS for path in _make_path_list(makefile, variable)]
     expected += _make_path_list(makefile, 'PHASE_REAL_BROWSER_CONTRACT_TESTS')
     assert actual == expected and len(actual) == len(set(actual))
@@ -2962,7 +3006,7 @@ def test_nightly_make_command_resolves_only_existing_reviewed_browser_files():
 
 
 def test_financial_preview_browser_has_explicit_hard_make_admission() -> None:
-    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    makefile = _makefile_before_draft_contracts()
     path = "web/tests/e2e/test_research_financial_preview_browser.py"
     assert _make_path_list(makefile, "FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS") == [path]
     assert _make_recipe_commands(makefile, "test-financial-preview-browser-contract") == [
@@ -2985,7 +3029,7 @@ def test_financial_preview_browser_has_explicit_hard_make_admission() -> None:
 
 @pytest.mark.parametrize("mutation", ["missing", "duplicate", "command", "old-command", "position"])
 def test_financial_make_allowance_rejects_other_changes(mutation) -> None:
-    makefile = (ROOT / "Makefile").read_text()
+    makefile = _makefile_before_draft_contracts()
     if mutation == "missing": makefile = makefile.replace("test-financial-preview-browser-contract:\n", "", 1)
     elif mutation == "duplicate": makefile += "test-financial-preview-browser-contract:\n\t$(PYTEST) $(FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS) -p no:logging -v\n\n"
     elif mutation == "command": makefile = makefile.replace("$(PYTEST) $(FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS) -p no:logging -v", "true", 1)
@@ -3000,7 +3044,7 @@ def test_financial_make_allowance_rejects_other_changes(mutation) -> None:
 
 @pytest.mark.parametrize('mutation',['missing','duplicate','wrong_position','other_target','old_selector','soft'])
 def test_main_make_logging_allowance_reverses_only_fixed_processes(mutation) -> None:
-    makefile=(ROOT/'Makefile').read_text()
+    makefile=_makefile_before_draft_contracts()
     main='\t$(PYTEST) tests/e2e/test_full_public_surface.py web/tests/e2e/test_auth_login_bootstrap_privacy.py -p no:logging -m "e2e and not requires_internet" -v\n'
     if mutation=='missing':makefile=makefile.replace(main,main.replace(' -p no:logging',''),1)
     elif mutation=='duplicate':makefile=makefile.replace(main,main+main,1)
@@ -3029,7 +3073,7 @@ def test_auth_bootstrap_browser_is_one_complete_hard_Main_consumer():
 
 @pytest.mark.parametrize('mutation',['missing','duplicate','wrong_process','marker'])
 def test_auth_browser_Make_allowance_is_narrow(mutation):
-    makefile=(ROOT/'Makefile').read_text();auth='web/tests/e2e/test_auth_login_bootstrap_privacy.py'
+    makefile=_makefile_before_draft_contracts();auth='web/tests/e2e/test_auth_login_bootstrap_privacy.py'
     if mutation=='missing':makefile=makefile.replace(' '+auth+' -p no:logging',' -p no:logging',1)
     elif mutation=='duplicate':makefile=makefile.replace(' '+auth+' -p no:logging',' '+auth+' '+auth+' -p no:logging',1)
     elif mutation=='wrong_process':makefile=makefile.replace(' '+auth+' -p no:logging',' -p no:logging',1).replace('$(PHASE_REAL_BROWSER_CONTRACT_TESTS) -v','$(PHASE_REAL_BROWSER_CONTRACT_TESTS) '+auth+' -v',1)
@@ -3041,7 +3085,7 @@ def test_auth_browser_Make_allowance_is_narrow(mutation):
 
 @pytest.mark.parametrize('mutation',['missing','wrong_path','duplicate','ordinary_no_ignore','ordinary_no_logging','formal_logging','soft','position'])
 def test_Make_backend_split_keeps_exact_full_files_and_hard_order(mutation):
-    makefile=(ROOT/'Makefile').read_text()
+    makefile=_makefile_before_draft_contracts()
     formal='\tcd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_source_supervisor.py -p no:logging -q\n'
     if mutation=='missing':makefile=makefile.replace(formal,'',1)
     elif mutation=='wrong_path':makefile=makefile.replace(formal,formal.replace('test_formal_main_source_supervisor.py','test_formal_search_profile.py'),1)
@@ -3060,7 +3104,7 @@ def test_Make_backend_split_keeps_exact_full_files_and_hard_order(mutation):
                                       'test_research_financial_registries.py'])
 @pytest.mark.parametrize('mutation', ['missing', 'missing_ignore', 'logging', 'partial_file'])
 def test_fin2_Make_backend_consumers_cannot_be_omitted_or_partially_run(consumer, mutation):
-    makefile=(ROOT/'Makefile').read_text()
+    makefile=_makefile_before_draft_contracts()
     formal='\tcd web/backend && $(BACKEND_PYTEST) tests/'+consumer+' -p no:logging -q\n'
     if mutation=='missing': makefile=makefile.replace(formal,'',1)
     elif mutation=='missing_ignore': makefile=makefile.replace(' --ignore=tests/'+consumer,'',1)
@@ -3082,7 +3126,7 @@ def test_fin2_Make_backend_consumers_cannot_be_omitted_or_partially_run(consumer
                                       'test_research_financial_results_v2.py'])
 @pytest.mark.parametrize('mutation', ['missing', 'missing_ignore', 'logging', 'partial_file'])
 def test_evidence_Make_backend_consumers_cannot_be_omitted_or_partially_run(consumer, mutation):
-    makefile=(ROOT/'Makefile').read_text()
+    makefile=_makefile_before_draft_contracts()
     formal='\tcd web/backend && $(BACKEND_PYTEST) tests/'+consumer+' -p no:logging -q\n'
     if mutation=='missing': makefile=makefile.replace(formal,'',1)
     elif mutation=='missing_ignore': makefile=makefile.replace(' --ignore=tests/'+consumer,'',1)
@@ -3094,7 +3138,7 @@ def test_evidence_Make_backend_consumers_cannot_be_omitted_or_partially_run(cons
 
 
 def test_evidence_method_browser_is_one_complete_hard_consumer():
-    makefile = (ROOT / 'Makefile').read_text()
+    makefile = _makefile_before_draft_contracts()
     node_path = 'web/frontend/tests/test_evidenceMethodPlan.js'
     browser_path = 'web/tests/e2e/test_evidence_method_plan_browser.py'
     assert _make_path_list(makefile, 'EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS') == [browser_path]
@@ -3116,7 +3160,7 @@ def test_evidence_method_browser_is_one_complete_hard_consumer():
 
 @pytest.mark.parametrize('mutation', ['missing_target','duplicate_target','logging','soft','path','verify_release'])
 def test_evidence_method_make_delta_rejects_weakened_or_missing_consumer(mutation):
-    value = (ROOT / 'Makefile').read_text()
+    value = _makefile_before_draft_contracts()
     target = 'test-evidence-method-browser-contract:\n\t$(BACKEND_PYTEST) $(EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS) -p no:logging -v\n\n'
     if mutation == 'missing_target': value = value.replace(target, '', 1)
     elif mutation == 'duplicate_target': value += target
@@ -3128,7 +3172,7 @@ def test_evidence_method_make_delta_rejects_weakened_or_missing_consumer(mutatio
 
 
 def test_financial_registry_browser_is_one_complete_hard_consumer():
-    makefile = (ROOT / 'Makefile').read_text()
+    makefile = _makefile_before_draft_contracts()
     node_path = 'web/frontend/tests/test_financialRegistry.js'
     browser_path = 'web/tests/e2e/test_research_financial_registry_browser.py'
     assert _make_path_list(makefile, 'FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS') == [browser_path]
@@ -3150,7 +3194,7 @@ def test_financial_registry_browser_is_one_complete_hard_consumer():
 
 @pytest.mark.parametrize('mutation', ['missing_target','duplicate_target','logging','soft','path','verify_release'])
 def test_financial_registry_make_delta_rejects_weakened_or_missing_consumer(mutation):
-    value = (ROOT / 'Makefile').read_text()
+    value = _makefile_before_draft_contracts()
     target = 'test-financial-registry-browser-contract:\n\t$(PYTEST) $(FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS) -p no:logging -v\n\n'
     if mutation == 'missing_target': value = value.replace(target, '', 1)
     elif mutation == 'duplicate_target': value += target
@@ -3162,7 +3206,7 @@ def test_financial_registry_make_delta_rejects_weakened_or_missing_consumer(muta
 
 
 def test_financial_scenario_browser_is_one_complete_hard_consumer():
-    makefile = (ROOT / 'Makefile').read_text()
+    makefile = _makefile_before_draft_contracts()
     node_path = 'web/frontend/tests/test_financialScenario.js'
     browser_path = 'web/tests/e2e/test_research_financial_scenario_browser.py'
     _assert_legal_repo_file(browser_path)
@@ -3193,7 +3237,7 @@ def test_financial_scenario_browser_is_one_complete_hard_consumer():
     'node_missing', 'node_duplicate', 'variable_duplicate', 'phony',
 ])
 def test_financial_scenario_make_delta_rejects_weakened_or_missing_consumer(mutation):
-    value = (ROOT / 'Makefile').read_text()
+    value = _makefile_before_draft_contracts()
     target = 'test-financial-scenario-browser-contract:\n\t$(BACKEND_PYTEST) $(FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS) -p no:logging -v\n\n'
     node = '\tweb/frontend/tests/test_financialScenario.js ' + chr(92) + '\n'
     release = '\t$(MAKE) test-financial-scenario-browser-contract\n'
@@ -3217,7 +3261,7 @@ def test_financial_scenario_make_delta_rejects_weakened_or_missing_consumer(muta
 
 
 def test_gov_lifecycle_has_one_full_make_backend_process():
-    makefile = (ROOT / 'Makefile').read_text()
+    makefile = _makefile_before_draft_contracts()
     legacy = _original_makefile_before_b3_backend(makefile)
     commands = [c for c in _make_recipe_commands(legacy, 'verify-release') if c.startswith('cd web/backend ')]
     assert len(commands) == 17
@@ -3237,7 +3281,7 @@ def test_gov_lifecycle_has_one_full_make_backend_process():
     'pure_ignore', 'namespace',
 ])
 def test_gov_lifecycle_make_delta_rejects_weakened_or_missing_consumer(mutation):
-    value = (ROOT / 'Makefile').read_text()
+    value = _makefile_before_draft_contracts()
     formal = '\tcd web/backend && $(BACKEND_PYTEST) tests/test_source_sec_access_lifecycle.py -p no:logging -q\n'
     ignore = ' --ignore=tests/test_source_sec_access_lifecycle.py'
     if mutation == 'missing': value = value.replace(formal, '', 1)
@@ -3255,14 +3299,14 @@ def test_gov_lifecycle_make_delta_rejects_weakened_or_missing_consumer(mutation)
     elif mutation == 'wrong_file': value = value.replace(formal, formal.replace('test_source_sec_access_lifecycle.py', 'test_source_sec_access.py'), 1)
     elif mutation == 'pure_ignore': value = value.replace(ignore, ignore + ' --ignore=tests/test_source_sec_access.py', 1)
     else: value = value.replace(formal, formal.replace('$(BACKEND_PYTEST)', '$(PYTEST)'), 1)
-    assert value != (ROOT / 'Makefile').read_text()
+    assert value != _makefile_before_draft_contracts()
     with pytest.raises(AssertionError): _original_makefile_before_gov_backend(value)
 
 
 @pytest.mark.parametrize('consumer', B3_FRESH_MAIN_MODULES)
 @pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'wrong_file', 'selector', 'logging', 'ignore_only', 'missing_ignore', 'duplicate_ignore', 'ordinary_logging', 'pure_ignore', 'extra'])
 def test_b3_fresh_make_consumers_reject_drift(consumer, mutation):
-    value = (ROOT / 'Makefile').read_text()
+    value = _makefile_before_draft_contracts()
     formal = '\tcd web/backend && $(BACKEND_PYTEST) tests/' + consumer + ' -p no:logging -q\n'
     ignore = ' --ignore=tests/' + consumer
     if mutation in ('missing', 'ignore_only'): value = value.replace(formal, '', 1)
@@ -3279,7 +3323,7 @@ def test_b3_fresh_make_consumers_reject_drift(consumer, mutation):
 
 
 def test_b3_make_complete_module_inventory_stays_in_exactly_one_process():
-    makefile = (ROOT / 'Makefile').read_text()
+    makefile = _makefile_before_draft_contracts()
     current_makefile = makefile
     makefile = _original_makefile_before_observer_backend(makefile)
     commands = [c for c in _make_recipe_commands(makefile, 'verify-release') if c.startswith('cd web/backend ')]
@@ -3305,7 +3349,7 @@ def test_b3_make_complete_module_inventory_stays_in_exactly_one_process():
 
 
 def test_observer_whole_make_process_preserves_prior_nineteen_and_inventory():
-    makefile = (ROOT / 'Makefile').read_text()
+    makefile = _makefile_before_draft_contracts()
     prior = _original_makefile_before_observer_backend(makefile)
     commands = [c for c in _make_recipe_commands(makefile, 'verify-release') if c.startswith('cd web/backend ')]
     old = [c for c in _make_recipe_commands(prior, 'verify-release') if c.startswith('cd web/backend ')]
@@ -3321,7 +3365,7 @@ def test_observer_whole_make_process_preserves_prior_nineteen_and_inventory():
 
 @pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'ignore_only', 'missing_ignore', 'duplicate_ignore', 'partial', 'logging'])
 def test_observer_make_process_cannot_be_omitted_or_weakened(mutation):
-    value = (ROOT / 'Makefile').read_text()
+    value = _makefile_before_draft_contracts()
     formal = '\tcd web/backend && $(BACKEND_PYTEST) tests/' + OBSERVER_FRESH_MODULE + ' -p no:logging -q\n'
     ignore = ' --ignore=tests/' + OBSERVER_FRESH_MODULE
     if mutation in ('missing', 'ignore_only'): value = value.replace(formal, '', 1)
@@ -3353,3 +3397,55 @@ def test_actual_observer_make_dryrun_inverse_rejects_nonexecution_and_drift(muta
     else: changed = output.replace(formal, formal.replace(' -p no:logging', '', 1), 1)
     assert changed != output
     with pytest.raises(AssertionError): _original_dry_run_before_b3_backend(changed)
+
+
+def test_draft_history_make_outer_inverse_retains_every_prior_assertion_and_command():
+    raw = (ROOT / 'Makefile').read_text()
+    prior = _original_makefile_before_draft_collection(raw)
+    assert len([c for c in _make_recipe_commands(raw, 'verify-release') if c.startswith('cd web/backend ')]) == 22
+    assert len([c for c in _make_recipe_commands(prior, 'verify-release') if c.startswith('cd web/backend ')]) == 21
+    _assert_make_release_closure(prior)
+    _original_makefile_before_b3_backend(prior)
+
+
+@pytest.mark.parametrize('mutation', ['missing','duplicate','ignore_only','missing_ignore','duplicate_ignore',
+    'wrong_deselect','wrong_cwd_deselect','extra_deselect','parameter','partial_module','selector','logging','extra'])
+def test_draft_history_make_collection_rejects_missing_or_weakened_work(mutation):
+    raw = (ROOT / 'Makefile').read_text()
+    path = 'tests/' + DRAFT_HISTORY_MODULE
+    formal = '\tcd web/backend && $(BACKEND_PYTEST) ' + path + ' --deselect=web/backend/tests/' + DRAFT_HISTORY_MODULE + '::' + DRAFT_DEFERRED_FUNCTION + ' -p no:logging -q\n'
+    ignore = ' --ignore=' + path
+    if mutation in ('missing','ignore_only'): value = raw.replace(formal, '', 1)
+    elif mutation == 'duplicate': value = raw.replace(formal, formal + formal, 1)
+    elif mutation == 'missing_ignore': value = raw.replace(ignore, '', 1)
+    elif mutation == 'duplicate_ignore': value = raw.replace(ignore, ignore + ignore, 1)
+    elif mutation == 'wrong_deselect': value = raw.replace(formal, formal.replace(DRAFT_DEFERRED_FUNCTION, 'test_method_draft_public_models_exactly_match_runtime_contract'), 1)
+    elif mutation == 'wrong_cwd_deselect': value = raw.replace(formal, formal.replace('--deselect=web/backend/tests/', '--deselect=tests/', 1), 1)
+    elif mutation == 'extra_deselect': value = raw.replace(formal, formal.rstrip('\n') + ' --deselect=' + path + '::test_method_draft_public_models_exactly_match_runtime_contract\n', 1)
+    elif mutation == 'parameter': value = raw.replace(formal, formal.replace(DRAFT_DEFERRED_FUNCTION, DRAFT_DEFERRED_FUNCTION + '[native]'), 1)
+    elif mutation == 'partial_module': value = raw.replace(formal, formal.replace('$(BACKEND_PYTEST) ' + path + ' ', '$(BACKEND_PYTEST) ' + path + '::test_method_draft_public_models_exactly_match_runtime_contract ', 1), 1)
+    elif mutation == 'selector': value = raw.replace(formal, formal.rstrip('\n') + ' -k smoke\n', 1)
+    elif mutation == 'logging': value = raw.replace(formal, formal.replace(' -p no:logging', ''), 1)
+    else: value = raw + '\n' + formal
+    assert value != raw
+    with pytest.raises(AssertionError): _original_makefile_before_draft_collection(value)
+
+
+@pytest.mark.parametrize('mutation', ['echo_prefix','true_command','missing','duplicate','wrong_deselect','wrong_cwd_deselect','extra_deselect'])
+def test_draft_history_actual_make_dryrun_rejects_nonexecution(mutation):
+    environment = os.environ.copy()
+    for variable in ('MAKEFLAGS','MAKEOVERRIDES','PYTEST','BACKEND_PYTEST','OPENAPI_PY','TYPES_PY'):
+        environment.pop(variable, None)
+    result = subprocess.run(['make','-n','--no-print-directory','PY=python','verify-release'],cwd=ROOT,env=environment,capture_output=True,text=True,timeout=20,check=False)
+    assert result.returncode == 0
+    output = result.stdout
+    formal = next(line for line in output.splitlines(keepends=True) if '--deselect=web/backend/tests/' + DRAFT_HISTORY_MODULE in line)
+    if mutation == 'echo_prefix': value = output.replace(formal, 'echo ' + formal, 1)
+    elif mutation == 'true_command': value = output.replace(formal, formal.replace('python -m pytest','true',1),1)
+    elif mutation == 'missing': value = output.replace(formal,'',1)
+    elif mutation == 'duplicate': value = output.replace(formal,formal+formal,1)
+    elif mutation == 'wrong_deselect': value = output.replace(formal,formal.replace(DRAFT_DEFERRED_FUNCTION,'test_method_draft_public_models_exactly_match_runtime_contract'),1)
+    elif mutation == 'wrong_cwd_deselect': value = output.replace(formal,formal.replace('--deselect=web/backend/tests/','--deselect=tests/',1),1)
+    else: value = output.replace(formal,formal.rstrip('\n')+' --deselect=tests/'+DRAFT_HISTORY_MODULE+'::test_method_draft_public_models_exactly_match_runtime_contract\n',1)
+    assert value != output
+    with pytest.raises(AssertionError): _original_dry_run_before_draft_collection(value)
