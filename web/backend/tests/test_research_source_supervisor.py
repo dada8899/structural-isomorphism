@@ -279,15 +279,34 @@ def test_handled_source_return_releases_own_arena_without_gc(current14, monkeypa
 
 def test_uncertain_source_close_keeps_own_buffer_and_original_handle_evidence(current14, monkeypatch):
     from research.source_spawn import SourceSpawnProcess, SourceCleanupUncertain
+    from multiprocessing.heap import Arena, BufferWrapper
+    import sys
     client, store, rid = current14
     tid = new_task(client, rid)
     actual_close = SourceSpawnProcess.close
     gc.collect();enabled = gc.isenabled();gc.disable()
-    before = _source_arena_fds();failure = frame = None
+    observed = {};failure = frame = shared = view = process = wrapper = arena = None
     try:
         with source_server() as (port, calls):
             with monkeypatch.context() as fault:
                 def uncertain(process):
+                    caller = sys._getframe(1)
+                    assert caller.f_code is PinnedPublicTransport.get.__code__
+                    assert caller.f_globals is PinnedPublicTransport.get.__globals__
+                    shared = caller.f_locals['shared'];view = caller.f_locals['view']
+                    wrapper = shared._wrapper
+                    assert type(wrapper) is BufferWrapper
+                    (arena, start, stop), size = wrapper._state
+                    assert type(arena) is Arena and type(arena.fd) is int
+                    info = os.fstat(arena.fd)
+                    assert stat.S_ISREG(info.st_mode) and not observed
+                    observed.update(shared=id(shared), view=id(view), process=id(process),
+                                    wrapper=id(wrapper), arena=id(arena), fd=arena.fd,
+                                    fd_identity=(info.st_dev, info.st_ino, info.st_mode, info.st_size),
+                                    block=(start, stop, size), arena_size=arena.size)
+                    # Only primitive identity evidence survives this callback;
+                    # extra subject references must not retain the buffer.
+                    del caller, shared, view, wrapper, arena
                     actual_close(process)
                     raise SourceCleanupUncertain('synthetic post-close observation uncertainty')
                 fault.setattr(SourceSpawnProcess, 'close', uncertain)
@@ -299,7 +318,18 @@ def test_uncertain_source_close_keeps_own_buffer_and_original_handle_evidence(cu
                 traceback = traceback.tb_next
             assert frame is not None and frame.f_locals['shared'] is not None
             assert frame.f_locals['view'] is not None and frame.f_locals['process'] is not None
-            assert _source_arena_fds() > before and calls == ['/discovery']
+            shared = frame.f_locals['shared'];view = frame.f_locals['view'];process = frame.f_locals['process']
+            assert (id(shared), id(view), id(process)) == (observed['shared'], observed['view'], observed['process'])
+            wrapper = shared._wrapper
+            (arena, start, stop), size = wrapper._state
+            assert type(wrapper) is BufferWrapper and type(arena) is Arena
+            assert (id(wrapper), id(arena), arena.fd) == (observed['wrapper'], observed['arena'], observed['fd'])
+            assert (start, stop, size) == observed['block'] and arena.size == observed['arena_size']
+            assert view.obj is shared and view.nbytes == len(shared) == size
+            assert 0 <= start < stop <= arena.size and stop - start >= size
+            info = os.fstat(arena.fd)
+            assert (info.st_dev, info.st_ino, info.st_mode, info.st_size) == observed['fd_identity']
+            assert calls == ['/discovery']
             with store.transaction() as conn:
                 assert tuple(conn.execute('SELECT outcome,execution_closed FROM research_source_requests WHERE task_id=?', (tid,)).fetchone()) == ('UNKNOWN', 0)
             with AuthorizationGate(store).source_task_gate(tid) as lease:
@@ -309,7 +339,7 @@ def test_uncertain_source_close_keeps_own_buffer_and_original_handle_evidence(cu
         # The fault performed real physical retirement; fresh DB closure above
         # is separate from the intentionally uncertain caller observation.
         # Release test-owned exception references only, then ordinary GC.
-        failure = frame = None
+        failure = frame = shared = view = process = wrapper = arena = None
         if enabled:gc.enable()
         gc.collect()
 

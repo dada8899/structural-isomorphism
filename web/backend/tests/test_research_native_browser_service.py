@@ -214,43 +214,53 @@ def test_bridge_offline_failure_retains_blocking_route_and_original_error(monkey
     """Interface failure control; actual Playwright is verified separately."""
     import asyncio
     module=component()
-    with module.PlanBrowserFixture() as service,service.browser_bridge() as bridge:
-        close=bridge.close;close_calls=[]
-        def close_then_fail_once():
-            close_calls.append(True)
-            if len(close_calls)==1:raise RuntimeError('synthetic close after retirement')
-            close()
-        if failure=='offline_and_close':monkeypatch.setattr(bridge,'close',close_then_fail_once)
-        class Context:
-            offline=False;handler=None;unroute_calls=0
-            async def route(self,pattern,handler):self.handler=handler
-            async def set_offline(self,value):raise OSError('synthetic offline transition failed')
-            async def unroute(self,pattern,handler):self.handler=None;self.unroute_calls+=1
-        class Route:
-            async def abort(self,reason):self.reason=reason
-            async def fulfill(self,**kwargs):raise AssertionError('retired bridge must never fulfill a request')
-        async def exercise():
-            context=Context();body_error=RuntimeError('synthetic original body failure')
-            expected=RuntimeError if failure=='body_and_offline' else OSError
-            with pytest.raises(expected) as caught:
-                async with bridge.routed(context):
-                    if failure=='body_and_offline':raise body_error
-            assert context.offline is False and context.handler is not None and context.unroute_calls==0
-            assert bridge.active is False
-            route=Route()
-            # The retained interception rejects before touching a request or
-            # attempting upstream IO, including after cleanup has failed.
-            await context.handler(route,None)
-            assert route.reason=='blockedbyclient'
-            if failure=='body_and_offline':
-                assert caught.value is body_error
-                assert any('OSError' in note for note in caught.value.__notes__)
-            else:assert 'offline transition failed' in str(caught.value)
-            if failure=='offline_and_close':
-                assert close_calls and any('RuntimeError' in note for note in caught.value.__notes__)
-            assert service.calls==[] and not bridge.pending
-        asyncio.run(exercise())
-    assert not service.root.exists() and service.cleanup_errors==()
+    with pytest.raises(RuntimeError,match=r'^fixture cleanup uncertain: RuntimeError$'):
+        with module.PlanBrowserFixture() as service:
+            with pytest.raises(RuntimeError,match=r'^owned browser route cleanup remains uncertain$'):
+                with service.browser_bridge() as bridge:
+                    close=bridge.close;close_calls=[]
+                    def close_then_fail_once(*,deadline=None):
+                        close_calls.append(True)
+                        if len(close_calls)==1:raise RuntimeError('synthetic close after retirement')
+                        close(deadline=deadline)
+                    if failure=='offline_and_close':monkeypatch.setattr(bridge,'close',close_then_fail_once)
+                    class Context:
+                        offline=False;handler=None;unroute_calls=0
+                        async def route(self,pattern,handler):self.handler=handler
+                        async def set_offline(self,value):raise OSError('synthetic offline transition failed')
+                        async def unroute(self,pattern,handler):self.handler=None;self.unroute_calls+=1
+                    class Route:
+                        async def abort(self,reason):self.reason=reason
+                        async def fulfill(self,**kwargs):raise AssertionError('retired bridge must never fulfill a request')
+                    async def exercise():
+                        context=Context();body_error=RuntimeError('synthetic original body failure')
+                        expected=RuntimeError if failure=='body_and_offline' else OSError
+                        with pytest.raises(expected) as caught:
+                            async with bridge.routed(context):
+                                if failure=='body_and_offline':raise body_error
+                        assert context.offline is False and context.handler is not None and context.unroute_calls==0
+                        assert bridge.active is False
+                        route=Route()
+                        # The retained interception rejects before touching a request or
+                        # attempting upstream IO, including after cleanup has failed.
+                        await context.handler(route,None)
+                        assert route.reason=='blockedbyclient'
+                        if failure=='body_and_offline':
+                            assert caught.value is body_error
+                            assert any('OSError' in note for note in caught.value.__notes__)
+                        else:assert 'offline transition failed' in str(caught.value)
+                        if failure=='offline_and_close':
+                            assert close_calls and any('RuntimeError' in note for note in caught.value.__notes__)
+                        assert service.calls==[] and not bridge.pending
+                    asyncio.run(exercise())
+    assert service.root.exists() and service.cleanup_errors==('RuntimeError',)
+    assert bridge._route_uncertain is True and bridge.active is False
+    with pytest.raises(RuntimeError,match=r'^owned browser route cleanup remains uncertain$'):
+        bridge.close()
+    assert service._main_service._closed is True
+    assert service.app_socket.fileno()==-1 and not service.server_thread.is_alive()
+    from services import formal_admission
+    assert formal_admission._STATE.get(id(service.app)) is None
     assert not [t for t in threading.enumerate() if t.name.startswith('controlled-plan-')]
 
 
