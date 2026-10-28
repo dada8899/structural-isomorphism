@@ -518,23 +518,49 @@ def test_uninitialized_actual_main_http_and_websocket_do_not_receive_body(prepar
     asyncio.run(run())
 
 
-def test_shutdown_attempts_all_directory_retirements_even_after_one_close_error(prepared, monkeypatch):
-    main, admission, paths, _ = prepared
-    close = paths.PrivateAuthFile.close; closed = []
-    held = []
-    async def run():
-        with pytest.raises(RuntimeError):
-            async with main.lifespan(main.app):
-                held.extend(admission._STATE[id(main.app)].witnesses)
-                def failure(value):
-                    close(value)
-                    if value in held:
-                        closed.append(True)
-                        raise OSError('owned close-after-retirement fault')
-                monkeypatch.setattr(paths.PrivateAuthFile, 'close', failure)
-        with pytest.raises(RuntimeError): admission.require(main.app, 'research_basic')
-    asyncio.run(run())
-    assert closed and held and all(w.parent_fd is None for w in held)
+def _shutdown_directory_retirement_fault_probe(owned_root):
+    from pathlib import Path
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        smtp_fixture=smtp.__wrapped__()
+        try:
+            actual_smtp=next(smtp_fixture)
+            prepared_fixture=prepared.__wrapped__(Path(owned_root),monkeypatch,actual_smtp)
+            try:
+                prepared_value=next(prepared_fixture)
+                main, admission, paths, _ = prepared_value
+                close = paths.PrivateAuthFile.close; closed = []
+                held = []
+                async def run():
+                    with pytest.raises(RuntimeError):
+                        async with main.lifespan(main.app):
+                            held.extend(admission._STATE[id(main.app)].witnesses)
+                            def failure(value):
+                                close(value)
+                                if value in held:
+                                    closed.append(True)
+                                    raise OSError('owned close-after-retirement fault')
+                            monkeypatch.setattr(paths.PrivateAuthFile, 'close', failure)
+                    with pytest.raises(RuntimeError): admission.require(main.app, 'research_basic')
+                asyncio.run(run())
+                assert closed and held and all(w.parent_fd is None for w in held)
+            finally:
+                with pytest.raises(StopIteration):next(prepared_fixture)
+            from research import native_plan_supervisor
+            scope=native_plan_supervisor._CONTEXTS.get(id(prepared_value[0].app))
+            assert type(scope) is native_plan_supervisor.MainStartupScope and scope.binding.app is prepared_value[0].app
+        finally:
+            with pytest.raises(StopIteration):next(smtp_fixture)
+
+
+def test_shutdown_attempts_all_directory_retirements_even_after_one_close_error(tmp_path):
+    from .research_process_fixture import _run_owned_probe
+    source=Path(__file__).resolve().parents[3]
+    program=("import sys\nfrom pathlib import Path\n"
+        +"sys.path[:0]="+repr([str(source/'web/backend'),str(source)])+"\n"
+        +"from web.backend.tests.test_formal_main_admission import _shutdown_directory_retirement_fault_probe\n"
+        +"_shutdown_directory_retirement_fault_probe(Path("+repr(str(tmp_path))+"))\n")
+    result=_run_owned_probe(program,cwd=tmp_path)
+    assert result.returncode==0,result.stderr
 
 
 @pytest.mark.skipif(not hasattr(os, 'fork'), reason='actual fork requires POSIX')
