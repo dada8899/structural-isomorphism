@@ -352,3 +352,120 @@ def test_symbolic_sensitivity_rejects_unjustified_null_without_recalculation():
     changed=FinancialSnapshotV2.model_validate_json(canonical(data))
     with pytest.raises(FinancialError,match='sensitivity input availability'):
         project_financial_snapshot_v2(envelope,registry,changed,view='chart')
+
+
+
+@pytest.fixture
+def inert_stored_result():
+    """Consistent synthetic saved DTO only; no Store/Main/native authority."""
+    from web.backend.research import financial_result_v2 as result
+    from web.backend.research.financial_execution import PRODUCER,PROFILE
+    from web.backend.research.financial_policy import POLICY
+    envelope,registry=owner_fixture();snapshot=evaluate_owner_financial_v2(envelope,registry,meter=Meter())
+    ref=envelope.data.registry_ref.model_dump(mode='json');at='2026-10-17T00:00:00.000000Z'
+    row={'research_id':registry.binding.research_id,'principal_id':str(uuid4()),'input_revision':1,
+        'problem_digest':registry.binding.problem_digest,'principal_epoch':1,'owner_epoch':1,'acl_epoch':1,
+        'auth_generation_digest':'a'*64,'owner_gate_identity':[1,2,3,4,5],
+        'research_version_before':2,'research_version_after':3,'request_digest':snapshot.request_digest,
+        'result_ref':str(uuid4()),'result_type':'financial_scenario_v2','registry_ref':ref['id'],
+        'registry_revision':1,'registry_digest':ref['digest'],'run_id':str(uuid4()),'recorded_at':at,
+        'policy_revision':POLICY,'producer_revision':PRODUCER,'execution_code_digest':'e'*64,
+        'execution_status':'completed','operations_used':snapshot.operations_used,'snapshot_digest':snapshot.digest}
+    receipt={'receipt_schema':'financial-local-execution-v2','producer_revision':PRODUCER,'execution_profile':PROFILE,
+        'policy_revision':POLICY,'execution_code_digest':row['execution_code_digest'],'run_id':row['run_id'],'status':'completed',
+        'http':{'action':'financial-calculate','method':'POST','endpoint':'calculate_research_financial',
+            'source_ref':str(uuid4()),'key_digest':'b'*64,'request_digest':snapshot.request_digest,
+            'session_jti_digest':'c'*64,'session_expires_at':1},
+        'binding':{**{k:row[k] for k in ('research_id','principal_id','principal_epoch','auth_generation_digest',
+            'owner_epoch','acl_epoch','input_revision','problem_digest')},'registry_ref':ref,
+            'registry_origin_digest':digest({'registry_ref':ref,'parser_revision':registry.parser_revision,
+                **registry.receipt.model_dump(mode='json')})},
+        'native':{'pid':1,'thread_id':1,'transaction_ref':str(uuid4()),'main_binding_ref':str(uuid4()),
+            'database_identity':[1,2],'owner_gate_identity':row['owner_gate_identity']},
+        'parameters_digest':snapshot.parameters_digest,'evaluation_input_digest':snapshot.evaluation_input_digest,
+        'snapshot_digest':snapshot.digest,'timing':{'started_at':at,'completed_at':at,'recorded_at':at,'elapsed_monotonic_ns':0},
+        'guard':{'kind':'cooperative','deadline_ms':2000,'max_operations':5000,
+            'operations_used':snapshot.operations_used,'os_isolation_attested':False},
+        'qualification':'conditional_on_owner_supplied_data','model_analysis_ran':False}
+    expectation={k:row[k] for k in ('result_ref','research_id','principal_id','input_revision','problem_digest',
+        'request_digest','producer_revision','policy_revision','execution_code_digest','run_id','snapshot_digest',
+        'recorded_at','research_version_before','research_version_after')}
+    expectation.update(expectation_schema='financial-result-expectation-v2',registry_ref=ref,
+        parameters_digest=snapshot.parameters_digest,evaluation_input_digest=snapshot.evaluation_input_digest,
+        execution_profile=PROFILE,receipt_digest=digest(receipt),calculation_status='calculated_under_assumptions',
+        qualification='conditional_on_owner_supplied_data',u2_goal_status=result._u2_status(snapshot),model_analysis_ran=False)
+    stored=result.StoredFinancialResultV2.model_validate_json(canonical({'row_binding':row,'operation':envelope.data_dict(),
+        'expectation':expectation,'execution_receipt':receipt,'snapshot':snapshot.data()}))
+    return stored,registry
+
+
+def _observe_stored_raw_boundary(monkeypatch):
+    from web.backend.research import financial_result_v2 as result
+    original_bounded,original_canonical=result.bounded,result.canonical
+    original_roundtrip=result.StoredFinancialResultV2.model_validate_json
+    original_snapshot=result.validate_snapshot
+    facts={'data':None,'raw':None,'canonical':0,'roundtrip':0,'snapshot':0}
+    def serialise(value):
+        if value is facts['data']:facts['canonical']+=1
+        return original_canonical(value)
+    def limit(value,cap):
+        whole=type(value) is dict and set(value)=={'row_binding','operation','expectation','execution_receipt','snapshot'}
+        if whole:
+            assert facts['data'] is None and cap==SNAPSHOT_LIMIT
+            facts['data']=value
+        raw=original_bounded(value,cap)
+        if whole:
+            # Independent original second serialization, outside the counted
+            # production binding, proves byte equality without an old-code shim.
+            assert raw==original_canonical(value)
+            facts['raw']=raw
+        return raw
+    def roundtrip(cls,raw,*args,**kwargs):
+        facts['roundtrip']+=1
+        assert type(raw) is str and raw is facts['raw']
+        return original_roundtrip(raw,*args,**kwargs)
+    def snapshot(*args,**kwargs):
+        facts['snapshot']+=1
+        return original_snapshot(*args,**kwargs)
+    monkeypatch.setattr(result,'canonical',serialise)
+    monkeypatch.setattr(result,'bounded',limit)
+    monkeypatch.setattr(result.StoredFinancialResultV2,'model_validate_json',classmethod(roundtrip))
+    monkeypatch.setattr(result,'validate_snapshot',snapshot)
+    return facts
+
+
+def test_stored_roundtrip_reuses_same_bounded_raw_and_preserves_full_validation(inert_stored_result,monkeypatch):
+    from web.backend.research import financial_result_v2 as result
+    stored,registry=inert_stored_result
+    before=canonical(stored.model_dump(mode='json'));owner=canonical(registry.model_dump(mode='json'))
+    facts=_observe_stored_raw_boundary(monkeypatch)
+    saved=result._validate_stored(stored,registry)
+    assert saved is not stored and canonical(saved.model_dump(mode='json'))==before
+    assert digest(saved.model_dump(mode='json'))==digest(stored.model_dump(mode='json'))
+    assert canonical(registry.model_dump(mode='json'))==owner
+    assert result._saved_values(saved)==result._saved_values(stored)
+    assert (facts['canonical'],facts['roundtrip'],facts['snapshot'])==(1,1,1)
+    assert facts['raw']==before
+
+
+@pytest.mark.parametrize('kind,counts',[
+    ('wrong_type',(0,0,0)),('primitive',(0,0,0)),('shape',(0,0,0)),('bytes',(0,0,0)),
+    ('roundtrip',(1,1,0)),('registry',(1,1,1)),('snapshot',(1,1,1)),('receipt',(1,1,1))])
+def test_stored_raw_reuse_preserves_bounded_roundtrip_and_binding_rejections(inert_stored_result,monkeypatch,kind,counts):
+    from web.backend.research import financial_result_v2 as result
+    stored,registry=inert_stored_result
+    if kind=='wrong_type':stored={}
+    elif kind=='primitive':stored=stored.model_copy(update={'row_binding':stored.row_binding.model_copy(update={'owner_gate_identity':(1,2,3,4,1<<65)})})
+    elif kind=='shape':
+        nested=0
+        for _ in range(34):nested=[nested]
+        stored=stored.model_copy(update={'row_binding':stored.row_binding.model_copy(update={'owner_gate_identity':nested})})
+    elif kind=='bytes':stored=stored.model_copy(update={'row_binding':stored.row_binding.model_copy(update={'request_digest':'x'*(SNAPSHOT_LIMIT+1)})})
+    elif kind=='roundtrip':stored=stored.model_copy(update={'row_binding':stored.row_binding.model_copy(update={'result_ref':'invalid'})})
+    elif kind=='registry':registry=registry.model_copy(update={'binding':registry.binding.model_copy(update={'input_revision':2})})
+    elif kind=='snapshot':stored=stored.model_copy(update={'snapshot':stored.snapshot.model_copy(update={'operations_used':stored.snapshot.operations_used+1})})
+    else:stored=stored.model_copy(update={'execution_receipt':stored.execution_receipt.model_copy(update={'snapshot_digest':'0'*64})})
+    facts=_observe_stored_raw_boundary(monkeypatch)
+    expected=FinancialResourceLimit if kind in ('primitive','shape','bytes') else ValueError
+    with pytest.raises(expected):result._validate_stored(stored,registry)
+    assert (facts['canonical'],facts['roundtrip'],facts['snapshot'])==counts

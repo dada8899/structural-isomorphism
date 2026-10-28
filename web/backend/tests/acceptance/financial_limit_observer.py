@@ -96,7 +96,7 @@ SOURCE_PINS = {'web/backend/research/financial_evaluator.py': 'b6f4d2474680a0bc8
  'web/backend/research/financial_execution.py': 'e223a34e401e7cbe37be55142177bcbbe4f2829169c1b210b2e453edfb3bc060',
  'web/backend/research/financial_policy.py': '719792b41ebbfce6d69ceea25f77e1ad8ba1458d4a245750db206de9ea03cd02',
  'web/backend/research/financial_result_adapter.py': '8b784f74da182ca2b3bf2265d3d83fa6e5079644872fc91f1f30234540e083bf',
- 'web/backend/research/financial_result_v2.py': 'fdaaed8e19058e41932efcbe574636469ffce3fff5ef0b6b40c6ca0eb627366f',
+ 'web/backend/research/financial_result_v2.py': '9264cbca5b3e4791ef6bee0d76c2066f2b5406d13bda19f9ff50bfc4e48e6103',
  'web/backend/research/financial_schemas.py': '47da16217d08dfd2dd87a0b2feb3cb17f7b19d88188b0ec6896fd08d0d6a72e7',
  'web/backend/research/financial_input_schemas.py': 'a1691d3e29827aef4d50fbc8a98320292d949ec7b62d6bc20555a921e704bb11',
  'web/backend/research/financial_input.py': 'a7f687d272482f1ca9477c051ef5232d097f4c4ed38c160ab95d331646537728',
