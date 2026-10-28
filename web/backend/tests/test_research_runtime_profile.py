@@ -1,4 +1,4 @@
-"""Actual native14 profile facts and closed fixed-Main seams, no execution."""
+"""Actual native15 profile facts and closed fixed-Main seams, no execution."""
 from contextlib import contextmanager,closing
 from dataclasses import FrozenInstanceError
 from pathlib import Path
@@ -20,7 +20,7 @@ from .test_private_registration import stack
 
 @pytest.fixture
 def current(roots):
-    assert bootstrap_private_runtime()['research_schema']==14
+    assert bootstrap_private_runtime()['research_schema']==15
     auth=AuthStore(roots/'auth.sqlite3')
     return ResearchStore(auth)
 
@@ -35,11 +35,11 @@ def native_snapshot(store,*,hooks=True):
     finally:conn.close()
 
 
-def test_actual_native14_profile_facts_are_readonly_frozen_and_not_funding(current):
+def test_actual_native15_profile_facts_are_readonly_frozen_and_not_funding(current):
     with native_snapshot(current) as conn:
         image=conn.serialize();before=conn.total_changes
         facts=ResearchStore.inspect_formal_profile(conn)
-        assert facts.auth_profile=='auth-provision-v1' and facts.research_schema==14
+        assert facts.auth_profile=='auth-provision-v1' and facts.research_schema==15
         assert facts.financial_protocols==(7,8,9) and facts.method_protocol==9 and facts.checked_pid==os.getpid()
         assert facts.database_identity_verified and facts.hooks_verified and facts.foreign_keys_verified
         with pytest.raises(FrozenInstanceError):facts.research_schema=13
