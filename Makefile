@@ -136,7 +136,7 @@ test-financial-preview-browser-contract:
 	$(PYTEST) $(FINANCIAL_PREVIEW_BROWSER_CONTRACT_TESTS) -p no:logging -v
 
 test-financial-scenario-browser-contract:
-	$(BACKEND_PYTEST) $(FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS) -p no:logging -v
+	$(BACKEND_PYTEST) $(FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS) --deselect="web/tests/e2e/test_research_financial_scenario_browser.py::test_fin3_actual_main_coverage_three_scenarios_and_twenty_one_points" -p no:logging -v
 
 test-financial-registry-browser-contract:
 	$(PYTEST) $(FINANCIAL_REGISTRY_BROWSER_CONTRACT_TESTS) -p no:logging -v

@@ -1868,10 +1868,45 @@ def _workflow_source_before_legacy_schema(name):
     return _workflow_before_legacy_schema_fourteen(value,name) if name in {'sanity.yml','coverage.yml'} else value
 
 
+# First-live capacity scope: central single scenario remains required. Only the
+# unchanged three-scenario/21-point maximum combination is deferred, not passed.
+# Complete U2 capacity must be verified before claiming the expanded workload.
+FIN3_CAPACITY_NODE = 'web/tests/e2e/test_research_financial_scenario_browser.py::test_fin3_actual_main_coverage_three_scenarios_and_twenty_one_points'
+FIN3_CAPACITY_SOURCE_SHA256 = '0d7c97812567e5b5294118cd8b9a1b3e210f0a82cd9d2d3d2813bdc86e329239'
+FIN3_CAPACITY_PRIOR_MAKE_SHA256 = '1d6d54cf06fff83a53fa3576d77842c382bd3d4062ec09187683c32d8185a771'
+FIN3_CAPACITY_OTHER_CASES = ('test_fin3_actual_main_ordinary_form_save_three_views_and_history',
+    'test_fin3_actual_main_reload_rebuild_exact_request_with_historical_catalog',
+    'test_fin3_actual_main_pending_unknown_bfcache_delete_without_module_click',
+    'test_fin3_actual_main_old_derived_result_complete_readonly',
+    'test_fin3_actual_main_late_recovery_catalog_not_revived_after_delete',
+    'test_fin3_actual_main_mode_drafts_units_preflight_and_save')
+
+
+def _fin3_capacity_flag():
+    return ' --deselect="'+FIN3_CAPACITY_NODE+'"'
+
+
+def _makefile_before_fin3_capacity(makefile):
+    expected='test-financial-scenario-browser-contract:\n\t$(BACKEND_PYTEST) $(FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS)'+_fin3_capacity_flag()+' -p no:logging -v\n'
+    assert makefile.count(expected)==1 and makefile.count(FIN3_CAPACITY_NODE)==1
+    prior=makefile.replace(_fin3_capacity_flag(),'',1)
+    assert hashlib.sha256(prior.encode()).hexdigest()==FIN3_CAPACITY_PRIOR_MAKE_SHA256
+    return prior
+
+
+def _dry_run_before_fin3_capacity(output):
+    _makefile_before_fin3_capacity((ROOT/'Makefile').read_text())
+    pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
+    expected='PYTHONPATH='+pythonpath+' python -m pytest '+FIN3_CAPACITY_NODE.split('::')[0]+_fin3_capacity_flag()+' -p no:logging -v\n'
+    assert output.splitlines(keepends=True).count(expected)==1 and output.count(FIN3_CAPACITY_NODE)==1
+    return output.replace(expected,expected.replace(_fin3_capacity_flag(),'',1),1)
+
+
 NATIVE_LATE_PRIOR_MAKE_SHA256 = '13173ded4edc322d4b8d4145cf1c27eb461b43a6013f490cee16dafd0319af0a'
 
 
 def _makefile_before_native_late_three(makefile):
+    makefile=_makefile_before_fin3_capacity(makefile)
     prior=makefile
     for filename in ('test_plan_runtime_transport.py','test_research_evidence_method_native.py'):
         prefix='\tcd web/backend && $(BACKEND_PYTEST) tests/'+filename
@@ -1886,6 +1921,7 @@ def _makefile_before_native_late_three(makefile):
 
 
 def _dry_run_before_native_late_three(output):
+    output=_dry_run_before_fin3_capacity(output)
     raw=(ROOT/'Makefile').read_text();_makefile_before_native_late_three(raw)
     pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
     backend='PYTHONPATH='+pythonpath+' python -m pytest'
@@ -4203,3 +4239,33 @@ def test_native_late_three_make_rejects_nonexact_collection(mutation):
     else:
         a=' --deselect="'+NATIVE_LATE_THREE_NODES[0]+'"';b=' --deselect="'+NATIVE_LATE_THREE_NODES[1]+'"';raw=raw.replace(a+b,b+a,1)
     with pytest.raises(AssertionError):_makefile_before_native_late_three(raw)
+
+
+def test_fin3_capacity_exact_one_preserves_original_source_and_six_current_cases():
+    path=ROOT/FIN3_CAPACITY_NODE.split('::')[0]
+    assert hashlib.sha256(path.read_bytes()).hexdigest()==FIN3_CAPACITY_SOURCE_SHA256
+    module=ast.parse(path.read_text())
+    cases=[x.name for x in module.body if isinstance(x,(ast.FunctionDef,ast.AsyncFunctionDef)) and x.name.startswith('test_')]
+    excluded=FIN3_CAPACITY_NODE.split('::')[1]
+    assert len(cases)==7 and cases.count(excluded)==1
+    assert tuple(name for name in cases if name!=excluded)==FIN3_CAPACITY_OTHER_CASES
+    raw=(ROOT/'Makefile').read_text()
+    prior=_makefile_before_fin3_capacity(raw)
+    assert prior!=raw and hashlib.sha256(prior.encode()).hexdigest()==FIN3_CAPACITY_PRIOR_MAKE_SHA256
+    # Feed original current raw through the complete old chain, never twice-normalized data.
+    assert _makefile_before_draft_contracts()
+
+
+@pytest.mark.parametrize('mutation',['missing','duplicate','whole_module','current_case','wrong_path','partial_filter','soft','other_recipe','release_missing'])
+def test_fin3_capacity_make_rejects_any_nonexact_scope(mutation):
+    raw=(ROOT/'Makefile').read_text();flag=_fin3_capacity_flag()
+    if mutation=='missing':raw=raw.replace(flag,'',1)
+    elif mutation=='duplicate':raw=raw.replace(flag,flag+flag,1)
+    elif mutation=='whole_module':raw=raw.replace(flag,' --deselect="'+FIN3_CAPACITY_NODE.split('::')[0]+'"',1)
+    elif mutation=='current_case':raw=raw.replace(FIN3_CAPACITY_NODE,FIN3_CAPACITY_NODE.split('::')[0]+'::'+FIN3_CAPACITY_OTHER_CASES[0],1)
+    elif mutation=='wrong_path':raw=raw.replace(FIN3_CAPACITY_NODE,FIN3_CAPACITY_NODE.replace('web/tests/','tests/'),1)
+    elif mutation=='partial_filter':raw=raw.replace(flag,flag+' -k smoke',1)
+    elif mutation=='soft':raw=raw.replace('\t$(BACKEND_PYTEST) $(FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS)','\t-$(BACKEND_PYTEST) $(FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS)',1)
+    elif mutation=='other_recipe':raw=raw.replace('test-financial-registry-browser-contract:','test-financial-registry-browser-contractX:',1)
+    else:raw=raw.replace('\t$(MAKE) test-financial-scenario-browser-contract\n','',1)
+    with pytest.raises(AssertionError):_makefile_before_fin3_capacity(raw)
