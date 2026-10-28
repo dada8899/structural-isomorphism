@@ -203,7 +203,7 @@ PREOWNED_ORIGINAL_SHA256 = 'e135e43a883ca18fba48543f712f7c65dd2fcbc5ca3b5da2bf60
 # First-live scope only: controlled Native authority birth/retry is not used
 # by central FIN1/FIN2/FIN3 or SMTP. Keep its original failure and full obligation.
 AUTHORITY_RETRY_NODE = 'web/backend/tests/test_research_native_browser_service.py::test_real_authority_birth_failure_can_retry_without_adopting_orphan_resources'
-AUTHORITY_RETRY_SOURCE_SHA256 = 'd6714cfff0a174d1dd28f2bf4507ee0949324a394f1aa012e4598a9d320591db'
+AUTHORITY_RETRY_SOURCE_SHA256 = '04dcfbbb3cfc57515b4099ff9e86684bcf3ed0c191da5e346c9bdb9ae87fd002'
 AUTHORITY_RETRY_PRIOR_JOBS_SHA256 = {'sanity.yml': 'd586f6f53afbfa5ba38129726d710eaeeae8ba86de4f46abc22e50f1611e9a8c', 'coverage.yml': '82d00ddae8ffa9f06e36e64c46642b4500c1ef142113233b44c0e7a2be4e5634'}
 
 
