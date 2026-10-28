@@ -180,15 +180,6 @@ def _fresh_draft_history_probe(tmp_path):
     from fastapi.testclient import TestClient
     tmp_path=Path(tmp_path)
     state=tmp_path/'state'
-    original=produce(Path(__file__).resolve().parents[3],tmp_path/'old13',state,tmp_path/'original.json',mode='native')
-    path=state/'auth.sqlite3';inode=(path.stat().st_dev,path.stat().st_ino)
-    before13=snapshot(path);check(path,13,before13)
-    assert provision_method_drafts_v14(path)['schema_version']==14
-    check(path,14,before13);before14=snapshot(path)
-    assert provision_financial_inputs_v15(path)['schema_version']==15
-    assert (path.stat().st_dev,path.stat().st_ino)==inode
-    after15=snapshot(path)
-    assert {name:after15[name] for name in before14}==before14
     for namespace in ('services.runtime_paths','web.backend.services.runtime_paths'):
         paths=importlib.import_module(namespace)
         paths.STATE_ROOT=state;paths.CACHE_ROOT=tmp_path/'cache';paths.LOG_ROOT=state/'logs'
@@ -200,6 +191,15 @@ def _fresh_draft_history_probe(tmp_path):
     for key in ('STRUCTURAL_DATA_DIR','STRUCTURAL_MODEL_PATH','STRUCTURAL_PRECOMPUTED_EMBEDDINGS',
         'STRUCTURAL_ARTIFACT_MANIFEST','STRUCTURAL_HISTORY_DB','STRUCTURAL_FAVORITES_PATH'):
         os.environ.pop(key,None)
+    original=produce(Path(__file__).resolve().parents[3],tmp_path/'old13',state,tmp_path/'original.json',mode='native')
+    path=state/'auth.sqlite3';inode=(path.stat().st_dev,path.stat().st_ino)
+    before13=snapshot(path);check(path,13,before13)
+    assert provision_method_drafts_v14(path)['schema_version']==14
+    check(path,14,before13);before14=snapshot(path)
+    assert provision_financial_inputs_v15(path)['schema_version']==15
+    assert (path.stat().st_dev,path.stat().st_ino)==inode
+    after15=snapshot(path)
+    assert {name:after15[name] for name in before14}==before14
     import main
     from services import formal_admission
     mail=[];auth._send_email=lambda to,subject,text:mail.append(text)
