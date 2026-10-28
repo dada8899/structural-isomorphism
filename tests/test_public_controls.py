@@ -1871,7 +1871,7 @@ def _makefile_before_legacy_schema_contracts():
 
 def _original_dry_run_before_legacy_schema(output):
     output=_dry_run_before_partial_runtime(output)
-    raw=_makefile_before_partial_runtime((ROOT/'Makefile').read_text());_original_makefile_before_legacy_schema(raw)
+    raw=(ROOT/'Makefile').read_text();_original_makefile_before_legacy_schema(raw);raw=_makefile_before_partial_runtime(raw)
     pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
     backend='PYTHONPATH='+pythonpath+' python -m pytest'
     expected=[line.replace('$(BACKEND_PYTEST)',backend,1)+'\n' for line in _make_recipe_commands(raw,'verify-release') if line.startswith('cd web/backend ')]
