@@ -79,7 +79,7 @@ def test_actual_class_original_args_catch_and_direct_api_site(loaded, capsys):
     assert value['setup'] == 'READY' and value['restore'] == 'RESTORED'
     assert value['response'] == 'HTTP_413' and value['events'] == '1'
     assert value['observations'] == [{'event': 'DIRECT_RAISE_CONSTRUCTION', 'site': 'L01',
-        'category': 'REQUEST_WIRE_BYTES', 'cap': None, 'operations': None, 'nodes': None, 'depth': None}]
+        'category': 'REQUEST_WIRE_BYTES', 'cap': None, 'operations': None, 'nodes': None, 'depth': None, 'deadline_caller': 'UNKNOWN'}]
     assert 'synthetic private constructor text' not in json.dumps(value)
 
 
@@ -383,7 +383,7 @@ def test_no_request_frame_or_exception_survives_context(loaded, capsys):
 def test_private_hot_path_has_no_io_compile_hash_clock_or_import():
     functions = (observer._make_init, observer._Observation._capture, observer._Observation._site,
         observer._Observation._memory_code, observer._Observation._raw_module, observer._Observation._request_scope,
-        observer._function_code, observer._numbers, observer._integer)
+        observer._function_code, observer._numbers, observer._integer, observer._Observation._deadline_caller)
     forbidden = {'open', 'read', 'read_bytes', 'write', 'write_text', 'resolve', 'stat', 'compile',
         'sha256', 'digest', 'monotonic', 'perf_counter', 'time', 'import_module', '__import__'}
     for function in functions:
@@ -392,9 +392,9 @@ def test_private_hot_path_has_no_io_compile_hash_clock_or_import():
         calls = [n.func.id if isinstance(n.func, ast.Name) else n.func.attr if isinstance(n.func, ast.Attribute) else '' for n in ast.walk(tree) if isinstance(n, ast.Call)]
         assert not forbidden.intersection(calls)
     # Two maximum-domain observations and all metadata fit the hard line cap.
-    sample = {'schema': 'FIN3_LIMIT_OBS_V1', 'case': observer.CASE, 'setup': 'READY', 'response': 'HTTP_413',
+    sample = {'schema': 'FIN3_LIMIT_OBS_V2', 'case': observer.CASE, 'setup': 'READY', 'response': 'HTTP_413',
         'events': '2_PLUS', 'observations': [{'event': 'DIRECT_RAISE_CONSTRUCTION', 'site': row[0],
-            'category': row[4], 'cap': 524288, 'operations': 5001, 'nodes': 20001, 'depth': 33}
+            'category': row[4], 'cap': 524288, 'operations': 5001, 'nodes': 20001, 'depth': 33, 'deadline_caller': 'UNKNOWN'}
             for row in (observer.SITES[7], observer.SITES[12])],
         'overflow': True, 'observer_fault': False, 'restore': 'RESTORED', 'catch_link': 'UNOBSERVED'}
     assert len(observer._encode(sample)) + 1 <= 2048
@@ -510,3 +510,121 @@ def test_class_dictionary_probe_never_invokes_metaclass_property():
     class Owner(metaclass=DangerousMeta):
         member = property(lambda self: None)
     assert observer._function_code({'Owner': Owner, '__name__': 'synthetic'}, 'Owner.member') is None
+
+
+@pytest.mark.parametrize('row', observer.DEADLINE_CALLERS, ids=[row[0] for row in observer.DEADLINE_CALLERS])
+def test_deadline_caller_fixed_seventeen_real_code_global_and_line_identity(loaded, capsys, row):
+    tag, relative, line, qualname = row
+    module = importlib.import_module(observer._module_name(relative))
+    namespace = vars(module)
+    code = observer._function_code(namespace, qualname)
+    with observer.observe_financial_limit(object()) as capture:
+        assert capture._setup == 'READY'
+        assert capture._deadline_caller(code, namespace, line) == tag
+    assert records(capsys)[0]['events'] == '0'
+    assert capture._caller_specs == {}
+
+
+def test_deadline_caller_identity_unknown_and_no_user_callbacks(loaded, monkeypatch, capsys):
+    module = importlib.import_module('research.financial_execution')
+    namespace = vars(module)
+    code = observer._function_code(namespace, 'CurrentFinancialExecution.require')
+    class Poison:
+        def __getattribute__(self, name):
+            raise AssertionError('caller object callback forbidden')
+        def __eq__(self, value):
+            raise AssertionError('caller equality callback forbidden')
+    class PoisonDict(dict):
+        def get(self, *args):
+            raise AssertionError('caller dictionary callback forbidden')
+    with observer.observe_financial_limit(object()) as capture:
+        assert capture._deadline_caller(None, namespace, 281) == 'UNKNOWN'
+        assert capture._deadline_caller(Poison(), namespace, 281) == 'UNKNOWN'
+        assert capture._deadline_caller(code, PoisonDict(namespace), 281) == 'UNKNOWN'
+        assert capture._deadline_caller(code, dict(namespace), 281) == 'UNKNOWN'
+        assert capture._deadline_caller(code, namespace, True) == 'UNKNOWN'
+        assert capture._deadline_caller(code, namespace, 282) == 'UNKNOWN'
+        equivalent = code.replace()
+        assert equivalent == code and equivalent is not code
+        assert capture._deadline_caller(equivalent, namespace, 281) == 'UNKNOWN'
+        foreign = types.ModuleType(module.__name__)
+        vars(foreign).update(namespace)
+        with monkeypatch.context() as change:
+            change.setitem(sys.modules, module.__name__, foreign)
+            assert capture._deadline_caller(code, namespace, 281) == 'UNKNOWN'
+    assert records(capsys)[0]['events'] == '0'
+
+
+def test_deadline_caller_same_source_equal_code_replacement_is_not_original_identity(loaded, monkeypatch, capsys):
+    module = importlib.import_module('research.financial_execution')
+    original = module.CurrentFinancialExecution.require
+    with observer.observe_financial_limit(object()) as capture:
+        equivalent = original.__code__.replace()
+        replacement = types.FunctionType(equivalent, vars(module), original.__name__)
+        replacement.__qualname__, replacement.__module__ = original.__qualname__, original.__module__
+        with monkeypatch.context() as change:
+            change.setattr(module.CurrentFinancialExecution, 'require', replacement)
+            assert capture._deadline_caller(equivalent, vars(module), 281) == 'UNKNOWN'
+        assert capture._deadline_caller(original.__code__, vars(module), 281) == 'REQUIRE_ENTER'
+    assert records(capsys)[0]['events'] == '0'
+
+
+def test_deadline_caller_callback_has_no_cold_work_or_new_locals(loaded, monkeypatch, capsys):
+    module = importlib.import_module('research.financial_execution')
+    with observer.observe_financial_limit(object()) as capture:
+        code = observer._function_code(vars(module), 'CurrentFinancialExecution.require')
+        def forbidden(*args, **kwargs):
+            raise AssertionError('deadline caller callback cold work forbidden')
+        with monkeypatch.context() as guard:
+            guard.setattr(observer.Path, 'read_bytes', forbidden)
+            guard.setattr(observer.Path, 'resolve', forbidden)
+            guard.setattr(observer.Path, 'stat', forbidden)
+            guard.setattr(observer.hashlib, 'sha256', forbidden)
+            guard.setattr('builtins.compile', forbidden)
+            guard.setattr('builtins.__import__', forbidden)
+            assert capture._deadline_caller(code, vars(module), 281) == 'REQUIRE_ENTER'
+    records(capsys)
+    source = ast.parse(textwrap.dedent(inspect.getsource(observer._Observation._deadline_caller)))
+    assert not any(isinstance(node, ast.Attribute) and node.attr == 'f_locals' for node in ast.walk(source))
+    capture_source = ast.parse(textwrap.dedent(inspect.getsource(observer._Observation._capture)))
+    added = next(node for node in ast.walk(capture_source) if isinstance(node, ast.If) and "'L07'" in ast.unparse(node.test))
+    assert not any(isinstance(node, ast.Attribute) and node.attr == 'f_locals' for node in ast.walk(added))
+
+
+@pytest.mark.parametrize('bad', [None, True, 1, 'private free text', 'CALC_AFTER_CONSUME_EXTRA', {'caller': 'REQUIRE_ENTER'}])
+def test_deadline_caller_closed_encoder_rejects_corruption(loaded, capsys, bad):
+    _, route = loaded
+    app = object()
+    with observer.observe_financial_limit(app) as capture:
+        reject(route, app)
+        sample = capture._record()
+        sample['observations'][0]['deadline_caller'] = bad
+        with pytest.raises(ValueError): observer._encode(sample)
+    records(capsys)
+
+
+def test_deadline_caller_non_deadline_site_cannot_claim_a_stage(loaded, capsys):
+    _, route = loaded
+    app = object()
+    with observer.observe_financial_limit(app) as capture:
+        reject(route, app)
+        sample = capture._record()
+        sample['observations'][0]['deadline_caller'] = 'REQUIRE_ENTER'
+        with pytest.raises(ValueError): observer._encode(sample)
+        sample['observations'][0].update(site='L07', category='ORIGINAL_DEADLINE')
+        assert 'REQUIRE_ENTER' in observer._encode(sample)
+    records(capsys)
+
+
+def test_deadline_caller_literal_ledger_is_cold_pinned_and_not_name_guessed(loaded, monkeypatch, capsys):
+    assert len(observer.DEADLINE_CALLERS) == 17
+    assert len({row[0] for row in observer.DEADLINE_CALLERS}) == 17
+    for tag, relative, line, qualname in observer.DEADLINE_CALLERS:
+        assert observer._deadline_sites((observer.ROOT / relative).read_bytes())[line] == qualname
+    changed = list(observer.DEADLINE_CALLERS)
+    changed[0] = (changed[0][0], changed[0][1], changed[0][2] + 1, changed[0][3])
+    with monkeypatch.context() as change:
+        change.setattr(observer, 'DEADLINE_CALLERS', tuple(changed))
+        with observer.observe_financial_limit(object()) as capture:
+            assert capture._setup == 'UNAVAILABLE'
+    assert records(capsys)[0]['restore'] == 'UNINSTALLED'
