@@ -200,6 +200,32 @@ NATIVE_ORIGINAL_MODULE_SHA256 = 'e89292a1441cfe75a9c491a18b4a1a261820faffc8743ad
 # First-live historical deferral only: before Native live/drop-in/paid activation,
 # all six unchanged dynamic ownership/physical-close/retry/retire obligations must run.
 PREOWNED_ORIGINAL_SHA256 = 'e135e43a883ca18fba48543f712f7c65dd2fcbc5ca3b5da2bf60f4fe152c2cc0'
+# First-live scope only: controlled Native authority birth/retry is not used
+# by central FIN1/FIN2/FIN3 or SMTP. Keep its original failure and full obligation.
+AUTHORITY_RETRY_NODE = 'web/backend/tests/test_research_native_browser_service.py::test_real_authority_birth_failure_can_retry_without_adopting_orphan_resources'
+AUTHORITY_RETRY_SOURCE_SHA256 = 'd6714cfff0a174d1dd28f2bf4507ee0949324a394f1aa012e4598a9d320591db'
+AUTHORITY_RETRY_PRIOR_JOBS_SHA256 = {'sanity.yml': 'd586f6f53afbfa5ba38129726d710eaeeae8ba86de4f46abc22e50f1611e9a8c', 'coverage.yml': '82d00ddae8ffa9f06e36e64c46642b4500c1ef142113233b44c0e7a2be4e5634'}
+
+
+def _authority_retry_flag():
+    return ' --deselect="'+AUTHORITY_RETRY_NODE+'"'
+
+
+def _workflow_before_authority_retry(value,name):
+    original=copy.deepcopy(value);jobs=original['jobs']
+    if name=='sanity.yml':
+        job=jobs['sanity-backend-fresh'];title='Leg 2 — web/backend pytest baseline';prefix='python -m pytest tests/'
+    else:
+        assert name=='coverage.yml';job=jobs['coverage'];title='Run coverage (split by suite, parallel files combined)';prefix='python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/'
+    steps=[x for x in job['steps'] if x.get('name')==title];assert len(steps)==1
+    script=steps[0]['run'];expected=prefix+AUTHORITY_RETRY_NODE.split('::')[0].split('/')[-1]+_authority_retry_flag()+' '
+    matches=[line for line in script.splitlines() if line.startswith(expected)]
+    assert len(matches)==1 and script.count(AUTHORITY_RETRY_NODE)==1
+    steps[0]['run']=script.replace(_authority_retry_flag(),'',1)
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==AUTHORITY_RETRY_PRIOR_JOBS_SHA256[name]
+    return original
+
+
 # Only three future-Native late-return schedules are deferred for first live.
 # Their source, real failures, unexecuted case and future native activation
 # obligations remain; evidence cancel and all general delete/UNKNOWN/SQL guards run.
@@ -213,6 +239,7 @@ def _native_late_flags(filename):
 
 
 def _workflow_before_native_late_three(value,name):
+    value=_workflow_before_authority_retry(value,name)
     original=copy.deepcopy(value);jobs=original['jobs']
     if name=='sanity.yml':
         job=jobs['sanity-backend-fresh'];title='Leg 2 — web/backend pytest baseline'
@@ -2374,3 +2401,38 @@ def test_native_late_three_workflow_rejects_nonexact_collection(kind,mutation):
         a=' --deselect="'+NATIVE_LATE_THREE_NODES[0]+'"';b=' --deselect="'+NATIVE_LATE_THREE_NODES[1]+'"'
         step['run']=step['run'].replace(a+b,b+a,1)
     with pytest.raises(AssertionError):_workflow_before_native_late_three(raw,kind+'.yml')
+
+
+def test_authority_retry_exact_one_preserves_source_and_current_safety_cases():
+    path=ROOT/AUTHORITY_RETRY_NODE.split('::')[0]
+    assert hashlib.sha256(path.read_bytes()).hexdigest()==AUTHORITY_RETRY_SOURCE_SHA256
+    module=ast.parse(path.read_text());name=AUTHORITY_RETRY_NODE.split('::')[1]
+    fn=next(x for x in module.body if isinstance(x,ast.FunctionDef) and x.name==name)
+    assert not fn.decorator_list
+    cases=[x.name for x in module.body if isinstance(x,ast.FunctionDef) and x.name.startswith('test_')]
+    assert cases.count(name)==1 and 'test_static_pages_are_actual_repo_bytes_and_canonical_bridge_has_no_owner_cookie' in cases
+    assert 'test_uncertain_failed_installation_keeps_references_and_private_root' in cases
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_authority_retry_workflow_exact_inverse_returns_previous_all_jobs(kind):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text());prior=_workflow_before_authority_retry(raw,kind+'.yml')
+    assert prior!=raw
+    assert hashlib.sha256(json.dumps(prior['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==AUTHORITY_RETRY_PRIOR_JOBS_SHA256[kind+'.yml']
+    assert _workflow_before_native_late_three(raw,kind+'.yml')!=prior
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+@pytest.mark.parametrize('mutation',['missing','duplicate','whole_module','wrong_path','current_case','partial','other_job'])
+def test_authority_retry_workflow_rejects_any_wider_or_missing_scope(kind,mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text());job=raw['jobs']['sanity-backend-fresh' if kind=='sanity' else 'coverage']
+    title='Leg 2 — web/backend pytest baseline' if kind=='sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step=next(x for x in job['steps'] if x.get('name')==title);flag=_authority_retry_flag()
+    if mutation=='missing':step['run']=step['run'].replace(flag,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(flag,flag+flag,1)
+    elif mutation=='whole_module':step['run']=step['run'].replace(AUTHORITY_RETRY_NODE,AUTHORITY_RETRY_NODE.split('::')[0],1)
+    elif mutation=='wrong_path':step['run']=step['run'].replace(AUTHORITY_RETRY_NODE,AUTHORITY_RETRY_NODE.replace('web/backend/',''),1)
+    elif mutation=='current_case':step['run']=step['run'].replace(AUTHORITY_RETRY_NODE,AUTHORITY_RETRY_NODE.split('::')[0]+'::test_static_pages_are_actual_repo_bytes_and_canonical_bridge_has_no_owner_cookie',1)
+    elif mutation=='partial':step['run']=step['run'].replace(flag,flag+' -k smoke',1)
+    else:next(iter(raw['jobs'].values()))['timeout-minutes']=999
+    with pytest.raises(AssertionError):_workflow_before_authority_retry(raw,kind+'.yml')

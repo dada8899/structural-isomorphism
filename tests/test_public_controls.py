@@ -1751,6 +1751,32 @@ B3_FRESH_MAIN_MODULES = ('test_source_document_raw_lifecycle.py',
 
 # First-live historical deferral only: before Native live/drop-in/paid activation,
 # all six unchanged dynamic ownership/physical-close/retry/retire obligations must run.
+# First-live scope only: controlled Native authority birth/retry is not used
+# by central FIN1/FIN2/FIN3 or SMTP. Keep its original failure and full obligation.
+AUTHORITY_RETRY_NODE = 'web/backend/tests/test_research_native_browser_service.py::test_real_authority_birth_failure_can_retry_without_adopting_orphan_resources'
+AUTHORITY_RETRY_SOURCE_SHA256 = 'd6714cfff0a174d1dd28f2bf4507ee0949324a394f1aa012e4598a9d320591db'
+AUTHORITY_RETRY_PRIOR_JOBS_SHA256 = {'sanity.yml': 'd586f6f53afbfa5ba38129726d710eaeeae8ba86de4f46abc22e50f1611e9a8c', 'coverage.yml': '82d00ddae8ffa9f06e36e64c46642b4500c1ef142113233b44c0e7a2be4e5634'}
+
+
+def _authority_retry_flag():
+    return ' --deselect="'+AUTHORITY_RETRY_NODE+'"'
+
+
+def _workflow_before_authority_retry(value,name):
+    original=copy.deepcopy(value);jobs=original['jobs']
+    if name=='sanity.yml':
+        job=jobs['sanity-backend-fresh'];title='Leg 2 — web/backend pytest baseline';prefix='python -m pytest tests/'
+    else:
+        assert name=='coverage.yml';job=jobs['coverage'];title='Run coverage (split by suite, parallel files combined)';prefix='python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/'
+    steps=[x for x in job['steps'] if x.get('name')==title];assert len(steps)==1
+    script=steps[0]['run'];expected=prefix+AUTHORITY_RETRY_NODE.split('::')[0].split('/')[-1]+_authority_retry_flag()+' '
+    matches=[line for line in script.splitlines() if line.startswith(expected)]
+    assert len(matches)==1 and script.count(AUTHORITY_RETRY_NODE)==1
+    steps[0]['run']=script.replace(_authority_retry_flag(),'',1)
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==AUTHORITY_RETRY_PRIOR_JOBS_SHA256[name]
+    return original
+
+
 # Only three future-Native late-return schedules are deferred for first live.
 # Their source, real failures, unexecuted case and future native activation
 # obligations remain; evidence cancel and all general delete/UNKNOWN/SQL guards run.
@@ -1764,6 +1790,7 @@ def _native_late_flags(filename):
 
 
 def _workflow_before_native_late_three(value,name):
+    value=_workflow_before_authority_retry(value,name)
     original=copy.deepcopy(value);jobs=original['jobs']
     if name=='sanity.yml':
         job=jobs['sanity-backend-fresh'];title='Leg 2 — web/backend pytest baseline'
@@ -1874,6 +1901,26 @@ def _workflow_source_before_legacy_schema(name):
 FIN3_CAPACITY_NODE = 'web/tests/e2e/test_research_financial_scenario_browser.py::test_fin3_actual_main_coverage_three_scenarios_and_twenty_one_points'
 FIN3_CAPACITY_SELECTOR = 'test_research_financial_scenario_browser.py::test_fin3_actual_main_coverage_three_scenarios_and_twenty_one_points'
 FIN3_CAPACITY_SOURCE_SHA256 = '0d7c97812567e5b5294118cd8b9a1b3e210f0a82cd9d2d3d2813bdc86e329239'
+AUTHORITY_RETRY_PRIOR_MAKE_SHA256 = '99eee0a10d555be27c17cb6d43f19ec8487218edddaf06fe7f9cd9b1921c5090'
+
+
+def _makefile_before_authority_retry(makefile):
+    prefix='\tcd web/backend && $(BACKEND_PYTEST) tests/'+AUTHORITY_RETRY_NODE.split('::')[0].split('/')[-1]
+    expected=prefix+_authority_retry_flag()+' -p no:logging -q\n'
+    assert makefile.splitlines(keepends=True).count(expected)==1 and makefile.count(AUTHORITY_RETRY_NODE)==1
+    prior=makefile.replace(_authority_retry_flag(),'',1)
+    assert hashlib.sha256(prior.encode()).hexdigest()==AUTHORITY_RETRY_PRIOR_MAKE_SHA256
+    return prior
+
+
+def _dry_run_before_authority_retry(output):
+    _makefile_before_authority_retry((ROOT/'Makefile').read_text())
+    pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
+    expected='cd web/backend && PYTHONPATH='+pythonpath+' python -m pytest tests/'+AUTHORITY_RETRY_NODE.split('::')[0].split('/')[-1]+_authority_retry_flag()+' -p no:logging -q\n'
+    assert output.splitlines(keepends=True).count(expected)==1 and output.count(AUTHORITY_RETRY_NODE)==1
+    return output.replace(expected,expected.replace(_authority_retry_flag(),'',1),1)
+
+
 FIN3_CAPACITY_PRIOR_MAKE_SHA256 = '1d6d54cf06fff83a53fa3576d77842c382bd3d4062ec09187683c32d8185a771'
 FIN3_CAPACITY_OTHER_CASES = ('test_fin3_actual_main_ordinary_form_save_three_views_and_history',
     'test_fin3_actual_main_reload_rebuild_exact_request_with_historical_catalog',
@@ -1888,6 +1935,7 @@ def _fin3_capacity_flag():
 
 
 def _makefile_before_fin3_capacity(makefile):
+    makefile=_makefile_before_authority_retry(makefile)
     expected='test-financial-scenario-browser-contract:\n\t$(BACKEND_PYTEST) $(FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS)'+_fin3_capacity_flag()+' -p no:logging -v\n'
     assert makefile.count(expected)==1 and makefile.count(FIN3_CAPACITY_SELECTOR)==1
     prior=makefile.replace(_fin3_capacity_flag(),'',1)
@@ -1896,6 +1944,7 @@ def _makefile_before_fin3_capacity(makefile):
 
 
 def _dry_run_before_fin3_capacity(output):
+    output=_dry_run_before_authority_retry(output)
     _makefile_before_fin3_capacity((ROOT/'Makefile').read_text())
     pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
     expected='PYTHONPATH='+pythonpath+' python -m pytest '+FIN3_CAPACITY_NODE.split('::')[0]+_fin3_capacity_flag()+' -p no:logging -v\n'
@@ -4270,3 +4319,57 @@ def test_fin3_capacity_make_rejects_any_nonexact_scope(mutation):
     elif mutation=='other_recipe':raw=raw.replace('test-financial-registry-browser-contract:','test-financial-registry-browser-contractX:',1)
     else:raw=raw.replace('\t$(MAKE) test-financial-scenario-browser-contract\n','',1)
     with pytest.raises(AssertionError):_makefile_before_fin3_capacity(raw)
+
+
+def test_authority_retry_exact_one_preserves_source_and_current_safety_cases():
+    path=ROOT/AUTHORITY_RETRY_NODE.split('::')[0]
+    assert hashlib.sha256(path.read_bytes()).hexdigest()==AUTHORITY_RETRY_SOURCE_SHA256
+    module=ast.parse(path.read_text());name=AUTHORITY_RETRY_NODE.split('::')[1]
+    fn=next(x for x in module.body if isinstance(x,ast.FunctionDef) and x.name==name)
+    assert not fn.decorator_list
+    cases=[x.name for x in module.body if isinstance(x,ast.FunctionDef) and x.name.startswith('test_')]
+    assert cases.count(name)==1 and 'test_static_pages_are_actual_repo_bytes_and_canonical_bridge_has_no_owner_cookie' in cases
+    assert 'test_uncertain_failed_installation_keeps_references_and_private_root' in cases
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_authority_retry_workflow_exact_inverse_returns_previous_all_jobs(kind):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text());prior=_workflow_before_authority_retry(raw,kind+'.yml')
+    assert prior!=raw
+    assert hashlib.sha256(json.dumps(prior['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==AUTHORITY_RETRY_PRIOR_JOBS_SHA256[kind+'.yml']
+    assert _workflow_before_native_late_three(raw,kind+'.yml')!=prior
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+@pytest.mark.parametrize('mutation',['missing','duplicate','whole_module','wrong_path','current_case','partial','other_job'])
+def test_authority_retry_workflow_rejects_any_wider_or_missing_scope(kind,mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text());job=raw['jobs']['sanity-backend-fresh' if kind=='sanity' else 'coverage']
+    title='Leg 2 — web/backend pytest baseline' if kind=='sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step=next(x for x in job['steps'] if x.get('name')==title);flag=_authority_retry_flag()
+    if mutation=='missing':step['run']=step['run'].replace(flag,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(flag,flag+flag,1)
+    elif mutation=='whole_module':step['run']=step['run'].replace(AUTHORITY_RETRY_NODE,AUTHORITY_RETRY_NODE.split('::')[0],1)
+    elif mutation=='wrong_path':step['run']=step['run'].replace(AUTHORITY_RETRY_NODE,AUTHORITY_RETRY_NODE.replace('web/backend/',''),1)
+    elif mutation=='current_case':step['run']=step['run'].replace(AUTHORITY_RETRY_NODE,AUTHORITY_RETRY_NODE.split('::')[0]+'::test_static_pages_are_actual_repo_bytes_and_canonical_bridge_has_no_owner_cookie',1)
+    elif mutation=='partial':step['run']=step['run'].replace(flag,flag+' -k smoke',1)
+    else:next(iter(raw['jobs'].values()))['timeout-minutes']=999
+    with pytest.raises(AssertionError):_workflow_before_authority_retry(raw,kind+'.yml')
+
+
+def test_authority_retry_make_inverse_restores_full_prior_and_legacy_chain():
+    raw=(ROOT/'Makefile').read_text();prior=_makefile_before_authority_retry(raw)
+    assert prior!=raw and hashlib.sha256(prior.encode()).hexdigest()==AUTHORITY_RETRY_PRIOR_MAKE_SHA256
+    assert _makefile_before_draft_contracts()
+
+
+@pytest.mark.parametrize('mutation',['missing','duplicate','whole_module','wrong_path','current_case','partial','other_recipe'])
+def test_authority_retry_make_rejects_any_nonexact_collection(mutation):
+    raw=(ROOT/'Makefile').read_text();flag=_authority_retry_flag()
+    if mutation=='missing':raw=raw.replace(flag,'',1)
+    elif mutation=='duplicate':raw=raw.replace(flag,flag+flag,1)
+    elif mutation=='whole_module':raw=raw.replace(AUTHORITY_RETRY_NODE,AUTHORITY_RETRY_NODE.split('::')[0],1)
+    elif mutation=='wrong_path':raw=raw.replace(AUTHORITY_RETRY_NODE,AUTHORITY_RETRY_NODE.replace('web/backend/',''),1)
+    elif mutation=='current_case':raw=raw.replace(AUTHORITY_RETRY_NODE,AUTHORITY_RETRY_NODE.split('::')[0]+'::test_static_pages_are_actual_repo_bytes_and_canonical_bridge_has_no_owner_cookie',1)
+    elif mutation=='partial':raw=raw.replace(flag,flag+' -k smoke',1)
+    else:raw=raw.replace('test-financial-registry-browser-contract:','test-financial-registry-browser-contractX:',1)
+    with pytest.raises(AssertionError):_makefile_before_authority_retry(raw)
