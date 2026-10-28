@@ -202,6 +202,44 @@ NATIVE_ORIGINAL_MODULE_SHA256 = 'e89292a1441cfe75a9c491a18b4a1a261820faffc8743ad
 PREOWNED_ORIGINAL_SHA256 = 'e135e43a883ca18fba48543f712f7c65dd2fcbc5ca3b5da2bf60f4fe152c2cc0'
 # First-live scope only: controlled Native authority birth/retry is not used
 # by central FIN1/FIN2/FIN3 or SMTP. Keep its original failure and full obligation.
+# Fixed B segments preserve the complete original argv; only process grouping changes.
+ORDINARY_B_PART_IDS = ('sanity-backend-ordinary-b-1', 'sanity-backend-ordinary-b-2', 'sanity-backend-ordinary-b-3')
+ORDINARY_B_PART_MODULES = (('tests/test_research_financial_admission_schemas.py', 'tests/test_research_financial_evaluator_v2.py', 'tests/test_research_financial_input_schemas.py', 'tests/test_research_financial_result_v2.py', 'tests/test_research_financial_schema_v15.py', 'tests/test_research_financial_schema_v7.py', 'tests/test_research_fingerprint.py', 'tests/test_research_formula_binding.py', 'tests/test_research_formula_cases.py', 'tests/test_research_formula_delivery.py', 'tests/test_research_formula_lifecycle.py', 'tests/test_research_formula_public.py', 'tests/test_research_formula_result_adapter.py', 'tests/test_research_funded_plan.py', 'tests/test_research_index.py', 'tests/test_research_legacy_paid_component.py', 'tests/test_research_lifecycle.py', 'tests/test_research_method_body_codec.py', 'tests/test_research_method_body_types.py', 'tests/test_research_method_draft_migration.py', 'tests/test_research_method_history.py'), ('tests/test_research_method_result.py', 'tests/test_research_method_schema_v9.py', 'tests/test_research_mint_reported_bytes.py', 'tests/test_research_native_plan.py', 'tests/test_research_native_preowned.py', 'tests/test_research_native_schema_v13.py', 'tests/test_research_offline_profiles.py', 'tests/test_research_owned_return.py', 'tests/test_research_paid_api.py', 'tests/test_research_paid_api_public.py', 'tests/test_research_paid_approval.py', 'tests/test_research_paid_budget_loop.py', 'tests/test_research_paid_method14_origin.py', 'tests/test_research_paid_producer_migration.py'), ('tests/test_research_paid_producers.py', 'tests/test_research_paid_public.py', 'tests/test_research_paid_schema.py', 'tests/test_research_paid_stop_callers.py', 'tests/test_research_persistence.py', 'tests/test_research_phenomenon_plan.py', 'tests/test_research_plan_contract.py', 'tests/test_research_plan_preview_codec.py', 'tests/test_research_plan_schema_v12.py', 'tests/test_research_preview_codec.py', 'tests/test_research_private_storage.py', 'tests/test_research_revision_budget.py', 'tests/test_research_runtime_profile.py', 'tests/test_research_schema_concurrency.py', 'tests/test_research_source_lifetime.py', 'tests/test_research_source_request_capability.py', 'tests/test_research_source_spawn.py', 'tests/test_research_source_supervisor.py', 'tests/test_research_source_terminal14.py', 'tests/test_research_source_v11.py', 'tests/test_research_sql_token_cache.py', 'tests/test_research_usage_quote.py', 'tests/test_retrieval_eval_dataset.py', 'tests/test_runtime_admission.py', 'tests/test_runtime_paths.py', 'tests/test_runtime_security_contract.py', 'tests/test_safe_english_retrieval.py', 'tests/test_scope_guard.py', 'tests/test_search_logging_privacy.py', 'tests/test_search_scope_gate.py', 'tests/test_search_service_v2v3.py', 'tests/test_search_synthesis_integrity.py', 'tests/test_secondary_tools_trust_contract.py', 'tests/test_security_headers.py', 'tests/test_slowapi_pep563_globals_crash.py', 'tests/test_source_document_access.py', 'tests/test_source_document_raw.py', 'tests/test_source_document_transport.py', 'tests/test_source_sec_access.py', 'tests/test_sqlite_lifecycle.py', 'tests/test_sso_report_claim.py', 'tests/test_startup_hybrid_deps.py', 'tests/test_stress_test.py', 'tests/test_struct_lint.py', 'tests/test_structlog_format.py', 'tests/test_systemd_credential_metadata.py', 'tests/test_universality_endpoints.py', 'tests/test_version.py', 'tests/test_waitlist.py', 'tests/test_whitespace.py'))
+ORDINARY_B_PART_TEMPLATE_SHA256 = 'b6a85c34b86473081a09a3bbc021912a1d102a19cebf9c31490980baf763e710'
+ORDINARY_B_PART_PRIOR_JOBS_SHA256 = 'e62bfdb00cfef6822e2fd869b8f48ffe1c1066ee2fd24e965c650a713a8a898e'
+ORDINARY_B_PART_AGGREGATE = {'name': 'sanity-backend-ordinary-b', 'runs-on': 'ubuntu-latest', 'timeout-minutes': 45, 'needs': ['sanity-backend-ordinary-b-1', 'sanity-backend-ordinary-b-2', 'sanity-backend-ordinary-b-3'], 'if': 'always()', 'steps': [{'name': 'Require all fixed ordinary B segments success', 'env': {'BACKEND_B1_RESULT': "${{ needs['sanity-backend-ordinary-b-1'].result }}", 'BACKEND_B2_RESULT': "${{ needs['sanity-backend-ordinary-b-2'].result }}", 'BACKEND_B3_RESULT': "${{ needs['sanity-backend-ordinary-b-3'].result }}"}, 'run': 'for result in "${BACKEND_B1_RESULT:-}" "${BACKEND_B2_RESULT:-}" "${BACKEND_B3_RESULT:-}"; do\n  if [ "$result" != "success" ]; then\n    echo "A complete ordinary B segment did not succeed."\n    exit 1\n  fi\ndone\n'}]}
+
+
+def _workflow_before_ordinary_b_parts(value,name):
+    if name!='sanity.yml':return value
+    original=copy.deepcopy(value);jobs=original['jobs']
+    assert original.get('permissions')=={'contents':'read'}
+    assert set(jobs)=={'sanity-backend','sanity','sanity-backend-ordinary-a','sanity-backend-ordinary-b','sanity-backend-fresh',*ORDINARY_B_PART_IDS}
+    assert jobs['sanity-backend-ordinary-b']==ORDINARY_B_PART_AGGREGATE
+    whole=[];scripts=[];template_job=None;common_tail=None;common_head=None;common_end=None
+    for jid,expected_modules in zip(ORDINARY_B_PART_IDS,ORDINARY_B_PART_MODULES):
+        job=jobs[jid];assert job['name']==jid
+        steps=[s for s in job['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline'];assert len(steps)==1
+        script=steps[0]['run'];lines=[s for s in script.splitlines(keepends=True) if s.startswith('python -m pytest ')];assert len(lines)==1
+        line=lines[0];tokens=shlex.split(line);end=next(i for i in range(3,len(tokens)) if tokens[i].startswith('-'))
+        modules=tokens[3:end];assert tuple(modules)==expected_modules
+        prefix='python -m pytest '+' '.join(modules);assert line.startswith(prefix+' ')
+        head=script[:script.index(line)];tail=line[len(prefix):];ending=script[script.index(line)+len(line):]
+        if common_tail is None:common_head,common_tail,common_end=head,tail,ending
+        else:assert (head,tail,ending)==(common_head,common_tail,common_end)
+        template=copy.deepcopy(job);template['name']='<NAME>';next(s for s in template['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline')['run']='<SCRIPT>'
+        assert hashlib.sha256(json.dumps(template,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==ORDINARY_B_PART_TEMPLATE_SHA256
+        whole.extend(modules);scripts.append(script)
+        if template_job is None:template_job=copy.deepcopy(job)
+    assert len(whole)==85 and len(set(whole))==85 and [len(x) for x in ORDINARY_B_PART_MODULES]==[21,14,50]
+    template_job['name']='sanity-backend-ordinary-b'
+    next(s for s in template_job['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline')['run']=common_head+'python -m pytest '+' '.join(whole)+common_tail+common_end
+    jobs['sanity-backend-ordinary-b']=template_job
+    for jid in ORDINARY_B_PART_IDS:del jobs[jid]
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==ORDINARY_B_PART_PRIOR_JOBS_SHA256
+    return original
+
+
 AUTHORITY_RETRY_NODE = 'web/backend/tests/test_research_native_browser_service.py::test_real_authority_birth_failure_can_retry_without_adopting_orphan_resources'
 AUTHORITY_RETRY_SOURCE_SHA256 = '04dcfbbb3cfc57515b4099ff9e86684bcf3ed0c191da5e346c9bdb9ae87fd002'
 AUTHORITY_RETRY_PRIOR_JOBS_SHA256 = {'sanity.yml': 'd586f6f53afbfa5ba38129726d710eaeeae8ba86de4f46abc22e50f1611e9a8c', 'coverage.yml': '82d00ddae8ffa9f06e36e64c46642b4500c1ef142113233b44c0e7a2be4e5634'}
@@ -212,6 +250,7 @@ def _authority_retry_flag():
 
 
 def _workflow_before_authority_retry(value,name):
+    value=_workflow_before_ordinary_b_parts(value,name)
     original=copy.deepcopy(value);jobs=original['jobs']
     if name=='sanity.yml':
         job=jobs['sanity-backend-fresh'];title='Leg 2 — web/backend pytest baseline';prefix='python -m pytest tests/'
@@ -2436,3 +2475,52 @@ def test_authority_retry_workflow_rejects_any_wider_or_missing_scope(kind,mutati
     elif mutation=='partial':step['run']=step['run'].replace(flag,flag+' -k smoke',1)
     else:next(iter(raw['jobs'].values()))['timeout-minutes']=999
     with pytest.raises(AssertionError):_workflow_before_authority_retry(raw,kind+'.yml')
+
+
+def test_ordinary_b_parts_exact_inverse_keeps_original_all_jobs_and_group_order():
+    raw=yaml.safe_load((ROOT/'.github/workflows/sanity.yml').read_text());prior=_workflow_before_ordinary_b_parts(raw,'sanity.yml')
+    assert prior!=raw and hashlib.sha256(json.dumps(prior['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==ORDINARY_B_PART_PRIOR_JOBS_SHA256
+    assert _workflow_before_authority_retry(raw,'sanity.yml')!=prior
+
+
+@pytest.mark.parametrize('mutation',['missing_child','duplicate_module','missing_module','wrong_order','boundary','partial_filter','ignore','flags','cwd','runner','timeout','setup','permission','soft','missing_need','missing_always','aggregate_or','wrong_name','downstream_bypass'])
+def test_ordinary_b_parts_reject_any_collection_setup_or_aggregate_drift(mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows/sanity.yml').read_text());jobs=raw['jobs'];first=jobs[ORDINARY_B_PART_IDS[0]];step=next(s for s in first['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline');path=ORDINARY_B_PART_MODULES[0][0]
+    if mutation=='missing_child':jobs.pop(ORDINARY_B_PART_IDS[0])
+    elif mutation=='duplicate_module':step['run']=step['run'].replace(path,path+' '+path,1)
+    elif mutation=='missing_module':step['run']=step['run'].replace(path+' ','',1)
+    elif mutation=='wrong_order':
+        other=ORDINARY_B_PART_MODULES[0][1];step['run']=step['run'].replace(path+' '+other,other+' '+path,1)
+    elif mutation=='boundary':
+        x=ORDINARY_B_PART_MODULES[0][-1];y=ORDINARY_B_PART_MODULES[1][0];step['run']=step['run'].replace(x,y,1)
+    elif mutation=='partial_filter':step['run']+=' -k smoke'
+    elif mutation=='ignore':step['run']+=' --ignore='+path
+    elif mutation=='flags':step['run']=step['run'].replace(' -x ',' ',1)
+    elif mutation=='cwd':step['working-directory']='.'
+    elif mutation=='runner':first['runs-on']='macos-latest'
+    elif mutation=='timeout':first['timeout-minutes']=46
+    elif mutation=='setup':first['steps'][1]['with']['python-version']='3.12'
+    elif mutation=='permission':raw['permissions']={'contents':'write'}
+    elif mutation=='soft':first['continue-on-error']=True
+    elif mutation=='missing_need':jobs['sanity-backend-ordinary-b']['needs'].pop()
+    elif mutation=='missing_always':jobs['sanity-backend-ordinary-b'].pop('if')
+    elif mutation=='aggregate_or':jobs['sanity-backend-ordinary-b']['steps'][0]['run']+='true\n'
+    elif mutation=='wrong_name':jobs['sanity-backend-ordinary-b']['name']='optional-b'
+    else:jobs['sanity-backend']['needs']=['sanity-backend-ordinary-a','sanity-backend-fresh']
+    with pytest.raises((AssertionError,KeyError)):_workflow_before_ordinary_b_parts(raw,'sanity.yml')
+
+
+@pytest.mark.parametrize('child',[0,1,2])
+@pytest.mark.parametrize('status',['failure','cancelled','skipped','',None,'unknown'])
+def test_ordinary_b_parts_actual_strict_aggregate_rejects_each_non_success(tmp_path,child,status):
+    values=['success']*3;values[child]=status;env={'PATH':os.environ.get('PATH','/usr/bin:/bin')}
+    for name,value in zip(('BACKEND_B1_RESULT','BACKEND_B2_RESULT','BACKEND_B3_RESULT'),values):
+        if value is not None:env[name]=value
+    result=subprocess.run(['bash','-u','-e','-o','pipefail','-c',ORDINARY_B_PART_AGGREGATE['steps'][0]['run']],cwd=tmp_path,env=env,capture_output=True,text=True,timeout=10,check=False)
+    assert result.returncode!=0
+
+
+def test_ordinary_b_parts_actual_strict_aggregate_only_all_three_success(tmp_path):
+    env={'PATH':os.environ.get('PATH','/usr/bin:/bin'),'BACKEND_B1_RESULT':'success','BACKEND_B2_RESULT':'success','BACKEND_B3_RESULT':'success'}
+    result=subprocess.run(['bash','-u','-e','-o','pipefail','-c',ORDINARY_B_PART_AGGREGATE['steps'][0]['run']],cwd=tmp_path,env=env,capture_output=True,text=True,timeout=10,check=False)
+    assert result.returncode==0
