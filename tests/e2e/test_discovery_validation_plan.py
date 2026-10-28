@@ -287,10 +287,25 @@ def test_stable_deep_link_waits_for_data_and_follows_candidate_across_queues(
 def test_unknown_candidate_link_is_reported_only_after_catalog_load(page, discovery_origin: str) -> None:
     page.set_viewport_size({"width": 390, "height": 844})
     _route_product_dependencies(page, _payload(2, 2), delay=0.1)
+    before_load = []
+    def observe_catalog_before_fulfill(route) -> None:
+        assert route.request.method == "GET" and route.request.url == f"{discovery_origin}/api/discoveries"
+        before_load.append(page.evaluate("() => ({loaded: dataLoaded, notices: document.querySelectorAll('.disc-link-notice').length})"))
+        assert before_load[-1] == {"loaded": False, "notices": 0}
+        route.fallback()
+    page.route("**/api/discoveries", observe_catalog_before_fulfill)
+    deadline = time.monotonic() + 20
     page.goto(
         f"{discovery_origin}/discoveries.html?candidate=discovery-ffffffffffffffff",
         wait_until="domcontentloaded", timeout=20_000,
     )
+    remaining_ms = (deadline - time.monotonic()) * 1000
+    assert remaining_ms > 0
+    page.wait_for_function(
+        "() => dataLoaded === true && !loadFailed && allDiscoveries.length === 2 && allTier2.length === 2 && document.querySelectorAll('#disc-list .disc-item').length === 2",
+        timeout=remaining_ms,
+    ).dispose()
+    assert before_load == [{"loaded": False, "notices": 0}]
     notice = page.locator(".disc-link-notice")
     assert notice.count() == 1
     assert "不可用" in notice.inner_text() or "unavailable" in notice.inner_text()
