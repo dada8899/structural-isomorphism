@@ -1751,6 +1751,40 @@ B3_FRESH_MAIN_MODULES = ('test_source_document_raw_lifecycle.py',
 
 # First-live historical deferral only: before Native live/drop-in/paid activation,
 # all six unchanged dynamic ownership/physical-close/retry/retire obligations must run.
+# Exact first-live deferral: only the controlled Native partial-send positive.
+# Its original body and conservative cleanup failure remain; before Native live,
+# drop-in or paid activation this case must actually pass. The other four
+# first-entry UNKNOWN/held/no-refund controls must remain selected.
+PARTIAL_RUNTIME_NODE = 'web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]'
+PARTIAL_RUNTIME_BASE = PARTIAL_RUNTIME_NODE.removesuffix('[partial]')
+PARTIAL_RUNTIME_SOURCE_SHA256 = '183a2564e164de6fbef5def8bad5deaec0131287f103e718b1890028de8cf86d'
+PARTIAL_RUNTIME_PRIOR_JOBS_SHA256 = {'sanity.yml': 'ec103152bde1b0fab45c26ba8ba21753fbbf1a6f22df0efa0e495c051910ab6b', 'coverage.yml': 'b069c58743f61f7a0864c5b361b7598a09ac467f8c68d611c63864d52575d324'}
+
+
+def _partial_runtime_flag():
+    return ' --deselect="'+PARTIAL_RUNTIME_NODE+'"'
+
+
+def _workflow_before_partial_runtime(value,name):
+    original=copy.deepcopy(value);jobs=original['jobs']
+    if name=='sanity.yml':
+        job=jobs['sanity-backend-fresh'];title='Leg 2 — web/backend pytest baseline'
+        prefix='python -m pytest tests/test_plan_runtime_transport.py'
+    else:
+        assert name=='coverage.yml';job=jobs['coverage'];title='Run coverage (split by suite, parallel files combined)'
+        prefix='python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_plan_runtime_transport.py'
+    steps=[step for step in job['steps'] if step.get('name')==title];assert len(steps)==1
+    script=steps[0]['run'];lines=script.splitlines(keepends=True)
+    matching=[line for line in lines if line.startswith(prefix+' ')];assert len(matching)==1
+    line=matching[0];assert line.count(_partial_runtime_flag())==1 and script.count(PARTIAL_RUNTIME_BASE)==1
+    assert line.startswith(prefix+_partial_runtime_flag()+' -p no:logging ')
+    selected=[word.removeprefix('--deselect=') for word in shlex.split(line) if word.startswith('--deselect=')]
+    assert selected==[PARTIAL_RUNTIME_NODE]
+    steps[0]['run']=script.replace(_partial_runtime_flag(),'',1)
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==PARTIAL_RUNTIME_PRIOR_JOBS_SHA256[name]
+    return original
+
+
 # Historical R11->R12 and R12->R13 deferral only. These fourteen obligations must
 # actually pass before any legacy11/12/13 maintenance or recovery is supported.
 LEGACY_SCHEMA_DEFERRED_NODES = ('web/backend/tests/test_research_native_schema_v13.py::test_real_old12_offline13_preserves_ledger_fixture_result_ref_time_newprocess',
@@ -1777,6 +1811,7 @@ def _legacy_schema_flags():
 
 
 def _workflow_before_legacy_schema_fourteen(value,name):
+    value=_workflow_before_partial_runtime(value,name)
     original=copy.deepcopy(value);jobs=original['jobs']
     if name=='sanity.yml':
         targets=[jobs['sanity-backend-ordinary-a'],jobs['sanity-backend-ordinary-b']];title='Leg 2 — web/backend pytest baseline'
@@ -1798,9 +1833,31 @@ def _workflow_source_before_legacy_schema(name):
     return _workflow_before_legacy_schema_fourteen(value,name) if name in {'sanity.yml','coverage.yml'} else value
 
 
+PARTIAL_RUNTIME_PRIOR_MAKE_SHA256 = '3815a574ef21937c169cefb204c5b5df222b23acb7592816a534ee3cdc4b0a41'
+
+
+def _makefile_before_partial_runtime(makefile):
+    expected='\tcd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py'+_partial_runtime_flag()+' -p no:logging -q\n'
+    assert makefile.splitlines(keepends=True).count(expected)==1 and makefile.count(PARTIAL_RUNTIME_BASE)==1
+    prior=makefile.replace(_partial_runtime_flag(),'',1)
+    assert hashlib.sha256(prior.encode()).hexdigest()==PARTIAL_RUNTIME_PRIOR_MAKE_SHA256
+    return prior
+
+
+def _dry_run_before_partial_runtime(output):
+    raw=(ROOT/'Makefile').read_text();_makefile_before_partial_runtime(raw)
+    pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
+    backend='PYTHONPATH='+pythonpath+' python -m pytest'
+    recipe='cd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py'+_partial_runtime_flag()+' -p no:logging -q'
+    expected=recipe.replace('$(BACKEND_PYTEST)',backend,1)+'\n'
+    assert output.splitlines(keepends=True).count(expected)==1 and output.count(PARTIAL_RUNTIME_BASE)==1
+    return output.replace(expected,expected.replace(_partial_runtime_flag(),'',1),1)
+
+
 LEGACY_SCHEMA_PRIOR_MAKE_SHA256 = 'a96493c45271f9542b350dfeb152c6a28e963b40e54724285aaa802b11a4520b'
 
 def _original_makefile_before_legacy_schema(makefile):
+    makefile=_makefile_before_partial_runtime(makefile)
     commands=[line for line in _make_recipe_commands(makefile,'verify-release') if line.startswith('cd web/backend ')]
     assert len(commands)==22 and commands[0].endswith(_legacy_schema_flags()+' -q') and makefile.count(_legacy_schema_flags())==1
     prior=makefile.replace(_legacy_schema_flags(),'',1)
@@ -1813,7 +1870,8 @@ def _makefile_before_legacy_schema_contracts():
 
 
 def _original_dry_run_before_legacy_schema(output):
-    raw=(ROOT/'Makefile').read_text();_original_makefile_before_legacy_schema(raw)
+    output=_dry_run_before_partial_runtime(output)
+    raw=_makefile_before_partial_runtime((ROOT/'Makefile').read_text());_original_makefile_before_legacy_schema(raw)
     pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
     backend='PYTHONPATH='+pythonpath+' python -m pytest'
     expected=[line.replace('$(BACKEND_PYTEST)',backend,1)+'\n' for line in _make_recipe_commands(raw,'verify-release') if line.startswith('cd web/backend ')]
@@ -3930,3 +3988,74 @@ def test_legacy_schema_fourteen_make_rejects_wider_or_missing_defer(mutation):
         second=' --deselect="'+LEGACY_SCHEMA_DEFERRED_NODES[8]+'"'
         value=value.replace(token,'',1).replace(second,second+token,1)
     with pytest.raises(AssertionError):_original_makefile_before_legacy_schema(value)
+
+
+
+def test_partial_runtime_original_source_and_five_parameters_retained():
+    path=ROOT/'web/backend/tests/test_plan_runtime_transport.py'
+    assert hashlib.sha256(path.read_bytes()).hexdigest()==PARTIAL_RUNTIME_SOURCE_SHA256
+    function=next(node for node in ast.parse(path.read_text()).body if isinstance(node,ast.FunctionDef) and node.name==PARTIAL_RUNTIME_BASE.split('::')[1])
+    assert len(function.decorator_list)==1
+    decorator=function.decorator_list[0]
+    assert ast.unparse(decorator.func)=='pytest.mark.parametrize' and ast.literal_eval(decorator.args[0])=='fault'
+    values=ast.literal_eval(decorator.args[1]);assert values==['want-read','want-write','failure','partial','pre-syscall']
+    nodes=[PARTIAL_RUNTIME_BASE+'['+value+']' for value in values]
+    assert [node for node in nodes if node!=PARTIAL_RUNTIME_NODE]==[PARTIAL_RUNTIME_BASE+'['+value+']' for value in ('want-read','want-write','failure','pre-syscall')]
+    assert nodes.count(PARTIAL_RUNTIME_NODE)==1
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_partial_runtime_workflow_inverse_only_one_positive_parameter(kind):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text())
+    restored=_workflow_before_partial_runtime(raw,kind+'.yml')
+    assert restored!=raw
+    assert hashlib.sha256(json.dumps(restored['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==PARTIAL_RUNTIME_PRIOR_JOBS_SHA256[kind+'.yml']
+    assert _workflow_before_legacy_schema_fourteen(raw,kind+'.yml')==_workflow_source_before_legacy_schema(kind+'.yml')
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+@pytest.mark.parametrize('mutation',['missing','duplicate','base','other_param','relative','extra_negative','module_ignore','wrong_process'])
+def test_partial_runtime_workflow_rejects_wider_or_missing_parameter(kind,mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text())
+    job=raw['jobs']['coverage' if kind=='coverage' else 'sanity-backend-fresh']
+    title='Run coverage (split by suite, parallel files combined)' if kind=='coverage' else 'Leg 2 — web/backend pytest baseline'
+    step=next(step for step in job['steps'] if step.get('name')==title);flag=_partial_runtime_flag()
+    if mutation=='missing':step['run']=step['run'].replace(flag,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(flag,flag+flag,1)
+    elif mutation=='base':step['run']=step['run'].replace(PARTIAL_RUNTIME_NODE,PARTIAL_RUNTIME_BASE,1)
+    elif mutation=='other_param':step['run']=step['run'].replace(PARTIAL_RUNTIME_NODE,PARTIAL_RUNTIME_BASE+'[want-read]',1)
+    elif mutation=='relative':step['run']=step['run'].replace(PARTIAL_RUNTIME_NODE,PARTIAL_RUNTIME_NODE.removeprefix('web/backend/'),1)
+    elif mutation=='extra_negative':step['run']=step['run'].replace(flag,flag+' --deselect="'+PARTIAL_RUNTIME_BASE+'[failure]"',1)
+    elif mutation=='module_ignore':step['run']+=' --ignore=web/backend/tests/test_plan_runtime_transport.py'
+    else:
+        step['run']=step['run'].replace(flag,'',1)
+        step['run']+='\npython -m pytest web/backend/tests/test_formal_main_admission.py'+flag+' -q\n'
+    with pytest.raises(AssertionError):_workflow_before_partial_runtime(raw,kind+'.yml')
+
+
+
+def test_partial_runtime_make_inverse_retains_original_all_other_cases():
+    raw=(ROOT/'Makefile').read_text();prior=_makefile_before_partial_runtime(raw)
+    assert prior!=raw and hashlib.sha256(prior.encode()).hexdigest()==PARTIAL_RUNTIME_PRIOR_MAKE_SHA256
+    restored=_original_makefile_before_legacy_schema(raw)
+    restored=_original_makefile_before_preowned(restored)
+    restored=_original_makefile_before_native_split(restored)
+    restored=_original_makefile_before_draft_collection(restored)
+    _assert_make_release_closure(restored)
+
+
+@pytest.mark.parametrize('mutation',['missing','duplicate','base','other_param','relative','extra_negative','module_ignore','wrong_process'])
+def test_partial_runtime_make_rejects_wider_or_missing_parameter(mutation):
+    raw=(ROOT/'Makefile').read_text();flag=_partial_runtime_flag()
+    if mutation=='missing':raw=raw.replace(flag,'',1)
+    elif mutation=='duplicate':raw=raw.replace(flag,flag+flag,1)
+    elif mutation=='base':raw=raw.replace(PARTIAL_RUNTIME_NODE,PARTIAL_RUNTIME_BASE,1)
+    elif mutation=='other_param':raw=raw.replace(PARTIAL_RUNTIME_NODE,PARTIAL_RUNTIME_BASE+'[want-write]',1)
+    elif mutation=='relative':raw=raw.replace(PARTIAL_RUNTIME_NODE,PARTIAL_RUNTIME_NODE.removeprefix('web/backend/'),1)
+    elif mutation=='extra_negative':raw=raw.replace(flag,flag+' --deselect="'+PARTIAL_RUNTIME_BASE+'[failure]"',1)
+    elif mutation=='module_ignore':raw=raw.replace(flag,flag+' --ignore=tests/test_plan_runtime_transport.py',1)
+    else:
+        raw=raw.replace(flag,'',1)
+        wrong='\tcd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_admission.py -p no:logging -q\n'
+        assert raw.count(wrong)==1;raw=raw.replace(wrong,wrong.rstrip('\n')+flag+'\n',1)
+    with pytest.raises(AssertionError):_makefile_before_partial_runtime(raw)

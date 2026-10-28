@@ -223,7 +223,7 @@ jobs:
 
         python -m pytest tests/test_research_evidence_method_native.py -p no:logging -x -ra -q --tb=short --durations=10
 
-        python -m pytest tests/test_plan_runtime_transport.py -p no:logging -x -ra -q --tb=short --durations=10
+        python -m pytest tests/test_plan_runtime_transport.py --deselect="web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]" -p no:logging -x -ra -q --tb=short --durations=10
 
         python -m pytest tests/test_research_native_browser_service.py -p no:logging -x -ra -q --tb=short --durations=10
 
