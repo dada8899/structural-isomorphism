@@ -220,79 +220,109 @@ def test_actual_source_session_transaction_retires_before_stop_without_handoff(p
     finally:release.set();threading.settrace(prior)
 
 
-def test_actual_source_transaction_close_failure_retains_native_parent_fd(request,tmp_path,monkeypatch):
-    """Owned child keeps logical uncertainty while explicitly closing its FD."""
-    if os.environ.get('DOC_B2_TRANSACTION_FAULT_CHILD')!='close-before':
-        owned=tmp_path/'doc-transaction-fault';owned.mkdir(mode=0o700)
-        home=owned/'home';home.mkdir(mode=0o700)
-        guard=sys.modules.get('main_smtp_task_guard')
-        assert guard is not None
-        packet=Path(guard.__file__).resolve().parent
-        environment={name:os.environ[name] for name in ('PATH','PYTHONPATH','REVIEW_SOURCE_ROOT')}
-        environment.update(HOME=str(home),TMPDIR=str(owned),A006_AUDIT_ROOT=str(owned),PYTHONDONTWRITEBYTECODE='1',
-            PYTEST_DISABLE_PLUGIN_AUTOLOAD='1',STRUCTURAL_ENV='test',AUTH_ENABLED='false',AUTH_DATA_DIR=str(owned/'auth'),
-            STRUCTURAL_LOG_FILE=str(owned/'bootstrap.jsonl'),HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',DOC_B2_TRANSACTION_FAULT_CHILD='close-before')
-        target=str(Path(__file__).resolve())+'::test_actual_source_transaction_close_failure_retains_native_parent_fd'
-        result=subprocess.run([sys.executable,'-B',str(packet/'run_tests.py'),'-p','controller_mail_observer',
-            '-p','a_evidence_resource_observer',target,'--basetemp='+str(owned/'cases'),'--junitxml='+str(owned/'result.xml')],
-            cwd=owned,env=environment,capture_output=True,timeout=25)
-        (owned/'result.log').write_bytes(result.stdout+result.stderr)
-        assert result.returncode==0,'owned transaction uncertainty child failed; preserve result.log'
-        assert b'DOC_B2_TRANSACTION_UNCERTAIN:' in result.stdout
-        return
-    main,admission,_,messages=request.getfixturevalue('prepared')
-    from research.source_document_access import DocTransaction
-    from research.source_spawn import SourceCleanupUncertain
-    captured=[];failures=[];handoffs=[];bindings=[]
-    original_close=os.close;prior=threading.gettrace()
-    code=DocTransaction.__exit__.__code__
-    def trace(frame,event,arg):
-        if frame.f_code is not code:return None
-        binding=admission._STATE.get(id(main.app))
-        if (event=='call' and not captured and binding is not None
-                and threading.current_thread() is binding.supervisor._thread):
-            transaction=frame.f_locals['self']
-            assert transaction.witness is transaction.conn._history_file
-            captured.append((transaction,transaction.conn,transaction.witness,transaction.witness.parent_fd))
-        return trace
-    def fail_close(fd):
-        if captured and fd==captured[0][3] and not failures:
-            failures.append(True);raise OSError('owned Source transaction parent close uncertainty')
-        return original_close(fd)
-    from multiprocessing import reduction
-    original_handoff=reduction.send_handle
-    def no_public_capability(*args,**kwargs):
-        binding=admission._STATE.get(id(main.app))
-        if binding is not None and threading.current_thread() is binding.supervisor._thread:
-            handoffs.append(True);raise PermissionError('public Source send is outside this local control')
-        return original_handoff(*args,**kwargs)
-    threading.settrace(trace);monkeypatch.setattr(os,'close',fail_close);monkeypatch.setattr(reduction,'send_handle',no_public_capability)
-    async def run():
-        context=main.lifespan(main.app);await context.__aenter__()
-        binding=admission._STATE[id(main.app)];bindings.append(binding)
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
-            await login(client,messages);rid=await create(client);base='/api/research/'+rid
-            headers={'Origin':BETA,'Idempotency-Key':'doc-transaction-close'}
-            approval=await paper_approval(client,base,headers)
-            task=await client.post(base+'/source-tasks',json=envelope({'input_revision':1,'expected_research_version':1,'approval_ref':approval}),headers={**headers,'Idempotency-Key':'doc-transaction-close-task'})
-            assert task.status_code==200
-            end=time.monotonic()+3
-            while binding.supervisor._thread.is_alive() and time.monotonic()<end:await asyncio.sleep(.005)
-            assert failures==[True] and not binding.supervisor._thread.is_alive() and not handoffs
-        with pytest.raises(RuntimeError):await context.__aexit__(None,None,None)
-        transaction,conn,witness,fd=captured[0]
-        debt=next(error for error in binding.supervisor._errors if type(error) is SourceCleanupUncertain)
-        assert debt._doc_transaction is transaction and transaction.conn is conn and transaction.witness is witness
-        assert transaction.uncertain_fds==[fd] and os.fstat(fd)
-        assert binding.source_receipt.state=='CLEANUP_UNCERTAIN' and binding.native_receipt.state=='CLOSED'
-        assert binding.supervisor._slot is not None and any(w.parent_fd is not None for w in binding.witnesses)
-        print('DOC_B2_TRANSACTION_UNCERTAIN:'+json.dumps({'actual_transaction':True,'actual_parent_fd_retained':True,
-            'close_failures':1,'source_closed':False,'handoffs':0,'requests':0}))
-    try:asyncio.run(run())
-    finally:
-        threading.settrace(prior);monkeypatch.setattr(os,'close',original_close)
-        if captured:original_close(captured[0][3])
-        for binding in bindings:
-            print('DOC_B2_TRANSACTION_RETIREMENT:'+_retirement_json(binding,main.app))
-            for witness in binding.witnesses:
-                if witness.parent_fd is not None:witness.close()
+def _source_transaction_close_fault_probe(owned_root):
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        smtp_fixture=smtp.__wrapped__()
+        try:
+            actual_smtp=next(smtp_fixture)
+            prepared_fixture=prepared.__wrapped__(Path(owned_root),monkeypatch,actual_smtp)
+            try:
+                prepared_value=next(prepared_fixture)
+                main,admission,_,messages=prepared_value
+                from research.source_document_access import DocTransaction
+                from research.source_spawn import SourceCleanupUncertain
+                captured=[];failures=[];handoffs=[];bindings=[]
+                original_close=os.close;prior=threading.gettrace()
+                code=DocTransaction.__exit__.__code__
+                def trace(frame,event,arg):
+                    if frame.f_code is not code:return None
+                    binding=admission._STATE.get(id(main.app))
+                    if (event=='call' and not captured and binding is not None
+                            and threading.current_thread() is binding.supervisor._thread):
+                        transaction=frame.f_locals['self']
+                        assert transaction.witness is transaction.conn._history_file
+                        captured.append((transaction,transaction.conn,transaction.witness,transaction.witness.parent_fd))
+                    return trace
+                def fail_close(fd):
+                    if captured and fd==captured[0][3] and not failures:
+                        failures.append(True);raise OSError('owned Source transaction parent close uncertainty')
+                    return original_close(fd)
+                from multiprocessing import reduction
+                original_handoff=reduction.send_handle
+                def no_public_capability(*args,**kwargs):
+                    binding=admission._STATE.get(id(main.app))
+                    if binding is not None and threading.current_thread() is binding.supervisor._thread:
+                        handoffs.append(True);raise PermissionError('public Source send is outside this local control')
+                    return original_handoff(*args,**kwargs)
+                threading.settrace(trace);monkeypatch.setattr(os,'close',fail_close);monkeypatch.setattr(reduction,'send_handle',no_public_capability)
+                async def run():
+                    context=main.lifespan(main.app);await context.__aenter__()
+                    binding=admission._STATE[id(main.app)];bindings.append(binding)
+                    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
+                        await login(client,messages);rid=await create(client);base='/api/research/'+rid
+                        headers={'Origin':BETA,'Idempotency-Key':'doc-transaction-close'}
+                        approval=await paper_approval(client,base,headers)
+                        task=await client.post(base+'/source-tasks',json=envelope({'input_revision':1,'expected_research_version':1,'approval_ref':approval}),headers={**headers,'Idempotency-Key':'doc-transaction-close-task'})
+                        assert task.status_code==200
+                        end=time.monotonic()+3
+                        while binding.supervisor._thread.is_alive() and time.monotonic()<end:await asyncio.sleep(.005)
+                        assert failures==[True] and not binding.supervisor._thread.is_alive() and not handoffs
+                    with pytest.raises(RuntimeError):await context.__aexit__(None,None,None)
+                    transaction,conn,witness,fd=captured[0]
+                    debt=next(error for error in binding.supervisor._errors if type(error) is SourceCleanupUncertain)
+                    assert debt._doc_transaction is transaction and transaction.conn is conn and transaction.witness is witness
+                    assert transaction.uncertain_fds==[fd] and os.fstat(fd)
+                    assert binding.source_receipt.state=='CLEANUP_UNCERTAIN' and binding.native_receipt.state=='CLOSED'
+                    assert binding.supervisor._slot is not None and any(w.parent_fd is not None for w in binding.witnesses)
+                    print('DOC_B2_TRANSACTION_UNCERTAIN:'+json.dumps({'actual_transaction':True,'actual_parent_fd_retained':True,
+                        'close_failures':1,'source_closed':False,'handoffs':0,'requests':0}))
+                try:asyncio.run(run())
+                finally:
+                    threading.settrace(prior);monkeypatch.setattr(os,'close',original_close)
+                    if captured:original_close(captured[0][3])
+                    for binding in bindings:
+                        print('DOC_B2_TRANSACTION_RETIREMENT:'+_retirement_json(binding,main.app))
+                        for witness in binding.witnesses:
+                            if witness.parent_fd is not None:witness.close()
+            except BaseException as primary:
+                try:
+                    with pytest.raises(StopIteration):next(prepared_fixture)
+                except BaseException as cleanup:
+                    raise BaseExceptionGroup('portable_fault_and_prepared_teardown',[primary,cleanup]) from None
+                raise
+            else:
+                with pytest.raises(StopIteration):next(prepared_fixture)
+        except BaseException as primary:
+            try:
+                with pytest.raises(StopIteration):next(smtp_fixture)
+            except BaseException as cleanup:
+                raise BaseExceptionGroup('portable_fault_and_smtp_teardown',[primary,cleanup]) from None
+            raise
+        else:
+            with pytest.raises(StopIteration):next(smtp_fixture)
+
+
+def test_actual_source_transaction_close_failure_retains_native_parent_fd(tmp_path):
+    import signal
+    owned=tmp_path/'doc-transaction-fault';owned.mkdir(mode=0o700)
+    home=owned/'home';home.mkdir(mode=0o700)
+    root=Path(__file__).resolve().parents[3]
+    program=('import sys\nfrom pathlib import Path\n'
+        +'sys.path[:0]='+repr([str(root/'web/backend'),str(root)])+'\n'
+        +'from web.backend.tests.test_source_document_raw_lifecycle import _source_transaction_close_fault_probe\n'
+        +'_source_transaction_close_fault_probe(Path('+repr(str(owned))+'))\n')
+    environment={'PATH':os.environ.get('PATH',os.defpath),'PYTHONPATH':os.pathsep.join((str(root/'web/backend'),str(root))),
+        'HOME':str(home),'TMPDIR':str(owned),'PYTHONDONTWRITEBYTECODE':'1',
+        'STRUCTURAL_ENV':'test','AUTH_ENABLED':'false','AUTH_DATA_DIR':str(owned/'auth'),
+        'STRUCTURAL_LOG_FILE':str(owned/'bootstrap.jsonl'),'HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1'}
+    with subprocess.Popen([sys.executable,'-B','-c',program],cwd=owned,env=environment,
+            stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True) as child:
+        try:stdout,stderr=child.communicate(timeout=25)
+        except BaseException:
+            try:os.killpg(child.pid,signal.SIGKILL)
+            except ProcessLookupError:pass
+            child.wait(timeout=5)
+            raise
+    (owned/'result.log').write_bytes(stdout+stderr)
+    assert child.returncode==0,'isolated owned fault failed; retain result.log'
+    assert b'DOC_B2_TRANSACTION_UNCERTAIN:' in stdout
