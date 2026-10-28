@@ -10,6 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from .test_research_persistence import stack,app,login,post,problem
+from .test_research_source_spawn import development_auth
 from .test_research_d1_integration import source_stack,start
 from web.backend.tests.source_http_fixture import source_server,get_local
 from api import auth
@@ -170,13 +171,13 @@ def controls(prepared,lease):
 
 
 @pytest.mark.parametrize("mutate",[False,True])
-def test_last_send_uses_revalidated_local_immutable_bytes(tmp_path,mutate):
+def test_last_send_uses_revalidated_local_immutable_bytes(tmp_path,mutate,development_auth):
     prepared=adapter.prepare_request("Bounded offline question",packet());original=prepared.raw
     sink=Sink()
     probe=adapter.DeepSeekAdapter.offline_probe(connection_factory=lambda _:sink,credential_loader=lambda _:"synthetic-probe-key")
     connection=probe.preconnect(prepared)
     try:
-        gate=AuthorizationGate(SimpleNamespace(path=tmp_path/"unused.sqlite3"))
+        gate=AuthorizationGate(development_auth)
         with gate.owner_gate_id(str(uuid4())) as lease:
             price,basis,permit=controls(prepared,lease)
             def authorize(ticket,request,identity):return schemas.DispatchApproval(permit=ticket,budget=basis)
@@ -229,13 +230,16 @@ from web.backend.tests.source_http_fixture import source_server,DOI
 data_root=pathlib.Path(DATA_ROOT)
 # The old relative-module target really fails in a fresh spawned interpreter,
 # before it can send an HTTP request to the owned loopback fixture.
-with source_server() as (port,calls):
-    gate=AuthorizationGate(SimpleNamespace(path=data_root/'unused.sqlite3'))
-    with gate.owner_gate_id(str(uuid4())) as lease:
-        with pytest.raises(SourceFailure):
-            PinnedPublicTransport(_worker=partial(legacy.get_local,port)).get(
-                article_target(DOI),still_authorized=lambda:True,owner_lease=lease)
-    assert calls==[]
+from web.backend.tests.test_research_source_spawn import development_auth
+with pytest.MonkeyPatch.context() as backing_setup:
+    backing=development_auth.__wrapped__(data_root,backing_setup)
+    with source_server() as (port,calls):
+        gate=AuthorizationGate(backing)
+        with gate.owner_gate_id(str(uuid4())) as lease:
+            with pytest.raises(SourceFailure):
+                PinnedPublicTransport(_worker=partial(legacy.get_local,port)).get(
+                    article_target(DOI),still_authorized=lambda:True,owner_lease=lease)
+        assert calls==[]
 # Consume the unchanged original fixtures/test, not a second app or DB setup.
 monkeypatch=pytest.MonkeyPatch()
 try:
