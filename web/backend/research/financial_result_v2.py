@@ -1202,9 +1202,9 @@ def _u2_status(snapshot):
 def _validate_stored(stored,registry):
     """Read persisted cross-bindings; no live run, code key or reevaluation."""
     if type(stored) is not StoredFinancialResultV2:raise FinancialError('exact saved result required')
-    data=stored.model_dump(mode='json');bounded(data,SNAPSHOT_LIMIT)
+    data=stored.model_dump(mode='json');raw=bounded(data,SNAPSHOT_LIMIT)
     # Roundtrip also detects mutation through model_construct/model_copy.
-    saved=StoredFinancialResultV2.model_validate_json(canonical(data))
+    saved=StoredFinancialResultV2.model_validate_json(raw)
     b=saved.row_binding;e=saved.expectation;r=saved.execution_receipt;s=saved.snapshot;op=saved.operation
     validate_snapshot(op,registry,s)
     if (b.research_id!=registry.binding.research_id or b.input_revision!=registry.binding.input_revision
