@@ -136,8 +136,12 @@ def test_static_pages_are_actual_repo_bytes_and_canonical_bridge_has_no_owner_co
         assert bridge.forward('HEAD',module.ORIGIN+'/research',{}).body==b''
         redirect=bridge.forward('GET',module.ORIGIN+'/research/',{})
         assert redirect.status==307 and redirect.body==b'' # Actual upstream redirect; never followed.
-        for path in ('/assets/','/auth.sqlite3','/tls/private.key','/api/fixture/install','/assets/../../state/auth.sqlite3'):
+        for path in ('/assets/','/auth.sqlite3','/tls/private.key','/assets/../../state/auth.sqlite3'):
             assert bridge.forward('GET',module.ORIGIN+path,{}).status==404
+        unadmitted=bridge.forward('GET',module.ORIGIN+'/api/fixture/install',{})
+        fixed_surface_error=json.loads(unadmitted.body)=={'error':'surface_not_admitted'}
+        assert unadmitted.status==503 and fixed_surface_error
+        assert not any(route.path.startswith('/api/fixture') for route in service.app.routes)
         assert bridge.forward('GET',module.ORIGIN+'/api/auth/me',{}).status==401
         # The browser signs in through real HTTP. The controller's already
         # authenticated CookieJar is deliberately never consulted by bridge.
