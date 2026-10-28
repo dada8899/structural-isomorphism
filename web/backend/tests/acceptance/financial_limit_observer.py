@@ -11,7 +11,7 @@ from pathlib import Path
 import sys
 import types
 
-PREFIX = 'FIN3_LIMIT_OBS_V1 '
+PREFIX = 'FIN3_LIMIT_OBS_V2 '
 CASE = 'THREE_SCENARIOS_21_POINTS'
 ROOT = Path(__file__).resolve().parents[4]
 # Literal reviewed coordinates; API is compiled from the actual current source,
@@ -67,6 +67,31 @@ SITES = (('L01', 'web/backend/api/research.py', 97, '_dispatch_financial_result'
  ('L29', 'web/backend/research/financial_result_v2.py', 1268, '_saved_response', 'PUBLIC_BYTES_WITH_RESERVE'),
  ('L30', 'web/backend/research/financial_schemas.py', 49, 'tuple_limit', 'OBJECT_COUNT'),
  ('L31', 'web/backend/research/financial_schemas.py', 59, 'array', 'ARRAY_COUNT'))
+DEADLINE_CALLERS = (('REQUIRE_ENTER',
+  'web/backend/research/financial_execution.py',
+  281,
+  'CurrentFinancialExecution.require'),
+ ('REQUIRE_EXIT',
+  'web/backend/research/financial_execution.py',
+  295,
+  'CurrentFinancialExecution.require'),
+ ('EXEC_BEFORE_EVAL', 'web/backend/research/financial_execution.py', 355, 'execute'),
+ ('EXEC_AFTER_EVAL', 'web/backend/research/financial_execution.py', 361, 'execute'),
+ ('EXEC_AFTER_STORED', 'web/backend/research/financial_execution.py', 395, 'execute'),
+ ('INSERT_AFTER_STORED', 'web/backend/research/financial_execution.py', 412, 'validate_insert'),
+ ('INSERT_AFTER_IMAGE', 'web/backend/research/financial_execution.py', 414, 'validate_insert'),
+ ('CALC_AFTER_EXEC', 'web/backend/research/financial_result_v2.py', 1323, 'calculate'),
+ ('CALC_AFTER_VALUES', 'web/backend/research/financial_result_v2.py', 1325, 'calculate'),
+ ('CALC_BEFORE_VIEW', 'web/backend/research/financial_result_v2.py', 1329, 'calculate'),
+ ('CALC_AFTER_VIEW', 'web/backend/research/financial_result_v2.py', 1331, 'calculate'),
+ ('CALC_BEFORE_INSERT', 'web/backend/research/financial_result_v2.py', 1336, 'calculate'),
+ ('CALC_AFTER_INSERT', 'web/backend/research/financial_result_v2.py', 1338, 'calculate'),
+ ('CALC_BEFORE_CONTROL_UPDATE', 'web/backend/research/financial_result_v2.py', 1341, 'calculate'),
+ ('CALC_AFTER_CONTROL_UPDATE', 'web/backend/research/financial_result_v2.py', 1345, 'calculate'),
+ ('CALC_BEFORE_CONSUME', 'web/backend/research/financial_result_v2.py', 1347, 'calculate'),
+ ('CALC_AFTER_CONSUME', 'web/backend/research/financial_result_v2.py', 1349, 'calculate'))
+_CALLER_ENUMS = frozenset(row[0] for row in DEADLINE_CALLERS)
+
 SOURCE_PINS = {'web/backend/research/financial_evaluator.py': 'b6f4d2474680a0bc8e2868325cb1006404a8c98bce563330e8619b5ae5ca08b4',
  'web/backend/research/financial_execution.py': 'e223a34e401e7cbe37be55142177bcbbe4f2829169c1b210b2e453edfb3bc060',
  'web/backend/research/financial_policy.py': '719792b41ebbfce6d69ceea25f77e1ad8ba1458d4a245750db206de9ea03cd02',
@@ -81,11 +106,11 @@ SOURCE_PINS = {'web/backend/research/financial_evaluator.py': 'b6f4d2474680a0bc8
 _CAPS = frozenset((8192, 65536, 110592, 131072, 524288))
 _ACTIVE = None
 _TYPE_DICT = vars(type)['__dict__']
-_OBSERVATION_KEYS = frozenset(('event', 'site', 'category', 'cap', 'operations', 'nodes', 'depth'))
+_OBSERVATION_KEYS = frozenset(('event', 'site', 'category', 'cap', 'operations', 'nodes', 'depth', 'deadline_caller'))
 _RECORD_KEYS = frozenset(('schema', 'case', 'setup', 'response', 'events', 'observations',
     'overflow', 'observer_fault', 'restore', 'catch_link'))
 _CATEGORIES = {row[0]: row[4] for row in SITES}
-_FALLBACK = PREFIX + '{"schema":"FIN3_LIMIT_OBS_V1","case":"THREE_SCENARIOS_21_POINTS","setup":"UNAVAILABLE","response":"UNOBSERVED","events":"0","observations":[],"overflow":false,"observer_fault":true,"restore":"UNCERTAIN","catch_link":"UNOBSERVED"}'
+_FALLBACK = PREFIX + '{"schema":"FIN3_LIMIT_OBS_V2","case":"THREE_SCENARIOS_21_POINTS","setup":"UNAVAILABLE","response":"UNOBSERVED","events":"0","observations":[],"overflow":false,"observer_fault":true,"restore":"UNCERTAIN","catch_link":"UNOBSERVED"}'
 
 
 def _module_name(relative):
@@ -124,6 +149,28 @@ def _direct_sites(raw):
                 result[node.lineno] = '.'.join(self.owners)
     visitor = Visitor()
     visitor.visit(tree)
+    return result
+
+
+def _deadline_sites(raw):
+    """Cold proof of the direct check_deadline invocation and its lexical owner."""
+    result = {}
+    class Visitor(ast.NodeVisitor):
+        def __init__(self):self.owners=[]
+        def visit_ClassDef(self,node):
+            self.owners.append(node.name);self.generic_visit(node);self.owners.pop()
+        def visit_FunctionDef(self,node):
+            self.owners.append(node.name);self.generic_visit(node);self.owners.pop()
+        visit_AsyncFunctionDef=visit_FunctionDef
+        def visit_Call(self,node):
+            direct=type(node.func) is ast.Attribute and node.func.attr=='check_deadline'
+            wrapped=(type(node.func) is ast.Call and
+                ((type(node.func.func) is ast.Name and node.func.func.id=='_function') or
+                 (type(node.func.func) is ast.Attribute and node.func.func.attr=='_function')) and
+                any(type(arg) is ast.Attribute and arg.attr=='check_deadline' for arg in node.func.args))
+            if direct or wrapped:result[node.lineno]='.'.join(self.owners)
+            self.generic_visit(node)
+    Visitor().visit(ast.parse(raw))
     return result
 
 
@@ -176,7 +223,7 @@ def _encode(record):
         raise ValueError('observer record shape')
     if any(type(record[key]) is not str for key in ('schema', 'case', 'setup', 'response', 'events', 'restore', 'catch_link')):
         raise ValueError('observer closed string fields')
-    if (record['schema'] != 'FIN3_LIMIT_OBS_V1' or record['case'] != CASE
+    if (record['schema'] != 'FIN3_LIMIT_OBS_V2' or record['case'] != CASE
             or record['setup'] not in ('READY', 'UNAVAILABLE')
             or record['response'] not in ('HTTP_200', 'HTTP_413', 'OTHER', 'UNOBSERVED')
             or record['events'] not in ('0', '1', '2_PLUS')
@@ -197,6 +244,10 @@ def _encode(record):
                 or row['event'] != 'DIRECT_RAISE_CONSTRUCTION'
                 or row['category'] != _CATEGORIES.get(site, 'UNKNOWN')):
             raise ValueError('observer site domain')
+        tag = row['deadline_caller']
+        if (type(tag) is not str or tag not in (*_CALLER_ENUMS, 'UNKNOWN')
+                or (site != 'L07' and tag != 'UNKNOWN')):
+            raise ValueError('observer deadline caller domain')
         for key, maximum in (('operations', 5001), ('nodes', 20001), ('depth', 33)):
             if row[key] is not None and _integer(row[key], maximum) is None:
                 raise ValueError('observer finite integer')
@@ -236,6 +287,7 @@ class _Observation:
         self._request_class = self._request_dict = None
         self._policy_module = self._policy_globals = None
         self._specs, self._modules, self._codes, self._anchors = {}, {}, {}, {}
+        self._caller_specs = {}
         self._route_path = str(ROOT / 'web/backend/api/research.py')
 
     def response(self, status):
@@ -285,6 +337,11 @@ class _Observation:
             direct = _direct_sites(raw)
             if any(direct.get(row[2]) != row[3] or row[3] not in expected for row in rows):
                 raise ValueError('literal direct raise changed')
+            caller_rows = tuple(row for row in DEADLINE_CALLERS if row[1] == relative)
+            deadline_sites = _deadline_sites(raw) if caller_rows else {}
+            if any(deadline_sites.get(row[2]) != row[3] or row[3] not in expected for row in caller_rows):
+                raise ValueError('literal financial deadline caller changed')
+            self._caller_specs[str(path)] = {row[2]: row for row in caller_rows}
             self._specs[str(path)] = (relative, _module_name(relative), expected, {row[2]: row for row in rows})
             for family in ('research.', 'web.backend.research.') if relative.startswith('web/backend/research/') else ('api.', 'web.backend.api.'):
                 name = family + relative.rsplit('/', 1)[1][:-3]
@@ -298,11 +355,11 @@ class _Observation:
             loaded = self._raw_module(_module_name(relative), str(path))
             if loaded is not None:
                 self._modules[_module_name(relative)] = loaded
-                for row in rows:
-                    code = _function_code(loaded[1], row[3])
-                    if code is None or code.co_filename != str(path) or code.co_qualname != row[3] or code != expected[row[3]]:
+                for qualname in {row[3] for row in (*rows, *caller_rows)}:
+                    code = _function_code(loaded[1], qualname)
+                    if code is None or code.co_filename != str(path) or code.co_qualname != qualname or code != expected[qualname]:
                         raise ValueError('loaded financial function differs')
-                    self._codes[(_module_name(relative), row[3])] = code
+                    self._codes[(_module_name(relative), qualname)] = code
         route_path = str(ROOT / 'web/backend/api/research.py')
         route = self._raw_module('api.research', route_path)
         if route is None:
@@ -389,6 +446,23 @@ class _Observation:
             return None
         return row
 
+    def _deadline_caller(self, code, namespace, line):
+        """Only immutable code, actual globals identity and one fixed line; no locals."""
+        if type(code) is not types.CodeType or type(namespace) is not dict or type(line) is not int:
+            return 'UNKNOWN'
+        path = code.co_filename
+        if type(path) is not str:
+            return 'UNKNOWN'
+        rows = self._caller_specs.get(path)
+        row = rows.get(line) if type(rows) is dict else None
+        if (type(row) is not tuple or len(row) != 4 or type(row[0]) is not str
+                or row[0] not in _CALLER_ENUMS or type(row[3]) is not str):
+            return 'UNKNOWN'
+        bound = self._memory_code(path, row[3])
+        if bound is None or namespace is not bound[0] or code is not bound[1]:
+            return 'UNKNOWN'
+        return row[0]
+
     def _request_scope(self, frame):
         name = frame.f_code.co_name
         if type(name) is not str or name not in self._anchors or frame.f_code is not self._anchors[name]:
@@ -427,9 +501,17 @@ class _Observation:
             del frame
         if not matched:
             return
+        deadline_caller = 'UNKNOWN'
+        if row is not None and row[0] == 'L07':
+            direct = caller.f_back
+            try:
+                if type(direct) is types.FrameType:
+                    deadline_caller = self._deadline_caller(direct.f_code, direct.f_globals, direct.f_lineno)
+            finally:
+                del direct
         observation = {'event': 'DIRECT_RAISE_CONSTRUCTION',
             'site': row[0] if row else 'UNKNOWN', 'category': row[4] if row else 'UNKNOWN',
-            'cap': cap, 'operations': operations, 'nodes': nodes, 'depth': depth}
+            'cap': cap, 'operations': operations, 'nodes': nodes, 'depth': depth, 'deadline_caller': deadline_caller}
         self._count = min(3, self._count + 1)
         if len(self._observations) < 2:
             self._observations.append(observation)
@@ -456,10 +538,10 @@ class _Observation:
             self._app = self._exception_class = self._wrapper = None
             self._meter_class = self._meter_dict = self._request_class = self._request_dict = None
             self._policy_module = self._policy_globals = None
-            self._specs.clear(); self._modules.clear(); self._codes.clear(); self._anchors.clear()
+            self._specs.clear(); self._modules.clear(); self._codes.clear(); self._anchors.clear(); self._caller_specs.clear()
 
     def _record(self):
-        return {'schema': 'FIN3_LIMIT_OBS_V1', 'case': CASE, 'setup': self._setup,
+        return {'schema': 'FIN3_LIMIT_OBS_V2', 'case': CASE, 'setup': self._setup,
             'response': self._response, 'events': ('0', '1', '2_PLUS')[min(2, self._count)],
             'observations': self._observations.copy(), 'overflow': self._overflow,
             'observer_fault': self._fault, 'restore': self._restore, 'catch_link': 'UNOBSERVED'}
