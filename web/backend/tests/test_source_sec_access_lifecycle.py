@@ -221,104 +221,129 @@ def test_real_terminal_debt_blocks_cooldown_until_native_cleanup_finishes(prepar
         assert not thread.is_alive()
 
 
+def _uncertain_sec_owned_fd_probe(owned_root,fault):
+    assert fault in ('replace', 'close-before', 'close-after', 'checkpoint-mode', 'checkpoint-event')
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        smtp_fixture=smtp.__wrapped__()
+        try:
+            actual_smtp=next(smtp_fixture)
+            prepared_fixture=prepared.__wrapped__(Path(owned_root),monkeypatch,actual_smtp)
+            try:
+                prepared_value=next(prepared_fixture)
+                main, admission, paths, _ = prepared_value
+                lock = provision_lock(paths)
+                original_close = os.close
+                captured, failures = [], []
+                old_trace = threading.gettrace()
+                if fault in ('checkpoint-mode', 'checkpoint-event'):
+                    sourcepath = Path(main.__file__).parent / 'research/source_supervisor.py'
+                    checkpoint_line = next(i for i, line in enumerate(sourcepath.read_text().splitlines(), 1)
+                        if 'cleanup_completed(self._sec_access)' in line)
+                    def damage_at_real_checkpoint(frame, event, argument):
+                        if (not failures and event == 'line' and frame.f_code.co_filename == str(sourcepath)
+                                and frame.f_lineno == checkpoint_line):
+                            supervisor = frame.f_locals['self']
+                            assert not supervisor._stop.is_set() and supervisor._slot is None
+                            if fault == 'checkpoint-mode':
+                                lock.chmod(0o640)  # Owned physical failure, no logical substitution.
+                            else:
+                                # Negative fault: the actual Event is not sealed native
+                                # stop provenance and must remain WORKER_FAILURE.
+                                supervisor._stop.set()
+                            failures.append(True)
+                        return damage_at_real_checkpoint
+                    threading.settrace(damage_at_real_checkpoint)
+                async def run():
+                    context = main.lifespan(main.app)
+                    await context.__aenter__()
+                    if fault in ('checkpoint-mode', 'checkpoint-event'):
+                        binding = admission._STATE[id(main.app)]
+                        end = time.monotonic() + 4
+                        while binding.supervisor._thread.is_alive() and time.monotonic() < end: await asyncio.sleep(.01)
+                        assert failures and not binding.supervisor._thread.is_alive()
+                        assert binding.supervisor._stop.is_set() == (fault == 'checkpoint-event')
+                        assert binding.supervisor._failure == 'WORKER_FAILURE'
+                    else:
+                        binding = await ready(main, admission)
+                    governor = binding.supervisor._sec_access
+                    descriptor = governor.fd
+                    captured.extend([binding, governor, descriptor])
+                    if fault == 'replace':
+                        lock.rename(lock.with_name('owned-original-lock')); provision_lock(paths)
+                    elif fault not in ('checkpoint-mode', 'checkpoint-event'):
+                        def fail_close(fd):
+                            if fd == descriptor and not failures:
+                                failures.append(True)
+                                if fault == 'close-after': original_close(fd)
+                                raise OSError('owned indeterminate SEC close')
+                            return original_close(fd)
+                        monkeypatch.setattr(os, 'close', fail_close)
+                    # Main correctly reports incomplete resource retirement as an error.
+                    with pytest.raises(RuntimeError): await context.__aexit__(None, None, None)
+                    assert binding.source_receipt.state == 'CLEANUP_UNCERTAIN'
+                    assert governor.state == ('RETIRED' if fault == 'checkpoint-event' else 'CLEANUP_UNCERTAIN')
+                    assert governor.fd == descriptor
+                    assert not binding.supervisor._thread.is_alive()
+                    assert any(w.parent_fd is not None for w in binding.witnesses)
+                    if fault != 'close-after': assert os.fstat(descriptor).st_ino == governor.identity[1]
+                    else:
+                        with pytest.raises(OSError): os.fstat(descriptor)
+                    print('SEC_UNCERTAIN_RESOURCE:' + json.dumps({'fault': fault, 'actual_handle_retained': True,
+                        'join': binding.source_receipt.state, 'worker_stopped': True,
+                        'physical_fd_still_open': fault != 'close-after', 'uncertain_close_not_retried': True}))
+                try: asyncio.run(run())
+                finally:
+                    # Explicit physical test teardown only; no forged logical CLOSED.
+                    threading.settrace(old_trace)
+                    monkeypatch.setattr(os, 'close', original_close)
+                    if captured:
+                        binding, governor, descriptor = captured
+                        if fault != 'close-after': original_close(descriptor)
+                        for witness in binding.witnesses:
+                            if witness.parent_fd is not None: witness.close()
+            except BaseException as primary:
+                try:
+                    with pytest.raises(StopIteration):next(prepared_fixture)
+                except BaseException as cleanup:
+                    raise BaseExceptionGroup('portable_fault_and_prepared_teardown',[primary,cleanup]) from None
+                raise
+            else:
+                with pytest.raises(StopIteration):next(prepared_fixture)
+        except BaseException as primary:
+            try:
+                with pytest.raises(StopIteration):next(smtp_fixture)
+            except BaseException as cleanup:
+                raise BaseExceptionGroup('portable_fault_and_smtp_teardown',[primary,cleanup]) from None
+            raise
+        else:
+            with pytest.raises(StopIteration):next(smtp_fixture)
+
+
 @pytest.mark.parametrize('fault', ['replace', 'close-before', 'close-after', 'checkpoint-mode', 'checkpoint-event'])
-def test_actual_main_uncertain_owned_fd_never_returns_closed(request, tmp_path, monkeypatch, fault):
-    # Each uncertainty control owns a fresh process. Logical uncertain records
-    # are deliberately retained until that process exits; no registry reset or
-    # false CLOSED is used to make another Main lifetime possible.
-    if os.environ.get('SEC_LIFECYCLE_FAULT_CHILD') != fault:
-        owned = tmp_path / fault; owned.mkdir(mode=0o700)
-        home = owned / 'home'; home.mkdir(mode=0o700)
-        guard = sys.modules.get('main_smtp_task_guard')
-        assert guard is not None, 'run this control with the approved owned Main guard'
-        packet = Path(guard.__file__).resolve().parent
-        environment = {name: os.environ[name] for name in ('PATH', 'PYTHONPATH', 'REVIEW_SOURCE_ROOT')}
-        environment.update(HOME=str(home), TMPDIR=str(owned), A006_AUDIT_ROOT=str(owned),
-            PYTHONDONTWRITEBYTECODE='1', PYTEST_DISABLE_PLUGIN_AUTOLOAD='1',
-            STRUCTURAL_ENV='test', AUTH_ENABLED='false', AUTH_DATA_DIR=str(owned/'auth'),
-            STRUCTURAL_LOG_FILE=str(owned/'bootstrap.jsonl'), HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1',
-            SEC_LIFECYCLE_FAULT_CHILD=fault)
-        target = str(Path(__file__).resolve()) + '::test_actual_main_uncertain_owned_fd_never_returns_closed[' + fault + ']'
-        result = subprocess.run([sys.executable, '-B', str(packet/'run_tests.py'),
-            '-p', 'controller_mail_observer', '-p', 'a_evidence_resource_observer',
-            target, '--basetemp='+str(owned/'cases'), '--junitxml='+str(owned/'result.xml')],
-            cwd=owned, env=environment, capture_output=True, timeout=25)
-        (owned/'result.log').write_bytes(result.stdout+result.stderr)
-        assert result.returncode == 0, 'owned uncertainty child failed; retain result.log'
-        assert b'SEC_UNCERTAIN_RESOURCE:' in result.stdout
-        return
-    prepared = request.getfixturevalue('prepared')
-    main, admission, paths, _ = prepared
-    lock = provision_lock(paths)
-    original_close = os.close
-    captured, failures = [], []
-    old_trace = threading.gettrace()
-    if fault in ('checkpoint-mode', 'checkpoint-event'):
-        sourcepath = Path(main.__file__).parent / 'research/source_supervisor.py'
-        checkpoint_line = next(i for i, line in enumerate(sourcepath.read_text().splitlines(), 1)
-            if 'cleanup_completed(self._sec_access)' in line)
-        def damage_at_real_checkpoint(frame, event, argument):
-            if (not failures and event == 'line' and frame.f_code.co_filename == str(sourcepath)
-                    and frame.f_lineno == checkpoint_line):
-                supervisor = frame.f_locals['self']
-                assert not supervisor._stop.is_set() and supervisor._slot is None
-                if fault == 'checkpoint-mode':
-                    lock.chmod(0o640)  # Owned physical failure, no logical substitution.
-                else:
-                    # Negative fault: the actual Event is not sealed native
-                    # stop provenance and must remain WORKER_FAILURE.
-                    supervisor._stop.set()
-                failures.append(True)
-            return damage_at_real_checkpoint
-        threading.settrace(damage_at_real_checkpoint)
-    async def run():
-        context = main.lifespan(main.app)
-        await context.__aenter__()
-        if fault in ('checkpoint-mode', 'checkpoint-event'):
-            binding = admission._STATE[id(main.app)]
-            end = time.monotonic() + 4
-            while binding.supervisor._thread.is_alive() and time.monotonic() < end: await asyncio.sleep(.01)
-            assert failures and not binding.supervisor._thread.is_alive()
-            assert binding.supervisor._stop.is_set() == (fault == 'checkpoint-event')
-            assert binding.supervisor._failure == 'WORKER_FAILURE'
-        else:
-            binding = await ready(main, admission)
-        governor = binding.supervisor._sec_access
-        descriptor = governor.fd
-        captured.extend([binding, governor, descriptor])
-        if fault == 'replace':
-            lock.rename(lock.with_name('owned-original-lock')); provision_lock(paths)
-        elif fault not in ('checkpoint-mode', 'checkpoint-event'):
-            def fail_close(fd):
-                if fd == descriptor and not failures:
-                    failures.append(True)
-                    if fault == 'close-after': original_close(fd)
-                    raise OSError('owned indeterminate SEC close')
-                return original_close(fd)
-            monkeypatch.setattr(os, 'close', fail_close)
-        # Main correctly reports incomplete resource retirement as an error.
-        with pytest.raises(RuntimeError): await context.__aexit__(None, None, None)
-        assert binding.source_receipt.state == 'CLEANUP_UNCERTAIN'
-        assert governor.state == ('RETIRED' if fault == 'checkpoint-event' else 'CLEANUP_UNCERTAIN')
-        assert governor.fd == descriptor
-        assert not binding.supervisor._thread.is_alive()
-        assert any(w.parent_fd is not None for w in binding.witnesses)
-        if fault != 'close-after': assert os.fstat(descriptor).st_ino == governor.identity[1]
-        else:
-            with pytest.raises(OSError): os.fstat(descriptor)
-        print('SEC_UNCERTAIN_RESOURCE:' + json.dumps({'fault': fault, 'actual_handle_retained': True,
-            'join': binding.source_receipt.state, 'worker_stopped': True,
-            'physical_fd_still_open': fault != 'close-after', 'uncertain_close_not_retried': True}))
-    try: asyncio.run(run())
-    finally:
-        # Explicit physical test teardown only; no forged logical CLOSED.
-        threading.settrace(old_trace)
-        monkeypatch.setattr(os, 'close', original_close)
-        if captured:
-            binding, governor, descriptor = captured
-            if fault != 'close-after': original_close(descriptor)
-            for witness in binding.witnesses:
-                if witness.parent_fd is not None: witness.close()
+def test_actual_main_uncertain_owned_fd_never_returns_closed(tmp_path,fault):
+    import signal
+    owned=tmp_path/fault;owned.mkdir(mode=0o700)
+    home=owned/'home';home.mkdir(mode=0o700)
+    root=Path(__file__).resolve().parents[3]
+    program=('import sys\nfrom pathlib import Path\n'
+        +'sys.path[:0]='+repr([str(root/'web/backend'),str(root)])+'\n'
+        +'from web.backend.tests.test_source_sec_access_lifecycle import _uncertain_sec_owned_fd_probe\n'
+        +'_uncertain_sec_owned_fd_probe(Path('+repr(str(owned))+'),'+repr(fault)+')\n')
+    environment={'PATH':os.environ.get('PATH',os.defpath),'PYTHONPATH':os.pathsep.join((str(root/'web/backend'),str(root))),
+        'HOME':str(home),'TMPDIR':str(owned),'PYTHONDONTWRITEBYTECODE':'1',
+        'STRUCTURAL_ENV':'test','AUTH_ENABLED':'false','AUTH_DATA_DIR':str(owned/'auth'),
+        'STRUCTURAL_LOG_FILE':str(owned/'bootstrap.jsonl'),'HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1'}
+    with subprocess.Popen([sys.executable,'-B','-c',program],cwd=owned,env=environment,
+            stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True) as child:
+        try:stdout,stderr=child.communicate(timeout=25)
+        except BaseException:
+            try:os.killpg(child.pid,signal.SIGKILL)
+            except ProcessLookupError:pass
+            child.wait(timeout=5)
+            raise
+    (owned/'result.log').write_bytes(stdout+stderr)
+    assert child.returncode==0,'isolated owned fault failed; retain result.log'
+    assert b'SEC_UNCERTAIN_RESOURCE:' in stdout
 
 
 def test_actual_main_stop_between_cleanup_check_and_checkpoint_is_clean(prepared):

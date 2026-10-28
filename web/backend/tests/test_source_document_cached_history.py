@@ -314,63 +314,97 @@ def test_actual_consumer_rejects_foreign_app_source_and_copied_stale_worker_befo
     asyncio.run(run())
 
 
-def test_actual_raw_consumer_close_failure_is_owned_by_main_after_source_closed(request,tmp_path,monkeypatch):
-    if os.environ.get('DOC_B3_READ_FAULT_CHILD')!='parent-close-before':
-        owned=tmp_path/'b3-read-fault';owned.mkdir(mode=0o700);home=owned/'home';home.mkdir(mode=0o700)
-        guard=sys.modules.get('main_smtp_task_guard');assert guard is not None
-        packet=Path(guard.__file__).resolve().parent
-        env={name:os.environ[name] for name in ('PATH','PYTHONPATH','REVIEW_SOURCE_ROOT')}
-        env.update(HOME=str(home),TMPDIR=str(owned),A006_AUDIT_ROOT=str(owned),PYTHONDONTWRITEBYTECODE='1',
-            PYTEST_DISABLE_PLUGIN_AUTOLOAD='1',STRUCTURAL_ENV='test',AUTH_ENABLED='false',AUTH_DATA_DIR=str(owned/'auth'),
-            STRUCTURAL_LOG_FILE=str(owned/'bootstrap.jsonl'),HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',DOC_B3_READ_FAULT_CHILD='parent-close-before')
-        node=str(Path(__file__).resolve())+'::test_actual_raw_consumer_close_failure_is_owned_by_main_after_source_closed'
-        result=subprocess.run([sys.executable,'-B',str(packet/'run_tests.py'),'-p','controller_mail_observer','-p','a_evidence_resource_observer',
-            node,'--basetemp='+str(owned/'cases'),'--junitxml='+str(owned/'result.xml')],cwd=owned,env=env,capture_output=True,timeout=60)
-        (owned/'result.log').write_bytes(result.stdout+result.stderr)
-        assert result.returncode==0,'owned cache-read fault child failed; preserve result.log'
-        assert b'B3_MAIN_OWNED_READ_UNCERTAIN:' in result.stdout
-        return
-    main,admission,_,messages=request.getfixturevalue('prepared')
-    from research.source_document_access import RawReadScope
-    from web.backend.tests.acceptance.formal_main_browser_service import _retirement_json
-    captured=[];failures=[];bindings=[];raw_code=RawReadScope.check.__code__;prior=threading.gettrace();original_close=os.close
-    def trace(frame,event,arg):
-        if frame.f_code is not raw_code:return None
-        if event=='call' and not captured:
-            scope=frame.f_locals['self'];worker=admission._history_worker_current()
-            if worker is not None and worker.stage=='raw':
-                conn=scope.conn;witness=conn._history_file
-                captured.append((worker,conn,witness,witness.parent_fd,conn._history_read_resource))
-        return trace
-    def fail_close(fd):
-        if captured and fd==captured[0][3] and not failures:
-            failures.append(True);raise OSError('owned B3 read parent close uncertainty')
-        return original_close(fd)
-    threading.settrace(trace);monkeypatch.setattr(os,'close',fail_close)
-    async def run():
-        context=main.lifespan(main.app);await context.__aenter__();binding=admission._STATE[id(main.app)];bindings.append(binding)
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
-            await login(client,messages);rid,tid=await queued_then_cancelled(client,binding,main,monkeypatch)
-            admission.close_source(binding,deadline_monotonic=time.monotonic()+10);receipt=binding.source_receipt
-            response=await client.get('/api/research/'+rid+'/source-raw-preparations',params={'task_id':tid})
-            assert response.status_code==503 and 'data' not in response.json() and failures==[True]
-            worker,conn,witness,fd,resource=captured[0]
-            assert worker.read.binding is binding and worker.read.reference in binding.history_reads
-            assert binding.history_errors and not admission.history_reads_closed(binding)
-            assert resource.handle is conn and worker.read.resources and os.fstat(fd)
-            assert binding.source_receipt is receipt and admission.source_closed(binding) and not binding.source_errors
-        with pytest.raises(RuntimeError):await context.__aexit__(None,None,None)
-        assert binding.source_receipt is receipt and binding.native_receipt.state=='CLOSED' and binding.history_errors
-        assert not binding.supervisor._thread.is_alive() and any(w.parent_fd is not None for w in binding.witnesses)
-        print('B3_MAIN_OWNED_READ_UNCERTAIN:'+json.dumps({'actual_raw_consumer':True,'actual_parent_fd_retained':True,
-            'Main_history_uncertain':True,'source_still_closed':True,'Source_errors':0,'close_attempts':1,'gets':0}))
-    try:asyncio.run(run())
-    finally:
-        threading.settrace(prior);monkeypatch.setattr(os,'close',original_close)
-        # Only known-before-close synthetic responsibility is physically closed.
-        # Main's logical uncertain receipt is kept until this child exits.
-        if captured:original_close(captured[0][3])
-        for binding in bindings:
-            print('B3_READ_FAULT_RETIREMENT:'+_retirement_json(binding,main.app))
-            for witness in binding.witnesses:
-                if witness.parent_fd is not None:witness.close()
+def _raw_consumer_close_fault_probe(owned_root):
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        smtp_fixture=smtp.__wrapped__()
+        try:
+            actual_smtp=next(smtp_fixture)
+            prepared_fixture=prepared.__wrapped__(Path(owned_root),monkeypatch,actual_smtp)
+            try:
+                prepared_value=next(prepared_fixture)
+                main,admission,_,messages=prepared_value
+                from research.source_document_access import RawReadScope
+                from web.backend.tests.acceptance.formal_main_browser_service import _retirement_json
+                captured=[];failures=[];bindings=[];raw_code=RawReadScope.check.__code__;prior=threading.gettrace();original_close=os.close
+                def trace(frame,event,arg):
+                    if frame.f_code is not raw_code:return None
+                    if event=='call' and not captured:
+                        scope=frame.f_locals['self'];worker=admission._history_worker_current()
+                        if worker is not None and worker.stage=='raw':
+                            conn=scope.conn;witness=conn._history_file
+                            captured.append((worker,conn,witness,witness.parent_fd,conn._history_read_resource))
+                    return trace
+                def fail_close(fd):
+                    if captured and fd==captured[0][3] and not failures:
+                        failures.append(True);raise OSError('owned B3 read parent close uncertainty')
+                    return original_close(fd)
+                threading.settrace(trace);monkeypatch.setattr(os,'close',fail_close)
+                async def run():
+                    context=main.lifespan(main.app);await context.__aenter__();binding=admission._STATE[id(main.app)];bindings.append(binding)
+                    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
+                        await login(client,messages);rid,tid=await queued_then_cancelled(client,binding,main,monkeypatch)
+                        admission.close_source(binding,deadline_monotonic=time.monotonic()+10);receipt=binding.source_receipt
+                        response=await client.get('/api/research/'+rid+'/source-raw-preparations',params={'task_id':tid})
+                        assert response.status_code==503 and 'data' not in response.json() and failures==[True]
+                        worker,conn,witness,fd,resource=captured[0]
+                        assert worker.read.binding is binding and worker.read.reference in binding.history_reads
+                        assert binding.history_errors and not admission.history_reads_closed(binding)
+                        assert resource.handle is conn and worker.read.resources and os.fstat(fd)
+                        assert binding.source_receipt is receipt and admission.source_closed(binding) and not binding.source_errors
+                    with pytest.raises(RuntimeError):await context.__aexit__(None,None,None)
+                    assert binding.source_receipt is receipt and binding.native_receipt.state=='CLOSED' and binding.history_errors
+                    assert not binding.supervisor._thread.is_alive() and any(w.parent_fd is not None for w in binding.witnesses)
+                    print('B3_MAIN_OWNED_READ_UNCERTAIN:'+json.dumps({'actual_raw_consumer':True,'actual_parent_fd_retained':True,
+                        'Main_history_uncertain':True,'source_still_closed':True,'Source_errors':0,'close_attempts':1,'gets':0}))
+                try:asyncio.run(run())
+                finally:
+                    threading.settrace(prior);monkeypatch.setattr(os,'close',original_close)
+                    # Only known-before-close synthetic responsibility is physically closed.
+                    # Main's logical uncertain receipt is kept until this child exits.
+                    if captured:original_close(captured[0][3])
+                    for binding in bindings:
+                        print('B3_READ_FAULT_RETIREMENT:'+_retirement_json(binding,main.app))
+                        for witness in binding.witnesses:
+                            if witness.parent_fd is not None:witness.close()
+            except BaseException as primary:
+                try:
+                    with pytest.raises(StopIteration):next(prepared_fixture)
+                except BaseException as cleanup:
+                    raise BaseExceptionGroup('portable_fault_and_prepared_teardown',[primary,cleanup]) from None
+                raise
+            else:
+                with pytest.raises(StopIteration):next(prepared_fixture)
+        except BaseException as primary:
+            try:
+                with pytest.raises(StopIteration):next(smtp_fixture)
+            except BaseException as cleanup:
+                raise BaseExceptionGroup('portable_fault_and_smtp_teardown',[primary,cleanup]) from None
+            raise
+        else:
+            with pytest.raises(StopIteration):next(smtp_fixture)
+
+
+def test_actual_raw_consumer_close_failure_is_owned_by_main_after_source_closed(tmp_path):
+    import signal
+    owned=tmp_path/'b3-read-fault';owned.mkdir(mode=0o700)
+    home=owned/'home';home.mkdir(mode=0o700)
+    root=Path(__file__).resolve().parents[3]
+    program=('import sys\nfrom pathlib import Path\n'
+        +'sys.path[:0]='+repr([str(root/'web/backend'),str(root)])+'\n'
+        +'from web.backend.tests.test_source_document_cached_history import _raw_consumer_close_fault_probe\n'
+        +'_raw_consumer_close_fault_probe(Path('+repr(str(owned))+'))\n')
+    environment={'PATH':os.environ.get('PATH',os.defpath),'PYTHONPATH':os.pathsep.join((str(root/'web/backend'),str(root))),
+        'HOME':str(home),'TMPDIR':str(owned),'PYTHONDONTWRITEBYTECODE':'1',
+        'STRUCTURAL_ENV':'test','AUTH_ENABLED':'false','AUTH_DATA_DIR':str(owned/'auth'),
+        'STRUCTURAL_LOG_FILE':str(owned/'bootstrap.jsonl'),'HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1'}
+    with subprocess.Popen([sys.executable,'-B','-c',program],cwd=owned,env=environment,
+            stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True) as child:
+        try:stdout,stderr=child.communicate(timeout=60)
+        except BaseException:
+            try:os.killpg(child.pid,signal.SIGKILL)
+            except ProcessLookupError:pass
+            child.wait(timeout=5)
+            raise
+    (owned/'result.log').write_bytes(stdout+stderr)
+    assert child.returncode==0,'isolated owned fault failed; retain result.log'
+    assert b'B3_MAIN_OWNED_READ_UNCERTAIN:' in stdout
