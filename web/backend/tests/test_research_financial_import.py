@@ -51,8 +51,21 @@ async def preview(client,rid,body=None,key='financial-preview'):
                              headers={'Origin':BETA,'Idempotency-Key':key})
 
 
-def test_actual_main_preview_exact_hash_unverified_dynamic_no_db_or_cache_write(prepared):
+def test_actual_main_preview_exact_hash_unverified_dynamic_no_db_or_cache_write(prepared,monkeypatch):
     main,admission,_,messages=prepared
+    from api import research as research_api
+    from research import financial_result_v2
+    # The registered endpoint consumes this API globals binding; its bridge
+    # imports calculate from this exact module at request time.
+    endpoint=next(route.endpoint for route in main.app.routes if route.path=='/api/research/{research_id}/financial-calculations')
+    assert endpoint is research_api.calculate_research_financial
+    assert endpoint.__globals__ is research_api._dispatch_financial_result.__globals__ is research_api.__dict__
+    assert research_api._FINANCIAL_BRIDGE is research_api._calculate_financial_in_request
+    original_calculate=financial_result_v2.calculate;calculation_calls=[]
+    def observed_calculate(*args,**kwargs):
+        calculation_calls.append(True)
+        return original_calculate(*args,**kwargs)
+    monkeypatch.setattr(financial_result_v2,'calculate',observed_calculate)
     async def run():
         async with main.lifespan(main.app):
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
@@ -75,7 +88,14 @@ def test_actual_main_preview_exact_hash_unverified_dynamic_no_db_or_cache_write(
                 assert health['checks']['native_planner']=='FUNDING_CLOSED'
                 assert research_snapshot()==before
                 routes=[r.path for r in main.app.routes if 'financial' in r.path]
-                assert routes.count('/api/research/{research_id}/financial-import-preview')==1 and not any('calculat' in path for path in routes)
+                assert routes.count('/api/research/{research_id}/financial-import-preview')==1
+                calculation_routes=[(route.path,tuple(sorted(route.methods)),route.endpoint.__name__)
+                                    for route in main.app.routes if 'calculat' in route.path or '/financial-results' in route.path]
+                assert sorted(calculation_routes)==[
+                    ('/api/research/{research_id}/financial-calculations',('POST',),'calculate_research_financial'),
+                    ('/api/research/{research_id}/financial-results',('GET',),'list_research_financial_results'),
+                    ('/api/research/{research_id}/financial-results/{result_ref}',('GET',),'read_research_financial_result')]
+                assert calculation_calls==[]
                 print('FINANCIAL_PREVIEW_MAIN_FACTS:'+json.dumps({'actual_main':True,'schema':15,'funding':'closed',
                     'research_before':before,'research_after':research_snapshot(),'preview_digest':data['preview_digest'],
                     'server_generated_ref':False,'source_truth_verified':False}))
