@@ -1,5 +1,6 @@
 """Actual Main lifecycle and native resources; no admission/enable/facts spies."""
 import asyncio
+from contextlib import closing,contextmanager
 from email import policy
 from email.parser import BytesParser
 import hashlib
@@ -8,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import sqlite3
 import socketserver
 import subprocess
 import sys
@@ -129,7 +131,44 @@ async def source_ready(main, admission):
             await asyncio.sleep(.02)
 
 
-def test_actual_main_lifespan_register_save_reopen_funding_closed_and_shutdown(prepared):
+@contextmanager
+def _native_activity(monkeypatch):
+    """Observe real method entries, delegate once, and restore before retirement."""
+    from functools import wraps
+    from research import plan_native as native
+    from services import plan_runtime_transport as runtime
+    counts={'balance':0,'prepare':0,'send':0}
+    targets=((native.ControlledNativeResource,'balance','balance'),
+        (native.ControlledNativeResource,'prepare_post','prepare'),
+        (native.ControlledNativePending,'write_first','send'),
+        (runtime.NativePlanResource,'balance','balance'),
+        (runtime.NativePlanResource,'prepare_post','prepare'),
+        (runtime._Pending,'write_first','send'),(runtime._Channel,'send_first','send'),
+        (runtime._Channel,'send_remaining','send'))
+    with monkeypatch.context() as observe:
+        for owner,name,label in targets:
+            original=getattr(owner,name)
+            def instrument(original,label):
+                @wraps(original)
+                def entered(*args,**kwargs):
+                    counts[label]+=1
+                    return original(*args,**kwargs)
+                return entered
+            entered=instrument(original,label)
+            observe.setattr(owner,name,entered)
+            assert getattr(owner,name) is entered and entered.__wrapped__ is original
+        yield counts
+
+
+def _native_state_snapshot(store):
+    from research.plan_native_financial import NAMES
+    tables=(*NAMES,'research_tasks','research_steps','research_funding_accounts',
+        'research_project_budgets','research_reservations','research_plan_dispatches')
+    with store.transaction() as conn:
+        return {name:[dict(row) for row in conn.execute('SELECT * FROM '+name+' ORDER BY rowid')] for name in tables}
+
+
+def test_actual_main_lifespan_register_save_reopen_funding_closed_and_shutdown(prepared,monkeypatch):
     main, admission, paths, messages = prepared
     async def run():
         transport = httpx.ASGITransport(app=main.app)
@@ -168,12 +207,26 @@ def test_actual_main_lifespan_register_save_reopen_funding_closed_and_shutdown(p
                     'input_revision': 1, 'expected_research_version': 1, 'query': 'queue variability'}),
                     headers={'Origin': BETA, 'Idempotency-Key': 'actual-main-source-closed'})
                 assert blocked.status_code == 200  # Preview is not a GET/approval/task.
-                quote = await client.post('/api/research/' + rid + '/plan-previews', json={
-                    'schema_version': 'structure-research-v1', 'contract_revision': 'funded-plan-v2',
-                    'data': {'input_revision': 1, 'expected_research_version': 1, 'observation_source': 'own_observation', 'declaration_status': 'self_declared'}},
-                    headers={'Origin': BETA, 'Idempotency-Key': 'actual-main-closed-plan'})
-                assert quote.status_code == 200, quote.text
-                assert quote.json()['data']['can_confirm'] is False and quote.json()['data']['funding_reason'] == 'FUNDING_CLOSED'
+                with _native_activity(monkeypatch) as activity:
+                    quote = await client.post('/api/research/' + rid + '/plan-previews', json={
+                        'schema_version': 'structure-research-v1', 'contract_revision': 'funded-plan-v2',
+                        'data': {'input_revision': 1, 'expected_research_version': 1, 'observation_source': 'own_observation', 'declaration_status': 'self_declared'}},
+                        headers={'Origin': BETA, 'Idempotency-Key': 'actual-main-closed-plan'})
+                    assert quote.status_code == 200, quote.text
+                    assert quote.json()['data']['can_confirm'] is False and quote.json()['data']['funding_reason'] == 'FUNDING_CLOSED'
+                    from api import auth
+                    from research import ResearchStore
+                    assert quote.json()['data']['cash_evidence']=='not_observed'
+                    store=ResearchStore(auth._store());before=_native_state_snapshot(store)
+                    confirmation={key:quote.json()['data'][key] for key in ('preview_ref','preview_digest','request_digest','expected_research_version','approved_upper_units')}
+                    confirmation['confirm_outbound']=True
+                    rejected=await client.post('/api/research/'+rid+'/plan-approvals',json={
+                        'schema_version':'structure-research-v1','contract_revision':'funded-plan-v2','data':confirmation},
+                        headers={'Origin':BETA,'Idempotency-Key':'actual-main-closed-confirm'})
+                    assert rejected.status_code==503 and rejected.json()['error']['code']=='FUNDING_CLOSED'
+                    assert _native_state_snapshot(store)==before
+                    assert (await client.get('/api/research/'+rid)).json()==saved.json()
+                    assert activity=={'balance':0,'prepare':0,'send':0}
                 revised_problem = problem(); revised_problem['original_input'] = '我补充确认任务到达更集中时，等待时间和积压都增加。'
                 revised = await client.post('/api/research/' + rid + '/revisions', json=envelope({
                     'expected_revision': 1, 'problem': revised_problem}),
@@ -613,3 +666,138 @@ def test_actual_main_reads_migrated_source_history_and_enforces_current_actor(tm
         asyncio.run(run())
         with pytest.raises(RuntimeError): admission.require(main.app, 'research_basic')
     assert not owned_root.exists()
+
+
+def test_actual_current_main_native_json_authority_and_foreign_types_are_closed(prepared,monkeypatch):
+    main,admission,paths,messages=prepared
+    from api import auth
+    from research import ResearchStore,plan_native as native
+    from research.authorization import AccountIdentity
+    from research.errors import ResearchError
+    async def run():
+        async with main.lifespan(main.app):
+            assert admission.require(main.app,'research_basic') is None
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
+                await login(client,messages)
+                made=await client.post('/api/research',json=envelope({'problem':problem()}),headers={'Origin':BETA,'Idempotency-Key':'native-json-owner-question'})
+                assert made.status_code==200,made.text
+                rid=made.json()['data']['research']['id']
+                saved=await client.get('/api/research/'+rid);assert saved.status_code==200
+                claims=auth._decode_jwt(client.cookies.get('phase_session'))
+                actor=AccountIdentity(claims['sub'],claims['gen'],claims['jti'],claims['exp'])
+                store=ResearchStore(auth._store())
+                with store.transaction() as conn:
+                    ResearchStore._check_v15(conn)
+                    assert conn.execute('SELECT session_generation FROM auth_users WHERE email=?',(actor.email,)).fetchone()[0]==actor.generation
+                before=_native_state_snapshot(store)
+                with _native_activity(monkeypatch) as activity:
+                    with pytest.raises(ResearchError) as closed:native.bootstrap_native_owner_authority(store)
+                    assert closed.value.code=='FUNDING_CLOSED'
+                    with pytest.raises((TypeError,PermissionError)):native.issue_native_provision(store,{'approved':True,'owner':actor.email})
+                    with pytest.raises(TypeError):native.OwnerFundingAuthorityLease(_factory=object())
+                    with pytest.raises((TypeError,PermissionError)):native.open_plan_resource({'mode':'native_live','runtime_digest':'a'*64})
+                    assert activity=={'balance':0,'prepare':0,'send':0}
+                assert _native_state_snapshot(store)==before
+                assert (await client.get('/api/research/'+rid)).json()==saved.json()
+    asyncio.run(run())
+
+
+def test_actual_current15_history_native_sql_owner_and_positive_unknown_debt_guards(tmp_path,monkeypatch):
+    from copy import deepcopy
+    from types import SimpleNamespace
+    from fastapi.testclient import TestClient
+    from .test_research_method_drafts import _draft_history_stack
+    from .test_private_registration import link,verify
+    from .test_research_paid_producers import identity
+    from research import ResearchStore,ResearchService,ResearchRunner,plan_native_financial as finance,plan_native_runtime as flow
+    from research.authorization import AuthorizationGate
+    from research.financial_guard import install_default_hook
+    with _draft_history_stack(tmp_path,monkeypatch) as stack:
+        client,root,mail,history=stack
+        import main
+        from api import auth
+        from services import formal_admission
+        assert formal_admission.require(main.app,'research_basic') is None
+        store=ResearchStore(auth._store());owner=identity(client)
+        with store.transaction() as conn:
+            ResearchStore._check_v15(conn)
+            rows=conn.execute('SELECT * FROM '+flow.RUNS+" WHERE state='unknown' AND cost_state='unknown'").fetchall()
+            assert len(rows)==1
+            unknown=dict(rows[0])
+            account=dict(conn.execute('SELECT * FROM research_funding_accounts WHERE id=?',(unknown['account_id'],)).fetchone())
+            assert account['held']>0 and account['upper_booked']>0 and unknown['upper']>0
+        material_inode=(store.path.stat().st_dev,store.path.stat().st_ino)
+        with _native_activity(monkeypatch) as activity:
+            baseline=_native_state_snapshot(store)
+            # A: both real, nonempty connection paths retain their native SQL gates.
+            for connection in ('ordinary','private'):
+                scope=closing(sqlite3.connect(store.path,isolation_level=None)) if connection=='ordinary' else store.auth_store._connection()
+                with scope as conn:
+                    conn.row_factory=sqlite3.Row;install_default_hook(conn);conn.execute('BEGIN IMMEDIATE')
+                    assert conn.execute('SELECT id FROM '+finance.NAMES[0]).fetchone() is not None
+                    assert conn.execute('SELECT id FROM '+flow.RUNS+' WHERE id=?',(unknown['id'],)).fetchone() is not None
+                    for sql,args in (("UPDATE research_plan_native_funding SET state='blocked'",()),
+                        ("UPDATE research_plan_native_runs SET state='consumed' WHERE id=?",(unknown['id'],)),
+                        ("UPDATE research_funding_accounts SET held=3 WHERE id=?",(account['id'],))):
+                        with pytest.raises(sqlite3.Error):conn.execute(sql,args)
+                    conn.rollback()
+                assert _native_state_snapshot(store)==baseline
+            # B: an actual unrelated registered actor is not a funding producer.
+            other=TestClient(main.app,base_url=BETA)
+            try:
+                assert verify(other,link(other,mail,'other-native-owner@example.invalid')).status_code==200
+                made=other.post('/api/research',json=envelope({'problem':problem()}),headers={'Origin':BETA,'Idempotency-Key':'history-other-native-owner'})
+                assert made.status_code==200,made.text
+                other_rid=made.json()['data']['research']['id'];other_actor=identity(other)
+                for writer in ('fake','unrelated_owner','actual_owner_noop','money_wrapper_noop'):
+                    actor=other_actor if writer=='unrelated_owner' else owner
+                    pid=ResearchService(store)._principal(actor)
+                    before=_native_state_snapshot(store)
+                    with AuthorizationGate(store).owner_gate(pid) as actual,store.transaction(write=True) as conn:
+                        current=conn.execute('SELECT * FROM research_funding_accounts WHERE id=?',(account['id'],)).fetchone()
+                        assert current['held']>0 and current['upper_booked']>0
+                        lease=SimpleNamespace(identity=(1,2,3)) if writer=='fake' else actual
+                        with pytest.raises((PermissionError,TypeError)):
+                            if writer=='money_wrapper_noop':flow._money(conn,lease,current,0,-flow.UPPER,lambda:None)
+                            else:finance._write(conn,lease,finance.MONEY,current['id'],{'upper_booked':0,'version':current['version']+1},lambda:None,_factory=finance._FACTORY)
+                        assert dict(conn.execute('SELECT * FROM research_funding_accounts WHERE id=?',(account['id'],)).fetchone())==dict(current)
+                        conn.rollback()
+                    assert _native_state_snapshot(store)==before
+                # D: real current Owner/ref/digests, not stale or malformed confirmation.
+                for actor_client,rid,label in ((client,history['research_id'],'owner'),(other,other_rid,'other')):
+                    question=actor_client.get('/api/research/'+rid);assert question.status_code==200
+                    body=question.json()['data']
+                    preview=actor_client.post('/api/research/'+rid+'/plan-previews',json={'schema_version':'structure-research-v1','contract_revision':'funded-plan-v2','data':{
+                        'input_revision':body['current_problem']['revision'],'expected_research_version':body['research_version'],'observation_source':'own_observation','declaration_status':'self_declared'}},headers={'Origin':BETA,'Idempotency-Key':'history-closed-preview-'+label})
+                    assert preview.status_code==200,preview.text
+                    quote=preview.json()['data']
+                    assert quote['can_confirm'] is False and quote['funding_reason']=='FUNDING_CLOSED' and quote['cash_evidence']=='not_observed'
+                    confirmation={key:quote[key] for key in ('preview_ref','preview_digest','request_digest','expected_research_version','approved_upper_units')};confirmation['confirm_outbound']=True
+                    before=_native_state_snapshot(store)
+                    rejected=actor_client.post('/api/research/'+rid+'/plan-approvals',json={'schema_version':'structure-research-v1','contract_revision':'funded-plan-v2','data':confirmation},headers={'Origin':BETA,'Idempotency-Key':'history-closed-confirm-'+label})
+                    assert rejected.status_code==503 and rejected.json()['error']['code']=='FUNDING_CLOSED'
+                    assert _native_state_snapshot(store)==before
+                    assert actor_client.get('/api/research/'+rid).json()==question.json()
+                # C: genuine positive UNKNOWN debt, no retry/send, and terminal SQL constraints.
+                before=_native_state_snapshot(store)
+                result=ResearchRunner(store).run_once(unknown['task_id'])
+                assert result['data']['state']=='pending_reconciliation'
+                assert _native_state_snapshot(store)==before
+                with closing(sqlite3.connect(store.path,isolation_level=None)) as conn:
+                    conn.create_function('research_plan_native_write_allowed',4,lambda *_:1)
+                    for assignment in ("state='consumed'","cost_state='unreserved'","upper=0","receipt_json='{}'","result_json='{}'","safe_code='saved'"):
+                        with pytest.raises(sqlite3.IntegrityError):conn.execute('UPDATE '+flow.RUNS+' SET '+assignment+',version=version+1 WHERE id=?',(unknown['id'],))
+                    conn.execute('UPDATE '+flow.RUNS+" SET cleanup_state='uncertain',version=version+1 WHERE id=?",(unknown['id'],))
+                expected=deepcopy(before)
+                for row in expected[flow.RUNS]:
+                    if row['id']==unknown['id']:row['cleanup_state']='uncertain';row['version']+=1
+                assert _native_state_snapshot(store)==expected
+                assert ResearchRunner(store).run_once(unknown['task_id'])['data']['state']=='pending_reconciliation'
+                assert _native_state_snapshot(store)==expected
+                with store.transaction() as conn:
+                    current=conn.execute('SELECT held,upper_booked FROM research_funding_accounts WHERE id=?',(account['id'],)).fetchone()
+                    assert tuple(current)==(account['held'],account['upper_booked']) and current['held']>0 and current['upper_booked']>0
+                assert activity=={'balance':0,'prepare':0,'send':0}
+                print('NATIVE_HISTORY_GUARDS:'+json.dumps({'schema':15,'held_positive':True,'upper_positive':True,'A_connections':2,'B_writers':4,'C_unknown_preserved':True,'D_real_closed_actors':2,'native_balance_prepare_send':[0,0,0]}))
+            finally:other.close()
+        assert (store.path.stat().st_dev,store.path.stat().st_ino)==material_inode
