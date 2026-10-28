@@ -2328,7 +2328,7 @@ def test_legacy_schema_fourteen_inverse_restores_all_previous_jobs(kind):
 def test_legacy_schema_fourteen_workflow_rejects_wider_or_missing_defer(kind,mutation):
     raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text())
     coverage=kind=='coverage'
-    job=raw['jobs']['coverage' if coverage else 'sanity-backend-ordinary-b']
+    job=raw['jobs']['coverage' if coverage else ORDINARY_B_PART_IDS[0]]
     title='Run coverage (split by suite, parallel files combined)' if coverage else 'Leg 2 — web/backend pytest baseline'
     step=next(step for step in job['steps'] if step.get('name')==title)
     token=' --deselect="'+LEGACY_SCHEMA_DEFERRED_NODES[7]+'"'
