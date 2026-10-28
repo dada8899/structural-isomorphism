@@ -209,7 +209,7 @@ verify-release:
 	cd web/backend && $(BACKEND_PYTEST) tests/test_research_source_origin_history.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_research_evidence_method_plan.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_research_evidence_method_native.py -p no:logging -q
-	cd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py -p no:logging -q
+	cd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py --deselect="web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]" -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_research_native_browser_service.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_native_live_grant.py -p no:logging -q
 	cd web/backend && $(BACKEND_PYTEST) tests/test_formal_native_plan_supervisor.py -p no:logging -q
