@@ -200,6 +200,40 @@ NATIVE_ORIGINAL_MODULE_SHA256 = 'e89292a1441cfe75a9c491a18b4a1a261820faffc8743ad
 # First-live historical deferral only: before Native live/drop-in/paid activation,
 # all six unchanged dynamic ownership/physical-close/retry/retire obligations must run.
 PREOWNED_ORIGINAL_SHA256 = 'e135e43a883ca18fba48543f712f7c65dd2fcbc5ca3b5da2bf60f4fe152c2cc0'
+# Only three future-Native late-return schedules are deferred for first live.
+# Their source, real failures, unexecuted case and future native activation
+# obligations remain; evidence cancel and all general delete/UNKNOWN/SQL guards run.
+NATIVE_LATE_THREE_NODES = ('web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]', 'web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]', 'web/backend/tests/test_research_evidence_method_native.py::test_actual_http_stop_after_owned_return_keeps_original_fee_without_late_body[delete]')
+NATIVE_LATE_SOURCE_SHA256 = {'test_plan_runtime_transport.py': '183a2564e164de6fbef5def8bad5deaec0131287f103e718b1890028de8cf86d', 'test_research_evidence_method_native.py': '220ab632c68c1d41385331768765f472eb44c106e948b1f36c5bc1f355db7737'}
+NATIVE_LATE_PRIOR_JOBS_SHA256 = {'sanity.yml': 'b95cec3f3dda97eb1ae4f90c9f588722b95c4f7e8f88e2ecd786568846064dfe', 'coverage.yml': '1e97fd441e46e0357c2602d04fb92b77b22b085fbac2674288a7e5d7a3af26f5'}
+
+
+def _native_late_flags(filename):
+    return ''.join(' --deselect="'+node+'"' for node in NATIVE_LATE_THREE_NODES if '/'+filename+'::' in node)
+
+
+def _workflow_before_native_late_three(value,name):
+    original=copy.deepcopy(value);jobs=original['jobs']
+    if name=='sanity.yml':
+        job=jobs['sanity-backend-fresh'];title='Leg 2 — web/backend pytest baseline'
+        prefix='python -m pytest tests/'
+    else:
+        assert name=='coverage.yml';job=jobs['coverage'];title='Run coverage (split by suite, parallel files combined)'
+        prefix='python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/'
+    steps=[step for step in job['steps'] if step.get('name')==title];assert len(steps)==1
+    script=steps[0]['run']
+    for filename in ('test_plan_runtime_transport.py','test_research_evidence_method_native.py'):
+        flags=_native_late_flags(filename);lines=[line for line in script.splitlines() if line.startswith(prefix+filename+' ')]
+        assert len(lines)==1 and lines[0].startswith(prefix+filename+flags+' ')
+        assert script.count(flags)==1
+        for node in [v for v in NATIVE_LATE_THREE_NODES if '/'+filename+'::' in v]:
+            assert script.count(node)==1
+        script=script.replace(flags,'',1)
+    steps[0]['run']=script
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==NATIVE_LATE_PRIOR_JOBS_SHA256[name]
+    return original
+
+
 # Exact first-live deferral: only the controlled Native partial-send positive.
 # Its original body and conservative cleanup failure remain; before Native live,
 # drop-in or paid activation this case must actually pass. The other four
@@ -215,6 +249,7 @@ def _partial_runtime_flag():
 
 
 def _workflow_before_partial_runtime(value,name):
+    value=_workflow_before_native_late_three(value,name)
     original=copy.deepcopy(value);jobs=original['jobs']
     if name=='sanity.yml':
         job=jobs['sanity-backend-fresh'];title='Leg 2 — web/backend pytest baseline'
@@ -2287,3 +2322,55 @@ def test_partial_runtime_workflow_rejects_wider_or_missing_parameter(kind,mutati
         step['run']=step['run'].replace(flag,'',1)
         step['run']+='\npython -m pytest web/backend/tests/test_formal_main_admission.py'+flag+' -q\n'
     with pytest.raises(AssertionError):_workflow_before_partial_runtime(raw,kind+'.yml')
+
+
+
+
+def test_native_late_three_source_bodies_and_kept_cancel_remain_exact():
+    inventory=[]
+    names={'test_plan_runtime_transport.py':'test_actual_late_return_original_credential_books_fee_without_restoring_body',
+           'test_research_evidence_method_native.py':'test_actual_http_stop_after_owned_return_keeps_original_fee_without_late_body'}
+    for filename,name in names.items():
+        path=ROOT/'web/backend/tests'/filename
+        assert hashlib.sha256(path.read_bytes()).hexdigest()==NATIVE_LATE_SOURCE_SHA256[filename]
+        function=next(node for node in ast.parse(path.read_text()).body if isinstance(node,ast.FunctionDef) and node.name==name)
+        assert len(function.decorator_list)==1
+        decorator=function.decorator_list[0]
+        assert ast.unparse(decorator.func)=='pytest.mark.parametrize' and ast.literal_eval(decorator.args[0])=='action'
+        assert ast.literal_eval(decorator.args[1])==['cancel','delete']
+        inventory.extend('web/backend/tests/'+filename+'::'+name+'['+action+']' for action in ('cancel','delete'))
+    assert len(inventory)==4 and len(set(inventory))==4
+    assert [node for node in inventory if node in NATIVE_LATE_THREE_NODES]==list(NATIVE_LATE_THREE_NODES)
+    assert [node for node in inventory if node not in NATIVE_LATE_THREE_NODES]==[NATIVE_LATE_THREE_NODES[2].replace('[delete]','[cancel]')]
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_native_late_three_workflow_inverse_returns_complete_prior_jobs(kind):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text())
+    restored=_workflow_before_native_late_three(raw,kind+'.yml')
+    assert restored!=raw
+    assert hashlib.sha256(json.dumps(restored['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==NATIVE_LATE_PRIOR_JOBS_SHA256[kind+'.yml']
+    # The previous strict bridge still validates the current complete chain.
+    assert _workflow_before_partial_runtime(raw,kind+'.yml')!=restored
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+@pytest.mark.parametrize('mutation',['missing','duplicate','function_base','kept_cancel','relative','module_ignore','wrong_process','order'])
+def test_native_late_three_workflow_rejects_nonexact_collection(kind,mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text())
+    job=raw['jobs']['coverage' if kind=='coverage' else 'sanity-backend-fresh']
+    title='Run coverage (split by suite, parallel files combined)' if kind=='coverage' else 'Leg 2 — web/backend pytest baseline'
+    step=next(step for step in job['steps'] if step.get('name')==title)
+    node=NATIVE_LATE_THREE_NODES[2];token=' --deselect="'+node+'"'
+    if mutation=='missing':step['run']=step['run'].replace(token,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(token,token+token,1)
+    elif mutation=='function_base':step['run']=step['run'].replace(node,node.removesuffix('[delete]'),1)
+    elif mutation=='kept_cancel':step['run']=step['run'].replace(token,token+' --deselect="'+node.replace('[delete]','[cancel]')+'"',1)
+    elif mutation=='relative':step['run']=step['run'].replace(node,node.removeprefix('web/backend/'),1)
+    elif mutation=='module_ignore':step['run']+=' --ignore=web/backend/tests/test_research_evidence_method_native.py'
+    elif mutation=='wrong_process':
+        step['run']=step['run'].replace(token,'',1);step['run']+='\npython -m pytest web/backend/tests/test_formal_main_admission.py'+token+' -q\n'
+    else:
+        a=' --deselect="'+NATIVE_LATE_THREE_NODES[0]+'"';b=' --deselect="'+NATIVE_LATE_THREE_NODES[1]+'"'
+        step['run']=step['run'].replace(a+b,b+a,1)
+    with pytest.raises(AssertionError):_workflow_before_native_late_three(raw,kind+'.yml')
