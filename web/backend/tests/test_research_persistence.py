@@ -156,8 +156,16 @@ def test_same_email_new_generation_never_inherits_old_research(stack):
     assert client.get(f"/api/research/{rid}").status_code == 404
     new_id = create(client, key="create-one")
     assert new_id != rid
+    new_cookie = client.cookies.get("phase_session")
+    client.cookies.delete("phase_session")
     client.cookies.set("phase_session", old_cookie)
-    assert client.get(f"/api/research/{rid}").status_code == 401
+    replayed = client.get(f"/api/research/{rid}")
+    from starlette.requests import Request
+    sent_headers = [(name.lower().encode(), value.encode()) for name, value in replayed.request.headers.multi_items()]
+    sent_cookie = Request({"type": "http", "headers": sent_headers}).cookies.get("phase_session")
+    old_sent, new_sent = sent_cookie == old_cookie, sent_cookie == new_cookie
+    assert old_sent and not new_sent
+    assert replayed.status_code == 401
 
 
 def trusted_sso(email):
