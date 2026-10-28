@@ -784,7 +784,6 @@ def test_actual_current15_history_native_sql_owner_and_positive_unknown_debt_gua
                 assert result['data']['state']=='pending_reconciliation'
                 assert _native_state_snapshot(store)==before
                 with closing(sqlite3.connect(store.path,isolation_level=None)) as conn:
-                    install_default_hook(conn)
                     conn.create_function('research_plan_native_write_allowed',4,lambda *_:1)
                     for assignment in ("state='consumed'","cost_state='unreserved'","upper=0","receipt_json='{}'","result_json='{}'","safe_code='saved'"):
                         with pytest.raises(sqlite3.IntegrityError):conn.execute('UPDATE '+flow.RUNS+' SET '+assignment+',version=version+1 WHERE id=?',(unknown['id'],))
