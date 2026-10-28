@@ -201,7 +201,7 @@ def test_unified_credentials_fail_closed_before_research_reads_writes_and_replay
         client.cookies.set("phase_session", "invalid-synthetic-direct")
     me = client.get("/api/auth/me")
     assert me.status_code == (200 if credentials == "sso-only" else expected)
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         before = tuple(conn.execute("SELECT count(*) FROM " + table).fetchone()[0]
                        for table in ("research_controls", "research_revisions", "research_idempotency"))
     responses = [
@@ -214,7 +214,7 @@ def test_unified_credentials_fail_closed_before_research_reads_writes_and_replay
     if expected != 200:
         for response in responses:
             assert problem()["original_input"] not in response.text
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn, conn:
             after = tuple(conn.execute("SELECT count(*) FROM " + table).fetchone()[0]
                           for table in ("research_controls", "research_revisions", "research_idempotency"))
         assert after == before
