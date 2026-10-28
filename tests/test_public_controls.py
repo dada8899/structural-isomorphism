@@ -1872,6 +1872,7 @@ def _workflow_source_before_legacy_schema(name):
 # unchanged three-scenario/21-point maximum combination is deferred, not passed.
 # Complete U2 capacity must be verified before claiming the expanded workload.
 FIN3_CAPACITY_NODE = 'web/tests/e2e/test_research_financial_scenario_browser.py::test_fin3_actual_main_coverage_three_scenarios_and_twenty_one_points'
+FIN3_CAPACITY_SELECTOR = 'test_research_financial_scenario_browser.py::test_fin3_actual_main_coverage_three_scenarios_and_twenty_one_points'
 FIN3_CAPACITY_SOURCE_SHA256 = '0d7c97812567e5b5294118cd8b9a1b3e210f0a82cd9d2d3d2813bdc86e329239'
 FIN3_CAPACITY_PRIOR_MAKE_SHA256 = '1d6d54cf06fff83a53fa3576d77842c382bd3d4062ec09187683c32d8185a771'
 FIN3_CAPACITY_OTHER_CASES = ('test_fin3_actual_main_ordinary_form_save_three_views_and_history',
@@ -1883,12 +1884,12 @@ FIN3_CAPACITY_OTHER_CASES = ('test_fin3_actual_main_ordinary_form_save_three_vie
 
 
 def _fin3_capacity_flag():
-    return ' --deselect="'+FIN3_CAPACITY_NODE+'"'
+    return ' --deselect="'+FIN3_CAPACITY_SELECTOR+'"'
 
 
 def _makefile_before_fin3_capacity(makefile):
     expected='test-financial-scenario-browser-contract:\n\t$(BACKEND_PYTEST) $(FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS)'+_fin3_capacity_flag()+' -p no:logging -v\n'
-    assert makefile.count(expected)==1 and makefile.count(FIN3_CAPACITY_NODE)==1
+    assert makefile.count(expected)==1 and makefile.count(FIN3_CAPACITY_SELECTOR)==1
     prior=makefile.replace(_fin3_capacity_flag(),'',1)
     assert hashlib.sha256(prior.encode()).hexdigest()==FIN3_CAPACITY_PRIOR_MAKE_SHA256
     return prior
@@ -1898,7 +1899,7 @@ def _dry_run_before_fin3_capacity(output):
     _makefile_before_fin3_capacity((ROOT/'Makefile').read_text())
     pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
     expected='PYTHONPATH='+pythonpath+' python -m pytest '+FIN3_CAPACITY_NODE.split('::')[0]+_fin3_capacity_flag()+' -p no:logging -v\n'
-    assert output.splitlines(keepends=True).count(expected)==1 and output.count(FIN3_CAPACITY_NODE)==1
+    assert output.splitlines(keepends=True).count(expected)==1 and output.count(FIN3_CAPACITY_SELECTOR)==1
     return output.replace(expected,expected.replace(_fin3_capacity_flag(),'',1),1)
 
 
@@ -4261,9 +4262,9 @@ def test_fin3_capacity_make_rejects_any_nonexact_scope(mutation):
     raw=(ROOT/'Makefile').read_text();flag=_fin3_capacity_flag()
     if mutation=='missing':raw=raw.replace(flag,'',1)
     elif mutation=='duplicate':raw=raw.replace(flag,flag+flag,1)
-    elif mutation=='whole_module':raw=raw.replace(flag,' --deselect="'+FIN3_CAPACITY_NODE.split('::')[0]+'"',1)
-    elif mutation=='current_case':raw=raw.replace(FIN3_CAPACITY_NODE,FIN3_CAPACITY_NODE.split('::')[0]+'::'+FIN3_CAPACITY_OTHER_CASES[0],1)
-    elif mutation=='wrong_path':raw=raw.replace(FIN3_CAPACITY_NODE,FIN3_CAPACITY_NODE.replace('web/tests/','tests/'),1)
+    elif mutation=='whole_module':raw=raw.replace(flag,' --deselect="'+FIN3_CAPACITY_SELECTOR.split('::')[0]+'"',1)
+    elif mutation=='current_case':raw=raw.replace(FIN3_CAPACITY_SELECTOR,FIN3_CAPACITY_SELECTOR.split('::')[0]+'::'+FIN3_CAPACITY_OTHER_CASES[0],1)
+    elif mutation=='wrong_path':raw=raw.replace(FIN3_CAPACITY_SELECTOR,FIN3_CAPACITY_NODE,1)
     elif mutation=='partial_filter':raw=raw.replace(flag,flag+' -k smoke',1)
     elif mutation=='soft':raw=raw.replace('\t$(BACKEND_PYTEST) $(FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS)','\t-$(BACKEND_PYTEST) $(FINANCIAL_SCENARIO_BROWSER_CONTRACT_TESTS)',1)
     elif mutation=='other_recipe':raw=raw.replace('test-financial-registry-browser-contract:','test-financial-registry-browser-contractX:',1)
