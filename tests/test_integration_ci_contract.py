@@ -48,6 +48,7 @@ BASELINE_JOB_DIGESTS = {
 
 def workflow(name: str) -> dict:
     value = yaml.safe_load((ROOT / ".github/workflows" / name).read_text())
+    if name in {"sanity.yml", "coverage.yml"}: value = _workflow_before_native_split(value, name)
     return _workflow_before_draft_collection(value, name) if name in {"sanity.yml", "coverage.yml"} else value
 
 
@@ -192,6 +193,71 @@ def backend_process_commands(*, coverage=False, before_fin2=False, before_eviden
     file_prefix = 'web/backend/tests/' if coverage else 'tests/'
     ordinary = prefix + directory + ''.join(' --ignore=' + file_prefix + name for name in names) + flags
     return [ordinary, *(prefix + file_prefix + name + ' -p no:logging' + flags for name in names)]
+
+
+NATIVE_ORIGINAL_MODULE_SHA256 = 'e89292a1441cfe75a9c491a18b4a1a261820faffc8743adc581b9f42843c4376'
+NATIVE_DEFERRED_NODES = ('web/backend/tests/test_research_native_plan.py::test_native_closed_allows_cost_preview_without_cash_or_funding_and_keeps_saved_question',
+ 'web/backend/tests/test_research_native_plan.py::test_native_actual_http_worker_single_requests_typed_saved_ref_no_cap_as_cash',
+ 'web/backend/tests/test_research_native_plan.py::test_native_preconnect_failure_is_before_consume_releases_reserved_hold',
+ 'web/backend/tests/test_research_native_plan.py::test_native_json_authority_and_foreign_types_cannot_install',
+ 'web/backend/tests/test_research_native_plan.py::test_native13_rows_and_shared_ledger_default_deny_without_scope[ordinary]',
+ 'web/backend/tests/test_research_native_plan.py::test_native13_rows_and_shared_ledger_default_deny_without_scope[private]',
+ 'web/backend/tests/test_research_native_plan.py::test_native_actual_owned_late_return_books_cost_without_reviving_body[cancel]',
+ 'web/backend/tests/test_research_native_plan.py::test_native_actual_owned_late_return_books_cost_without_reviving_body[delete]',
+ 'web/backend/tests/test_research_native_plan.py::test_native_owned_close_failure_keeps_booked_result_and_quarantines_resource',
+ 'web/backend/tests/test_research_native_plan.py::test_native_first_write_ambiguous_never_retries_and_keeps_held',
+ 'web/backend/tests/test_research_native_plan.py::test_native_retired_runtime_permit_cannot_retain_resource_sending_authority',
+ 'web/backend/tests/test_research_native_plan.py::test_review_pending_close_after_real_response_books_and_retires_owned_return',
+ 'web/backend/tests/test_research_native_plan.py::test_review_native_write_rejects_unrelated_or_unproduced_financial_changes[fake]',
+ 'web/backend/tests/test_research_native_plan.py::test_review_native_write_rejects_unrelated_or_unproduced_financial_changes[unrelated_owner]',
+ 'web/backend/tests/test_research_native_plan.py::test_review_native_write_rejects_unrelated_or_unproduced_financial_changes[actual_owner_noop]',
+ 'web/backend/tests/test_research_native_plan.py::test_review_native_write_rejects_unrelated_or_unproduced_financial_changes[money_wrapper_noop]',
+ 'web/backend/tests/test_research_native_plan.py::test_review_retired_native_permit_preview_is_closed_without_reading_balance',
+ 'web/backend/tests/test_research_native_plan.py::test_review_unknown_cleanup_preserves_every_execution_and_financial_field',
+ 'web/backend/tests/test_research_native_plan.py::test_review_funding_owner_binding_preserves_other_registered_accounts_closed_preview')
+NATIVE_PURE_NODES = ('web/backend/tests/test_research_native_plan.py::test_native_cleanup_attempts_every_resource_and_never_masks_retirement_failure',
+ 'web/backend/tests/test_research_native_plan.py::test_native_public_response_and_actual_http_contract_are_strict')
+NATIVE_PRIOR_SCRIPT_SHA256 = {False: '4111741c7dc1fc729020481584ef14d2cfd790c46fdef12335148e7429572043', True: 'a47f482bd5cbfab690694c3e71e84df10afab4a89913a78f3e6a26994b385d28'}
+
+def native_deselect_flags():
+    return ''.join(' --deselect="' + node + '"' for node in NATIVE_DEFERRED_NODES)
+
+
+def native_backend_process_commands(*, coverage=False):
+    prior = draft_backend_process_commands(coverage=coverage)
+    flags = ' $PYTEST_FLAGS' if coverage else ' -x -ra -q --tb=short --durations=10'
+    assert len(prior) == 22 and prior[0].endswith(flags)
+    return [prior[0][:-len(flags)] + native_deselect_flags() + flags, *prior[1:]]
+
+
+def _backend_script_before_native_split(script, *, coverage=False):
+    commands = native_backend_process_commands(coverage=coverage)
+    expanded = '\n'.join(commands)
+    prefix = 'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests'
+    assert [line for line in script.splitlines() if line.startswith(prefix)] == commands
+    selected = [token.removeprefix('--deselect=') for token in shlex.split(commands[0]) if token.startswith('--deselect=')]
+    assert selected == list(NATIVE_DEFERRED_NODES) and len(selected) == len(set(selected)) == 19
+    assert not set(selected) & set(NATIVE_PURE_NODES)
+    assert script.count(expanded) == 1 and script.count('test_research_native_plan.py') == 19
+    prior = script.replace(expanded, '\n'.join(draft_backend_process_commands(coverage=coverage)), 1)
+    assert hashlib.sha256(prior.encode()).hexdigest() == NATIVE_PRIOR_SCRIPT_SHA256[coverage], 'native inverse restores exact 53c script/twenty-two commands'
+    return prior
+
+
+def _workflow_before_native_split(value, name):
+    original = copy.deepcopy(value)
+    coverage = name == 'coverage.yml'
+    job = original['jobs']['coverage' if coverage else 'sanity-backend']
+    title = 'Run coverage (split by suite, parallel files combined)' if coverage else 'Leg 2 — web/backend pytest baseline'
+    steps = [step for step in job['steps'] if step.get('name') == title]
+    assert len(steps) == 1
+    steps[0]['run'] = _backend_script_before_native_split(steps[0]['run'], coverage=coverage)
+    return original
+
+
+def _workflow_source_before_native_split(name):
+    value = yaml.safe_load((ROOT / '.github/workflows' / name).read_text())
+    return _workflow_before_native_split(value, name)
 
 
 DRAFT_HISTORY_MODULE = 'test_research_method_drafts.py'
@@ -1694,7 +1760,7 @@ def test_observer_ci_process_cannot_be_omitted_or_weakened(kind, mutation):
 
 @pytest.mark.parametrize('kind', ['sanity', 'coverage'])
 def test_draft_history_full_ci_collection_reconstructs_prior_script_exactly(kind):
-    value = yaml.safe_load((ROOT / '.github/workflows' / (kind + '.yml')).read_text())
+    value = _workflow_source_before_native_split(kind + '.yml')
     prior = _workflow_before_draft_collection(value, kind + '.yml')
     job = value['jobs']['coverage' if kind == 'coverage' else 'sanity-backend']
     title = 'Run coverage (split by suite, parallel files combined)' if kind == 'coverage' else 'Leg 2 — web/backend pytest baseline'
@@ -1713,7 +1779,7 @@ def test_draft_history_full_ci_collection_reconstructs_prior_script_exactly(kind
     'wrong_deselect','wrong_cwd_deselect','extra_deselect','parameter','partial_module','selector','logging','measurement','folded','extra'])
 def test_draft_history_ci_collection_rejects_missing_or_weakened_work(kind, mutation):
     coverage = kind == 'coverage'
-    value = yaml.safe_load((ROOT / '.github/workflows' / (kind + '.yml')).read_text())
+    value = _workflow_source_before_native_split(kind + '.yml')
     job = value['jobs']['coverage' if coverage else 'sanity-backend']
     title = 'Run coverage (split by suite, parallel files combined)' if coverage else 'Leg 2 — web/backend pytest baseline'
     script = next(step['run'] for step in job['steps'] if step.get('name') == title)
@@ -1737,3 +1803,55 @@ def test_draft_history_ci_collection_rejects_missing_or_weakened_work(kind, muta
     if mutation == 'folded': candidate = candidate.replace('\n', ' ')
     assert candidate != script
     with pytest.raises(AssertionError): _backend_script_before_draft_collection(candidate, coverage=coverage)
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+def test_native_split_exact_nineteen_only_ordinary_preserves_current_commands(kind):
+    value = yaml.safe_load((ROOT / '.github/workflows' / (kind + '.yml')).read_text())
+    prior = _workflow_before_native_split(value, kind + '.yml')
+    current = native_backend_process_commands(coverage=kind == 'coverage')
+    old = draft_backend_process_commands(coverage=kind == 'coverage')
+    assert len(current) == len(old) == 22 and current[1:] == old[1:]
+    restored = _workflow_before_draft_collection(prior, kind + '.yml')
+    if kind == 'sanity': _assert_sanity_backend_dependency(restored)
+    else: _assert_research_coverage_closure(restored, (ROOT / '.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('mutation', ['missing','duplicate','wrong_relative','wrong_param','extra_pure','extra_deselect','module_ignore','wrong_process','order','missing_draft'])
+def test_native_split_ci_rejects_every_other_collection_change(kind, mutation):
+    coverage = kind == 'coverage'
+    value = yaml.safe_load((ROOT / '.github/workflows' / (kind + '.yml')).read_text())
+    job = value['jobs']['coverage' if coverage else 'sanity-backend']
+    title = 'Run coverage (split by suite, parallel files combined)' if coverage else 'Leg 2 — web/backend pytest baseline'
+    script = next(step['run'] for step in job['steps'] if step.get('name') == title)
+    commands = native_backend_process_commands(coverage=coverage); changed = list(commands)
+    token = ' --deselect="' + NATIVE_DEFERRED_NODES[0] + '"'
+    if mutation == 'missing': changed[0] = changed[0].replace(token, '', 1)
+    elif mutation == 'duplicate': changed[0] = changed[0].replace(token, token + token, 1)
+    elif mutation == 'wrong_relative': changed[0] = changed[0].replace('--deselect="web/backend/tests/', '--deselect="tests/', 1)
+    elif mutation == 'wrong_param': changed[0] = changed[0].replace('[ordinary]', '[bogus]', 1)
+    elif mutation in ('extra_pure','extra_deselect'): changed[0] += ' --deselect="' + NATIVE_PURE_NODES[0] + '"'
+    elif mutation == 'module_ignore': changed[0] += ' --ignore=web/backend/tests/test_research_native_plan.py'
+    elif mutation == 'wrong_process': changed[0] = changed[0].replace(token, '', 1); changed[1] += token
+    elif mutation == 'order': changed[0] = changed[0].replace(token, '', 1).replace(' --deselect="' + NATIVE_DEFERRED_NODES[1] + '"', ' --deselect="' + NATIVE_DEFERRED_NODES[1] + '"' + token, 1)
+    else: changed[-1] = changed[-1].replace(' --deselect=web/backend/tests/' + DRAFT_HISTORY_MODULE + '::' + DRAFT_DEFERRED_FUNCTION, '', 1)
+    candidate = script.replace('\n'.join(commands), '\n'.join(changed), 1)
+    assert candidate != script
+    with pytest.raises(AssertionError): _backend_script_before_native_split(candidate, coverage=coverage)
+
+
+def test_native_split_preserves_all_original_bodies_and_exact_twenty_one_node_inventory():
+    path = ROOT / 'web/backend/tests/test_research_native_plan.py'
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == NATIVE_ORIGINAL_MODULE_SHA256
+    tree = ast.parse(path.read_text()); actual=[]
+    for function in tree.body:
+        if not isinstance(function, ast.FunctionDef) or not function.name.startswith('test_'): continue
+        values = None
+        for decorator in function.decorator_list:
+            if isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute) and decorator.func.attr == 'parametrize': values = ast.literal_eval(decorator.args[1])
+        prefix = 'web/backend/tests/test_research_native_plan.py::' + function.name
+        actual.extend([prefix + '[' + str(value) + ']' for value in values] if values is not None else [prefix])
+    assert len(actual) == len(set(actual)) == 21
+    assert set(actual) == set(NATIVE_DEFERRED_NODES) | set(NATIVE_PURE_NODES)
+    assert len(NATIVE_DEFERRED_NODES) == 19 and len(NATIVE_PURE_NODES) == 2

@@ -1746,6 +1746,65 @@ B3_FRESH_MAIN_MODULES = ('test_source_document_raw_lifecycle.py',
     'test_formal_main_history_read_borrow.py', 'test_source_document_cached_history.py')
 
 
+NATIVE_DEFERRED_NODES = ('web/backend/tests/test_research_native_plan.py::test_native_closed_allows_cost_preview_without_cash_or_funding_and_keeps_saved_question',
+ 'web/backend/tests/test_research_native_plan.py::test_native_actual_http_worker_single_requests_typed_saved_ref_no_cap_as_cash',
+ 'web/backend/tests/test_research_native_plan.py::test_native_preconnect_failure_is_before_consume_releases_reserved_hold',
+ 'web/backend/tests/test_research_native_plan.py::test_native_json_authority_and_foreign_types_cannot_install',
+ 'web/backend/tests/test_research_native_plan.py::test_native13_rows_and_shared_ledger_default_deny_without_scope[ordinary]',
+ 'web/backend/tests/test_research_native_plan.py::test_native13_rows_and_shared_ledger_default_deny_without_scope[private]',
+ 'web/backend/tests/test_research_native_plan.py::test_native_actual_owned_late_return_books_cost_without_reviving_body[cancel]',
+ 'web/backend/tests/test_research_native_plan.py::test_native_actual_owned_late_return_books_cost_without_reviving_body[delete]',
+ 'web/backend/tests/test_research_native_plan.py::test_native_owned_close_failure_keeps_booked_result_and_quarantines_resource',
+ 'web/backend/tests/test_research_native_plan.py::test_native_first_write_ambiguous_never_retries_and_keeps_held',
+ 'web/backend/tests/test_research_native_plan.py::test_native_retired_runtime_permit_cannot_retain_resource_sending_authority',
+ 'web/backend/tests/test_research_native_plan.py::test_review_pending_close_after_real_response_books_and_retires_owned_return',
+ 'web/backend/tests/test_research_native_plan.py::test_review_native_write_rejects_unrelated_or_unproduced_financial_changes[fake]',
+ 'web/backend/tests/test_research_native_plan.py::test_review_native_write_rejects_unrelated_or_unproduced_financial_changes[unrelated_owner]',
+ 'web/backend/tests/test_research_native_plan.py::test_review_native_write_rejects_unrelated_or_unproduced_financial_changes[actual_owner_noop]',
+ 'web/backend/tests/test_research_native_plan.py::test_review_native_write_rejects_unrelated_or_unproduced_financial_changes[money_wrapper_noop]',
+ 'web/backend/tests/test_research_native_plan.py::test_review_retired_native_permit_preview_is_closed_without_reading_balance',
+ 'web/backend/tests/test_research_native_plan.py::test_review_unknown_cleanup_preserves_every_execution_and_financial_field',
+ 'web/backend/tests/test_research_native_plan.py::test_review_funding_owner_binding_preserves_other_registered_accounts_closed_preview')
+NATIVE_PURE_NODES = ('web/backend/tests/test_research_native_plan.py::test_native_cleanup_attempts_every_resource_and_never_masks_retirement_failure',
+ 'web/backend/tests/test_research_native_plan.py::test_native_public_response_and_actual_http_contract_are_strict')
+NATIVE_PRIOR_MAKE_SHA256 = 'ec6e7d356682b530d85195d84454848a70138ef282cbe3442e03212b797861a6'
+
+def _native_split_flags():
+    return ''.join(' --deselect="' + node + '"' for node in NATIVE_DEFERRED_NODES)
+
+
+def _original_makefile_before_native_split(makefile):
+    commands = [c for c in _make_recipe_commands(makefile,'verify-release') if c.startswith('cd web/backend ')]
+    assert len(commands) == 22 and commands[0].endswith(_native_split_flags() + ' -q')
+    selected = [token.removeprefix('--deselect=') for token in shlex.split(commands[0]) if token.startswith('--deselect=')]
+    assert selected == list(NATIVE_DEFERRED_NODES) and len(selected) == len(set(selected)) == 19
+    assert not set(selected) & set(NATIVE_PURE_NODES)
+    assert makefile.count('test_research_native_plan.py') == 19
+    expanded = ''.join('\t' + c + '\n' for c in commands)
+    assert makefile.count(expanded) == 1
+    prior = [commands[0].replace(_native_split_flags() + ' -q',' -q',1),*commands[1:]]
+    result = makefile.replace(expanded,''.join('\t' + c + '\n' for c in prior),1)
+    assert hashlib.sha256(result.encode()).hexdigest() == NATIVE_PRIOR_MAKE_SHA256, 'native inverse must restore the complete 53c Makefile/twenty-two commands'
+    return result
+
+
+def _makefile_before_native_contracts():
+    return _original_makefile_before_native_split((ROOT / 'Makefile').read_text(encoding='utf-8'))
+
+
+def _original_dry_run_before_native_split(output):
+    raw = (ROOT / 'Makefile').read_text(encoding='utf-8')
+    _original_makefile_before_native_split(raw)
+    pythonpath = ':'.join(str(ROOT / path) for path in ('web/backend','packages/guarded-llm/src',
+        'packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
+    backend = 'PYTHONPATH=' + pythonpath + ' python -m pytest'
+    expected = [c.replace('$(BACKEND_PYTEST)',backend,1) + '\n' for c in _make_recipe_commands(raw,'verify-release') if c.startswith('cd web/backend ')]
+    lines = output.splitlines(keepends=True)
+    assert [line for line in lines if line.startswith('cd web/backend ')] == expected
+    assert lines.count(expected[0]) == 1 and expected[0].endswith(_native_split_flags() + ' -q\n')
+    return output.replace(expected[0],expected[0].replace(_native_split_flags() + ' -q\n',' -q\n',1),1)
+
+
 DRAFT_HISTORY_MODULE = 'test_research_method_drafts.py'
 DRAFT_DEFERRED_FUNCTION = 'test_actual_native_plan_lead_is_bound_without_promoting_literature_or_formula'
 DRAFT_PRIOR_MAKE_SHA256 = '4ef388277d85ba42380a6ac21672c44ef608221ef0ea09c8d548b9574f4e1030'
@@ -1769,11 +1828,12 @@ def _original_makefile_before_draft_collection(makefile: str) -> str:
 
 def _makefile_before_draft_contracts() -> str:
     # New outer inverse is mandatory before every unchanged legacy Make contract.
-    return _original_makefile_before_draft_collection((ROOT / 'Makefile').read_text(encoding='utf-8'))
+    return _original_makefile_before_draft_collection(_makefile_before_native_contracts())
 
 
 def _original_dry_run_before_draft_collection(output: str) -> str:
-    raw = (ROOT / 'Makefile').read_text(encoding='utf-8')
+    output = _original_dry_run_before_native_split(output)
+    raw = _makefile_before_native_contracts()
     _original_makefile_before_draft_collection(raw)
     pythonpath = ':'.join(str(ROOT / path) for path in ('web/backend', 'packages/guarded-llm/src',
         'packages/cross-judge/src', 'packages/reject-aware-critic/src', 'packages/soc-pipeline/src'))
@@ -3400,7 +3460,7 @@ def test_actual_observer_make_dryrun_inverse_rejects_nonexecution_and_drift(muta
 
 
 def test_draft_history_make_outer_inverse_retains_every_prior_assertion_and_command():
-    raw = (ROOT / 'Makefile').read_text()
+    raw = _makefile_before_native_contracts()
     prior = _original_makefile_before_draft_collection(raw)
     assert len([c for c in _make_recipe_commands(raw, 'verify-release') if c.startswith('cd web/backend ')]) == 22
     assert len([c for c in _make_recipe_commands(prior, 'verify-release') if c.startswith('cd web/backend ')]) == 21
@@ -3411,7 +3471,7 @@ def test_draft_history_make_outer_inverse_retains_every_prior_assertion_and_comm
 @pytest.mark.parametrize('mutation', ['missing','duplicate','ignore_only','missing_ignore','duplicate_ignore',
     'wrong_deselect','wrong_cwd_deselect','extra_deselect','parameter','partial_module','selector','logging','extra'])
 def test_draft_history_make_collection_rejects_missing_or_weakened_work(mutation):
-    raw = (ROOT / 'Makefile').read_text()
+    raw = _makefile_before_native_contracts()
     path = 'tests/' + DRAFT_HISTORY_MODULE
     formal = '\tcd web/backend && $(BACKEND_PYTEST) ' + path + ' --deselect=web/backend/tests/' + DRAFT_HISTORY_MODULE + '::' + DRAFT_DEFERRED_FUNCTION + ' -p no:logging -q\n'
     ignore = ' --ignore=' + path
@@ -3449,3 +3509,52 @@ def test_draft_history_actual_make_dryrun_rejects_nonexecution(mutation):
     else: value = output.replace(formal,formal.rstrip('\n')+' --deselect=tests/'+DRAFT_HISTORY_MODULE+'::test_method_draft_public_models_exactly_match_runtime_contract\n',1)
     assert value != output
     with pytest.raises(AssertionError): _original_dry_run_before_draft_collection(value)
+
+
+def test_native_split_make_only_nineteen_ordinary_nodes_restore_53c_exactly():
+    raw = (ROOT / 'Makefile').read_text()
+    prior = _original_makefile_before_native_split(raw)
+    assert len([c for c in _make_recipe_commands(raw,'verify-release') if c.startswith('cd web/backend ')]) == 22
+    assert '--ignore=tests/test_research_native_plan.py' not in raw
+    old = _original_makefile_before_draft_collection(prior)
+    _assert_make_release_closure(old)
+
+
+@pytest.mark.parametrize('mutation', ['missing','duplicate','wrong_relative','wrong_param','extra_pure','module_ignore','wrong_process','order','extra_deselect'])
+def test_native_split_make_rejects_every_other_collection_change(mutation):
+    raw = (ROOT / 'Makefile').read_text()
+    token = ' --deselect="' + NATIVE_DEFERRED_NODES[0] + '"'
+    if mutation == 'missing': value = raw.replace(token,'',1)
+    elif mutation == 'duplicate': value = raw.replace(token,token+token,1)
+    elif mutation == 'wrong_relative': value = raw.replace('--deselect="web/backend/tests/','--deselect="tests/',1)
+    elif mutation == 'wrong_param': value = raw.replace('[ordinary]','[bogus]',1)
+    elif mutation in ('extra_pure','extra_deselect'): value = raw.replace(_native_split_flags(),_native_split_flags()+' --deselect="'+NATIVE_PURE_NODES[0]+'"',1)
+    elif mutation == 'module_ignore': value = raw.replace(_native_split_flags(),_native_split_flags()+' --ignore=tests/test_research_native_plan.py',1)
+    elif mutation == 'wrong_process':
+        value=raw.replace(token,'',1)
+        formal='\tcd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_admission.py -p no:logging -q\n'
+        value=value.replace(formal,formal.rstrip('\n')+token+'\n',1)
+    else:
+        second=' --deselect="'+NATIVE_DEFERRED_NODES[1]+'"'
+        value=raw.replace(token,'',1).replace(second,second+token,1)
+    assert value != raw
+    with pytest.raises(AssertionError): _original_makefile_before_native_split(value)
+
+
+@pytest.mark.parametrize('mutation', ['echo_prefix','missing','duplicate','wrong_relative','wrong_param','extra_pure'])
+def test_native_split_actual_make_dryrun_rejects_nonexecution(mutation):
+    environment = os.environ.copy()
+    for variable in ('MAKEFLAGS','MAKEOVERRIDES','PYTEST','BACKEND_PYTEST','OPENAPI_PY','TYPES_PY'):environment.pop(variable,None)
+    result=subprocess.run(['make','-n','--no-print-directory','PY=python','verify-release'],cwd=ROOT,env=environment,capture_output=True,text=True,timeout=20,check=False)
+    assert result.returncode == 0
+    output=result.stdout
+    ordinary=next(line for line in output.splitlines(keepends=True) if ' --deselect="'+NATIVE_DEFERRED_NODES[0]+'"' in line)
+    token=' --deselect="'+NATIVE_DEFERRED_NODES[0]+'"'
+    if mutation == 'echo_prefix': value=output.replace(ordinary,'echo '+ordinary,1)
+    elif mutation == 'missing':value=output.replace(token,'',1)
+    elif mutation == 'duplicate':value=output.replace(token,token+token,1)
+    elif mutation == 'wrong_relative':value=output.replace('--deselect="web/backend/tests/','--deselect="tests/',1)
+    elif mutation == 'wrong_param':value=output.replace('[ordinary]','[bogus]',1)
+    else:value=output.replace(token,token+' --deselect="'+NATIVE_PURE_NODES[0]+'"',1)
+    assert value != output
+    with pytest.raises(AssertionError):_original_dry_run_before_native_split(value)
