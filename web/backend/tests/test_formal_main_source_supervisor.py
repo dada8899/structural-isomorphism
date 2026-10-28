@@ -1164,78 +1164,89 @@ def test_actual_main_native_stop_between_check_and_source_state_is_closed(prepar
     _source_state_stop_control(prepared, point)
 
 
+def _unsealed_source_fault_probe(owned_root,fault):
+    assert fault in ('state','event','integrity')
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        smtp_fixture=smtp.__wrapped__()
+        try:
+            actual_smtp=next(smtp_fixture)
+            prepared_fixture=prepared.__wrapped__(Path(owned_root),monkeypatch,actual_smtp)
+            try:
+                prepared_value=next(prepared_fixture)
+                main, admission, paths, _ = prepared_value
+                from research import source_supervisor as source
+                target = next(i for i, line in enumerate(Path(source.__file__).read_text().splitlines(), 1)
+                    if "if self._state not in ('STARTING', 'READY'):" in line)
+                injected, captured = [], []
+                def trace(frame, event, argument):
+                    if frame.f_code is not source.SourceSupervisor._run_with_budget.__code__: return None
+                    supervisor = source._REGISTRY.get(id(main.app))
+                    if (event == 'line' and frame.f_lineno == target and not injected and supervisor is not None
+                            and threading.current_thread() is supervisor._thread and supervisor._state == 'READY'):
+                        if fault == 'state': supervisor._state = 'STOPPING'
+                        elif fault == 'event': supervisor._stop.set()
+                        else: (paths.STATE_ROOT / 'history.db').chmod(0o640)
+                        injected.append(True)
+                    return trace
+                old_trace = threading.gettrace(); threading.settrace(trace)
+                async def run():
+                    context = main.lifespan(main.app); await context.__aenter__()
+                    binding = admission._STATE[id(main.app)]; captured.append(binding)
+                    end = time.monotonic() + 5
+                    while binding.supervisor._thread.is_alive() and time.monotonic() < end: await asyncio.sleep(.01)
+                    assert injected and not binding.supervisor._thread.is_alive()
+                    assert binding.supervisor._failure == 'WORKER_FAILURE'
+                    assert binding.supervisor._stop.is_set() == (fault == 'event')
+                    assert binding.supervisor._main_stop_intent is None and binding.supervisor._source_stop_intent is None
+                    assert binding.supervisor._errors and all(type(error) is not source._SourceStopping for error in binding.supervisor._errors)
+                    with pytest.raises(RuntimeError): await context.__aexit__(None, None, None)
+                    assert binding.source_receipt.state == 'CLEANUP_UNCERTAIN'
+                    assert binding.source_receipt.reason == 'WORKER_FAILURE'
+                    assert binding.supervisor._slot is None and binding.supervisor._lease is None
+                    assert any(witness.parent_fd is not None for witness in binding.witnesses)
+                    with binding.service.store.transaction() as conn:
+                        assert conn.execute('SELECT count(*) FROM research_source_requests').fetchone()[0] == 0
+                    print('SOURCE_STATE_UNCERTAINTY:' + json.dumps({'fault': fault, 'receipt': 'CLEANUP_UNCERTAIN',
+                        'reason': 'WORKER_FAILURE', 'sealed_stop_signal': False, 'worker_alive': False, 'requests': 0, 'gets': 0}))
+                try: asyncio.run(run())
+                finally:
+                    threading.settrace(old_trace)
+                    for binding in captured:
+                        assert not binding.supervisor._thread.is_alive()
+                        governor = binding.supervisor._sec_access
+                        if governor.fd is not None: os.close(governor.fd)
+                        for witness in binding.witnesses:
+                            if witness.parent_fd is not None: witness.close()
+            finally:
+                with pytest.raises(StopIteration):next(prepared_fixture)
+        finally:
+            with pytest.raises(StopIteration):next(smtp_fixture)
+
+
 @pytest.mark.parametrize('fault', ['state', 'event', 'integrity'])
-def test_actual_main_unsealed_source_state_or_integrity_fault_stays_uncertain(request, tmp_path, monkeypatch, fault):
-    if os.environ.get('SOURCE_STATE_FAULT_CHILD') != fault:
-        owned = tmp_path / fault; owned.mkdir(mode=0o700)
-        home = owned / 'home'; home.mkdir(mode=0o700)
-        root = Path(__file__).resolve().parents[3]
-        audit = sys.modules.get('audit_bootstrap')
-        assert audit is not None, 'owned lifecycle guard required for isolated uncertainty control'
-        guard = sys.modules.get('main_smtp_task_guard')
-        assert guard is not None, 'approved owned Main guard required'
-        packet = Path(guard.__file__).resolve().parent
-        environment = {'PATH': os.environ['PATH'], 'PYTHONPATH': os.pathsep.join((str(Path(audit.__file__).resolve().parent),
-            str(root / 'web/backend'), str(root), str(packet))), 'REVIEW_SOURCE_ROOT': str(root),
-            'HOME': str(home), 'TMPDIR': str(owned), 'A006_AUDIT_ROOT': str(owned),
-            'PYTHONDONTWRITEBYTECODE': '1', 'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1',
-            'STRUCTURAL_ENV': 'test', 'AUTH_ENABLED': 'false', 'AUTH_DATA_DIR': str(owned / 'auth'),
-            'STRUCTURAL_LOG_FILE': str(owned / 'bootstrap.jsonl'), 'HF_HUB_OFFLINE': '1', 'TRANSFORMERS_OFFLINE': '1',
-            'SOURCE_STATE_FAULT_CHILD': fault}
-        target = str(Path(__file__).resolve()) + '::test_actual_main_unsealed_source_state_or_integrity_fault_stays_uncertain[' + fault + ']'
-        result = subprocess.run([sys.executable, '-B', str(packet / 'run_tests.py'),
-            '-p', 'controller_mail_observer', '-p', 'a_evidence_resource_observer', target,
-            '--basetemp=' + str(owned / 'cases'), '--junitxml=' + str(owned / 'result.xml')],
-            cwd=owned, env=environment, capture_output=True, timeout=25)
-        (owned / 'result.log').write_bytes(result.stdout + result.stderr)
-        assert result.returncode == 0, 'isolated Source state fault failed; retain owned result.log'
-        assert b'SOURCE_STATE_UNCERTAINTY:' in result.stdout
-        return
-    prepared = request.getfixturevalue('prepared')
-    main, admission, paths, _ = prepared
-    from research import source_supervisor as source
-    target = next(i for i, line in enumerate(Path(source.__file__).read_text().splitlines(), 1)
-        if "if self._state not in ('STARTING', 'READY'):" in line)
-    injected, captured = [], []
-    def trace(frame, event, argument):
-        if frame.f_code is not source.SourceSupervisor._run_with_budget.__code__: return None
-        supervisor = source._REGISTRY.get(id(main.app))
-        if (event == 'line' and frame.f_lineno == target and not injected and supervisor is not None
-                and threading.current_thread() is supervisor._thread and supervisor._state == 'READY'):
-            if fault == 'state': supervisor._state = 'STOPPING'
-            elif fault == 'event': supervisor._stop.set()
-            else: (paths.STATE_ROOT / 'history.db').chmod(0o640)
-            injected.append(True)
-        return trace
-    old_trace = threading.gettrace(); threading.settrace(trace)
-    async def run():
-        context = main.lifespan(main.app); await context.__aenter__()
-        binding = admission._STATE[id(main.app)]; captured.append(binding)
-        end = time.monotonic() + 5
-        while binding.supervisor._thread.is_alive() and time.monotonic() < end: await asyncio.sleep(.01)
-        assert injected and not binding.supervisor._thread.is_alive()
-        assert binding.supervisor._failure == 'WORKER_FAILURE'
-        assert binding.supervisor._stop.is_set() == (fault == 'event')
-        assert binding.supervisor._main_stop_intent is None and binding.supervisor._source_stop_intent is None
-        assert binding.supervisor._errors and all(type(error) is not source._SourceStopping for error in binding.supervisor._errors)
-        with pytest.raises(RuntimeError): await context.__aexit__(None, None, None)
-        assert binding.source_receipt.state == 'CLEANUP_UNCERTAIN'
-        assert binding.source_receipt.reason == 'WORKER_FAILURE'
-        assert binding.supervisor._slot is None and binding.supervisor._lease is None
-        assert any(witness.parent_fd is not None for witness in binding.witnesses)
-        with binding.service.store.transaction() as conn:
-            assert conn.execute('SELECT count(*) FROM research_source_requests').fetchone()[0] == 0
-        print('SOURCE_STATE_UNCERTAINTY:' + json.dumps({'fault': fault, 'receipt': 'CLEANUP_UNCERTAIN',
-            'reason': 'WORKER_FAILURE', 'sealed_stop_signal': False, 'worker_alive': False, 'requests': 0, 'gets': 0}))
-    try: asyncio.run(run())
-    finally:
-        threading.settrace(old_trace)
-        for binding in captured:
-            assert not binding.supervisor._thread.is_alive()
-            governor = binding.supervisor._sec_access
-            if governor.fd is not None: os.close(governor.fd)
-            for witness in binding.witnesses:
-                if witness.parent_fd is not None: witness.close()
+def test_actual_main_unsealed_source_state_or_integrity_fault_stays_uncertain(tmp_path,fault):
+    owned=tmp_path/fault;owned.mkdir(mode=0o700)
+    home=owned/'home';home.mkdir(mode=0o700)
+    root=Path(__file__).resolve().parents[3]
+    program=("import sys\nfrom pathlib import Path\n"
+        +"sys.path[:0]="+repr([str(root/'web/backend'),str(root)])+"\n"
+        +"from web.backend.tests.test_formal_main_source_supervisor import _unsealed_source_fault_probe\n"
+        +"_unsealed_source_fault_probe(Path("+repr(str(owned))+"),"+repr(fault)+")\n")
+    environment={'PATH':os.environ['PATH'],'PYTHONPATH':os.pathsep.join((str(root/'web/backend'),str(root))),
+        'HOME':str(home),'TMPDIR':str(owned),'PYTHONDONTWRITEBYTECODE':'1',
+        'STRUCTURAL_ENV':'test','AUTH_ENABLED':'false','AUTH_DATA_DIR':str(owned/'auth'),
+        'STRUCTURAL_LOG_FILE':str(owned/'bootstrap.jsonl'),'HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1'}
+    with subprocess.Popen([sys.executable,'-B','-c',program],cwd=owned,env=environment,
+            stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True) as child:
+        try:stdout,stderr=child.communicate(timeout=25)
+        except BaseException:
+            try:os.killpg(child.pid,signal.SIGKILL)
+            except ProcessLookupError:pass
+            child.wait(timeout=5)
+            raise
+    (owned/'result.log').write_bytes(stdout+stderr)
+    assert child.returncode==0,'isolated Source state fault failed; retain owned result.log'
+    assert b'SOURCE_STATE_UNCERTAINTY:' in stdout
 
 
 _PENDING_BYTE_HOLDER = '''
