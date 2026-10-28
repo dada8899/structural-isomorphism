@@ -167,6 +167,7 @@ def _ci_job(job_name: str) -> dict[str, object]:
 def _workflow_data(workflow_path: Path) -> dict[str, object]:
     workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
     assert isinstance(workflow, dict), "CI workflow must be a mapping"
+    if workflow_path.name in {"sanity.yml", "coverage.yml"}: workflow = _workflow_before_legacy_schema_fourteen(workflow, workflow_path.name)
     if workflow_path.name in {"sanity.yml", "coverage.yml"}: workflow = _workflow_before_preowned_six(workflow, workflow_path.name)
     return _workflow_before_sanity_groups(workflow) if workflow_path.name == "sanity.yml" else workflow
 
@@ -1750,6 +1751,77 @@ B3_FRESH_MAIN_MODULES = ('test_source_document_raw_lifecycle.py',
 
 # First-live historical deferral only: before Native live/drop-in/paid activation,
 # all six unchanged dynamic ownership/physical-close/retry/retire obligations must run.
+# Historical R11->R12 and R12->R13 deferral only. These fourteen obligations must
+# actually pass before any legacy11/12/13 maintenance or recovery is supported.
+LEGACY_SCHEMA_DEFERRED_NODES = ('web/backend/tests/test_research_native_schema_v13.py::test_real_old12_offline13_preserves_ledger_fixture_result_ref_time_newprocess',
+ 'web/backend/tests/test_research_native_schema_v13.py::test_native13_actual_kill_recovery_only_complete12_or13_with_same_ledger[journal]',
+ 'web/backend/tests/test_research_native_schema_v13.py::test_native13_actual_kill_recovery_only_complete12_or13_with_same_ledger[rebuild]',
+ 'web/backend/tests/test_research_native_schema_v13.py::test_native13_actual_kill_recovery_only_complete12_or13_with_same_ledger[resource]',
+ 'web/backend/tests/test_research_native_schema_v13.py::test_native13_actual_kill_recovery_only_complete12_or13_with_same_ledger[marker]',
+ 'web/backend/tests/test_research_native_schema_v13.py::test_native13_actual_kill_recovery_only_complete12_or13_with_same_ledger[before-commit]',
+ 'web/backend/tests/test_research_native_schema_v13.py::test_native13_actual_kill_recovery_only_complete12_or13_with_same_ledger[after-commit]',
+ 'web/backend/tests/test_research_plan_schema_v12.py::test_real_complete11_to12_same_inode_formula_ref_time_and_old_source_permission',
+ 'web/backend/tests/test_research_plan_schema_v12.py::test_v12_actual_kill_recovers_only_complete_old11_or_new12_same_formula_bytes[journal]',
+ 'web/backend/tests/test_research_plan_schema_v12.py::test_v12_actual_kill_recovers_only_complete_old11_or_new12_same_formula_bytes[rebuild]',
+ 'web/backend/tests/test_research_plan_schema_v12.py::test_v12_actual_kill_recovers_only_complete_old11_or_new12_same_formula_bytes[resource]',
+ 'web/backend/tests/test_research_plan_schema_v12.py::test_v12_actual_kill_recovers_only_complete_old11_or_new12_same_formula_bytes[marker]',
+ 'web/backend/tests/test_research_plan_schema_v12.py::test_v12_actual_kill_recovers_only_complete_old11_or_new12_same_formula_bytes[before-commit]',
+ 'web/backend/tests/test_research_plan_schema_v12.py::test_v12_actual_kill_recovers_only_complete_old11_or_new12_same_formula_bytes[after-commit]')
+LEGACY_SCHEMA_REQUIRED_PRODUCER = 'web/backend/tests/test_research_native_schema_v13.py::test_real_v12_reference_producer_is_selfcontained_without_git_or_old_checkout'
+LEGACY_SCHEMA_ORIGINAL_SHA256 = '4c61f4c15a017ba115327a6ac9469a664c7183d36a0f213b454134ab085b9617'
+LEGACY_SCHEMA_PLAN12_SHA256 = '3e0d265d7ac1e5a1e3c1584563e731e82b116dbcb5b83f0e883d7e480aaf4f4e'
+LEGACY_SCHEMA_PRIOR_JOBS_SHA256 = {'sanity.yml': '80caf582946d706442ed3c76dcc7ff9e7131fcb9b2bfdd36005c5ff1fe91400f', 'coverage.yml': '991f54306338f28363decdb0c31132d80b2a413fd40736d9e6034c76f1ff7e44'}
+
+def _legacy_schema_flags():
+    return ''.join(' --deselect="'+node+'"' for node in LEGACY_SCHEMA_DEFERRED_NODES)
+
+
+def _workflow_before_legacy_schema_fourteen(value,name):
+    original=copy.deepcopy(value);jobs=original['jobs']
+    if name=='sanity.yml':
+        targets=[jobs['sanity-backend-ordinary-a'],jobs['sanity-backend-ordinary-b']];title='Leg 2 — web/backend pytest baseline'
+    else:
+        assert name=='coverage.yml';targets=[jobs['coverage']];title='Run coverage (split by suite, parallel files combined)'
+    for job in targets:
+        steps=[step for step in job['steps'] if step.get('name')==title];assert len(steps)==1
+        script=steps[0]['run'];assert script.count(_legacy_schema_flags())==1
+        matching=[line for line in script.splitlines() if _legacy_schema_flags() in line];assert len(matching)==1 and matching[0].startswith('python -m ')
+        removed=[token.removeprefix('--deselect=') for token in shlex.split(matching[0]) if token.startswith('--deselect=') and any(name in token for name in ('test_research_native_schema_v13.py','test_research_plan_schema_v12.py'))]
+        assert removed==list(LEGACY_SCHEMA_DEFERRED_NODES) and len(set(removed))==14 and LEGACY_SCHEMA_REQUIRED_PRODUCER not in removed
+        steps[0]['run']=script.replace(_legacy_schema_flags(),'',1)
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==LEGACY_SCHEMA_PRIOR_JOBS_SHA256[name]
+    return original
+
+
+def _workflow_source_before_legacy_schema(name):
+    value=yaml.safe_load((ROOT/'.github/workflows'/name).read_text())
+    return _workflow_before_legacy_schema_fourteen(value,name) if name in {'sanity.yml','coverage.yml'} else value
+
+
+LEGACY_SCHEMA_PRIOR_MAKE_SHA256 = 'a96493c45271f9542b350dfeb152c6a28e963b40e54724285aaa802b11a4520b'
+
+def _original_makefile_before_legacy_schema(makefile):
+    commands=[line for line in _make_recipe_commands(makefile,'verify-release') if line.startswith('cd web/backend ')]
+    assert len(commands)==22 and commands[0].endswith(_legacy_schema_flags()+' -q') and makefile.count(_legacy_schema_flags())==1
+    prior=makefile.replace(_legacy_schema_flags(),'',1)
+    assert hashlib.sha256(prior.encode()).hexdigest()==LEGACY_SCHEMA_PRIOR_MAKE_SHA256
+    return prior
+
+
+def _makefile_before_legacy_schema_contracts():
+    return _original_makefile_before_legacy_schema((ROOT/'Makefile').read_text())
+
+
+def _original_dry_run_before_legacy_schema(output):
+    raw=(ROOT/'Makefile').read_text();_original_makefile_before_legacy_schema(raw)
+    pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
+    backend='PYTHONPATH='+pythonpath+' python -m pytest'
+    expected=[line.replace('$(BACKEND_PYTEST)',backend,1)+'\n' for line in _make_recipe_commands(raw,'verify-release') if line.startswith('cd web/backend ')]
+    assert [line for line in output.splitlines(keepends=True) if line.startswith('cd web/backend ')]==expected
+    assert output.splitlines(keepends=True).count(expected[0])==1 and expected[0].endswith(_legacy_schema_flags()+' -q\n')
+    return output.replace(expected[0],expected[0].replace(_legacy_schema_flags(),'',1),1)
+
+
 PREOWNED_DEFERRED_NODES = ('web/backend/tests/test_research_native_preowned.py::test_preowned_real_get_socket_close_after_physical_close_is_not_clean',
  'web/backend/tests/test_research_native_preowned.py::test_clean_low_balance_keeps_same_resource_for_new_legal_attempt',
  'web/backend/tests/test_research_native_preowned.py::test_allocated_connection_failure_is_owned_and_clean_retry_uses_same_resource',
@@ -1787,7 +1859,7 @@ def _workflow_before_preowned_six(value,name):
 
 
 def _workflow_source_before_preowned(name):
-    value=yaml.safe_load((ROOT/'.github/workflows'/name).read_text())
+    value=_workflow_source_before_legacy_schema(name)
     return _workflow_before_preowned_six(value,name) if name in {'sanity.yml','coverage.yml'} else value
 
 
@@ -1807,11 +1879,12 @@ def _original_makefile_before_preowned(makefile):
 
 
 def _makefile_before_preowned_contracts():
-    return _original_makefile_before_preowned((ROOT/'Makefile').read_text())
+    return _original_makefile_before_preowned(_makefile_before_legacy_schema_contracts())
 
 
 def _original_dry_run_before_preowned(output):
-    raw=(ROOT/'Makefile').read_text();_original_makefile_before_preowned(raw)
+    output = _original_dry_run_before_legacy_schema(output)
+    raw=_makefile_before_legacy_schema_contracts();_original_makefile_before_preowned(raw)
     pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
     backend='PYTHONPATH='+pythonpath+' python -m pytest'
     expected=[line.replace('$(BACKEND_PYTEST)',backend,1)+'\n' for line in _make_recipe_commands(raw,'verify-release') if line.startswith('cd web/backend ')]
@@ -3782,7 +3855,7 @@ def test_sanity_groups_reject_every_inventory_setup_or_strict_gate_drift(mutatio
 
 
 def test_preowned_six_make_whole_inverse_restores_current_all_prior_layers():
-    value=(ROOT/'Makefile').read_text()
+    value=_makefile_before_legacy_schema_contracts()
     prior=_original_makefile_before_preowned(value)
     prior=_original_makefile_before_native_split(prior)
     prior=_original_makefile_before_draft_collection(prior)
@@ -3791,7 +3864,7 @@ def test_preowned_six_make_whole_inverse_restores_current_all_prior_layers():
 
 @pytest.mark.parametrize('mutation', ['missing','duplicate','wrong_relative','wrong_param','extra_pure','module_ignore','wrong_process','order'])
 def test_preowned_six_make_rejects_wider_or_missing_deferral(mutation):
-    value=(ROOT/'Makefile').read_text();token=' --deselect="'+PREOWNED_DEFERRED_NODES[0]+'"'
+    value=_makefile_before_legacy_schema_contracts();token=' --deselect="'+PREOWNED_DEFERRED_NODES[0]+'"'
     if mutation=='missing':value=value.replace(token,'',1)
     elif mutation=='duplicate':value=value.replace(token,token+token,1)
     elif mutation=='wrong_relative':value=value.replace(' --deselect="web/backend/tests/test_research_native_preowned.py',' --deselect="tests/test_research_native_preowned.py',1)
@@ -3806,3 +3879,54 @@ def test_preowned_six_make_rejects_wider_or_missing_deferral(mutation):
         second=' --deselect="'+PREOWNED_DEFERRED_NODES[1]+'"'
         value=value.replace(token,'',1).replace(second,second+token,1)
     with pytest.raises(AssertionError):_original_makefile_before_preowned(value)
+
+
+def test_legacy_schema_fourteen_unchanged_sources_and_exact_inventory():
+    prefix='web/backend/tests/'
+    native=ROOT/(prefix+'test_research_native_schema_v13.py')
+    plan=ROOT/(prefix+'test_research_plan_schema_v12.py')
+    assert hashlib.sha256(native.read_bytes()).hexdigest()==LEGACY_SCHEMA_ORIGINAL_SHA256
+    assert hashlib.sha256(plan.read_bytes()).hexdigest()==LEGACY_SCHEMA_PLAN12_SHA256
+    inventory=[]
+    for path in (native,plan):
+        for function in ast.parse(path.read_text()).body:
+            if not isinstance(function,ast.FunctionDef) or not function.name.startswith('test_'):continue
+            base=prefix+path.name+'::'+function.name
+            if function.decorator_list:
+                assert len(function.decorator_list)==1
+                decorator=function.decorator_list[0]
+                assert isinstance(decorator,ast.Call) and ast.unparse(decorator.func)=='pytest.mark.parametrize'
+                assert ast.literal_eval(decorator.args[0])=='cut'
+                cuts=ast.literal_eval(decorator.args[1])
+                assert cuts==['journal','rebuild','resource','marker','before-commit','after-commit']
+                inventory.extend(base+'['+cut+']' for cut in cuts)
+            else:inventory.append(base)
+    assert len(inventory)==15 and len(set(inventory))==15
+    assert [node for node in inventory if node!=LEGACY_SCHEMA_REQUIRED_PRODUCER]==list(LEGACY_SCHEMA_DEFERRED_NODES)
+    assert [node for node in inventory if node not in LEGACY_SCHEMA_DEFERRED_NODES]==[LEGACY_SCHEMA_REQUIRED_PRODUCER]
+
+def test_legacy_schema_fourteen_make_inverse_retains_original_all_cases_and_golden():
+    raw=(ROOT/'Makefile').read_text()
+    restored=_original_makefile_before_legacy_schema(raw)
+    assert restored==_makefile_before_legacy_schema_contracts()
+    assert raw!=restored
+    _assert_make_release_closure(_original_makefile_before_draft_collection(_original_makefile_before_native_split(_original_makefile_before_preowned(restored))))
+
+@pytest.mark.parametrize('mutation',['missing','duplicate','wrong_relative','wrong_cut','extra_producer','module_ignore','wrong_process','order'])
+def test_legacy_schema_fourteen_make_rejects_wider_or_missing_defer(mutation):
+    value=(ROOT/'Makefile').read_text();token=' --deselect="'+LEGACY_SCHEMA_DEFERRED_NODES[7]+'"'
+    if mutation=='missing':value=value.replace(token,'',1)
+    elif mutation=='duplicate':value=value.replace(token,token+token,1)
+    elif mutation=='wrong_relative':value=value.replace(LEGACY_SCHEMA_DEFERRED_NODES[7],LEGACY_SCHEMA_DEFERRED_NODES[7].removeprefix('web/backend/'),1)
+    elif mutation=='wrong_cut':value=value.replace(LEGACY_SCHEMA_DEFERRED_NODES[8],LEGACY_SCHEMA_DEFERRED_NODES[8]+'[unexpected]',1)
+    elif mutation=='extra_producer':value=value.replace(_legacy_schema_flags(),_legacy_schema_flags()+' --deselect="'+LEGACY_SCHEMA_REQUIRED_PRODUCER+'"',1)
+    elif mutation=='module_ignore':value=value.replace(_legacy_schema_flags(),_legacy_schema_flags()+' --ignore=tests/test_research_plan_schema_v12.py',1)
+    elif mutation=='wrong_process':
+        value=value.replace(token,'',1)
+        line='\tcd web/backend && $(BACKEND_PYTEST) tests/test_formal_main_admission.py -p no:logging -q\n'
+        assert value.count(line)==1
+        value=value.replace(line,line.rstrip('\n')+token+'\n',1)
+    else:
+        second=' --deselect="'+LEGACY_SCHEMA_DEFERRED_NODES[8]+'"'
+        value=value.replace(token,'',1).replace(second,second+token,1)
+    with pytest.raises(AssertionError):_original_makefile_before_legacy_schema(value)
