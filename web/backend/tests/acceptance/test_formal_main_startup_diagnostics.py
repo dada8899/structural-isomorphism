@@ -673,3 +673,85 @@ def test_retirement_sqlite_extended_fields_keep_whole_dto_under_original_byte_bo
     chain = value['source']['errors']['items'][0]
     assert chain[0]['sqlite_primary_code'] == 17 and chain[1]['sqlite_primary_code'] == 10
     assert chain[0]['sqlite_errorname'] == 'SQLITE_SCHEMA' and chain[1]['sqlite_errorname'] == 'SQLITE_IOERR_SHMOPEN'
+
+
+def test_retirement_history_and_path_errors_keep_exact_types_without_private_fields():
+    from services.formal_admission import HistoryReadUnavailable
+    from services.runtime_paths import RuntimePathError
+    for kind in (HistoryReadUnavailable, RuntimePathError):
+        error = kind(MARKER)
+        error.code = _RetirementCanary()
+        error.extra = _RetirementCanary()
+        error.add_note(MARKER)
+        value = _retirement_error_chain(error)[0]
+        assert value == {'type': kind.__name__, 'code': None, 'errno': None, 'frames': []}
+        assert MARKER not in json.dumps(value)
+        class Subclass(kind):
+            def __getattribute__(self, name): raise AssertionError('private callback')
+            def __str__(self): raise AssertionError('private callback')
+        assert _retirement_error_chain(Subclass(MARKER))[0]['type'] == 'OTHER'
+        assert _retirement_error_chain(type(kind.__name__, (RuntimeError,), {})(MARKER))[0]['type'] == 'OTHER'
+
+
+def test_retirement_transaction_generator_reports_real_original_entry_and_chain():
+    from research.store import ResearchStore
+    from services.formal_admission import HistoryReadUnavailable
+    from services.runtime_paths import RuntimePathError
+    inner = RuntimePathError(MARKER)
+    outer = HistoryReadUnavailable(MARKER)
+    outer.__cause__ = inner
+    class Subject:
+        def _formal_mode(self): raise outer
+    try:
+        with ResearchStore.transaction(Subject()):
+            raise AssertionError('must not reach transaction body')
+    except HistoryReadUnavailable as error:
+        value = _retirement_error_chain(error)
+    assert [part['type'] for part in value] == ['HistoryReadUnavailable', 'RuntimePathError']
+    assert value[0]['frames'][-1]['function'] == 'ResearchStore.transaction.__wrapped__'
+    assert value[0]['frames'][-1]['file'] == 'web/backend/research/store.py'
+    assert MARKER not in json.dumps(value)
+
+
+def test_retirement_transaction_wrapper_does_not_follow_caller_functions_or_callbacks(monkeypatch):
+    import types
+    from research import store
+    from services.runtime_paths import RuntimePathError
+    wrapper = store.ResearchStore.transaction
+    original = vars(wrapper)['__wrapped__']
+    class Subject:
+        def _formal_mode(self): raise RuntimePathError(MARKER)
+    def frames():
+        try:
+            with wrapper(Subject()):
+                raise AssertionError('must not reach transaction body')
+        except RuntimePathError as error:
+            return _retirement_frames(error)
+    assert frames()[-1]['function'] == 'ResearchStore.transaction.__wrapped__'
+    # Equal code and canonical globals still cannot replace the function in
+    # the original contextmanager closure.
+    clone = types.FunctionType(original.__code__.replace(), vars(store))
+    clone.__qualname__ = original.__qualname__
+    for replacement in (clone, _RetirementCanary()):
+        with monkeypatch.context() as patch:
+            patch.setattr(wrapper, '__wrapped__', replacement)
+            assert frames() == []
+    assert frames()[-1]['function'] == 'ResearchStore.transaction.__wrapped__'
+
+
+def test_retirement_history_path_and_store_coordinates_require_original_code_identity():
+    import types
+    from services import formal_admission as admission, runtime_paths as paths
+    from research import store
+    def frames(function, *args):
+        try: function(*args)
+        except Exception as error: return _retirement_frames(error)
+        raise AssertionError('synthetic invalid input must fail')
+    for module, function, args, literal in (
+        (admission, admission.begin_history_resource_close, (object(),), 'begin_history_resource_close'),
+        (paths, paths.PrivateAuthFile.check, (object(),), 'PrivateAuthFile.check'),
+        (store, store.ResearchStore._connect, (object(),), 'ResearchStore._connect'),
+    ):
+        assert frames(function, *args)[-1]['function'] == literal
+        clone = types.FunctionType(function.__code__.replace(), vars(module))
+        assert frames(clone, *args) == []
