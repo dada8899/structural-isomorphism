@@ -2042,7 +2042,42 @@ FIN3_CAPACITY_SOURCE_SHA256 = '0d7c97812567e5b5294118cd8b9a1b3e210f0a82cd9d2d3d2
 AUTHORITY_RETRY_PRIOR_MAKE_SHA256 = '99eee0a10d555be27c17cb6d43f19ec8487218edddaf06fe7f9cd9b1921c5090'
 
 
+# These current Main contracts are executed once in a fresh process, never deferred.
+ROOT_CURRENT_MAIN_NODES = ('tests/test_research_browser.py::test_new_research_without_task_selector_keeps_real_create_and_save', 'tests/test_research_browser.py::test_native_plan_actual_closed_preview_discloses_exact_input_without_confirm_or_model', 'tests/test_research_browser.py::test_native_plan_late_actual_closed_preview_never_replaces_new_draft_or_private_scope[new-draft]', 'tests/test_research_browser.py::test_native_plan_late_actual_closed_preview_never_replaces_new_draft_or_private_scope[logout]', 'tests/test_research_browser.py::test_native_plan_real_https_browser_journey[saved]', 'tests/test_research_browser.py::test_native_plan_real_https_browser_journey[lost-ack]', 'tests/test_research_browser.py::test_native_plan_real_https_browser_journey[late-saved-ack]', 'tests/test_research_browser.py::test_native_plan_real_https_browser_journey[account-switch]', 'tests/test_research_browser.py::test_native_plan_terminal_known_outcome_releases_only_original_intent[invalid-body]', 'tests/test_research_browser.py::test_native_plan_terminal_known_outcome_releases_only_original_intent[saved]', 'tests/test_research_browser.py::test_native_plan_terminal_boundary_preserves_unknown_and_current_input[not-sent]', 'tests/test_research_browser.py::test_native_plan_terminal_boundary_preserves_unknown_and_current_input[unknown-usage]', 'tests/test_research_browser.py::test_native_plan_terminal_boundary_preserves_unknown_and_current_input[cleanup-uncertain]', 'tests/test_research_browser.py::test_native_plan_terminal_boundary_preserves_unknown_and_current_input[cancel-before]', 'tests/test_research_browser.py::test_native_plan_terminal_boundary_preserves_unknown_and_current_input[cancel-after]', 'tests/test_research_browser.py::test_native_plan_terminal_boundary_preserves_unknown_and_current_input[late-B]', 'tests/test_research_browser.py::test_native_plan_terminal_boundary_preserves_unknown_and_current_input[wrong-ref]', 'tests/test_research_browser.py::test_native_plan_terminal_boundary_preserves_unknown_and_current_input[cross-owner]', 'tests/test_research_browser.py::test_method_draft_manual_editor_starts_blank_and_requires_actual_references', 'tests/test_research_browser.py::test_method_draft_actual_old_source_to_current_manual_draft_and_readonly_history', 'tests/test_research_browser.py::test_method_draft_reads_actual_runtime_plan_lead_without_prefilling_or_execution', 'tests/test_research_browser.py::test_method_draft_real_late_history_keeps_new_editor_and_private_clear[new-editor]', 'tests/test_research_browser.py::test_method_draft_real_late_history_keeps_new_editor_and_private_clear[logout]', 'tests/test_research_browser.py::test_method_draft_plan_reselection_matches_visible_current_choices', 'tests/test_research_browser.py::test_method_draft_formula_picker_distinguishes_same_revision_original_results', 'tests/test_research_browser.py::test_method_draft_actual_main_old_source_new_problem_save_and_reopen', 'tests/test_research_browser.py::test_method_draft_actual_main_conflict_and_unknown_recovery[cas]', 'tests/test_research_browser.py::test_method_draft_actual_main_conflict_and_unknown_recovery[lost-ack]', 'tests/test_research_browser.py::test_method_draft_actual_main_conflict_and_unknown_recovery[lost-get]', 'tests/test_research_browser.py::test_method_draft_actual_main_saved_formula_original_identity_and_outcomes', 'tests/test_research_browser.py::test_method_draft_actual_main_second_catalog_page_preserves_current_form_and_pending', 'tests/test_research_browser.py::test_source_history_actual_main_closed_collection_keeps_existing_readable')
+ROOT_CURRENT_MAIN_PRIOR_MAKE_SHA256 = 'c1381b788ee0d7f4163a1a528b5176c3c994ff43db7223096c3d156cccfd6596'
+ROOT_CURRENT_MAIN_PRIOR_RECIPE = '\t$(BACKEND_PYTEST) tests --ignore=tests/e2e -m "not e2e and not slow and not requires_internet and not requires_llm" -q\n'
+
+
+def _root_current_main_flags():
+    return ''.join(' --deselect="'+node+'"' for node in ROOT_CURRENT_MAIN_NODES)
+
+
+def _root_current_main_recipe_pair(prefix):
+    original=ROOT_CURRENT_MAIN_PRIOR_RECIPE.replace('\t$(BACKEND_PYTEST)',prefix,1)
+    ordinary=original.replace(' --ignore=tests/e2e',' --ignore=tests/e2e'+_root_current_main_flags(),1)
+    fresh=prefix+' '+shlex.join(ROOT_CURRENT_MAIN_NODES)+' -m "not e2e and not slow and not requires_internet and not requires_llm" -q\n'
+    return original,ordinary,fresh
+
+
+def _makefile_before_root_current_main32(makefile):
+    original,ordinary,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)')
+    assert len(ROOT_CURRENT_MAIN_NODES)==len(set(ROOT_CURRENT_MAIN_NODES))==32
+    assert makefile.splitlines(keepends=True).count(ordinary)==1 and makefile.splitlines(keepends=True).count(fresh)==1
+    prior=makefile.replace(ordinary+fresh,original,1)
+    assert hashlib.sha256(prior.encode()).hexdigest()==ROOT_CURRENT_MAIN_PRIOR_MAKE_SHA256
+    return prior
+
+
+def _dry_run_before_root_current_main32(output):
+    _makefile_before_root_current_main32((ROOT/'Makefile').read_text())
+    pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
+    original,ordinary,fresh=_root_current_main_recipe_pair('PYTHONPATH='+pythonpath+' python -m pytest')
+    assert output.splitlines(keepends=True).count(ordinary)==1 and output.splitlines(keepends=True).count(fresh)==1
+    return output.replace(ordinary+fresh,original,1)
+
+
 def _makefile_before_authority_retry(makefile):
+    makefile=_makefile_before_root_current_main32(makefile)
     prefix='\tcd web/backend && $(BACKEND_PYTEST) tests/'+AUTHORITY_RETRY_NODE.split('::')[0].split('/')[-1]
     expected=prefix+_authority_retry_flag()+' -p no:logging -q\n'
     assert makefile.splitlines(keepends=True).count(expected)==1 and makefile.count(AUTHORITY_RETRY_NODE)==1
@@ -2052,6 +2087,7 @@ def _makefile_before_authority_retry(makefile):
 
 
 def _dry_run_before_authority_retry(output):
+    output=_dry_run_before_root_current_main32(output)
     _makefile_before_authority_retry((ROOT/'Makefile').read_text())
     pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
     expected='cd web/backend && PYTHONPATH='+pythonpath+' python -m pytest tests/'+AUTHORITY_RETRY_NODE.split('::')[0].split('/')[-1]+_authority_retry_flag()+' -p no:logging -q\n'
@@ -4746,3 +4782,38 @@ def test_cpu_torch_stock_pip_dry_run_preserves_public_version_hash_and_dependenc
         assert planned=={'torch':'2.14.1+cpu','cpu-contract-dep':'1.0','other-contract-dep':'1.0'}
         assert data['install'][0]['requested'] is True or any(x['requested'] for x in data['install'])
     else:assert not report.exists()
+
+
+
+def test_root_current_main_pair_keeps_all_32_selected_in_one_fresh_process():
+    raw=(ROOT/'Makefile').read_text();prior=_makefile_before_root_current_main32(raw)
+    assert len(ROOT_CURRENT_MAIN_NODES)==32
+    assert all(node.startswith('tests/test_research_browser.py::') for node in ROOT_CURRENT_MAIN_NODES)
+    assert not any('test_method_draft_refresh_preserves_newer_observation_state_unit' in node for node in ROOT_CURRENT_MAIN_NODES)
+    assert 'tests/test_research_browser.py::test_new_research_without_task_selector_keeps_real_create_and_save' in ROOT_CURRENT_MAIN_NODES
+    assert ROOT_CURRENT_MAIN_PRIOR_RECIPE in prior
+
+
+@pytest.mark.parametrize('mutation',['missing_pair','missing_filter','whole_module','wrong_path','wrong_parameter','duplicate_filter','fresh_missing','fresh_duplicate','fresh_order','marker','other_recipe'])
+def test_root_current_main_pair_rejects_missing_duplicate_or_weaker_placement(mutation):
+    raw=(ROOT/'Makefile').read_text();original,ordinary,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)');token=' --deselect="'+ROOT_CURRENT_MAIN_NODES[0]+'"'
+    if mutation=='missing_pair':value=raw.replace(fresh,'',1)
+    elif mutation=='missing_filter':value=raw.replace(token,'',1)
+    elif mutation=='whole_module':value=raw.replace(token,' --deselect="tests/test_research_browser.py"',1)
+    elif mutation=='wrong_path':value=raw.replace(token,token.replace('tests/','',1),1)
+    elif mutation=='wrong_parameter':value=raw.replace(token,token[:-1]+'[foreign]"',1)
+    elif mutation=='duplicate_filter':value=raw.replace(token,token+token,1)
+    elif mutation=='fresh_missing':value=raw.replace(fresh,fresh.replace(shlex.quote(ROOT_CURRENT_MAIN_NODES[0])+' ','',1),1)
+    elif mutation=='fresh_duplicate':value=raw.replace(fresh,fresh.replace(' -m ',' '+shlex.quote(ROOT_CURRENT_MAIN_NODES[0])+' -m ',1),1)
+    elif mutation=='fresh_order':value=raw.replace(fresh,fresh.replace(shlex.join(ROOT_CURRENT_MAIN_NODES),shlex.join(reversed(ROOT_CURRENT_MAIN_NODES)),1),1)
+    elif mutation=='marker':value=raw.replace(fresh,fresh.replace(' -m "not e2e and not slow and not requires_internet and not requires_llm"',''),1)
+    else:value=raw.replace('$(PYTEST) -m "not e2e" -q','$(PYTEST) -q',1)
+    with pytest.raises(AssertionError):_makefile_before_root_current_main32(value)
+
+
+def test_root_current_main_pair_actual_make_dryrun_is_exact_and_reversible():
+    result=subprocess.run(['make','-n','PY=python','test-release-contracts'],cwd=ROOT,env={'PATH':os.environ['PATH']},capture_output=True,text=True,timeout=10)
+    assert result.returncode==0
+    restored=_dry_run_before_root_current_main32(result.stdout)
+    assert restored.count(' tests --ignore=tests/e2e -m "not e2e and not slow and not requires_internet and not requires_llm" -q')==1
+    assert not any(node in restored for node in ROOT_CURRENT_MAIN_NODES)
