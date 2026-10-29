@@ -5,6 +5,8 @@
   const GROUP_IDS = new Set(['unified', 'arxiv-drafts', 'phase-papers', 'tutorials']);
   let activeFilter = 'all';
   let validatedManifest = null;
+  let renderedManifest = null;
+  let renderedLanguage = null;
 
   function language() {
     return Catalog.locale();
@@ -113,9 +115,19 @@
   }
 
   function render(validated) {
-    const openSlugs = openEvidenceSlugs();
+    syncStaticAria();
     const container = document.getElementById('papers-content');
-    if (!container) throw new Error('Papers content root is missing');
+    if (!container) {
+      renderedManifest = null;
+      renderedLanguage = null;
+      throw new Error('Papers content root is missing');
+    }
+    const currentLanguage = language();
+    if (renderedManifest === validated && renderedLanguage === currentLanguage) return;
+    // Only a fully completed render can suppress a later i18n notification.
+    renderedManifest = null;
+    renderedLanguage = null;
+    const openSlugs = openEvidenceSlugs();
     container.innerHTML = validated.manifest.groups.map((group) => `
       <section class="papers-group" data-group-id="${escape(group.id)}">
         <header class="papers-group__header">
@@ -131,6 +143,8 @@
     applyFilter(activeFilter, false);
     syncStaticAria();
     container.setAttribute('aria-busy', 'false');
+    renderedManifest = validated;
+    renderedLanguage = currentLanguage;
   }
 
   function applyFilter(requestedFilter, focusButton) {
@@ -173,6 +187,8 @@
   }
 
   function showError(error) {
+    renderedManifest = null;
+    renderedLanguage = null;
     const container = document.getElementById('papers-content');
     if (!container) return;
     const detail = error instanceof Error ? error.message : String(error);

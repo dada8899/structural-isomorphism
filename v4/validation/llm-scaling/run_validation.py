@@ -21,11 +21,13 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import importlib.metadata
 import importlib.util
 import json
 import math
 import os
+import platform
 import re
 import sys
 from collections import defaultdict
@@ -144,7 +146,7 @@ def assert_artifact_equivalent(expected, observed, *, path: str = "$") -> None:
             rel_tol=COMPARISON_REL_TOL,
             abs_tol=COMPARISON_ABS_TOL,
         ):
-            raise ValueError(f"numeric artifact mismatch at {path}")
+            raise ValueError(f"numeric artifact mismatch at {path}: expected={expected!r} observed={observed!r}")
         return
     if isinstance(expected, dict) and isinstance(observed, dict):
         if expected.keys() != observed.keys():
@@ -166,6 +168,33 @@ def assert_artifact_equivalent(expected, observed, *, path: str = "$") -> None:
         return
     if type(expected) is not type(observed) or expected != observed:
         raise ValueError(f"artifact mismatch at {path}")
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _generation_contract() -> dict:
+    """Version and bind the estimator, immutable inputs and locked closure."""
+    return {
+        "python": f"{GENERATOR_PYTHON[0]}.{GENERATOR_PYTHON[1]}",
+        "requirements": _generator_pins(),
+        "float_significant_digits": CANONICAL_SIGNIFICANT_DIGITS,
+        "comparison_rel_tol": COMPARISON_REL_TOL,
+        "comparison_abs_tol": COMPARISON_ABS_TOL,
+        "canonical_data_kind": "real",
+        "canonical_input": "v4/validation/llm-scaling/raw/pythia_checkpoints_combined.csv",
+        "estimator": "log-amplitude-analytic-jacobian-v1",
+        "source_inputs_sha256": {
+            filename: _sha256_file(RAW_DIR / filename)
+            for filename in ("pythia_checkpoints_combined.csv", "kaplan2020_compute.csv", "hoffmann2022_compute.csv")
+        },
+        "implementation_sha256": {
+            "learning_curve.py": _sha256_file(MODULE_PATH),
+            "run_validation.py": _sha256_file(Path(__file__)),
+            "requirements-generator.txt": _sha256_file(GENERATOR_REQUIREMENTS),
+        },
+    }
 
 
 def _reject_nonfinite_json(value: str) -> None:
@@ -354,21 +383,12 @@ def main(*, write: bool = True) -> dict:
     }
 
     out = {
-        "schema_version": "1.3",
+        "schema_version": "1.4",
         "validation": "llm-scaling",
-        "date": "2026-05-25",
+        "date": "2026-10-16",
+        "original_artifact_date": "2026-05-25",
         "module": "soc_pipeline.learning_curve.fit_learning_curve",
-        "generation_contract": {
-            "python": f"{GENERATOR_PYTHON[0]}.{GENERATOR_PYTHON[1]}",
-            "requirements": _generator_pins(),
-            "float_significant_digits": CANONICAL_SIGNIFICANT_DIGITS,
-            "comparison_rel_tol": COMPARISON_REL_TOL,
-            "comparison_abs_tol": COMPARISON_ABS_TOL,
-            "canonical_data_kind": "real",
-            "canonical_input": (
-                "v4/validation/llm-scaling/raw/pythia_checkpoints_combined.csv"
-            ),
-        },
+        "generation_contract": _generation_contract(),
         "fits": fits,
         "summary": summary,
     }
@@ -401,6 +421,8 @@ def _render_summary_md(out: dict) -> str:
         "",
         f"**Date.** {out['date']}",
         f"**Module.** `{out['module']}`",
+        f"**Estimator.** `{out['generation_contract']['estimator']}`",
+        f"**Original artifact date.** {out['original_artifact_date']}",
         f"**Pythia CSV.** `{s['pythia_csv']}`",
         f"**Pythia sizes fitted.** {s['pythia_n_sizes']}",
         "",
@@ -411,6 +433,7 @@ def _render_summary_md(out: dict) -> str:
     ]
     for name, fit in out["fits"].items():
         prov = fit.get("provenance", "?")
+        alpha_se = "not reported" if fit.get("alpha_se") is None else f"{fit['alpha_se']:.4f}"
         if fit.get("error"):
             lines.append(
                 f"| {name} | — | — | — | — | — | {fit.get('n_points', 0)} | rejected | {prov} (err: {fit['error']}) |"
@@ -418,12 +441,34 @@ def _render_summary_md(out: dict) -> str:
             continue
         lines.append(
             f"| {name} | {fit['alpha']:.4f} | "
-            f"{fit['alpha_se']:.4f} | "
+            f"{alpha_se} | "
             f"{fit['L_inf']:.4f} | "
             f"{fit['A']:.3g} | "
             f"{fit['R2']:.4f} | "
             f"{fit['n_points']} | {fit['fit_status']} | {prov} |"
         )
+
+    lines += [
+        "",
+        "## Numerical identification and bounds",
+        "",
+        "The 2026-10-16 estimator refits the unchanged historical inputs; this is not a new empirical experiment. A stable constrained solution is not proof of identifiable physical parameters.",
+        "",
+    ]
+    for name, fit in out["fits"].items():
+        diagnostic = fit.get("extra", {}).get("fit_diagnostics", {})
+        if diagnostic.get("bound_hit") or diagnostic.get("parameter_identifiability") == "weak_or_unestablished":
+            lines.append(
+                f"- `{name}`: bounds={diagnostic.get('active_bounds', [])}; "
+                f"identification={diagnostic.get('parameter_identifiability')}; "
+                f"uncertainty={diagnostic.get('covariance_status')}. "
+                "Unconstrained standard errors are not reported at active bounds."
+            )
+    lines += [
+        "",
+        "Both REAL_TAIL_NARROW series remain excluded from exponent inference. The 1.4b fit is now descriptive_only because the improved numerical fit has positive R²; this does not upgrade its narrow-range evidence. Only two real wide-range series are available, still insufficient for universality inference.",
+        "",
+    ]
 
     def _stat_block(label, st, verdict):
         out = [f"### {label}", ""]
@@ -483,6 +528,27 @@ def _write_summary_md(out: dict) -> None:
     (HERE / "summary.md").write_text(_render_summary_md(out), encoding="utf-8")
 
 
+def _diagnostic_report(generated: dict | None = None, committed: dict | None = None) -> dict:
+    """Read-only CI evidence; no package paths, environment secrets or writes."""
+    _assert_generator_environment()
+    generated = main(write=False) if generated is None else generated
+    if committed is None:
+        committed = json.loads((HERE / "results.json").read_text(), parse_constant=_reject_nonfinite_json)
+    blas = getattr(np.__config__, "CONFIG", {}).get("Build Dependencies", {}).get("blas", {})
+    return {
+        "python": platform.python_version(),
+        "platform": platform.system(),
+        "machine": platform.machine(),
+        "numpy": np.__version__,
+        "scipy": scipy.__version__,
+        "blas": {key: blas.get(key) for key in ("name", "version", "openblas configuration")},
+        "generation_contract": _generation_contract(),
+        "expected_fits": committed.get("fits"),
+        "observed_fits": generated.get("fits"),
+        "observed_scientific_conclusion": generated["summary"]["scientific_conclusion"],
+    }
+
+
 def _check_committed_artifacts() -> dict:
     _assert_generator_environment()
     generated = main(write=False)
@@ -500,11 +566,16 @@ def _check_committed_artifacts() -> dict:
         assert_artifact_equivalent(committed, generated)
     except ValueError as exc:
         raise RuntimeError(
-            f"results.json differs materially from the locked generator output: {exc}"
+            f"results.json differs materially from the locked generator output: {exc}; "
+            f"diagnostic={json.dumps(_diagnostic_report(generated, committed), allow_nan=False)}"
         ) from exc
     expected_summary = _render_summary_md(committed)
     if (HERE / "summary.md").read_text(encoding="utf-8") != expected_summary:
         raise RuntimeError("summary.md differs from the committed canonical result")
+    print(
+        json.dumps(_diagnostic_report(generated, committed), allow_nan=False),
+        file=sys.stderr,
+    )
     return committed
 
 
@@ -513,10 +584,14 @@ def _parse_args() -> argparse.Namespace:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--write", action="store_true", help="write canonical artifacts")
     mode.add_argument("--check", action="store_true", help="check canonical artifacts")
+    mode.add_argument("--diagnose", action="store_true", help="print read-only platform and complete observed-fit evidence")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = _parse_args()
-    result = _check_committed_artifacts() if args.check else main(write=True)
-    print(json.dumps(result["summary"], indent=2))
+    if args.diagnose:
+        print(json.dumps(_diagnostic_report(), indent=2, allow_nan=False))
+    else:
+        result = _check_committed_artifacts() if args.check else main(write=True)
+        print(json.dumps(result["summary"], indent=2))

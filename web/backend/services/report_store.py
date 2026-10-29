@@ -35,7 +35,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Optional
 
-from .sqlite_utils import ClosingConnection
+from .sqlite_utils import ClosingConnection, prepare_private_history, connect_private_history
+from .runtime_paths import formal_history_runtime
 if __package__ == "web.backend.services":
     from ..logging_config import get_logger, new_incident_id
 else:
@@ -98,6 +99,13 @@ def verify_share_token(report_id: str, token: str) -> bool:
     """Constant-time check that `token` is a valid HMAC for `report_id`."""
     expected = sign_share_token(report_id)
     return hmac.compare_digest(expected, token or "")
+
+
+_OWNER_UNCHECKED = object()
+
+
+class ReportOwnershipChanged(ValueError):
+    """A server-observed owner changed before the history mutation."""
 
 
 def new_report_id() -> str:
@@ -197,10 +205,16 @@ class ReportStore:
 
     def __init__(self, db_path: Path | str):
         self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._formal_history = formal_history_runtime()
+        if self._formal_history:
+            prepare_private_history(self.db_path)
+        else:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
 
     def _connect(self) -> sqlite3.Connection:
+        if getattr(self, "_formal_history", False) or formal_history_runtime():
+            return connect_private_history(self.db_path, foreign_keys=True)
         conn = sqlite3.connect(
             str(self.db_path), timeout=10.0, factory=ClosingConnection,
         )
@@ -641,11 +655,21 @@ class ReportStore:
                     )
             conn.commit()
 
-    def record_view(self, rid: str) -> None:
-        """Bump view_count + last_viewed_at. Best-effort, never raises."""
+    @staticmethod
+    def _require_expected_owner(conn, report_id, expected_owner):
+        if expected_owner is _OWNER_UNCHECKED:
+            return
+        conn.execute("BEGIN IMMEDIATE")
+        row=conn.execute("SELECT owner_user_id FROM reports WHERE id=?",(report_id,)).fetchone()
+        if row is None or row["owner_user_id"] != expected_owner:
+            raise ReportOwnershipChanged("report ownership changed")
+
+    def record_view(self, rid: str, *, expected_owner=_OWNER_UNCHECKED) -> None:
+        """Best-effort DB counting; explicit stale ownership always rejects."""
         now = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         try:
             with self._connect() as conn:
+                self._require_expected_owner(conn,rid,expected_owner)
                 conn.execute(
                     "UPDATE reports SET view_count = view_count + 1, "
                     "last_viewed_at = ? WHERE id = ?",
@@ -668,6 +692,7 @@ class ReportStore:
         vote: int,
         voter_anon: Optional[str],
         note: Optional[str] = None,
+        expected_owner=_OWNER_UNCHECKED,
     ) -> dict:
         """Idempotent upsert on (report_id, voter_anon, section).
 
@@ -683,6 +708,7 @@ class ReportStore:
         voter_norm = voter_anon if voter_anon is not None else "anon"
         now = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         with self._connect() as conn:
+            self._require_expected_owner(conn,report_id,expected_owner)
             # Use INSERT ... ON CONFLICT to upsert.
             conn.execute(
                 """
@@ -836,6 +862,7 @@ class ReportStore:
         experiment: Optional[dict] = None,
         outcome_detail: Optional[dict] = None,
         publish_to_insights: Optional[bool] = None,
+        expected_owner=_OWNER_UNCHECKED,
     ) -> dict:
         """Idempotent upsert of a revisit record on (report_id, anon_id).
 
@@ -861,6 +888,7 @@ class ReportStore:
         anon_norm = anon_id if anon_id else "anon"
         now = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         with self._connect() as conn:
+            self._require_expected_owner(conn,report_id,expected_owner)
             previous = conn.execute(
                 "SELECT experiment_json, outcome_detail_json, "
                 "publish_to_insights, consent_version, consented_at, "

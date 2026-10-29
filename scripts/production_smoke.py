@@ -27,9 +27,9 @@ DEFAULT_TIMEOUT = 15.0
 REQUIREMENTS = Path(__file__).resolve().parents[1] / "web" / "backend" / "requirements.txt"
 EXPECTED_RUNTIME_REQUIREMENTS_SHA256 = hashlib.sha256(REQUIREMENTS.read_bytes()).hexdigest()
 EXPECTED_RUNTIME_VERSIONS = {
-    "fastapi": "0.115.14",
-    "pydantic": "2.6.1",
-    "starlette": "0.46.2",
+    "fastapi": "0.135.0",
+    "pydantic": "2.7.4",
+    "starlette": "1.3.1",
     "uvicorn": "0.27.1",
 }
 

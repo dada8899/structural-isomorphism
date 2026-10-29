@@ -19,6 +19,11 @@ never an exception.
 """
 from __future__ import annotations
 
+if __package__ == "web.backend.services":
+    from ..errors import LegacyPaidUnavailable
+else:
+    from errors import LegacyPaidUnavailable
+
 import asyncio
 import math
 import time
@@ -156,6 +161,8 @@ async def extract_signature(
             max_tokens=600,
             timeout=timeout_seconds,
         )
+    except LegacyPaidUnavailable:
+        raise
     except Exception as exc:  # noqa: BLE001 — defensive; client already guards
         logger.error(
             "retrieval.method_signature_failed",
@@ -266,6 +273,8 @@ async def annotate_matches(
             max_tokens=1400,
             timeout=timeout_seconds,
         )
+    except LegacyPaidUnavailable:
+        raise
     except Exception as exc:  # noqa: BLE001
         logger.error(
             "retrieval.method_annotation_failed",

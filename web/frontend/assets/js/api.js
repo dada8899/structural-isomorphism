@@ -4,6 +4,27 @@
 
 const API_BASE = '/api';
 
+class LegacyFeatureUnavailable extends Error {
+  constructor() {
+    super('legacy_feature_unavailable');
+    this.code = 'FEATURE_UNAVAILABLE';
+    this.status = 503;
+  }
+}
+
+function legacyFeatureError(resp, text) {
+  if (resp.status !== 503 || text.length > 65536 ||
+      !/^application\/(?:problem\+)?json(?:\s*;|$)/i.test(resp.headers.get('Content-Type') || '')) return null;
+  try {
+    const problem = JSON.parse(text);
+    // The existing A006 endpoint returns a flat RFC7807 problem, not the
+    // research API's nested error envelope. Never classify by detail text.
+    if (problem && !Array.isArray(problem) && problem.status === 503 &&
+        problem.code === 'FEATURE_UNAVAILABLE' && problem.retryable === false) return new LegacyFeatureUnavailable();
+  } catch (_) { /* malformed refusal remains an ordinary transport error */ }
+  return null;
+}
+
 // Pull current language (set by i18n.js). Defaults to 'zh' so existing
 // behavior is preserved when i18n.js hasn't loaded.
 function __apiLang() {
@@ -33,7 +54,11 @@ async function apiFetch(path, options = {}) {
   });
   if (!resp.ok) {
     const text = await resp.text().catch(() => '');
-    throw new Error(`API ${resp.status}: ${text || resp.statusText}`);
+    const retired = legacyFeatureError(resp, text);
+    if (retired) throw retired;
+    const failure = new Error(`API ${resp.status}`);
+    failure.status = resp.status;
+    throw failure;
   }
   return resp.json();
 }
@@ -138,7 +163,9 @@ window.StructuralAPI = {
         });
         if (!resp.ok) {
           const text = await resp.text().catch(() => '');
-          throw new Error(`API ${resp.status}: ${text || resp.statusText}`);
+          const retired = legacyFeatureError(resp, text);
+          if (retired) throw retired;
+          throw new Error(`API ${resp.status}`);
         }
         if (!resp.body) {
           throw new Error('No response body (streaming unsupported)');
@@ -184,7 +211,9 @@ window.StructuralAPI = {
       } catch (err) {
         finish();
         if (err && err.name === 'AbortError' && !timedOut) return;
-        const safeError = new Error(timedOut ? 'synthesis_timeout' : 'synthesis_unavailable');
+        const safeError = err instanceof LegacyFeatureUnavailable
+          ? err
+          : new Error(timedOut ? 'synthesis_timeout' : 'synthesis_unavailable');
         if (cb.onError) cb.onError(safeError);
         else console.error('[synthesize] stream unavailable');
       }

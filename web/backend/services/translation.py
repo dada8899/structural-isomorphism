@@ -1,28 +1,14 @@
-"""
-Lightweight KB translation helper (Chinese -> English).
-
-Used by the web endpoints when the caller passes `lang=en`. The KB itself
-is stored only in Chinese; we translate `name`, `domain`, `description`
-on-the-fly via the existing LLM provider and cache the result in memory,
-keyed by the phenomenon `id` so a single translation is reused across
-requests.
-
-Design notes:
-- Only activates when `lang == "en"`. The zh path MUST remain unchanged.
-- Cache is process-local (dict). No TTL — translations are deterministic
-  enough and the process restarts frequently enough that adding disk
-  persistence isn't worth the complexity right now.
-- On any LLM failure we fall back to returning the original Chinese item,
-  so the user is never blocked — they'll just see zh text, which is
-  strictly better than a 500.
-- Cache key is the phenomenon id. Items without an id (e.g. the synthetic
-  `__query__` used in analyze.py query-mode) get translated per call
-  without caching.
-
-Keep this file small and dependency-light: it reuses `LLMService`'s HTTP
-client indirectly so we don't open new sockets.
+"""Read-only, source-bound public KB translations. A miss returns original
+text; neither a key nor a language request can start paid translation. The old
+batch sender is explicitly denied for direct consumers as well.
 """
 from __future__ import annotations
+
+if __package__ == "web.backend.services":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
 
 import asyncio
 import json
@@ -42,7 +28,7 @@ else:
 logger = get_logger("structural.translation")
 
 # Process-local cache: id -> translated dict (at minimum name/domain/description)
-_TRANSLATE_CACHE: Dict[str, Dict[str, str]] = {}
+_TRANSLATE_CACHE: Dict[str, dict] = {}
 # Locks to avoid duplicate concurrent translations of the same id.
 _TRANSLATE_LOCKS: Dict[str, asyncio.Lock] = {}
 _GLOBAL_LOCK = asyncio.Lock()
@@ -86,6 +72,7 @@ async def _llm_translate_batch(items: List[Dict]) -> List[Dict[str, str]]:
     Each input item must have at minimum name/domain/description (missing
     values default to empty string).
     """
+    deny_legacy_paid()
     api_key = os.getenv("OPENROUTER_API_KEY", "")
     if not api_key or not items:
         return []
@@ -162,81 +149,30 @@ async def _llm_translate_batch(items: List[Dict]) -> List[Dict[str, str]]:
         return []
 
 
-async def translate_kb_item(item: Optional[Dict], lang: str) -> Optional[Dict]:
-    """Return `item` with name/domain/description translated to EN when
-    `lang == 'en'`. Otherwise return `item` unchanged (the zh path).
+def _public_cached_translation(item):
+    import hashlib
+    key = item.get("id")
+    cached = _TRANSLATE_CACHE.get(key) if isinstance(key, str) and key and not key.startswith("__") else None
+    payload = {k: item.get(k) for k in ("id", "name", "domain", "description", "type_id")}
+    digest = hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    if (isinstance(cached, dict) and cached.get("schema_version") == "legacy-public-translation-v1"
+            and cached.get("source_digest") == digest and isinstance(cached.get("translation"), dict)
+            and set(cached["translation"]) <= {"name", "domain", "description"}
+            and all(isinstance(v, str) and len(v) <= 8000 for v in cached["translation"].values())):
+        return _merge_translation(item, cached["translation"])
+    return item  # Original language, never fabricated translated text.
 
-    Uses the process-local cache keyed by item['id']. On LLM failure,
-    returns the original item (passthrough).
-    """
+
+async def translate_kb_item(item: Optional[Dict], lang: str) -> Optional[Dict]:
+    """Read a source-bound public translation or unchanged original; no model."""
     if not item or (lang or "zh").lower() != "en":
         return item
-
-    cache_key = item.get("id") or ""
-    if cache_key and cache_key in _TRANSLATE_CACHE:
-        return _merge_translation(item, _TRANSLATE_CACHE[cache_key])
-
-    # Guard concurrent translations of the same id.
-    if cache_key:
-        lock = _get_lock(cache_key)
-        async with lock:
-            if cache_key in _TRANSLATE_CACHE:
-                return _merge_translation(item, _TRANSLATE_CACHE[cache_key])
-            batch = await _llm_translate_batch([item])
-            if batch and batch[0]:
-                _TRANSLATE_CACHE[cache_key] = batch[0]
-                return _merge_translation(item, batch[0])
-            # Failure: passthrough
-            return item
-
-    # No id — translate inline without caching.
-    batch = await _llm_translate_batch([item])
-    if batch and batch[0]:
-        return _merge_translation(item, batch[0])
-    return item
+    return _public_cached_translation(item)
 
 
 async def translate_kb_items(items: Iterable[Dict], lang: str) -> List[Dict]:
-    """Translate a list of KB items. Batches cache-misses into one LLM call.
-
-    Items with no `id` are translated inline (one per call) to keep the batch
-    path simple; this is rare (only query-mode synthetic items).
-    """
-    items_list = list(items or [])
-    if (lang or "zh").lower() != "en" or not items_list:
-        return items_list
-
-    # Figure out which items need translation
-    to_fetch: List[Dict] = []
-    to_fetch_positions: List[int] = []
-    out: List[Optional[Dict]] = [None] * len(items_list)
-    for i, it in enumerate(items_list):
-        if not it:
-            out[i] = it
-            continue
-        cache_key = it.get("id") or ""
-        if cache_key and cache_key in _TRANSLATE_CACHE:
-            out[i] = _merge_translation(it, _TRANSLATE_CACHE[cache_key])
-        else:
-            to_fetch.append(it)
-            to_fetch_positions.append(i)
-
-    if to_fetch:
-        batch = await _llm_translate_batch(to_fetch)
-        for pos_in_batch, (orig_pos, orig_item) in enumerate(
-            zip(to_fetch_positions, to_fetch)
-        ):
-            tr = batch[pos_in_batch] if pos_in_batch < len(batch) else None
-            if tr:
-                cache_key = orig_item.get("id") or ""
-                if cache_key:
-                    _TRANSLATE_CACHE[cache_key] = tr
-                out[orig_pos] = _merge_translation(orig_item, tr)
-            else:
-                # Fallback: passthrough Chinese
-                out[orig_pos] = orig_item
-
-    return [x for x in out]  # mypy: all populated
+    """Read-only bulk translation cache; a miss never dispatches generation."""
+    return [await translate_kb_item(item, lang) for item in items or []]
 
 
 def _merge_translation(original: Dict, tr: Dict[str, str]) -> Dict:

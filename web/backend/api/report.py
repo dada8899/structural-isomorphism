@@ -12,6 +12,7 @@ import math
 import re
 import sys
 import unicodedata
+from contextlib import contextmanager, nullcontext
 from datetime import date
 from pathlib import Path
 from typing import Any, Literal, Optional
@@ -22,19 +23,24 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, ValidationError
 
 if __package__ == "web.backend.api":
+    from .history import _history_store, _HISTORY_STORE_LOCK
+else:
+    from api.history import _history_store, _HISTORY_STORE_LOCK
+
+if __package__ == "web.backend.api":
     from ..logging_config import get_logger, new_incident_id
     from ..services.candidate_origin import normalize_origin_candidate
     from ..services.deep_report import (
         DeepAnalysisReportV2,
         validate_bound_deep_report,
     )
-    from ..services.report_store import ReportStore, verify_share_token
+    from ..services.report_store import ReportStore, ReportOwnershipChanged, verify_share_token
     from .sso import resolve_beta_user
 else:
     from logging_config import get_logger, new_incident_id
     from services.candidate_origin import normalize_origin_candidate
     from services.deep_report import DeepAnalysisReportV2, validate_bound_deep_report
-    from services.report_store import ReportStore, verify_share_token
+    from services.report_store import ReportStore, ReportOwnershipChanged, verify_share_token
     from api.sso import resolve_beta_user
 
 logger = get_logger("structural.report")
@@ -45,11 +51,65 @@ _store: Optional[ReportStore] = None
 
 def _get_store() -> ReportStore:
     global _store
-    if _store is None:
-        # Reuse history.db (same file as analyze.py / history_db.py).
-        db_path = Path(__file__).parent.parent / "data" / "history.db"
-        _store = ReportStore(db_path)
-    return _store
+    with _HISTORY_STORE_LOCK:
+        _store = _history_store(_store, ReportStore, Path(__file__).parent.parent / "data/history.db")
+        return _store
+
+
+def _resource_owner_email(row: dict) -> Optional[str]:
+    """Resolve the stored resource owner, independently of visitor cookies."""
+    owner=row.get("owner_user_id")
+    if owner is None:
+        return None
+    if not isinstance(owner,str) or not owner or not owner.isascii() or len(owner)>200:
+        raise HTTPException(404,"Report not found",headers=_SHARE_NO_STORE_HEADERS)
+    if __package__ == "web.backend.api":
+        from . import auth, sso
+    else:
+        from api import auth, sso
+    bound=sso.get_replay_store().email_for_subject(owner)
+    if bound is not None:
+        if not hmac.compare_digest(sso._subject_id(bound),owner):
+            raise HTTPException(404,"Report not found",headers=_SHARE_NO_STORE_HEADERS)
+        return bound
+    # Direct-login claims need not have an SSO exchange binding. Compare only
+    # persisted auth identities using the fixed server subject derivation;
+    # never accept an email or an owner supplied by the visitor.
+    with auth._store()._connection() as conn:
+        matches=[user["email"] for user in conn.execute("SELECT email FROM auth_users")
+                 if hmac.compare_digest(sso._subject_id(user["email"]),owner)]
+    if len(matches) != 1:
+        raise HTTPException(404,"Report not found",headers=_SHARE_NO_STORE_HEADERS)
+    return matches[0]
+
+
+@contextmanager
+def _report_resource(store: ReportStore, report_id: str):
+    """Re-read under the owning account's gate; anonymous stays anonymous.
+
+    The expected owner is also checked in the history write transaction,
+    closing anonymous-to-claimed changes between this read and a mutation.
+    """
+    initial=store.get_by_id(report_id)
+    if initial is None:
+        raise HTTPException(404,"Report not found",headers=_SHARE_NO_STORE_HEADERS)
+    owner=initial.get("owner_user_id")
+    email=_resource_owner_email(initial)
+    if __package__ == "web.backend.api":
+        from . import auth
+    else:
+        from api import auth
+    gate=auth.account_owner_transaction(email) if email is not None else nullcontext()
+    try:
+        with gate:
+            current=store.get_by_id(report_id)
+            if current is None or current.get("owner_user_id") != owner:
+                raise HTTPException(404,"Report not found",headers=_SHARE_NO_STORE_HEADERS)
+            if email is not None and (_resource_owner_email(current) != email or not auth.account_is_active(email)):
+                raise HTTPException(404,"Report not found",headers=_SHARE_NO_STORE_HEADERS)
+            yield current
+    except ReportOwnershipChanged:
+        raise HTTPException(404,"Report not found",headers=_SHARE_NO_STORE_HEADERS) from None
 
 
 # ---------------- response shapes ----------------------------------- #
@@ -1080,23 +1140,26 @@ async def get_report_by_share(token: str, response: Response):
         raise HTTPException(
             404, "Report not found", headers=_SHARE_NO_STORE_HEADERS,
         )
-    # Constant-time check that the token actually signs this row (defence
-    # against a future schema change that lets non-HMAC tokens slip in).
-    if not verify_share_token(r["id"], token):
-        # Token DB row exists but HMAC doesn't verify — config drift.
-        logger.warning("structural.report.share_token_invalid")
-        raise HTTPException(
-            404, "Report not found", headers=_SHARE_NO_STORE_HEADERS,
-        )
-    try:
-        detail = _detail_dict(r)
-    except StoredReportUnavailable:
-        logger.warning("structural.report.share_unavailable")
-        raise HTTPException(
-            404, "Report not found", headers=_SHARE_NO_STORE_HEADERS,
-        ) from None
-    store.record_view(r["id"])
-    return detail
+    with _report_resource(store,r["id"]) as r:
+        if not isinstance(r.get("share_token"),str) or not hmac.compare_digest(r["share_token"],token):
+            raise HTTPException(404,"Report not found",headers=_SHARE_NO_STORE_HEADERS)
+        # Constant-time check that the token actually signs this row (defence
+        # against a future schema change that lets non-HMAC tokens slip in).
+        if not verify_share_token(r["id"], token):
+            # Token DB row exists but HMAC doesn't verify — config drift.
+            logger.warning("structural.report.share_token_invalid")
+            raise HTTPException(
+                404, "Report not found", headers=_SHARE_NO_STORE_HEADERS,
+            )
+        try:
+            detail = _detail_dict(r)
+        except StoredReportUnavailable:
+            logger.warning("structural.report.share_unavailable")
+            raise HTTPException(
+                404, "Report not found", headers=_SHARE_NO_STORE_HEADERS,
+            ) from None
+        store.record_view(r["id"],expected_owner=r.get("owner_user_id"))
+        return detail
 
 
 @router.get(
@@ -1117,25 +1180,23 @@ async def get_report_by_id(
     /share/{token} endpoint instead.
     """
     store = _get_store()
-    r = store.get_by_id(report_id)
-    if r is None:
-        raise HTTPException(404, "Report not found")
-    authorized, _ = _authorized_report_identity(r, request, x_anon_id)
-    if not authorized:
-        # Hide existence rather than leak via 403.
-        raise HTTPException(404, "Report not found")
-    try:
-        detail = _detail_dict(r, share_url=_owner_share_url(r))
-    except StoredReportUnavailable:
-        logger.warning("structural.report.owner_unavailable")
-        raise HTTPException(
-            409,
-            "This saved report can no longer be verified. Generate a new report.",
-            headers=_SHARE_NO_STORE_HEADERS,
-        ) from None
-    _no_store_share(response)
-    store.record_view(report_id)
-    return detail
+    with _report_resource(store,report_id) as r:
+        authorized, _ = _authorized_report_identity(r, request, x_anon_id)
+        if not authorized:
+            # Hide existence rather than leak via 403.
+            raise HTTPException(404, "Report not found")
+        try:
+            detail = _detail_dict(r, share_url=_owner_share_url(r))
+        except StoredReportUnavailable:
+            logger.warning("structural.report.owner_unavailable")
+            raise HTTPException(
+                409,
+                "This saved report can no longer be verified. Generate a new report.",
+                headers=_SHARE_NO_STORE_HEADERS,
+            ) from None
+        _no_store_share(response)
+        store.record_view(report_id,expected_owner=r.get("owner_user_id"))
+        return detail
 
 
 @router.get(
@@ -1155,9 +1216,27 @@ async def list_my_reports(
         # frontend can render "no reports yet" cleanly.
         return {"items": [], "has_more": False}
     store = _get_store()
-    items = store.list_by_anon(x_anon_id, limit=limit + 1, offset=offset)
-    has_more = len(items) > limit
-    items = items[:limit]
+    # Keep the legacy authorization contract here (PR 247 handles claimed
+    # anonymous-list privacy separately), but never project a deleting owner.
+    # Offset applies to eligible rows, so hidden entries do not strand paging.
+    eligible=[]
+    scanned=0
+    while len(eligible) < offset+limit+1:
+        batch=store.list_by_anon(x_anon_id,limit=100,offset=scanned)
+        if not batch:
+            break
+        scanned+=len(batch)
+        for item in batch:
+            try:
+                with _report_resource(store,item["id"]):
+                    eligible.append(item)
+            except HTTPException as exc:
+                if exc.status_code != 404:
+                    raise
+        if len(batch) < 100:
+            break
+    has_more=len(eligible)>offset+limit
+    items=eligible[offset:offset+limit]
     return {
         "items": [
             {
@@ -1203,20 +1282,21 @@ async def submit_feedback(
     if body.vote not in (-1, 1):
         raise HTTPException(400, "vote must be -1 or +1")
     store = _get_store()
-    r = store.get_by_id(report_id)
-    if r is None:
-        raise HTTPException(404, "Report not found")
-    try:
-        counts = store.record_feedback(
-            report_id=report_id,
-            section=body.section,
-            vote=body.vote,
-            voter_anon=x_anon_id or "anon",
-            note=body.note,
-        )
-    except (ValueError, ValidationError) as e:
-        raise HTTPException(400, str(e)) from e
-    return {"ok": True, **counts}
+    with _report_resource(store,report_id) as r:
+        try:
+            counts = store.record_feedback(
+                report_id=report_id,
+                section=body.section,
+                vote=body.vote,
+                voter_anon=x_anon_id or "anon",
+                note=body.note,
+                expected_owner=r.get("owner_user_id"),
+            )
+        except ReportOwnershipChanged:
+            raise
+        except (ValueError, ValidationError) as e:
+            raise HTTPException(400, str(e)) from e
+        return {"ok": True, **counts}
 
 
 @router.post(
@@ -1244,59 +1324,60 @@ async def submit_followup(
     if (body.outcome or "") not in _ALLOWED_OUTCOMES:
         raise HTTPException(400, f"Unknown outcome: {body.outcome!r}")
     store = _get_store()
-    r = store.get_by_id(report_id)
-    if r is None:
-        raise HTTPException(404, "Report not found")
-    authorized, followup_identity = _authorized_report_identity(
-        r, request, x_anon_id,
-    )
-    if not authorized or not followup_identity:
-        # Followup changes experimental state and feeds research evidence;
-        # possession of a public share URL is read-only, not write authority.
-        raise HTTPException(404, "Report not found")
-    if r.get("prompt_version") == _CURRENT_REPORT_PROMPT:
-        try:
-            _detail_dict(r)
-        except StoredReportUnavailable:
-            raise HTTPException(
-                409,
-                "This saved report can no longer be verified. Generate a new report.",
-                headers=_SHARE_NO_STORE_HEADERS,
-            ) from None
-    try:
-        fu = store.record_followup(
-            report_id=report_id,
-            anon_id=followup_identity,
-            action_status=body.action_status,
-            outcome=body.outcome or "",
-            note=body.note,
-            experiment=(
-                body.experiment.model_dump(exclude_unset=True)
-                if body.experiment else None
-            ),
-            outcome_detail=(
-                body.outcome_detail.model_dump(exclude_unset=True)
-                if body.outcome_detail else None
-            ),
-            publish_to_insights=body.publish_to_insights,
+    with _report_resource(store,report_id) as r:
+        authorized, followup_identity = _authorized_report_identity(
+            r, request, x_anon_id,
         )
-    except (ValueError, ValidationError) as e:
-        raise HTTPException(400, str(e)) from e
-    return {
-        "ok": True,
-        "report_id": fu["report_id"],
-        "action_status": fu["action_status"],
-        "outcome": fu["outcome"],
-        "note": fu.get("note"),
-        "experiment": fu.get("experiment"),
-        "outcome_detail": fu.get("outcome_detail"),
-        "publish_to_insights": fu.get("publish_to_insights", False),
-        "consent_version": fu.get("consent_version"),
-        "consented_at": fu.get("consented_at"),
-        "withdrawn_at": fu.get("withdrawn_at"),
-        "created_at": fu["created_at"],
-        "updated_at": fu["updated_at"],
-    }
+        if not authorized or not followup_identity:
+            # Followup changes experimental state and feeds research evidence;
+            # possession of a public share URL is read-only, not write authority.
+            raise HTTPException(404, "Report not found")
+        if r.get("prompt_version") == _CURRENT_REPORT_PROMPT:
+            try:
+                _detail_dict(r)
+            except StoredReportUnavailable:
+                raise HTTPException(
+                    409,
+                    "This saved report can no longer be verified. Generate a new report.",
+                    headers=_SHARE_NO_STORE_HEADERS,
+                ) from None
+        try:
+            fu = store.record_followup(
+                report_id=report_id,
+                expected_owner=r.get("owner_user_id"),
+                anon_id=followup_identity,
+                action_status=body.action_status,
+                outcome=body.outcome or "",
+                note=body.note,
+                experiment=(
+                    body.experiment.model_dump(exclude_unset=True)
+                    if body.experiment else None
+                ),
+                outcome_detail=(
+                    body.outcome_detail.model_dump(exclude_unset=True)
+                    if body.outcome_detail else None
+                ),
+                publish_to_insights=body.publish_to_insights,
+            )
+        except ReportOwnershipChanged:
+            raise
+        except (ValueError, ValidationError) as e:
+            raise HTTPException(400, str(e)) from e
+        return {
+            "ok": True,
+            "report_id": fu["report_id"],
+            "action_status": fu["action_status"],
+            "outcome": fu["outcome"],
+            "note": fu.get("note"),
+            "experiment": fu.get("experiment"),
+            "outcome_detail": fu.get("outcome_detail"),
+            "publish_to_insights": fu.get("publish_to_insights", False),
+            "consent_version": fu.get("consent_version"),
+            "consented_at": fu.get("consented_at"),
+            "withdrawn_at": fu.get("withdrawn_at"),
+            "created_at": fu["created_at"],
+            "updated_at": fu["updated_at"],
+        }
 
 
 @router.get(
@@ -1316,23 +1397,21 @@ async def get_followup(
     the empty 'how did it go?' prompt without a 404 round-trip.
     """
     store = _get_store()
-    r = store.get_by_id(report_id)
-    if r is None:
-        raise HTTPException(404, "Report not found")
-    authorized, followup_identity = _authorized_report_identity(
-        r, request, x_anon_id,
-    )
-    if not authorized or not followup_identity:
-        raise HTTPException(404, "Report not found")
-    if r.get("prompt_version") == _CURRENT_REPORT_PROMPT:
-        try:
-            _detail_dict(r)
-        except StoredReportUnavailable:
-            raise HTTPException(
-                409,
-                "This saved report can no longer be verified. Generate a new report.",
-                headers=_SHARE_NO_STORE_HEADERS,
-            ) from None
-    _no_store_share(response)
-    fu = store.get_followup(report_id, followup_identity)
-    return {"followup": fu}
+    with _report_resource(store,report_id) as r:
+        authorized, followup_identity = _authorized_report_identity(
+            r, request, x_anon_id,
+        )
+        if not authorized or not followup_identity:
+            raise HTTPException(404, "Report not found")
+        if r.get("prompt_version") == _CURRENT_REPORT_PROMPT:
+            try:
+                _detail_dict(r)
+            except StoredReportUnavailable:
+                raise HTTPException(
+                    409,
+                    "This saved report can no longer be verified. Generate a new report.",
+                    headers=_SHARE_NO_STORE_HEADERS,
+                ) from None
+        _no_store_share(response)
+        fu = store.get_followup(report_id, followup_identity)
+        return {"followup": fu}

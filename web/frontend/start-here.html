@@ -443,7 +443,14 @@
     </p>
 
     <!-- Session #9 W2-A: catch the "just read the essay" reader -->
-    <div id="newsletter-start-here" class="newsletter"></div>
+    <div id="newsletter-start-here" class="newsletter">
+          <div class="newsletter-card">
+            <span class="newsletter-eyebrow">不定期研究更新</span>
+            <h2 class="newsletter-title">新增订阅暂不可用</h2>
+            <p class="newsletter-body">本版不收集订阅邮箱。研究进展和公开负结果可在站内查看。</p>
+            <p class="newsletter-fineprint">既有订阅请查看原邮件中的退订说明。</p>
+          </div>
+        </div>
 
     <div class="essay__next">
       <div class="essay__next-label">What now?</div>
@@ -476,9 +483,9 @@
   <script defer src="/assets/js/glossary.js?v=20260714n2"></script>
   <script src="/assets/js/history-sidebar.js?v=20260714n2"></script>
   <script src="/assets/js/product-switcher.js?v=20260513"></script>
-  <script src="/assets/js/newsletter.js?v=20260714n2"></script>
+  <script src="/assets/js/newsletter.js?v=20261017closed1"></script>
   <script>
-    // Session #9 W2-A: mount newsletter signup at the end of the essay.
+    // Session #9 W2-A: mount the closed subscription notice at the end of the essay.
     if (window.mountNewsletter) {
       window.mountNewsletter("newsletter-start-here", "start-here-essay-end");
     }

@@ -7,6 +7,12 @@
 2. Pair mode: a_id + b_id (两个 KB 现象)
    → 语义：两个已知现象的深度对比
 """
+
+if __package__ == "web.backend.api":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
 import hashlib
 import hmac
 import json as _json
@@ -336,11 +342,6 @@ def _init():
         )
     if _llm is None:
         _llm = LLMService()
-    if _report_store is None:
-        # Reuse the existing history.db file so we don't fragment storage.
-        # Path matches services/history_db.py initialiser in main.py lifespan.
-        db_path = Path(__file__).parent.parent / "data" / "history.db"
-        _report_store = ReportStore(db_path)
 
 
 def _fingerprint_payload(value: Optional[AnalyzeFingerprint]) -> Optional[dict]:
@@ -554,11 +555,18 @@ async def _stream_analyze_v2(
     if tier is None:
         raise HTTPException(401, "Invalid API token")
 
+    if req.text_a is not None:
+        from services.scope_guard import is_out_of_scope
+        out_of_scope, reason = is_out_of_scope(req.text_a)
+        if out_of_scope:
+            raise HTTPException(422, {"error": "out_of_scope", "reason": reason})
+        deny_legacy_paid()  # Query-mode has no eligible public-pair cache.
+
     from main import app_state
 
     svc = app_state.get("search")
     if not svc:
-        raise HTTPException(503, "Search service not ready")
+        deny_legacy_paid()
 
     lang = req.lang
     text_a = req.text_a
@@ -797,6 +805,20 @@ async def _stream_analyze_v2(
             )
             return None
 
+    cached_report = None
+    if pair_cache_id is not None:
+        cached = _cache.get(pair_cache_id, req.b_id, lang=lang)
+        if cached is not None:
+            try:
+                cached_report = validate_bound_deep_report(
+                    cached, expected_source_binding=source_binding,
+                    expected_source_refs=source_refs, expected_source_record=source_record,
+                ).model_dump(mode="json")
+            except (TypeError, ValueError):
+                cached_report = None
+    if cached_report is None:
+        deny_legacy_paid()
+
     async def events():
         generation_id = "g_" + secrets.token_hex(12)
         yield _analyze_sse("meta", {
@@ -817,49 +839,15 @@ async def _stream_analyze_v2(
             "origin_candidate": origin_candidate,
         })
 
-        # Query reports never touch the durable generation cache.  Pair-mode
-        # rows contain public KB ids only and are revalidated against the exact
-        # artifact/model/source binding before release.
-        if pair_cache_id is not None:
-            cached = _cache.get(pair_cache_id, req.b_id, lang=lang)
-            if cached is not None:
-                try:
-                    cached_model = validate_bound_deep_report(
-                        cached,
-                        expected_source_binding=source_binding,
-                        expected_source_refs=source_refs,
-                        expected_source_record=source_record,
-                    )
-                    report = cached_model.model_dump(mode="json")
-                    report_sha = _canonical_digest(report)
-                    yield _analyze_sse("report_validated", {
-                        "generation_id": generation_id,
-                        "report_sha256": report_sha,
-                        "schema_version": "deep-analysis-report-v2",
-                        "from_cache": True,
-                    })
-                    for key in _REPORT_SECTION_KEYS:
-                        yield _analyze_sse("section", {"key": key, "data": report[key]})
-                    persisted = persist_report(
-                        report,
-                        generation_id=generation_id,
-                        report_sha256=report_sha,
-                    )
-                    if persisted is not None:
-                        yield _analyze_sse("persisted", persisted)
-                    yield _analyze_sse("done", {
-                        "generation_id": generation_id,
-                        "report_sha256": report_sha,
-                        "report": report,
-                        "from_cache": True,
-                    })
-                    return
-                except Exception as exc:
-                    logger.warning(
-                        "analyze.cache_row_rejected",
-                        error_type=type(exc).__name__,
-                        incident_id=new_incident_id(),
-                    )
+        # Historical read only: do not persist a new report or refresh dates.
+        report_sha = _canonical_digest(cached_report)
+        yield _analyze_sse("report_validated", {"generation_id": generation_id,
+            "report_sha256": report_sha, "schema_version": "deep-analysis-report-v2", "from_cache": True})
+        for key in _REPORT_SECTION_KEYS:
+            yield _analyze_sse("section", {"key": key, "data": cached_report[key]})
+        yield _analyze_sse("done", {"generation_id": generation_id,
+            "report_sha256": report_sha, "report": cached_report, "from_cache": True})
+        return
 
         generated: Optional[GeneratedDeepReportV2] = None
         last_code = "report_unavailable"

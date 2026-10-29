@@ -149,13 +149,34 @@ def sign_in(page, stack, email: str) -> None:
 
 
 def dismiss_first_visit_overlays(page) -> None:
-    for test_id in ("cookie-essential-only", "tour-skip"):
-        control = page.get_by_test_id(test_id)
+    tour_skip = page.get_by_test_id("tour-skip")
+    tour = page.get_by_test_id("onboarding-tour")
+
+    def close_tour() -> None:
+        tour_skip.click()
+        tour.wait_for(state="hidden")
+
+    page.add_locator_handler(tour_skip, close_tour)
+    try:
+        control = page.get_by_test_id("cookie-essential-only")
         try:
             control.wait_for(state="visible", timeout=2_000)
         except PlaywrightTimeoutError:
-            continue
-        control.click()
+            pass
+        else:
+            # A tour may appear after cookie visibility is checked. Let the
+            # actionability handler close that real modal before this click.
+            control.click()
+    finally:
+        page.remove_locator_handler(tour_skip)
+
+    # Handle an independently delayed first-visit tour too. Do this after
+    # unregistering, so clicking Skip cannot invoke its own handler again.
+    try:
+        tour_skip.wait_for(state="visible", timeout=2_000)
+    except PlaywrightTimeoutError:
+        return
+    close_tour()
 
 
 def test_real_next_magic_link_cookie_refresh_and_logout_failure(browser, real_stack):
@@ -462,3 +483,73 @@ def test_phase_key_control_inventory_is_named_and_keyboard_reachable(
                 failures.append(f"{path}: unfocusable control[{index}] {label!r}")
     context.close()
     assert failures == [], "control inventory failures:\n" + "\n".join(failures)
+
+
+@pytest.mark.parametrize("overlay_state", ["tour-first", "tour-during-cookie-click", "no-tour"])
+def test_first_visit_overlay_helper_handles_real_modal_order_and_unregisters(
+    browser, real_stack, overlay_state,
+):
+    from playwright.sync_api import expect
+
+    context = browser.new_context(viewport={"width": 430, "height": 932})
+    page = context.new_page()
+    install_auth_proxy(page, real_stack)
+    action_boundary = None
+    inserted = []
+    try:
+        # Pause before navigation so the production 1500ms auto-tour timer
+        # can be advanced at a known action boundary, without sleeping or
+        # writing the application's consent/tour storage.
+        page.clock.install(time="2026-10-17T00:00:00Z")
+        page.clock.pause_at("2026-10-17T00:00:01Z")
+        initial_path = "/auth/login" if overlay_state == "tour-during-cookie-click" else "/onboarding"
+        page.goto(real_stack["origin"] + initial_path)
+        cookie = page.get_by_test_id("cookie-consent")
+        tour = page.get_by_test_id("onboarding-tour")
+        cookie.wait_for(state="visible")
+
+        if overlay_state == "no-tour":
+            # Establish the seen state through the actual Skip interaction,
+            # not by pre-seeding localStorage or disabling onboarding.
+            page.get_by_test_id("tour-skip").click()
+            tour.wait_for(state="hidden")
+            page.goto(real_stack["origin"] + "/auth/login")
+            cookie.wait_for(state="visible")
+            assert tour.is_hidden()
+        elif overlay_state == "tour-first":
+            tour.wait_for(state="visible")
+        else:
+            assert tour.is_hidden()
+            action_boundary = page.locator("body")
+
+            def advance_real_tour_timer() -> None:
+                assert cookie.is_visible() and tour.is_hidden()
+                page.clock.run_for(1500)
+                tour.wait_for(state="visible")
+                inserted.append("auto-tour appeared at cookie action boundary")
+
+            page.add_locator_handler(
+                action_boundary, advance_real_tour_timer, no_wait_after=True, times=1,
+            )
+
+        dismiss_first_visit_overlays(page)
+        if overlay_state == "tour-during-cookie-click":
+            assert inserted == ["auto-tour appeared at cookie action boundary"]
+        expect(cookie).to_be_hidden()
+        expect(tour).to_be_hidden()
+        consent = page.evaluate("JSON.parse(localStorage.getItem('cookie_consent_v1'))")
+        assert consent["essential"] is True
+        assert consent["analytics"] is False and consent["marketing"] is False
+        assert page.evaluate("localStorage.getItem('phase_tour_seen')") == "true"
+
+        # A subsequent real restart must remain visible to an auto-waiting
+        # assertion: a leaked helper handler would dismiss it instead.
+        page.get_by_test_id("mobile-nav-toggle").click()
+        page.get_by_test_id("tour-restart-link-mobile").click()
+        expect(tour).to_be_visible()
+        page.get_by_test_id("tour-skip").click()
+        expect(tour).to_be_hidden()
+    finally:
+        if action_boundary is not None:
+            page.remove_locator_handler(action_boundary)
+        context.close()

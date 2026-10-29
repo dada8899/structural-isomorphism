@@ -8,7 +8,11 @@
       "site-docs-contract",
       "phase-python-contract",
       "browser-product-contract",
+      "browser-identity-consent-contract",
       "browser-beta-surface-contract",
+      "browser-evidence-method-contract",
+      "browser-financial-registry-contract",
+      "browser-financial-scenario-contract",
       "backend",
       "packages",
       "frontend"
@@ -34,6 +38,11 @@
       "workflow": ".github/workflows/beta-perf.yml",
       "job": "beta-perf-audit",
       "context": "beta-perf-audit"
+    },
+    {
+      "workflow": ".github/workflows/product-ci.yml",
+      "job": "product",
+      "context": "product"
     }
   ],
   "external_boundary": "GitHub branch protection must require every listed check; repository YAML cannot create cross-workflow needs edges."

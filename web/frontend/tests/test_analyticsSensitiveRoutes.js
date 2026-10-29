@@ -372,6 +372,31 @@ test('analytics does not wrap or alter unrelated fetch calls', async () => {
   assert.equal(request.init.body, body);
 });
 
+test('private research workspace never emits with opt-in or a retained public sender', () => {
+  for (const pathname of [
+    '/research', '/research/', '/research.html', '/research/id', '/research.html/id',
+    '/research/12345678-1234-4234-8234-123456789abc',
+    '/RESEARCH/id', '/%72esearch/id', '/research%2Fid', '/%2572esearch/id',
+  ]) {
+    const suffix = '?task_id=synthetic-private-task#synthetic-private-input';
+    const privateRuntime = boot(pathname, {suffix});
+    assert.equal(privateRuntime.requests.length, 0, pathname);
+    assert.equal(privateRuntime.window.plausible, undefined, pathname);
+    privateRuntime.choose(true);
+    privateRuntime.open();
+    assert.equal(privateRuntime.requests.length, 0, pathname);
+    assert.equal(privateRuntime.window.plausible, undefined, pathname);
+    const publicRuntime = boot('/discoveries');
+    const sender = publicRuntime.window.plausible;
+    assert.equal(publicRuntime.requests.length, 1);
+    publicRuntime.window.location.pathname = pathname;
+    publicRuntime.window.location.href = 'https://beta.structural.bytedance.city' + pathname + suffix;
+    sender('pageview');
+    sender('discoveries_loaded', {props: {count: 10, latency_ms: 20}});
+    assert.equal(publicRuntime.requests.length, 1, pathname);
+  }
+});
+
 test('transport failures are silent and leave the page callable', async () => {
   let attempts = 0;
   const runtime = boot('/', {

@@ -188,9 +188,9 @@ def test_generator_enforces_release_target_fastapi_and_pydantic_pins(monkeypatch
 
     locked = module._locked_schema_runtime_versions()
     assert locked == {
-        "fastapi": "0.115.14",
-        "pydantic": "2.6.1",
-        "starlette": "0.46.2",
+        "fastapi": "0.135.0",
+        "pydantic": "2.7.4",
+        "starlette": "1.3.1",
     }
 
     monkeypatch.setattr(
@@ -204,20 +204,20 @@ def test_generator_enforces_release_target_fastapi_and_pydantic_pins(monkeypatch
 
 def test_release_target_schema_dependencies_remain_exactly_pinned():
     requirements = BACKEND_REQUIREMENTS.read_text(encoding="utf-8")
-    assert "fastapi==0.115.14" in requirements
-    assert "pydantic==2.6.1" in requirements
-    assert "starlette==0.46.2" in requirements
+    assert "fastapi==0.135.0" in requirements
+    assert "pydantic==2.7.4" in requirements
+    assert "starlette==1.3.1" in requirements
 
 
 def test_browser_contract_jobs_use_the_release_target_runtime_pins():
     workflow = yaml.safe_load(CI_WORKFLOW.read_text(encoding="utf-8"))
     required = (
-        "fastapi==0.115.14",
-        "pydantic==2.6.1",
-        "starlette==0.46.2",
+        "fastapi==0.135.0",
+        "pydantic==2.7.4",
+        "starlette==1.3.1",
         "uvicorn[standard]==0.27.1",
     )
-    for job_name in ("browser-product-contract", "browser-beta-surface-contract"):
+    for job_name in ("browser-product-contract", "browser-identity-consent-contract", "browser-beta-surface-contract"):
         run_scripts = "\n".join(
             str(step.get("run", "")) for step in workflow["jobs"][job_name]["steps"]
         )
@@ -337,3 +337,29 @@ def test_key_account_library_and_method_success_contracts_are_typed(tmp_path):
         ("/api/method/apply", "post"),
     ):
         _assert_nonempty_json_response(schema, path, method)
+
+
+def test_raw_preparations_documents_required_query_without_changing_runtime_order():
+    """The public selector contract matches the existing authenticated codec."""
+    import ast
+    import re
+    from web.backend.research.source_document_raw import read_query
+
+    source=(PROJECT_ROOT / "web/backend/api/research.py").read_text()
+    route=next(n for n in ast.parse(source).body
+        if isinstance(n,ast.AsyncFunctionDef) and n.name=="source_raw_preparations")
+    assert [arg.arg for arg in route.args.args]==["research_id","request"]
+    decorator=next(n for n in route.decorator_list if isinstance(n,ast.Call))
+    extra=ast.literal_eval(next(k.value for k in decorator.keywords if k.arg=="openapi_extra"))
+    assert len(extra["parameters"])==1
+    query=extra["parameters"][0]
+    assert (query["name"],query["in"],query["required"])==("task_id","query",True)
+    assert query["schema"]["type"]=="string" and query["schema"]["format"]=="uuid"
+    valid="12345678-1234-4234-8234-123456789abc"
+    assert re.fullmatch(query["schema"]["pattern"],valid)
+    assert read_query([("task_id",valid)])==valid
+    for value in (valid.upper(),valid.replace("-4234-","-5234-"),"not-a-uuid",""):
+        assert re.fullmatch(query["schema"]["pattern"],value) is None
+        with pytest.raises(ValueError):read_query([("task_id",value)])
+    for pairs in ([],[("task_id",valid),("task_id",valid)],[("task_id",valid),("kind","raw")]):
+        with pytest.raises(ValueError):read_query(pairs)

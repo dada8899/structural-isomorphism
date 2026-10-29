@@ -517,3 +517,165 @@ $$
         assert _serious_axe_violations(page) == []
     finally:
         context.close()
+
+
+def test_index_repeated_i18n_notifications_preserve_live_catalog_state(
+    browser: Browser, papers_origin: str,
+) -> None:
+    page, context = _new_page(browser, 390)
+    try:
+        page.goto(f"{papers_origin}/papers?lang=zh", wait_until="domcontentloaded")
+        expect(page.locator(".paper-card")).to_have_count(20)
+        page.wait_for_function("window.i18n.t('page.papers.title') !== 'page.papers.title'")
+        selected = page.locator('.papers-filter__btn[data-filter="unified"]')
+        selected.click()
+        details = page.locator('.paper-result__details').first
+        details.locator('summary').click()
+        for lang in ['zh', 'en', 'zh']:
+            page.evaluate("lang => window.i18n.setLang(lang)", lang)
+            expect(page.locator('.paper-card__title').first).to_have_text(RECORDS[0][f'title_{lang}'])
+            expect(page.locator('.paper-result__decision > div').nth(1).locator('p').first).to_have_text(CONTRACT[f'boundary_{lang}'])
+            expect(page.locator('.paper-card__status').first).to_have_text(
+                'Historical research draft' if lang == 'en' else '历史研究稿'
+            )
+            expect(selected).to_have_attribute('aria-pressed', 'true')
+            expect(details).to_have_attribute('open', '')
+            expect(page.locator('#papers-filter-status')).to_have_text(
+                '1 historical items shown' if lang == 'en' else '当前显示 1 项历史材料'
+            )
+            assert page.locator('.papers-group:not([hidden]) .paper-card').count() == 1
+            assert page.locator('.paper-card').count() == 20
+            hrefs = page.locator('.paper-card__title').evaluate_all(
+                "nodes => nodes.map(n => n.getAttribute('href'))"
+            )
+            assert [href.split('?')[0] for href in hrefs] == [f"/paper/{r['slug']}" for r in RECORDS]
+            details.locator('summary').focus()
+            # Real public notification API, without changing the language tuple.
+            result = page.evaluate("""() => {
+              const root=document.getElementById('papers-content');
+              const nodes=Array.from(root.querySelectorAll('*'));
+              const focus=document.activeElement;
+              document.getElementById('papers-stats').setAttribute('aria-label','stale');
+              for(let n=0;n<3;n++) window.i18n.render();
+              return {same: nodes.every((node,i)=>node===root.querySelectorAll('*')[i]),
+                focused: focus===document.activeElement};
+            }""")
+            assert result == {'same': True, 'focused': True}
+            expect(details).to_have_attribute('open', '')
+            expect(selected).to_have_attribute('aria-pressed', 'true')
+            expect(page.locator('#papers-stats')).to_have_attribute(
+                'aria-label', 'Historical material composition' if lang == 'en' else '历史材料构成'
+            )
+        assert _serious_axe_violations(page) == []
+    finally:
+        context.close()
+
+
+@pytest.mark.parametrize("dictionary_order", [("ui", "content"), ("content", "ui")])
+def test_papers_static_lang_mutations_keep_async_translations_and_callbacks(
+    browser: Browser, papers_origin: str, dictionary_order: tuple[str, str],
+) -> None:
+    page, context = _new_page(browser, 390)
+    held = {}
+    dictionaries = {
+        name: (FRONTEND / f"assets/data/i18n/{name}.json").read_text(encoding="utf-8")
+        for name in ("ui", "content")
+    }
+    probe = """<script>
+      window.__langChanges=[]; window.__langNotifications=[];
+      window.__langObserver=new MutationObserver(records=>{
+        window.__langChanges.push(...records.map(r=>r.oldValue));
+      });
+      window.__langObserver.observe(document.documentElement,
+        {attributes:true,attributeOldValue:true,attributeFilter:['lang']});
+    </script>"""
+    html = (FRONTEND / "papers.html").read_text(encoding="utf-8")
+    assert '<html lang="zh-CN">' in html
+    html = html.replace('<html lang="zh-CN">', '<html>', 1).replace('<head>', '<head>' + probe, 1)
+    page.route("**/papers?lang=en", lambda route: route.fulfill(
+        status=200, content_type="text/html; charset=utf-8", body=html,
+    ))
+    i18n = (FRONTEND / "assets/js/i18n.js").read_text(encoding="utf-8")
+    page.route("**/assets/js/i18n.js?*", lambda route: route.fulfill(
+        status=200, content_type="application/javascript", body=i18n +
+        "\nwindow.i18n.onChange(lang=>window.__langNotifications.push(lang));",
+    ))
+    page.route("**/assets/data/i18n/*.json?*", lambda route: held.__setitem__(
+        "ui" if "/ui.json" in route.request.url else "content", route,
+    ))
+    try:
+        import time
+        page.expose_function("__papersDictionariesHeld", lambda: set(held) == {"ui", "content"})
+        page.goto(f"{papers_origin}/papers?lang=en", wait_until="domcontentloaded")
+        deadline = time.monotonic() + 5
+        expect(page.locator('.paper-card')).to_have_count(20)
+        remaining_ms = (deadline - time.monotonic()) * 1000
+        assert remaining_ms > 0
+        # The binding returns a Promise. Poll its actual boolean result rather
+        # than treating the Promise object itself as route-arrival evidence.
+        page.wait_for_function("""() => {
+          if (window.__papersBothHeld === true) return true;
+          if (!window.__papersHeldQueryPending) {
+            window.__papersHeldQueryPending = true;
+            window.__papersDictionariesHeld().then(arrived => {
+              window.__papersBothHeld = arrived;
+              window.__papersHeldQueryPending = false;
+            });
+          }
+          return false;
+        }""", timeout=remaining_ms).dispose()
+        assert set(held) == {"ui", "content"}
+        assert page.evaluate("window.__langChanges") == [None]
+        expect(page.locator('html')).to_have_attribute('lang', 'en')
+        expect(page.locator('#papers-heading')).to_have_text('20 项历史研究材料')
+        # The real root has already normalized once, before either dictionary.
+        page.evaluate("window.__langObserver.takeRecords(); window.__langChanges=[]; window.__langNotifications=[]")
+        held[dictionary_order[0]].fulfill(status=200, content_type="application/json", body=dictionaries[dictionary_order[0]])
+        first_catalog = json.loads(dictionaries[dictionary_order[0]])
+        first_key = next(key for key, row in first_catalog.items() if isinstance(row.get('zh'), str))
+        page.wait_for_function("([key, value]) => window.__i18n_strings.zh[key] === value", arg=[first_key, first_catalog[first_key]['zh']])
+        held[dictionary_order[1]].fulfill(status=200, content_type="application/json", body=dictionaries[dictionary_order[1]])
+        expect(page.locator('#papers-heading')).to_have_text('Twenty historical research items')
+        assert page.evaluate("window.__langChanges") == []
+        assert 'en' in page.evaluate('window.__langNotifications')
+        selected = page.locator('.papers-filter__btn[data-filter="unified"]')
+        selected.click()
+        details = page.locator('.paper-result__details').first
+        details.locator('summary').click()
+        details.locator('summary').focus()
+        result = page.evaluate("""async () => {
+          window.__langObserver.takeRecords(); window.__langChanges=[];
+          window.__langNotifications=[];
+          const root=document.getElementById('papers-content');
+          const nodes=Array.from(root.querySelectorAll('*')), focus=document.activeElement;
+          document.getElementById('papers-stats').setAttribute('aria-label','stale');
+          for(let n=0;n<3;n++) window.i18n.render();
+          await Promise.resolve();
+          return {changes:window.__langChanges,notifications:window.__langNotifications,
+            same:nodes.every((node,i)=>node===root.querySelectorAll('*')[i]),
+            focus:document.activeElement===focus};
+        }""")
+        assert result == {'changes': [], 'notifications': ['en'] * 3, 'same': True, 'focus': True}
+        expect(page.locator('#papers-stats')).to_have_attribute('aria-label', 'Historical material composition')
+        for lang, old, desired in [('zh', 'en', 'zh-CN'), ('en', 'zh-CN', 'en'), ('zh', 'en', 'zh-CN')]:
+            change = page.evaluate("""async lang => {
+              window.__langObserver.takeRecords(); window.__langChanges=[];
+              window.__langNotifications=[]; window.i18n.setLang(lang);
+              await Promise.resolve();
+              return {changes:window.__langChanges,notifications:window.__langNotifications};
+            }""", lang)
+            assert change == {'changes': [old], 'notifications': [lang]}
+            expect(page.locator('html')).to_have_attribute('lang', desired)
+            expect(page.locator('#papers-heading')).to_have_text(
+                'Twenty historical research items' if lang == 'en' else '20 项历史研究材料'
+            )
+            expect(page.locator('.paper-card__title').first).to_have_text(RECORDS[0][f'title_{lang}'])
+            expect(selected).to_have_attribute('aria-pressed', 'true')
+            expect(details).to_have_attribute('open', '')
+            assert page.locator('.paper-card').count() == 20
+            assert page.locator('.papers-group:not([hidden]) .paper-card').count() == 1
+        assert _serious_axe_violations(page) == []
+    finally:
+        if not page.is_closed():
+            page.evaluate('window.__langObserver && window.__langObserver.disconnect()')
+        context.close()

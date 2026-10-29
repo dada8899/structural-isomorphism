@@ -519,19 +519,37 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Scroll observer for header shadow
-window.initHeaderScroll = () => {
-  const header = document.querySelector('.site-header');
-  if (!header) return;
+window.initHeaderScroll = (() => {
+  let header = null;
+  let listening = false;
+  let pending = false;
   const update = () => {
+    pending = false;
+    if (!header || !header.isConnected) return;
     if (window.scrollY > 4) {
       header.classList.add('scrolled');
     } else {
       header.classList.remove('scrolled');
     }
   };
-  update();
-  window.addEventListener('scroll', update, { passive: true });
-};
+  const schedule = () => {
+    if (pending) return;
+    pending = true;
+    // Boot callers also write header/report DOM. Read after the frame's
+    // rendering work, rather than flushing layout inside DOMContentLoaded.
+    window.requestAnimationFrame(() => window.setTimeout(update, 0));
+  };
+  return () => {
+    header = document.querySelector('.site-header');
+    if (!header) return;
+    if (!listening) {
+      window.addEventListener('scroll', schedule, { passive: true });
+      window.addEventListener('pageshow', schedule);
+      listening = true;
+    }
+    schedule();
+  };
+})();
 
 // === Elapsed timer ===
 // Updates an element's textContent every second with "已等待 Xs" style.

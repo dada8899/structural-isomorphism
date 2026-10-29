@@ -24,7 +24,7 @@ PUBLIC_BETA_ROUTES = {
     "/classes", "/diagnose",
     "/discoveries", "/insights", "/learn", "/lint", "/methods",
     "/papers", "/phenomenon", "/pricing", "/privacy", "/report", "/reports",
-    "/search", "/start-here", "/stress-test", "/taxonomy-v2",
+    "/research", "/search", "/start-here", "/stress-test", "/taxonomy-v2",
     "/thank-you", "/tools", "/whitespace",
 }
 DYNAMIC_BETA_PREFIXES = ("/paper/", "/phenomenon/", "/report/", "/api/")

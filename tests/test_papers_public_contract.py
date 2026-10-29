@@ -318,3 +318,152 @@ def test_index_evidence_summary_has_mobile_touch_target_contract() -> None:
 
     assert "box-sizing: border-box" in summary_rule
     assert "min-height: 44px" in summary_rule
+
+
+def test_index_render_cache_requires_successful_identity_and_actual_language() -> None:
+    """Exercise the real renderer closure with controlled load/i18n ordering."""
+    program = r"""
+const fs = require('fs'), vm = require('vm'), assert = require('assert/strict');
+const renderer = fs.readFileSync(process.argv[1], 'utf8');
+const catalog = fs.readFileSync(process.argv[2], 'utf8');
+const manifest = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+for (const earlyNotification of [false, true]) {
+  let lang = 'zh', listener, deliver, writes = 0, fail = false, missing = false;
+  const root = {
+    set innerHTML(value) { writes++; this.html = value; },
+    setAttribute() { if (fail) { fail = false; throw Error('controlled finalization failure'); } }
+  };
+  const status = {}, labels = new Map();
+  const document = {
+    createElement: () => ({set textContent(v) { this.v=v; }, get innerHTML() { return this.v; }}),
+    getElementById: id => id === 'papers-content' ? (missing ? null : root)
+      : id === 'papers-filter-status' ? status : null,
+    querySelectorAll: () => [],
+    querySelector: selector => {
+      if (!labels.has(selector)) labels.set(selector, {setAttribute(k,v) { this[k]=v; }});
+      return labels.get(selector);
+    }
+  };
+  const window = {location: {href:'https://local.invalid/papers'}, i18n: {
+    getLang: () => lang, onChange: fn => {listener=fn; if (earlyNotification) fn();}
+  }};
+  const sandbox = {window, document, fetch: () => new Promise(()=>{}), URL, CSS:{escape:s=>s}};
+  vm.runInNewContext(catalog, sandbox);
+  const real = window.StructuralPapersCatalog;
+  const validated = real.validateManifest(manifest);
+  window.StructuralPapersCatalog = {...real, loadManifest: () => ({
+    then: fn => {deliver=fn; return {catch() {}};}
+  })};
+  vm.runInNewContext(renderer, sandbox);
+  assert.equal(writes, 0);
+  missing=true;
+  assert.throws(()=>deliver(validated), /content root is missing/);
+  assert.equal(writes, 0);
+  missing=false;
+  deliver(validated);
+  assert.equal(writes, 1);
+  for (let n=0;n<3;n++) listener();
+  assert.equal(writes, 1);
+  assert.equal(labels.get('#papers-stats')['aria-label'], '历史材料构成');
+  lang='en'; listener(); assert.equal(writes, 2);
+  assert.ok(root.html.includes(manifest.groups[0].papers[0].title_en));
+  listener(); assert.equal(writes, 2);
+  lang='zh'; listener(); assert.equal(writes, 3);
+  // A newly validated object must not be collapsed by JSON/content equality.
+  deliver(real.validateManifest(JSON.parse(JSON.stringify(manifest))));
+  assert.equal(writes, 4);
+  listener(); assert.equal(writes, 4);
+  // Failure after DOM replacement cannot mark this tuple successfully rendered.
+  lang='en'; fail=true;
+  assert.throws(()=>listener(), /controlled finalization failure/);
+  assert.equal(writes, 5);
+  listener(); assert.equal(writes, 6);
+  listener(); assert.equal(writes, 6);
+  missing=true;
+  assert.throws(()=>listener(), /content root is missing/);
+  missing=false; listener(); assert.equal(writes, 7);
+  listener(); assert.equal(writes, 7);
+}
+process.stdout.write('render lifecycle contracts passed');
+"""
+    result = subprocess.run(
+        ["node", "-e", program, str(FRONTEND / "assets/js/papers.js"),
+         str(CATALOG_JS), str(MANIFEST_PATH)],
+        check=True, capture_output=True, text=True,
+    )
+    assert result.stdout == "render lifecycle contracts passed"
+
+
+def test_static_i18n_root_writes_preserve_notifications_and_async_dictionaries() -> None:
+    program = r"""
+const fs=require('fs'), vm=require('vm'), assert=require('assert/strict');
+const source=fs.readFileSync(process.argv[1], 'utf8');
+const tick=()=>new Promise(resolve=>setImmediate(resolve));
+(async()=>{
+ for(const initial of [null,'zh','zh-CN','en','EN','invalid'])
+ for(const requested of ['zh','en'])
+ for(const order of [['ui','content'],['content','ui']]) {
+  let boot, writes=[], notifications=[];
+  const gates={};
+  function node(attrs,html='original') {
+    return {attrs:{...attrs},innerHTML:html,
+      hasAttribute(k){return Object.hasOwn(this.attrs,k);},
+      getAttribute(k){return this.hasAttribute(k)?this.attrs[k]:null;},
+      setAttribute(k,v){this.attrs[k]=String(v);},
+    };
+  }
+  const text=node({'data-i18n':'probe.text'});
+  const attr=node({'data-i18n-attr':'aria-label:probe.attr','aria-label':'original aria'});
+  const root=node(initial===null?{}:{lang:initial});
+  const set=root.setAttribute;
+  root.setAttribute=function(k,v){if(k==='lang')writes.push(v);set.call(this,k,v);};
+  root.querySelectorAll=selector=>selector==='[data-i18n]'?[text]
+    :selector==='[data-i18n-attr]'?[attr]:[];
+  const document={documentElement:root,body:root,readyState:'loading',
+    querySelector:()=>null,querySelectorAll:()=>[],getElementById:()=>null,
+    addEventListener:(name,fn)=>{assert.equal(name,'DOMContentLoaded');boot=fn;}};
+  const storage=new Map();
+  const window={location:{href:'https://local.invalid/papers?lang='+requested}};
+  vm.runInNewContext(source,{window,document,URL,localStorage:{
+    getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},
+    fetch:url=>new Promise(resolve=>{gates[url.includes('/ui.json')?'ui':'content']=resolve;}),
+    console:{warn:()=>assert.fail('unexpected dictionary failure')},Promise});
+  window.i18n.onChange(lang=>notifications.push(lang));
+  boot();
+  const desired=requested==='en'?'en':'zh-CN';
+  assert.deepEqual(writes,initial===desired?[]:[desired]);
+  assert.equal(root.getAttribute('lang'),desired);
+  assert.deepEqual(notifications,[requested]);
+  assert.equal(text.innerHTML,'original');
+  writes=[];notifications=[];
+  for(let n=0;n<3;n++)window.i18n.render();
+  assert.deepEqual(writes,[]);assert.deepEqual(notifications,[requested,requested,requested]);
+  const payload={ui:{'probe.attr':{zh:'词典标签',en:'Dictionary aria'}},
+    content:{'probe.text':{zh:'词典正文',en:'Dictionary body'}}};
+  notifications=[];
+  gates[order[0]]({ok:true,json:()=>Promise.resolve(payload[order[0]])});await tick();
+  assert.deepEqual(notifications,[]);assert.equal(text.innerHTML,'original');
+  gates[order[1]]({ok:true,json:()=>Promise.resolve(payload[order[1]])});await tick();
+  assert.deepEqual(writes,[]);assert.deepEqual(notifications,[requested]);
+  assert.equal(text.innerHTML,requested==='en'?'Dictionary body':'词典正文');
+  assert.equal(attr.getAttribute('aria-label'),requested==='en'?'Dictionary aria':'词典标签');
+  window.i18n.setLang('zh');writes=[];notifications=[];
+  window.i18n.setLang('en');window.i18n.setLang('zh');
+  assert.deepEqual(writes,['en','zh-CN']);assert.deepEqual(notifications,['en','zh']);
+  assert.equal(text.innerHTML,'词典正文');
+  writes=[];notifications=[];
+  window.i18n.setLang('zh');window.i18n.setLang('unsupported');
+  assert.deepEqual(writes,[]);assert.deepEqual(notifications,[]);
+  window.i18n.mergeStrings({zh:{'probe.text':'合并正文','probe.attr':'合并标签'}});
+  window.i18n.render();
+  assert.equal(text.innerHTML,'合并正文');assert.equal(attr.getAttribute('aria-label'),'合并标签');
+  assert.deepEqual(writes,[]);assert.deepEqual(notifications,['zh']);
+ }
+ process.stdout.write('static i18n lifecycle matrix passed');
+})().catch(error=>{console.error(error);process.exitCode=1;});
+"""
+    result = subprocess.run(
+        ["node", "-e", program, str(FRONTEND / "assets/js/i18n.js")],
+        check=True, capture_output=True, text=True,
+    )
+    assert result.stdout == "static i18n lifecycle matrix passed"

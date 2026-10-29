@@ -7,6 +7,8 @@ Three layers:
 """
 from __future__ import annotations
 
+from ast import literal_eval
+
 import asyncio
 import sys
 from pathlib import Path
@@ -385,13 +387,23 @@ def app():
     from api import stress_test as st_api
 
     a = FastAPI()
+    from errors import install_problem_handlers
+    install_problem_handlers(a)
     a.include_router(st_api.router, prefix="/api")
     return a
 
 
 @pytest.fixture
-def client(app):
-    return TestClient(app)
+def client(app, monkeypatch):
+    from api import stress_test as endpoint
+    from unittest.mock import Mock
+    checks = []
+    check = Mock(side_effect=AssertionError("retired generator must not run"))
+    monkeypatch.setattr(endpoint, "run_stress_test", check)
+    checks.append(check)
+    with TestClient(app) as connection:
+        yield connection
+    assert all(check.call_count == 0 for check in checks)
 
 
 @pytest.fixture
@@ -470,22 +482,14 @@ def _kb_search_results():
     ]
 
 
-def test_endpoint_success(client, mock_llm):
+def test_retired_endpoint_success(client, mock_llm):
+    """Retired runtime rejects this former generation scenario before preparation."""
     mock_llm(available=True, json_return=_good_raw())
     resp = client.post("/api/stress-test", json={
         "claim": "我们是中国版的 Notion",
         "client_request_id": "stress-request-0001",
     })
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["claim"] == "我们是中国版的 Notion"
-    assert body["request_id"] == "stress-request-0001"
-    assert body["contract_version"] == "secondary-tools-v2"
-    assert body["screening_outcome"] == "condition_dependent"
-    assert "verdict" not in body
-    assert body["evidence"]["evidence_level"] == "candidate"
-    assert body["source"] == "Notion"
-    assert len(body["structural_correspondences"]) == 2
+    _assert_retired_response(resp)
 
 
 def test_endpoint_rejects_out_of_scope_before_model(client, mock_llm):
@@ -494,31 +498,37 @@ def test_endpoint_rejects_out_of_scope_before_model(client, mock_llm):
         "/api/stress-test", json={"claim": "2 + 2 等于多少，请直接告诉我答案"}
     )
     assert response.status_code == 422
-    assert response.json()["detail"]["error"] == "out_of_scope"
+    assert literal_eval(response.json()["detail"])["error"] == "out_of_scope"
 
 
-def test_endpoint_llm_unavailable_503(client, mock_llm):
+def test_retired_endpoint_llm_unavailable_503(client, mock_llm):
+    """Retired runtime rejects this former generation scenario before preparation."""
     mock_llm(available=False)
     resp = client.post("/api/stress-test", json={"claim": "这是一个有效的类比判断"})
-    assert resp.status_code == 503
-    assert "LLM" in resp.json()["detail"]
+    _assert_retired_response(resp)
 
 
-def test_endpoint_llm_returns_none_503(client, mock_llm):
+def test_retired_endpoint_llm_returns_none_503(client, mock_llm):
+    # LLM available but the call yields None (network/parse failure).
+    """Retired runtime rejects this former generation scenario before preparation."""
     # LLM available but the call yields None (network/parse failure).
     mock_llm(available=True, json_return=None)
     resp = client.post("/api/stress-test", json={"claim": "这是一个有效的类比判断"})
-    assert resp.status_code == 503
+    _assert_retired_response(resp)
 
 
-def test_endpoint_llm_garbage_guardrailed_503(client, mock_llm):
+def test_retired_endpoint_llm_garbage_guardrailed_503(client, mock_llm):
+    # LLM available but returns unrecoverable garbage → coerce_result None.
+    """Retired runtime rejects this former generation scenario before preparation."""
     # LLM available but returns unrecoverable garbage → coerce_result None.
     mock_llm(available=True, json_return={"random": "noise", "foo": 1})
     resp = client.post("/api/stress-test", json={"claim": "这是一个有效的类比判断"})
-    assert resp.status_code == 503
+    _assert_retired_response(resp)
 
 
-def test_endpoint_malformed_llm_fails_closed(client, mock_llm):
+def test_retired_endpoint_malformed_llm_fails_closed(client, mock_llm):
+    # Garbage verdict + partly-broken correspondences must never be displayed.
+    """Retired runtime rejects this former generation scenario before preparation."""
     # Garbage verdict + partly-broken correspondences must never be displayed.
     mock_llm(
         available=True,
@@ -533,7 +543,7 @@ def test_endpoint_malformed_llm_fails_closed(client, mock_llm):
         },
     )
     resp = client.post("/api/stress-test", json={"claim": "这是一个有效的类比判断"})
-    assert resp.status_code == 503
+    _assert_retired_response(resp)
 
 
 def test_endpoint_empty_claim_422(client, mock_llm):
@@ -566,7 +576,9 @@ def test_endpoint_missing_claim_422(client, mock_llm):
 # --------- precedent integration --------- #
 
 
-def test_endpoint_success_with_candidate_reference(client, mock_llm, mock_search):
+def test_retired_endpoint_success_with_candidate_reference(client, mock_llm, mock_search):
+    # 1st LLM call → screen; 2nd → cautious note bound to a KB candidate.
+    """Retired runtime rejects this former generation scenario before preparation."""
     # 1st LLM call → screen; 2nd → cautious note bound to a KB candidate.
     mock_llm(
         available=True,
@@ -577,40 +589,33 @@ def test_endpoint_success_with_candidate_reference(client, mock_llm, mock_search
     )
     mock_search(_kb_search_results())
     resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["screening_outcome"] == "condition_dependent"
-    candidate = body["candidate_reference"]
-    assert candidate is not None
-    assert candidate["id"] == "ph-eco-1"
-    assert candidate["name"] == "种群崩溃"
-    assert candidate["domain"] == "生态学"
-    assert candidate["retrieval_rank"] == 1
-    assert candidate["evidence"]["evidence_level"] == "candidate"
+    _assert_retired_response(resp)
 
 
-def test_endpoint_success_search_unavailable_degrades(client, mock_llm, mock_search):
+def test_retired_endpoint_success_search_unavailable_degrades(client, mock_llm, mock_search):
+    # No search service in app_state → candidate reference stays null.
+    """Retired runtime rejects this former generation scenario before preparation."""
     # No search service in app_state → candidate reference stays null.
     mock_llm(available=True, json_return=_good_raw())
     mock_search(None)
     resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["screening_outcome"] == "condition_dependent"
-    assert body["candidate_reference"] is None
+    _assert_retired_response(resp)
 
 
-def test_endpoint_success_no_kb_hit_degrades(client, mock_llm, mock_search):
+def test_retired_endpoint_success_no_kb_hit_degrades(client, mock_llm, mock_search):
+    # Search returns nothing structurally close → precedent null.
+    """Retired runtime rejects this former generation scenario before preparation."""
     # Search returns nothing structurally close → precedent null.
     mock_llm(available=True, json_return=_good_raw())
     mock_search([])
     resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["candidate_reference"] is None
+    _assert_retired_response(resp)
 
 
-def test_endpoint_precedent_llm_garbage_degrades(client, mock_llm, mock_search):
+def test_retired_endpoint_precedent_llm_garbage_degrades(client, mock_llm, mock_search):
+    # KB hit found but annotation LLM returns unusable JSON → candidate null,
+    # the stress test itself still succeeds.
+    """Retired runtime rejects this former generation scenario before preparation."""
     # KB hit found but annotation LLM returns unusable JSON → candidate null,
     # the stress test itself still succeeds.
     mock_llm(
@@ -619,13 +624,12 @@ def test_endpoint_precedent_llm_garbage_degrades(client, mock_llm, mock_search):
     )
     mock_search(_kb_search_results())
     resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["screening_outcome"] == "condition_dependent"
-    assert body["candidate_reference"] is None
+    _assert_retired_response(resp)
 
 
-def test_endpoint_precedent_weak_relevance_degrades(client, mock_llm, mock_search):
+def test_retired_endpoint_precedent_weak_relevance_degrades(client, mock_llm, mock_search):
+    # KB hit exists but relevance below the floor → not a real precedent.
+    """Retired runtime rejects this former generation scenario before preparation."""
     # KB hit exists but relevance below the floor → not a real precedent.
     weak = _kb_search_results()
     weak[0]["relevance"] = 0.3
@@ -635,5 +639,14 @@ def test_endpoint_precedent_weak_relevance_degrades(client, mock_llm, mock_searc
     )
     mock_search(weak)
     resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
-    assert resp.status_code == 200
-    assert resp.json()["candidate_reference"] is None
+    _assert_retired_response(resp)
+
+
+def _assert_retired_response(response):
+    """The retired endpoint cannot publish a report, fallback, or SSE."""
+    assert response.status_code == 503, response.text
+    body = response.json()
+    assert body["code"] == "FEATURE_UNAVAILABLE"
+    assert body["retryable"] is False and body["canonical"] == "/research"
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert "event: meta" not in response.text and "event: done" not in response.text

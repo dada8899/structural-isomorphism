@@ -22,15 +22,77 @@ if str(_BACKEND) not in sys.path:
 
 
 def _fresh_main(monkeypatch, env: str, *, auth_enabled: bool = False):
-    """Reload `main` under a given STRUCTURAL_ENV and return the module."""
+    """Isolate the post-admission route/metadata policy, not R2 readiness.
+
+    Real production import/lifespan-off admission is exercised without stubs
+    in test_runtime_admission's fresh processes. Keep these route assertions.
+    """
+    admission = None
+    if env == "prod":
+        from services import runtime_paths
+        admission = runtime_paths.require_formal_admission
+        monkeypatch.setattr(runtime_paths, "require_formal_admission", lambda app: None)
     monkeypatch.setenv("STRUCTURAL_ENV", env)
     # prod path requires the share-token secret env (report_store guards it).
     monkeypatch.setenv("STRUCTURAL_SHARE_TOKEN_SECRET", "test-secret-for-suite")
     monkeypatch.setenv("AUTH_ENABLED", "true" if auth_enabled else "false")
+    # The history getter supports this env; report getters do not. Seed only
+    # their existing lazy singleton slots with a real Store at the same private
+    # path. No handler, Store method or missing-report result is mocked.
+    import os
+    from api import history, report, report_account
+    from services.report_store import ReportStore
+
+    db_path = Path(os.environ["STRUCTURAL_HISTORY_DB"])
+    store = ReportStore(db_path)
+    monkeypatch.setattr(report, "_store", store)
+    monkeypatch.setattr(report_account, "_store", store)
+    monkeypatch.setattr(history, "_db", None)
     if "main" in sys.modules:
         del sys.modules["main"]
     import main  # noqa: WPS433 — deliberate reload
+    if admission is not None:
+        # Do not retain a stub imported by value after this fixture restores
+        # the ASGI middleware's module symbol. Lifespan/health stay closed.
+        main.require_formal_admission = admission
     return main
+
+
+@pytest.fixture(autouse=True)
+def restore_main_module_cache():
+    """Return only this test's main cache entry to its exact previous state."""
+    missing = object()
+    previous = sys.modules.get("main", missing)
+    try:
+        yield
+    finally:
+        if previous is missing:
+            sys.modules.pop("main", None)
+        else:
+            sys.modules["main"] = previous
+
+
+@pytest.fixture(autouse=True)
+def private_report_history_location(request, monkeypatch):
+    """Give route tests a synthetic private DB, independently of the model spy."""
+    if request.node.name == "test_search_service_cache_stats_shape":
+        yield
+        return
+    directory = request.getfixturevalue("tmp_path").resolve()
+    state, cache, logs = directory / "state", directory / "cache", directory / "state/logs"
+    for root in (state, cache, logs):
+        root.mkdir(mode=0o700)
+        root.chmod(0o700)
+    # One approved-root configuration boundary for both current and future
+    # formal Store implementations. It never admits the production app.
+    from services import runtime_paths
+    for name, root in (("STATE_ROOT", state), ("CACHE_ROOT", cache), ("LOG_ROOT", logs)):
+        monkeypatch.setattr(runtime_paths, name, root)
+    monkeypatch.setenv("STRUCTURAL_HISTORY_DB", str(state / "history.db"))
+    # Real Store operations close their native connections in
+    # ClosingConnection.__exit__'s finally. Monkeypatch teardown restores both
+    # singleton slots and the env after the route fixture completes.
+    yield
 
 
 @pytest.fixture
@@ -49,6 +111,78 @@ def prod_client(monkeypatch):
 def prod_auth_client(monkeypatch):
     main = _fresh_main(monkeypatch, "prod", auth_enabled=True)
     return TestClient(main.app)
+
+
+@pytest.fixture(autouse=True)
+def cache_stats_model_boundary(request, monkeypatch):
+    """Isolate only the LRU contract's encoder, independently of route admission.
+
+    This node proves cache behavior, not real model quality or artifact loading.
+    All other tests retain their own dependencies and receive no patches here.
+    """
+    if request.node.name != "test_search_service_cache_stats_shape":
+        yield
+        return
+
+    import builtins
+    import io
+    import os
+    import socket
+    import types
+    import numpy as np
+
+    calls = {"construct": 0, "encode": 0}
+    blocked = []
+    package = types.ModuleType("sentence_transformers")
+
+    class Encoder:
+        def encode(self, texts, **kwargs):
+            assert texts == ["phase transition"]
+            calls["encode"] += 1
+            return np.array([[1.0, 0.0, 0.0]], dtype=np.float32)
+
+    def construct(*args, **kwargs):
+        calls["construct"] += 1
+        return Encoder()
+
+    package.SentenceTransformer = construct
+    monkeypatch.setitem(sys.modules, "sentence_transformers", package)
+
+    def forbidden_socket(*args, **kwargs):
+        blocked.append("socket")
+        raise AssertionError("cache contract must not use real sockets")
+
+    # Also stop aliases of socket.socket captured before this fixture.
+    for name in ("connect", "connect_ex"):
+        monkeypatch.setattr(socket.socket, name, forbidden_socket)
+    for name in ("socket", "SocketType", "create_connection", "getaddrinfo"):
+        monkeypatch.setattr(socket, name, forbidden_socket)
+
+    def model_file(path):
+        if isinstance(path, int):
+            return False
+        value = os.fsdecode(path).replace("\\", "/").lower()
+        return ("/models/" in value or "/huggingface/" in value
+                or value.endswith((".safetensors", ".bin", ".pt", ".pth", ".ckpt"))
+                or value.rsplit("/", 1)[-1] in {
+                    "config.json", "modules.json", "tokenizer.json", "tokenizer_config.json",
+                    "sentence_bert_config.json", "config_sentence_transformers.json",
+                })
+
+    def guarded_open(original):
+        def checked(path, *args, **kwargs):
+            if model_file(path):
+                blocked.append("model-open")
+                raise AssertionError("cache contract must not read real model files")
+            return original(path, *args, **kwargs)
+        return checked
+
+    monkeypatch.setattr(builtins, "open", guarded_open(builtins.open))
+    monkeypatch.setattr(io, "open", guarded_open(io.open))
+    monkeypatch.setattr(os, "open", guarded_open(os.open))
+    yield
+    assert blocked == []
+    assert calls == {"construct": 1, "encode": 1}
 
 
 # --------- P1-4: HEAD / --------- #
@@ -84,14 +218,28 @@ def test_docs_disabled_in_prod(prod_client):
     assert prod_client.get("/redoc").status_code == 404
 
 
-def test_unfinished_surfaces_fail_closed_in_prod(prod_client):
+def test_unfinished_surfaces_fail_closed_in_prod(prod_client, monkeypatch):
     auth = prod_client.post("/api/auth/request-link", json={"email": "a@example.com"})
     assert auth.status_code == 503
     assert auth.json()["error"] == "account_features_not_available"
 
+    from unittest.mock import AsyncMock
+    phase_route = next(route for route in prod_client.app.routes
+                       if getattr(route, "path", None) == "/phase/api/redteam"
+                       and "POST" in getattr(route, "methods", set()))
+    handler = AsyncMock(wraps=phase_route.dependant.call)
+    prepare = AsyncMock(side_effect=AssertionError("retired generation preparation"))
+    monkeypatch.setattr(phase_route.dependant, "call", handler)
+    monkeypatch.setattr(sys.modules["main"], "_phase_urlopen_json", prepare)
     legacy_api = prod_client.post("/phase/api/redteam", json={})
-    assert legacy_api.status_code == 410
-    assert legacy_api.json()["error"] == "legacy_phase_api_retired"
+    assert legacy_api.status_code == 503
+    assert legacy_api.headers["content-type"].startswith("application/problem+json")
+    assert legacy_api.json()["code"] == "FEATURE_UNAVAILABLE"
+    assert legacy_api.json()["retryable"] is False
+    assert legacy_api.json()["canonical"] == "/research"
+    assert "event: meta" not in legacy_api.text and "event: done" not in legacy_api.text
+    handler.assert_not_called()
+    prepare.assert_not_called()
 
     legacy_page = prod_client.get("/phase", follow_redirects=False)
     assert legacy_page.status_code == 308

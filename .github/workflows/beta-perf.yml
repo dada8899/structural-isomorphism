@@ -2,9 +2,9 @@ name: beta perf budget
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, integration/structure-rebuild-v1]
   push:
-    branches: [main]
+    branches: [main, integration/structure-rebuild-v1, bootstrap/structure-ci-20261016]
 
 permissions:
   contents: read
@@ -19,12 +19,14 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Install locked browser runtime
         run: |
-          python -m pip install pytest==9.0.3 playwright==1.59.0 pydantic==2.6.1
+          python -m pip install pytest==9.0.3 playwright==1.59.0 pydantic==2.7.4 PyYAML==6.0.3
           python -m playwright install --with-deps chromium
       - name: Run deterministic unit contracts
         run: >-
@@ -45,12 +47,34 @@ jobs:
           cat /tmp/beta-server.log
           exit 1
       - name: Audit beta surfaces against the existing product budget
+        id: beta_perf_gate
         run: >-
           python scripts/beta_perf_audit.py
           --base http://127.0.0.1:4173
           --runs 3
           --budget perf-budget.json
           --out /tmp/beta-perf-audit.json
+      - name: NOT_GATE one marked Linux diagnostic pair
+        id: beta_perf_diagnostic
+        if: >-
+          ${{ always() && !cancelled()
+              && github.repository == 'dada8899/structural-isomorphism'
+              && github.event_name == 'pull_request'
+              && github.event.action == 'synchronize'
+              && github.event.pull_request.number == 253
+              && github.event.pull_request.head.repo.full_name == github.repository
+              && github.event.pull_request.base.repo.full_name == github.repository
+              && github.event.pull_request.head.ref == 'bootstrap/structure-ci-20261016'
+              && github.run_attempt == '1' }}
+        timeout-minutes: 5
+        env:
+          ORIGINAL_GRADE_OUTCOME: ${{ steps.beta_perf_gate.outcome }}
+        run: >-
+          python scripts/beta_perf_diagnostics.py
+          --grade-artifact /tmp/beta-perf-audit.json
+          --grade-outcome "$ORIGINAL_GRADE_OUTCOME"
+          --base http://127.0.0.1:4173/
+          --out "$RUNNER_TEMP/structure-perf-linux-r2-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
       - name: Stop local beta server
         if: always()
         run: |
@@ -65,3 +89,21 @@ jobs:
           path: |
             /tmp/beta-perf-audit.json
             /tmp/beta-server.log
+      - name: Upload NOT_GATE Linux diagnostic evidence
+        if: >-
+          ${{ always() && !cancelled()
+              && github.repository == 'dada8899/structural-isomorphism'
+              && github.event_name == 'pull_request'
+              && github.event.action == 'synchronize'
+              && github.event.pull_request.number == 253
+              && github.event.pull_request.head.repo.full_name == github.repository
+              && github.event.pull_request.base.repo.full_name == github.repository
+              && github.event.pull_request.head.ref == 'bootstrap/structure-ci-20261016'
+              && github.run_attempt == '1'
+              && (steps.beta_perf_diagnostic.outcome == 'success'
+                  || steps.beta_perf_diagnostic.outcome == 'failure') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: structure-perf-linux-r2-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/structure-perf-linux-r2-${{ github.run_id }}-${{ github.run_attempt }}/
+          if-no-files-found: ignore

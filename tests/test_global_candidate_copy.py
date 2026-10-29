@@ -62,9 +62,11 @@ def test_newsletter_frequency_and_candidate_copy_are_consistent() -> None:
     ):
         assert forbidden not in public
 
-    assert "有经复核的研究更新时会通知你" in index
-    assert "不定期研究更新" in newsletter
-    assert "公开负结果" in newsletter
+    assert 'href="/research"' in index
+    assert "新增订阅暂不可用" in index
+    assert 'id="waitlist-form"' not in index and "fetch('/api/waitlist'" not in index
+    assert "新增订阅暂不可用" in newsletter and "公开负结果" in newsletter
+    assert "有经复核的研究更新时会通知你" not in index
     assert "不承诺固定频率" in thank_you
     assert "经复核" in thank_you
 
@@ -78,7 +80,9 @@ def test_tools_hub_exposes_exactly_eight_supported_public_tools() -> None:
     assert tools.count('class="tool-card"') == 8
     assert 'href="/insights"' not in tools
     assert "8 个公开工具" in tools
-    assert "8 个公开工具" in index
+    assert "8 个公开工具" not in index  # Homepage no longer promises retired AI tools.
+    assert "旧 AI 报告入口已停用" in index
+    assert 'href="/papers"' in index and 'href="/research"' in index
     assert "8 个公开工具" in about
     assert "9 个工具" not in public
 

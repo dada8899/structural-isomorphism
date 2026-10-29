@@ -4,6 +4,12 @@ Two endpoints:
 - POST /api/synthesize         — blocking, returns full JSON (kept for back-compat)
 - POST /api/synthesize/stream  — SSE, streams `text` deltas + final `done` event
 """
+
+if __package__ == "web.backend.api":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
 import json as _json
 from typing import Any, List, Literal, Mapping, Optional
 
@@ -141,6 +147,7 @@ def _canonical_top_results(requested: List[object], effective_query: str) -> Lis
 async def synthesize(request: Request, req: SynthesizeRequest):
     if not req.query or not req.results:
         raise HTTPException(400, "Missing query or results")
+    deny_legacy_paid()
 
     top_results = _canonical_top_results(
         req.results, req.rewritten_query or req.query,
@@ -172,6 +179,7 @@ async def synthesize_stream(request: Request, req: SynthesizeRequest):
     """
     if not req.query or not req.results:
         raise HTTPException(400, "Missing query or results")
+    deny_legacy_paid()
 
     top_results = _canonical_top_results(
         req.results, req.rewritten_query or req.query,

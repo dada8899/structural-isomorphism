@@ -54,7 +54,41 @@ permissions:
   id-token: write
 
 jobs:
+  admit-production:
+    name: Admit production ref
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - name: Reject non-production ref before side effects
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SOURCE_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME:$SOURCE_REF" in
+            workflow_dispatch:refs/heads/main) ;;
+            push:refs/tags/guarded-llm-v*|push:refs/tags/soc-pipeline-v*|push:refs/tags/cross-judge-v*|push:refs/tags/reject-aware-critic-v*) ;;
+            *) echo "::error::Package entry requires main dispatch or an allowed release tag"; exit 1 ;;
+          esac
+      - name: Checkout admitted source for lineage verification
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require release commit to be reachable from main
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 1
+          git merge-base --is-ancestor "$SOURCE_SHA" refs/remotes/origin/main
+
   release:
+    needs: admit-production
     name: build + publish
     runs-on: ubuntu-latest
     timeout-minutes: 15

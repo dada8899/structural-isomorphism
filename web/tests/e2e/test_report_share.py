@@ -689,10 +689,13 @@ def test_feedback_button_posts_in_browser(report_backend, seed_report, browser):
 
 
 @pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
+@pytest.mark.parametrize("delay_json", [False, True], ids=["normal", "delayed-json"])
 def test_owner_decision_brief_download_and_create_experiment(
-    report_backend, seed_report, browser,
+    report_backend, seed_report, browser, delay_json,
 ):
     """Saved owner report exposes evidence-bounded brief and inline experiment."""
+    from playwright.sync_api import expect
+
     anon = "decision-brief-owner"
     rep = seed_report(
         query="如何降低需求过冲",
@@ -704,6 +707,29 @@ def test_owner_decision_brief_download_and_create_experiment(
 
     ctx = browser.new_context(accept_downloads=True)
     ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
+    if delay_json:
+        # Keep the real request/body; hold only delivery of parsed JSON to
+        # the UI so response headers cannot masquerade as a completed save.
+        ctx.add_init_script("""(() => {
+          const followupPath = __FOLLOWUP_PATH__;
+          const nativeFetch = window.fetch.bind(window);
+          window.fetch = async (...args) => {
+            const response = await nativeFetch(...args);
+            const input = args[0];
+            const path = new URL(typeof input === 'string' ? input : input.url,
+                                 location.href).pathname;
+            const method = (args[1]?.method || input?.method || 'GET').toUpperCase();
+            if (path === followupPath && method === 'POST') {
+              const nativeJson = response.json.bind(response);
+              response.json = async () => {
+                const body = await nativeJson();
+                await new Promise(resolve => { window.__releaseDecisionBriefJson = resolve; });
+                return body;
+              };
+            }
+            return response;
+          };
+        })();""".replace("__FOLLOWUP_PATH__", json.dumps(followup_path)))
     page = ctx.new_page()
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=20000)
@@ -726,14 +752,36 @@ def test_owner_decision_brief_download_and_create_experiment(
         }""")
         assert page.locator("#decision-brief-deadline").input_value() == expected_deadline
         page.locator("#decision-brief-stop").fill("过冲未改善或投诉率上升时停止")
+        expected_hypothesis = page.locator("#decision-brief-hypothesis").input_value()
+        expected_metric = page.locator("#decision-brief-metric").input_value()
         with page.expect_response(
             lambda r: followup_path in r.url and r.request.method == "POST",
             timeout=10000,
         ) as response_info:
             page.locator("#decision-brief-save").click()
         assert response_info.value.status == 200
-        assert "实验已保存" in page.locator("#decision-brief-message").inner_text()
+        message = page.locator("#decision-brief-message")
+        if delay_json:
+            page.wait_for_function(
+                "typeof window.__releaseDecisionBriefJson === 'function'", timeout=10000,
+            )
+            assert message.inner_text() == "保存中…"
+            assert "实验已保存" not in message.inner_text()
+            assert page.locator("#decision-brief-save").is_disabled()
+            page.evaluate("window.__releaseDecisionBriefJson()")
+        expect(message).to_contain_text("实验已保存")
         assert page.locator("#decision-brief-save").is_disabled()
+        status, persisted = _api(
+            "GET", f"{report_backend['base']}{followup_path}",
+            headers={"X-Anon-Id": anon},
+        )
+        assert status == 200
+        followup = persisted["followup"]
+        assert followup["action_status"] == "planned"
+        assert followup["experiment"]["hypothesis"] == expected_hypothesis
+        assert followup["experiment"]["primary_metric"] == expected_metric
+        assert followup["experiment"]["deadline"] == expected_deadline
+        assert followup["experiment"]["stop_condition"] == "过冲未改善或投诉率上升时停止"
     finally:
         ctx.close()
 

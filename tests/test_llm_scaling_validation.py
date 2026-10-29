@@ -15,8 +15,10 @@ from __future__ import annotations
 
 import copy
 import csv
+import hashlib
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -151,6 +153,42 @@ def test_committed_artifacts_equal_deterministic_raw_input_build(runner) -> None
     assert runner._check_committed_artifacts() == committed
 
 
+def test_successful_check_emits_complete_diagnostic_once_and_preserves_stdout(
+    runner, monkeypatch, capsys,
+) -> None:
+    if not runner.generator_environment_matches():
+        pytest.skip("the strict success protocol runs in the locked generator environment")
+    original_main = runner.main
+    generated_calls = []
+
+    def counted_main(*, write):
+        assert write is False
+        generated = original_main(write=write)
+        generated_calls.append(generated)
+        return generated
+
+    monkeypatch.setattr(runner, "main", counted_main)
+    committed = runner._check_committed_artifacts()
+    captured = capsys.readouterr()
+    diagnostic = json.loads(captured.err, parse_constant=runner._reject_nonfinite_json)
+    assert captured.out == ""
+    assert len(generated_calls) == 1
+    assert diagnostic["expected_fits"] == committed["fits"]
+    assert diagnostic["observed_fits"] == generated_calls[0]["fits"]
+    assert len(diagnostic["observed_fits"]) == 9
+    assert diagnostic["generation_contract"] == committed["generation_contract"]
+    assert {"python", "platform", "machine", "numpy", "scipy", "blas"} <= diagnostic.keys()
+    assert str(REPO_ROOT) not in captured.err
+    result = subprocess.run(
+        [sys.executable, str(RUNNER_PATH), "--check"],
+        capture_output=True, text=True, check=True,
+    )
+    assert json.loads(result.stdout) == committed["summary"]
+    cli_diagnostic = json.loads(result.stderr, parse_constant=runner._reject_nonfinite_json)
+    assert cli_diagnostic["expected_fits"] == committed["fits"]
+    assert cli_diagnostic["observed_fits"] == generated_calls[0]["fits"]
+
+
 def test_artifact_comparison_rejects_material_numeric_and_semantic_drift(
     runner,
 ) -> None:
@@ -193,6 +231,16 @@ def test_generator_contract_is_exact_and_self_describing(runner) -> None:
         "canonical_input": (
             "v4/validation/llm-scaling/raw/pythia_checkpoints_combined.csv"
         ),
+        "estimator": "log-amplitude-analytic-jacobian-v1",
+        "source_inputs_sha256": {
+            name: hashlib.sha256((RAW_DIR / name).read_bytes()).hexdigest()
+            for name in ("pythia_checkpoints_combined.csv", "kaplan2020_compute.csv", "hoffmann2022_compute.csv")
+        },
+        "implementation_sha256": {
+            "learning_curve.py": hashlib.sha256(MODULE_PATH.read_bytes()).hexdigest(),
+            "run_validation.py": hashlib.sha256(RUNNER_PATH.read_bytes()).hexdigest(),
+            "requirements-generator.txt": hashlib.sha256((VAL_DIR / "requirements-generator.txt").read_bytes()).hexdigest(),
+        },
     }
 
 
@@ -264,7 +312,9 @@ def test_fit_classification_rejects_boundaries_and_separates_narrow_tail(runner)
 def test_results_json_schema() -> None:
     data = json.loads(RESULTS_JSON.read_text())
     assert data["validation"] == "llm-scaling"
-    assert data["schema_version"] == "1.3"
+    assert data["schema_version"] == "1.4"
+    assert data["original_artifact_date"] == "2026-05-25"
+    assert data["date"] == "2026-10-16"
     assert "fits" in data and "summary" in data
     # Seven observed Pythia sizes + Kaplan + Hoffmann.
     assert len(data["fits"]) == 9
@@ -359,7 +409,10 @@ def test_pythia_universality_summary() -> None:
     assert s["scientific_conclusion"] == (
         "INSUFFICIENT_REAL_WIDE_SERIES_FOR_UNIVERSALITY_INFERENCE"
     )
-    assert s["fit_status_per_model"]["pythia-1.4b"] == "rejected"
+    assert s["fit_status_per_model"]["pythia-1.4b"] == "descriptive_only"
+    for name in ("pythia-1.4b", "pythia-2.8b"):
+        assert data["fits"][name]["extra"]["fit_diagnostics"]["bound_hit"]
+        assert data["fits"][name]["alpha_se"] is None
     assert s["fit_status_per_model"]["pythia-2.8b"] == "descriptive_only"
     assert set(s["exclusions_from_fit_spread"]) == {"pythia-1.4b", "pythia-2.8b"}
 

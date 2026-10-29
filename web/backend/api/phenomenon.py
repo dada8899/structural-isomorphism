@@ -1,8 +1,14 @@
 """GET /api/phenomenon/{id} — 现象详情与候选结构邻域。"""
+
+if __package__ == "web.backend.api":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
 import math
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, HTTPException, Path, Query, Response
 
 from schemas import PhenomenonResponse
 from services.evidence_envelope import build_evidence_envelope
@@ -121,7 +127,11 @@ async def get_phenomenon(
     lang: Literal["zh", "en"] = Query(
         "zh", description="Output language: 'zh' (default) or 'en'"
     ),
+    response: Response = None,
 ):
+    if lang == "en" and response is not None:
+        response.headers["X-Translation-Policy"] = "cache-only; original-on-miss"
+
     from main import app_state
 
     svc = app_state.get("search")

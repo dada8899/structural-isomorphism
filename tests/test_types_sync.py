@@ -44,8 +44,8 @@ def test_types_workflow_tracks_its_locked_generator_requirements() -> None:
     )
 
     triggers = workflow_data.get("on", workflow_data.get(True))
-    assert triggers["pull_request"] == {"branches": ["main"]}
-    assert triggers["push"] == {"branches": ["main"]}
+    assert triggers["pull_request"] == {"branches": ["main", "integration/structure-rebuild-v1"]}
+    assert triggers["push"] == {"branches": ["main", "integration/structure-rebuild-v1", "bootstrap/structure-ci-20261016"]}
     assert "paths" not in triggers["pull_request"]
     assert "paths" not in triggers["push"]
     assert "python -m pip install -r scripts/requirements-types.txt" in workflow

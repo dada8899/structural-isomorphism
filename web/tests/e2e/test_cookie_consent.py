@@ -563,8 +563,27 @@ def test_dnt_auto_disables_analytics(dnt_page):
 def test_dnt_cannot_be_overridden_from_reopened_preferences(dnt_page):
     page, base = dnt_page
     payloads = _capture_plausible_events(page)
+    navigation_deadline = time.monotonic() + 30
     page.goto(base + "/companies", wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(500)
+    remaining_navigation_ms = int((navigation_deadline - time.monotonic()) * 1000)
+    assert remaining_navigation_ms > 0, "DNT initialization exceeded the original navigation budget"
+    # Fresh DNT context has no prefilled choice. This receipt comes from the
+    # component's mount effect; its open listener is installed in the same
+    # synchronous passive-effect flush before the next browser task.
+    ready = page.wait_for_function(
+        """() => {
+          if (location.pathname !== "/companies" || navigator.doNotTrack !== "1") return false;
+          let value;
+          try { value = JSON.parse(localStorage.getItem("cookie_consent_v1") || "null"); }
+          catch { return false; }
+          return !!value && value.essential === true && value.analytics === false &&
+            value.marketing === false && value.version === 1 &&
+            typeof value.timestamp === "number" && Number.isFinite(value.timestamp) &&
+            value.timestamp >= 0;
+        }""",
+        timeout=remaining_navigation_ms,
+    )
+    ready.dispose()
 
     page.evaluate("window.dispatchEvent(new CustomEvent('cookie-consent:open'))")
     page.wait_for_selector(

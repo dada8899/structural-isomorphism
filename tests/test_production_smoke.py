@@ -43,8 +43,8 @@ def successful_transport(method, url, body, timeout):
             "runtime_id": f"cpython-311-{requirements_sha}-{freeze_sha}",
             "requirements_sha256": requirements_sha,
             "installed_freeze_sha256": freeze_sha,
-            "fastapi": "0.115.14", "pydantic": "2.6.1",
-            "starlette": "0.46.2", "uvicorn": "0.27.1",
+            "fastapi": "0.135.0", "pydantic": "2.7.4",
+            "starlette": "1.3.1", "uvicorn": "0.27.1",
         }))
     if url.endswith("/assets/runtime-attestation.json"):
         requirements_sha = smoke.EXPECTED_RUNTIME_REQUIREMENTS_SHA256
@@ -56,9 +56,9 @@ def successful_transport(method, url, body, timeout):
             "installed_freeze_sha256": freeze_sha,
             "python_abi": "cpython-311",
             "python_version": "3.11.6",
-            "fastapi": "0.115.14",
-            "pydantic": "2.6.1",
-            "starlette": "0.46.2",
+            "fastapi": "0.135.0",
+            "pydantic": "2.7.4",
+            "starlette": "1.3.1",
             "uvicorn": "0.27.1",
             "git_sha": "a" * 40,
             "deployed_at": "2026-07-11",
@@ -141,9 +141,9 @@ def test_deep_health_fails_closed(mutation, expected):
 
 
 @pytest.mark.parametrize(("field", "value", "expected"), [
-    ("fastapi", "0.110.0", "fastapi must equal 0.115.14"),
-    ("pydantic", "1.10.0", "pydantic must equal 2.6.1"),
-    ("starlette", "0.36.3", "starlette must equal 0.46.2"),
+    ("fastapi", "0.110.0", "fastapi must equal 0.135.0"),
+    ("pydantic", "1.10.0", "pydantic must equal 2.7.4"),
+    ("starlette", "0.36.3", "starlette must equal 1.3.1"),
     ("python_abi", "cpython-312", "python_abi must equal cpython-311"),
     ("git_sha", "stale", "API and runtime git SHAs differ"),
 ])

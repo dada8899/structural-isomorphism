@@ -432,9 +432,27 @@ def test_beta_consent_privacy_link_has_real_touch_target(
     assert page.evaluate("document.documentElement.scrollWidth - innerWidth") <= 0
 
 
+def _legacy_ask_component_only(page,origin):
+    """Keep historical renderer coverage; this is NOT the public entry page.
+
+    These three pre-existing tests already mock SSE. Remove only the new
+    retirement wrapper in an isolated document so every original component
+    assertion remains. Separate production-page tests never use this helper.
+    """
+    def document(route):
+        response=route.fetch()
+        html=response.text().replace(' data-legacy-ask-retired','')
+        html=html.replace('<fieldset id="legacy-ask-entry" hidden disabled inert style="border:0;padding:0;margin:0">','',1).replace('</fieldset>','',1)
+        html=html.replace('id="ask-thread" hidden inert','id="ask-thread" hidden')
+        route.fulfill(response=response,body=html)
+    page.route(origin+"/",document)
+
+
 def test_beta_workbench_requires_fingerprint_and_explicit_candidate(
     page: Page, local_beta_origin: str
 ):
+    """Historical component regression, not a live public research promise."""
+    _legacy_ask_component_only(page,local_beta_origin)
     cards = [
         {"id": "candidate-1", "name": "Cascade A", "domain": "Physics", "score": 0.82},
         {"id": "candidate-2", "name": "Feedback B", "domain": "Biology", "score": 0.77},
@@ -511,6 +529,8 @@ def test_beta_workbench_requires_fingerprint_and_explicit_candidate(
 def test_beta_fingerprint_draft_mobile_keyboard_and_recovery(
     page: Page, local_beta_origin: str
 ):
+    """Historical component keyboard regression; production is retired."""
+    _legacy_ask_component_only(page,local_beta_origin)
     page.set_viewport_size({"width": 375, "height": 812})
     page.goto(local_beta_origin, wait_until="domcontentloaded", timeout=20_000)
     query = "留存率下降，需要在 2 周内验证，不能改变价格"
@@ -542,6 +562,8 @@ def test_beta_fingerprint_draft_mobile_keyboard_and_recovery(
 def test_beta_fingerprint_draft_does_not_invent_english_or_trust_bad_cache(
     page: Page, local_beta_origin: str
 ):
+    """Historical input/cache regression; production entry is tested below."""
+    _legacy_ask_component_only(page,local_beta_origin)
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto(local_beta_origin, wait_until="domcontentloaded", timeout=20_000)
     query = "Why did retention fall <script>alert(1)</script>?"
@@ -588,7 +610,7 @@ def test_beta_header_exposes_one_dynamic_primary_account_entry(
     expect(account).to_have_count(1)
     expect(account).to_be_visible()
     expect(account).to_have_text("登录以同步")
-    expect(account).to_have_attribute("href", "/auth/login?next=%2Freports")
+    expect(account).to_have_attribute("href", "/auth/login?next=%2Fresearch")
 
     page.route(
         "**/api/auth/me",
@@ -600,7 +622,7 @@ def test_beta_header_exposes_one_dynamic_primary_account_entry(
     )
     page.reload(wait_until="domcontentloaded")
     expect(account).to_have_text("我的研究")
-    expect(account).to_have_attribute("href", "/reports")
+    expect(account).to_have_attribute("href", "/research#my-research")
 
 
 def test_beta_mobile_menu_traps_and_restores_focus(page: Page, local_beta_origin: str):
@@ -633,7 +655,7 @@ def test_beta_header_never_picks_one_of_two_accounts(page: Page, local_beta_orig
     account = page.locator(".site-header__account-cta")
     expect(account).to_have_text("确认账户")
     expect(account).to_have_attribute("data-auth-state", "conflict")
-    expect(account).to_have_attribute("href", "/auth/login?next=%2Freports")
+    expect(account).to_have_attribute("href", "/auth/login?next=%2Fresearch")
 
 
 def test_report_workbench_groups_action_state(page: Page, local_beta_origin: str):
@@ -716,7 +738,10 @@ def test_my_research_account_and_data_failures_are_honest(page: Page, local_beta
     expect(page.locator("#myr-account-status")).to_contain_text("请输入 DELETE")
     page.locator("#myr-delete-confirmation").fill("DELETE")
     page.get_by_role("button", name="永久删除", exact=True).click()
-    expect(page.locator("#myr-account-status")).to_contain_text("删除没有完成")
+    expect(page.locator("#myr-account-status")).to_contain_text("删除结果尚未确认。请先刷新页面核对账户状态，请勿重复提交。")
+    expect(page.locator("#myr-delete-confirmation")).to_be_disabled()
+    expect(page.get_by_role("button", name="导出我的数据")).to_be_disabled()
+    expect(page.get_by_role("button", name="永久删除", exact=True)).to_be_disabled()
 
 
 @pytest.mark.parametrize("conflict_surface", ("auth", "reports", "favorites"))
@@ -970,10 +995,44 @@ def test_my_research_authenticated_asset_preflight_never_partially_commits(
     expect(page.get_by_text("Staged report", exact=True)).to_have_count(0)
 
 
+def hold_research_dictionaries(page: Page):
+    held = {}
+    catalog = json.loads(
+        (FRONTEND_DIR / "assets/data/i18n/content.json").read_text(encoding="utf-8")
+    )
+    page.route("https://**", lambda route: route.abort())
+    page.route("**/assets/data/i18n/*.json?*", lambda route: held.__setitem__(
+        "ui" if "/ui.json" in route.request.url else "content", route,
+    ))
+    return held, catalog
+
+
+def assert_research_copy_survives_dictionaries(page: Page, held, catalog, state):
+    key = "page.reports.favorites_" + state
+    copy = page.locator("#myr-favorites-copy")
+    # The API/identity result must be visible before releasing either catalog.
+    expect(copy).to_have_text(catalog[key]["zh"])
+    assert set(held) == {"ui", "content"}
+    for name in ("ui", "content"):
+        body = (FRONTEND_DIR / f"assets/data/i18n/{name}.json").read_text(encoding="utf-8")
+        held[name].fulfill(status=200, content_type="application/json", body=body)
+    page.wait_for_function(
+        "([key, value]) => window.__i18n_strings?.en?.[key] === value",
+        arg=[key, catalog[key]["en"]], timeout=5_000,
+    )
+    expect(copy).to_have_text(catalog[key]["zh"])
+    for lang in ("en", "zh"):
+        page.evaluate("lang => window.i18n.setLang(lang)", lang)
+        expect(copy).to_have_text(catalog[key][lang])
+        expect(copy).to_have_attribute("data-i18n", key)
+        expect(copy).to_have_attribute("data-i18n-orig", catalog[key]["zh"])
+
+
 @pytest.mark.parametrize("failed_surface", ("reports", "favorites"))
 def test_my_research_authenticated_partial_failure_is_explicit(
     page: Page, local_beta_origin: str, failed_surface: str
 ):
+    held, catalog = hold_research_dictionaries(page)
     page.add_init_script(
         "localStorage.setItem('structural_favorites', JSON.stringify(["
         "{query:'Local candidate', analyze_url:'/analyze?id=partial'}]));"
@@ -1002,6 +1061,12 @@ def test_my_research_authenticated_partial_failure_is_explicit(
             body='{"error":"unavailable"}' if failed_surface == "favorites" else '{"tickers":["AAPL"]}',
         ),
     )
+    page.route(
+        "**/api/favorites/merge",
+        lambda route: route.fulfill(
+            status=503, content_type="application/json", body='{"error":"unavailable"}',
+        ),
+    )
     page.goto(local_beta_origin + "/reports.html", wait_until="domcontentloaded")
     if failed_surface == "reports":
         expect(page.locator("#myr-list")).to_contain_text("报告暂时无法读取")
@@ -1010,6 +1075,93 @@ def test_my_research_authenticated_partial_failure_is_explicit(
         expect(page.locator("#myr-list")).to_contain_text("还没有保存的报告")
         expect(page.locator("#myr-favorites-copy")).to_contain_text("账户收藏暂时无法读取")
         expect(page.get_by_text("Local candidate", exact=True)).to_be_visible()
+    assert_research_copy_survives_dictionaries(
+        page, held, catalog, "sync_failed" if failed_surface == "reports" else "read_failed",
+    )
+
+
+@pytest.mark.parametrize("state", (
+    "anonymous", "account", "locked", "identity_unavailable",
+    "sync_failed", "partial", "synced",
+))
+def test_my_research_favorite_state_survives_late_dictionary(
+    page: Page, local_beta_origin: str, state: str,
+):
+    held, catalog = hold_research_dictionaries(page)
+    pending = state in ("sync_failed", "partial", "synced")
+    local = [{"query": "Pending candidate", "b_id": "candidate", "b_name": "Candidate"}] if pending else []
+    page.add_init_script("(() => { const local = " + json.dumps(local) + ";" + """
+      localStorage.setItem('structural_favorites', JSON.stringify(local));
+      window.__assetReads = 0;
+      const original = Storage.prototype.getItem;
+      Storage.prototype.getItem = function(key) {
+        if (['anonId','structural_favorites','structural_local_reminders'].includes(key))
+          window.__assetReads += 1;
+        return original.call(this, key);
+      };
+    })();""")
+    requests = []
+    bookmark = {
+        "schema_version": "bookmark-v2", "bookmark_id": "bm_" + "a" * 24,
+        "kind": "structural_analysis", "title": "Candidate", "query": "Pending candidate",
+        "source_id": None, "target_id": "candidate", "source": "Structural",
+        "href": "/analyze?id=candidate",
+    }
+
+    def api(route):
+        path = route.request.url.split("?", 1)[0].split(local_beta_origin)[-1]
+        requests.append((route.request.method, path))
+        status = 200
+        if path == "/api/auth/me":
+            if state == "anonymous":
+                status, data = 401, {"error": "unauthorized"}
+            elif state == "identity_unavailable":
+                status, data = 503, {"error": "unavailable"}
+            else:
+                data = {"ok": True, "user": {"email": "owner@example.test"}}
+        elif path == "/api/me/reports":
+            status = 401 if state == "anonymous" else 200
+            data = {"items": [], "has_more": False}
+        elif path == "/api/favorites":
+            status = 409 if state == "locked" else 200
+            data = {"error": "credential_conflict"} if state == "locked" else {"tickers": [], "bookmarks": []}
+        elif path == "/api/favorites/merge" and pending:
+            assert route.request.method == "POST"
+            assert len(route.request.post_data_json["bookmarks"]) == 1
+            if state == "sync_failed":
+                status, data = 503, {"error": "unavailable"}
+            else:
+                data = {
+                    "bookmarks": [bookmark] if state == "synced" else [],
+                    "confirmed_bookmark_ids": [bookmark["bookmark_id"]] if state == "synced" else [],
+                    "dropped_bookmark_ids": ["bm_" + "b" * 24] if state == "partial" else [],
+                }
+        else:
+            pytest.fail("unexpected research API: " + path)
+        route.fulfill(status=status, content_type="application/json", body=json.dumps(data))
+
+    page.route("**/api/**", api)
+    page.goto(local_beta_origin + "/reports.html", wait_until="domcontentloaded")
+    expect(page.locator("#myr-favorites-copy")).to_have_text(
+        catalog["page.reports.favorites_" + state]["zh"]
+    )
+    before = list(requests)
+    assert_research_copy_survives_dictionaries(page, held, catalog, state)
+    assert requests == before
+    if state in ("locked", "identity_unavailable"):
+        assert page.evaluate("window.__assetReads") == 0
+    if state == "identity_unavailable":
+        # The shared header also checks identity; neither caller may read assets.
+        assert requests and set(requests) == {("GET", "/api/auth/me")}
+    if state == "account":
+        assert ("POST", "/api/favorites/merge") not in requests
+        expect(page.locator("#myr-list")).to_contain_text("还没有保存的报告")
+    if pending:
+        remaining = page.evaluate("JSON.parse(localStorage.getItem('structural_favorites'))")
+        assert remaining == ([] if state == "synced" else local)
+    before = list(requests)
+    page.evaluate("window.i18n.render()")
+    assert requests == before
 
 
 def test_my_research_mobile_language_switch_persists(
@@ -1051,3 +1203,276 @@ def test_phase_companies_controls_activate_after_scroll(page: Page):
     expect(page.get_by_role("region", name="筛选条件")).to_be_visible(timeout=10_000)
     expect(page.locator("#screener select")).to_have_count(3)
     expect(page.locator('#screener input[type="range"]')).to_be_visible()
+
+
+def test_analyze_static_lang_writes_preserve_full_report_and_late_dictionary(
+    page: Page, local_beta_origin: str,
+) -> None:
+    # Only pure backend-validated fixture data; no auditor or profiler is invoked.
+    from scripts.beta_perf_audit import _analyze_fixture
+
+    expected_request, stream = _analyze_fixture()
+    held = {}
+    posted = []
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    dictionaries = {
+        name: json.loads((FRONTEND_DIR / f'assets/data/i18n/{name}.json').read_text(encoding='utf-8'))
+        for name in ('ui', 'content')
+    }
+    catalog = {**dictionaries['ui'], **dictionaries['content']}
+    probe = """<script>
+      window.__langChanges=[];window.__langNotifications=[];
+      window.__langObserver=new MutationObserver(records=>{
+        window.__langChanges.push(...records.map(r=>r.oldValue));
+      });
+      window.__langObserver.observe(document.documentElement,
+        {attributes:true,attributeOldValue:true,attributeFilter:['lang']});
+    </script>"""
+    html = (FRONTEND_DIR / 'analyze.html').read_text(encoding='utf-8')
+    html = html.replace('<head>', '<head>' + probe, 1)
+    page.route('https://**', lambda route: route.abort())
+    page.route('**/analyze.html?*', lambda route: route.fulfill(
+        status=200, content_type='text/html; charset=utf-8', body=html,
+    ))
+    i18n = (FRONTEND_DIR / 'assets/js/i18n.js').read_text(encoding='utf-8')
+    page.route('**/assets/js/i18n.js?*', lambda route: route.fulfill(
+        status=200, content_type='application/javascript', body=i18n +
+        '\nwindow.i18n.onChange(lang=>window.__langNotifications.push(lang));',
+    ))
+    page.route('**/assets/data/i18n/*.json?*', lambda route: held.__setitem__(
+        'ui' if '/ui.json' in route.request.url else 'content', route,
+    ))
+
+    def api(route):
+        request = route.request
+        if request.url.split('?')[0].endswith('/api/analyze/stream'):
+            assert request.method == 'POST'
+            posted.append(request.post_data_json)
+            assert request.post_data_json == expected_request
+            route.fulfill(status=200, content_type='text/event-stream; charset=utf-8', body=stream)
+        elif request.url.split('?')[0].endswith(('/api/auth/me', '/api/favorites')):
+            route.fulfill(status=401, content_type='application/json', body='{"error":"no session"}')
+        else:
+            pytest.fail('unexpected API in static Analyze language test')
+
+    page.route('**/api/**', api)
+    try:
+        page.goto(f'{local_beta_origin}/analyze.html?id=target-two&a_id=source-one', wait_until='domcontentloaded')
+        page.wait_for_function("""() => window._finalReport && !document.getElementById('analyze-loading')
+          && document.querySelectorAll('.section--revealed').length===9
+          && Array.from(document.querySelectorAll('.section__body')).every(n=>n.textContent.trim().length>30)""")
+        assert set(held) == {'ui', 'content'}
+        assert posted == [expected_request]
+        assert page.evaluate('window.__langChanges') == []
+        original = page.evaluate('JSON.stringify(window._finalReport)')
+        page.evaluate("window.i18n.setLang('en')")
+        expect(page.locator('html')).to_have_attribute('lang', 'en')
+        # No EN dictionary yet: actual section fallback remains visible.
+        expect(page.locator('#section-shared_structure .section__title')).to_have_text('候选结构')
+        page.evaluate('window.__langObserver.takeRecords();window.__langChanges=[];window.__langNotifications=[]')
+        held['ui'].fulfill(status=200, content_type='application/json', body=json.dumps(dictionaries['ui'], ensure_ascii=False))
+        held['content'].fulfill(status=200, content_type='application/json', body=json.dumps(dictionaries['content'], ensure_ascii=False))
+        expect(page.locator('#section-shared_structure .section__title')).to_have_text(catalog['page.analyze.section_shared_structure']['en'])
+        assert page.evaluate('window.__langChanges') == []
+        assert 'en' in page.evaluate('window.__langNotifications')
+        same = page.evaluate("""async () => {
+          window.__langObserver.takeRecords();window.__langChanges=[];window.__langNotifications=[];
+          for(let n=0;n<3;n++)window.i18n.render();
+          await Promise.resolve();return {changes:window.__langChanges,notifications:window.__langNotifications};
+        }""")
+        assert same == {'changes': [], 'notifications': ['en'] * 3}
+        for lang, old in [('zh', 'en'), ('en', 'zh-CN'), ('zh', 'en')]:
+            result = page.evaluate("""async lang => {
+              window.__langObserver.takeRecords();window.__langChanges=[];window.__langNotifications=[];
+              window.i18n.setLang(lang);await Promise.resolve();
+              return {changes:window.__langChanges,notifications:window.__langNotifications};
+            }""", lang)
+            assert result == {'changes': [old], 'notifications': [lang]}
+            expect(page.locator('html')).to_have_attribute('lang', 'en' if lang == 'en' else 'zh-CN')
+            sections = page.locator('.section')
+            assert sections.count() == 9
+            for section in sections.all():
+                key = section.get_attribute('data-key')
+                expect(section.locator('.section__title')).to_have_text(catalog[f'page.analyze.section_{key}'][lang])
+                assert len((section.locator('.section__body').text_content() or '').strip()) > 30
+            expect(page.locator('#analyze-fav-label')).to_have_text(catalog['page.analyze.btn_fav'][lang])
+            assert (page.locator('#analyze-tldr').text_content() or '').strip()
+            assert page.locator('#analyze-tldr .cred-badge__chip').all_inner_texts() == [
+                catalog[f'page.analyze.{key}'][lang]
+                for key in ('candidate_only', 'mechanism_not_verified', 'review_not_recorded')
+            ]
+            assert page.evaluate('JSON.stringify(window._finalReport)') == original
+            assert page.locator('.section--revealed').count() == 9
+        assert errors == []
+    finally:
+        if not page.is_closed():
+            page.evaluate('window.__langObserver && window.__langObserver.disconnect()')
+
+
+# Only this public-entry consumer uses the actual formal Main lifespan/SMTP.
+# The legacy research/source component fixture keeps its original scope.
+from web.backend.tests.acceptance import public_entry_formal_main as _entry_module
+real_entry_server = _entry_module.server
+
+
+@pytest.mark.parametrize("viewport",[{"width":1280,"height":900},{"width":430,"height":932}])
+@pytest.mark.parametrize("target",["my-research","kb-section"])
+def test_public_entry_actual_owner_index_anchor(page,real_entry_server,viewport,target):
+    page.set_viewport_size(viewport)
+    base=real_entry_server["base"]
+    _entry_module.login(page.context,base)
+    _entry_module._entry_create(page.context,base,"导航真实归属对照")
+    page.goto(base+"/classes")
+    account=page.locator(".site-header__account-cta")
+    expect(account).to_have_attribute("href","/research#my-research")
+    if target=="my-research":account.click()
+    else:
+        page.goto(base+"/");page.locator("#local-kb-entry").click()
+    expect(page.locator("#research-list-items article")).to_have_count(1)
+    assert page.url==base+"/research#"+target
+    bounds=page.locator("#"+target).bounding_box()
+    # scrollIntoView rounds scrollY to device pixels; permit <1px rounding.
+    assert -1<=bounds["y"]<page.viewport_size["height"]-44, {"section_y":bounds["y"],"scroll_y":page.evaluate("scrollY")}
+    page.locator("#original-input").fill("导航之后新写的私密草稿不会被列表刷新改写")
+    page.locator("#summary").fill("手写摘要必须保留")
+    page.locator("#confirmed").check()
+    page.locator("#original-input").focus();page.evaluate("scrollTo(0,0)")
+    before=page.evaluate("scrollY")
+    page.locator("#research-list-refresh").evaluate("e=>e.click()")
+    expect(page.locator("#research-list-status")).to_contain_text("已读取 1")
+    assert abs(page.evaluate("scrollY")-before)<2
+    assert page.locator("#original-input").evaluate("e=>document.activeElement===e")
+    expect(page.locator("#summary")).to_have_value("手写摘要必须保留")
+    expect(page.locator("#confirmed")).to_be_checked()
+
+
+@pytest.mark.parametrize("viewport",[{"width":1280,"height":900},{"width":430,"height":932}])
+def test_public_entry_default_retirement_and_language(page,local_beta_origin,viewport,tmp_path):
+    from urllib.parse import quote,urlsplit,parse_qs,unquote
+    page.set_viewport_size(viewport)
+    private="private retired input <script>not executable</script>"
+    calls=[];network=[]
+    def observe(request):
+        network.append(request)
+        if any(route in request.url for route in ("/api/ask/","/api/analyze","/api/search/assess","/api/search/synthesize")):calls.append(request.url)
+    page.on("request",observe)
+    page.goto(local_beta_origin+"/?q="+quote(private)+"&lang=zh")
+    page.wait_for_function("window.__ask && window.i18n?.getLang() === 'zh'")
+    assert "q" not in parse_qs(urlsplit(page.url).query) and private not in page.url
+    expect(page.locator("#start-research")).to_have_attribute("href","/research")
+    expect(page.locator("#local-kb-entry")).to_have_attribute("href","/research#kb-section")
+    expect(page.locator("#ask-input")).to_be_disabled()
+    expect(page.locator("#ask-fingerprint")).to_be_hidden()
+    page.evaluate("""q=>{
+      document.querySelector('#ask-input').value=q;
+      document.querySelector('#ask-form').requestSubmit();
+      document.querySelector('#ask-followup-input').value=q;
+      document.querySelector('#ask-followup-form').requestSubmit();
+      document.querySelector('.ask-chip').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+      document.querySelector('#ask-input').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',ctrlKey:true,bubbles:true}));
+      document.querySelector('#ask-fingerprint-confirm').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+      window.__ask.submitQuery(q,{summary:q});
+    }""",private)
+    expect(page.locator("#legacy-ask-status")).to_contain_text("已停用")
+    page.get_by_role("button",name="仅必要功能",exact=True).click()
+    expect(page.locator("#ask-thread")).to_be_hidden()
+    expect(page.get_by_role("radiogroup",name="选择一个跨领域候选")).to_have_count(0)
+    assert page.evaluate("sessionStorage.getItem('structural_fingerprint_draft')") is None
+    assert private not in page.url and calls==[]
+    # The incoming legacy URL existed before this page could clean it. None
+    # of its subsequent requests may forward the private query or referrer.
+    for request in network[1:]:
+        assert "private retired input" not in unquote(request.url)
+        assert "private retired input" not in unquote(request.headers.get("referer",""))
+    assert page.locator("script").filter(has_text="not executable").count()==0
+    assert "2–3" not in page.locator("body").inner_text()
+    assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")
+    assert page.locator("#start-research").bounding_box()["height"]>=44
+    page.screenshot(path=str(tmp_path / "public-entry.png"),full_page=True)
+    if viewport["width"]<720:
+        page.locator("#site-menu-btn").click();page.locator("#site-menu-lang-toggle").click()
+    else:page.locator("#lang-toggle").click()
+    expect(page.locator("html")).to_have_attribute("lang","en")
+    expect(page.locator("#start-research")).to_have_text("Start research")
+    expect(page.locator("#legacy-ask-status")).to_contain_text("retired")
+    expect(page.locator(".site-footer__link[href='/reports']")).to_have_text("Legacy reports")
+    assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")
+    assert all(private not in (href or "") for href in page.locator("a").evaluate_all("links=>links.map(link=>link.getAttribute('href'))"))
+    if page.locator("#site-menu-drawer").is_visible():page.keyboard.press("Escape")
+    page.locator("#start-research").focus()
+    assert page.locator("#start-research").evaluate("e=>document.activeElement===e")
+    assert calls==[] and private not in page.url
+
+
+def test_public_entry_no_script_native_forms_never_send_private_get(browser,local_beta_origin):
+    context=browser.new_context(java_script_enabled=False)
+    try:
+        page=context.new_page();page.goto(local_beta_origin)
+        expect(page.locator("#start-research")).to_be_visible()
+        expect(page.locator("#ask-input")).to_be_disabled()
+        expect(page.locator("#ask-followup-input")).to_be_disabled()
+        expect(page.locator("#ask-form")).to_have_attribute("method","post")
+        expect(page.locator("#ask-followup-form")).to_have_attribute("method","post")
+        private="disabled native form private input"
+        page.locator("#ask-input").evaluate("(e,q)=>e.value=q",private)
+        with page.expect_request(lambda request:request.is_navigation_request()) as navigation:
+            page.locator("#ask-form").evaluate("f=>HTMLFormElement.prototype.submit.call(f)")
+        request=navigation.value
+        assert request.method=="POST" and request.url==local_beta_origin+"/research"
+        assert private not in (request.post_data or "") and private not in request.url
+    finally:context.close()
+
+
+def test_public_entry_real_login_return_owner_and_legacy_resource_links(page,real_entry_server):
+    base=real_entry_server["base"]
+    page.goto(base+"/")
+    account=page.locator(".site-header__account-cta")
+    expect(account).to_have_attribute("href","/auth/login?next=%2Fresearch")
+    account.click()
+    page.locator("#auth-email").fill(_entry_module.synthetic_email("public-entry-owner@example.test"))
+    with page.expect_response("**/api/auth/request-link") as response:page.locator("#auth-submit").click()
+    assert response.value.status==200
+    link=_entry_module.magic_link(real_entry_server)
+    page.goto(link)
+    page.wait_for_url(base+"/research")
+    expect(page.locator("#problem-form")).to_be_visible()
+    saved=_entry_module._entry_create(page.context,base,"本人私有研究")
+    other=page.context.browser.new_context()
+    try:
+        _entry_module.login(other,base,"public-entry-other@example.test")
+        _entry_module._entry_create(other,base,"其他账户不应混入列表")
+    finally:other.close()
+    page.goto(base+"/classes")
+    expect(page.locator(".site-header__account-cta")).to_have_attribute("href","/research#my-research")
+    expect(page.locator(".site-footer__link[href='/reports']")).to_have_text("旧报告（历史）")
+    page.locator(".site-header__account-cta").click()
+    expect(page.locator("#research-list-items a")).to_have_count(1)
+    expect(page.locator("#research-list-items a")).to_have_attribute("href","/research/"+saved["research"]["id"])
+    assert "其他账户" not in page.locator("#research-list-items").inner_text()
+    for route in ("/classes","/discoveries","/papers","/tools"):
+        response=page.goto(base+route);assert response.status==200
+        if route=="/tools":expect(page.locator(".tool-card")).to_have_count(8)
+        else:expect(page.locator(".site-header__nav a[aria-current='page']")).to_have_attribute("href","/classes")
+
+
+@pytest.mark.parametrize("viewport",[{"width":1280,"height":900},{"width":430,"height":932}])
+def test_public_entry_main_cta_first_login_returns_to_research(page,real_entry_server,viewport):
+    page.set_viewport_size(viewport)
+    base=real_entry_server["base"]
+    page.goto(base+"/");page.locator("#start-research").click()
+    expect(page.locator("#access")).to_be_visible()
+    page.locator("#access a").click()
+    page.locator("#auth-email").fill(_entry_module.synthetic_email("first-entry-new-owner@example.test"))
+    with page.expect_response("**/api/auth/request-link") as response:page.locator("#auth-submit").click()
+    assert response.value.status==200
+    page.goto(_entry_module.magic_link(real_entry_server))
+    page.wait_for_url(lambda url:"/auth/" not in url)
+    assert page.url==base+"/research"
+    expect(page.locator("#problem-form")).to_be_visible()
+    expect(page.locator("#research-list-status")).to_contain_text("还没有")
+    saved=_entry_module._entry_create(page.context,base,"首登之后本人新研究")
+    page.locator("#research-list-refresh").click()
+    expect(page.locator("#research-list-items a")).to_have_count(1)
+    expect(page.locator("#research-list-items a")).to_have_attribute("href","/research/"+saved["research"]["id"])
+    assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")

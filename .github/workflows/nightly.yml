@@ -78,7 +78,7 @@ jobs:
         run: python -m pytest -ra -q
 
   # ---------------------------------------------------------------------------
-  # 2) Full e2e (live network, all flavors).
+  # 2) Reviewed local browser contracts; no live-model admission here.
   # ---------------------------------------------------------------------------
   e2e-full:
     name: e2e full
@@ -114,11 +114,11 @@ jobs:
             playwright==1.59.0 \
             pytest-playwright==0.7.2 \
             httpx==0.27.2 \
-            fastapi==0.115.14 \
-            pydantic==2.6.1 \
-            starlette==0.46.2 \
+            fastapi==0.135.0 \
+            pydantic==2.7.4 \
+            starlette==1.3.1 \
             'uvicorn[standard]==0.27.1' \
-            PyJWT==2.12.1 \
+            PyJWT==2.15.1 \
             slowapi==0.1.9 \
             structlog==25.5.0 \
             Pillow==12.3.0
@@ -134,17 +134,8 @@ jobs:
           test -x node_modules/.bin/next
           test -s node_modules/axe-core/axe.min.js
 
-      - name: Run e2e (all markers except requires_llm w/o key)
-        env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-        run: |
-          if [ -n "$OPENROUTER_API_KEY" ]; then
-            pytest tests/e2e -v -m "e2e"
-            pytest web/tests/e2e -v
-          else
-            pytest tests/e2e -v -m "e2e and not requires_llm"
-            pytest web/tests/e2e -v -m "not requires_llm"
-          fi
+      - name: Run reviewed local browser contracts
+        run: make PY=python test-browser-contracts
 
   # ---------------------------------------------------------------------------
   # 3) Load smoke (k6, 1 VU sanity). Prod-safe budget.

@@ -175,7 +175,20 @@ def test_query_leaves_url_and_survives_reload_edit_back_and_mobile_keyboard(
     expect(editor).to_be_focused()
     second = "confidential queue collapse after threshold"
     editor.fill(second)
-    editor.press("Control+Enter")
+    with page.expect_event(
+        "requestfinished",
+        predicate=lambda request: request.method == "POST"
+        and request.url == search_origin + "/api/search"
+        and request.post_data_json["query"] == second,
+        timeout=5000,
+    ) as second_finished, page.expect_response(
+        lambda response: response.request.method == "POST"
+        and response.url == search_origin + "/api/search"
+        and response.request.post_data_json["query"] == second,
+        timeout=5000,
+    ) as second_search:
+        editor.press("Control+Enter")
+    assert second_finished.value is second_search.value.request
     expect(page.locator(".search-question__text")).to_have_text(second)
     assert second not in page.url and "q=" not in page.url and "context=" not in page.url
 
@@ -506,3 +519,191 @@ def test_history_is_private_by_default_and_fails_closed_on_storage_or_crypto(
         assert "structural_device_id=" not in crypto_page.evaluate("document.cookie")
     finally:
         crypto_page.close()
+
+
+def _retired_problem():
+    return {'status':503,'code':'FEATURE_UNAVAILABLE','retryable':False,
+            'detail':'DO_NOT_RENDER_PRIVATE_SERVER_DETAIL','canonical':'/research'}
+
+
+def test_retired_comparison_keeps_local_results_language_and_plain_research_entry(page: Page, search_origin: str):
+    from urllib.parse import parse_qs
+    page.set_viewport_size({'width':430,'height':844})
+    seen=[];_install_routes(page,seen)
+    held=[];creates=[]
+    page.route('**/api/synthesize/stream', lambda route:held.append(route))
+    page.route('**/api/search/assess',lambda route:route.fulfill(status=503,content_type='application/problem+json',body=json.dumps(_retired_problem())))
+    page.route('**/api/research',lambda route:(creates.append(route.request.method),route.fulfill(status=503,body='{}'))[-1])
+    page.route('**/research',lambda route:route.fulfill(status=200,content_type='text/html; charset=utf-8',body=(FRONTEND/'research.html').read_text()))
+    secret='PRIVATE_SEARCH_RETIRED_CANARY 原问题仍应保留在本页'
+    _open_private_search(page,search_origin,secret)
+    page.evaluate('window.__beforeCards=Array.from(document.querySelectorAll(".result-card"))')
+    before=page.locator('.result-card').evaluate_all('nodes=>nodes.map(n=>n.getAttribute("href"))')
+    assert len(held)==1
+    held[0].fulfill(status=503,content_type='application/problem+json',body=json.dumps(_retired_problem()))
+    status=page.locator('#search-synth [role=status]')
+    expect(status).to_have_text('旧候选比较暂不可用；当前仅为本地排序结果')
+    assert page.evaluate('window.__beforeCards.every((n,i)=>n===document.querySelectorAll(".result-card")[i])')
+    assert page.locator('.result-card').evaluate_all('nodes=>nodes.map(n=>n.getAttribute("href"))')==before
+    for lang in ['en','zh']:
+        page.evaluate('lang=>window.i18n.setLang(lang)',lang)
+        expect(status).to_have_text('Legacy candidate comparison is unavailable; these are local ranking results only.' if lang=='en' else '旧候选比较暂不可用；当前仅为本地排序结果')
+        expect(page.locator('.result-card')).to_have_count(2)
+        expect(page.locator('.search-question__text')).to_have_text(secret)
+        assert page.locator('#search-synth-retry').count()==0
+        assert page.locator('#search-synth-timer').count()==0
+        assert page.locator('#search-synth-phase').count()==0
+        assert 'DO_NOT_RENDER_PRIVATE_SERVER_DETAIL' not in page.locator('body').inner_text()
+        links=page.locator('.result-card').evaluate_all('nodes=>nodes.map(n=>n.getAttribute("href"))')
+        assert [parse_qs(urlsplit(href).query)['id'][0] for href in links]==['kb-1','kb-2']
+        assert all(secret not in href for href in links)
+        assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+    assert len(held)==1 and seen==[secret]
+    long_query='LONG_PRIVATE_QUERY_'+'x'*4500
+    page.evaluate('''query => {
+      const url=window.buildPrivateSearchUrl({query,lang:'zh',source:'home'});
+      history.pushState({},'',url);dispatchEvent(new PopStateEvent('popstate'));
+    }''',long_query)
+    expect(page.locator('.search-question__text')).to_have_text(long_query)
+    expect(status).to_have_text('旧候选比较暂不可用；当前仅为本地排序结果')
+    expect(page.locator('.result-card')).to_have_count(2)
+    assert len(held)==1 and seen==[secret,long_query]
+    entry=page.locator('#search-synth a[href="/research"]')
+    expect(entry).to_contain_text('需重新输入并保存')
+    assert entry.get_attribute('href')=='/research'
+    entry.scroll_into_view_if_needed()
+    assert entry.evaluate('(n)=>{const b=n.getBoundingClientRect();return n.contains(document.elementFromPoint(b.x+b.width/2,b.y+b.height/2))}')
+    assert entry.bounding_box()['height']>=44
+    entry.click();page.wait_for_url(search_origin+'/research')
+    assert secret not in page.url and long_query not in page.url and not urlsplit(page.url).query and not urlsplit(page.url).fragment
+    assert page.locator('#original-input').input_value()=='' and creates==[]
+
+
+@pytest.mark.parametrize('status,problem',[
+    (500,{'status':503,'code':'FEATURE_UNAVAILABLE','retryable':False}),
+    (503,{'status':503,'code':'UPSTREAM_UNAVAILABLE','retryable':False}),
+    (503,{'status':503,'code':'FEATURE_UNAVAILABLE','retryable':True}),
+])
+def test_other_synthesis_failures_keep_transport_semantics(page: Page,search_origin: str,status: int,problem: dict):
+    seen=[];_install_routes(page,seen)
+    page.route('**/api/synthesize/stream',lambda route:route.fulfill(status=status,content_type='application/problem+json',body=json.dumps(problem)))
+    _open_private_search(page,search_origin,'generic comparison failure')
+    expect(page.locator('#search-synth-retry')).to_be_visible()
+    assert '旧候选比较暂不可用' not in page.locator('#search-synth').inner_text()
+    expect(page.locator('.result-card')).to_have_count(2)
+
+
+def test_synthesis_timeout_is_not_a_retired_feature(page: Page,search_origin: str):
+    page.clock.install()
+    seen=[];_install_routes(page,seen);held=[]
+    page.route('**/api/synthesize/stream',lambda route:held.append(route))
+    _open_private_search(page,search_origin,'timeout comparison failure')
+    expect(page.locator('#search-synth')).to_contain_text('校验中')
+    page.clock.fast_forward(70001)
+    expect(page.locator('#search-synth-retry')).to_be_visible()
+    assert '旧候选比较暂不可用' not in page.locator('#search-synth').inner_text()
+    assert len(held)==1
+    expect(page.locator('.result-card')).to_have_count(2)
+
+
+@pytest.mark.parametrize('current_retired',[True,False])
+def test_late_previous_comparison_never_overwrites_current_query_state(page: Page,search_origin: str,current_retired: bool):
+    seen=[];_install_routes(page,seen)
+    held=[]
+    page.route('**/api/synthesize/stream',lambda route:held.append(route))
+    _open_private_search(page,search_origin,'query A private')
+    # Retain the real guarded callbacks at the API boundary. Aborts are
+    # advisory; deliberately deliver an old completion/error after query B.
+    page.evaluate('''() => {
+      window.__lateCallbacks={};const original=window.StructuralAPI.synthesizeStream;
+      window.StructuralAPI.synthesizeStream=function(q,r,items,callbacks){
+        window.__lateCallbacks[q]=callbacks;return original.call(this,q,r,items,callbacks);
+      };
+      const url=window.buildPrivateSearchUrl({query:'query A captured',lang:'zh',source:'home'});
+      history.pushState({},'',url);dispatchEvent(new PopStateEvent('popstate'));
+    }''')
+    expect(page.locator('.search-question__text')).to_have_text('query A captured')
+    page.wait_for_function('window.__lateCallbacks["query A captured"]!==undefined')
+    page.evaluate('''() => {
+      const url=window.buildPrivateSearchUrl({query:'query B current',lang:'zh',source:'home'});
+      history.pushState({},'',url);dispatchEvent(new PopStateEvent('popstate'));
+    }''')
+    expect(page.locator('.search-question__text')).to_have_text('query B current')
+    page.wait_for_function('window.__lateCallbacks["query B current"]!==undefined')
+    current=held[-1]
+    if current_retired:
+        current.fulfill(status=503,content_type='application/problem+json',body=json.dumps(_retired_problem()))
+        expect(page.locator('#search-synth')).to_contain_text('旧候选比较暂不可用')
+    else:
+        synth={'schema_version':'search-candidate-synthesis-v1','synthesis_status':'degraded',
+               'main_insight':'B current comparison','why_these_matter':'Review sources.',
+               'primary_recommendation':None,'alternative_angles':[],'relevance_snippets':[]}
+        current.fulfill(status=200,content_type='text/event-stream',body='event: done\ndata: '+json.dumps({'result':synth})+'\n\n')
+        expect(page.locator('#search-synth')).to_contain_text('B current comparison')
+    before=page.locator('#search-synth').inner_text()
+    result=page.evaluate('''() => {
+      const old=window.__lateCallbacks['query A captured'];
+      return [old.onError({code:'FEATURE_UNAVAILABLE',status:503}),old.onDone({result:{main_insight:'LATE_A_MUST_NOT_APPEAR'}})];
+    }''')
+    assert result==[False,False]
+    assert page.locator('#search-synth').inner_text()==before
+    expect(page.locator('.search-question__text')).to_have_text('query B current')
+    expect(page.locator('.result-card')).to_have_count(2)
+    assert 'LATE_A_MUST_NOT_APPEAR' not in page.locator('body').inner_text()
+    assert 'query A' not in page.url and 'query B' not in page.url and 'context=' not in page.url
+
+
+def test_late_a_retrieval_cannot_replace_b_local_ids_or_retired_notice(page: Page,search_origin: str):
+    from urllib.parse import parse_qs
+    seen=[];_install_routes(page,seen);held_a=[]
+    def payload(prefix):
+        return {'count':2,'results':[_result(prefix+'-1',prefix+' first','engineering'),
+                _result(prefix+'-2',prefix+' second','finance')],'rewritten_query':None,
+                'v2_pairs_for_top':[],'stats':{'cross_domain_count':2,'same_domain_count':0}}
+    def retrieve(route):
+        query=route.request.post_data_json['query'];seen.append(query)
+        if query=='late A private':held_a.append(route)
+        else:route.fulfill(status=200,content_type='application/json',body=json.dumps(payload('B')))
+    page.route('**/api/search',retrieve)
+    page.route('**/api/synthesize/stream',lambda route:route.fulfill(status=503,content_type='application/problem+json',body=json.dumps(_retired_problem())))
+    page.goto(search_origin+'/search.html',wait_until='domcontentloaded')
+    page.wait_for_function('Boolean(window.StructuralAPI && window.buildPrivateSearchUrl)')
+    page.evaluate('''() => {
+      const original=window.StructuralAPI.search;
+      window.StructuralAPI.search=async function(q,...args){
+        const result=await original.call(this,q,...args);
+        if(q==='late A private')window.__aRetrievalReturned=true;
+        return result;
+      };
+      const url=window.buildPrivateSearchUrl({query:'late A private',lang:'zh',source:'home'});
+      history.pushState({},'',url);dispatchEvent(new PopStateEvent('popstate'));
+    }''')
+    expect(page.locator('.search-question__text')).to_have_text('late A private')
+    assert len(held_a)==1
+    page.evaluate('''() => {
+      const url=window.buildPrivateSearchUrl({query:'current B private',lang:'zh',source:'home'});
+      history.pushState({},'',url);dispatchEvent(new PopStateEvent('popstate'));
+    }''')
+    expect(page.locator('.search-question__text')).to_have_text('current B private')
+    expect(page.locator('#search-synth [role=status]')).to_have_text('旧候选比较暂不可用；当前仅为本地排序结果')
+    expect(page.locator('.result-card__name')).to_have_text(['B first','B second'])
+    held_a[0].fulfill(status=200,content_type='application/json',body=json.dumps(payload('A')))
+    page.wait_for_function('window.__aRetrievalReturned===true')
+    expect(page.locator('.result-card__name')).to_have_text(['B first','B second'])
+    expect(page.locator('.search-question__text')).to_have_text('current B private')
+    expect(page.locator('#search-synth [role=status]')).to_have_text('旧候选比较暂不可用；当前仅为本地排序结果')
+    assert [parse_qs(urlsplit(h).query)['id'][0] for h in page.locator('.result-card').evaluate_all('nodes=>nodes.map(n=>n.getAttribute("href"))')]==['B-1','B-2']
+    assert page.locator('#search-synth a').get_attribute('href')=='/research'
+    assert page.locator('#search-synth-retry').count()==0
+    assert all(text not in page.url for text in ('late A','current B','context=','q='))
+
+
+def test_dictionary_notification_preserves_the_existing_low_fit_gate(page: Page,search_origin: str):
+    seen=[];_install_routes(page,seen)
+    _open_private_search(page,search_origin,'low fit dictionary state',expect_initial_results=False)
+    expect(page.locator('#assess-force-search')).to_be_visible()
+    page.evaluate('window.i18n.render()')
+    expect(page.locator('#assess-force-search')).to_be_visible()
+    expect(page.locator('.result-card')).to_have_count(0)
+    page.locator('#assess-force-search').click()
+    expect(page.locator('.result-card')).to_have_count(2)

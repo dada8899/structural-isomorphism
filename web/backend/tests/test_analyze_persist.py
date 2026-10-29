@@ -1,15 +1,12 @@
-"""E2E test for POST /api/analyze/stream (M1.4 PR #2 wiring).
+"""Retired Analyze HTTP boundary and sealed historical-report compatibility.
 
-We mock LLMService.stream_deep_analysis so the test runs in milliseconds
-and never hits OpenRouter. The mock yields a synthetic 9-section report.
-
-Verifies the wiring between analyze.py and report_store.py:
-  - persist=0 (default) → NO `persisted` event (backward compat)
-  - persist=1 + complete report → `persisted` event with id + share_url
-  - cache hit + persist=1 → `persisted` event still emitted
-  - the persisted row is readable via /api/report/share/{token}
+Pure request/claim validation remains active. Query-mode generation cannot prepare,
+send, charge, persist or emit SSE. Owner/share/list tests seed an existing sealed
+v2 archive directly; they do not claim a new successful model generation.
 """
 from __future__ import annotations
+
+from ast import literal_eval
 
 import json
 import re
@@ -289,6 +286,7 @@ def isolated(tmp_path, monkeypatch):
     from api import analyze as analyze_api
     from api import report as report_api
 
+    monkeypatch.setenv("STRUCTURAL_SHARE_TOKEN_SECRET", "synthetic-history-root-32-characters-for-tests")
     fresh = ReportStore(tmp_path / "test_history.db")
 
     # Stub the lifespan-loaded search service.
@@ -356,6 +354,8 @@ def app(isolated, monkeypatch):
     monkeypatch.setattr("api.analyze.verify_api_token", _allow_all)
 
     a = FastAPI()
+    from errors import install_problem_handlers
+    install_problem_handlers(a)
     a.include_router(analyze.router, prefix="/api")
     a.include_router(report.router, prefix="/api")
     return a
@@ -526,94 +526,46 @@ def test_stream_body_rejects_8001_char_query_and_fingerprint():
         })
 
 
-def test_stream_body_nfkc_normalizes_before_persistence(client, isolated):
-    text = _stream_text(
-        client,
-        {
-            "b_id": "b_target",
-            "text_a": "ｔｅａｍｓ　ｓｐｌｉｔ",
-            "persist": 1,
-            "anon_id": "nfkc-owner",
-        },
-    )
-    persisted = next(p for n, p in _parse_sse(text) if n == "persisted")
-    assert isolated.get_by_id(persisted["id"])["query"] == "teams split"
+def test_nfkc_query_normalizes_but_retired_request_cannot_persist(client, isolated):
+    from api.analyze import AnalyzeStreamRequest
+    payload={'b_id':'b_target','text_a':'ｔｅａｍｓ　ｓｐｌｉｔ','persist':1,'anon_id':'nfkc-owner'}
+    assert AnalyzeStreamRequest.model_validate(payload).text_a == 'teams split'
+    _assert_query_closed(client,payload)
+    with isolated._connect() as conn:
+        assert conn.execute('SELECT count(*) FROM reports').fetchone()[0] == 0
 
 
-def test_persist_off_emits_no_persisted_event(client, isolated):
-    """persist=0 (default) — backward compat: no `persisted` event."""
-    text = _stream_text(
-        client,
-        {"b_id": "b_target", "text_a": "why do teams fall apart"},
-    )
-    events = _parse_sse(text)
-    names = [n for n, _ in events]
-    assert "persisted" not in names
-    assert "done" in names
+def test_retired_persist_off_emits_no_sse_or_report(client, isolated):
+    _assert_query_closed(client,{'b_id':'b_target','text_a':'why do teams fall apart','persist':0})
+    with isolated._connect() as conn:
+        assert conn.execute('SELECT count(*) FROM reports').fetchone()[0] == 0
 
 
-def test_persist_on_emits_persisted_with_share_url(client, isolated):
-    text = _stream_text(
-        client,
-        {
-            "b_id": "b_target", "text_a": "why teams split",
-            "persist": 1, "anon_id": "user-A",
-        },
-    )
-    events = _parse_sse(text)
-    names = [n for n, _ in events]
-    assert "persisted" in names
-    persisted_payload = next(p for n, p in events if n == "persisted")
-    validation_payload = next(p for n, p in events if n == "report_validated")
-    meta_payload = next(p for n, p in events if n == "meta")
-    assert persisted_payload["id"].startswith("r_")
-    share_token = urlsplit(persisted_payload["share_url"]).path.rsplit("/", 1)[-1]
-    assert re.fullmatch(r"[0-9a-f]{32}", share_token)
-    assert "share_token" not in persisted_payload
-    assert persisted_payload["is_partial"] is False
-    assert persisted_payload["generation_id"] == validation_payload["generation_id"]
-    assert persisted_payload["report_sha256"] == validation_payload["report_sha256"]
-    assert meta_payload["generation_id"] == validation_payload["generation_id"]
-    assert meta_payload["source_binding"]["source_kb_id"] == "b_target"
-    assert meta_payload["source_refs"][0]["record_id"] == "b_target"
-    # `persisted` must come BEFORE `done` so clients see the share URL
-    # in the same SSE flush as completion.
-    assert names.index("persisted") < names.index("done")
+def test_retired_persist_on_cannot_create_report_or_share_capability(client, isolated):
+    response=_assert_query_closed(client,{'b_id':'b_target','text_a':'why teams split','persist':1,'anon_id':'user-A'})
+    assert 'share_url' not in response.text and 'share_token' not in response.text
+    with isolated._connect() as conn:
+        assert conn.execute('SELECT count(*) FROM reports').fetchone()[0] == 0
 
 
-def test_persisted_report_readable_via_share_endpoint(client, isolated):
-    text = _stream_text(
-        client,
-        {
-            "b_id": "b_target", "text_a": "test",
-            "persist": 1, "anon_id": "user-A",
-        },
-    )
-    events = _parse_sse(text)
-    persisted = next(p for n, p in events if n == "persisted")
-
-    # Now read it back via the share endpoint.
-    share_token = urlsplit(persisted["share_url"]).path.rsplit("/", 1)[-1]
-    r = client.get(f"/api/report/share/{share_token}")
-    assert r.status_code == 200
-    body = r.json()
-    assert body["id"] == persisted["id"]
-    assert body["payload"]["shared_structure"]["name"] == "延迟反馈候选"
-    assert body["payload"]["schema_version"] == "deep-analysis-report-v2"
-    assert body["payload"]["report_boundary"]["mechanism_status"] == "not_verified"
+def test_sealed_historical_report_readable_via_share_endpoint(client, isolated):
+    saved=_seed_authorized_history(isolated,'user-A')
+    assert re.fullmatch(r'[0-9a-f]{32}',saved['share_token'])
+    response=client.get('/api/report/share/'+saved['share_token'])
+    assert response.status_code == 200,response.text
+    body=response.json()
+    assert body['id'] == saved['id']
+    assert body['payload']['shared_structure']['name'] == '延迟反馈候选'
+    assert body['payload']['schema_version'] == 'deep-analysis-report-v2'
+    assert body['payload']['report_boundary']['mechanism_status'] == 'not_verified'
+    assert 'share_token' not in body
 
 
-def test_persisted_row_records_creator_anon(client, isolated):
-    text = _stream_text(
-        client,
-        {
-            "b_id": "b_target", "text_a": "test",
-            "persist": 1, "anon_id": "user-X",
-        },
-    )
-    persisted = next(p for n, p in _parse_sse(text) if n == "persisted")
-    raw = isolated.get_by_id(persisted["id"])
-    assert raw["creator_anon_id"] == "user-X"
+def test_seeded_historical_row_preserves_creator_anon(client, isolated):
+    saved=_seed_authorized_history(isolated,'user-X')
+    assert isolated.get_by_id(saved['id'])['creator_anon_id'] == 'user-X'
+    _assert_query_closed(client,{'b_id':'b_target','text_a':'test','persist':1,'anon_id':'different-owner'})
+    assert isolated.get_by_id(saved['id'])['creator_anon_id'] == 'user-X'
 
 
 # --------- P0-1 end-to-end: persist → /reports/mine → /report/{id} -------- #
@@ -626,102 +578,58 @@ def test_persisted_row_records_creator_anon(client, isolated):
 # in the anon-id persist→list→get chain fails CI, not a live dogfood run.
 
 
-def test_persist_then_listed_in_reports_mine_header_anon(client, isolated):
-    """persist(X-Anon-Id=X) → /api/reports/mine (X-Anon-Id=X) lists it."""
-    text = _stream_text(
-        client,
-        {
-            "b_id": "b_target", "text_a": "teams split",
-            "persist": 1, "anon_id": "review-anon-3",
-        },
-    )
-    persisted = next(p for n, p in _parse_sse(text) if n == "persisted")
-
-    r = client.get("/api/reports/mine", headers={"X-Anon-Id": "review-anon-3"})
-    assert r.status_code == 200
-    body = r.json()
-    ids = [it["id"] for it in body["items"]]
-    assert persisted["id"] in ids, "persisted report must appear in /reports/mine"
+def test_historical_report_listed_only_for_owner_header_anon(client, isolated):
+    saved=_seed_authorized_history(isolated,'review-anon-3')
+    r=client.get('/api/reports/mine',headers={'X-Anon-Id':'review-anon-3'})
+    assert r.status_code == 200,r.text
+    assert saved['id'] in [it['id'] for it in r.json()['items']]
+    other=client.get('/api/reports/mine',headers={'X-Anon-Id':'different-owner'})
+    assert other.status_code == 200
+    assert saved['id'] not in [it['id'] for it in other.json()['items']]
 
 
-def test_persist_then_get_report_by_id_owner(client, isolated):
-    """persist(X-Anon-Id=X) → /api/report/{id} with the same anon-id → 200."""
-    text = _stream_text(
-        client,
-        {
-            "b_id": "b_target", "text_a": "teams split",
-            "persist": 1, "anon_id": "review-anon-3",
-        },
-    )
-    persisted = next(p for n, p in _parse_sse(text) if n == "persisted")
-
-    r = client.get(
-        f"/api/report/{persisted['id']}",
-        headers={"X-Anon-Id": "review-anon-3"},
-    )
-    assert r.status_code == 200
-    assert r.json()["id"] == persisted["id"]
+def test_historical_report_get_by_id_owner(client, isolated):
+    saved=_seed_authorized_history(isolated,'review-anon-3')
+    r=client.get('/api/report/'+saved['id'],headers={'X-Anon-Id':'review-anon-3'})
+    assert r.status_code == 200,r.text
+    assert r.json()['id'] == saved['id']
+    assert r.json()['payload']['report_boundary']['mechanism_status'] == 'not_verified'
 
 
-def test_persist_via_body_anon_id_listed_in_reports_mine(client, isolated):
-    """Body-only anon identity remains compatible with the report owner API."""
-    text = _stream_text(
-        client,
-        {
-            "b_id": "b_target", "text_a": "q",
-            "persist": 1, "anon_id": "review-anon-q",
-        },
-    )
-    persisted = next(p for n, p in _parse_sse(text) if n == "persisted")
-
-    r = client.get("/api/reports/mine", headers={"X-Anon-Id": "review-anon-q"})
-    assert r.status_code == 200
-    ids = [it["id"] for it in r.json()["items"]]
-    assert persisted["id"] in ids
+def test_body_anon_identity_validates_but_cannot_add_historical_rows(client, isolated):
+    from api.analyze import AnalyzeStreamRequest
+    payload={'b_id':'b_target','text_a':'teams split','persist':1,'anon_id':'review-anon-q'}
+    assert AnalyzeStreamRequest.model_validate(payload).anon_id == 'review-anon-q'
+    saved=_seed_authorized_history(isolated,'review-anon-q')
+    _assert_query_closed(client,payload)
+    r=client.get('/api/reports/mine',headers={'X-Anon-Id':'review-anon-q'})
+    assert r.status_code == 200,r.text
+    assert [it['id'] for it in r.json()['items']] == [saved['id']]
 
 
-def test_get_report_by_id_wrong_anon_is_404(client, isolated):
-    """A different anon-id reading someone's report → 404 (not 403)."""
-    text = _stream_text(
-        client,
-        {
-            "b_id": "b_target", "text_a": "q",
-            "persist": 1, "anon_id": "owner-anon",
-        },
-    )
-    persisted = next(p for n, p in _parse_sse(text) if n == "persisted")
-
-    r = client.get(
-        f"/api/report/{persisted['id']}",
-        headers={"X-Anon-Id": "someone-else"},
-    )
+def test_historical_report_by_id_wrong_anon_is_404(client, isolated):
+    saved=_seed_authorized_history(isolated,'owner-anon')
+    r=client.get('/api/report/'+saved['id'],headers={'X-Anon-Id':'someone-else'})
     assert r.status_code == 404
+    assert saved['share_token'] not in r.text
 
 
 # --------- P1-3: out-of-scope gate on /api/analyze/stream --------- #
 
 
-def test_analyze_refuses_arithmetic_query(client, isolated):
-    """"1+1=?" must NOT generate a report — emits a terminal `error`."""
-    text = _stream_text(
-        client,
-        {"b_id": "b_target", "text_a": "1+1=?"},
-    )
-    events = _parse_sse(text)
-    names = [n for n, _ in events]
-    assert "error" in names
-    assert "section" not in names, "off-topic query must not produce sections"
-    err = next(p for n, p in events if n == "error")
-    assert err["code"] == "out_of_scope"
+def test_analyze_arithmetic_is_http_422_before_sse(client, isolated):
+    r=client.post('/api/analyze/stream',json={'b_id':'b_target','text_a':'1+1=?'})
+    assert r.status_code == 422
+    assert literal_eval(r.json()["detail"])["error"] == "out_of_scope"
+    assert r.headers['content-type'].startswith('application/problem+json')
+    assert _parse_sse(r.text) == []
 
 
-def test_analyze_refuses_chitchat_query(client, isolated):
-    text = _stream_text(
-        client,
-        {"b_id": "b_target", "text_a": "你好"},
-    )
-    events = _parse_sse(text)
-    assert "error" in [n for n, _ in events]
+def test_analyze_chitchat_is_http_422_before_sse(client, isolated):
+    r=client.post('/api/analyze/stream',json={'b_id':'b_target','text_a':'你好'})
+    assert r.status_code == 422
+    assert literal_eval(r.json()["detail"])["error"] == "out_of_scope"
+    assert _parse_sse(r.text) == []
 
 
 def test_raw_oos_stops_before_init_kb_cache_llm_store_and_cost(
@@ -754,123 +662,53 @@ def test_raw_oos_stops_before_init_kb_cache_llm_store_and_cost(
     from services.cost_ledger import ledger
 
     monkeypatch.setattr(ledger, "charge", forbidden("cost"))
-    events = _parse_sse(
-        _stream_text(client, {"b_id": "b_target", "text_a": "1+1=?"})
-    )
-
-    assert [name for name, _ in events] == ["error"]
-    assert events[0][1]["code"] == "out_of_scope"
+    response = client.post("/api/analyze/stream", json={"b_id": "b_target", "text_a": "1+1=?"})
+    assert response.status_code == 422
+    assert literal_eval(response.json()["detail"])["error"] == "out_of_scope"
+    assert _parse_sse(response.text) == []
     assert search.get_calls == 0 and search.relevance_calls == 0
     assert cache.get_calls == 0 and cache.put_calls == 0
     assert store.create_calls == 0
     assert effects == {"init": 0, "llm": 0, "cost": 0}
 
 
-def test_query_persist_zero_skips_cache_and_report_store(client, monkeypatch):
-    cache = _SpyCache()
-    store = _SpyStore()
-    monkeypatch.setattr("api.analyze._cache", cache)
-    monkeypatch.setattr("api.analyze._report_store", store)
-    monkeypatch.setattr("api.analyze._llm", _FakeLLM())
-
-    events = _parse_sse(_stream_text(
-        client,
-        {
-            "b_id": "b_target",
-            "text_a": "why do teams fall apart",
-            "persist": 0,
-        },
-    ))
-
-    assert "done" in [name for name, _ in events]
-    assert cache.get_calls == 0 and cache.put_calls == 0
-    assert store.create_calls == 0
+def test_retired_query_persist_zero_skips_cache_store_and_preparation(client, monkeypatch):
+    _assert_query_closed(client,{'b_id':'b_target','text_a':'why do teams fall apart','persist':0})
 
 
 @pytest.mark.parametrize(
     "variant",
     ["error_then_done", "duplicate_done", "invalid_progress", "unknown"],
 )
-def test_analyze_rejects_invalid_internal_llm_stream_protocol(
+def test_retired_analyze_never_enters_invalid_internal_stream_protocol(
     client, isolated, monkeypatch, variant
 ):
-    from api import analyze as analyze_api
-
-    monkeypatch.setattr(
-        analyze_api,
-        "_llm",
-        _ProtocolViolatingLLM(variant),
-        raising=False,
-    )
-    text = _stream_text(
-        client,
-        {"b_id": "b_target", "text_a": "why teams recover slowly"},
-    )
-    events = _parse_sse(text)
-    names = [name for name, _ in events]
-    assert names.count("error") == 1
-    assert not {"report_validated", "section", "persisted", "done"}.intersection(names)
-    error = next(payload for name, payload in events if name == "error")
-    assert error["code"] == "report_protocol_failed"
+    # Each former protocol variant is now unreachable, including its first event.
+    llm=_ProtocolViolatingLLM(variant)
+    _assert_query_closed(client,{'b_id':'b_target','text_a':'why teams recover slowly'},llm)
 
 
-def test_analyze_converts_async_generator_exception_to_one_terminal_error(
+def test_retired_analyze_does_not_enter_or_retry_exploding_generator(
     client, isolated, monkeypatch, caplog
 ):
-    llm = _ExplodingLLM()
-    monkeypatch.setattr("api.analyze._llm", llm)
-
-    events = _parse_sse(_stream_text(
-        client,
-        {"b_id": "b_target", "text_a": "why teams recover slowly"},
-    ))
-    names = [name for name, _ in events]
-
-    assert llm.calls == 2
-    assert names.count("error") == 1
-    assert not {"report_validated", "section", "persisted", "done"}.intersection(
-        names
-    )
-    error = next(payload for name, payload in events if name == "error")
-    assert error == {
-        "code": "upstream_error",
-        "message": "研究草案未通过证据与来源校验，系统没有发布任何半成品。",
-        "retryable": True,
-    }
-    assert "private provider detail must not escape" not in caplog.text
+    llm=_ExplodingLLM()
+    response=_assert_query_closed(client,{'b_id':'b_target','text_a':'why teams recover slowly'},llm)
+    assert llm.calls == 0
+    assert 'private provider detail must not escape' not in caplog.text+response.text
 
 
-def test_api_revalidates_service_output_before_publishing(client, monkeypatch):
-    llm = _OverclaimLLM()
-    monkeypatch.setattr("api.analyze._llm", llm)
-    events = _parse_sse(_stream_text(
-        client,
-        {
-            "b_id": "b_target",
-            "text_a": "why do teams fall apart",
-            "fingerprint": {
-                "source_query": "why do teams fall apart",
-                "summary": "teams recover more slowly after conflict",
-                "variables": [],
-                "constraints": [],
-                "unknowns": [],
-                "revision": 2,
-            },
-        },
-    ))
-    names = [name for name, _ in events]
-
-    assert llm.calls == 2
-    assert names.count("error") == 1
-    assert not {"report_validated", "section", "persisted", "done"}.intersection(
-        names
-    )
-    assert next(payload for name, payload in events if name == "error")[
-        "code"
-    ] == "report_validation_failed"
+def test_pure_overclaim_rejected_and_retired_api_cannot_publish_it(client, monkeypatch):
+    from services.deep_report import validate_generated_deep_report_value
+    poisoned=_full_report(fingerprint_revision=999)
+    poisoned['shared_structure']['intuition']='迁移在所有案例中均有效。'
+    with pytest.raises(ValueError):
+        validate_generated_deep_report_value(poisoned,allowed_source_ref_ids={'kb:b_target'},source_ref_id='kb:b_target',fingerprint_revision=2)
+    llm=_OverclaimLLM()
+    _assert_query_closed(client,{'b_id':'b_target','text_a':'why do teams fall apart'},llm)
+    assert llm.calls == 0
 
 
-def test_forged_pair_cache_binding_forces_source_bound_live_regeneration(
+def test_forged_pair_cache_binding_cannot_force_live_regeneration(
     client, monkeypatch
 ):
     from api.analyze import _record_digest
@@ -912,27 +750,14 @@ def test_forged_pair_cache_binding_forces_source_bound_live_regeneration(
     monkeypatch.setattr("api.analyze._llm", llm)
     monkeypatch.setattr("api.analyze._cache", cache)
 
-    events = _parse_sse(_stream_text(
-        client,
-        {"a_id": "a_source", "b_id": "b_target"},
-    ))
-    names = [name for name, _ in events]
-    done = next(payload for name, payload in events if name == "done")
-
+    response = client.post("/api/analyze/stream", json={"a_id": "a_source", "b_id": "b_target"})
+    assert response.status_code == 503, response.text
+    assert response.json()["code"] == "FEATURE_UNAVAILABLE"
+    assert response.json()["retryable"] is False
+    assert _parse_sse(response.text) == []
     assert cache.get_calls == 1
-    assert llm.calls == 1
-    assert names.count("report_validated") == 1 and names.count("done") == 1
-    assert done["from_cache"] is False
-    assert [ref["record_id"] for ref in done["report"]["source_refs"]] == [
-        "a_source",
-        "b_target",
-    ]
-    source_ref_ids = set(
-        done["report"]["target_domain_intro"]["corresponding_phenomenon"][
-            "source_ref_ids"
-        ]
-    )
-    assert source_ref_ids == {"kb:a_source"}
+    assert llm.calls == 0
+    assert "invented-record" not in response.text
 
 
 @pytest.mark.parametrize(
@@ -988,120 +813,35 @@ def test_deep_remote_protocol_error_is_retryable_but_local_protocol_error_is_not
     assert "secret" not in _classify_llm_error(remote)
 
 
-def test_analyze_retries_remote_protocol_interruption_and_fails_atomically(
+def test_retired_analyze_cannot_start_or_retry_remote_protocol_request(
     client, isolated, monkeypatch
 ):
-    import httpx
-    from api import analyze as analyze_api
     from services import llm_service
-
-    class InterruptedClient:
-        def __init__(self):
-            self.calls = 0
-
-        def stream(self, *args, **kwargs):
-            self.calls += 1
-            raise httpx.RemoteProtocolError("secret partial provider response")
-
-    interrupted = InterruptedClient()
-    service = llm_service.LLMService()
-    service.api_key = "test-only-key"
-    monkeypatch.setattr(llm_service, "_get_http_client", lambda: interrupted)
-    monkeypatch.setattr(analyze_api, "_llm", service, raising=False)
-
-    events = _parse_sse(_stream_text(
-        client,
-        {"b_id": "b_target", "text_a": "why teams recover slowly"},
-    ))
-    names = [name for name, _ in events]
-    error = next(payload for name, payload in events if name == "error")
-
-    assert interrupted.calls == 2
-    assert names.count("error") == 1
-    assert not {"report_validated", "section", "persisted", "done"}.intersection(
-        names
-    )
-    assert error == {
-        "code": "upstream_error",
-        "message": "研究草案未通过证据与来源校验，系统没有发布任何半成品。",
-        "retryable": True,
-    }
+    from unittest.mock import Mock
+    factory=Mock(side_effect=AssertionError('no provider client'))
+    monkeypatch.setattr(llm_service,'_get_http_client',factory)
+    service=llm_service.LLMService()
+    service.api_key='synthetic-test-only'
+    _assert_query_closed(client,{'b_id':'b_target','text_a':'why teams recover slowly'},service)
+    factory.assert_not_called()
 
 
-def test_deep_provider_attempt_has_wall_clock_deadline_before_browser(monkeypatch):
+def test_retired_deep_provider_is_rejected_before_timeout_or_client_creation(monkeypatch):
     import asyncio
-    import httpx
+    from errors import LegacyPaidUnavailable
     from services import llm_service
-    from services.deep_report import SourceRef
-
-    observed = {}
-
-    class SlowResponse:
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc, traceback):
-            return False
-
-        def raise_for_status(self):
-            return None
-
-        async def aiter_lines(self):
-            await asyncio.sleep(1)
-            yield "data: [DONE]"
-
-    class SlowClient:
-        def stream(self, *args, **kwargs):
-            observed["timeout"] = kwargs["timeout"]
-            return SlowResponse()
-
-    production_timeout = llm_service.DEEP_REPORT_ATTEMPT_TIMEOUT_SECONDS
-    monkeypatch.setattr(llm_service, "_get_http_client", lambda: SlowClient())
-    monkeypatch.setattr(llm_service, "DEEP_REPORT_ATTEMPT_TIMEOUT_SECONDS", 0.01)
-    service = llm_service.LLMService()
-    service.api_key = "test-only-key"
-    source_ref = SourceRef(
-        source_ref_id="kb:b_target",
-        source_kind="internal_kb",
-        record_id="b_target",
-        label="Target phenomenon",
-        limitations="Internal candidate only.",
-    )
-
+    from unittest.mock import Mock
+    factory=Mock(side_effect=AssertionError('no client construction'))
+    monkeypatch.setattr(llm_service,'_get_http_client',factory)
+    service=llm_service.LLMService()
     async def collect():
-        return [
-            chunk
-            async for chunk in service.stream_deep_analysis(
-                {
-                    "id": "b_target",
-                    "name": "Target phenomenon",
-                    "domain": "test",
-                    "type_id": "T",
-                    "description": "Target description",
-                },
-                {
-                    "id": "__query__",
-                    "name": "Question",
-                    "domain": "test",
-                    "type_id": "unknown",
-                    "description": "Why do teams recover slowly?",
-                },
-                source_refs=[source_ref],
-                fingerprint=None,
-                lang="zh",
-            )
-        ]
-
-    chunks = asyncio.run(collect())
-    assert chunks == [{
-        "type": "error",
-        "code": "upstream_timeout",
-        "retryable": True,
-    }]
-    assert isinstance(observed["timeout"], httpx.Timeout)
-    assert observed["timeout"].read == 0.01
-    assert 110 <= production_timeout <= 120
-    assert production_timeout * 2 < 300
+        return [chunk async for chunk in service.stream_deep_analysis({}, {},source_refs=[],fingerprint=None,lang='zh')]
+    with pytest.raises(LegacyPaidUnavailable):
+        asyncio.run(collect())
+    factory.assert_not_called()
+    # Retain the old timeout configuration bound without claiming a live attempt.
+    deadline=llm_service.DEEP_REPORT_ATTEMPT_TIMEOUT_SECONDS
+    assert 110 <= deadline <= 120 and deadline*2 < 300
 
 
 def test_deep_prompt_separates_source_evidence_from_comparison_provenance():
@@ -1156,29 +896,47 @@ def test_deep_prompt_separates_source_evidence_from_comparison_provenance():
 # --------- P0-2: daily LLM budget circuit breaker --------- #
 
 
-def test_analyze_over_budget_emits_friendly_error(client, isolated, monkeypatch):
-    """When the daily cap is hit, /api/analyze/stream emits a friendly
-    `error` event (code budget_exceeded), NOT a crash and NOT a report."""
-    # Drive a tiny positive cap and exhaust it. Use the real singleton the
-    # endpoint imports. reset() AFTER setenv so the date/count are fresh.
-    monkeypatch.setenv("STRUCTURAL_LLM_DAILY_CALL_CAP", "1")
+def test_retired_analyze_keeps_exhausted_budget_unchanged(client, isolated, monkeypatch):
+    monkeypatch.setenv('STRUCTURAL_LLM_DAILY_CALL_CAP','1')
     from services.cost_ledger import ledger
     ledger.reset()
-    assert ledger.snapshot()["cap"] == 1
-    # First request consumes the single allowed slot (real generation).
-    first = _stream_text(
-        client,
-        {"b_id": "b_target", "text_a": "why teams split"},
-    )
-    assert "section" in [n for n, _ in _parse_sse(first)]
-    # Second request is over budget.
-    text = _stream_text(
-        client,
-        {"b_id": "b_target", "text_a": "why teams split again"},
-    )
-    events = _parse_sse(text)
-    err = next((p for n, p in events if n == "error"), None)
-    assert err is not None, "over-budget request must emit an error event"
-    assert err["code"] == "budget_exceeded"
-    assert "section" not in [n for n, _ in events]
-    ledger.reset()
+    ledger.charge(endpoint='/api/analyze/stream')
+    before=ledger.snapshot()
+    try:
+        _assert_query_closed(client,{'b_id':'b_target','text_a':'why teams split','persist':1})
+        assert ledger.snapshot() == before
+    finally:
+        ledger.reset()
+
+
+def _assert_query_closed(client, payload, llm=None):
+    """Actual HTTP failure before preparation; never synthesize a fake SSE result."""
+    from api import analyze
+    from unittest.mock import Mock, patch
+    cache, store = _SpyCache(), _SpyStore()
+    search = _SpySearchService()
+    prepare = Mock(side_effect=AssertionError("query preparation must not run"))
+    binding = Mock(side_effect=AssertionError("query binding must not run"))
+    send = Mock(side_effect=AssertionError("provider must not run"))
+    with patch("main.app_state", {"search": search}), patch.object(analyze, "_init", prepare), patch.object(analyze, "_query_binding", binding), patch.object(analyze, "_cache", cache), patch.object(analyze, "_report_store", store), patch.object(analyze, "_llm", llm or _FakeLLM()):
+        with patch.object(analyze._llm, "stream_deep_analysis", send):
+            response = client.post("/api/analyze/stream", json=payload)
+    assert response.status_code == 503, response.text
+    body = response.json()
+    assert body["code"] == "FEATURE_UNAVAILABLE" and body["retryable"] is False
+    assert body["canonical"] == "/research"
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert _parse_sse(response.text) == []
+    prepare.assert_not_called(); binding.assert_not_called(); send.assert_not_called()
+    assert search.get_calls == search.relevance_calls == 0
+    assert cache.get_calls == cache.put_calls == store.create_calls == 0
+    return response
+
+
+def _seed_authorized_history(store, owner):
+    """Pre-existing sealed v2 archive; this is not a successful generation run."""
+    from tests.test_report_api import _create_current_v2_report
+    saved, _ = _create_current_v2_report(store)
+    with store._connect() as conn:
+        conn.execute("UPDATE reports SET creator_anon_id=? WHERE id=?", (owner, saved["id"]))
+    return saved

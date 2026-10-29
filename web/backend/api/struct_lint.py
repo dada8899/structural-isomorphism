@@ -9,6 +9,12 @@ emits progress events (extract → claims → per-claim candidate reference) so 
 frontend can show live progress instead of a 36-165s blank wait. The
 POST endpoint is kept for backward compatibility.
 """
+
+if __package__ == "web.backend.api":
+    from ..errors import deny_legacy_paid
+else:
+    from errors import deny_legacy_paid
+
 import json as _json
 import unicodedata
 
@@ -77,17 +83,7 @@ class StructLintRequest(BaseModel):
         return normalized
 
 
-@router.post("/struct-lint", response_model=StructLintResponse)
-async def struct_lint(req: StructLintRequest):
-    """Extract structural claims + failure modes from a document.
-
-    Responses:
-      200 — {"summary", "claims": [...]}
-      400 — empty or over-long document
-      503 — no LLM key configured / LLM call failed
-    """
-    document = req.document or ""
-
+def _legacy_document_input_error(document: str):
     # --- Input validation (cheap, before any LLM call) ---
     err = check_doc_length(document)
     if err == "empty_document":
@@ -116,6 +112,24 @@ async def struct_lint(req: StructLintRequest):
                 "message": "这里只筛查策略、方案或决策文档中的结构性主张。",
             },
         )
+
+    return None
+
+
+@router.post("/struct-lint", response_model=StructLintResponse)
+async def struct_lint(req: StructLintRequest):
+    """Extract structural claims + failure modes from a document.
+
+    Responses:
+      200 — {"summary", "claims": [...]}
+      400 — empty or over-long document
+      503 — no LLM key configured / LLM call failed
+    """
+    document = req.document or ""
+    invalid = _legacy_document_input_error(document)
+    if invalid is not None:
+        return invalid
+    deny_legacy_paid()
 
     # --- LLM availability gate — fail clean, don't attempt a doomed call ---
     if not llm_client.llm_available():
@@ -199,10 +213,13 @@ async def struct_lint_stream(req: StructLintRequest):
       done     — {"result": {"summary", "claims": [...]}} final payload.
       error    — {"error", "message"} terminal failure.
 
-    Validation errors (empty / too-long doc, no LLM key) are surfaced as a
-    terminal `error` event rather than an HTTP status, because by the time
-    the generator runs the 200 + headers are already sent.
+    Pure input failures are HTTP responses before any SSE/meta. Valid input
+    remains explicitly unavailable; this does not restore the retired stream.
     """
+    invalid = _legacy_document_input_error(req.document or "")
+    if invalid is not None:
+        return invalid
+    deny_legacy_paid()
 
     def sse(event_type: str, data: dict) -> str:
         return f"event: {event_type}\ndata: {_json.dumps(data, ensure_ascii=False)}\n\n"

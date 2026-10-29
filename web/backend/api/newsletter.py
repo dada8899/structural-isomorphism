@@ -1,32 +1,19 @@
-"""
-POST /api/newsletter/subscribe — beta site newsletter signup.
+"""Closed subscription endpoints for this release.
 
-Session #9 W2-A: beta site previously only had `/api/waitlist` (cross-origin POST
-to the phase backend). Beta-native readers of /start-here, /learn, /discoveries
-had no way to subscribe. This endpoint captures email + source into a local
-JSONL file. Storage is intentionally simple (append-only, dedupe by email);
-backfill to Buttondown happens later via a separate cron job.
-
-Body (JSON):
-    { "email": "user@example.com", "source": "start-here-essay-end" }
-
-Response:
-    200  { "ok": true,  "created": true,  "email": "<normalized>" }
-    200  { "ok": true,  "created": false, "email": "<normalized>" }   # duplicate
-    400  { "ok": false, "error": "invalid email" }
-    400  { "ok": false, "error": "invalid source" }
+Existing lists and external unsubscribe arrangements are not changed. The
+HTTP routes deliberately declare no body, never inspect submitted data and
+never call the legacy storage helpers retained below for separate maintenance.
 """
 import json
 import re
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from schemas import NewsletterCountResponse
 if __package__ == "web.backend.api":
     from ..logging_config import get_logger, new_incident_id
 else:
@@ -94,68 +81,29 @@ class SubscribeBody(BaseModel):
     source: Optional[str] = "unknown"
 
 
-@router.post("/newsletter/subscribe")
-async def subscribe(body: SubscribeBody, request: Request):
-    email = (body.email or "").strip().lower()
-    source = (body.source or "unknown").strip().lower()
-
-    # --- Validation ---
-    if not email or len(email) > _MAX_EMAIL_LEN or not _EMAIL_RE.match(email):
-        return JSONResponse(
-            {"ok": False, "error": "invalid email"}, status_code=400
-        )
-    if len(source) > _MAX_SOURCE_LEN or source not in _ALLOWED_SOURCES:
-        return JSONResponse(
-            {"ok": False, "error": "invalid source"}, status_code=400
-        )
-
-    # --- Dedupe (cheap linear scan) ---
-    if _is_duplicate(email):
-        logger.info("newsletter.duplicate")
-        return JSONResponse(
-            {"ok": True, "created": False, "email": email}
-        )
-
-    # --- Persist ---
-    f = _data_file()
-    f.parent.mkdir(parents=True, exist_ok=True)
-    entry = {
-        "email": email,
-        "source": source,
-        "ts": int(time.time()),
-        "iso": time.strftime("%Y-%m-%d %H:%M:%S"),
-    }
-    try:
-        with open(f, "a", encoding="utf-8") as fh:
-            fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
-    except Exception as exc:
-        # Storage failure is the only error path we don't swallow — surface to
-        # client so JS shows "try again". Otherwise data loss is silent.
-        logger.error(
-            "newsletter.write_failed",
-            error_type=type(exc).__name__,
-            incident_id=new_incident_id(),
-        )
-        return JSONResponse(
-            {"ok": False, "error": "storage failure"}, status_code=500
-        )
-
-    logger.info("newsletter.signup")
-    return JSONResponse(
-        {"ok": True, "created": True, "email": email}
-    )
+class SubscriptionUnavailableResponse(BaseModel):
+    ok: Literal[False] = False
+    created: Literal[False] = False
+    error: Literal["newsletter_unavailable", "waitlist_unavailable"]
+    detail: str
 
 
-@router.get("/newsletter/count", response_model=NewsletterCountResponse)
+def unavailable_response(kind: Literal["newsletter", "waitlist"] = "newsletter") -> JSONResponse:
+    return JSONResponse({
+        "ok": False,
+        "created": False,
+        "error": kind + "_unavailable",
+        "detail": "新增订阅暂不可用。既有订阅请查看原邮件中的退订说明。",
+    }, status_code=503, headers={"Cache-Control": "no-store"})
+
+
+@router.post("/newsletter/subscribe", status_code=503, response_model=SubscriptionUnavailableResponse)
+async def subscribe(request: Request):
+    """New subscriptions are unavailable; submitted bodies are never consumed."""
+    return unavailable_response()
+
+
+@router.get("/newsletter/count", status_code=503, response_model=SubscriptionUnavailableResponse)
 async def count():
-    """Public count of subscribers (used by future social-proof widgets).
-    Cheap-but-not-cached — at our scale (~MB jsonl), a full scan is < 5ms."""
-    f = _data_file()
-    if not f.exists():
-        return {"count": 0}
-    n = 0
-    with open(f, "r", encoding="utf-8") as fh:
-        for line in fh:
-            if line.strip():
-                n += 1
-    return {"count": n}
+    """The closed endpoint does not read or disclose a subscriber count."""
+    return unavailable_response()

@@ -2,8 +2,10 @@
 Structural Web Backend — FastAPI 入口
 """
 import logging
+import importlib
 import os
 import sys
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -20,16 +22,28 @@ _project_root = os.getenv("STRUCTURAL_PROJECT_ROOT") or str(
 )
 sys.path.insert(0, _project_root)
 
-load_dotenv(Path(__file__).parent / ".env")
+if __package__ == "web.backend":
+    from .services.runtime_paths import FormalAdmissionError, FormalAdmissionMiddleware, require_formal_admission
+else:
+    from services.runtime_paths import FormalAdmissionError, FormalAdmissionMiddleware, require_formal_admission
+
+_launch_profile = os.getenv('STRUCTURAL_ENV', 'dev')
+_LAUNCH_FORMAL = _launch_profile.strip().lower() == 'prod'
+if _LAUNCH_FORMAL and _launch_profile != 'prod':
+    raise RuntimeError('formal Main requires canonical production profile')
+if not _LAUNCH_FORMAL:
+    load_dotenv(Path(__file__).parent / ".env")
 # Session #16: deploy-vps.sh writes a `.env.runtime` next to .env with the
 # git SHA + deploy timestamp so /api/version can return real values (instead
 # of "unknown"). Loaded *after* .env so deploy-time values override anything
 # baked into a committed .env (which shouldn't happen, but defense in depth).
-load_dotenv(Path(__file__).parent / ".env.runtime", override=True)
+if not _LAUNCH_FORMAL:
+    load_dotenv(Path(__file__).parent / ".env.runtime", override=True)
 
 # W14-D: structlog + correlation IDs. configure_logging() installs a
-# JSON-line handler on the root logger (stdout) + a rotating file handler
-# at web/backend/logs/server.jsonl, then routes uvicorn/fastapi/slowapi
+# JSON-line handler on the root logger (stdout). Explicit development setup
+# also adds the rotating file sink; formal stays stdout-only until admission.
+# The same processors route uvicorn/fastapi/slowapi
 # through the same pipeline. Must run *before* any logger.info() call so
 # we don't accidentally bake in the old text format.
 if __package__ == "web.backend":
@@ -94,6 +108,15 @@ def _resolve_git_sha() -> str:
         return "unknown"
 
 
+from errors import LegacyPaidUnavailable, deny_legacy_paid
+
+_LEGACY_PHASE_PAID_PATHS = frozenset({
+    "/phase/api/redteam", "/phase/api/deep-report", "/phase/api/analogy",
+    "/phase/api/analogy-detail", "/phase/api/analogy-detail/stream",
+    "/phase/api/analogy/stream", "/phase/api/memo/stream",
+})
+
+
 async def _phase_urlopen_json(req, timeout: int) -> dict:
     """Run a blocking urllib request off the event loop, return parsed JSON.
 
@@ -103,6 +126,7 @@ async def _phase_urlopen_json(req, timeout: int) -> dict:
     other request on the Structural site. `run_in_threadpool` keeps the loop
     free. (The /phase/*/stream endpoints already use httpx.AsyncClient.)
     """
+    deny_legacy_paid()
     import json as _json
     import urllib.request as _req
     from starlette.concurrency import run_in_threadpool
@@ -118,6 +142,113 @@ async def _phase_urlopen_json(req, timeout: int) -> dict:
 async def lifespan(app: FastAPI):
     """Startup: load the search engine once."""
     logger.info("startup.begin")
+    if _IS_PROD:
+        from services import formal_admission
+        if formal_admission._STATE.get(id(app)) is not None:
+            raise RuntimeError('an actual Main lifespan is already active')
+        app_state.pop("search", None)
+        app_state.pop("artifact", None)
+        binding = search_service = None
+        source_supervisor = supervisor = None
+        native_module = native_context = native_supervisor = None
+        primary = None
+        try:
+            auth_api._validate_production_config()
+            binding = formal_admission.initialize(app)
+            configured = tuple(os.getenv(key) for key in ('STRUCTURAL_DATA_DIR', 'STRUCTURAL_MODEL_PATH',
+                'STRUCTURAL_PRECOMPUTED_EMBEDDINGS', 'STRUCTURAL_ARTIFACT_MANIFEST'))
+            if any(configured):
+                if not all(configured):
+                    raise RuntimeError('complete approved search artifacts required')
+                from services.search_service import SearchService
+                search_service = SearchService(data_dir=configured[0], model_path=configured[1],
+                    precomputed_embeddings=configured[2], artifact_manifest=configured[3],
+                    kb_file=os.getenv('STRUCTURAL_KB_FILE', 'kb-expanded.jsonl'), formal=True)
+            formal_admission.publish(app, binding, search_service)
+            native_module=importlib.import_module(binding.service.__module__.rsplit('.',1)[0]+'.native_plan_supervisor')
+            native_context=native_module.prepare_main_context(binding.service,binding)
+            try:
+                source_supervisor = importlib.import_module(
+                    binding.service.__module__.rsplit('.', 1)[0] + '.source_supervisor')
+                formal_admission.pin_source_module(app, binding, source_supervisor)
+                # Core verifies this direct, actual lifespan caller. STARTING
+                # remains unavailable; neither facts nor this assignment grant it.
+                supervisor = source_supervisor.start(binding.service, binding)
+            except BaseException as error:
+                if source_supervisor is not None and type(error) is source_supervisor.SourceStartFailure:
+                    supervisor = error.supervisor
+                logger.warning('startup.source_supervisor_unavailable')
+            if supervisor is not None:
+                formal_admission.attach_source(app, binding, source_supervisor, supervisor)
+            try:
+                native_supervisor=native_module.start(binding.service,binding)
+            except BaseException as error:
+                if type(error) is native_module.NativePlanStartFailure:native_supervisor=error.supervisor
+                logger.warning('startup.native_plan_unavailable')
+            if native_supervisor is not None:formal_admission.attach_native(app,binding,native_module,native_supervisor)
+            if search_service is not None:
+                app_state['search'], app_state['artifact'] = search_service, search_service.artifact
+            yield
+        except BaseException as error:
+            primary = error
+            raise
+        finally:
+            errors = []
+            deadline = time.monotonic() + 20
+            if binding is not None and binding.source_deadline is not None and not formal_admission.source_closed(binding):deadline=min(deadline,binding.source_deadline)
+            if native_context is not None:
+                try:deadline=native_module.shrink_main_deadline(native_context,deadline_monotonic=deadline)
+                except BaseException as error:errors.append(type(error).__name__)
+            if binding is not None and native_supervisor is not None and binding.native_supervisor is None:
+                binding.native_module,binding.native_context,binding.native_supervisor=native_module,native_context,native_supervisor
+            # Core may have returned an owned thread before the subsequent
+            # attachment/check raised. Never lose that actual local handle.
+            if binding is not None and supervisor is not None and binding.supervisor is None:
+                binding.source_module, binding.supervisor = source_supervisor, supervisor
+            # HTTP withdrawal cannot wait behind the Source dispatch mutex.
+            try:
+                withdrawn = formal_admission.withdraw(app)
+                if binding is None:
+                    binding = withdrawn
+            except BaseException as error:
+                errors.append(type(error).__name__)
+            app_state.pop('search', None); app_state.pop('artifact', None)
+            source_closed = binding is None
+            native_closed = binding is None
+            history_closed = binding is None
+            if binding is not None:
+                if binding.source_deadline is not None and not formal_admission.source_closed(binding):
+                    deadline = min(deadline, binding.source_deadline)
+                try:
+                    formal_admission.close_source(binding, deadline_monotonic=deadline)
+                except BaseException as error:
+                    errors.append(type(error).__name__)
+                source_closed = formal_admission.source_closed(binding)
+                try:formal_admission.close_native(binding,deadline_monotonic=deadline)
+                except BaseException as error:errors.append(type(error).__name__)
+                native_closed=formal_admission.native_closed(binding)
+                try:await formal_admission.drain_history_reads(binding,deadline_monotonic=deadline)
+                except BaseException as error:errors.append(type(error).__name__)
+                history_closed=formal_admission.history_reads_closed(binding)
+                if source_closed and native_closed and history_closed:
+                    try:
+                        formal_admission.release(binding, deadline_monotonic=deadline)
+                    except BaseException as error:
+                        errors.append(type(error).__name__)
+            if search_service is not None and source_closed and native_closed and history_closed:
+                try:
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError('Main cleanup deadline ended')
+                    search_service.close()
+                except BaseException as error:
+                    errors.append(type(error).__name__)
+            if errors:
+                formal_admission.preserve_retirement_uncertainty(app, binding, search_service, errors)
+            if errors and primary is None:
+                raise RuntimeError('formal Main retirement uncertain')
+            if errors and primary is not None:
+                primary.add_note('formal Main retirement uncertain')
+        return
 
     # Authentication deployment constraints are runtime security boundaries,
     # not merely deploy-script conventions. A production beta process must
@@ -166,7 +297,7 @@ async def lifespan(app: FastAPI):
 
     if _IS_PROD and not manifest_path:
         raise RuntimeError("STRUCTURAL_ARTIFACT_MANIFEST is required in production")
-    if manifest_path:
+    if manifest_path and not _IS_PROD:
         if not data_dir or not model_path or not precomputed:
             raise RuntimeError(
                 "artifact validation requires STRUCTURAL_DATA_DIR, "
@@ -187,15 +318,23 @@ async def lifespan(app: FastAPI):
         kb_file=kb_file,
         model_path=model_path,
         precomputed_embeddings=precomputed,
+        **({"formal": True, "artifact_manifest": manifest_path} if _IS_PROD else {}),
     )
-    app_state["search"] = search_service
-    if _IS_PROD and search_service.kb_size == 0:
-        raise RuntimeError("production search service loaded an empty knowledge base")
-    logger.info("startup.search_ready", kb_count=search_service.kb_size)
+    try:
+        if _IS_PROD and search_service.kb_size == 0:
+            raise RuntimeError("production search service loaded an empty knowledge base")
+        if _IS_PROD:
+            app_state["artifact"] = search_service.artifact
+        app_state["search"] = search_service
+        logger.info("startup.search_ready", kb_count=search_service.kb_size)
 
-    yield
-
-    logger.info("shutdown.begin")
+        yield
+    finally:
+        if _IS_PROD:
+            app_state.pop("search", None)
+            app_state.pop("artifact", None)
+            search_service.close()
+        logger.info("shutdown.begin")
 
 
 app = FastAPI(
@@ -345,6 +484,12 @@ install_correlation_middleware(app)
 @app.middleware("http")
 async def gate_unfinished_production_surfaces(request: Request, call_next):
     """Fail closed for scaffolds that are not production products yet."""
+    if request.method == "POST" and request.url.path in _LEGACY_PHASE_PAID_PATHS:
+        return JSONResponse(
+            LegacyPaidUnavailable().to_dict(instance=request.url.path),
+            status_code=503, media_type="application/problem+json",
+            headers={"Cache-Control": "no-store"},
+        )
     if not _IS_PROD:
         return await call_next(request)
     path = request.url.path
@@ -367,7 +512,30 @@ async def gate_unfinished_production_surfaces(request: Request, call_next):
         return JSONResponse(
             {"error": "account_features_not_available"}, status_code=503
         )
+    # A basic native binding does not admit unrelated legacy external writers.
+    if path.startswith('/api/'):
+        basic = ('/api/auth/', '/api/me/', '/api/research', '/api/favorites', '/api/history',
+                 '/api/report', '/api/reports/', '/api/sso/', '/api/privacy/')
+        system = path in ('/api/health', '/api/version')
+        retrieval = path.startswith(('/api/search', '/api/phenomenon', '/api/mapping', '/api/daily',
+            '/api/examples', '/api/suggest', '/api/discoveries')) and request.method in ('GET', 'HEAD')
+        if retrieval:
+            from services import formal_admission
+            try:
+                search_ready = formal_admission.safe_status(request.app)['search'] == 'ready'
+            except RuntimeError:
+                search_ready = False
+            if not search_ready:
+                return JSONResponse({'error': 'search_not_ready'}, status_code=503, headers={'Cache-Control': 'no-store'})
+        elif not system and not path.startswith(basic):
+            return JSONResponse({'error': 'surface_not_admitted'}, status_code=503, headers={'Cache-Control': 'no-store'})
     return await call_next(request)
+
+
+# Added after every other user middleware so the raw ASGI boundary runs
+# before tier/auth dependencies, legacy gates, static routing or body reads.
+# This applies to ASGITransport and servers with lifespan disabled as well.
+app.add_middleware(FormalAdmissionMiddleware, formal=_IS_PROD)
 
 
 # --- Shared getter for dependency ---
@@ -413,6 +581,8 @@ app.include_router(favorites.router, prefix="/api")
 # Canonical beta magic-link auth + JWT session cookies. Production delivery
 # uses the configured SMTP transport and fails closed when unavailable.
 app.include_router(auth_api.router, prefix="/api")
+from api import research as research_api  # noqa: E402
+app.include_router(research_api.router, prefix="/api")
 # Session #16 M1.4 — persisted analyze reports + share + feedback.
 from api import report as report_api  # noqa: E402
 app.include_router(report_api.router, prefix="/api")
@@ -479,6 +649,18 @@ from schemas import HealthResponse, VersionResponse, WhoAmIResponse  # noqa: E40
     },
 )
 async def health(deep: int = 0):
+    if _IS_PROD:
+        try:
+            require_formal_admission(app)
+            from services import formal_admission
+            status = formal_admission.safe_status(app)
+        except RuntimeError:
+            return JSONResponse({"status": "unavailable", "checks": {"private_runtime": "not_admitted"}},
+                                status_code=503, headers={"Cache-Control": "no-store"})
+        limited = status['search'] != 'ready'
+        return JSONResponse({'status': 'limited' if limited else 'ok', 'kb_size': app_state.get('search').kb_size if not limited else 0,
+            'llm_model': 'not_probed', 'checks': status}, status_code=503 if deep and limited else 200,
+            headers={'Cache-Control': 'no-store'})
     svc = app_state.get("search")
     body = {
         "status": "ok",
@@ -666,6 +848,15 @@ async def search_page():
     return FileResponse(FRONTEND_DIR / "search.html")
 
 
+@app.get("/research", include_in_schema=False)
+@app.get("/research/{research_id}", include_in_schema=False)
+async def research_page():
+    return FileResponse(
+        FRONTEND_DIR / "research.html",
+        headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+    )
+
+
 @app.get("/auth/login", include_in_schema=False)
 async def unified_auth_login():
     """Serve the beta-native, same-origin account entrypoint."""
@@ -767,6 +958,7 @@ async def phase_api_redteam(request: Request):
     Run structural red team analysis on a user-supplied thesis.
     Returns 3 structurally vulnerable assumptions + historical precedents.
     """
+    deny_legacy_paid()
     import json as _json
     import os as _os
     import urllib.request as _req
@@ -873,6 +1065,7 @@ Thesis 内容：
 @app.post("/phase/api/deep-report", include_in_schema=False)
 async def phase_api_deep_report(request: Request):
     """Generate a deep structural report for a given company on demand."""
+    deny_legacy_paid()
     import json as _json
     import os as _os
     import urllib.request as _req
@@ -966,33 +1159,16 @@ async def phase_api_deep_report(request: Request):
         return JSONResponse({"error": "LLM call failed"}, status_code=500)
 
 
-@app.post("/phase/api/waitlist", include_in_schema=False)
+@app.post("/phase/api/waitlist", status_code=503, include_in_schema=False)
 async def phase_api_waitlist(request: Request):
-    """Append email to waitlist file."""
-    import json as _json
-    import time as _time
-    try:
-        body = await request.json()
-    except Exception:
-        return JSONResponse({"error": "invalid JSON"}, status_code=400)
-    email = (body.get("email") or "").strip().lower()
-    if not email or "@" not in email or len(email) > 200:
-        return JSONResponse({"error": "invalid email"}, status_code=400)
-    waitlist_file = FRONTEND_DIR / "phase" / "data" / "waitlist.jsonl"
-    waitlist_file.parent.mkdir(parents=True, exist_ok=True)
-    entry = {
-        "email": email,
-        "ts": int(_time.time()),
-        "iso": _time.strftime("%Y-%m-%d %H:%M:%S"),
-    }
-    with open(waitlist_file, "a", encoding="utf-8") as f:
-        f.write(_json.dumps(entry, ensure_ascii=False) + "\n")
-    return JSONResponse({"ok": True})
+    """The same-release legacy capture route is closed without reading a body."""
+    return newsletter.unavailable_response("waitlist")
 
 
 @app.post("/phase/api/analogy", include_in_schema=False)
 async def phase_api_analogy(request: Request):
     """Generate 3 historical structural analogies for a company."""
+    deny_legacy_paid()
     import json as _json
     import os as _os
     import urllib.request as _req
@@ -1127,6 +1303,7 @@ async def phase_analogy_page():
 @app.post("/phase/api/analogy-detail", include_in_schema=False)
 async def phase_api_analogy_detail(request: Request):
     """Deep analysis (~1500-2000 zh) on ONE specific historical analogy."""
+    deny_legacy_paid()
     import json as _json
     import os as _os
     import urllib.request as _req
@@ -1309,6 +1486,7 @@ async def phase_analogy_detail_page():
 @app.post("/phase/api/analogy-detail/stream", include_in_schema=False)
 async def phase_api_analogy_detail_stream(request: Request):
     """Streaming deep analysis — forwards OpenRouter SSE to the browser."""
+    deny_legacy_paid()
     import json as _json
     import os as _os
     import urllib.request as _req
@@ -1537,6 +1715,7 @@ note: {struct.get('note', '?')}
 @app.post("/phase/api/analogy/stream", include_in_schema=False)
 async def phase_api_analogy_stream(request: Request):
     """Streaming list view — 3 analogies as JSON, but streamed char-by-char."""
+    deny_legacy_paid()
     import json as _json
     import os as _os
     import urllib.request as _req
@@ -1774,6 +1953,7 @@ async def phase_about_page():
 @app.post("/phase/api/memo/stream", include_in_schema=False)
 async def phase_api_memo_stream(request: Request):
     """流式生成投资 memo 模板 — Sonnet 4.5，6 板块结构化 Markdown。"""
+    deny_legacy_paid()
     import json as _json
     import os as _os
     import asyncio as _asyncio

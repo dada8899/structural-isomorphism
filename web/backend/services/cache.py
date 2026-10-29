@@ -4,6 +4,7 @@ Mapping Cache — JSONL 文件缓存 LLM 生成的映射结果。
 from copy import deepcopy
 import hashlib
 import json
+import re
 from pathlib import Path
 from threading import Lock
 from typing import Any, Callable, Dict, Optional
@@ -13,6 +14,19 @@ else:
     from logging_config import get_logger, new_incident_id
 
 logger = get_logger("structural.cache")
+
+
+def mapping_source_binding(source: dict, target: dict, artifact_id: str) -> dict:
+    """Freeze at cache production time; readers only compare, never backfill."""
+    if type(artifact_id) is not str or not 1 <= len(artifact_id) <= 120:
+        raise ValueError("mapping artifact identity required")
+    def record_digest(record):
+        if type(record) is not dict: raise ValueError("public source record required")
+        payload = {k: record.get(k) for k in ("id", "name", "domain", "type_id", "description")}
+        if any(type(v) is not str or not v for v in payload.values()): raise ValueError("complete public source identity required")
+        return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode()).hexdigest()
+    return {"schema_version": "mapping-source-binding-v1", "source_record_digest": record_digest(source),
+            "target_record_digest": record_digest(target), "artifact_id": artifact_id}
 
 
 class MappingCache:
@@ -30,6 +44,7 @@ class MappingCache:
         self.schema_version = schema_version
         self._validator = validator
         self._mem: Dict[str, Dict] = {}
+        self._bound_mem = {}
         self._lock = Lock()
         self._load()
 
@@ -82,7 +97,9 @@ class MappingCache:
                 if not line.strip():
                     continue
                 try:
-                    key, mapping = self._validated_entry(json.loads(line))
+                    entry = json.loads(line)
+                    binding = self._binding(entry["binding"]) if isinstance(entry, dict) and "binding" in entry else None
+                    key, mapping = self._validated_entry({k: v for k, v in entry.items() if k != "binding"} if binding is not None else entry)
                 except (TypeError, ValueError, KeyError, json.JSONDecodeError) as exc:
                     logger.warning(
                         "structural.mapping_cache_row_rejected",
@@ -90,14 +107,47 @@ class MappingCache:
                         incident_id=new_incident_id(),
                     )
                     continue
-                self._mem[key] = mapping
-        logger.info("structural.mapping_cache_loaded", count=len(self._mem))
+                if binding is None:
+                    self._mem[key] = mapping
+                else:
+                    self._bound_mem[(key, binding)] = mapping
+        logger.info("structural.mapping_cache_loaded", count=self.size)
 
     def get(self, id_a: str, id_b: str, *, lang: str = "zh") -> Optional[Dict]:
         key = self._key(id_a, id_b, lang)
         with self._lock:
             value = self._mem.get(key)
             return deepcopy(value) if value is not None else None
+
+    @staticmethod
+    def _binding(binding):
+        required = {"schema_version", "source_record_digest", "target_record_digest", "artifact_id"}
+        if type(binding) is not dict or set(binding) != required or binding["schema_version"] != "mapping-source-binding-v1":
+            raise ValueError("invalid persisted mapping binding")
+        if type(binding["artifact_id"]) is not str or not 1 <= len(binding["artifact_id"]) <= 120:
+            raise ValueError("invalid artifact identity")
+        for key in ("source_record_digest", "target_record_digest"):
+            if type(binding[key]) is not str or re.fullmatch(r"[a-f0-9]{64}", binding[key]) is None: raise ValueError("invalid source digest")
+        return json.dumps(binding, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+    def get_bound(self, id_a: str, id_b: str, *, binding: dict, lang: str = "zh") -> Optional[Dict]:
+        key = self._key(id_a, id_b, lang)
+        context = self._binding(binding)
+        with self._lock:
+            value = self._bound_mem.get((key, context))
+            return deepcopy(value) if value is not None else None
+
+    def put_bound(self, id_a: str, id_b: str, mapping: Dict, *, binding: dict, lang: str = "zh"):
+        """Controlled cache producer only; never called by either read route."""
+        key, context = self._key(id_a, id_b, lang), self._binding(binding)
+        validated = self._validated_mapping(mapping)
+        entry = {"schema_version": self.schema_version, "key": key, "id_a": id_a, "id_b": id_b,
+                 "lang": lang, "mapping": validated, "binding": json.loads(context)}
+        with self._lock:
+            with open(self.cache_file, "a", encoding="utf-8") as handle:
+                handle.write(json.dumps(entry, ensure_ascii=False, separators=(",", ":")) + "\n")
+                handle.flush()
+            self._bound_mem[(key, context)] = deepcopy(validated)
 
     def put(self, id_a: str, id_b: str, mapping: Dict, *, lang: str = "zh"):
         key = self._key(id_a, id_b, lang)
@@ -126,4 +176,4 @@ class MappingCache:
 
     @property
     def size(self) -> int:
-        return len(self._mem)
+        return len(self._mem) + len(self._bound_mem)

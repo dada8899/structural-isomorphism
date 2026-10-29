@@ -44,7 +44,7 @@ def sso_stack(tmp_path_factory):
     if not (PHASE / "node_modules/.bin/next").exists():
         pytest.skip("Next dependencies unavailable")
     beta_port, phase_web_port, phase_api_port = free_port(), free_port(), free_port()
-    beta_origin = f"http://127.0.0.1:{beta_port}"
+    beta_origin = f"http://localhost:{beta_port}"
     phase_origin = f"http://127.0.0.1:{phase_web_port}"
     phase_api_origin = f"http://127.0.0.1:{phase_api_port}"
     root = tmp_path_factory.mktemp("cross-domain-sso")

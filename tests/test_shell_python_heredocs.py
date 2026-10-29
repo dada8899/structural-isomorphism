@@ -105,9 +105,9 @@ def test_production_runtime_fingerprint_block_executes_exactly(tmp_path: Path) -
         "runtime_id": runtime_id,
         "requirements_sha256": "a" * 64,
         "installed_freeze_sha256": "b" * 64,
-        "fastapi": "0.115.14",
-        "pydantic": "2.6.1",
-        "starlette": "0.46.2",
+        "fastapi": "0.135.0",
+        "pydantic": "2.7.4",
+        "starlette": "1.3.1",
         "uvicorn": "0.27.1",
     }
     attestation = {

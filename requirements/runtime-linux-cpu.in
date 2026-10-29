@@ -1,0 +1,10 @@
+# Candidate target: CPython 3.11, x86_64 GNU/Linux, official CPU-only Torch.
+# Cross-platform resolution is not a Linux installation or runtime attestation.
+# Compile with uv --python-platform x86_64-unknown-linux-gnu --torch-backend cpu.
+-r ../web/backend/requirements.txt
+-r ../v4/product/d1_phase_detector/api/requirements.txt
+# Preserve observed model-stack versions instead of upgrading this family.
+transformers==5.19.0
+safetensors==0.8.0
+scipy==1.16.3
+scikit-learn==1.9.1

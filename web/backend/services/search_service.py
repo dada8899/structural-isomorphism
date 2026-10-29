@@ -180,17 +180,64 @@ class SearchService:
     封装跨领域结构同构搜索。
     """
 
+    # Legacy development fixtures can allocate without __init__. The formal
+    # application always sets its instance policy before loading any inputs.
+    formal = False
+
     def __init__(
+        self, data_dir=None, kb_file="kb-expanded.jsonl", model_path=None,
+        precomputed_embeddings=None, struct_file=None, formal=False, artifact_manifest=None,
+    ):
+        self._formal_snapshot = None
+        try:
+            self._initialize(data_dir, kb_file, model_path, precomputed_embeddings,
+                             struct_file, formal, artifact_manifest)
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self):
+        snapshot = getattr(self, "_formal_snapshot", None)
+        if snapshot is not None:
+            self._formal_snapshot = None
+            snapshot.close()
+
+    def _initialize(
         self,
         data_dir: Optional[str] = None,
         kb_file: str = "kb-expanded.jsonl",
         model_path: Optional[str] = None,
         precomputed_embeddings: Optional[str] = None,
         struct_file: Optional[str] = None,
+        formal: bool = False,
+        artifact_manifest: Optional[str] = None,
     ):
+        if type(formal) is not bool:
+            raise ValueError("formal must be a boolean")
+        self.formal = formal
+        self.artifact = None
+        if formal:
+            from .artifact_manifest import open_formal_artifact_bundle
+
+            try:
+                if _JIEBA is None or struct_file is not None:
+                    raise ValueError("formal hybrid dependencies or inputs unavailable")
+                paths = (data_dir, model_path, precomputed_embeddings, artifact_manifest)
+                if any(not value or not Path(value).is_absolute() for value in paths):
+                    raise ValueError("explicit absolute artifact paths required")
+                if not isinstance(kb_file, str) or Path(kb_file).name != kb_file or kb_file in (".", ".."):
+                    raise ValueError("knowledge base filename required")
+                self._formal_snapshot = open_formal_artifact_bundle(
+                    artifact_manifest, kb_path=Path(data_dir) / kb_file,
+                    embeddings_path=precomputed_embeddings, model_path=model_path,
+                )
+                self.artifact = dict(self._formal_snapshot.metadata)
+            except Exception:
+                raise RuntimeError("formal search artifacts or dependencies are unavailable") from None
         self.data_dir = Path(data_dir) if data_dir else None
         self.kb_file = kb_file
-        self.model = load_model(model_path=model_path)
+        if not formal:
+            self.model = load_model(model_path=model_path)
 
         # Load KB
         self.kb: List[Dict] = []
@@ -203,7 +250,22 @@ class SearchService:
 
         # Load precomputed or encode fresh embeddings
         self._embeddings = None
-        if precomputed_embeddings:
+        if formal:
+            self._embeddings = self._formal_snapshot.embeddings
+            self._formal_snapshot.check_model()
+            self.model = load_model(
+                model_path=self._formal_snapshot.model_path, device="cpu", formal=True,
+                directory_fd=self._formal_snapshot.model_fd,
+            )
+            self._formal_snapshot.check_model()
+            try:
+                dimension = self.model.get_sentence_embedding_dimension()
+                if (isinstance(dimension, bool) or not isinstance(dimension, (int, np.integer))
+                        or dimension != self._embeddings.shape[1]):
+                    raise ValueError("model and embedding dimensions differ")
+            except Exception:
+                raise RuntimeError("formal model embedding dimension is invalid") from None
+        elif precomputed_embeddings:
             pre_path = Path(precomputed_embeddings)
             if pre_path.exists() and self.kb:
                 try:
@@ -228,7 +290,7 @@ class SearchService:
                     )
                     self._embeddings = None
 
-        if self._embeddings is None and self.kb:
+        if not formal and self._embeddings is None and self.kb:
             logger.info(
                 "retrieval.embeddings_encode_started",
                 kb_count=len(self.kb),
@@ -249,6 +311,8 @@ class SearchService:
             for item in self.kb:
                 text = f"{item.get('name','')} {item.get('name','')} {item.get('description','')}"
                 corpus_tokens.append(_tokenize(text))
+            if formal and not any(corpus_tokens):
+                raise ValueError("formal BM25 corpus is empty")
             if corpus_tokens:
                 self._bm25 = BM25Okapi(corpus_tokens)
                 self._bm25_corpus_len = len(corpus_tokens)
@@ -257,6 +321,8 @@ class SearchService:
                     kb_count=self._bm25_corpus_len,
                 )
         except Exception as exc:
+            if formal:
+                raise RuntimeError("formal BM25 index is unavailable") from None
             logger.warning(
                 "retrieval.bm25_init_failed",
                 error_type=type(exc).__name__,
@@ -264,12 +330,22 @@ class SearchService:
             )
             self._bm25 = None
 
+        if formal:
+            try:
+                if self._bm25 is None or self._bm25_corpus_len != len(self.kb):
+                    raise ValueError("formal BM25 index is incomplete")
+                scores = np.asarray(self._bm25.get_scores(corpus_tokens[0]))
+                if scores.shape != (len(self.kb),) or not np.isfinite(scores).all():
+                    raise ValueError("formal BM25 index cannot score its corpus")
+            except Exception:
+                raise RuntimeError("formal BM25 index is unavailable") from None
+
         # Load StructTuple index (phenomenon_id -> struct record)
         self._struct_by_id: Dict[str, Dict] = {}
         struct_path = None
         if struct_file:
             struct_path = Path(struct_file)
-        elif self.data_dir:
+        elif self.data_dir and not formal:
             # default: v3/results/kb-expanded-struct.jsonl relative to project root
             candidate = self.data_dir.parent / "v3" / "results" / "kb-expanded-struct.jsonl"
             if candidate.exists():
@@ -300,11 +376,22 @@ class SearchService:
                 )
 
     def _load_kb(self):
+        if self.formal:
+            # Parse/verify happens once in the bundle reader. Never reopen the
+            # source KB after the hash check, even if its pathname is replaced.
+            self.kb = self._formal_snapshot.rows
+            self.kb_by_id = {row["id"]: row for row in self.kb}
+            self.idx_by_id = {row["id"]: index for index, row in enumerate(self.kb)}
+            return
         if not self.data_dir:
+            if self.formal:
+                raise RuntimeError("formal knowledge base directory is missing")
             logger.warning("startup.kb_data_dir_unconfigured")
             return
         kb_path = self.data_dir / self.kb_file
         if not kb_path.exists():
+            if self.formal:
+                raise RuntimeError("formal knowledge base is missing")
             logger.error(
                 "startup.kb_file_missing",
                 error_type="FileNotFoundError",
@@ -318,17 +405,27 @@ class SearchService:
                     continue
                 try:
                     item = json.loads(line)
+                    if self.formal and (
+                        not isinstance(item, dict) or not isinstance(item.get("id"), str)
+                        or not item["id"] or item["id"] in self.kb_by_id
+                        or not isinstance(item.get("description"), str) or not item["description"].strip()
+                    ):
+                        raise RuntimeError("formal knowledge base row is invalid")
                     idx = len(self.kb)
                     self.kb.append(item)
                     if "id" in item:
                         self.kb_by_id[item["id"]] = item
                         self.idx_by_id[item["id"]] = idx
                 except json.JSONDecodeError as exc:
+                    if self.formal:
+                        raise RuntimeError("formal knowledge base JSON is invalid") from None
                     logger.warning(
                         "retrieval.kb_record_invalid",
                         error_type=type(exc).__name__,
                         incident_id=new_incident_id(),
                     )
+        if self.formal and len(self.kb) != self.artifact["kb_size"]:
+            raise RuntimeError("formal knowledge base changed after validation")
         logger.info("startup.kb_loaded", kb_count=len(self.kb))
 
     # --- Query embedding cache -------------------------------------------------

@@ -36,7 +36,7 @@ from datetime import date as calendar_date
 import re
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import model_validator, BaseModel, Field, model_validator
 
 if __package__ == "web.backend":
     from .services.input_limits import MAX_RESEARCH_QUERY_CHARS
@@ -1289,3 +1289,624 @@ __all__ = [
     "DailyResponse",
     "FlagsResponse",
 ]
+
+
+# Formula API mirror follows this module's established standalone generator
+# contract. Runtime authority/validation remains research.schemas; conformance
+# tests compare these exact schema shapes to the consuming API models.
+from typing import Annotated
+from pydantic import ConfigDict,StrictBool,StrictInt,StringConstraints,field_validator
+FormulaRevision=Annotated[StrictInt,Field(ge=1,le=2147483647)]
+
+class FormulaPublicObject(BaseModel):
+    model_config=ConfigDict(extra='forbid',strict=True)
+
+class FormulaSideDraft(FormulaPublicObject):
+    family: Literal["queue_flow", "first_order_storage", "local_recovery"]
+    template_id: Literal["little", "mm1", "passive_decay", "linear_stable"]
+    original_display: str
+    expression: dict | None
+    symbols: Annotated[list[dict], Field(max_length=12)]
+    assumptions: Annotated[list[dict], Field(max_length=24)]
+    initial_conditions: Annotated[list[dict], Field(max_length=1)]
+    boundary_conditions: Annotated[list[dict], Field(max_length=24)]
+    source_refs: Annotated[list[dict], Field(max_length=20)] = []
+    measure_scope: str
+    time_basis: Literal["s", "workday", "from_symbol_units"] = "from_symbol_units"
+
+    @model_validator(mode="after")
+    def approved_components(self):
+        from research.formula_schemas import FormulaInputError,FormulaLimit,Node,Symbol,Condition,InitialValue,SourceRef,bounded
+        from research.formula_policy import TEMPLATES,UNITS
+        if TEMPLATES[self.template_id]!=self.family:raise ValueError('template family mismatch')
+        bounded(self.original_display,2048);bounded(self.measure_scope,20)
+        if self.expression is not None:Node.parse(self.expression)
+        symbols=[Symbol.parse(v) for v in self.symbols]
+        if len({v.id for v in symbols})!=len(symbols) or len({v.role for v in symbols})!=len(symbols):raise ValueError('symbol bijection required')
+        if any(v.unit_id not in UNITS for v in symbols):raise ValueError('registered unit required')
+        from research.formula_policy import basis
+        bases={basis(v.unit_id) for v in symbols if basis(v.unit_id) is not None}
+        if self.time_basis!='from_symbol_units' and bases!={self.time_basis}:raise ValueError('declared time basis must match symbols')
+        conditions=[Condition.parse(v) for v in self.assumptions+self.boundary_conditions]
+        if len({v.id for v in conditions})!=len(conditions):raise ValueError('duplicate condition')
+        initials=[InitialValue.parse(v) for v in self.initial_conditions]
+        if len(conditions)+len(initials)>24:raise ValueError('condition limit')
+        sources=[SourceRef.parse(v) for v in self.source_refs]
+        if len({v.id for v in sources})!=len(sources):raise ValueError('duplicate source')
+        return self
+
+
+class FormulaRevisionDraft(FormulaPublicObject):
+    input_origin: Literal["user_provided"]
+    comparison_scope: Literal["expression", "equation_form", "initial_value_problem"]
+    left: FormulaSideDraft
+    right: FormulaSideDraft | None
+    requested_checks: Annotated[list[Literal["template", "dimensions", "canonical_transform", "bounded_numeric"]], Field(min_length=1,max_length=4)]
+    sample_points: Annotated[list[str], Field(max_length=256)]
+
+    @model_validator(mode="after")
+    def approved_comparison(self):
+        from research.formula_schemas import decimal_text,canonical
+        if len(self.requested_checks)!=len(set(self.requested_checks)):raise ValueError('duplicate check')
+        if self.right is None and set(self.requested_checks)-{'template','dimensions'}:raise ValueError('comparison requires two sides')
+        points=[decimal_text(v) for v in self.sample_points]
+        if len(points)!=len(set(points)):raise ValueError('duplicate sample point')
+        if len(canonical(self.model_dump(mode='json')).encode())>65536:raise ValueError('formula input limit')
+        return self
+
+
+class FormulaCheckRequest(FormulaPublicObject):
+    input_revision: FormulaRevision
+    expected_research_version: FormulaRevision
+    formula_digest: Annotated[str, StringConstraints(strict=True,pattern=r"^[a-f0-9]{64}$")]
+    confirm_formula_input: StrictBool
+
+    @field_validator('confirm_formula_input')
+    @classmethod
+    def explicit_formula_confirmation(cls,value):
+        if value is not True:raise ValueError('explicit formula confirmation required')
+        return value
+
+
+class FormulaCheckEnvelope(FormulaPublicObject):
+    schema_version: Literal["structure-research-v1"]
+    contract_revision: Literal["b1-candidate-01"]
+    data: FormulaCheckRequest
+
+
+FormulaUUID=Annotated[str,StringConstraints(strict=True,pattern=r'^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$')]
+FormulaDigest=Annotated[str,StringConstraints(strict=True,pattern=r'^[a-f0-9]{64}$')]
+
+
+class FormulaRunMetadata(FormulaPublicObject):
+    result_ref: FormulaUUID
+    state: Literal['claimed','returned','closed','interrupted']
+    result_available: StrictBool
+    input_origin: Literal['user_provided']
+    formula_digest: FormulaDigest | None
+    formula_result_recorded_at: Annotated[str,StringConstraints(strict=True,pattern=r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$')] | None
+    math_status: None
+    termination_state: Literal['not_attested','reaped','pending']
+    task_completed_means_math_passed: Literal[False]
+    known_cost_units: Literal[0]
+
+
+class FormulaCheckData(FormulaRunMetadata):
+    task_id: FormulaUUID
+
+
+class FormulaCheckResponse(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['b1-candidate-01']
+    data: FormulaCheckData
+
+
+class FormulaExecutionProvenance(FormulaPublicObject):
+    execution_attested: StrictBool
+    execution_state: Literal['ok','unsupported','limited','memory_limited','failed']
+    resource_guard: str
+    owned_return_ref: FormulaUUID
+    reaped: Literal[True]
+    code_version: FormulaDigest
+    full_input_digest: FormulaDigest
+    output_digest: FormulaDigest
+    formula_digest: FormulaDigest
+    problem_digest: FormulaDigest
+    display_AST_confirmation: Literal['user_confirmed_snapshot']
+    source_origin: Literal['user_provided']
+    source_facts_verified: Literal[False]
+    mathematics_is_not_real_world_mechanism: Literal[True]
+
+
+class FormulaResultData(FormulaPublicObject):
+    metadata: FormulaRunMetadata
+    state: Literal['available','unavailable']
+    result: dict | None
+    provenance: FormulaExecutionProvenance | None = None
+
+
+class FormulaResultResponse(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['b1-candidate-01']
+    data: FormulaResultData
+
+__all__ += ['FormulaSideDraft','FormulaRevisionDraft','FormulaCheckRequest','FormulaCheckEnvelope','FormulaRunMetadata','FormulaCheckData','FormulaCheckResponse','FormulaExecutionProvenance','FormulaResultData','FormulaResultResponse']
+
+
+# Financial8 public shapes mirror research/plan_schemas.py. Native authority,
+# ownership checks and runtime proposal validation remain in the actual endpoint.
+PlanDigest=Annotated[str,StringConstraints(strict=True,pattern=r'^[a-f0-9]{64}$')]
+PlanRef=Annotated[str,StringConstraints(strict=True,min_length=1,max_length=100,pattern=r'^[a-zA-Z0-9._:-]+$')]
+PlanUnits=Annotated[StrictInt,Field(ge=0,le=9223372036854775807)]
+PlanText120=Annotated[str,StringConstraints(strict=True,min_length=1,max_length=120)]
+PlanText160=Annotated[str,StringConstraints(strict=True,min_length=1,max_length=160)]
+PlanText240=Annotated[str,StringConstraints(strict=True,min_length=1,max_length=240)]
+PlanText400=Annotated[str,StringConstraints(strict=True,min_length=1,max_length=400)]
+PlanText700=Annotated[str,StringConstraints(strict=True,min_length=1,max_length=700)]
+PlanEnglishQuery=Annotated[str,StringConstraints(strict=True,pattern='^[A-Za-z][A-Za-z -]{2,159}$')]
+
+class PlanNomination(FormulaPublicObject):
+    label: PlanText120
+    mechanism_hypothesis: PlanText700 = Field(repr=False)
+    why_considered: PlanText400 = Field(repr=False)
+    method_leads: Annotated[list[PlanText160], Field(max_length=2)]
+    key_unknowns: Annotated[list[PlanText240], Field(min_length=1, max_length=5)]
+
+class PlanQuerySuggestion(FormulaPublicObject):
+    candidate_index: Annotated[StrictInt, Field(ge=0, le=2)] | None
+    query: PlanEnglishQuery
+    intent: PlanText240
+
+class PhenomenonPlanCandidate(FormulaPublicObject):
+    summary: PlanText700 = Field(repr=False)
+    candidates: Annotated[list[PlanNomination], Field(max_length=3)]
+    query_suggestions: Annotated[list[PlanQuerySuggestion], Field(max_length=5)]
+    gaps: Annotated[list[PlanText400], Field(min_length=1, max_length=8)]
+    clarification_questions: Annotated[list[PlanText240], Field(max_length=3)]
+
+class PlanPreviewRequest(FormulaPublicObject):
+    input_revision: FormulaRevision
+    expected_research_version: FormulaRevision
+    observation_source: Literal['own_observation']
+    declaration_status: Literal['self_declared']
+
+class PlanConfirmationRequest(FormulaPublicObject):
+    preview_ref: PlanRef
+    preview_digest: PlanDigest
+    request_digest: PlanDigest
+    expected_research_version: FormulaRevision
+    approved_upper_units: PlanUnits
+    confirm_outbound: Literal[True]
+
+    @field_validator('confirm_outbound', mode='before')
+    @classmethod
+    def actual_boolean(cls, value):
+        if value is not True:
+            raise ValueError('explicit true required')
+        return value
+
+class PlanPreviewEnvelope(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['b1-candidate-01']
+    data: PlanPreviewRequest
+
+class PlanConfirmationEnvelope(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['b1-candidate-01']
+    data: PlanConfirmationRequest
+
+class PlanQuote(FormulaPublicObject):
+    protocol: Literal['financial8-plan-quote-v1']
+    revision: PlanRef
+    purpose: Literal['phenomenon_plan_v1']
+    provider: Literal['deepseek']
+    model: Literal['deepseek-flash']
+    declared_model_version: Literal['DeepSeek-V4.1-Flash-1017']
+    declaration_observed_on: Literal['2026-10-18']
+    currency: Literal['CNY']
+    scale: Literal[6]
+    peak_input_hit_units_per_million: Literal[40000]
+    peak_input_miss_units_per_million: Literal[2000000]
+    peak_output_units_per_million: Literal[8000000]
+    context_bound: Literal[1048576]
+    provider_output_bound: Literal[393216]
+    max_output_tokens: Literal[4096]
+    approved_upper_units: PlanUnits
+    codec_digest: PlanDigest
+    issued_at: StrictInt
+    valid_until: StrictInt
+    price_source: Literal['https://api-docs.deepseek.com/zh-cn/quick_start/pricing/']
+
+class PlanResult(FormulaPublicObject):
+    protocol: Literal['owned-phenomenon-plan-result-v1']
+    purpose: Literal['phenomenon_plan_v1']
+    result_ref: PlanRef
+    task_id: PlanRef
+    research_id: PlanRef
+    input_revision: FormulaRevision
+    input_digest: PlanDigest
+    request_digest: PlanDigest
+    admission_digest: PlanDigest
+    recorded_at: Annotated[str, StringConstraints(strict=True, pattern='^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$')]
+    execution_mode: Literal['fixture']
+    plan_generation_ran: Literal[True]
+    real_model_executed: Literal[False]
+    literature_status: Literal['not_retrieved']
+    mathematics_status: Literal['not_checked']
+    mechanism_status: Literal['unverified']
+    observation_rights: Literal['self_declared']
+    query_state: Literal['draft_only']
+    automatically_created_sources: Literal[0]
+    proposal: PhenomenonPlanCandidate
+
+class PlanPreviewView(FormulaPublicObject):
+    preview_ref: PlanRef
+    preview_digest: PlanDigest
+    request_digest: PlanDigest
+    research_id: PlanRef
+    input_revision: FormulaRevision
+    expected_research_version: FormulaRevision
+    state: Literal['awaiting_confirmation']
+    exact_input: Annotated[str, StringConstraints(strict=True, min_length=8, max_length=1000)]
+    purpose: Literal['phenomenon_plan_v1']
+    observation_rights: Literal['self_declared']
+    approved_upper_units: PlanUnits
+    currency: Literal['CNY']
+    scale: Literal[6]
+    quote: PlanQuote
+    expires_at: StrictInt
+    explanation: Annotated[str, StringConstraints(strict=True, max_length=160)]
+
+class PlanConfirmationData(FormulaPublicObject):
+    task_id: PlanRef
+    result_ref: PlanRef
+    state: Literal['queued']
+    funding_state: Literal['approved_not_sent']
+    plan_generation_ran: Literal[False]
+    recorded_at: None
+
+class PlanUsage(FormulaPublicObject):
+    prompt_tokens: Annotated[StrictInt, Field(ge=0, le=1048576)]
+    completion_tokens: Annotated[StrictInt, Field(ge=0, le=4096)]
+    total_tokens: Annotated[StrictInt, Field(ge=0, le=1052672)]
+    usage_priced_estimate_units: PlanUnits
+    actual_charge_units: None
+    cost_kind: Literal['upper_booked']
+    booked_upper_units: PlanUnits
+    currency: Literal['CNY']
+    scale: Literal[6]
+
+class PlanRunMetadata(FormulaPublicObject):
+    task_id: PlanRef
+    result_ref: PlanRef
+    state: Literal['saved', 'failed_insufficient', 'pending_reconciliation', 'cancelled', 'queued', 'generating']
+    financial_state: Literal['unreserved', 'held', 'upper_booked', 'unknown']
+    safe_code: Literal['saved', 'body_invalid', 'send_unknown', 'not_sent', 'cancelled', 'access_ended'] | None
+    recorded_at: Annotated[str, StringConstraints(strict=True, pattern='^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}Z$')] | None
+    plan_generation_ran: bool
+    real_model_executed: Literal[False]
+    execution_mode: Literal['fixture']
+    approved_upper_units: PlanUnits
+    usage: PlanUsage | None
+
+class PlanReadData(PlanRunMetadata):
+    content: PlanResult | None
+
+class PlanPreviewResponse(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['funded-plan-v1']
+    data: PlanPreviewView
+
+class PlanConfirmationResponse(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['funded-plan-v1']
+    data: PlanConfirmationData
+
+class PlanReadResponse(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['funded-plan-v1']
+    data: PlanReadData
+
+__all__ += ['PlanNomination', 'PlanQuerySuggestion', 'PhenomenonPlanCandidate', 'PlanPreviewRequest', 'PlanConfirmationRequest', 'PlanPreviewEnvelope', 'PlanConfirmationEnvelope', 'PlanQuote', 'PlanResult', 'PlanPreviewView', 'PlanConfirmationData', 'PlanUsage', 'PlanRunMetadata', 'PlanReadData', 'PlanPreviewResponse', 'PlanConfirmationResponse', 'PlanReadResponse']
+
+
+# Financial9 native-plan public contract. Data shapes do not grant funding.
+NativePlanTimestamp=Annotated[str,StringConstraints(strict=True,pattern=r'^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z$')]
+
+NativePlanMode=Literal['controlled_fixture','native_live']
+
+NativePlanProducer=Literal['core-controlled-native-v1','owned-native-plan-runtime-v1']
+
+class NativePlanQuote(PlanQuote):
+    protocol:Literal['financial9-native-quote-v1']
+
+class NativePlanPreviewEnvelope(FormulaPublicObject):
+    schema_version:Literal['structure-research-v1']
+    contract_revision:Literal['funded-plan-v2']
+    data:PlanPreviewRequest
+
+class NativePlanConfirmationEnvelope(FormulaPublicObject):
+    schema_version:Literal['structure-research-v1']
+    contract_revision:Literal['funded-plan-v2']
+    data:PlanConfirmationRequest
+
+class NativePlanResult(FormulaPublicObject):
+    protocol:Literal['owned-native-plan-result-v2']
+    purpose:Literal['phenomenon_plan_v1']
+    result_ref:PlanRef
+    task_id:PlanRef
+    research_id:PlanRef
+    input_revision:FormulaRevision
+    input_digest:PlanDigest
+    request_digest:PlanDigest
+    consent_digest:PlanDigest
+    admission_digest:PlanDigest
+    recorded_at:NativePlanTimestamp
+    execution_mode:NativePlanMode
+    producer:NativePlanProducer
+    real_model_executed:StrictBool
+    weight_identity_verified:Literal[False]
+    literature_status:Literal['not_retrieved']
+    mathematics_status:Literal['not_checked']
+    mechanism_status:Literal['unverified']
+    observation_rights:Literal['self_declared']
+    query_state:Literal['draft_only']
+    automatically_created_sources:Literal[0]
+    proposal:PhenomenonPlanCandidate
+
+    @model_validator(mode='after')
+    def actual_producer_mode(self):
+        if (self.execution_mode=='native_live')!=self.real_model_executed or (self.producer=='core-controlled-native-v1' and self.execution_mode!='controlled_fixture'):
+            raise ValueError('result producer/mode truth differs')
+        return self
+
+class NativePlanPreviewView(FormulaPublicObject):
+    preview_ref:PlanRef
+    preview_digest:PlanDigest
+    request_digest:PlanDigest
+    research_id:PlanRef
+    input_revision:FormulaRevision
+    expected_research_version:FormulaRevision
+    exact_input:Annotated[str,StringConstraints(strict=True,min_length=8,max_length=1000)]
+    purpose:Literal['phenomenon_plan_v1']
+    observation_rights:Literal['self_declared']
+    state:Literal['awaiting_confirmation','funding_closed']
+    can_confirm:StrictBool
+    funding_reason:Literal['FUNDING_CLOSED']|None
+    cash_evidence:Literal['not_observed']
+    approved_upper_units:PlanUnits
+    currency:Literal['CNY']
+    scale:Literal[6]
+    quote:NativePlanQuote
+    expires_at:StrictInt
+    explanation:Annotated[str,StringConstraints(strict=True,max_length=160)]
+
+    @model_validator(mode='after')
+    def confirmation_state(self):
+        if self.can_confirm!=(self.state=='awaiting_confirmation') or (self.funding_reason is None)!=self.can_confirm:
+            raise ValueError('confirmation state differs')
+        return self
+
+class NativePlanConfirmationData(FormulaPublicObject):
+    task_id:PlanRef
+    result_ref:PlanRef
+    state:Literal['queued']
+    cash_evidence:Literal['not_observed']
+    real_model_executed:Literal[False]
+    recorded_at:None
+
+class NativePlanRunMetadata(FormulaPublicObject):
+    task_id:PlanRef
+    result_ref:PlanRef
+    state:Literal['saved','failed_insufficient','pending_reconciliation','cancelled','queued','generating']
+    financial_version:Literal[9]
+    execution_mode:NativePlanMode|None
+    real_model_executed:StrictBool
+    cost_state:Literal['unreserved','held','upper_booked','unknown']
+    cleanup_state:Literal['pending','clean','uncertain']
+    safe_code:Literal['access_ended','saved','body_invalid','send_unknown','not_sent','cancelled']|None
+    recorded_at:NativePlanTimestamp|None
+
+class NativePlanReadData(NativePlanRunMetadata):
+    content:NativePlanResult|None
+
+class NativePlanPreviewResponse(FormulaPublicObject):
+    schema_version:Literal['structure-research-v1']
+    contract_revision:Literal['funded-plan-v2']
+    data:NativePlanPreviewView
+
+class NativePlanConfirmationResponse(FormulaPublicObject):
+    schema_version:Literal['structure-research-v1']
+    contract_revision:Literal['funded-plan-v2']
+    data:NativePlanConfirmationData
+
+class NativePlanReadResponse(FormulaPublicObject):
+    schema_version:Literal['structure-research-v1']
+    contract_revision:Literal['funded-plan-v2']
+    data:NativePlanReadData
+
+__all__ += ['NativePlanQuote', 'NativePlanPreviewEnvelope', 'NativePlanConfirmationEnvelope', 'NativePlanResult', 'NativePlanPreviewView', 'NativePlanConfirmationData', 'NativePlanRunMetadata', 'NativePlanReadData', 'NativePlanPreviewResponse', 'NativePlanConfirmationResponse', 'NativePlanReadResponse']
+
+
+"""Strict manual method drafts. References never confer execution rights."""
+from typing import Annotated, Literal
+from pydantic import Field, StrictInt, StringConstraints, field_validator, model_validator
+import json,unicodedata
+MethodDraftRevision=Annotated[StrictInt,Field(ge=1,le=2147483647)]
+def _method_draft_bounded(value,maximum,minimum):
+    if any(unicodedata.category(c) in {"Cc","Cf","Cs"} and c not in "\t\n" for c in value) or not minimum<=len(unicodedata.normalize("NFC",value))<=maximum:raise ValueError("invalid text")
+
+METHOD_DRAFT_CONTRACT='method-draft-v1'
+MethodDraftUUID=Annotated[str,StringConstraints(strict=True,pattern=r'^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$')]
+MethodDraftDigest=Annotated[str,StringConstraints(strict=True,pattern=r'^[a-f0-9]{64}$')]
+MethodDraftText=Annotated[str,StringConstraints(strict=True,min_length=1,max_length=2000)]
+
+class DraftExcerptRef(FormulaPublicObject):
+    excerpt_id: MethodDraftUUID
+    source_revision: MethodDraftRevision
+    content_digest: MethodDraftDigest
+    start: Annotated[StrictInt,Field(ge=0,le=200000)]
+    end: Annotated[StrictInt,Field(ge=1,le=200000)]
+    @model_validator(mode='after')
+    def range_bound(self):
+        if not self.start<self.end or self.end-self.start>1000:raise ValueError('bounded exact excerpt required')
+        return self
+
+class PlanLeadOrigin(FormulaPublicObject):
+    kind: Literal['plan_lead']
+    plan_contract: Literal['funded-plan-v1','funded-plan-v2']
+    result_ref: MethodDraftUUID
+    candidate_index: Annotated[StrictInt,Field(ge=0,le=4)]
+    lead_index: Annotated[StrictInt,Field(ge=0,le=1)]
+
+class CatalogOrigin(FormulaPublicObject):
+    kind: Literal['kb_record']
+    artifact_id: Annotated[str,StringConstraints(strict=True,min_length=1,max_length=200)]
+    record_id: Annotated[str,StringConstraints(strict=True,min_length=1,max_length=200)]
+    record_digest: MethodDraftDigest
+
+class UserMethodOrigin(FormulaPublicObject):
+    kind: Literal['user_proposed']
+    label: Annotated[str,StringConstraints(strict=True,min_length=1,max_length=120)]
+    description: MethodDraftText
+
+class DraftTestPlan(FormulaPublicObject):
+    question: MethodDraftText
+    measurement: MethodDraftText
+    primary_outcome: MethodDraftText
+    falsification: MethodDraftText
+    stop_rule: MethodDraftText
+
+class MethodDraftRequest(FormulaPublicObject):
+    input_revision: MethodDraftRevision
+    expected_research_version: MethodDraftRevision
+    excerpt_refs: Annotated[list[DraftExcerptRef],Field(min_length=1,max_length=20)]
+    origin: Annotated[PlanLeadOrigin|CatalogOrigin|UserMethodOrigin,Field(discriminator='kind')]
+    method: MethodDraftText
+    mapping: Annotated[list[MethodDraftText],Field(min_length=1,max_length=20)]
+    nontransferable: Annotated[list[MethodDraftText],Field(min_length=1,max_length=20)]
+    competing_explanations: Annotated[list[MethodDraftText],Field(min_length=1,max_length=20)]
+    test_plan: DraftTestPlan
+    formula_result_ref: MethodDraftUUID|None=None
+    supersedes_ref: MethodDraftUUID|None=None
+    @model_validator(mode='after')
+    def bounded(self):
+        if len({r.excerpt_id for r in self.excerpt_refs})!=len(self.excerpt_refs):raise ValueError('unique references required')
+        def check(value):
+            if isinstance(value,str):_method_draft_bounded(value,2000,1)
+            elif isinstance(value,dict):
+                for item in value.values():check(item)
+            elif isinstance(value,list):
+                for item in value:check(item)
+        check(self.model_dump(mode='json'))
+        if len(json.dumps(self.model_dump(mode='json'),ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode())>65536:raise ValueError('bounded request required')
+        return self
+
+class MethodDraftEnvelope(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['method-draft-v1']
+    data: MethodDraftRequest
+
+class MethodDraftMetadata(FormulaPublicObject):
+    draft_ref: MethodDraftUUID
+    input_revision: MethodDraftRevision
+    problem_digest: MethodDraftDigest
+    research_version_before: MethodDraftRevision
+    research_version_after: MethodDraftRevision
+    created_at: Annotated[str,StringConstraints(strict=True,pattern=r'^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z$')]
+    content_digest: MethodDraftDigest
+    is_historical: bool
+    origin_kind: Literal['plan_lead','kb_record','user_proposed']
+    validation_status: Literal['unverified']='unverified'
+    execution_status: Literal['not_executed']='not_executed'
+
+class DraftSourceSummary(FormulaPublicObject):
+    excerpt_id: MethodDraftUUID
+    snapshot_id: MethodDraftUUID
+    source_id: MethodDraftUUID
+    source_revision: MethodDraftRevision
+    content_digest: MethodDraftDigest
+    raw_digest: MethodDraftDigest
+    excerpt_digest: MethodDraftDigest
+    snapshot_digest: MethodDraftDigest
+    start: Annotated[StrictInt,Field(ge=0,le=200000)]
+    end: Annotated[StrictInt,Field(ge=1,le=200000)]
+    quote: Annotated[str,StringConstraints(strict=True,min_length=1,max_length=1000)]
+    title: Annotated[str,StringConstraints(strict=True,max_length=500)]
+    canonical_url: Annotated[str,StringConstraints(strict=True,max_length=2048)]
+    licence_basis: Annotated[str,StringConstraints(strict=True,max_length=700)]
+    task_id: MethodDraftUUID
+    attempt: Literal[1]
+    input_revision: MethodDraftRevision
+
+class ResolvedUserOrigin(UserMethodOrigin):
+    mode: Literal['user_proposed']
+    verification: Literal['unverified']
+
+class ResolvedPlanOrigin(PlanLeadOrigin):
+    label: MethodDraftText
+    lead: MethodDraftText
+    mode: Literal['fixture','controlled_fixture','native_live']
+    producer: Literal['owned-plan-fixture-v1','core-controlled-native-v1','owned-native-plan-runtime-v1']
+    result_digest: MethodDraftDigest
+    input_revision: MethodDraftRevision
+    verification: Literal['unverified']
+
+class DraftFormulaOutcome(FormulaPublicObject):
+    check_kind: Literal['template','dimensions','canonical_transform','bounded_numeric']
+    status: Literal['passed','failed','inconclusive','unsupported','resource_limit']
+    relation: Literal['algebraic_identity','conditional_model_equivalence','local_approximation','partial_structure','not_equivalent','undetermined']
+
+class DraftFormulaLink(FormulaPublicObject):
+    result_ref: MethodDraftUUID
+    metadata: FormulaRunMetadata
+    result_digest: MethodDraftDigest
+    input_revision: MethodDraftRevision
+    comparison_scope: Literal['expression','equation_form','initial_value_problem']
+    outcomes: Annotated[list[DraftFormulaOutcome],Field(min_length=1,max_length=4)]
+    execution_attested: bool
+
+class MethodDraftContent(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['method-draft-v1']
+    request: MethodDraftRequest
+    sources: Annotated[list[DraftSourceSummary],Field(min_length=1,max_length=20)]
+    origin: Annotated[ResolvedPlanOrigin|ResolvedUserOrigin,Field(discriminator='kind')]
+    formula: DraftFormulaLink|None
+
+class MethodDraftData(FormulaPublicObject):
+    metadata: MethodDraftMetadata
+    content: MethodDraftContent
+
+class MethodDraftResponse(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['method-draft-v1']
+    data: MethodDraftData
+
+class MethodDraftHistoryData(FormulaPublicObject):
+    items: Annotated[list[MethodDraftMetadata],Field(max_length=20)]
+    next_cursor: MethodDraftUUID|None
+
+class MethodDraftHistoryResponse(FormulaPublicObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['method-draft-v1']
+    data: MethodDraftHistoryData
+
+__all__ += ['DraftExcerptRef', 'PlanLeadOrigin', 'CatalogOrigin', 'UserMethodOrigin', 'DraftTestPlan', 'MethodDraftRequest', 'MethodDraftEnvelope', 'MethodDraftMetadata', 'DraftSourceSummary', 'ResolvedUserOrigin', 'ResolvedPlanOrigin', 'DraftFormulaOutcome', 'DraftFormulaLink', 'MethodDraftContent', 'MethodDraftData', 'MethodDraftResponse', 'MethodDraftHistoryData', 'MethodDraftHistoryResponse']
+
+
+# Public exports use the actual strict codecs; no duplicate financial/A schema.
+if __package__ == 'web.backend':
+    from .research.evidence_method_plan_schemas import (EvidenceMethodPreviewEnvelope, EvidenceMethodConfirmEnvelope, EvidenceMethodPreviewResponse, EvidenceMethodConfirmResponse, EvidenceMethodReadResponse, EvidenceMethodListResponse, EvidenceMethodErrorResponse)
+    from .research.financial_input_schemas import (FinancialRegistryConfirmationEnvelope, FinancialRegistryConfirmationResponse, FinancialRegistryReadResponse, FinancialRegistryHistoryResponse)
+else:
+    # The generator loads this module directly without a package; pin the same
+    # adjacent pure schema package rather than copying its field definitions.
+    import sys as _schema_sys
+    from pathlib import Path as _SchemaPath
+    _backend = str(_SchemaPath(__file__).resolve().parent)
+    if _backend not in _schema_sys.path: _schema_sys.path.insert(0, _backend)
+    from research.evidence_method_plan_schemas import (EvidenceMethodPreviewEnvelope, EvidenceMethodConfirmEnvelope, EvidenceMethodPreviewResponse, EvidenceMethodConfirmResponse, EvidenceMethodReadResponse, EvidenceMethodListResponse, EvidenceMethodErrorResponse)
+    from research.financial_input_schemas import (FinancialRegistryConfirmationEnvelope, FinancialRegistryConfirmationResponse, FinancialRegistryReadResponse, FinancialRegistryHistoryResponse)
+
+__all__ += ['EvidenceMethodPreviewEnvelope', 'EvidenceMethodConfirmEnvelope', 'EvidenceMethodPreviewResponse', 'EvidenceMethodConfirmResponse', 'EvidenceMethodReadResponse', 'EvidenceMethodListResponse', 'EvidenceMethodErrorResponse', 'FinancialRegistryConfirmationEnvelope', 'FinancialRegistryConfirmationResponse', 'FinancialRegistryReadResponse', 'FinancialRegistryHistoryResponse']
