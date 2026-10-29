@@ -4010,7 +4010,7 @@ async def _method_main_login(page,service):
 async def _method_main_select_old_source_for_new_problem(page,service):
     from playwright.async_api import expect as aexpect
     seed=service.seed
-    assert seed.current_input_revision==seed.source_input_revision==1 and seed.schema_version==14 and seed.mode=='offline_probe'
+    assert seed.current_input_revision==seed.source_input_revision==1 and seed.schema_version==15 and seed.mode=='offline_probe'
     await aexpect(page.locator('#problem-form')).to_be_visible()
     await page.locator('#original-input').fill('我观察到任务集中到达时，排队等待会随积压增加，需要区分任务复杂度等竞争解释。')
     await page.locator('#summary').fill('我自己的合成观察；本次只保存验证思路，引用以前问题修订的许可短摘录。')
@@ -4057,7 +4057,7 @@ async def _method_main_save_reopen_journey(tmp_path):
                         async with page.expect_response(lambda response:response.request.method=='GET' and response.url.split('?',1)[0]==service.origin+'/assets/research.js') as actual_script:await page.goto(service.origin+'/research')
                         assert await (await actual_script.value).body()==(ROOT/'web/frontend/assets/research.js').read_bytes();facts['actual_served_script_sha256']=hashlib.sha256((ROOT/'web/frontend/assets/research.js').read_bytes()).hexdigest()
                         pids=_method_main_owned_browser_pids();await _method_main_login(page,service);progress('real-smtp-browser-login')
-                        health=await _native_tls_fetch(page,'/api/health');assert health['status']==200 and health['body']['checks']['source_execute']=='SUPERVISED_SOURCE_WORKER_UNBOUND' and health['body']['checks']['native_planner']=='FUNDING_CLOSED'
+                        health=await _native_tls_fetch(page,'/api/health');assert health['status']==200 and health['body']['checks']['source_execute']=='ready' and health['body']['checks']['native_planner']=='FUNDING_CLOSED'
                         items=await _method_main_select_old_source_for_new_problem(page,service);progress('old-source-selected-for-revision2')
                         values=await _method_draft_type_manual_fields(page)
                         async with page.expect_response('**/method-drafts') as saved:await page.locator('#method-draft-save').click()
@@ -4073,7 +4073,7 @@ async def _method_main_save_reopen_journey(tmp_path):
                         await page.reload();await aexpect(page.locator('#method-draft-target')).to_contain_text('问题修订 2');await page.locator('#method-draft-read-history').click();await page.get_by_role('button',name='只读查看原稿',exact=True).click();await aexpect(page.locator('#method-draft-view-ref')).to_have_text(ref);await aexpect(page.locator('#method-draft-view-time')).to_have_attribute('datetime',meta['created_at']);await aexpect(page.locator('#method-draft-view')).to_contain_text(source['quote']);await aexpect(page.locator('#method-draft-method')).to_have_value('')
                         assert not [item for item in requests if item['method']=='POST' and any(part in item['path'] for part in ('source-preview','source-tasks','plan-previews','plan-approvals'))]
                         assert len([item for item in requests if item['method']=='POST' and item['path'].endswith('/method-drafts')])==1
-                        facts.update({'draft_ref':ref,'created_at':meta['created_at'],'source_revision':1,'target_revision':2,'source_licence_basis':source['licence_basis'],'source_quote_sha256':hashlib.sha256(source['quote'].encode()).hexdigest(),'source_ref_digest':source['content_digest'],'unchanged_original_ref_and_time':True,'new_editor_preserved':True,'hard_reload_reopen':True,'validation_status':meta['validation_status'],'execution_status':meta['execution_status'],'source_execute':'closed','funding':'closed','actual_requests':requests})
+                        facts.update({'draft_ref':ref,'created_at':meta['created_at'],'source_revision':1,'target_revision':2,'source_licence_basis':source['licence_basis'],'source_quote_sha256':hashlib.sha256(source['quote'].encode()).hexdigest(),'source_ref_digest':source['content_digest'],'unchanged_original_ref_and_time':True,'new_editor_preserved':True,'hard_reload_reopen':True,'validation_status':meta['validation_status'],'execution_status':meta['execution_status'],'source_execute':health['body']['checks']['source_execute'],'funding':'closed','browser_source_plan_posts':len([item for item in requests if item['method']=='POST' and any(part in item['path'] for part in ('source-preview','source-tasks','plan-previews','plan-approvals'))]),'actual_requests':requests})
                         await _method_draft_drain_owned_bridge(page,bridge);progress('owned-reads-drained')
                 except BaseException as error:primary=error;raise
                 finally:
@@ -4358,6 +4358,7 @@ async def _source_history_closed_main_journey(tmp_path):
     owned=tmp_path/'actual-main';service=None;browser=None;context=None;primary=None;cleanup=[];facts={'scope':'actualMain closed collection still reads authorized stored Source'};posts=[];pids=[];ports=[]
     try:
         with FormalMainBrowserService(owned) as service,service.browser_bridge() as bridge:
+            assert service.retire_source()=='unavailable'
             ports=[service.port,service._smtp.port]
             async with async_playwright() as playwright:
                 browser=await playwright.chromium.launch();context=await browser.new_context(viewport={'width':390,'height':844});context.set_default_timeout(8000)
