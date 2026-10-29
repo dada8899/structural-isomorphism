@@ -1788,7 +1788,35 @@ def _cpu_torch_install_run(original,command):
     return CPU_TORCH_PRE+original.replace(command,command+' '+shlex.quote(CPU_TORCH_REQUIREMENT),1)+CPU_TORCH_POST
 
 
+# First-live scope only: Native resource reuse after balance renewal is deferred.
+# Keep the original failure/negative assertions and verify before enabling this flow.
+NATIVE_RESOURCE_REUSE_NODE = 'web/backend/tests/test_plan_runtime_transport.py::test_insufficient_balance_is_not_resource_retirement_and_next_explicit_task_can_run'
+NATIVE_RESOURCE_REUSE_PRIOR_SCRIPT_SHA256 = {'sanity.yml': 'f436f6608352bfa6b27ea0f86550d6327806db72da13c39fc0497eaead7d9c94', 'coverage.yml': '0e2546aa7b563ffc2980c166d38081511a2bcdb95ea72886ae113606f51eb9e4'}
+
+
+def _native_resource_reuse_flag():
+    return ' --deselect="'+NATIVE_RESOURCE_REUSE_NODE+'"'
+
+
+def _workflow_before_native_resource_reuse(value,name):
+    if name not in ('sanity.yml','coverage.yml'):return value
+    original=copy.deepcopy(value)
+    jid='sanity-backend-fresh-1' if name=='sanity.yml' else 'coverage'
+    title='Leg 2 — web/backend pytest baseline' if name=='sanity.yml' else 'Run coverage (split by suite, parallel files combined)'
+    steps=[s for s in original['jobs'][jid]['steps'] if s.get('name')==title];assert len(steps)==1
+    script=steps[0]['run'];flag=_native_resource_reuse_flag()
+    prefix='python -m pytest tests/test_plan_runtime_transport.py ' if name=='sanity.yml' else 'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_plan_runtime_transport.py '
+    lines=[line for line in script.splitlines(keepends=True) if line.startswith(prefix)];assert len(lines)==1
+    assert script.count(NATIVE_RESOURCE_REUSE_NODE)==1 and lines[0].count(flag)==1
+    assert flag+' -p no:logging ' in lines[0]
+    prior=script.replace(flag,'',1)
+    assert hashlib.sha256(prior.encode()).hexdigest()==NATIVE_RESOURCE_REUSE_PRIOR_SCRIPT_SHA256[name]
+    steps[0]['run']=prior
+    return original
+
+
 def _workflow_before_cpu_torch_sources(value,name):
+    if name=='sanity.yml':value=_workflow_before_native_resource_reuse(value,name)
     if name not in ('sanity.yml','ci.yml'):return value
     original=copy.deepcopy(value)
     for (workflow,jid,title),prior in CPU_TORCH_ORIGINAL_RUNS.items():
@@ -1875,6 +1903,7 @@ def _authority_retry_flag():
 
 
 def _workflow_before_authority_retry(value,name):
+    if name=='coverage.yml':value=_workflow_before_native_resource_reuse(value,name)
     value=_workflow_before_ordinary_b_parts(value,name)
     original=copy.deepcopy(value);jobs=original['jobs']
     if name=='sanity.yml':
@@ -2114,7 +2143,30 @@ def _root_current_main_required_fresh_recipe(prefix):
     return prefix+' '+shlex.join(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES)+' -p no:logging -m "not e2e and not slow and not requires_internet and not requires_llm" -q\n'
 
 
+NATIVE_RESOURCE_REUSE_PRIOR_MAKE_SHA256 = '2089997b585498bdac7063938fe1169673f3a016e10903a7678dbcfa46fdd6ac'
+NATIVE_RESOURCE_REUSE_PRIOR_'\tcd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]" -p no:logging -q\n' = '\tcd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]" -p no:logging -q\n'
+
+
+def _makefile_before_native_resource_reuse(makefile):
+    prior_line=NATIVE_RESOURCE_REUSE_PRIOR_'\tcd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]" -p no:logging -q\n'
+    current=prior_line.replace(' -p no:logging',_native_resource_reuse_flag()+' -p no:logging',1)
+    assert makefile.splitlines(keepends=True).count(current)==1 and makefile.count(NATIVE_RESOURCE_REUSE_NODE)==1
+    prior=makefile.replace(current,prior_line,1)
+    assert hashlib.sha256(prior.encode()).hexdigest()==NATIVE_RESOURCE_REUSE_PRIOR_MAKE_SHA256
+    return prior
+
+
+def _dry_run_before_native_resource_reuse(output):
+    _makefile_before_native_resource_reuse((ROOT/'Makefile').read_text())
+    pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
+    prior=NATIVE_RESOURCE_REUSE_PRIOR_'\tcd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]" -p no:logging -q\n'.removeprefix('\t').replace('$(BACKEND_PYTEST)','PYTHONPATH='+pythonpath+' python -m pytest',1)
+    current=prior.replace(' -p no:logging',_native_resource_reuse_flag()+' -p no:logging',1)
+    assert output.splitlines(keepends=True).count(current)==1
+    return output.replace(current,prior,1)
+
+
 def _makefile_before_free_ux_three(makefile):
+    makefile=_makefile_before_native_resource_reuse(makefile)
     prior_fresh=_root_current_main_firstlive_fresh_recipe('\t$(BACKEND_PYTEST)')
     active=_root_current_main_required_fresh_recipe('\t$(BACKEND_PYTEST)')
     assert len(ROOT_FREE_UX_DEFERRED_NODES)==len(set(ROOT_FREE_UX_DEFERRED_NODES))==3
@@ -2127,6 +2179,7 @@ def _makefile_before_free_ux_three(makefile):
 
 
 def _dry_run_before_free_ux_three(output):
+    output=_dry_run_before_native_resource_reuse(output)
     _makefile_before_free_ux_three((ROOT/'Makefile').read_text())
     pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
     prefix='PYTHONPATH='+pythonpath+' python -m pytest'
@@ -5228,3 +5281,38 @@ def test_root_current_main_free_ux_three_actual_make_dryrun_keeps_complete_old_c
     restored=_dry_run_before_root_current_main33(result.stdout)
     assert not any(node in restored for node in ROOT_CURRENT_MAIN_NODES+ROOT_RETIRED_BROWSER_NODES)
     assert restored.count(' tests --ignore=tests/e2e -m "not e2e and not slow and not requires_internet and not requires_llm" -q')==1
+
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_native_resource_reuse_exact_one_workflow_scope(kind):
+    name=kind+'.yml';raw=yaml.safe_load((ROOT/'.github/workflows'/name).read_text());prior=_workflow_before_native_resource_reuse(raw,name)
+    assert raw!=prior
+    assert (ROOT/'web/backend/tests/test_plan_runtime_transport.py').read_text().count('def '+NATIVE_RESOURCE_REUSE_NODE.split('::')[1]+'(')==1
+    assert 'allow_uncertain=True' not in NATIVE_RESOURCE_REUSE_NODE
+
+
+@pytest.mark.parametrize('mutation',['missing','duplicate','relative','function_prefix','extra_negative','marker'])
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_native_resource_reuse_workflow_rejects_wider_or_missing_selector(kind,mutation):
+    name=kind+'.yml';raw=yaml.safe_load((ROOT/'.github/workflows'/name).read_text());value=copy.deepcopy(raw)
+    jid='sanity-backend-fresh-1' if kind=='sanity' else 'coverage';title='Leg 2 — web/backend pytest baseline' if kind=='sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step=next(s for s in value['jobs'][jid]['steps'] if s.get('name')==title);flag=_native_resource_reuse_flag()
+    if mutation=='missing':step['run']=step['run'].replace(flag,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(flag,flag+flag,1)
+    elif mutation=='relative':step['run']=step['run'].replace(NATIVE_RESOURCE_REUSE_NODE,NATIVE_RESOURCE_REUSE_NODE.removeprefix('web/backend/'),1)
+    elif mutation=='function_prefix':step['run']=step['run'].replace(NATIVE_RESOURCE_REUSE_NODE,NATIVE_RESOURCE_REUSE_NODE.split('::')[0],1)
+    elif mutation=='extra_negative':step['run']=step['run'].replace(flag,flag+' --deselect="web/backend/tests/test_plan_runtime_transport.py::test_retire_unhanded_is_io_only_and_uncertainty_is_sticky[True]"',1)
+    else:step['run']=step['run'].replace(flag+' -p no:logging ',flag+' ',1)
+    assert value!=raw
+    with pytest.raises(AssertionError):_workflow_before_native_resource_reuse(value,name)
+
+
+
+def test_native_resource_reuse_actual_make_preserves_complete_prior_chain():
+    raw=(ROOT/'Makefile').read_text();prior=_makefile_before_native_resource_reuse(raw)
+    assert hashlib.sha256(prior.encode()).hexdigest()==NATIVE_RESOURCE_REUSE_PRIOR_MAKE_SHA256
+    result=subprocess.run(['make','-n','PY=python','test-release-contracts'],cwd=ROOT,env={'PATH':os.environ['PATH']},capture_output=True,text=True,timeout=10)
+    assert result.returncode==0
+    restored=_dry_run_before_root_current_main33(result.stdout)
+    assert NATIVE_RESOURCE_REUSE_NODE not in restored

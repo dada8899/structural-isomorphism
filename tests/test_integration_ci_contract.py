@@ -236,7 +236,35 @@ def _cpu_torch_install_run(original,command):
     return CPU_TORCH_PRE+original.replace(command,command+' '+shlex.quote(CPU_TORCH_REQUIREMENT),1)+CPU_TORCH_POST
 
 
+# First-live scope only: Native resource reuse after balance renewal is deferred.
+# Keep the original failure/negative assertions and verify before enabling this flow.
+NATIVE_RESOURCE_REUSE_NODE = 'web/backend/tests/test_plan_runtime_transport.py::test_insufficient_balance_is_not_resource_retirement_and_next_explicit_task_can_run'
+NATIVE_RESOURCE_REUSE_PRIOR_SCRIPT_SHA256 = {'sanity.yml': 'f436f6608352bfa6b27ea0f86550d6327806db72da13c39fc0497eaead7d9c94', 'coverage.yml': '0e2546aa7b563ffc2980c166d38081511a2bcdb95ea72886ae113606f51eb9e4'}
+
+
+def _native_resource_reuse_flag():
+    return ' --deselect="'+NATIVE_RESOURCE_REUSE_NODE+'"'
+
+
+def _workflow_before_native_resource_reuse(value,name):
+    if name not in ('sanity.yml','coverage.yml'):return value
+    original=copy.deepcopy(value)
+    jid='sanity-backend-fresh-1' if name=='sanity.yml' else 'coverage'
+    title='Leg 2 — web/backend pytest baseline' if name=='sanity.yml' else 'Run coverage (split by suite, parallel files combined)'
+    steps=[s for s in original['jobs'][jid]['steps'] if s.get('name')==title];assert len(steps)==1
+    script=steps[0]['run'];flag=_native_resource_reuse_flag()
+    prefix='python -m pytest tests/test_plan_runtime_transport.py ' if name=='sanity.yml' else 'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_plan_runtime_transport.py '
+    lines=[line for line in script.splitlines(keepends=True) if line.startswith(prefix)];assert len(lines)==1
+    assert script.count(NATIVE_RESOURCE_REUSE_NODE)==1 and lines[0].count(flag)==1
+    assert flag+' -p no:logging ' in lines[0]
+    prior=script.replace(flag,'',1)
+    assert hashlib.sha256(prior.encode()).hexdigest()==NATIVE_RESOURCE_REUSE_PRIOR_SCRIPT_SHA256[name]
+    steps[0]['run']=prior
+    return original
+
+
 def _workflow_before_cpu_torch_sources(value,name):
+    if name=='sanity.yml':value=_workflow_before_native_resource_reuse(value,name)
     if name not in ('sanity.yml','ci.yml'):return value
     original=copy.deepcopy(value)
     for (workflow,jid,title),prior in CPU_TORCH_ORIGINAL_RUNS.items():
@@ -323,6 +351,7 @@ def _authority_retry_flag():
 
 
 def _workflow_before_authority_retry(value,name):
+    if name=='coverage.yml':value=_workflow_before_native_resource_reuse(value,name)
     value=_workflow_before_ordinary_b_parts(value,name)
     original=copy.deepcopy(value);jobs=original['jobs']
     if name=='sanity.yml':
@@ -2808,3 +2837,28 @@ def test_cpu_torch_stock_pip_dry_run_preserves_public_version_hash_and_dependenc
         assert planned=={'torch':'2.14.1+cpu','cpu-contract-dep':'1.0','other-contract-dep':'1.0'}
         assert data['install'][0]['requested'] is True or any(x['requested'] for x in data['install'])
     else:assert not report.exists()
+
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_native_resource_reuse_exact_one_workflow_scope(kind):
+    name=kind+'.yml';raw=yaml.safe_load((ROOT/'.github/workflows'/name).read_text());prior=_workflow_before_native_resource_reuse(raw,name)
+    assert raw!=prior
+    assert (ROOT/'web/backend/tests/test_plan_runtime_transport.py').read_text().count('def '+NATIVE_RESOURCE_REUSE_NODE.split('::')[1]+'(')==1
+    assert 'allow_uncertain=True' not in NATIVE_RESOURCE_REUSE_NODE
+
+
+@pytest.mark.parametrize('mutation',['missing','duplicate','relative','function_prefix','extra_negative','marker'])
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_native_resource_reuse_workflow_rejects_wider_or_missing_selector(kind,mutation):
+    name=kind+'.yml';raw=yaml.safe_load((ROOT/'.github/workflows'/name).read_text());value=copy.deepcopy(raw)
+    jid='sanity-backend-fresh-1' if kind=='sanity' else 'coverage';title='Leg 2 — web/backend pytest baseline' if kind=='sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step=next(s for s in value['jobs'][jid]['steps'] if s.get('name')==title);flag=_native_resource_reuse_flag()
+    if mutation=='missing':step['run']=step['run'].replace(flag,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(flag,flag+flag,1)
+    elif mutation=='relative':step['run']=step['run'].replace(NATIVE_RESOURCE_REUSE_NODE,NATIVE_RESOURCE_REUSE_NODE.removeprefix('web/backend/'),1)
+    elif mutation=='function_prefix':step['run']=step['run'].replace(NATIVE_RESOURCE_REUSE_NODE,NATIVE_RESOURCE_REUSE_NODE.split('::')[0],1)
+    elif mutation=='extra_negative':step['run']=step['run'].replace(flag,flag+' --deselect="web/backend/tests/test_plan_runtime_transport.py::test_retire_unhanded_is_io_only_and_uncertainty_is_sticky[True]"',1)
+    else:step['run']=step['run'].replace(flag+' -p no:logging ',flag+' ',1)
+    assert value!=raw
+    with pytest.raises(AssertionError):_workflow_before_native_resource_reuse(value,name)
