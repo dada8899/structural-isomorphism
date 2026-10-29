@@ -156,27 +156,98 @@ print('R2_RESULT:' + json.dumps({'requests': len(paths) * 2, 'consumers': reache
 def test_real_formal_lifespan_and_direct_health_are_closed_before_initializers(tmp_path):
     value = isolated(tmp_path, r'''
 import main
+import research
 import services.search_service as search_service
-from services.runtime_paths import FormalAdmissionError
+import services.runtime_paths as paths
+from services import formal_admission
+from services.runtime_paths import FormalAdmissionError, RuntimePathError, require_formal_admission
+import threading
+# Real configuration validation precedes admission. No private runtime has
+# been provisioned: these task-owned canonical roots must remain absent.
+state = pathlib.Path(TEST_ENV['HOME']).parent / 'unprovisioned-formal-state'
+cache = state.parent / 'unprovisioned-formal-cache'
+assert not state.exists() and not cache.exists()
+paths.STATE_ROOT, paths.CACHE_ROOT, paths.LOG_ROOT = state, cache, state / 'logs'
+os.environ.update(AUTH_SITE_ROLE='beta', AUTH_LINK_BASE_URL='https://beta.structural.bytedance.city',
+    JWT_SECRET='A7f9K2m4P8q1R6t3V5x0Y2z8C4d7H9j1L6n3',
+    STRUCTURAL_PRIVACY_HMAC_KEY='0123456789abcdef' * 4,
+    SMTP_HOST='fixture.invalid', SMTP_PORT='587', SMTP_FROM_EMAIL='sender@example.invalid',
+    ADMIN_NOTIFICATION_EMAIL='admin@example.invalid', AUTH_DATA_DIR=str(state),
+    AUTH_TRUSTED_PROXY_IPS='127.0.0.1')
+config_checks = []
+original_config = main.auth_api._validate_production_config
+def checked_config():
+    config_checks.append('config')
+    return original_config()
+main.auth_api._validate_production_config = checked_config
 reached = []
 def trap(*a, **k):
     reached.append('initializer')
     raise AssertionError('initializer entered')
-main.auth_api._validate_production_config = trap
+# Bind the actual factories consumed by formal_admission.initialize, rather
+# than an unused AuthStore alias or a replacement admission predicate.
+main.auth_api._store = trap
+research.ResearchStore = trap
+research.ResearchService = trap
 search_service.SearchService = trap
-async def check():
+births = []
+original_open, original_close = os.open, os.close
+def watched_open(*args, **kwargs):
+    fd = original_open(*args, **kwargs)
+    info = os.fstat(fd)
+    births.append({'fd': fd, 'identity': (info.st_dev, info.st_ino, info.st_mode),
+                   'creator': threading.get_ident(), 'closed': False, 'same_creator': False})
+    return fd
+def watched_close(fd, *args, **kwargs):
+    info = os.fstat(fd)
+    record = next((item for item in reversed(births) if item['fd'] == fd and not item['closed']), None)
+    same = (record is not None and record['identity'] == (info.st_dev, info.st_ino, info.st_mode)
+            and record['creator'] == threading.get_ident())
+    result = original_close(fd, *args, **kwargs)
+    if record is not None:
+        record['closed'], record['same_creator'] = True, same
+    assert same, 'read-only descriptor did not close through its actual creator'
+    return result
+def unadmitted():
+    assert id(main.app) not in formal_admission._STATE
     try:
-        async with main.lifespan(main.app):
-            raise AssertionError('formal startup admitted')
-    except FormalAdmissionError:
-        pass
+        require_formal_admission(main.app)
+    except FormalAdmissionError as error:
+        assert type(error) is FormalAdmissionError
+    else:
+        raise AssertionError('unadmitted consumer was accepted')
+async def check():
+    unadmitted()
+    for deep in (0, 1):
+        assert (await main.health(deep=deep)).status_code == 503
+    os.open, os.close = watched_open, watched_close
+    try:
+        try:
+            async with main.lifespan(main.app):
+                raise AssertionError('formal startup admitted')
+        except RuntimePathError as error:
+            assert type(error) is RuntimePathError
+    finally:
+        os.open, os.close = original_open, original_close
+    unadmitted()
     for deep in (0, 1):
         main.app_state.update(search=object(), artifact={'artifact_id': 'fake'})
         assert (await main.health(deep=deep)).status_code == 503
 asyncio.run(check())
+assert config_checks == ['config', 'config']
+assert not state.exists() and not cache.exists()
+assert all(item['closed'] and item['same_creator'] for item in births)
 assert not reached and not attempts, (reached, attempts)
-print('R2_RESULT:' + json.dumps({'initializers': reached, 'attempts': attempts}))
+print('R2_RESULT:' + json.dumps({'initializers': reached, 'attempts': attempts,
+    'config_checks': len(config_checks), 'readonly_fd_born': len(births),
+    'readonly_fd_closed': sum(item['closed'] for item in births),
+    'readonly_same_creator': all(item['same_creator'] for item in births) if births else None}))
 ''')
+    assert value.pop('config_checks') == 2
+    born, closed = value.pop('readonly_fd_born'), value.pop('readonly_fd_closed')
+    same_creator = value.pop('readonly_same_creator')
+    assert type(born) is int and born >= 0 and closed == born
+    assert same_creator is (True if born else None)
     assert value == {'initializers': [], 'attempts': []}
 
 
