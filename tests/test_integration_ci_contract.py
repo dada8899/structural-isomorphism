@@ -219,8 +219,44 @@ FRESH_PART_PRIOR_JOBS_SHA256 = '30f8e111fa68f24c3caa871e109d0ae99e064a5ce20c4aba
 FRESH_PART_AGGREGATE = {'name': 'sanity-backend-fresh', 'runs-on': 'ubuntu-latest', 'timeout-minutes': 45, 'needs': ['sanity-backend-fresh-1', 'sanity-backend-fresh-2'], 'if': 'always()', 'steps': [{'name': 'Require all fixed fresh segments success', 'env': {'BACKEND_FRESH1_RESULT': "${{ needs['sanity-backend-fresh-1'].result }}", 'BACKEND_FRESH2_RESULT': "${{ needs['sanity-backend-fresh-2'].result }}"}, 'run': 'for result in "${BACKEND_FRESH1_RESULT:-}" "${BACKEND_FRESH2_RESULT:-}"; do\n  if [ "$result" != "success" ]; then\n    echo "A complete fresh segment did not succeed."\n    exit 1\n  fi\ndone\n'}]}
 
 
+# The reviewed CPU artifact is selected inside the original dependency resolver.
+CPU_TORCH_URL = 'https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl'
+CPU_TORCH_SHA256 = '5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37'
+CPU_TORCH_REQUIREMENT = 'torch @ '+CPU_TORCH_URL+'#sha256='+CPU_TORCH_SHA256
+CPU_TORCH_PRE = "python - <<'CPU_TORCH_PIN'\nimport hashlib, platform, re, sys\nfrom pathlib import Path\n\ndef verify_cpu_torch_pin(lock, requirements, runtime):\n    assert type(lock) is str and type(requirements) is str\n    assert runtime == ('cpython', 'linux', (3, 11), 'x86_64')\n    assert hashlib.sha256(lock.encode('utf-8')).hexdigest() == 'efd2731c4e9e212ab75e6bcb53880d88492e1a44272622f05b6c98e8a606b6f5'\n    lines = lock.splitlines()\n    indexes = [i for i, line in enumerate(lines) if line.startswith('torch==')]\n    assert len(indexes) == 1\n    start = indexes[0]\n    assert lines[start].split()[0] == 'torch==2.14.1+cpu'\n    end = next((i for i in range(start + 1, len(lines)) if lines[i] and not lines[i][0].isspace() and not lines[i].startswith('#')), len(lines))\n    assert '5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37' in re.findall(r'--hash=sha256:([0-9a-f]{64})', '\\n'.join(lines[start + 1:end]))\n    assert [line.strip() for line in requirements.splitlines() if line.strip().startswith('torch') and not line.lstrip().startswith('#')] == ['torch==2.14.1']\n\nverify_cpu_torch_pin(Path('requirements/runtime-linux-cpu.lock').read_text(), Path('web/backend/requirements.txt').read_text(), (sys.implementation.name, sys.platform, sys.version_info[:2], platform.machine()))\nCPU_TORCH_PIN\n"
+CPU_TORCH_POST = "python - <<'CPU_TORCH_RESULT'\nfrom importlib.metadata import version\nimport torch\nassert version('torch') == '2.14.1+cpu'\nassert torch.__version__ == '2.14.1+cpu'\nassert torch.version.cuda is None\nCPU_TORCH_RESULT\n"
+CPU_TORCH_CI_CONDITION = 'if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ "${{ matrix.python-version }}" = "3.11" ]; then\n'
+CPU_TORCH_PRIOR_JOBS_SHA256 = {'sanity.yml': '7d34fe816e330b645545b60c2200278577a4f9b79c7e7ecf931a54cbebe4a8c2', 'ci.yml': '292b6fe2eb41c31f0026fb40ced69c4105d4dd881edc3992dded187a7eb0e182'}
+CPU_TORCH_ORIGINAL_RUNS = {('sanity.yml', 'sanity-backend-ordinary-a', 'Install web/backend deps'): 'pip install -r web/backend/requirements.txt\n', ('sanity.yml', 'sanity-backend-ordinary-b-1', 'Install web/backend deps'): 'pip install -r web/backend/requirements.txt\n', ('sanity.yml', 'sanity-backend-ordinary-b-2', 'Install web/backend deps'): 'pip install -r web/backend/requirements.txt\n', ('sanity.yml', 'sanity-backend-ordinary-b-3', 'Install web/backend deps'): 'pip install -r web/backend/requirements.txt\n', ('sanity.yml', 'sanity-backend-fresh-1', 'Install web/backend deps'): 'pip install -r web/backend/requirements.txt\n', ('sanity.yml', 'sanity-backend-fresh-2', 'Install web/backend deps'): 'pip install -r web/backend/requirements.txt\n', ('sanity.yml', 'sanity', 'Install web/backend deps'): 'pip install -r web/backend/requirements.txt\n', ('sanity.yml', 'sanity', 'Install root release contract dependencies'): 'python -m pip install -e ".[dev]"\npython -m pip install playwright==1.59.0\npython -m playwright install --with-deps chromium\n', ('ci.yml', 'backend', 'Install dependencies'): 'python -m pip install --upgrade pip\npython -m pip install -e ".[dev]"\npython -m pip install pyyaml\n', ('ci.yml', 'backend', 'Install local packages (editable)'): 'pip install -e packages/soc-pipeline\npip install -e packages/guarded-llm\npip install -e packages/cross-judge\n'}
+CPU_TORCH_PROOF_PYTHON = __import__('sys').executable
+
+
+def _cpu_torch_install_run(original,command):
+    assert original.splitlines().count(command)==1
+    return CPU_TORCH_PRE+original.replace(command,command+' '+shlex.quote(CPU_TORCH_REQUIREMENT),1)+CPU_TORCH_POST
+
+
+def _workflow_before_cpu_torch_sources(value,name):
+    if name not in ('sanity.yml','ci.yml'):return value
+    original=copy.deepcopy(value)
+    for (workflow,jid,title),prior in CPU_TORCH_ORIGINAL_RUNS.items():
+        if workflow!=name:continue
+        step=[s for s in original['jobs'][jid]['steps'] if s.get('name')==title];assert len(step)==1
+        if name=='sanity.yml':
+            command='python -m pip install -e ".[dev]"' if title=='Install root release contract dependencies' else 'pip install -r web/backend/requirements.txt'
+            expected=_cpu_torch_install_run(prior,command)
+        elif title=='Install dependencies':
+            expected=CPU_TORCH_CI_CONDITION+_cpu_torch_install_run(prior,'python -m pip install -e ".[dev]"')+'else\n'+prior+'fi\n'
+        else:expected=prior+CPU_TORCH_CI_CONDITION+CPU_TORCH_POST+'fi\n'
+        assert step[0]['run']==expected
+        step[0]['run']=prior
+    assert hashlib.sha256(json.dumps(original['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==CPU_TORCH_PRIOR_JOBS_SHA256[name]
+    return original
+
+
 def _workflow_before_fresh_parts(value,name):
     if name!='sanity.yml':return value
+    value=_workflow_before_cpu_torch_sources(value,name)
     original=copy.deepcopy(value);jobs=original['jobs']
     assert jobs['sanity-backend-fresh']==FRESH_PART_AGGREGATE
     complete=[];common_header=None;restored=None
@@ -425,6 +461,7 @@ BACKEND_MAC312_PRIOR_JOBS_SHA256 = 'e19c9f8e6a62f2cc2b2257610541fffb02018a69ee5e
 
 def _workflow_before_backend_mac312_budget(value,name):
     if name!='ci.yml':return value
+    value=_workflow_before_cpu_torch_sources(value,name)
     original=copy.deepcopy(value);job=original['jobs']['backend'];steps=job['steps']
     assert job['timeout-minutes']==BACKEND_MAC312_JOB_TIMEOUT and len(steps)==9
     ordinary=steps[3:5]+steps[6:8]
@@ -2626,7 +2663,7 @@ def test_fresh_aggregate_executes_strict_complete_success(one,two):
 
 @pytest.mark.parametrize('system,version,target',[('ubuntu-latest','3.10',False),('ubuntu-latest','3.11',False),('ubuntu-latest','3.12',False),('macos-latest','3.11',False),('macos-latest','3.12',True)])
 def test_backend_mac312_only_preparation_budget_preserves_five_matrix_cells(system,version,target):
-    raw=yaml.safe_load((ROOT/'.github/workflows/ci.yml').read_text());job=raw['jobs']['backend'];prior=_workflow_before_backend_mac312_budget(raw,'ci.yml')['jobs']['backend']
+    raw=yaml.safe_load((ROOT/'.github/workflows/ci.yml').read_text());job=_workflow_before_cpu_torch_sources(raw,'ci.yml')['jobs']['backend'];prior=_workflow_before_backend_mac312_budget(raw,'ci.yml')['jobs']['backend']
     matrix=job['strategy']['matrix'];cells=[(s,p) for s in matrix['os'] for p in matrix['python-version'] if {'os':s,'python-version':p} not in matrix['exclude']]
     assert len(cells)==5 and (system,version) in cells and job['strategy']['fail-fast'] is False
     assert target==((system,version)==('macos-latest','3.12'))
@@ -2672,3 +2709,102 @@ def test_backend_mac312_original_phase_shell_preserves_fail_fast(tmp_path,phase,
     result=subprocess.run(['/bin/bash','--noprofile','--norc','-e','-o','pipefail','-c',step['run']],env={'PATH':str(tools)+':/usr/bin:/bin','COUNT_FILE':str(counter),'TRACE_FILE':str(trace),'FAIL_AT':str(fail_at)},capture_output=True,text=True,timeout=5)
     assert trace.read_text().splitlines()==[str(n) for n in range(1,count+1)]
     assert result.returncode==(0 if fail_at==0 else 17)
+
+
+
+def _cpu_torch_pin_verifier():
+    source=CPU_TORCH_PRE.split("python - <<'CPU_TORCH_PIN'\n",1)[1].rsplit('\nCPU_TORCH_PIN',1)[0]
+    tree=ast.parse(source);node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='verify_cpu_torch_pin')
+    scope={'hashlib':hashlib,'re':re};exec(compile(ast.Module(body=[node],type_ignores=[]),'<fixed-cpu-pin-verifier>','exec'),scope)
+    return scope['verify_cpu_torch_pin']
+
+
+def test_cpu_torch_only_approved_consumers_and_original_dependency_resolution():
+    assert CPU_TORCH_URL=='https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl'
+    assert CPU_TORCH_SHA256=='5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37'
+    assert len(CPU_TORCH_ORIGINAL_RUNS)==10
+    assert len({jid for name,jid,title in CPU_TORCH_ORIGINAL_RUNS if name=='sanity.yml'})==7
+    verify=_cpu_torch_pin_verifier()
+    verify((ROOT/'requirements/runtime-linux-cpu.lock').read_text(),(ROOT/'web/backend/requirements.txt').read_text(),('cpython','linux',(3,11),'x86_64'))
+    for name in ('sanity.yml','ci.yml'):
+        raw=yaml.safe_load((ROOT/'.github/workflows'/name).read_text());prior=_workflow_before_cpu_torch_sources(raw,name)
+        for (workflow,jid,title),original in CPU_TORCH_ORIGINAL_RUNS.items():
+            if workflow!=name:continue
+            run=next(s['run'] for s in raw['jobs'][jid]['steps'] if s.get('name')==title)
+            assert '--no-deps' not in run and '--upgrade' not in run.replace('python -m pip install --upgrade pip','')
+            assert '--index-url' not in run and '--extra-index-url' not in run
+            assert 'assert torch.version.cuda is None' in run
+            assert next(s['run'] for s in prior['jobs'][jid]['steps'] if s.get('name')==title)==original
+            if name=='sanity.yml' or title=='Install dependencies':
+                commands=[shlex.split(line) for line in run.splitlines() if line.startswith(('pip install ','python -m pip install '))]
+                assert sum(CPU_TORCH_REQUIREMENT in command for command in commands)==1
+    ci=yaml.safe_load((ROOT/'.github/workflows/ci.yml').read_text())
+    assert CPU_TORCH_CI_CONDITION=='if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ "${{ matrix.python-version }}" = "3.11" ]; then\n'
+    # The already reviewed macOS preparation/test phases retain their exact bodies.
+    original=_workflow_before_cpu_torch_sources(ci,'ci.yml')
+    assert ci['jobs']['backend']['steps'][5]==original['jobs']['backend']['steps'][5]
+    assert ci['jobs']['backend']['steps'][8]==original['jobs']['backend']['steps'][8]
+
+
+@pytest.mark.parametrize('runtime',[('cpython','darwin',(3,11),'x86_64'),('cpython','linux',(3,12),'x86_64'),('cpython','linux',(3,11),'aarch64'),('pypy','linux',(3,11),'x86_64')])
+def test_cpu_torch_pin_rejects_any_unapproved_runtime(runtime):
+    with pytest.raises(AssertionError):_cpu_torch_pin_verifier()((ROOT/'requirements/runtime-linux-cpu.lock').read_text(),(ROOT/'web/backend/requirements.txt').read_text(),runtime)
+
+
+@pytest.mark.parametrize('mutation',['lock_hash','wrong_public_version'])
+def test_cpu_torch_pin_rejects_drift_before_installer(mutation):
+    lock=(ROOT/'requirements/runtime-linux-cpu.lock').read_text();requirements=(ROOT/'web/backend/requirements.txt').read_text()
+    if mutation=='lock_hash':lock=lock.replace(CPU_TORCH_SHA256,'0'*64,1)
+    else:requirements=requirements.replace('torch==2.14.1','torch==2.15.0',1)
+    with pytest.raises(AssertionError):_cpu_torch_pin_verifier()(lock,requirements,('cpython','linux',(3,11),'x86_64'))
+
+
+@pytest.mark.parametrize('name,mutation',[('sanity.yml','missing'),('sanity.yml','hash'),('sanity.yml','source'),('sanity.yml','no_deps'),('sanity.yml','cuda_post'),('sanity.yml','other_job'),('ci.yml','missing'),('ci.yml','cpu_cell'),('ci.yml','other_python'),('ci.yml','local_post'),('ci.yml','mac_budget'),('ci.yml','matrix')])
+def test_cpu_torch_workflow_rejects_any_wider_or_missing_selection(name,mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/name).read_text())
+    jid='sanity-backend-ordinary-b-3' if name=='sanity.yml' else 'backend'
+    title='Install web/backend deps' if name=='sanity.yml' else 'Install dependencies'
+    step=next(s for s in raw['jobs'][jid]['steps'] if s.get('name')==title)
+    if mutation=='missing':step['run']=CPU_TORCH_ORIGINAL_RUNS[(name,jid,title)]
+    elif mutation=='hash':step['run']=step['run'].replace(CPU_TORCH_SHA256,'0'*64)
+    elif mutation=='source':step['run']=step['run'].replace('download-r2.pytorch.org','foreign.example')
+    elif mutation=='no_deps':step['run']=step['run'].replace('pip install -r','pip install --no-deps -r',1)
+    elif mutation=='cuda_post':step['run']=step['run'].replace('assert torch.version.cuda is None','pass')
+    elif mutation=='other_job':raw['jobs']['sanity-backend']['steps'][0]['run']+='true\n'
+    elif mutation=='cpu_cell':step['run']=step['run'].replace('"ubuntu-latest"','"macos-latest"',1)
+    elif mutation=='other_python':step['run']=step['run'].replace('"3.11"','"3.12"',1)
+    elif mutation=='local_post':next(s for s in raw['jobs']['backend']['steps'] if s.get('name')=='Install local packages (editable)')['run']=CPU_TORCH_ORIGINAL_RUNS[('ci.yml','backend','Install local packages (editable)')]
+    elif mutation=='mac_budget':raw['jobs']['backend']['timeout-minutes']=40
+    else:raw['jobs']['backend']['strategy']['matrix']['python-version'].remove('3.10')
+    with pytest.raises((AssertionError,KeyError)):_workflow_before_cpu_torch_sources(raw,name)
+
+
+@pytest.mark.parametrize('case',['complete','bad_hash','missing_dependency'])
+def test_cpu_torch_stock_pip_dry_run_preserves_public_version_hash_and_dependencies(tmp_path,case):
+    # Inert metadata wheels only: no package code, installation or external index.
+    import zipfile
+    wheels=tmp_path/'wheels';wheels.mkdir();home=tmp_path/'home';home.mkdir()
+    def wheel(name,version,requires=()):
+        normalized=name.replace('-','_');info=normalized+'-'+version+'.dist-info'
+        target=wheels/(normalized+'-'+version+'-py3-none-any.whl')
+        metadata='Metadata-Version: 2.1\nName: '+name+'\nVersion: '+version+'\n'+''.join('Requires-Dist: '+x+'\n' for x in requires)+'\n'
+        with zipfile.ZipFile(target,'w') as archive:
+            archive.writestr(info+'/METADATA',metadata)
+            archive.writestr(info+'/WHEEL','Wheel-Version: 1.0\nGenerator: inert-ci-contract\nRoot-Is-Purelib: true\nTag: py3-none-any\n')
+            archive.writestr(info+'/RECORD','')
+        return target
+    cpu=wheel('torch','2.14.1+cpu',('cpu-contract-dep==1.0',))
+    if case!='missing_dependency':wheel('cpu-contract-dep','1.0')
+    wheel('other-contract-dep','1.0')
+    requirements=tmp_path/'requirements.txt';requirements.write_text('torch==2.14.1\nother-contract-dep==1.0\n')
+    digest=hashlib.sha256(cpu.read_bytes()).hexdigest()
+    if case=='bad_hash':digest='0'*64
+    report=tmp_path/'report.json'
+    command=[CPU_TORCH_PROOF_PYTHON,'-I','-B','-m','pip','--disable-pip-version-check','--cache-dir',str(tmp_path/'cache'),'install','--dry-run','--ignore-installed','--no-index','--only-binary=:all:','--find-links',str(wheels),'--report',str(report),'-r',str(requirements),'torch @ '+cpu.as_uri()+'#sha256='+digest]
+    result=subprocess.run(command,env={'PATH':'/usr/bin:/bin','HOME':str(home),'PIP_CONFIG_FILE':os.devnull,'PIP_DISABLE_PIP_VERSION_CHECK':'1','PIP_NO_INPUT':'1','PYTHONDONTWRITEBYTECODE':'1'},capture_output=True,text=True,timeout=15)
+    assert result.returncode==0 if case=='complete' else result.returncode!=0
+    if case=='complete':
+        data=json.loads(report.read_text());planned={x['metadata']['name'].replace('_','-'):x['metadata']['version'] for x in data['install']}
+        assert planned=={'torch':'2.14.1+cpu','cpu-contract-dep':'1.0','other-contract-dep':'1.0'}
+        assert data['install'][0]['requested'] is True or any(x['requested'] for x in data['install'])
+    else:assert not report.exists()

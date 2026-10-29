@@ -797,10 +797,41 @@ jobs:
       - name: Install dependencies
         if: ${{ !(matrix.os == 'macos-latest' && matrix['python-version'] == '3.12') }}
         run: |
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ "${{ matrix.python-version }}" = "3.11" ]; then
+          python - <<'CPU_TORCH_PIN'
+          import hashlib, platform, re, sys
+          from pathlib import Path
+        
+          def verify_cpu_torch_pin(lock, requirements, runtime):
+              assert type(lock) is str and type(requirements) is str
+              assert runtime == ('cpython', 'linux', (3, 11), 'x86_64')
+              assert hashlib.sha256(lock.encode('utf-8')).hexdigest() == 'efd2731c4e9e212ab75e6bcb53880d88492e1a44272622f05b6c98e8a606b6f5'
+              lines = lock.splitlines()
+              indexes = [i for i, line in enumerate(lines) if line.startswith('torch==')]
+              assert len(indexes) == 1
+              start = indexes[0]
+              assert lines[start].split()[0] == 'torch==2.14.1+cpu'
+              end = next((i for i in range(start + 1, len(lines)) if lines[i] and not lines[i][0].isspace() and not lines[i].startswith('#')), len(lines))
+              assert '5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37' in re.findall(r'--hash=sha256:([0-9a-f]{64})', '\n'.join(lines[start + 1:end]))
+              assert [line.strip() for line in requirements.splitlines() if line.strip().startswith('torch') and not line.lstrip().startswith('#')] == ['torch==2.14.1']
+        
+          verify_cpu_torch_pin(Path('requirements/runtime-linux-cpu.lock').read_text(), Path('web/backend/requirements.txt').read_text(), (sys.implementation.name, sys.platform, sys.version_info[:2], platform.machine()))
+          CPU_TORCH_PIN
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]" 'torch @ https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37'
+          python -m pip install pyyaml
+          python - <<'CPU_TORCH_RESULT'
+          from importlib.metadata import version
+          import torch
+          assert version('torch') == '2.14.1+cpu'
+          assert torch.__version__ == '2.14.1+cpu'
+          assert torch.version.cuda is None
+          CPU_TORCH_RESULT
+          else
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
           python -m pip install pyyaml
-
+          fi
       - name: Install local packages (editable)
         if: ${{ !(matrix.os == 'macos-latest' && matrix['python-version'] == '3.12') }}
         # v4 sanity / integration tests import via deprecated shims at
@@ -811,7 +842,15 @@ jobs:
           pip install -e packages/soc-pipeline
           pip install -e packages/guarded-llm
           pip install -e packages/cross-judge
-
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ "${{ matrix.python-version }}" = "3.11" ]; then
+          python - <<'CPU_TORCH_RESULT'
+          from importlib.metadata import version
+          import torch
+          assert version('torch') == '2.14.1+cpu'
+          assert torch.__version__ == '2.14.1+cpu'
+          assert torch.version.cuda is None
+          CPU_TORCH_RESULT
+          fi
       - name: Prepare original dependencies (macOS Python 3.12)
         if: ${{ matrix.os == 'macos-latest' && matrix['python-version'] == '3.12' }}
         timeout-minutes: 20

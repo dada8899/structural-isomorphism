@@ -78,9 +78,35 @@ jobs:
 
         '
     - name: Install web/backend deps
-      run: 'pip install -r web/backend/requirements.txt
+      run: |
+        python - <<'CPU_TORCH_PIN'
+        import hashlib, platform, re, sys
+        from pathlib import Path
+      
+        def verify_cpu_torch_pin(lock, requirements, runtime):
+            assert type(lock) is str and type(requirements) is str
+            assert runtime == ('cpython', 'linux', (3, 11), 'x86_64')
+            assert hashlib.sha256(lock.encode('utf-8')).hexdigest() == 'efd2731c4e9e212ab75e6bcb53880d88492e1a44272622f05b6c98e8a606b6f5'
+            lines = lock.splitlines()
+            indexes = [i for i, line in enumerate(lines) if line.startswith('torch==')]
+            assert len(indexes) == 1
+            start = indexes[0]
+            assert lines[start].split()[0] == 'torch==2.14.1+cpu'
+            end = next((i for i in range(start + 1, len(lines)) if lines[i] and not lines[i][0].isspace() and not lines[i].startswith('#')), len(lines))
+            assert '5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37' in re.findall(r'--hash=sha256:([0-9a-f]{64})', '\n'.join(lines[start + 1:end]))
+            assert [line.strip() for line in requirements.splitlines() if line.strip().startswith('torch') and not line.lstrip().startswith('#')] == ['torch==2.14.1']
+      
+        verify_cpu_torch_pin(Path('requirements/runtime-linux-cpu.lock').read_text(), Path('web/backend/requirements.txt').read_text(), (sys.implementation.name, sys.platform, sys.version_info[:2], platform.machine()))
+        CPU_TORCH_PIN
+        pip install -r web/backend/requirements.txt 'torch @ https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37'
+        python - <<'CPU_TORCH_RESULT'
+        from importlib.metadata import version
+        import torch
+        assert version('torch') == '2.14.1+cpu'
+        assert torch.__version__ == '2.14.1+cpu'
+        assert torch.version.cuda is None
+        CPU_TORCH_RESULT
 
-        '
     - name: OpenAPI artifact matches release-target schema runtime
       run: make PY=python openapi-check
     - name: Leg 2 — web/backend pytest baseline
@@ -132,9 +158,35 @@ jobs:
 
         '
     - name: Install web/backend deps
-      run: 'pip install -r web/backend/requirements.txt
+      run: |
+        python - <<'CPU_TORCH_PIN'
+        import hashlib, platform, re, sys
+        from pathlib import Path
+      
+        def verify_cpu_torch_pin(lock, requirements, runtime):
+            assert type(lock) is str and type(requirements) is str
+            assert runtime == ('cpython', 'linux', (3, 11), 'x86_64')
+            assert hashlib.sha256(lock.encode('utf-8')).hexdigest() == 'efd2731c4e9e212ab75e6bcb53880d88492e1a44272622f05b6c98e8a606b6f5'
+            lines = lock.splitlines()
+            indexes = [i for i, line in enumerate(lines) if line.startswith('torch==')]
+            assert len(indexes) == 1
+            start = indexes[0]
+            assert lines[start].split()[0] == 'torch==2.14.1+cpu'
+            end = next((i for i in range(start + 1, len(lines)) if lines[i] and not lines[i][0].isspace() and not lines[i].startswith('#')), len(lines))
+            assert '5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37' in re.findall(r'--hash=sha256:([0-9a-f]{64})', '\n'.join(lines[start + 1:end]))
+            assert [line.strip() for line in requirements.splitlines() if line.strip().startswith('torch') and not line.lstrip().startswith('#')] == ['torch==2.14.1']
+      
+        verify_cpu_torch_pin(Path('requirements/runtime-linux-cpu.lock').read_text(), Path('web/backend/requirements.txt').read_text(), (sys.implementation.name, sys.platform, sys.version_info[:2], platform.machine()))
+        CPU_TORCH_PIN
+        pip install -r web/backend/requirements.txt 'torch @ https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37'
+        python - <<'CPU_TORCH_RESULT'
+        from importlib.metadata import version
+        import torch
+        assert version('torch') == '2.14.1+cpu'
+        assert torch.__version__ == '2.14.1+cpu'
+        assert torch.version.cuda is None
+        CPU_TORCH_RESULT
 
-        '
     - name: OpenAPI artifact matches release-target schema runtime
       run: make PY=python openapi-check
     - name: Leg 2 — web/backend pytest baseline
@@ -186,9 +238,35 @@ jobs:
 
         '
     - name: Install web/backend deps
-      run: 'pip install -r web/backend/requirements.txt
+      run: |
+        python - <<'CPU_TORCH_PIN'
+        import hashlib, platform, re, sys
+        from pathlib import Path
+      
+        def verify_cpu_torch_pin(lock, requirements, runtime):
+            assert type(lock) is str and type(requirements) is str
+            assert runtime == ('cpython', 'linux', (3, 11), 'x86_64')
+            assert hashlib.sha256(lock.encode('utf-8')).hexdigest() == 'efd2731c4e9e212ab75e6bcb53880d88492e1a44272622f05b6c98e8a606b6f5'
+            lines = lock.splitlines()
+            indexes = [i for i, line in enumerate(lines) if line.startswith('torch==')]
+            assert len(indexes) == 1
+            start = indexes[0]
+            assert lines[start].split()[0] == 'torch==2.14.1+cpu'
+            end = next((i for i in range(start + 1, len(lines)) if lines[i] and not lines[i][0].isspace() and not lines[i].startswith('#')), len(lines))
+            assert '5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37' in re.findall(r'--hash=sha256:([0-9a-f]{64})', '\n'.join(lines[start + 1:end]))
+            assert [line.strip() for line in requirements.splitlines() if line.strip().startswith('torch') and not line.lstrip().startswith('#')] == ['torch==2.14.1']
+      
+        verify_cpu_torch_pin(Path('requirements/runtime-linux-cpu.lock').read_text(), Path('web/backend/requirements.txt').read_text(), (sys.implementation.name, sys.platform, sys.version_info[:2], platform.machine()))
+        CPU_TORCH_PIN
+        pip install -r web/backend/requirements.txt 'torch @ https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37'
+        python - <<'CPU_TORCH_RESULT'
+        from importlib.metadata import version
+        import torch
+        assert version('torch') == '2.14.1+cpu'
+        assert torch.__version__ == '2.14.1+cpu'
+        assert torch.version.cuda is None
+        CPU_TORCH_RESULT
 
-        '
     - name: OpenAPI artifact matches release-target schema runtime
       run: make PY=python openapi-check
     - name: Leg 2 — web/backend pytest baseline
@@ -240,9 +318,35 @@ jobs:
 
         '
     - name: Install web/backend deps
-      run: 'pip install -r web/backend/requirements.txt
+      run: |
+        python - <<'CPU_TORCH_PIN'
+        import hashlib, platform, re, sys
+        from pathlib import Path
+      
+        def verify_cpu_torch_pin(lock, requirements, runtime):
+            assert type(lock) is str and type(requirements) is str
+            assert runtime == ('cpython', 'linux', (3, 11), 'x86_64')
+            assert hashlib.sha256(lock.encode('utf-8')).hexdigest() == 'efd2731c4e9e212ab75e6bcb53880d88492e1a44272622f05b6c98e8a606b6f5'
+            lines = lock.splitlines()
+            indexes = [i for i, line in enumerate(lines) if line.startswith('torch==')]
+            assert len(indexes) == 1
+            start = indexes[0]
+            assert lines[start].split()[0] == 'torch==2.14.1+cpu'
+            end = next((i for i in range(start + 1, len(lines)) if lines[i] and not lines[i][0].isspace() and not lines[i].startswith('#')), len(lines))
+            assert '5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37' in re.findall(r'--hash=sha256:([0-9a-f]{64})', '\n'.join(lines[start + 1:end]))
+            assert [line.strip() for line in requirements.splitlines() if line.strip().startswith('torch') and not line.lstrip().startswith('#')] == ['torch==2.14.1']
+      
+        verify_cpu_torch_pin(Path('requirements/runtime-linux-cpu.lock').read_text(), Path('web/backend/requirements.txt').read_text(), (sys.implementation.name, sys.platform, sys.version_info[:2], platform.machine()))
+        CPU_TORCH_PIN
+        pip install -r web/backend/requirements.txt 'torch @ https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37'
+        python - <<'CPU_TORCH_RESULT'
+        from importlib.metadata import version
+        import torch
+        assert version('torch') == '2.14.1+cpu'
+        assert torch.__version__ == '2.14.1+cpu'
+        assert torch.version.cuda is None
+        CPU_TORCH_RESULT
 
-        '
     - name: OpenAPI artifact matches release-target schema runtime
       run: make PY=python openapi-check
     - name: Leg 2 — web/backend pytest baseline
@@ -317,9 +421,35 @@ jobs:
 
         '
     - name: Install web/backend deps
-      run: 'pip install -r web/backend/requirements.txt
+      run: |
+        python - <<'CPU_TORCH_PIN'
+        import hashlib, platform, re, sys
+        from pathlib import Path
+      
+        def verify_cpu_torch_pin(lock, requirements, runtime):
+            assert type(lock) is str and type(requirements) is str
+            assert runtime == ('cpython', 'linux', (3, 11), 'x86_64')
+            assert hashlib.sha256(lock.encode('utf-8')).hexdigest() == 'efd2731c4e9e212ab75e6bcb53880d88492e1a44272622f05b6c98e8a606b6f5'
+            lines = lock.splitlines()
+            indexes = [i for i, line in enumerate(lines) if line.startswith('torch==')]
+            assert len(indexes) == 1
+            start = indexes[0]
+            assert lines[start].split()[0] == 'torch==2.14.1+cpu'
+            end = next((i for i in range(start + 1, len(lines)) if lines[i] and not lines[i][0].isspace() and not lines[i].startswith('#')), len(lines))
+            assert '5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37' in re.findall(r'--hash=sha256:([0-9a-f]{64})', '\n'.join(lines[start + 1:end]))
+            assert [line.strip() for line in requirements.splitlines() if line.strip().startswith('torch') and not line.lstrip().startswith('#')] == ['torch==2.14.1']
+      
+        verify_cpu_torch_pin(Path('requirements/runtime-linux-cpu.lock').read_text(), Path('web/backend/requirements.txt').read_text(), (sys.implementation.name, sys.platform, sys.version_info[:2], platform.machine()))
+        CPU_TORCH_PIN
+        pip install -r web/backend/requirements.txt 'torch @ https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37'
+        python - <<'CPU_TORCH_RESULT'
+        from importlib.metadata import version
+        import torch
+        assert version('torch') == '2.14.1+cpu'
+        assert torch.__version__ == '2.14.1+cpu'
+        assert torch.version.cuda is None
+        CPU_TORCH_RESULT
 
-        '
     - name: OpenAPI artifact matches release-target schema runtime
       run: make PY=python openapi-check
     - name: Leg 2 — web/backend pytest baseline
@@ -410,9 +540,35 @@ jobs:
 
         '
     - name: Install web/backend deps
-      run: 'pip install -r web/backend/requirements.txt
+      run: |
+        python - <<'CPU_TORCH_PIN'
+        import hashlib, platform, re, sys
+        from pathlib import Path
+      
+        def verify_cpu_torch_pin(lock, requirements, runtime):
+            assert type(lock) is str and type(requirements) is str
+            assert runtime == ('cpython', 'linux', (3, 11), 'x86_64')
+            assert hashlib.sha256(lock.encode('utf-8')).hexdigest() == 'efd2731c4e9e212ab75e6bcb53880d88492e1a44272622f05b6c98e8a606b6f5'
+            lines = lock.splitlines()
+            indexes = [i for i, line in enumerate(lines) if line.startswith('torch==')]
+            assert len(indexes) == 1
+            start = indexes[0]
+            assert lines[start].split()[0] == 'torch==2.14.1+cpu'
+            end = next((i for i in range(start + 1, len(lines)) if lines[i] and not lines[i][0].isspace() and not lines[i].startswith('#')), len(lines))
+            assert '5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37' in re.findall(r'--hash=sha256:([0-9a-f]{64})', '\n'.join(lines[start + 1:end]))
+            assert [line.strip() for line in requirements.splitlines() if line.strip().startswith('torch') and not line.lstrip().startswith('#')] == ['torch==2.14.1']
+      
+        verify_cpu_torch_pin(Path('requirements/runtime-linux-cpu.lock').read_text(), Path('web/backend/requirements.txt').read_text(), (sys.implementation.name, sys.platform, sys.version_info[:2], platform.machine()))
+        CPU_TORCH_PIN
+        pip install -r web/backend/requirements.txt 'torch @ https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37'
+        python - <<'CPU_TORCH_RESULT'
+        from importlib.metadata import version
+        import torch
+        assert version('torch') == '2.14.1+cpu'
+        assert torch.__version__ == '2.14.1+cpu'
+        assert torch.version.cuda is None
+        CPU_TORCH_RESULT
 
-        '
     - name: OpenAPI artifact matches release-target schema runtime
       run: make PY=python openapi-check
     - name: Leg 2 — web/backend pytest baseline
@@ -544,8 +700,33 @@ jobs:
       # ----------------------------------------------------------------------
       - name: Install web/backend deps
         run: |
-          pip install -r web/backend/requirements.txt
-
+          python - <<'CPU_TORCH_PIN'
+          import hashlib, platform, re, sys
+          from pathlib import Path
+        
+          def verify_cpu_torch_pin(lock, requirements, runtime):
+              assert type(lock) is str and type(requirements) is str
+              assert runtime == ('cpython', 'linux', (3, 11), 'x86_64')
+              assert hashlib.sha256(lock.encode('utf-8')).hexdigest() == 'efd2731c4e9e212ab75e6bcb53880d88492e1a44272622f05b6c98e8a606b6f5'
+              lines = lock.splitlines()
+              indexes = [i for i, line in enumerate(lines) if line.startswith('torch==')]
+              assert len(indexes) == 1
+              start = indexes[0]
+              assert lines[start].split()[0] == 'torch==2.14.1+cpu'
+              end = next((i for i in range(start + 1, len(lines)) if lines[i] and not lines[i][0].isspace() and not lines[i].startswith('#')), len(lines))
+              assert '5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37' in re.findall(r'--hash=sha256:([0-9a-f]{64})', '\n'.join(lines[start + 1:end]))
+              assert [line.strip() for line in requirements.splitlines() if line.strip().startswith('torch') and not line.lstrip().startswith('#')] == ['torch==2.14.1']
+        
+          verify_cpu_torch_pin(Path('requirements/runtime-linux-cpu.lock').read_text(), Path('web/backend/requirements.txt').read_text(), (sys.implementation.name, sys.platform, sys.version_info[:2], platform.machine()))
+          CPU_TORCH_PIN
+          pip install -r web/backend/requirements.txt 'torch @ https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37'
+          python - <<'CPU_TORCH_RESULT'
+          from importlib.metadata import version
+          import torch
+          assert version('torch') == '2.14.1+cpu'
+          assert torch.__version__ == '2.14.1+cpu'
+          assert torch.version.cuda is None
+          CPU_TORCH_RESULT
       - name: OpenAPI artifact matches release-target schema runtime
         run: make PY=python openapi-check
 
@@ -559,10 +740,35 @@ jobs:
 
       - name: Install root release contract dependencies
         run: |
-          python -m pip install -e ".[dev]"
+          python - <<'CPU_TORCH_PIN'
+          import hashlib, platform, re, sys
+          from pathlib import Path
+        
+          def verify_cpu_torch_pin(lock, requirements, runtime):
+              assert type(lock) is str and type(requirements) is str
+              assert runtime == ('cpython', 'linux', (3, 11), 'x86_64')
+              assert hashlib.sha256(lock.encode('utf-8')).hexdigest() == 'efd2731c4e9e212ab75e6bcb53880d88492e1a44272622f05b6c98e8a606b6f5'
+              lines = lock.splitlines()
+              indexes = [i for i, line in enumerate(lines) if line.startswith('torch==')]
+              assert len(indexes) == 1
+              start = indexes[0]
+              assert lines[start].split()[0] == 'torch==2.14.1+cpu'
+              end = next((i for i in range(start + 1, len(lines)) if lines[i] and not lines[i][0].isspace() and not lines[i].startswith('#')), len(lines))
+              assert '5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37' in re.findall(r'--hash=sha256:([0-9a-f]{64})', '\n'.join(lines[start + 1:end]))
+              assert [line.strip() for line in requirements.splitlines() if line.strip().startswith('torch') and not line.lstrip().startswith('#')] == ['torch==2.14.1']
+        
+          verify_cpu_torch_pin(Path('requirements/runtime-linux-cpu.lock').read_text(), Path('web/backend/requirements.txt').read_text(), (sys.implementation.name, sys.platform, sys.version_info[:2], platform.machine()))
+          CPU_TORCH_PIN
+          python -m pip install -e ".[dev]" 'torch @ https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl#sha256=5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37'
           python -m pip install playwright==1.59.0
           python -m playwright install --with-deps chromium
-
+          python - <<'CPU_TORCH_RESULT'
+          from importlib.metadata import version
+          import torch
+          assert version('torch') == '2.14.1+cpu'
+          assert torch.__version__ == '2.14.1+cpu'
+          assert torch.version.cuda is None
+          CPU_TORCH_RESULT
       - name: Check LLM scaling artifacts in locked generator environment
         run: |
           python -m venv /tmp/structural-llm-scaling-generator
