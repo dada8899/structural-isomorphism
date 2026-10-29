@@ -2411,7 +2411,7 @@ def test_partial_runtime_workflow_inverse_only_one_positive_parameter(kind):
 @pytest.mark.parametrize('mutation',['missing','duplicate','base','other_param','relative','extra_negative','module_ignore','wrong_process'])
 def test_partial_runtime_workflow_rejects_wider_or_missing_parameter(kind,mutation):
     raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text())
-    job=raw['jobs']['coverage' if kind=='coverage' else 'sanity-backend-fresh']
+    job=raw['jobs']['coverage' if kind=='coverage' else 'sanity-backend-fresh-1']
     title='Run coverage (split by suite, parallel files combined)' if kind=='coverage' else 'Leg 2 — web/backend pytest baseline'
     step=next(step for step in job['steps'] if step.get('name')==title);flag=_partial_runtime_flag()
     if mutation=='missing':step['run']=step['run'].replace(flag,'',1)
@@ -2461,7 +2461,7 @@ def test_native_late_three_workflow_inverse_returns_complete_prior_jobs(kind):
 @pytest.mark.parametrize('mutation',['missing','duplicate','function_base','kept_cancel','relative','module_ignore','wrong_process','order'])
 def test_native_late_three_workflow_rejects_nonexact_collection(kind,mutation):
     raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text())
-    job=raw['jobs']['coverage' if kind=='coverage' else 'sanity-backend-fresh']
+    job=raw['jobs']['coverage' if kind=='coverage' else 'sanity-backend-fresh-1']
     title='Run coverage (split by suite, parallel files combined)' if kind=='coverage' else 'Leg 2 — web/backend pytest baseline'
     step=next(step for step in job['steps'] if step.get('name')==title)
     node=NATIVE_LATE_THREE_NODES[2];token=' --deselect="'+node+'"'
@@ -2501,7 +2501,7 @@ def test_authority_retry_workflow_exact_inverse_returns_previous_all_jobs(kind):
 @pytest.mark.parametrize('kind',['sanity','coverage'])
 @pytest.mark.parametrize('mutation',['missing','duplicate','whole_module','wrong_path','current_case','partial','other_job'])
 def test_authority_retry_workflow_rejects_any_wider_or_missing_scope(kind,mutation):
-    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text());job=raw['jobs']['sanity-backend-fresh' if kind=='sanity' else 'coverage']
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text());job=raw['jobs']['sanity-backend-fresh-1' if kind=='sanity' else 'coverage']
     title='Leg 2 — web/backend pytest baseline' if kind=='sanity' else 'Run coverage (split by suite, parallel files combined)'
     step=next(x for x in job['steps'] if x.get('name')==title);flag=_authority_retry_flag()
     if mutation=='missing':step['run']=step['run'].replace(flag,'',1)
