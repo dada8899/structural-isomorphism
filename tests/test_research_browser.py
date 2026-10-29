@@ -2226,26 +2226,42 @@ def test_task_selector_without_research_id_is_explicitly_invalid_and_cannot_crea
         finally:context.close();browser.close()
 
 
-def test_new_research_without_task_selector_keeps_real_create_and_save(server):
-    with sync_playwright() as playwright:
-        browser=playwright.chromium.launch();context=browser.new_context()
-        try:
-            base=server['base'];login(context,base);page=context.new_page();page.goto(base+'/research')
-            expect(page.locator('#status')).to_have_text('新问题尚未保存。')
-            expect(page.locator('#original-input')).to_be_enabled()
-            expect(page.locator('#save')).to_be_enabled()
+def test_new_research_without_task_selector_keeps_real_create_and_save(tmp_path):
+    import asyncio
+    import importlib.util
+    from playwright.async_api import expect as actual_expect
+    spec=importlib.util.spec_from_file_location('accepted_current_create_fin1',ROOT/'web/tests/e2e/test_research_financial_preview_browser.py')
+    fin1=importlib.util.module_from_spec(spec);spec.loader.exec_module(fin1)
+    async def journey():
+        async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
+            facts['scope']='actual Main15 new research create/save/readback/reopen without Source or provider execution'
+            base=service.origin
+            await page.goto(base+'/research')
+            await actual_expect(page.locator('#status')).to_have_text('新问题尚未保存。')
+            await actual_expect(page.locator('#original-input')).to_be_enabled()
+            await actual_expect(page.locator('#save')).to_be_enabled()
             text='普通新建入口应继续真实保存问题'
-            fill(page,text)
-            with page.expect_response(lambda response:response.url==base+'/api/research' and response.request.method=='POST') as saved:
-                page.locator('#save').click()
-            assert saved.value.status==200
-            data=saved.value.json()['data'];rid=data['research']['id']
+            await page.get_by_label('原始问题',exact=False).fill(text)
+            await page.get_by_label('希望解释或改变什么',exact=False).fill('希望缩短等待时间')
+            await page.get_by_role('textbox',name='问题摘要',exact=False).fill('合成排队问题的结构摘要与待确认因素')
+            await page.get_by_label('已知约束',exact=False).fill('本机合成数据')
+            async with bridge.capture_response(page,'POST',base+'/api/research') as captured:
+                async with page.expect_response(lambda response:response.url==base+'/api/research' and response.request.method=='POST') as saved:
+                    await page.locator('#save').click()
+                response=await saved.value
+                assert response.status==200
+                data=(await captured.json(response))['data']
+            rid=data['research']['id']
+            assert rid!=service.seed.research_id
             assert data['current_problem']['original_input']==text and data['current_problem']['revision']==1
-            expect(page.locator('#status')).to_contain_text('已保存修订 1')
+            await actual_expect(page.locator('#status')).to_contain_text('已保存修订 1')
             assert page.url==base+'/research/'+rid
-            actual=context.request.get(base+'/api/research/'+rid)
-            assert actual.status==200 and actual.json()['data']['current_problem']['original_input']==text
-        finally:context.close();browser.close()
+            actual=await fin1.helpers._native_tls_fetch(page,'/api/research/'+rid)
+            assert actual['status']==200 and actual['body']['data']['current_problem']['original_input']==text
+            await page.goto(base+'/research/'+rid)
+            await actual_expect(page.locator('#status')).to_contain_text('已从账户读取')
+            await actual_expect(page.locator('#original-input')).to_have_value(text)
+    asyncio.run(journey())
 
 
 
