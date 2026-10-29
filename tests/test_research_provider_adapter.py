@@ -1,4 +1,4 @@
-"""Offline producer probes only: no public DNS, provider call, key or DB."""
+"""Offline probes with owned Auth backing: no public DNS, provider call or key."""
 from contextlib import contextmanager
 from copy import deepcopy
 import gzip
@@ -148,9 +148,13 @@ def callbacks(budget):
     return admit,consume,state
 
 
+@contextmanager
 def gate(tmp_path):
-    # Real filesystem owner gate only; no DB is created or opened.
-    return AuthorizationGate(SimpleNamespace(path=tmp_path/'not-opened.sqlite3')).owner_gate_id(uid())
+    from web.backend.tests.test_research_source_spawn import development_auth
+    with pytest.MonkeyPatch.context() as setup:
+        backing = development_auth.__wrapped__(tmp_path, setup)
+        with AuthorizationGate(backing).owner_gate_id(uid()) as lease:
+            yield lease
 
 
 def test_prepare_fixed_request_and_public_paid_closed(monkeypatch):
@@ -439,9 +443,13 @@ def _process_before_send(address, lock_path, gate_id, ready):
         credential_loader=lambda _binding:'offline-probe-not-a-key')
     connection=client.preconnect(prepared)
     try:
-        with AuthorizationGate(SimpleNamespace(path=Path(lock_path))).owner_gate_id(gate_id):
-            ready.send('preconnected-and-gate-held')
-            ready.recv()  # parent terminates this sender before any begin/send
+        from web.backend.tests.test_research_source_spawn import development_auth
+        with pytest.MonkeyPatch.context() as setup:
+            backing = development_auth.__wrapped__(Path(lock_path).parent, setup)
+            assert backing.path == Path(lock_path)
+            with AuthorizationGate(backing).owner_gate_id(gate_id):
+                ready.send('preconnected-and-gate-held')
+                ready.recv()  # parent terminates this sender before any begin/send
     finally:
         connection.close();ready.close()
 
@@ -450,19 +458,22 @@ def test_sender_death_before_begin_cannot_leave_orphan_http(tmp_path):
     import multiprocessing
     context=multiprocessing.get_context('spawn')
     receiver,sender=context.Pipe()
-    lock_path=tmp_path/'not-opened.sqlite3';gate_id=uid()
-    with local_server(b'{}') as (_factory,state):
-        process=context.Process(target=_process_before_send,args=(state['address'],str(lock_path),gate_id,sender))
-        process.start();sender.close()
-        try:
-            assert receiver.poll(5) and receiver.recv()=='preconnected-and-gate-held'
-            process.terminate();process.join(3)
-            assert not process.is_alive()
-            with AuthorizationGate(SimpleNamespace(path=lock_path)).owner_gate_id(gate_id,timeout=.5):pass
-        finally:
-            if process.is_alive():process.kill();process.join(3)
-            receiver.close()
-        assert state['requests']==0
+    from web.backend.tests.test_research_source_spawn import development_auth
+    with pytest.MonkeyPatch.context() as setup:
+        backing = development_auth.__wrapped__(tmp_path, setup)
+        lock_path=backing.path;gate_id=uid()
+        with local_server(b'{}') as (_factory,state):
+            process=context.Process(target=_process_before_send,args=(state['address'],str(lock_path),gate_id,sender))
+            process.start();sender.close()
+            try:
+                assert receiver.poll(5) and receiver.recv()=='preconnected-and-gate-held'
+                process.terminate();process.join(3)
+                assert not process.is_alive()
+                with AuthorizationGate(backing).owner_gate_id(gate_id,timeout=.5):pass
+            finally:
+                if process.is_alive():process.kill();process.join(3)
+                receiver.close()
+            assert state['requests']==0
 
 
 def test_real_bounded_dns_helper_timeout_kills_and_reaps_only_local_child(monkeypatch):
