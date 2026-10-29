@@ -4739,7 +4739,7 @@ def test_cpu_torch_stock_pip_dry_run_preserves_public_version_hash_and_dependenc
     if case=='bad_hash':digest='0'*64
     report=tmp_path/'report.json'
     command=[CPU_TORCH_PROOF_PYTHON,'-I','-B','-m','pip','--disable-pip-version-check','--cache-dir',str(tmp_path/'cache'),'install','--dry-run','--ignore-installed','--no-index','--only-binary=:all:','--find-links',str(wheels),'--report',str(report),'-r',str(requirements),'torch @ '+cpu.as_uri()+'#sha256='+digest]
-    result=subprocess.run(command,env={'PATH':'/usr/bin:/bin','HOME':str(home),'PIP_CONFIG_FILE':os.devnull,'PIP_DISABLE_PIP_VERSION_CHECK':'1','PIP_NO_INPUT':'1','PYTHONDONTWRITEBYTECODE':'1'},capture_output=True,text=True,timeout=15)
+    result=subprocess.run(command,env={'PATH':'/usr/bin:/bin','HOME':str(home),'TMPDIR':str(tmp_path),'PIP_CONFIG_FILE':os.devnull,'PIP_DISABLE_PIP_VERSION_CHECK':'1','PIP_NO_INPUT':'1','PYTHONDONTWRITEBYTECODE':'1'},capture_output=True,text=True,timeout=15)
     assert result.returncode==0 if case=='complete' else result.returncode!=0
     if case=='complete':
         data=json.loads(report.read_text());planned={x['metadata']['name'].replace('_','-'):x['metadata']['version'] for x in data['install']}
