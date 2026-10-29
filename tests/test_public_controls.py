@@ -2069,7 +2069,29 @@ def _root_retired_browser_flags():
     return ''.join(' --deselect="'+node+'"' for node in ROOT_RETIRED_BROWSER_NODES)
 
 
+ROOT_CURRENT_MAIN_STDOUT_PRIOR_MAKE_SHA256 = 'b866437c09c242c4d054fac9c625a589b0b11f0268672d9b64cbbddf085dd99e'
+
+
+def _makefile_before_current_main_stdout(makefile):
+    _,_,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)')
+    stdout=fresh.replace(' -m ',' -p no:logging -m ',1)
+    assert makefile.splitlines(keepends=True).count(stdout)==1
+    prior=makefile.replace(stdout,fresh,1)
+    assert hashlib.sha256(prior.encode()).hexdigest()==ROOT_CURRENT_MAIN_STDOUT_PRIOR_MAKE_SHA256
+    return prior
+
+
+def _dry_run_before_current_main_stdout(output):
+    _makefile_before_current_main_stdout((ROOT/'Makefile').read_text())
+    pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
+    _,_,fresh=_root_current_main_recipe_pair('PYTHONPATH='+pythonpath+' python -m pytest')
+    stdout=fresh.replace(' -m ',' -p no:logging -m ',1)
+    assert output.splitlines(keepends=True).count(stdout)==1
+    return output.replace(stdout,fresh,1)
+
+
 def _makefile_before_retired_browser121(makefile):
+    makefile=_makefile_before_current_main_stdout(makefile)
     _,ordinary,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)')
     retired=ordinary.replace(' --ignore=tests/e2e',' --ignore=tests/e2e'+_root_retired_browser_flags(),1)
     assert len(ROOT_RETIRED_BROWSER_NODES)==len(set(ROOT_RETIRED_BROWSER_NODES))==121
@@ -2081,6 +2103,7 @@ def _makefile_before_retired_browser121(makefile):
 
 
 def _dry_run_before_retired_browser121(output):
+    output=_dry_run_before_current_main_stdout(output)
     _makefile_before_retired_browser121((ROOT/'Makefile').read_text())
     pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
     _,ordinary,fresh=_root_current_main_recipe_pair('PYTHONPATH='+pythonpath+' python -m pytest')
@@ -4888,3 +4911,33 @@ def test_root_retired_browser_actual_make_dryrun_reverses_complete_chain():
     restored=_dry_run_before_root_current_main33(result.stdout)
     assert not any(node in restored for node in ROOT_CURRENT_MAIN_NODES+ROOT_RETIRED_BROWSER_NODES)
     assert restored.count(' tests --ignore=tests/e2e -m "not e2e and not slow and not requires_internet and not requires_llm" -q')==1
+
+
+
+def test_root_current_main_stdout_only_disables_pytest_logging_for_fresh33():
+    raw=(ROOT/'Makefile').read_text();prior=_makefile_before_current_main_stdout(raw)
+    _,_,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)')
+    assert fresh.replace(' -m ',' -p no:logging -m ',1) in raw and fresh in prior
+    ordinary=[line for line in raw.splitlines() if line.startswith('\t$(BACKEND_PYTEST) tests --ignore=tests/e2e ')]
+    assert len(ordinary)==1 and 'no:logging' not in ordinary[0]
+    assert raw.count('-p no:logging')==prior.count('-p no:logging')+1
+
+
+@pytest.mark.parametrize('mutation',['missing','duplicate','wrong_plugin','ordinary','different_selector','marker'])
+def test_root_current_main_stdout_rejects_missing_duplicate_or_changed_scope(mutation):
+    raw=(ROOT/'Makefile').read_text();_,_,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)');stdout=fresh.replace(' -m ',' -p no:logging -m ',1)
+    if mutation=='missing':value=raw.replace(stdout,fresh,1)
+    elif mutation=='duplicate':value=raw.replace(stdout,stdout.replace(' -p no:logging',' -p no:logging -p no:logging',1),1)
+    elif mutation=='wrong_plugin':value=raw.replace(stdout,stdout.replace('no:logging','no:terminal',1),1)
+    elif mutation=='ordinary':value=raw.replace('$(BACKEND_PYTEST) tests --ignore=tests/e2e','$(BACKEND_PYTEST) -p no:logging tests --ignore=tests/e2e',1)
+    elif mutation=='different_selector':value=raw.replace(stdout,stdout.replace(ROOT_CURRENT_MAIN_NODES[0],ROOT_CURRENT_MAIN_NODES[0]+'[foreign]',1),1)
+    else:value=raw.replace(stdout,stdout.replace('not requires_llm','not requires_llm and not current',1),1)
+    with pytest.raises(AssertionError):_makefile_before_current_main_stdout(value)
+
+
+def test_root_current_main_stdout_actual_make_dryrun_reverses_full_chain():
+    result=subprocess.run(['make','-n','PY=python','test-release-contracts'],cwd=ROOT,env={'PATH':os.environ['PATH']},capture_output=True,text=True,timeout=10)
+    assert result.returncode==0
+    restored=_dry_run_before_root_current_main33(result.stdout)
+    assert ' tests --ignore=tests/e2e -m "not e2e and not slow and not requires_internet and not requires_llm" -q' in restored
+    assert not any(node in restored for node in ROOT_CURRENT_MAIN_NODES+ROOT_RETIRED_BROWSER_NODES)
