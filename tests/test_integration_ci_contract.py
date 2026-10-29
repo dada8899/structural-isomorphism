@@ -210,7 +210,44 @@ ORDINARY_B_PART_PRIOR_JOBS_SHA256 = 'e62bfdb00cfef6822e2fd869b8f48ffe1c1066ee2fd
 ORDINARY_B_PART_AGGREGATE = {'name': 'sanity-backend-ordinary-b', 'runs-on': 'ubuntu-latest', 'timeout-minutes': 45, 'needs': ['sanity-backend-ordinary-b-1', 'sanity-backend-ordinary-b-2', 'sanity-backend-ordinary-b-3'], 'if': 'always()', 'steps': [{'name': 'Require all fixed ordinary B segments success', 'env': {'BACKEND_B1_RESULT': "${{ needs['sanity-backend-ordinary-b-1'].result }}", 'BACKEND_B2_RESULT': "${{ needs['sanity-backend-ordinary-b-2'].result }}", 'BACKEND_B3_RESULT': "${{ needs['sanity-backend-ordinary-b-3'].result }}"}, 'run': 'for result in "${BACKEND_B1_RESULT:-}" "${BACKEND_B2_RESULT:-}" "${BACKEND_B3_RESULT:-}"; do\n  if [ "$result" != "success" ]; then\n    echo "A complete ordinary B segment did not succeed."\n    exit 1\n  fi\ndone\n'}]}
 
 
+# Fixed 20/1 fresh jobs preserve all 21 original cold-process commands.
+# This addresses the observed platform job wall, not a business deadline.
+FRESH_PART_IDS = ('sanity-backend-fresh-1', 'sanity-backend-fresh-2')
+FRESH_PART_MODULES = (('tests/test_formal_main_admission.py', 'tests/test_formal_main_source_supervisor.py', 'tests/test_research_financial_import.py', 'tests/test_formal_model_startup.py', 'tests/acceptance/test_source_history_fixture_current15.py', 'tests/test_research_financial_registries.py', 'tests/test_research_source_origin_history.py', 'tests/test_research_evidence_method_plan.py', 'tests/test_research_evidence_method_native.py', 'tests/test_plan_runtime_transport.py', 'tests/test_research_native_browser_service.py', 'tests/test_native_live_grant.py', 'tests/test_formal_native_plan_supervisor.py', 'tests/test_research_financial_execution_v2.py', 'tests/test_research_financial_results_v2.py', 'tests/test_source_sec_access_lifecycle.py', 'tests/test_source_document_raw_lifecycle.py', 'tests/test_formal_main_history_read_borrow.py', 'tests/test_source_document_cached_history.py', 'tests/test_financial_limit_observer.py'), ('tests/test_research_method_drafts.py',))
+FRESH_PART_TEMPLATE_SHA256 = 'b6a85c34b86473081a09a3bbc021912a1d102a19cebf9c31490980baf763e710'
+FRESH_PART_PRIOR_JOBS_SHA256 = '30f8e111fa68f24c3caa871e109d0ae99e064a5ce20c4abaeb689b8d91d9b695'
+FRESH_PART_AGGREGATE = {'name': 'sanity-backend-fresh', 'runs-on': 'ubuntu-latest', 'timeout-minutes': 45, 'needs': ['sanity-backend-fresh-1', 'sanity-backend-fresh-2'], 'if': 'always()', 'steps': [{'name': 'Require all fixed fresh segments success', 'env': {'BACKEND_FRESH1_RESULT': "${{ needs['sanity-backend-fresh-1'].result }}", 'BACKEND_FRESH2_RESULT': "${{ needs['sanity-backend-fresh-2'].result }}"}, 'run': 'for result in "${BACKEND_FRESH1_RESULT:-}" "${BACKEND_FRESH2_RESULT:-}"; do\n  if [ "$result" != "success" ]; then\n    echo "A complete fresh segment did not succeed."\n    exit 1\n  fi\ndone\n'}]}
+
+
+def _workflow_before_fresh_parts(value,name):
+    if name!='sanity.yml':return value
+    original=copy.deepcopy(value);jobs=original['jobs']
+    assert jobs['sanity-backend-fresh']==FRESH_PART_AGGREGATE
+    complete=[];common_header=None;restored=None
+    for jid,expected_modules in zip(FRESH_PART_IDS,FRESH_PART_MODULES):
+        job=jobs[jid];assert job['name']==jid
+        steps=[s for s in job['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline'];assert len(steps)==1
+        script=steps[0]['run'];commands=[s for s in script.splitlines(keepends=True) if s.startswith('python -m pytest ')]
+        assert tuple(shlex.split(s)[3] for s in commands)==expected_modules
+        header=script[:script.index(commands[0])];assert script==header+''.join(commands)
+        if common_header is None:common_header=header
+        else:assert header==common_header
+        template=copy.deepcopy(job);template['name']='<NAME>'
+        next(s for s in template['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline')['run']='<SCRIPT>'
+        assert hashlib.sha256(json.dumps(template,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==FRESH_PART_TEMPLATE_SHA256
+        if restored is None:restored=copy.deepcopy(job)
+        complete.extend(commands)
+    assert len(complete)==21 and [len(group) for group in FRESH_PART_MODULES]==[20,1]
+    restored['name']='sanity-backend-fresh'
+    next(s for s in restored['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline')['run']=common_header+''.join(complete)
+    jobs['sanity-backend-fresh']=restored
+    for jid in FRESH_PART_IDS:del jobs[jid]
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==FRESH_PART_PRIOR_JOBS_SHA256
+    return original
+
+
 def _workflow_before_ordinary_b_parts(value,name):
+    value=_workflow_before_fresh_parts(value,name)
     if name!='sanity.yml':return value
     original=copy.deepcopy(value);jobs=original['jobs']
     assert original.get('permissions')=={'contents':'read'}
@@ -2524,3 +2561,40 @@ def test_ordinary_b_parts_actual_strict_aggregate_only_all_three_success(tmp_pat
     env={'PATH':os.environ.get('PATH','/usr/bin:/bin'),'BACKEND_B1_RESULT':'success','BACKEND_B2_RESULT':'success','BACKEND_B3_RESULT':'success'}
     result=subprocess.run(['bash','-u','-e','-o','pipefail','-c',ORDINARY_B_PART_AGGREGATE['steps'][0]['run']],cwd=tmp_path,env=env,capture_output=True,text=True,timeout=10,check=False)
     assert result.returncode==0
+
+
+
+def test_fresh_fixed_twenty_one_commands_restore_complete_prior_jobs():
+    raw=yaml.safe_load((ROOT/'.github/workflows/sanity.yml').read_text())
+    prior=_workflow_before_fresh_parts(raw,'sanity.yml')
+    assert 'sanity-backend-fresh-1' not in prior['jobs'] and 'sanity-backend-fresh-2' not in prior['jobs']
+    assert prior['jobs']['sanity-backend']['needs']==['sanity-backend-ordinary-a','sanity-backend-ordinary-b','sanity-backend-fresh']
+    assert len(FRESH_PART_MODULES[0])==20 and FRESH_PART_MODULES[1]==('tests/test_research_method_drafts.py',)
+    assert _workflow_before_ordinary_b_parts(raw,'sanity.yml')['jobs']['sanity-backend-fresh']==prior['jobs']['sanity-backend-fresh']
+
+
+@pytest.mark.parametrize('mutation',['missing_worker','missing_command','duplicate_command','reverse_commands','flag','timeout','runner','environment','missing_need','missing_always','aggregate_soft','other_job'])
+def test_fresh_fixed_segments_reject_any_missing_or_wider_boundary(mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows/sanity.yml').read_text());jobs=raw['jobs'];job=jobs[FRESH_PART_IDS[0]]
+    step=next(s for s in job['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline')
+    commands=[s for s in step['run'].splitlines(keepends=True) if s.startswith('python -m pytest ')]
+    if mutation=='missing_worker':del jobs[FRESH_PART_IDS[1]]
+    elif mutation=='missing_command':step['run']=step['run'].replace(commands[0],'',1)
+    elif mutation=='duplicate_command':step['run']=step['run'].replace(commands[0],commands[0]+commands[0],1)
+    elif mutation=='reverse_commands':step['run']=step['run'].replace(''.join(commands),''.join(reversed(commands)),1)
+    elif mutation=='flag':step['run']=step['run'].replace(' -p no:logging','',1)
+    elif mutation=='timeout':job['timeout-minutes']=90
+    elif mutation=='runner':job['runs-on']='macos-latest'
+    elif mutation=='environment':step['env']['PYTHONPATH']='foreign'
+    elif mutation=='missing_need':jobs['sanity-backend-fresh']['needs'].pop()
+    elif mutation=='missing_always':jobs['sanity-backend-fresh'].pop('if')
+    elif mutation=='aggregate_soft':jobs['sanity-backend-fresh']['steps'][0]['run']+='true\n'
+    else:jobs['sanity-backend-ordinary-a']['timeout-minutes']=99
+    with pytest.raises((AssertionError,KeyError,ValueError)):_workflow_before_fresh_parts(raw,'sanity.yml')
+
+
+@pytest.mark.parametrize('one,two',[('success','success'),('failure','success'),('cancelled','success'),('skipped','success'),('','success'),('unknown','success'),('success','failure'),('success','cancelled'),('success','skipped'),('success',''),('success','unknown')])
+def test_fresh_aggregate_executes_strict_complete_success(one,two):
+    run=FRESH_PART_AGGREGATE['steps'][0]['run']
+    result=subprocess.run(['bash','-c',run],env={'BACKEND_FRESH1_RESULT':one,'BACKEND_FRESH2_RESULT':two},capture_output=True,text=True)
+    assert (result.returncode==0)==(one==two=='success')

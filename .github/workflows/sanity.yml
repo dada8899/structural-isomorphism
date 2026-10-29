@@ -285,8 +285,8 @@ jobs:
           fi
         done
 
-  sanity-backend-fresh:
-    name: sanity-backend-fresh
+  sanity-backend-fresh-1:
+    name: sanity-backend-fresh-1
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -376,9 +376,83 @@ jobs:
 
         python -m pytest tests/test_financial_limit_observer.py -p no:logging -x -ra -q --tb=short --durations=10
 
+        '
+
+  sanity-backend-fresh-2:
+    name: sanity-backend-fresh-2
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        lfs: true
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.11'
+        cache: pip
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Install v4 sanity deps
+      run: 'python -m pip install --upgrade pip
+
+        pip install numpy scipy pandas powerlaw matplotlib pytest pydantic pyyaml scikit-learn
+
+        '
+    - name: Install local packages (editable + dev extras)
+      run: 'pip install -e "packages/soc-pipeline[dev]"
+
+        pip install -e "packages/guarded-llm[dev]"
+
+        pip install -e "packages/cross-judge[dev]"
+
+        pip install -e "packages/reject-aware-critic[dev]"
+
+        '
+    - name: Install web/backend deps
+      run: 'pip install -r web/backend/requirements.txt
+
+        '
+    - name: OpenAPI artifact matches release-target schema runtime
+      run: make PY=python openapi-check
+    - name: Leg 2 — web/backend pytest baseline
+      env:
+        PYTHONPATH: ${{ github.workspace }}/web/backend:${{ github.workspace }}
+      working-directory: web/backend
+      run: '# -ra: surface skipped/xfailed reasons. -q: compact output.
+
+        # --tb=short: brief tracebacks.
+
+        # The baseline as of 2026-05-24 is 781 passing tests; new tests
+
+        # added in 0.1.1+ must also pass here.
+
+        # Stop on a real failure so its traceback survives the job deadline.
+
         python -m pytest tests/test_research_method_drafts.py --deselect=web/backend/tests/test_research_method_drafts.py::test_actual_native_plan_lead_is_bound_without_promoting_literature_or_formula -p no:logging -x -ra -q --tb=short --durations=10
 
         '
+
+  sanity-backend-fresh:
+    name: sanity-backend-fresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs:
+    - sanity-backend-fresh-1
+    - sanity-backend-fresh-2
+    if: always()
+    steps:
+    - name: Require all fixed fresh segments success
+      env:
+        BACKEND_FRESH1_RESULT: ${{ needs['sanity-backend-fresh-1'].result }}
+        BACKEND_FRESH2_RESULT: ${{ needs['sanity-backend-fresh-2'].result }}
+      run: |
+        for result in "${BACKEND_FRESH1_RESULT:-}" "${BACKEND_FRESH2_RESULT:-}"; do
+          if [ "$result" != "success" ]; then
+            echo "A complete fresh segment did not succeed."
+            exit 1
+          fi
+        done
 
   sanity:
     name: sanity
