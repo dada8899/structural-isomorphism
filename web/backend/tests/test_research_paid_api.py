@@ -240,37 +240,67 @@ def test_replay_state_comes_from_original_task_after_newer_queue(paid_api):
     assert restored['execution']=='CANCELLED' and restored['status']=='cancelled'
 
 
-def test_actual_main_mount_public_projection_and_zero_send(paid_api):
-    client,_,store,rid,excerpt,resolver=paid_api
-    oldpath=list(sys.path);logger=logging.getLogger();handlers=list(logger.handlers);level=logger.level;mounted=None;main=None;missing=object();previous=missing
-    try:
-        main=importlib.import_module('main');sys.path[:]=oldpath
-        previous=getattr(main.app.state,'research_paid_resolver',missing)
-        main.app.state.research_paid_resolver=resolver
-        mounted=TestClient(main.app);mounted.cookies.update(client.cookies)
-        response=post(mounted,'/api/research/'+rid+'/paid-previews',preview_data(client,rid,excerpt),'mounted')
-        assert response.status_code==200,response.text
-        draft=response.json()['data'];assert set(draft)==PREVIEW_FIELDS
-        approved=post(mounted,'/api/research/'+rid+'/paid-approvals',confirm_data(draft),'mounted-confirm')
-        assert approved.status_code==200,approved.text
-        assert set(approved.json()['data'])==APPROVAL_FIELDS
-        for forbidden in ('"funding"','"account_id"','"provider_binding_id"','"context"','"extracted_text"','"maximum_approved_upper"','"preview_view"'):
-            assert forbidden not in response.text and forbidden not in approved.text
-        assert all(counts(store)[name]==0 for name in ('research_reservations','research_dispatch_permits','research_cost_observations','research_provider_sessions'))
-        main.app.state.research_paid_resolver=None
-        assert post(mounted,'/api/research/'+rid+'/paid-previews',preview_data(client,rid,excerpt),'normal-default').status_code==503
-    finally:
-        if mounted is not None:mounted.close()
-        if main is not None:
-            if previous is missing:
-                if hasattr(main.app.state,'research_paid_resolver'):delattr(main.app.state,'research_paid_resolver')
-            else:main.app.state.research_paid_resolver=previous
-        sys.path[:]=oldpath
-        for handler in list(logger.handlers):
-            if handler not in handlers:logger.removeHandler(handler);handler.close()
-        for handler in handlers:
-            if handler not in logger.handlers:logger.addHandler(handler)
-        logger.setLevel(level)
+def _actual_current_main_paid_closed_probe(root):
+    """Current15 normal Main has no legacy offline funding composition."""
+    import asyncio
+    from contextlib import contextmanager
+    from pathlib import Path
+    import httpx
+    from .test_formal_main_admission import smtp,prepared,BETA,login as formal_login
+    from .test_research_index import business_rows
+    from research import ResearchStore
+    with pytest.MonkeyPatch.context() as patch:
+        with contextmanager(smtp.__wrapped__)() as mail:
+            with contextmanager(prepared.__wrapped__)(root,patch,mail) as configured:
+                main,admission,paths,messages=configured
+                async def run():
+                    async with main.lifespan(main.app):
+                        assert admission.require(main.app,'research_basic') is None
+                        assert 'search' not in main.app_state
+                        assert getattr(main.app.state,'research_paid_resolver',None) is None
+                        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
+                            await formal_login(client,messages,'research-a@example.test')
+                            made=await client.post('/api/research',json=envelope({'problem':problem()}),headers={'Origin':BETA,'Idempotency-Key':str(uuid4())})
+                            assert made.status_code==200
+                            rid=made.json()['data']['research']['id']
+                            detail=await client.get('/api/research/'+rid)
+                            assert detail.status_code==200
+                            store=ResearchStore(auth._store())
+                            assert store._formal_mode() is True
+                            with store.transaction() as conn:
+                                assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==15
+                                assert store.auth_store.check_offline_auth_metadata(conn)=='auth-provision-v1'
+                            before=business_rows(paths.STATE_ROOT/'auth.sqlite3')
+                            body=dict(input_revision=detail.json()['data']['current_problem']['revision'],expected_research_version=detail.json()['data']['research_version'],excerpt_ids=[str(uuid4())],purpose='method_hypothesis')
+                            refused=await client.post('/api/research/'+rid+'/paid-previews',json=envelope(body),headers={'Origin':BETA,'Idempotency-Key':str(uuid4())})
+                            assert refused.status_code==503
+                            assert refused.json()['error']['code']=='BUDGET_UNVERIFIED'
+                            assert all(counts(store)[name]==0 for name in ('research_reservations','research_dispatch_permits','research_cost_observations','research_provider_sessions','research_paid_approvals','research_tasks'))
+                            assert business_rows(paths.STATE_ROOT/'auth.sqlite3')==before
+                            assert (await client.get('/api/research/'+rid)).json()==detail.json()
+                            assert refused.headers['cache-control']=='no-store'
+                            assert refused.headers['referrer-policy']=='no-referrer'
+                            assert problem()['original_input'] not in refused.text
+                asyncio.run(run())
+                assert id(main.app) not in admission._STATE
+    print('owned-current-main-paid-closed-ok')
+
+
+def test_actual_current_main_default_offline_paid_closed_without_sending(tmp_path):
+    from pathlib import Path
+    from .research_process_fixture import _run_owned_probe
+    root=tmp_path/'current-main-paid-closed';root.mkdir()
+    program="""
+import sys
+from pathlib import Path
+source=Path(SOURCE_ROOT)
+sys.path[:0]=[str(source/'web/backend'),str(source)]
+from web.backend.tests.test_research_paid_api import _actual_current_main_paid_closed_probe
+_actual_current_main_paid_closed_probe(Path(DATA_ROOT))
+""".replace('DATA_ROOT',repr(str(root))).replace('SOURCE_ROOT',repr(str(Path(__file__).resolve().parents[3])))
+    result=_run_owned_probe(program,root)
+    assert result.returncode==0,result.stdout+result.stderr
+    assert 'owned-current-main-paid-closed-ok' in result.stdout
 
 
 def test_confirmation_with_default_source_cannot_consume_existing_draft(paid_api):
@@ -393,13 +423,16 @@ from research.source_policy import PinnedPublicTransport,SourceFailure,article_t
 from web.backend.tests.source_http_fixture import source_server,DOI
 # Reproduce the actual old pickled callback failure in a fresh child, while
 # the parent's cached tests package still points to backend/tests.
-with source_server() as (port,calls):
-    gate=AuthorizationGate(SimpleNamespace(path=pathlib.Path(DATA_ROOT)/'no-db.sqlite3'))
-    with gate.owner_gate_id(str(uuid4())) as lease:
-        with pytest.raises(SourceFailure):
-            PinnedPublicTransport(_worker=partial(legacy.get_local,port)).get(
-                article_target(DOI),still_authorized=lambda:True,owner_lease=lease)
-    assert calls==[]
+from web.backend.tests.test_research_source_spawn import development_auth
+with pytest.MonkeyPatch.context() as backing_setup:
+    backing=development_auth.__wrapped__(pathlib.Path(DATA_ROOT),backing_setup)
+    with source_server() as (port,calls):
+        gate=AuthorizationGate(backing)
+        with gate.owner_gate_id(str(uuid4())) as lease:
+            with pytest.raises(SourceFailure):
+                PinnedPublicTransport(_worker=partial(legacy.get_local,port)).get(
+                    article_target(DOI),still_authorized=lambda:True,owner_lease=lease)
+        assert calls==[]
 # Exercise all three actual callback import sites through unchanged fixtures
 # and original assertions, not a replacement worker, alias or status stub.
 for index,(kind,number) in enumerate((('queue',None),('unicode',2),('unicode',3))):

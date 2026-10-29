@@ -604,8 +604,26 @@ def test_papers_static_lang_mutations_keep_async_translations_and_callbacks(
         "ui" if "/ui.json" in route.request.url else "content", route,
     ))
     try:
+        import time
+        page.expose_function("__papersDictionariesHeld", lambda: set(held) == {"ui", "content"})
         page.goto(f"{papers_origin}/papers?lang=en", wait_until="domcontentloaded")
+        deadline = time.monotonic() + 5
         expect(page.locator('.paper-card')).to_have_count(20)
+        remaining_ms = (deadline - time.monotonic()) * 1000
+        assert remaining_ms > 0
+        # The binding returns a Promise. Poll its actual boolean result rather
+        # than treating the Promise object itself as route-arrival evidence.
+        page.wait_for_function("""() => {
+          if (window.__papersBothHeld === true) return true;
+          if (!window.__papersHeldQueryPending) {
+            window.__papersHeldQueryPending = true;
+            window.__papersDictionariesHeld().then(arrived => {
+              window.__papersBothHeld = arrived;
+              window.__papersHeldQueryPending = false;
+            });
+          }
+          return false;
+        }""", timeout=remaining_ms).dispose()
         assert set(held) == {"ui", "content"}
         assert page.evaluate("window.__langChanges") == [None]
         expect(page.locator('html')).to_have_attribute('lang', 'en')

@@ -1,29 +1,20 @@
 """Main lifespan -> real SearchService -> real loader -> constructor spy."""
 from pathlib import Path
 import asyncio
-import importlib
 import sys
 
 import pytest
 
-from tests.test_formal_search_profile import make_bundle, encoder, synthetic_readonly_mount
+from web.backend.tests.test_formal_main_admission import prepared, smtp
+from web.backend.tests.test_formal_search_profile import make_bundle, encoder, synthetic_readonly_mount
 
 
 @pytest.fixture
-def startup(tmp_path, monkeypatch):
-    import dotenv
-    monkeypatch.setattr(dotenv, "load_dotenv", lambda *a, **k: False)
-    monkeypatch.setenv("STRUCTURAL_LOG_FILE", str(tmp_path / "events.jsonl"))
-    monkeypatch.delenv("SENTRY_DSN", raising=False)
-    for key in ("OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "BUTTONDOWN_API_KEY", "STRIPE_TEST_SECRET_KEY"):
-        monkeypatch.delenv(key, raising=False)
-    module = importlib.import_module("main")
-    monkeypatch.setattr(module, "_IS_PROD", True)
-    # This suite isolates R1's model/artifact lifecycle. R2-A production
-    # admission is independently tested with the real, unpatched gate.
-    monkeypatch.setattr(module, "require_formal_admission", lambda: None)
-    monkeypatch.setattr(module.auth_api, "_validate_production_config", lambda: None)
-    monkeypatch.setattr(module, "_resolve_git_sha", lambda: "1" * 40)
+def startup(prepared, tmp_path, monkeypatch):
+    module, _admission, _paths, _messages = prepared
+    assert module._IS_PROD and module._LAUNCH_FORMAL
+    # Actual formal storage and configuration come from prepared. Only the
+    # existing tiny model constructor and read-only-mount fixture are synthetic.
     monkeypatch.setattr(module, "app_state", {"search": object(), "artifact": {"artifact_id": "stale"}})
     files = make_bundle(tmp_path / "bundle")
     for key, value in {
@@ -50,6 +41,7 @@ def test_production_lifespan_constructs_only_local_cpu_and_publishes_after_ready
 @pytest.mark.parametrize("fault", ["no-manifest", "bad-hash", "hub-id", "load-failure", "bad-vectors", "bm25"])
 def test_production_lifespan_failure_does_not_leave_stale_ready(startup, encoder, monkeypatch, fault):
     module, files = startup
+    reached = []
     if fault == "no-manifest":monkeypatch.delenv("STRUCTURAL_ARTIFACT_MANIFEST")
     elif fault == "bad-hash":(Path(files["model_path"]) / "config.json").write_text("changed")
     elif fault == "hub-id":monkeypatch.setenv("STRUCTURAL_MODEL_PATH", "namespace/model")
@@ -58,17 +50,30 @@ def test_production_lifespan_failure_does_not_leave_stale_ready(startup, encoder
         np.save(files["precomputed_embeddings"], np.ones((1, 3), dtype=np.float32))
     elif fault == "bm25":
         import rank_bm25
-        def failed_index(*a, **k):raise RuntimeError("fixture index unavailable")
+        def failed_index(*a, **k):
+            reached.append("bm25")
+            raise RuntimeError("fixture index unavailable")
         monkeypatch.setattr(rank_bm25, "BM25Okapi", failed_index)
     else:
         package = sys.modules["sentence_transformers"]
         def failed(*a, **k):
+            reached.append("load-failure")
             encoder[0].append((a, k))
             raise OSError("fixture model unavailable")
         monkeypatch.setattr(package, "SentenceTransformer", failed)
     async def run():
         async with module.lifespan(module.app):raise AssertionError("must not become ready")
-    with pytest.raises(RuntimeError):asyncio.run(run())
+    expected = {
+        "no-manifest": "complete approved search artifacts required",
+        "bad-hash": "formal search artifacts or dependencies are unavailable",
+        "hub-id": "formal search artifacts or dependencies are unavailable",
+        "bad-vectors": "formal search artifacts or dependencies are unavailable",
+        "load-failure": "formal local CPU model could not be loaded",
+        "bm25": "formal BM25 index is unavailable",
+    }
+    with pytest.raises(RuntimeError, match=expected[fault]):asyncio.run(run())
+    if fault in ("load-failure", "bm25"):
+        assert reached == [fault]
     assert "search" not in module.app_state and "artifact" not in module.app_state
     assert len(encoder[0]) == (1 if fault in ("load-failure", "bm25") else 0)
     assert asyncio.run(module.health(deep=1)).status_code == 503
@@ -110,6 +115,7 @@ def test_lifespan_weight_change_after_validation_never_sets_ready(startup, encod
     async def run():
         async with module.lifespan(module.app):raise AssertionError('must not become ready')
     with pytest.raises(RuntimeError):asyncio.run(run())
+    assert len(saved) == 2
     assert 'search' not in module.app_state and 'artifact' not in module.app_state
     assert encoder[0] == []
     assert asyncio.run(module.health(deep=1)).status_code == 503

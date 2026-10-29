@@ -5,7 +5,7 @@ import unicodedata
 import re
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StringConstraints, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StringConstraints, field_validator, model_validator
 
 SCHEMA_VERSION = "structure-research-v1"
 CONTRACT_REVISION = "b1-candidate-01"
@@ -52,6 +52,79 @@ class Variable(StrictObject):
         return None if value is None else bounded_text(value, 400)
 
 
+class FormulaSideDraft(StrictObject):
+    family: Literal["queue_flow", "first_order_storage", "local_recovery"]
+    template_id: Literal["little", "mm1", "passive_decay", "linear_stable"]
+    original_display: str
+    expression: dict | None
+    symbols: Annotated[list[dict], Field(max_length=12)]
+    assumptions: Annotated[list[dict], Field(max_length=24)]
+    initial_conditions: Annotated[list[dict], Field(max_length=1)]
+    boundary_conditions: Annotated[list[dict], Field(max_length=24)]
+    source_refs: Annotated[list[dict], Field(max_length=20)] = []
+    measure_scope: str
+    time_basis: Literal["s", "workday", "from_symbol_units"] = "from_symbol_units"
+
+    @model_validator(mode="after")
+    def approved_components(self):
+        from .formula_schemas import FormulaInputError,FormulaLimit,Node,Symbol,Condition,InitialValue,SourceRef,bounded
+        from .formula_policy import TEMPLATES,UNITS
+        if TEMPLATES[self.template_id]!=self.family:raise ValueError('template family mismatch')
+        bounded(self.original_display,2048);bounded(self.measure_scope,20)
+        if self.expression is not None:Node.parse(self.expression)
+        symbols=[Symbol.parse(v) for v in self.symbols]
+        if len({v.id for v in symbols})!=len(symbols) or len({v.role for v in symbols})!=len(symbols):raise ValueError('symbol bijection required')
+        if any(v.unit_id not in UNITS for v in symbols):raise ValueError('registered unit required')
+        from .formula_policy import basis
+        bases={basis(v.unit_id) for v in symbols if basis(v.unit_id) is not None}
+        if self.time_basis!='from_symbol_units' and bases!={self.time_basis}:raise ValueError('declared time basis must match symbols')
+        conditions=[Condition.parse(v) for v in self.assumptions+self.boundary_conditions]
+        if len({v.id for v in conditions})!=len(conditions):raise ValueError('duplicate condition')
+        initials=[InitialValue.parse(v) for v in self.initial_conditions]
+        if len(conditions)+len(initials)>24:raise ValueError('condition limit')
+        sources=[SourceRef.parse(v) for v in self.source_refs]
+        if len({v.id for v in sources})!=len(sources):raise ValueError('duplicate source')
+        return self
+
+
+class FormulaRevisionDraft(StrictObject):
+    input_origin: Literal["user_provided"]
+    comparison_scope: Literal["expression", "equation_form", "initial_value_problem"]
+    left: FormulaSideDraft
+    right: FormulaSideDraft | None
+    requested_checks: Annotated[list[Literal["template", "dimensions", "canonical_transform", "bounded_numeric"]], Field(min_length=1,max_length=4)]
+    sample_points: Annotated[list[str], Field(max_length=256)]
+
+    @model_validator(mode="after")
+    def approved_comparison(self):
+        from .formula_schemas import decimal_text,canonical
+        if len(self.requested_checks)!=len(set(self.requested_checks)):raise ValueError('duplicate check')
+        if self.right is None and set(self.requested_checks)-{'template','dimensions'}:raise ValueError('comparison requires two sides')
+        points=[decimal_text(v) for v in self.sample_points]
+        if len(points)!=len(set(points)):raise ValueError('duplicate sample point')
+        if len(canonical(self.model_dump(mode='json')).encode())>65536:raise ValueError('formula input limit')
+        return self
+
+
+class FormulaCheckRequest(StrictObject):
+    input_revision: Revision
+    expected_research_version: Revision
+    formula_digest: Annotated[str, StringConstraints(strict=True,pattern=r"^[a-f0-9]{64}$")]
+    confirm_formula_input: StrictBool
+
+    @field_validator('confirm_formula_input')
+    @classmethod
+    def explicit_formula_confirmation(cls,value):
+        if value is not True:raise ValueError('explicit formula confirmation required')
+        return value
+
+
+class FormulaCheckEnvelope(StrictObject):
+    schema_version: Literal["structure-research-v1"]
+    contract_revision: Literal["b1-candidate-01"]
+    data: FormulaCheckRequest
+
+
 class ProblemInput(StrictObject):
     entry: Literal["phenomenon", "formula", "research"]
     original_input: str
@@ -61,6 +134,7 @@ class ProblemInput(StrictObject):
     constraints: Annotated[list[str], Field(max_length=12)]
     unknowns: Annotated[list[str], Field(max_length=12)]
     confirmed: StrictBool
+    formula_draft: FormulaRevisionDraft | None = None
 
     @field_validator("original_input")
     @classmethod
@@ -186,6 +260,63 @@ class SourceStartEnvelope(StrictObject):
     data: SourceStartRequest
 
 
+class RawPrepPreviewRequest(StrictObject):
+    input_revision: Revision
+    expected_research_version: Revision
+    rawprep_profile_id: Literal['gfs-2025-rawprep-v1']
+
+
+class RawPrepApprovalRequest(RawPrepPreviewRequest):
+    preview_digest: Annotated[str, StringConstraints(strict=True, pattern=r'^[0-9a-f]{64}$')]
+    confirm_external: StrictBool
+
+    @field_validator('confirm_external')
+    @classmethod
+    def explicit_raw_consent(cls, value):
+        if value is not True: raise ValueError('explicit DOC confirmation required')
+        return value
+
+
+class RawPrepStartRequest(SourceStartRequest):
+    pass
+
+
+class RawPrepPreviewEnvelope(StrictObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['official-document-rawprep-v1']
+    data: RawPrepPreviewRequest
+
+
+class RawPrepApprovalEnvelope(StrictObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['official-document-rawprep-v1']
+    data: RawPrepApprovalRequest
+
+
+class RawPrepStartEnvelope(StrictObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['official-document-rawprep-v1']
+    data: RawPrepStartRequest
+
+
+def source_envelope(model, body):
+    """One strict contract dispatch for HTTP and native action verification."""
+    raw_models = {SourcePreviewEnvelope:RawPrepPreviewEnvelope,
+        SourceApprovalEnvelope:RawPrepApprovalEnvelope, SourceStartEnvelope:RawPrepStartEnvelope}
+    if type(body) is dict and body.get('contract_revision') == 'official-document-rawprep-v1':
+        model = raw_models[model]
+    return model.model_validate(body)
+
+
+def source_request_digest(request, operation):
+    from .source_document_raw import idempotency_digest
+    from .service import digest
+    data = request.model_dump(mode='json')
+    if type(request) in (RawPrepApprovalRequest,RawPrepStartRequest):
+        return idempotency_digest(operation,data)
+    return digest(data)
+
+
 PaidId=Annotated[str,StringConstraints(strict=True,pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")]
 PaidDigest=Annotated[str,StringConstraints(strict=True,pattern=r"^[a-f0-9]{64}$")]
 
@@ -242,3 +373,60 @@ class FixtureResult(StrictObject):
     @classmethod
     def note_bound(cls, value):
         return None if value is None else bounded_text(value, 1200)
+
+
+FormulaUUID=Annotated[str,StringConstraints(strict=True,pattern=r'^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$')]
+FormulaDigest=Annotated[str,StringConstraints(strict=True,pattern=r'^[a-f0-9]{64}$')]
+
+
+class FormulaRunMetadata(StrictObject):
+    result_ref: FormulaUUID
+    state: Literal['claimed','returned','closed','interrupted']
+    result_available: StrictBool
+    input_origin: Literal['user_provided']
+    formula_digest: FormulaDigest | None
+    formula_result_recorded_at: Annotated[str,StringConstraints(strict=True,pattern=r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$')] | None
+    math_status: None
+    termination_state: Literal['not_attested','reaped','pending']
+    task_completed_means_math_passed: Literal[False]
+    known_cost_units: Literal[0]
+
+
+class FormulaCheckData(FormulaRunMetadata):
+    task_id: FormulaUUID
+
+
+class FormulaCheckResponse(StrictObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['b1-candidate-01']
+    data: FormulaCheckData
+
+
+class FormulaExecutionProvenance(StrictObject):
+    execution_attested: StrictBool
+    execution_state: Literal['ok','unsupported','limited','memory_limited','failed']
+    resource_guard: str
+    owned_return_ref: FormulaUUID
+    reaped: Literal[True]
+    code_version: FormulaDigest
+    full_input_digest: FormulaDigest
+    output_digest: FormulaDigest
+    formula_digest: FormulaDigest
+    problem_digest: FormulaDigest
+    display_AST_confirmation: Literal['user_confirmed_snapshot']
+    source_origin: Literal['user_provided']
+    source_facts_verified: Literal[False]
+    mathematics_is_not_real_world_mechanism: Literal[True]
+
+
+class FormulaResultData(StrictObject):
+    metadata: FormulaRunMetadata
+    state: Literal['available','unavailable']
+    result: dict | None
+    provenance: FormulaExecutionProvenance | None = None
+
+
+class FormulaResultResponse(StrictObject):
+    schema_version: Literal['structure-research-v1']
+    contract_revision: Literal['b1-candidate-01']
+    data: FormulaResultData

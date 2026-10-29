@@ -56,7 +56,10 @@ def worker_main():
     from research import ResearchStore,ResearchRunner
     from research.source_policy import PinnedPublicTransport
     task_id,port,ready,go=sys.argv[1:]
-    transport=PinnedPublicTransport(_worker=partial(wait_before_get,int(port),ready,go))
+    # -m runs this entry as __main__; the isolated sender imports callbacks by
+    # their real module name and deliberately never re-executes the main entry.
+    from web.backend.tests.source_http_fixture import wait_before_get as owned_wait_before_get
+    transport=PinnedPublicTransport(_worker=partial(owned_wait_before_get,int(port),ready,go))
     ResearchRunner(ResearchStore(auth._store()),source_transport=transport).run_once(task_id)
 
 

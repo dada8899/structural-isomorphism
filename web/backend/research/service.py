@@ -30,6 +30,10 @@ class ResearchService:
         self.store = store
         self.authorization = AuthorizationGate(store)
 
+    def runtime_capability_facts(self):
+        from .runtime_profile import runtime_capability_facts
+        return runtime_capability_facts(self)
+
     def _principal(self, identity, *, create=False):
         if create and self.store._formal_mode():
             # Existing owner mapping and actual preprovisioned lock come before
@@ -65,6 +69,12 @@ class ResearchService:
             if row is None or row["status"] != "active":
                 raise not_found()
             return row["id"]
+
+    def _principal_in(self,conn,identity):
+        self.authorization.check_account(conn,identity)
+        row=conn.execute("SELECT id FROM research_principals WHERE normalized_email=? AND session_generation=? AND status='active'",(identity.email,identity.generation)).fetchone()
+        if not row:raise not_found()
+        return row[0]
 
     @staticmethod
     def _id(value):
@@ -104,8 +114,9 @@ class ResearchService:
     def create(self, identity, request, key):
         principal = self._principal(identity, create=True)
         payload = request.model_dump(mode="json")
+        if payload["problem"].get("formula_draft") is None:payload["problem"].pop("formula_draft",None)
         request_digest = digest(payload)
-        with self.authorization.owner_gate(principal), self.store.transaction(write=True) as conn:
+        with self.authorization.owner_gate(principal) as lease, self.store.transaction(write=True) as conn:
             owner = self.authorization.check(conn, identity, principal)
             replay = self._replay(conn, principal, "create", "new", key, request_digest)
             if replay is not None:
@@ -113,15 +124,18 @@ class ResearchService:
                 self.authorization.check(conn, identity, principal, replay["data"]["research"]["id"])
                 return replay
             rid, timestamp = str(uuid4()), now()
-            require_revision_budget([{'research_id':rid,'revision':1,**payload['problem'],'digest':digest(payload['problem']),'created_at':timestamp}])
+            problem={k:v for k,v in payload['problem'].items() if k!='formula_draft'}
+            require_revision_budget([{'research_id':rid,'revision':1,**problem,'digest':digest(problem),'created_at':timestamp}])
             conn.execute("INSERT INTO research_controls VALUES(?,?,?,?,?,?,?,?,?,?)",
                          (rid, principal, owner["epoch"], 1, 1, 1, "private", "active", timestamp, timestamp))
             conn.execute("INSERT INTO research_grants (id,principal_id,principal_epoch,research_id,acl_epoch,scopes,status,created_at) VALUES(?,?,?,?,?,?,?,?)",
                          (str(uuid4()), principal, owner["epoch"], rid, 1, '["read","write"]', "active", timestamp))
-            problem = payload["problem"]
             conn.execute("INSERT INTO research_revisions VALUES(?,?,?,?,?)", (rid, 1, canonical(problem), digest(problem), timestamp))
+            from .formula_result import save_snapshot
+            save_snapshot(conn,store=self.store,lease=lease,identity=identity,principal=principal,rid=rid,revision=1,draft=request.problem.formula_draft)
             row = self.authorization.check(conn, identity, principal, rid, scope="write")
             result = ResearchProjection.build(conn, row)
+            if projection_bytes(result)>RESEARCH_RESPONSE_LIMIT:raise ResearchError('PAYLOAD_LIMIT',413,'完整研究视图超过保存范围；旧记录未更改。')
             self._remember(conn, principal, "create", "new", key, request_digest, result)
             return result
 
@@ -129,8 +143,9 @@ class ResearchService:
         rid = self._id(research_id)
         principal = self._principal(identity)
         payload = request.model_dump(mode="json")
+        if payload["problem"].get("formula_draft") is None:payload["problem"].pop("formula_draft",None)
         request_digest = digest(payload)
-        with self.authorization.owner_gate(principal), self.store.transaction(write=True) as conn:
+        with self.authorization.owner_gate(principal) as lease, self.store.transaction(write=True) as conn:
             row = self.authorization.check(conn, identity, principal, rid, scope="write")
             replay = self._replay(conn, principal, "revise", "r:" + rid, key, request_digest)
             if replay is not None:
@@ -140,7 +155,7 @@ class ResearchService:
                 raise ResearchError("REVISION_CONFLICT", 409, "研究已有新修订，请先重新读取，当前输入仍保留在页面。")
             if revision == 2147483647 or row["version"] == 2147483647:
                 raise ResearchError("VERSION_CONFLICT", 409, "研究版本已达上限，当前操作无法保存。")
-            timestamp, problem = now(), payload["problem"]
+            timestamp, problem = now(), {k:v for k,v in payload["problem"].items() if k!="formula_draft"}
             require_revision_budget([*ResearchProjection.revision_records(conn,rid),
                 {'research_id':rid,'revision':revision+1,**problem,'digest':digest(problem),'created_at':timestamp}])
             conn.execute("INSERT INTO research_revisions VALUES(?,?,?,?,?)",
@@ -150,7 +165,10 @@ class ResearchService:
                 (revision + 1, timestamp, rid, row["version"], revision)).rowcount
             if changed != 1:
                 raise ResearchError("REVISION_CONFLICT", 409, "研究已有新修订，请重新读取。")
+            from .formula_result import save_snapshot
+            save_snapshot(conn,store=self.store,lease=lease,identity=identity,principal=principal,rid=rid,revision=revision+1,draft=request.problem.formula_draft)
             result = ResearchProjection.build(conn, self.authorization.check(conn, identity, principal, rid))
+            if projection_bytes(result)>RESEARCH_RESPONSE_LIMIT:raise ResearchError('PAYLOAD_LIMIT',413,'完整研究视图超过保存范围；旧记录未更改。')
             self._remember(conn, principal, "revise", "r:" + rid, key, request_digest, result)
             return result
 
@@ -162,7 +180,7 @@ class ResearchService:
 
     def _method_projection(self,conn,row,identity,lease,request_source,task_id):
         result=None;authorized=False;state=None;history=None;next_task_id=None
-        if request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:
+        if request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15):
             from .paid_control import require_authenticated_action
             require_authenticated_action(request_source,identity=identity,action=request_source.action,research_id=row['id'],task_id=task_id)
             task=conn.execute('SELECT * FROM research_tasks WHERE research_id=? '+('AND id=?' if task_id else 'AND input_revision=? ORDER BY start_version DESC,id DESC LIMIT 1'),
@@ -358,28 +376,34 @@ class ResearchService:
             with self.store.transaction() as conn:
                 self.authorization.check(conn,identity,principal,rid,scope='write')
                 candidate=conn.execute('SELECT policy_revision FROM research_tasks WHERE id=? AND research_id=?',(request.task_id,rid)).fetchone()
-                method=bool(candidate and candidate[0]=='bounded_usage_upper_v2' and conn.execute('SELECT version FROM research_schema').fetchone()[0]==9)
+                method=bool(candidate and candidate[0]=='bounded_usage_upper_v2' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15))
             if method:return self._reconcile_method(identity,rid,principal,request,key,request_source)
         with self.authorization.owner_gate(principal) as lease,self.store.transaction(write=True) as conn:
             row=self.authorization.check(conn,identity,principal,rid,scope="write")
             task=conn.execute("SELECT * FROM research_tasks WHERE id=? AND research_id=?",(request.task_id,rid)).fetchone()
             if not task:raise not_found()
             is_paid=task['policy_revision']=='bounded_usage_upper_v2'
-            method_request=is_paid and operation=='reconcile' and request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0]==9
+            method_request=is_paid and operation=='reconcile' and request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15)
             if method_request:
                 from .paid_control import require_authenticated_action
                 require_authenticated_action(request_source,identity=identity,action='method-reconcile',research_id=rid,task_id=task['id'],key=key,body_digest=digest(payload))
             if not is_paid and operation!='cancel':require_enabled()
             if is_paid and operation=='resume':raise ResearchError('FEATURE_UNAVAILABLE',503,'此任务不能自动继续或重新外发。')
-            if is_paid and operation=='cancel':
+            if (is_paid or task['policy_revision'] in ('local-formula-v1','funded-plan-v1','native-plan-v1') or (task['policy_revision']=='d1-source-only-v1' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15))) and operation=='cancel':
                 from .paid_control import require_authenticated_action
                 require_authenticated_action(request_source,identity=identity,action='cancel',research_id=rid,task_id=task['id'],key=key,body_digest=digest(payload))
+            if task['policy_revision']=='native-plan-v1' and operation!='cancel':
+                raise ResearchError('RECONCILIATION_REQUIRED',409,'原生计划不可自动重发；请核对原标识。')
+            if task['policy_revision']=='funded-plan-v1' and operation!='cancel':
+                raise ResearchError('RECONCILIATION_REQUIRED',409,'计划不能自动继续或重新外发，请核对原标识。')
+            if task['policy_revision']=='local-formula-v1' and operation!='cancel':
+                raise ResearchError('FEATURE_UNAVAILABLE',503,'公式检查不能自动恢复或重复计算；请核对原结果标识。')
             if task["policy_revision"]=="d1-source-only-v1" and operation!="cancel":
                 raise ResearchError("RECONCILIATION_REQUIRED",409,"来源读取只能闭合旧执行后重新预览并明确批准，不能继续旧调用。")
             replay=self._replay(conn,principal,operation,"r:"+rid,key,digest(payload))
             if replay is not None:
                 if method_request:return self._method_projection(conn,row,identity,lease,request_source,task['id'])
-                if is_paid and operation=='reconcile' and conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:
+                if is_paid and operation=='reconcile' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15):
                     return ResearchProjection.build(conn,row,task_id=task['id'])
                 return replay
             if task["version"]!=request.expected_task_version:
@@ -393,7 +417,20 @@ class ResearchService:
                         authority=mint_stop_authority(conn,store=self.store,lease=lease,principal_id=principal,task_id=task['id'],
                             expected_task_version=task['version'],identity=identity,request_source=request_source,key=key,body_digest=digest(payload))
                         stop_financial_in(conn,store=self.store,lease=lease,authority=authority)
-                    else:BudgetLedger.release_prepared_in(conn,task["id"])
+                    elif task['policy_revision']=='native-plan-v1':
+                        from .plan_native_runtime import stop_in
+                        stop_in(conn,self.store,lease,task['id'])
+                    elif task['policy_revision']=='funded-plan-v1':
+                        from .plan_runtime import stop_in
+                        stop_in(conn,self.store,lease,task['id'])
+                    elif task['policy_revision']=='local-formula-v1':
+                        from .formula_result import cancel_in
+                        cancel_in(conn,store=self.store,lease=lease,identity=identity,principal=principal,rid=rid,task_id=task['id'])
+                    else:
+                        if task['policy_revision']=='d1-source-only-v1' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):
+                            from .source_guard import stop_in
+                            stop_in(conn,self,lease,identity,rid,request,key,request_source)
+                        BudgetLedger.release_prepared_in(conn,task["id"])
                     conn.execute("UPDATE research_tasks SET stop_requested=1 WHERE id=?",(task["id"],))
                     conn.execute("UPDATE research_steps SET state='DISCARDED',version=version+1 WHERE task_id=? AND state IN ('PENDING','PREPARED')",(task["id"],))
                     if not is_paid or task['execution']!='CANCELLED':state_in(conn,task["id"],"CANCELLED",kind="stop_requested")
@@ -479,21 +516,35 @@ class ResearchService:
                              (principal_id,"account",email,generation,1,"active",now(),gate_id))
             else:
                 principal_id = principal["id"]
-            has_paid=conn.execute("SELECT 1 FROM research_tasks WHERE principal_id=? AND policy_revision='bounded_usage_upper_v2' LIMIT 1",(principal_id,)).fetchone()
+            has_paid=conn.execute("SELECT 1 FROM research_tasks WHERE principal_id=? AND policy_revision IN ('bounded_usage_upper_v2','local-formula-v1') LIMIT 1",(principal_id,)).fetchone()
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:
+                has_paid=has_paid or conn.execute('SELECT 1 FROM research_financial_registries WHERE principal_id=? LIMIT 1',(principal_id,)).fetchone()
+                has_paid=has_paid or conn.execute('SELECT 1 FROM research_financial_results WHERE principal_id=? LIMIT 1',(principal_id,)).fetchone()
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):
+                has_paid=has_paid or conn.execute('SELECT 1 FROM research_formula_revisions f JOIN research_controls c ON c.id=f.research_id WHERE c.owner_id=? LIMIT 1',(principal_id,)).fetchone()
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):
+                has_paid=has_paid or conn.execute('SELECT 1 FROM research_source_approvals WHERE principal_id=? LIMIT 1',(principal_id,)).fetchone()
             from .paid_control import require_authenticated_action,create_authenticated_deletion_job
+            formal=self.store._formal_mode()
+            protected=formal or bool(has_paid)
             if request_source is not None:
                 require_authenticated_action(request_source,identity=request_source.identity,action='account-delete')
                 if request_source.identity.email!=email or request_source.identity.generation!=generation:
                     raise PermissionError('deletion request incarnation mismatch')
-            elif has_paid:raise ResearchError('AUTHORIZATION_STALE',403,'此删除需要实际认证操作来源。')
+            elif protected:raise ResearchError('AUTHORIZATION_STALE',403,'此删除需要实际认证操作来源。')
             job_id, timestamp = str(uuid4()), now()
-            conn.execute("UPDATE auth_users SET lifecycle='deleting' WHERE email=? AND session_generation=?", (email,generation))
+            if formal:
+                if __package__=='web.backend.research':from ..services.auth_registration import mark_account_deleting
+                else:from services.auth_registration import mark_account_deleting
+                mark_account_deleting(conn,store=self.store,lease=owner_lease,request_source=request_source,email=email,generation=generation)
+            else:
+                conn.execute("UPDATE auth_users SET lifecycle='deleting' WHERE email=? AND session_generation=?", (email,generation))
             conn.execute("UPDATE research_principals SET status='deleting',epoch=epoch+1 WHERE id=? AND status!='deleted'", (principal_id,))
             conn.execute("UPDATE research_grants SET status='revoked' WHERE principal_id=?", (principal_id,))
             conn.execute("UPDATE research_controls SET lifecycle='deleting' WHERE owner_id=?", (principal_id,))
             values=dict(id=job_id,owner_key=self.store.auth_store.owner_key(email),gate_id=gate_id,cleanup_binding=cleanup_binding,
                 database_binding=hashlib.sha256(str(self.store.path).encode()).hexdigest(),owner_email=email,session_generation=generation,state='pending',created_at=timestamp)
-            if request_source is not None and has_paid:
+            if request_source is not None and protected:
                 create_authenticated_deletion_job(conn,store=self.store,lease=owner_lease,source=request_source,values=values)
             else:
                 conn.execute('INSERT INTO auth_deletion_jobs('+','.join(values)+') VALUES('+','.join('?' for _ in values)+')',tuple(values.values()))
@@ -522,7 +573,8 @@ class ResearchService:
             return dict(row)
 
     def erase_research_locked(self, job_id,*,owner_lease=None):
-        with self.store.transaction(write=True) as conn:
+        from .source_guard import deletion_scope
+        with self.store.transaction(write=True) as conn,deletion_scope(conn,self,owner_lease,job_id):
             job = conn.execute("SELECT * FROM auth_deletion_jobs WHERE id=? AND state='pending'", (job_id,)).fetchone()
             if not job or not job["owner_email"] or not job["session_generation"]:
                 raise ResearchError("AUTHORIZATION_STALE", 409, "删除任务状态已变化。")
@@ -540,6 +592,26 @@ class ResearchService:
             if not principal or principal["status"] != "deleting":
                 raise ResearchError("AUTHORIZATION_STALE", 409, "删除任务主体状态不一致。")
             pid = principal["id"]
+            financial_counts={}
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:
+                from .financial_input import erase_in as erase_financial_inputs
+                financial_counts=erase_financial_inputs(conn,self,owner_lease,pid,job_id)
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):
+                from .source_guard import erase_approvals
+                erase_approvals(conn,pid)
+            if self.store._formal_mode():
+                if __package__=='web.backend.research':from ..services.auth_registration import erase_registration_for_job
+                else:from services.auth_registration import erase_registration_for_job
+                erase_registration_for_job(conn,store=self.store,lease=owner_lease,job_id=job_id)
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (13,14,15):
+                from .plan_native_runtime import erase_in as erase_native
+                erase_native(conn,self.store,owner_lease,pid,job_id)
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (12,13,14,15):
+                from .plan_runtime import erase_in
+                erase_in(conn,self.store,owner_lease,pid,job_id)
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15):
+                from .method_draft import erase_in as erase_drafts
+                erase_drafts(conn,self,owner_lease,pid,job_id)
             from .paid_approval import erase_paid_private_inputs
             erase_paid_private_inputs(self.store,conn,pid,job_id,owner_lease=owner_lease)
             count = lambda table, clause, params: conn.execute(f"SELECT count(*) FROM {table} WHERE {clause}",params).fetchone()[0]
@@ -549,6 +621,7 @@ class ResearchService:
                 "idempotency_results": count("research_idempotency","principal_id=?",(pid,)),
                 "grants": count("research_grants","principal_id=?",(pid,)),
             }
+            counts.update({name.removeprefix('research_'):value for name,value in financial_counts.items()})
             tasks=[t["id"] for t in conn.execute("SELECT id FROM research_tasks WHERE principal_id=?",(pid,))]
             for task_id in tasks:
                 from .source_integration import purge_for_deletion

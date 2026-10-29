@@ -16,6 +16,7 @@ from api import auth
 def v8(stack,monkeypatch):
     client,path=stack
     with monkeypatch.context() as old:
+        old.setattr(ResearchStore,'_initialize_current',lambda self,conn:False)
         old.setattr(ResearchStore,'_migrate_v9',lambda self:None)
         create(client);store=ResearchStore(auth._store())
     return path,store

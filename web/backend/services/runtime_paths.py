@@ -1,7 +1,7 @@
-"""Private runtime paths and the deliberately closed R2-A admission gate.
+"""Private runtime paths and the actual Main lifecycle admission boundary.
 
-No filesystem objects are created or migrated here. R2-B/R3 consumers have not
-been connected yet; only a later reviewed source change may admit production.
+No filesystem objects are created or migrated by the admission bridge. Native
+consumers retain the existing path, owner, mode, identity and schema checks.
 """
 from __future__ import annotations
 
@@ -14,12 +14,19 @@ import sqlite3
 
 
 class FormalAdmissionError(RuntimeError):
-    """Formal persistence consumers are not integrated in this candidate."""
+    """An actual formal Main lifespan is missing, stale or unavailable."""
 
 
-def require_formal_admission():
-    # No environment/state/registry switch can attest to completed migration.
-    raise FormalAdmissionError("formal persistence consumers are not integrated")
+def require_formal_admission(app=None):
+    try:
+        if __package__ == 'web.backend.services':
+            from . import formal_admission
+        else:
+            from services import formal_admission
+        if formal_admission.require(app, 'research_basic') is not None:
+            raise RuntimeError('formal admission returned data')
+    except Exception:
+        raise FormalAdmissionError('formal runtime is not admitted') from None
 
 
 class FormalAdmissionMiddleware:
@@ -34,10 +41,15 @@ class FormalAdmissionMiddleware:
         self.formal = formal
 
     async def __call__(self, scope, receive, send):
+        borrow = None
         if self.formal and scope["type"] in ("http", "websocket"):
             try:
-                require_formal_admission()
-            except FormalAdmissionError:
+                from . import formal_admission
+                if formal_admission.history_read_path(scope):
+                    borrow = formal_admission.begin_history_read(scope.get('app'), scope)
+                else:
+                    require_formal_admission(scope.get('app'))
+            except (FormalAdmissionError, RuntimeError):
                 if scope["type"] == "websocket":
                     await send({"type": "websocket.close", "code": 1013})
                 else:
@@ -49,7 +61,11 @@ class FormalAdmissionMiddleware:
                                             (b"content-length", str(len(body)).encode())]})
                     await send({"type": "http.response.body", "body": body})
                 return
-        await self.app(scope, receive, send)
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            if borrow is not None:
+                formal_admission.end_history_read(borrow)
 
 
 # Approved a2 roots only. Environment flags do not override these locations.
@@ -75,19 +91,61 @@ class RuntimePathError(RuntimeError):
     """A proposed private path is outside the approved storage boundary."""
 
 
+def _open_runtime_directory(path, *, dir_fd=None):
+    from . import formal_admission
+    resource = formal_admission.reserve_history_resource('directory')
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, **({'dir_fd': dir_fd} if dir_fd is not None else {}))
+    except BaseException:
+        formal_admission.fail_history_directory_birth(resource)
+        raise
+    try:
+        formal_admission.bind_history_directory(resource, fd)
+    except BaseException as primary:
+        try: _close_runtime_fd(fd, resource=resource)
+        except BaseException as cleanup: primary.add_note('directory cleanup uncertain: ' + type(cleanup).__name__)
+        raise
+    return fd
+
+
+def _close_runtime_fd(fd, *, resource=None):
+    from . import formal_admission
+    if resource is None: resource = formal_admission.history_directory_resource(fd)
+    if resource is not None and resource.state == 'UNCERTAIN':
+        raise RuntimePathError('directory closure is uncertain; no retry')
+    formal_admission.begin_history_resource_close(resource)
+    try:
+        os.close(fd)
+    except BaseException as error:
+        formal_admission.finish_history_resource(resource, error)
+        raise
+    else:
+        formal_admission.finish_history_resource(resource)
+
+
+def _attach_history_parent(witness):
+    from . import formal_admission
+    resource = formal_admission.history_directory_resource(witness.parent_fd)
+    witness._history_parent_resource = resource
+    formal_admission.bind_history_witness(resource, witness)
+
+
 def _directory_fd(path):
     path = Path(path)
     if not path.is_absolute() or ".." in path.parts:
         raise RuntimePathError("private runtime paths must be absolute and canonical")
-    fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+    fd = _open_runtime_directory('/')
     try:
         for part in path.parts[1:]:
-            child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
-            os.close(fd)
-            fd = child
-        return fd
-    except BaseException:
-        os.close(fd)
+            child = _open_runtime_directory(part, dir_fd=fd)
+            old, fd = fd, child
+            _close_runtime_fd(old)
+        result, fd = fd, None
+        return result
+    except BaseException as primary:
+        if fd is not None:
+            try: _close_runtime_fd(fd)
+            except BaseException as cleanup: primary.add_note('directory cleanup uncertain: ' + type(cleanup).__name__)
         raise
 
 
@@ -131,15 +189,16 @@ def _validated_directory_fd(path, *, forbidden):
         info = os.fstat(fd)
         if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
             raise RuntimePathError("private runtime directory owner or permissions are invalid")
-    except BaseException:
-        os.close(fd)
+    except BaseException as primary:
+        try: _close_runtime_fd(fd)
+        except BaseException as cleanup: primary.add_note('directory cleanup uncertain: ' + type(cleanup).__name__)
         raise
     return fd
 
 
 def _validate_directory(path, *, forbidden):
     fd = _validated_directory_fd(path, forbidden=forbidden)
-    os.close(fd)
+    _close_runtime_fd(fd)
     return Path(path)
 
 
@@ -147,14 +206,21 @@ def _check_current_parent(path, fd, *, forbidden):
     # Reopen only to compare the current pathname to the held, validated FD;
     # file/sidecar inspection itself never switches to this second directory.
     current_fd = _validated_directory_fd(path, forbidden=forbidden)
+    primary = None
     try:
         held, current = os.fstat(fd), os.fstat(current_fd)
         if (held.st_uid != os.geteuid() or stat.S_IMODE(held.st_mode) != 0o700
                 or current.st_uid != os.geteuid() or stat.S_IMODE(current.st_mode) != 0o700
                 or (held.st_dev, held.st_ino) != (current.st_dev, current.st_ino)):
             raise RuntimePathError("private runtime directory changed during inspection")
+    except BaseException as error:
+        primary = error
+        raise
     finally:
-        os.close(current_fd)
+        try: _close_runtime_fd(current_fd)
+        except BaseException as cleanup:
+            if primary is None: raise
+            primary.add_note('directory cleanup uncertain: ' + type(cleanup).__name__)
 
 
 @dataclass(frozen=True)
@@ -221,7 +287,7 @@ class RuntimePaths:
                             raise RuntimePathError("private SQLite sidecar is unsafe")
                 _check_current_parent(parent, fd, forbidden=self.forbidden)
             finally:
-                os.close(fd)
+                _close_runtime_fd(fd)
         except OSError:
             raise RuntimePathError("private runtime file is unsafe") from None
         return parent / name
@@ -264,6 +330,8 @@ class PrivateHistoryFile:
     def __init__(self):
         self.parent_fd = None
         self.file_identity = None
+        self._close_state = 'live'
+        self._history_parent_resource = None
 
     @classmethod
     def acquire(cls, path, *, create=False):
@@ -288,6 +356,7 @@ class PrivateHistoryFile:
             witness.path = expected
             witness.forbidden = paths.forbidden
             witness.parent_fd = _validated_directory_fd(paths.state, forbidden=paths.forbidden)
+            _attach_history_parent(witness)
             base = witness._entry('history.db')
             sides = witness._sidecars()
             if sides and (base is None or base.st_size == 0):
@@ -312,15 +381,16 @@ class PrivateHistoryFile:
                     finally:
                         # Still under HISTORY_OPEN_LOCK: no helper native open
                         # may have acquired a lock on this new inode yet.
-                        os.close(fd)
+                        _close_runtime_fd(fd)
                     created = True
             witness.file_identity = (base.st_dev, base.st_ino)
             if created and witness._sidecars():
                 raise RuntimePathError('sidecars appeared during fresh history creation')
             witness.check()
             return witness
-        except BaseException:
-            witness.close()
+        except BaseException as primary:
+            try: witness.close()
+            except BaseException as cleanup: primary.add_note('private parent cleanup uncertain: ' + type(cleanup).__name__)
             raise
 
     @staticmethod
@@ -385,11 +455,24 @@ class PrivateHistoryFile:
         return self.path.as_uri() + '?mode=rw'
 
     def close(self):
-        self.file_identity = None
+        if self._close_state == 'closed': return
+        if self._close_state in ('uncertain', 'closing'):
+            raise RuntimePathError('private parent closure is uncertain; no retry')
+        from . import formal_admission
+        formal_admission.validate_history_resource_creator(self._history_parent_resource)
         fd = self.parent_fd
-        self.parent_fd = None
-        if fd is not None:
-            os.close(fd)
+        self._close_state = 'closing'
+        try:
+            if fd is not None:
+                _close_runtime_fd(fd, resource=self._history_parent_resource)
+        except BaseException:
+            self._close_state = 'uncertain'
+            raise
+        else:
+            self._close_state = 'closed'
+            self.parent_fd = None
+            self.file_identity = None
+            self._history_parent_resource = None
 
 
 def private_auth_path(configured_dir=None):
@@ -425,14 +508,16 @@ class PrivateAuthFile(PrivateHistoryFile):
             witness.path = private_auth_path()
             witness.forbidden = _auth_forbidden_roots()
             witness.parent_fd = _validated_directory_fd(witness.path.parent, forbidden=witness.forbidden)
+            _attach_history_parent(witness)
             info = witness._entry('auth.sqlite3')
             if info is None:
                 raise RuntimePathError('private auth database is missing')
             witness.file_identity = (info.st_dev, info.st_ino)
             witness.check()
             return witness
-        except BaseException:
-            witness.close()
+        except BaseException as primary:
+            try: witness.close()
+            except BaseException as cleanup: primary.add_note('private parent cleanup uncertain: ' + type(cleanup).__name__)
             raise
 
     def _sidecars(self):
@@ -453,7 +538,7 @@ def require_private_auth_lock_dir(auth_path):
         raise RuntimePathError('private auth lock root has an invalid database binding')
     root = Path(auth_path).parent/'research-locks'
     fd = _validated_directory_fd(root, forbidden=_auth_forbidden_roots())
-    os.close(fd)
+    _close_runtime_fd(fd)
     return root
 
 
@@ -497,8 +582,8 @@ def append_private_auth_audit(record):
         if (after.st_dev,after.st_ino)!=(bound.st_dev,bound.st_ino):
             raise RuntimePathError('private auth audit pathname changed during append')
     finally:
-        if fd is not None:os.close(fd)  # Releases this non-DB journal's flock.
-        os.close(directory)
+        if fd is not None:_close_runtime_fd(fd)  # Releases this non-DB journal's flock.
+        _close_runtime_fd(directory)
 
 
 def private_sso_path(configured_dir=None):
@@ -522,13 +607,16 @@ class PrivateSsoFile(PrivateHistoryFile):
             inspected.path=private_sso_path()
             inspected.forbidden=_auth_forbidden_roots()
             inspected.parent_fd=_validated_directory_fd(inspected.path.parent,forbidden=inspected.forbidden)
+            _attach_history_parent(inspected)
             info=inspected._entry('sso_replay.sqlite3')
             if info is None:raise RuntimePathError('private SSO ledger is missing')
             inspected.file_identity=(info.st_dev,info.st_ino)
             inspected.check()
             return inspected
-        except BaseException:
-            inspected.close();raise
+        except BaseException as primary:
+            try: inspected.close()
+            except BaseException as cleanup: primary.add_note('private parent cleanup uncertain: ' + type(cleanup).__name__)
+            raise
 
     def _sidecars(self):
         return [info for suffix in ('-wal','-shm','-journal')
@@ -657,7 +745,7 @@ class PrivateFavoritesFile:
             self.check()
             return b''.join(chunks)
         finally:
-            os.close(fd)
+            _close_runtime_fd(fd)
 
     def write(self, payload, *, operation_id):
         if type(payload) is not bytes or type(operation_id) is not str:
@@ -683,7 +771,7 @@ class PrivateFavoritesFile:
             if self._entry(name) != temp_identity:
                 raise RuntimePathError('private Favorites temporary file changed')
             closing, fd = fd, None
-            os.close(closing)
+            _close_runtime_fd(closing)
             replace_started = True
             os.replace(name, 'favorites.jsonl', src_dir_fd=self.parent_fd, dst_dir_fd=self.parent_fd)
             replaced = True
@@ -707,7 +795,7 @@ class PrivateFavoritesFile:
         finally:
             try:
                 if fd is not None:
-                    os.close(fd)
+                    _close_runtime_fd(fd)
             finally:
                 if not replaced and temp_identity is not None:
                     try:
@@ -733,11 +821,11 @@ class PrivateFavoritesFile:
             try:
                 if self.lock_fd is not None:
                     closing, self.lock_fd = self.lock_fd, None
-                    os.close(closing)
+                    _close_runtime_fd(closing)
             finally:
                 if self.parent_fd is not None:
                     closing, self.parent_fd = self.parent_fd, None
-                    os.close(closing)
+                    _close_runtime_fd(closing)
         except OSError as exc:
             if self.last_write is not None:
                 raise FavoritesWriteUnknown(*self.last_write) from exc

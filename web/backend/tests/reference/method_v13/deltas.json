@@ -1,0 +1,2045 @@
+{
+  "web/backend/api/auth.py": {
+    "current_sha256": "3b7c0f2c8ffbb26cc1cb27b98238afb8104b8528def8b431db51a853595334c1",
+    "hunks": [
+      [
+        35,
+        36,
+        ""
+      ],
+      [
+        667,
+        671,
+        "    use_ssl = os.getenv(\"SMTP_USE_SSL\", \"false\").lower() in {\"1\", \"true\", \"yes\"}\n"
+      ],
+      [
+        672,
+        676,
+        "    with smtp_cls(host, port, timeout=timeout) as smtp:\n        if not use_ssl and os.getenv(\"SMTP_STARTTLS\", \"true\").lower() in {\"1\", \"true\", \"yes\"}:\n            smtp.starttls()\n"
+      ],
+      [
+        1290,
+        1300,
+        ""
+      ],
+      [
+        1301,
+        1305,
+        "    if __package__=='web.backend.api':from ..research.paid_control import verify_deletion_origin\n    else:from research.paid_control import verify_deletion_origin\n"
+      ],
+      [
+        1306,
+        1308,
+        "    lease_args={'owner_lease':owner_lease} if job.get('origin_version') is not None else {}\n"
+      ]
+    ],
+    "original_sha256": "7c46e214178a2bbe0aff75e7a7411a3201d7237d6a812a1a9f75975fde373acb"
+  },
+  "web/backend/api/research.py": {
+    "current_sha256": "ac9f1243ca801f1ae0f9102ca631c5a8a9c6772ce1c0995cf503bfb6c65ceb06",
+    "original_sha256": "7fcc218e6f75c1cd88ee4bf1bf68f5fd35a15e8b40ffa2057a8fe72ea5d02a46",
+    "hunks": [
+      [
+        7,
+        8,
+        "from uuid import uuid4\n"
+      ],
+      [
+        23,
+        25,
+        ""
+      ],
+      [
+        34,
+        36,
+        ""
+      ],
+      [
+        44,
+        151,
+        ""
+      ],
+      [
+        155,
+        175,
+        ""
+      ],
+      [
+        269,
+        274,
+        "        validated=schema.model_validate(body)\n"
+      ],
+      [
+        281,
+        351,
+        ""
+      ],
+      [
+        353,
+        362,
+        "        if not enabled():\n"
+      ],
+      [
+        363,
+        473,
+        "        identity = await run_in_threadpool(_identity, request)\n        service = await run_in_threadpool(lambda: ResearchService(ResearchStore(auth._store())))\n        if operation == \"index\":\n"
+      ],
+      [
+        525,
+        535,
+        ""
+      ],
+      [
+        536,
+        538,
+        "            result=await run_in_threadpool(source_integration.records,service,identity,research_id,request.query_params.get(\"task_id\",\"\"),request.query_params.get(\"kind\",\"\"),request.query_params.get(\"cursor\"))\n"
+      ],
+      [
+        595,
+        596,
+        "                result=await run_in_threadpool(source_integration.preview,service,identity,research_id,envelope.data)\n"
+      ],
+      [
+        601,
+        602,
+        "                try:result=await run_in_threadpool(function,service,identity,research_id,envelope.data,key,request_source=source)\n"
+      ],
+      [
+        618,
+        629,
+        ""
+      ],
+      [
+        633,
+        634,
+        ""
+      ],
+      [
+        640,
+        652,
+        ""
+      ],
+      [
+        713,
+        722,
+        ""
+      ],
+      [
+        770,
+        838,
+        ""
+      ]
+    ]
+  },
+  "web/backend/research/evidence_repository.py": {
+    "current_sha256": "edbc3654f5480d77aece0b04fd152d2a67c6d7c9045353d6d469b7d16023d848",
+    "original_sha256": "0a1064bab04e2af5490ee20ac52a4ab4fc049e4035e8cffb0793509f762f0b89",
+    "hunks": [
+      [
+        50,
+        108,
+        ""
+      ],
+      [
+        140,
+        143,
+        ""
+      ],
+      [
+        157,
+        174,
+        ""
+      ],
+      [
+        254,
+        256,
+        ""
+      ],
+      [
+        275,
+        289,
+        ""
+      ],
+      [
+        346,
+        444,
+        ""
+      ],
+      [
+        476,
+        603,
+        ""
+      ]
+    ]
+  },
+  "web/backend/research/financial_guard.py": {
+    "current_sha256": "e857a966f3086e74bd72d2c312a2824a6773382751b43932b24bfea9c0caa124",
+    "hunks": [
+      [
+        20,
+        24,
+        ""
+      ],
+      [
+        195,
+        197,
+        ""
+      ],
+      [
+        203,
+        205,
+        ""
+      ],
+      [
+        231,
+        232,
+        "        if version and version[0] in (7,8,9,10,11,12,13):\n"
+      ],
+      [
+        294,
+        295,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):ResearchStore.check_runtime_version(conn)\n"
+      ]
+    ],
+    "original_sha256": "2be9e0cfe9d81f8f373e2941c68149b03376d23f973ed3703eba3bc9bcad10e6"
+  },
+  "web/backend/research/formula_result.py": {
+    "current_sha256": "597c823e4747ab7f406edf09eb858236ef942efbc7a5802fab96011a69b48ae5",
+    "hunks": [
+      [
+        307,
+        307,
+        "    from .formula_result_adapter import project_formula_result\n"
+      ],
+      [
+        311,
+        377,
+        "        service.authorization.check(conn,identity,principal,rid)\n        row=conn.execute('SELECT r.*,t.input_revision FROM research_formula_runs r JOIN research_tasks t ON t.id=r.task_id WHERE r.result_ref=? AND t.research_id=?',(ref,rid)).fetchone()\n        if not row:raise not_found()\n        metadata=run_metadata(conn,row['task_id'])\n        if row['state']!='returned':return _envelope({'metadata':metadata,'result':None,'state':'unavailable'})\n        admission=json.loads(row['admission_json']);commit=json.loads(row['commit_json']);receipt=json.loads(row['receipt_json']);raw=json.loads(row['result_json'])\n        try:\n            _,formula=_snapshot(conn,rid,row['input_revision'])\n            if _sources(conn,service.store,identity,rid,row['input_revision'],formula)!=admission['sources']:raise PermissionError('source changed')\n        except (PermissionError,ValueError):return _envelope({'metadata':metadata,'result':None,'state':'unavailable'})\n        task=conn.execute('SELECT * FROM research_tasks WHERE id=? AND research_id=?',(row['task_id'],rid)).fetchone()\n        step=conn.execute('SELECT * FROM research_steps WHERE id=? AND task_id=?',(admission['step_id'],row['task_id'])).fetchone()\n        control=service.authorization.check(conn,identity,principal,rid)\n        revision=conn.execute('SELECT digest,problem_json FROM research_revisions WHERE research_id=? AND revision=?',(rid,row['input_revision'])).fetchone()\n        try:\n            service.authorization.check_task(conn,task)\n            if (type(admission['input_revision']) is not int or admission['research_id']!=rid or admission['principal_id']!=principal\n                    or admission['input_revision']!=task['input_revision'] or task['policy_revision']!=TASK_POLICY\n                    or task['execution_mode']!='local_math' or task['execution']!='COMPLETED' or task['attempt']!=1\n                    or not revision or revision['digest']!=admission['problem_digest']\n                    or digest(json.loads(revision['problem_json']))!=admission['problem_digest']\n                    or digest(formula)!=admission['formula_digest'] or control['current_revision']<task['input_revision']\n                    or not step or step['kind']!='formula_check' or step['position']!=0 or step['state']!='SUCCEEDED'\n                    or step['reservation_id'] is not None):raise PermissionError('stored formula domain changed')\n            bindings={'principal_id':principal,'principal_epoch':admission['principal_epoch'],'owner_epoch':admission['owner_epoch'],\n                'acl_epoch':admission['acl_epoch'],'auth_generation':admission['auth_generation'],'grant_id':admission['grant_id'],\n                'input_digest':admission['problem_digest'],'start_version':admission['research_version']}\n            if any(task[name]!=value for name,value in bindings.items()):raise PermissionError('original task binding changed')\n            request=FormulaCheckInput.parse({'research_id':rid,'input_revision':task['input_revision'],'task_id':task['id'],'attempt':task['attempt'],\n                **{name:formula[name] for name in ('comparison_scope','requested_checks','sample_points')},\n                **{name:None if formula[name] is None else {k:v for k,v in formula[name].items() if k!='time_basis'} for name in ('left','right')}})\n            if request.data()!=admission['check_input'] or request.input_digest!=admission['full_input_digest']:\n                raise PermissionError('actual immutable formula input changed')\n            for prefix in ('research','task','step'):\n                if (type(commit.get(prefix+'_before')) is not int or type(commit.get(prefix+'_after')) is not int\n                        or not 1<=commit[prefix+'_before']<2147483647 or commit[prefix+'_after']!=commit[prefix+'_before']+1):\n                    raise PermissionError('strict protected commit versions required')\n            from datetime import datetime\n            if type(commit.get('recorded_at')) is not str or datetime.strptime(commit['recorded_at'],'%Y-%m-%dT%H:%M:%S.%fZ').strftime('%Y-%m-%dT%H:%M:%S.%fZ')!=commit['recorded_at']:\n                raise PermissionError('strict original formula record timestamp required')\n            expected={'recorded_at':commit['recorded_at'],'research_before':admission['research_version'],'research_after':admission['research_version']+1,\n                'task_before':admission['task_version'],'task_after':admission['task_version']+1,\n                'step_before':admission['step_version'],'step_after':admission['step_version']+1,\n                'problem_digest':revision['digest'],'formula_digest':digest(formula),'full_input_digest':request.input_digest,\n                'output_digest':raw['output_digest'],'receipt_ref':receipt['reference']}\n            if (commit!=expected or task['version']!=commit['task_after'] or step['version']!=commit['step_after']\n                    or control['version']<commit['research_after'] or receipt['claim_nonce']!=row['claim_nonce']\n                    or receipt['input_digest']!=request.input_digest or receipt['code_version']!=admission['code_version']\n                    or receipt['result_digest']!=digest(raw) or receipt['reaped'] is not True):\n                raise PermissionError('stored result is not the actual committed task result')\n        except (PermissionError,ValueError,TypeError,KeyError):raise not_found() from None\n        content=project_formula_result(raw,expected_input=request,expected_output_digest=commit['output_digest']).data()\n        # Public pure-content flags remain false. Trust is a distinct server\n        # projection backed by this protected stored return, never client JSON.\n        return _envelope({'metadata':metadata,'state':'available','result':content,'provenance':{\n            'execution_attested':receipt['return_state']=='ok','execution_state':receipt['return_state'],\n            'resource_guard':receipt['resource_guard'],'owned_return_ref':receipt['reference'],'reaped':receipt['reaped'],\n            'code_version':receipt['code_version'],'full_input_digest':request.input_digest,'output_digest':commit['output_digest'],\n            'formula_digest':admission['formula_digest'],'problem_digest':admission['problem_digest'],\n            'display_AST_confirmation':'user_confirmed_snapshot','source_origin':formula['input_origin'],\n            'source_facts_verified':False,'mathematics_is_not_real_world_mechanism':True}})\n"
+      ]
+    ],
+    "original_sha256": "f35d7d317f803a464b609f3365a5827eaeb84f22f8710354a2cf4df47673f2ad"
+  },
+  "web/backend/research/formula_runtime.py": {
+    "current_sha256": "51ed075afd09d8cf99ad8c5bac1d9047003ea89801201e8021e863a366e0209e",
+    "hunks": [
+      [
+        289,
+        290,
+        "        if name not in {'_check_structure_version','_check_v9','_check_v10','_check_v11','_check_v12','_check_v13','_formula_tables','_current_structure_declarations'}:\n"
+      ],
+      [
+        307,
+        308,
+        "    if (auth_profile,version) not in (('legacy_auth',9),('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13)):\n"
+      ],
+      [
+        315,
+        317,
+        ""
+      ],
+      [
+        363,
+        364,
+        "    with _offline_maintenance(path,(9,10,11,12,13)) as (target,capability):\n"
+      ],
+      [
+        366,
+        367,
+        "            version=_check_profile(capability.conn,target,(9,10,11,12,13))\n"
+      ],
+      [
+        373,
+        374,
+        "        'current_app_compatible':version==13 and auth_profile=='auth-provision-v1','schema_repaired':False}\n"
+      ]
+    ],
+    "original_sha256": "91c93bc0f5575b7eba9f8b2690779e911a44bbb129a24c0687ea5742934ab31a"
+  },
+  "web/backend/research/method_result.py": {
+    "current_sha256": "c5f508162aedac002337b8d8093812dee67c13a21fecbecf0c203b3d5c5bb9b4",
+    "hunks": [
+      [
+        33,
+        34,
+        "            or conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (9,10,11,12,13)):\n"
+      ],
+      [
+        36,
+        37,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):ResearchStore.check_runtime_version(conn)\n"
+      ]
+    ],
+    "original_sha256": "cc45319280990f79d29897a33f16184827b4403982432012b52616a6cf11f4f9"
+  },
+  "web/backend/research/paid_approval.py": {
+    "current_sha256": "b59cc221761f11444c5f5977c17b84d9b85133b3bd7d1dffc836f83118ce8a26",
+    "hunks": [
+      [
+        340,
+        341,
+        "    if version not in (6,7,8,9,10,11,12,13):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除记录版本不支持。')\n"
+      ],
+      [
+        350,
+        351,
+        "    elif version in (10,11,12,13):\n"
+      ],
+      [
+        358,
+        359,
+        "    if version in (10,11,12,13):\n"
+      ],
+      [
+        362,
+        363,
+        "    if version in (9,10,11,12,13):\n"
+      ]
+    ],
+    "original_sha256": "68267578a7fa9da70b561948a86e1c571ce87049c204b210618e1c2ec1f949f9"
+  },
+  "web/backend/research/paid_budget.py": {
+    "current_sha256": "3fe34297fda5e7f546d03b78771dff974f73160b294d0ef7a64c2d3b65f27a2e",
+    "hunks": [
+      [
+        141,
+        142,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13):\n"
+      ]
+    ],
+    "original_sha256": "5ea041c4ecd50a368ed5a0d0a2b4c480fb82e5defffc9614230e2144e8fb5daa"
+  },
+  "web/backend/research/paid_control.py": {
+    "current_sha256": "1e4d9d94119fa8ae6ad8b90b781432d6c7c9f60859cbc13e20fb6e8b6b7be360",
+    "original_sha256": "f1a9d040d05bdb877f3ca703988f8472d0b31c4f6fc092d7a6ae8475a90cd4a8",
+    "hunks": [
+      [
+        65,
+        67,
+        ""
+      ],
+      [
+        68,
+        78,
+        "        'source-approve':('POST','source_approval'),'source-start':('POST','source_task')}\n"
+      ],
+      [
+        82,
+        152,
+        "    if action=='plan-read':\n"
+      ],
+      [
+        172,
+        173,
+        "        from .schemas import SourceApprovalEnvelope,SourceStartEnvelope\n"
+      ],
+      [
+        174,
+        175,
+        "        data=model.model_validate(strict_json(raw,65536)).data\n"
+      ],
+      [
+        176,
+        182,
+        "        key=request.headers.get('idempotency-key','');body_digest=digest(canonical(data.model_dump(mode='json')))\n"
+      ],
+      [
+        297,
+        303,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        304,
+        305,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):\n"
+      ],
+      [
+        324,
+        325,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):ResearchStore.check_runtime_version(conn)\n"
+      ],
+      [
+        432,
+        436,
+        ""
+      ],
+      [
+        474,
+        475,
+        "            or conn.execute(\"SELECT version FROM research_schema WHERE id=1\").fetchone()[0] not in (5,6,7,8,9,10,11,12,13)):\n"
+      ],
+      [
+        485,
+        486,
+        "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13):\n"
+      ],
+      [
+        586,
+        587,
+        "    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13):\n"
+      ]
+    ]
+  },
+  "web/backend/research/paid_provider_session.py": {
+    "current_sha256": "a05a3780c500374cf28c2e1acb9e6420fa913dbd46555b653771d75dc990b483",
+    "hunks": [
+      [
+        422,
+        423,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13) and s['body_origin_state']!='legacy_unproved':\n"
+      ]
+    ],
+    "original_sha256": "7a3b6dfac4d89e8001ba5ce23bb870d7b7dd0ac90a3999805ecbbecd55fcd5a0"
+  },
+  "web/backend/research/plan_native.py": {
+    "current_sha256": "2312b72ba96255f3310e79a352523143d3f2c2bcc19af5837dcc3101a6895702",
+    "hunks": [
+      [
+        46,
+        47,
+        ""
+      ],
+      [
+        54,
+        55,
+        "    __slots__=('store','identity','principal','owner_gate_id','fd','path','native_identity','pid','reference','facts','server','server_identity','active')\n"
+      ],
+      [
+        57,
+        58,
+        ""
+      ],
+      [
+        59,
+        67,
+        "    def require(self,*,current=True):\n"
+      ],
+      [
+        75,
+        80,
+        ""
+      ],
+      [
+        83,
+        84,
+        "            os.close(self.fd)\n"
+      ],
+      [
+        87,
+        88,
+        "    \"\"\"No approved native provision resource is bound in this release.\n\n    In particular, a Markdown/JSON statement, its hash, an email, a caller FD,\n    environment flag, or provider balance cannot create this authority.\n    \"\"\"\n"
+      ],
+      [
+        89,
+        102,
+        ""
+      ],
+      [
+        114,
+        158,
+        "def _fixture_authority(store,identity,server,approved_cap_units,risk_margin_units,runtime_digest):\n"
+      ],
+      [
+        159,
+        164,
+        ""
+      ],
+      [
+        185,
+        187,
+        ""
+      ],
+      [
+        198,
+        199,
+        "    def __init__(self,authority,*,_factory=None):\n"
+      ],
+      [
+        200,
+        204,
+        "        authority.require();self.authority,self.facts,self.reference,self.pid,self.active=authority,authority.facts,_uid(),os.getpid(),True;_PROVISIONS[self.reference]=self\n    def require(self,*,current=True):\n"
+      ],
+      [
+        205,
+        209,
+        "        self.authority.require(current=current)\n"
+      ],
+      [
+        210,
+        211,
+        ""
+      ],
+      [
+        214,
+        215,
+        "def issue_native_provision(store,authority_lease):\n"
+      ],
+      [
+        216,
+        217,
+        "    return NativePlanProvision(authority_lease,_factory=_FACTORY)\n"
+      ],
+      [
+        221,
+        222,
+        "    def __init__(self,provision,*,_factory=None):\n"
+      ],
+      [
+        223,
+        234,
+        "        provision.require();self.provision,self.facts,self.reference,self.pid,self.active=provision,provision.facts,_uid(),os.getpid(),True;_PERMITS[self.reference]=self\n    def require(self,*,current=True):\n"
+      ],
+      [
+        235,
+        241,
+        "        self.provision.require(current=current)\n    def data(self,*,current=True):self.require(current=current);return strict_json(self.facts,16384)\n"
+      ],
+      [
+        248,
+        249,
+        "def mint_runtime_permit(provision):\n"
+      ],
+      [
+        250,
+        251,
+        "    return NativeRuntimePermit(provision,_factory=_FACTORY)\n"
+      ],
+      [
+        389,
+        397,
+        "        raw,dispatch,nonce,admission_digest,producer_digest=capability.consume(self.resource)\n"
+      ],
+      [
+        422,
+        423,
+        "def open_plan_resource(permit):\n"
+      ],
+      [
+        425,
+        427,
+        "    data=permit.data();module=_runtime_module()\n"
+      ],
+      [
+        429,
+        430,
+        "    resource=module.open_plan_resource(permit)\n"
+      ],
+      [
+        431,
+        441,
+        "    resource.require();return resource\n"
+      ],
+      [
+        443,
+        444,
+        "def install_native_funding(store,provision,resource):\n"
+      ],
+      [
+        446,
+        449,
+        "    provision.require();facts=provision.data()\n"
+      ],
+      [
+        453,
+        455,
+        "        resource.require()\n"
+      ],
+      [
+        458,
+        470,
+        ""
+      ],
+      [
+        471,
+        475,
+        "        def verify():provision.require();_owner_binding(conn,store,pid,lease)\n"
+      ],
+      [
+        478,
+        481,
+        ""
+      ],
+      [
+        487,
+        488,
+        "    _INSTALLATIONS[str(store.path)]=(provision,resource)\n"
+      ],
+      [
+        491,
+        540,
+        "def installation(store):return _INSTALLATIONS.get(str(store.path))\n"
+      ],
+      [
+        543,
+        544,
+        ""
+      ],
+      [
+        567,
+        569,
+        "_WRITE_PRODUCERS=(install_native_funding,)\n"
+      ]
+    ],
+    "original_sha256": "5204c48b6ed93a3f952a2087b6a36a747686cdf1a49f636b0f4a920befa98873"
+  },
+  "web/backend/research/plan_native_runtime.py": {
+    "current_sha256": "ce9db3f9af5f4df18a31a9f9c4d7c78f873100a181a8ea3b4b9af4a6cfa43073",
+    "hunks": [
+      [
+        1,
+        3,
+        "import json,os,time\n"
+      ],
+      [
+        14,
+        15,
+        ""
+      ],
+      [
+        25,
+        43,
+        "    return digest(canonical({Path(m.__file__).name:digest(Path(m.__file__).read_bytes()) for m in (plan_native,plan_native_runtime,plan_native_schemas,plan_native_financial)}))\n"
+      ],
+      [
+        47,
+        49,
+        "    funding=row(conn,FUNDING,1);pair=ports.installation(store)\n"
+      ],
+      [
+        54,
+        55,
+        ""
+      ],
+      [
+        59,
+        61,
+        "def _active(conn,store,pid,generation):\n    funding=row(conn,FUNDING,1);pair=ports.installation(store)\n"
+      ],
+      [
+        66,
+        67,
+        ""
+      ],
+      [
+        70,
+        71,
+        "def quote():\n"
+      ],
+      [
+        72,
+        74,
+        "    return NativePlanQuote(protocol='financial9-native-quote-v1',revision=uid(),purpose='phenomenon_plan_v1',provider='deepseek',model='deepseek-flash',declared_model_version='DeepSeek-V4.1-Flash-1017',declaration_observed_on='2026-10-18',currency='CNY',scale=6,\n"
+      ],
+      [
+        75,
+        76,
+        "        approved_upper_units=UPPER,codec_digest=codec_digest(),issued_at=now,valid_until=now+60,price_source='https://api-docs.deepseek.com/zh-cn/quick_start/pricing/')\n"
+      ],
+      [
+        80,
+        85,
+        "    require_authenticated_action(source,identity=identity,action='plan-preview',research_id=rid,key=key,body_digest=operation)\n"
+      ],
+      [
+        86,
+        92,
+        "        control,saved,encoded=_input(conn,service,identity,pid,rid,request.input_revision,request.expected_research_version)\n"
+      ],
+      [
+        96,
+        108,
+        "            return envelope(preview_view(old,conn,service.store))\n        q=quote();ref=uid()\n        consent=dict(protocol='native-plan-consent-v1',principal_id=pid,generation=identity.generation,research_id=rid,input_revision=request.input_revision,research_version=control['version'],\n"
+      ],
+      [
+        110,
+        115,
+        "        cd=digest(canonical({'consent':consent,'quote':q.model_dump()}))\n"
+      ],
+      [
+        116,
+        119,
+        "        _write(conn,lease,PREVIEWS,ref,dict(research_id=rid,principal_id=pid,input_revision=request.input_revision,research_version=control['version'],consent_json=canonical(consent).decode(),consent_digest=cd,request_digest=encoded.outbound_request_digest,quote_json=canonical(q.model_dump()).decode(),expires_at=q.valid_until,state='draft',task_id=None,key_digest=digest(key.encode()),operation_digest=operation),verify)\n        return envelope(preview_view(row(conn,PREVIEWS,ref),conn,service.store))\n"
+      ],
+      [
+        123,
+        132,
+        "    authorized=bool(ports.installation(store) and funding and funding['state']=='authorized' and funding['principal_id']==value['principal_id'] and funding['generation']==consent['generation'])\n"
+      ],
+      [
+        134,
+        135,
+        "            provision,resource=ports.installation(store)\n"
+      ],
+      [
+        136,
+        137,
+        ""
+      ],
+      [
+        146,
+        151,
+        "    require_authenticated_action(source,identity=identity,action='plan-confirm',research_id=rid,key=key,body_digest=operation)\n"
+      ],
+      [
+        153,
+        163,
+        "        replay=service._replay(conn,pid,'native-plan-confirm','r:'+rid,key,operation)\n        if replay is not None:return replay\n"
+      ],
+      [
+        166,
+        180,
+        "        control,saved,encoded=_input(conn,service,identity,pid,rid,value['input_revision'],value['research_version'])\n        q=NativePlanQuote.model_validate(json.loads(value['quote_json']));consent=json.loads(value['consent_json'])\n        if value['expires_at']<=int(time.time()) or consent['producer_digest']!=code_digest() or q.codec_digest!=codec_digest() or encoded.outbound_request_digest!=consent['request_digest']:raise ResearchError('PREVIEW_EXPIRED',409,'输入、代码或报价已变化，请重新预览。')\n"
+      ],
+      [
+        181,
+        183,
+        "        funding,resource=_active(conn,service.store,pid,identity.generation)\n"
+      ],
+      [
+        187,
+        194,
+        "        conn.execute(\"INSERT INTO research_grants(id,principal_id,principal_epoch,research_id,acl_epoch,scopes,status,created_at) VALUES(?,?,?,?,?,'[\\\"execute\\\"]','active',?)\",(grant,pid,control['owner_epoch'],rid,control['acl_epoch'],at))\n"
+      ],
+      [
+        204,
+        207,
+        "        result=envelope(dict(task_id=task,result_ref=ref,state='queued',cash_evidence='not_observed',real_model_executed=False,recorded_at=None))\n        service._remember(conn,pid,'native-plan-confirm','r:'+rid,key,operation,result);return result\n"
+      ],
+      [
+        210,
+        214,
+        ""
+      ],
+      [
+        232,
+        234,
+        "    __slots__=('store','resource','claim','consent','baseline','pid','reference','active','used')\n    def __init__(self,store,resource,claim,consent,baseline,*,_factory=None):\n"
+      ],
+      [
+        235,
+        238,
+        "        self.store,self.resource,self.claim,self.consent,self.baseline=store,resource,claim,canonical(consent),canonical(baseline)\n"
+      ],
+      [
+        241,
+        250,
+        "        with self.store.transaction() as conn:\n            consent=strict_json(self.consent,32768)\n            value=row(conn,RUNS,consent['dispatch_id']);_current(conn,self.store,value)\n"
+      ],
+      [
+        251,
+        252,
+        "            if canonical([dict(funding),dict(account)])!=self.baseline or finance.unresolved(conn,account['id']):raise PermissionError('balance pre-GET claim/ledger changed')\n"
+      ],
+      [
+        256,
+        269,
+        ""
+      ],
+      [
+        270,
+        272,
+        "    __slots__=('store','resource','lease','dispatch','raw','account_version','funding_version','pid','reference','active','used')\n    def __init__(self,store,resource,lease,dispatch,raw,account_version,funding_version,*,_factory=None):\n"
+      ],
+      [
+        274,
+        278,
+        "        self.pid,self.reference,self.active,self.used=os.getpid(),uid(),True,False;_CAPS[self.reference]=self\n    def consume(self,resource):\n        if not self.active or self.used or self.pid!=os.getpid() or _CAPS.get(self.reference) is not self or resource is not self.resource:raise PermissionError('single native send lease required')\n"
+      ],
+      [
+        279,
+        309,
+        "        with self.store.transaction() as conn:\n            value=row(conn,RUNS,self.dispatch);consent,task,step,control=_current(conn,self.store,value)\n            funding,actual=_authority(conn,self.store,self.lease,consent)\n            account=row(conn,'research_funding_accounts',value['account_id'])\n            if funding['state']!='authorized' or account['status']!='unverified' or account['binding_id']!=consent['economic_binding'] or funding['grant_epoch']!=consent['grant_epoch'] or funding['credential_incarnation']!=consent['credential_incarnation'] or funding['version']!=self.funding_version or account['version']!=self.account_version or funding['balance_claim']!=self.dispatch or funding['balance_nonce']!=value['nonce'] or finance.unresolved(conn,account['id'],excluding=self.dispatch):raise PermissionError('current native money authority ended')\n            if code_digest()!=consent['producer_digest'] or codec_digest()!=consent['template_code_digest'] or consent['quote']['valid_until']<=int(time.time()) or digest(self.raw)!=consent['request_digest']:raise PermissionError('native confirmed source/quote/bytes changed')\n            result=self.raw,self.dispatch,value['nonce'],value['admission_digest'],consent['producer_digest']\n"
+      ],
+      [
+        336,
+        453,
+        "def run_once(store,task_id):\n"
+      ],
+      [
+        459,
+        461,
+        "    pair=ports.installation(store)\n"
+      ],
+      [
+        463,
+        464,
+        ""
+      ],
+      [
+        466,
+        467,
+        ""
+      ],
+      [
+        468,
+        469,
+        ""
+      ],
+      [
+        471,
+        472,
+        "            funding,actual=_active(conn,store,pid,consent['generation'])\n"
+      ],
+      [
+        475,
+        478,
+        ""
+      ],
+      [
+        482,
+        483,
+        "        balance_cap=NativeBalanceLease(store,resource,claim,consent,baseline,_factory=_FACTORY)\n"
+      ],
+      [
+        492,
+        505,
+        "            encoded=plan_preview_request(make_plan_manifest({'input_kind':'user_observation_summary','summary':consent['raw_input']}))\n            if encoded.outbound_request_digest!=consent['request_digest'] or encoded.input_manifest_digest!=consent['input_manifest_digest']:raise PermissionError('native approved bytes differ')\n            admission=dict(protocol='financial-admission-v3',financial_version=9,mode=resource.mode,producer=resource.producer,consent_digest=value['consent_digest'],quote=consent['quote'],\n                observed_balance=balance.audit(),ledger_before=dict(account),funding_before=dict(funding),request_digest=consent['request_digest'],producer_digest=consent['producer_digest'])\n"
+      ],
+      [
+        516,
+        520,
+        ""
+      ],
+      [
+        527,
+        528,
+        "            send=NativePlanSendLease(store,resource,lease,dispatch,encoded.raw,account_version,funding_version,_factory=_FACTORY)\n"
+      ],
+      [
+        534,
+        535,
+        "        try:_fail(store,pid,dispatch)\n"
+      ],
+      [
+        537,
+        538,
+        "            ports.retire_attempts(resource)\n"
+      ],
+      [
+        539,
+        539,
+        "        errors=ports.retire_attempts(send,pending,owned,balance,balance_cap)\n        # The resource may own IO that failed before a balance/pending object\n        # could be handed to Core. This hook never releases funding or flight.\n"
+      ],
+      [
+        540,
+        559,
+        "            if resource.retire_unhanded() is not None:raise ResearchError('CLEANUP_UNCERTAIN',503,'原生清场回执不符合约定，需核对原记录。')\n        except BaseException as cleanup_error:errors+=(type(cleanup_error).__name__,)\n        if errors:errors+=ports.retire_attempts(resource)\n        errors+=ports.retire_attempts(flight=resource.flight)\n        try:_cleanup(store,pid,dispatch,errors)\n        except BaseException as cleanup_error:\n            ports.retire_attempts(resource)\n            if primary is None:primary=cleanup_error\n        if errors and primary is None:primary=ResearchError('CLEANUP_UNCERTAIN',503,'原生资源退休不完整；保留原结果标识，不会重发。')\n"
+      ],
+      [
+        573,
+        583,
+        ""
+      ],
+      [
+        584,
+        584,
+        "    resource=ports.installation(store)[1]\n"
+      ],
+      [
+        592,
+        599,
+        ""
+      ],
+      [
+        601,
+        602,
+        "    try:data,usage=_usage(owned)\n"
+      ],
+      [
+        605,
+        606,
+        ""
+      ],
+      [
+        610,
+        611,
+        "            proposal=parse_plan_candidate(message['content'])\n"
+      ],
+      [
+        620,
+        624,
+        "        if usage is not None:_money(conn,lease,account,-value['upper'],value['upper'],verify)\n"
+      ],
+      [
+        625,
+        635,
+        "        if active and proposal is not None and usage is not None:\n"
+      ],
+      [
+        638,
+        643,
+        "        receipt=dict(protocol='owned-native-return-v2',mode=owned.mode,dispatch=dispatch,nonce=consent['nonce'],admission_digest=value['admission_digest'],producer_digest=consent['producer_digest'],runtime_digest=admission['funding_before']['runtime_digest'],response_digest=digest(owned.body),status=owned.status,provider_model_label=None if data is None else data['model'],weight_identity_verified=False)\n        commit=dict(protocol='native-plan-commit-v1',task_id=value['task_id'],result_ref=value['result_ref'],recorded_at=at,consent_digest=value['consent_digest'],admission_digest=value['admission_digest'],\n            result_digest=None if result is None else digest(canonical(result)),receipt_digest=digest(canonical(receipt)),usage_digest=None if usage is None else digest(canonical(usage)),task_before=2,task_after=3,step_before=2,step_after=3)\n"
+      ],
+      [
+        646,
+        647,
+        "        if active:\n"
+      ],
+      [
+        690,
+        708,
+        "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT r.* FROM '+RUNS+' r JOIN research_tasks t ON t.id=r.task_id WHERE r.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        result=None\n        if value['result_json']:\n            result=NativePlanResult.model_validate(json.loads(value['result_json'])).model_dump(mode='json')\n            consent=json.loads(value['consent_json']);admission=json.loads(value['admission_json']);commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone();step=conn.execute('SELECT * FROM research_steps WHERE id=?',(consent['step_id'],)).fetchone()\n            saved=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,consent['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='native-plan-v1' or task['version']!=3 or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED' or step['version']!=3\n                or digest(canonical(consent))!=value['consent_digest'] or digest(canonical(admission))!=value['admission_digest'] or not saved or saved[0]!=consent['input_digest']\n                or result['result_ref']!=value['result_ref'] or result['task_id']!=task['id'] or result['research_id']!=rid or result['input_digest']!=task['input_digest'] or result['recorded_at']!=commit['recorded_at']\n                or commit['result_digest']!=digest(canonical(result)) or commit['receipt_digest']!=digest(canonical(receipt)) or receipt['admission_digest']!=value['admission_digest']):raise ResearchError('RESULT_UNAVAILABLE',503,'原生计划记录当前无法完整核对；不会重新外发。')\n        return envelope({**metadata(value),'content':result})\n"
+      ],
+      [
+        716,
+        717,
+        "    return [metadata(value) for value in conn.execute(query+' ORDER BY t.start_version DESC,t.id DESC LIMIT 20',args)]\n"
+      ],
+      [
+        748,
+        754,
+        ""
+      ]
+    ],
+    "original_sha256": "dba85a647cc44130a703600282dfe2b021b63d41af5d4abacf9b334a38df4d90"
+  },
+  "web/backend/research/plan_result.py": {
+    "current_sha256": "489aa7e0617fc83e01b6659b1f213cbce503b38d1f60b5e9a757ffb7f22658ee",
+    "hunks": [
+      [
+        11,
+        36,
+        "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT d.* FROM research_plan_dispatches d JOIN research_tasks t ON t.id=d.task_id WHERE d.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        body=metadata(value)\n        if value['result_json'] is None:return envelope({**body,'content':None})\n        try:\n            result=PlanResult.model_validate(json.loads(value['result_json']))\n            admission=PlanAdmission.model_validate(json.loads(value['admission_json'])).model_dump(mode='json');commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json']);usage=json.loads(value['usage_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone()\n            step=conn.execute('SELECT * FROM research_steps WHERE id=?',(admission['step_id'],)).fetchone()\n            revision=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,admission['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='funded-plan-v1' or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED'\n                or task['version']!=commit['task_after'] or step['version']!=commit['step_after'] or commit['task_after']!=commit['task_before']+1 or commit['step_after']!=commit['step_before']+1\n                or task['research_id']!=admission['research_id'] or task['principal_id']!=admission['principal_id'] or task['input_revision']!=admission['input_revision'] or task['input_digest']!=admission['input_digest']\n                or not revision or revision[0]!=admission['input_digest'] or digest(canonical(admission))!=value['admission_digest'] or result.admission_digest!=value['admission_digest']\n                or result.result_ref!=value['result_ref'] or result.task_id!=value['task_id'] or result.research_id!=rid or result.input_revision!=admission['input_revision'] or result.input_digest!=admission['input_digest'] or result.request_digest!=admission['request_digest']\n                or commit['result_ref']!=value['result_ref'] or commit['task_id']!=task['id'] or commit['admission_digest']!=value['admission_digest'] or commit['recorded_at']!=result.recorded_at\n                or commit['result_digest']!=digest(canonical(result.model_dump(mode='json'))) or commit['receipt_digest']!=digest(canonical(receipt)) or commit['usage_digest']!=digest(canonical(usage))\n                or receipt['producer_code_digest']!=admission['producer_code_digest'] or receipt['dispatch_id']!=value['id'] or receipt['nonce']!=value['nonce'] or receipt['admission_digest']!=value['admission_digest']):raise ValueError('plan domain mismatch')\n        except (ValueError,TypeError,KeyError):raise ResearchError('RESULT_UNAVAILABLE',503,'原计划记录当前无法完整核对；不会重新调用模型。') from None\n        return envelope({**body,'content':result.model_dump(mode='json')})\n"
+      ]
+    ],
+    "original_sha256": "af06948b4975bff80a1d0a4daf64f45c8b4b64f3e5ec8895b999084e55de6f32"
+  },
+  "web/backend/research/projection.py": {
+    "current_sha256": "80e1709b51123935e5c18345118ece02ecaff123276a3a83931290011f007cb9",
+    "hunks": [
+      [
+        30,
+        31,
+        "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):\n"
+      ],
+      [
+        68,
+        72,
+        "                view.update(task=dict(task),execution=task['execution'],status='plan_'+metadata(value)['state'],native_plan=metadata(value),execution_mode=task['execution_mode'])\n"
+      ]
+    ],
+    "original_sha256": "cbfef1623ddceaeafe2282f98651cc92e7a61fb25ef7074ebd27862f36391d41"
+  },
+  "web/backend/research/provider_evidence.py": {
+    "current_sha256": "b6b1b0d2fe9de8bd3fd53021edd647a65166468afff25b6d7c6fb6c5a7fe70c5",
+    "hunks": [
+      [
+        82,
+        83,
+        "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ]
+    ],
+    "original_sha256": "ea5ec07fa53e3c231c0bf7b6a95b7722758508de67f706e0d56160dc0a46d133"
+  },
+  "web/backend/research/runner.py": {
+    "current_sha256": "4c759dc93f996ff59d2002c94da50013f40c7375f2278e91e9af14bc838a546c",
+    "hunks": [
+      [
+        185,
+        199,
+        "        lock=self.gate.source_task_gate(task_id) if version in (11,12,13) and self.task(task_id)['policy_revision']=='d1-source-only-v1' else self.gate.owner_gate_id(task_id)\n"
+      ]
+    ],
+    "original_sha256": "6557a66d2116ae347aa9d50ad95c3789441aa2382acc7d5be6606cb0d1b8f9a8"
+  },
+  "web/backend/research/service.py": {
+    "current_sha256": "1bd6b88e005455cbbdbb5e565f439fc8a0a3b848ac142a15e53081d0dc7c8033",
+    "hunks": [
+      [
+        31,
+        35,
+        ""
+      ],
+      [
+        71,
+        77,
+        ""
+      ],
+      [
+        182,
+        183,
+        "        if request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13):\n"
+      ],
+      [
+        378,
+        379,
+        "                method=bool(candidate and candidate[0]=='bounded_usage_upper_v2' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13))\n"
+      ],
+      [
+        385,
+        386,
+        "            method_request=is_paid and operation=='reconcile' and request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13)\n"
+      ],
+      [
+        391,
+        392,
+        "            if (is_paid or task['policy_revision'] in ('local-formula-v1','funded-plan-v1','native-plan-v1') or (task['policy_revision']=='d1-source-only-v1' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13))) and operation=='cancel':\n"
+      ],
+      [
+        405,
+        406,
+        "                if is_paid and operation=='reconcile' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13):\n"
+      ],
+      [
+        429,
+        430,
+        "                        if task['policy_revision']=='d1-source-only-v1' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        519,
+        523,
+        "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):\n"
+      ],
+      [
+        524,
+        525,
+        "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        594,
+        599,
+        "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        605,
+        606,
+        "            if conn.execute('SELECT version FROM research_schema').fetchone()[0]==13:\n"
+      ],
+      [
+        608,
+        609,
+        "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (12,13):\n"
+      ],
+      [
+        611,
+        614,
+        ""
+      ],
+      [
+        623,
+        624,
+        ""
+      ]
+    ],
+    "original_sha256": "4415e35d9591896e2484bdfb962f0a1bb084704916bbcb70b9e84954f76647f3"
+  },
+  "web/backend/research/source_guard.py": {
+    "current_sha256": "4212719fbd57d8bc0cba907c96711d5b18a92d8cdac373d051de8373f72d8e35",
+    "original_sha256": "eba13596a681d3997672d37d03e9af72159db4b0a0d7dda72d4aad03cf96acaf",
+    "hunks": [
+      [
+        103,
+        116,
+        ""
+      ],
+      [
+        126,
+        127,
+        "    # Mutable execution/status fields are excluded; these immutable domain facts\n    # are fixed by the authenticated admission and independently rechecked.\n    fields={'task':{key:task[key] for key in ('id','research_id','principal_id','principal_epoch','owner_epoch','acl_epoch','grant_id','auth_generation','input_revision','input_digest','start_version','policy_revision','execution_mode')},\n      'principal':{key:principal[key] for key in ('id','gate_id','session_generation','epoch')},\n      'grant':{key:grant[key] for key in ('id','principal_id','principal_epoch','research_id','acl_epoch','scopes')},\n      'run':{key:run[key] for key in ('task_id','approval_id','chain_id','plan_id','fingerprint','origin')},\n      'approval':{key:approval[key] for key in ('id','principal_id','principal_epoch','auth_generation','research_id','input_revision','problem_digest','query','plan_json','plan_digest','fingerprint','execution_mode','version','consent_origin','consent_digest')},'revision_digest':revision[0],\n      'version':'source-admission-v1'}\n    return fields\n"
+      ],
+      [
+        152,
+        153,
+        "    def __init__(self,conn,store,mode,*,lease,source=None,identity=None,rid=None,request=None,key=None,task_id=None,owner_lease=None,job_id=None,birth=None):\n"
+      ],
+      [
+        158,
+        159,
+        ""
+      ],
+      [
+        171,
+        175,
+        ""
+      ],
+      [
+        177,
+        180,
+        "            require_authenticated_action(self.source,identity=self.identity,action='source-approve' if self.mode=='approve' else 'source-start',research_id=self.rid,key=self.key,body_digest=digest(self.request.model_dump(mode='json')))\n"
+      ],
+      [
+        214,
+        222,
+        ""
+      ],
+      [
+        250,
+        256,
+        "            fields,pd,fp,inp=draft(revision[0],self.request.query)\n"
+      ],
+      [
+        258,
+        260,
+        "                or row['input_revision']!=self.request.input_revision or row['problem_digest']!=revision[0] or row['query']!=self.request.query\n                or row['plan_json']!=canonical(fields) or row['plan_digest']!=pd or row['fingerprint']!=fp or row['execution_mode']!=origin()\n"
+      ],
+      [
+        310,
+        324,
+        ""
+      ],
+      [
+        366,
+        368,
+        "def worker_scope(conn,store,task_lease,*,owner_lease=None,close=False):\n    return _scope(conn,store,'close' if close else 'worker',lease=task_lease,task_id=task_lease.task_id,owner_lease=owner_lease)\n"
+      ],
+      [
+        410,
+        411,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
+      ],
+      [
+        437,
+        465,
+        "    if row['admission_json'] is None:raise PermissionError('Source original admission was erased')\n    recorded=json.loads(row['admission_json'])\n    if sha256(canonical(recorded).encode())!=row['admission_digest']:raise PermissionError('Source original admission digest differs')\n    actual=snapshot(conn,task_id)\n    # These two current execution-authority values may legitimately be retired.\n    # Original task/domain IDs, generations, epochs, approved bytes and hashes\n    # remain independently bound; the current reader uses its own live grants.\n    actual['principal']['epoch']=actual['task']['principal_epoch']\n    actual['grant']['scopes']=recorded['grant']['scopes']\n    if actual!=recorded or actual['principal']['gate_id']!=row['owner_gate_id']:raise PermissionError('Source original domain differs')\n"
+      ],
+      [
+        466,
+        514,
+        ""
+      ]
+    ]
+  },
+  "web/backend/research/source_integration.py": {
+    "current_sha256": "eeeee6a340c131be347e62060ac3f806e785f9aeff3cd67cf9c08a46a79687ac",
+    "original_sha256": "ba8d65ef360223742776f7b7537ec7434a4252bddf0a8bf6658fc617b5907ed7",
+    "hunks": [
+      [
+        44,
+        50,
+        "    run=conn.execute(\"SELECT a.query FROM research_source_runs r JOIN research_source_approvals a ON a.id=r.approval_id WHERE r.task_id=?\",(task[\"id\"],)).fetchone()\n    chains=source_chains(conn,task[\"principal_id\"],task[\"research_id\"],run[\"query\"]) if run else []\n"
+      ],
+      [
+        75,
+        76,
+        ""
+      ],
+      [
+        107,
+        109,
+        "def records(service,identity,rid,task_id,kind,cursor=None):\n    require_enabled();rid=service._id(rid);task_id=service._id(task_id);pid=service._principal(identity)\n"
+      ],
+      [
+        173,
+        174,
+        "    if marker and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        201,
+        233,
+        "def require_enabled():\n"
+      ],
+      [
+        237,
+        239,
+        ""
+      ],
+      [
+        243,
+        250,
+        ""
+      ],
+      [
+        255,
+        256,
+        "            \"policy_revision\":POLICY,\"max_requests\":4,\"execution_mode\":origin(),\n"
+      ],
+      [
+        268,
+        273,
+        ""
+      ],
+      [
+        327,
+        328,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        344,
+        358,
+        ""
+      ],
+      [
+        367,
+        372,
+        "def preview(service,identity,rid,request):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
+      ],
+      [
+        386,
+        387,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
+      ],
+      [
+        391,
+        396,
+        "def approve(service,identity,rid,request,key,*,request_source=None):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
+      ],
+      [
+        412,
+        413,
+        "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        422,
+        427,
+        "def start_source(service,identity,rid,request,key,*,request_source=None):\n    require_enabled();rid=service._id(rid);pid=service._principal(identity)\n"
+      ],
+      [
+        445,
+        446,
+        "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        455,
+        456,
+        "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        473,
+        474,
+        "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        484,
+        638,
+        ""
+      ]
+    ]
+  },
+  "web/backend/research/source_policy.py": {
+    "current_sha256": "bc6c76b4a8d9f17a2a7acc4a8b08ef87ba5fada4e22dfead39a087f291aa78eb",
+    "original_sha256": "d304c8fcbba51de2b2ffdcae5c6154dde7788ed64a8462cacb3da061cbfe3e11",
+    "hunks": [
+      [
+        4,
+        6,
+        "This transport is unwired: the caller must hold/consume C0's external-send\npermit at the start boundary and persist request quota/unknown state there.\n"
+      ],
+      [
+        20,
+        22,
+        ""
+      ],
+      [
+        117,
+        120,
+        ""
+      ],
+      [
+        149,
+        308,
+        ""
+      ],
+      [
+        311,
+        317,
+        "    target = RequestTarget(target.host, target.path)\n"
+      ],
+      [
+        325,
+        330,
+        ""
+      ],
+      [
+        331,
+        332,
+        "                         \"User-Agent: StructureMethodEvidence/1\\r\\nAccept-Encoding: gzip\\r\\nConnection: close\\r\\n\\r\\n\").encode(\"ascii\"))\n"
+      ],
+      [
+        342,
+        343,
+        ""
+      ],
+      [
+        346,
+        347,
+        ""
+      ],
+      [
+        389,
+        399,
+        ""
+      ],
+      [
+        400,
+        412,
+        ""
+      ],
+      [
+        433,
+        434,
+        ""
+      ],
+      [
+        446,
+        464,
+        "        target = RequestTarget(target.host, target.path)\n"
+      ],
+      [
+        470,
+        472,
+        ""
+      ],
+      [
+        474,
+        477,
+        "        shared = ctx.RawArray(\"B\", RAW_CAP * 2)\n        deadline = time.monotonic() + self.wall_seconds\n        process = ctx.Process(target=_child, args=(send, target, self._worker, shared,deadline,identity), daemon=True)\n"
+      ],
+      [
+        486,
+        488,
+        ""
+      ],
+      [
+        489,
+        490,
+        ""
+      ],
+      [
+        500,
+        502,
+        "                        message = json.loads(receive.recv_bytes(1024))\n"
+      ],
+      [
+        513,
+        518,
+        "                        owner_lease.handoff(receive,process.pid,deadline)\n                        handed_off=True\n"
+      ],
+      [
+        519,
+        532,
+        ""
+      ],
+      [
+        543,
+        589,
+        "            send.close()\n            receive.close()\n            if process.pid is not None:\n                if process.is_alive():\n                    process.terminate()\n                process.join(timeout=0.25)\n                if process.is_alive():\n                    process.kill()\n                    process.join(timeout=0.25)\n                process.close()\n"
+      ]
+    ]
+  },
+  "web/backend/research/source_workflow.py": {
+    "current_sha256": "0f527be5e5a2b7deb06963c85aa1cb5696c6677461bbb914ae975934fe4c3fea",
+    "original_sha256": "5a152fcb8fa84ce04746dd74affb6107f8acfc747ff47968086a2a3a1245148e",
+    "hunks": [
+      [
+        18,
+        19,
+        "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13):return nullcontext()\n"
+      ],
+      [
+        29,
+        34,
+        "        with store.transaction() as conn:\n"
+      ],
+      [
+        40,
+        48,
+        ""
+      ],
+      [
+        49,
+        52,
+        ""
+      ],
+      [
+        54,
+        55,
+        "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
+      ],
+      [
+        63,
+        69,
+        "            with self.store.transaction() as conn:self.checked(conn)\n"
+      ],
+      [
+        73,
+        74,
+        "        with self.store.transaction(write=True) as conn:\n"
+      ],
+      [
+        82,
+        83,
+        "        with self.store.transaction(write=True) as conn:\n"
+      ],
+      [
+        89,
+        93,
+        ""
+      ],
+      [
+        154,
+        156,
+        ""
+      ],
+      [
+        171,
+        174,
+        ""
+      ],
+      [
+        196,
+        311,
+        ""
+      ],
+      [
+        325,
+        326,
+        "        if version in (11,12,13):\n"
+      ],
+      [
+        328,
+        329,
+        "    owner=gate.owner_gate_id(owner_gate) if version in (11,12,13) else gate.owner_gate(principal)\n"
+      ],
+      [
+        331,
+        334,
+        ""
+      ],
+      [
+        345,
+        346,
+        "            if version in (11,12,13):\n"
+      ],
+      [
+        356,
+        357,
+        "    require_enabled()\n"
+      ],
+      [
+        365,
+        366,
+        "            if version in (11,12,13):\n"
+      ],
+      [
+        380,
+        386,
+        ""
+      ],
+      [
+        390,
+        393,
+        "    except (ValueError,ResearchError,PermissionError,OSError):\n"
+      ]
+    ]
+  },
+  "web/backend/research/store.py": {
+    "current_sha256": "0bb5c9533b1c5fee739a5db4fe39e07d76d3ba9eb381c0f9d10b6423a961ecae",
+    "hunks": [
+      [
+        13,
+        14,
+        "CURRENT_RESEARCH_SCHEMA_VERSION=13\n"
+      ],
+      [
+        401,
+        405,
+        ""
+      ],
+      [
+        452,
+        456,
+        ""
+      ],
+      [
+        535,
+        544,
+        ""
+      ],
+      [
+        546,
+        547,
+        "        objects=self._current_structure_declarations(version=13)\n"
+      ],
+      [
+        552,
+        555,
+        "        conn.execute('INSERT INTO research_schema VALUES(1,13)')\n        self._check_v13(conn)\n"
+      ],
+      [
+        598,
+        602,
+        ""
+      ],
+      [
+        1015,
+        1018,
+        "            if version==13:self._check_v13(conn)\n"
+      ],
+      [
+        1040,
+        1041,
+        "    def _current_structure_declarations(cls,*,version=13):\n"
+      ],
+      [
+        1047,
+        1048,
+        "        if version in (10,11,12,13):\n"
+      ],
+      [
+        1051,
+        1052,
+        "        if version in (11,12,13):\n"
+      ],
+      [
+        1054,
+        1055,
+        "        if version in (12,13):\n"
+      ],
+      [
+        1057,
+        1058,
+        "        if version==13:\n"
+      ],
+      [
+        1060,
+        1066,
+        ""
+      ],
+      [
+        1099,
+        1104,
+        ""
+      ],
+      [
+        1105,
+        1106,
+        "        return cls._check_structure_version(conn,13)\n"
+      ],
+      [
+        1177,
+        1180,
+        "            if version==13:self._check_v13(conn)\n"
+      ],
+      [
+        1193,
+        1196,
+        "            if version==13:self._check_v13(conn);conn.commit();return\n"
+      ],
+      [
+        1294,
+        1307,
+        ""
+      ],
+      [
+        1309,
+        1312,
+        "        if version==13:cls._check_v13(conn)\n"
+      ],
+      [
+        1316,
+        1334,
+        ""
+      ],
+      [
+        1343,
+        1344,
+        "        conn=self._connect(readonly=not write)\n"
+      ],
+      [
+        1345,
+        1346,
+        ""
+      ],
+      [
+        1347,
+        1350,
+        ""
+      ],
+      [
+        1353,
+        1354,
+        "            conn.execute(\"PRAGMA busy_timeout=5000\")\n"
+      ],
+      [
+        1357,
+        1358,
+        "                self._check_v13(conn)\n"
+      ],
+      [
+        1363,
+        1364,
+        "            conn.rollback()\n"
+      ],
+      [
+        1368,
+        1369,
+        "            conn.rollback()\n"
+      ],
+      [
+        1371,
+        1372,
+        "            conn.close()\n"
+      ],
+      [
+        1382,
+        1383,
+        "                self._check_v13(conn)\n"
+      ]
+    ],
+    "original_sha256": "744c196ef6b9cb9c3b6fab2140b966e3b52b4859fafb11ef23a5982d371d2885"
+  },
+  "web/backend/schemas.py": {
+    "current_sha256": "6ace022157e54c32509e300c0b116a70361685530ee1cf4affd5c7bdb522eca4",
+    "hunks": [
+      [
+        1728,
+        1912,
+        ""
+      ]
+    ],
+    "original_sha256": "62d621470b9b18517b372746f5674a6042b4f70958f185bf21bc03699ad41a4f"
+  },
+  "web/backend/services/auth_registration.py": {
+    "current_sha256": "15ebf5fdec905014b96f26c01b16856b60e07300556828afc7f4a69c762698eb",
+    "hunks": [
+      [
+        486,
+        512,
+        "    with store._connection() as conn:\n"
+      ],
+      [
+        516,
+        517,
+        ""
+      ],
+      [
+        775,
+        776,
+        "    objects=ResearchStore._current_structure_declarations(version=13)\n"
+      ],
+      [
+        779,
+        780,
+        "    conn.execute('INSERT INTO research_schema VALUES(1,13)')\n"
+      ],
+      [
+        900,
+        901,
+        "                        if list(map(tuple,conn.execute('SELECT * FROM research_schema')))!=[(1,13)]:raise PermissionError('exact Research13 required')\n"
+      ],
+      [
+        920,
+        921,
+        "        return {'contract':'auth-provision-v1','research_schema':13,'created':fresh}\n"
+      ],
+      [
+        942,
+        943,
+        "    if (profile,version) not in (('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13)):\n"
+      ]
+    ],
+    "original_sha256": "17433353693cede4fe196b518134fddadb460d9c21853f1e94b4db9c82cfdf6e"
+  },
+  "web/backend/services/runtime_paths.py": {
+    "current_sha256": "3d4b4e87db18bc2e127d770bd79a2048f2693b169cc519f167c725e6ca97c780",
+    "original_sha256": "2d6eae7a4c3345e0db9d4b438e2ae720d1dfa9f8c686e3fb1295f52687309852",
+    "hunks": [
+      [
+        0,
+        1,
+        "\"\"\"Private runtime paths and the deliberately closed R2-A admission gate.\n"
+      ],
+      [
+        2,
+        4,
+        "No filesystem objects are created or migrated here. R2-B/R3 consumers have not\nbeen connected yet; only a later reviewed source change may admit production.\n"
+      ],
+      [
+        16,
+        17,
+        "    \"\"\"Formal persistence consumers are not integrated in this candidate.\"\"\"\n"
+      ],
+      [
+        19,
+        29,
+        "def require_formal_admission():\n    # No environment/state/registry switch can attest to completed migration.\n    raise FormalAdmissionError(\"formal persistence consumers are not integrated\")\n"
+      ],
+      [
+        43,
+        44,
+        ""
+      ],
+      [
+        46,
+        52,
+        "                require_formal_admission()\n            except FormalAdmissionError:\n"
+      ],
+      [
+        63,
+        68,
+        "        await self.app(scope, receive, send)\n"
+      ],
+      [
+        93,
+        132,
+        ""
+      ],
+      [
+        136,
+        137,
+        "    fd = os.open(\"/\", os.O_RDONLY | os.O_DIRECTORY)\n"
+      ],
+      [
+        139,
+        148,
+        "            child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)\n            os.close(fd)\n            fd = child\n        return fd\n    except BaseException:\n        os.close(fd)\n"
+      ],
+      [
+        191,
+        194,
+        "    except BaseException:\n        os.close(fd)\n"
+      ],
+      [
+        200,
+        201,
+        "    os.close(fd)\n"
+      ],
+      [
+        208,
+        209,
+        ""
+      ],
+      [
+        215,
+        218,
+        ""
+      ],
+      [
+        219,
+        223,
+        "        os.close(current_fd)\n"
+      ],
+      [
+        289,
+        290,
+        "                os.close(fd)\n"
+      ],
+      [
+        332,
+        334,
+        ""
+      ],
+      [
+        358,
+        359,
+        ""
+      ],
+      [
+        383,
+        384,
+        "                        os.close(fd)\n"
+      ],
+      [
+        390,
+        393,
+        "        except BaseException:\n            witness.close()\n"
+      ],
+      [
+        457,
+        462,
+        "        self.file_identity = None\n"
+      ],
+      [
+        463,
+        475,
+        "        self.parent_fd = None\n        if fd is not None:\n            os.close(fd)\n"
+      ],
+      [
+        510,
+        511,
+        ""
+      ],
+      [
+        517,
+        520,
+        "        except BaseException:\n            witness.close()\n"
+      ],
+      [
+        540,
+        541,
+        "    os.close(fd)\n"
+      ],
+      [
+        584,
+        586,
+        "        if fd is not None:os.close(fd)  # Releases this non-DB journal's flock.\n        os.close(directory)\n"
+      ],
+      [
+        609,
+        610,
+        ""
+      ],
+      [
+        615,
+        619,
+        "        except BaseException:\n            inspected.close();raise\n"
+      ],
+      [
+        747,
+        748,
+        "            os.close(fd)\n"
+      ],
+      [
+        773,
+        774,
+        "            os.close(closing)\n"
+      ],
+      [
+        797,
+        798,
+        "                    os.close(fd)\n"
+      ],
+      [
+        823,
+        824,
+        "                    os.close(closing)\n"
+      ],
+      [
+        827,
+        828,
+        "                    os.close(closing)\n"
+      ]
+    ]
+  },
+  "web/backend/research/plan_native_financial.py": {
+    "current_sha256": "41df4e1d96657de5f956a3894d7f6bf0d74563bbe324329ffb2d338557a458dc",
+    "hunks": [
+      [
+        163,
+        165,
+        ""
+      ]
+    ],
+    "original_sha256": "e8ccf7d79108c0a7bf94812f31bb053668f895d7cb4b85500b6bc31fc7791304"
+  },
+  "web/backend/research/authorization.py": {
+    "current_sha256": "f6ec75f7021aa1325c07724e1a72f490302d9da7d498ddb3fd40ac3514df375e",
+    "hunks": [
+      [
+        152,
+        156,
+        ""
+      ],
+      [
+        162,
+        163,
+        ""
+      ],
+      [
+        204,
+        207,
+        ""
+      ],
+      [
+        212,
+        213,
+        ""
+      ],
+      [
+        215,
+        216,
+        "                    time.sleep(0.01)\n"
+      ],
+      [
+        294,
+        298,
+        ""
+      ],
+      [
+        338,
+        341,
+        ""
+      ],
+      [
+        342,
+        343,
+        ""
+      ],
+      [
+        346,
+        347,
+        "                time.sleep(.01)\n"
+      ]
+    ],
+    "original_sha256": "06483fcdf246248cb09ff53a88064893b040549b28e869029894080607153f9c"
+  },
+  "web/backend/services/auth_store.py": {
+    "current_sha256": "d6159f4a03c6d6811dfe9480556aaf468d5594d22ceb3f65e2bd9674c537c3ef",
+    "hunks": [
+      [
+        360,
+        361,
+        "        from .sqlite_utils import connect_private_auth\n"
+      ],
+      [
+        372,
+        373,
+        ""
+      ],
+      [
+        381,
+        382,
+        "            conn.execute(\"PRAGMA busy_timeout=10000\")\n"
+      ]
+    ],
+    "original_sha256": "e9d58769d153702b4aadfbebd30437885b263dd5c4d5585567697a50fa5f3986"
+  },
+  "web/backend/services/sqlite_utils.py": {
+    "current_sha256": "7945aa789acc5be50f6d351f2005b17eb3fb7184c2e7403a80cdd381d2b5ec2f",
+    "original_sha256": "f527f722930fddde4bf9a92fa39655f4065c80dac34d34c98136cc2ec13ac8e7",
+    "hunks": [
+      [
+        27,
+        31,
+        ""
+      ],
+      [
+        35,
+        38,
+        "        except BaseException:\n            self.close()\n"
+      ],
+      [
+        41,
+        42,
+        ""
+      ],
+      [
+        49,
+        53,
+        ""
+      ],
+      [
+        54,
+        58,
+        "            self.close()\n"
+      ],
+      [
+        61,
+        63,
+        "        if witness is not None:\n            witness.check()\n        try:\n            return sqlite3.Connection.commit(self)\n"
+      ],
+      [
+        64,
+        65,
+        "            if witness is not None:\n                witness.check()\n"
+      ],
+      [
+        68,
+        69,
+        "        try:\n            return sqlite3.Connection.rollback(self)\n"
+      ],
+      [
+        70,
+        74,
+        "            if witness is not None:\n                witness.check()\n"
+      ],
+      [
+        76,
+        100,
+        "        witness = self._history_file\n        self._history_file = None\n        try:\n            sqlite3.Connection.close(self)\n        finally:\n            if witness is not None:\n                try:\n                    witness.check()\n                finally:\n                    witness.close()\n"
+      ],
+      [
+        112,
+        114,
+        ""
+      ],
+      [
+        126,
+        128,
+        ""
+      ],
+      [
+        141,
+        150,
+        "    except BaseException:\n        try:\n            if conn is not None:\n                conn.close()\n        finally:\n            if witness is not None:\n                witness.close()\n"
+      ],
+      [
+        160,
+        190,
+        ""
+      ],
+      [
+        193,
+        197,
+        "    if type(readonly) is not bool:\n        raise TypeError('readonly must be a boolean')\n    witness=None;connection=None\n"
+      ],
+      [
+        198,
+        206,
+        "        with HISTORY_OPEN_LOCK:\n"
+      ],
+      [
+        211,
+        212,
+        "                timeout=timeout,isolation_level=None,factory=PrivateAuthConnection)\n"
+      ],
+      [
+        213,
+        219,
+        ""
+      ],
+      [
+        225,
+        234,
+        "    except BaseException:\n        try:\n            if connection is not None:connection.close()\n        finally:\n            if witness is not None:witness.close()\n"
+      ],
+      [
+        246,
+        248,
+        "    if type(readonly) is not bool:raise TypeError('readonly must be a boolean')\n"
+      ],
+      [
+        250,
+        251,
+        ""
+      ],
+      [
+        258,
+        260,
+        ""
+      ],
+      [
+        266,
+        275,
+        "    except BaseException:\n        try:\n            if conn is not None:conn.close()\n        finally:\n            if inspected is not None:inspected.close()\n"
+      ]
+    ]
+  },
+  "web/backend/research/evidence_schemas.py": {
+    "current_sha256": "f2b7aa83235f72811ec4e7775a89cebc5fe0402906dbad645a7bab3f4645652d",
+    "original_sha256": "f72022458fd2ac72a3a19cb833199b037fcff36578827de07352e830b28fe0b7",
+    "hunks": [
+      [
+        307,
+        309,
+        "        raise ValueError(\"unsupported record type\")\n"
+      ],
+      [
+        325,
+        328,
+        ""
+      ]
+    ]
+  },
+  "web/backend/research/schemas.py": {
+    "current_sha256": "420aadd2de58332b6236a0933ea90dc48113073a743bb47faf67c883fde0a5b7",
+    "original_sha256": "3bd3f68ab6e21f01d0baf80d8c9e69eefa800a237973bf2bdf5ef904a52b6e17",
+    "hunks": [
+      [
+        262,
+        319,
+        ""
+      ]
+    ]
+  },
+  "web/backend/tests/source_http_fixture.py": {
+    "current_sha256": "26b1cf335d2aa02676bca5756011e3143a87b8b940cf4b1e75f1cd119e8e9194",
+    "original_sha256": "1a854163af26ff37550b511bd6c3d6f6430ed2a2882a0dab4c7cc3aa2b6cdf26",
+    "hunks": [
+      [
+        58,
+        62,
+        "    transport=PinnedPublicTransport(_worker=partial(wait_before_get,int(port),ready,go))\n"
+      ]
+    ]
+  }
+}

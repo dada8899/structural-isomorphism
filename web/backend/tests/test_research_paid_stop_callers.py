@@ -163,6 +163,10 @@ def test_both_real_auth_import_modes_keep_sources_service_and_lease_in_same_name
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
     client,_,store,rid,_,_=paid_api
+    # This fixture already owns Source consent, even without the optional v2 task.
+    with store.transaction() as conn:
+        assert conn.execute(
+            "SELECT 1 FROM research_source_approvals WHERE research_id=?",(rid,)).fetchone()
     if has_v2:
         draft=make_preview(paid_api);response=post(client,f'/api/research/{rid}/paid-approvals',confirm_data(draft),'namespace-confirm')
         assert response.status_code==200,response.text
@@ -187,7 +191,7 @@ def test_both_real_auth_import_modes_keep_sources_service_and_lease_in_same_name
     with store.transaction() as conn:
         job=conn.execute('SELECT state,origin_version FROM auth_deletion_jobs').fetchone()
         assert job['state']=='completed'
-        assert job['origin_version']==('authenticated-delete-v1' if has_v2 else None)
+        assert job['origin_version']=='authenticated-delete-v1'
 
 
 def _resume_scrubbing_child(job_id,result):

@@ -31,7 +31,7 @@ def _fresh_main(monkeypatch, env: str, *, auth_enabled: bool = False):
     if env == "prod":
         from services import runtime_paths
         admission = runtime_paths.require_formal_admission
-        monkeypatch.setattr(runtime_paths, "require_formal_admission", lambda: None)
+        monkeypatch.setattr(runtime_paths, "require_formal_admission", lambda app: None)
     monkeypatch.setenv("STRUCTURAL_ENV", env)
     # prod path requires the share-token secret env (report_store guards it).
     monkeypatch.setenv("STRUCTURAL_SHARE_TOKEN_SECRET", "test-secret-for-suite")

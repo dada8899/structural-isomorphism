@@ -1,0 +1,15 @@
+{
+  "files": {
+    "web/backend/research/source_adapters/__init__.py": {
+      "sha256": "7d3564e7d4a39f99493f9b3864dd140a746a4d462a78bd0ca07a2a37d7ab42d1"
+    },
+    "web/backend/research/source_adapters/crossref_plos.py": {
+      "sha256": "df65119e2bd6ca3d16d70a4e691b9a31afa8643bea313edc5b65f024f61ff42b"
+    },
+    "web/backend/research/source_workflow.py": {
+      "sha256": "f14fa7473c1f732ada36e62346e8f36d325203e8770d68d15a55c314fb3acf32"
+    }
+  },
+  "purpose": "Additional exact R10 worker closure; original 46-file reference unchanged",
+  "source_commit": "10b0919d7e784da9d66ff80ef1d69606457b94b1"
+}

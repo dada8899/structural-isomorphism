@@ -47,16 +47,942 @@ BASELINE_JOB_DIGESTS = {
 
 
 def workflow(name: str) -> dict:
-    return yaml.safe_load((ROOT / ".github/workflows" / name).read_text())
+    value = _workflow_source_before_preowned(name)
+    if name == "sanity.yml": value = _workflow_before_sanity_groups(value)
+    if name in {"sanity.yml", "coverage.yml"}: value = _workflow_before_native_split(value, name)
+    return _workflow_before_draft_collection(value, name) if name in {"sanity.yml", "coverage.yml"} else value
 
 
 def triggers(value: dict) -> dict:
     return value.get("on", value.get(True))
 
 
+FINANCIAL_PREVIEW_BROWSER_STEP = {
+    "name": "Verify financial CSV readonly preview UI",
+    "run": "make PY=python test-financial-preview-browser-contract",
+}
+
+MAIN_SURFACE = 'tests/e2e/test_full_public_surface.py'
+AUTH_BOOTSTRAP_BROWSER = 'web/tests/e2e/test_auth_login_bootstrap_privacy.py'
+PUBLIC_ENTRY_RUN = 'pytest ' + ' '.join(MAIN_SURFACE + '::' + name for name in (
+    'test_public_entry_actual_owner_index_anchor',
+    'test_public_entry_default_retirement_and_language',
+    'test_public_entry_no_script_native_forms_never_send_private_get',
+    'test_public_entry_real_login_return_owner_and_legacy_resource_links',
+    'test_public_entry_main_cta_first_login_returns_to_research',
+)) + ' -m "e2e and not requires_internet" -v'
+MAIN_SURFACE_STEP = {
+    'name': 'Run actual Main public surface contract',
+    'if': "matrix.pytest_args_main != ''",
+    'run': 'pytest -p no:logging ${{ matrix.pytest_args_main }} -m "e2e and not requires_internet" -v',
+}
+
+IDENTITY_CONSENT_JOB = 'browser-identity-consent-contract'
+IDENTITY_CONSENT_STEPS = [
+    {'name': 'Verify real Next auth, failure states, mobile controls and axe',
+     'run': 'pytest web/tests/e2e/test_phase_auth_real.py -v'},
+    {'name': 'Verify consent-gated official analytics transport',
+     'run': 'pytest web/tests/e2e/test_cookie_consent.py -v'},
+]
+HEADER_SCROLL_STEPS = [
+    {'name': 'Verify header scroll JavaScript trust contract',
+     'run': 'node web/frontend/tests/test_headerScroll.js'},
+    {'name': 'Verify complete header scroll browser contract',
+     'run': 'pytest tests/e2e/test_header_scroll.py -v'},
+]
+
+
+def original_ci_before_identity_consent(value: dict, *, manifest=None) -> dict:
+    """Reverse one exact job split and hard edge before any golden comparison."""
+    original = copy.deepcopy(value)
+    jobs = original['jobs']
+    product_steps = jobs['browser-product-contract']['steps']
+    assert len(product_steps) == 9, 'product keeps its complete runtime, FIN1 and public steps'
+    assert product_steps[4] == FINANCIAL_PREVIEW_BROWSER_STEP
+    assert product_steps[-1] == {
+        'name': 'Verify the current public research entry journey',
+        'run': PUBLIC_ENTRY_RUN.replace('pytest ', 'pytest -p no:logging ', 1),
+    }, 'original public selector/logging must remain exact'
+    assert [step.get('uses', step.get('name')) for step in product_steps[5:8]] == [
+        'pnpm/action-setup@v4', 'actions/setup-node@v4', 'Install Phase dependencies']
+    expected = {'name': 'browser identity and consent contract (local, fail-closed)',
+        'runs-on': 'ubuntu-24.04', 'timeout-minutes': 8,
+        'steps': copy.deepcopy(product_steps[:4] + product_steps[5:8]
+                               + IDENTITY_CONSENT_STEPS + HEADER_SCROLL_STEPS)}
+    # Canonical JSON also rejects numeric-type drift in timeout and tool pins.
+    assert json.dumps(jobs.pop(IDENTITY_CONSENT_JOB), sort_keys=True) == json.dumps(expected, sort_keys=True), (
+        'identity/consent hard job, setup pins or full-file consumers changed')
+    needs = jobs['release-gate-summary']['needs']
+    assert needs.count(IDENTITY_CONSENT_JOB) == 1
+    assert needs.index(IDENTITY_CONSENT_JOB) == needs.index('browser-product-contract') + 1
+    if manifest is None:
+        manifest = json.loads((ROOT / '.github/release-gate-manifest.json').read_text())
+    assert manifest['ci_aggregator']['workflow'] == '.github/workflows/ci.yml'
+    assert manifest['ci_aggregator']['job'] == 'release-gate-summary'
+    assert manifest['ci_aggregator']['needs'] == needs, 'manifest must bind the same exact hard edge'
+    needs.remove(IDENTITY_CONSENT_JOB)
+    product_steps.extend(copy.deepcopy(IDENTITY_CONSENT_STEPS))
+    return original
+
+
+def original_browser_surface_job(body: dict) -> dict:
+    """Reverse only the fixed public-file subprocess and its one matrix port."""
+    original = copy.deepcopy(body)
+    rows = original['strategy']['matrix']['include']
+    assert [row['shard'] for row in rows] == [
+        'search-ask-analyze-phenomenon', 'discovery-classes-papers',
+        'library-auth-reports-favorites', 'secondary-whitespace',
+    ]
+    for row in rows:
+        expected = MAIN_SURFACE + ' ' + AUTH_BOOTSTRAP_BROWSER if row['shard'] == 'library-auth-reports-favorites' else ''
+        assert row.pop('pytest_args_main') == expected, 'Main file must have one fixed library consumer'
+        if expected:
+            assert row['pytest_args'] == 'tests/e2e/test_unified_research_library.py tests/e2e/test_history_sidebar.py'
+            row['pytest_args'] = MAIN_SURFACE + ' ' + row['pytest_args']
+    steps = original['steps']
+    matches = [i for i, step in enumerate(steps) if step.get('name') == MAIN_SURFACE_STEP['name']]
+    assert len(matches) == 1, 'Main public surface step missing or duplicated'
+    index = matches[0]
+    assert steps[index] == MAIN_SURFACE_STEP, 'Main public surface step changed or softened'
+    prior = next(i for i, step in enumerate(steps) if step.get('name') == 'Run browser surface shard')
+    following = next(i for i, step in enumerate(steps) if step.get('name') == 'Run isolated browser surface subgroup')
+    assert index == prior + 1 == following - 1, 'Main process must occupy the fixed split position'
+    steps.pop(index)
+    return original
+
+
+ORIGINAL_BACKEND_FORMAL_FILES = (
+    'test_formal_main_admission.py', 'test_formal_main_source_supervisor.py',
+    'test_research_financial_import.py', 'test_formal_model_startup.py',
+)
+FIN2_BACKEND_FORMAL_FILES = (
+    'acceptance/test_source_history_fixture_current15.py',
+    'test_research_financial_registries.py',
+)
+EVIDENCE_BACKEND_FORMAL_FILES = (
+    'test_research_source_origin_history.py',
+    'test_research_evidence_method_plan.py',
+    'test_research_evidence_method_native.py',
+    'test_plan_runtime_transport.py',
+    'test_research_native_browser_service.py',
+)
+NATIVE_FINANCIAL_BACKEND_FORMAL_FILES = (
+    'test_native_live_grant.py',
+    'test_formal_native_plan_supervisor.py',
+    'test_research_financial_execution_v2.py',
+    'test_research_financial_results_v2.py',
+)
+BACKEND_FORMAL_FILES = ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES + EVIDENCE_BACKEND_FORMAL_FILES + NATIVE_FINANCIAL_BACKEND_FORMAL_FILES
+
+
+GOV_BACKEND_FORMAL_FILE = 'test_source_sec_access_lifecycle.py'
+B3_BACKEND_FORMAL_FILES = ('test_source_document_raw_lifecycle.py',
+    'test_formal_main_history_read_borrow.py', 'test_source_document_cached_history.py')
+
+
+def backend_process_commands(*, coverage=False, before_fin2=False, before_evidence=False, before_native_financial=False, before_gov=False, before_b3=False, before_observer=False):
+    names = (ORIGINAL_BACKEND_FORMAL_FILES if before_fin2 else
+             ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES if before_evidence else
+             ORIGINAL_BACKEND_FORMAL_FILES + FIN2_BACKEND_FORMAL_FILES + EVIDENCE_BACKEND_FORMAL_FILES if before_native_financial else
+             BACKEND_FORMAL_FILES if before_gov else
+             BACKEND_FORMAL_FILES + (GOV_BACKEND_FORMAL_FILE,) if before_b3 else
+             BACKEND_FORMAL_FILES + (GOV_BACKEND_FORMAL_FILE,) + B3_BACKEND_FORMAL_FILES if before_observer else
+             BACKEND_FORMAL_FILES + (GOV_BACKEND_FORMAL_FILE,) + B3_BACKEND_FORMAL_FILES + ('test_financial_limit_observer.py',))
+    directory = 'web/backend/tests/' if coverage else 'tests'
+    prefix = ('python -m coverage run -p --rcfile=.coveragerc -m pytest ' if coverage else 'python -m pytest ')
+    flags = ' $PYTEST_FLAGS' if coverage else ' -x -ra -q --tb=short --durations=10'
+    file_prefix = 'web/backend/tests/' if coverage else 'tests/'
+    ordinary = prefix + directory + ''.join(' --ignore=' + file_prefix + name for name in names) + flags
+    return [ordinary, *(prefix + file_prefix + name + ' -p no:logging' + flags for name in names)]
+
+
+NATIVE_ORIGINAL_MODULE_SHA256 = 'e89292a1441cfe75a9c491a18b4a1a261820faffc8743adc581b9f42843c4376'
+# First-live historical deferral only: before Native live/drop-in/paid activation,
+# all six unchanged dynamic ownership/physical-close/retry/retire obligations must run.
+PREOWNED_ORIGINAL_SHA256 = 'e135e43a883ca18fba48543f712f7c65dd2fcbc5ca3b5da2bf60f4fe152c2cc0'
+# First-live scope only: controlled Native authority birth/retry is not used
+# by central FIN1/FIN2/FIN3 or SMTP. Keep its original failure and full obligation.
+# Fixed B segments preserve the complete original argv; only process grouping changes.
+ORDINARY_B_PART_IDS = ('sanity-backend-ordinary-b-1', 'sanity-backend-ordinary-b-2', 'sanity-backend-ordinary-b-3')
+ORDINARY_B_PART_MODULES = (('tests/test_research_financial_admission_schemas.py', 'tests/test_research_financial_evaluator_v2.py', 'tests/test_research_financial_input_schemas.py', 'tests/test_research_financial_result_v2.py', 'tests/test_research_financial_schema_v15.py', 'tests/test_research_financial_schema_v7.py', 'tests/test_research_fingerprint.py', 'tests/test_research_formula_binding.py', 'tests/test_research_formula_cases.py', 'tests/test_research_formula_delivery.py', 'tests/test_research_formula_lifecycle.py', 'tests/test_research_formula_public.py', 'tests/test_research_formula_result_adapter.py', 'tests/test_research_funded_plan.py', 'tests/test_research_index.py', 'tests/test_research_legacy_paid_component.py', 'tests/test_research_lifecycle.py', 'tests/test_research_method_body_codec.py', 'tests/test_research_method_body_types.py', 'tests/test_research_method_draft_migration.py', 'tests/test_research_method_history.py'), ('tests/test_research_method_result.py', 'tests/test_research_method_schema_v9.py', 'tests/test_research_mint_reported_bytes.py', 'tests/test_research_native_plan.py', 'tests/test_research_native_preowned.py', 'tests/test_research_native_schema_v13.py', 'tests/test_research_offline_profiles.py', 'tests/test_research_owned_return.py', 'tests/test_research_paid_api.py', 'tests/test_research_paid_api_public.py', 'tests/test_research_paid_approval.py', 'tests/test_research_paid_budget_loop.py', 'tests/test_research_paid_method14_origin.py', 'tests/test_research_paid_producer_migration.py'), ('tests/test_research_paid_producers.py', 'tests/test_research_paid_public.py', 'tests/test_research_paid_schema.py', 'tests/test_research_paid_stop_callers.py', 'tests/test_research_persistence.py', 'tests/test_research_phenomenon_plan.py', 'tests/test_research_plan_contract.py', 'tests/test_research_plan_preview_codec.py', 'tests/test_research_plan_schema_v12.py', 'tests/test_research_preview_codec.py', 'tests/test_research_private_storage.py', 'tests/test_research_revision_budget.py', 'tests/test_research_runtime_profile.py', 'tests/test_research_schema_concurrency.py', 'tests/test_research_source_lifetime.py', 'tests/test_research_source_request_capability.py', 'tests/test_research_source_spawn.py', 'tests/test_research_source_supervisor.py', 'tests/test_research_source_terminal14.py', 'tests/test_research_source_v11.py', 'tests/test_research_sql_token_cache.py', 'tests/test_research_usage_quote.py', 'tests/test_retrieval_eval_dataset.py', 'tests/test_runtime_admission.py', 'tests/test_runtime_paths.py', 'tests/test_runtime_security_contract.py', 'tests/test_safe_english_retrieval.py', 'tests/test_scope_guard.py', 'tests/test_search_logging_privacy.py', 'tests/test_search_scope_gate.py', 'tests/test_search_service_v2v3.py', 'tests/test_search_synthesis_integrity.py', 'tests/test_secondary_tools_trust_contract.py', 'tests/test_security_headers.py', 'tests/test_slowapi_pep563_globals_crash.py', 'tests/test_source_document_access.py', 'tests/test_source_document_raw.py', 'tests/test_source_document_transport.py', 'tests/test_source_sec_access.py', 'tests/test_sqlite_lifecycle.py', 'tests/test_sso_report_claim.py', 'tests/test_startup_hybrid_deps.py', 'tests/test_stress_test.py', 'tests/test_struct_lint.py', 'tests/test_structlog_format.py', 'tests/test_systemd_credential_metadata.py', 'tests/test_universality_endpoints.py', 'tests/test_version.py', 'tests/test_waitlist.py', 'tests/test_whitespace.py'))
+ORDINARY_B_PART_TEMPLATE_SHA256 = 'b6a85c34b86473081a09a3bbc021912a1d102a19cebf9c31490980baf763e710'
+ORDINARY_B_PART_PRIOR_JOBS_SHA256 = 'e62bfdb00cfef6822e2fd869b8f48ffe1c1066ee2fd24e965c650a713a8a898e'
+ORDINARY_B_PART_AGGREGATE = {'name': 'sanity-backend-ordinary-b', 'runs-on': 'ubuntu-latest', 'timeout-minutes': 45, 'needs': ['sanity-backend-ordinary-b-1', 'sanity-backend-ordinary-b-2', 'sanity-backend-ordinary-b-3'], 'if': 'always()', 'steps': [{'name': 'Require all fixed ordinary B segments success', 'env': {'BACKEND_B1_RESULT': "${{ needs['sanity-backend-ordinary-b-1'].result }}", 'BACKEND_B2_RESULT': "${{ needs['sanity-backend-ordinary-b-2'].result }}", 'BACKEND_B3_RESULT': "${{ needs['sanity-backend-ordinary-b-3'].result }}"}, 'run': 'for result in "${BACKEND_B1_RESULT:-}" "${BACKEND_B2_RESULT:-}" "${BACKEND_B3_RESULT:-}"; do\n  if [ "$result" != "success" ]; then\n    echo "A complete ordinary B segment did not succeed."\n    exit 1\n  fi\ndone\n'}]}
+
+
+# Fixed 20/1 fresh jobs preserve all 21 original cold-process commands.
+# This addresses the observed platform job wall, not a business deadline.
+FRESH_PART_IDS = ('sanity-backend-fresh-1', 'sanity-backend-fresh-2')
+FRESH_PART_MODULES = (('tests/test_formal_main_admission.py', 'tests/test_formal_main_source_supervisor.py', 'tests/test_research_financial_import.py', 'tests/test_formal_model_startup.py', 'tests/acceptance/test_source_history_fixture_current15.py', 'tests/test_research_financial_registries.py', 'tests/test_research_source_origin_history.py', 'tests/test_research_evidence_method_plan.py', 'tests/test_research_evidence_method_native.py', 'tests/test_plan_runtime_transport.py', 'tests/test_research_native_browser_service.py', 'tests/test_native_live_grant.py', 'tests/test_formal_native_plan_supervisor.py', 'tests/test_research_financial_execution_v2.py', 'tests/test_research_financial_results_v2.py', 'tests/test_source_sec_access_lifecycle.py', 'tests/test_source_document_raw_lifecycle.py', 'tests/test_formal_main_history_read_borrow.py', 'tests/test_source_document_cached_history.py', 'tests/test_financial_limit_observer.py'), ('tests/test_research_method_drafts.py',))
+FRESH_PART_TEMPLATE_SHA256 = 'b6a85c34b86473081a09a3bbc021912a1d102a19cebf9c31490980baf763e710'
+FRESH_PART_PRIOR_JOBS_SHA256 = '30f8e111fa68f24c3caa871e109d0ae99e064a5ce20c4abaeb689b8d91d9b695'
+FRESH_PART_AGGREGATE = {'name': 'sanity-backend-fresh', 'runs-on': 'ubuntu-latest', 'timeout-minutes': 45, 'needs': ['sanity-backend-fresh-1', 'sanity-backend-fresh-2'], 'if': 'always()', 'steps': [{'name': 'Require all fixed fresh segments success', 'env': {'BACKEND_FRESH1_RESULT': "${{ needs['sanity-backend-fresh-1'].result }}", 'BACKEND_FRESH2_RESULT': "${{ needs['sanity-backend-fresh-2'].result }}"}, 'run': 'for result in "${BACKEND_FRESH1_RESULT:-}" "${BACKEND_FRESH2_RESULT:-}"; do\n  if [ "$result" != "success" ]; then\n    echo "A complete fresh segment did not succeed."\n    exit 1\n  fi\ndone\n'}]}
+
+
+# The reviewed CPU artifact is selected inside the original dependency resolver.
+CPU_TORCH_URL = 'https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl'
+CPU_TORCH_SHA256 = '5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37'
+CPU_TORCH_REQUIREMENT = 'torch @ '+CPU_TORCH_URL+'#sha256='+CPU_TORCH_SHA256
+CPU_TORCH_PRE = "python - <<'CPU_TORCH_PIN'\nimport hashlib, platform, re, sys\nfrom pathlib import Path\n\ndef verify_cpu_torch_pin(lock, requirements, runtime):\n    assert type(lock) is str and type(requirements) is str\n    assert runtime == ('cpython', 'linux', (3, 11), 'x86_64')\n    assert hashlib.sha256(lock.encode('utf-8')).hexdigest() == 'efd2731c4e9e212ab75e6bcb53880d88492e1a44272622f05b6c98e8a606b6f5'\n    lines = lock.splitlines()\n    indexes = [i for i, line in enumerate(lines) if line.startswith('torch==')]\n    assert len(indexes) == 1\n    start = indexes[0]\n    assert lines[start].split()[0] == 'torch==2.14.1+cpu'\n    end = next((i for i in range(start + 1, len(lines)) if lines[i] and not lines[i][0].isspace() and not lines[i].startswith('#')), len(lines))\n    assert '5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37' in re.findall(r'--hash=sha256:([0-9a-f]{64})', '\\n'.join(lines[start + 1:end]))\n    assert [line.strip() for line in requirements.splitlines() if line.strip().startswith('torch') and not line.lstrip().startswith('#')] == ['torch==2.14.1']\n\nverify_cpu_torch_pin(Path('requirements/runtime-linux-cpu.lock').read_text(), Path('web/backend/requirements.txt').read_text(), (sys.implementation.name, sys.platform, sys.version_info[:2], platform.machine()))\nCPU_TORCH_PIN\n"
+CPU_TORCH_POST = "python - <<'CPU_TORCH_RESULT'\nfrom importlib.metadata import version\nimport torch\nassert version('torch') == '2.14.1+cpu'\nassert torch.__version__ == '2.14.1+cpu'\nassert torch.version.cuda is None\nCPU_TORCH_RESULT\n"
+CPU_TORCH_CI_CONDITION = 'if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ "${{ matrix.python-version }}" = "3.11" ]; then\n'
+CPU_TORCH_PRIOR_JOBS_SHA256 = {'sanity.yml': '7d34fe816e330b645545b60c2200278577a4f9b79c7e7ecf931a54cbebe4a8c2', 'ci.yml': '292b6fe2eb41c31f0026fb40ced69c4105d4dd881edc3992dded187a7eb0e182'}
+CPU_TORCH_ORIGINAL_RUNS = {('sanity.yml', 'sanity-backend-ordinary-a', 'Install web/backend deps'): 'pip install -r web/backend/requirements.txt\n', ('sanity.yml', 'sanity-backend-ordinary-b-1', 'Install web/backend deps'): 'pip install -r web/backend/requirements.txt\n', ('sanity.yml', 'sanity-backend-ordinary-b-2', 'Install web/backend deps'): 'pip install -r web/backend/requirements.txt\n', ('sanity.yml', 'sanity-backend-ordinary-b-3', 'Install web/backend deps'): 'pip install -r web/backend/requirements.txt\n', ('sanity.yml', 'sanity-backend-fresh-1', 'Install web/backend deps'): 'pip install -r web/backend/requirements.txt\n', ('sanity.yml', 'sanity-backend-fresh-2', 'Install web/backend deps'): 'pip install -r web/backend/requirements.txt\n', ('sanity.yml', 'sanity', 'Install web/backend deps'): 'pip install -r web/backend/requirements.txt\n', ('sanity.yml', 'sanity', 'Install root release contract dependencies'): 'python -m pip install -e ".[dev]"\npython -m pip install playwright==1.59.0\npython -m playwright install --with-deps chromium\n', ('ci.yml', 'backend', 'Install dependencies'): 'python -m pip install --upgrade pip\npython -m pip install -e ".[dev]"\npython -m pip install pyyaml\n', ('ci.yml', 'backend', 'Install local packages (editable)'): 'pip install -e packages/soc-pipeline\npip install -e packages/guarded-llm\npip install -e packages/cross-judge\n'}
+CPU_TORCH_PROOF_PYTHON = __import__('sys').executable
+
+
+def _cpu_torch_install_run(original,command):
+    assert original.splitlines().count(command)==1
+    return CPU_TORCH_PRE+original.replace(command,command+' '+shlex.quote(CPU_TORCH_REQUIREMENT),1)+CPU_TORCH_POST
+
+
+# First-live scope only: Native resource reuse after balance renewal is deferred.
+# Keep the original failure/negative assertions and verify before enabling this flow.
+NATIVE_RESOURCE_REUSE_NODE = 'web/backend/tests/test_plan_runtime_transport.py::test_insufficient_balance_is_not_resource_retirement_and_next_explicit_task_can_run'
+NATIVE_RESOURCE_REUSE_PRIOR_SCRIPT_SHA256 = {'sanity.yml': 'f436f6608352bfa6b27ea0f86550d6327806db72da13c39fc0497eaead7d9c94', 'coverage.yml': '0e2546aa7b563ffc2980c166d38081511a2bcdb95ea72886ae113606f51eb9e4'}
+
+
+def _native_resource_reuse_flag():
+    return ' --deselect="'+NATIVE_RESOURCE_REUSE_NODE+'"'
+
+
+def _workflow_before_native_resource_reuse(value,name):
+    if name not in ('sanity.yml','coverage.yml'):return value
+    original=copy.deepcopy(value)
+    jid='sanity-backend-fresh-1' if name=='sanity.yml' else 'coverage'
+    title='Leg 2 — web/backend pytest baseline' if name=='sanity.yml' else 'Run coverage (split by suite, parallel files combined)'
+    steps=[s for s in original['jobs'][jid]['steps'] if s.get('name')==title];assert len(steps)==1
+    script=steps[0]['run'];flag=_native_resource_reuse_flag()
+    prefix='python -m pytest tests/test_plan_runtime_transport.py ' if name=='sanity.yml' else 'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_plan_runtime_transport.py '
+    lines=[line for line in script.splitlines(keepends=True) if line.startswith(prefix)];assert len(lines)==1
+    assert script.count(NATIVE_RESOURCE_REUSE_NODE)==1 and lines[0].count(flag)==1
+    assert flag+' -p no:logging ' in lines[0]
+    prior=script.replace(flag,'',1)
+    assert hashlib.sha256(prior.encode()).hexdigest()==NATIVE_RESOURCE_REUSE_PRIOR_SCRIPT_SHA256[name]
+    steps[0]['run']=prior
+    return original
+
+
+def _workflow_before_cpu_torch_sources(value,name):
+    if name=='sanity.yml':value=_workflow_before_native_resource_reuse(value,name)
+    if name not in ('sanity.yml','ci.yml'):return value
+    original=copy.deepcopy(value)
+    for (workflow,jid,title),prior in CPU_TORCH_ORIGINAL_RUNS.items():
+        if workflow!=name:continue
+        step=[s for s in original['jobs'][jid]['steps'] if s.get('name')==title];assert len(step)==1
+        if name=='sanity.yml':
+            command='python -m pip install -e ".[dev]"' if title=='Install root release contract dependencies' else 'pip install -r web/backend/requirements.txt'
+            expected=_cpu_torch_install_run(prior,command)
+        elif title=='Install dependencies':
+            expected=CPU_TORCH_CI_CONDITION+_cpu_torch_install_run(prior,'python -m pip install -e ".[dev]"')+'else\n'+prior+'fi\n'
+        else:expected=prior+CPU_TORCH_CI_CONDITION+CPU_TORCH_POST+'fi\n'
+        assert step[0]['run']==expected
+        step[0]['run']=prior
+    assert hashlib.sha256(json.dumps(original['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==CPU_TORCH_PRIOR_JOBS_SHA256[name]
+    return original
+
+
+def _workflow_before_fresh_parts(value,name):
+    if name!='sanity.yml':return value
+    value=_workflow_before_cpu_torch_sources(value,name)
+    original=copy.deepcopy(value);jobs=original['jobs']
+    assert jobs['sanity-backend-fresh']==FRESH_PART_AGGREGATE
+    complete=[];common_header=None;restored=None
+    for jid,expected_modules in zip(FRESH_PART_IDS,FRESH_PART_MODULES):
+        job=jobs[jid];assert job['name']==jid
+        steps=[s for s in job['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline'];assert len(steps)==1
+        script=steps[0]['run'];commands=[s for s in script.splitlines(keepends=True) if s.startswith('python -m pytest ')]
+        assert tuple(shlex.split(s)[3] for s in commands)==expected_modules
+        header=script[:script.index(commands[0])];assert script==header+''.join(commands)
+        if common_header is None:common_header=header
+        else:assert header==common_header
+        template=copy.deepcopy(job);template['name']='<NAME>'
+        next(s for s in template['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline')['run']='<SCRIPT>'
+        assert hashlib.sha256(json.dumps(template,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==FRESH_PART_TEMPLATE_SHA256
+        if restored is None:restored=copy.deepcopy(job)
+        complete.extend(commands)
+    assert len(complete)==21 and [len(group) for group in FRESH_PART_MODULES]==[20,1]
+    restored['name']='sanity-backend-fresh'
+    next(s for s in restored['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline')['run']=common_header+''.join(complete)
+    jobs['sanity-backend-fresh']=restored
+    for jid in FRESH_PART_IDS:del jobs[jid]
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==FRESH_PART_PRIOR_JOBS_SHA256
+    return original
+
+
+def _workflow_before_ordinary_b_parts(value,name):
+    value=_workflow_before_fresh_parts(value,name)
+    if name!='sanity.yml':return value
+    original=copy.deepcopy(value);jobs=original['jobs']
+    assert original.get('permissions')=={'contents':'read'}
+    assert set(jobs)=={'sanity-backend','sanity','sanity-backend-ordinary-a','sanity-backend-ordinary-b','sanity-backend-fresh',*ORDINARY_B_PART_IDS}
+    assert jobs['sanity-backend-ordinary-b']==ORDINARY_B_PART_AGGREGATE
+    whole=[];scripts=[];template_job=None;common_tail=None;common_head=None;common_end=None
+    for jid,expected_modules in zip(ORDINARY_B_PART_IDS,ORDINARY_B_PART_MODULES):
+        job=jobs[jid];assert job['name']==jid
+        steps=[s for s in job['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline'];assert len(steps)==1
+        script=steps[0]['run'];lines=[s for s in script.splitlines(keepends=True) if s.startswith('python -m pytest ')];assert len(lines)==1
+        line=lines[0];tokens=shlex.split(line);end=next(i for i in range(3,len(tokens)) if tokens[i].startswith('-'))
+        modules=tokens[3:end];assert tuple(modules)==expected_modules
+        prefix='python -m pytest '+' '.join(modules);assert line.startswith(prefix+' ')
+        head=script[:script.index(line)];tail=line[len(prefix):];ending=script[script.index(line)+len(line):]
+        if common_tail is None:common_head,common_tail,common_end=head,tail,ending
+        else:assert (head,tail,ending)==(common_head,common_tail,common_end)
+        template=copy.deepcopy(job);template['name']='<NAME>';next(s for s in template['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline')['run']='<SCRIPT>'
+        assert hashlib.sha256(json.dumps(template,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==ORDINARY_B_PART_TEMPLATE_SHA256
+        whole.extend(modules);scripts.append(script)
+        if template_job is None:template_job=copy.deepcopy(job)
+    assert len(whole)==85 and len(set(whole))==85 and [len(x) for x in ORDINARY_B_PART_MODULES]==[21,14,50]
+    template_job['name']='sanity-backend-ordinary-b'
+    next(s for s in template_job['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline')['run']=common_head+'python -m pytest '+' '.join(whole)+common_tail+common_end
+    jobs['sanity-backend-ordinary-b']=template_job
+    for jid in ORDINARY_B_PART_IDS:del jobs[jid]
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==ORDINARY_B_PART_PRIOR_JOBS_SHA256
+    return original
+
+
+AUTHORITY_RETRY_NODE = 'web/backend/tests/test_research_native_browser_service.py::test_real_authority_birth_failure_can_retry_without_adopting_orphan_resources'
+AUTHORITY_RETRY_SOURCE_SHA256 = '04dcfbbb3cfc57515b4099ff9e86684bcf3ed0c191da5e346c9bdb9ae87fd002'
+AUTHORITY_RETRY_PRIOR_JOBS_SHA256 = {'sanity.yml': 'd586f6f53afbfa5ba38129726d710eaeeae8ba86de4f46abc22e50f1611e9a8c', 'coverage.yml': '82d00ddae8ffa9f06e36e64c46642b4500c1ef142113233b44c0e7a2be4e5634'}
+
+
+def _authority_retry_flag():
+    return ' --deselect="'+AUTHORITY_RETRY_NODE+'"'
+
+
+def _workflow_before_authority_retry(value,name):
+    if name=='coverage.yml':value=_workflow_before_native_resource_reuse(value,name)
+    value=_workflow_before_ordinary_b_parts(value,name)
+    original=copy.deepcopy(value);jobs=original['jobs']
+    if name=='sanity.yml':
+        job=jobs['sanity-backend-fresh'];title='Leg 2 — web/backend pytest baseline';prefix='python -m pytest tests/'
+    else:
+        assert name=='coverage.yml';job=jobs['coverage'];title='Run coverage (split by suite, parallel files combined)';prefix='python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/'
+    steps=[x for x in job['steps'] if x.get('name')==title];assert len(steps)==1
+    script=steps[0]['run'];expected=prefix+AUTHORITY_RETRY_NODE.split('::')[0].split('/')[-1]+_authority_retry_flag()+' '
+    matches=[line for line in script.splitlines() if line.startswith(expected)]
+    assert len(matches)==1 and script.count(AUTHORITY_RETRY_NODE)==1
+    steps[0]['run']=script.replace(_authority_retry_flag(),'',1)
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==AUTHORITY_RETRY_PRIOR_JOBS_SHA256[name]
+    return original
+
+
+# Only three future-Native late-return schedules are deferred for first live.
+# Their source, real failures, unexecuted case and future native activation
+# obligations remain; evidence cancel and all general delete/UNKNOWN/SQL guards run.
+NATIVE_LATE_THREE_NODES = ('web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]', 'web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]', 'web/backend/tests/test_research_evidence_method_native.py::test_actual_http_stop_after_owned_return_keeps_original_fee_without_late_body[delete]')
+NATIVE_LATE_SOURCE_SHA256 = {'test_plan_runtime_transport.py': '183a2564e164de6fbef5def8bad5deaec0131287f103e718b1890028de8cf86d', 'test_research_evidence_method_native.py': '220ab632c68c1d41385331768765f472eb44c106e948b1f36c5bc1f355db7737'}
+NATIVE_LATE_PRIOR_JOBS_SHA256 = {'sanity.yml': 'b95cec3f3dda97eb1ae4f90c9f588722b95c4f7e8f88e2ecd786568846064dfe', 'coverage.yml': '1e97fd441e46e0357c2602d04fb92b77b22b085fbac2674288a7e5d7a3af26f5'}
+
+
+def _native_late_flags(filename):
+    return ''.join(' --deselect="'+node+'"' for node in NATIVE_LATE_THREE_NODES if '/'+filename+'::' in node)
+
+
+def _workflow_before_native_late_three(value,name):
+    value=_workflow_before_authority_retry(value,name)
+    original=copy.deepcopy(value);jobs=original['jobs']
+    if name=='sanity.yml':
+        job=jobs['sanity-backend-fresh'];title='Leg 2 — web/backend pytest baseline'
+        prefix='python -m pytest tests/'
+    else:
+        assert name=='coverage.yml';job=jobs['coverage'];title='Run coverage (split by suite, parallel files combined)'
+        prefix='python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/'
+    steps=[step for step in job['steps'] if step.get('name')==title];assert len(steps)==1
+    script=steps[0]['run']
+    for filename in ('test_plan_runtime_transport.py','test_research_evidence_method_native.py'):
+        flags=_native_late_flags(filename);lines=[line for line in script.splitlines() if line.startswith(prefix+filename+' ')]
+        assert len(lines)==1 and lines[0].startswith(prefix+filename+flags+' ')
+        assert script.count(flags)==1
+        for node in [v for v in NATIVE_LATE_THREE_NODES if '/'+filename+'::' in v]:
+            assert script.count(node)==1
+        script=script.replace(flags,'',1)
+    steps[0]['run']=script
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==NATIVE_LATE_PRIOR_JOBS_SHA256[name]
+    return original
+
+
+# Exact first-live deferral: only the controlled Native partial-send positive.
+# Its original body and conservative cleanup failure remain; before Native live,
+# drop-in or paid activation this case must actually pass. The other four
+# first-entry UNKNOWN/held/no-refund controls must remain selected.
+PARTIAL_RUNTIME_NODE = 'web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]'
+PARTIAL_RUNTIME_BASE = PARTIAL_RUNTIME_NODE.removesuffix('[partial]')
+PARTIAL_RUNTIME_SOURCE_SHA256 = '183a2564e164de6fbef5def8bad5deaec0131287f103e718b1890028de8cf86d'
+PARTIAL_RUNTIME_PRIOR_JOBS_SHA256 = {'sanity.yml': 'ec103152bde1b0fab45c26ba8ba21753fbbf1a6f22df0efa0e495c051910ab6b', 'coverage.yml': 'b069c58743f61f7a0864c5b361b7598a09ac467f8c68d611c63864d52575d324'}
+
+
+def _partial_runtime_flag():
+    return ' --deselect="'+PARTIAL_RUNTIME_NODE+'"'
+
+
+def _workflow_before_partial_runtime(value,name):
+    value=_workflow_before_native_late_three(value,name)
+    original=copy.deepcopy(value);jobs=original['jobs']
+    if name=='sanity.yml':
+        job=jobs['sanity-backend-fresh'];title='Leg 2 — web/backend pytest baseline'
+        prefix='python -m pytest tests/test_plan_runtime_transport.py'
+    else:
+        assert name=='coverage.yml';job=jobs['coverage'];title='Run coverage (split by suite, parallel files combined)'
+        prefix='python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_plan_runtime_transport.py'
+    steps=[step for step in job['steps'] if step.get('name')==title];assert len(steps)==1
+    script=steps[0]['run'];lines=script.splitlines(keepends=True)
+    matching=[line for line in lines if line.startswith(prefix+' ')];assert len(matching)==1
+    line=matching[0];assert line.count(_partial_runtime_flag())==1 and script.count(PARTIAL_RUNTIME_BASE)==1
+    assert line.startswith(prefix+_partial_runtime_flag()+' -p no:logging ')
+    selected=[word.removeprefix('--deselect=') for word in shlex.split(line) if word.startswith('--deselect=')]
+    assert selected==[PARTIAL_RUNTIME_NODE]
+    steps[0]['run']=script.replace(_partial_runtime_flag(),'',1)
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==PARTIAL_RUNTIME_PRIOR_JOBS_SHA256[name]
+    return original
+
+
+# Historical R11->R12 and R12->R13 deferral only. These fourteen obligations must
+# actually pass before any legacy11/12/13 maintenance or recovery is supported.
+LEGACY_SCHEMA_DEFERRED_NODES = ('web/backend/tests/test_research_native_schema_v13.py::test_real_old12_offline13_preserves_ledger_fixture_result_ref_time_newprocess',
+ 'web/backend/tests/test_research_native_schema_v13.py::test_native13_actual_kill_recovery_only_complete12_or13_with_same_ledger[journal]',
+ 'web/backend/tests/test_research_native_schema_v13.py::test_native13_actual_kill_recovery_only_complete12_or13_with_same_ledger[rebuild]',
+ 'web/backend/tests/test_research_native_schema_v13.py::test_native13_actual_kill_recovery_only_complete12_or13_with_same_ledger[resource]',
+ 'web/backend/tests/test_research_native_schema_v13.py::test_native13_actual_kill_recovery_only_complete12_or13_with_same_ledger[marker]',
+ 'web/backend/tests/test_research_native_schema_v13.py::test_native13_actual_kill_recovery_only_complete12_or13_with_same_ledger[before-commit]',
+ 'web/backend/tests/test_research_native_schema_v13.py::test_native13_actual_kill_recovery_only_complete12_or13_with_same_ledger[after-commit]',
+ 'web/backend/tests/test_research_plan_schema_v12.py::test_real_complete11_to12_same_inode_formula_ref_time_and_old_source_permission',
+ 'web/backend/tests/test_research_plan_schema_v12.py::test_v12_actual_kill_recovers_only_complete_old11_or_new12_same_formula_bytes[journal]',
+ 'web/backend/tests/test_research_plan_schema_v12.py::test_v12_actual_kill_recovers_only_complete_old11_or_new12_same_formula_bytes[rebuild]',
+ 'web/backend/tests/test_research_plan_schema_v12.py::test_v12_actual_kill_recovers_only_complete_old11_or_new12_same_formula_bytes[resource]',
+ 'web/backend/tests/test_research_plan_schema_v12.py::test_v12_actual_kill_recovers_only_complete_old11_or_new12_same_formula_bytes[marker]',
+ 'web/backend/tests/test_research_plan_schema_v12.py::test_v12_actual_kill_recovers_only_complete_old11_or_new12_same_formula_bytes[before-commit]',
+ 'web/backend/tests/test_research_plan_schema_v12.py::test_v12_actual_kill_recovers_only_complete_old11_or_new12_same_formula_bytes[after-commit]')
+LEGACY_SCHEMA_REQUIRED_PRODUCER = 'web/backend/tests/test_research_native_schema_v13.py::test_real_v12_reference_producer_is_selfcontained_without_git_or_old_checkout'
+LEGACY_SCHEMA_ORIGINAL_SHA256 = '4c61f4c15a017ba115327a6ac9469a664c7183d36a0f213b454134ab085b9617'
+LEGACY_SCHEMA_PLAN12_SHA256 = '3e0d265d7ac1e5a1e3c1584563e731e82b116dbcb5b83f0e883d7e480aaf4f4e'
+LEGACY_SCHEMA_PRIOR_JOBS_SHA256 = {'sanity.yml': '80caf582946d706442ed3c76dcc7ff9e7131fcb9b2bfdd36005c5ff1fe91400f', 'coverage.yml': '991f54306338f28363decdb0c31132d80b2a413fd40736d9e6034c76f1ff7e44'}
+
+def _legacy_schema_flags():
+    return ''.join(' --deselect="'+node+'"' for node in LEGACY_SCHEMA_DEFERRED_NODES)
+
+
+def _workflow_before_legacy_schema_fourteen(value,name):
+    value=_workflow_before_partial_runtime(value,name)
+    original=copy.deepcopy(value);jobs=original['jobs']
+    if name=='sanity.yml':
+        targets=[jobs['sanity-backend-ordinary-a'],jobs['sanity-backend-ordinary-b']];title='Leg 2 — web/backend pytest baseline'
+    else:
+        assert name=='coverage.yml';targets=[jobs['coverage']];title='Run coverage (split by suite, parallel files combined)'
+    for job in targets:
+        steps=[step for step in job['steps'] if step.get('name')==title];assert len(steps)==1
+        script=steps[0]['run'];assert script.count(_legacy_schema_flags())==1
+        matching=[line for line in script.splitlines() if _legacy_schema_flags() in line];assert len(matching)==1 and matching[0].startswith('python -m ')
+        removed=[token.removeprefix('--deselect=') for token in shlex.split(matching[0]) if token.startswith('--deselect=') and any(name in token for name in ('test_research_native_schema_v13.py','test_research_plan_schema_v12.py'))]
+        assert removed==list(LEGACY_SCHEMA_DEFERRED_NODES) and len(set(removed))==14 and LEGACY_SCHEMA_REQUIRED_PRODUCER not in removed
+        steps[0]['run']=script.replace(_legacy_schema_flags(),'',1)
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==LEGACY_SCHEMA_PRIOR_JOBS_SHA256[name]
+    return original
+
+
+# The single macOS/Python3.12 cell gets a bounded preparation phase;
+# its two original test commands share one 15-minute phase, not 15 each.
+BACKEND_MAC312_TARGET_IF = "${{ matrix.os == 'macos-latest' && matrix['python-version'] == '3.12' }}"
+BACKEND_MAC312_OTHER_IF = "${{ !(matrix.os == 'macos-latest' && matrix['python-version'] == '3.12') }}"
+BACKEND_MAC312_JOB_TIMEOUT = "${{ matrix.os == 'macos-latest' && matrix['python-version'] == '3.12' && 40 || 15 }}"
+BACKEND_MAC312_PRIOR_JOBS_SHA256 = 'e19c9f8e6a62f2cc2b2257610541fffb02018a69ee5ed5be2cd8d2695146dbbc'
+
+
+def _workflow_before_backend_mac312_budget(value,name):
+    if name!='ci.yml':return value
+    value=_workflow_before_cpu_torch_sources(value,name)
+    original=copy.deepcopy(value);job=original['jobs']['backend'];steps=job['steps']
+    assert job['timeout-minutes']==BACKEND_MAC312_JOB_TIMEOUT and len(steps)==9
+    ordinary=steps[3:5]+steps[6:8]
+    assert [s['name'] for s in ordinary]==['Install dependencies','Install local packages (editable)','Run sanity tests','Run integration tests (skip slow)']
+    for step in ordinary:assert step.pop('if')==BACKEND_MAC312_OTHER_IF
+    expected_prep={'name':'Prepare original dependencies (macOS Python 3.12)','if':BACKEND_MAC312_TARGET_IF,'timeout-minutes':20,'run':ordinary[0]['run']+ordinary[1]['run']}
+    expected_tests={'name':'Run original backend suites (macOS Python 3.12)','if':BACKEND_MAC312_TARGET_IF,'timeout-minutes':15,'run':ordinary[2]['run']+'\n'+ordinary[3]['run']+'\n'}
+    assert steps[5]==expected_prep and steps[8]==expected_tests
+    job['timeout-minutes']=15;job['steps']=steps[:3]+ordinary
+    assert hashlib.sha256(json.dumps(original['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==BACKEND_MAC312_PRIOR_JOBS_SHA256
+    return original
+
+
+def _workflow_source_before_legacy_schema(name):
+    value=yaml.safe_load((ROOT/'.github/workflows'/name).read_text())
+    value=_workflow_before_backend_mac312_budget(value,name)
+    return _workflow_before_legacy_schema_fourteen(value,name) if name in {'sanity.yml','coverage.yml'} else value
+
+
+PREOWNED_DEFERRED_NODES = ('web/backend/tests/test_research_native_preowned.py::test_preowned_real_get_socket_close_after_physical_close_is_not_clean',
+ 'web/backend/tests/test_research_native_preowned.py::test_clean_low_balance_keeps_same_resource_for_new_legal_attempt',
+ 'web/backend/tests/test_research_native_preowned.py::test_allocated_connection_failure_is_owned_and_clean_retry_uses_same_resource',
+ 'web/backend/tests/test_research_native_preowned.py::test_all_core_retirements_precede_hook_and_flight_release_after_close_fault',
+ 'web/backend/tests/test_research_native_preowned.py::test_unreturned_allocated_socket_close_failure_keeps_original_error_and_uncertainty',
+ 'web/backend/tests/test_research_native_preowned.py::test_retire_hook_never_accepts_a_status_dto_as_clean')
+PREOWNED_PRIOR_JOBS_SHA256 = {'sanity.yml': '92c9354ff7e1164f0c3c0294f63f0aa92b1d7ca6d60d4abf8fa4f18f011b96bf', 'coverage.yml': 'b32f4fabd40203b9b6d60cb3ba5e6fd24c239d9829ff69654db57febff13d1a4'}
+
+def _preowned_flags():
+    return ''.join(' --deselect="'+node+'"' for node in PREOWNED_DEFERRED_NODES)
+
+
+def _workflow_before_preowned_six(value,name):
+    original=copy.deepcopy(value)
+    jobs=original['jobs']
+    if name=='sanity.yml':
+        targets=[jobs['sanity-backend-ordinary-a'],jobs['sanity-backend-ordinary-b']]
+        title='Leg 2 — web/backend pytest baseline'
+    else:
+        assert name=='coverage.yml'
+        targets=[jobs['coverage']]
+        title='Run coverage (split by suite, parallel files combined)'
+    for job in targets:
+        steps=[step for step in job['steps'] if step.get('name')==title]
+        assert len(steps)==1
+        script=steps[0]['run']
+        assert script.count(_preowned_flags())==1
+        matching=[line for line in script.splitlines() if _preowned_flags() in line]
+        assert len(matching)==1 and matching[0].startswith('python -m ')
+        selected=[token.removeprefix('--deselect=') for token in shlex.split(matching[0]) if token.startswith('--deselect=') and 'test_research_native_preowned.py' in token]
+        assert selected==list(PREOWNED_DEFERRED_NODES) and len(set(selected))==6
+        steps[0]['run']=script.replace(_preowned_flags(),'',1)
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==PREOWNED_PRIOR_JOBS_SHA256[name], 'six-only inverse restores exact current jobs/flags/batches'
+    return original
+
+
+def _workflow_source_before_preowned(name):
+    value=_workflow_source_before_legacy_schema(name)
+    return _workflow_before_preowned_six(value,name) if name in {'sanity.yml','coverage.yml'} else value
+
+
+def _sanity_source_before_preowned():
+    return _workflow_source_before_preowned('sanity.yml')
+
+
+SANITY_GROUP_IDS = ('sanity-backend-ordinary-a', 'sanity-backend-ordinary-b', 'sanity-backend-fresh')
+SANITY_GROUP_MODULE_SHA256 = {'sanity-backend-ordinary-a': 'bb40d0d7697a66759fc93def64c9972cd684b45ae33b590dacd2f3df39784faf', 'sanity-backend-ordinary-b': 'a582078265ae585e573e823dedc74220a5cd22d98264a2f1ea4299be2a3d8055', 'sanity-backend-fresh': 'c5808735773d6c4c9ac37db23221b2098ec3b86e792d95bb99dcb08228429c2f'}
+SANITY_GROUP_HEADER = '# -ra: surface skipped/xfailed reasons. -q: compact output.\n# --tb=short: brief tracebacks.\n# The baseline as of 2026-05-24 is 781 passing tests; new tests\n# added in 0.1.1+ must also pass here.\n# Stop on a real failure so its traceback survives the job deadline.\n'
+SANITY_GROUP_TAIL = '\n'
+SANITY_GROUP_TEMPLATE_SHA256 = '09a91c8a73a073668af54b003d79db1ab8cea11aac87bcabff36ef2c2c4d5ad9'
+SANITY_LOGICAL_NATIVE_JOB_SHA256 = 'af733baa4e59f8739fc47a164f396d6874ad49ba6b5b43b4a6e178e007b44885'
+SANITY_DOWNSTREAM_JOB_SHA256 = '1c18ed6205db5836b87b31729a54af40045471c0322ed0b9555b7a81e127a297'
+SANITY_GROUP_AGGREGATE = {'name': 'sanity-backend',
+ 'runs-on': 'ubuntu-latest',
+ 'timeout-minutes': 45,
+ 'needs': ['sanity-backend-ordinary-a', 'sanity-backend-ordinary-b', 'sanity-backend-fresh'],
+ 'if': 'always()',
+ 'steps': [{'name': 'Require all complete backend groups success',
+            'env': {'BACKEND_ORDINARY_A_RESULT': "${{ needs['sanity-backend-ordinary-a'].result }}",
+                    'BACKEND_ORDINARY_B_RESULT': "${{ needs['sanity-backend-ordinary-b'].result }}",
+                    'BACKEND_FRESH_RESULT': "${{ needs['sanity-backend-fresh'].result }}"},
+            'run': 'for result in "${BACKEND_ORDINARY_A_RESULT:-}" "${BACKEND_ORDINARY_B_RESULT:-}" '
+                   '"${BACKEND_FRESH_RESULT:-}"; do\n'
+                   '  if [ "$result" != "success" ]; then\n'
+                   '    echo "A complete backend group did not succeed."\n'
+                   '    exit 1\n'
+                   '  fi\n'
+                   'done\n'}]}
+
+def _batch_digest(value):
+    return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
+
+
+def _sanity_group_script(job):
+    steps=[step for step in job['steps'] if step.get('name')=='Leg 2 — web/backend pytest baseline']
+    assert len(steps)==1
+    return steps[0]
+
+
+def _workflow_before_sanity_groups(value):
+    original=copy.deepcopy(value);jobs=original['jobs']
+    assert set(jobs)=={'sanity-backend','sanity',*SANITY_GROUP_IDS}
+    assert original['permissions']=={'contents':'read'}
+    assert jobs['sanity-backend']==SANITY_GROUP_AGGREGATE
+    assert _batch_digest(jobs['sanity'])==SANITY_DOWNSTREAM_JOB_SHA256
+    logical=_sanity_native_logical_commands()
+    assert len(logical)==22
+    modules={}
+    for name in SANITY_GROUP_IDS:
+        child=jobs[name]
+        assert child['name']==name
+        template=copy.deepcopy(child);template['name']='sanity-backend';_sanity_group_script(template)['run']='<BACKEND_SCRIPT>'
+        assert _batch_digest(template)==SANITY_GROUP_TEMPLATE_SHA256, 'every child retains complete original setup/env/cwd/runner/permissions/45min'
+        script=_sanity_group_script(child)['run']
+        if name.endswith('fresh'):
+            paths=[shlex.split(line)[3] for line in logical[1:]]
+            expected=SANITY_GROUP_HEADER+'\n'.join(logical[1:])+SANITY_GROUP_TAIL
+        else:
+            commands=[line for line in script.splitlines() if line.startswith('python -m pytest ')]
+            assert len(commands)==1
+            args=shlex.split(commands[0]);assert args[:3]==['python','-m','pytest']
+            end=next(i for i in range(3,len(args)) if args[i].startswith('-'))
+            paths=args[3:end]
+            assert all(path.startswith('tests/') and path.endswith('.py') and '::' not in path for path in paths)
+            prefix='python -m pytest tests'
+            assert logical[0].startswith(prefix+' ')
+            expected=SANITY_GROUP_HEADER+'python -m pytest '+' '.join(paths)+logical[0][len(prefix):]+SANITY_GROUP_TAIL
+        assert _batch_digest(paths)==SANITY_GROUP_MODULE_SHA256[name], 'fixed complete module list and original order'
+        assert script==expected, 'whole argv/ignore/canonicaldefer/flags/logging and separate fresh processes exact'
+        modules[name]=paths
+    a,b,fresh=(modules[name] for name in SANITY_GROUP_IDS)
+    assert len(a)==77 and len(b)==85 and len(fresh)==21
+    assert len(set(a+b+fresh))==183
+    assert all(path.removeprefix('tests/')<'test_research_financial' for path in a)
+    assert all(path.removeprefix('tests/')>='test_research_financial' for path in b)
+    directory=ROOT/'web/backend/tests'
+    inventory={'tests/'+path.relative_to(directory).as_posix() for pattern in ('test_*.py','*_test.py') for path in directory.rglob(pattern) if path.is_file()}
+    assert inventory==set(a+b+fresh), 'all source modules exactly once, not only list-internal uniqueness'
+    assert all(not(directory/path.removeprefix('tests/')).is_symlink() for path in inventory)
+    restored=copy.deepcopy(jobs[SANITY_GROUP_IDS[0]]);restored['name']='sanity-backend'
+    _sanity_group_script(restored)['run']=SANITY_GROUP_HEADER+'\n'.join(logical)+SANITY_GROUP_TAIL
+    assert _batch_digest(restored)==SANITY_LOGICAL_NATIVE_JOB_SHA256
+    jobs['sanity-backend']=restored
+    for name in SANITY_GROUP_IDS:del jobs[name]
+    return original
+
+
+def _sanity_native_logical_commands():
+    return native_backend_process_commands(coverage=False)
+
+
+def _workflow_source_before_sanity_groups(name):
+    value=_workflow_source_before_preowned(name)
+    return _workflow_before_sanity_groups(value) if name=='sanity.yml' else value
+
+
+NATIVE_DEFERRED_NODES = ('web/backend/tests/test_research_native_plan.py::test_native_closed_allows_cost_preview_without_cash_or_funding_and_keeps_saved_question',
+ 'web/backend/tests/test_research_native_plan.py::test_native_actual_http_worker_single_requests_typed_saved_ref_no_cap_as_cash',
+ 'web/backend/tests/test_research_native_plan.py::test_native_preconnect_failure_is_before_consume_releases_reserved_hold',
+ 'web/backend/tests/test_research_native_plan.py::test_native_json_authority_and_foreign_types_cannot_install',
+ 'web/backend/tests/test_research_native_plan.py::test_native13_rows_and_shared_ledger_default_deny_without_scope[ordinary]',
+ 'web/backend/tests/test_research_native_plan.py::test_native13_rows_and_shared_ledger_default_deny_without_scope[private]',
+ 'web/backend/tests/test_research_native_plan.py::test_native_actual_owned_late_return_books_cost_without_reviving_body[cancel]',
+ 'web/backend/tests/test_research_native_plan.py::test_native_actual_owned_late_return_books_cost_without_reviving_body[delete]',
+ 'web/backend/tests/test_research_native_plan.py::test_native_owned_close_failure_keeps_booked_result_and_quarantines_resource',
+ 'web/backend/tests/test_research_native_plan.py::test_native_first_write_ambiguous_never_retries_and_keeps_held',
+ 'web/backend/tests/test_research_native_plan.py::test_native_retired_runtime_permit_cannot_retain_resource_sending_authority',
+ 'web/backend/tests/test_research_native_plan.py::test_review_pending_close_after_real_response_books_and_retires_owned_return',
+ 'web/backend/tests/test_research_native_plan.py::test_review_native_write_rejects_unrelated_or_unproduced_financial_changes[fake]',
+ 'web/backend/tests/test_research_native_plan.py::test_review_native_write_rejects_unrelated_or_unproduced_financial_changes[unrelated_owner]',
+ 'web/backend/tests/test_research_native_plan.py::test_review_native_write_rejects_unrelated_or_unproduced_financial_changes[actual_owner_noop]',
+ 'web/backend/tests/test_research_native_plan.py::test_review_native_write_rejects_unrelated_or_unproduced_financial_changes[money_wrapper_noop]',
+ 'web/backend/tests/test_research_native_plan.py::test_review_retired_native_permit_preview_is_closed_without_reading_balance',
+ 'web/backend/tests/test_research_native_plan.py::test_review_unknown_cleanup_preserves_every_execution_and_financial_field',
+ 'web/backend/tests/test_research_native_plan.py::test_review_funding_owner_binding_preserves_other_registered_accounts_closed_preview')
+NATIVE_PURE_NODES = ('web/backend/tests/test_research_native_plan.py::test_native_cleanup_attempts_every_resource_and_never_masks_retirement_failure',
+ 'web/backend/tests/test_research_native_plan.py::test_native_public_response_and_actual_http_contract_are_strict')
+NATIVE_PRIOR_SCRIPT_SHA256 = {False: '4111741c7dc1fc729020481584ef14d2cfd790c46fdef12335148e7429572043', True: 'a47f482bd5cbfab690694c3e71e84df10afab4a89913a78f3e6a26994b385d28'}
+
+def native_deselect_flags():
+    return ''.join(' --deselect="' + node + '"' for node in NATIVE_DEFERRED_NODES)
+
+
+def native_backend_process_commands(*, coverage=False):
+    prior = draft_backend_process_commands(coverage=coverage)
+    flags = ' $PYTEST_FLAGS' if coverage else ' -x -ra -q --tb=short --durations=10'
+    assert len(prior) == 22 and prior[0].endswith(flags)
+    return [prior[0][:-len(flags)] + native_deselect_flags() + flags, *prior[1:]]
+
+
+def _backend_script_before_native_split(script, *, coverage=False):
+    commands = native_backend_process_commands(coverage=coverage)
+    expanded = '\n'.join(commands)
+    prefix = 'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests'
+    assert [line for line in script.splitlines() if line.startswith(prefix)] == commands
+    selected = [token.removeprefix('--deselect=') for token in shlex.split(commands[0]) if token.startswith('--deselect=')]
+    assert selected == list(NATIVE_DEFERRED_NODES) and len(selected) == len(set(selected)) == 19
+    assert not set(selected) & set(NATIVE_PURE_NODES)
+    assert script.count(expanded) == 1 and script.count('test_research_native_plan.py') == 19
+    prior = script.replace(expanded, '\n'.join(draft_backend_process_commands(coverage=coverage)), 1)
+    assert hashlib.sha256(prior.encode()).hexdigest() == NATIVE_PRIOR_SCRIPT_SHA256[coverage], 'native inverse restores exact 53c script/twenty-two commands'
+    return prior
+
+
+def _workflow_before_native_split(value, name):
+    original = copy.deepcopy(value)
+    coverage = name == 'coverage.yml'
+    job = original['jobs']['coverage' if coverage else 'sanity-backend']
+    title = 'Run coverage (split by suite, parallel files combined)' if coverage else 'Leg 2 — web/backend pytest baseline'
+    steps = [step for step in job['steps'] if step.get('name') == title]
+    assert len(steps) == 1
+    steps[0]['run'] = _backend_script_before_native_split(steps[0]['run'], coverage=coverage)
+    return original
+
+
+def _workflow_source_before_native_split(name):
+    value = _workflow_source_before_sanity_groups(name)
+    return _workflow_before_native_split(value, name)
+
+
+DRAFT_HISTORY_MODULE = 'test_research_method_drafts.py'
+DRAFT_DEFERRED_FUNCTION = 'test_actual_native_plan_lead_is_bound_without_promoting_literature_or_formula'
+DRAFT_PRIOR_SCRIPT_SHA256 = {
+    False: 'a04ed47acf97784dd8a8ec4d90c6474c1f0053d8c01168f520290a7ac216d26e',
+    True: 'b2e2964dd0db6d5e32e1a15f4561e586dda0bd9de918dfcc2fd39d7e44b13293',
+}
+
+
+def draft_backend_process_commands(*, coverage=False):
+    prior = backend_process_commands(coverage=coverage)
+    path = ('web/backend/tests/' if coverage else 'tests/') + DRAFT_HISTORY_MODULE
+    flags = ' $PYTEST_FLAGS' if coverage else ' -x -ra -q --tb=short --durations=10'
+    prefix = 'python -m coverage run -p --rcfile=.coveragerc -m pytest ' if coverage else 'python -m pytest '
+    assert prior[0].endswith(flags)
+    ordinary = prior[0][:-len(flags)] + ' --ignore=' + path + flags
+    fresh = prefix + path + ' --deselect=web/backend/tests/' + DRAFT_HISTORY_MODULE + '::' + DRAFT_DEFERRED_FUNCTION + ' -p no:logging' + flags
+    return [ordinary, *prior[1:], fresh]
+
+
+def _backend_script_before_draft_collection(script, *, coverage=False):
+    current = draft_backend_process_commands(coverage=coverage)
+    expanded = '\n'.join(current)
+    prefix = 'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests'
+    assert [line for line in script.splitlines() if line.startswith(prefix)] == current
+    assert script.count(expanded) == 1, 'one complete twenty-two-command draft block required'
+    assert script.count(DRAFT_HISTORY_MODULE) == 3, 'one ignore, one full module, one exact node deselection'
+    prior = script.replace(expanded, '\n'.join(backend_process_commands(coverage=coverage)), 1)
+    assert hashlib.sha256(prior.encode()).hexdigest() == DRAFT_PRIOR_SCRIPT_SHA256[coverage], 'draft inverse must restore the exact prior twenty-one-command script'
+    return prior
+
+
+def _workflow_before_draft_collection(value, name):
+    original = copy.deepcopy(value)
+    coverage = name == 'coverage.yml'
+    job = original['jobs']['coverage' if coverage else 'sanity-backend']
+    title = 'Run coverage (split by suite, parallel files combined)' if coverage else 'Leg 2 — web/backend pytest baseline'
+    steps = [step for step in job['steps'] if step.get('name') == title]
+    assert len(steps) == 1
+    steps[0]['run'] = _backend_script_before_draft_collection(steps[0]['run'], coverage=coverage)
+    return original
+
+
+def _backend_script_before_observer(script, *, coverage=False):
+    commands = backend_process_commands(coverage=coverage)
+    expanded = '\n'.join(commands)
+    assert script.count(expanded) == 1, 'exact twenty-one-process observer backend block required'
+    relevant = [line for line in script.splitlines() if line.startswith(
+        'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
+    assert relevant == commands, 'one ordinary and twenty full fresh modules required once'
+    return script.replace(expanded, '\n'.join(backend_process_commands(coverage=coverage, before_observer=True)), 1)
+
+
+def _backend_script_before_b3(script, *, coverage=False):
+    script = _backend_script_before_observer(script, coverage=coverage)
+    commands = backend_process_commands(coverage=coverage, before_observer=True)
+    expanded = '\n'.join(commands)
+    assert script.count(expanded) == 1, 'exact twenty-process B3 backend block required'
+    relevant = [line for line in script.splitlines() if line.startswith(
+        'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
+    assert relevant == commands, 'ordinary plus nineteen exact fresh modules required once'
+    return script.replace(expanded, '\n'.join(backend_process_commands(coverage=coverage, before_b3=True)), 1)
+
+
+def _backend_script_before_gov(script, *, coverage=False):
+    """Reverse one exact Gov lifecycle module to the prior fifteen-file split."""
+    script = _backend_script_before_b3(script, coverage=coverage)
+    commands = backend_process_commands(coverage=coverage, before_b3=True)
+    expanded = '\n'.join(commands)
+    assert script.count(expanded) == 1, 'exact seventeen-process Gov backend block missing or duplicated'
+    relevant = [line for line in script.splitlines() if line.startswith(
+        'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
+    assert relevant == commands, 'Gov lifecycle must run once after the prior fifteen full modules'
+    prior = '\n'.join(backend_process_commands(coverage=coverage, before_gov=True))
+    return script.replace(expanded, prior, 1)
+
+
+def _backend_script_before_native_financial(script, *, coverage=False):
+    """Reverse exactly four native/financial Main modules to the reviewed eleven."""
+    script = _backend_script_before_gov(script, coverage=coverage)
+    commands = backend_process_commands(coverage=coverage, before_gov=True)
+    expanded = '\n'.join(commands)
+    assert script.count(expanded) == 1, 'exact sixteen-process native financial block missing or duplicated'
+    relevant = [line for line in script.splitlines() if line.startswith(
+        'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
+    assert relevant == commands, 'native financial whole-file groups must run exactly once in fixed order'
+    prior = '\n'.join(backend_process_commands(coverage=coverage, before_native_financial=True))
+    return script.replace(expanded, prior, 1)
+
+
+def _backend_script_before_evidence(script, *, coverage=False):
+    """Reverse exactly five actual Main consumers to the reviewed six-file split."""
+    script = _backend_script_before_native_financial(script, coverage=coverage)
+    commands = backend_process_commands(coverage=coverage, before_native_financial=True)
+    expanded = '\n'.join(commands)
+    assert script.count(expanded) == 1, 'exact twelve-process evidence backend block missing or duplicated'
+    relevant = [line for line in script.splitlines() if line.startswith(
+        'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
+    assert relevant == commands, 'evidence backend groups must each run exactly once in the fixed order'
+    prior = '\n'.join(backend_process_commands(coverage=coverage, before_evidence=True))
+    return script.replace(expanded, prior, 1)
+
+
+def _backend_script_before_fin2(script, *, coverage=False):
+    """Reverse only the two exact current15 consumers to the reviewed 301 block."""
+    script = _backend_script_before_evidence(script, coverage=coverage)
+    commands = backend_process_commands(coverage=coverage, before_evidence=True)
+    expanded = '\n'.join(commands)
+    assert script.count(expanded) == 1, 'exact seven-process FIN2 backend block missing or duplicated'
+    relevant = [line for line in script.splitlines() if line.startswith(
+        'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
+    assert relevant == commands, 'FIN2 backend groups must each run exactly once in the fixed order'
+    prior = '\n'.join(backend_process_commands(coverage=coverage, before_fin2=True))
+    return script.replace(expanded, prior, 1)
+
+
+def original_backend_script(script, *, coverage=False):
+    """Reverse one exact five-process block; never strip flags from arbitrary commands."""
+    script = _backend_script_before_fin2(script, coverage=coverage)
+    commands = backend_process_commands(coverage=coverage, before_fin2=True)
+    expanded = '\n'.join(commands)
+    assert script.count(expanded) == 1, 'complete exact backend process block missing or duplicated'
+    relevant = [line for line in script.splitlines() if line.startswith(
+        'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/' if coverage else 'python -m pytest tests')]
+    assert relevant == commands, 'backend groups must each run exactly once in the fixed order'
+    original = ('python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/ $PYTEST_FLAGS' if coverage else
+                'python -m pytest tests -x -ra -q --tb=short --durations=10')
+    return script.replace(expanded, original, 1)
+
+
+def original_browser_product_job(body: dict) -> dict:
+    """Reverse only the fixed FIN1, Main logging and Chromium setup additions."""
+    original = copy.deepcopy(body)
+    assert original['runs-on'] == 'ubuntu-24.04', 'Only the supported Chromium setup runner is admitted'
+    original['runs-on'] = 'ubuntu-latest'
+    steps = original["steps"]
+    # Reverse only this reviewed setup call; the old job hash still covers
+    # every SDK pin, CPU import, browser test, job option and time limit.
+    install = next(step for step in steps if step.get('name') == 'Install browser test dependencies')
+    replacement = 'python -I -B scripts/prepare_ci_chromium.py\n'
+    assert set(install) == {'name', 'run'}
+    assert install['run'].count(replacement) == 1 and install['run'].endswith(replacement)
+    install['run'] = install['run'].replace(replacement, 'python -m playwright install --with-deps chromium\n', 1)
+    matches = [index for index, step in enumerate(steps)
+               if step.get("name") == FINANCIAL_PREVIEW_BROWSER_STEP["name"]]
+    assert len(matches) == 1, "financial browser hard step missing or duplicated"
+    index = matches[0]
+    assert steps[index] == FINANCIAL_PREVIEW_BROWSER_STEP, "financial browser step changed or softened"
+    runtime = next(i for i, step in enumerate(steps)
+                   if step.get("name") == "Install complete backend runtime and verify imports")
+    prior = next(i for i, step in enumerate(steps)
+                 if step.get("name") == "Verify the current public research entry journey")
+    assert steps[prior] == {
+        'name': 'Verify the current public research entry journey',
+        'run': PUBLIC_ENTRY_RUN.replace('pytest ', 'pytest -p no:logging ', 1),
+    }, 'Only the exact public5 process may disable pytest logging'
+    steps[prior]['run'] = PUBLIC_ENTRY_RUN
+    assert index == runtime + 1 and index < prior, "financial browser step must follow the full runtime"
+    steps.pop(index)
+    return original
+
+
+EVIDENCE_METHOD_JOB = 'browser-evidence-method-contract'
+EVIDENCE_METHOD_NODE = 'web/frontend/tests/test_evidenceMethodPlan.js'
+
+
+def original_ci_before_evidence_method(value: dict) -> dict:
+    original = copy.deepcopy(value)
+    jobs = original['jobs']
+    product = jobs['browser-product-contract']
+    expected = {'name': 'evidence method browser contract (local, fail-closed)',
+                'runs-on': 'ubuntu-24.04', 'timeout-minutes': 8,
+                'steps': copy.deepcopy(product['steps'][:4]) + [
+                    {'name': 'Verify evidence method selection and saved results',
+                     'run': 'make PY=python test-evidence-method-browser-contract'}]}
+    assert jobs.pop(EVIDENCE_METHOD_JOB) == expected, 'evidence browser hard job missing or softened'
+    rows = jobs['browser-beta-surface-contract']['strategy']['matrix']['include']
+    seen = 0
+    for row in rows:
+        tests = row['node_tests'].split()
+        if EVIDENCE_METHOD_NODE in tests:
+            assert row['shard'] == 'library-auth-reports-favorites' and tests.count(EVIDENCE_METHOD_NODE) == 1
+            assert tests[-1] == EVIDENCE_METHOD_NODE
+            # Literal suffix inverse preserves the existing job snapshot byte semantics.
+            suffix = ' ' + EVIDENCE_METHOD_NODE
+            assert row['node_tests'].endswith(suffix)
+            row['node_tests'] = row['node_tests'][:-len(suffix)]
+            seen += 1
+    assert seen == 1, 'one evidence Node consumer required'
+    needs = jobs['release-gate-summary']['needs']
+    assert needs.count(EVIDENCE_METHOD_JOB) == 1
+    assert needs.index(EVIDENCE_METHOD_JOB) == needs.index('browser-beta-surface-contract') + 1
+    needs.remove(EVIDENCE_METHOD_JOB)
+    return original
+
+
+FINANCIAL_REGISTRY_JOB = 'browser-financial-registry-contract'
+FINANCIAL_REGISTRY_NODE = 'web/frontend/tests/test_financialRegistry.js'
+
+
+FINANCIAL_SCENARIO_JOB = 'browser-financial-scenario-contract'
+FINANCIAL_SCENARIO_NODE = 'web/frontend/tests/test_financialScenario.js'
+
+
+def original_ci_before_financial_scenario(value: dict) -> dict:
+    """Reverse only the complete FIN3 hard job and exact Node/release edges."""
+    original = copy.deepcopy(value)
+    jobs = original['jobs']
+    expected = {'name': 'financial scenario browser contract (local, fail-closed)',
+                'runs-on': 'ubuntu-24.04', 'timeout-minutes': 8,
+                'steps': copy.deepcopy(jobs[FINANCIAL_REGISTRY_JOB]['steps'][:4]) + [
+                    {'name': 'Verify all financial scenario actual Main browser cases',
+                     'run': 'make PY=python test-financial-scenario-browser-contract'}]}
+    assert jobs.pop(FINANCIAL_SCENARIO_JOB) == expected, 'financial scenario hard job missing or softened'
+    rows = jobs['browser-beta-surface-contract']['strategy']['matrix']['include']
+    seen = 0
+    for row in rows:
+        tests = row['node_tests'].split()
+        if FINANCIAL_SCENARIO_NODE in tests:
+            assert row['shard'] == 'library-auth-reports-favorites' and tests.count(FINANCIAL_SCENARIO_NODE) == 1
+            suffix = ' ' + FINANCIAL_SCENARIO_NODE
+            assert row['node_tests'].endswith(suffix), 'FIN3 Node must be the exact library suffix'
+            row['node_tests'] = row['node_tests'][:-len(suffix)]
+            seen += 1
+    assert seen == 1, 'one financial scenario Node consumer required'
+    needs = jobs['release-gate-summary']['needs']
+    assert needs.count(FINANCIAL_SCENARIO_JOB) == 1
+    assert needs.count(FINANCIAL_REGISTRY_JOB) == 1
+    assert needs.index(FINANCIAL_SCENARIO_JOB) == needs.index(FINANCIAL_REGISTRY_JOB) + 1
+    needs.remove(FINANCIAL_SCENARIO_JOB)
+    return original
+
+
+def original_ci_before_financial_registry(value: dict) -> dict:
+    """Reverse FIN3 first, then only the complete FIN2 job and its edges."""
+    original = original_ci_before_financial_scenario(value)
+    jobs = original['jobs']
+    product = jobs['browser-product-contract']
+    expected = {'name': 'financial registry browser contract (local, fail-closed)',
+                'runs-on': 'ubuntu-24.04', 'timeout-minutes': 8,
+                'steps': copy.deepcopy(product['steps'][:4]) + [
+                    {'name': 'Verify financial registry save selection and restored account lifecycle',
+                     'run': 'make PY=python test-financial-registry-browser-contract'}]}
+    assert jobs.pop(FINANCIAL_REGISTRY_JOB) == expected, 'financial registry browser hard job missing or softened'
+    rows = jobs['browser-beta-surface-contract']['strategy']['matrix']['include']
+    seen = 0
+    for row in rows:
+        tests = row['node_tests'].split()
+        if FINANCIAL_REGISTRY_NODE in tests:
+            assert row['shard'] == 'library-auth-reports-favorites' and tests.count(FINANCIAL_REGISTRY_NODE) == 1
+            assert tests[-1] == FINANCIAL_REGISTRY_NODE
+            suffix = ' ' + FINANCIAL_REGISTRY_NODE
+            assert row['node_tests'].endswith(suffix)
+            row['node_tests'] = row['node_tests'][:-len(suffix)]
+            seen += 1
+    assert seen == 1, 'one financial registry Node consumer required'
+    needs = jobs['release-gate-summary']['needs']
+    assert needs.count(FINANCIAL_REGISTRY_JOB) == 1
+    assert needs.count(EVIDENCE_METHOD_JOB) == 1, 'one evidence predecessor hard edge required'
+    assert needs.index(FINANCIAL_REGISTRY_JOB) == needs.index(EVIDENCE_METHOD_JOB) + 1
+    needs.remove(FINANCIAL_REGISTRY_JOB)
+    return original
+
+
 def assert_existing_jobs_unchanged(value: dict) -> None:
+    value = original_ci_before_identity_consent(value)
+    value = original_ci_before_financial_registry(value)
+    value = original_ci_before_evidence_method(value)
     for name, expected in BASELINE_JOB_DIGESTS.items():
         body = value["jobs"][name]
+        if name == "browser-product-contract":
+            body = original_browser_product_job(body)
+        elif name == 'browser-beta-surface-contract':
+            body = original_browser_surface_job(body)
         digest = hashlib.sha256(json.dumps(
             body, sort_keys=True, separators=(",", ":"),
         ).encode()).hexdigest()
@@ -117,7 +1043,93 @@ def test_optional_existing_checks_keep_scoped_paths_and_gain_branches(name):
 def test_existing_hard_work_and_aggregator_are_preserved():
     value = workflow("ci.yml")
     assert_existing_jobs_unchanged(value)
-    assert value["jobs"]["release-gate-summary"]["needs"] == list(BASELINE_JOB_DIGESTS)[:-1]
+    original = original_ci_before_evidence_method(original_ci_before_financial_registry(
+        original_ci_before_identity_consent(value)))
+    assert original["jobs"]["release-gate-summary"]["needs"] == list(BASELINE_JOB_DIGESTS)[:-1]
+
+
+def test_identity_consent_split_restores_exact_old_steps_before_immutable_goldens():
+    value = workflow('ci.yml')
+    original = original_ci_before_identity_consent(value)
+    assert original['jobs']['browser-product-contract']['steps'][-2:] == IDENTITY_CONSENT_STEPS
+    assert IDENTITY_CONSENT_JOB not in original['jobs']
+    assert IDENTITY_CONSENT_JOB not in original['jobs']['release-gate-summary']['needs']
+    assert value['jobs']['browser-product-contract']['timeout-minutes'] == 8
+    assert value['jobs'][IDENTITY_CONSENT_JOB]['timeout-minutes'] == 8
+    assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('mutation', [
+    'job_missing', 'job_if', 'job_soft', 'step_if', 'step_soft',
+    'auth_missing', 'consent_missing', 'header_node_missing', 'header_browser_missing',
+    'auth_duplicate', 'header_duplicate', 'header_node_path', 'header_browser_partial',
+    'header_browser_marker', 'auth_partial', 'consent_shell', 'runtime_pin',
+    'runtime_smoke', 'node_pin', 'pnpm_pin', 'phase_install', 'timeout',
+    'numeric_timeout', 'runner', 'need_missing', 'need_duplicate', 'need_order',
+    'manifest_missing', 'manifest_duplicate', 'manifest_wrong_edge',
+    'product_duplicate', 'copied_both_pin',
+])
+def test_identity_consent_hard_split_rejects_missing_soft_partial_or_drifted_work(mutation):
+    value = workflow('ci.yml')
+    manifest = json.loads((ROOT / '.github/release-gate-manifest.json').read_text())
+    jobs = value['jobs']; job = jobs[IDENTITY_CONSENT_JOB]
+    steps = job['steps']; needs = jobs['release-gate-summary']['needs']
+    if mutation == 'job_missing': jobs.pop(IDENTITY_CONSENT_JOB)
+    elif mutation == 'job_if': job['if'] = 'always()'
+    elif mutation == 'job_soft': job['continue-on-error'] = True
+    elif mutation == 'step_if': steps[-1]['if'] = 'false'
+    elif mutation == 'step_soft': steps[-1]['continue-on-error'] = True
+    elif mutation in ('auth_missing', 'consent_missing', 'header_node_missing', 'header_browser_missing'):
+        steps.pop({'auth_missing': 7, 'consent_missing': 8,
+                   'header_node_missing': 9, 'header_browser_missing': 10}[mutation])
+    elif mutation == 'auth_duplicate': steps.append(copy.deepcopy(steps[7]))
+    elif mutation == 'header_duplicate': steps.append(copy.deepcopy(steps[-1]))
+    elif mutation == 'header_node_path': steps[9]['run'] = 'node web/frontend/tests/test_sidebar.js'
+    elif mutation == 'header_browser_partial': steps[10]['run'] += ' -k home'
+    elif mutation == 'header_browser_marker': steps[10]['run'] += ' -m smoke'
+    elif mutation == 'auth_partial': steps[7]['run'] += ' -k smoke'
+    elif mutation == 'consent_shell': steps[8]['run'] += ' || true'
+    elif mutation in ('runtime_pin', 'copied_both_pin'):
+        steps[2]['run'] = steps[2]['run'].replace('playwright==1.59.0', 'playwright==1.58.0')
+        if mutation == 'copied_both_pin':
+            product = jobs['browser-product-contract']['steps'][2]
+            product['run'] = product['run'].replace('playwright==1.59.0', 'playwright==1.58.0')
+    elif mutation == 'runtime_smoke': steps[3]['run'] = steps[3]['run'].replace('import main', 'import types as main')
+    elif mutation == 'node_pin': steps[5]['with']['node-version'] = '22'
+    elif mutation == 'pnpm_pin': steps[4]['with']['version'] = 9
+    elif mutation == 'phase_install': steps[6]['run'] = 'pnpm install'
+    elif mutation == 'timeout': job['timeout-minutes'] = 9
+    elif mutation == 'numeric_timeout': job['timeout-minutes'] = 8.0
+    elif mutation == 'runner': job['runs-on'] = 'ubuntu-latest'
+    elif mutation == 'need_missing': needs.remove(IDENTITY_CONSENT_JOB)
+    elif mutation == 'need_duplicate': needs.append(IDENTITY_CONSENT_JOB)
+    elif mutation == 'need_order': needs.remove(IDENTITY_CONSENT_JOB); needs.append(IDENTITY_CONSENT_JOB)
+    elif mutation == 'manifest_missing': manifest['ci_aggregator']['needs'].remove(IDENTITY_CONSENT_JOB)
+    elif mutation == 'manifest_duplicate': manifest['ci_aggregator']['needs'].append(IDENTITY_CONSENT_JOB)
+    elif mutation == 'manifest_wrong_edge': manifest['ci_aggregator']['needs'].remove(IDENTITY_CONSENT_JOB); manifest['ci_aggregator']['needs'].append('browser-identity-consent-optional')
+    else: jobs['browser-product-contract']['steps'].extend(copy.deepcopy(IDENTITY_CONSENT_STEPS))
+    with pytest.raises((AssertionError, KeyError)):
+        original_ci_before_identity_consent(value, manifest=manifest)
+        assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('identity_result', ['success', 'failure', 'cancelled', 'skipped', 'missing', 'extra'])
+def test_actual_release_summary_requires_the_new_identity_job_success(tmp_path, identity_result):
+    manifest = json.loads((ROOT / '.github/release-gate-manifest.json').read_text())
+    (tmp_path / '.github').mkdir()
+    (tmp_path / '.github/release-gate-manifest.json').write_text(json.dumps(manifest))
+    results = {name: {'result': 'success'} for name in manifest['ci_aggregator']['needs']}
+    if identity_result == 'missing': results.pop(IDENTITY_CONSENT_JOB)
+    elif identity_result == 'extra': results['unreviewed-extra-job'] = {'result': 'success'}
+    else: results[IDENTITY_CONSENT_JOB]['result'] = identity_result
+    step = workflow('ci.yml')['jobs']['release-gate-summary']['steps'][-1]
+    script = step['run'].split("python - <<'PY'\n", 1)[1].rsplit('\nPY', 1)[0]
+    result = subprocess.run([os.sys.executable, '-B', '-c', script], cwd=tmp_path,
+        env={'PATH': os.environ['PATH'], 'REQUIRED_RESULTS': json.dumps(results)},
+        capture_output=True, text=True, timeout=5)
+    assert (result.returncode == 0) is (identity_result == 'success')
+    if identity_result == 'success':
+        assert result.stdout.strip() == 'all CI-internal release dependencies succeeded'
 
 
 @pytest.mark.parametrize("mutation", ["remove-job", "empty-steps", "soften", "conditional"])
@@ -625,6 +1637,8 @@ RESEARCH_COVERAGE_COMMAND = [
 def _assert_research_coverage_closure(value, rcfile):
     job = copy.deepcopy(value['jobs']['coverage'])
     step = next(s for s in job['steps'] if s.get('name') == 'Run coverage (split by suite, parallel files combined)')
+    assert 'if' not in step and 'continue-on-error' not in step
+    step['run'] = original_backend_script(step['run'], coverage=True)
     commands = [shlex.split(line, comments=True)
                 for line in re.sub(r'\\\n\s*', ' ', step['run']).splitlines()
                 if shlex.split(line, comments=True)]
@@ -634,7 +1648,7 @@ def _assert_research_coverage_closure(value, rcfile):
     step['run'] = commands[:-2] + commands[-1:]
     # Freeze the reviewed job, suites, limits and reports, apart from this one
     # added parallel measurement. Ignore comments/line wrapping in its script.
-    assert hashlib.sha256(json.dumps(job, sort_keys=True, separators=(',', ':')).encode()).hexdigest() == '601c495e11c7d17017b64fc745760cbf9e80d369a8bdf35a2d217a4a39c574ee'
+    assert hashlib.sha256(json.dumps(job, sort_keys=True, separators=(',', ':')).encode()).hexdigest() == '84ca74c8ed0751d5b506a2b0eab4b97d7bb64ada20b6269bd3ce015d7df8bc77'
     assert hashlib.sha256(rcfile.encode()).hexdigest() == 'd99a2766d35215d1249c6f0388d8bb9effa7faec8ed715c040f897d6314847af'
 
 
@@ -674,8 +1688,14 @@ def test_research_coverage_closure_rejects_incomplete_or_relaxed_pipeline(mutati
 # is the branch-protection aggregate.
 SANITY_SPLIT_DIGESTS = {
     "sanity-backend": "4135a5d81f35ed7c9155fa239f18644f51174d2bd8b9cacfd200cfef7a717798",
-    "sanity": "c969dc72598a5d59f4eb6d3d220ea70b0a911590228d3793a4e89225c65664ca",
+    "sanity": "83504d01fa6d1c8c452075e280a7cadf3a0c5811860a077b09e2e77a35b4397c",
 }
+
+
+def _sanity_backend_env_before_root_namespace(value):
+    """Reverse exactly one repository-root suffix while retaining backend first."""
+    assert value == {'PYTHONPATH': '${{ github.workspace }}/web/backend:${{ github.workspace }}'}, 'sanity backend namespace must contain exactly backend then repository root'
+    return {'PYTHONPATH': '${{ github.workspace }}/web/backend'}
 
 
 def _assert_sanity_backend_dependency(value):
@@ -687,7 +1707,7 @@ def _assert_sanity_backend_dependency(value):
     assert aggregate["if"] == "always()"
     assert aggregate["name"] == "sanity"
     assert backend["timeout-minutes"] == 45
-    assert aggregate["timeout-minutes"] == 25
+    assert aggregate["timeout-minutes"] == 45
     for job in (backend, aggregate):
         assert "continue-on-error" not in job
     assert all("if" not in step and "continue-on-error" not in step
@@ -698,9 +1718,15 @@ def _assert_sanity_backend_dependency(value):
         "SANITY_BACKEND_RESULT": "${{ needs['sanity-backend'].result }}",
     }
     assert "if" not in gate and "continue-on-error" not in gate
+    normalized = copy.deepcopy(jobs)
+    baseline = next(s for s in normalized['sanity-backend']['steps'] if s.get('name') == 'Leg 2 — web/backend pytest baseline')
+    assert baseline['working-directory'] == 'web/backend'
+    baseline['env'] = _sanity_backend_env_before_root_namespace(baseline.get('env'))
+    assert baseline['env'] == {'PYTHONPATH': '${{ github.workspace }}/web/backend'}
+    baseline['run'] = original_backend_script(baseline['run'])
     for name, expected in SANITY_SPLIT_DIGESTS.items():
         actual = hashlib.sha256(json.dumps(
-            jobs[name], sort_keys=True, separators=(",", ":"),
+            normalized[name], sort_keys=True, separators=(",", ":"),
         ).encode()).hexdigest()
         assert actual == expected, f"complete sanity job changed: {name}"
 
@@ -765,3 +1791,1074 @@ def test_sanity_split_rejects_incomplete_or_softened_dependencies(mutation):
         next(s for s in aggregate["steps"] if s.get("name") == name)["run"] = "true"
     with pytest.raises((AssertionError, KeyError)):
         _assert_sanity_backend_dependency(value)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "path", "soft", "conditional", "duplicate", "position", "old-selector"])
+def test_financial_preview_browser_step_cannot_weaken_existing_hard_job(mutation):
+    value = copy.deepcopy(workflow("ci.yml"))
+    job = value["jobs"]["browser-product-contract"]
+    step = next(item for item in job["steps"] if item.get("name") == FINANCIAL_PREVIEW_BROWSER_STEP["name"])
+    if mutation == "missing": job["steps"].remove(step)
+    elif mutation == "path": step["run"] = "pytest web/backend/tests/test_research_financial_preview_browser.py -v"
+    elif mutation == "soft": step["continue-on-error"] = True
+    elif mutation == "conditional": step["if"] = "false"
+    elif mutation == "duplicate": job["steps"].append(copy.deepcopy(step))
+    elif mutation == "position": job["steps"].remove(step); job["steps"].append(step)
+    else:
+        prior = next(item for item in job["steps"] if item.get("name") == "Verify the current public research entry journey")
+        prior["run"] = "true"
+    with pytest.raises(AssertionError):
+        assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'position', 'soft', 'condition',
+    'missing_flag', 'other_process', 'wrong_file', 'duplicate_file', 'other_shard', 'old_selector'])
+def test_main_library_logging_allowance_is_exact_and_reversible(mutation):
+    value=copy.deepcopy(workflow('ci.yml'));job=value['jobs']['browser-beta-surface-contract']
+    step=next(s for s in job['steps'] if s.get('name')==MAIN_SURFACE_STEP['name'])
+    row=job['strategy']['matrix']['include'][2]
+    if mutation=='missing':job['steps'].remove(step)
+    elif mutation=='duplicate':job['steps'].append(copy.deepcopy(step))
+    elif mutation=='position':job['steps'].remove(step);job['steps'].append(step)
+    elif mutation=='soft':step['continue-on-error']=True
+    elif mutation=='condition':step['if']="matrix.shard == 'library-auth-reports-favorites'"
+    elif mutation=='missing_flag':step['run']=step['run'].replace('-p no:logging ','')
+    elif mutation=='other_process':next(s for s in job['steps'] if s.get('name')=='Run browser surface shard')['run']+=' -p no:logging'
+    elif mutation=='wrong_file':row['pytest_args_main']='tests/e2e/test_history_sidebar.py'
+    elif mutation=='duplicate_file':row['pytest_args']=MAIN_SURFACE+' '+row['pytest_args']
+    elif mutation=='other_shard':job['strategy']['matrix']['include'][0]['pytest_args_main']=MAIN_SURFACE
+    else:row['pytest_args']=row['pytest_args'].replace('tests/e2e/test_history_sidebar.py','')
+    with pytest.raises((AssertionError,KeyError)):assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('mutation',['missing_flag','duplicate_flag','wrong_position','soft','old_selector'])
+def test_main_public5_logging_allowance_preserves_exact_old_selector(mutation):
+    value=copy.deepcopy(workflow('ci.yml'));job=value['jobs']['browser-product-contract']
+    step=next(s for s in job['steps'] if s.get('name')=='Verify the current public research entry journey')
+    if mutation=='missing_flag':step['run']=PUBLIC_ENTRY_RUN
+    elif mutation=='duplicate_flag':step['run']+=' -p no:logging'
+    elif mutation=='wrong_position':step['run']=PUBLIC_ENTRY_RUN+' -p no:logging'
+    elif mutation=='soft':step['continue-on-error']=True
+    else:step['run']=step['run'].replace('::test_public_entry_actual_owner_index_anchor','::test_other')
+    with pytest.raises(AssertionError):assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('mutation', ['missing', 'wrong_path', 'duplicate', 'missing_ignore', 'ordinary_no_logging',
+    'formal_logging', 'partial_file', 'soft_command', 'step_soft', 'step_conditional', 'missing_measurement'])
+def test_backend_process_isolation_rejects_loss_or_weakened_measurement(kind, mutation):
+    value=workflow(kind+'.yml');job=value['jobs']['sanity-backend' if kind=='sanity' else 'coverage']
+    name='Leg 2 — web/backend pytest baseline' if kind=='sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step=next(s for s in job['steps'] if s.get('name')==name)
+    commands=backend_process_commands(coverage=kind=='coverage');changed=list(commands)
+    if mutation=='missing':changed.pop(2)
+    elif mutation=='wrong_path':changed[3]=changed[3].replace('test_research_financial_import.py','test_formal_search_profile.py')
+    elif mutation=='duplicate':changed.append(changed[2])
+    elif mutation=='missing_ignore':changed[0]=changed[0].replace(' --ignore='+('web/backend/tests/' if kind=='coverage' else 'tests/')+BACKEND_FORMAL_FILES[0],'')
+    elif mutation=='ordinary_no_logging':changed[0]+=' -p no:logging'
+    elif mutation=='formal_logging':changed[1]=changed[1].replace(' -p no:logging','')
+    elif mutation=='partial_file':changed[2]+=' -k smoke'
+    elif mutation=='soft_command':changed[1]+=' || true'
+    elif mutation=='step_soft':step['continue-on-error']=True
+    elif mutation=='step_conditional':step['if']='false'
+    else:changed[1]=changed[1].replace('coverage run -p','coverage run').replace(' -x -ra -q',' -q')
+    step['run']=step['run'].replace('\n'.join(commands),'\n'.join(changed),1)
+    with pytest.raises(AssertionError):
+        if kind=='sanity':_assert_sanity_backend_dependency(value)
+        else:_assert_research_coverage_closure(value,(ROOT/'.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'wrong_group', 'skip'])
+def test_auth_browser_addition_is_only_the_existing_Main_subgroup(mutation):
+    value=workflow('ci.yml');rows=value['jobs']['browser-beta-surface-contract']['strategy']['matrix']['include'];row=rows[2]
+    if mutation=='missing':row['pytest_args_main']=MAIN_SURFACE
+    elif mutation=='duplicate':row['pytest_args_main']+=' '+AUTH_BOOTSTRAP_BROWSER
+    elif mutation=='wrong_group':row['pytest_args_main']=MAIN_SURFACE;row['pytest_args_isolated']+=' '+AUTH_BOOTSTRAP_BROWSER
+    else:row['pytest_args_main']+=' -k smoke'
+    with pytest.raises(AssertionError):assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('consumer', FIN2_BACKEND_FORMAL_FILES)
+@pytest.mark.parametrize('mutation', ['missing', 'missing_ignore', 'logging', 'partial_file'])
+def test_fin2_backend_consumers_cannot_be_omitted_or_partially_run(kind, consumer, mutation):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    name = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step = next(s for s in job['steps'] if s.get('name') == name)
+    commands = backend_process_commands(coverage=kind == 'coverage')
+    changed = list(commands)
+    index = BACKEND_FORMAL_FILES.index(consumer) + 1
+    if mutation == 'missing': changed.pop(index)
+    elif mutation == 'missing_ignore':
+        prefix = 'web/backend/tests/' if kind == 'coverage' else 'tests/'
+        changed[0] = changed[0].replace(' --ignore=' + prefix + consumer, '', 1)
+    elif mutation == 'logging': changed[index] = changed[index].replace(' -p no:logging', '', 1)
+    else: changed[index] += ' -k smoke'
+    step['run'] = step['run'].replace('\n'.join(commands), '\n'.join(changed), 1)
+    with pytest.raises(AssertionError):
+        if kind == 'sanity': _assert_sanity_backend_dependency(value)
+        else: _assert_research_coverage_closure(value, (ROOT / '.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'wrong_call', 'soft', 'skip', 'sdk_pin', 'timeout'])
+def test_chromium_setup_inverse_cannot_hide_other_product_job_changes(mutation):
+    value=workflow('ci.yml')
+    job=value['jobs']['browser-product-contract']
+    step=next(s for s in job['steps'] if s.get('name')=='Install browser test dependencies')
+    call='python -I -B scripts/prepare_ci_chromium.py\n'
+    if mutation=='missing': step['run']=step['run'].replace(call,'')
+    elif mutation=='duplicate': step['run']+=call
+    elif mutation=='wrong_call': step['run']=step['run'].replace(call,'python -m playwright install chromium\n')
+    elif mutation=='soft': step['continue-on-error']=True
+    elif mutation=='skip': step['if']='false'
+    elif mutation=='sdk_pin': step['run']=step['run'].replace('playwright==1.59.0','playwright==1.58.0')
+    else: job['timeout-minutes']=9
+    with pytest.raises(AssertionError): assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('runner', ['ubuntu-latest','ubuntu-22.04','ubuntu-26.04','self-hosted',
+                                  'arbitrary-linux','${{ matrix.os }}',['ubuntu-24.04','self-hosted']])
+def test_chromium_runner_inverse_rejects_every_unapproved_label(runner):
+    value=workflow('ci.yml')
+    value['jobs']['browser-product-contract']['runs-on']=runner
+    with pytest.raises(AssertionError): assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('consumer', EVIDENCE_BACKEND_FORMAL_FILES + NATIVE_FINANCIAL_BACKEND_FORMAL_FILES)
+@pytest.mark.parametrize('mutation', ['missing', 'missing_ignore', 'logging', 'partial_file'])
+def test_evidence_backend_consumers_cannot_be_omitted_or_partially_run(kind, consumer, mutation):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    name = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step = next(s for s in job['steps'] if s.get('name') == name)
+    commands = backend_process_commands(coverage=kind == 'coverage')
+    changed = list(commands)
+    index = BACKEND_FORMAL_FILES.index(consumer) + 1
+    if mutation == 'missing': changed.pop(index)
+    elif mutation == 'missing_ignore':
+        prefix = 'web/backend/tests/' if kind == 'coverage' else 'tests/'
+        changed[0] = changed[0].replace(' --ignore=' + prefix + consumer, '', 1)
+    elif mutation == 'logging': changed[index] = changed[index].replace(' -p no:logging', '', 1)
+    else: changed[index] += ' -k smoke'
+    step['run'] = step['run'].replace('\n'.join(commands), '\n'.join(changed), 1)
+    with pytest.raises(AssertionError):
+        if kind == 'sanity': _assert_sanity_backend_dependency(value)
+        else: _assert_research_coverage_closure(value, (ROOT / '.coveragerc').read_text())
+
+
+def test_evidence_method_exact_ci_delta_preserves_every_existing_job():
+    assert_existing_jobs_unchanged(workflow('ci.yml'))
+
+
+@pytest.mark.parametrize('mutation', ['job_missing','job_soft','job_if','step_soft','step_if','runner','timeout','path','sdk','need','node_duplicate','node_wrong_shard'])
+def test_evidence_method_hard_gate_rejects_drift(mutation):
+    value = copy.deepcopy(workflow('ci.yml'))
+    jobs = value['jobs']; job = jobs[EVIDENCE_METHOD_JOB]
+    if mutation == 'job_missing': jobs.pop(EVIDENCE_METHOD_JOB)
+    elif mutation == 'job_soft': job['continue-on-error'] = True
+    elif mutation == 'job_if': job['if'] = 'false'
+    elif mutation == 'step_soft': job['steps'][-1]['continue-on-error'] = True
+    elif mutation == 'step_if': job['steps'][-1]['if'] = 'false'
+    elif mutation == 'runner': job['runs-on'] = 'ubuntu-latest'
+    elif mutation == 'timeout': job['timeout-minutes'] = 9
+    elif mutation == 'path': job['steps'][-1]['run'] = 'pytest tests/e2e/test_full_public_surface.py -v'
+    elif mutation == 'sdk': job['steps'][2]['run'] = job['steps'][2]['run'].replace('playwright==1.59.0','playwright==1.58.0')
+    elif mutation == 'need': jobs['release-gate-summary']['needs'].remove(EVIDENCE_METHOD_JOB)
+    elif mutation == 'node_duplicate': jobs['browser-beta-surface-contract']['strategy']['matrix']['include'][2]['node_tests'] += ' ' + EVIDENCE_METHOD_NODE
+    else:
+        rows = jobs['browser-beta-surface-contract']['strategy']['matrix']['include']
+        rows[0]['node_tests'] += ' ' + EVIDENCE_METHOD_NODE
+        rows[2]['node_tests'] = rows[2]['node_tests'].replace(' ' + EVIDENCE_METHOD_NODE,'')
+    with pytest.raises((AssertionError,KeyError)):
+        assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('mutation', ['job_missing','job_soft','job_if','step_soft','step_if','runner','timeout','path','sdk','need','node_duplicate','node_wrong_shard'])
+def test_financial_registry_hard_gate_rejects_drift(mutation):
+    value = copy.deepcopy(workflow('ci.yml'))
+    jobs = value['jobs']; job = jobs[FINANCIAL_REGISTRY_JOB]
+    if mutation == 'job_missing': jobs.pop(FINANCIAL_REGISTRY_JOB)
+    elif mutation == 'job_soft': job['continue-on-error'] = True
+    elif mutation == 'job_if': job['if'] = 'false'
+    elif mutation == 'step_soft': job['steps'][-1]['continue-on-error'] = True
+    elif mutation == 'step_if': job['steps'][-1]['if'] = 'false'
+    elif mutation == 'runner': job['runs-on'] = 'ubuntu-latest'
+    elif mutation == 'timeout': job['timeout-minutes'] = 9
+    elif mutation == 'path': job['steps'][-1]['run'] = 'pytest tests/e2e/test_full_public_surface.py -v'
+    elif mutation == 'sdk': job['steps'][2]['run'] = job['steps'][2]['run'].replace('playwright==1.59.0','playwright==1.58.0')
+    elif mutation == 'need': jobs['release-gate-summary']['needs'].remove(FINANCIAL_REGISTRY_JOB)
+    elif mutation == 'node_duplicate': jobs['browser-beta-surface-contract']['strategy']['matrix']['include'][2]['node_tests'] += ' ' + FINANCIAL_REGISTRY_NODE
+    else:
+        rows = jobs['browser-beta-surface-contract']['strategy']['matrix']['include']
+        rows[0]['node_tests'] += ' ' + FINANCIAL_REGISTRY_NODE
+        rows[2]['node_tests'] = rows[2]['node_tests'].replace(' ' + FINANCIAL_REGISTRY_NODE,'')
+    with pytest.raises((AssertionError,KeyError)):
+        assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('mutation', [
+    'job_missing', 'job_soft', 'job_if', 'step_missing', 'step_duplicate',
+    'step_soft', 'step_if', 'runner', 'timeout', 'shell', 'partial_module',
+    'sdk', 'runtime', 'need_missing', 'need_duplicate', 'need_order',
+    'node_missing', 'node_duplicate', 'node_wrong_shard', 'node_shell',
+])
+def test_financial_scenario_hard_gate_rejects_drift(mutation):
+    value = workflow('ci.yml')
+    jobs = value['jobs']; job = jobs[FINANCIAL_SCENARIO_JOB]
+    rows = jobs['browser-beta-surface-contract']['strategy']['matrix']['include']
+    needs = jobs['release-gate-summary']['needs']
+    if mutation == 'job_missing': jobs.pop(FINANCIAL_SCENARIO_JOB)
+    elif mutation == 'job_soft': job['continue-on-error'] = True
+    elif mutation == 'job_if': job['if'] = 'false'
+    elif mutation == 'step_missing': job['steps'].pop()
+    elif mutation == 'step_duplicate': job['steps'].append(copy.deepcopy(job['steps'][-1]))
+    elif mutation == 'step_soft': job['steps'][-1]['continue-on-error'] = True
+    elif mutation == 'step_if': job['steps'][-1]['if'] = 'false'
+    elif mutation == 'runner': job['runs-on'] = 'ubuntu-latest'
+    elif mutation == 'timeout': job['timeout-minutes'] = 9
+    elif mutation == 'shell': job['steps'][-1]['run'] += ' || true'
+    elif mutation == 'partial_module': job['steps'][-1]['run'] += ' PYTEST_ADDOPTS="-k smoke"'
+    elif mutation == 'sdk': job['steps'][2]['run'] = job['steps'][2]['run'].replace('playwright==1.59.0', 'playwright==1.58.0')
+    elif mutation == 'runtime': job['steps'][3]['run'] = job['steps'][3]['run'].replace('import main', 'import types as main')
+    elif mutation == 'need_missing': needs.remove(FINANCIAL_SCENARIO_JOB)
+    elif mutation == 'need_duplicate': needs.append(FINANCIAL_SCENARIO_JOB)
+    elif mutation == 'need_order': needs.remove(FINANCIAL_SCENARIO_JOB); needs.insert(0, FINANCIAL_SCENARIO_JOB)
+    elif mutation == 'node_missing': rows[2]['node_tests'] = rows[2]['node_tests'].replace(' ' + FINANCIAL_SCENARIO_NODE, '')
+    elif mutation == 'node_duplicate': rows[2]['node_tests'] += ' ' + FINANCIAL_SCENARIO_NODE
+    elif mutation == 'node_wrong_shard':
+        rows[2]['node_tests'] = rows[2]['node_tests'].replace(' ' + FINANCIAL_SCENARIO_NODE, '')
+        rows[0]['node_tests'] += ' ' + FINANCIAL_SCENARIO_NODE
+    else: rows[2]['node_tests'] += '; true'
+    with pytest.raises((AssertionError, KeyError)):
+        assert_existing_jobs_unchanged(value)
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+def test_gov_lifecycle_joins_complete_backend_isolation(kind):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    name = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    script = next(s['run'] for s in job['steps'] if s.get('name') == name)
+    script = _backend_script_before_b3(script, coverage=kind == 'coverage')
+    commands = backend_process_commands(coverage=kind == 'coverage', before_b3=True)
+    prior = backend_process_commands(coverage=kind == 'coverage', before_gov=True)
+    assert len(prior) == 16 and len(commands) == 17
+    assert commands[1:-1] == prior[1:]
+    assert script.count('\n'.join(commands)) == 1
+    assert GOV_BACKEND_FORMAL_FILE in commands[-1] and ' -p no:logging' in commands[-1]
+    assert '--ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + GOV_BACKEND_FORMAL_FILE in commands[0]
+    assert ' -p no:logging' not in commands[0]
+    assert 'test_source_sec_access.py' not in script
+    if kind == 'sanity': _assert_sanity_backend_dependency(value)
+    else: _assert_research_coverage_closure(value, (ROOT / '.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('mutation', [
+    'missing', 'missing_ignore', 'duplicate', 'duplicate_ignore', 'partial_file',
+    'formal_logging', 'ordinary_no_logging', 'order', 'soft', 'wrong_file',
+    'pure_ignore', 'measurement',
+])
+def test_gov_lifecycle_ci_delta_rejects_weakened_or_missing_consumer(kind, mutation):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    name = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step = next(s for s in job['steps'] if s.get('name') == name)
+    commands = backend_process_commands(coverage=kind == 'coverage'); changed = list(commands)
+    gov_index = len(BACKEND_FORMAL_FILES) + 1
+    ignore = ' --ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + GOV_BACKEND_FORMAL_FILE
+    if mutation == 'missing': changed.pop(gov_index)
+    elif mutation == 'missing_ignore': changed[0] = changed[0].replace(ignore, '', 1)
+    elif mutation == 'duplicate': changed.append(changed[gov_index])
+    elif mutation == 'duplicate_ignore': changed[0] = changed[0].replace(ignore, ignore + ignore, 1)
+    elif mutation == 'partial_file': changed[gov_index] += ' -k smoke'
+    elif mutation == 'formal_logging': changed[gov_index] = changed[gov_index].replace(' -p no:logging', '', 1)
+    elif mutation == 'ordinary_no_logging': changed[0] += ' -p no:logging'
+    elif mutation == 'order': changed[gov_index - 1], changed[gov_index] = changed[gov_index], changed[gov_index - 1]
+    elif mutation == 'soft': changed[gov_index] += ' || true'
+    elif mutation == 'wrong_file': changed[gov_index] = changed[gov_index].replace(GOV_BACKEND_FORMAL_FILE, 'test_source_sec_access.py')
+    elif mutation == 'pure_ignore': changed[0] += ' --ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + 'test_source_sec_access.py'
+    else: changed[gov_index] = changed[gov_index].replace('coverage run -p', 'coverage run').replace(' -x -ra -q', ' -q')
+    assert changed != commands
+    expanded = '\n'.join(commands)
+    assert step['run'].count(expanded) == 1
+    step['run'] = step['run'].replace(expanded, '\n'.join(changed), 1)
+    with pytest.raises(AssertionError):
+        if kind == 'sanity': _assert_sanity_backend_dependency(value)
+        else: _assert_research_coverage_closure(value, (ROOT / '.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('mutation', [
+    'missing', 'old_only', 'root_only', 'root_first', 'duplicate_root',
+    'duplicate_backend', 'extra_namespace', 'modified_root', 'extra_env', 'job_env',
+])
+def test_sanity_backend_root_namespace_inverse_rejects_drift(mutation):
+    value = workflow('sanity.yml')
+    job = value['jobs']['sanity-backend']
+    step = next(s for s in job['steps'] if s.get('name') == 'Leg 2 — web/backend pytest baseline')
+    backend, root = '${{ github.workspace }}/web/backend', '${{ github.workspace }}'
+    if mutation == 'missing': step.pop('env')
+    elif mutation == 'old_only': step['env']['PYTHONPATH'] = backend
+    elif mutation == 'root_only': step['env']['PYTHONPATH'] = root
+    elif mutation == 'root_first': step['env']['PYTHONPATH'] = root + ':' + backend
+    elif mutation == 'duplicate_root': step['env']['PYTHONPATH'] += ':' + root
+    elif mutation == 'duplicate_backend': step['env']['PYTHONPATH'] = backend + ':' + step['env']['PYTHONPATH']
+    elif mutation == 'extra_namespace': step['env']['PYTHONPATH'] += ':/unapproved/source'
+    elif mutation == 'modified_root': step['env']['PYTHONPATH'] = backend + ':' + root + '/other'
+    elif mutation == 'extra_env': step['env']['PYTEST_ADDOPTS'] = '-k smoke'
+    else: job['env'] = {'PYTHONPATH': root}
+    with pytest.raises(AssertionError): _assert_sanity_backend_dependency(value)
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('consumer', B3_BACKEND_FORMAL_FILES)
+@pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'wrong_file', 'selector', 'logging', 'ignore_only', 'missing_ignore', 'duplicate_ignore', 'ordinary_logging', 'pure_ignore', 'extra'])
+def test_b3_fresh_ci_consumers_reject_drift(kind, consumer, mutation):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    title = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step = next(s for s in job['steps'] if s.get('name') == title)
+    commands = backend_process_commands(coverage=kind == 'coverage')
+    changed = list(commands); index = len(BACKEND_FORMAL_FILES) + 2 + B3_BACKEND_FORMAL_FILES.index(consumer)
+    ignore = ' --ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + consumer
+    if mutation in ('missing', 'ignore_only'): changed.pop(index)
+    elif mutation == 'duplicate': changed.append(changed[index])
+    elif mutation == 'wrong_file': changed[index] = changed[index].replace(consumer, 'test_source_document_raw.py')
+    elif mutation == 'selector': changed[index] += ' -k smoke'
+    elif mutation == 'logging': changed[index] = changed[index].replace(' -p no:logging', '')
+    elif mutation == 'missing_ignore': changed[0] = changed[0].replace(ignore, '', 1)
+    elif mutation == 'duplicate_ignore': changed[0] = changed[0].replace(ignore, ignore + ignore, 1)
+    elif mutation == 'ordinary_logging': changed[0] += ' -p no:logging'
+    elif mutation == 'pure_ignore': changed[0] += ' --ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + 'test_source_document_raw.py'
+    else: changed.append(changed[index].replace(consumer, 'test_source_document_access.py'))
+    step['run'] = step['run'].replace('\n'.join(commands), '\n'.join(changed), 1)
+    with pytest.raises(AssertionError):
+        if kind == 'sanity': _assert_sanity_backend_dependency(value)
+        else: _assert_research_coverage_closure(value, (ROOT / '.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+def test_b3_complete_ci_argv_partition_preserves_sixteen_prefix_and_pure_ordinary(kind):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    title = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    script = next(s['run'] for s in job['steps'] if s.get('name') == title)
+    current_script = script
+    script = _backend_script_before_observer(script, coverage=kind == 'coverage')
+    commands = backend_process_commands(coverage=kind == 'coverage', before_observer=True)
+    prior = backend_process_commands(coverage=kind == 'coverage', before_b3=True)
+    assert len(commands) == 20 and len(prior) == 17
+    assert commands[1:17] == prior[1:]
+    prefix = 'web/backend/tests/' if kind == 'coverage' else 'tests/'
+    fresh = [next(t for t in shlex.split(c) if t.startswith(prefix)) for c in commands[1:]]
+    ignored = [t.removeprefix('--ignore=') for t in shlex.split(commands[0]) if t.startswith('--ignore=')]
+    assert len(fresh) == len(set(fresh)) == 19 and fresh == ignored
+    inventory = {p.relative_to(ROOT / 'web/backend/tests').as_posix()
+                 for p in (ROOT / 'web/backend/tests').rglob('test_*.py')}
+    relative = [p.removeprefix(prefix) for p in fresh]
+    assert set(relative) <= inventory
+    ordinary = inventory - set(relative)
+    assert all(int(name in ordinary) + relative.count(name) == 1 for name in inventory)
+    assert script.count('\n'.join(commands)) == 1
+    assert _backend_script_before_b3(current_script, coverage=kind == 'coverage').count('\n'.join(prior)) == 1
+    for name in B3_BACKEND_FORMAL_FILES:
+        path = ROOT / 'web/backend/tests' / name
+        assert path.is_file() and not path.is_symlink(), 'full actual module must be present in the composed source'
+        ast.parse(path.read_text())
+    for name in ('test_source_document_raw.py', 'test_source_document_access.py',
+                 'test_source_document_transport.py', 'test_financial_limit_observer.py'):
+        assert prefix + name not in ignored and prefix + name not in fresh
+        assert name in ordinary
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+def test_observer_full_ci_process_preserves_prior_nineteen_and_inventory(kind):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    title = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    script = next(s['run'] for s in job['steps'] if s.get('name') == title)
+    current = backend_process_commands(coverage=kind == 'coverage')
+    prior = backend_process_commands(coverage=kind == 'coverage', before_observer=True)
+    assert current[1:-1] == prior[1:] and len(current) == 21 and len(prior) == 20
+    assert 'test_financial_limit_observer.py' in current[-1] and ' -p no:logging' in current[-1]
+    assert _backend_script_before_observer(script, coverage=kind == 'coverage').count('\n'.join(prior)) == 1
+    _backend_script_before_b3(script, coverage=kind == 'coverage')
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'ignore_only', 'missing_ignore', 'duplicate_ignore', 'partial', 'logging', 'measurement'])
+def test_observer_ci_process_cannot_be_omitted_or_weakened(kind, mutation):
+    value = workflow(kind + '.yml')
+    job = value['jobs']['sanity-backend' if kind == 'sanity' else 'coverage']
+    title = 'Leg 2 — web/backend pytest baseline' if kind == 'sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step = next(s for s in job['steps'] if s.get('name') == title)
+    commands = backend_process_commands(coverage=kind == 'coverage'); changed = list(commands)
+    ignore = ' --ignore=' + ('web/backend/tests/' if kind == 'coverage' else 'tests/') + 'test_financial_limit_observer.py'
+    if mutation in ('missing', 'ignore_only'): changed.pop()
+    elif mutation == 'duplicate': changed.append(changed[-1])
+    elif mutation == 'missing_ignore': changed[0] = changed[0].replace(ignore, '', 1)
+    elif mutation == 'duplicate_ignore': changed[0] = changed[0].replace(ignore, ignore + ignore, 1)
+    elif mutation == 'partial': changed[-1] += ' -k smoke'
+    elif mutation == 'logging': changed[-1] = changed[-1].replace(' -p no:logging', '', 1)
+    else: changed[-1] = changed[-1].replace('coverage run -p', 'coverage run').replace(' -x -ra -q', ' -q')
+    assert changed != commands
+    step['run'] = step['run'].replace('\n'.join(commands), '\n'.join(changed), 1)
+    with pytest.raises(AssertionError): _backend_script_before_observer(step['run'], coverage=kind == 'coverage')
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+def test_draft_history_full_ci_collection_reconstructs_prior_script_exactly(kind):
+    value = _workflow_source_before_native_split(kind + '.yml')
+    prior = _workflow_before_draft_collection(value, kind + '.yml')
+    job = value['jobs']['coverage' if kind == 'coverage' else 'sanity-backend']
+    title = 'Run coverage (split by suite, parallel files combined)' if kind == 'coverage' else 'Leg 2 — web/backend pytest baseline'
+    script = next(step['run'] for step in job['steps'] if step.get('name') == title)
+    commands = draft_backend_process_commands(coverage=kind == 'coverage')
+    old = backend_process_commands(coverage=kind == 'coverage')
+    assert len(commands) == 22 and len(old) == 21
+    assert commands[1:-1] == old[1:]
+    assert script.count('\n'.join(commands)) == 1
+    if kind == 'sanity': _assert_sanity_backend_dependency(prior)
+    else: _assert_research_coverage_closure(prior, (ROOT / '.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('mutation', ['missing','duplicate','ignore_only','missing_ignore','duplicate_ignore',
+    'wrong_deselect','wrong_cwd_deselect','extra_deselect','parameter','partial_module','selector','logging','measurement','folded','extra'])
+def test_draft_history_ci_collection_rejects_missing_or_weakened_work(kind, mutation):
+    coverage = kind == 'coverage'
+    value = _workflow_source_before_native_split(kind + '.yml')
+    job = value['jobs']['coverage' if coverage else 'sanity-backend']
+    title = 'Run coverage (split by suite, parallel files combined)' if coverage else 'Leg 2 — web/backend pytest baseline'
+    script = next(step['run'] for step in job['steps'] if step.get('name') == title)
+    commands = draft_backend_process_commands(coverage=coverage); changed = list(commands)
+    path = ('web/backend/tests/' if coverage else 'tests/') + DRAFT_HISTORY_MODULE
+    ignore = ' --ignore=' + path
+    if mutation in ('missing','ignore_only'): changed.pop()
+    elif mutation == 'duplicate': changed.append(changed[-1])
+    elif mutation == 'missing_ignore': changed[0] = changed[0].replace(ignore, '', 1)
+    elif mutation == 'duplicate_ignore': changed[0] = changed[0].replace(ignore, ignore + ignore, 1)
+    elif mutation == 'wrong_deselect': changed[-1] = changed[-1].replace(DRAFT_DEFERRED_FUNCTION, 'test_method_draft_public_models_exactly_match_runtime_contract')
+    elif mutation == 'wrong_cwd_deselect': changed[-1] = changed[-1].replace('--deselect=web/backend/tests/', '--deselect=tests/', 1)
+    elif mutation == 'extra_deselect': changed[-1] += ' --deselect=' + path + '::test_method_draft_public_models_exactly_match_runtime_contract'
+    elif mutation == 'parameter': changed[-1] = changed[-1].replace(DRAFT_DEFERRED_FUNCTION, DRAFT_DEFERRED_FUNCTION + '[native]')
+    elif mutation == 'partial_module': changed[-1] = changed[-1].replace('pytest ' + path + ' ', 'pytest ' + path + '::test_method_draft_public_models_exactly_match_runtime_contract ', 1)
+    elif mutation == 'selector': changed[-1] += ' -k smoke'
+    elif mutation == 'logging': changed[-1] = changed[-1].replace(' -p no:logging', '', 1)
+    elif mutation == 'measurement': changed[-1] = changed[-1].replace('coverage run -p --rcfile=.coveragerc -m pytest', 'pytest').replace(' -x -ra -q', ' -q')
+    elif mutation == 'extra': changed.append(changed[-1].replace(DRAFT_HISTORY_MODULE, 'test_research_method_draft_migration.py'))
+    candidate = script.replace('\n'.join(commands), '\n'.join(changed), 1)
+    if mutation == 'folded': candidate = candidate.replace('\n', ' ')
+    assert candidate != script
+    with pytest.raises(AssertionError): _backend_script_before_draft_collection(candidate, coverage=coverage)
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+def test_native_split_exact_nineteen_only_ordinary_preserves_current_commands(kind):
+    value = _workflow_source_before_sanity_groups(kind + '.yml')
+    prior = _workflow_before_native_split(value, kind + '.yml')
+    current = native_backend_process_commands(coverage=kind == 'coverage')
+    old = draft_backend_process_commands(coverage=kind == 'coverage')
+    assert len(current) == len(old) == 22 and current[1:] == old[1:]
+    restored = _workflow_before_draft_collection(prior, kind + '.yml')
+    if kind == 'sanity': _assert_sanity_backend_dependency(restored)
+    else: _assert_research_coverage_closure(restored, (ROOT / '.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('kind', ['sanity', 'coverage'])
+@pytest.mark.parametrize('mutation', ['missing','duplicate','wrong_relative','wrong_param','extra_pure','extra_deselect','module_ignore','wrong_process','order','missing_draft'])
+def test_native_split_ci_rejects_every_other_collection_change(kind, mutation):
+    coverage = kind == 'coverage'
+    value = _workflow_source_before_sanity_groups(kind + '.yml')
+    job = value['jobs']['coverage' if coverage else 'sanity-backend']
+    title = 'Run coverage (split by suite, parallel files combined)' if coverage else 'Leg 2 — web/backend pytest baseline'
+    script = next(step['run'] for step in job['steps'] if step.get('name') == title)
+    commands = native_backend_process_commands(coverage=coverage); changed = list(commands)
+    token = ' --deselect="' + NATIVE_DEFERRED_NODES[0] + '"'
+    if mutation == 'missing': changed[0] = changed[0].replace(token, '', 1)
+    elif mutation == 'duplicate': changed[0] = changed[0].replace(token, token + token, 1)
+    elif mutation == 'wrong_relative': changed[0] = changed[0].replace('--deselect="web/backend/tests/', '--deselect="tests/', 1)
+    elif mutation == 'wrong_param': changed[0] = changed[0].replace('[ordinary]', '[bogus]', 1)
+    elif mutation in ('extra_pure','extra_deselect'): changed[0] += ' --deselect="' + NATIVE_PURE_NODES[0] + '"'
+    elif mutation == 'module_ignore': changed[0] += ' --ignore=web/backend/tests/test_research_native_plan.py'
+    elif mutation == 'wrong_process': changed[0] = changed[0].replace(token, '', 1); changed[1] += token
+    elif mutation == 'order': changed[0] = changed[0].replace(token, '', 1).replace(' --deselect="' + NATIVE_DEFERRED_NODES[1] + '"', ' --deselect="' + NATIVE_DEFERRED_NODES[1] + '"' + token, 1)
+    else: changed[-1] = changed[-1].replace(' --deselect=web/backend/tests/' + DRAFT_HISTORY_MODULE + '::' + DRAFT_DEFERRED_FUNCTION, '', 1)
+    candidate = script.replace('\n'.join(commands), '\n'.join(changed), 1)
+    assert candidate != script
+    with pytest.raises(AssertionError): _backend_script_before_native_split(candidate, coverage=coverage)
+
+
+def test_native_split_preserves_all_original_bodies_and_exact_twenty_one_node_inventory():
+    path = ROOT / 'web/backend/tests/test_research_native_plan.py'
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == NATIVE_ORIGINAL_MODULE_SHA256
+    tree = ast.parse(path.read_text()); actual=[]
+    for function in tree.body:
+        if not isinstance(function, ast.FunctionDef) or not function.name.startswith('test_'): continue
+        values = None
+        for decorator in function.decorator_list:
+            if isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute) and decorator.func.attr == 'parametrize': values = ast.literal_eval(decorator.args[1])
+        prefix = 'web/backend/tests/test_research_native_plan.py::' + function.name
+        actual.extend([prefix + '[' + str(value) + ']' for value in values] if values is not None else [prefix])
+    assert len(actual) == len(set(actual)) == 21
+    assert set(actual) == set(NATIVE_DEFERRED_NODES) | set(NATIVE_PURE_NODES)
+    assert len(NATIVE_DEFERRED_NODES) == 19 and len(NATIVE_PURE_NODES) == 2
+
+
+def _changed_sanity_batch(value,mutation):
+    value=copy.deepcopy(value);jobs=value['jobs'];a,b,fresh=(jobs[name] for name in SANITY_GROUP_IDS)
+    sa,sb,sf=(_sanity_group_script(job) for job in (a,b,fresh))
+    line=next(line for line in sa['run'].splitlines() if line.startswith('python -m pytest '))
+    args=shlex.split(line);end=next(i for i in range(3,len(args)) if args[i].startswith('-'));paths=args[3:end]
+    if mutation=='missing_file':sa['run']=sa['run'].replace(paths[0]+' ','',1)
+    elif mutation=='duplicate_file':sa['run']=sa['run'].replace(paths[0],paths[0]+' '+paths[0],1)
+    elif mutation=='boundary':
+        first='tests/test_research_financial_admission_schemas.py';last='tests/test_research_deletion_schema_v8.py'
+        sa['run']=sa['run'].replace(last,first,1);sb['run']=sb['run'].replace(first,last,1)
+    elif mutation=='order':sa['run']=sa['run'].replace(paths[0]+' '+paths[1],paths[1]+' '+paths[0],1)
+    elif mutation=='partial_module':sa['run']=sa['run'].replace(paths[0],paths[0]+'::test_partial',1)
+    elif mutation=='fresh_in_ordinary':sa['run']=sa['run'].replace(paths[0],paths[0]+' tests/test_formal_main_admission.py',1)
+    elif mutation=='merge_fresh':
+        rows=[line for line in sf['run'].splitlines() if line.startswith('python -m pytest ')]
+        sf['run']=sf['run'].replace(rows[0]+'\n'+rows[1],rows[0]+' '+rows[1],1)
+    elif mutation=='logging':sf['run']=sf['run'].replace(' -p no:logging','',1)
+    elif mutation=='wrong_cwd':sa['working-directory']='.'
+    elif mutation=='wrong_defer':sa['run']=sa['run'].replace('--deselect="web/backend/tests/','--deselect="tests/',1)
+    elif mutation=='extra_selector':sa['run']+=' -k smoke'
+    elif mutation=='extra_ignore':sa['run']+=' --ignore=tests/test_research_native_plan.py'
+    elif mutation=='setup':a['steps'].pop(0)
+    elif mutation=='permission':a['permissions']={'contents':'write'}
+    elif mutation=='timeout':a['timeout-minutes']=46
+    elif mutation=='soft':a['continue-on-error']=True
+    elif mutation=='missing_child':jobs.pop(SANITY_GROUP_IDS[0])
+    elif mutation=='missing_needs':jobs['sanity-backend']['needs'].pop()
+    elif mutation=='missing_always':jobs['sanity-backend'].pop('if')
+    elif mutation=='required_name':jobs['sanity-backend']['name']='different-required-name'
+    elif mutation=='aggregate_or':jobs['sanity-backend']['steps'][0]['run']='exit 0\n'
+    else:jobs['sanity']['needs']=[SANITY_GROUP_IDS[0]]
+    return value
+
+
+def test_sanity_groups_fixed_inventory_setup_processes_and_required_gate():
+    value=_sanity_source_before_preowned()
+    restored=_workflow_before_sanity_groups(value)
+    assert set(restored['jobs'])=={'sanity-backend','sanity'}
+    assert restored['jobs']['sanity-backend']['name']=='sanity-backend'
+    assert restored['jobs']['sanity']['needs']==['sanity-backend']
+
+
+@pytest.mark.parametrize('mutation', ['missing_file','duplicate_file','boundary','order','partial_module','fresh_in_ordinary','merge_fresh','logging','wrong_cwd','wrong_defer','extra_selector','extra_ignore','setup','permission','timeout','soft','missing_child','missing_needs','missing_always','required_name','aggregate_or','sanity_bypass'])
+def test_sanity_groups_reject_every_inventory_setup_or_strict_gate_drift(mutation):
+    value=_sanity_source_before_preowned()
+    changed=_changed_sanity_batch(value,mutation)
+    assert changed!=value
+    with pytest.raises(AssertionError):_workflow_before_sanity_groups(changed)
+
+
+@pytest.mark.parametrize('child', [0,1,2])
+@pytest.mark.parametrize('status', ['failure','cancelled','skipped','',None,'unknown'])
+def test_sanity_groups_actual_aggregate_shell_rejects_each_non_success(tmp_path,child,status):
+    values=['success','success','success'];values[child]=status
+    environment={'PATH':os.environ.get('PATH','/usr/bin:/bin')}
+    for key,value in zip(('BACKEND_ORDINARY_A_RESULT','BACKEND_ORDINARY_B_RESULT','BACKEND_FRESH_RESULT'),values):
+        if value is not None:environment[key]=value
+    result=subprocess.run(['bash','-u','-e','-o','pipefail','-c',SANITY_GROUP_AGGREGATE['steps'][0]['run']],cwd=tmp_path,env=environment,capture_output=True,text=True,timeout=10,check=False)
+    assert result.returncode!=0
+
+
+def test_sanity_groups_actual_aggregate_shell_accepts_only_three_successes(tmp_path):
+    environment={'PATH':os.environ.get('PATH','/usr/bin:/bin'),'BACKEND_ORDINARY_A_RESULT':'success','BACKEND_ORDINARY_B_RESULT':'success','BACKEND_FRESH_RESULT':'success'}
+    result=subprocess.run(['bash','-u','-e','-o','pipefail','-c',SANITY_GROUP_AGGREGATE['steps'][0]['run']],cwd=tmp_path,env=environment,capture_output=True,text=True,timeout=10,check=False)
+    assert result.returncode==0
+
+
+@pytest.mark.parametrize('kind', ['sanity','coverage'])
+def test_preowned_six_exact_deferred_only_and_original_inverse_chain(kind):
+    value=_workflow_source_before_legacy_schema(kind+'.yml')
+    prior=_workflow_before_preowned_six(value,kind+'.yml')
+    if kind=='sanity':prior=_workflow_before_sanity_groups(prior)
+    prior=_workflow_before_native_split(prior,kind+'.yml')
+    prior=_workflow_before_draft_collection(prior,kind+'.yml')
+    if kind=='sanity':_assert_sanity_backend_dependency(prior)
+    else:_assert_research_coverage_closure(prior,(ROOT/'.coveragerc').read_text())
+
+
+@pytest.mark.parametrize('kind', ['sanity','coverage'])
+@pytest.mark.parametrize('mutation', ['missing','duplicate','wrong_relative','wrong_param','extra_pure','module_ignore','wrong_process','order'])
+def test_preowned_six_ci_collection_rejects_any_wider_or_missing_deferral(kind,mutation):
+    value=_workflow_source_before_legacy_schema(kind+'.yml');coverage=kind=='coverage'
+    job=value['jobs']['coverage' if coverage else 'sanity-backend-ordinary-b']
+    title='Run coverage (split by suite, parallel files combined)' if coverage else 'Leg 2 — web/backend pytest baseline'
+    step=next(step for step in job['steps'] if step.get('name')==title)
+    token=' --deselect="'+PREOWNED_DEFERRED_NODES[0]+'"'
+    if mutation=='missing':step['run']=step['run'].replace(token,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(token,token+token,1)
+    elif mutation=='wrong_relative':step['run']=step['run'].replace(' --deselect="web/backend/tests/test_research_native_preowned.py',' --deselect="tests/test_research_native_preowned.py',1)
+    elif mutation=='wrong_param':step['run']=step['run'].replace(PREOWNED_DEFERRED_NODES[0],PREOWNED_DEFERRED_NODES[0]+'[unexpected]',1)
+    elif mutation=='extra_pure':step['run']+=' --deselect="'+NATIVE_PURE_NODES[0]+'"'
+    elif mutation=='module_ignore':step['run']+=' --ignore=web/backend/tests/test_research_native_preowned.py'
+    elif mutation=='wrong_process':
+        step['run']=step['run'].replace(token,'',1)
+        if coverage:step['run']+='\npython -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_research_native_preowned.py'+token+' $PYTEST_FLAGS\n'
+        else:_sanity_group_script(value['jobs']['sanity-backend-fresh'])['run']+=token
+    else:
+        second=' --deselect="'+PREOWNED_DEFERRED_NODES[1]+'"'
+        step['run']=step['run'].replace(token,'',1).replace(second,second+token,1)
+    with pytest.raises(AssertionError):_workflow_before_preowned_six(value,kind+'.yml')
+
+
+def test_preowned_six_original_module_entire_bytes_and_bodies_retained():
+    path=ROOT/'web/backend/tests/test_research_native_preowned.py'
+    assert hashlib.sha256(path.read_bytes()).hexdigest()==PREOWNED_ORIGINAL_SHA256
+    tree=ast.parse(path.read_text())
+    nodes=['web/backend/tests/test_research_native_preowned.py::'+n.name for n in tree.body if isinstance(n,ast.FunctionDef) and n.name.startswith('test_')]
+    assert nodes==list(PREOWNED_DEFERRED_NODES) and len(nodes)==6
+
+
+def test_legacy_schema_fourteen_unchanged_sources_and_exact_inventory():
+    prefix='web/backend/tests/'
+    native=ROOT/(prefix+'test_research_native_schema_v13.py')
+    plan=ROOT/(prefix+'test_research_plan_schema_v12.py')
+    assert hashlib.sha256(native.read_bytes()).hexdigest()==LEGACY_SCHEMA_ORIGINAL_SHA256
+    assert hashlib.sha256(plan.read_bytes()).hexdigest()==LEGACY_SCHEMA_PLAN12_SHA256
+    inventory=[]
+    for path in (native,plan):
+        for function in ast.parse(path.read_text()).body:
+            if not isinstance(function,ast.FunctionDef) or not function.name.startswith('test_'):continue
+            base=prefix+path.name+'::'+function.name
+            if function.decorator_list:
+                assert len(function.decorator_list)==1
+                decorator=function.decorator_list[0]
+                assert isinstance(decorator,ast.Call) and ast.unparse(decorator.func)=='pytest.mark.parametrize'
+                assert ast.literal_eval(decorator.args[0])=='cut'
+                cuts=ast.literal_eval(decorator.args[1])
+                assert cuts==['journal','rebuild','resource','marker','before-commit','after-commit']
+                inventory.extend(base+'['+cut+']' for cut in cuts)
+            else:inventory.append(base)
+    assert len(inventory)==15 and len(set(inventory))==15
+    assert [node for node in inventory if node!=LEGACY_SCHEMA_REQUIRED_PRODUCER]==list(LEGACY_SCHEMA_DEFERRED_NODES)
+    assert [node for node in inventory if node not in LEGACY_SCHEMA_DEFERRED_NODES]==[LEGACY_SCHEMA_REQUIRED_PRODUCER]
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_legacy_schema_fourteen_inverse_restores_all_previous_jobs(kind):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text())
+    restored=_workflow_before_legacy_schema_fourteen(raw,kind+'.yml')
+    assert restored==_workflow_source_before_legacy_schema(kind+'.yml')
+    assert raw!=restored
+    # The original adapters still validate every earlier job, selector and golden.
+    assert _workflow_before_preowned_six(restored,kind+'.yml')==_workflow_source_before_preowned(kind+'.yml')
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+@pytest.mark.parametrize('mutation',['missing','duplicate','wrong_relative','wrong_cut','extra_producer','module_ignore','wrong_process','order'])
+def test_legacy_schema_fourteen_workflow_rejects_wider_or_missing_defer(kind,mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text())
+    coverage=kind=='coverage'
+    job=raw['jobs']['coverage' if coverage else ORDINARY_B_PART_IDS[0]]
+    title='Run coverage (split by suite, parallel files combined)' if coverage else 'Leg 2 — web/backend pytest baseline'
+    step=next(step for step in job['steps'] if step.get('name')==title)
+    token=' --deselect="'+LEGACY_SCHEMA_DEFERRED_NODES[7]+'"'
+    if mutation=='missing':step['run']=step['run'].replace(token,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(token,token+token,1)
+    elif mutation=='wrong_relative':step['run']=step['run'].replace(LEGACY_SCHEMA_DEFERRED_NODES[7],LEGACY_SCHEMA_DEFERRED_NODES[7].removeprefix('web/backend/'),1)
+    elif mutation=='wrong_cut':step['run']=step['run'].replace(LEGACY_SCHEMA_DEFERRED_NODES[8],LEGACY_SCHEMA_DEFERRED_NODES[8]+'[unexpected]',1)
+    elif mutation=='extra_producer':step['run']+=' --deselect="'+LEGACY_SCHEMA_REQUIRED_PRODUCER+'"'
+    elif mutation=='module_ignore':step['run']+=' --ignore=web/backend/tests/test_research_plan_schema_v12.py'
+    elif mutation=='wrong_process':
+        step['run']=step['run'].replace(token,'',1)
+        step['run']+='\npython -m pytest web/backend/tests/test_research_plan_schema_v12.py'+token+'\n'
+    else:
+        second=' --deselect="'+LEGACY_SCHEMA_DEFERRED_NODES[8]+'"'
+        step['run']=step['run'].replace(token,'',1).replace(second,second+token,1)
+    with pytest.raises(AssertionError):_workflow_before_legacy_schema_fourteen(raw,kind+'.yml')
+
+
+
+def test_partial_runtime_original_source_and_five_parameters_retained():
+    path=ROOT/'web/backend/tests/test_plan_runtime_transport.py'
+    assert hashlib.sha256(path.read_bytes()).hexdigest()==PARTIAL_RUNTIME_SOURCE_SHA256
+    function=next(node for node in ast.parse(path.read_text()).body if isinstance(node,ast.FunctionDef) and node.name==PARTIAL_RUNTIME_BASE.split('::')[1])
+    assert len(function.decorator_list)==1
+    decorator=function.decorator_list[0]
+    assert ast.unparse(decorator.func)=='pytest.mark.parametrize' and ast.literal_eval(decorator.args[0])=='fault'
+    values=ast.literal_eval(decorator.args[1]);assert values==['want-read','want-write','failure','partial','pre-syscall']
+    nodes=[PARTIAL_RUNTIME_BASE+'['+value+']' for value in values]
+    assert [node for node in nodes if node!=PARTIAL_RUNTIME_NODE]==[PARTIAL_RUNTIME_BASE+'['+value+']' for value in ('want-read','want-write','failure','pre-syscall')]
+    assert nodes.count(PARTIAL_RUNTIME_NODE)==1
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_partial_runtime_workflow_inverse_only_one_positive_parameter(kind):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text())
+    restored=_workflow_before_partial_runtime(raw,kind+'.yml')
+    assert restored!=raw
+    assert hashlib.sha256(json.dumps(restored['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==PARTIAL_RUNTIME_PRIOR_JOBS_SHA256[kind+'.yml']
+    assert _workflow_before_legacy_schema_fourteen(raw,kind+'.yml')==_workflow_source_before_legacy_schema(kind+'.yml')
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+@pytest.mark.parametrize('mutation',['missing','duplicate','base','other_param','relative','extra_negative','module_ignore','wrong_process'])
+def test_partial_runtime_workflow_rejects_wider_or_missing_parameter(kind,mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text())
+    job=raw['jobs']['coverage' if kind=='coverage' else 'sanity-backend-fresh-1']
+    title='Run coverage (split by suite, parallel files combined)' if kind=='coverage' else 'Leg 2 — web/backend pytest baseline'
+    step=next(step for step in job['steps'] if step.get('name')==title);flag=_partial_runtime_flag()
+    if mutation=='missing':step['run']=step['run'].replace(flag,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(flag,flag+flag,1)
+    elif mutation=='base':step['run']=step['run'].replace(PARTIAL_RUNTIME_NODE,PARTIAL_RUNTIME_BASE,1)
+    elif mutation=='other_param':step['run']=step['run'].replace(PARTIAL_RUNTIME_NODE,PARTIAL_RUNTIME_BASE+'[want-read]',1)
+    elif mutation=='relative':step['run']=step['run'].replace(PARTIAL_RUNTIME_NODE,PARTIAL_RUNTIME_NODE.removeprefix('web/backend/'),1)
+    elif mutation=='extra_negative':step['run']=step['run'].replace(flag,flag+' --deselect="'+PARTIAL_RUNTIME_BASE+'[failure]"',1)
+    elif mutation=='module_ignore':step['run']+=' --ignore=web/backend/tests/test_plan_runtime_transport.py'
+    else:
+        step['run']=step['run'].replace(flag,'',1)
+        step['run']+='\npython -m pytest web/backend/tests/test_formal_main_admission.py'+flag+' -q\n'
+    with pytest.raises(AssertionError):_workflow_before_partial_runtime(raw,kind+'.yml')
+
+
+
+
+def test_native_late_three_source_bodies_and_kept_cancel_remain_exact():
+    inventory=[]
+    names={'test_plan_runtime_transport.py':'test_actual_late_return_original_credential_books_fee_without_restoring_body',
+           'test_research_evidence_method_native.py':'test_actual_http_stop_after_owned_return_keeps_original_fee_without_late_body'}
+    for filename,name in names.items():
+        path=ROOT/'web/backend/tests'/filename
+        assert hashlib.sha256(path.read_bytes()).hexdigest()==NATIVE_LATE_SOURCE_SHA256[filename]
+        function=next(node for node in ast.parse(path.read_text()).body if isinstance(node,ast.FunctionDef) and node.name==name)
+        assert len(function.decorator_list)==1
+        decorator=function.decorator_list[0]
+        assert ast.unparse(decorator.func)=='pytest.mark.parametrize' and ast.literal_eval(decorator.args[0])=='action'
+        assert ast.literal_eval(decorator.args[1])==['cancel','delete']
+        inventory.extend('web/backend/tests/'+filename+'::'+name+'['+action+']' for action in ('cancel','delete'))
+    assert len(inventory)==4 and len(set(inventory))==4
+    assert [node for node in inventory if node in NATIVE_LATE_THREE_NODES]==list(NATIVE_LATE_THREE_NODES)
+    assert [node for node in inventory if node not in NATIVE_LATE_THREE_NODES]==[NATIVE_LATE_THREE_NODES[2].replace('[delete]','[cancel]')]
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_native_late_three_workflow_inverse_returns_complete_prior_jobs(kind):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text())
+    restored=_workflow_before_native_late_three(raw,kind+'.yml')
+    assert restored!=raw
+    assert hashlib.sha256(json.dumps(restored['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==NATIVE_LATE_PRIOR_JOBS_SHA256[kind+'.yml']
+    # The previous strict bridge still validates the current complete chain.
+    assert _workflow_before_partial_runtime(raw,kind+'.yml')!=restored
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+@pytest.mark.parametrize('mutation',['missing','duplicate','function_base','kept_cancel','relative','module_ignore','wrong_process','order'])
+def test_native_late_three_workflow_rejects_nonexact_collection(kind,mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text())
+    job=raw['jobs']['coverage' if kind=='coverage' else 'sanity-backend-fresh-1']
+    title='Run coverage (split by suite, parallel files combined)' if kind=='coverage' else 'Leg 2 — web/backend pytest baseline'
+    step=next(step for step in job['steps'] if step.get('name')==title)
+    node=NATIVE_LATE_THREE_NODES[2];token=' --deselect="'+node+'"'
+    if mutation=='missing':step['run']=step['run'].replace(token,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(token,token+token,1)
+    elif mutation=='function_base':step['run']=step['run'].replace(node,node.removesuffix('[delete]'),1)
+    elif mutation=='kept_cancel':step['run']=step['run'].replace(token,token+' --deselect="'+node.replace('[delete]','[cancel]')+'"',1)
+    elif mutation=='relative':step['run']=step['run'].replace(node,node.removeprefix('web/backend/'),1)
+    elif mutation=='module_ignore':step['run']+=' --ignore=web/backend/tests/test_research_evidence_method_native.py'
+    elif mutation=='wrong_process':
+        step['run']=step['run'].replace(token,'',1);step['run']+='\npython -m pytest web/backend/tests/test_formal_main_admission.py'+token+' -q\n'
+    else:
+        a=' --deselect="'+NATIVE_LATE_THREE_NODES[0]+'"';b=' --deselect="'+NATIVE_LATE_THREE_NODES[1]+'"'
+        step['run']=step['run'].replace(a+b,b+a,1)
+    with pytest.raises(AssertionError):_workflow_before_native_late_three(raw,kind+'.yml')
+
+
+def test_authority_retry_exact_one_preserves_source_and_current_safety_cases():
+    path=ROOT/AUTHORITY_RETRY_NODE.split('::')[0]
+    assert hashlib.sha256(path.read_bytes()).hexdigest()==AUTHORITY_RETRY_SOURCE_SHA256
+    module=ast.parse(path.read_text());name=AUTHORITY_RETRY_NODE.split('::')[1]
+    fn=next(x for x in module.body if isinstance(x,ast.FunctionDef) and x.name==name)
+    assert not fn.decorator_list
+    cases=[x.name for x in module.body if isinstance(x,ast.FunctionDef) and x.name.startswith('test_')]
+    assert cases.count(name)==1 and 'test_static_pages_are_actual_repo_bytes_and_canonical_bridge_has_no_owner_cookie' in cases
+    assert 'test_uncertain_failed_installation_keeps_references_and_private_root' in cases
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_authority_retry_workflow_exact_inverse_returns_previous_all_jobs(kind):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text());prior=_workflow_before_authority_retry(raw,kind+'.yml')
+    assert prior!=raw
+    assert hashlib.sha256(json.dumps(prior['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==AUTHORITY_RETRY_PRIOR_JOBS_SHA256[kind+'.yml']
+    assert _workflow_before_native_late_three(raw,kind+'.yml')!=prior
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+@pytest.mark.parametrize('mutation',['missing','duplicate','whole_module','wrong_path','current_case','partial','other_job'])
+def test_authority_retry_workflow_rejects_any_wider_or_missing_scope(kind,mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/(kind+'.yml')).read_text());job=raw['jobs']['sanity-backend-fresh-1' if kind=='sanity' else 'coverage']
+    title='Leg 2 — web/backend pytest baseline' if kind=='sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step=next(x for x in job['steps'] if x.get('name')==title);flag=_authority_retry_flag()
+    if mutation=='missing':step['run']=step['run'].replace(flag,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(flag,flag+flag,1)
+    elif mutation=='whole_module':step['run']=step['run'].replace(AUTHORITY_RETRY_NODE,AUTHORITY_RETRY_NODE.split('::')[0],1)
+    elif mutation=='wrong_path':step['run']=step['run'].replace(AUTHORITY_RETRY_NODE,AUTHORITY_RETRY_NODE.replace('web/backend/',''),1)
+    elif mutation=='current_case':step['run']=step['run'].replace(AUTHORITY_RETRY_NODE,AUTHORITY_RETRY_NODE.split('::')[0]+'::test_static_pages_are_actual_repo_bytes_and_canonical_bridge_has_no_owner_cookie',1)
+    elif mutation=='partial':step['run']=step['run'].replace(flag,flag+' -k smoke',1)
+    else:next(iter(raw['jobs'].values()))['timeout-minutes']=999
+    with pytest.raises(AssertionError):_workflow_before_authority_retry(raw,kind+'.yml')
+
+
+def test_ordinary_b_parts_exact_inverse_keeps_original_all_jobs_and_group_order():
+    raw=yaml.safe_load((ROOT/'.github/workflows/sanity.yml').read_text());prior=_workflow_before_ordinary_b_parts(raw,'sanity.yml')
+    assert prior!=raw and hashlib.sha256(json.dumps(prior['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==ORDINARY_B_PART_PRIOR_JOBS_SHA256
+    assert _workflow_before_authority_retry(raw,'sanity.yml')!=prior
+
+
+@pytest.mark.parametrize('mutation',['missing_child','duplicate_module','missing_module','wrong_order','boundary','partial_filter','ignore','flags','cwd','runner','timeout','setup','permission','soft','missing_need','missing_always','aggregate_or','wrong_name','downstream_bypass'])
+def test_ordinary_b_parts_reject_any_collection_setup_or_aggregate_drift(mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows/sanity.yml').read_text());jobs=raw['jobs'];first=jobs[ORDINARY_B_PART_IDS[0]];step=next(s for s in first['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline');path=ORDINARY_B_PART_MODULES[0][0]
+    if mutation=='missing_child':jobs.pop(ORDINARY_B_PART_IDS[0])
+    elif mutation=='duplicate_module':step['run']=step['run'].replace(path,path+' '+path,1)
+    elif mutation=='missing_module':step['run']=step['run'].replace(path+' ','',1)
+    elif mutation=='wrong_order':
+        other=ORDINARY_B_PART_MODULES[0][1];step['run']=step['run'].replace(path+' '+other,other+' '+path,1)
+    elif mutation=='boundary':
+        x=ORDINARY_B_PART_MODULES[0][-1];y=ORDINARY_B_PART_MODULES[1][0];step['run']=step['run'].replace(x,y,1)
+    elif mutation=='partial_filter':step['run']+=' -k smoke'
+    elif mutation=='ignore':step['run']+=' --ignore='+path
+    elif mutation=='flags':step['run']=step['run'].replace(' -x ',' ',1)
+    elif mutation=='cwd':step['working-directory']='.'
+    elif mutation=='runner':first['runs-on']='macos-latest'
+    elif mutation=='timeout':first['timeout-minutes']=46
+    elif mutation=='setup':first['steps'][1]['with']['python-version']='3.12'
+    elif mutation=='permission':raw['permissions']={'contents':'write'}
+    elif mutation=='soft':first['continue-on-error']=True
+    elif mutation=='missing_need':jobs['sanity-backend-ordinary-b']['needs'].pop()
+    elif mutation=='missing_always':jobs['sanity-backend-ordinary-b'].pop('if')
+    elif mutation=='aggregate_or':jobs['sanity-backend-ordinary-b']['steps'][0]['run']+='true\n'
+    elif mutation=='wrong_name':jobs['sanity-backend-ordinary-b']['name']='optional-b'
+    else:jobs['sanity-backend']['needs']=['sanity-backend-ordinary-a','sanity-backend-fresh']
+    with pytest.raises((AssertionError,KeyError)):_workflow_before_ordinary_b_parts(raw,'sanity.yml')
+
+
+@pytest.mark.parametrize('child',[0,1,2])
+@pytest.mark.parametrize('status',['failure','cancelled','skipped','',None,'unknown'])
+def test_ordinary_b_parts_actual_strict_aggregate_rejects_each_non_success(tmp_path,child,status):
+    values=['success']*3;values[child]=status;env={'PATH':os.environ.get('PATH','/usr/bin:/bin')}
+    for name,value in zip(('BACKEND_B1_RESULT','BACKEND_B2_RESULT','BACKEND_B3_RESULT'),values):
+        if value is not None:env[name]=value
+    result=subprocess.run(['bash','-u','-e','-o','pipefail','-c',ORDINARY_B_PART_AGGREGATE['steps'][0]['run']],cwd=tmp_path,env=env,capture_output=True,text=True,timeout=10,check=False)
+    assert result.returncode!=0
+
+
+def test_ordinary_b_parts_actual_strict_aggregate_only_all_three_success(tmp_path):
+    env={'PATH':os.environ.get('PATH','/usr/bin:/bin'),'BACKEND_B1_RESULT':'success','BACKEND_B2_RESULT':'success','BACKEND_B3_RESULT':'success'}
+    result=subprocess.run(['bash','-u','-e','-o','pipefail','-c',ORDINARY_B_PART_AGGREGATE['steps'][0]['run']],cwd=tmp_path,env=env,capture_output=True,text=True,timeout=10,check=False)
+    assert result.returncode==0
+
+
+
+def test_fresh_fixed_twenty_one_commands_restore_complete_prior_jobs():
+    raw=yaml.safe_load((ROOT/'.github/workflows/sanity.yml').read_text())
+    prior=_workflow_before_fresh_parts(raw,'sanity.yml')
+    assert 'sanity-backend-fresh-1' not in prior['jobs'] and 'sanity-backend-fresh-2' not in prior['jobs']
+    assert prior['jobs']['sanity-backend']['needs']==['sanity-backend-ordinary-a','sanity-backend-ordinary-b','sanity-backend-fresh']
+    assert len(FRESH_PART_MODULES[0])==20 and FRESH_PART_MODULES[1]==('tests/test_research_method_drafts.py',)
+    assert _workflow_before_ordinary_b_parts(raw,'sanity.yml')['jobs']['sanity-backend-fresh']==prior['jobs']['sanity-backend-fresh']
+
+
+@pytest.mark.parametrize('mutation',['missing_worker','missing_command','duplicate_command','reverse_commands','flag','timeout','runner','environment','missing_need','missing_always','aggregate_soft','other_job'])
+def test_fresh_fixed_segments_reject_any_missing_or_wider_boundary(mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows/sanity.yml').read_text());jobs=raw['jobs'];job=jobs[FRESH_PART_IDS[0]]
+    step=next(s for s in job['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline')
+    commands=[s for s in step['run'].splitlines(keepends=True) if s.startswith('python -m pytest ')]
+    if mutation=='missing_worker':del jobs[FRESH_PART_IDS[1]]
+    elif mutation=='missing_command':step['run']=step['run'].replace(commands[0],'',1)
+    elif mutation=='duplicate_command':step['run']=step['run'].replace(commands[0],commands[0]+commands[0],1)
+    elif mutation=='reverse_commands':step['run']=step['run'].replace(''.join(commands),''.join(reversed(commands)),1)
+    elif mutation=='flag':step['run']=step['run'].replace(' -p no:logging','',1)
+    elif mutation=='timeout':job['timeout-minutes']=90
+    elif mutation=='runner':job['runs-on']='macos-latest'
+    elif mutation=='environment':step['env']['PYTHONPATH']='foreign'
+    elif mutation=='missing_need':jobs['sanity-backend-fresh']['needs'].pop()
+    elif mutation=='missing_always':jobs['sanity-backend-fresh'].pop('if')
+    elif mutation=='aggregate_soft':jobs['sanity-backend-fresh']['steps'][0]['run']+='true\n'
+    else:jobs['sanity-backend-ordinary-a']['timeout-minutes']=99
+    with pytest.raises((AssertionError,KeyError,ValueError)):_workflow_before_fresh_parts(raw,'sanity.yml')
+
+
+@pytest.mark.parametrize('one,two',[('success','success'),('failure','success'),('cancelled','success'),('skipped','success'),('','success'),('unknown','success'),('success','failure'),('success','cancelled'),('success','skipped'),('success',''),('success','unknown')])
+def test_fresh_aggregate_executes_strict_complete_success(one,two):
+    run=FRESH_PART_AGGREGATE['steps'][0]['run']
+    result=subprocess.run(['bash','-c',run],env={'BACKEND_FRESH1_RESULT':one,'BACKEND_FRESH2_RESULT':two},capture_output=True,text=True)
+    assert (result.returncode==0)==(one==two=='success')
+
+
+@pytest.mark.parametrize('system,version,target',[('ubuntu-latest','3.10',False),('ubuntu-latest','3.11',False),('ubuntu-latest','3.12',False),('macos-latest','3.11',False),('macos-latest','3.12',True)])
+def test_backend_mac312_only_preparation_budget_preserves_five_matrix_cells(system,version,target):
+    raw=yaml.safe_load((ROOT/'.github/workflows/ci.yml').read_text());job=_workflow_before_cpu_torch_sources(raw,'ci.yml')['jobs']['backend'];prior=_workflow_before_backend_mac312_budget(raw,'ci.yml')['jobs']['backend']
+    matrix=job['strategy']['matrix'];cells=[(s,p) for s in matrix['os'] for p in matrix['python-version'] if {'os':s,'python-version':p} not in matrix['exclude']]
+    assert len(cells)==5 and (system,version) in cells and job['strategy']['fail-fast'] is False
+    assert target==((system,version)==('macos-latest','3.12'))
+    assert job['timeout-minutes']==BACKEND_MAC312_JOB_TIMEOUT and prior['timeout-minutes']==15
+    assert job['steps'][:3]==prior['steps'][:3]
+    if target:
+        assert [job['steps'][i]['timeout-minutes'] for i in (5,8)]==[20,15]
+        assert job['steps'][5]['run']==prior['steps'][3]['run']+prior['steps'][4]['run']
+        assert job['steps'][8]['run'].splitlines()==[prior['steps'][5]['run'],prior['steps'][6]['run']]
+        assert all(job['steps'][i]['if']==BACKEND_MAC312_TARGET_IF for i in (5,8))
+    else:
+        for actual,expected in zip(job['steps'][3:5]+job['steps'][6:8],prior['steps'][3:]):
+            value=copy.deepcopy(actual);assert value.pop('if')==BACKEND_MAC312_OTHER_IF and value==expected
+
+
+@pytest.mark.parametrize('mutation',['all_job_40','prep30','tests_each15','tests30','reverse_tests','missing_test','not_mutual','always','soften','drop_cell','cache','lfs','release_edge'])
+def test_backend_mac312_budget_rejects_any_wider_or_weaker_scope(mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows/ci.yml').read_text());job=raw['jobs']['backend'];steps=job['steps']
+    if mutation=='all_job_40':job['timeout-minutes']=40
+    elif mutation=='prep30':steps[5]['timeout-minutes']=30
+    elif mutation=='tests_each15':steps.insert(9,copy.deepcopy(steps[8]))
+    elif mutation=='tests30':steps[8]['timeout-minutes']=30
+    elif mutation=='reverse_tests':steps[8]['run']='\n'.join(reversed(steps[8]['run'].splitlines()))+'\n'
+    elif mutation=='missing_test':steps[8]['run']=steps[8]['run'].splitlines()[0]+'\n'
+    elif mutation=='not_mutual':steps[3]['if']=BACKEND_MAC312_TARGET_IF
+    elif mutation=='always':steps[8]['if']='always()'
+    elif mutation=='soften':steps[8]['continue-on-error']=True
+    elif mutation=='drop_cell':job['strategy']['matrix']['python-version'].remove('3.11')
+    elif mutation=='cache':steps[2]['with']['key']='new-cache'
+    elif mutation=='lfs':steps[0]['with']['lfs']=False
+    else:raw['jobs']['release-gate-summary']['needs'].remove('backend')
+    with pytest.raises((AssertionError,KeyError)):_workflow_before_backend_mac312_budget(raw,'ci.yml')
+
+
+@pytest.mark.parametrize('phase,fail_at,count',[('prepare',0,6),('prepare',1,1),('prepare',4,4),('tests',0,2),('tests',1,1),('tests',2,2)])
+def test_backend_mac312_original_phase_shell_preserves_fail_fast(tmp_path,phase,fail_at,count):
+    raw=yaml.safe_load((ROOT/'.github/workflows/ci.yml').read_text());_workflow_before_backend_mac312_budget(raw,'ci.yml')
+    step=raw['jobs']['backend']['steps'][5 if phase=='prepare' else 8]
+    tools=tmp_path/'commands';tools.mkdir();trace=tmp_path/'trace';counter=tmp_path/'counter'
+    stub='#!/bin/sh\nn=0; if [ -f "$COUNT_FILE" ]; then read -r n < "$COUNT_FILE"; fi\nn=$((n+1)); printf "%s\\n" "$n" > "$COUNT_FILE"; printf "%s\\n" "$n" >> "$TRACE_FILE"\nif [ "$n" -eq "$FAIL_AT" ]; then exit 17; fi\n'
+    for name in ('python','pip','pytest'):
+        p=tools/name;p.write_text(stub);p.chmod(0o700)
+    result=subprocess.run(['/bin/bash','--noprofile','--norc','-e','-o','pipefail','-c',step['run']],env={'PATH':str(tools)+':/usr/bin:/bin','COUNT_FILE':str(counter),'TRACE_FILE':str(trace),'FAIL_AT':str(fail_at)},capture_output=True,text=True,timeout=5)
+    assert trace.read_text().splitlines()==[str(n) for n in range(1,count+1)]
+    assert result.returncode==(0 if fail_at==0 else 17)
+
+
+
+def _cpu_torch_pin_verifier():
+    source=CPU_TORCH_PRE.split("python - <<'CPU_TORCH_PIN'\n",1)[1].rsplit('\nCPU_TORCH_PIN',1)[0]
+    tree=ast.parse(source);node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='verify_cpu_torch_pin')
+    scope={'hashlib':hashlib,'re':re};exec(compile(ast.Module(body=[node],type_ignores=[]),'<fixed-cpu-pin-verifier>','exec'),scope)
+    return scope['verify_cpu_torch_pin']
+
+
+def test_cpu_torch_only_approved_consumers_and_original_dependency_resolution():
+    assert CPU_TORCH_URL=='https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl'
+    assert CPU_TORCH_SHA256=='5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37'
+    assert len(CPU_TORCH_ORIGINAL_RUNS)==10
+    assert len({jid for name,jid,title in CPU_TORCH_ORIGINAL_RUNS if name=='sanity.yml'})==7
+    verify=_cpu_torch_pin_verifier()
+    verify((ROOT/'requirements/runtime-linux-cpu.lock').read_text(),(ROOT/'web/backend/requirements.txt').read_text(),('cpython','linux',(3,11),'x86_64'))
+    for name in ('sanity.yml','ci.yml'):
+        raw=yaml.safe_load((ROOT/'.github/workflows'/name).read_text());prior=_workflow_before_cpu_torch_sources(raw,name)
+        for (workflow,jid,title),original in CPU_TORCH_ORIGINAL_RUNS.items():
+            if workflow!=name:continue
+            run=next(s['run'] for s in raw['jobs'][jid]['steps'] if s.get('name')==title)
+            assert '--no-deps' not in run and '--upgrade' not in run.replace('python -m pip install --upgrade pip','')
+            assert '--index-url' not in run and '--extra-index-url' not in run
+            assert 'assert torch.version.cuda is None' in run
+            assert next(s['run'] for s in prior['jobs'][jid]['steps'] if s.get('name')==title)==original
+            if name=='sanity.yml' or title=='Install dependencies':
+                commands=[shlex.split(line) for line in run.splitlines() if line.startswith(('pip install ','python -m pip install '))]
+                assert sum(CPU_TORCH_REQUIREMENT in command for command in commands)==1
+    ci=yaml.safe_load((ROOT/'.github/workflows/ci.yml').read_text())
+    assert CPU_TORCH_CI_CONDITION=='if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ "${{ matrix.python-version }}" = "3.11" ]; then\n'
+    # The already reviewed macOS preparation/test phases retain their exact bodies.
+    original=_workflow_before_cpu_torch_sources(ci,'ci.yml')
+    assert ci['jobs']['backend']['steps'][5]==original['jobs']['backend']['steps'][5]
+    assert ci['jobs']['backend']['steps'][8]==original['jobs']['backend']['steps'][8]
+
+
+@pytest.mark.parametrize('runtime',[('cpython','darwin',(3,11),'x86_64'),('cpython','linux',(3,12),'x86_64'),('cpython','linux',(3,11),'aarch64'),('pypy','linux',(3,11),'x86_64')])
+def test_cpu_torch_pin_rejects_any_unapproved_runtime(runtime):
+    with pytest.raises(AssertionError):_cpu_torch_pin_verifier()((ROOT/'requirements/runtime-linux-cpu.lock').read_text(),(ROOT/'web/backend/requirements.txt').read_text(),runtime)
+
+
+@pytest.mark.parametrize('mutation',['lock_hash','wrong_public_version'])
+def test_cpu_torch_pin_rejects_drift_before_installer(mutation):
+    lock=(ROOT/'requirements/runtime-linux-cpu.lock').read_text();requirements=(ROOT/'web/backend/requirements.txt').read_text()
+    if mutation=='lock_hash':lock=lock.replace(CPU_TORCH_SHA256,'0'*64,1)
+    else:requirements=requirements.replace('torch==2.14.1','torch==2.15.0',1)
+    with pytest.raises(AssertionError):_cpu_torch_pin_verifier()(lock,requirements,('cpython','linux',(3,11),'x86_64'))
+
+
+@pytest.mark.parametrize('name,mutation',[('sanity.yml','missing'),('sanity.yml','hash'),('sanity.yml','source'),('sanity.yml','no_deps'),('sanity.yml','cuda_post'),('sanity.yml','other_job'),('ci.yml','missing'),('ci.yml','cpu_cell'),('ci.yml','other_python'),('ci.yml','local_post'),('ci.yml','mac_budget'),('ci.yml','matrix')])
+def test_cpu_torch_workflow_rejects_any_wider_or_missing_selection(name,mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows'/name).read_text())
+    jid='sanity-backend-ordinary-b-3' if name=='sanity.yml' else 'backend'
+    title='Install web/backend deps' if name=='sanity.yml' else 'Install dependencies'
+    step=next(s for s in raw['jobs'][jid]['steps'] if s.get('name')==title)
+    if mutation=='missing':step['run']=CPU_TORCH_ORIGINAL_RUNS[(name,jid,title)]
+    elif mutation=='hash':step['run']=step['run'].replace(CPU_TORCH_SHA256,'0'*64)
+    elif mutation=='source':step['run']=step['run'].replace('download-r2.pytorch.org','foreign.example')
+    elif mutation=='no_deps':step['run']=step['run'].replace('pip install -r','pip install --no-deps -r',1)
+    elif mutation=='cuda_post':step['run']=step['run'].replace('assert torch.version.cuda is None','pass')
+    elif mutation=='other_job':raw['jobs']['sanity-backend']['steps'][0]['run']+='true\n'
+    elif mutation=='cpu_cell':step['run']=step['run'].replace('"ubuntu-latest"','"macos-latest"',1)
+    elif mutation=='other_python':step['run']=step['run'].replace('"3.11"','"3.12"',1)
+    elif mutation=='local_post':next(s for s in raw['jobs']['backend']['steps'] if s.get('name')=='Install local packages (editable)')['run']=CPU_TORCH_ORIGINAL_RUNS[('ci.yml','backend','Install local packages (editable)')]
+    elif mutation=='mac_budget':raw['jobs']['backend']['timeout-minutes']=40
+    else:raw['jobs']['backend']['strategy']['matrix']['python-version'].remove('3.10')
+    with pytest.raises((AssertionError,KeyError)):_workflow_before_cpu_torch_sources(raw,name)
+
+
+@pytest.mark.parametrize('case',['complete','bad_hash','missing_dependency'])
+def test_cpu_torch_stock_pip_dry_run_preserves_public_version_hash_and_dependencies(tmp_path,case):
+    # Inert metadata wheels only: no package code, installation or external index.
+    import zipfile
+    wheels=tmp_path/'wheels';wheels.mkdir();home=tmp_path/'home';home.mkdir()
+    def wheel(name,version,requires=()):
+        normalized=name.replace('-','_');info=normalized+'-'+version+'.dist-info'
+        target=wheels/(normalized+'-'+version+'-py3-none-any.whl')
+        metadata='Metadata-Version: 2.1\nName: '+name+'\nVersion: '+version+'\n'+''.join('Requires-Dist: '+x+'\n' for x in requires)+'\n'
+        with zipfile.ZipFile(target,'w') as archive:
+            archive.writestr(info+'/METADATA',metadata)
+            archive.writestr(info+'/WHEEL','Wheel-Version: 1.0\nGenerator: inert-ci-contract\nRoot-Is-Purelib: true\nTag: py3-none-any\n')
+            archive.writestr(info+'/RECORD','')
+        return target
+    cpu=wheel('torch','2.14.1+cpu',('cpu-contract-dep==1.0',))
+    if case!='missing_dependency':wheel('cpu-contract-dep','1.0')
+    wheel('other-contract-dep','1.0')
+    requirements=tmp_path/'requirements.txt';requirements.write_text('torch==2.14.1\nother-contract-dep==1.0\n')
+    digest=hashlib.sha256(cpu.read_bytes()).hexdigest()
+    if case=='bad_hash':digest='0'*64
+    report=tmp_path/'report.json'
+    command=[CPU_TORCH_PROOF_PYTHON,'-I','-B','-m','pip','--disable-pip-version-check','--cache-dir',str(tmp_path/'cache'),'install','--dry-run','--ignore-installed','--no-index','--only-binary=:all:','--find-links',str(wheels),'--report',str(report),'-r',str(requirements),'torch @ '+cpu.as_uri()+'#sha256='+digest]
+    result=subprocess.run(command,env={'PATH':'/usr/bin:/bin','HOME':str(home),'TMPDIR':str(tmp_path),'PIP_CONFIG_FILE':os.devnull,'PIP_DISABLE_PIP_VERSION_CHECK':'1','PIP_NO_INPUT':'1','PYTHONDONTWRITEBYTECODE':'1'},capture_output=True,text=True,timeout=15)
+    assert result.returncode==0 if case=='complete' else result.returncode!=0
+    if case=='complete':
+        data=json.loads(report.read_text());planned={x['metadata']['name'].replace('_','-'):x['metadata']['version'] for x in data['install']}
+        assert planned=={'torch':'2.14.1+cpu','cpu-contract-dep':'1.0','other-contract-dep':'1.0'}
+        assert data['install'][0]['requested'] is True or any(x['requested'] for x in data['install'])
+    else:assert not report.exists()
+
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_native_resource_reuse_exact_one_workflow_scope(kind):
+    name=kind+'.yml';raw=yaml.safe_load((ROOT/'.github/workflows'/name).read_text());prior=_workflow_before_native_resource_reuse(raw,name)
+    assert raw!=prior
+    assert (ROOT/'web/backend/tests/test_plan_runtime_transport.py').read_text().count('def '+NATIVE_RESOURCE_REUSE_NODE.split('::')[1]+'(')==1
+    assert 'allow_uncertain=True' not in NATIVE_RESOURCE_REUSE_NODE
+
+
+@pytest.mark.parametrize('mutation',['missing','duplicate','relative','function_prefix','extra_negative','marker'])
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_native_resource_reuse_workflow_rejects_wider_or_missing_selector(kind,mutation):
+    name=kind+'.yml';raw=yaml.safe_load((ROOT/'.github/workflows'/name).read_text());value=copy.deepcopy(raw)
+    jid='sanity-backend-fresh-1' if kind=='sanity' else 'coverage';title='Leg 2 — web/backend pytest baseline' if kind=='sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step=next(s for s in value['jobs'][jid]['steps'] if s.get('name')==title);flag=_native_resource_reuse_flag()
+    if mutation=='missing':step['run']=step['run'].replace(flag,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(flag,flag+flag,1)
+    elif mutation=='relative':step['run']=step['run'].replace(NATIVE_RESOURCE_REUSE_NODE,NATIVE_RESOURCE_REUSE_NODE.removeprefix('web/backend/'),1)
+    elif mutation=='function_prefix':step['run']=step['run'].replace(NATIVE_RESOURCE_REUSE_NODE,NATIVE_RESOURCE_REUSE_NODE.split('::')[0],1)
+    elif mutation=='extra_negative':step['run']=step['run'].replace(flag,flag+' --deselect="web/backend/tests/test_plan_runtime_transport.py::test_retire_unhanded_is_io_only_and_uncertainty_is_sticky[True]"',1)
+    else:step['run']=step['run'].replace(flag+' -p no:logging ',flag+' ',1)
+    assert value!=raw
+    with pytest.raises(AssertionError):_workflow_before_native_resource_reuse(value,name)

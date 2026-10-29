@@ -21,6 +21,7 @@ import pytest
 from web.backend.research.authorization import AuthorizationGate,OwnerGateLease
 from web.backend.research.errors import ResearchError
 from web.backend.research import source_policy
+from web.backend.tests.test_research_source_spawn import development_auth
 
 ROOT=Path(__file__).resolve().parents[3]
 TARGET=source_policy.article_target("10.1371/journal.pone.0015032")
@@ -87,12 +88,14 @@ def parent_main(config_path):
             while not Path(config["parent_go"]).exists():time.sleep(.01)
         original(self,connection,child_pid,deadline)
     OwnerGateLease.handoff=observed_handoff
-    gate=AuthorizationGate(SimpleNamespace(path=Path(config["root"])/"unused.sqlite3"))
-    with gate.owner_gate_id(config["gate_id"]) as lease:
-        _write(config["started"],{"at":time.monotonic(),"parent":os.getpid(),"identity":lease.identity})
-        value=source_policy.PinnedPublicTransport(wall_seconds=config["wall"],_worker=functools.partial(_local_worker,config)).get(
-            TARGET,still_authorized=lambda:True,owner_lease=lease)
-        _write(config["result"],{"status":value[0],"body":value[2].decode()})
+    with pytest.MonkeyPatch.context() as backing_setup:
+        backing=development_auth.__wrapped__(Path(config["root"]),backing_setup)
+        gate=AuthorizationGate(backing)
+        with gate.owner_gate_id(config["gate_id"]) as lease:
+            _write(config["started"],{"at":time.monotonic(),"parent":os.getpid(),"identity":lease.identity})
+            value=source_policy.PinnedPublicTransport(wall_seconds=config["wall"],_worker=functools.partial(_local_worker,config)).get(
+                TARGET,still_authorized=lambda:True,owner_lease=lease)
+            _write(config["result"],{"status":value[0],"body":value[2].decode()})
 
 
 def _running(pid):
@@ -189,6 +192,8 @@ def _start(tmp_path,port,stage,wall):
         config[name]=str(tmp_path/name)
     path=tmp_path/"config.json";path.write_text(json.dumps(config))
     env={**os.environ,"PYTHONPATH":str(ROOT)+os.pathsep+str(ROOT/"web/backend"),"PYTHONDONTWRITEBYTECODE":"1"}
+    guard=sys.modules.get('audit_bootstrap')
+    if guard is not None:env['PYTHONPATH']=str(Path(guard.__file__).resolve().parent)+os.pathsep+env['PYTHONPATH']
     log=(tmp_path/"parent.log").open("wb")
     process=subprocess.Popen([sys.executable,"-c","from web.backend.tests.test_research_source_lifetime import parent_main; import sys; parent_main(sys.argv[1])",str(path)],cwd=ROOT,env=env,start_new_session=True,stdout=log,stderr=log)
     return process,config,log
@@ -208,7 +213,7 @@ def _cleanup_group(process,log):
 
 
 @pytest.mark.parametrize("stage",["before-arm","before-handoff","queued-handle","sender","blocked-alarm"])
-def test_sigkill_parent_cannot_leave_unleased_late_sender(tmp_path,local_source,stage):
+def test_sigkill_parent_cannot_leave_unleased_late_sender(tmp_path,local_source,stage,development_auth):
     port,calls=local_source
     wall=12 if stage in {"queued-handle","sender"} else 2
     parent,config,log=_start(tmp_path,port,stage,wall)
@@ -222,7 +227,7 @@ def test_sigkill_parent_cannot_leave_unleased_late_sender(tmp_path,local_source,
             print(json.dumps(_owned_tracker_diagnostic(parent.pid,ready,started,stage,len(trackers)),sort_keys=True))
         assert len(trackers)==1,"expected this independent parent's private resource_tracker"
         os.kill(parent.pid,signal.SIGKILL);parent.wait(timeout=3)
-        gate=AuthorizationGate(SimpleNamespace(path=tmp_path/"unused.sqlite3"))
+        gate=AuthorizationGate(development_auth)
         leased=stage in {"queued-handle","sender","blocked-alarm"}
         if leased:
             with pytest.raises(ResearchError) as error:
@@ -253,7 +258,7 @@ def test_sigkill_parent_cannot_leave_unleased_late_sender(tmp_path,local_source,
     finally:_cleanup_group(parent,log)
 
 
-def test_normal_local_response_and_lease_context_recovery(tmp_path,local_source):
+def test_normal_local_response_and_lease_context_recovery(tmp_path,local_source,development_auth):
     port,calls=local_source
     parent,config,log=_start(tmp_path,port,"sender",3)
     try:
@@ -263,15 +268,15 @@ def test_normal_local_response_and_lease_context_recovery(tmp_path,local_source)
         assert parent.returncode==0,(tmp_path/"parent.log").read_text()
         assert json.loads(Path(config["result"]).read_text())=={"status":200,"body":"local"}
         assert len(calls)==1 and calls[0]["cancel_committed"] is False
-        gate=AuthorizationGate(SimpleNamespace(path=tmp_path/"unused.sqlite3"))
+        gate=AuthorizationGate(development_auth)
         with gate.owner_gate_id(config["gate_id"],timeout=1):pass
         assert not _running(ready["pid"])
     finally:_cleanup_group(parent,log)
 
 
-def test_missing_inactive_or_forged_lease_fails_before_spawn(tmp_path):
+def test_missing_inactive_or_forged_lease_fails_before_spawn(tmp_path,development_auth):
     with pytest.raises(TypeError):OwnerGateLease(0)
-    gate=AuthorizationGate(SimpleNamespace(path=tmp_path/"unused.sqlite3"))
+    gate=AuthorizationGate(development_auth)
     with gate.owner_gate_id(str(uuid4())) as lease:
         identity=lease.identity
         assert len(identity)==5

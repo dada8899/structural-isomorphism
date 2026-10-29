@@ -8,6 +8,7 @@ import multiprocessing
 import os
 import signal
 import sqlite3
+from contextlib import closing
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -155,8 +156,16 @@ def test_same_email_new_generation_never_inherits_old_research(stack):
     assert client.get(f"/api/research/{rid}").status_code == 404
     new_id = create(client, key="create-one")
     assert new_id != rid
+    new_cookie = client.cookies.get("phase_session")
+    client.cookies.delete("phase_session")
     client.cookies.set("phase_session", old_cookie)
-    assert client.get(f"/api/research/{rid}").status_code == 401
+    replayed = client.get(f"/api/research/{rid}")
+    from starlette.requests import Request
+    sent_headers = [(name.lower().encode(), value.encode()) for name, value in replayed.request.headers.multi_items()]
+    sent_cookie = Request({"type": "http", "headers": sent_headers}).cookies.get("phase_session")
+    old_sent, new_sent = sent_cookie == old_cookie, sent_cookie == new_cookie
+    assert old_sent and not new_sent
+    assert replayed.status_code == 401
 
 
 def trusted_sso(email):
@@ -192,7 +201,7 @@ def test_unified_credentials_fail_closed_before_research_reads_writes_and_replay
         client.cookies.set("phase_session", "invalid-synthetic-direct")
     me = client.get("/api/auth/me")
     assert me.status_code == (200 if credentials == "sso-only" else expected)
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         before = tuple(conn.execute("SELECT count(*) FROM " + table).fetchone()[0]
                        for table in ("research_controls", "research_revisions", "research_idempotency"))
     responses = [
@@ -205,7 +214,7 @@ def test_unified_credentials_fail_closed_before_research_reads_writes_and_replay
     if expected != 200:
         for response in responses:
             assert problem()["original_input"] not in response.text
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn, conn:
             after = tuple(conn.execute("SELECT count(*) FROM " + table).fetchone()[0]
                           for table in ("research_controls", "research_revisions", "research_idempotency"))
         assert after == before
@@ -266,17 +275,24 @@ def test_disabled_and_production_cannot_be_opted_in(stack, monkeypatch):
     assert post(client, "/api/research", {"problem":problem()}).status_code == 503
 
 
-def test_storage_failure_rolls_back_revision_and_idempotency(stack):
+def test_storage_failure_rolls_back_revision_and_idempotency(stack,monkeypatch):
     client, path = stack
     rid = create(client)
-    with sqlite3.connect(path) as conn:
-        conn.execute("""CREATE TRIGGER research_injected_failure BEFORE INSERT ON research_revisions
-            WHEN NEW.revision=2 BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END""")
-    response = post(client, f"/api/research/{rid}/revisions", {"expected_revision":1,"problem":problem("第二修订")}, "failed-rev")
+    connect=sqlite3.connect;inserted=[]
+    class FaultConnection(sqlite3.Connection):
+        def execute(self,sql,*args,**kwargs):
+            result=super().execute(sql,*args,**kwargs)
+            if sql.startswith('INSERT INTO research_revisions') and args and args[0][1]==2:
+                inserted.append(True);raise sqlite3.OperationalError('synthetic failure')
+            return result
+    with monkeypatch.context() as failed:
+        failed.setattr(sqlite3,'connect',lambda *a,**k:connect(*a,**k) if 'factory' in k else connect(*a,factory=FaultConnection,**k))
+        response = post(client, f"/api/research/{rid}/revisions", {"expected_revision":1,"problem":problem("第二修订")}, "failed-rev")
+    assert inserted
     assert response.status_code == 503 and "synthetic" not in response.text
     current = client.get(f"/api/research/{rid}").json()["data"]
     assert current["research_version"] == 1 and len(current["revisions"]) == 1
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn:
         assert conn.execute("SELECT count(*) FROM research_idempotency").fetchone()[0] == 1
 
 

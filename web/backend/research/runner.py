@@ -146,6 +146,20 @@ class ResearchRunner:
         return self.run_once(task_id,max_steps=1)
 
     def run_once(self,task_id=None,*,max_steps=2):
+        if task_id is None:
+            from .plan_runtime import next_plan_task
+            task_id=next_plan_task(self.store)
+            if task_id is None:
+                with self.store.transaction() as conn:
+                    native=conn.execute("SELECT r.task_id FROM research_plan_native_runs r JOIN research_tasks t ON t.id=r.task_id WHERE r.state='approved' AND t.execution='QUEUED' ORDER BY t.created_at,t.id LIMIT 1").fetchone() if conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_plan_native_runs'").fetchone() else None
+                    task_id=native[0] if native else None
+        if task_id is not None and self.task(task_id)['policy_revision']=='native-plan-v1':
+            from .plan_native_runtime import run_once
+            return run_once(self.store,task_id)
+        if task_id is not None and self.task(task_id)['policy_revision']=='funded-plan-v1':
+            from .plan_runtime import run_once
+            return run_once(self.store,task_id)
+
         from .source_integration import enabled as sources_enabled
         from .budget import enabled as c0_enabled
         source_available=sources_enabled()
@@ -167,7 +181,23 @@ class ResearchRunner:
             raise ResearchError('FEATURE_UNAVAILABLE',503,'此worker尚不支持该任务策略。')
         # Task lock may span response wait. Cancellation/deletion only take
         # owner lock, so they never wait for this task lock or network finish.
-        with self.gate.owner_gate_id(task_id) as task_lease:
+        with self.store.transaction() as conn:
+            version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
+            if version in (11,12,13,14,15):
+                # A cancelled, never-born sender needs no new sending lease.
+                # Existing gates/started runs/any request still take the real
+                # task+owner closure path below, including terminal tasks.
+                terminal=conn.execute("""SELECT t.execution FROM research_tasks t
+                    JOIN research_source_runs r ON r.task_id=t.id
+                    JOIN research_source_resources s ON s.task_id=t.id
+                    WHERE t.id=? AND t.policy_revision='d1-source-only-v1'
+                    AND t.execution IN ('COMPLETED','FAILED','CANCELLED','ACCESS_REVOKED')
+                    AND r.started=0 AND r.task_gate_identity IS NULL
+                    AND s.state='closed' AND s.task_gate_identity IS NULL
+                    AND NOT EXISTS(SELECT 1 FROM research_source_requests q WHERE q.task_id=t.id)""",(task_id,)).fetchone()
+                if terminal:return terminal['execution']
+        lock=self.gate.source_task_gate(task_id) if version in (11,12,13,14,15) and self.task(task_id)['policy_revision']=='d1-source-only-v1' else self.gate.owner_gate_id(task_id)
+        with lock as task_lease:
             task=self.task(task_id)
             if task['policy_revision'] not in supported:
                 raise ResearchError('FEATURE_UNAVAILABLE',503,'此worker尚不支持该任务策略。')

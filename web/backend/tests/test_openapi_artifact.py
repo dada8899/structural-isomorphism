@@ -217,7 +217,7 @@ def test_browser_contract_jobs_use_the_release_target_runtime_pins():
         "starlette==1.3.1",
         "uvicorn[standard]==0.27.1",
     )
-    for job_name in ("browser-product-contract", "browser-beta-surface-contract"):
+    for job_name in ("browser-product-contract", "browser-identity-consent-contract", "browser-beta-surface-contract"):
         run_scripts = "\n".join(
             str(step.get("run", "")) for step in workflow["jobs"][job_name]["steps"]
         )
@@ -337,3 +337,29 @@ def test_key_account_library_and_method_success_contracts_are_typed(tmp_path):
         ("/api/method/apply", "post"),
     ):
         _assert_nonempty_json_response(schema, path, method)
+
+
+def test_raw_preparations_documents_required_query_without_changing_runtime_order():
+    """The public selector contract matches the existing authenticated codec."""
+    import ast
+    import re
+    from web.backend.research.source_document_raw import read_query
+
+    source=(PROJECT_ROOT / "web/backend/api/research.py").read_text()
+    route=next(n for n in ast.parse(source).body
+        if isinstance(n,ast.AsyncFunctionDef) and n.name=="source_raw_preparations")
+    assert [arg.arg for arg in route.args.args]==["research_id","request"]
+    decorator=next(n for n in route.decorator_list if isinstance(n,ast.Call))
+    extra=ast.literal_eval(next(k.value for k in decorator.keywords if k.arg=="openapi_extra"))
+    assert len(extra["parameters"])==1
+    query=extra["parameters"][0]
+    assert (query["name"],query["in"],query["required"])==("task_id","query",True)
+    assert query["schema"]["type"]=="string" and query["schema"]["format"]=="uuid"
+    valid="12345678-1234-4234-8234-123456789abc"
+    assert re.fullmatch(query["schema"]["pattern"],valid)
+    assert read_query([("task_id",valid)])==valid
+    for value in (valid.upper(),valid.replace("-4234-","-5234-"),"not-a-uuid",""):
+        assert re.fullmatch(query["schema"]["pattern"],value) is None
+        with pytest.raises(ValueError):read_query([("task_id",value)])
+    for pairs in ([],[("task_id",valid),("task_id",valid)],[("task_id",valid),("kind","raw")]):
+        with pytest.raises(ValueError):read_query(pairs)

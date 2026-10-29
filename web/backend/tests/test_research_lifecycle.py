@@ -9,7 +9,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 import threading
 from uuid import uuid4
-from contextlib import contextmanager
+from contextlib import contextmanager, closing
 from pathlib import Path
 
 import pytest
@@ -80,7 +80,7 @@ def assert_fenced(client, rid):
 
 
 def assert_minimal_completed(path):
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         conn.row_factory=sqlite3.Row
         job=dict(conn.execute("SELECT * FROM auth_deletion_jobs").fetchone())
         assert job["state"] == "completed"
@@ -101,7 +101,7 @@ def test_real_account_delete_erases_body_replay_and_old_incarnation(lifecycle):
     client,path,_=lifecycle
     rid,_=seed(client)
     cookie=client.cookies.get("phase_session")
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         before=conn.execute("SELECT id,epoch,gate_id FROM research_principals").fetchone()
     response=delete(client)
     assert response.status_code == 200,response.text
@@ -119,7 +119,7 @@ def test_real_account_delete_erases_body_replay_and_old_incarnation(lifecycle):
     assert client.get(f"/api/research/{rid}").status_code == 404
     new_id=create(client,"erase-create")
     assert new_id != rid
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         after=conn.execute("SELECT id,epoch,gate_id FROM research_principals WHERE status='active'").fetchone()
         assert after[0] != before[0] and after[2] == before[2]
         assert conn.execute("SELECT epoch FROM research_principals WHERE id=?",(before[0],)).fetchone()[0] == before[1]+1
@@ -203,9 +203,9 @@ def _crash_child(history,cookie,phase):
         from research.service import ResearchService
         # Crash after the real durable fence, before erasing research contents.
         if phase == "fence":
-            ResearchService.erase_research_locked=lambda *args:os._exit(73)
+            ResearchService.erase_research_locked=lambda *args,**kwargs:os._exit(73)
         elif phase == "after-auth-delete":
-            ResearchService.finish_account_deletion_locked=lambda *args:os._exit(74)
+            ResearchService.finish_account_deletion_locked=lambda *args,**kwargs:os._exit(74)
         else:
             ResearchService.record_legacy_deletion_locked=lambda *args,**kwargs:os._exit(75)
         delete(client)
@@ -222,7 +222,7 @@ def test_real_process_crash_after_fence_keeps_access_closed_and_recovers(lifecyc
         process.join(15)
         assert process.exitcode == {"fence":73,"after-auth-delete":74,"before-legacy-receipt":75}[phase]
         assert_fenced(client,rid)
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn, conn:
             if phase == "fence":
                 assert CANARY in conn.execute("SELECT problem_json FROM research_revisions").fetchone()[0]
                 assert conn.execute("SELECT status,epoch FROM research_principals").fetchone() == ("deleting",2)
@@ -231,12 +231,12 @@ def test_real_process_crash_after_fence_keeps_access_closed_and_recovers(lifecyc
             else:
                 assert conn.execute("SELECT count(*) FROM auth_users").fetchone()[0] == 0
             job_id=conn.execute("SELECT id FROM auth_deletion_jobs WHERE state='pending'").fetchone()[0]
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn, conn:
             tokens_before=conn.execute("SELECT count(*) FROM magic_tokens WHERE email=?",(EMAIL,)).fetchone()[0]
         requested=client.post("/api/auth/request-link",json={"email":EMAIL})
         assert requested.status_code == 200 and requested.json() == {"ok":True}
         assert client.post("/api/auth/verify",json={"token":"unissued-pending-token"}).status_code == 400
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn, conn:
             assert conn.execute("SELECT count(*) FROM magic_tokens WHERE email=?",(EMAIL,)).fetchone()[0] == tokens_before
         _resume_in_new_process(history,job_id)
         completed=assert_minimal_completed(path)
@@ -260,11 +260,11 @@ def _ordered_api_child(history,cookie,rid,operation,attempted,held,release,done,
     @contextmanager
     def controlled_gate(self,*args,**kwargs):
         attempted.set()
-        with original(self,*args,**kwargs):
+        with original(self,*args,**kwargs) as lease:
             if held is not None:
                 held.set()
                 if not release.wait(15):raise RuntimeError("barrier expired")
-            yield
+            yield lease
     AuthorizationGate.owner_gate_id=controlled_gate
     try:
         if legacy_failure:
@@ -346,7 +346,7 @@ def test_hmac_mismatch_process_and_live_rotation_fail_closed(lifecycle,monkeypat
         with pytest.raises(RuntimeError,match="configuration mismatch"):
             ResearchStore(cached)
     assert cached.owner_gate_id(EMAIL) == gate
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn, conn:
         assert conn.execute("SELECT count(*) FROM auth_owner_gates").fetchone()[0] == 1
 
 
@@ -376,7 +376,7 @@ def test_busy_old_reader_keeps_scrubbing_until_real_checkpoint_succeeds(lifecycl
         assert response.status_code == 503
         assert response.json()["access_ended"] is True
         assert "清理尚未完成" in response.json()["message"]
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn, conn:
             job=conn.execute("SELECT id,state,owner_email,session_generation FROM auth_deletion_jobs").fetchone()
             assert job[1:] == ("scrubbing",None,None)
         assert auth.pending_account_deletions() == [job[0]]
@@ -399,7 +399,7 @@ def test_copied_database_cannot_resume_original_registered_job(lifecycle,monkeyp
     copy_dir=path.parent.parent/"copied-db"
     copy_dir.mkdir()
     copied=copy_dir/"auth.sqlite3"
-    with sqlite3.connect(path) as original,sqlite3.connect(copied) as copy:
+    with closing(sqlite3.connect(path)) as original, original, closing(sqlite3.connect(copied)) as copy, copy:
         original.backup(copy)
     with monkeypatch.context() as changed:
         changed.setattr(auth,"_data_dir",lambda:copy_dir)
@@ -413,10 +413,11 @@ def test_copied_database_cannot_resume_original_registered_job(lifecycle,monkeyp
 def test_v1_research_migration_keeps_existing_lock_inode_and_problem(lifecycle,monkeypatch):
     client,path,_=lifecycle
     with monkeypatch.context() as legacy:
+        legacy.setattr(ResearchStore,"_initialize_current",lambda self,conn:False)
         legacy.setattr(ResearchStore,"_migrate_v5",lambda self:None)
         legacy.setattr(ResearchStore,"_migrate_v6",lambda self:None)
         rid=create(client)
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn,conn:
         principal=conn.execute("SELECT id FROM research_principals").fetchone()[0]
         conn.execute("DROP TRIGGER research_principal_gate_required")
         conn.execute("ALTER TABLE research_principals DROP COLUMN gate_id")
@@ -424,12 +425,22 @@ def test_v1_research_migration_keeps_existing_lock_inode_and_problem(lifecycle,m
         conn.execute("DELETE FROM auth_owner_gates")
     lock=path.parent/"research-locks"/(principal+".lock")
     inode=lock.stat().st_ino
-    ResearchStore(auth._store())
+    database_identity=(path.stat().st_dev,path.stat().st_ino)
+    upgraded=ResearchStore(auth._store())
+    with upgraded.transaction() as conn:assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==9
+    path.chmod(0o600) # Actual offline migration permission prerequisite.
+    from research.formula_runtime import formula_maintenance
+    with formula_maintenance(upgraded) as maintenance:upgraded.migrate_formula_v10(maintenance=maintenance)
     assert lock.stat().st_ino == inode
-    with sqlite3.connect(path) as conn:
-        from research.store import CURRENT_RESEARCH_SCHEMA_VERSION
-        assert conn.execute("SELECT version FROM research_schema").fetchone()[0] == CURRENT_RESEARCH_SCHEMA_VERSION
+    assert (path.stat().st_dev,path.stat().st_ino) == database_identity
+    # Explicit formula maintenance ends at historical R10, before Source11.
+    with upgraded.transaction() as conn:
+        upgraded._check_v10(conn)
+        assert conn.execute("SELECT version FROM research_schema").fetchone()[0] == 10
+        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
         assert conn.execute("SELECT gate_id FROM research_principals").fetchone()[0] == principal
+        original=json.loads(conn.execute("SELECT problem_json FROM research_revisions WHERE research_id=? AND revision=1",(rid,)).fetchone()[0])
+        assert original["original_input"] == problem()["original_input"]
     assert client.get(f"/api/research/{rid}").status_code == 200
     assert post(client,f"/api/research/{rid}/revisions",{"expected_revision":1,"problem":problem("迁移后新修订")}).status_code == 200
 
@@ -449,7 +460,7 @@ def test_legacy_key_without_auth_account_and_new_incarnation_share_gate_without_
         assert post(standalone,"/api/research",{"problem":problem()},"key-only").status_code == 401
         login(standalone,"standalone@example.test")
         rid=create(standalone,"new-account")
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn, conn:
             assert conn.execute("SELECT p.gate_id FROM research_principals p JOIN research_controls r ON r.owner_id=p.id WHERE r.id=?",(rid,)).fetchone()[0] == old_gate
 
 
@@ -488,7 +499,7 @@ def test_report_resource_lifecycle_controls_public_access_and_keeps_anonymous_le
         assert all("legacy sample" not in response.text and EMAIL not in response.text for response in responses)
         listed=public.get("/api/reports/mine",headers={"X-Anon-Id":"legacy-anon"})
         assert listed.status_code == 200 and listed.json()["items"] == []
-        with sqlite3.connect(history) as conn:
+        with closing(sqlite3.connect(history)) as conn, conn:
             assert conn.execute("SELECT count(*) FROM report_feedback WHERE note='AFTER-FENCE-FEEDBACK'").fetchone()[0] == 0
             assert conn.execute("SELECT count(*) FROM report_followup WHERE note='AFTER-FENCE-FOLLOWUP'").fetchone()[0] == 0
         assert store.get_by_id(report_id)["view_count"] == before_views
@@ -558,7 +569,7 @@ def test_public_feedback_and_delete_use_same_resource_owner_gate(lifecycle,first
         responses=dict(result.get(timeout=20) for _ in range(2))
         assert responses["delete"] == 500
         assert responses["public-feedback"] == (200 if first=="public-feedback" else 404)
-        with sqlite3.connect(history) as conn:
+        with closing(sqlite3.connect(history)) as conn, conn:
             assert conn.execute("SELECT count(*) FROM report_feedback WHERE note='ORDERED-PUBLIC-FEEDBACK'").fetchone()[0] == (1 if first=="public-feedback" else 0)
     finally:
         release.set()
@@ -609,7 +620,7 @@ def test_history_transaction_rechecks_anonymous_owner_after_real_claim_delete(li
         if first=="claim-delete":
             release.set()
             assert result.get(timeout=15) == ("status",404)
-        with sqlite3.connect(history) as conn:
+        with closing(sqlite3.connect(history)) as conn, conn:
             if operation=="feedback":count=conn.execute("SELECT count(*) FROM report_feedback WHERE note='TRANSITION-FEEDBACK'").fetchone()[0]
             elif operation=="followup":count=conn.execute("SELECT count(*) FROM report_followup WHERE note='TRANSITION-FOLLOWUP'").fetchone()[0]
             else:count=conn.execute("SELECT view_count FROM reports WHERE id=?",(item["id"],)).fetchone()[0]

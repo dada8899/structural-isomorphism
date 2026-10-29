@@ -23,6 +23,7 @@ from services.auth_store import AuthStore
 from services.report_store import ReportStore
 from errors import install_problem_handlers
 from .test_private_sso_store import private, native, shared_assets, SECRET
+from .test_private_registration import register_private_user
 
 ALICE = 'alice@example.invalid'
 BOB = 'bob@example.invalid'
@@ -34,12 +35,7 @@ PHASE = 'https://phase.bytedance.city'
 def stack(private, monkeypatch):
     shared_assets(private, monkeypatch)
     state = private.parent
-    with monkeypatch.context() as dev:
-        dev.setenv('STRUCTURAL_ENV', 'dev')
-        for email in (ALICE, BOB):
-            auth._store().ensure_user_and_notification(email, 'pro', 'synthetic')
-            with auth.account_owner_transaction(email):
-                pass
+    for email in (ALICE, BOB):register_private_user(monkeypatch,email,'pro')
     for name in ('favorites.jsonl', 'favorites.lock', 'account_deletion_audit.jsonl'):
         (state / name).write_bytes(b'')
         (state / name).chmod(0o600)
@@ -56,7 +52,7 @@ def stack(private, monkeypatch):
         app.include_router(router, prefix='/api')
     install_problem_handlers(app)
     with TestClient(app, base_url=BETA) as client:
-        token, _ = auth._issue_jwt(ALICE, 'pro')
+        token = private_session(ALICE)
         client.cookies.set('phase_session', token)
         yield client, state, app
 
@@ -76,15 +72,127 @@ def request_for(token, *, sso_cookie=False):
         'headers': [(b'host', b'beta.structural.bytedance.city'), (b'cookie', (name + '=' + token).encode())]})
 
 
+def private_session(email,tier='pro'):
+    with pytest.MonkeyPatch.context() as patch:
+        return register_private_user(patch,email,tier)[1]
+
+
+def retire_auth_incarnation(email):
+    """Real protected delete, deliberately retaining separate fixture assets.
+
+    These tests model leftover old Favorites/SSO material, so the explicit
+    fixture registry includes only authentication. No Auth capability is faked.
+    """
+    from services.account_data_registry import AccountDataRegistry
+    original=auth._account_registry
+    def auth_only(**kwargs):
+        registry=original(**kwargs)
+        return AccountDataRegistry([asset for asset in registry.assets if asset.name=='authentication'])
+    token=private_session(email)
+    app=FastAPI();app.include_router(auth.router,prefix='/api')
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(auth,'_account_registry',auth_only)
+        with TestClient(app,base_url=BETA) as client:
+            client.cookies.set('phase_session',token)
+            response=client.post('/api/me/delete',json={'confirmation':'DELETE'},headers={'Origin':BETA})
+            assert response.status_code==200,response.text
+
+
 @contextmanager
 def deletion_context(email=ALICE):
-    service = auth._account_deletion_service()
-    generation = auth._store().user(email)['session_generation']
-    with auth.account_owner_transaction(email) as lease:
-        job_id = service.begin_account_deletion_locked(email, generation,
-            auth._store().owner_gate_id(email), auth._account_cleanup_binding(email), owner_lease=lease)
-        with auth._favorites_authority(email, generation, lease, service=service, job_id=job_id) as authority:
-            yield service, job_id, authority
+    """Pause one actual DELETE request after its protected job commits.
+
+    FastAPI supplies the parsed body and original endpoint. The request keeps
+    its real native owner gate held until the tested snapshot stage ends; no
+    request/source capability is fabricated or retained after that boundary.
+    """
+    import queue
+    import threading
+    entered=queue.Queue(maxsize=1);release=threading.Event();request_thread=[]
+    original=auth._run_account_deletion_locked
+    class FixturePauseEnded(RuntimeError):pass
+    def pause(service,job_id,*,owner_lease=None):
+        # Explicit foreground calls in the original tests still execute the
+        # real eraser/recovery function and return its actual durable result.
+        if request_thread and threading.get_ident()!=request_thread[0]:
+            return original(service,job_id,owner_lease=owner_lease)
+        job=service.deletion_job(job_id)
+        assert job['owner_email']==email and job['state']=='pending'
+        assert job['origin_version']=='authenticated-delete-v1'
+        owner_lease.identity
+        request_thread.append(threading.get_ident())
+        entered.put((service,job_id,owner_lease,job['session_generation']))
+        assert release.wait(30),'snapshot fixture did not release the actual DELETE request'
+        raise FixturePauseEnded('fixture stops after the tested snapshot stage')
+    token=private_session(email)
+    app=FastAPI();app.include_router(auth.router,prefix='/api')
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(auth,'_run_account_deletion_locked',pause)
+        with TestClient(app,base_url=BETA) as client,concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            client.cookies.set('phase_session',token)
+            future=executor.submit(client.post,'/api/me/delete',json={'confirmation':'DELETE'},headers={'Origin':BETA})
+            try:
+                deadline=time.monotonic()+15
+                while True:
+                    try:service,job_id,lease,generation=entered.get(timeout=.05);break
+                    except queue.Empty:
+                        if future.done():
+                            result=future.result()
+                            pytest.fail('actual DELETE did not reach protected snapshot stage: '+str(result.status_code)+' '+result.text)
+                        assert time.monotonic()<deadline,'actual DELETE snapshot stage timed out'
+                # Mint this test scope only while the original request still
+                # holds that exact native FD in this same process. Retire it
+                # before allowing the request's gate/source contexts to end.
+                with auth._favorites_authority(email,generation,lease,service=service,job_id=job_id) as authority:
+                    yield service,job_id,authority
+            finally:
+                release.set()
+                result=future.result(timeout=15)
+                assert result.status_code==500 and result.json()['error']=='account deletion failed'
+
+
+@contextmanager
+def queued_deletion_context():
+    """Hold the real DELETE request's gate while a competing caller queues.
+
+    The router creates its own authenticated source and protected job after
+    release. Neither source nor native lease leaves the actual request thread.
+    """
+    import threading
+    entered=threading.Event();release=threading.Event()
+    original=auth.account_owner_transaction
+    original_connect=sqlite3.connect;local=threading.local()
+    def observed(*args,**kwargs):
+        connection=original_connect(*args,**kwargs)
+        if not hasattr(local,'handles'):local.handles=[]
+        local.handles.append(connection)
+        return connection
+    @contextmanager
+    def paused(owner):
+        try:
+            with original(owner) as lease:
+                entered.set()
+                assert release.wait(8),'queued deletion fixture was not released'
+                yield lease
+        finally:
+            for connection in local.handles:
+                with pytest.raises(sqlite3.ProgrammingError):connection.execute('SELECT 1')
+            print('FAVORITES_DELETE_THREAD_CLOSE_CHECKS:'+str(len(local.handles)))
+    token=private_session(ALICE)
+    app=FastAPI();app.include_router(auth.router,prefix='/api')
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(auth,'account_owner_transaction',paused)
+        patch.setattr(sqlite3,'connect',observed)
+        with TestClient(app,base_url=BETA) as client,concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            client.cookies.set('phase_session',token)
+            future=executor.submit(client.post,'/api/me/delete',json={'confirmation':'DELETE'},headers={'Origin':BETA})
+            try:
+                assert entered.wait(5),'actual DELETE did not acquire the owner gate'
+                yield
+            finally:
+                release.set()
+                response=future.result(timeout=10)
+                assert response.status_code==200,response.text
 
 
 def exchange_material(stack, monkeypatch):
@@ -92,7 +200,7 @@ def exchange_material(stack, monkeypatch):
     # The actual production issuer and consumer use their distinct origins
     # with the same synthetic authoritative AuthStore, not a copied DTO.
     with TestClient(app, base_url=PHASE) as phase:
-        token, _ = auth._issue_jwt(ALICE, 'pro')
+        token = private_session(ALICE)
         phase.cookies.set('phase_session', token)
         started = client.get('/api/sso/start', follow_redirects=False)
         assert started.status_code == 303
@@ -168,8 +276,8 @@ def test_missing_generation_code_retired_and_new_generation_code_cannot_be_upgra
     old = dict(claims);old.pop('gen')
     assert client.post('/api/sso/exchange', json={'code': jwt.encode(old, SECRET, algorithm='HS256'), 'state': state}).status_code == 401
     # A real account erase/re-registration changes the persisted generation.
-    auth._store().delete_account_data(ALICE)
-    auth._store().ensure_user_and_notification(ALICE, 'pro', 'new synthetic incarnation')
+    retire_auth_incarnation(ALICE)
+    private_session(ALICE)
     assert auth._store().user(ALICE)['session_generation'] != claims['gen']
     assert client.post('/api/sso/exchange', json={'code': code, 'state': state}).status_code == 401
     assert sso.get_replay_store().lookup_issued(claims['jti']) is not None
@@ -179,7 +287,7 @@ def test_wrong_nonce_and_existing_other_cookie_do_not_consume(stack, native, mon
     client, code, state, claims = exchange_material(stack, monkeypatch)
     wrong = dict(claims);wrong['nonce'] = 'other-nonce'
     assert client.post('/api/sso/exchange', json={'code': jwt.encode(wrong, SECRET, algorithm='HS256'), 'state': state}).status_code == 400
-    token, _ = auth._issue_jwt(BOB, 'pro');client.cookies.set('phase_session', token)
+    token = private_session(BOB);client.cookies.set('phase_session', token)
     assert client.post('/api/sso/exchange', json={'code': code, 'state': state}).status_code == 409
     assert sso.get_replay_store().lookup_issued(claims['jti']) is not None
 
@@ -230,7 +338,7 @@ def test_present_bad_session_generation_rejected_in_every_profile(stack, native,
 
 
 def test_only_absent_dev_generation_has_legacy_compatibility_never_formal(stack, native, monkeypatch):
-    client, _, _ = stack
+    client, state, _ = stack
     ledger = sso.get_replay_store();subject = sso._subject_id(ALICE)
     ledger.issue('old-session-link', subject, 'pro', int(time.time()) + 300, email=ALICE)
     claims = {'iss': BETA, 'aud': 'structural-beta-session', 'sub': subject,
@@ -243,7 +351,22 @@ def test_only_absent_dev_generation_has_legacy_compatibility_never_formal(stack,
     assert exported.status_code == 401 and 'retired' in exported.text
     with monkeypatch.context() as dev:
         dev.setenv('STRUCTURAL_ENV', 'dev')
-        user, status = sso.resolve_beta_user(request_for(token, sso_cookie=True))
+        # A captured formal Auth path cannot become a legacy development DB.
+        with pytest.raises(PermissionError, match='captured private Auth path'):
+            sso.resolve_beta_user(request_for(token, sso_cookie=True))
+        legacy = state.parent / 'legacy-dev'
+        dev.setenv('AUTH_DATA_DIR', str(legacy))
+        dev.setenv('STRUCTURAL_SSO_DATA_DIR', str(legacy))
+        legacy_auth = auth._store()
+        assert legacy_auth.path != state / 'auth.sqlite3' and not legacy_auth._private_auth
+        email = 'legacy@example.invalid'
+        legacy_auth.ensure_user_and_notification(email, 'pro', '2026-10-18T00:00:00+00:00')
+        legacy_subject = sso._subject_id(email)
+        legacy_ledger = sso.get_replay_store()
+        assert legacy_ledger.path == legacy / 'sso_replay.sqlite3' and legacy_ledger.storage_identity is None
+        legacy_ledger.issue('legacy-dev-session-link', legacy_subject, 'pro', int(time.time()) + 300, email=email)
+        legacy_token = jwt.encode({**claims, 'sub': legacy_subject}, SECRET, algorithm='HS256')
+        user, status = sso.resolve_beta_user(request_for(legacy_token, sso_cookie=True))
         assert status == 'valid' and '_verified_generation' not in user
     assert sso.resolve_beta_user(request_for(token, sso_cookie=True))[1] == 'retired'
 
@@ -385,7 +508,7 @@ def test_full_formal_delete_recovery_keeps_other_owner_and_new_incarnation_separ
     assert client.post('/api/favorites/AAPL').status_code == 201
     old_token = client.cookies.get('phase_session')
     alice_record = copy.deepcopy(records(state)[0])
-    bob_token, _ = auth._issue_jwt(BOB, 'pro');client.cookies.set('phase_session', bob_token)
+    bob_token = private_session(BOB);client.cookies.set('phase_session', bob_token)
     assert client.post('/api/favorites/MSFT').status_code == 201
     bob_before = next(v for v in records(state) if v.get('email') == BOB)
     client.cookies.set('phase_session', old_token)
@@ -394,8 +517,8 @@ def test_full_formal_delete_recovery_keeps_other_owner_and_new_incarnation_separ
         assert result['removed']['favorites']['records'] == 1
     assert auth.resume_account_deletion(job_id) == result
     assert client.get('/api/favorites').status_code == 401
-    auth._store().ensure_user_and_notification(ALICE, 'pro', 'new synthetic incarnation')
-    new_token, _ = auth._issue_jwt(ALICE, 'pro');client.cookies.set('phase_session', new_token)
+    private_session(ALICE)
+    new_token = private_session(ALICE);client.cookies.set('phase_session', new_token)
     assert client.get('/api/favorites').json()['tickers'] == []
     assert client.post('/api/favorites/GOOG').status_code == 201
     assert not any('_favorites_tombstone' in v and v['_favorites_tombstone']['owner_key'] == alice_record['_favorites_owner']['owner_key'] for v in records(state))
@@ -622,7 +745,7 @@ def test_two_real_processes_rewrite_whole_file_without_lost_other_owner(stack, n
     import subprocess
     client, state, _ = stack
     go = state.parent / 'go'
-    tokens = [client.cookies.get('phase_session'), auth._issue_jwt(BOB, 'pro')[0]]
+    tokens = [client.cookies.get('phase_session'), private_session(BOB)]
     ready = [state.parent / ('ready-' + str(index)) for index in range(2)]
     processes = []
     try:
@@ -648,14 +771,11 @@ def test_queued_real_process_write_revalidates_after_account_delete(stack, nativ
     ready, go = state.parent / 'queued-ready', state.parent / 'queued-go'
     process = None
     try:
-        with auth.account_owner_transaction(ALICE) as lease:
+        with queued_deletion_context():
             process = subprocess.Popen(child_command(state, 'queued-write', client.cookies.get('phase_session'), 'MSFT', ready, go),
                 env=child_env(state), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            await_ready([process], [ready]);go.write_text('go')
-            service = auth._account_deletion_service()
-            job_id = service.begin_account_deletion_locked(ALICE, auth._store().user(ALICE)['session_generation'],
-                auth._store().owner_gate_id(ALICE), auth._account_cleanup_binding(ALICE), owner_lease=lease)
-            auth._run_account_deletion_locked(service, job_id, owner_lease=lease)
+            await_ready([process], [ready])
+        go.write_text('go')
         result = finish_child(process)
         print('FAVORITES_QUEUED_RESULT:' + json.dumps(result))
         assert result['status'] == 401 and result['native'] == result['closed']
@@ -686,13 +806,13 @@ def test_both_namespaces_share_lock_and_real_thread_writes_close_native_on_creat
         monkeypatch.setattr(other_paths, name, getattr(paths, name))
     assert other_paths.FAVORITES_LOCK is paths.FAVORITES_LOCK
     assert other_paths.FAVORITES_IO is paths.FAVORITES_IO
+    tokens = [client.cookies.get('phase_session'), private_session(BOB)]
     original = sqlite3.connect;local = threading.local();local.handles = []
     def observed(*args, **kwargs):
         conn = original(*args, **kwargs)
         local.handles.append(conn)
         return conn
     monkeypatch.setattr(sqlite3, 'connect', observed)
-    tokens = [client.cookies.get('phase_session'), auth._issue_jwt(BOB, 'pro')[0]]
     def work(index):
         local.handles = []
         module = (favorites, other)[index]
@@ -714,9 +834,9 @@ def test_same_email_reregistration_cannot_read_or_replace_leftover_old_generatio
     assert client.post('/api/favorites/AAPL').status_code == 201
     old = copy.deepcopy(records(state)[0]);old_token = client.cookies.get('phase_session')
     # Deliberately leave the separately stored Favorites material in place.
-    auth._store().delete_account_data(ALICE)
-    auth._store().ensure_user_and_notification(ALICE, 'pro', 'new synthetic incarnation')
-    new_token, _ = auth._issue_jwt(ALICE, 'pro');client.cookies.set('phase_session', new_token)
+    retire_auth_incarnation(ALICE)
+    private_session(ALICE)
+    new_token = private_session(ALICE);client.cookies.set('phase_session', new_token)
     assert client.get('/api/favorites').json()['tickers'] == []
     assert client.get('/api/me/export').json()['data']['favorites']['exists'] is False
     assert client.post('/api/favorites/MSFT').status_code == 201
@@ -734,9 +854,9 @@ def test_new_sso_session_old_generation_poison_cannot_fallback_to_fresh_direct_c
     client, code, state, claims = exchange_material(stack, monkeypatch)
     assert client.post('/api/sso/exchange', json={'code': code, 'state': state}).status_code == 200
     old_sso = client.cookies.get('structural_beta_session')
-    auth._store().delete_account_data(ALICE)
-    auth._store().ensure_user_and_notification(ALICE, 'pro', 'new synthetic incarnation')
-    fresh, _ = auth._issue_jwt(ALICE, 'pro');client.cookies.set('phase_session', fresh)
+    retire_auth_incarnation(ALICE)
+    private_session(ALICE)
+    fresh = private_session(ALICE);client.cookies.set('phase_session', fresh)
     assert auth.resolve_account_user(request_for(fresh))[1] == 'valid'
     assert client.get('/api/favorites').status_code == 401
     assert sso.resolve_beta_user(request_for(old_sso, sso_cookie=True))[1] == 'invalid'
@@ -820,6 +940,12 @@ def test_stable_lock_inode_is_never_replaced_and_substitution_is_rejected(stack,
 
 @pytest.mark.parametrize('configured', ['', 'relative/favorites.jsonl', 'file:/tmp/favorites.jsonl', '../favorites.jsonl'])
 def test_formal_config_cannot_fallback_or_escape(private, native, monkeypatch, configured):
+    import stat
+    target = private.parent / 'favorites.jsonl'
+    info = target.lstat()
+    assert stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid() and info.st_nlink == 1
+    assert target.read_bytes() == b''
+    target.unlink()  # Explicit missing-file prerequisite after real bootstrap.
     monkeypatch.setenv('STRUCTURAL_FAVORITES_PATH', configured)
     with pytest.raises(paths.RuntimePathError):favorites._data_file()
     assert not native and not (private.parent / 'favorites.jsonl').exists()
@@ -828,17 +954,19 @@ def test_formal_config_cannot_fallback_or_escape(private, native, monkeypatch, c
 def test_exchange_queued_behind_real_deletion_rechecks_before_consume(stack, native, monkeypatch):
     import threading
     client, code, state, claims = exchange_material(stack, monkeypatch)
-    waiting = threading.Event();original_gate = sso.account_owner_transaction
+    waiting = threading.Event();go = threading.Event();original_gate = sso.account_owner_transaction
     original_consume = sso.SsoReplayStore.consume_issued;consumed = []
     original_connect = sqlite3.connect;local = threading.local();local.handles = []
     def observed(*args, **kwargs):
         connection = original_connect(*args, **kwargs)
+        if not hasattr(local, 'handles'):local.handles = []
         local.handles.append(connection)
         return connection
     monkeypatch.setattr(sqlite3, 'connect', observed)
     @contextmanager
     def announced(owner):
         waiting.set()
+        assert go.wait(timeout=10), 'queued exchange was not released after actual DELETE'
         with original_gate(owner) as lease:yield lease
     def consume(self, jti):
         consumed.append(jti);return original_consume(self, jti)
@@ -856,14 +984,14 @@ def test_exchange_queued_behind_real_deletion_rechecks_before_consume(stack, nat
             with pytest.raises(sqlite3.ProgrammingError):connection.execute('SELECT 1')
         return response
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        with auth.account_owner_transaction(ALICE) as lease:
-            future = executor.submit(exchange)
-            assert waiting.wait(timeout=5)
-            service = auth._account_deletion_service()
-            job_id = service.begin_account_deletion_locked(ALICE, auth._store().user(ALICE)['session_generation'],
-                auth._store().owner_gate_id(ALICE), auth._account_cleanup_binding(ALICE), owner_lease=lease)
-            auth._run_account_deletion_locked(service, job_id, owner_lease=lease)
-        response = future.result(timeout=10)
+        future = None
+        try:
+            with queued_deletion_context():
+                future = executor.submit(exchange)
+                assert waiting.wait(timeout=5)
+        finally:
+            go.set()
+            if future is not None:response = future.result(timeout=10)
     assert response.status_code == 409 and consumed == []
     assert 'set-cookie' not in response.headers
     assert auth._store().user(ALICE) is None
@@ -908,9 +1036,9 @@ def test_preexisting_old_generation_does_not_block_current_snapshot_compensation
     client, state, _ = stack
     assert client.post('/api/favorites/AAPL').status_code == 201
     previous_incarnation = copy.deepcopy(records(state)[0])
-    auth._store().delete_account_data(ALICE)
-    auth._store().ensure_user_and_notification(ALICE, 'pro', 'new synthetic incarnation')
-    current_token, _ = auth._issue_jwt(ALICE, 'pro')
+    retire_auth_incarnation(ALICE)
+    private_session(ALICE)
+    current_token = private_session(ALICE)
     client.cookies.set('phase_session', current_token)
     assert client.get('/api/favorites').json()['tickers'] == []
     assert client.post('/api/favorites/MSFT').status_code == 201
@@ -950,8 +1078,8 @@ def test_real_next_generation_writer_atomically_invalidates_prior_deletion_marke
         assert service.deletion_job(job_id)['state'] == 'completed'
     assert auth.resume_account_deletion(job_id) == result
     assert records(state)[0]['_favorites_tombstone'] == mark
-    auth._store().ensure_user_and_notification(ALICE, 'pro', 'new synthetic incarnation')
-    token, _ = auth._issue_jwt(ALICE, 'pro');client.cookies.set('phase_session', token)
+    private_session(ALICE)
+    token = private_session(ALICE);client.cookies.set('phase_session', token)
     new_generation = auth._store().user(ALICE)['session_generation']
     assert new_generation != old_generation
     assert client.get('/api/favorites').json()['tickers'] == []

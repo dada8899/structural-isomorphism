@@ -8,7 +8,9 @@ import re
 import shlex
 import shutil
 import subprocess
+from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -100,7 +102,24 @@ def test_research_workspace_and_actual_bundle_never_load_analytics() -> None:
     bundle = (FRONTEND / "assets/research.js").read_text(encoding="utf-8")
     assert "research.html" in AUTH_OR_NONPUBLIC
     assert "research" in ANALYTICS_PRIVATE_OR_RETIRED_PAGES
-    assert html.count('src="/assets/research.js"') == 1
+    class ScriptSources(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.sources = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag == 'script':
+                sources = [value for name, value in attrs if name == 'src']
+                assert len(sources) <= 1
+                self.sources.extend(sources)
+
+    scripts = ScriptSources()
+    scripts.feed(html)
+    workspace = [urlsplit(source) for source in scripts.sources
+                 if urlsplit(source).path == '/assets/research.js']
+    assert len(workspace) == 1
+    assert workspace[0].scheme == workspace[0].netloc == workspace[0].fragment == ''
+    assert workspace[0].query == 'v=20261023-fin3-scenario1'
     for content in (html, bundle):
         for forbidden in (
             "analytics-consent.js", "/assets/js/analytics.js", "plausible.bytedance.city",
