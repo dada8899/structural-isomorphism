@@ -713,7 +713,7 @@ def test_retirement_transaction_generator_reports_real_original_entry_and_chain(
     assert MARKER not in json.dumps(value)
 
 
-def test_retirement_transaction_wrapper_does_not_follow_caller_functions_or_callbacks(monkeypatch):
+def test_retirement_transaction_wrapper_does_not_follow_caller_functions_or_callbacks():
     import types
     from research import store
     from services.runtime_paths import RuntimePathError
@@ -733,9 +733,11 @@ def test_retirement_transaction_wrapper_does_not_follow_caller_functions_or_call
     clone = types.FunctionType(original.__code__.replace(), vars(store))
     clone.__qualname__ = original.__qualname__
     for replacement in (clone, _RetirementCanary()):
-        with monkeypatch.context() as patch:
-            patch.setattr(wrapper, '__wrapped__', replacement)
+        try:
+            vars(wrapper)['__wrapped__'] = replacement
             assert frames() == []
+        finally:
+            vars(wrapper)['__wrapped__'] = original
     assert frames()[-1]['function'] == 'ResearchStore.transaction.__wrapped__'
 
 
