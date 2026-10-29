@@ -2161,6 +2161,14 @@ def _dry_run_before_native_resource_reuse(output):
     pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
     prior=NATIVE_RESOURCE_REUSE_PRIOR_MAKE_LINE.removeprefix('\t').replace('$(BACKEND_PYTEST)','PYTHONPATH='+pythonpath+' python -m pytest',1)
     current=prior.replace(' -p no:logging',_native_resource_reuse_flag()+' -p no:logging',1)
+    if not any(line.startswith('cd web/backend && '+ 'PYTHONPATH='+pythonpath+' python -m pytest tests/test_plan_runtime_transport.py ') for line in output.splitlines()):
+        # The existing root-only dry-run consumer emits precisely this pair;
+        # a complete verify-release output missing a backend command is rejected.
+        prefix='PYTHONPATH='+pythonpath+' python -m pytest'
+        _,ordinary,_=_root_current_main_recipe_pair(prefix)
+        ordinary=ordinary.replace(' --ignore=tests/e2e',' --ignore=tests/e2e'+_root_retired_browser_flags(),1)
+        assert output==ordinary+_root_current_main_required_fresh_recipe(prefix)
+        return output
     assert output.splitlines(keepends=True).count(current)==1
     return output.replace(current,prior,1)
 
@@ -5316,3 +5324,12 @@ def test_native_resource_reuse_actual_make_preserves_complete_prior_chain():
     assert result.returncode==0
     restored=_dry_run_before_root_current_main33(result.stdout)
     assert NATIVE_RESOURCE_REUSE_NODE not in restored
+
+
+
+def test_native_resource_reuse_full_verify_dryrun_rejects_missing_backend_command():
+    result=subprocess.run(['make','-n','PY=python','verify-release'],cwd=ROOT,env={'PATH':os.environ['PATH']},capture_output=True,text=True,timeout=10)
+    assert result.returncode==0
+    lines=result.stdout.splitlines(keepends=True);target=[line for line in lines if line.startswith('cd web/backend && ') and NATIVE_RESOURCE_REUSE_NODE in line];assert len(target)==1
+    changed=result.stdout.replace(target[0],'',1)
+    with pytest.raises(AssertionError):_dry_run_before_native_resource_reuse(changed)
