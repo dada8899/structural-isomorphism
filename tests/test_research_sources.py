@@ -435,18 +435,29 @@ class SourceTests(unittest.TestCase):
                     context=Mock()
                     context.Pipe.return_value=(receiver,sender)
                     context.RawArray.return_value=bytearray(1)
-                    context.Process.return_value=process
                     # Acquire the real lease before clock instrumentation;
                     # these deterministic supervisor branch probes add no
                     # waiting and do not replace the actual 0.3-second test.
                     with held_lease() as lease:
-                        with patch("web.backend.research.source_policy.multiprocessing.get_context",return_value=context),patch("web.backend.research.source_policy.time.monotonic",side_effect=[100.0,100.1,observed_at]):
+                        identity=lease.identity
+                        with patch("web.backend.research.source_policy.multiprocessing.get_context",return_value=context),patch("web.backend.research.source_spawn.source_process",return_value=process) as factory,patch("web.backend.research.source_policy.time.monotonic",side_effect=[100.0,100.1,observed_at]):
                             with self.assertRaises(SourceFailure) as result:
                                 PinnedPublicTransport(wall_seconds=0.3,_worker=slow_worker).get(article_target(DOI),still_authorized=lambda:True,owner_lease=lease)
                     expected="source hard deadline" if expired else "source worker result unavailable" if eof else "source worker exited without result"
                     self.assertEqual(str(result.exception),expected)
-                    process.join.assert_called_once_with(timeout=0.25)
+                    factory.assert_called_once()
+                    operands=factory.call_args.args[0]
+                    self.assertEqual(len(operands),6)
+                    self.assertIs(operands[0],sender)
+                    self.assertEqual(operands[1],article_target(DOI))
+                    self.assertIs(operands[2],slow_worker)
+                    self.assertIs(operands[3],context.RawArray.return_value)
+                    self.assertAlmostEqual(operands[4],100.3)
+                    self.assertEqual(operands[5],identity)
+                    process.start.assert_called_once_with()
                     process.close.assert_called_once_with()
+                    sender.close.assert_called()
+                    receiver.close.assert_called_once_with()
 
     def test_owned_process_stops_when_authorization_is_revoked(self):
         start = time.monotonic()
