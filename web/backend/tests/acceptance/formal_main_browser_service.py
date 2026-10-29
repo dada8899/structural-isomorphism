@@ -181,11 +181,26 @@ _RETIREMENT_MODULES = (
     ('web.backend.research.native_plan_supervisor', 'web/backend/research/native_plan_supervisor.py'),
     ('research.errors', 'web/backend/research/errors.py'),
     ('web.backend.research.errors', 'web/backend/research/errors.py'),
+    ('research.store', 'web/backend/research/store.py'),
+    ('web.backend.research.store', 'web/backend/research/store.py'),
+    ('services.sqlite_utils', 'web/backend/services/sqlite_utils.py'),
+    ('web.backend.services.sqlite_utils', 'web/backend/services/sqlite_utils.py'),
+    ('services.runtime_paths', 'web/backend/services/runtime_paths.py'),
+    ('web.backend.services.runtime_paths', 'web/backend/services/runtime_paths.py'),
 )
 _RETIREMENT_FUNCTIONS = {
     'web/backend/services/formal_admission.py': ('withdraw', 'close_source',
         'source_closed', 'close_native', 'native_closed', 'release',
-        'preserve_retirement_uncertainty', '_owned', '_Binding.check'),
+        'preserve_retirement_uncertainty', '_owned', '_Binding.check',
+        '_history_worker_current', 'reserve_history_resource',
+        'begin_history_resource_close'),
+    'web/backend/research/store.py': ('ResearchStore._formal_mode',
+        'ResearchStore._connect', 'ResearchStore.transaction.__wrapped__'),
+    'web/backend/services/sqlite_utils.py': ('connect_private_auth',
+        'native_thread_budget'),
+    'web/backend/services/runtime_paths.py': ('private_auth_path',
+        '_open_runtime_directory', '_close_runtime_fd', '_attach_history_parent',
+        '_validated_directory_fd', '_check_current_parent', 'PrivateAuthFile.check'),
     'web/backend/research/source_supervisor.py': ('_check', '_identity_handle',
         '_same_store', '_binding_module', '_main_stop_entry', '_matching_intent',
         '_controlled_stopping', '_select', '_execute', 'request_main_stop',
@@ -205,7 +220,9 @@ _RETIREMENT_ERROR_CLASSES = {
     'web/backend/research/source_supervisor.py': ('_SourceStopping',
         'SourceStartFailure', 'SourceRetirementUncertain'),
     'web/backend/research/native_plan_supervisor.py': ('NativePlanStartFailure',),
-    'web/backend/services/formal_admission.py': ('FormalAdmissionWithdrawn',),
+    'web/backend/services/formal_admission.py': ('FormalAdmissionWithdrawn',
+        'HistoryReadUnavailable'),
+    'web/backend/services/runtime_paths.py': ('RuntimePathError',),
 }
 _MISSING_RETIREMENT_FIELD = object()
 
@@ -274,8 +291,23 @@ def _retirement_frames(error):
         for literal in _RETIREMENT_FUNCTIONS.get(relative, ()):
             parts = literal.split('.')
             function = vars(module).get(parts[0])
-            if len(parts) == 2:
+            if len(parts) in (2, 3):
                 function = vars(function).get(parts[1]) if type(function) is type else None
+            if len(parts) == 3:
+                # Only this canonical contextmanager's original generator is
+                # observable; do not follow arbitrary wrappers or descriptors.
+                wrapped = vars(function).get('__wrapped__') if type(function) is types.FunctionType else None
+                closure = function.__closure__ if type(function) is types.FunctionType else None
+                function = wrapped if (
+                    literal == 'ResearchStore.transaction.__wrapped__'
+                    and type(wrapped) is types.FunctionType
+                    and wrapped.__globals__ is vars(module)
+                    and wrapped.__qualname__ == 'ResearchStore.transaction'
+                    and wrapped.__code__.co_filename == str(ROOT / relative)
+                    and wrapped.__code__.co_flags & 0x20
+                    and type(closure) is tuple and len(closure) == 1
+                    and closure[0].cell_contents is wrapped
+                ) else None
             if type(function) is types.FunctionType:
                 codes.append((function.__code__, relative, literal))
     frames = []
