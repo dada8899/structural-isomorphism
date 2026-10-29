@@ -2074,7 +2074,7 @@ ROOT_CURRENT_MAIN_STDOUT_PRIOR_MAKE_SHA256 = 'b866437c09c242c4d054fac9c625a589b0
 
 def _makefile_before_current_main_stdout(makefile):
     _,_,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)')
-    stdout=fresh.replace(' -m ',' -p no:logging -m ',1)
+    stdout=fresh.replace(' -m \"not e2e',' -p no:logging -m \"not e2e',1)
     assert makefile.splitlines(keepends=True).count(stdout)==1
     prior=makefile.replace(stdout,fresh,1)
     assert hashlib.sha256(prior.encode()).hexdigest()==ROOT_CURRENT_MAIN_STDOUT_PRIOR_MAKE_SHA256
@@ -2085,7 +2085,7 @@ def _dry_run_before_current_main_stdout(output):
     _makefile_before_current_main_stdout((ROOT/'Makefile').read_text())
     pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
     _,_,fresh=_root_current_main_recipe_pair('PYTHONPATH='+pythonpath+' python -m pytest')
-    stdout=fresh.replace(' -m ',' -p no:logging -m ',1)
+    stdout=fresh.replace(' -m \"not e2e',' -p no:logging -m \"not e2e',1)
     assert output.splitlines(keepends=True).count(stdout)==1
     return output.replace(stdout,fresh,1)
 
@@ -4853,6 +4853,7 @@ def test_root_current_main_pair_keeps_all_33_selected_in_one_fresh_process():
 @pytest.mark.parametrize('mutation',['missing_pair','missing_filter','whole_module','wrong_path','wrong_parameter','duplicate_filter','fresh_missing','fresh_duplicate','fresh_order','marker','other_recipe'])
 def test_root_current_main_pair_rejects_missing_duplicate_or_weaker_placement(mutation):
     raw=(ROOT/'Makefile').read_text();original,ordinary,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)');token=' --deselect="'+ROOT_CURRENT_MAIN_NODES[0]+'"'
+    fresh=fresh.replace(' -m \"not e2e',' -p no:logging -m \"not e2e',1)
     if mutation=='missing_pair':value=raw.replace(fresh,'',1)
     elif mutation=='missing_filter':value=raw.replace(token,'',1)
     elif mutation=='whole_module':value=raw.replace(token,' --deselect="tests/test_research_browser.py"',1)
@@ -4864,6 +4865,7 @@ def test_root_current_main_pair_rejects_missing_duplicate_or_weaker_placement(mu
     elif mutation=='fresh_order':value=raw.replace(fresh,fresh.replace(shlex.join(ROOT_CURRENT_MAIN_NODES),shlex.join(reversed(ROOT_CURRENT_MAIN_NODES)),1),1)
     elif mutation=='marker':value=raw.replace(fresh,fresh.replace(' -m "not e2e and not slow and not requires_internet and not requires_llm"',''),1)
     else:value=raw.replace('$(PYTEST) -m "not e2e" -q','$(PYTEST) -q',1)
+    assert value!=raw
     with pytest.raises(AssertionError):_makefile_before_root_current_main33(value)
 
 
@@ -4897,11 +4899,12 @@ def test_root_retired_browser_rejects_missing_duplicate_or_wider_defer(mutation)
     elif mutation=='function_prefix':value=raw.replace(param_token,' --deselect="'+param.split('[')[0]+'"',1)
     elif mutation=='foreign_parameter':value=raw.replace(param_token,' --deselect="'+param.split('[')[0]+'[foreign]"',1)
     elif mutation=='fresh_defer':
-        _,_,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)');value=raw.replace(fresh,fresh.replace(' -m ',token+' -m ',1),1)
+        _,_,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)');fresh=fresh.replace(' -m \"not e2e',' -p no:logging -m \"not e2e',1);value=raw.replace(fresh,fresh.replace(' -m ',token+' -m ',1),1)
     elif mutation=='fresh_missing':
-        _,_,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)');value=raw.replace(fresh,'',1)
+        _,_,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)');fresh=fresh.replace(' -m \"not e2e',' -p no:logging -m \"not e2e',1);value=raw.replace(fresh,'',1)
     elif mutation=='marker':value=raw.replace('not requires_llm" -q','not requires_llm and not current" -q',1)
     else:value=raw.replace('$(PYTEST) -m "not e2e" -q','$(PYTEST) -q',1)
+    assert value!=raw
     with pytest.raises(AssertionError):_makefile_before_retired_browser121(value)
 
 
@@ -4917,7 +4920,7 @@ def test_root_retired_browser_actual_make_dryrun_reverses_complete_chain():
 def test_root_current_main_stdout_only_disables_pytest_logging_for_fresh33():
     raw=(ROOT/'Makefile').read_text();prior=_makefile_before_current_main_stdout(raw)
     _,_,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)')
-    assert fresh.replace(' -m ',' -p no:logging -m ',1) in raw and fresh in prior
+    assert fresh.replace(' -m \"not e2e',' -p no:logging -m \"not e2e',1) in raw and fresh in prior
     ordinary=[line for line in raw.splitlines() if line.startswith('\t$(BACKEND_PYTEST) tests --ignore=tests/e2e ')]
     assert len(ordinary)==1 and 'no:logging' not in ordinary[0]
     assert raw.count('-p no:logging')==prior.count('-p no:logging')+1
@@ -4925,7 +4928,7 @@ def test_root_current_main_stdout_only_disables_pytest_logging_for_fresh33():
 
 @pytest.mark.parametrize('mutation',['missing','duplicate','wrong_plugin','ordinary','different_selector','marker'])
 def test_root_current_main_stdout_rejects_missing_duplicate_or_changed_scope(mutation):
-    raw=(ROOT/'Makefile').read_text();_,_,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)');stdout=fresh.replace(' -m ',' -p no:logging -m ',1)
+    raw=(ROOT/'Makefile').read_text();_,_,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)');stdout=fresh.replace(' -m \"not e2e',' -p no:logging -m \"not e2e',1)
     if mutation=='missing':value=raw.replace(stdout,fresh,1)
     elif mutation=='duplicate':value=raw.replace(stdout,stdout.replace(' -p no:logging',' -p no:logging -p no:logging',1),1)
     elif mutation=='wrong_plugin':value=raw.replace(stdout,stdout.replace('no:logging','no:terminal',1),1)
