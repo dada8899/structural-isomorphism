@@ -167,6 +167,7 @@ def _ci_job(job_name: str) -> dict[str, object]:
 def _workflow_data(workflow_path: Path) -> dict[str, object]:
     workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
     assert isinstance(workflow, dict), "CI workflow must be a mapping"
+    workflow=_workflow_before_backend_mac312_budget(workflow,workflow_path.name)
     if workflow_path.name in {"sanity.yml", "coverage.yml"}: workflow = _workflow_before_legacy_schema_fourteen(workflow, workflow_path.name)
     if workflow_path.name in {"sanity.yml", "coverage.yml"}: workflow = _workflow_before_preowned_six(workflow, workflow_path.name)
     return _workflow_before_sanity_groups(workflow) if workflow_path.name == "sanity.yml" else workflow
@@ -1966,8 +1967,32 @@ def _workflow_before_legacy_schema_fourteen(value,name):
     return original
 
 
+# The single macOS/Python3.12 cell gets a bounded preparation phase;
+# its two original test commands share one 15-minute phase, not 15 each.
+BACKEND_MAC312_TARGET_IF = "${{ matrix.os == 'macos-latest' && matrix['python-version'] == '3.12' }}"
+BACKEND_MAC312_OTHER_IF = "${{ !(matrix.os == 'macos-latest' && matrix['python-version'] == '3.12') }}"
+BACKEND_MAC312_JOB_TIMEOUT = "${{ matrix.os == 'macos-latest' && matrix['python-version'] == '3.12' && 40 || 15 }}"
+BACKEND_MAC312_PRIOR_JOBS_SHA256 = 'e19c9f8e6a62f2cc2b2257610541fffb02018a69ee5ed5be2cd8d2695146dbbc'
+
+
+def _workflow_before_backend_mac312_budget(value,name):
+    if name!='ci.yml':return value
+    original=copy.deepcopy(value);job=original['jobs']['backend'];steps=job['steps']
+    assert job['timeout-minutes']==BACKEND_MAC312_JOB_TIMEOUT and len(steps)==9
+    ordinary=steps[3:5]+steps[6:8]
+    assert [s['name'] for s in ordinary]==['Install dependencies','Install local packages (editable)','Run sanity tests','Run integration tests (skip slow)']
+    for step in ordinary:assert step.pop('if')==BACKEND_MAC312_OTHER_IF
+    expected_prep={'name':'Prepare original dependencies (macOS Python 3.12)','if':BACKEND_MAC312_TARGET_IF,'timeout-minutes':20,'run':ordinary[0]['run']+ordinary[1]['run']}
+    expected_tests={'name':'Run original backend suites (macOS Python 3.12)','if':BACKEND_MAC312_TARGET_IF,'timeout-minutes':15,'run':ordinary[2]['run']+'\n'+ordinary[3]['run']+'\n'}
+    assert steps[5]==expected_prep and steps[8]==expected_tests
+    job['timeout-minutes']=15;job['steps']=steps[:3]+ordinary
+    assert hashlib.sha256(json.dumps(original['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==BACKEND_MAC312_PRIOR_JOBS_SHA256
+    return original
+
+
 def _workflow_source_before_legacy_schema(name):
     value=yaml.safe_load((ROOT/'.github/workflows'/name).read_text())
+    value=_workflow_before_backend_mac312_budget(value,name)
     return _workflow_before_legacy_schema_fourteen(value,name) if name in {'sanity.yml','coverage.yml'} else value
 
 
@@ -4535,3 +4560,53 @@ def test_fresh_aggregate_executes_strict_complete_success(one,two):
     run=FRESH_PART_AGGREGATE['steps'][0]['run']
     result=subprocess.run(['bash','-c',run],env={'BACKEND_FRESH1_RESULT':one,'BACKEND_FRESH2_RESULT':two},capture_output=True,text=True)
     assert (result.returncode==0)==(one==two=='success')
+
+
+@pytest.mark.parametrize('system,version,target',[('ubuntu-latest','3.10',False),('ubuntu-latest','3.11',False),('ubuntu-latest','3.12',False),('macos-latest','3.11',False),('macos-latest','3.12',True)])
+def test_backend_mac312_only_preparation_budget_preserves_five_matrix_cells(system,version,target):
+    raw=yaml.safe_load((ROOT/'.github/workflows/ci.yml').read_text());job=raw['jobs']['backend'];prior=_workflow_before_backend_mac312_budget(raw,'ci.yml')['jobs']['backend']
+    matrix=job['strategy']['matrix'];cells=[(s,p) for s in matrix['os'] for p in matrix['python-version'] if {'os':s,'python-version':p} not in matrix['exclude']]
+    assert len(cells)==5 and (system,version) in cells and job['strategy']['fail-fast'] is False
+    assert target==((system,version)==('macos-latest','3.12'))
+    assert job['timeout-minutes']==BACKEND_MAC312_JOB_TIMEOUT and prior['timeout-minutes']==15
+    assert job['steps'][:3]==prior['steps'][:3]
+    if target:
+        assert [job['steps'][i]['timeout-minutes'] for i in (5,8)]==[20,15]
+        assert job['steps'][5]['run']==prior['steps'][3]['run']+prior['steps'][4]['run']
+        assert job['steps'][8]['run'].splitlines()==[prior['steps'][5]['run'],prior['steps'][6]['run']]
+        assert all(job['steps'][i]['if']==BACKEND_MAC312_TARGET_IF for i in (5,8))
+    else:
+        for actual,expected in zip(job['steps'][3:5]+job['steps'][6:8],prior['steps'][3:]):
+            value=copy.deepcopy(actual);assert value.pop('if')==BACKEND_MAC312_OTHER_IF and value==expected
+
+
+@pytest.mark.parametrize('mutation',['all_job_40','prep30','tests_each15','tests30','reverse_tests','missing_test','not_mutual','always','soften','drop_cell','cache','lfs','release_edge'])
+def test_backend_mac312_budget_rejects_any_wider_or_weaker_scope(mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows/ci.yml').read_text());job=raw['jobs']['backend'];steps=job['steps']
+    if mutation=='all_job_40':job['timeout-minutes']=40
+    elif mutation=='prep30':steps[5]['timeout-minutes']=30
+    elif mutation=='tests_each15':steps.insert(9,copy.deepcopy(steps[8]))
+    elif mutation=='tests30':steps[8]['timeout-minutes']=30
+    elif mutation=='reverse_tests':steps[8]['run']='\n'.join(reversed(steps[8]['run'].splitlines()))+'\n'
+    elif mutation=='missing_test':steps[8]['run']=steps[8]['run'].splitlines()[0]+'\n'
+    elif mutation=='not_mutual':steps[3]['if']=BACKEND_MAC312_TARGET_IF
+    elif mutation=='always':steps[8]['if']='always()'
+    elif mutation=='soften':steps[8]['continue-on-error']=True
+    elif mutation=='drop_cell':job['strategy']['matrix']['python-version'].remove('3.11')
+    elif mutation=='cache':steps[2]['with']['key']='new-cache'
+    elif mutation=='lfs':steps[0]['with']['lfs']=False
+    else:raw['jobs']['release-gate-summary']['needs'].remove('backend')
+    with pytest.raises((AssertionError,KeyError)):_workflow_before_backend_mac312_budget(raw,'ci.yml')
+
+
+@pytest.mark.parametrize('phase,fail_at,count',[('prepare',0,6),('prepare',1,1),('prepare',4,4),('tests',0,2),('tests',1,1),('tests',2,2)])
+def test_backend_mac312_original_phase_shell_preserves_fail_fast(tmp_path,phase,fail_at,count):
+    raw=yaml.safe_load((ROOT/'.github/workflows/ci.yml').read_text());_workflow_before_backend_mac312_budget(raw,'ci.yml')
+    step=raw['jobs']['backend']['steps'][5 if phase=='prepare' else 8]
+    tools=tmp_path/'commands';tools.mkdir();trace=tmp_path/'trace';counter=tmp_path/'counter'
+    stub='#!/bin/sh\nn=0; if [ -f "$COUNT_FILE" ]; then read -r n < "$COUNT_FILE"; fi\nn=$((n+1)); printf "%s\\n" "$n" > "$COUNT_FILE"; printf "%s\\n" "$n" >> "$TRACE_FILE"\nif [ "$n" -eq "$FAIL_AT" ]; then exit 17; fi\n'
+    for name in ('python','pip','pytest'):
+        p=tools/name;p.write_text(stub);p.chmod(0o700)
+    result=subprocess.run(['/bin/bash','--noprofile','--norc','-e','-o','pipefail','-c',step['run']],env={'PATH':str(tools)+':/usr/bin:/bin','COUNT_FILE':str(counter),'TRACE_FILE':str(trace),'FAIL_AT':str(fail_at)},capture_output=True,text=True,timeout=5)
+    assert trace.read_text().splitlines()==[str(n) for n in range(1,count+1)]
+    assert result.returncode==(0 if fail_at==0 else 17)
