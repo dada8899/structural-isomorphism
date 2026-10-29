@@ -4358,6 +4358,7 @@ async def _source_history_closed_main_journey(tmp_path):
     owned=tmp_path/'actual-main';service=None;browser=None;context=None;primary=None;cleanup=[];facts={'scope':'actualMain closed collection still reads authorized stored Source'};posts=[];pids=[];ports=[]
     try:
         with FormalMainBrowserService(owned) as service,service.browser_bridge() as bridge:
+            assert service.retire_source()=='unavailable'
             ports=[service.port,service._smtp.port]
             async with async_playwright() as playwright:
                 browser=await playwright.chromium.launch();context=await browser.new_context(viewport={'width':390,'height':844});context.set_default_timeout(8000)
