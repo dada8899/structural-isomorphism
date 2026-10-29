@@ -2276,10 +2276,11 @@ def test_current_main_private_problem_xss_auth503_draft_and_real401_clear(tmp_pa
         async with fin1.actual_browser(tmp_path) as (page,service,bridge,facts):
             facts['scope']='actual Main15 private problem text, auth-read503 draft retention and real logout401 clear'
             base=service.origin;auth_url=base+'/api/auth/me';attack_host='privacy-attack.example.invalid'
-            attacks=[];writes=[]
+            attacks=[];writes=[];reads=[]
             def requested(request):
                 if urlsplit(request.url).hostname==attack_host:attacks.append(True)
                 if request.method=='POST' and (request.url==base+'/api/research' or request.url.endswith('/revisions')):writes.append(True)
+                if request.method=='GET' and request.url.startswith(base+'/api/research'):reads.append(True)
             page.on('request',requested)
             await page.goto(base+'/research')
             await actual_expect(page.locator('#research-list-status')).to_contain_text('已读取 1 条研究')
@@ -2324,6 +2325,7 @@ def test_current_main_private_problem_xss_auth503_draft_and_real401_clear(tmp_pa
             await page.locator('#summary').fill(draft_summary)
             pending=await page.evaluate('Object.keys(sessionStorage).filter(key=>key.startsWith("structure-research-pending:")).length')
             assert pending==0 and len(writes)==1
+            read_before_fault=len(reads)
             faults=[]
             async def auth_unavailable(route):
                 assert route.request.method=='GET' and route.request.url==auth_url
@@ -2338,7 +2340,7 @@ def test_current_main_private_problem_xss_auth503_draft_and_real401_clear(tmp_pa
             await actual_expect(page.locator('#original-input')).to_have_value(draft)
             await actual_expect(page.locator('#summary')).to_have_value(draft_summary)
             await actual_expect(page.locator('#problem-form')).to_be_visible()
-            assert len(writes)==1
+            assert len(writes)==1 and len(reads)==read_before_fault
             assert await page.evaluate('Object.keys(sessionStorage).filter(key=>key.startsWith("structure-research-pending:")).length')==pending
             await page.unroute(auth_url,auth_unavailable)
             logged_out=await fin1.helpers._native_tls_fetch(page,'/api/auth/logout','POST',{})
