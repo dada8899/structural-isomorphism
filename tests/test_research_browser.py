@@ -4010,7 +4010,7 @@ async def _method_main_login(page,service):
 async def _method_main_select_old_source_for_new_problem(page,service):
     from playwright.async_api import expect as aexpect
     seed=service.seed
-    assert seed.current_input_revision==seed.source_input_revision==1 and seed.schema_version==14 and seed.mode=='offline_probe'
+    assert seed.current_input_revision==seed.source_input_revision==1 and seed.schema_version==15 and seed.mode=='offline_probe'
     await aexpect(page.locator('#problem-form')).to_be_visible()
     await page.locator('#original-input').fill('我观察到任务集中到达时，排队等待会随积压增加，需要区分任务复杂度等竞争解释。')
     await page.locator('#summary').fill('我自己的合成观察；本次只保存验证思路，引用以前问题修订的许可短摘录。')
