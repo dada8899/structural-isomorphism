@@ -5,8 +5,7 @@ from contextlib import closing
 
 import pytest
 
-from .test_research_persistence import stack,create
-from api import auth
+from .test_research_runtime_profile import current, roots
 from research import ResearchStore
 from research.errors import ResearchError
 
@@ -65,8 +64,8 @@ def test_concurrent_cache_reads_preserve_the_uncached_value(fresh_token_cache):
     assert normalize.cache_info().currsize==1
 
 
-def test_warm_cache_does_not_hide_schema_changes_on_the_same_connection(stack):
-    client,_=stack;create(client);store=ResearchStore(auth._store())
+def test_warm_cache_does_not_hide_schema_changes_on_the_same_connection(current):
+    store=current
     from research.store import CURRENT_RESEARCH_SCHEMA_VERSION
     reached=[]
     with pytest.raises(ResearchError) as failure:
@@ -84,8 +83,9 @@ def test_warm_cache_does_not_hide_schema_changes_on_the_same_connection(stack):
     with store.transaction() as conn:store.check_runtime_version(conn)
 
 
-def test_warm_cache_does_not_hide_drift_in_a_second_database(stack,tmp_path):
-    client,path=stack;create(client);store=ResearchStore(auth._store())
+def test_warm_cache_does_not_hide_drift_in_a_second_database(current,tmp_path,monkeypatch):
+    store=current;path=store.path
+    from .test_research_formula_delivery import _configure_private_root
     from research.store import CURRENT_RESEARCH_SCHEMA_VERSION
     with store.transaction() as conn:
         assert conn.execute('SELECT version FROM research_schema').fetchone()[0]==CURRENT_RESEARCH_SCHEMA_VERSION
@@ -93,11 +93,13 @@ def test_warm_cache_does_not_hide_drift_in_a_second_database(stack,tmp_path):
     target=tmp_path/'other'/'auth.sqlite3';target.parent.mkdir()
     with closing(sqlite3.connect(path)) as original,closing(sqlite3.connect(target)) as other:original.backup(other)
     assert target.stat().st_ino!=path.stat().st_ino
-    other_store=ResearchStore(type(store.auth_store)(target))
-    with other_store.transaction() as conn:other_store.check_runtime_version(conn)
-    with closing(sqlite3.connect(target)) as other:
-        other.execute('DROP TRIGGER research_revision_no_update')
-        other.execute('CREATE TRIGGER research_revision_no_update BEFORE UPDATE ON research_revisions BEGIN SELECT 1; END')
-    with pytest.raises(ResearchError) as failure:ResearchStore(type(store.auth_store)(target))
-    assert failure.value.code=='SCHEMA_UNSUPPORTED'
+    with monkeypatch.context() as second_root:
+        _configure_private_root(target,second_root)
+        other_store=ResearchStore(type(store.auth_store)(target))
+        with other_store.transaction() as conn:other_store.check_runtime_version(conn)
+        with closing(sqlite3.connect(target)) as other:
+            other.execute('DROP TRIGGER research_revision_no_update')
+            other.execute('CREATE TRIGGER research_revision_no_update BEFORE UPDATE ON research_revisions BEGIN SELECT 1; END')
+        with pytest.raises(ResearchError) as failure:ResearchStore(type(store.auth_store)(target))
+        assert failure.value.code=='SCHEMA_UNSUPPORTED'
     with store.transaction() as conn:store.check_runtime_version(conn)
