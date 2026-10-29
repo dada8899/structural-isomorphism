@@ -2103,7 +2103,41 @@ def _root_current_main_firstlive_fresh_recipe(prefix):
     return prefix+' '+shlex.join(ROOT_FIRSTLIVE_CURRENT_MAIN_NODES)+' -p no:logging -m "not e2e and not slow and not requires_internet and not requires_llm" -q\n'
 
 
+# Free manual-draft replay UX and historical Source display are later scope.
+# Preserve CAS, paid UNKNOWN/Owner/SQL controls and the independent central chain.
+ROOT_FREE_UX_DEFERRED_NODES = ('tests/test_research_browser.py::test_method_draft_actual_main_conflict_and_unknown_recovery[lost-ack]', 'tests/test_research_browser.py::test_method_draft_actual_main_conflict_and_unknown_recovery[lost-get]', 'tests/test_research_browser.py::test_source_history_actual_main_closed_collection_keeps_existing_readable')
+ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES = ('tests/test_research_browser.py::test_new_research_without_task_selector_keeps_real_create_and_save', 'tests/test_research_browser.py::test_current_main_private_problem_xss_auth503_draft_and_real401_clear', 'tests/test_research_browser.py::test_native_plan_actual_closed_preview_discloses_exact_input_without_confirm_or_model', 'tests/test_research_browser.py::test_native_plan_late_actual_closed_preview_never_replaces_new_draft_or_private_scope[new-draft]', 'tests/test_research_browser.py::test_native_plan_late_actual_closed_preview_never_replaces_new_draft_or_private_scope[logout]', 'tests/test_research_browser.py::test_method_draft_manual_editor_starts_blank_and_requires_actual_references', 'tests/test_research_browser.py::test_method_draft_real_late_history_keeps_new_editor_and_private_clear[new-editor]', 'tests/test_research_browser.py::test_method_draft_real_late_history_keeps_new_editor_and_private_clear[logout]', 'tests/test_research_browser.py::test_method_draft_actual_main_old_source_new_problem_save_and_reopen', 'tests/test_research_browser.py::test_method_draft_actual_main_conflict_and_unknown_recovery[cas]')
+ROOT_FREE_UX_PRIOR_MAKE_SHA256 = 'f4d39b04a268bba2547c682b172b608dc0d267c3b378b6d0f1ce11ec9ffe88d5'
+
+
+def _root_current_main_required_fresh_recipe(prefix):
+    return prefix+' '+shlex.join(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES)+' -p no:logging -m "not e2e and not slow and not requires_internet and not requires_llm" -q\n'
+
+
+def _makefile_before_free_ux_three(makefile):
+    prior_fresh=_root_current_main_firstlive_fresh_recipe('\t$(BACKEND_PYTEST)')
+    active=_root_current_main_required_fresh_recipe('\t$(BACKEND_PYTEST)')
+    assert len(ROOT_FREE_UX_DEFERRED_NODES)==len(set(ROOT_FREE_UX_DEFERRED_NODES))==3
+    assert ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES==tuple(n for n in ROOT_FIRSTLIVE_CURRENT_MAIN_NODES if n not in ROOT_FREE_UX_DEFERRED_NODES)
+    assert len(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES)==10
+    assert makefile.splitlines(keepends=True).count(active)==1
+    prior=makefile.replace(active,prior_fresh,1)
+    assert hashlib.sha256(prior.encode()).hexdigest()==ROOT_FREE_UX_PRIOR_MAKE_SHA256
+    return prior
+
+
+def _dry_run_before_free_ux_three(output):
+    _makefile_before_free_ux_three((ROOT/'Makefile').read_text())
+    pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
+    prefix='PYTHONPATH='+pythonpath+' python -m pytest'
+    prior_fresh=_root_current_main_firstlive_fresh_recipe(prefix)
+    active=_root_current_main_required_fresh_recipe(prefix)
+    assert output.splitlines(keepends=True).count(active)==1
+    return output.replace(active,prior_fresh,1)
+
+
 def _makefile_before_formula_extension_three(makefile):
+    makefile=_makefile_before_free_ux_three(makefile)
     prior_fresh=_root_current_main_release_fresh_recipe('\t$(BACKEND_PYTEST)')
     active=_root_current_main_firstlive_fresh_recipe('\t$(BACKEND_PYTEST)')
     assert len(ROOT_FORMULA_EXTENSION_DEFERRED_NODES)==len(set(ROOT_FORMULA_EXTENSION_DEFERRED_NODES))==3
@@ -2116,6 +2150,7 @@ def _makefile_before_formula_extension_three(makefile):
 
 
 def _dry_run_before_formula_extension_three(output):
+    output=_dry_run_before_free_ux_three(output)
     _makefile_before_formula_extension_three((ROOT/'Makefile').read_text())
     pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
     prefix='PYTHONPATH='+pythonpath+' python -m pytest'
@@ -4962,7 +4997,7 @@ def test_root_current_main_pair_preserves_prior33_before_explicit_later_scope():
 @pytest.mark.parametrize('mutation',['missing_pair','missing_filter','whole_module','wrong_path','wrong_parameter','duplicate_filter','fresh_missing','fresh_duplicate','fresh_order','marker','other_recipe'])
 def test_root_current_main_pair_rejects_missing_duplicate_or_weaker_placement(mutation):
     raw=(ROOT/'Makefile').read_text();original,ordinary,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)');token=' --deselect="'+ROOT_CURRENT_MAIN_NODES[0]+'"'
-    fresh=_root_current_main_firstlive_fresh_recipe('\t$(BACKEND_PYTEST)')
+    fresh=_root_current_main_required_fresh_recipe('\t$(BACKEND_PYTEST)')
     if mutation=='missing_pair':value=raw.replace(fresh,'',1)
     elif mutation=='missing_filter':value=raw.replace(token,'',1)
     elif mutation=='whole_module':value=raw.replace(token,' --deselect="tests/test_research_browser.py"',1)
@@ -4971,7 +5006,7 @@ def test_root_current_main_pair_rejects_missing_duplicate_or_weaker_placement(mu
     elif mutation=='duplicate_filter':value=raw.replace(token,token+token,1)
     elif mutation=='fresh_missing':value=raw.replace(fresh,fresh.replace(shlex.quote(ROOT_CURRENT_MAIN_NODES[0])+' ','',1),1)
     elif mutation=='fresh_duplicate':value=raw.replace(fresh,fresh.replace(' -m ',' '+shlex.quote(ROOT_CURRENT_MAIN_NODES[0])+' -m ',1),1)
-    elif mutation=='fresh_order':value=raw.replace(fresh,fresh.replace(shlex.join(ROOT_FIRSTLIVE_CURRENT_MAIN_NODES),shlex.join(reversed(ROOT_FIRSTLIVE_CURRENT_MAIN_NODES)),1),1)
+    elif mutation=='fresh_order':value=raw.replace(fresh,fresh.replace(shlex.join(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES),shlex.join(reversed(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES)),1),1)
     elif mutation=='marker':value=raw.replace(fresh,fresh.replace(' -m "not e2e and not slow and not requires_internet and not requires_llm"',''),1)
     else:value=raw.replace('$(PYTEST) -m "not e2e" -q','$(PYTEST) -q',1)
     assert value!=raw
@@ -5008,9 +5043,9 @@ def test_root_retired_browser_rejects_missing_duplicate_or_wider_defer(mutation)
     elif mutation=='function_prefix':value=raw.replace(param_token,' --deselect="'+param.split('[')[0]+'"',1)
     elif mutation=='foreign_parameter':value=raw.replace(param_token,' --deselect="'+param.split('[')[0]+'[foreign]"',1)
     elif mutation=='fresh_defer':
-        fresh=_root_current_main_firstlive_fresh_recipe('\t$(BACKEND_PYTEST)');value=raw.replace(fresh,fresh.replace(' -m ',token+' -m ',1),1)
+        fresh=_root_current_main_required_fresh_recipe('\t$(BACKEND_PYTEST)');value=raw.replace(fresh,fresh.replace(' -m ',token+' -m ',1),1)
     elif mutation=='fresh_missing':
-        fresh=_root_current_main_firstlive_fresh_recipe('\t$(BACKEND_PYTEST)');value=raw.replace(fresh,'',1)
+        fresh=_root_current_main_required_fresh_recipe('\t$(BACKEND_PYTEST)');value=raw.replace(fresh,'',1)
     elif mutation=='marker':value=raw.replace('not requires_llm" -q','not requires_llm and not current" -q',1)
     else:value=raw.replace('$(PYTEST) -m "not e2e" -q','$(PYTEST) -q',1)
     assert value!=raw
@@ -5029,7 +5064,7 @@ def test_root_retired_browser_actual_make_dryrun_reverses_complete_chain():
 def test_root_current_main_stdout_only_disables_pytest_logging_for_fresh33():
     raw=(ROOT/'Makefile').read_text();prior=_makefile_before_current_main_stdout(raw)
     _,_,fresh=_root_current_main_recipe_pair('\t$(BACKEND_PYTEST)')
-    assert _root_current_main_firstlive_fresh_recipe('\t$(BACKEND_PYTEST)') in raw and fresh in prior
+    assert _root_current_main_required_fresh_recipe('\t$(BACKEND_PYTEST)') in raw and fresh in prior
     ordinary=[line for line in raw.splitlines() if line.startswith('\t$(BACKEND_PYTEST) tests --ignore=tests/e2e ')]
     assert len(ordinary)==1 and 'no:logging' not in ordinary[0]
     assert raw.count('-p no:logging')==prior.count('-p no:logging')+1
@@ -5037,7 +5072,7 @@ def test_root_current_main_stdout_only_disables_pytest_logging_for_fresh33():
 
 @pytest.mark.parametrize('mutation',['missing','duplicate','wrong_plugin','ordinary','different_selector','marker'])
 def test_root_current_main_stdout_rejects_missing_duplicate_or_changed_scope(mutation):
-    raw=(ROOT/'Makefile').read_text();stdout=_root_current_main_firstlive_fresh_recipe('\t$(BACKEND_PYTEST)');fresh=stdout.replace(' -p no:logging','',1)
+    raw=(ROOT/'Makefile').read_text();stdout=_root_current_main_required_fresh_recipe('\t$(BACKEND_PYTEST)');fresh=stdout.replace(' -p no:logging','',1)
     if mutation=='missing':value=raw.replace(stdout,fresh,1)
     elif mutation=='duplicate':value=raw.replace(stdout,stdout.replace(' -p no:logging',' -p no:logging -p no:logging',1),1)
     elif mutation=='wrong_plugin':value=raw.replace(stdout,stdout.replace('no:logging','no:terminal',1),1)
@@ -5062,20 +5097,20 @@ def test_root_current_main_four_positive_deferrals_preserve_selected_release_sco
     assert len(ROOT_CONTROLLED_GENERATION_DEFERRED_NODES)==4 and len(ROOT_ACTIVE_CURRENT_MAIN_NODES)==29
     assert all(node.split('::')[1].split('[')[0]=='test_native_plan_real_https_browser_journey' for node in ROOT_CONTROLLED_GENERATION_DEFERRED_NODES)
     assert all(raw.count(node)==1 and prior.count(node)==2 for node in ROOT_CONTROLLED_GENERATION_DEFERRED_NODES)
-    assert all(raw.count(node)==2 for node in ROOT_FIRSTLIVE_CURRENT_MAIN_NODES)
+    assert all(raw.count(node)==2 for node in ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES)
     assert ROOT_CURRENT_MAIN_NODES[:5]==ROOT_ACTIVE_CURRENT_MAIN_NODES[:5]
 
 
 @pytest.mark.parametrize('mutation',['missing_ordinary_filter','function_prefix','foreign_parameter','fresh_deferred','fresh_missing','fresh_duplicate','fresh_order','marker'])
 def test_root_current_main_four_deferral_rejects_wider_or_missing_selection(mutation):
-    raw=(ROOT/'Makefile').read_text();active=_root_current_main_firstlive_fresh_recipe('\t$(BACKEND_PYTEST)');node=ROOT_CONTROLLED_GENERATION_DEFERRED_NODES[0];token=' --deselect="'+node+'"'
+    raw=(ROOT/'Makefile').read_text();active=_root_current_main_required_fresh_recipe('\t$(BACKEND_PYTEST)');node=ROOT_CONTROLLED_GENERATION_DEFERRED_NODES[0];token=' --deselect="'+node+'"'
     if mutation=='missing_ordinary_filter':value=raw.replace(token,'',1)
     elif mutation=='function_prefix':value=raw.replace(token,' --deselect="'+node.split('[')[0]+'"',1)
     elif mutation=='foreign_parameter':value=raw.replace(token,' --deselect="'+node.split('[')[0]+'[foreign]"',1)
     elif mutation=='fresh_deferred':value=raw.replace(active,active.replace(' -p no:logging',' '+shlex.quote(node)+' -p no:logging',1),1)
     elif mutation=='fresh_missing':value=raw.replace(active,active.replace(shlex.quote(ROOT_ACTIVE_CURRENT_MAIN_NODES[0])+' ','',1),1)
     elif mutation=='fresh_duplicate':value=raw.replace(active,active.replace(' -p no:logging',' '+shlex.quote(ROOT_ACTIVE_CURRENT_MAIN_NODES[0])+' -p no:logging',1),1)
-    elif mutation=='fresh_order':value=raw.replace(active,active.replace(shlex.join(ROOT_FIRSTLIVE_CURRENT_MAIN_NODES),shlex.join(reversed(ROOT_FIRSTLIVE_CURRENT_MAIN_NODES)),1),1)
+    elif mutation=='fresh_order':value=raw.replace(active,active.replace(shlex.join(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES),shlex.join(reversed(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES)),1),1)
     else:value=raw.replace(active,active.replace('not requires_llm','not requires_llm and not current',1),1)
     assert value!=raw
     with pytest.raises(AssertionError):_makefile_before_controlled_generation_four(value)
@@ -5095,7 +5130,7 @@ def test_root_current_main_release_scope_preserves_explicit_later_formula_bounda
     deferred=ROOT_FUNDED_UI_DEFERRED_NODES+(ROOT_OLD_SOURCE_GENERATION_DEFERRED_NODE,)
     assert len(deferred)==13 and len(ROOT_RELEASE_CURRENT_MAIN_NODES)==16
     assert all(raw.count(node)==1 and prior.count(node)==2 for node in deferred)
-    assert all(raw.count(node)==2 for node in ROOT_FIRSTLIVE_CURRENT_MAIN_NODES)
+    assert all(raw.count(node)==2 for node in ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES)
     assert not set(deferred)&set(ROOT_RELEASE_CURRENT_MAIN_NODES)
     assert 'tests/test_research_browser.py::test_method_draft_actual_main_old_source_new_problem_save_and_reopen' in ROOT_RELEASE_CURRENT_MAIN_NODES
     assert 'tests/test_research_browser.py::test_current_main_private_problem_xss_auth503_draft_and_real401_clear' in ROOT_RELEASE_CURRENT_MAIN_NODES
@@ -5103,7 +5138,7 @@ def test_root_current_main_release_scope_preserves_explicit_later_formula_bounda
 
 @pytest.mark.parametrize('mutation',['missing_filter','function_prefix','foreign_parameter','fresh_funded','fresh_source','missing_active','duplicate_active','reordered_active','marker'])
 def test_root_current_main_release_scope_rejects_missing_wider_or_duplicate_selection(mutation):
-    raw=(ROOT/'Makefile').read_text();active=_root_current_main_firstlive_fresh_recipe('\t$(BACKEND_PYTEST)');node=ROOT_FUNDED_UI_DEFERRED_NODES[0];token=' --deselect="'+node+'"'
+    raw=(ROOT/'Makefile').read_text();active=_root_current_main_required_fresh_recipe('\t$(BACKEND_PYTEST)');node=ROOT_FUNDED_UI_DEFERRED_NODES[0];token=' --deselect="'+node+'"'
     if mutation=='missing_filter':value=raw.replace(token,'',1)
     elif mutation=='function_prefix':value=raw.replace(token,' --deselect="'+node.split('[')[0]+'"',1)
     elif mutation=='foreign_parameter':value=raw.replace(token,' --deselect="'+node.split('[')[0]+'[foreign]"',1)
@@ -5111,7 +5146,7 @@ def test_root_current_main_release_scope_rejects_missing_wider_or_duplicate_sele
     elif mutation=='fresh_source':value=raw.replace(active,active.replace(' -p no:logging',' '+shlex.quote(ROOT_OLD_SOURCE_GENERATION_DEFERRED_NODE)+' -p no:logging',1),1)
     elif mutation=='missing_active':value=raw.replace(active,active.replace(shlex.quote(ROOT_RELEASE_CURRENT_MAIN_NODES[0])+' ','',1),1)
     elif mutation=='duplicate_active':value=raw.replace(active,active.replace(' -p no:logging',' '+shlex.quote(ROOT_RELEASE_CURRENT_MAIN_NODES[0])+' -p no:logging',1),1)
-    elif mutation=='reordered_active':value=raw.replace(active,active.replace(shlex.join(ROOT_FIRSTLIVE_CURRENT_MAIN_NODES),shlex.join(reversed(ROOT_FIRSTLIVE_CURRENT_MAIN_NODES)),1),1)
+    elif mutation=='reordered_active':value=raw.replace(active,active.replace(shlex.join(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES),shlex.join(reversed(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES)),1),1)
     else:value=raw.replace(active,active.replace('not requires_llm','not requires_llm and not current',1),1)
     assert value!=raw
     with pytest.raises(AssertionError):_makefile_before_funded_and_source_scope(value)
@@ -5126,11 +5161,11 @@ def test_root_current_main_release_scope_actual_make_dryrun_preserves_old_golden
 
 
 
-def test_root_current_main_formula_three_preserves_current13_and_other_scopes():
+def test_root_current_main_formula_three_preserves_explicit_later_free_ux_boundary():
     raw=(ROOT/'Makefile').read_text();prior=_makefile_before_formula_extension_three(raw)
     assert len(ROOT_FORMULA_EXTENSION_DEFERRED_NODES)==3 and len(ROOT_FIRSTLIVE_CURRENT_MAIN_NODES)==13
     assert all(raw.count(node)==1 and prior.count(node)==2 for node in ROOT_FORMULA_EXTENSION_DEFERRED_NODES)
-    assert all(raw.count(node)==2 for node in ROOT_FIRSTLIVE_CURRENT_MAIN_NODES)
+    assert all(raw.count(node)==2 for node in ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES)
     assert not set(ROOT_FORMULA_EXTENSION_DEFERRED_NODES)&set(ROOT_FIRSTLIVE_CURRENT_MAIN_NODES)
     assert 'tests/test_research_browser.py::test_current_main_private_problem_xss_auth503_draft_and_real401_clear' in ROOT_FIRSTLIVE_CURRENT_MAIN_NODES
     assert 'tests/test_research_browser.py::test_source_history_actual_main_closed_collection_keeps_existing_readable' in ROOT_FIRSTLIVE_CURRENT_MAIN_NODES
@@ -5138,20 +5173,56 @@ def test_root_current_main_formula_three_preserves_current13_and_other_scopes():
 
 @pytest.mark.parametrize('mutation',['missing_filter','function_prefix','fresh_formula','fresh_catalog','missing_current','duplicate_current','current_order','marker'])
 def test_root_current_main_formula_three_rejects_wider_missing_or_duplicate_scope(mutation):
-    raw=(ROOT/'Makefile').read_text();active=_root_current_main_firstlive_fresh_recipe('\t$(BACKEND_PYTEST)');node=ROOT_FORMULA_EXTENSION_DEFERRED_NODES[0];token=' --deselect="'+node+'"'
+    raw=(ROOT/'Makefile').read_text();active=_root_current_main_required_fresh_recipe('\t$(BACKEND_PYTEST)');node=ROOT_FORMULA_EXTENSION_DEFERRED_NODES[0];token=' --deselect="'+node+'"'
     if mutation=='missing_filter':value=raw.replace(token,'',1)
     elif mutation=='function_prefix':value=raw.replace(token,' --deselect="tests/test_research_browser.py"',1)
     elif mutation=='fresh_formula':value=raw.replace(active,active.replace(' -p no:logging',' '+shlex.quote(node)+' -p no:logging',1),1)
     elif mutation=='fresh_catalog':value=raw.replace(active,active.replace(' -p no:logging',' '+shlex.quote(ROOT_FORMULA_EXTENSION_DEFERRED_NODES[2])+' -p no:logging',1),1)
     elif mutation=='missing_current':value=raw.replace(active,active.replace(shlex.quote(ROOT_FIRSTLIVE_CURRENT_MAIN_NODES[0])+' ','',1),1)
     elif mutation=='duplicate_current':value=raw.replace(active,active.replace(' -p no:logging',' '+shlex.quote(ROOT_FIRSTLIVE_CURRENT_MAIN_NODES[0])+' -p no:logging',1),1)
-    elif mutation=='current_order':value=raw.replace(active,active.replace(shlex.join(ROOT_FIRSTLIVE_CURRENT_MAIN_NODES),shlex.join(reversed(ROOT_FIRSTLIVE_CURRENT_MAIN_NODES)),1),1)
+    elif mutation=='current_order':value=raw.replace(active,active.replace(shlex.join(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES),shlex.join(reversed(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES)),1),1)
     else:value=raw.replace(active,active.replace('not requires_llm','not requires_llm and not current',1),1)
     assert value!=raw
     with pytest.raises(AssertionError):_makefile_before_formula_extension_three(value)
 
 
 def test_root_current_main_formula_three_actual_make_dryrun_preserves_full_inverse():
+    result=subprocess.run(['make','-n','PY=python','test-release-contracts'],cwd=ROOT,env={'PATH':os.environ['PATH']},capture_output=True,text=True,timeout=10)
+    assert result.returncode==0
+    restored=_dry_run_before_root_current_main33(result.stdout)
+    assert not any(node in restored for node in ROOT_CURRENT_MAIN_NODES+ROOT_RETIRED_BROWSER_NODES)
+    assert restored.count(' tests --ignore=tests/e2e -m "not e2e and not slow and not requires_internet and not requires_llm" -q')==1
+
+
+
+def test_root_current_main_free_ux_three_keeps_cas_privacy_and_current10():
+    raw=(ROOT/'Makefile').read_text();prior=_makefile_before_free_ux_three(raw)
+    assert len(ROOT_FREE_UX_DEFERRED_NODES)==3 and len(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES)==10
+    assert all(raw.count(node)==1 and prior.count(node)==2 for node in ROOT_FREE_UX_DEFERRED_NODES)
+    assert all(raw.count(node)==2 for node in ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES)
+    assert 'tests/test_research_browser.py::test_method_draft_actual_main_conflict_and_unknown_recovery[cas]' in ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES
+    assert 'tests/test_research_browser.py::test_current_main_private_problem_xss_auth503_draft_and_real401_clear' in ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES
+    assert not set(ROOT_FREE_UX_DEFERRED_NODES)&set(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES)
+
+
+@pytest.mark.parametrize('mutation',['missing_filter','function_base','fresh_lostack','fresh_closed','missing_cas','missing_privacy','duplicate_current','current_order','marker'])
+def test_root_current_main_free_ux_three_rejects_wider_or_weaker_selection(mutation):
+    raw=(ROOT/'Makefile').read_text();active=_root_current_main_required_fresh_recipe('\t$(BACKEND_PYTEST)');node=ROOT_FREE_UX_DEFERRED_NODES[0];token=' --deselect="'+node+'"'
+    if mutation=='missing_filter':value=raw.replace(token,'',1)
+    elif mutation=='function_base':value=raw.replace(token,' --deselect="'+node.split('[')[0]+'"',1)
+    elif mutation=='fresh_lostack':value=raw.replace(active,active.replace(' -p no:logging',' '+shlex.quote(node)+' -p no:logging',1),1)
+    elif mutation=='fresh_closed':value=raw.replace(active,active.replace(' -p no:logging',' '+shlex.quote(ROOT_FREE_UX_DEFERRED_NODES[2])+' -p no:logging',1),1)
+    elif mutation in ('missing_cas','missing_privacy'):
+        target='tests/test_research_browser.py::test_method_draft_actual_main_conflict_and_unknown_recovery[cas]' if mutation=='missing_cas' else 'tests/test_research_browser.py::test_current_main_private_problem_xss_auth503_draft_and_real401_clear'
+        value=raw.replace(active,active.replace(shlex.quote(target)+' ','',1),1)
+    elif mutation=='duplicate_current':value=raw.replace(active,active.replace(' -p no:logging',' '+shlex.quote(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES[0])+' -p no:logging',1),1)
+    elif mutation=='current_order':value=raw.replace(active,active.replace(shlex.join(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES),shlex.join(reversed(ROOT_FIRSTLIVE_REQUIRED_CURRENT_MAIN_NODES)),1),1)
+    else:value=raw.replace(active,active.replace('not requires_llm','not requires_llm and not current',1),1)
+    assert value!=raw
+    with pytest.raises(AssertionError):_makefile_before_free_ux_three(value)
+
+
+def test_root_current_main_free_ux_three_actual_make_dryrun_keeps_complete_old_chain():
     result=subprocess.run(['make','-n','PY=python','test-release-contracts'],cwd=ROOT,env={'PATH':os.environ['PATH']},capture_output=True,text=True,timeout=10)
     assert result.returncode==0
     restored=_dry_run_before_root_current_main33(result.stdout)
