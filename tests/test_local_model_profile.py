@@ -61,11 +61,29 @@ def test_formal_requires_existing_directory(tmp_path, constructor):
 
 def test_formal_unreadable_directory_does_not_reach_constructor(tmp_path, monkeypatch, constructor):
     fd = os.open(tmp_path, os.O_RDONLY | os.O_DIRECTORY)
-    def deny(_fd):raise PermissionError("private-directory-canary")
-    monkeypatch.setattr(os, "fstat", deny)
+    original_fstat = os.fstat
+    info = original_fstat(fd)
+    identity = (info.st_dev, info.st_ino, info.st_mode)
+    code, globals_ = model.load_model.__code__, model.load_model.__globals__
+    injected = []
+    def deny(subject):
+        caller = sys._getframe(1)
+        try:
+            target = caller.f_code is code and caller.f_globals is globals_ and type(subject) is int and subject == fd
+        finally:
+            del caller
+        info = original_fstat(subject)
+        if target:
+            assert (info.st_dev, info.st_ino, info.st_mode) == identity
+            injected.append(True)
+            raise PermissionError("private-directory-canary")
+        return info
     try:
         with pytest.raises(RuntimeError, match="directory is unavailable"):
-            model.load_model(f"/proc/self/fd/{fd}", formal=True, directory_fd=fd)
+            with monkeypatch.context() as fault:
+                fault.setattr(os, "fstat", deny)
+                model.load_model(f"/proc/self/fd/{fd}", formal=True, directory_fd=fd)
+        assert injected == [True]
         assert constructor[1] == []
     finally:
         os.close(fd)

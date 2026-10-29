@@ -50,9 +50,13 @@ def held_lease(allowed=True):
         yield False
         return
     with tempfile.TemporaryDirectory(prefix="source-test-owner-") as directory:
-        gate=AuthorizationGate(SimpleNamespace(path=Path(directory)/"unused.sqlite3"))
-        with gate.owner_gate_id(uid()) as lease:
-            yield lease
+        from pytest import MonkeyPatch
+        from web.backend.tests.test_research_source_spawn import development_auth
+        with MonkeyPatch.context() as setup:
+            backing = development_auth.__wrapped__(Path(directory), setup)
+            gate=AuthorizationGate(backing)
+            with gate.owner_gate_id(uid()) as lease:
+                yield lease
 
 
 def make_plan():

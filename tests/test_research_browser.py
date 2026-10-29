@@ -159,7 +159,7 @@ def login(context, base, email="browser-a@example.test"):
 def fill(page, text="午间合成排队现象：等待时间增加"):
     page.get_by_label("原始问题", exact=False).fill(text)
     page.get_by_label("希望解释或改变什么", exact=False).fill("希望缩短等待时间")
-    page.get_by_label("问题摘要", exact=False).fill("合成排队问题的结构摘要与待确认因素")
+    page.get_by_role("textbox", name="问题摘要", exact=False).fill("合成排队问题的结构摘要与待确认因素")
     page.get_by_label("已知约束", exact=False).fill("本机合成数据")
 
 
@@ -451,13 +451,13 @@ def test_nfc_pending_digest_reconciles_after_real_revision_commit_and_reopen(ser
             original = "原始观察 cafe\u0301 必须保留分解字符"
             fill(page, original)
             page.get_by_label("希望解释或改变什么", exact=False).fill("观察 cafe\u0301 的等待时间")
-            page.get_by_label("问题摘要", exact=False).fill("这是 cafe\u0301 结构问题的足够长摘要")
+            page.get_by_role("textbox", name="问题摘要", exact=False).fill("这是 cafe\u0301 结构问题的足够长摘要")
             page.get_by_label("已知约束", exact=False).fill("cafe\u0301 约束")
             page.get_by_label("还不知道什么", exact=False).fill("cafe\u0301 未知")
             page.get_by_role("button", name="保存问题", exact=True).click()
             expect(page.get_by_role("status")).to_contain_text("已保存修订 1")
             expect(page.get_by_label("原始问题", exact=False)).to_have_value(original)
-            page.get_by_label("问题摘要", exact=False).fill("第二次 cafe\u0301 结构问题的足够长摘要")
+            page.get_by_role("textbox", name="问题摘要", exact=False).fill("第二次 cafe\u0301 结构问题的足够长摘要")
             page.get_by_label("希望解释或改变什么", exact=False).fill("第二次 cafe\u0301 目标")
             page.get_by_label("已知约束", exact=False).fill("第二次 cafe\u0301 约束")
             page.get_by_label("还不知道什么", exact=False).fill("第二次 cafe\u0301 未知")
