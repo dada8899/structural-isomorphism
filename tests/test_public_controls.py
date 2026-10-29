@@ -2144,11 +2144,11 @@ def _root_current_main_required_fresh_recipe(prefix):
 
 
 NATIVE_RESOURCE_REUSE_PRIOR_MAKE_SHA256 = '2089997b585498bdac7063938fe1169673f3a016e10903a7678dbcfa46fdd6ac'
-NATIVE_RESOURCE_REUSE_PRIOR_'\tcd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]" -p no:logging -q\n' = '\tcd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]" -p no:logging -q\n'
+NATIVE_RESOURCE_REUSE_PRIOR_MAKE_LINE = '\tcd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]" -p no:logging -q\n'
 
 
 def _makefile_before_native_resource_reuse(makefile):
-    prior_line=NATIVE_RESOURCE_REUSE_PRIOR_'\tcd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]" -p no:logging -q\n'
+    prior_line=NATIVE_RESOURCE_REUSE_PRIOR_MAKE_LINE
     current=prior_line.replace(' -p no:logging',_native_resource_reuse_flag()+' -p no:logging',1)
     assert makefile.splitlines(keepends=True).count(current)==1 and makefile.count(NATIVE_RESOURCE_REUSE_NODE)==1
     prior=makefile.replace(current,prior_line,1)
@@ -2159,7 +2159,7 @@ def _makefile_before_native_resource_reuse(makefile):
 def _dry_run_before_native_resource_reuse(output):
     _makefile_before_native_resource_reuse((ROOT/'Makefile').read_text())
     pythonpath=':'.join(str(ROOT/path) for path in ('web/backend','packages/guarded-llm/src','packages/cross-judge/src','packages/reject-aware-critic/src','packages/soc-pipeline/src'))
-    prior=NATIVE_RESOURCE_REUSE_PRIOR_'\tcd web/backend && $(BACKEND_PYTEST) tests/test_plan_runtime_transport.py --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]" --deselect="web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]" -p no:logging -q\n'.removeprefix('\t').replace('$(BACKEND_PYTEST)','PYTHONPATH='+pythonpath+' python -m pytest',1)
+    prior=NATIVE_RESOURCE_REUSE_PRIOR_MAKE_LINE.removeprefix('\t').replace('$(BACKEND_PYTEST)','PYTHONPATH='+pythonpath+' python -m pytest',1)
     current=prior.replace(' -p no:logging',_native_resource_reuse_flag()+' -p no:logging',1)
     assert output.splitlines(keepends=True).count(current)==1
     return output.replace(current,prior,1)
