@@ -180,12 +180,18 @@ def test_single_question_entry_closed_capability_keeps_original_and_explicit_too
             expect(page.locator("#advanced-tools")).to_be_hidden()
             expect(page.locator("#entry-capability")).to_contain_text("尚未开放")
             writes = []
+            capability_reads = []
             page.on("request", lambda request: writes.append(request.url) if request.method == "POST" else None)
+            page.on("request", lambda request: capability_reads.append(request) if "/question-draft-capabilities" in request.url else None)
             page.locator("#original-input").fill(text)
             page.locator("#prepare-problem").click()
             expect(page.locator("#entry-capability")).to_contain_text("没有生成草案")
             expect(page.locator("#original-input")).to_have_value(text)
             assert not writes
+            assert len(capability_reads) == 1
+            assert capability_reads[0].method == "GET"
+            assert capability_reads[0].url == base + "/api/research/question-draft-capabilities"
+            assert capability_reads[0].post_data is None
             assert not page.locator("#confirmed").is_checked()
             page.locator("#advanced-tools-toggle").click()
             expect(page.locator("#problem-advanced")).to_be_visible()

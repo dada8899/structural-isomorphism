@@ -31,6 +31,8 @@
   let kbGeneration = 0;
   let kbBusy = false;
   let summaryEdited = false;
+  let questionCapabilityGeneration = 0;
+  let questionCapabilityController = null;
   let accountScope = null;
   let evidenceUI = null;
   let registryUI = null;
@@ -1355,6 +1357,7 @@
     observed = null;
     variables = [];
     form.reset();
+    invalidateQuestionCapability();
     showAdvanced(false);
     form.hidden = true;
     byId('history').hidden = true;
@@ -1405,6 +1408,7 @@
     } finally { clearTimeout(timer); }
   }
   function render(data, methodToken) {
+    invalidateQuestionCapability();
     planReset();
     methodDirty = false;
     invalidateKB();
@@ -1648,9 +1652,67 @@
   byId('advanced-tools-toggle').addEventListener('click', () => {
     showAdvanced(byId('problem-advanced').hidden);
   });
-  byId('prepare-problem').addEventListener('click', () => {
-    if (busy || readOnlyView() || !byId('original-input').reportValidity()) return;
-    byId('entry-capability').textContent = '当前自动整理与自动研究尚未开放：没有生成草案、没有调用模型或来源、没有保存问题。原文仍完整保留在本页。可主动进入高级工具查本地线索；不必为开始研究重复抄写摘要或变量。';
+  function invalidateQuestionCapability() {
+    questionCapabilityGeneration++;
+    questionCapabilityController?.abort();
+    questionCapabilityController = null;
+    byId('prepare-problem').disabled = busy || readOnlyView();
+    byId('entry-capability').textContent = '自动整理能力需主动核对；本次不会发送原文、调用模型或保存问题。未保存的原话仍仅在本页，请保留输入。';
+  }
+  function validClosedQuestionCapability(payload) {
+    const data = payload?.data;
+    return payload?.schema_version === schema && payload.contract_revision === 'question-draft-v1' &&
+      data?.state === 'closed' && data.purpose === 'question_draft_v1' &&
+      data.can_propose === false && data.can_adopt === false &&
+      data.original_input_max_chars === 4000 && data.plan_summary_min_chars === 8 && data.plan_summary_max_chars === 1000 &&
+      data.draft === null && Array.isArray(data.clarifications) && data.clarifications.length === 0 &&
+      data.model_analysis_ran === false && data.sent_to_provider === false && data.saved === false &&
+      Array.isArray(data.blockers) && data.blockers.length > 0 && data.blockers.length <= 12 &&
+      data.blockers.every(value => value === 'question_draft_purpose_not_admitted') &&
+      typeof data.message === 'string' && data.message.length > 0 && data.message.length <= 1000;
+  }
+  byId('prepare-problem').addEventListener('click', async () => {
+    if (busy || questionCapabilityController || readOnlyView() || !byId('original-input').reportValidity()) return;
+    const generation = ++questionCapabilityGeneration;
+    const privateScope = privateGeneration;
+    const original = byId('original-input').value;
+    const controller = new AbortController();
+    questionCapabilityController = controller;
+    const active = () => generation === questionCapabilityGeneration && privateScope === privateGeneration &&
+      original === byId('original-input').value && !form.hidden;
+    const timer = setTimeout(() => controller.abort(), 15000);
+    byId('prepare-problem').disabled = true;
+    byId('entry-capability').textContent = '正在核对问题整理能力；本次只读取能力状态，不发送原问题。';
+    try {
+      if (!await authenticated(active, controller.signal)) {
+        if (active()) throw Error('account capability unknown');
+        return;
+      }
+      if (!active()) return;
+      const response = await fetch('/api/research/question-draft-capabilities', {
+        credentials:'same-origin', cache:'no-store', signal:controller.signal
+      });
+      if (!active()) return;
+      if (response.status === 401) {
+        clearPrivateView('confirmed_logout');
+        status('账户访问已失效，请重新登录。', true);
+        return;
+      }
+      if (!response.ok) throw Error('capability unavailable');
+      const payload = await response.json();
+      if (!active()) return;
+      if (!validClosedQuestionCapability(payload)) throw Error('unsupported capability');
+      byId('entry-capability').textContent = payload.data.message +
+        '没有生成草案；本次只读取状态，没有发送原文。原文完整保留在本页，尚未保存时请勿关闭页面。';
+    } catch (error) {
+      if (active()) byId('entry-capability').textContent = '当前无法核对问题整理能力。没有生成草案；本次没有发送原文、调用模型或保存问题。原文仍在本页，请保留输入，稍后可主动重试状态读取。';
+    } finally {
+      clearTimeout(timer);
+      if (generation === questionCapabilityGeneration) {
+        questionCapabilityController = null;
+        byId('prepare-problem').disabled = busy || readOnlyView();
+      }
+    }
   });
   async function authenticated(isCurrent, signal) {
     const unavailable = () => {
@@ -1767,7 +1829,7 @@
       draftChanged('问题有未保存改动；此处方法文字保留，保存前先核对问题。');
       financialInvalidate('问题有未保存改动，旧预览已失效；CSV 仍暂存在本页。');
       if (id === 'summary') summaryEdited = true;
-      if (id === 'original-input') echoDraft();
+      if (id === 'original-input') { invalidateQuestionCapability(); echoDraft(); }
       invalidateKB();
     });
   }
