@@ -1798,7 +1798,31 @@ def _consume_binding_flag():
     return ' --deselect="'+CONSUME_BINDING_NODE+'"'
 
 
+# Only this new pure/ASGI module is added to the existing B3 consumer.
+SHORT_OBSERVATION_BACKEND_MODULE = 'tests/test_research_short_observation_entry.py'
+SHORT_OBSERVATION_PRIOR_B3_SCRIPT_SHA256 = 'bda7a3e5bf2ecc21101f52486de687b47a9802645f0b51e1e94a652c0a67503b'
+SHORT_OBSERVATION_PRIOR_JOBS_SHA256 = '3b46c1b92984751760a59f039c9426b5c372c981b81035aacefa3d2bd5224f49'
+
+
+def _workflow_before_short_observation_checks(value,name):
+    if name!='sanity.yml':return value
+    original=copy.deepcopy(value);jobs=original['jobs']
+    assert sum(json.dumps(job,sort_keys=True).count(SHORT_OBSERVATION_BACKEND_MODULE) for job in jobs.values())==1
+    job=jobs['sanity-backend-ordinary-b-3']
+    steps=[s for s in job['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline'];assert len(steps)==1
+    script=steps[0]['run'];needle=' '+SHORT_OBSERVATION_BACKEND_MODULE
+    assert script.count(needle)==1 and needle+' ' in script
+    prior=script.replace(needle,'',1)
+    before=' tests/test_research_source_lifetime.py'
+    assert prior.count(before)==1 and prior.replace(before,needle+before,1)==script
+    assert hashlib.sha256(prior.encode()).hexdigest()==SHORT_OBSERVATION_PRIOR_B3_SCRIPT_SHA256
+    steps[0]['run']=prior
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==SHORT_OBSERVATION_PRIOR_JOBS_SHA256
+    return original
+
+
 def _workflow_before_consume_binding(value,name):
+    value=_workflow_before_short_observation_checks(value,name)
     if name not in ('sanity.yml','coverage.yml'):return value
     original=copy.deepcopy(value)
     jid='sanity-backend-fresh-1' if name=='sanity.yml' else 'coverage'
@@ -2669,6 +2693,9 @@ def _workflow_before_sanity_groups(value):
     assert all(path.removeprefix('tests/')>='test_research_financial' for path in b)
     directory=ROOT/'web/backend/tests'
     inventory={'tests/'+path.relative_to(directory).as_posix() for pattern in ('test_*.py','*_test.py') for path in directory.rglob(pattern) if path.is_file()}
+    # This view reconstructs the older baseline after the exact new-module inverse.
+    assert SHORT_OBSERVATION_BACKEND_MODULE in inventory
+    inventory.remove(SHORT_OBSERVATION_BACKEND_MODULE)
     assert inventory==set(a+b+fresh), 'all source modules exactly once, not only list-internal uniqueness'
     assert all(not(directory/path.removeprefix('tests/')).is_symlink() for path in inventory)
     restored=copy.deepcopy(jobs[SANITY_GROUP_IDS[0]]);restored['name']='sanity-backend'
@@ -5431,3 +5458,31 @@ def test_consume_binding_full_dryrun_missing_backend_rejected():
     assert result.returncode==0
     lines=result.stdout.splitlines(keepends=True);target=[line for line in lines if line.startswith('cd web/backend && ') and CONSUME_BINDING_NODE in line];assert len(target)==1
     with pytest.raises(AssertionError):_dry_run_before_consume_binding(result.stdout.replace(target[0],'',1))
+
+
+def test_short_observation_check_module_is_one_exact_existing_b3_consumer():
+    raw=yaml.safe_load((ROOT/'.github/workflows/sanity.yml').read_text())
+    restored=_workflow_before_short_observation_checks(raw,'sanity.yml')
+    assert restored!=raw
+    assert hashlib.sha256(json.dumps(restored['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==SHORT_OBSERVATION_PRIOR_JOBS_SHA256
+    assert SHORT_OBSERVATION_BACKEND_MODULE not in json.dumps(restored['jobs'])
+    assert _workflow_before_ordinary_b_parts(raw,'sanity.yml')
+
+
+@pytest.mark.parametrize('mutation',['missing','duplicate','wrong_path','other_part','reorder','extra_filter','job_budget'])
+def test_short_observation_check_module_rejects_any_nonexact_consumer(mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows/sanity.yml').read_text())
+    job=raw['jobs']['sanity-backend-ordinary-b-3']
+    step=next(s for s in job['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline')
+    flag=' '+SHORT_OBSERVATION_BACKEND_MODULE
+    if mutation=='missing':step['run']=step['run'].replace(flag,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(flag,flag+flag,1)
+    elif mutation=='wrong_path':step['run']=step['run'].replace(SHORT_OBSERVATION_BACKEND_MODULE,'web/backend/'+SHORT_OBSERVATION_BACKEND_MODULE,1)
+    elif mutation=='other_part':
+        step['run']=step['run'].replace(flag,'',1)
+        other=next(s for s in raw['jobs']['sanity-backend-ordinary-b-2']['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline')
+        other['run']=other['run'].replace('python -m pytest ','python -m pytest '+SHORT_OBSERVATION_BACKEND_MODULE+' ',1)
+    elif mutation=='reorder':step['run']=step['run'].replace(flag,'',1).replace('python -m pytest ','python -m pytest '+SHORT_OBSERVATION_BACKEND_MODULE+' ',1)
+    elif mutation=='extra_filter':step['run']=step['run'].replace(flag,flag+' -k short',1)
+    else:job['timeout-minutes']=46
+    with pytest.raises(AssertionError):_workflow_before_short_observation_checks(raw,'sanity.yml')

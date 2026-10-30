@@ -31,6 +31,7 @@
   let kbGeneration = 0;
   let kbBusy = false;
   let summaryEdited = false;
+  let observationReview = null;
   let accountScope = null;
   let evidenceUI = null;
   let registryUI = null;
@@ -687,7 +688,7 @@
   function planUncertain(meta) { return meta&&(meta.state==='pending_reconciliation'||meta.cost_state==='unknown'||meta.cleanup_state==='uncertain'); }
   function planSync() {
     const ro=readOnlyView(),pending=planPending(),p=planState.preview;
-    byId('native-plan-section').hidden=form.hidden;
+    byId('native-plan-section').hidden=form.hidden||!researchId;
     const conflict=editBase&&observed&&(observed.revision!==editBase.revision||observed.digest!==editBase.digest);
     const eligible=researchId&&editBase&&current?.current_problem?.entry==='phenomenon'&&current.current_problem.confirmed&&!methodDirty&&!formulaState.dirty&&!conflict;
     byId('native-plan-own').disabled=ro||busy||planState.busy||!eligible;
@@ -1060,7 +1061,7 @@
   }
   function draftSync(){
     const ro=readOnlyView(),target=draftState.target;
-    byId('method-draft-section').hidden=form.hidden;
+    byId('method-draft-section').hidden=form.hidden||!researchId;
     const conflict=Boolean(editBase&&observed&&(editBase.revision!==observed.revision||editBase.digest!==observed.digest));
     const valid=researchId&&target&&editBase&&target.input_revision===editBase.revision&&target.problem_digest===editBase.digest&&!methodDirty&&!formulaState.dirty&&!conflict;
     byId('method-draft-target').textContent=target?`本次目标：问题修订 ${target.input_revision}。引用材料保留各自原修订，保存不会执行验证。`:'先保存并核对问题，再选择已存材料。';
@@ -1310,7 +1311,8 @@
     busy = value;
     // Freeze the submitted draft until the receipt is handled. Otherwise a
     // late render could silently replace edits made while fetch was pending.
-    for (const control of form.querySelectorAll('input, textarea, select, button')) control.disabled = value || (readOnlyView() && control.id !== 'reload');
+    for (const control of form.querySelectorAll('input, textarea, select, button')) control.disabled = value || (readOnlyView() && !['reload','advanced-tools-toggle'].includes(control.id));
+    observationSync();
     syncTaskButtons();
     syncFormulaControls();
     planSync();
@@ -1355,6 +1357,8 @@
     observed = null;
     variables = [];
     form.reset();
+    observationReset();
+    showAdvanced(false);
     form.hidden = true;
     byId('history').hidden = true;
     byId('history-items').replaceChildren();
@@ -1404,6 +1408,7 @@
     } finally { clearTimeout(timer); }
   }
   function render(data, methodToken) {
+    observationReset();
     planReset();
     methodDirty = false;
     invalidateKB();
@@ -1627,13 +1632,88 @@
     byId('kb-search').disabled = busy || Boolean(editBase?.historical);
   }
   function echoDraft() {
-    const original = byId('original-input').value;
-    const length = Array.from(original).length;
-    if (!summaryEdited && !editBase) byId('summary').value = length <= 1000 ? original : '';
+    const length = Array.from(byId('original-input').value).length;
+    if (!summaryEdited && !editBase) byId('summary').value = length <= 1000 ? byId('original-input').value : '';
     byId('summary-hint').textContent = length > 1000
-      ? '原文超过 1000 字，已完整保留。请另写 8–1000 字摘要；不会截断原文或自动生成摘要。'
-      : '待核验草稿：这里只回显原话，可直接编辑；尚未进行模型结构化或确认。';
+      ? '原文已完整保留。当前人工工作台仅接受 8–1000 字摘要；自动整理尚未开放，不会截断、填充或代你确认。'
+      : '人工维护区：这里只回显原话，不是系统结构化草案；不会自动确认。';
   }
+  function showAdvanced(open) {
+    document.body.classList.toggle('advanced-closed', !open);
+    byId('problem-advanced').hidden = !open;
+    byId('advanced-tools').hidden = !open;
+    byId('advanced-tools-toggle').setAttribute('aria-expanded', String(open));
+    if (open && readOnlyView()) {
+      for (const field of form.querySelectorAll('textarea')) {
+        field.style.height = '';
+        field.style.height = `${field.scrollHeight + 2}px`;
+      }
+    }
+  }
+  byId('advanced-tools-toggle').addEventListener('click', () => {
+    showAdvanced(byId('problem-advanced').hidden);
+  });
+  function observationProblem(raw, declared) {
+    if (declared !== true) throw Error('请先作出本人现象自述与权属声明。');
+    const length = Array.from(raw).length;
+    if (length < 8 || length > 1000 || Array.from(raw.normalize('NFC')).length < 8)
+      throw Error('当前规划仅支持 8–1000 字的本人现象自述。原话已完整保留；不会截断、补字或要求你重抄摘要。');
+    const view = raw.normalize('NFKC');
+    // Same finite refusal classes as phenomenon_plan._STRUCTURES; this is not ownership verification.
+    const structures = new RegExp("(?:\\b[a-z][a-z0-9+.-]{1,24}://|\\b(?:https?|file|data|javascript|mailto):|\\bwww\\.|\\bdoi\\s*:|\\b10\\.\\d{4,9}/\\S+)|(?:`|\\$\\(|\\$\\{|#!\\s*/|<\\s*/?\\s*(?:script|iframe|object|embed)\\b)|(?:\\b(?:curl|wget|rm|chmod|chown|ssh|scp)\\s+-[A-Za-z]|\\b(?:bash|sh|zsh|pwsh|powershell)\\s+-[A-Za-z])|(?:\\b(?:python3?|node)\\s+-(?:c|e)\\b|\\b(?:pip3?|npm|npx)\\s+(?:install|exec|run)\\b)|(?:\\b(?:eval|exec|__import__)\\s*\\(|\\b(?:Invoke-WebRequest|Invoke-Expression|Start-Process)\\b)|(?:\\bSELECT\\s+\\*\\s+FROM\\b|\\b(?:DROP|ALTER|CREATE)\\s+TABLE\\b|\\bINSERT\\s+INTO\\b|\\bDELETE\\s+FROM\\b)|(?:\\[[0-9]+\\]|\\bet\\s+al\\.)|(?:[\\\"']?(?:verified|checked|trusted|copyright_verified|mathematically_verified)[\\\"']?\\s*[:=]\\s*(?:true|1|yes)\\b)", 'i');
+    if (!planText(raw,1000,8) || structures.test(view))
+      throw Error('这段内容含链接、代码或不适用结构，不能声明为本入口的本人现象自述。原文保留，可在高级工具中按资料用途处理。');
+    return {entry:'phenomenon',original_input:raw,objective:'',summary:raw.normalize('NFC'),
+      variables:[],constraints:[],unknowns:[],confirmed:true};
+  }
+  function observationReset() {
+    observationReview = null;
+    byId('observation-card').hidden = true;
+    byId('observation-exact').textContent = '';
+    byId('observation-own').checked = false;
+    observationSync();
+  }
+  function observationSync() {
+    const locked = busy || readOnlyView() || form.hidden;
+    byId('start-research').disabled = locked || !byId('original-input').value.trim();
+    byId('observation-own').disabled = locked;
+    let eligible = false;
+    try { if(observationReview === byId('original-input').value) { observationProblem(observationReview,true); eligible=true; } } catch {}
+    byId('observation-adopt').disabled = locked || !eligible || !byId('observation-own').checked;
+  }
+  byId('start-research').addEventListener('click', () => {
+    if (busy || readOnlyView() || !byId('original-input').reportValidity()) return;
+    byId('native-plan-own').checked = false;
+    planInvalidate('正在核对原话；本次尚未预览或外发。');
+    observationReview = byId('original-input').value;
+    byId('observation-exact').textContent = observationReview;
+    byId('observation-card').hidden = false;
+    byId('observation-own').checked = false;
+    byId('observation-save-status').textContent = '采用后保存问题；不会自动外发或扣费。记录标题会按已有规则规范化文字，逐字原话始终以上面的原文为准。';
+    try { observationProblem(observationReview,true); byId('observation-scope').textContent = '请核对完整原话与下方声明。采用后先保存，再单独核对研究计划的外发范围与费用；未填写的目标、变量和未知项保持为空。'; }
+    catch(error) { byId('observation-scope').textContent = error.message; }
+    observationSync();
+  });
+  byId('observation-own').addEventListener('change',observationSync);
+  byId('observation-adopt').addEventListener('click', async () => {
+    if(busy || readOnlyView()) return;
+    try {
+      if(observationReview !== byId('original-input').value) throw Error('原话已变化，请先重新核对原话卡。');
+      const problem = observationProblem(observationReview,byId('observation-own').checked);
+      const same = current?.current_problem?.original_input === problem.original_input;
+      if(same && current.current_problem.confirmed === true) {
+        if(current.current_problem.entry !== 'phenomenon' || methodDirty || formulaState.dirty || editNotice() || sessionStorage.getItem('structure-research-pending:'+researchId))
+          throw Error('当前记录有其他用途、改动或待核对保存操作，请保留原文并先核对已存版本。');
+        // Reuse the saved revision: never mint a new revision to bypass known Source provenance.
+        byId('native-plan-own').checked = true;
+        byId('observation-save-status').textContent = '已采用当前已保存修订的本人自述声明。没有另存修订或外发；下一步请预览原文与费用，来源限制仍由服务端核对。';
+        planSync();
+        return;
+      }
+      if(same && current?.task?.policy_revision === 'd1-source-only-v1') throw Error('当前修订已有来源流程，不能重新标为本人现象自述。原文与来源记录保留。');
+      await saveProblem(problem);
+    } catch(error) { byId('observation-save-status').textContent = error.message; }
+  });
   async function authenticated(isCurrent, signal) {
     const unavailable = () => {
       const planWasCurrent=isCurrent();
@@ -1675,6 +1755,7 @@
     const section = byId(initialSection);
     if (!section || section.hidden) return;
     entryPositioned = true;
+    if (initialSection === 'kb-section') showAdvanced(true);
     section.scrollIntoView({block:'start'});
   }
   async function loadResearchList(more = false, positionEntry = false) {
@@ -1748,7 +1829,8 @@
       draftChanged('问题有未保存改动；此处方法文字保留，保存前先核对问题。');
       financialInvalidate('问题有未保存改动，旧预览已失效；CSV 仍暂存在本页。');
       if (id === 'summary') summaryEdited = true;
-      if (id === 'original-input') echoDraft();
+      if (id === 'original-input') { observationReset(); echoDraft(); }
+      observationSync();
       invalidateKB();
     });
   }
@@ -1808,6 +1890,7 @@
       // An authenticated read is still required: the account endpoint performs
       // actual session validation; the research API revalidates on every save.
       form.hidden = false;
+      observationSync();
       planSync();
       draftSync();
       byId('native-plan-status').textContent='问题尚未保存；没有生成或外发计划。';
@@ -1983,8 +2066,35 @@
     catch (error) { byId('source-status').textContent = error.message; }
     finally { sourceBusy = false; syncSourceAccess(); }
   });
-  form.addEventListener('submit', async event => {
-    event.preventDefault();
+  function validateObservationReceipt(saved, problem, targetId, expectedRevision, minimumVersion) {
+    const fail = () => { throw Error('采用回执无法完整核对；原保存操作保留，请保留输入并用相同内容核对原操作。'); };
+    const integer = value => Number.isSafeInteger(value) && value >= 1 && value <= 2147483647;
+    const row = saved?.research, value = saved?.current_problem;
+    const wantedRevision = expectedRevision === null ? 1 : expectedRevision + 1;
+    if (!planObject(saved) || !planObject(row) || !validId(row.id) || (targetId !== null && row.id !== targetId) ||
+        row.current_revision !== wantedRevision || !integer(row.version) || row.version !== saved.research_version || row.version < minimumVersion ||
+        !planObject(value) || value.research_id !== row.id || value.revision !== wantedRevision ||
+        !formulaDigest(value.digest) || !recordTime(value.created_at) || value.entry !== 'phenomenon' ||
+        value.original_input !== problem.original_input || value.summary !== problem.summary || value.objective !== '' || value.confirmed !== true ||
+        !['variables','constraints','unknowns'].every(key => Array.isArray(value[key]) && value[key].length === 0) ||
+        (value.formula_snapshot !== undefined && value.formula_snapshot !== null) ||
+        !Array.isArray(saved.revisions) || saved.revisions.length !== wantedRevision || saved.is_historical !== false ||
+        saved.task !== null || saved.task_version !== null || saved.execution !== null || row.current_task_id !== null ||
+        !planObject(saved.capabilities) || !Array.isArray(saved.allowed_next_actions) || !saved.allowed_next_actions.every(item => typeof item === 'string') ||
+        (saved.notes != null && (!Array.isArray(saved.notes) || !saved.notes.every(item => typeof item === 'string'))) ||
+        (saved.source_observations !== undefined && (!Array.isArray(saved.source_observations) || saved.source_observations.length !== 0))) fail();
+    for (let index = 0; index < saved.revisions.length; index++) {
+      const item = saved.revisions[index];
+      if (!planObject(item) || item.research_id !== row.id || item.revision !== index + 1 || !formulaDigest(item.digest) || !recordTime(item.created_at) ||
+          !['phenomenon','formula','research'].includes(item.entry) || typeof item.original_input !== 'string' || typeof item.objective !== 'string' ||
+          typeof item.summary !== 'string' || typeof item.confirmed !== 'boolean' || !Array.isArray(item.variables) ||
+          !['constraints','unknowns'].every(key => Array.isArray(item[key]) && item[key].every(text => typeof text === 'string'))) fail();
+    }
+    const latest = saved.revisions[saved.revisions.length - 1];
+    for (const key of ['research_id','revision','digest','created_at','entry','original_input','objective','summary','confirmed']) if (latest[key] !== value[key]) fail();
+    if (!['variables','constraints','unknowns'].every(key => latest[key].length === 0)) fail();
+  }
+  async function saveProblem(adoptedProblem = null) {
     if (busy || readOnlyView()) return;
     const methodToken = beginMethodRead();
     setBusy(true);
@@ -1992,7 +2102,7 @@
     let pending;
     const privateScope = privateGeneration;
     try {
-      const problem = normalizeProblem({entry:byId('entry').value, original_input:byId('original-input').value,
+      const problem = adoptedProblem || normalizeProblem({entry:byId('entry').value, original_input:byId('original-input').value,
         objective:byId('objective').value, summary:byId('summary').value, variables,
         constraints:lines('constraints'), unknowns:lines('unknowns'), confirmed:byId('confirmed').checked,
         ...(byId('formula-enable').checked?{formula_draft:formulaTakeDraft()}: {})});
@@ -2008,9 +2118,16 @@
       if (privateScope !== privateGeneration) throw new Error('账户访问已变化，请重新登录后核对原操作。');
       const url = researchId ? `/api/research/${researchId}/revisions` : '/api/research';
       const saved = await methodRequest(url, {method:'POST', headers:{'Content-Type':'application/json', 'Idempotency-Key':pending.key}, body},methodToken);
-      sessionStorage.removeItem(pending.slot);
-      history.replaceState(null, '', `/research/${saved.research.id}`);
+      if (adoptedProblem) validateObservationReceipt(saved, adoptedProblem, researchId, expectedRevision, current ? editBase.researchVersion + 1 : 1);
       render(saved,methodToken);
+      history.replaceState(null, '', `/research/${saved.research.id}`);
+      sessionStorage.removeItem(pending.slot);
+      if (adoptedProblem) {
+        byId('native-plan-own').checked = true;
+        byId('observation-save-status').textContent = '本人自述已采用并保存。尚未外发；下一步请预览原话与费用。';
+        planSync();
+        byId('native-plan-section').scrollIntoView({block:'start'});
+      }
       loadResearchList();
       status(`已保存修订 ${saved.current_problem.revision}。这是一条问题记录，尚未执行研究。`);
     } catch (error) {
@@ -2021,7 +2138,8 @@
     } finally {
       setBusy(false);
     }
-  });
+  }
+  form.addEventListener('submit', event => { event.preventDefault(); void saveProblem(); });
   async function taskAction(operation) {
     if (readOnlyView() || taskData?.is_historical || taskBusy || !taskData || (operation === 'start' && busy)) return;
     taskBusy = true; syncTaskButtons();
@@ -2078,15 +2196,15 @@
   initFinancialPreview();
   if (window.EvidenceMethodPlan) evidenceUI = window.EvidenceMethodPlan.mount({document,
     getScope:()=>({account:accountScope,privateGeneration,rid:researchId,revision:editBase?.revision,digest:editBase?.digest,
-      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden}),
+      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden&&Boolean(researchId)}),
     authenticate:authenticated,fetchRoot:request,onDenied:clearPrivateView});
   if (window.FinancialRegistry) registryUI = window.FinancialRegistry.mount({document,
     getScope:()=>({account:accountScope,privateGeneration,rid:researchId,revision:editBase?.revision,digest:editBase?.digest,
-      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden}),
+      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden&&Boolean(researchId)}),
     authenticate:authenticated,fetchRoot:request,onObservedRoot:data=>observeFinancialRoot(data,'registry')});
   if (window.FinancialScenario) scenarioUI = window.FinancialScenario.mount({document,
     getScope:()=>({account:accountScope,privateGeneration,rid:researchId,revision:editBase?.revision,digest:editBase?.digest,
-      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden}),
+      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden&&Boolean(researchId)}),
     getSelectedRegistry:()=>registryUI?.getSelectedRegistry()||null,
     authenticate:authenticated,fetchRoot:request,onObservedRoot:data=>observeFinancialRoot(data,'scenario')});
   for(const id of ['financial-registry-choose','financial-registry-history','financial-registry-reopen','financial-preview-csv'])
