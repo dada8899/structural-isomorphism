@@ -3840,7 +3840,14 @@ def test_native_plan_terminal_boundary_preserves_unknown_and_current_input(tmp_p
     asyncio.run(_native_terminal_case(tmp_path,mode))
 
 
+async def _open_research_advanced(page):
+    toggle=page.locator('#advanced-tools-toggle')
+    if await toggle.get_attribute('aria-expanded') != 'true':
+        await toggle.click()
+
+
 async def _method_draft_type_manual_fields(page):
+    await _open_research_advanced(page)
     values={
         'method-draft-label':'人工提议的等待对照',
         'method-draft-method':'在明确系统边界和相同时间口径下，对照自己的任务等待记录。',
@@ -4277,6 +4284,7 @@ async def _method_main_select_old_source_for_new_problem(page,service):
     assert seed.current_input_revision==seed.source_input_revision==1 and seed.schema_version==15 and seed.mode=='offline_probe'
     await aexpect(page.locator('#problem-form')).to_be_visible()
     await page.locator('#original-input').fill('我观察到任务集中到达时，排队等待会随积压增加，需要区分任务复杂度等竞争解释。')
+    await _open_research_advanced(page)
     await page.locator('#summary').fill('我自己的合成观察；本次只保存验证思路，引用以前问题修订的许可短摘录。')
     await page.locator('#entry').select_option('phenomenon');await page.locator('#confirmed').check()
     async with page.expect_response('**/revisions') as saved:await page.locator('#save').click()
