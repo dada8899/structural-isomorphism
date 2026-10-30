@@ -167,3 +167,6 @@ textarea:disabled, select:disabled { opacity:1; color:var(--ink); background:#e9
 #advanced-tools-toggle[aria-expanded="true"] { border-bottom:3px solid var(--accent); }
 #problem-advanced, #advanced-tools { margin-top:28px; padding-top:16px; border-top:1px solid var(--line); }
 #entry-capability { max-width:640px; }
+
+.advanced-closed [data-advanced-only], .advanced-closed .source-write-ui { display:none !important; }
+#start-research:disabled { cursor:not-allowed; }

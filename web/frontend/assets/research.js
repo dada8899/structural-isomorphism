@@ -1313,6 +1313,7 @@
     // Freeze the submitted draft until the receipt is handled. Otherwise a
     // late render could silently replace edits made while fetch was pending.
     for (const control of form.querySelectorAll('input, textarea, select, button')) control.disabled = value || (readOnlyView() && !['reload','advanced-tools-toggle'].includes(control.id));
+    byId('start-research').disabled = true;
     syncTaskButtons();
     syncFormulaControls();
     planSync();
@@ -1639,6 +1640,7 @@
       : '人工维护区：这里只回显原话，不是系统结构化草案；不会自动确认。';
   }
   function showAdvanced(open) {
+    document.body.classList.toggle('advanced-closed', !open);
     byId('problem-advanced').hidden = !open;
     byId('advanced-tools').hidden = !open;
     byId('advanced-tools-toggle').setAttribute('aria-expanded', String(open));
@@ -1657,7 +1659,7 @@
     questionCapabilityController?.abort();
     questionCapabilityController = null;
     byId('prepare-problem').disabled = busy || readOnlyView();
-    byId('entry-capability').textContent = '自动整理能力需主动核对；本次不会发送原文、调用模型或保存问题。未保存的原话仍仅在本页，请保留输入。';
+    byId('entry-capability').textContent = '自动整理与自动研究尚未开放，主动作暂不可用。本次不会发送原文、调用模型或保存问题。未保存的原话仍仅在本页，请保留输入。';
   }
   function validClosedQuestionCapability(payload) {
     const data = payload?.data;
@@ -1671,20 +1673,18 @@
       data.blockers.every(value => value === 'question_draft_purpose_not_admitted') &&
       typeof data.message === 'string' && data.message.length > 0 && data.message.length <= 1000;
   }
-  byId('prepare-problem').addEventListener('click', async () => {
-    if (busy || questionCapabilityController || readOnlyView() || !byId('original-input').reportValidity()) return;
+  async function readQuestionCapability(accountVerified = false) {
+    if (busy || questionCapabilityController || readOnlyView()) return;
     const generation = ++questionCapabilityGeneration;
     const privateScope = privateGeneration;
-    const original = byId('original-input').value;
     const controller = new AbortController();
     questionCapabilityController = controller;
-    const active = () => generation === questionCapabilityGeneration && privateScope === privateGeneration &&
-      original === byId('original-input').value && !form.hidden;
+    const active = () => generation === questionCapabilityGeneration && privateScope === privateGeneration && !form.hidden;
     const timer = setTimeout(() => controller.abort(), 15000);
     byId('prepare-problem').disabled = true;
     byId('entry-capability').textContent = '正在核对问题整理能力；本次只读取能力状态，不发送原问题。';
     try {
-      if (!await authenticated(active, controller.signal)) {
+      if (!accountVerified && !await authenticated(active, controller.signal)) {
         if (active()) throw Error('account capability unknown');
         return;
       }
@@ -1713,7 +1713,8 @@
         byId('prepare-problem').disabled = busy || readOnlyView();
       }
     }
-  });
+  }
+  byId('prepare-problem').addEventListener('click', () => readQuestionCapability());
   async function authenticated(isCurrent, signal) {
     const unavailable = () => {
       const planWasCurrent=isCurrent();
@@ -1829,7 +1830,7 @@
       draftChanged('问题有未保存改动；此处方法文字保留，保存前先核对问题。');
       financialInvalidate('问题有未保存改动，旧预览已失效；CSV 仍暂存在本页。');
       if (id === 'summary') summaryEdited = true;
-      if (id === 'original-input') { invalidateQuestionCapability(); echoDraft(); }
+      if (id === 'original-input') echoDraft();
       invalidateKB();
     });
   }
@@ -1893,6 +1894,7 @@
       draftSync();
       byId('native-plan-status').textContent='问题尚未保存；没有生成或外发计划。';
       status('新问题尚未保存。');
+      void readQuestionCapability(true);
       byId('my-research').hidden = false;
       loadResearchList(false, positionEntry);
       if (positionEntry && initialSection === 'kb-section') positionInitialSection();
@@ -1903,6 +1905,7 @@
     if (methodToken.generation !== methodGeneration) return;
     if (selectedTask && data.task?.id !== selectedTask) { clearPrivateView(); status('无法核对所选流程，请重新打开研究记录。',true); return; }
     render(data,methodToken);
+    void readQuestionCapability(true);
     byId('my-research').hidden = false;
     loadResearchList(false, positionEntry);
     if (positionEntry && initialSection === 'kb-section') positionInitialSection();
