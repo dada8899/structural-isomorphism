@@ -138,6 +138,53 @@ async def _phase_urlopen_json(req, timeout: int) -> dict:
     return await run_in_threadpool(_blocking)
 
 
+_LIFESPAN_FRAME_SPECS = (
+    ('web/backend/main.py', ('lifespan',)),
+    ('web/backend/services/formal_admission.py', ('initialize','publish','check','_producer','_modules','_config','_digest','pin_source_module','attach_source','attach_native','withdraw','close_source','close_native','release')),
+    ('web/backend/services/runtime_paths.py', ('inspect_formal','_directory_fd','_validated_directory_fd','_validate_directory','_check_current_parent','acquire','_acquire_locked','check','_sidecars','_sidecar_entry','_require_private_file','formal_favorites','private_favorites_path')),
+    ('web/backend/api/auth.py', ('_validate_production_config','_store')),
+    ('web/backend/research/runtime_profile.py', ('inspect_formal_profile','runtime_capability_facts')),
+    ('web/backend/research/store.py', ('__init__','_check_v15','check_runtime_version')),
+    ('web/backend/research/service.py', ('__init__','runtime_capability_facts')),
+    ('web/backend/services/search_service.py', ('__init__',)),
+    ('web/backend/research/native_plan_supervisor.py', ('prepare_main_context','start')),
+)
+
+
+def _lifespan_primary_annotation(primary):
+    # Project only the actual primary. Direct access to the builtin traceback
+    # descriptor bypasses hostile exception attributes; no messages or locals.
+    import asyncio
+    import sqlite3
+    kinds = ((RuntimeError,'RuntimeError'),(PermissionError,'PermissionError'),(OSError,'OSError'),
+        (ValueError,'ValueError'),(TypeError,'TypeError'),(AssertionError,'AssertionError'),
+        (ImportError,'ImportError'),(ModuleNotFoundError,'ModuleNotFoundError'),(TimeoutError,'TimeoutError'),
+        (AttributeError,'AttributeError'),(KeyError,'KeyError'),(NameError,'NameError'),
+        (RecursionError,'RecursionError'),(FileNotFoundError,'FileNotFoundError'),
+        (FileExistsError,'FileExistsError'),(MemoryError,'MemoryError'),
+        (sqlite3.OperationalError,'OperationalError'),(sqlite3.ProgrammingError,'ProgrammingError'),
+        (sqlite3.IntegrityError,'IntegrityError'),(sqlite3.DatabaseError,'DatabaseError'),
+        (asyncio.CancelledError,'CancelledError'),(GeneratorExit,'GeneratorExit'),
+        (SystemExit,'SystemExit'),(Exception,'Exception'),(BaseException,'BaseException'))
+    if not isinstance(primary,BaseException):return b''
+    label = next((name for cls,name in kinds if type(primary) is cls),'OTHER')
+    root = Path(__file__).absolute().parents[2]
+    allowed = {str(root/relative):(relative,functions) for relative,functions in _LIFESPAN_FRAME_SPECS}
+    frames = []
+    trace = BaseException.__dict__['__traceback__'].__get__(primary,BaseException)
+    for _ in range(256):
+        if trace is None:break
+        code = trace.tb_frame.f_code
+        item = allowed.get(code.co_filename)
+        line = trace.tb_lineno
+        if item is not None and code.co_name in item[1] and type(line) is int and 0 < line <= 1000000:
+            frames.append(item[0]+'|'+code.co_name+'|'+str(line))
+        trace = trace.tb_next
+    coords = ';'.join(frames[-8:]) if frames else '-'
+    value = ('FORMAL_LIFESPAN_V1:'+label+':'+coords+'\n').encode('ascii')
+    return value if len(value) <= 2048 else b''
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup: load the search engine once."""
@@ -191,6 +238,8 @@ async def lifespan(app: FastAPI):
             yield
         except BaseException as error:
             primary = error
+            try:os.write(2, _lifespan_primary_annotation(error))
+            except BaseException:pass  # Never replace or swallow this primary.
             raise
         finally:
             errors = []
