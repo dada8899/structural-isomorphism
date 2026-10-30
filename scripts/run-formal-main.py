@@ -177,10 +177,15 @@ def _read_proc(path, limit):
     try:
         descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
         descriptors.append(descriptor)
-        raw = os.read(descriptor, limit + 1)
+        raw = bytearray()
+        while len(raw) <= limit:
+            chunk = os.read(descriptor, limit + 1 - len(raw))
+            if not chunk:
+                break
+            raw.extend(chunk)
         if not 0 < len(raw) <= limit:
             raise EntryFailure('CREDENTIAL_METADATA_INVALID')
-        return raw
+        return bytes(raw)
     finally:
         _close_all(descriptors)
 
