@@ -688,7 +688,7 @@
   function planUncertain(meta) { return meta&&(meta.state==='pending_reconciliation'||meta.cost_state==='unknown'||meta.cleanup_state==='uncertain'); }
   function planSync() {
     const ro=readOnlyView(),pending=planPending(),p=planState.preview;
-    byId('native-plan-section').hidden=form.hidden;
+    byId('native-plan-section').hidden=form.hidden||!researchId;
     const conflict=editBase&&observed&&(observed.revision!==editBase.revision||observed.digest!==editBase.digest);
     const eligible=researchId&&editBase&&current?.current_problem?.entry==='phenomenon'&&current.current_problem.confirmed&&!methodDirty&&!formulaState.dirty&&!conflict;
     byId('native-plan-own').disabled=ro||busy||planState.busy||!eligible;
@@ -1061,7 +1061,7 @@
   }
   function draftSync(){
     const ro=readOnlyView(),target=draftState.target;
-    byId('method-draft-section').hidden=form.hidden;
+    byId('method-draft-section').hidden=form.hidden||!researchId;
     const conflict=Boolean(editBase&&observed&&(editBase.revision!==observed.revision||editBase.digest!==observed.digest));
     const valid=researchId&&target&&editBase&&target.input_revision===editBase.revision&&target.problem_digest===editBase.digest&&!methodDirty&&!formulaState.dirty&&!conflict;
     byId('method-draft-target').textContent=target?`本次目标：问题修订 ${target.input_revision}。引用材料保留各自原修订，保存不会执行验证。`:'先保存并核对问题，再选择已存材料。';
@@ -2167,15 +2167,15 @@
   initFinancialPreview();
   if (window.EvidenceMethodPlan) evidenceUI = window.EvidenceMethodPlan.mount({document,
     getScope:()=>({account:accountScope,privateGeneration,rid:researchId,revision:editBase?.revision,digest:editBase?.digest,
-      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden}),
+      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden&&Boolean(researchId)}),
     authenticate:authenticated,fetchRoot:request,onDenied:clearPrivateView});
   if (window.FinancialRegistry) registryUI = window.FinancialRegistry.mount({document,
     getScope:()=>({account:accountScope,privateGeneration,rid:researchId,revision:editBase?.revision,digest:editBase?.digest,
-      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden}),
+      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden&&Boolean(researchId)}),
     authenticate:authenticated,fetchRoot:request,onObservedRoot:data=>observeFinancialRoot(data,'registry')});
   if (window.FinancialScenario) scenarioUI = window.FinancialScenario.mount({document,
     getScope:()=>({account:accountScope,privateGeneration,rid:researchId,revision:editBase?.revision,digest:editBase?.digest,
-      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden}),
+      version:observed?.researchVersion??editBase?.researchVersion,dirty:methodDirty||formulaState.dirty,readonly:readOnlyView(),busy,visible:!form.hidden&&Boolean(researchId)}),
     getSelectedRegistry:()=>registryUI?.getSelectedRegistry()||null,
     authenticate:authenticated,fetchRoot:request,onObservedRoot:data=>observeFinancialRoot(data,'scenario')});
   for(const id of ['financial-registry-choose','financial-registry-history','financial-registry-reopen','financial-preview-csv'])

@@ -241,6 +241,8 @@ def test_single_question_explicit_original_adoption_actual_asgi_save_reopen(shor
             page.goto('https://testserver/research')
             expect(page.locator('#problem-form')).to_be_visible()
             expect(page.locator('#problem-form textarea:visible')).to_have_count(1)
+            for section in ('native-plan-section','method-draft-section','evidence-method-section','financial-registry-section','financial-scenario-section'):
+                expect(page.locator('#'+section)).to_be_hidden()
             page.locator('#original-input').fill(raw)
             page.locator('#start-research').click()
             expect(page.locator('#observation-exact')).to_have_text(raw)
