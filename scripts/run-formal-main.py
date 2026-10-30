@@ -33,6 +33,8 @@ _CODES = frozenset(('ENTRY_ARGUMENTS', 'INTERPRETER_FLAGS', 'INHERITED_SECRET', 
     'CREDENTIAL_ENCODING_INVALID', 'CREDENTIAL_FORMAT_INVALID', 'CREDENTIAL_IO_FAILED',
     'FD_CLOSE_FAILED', 'ENV_INSTALL_FAILED', 'CODE_IDENTITY_INVALID', 'APP_IMPORT_FAILED', 'SERVER_FAILED'))
 
+_SERVER_FAILURE_ORIGIN = object()
+
 _IDENTITY_SITES = ('SRC_ROOT', 'SRC_COMPONENT', 'SRC_LEAF_BOUNDS', 'SRC_READBACK', 'HELPER_MODULE', 'HELPER_BUILTINS', 'HELPER_MEMBERS', 'HELPER_FUNCTION', 'HELPER_CONSTANT', 'HELPER_SOURCE_REREAD', 'LOAD_PREINJECT', 'LOAD_SOURCE_CHANGED', 'ENTRY_PATH', 'ENTRY_WITNESS_PAIR', 'APP_PREIMPORT', 'ENTRY_MODULE', 'ENTRY_BUILTINS', 'ENTRY_FUNCTION', 'MAIN_IDENTITY')
 _IDENTITY_MASKS = {'SRC_ROOT': 3, 'SRC_COMPONENT': 15, 'SRC_LEAF_BOUNDS': 48, 'SRC_READBACK': 192}
 
@@ -40,12 +42,18 @@ _IDENTITY_MASKS = {'SRC_ROOT': 3, 'SRC_COMPONENT': 15, 'SRC_LEAF_BOUNDS': 48, 'S
 class EntryFailure(RuntimeError):
     def __init__(self, code, identity=None):
         self._identity_site = identity if code == 'CODE_IDENTITY_INVALID' and type(identity) is tuple else None
+        self._server_failure_origin = None
+        self._server_failure = None
         self.code = code if code in _CODES else 'SERVER_FAILED'
         super().__init__(self.code)
 
     @property
     def identity_site(self):
         return self._identity_site
+
+    @property
+    def server_failure(self):
+        return self._server_failure
 
 
 def _identity_annotation(error):
@@ -63,6 +71,29 @@ def _identity_annotation(error):
     component_text = '-' if component is None else str(component)
     mask_text = '-' if mask is None else str(mask)
     return ('FORMAL_IDENTITY_V1:' + site + ':' + component_text + ':' + mask_text + '\n').encode('ascii')
+
+
+def _server_failure_snapshot(server, outcome):
+    # Read only four data attributes; never stringify the server/exception or
+    # traverse config, locals, arguments, environment or request objects.
+    data = vars(server)
+    try:lifespan = vars(data.get('lifespan'))
+    except TypeError:lifespan = {}
+    values = (data.get('started'), lifespan.get('error_occured'),
+              lifespan.get('startup_failed'), lifespan.get('shutdown_failed'))
+    return (outcome, *(value if type(value) is bool else None for value in values))
+
+
+def _server_annotation(error):
+    if (type(error) is not EntryFailure or error.code != 'SERVER_FAILED'
+            or error._server_failure_origin is not _SERVER_FAILURE_ORIGIN):return b''
+    value = error.server_failure
+    if type(value) is not tuple or len(value) != 5:return b''
+    outcome, *flags = value
+    if type(outcome) is not str or outcome not in ('raised', 'returned'):return b''
+    if any(flag is not None and type(flag) is not bool for flag in flags):return b''
+    tokens = ['-' if flag is None else '1' if flag else '0' for flag in flags]
+    return ('FORMAL_SERVER_V1:' + outcome + ':' + ':'.join(tokens) + '\n').encode('ascii')
 
 
 def _initial_environment():
@@ -538,12 +569,18 @@ def _serve(pid, uid, *, entry_module=None, entry_witness=None):
     # Importing code may change process properties. Recheck immediately before
     # the actual server; no exec, UID switch or worker wrapper follows this.
     _check_boundary(pid, uid)
+    outcome = 'raised'
     try:
         server.run()
+        outcome = 'returned'
         if not server.started or server.lifespan.error_occured or server.lifespan.startup_failed or server.lifespan.shutdown_failed:
             raise EntryFailure('SERVER_FAILED')
     except BaseException:
-        raise EntryFailure('SERVER_FAILED') from None
+        primary = EntryFailure('SERVER_FAILED')
+        primary._server_failure_origin = _SERVER_FAILURE_ORIGIN
+        try:primary._server_failure = _server_failure_snapshot(server, outcome)
+        except BaseException:pass  # Observation cannot replace SERVER_FAILED.
+        raise primary from None
 
 
 def main():
@@ -592,7 +629,12 @@ def main():
         output = ('FORMAL_ENTRY:' + code + '\n').encode('ascii')
         try:output += _identity_annotation(error)
         except BaseException:pass  # Diagnostic formatting cannot replace primary.
-        os.write(2, output)
+        try:output += _server_annotation(error)
+        except BaseException:pass
+        if type(error) is EntryFailure and error._server_failure_origin is _SERVER_FAILURE_ORIGIN:
+            try:os.write(2, output)
+            except BaseException:pass  # Single attempt; primary exit78 survives.
+        else:os.write(2, output)
     finally:
         # Existing five ENV values retain their original consumers. Provider
         # material is never added to this batch or inherited by a DNS child.
