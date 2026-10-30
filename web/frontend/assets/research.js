@@ -1659,7 +1659,9 @@
     if (length < 8 || length > 1000 || Array.from(raw.normalize('NFC')).length < 8)
       throw Error('当前规划仅支持 8–1000 字的本人现象自述。原话已完整保留；不会截断、补字或要求你重抄摘要。');
     const view = raw.normalize('NFKC');
-    if (!planText(raw,1000,8) || /(?:[a-z][a-z0-9+.-]*:\/\/|\b(?:https?|file|data|javascript|mailto):|\bwww\.|\bdoi\s*:|`|\$\(|\$\{|#!\s*\/|<\s*\/?\s*(?:script|iframe|object|embed)\b|\b(?:python3?|node)\s+-(?:c|e)\b)/i.test(view))
+    // Same finite refusal classes as phenomenon_plan._STRUCTURES; this is not ownership verification.
+    const structures = new RegExp("(?:\\b[a-z][a-z0-9+.-]{1,24}://|\\b(?:https?|file|data|javascript|mailto):|\\bwww\\.|\\bdoi\\s*:|\\b10\\.\\d{4,9}/\\S+)|(?:`|\\$\\(|\\$\\{|#!\\s*/|<\\s*/?\\s*(?:script|iframe|object|embed)\\b)|(?:\\b(?:curl|wget|rm|chmod|chown|ssh|scp)\\s+-[A-Za-z]|\\b(?:bash|sh|zsh|pwsh|powershell)\\s+-[A-Za-z])|(?:\\b(?:python3?|node)\\s+-(?:c|e)\\b|\\b(?:pip3?|npm|npx)\\s+(?:install|exec|run)\\b)|(?:\\b(?:eval|exec|__import__)\\s*\\(|\\b(?:Invoke-WebRequest|Invoke-Expression|Start-Process)\\b)|(?:\\bSELECT\\s+\\*\\s+FROM\\b|\\b(?:DROP|ALTER|CREATE)\\s+TABLE\\b|\\bINSERT\\s+INTO\\b|\\bDELETE\\s+FROM\\b)|(?:\\[[0-9]+\\]|\\bet\\s+al\\.)|(?:[\\\"']?(?:verified|checked|trusted|copyright_verified|mathematically_verified)[\\\"']?\\s*[:=]\\s*(?:true|1|yes)\\b)", 'i');
+    if (!planText(raw,1000,8) || structures.test(view))
       throw Error('这段内容含链接、代码或不适用结构，不能声明为本入口的本人现象自述。原文保留，可在高级工具中按资料用途处理。');
     return {entry:'phenomenon',original_input:raw,objective:'',summary:raw.normalize('NFC'),
       variables:[],constraints:[],unknowns:[],confirmed:true};
@@ -2064,6 +2066,34 @@
     catch (error) { byId('source-status').textContent = error.message; }
     finally { sourceBusy = false; syncSourceAccess(); }
   });
+  function validateObservationReceipt(saved, problem, targetId, expectedRevision, minimumVersion) {
+    const fail = () => { throw Error('采用回执无法完整核对；原保存操作保留，请保留输入并用相同内容核对原操作。'); };
+    const integer = value => Number.isSafeInteger(value) && value >= 1 && value <= 2147483647;
+    const row = saved?.research, value = saved?.current_problem;
+    const wantedRevision = expectedRevision === null ? 1 : expectedRevision + 1;
+    if (!planObject(saved) || !planObject(row) || !validId(row.id) || (targetId !== null && row.id !== targetId) ||
+        row.current_revision !== wantedRevision || !integer(row.version) || row.version !== saved.research_version || row.version < minimumVersion ||
+        !planObject(value) || value.research_id !== row.id || value.revision !== wantedRevision ||
+        !formulaDigest(value.digest) || !recordTime(value.created_at) || value.entry !== 'phenomenon' ||
+        value.original_input !== problem.original_input || value.summary !== problem.summary || value.objective !== '' || value.confirmed !== true ||
+        !['variables','constraints','unknowns'].every(key => Array.isArray(value[key]) && value[key].length === 0) ||
+        (value.formula_snapshot !== undefined && value.formula_snapshot !== null) ||
+        !Array.isArray(saved.revisions) || saved.revisions.length !== wantedRevision || saved.is_historical !== false ||
+        saved.task !== null || saved.task_version !== null || saved.execution !== null || row.current_task_id !== null ||
+        !planObject(saved.capabilities) || !Array.isArray(saved.allowed_next_actions) || !saved.allowed_next_actions.every(item => typeof item === 'string') ||
+        (saved.notes != null && (!Array.isArray(saved.notes) || !saved.notes.every(item => typeof item === 'string'))) ||
+        (saved.source_observations !== undefined && (!Array.isArray(saved.source_observations) || saved.source_observations.length !== 0))) fail();
+    for (let index = 0; index < saved.revisions.length; index++) {
+      const item = saved.revisions[index];
+      if (!planObject(item) || item.research_id !== row.id || item.revision !== index + 1 || !formulaDigest(item.digest) || !recordTime(item.created_at) ||
+          !['phenomenon','formula','research'].includes(item.entry) || typeof item.original_input !== 'string' || typeof item.objective !== 'string' ||
+          typeof item.summary !== 'string' || typeof item.confirmed !== 'boolean' || !Array.isArray(item.variables) ||
+          !['constraints','unknowns'].every(key => Array.isArray(item[key]) && item[key].every(text => typeof text === 'string'))) fail();
+    }
+    const latest = saved.revisions[saved.revisions.length - 1];
+    for (const key of ['research_id','revision','digest','created_at','entry','original_input','objective','summary','confirmed']) if (latest[key] !== value[key]) fail();
+    if (!['variables','constraints','unknowns'].every(key => latest[key].length === 0)) fail();
+  }
   async function saveProblem(adoptedProblem = null) {
     if (busy || readOnlyView()) return;
     const methodToken = beginMethodRead();
@@ -2088,11 +2118,10 @@
       if (privateScope !== privateGeneration) throw new Error('账户访问已变化，请重新登录后核对原操作。');
       const url = researchId ? `/api/research/${researchId}/revisions` : '/api/research';
       const saved = await methodRequest(url, {method:'POST', headers:{'Content-Type':'application/json', 'Idempotency-Key':pending.key}, body},methodToken);
-      if (adoptedProblem && (saved.current_problem?.original_input !== adoptedProblem.original_input || saved.current_problem?.confirmed !== true))
-        throw Error('采用回执无法核对；原保存操作保留，请保留输入并核对已存版本。');
-      sessionStorage.removeItem(pending.slot);
-      history.replaceState(null, '', `/research/${saved.research.id}`);
+      if (adoptedProblem) validateObservationReceipt(saved, adoptedProblem, researchId, expectedRevision, current ? editBase.researchVersion + 1 : 1);
       render(saved,methodToken);
+      history.replaceState(null, '', `/research/${saved.research.id}`);
+      sessionStorage.removeItem(pending.slot);
       if (adoptedProblem) {
         byId('native-plan-own').checked = true;
         byId('observation-save-status').textContent = '本人自述已采用并保存。尚未外发；下一步请预览原话与费用。';

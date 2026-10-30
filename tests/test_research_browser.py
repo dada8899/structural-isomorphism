@@ -183,7 +183,7 @@ assert.notEqual(adopted.summary,raw);
 assert.equal(adopted.confirmed,true);
 assert.equal(adopted.objective,'');
 assert.deepEqual([adopted.variables,adopted.constraints,adopted.unknowns],[[],[],[]]);
-for(const raw of ['短'.repeat(7),'长'.repeat(1001),'😀'.repeat(4000),'请研究 https://example.test/article 的第三方来源。','请运行 `python -c print(1)` 并整理结果。'])assert.throws(()=>observationProblem(raw,true));
+for(const raw of ['短'.repeat(7),'长'.repeat(1001),'😀'.repeat(4000),'请研究 https://example.test/article 的第三方来源。','请运行 `python -c print(1)` 并整理结果。','curl -I example.test','bash -c echo','npm install package','eval(input)','Invoke-WebRequest item','SELECT * FROM research_controls','请核对 [1] 第三方材料','verified=true','请核对 DOI:10.1234/example'])assert.throws(()=>observationProblem(raw,true));
 """
     result=subprocess.run(['node','-e',program],capture_output=True,text=True,timeout=15)
     assert result.returncode==0,result.stderr
@@ -282,6 +282,14 @@ def test_single_question_explicit_original_adoption_actual_asgi_save_reopen(shor
             expect(page.locator('#observation-card')).to_be_hidden()
             assert not page.locator('#observation-own').is_checked()
             expect(page.locator('#observation-adopt')).to_be_disabled()
+            page.locator('#start-research').click();page.locator('#observation-own').check()
+            page.locator('#observation-adopt').click()
+            expect(page.locator('#status')).to_contain_text('已保存修订 2')
+            changed=client.get('/api/research/'+rid).json()['data']
+            assert changed['current_problem']['original_input']==raw+' 新增本人观察。'
+            assert changed['current_problem']['confirmed'] is True and len(changed['revisions'])==2
+            assert page.url==saved_url
+            assert [(method,path) for method,path,_ in calls if method=='POST']==[('POST','/api/research'),('POST','/api/research/'+rid+'/revisions')]
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
         finally:context.close();browser.close()
 
@@ -322,7 +330,56 @@ def test_original_adoption_lost_actual_asgi_receipt_reuses_original_key(short_ob
         finally:context.close();browser.close()
 
 
-@pytest.mark.parametrize('raw',['短'*7,'长'*1001,'原'*4000,'请研究 https://example.test/article 的第三方来源。','请运行 `python -c print(1)` 并整理结果。'],ids=['short','long','max4000','url','code'])
+@pytest.mark.parametrize('damage',['missing_research','bad_id','missing_revisions','bad_constraints','bad_revision','bad_adopted_title'])
+def test_original_adoption_malformed_committed_200_keeps_key_and_recovers_same_record(short_observation_asgi,damage):
+    client,_=short_observation_asgi
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            page,calls=_short_observation_page(context,client)
+            page.goto('https://testserver/research')
+            expect(page.locator('#problem-form')).to_be_visible()
+            raw='本人温度恢复过程，要核对与电容放电之间的条件及差异。'
+            page.locator('#original-input').fill(raw);page.locator('#start-research').click()
+            page.locator('#observation-own').check()
+            committed=[];request_keys=[]
+            page.on('request',lambda request:request_keys.append(request.headers.get('idempotency-key')) if request.method=='POST' and request.url.endswith('/api/research') else None)
+            def corrupt_actual_receipt(route):
+                request=route.request
+                response=client.request(request.method,request.url,headers=request.all_headers(),content=request.post_data_buffer)
+                assert response.status_code==200
+                value=response.json();data=value['data']
+                committed.append((request.headers['idempotency-key'],data['research']['id']))
+                if damage=='missing_research':data.pop('research')
+                elif damage=='bad_id':data['research']['id']='../other-record'
+                elif damage=='missing_revisions':data.pop('revisions')
+                elif damage=='bad_constraints':data['current_problem']['constraints']=None
+                elif damage=='bad_revision':data['current_problem']['revision']=2
+                elif damage=='bad_adopted_title':data['current_problem']['summary']='并非用户采用的另一份标题内容'
+                route.fulfill(status=200,content_type='application/json',body=json.dumps(value))
+            page.route('**/api/research',corrupt_actual_receipt)
+            page.locator('#observation-adopt').click()
+            expect(page.locator('#status')).to_contain_text('采用回执无法完整核对')
+            assert page.url=='https://testserver/research'
+            expect(page.locator('#original-input')).to_have_value(raw)
+            assert page.locator('#observation-exact').text_content()==raw
+            pending=json.loads(page.evaluate("sessionStorage.getItem('structure-research-pending:new')"))
+            assert pending['key']==committed[0][0]
+            before=client.get('/api/research/'+committed[0][1]).json()['data']
+            assert len(before['revisions'])==1 and before['current_problem']['original_input']==raw
+            page.unroute('**/api/research',corrupt_actual_receipt)
+            page.locator('#observation-adopt').click()
+            expect(page.locator('#status')).to_contain_text('已保存修订 1')
+            assert request_keys==[committed[0][0],committed[0][0]]
+            assert page.url.endswith('/research/'+committed[0][1])
+            assert page.evaluate("sessionStorage.getItem('structure-research-pending:new')") is None
+            after=client.get('/api/research/'+committed[0][1]).json()['data']
+            assert len(after['revisions'])==1 and after['current_problem']==before['current_problem']
+            assert not [path for method,path,_ in calls if method=='POST' and 'plan-' in path]
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('raw',['短'*7,'长'*1001,'原'*4000,'请研究 https://example.test/article 的第三方来源。','请运行 `python -c print(1)` 并整理结果。','curl -I example.test','SELECT * FROM research_controls'],ids=['short','long','max4000','url','code','curl','sql'])
 def test_single_question_unsupported_scope_keeps_complete_original_without_adoption(short_observation_asgi,raw):
     client,_=short_observation_asgi
     with sync_playwright() as playwright:
