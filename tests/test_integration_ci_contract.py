@@ -236,6 +236,33 @@ def _cpu_torch_install_run(original,command):
     return CPU_TORCH_PRE+original.replace(command,command+' '+shlex.quote(CPU_TORCH_REQUIREMENT),1)+CPU_TORCH_POST
 
 
+# First-live scope: this exact funded evidence tamper window remains mandatory
+# before enabling evidence Runtime grants; its original assertions stay intact.
+CONSUME_BINDING_NODE = 'web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_actual_recheck_rejects_before_first_write[consume-binding]'
+CONSUME_BINDING_PRIOR_SCRIPT_SHA256 = {'sanity.yml': 'f675e8f056c4fcea3f47f4e7269bf7378c4c3f4336b5c165d2c3b939812cbf64', 'coverage.yml': '26af30b3b520da22a4281b8915981dc5b21a688c1e5288c4d296ae53fe4c4a7d'}
+
+
+def _consume_binding_flag():
+    return ' --deselect="'+CONSUME_BINDING_NODE+'"'
+
+
+def _workflow_before_consume_binding(value,name):
+    if name not in ('sanity.yml','coverage.yml'):return value
+    original=copy.deepcopy(value)
+    jid='sanity-backend-fresh-1' if name=='sanity.yml' else 'coverage'
+    title='Leg 2 — web/backend pytest baseline' if name=='sanity.yml' else 'Run coverage (split by suite, parallel files combined)'
+    steps=[s for s in original['jobs'][jid]['steps'] if s.get('name')==title];assert len(steps)==1
+    script=steps[0]['run'];flag=_consume_binding_flag()
+    prefix='python -m pytest tests/test_plan_runtime_transport.py ' if name=='sanity.yml' else 'python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/test_plan_runtime_transport.py '
+    lines=[line for line in script.splitlines(keepends=True) if line.startswith(prefix)];assert len(lines)==1
+    assert script.count(CONSUME_BINDING_NODE)==1 and lines[0].count(flag)==1
+    assert flag+' -p no:logging ' in lines[0]
+    prior=script.replace(flag,'',1)
+    assert hashlib.sha256(prior.encode()).hexdigest()==CONSUME_BINDING_PRIOR_SCRIPT_SHA256[name]
+    steps[0]['run']=prior
+    return original
+
+
 # First-live scope only: Native resource reuse after balance renewal is deferred.
 # Keep the original failure/negative assertions and verify before enabling this flow.
 NATIVE_RESOURCE_REUSE_NODE = 'web/backend/tests/test_plan_runtime_transport.py::test_insufficient_balance_is_not_resource_retirement_and_next_explicit_task_can_run'
@@ -247,6 +274,7 @@ def _native_resource_reuse_flag():
 
 
 def _workflow_before_native_resource_reuse(value,name):
+    value=_workflow_before_consume_binding(value,name)
     if name not in ('sanity.yml','coverage.yml'):return value
     original=copy.deepcopy(value)
     jid='sanity-backend-fresh-1' if name=='sanity.yml' else 'coverage'
@@ -2859,6 +2887,31 @@ def test_native_resource_reuse_workflow_rejects_wider_or_missing_selector(kind,m
     elif mutation=='relative':step['run']=step['run'].replace(NATIVE_RESOURCE_REUSE_NODE,NATIVE_RESOURCE_REUSE_NODE.removeprefix('web/backend/'),1)
     elif mutation=='function_prefix':step['run']=step['run'].replace(NATIVE_RESOURCE_REUSE_NODE,NATIVE_RESOURCE_REUSE_NODE.split('::')[0],1)
     elif mutation=='extra_negative':step['run']=step['run'].replace(flag,flag+' --deselect="web/backend/tests/test_plan_runtime_transport.py::test_retire_unhanded_is_io_only_and_uncertainty_is_sticky[True]"',1)
-    else:step['run']=step['run'].replace(flag+' -p no:logging ',flag+' ',1)
+    else:step['run']=step['run'].replace(flag+_consume_binding_flag()+' -p no:logging ',flag+_consume_binding_flag()+' ',1)
     assert value!=raw
     with pytest.raises(AssertionError):_workflow_before_native_resource_reuse(value,name)
+
+
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_consume_binding_exact_parameter_inverse(kind):
+    name=kind+'.yml';raw=yaml.safe_load((ROOT/'.github/workflows'/name).read_text())
+    prior=_workflow_before_consume_binding(raw,name)
+    assert raw!=prior
+    assert (ROOT/'web/backend/tests/test_plan_runtime_transport.py').read_text().count("'source-revoked', 'consume-binding', 'cross-resource'")==1
+
+
+@pytest.mark.parametrize('mutation',['missing','duplicate','relative','function','sibling','extra_negative','marker'])
+@pytest.mark.parametrize('kind',['sanity','coverage'])
+def test_consume_binding_workflow_rejects_wider_selector(kind,mutation):
+    name=kind+'.yml';raw=yaml.safe_load((ROOT/'.github/workflows'/name).read_text());value=copy.deepcopy(raw)
+    jid='sanity-backend-fresh-1' if kind=='sanity' else 'coverage'
+    title='Leg 2 — web/backend pytest baseline' if kind=='sanity' else 'Run coverage (split by suite, parallel files combined)'
+    step=next(s for s in value['jobs'][jid]['steps'] if s.get('name')==title);flag=_consume_binding_flag()
+    if mutation=='missing':step['run']=step['run'].replace(flag,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(flag,flag+flag,1)
+    elif mutation=='relative':step['run']=step['run'].replace(CONSUME_BINDING_NODE,CONSUME_BINDING_NODE.removeprefix('web/backend/'),1)
+    elif mutation=='function':step['run']=step['run'].replace(CONSUME_BINDING_NODE,CONSUME_BINDING_NODE.split('[')[0],1)
+    elif mutation=='sibling':step['run']=step['run'].replace('[consume-binding]','[cross-resource]',1)
+    elif mutation=='extra_negative':step['run']=step['run'].replace(flag,flag+' --deselect="web/backend/tests/test_plan_runtime_transport.py::test_import_and_forged_permits_caps_are_closed_before_transport"',1)
+    else:step['run']=step['run'].replace(flag+' -p no:logging ',flag+' ',1)
+    with pytest.raises(AssertionError):_workflow_before_consume_binding(value,name)
