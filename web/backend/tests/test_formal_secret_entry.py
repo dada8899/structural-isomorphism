@@ -639,3 +639,150 @@ def test_read_proc_io_or_eof_error_is_not_success_and_finally_closes(entry,monke
     else:
         with pytest.raises(OSError,match='synthetic proc IO failure'):entry._read_proc('/proc/self/status',4)
     assert closed==[323] and calls==([5,1] if after_cap else [5])
+
+
+def _server_diagnostic_probe(entry,monkeypatch,*,outcome='returned',started=False,flags=(False,False,False),capture_fails=False):
+    """Only fake Config/Server methods; never import Main or run an app."""
+    from types import SimpleNamespace
+    import importlib
+    import uvicorn
+    source=ROOT/'web/backend/main.py';calls=[]
+    server=SimpleNamespace(started=started)
+    if flags is not None:server.lifespan=SimpleNamespace(error_occured=flags[0],startup_failed=flags[1],shutdown_failed=flags[2])
+    def run():
+        calls.append('run')
+        if outcome=='raised':raise RuntimeError('SECRET_SENTINEL_NEVER_LOG')
+    server.run=run
+    monkeypatch.setattr(entry,'_code_paths',lambda **kwargs:(ROOT,source.parent,source))
+    monkeypatch.setattr(entry,'_check_boundary',lambda pid,uid:calls.append('boundary'))
+    monkeypatch.setattr(entry,'sys',SimpleNamespace(path=[]))
+    def imported(name):
+        assert name=='main';calls.append('main')
+        return SimpleNamespace(__file__=str(source),_IS_PROD=True,_LAUNCH_FORMAL=True,app=object())
+    monkeypatch.setattr(importlib,'import_module',imported)
+    monkeypatch.setattr(uvicorn,'Config',lambda *a,**k:object())
+    monkeypatch.setattr(uvicorn,'Server',lambda config:server)
+    if capture_fails:
+        def fail(*a):raise ValueError('SECRET_SENTINEL_NEVER_LOG')
+        monkeypatch.setattr(entry,'_server_failure_snapshot',fail)
+    with pytest.raises(entry.EntryFailure) as caught:entry._serve(123,999)
+    assert calls==['main','boundary','run'] and caught.value.code=='SERVER_FAILED'
+    return caught.value
+
+
+@pytest.mark.parametrize('outcome,started,flags,record',[
+    ('raised',False,(False,False,False),('raised',False,False,False,False)),
+    ('returned',False,(False,False,False),('returned',False,False,False,False)),
+    ('returned',True,(True,False,False),('returned',True,True,False,False)),
+    ('returned',True,(False,True,False),('returned',True,False,True,False)),
+    ('returned',True,(False,False,True),('returned',True,False,False,True)),
+    ('returned',False,None,('returned',False,None,None,None)),
+    ('returned',0,('SECRET_SENTINEL_NEVER_LOG',1,False),('returned',None,None,None,False)),
+])
+def test_server_diagnostic_actual_failure_branch_and_four_strict_flags(entry,monkeypatch,outcome,started,flags,record):
+    failure=_server_diagnostic_probe(entry,monkeypatch,outcome=outcome,started=started,flags=flags)
+    assert failure.server_failure==record
+    output=_main_failure_output(entry,monkeypatch,failure)
+    expected=('FORMAL_SERVER_V1:'+record[0]+':'+':'.join('-' if x is None else '1' if x else '0' for x in record[1:])+'\n').encode()
+    assert output==b'FORMAL_ENTRY:SERVER_FAILED\n'+expected and b'SECRET_SENTINEL' not in output
+
+
+def test_server_diagnostic_capture_formatter_and_output_failure_keep_primary(entry,monkeypatch):
+    with monkeypatch.context() as patch:
+        failure=_server_diagnostic_probe(entry,patch,capture_fails=True)
+        assert failure.server_failure is None
+    assert _main_failure_output(entry,monkeypatch,failure)==b'FORMAL_ENTRY:SERVER_FAILED\n'
+    with monkeypatch.context() as patch:
+        def fail(error):raise ValueError('SECRET_SENTINEL_NEVER_LOG')
+        patch.setattr(entry,'_server_annotation',fail)
+        assert _main_failure_output(entry,patch,failure)==b'FORMAL_ENTRY:SERVER_FAILED\n'
+    from types import SimpleNamespace
+    writes=[]
+    def unavailable(fd,raw):writes.append((fd,raw));raise OSError('SECRET_SENTINEL_NEVER_LOG')
+    monkeypatch.setattr(entry,'os',SimpleNamespace(environ={},write=unavailable))
+    assert entry.main()==78 and len(writes)==1
+
+
+@pytest.mark.parametrize('record',[
+    ('unknown',False,False,False,False),('raised',1,False,False,False),
+    ('returned',False,'secret',False,False),('returned',False,False,False),
+    ['raised',False,False,False,False],None,
+])
+def test_server_diagnostic_invalid_or_unrelated_primary_is_omitted(entry,monkeypatch,record):
+    failure=_server_diagnostic_probe(entry,monkeypatch)
+    failure._server_failure=record
+    assert entry._server_annotation(failure)==b''
+    unrelated=entry.EntryFailure('CREDENTIAL_IO_FAILED');unrelated.__context__=failure
+    assert entry._server_annotation(unrelated)==b''
+    unbound=entry.EntryFailure('SERVER_FAILED');unbound._server_failure=('raised',False,False,False,False)
+    assert entry._server_annotation(unbound)==b''
+
+
+def _load_lifespan_diagnostic_only():
+    """Compile only selected stdlib diagnostic AST, never execute Main imports."""
+    import copy
+    source=ROOT/'web/backend/main.py';tree=ast.parse(source.read_bytes())
+    selected=[node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name=='_lifespan_primary_annotation'
+              or isinstance(node,ast.Assign) and any(isinstance(x,ast.Name) and x.id=='_LIFESPAN_FRAME_SPECS' for x in node.targets)]
+    namespace={'__file__':str(source),'Path':Path}
+    exec(compile(ast.Module(body=copy.deepcopy(selected),type_ignores=[]),str(source),'exec'),namespace)
+    lifespan=next(n for n in tree.body if isinstance(n,ast.AsyncFunctionDef) and n.name=='lifespan')
+    production=next(n for n in lifespan.body if isinstance(n,ast.If) and isinstance(n.test,ast.Name) and n.test.id=='_IS_PROD')
+    protected=next(n for n in production.body if isinstance(n,ast.Try))
+    handler=copy.deepcopy(protected.handlers[0])
+    assert isinstance(handler.type,ast.Name) and handler.type.id=='BaseException'
+    body=ast.Try(body=[ast.Raise(exc=ast.Name(id='sentinel',ctx=ast.Load()),cause=None)],handlers=[handler],orelse=[],
+        finalbody=[ast.Expr(value=ast.Call(func=ast.Name(id='cleanup',ctx=ast.Load()),args=[ast.Name(id='primary',ctx=ast.Load())],keywords=[]))])
+    function=ast.FunctionDef(name='lifespan',args=ast.arguments(posonlyargs=[],args=[],kwonlyargs=[],kw_defaults=[],defaults=[]),
+        body=[ast.Assign(targets=[ast.Name(id='primary',ctx=ast.Store())],value=ast.Constant(value=None)),body],decorator_list=[])
+    module=ast.fix_missing_locations(ast.Module(body=[function],type_ignores=[]));exec(compile(module,str(source),'exec'),namespace)
+    return namespace
+
+
+@pytest.mark.parametrize('fault',['none','format','output'])
+def test_lifespan_diagnostic_same_primary_raise_cleanup_and_failure_isolation(fault):
+    from types import SimpleNamespace
+    namespace=_load_lifespan_diagnostic_only();writes=[];closed=[];primary=RuntimeError('SECRET_SENTINEL_NEVER_LOG')
+    namespace['sentinel']=primary;namespace['cleanup']=closed.append
+    def write(fd,raw):
+        writes.append((fd,raw))
+        if fault=='output':raise OSError('SECRET_SENTINEL_NEVER_LOG')
+    namespace['os']=SimpleNamespace(write=write)
+    if fault=='format':
+        def fail(error):raise ValueError('SECRET_SENTINEL_NEVER_LOG')
+        namespace['_lifespan_primary_annotation']=fail
+    try:namespace['lifespan']()
+    except BaseException as caught:assert caught is primary
+    else:raise AssertionError('original primary was swallowed')
+    assert closed==[primary]
+    if fault=='format':assert writes==[]
+    else:
+        assert len(writes)==1 and writes[0][0]==2
+        assert writes[0][1].startswith(b'FORMAL_LIFESPAN_V1:RuntimeError:') and b'SECRET_SENTINEL' not in writes[0][1]
+
+
+def test_lifespan_diagnostic_hostile_exception_attributes_and_external_frames_do_not_leak():
+    namespace=_load_lifespan_diagnostic_only();touched=[]
+    class HostileError(RuntimeError):
+        def __str__(self):touched.append('str');raise AssertionError('forbidden')
+        def __repr__(self):touched.append('repr');raise AssertionError('forbidden')
+        def __getattribute__(self,name):
+            if name in ('args','__traceback__','__context__','__cause__','__dict__'):
+                touched.append(name);raise AssertionError('forbidden')
+            return BaseException.__getattribute__(self,name)
+    primary=HostileError('SECRET_SENTINEL_NEVER_LOG')
+    try:raise primary
+    except BaseException:pass
+    output=namespace['_lifespan_primary_annotation'](primary)
+    assert output==b'FORMAL_LIFESPAN_V1:OTHER:-\n' and touched==[]
+    assert b'test_formal_secret_entry' not in output and b'SECRET_SENTINEL' not in output
+
+
+def test_lifespan_diagnostic_fixed_release_coords_limited_to_eight():
+    namespace=_load_lifespan_diagnostic_only();source=ROOT/'web/backend/main.py'
+    exec(compile('def lifespan(n):\n if n: return lifespan(n-1)\n raise ValueError("SECRET_SENTINEL_NEVER_LOG")\n',str(source),'exec'),namespace)
+    try:namespace['lifespan'](20)
+    except BaseException as primary:output=namespace['_lifespan_primary_annotation'](primary)
+    coords=output.split(b':',2)[2].strip().split(b';')
+    assert len(coords)==8 and all(item.startswith(b'web/backend/main.py|lifespan|') for item in coords)
+    assert len(output)<=2048 and b'SECRET_SENTINEL' not in output
