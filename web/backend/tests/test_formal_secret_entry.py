@@ -587,3 +587,55 @@ def test_final_close_marker_keeps_original_separate_write_and_primary(entry,monk
     witness.require_runtime=refuse
     assert entry.main()==78 and closed==[True]
     assert writes==[(2,b'FORMAL_ENTRY:CODE_IDENTITY_INVALID\nFORMAL_IDENTITY_V1:HELPER_MODULE:-:-\n'),(2,b'FORMAL_ENTRY:FD_CLOSE_FAILED\n')]
+
+
+def test_read_proc_short_chunks_require_eof_on_same_fd(entry,monkeypatch):
+    opened=[];reads=[];closed=[];chunks=iter([b'a',b'bc',b''])
+    def open_proc(path,flags):
+        assert path=='/proc/self/status'  # No credential/source FD is opened.
+        opened.append((path,flags));return 321
+    def read_proc(fd,count):
+        assert fd==321;reads.append(count);return next(chunks)
+    monkeypatch.setattr(entry.os,'open',open_proc);monkeypatch.setattr(entry.os,'read',read_proc);monkeypatch.setattr(entry.os,'close',closed.append)
+    assert entry._read_proc('/proc/self/status',4)==b'abc'
+    assert opened==[('/proc/self/status',os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)]
+    assert reads==[5,4,2] and closed==[321]
+
+
+@pytest.mark.parametrize('chunks,limit,expected,requests',[
+    ([b'abcd',b''],4,b'abcd',[5,1]),
+    ([b'a',b'b',b'c',b'd',b''],4,b'abcd',[5,4,3,2,1]),
+    ([b'',],4,None,[5]),
+    ([b'abcde'],4,None,[5]),
+    ([b'ab',b'cde'],4,None,[5,3]),
+])
+def test_read_proc_exact_cap_overflow_and_empty_boundaries(entry,monkeypatch,chunks,limit,expected,requests):
+    supplied=iter(chunks);reads=[];closed=[];opened=[]
+    def open_proc(path,flags):assert path=='/proc/self/status';opened.append(path);return 322
+    def read_proc(fd,count):
+        assert fd==322 and count>0;reads.append(count);chunk=next(supplied);assert len(chunk)<=count;return chunk
+    monkeypatch.setattr(entry.os,'open',open_proc);monkeypatch.setattr(entry.os,'read',read_proc);monkeypatch.setattr(entry.os,'close',closed.append)
+    if expected is None:
+        with pytest.raises(entry.EntryFailure,match='CREDENTIAL_METADATA_INVALID'):entry._read_proc('/proc/self/status',limit)
+    else:assert entry._read_proc('/proc/self/status',limit)==expected
+    assert reads==requests and opened==['/proc/self/status'] and closed==[322]
+
+
+@pytest.mark.parametrize('after_cap,close_fails',[(False,False),(True,False),(False,True),(True,True)])
+def test_read_proc_io_or_eof_error_is_not_success_and_finally_closes(entry,monkeypatch,after_cap,close_fails):
+    calls=[];closed=[]
+    def open_proc(path,flags):assert path=='/proc/self/status';return 323
+    def read_proc(fd,count):
+        assert fd==323;calls.append(count)
+        if after_cap and len(calls)==1:return b'abcd'
+        raise OSError('synthetic proc IO failure')
+    def close_proc(fd):
+        closed.append(fd)
+        if close_fails:raise OSError('synthetic close uncertainty')
+    monkeypatch.setattr(entry.os,'open',open_proc);monkeypatch.setattr(entry.os,'read',read_proc);monkeypatch.setattr(entry.os,'close',close_proc)
+    if close_fails:
+        with pytest.raises(entry.EntryFailure,match='FD_CLOSE_FAILED'):entry._read_proc('/proc/self/status',4)
+        assert entry._UNCERTAIN_FDS[-1]==(323,)
+    else:
+        with pytest.raises(OSError,match='synthetic proc IO failure'):entry._read_proc('/proc/self/status',4)
+    assert closed==[323] and calls==([5,1] if after_cap else [5])
