@@ -1671,7 +1671,7 @@
       data.model_analysis_ran === false && data.sent_to_provider === false && data.saved === false &&
       Array.isArray(data.blockers) && data.blockers.length > 0 && data.blockers.length <= 12 &&
       data.blockers.every(value => value === 'question_draft_purpose_not_admitted') &&
-      typeof data.message === 'string' && data.message.length > 0 && data.message.length <= 1000;
+      data.message === '自动整理问题的受控能力尚未开放；当前不会生成草案、保存问题或发起研究。请保留输入，现有高级工具可主动进入。';
   }
   async function readQuestionCapability(accountVerified = false) {
     if (busy || questionCapabilityController || readOnlyView()) return;

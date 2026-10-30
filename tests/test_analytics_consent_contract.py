@@ -119,7 +119,7 @@ def test_research_workspace_and_actual_bundle_never_load_analytics() -> None:
                  if urlsplit(source).path == '/assets/research.js']
     assert len(workspace) == 1
     assert workspace[0].scheme == workspace[0].netloc == workspace[0].fragment == ''
-    assert workspace[0].query == 'v=20261023-fin3-scenario1'
+    assert workspace[0].query == 'v=20261030-entry4'
     for content in (html, bundle):
         for forbidden in (
             "analytics-consent.js", "/assets/js/analytics.js", "plausible.bytedance.city",

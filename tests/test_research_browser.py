@@ -165,6 +165,36 @@ def fill(page, text="午间合成排队现象：等待时间增加"):
     page.get_by_label("已知约束", exact=False).fill("本机合成数据")
 
 
+
+def test_question_capability_rejects_success_claim_in_otherwise_closed_receipt():
+    """Pure receipt-content boundary; no browser, provider or Main acceptance."""
+    source = (ROOT / 'web/frontend/assets/research.js').read_text()
+    validation = 'function validClosedQuestionCapability(payload) {' + source.split(
+        '  function validClosedQuestionCapability(payload) {', 1
+    )[1].split('  async function readQuestionCapability', 1)[0]
+    payload = {
+        'schema_version': 'structure-research-v1', 'contract_revision': 'question-draft-v1',
+        'data': {
+            'state': 'closed', 'purpose': 'question_draft_v1', 'can_propose': False, 'can_adopt': False,
+            'original_input_max_chars': 4000, 'plan_summary_min_chars': 8, 'plan_summary_max_chars': 1000,
+            'draft': None, 'clarifications': [], 'model_analysis_ran': False,
+            'sent_to_provider': False, 'saved': False,
+            'blockers': ['question_draft_purpose_not_admitted'],
+            'message': '自动整理问题的受控能力尚未开放；当前不会生成草案、保存问题或发起研究。请保留输入，现有高级工具可主动进入。',
+        },
+    }
+    program = "const schema='structure-research-v1';\n" + validation + r"""
+const assert=require('node:assert/strict');
+const payload=JSON.parse(require('node:fs').readFileSync(0,'utf8'));
+assert.equal(validClosedQuestionCapability(payload),true);
+payload.data.message='已生成草案并完成研究，结果已经保存。';
+assert.equal(validClosedQuestionCapability(payload),false);
+"""
+    result = subprocess.run(['node', '-e', program], input=json.dumps(payload),
+                            capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stderr
+
+
 @pytest.mark.parametrize("text", ["一个物体温度恢复到环境温度的过程，是否与电容放电对应？请比较公式，告诉我能借用什么、什么时候不能用。", "原" * 4000])
 def test_single_question_entry_closed_capability_keeps_original_and_explicit_tools(server, text):
     with sync_playwright() as playwright:
