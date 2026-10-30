@@ -44,6 +44,25 @@ PHASE_OUTER_TRANSACTION_ACTIVE=0
 export NVM_DIR="/root/.nvm"
 # shellcheck disable=SC1091
 [[ -s "$NVM_DIR/nvm.sh" ]] && . "$NVM_DIR/nvm.sh"
+if [[ -e /opt/structural-tools/bin || -L /opt/structural-tools/bin ]]; then
+  /usr/bin/python3 -I - <<'PY'
+import stat
+from pathlib import Path
+root = Path('/opt/structural-tools/bin')
+for component in (*reversed(root.parents), root):
+    info = component.lstat()
+    if stat.S_ISLNK(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o022:
+        raise SystemExit('untrusted structural Node tool directory')
+if not root.is_dir():
+    raise SystemExit('structural tools path is not a directory')
+for name in ('node', 'pnpm'):
+    path = root / name
+    info = path.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o022 or not info.st_mode & 0o111:
+        raise SystemExit('untrusted structural Node tool')
+PY
+  export PATH="/opt/structural-tools/bin:$PATH"
+fi
 
 env_key_once() {
   local file="$1" key="$2"

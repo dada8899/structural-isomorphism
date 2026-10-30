@@ -410,10 +410,11 @@ class ReportStore:
     def list_by_anon(
         self, anon_id: str, *, limit: int = 50, offset: int = 0,
     ) -> list[dict]:
-        """List recent reports created by this anon-id.
+        """List recent unclaimed reports created by this anon-id.
 
-        Convenience for the 'My Reports' page. NOT a security boundary
-        — anyone with a share_token can still read.
+        After account claim, the original browser identity no longer authorizes
+        listing private report metadata. Account-owned rows are available
+        only through the authenticated owner listing.
 
         B Data Flywheel (Session #18): each row also carries the SAME
         anon's followup summary (has_followup / followup_outcome) via a
@@ -439,7 +440,7 @@ class ReportStore:
                 FROM reports r
                 LEFT JOIN report_followup f
                     ON f.report_id = r.id AND f.anon_id = ?
-                WHERE r.creator_anon_id = ?
+                WHERE r.creator_anon_id = ? AND r.owner_user_id IS NULL
                 ORDER BY r.created_at DESC
                 LIMIT ? OFFSET ?
                 """,

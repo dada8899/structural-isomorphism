@@ -1311,11 +1311,55 @@ def test_smoke_binds_each_trigger_to_an_explicit_deployed_beta_release() -> None
     assert "actions/workflows/deploy-beta-backend.yml/runs" in workflow
     assert "status=success" in workflow
     assert ".workflow_runs[0].head_sha" in workflow
-    assert "ref: ${{ steps.release.outputs.sha }}" in workflow
+    assert "ref: ${{ github.sha }}" in workflow
+    assert "ref: ${{ steps.release.outputs.sha }}" not in workflow
     assert 'python-version: "3.11"' in workflow
-    assert 'test "$(git rev-parse HEAD)" = "$EXPECTED_BETA_SHA"' in workflow
+    assert 'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"' in workflow
+    assert '[[ ${#EXPECTED_SHA} -eq 40 && "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]] || {' in workflow
+    assert 'test "$(git rev-parse HEAD)" = "$EXPECTED_BETA_SHA"' not in workflow
     assert '--expected-git-sha "$EXPECTED_BETA_SHA"' in workflow
     assert '--expected-git-sha "$(git rev-parse HEAD)"' not in workflow
+    assert "fetch-depth: 0" in workflow
+    assert 'git cat-file -e "${EXPECTED_BETA_SHA}^{commit}"' in workflow
+    assert 'git show "$EXPECTED_BETA_SHA:web/backend/requirements.txt"' in workflow
+    assert '--expected-requirements-sha256 "$EXPECTED_REQUIREMENTS_SHA256"' in workflow
+
+
+@pytest.mark.parametrize(
+    "event,manual_sha,deploy_sha,valid",
+    [
+        ("workflow_dispatch", "a" * 40, "", True),
+        ("workflow_run", "", "b" * 40, True),
+        ("schedule", "", "", True),
+        ("workflow_dispatch", "a" * 7, "", False),
+        ("workflow_run", "", "null", False),
+    ],
+)
+def test_smoke_release_resolution_preserves_full_sha_validation(
+    tmp_path: Path, event: str, manual_sha: str, deploy_sha: str, valid: bool,
+) -> None:
+    workflow = yaml.safe_load(SITE_SMOKE_WORKFLOW.read_text(encoding="utf-8"))
+    script = workflow["jobs"]["smoke"]["steps"][0]["run"]
+    output = tmp_path / "output"
+    environment = {
+        **os.environ,
+        "GITHUB_EVENT_NAME": event,
+        "MANUAL_SHA": manual_sha,
+        "DEPLOY_SHA": deploy_sha,
+        "GITHUB_REPOSITORY": "example/repo",
+        "GITHUB_ENV": str(tmp_path / "environment"),
+        "GITHUB_OUTPUT": str(output),
+    }
+    result = subprocess.run(
+        ["bash", "-c", 'gh() { printf "%s\\n" "' + "c" * 40 + '"; }\n' + script],
+        env=environment, capture_output=True, text=True,
+    )
+    assert (result.returncode == 0) is valid, result.stderr
+    if valid:
+        expected = manual_sha or deploy_sha or "c" * 40
+        assert output.read_text() == f"sha={expected}\n"
+    else:
+        assert not output.exists()
 
 
 def test_failed_runtime_build_leaves_current_and_code_untouched(tmp_path: Path) -> None:
