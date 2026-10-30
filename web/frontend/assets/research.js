@@ -31,8 +31,7 @@
   let kbGeneration = 0;
   let kbBusy = false;
   let summaryEdited = false;
-  let questionCapabilityGeneration = 0;
-  let questionCapabilityController = null;
+  let observationReview = null;
   let accountScope = null;
   let evidenceUI = null;
   let registryUI = null;
@@ -1313,7 +1312,7 @@
     // Freeze the submitted draft until the receipt is handled. Otherwise a
     // late render could silently replace edits made while fetch was pending.
     for (const control of form.querySelectorAll('input, textarea, select, button')) control.disabled = value || (readOnlyView() && !['reload','advanced-tools-toggle'].includes(control.id));
-    byId('start-research').disabled = true;
+    observationSync();
     syncTaskButtons();
     syncFormulaControls();
     planSync();
@@ -1358,7 +1357,7 @@
     observed = null;
     variables = [];
     form.reset();
-    invalidateQuestionCapability();
+    observationReset();
     showAdvanced(false);
     form.hidden = true;
     byId('history').hidden = true;
@@ -1409,7 +1408,7 @@
     } finally { clearTimeout(timer); }
   }
   function render(data, methodToken) {
-    invalidateQuestionCapability();
+    observationReset();
     planReset();
     methodDirty = false;
     invalidateKB();
@@ -1654,67 +1653,65 @@
   byId('advanced-tools-toggle').addEventListener('click', () => {
     showAdvanced(byId('problem-advanced').hidden);
   });
-  function invalidateQuestionCapability() {
-    questionCapabilityGeneration++;
-    questionCapabilityController?.abort();
-    questionCapabilityController = null;
-    byId('prepare-problem').disabled = busy || readOnlyView();
-    byId('entry-capability').textContent = '自动整理与自动研究尚未开放，主动作暂不可用。本次不会发送原文、调用模型或保存问题。未保存的原话仍仅在本页，请保留输入。';
+  function observationProblem(raw, declared) {
+    if (declared !== true) throw Error('请先作出本人现象自述与权属声明。');
+    const length = Array.from(raw).length;
+    if (length < 8 || length > 1000 || Array.from(raw.normalize('NFC')).length < 8)
+      throw Error('当前规划仅支持 8–1000 字的本人现象自述。原话已完整保留；不会截断、补字或要求你重抄摘要。');
+    const view = raw.normalize('NFKC');
+    if (!planText(raw,1000,8) || /(?:[a-z][a-z0-9+.-]*:\/\/|\b(?:https?|file|data|javascript|mailto):|\bwww\.|\bdoi\s*:|`|\$\(|\$\{|#!\s*\/|<\s*\/?\s*(?:script|iframe|object|embed)\b|\b(?:python3?|node)\s+-(?:c|e)\b)/i.test(view))
+      throw Error('这段内容含链接、代码或不适用结构，不能声明为本入口的本人现象自述。原文保留，可在高级工具中按资料用途处理。');
+    return {entry:'phenomenon',original_input:raw,objective:'',summary:raw.normalize('NFC'),
+      variables:[],constraints:[],unknowns:[],confirmed:true};
   }
-  function validClosedQuestionCapability(payload) {
-    const data = payload?.data;
-    return payload?.schema_version === schema && payload.contract_revision === 'question-draft-v1' &&
-      data?.state === 'closed' && data.purpose === 'question_draft_v1' &&
-      data.can_propose === false && data.can_adopt === false &&
-      data.original_input_max_chars === 4000 && data.plan_summary_min_chars === 8 && data.plan_summary_max_chars === 1000 &&
-      data.draft === null && Array.isArray(data.clarifications) && data.clarifications.length === 0 &&
-      data.model_analysis_ran === false && data.sent_to_provider === false && data.saved === false &&
-      Array.isArray(data.blockers) && data.blockers.length > 0 && data.blockers.length <= 12 &&
-      data.blockers.every(value => value === 'question_draft_purpose_not_admitted') &&
-      data.message === '自动整理问题的受控能力尚未开放；当前不会生成草案、保存问题或发起研究。请保留输入，现有高级工具可主动进入。';
+  function observationReset() {
+    observationReview = null;
+    byId('observation-card').hidden = true;
+    byId('observation-exact').textContent = '';
+    byId('observation-own').checked = false;
+    observationSync();
   }
-  async function readQuestionCapability(accountVerified = false) {
-    if (busy || questionCapabilityController || readOnlyView()) return;
-    const generation = ++questionCapabilityGeneration;
-    const privateScope = privateGeneration;
-    const controller = new AbortController();
-    questionCapabilityController = controller;
-    const active = () => generation === questionCapabilityGeneration && privateScope === privateGeneration && !form.hidden;
-    const timer = setTimeout(() => controller.abort(), 15000);
-    byId('prepare-problem').disabled = true;
-    byId('entry-capability').textContent = '正在核对问题整理能力；本次只读取能力状态，不发送原问题。';
+  function observationSync() {
+    const locked = busy || readOnlyView() || form.hidden;
+    byId('start-research').disabled = locked || !byId('original-input').value.trim();
+    byId('observation-own').disabled = locked;
+    let eligible = false;
+    try { if(observationReview === byId('original-input').value) { observationProblem(observationReview,true); eligible=true; } } catch {}
+    byId('observation-adopt').disabled = locked || !eligible || !byId('observation-own').checked;
+  }
+  byId('start-research').addEventListener('click', () => {
+    if (busy || readOnlyView() || !byId('original-input').reportValidity()) return;
+    byId('native-plan-own').checked = false;
+    planInvalidate('正在核对原话；本次尚未预览或外发。');
+    observationReview = byId('original-input').value;
+    byId('observation-exact').textContent = observationReview;
+    byId('observation-card').hidden = false;
+    byId('observation-own').checked = false;
+    byId('observation-save-status').textContent = '采用后保存问题；不会自动外发或扣费。记录标题会按已有规则规范化文字，逐字原话始终以上面的原文为准。';
+    try { observationProblem(observationReview,true); byId('observation-scope').textContent = '请核对完整原话与下方声明。采用后先保存，再单独核对研究计划的外发范围与费用；未填写的目标、变量和未知项保持为空。'; }
+    catch(error) { byId('observation-scope').textContent = error.message; }
+    observationSync();
+  });
+  byId('observation-own').addEventListener('change',observationSync);
+  byId('observation-adopt').addEventListener('click', async () => {
+    if(busy || readOnlyView()) return;
     try {
-      if (!accountVerified && !await authenticated(active, controller.signal)) {
-        if (active()) throw Error('account capability unknown');
+      if(observationReview !== byId('original-input').value) throw Error('原话已变化，请先重新核对原话卡。');
+      const problem = observationProblem(observationReview,byId('observation-own').checked);
+      const same = current?.current_problem?.original_input === problem.original_input;
+      if(same && current.current_problem.confirmed === true) {
+        if(current.current_problem.entry !== 'phenomenon' || methodDirty || formulaState.dirty || editNotice() || sessionStorage.getItem('structure-research-pending:'+researchId))
+          throw Error('当前记录有其他用途、改动或待核对保存操作，请保留原文并先核对已存版本。');
+        // Reuse the saved revision: never mint a new revision to bypass known Source provenance.
+        byId('native-plan-own').checked = true;
+        byId('observation-save-status').textContent = '已采用当前已保存修订的本人自述声明。没有另存修订或外发；下一步请预览原文与费用，来源限制仍由服务端核对。';
+        planSync();
         return;
       }
-      if (!active()) return;
-      const response = await fetch('/api/research/question-draft-capabilities', {
-        credentials:'same-origin', cache:'no-store', signal:controller.signal
-      });
-      if (!active()) return;
-      if (response.status === 401) {
-        clearPrivateView('confirmed_logout');
-        status('账户访问已失效，请重新登录。', true);
-        return;
-      }
-      if (!response.ok) throw Error('capability unavailable');
-      const payload = await response.json();
-      if (!active()) return;
-      if (!validClosedQuestionCapability(payload)) throw Error('unsupported capability');
-      byId('entry-capability').textContent = payload.data.message +
-        '没有生成草案；本次只读取状态，没有发送原文。原文完整保留在本页，尚未保存时请勿关闭页面。';
-    } catch (error) {
-      if (active()) byId('entry-capability').textContent = '当前无法核对问题整理能力。没有生成草案；本次没有发送原文、调用模型或保存问题。原文仍在本页，请保留输入，稍后可主动重试状态读取。';
-    } finally {
-      clearTimeout(timer);
-      if (generation === questionCapabilityGeneration) {
-        questionCapabilityController = null;
-        byId('prepare-problem').disabled = busy || readOnlyView();
-      }
-    }
-  }
-  byId('prepare-problem').addEventListener('click', () => readQuestionCapability());
+      if(same && current?.task?.policy_revision === 'd1-source-only-v1') throw Error('当前修订已有来源流程，不能重新标为本人现象自述。原文与来源记录保留。');
+      await saveProblem(problem);
+    } catch(error) { byId('observation-save-status').textContent = error.message; }
+  });
   async function authenticated(isCurrent, signal) {
     const unavailable = () => {
       const planWasCurrent=isCurrent();
@@ -1830,7 +1827,8 @@
       draftChanged('问题有未保存改动；此处方法文字保留，保存前先核对问题。');
       financialInvalidate('问题有未保存改动，旧预览已失效；CSV 仍暂存在本页。');
       if (id === 'summary') summaryEdited = true;
-      if (id === 'original-input') echoDraft();
+      if (id === 'original-input') { observationReset(); echoDraft(); }
+      observationSync();
       invalidateKB();
     });
   }
@@ -1890,11 +1888,11 @@
       // An authenticated read is still required: the account endpoint performs
       // actual session validation; the research API revalidates on every save.
       form.hidden = false;
+      observationSync();
       planSync();
       draftSync();
       byId('native-plan-status').textContent='问题尚未保存；没有生成或外发计划。';
       status('新问题尚未保存。');
-      void readQuestionCapability(true);
       byId('my-research').hidden = false;
       loadResearchList(false, positionEntry);
       if (positionEntry && initialSection === 'kb-section') positionInitialSection();
@@ -1905,7 +1903,6 @@
     if (methodToken.generation !== methodGeneration) return;
     if (selectedTask && data.task?.id !== selectedTask) { clearPrivateView(); status('无法核对所选流程，请重新打开研究记录。',true); return; }
     render(data,methodToken);
-    void readQuestionCapability(true);
     byId('my-research').hidden = false;
     loadResearchList(false, positionEntry);
     if (positionEntry && initialSection === 'kb-section') positionInitialSection();
@@ -2067,8 +2064,7 @@
     catch (error) { byId('source-status').textContent = error.message; }
     finally { sourceBusy = false; syncSourceAccess(); }
   });
-  form.addEventListener('submit', async event => {
-    event.preventDefault();
+  async function saveProblem(adoptedProblem = null) {
     if (busy || readOnlyView()) return;
     const methodToken = beginMethodRead();
     setBusy(true);
@@ -2076,7 +2072,7 @@
     let pending;
     const privateScope = privateGeneration;
     try {
-      const problem = normalizeProblem({entry:byId('entry').value, original_input:byId('original-input').value,
+      const problem = adoptedProblem || normalizeProblem({entry:byId('entry').value, original_input:byId('original-input').value,
         objective:byId('objective').value, summary:byId('summary').value, variables,
         constraints:lines('constraints'), unknowns:lines('unknowns'), confirmed:byId('confirmed').checked,
         ...(byId('formula-enable').checked?{formula_draft:formulaTakeDraft()}: {})});
@@ -2092,9 +2088,17 @@
       if (privateScope !== privateGeneration) throw new Error('账户访问已变化，请重新登录后核对原操作。');
       const url = researchId ? `/api/research/${researchId}/revisions` : '/api/research';
       const saved = await methodRequest(url, {method:'POST', headers:{'Content-Type':'application/json', 'Idempotency-Key':pending.key}, body},methodToken);
+      if (adoptedProblem && (saved.current_problem?.original_input !== adoptedProblem.original_input || saved.current_problem?.confirmed !== true))
+        throw Error('采用回执无法核对；原保存操作保留，请保留输入并核对已存版本。');
       sessionStorage.removeItem(pending.slot);
       history.replaceState(null, '', `/research/${saved.research.id}`);
       render(saved,methodToken);
+      if (adoptedProblem) {
+        byId('native-plan-own').checked = true;
+        byId('observation-save-status').textContent = '本人自述已采用并保存。尚未外发；下一步请预览原话与费用。';
+        planSync();
+        byId('native-plan-section').scrollIntoView({block:'start'});
+      }
       loadResearchList();
       status(`已保存修订 ${saved.current_problem.revision}。这是一条问题记录，尚未执行研究。`);
     } catch (error) {
@@ -2105,7 +2109,8 @@
     } finally {
       setBusy(false);
     }
-  });
+  }
+  form.addEventListener('submit', event => { event.preventDefault(); void saveProblem(); });
   async function taskAction(operation) {
     if (readOnlyView() || taskData?.is_historical || taskBusy || !taskData || (operation === 'start' && busy)) return;
     taskBusy = true; syncTaskButtons();

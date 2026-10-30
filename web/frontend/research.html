@@ -4,11 +4,11 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <title>研究记录 · Structure</title>
-  <link rel="stylesheet" href="/assets/research.css?v=20261030-entry4">
+  <link rel="stylesheet" href="/assets/research.css?v=20261030-entry5">
   <script src="/assets/evidenceMethodPlan.js?v=20261023-evidence1" defer></script>
   <script src="/assets/financial-registry.js?v=20261023-fin2-registry1" defer></script>
   <script src="/assets/financial-scenario.js?v=20261023-fin3-scenario1" defer></script>
-  <script src="/assets/research.js?v=20261030-entry4" defer></script>
+  <script src="/assets/research.js?v=20261030-entry5" defer></script>
 </head>
 <body class="advanced-closed">
   <header><a href="/" class="brand">Structure<span>结构研究</span></a><nav aria-label="研究导航"><a href="#my-research">我的研究</a><a href="#advanced-tools-toggle">高级工具</a><a href="/auth/login">账户</a></nav></header>
@@ -16,22 +16,30 @@
     <div class="eyebrow">RESEARCH NOTEBOOK / 研究记录</div>
     <h1>你的问题，<br>与研究记录。</h1>
     <p class="intro">用自己的话描述问题，不必先知道数学方法或英文术语。已有研究记录仍可查看。</p>
-    <p class="scope" id="page-scope">输入一次具体问题。当前自动整理与自动研究尚未开放；可主动查本地线索，或在高级工具中维护和保存记录。模型与来源外发仍须逐次预览、确认。</p>
+    <p class="scope" id="page-scope">先核对并采用本人现象自述，再查看下一步计划的外发原文与费用。计划执行须另行明确确认，并取决于实际执行权限；候选线索不代表研究结论。</p>
     <p id="status" role="status" aria-live="polite">正在读取研究记录…</p>
     <p id="view-context" class="scope" hidden></p>
     <div id="access" hidden><a href="/auth/login">登录账户</a><p>研究默认私有，请使用保存时的账户读取。</p></div>
     <form id="problem-form" hidden>
       <div class="section-heading"><h2>问题记录</h2><span id="revision-label">未保存</span></div>
       <p id="problem-meta" class="hint" hidden>原问题保存时间 <time id="problem-created"></time></p>
-      <p id="entry-capability" class="scope" aria-live="polite">自动整理与自动研究尚未开放，当前不能从一句问题生成草案或研究结果。主动作暂不可用；如需查本地线索或维护已有记录，请主动进入高级工具。未保存输入仅留在本页。</p>
+      <p id="entry-capability" class="scope" aria-live="polite">当前可保存并规划 8–1000 字的本人现象自述。先完整保留原话，尚未进行系统分析；较长问题及第三方资料暂不适用此入口。外发前会单独展示原文、费用与实际开放状态。</p>
       <label for="original-input">原始问题 <span>必填 · 最多 4000 字</span></label>
       <textarea id="original-input" required maxlength="4000" rows="5" aria-describedby="input-hint"></textarea>
       <p id="input-hint" class="hint">描述你观察到了什么，先保留原话。</p>
-      <div class="actions entry-actions"><button id="start-research" type="button" disabled aria-describedby="entry-capability">整理问题草案（尚未开放）</button></div>
+      <div class="actions entry-actions"><button id="start-research" type="button" disabled aria-describedby="entry-capability">核对原话，继续下一步</button></div>
+      <section id="observation-card" hidden aria-labelledby="observation-card-title">
+        <h2 id="observation-card-title">原话记录</h2>
+        <p class="hint">本人原话（待你声明），尚未进行系统分析，未知项未填写。这里没有生成摘要、变量或研究结论。</p>
+        <pre id="observation-exact"></pre>
+        <p id="observation-scope" class="scope" aria-live="polite"></p>
+        <label class="check"><input id="observation-own" type="checkbox">这是我本人的现象自述，不含第三方资料、文献或代码；我有权使用这段原话。这是本人声明，不表示系统已核实权属。</label>
+        <button id="observation-adopt" type="button" disabled>采用这段原话作为本人现象自述</button>
+        <p id="observation-save-status" class="hint" aria-live="polite">采用后保存问题；不会自动外发或扣费。</p>
+      </section>
       <button id="advanced-tools-toggle" type="button" class="secondary" aria-expanded="false" aria-controls="problem-advanced advanced-tools">高级工具：本地线索、资料、公式、财务与手稿</button>
       <div id="problem-advanced" hidden>
       <p class="hint">以下是主动使用的人工工作台。填写和保存结构不会自动生成草案或执行研究。</p>
-      <button id="prepare-problem" type="button" class="secondary">重新检查整理能力（只读）</button>
       <section id="kb-section" aria-labelledby="kb-title">
         <h2 id="kb-title">先找本地线索</h2>
         <p class="hint">主动查询本地知识库，不调用模型或外部文献服务。结果只是待核验的知识库线索；本地排序不表示数学同构、可信度或成熟解法。</p>
@@ -42,7 +50,7 @@
       <label for="objective">希望解释或改变什么 <span>最多 1000 字 · 可选</span></label>
       <textarea id="objective" maxlength="1000" rows="2"></textarea>
       <h2>核对问题草稿，再保存</h2>
-      <label for="summary">问题摘要 <span>8–1000 字</span></label>
+      <label for="summary">问题摘要／记录标题 <span>8–1000 字</span></label>
       <textarea id="summary" required minlength="8" maxlength="1000" rows="3" aria-describedby="summary-hint"></textarea>
       <p id="summary-hint" class="hint">待核验草稿：这里只回显原话，可直接编辑；尚未进行模型结构化或确认。</p>
       <div class="optional-inputs" role="group" aria-label="可选补充">
@@ -84,10 +92,10 @@
       <div class="section-heading"><h2 id="native-plan-title">先规划下一步查什么</h2><span class="native-plan-tag">待核验计划</span></div>
       <p class="scope">从自己的现象自述出发，提出可查找的机制与方法线索。计划不是已验证的跨域解法，也不是成熟研究结论。</p>
       <p id="native-plan-hint" class="hint"></p>
-      <label class="check" data-advanced-only><input id="native-plan-own" type="checkbox">本次是我自己的观察自述，不包含文献、代码或来源正文。这只是我的声明，不代表权属已核实。</label>
-      <div class="actions"><button id="native-plan-preview" data-advanced-only type="button" disabled>预览外发原文与费用上限</button><button id="native-plan-refresh" type="button" class="secondary">读取已保存的计划状态</button><button id="native-plan-recover" type="button" class="secondary" hidden>用原提交核对回执（不另开计划）</button></div>
+      <label class="check"><input id="native-plan-own" type="checkbox">本次是我自己的观察自述，不包含文献、代码或来源正文。这只是我的声明，不代表权属已核实。</label>
+      <div class="actions"><button id="native-plan-preview" type="button" disabled>预览外发原文与费用上限</button><button id="native-plan-refresh" type="button" class="secondary">读取已保存的计划状态</button><button id="native-plan-recover" type="button" class="secondary" hidden>用原提交核对回执（不另开计划）</button></div>
       <p id="native-plan-status" aria-live="polite"></p>
-      <div id="native-plan-preview-panel" data-advanced-only hidden>
+      <div id="native-plan-preview-panel" hidden>
         <h3>将外发的已保存原文</h3><pre id="native-plan-exact-input"></pre><p id="native-plan-quote" class="hint"></p>
         <label class="check"><input id="native-plan-consent" type="checkbox" disabled>我已核对上面的逐字原文、接收方与本次费用上限，明确同意此次外发和费用上界。</label>
         <button id="native-plan-confirm" type="button" disabled>确认本次外发并排队</button>

@@ -170,3 +170,5 @@ textarea:disabled, select:disabled { opacity:1; color:var(--ink); background:#e9
 
 .advanced-closed [data-advanced-only], .advanced-closed .source-write-ui { display:none !important; }
 #start-research:disabled { cursor:not-allowed; }
+#observation-card { border-left:3px solid var(--accent); padding:4px 16px 18px; margin-top:28px; }
+#observation-exact { max-height:32em; overflow:auto; }

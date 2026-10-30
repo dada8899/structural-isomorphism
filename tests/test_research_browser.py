@@ -166,75 +166,178 @@ def fill(page, text="午间合成排队现象：等待时间增加"):
 
 
 
-def test_question_capability_rejects_success_claim_in_otherwise_closed_receipt():
-    """Pure receipt-content boundary; no browser, provider or Main acceptance."""
-    source = (ROOT / 'web/frontend/assets/research.js').read_text()
-    validation = 'function validClosedQuestionCapability(payload) {' + source.split(
-        '  function validClosedQuestionCapability(payload) {', 1
-    )[1].split('  async function readQuestionCapability', 1)[0]
-    payload = {
-        'schema_version': 'structure-research-v1', 'contract_revision': 'question-draft-v1',
-        'data': {
-            'state': 'closed', 'purpose': 'question_draft_v1', 'can_propose': False, 'can_adopt': False,
-            'original_input_max_chars': 4000, 'plan_summary_min_chars': 8, 'plan_summary_max_chars': 1000,
-            'draft': None, 'clarifications': [], 'model_analysis_ran': False,
-            'sent_to_provider': False, 'saved': False,
-            'blockers': ['question_draft_purpose_not_admitted'],
-            'message': '自动整理问题的受控能力尚未开放；当前不会生成草案、保存问题或发起研究。请保留输入，现有高级工具可主动进入。',
-        },
-    }
-    program = "const schema='structure-research-v1';\n" + validation + r"""
+def test_short_observation_requires_explicit_adoption_and_exact_raw_bounds_unit():
+    """Pure input boundary; not Main, funding, provider or Source acceptance."""
+    source = (ROOT/'web/frontend/assets/research.js').read_text()
+    validation = 'function observationProblem(raw, declared) {' + source.split(
+        '  function observationProblem(raw, declared) {',1)[1].split('  function observationReset()',1)[0]
+    text_check = source.split('  const planText = ',1)[1].split('\n',1)[0]
+    program = 'const planText = '+text_check+'\n'+validation+r"""
 const assert=require('node:assert/strict');
-const payload=JSON.parse(require('node:fs').readFileSync(0,'utf8'));
-assert.equal(validClosedQuestionCapability(payload),true);
-payload.data.message='已生成草案并完成研究，结果已经保存。';
-assert.equal(validClosedQuestionCapability(payload),false);
+const raw=' e\u0301 原话中的温度恢复过程。\n ';
+assert.throws(()=>observationProblem(raw,false));
+const adopted=observationProblem(raw,true);
+assert.equal(adopted.original_input,raw);
+assert.equal(adopted.summary,raw.normalize('NFC'));
+assert.notEqual(adopted.summary,raw);
+assert.equal(adopted.confirmed,true);
+assert.equal(adopted.objective,'');
+assert.deepEqual([adopted.variables,adopted.constraints,adopted.unknowns],[[],[],[]]);
+for(const raw of ['短'.repeat(7),'长'.repeat(1001),'😀'.repeat(4000),'请研究 https://example.test/article 的第三方来源。','请运行 `python -c print(1)` 并整理结果。'])assert.throws(()=>observationProblem(raw,true));
 """
-    result = subprocess.run(['node', '-e', program], input=json.dumps(payload),
-                            capture_output=True, text=True, timeout=15)
-    assert result.returncode == 0, result.stderr
+    result=subprocess.run(['node','-e',program],capture_output=True,text=True,timeout=15)
+    assert result.returncode==0,result.stderr
 
 
-@pytest.mark.parametrize("text", ["一个物体温度恢复到环境温度的过程，是否与电容放电对应？请比较公式，告诉我能借用什么、什么时候不能用。", "原" * 4000])
-def test_single_question_entry_closed_capability_keeps_original_and_explicit_tools(server, text):
+@pytest.fixture
+def short_observation_asgi(tmp_path, monkeypatch):
+    """Actual Auth/research ASGI and private SQLite; no Main or SMTP lifetime."""
+    from web.backend.tests.test_research_persistence import stack
+    owned=stack.__wrapped__(tmp_path,monkeypatch)
+    value=next(owned)
+    monkeypatch.setenv('AUTH_LINK_BASE_URL','https://testserver')
+    try:yield value
+    finally:
+        try:next(owned)
+        except StopIteration:pass
+
+
+def _short_observation_page(context,client):
+    from urllib.parse import urlsplit
+    page=context.new_page()
+    calls=[]
+    def routed(route):
+        request=route.request;parts=urlsplit(request.url)
+        if parts.netloc!='testserver':
+            route.abort();return
+        if parts.path.startswith('/api/'):
+            calls.append((request.method,parts.path,request.post_data))
+            response=client.request(request.method,request.url,
+                headers=request.all_headers(),content=request.post_data_buffer)
+            headers={key:value for key,value in response.headers.items() if key.lower() not in ('content-length','content-encoding')}
+            route.fulfill(status=response.status_code,headers=headers,body=response.content)
+        elif parts.path.startswith('/research'):
+            route.fulfill(status=200,content_type='text/html',body=(ROOT/'web/frontend/research.html').read_bytes())
+        elif parts.path.startswith('/assets/'):
+            asset=(ROOT/'web/frontend'/parts.path.lstrip('/')).resolve()
+            assert asset.is_relative_to((ROOT/'web/frontend/assets').resolve())
+            route.fulfill(status=200,content_type='text/css' if asset.suffix=='.css' else 'application/javascript',body=asset.read_bytes())
+        else:route.fulfill(status=404,body='')
+    context.route('**/*',routed)
+    context.add_cookies([{'name':'phase_session','value':client.cookies.get('phase_session'),'url':'https://testserver'}])
+    return page,calls
+
+
+@pytest.mark.parametrize('raw',[
+    '一个物体温度恢复到环境温度的过程，是否与电容放电对应？请比较公式，告诉我能借用什么、什么时候不能用。',
+    ' e\u0301 原话中的温度恢复过程。\n ',
+],ids=['thermal_rc','exact_nfd'])
+def test_single_question_explicit_original_adoption_actual_asgi_save_reopen(short_observation_asgi,raw):
+    client,_=short_observation_asgi
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
-        context = browser.new_context(viewport={"width":375,"height":812})
+        browser=playwright.chromium.launch();context=browser.new_context(viewport={'width':375,'height':812})
         try:
-            base = server["base"]
-            login(context, base)
-            page = context.new_page()
-            with page.expect_request(lambda request: "/question-draft-capabilities" in request.url) as capability:
-                page.goto(base + "/research")
-            expect(page.locator("#problem-form")).to_be_visible()
-            expect(page.locator("#problem-form textarea:visible")).to_have_count(1)
-            expect(page.locator("#advanced-tools")).to_be_hidden()
-            expect(page.locator("#entry-capability")).to_contain_text("没有生成草案")
-            writes = []
-            page.on("request", lambda request: writes.append(request.url) if request.method == "POST" else None)
-            page.locator("#original-input").fill(text)
-            expect(page.locator("#start-research")).to_be_disabled()
-            expect(page.locator("#prepare-problem")).to_be_hidden()
-            page.locator("#advanced-tools-toggle").click()
-            expect(page.locator("#entry-capability")).to_contain_text("没有生成草案")
-            expect(page.locator("#original-input")).to_have_value(text)
-            assert not writes
-            assert capability.value.method == "GET"
-            assert capability.value.url == base + "/api/research/question-draft-capabilities"
-            assert capability.value.post_data is None
-            assert not page.locator("#confirmed").is_checked()
-            expect(page.locator("#start-research")).to_be_disabled()
-            expect(page.locator("#problem-advanced")).to_be_visible()
-            expect(page.locator("#advanced-tools")).to_be_visible()
-            expect(page.locator("#kb-search")).to_be_visible()
-            expect(page.locator("#summary-hint")).to_contain_text("原文已完整保留" if len(text) > 1000 else "不是系统结构化草案")
-            page.locator("#advanced-tools-toggle").click()
-            expect(page.locator("#problem-advanced")).to_be_hidden()
-            expect(page.locator("#original-input")).to_have_value(text)
-            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-        finally:
-            context.close()
-            browser.close()
+            page,calls=_short_observation_page(context,client)
+            page.goto('https://testserver/research')
+            expect(page.locator('#problem-form')).to_be_visible()
+            expect(page.locator('#problem-form textarea:visible')).to_have_count(1)
+            page.locator('#original-input').fill(raw)
+            page.locator('#start-research').click()
+            expect(page.locator('#observation-exact')).to_have_text(raw)
+            assert page.locator('#observation-exact').text_content()==raw
+            expect(page.locator('#observation-adopt')).to_be_disabled()
+            assert not page.locator('#confirmed').is_checked()
+            assert not [call for call in calls if call[0]=='POST']
+            page.locator('#observation-own').check()
+            expect(page.locator('#observation-adopt')).to_be_enabled()
+            page.locator('#observation-adopt').click()
+            expect(page.locator('#status')).to_contain_text('已保存修订 1')
+            saved_url=page.url;rid=saved_url.rsplit('/',1)[1]
+            data=client.get('/api/research/'+rid).json()['data']
+            problem=data['current_problem']
+            assert problem['original_input']==raw and problem['confirmed'] is True
+            import unicodedata
+            assert problem['summary']==unicodedata.normalize('NFC',raw)
+            assert problem['objective']=='' and problem['variables']==problem['constraints']==problem['unknowns']==[]
+            expect(page.locator('#native-plan-preview')).to_be_visible()
+            expect(page.locator('#native-plan-preview')).to_be_enabled()
+            assert not page.locator('#native-plan-consent').is_checked()
+            assert [(method,path) for method,path,_ in calls if method=='POST']==[('POST','/api/research')]
+            body=json.loads(next(body for method,path,body in calls if method=='POST'))
+            assert body['data']['problem']['original_input']==raw
+            page.goto(saved_url)
+            expect(page.locator('#status')).to_contain_text('已从账户读取')
+            expect(page.locator('#original-input')).to_have_value(raw)
+            expect(page.locator('#problem-advanced')).to_be_hidden()
+            expect(page.locator('#history')).to_be_visible()
+            assert [(method,path) for method,path,_ in calls if method=='POST']==[('POST','/api/research')]
+            # Re-adopt the same saved original without manufacturing a revision.
+            page.locator('#start-research').click();page.locator('#observation-own').check()
+            page.locator('#observation-adopt').click()
+            expect(page.locator('#observation-save-status')).to_contain_text('没有另存修订')
+            assert [(method,path) for method,path,_ in calls if method=='POST']==[('POST','/api/research')]
+            page.locator('#original-input').fill(raw+' 新增本人观察。')
+            expect(page.locator('#observation-card')).to_be_hidden()
+            assert not page.locator('#observation-own').is_checked()
+            expect(page.locator('#observation-adopt')).to_be_disabled()
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+        finally:context.close();browser.close()
+
+
+def test_original_adoption_lost_actual_asgi_receipt_reuses_original_key(short_observation_asgi):
+    client,_=short_observation_asgi
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            page,calls=_short_observation_page(context,client)
+            page.goto('https://testserver/research')
+            expect(page.locator('#problem-form')).to_be_visible()
+            raw='本人温度恢复过程，需要核对与电容放电的相似及差异。'
+            page.locator('#original-input').fill(raw);page.locator('#start-research').click()
+            page.locator('#observation-own').check()
+            lost=[]
+            def lose_actual_receipt(route):
+                request=route.request
+                response=client.request(request.method,request.url,headers=request.all_headers(),content=request.post_data_buffer)
+                assert response.status_code==200
+                lost.append((request.headers['idempotency-key'],response.json()['data']['research']['id']))
+                route.abort()
+            page.route('**/api/research',lose_actual_receipt)
+            page.locator('#observation-adopt').click()
+            expect(page.locator('#status')).to_contain_text('保存结果尚未确认')
+            expect(page.locator('#original-input')).to_have_value(raw)
+            assert page.locator('#observation-exact').text_content()==raw
+            pending=json.loads(page.evaluate("sessionStorage.getItem('structure-research-pending:new')"))
+            assert pending['key']==lost[0][0]
+            page.unroute('**/api/research',lose_actual_receipt)
+            page.locator('#observation-adopt').click()
+            expect(page.locator('#status')).to_contain_text('已保存修订 1')
+            assert page.url.endswith('/research/'+lost[0][1])
+            assert page.evaluate("sessionStorage.getItem('structure-research-pending:new')") is None
+            actual=client.get('/api/research/'+lost[0][1]).json()['data']
+            assert len(actual['revisions'])==1 and actual['current_problem']['original_input']==raw
+            assert not [path for method,path,_ in calls if method=='POST' and 'plan-' in path]
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('raw',['短'*7,'长'*1001,'原'*4000,'请研究 https://example.test/article 的第三方来源。','请运行 `python -c print(1)` 并整理结果。'],ids=['short','long','max4000','url','code'])
+def test_single_question_unsupported_scope_keeps_complete_original_without_adoption(short_observation_asgi,raw):
+    client,_=short_observation_asgi
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            page,calls=_short_observation_page(context,client)
+            page.goto('https://testserver/research')
+            expect(page.locator('#problem-form')).to_be_visible()
+            page.locator('#original-input').fill(raw);page.locator('#start-research').click()
+            assert page.locator('#observation-exact').text_content()==raw
+            expect(page.locator('#observation-scope')).to_contain_text('原')
+            page.locator('#observation-own').check()
+            expect(page.locator('#observation-adopt')).to_be_disabled()
+            expect(page.locator('#original-input')).to_have_value(raw)
+            assert not [call for call in calls if call[0]=='POST']
+            assert not page.locator('#confirmed').is_checked()
+        finally:context.close();browser.close()
 
 
 def test_d1_page_preview_confirm_real_worker_and_private_mobile_records(server):
