@@ -158,9 +158,47 @@ def login(context, base, email="browser-a@example.test"):
 
 def fill(page, text="午间合成排队现象：等待时间增加"):
     page.get_by_label("原始问题", exact=False).fill(text)
+    if page.locator("#advanced-tools-toggle").get_attribute("aria-expanded") != "true":
+        page.locator("#advanced-tools-toggle").click()
     page.get_by_label("希望解释或改变什么", exact=False).fill("希望缩短等待时间")
     page.get_by_role("textbox", name="问题摘要", exact=False).fill("合成排队问题的结构摘要与待确认因素")
     page.get_by_label("已知约束", exact=False).fill("本机合成数据")
+
+
+@pytest.mark.parametrize("text", ["一个物体温度恢复到环境温度的过程，是否与电容放电对应？请比较公式，告诉我能借用什么、什么时候不能用。", "原" * 4000])
+def test_single_question_entry_closed_capability_keeps_original_and_explicit_tools(server, text):
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        context = browser.new_context(viewport={"width":375,"height":812})
+        try:
+            base = server["base"]
+            login(context, base)
+            page = context.new_page()
+            page.goto(base + "/research")
+            expect(page.locator("#problem-form")).to_be_visible()
+            expect(page.locator("#problem-form textarea:visible")).to_have_count(1)
+            expect(page.locator("#advanced-tools")).to_be_hidden()
+            expect(page.locator("#entry-capability")).to_contain_text("尚未开放")
+            writes = []
+            page.on("request", lambda request: writes.append(request.url) if request.method == "POST" else None)
+            page.locator("#original-input").fill(text)
+            page.locator("#prepare-problem").click()
+            expect(page.locator("#entry-capability")).to_contain_text("没有生成草案")
+            expect(page.locator("#original-input")).to_have_value(text)
+            assert not writes
+            assert not page.locator("#confirmed").is_checked()
+            page.locator("#advanced-tools-toggle").click()
+            expect(page.locator("#problem-advanced")).to_be_visible()
+            expect(page.locator("#advanced-tools")).to_be_visible()
+            expect(page.locator("#kb-search")).to_be_visible()
+            expect(page.locator("#summary-hint")).to_contain_text("原文已完整保留" if len(text) > 1000 else "不是系统结构化草案")
+            page.locator("#advanced-tools-toggle").click()
+            expect(page.locator("#problem-advanced")).to_be_hidden()
+            expect(page.locator("#original-input")).to_have_value(text)
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        finally:
+            context.close()
+            browser.close()
 
 
 def test_d1_page_preview_confirm_real_worker_and_private_mobile_records(server):
@@ -2240,6 +2278,8 @@ def test_new_research_without_task_selector_keeps_real_create_and_save(tmp_path)
             await actual_expect(page.locator('#status')).to_have_text('新问题尚未保存。')
             await actual_expect(page.locator('#original-input')).to_be_enabled()
             await actual_expect(page.locator('#save')).to_be_enabled()
+            await actual_expect(page.locator('#problem-advanced')).to_be_hidden()
+            await page.locator('#advanced-tools-toggle').click()
             text='普通新建入口应继续真实保存问题'
             await page.get_by_label('原始问题',exact=False).fill(text)
             await page.get_by_label('希望解释或改变什么',exact=False).fill('希望缩短等待时间')

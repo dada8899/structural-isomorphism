@@ -160,3 +160,10 @@ textarea:disabled, select:disabled { opacity:1; color:var(--ink); background:#e9
 @media(max-width:520px) { #evidence-method-section .section-heading { flex-wrap:wrap; }#evidence-method-preview-panel { padding:6px 12px 16px; }.evidence-citation,.evidence-material { padding-left:12px; } }
 
 #evidence-method-section :is(button,a,input,select):focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+
+/* Keep the question as the first task; specialist tools require an explicit action. */
+.entry-actions { margin-top:18px; }
+#advanced-tools-toggle { margin-top:28px; width:100%; text-align:left; font-size:14px; }
+#advanced-tools-toggle[aria-expanded="true"] { border-bottom:3px solid var(--accent); }
+#problem-advanced, #advanced-tools { margin-top:28px; padding-top:16px; border-top:1px solid var(--line); }
+#entry-capability { max-width:640px; }

@@ -1355,6 +1355,7 @@
     observed = null;
     variables = [];
     form.reset();
+    showAdvanced(false);
     form.hidden = true;
     byId('history').hidden = true;
     byId('history-items').replaceChildren();
@@ -1627,13 +1628,24 @@
     byId('kb-search').disabled = busy || Boolean(editBase?.historical);
   }
   function echoDraft() {
-    const original = byId('original-input').value;
-    const length = Array.from(original).length;
-    if (!summaryEdited && !editBase) byId('summary').value = length <= 1000 ? original : '';
+    const length = Array.from(byId('original-input').value).length;
+    if (!summaryEdited && !editBase) byId('summary').value = length <= 1000 ? byId('original-input').value : '';
     byId('summary-hint').textContent = length > 1000
-      ? '原文超过 1000 字，已完整保留。请另写 8–1000 字摘要；不会截断原文或自动生成摘要。'
-      : '待核验草稿：这里只回显原话，可直接编辑；尚未进行模型结构化或确认。';
+      ? '原文已完整保留。当前人工工作台仅接受 8–1000 字摘要；自动整理尚未开放，不会截断、填充或代你确认。'
+      : '人工维护区：这里只回显原话，不是系统结构化草案；不会自动确认。';
   }
+  function showAdvanced(open) {
+    byId('problem-advanced').hidden = !open;
+    byId('advanced-tools').hidden = !open;
+    byId('advanced-tools-toggle').setAttribute('aria-expanded', String(open));
+  }
+  byId('advanced-tools-toggle').addEventListener('click', () => {
+    showAdvanced(byId('problem-advanced').hidden);
+  });
+  byId('prepare-problem').addEventListener('click', () => {
+    if (busy || readOnlyView() || !byId('original-input').reportValidity()) return;
+    byId('entry-capability').textContent = '当前自动整理与自动研究尚未开放：没有生成草案、没有调用模型或来源、没有保存问题。原文仍完整保留在本页。可主动进入高级工具查本地线索；不必为开始研究重复抄写摘要或变量。';
+  });
   async function authenticated(isCurrent, signal) {
     const unavailable = () => {
       const planWasCurrent=isCurrent();
@@ -1675,6 +1687,7 @@
     const section = byId(initialSection);
     if (!section || section.hidden) return;
     entryPositioned = true;
+    if (initialSection === 'kb-section') showAdvanced(true);
     section.scrollIntoView({block:'start'});
   }
   async function loadResearchList(more = false, positionEntry = false) {

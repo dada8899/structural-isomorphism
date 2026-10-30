@@ -4,19 +4,19 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <title>研究记录 · Structure</title>
-  <link rel="stylesheet" href="/assets/research.css?v=20261023-fin3-scenario1">
+  <link rel="stylesheet" href="/assets/research.css?v=20261030-entry1">
   <script src="/assets/evidenceMethodPlan.js?v=20261023-evidence1" defer></script>
   <script src="/assets/financial-registry.js?v=20261023-fin2-registry1" defer></script>
   <script src="/assets/financial-scenario.js?v=20261023-fin3-scenario1" defer></script>
-  <script src="/assets/research.js?v=20261023-fin3-scenario1" defer></script>
+  <script src="/assets/research.js?v=20261030-entry1" defer></script>
 </head>
 <body>
-  <header><a href="/" class="brand">Structure<span>结构研究</span></a><nav aria-label="研究导航"><a href="#my-research">我的研究</a><a href="/auth/login">账户</a></nav></header>
+  <header><a href="/" class="brand">Structure<span>结构研究</span></a><nav aria-label="研究导航"><a href="#my-research">我的研究</a><a href="#advanced-tools-toggle">高级工具</a><a href="/auth/login">账户</a></nav></header>
   <main>
     <div class="eyebrow">RESEARCH NOTEBOOK / 研究记录</div>
     <h1>从你的现象，<br>开始研究。</h1>
     <p class="intro">先说观察到了什么、希望解决什么。不必先知道数学方法或英文术语。</p>
-    <p class="scope" id="page-scope">可保存问题与修订，预览下一步研究计划的外发范围。执行和来源入口开放时须分别明确确认；研究结论仍需验证。</p>
+    <p class="scope" id="page-scope">输入一次具体问题。当前自动整理与自动研究尚未开放；可主动查本地线索，或在高级工具中维护和保存记录。模型与来源外发仍须逐次预览、确认。</p>
     <p id="status" role="status" aria-live="polite">正在读取研究记录…</p>
     <p id="view-context" class="scope" hidden></p>
     <div id="access" hidden><a href="/auth/login">登录账户</a><p>研究默认私有，请使用保存时的账户读取。</p></div>
@@ -26,8 +26,11 @@
       <label for="original-input">原始问题 <span>必填 · 最多 4000 字</span></label>
       <textarea id="original-input" required maxlength="4000" rows="5" aria-describedby="input-hint"></textarea>
       <p id="input-hint" class="hint">描述你观察到了什么，先保留原话。</p>
-      <label for="objective">希望解释或改变什么 <span>最多 1000 字</span></label>
-      <textarea id="objective" maxlength="1000" rows="2"></textarea>
+      <div class="actions entry-actions"><button id="prepare-problem" type="button" aria-describedby="entry-capability">查看问题整理能力</button></div>
+      <p id="entry-capability" class="scope" aria-live="polite">自动整理尚未开放，本次不会调用模型或来源，也不会生成研究结论。原话保留在本页；尚未保存时，离开页面可能丢失。</p>
+      <button id="advanced-tools-toggle" type="button" class="secondary" aria-expanded="false" aria-controls="problem-advanced advanced-tools">高级工具：本地线索、资料、公式、财务与手稿</button>
+      <div id="problem-advanced" hidden>
+      <p class="hint">以下是主动使用的人工工作台。填写和保存结构不会自动生成草案或执行研究。</p>
       <section id="kb-section" aria-labelledby="kb-title">
         <h2 id="kb-title">先找本地线索</h2>
         <p class="hint">主动查询本地知识库，不调用模型或外部文献服务。结果只是待核验的知识库线索；本地排序不表示数学同构、可信度或成熟解法。</p>
@@ -35,6 +38,8 @@
         <p id="kb-status" aria-live="polite">填写现象后可查询；不会自动开始研究。</p>
         <div id="kb-results"></div>
       </section>
+      <label for="objective">希望解释或改变什么 <span>最多 1000 字 · 可选</span></label>
+      <textarea id="objective" maxlength="1000" rows="2"></textarea>
       <h2>核对问题草稿，再保存</h2>
       <label for="summary">问题摘要 <span>8–1000 字</span></label>
       <textarea id="summary" required minlength="8" maxlength="1000" rows="3" aria-describedby="summary-hint"></textarea>
@@ -69,7 +74,10 @@
       </section>
       <div class="actions"><button id="save" type="submit">保存问题</button><button id="reload" type="button" class="secondary" hidden>重新读取已存版本</button></div>
       <p class="hint">请求结果不明时保留当前内容，再次保存相同内容会核对原操作，不会另存一份。</p>
+      </div>
     </form>
+    <div id="advanced-tools" hidden>
+    <p class="scope">高级工作台：先保存并核对问题，按当前权限使用。保存资料、方法手稿与受限计算分别记录，不代表自动研究完成。</p>
     <section id="native-plan-section" hidden aria-labelledby="native-plan-title">
       <div class="section-heading"><h2 id="native-plan-title">先规划下一步查什么</h2><span class="native-plan-tag">待核验计划</span></div>
       <p class="scope">从自己的现象自述出发，提出可查找的机制与方法线索。计划不是已验证的跨域解法，也不是成熟研究结论。</p>
@@ -229,6 +237,7 @@
       <h3>已保存的方法草稿</h3><p class="hint">原稿只读查看，不覆盖编辑区。新增或修订都另存新记录。</p><button id="method-draft-read-history" type="button" class="secondary">核对并读取草稿历史</button><p id="method-draft-history-status" class="hint"></p><ol id="method-draft-history"></ol>
       <p id="method-draft-view-status" class="scope" aria-live="polite"></p><div id="method-draft-view"></div>
     </section>
+    </div>
     <section id="task-history-section" hidden aria-labelledby="task-history-title">
       <h2 id="task-history-title">已保存的流程记录</h2>
       <p class="hint">每页最多 20 条。流程与更早页面在新标签页只读打开，保留本页草稿；已保存不代表正文现在可用。</p>
