@@ -1310,7 +1310,7 @@
     busy = value;
     // Freeze the submitted draft until the receipt is handled. Otherwise a
     // late render could silently replace edits made while fetch was pending.
-    for (const control of form.querySelectorAll('input, textarea, select, button')) control.disabled = value || (readOnlyView() && control.id !== 'reload');
+    for (const control of form.querySelectorAll('input, textarea, select, button')) control.disabled = value || (readOnlyView() && !['reload','advanced-tools-toggle'].includes(control.id));
     syncTaskButtons();
     syncFormulaControls();
     planSync();
@@ -1638,6 +1638,12 @@
     byId('problem-advanced').hidden = !open;
     byId('advanced-tools').hidden = !open;
     byId('advanced-tools-toggle').setAttribute('aria-expanded', String(open));
+    if (open && readOnlyView()) {
+      for (const field of form.querySelectorAll('textarea')) {
+        field.style.height = '';
+        field.style.height = `${field.scrollHeight + 2}px`;
+      }
+    }
   }
   byId('advanced-tools-toggle').addEventListener('click', () => {
     showAdvanced(byId('problem-advanced').hidden);
