@@ -538,20 +538,20 @@ def test_deadline_caller_identity_unknown_and_no_user_callbacks(loaded, monkeypa
         def get(self, *args):
             raise AssertionError('caller dictionary callback forbidden')
     with observer.observe_financial_limit(object()) as capture:
-        assert capture._deadline_caller(None, namespace, 281) == 'UNKNOWN'
-        assert capture._deadline_caller(Poison(), namespace, 281) == 'UNKNOWN'
-        assert capture._deadline_caller(code, PoisonDict(namespace), 281) == 'UNKNOWN'
-        assert capture._deadline_caller(code, dict(namespace), 281) == 'UNKNOWN'
+        assert capture._deadline_caller(None, namespace, 283) == 'UNKNOWN'
+        assert capture._deadline_caller(Poison(), namespace, 283) == 'UNKNOWN'
+        assert capture._deadline_caller(code, PoisonDict(namespace), 283) == 'UNKNOWN'
+        assert capture._deadline_caller(code, dict(namespace), 283) == 'UNKNOWN'
         assert capture._deadline_caller(code, namespace, True) == 'UNKNOWN'
         assert capture._deadline_caller(code, namespace, 282) == 'UNKNOWN'
         equivalent = code.replace()
         assert equivalent == code and equivalent is not code
-        assert capture._deadline_caller(equivalent, namespace, 281) == 'UNKNOWN'
+        assert capture._deadline_caller(equivalent, namespace, 283) == 'UNKNOWN'
         foreign = types.ModuleType(module.__name__)
         vars(foreign).update(namespace)
         with monkeypatch.context() as change:
             change.setitem(sys.modules, module.__name__, foreign)
-            assert capture._deadline_caller(code, namespace, 281) == 'UNKNOWN'
+            assert capture._deadline_caller(code, namespace, 283) == 'UNKNOWN'
     assert records(capsys)[0]['events'] == '0'
 
 
@@ -564,8 +564,8 @@ def test_deadline_caller_same_source_equal_code_replacement_is_not_original_iden
         replacement.__qualname__, replacement.__module__ = original.__qualname__, original.__module__
         with monkeypatch.context() as change:
             change.setattr(module.CurrentFinancialExecution, 'require', replacement)
-            assert capture._deadline_caller(equivalent, vars(module), 281) == 'UNKNOWN'
-        assert capture._deadline_caller(original.__code__, vars(module), 281) == 'REQUIRE_ENTER'
+            assert capture._deadline_caller(equivalent, vars(module), 283) == 'UNKNOWN'
+        assert capture._deadline_caller(original.__code__, vars(module), 283) == 'REQUIRE_ENTER'
     assert records(capsys)[0]['events'] == '0'
 
 
@@ -582,7 +582,7 @@ def test_deadline_caller_callback_has_no_cold_work_or_new_locals(loaded, monkeyp
             guard.setattr(observer.hashlib, 'sha256', forbidden)
             guard.setattr('builtins.compile', forbidden)
             guard.setattr('builtins.__import__', forbidden)
-            assert capture._deadline_caller(code, vars(module), 281) == 'REQUIRE_ENTER'
+            assert capture._deadline_caller(code, vars(module), 283) == 'REQUIRE_ENTER'
     records(capsys)
     source = ast.parse(textwrap.dedent(inspect.getsource(observer._Observation._deadline_caller)))
     assert not any(isinstance(node, ast.Attribute) and node.attr == 'f_locals' for node in ast.walk(source))
