@@ -6,13 +6,17 @@ or offer separately authorized deeper analysis.
 """
 import re
 
-from .schemas import PaidDigest, Revision, StrictObject
+from .schemas import PaidDigest, PaidId, Revision, StrictObject
 from .service import digest
 
 
 class FirstAnswerRequest(StrictObject):
     problem_digest: PaidDigest
     research_version: Revision
+
+
+class FirstAnswerCancelRequest(FirstAnswerRequest):
+    job_id: PaidId
 
 
 _RULES = (
@@ -120,42 +124,3 @@ def produce_background_answer(question, search, *, cancel):
     if cancel.is_set():
         return {"status": "unavailable", "reason": "cancelled"}
     return result or {"status": "unavailable", "reason": "worker_unavailable"}
-
-
-def generate(service, identity, research_id, *, input_revision, problem_digest, research_version, search, cancel=None):
-    """Generate from an authorized stored question, then recheck CAS on write."""
-    from .errors import ResearchError
-    from .first_answer import AnswerBody, read, read_current_input, save
-
-    try:
-        previous = read(service, identity, research_id, input_revision)
-    except ResearchError as error:
-        if error.code != "NOT_FOUND":
-            raise
-    else:
-        if (previous["metadata"]["problem_digest"], previous["metadata"]["research_version"]) != (
-                problem_digest, research_version):
-            raise ResearchError("REVISION_CONFLICT", 409, "问题已有变化，请重新读取。")
-        return previous
-    args = (service, identity, research_id, input_revision, problem_digest, research_version)
-    question = read_current_input(*args)
-    if not _in_scope(question):
-        raise ResearchError("FEATURE_UNAVAILABLE", 503, "这个问题暂时没有可用的本地初步分析。")
-    answer = compose(question, search)
-    if answer is None:
-        result = compose_with_worker(question, search, cancel=cancel)
-        if result and result["status"] == "insufficient":
-            # A clarification is not a result snapshot; confirm the question
-            # still belongs to this request before returning any model text.
-            read_current_input(*args)
-            return {"contract_revision": "first-answer-v1", **result,
-                    "metadata": {"research_id": research_id, "input_revision": input_revision,
-                                 "problem_digest": problem_digest}}
-        answer = result["content"] if result else None
-    if answer is None:
-        raise ResearchError("FEATURE_UNAVAILABLE", 503, "这个问题暂时没有可用的本地初步分析。")
-    if cancel is not None and cancel.is_set():
-        raise ResearchError("FEATURE_UNAVAILABLE", 503, "本次分析已停止，问题仍保留。")
-    return save(service, identity, research_id, input_revision=input_revision,
-                problem_digest=problem_digest, research_version=research_version,
-                key=f"local-first-answer-{input_revision}-{problem_digest}", answer=AnswerBody(**answer))

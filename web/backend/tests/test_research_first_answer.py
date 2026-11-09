@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 from web.backend.tests.test_formal_main_admission import BETA, envelope, login, prepared, problem, smtp, source_ready
+from web.backend.tests.test_formal_model_startup import startup, encoder, synthetic_readonly_mount
 
 
 def candidate(explanation="在稳定流量附近，波动可能使排队明显增长。"):
@@ -83,7 +84,7 @@ def test_actual_main_first_answer_migration_reopen_and_erasure(prepared, monkeyp
                 opened = await client.get(answer_url)
                 assert opened.json() == stored and opened.headers["cache-control"] == "no-store"
                 assert (await client.get(answer_url + "?revision=2")).status_code == 422
-                assert (await client.post(answer_url, json=stored, headers=origin)).status_code == 405
+                assert (await client.post(answer_url, json=stored, headers=origin)).status_code == 422
                 for changes, code in (({"answer": candidate("另一版解释")}, "IDEMPOTENCY_CONFLICT"),
                                       ({"key": "new-key"}, "ANSWER_EXISTS")):
                     with pytest.raises(ResearchError) as conflict:
@@ -134,5 +135,85 @@ def test_actual_main_first_answer_migration_reopen_and_erasure(prepared, monkeyp
             with pytest.raises(ResearchError) as bad_catalog:
                 provision_first_answers_v16(path)
             assert bad_catalog.value.code == "SCHEMA_UNSUPPORTED"
+
+    asyncio.run(run())
+
+
+def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encoder, monkeypatch):
+    import threading
+    import time
+    from research import first_answer, first_answer_queue, first_answer_supervisor
+
+    main, _, paths, messages = prepared
+    path = paths.private_auth_path()
+    (path.parent / first_answer_queue.LOCK_NAME).touch(mode=0o600, exist_ok=False)
+    first_answer.provision_first_answers_v16(path)
+    entered, cancelled = threading.Event(), threading.Event()
+    calls = []
+
+    def inference(question, search, *, cancel):
+        assert search.formal is True
+        calls.append(question)
+        if question.startswith("取消"):
+            entered.set()
+            until = time.monotonic() + 5
+            while time.monotonic() < until:
+                if cancel.is_set():
+                    cancelled.set()
+                    return {"status":"unavailable", "reason":"cancelled"}
+                time.sleep(.01)
+            raise AssertionError("cancel fence was not observed")
+        return {"status":"answered", "content":candidate().model_dump(mode="json", exclude_none=True)}
+
+    monkeypatch.setattr(first_answer_supervisor, "produce_background_answer", inference)
+    origin = {"Origin": BETA}
+    transport = httpx.ASGITransport(app=main.app)
+
+    async def run():
+        async with main.lifespan(main.app):
+            assert first_answer_supervisor.current(main.app) is not None
+            async with httpx.AsyncClient(transport=transport, base_url=BETA) as client:
+                await login(client, messages)
+
+                async def make(question, key):
+                    made = await client.post("/api/research", json=envelope({"problem":problem() | {"original_input":question}}),
+                                             headers=origin | {"Idempotency-Key":key})
+                    assert made.status_code == 200, made.text
+                    row = made.json()["data"]
+                    return "/api/research/" + row["research"]["id"] + "/revisions/1/first-answer", {
+                        "problem_digest":row["current_problem"]["digest"], "research_version":row["research_version"],
+                    }
+
+                async def read_terminal(url):
+                    for _ in range(40):
+                        got = await client.get(url)
+                        assert got.status_code == 200, got.text
+                        if got.json()["status"] not in ("queued","running"):
+                            return got.json()
+                        await asyncio.sleep(.1)
+                    raise AssertionError("background analysis did not reach terminal state")
+
+                url, body = await make("为什么同样的团队换工具后错误更多？", "async-real-answer")
+                assert (await client.post(url, json=body, headers={"Origin":"https://wrong.invalid"})).status_code == 403
+                accepted = await client.post(url, json=body, headers=origin)
+                assert accepted.status_code == 202, accepted.text
+                assert accepted.json()["contract_revision"] == "first-answer-job-v1"
+                answered = await read_terminal(url)
+                assert answered["status"] == "provisional"
+                assert (await client.get(url)).json() == answered
+                assert (await client.post(url, json=body, headers=origin)).json() == answered
+
+                url, body = await make("取消这个测试：为什么相同的流量有更长等待？", "async-real-cancel")
+                accepted = await client.post(url, json=body, headers=origin)
+                assert accepted.status_code == 202, accepted.text
+                job_id = accepted.json()["metadata"]["job_id"]
+                assert await asyncio.to_thread(entered.wait, 4)
+                stopped = await client.request("DELETE", url, json={**body, "job_id":job_id}, headers=origin)
+                assert stopped.status_code == 200 and stopped.json()["status"] == "cancelled", stopped.text
+                assert await asyncio.to_thread(cancelled.wait, 3)
+                assert (await client.get(url)).json() == stopped.json()
+                assert (await client.post(url, json=body, headers=origin)).json() == stopped.json()
+                assert len(calls) == 2
+        assert first_answer_supervisor.current(main.app) is None
 
     asyncio.run(run())

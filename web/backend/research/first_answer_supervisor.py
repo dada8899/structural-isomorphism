@@ -99,6 +99,41 @@ class FirstAnswerSupervisor:
                 worker.finish(claim, answer=answer)
         elif result["status"] == "insufficient":
             reason = "needs_clarification" if result.get("reason") == "needs_clarification" else "insufficient"
-            worker.finish(claim, reason=reason)
+            if reason == "needs_clarification":
+                worker.finish(claim, reason=reason, question=result.get("question"))
+            else:
+                worker.finish(claim, reason=reason)
         else:
             worker.finish(claim, reason="unavailable")
+
+
+_active = {}
+_active_lock = threading.Lock()
+
+
+def activate(app, service, search):
+    worker = FirstAnswerSupervisor(service, search)
+    with _active_lock:
+        if id(app) in _active:
+            raise RuntimeError("first answer supervisor already active")
+        _active[id(app)] = (app, worker)
+    try:
+        return worker.start()
+    except BaseException:
+        with _active_lock:
+            _active.pop(id(app), None)
+        raise
+
+
+def current(app):
+    with _active_lock:
+        entry = _active.get(id(app))
+    return entry[1] if entry and entry[0] is app and entry[1].ready else None
+
+
+def retire(app, worker, *, deadline):
+    # Withdraw admission before closing the thread or its search resource.
+    with _active_lock:
+        if _active.get(id(app)) == (app, worker):
+            del _active[id(app)]
+    worker.close(deadline=deadline)

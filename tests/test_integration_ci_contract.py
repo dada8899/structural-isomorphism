@@ -256,7 +256,7 @@ SHORT_OBSERVATION_PRIOR_JOBS_SHA256 = '3b46c1b92984751760a59f039c9426b5c372c981b
 # separate process after the existing fresh-2 module.
 FIRST_ANSWER_PURE_MODULES = ('tests/test_local_answer_gateway.py', 'tests/test_local_answer_inference.py',
                              'tests/test_local_answer_service.py', 'tests/test_local_first_answer_contract.py')
-FIRST_ANSWER_MAIN_MODULE = 'tests/test_research_first_answer.py'
+FIRST_ANSWER_MAIN_MODULES = ('tests/test_research_first_answer.py', 'tests/test_first_answer_queue.py')
 FIRST_ANSWER_PRIOR_JOBS_SHA256 = '36ddd0462e7a94f57b036a36cbd97aeb3a1d8ee09bd7b40ac098c993a47cb8cb'
 
 
@@ -265,7 +265,7 @@ def _workflow_before_first_answer_checks(value, name):
         return value
     original = copy.deepcopy(value)
     jobs = original['jobs']
-    for module in (*FIRST_ANSWER_PURE_MODULES, FIRST_ANSWER_MAIN_MODULE):
+    for module in (*FIRST_ANSWER_PURE_MODULES, *FIRST_ANSWER_MAIN_MODULES):
         assert sum(json.dumps(job, sort_keys=True).count(module) for job in jobs.values()) == 1
     title = 'Leg 2 — web/backend pytest baseline'
     ordinary, fresh = (next(step for step in jobs[job]['steps'] if step.get('name') == title)
@@ -274,7 +274,7 @@ def _workflow_before_first_answer_checks(value, name):
     pure_slot = anchor + ' '.join(FIRST_ANSWER_PURE_MODULES) + ' tests/test_mapping_contract.py '
     assert ordinary['run'].count(pure_slot) == 1
     ordinary['run'] = ordinary['run'].replace(pure_slot, anchor + 'tests/test_mapping_contract.py ', 1)
-    command = 'python -m pytest ' + FIRST_ANSWER_MAIN_MODULE + ' -p no:logging -x -ra -q --tb=short --durations=10\n'
+    command = 'python -m pytest ' + ' '.join(FIRST_ANSWER_MAIN_MODULES) + ' -p no:logging -x -ra -q --tb=short --durations=10\n'
     assert fresh['run'].endswith(command)
     fresh['run'] = fresh['run'][:-len(command)]
     assert hashlib.sha256(json.dumps(jobs, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest() == FIRST_ANSWER_PRIOR_JOBS_SHA256
@@ -710,7 +710,7 @@ def _workflow_before_sanity_groups(value):
     directory=ROOT/'web/backend/tests'
     inventory={'tests/'+path.relative_to(directory).as_posix() for pattern in ('test_*.py','*_test.py') for path in directory.rglob(pattern) if path.is_file()}
     # This view reconstructs the older baseline after the exact new-module inverse.
-    added = {SHORT_OBSERVATION_BACKEND_MODULE, *FIRST_ANSWER_PURE_MODULES, FIRST_ANSWER_MAIN_MODULE}
+    added = {SHORT_OBSERVATION_BACKEND_MODULE, *FIRST_ANSWER_PURE_MODULES, *FIRST_ANSWER_MAIN_MODULES}
     assert added <= inventory
     assert all(not (directory / path.removeprefix('tests/')).is_symlink() for path in added)
     inventory -= added

@@ -198,6 +198,7 @@ async def lifespan(app: FastAPI):
         binding = search_service = None
         source_supervisor = supervisor = None
         native_module = native_context = native_supervisor = None
+        answer_module = answer_worker = None
         primary = None
         try:
             auth_api._validate_production_config()
@@ -235,6 +236,10 @@ async def lifespan(app: FastAPI):
             if native_supervisor is not None:formal_admission.attach_native(app,binding,native_module,native_supervisor)
             if search_service is not None:
                 app_state['search'], app_state['artifact'] = search_service, search_service.artifact
+                if binding.facts.profile.research_schema == 16:
+                    answer_module = importlib.import_module(
+                        binding.service.__module__.rsplit('.', 1)[0] + '.first_answer_supervisor')
+                    answer_worker = answer_module.activate(app, binding.service, search_service)
             yield
         except BaseException as error:
             primary = error
@@ -262,6 +267,13 @@ async def lifespan(app: FastAPI):
             except BaseException as error:
                 errors.append(type(error).__name__)
             app_state.pop('search', None); app_state.pop('artifact', None)
+            answer_closed = answer_worker is None
+            if answer_worker is not None:
+                try:
+                    answer_module.retire(app, answer_worker, deadline=deadline)
+                    answer_closed = True
+                except BaseException as error:
+                    errors.append(type(error).__name__)
             source_closed = binding is None
             native_closed = binding is None
             history_closed = binding is None
@@ -279,12 +291,12 @@ async def lifespan(app: FastAPI):
                 try:await formal_admission.drain_history_reads(binding,deadline_monotonic=deadline)
                 except BaseException as error:errors.append(type(error).__name__)
                 history_closed=formal_admission.history_reads_closed(binding)
-                if source_closed and native_closed and history_closed:
+                if answer_closed and source_closed and native_closed and history_closed:
                     try:
                         formal_admission.release(binding, deadline_monotonic=deadline)
                     except BaseException as error:
                         errors.append(type(error).__name__)
-            if search_service is not None and source_closed and native_closed and history_closed:
+            if search_service is not None and answer_closed and source_closed and native_closed and history_closed:
                 try:
                     if time.monotonic() >= deadline:
                         raise RuntimeError('Main cleanup deadline ended')

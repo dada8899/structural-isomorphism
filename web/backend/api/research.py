@@ -370,14 +370,61 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         # Captured private storage never falls back to a development flag after
         # environment downgrade, including requests outside canonical Main.
         if service.store._formal_mode():require_formal_application(request.app,'research_basic')
-        if operation == "first-answer-read":
+        if operation in ("first-answer-read", "first-answer-generate", "first-answer-cancel"):
             raw_revision = request.path_params["input_revision"]
             if request.query_params or not re.fullmatch(r"[1-9][0-9]{0,9}",raw_revision):
                 raise ResearchError("INPUT_INVALID",422,"初步分析修订或查询参数无效。")
-            if __package__=='web.backend.api':from ..research.first_answer import read
-            else:from research.first_answer import read
-            result = await run_in_threadpool(read,service,identity,research_id,int(raw_revision))
-            return JSONResponse(result,headers=_HEADERS)
+            if __package__=='web.backend.api':
+                from ..research import first_answer_queue, first_answer_supervisor
+                from ..research.first_answer import read
+                from ..research.local_first_answer import FirstAnswerRequest, FirstAnswerCancelRequest
+            else:
+                from research import first_answer_queue, first_answer_supervisor
+                from research.first_answer import read
+                from research.local_first_answer import FirstAnswerRequest, FirstAnswerCancelRequest
+            input_revision = int(raw_revision)
+            if operation == "first-answer-read":
+                try:
+                    result = await run_in_threadpool(read, service, identity, research_id, input_revision)
+                except ResearchError as error:
+                    if error.code != "NOT_FOUND":
+                        raise
+                    result = await run_in_threadpool(first_answer_queue.read, service, identity, research_id, input_revision)
+                return JSONResponse(result,headers=_HEADERS)
+            if auth.require_same_origin(request) is not None:
+                raise ResearchError("AUTHORIZATION_STALE",403,"请从本站页面操作初步分析。")
+            if operation == "first-answer-cancel":
+                arguments = await _parse(request, FirstAnswerCancelRequest)
+                result = await run_in_threadpool(first_answer_queue.cancel, service, identity, research_id,
+                    input_revision=input_revision, **arguments.model_dump())
+                return JSONResponse(result,headers=_HEADERS)
+            arguments = await _parse(request, FirstAnswerRequest)
+            try:
+                result = await run_in_threadpool(read, service, identity, research_id, input_revision)
+            except ResearchError as error:
+                if error.code != "NOT_FOUND":
+                    raise
+            else:
+                if (result["metadata"]["problem_digest"], result["metadata"]["research_version"]) != (
+                        arguments.problem_digest, arguments.research_version):
+                    raise ResearchError("REVISION_CONFLICT",409,"问题已有变化，请重新读取。")
+                return JSONResponse(result,headers=_HEADERS)
+            worker = first_answer_supervisor.current(request.app)
+            if worker is None:
+                try:
+                    result = await run_in_threadpool(first_answer_queue.read, service, identity, research_id, input_revision)
+                except ResearchError as error:
+                    if error.code != "NOT_FOUND":
+                        raise
+                    raise ResearchError("FEATURE_UNAVAILABLE",503,"后台分析暂不可用，已保存的问题仍在。") from None
+                if (result["metadata"]["problem_digest"], result["metadata"]["research_version"]) != (
+                        arguments.problem_digest, arguments.research_version):
+                    raise ResearchError("REVISION_CONFLICT",409,"问题已有变化，请重新读取。")
+            else:
+                result = await run_in_threadpool(first_answer_queue.enqueue, service, identity, research_id,
+                    input_revision=input_revision, **arguments.model_dump())
+                worker.notify()
+            return JSONResponse(result,status_code=202 if result["status"] in ("queued","running") else 200,headers=_HEADERS)
         if operation in _FINANCIAL_RESULT_OPERATIONS:
             return await _dispatch_financial_result(request,service,identity,research_id,operation)
         if operation in _EVIDENCE_OPERATIONS:
@@ -687,6 +734,16 @@ async def view_research(research_id: str, request: Request):
 @router.get("/research/{research_id}/revisions/{input_revision}/first-answer")
 async def read_research_first_answer(research_id: str, input_revision: str, request: Request):
     return await _dispatch(request,research_id=research_id,operation="first-answer-read")
+
+
+@router.post("/research/{research_id}/revisions/{input_revision}/first-answer")
+async def generate_research_first_answer(research_id: str, input_revision: str, request: Request):
+    return await _dispatch(request,research_id=research_id,operation="first-answer-generate")
+
+
+@router.delete("/research/{research_id}/revisions/{input_revision}/first-answer")
+async def cancel_research_first_answer(research_id: str, input_revision: str, request: Request):
+    return await _dispatch(request,research_id=research_id,operation="first-answer-cancel")
 
 
 @router.post("/research/{research_id}/tasks")

@@ -25462,6 +25462,53 @@
       }
     },
     "/api/research/{research_id}/revisions/{input_revision}/first-answer": {
+      "delete": {
+        "operationId": "cancel_research_first_answer_api_research__research_id__revisions__input_revision__first_answer_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "input_revision",
+            "required": true,
+            "schema": {
+              "title": "Input Revision",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Research First Answer",
+        "tags": [
+          "research"
+        ]
+      },
       "get": {
         "operationId": "read_research_first_answer_api_research__research_id__revisions__input_revision__first_answer_get",
         "parameters": [
@@ -25505,6 +25552,53 @@
           }
         },
         "summary": "Read Research First Answer",
+        "tags": [
+          "research"
+        ]
+      },
+      "post": {
+        "operationId": "generate_research_first_answer_api_research__research_id__revisions__input_revision__first_answer_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "input_revision",
+            "required": true,
+            "schema": {
+              "title": "Input Revision",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate Research First Answer",
         "tags": [
           "research"
         ]
