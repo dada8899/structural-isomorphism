@@ -372,7 +372,7 @@
     ],
     "original_sha256": "68267578a7fa9da70b561948a86e1c571ce87049c204b210618e1c2ec1f949f9",
     "schema16_bridge": {
-      "current_sha256": "86f2033cec4db907b1def2676700bcd29e9ab0e46af8622172a7f96ed16adb4c",
+      "current_sha256": "cdfc66f53f1f5a48324c1c41e6fdf8c9b94696932dbdf0a0e7344cc5358f3859",
       "hunks": [
         [
           340,
@@ -489,7 +489,7 @@
       ]
     ],
     "schema16_bridge": {
-      "current_sha256": "7b629de4d633a60926e5b3c095a9d2e0e1201eb5e2b56b74d9e04e76c9103a6a",
+      "current_sha256": "1daffde48a62a5782fc6da099172a48c05c1b8cdfd4fd16d3347cf95e561f1b4",
       "hunks": [
         [
           13,
@@ -517,6 +517,11 @@
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):\n"
         ],
         [
+          323,
+          324,
+          "        if _job_has_v2(conn,job):raise PermissionError('legacy deletion cannot control v2 resources')\n"
+        ],
+        [
           328,
           329,
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)\n"
@@ -532,18 +537,23 @@
           "            or conn.execute(\"SELECT version FROM research_schema WHERE id=1\").fetchone()[0] not in (5,6,7,8,9,10,11,12,13,14,15)):\n"
         ],
         [
-          493,
-          494,
-          "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13,14,15):\n"
-        ],
-        [
-          496,
-          520,
+          484,
+          490,
           ""
         ],
         [
-          618,
-          619,
+          499,
+          500,
+          "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13,14,15):\n"
+        ],
+        [
+          502,
+          526,
+          ""
+        ],
+        [
+          624,
+          625,
           "    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13,14,15):\n"
         ]
       ]
@@ -1242,7 +1252,7 @@
     ],
     "original_sha256": "4415e35d9591896e2484bdfb962f0a1bb084704916bbcb70b9e84954f76647f3",
     "schema16_bridge": {
-      "current_sha256": "4f5d6f946178f65e6305f4edd39d7fe6c44bf7d45135bf7855a811e89284d30d",
+      "current_sha256": "a7184c0a89477d9b47dc2139ee1cffcbd256822106f7ac5009af65511faaa5d0",
       "hunks": [
         [
           182,
@@ -1275,53 +1285,58 @@
           "                        if task['policy_revision']=='d1-source-only-v1' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
         ],
         [
-          506,
-          510,
+          512,
+          515,
           ""
         ],
         [
+          522,
           523,
-          524,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:\n"
         ],
         [
+          525,
           526,
-          527,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):\n"
         ],
         [
+          527,
           528,
-          529,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
         ],
         [
+          598,
           599,
-          600,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:\n"
         ],
         [
+          601,
           602,
-          603,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
         ],
         [
+          608,
           609,
-          610,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (13,14,15):\n"
         ],
         [
+          611,
           612,
-          613,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (12,13,14,15):\n"
         ],
         [
+          614,
           615,
-          616,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15):\n"
         ],
         [
-          628,
-          633,
+          627,
+          636,
+          ""
+        ],
+        [
+          713,
+          719,
           ""
         ]
       ]
@@ -1403,7 +1418,7 @@
       ]
     ],
     "schema16_bridge": {
-      "current_sha256": "07d5e6572069d2e66b83c08689ac162f40299484445abb560b4682dd754c2636",
+      "current_sha256": "a89fb985a16ac65e06965b5fb08e6a931fcf7a2d6bf1040ee1d9b3d3af3f8a19",
       "hunks": [
         [
           410,
@@ -1519,7 +1534,7 @@
       ]
     ],
     "schema16_bridge": {
-      "current_sha256": "b9c02e33cb15ff2f687e82d6f9f06a32c30b78d1d5e4d720c7c1fc18ac09accd",
+      "current_sha256": "b98796ee72ddb2043915f552de94a4365c514fb13a7a2de5bdbc98e47b08c61e",
       "hunks": [
         [
           173,
