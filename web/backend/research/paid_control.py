@@ -297,6 +297,7 @@ def _deletion_lease_binding(conn,store,lease,job):
 def _job_has_v2(conn,job):
     if conn.execute('SELECT version FROM research_schema').fetchone()[0]==16:
         if conn.execute('SELECT 1 FROM research_first_answers a JOIN research_principals p ON p.id=a.principal_id WHERE p.gate_id=? LIMIT 1',(job['gate_id'],)).fetchone():return True
+        if conn.execute('SELECT 1 FROM research_first_answer_jobs a JOIN research_principals p ON p.id=a.principal_id WHERE p.gate_id=? LIMIT 1',(job['gate_id'],)).fetchone():return True
     if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (15,16):
         for table in ('research_financial_registries','research_financial_results'):
             if conn.execute('SELECT 1 FROM '+table+' b JOIN research_principals p ON p.id=b.principal_id WHERE p.gate_id=? LIMIT 1',(job['gate_id'],)).fetchone():return True
@@ -436,6 +437,8 @@ def _transaction_scope(conn,*,write):
         if not input_statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
         from .first_answer import statement_allowed as first_answer_statement_allowed
         if not first_answer_statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
+        from .first_answer_queue import statement_allowed as first_answer_queue_statement_allowed
+        if not first_answer_queue_statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
         from .method_draft import statement_allowed as draft_statement_allowed
         if not draft_statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
         from .plan_native_financial import statement_allowed as native_statement_allowed

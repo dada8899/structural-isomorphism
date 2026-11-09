@@ -205,6 +205,8 @@ def install_default_hook(conn):
     draft_hook(conn)
     from .first_answer import install_hook as first_answer_hook
     first_answer_hook(conn)
+    from .first_answer_queue import install_hook as first_answer_queue_hook
+    first_answer_queue_hook(conn)
     pid=os.getpid()
     def allowed(operation,raw):
         permit=_WRITES.get(id(conn))

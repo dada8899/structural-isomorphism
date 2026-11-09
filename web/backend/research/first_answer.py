@@ -113,8 +113,8 @@ def _write(conn, service, lease, operation, values):
     from .paid_control import _current_scope, _owner_binding
     frame = sys._getframe(2)
     try:
-        producer = _WRITE_PRODUCERS.get(operation)
-        if (producer is None or frame.f_code is not producer.__code__ or frame.f_globals is not globals()
+        producers = _WRITE_PRODUCERS.get(operation, ())
+        if (frame.f_code not in producers or frame.f_globals is not globals()
                 or frame.f_locals.get("conn") is not conn or frame.f_locals.get("service") is not service
                 or frame.f_locals.get("lease") is not lease):
             raise PermissionError("actual first-answer writer required")
@@ -235,6 +235,19 @@ def _view(conn, control, row):
             "is_historical": row["input_revision"] != control["current_revision"]}
 
 
+def _validated_body(answer):
+    if type(answer) is not AnswerBody:
+        raise ResearchError("INPUT_INVALID", 422, "初步分析内容无效。")
+    try:
+        content = AnswerBody.model_validate(answer.model_dump(mode="json", exclude_none=True)).model_dump(mode="json", exclude_none=True)
+        body = canonical(content)
+    except (ValidationError, TypeError, ValueError):
+        raise ResearchError("INPUT_INVALID", 422, "初步分析内容无效。") from None
+    if len(body.encode("utf-8")) > MAX_BODY_BYTES:
+        raise ResearchError("PAYLOAD_LIMIT", 413, "初步分析内容超过保存范围。")
+    return body, digest(content)
+
+
 def save(service, identity, rid, *, input_revision, problem_digest, research_version, key, answer):
     """Save the first result for a current revision; never overwrite it."""
     if (type(input_revision) is not int or not 1 <= input_revision <= 2147483647
@@ -243,14 +256,8 @@ def save(service, identity, rid, *, input_revision, problem_digest, research_ver
             or type(key) is not str or not _KEY.fullmatch(key)
             or type(answer) is not AnswerBody):
         raise ResearchError("INPUT_INVALID", 422, "初步分析输入无效。")
-    try:
-        content = AnswerBody.model_validate(answer.model_dump(mode="json", exclude_none=True)).model_dump(mode="json", exclude_none=True)
-        body = canonical(content)
-    except (ValidationError, TypeError, ValueError):
-        raise ResearchError("INPUT_INVALID", 422, "初步分析内容无效。") from None
-    if len(body.encode("utf-8")) > MAX_BODY_BYTES:
-        raise ResearchError("PAYLOAD_LIMIT", 413, "初步分析内容超过保存范围。")
-    content_digest, key_digest = digest(content), hashlib.sha256(key.encode()).hexdigest()
+    body, content_digest = _validated_body(answer)
+    key_digest = hashlib.sha256(key.encode()).hexdigest()
     rid, pid = service._id(rid), service._principal(identity)
     with service.authorization.owner_gate(pid) as lease, service.store.transaction(write=True) as conn:
         control = service.authorization.check(conn, identity, pid, rid, scope="write")
@@ -264,6 +271,9 @@ def save(service, identity, rid, *, input_revision, problem_digest, research_ver
                     input_revision, problem_digest, research_version, content_digest):
                 raise ResearchError("IDEMPOTENCY_CONFLICT", 409, "同一操作标识已用于另一份分析。")
             return _view(conn, control, existing)
+        if conn.execute("SELECT 1 FROM research_first_answer_jobs WHERE research_id=? AND input_revision=?",
+                        (rid, input_revision)).fetchone():
+            raise ResearchError("ANSWER_JOB_EXISTS", 409, "当前修订已有初步分析任务，请读取原状态。")
         if (control["current_revision"] != input_revision or control["version"] != research_version
                 or _revision_digest(conn, rid, input_revision) != problem_digest):
             raise ResearchError("VERSION_CONFLICT", 409, "问题已变化，请先读取当前修订。")
@@ -313,13 +323,46 @@ def erase_in(conn, service, lease, pid, job_id):
     return len(rows)
 
 
-_WRITE_PRODUCERS = {"INSERT": save, "DELETE": erase_in}
+def _write_queued_result(conn, service, lease, worker, claim, answer):
+    from .first_answer_queue import Worker, _current
+    frame = sys._getframe(1)
+    try:
+        if (type(worker) is not Worker or worker.service is not service or frame.f_code is not Worker.finish.__code__
+                or frame.f_locals.get("conn") is not conn or frame.f_locals.get("lease") is not lease):
+            raise PermissionError("actual first-answer completion required")
+    finally:
+        del frame
+    worker._owned(claim)
+    job = worker._claimed_row(conn, claim)
+    if not job:
+        raise not_found()
+    control, _ = _current(conn, job)
+    if control is None:
+        raise not_found()
+    rid, pid, revision = (job[key] for key in ("research_id", "principal_id", "input_revision"))
+    previous = conn.execute("SELECT * FROM research_first_answers WHERE research_id=? AND principal_id=? AND input_revision=?",
+                            (rid, pid, revision)).fetchone()
+    if previous:
+        if (previous["problem_digest"], previous["research_version"]) != (job["problem_digest"], job["research_version"]):
+            raise ResearchError("REVISION_CONFLICT", 409, "问题已有变化，请重新读取。")
+        _view(conn, control, previous)
+        return previous["id"]
+    body, content_digest = _validated_body(answer)
+    ref, key_digest = str(uuid4()), hashlib.sha256(("queue:"+claim.id).encode()).hexdigest()
+    values = (ref, rid, pid, revision, job["problem_digest"], job["research_version"], key_digest, content_digest, now(), body)
+    with _write(conn, service, lease, "INSERT", values):
+        conn.execute("INSERT INTO research_first_answers VALUES(?,?,?,?,?,?,?,?,?,?)", values)
+    return ref
+
+
+_WRITE_PRODUCERS = {"INSERT": (save.__code__, _write_queued_result.__code__), "DELETE": (erase_in.__code__,)}
 
 
 def provision_first_answers_v16(path: Path):
     """Explicit canonical offline maintenance; does not bootstrap or repair."""
     from .formula_runtime import _offline_maintenance, _check_profile
     from .store import ResearchStore
+    from .first_answer_queue import DDL as queue_ddl
     with _offline_maintenance(path, (15,16)) as (target, cap):
         conn = cap.conn
         cap.require(target)
@@ -327,7 +370,7 @@ def provision_first_answers_v16(path: Path):
         try:
             version = _check_profile(conn, target, (15,16))
             if version == 15:
-                for statement in DDL:
+                for statement in (*DDL, *queue_ddl):
                     conn.execute(statement)
                 if conn.execute("UPDATE research_schema SET version=16 WHERE id=1 AND version=15").rowcount != 1:
                     raise PermissionError("first-answer schema marker compare failed")
@@ -338,5 +381,5 @@ def provision_first_answers_v16(path: Path):
             conn.rollback()
             raise
         identity = cap.identity
-    return {"schema_version": 16, "first_answer_protocol": 1, "journal_mode": "wal",
+    return {"schema_version": 16, "first_answer_protocol": 1, "first_answer_queue_protocol": 1, "journal_mode": "wal",
             "database_identity": list(identity), "backup_scope": "in_memory_algorithm_recovery_only"}

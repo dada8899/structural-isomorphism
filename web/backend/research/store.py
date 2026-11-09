@@ -1073,7 +1073,8 @@ class ResearchStore:
             objects.update(cls._structure_declarations(DDL))
         if version==16:
             from .first_answer import DDL
-            objects.update(cls._structure_declarations(DDL))
+            from .first_answer_queue import DDL as queue_ddl
+            objects.update(cls._structure_declarations((*DDL, *queue_ddl)))
         forms=tuple(sql.rstrip()[:-1]+', '+', '.join(name+' '+ddl for name,ddl in JOB_ORIGIN_COLUMNS)+')'
             for sql in cls._auth_job_baseline_forms())
         objects['auth_deletion_jobs']=('table','auth_deletion_jobs',forms)
@@ -1358,7 +1359,9 @@ class ResearchStore:
         for hook in (source_hook,plan_hook,native_hook,draft_hook,input_hook):hook(conn)
         if version==16:
             from .first_answer import require_hook
+            from .first_answer_queue import require_hook as require_queue_hook
             require_hook(conn)
+            require_queue_hook(conn)
         if conn.execute('PRAGMA foreign_key_check').fetchone() is not None:
             raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究关联不匹配。')
 

@@ -623,7 +623,9 @@ class ResearchService:
             }
             counts.update({name.removeprefix('research_'):value for name,value in financial_counts.items()})
             if conn.execute('SELECT version FROM research_schema').fetchone()[0]==16:
+                from .first_answer_queue import erase_in as erase_first_answer_jobs
                 from .first_answer import erase_in as erase_first_answers
+                counts['first_answer_jobs']=erase_first_answer_jobs(conn,self,owner_lease,pid,job_id)
                 counts['first_answers']=erase_first_answers(conn,self,owner_lease,pid,job_id)
             tasks=[t["id"] for t in conn.execute("SELECT id FROM research_tasks WHERE principal_id=?",(pid,))]
             for task_id in tasks:
