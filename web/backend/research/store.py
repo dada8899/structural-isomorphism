@@ -938,7 +938,7 @@ class ResearchStore:
                 raise ResearchError('SCHEMA_UNSUPPORTED',503,'项目预算数据库绑定不匹配。')
 
     @classmethod
-    def _check_v7_attachments(cls,conn,*,method=False,native=False):
+    def _check_v7_attachments(cls,conn,*,method=False,native=False,external=False):
         allowed={}
         for ddl in (*cls._v7_required_legacy_objects().values(),*V7_GUARDS):
             if not ddl.startswith(('CREATE INDEX','CREATE UNIQUE INDEX','CREATE TRIGGER')):continue
@@ -949,6 +949,9 @@ class ResearchStore:
         if native:
             from .plan_native_financial import declarations
             allowed.update({ddl.split()[2]:ddl for ddl in declarations() if ddl.startswith('CREATE TRIGGER research_native_money_')})
+        if external:
+            from .external_first_answer_file_writer import TRIGGER,money_trigger
+            allowed[TRIGGER]=money_trigger(allowed[TRIGGER])
         # Preserve the existing extra-attachment policy; required inherited
         # objects are independently validated above and never recreated.
         for table in (*V5_SCHEMA,'research_cost_observations','research_paid_approvals','research_provider_sessions'):
@@ -1046,6 +1049,9 @@ class ResearchStore:
 
     @classmethod
     def _current_structure_declarations(cls,*,version=15):
+        if version==17:
+            from .external_first_answer_file_writer import CANDIDATE_DDL
+            return cls._current_structure_declarations(version=16)|cls._structure_declarations(CANDIDATE_DDL)
         # Code-owned declarations only. No application objects or constructors.
         from .source_integration import SOURCE_DDL
         from .evidence_repository import DDL as evidence_ddl
@@ -1260,9 +1266,9 @@ class ResearchStore:
         cls._check_formula_domain(conn)
 
     @classmethod
-    def _check_formula_domain(cls,conn,*,plan=False,native=False):
+    def _check_formula_domain(cls,conn,*,plan=False,native=False,external=False):
         cls._check_v8(conn,method=True,formula=True,plan=plan,native=native)
-        cls._check_v7_attachments(conn,method=True,native=native)
+        cls._check_v7_attachments(conn,method=True,native=native,external=external)
         cls._check_declared_structure(conn,cls._structure_declarations(METHOD_GUARDS))
         cls._check_method_hook(conn)
         from .formula_runtime import require_hook
@@ -1343,6 +1349,10 @@ class ResearchStore:
         cls._check_formal_version(conn,16)
 
     @classmethod
+    def _check_v17(cls,conn):
+        cls._check_formal_version(conn,17)
+
+    @classmethod
     def _check_formal_version(cls,conn,version):
         if __package__=='web.backend.research':from ..services.auth_store import AuthStore
         else:from services.auth_store import AuthStore
@@ -1350,18 +1360,21 @@ class ResearchStore:
             raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究需要完整账户准入。')
         AuthStore.check_gate_policy(conn,initialize=False)
         cls._check_structure_version(conn,version)
-        cls._check_formula_domain(conn,plan=True,native=True)
+        cls._check_formula_domain(conn,plan=True,native=True,external=version==17)
         from .source_guard import require_hook as source_hook
         from .plan_financial import require_hook as plan_hook
         from .plan_native_financial import require_hook as native_hook
         from .method_draft import require_hook as draft_hook
         from .financial_input_guard import require_hook as input_hook
         for hook in (source_hook,plan_hook,native_hook,draft_hook,input_hook):hook(conn)
-        if version==16:
+        if version in (16,17):
             from .first_answer import require_hook
             from .first_answer_queue import require_hook as require_queue_hook
             require_hook(conn)
             require_queue_hook(conn)
+        if version==17:
+            from .external_first_answer_file_writer import require_closed_hooks
+            require_closed_hooks(conn)
         if conn.execute('PRAGMA foreign_key_check').fetchone() is not None:
             raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究关联不匹配。')
 

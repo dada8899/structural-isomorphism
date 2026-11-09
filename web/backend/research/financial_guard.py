@@ -207,6 +207,8 @@ def install_default_hook(conn):
     first_answer_hook(conn)
     from .first_answer_queue import install_hook as first_answer_queue_hook
     first_answer_queue_hook(conn)
+    from .external_first_answer_file_writer import install_closed_hooks
+    install_closed_hooks(conn)
     pid=os.getpid()
     def allowed(operation,raw):
         permit=_WRITES.get(id(conn))

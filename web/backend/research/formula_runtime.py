@@ -305,7 +305,7 @@ def _check_profile(conn,target,versions):
     if len(marker)!=1 or marker[0][0]!=1 or type(marker[0][1]) is not int or marker[0][1] not in versions:
         raise PermissionError('exact offline research version required')
     version=marker[0][1]
-    if (auth_profile,version) not in (('legacy_auth',9),('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13),('auth-provision-v1',14),('auth-provision-v1',15),('auth-provision-v1',16)):
+    if (auth_profile,version) not in (('legacy_auth',9),('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13),('auth-provision-v1',14),('auth-provision-v1',15),('auth-provision-v1',16),('auth-provision-v1',17)):
         raise PermissionError('exact offline Auth and research profile pair required')
     ResearchStore._check_structure_version(conn,version)
     if version==9:ResearchStore._check_v9(conn)
@@ -316,6 +316,7 @@ def _check_profile(conn,target,versions):
     elif version==14:ResearchStore._check_v14(conn)
     elif version==15:ResearchStore._check_v15(conn)
     elif version==16:ResearchStore._check_v16(conn)
+    elif version==17:ResearchStore._check_v17(conn)
     else:raise PermissionError('offline profile unsupported')
     return version
 

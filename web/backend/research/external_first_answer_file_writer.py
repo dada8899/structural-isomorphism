@@ -51,6 +51,13 @@ def install_closed_hooks(conn):
     conn.create_function(MONEY_GUARD,2,lambda *_:0)
 
 
+def require_closed_hooks(conn):
+    # A closed reader never receives an admitted grant.
+    row=conn.execute(f"SELECT {GUARD}('INSERT',NULL,NULL),{MONEY_GUARD}(NULL,NULL)").fetchone()
+    if tuple(row)!=(0,0):
+        raise ContractError("external_connection_not_closed")
+
+
 def unresolved_external(conn,account):
     """Candidate reciprocal check for old callers; not wired into Financial9."""
     return conn.execute("SELECT 1 FROM "+TABLE+" WHERE account_id=? AND state IN ('consumed','unknown') LIMIT 1",

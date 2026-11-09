@@ -47,3 +47,11 @@ external_first_answer_file_writer.py 将预留、消费、保守记账和候选�
 这会改变精确 schema catalog：新增 run 表/触发器，并替换 Native money trigger 的声明。当前 v16 及其回退桥不能读取或运行该 catalog；若推进，须独立版本迁移、同 catalog 的无发送回退桥，以及备份恢复演练。不能原地向现役 v16 塞表或覆写触发器。
 
 执行点尚未进入 Main。正式路径需在固定的 ResearchStore 连接初始化中装闭合 hook，并由经审 issuer 同 Owner lease、真实账号/余额 witness、当前修订和写事务发出单次 proof；把新目的的行许可纳入 SQL authorizer，且在旧目的余额/预留/consume 入口都检查新 UNKNOWN。在既有 Financial8 项目 money guard 同时适用时，它仍独立拒绝新分支；不能通过这次候选短接。临时文件 proof 仅为隔离实验，禁止生产路径，不是实时资金授权。没有访问提供方、读取密钥或进行实际费用。
+
+## v17 候选与只读恢复
+
+provision_isolated_v17 只接受有明确标记的临时私有 Auth 文件，复用原有离线互斥、数据库独占、完整 v16 预检和 WAL 恢复。候选精确替换 Native 资金触发器的旧版声明，保留原判定并加默认拒绝的新分支，新增后备 run 表。两个 schema 校验层都逐项验证 v17 声明。没有改变 Main 的 15/16 运行准入，没有可操作的生产 CLI。真实隔离库已验证同 inode v16→17、重复核对、注入验证失败后原子回到原 v16，以及旧校验器拒绝新结构。
+
+桥接适配器单独打开已绑定 inode 的只读连接，沿用真实账户和 Owner 权限检查。原 UUID 操作键、原修订、摘要和身份共同定位状态；confirmed→pending，reserved→accepted，consumed/unknown→unknown，returned→completed，只有明确的 closed_unsent 才能报告 not_sent。找不到或权限变化拒绝，绝不据此推断没发送。result 为独立读回，要求 completed 且保存摘要、规范字节与未核候选形状一致，返回 review_required=true。preview 公共投影不包含外发字节、原账本或内部身份；默认 may_send=false。没有注册 HTTP 路由，正式发送入口固定关闭。
+
+接入实际 v17 服务前，还需完整的同结构回退 Main（账户/历史等原有运行路径仍以现行 v16 为准）、隔离演练、后备用途受信 issuer、同账本的双向 UNKNOWN 约束及结果内容独立审核。这里的 status-only 适配器已在真实临时库验证可鉴权并拒绝不存在的 key，不能代替完整回退服务或在线执行。

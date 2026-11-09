@@ -171,7 +171,7 @@ SOURCE_DDL=(
 def install_schema(conn,*,existing_required=False):
     source=SOURCE_DDL
     marker=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema'").fetchone()
-    if marker and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15,16):
+    if marker and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15,16,17):
         from .source_guard import approval_table
         source=(approval_table(),*SOURCE_DDL[1:])
     statements=(*source,*DDL)
