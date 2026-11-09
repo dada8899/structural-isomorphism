@@ -195,6 +195,9 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
                     await asyncio.sleep(.1)
                 assert health.status_code == 200, health.text
                 assert health.json()["checks"]["first_answer"] == "VERIFIER_UNBOUND"
+                assert health.json()["checks"]["first_answer_local"] == "ready"
+                if schema == 17:
+                    assert health.json()["checks"]["external_first_answer"] == "ISSUER_UNBOUND"
                 if schema == 17:
                     from api import auth
                     from research.paid_control import _current_scope, _local_answer_scope

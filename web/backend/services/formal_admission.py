@@ -294,6 +294,9 @@ def safe_status(app):
         family = binding.service.__module__.rsplit('.', 1)[0]
         answers = importlib.import_module(family + '.first_answer_supervisor')
         result['first_answer'] = answers.safe_status(app)
+        result['first_answer_local'] = 'ready' if answers.current(app) is not None else 'QUEUE_UNAVAILABLE'
+    if binding.facts.profile.research_schema == 17:
+        result['external_first_answer'] = 'ISSUER_UNBOUND'
     return result
 
 
