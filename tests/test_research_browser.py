@@ -655,7 +655,8 @@ def test_original_adoption_malformed_committed_200_keeps_key_and_recovers_same_r
                 route.fulfill(status=200,content_type='application/json',body=json.dumps(value))
             page.route('**/api/research',corrupt_actual_receipt)
             page.locator('#observation-adopt').click()
-            expect(page.locator('#status')).to_contain_text('采用回执无法完整核对')
+            expect(page.locator('#status')).to_contain_text('原保存操作保留')
+            expect(page.locator('#status')).to_contain_text('用相同内容核对原操作')
             assert page.url=='https://testserver/research'
             expect(page.locator('#original-input')).to_have_value(raw)
             assert page.locator('#observation-exact').text_content()==raw
