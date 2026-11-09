@@ -255,7 +255,7 @@ SHORT_OBSERVATION_PRIOR_JOBS_SHA256 = '3b46c1b92984751760a59f039c9426b5c372c981b
 # New first-answer consumers: pure contract in ordinary A; real Main in a
 # separate process after the existing fresh-2 module.
 FIRST_ANSWER_PURE_MODULES = ('tests/test_local_answer_gateway.py', 'tests/test_local_answer_inference.py',
-                             'tests/test_local_first_answer_contract.py')
+                             'tests/test_local_answer_service.py', 'tests/test_local_first_answer_contract.py')
 FIRST_ANSWER_MAIN_MODULE = 'tests/test_research_first_answer.py'
 FIRST_ANSWER_PRIOR_JOBS_SHA256 = '36ddd0462e7a94f57b036a36cbd97aeb3a1d8ee09bd7b40ac098c993a47cb8cb'
 
