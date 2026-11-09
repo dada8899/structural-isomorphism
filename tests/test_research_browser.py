@@ -323,7 +323,7 @@ def test_async_first_answer_reopens_and_cancels_without_new_submission(short_obs
                 elif request.method == "GET" and state == "queued":
                     state = "running"
                 route.fulfill(status=202 if request.method == "POST" else 200, json={
-                    "contract_revision": "first-answer-v1", "status": state,
+                    "contract_revision": "first-answer-job-v1", "status": state,
                     "metadata": {"research_id": record["research_id"], "input_revision": record["revision"],
                                  "problem_digest": record["digest"], "job_id": job_id},
                 })

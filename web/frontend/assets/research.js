@@ -1463,10 +1463,11 @@
         if (response.status === 401) { clearPrivateView('confirmed_logout'); return; }
         if (!response.ok) return polling || Boolean(cancelJob);
         answer = await response.json();
-        if (!active() || answer?.contract_revision !== 'first-answer-v1' ||
+        if (!active() || !['first-answer-v1','first-answer-job-v1'].includes(answer?.contract_revision) ||
             answer.metadata?.research_id !== id || answer.metadata.input_revision !== inputRevision ||
             answer.metadata.problem_digest !== problemDigest) return polling || Boolean(cancelJob);
         if (!['queued','running'].includes(answer.status)) break;
+        if (answer.contract_revision !== 'first-answer-job-v1') return polling || Boolean(cancelJob);
         const job = answer.metadata.job_id;
         if (!validId(job) || (firstAnswerJob && firstAnswerJob !== job)) return polling || Boolean(cancelJob);
         if (!polling) {
@@ -1488,7 +1489,8 @@
       if (!active() || controller.signal.aborted || !answer) return polling || Boolean(cancelJob);
       firstAnswerJob = null;
       byId('first-answer-cancel').hidden = true;
-      if (['failed','cancelled','interrupted'].includes(answer.status)) {
+      if (answer.contract_revision === 'first-answer-job-v1' && ['failed','cancelled','interrupted'].includes(answer.status) &&
+          !(answer.reason === 'needs_clarification' && typeof answer.question === 'string')) {
         if (!await authenticated(active, controller.signal) || !active()) return;
         const labels = {
           failed:'这版未能生成初步分析。原问题仍在；可补充后再开始研究。',
@@ -1500,7 +1502,7 @@
         handled = true;
         return true;
       }
-      if (answer.status === 'insufficient' && answer.reason === 'needs_clarification' &&
+      if (['insufficient','failed'].includes(answer.status) && answer.reason === 'needs_clarification' &&
           typeof answer.question === 'string' && answer.question.length > 0 && answer.question.length <= 480) {
         if (!await authenticated(active, controller.signal) || !active()) return;
         const prompt = document.createElement('p');
@@ -1511,7 +1513,7 @@
         handled = true;
         return true;
       }
-      if (answer.status !== 'provisional' || !planObject(answer.content)) return;
+      if (answer.contract_revision !== 'first-answer-v1' || answer.status !== 'provisional' || !planObject(answer.content)) return;
       const {explanation, assumptions, cross_domain_leads:leads, next_check:check, references} = answer.content;
       const bounded = value => typeof value === 'string' && value.length > 0 && value.length <= 2400;
       if (!bounded(explanation) || !bounded(check) ||
@@ -1950,9 +1952,10 @@
   function positionInitialSection() {
     if (entryPositioned || !initialSection || form.hidden) return;
     const section = byId(initialSection);
-    if (!section || section.hidden) return;
-    entryPositioned = true;
+    if (!section) return;
     if (initialSection === 'kb-section') showAdvanced(true);
+    if (section.hidden) return;
+    entryPositioned = true;
     section.scrollIntoView({block:'start'});
   }
   async function loadResearchList(more = false, positionEntry = false) {

@@ -176,3 +176,59 @@ def test_background_producer_does_not_run_cancelled_work_and_uses_long_budget(mo
         "status": "unavailable", "reason": "cancelled",
     }
     assert observed == [question]
+
+
+def test_background_supervisor_closes_an_owned_claim_without_replay(monkeypatch):
+    import sys
+    import threading
+    import time
+    from contextlib import contextmanager
+    from types import SimpleNamespace
+    from web.backend.research import first_answer_supervisor as runtime
+
+    claimed = object()
+    entered, retired = threading.Event(), threading.Event()
+    calls = []
+
+    class Queue:
+        def claim_next(self):
+            if calls:
+                return None
+            calls.append("claim")
+            return claimed, "为什么团队信息流动更快后反而出错？"
+
+        def is_current(self, claim):
+            assert claim is claimed
+            return True
+
+        def finish(self, *args, **kwargs):
+            calls.append("finish")
+
+    @contextmanager
+    def session(service):
+        try:
+            yield Queue()
+        finally:
+            retired.set()
+
+    def produce(question, search, *, cancel):
+        assert question.startswith("为什么")
+        calls.append("inference")
+        entered.set()
+        end = time.monotonic() + 2
+        while time.monotonic() < end:
+            if cancel.is_set():
+                return {"status": "unavailable", "reason": "cancelled"}
+            time.sleep(.01)
+        pytest.fail("supervisor did not stop the claimed inference")
+
+    module = "web.backend.research.first_answer_queue"
+    monkeypatch.setitem(sys.modules, module, SimpleNamespace(worker_session=session))
+    monkeypatch.setattr(runtime, "produce_background_answer", produce)
+    supervisor = runtime.FirstAnswerSupervisor(object(), object()).start()
+    try:
+        assert supervisor.ready and entered.wait(1)
+    finally:
+        supervisor.close(deadline=time.monotonic() + 2)
+    assert retired.is_set() and not supervisor.ready
+    assert calls == ["claim", "inference"]
