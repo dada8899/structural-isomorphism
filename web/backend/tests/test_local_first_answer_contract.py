@@ -318,3 +318,29 @@ def test_claim_contract_rejects_real_prompt_echo_and_title_as_a_claim():
                     {"next_check":"固定什么、测量什么、怎样判断。"}):
         with pytest.raises(FirstAnswerContractError, match="invalid_candidate"):
             interpret_claims(output(base | changed), prepared, cannot_judge)
+
+
+def test_extractive_context_cannot_be_replaced_or_promoted_by_the_model():
+    from web.backend.research.local_first_answer_contract import (
+        extractive_messages, interpret_extractive, prepare_extractive,
+    )
+
+    question = "为什么处理变慢后客服等待突然变长？"
+    irrelevant = record("thermal", "温差越大散热越快，随着温差缩小冷却变慢。")
+    relevant = record("port", "到达率接近服务率时，等待时间呈非线性增长。")
+    prepared = prepare_extractive(question, "approved-kb", [irrelevant,relevant],
+                                  lambda asked, label, excerpt: "服务率" in excerpt)
+    data = json.loads(extractive_messages(prepared)[1]["content"])
+    assert data["question"] == question
+    assert data["sources"] == [{"number":1,"label":relevant["name"],"excerpt":relevant["description"]}]
+    payload = {"status":"answered","hypothesis":"处理变慢可能降低了单位时间可完成的数量。",
+               "context_refs":[1],"assumptions":["到达率相近。"],"cross_domain_leads":[],
+               "next_check":"在相同进线量下比较每小时完成量和等待时长。"}
+    content = interpret_extractive(output(payload), prepared)["content"]
+    assert content["explanation"].startswith("待验证的解释")
+    assert content["references"][0]["record_digest"] == digest(relevant)
+    assert content["references"][0]["excerpt"] == relevant["description"]
+    with pytest.raises(FirstAnswerContractError, match="unknown_source_number"):
+        interpret_extractive(output(payload | {"context_refs":[2]}), prepared)
+    with pytest.raises(FirstAnswerContractError, match="invalid_candidate"):
+        interpret_extractive(output(payload | {"supported_claim":"模型不能指定这是证据"}), prepared)
