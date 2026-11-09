@@ -1967,7 +1967,7 @@
     ],
     "original_sha256": "744c196ef6b9cb9c3b6fab2140b966e3b52b4859fafb11ef23a5982d371d2885",
     "schema16_bridge": {
-      "current_sha256": "244a1ea36534aa25da2bcc7697d67679642475444715f0e2f21a7b73e28abe64",
+      "current_sha256": "7e1eedf8a13b3e4424be3cf94267f057e1f60a7e2dc8601a8b46f1ace32cea5d",
       "hunks": [
         [
           13,
@@ -2046,67 +2046,67 @@
         ],
         [
           1122,
-          1128,
+          1131,
           "        return cls._check_structure_version(conn,15)\n"
         ],
         [
-          1199,
-          1201,
+          1202,
+          1204,
           "            if version==15:self._check_v15(conn)\n"
         ],
         [
-          1216,
-          1218,
+          1219,
+          1221,
           "            if version==15:self._check_v15(conn);conn.commit();return\n"
         ],
         [
-          1268,
-          1269,
+          1271,
+          1272,
           "    def _check_formula_domain(cls,conn,*,plan=False,native=False):\n"
         ],
         [
-          1270,
-          1271,
+          1273,
+          1274,
           "        cls._check_v7_attachments(conn,method=True,native=native)\n"
         ],
         [
-          1333,
           1336,
+          1339,
           "        if version==15:cls._check_v15(conn)\n"
         ],
         [
-          1345,
-          1357,
+          1348,
+          1360,
           ""
         ],
         [
-          1360,
-          1361,
+          1363,
+          1364,
           "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式15需要完整账户准入。')\n"
         ],
         [
-          1362,
-          1364,
+          1365,
+          1367,
           "        cls._check_structure_version(conn,15)\n        cls._check_formula_domain(conn,plan=True,native=True)\n"
         ],
         [
-          1370,
-          1378,
+          1373,
+          1381,
           ""
         ],
         [
-          1379,
-          1380,
+          1382,
+          1383,
           "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究15关联不匹配。')\n"
         ],
         [
-          1403,
-          1407,
+          1406,
+          1410,
           "                self._check_v15(conn)\n"
         ],
         [
-          1431,
-          1435,
+          1434,
+          1438,
           "                self._check_v15(conn)\n"
         ]
       ]
