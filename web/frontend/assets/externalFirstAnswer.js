@@ -59,5 +59,100 @@
     });
   }
 
-  return Object.freeze({preview, confirmation});
+  function mount(panel, options) {
+    const doc = panel.ownerDocument;
+    let epoch = 0;
+    function reset() { epoch++; panel.hidden = true; panel.replaceChildren(); }
+    function add(tag, text, parent = panel) {
+      const element = doc.createElement(tag);
+      element.textContent = text;
+      parent.append(element);
+      return element;
+    }
+    function button(text, parent = panel) {
+      const element = add('button', text, parent);
+      element.type = 'button';
+      return element;
+    }
+    function offer() {
+      reset();
+      const current = options.current();
+      if (!current || current.external_first_answer !== 'ready') return;
+      const anchor = Object.freeze({...current});
+      const generation = epoch;
+      const active = () => {
+        const current = options.current();
+        return generation === epoch && current && current.external_first_answer === 'ready' &&
+          ['research_id','input_revision','research_version','problem_digest','original_input','actor']
+            .every(key => current[key] === anchor[key]);
+      };
+      panel.hidden = false;
+      const open = button('查看外部分析选项');
+      const status = add('p', '');
+      status.setAttribute('role','status');
+      open.addEventListener('click', async () => {
+        if (!active() || open.disabled) return;
+        open.disabled = true;
+        status.textContent = '正在读取外发预览…';
+        let offer;
+        try { offer = preview(await options.load(anchor), anchor, options.now()); } catch {}
+        if (!active()) return;
+        if (!offer) {
+          status.textContent = '外部分析预览暂不可用。原问题仍已保存。';
+          open.disabled = false;
+          return;
+        }
+        status.textContent = offer.may_send ? '请核对本次发送内容和费用。' : '外部分析当前未开放。';
+        const detail = add('div', '');
+        add('p', '接收方：DeepSeek', detail);
+        add('p', '费用上限：人民币 ¥' + (offer.upper_units / 1000000).toFixed(6), detail);
+        add('pre', offer.exact_question, detail);
+        button('关闭预览', detail).addEventListener('click', () => { if (active()) offerPanel(); });
+        if (!offer.may_send) return;
+        const checks = {};
+        for (const [key,text] of [
+          ['confirm_exact_question','同意发送上方这条问题'],
+          ['confirm_maximum_cost','接受本次费用上限'],
+          ['declares_right_to_send','我有权发送这段内容'],
+        ]) {
+          const label = add('label', '', detail);
+          const input = doc.createElement('input');
+          input.type = 'checkbox';
+          label.append(input, doc.createTextNode(text));
+          checks[key] = input;
+        }
+        const send = button('确认发送', detail);
+        let submitted = false;
+        send.disabled = true;
+        const decisions = () => Object.fromEntries(Object.entries(checks).map(([key,input])=>[key,input.checked]));
+        for (const input of Object.values(checks)) input.addEventListener('change', () => {
+          send.disabled = submitted || !active() || !confirmation(offer,anchor,decisions(),options.now());
+        });
+        send.addEventListener('click', async () => {
+          if (!active() || submitted) return;
+          const body = confirmation(offer, anchor, decisions(), options.now());
+          if (!body) { send.disabled = true; status.textContent = '报价已失效，请重新查看。'; return; }
+          submitted = true;
+          send.disabled = true;
+          for (const control of detail.querySelectorAll('button,input')) control.disabled = true;
+          status.textContent = '正在核对提交结果…';
+          try {
+            const receipt = await options.submit(anchor, body);
+            if (!active()) return;
+            status.textContent = keys(receipt,['status','operation_ref','request_digest']) &&
+              receipt.status === 'accepted' && typeof receipt.operation_ref === 'string' && ID.test(receipt.operation_ref) &&
+              receipt.request_digest === offer.request_digest
+              ? '请求已接收。请从研究记录查看进度。'
+              : '提交结果尚未确认。请从研究记录核对，不要重复发送。';
+          } catch {
+            if (active()) status.textContent = '提交结果尚未确认。请从研究记录核对，不要重复发送。';
+          }
+        });
+      });
+    }
+    const offerPanel = offer;
+    return Object.freeze({offer, reset});
+  }
+
+  return Object.freeze({preview, confirmation, mount});
 });
