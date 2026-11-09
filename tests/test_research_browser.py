@@ -2831,6 +2831,7 @@ def test_current_main_private_problem_xss_auth503_draft_and_real401_clear(tmp_pa
             await actual_expect(page.locator('#research-list-status')).to_contain_text('已读取 1 条研究')
             problem='真实私有问题：<img src="https://'+attack_host+'/problem" onerror="window.__currentResearchPrivacyInjected=true">'
             summary='私有摘要：</textarea><svg onload="window.__currentResearchPrivacyInjected=true"></svg><script>window.__currentResearchPrivacyInjected=true;fetch("https://'+attack_host+'/summary")</script>'
+            await _open_research_advanced(page)
             await page.locator('#original-input').fill(problem)
             await page.locator('#objective').fill('验证私有文本不会变成可执行页面内容')
             await page.locator('#summary').fill(summary)
@@ -2866,6 +2867,7 @@ def test_current_main_private_problem_xss_auth503_draft_and_real401_clear(tmp_pa
             assert await page.evaluate('window.__currentResearchPrivacyInjected===undefined') and attacks==[]
             draft='尚未保存的私有问题草稿，认证暂不可用不代表登出。'
             draft_summary='尚未保存的私有摘要，必须等待真实账户状态。'
+            await _open_research_advanced(page)
             await page.locator('#original-input').fill(draft)
             await page.locator('#summary').fill(draft_summary)
             pending=await page.evaluate('Object.keys(sessionStorage).filter(key=>key.startsWith("structure-research-pending:")).length')
@@ -3793,10 +3795,12 @@ async def _native_plan_tls_journey(tmp_path,mode):
                     cookies=[cookie for cookie in await context.cookies() if cookie['name']=='phase_session'];assert len(cookies)==1 and cookies[0]['secure'] and cookies[0]['httpOnly'] and cookies[0]['domain']==component.HOST
                     facts['browser_secure_httponly_canonical_cookie']=True;cookies.clear()
                     await page.goto(component.ORIGIN+'/research');progress('browser_authenticated')
+                    await _open_research_advanced(page)
                     await page.locator('#original-input').fill(component.OBSERVATION);await page.locator('#objective').fill('理解合成排队现象');await page.locator('#summary').fill('合成排队现象与等待时间的结构描述');await page.locator('#confirmed').check()
                     async with page.expect_response(component.ORIGIN+'/api/research') as saved:await page.locator('#save').click()
                     saved_response=await saved.value;assert saved_response.status==200;view=(await saved_response.json())['data'];rid=view['research']['id']
                     await aexpect(page.locator('#status')).to_contain_text('已保存修订 1');progress('problem_saved')
+                    await _open_research_advanced(page)
                     await page.locator('#native-plan-own').check()
                     if mode in ('late-preview-new-draft','late-preview-logout'):
                         async def hold_preview(route):
@@ -4159,6 +4163,7 @@ async def _method_draft_blank_journey(tmp_path):
                     async with bridge.routed(context):
                         page=await context.new_page();page.on('request',lambda request:requests.append(request.url) if '/method-drafts' in request.url or '/records?' in request.url else None)
                         await page.goto(component.ORIGIN+'/research');await _native_tls_login(page,fixture,component.OWNER,fresh=True);await page.goto(component.ORIGIN+'/research')
+                        await _open_research_advanced(page)
                         await page.locator('#original-input').fill(component.OBSERVATION);await page.locator('#summary').fill('当前观察问题与待验证的条件');await page.locator('#confirmed').check()
                         async with page.expect_response(component.ORIGIN+'/api/research') as saved:await page.locator('#save').click()
                         assert (await saved.value).status==200;await aexpect(page.locator('#status')).to_contain_text('已保存修订 1')
@@ -4347,6 +4352,7 @@ async def _method_draft_late_empty_history(tmp_path,change):
                 try:
                     async with bridge.routed(context):
                         page=await context.new_page();await page.goto(component.ORIGIN+'/research');await _native_tls_login(page,fixture,component.OWNER,fresh=True);await page.goto(component.ORIGIN+'/research')
+                        await _open_research_advanced(page)
                         await page.locator('#original-input').fill(component.OBSERVATION);await page.locator('#summary').fill('准备只读历史与手写新稿隔离的合成问题');await page.locator('#confirmed').check()
                         async with page.expect_response(component.ORIGIN+'/api/research') as saved:await page.locator('#save').click()
                         assert (await saved.value).status==200;await aexpect(page.locator('#research-list-status')).to_contain_text('已读取 1');values=await _method_draft_type_manual_fields(page)
