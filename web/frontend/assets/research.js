@@ -1624,8 +1624,11 @@
     if (data.next_task_id !== null) { byId('task-history-more').href = `/research/${researchId}?task_id=${encodeURIComponent(data.next_task_id)}`; byId('task-history-more').hidden = false; }
   }
   function viewUrl() { return `/api/research/${researchId}` + (selectedTask ? `?task_id=${encodeURIComponent(selectedTask)}` : ''); }
+  let showPrimaryLeads = false;
   function invalidateKB() {
     kbGeneration++;
+    showPrimaryLeads = false;
+    byId('kb-section').hidden = byId('problem-advanced').hidden;
     kbBusy = false;
     byId('kb-results').replaceChildren();
     byId('kb-status').textContent = '填写现象后可查询；不会自动开始研究。';
@@ -1641,6 +1644,7 @@
   function showAdvanced(open) {
     document.body.classList.toggle('advanced-closed', !open);
     byId('problem-advanced').hidden = !open;
+    byId('kb-section').hidden = !open && !showPrimaryLeads;
     byId('advanced-tools').hidden = !open;
     byId('advanced-tools-toggle').setAttribute('aria-expanded', String(open));
     if (open && readOnlyView()) {
@@ -1687,7 +1691,7 @@
     if (current || summaryEdited || byId('objective').value || byId('constraints').value ||
         byId('unknowns').value || byId('entry').value !== 'phenomenon' || byId('confirmed').checked ||
         byId('formula-enable').checked || !byId('problem-advanced').hidden) {
-      void saveProblem();
+      void saveProblem().then(saved => { if (saved) void searchLocalLeads(true); });
       return;
     }
     const original = byId('original-input').value;
@@ -1696,7 +1700,9 @@
       entry:'research', original_input:original, objective:'',
       summary:Array.from(title).length >= 8 ? title : '待研究问题：' + title + '（原话）',
       variables:[], constraints:[], unknowns:[], confirmed:false,
-    }), false);
+    }), false).then(saved => {
+      if (saved) void searchLocalLeads(true);
+    });
   });
   byId('start-research').addEventListener('click', () => {
     if (busy || readOnlyView() || !byId('original-input').reportValidity()) return;
@@ -1851,10 +1857,12 @@
       invalidateKB();
     });
   }
-  byId('kb-search').addEventListener('click', async () => {
+  async function searchLocalLeads(primary = false) {
     if (kbBusy || busy || form.hidden || editBase?.historical) return;
     const query = byId('original-input').value.trim();
     invalidateKB();
+    showPrimaryLeads = primary;
+    if (primary) byId('kb-section').hidden = false;
     if (!query) { byId('kb-status').textContent = '请先填写观察到的现象。'; return; }
     const generation = kbGeneration;
     const privateScope = privateGeneration;
@@ -1886,7 +1894,14 @@
         const title = document.createElement('h3'); title.textContent = item.name;
         const meta = document.createElement('p'); meta.className = 'hint'; meta.textContent = `${item.domain || '领域未标注'} · 待核验的知识库线索 · 本次本地排序`;
         const description = document.createElement('p'); description.textContent = item.description;
-        article.append(title, meta, description); byId('kb-results').append(article);
+        article.append(title, meta, description);
+        if (typeof item.id === 'string' && /^[a-zA-Z0-9_-]{1,160}$/.test(item.id)) {
+          const reference = document.createElement('a');
+          reference.href = '/phenomenon/' + encodeURIComponent(item.id);
+          reference.textContent = '查看知识库记录';
+          article.append(reference);
+        }
+        byId('kb-results').append(article);
       }
       byId('kb-status').textContent = data.results.length ? `找到 ${data.results.length} 条待核验线索。尚未检验变量、机制与适用条件；未写入研究或读取外部来源。` : '未找到本地线索。可以调整现象描述，或先保存问题；尚未查询外部文献。';
     } catch (error) {
@@ -1895,7 +1910,8 @@
       clearTimeout(timer);
       if (active()) { kbBusy = false; byId('kb-search').disabled = busy; }
     }
-  });
+  }
+  byId('kb-search').addEventListener('click', () => void searchLocalLeads(showPrimaryLeads));
   async function load() {
     const methodToken = beginMethodRead();
     const positionEntry = initialLoad;
@@ -2147,6 +2163,7 @@
       }
       loadResearchList();
       status(`已保存修订 ${saved.current_problem.revision}。这是一条问题记录，尚未执行研究。`);
+      return saved;
     } catch (error) {
       // 4xx proves rejection; transport/5xx outcomes keep the original key.
       if (pending && error.status >= 400 && error.status < 500) sessionStorage.removeItem(pending.slot);

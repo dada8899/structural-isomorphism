@@ -231,11 +231,17 @@ def _short_observation_page(context,client):
 def test_plain_question_saves_verbatim_and_reopens_without_adoption(short_observation_asgi):
     client, _ = short_observation_asgi
     raw = '为什么？'
+    searches = []
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         context = browser.new_context()
         try:
             page, calls = _short_observation_page(context, client)
+            def local_leads(route):
+                searches.append(route.request.post_data_json)
+                route.fulfill(json={"results": [{"id": "synthetic-lead", "name": "公开示例线索",
+                                               "domain": "本地", "description": "待核验"}]})
+            page.route("**/api/search", local_leads)
             page.goto('https://testserver/research')
             page.locator('#original-input').fill(raw)
             page.locator('#save-question').click()
@@ -245,6 +251,8 @@ def test_plain_question_saves_verbatim_and_reopens_without_adoption(short_observ
             assert row['current_problem']['original_input'] == raw
             assert row['current_problem']['confirmed'] is False
             assert row['task'] is None
+            expect(page.locator('#kb-results a')).to_have_attribute('href', '/phenomenon/synthetic-lead')
+            assert searches == [{"query": raw, "top_k": 12, "rewrite": False, "lang": "zh"}]
             page.goto(saved_url)
             expect(page.locator('#original-input')).to_have_value(raw)
             expect(page.locator('#problem-advanced')).to_be_hidden()
