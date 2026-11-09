@@ -64,6 +64,11 @@ def _prune(now):
     for key in retired:_CACHE.pop(key,None)
 
 
+def _require_unused_revision(conn,rid,rev):
+    if conn.execute("SELECT 1 FROM "+TABLE+" WHERE research_id=? AND input_revision=?",(rid,rev)).fetchone():
+        raise ResearchError("OPERATION_ALREADY_USED",409,"此问题修订已使用外部分析；请用原操作键查看状态。")
+
+
 def preview(selected,identity,rid,rev,request,source):
     _source(source,identity,"external-answer-preview",rid,rev,"",request)
     handle,service,policy,_=selected
@@ -79,6 +84,9 @@ def preview(selected,identity,rid,rev,request,source):
     with _authorized_saved_revision(service,identity,rid,rev,request.research_version) as (conn,scope,raw):
         if scope.problem_digest!=request.problem_digest:
             raise contract.ContractError("revision_binding_changed")
+        _require_unused_revision(conn,rid,rev)
+        if production.p1_already_spent(handle._app,handle):
+            raise ResearchError("OPERATION_ALREADY_USED",409,"本次外部分析许可已使用；不会再次发送。")
         expected=handle._expected
         if (scope.principal_id,scope.auth_generation)!=(expected.owner_principal,expected.owner_generation):
             raise contract.ContractError("external_owner_binding_changed")

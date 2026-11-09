@@ -340,6 +340,10 @@ class _Ticket:
             remaining=deadline-time.monotonic()
             if remaining<=0 or int(time.time())>=min(w.grant.valid_until,w.grant.quote.valid_until):
                 raise TimeoutError("external first-write deadline")
+            production.claim_p1_before_first_write(w.app,w.handle,w.key)
+            remaining=deadline-time.monotonic()
+            if remaining<=0 or int(time.time())>=min(w.grant.valid_until,w.grant.quote.valid_until):
+                raise TimeoutError("external first-write deadline")
             sock.settimeout(remaining)
             sock.sendall(wire)
 
@@ -394,6 +398,8 @@ def run_once(app,handle,service,identity,rid,revision,research_version,key,previ
             raise contract.ContractError("reconcile_original_only")
     if original is not None:
         return read_main_recovery(service,identity,rid,revision,key)
+    if production.p1_already_spent(app,handle):
+        raise contract.ContractError("external_canary_already_spent")
     context,price_valid_until,prompt_bound=_trust(handle,policy,now=now)
     if quote.valid_until>price_valid_until:raise contract.ContractError("external_quote_expired")
     def balance_first(sock,wire,deadline):
@@ -410,6 +416,8 @@ def run_once(app,handle,service,identity,rid,revision,research_version,key,previ
                                  (rid,revision)).fetchone() or file_writer.unresolved(conn,quote.account_id)):
                     raise contract.ContractError("reconcile_original_only")
             remaining=deadline-time.monotonic()
+            if production.p1_already_spent(app,handle):
+                raise contract.ContractError("external_canary_already_spent")
             if remaining<=0:raise TimeoutError("external balance deadline")
             sock.settimeout(remaining)
             sock.sendall(wire)

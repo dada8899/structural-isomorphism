@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import hashlib
 import importlib.util
 import os
+import re
 from pathlib import Path
 import stat
 import sys
@@ -119,7 +120,8 @@ def unpublish_entry_for_serve(app):
     _ENTRIES.pop(id(app),None)
 
 
-def _consume(expected,receipt):
+@contextmanager
+def _receipt_directory(expected):
     if _RECEIPTS.resolve(strict=True)!=_RECEIPTS:
         raise ContractError("external_startup_receipt_unbound")
     for parent in _RECEIPTS.parents:
@@ -132,6 +134,12 @@ def _consume(expected,receipt):
         if ((s.st_dev,s.st_ino,s.st_uid,s.st_gid,stat.S_IMODE(s.st_mode))!=
                 (expected.receipts_dev,expected.receipts_ino,expected.runtime_uid,expected.runtime_gid,0o700)):
             raise ContractError("external_startup_receipt_unbound")
+        yield parent
+    finally:os.close(parent)
+
+
+def _consume(expected,receipt):
+    with _receipt_directory(expected) as parent:
         name="spent-"+receipt.startup_id+".json"
         try:fd=os.open(name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=parent)
         except FileExistsError:raise ContractError("startup_challenge_already_consumed") from None
@@ -142,7 +150,57 @@ def _consume(expected,receipt):
                                     sort_keys=True,separators=(",",":")).encode())
             stream.flush();os.fsync(stream.fileno())
         os.fsync(parent)
-    finally:os.close(parent)
+
+
+
+_P1_SPENT="spent-p1-operation"
+
+
+def _p1_spent_at(parent):
+    try:os.stat(_P1_SPENT,dir_fd=parent,follow_symlinks=False)
+    except FileNotFoundError:return False
+    # Any existing object at this name is spent, including an incomplete
+    # record after an uncertain fsync. Never repair or unlink to reopen.
+    return True
+
+
+def _claim_p1_at(parent,operation_key):
+    if type(operation_key) is not str or not re.fullmatch(
+            r"[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}",operation_key):
+        raise ContractError("external_canary_binding_changed")
+    opaque=hashlib.sha256(b"structure-external-first-answer-p1-operation-v1\0"+operation_key.encode("ascii")).hexdigest()
+    try:
+        fd=os.open(_P1_SPENT,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=parent)
+    except FileExistsError:
+        raise ContractError("external_canary_already_spent") from None
+    with os.fdopen(fd,"wb") as stream:
+        stream.write((opaque+"\n").encode("ascii"))
+        stream.flush();os.fsync(stream.fileno())
+    os.fsync(parent)
+
+
+def p1_already_spent(app,handle):
+    if type(handle) is not _LiveHandle:
+        raise ContractError("real_external_live_handle_required")
+    handle.require_for_sender(app)
+    try:
+        with _receipt_directory(handle._expected) as parent:return _p1_spent_at(parent)
+    except OSError:raise ContractError("external_startup_receipt_unbound") from None
+
+
+def claim_p1_before_first_write(app,handle,operation_key):
+    from .external_live_sender import _Ticket,_require_live
+    frame=sys._getframe(1)
+    try:
+        if frame.f_code is not _Ticket.first_write.__code__ or type(handle) is not _LiveHandle:
+            raise ContractError("external_consumption_ticket_required")
+    finally:del frame
+    policy,_=_require_live(handle,app)
+    if policy.canary_operation_key!=operation_key:
+        raise ContractError("external_canary_binding_changed")
+    try:
+        with _receipt_directory(handle._expected) as parent:_claim_p1_at(parent,operation_key)
+    except OSError:raise ContractError("external_startup_receipt_unbound") from None
 
 
 class _LiveCredential(_Sealed):
