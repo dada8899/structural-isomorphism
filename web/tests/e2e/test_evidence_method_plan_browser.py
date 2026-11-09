@@ -96,6 +96,7 @@ async def actual_browser(tmp_path,*,eight=False,funded=True,unknown_usage=False,
 
 
 async def select_materials(page,bridge,count,*,keyboard=False):
+    await helpers._open_research_advanced(page)
     await page.locator('#evidence-method-tasks').click()
     await expect(page.locator('#evidence-method-task option')).to_have_count(count+1)
     # Each item is produced by a separate real Source task, never cloned IDs.
@@ -157,6 +158,7 @@ def test_actual_main_https_select_preview_confirm_runtime_save_refresh_original_
     async def run():
         from research import ResearchRunner
         async with actual_browser(tmp_path,eight=count==8) as (page,service,store,actor,calls,bridge,facts):
+            await helpers._open_research_advanced(page)
             await page.locator('#method-draft-method').fill('本轮A综合不应改写的人工草稿。')
             preview,confirmed=await preview_and_confirm(page,bridge,count)
             assert calls==[]

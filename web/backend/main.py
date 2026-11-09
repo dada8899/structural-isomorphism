@@ -198,6 +198,8 @@ async def lifespan(app: FastAPI):
         binding = search_service = None
         source_supervisor = supervisor = None
         native_module = native_context = native_supervisor = None
+        answer_module = answer_worker = None
+        external_module = external_handle = None
         primary = None
         try:
             auth_api._validate_production_config()
@@ -212,29 +214,38 @@ async def lifespan(app: FastAPI):
                     precomputed_embeddings=configured[2], artifact_manifest=configured[3],
                     kb_file=os.getenv('STRUCTURAL_KB_FILE', 'kb-expanded.jsonl'), formal=True)
             formal_admission.publish(app, binding, search_service)
-            native_module=importlib.import_module(binding.service.__module__.rsplit('.',1)[0]+'.native_plan_supervisor')
-            native_context=native_module.prepare_main_context(binding.service,binding)
-            try:
-                source_supervisor = importlib.import_module(
-                    binding.service.__module__.rsplit('.', 1)[0] + '.source_supervisor')
-                formal_admission.pin_source_module(app, binding, source_supervisor)
-                # Core verifies this direct, actual lifespan caller. STARTING
-                # remains unavailable; neither facts nor this assignment grant it.
-                supervisor = source_supervisor.start(binding.service, binding)
-            except BaseException as error:
-                if source_supervisor is not None and type(error) is source_supervisor.SourceStartFailure:
-                    supervisor = error.supervisor
-                logger.warning('startup.source_supervisor_unavailable')
-            if supervisor is not None:
-                formal_admission.attach_source(app, binding, source_supervisor, supervisor)
-            try:
-                native_supervisor=native_module.start(binding.service,binding)
-            except BaseException as error:
-                if type(error) is native_module.NativePlanStartFailure:native_supervisor=error.supervisor
-                logger.warning('startup.native_plan_unavailable')
+            if binding.facts.profile.research_schema==17:
+                from services import external_live_production as external_module
+                external_handle=external_module.activate(app)
+            if binding.facts.profile.research_schema != 17:
+                native_module=importlib.import_module(binding.service.__module__.rsplit('.',1)[0]+'.native_plan_supervisor')
+                native_context=native_module.prepare_main_context(binding.service,binding)
+                try:
+                    source_supervisor = importlib.import_module(
+                        binding.service.__module__.rsplit('.', 1)[0] + '.source_supervisor')
+                    formal_admission.pin_source_module(app, binding, source_supervisor)
+                    # Core verifies this direct, actual lifespan caller. STARTING
+                    # remains unavailable; neither facts nor this assignment grant it.
+                    supervisor = source_supervisor.start(binding.service, binding)
+                except BaseException as error:
+                    if source_supervisor is not None and type(error) is source_supervisor.SourceStartFailure:
+                        supervisor = error.supervisor
+                    logger.warning('startup.source_supervisor_unavailable')
+                if supervisor is not None:
+                    formal_admission.attach_source(app, binding, source_supervisor, supervisor)
+            if native_context is not None:
+                try:
+                    native_supervisor=native_module.start(binding.service,binding)
+                except BaseException as error:
+                    if type(error) is native_module.NativePlanStartFailure:native_supervisor=error.supervisor
+                    logger.warning('startup.native_plan_unavailable')
             if native_supervisor is not None:formal_admission.attach_native(app,binding,native_module,native_supervisor)
             if search_service is not None:
                 app_state['search'], app_state['artifact'] = search_service, search_service.artifact
+                if binding.facts.profile.research_schema in (16,17):
+                    answer_module = importlib.import_module(
+                        binding.service.__module__.rsplit('.', 1)[0] + '.first_answer_supervisor')
+                    answer_worker = answer_module.activate(app, binding.service, search_service)
             yield
         except BaseException as error:
             primary = error
@@ -243,6 +254,9 @@ async def lifespan(app: FastAPI):
             raise
         finally:
             errors = []
+            if external_handle is not None:
+                try:external_module.retire(app,external_handle)
+                except BaseException as error:errors.append(type(error).__name__)
             deadline = time.monotonic() + 20
             if binding is not None and binding.source_deadline is not None and not formal_admission.source_closed(binding):deadline=min(deadline,binding.source_deadline)
             if native_context is not None:
@@ -262,6 +276,13 @@ async def lifespan(app: FastAPI):
             except BaseException as error:
                 errors.append(type(error).__name__)
             app_state.pop('search', None); app_state.pop('artifact', None)
+            answer_closed = answer_worker is None
+            if answer_worker is not None:
+                try:
+                    answer_module.retire(app, answer_worker, deadline=deadline)
+                    answer_closed = True
+                except BaseException as error:
+                    errors.append(type(error).__name__)
             source_closed = binding is None
             native_closed = binding is None
             history_closed = binding is None
@@ -279,12 +300,12 @@ async def lifespan(app: FastAPI):
                 try:await formal_admission.drain_history_reads(binding,deadline_monotonic=deadline)
                 except BaseException as error:errors.append(type(error).__name__)
                 history_closed=formal_admission.history_reads_closed(binding)
-                if source_closed and native_closed and history_closed:
+                if answer_closed and source_closed and native_closed and history_closed:
                     try:
                         formal_admission.release(binding, deadline_monotonic=deadline)
                     except BaseException as error:
                         errors.append(type(error).__name__)
-            if search_service is not None and source_closed and native_closed and history_closed:
+            if search_service is not None and answer_closed and source_closed and native_closed and history_closed:
                 try:
                     if time.monotonic() >= deadline:
                         raise RuntimeError('Main cleanup deadline ended')
@@ -566,9 +587,16 @@ async def gate_unfinished_production_surfaces(request: Request, call_next):
         basic = ('/api/auth/', '/api/me/', '/api/research', '/api/favorites', '/api/history',
                  '/api/report', '/api/reports/', '/api/sso/', '/api/privacy/')
         system = path in ('/api/health', '/api/version')
-        retrieval = path.startswith(('/api/search', '/api/phenomenon', '/api/mapping', '/api/daily',
+        local_query = path == '/api/search' and request.method == 'POST'
+        retrieval = local_query or path.startswith(('/api/search', '/api/phenomenon', '/api/mapping', '/api/daily',
             '/api/examples', '/api/suggest', '/api/discoveries')) and request.method in ('GET', 'HEAD')
         if retrieval:
+            if local_query:
+                # This POST receives private question text. Allow only the exact
+                # local retrieval route; paid rewrite stays denied in its handler.
+                user, auth_status = auth_api.resolve_account_user(request)
+                if auth_status != 'valid' or user is None:
+                    return JSONResponse({'error': 'auth_required'}, status_code=401, headers={'Cache-Control': 'no-store'})
             from services import formal_admission
             try:
                 search_ready = formal_admission.safe_status(request.app)['search'] == 'ready'
@@ -578,6 +606,10 @@ async def gate_unfinished_production_surfaces(request: Request, call_next):
                 return JSONResponse({'error': 'search_not_ready'}, status_code=503, headers={'Cache-Control': 'no-store'})
         elif not system and not path.startswith(basic):
             return JSONResponse({'error': 'surface_not_admitted'}, status_code=503, headers={'Cache-Control': 'no-store'})
+        if local_query:
+            response = await call_next(request)
+            response.headers['Cache-Control'] = 'no-store'
+            return response
     return await call_next(request)
 
 

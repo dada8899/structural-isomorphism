@@ -129,7 +129,42 @@
         838,
         ""
       ]
-    ]
+    ],
+    "schema16_bridge": {
+      "current_sha256": "f7e40740fc29da450c2879e0c430d93a5134b093bb2e46edce3865da1cbb4db7",
+      "hunks": [
+        [
+          158,
+          159,
+          "def _with_request_source_capability(result,*,app,service,research_id,operation):\n"
+        ],
+        [
+          174,
+          188,
+          "    return {**result,'data':{**data,'capabilities':{**caps,'source_evidence':available}}}\n"
+        ],
+        [
+          364,
+          465,
+          ""
+        ],
+        [
+          486,
+          548,
+          ""
+        ],
+        [
+          797,
+          798,
+          "                    app=request.app,service=service,research_id=research_id,operation=operation)\n"
+        ],
+        [
+          852,
+          887,
+          ""
+        ]
+      ]
+    }
   },
   "web/backend/research/evidence_repository.py": {
     "current_sha256": "edbc3654f5480d77aece0b04fd152d2a67c6d7c9045353d6d469b7d16023d848",
@@ -201,7 +236,27 @@
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):ResearchStore.check_runtime_version(conn)\n"
       ]
     ],
-    "original_sha256": "2be9e0cfe9d81f8f373e2941c68149b03376d23f973ed3703eba3bc9bcad10e6"
+    "original_sha256": "2be9e0cfe9d81f8f373e2941c68149b03376d23f973ed3703eba3bc9bcad10e6",
+    "schema16_bridge": {
+      "current_sha256": "5bd75cfb5cea820ad9a1ab9246ecf72295866115175ae9910c2a3705656a6afd",
+      "hunks": [
+        [
+          205,
+          211,
+          ""
+        ],
+        [
+          237,
+          238,
+          "        if version and version[0] in (7,8,9,10,11,12,13,14,15):\n"
+        ],
+        [
+          300,
+          301,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)\n"
+        ]
+      ]
+    }
   },
   "web/backend/research/formula_result.py": {
     "current_sha256": "597c823e4747ab7f406edf09eb858236ef942efbc7a5802fab96011a69b48ae5",
@@ -253,7 +308,22 @@
         "        'current_app_compatible':version==13 and auth_profile=='auth-provision-v1','schema_repaired':False}\n"
       ]
     ],
-    "original_sha256": "91c93bc0f5575b7eba9f8b2690779e911a44bbb129a24c0687ea5742934ab31a"
+    "original_sha256": "91c93bc0f5575b7eba9f8b2690779e911a44bbb129a24c0687ea5742934ab31a",
+    "schema16_bridge": {
+      "current_sha256": "0435ba8e23988c21ce31b8bc4115293774b52648af21c0e5af43cb1ae1d52a30",
+      "hunks": [
+        [
+          307,
+          308,
+          "    if (auth_profile,version) not in (('legacy_auth',9),('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13),('auth-provision-v1',14),('auth-provision-v1',15)):\n"
+        ],
+        [
+          317,
+          319,
+          ""
+        ]
+      ]
+    }
   },
   "web/backend/research/method_result.py": {
     "current_sha256": "c5f508162aedac002337b8d8093812dee67c13a21fecbecf0c203b3d5c5bb9b4",
@@ -269,7 +339,22 @@
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13):ResearchStore.check_runtime_version(conn)\n"
       ]
     ],
-    "original_sha256": "cc45319280990f79d29897a33f16184827b4403982432012b52616a6cf11f4f9"
+    "original_sha256": "cc45319280990f79d29897a33f16184827b4403982432012b52616a6cf11f4f9",
+    "schema16_bridge": {
+      "current_sha256": "9c6d1ddbdb4ca396a5878a58019b8b80fae2df944f04c710396ee77eda43d6d2",
+      "hunks": [
+        [
+          33,
+          34,
+          "            or conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (9,10,11,12,13,14,15)):\n"
+        ],
+        [
+          36,
+          37,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)\n"
+        ]
+      ]
+    }
   },
   "web/backend/research/paid_approval.py": {
     "current_sha256": "b59cc221761f11444c5f5977c17b84d9b85133b3bd7d1dffc836f83118ce8a26",
@@ -295,7 +380,32 @@
         "    if version in (9,10,11,12,13):\n"
       ]
     ],
-    "original_sha256": "68267578a7fa9da70b561948a86e1c571ce87049c204b210618e1c2ec1f949f9"
+    "original_sha256": "68267578a7fa9da70b561948a86e1c571ce87049c204b210618e1c2ec1f949f9",
+    "schema16_bridge": {
+      "current_sha256": "cdfc66f53f1f5a48324c1c41e6fdf8c9b94696932dbdf0a0e7344cc5358f3859",
+      "hunks": [
+        [
+          340,
+          341,
+          "    if version not in (6,7,8,9,10,11,12,13,14,15):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除记录版本不支持。')\n"
+        ],
+        [
+          350,
+          351,
+          "    elif version in (10,11,12,13,14,15):\n"
+        ],
+        [
+          358,
+          359,
+          "    if version in (10,11,12,13,14,15):\n"
+        ],
+        [
+          362,
+          363,
+          "    if version in (9,10,11,12,13,14,15):\n"
+        ]
+      ]
+    }
   },
   "web/backend/research/paid_budget.py": {
     "current_sha256": "3fe34297fda5e7f546d03b78771dff974f73160b294d0ef7a64c2d3b65f27a2e",
@@ -306,7 +416,17 @@
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13):\n"
       ]
     ],
-    "original_sha256": "5ea041c4ecd50a368ed5a0d0a2b4c480fb82e5defffc9614230e2144e8fb5daa"
+    "original_sha256": "5ea041c4ecd50a368ed5a0d0a2b4c480fb82e5defffc9614230e2144e8fb5daa",
+    "schema16_bridge": {
+      "current_sha256": "789bfed37dc1db29b4498150f4e175d8f8cdeb6e1bd87a3c08f2bc02947cfd4e",
+      "hunks": [
+        [
+          141,
+          142,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15):\n"
+        ]
+      ]
+    }
   },
   "web/backend/research/paid_control.py": {
     "current_sha256": "1e4d9d94119fa8ae6ad8b90b781432d6c7c9f60859cbc13e20fb6e8b6b7be360",
@@ -377,7 +497,97 @@
         587,
         "    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13):\n"
       ]
-    ]
+    ],
+    "schema16_bridge": {
+      "current_sha256": "d7835459e5e6817d41905186b0335b49c402d848352541d8b9226716cbc29e29",
+      "hunks": [
+        [
+          13,
+          14,
+          ""
+        ],
+        [
+          69,
+          71,
+          ""
+        ],
+        [
+          101,
+          121,
+          ""
+        ],
+        [
+          320,
+          324,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:\n"
+        ],
+        [
+          326,
+          327,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15):\n"
+        ],
+        [
+          328,
+          329,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
+        ],
+        [
+          330,
+          331,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):\n"
+        ],
+        [
+          345,
+          346,
+          "        if _job_has_v2(conn,job):raise PermissionError('legacy deletion cannot control v2 resources')\n"
+        ],
+        [
+          350,
+          352,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)\n    elif conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)\n"
+        ],
+        [
+          460,
+          464,
+          ""
+        ],
+        [
+          503,
+          504,
+          "            or not conn.in_transaction or conn.execute(\"PRAGMA foreign_keys\").fetchone()[0]!=1\n            or conn.execute(\"SELECT version FROM research_schema WHERE id=1\").fetchone()[0] not in (5,6,7,8,9,10,11,12,13,14,15)):\n"
+        ],
+        [
+          505,
+          516,
+          "    if conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==7:\n"
+        ],
+        [
+          518,
+          519,
+          "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==8:\n"
+        ],
+        [
+          521,
+          522,
+          "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==9:\n"
+        ],
+        [
+          524,
+          525,
+          "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13,14,15):\n"
+        ],
+        [
+          527,
+          591,
+          ""
+        ],
+        [
+          689,
+          690,
+          "    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13,14,15):\n"
+        ]
+      ]
+    }
   },
   "web/backend/research/paid_provider_session.py": {
     "current_sha256": "a05a3780c500374cf28c2e1acb9e6420fa913dbd46555b653771d75dc990b483",
@@ -388,7 +598,17 @@
         "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13) and s['body_origin_state']!='legacy_unproved':\n"
       ]
     ],
-    "original_sha256": "7a3b6dfac4d89e8001ba5ce23bb870d7b7dd0ac90a3999805ecbbecd55fcd5a0"
+    "original_sha256": "7a3b6dfac4d89e8001ba5ce23bb870d7b7dd0ac90a3999805ecbbecd55fcd5a0",
+    "schema16_bridge": {
+      "current_sha256": "b2477d250a9ce29d4a7d619c586b3b17b049e6401d9499b2dd2e847d26979a2f",
+      "hunks": [
+        [
+          422,
+          423,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15) and s['body_origin_state']!='legacy_unproved':\n"
+        ]
+      ]
+    }
   },
   "web/backend/research/plan_native.py": {
     "current_sha256": "2312b72ba96255f3310e79a352523143d3f2c2bcc19af5837dcc3101a6895702",
@@ -917,7 +1137,22 @@
         "                view.update(task=dict(task),execution=task['execution'],status='plan_'+metadata(value)['state'],native_plan=metadata(value),execution_mode=task['execution_mode'])\n"
       ]
     ],
-    "original_sha256": "cbfef1623ddceaeafe2282f98651cc92e7a61fb25ef7074ebd27862f36391d41"
+    "original_sha256": "cbfef1623ddceaeafe2282f98651cc92e7a61fb25ef7074ebd27862f36391d41",
+    "schema16_bridge": {
+      "current_sha256": "79c6feb02aec3b8aa0de0f46d3b2882a16410cc30f7089e55bc96ec4faad4db8",
+      "hunks": [
+        [
+          30,
+          31,
+          "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):\n"
+        ],
+        [
+          60,
+          62,
+          ""
+        ]
+      ]
+    }
   },
   "web/backend/research/provider_evidence.py": {
     "current_sha256": "b6b1b0d2fe9de8bd3fd53021edd647a65166468afff25b6d7c6fb6c5a7fe70c5",
@@ -928,7 +1163,17 @@
         "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13):\n"
       ]
     ],
-    "original_sha256": "ea5ec07fa53e3c231c0bf7b6a95b7722758508de67f706e0d56160dc0a46d133"
+    "original_sha256": "ea5ec07fa53e3c231c0bf7b6a95b7722758508de67f706e0d56160dc0a46d133",
+    "schema16_bridge": {
+      "current_sha256": "7d9787bc008e687bc3ad536e662ff38cf1929c671d0f9791e37259ccf3457cf5",
+      "hunks": [
+        [
+          82,
+          83,
+          "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
+        ]
+      ]
+    }
   },
   "web/backend/research/runner.py": {
     "current_sha256": "4c759dc93f996ff59d2002c94da50013f40c7375f2278e91e9af14bc838a546c",
@@ -939,7 +1184,22 @@
         "        lock=self.gate.source_task_gate(task_id) if version in (11,12,13) and self.task(task_id)['policy_revision']=='d1-source-only-v1' else self.gate.owner_gate_id(task_id)\n"
       ]
     ],
-    "original_sha256": "6557a66d2116ae347aa9d50ad95c3789441aa2382acc7d5be6606cb0d1b8f9a8"
+    "original_sha256": "6557a66d2116ae347aa9d50ad95c3789441aa2382acc7d5be6606cb0d1b8f9a8",
+    "schema16_bridge": {
+      "current_sha256": "4d4717eaa764bcfad96012848f8e5d0a87bf1c3f1a49fd82e875a1331de7ca40",
+      "hunks": [
+        [
+          185,
+          186,
+          "            if version in (11,12,13,14,15):\n"
+        ],
+        [
+          198,
+          199,
+          "        lock=self.gate.source_task_gate(task_id) if version in (11,12,13,14,15) and self.task(task_id)['policy_revision']=='d1-source-only-v1' else self.gate.owner_gate_id(task_id)\n"
+        ]
+      ]
+    }
   },
   "web/backend/research/service.py": {
     "current_sha256": "1bd6b88e005455cbbdbb5e565f439fc8a0a3b848ac142a15e53081d0dc7c8033",
@@ -1020,7 +1280,97 @@
         ""
       ]
     ],
-    "original_sha256": "4415e35d9591896e2484bdfb962f0a1bb084704916bbcb70b9e84954f76647f3"
+    "original_sha256": "4415e35d9591896e2484bdfb962f0a1bb084704916bbcb70b9e84954f76647f3",
+    "schema16_bridge": {
+      "current_sha256": "a7184c0a89477d9b47dc2139ee1cffcbd256822106f7ac5009af65511faaa5d0",
+      "hunks": [
+        [
+          182,
+          183,
+          "        if request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15):\n"
+        ],
+        [
+          378,
+          379,
+          "                method=bool(candidate and candidate[0]=='bounded_usage_upper_v2' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15))\n"
+        ],
+        [
+          385,
+          386,
+          "            method_request=is_paid and operation=='reconcile' and request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15)\n"
+        ],
+        [
+          391,
+          392,
+          "            if (is_paid or task['policy_revision'] in ('local-formula-v1','funded-plan-v1','native-plan-v1') or (task['policy_revision']=='d1-source-only-v1' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15))) and operation=='cancel':\n"
+        ],
+        [
+          405,
+          406,
+          "                if is_paid and operation=='reconcile' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15):\n"
+        ],
+        [
+          429,
+          430,
+          "                        if task['policy_revision']=='d1-source-only-v1' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
+        ],
+        [
+          512,
+          515,
+          ""
+        ],
+        [
+          522,
+          523,
+          "            if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:\n"
+        ],
+        [
+          525,
+          526,
+          "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):\n"
+        ],
+        [
+          527,
+          528,
+          "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
+        ],
+        [
+          598,
+          599,
+          "            if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:\n"
+        ],
+        [
+          601,
+          602,
+          "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
+        ],
+        [
+          608,
+          609,
+          "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (13,14,15):\n"
+        ],
+        [
+          611,
+          612,
+          "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (12,13,14,15):\n"
+        ],
+        [
+          614,
+          615,
+          "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15):\n"
+        ],
+        [
+          627,
+          636,
+          ""
+        ],
+        [
+          713,
+          719,
+          ""
+        ]
+      ]
+    }
   },
   "web/backend/research/source_guard.py": {
     "current_sha256": "4212719fbd57d8bc0cba907c96711d5b18a92d8cdac373d051de8373f72d8e35",
@@ -1096,7 +1446,17 @@
         514,
         ""
       ]
-    ]
+    ],
+    "schema16_bridge": {
+      "current_sha256": "a89fb985a16ac65e06965b5fb08e6a931fcf7a2d6bf1040ee1d9b3d3af3f8a19",
+      "hunks": [
+        [
+          410,
+          411,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13,14,15):return nullcontext()\n"
+        ]
+      ]
+    }
   },
   "web/backend/research/source_integration.py": {
     "current_sha256": "eeeee6a340c131be347e62060ac3f806e785f9aeff3cd67cf9c08a46a79687ac",
@@ -1202,7 +1562,47 @@
         638,
         ""
       ]
-    ]
+    ],
+    "schema16_bridge": {
+      "current_sha256": "b98796ee72ddb2043915f552de94a4365c514fb13a7a2de5bdbc98e47b08c61e",
+      "hunks": [
+        [
+          173,
+          174,
+          "    if marker and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
+        ],
+        [
+          327,
+          328,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
+        ],
+        [
+          386,
+          387,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13,14,15):return nullcontext()\n"
+        ],
+        [
+          412,
+          413,
+          "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
+        ],
+        [
+          445,
+          446,
+          "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
+        ],
+        [
+          455,
+          456,
+          "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
+        ],
+        [
+          473,
+          474,
+          "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
+        ]
+      ]
+    }
   },
   "web/backend/research/source_policy.py": {
     "current_sha256": "bc6c76b4a8d9f17a2a7acc4a8b08ef87ba5fada4e22dfead39a087f291aa78eb",
@@ -1419,7 +1819,42 @@
         393,
         "    except (ValueError,ResearchError,PermissionError,OSError):\n"
       ]
-    ]
+    ],
+    "schema16_bridge": {
+      "current_sha256": "2cf129642dbaf4043da0504fe7f1cafdc8b33354f804feb422e318a139bc42f1",
+      "hunks": [
+        [
+          18,
+          19,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (11,12,13,14,15):return nullcontext()\n"
+        ],
+        [
+          54,
+          55,
+          "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
+        ],
+        [
+          325,
+          326,
+          "        if version in (11,12,13,14,15):\n"
+        ],
+        [
+          328,
+          329,
+          "    owner=gate.owner_gate_id(owner_gate) if version in (11,12,13,14,15) else gate.owner_gate(principal)\n"
+        ],
+        [
+          345,
+          346,
+          "            if version in (11,12,13,14,15):\n"
+        ],
+        [
+          365,
+          366,
+          "            if version in (11,12,13,14,15):\n"
+        ]
+      ]
+    }
   },
   "web/backend/research/store.py": {
     "current_sha256": "0bb5c9533b1c5fee739a5db4fe39e07d76d3ba9eb381c0f9d10b6423a961ecae",
@@ -1575,7 +2010,152 @@
         "                self._check_v13(conn)\n"
       ]
     ],
-    "original_sha256": "744c196ef6b9cb9c3b6fab2140b966e3b52b4859fafb11ef23a5982d371d2885"
+    "original_sha256": "744c196ef6b9cb9c3b6fab2140b966e3b52b4859fafb11ef23a5982d371d2885",
+    "schema16_bridge": {
+      "current_sha256": "96dfbeddc2e297571e7445755e192eca101af9b0892cf4983f994dcc2758e366",
+      "hunks": [
+        [
+          13,
+          14,
+          "CURRENT_RESEARCH_SCHEMA_VERSION=15\n"
+        ],
+        [
+          401,
+          403,
+          ""
+        ],
+        [
+          454,
+          456,
+          ""
+        ],
+        [
+          602,
+          604,
+          ""
+        ],
+        [
+          940,
+          941,
+          "    def _check_v7_attachments(cls,conn,*,method=False,native=False):\n"
+        ],
+        [
+          951,
+          954,
+          ""
+        ],
+        [
+          1024,
+          1026,
+          "            if version==15:self._check_v15(conn)\n"
+        ],
+        [
+          1051,
+          1054,
+          ""
+        ],
+        [
+          1060,
+          1061,
+          "        if version in (10,11,12,13,14,15):\n"
+        ],
+        [
+          1064,
+          1065,
+          "        if version in (11,12,13,14,15):\n"
+        ],
+        [
+          1067,
+          1068,
+          "        if version in (12,13,14,15):\n"
+        ],
+        [
+          1070,
+          1071,
+          "        if version in (13,14,15):\n"
+        ],
+        [
+          1073,
+          1074,
+          "        if version in (14,15):\n"
+        ],
+        [
+          1076,
+          1077,
+          "        if version==15:\n"
+        ],
+        [
+          1079,
+          1083,
+          ""
+        ],
+        [
+          1122,
+          1131,
+          "        return cls._check_structure_version(conn,15)\n"
+        ],
+        [
+          1202,
+          1204,
+          "            if version==15:self._check_v15(conn)\n"
+        ],
+        [
+          1219,
+          1221,
+          "            if version==15:self._check_v15(conn);conn.commit();return\n"
+        ],
+        [
+          1271,
+          1272,
+          "    def _check_formula_domain(cls,conn,*,plan=False,native=False):\n"
+        ],
+        [
+          1273,
+          1274,
+          "        cls._check_v7_attachments(conn,method=True,native=native)\n"
+        ],
+        [
+          1335,
+          1340,
+          "        version=conn.execute('SELECT version FROM research_schema').fetchone()[0]\n        if version==15:cls._check_v15(conn)\n"
+        ],
+        [
+          1349,
+          1361,
+          ""
+        ],
+        [
+          1364,
+          1365,
+          "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式15需要完整账户准入。')\n"
+        ],
+        [
+          1366,
+          1368,
+          "        cls._check_structure_version(conn,15)\n        cls._check_formula_domain(conn,plan=True,native=True)\n"
+        ],
+        [
+          1374,
+          1382,
+          ""
+        ],
+        [
+          1383,
+          1384,
+          "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究15关联不匹配。')\n"
+        ],
+        [
+          1407,
+          1411,
+          "                self._check_v15(conn)\n"
+        ],
+        [
+          1435,
+          1439,
+          "                self._check_v15(conn)\n"
+        ]
+      ]
+    }
   },
   "web/backend/schemas.py": {
     "current_sha256": "6ace022157e54c32509e300c0b116a70361685530ee1cf4affd5c7bdb522eca4",
@@ -1627,7 +2207,17 @@
         "    if (profile,version) not in (('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13)):\n"
       ]
     ],
-    "original_sha256": "17433353693cede4fe196b518134fddadb460d9c21853f1e94b4db9c82cfdf6e"
+    "original_sha256": "17433353693cede4fe196b518134fddadb460d9c21853f1e94b4db9c82cfdf6e",
+    "schema16_bridge": {
+      "current_sha256": "782ec1eac7b95af176ba95dc957c862da4324ee890af0dccbbfa7112402e1789",
+      "hunks": [
+        [
+          942,
+          943,
+          "    if (profile,version) not in (('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13),('auth-provision-v1',14),('auth-provision-v1',15)):\n"
+        ]
+      ]
+    }
   },
   "web/backend/services/runtime_paths.py": {
     "current_sha256": "3d4b4e87db18bc2e127d770bd79a2048f2693b169cc519f167c725e6ca97c780",
@@ -1809,7 +2399,17 @@
         ""
       ]
     ],
-    "original_sha256": "e8ccf7d79108c0a7bf94812f31bb053668f895d7cb4b85500b6bc31fc7791304"
+    "original_sha256": "e8ccf7d79108c0a7bf94812f31bb053668f895d7cb4b85500b6bc31fc7791304",
+    "schema16_bridge": {
+      "current_sha256": "2dcb04abf3ff2a8f85392a488672ec2a3969c8b3462865cdd8ba36539399b46f",
+      "hunks": [
+        [
+          206,
+          210,
+          "def unresolved(conn,account,*,excluding=None):\n"
+        ]
+      ]
+    }
   },
   "web/backend/research/authorization.py": {
     "current_sha256": "f6ec75f7021aa1325c07724e1a72f490302d9da7d498ddb3fd40ac3514df375e",
@@ -2041,5 +2641,20 @@
         "    transport=PinnedPublicTransport(_worker=partial(wait_before_get,int(port),ready,go))\n"
       ]
     ]
+  },
+  "web/backend/research/plan_financial.py": {
+    "current_sha256": "a13a22cddd3d13bd3aa79f920b6dc68d9afedbf84a639c467b7b76d11dea7ba2",
+    "hunks": [],
+    "original_sha256": "a13a22cddd3d13bd3aa79f920b6dc68d9afedbf84a639c467b7b76d11dea7ba2",
+    "schema16_bridge": {
+      "current_sha256": "e1469335987e1042048ae93fcc9c01fdf05712ae5bafe361197aace0e8f79a41",
+      "hunks": [
+        [
+          137,
+          141,
+          ""
+        ]
+      ]
+    }
   }
 }

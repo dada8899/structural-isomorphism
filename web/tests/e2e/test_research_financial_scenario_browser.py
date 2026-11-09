@@ -32,6 +32,7 @@ async def choose_material(page,service,bridge):
 
 
 async def fill_form(page,*,sensitivity=False,recovery=False):
+    await helpers._open_research_advanced(page)
     baseline=page.locator('#financial-scenario-baseline');options=await baseline.locator('option').evaluate_all('(items)=>items.map(n=>n.value).filter(Boolean)');assert len(options)==1
     await baseline.select_option(options[0]);await page.locator('#financial-scenario-cutoff').fill('2026-08-02');await page.locator('#financial-scenario-baseline-reason').fill('合成数据条件基线，非真实预测或原件验证。');await page.locator('#financial-scenario-target').select_option('USD')
     await page.locator('#financial-scenario-categories-confirmed').check();await page.locator('#financial-scenario-s0-label').fill('合成条件一');await page.locator('#financial-scenario-s0-remaining-value').fill('100');await page.locator('#financial-scenario-s0-remaining-reason').fill('独立剩余期合成条件')

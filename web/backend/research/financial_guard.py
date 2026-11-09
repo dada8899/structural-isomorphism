@@ -203,6 +203,12 @@ def install_default_hook(conn):
     native_hook(conn)
     from .method_draft import install_hook as draft_hook
     draft_hook(conn)
+    from .first_answer import install_hook as first_answer_hook
+    first_answer_hook(conn)
+    from .first_answer_queue import install_hook as first_answer_queue_hook
+    first_answer_queue_hook(conn)
+    from .external_first_answer_file_writer import install_closed_hooks
+    install_closed_hooks(conn)
     pid=os.getpid()
     def allowed(operation,raw):
         permit=_WRITES.get(id(conn))
@@ -229,7 +235,7 @@ def install_default_hook(conn):
         schema=conn.execute("SELECT 1 FROM sqlite_schema WHERE name='research_schema' AND type='table'").fetchone()
         try:version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone() if schema else None
         except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本标记结构不匹配。') from None
-        if version and version[0] in (7,8,9,10,11,12,13,14,15):
+        if version and version[0] in (7,8,9,10,11,12,13,14,15,16):
             conn.set_authorizer(lambda action,table,column,db,trigger:
                 sqlite3.SQLITE_OK if _statement_allowed(conn,action,table,column) else sqlite3.SQLITE_DENY)
 
@@ -292,7 +298,7 @@ def register_closed_project(conn,*,store,identity,lease,source=None):
     if (type(source) is not OfflineProjectRegistration or not source._active or source._pid!=os.getpid()
             or _SOURCES.get(source._ref) is not source or source._store is not store or source._identity!=identity):
         raise PermissionError('explicit offline project registration source required')
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15,16):ResearchStore.check_runtime_version(conn)
     elif conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
     else:ResearchStore._check_v7(conn);ResearchStore._check_v7_attachments(conn)
     _owner_binding(conn,store,source._principal,lease)

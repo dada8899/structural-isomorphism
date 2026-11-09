@@ -239,6 +239,13 @@ def test_actual_main_lifespan_register_save_reopen_funding_closed_and_shutdown(p
                 assert health.json()['checks']['native_planner'] == 'FUNDING_CLOSED'
                 assert (await client.get('/api/health?deep=1')).status_code == 503
                 assert (await client.get('/api/search?q=owned')).status_code == 503
+                local_search = await client.post('/api/search', json={'query': 'queue variability', 'rewrite': False})
+                assert local_search.status_code == 503 and local_search.json()['error'] == 'search_not_ready'
+                assessment = await client.post('/api/search/assess', json={'query': 'queue variability'})
+                assert assessment.status_code == 503 and assessment.json()['error'] == 'surface_not_admitted'
+                async with httpx.AsyncClient(transport=transport, base_url=BETA) as anonymous:
+                    rejected = await anonymous.post('/api/search', json={'query': 'queue variability'})
+                    assert rejected.status_code == 401 and rejected.headers['cache-control'] == 'no-store'
                 assert (await client.post('/api/ask', json={'query': 'owned'})).status_code == 503
                 assert admission.require(main.app, 'source_execute') is None
                 from api import auth

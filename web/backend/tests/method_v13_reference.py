@@ -3,6 +3,12 @@ import hashlib,json,os,subprocess,sys
 from pathlib import Path
 
 
+def _apply_inverse(raw,hunks):
+    lines=raw.decode().splitlines(keepends=True)
+    for start,end,text in reversed(hunks):lines[start:end]=text.splitlines(keepends=True)
+    return ''.join(lines).encode()
+
+
 def historical_bytes(root,relative,expected):
     root=Path(root).resolve();relative=Path(relative)
     assert not relative.is_absolute() and '..' not in relative.parts and relative.suffix=='.py'
@@ -15,10 +21,15 @@ def historical_bytes(root,relative,expected):
     if hashlib.sha256(raw).hexdigest()==expected:return raw
     entries=json.loads((root/'web/backend/tests/reference/method_v13/deltas.json').read_text())
     patch=entries[relative.as_posix()]
+    # Preserve the established v13 inverse, but undo the exact current
+    # schema-16 source changes first when reading from this newer checkout.
+    bridge=patch.get('schema16_bridge')
+    if bridge and hashlib.sha256(raw).hexdigest()==bridge['current_sha256']:
+        raw=_apply_inverse(raw,bridge['hunks'])
+        assert hashlib.sha256(raw).hexdigest()==patch['current_sha256']
+    if hashlib.sha256(raw).hexdigest()==expected:return raw
     assert patch['original_sha256']==expected and hashlib.sha256(raw).hexdigest()==patch['current_sha256'],'historical dependency mismatch: '+relative.as_posix()
-    lines=raw.decode().splitlines(keepends=True)
-    for start,end,text in reversed(patch['hunks']):lines[start:end]=text.splitlines(keepends=True)
-    raw=''.join(lines).encode()
+    raw=_apply_inverse(raw,patch['hunks'])
     assert hashlib.sha256(raw).hexdigest()==expected
     return raw
 

@@ -158,9 +158,550 @@ def login(context, base, email="browser-a@example.test"):
 
 def fill(page, text="午间合成排队现象：等待时间增加"):
     page.get_by_label("原始问题", exact=False).fill(text)
+    if page.locator("#advanced-tools-toggle").get_attribute("aria-expanded") != "true":
+        page.locator("#advanced-tools-toggle").click()
     page.get_by_label("希望解释或改变什么", exact=False).fill("希望缩短等待时间")
     page.get_by_role("textbox", name="问题摘要", exact=False).fill("合成排队问题的结构摘要与待确认因素")
     page.get_by_label("已知约束", exact=False).fill("本机合成数据")
+
+
+
+def test_short_observation_requires_explicit_adoption_and_exact_raw_bounds_unit():
+    """Pure input boundary; not Main, funding, provider or Source acceptance."""
+    source = (ROOT/'web/frontend/assets/research.js').read_text()
+    validation = 'function observationProblem(raw, declared) {' + source.split(
+        '  function observationProblem(raw, declared) {',1)[1].split('  function observationReset()',1)[0]
+    text_check = source.split('  const planText = ',1)[1].split('\n',1)[0]
+    program = 'const planText = '+text_check+'\n'+validation+r"""
+const assert=require('node:assert/strict');
+const raw=' e\u0301 原话中的温度恢复过程。\n ';
+assert.throws(()=>observationProblem(raw,false));
+const adopted=observationProblem(raw,true);
+assert.equal(adopted.original_input,raw);
+assert.equal(adopted.summary,raw.normalize('NFC'));
+assert.notEqual(adopted.summary,raw);
+assert.equal(adopted.confirmed,true);
+assert.equal(adopted.objective,'');
+assert.deepEqual([adopted.variables,adopted.constraints,adopted.unknowns],[[],[],[]]);
+for(const raw of ['短'.repeat(7),'长'.repeat(1001),'😀'.repeat(4000),'请研究 https://example.test/article 的第三方来源。','请运行 `python -c print(1)` 并整理结果。','curl -I example.test','bash -c echo','npm install package','eval(input)','Invoke-WebRequest item','SELECT * FROM research_controls','请核对 [1] 第三方材料','verified=true','请核对 DOI:10.1234/example'])assert.throws(()=>observationProblem(raw,true));
+"""
+    result=subprocess.run(['node','-e',program],capture_output=True,text=True,timeout=15)
+    assert result.returncode==0,result.stderr
+
+
+@pytest.fixture
+def short_observation_asgi(tmp_path, monkeypatch):
+    """Actual Auth/research ASGI and private SQLite; no Main or SMTP lifetime."""
+    from web.backend.tests.test_research_persistence import stack
+    owned=stack.__wrapped__(tmp_path,monkeypatch)
+    value=next(owned)
+    monkeypatch.setenv('AUTH_LINK_BASE_URL','https://testserver')
+    try:yield value
+    finally:
+        try:next(owned)
+        except StopIteration:pass
+
+
+def _short_observation_page(context,client):
+    from urllib.parse import urlsplit
+    page=context.new_page()
+    calls=[]
+    def routed(route):
+        request=route.request;parts=urlsplit(request.url)
+        if parts.netloc!='testserver':
+            route.abort();return
+        if parts.path.startswith('/api/'):
+            calls.append((request.method,parts.path,request.post_data))
+            response=client.request(request.method,request.url,
+                headers=request.all_headers(),content=request.post_data_buffer)
+            headers={key:value for key,value in response.headers.items() if key.lower() not in ('content-length','content-encoding')}
+            route.fulfill(status=response.status_code,headers=headers,body=response.content)
+        elif parts.path.startswith('/research'):
+            route.fulfill(status=200,content_type='text/html',body=(ROOT/'web/frontend/research.html').read_bytes())
+        elif parts.path.startswith('/assets/'):
+            asset=(ROOT/'web/frontend'/parts.path.lstrip('/')).resolve()
+            assert asset.is_relative_to((ROOT/'web/frontend/assets').resolve())
+            route.fulfill(status=200,content_type='text/css' if asset.suffix=='.css' else 'application/javascript',body=asset.read_bytes())
+        else:route.fulfill(status=404,body='')
+    context.route('**/*',routed)
+    context.add_cookies([{'name':'phase_session','value':client.cookies.get('phase_session'),'url':'https://testserver'}])
+    return page,calls
+
+
+def test_plain_question_saves_verbatim_and_reopens_without_adoption(short_observation_asgi):
+    client, _ = short_observation_asgi
+    raw = '为什么？'
+    searches, generations = [], []
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        context = browser.new_context()
+        try:
+            page, calls = _short_observation_page(context, client)
+            def local_leads(route):
+                searches.append(route.request.post_data_json)
+                route.fulfill(json={"results": [{"id": "synthetic-lead", "name": "公开示例线索",
+                                               "domain": "本地", "description": "待核验"}]})
+            page.route("**/api/search", local_leads)
+            def first_answer(route):
+                if route.request.method == "POST":
+                    generations.append(route.request.post_data_json)
+                    if len(generations) != 2:
+                        route.fulfill(status=503, json={"error": {"code": "FEATURE_UNAVAILABLE"}})
+                        return
+                    path = route.request.url.split("testserver", 1)[1]
+                    record = client.get(path.split("/revisions/", 1)[0]).json()["data"]["current_problem"]
+                    route.fulfill(json={
+                        "contract_revision": "first-answer-v1", "status": "insufficient",
+                        "reason": "needs_clarification", "question": "你想解释哪一种变化？",
+                        "metadata": {"research_id": record["research_id"], "input_revision": record["revision"],
+                                     "problem_digest": record["digest"]},
+                    })
+                    return
+                path = route.request.url.split("testserver", 1)[1]
+                record_path = path.split("/revisions/", 1)[0]
+                record = client.get(record_path).json()["data"]["current_problem"]
+                route.fulfill(json={
+                    "contract_revision": "first-answer-v1", "status": "provisional",
+                    "metadata": {"research_id": record["research_id"], "input_revision": record["revision"],
+                                 "problem_digest": record["digest"]},
+                    "content": {"explanation": "测试用初步解释", "assumptions": ["条件"],
+                                "cross_domain_leads": ["可比较的机制"], "next_check": "做一次对照",
+                                "references": [{"artifact": "fixture", "locator": "synthetic-lead", "label": "站内依据"}]},
+                })
+            page.route("**/revisions/*/first-answer", first_answer)
+            page.goto('https://testserver/research')
+            page.locator('#original-input').fill(raw)
+            page.locator('#save-question').click()
+            expect(page.locator('#status')).to_contain_text('已保存修订 1')
+            saved_url = page.url
+            row = client.get('/api/research/' + saved_url.rsplit('/', 1)[1]).json()['data']
+            assert row['current_problem']['original_input'] == raw
+            assert row['current_problem']['confirmed'] is False
+            assert row['task'] is None
+            expect(page.locator('#kb-results a')).to_have_attribute('href', '/phenomenon/synthetic-lead')
+            assert searches == [{"query": raw, "top_k": 12, "rewrite": False, "lang": "zh"}]
+            page.locator('#first-answer-retry').click()
+            expect(page.locator('#first-answer-status')).to_contain_text('还需要确认一点')
+            expect(page.locator('#first-answer-body')).to_have_text('你想解释哪一种变化？')
+            expect(page.locator('#first-answer-retry')).to_be_hidden()
+            assert len(generations) == 2 and generations[0] == generations[1]
+
+            page.goto(saved_url)
+            expect(page.locator('#original-input')).to_have_value(raw)
+            expect(page.locator('#first-answer-body')).to_contain_text('测试用初步解释')
+            expect(page.locator('#first-answer-body a')).to_have_attribute('href', '/phenomenon/synthetic-lead')
+            page.locator('#save-question').click()
+            expect(page.locator('#first-answer-status')).to_contain_text('未能生成')
+            assert len(generations) == 3 and generations[0] == generations[2]
+            page.locator('#original-input').fill('已经修改的问题')
+            expect(page.locator('#first-answer')).to_be_hidden()
+            expect(page.locator('#problem-advanced')).to_be_hidden()
+            assert [(method, path) for method, path, _ in calls if method == 'POST'] == [('POST', '/api/research')]
+        finally:
+            context.close()
+            browser.close()
+
+
+def test_async_first_answer_reopens_and_cancels_without_new_submission(short_observation_asgi):
+    client, _ = short_observation_asgi
+    job_id = "d19160ad-396a-4edc-a383-e54c48ba728f"
+    calls = []
+    state = "queued"
+    transient_read = False
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        context = browser.new_context()
+        try:
+            page, requests = _short_observation_page(context, client)
+            def job(route):
+                nonlocal state, transient_read
+                request = route.request
+                path = request.url.split("testserver", 1)[1]
+                record = client.get(path.split("/revisions/", 1)[0]).json()["data"]["current_problem"]
+                calls.append((request.method, request.post_data_json if request.method != "GET" else None))
+                if request.method == "GET" and not transient_read:
+                    transient_read = True
+                    route.fulfill(status=503, json={"error":{"code":"STORE_UNAVAILABLE"}})
+                    return
+                if request.method == "DELETE":
+                    state = "cancelled"
+                elif request.method == "GET" and state == "queued":
+                    state = "running"
+                route.fulfill(status=202 if request.method == "POST" else 200, json={
+                    "contract_revision": "first-answer-job-v1", "status": state,
+                    "metadata": {"research_id": record["research_id"], "input_revision": record["revision"],
+                                 "problem_digest": record["digest"], "job_id": job_id},
+                })
+            page.route("**/revisions/*/first-answer", job)
+            page.goto("https://testserver/research")
+            page.locator("#original-input").fill("为什么同样的流程换了工具后错误更多？")
+            page.locator("#save-question").click()
+            expect(page.locator("#first-answer-status")).to_contain_text("正在排队")
+            saved = page.url
+            page.goto(saved)
+            expect(page.locator("#first-answer-status")).to_contain_text("正在后台分析")
+            expect(page.locator("#status")).to_contain_text("已从账户读取保存的问题")
+            expect(page.locator("#status")).not_to_contain_text("尚未执行研究")
+            page.locator("#first-answer-cancel").click()
+            expect(page.locator("#first-answer-status")).to_contain_text("已取消分析")
+            page.goto(saved)
+            expect(page.locator("#first-answer-status")).to_contain_text("已取消分析")
+            assert transient_read and [method for method, _ in calls].count("POST") == 1
+            assert [data["job_id"] for method, data in calls if method == "DELETE"] == [job_id]
+            assert [path for method, path, _ in requests if method == "POST"] == ["/api/research"]
+        finally:
+            context.close()
+            browser.close()
+
+
+def test_async_insufficient_keeps_saved_question_and_shows_local_leads(short_observation_asgi):
+    client, _ = short_observation_asgi
+    searches = []
+    asked = "为什么项目推进更快却出现更多错误？"
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        context = browser.new_context()
+        try:
+            page, _ = _short_observation_page(context, client)
+
+            def failed_answer(route):
+                path = route.request.url.split("testserver", 1)[1]
+                record = client.get(path.split("/revisions/", 1)[0]).json()["data"]["current_problem"]
+                route.fulfill(json={"contract_revision":"first-answer-job-v1","status":"failed","reason":"insufficient",
+                    "metadata":{"research_id":record["research_id"],"input_revision":record["revision"],
+                                "problem_digest":record["digest"]}})
+
+            def local_leads(route):
+                searches.append(route.request.post_data_json["query"])
+                route.fulfill(json={"results":[{"id":"test-lead","name":"可查的相关线索","domain":"本地",
+                                               "description":"这里只展示待核验的线索。"}]})
+
+            page.route("**/revisions/*/first-answer", failed_answer)
+            page.route("**/api/search", local_leads)
+            page.goto("https://testserver/research")
+            page.locator("#original-input").fill(asked)
+            page.locator("#save-question").click()
+            expect(page.locator("#first-answer-status")).to_contain_text("材料不足")
+            expect(page.locator("#kb-results")).to_contain_text("可查的相关线索")
+            expect(page.locator("#original-input")).to_have_value(asked)
+            assert searches == [asked]
+            page.reload()
+            expect(page.locator("#first-answer-leads")).to_be_visible()
+            page.locator("#first-answer-leads").click()
+            expect(page.locator("#kb-results")).to_contain_text("可查的相关线索")
+            assert searches == [asked, asked]
+        finally:
+            context.close()
+            browser.close()
+
+
+@pytest.mark.parametrize("pinned_key", [None, "71000000-0000-4000-8000-000000000001"], ids=["controlled", "pinned"])
+def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observation_asgi, pinned_key):
+    import time
+    client, _ = short_observation_asgi
+    exact = "为什么相同需求会出现两种结果？"
+    confirms, operation_keys, reads = [], [], []
+    advertised = {"ready":False}
+    observed = {"status":"unknown", "spent":False}
+    results = []
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        context = browser.new_context()
+        try:
+            page, _ = _short_observation_page(context, client)
+
+            def with_capability(route):
+                request = route.request
+                if request.url.endswith("/api/research") and request.method != "POST":
+                    route.fallback()
+                    return
+                response = client.request(request.method, request.url, headers=request.all_headers(),
+                                          content=request.post_data_buffer)
+                body = response.json()
+                if response.status_code == 200 and advertised["ready"]:
+                    body["data"]["capabilities"]["external_first_answer"] = advertised["ready"]
+                route.fulfill(status=response.status_code,json=body)
+
+            def local_failure(route):
+                root = route.request.url.split("/revisions/",1)[0]
+                saved = client.get(root).json()["data"]
+                row = saved["current_problem"]
+                route.fulfill(json={"contract_revision":"first-answer-job-v1","status":"failed","reason":"insufficient",
+                    "metadata":{"research_id":row["research_id"],"input_revision":row["revision"],"problem_digest":row["digest"]}})
+
+            def external(route):
+                request = route.request
+                root = request.url.split("/revisions/",1)[0]
+                saved = client.get(root).json()["data"]
+                row = saved["current_problem"]
+                if request.url.endswith("/confirm"):
+                    confirms.append(request.post_data_json)
+                    operation_keys.append(request.all_headers()["idempotency-key"])
+                    route.fulfill(status=503,json={"error":{"code":"RECEIPT_UNKNOWN"}})
+                    return
+                if request.url.endswith("/status"):
+                    reads.append((request.method,request.all_headers()["idempotency-key"],request.post_data))
+                    route.fulfill(json={"contract_revision":"external-first-answer-v1",
+                        "metadata":{"research_id":row["research_id"],"input_revision":row["revision"],
+                                    "research_version":saved["research_version"],"problem_digest":row["digest"]},
+                        "operation_key":operation_keys[0],"status":observed["status"]})
+                    return
+                if request.url.endswith("/result"):
+                    results.append((request.method,request.all_headers()["idempotency-key"],request.post_data))
+                    route.fulfill(json={"contract_revision":"external-first-answer-v1",
+                        "metadata":{"research_id":row["research_id"],"input_revision":row["revision"],
+                                    "research_version":saved["research_version"],"problem_digest":row["digest"]},
+                        "operation_key":operation_keys[0],"result_digest":"d"*64,
+                        "schema":"external-first-answer-unverified-candidate-v1","review_required":True,
+                        "candidate":{"status":"candidate","explanation":"可能有第二个变化因素。",
+                                     "assumptions":["比较口径一致。"],"next_check":"单独改变一项再比较。",
+                                     "evidence_status":"not_checked"}})
+                    return
+                if observed["spent"]:
+                    route.fulfill(status=409,json={"error":{"code":"OPERATION_ALREADY_USED"}})
+                    return
+                route.fulfill(json={"contract_revision":"external-first-answer-v1","purpose":"external-first-answer-question-v1",
+                    "metadata":{"research_id":row["research_id"],"input_revision":row["revision"],
+                                "research_version":saved["research_version"],"problem_digest":row["digest"]},
+                    "exact_question":row["original_input"],"provider":"deepseek","model":"deepseek-flash",
+                    "target":"https://api.deepseek.com/chat/completions","currency":"CNY","scale":6,"upper_units":12000,
+                    "preview_digest":"b"*64,"request_digest":"c"*64,"valid_until":int(time.time())+30,"may_send":True,
+                    **({"operation_key": pinned_key} if pinned_key else {})})
+
+            page.route("https://testserver/api/research",with_capability)
+            page.route("**/revisions/*/first-answer",local_failure)
+            page.route("**/revisions/*/external-first-answer/*",external)
+            page.route("https://testserver/api/search",lambda route:route.fulfill(json={"results":[]}))
+            page.goto("https://testserver/research")
+            page.locator("#original-input").fill(exact)
+            page.locator("#save-question").click()
+            expect(page.locator("#first-answer-status")).to_contain_text("材料不足")
+            expect(page.locator("#external-first-answer")).to_be_hidden()
+            saved_url = page.url
+            advertised["ready"] = "ready"
+            page.route("https://testserver/api/research/" + saved_url.rsplit("/",1)[1],with_capability)
+            page.reload()
+            panel = page.locator("#external-first-answer")
+            if pinned_key:
+                observed["spent"] = True
+                panel.get_by_role("button",name="查看外部分析选项").click()
+                expect(panel.get_by_role("status")).to_contain_text("不会再次发送")
+                expect(panel.get_by_role("button",name="确认发送")).to_have_count(0)
+                assert not confirms
+                observed["spent"] = False
+                page.reload()
+            panel.get_by_role("button",name="查看外部分析选项").click()
+            expect(panel.locator("pre")).to_have_text(exact)
+            expect(panel).to_contain_text("人民币 ¥0.012000")
+            send = panel.get_by_role("button",name="确认发送")
+            expect(send).to_be_disabled()
+            for label in ("同意发送上方这条问题","接受本次费用上限","我有权发送这段内容"):
+                panel.get_by_role("checkbox",name=label).check()
+            send.click()
+            expect(panel.get_by_role("status")).to_contain_text("不要重复发送")
+            assert len(confirms) == 1 and "exact_question" not in confirms[0]
+            if pinned_key:
+                assert operation_keys == [pinned_key] and "operation_key" not in confirms[0]
+            advertised["ready"] = "status_only"
+            page.reload()
+            expect(panel.get_by_role("status")).to_contain_text("尚待核对")
+            expect(panel.get_by_role("button",name="查看外部分析选项")).to_have_count(0)
+            panel.get_by_role("button",name="核对原提交").click()
+            expect(panel.get_by_role("status")).to_contain_text("服务端尚不能确认")
+            assert reads == [("GET", operation_keys[0], None)] and len(confirms) == 1
+            expect(panel.get_by_role("button",name="查看待核查分析")).to_be_hidden()
+            observed["status"] = "completed"
+            panel.get_by_role("button",name="核对原提交").click()
+            panel.get_by_role("button",name="查看待核查分析").click()
+            expect(panel).to_contain_text("外部返回 · 待核查")
+            expect(panel).to_contain_text("此解释尚未核验证据")
+            expect(panel).to_contain_text("可能有第二个变化因素")
+            assert results == [("GET",operation_keys[0],None)] and len(confirms) == 1
+
+
+        finally:
+            context.close()
+            browser.close()
+
+
+def _open_observation_planning(page):
+    planning = page.locator('#start-research')
+    if not planning.is_visible():
+        page.locator('#advanced-tools-toggle').click()
+    planning.click()
+
+
+@pytest.mark.parametrize('raw',[
+    '一个物体温度恢复到环境温度的过程，是否与电容放电对应？请比较公式，告诉我能借用什么、什么时候不能用。',
+    ' e\u0301 原话中的温度恢复过程。\n ',
+],ids=['thermal_rc','exact_nfd'])
+def test_single_question_explicit_original_adoption_actual_asgi_save_reopen(short_observation_asgi,raw):
+    client,_=short_observation_asgi
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context(viewport={'width':375,'height':812})
+        try:
+            page,calls=_short_observation_page(context,client)
+            page.goto('https://testserver/research')
+            expect(page.locator('#problem-form')).to_be_visible()
+            expect(page.locator('#problem-form textarea:visible')).to_have_count(1)
+            expect(page.locator('#start-research')).to_be_hidden()
+            for section in ('native-plan-section','method-draft-section','evidence-method-section','financial-registry-section','financial-scenario-section'):
+                expect(page.locator('#'+section)).to_be_hidden()
+            page.locator('#original-input').fill(raw)
+            _open_observation_planning(page)
+            expect(page.locator('#observation-exact')).to_have_text(raw)
+            assert page.locator('#observation-exact').text_content()==raw
+            expect(page.locator('#observation-adopt')).to_be_disabled()
+            assert not page.locator('#confirmed').is_checked()
+            assert not [call for call in calls if call[0]=='POST']
+            page.locator('#observation-own').check()
+            expect(page.locator('#observation-adopt')).to_be_enabled()
+            page.locator('#observation-adopt').click()
+            expect(page.locator('#status')).to_contain_text('已保存修订 1')
+            saved_url=page.url;rid=saved_url.rsplit('/',1)[1]
+            data=client.get('/api/research/'+rid).json()['data']
+            problem=data['current_problem']
+            assert problem['original_input']==raw and problem['confirmed'] is True
+            import unicodedata
+            assert problem['summary']==unicodedata.normalize('NFC',raw)
+            assert problem['objective']=='' and problem['variables']==problem['constraints']==problem['unknowns']==[]
+            expect(page.locator('#native-plan-preview')).to_be_visible()
+            expect(page.locator('#native-plan-preview')).to_be_enabled()
+            assert not page.locator('#native-plan-consent').is_checked()
+            assert [(method,path) for method,path,_ in calls if method=='POST']==[('POST','/api/research')]
+            body=json.loads(next(body for method,path,body in calls if method=='POST'))
+            assert body['data']['problem']['original_input']==raw
+            page.goto(saved_url)
+            expect(page.locator('#status')).to_contain_text('已从账户读取')
+            expect(page.locator('#original-input')).to_have_value(raw)
+            expect(page.locator('#problem-advanced')).to_be_hidden()
+            expect(page.locator('#history')).to_be_visible()
+            assert [(method,path) for method,path,_ in calls if method=='POST']==[('POST','/api/research')]
+            # Re-adopt the same saved original without manufacturing a revision.
+            _open_observation_planning(page);page.locator('#observation-own').check()
+            page.locator('#observation-adopt').click()
+            expect(page.locator('#observation-save-status')).to_contain_text('没有另存修订')
+            assert [(method,path) for method,path,_ in calls if method=='POST']==[('POST','/api/research')]
+            page.locator('#original-input').fill(raw+' 新增本人观察。')
+            expect(page.locator('#observation-card')).to_be_hidden()
+            assert not page.locator('#observation-own').is_checked()
+            expect(page.locator('#observation-adopt')).to_be_disabled()
+            _open_observation_planning(page);page.locator('#observation-own').check()
+            page.locator('#observation-adopt').click()
+            expect(page.locator('#status')).to_contain_text('已保存修订 2')
+            changed=client.get('/api/research/'+rid).json()['data']
+            assert changed['current_problem']['original_input']==raw+' 新增本人观察。'
+            assert changed['current_problem']['confirmed'] is True and len(changed['revisions'])==2
+            assert page.url==saved_url
+            assert [(method,path) for method,path,_ in calls if method=='POST']==[('POST','/api/research'),('POST','/api/research/'+rid+'/revisions')]
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+        finally:context.close();browser.close()
+
+
+def test_original_adoption_lost_actual_asgi_receipt_reuses_original_key(short_observation_asgi):
+    client,_=short_observation_asgi
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            page,calls=_short_observation_page(context,client)
+            page.goto('https://testserver/research')
+            expect(page.locator('#problem-form')).to_be_visible()
+            raw='本人温度恢复过程，需要核对与电容放电的相似及差异。'
+            page.locator('#original-input').fill(raw);_open_observation_planning(page)
+            page.locator('#observation-own').check()
+            lost=[]
+            def lose_actual_receipt(route):
+                request=route.request
+                response=client.request(request.method,request.url,headers=request.all_headers(),content=request.post_data_buffer)
+                assert response.status_code==200
+                lost.append((request.headers['idempotency-key'],response.json()['data']['research']['id']))
+                route.abort()
+            page.route('**/api/research',lose_actual_receipt)
+            page.locator('#observation-adopt').click()
+            expect(page.locator('#status')).to_contain_text('保存结果尚未确认')
+            expect(page.locator('#original-input')).to_have_value(raw)
+            assert page.locator('#observation-exact').text_content()==raw
+            pending=json.loads(page.evaluate("sessionStorage.getItem('structure-research-pending:new')"))
+            assert pending['key']==lost[0][0]
+            page.unroute('**/api/research',lose_actual_receipt)
+            page.locator('#observation-adopt').click()
+            expect(page.locator('#status')).to_contain_text('已保存修订 1')
+            assert page.url.endswith('/research/'+lost[0][1])
+            assert page.evaluate("sessionStorage.getItem('structure-research-pending:new')") is None
+            actual=client.get('/api/research/'+lost[0][1]).json()['data']
+            assert len(actual['revisions'])==1 and actual['current_problem']['original_input']==raw
+            assert not [path for method,path,_ in calls if method=='POST' and 'plan-' in path]
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('damage',['missing_research','bad_id','missing_revisions','bad_constraints','bad_revision','bad_adopted_title'])
+def test_original_adoption_malformed_committed_200_keeps_key_and_recovers_same_record(short_observation_asgi,damage):
+    client,_=short_observation_asgi
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            page,calls=_short_observation_page(context,client)
+            page.goto('https://testserver/research')
+            expect(page.locator('#problem-form')).to_be_visible()
+            raw='本人温度恢复过程，要核对与电容放电之间的条件及差异。'
+            page.locator('#original-input').fill(raw);_open_observation_planning(page)
+            page.locator('#observation-own').check()
+            committed=[];request_keys=[]
+            page.on('request',lambda request:request_keys.append(request.headers.get('idempotency-key')) if request.method=='POST' and request.url.endswith('/api/research') else None)
+            def corrupt_actual_receipt(route):
+                request=route.request
+                response=client.request(request.method,request.url,headers=request.all_headers(),content=request.post_data_buffer)
+                assert response.status_code==200
+                value=response.json();data=value['data']
+                committed.append((request.headers['idempotency-key'],data['research']['id']))
+                if damage=='missing_research':data.pop('research')
+                elif damage=='bad_id':data['research']['id']='../other-record'
+                elif damage=='missing_revisions':data.pop('revisions')
+                elif damage=='bad_constraints':data['current_problem']['constraints']=None
+                elif damage=='bad_revision':data['current_problem']['revision']=2
+                elif damage=='bad_adopted_title':data['current_problem']['summary']='并非用户采用的另一份标题内容'
+                route.fulfill(status=200,content_type='application/json',body=json.dumps(value))
+            page.route('**/api/research',corrupt_actual_receipt)
+            page.locator('#observation-adopt').click()
+            expect(page.locator('#status')).to_contain_text('原保存操作保留')
+            expect(page.locator('#status')).to_contain_text('用相同内容核对原操作')
+            assert page.url=='https://testserver/research'
+            expect(page.locator('#original-input')).to_have_value(raw)
+            assert page.locator('#observation-exact').text_content()==raw
+            pending=json.loads(page.evaluate("sessionStorage.getItem('structure-research-pending:new')"))
+            assert pending['key']==committed[0][0]
+            before=client.get('/api/research/'+committed[0][1]).json()['data']
+            assert len(before['revisions'])==1 and before['current_problem']['original_input']==raw
+            page.unroute('**/api/research',corrupt_actual_receipt)
+            page.locator('#observation-adopt').click()
+            expect(page.locator('#status')).to_contain_text('已保存修订 1')
+            assert request_keys==[committed[0][0],committed[0][0]]
+            assert page.url.endswith('/research/'+committed[0][1])
+            assert page.evaluate("sessionStorage.getItem('structure-research-pending:new')") is None
+            after=client.get('/api/research/'+committed[0][1]).json()['data']
+            assert len(after['revisions'])==1 and after['current_problem']==before['current_problem']
+            assert not [path for method,path,_ in calls if method=='POST' and 'plan-' in path]
+        finally:context.close();browser.close()
+
+
+@pytest.mark.parametrize('raw',['短'*7,'长'*1001,'原'*4000,'请研究 https://example.test/article 的第三方来源。','请运行 `python -c print(1)` 并整理结果。','curl -I example.test','SELECT * FROM research_controls'],ids=['short','long','max4000','url','code','curl','sql'])
+def test_single_question_unsupported_scope_keeps_complete_original_without_adoption(short_observation_asgi,raw):
+    client,_=short_observation_asgi
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch();context=browser.new_context()
+        try:
+            page,calls=_short_observation_page(context,client)
+            page.goto('https://testserver/research')
+            expect(page.locator('#problem-form')).to_be_visible()
+            page.locator('#original-input').fill(raw);_open_observation_planning(page)
+            assert page.locator('#observation-exact').text_content()==raw
+            expect(page.locator('#observation-scope')).to_contain_text('原')
+            page.locator('#observation-own').check()
+            expect(page.locator('#observation-adopt')).to_be_disabled()
+            expect(page.locator('#original-input')).to_have_value(raw)
+            assert not [call for call in calls if call[0]=='POST']
+            assert not page.locator('#confirmed').is_checked()
+        finally:context.close();browser.close()
 
 
 def test_d1_page_preview_confirm_real_worker_and_private_mobile_records(server):
@@ -999,6 +1540,8 @@ def test_entry_kb_input_generations_and_revocation_reject_late_results(server):
             base=server["base"]; login(context,base)
             page=context.new_page(); page.goto(base+"/research")
             expect(page.locator("#problem-form")).to_be_visible()
+            if page.locator("#advanced-tools-toggle").get_attribute("aria-expanded") != "true":
+                page.locator("#advanced-tools-toggle").click()
             def kb(route):
                 if route.request.post_data_json["query"]=="现象 A 的旧请求需要延迟": held.append(route)
                 else: route.fulfill(json={"results":[{"name":"现象 B 的新线索","domain":"本地","description":"仅界面合成数据"}]})
@@ -2240,6 +2783,8 @@ def test_new_research_without_task_selector_keeps_real_create_and_save(tmp_path)
             await actual_expect(page.locator('#status')).to_have_text('新问题尚未保存。')
             await actual_expect(page.locator('#original-input')).to_be_enabled()
             await actual_expect(page.locator('#save')).to_be_enabled()
+            await actual_expect(page.locator('#problem-advanced')).to_be_hidden()
+            await page.locator('#advanced-tools-toggle').click()
             text='普通新建入口应继续真实保存问题'
             await page.get_by_label('原始问题',exact=False).fill(text)
             await page.get_by_label('希望解释或改变什么',exact=False).fill('希望缩短等待时间')
@@ -2286,6 +2831,7 @@ def test_current_main_private_problem_xss_auth503_draft_and_real401_clear(tmp_pa
             await actual_expect(page.locator('#research-list-status')).to_contain_text('已读取 1 条研究')
             problem='真实私有问题：<img src="https://'+attack_host+'/problem" onerror="window.__currentResearchPrivacyInjected=true">'
             summary='私有摘要：</textarea><svg onload="window.__currentResearchPrivacyInjected=true"></svg><script>window.__currentResearchPrivacyInjected=true;fetch("https://'+attack_host+'/summary")</script>'
+            await _open_research_advanced(page)
             await page.locator('#original-input').fill(problem)
             await page.locator('#objective').fill('验证私有文本不会变成可执行页面内容')
             await page.locator('#summary').fill(summary)
@@ -2321,6 +2867,7 @@ def test_current_main_private_problem_xss_auth503_draft_and_real401_clear(tmp_pa
             assert await page.evaluate('window.__currentResearchPrivacyInjected===undefined') and attacks==[]
             draft='尚未保存的私有问题草稿，认证暂不可用不代表登出。'
             draft_summary='尚未保存的私有摘要，必须等待真实账户状态。'
+            await _open_research_advanced(page)
             await page.locator('#original-input').fill(draft)
             await page.locator('#summary').fill(draft_summary)
             pending=await page.evaluate('Object.keys(sessionStorage).filter(key=>key.startsWith("structure-research-pending:")).length')
@@ -3248,10 +3795,12 @@ async def _native_plan_tls_journey(tmp_path,mode):
                     cookies=[cookie for cookie in await context.cookies() if cookie['name']=='phase_session'];assert len(cookies)==1 and cookies[0]['secure'] and cookies[0]['httpOnly'] and cookies[0]['domain']==component.HOST
                     facts['browser_secure_httponly_canonical_cookie']=True;cookies.clear()
                     await page.goto(component.ORIGIN+'/research');progress('browser_authenticated')
+                    await _open_research_advanced(page)
                     await page.locator('#original-input').fill(component.OBSERVATION);await page.locator('#objective').fill('理解合成排队现象');await page.locator('#summary').fill('合成排队现象与等待时间的结构描述');await page.locator('#confirmed').check()
                     async with page.expect_response(component.ORIGIN+'/api/research') as saved:await page.locator('#save').click()
                     saved_response=await saved.value;assert saved_response.status==200;view=(await saved_response.json())['data'];rid=view['research']['id']
                     await aexpect(page.locator('#status')).to_contain_text('已保存修订 1');progress('problem_saved')
+                    await _open_research_advanced(page)
                     await page.locator('#native-plan-own').check()
                     if mode in ('late-preview-new-draft','late-preview-logout'):
                         async def hold_preview(route):
@@ -3576,7 +4125,14 @@ def test_native_plan_terminal_boundary_preserves_unknown_and_current_input(tmp_p
     asyncio.run(_native_terminal_case(tmp_path,mode))
 
 
+async def _open_research_advanced(page):
+    toggle=page.locator('#advanced-tools-toggle')
+    if await toggle.get_attribute('aria-expanded') != 'true':
+        await toggle.click()
+
+
 async def _method_draft_type_manual_fields(page):
+    await _open_research_advanced(page)
     values={
         'method-draft-label':'人工提议的等待对照',
         'method-draft-method':'在明确系统边界和相同时间口径下，对照自己的任务等待记录。',
@@ -3607,6 +4163,7 @@ async def _method_draft_blank_journey(tmp_path):
                     async with bridge.routed(context):
                         page=await context.new_page();page.on('request',lambda request:requests.append(request.url) if '/method-drafts' in request.url or '/records?' in request.url else None)
                         await page.goto(component.ORIGIN+'/research');await _native_tls_login(page,fixture,component.OWNER,fresh=True);await page.goto(component.ORIGIN+'/research')
+                        await _open_research_advanced(page)
                         await page.locator('#original-input').fill(component.OBSERVATION);await page.locator('#summary').fill('当前观察问题与待验证的条件');await page.locator('#confirmed').check()
                         async with page.expect_response(component.ORIGIN+'/api/research') as saved:await page.locator('#save').click()
                         assert (await saved.value).status==200;await aexpect(page.locator('#status')).to_contain_text('已保存修订 1')
@@ -3795,6 +4352,7 @@ async def _method_draft_late_empty_history(tmp_path,change):
                 try:
                     async with bridge.routed(context):
                         page=await context.new_page();await page.goto(component.ORIGIN+'/research');await _native_tls_login(page,fixture,component.OWNER,fresh=True);await page.goto(component.ORIGIN+'/research')
+                        await _open_research_advanced(page)
                         await page.locator('#original-input').fill(component.OBSERVATION);await page.locator('#summary').fill('准备只读历史与手写新稿隔离的合成问题');await page.locator('#confirmed').check()
                         async with page.expect_response(component.ORIGIN+'/api/research') as saved:await page.locator('#save').click()
                         assert (await saved.value).status==200;await aexpect(page.locator('#research-list-status')).to_contain_text('已读取 1');values=await _method_draft_type_manual_fields(page)
@@ -4013,6 +4571,7 @@ async def _method_main_select_old_source_for_new_problem(page,service):
     assert seed.current_input_revision==seed.source_input_revision==1 and seed.schema_version==15 and seed.mode=='offline_probe'
     await aexpect(page.locator('#problem-form')).to_be_visible()
     await page.locator('#original-input').fill('我观察到任务集中到达时，排队等待会随积压增加，需要区分任务复杂度等竞争解释。')
+    await _open_research_advanced(page)
     await page.locator('#summary').fill('我自己的合成观察；本次只保存验证思路，引用以前问题修订的许可短摘录。')
     await page.locator('#entry').select_option('phenomenon');await page.locator('#confirmed').check()
     async with page.expect_response('**/revisions') as saved:await page.locator('#save').click()

@@ -254,7 +254,7 @@ def _require_auth(store,value):
     if type(store) is not ResearchStore or store.storage_identity is None or tuple(store.storage_identity)!=tuple(value['database_identity']):raise _closed()
     if (os.geteuid(),os.getegid())!=(value['runtime_uid'],value['runtime_gid']):raise _closed()
     with store.transaction() as conn:
-        if getattr(conn,'private_storage_identity',None)!=store.storage_identity or conn.execute('SELECT version FROM research_schema').fetchone()[0]!=15:raise _closed()
+        if getattr(conn,'private_storage_identity',None)!=store.storage_identity or conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (15,16):raise _closed()
         principal=conn.execute('SELECT * FROM research_principals WHERE id=?',(value['principal_id'],)).fetchone()
         if not principal or (principal['status'],principal['session_generation'],principal['epoch'],principal['gate_id'])!=('active',value['auth_generation'],value['principal_epoch'],value['owner_gate_id']):raise _closed()
         user=conn.execute('SELECT session_generation,lifecycle FROM auth_users WHERE email=?',(principal['normalized_email'],)).fetchone()

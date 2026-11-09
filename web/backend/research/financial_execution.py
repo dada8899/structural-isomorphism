@@ -20,7 +20,7 @@ _FACTORY=object()
 _CONTEXTS={}
 _RETURNS={}
 _CODE_FILES=('financial_execution.py','financial_result_v2.py','financial_evaluator.py','financial_policy.py',
-    'financial_schemas.py','financial_input_schemas.py','financial_input.py','financial_input_guard.py','financial_import.py')
+    'financial_schemas.py','financial_input_schemas.py','financial_input.py','financial_input_guard.py','financial_import.py','paid_control.py')
 _FUNCTION_PATHS={
     **{name:'research/financial_execution.py' for name in ('begin','execute','consume','require_request','validate_insert',
         'CurrentFinancialExecution.require','CurrentFinancialExecution.check_deadline')},
@@ -29,11 +29,75 @@ _FUNCTION_PATHS={
     'resolve_owner_registry_v2':'research/financial_input.py',
     'require_formal_application':'research/runtime_profile.py',
     'require':'services/formal_admission.py','_Binding.check':'services/formal_admission.py',
+    '_require_local_financial_calculation':'services/formal_admission.py',
     '_calculate_financial_in_request':'api/research.py','calculate_research_financial':'api/research.py','_identity':'api/research.py',
-    'ResearchService._principal_in':'research/service.py','ResearchStore._check_v15':'research/store.py',
+    'ResearchService._principal_in':'research/service.py','ResearchStore._check_formal_version':'research/store.py',
     'AuthorizationGate.check':'research/authorization.py','AuthorizationGate.check_account':'research/authorization.py',
-    **{name:'research/paid_control.py' for name in ('require_authenticated_action','_current_scope','_owner_binding')},
+    **{name:'research/paid_control.py' for name in ('require_authenticated_action','_local_financial_scope','_owner_binding')},
 }
+
+
+
+# Immutable witnesses are retained only in the real calculate frame.
+# Every use still rereads the exact file and checks live function code.
+def _source_generation(info):
+    return info.st_dev,info.st_ino,info.st_mode,info.st_size,info.st_mtime_ns,info.st_ctime_ns
+
+
+def _open_source_compiles():
+    from . import financial_result_v2 as result
+    frame=sys._getframe(1)
+    producer=result._CALCULATE_PRODUCER
+    if frame.f_code is not producer.__code__ or frame.f_globals is not vars(result):
+        raise PermissionError('actual financial source compilation scope required')
+    _function(producer)
+    root=Path(__file__).resolve().parents[1]
+    paths=tuple(sorted({root/relative for relative in _FUNCTION_PATHS.values()}))
+    if len(paths)>24:raise PermissionError('financial source compilation scope exceeded')
+    records=[]
+    for path in paths:
+        before=path.stat()
+        if path.resolve()!=path or not stat.S_ISREG(before.st_mode) or before.st_size>1048576:
+            raise PermissionError('bounded regular native source required')
+        raw=path.read_bytes();after=path.stat()
+        generation=_source_generation(after)
+        if (type(raw) is not bytes or len(raw)!=after.st_size
+                or generation!=_source_generation(before) or path.resolve()!=path):
+            raise PermissionError('native source read changed')
+        filename=str(path)
+        records.append((filename,generation,raw,compile(raw,filename,'exec',dont_inherit=True)))
+    return (os.getpid(),threading.get_ident(),tuple(records))
+
+
+def _compile_source(path, filename, raw, generation):
+    from . import financial_result_v2 as result
+    frame=sys._getframe(1)
+    try:
+        if (frame.f_globals is not globals() or frame.f_code not in
+                (_function.__code__,_same_source_functions.__code__)):
+            raise PermissionError('actual financial source reader required')
+        producer=result._CALCULATE_PRODUCER
+        while frame is not None:
+            if frame.f_code is producer.__code__ and frame.f_globals is vars(result):
+                scope=frame.f_locals.get('source_compiles')
+                if scope is not None:
+                    if (type(scope) is not tuple or len(scope)!=3 or scope[:2]!=(os.getpid(),threading.get_ident())
+                            or type(scope[2]) is not tuple):
+                        raise PermissionError('financial source compilation scope retired')
+                    for approved_path,approved_generation,approved_raw,approved_code in scope[2]:
+                        if approved_path==str(path):
+                            if approved_generation!=generation or approved_raw!=raw:
+                                raise PermissionError('financial source changed within calculation')
+                            # A noncanonical code filename needs its own cold
+                            # compile; the same physical source is still pinned.
+                            if approved_path==filename:return approved_code
+                            break
+                    else:
+                        raise PermissionError('financial source absent from calculation witness')
+                break
+            frame=frame.f_back
+    finally:del frame
+    return compile(raw,filename,'exec',dont_inherit=True)
 
 
 def _function(function):
@@ -42,17 +106,27 @@ def _function(function):
     relative=_FUNCTION_PATHS.get(function.__qualname__)
     raw=Path(getattr(module,'__file__',''));path=raw.resolve()
     expected=Path(__file__).resolve().parents[1]/relative if relative else None
+    code=function.__code__
     if (relative is None or module is None or function.__globals__ is not vars(module)
-            or Path(function.__code__.co_filename).resolve()!=path or raw.is_symlink()
-            or path!=expected or path.stat().st_size>1048576):
+            or Path(code.co_filename).resolve()!=path or raw.is_symlink() or path!=expected):
         raise PermissionError('canonical native function required')
     def codes(code):
         yield code
         for value in code.co_consts:
             if type(value) is types.CodeType:yield from codes(value)
-    found=[c for c in codes(compile(path.read_bytes(),function.__code__.co_filename,'exec',dont_inherit=True))
-        if c.co_qualname==function.__qualname__]
-    if len(found)!=1 or found[0]!=function.__code__:raise PermissionError('native function source changed')
+    before=path.stat()
+    if not stat.S_ISREG(before.st_mode) or before.st_size>1048576:
+        raise PermissionError('bounded regular native source required')
+    content=path.read_bytes();after=path.stat()
+    generation=_source_generation(after)
+    if (type(content) is not bytes or len(content)!=after.st_size or generation!=_source_generation(before)
+            or raw.is_symlink() or raw.resolve()!=path):
+        raise PermissionError('native source read changed')
+    found=[c for c in codes(_compile_source(path,code.co_filename,content,generation))
+           if c.co_qualname==function.__qualname__]
+    if (len(found)!=1 or found[0]!=code or function.__code__ is not code
+            or sys.modules.get(function.__module__) is not module or function.__globals__ is not vars(module)):
+        raise PermissionError('native function source changed')
     return function
 
 
@@ -94,9 +168,6 @@ def _same_source_functions(*references):
             raise PermissionError('current native function reference required')
         return function,module,namespace
 
-    def generation(info):
-        return info.st_dev,info.st_ino,info.st_mode,info.st_size,info.st_mtime_ns,info.st_ctime_ns
-
     def codes(code):
         yield code
         for child in code.co_consts:
@@ -119,11 +190,11 @@ def _same_source_functions(*references):
             if not stat.S_ISREG(before.st_mode) or before.st_size>1048576:
                 raise PermissionError('bounded regular native source required')
             raw=path.read_bytes();after=path.stat()
-            if (type(raw) is not bytes or original.is_symlink() or generation(before)!=generation(after)
+            if (type(raw) is not bytes or original.is_symlink() or _source_generation(before)!=_source_generation(after)
                     or len(raw)!=after.st_size):raise PermissionError('native source read changed')
-            witness=(module,namespace,path,filename,function.__code__.co_filename,raw,generation(after),hashlib.sha256(raw).digest())
+            witness=(module,namespace,path,filename,function.__code__.co_filename,raw,_source_generation(after),hashlib.sha256(raw).digest())
             if full is None:
-                full=compile(raw,function.__code__.co_filename,'exec',dont_inherit=True)
+                full=_compile_source(path,function.__code__.co_filename,raw,_source_generation(after))
                 anchor=witness
             elif (witness[0] is not anchor[0] or witness[1] is not anchor[1] or witness[2:]!=anchor[2:]):
                 raise PermissionError('native batch source generation changed')
@@ -149,24 +220,24 @@ def require_calculate_frame(values):
     finally:del frame
 
 
-def _main_binding(app,service):
-    from .runtime_profile import require_formal_application
-    _function(require_formal_application)(app,'research_basic')
+def _main_binding(app,service,identity,rid,envelope,key,source):
     family='web.backend.services' if __package__=='web.backend.research' else 'services'
     module=importlib.import_module(family+'.formal_admission')
     expected=Path(__file__).resolve().parents[1]/'services/formal_admission.py'
     if Path(module.__file__).resolve()!=expected or Path(module.__file__).is_symlink():raise PermissionError('canonical Main module required')
-    _function(module.require)(app,'research_basic')
-    binding=module._STATE.get(id(app))
+    admission=_function(module._require_local_financial_calculation)
+    try:
+        binding=admission(app,service,identity,rid,envelope,key,source)
+    except Exception:
+        from .errors import ResearchError
+        raise ResearchError('FEATURE_UNAVAILABLE',503,'正式研究能力尚未就绪。') from None
     if (type(binding) is not module._Binding or binding.factory is not module._FACTORY or binding.app is not app
             or binding.pid!=os.getpid() or not binding.active or binding.retired):raise PermissionError('actual Main binding required')
-    _function(type(binding).check)(binding)
     other=binding.service.store;store=service.store
     if (type(store) is not type(other) or store.path!=other.path or store.storage_identity!=other.storage_identity
             or store.auth_store is not other.auth_store or store.storage_identity is None):
         raise PermissionError('same Main private storage required')
     return binding
-
 
 def require_request(service,identity,rid,envelope,key,source,request_app):
     from starlette.requests import Request
@@ -204,12 +275,12 @@ def require_request(service,identity,rid,envelope,key,source,request_app):
     if parsed.data_dict()!=envelope.data_dict():raise PermissionError('financial request body changed')
     require_authenticated_action(source,identity=identity,action='financial-calculate',research_id=rid,key=key,
         body_digest=digest(envelope.data_dict()))
-    return request,_main_binding(request_app,service)
+    return request,_main_binding(request_app,service,identity,rid,envelope,key,source)
 
 
 def require_native_scope(conn,service,identity,pid,lease):
     from .authorization import OwnerGateLease
-    from .paid_control import _current_scope,_owner_binding
+    from .paid_control import _local_financial_scope,_owner_binding
     family='web.backend.services' if __package__=='web.backend.research' else 'services'
     module=importlib.import_module(family+'.sqlite_utils')
     if (type(conn) is not module.PrivateAuthConnection or type(lease) is not OwnerGateLease
@@ -218,14 +289,27 @@ def require_native_scope(conn,service,identity,pid,lease):
             or getattr(type(conn),'execute') is not sqlite3.Connection.execute or conn.row_factory is not sqlite3.Row
             or conn.text_factory is not str or conn.isolation_level is not None):
         raise PermissionError('actual private transaction required')
-    scope=_function(_current_scope)(conn)
+    scope=_function(_local_financial_scope)(conn)
     if not scope.write:raise PermissionError('financial write scope required')
     # Request transactions have the complete Research15 hooks; C1's separate
     # admission inspection also probes an Auth-maintenance writer hook which
     # is deliberately absent here. Verify the exact current research closure,
     # without installing any Auth write capability into a calculation.
-    checker=type(service.store)._check_v15
-    _function(checker.__func__)(type(service.store),conn)
+    schema=conn.execute('SELECT version FROM main.research_schema WHERE id=1').fetchone()[0]
+    if schema not in (15,16,17):raise PermissionError('formal financial schema required')
+    if schema==17:
+        from . import financial_input
+        caller=sys._getframe(1)
+        try:
+            allowed=((begin,globals()),(CurrentFinancialExecution.require,globals()),
+                (financial_input.resolve_owner_registry_v2,vars(financial_input)),
+                (financial_input.ResolvedOwnerFinancialRegistryV2.require,vars(financial_input)))
+            if not any(caller.f_code is fn.__code__ and caller.f_globals is ns for fn,ns in allowed):
+                raise PermissionError('actual local financial calculation caller required')
+        finally:del caller
+    else:
+        checker=type(service.store)._check_formal_version
+        _function(checker.__func__)(type(service.store),conn,schema)
     principal=_function(_owner_binding)(conn,service.store,pid,lease)
     service.authorization.check_account(conn,identity)
     return scope,principal

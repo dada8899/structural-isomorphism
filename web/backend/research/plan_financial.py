@@ -135,6 +135,10 @@ def _write(conn,lease,table,key,values,*,verify,_factory=None):
 
 
 def check_unknown(conn,account_id):
+    if conn.execute("SELECT 1 FROM main.sqlite_schema WHERE name='research_external_first_answer_runs' AND type='table'").fetchone():
+        from .external_first_answer_file_writer import unresolved_external
+        if unresolved_external(conn,account_id):
+            raise ResearchError('RECONCILIATION_REQUIRED',409,'原费用尚未核对。')
     if conn.execute("SELECT 1 FROM research_plan_dispatches WHERE account_id=? AND (state IN ('consumed','unknown') OR cost_state='unknown' OR (state='closed' AND cost_state='held')) LIMIT 1",(account_id,)).fetchone() or conn.execute("SELECT 1 FROM research_reservations WHERE account_id=? AND status='UNKNOWN' LIMIT 1",(account_id,)).fetchone():
         raise ResearchError('RECONCILIATION_REQUIRED',409,'资金账户存在未核对发送，暂停新执行。')
 

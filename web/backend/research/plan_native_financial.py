@@ -204,7 +204,10 @@ def _write(conn,lease,table,key,values,verify,*,_factory=None):
     finally:_WRITES.pop(id(conn),None);base.refresh_authorizer()
 
 
-def unresolved(conn,account,*,excluding=None):
+def unresolved(conn,account,*,excluding=None,excluding_external=None):
+    if conn.execute("SELECT 1 FROM main.sqlite_schema WHERE name='research_external_first_answer_runs' AND type='table'").fetchone():
+        from .external_first_answer_file_writer import unresolved_external
+        if unresolved_external(conn,account,excluding=excluding_external):return True
     if conn.execute("SELECT 1 FROM research_plan_native_runs WHERE account_id=? AND id IS NOT ? AND (state IN ('consumed','unknown') OR cost_state='unknown' OR (state='closed' AND cost_state='held')) LIMIT 1",(account,excluding)).fetchone():return True
     if conn.execute("SELECT 1 FROM research_plan_dispatches WHERE account_id=? AND (state IN ('consumed','unknown') OR cost_state='unknown' OR (state='closed' AND cost_state='held')) LIMIT 1",(account,)).fetchone():return True
     return bool(conn.execute("SELECT 1 FROM research_reservations WHERE account_id=? AND status='UNKNOWN' LIMIT 1",(account,)).fetchone())
