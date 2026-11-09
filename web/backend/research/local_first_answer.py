@@ -196,8 +196,9 @@ def produce_background_answer(question, search, *, cancel, judge=None):
         return {"status": "unavailable", "reason": "cancelled"}
     if not _in_scope(question):
         return {"status": "insufficient", "reason": "unsupported"}
+    from .local_observation_checks import observation_check
     from .local_reviewed_mechanisms import compose_reviewed_mechanism
-    answer = compose_reviewed_mechanism(question, search) or compose(question, search)
+    answer = observation_check(question) or compose_reviewed_mechanism(question, search) or compose(question, search)
     if answer is not None:
         return {"status": "answered", "content": answer}
     if clarification := clarify_one_premise(question):

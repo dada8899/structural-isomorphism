@@ -162,3 +162,25 @@ def test_system_mechanisms_need_an_intervention_on_the_proposed_link(approved_ro
     answer = compose_reviewed_mechanism(question, BoundCorpus(approved_rows))
     assert answer is not None and answer["producer"] == producer
     assert measure in answer["next_check"]
+
+
+@pytest.mark.parametrize("asked,producer", [
+    ("每组的平均等待时间都下降，但总体平均等待时间上升。怎样检查？",
+     "local-calculation-aggregation-v1"),
+    ("The overall average increased even though both groups went down. How is this possible?",
+     "local-calculation-aggregation-v1"),
+    ("实际归还时间不变，改成批量上传后入库图出现尖峰。应该按哪个时间分析？",
+     "local-calculation-event-time-v1"),
+])
+def test_observation_checks_have_reproducible_calculation_without_fake_citations(asked, producer):
+    from threading import Event
+    from web.backend.research.local_first_answer import produce_background_answer
+    result = produce_background_answer(asked, None, cancel=Event())
+    assert result["status"] == "answered"
+    answer = AnswerBody(**result["content"])
+    assert answer.producer == producer and answer.references == [] and answer.next_check
+
+
+def test_aggregation_check_does_not_treat_percentiles_as_means():
+    from web.backend.research.local_observation_checks import observation_check
+    assert observation_check("各组的中位数下降，但总体中位数上升。") is None
