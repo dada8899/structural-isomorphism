@@ -524,6 +524,13 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
             browser.close()
 
 
+def _open_observation_planning(page):
+    planning = page.locator('#start-research')
+    if not planning.is_visible():
+        page.locator('#advanced-tools-toggle').click()
+    planning.click()
+
+
 @pytest.mark.parametrize('raw',[
     '一个物体温度恢复到环境温度的过程，是否与电容放电对应？请比较公式，告诉我能借用什么、什么时候不能用。',
     ' e\u0301 原话中的温度恢复过程。\n ',
@@ -537,10 +544,11 @@ def test_single_question_explicit_original_adoption_actual_asgi_save_reopen(shor
             page.goto('https://testserver/research')
             expect(page.locator('#problem-form')).to_be_visible()
             expect(page.locator('#problem-form textarea:visible')).to_have_count(1)
+            expect(page.locator('#start-research')).to_be_hidden()
             for section in ('native-plan-section','method-draft-section','evidence-method-section','financial-registry-section','financial-scenario-section'):
                 expect(page.locator('#'+section)).to_be_hidden()
             page.locator('#original-input').fill(raw)
-            page.locator('#start-research').click()
+            _open_observation_planning(page)
             expect(page.locator('#observation-exact')).to_have_text(raw)
             assert page.locator('#observation-exact').text_content()==raw
             expect(page.locator('#observation-adopt')).to_be_disabled()
@@ -570,7 +578,7 @@ def test_single_question_explicit_original_adoption_actual_asgi_save_reopen(shor
             expect(page.locator('#history')).to_be_visible()
             assert [(method,path) for method,path,_ in calls if method=='POST']==[('POST','/api/research')]
             # Re-adopt the same saved original without manufacturing a revision.
-            page.locator('#start-research').click();page.locator('#observation-own').check()
+            _open_observation_planning(page);page.locator('#observation-own').check()
             page.locator('#observation-adopt').click()
             expect(page.locator('#observation-save-status')).to_contain_text('没有另存修订')
             assert [(method,path) for method,path,_ in calls if method=='POST']==[('POST','/api/research')]
@@ -578,7 +586,7 @@ def test_single_question_explicit_original_adoption_actual_asgi_save_reopen(shor
             expect(page.locator('#observation-card')).to_be_hidden()
             assert not page.locator('#observation-own').is_checked()
             expect(page.locator('#observation-adopt')).to_be_disabled()
-            page.locator('#start-research').click();page.locator('#observation-own').check()
+            _open_observation_planning(page);page.locator('#observation-own').check()
             page.locator('#observation-adopt').click()
             expect(page.locator('#status')).to_contain_text('已保存修订 2')
             changed=client.get('/api/research/'+rid).json()['data']
@@ -599,7 +607,7 @@ def test_original_adoption_lost_actual_asgi_receipt_reuses_original_key(short_ob
             page.goto('https://testserver/research')
             expect(page.locator('#problem-form')).to_be_visible()
             raw='本人温度恢复过程，需要核对与电容放电的相似及差异。'
-            page.locator('#original-input').fill(raw);page.locator('#start-research').click()
+            page.locator('#original-input').fill(raw);_open_observation_planning(page)
             page.locator('#observation-own').check()
             lost=[]
             def lose_actual_receipt(route):
@@ -636,7 +644,7 @@ def test_original_adoption_malformed_committed_200_keeps_key_and_recovers_same_r
             page.goto('https://testserver/research')
             expect(page.locator('#problem-form')).to_be_visible()
             raw='本人温度恢复过程，要核对与电容放电之间的条件及差异。'
-            page.locator('#original-input').fill(raw);page.locator('#start-research').click()
+            page.locator('#original-input').fill(raw);_open_observation_planning(page)
             page.locator('#observation-own').check()
             committed=[];request_keys=[]
             page.on('request',lambda request:request_keys.append(request.headers.get('idempotency-key')) if request.method=='POST' and request.url.endswith('/api/research') else None)
@@ -685,7 +693,7 @@ def test_single_question_unsupported_scope_keeps_complete_original_without_adopt
             page,calls=_short_observation_page(context,client)
             page.goto('https://testserver/research')
             expect(page.locator('#problem-form')).to_be_visible()
-            page.locator('#original-input').fill(raw);page.locator('#start-research').click()
+            page.locator('#original-input').fill(raw);_open_observation_planning(page)
             assert page.locator('#observation-exact').text_content()==raw
             expect(page.locator('#observation-scope')).to_contain_text('原')
             page.locator('#observation-own').check()
