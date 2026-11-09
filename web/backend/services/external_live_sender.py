@@ -40,6 +40,7 @@ _ACCOUNT_PROOF=Path("/etc/structural/external-first-answer-economic-binding.json
 _PRICE_PROOF=Path("/etc/structural/external-first-answer-price-basis.json")
 _MAX_RESPONSE=128*1024
 _CANARY_MAX_UPPER=2_129_920
+_WHOLE_CONTEXT_TOKENS=1_000_000
 _TOKEN=object()
 
 
@@ -64,13 +65,17 @@ class EndpointPolicy:
 _PINNED_ENDPOINT=None
 
 
+def _within_canary_upper(value):
+    return type(value) is int and 1<=value<=_CANARY_MAX_UPPER
+
+
 def _require_live(handle,app):
     if type(handle) is not production._LiveHandle or production._LIVE.get(id(app)) is not handle:
         raise contract.ContractError("real_external_live_handle_required")
     handle.require_for_sender(app)
     policy=_PINNED_ENDPOINT
     if (type(policy) is not EndpointPolicy or policy.wire_digest()!=handle._expected.endpoint_policy_digest
-            or type(policy.upper_units) is not int or not 1<=policy.upper_units<=_CANARY_MAX_UPPER):
+            or not _within_canary_upper(policy.upper_units)):
         raise contract.ContractError("external_endpoint_policy_unbound")
     if (type(policy.canary_operation_key) is not str or not re.fullmatch(
             r"[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}",policy.canary_operation_key)
@@ -89,7 +94,7 @@ def _parse_price_basis(price,policy,*,now):
               "source_url","official_document_sha256","issued_at","valid_until"}
             or (basis["model"],basis["currency"],basis["scale"],basis["max_output_tokens"])!=(
                 contract.MODEL,"CNY",6,contract.MAX_OUTPUT_TOKENS)
-            or type(basis["max_prompt_tokens"]) is not int or not 1<=basis["max_prompt_tokens"]<=1048576
+            or type(basis["max_prompt_tokens"]) is not int or basis["max_prompt_tokens"]!=_WHOLE_CONTEXT_TOKENS
             or basis["source_url"]!="https://api-docs.deepseek.com/zh-cn/quick_start/pricing/"
             or type(basis["official_document_sha256"]) is not str or not re.fullmatch(r"[a-f0-9]{64}",basis["official_document_sha256"])
             or type(basis["issued_at"]) is not int or type(basis["valid_until"]) is not int
@@ -98,6 +103,8 @@ def _parse_price_basis(price,policy,*,now):
                 "peak_input_miss_units_per_million","peak_output_units_per_million"))):
         raise contract.ContractError("external_price_basis_unbound")
     numerator=basis["max_prompt_tokens"]*basis["peak_input_miss_units_per_million"]+basis["max_output_tokens"]*basis["peak_output_units_per_million"]
+    if not _within_canary_upper(policy.upper_units):
+        raise contract.ContractError("external_canary_upper_exceeded")
     if (numerator+999999)//1_000_000>policy.upper_units:
         raise contract.ContractError("external_price_upper_insufficient")
     return basis
@@ -337,7 +344,7 @@ class _Ticket:
             sock.sendall(wire)
 
 
-def _candidate(raw,*,max_prompt_tokens=1048576):
+def _candidate(raw,*,max_prompt_tokens=_WHOLE_CONTEXT_TOKENS):
     reply=strict_json(raw,cap=_MAX_RESPONSE)
     if type(reply) is not dict or reply.get("model")!=contract.MODEL or not isinstance(reply.get("id"),str):
         raise contract.ContractError("external_receipt_unverified")

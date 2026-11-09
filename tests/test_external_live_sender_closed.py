@@ -51,6 +51,15 @@ def test_signed_price_shape_uses_conservative_cny_bound_and_rejects_staleness():
     def policy(upper):
         return sender.EndpointPolicy("1.1.1.1","b"*64,"c"*64,"d"*64,upper)
     assert sender._parse_price_basis(canonical(basis),policy(2_006_144),now=150)==basis
+    # The published whole context is used without assuming an unverified
+    # tokenizer, even for the short fixed P1 request.
+    for low in (1,999_999):
+        with pytest.raises(ContractError,match="external_price_basis_unbound"):
+            sender._parse_price_basis(canonical(basis|{"max_prompt_tokens":low}),policy(2_006_144),now=150)
+    assert sender._parse_price_basis(canonical(basis),policy(2_129_920),now=150)==basis
+    with pytest.raises(ContractError,match="external_canary_upper_exceeded"):
+        sender._parse_price_basis(canonical(basis),policy(2_129_921),now=150)
+    assert 2_129_920-2_006_144==123_776
     with pytest.raises(ContractError,match="external_price_upper_insufficient"):
         sender._parse_price_basis(canonical(basis),policy(2_006_143),now=150)
     for changed,now in ((basis,200),(basis|{"currency":"USD"},150),
