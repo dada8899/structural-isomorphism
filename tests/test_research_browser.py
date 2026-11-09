@@ -395,7 +395,8 @@ def test_async_insufficient_keeps_saved_question_and_shows_local_leads(short_obs
             browser.close()
 
 
-def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observation_asgi):
+@pytest.mark.parametrize("pinned_key", [None, "71000000-0000-4000-8000-000000000001"], ids=["controlled", "pinned"])
+def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observation_asgi, pinned_key):
     import time
     client, _ = short_observation_asgi
     exact = "为什么相同需求会出现两种结果？"
@@ -461,7 +462,8 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
                                 "research_version":saved["research_version"],"problem_digest":row["digest"]},
                     "exact_question":row["original_input"],"provider":"deepseek","model":"deepseek-flash",
                     "target":"https://api.deepseek.com/chat/completions","currency":"CNY","scale":6,"upper_units":12000,
-                    "preview_digest":"b"*64,"request_digest":"c"*64,"valid_until":int(time.time())+30,"may_send":True})
+                    "preview_digest":"b"*64,"request_digest":"c"*64,"valid_until":int(time.time())+30,"may_send":True,
+                    **({"operation_key": pinned_key} if pinned_key else {})})
 
             page.route("https://testserver/api/research",with_capability)
             page.route("**/revisions/*/first-answer",local_failure)
@@ -487,6 +489,8 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
             send.click()
             expect(panel.get_by_role("status")).to_contain_text("不要重复发送")
             assert len(confirms) == 1 and "exact_question" not in confirms[0]
+            if pinned_key:
+                assert operation_keys == [pinned_key] and "operation_key" not in confirms[0]
             advertised["ready"] = "status_only"
             page.reload()
             expect(panel.get_by_role("status")).to_contain_text("尚待核对")

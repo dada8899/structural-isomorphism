@@ -1428,7 +1428,7 @@
     } catch { return null; }
     return anchor;
   }
-  async function externalAnswerRequest(anchor, action, body) {
+  async function externalAnswerRequest(anchor, action, body, operationKey) {
     const matches = () => {
       const latest = externalContext();
       return latest && ['research_id','input_revision','research_version','problem_digest','actor','original_input']
@@ -1448,7 +1448,8 @@
       if (action === 'confirm') {
         const key = externalPendingKey(anchor);
         if (sessionStorage.getItem(key)) throw Error('external operation already pending');
-        headers['Idempotency-Key'] = crypto.randomUUID();
+        if (operationKey !== undefined && !validId(operationKey)) throw Error('invalid external operation key');
+        headers['Idempotency-Key'] = operationKey ?? crypto.randomUUID();
         // Record only the operation key before transport; never store the
         // question or the quote. An unknown outcome is not a resend action.
         sessionStorage.setItem(key, headers['Idempotency-Key']);
@@ -1466,7 +1467,7 @@
     current:externalContext, now:() => Math.floor(Date.now()/1000),
     load:anchor => externalAnswerRequest(anchor,'preview',{
       problem_digest:anchor.problem_digest, research_version:anchor.research_version}),
-    submit:(anchor,body) => externalAnswerRequest(anchor,'confirm',body),
+    submit:(anchor,body,operationKey) => externalAnswerRequest(anchor,'confirm',body,operationKey),
     inspect:anchor => externalAnswerRequest(anchor,'status'),
     loadResult:anchor => externalAnswerRequest(anchor,'result'),
   });

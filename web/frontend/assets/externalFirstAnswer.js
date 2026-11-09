@@ -19,8 +19,11 @@
     names.every(name => Object.hasOwn(value, name));
 
   function preview(value, expected, nowSeconds) {
-    if (!keys(value, ['contract_revision','purpose','metadata','exact_question','provider','model','target',
-                      'currency','scale','upper_units','preview_digest','request_digest','valid_until','may_send']) ||
+    const fields = ['contract_revision','purpose','metadata','exact_question','provider','model','target',
+                    'currency','scale','upper_units','preview_digest','request_digest','valid_until','may_send'];
+    const pinned = object(value) && Object.hasOwn(value, 'operation_key');
+    if (!keys(value, pinned ? [...fields,'operation_key'] : fields) ||
+        (pinned && (!value.may_send || typeof value.operation_key !== 'string' || !ID.test(value.operation_key))) ||
         !object(expected) || value.contract_revision !== CONTRACT || value.purpose !== PURPOSE ||
         value.provider !== 'deepseek' || value.model !== 'deepseek-flash' || value.target !== TARGET ||
         value.currency !== 'CNY' || value.scale !== 6 || !Number.isSafeInteger(value.upper_units) ||
@@ -224,7 +227,7 @@
           for (const control of detail.querySelectorAll('button,input')) control.disabled = true;
           status.textContent = '正在核对提交结果…';
           try {
-            const receipt = await options.submit(anchor, body);
+            const receipt = await options.submit(anchor, body, offer.operation_key);
             if (!active()) return;
             const observed = statusReceipt(receipt,options.current());
             status.textContent = observed === 'completed'
