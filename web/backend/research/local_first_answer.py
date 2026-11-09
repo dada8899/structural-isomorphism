@@ -78,13 +78,13 @@ def compose(question, search):
     }
 
 
-def compose_with_worker(question, search, *, cancel=None, background=False):
-    """Answer a non-template question using only the bound local worker."""
+def compose_with_worker(question, search, *, judge, cancel=None):
+    """Accept a generic answer only after both independent checks."""
     from .local_answer_transport import BACKGROUND_DEADLINE_SECONDS, LocalAnswerUnavailable, complete, worker_present
-    from .local_first_answer_contract import FirstAnswerContractError, interpret, prepare
+    from .local_first_answer_contract import FirstAnswerContractError, claim_messages, interpret_claims, prepare_claims
     from .provider_schemas import canonical
 
-    if search is None or not worker_present():
+    if not callable(judge) or search is None or not worker_present():
         return None
     try:
         rows = []
@@ -96,9 +96,10 @@ def compose_with_worker(question, search, *, cancel=None, background=False):
                 if record:
                     rows.append(record)
                     seen.add(locator)
-        request = prepare(question, search.artifact["artifact_id"], rows)
-        budget = {"budget_seconds": BACKGROUND_DEADLINE_SECONDS} if background else {}
-        return interpret(complete(canonical({"messages": request.messages}), cancel=cancel, **budget), request)
+        request = prepare_claims(question, search.artifact["artifact_id"], rows)
+        candidate = complete(canonical({"messages": claim_messages(request)}), cancel=cancel,
+                             budget_seconds=BACKGROUND_DEADLINE_SECONDS)
+        return interpret_claims(candidate, request, judge)
     except (FirstAnswerContractError, LocalAnswerUnavailable):
         return None
 
@@ -111,7 +112,7 @@ def _in_scope(question):
     return not is_out_of_scope(question)[0]
 
 
-def produce_background_answer(question, search, *, cancel):
+def produce_background_answer(question, search, *, cancel, judge=None):
     """Compute an outcome for a previously claimed job, without writing it."""
     if cancel.is_set():
         return {"status": "unavailable", "reason": "cancelled"}
@@ -120,7 +121,9 @@ def produce_background_answer(question, search, *, cancel):
     answer = compose(question, search)
     if answer is not None:
         return {"status": "answered", "content": answer}
-    result = compose_with_worker(question, search, cancel=cancel, background=True)
+    if judge is None:
+        return {"status": "unavailable", "reason": "evidence_verifier_unavailable"}
+    result = compose_with_worker(question, search, judge=judge, cancel=cancel)
     if cancel.is_set():
         return {"status": "unavailable", "reason": "cancelled"}
     return result or {"status": "unavailable", "reason": "worker_unavailable"}

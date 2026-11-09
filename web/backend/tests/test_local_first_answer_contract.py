@@ -137,9 +137,14 @@ def test_worker_path_uses_bound_rows_and_drops_unverifiable_output(monkeypatch):
         def get_by_id(self, locator):
             return record(locator)
 
-    responses = iter([output(candidate()), output(candidate(source_refs=[2]))])
+    packet = {"status":"answered", "claims":[{"assertion":"水比热容较大。","number":1,
+             "quote":record()["description"]}],"hypotheses":[],"assumptions":[],"cross_domain_leads":[],
+              "next_check":"测不同水量的恢复时间。"}
+    responses = iter([output(packet), output(packet | {"claims":[packet["claims"][0] | {"number":2}]})])
+    judge = lambda question, span, assertion: ("恢复" in question, "比热容" in span and "比热容" in assertion)
 
-    def complete(raw, *, cancel=None):
+    def complete(raw, *, cancel=None, budget_seconds):
+        assert budget_seconds == 150.0
         messages = json.loads(raw)["messages"]
         prompt = json.loads(messages[1]["content"])
         assert prompt["question"] == "未知系统为什么恢复较慢？"
@@ -150,8 +155,8 @@ def test_worker_path_uses_bound_rows_and_drops_unverifiable_output(monkeypatch):
     monkeypatch.setattr(transport, "worker_present", lambda: True)
     monkeypatch.setattr(transport, "complete", complete)
     question = "未知系统为什么恢复较慢？"
-    assert compose_with_worker(question, Search())["content"]["references"][0]["record_digest"] == digest(record())
-    assert compose_with_worker(question, Search()) is None
+    assert compose_with_worker(question, Search(), judge=judge)["content"]["references"][0]["record_digest"] == digest(record())
+    assert compose_with_worker(question, Search(), judge=judge) is None
 
 
 def test_background_producer_does_not_run_cancelled_work_and_uses_long_budget(monkeypatch):
@@ -161,20 +166,25 @@ def test_background_producer_does_not_run_cancelled_work_and_uses_long_budget(mo
     cancelled = Event()
     observed = []
 
-    def infer(question, search, *, cancel, background):
-        assert background is True and cancel is cancelled
+    judge = lambda *_: (True, True)
+
+    def infer(question, search, *, cancel, judge):
+        assert callable(judge) and cancel is cancelled
         observed.append(question)
         return {"status": "insufficient", "reason": "no_relevant_sources"}
 
     monkeypatch.setattr(producer, "compose_with_worker", infer)
     question = "为什么团队更快获得信息后错误变多？"
-    assert producer.produce_background_answer(question, None, cancel=cancelled) == {
+    assert producer.produce_background_answer(question, None, cancel=cancelled, judge=judge) == {
         "status": "insufficient", "reason": "no_relevant_sources",
     }
     cancelled.set()
-    assert producer.produce_background_answer(question, None, cancel=cancelled) == {
+    assert producer.produce_background_answer(question, None, cancel=cancelled, judge=judge) == {
         "status": "unavailable", "reason": "cancelled",
     }
+    assert observed == [question]
+    cancelled.clear()
+    assert producer.produce_background_answer(question, None, cancel=cancelled)["reason"] == "evidence_verifier_unavailable"
     assert observed == [question]
 
 

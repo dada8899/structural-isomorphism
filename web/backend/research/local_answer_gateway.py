@@ -19,7 +19,8 @@ import time
 
 from .local_answer_transport import BACKGROUND_DEADLINE_SECONDS, _MAX_INPUT, _MAX_OUTPUT, _SOCKET, _WORKER
 from .local_first_answer_contract import (
-    CONTRACT, MAX_EXCERPT_CHARS, MAX_PROMPT_BYTES, MAX_QUESTION_CHARS, MAX_SOURCES, _SYSTEM,
+    CLAIM_CONTRACT, CONTRACT, MAX_EXCERPT_CHARS, MAX_PROMPT_BYTES, MAX_QUESTION_CHARS, MAX_SOURCES,
+    _CLAIM_SYSTEM, _SYSTEM,
 )
 from .provider_schemas import ProviderFailure, strict_json
 from .schemas import bounded_text
@@ -58,10 +59,12 @@ def decode_messages(payload):
                 raise ValueError()
         system, user = (message["content"] for message in messages)
         user_bytes = user.encode()
-        if system != _SYSTEM or len(system.encode()) + len(user_bytes) > MAX_PROMPT_BYTES or _FRAME_TOKEN.search(user):
+        if len(system.encode()) + len(user_bytes) > MAX_PROMPT_BYTES or _FRAME_TOKEN.search(user):
             raise ValueError()
         data = strict_json(user_bytes, MAX_PROMPT_BYTES)
-        if type(data) is not dict or set(data) != {"contract", "question", "sources"} or data["contract"] != CONTRACT:
+        if (type(data) is not dict or set(data) != {"contract", "question", "sources"}
+                or not ((system == _SYSTEM and data["contract"] == CONTRACT)
+                        or (system == _CLAIM_SYSTEM and data["contract"] == CLAIM_CONTRACT))):
             raise ValueError()
         question = bounded_text(data["question"], MAX_QUESTION_CHARS, 1, normalize=False)
         sources = data["sources"]

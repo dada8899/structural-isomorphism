@@ -215,3 +215,13 @@ def test_browser_side_cancel_closes_transport_without_resending():
         release.set()
     thread.join(timeout=2)
     assert not thread.is_alive() and writes == [b'public fixture']
+
+
+def test_gateway_binds_each_fixed_prompt_to_its_own_contract():
+    from web.backend.research.local_first_answer_contract import claim_messages, prepare_claims
+
+    messages = claim_messages(prepare_claims("为什么处理变慢后排队变长？", "approved-kb", []))
+    assert decode_messages(canonical({"messages":messages})) == messages
+    old_system = prepare("为什么处理变慢后排队变长？", "approved-kb", []).messages[0]
+    with pytest.raises(GatewayUnavailable, match="invalid_messages"):
+        decode_messages(canonical({"messages":[old_system, messages[1]]}))

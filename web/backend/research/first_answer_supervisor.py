@@ -39,8 +39,8 @@ class _JobCancellation:
 
 
 class FirstAnswerSupervisor:
-    def __init__(self, service, search):
-        self._service, self._search = service, search
+    def __init__(self, service, search, *, judge=None):
+        self._service, self._search, self._judge = service, search, judge
         self._stopping, self._wake = threading.Event(), threading.Event()
         self._ready, self._entered = threading.Event(), threading.Event()
         self._thread = threading.Thread(target=self._run, name="structure-first-answer", daemon=True)
@@ -88,7 +88,8 @@ class FirstAnswerSupervisor:
 
     def _run_claim(self, worker, claim, question):
         cancel = _JobCancellation(self._stopping, worker, claim)
-        result = produce_background_answer(question, self._search, cancel=cancel)
+        options = {"judge":self._judge} if self._judge is not None else {}
+        result = produce_background_answer(question, self._search, cancel=cancel, **options)
         if cancel.is_set():
             if not self._stopping.is_set():
                 # Even when DELETE already retired the durable row, the
@@ -121,8 +122,8 @@ _active = {}
 _active_lock = threading.Lock()
 
 
-def activate(app, service, search):
-    worker = FirstAnswerSupervisor(service, search)
+def activate(app, service, search, *, judge=None):
+    worker = FirstAnswerSupervisor(service, search, judge=judge)
     with _active_lock:
         if id(app) in _active:
             raise RuntimeError("first answer supervisor already active")
