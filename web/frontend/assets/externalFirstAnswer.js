@@ -184,9 +184,15 @@
         if (!active() || open.disabled) return;
         open.disabled = true;
         status.textContent = '正在读取外发预览…';
-        let offer;
-        try { offer = preview(await options.load(anchor), anchor, options.now()); } catch {}
+        let offer, used = false;
+        try { offer = preview(await options.load(anchor), anchor, options.now()); } catch (error) {
+          used = error?.message === 'OPERATION_ALREADY_USED';
+        }
         if (!active()) return;
+        if (used) {
+          status.textContent = '本次外部分析许可已使用，不会再次发送。原问题仍已保存。';
+          return;
+        }
         if (!offer) {
           status.textContent = '外部分析预览暂不可用。原问题仍已保存。';
           open.disabled = false;

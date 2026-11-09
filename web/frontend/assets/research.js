@@ -1457,7 +1457,15 @@
       const path = `/api/research/${encodeURIComponent(anchor.research_id)}/revisions/${anchor.input_revision}/external-first-answer/${action}`;
       const response = await fetch(path, {method:read ? 'GET' : 'POST', credentials:'same-origin', cache:'no-store',
         redirect:'error', headers, ...(read ? {} : {body:JSON.stringify(body)}), signal:controller.signal});
-      if (!response.ok || !matches()) throw Error('external operation unavailable');
+      if (!matches()) throw Error('external operation unavailable');
+      if (!response.ok) {
+        if (action === 'preview' && response.status === 409) {
+          const failure = await response.json();
+          if (matches() && failure?.error?.code === 'OPERATION_ALREADY_USED')
+            throw Error('OPERATION_ALREADY_USED');
+        }
+        throw Error('external operation unavailable');
+      }
       const value = await response.json();
       if (!matches() || !await authenticated(matches,controller.signal) || !matches()) throw Error('external scope changed');
       return value;

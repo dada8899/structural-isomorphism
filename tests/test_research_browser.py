@@ -402,7 +402,7 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
     exact = "为什么相同需求会出现两种结果？"
     confirms, operation_keys, reads = [], [], []
     advertised = {"ready":False}
-    observed = {"status":"unknown"}
+    observed = {"status":"unknown", "spent":False}
     results = []
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
@@ -457,6 +457,9 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
                                      "assumptions":["比较口径一致。"],"next_check":"单独改变一项再比较。",
                                      "evidence_status":"not_checked"}})
                     return
+                if observed["spent"]:
+                    route.fulfill(status=409,json={"error":{"code":"OPERATION_ALREADY_USED"}})
+                    return
                 route.fulfill(json={"contract_revision":"external-first-answer-v1","purpose":"external-first-answer-question-v1",
                     "metadata":{"research_id":row["research_id"],"input_revision":row["revision"],
                                 "research_version":saved["research_version"],"problem_digest":row["digest"]},
@@ -479,6 +482,14 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
             page.route("https://testserver/api/research/" + saved_url.rsplit("/",1)[1],with_capability)
             page.reload()
             panel = page.locator("#external-first-answer")
+            if pinned_key:
+                observed["spent"] = True
+                panel.get_by_role("button",name="查看外部分析选项").click()
+                expect(panel.get_by_role("status")).to_contain_text("不会再次发送")
+                expect(panel.get_by_role("button",name="确认发送")).to_have_count(0)
+                assert not confirms
+                observed["spent"] = False
+                page.reload()
             panel.get_by_role("button",name="查看外部分析选项").click()
             expect(panel.locator("pre")).to_have_text(exact)
             expect(panel).to_contain_text("人民币 ¥0.012000")
