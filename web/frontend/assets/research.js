@@ -1414,6 +1414,7 @@
     byId('first-answer').hidden = true;
     byId('first-answer-status').textContent = '';
     byId('first-answer-body').replaceChildren();
+    byId('first-answer-retry').hidden = true;
   }
   async function readFirstAnswer(generate = false) {
     clearFirstAnswer();
@@ -1445,7 +1446,8 @@
       if (!bounded(explanation) || !bounded(check) ||
           ![assumptions, leads].every(items => Array.isArray(items) && items.length <= 6 && items.every(bounded)) ||
           !Array.isArray(references) || references.length > 12 || !references.every(ref =>
-            bounded(ref?.label) && /^[a-zA-Z0-9_-]{1,160}$/.test(ref.locator))) return;
+            bounded(ref?.label) && /^[a-zA-Z0-9_-]{1,160}$/.test(ref.locator) &&
+            (ref.excerpt === undefined || (bounded(ref.excerpt) && /^[a-f0-9]{64}$/.test(ref.record_digest))))) return;
       if (!await authenticated(active, controller.signal) || !active()) return;
       const body = byId('first-answer-body');
       const paragraph = value => { const node = document.createElement('p'); node.textContent = value; return node; };
@@ -1463,8 +1465,11 @@
       group('可回查的知识库记录', references.map(ref => {
         const link = document.createElement('a');
         link.href = '/phenomenon/' + encodeURIComponent(ref.locator);
-        link.textContent = ref.label;
-        return link;
+        link.textContent = ref.excerpt ? '查看当前知识库记录：' + ref.label : ref.label;
+        if (!ref.excerpt) return link;
+        const snapshot = document.createElement('div');
+        snapshot.append(paragraph('生成时的知识库摘录：' + ref.excerpt), link);
+        return snapshot;
       }));
       byId('first-answer-status').textContent = `问题修订 ${inputRevision} 的初步解释。适用条件仍需核对。`;
       byId('first-answer').hidden = false;
@@ -1475,9 +1480,13 @@
       clearTimeout(timer);
       if (active() && generate && !byId('first-answer-body').childElementCount) {
         byId('first-answer-status').textContent = '这次未能生成初步分析。问题已保存，仍可查看本地线索。';
+        byId('first-answer-retry').hidden = false;
       }
     }
   }
+  byId('first-answer-retry').addEventListener('click', () => {
+    if (editBase && !readOnlyView() && !methodDirty && !busy) void readFirstAnswer(true);
+  });
   function render(data, methodToken, loadAnswer = true) {
     observationReset();
     planReset();

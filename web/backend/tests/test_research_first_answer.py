@@ -126,7 +126,8 @@ def test_actual_main_first_answer_migration_reopen_and_erasure(prepared, monkeyp
                     artifact = {"artifact_id": "synthetic-bound-kb"}
 
                     def get_by_id(self, locator):
-                        return {"id": locator, "name": {"sci-006": "牛顿冷却", "sci-012": "电容器放电"}[locator]}
+                        return {"id": locator, "name": {"sci-006": "牛顿冷却", "sci-012": "电容器放电"}[locator],
+                                "description": "合成固定知识库摘录"}
 
                 monkeypatch.setattr(admission, "local_search_resource", lambda app: LocalCorpus())
                 thermal = problem() | {"original_input": "为什么装满热水的杯子冷却更慢？"}
@@ -145,6 +146,25 @@ def test_actual_main_first_answer_migration_reopen_and_erasure(prepared, monkeyp
                 assert [item["locator"] for item in generated.json()["content"]["references"]] == ["sci-006", "sci-012"]
                 assert (await client.post(generated_url, json=request_data, headers=origin)).json() == generated.json()
                 assert (await client.get(generated_url)).json() == generated.json()
+                assert (await client.post(generated_url, json={**request_data, "research_version": 2}, headers=origin)).status_code == 409
+                assert all(item["excerpt"] == "合成固定知识库摘录" and len(item["record_digest"]) == 64
+                           for item in generated.json()["content"]["references"])
+                async with httpx.AsyncClient(transport=transport, base_url=BETA) as other:
+                    assert (await other.post(generated_url, json=request_data, headers=origin)).status_code == 401
+                    await login(other, messages, "other-first-answer@example.invalid")
+                    assert (await other.post(generated_url, json=request_data, headers=origin)).status_code == 404
+
+                unsupported = await client.post(root + "/revisions",
+                    json=envelope({"expected_revision": 2, "problem": problem() | {"original_input": "怎么给这个产品定价？"}}),
+                    headers=origin | {"Idempotency-Key": "unsupported-revision"})
+                assert unsupported.status_code == 200
+                new_problem = unsupported.json()["data"]
+                unavailable_url = root + "/revisions/3/first-answer"
+                unavailable_data = {"problem_digest": new_problem["current_problem"]["digest"],
+                                    "research_version": new_problem["research_version"]}
+                assert (await client.post(unavailable_url, json=unavailable_data, headers=origin)).status_code == 503
+                assert (await client.get(unavailable_url)).status_code == 404
+
 
                 deleted = await client.post("/api/me/delete", json={"confirmation": "DELETE"}, headers=origin)
                 assert deleted.status_code == 200, deleted.text

@@ -143,11 +143,13 @@ class Reference(StrictObject):
     artifact: StableRef
     locator: StableRef
     label: Text
+    excerpt: Text | None = None
+    record_digest: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{64}$")] | None = None
 
-    @field_validator("label")
+    @field_validator("label", "excerpt")
     @classmethod
     def plain_label(cls, value):
-        return bounded_text(value, 1200, 1)
+        return None if value is None else bounded_text(value, 1200, 1)
 
 
 class AnswerBody(StrictObject):
@@ -193,7 +195,7 @@ def _revision_digest(conn, rid, revision):
 
 def _view(conn, control, row):
     try:
-        content = AnswerBody.model_validate_json(row["body_json"]).model_dump(mode="json")
+        content = AnswerBody.model_validate_json(row["body_json"]).model_dump(mode="json", exclude_none=True)
         if (canonical(content) != row["body_json"] or digest(content) != row["content_digest"]
                 or datetime.strptime(row["created_at"], "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y-%m-%dT%H:%M:%S.%fZ") != row["created_at"]
                 or control["version"] < row["research_version"]
@@ -217,7 +219,7 @@ def save(service, identity, rid, *, input_revision, problem_digest, research_ver
             or type(answer) is not AnswerBody):
         raise ResearchError("INPUT_INVALID", 422, "初步分析输入无效。")
     try:
-        content = AnswerBody.model_validate(answer.model_dump(mode="json")).model_dump(mode="json")
+        content = AnswerBody.model_validate(answer.model_dump(mode="json", exclude_none=True)).model_dump(mode="json", exclude_none=True)
         body = canonical(content)
     except (ValidationError, TypeError, ValueError):
         raise ResearchError("INPUT_INVALID", 422, "初步分析内容无效。") from None

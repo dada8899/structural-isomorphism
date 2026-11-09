@@ -7,6 +7,7 @@ or offer separately authorized deeper analysis.
 import re
 
 from .schemas import PaidDigest, Revision, StrictObject
+from .service import digest
 
 
 class FirstAnswerRequest(StrictObject):
@@ -58,7 +59,11 @@ def compose(question, search):
         record = search.get_by_id(locator)
         if not record or record.get("id") != locator or not isinstance(record.get("name"), str):
             return None
-        references.append({"artifact": artifact_id, "locator": locator, "label": record["name"]})
+        description = record.get("description")
+        if not isinstance(description, str) or not description.strip():
+            return None
+        references.append({"artifact": artifact_id, "locator": locator, "label": record["name"],
+                           "excerpt": description[:1200], "record_digest": digest(record)})
     return {
         "producer": "local-reviewed-mechanisms-v1",
         "explanation": rule["explanation"],

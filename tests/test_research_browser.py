@@ -231,7 +231,7 @@ def _short_observation_page(context,client):
 def test_plain_question_saves_verbatim_and_reopens_without_adoption(short_observation_asgi):
     client, _ = short_observation_asgi
     raw = '为什么？'
-    searches = []
+    searches, generations = [], []
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         context = browser.new_context()
@@ -244,6 +244,7 @@ def test_plain_question_saves_verbatim_and_reopens_without_adoption(short_observ
             page.route("**/api/search", local_leads)
             def first_answer(route):
                 if route.request.method == "POST":
+                    generations.append(route.request.post_data_json)
                     route.fulfill(status=503, json={"error": {"code": "FEATURE_UNAVAILABLE"}})
                     return
                 path = route.request.url.split("testserver", 1)[1]
@@ -269,6 +270,10 @@ def test_plain_question_saves_verbatim_and_reopens_without_adoption(short_observ
             assert row['task'] is None
             expect(page.locator('#kb-results a')).to_have_attribute('href', '/phenomenon/synthetic-lead')
             assert searches == [{"query": raw, "top_k": 12, "rewrite": False, "lang": "zh"}]
+            page.locator('#first-answer-retry').click()
+            expect(page.locator('#first-answer-status')).to_contain_text('未能生成')
+            assert len(generations) == 2 and generations[0] == generations[1]
+
             page.goto(saved_url)
             expect(page.locator('#original-input')).to_have_value(raw)
             expect(page.locator('#first-answer-body')).to_contain_text('测试用初步解释')
