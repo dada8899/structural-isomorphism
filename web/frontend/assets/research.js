@@ -1784,6 +1784,11 @@
   }
   byId('save-question').addEventListener('click', () => {
     if (busy || readOnlyView() || !byId('original-input').reportValidity()) return;
+    if (current && !methodDirty && byId('problem-advanced').hidden &&
+        !sessionStorage.getItem('structure-research-pending:' + researchId)) {
+      void continueFromQuestion(current);
+      return;
+    }
     if (current || summaryEdited || byId('objective').value || byId('constraints').value ||
         byId('unknowns').value || byId('entry').value !== 'phenomenon' || byId('confirmed').checked ||
         byId('formula-enable').checked || !byId('problem-advanced').hidden) {

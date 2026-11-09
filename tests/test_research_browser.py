@@ -278,6 +278,9 @@ def test_plain_question_saves_verbatim_and_reopens_without_adoption(short_observ
             expect(page.locator('#original-input')).to_have_value(raw)
             expect(page.locator('#first-answer-body')).to_contain_text('测试用初步解释')
             expect(page.locator('#first-answer-body a')).to_have_attribute('href', '/phenomenon/synthetic-lead')
+            page.locator('#save-question').click()
+            expect(page.locator('#first-answer-status')).to_contain_text('未能生成')
+            assert len(generations) == 3 and generations[0] == generations[2]
             page.locator('#original-input').fill('已经修改的问题')
             expect(page.locator('#first-answer')).to_be_hidden()
             expect(page.locator('#problem-advanced')).to_be_hidden()

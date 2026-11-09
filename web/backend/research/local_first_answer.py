@@ -101,7 +101,7 @@ def compose_with_worker(question, search):
 def generate(service, identity, research_id, *, input_revision, problem_digest, research_version, search):
     """Generate from an authorized stored question, then recheck CAS on write."""
     from .errors import ResearchError
-    from .first_answer import AnswerBody, read, save
+    from .first_answer import AnswerBody, read, read_current_input, save
 
     try:
         previous = read(service, identity, research_id, input_revision)
@@ -113,21 +113,21 @@ def generate(service, identity, research_id, *, input_revision, problem_digest, 
                 problem_digest, research_version):
             raise ResearchError("REVISION_CONFLICT", 409, "问题已有变化，请重新读取。")
         return previous
-    view = service.view(identity, research_id)["data"]
-    question = view["current_problem"]
-    if (question["revision"], question["digest"], view["research_version"]) != (
-            input_revision, problem_digest, research_version):
-        raise ResearchError("REVISION_CONFLICT", 409, "问题已有变化，请重新读取。")
-    answer = compose(question["original_input"], search)
+    args = (service, identity, research_id, input_revision, problem_digest, research_version)
+    question = read_current_input(*args)
+    if __package__ == "web.backend.research":
+        from ..services.scope_guard import is_out_of_scope
+    else:
+        from services.scope_guard import is_out_of_scope
+    if is_out_of_scope(question)[0]:
+        raise ResearchError("FEATURE_UNAVAILABLE", 503, "这个问题暂时没有可用的本地初步分析。")
+    answer = compose(question, search)
     if answer is None:
-        result = compose_with_worker(question["original_input"], search)
+        result = compose_with_worker(question, search)
         if result and result["status"] == "insufficient":
             # A clarification is not a result snapshot; confirm the question
             # still belongs to this request before returning any model text.
-            current = service.view(identity, research_id)["data"]
-            if (current["current_problem"]["digest"], current["research_version"]) != (
-                    problem_digest, research_version):
-                raise ResearchError("REVISION_CONFLICT", 409, "问题已有变化，请重新读取。")
+            read_current_input(*args)
             return {"contract_revision": "first-answer-v1", **result,
                     "metadata": {"research_id": research_id, "input_revision": input_revision,
                                  "problem_digest": problem_digest}}

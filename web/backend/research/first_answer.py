@@ -193,6 +193,31 @@ def _revision_digest(conn, rid, revision):
     return row["digest"]
 
 
+def read_current_input(service, identity, rid, revision, expected_digest, version):
+    """Load one exact, current question through the owner boundary."""
+    rid = service._id(rid)
+    with service.store.transaction() as conn:
+        pid = service._principal_in(conn, identity)
+        control = service.authorization.check(conn, identity, pid, rid)
+        _require_schema(conn)
+        if (control["current_revision"], control["version"]) != (revision, version):
+            raise ResearchError("REVISION_CONFLICT", 409, "问题已有变化，请重新读取。")
+        row = conn.execute(
+            "SELECT problem_json,digest FROM research_revisions WHERE research_id=? AND revision=?", (rid, revision)
+        ).fetchone()
+        if row is None:
+            raise not_found()
+        if row["digest"] != expected_digest:
+            raise ResearchError("REVISION_CONFLICT", 409, "问题已有变化，请重新读取。")
+        try:
+            problem = json.loads(row["problem_json"])
+            if digest(problem) != expected_digest or not isinstance(problem["original_input"], str):
+                raise ValueError()
+            return problem["original_input"]
+        except (KeyError, TypeError, ValueError, UnicodeError):
+            raise not_found() from None
+
+
 def _view(conn, control, row):
     try:
         content = AnswerBody.model_validate_json(row["body_json"]).model_dump(mode="json", exclude_none=True)
