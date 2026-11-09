@@ -1410,16 +1410,30 @@
   }
   let firstAnswerGeneration = 0;
   let firstAnswerController = null;
+  let firstAnswerJob = null;
+  let firstAnswerRefreshOnly = false;
   function clearFirstAnswer() {
     firstAnswerGeneration++;
     firstAnswerController?.abort();
     firstAnswerController = null;
+    firstAnswerJob = null;
+    firstAnswerRefreshOnly = false;
+    byId('first-answer-cancel').hidden = true;
+    byId('first-answer-retry').textContent = '重试这版分析';
     byId('first-answer').hidden = true;
     byId('first-answer-status').textContent = '';
     byId('first-answer-body').replaceChildren();
     byId('first-answer-retry').hidden = true;
   }
-  async function readFirstAnswer(generate = false) {
+  function waitForFirstAnswer(signal) {
+    return new Promise(resolve => {
+      if (signal.aborted) { resolve(); return; }
+      const finish = () => { clearTimeout(timer); signal.removeEventListener('abort', finish); resolve(); };
+      const timer = setTimeout(finish, 2000);
+      signal.addEventListener('abort', finish, {once:true});
+    });
+  }
+  async function readFirstAnswer(generate = false, cancelJob = null) {
     clearFirstAnswer();
     const generation = firstAnswerGeneration;
     const {revision:inputRevision, digest:problemDigest, researchVersion} = editBase;
@@ -1427,32 +1441,74 @@
     const active = () => generation === firstAnswerGeneration && id === researchId;
     const controller = new AbortController();
     firstAnswerController = controller;
-    const timer = setTimeout(() => controller.abort(), 15000);
+    let timer = setTimeout(() => controller.abort(), 15000);
+    let polling = false, handled = false;
     try {
-      const options = {credentials:'same-origin', cache:'no-store', signal:controller.signal};
-      if (generate) {
-        options.method = 'POST';
-        options.headers = {'Content-Type':'application/json'};
-        options.body = JSON.stringify({problem_digest:problemDigest, research_version:researchVersion});
+      const readOptions = {credentials:'same-origin', cache:'no-store', signal:controller.signal};
+      let options = readOptions;
+      if (generate || cancelJob) {
+        options = {...readOptions, method:cancelJob ? 'DELETE' : 'POST',
+          headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+            problem_digest:problemDigest, research_version:researchVersion, ...(cancelJob ? {job_id:cancelJob} : {}),
+          })};
         byId('save-question').disabled = true;
-        byId('first-answer-status').textContent = '正在整理初步分析…';
+        byId('first-answer-status').textContent = cancelJob ? '正在核对取消结果…' : '正在提交分析…';
         byId('first-answer').hidden = false;
       }
-      const response = await fetch(`/api/research/${encodeURIComponent(id)}/revisions/${inputRevision}/first-answer`, options);
-      if (!active()) return;
-      if (response.status === 401) { clearPrivateView('confirmed_logout'); return; }
-      if (!response.ok) return; // no answer or a server that does not yet support this capability
-      const answer = await response.json();
-      if (!active() || answer?.contract_revision !== 'first-answer-v1' ||
-          answer.metadata?.research_id !== id || answer.metadata.input_revision !== inputRevision ||
-          answer.metadata.problem_digest !== problemDigest) return;
-      if (generate && answer.status === 'insufficient' && answer.reason === 'needs_clarification' &&
+      const url = `/api/research/${encodeURIComponent(id)}/revisions/${inputRevision}/first-answer`;
+      let answer;
+      while (active() && !controller.signal.aborted) {
+        const response = await fetch(url, options);
+        if (!active()) return;
+        if (response.status === 401) { clearPrivateView('confirmed_logout'); return; }
+        if (!response.ok) return polling || Boolean(cancelJob);
+        answer = await response.json();
+        if (!active() || answer?.contract_revision !== 'first-answer-v1' ||
+            answer.metadata?.research_id !== id || answer.metadata.input_revision !== inputRevision ||
+            answer.metadata.problem_digest !== problemDigest) return polling || Boolean(cancelJob);
+        if (!['queued','running'].includes(answer.status)) break;
+        const job = answer.metadata.job_id;
+        if (!validId(job) || (firstAnswerJob && firstAnswerJob !== job)) return polling || Boolean(cancelJob);
+        if (!polling) {
+          if (!await authenticated(active, controller.signal) || !active()) return;
+          clearTimeout(timer);
+          timer = setTimeout(() => controller.abort(), 180000);
+        }
+        polling = true;
+        firstAnswerJob = job;
+        byId('first-answer').hidden = false;
+        byId('save-question').disabled = true;
+        byId('first-answer-cancel').hidden = readOnlyView() || Boolean(cancelJob);
+        byId('first-answer-status').textContent = answer.status === 'queued'
+          ? '问题已保存，正在排队。可以先离开，回来查看。'
+          : '正在后台分析。可以先离开，回来查看。';
+        await waitForFirstAnswer(controller.signal);
+        options = readOptions;
+      }
+      if (!active() || controller.signal.aborted || !answer) return polling || Boolean(cancelJob);
+      firstAnswerJob = null;
+      byId('first-answer-cancel').hidden = true;
+      if (['failed','cancelled','interrupted'].includes(answer.status)) {
+        if (!await authenticated(active, controller.signal) || !active()) return;
+        const labels = {
+          failed:'这版未能生成初步分析。原问题仍在；可补充后再开始研究。',
+          cancelled:'已取消分析，原问题仍在。',
+          interrupted:'上一次分析已中断。原问题仍在；可补充后再开始研究。',
+        };
+        byId('first-answer-status').textContent = labels[answer.status];
+        byId('first-answer').hidden = false;
+        handled = true;
+        return true;
+      }
+      if (answer.status === 'insufficient' && answer.reason === 'needs_clarification' &&
           typeof answer.question === 'string' && answer.question.length > 0 && answer.question.length <= 480) {
         if (!await authenticated(active, controller.signal) || !active()) return;
         const prompt = document.createElement('p');
         prompt.textContent = answer.question;
         byId('first-answer-body').append(prompt);
         byId('first-answer-status').textContent = '还需要确认一点。可以在上方补充后再开始研究。';
+        byId('first-answer').hidden = false;
+        handled = true;
         return true;
       }
       if (answer.status !== 'provisional' || !planObject(answer.content)) return;
@@ -1488,21 +1544,33 @@
       }));
       byId('first-answer-status').textContent = `问题修订 ${inputRevision} 的初步解释。适用条件仍需核对。`;
       byId('first-answer').hidden = false;
+      handled = true;
       return true;
     } catch {
       // Failure to load an optional answer must not hide the saved question.
+      if (polling || cancelJob) return true;
     } finally {
       clearTimeout(timer);
       if (firstAnswerController === controller) firstAnswerController = null;
-      if (active() && generate) observationSync();
-      if (active() && generate && !byId('first-answer-body').childElementCount) {
+      if (active() && (generate || polling || cancelJob)) observationSync();
+      if (active() && !handled && (polling || cancelJob)) {
+        firstAnswerRefreshOnly = true;
+        byId('first-answer-retry').textContent = '查看分析进度';
+        byId('first-answer-retry').hidden = false;
+        byId('first-answer-status').textContent = cancelJob
+          ? '取消结果暂未确认。请查看进度，原问题仍在。'
+          : '暂时无法确认分析进度。原问题已保存，可以回来查看。';
+      } else if (active() && generate && !handled) {
         byId('first-answer-status').textContent = '这次未能生成初步分析。问题已保存，仍可查看本地线索。';
         byId('first-answer-retry').hidden = false;
       }
     }
   }
   byId('first-answer-retry').addEventListener('click', () => {
-    if (editBase && !readOnlyView() && !methodDirty && !busy) void readFirstAnswer(true);
+    if (editBase && !readOnlyView() && !methodDirty && !busy) void readFirstAnswer(!firstAnswerRefreshOnly);
+  });
+  byId('first-answer-cancel').addEventListener('click', () => {
+    if (firstAnswerJob && editBase && !readOnlyView() && !methodDirty && !busy) void readFirstAnswer(false, firstAnswerJob);
   });
   function render(data, methodToken, loadAnswer = true) {
     observationReset();

@@ -302,6 +302,51 @@ def test_plain_question_saves_verbatim_and_reopens_without_adoption(short_observ
             browser.close()
 
 
+def test_async_first_answer_reopens_and_cancels_without_new_submission(short_observation_asgi):
+    client, _ = short_observation_asgi
+    job_id = "d19160ad-396a-4edc-a383-e54c48ba728f"
+    calls = []
+    state = "queued"
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        context = browser.new_context()
+        try:
+            page, requests = _short_observation_page(context, client)
+            def job(route):
+                nonlocal state
+                request = route.request
+                path = request.url.split("testserver", 1)[1]
+                record = client.get(path.split("/revisions/", 1)[0]).json()["data"]["current_problem"]
+                calls.append((request.method, request.post_data_json if request.method != "GET" else None))
+                if request.method == "DELETE":
+                    state = "cancelled"
+                elif request.method == "GET" and state == "queued":
+                    state = "running"
+                route.fulfill(status=202 if request.method == "POST" else 200, json={
+                    "contract_revision": "first-answer-v1", "status": state,
+                    "metadata": {"research_id": record["research_id"], "input_revision": record["revision"],
+                                 "problem_digest": record["digest"], "job_id": job_id},
+                })
+            page.route("**/revisions/*/first-answer", job)
+            page.goto("https://testserver/research")
+            page.locator("#original-input").fill("为什么同样的流程换了工具后错误更多？")
+            page.locator("#save-question").click()
+            expect(page.locator("#first-answer-status")).to_contain_text("正在排队")
+            saved = page.url
+            page.goto(saved)
+            expect(page.locator("#first-answer-status")).to_contain_text("正在后台分析")
+            page.locator("#first-answer-cancel").click()
+            expect(page.locator("#first-answer-status")).to_contain_text("已取消分析")
+            page.goto(saved)
+            expect(page.locator("#first-answer-status")).to_contain_text("已取消分析")
+            assert [method for method, _ in calls].count("POST") == 1
+            assert [data["job_id"] for method, data in calls if method == "DELETE"] == [job_id]
+            assert [path for method, path, _ in requests if method == "POST"] == ["/api/research"]
+        finally:
+            context.close()
+            browser.close()
+
+
 @pytest.mark.parametrize('raw',[
     '一个物体温度恢复到环境温度的过程，是否与电容放电对应？请比较公式，告诉我能借用什么、什么时候不能用。',
     ' e\u0301 原话中的温度恢复过程。\n ',
