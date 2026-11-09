@@ -1409,8 +1409,11 @@
     } finally { clearTimeout(timer); }
   }
   let firstAnswerGeneration = 0;
+  let firstAnswerController = null;
   function clearFirstAnswer() {
     firstAnswerGeneration++;
+    firstAnswerController?.abort();
+    firstAnswerController = null;
     byId('first-answer').hidden = true;
     byId('first-answer-status').textContent = '';
     byId('first-answer-body').replaceChildren();
@@ -1423,6 +1426,7 @@
     const id = researchId;
     const active = () => generation === firstAnswerGeneration && id === researchId;
     const controller = new AbortController();
+    firstAnswerController = controller;
     const timer = setTimeout(() => controller.abort(), 15000);
     try {
       const options = {credentials:'same-origin', cache:'no-store', signal:controller.signal};
@@ -1489,6 +1493,7 @@
       // Failure to load an optional answer must not hide the saved question.
     } finally {
       clearTimeout(timer);
+      if (firstAnswerController === controller) firstAnswerController = null;
       if (active() && generate) observationSync();
       if (active() && generate && !byId('first-answer-body').childElementCount) {
         byId('first-answer-status').textContent = '这次未能生成初步分析。问题已保存，仍可查看本地线索。';

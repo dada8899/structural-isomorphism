@@ -74,7 +74,7 @@ def compose(question, search):
     }
 
 
-def compose_with_worker(question, search):
+def compose_with_worker(question, search, *, cancel=None):
     """Answer a non-template question using only the bound local worker."""
     from .local_answer_transport import LocalAnswerUnavailable, complete, worker_present
     from .local_first_answer_contract import FirstAnswerContractError, interpret, prepare
@@ -93,12 +93,12 @@ def compose_with_worker(question, search):
                     rows.append(record)
                     seen.add(locator)
         request = prepare(question, search.artifact["artifact_id"], rows)
-        return interpret(complete(canonical({"messages": request.messages})), request)
+        return interpret(complete(canonical({"messages": request.messages}), cancel=cancel), request)
     except (FirstAnswerContractError, LocalAnswerUnavailable):
         return None
 
 
-def generate(service, identity, research_id, *, input_revision, problem_digest, research_version, search):
+def generate(service, identity, research_id, *, input_revision, problem_digest, research_version, search, cancel=None):
     """Generate from an authorized stored question, then recheck CAS on write."""
     from .errors import ResearchError
     from .first_answer import AnswerBody, read, read_current_input, save
@@ -123,7 +123,7 @@ def generate(service, identity, research_id, *, input_revision, problem_digest, 
         raise ResearchError("FEATURE_UNAVAILABLE", 503, "这个问题暂时没有可用的本地初步分析。")
     answer = compose(question, search)
     if answer is None:
-        result = compose_with_worker(question, search)
+        result = compose_with_worker(question, search, cancel=cancel)
         if result and result["status"] == "insufficient":
             # A clarification is not a result snapshot; confirm the question
             # still belongs to this request before returning any model text.
@@ -134,6 +134,8 @@ def generate(service, identity, research_id, *, input_revision, problem_digest, 
         answer = result["content"] if result else None
     if answer is None:
         raise ResearchError("FEATURE_UNAVAILABLE", 503, "这个问题暂时没有可用的本地初步分析。")
+    if cancel is not None and cancel.is_set():
+        raise ResearchError("FEATURE_UNAVAILABLE", 503, "本次分析已停止，问题仍保留。")
     return save(service, identity, research_id, input_revision=input_revision,
                 problem_digest=problem_digest, research_version=research_version,
                 key=f"local-first-answer-{input_revision}-{problem_digest}", answer=AnswerBody(**answer))

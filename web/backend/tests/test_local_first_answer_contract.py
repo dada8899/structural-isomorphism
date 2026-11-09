@@ -139,7 +139,7 @@ def test_worker_path_uses_bound_rows_and_drops_unverifiable_output(monkeypatch):
 
     responses = iter([output(candidate()), output(candidate(source_refs=[2]))])
 
-    def complete(raw):
+    def complete(raw, *, cancel=None):
         messages = json.loads(raw)["messages"]
         prompt = json.loads(messages[1]["content"])
         assert prompt["question"] == "未知系统为什么恢复较慢？"

@@ -189,3 +189,29 @@ def test_backend_has_absolute_deadline_or_stop_signal(trigger):
         assert client.recv(1) == b""
     finish(thread)
     assert outcomes == [trigger] and results == [False]
+
+
+def test_browser_side_cancel_closes_transport_without_resending():
+    from web.backend.research.local_answer_transport import LocalAnswerUnavailable, _exchange
+
+    main, worker = socket.socketpair()
+    cancelled = threading.Event()
+    release = threading.Event()
+    writes = []
+
+    def serve():
+        with worker:
+            writes.append(worker.recv(128))
+            assert worker.recv(128) == b''
+            cancelled.set()
+            release.wait(2)
+
+    thread = threading.Thread(target=serve)
+    thread.start()
+    try:
+        with main, pytest.raises(LocalAnswerUnavailable, match="request cancelled"):
+            _exchange(main, b'public fixture', time.monotonic() + 2, cancelled)
+    finally:
+        release.set()
+    thread.join(timeout=2)
+    assert not thread.is_alive() and writes == [b'public fixture']

@@ -5,8 +5,10 @@ import json
 import os
 import re
 import sqlite3
+import threading
 from uuid import UUID, uuid4
 
+from anyio import create_task_group
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
@@ -385,8 +387,26 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                     from services.formal_admission import local_search_resource
                 arguments = await _parse(request, FirstAnswerRequest)
                 search = local_search_resource(request.app) if service.store._formal_mode() else None
-                result = await run_in_threadpool(generate, service, identity, research_id,
-                    input_revision=int(raw_revision), search=search, **arguments.model_dump())
+                cancelled = threading.Event()
+
+                async def watch_disconnect():
+                    while True:
+                        if (await request.receive()).get("type") == "http.disconnect":
+                            cancelled.set()
+                            return
+
+                async with create_task_group() as group:
+                    group.start_soon(watch_disconnect)
+                    try:
+                        result = await run_in_threadpool(generate, service, identity, research_id,
+                            input_revision=int(raw_revision), search=search, cancel=cancelled, **arguments.model_dump())
+                    except ResearchError as error:
+                        # Keep the normal public ResearchError envelope outside the task group.
+                        result = error
+                    finally:
+                        group.cancel_scope.cancel()
+                if isinstance(result, ResearchError):
+                    raise result
                 return JSONResponse(result,headers=_HEADERS)
             if __package__=='web.backend.api':from ..research.first_answer import read
             else:from research.first_answer import read

@@ -24,21 +24,28 @@ class LocalAnswerUnavailable(Exception):
     """No worker output is safe to consume."""
 
 
-def _timeout(connection, deadline):
+def _timeout(connection, deadline, cancel=None):
+    if cancel is not None and cancel.is_set():
+        raise LocalAnswerUnavailable("local answer request cancelled")
     remaining = deadline - time.monotonic()
     if remaining <= 0:
         raise LocalAnswerUnavailable("local answer deadline")
-    connection.settimeout(remaining)
+    connection.settimeout(min(remaining, 0.1) if cancel is not None else remaining)
 
 
-def _exchange(connection, payload, deadline):
-    _timeout(connection, deadline)
+def _exchange(connection, payload, deadline, cancel=None):
+    _timeout(connection, deadline, cancel)
     connection.sendall(payload)
     connection.shutdown(socket.SHUT_WR)
     data = bytearray()
     while True:
-        _timeout(connection, deadline)
-        chunk = connection.recv(min(4096, _MAX_OUTPUT + 1 - len(data)))
+        _timeout(connection, deadline, cancel)
+        try:
+            chunk = connection.recv(min(4096, _MAX_OUTPUT + 1 - len(data)))
+        except socket.timeout:
+            if cancel is None:
+                raise
+            continue
         if not chunk:
             break
         data.extend(chunk)
@@ -59,7 +66,7 @@ def worker_present():
         return False
 
 
-def complete(payload):
+def complete(payload, *, cancel=None):
     """Submit approved prompt bytes to the fixed local worker; never retry."""
     if type(payload) is not bytes or not 1 <= len(payload) <= _MAX_INPUT:
         raise LocalAnswerUnavailable("local answer request limit")
@@ -72,12 +79,12 @@ def complete(payload):
         if not stat.S_ISSOCK(entry.st_mode) or entry.st_uid != account.pw_uid or entry.st_mode & 0o007:
             raise LocalAnswerUnavailable("local answer worker socket unavailable")
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
-            _timeout(connection, deadline)
+            _timeout(connection, deadline, cancel)
             connection.connect(_SOCKET)
             _pid, uid, _gid = struct.unpack("3i", connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
             if uid != account.pw_uid:
                 raise LocalAnswerUnavailable("local answer worker identity mismatch")
-            return _exchange(connection, payload, deadline)
+            return _exchange(connection, payload, deadline, cancel)
     except (OSError, KeyError, struct.error):
         raise LocalAnswerUnavailable("local answer worker unavailable") from None
     finally:
