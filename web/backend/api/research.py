@@ -400,6 +400,15 @@ async def _dispatch_closed_external_answer(request, service, identity, research_
         async for chunk in request.stream():
             if chunk:
                 raise ResearchError("INPUT_INVALID",422,"状态查询不接受请求正文。")
+        if __package__ == 'web.backend.api':
+            from ..research.external_first_answer_catalog import read_main_recovery
+        else:
+            from research.external_first_answer_catalog import read_main_recovery
+        recovered = await run_in_threadpool(read_main_recovery, service, identity, research_id, input_revision,
+                                            key, result=operation == "external-answer-result")
+        if recovered is not None:
+            return JSONResponse(recovered, headers=_HEADERS)
+
     await run_in_threadpool(_closed_external_scope, service, identity, research_id, input_revision, expected)
     # No issuer, quote, reservation, execution or response lookup is admitted.
     raise ResearchError("FEATURE_UNAVAILABLE",503,"外部分析尚未开放，已保存的问题仍在。")

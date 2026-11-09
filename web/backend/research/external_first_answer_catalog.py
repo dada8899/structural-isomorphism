@@ -109,23 +109,27 @@ def _read_bridge_row(proof,identity,research_id,revision,operation_key):
         install_default_hook(conn)
         conn.execute("BEGIN")
         _snapshot(proof,conn)
-        gate.check_account(conn,identity)
-        principal=conn.execute("SELECT id FROM research_principals WHERE normalized_email=? AND session_generation=?",
-                               (identity.email,identity.generation)).fetchone()
-        if principal is None:
-            raise not_found()
-        owner=gate.check(conn,identity,principal[0])
-        control=gate.check(conn,identity,principal[0],rid)
-        row=conn.execute("SELECT id,research_id,principal_id,input_revision,research_version,scope_digest,state,candidate_digest,candidate_json FROM "+TABLE+
-                         " WHERE id=? AND research_id=? AND principal_id=? AND input_revision=?",
-                         (key,rid,principal[0],revision)).fetchone()
-        saved=conn.execute("SELECT digest FROM research_revisions WHERE research_id=? AND revision=?",(rid,revision)).fetchone()
-        if row is None or saved is None:
-            raise not_found()
-        scope=SavedRevisionScope(principal_id=principal[0],auth_generation=identity.generation,
-             principal_epoch=owner["epoch"],owner_epoch=control["owner_epoch"],acl_epoch=control["acl_epoch"],
-             research_id=rid,input_revision=revision,research_version=row["research_version"],problem_digest=saved["digest"])
-        yield row,scope,key
+        yield _authorized_row(conn,gate,identity,rid,revision,key)
+
+
+def _authorized_row(conn,gate,identity,rid,revision,key):
+    gate.check_account(conn,identity)
+    principal=conn.execute("SELECT id FROM research_principals WHERE normalized_email=? AND session_generation=?",
+                           (identity.email,identity.generation)).fetchone()
+    if principal is None:
+        raise not_found()
+    owner=gate.check(conn,identity,principal[0])
+    control=gate.check(conn,identity,principal[0],rid)
+    row=conn.execute("SELECT id,research_id,principal_id,input_revision,research_version,scope_digest,state,candidate_digest,candidate_json FROM "+TABLE+
+                     " WHERE id=? AND research_id=? AND principal_id=? AND input_revision=?",
+                     (key,rid,principal[0],revision)).fetchone()
+    saved=conn.execute("SELECT digest FROM research_revisions WHERE research_id=? AND revision=?",(rid,revision)).fetchone()
+    if row is None or saved is None:
+        raise not_found()
+    scope=SavedRevisionScope(principal_id=principal[0],auth_generation=identity.generation,
+         principal_epoch=owner["epoch"],owner_epoch=control["owner_epoch"],acl_epoch=control["acl_epoch"],
+         research_id=rid,input_revision=revision,research_version=row["research_version"],problem_digest=saved["digest"])
+    return row,scope,key
 
 
 def read_bridge_status(proof,identity,research_id,revision,operation_key):
@@ -156,6 +160,18 @@ def project_result(row,scope,operation_key):
 def read_bridge_result(proof,identity,research_id,revision,operation_key):
     with _read_bridge_row(proof,identity,research_id,revision,operation_key) as (row,scope,key):
         return project_result(row,scope,key)
+
+
+def read_main_recovery(service, identity, research_id, revision, operation_key, *, result=False):
+    """Use the real admitted store; no fixture proof, issuer or write access."""
+    if type(service) is not ResearchService or type(identity) is not AccountIdentity:
+        raise PermissionError("canonical research service and identity required")
+    rid,key=service._id(research_id),service._id(operation_key)
+    with service.store.transaction() as conn:
+        if conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0]!=17:
+            return None
+        row,scope,key=_authorized_row(conn,service.authorization,identity,rid,revision,key)
+        return (project_result if result else project_status)(row,scope,key)
 
 
 def project_closed_preview(scope, saved_problem, quote, *, now):

@@ -60,6 +60,14 @@ def test_real_v17_closed_main_preserves_login_history_and_saved_revisions(prepar
                 with pytest.raises(ResearchError,match="FEATURE_UNAVAILABLE"):require_dispatch_admission()
                 ans=(await owner.get(f"/api/research/{rid}/revisions/1/first-answer"))
                 assert ans.status_code==200 and ans.json()==answer
+                loaded=await owner.get("/api/research/"+rid)
+                assert loaded.json()["data"]["capabilities"]["external_first_answer"]=="status_only"
+                external=f"/api/research/{rid}/revisions/1/external-first-answer"
+                headers={"Idempotency-Key":"e09160ad-396a-4edc-a383-e54c48ba728f"}
+                for action in ("status","result"):
+                    absent=await owner.get(external+"/"+action,headers=headers)
+                    assert absent.status_code==404 and absent.json()["error"]["code"]=="NOT_FOUND"
+
                 reopened=await owner.get(fin_url)
                 assert reopened.status_code==200 and reopened.json()==fin
                 new=await create(owner,"bridge-v17-new-draft")

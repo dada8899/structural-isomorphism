@@ -131,21 +131,21 @@
       ]
     ],
     "schema16_bridge": {
-      "current_sha256": "d75bede4c14122a0c244b252afb1d939a6b322f539fa3568c1438630ee75b69f",
+      "current_sha256": "c42bc98bf83a9f7cca33d5603be42cae2adba36c5ee6d63a3f61fb091f92ad46",
       "hunks": [
         [
           351,
-          407,
+          416,
           ""
         ],
         [
-          428,
-          490,
+          437,
+          499,
           ""
         ],
         [
-          796,
-          831,
+          805,
+          840,
           ""
         ]
       ]
@@ -1084,12 +1084,17 @@
     ],
     "original_sha256": "cbfef1623ddceaeafe2282f98651cc92e7a61fb25ef7074ebd27862f36391d41",
     "schema16_bridge": {
-      "current_sha256": "13c8d17e5107e19aceb4afbd43dcd2615968c9ffd8bbc7e412209bb7d42634d7",
+      "current_sha256": "79c6feb02aec3b8aa0de0f46d3b2882a16410cc30f7089e55bc96ec4faad4db8",
       "hunks": [
         [
           30,
           31,
           "        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):\n"
+        ],
+        [
+          60,
+          62,
+          ""
         ]
       ]
     }
@@ -1222,7 +1227,7 @@
     ],
     "original_sha256": "4415e35d9591896e2484bdfb962f0a1bb084704916bbcb70b9e84954f76647f3",
     "schema16_bridge": {
-      "current_sha256": "1e8719b323c92852731ddbf855e45c1e764187016472edb31a4945ec5ff627d9",
+      "current_sha256": "4f5d6f946178f65e6305f4edd39d7fe6c44bf7d45135bf7855a811e89284d30d",
       "hunks": [
         [
           182,
@@ -1255,48 +1260,53 @@
           "                        if task['policy_revision']=='d1-source-only-v1' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
         ],
         [
-          519,
-          520,
+          506,
+          510,
+          ""
+        ],
+        [
+          523,
+          524,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:\n"
         ],
         [
-          522,
-          523,
+          526,
+          527,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):\n"
         ],
         [
-          524,
-          525,
+          528,
+          529,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
         ],
         [
-          595,
-          596,
+          599,
+          600,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:\n"
         ],
         [
-          598,
-          599,
+          602,
+          603,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
         ],
         [
-          605,
-          606,
+          609,
+          610,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (13,14,15):\n"
         ],
         [
-          608,
-          609,
+          612,
+          613,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (12,13,14,15):\n"
         ],
         [
-          611,
-          612,
+          615,
+          616,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15):\n"
         ],
         [
-          624,
-          629,
+          628,
+          633,
           ""
         ]
       ]
@@ -1942,7 +1952,7 @@
     ],
     "original_sha256": "744c196ef6b9cb9c3b6fab2140b966e3b52b4859fafb11ef23a5982d371d2885",
     "schema16_bridge": {
-      "current_sha256": "2b23f3d8cfe6b1bca06cb48605fe6cce752653a1290c0195df3149a17d5d15ef",
+      "current_sha256": "244a1ea36534aa25da2bcc7697d67679642475444715f0e2f21a7b73e28abe64",
       "hunks": [
         [
           13,
@@ -2046,42 +2056,42 @@
         ],
         [
           1333,
-          1335,
+          1336,
           "        if version==15:cls._check_v15(conn)\n"
         ],
         [
-          1344,
-          1356,
+          1345,
+          1357,
           ""
         ],
         [
-          1359,
           1360,
+          1361,
           "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式15需要完整账户准入。')\n"
         ],
         [
-          1361,
-          1363,
+          1362,
+          1364,
           "        cls._check_structure_version(conn,15)\n        cls._check_formula_domain(conn,plan=True,native=True)\n"
         ],
         [
-          1369,
-          1377,
+          1370,
+          1378,
           ""
         ],
         [
-          1378,
           1379,
+          1380,
           "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究15关联不匹配。')\n"
         ],
         [
-          1402,
-          1406,
+          1403,
+          1407,
           "                self._check_v15(conn)\n"
         ],
         [
-          1430,
-          1434,
+          1431,
+          1435,
           "                self._check_v15(conn)\n"
         ]
       ]
