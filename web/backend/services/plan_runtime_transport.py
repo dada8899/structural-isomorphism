@@ -198,14 +198,17 @@ class _Channel:
 
     def close(self):
         self.active = False
+        closed_here = False
         def proved_closed():
             if self.sock.fileno() >= 0:
                 return False
             try:
-                os.fstat(self.fd)
+                current = os.fstat(self.fd)
             except OSError as error:
                 return error.errno == errno.EBADF
-            return False
+            # After our successful close of the verified socket, the OS
+            # may immediately reuse its number. Never close that new FD.
+            return closed_here and (current.st_dev,current.st_ino) != self.identity
         if not self.closed:
             try:
                 if self.sock.fileno() >= 0:
@@ -214,6 +217,7 @@ class _Channel:
                     _close_socket(self.sock)
                     if self.sock.fileno() >= 0:
                         raise OSError('native close not confirmed')
+                    closed_here = True
                 else:
                     # A detached socket is not proof that its FD was closed.
                     try:

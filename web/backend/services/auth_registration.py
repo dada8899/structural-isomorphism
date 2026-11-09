@@ -940,7 +940,7 @@ def _offline_research_profile(conn):
     else:from research.store import ResearchStore
     profile=AuthStore.check_offline_auth_metadata(conn)
     version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
-    if (profile,version) not in (('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13),('auth-provision-v1',14),('auth-provision-v1',15)):
+    if (profile,version) not in (('legacy_auth',10),('auth-provision-v1',10),('auth-provision-v1',11),('auth-provision-v1',12),('auth-provision-v1',13),('auth-provision-v1',14),('auth-provision-v1',15),('auth-provision-v1',16)):
         raise PermissionError('exact offline Auth research profile required')
     ResearchStore._check_structure_version(conn,version)
     return version

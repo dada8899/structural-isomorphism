@@ -1798,7 +1798,77 @@ def _consume_binding_flag():
     return ' --deselect="'+CONSUME_BINDING_NODE+'"'
 
 
+# Only this new pure/ASGI module is added to the existing B3 consumer.
+SHORT_OBSERVATION_BACKEND_MODULE = 'tests/test_research_short_observation_entry.py'
+SHORT_OBSERVATION_PRIOR_B3_SCRIPT_SHA256 = 'bda7a3e5bf2ecc21101f52486de687b47a9802645f0b51e1e94a652c0a67503b'
+SHORT_OBSERVATION_PRIOR_JOBS_SHA256 = '3b46c1b92984751760a59f039c9426b5c372c981b81035aacefa3d2bd5224f49'
+
+
+# New first-answer consumers: pure contract in ordinary A; real Main in a
+# separate process after the existing fresh-2 module.
+FIRST_ANSWER_PURE_MODULES = ('tests/test_experimental_mechanism_premises.py', 'tests/test_local_answer_gateway.py', 'tests/test_local_answer_inference.py',
+                             'tests/test_local_answer_service.py', 'tests/test_local_first_answer_contract.py')
+FIRST_ANSWER_MAIN_MODULES = ('tests/test_research_first_answer.py', 'tests/test_first_answer_queue.py')
+FIRST_ANSWER_PRIOR_JOBS_SHA256 = '36ddd0462e7a94f57b036a36cbd97aeb3a1d8ee09bd7b40ac098c993a47cb8cb'
+
+
+def _workflow_before_first_answer_checks(value, name):
+    if name == 'coverage.yml':
+        original = copy.deepcopy(value)
+        jobs = original['jobs']
+        step = next(s for s in jobs['coverage']['steps']
+                    if s.get('name') == 'Run coverage (split by suite, parallel files combined)')
+        modules = tuple('web/backend/' + module for module in FIRST_ANSWER_MAIN_MODULES)
+        prefix = 'python -m coverage run -p --rcfile=.coveragerc -m pytest '
+        aggregate = prefix + 'web/backend/tests/'
+        with_ignores = aggregate + ''.join(' --ignore=' + module for module in modules)
+        isolated = prefix + ' '.join(modules) + ' -p no:logging $PYTEST_FLAGS\n'
+        assert step['run'].count(with_ignores) == step['run'].count(isolated) == 1
+        step['run'] = step['run'].replace(with_ignores, aggregate, 1).replace(isolated, '', 1)
+        assert hashlib.sha256(json.dumps(jobs, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest() == 'de1bd325a7e455d74b2928d85113ae8523fe1a5f58cef0ee500709b93f35d785'
+        return original
+    if name != 'sanity.yml':
+        return value
+    original = copy.deepcopy(value)
+    jobs = original['jobs']
+    for module in (*FIRST_ANSWER_PURE_MODULES, *FIRST_ANSWER_MAIN_MODULES):
+        assert sum(json.dumps(job, sort_keys=True).count(module) for job in jobs.values()) == 1
+    title = 'Leg 2 — web/backend pytest baseline'
+    ordinary, fresh = (next(step for step in jobs[job]['steps'] if step.get('name') == title)
+                       for job in ('sanity-backend-ordinary-a', 'sanity-backend-fresh-2'))
+    anchor = ' tests/test_lang_detection.py '
+    pure_slot = anchor + ' '.join(FIRST_ANSWER_PURE_MODULES) + ' tests/test_mapping_contract.py '
+    assert ordinary['run'].count(pure_slot) == 1
+    ordinary['run'] = ordinary['run'].replace(pure_slot, anchor + 'tests/test_mapping_contract.py ', 1)
+    command = 'python -m pytest ' + ' '.join(FIRST_ANSWER_MAIN_MODULES) + ' -p no:logging -x -ra -q --tb=short --durations=10\n'
+    external_commands = 'python -m pytest ../../tests/test_external_first_answer_contract.py ../../tests/test_external_first_answer_state.py ../../tests/test_external_first_answer_fixture_writer.py ../../tests/test_external_first_answer_file_writer.py ../../tests/test_external_first_answer_catalog.py ../../tests/test_external_v17_closed_main.py -p no:logging -x -ra -q --tb=short --durations=10\npython -m pytest ../../tests/test_external_first_answer_seam.py -p no:logging -x -ra -q --tb=short --durations=10\n'
+    external_commands += 'python -m pytest ../../tests/test_external_v17_controlled_main.py -p no:logging -x -ra -q --tb=short --durations=10\n'
+    assert fresh['run'].endswith(command + external_commands)
+    fresh['run'] = fresh['run'][:-len(command + external_commands)]
+    assert hashlib.sha256(json.dumps(jobs, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest() == FIRST_ANSWER_PRIOR_JOBS_SHA256
+    return original
+
+
+def _workflow_before_short_observation_checks(value,name):
+    value = _workflow_before_first_answer_checks(value, name)
+    if name!='sanity.yml':return value
+    original=copy.deepcopy(value);jobs=original['jobs']
+    assert sum(json.dumps(job,sort_keys=True).count(SHORT_OBSERVATION_BACKEND_MODULE) for job in jobs.values())==1
+    job=jobs['sanity-backend-ordinary-b-3']
+    steps=[s for s in job['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline'];assert len(steps)==1
+    script=steps[0]['run'];needle=' '+SHORT_OBSERVATION_BACKEND_MODULE
+    assert script.count(needle)==1 and needle+' ' in script
+    prior=script.replace(needle,'',1)
+    before=' tests/test_research_source_lifetime.py'
+    assert prior.count(before)==1 and prior.replace(before,needle+before,1)==script
+    assert hashlib.sha256(prior.encode()).hexdigest()==SHORT_OBSERVATION_PRIOR_B3_SCRIPT_SHA256
+    steps[0]['run']=prior
+    assert hashlib.sha256(json.dumps(jobs,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==SHORT_OBSERVATION_PRIOR_JOBS_SHA256
+    return original
+
+
 def _workflow_before_consume_binding(value,name):
+    value=_workflow_before_short_observation_checks(value,name)
     if name not in ('sanity.yml','coverage.yml'):return value
     original=copy.deepcopy(value)
     jid='sanity-backend-fresh-1' if name=='sanity.yml' else 'coverage'
@@ -1951,7 +2021,7 @@ def _workflow_before_authority_retry(value,name):
 # Their source, real failures, unexecuted case and future native activation
 # obligations remain; evidence cancel and all general delete/UNKNOWN/SQL guards run.
 NATIVE_LATE_THREE_NODES = ('web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]', 'web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]', 'web/backend/tests/test_research_evidence_method_native.py::test_actual_http_stop_after_owned_return_keeps_original_fee_without_late_body[delete]')
-NATIVE_LATE_SOURCE_SHA256 = {'test_plan_runtime_transport.py': '183a2564e164de6fbef5def8bad5deaec0131287f103e718b1890028de8cf86d', 'test_research_evidence_method_native.py': '220ab632c68c1d41385331768765f472eb44c106e948b1f36c5bc1f355db7737'}
+NATIVE_LATE_SOURCE_SHA256 = {'test_plan_runtime_transport.py': 'cdc85743fba612cd3761200985e1bcd46c7c2c94731771c76fb6898bcfc4c943', 'test_research_evidence_method_native.py': '220ab632c68c1d41385331768765f472eb44c106e948b1f36c5bc1f355db7737'}
 NATIVE_LATE_PRIOR_JOBS_SHA256 = {'sanity.yml': 'b95cec3f3dda97eb1ae4f90c9f588722b95c4f7e8f88e2ecd786568846064dfe', 'coverage.yml': '1e97fd441e46e0357c2602d04fb92b77b22b085fbac2674288a7e5d7a3af26f5'}
 
 
@@ -1988,7 +2058,7 @@ def _workflow_before_native_late_three(value,name):
 # first-entry UNKNOWN/held/no-refund controls must remain selected.
 PARTIAL_RUNTIME_NODE = 'web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]'
 PARTIAL_RUNTIME_BASE = PARTIAL_RUNTIME_NODE.removesuffix('[partial]')
-PARTIAL_RUNTIME_SOURCE_SHA256 = '183a2564e164de6fbef5def8bad5deaec0131287f103e718b1890028de8cf86d'
+PARTIAL_RUNTIME_SOURCE_SHA256 = 'cdc85743fba612cd3761200985e1bcd46c7c2c94731771c76fb6898bcfc4c943'
 PARTIAL_RUNTIME_PRIOR_JOBS_SHA256 = {'sanity.yml': 'ec103152bde1b0fab45c26ba8ba21753fbbf1a6f22df0efa0e495c051910ab6b', 'coverage.yml': 'b069c58743f61f7a0864c5b361b7598a09ac467f8c68d611c63864d52575d324'}
 
 
@@ -2669,6 +2739,11 @@ def _workflow_before_sanity_groups(value):
     assert all(path.removeprefix('tests/')>='test_research_financial' for path in b)
     directory=ROOT/'web/backend/tests'
     inventory={'tests/'+path.relative_to(directory).as_posix() for pattern in ('test_*.py','*_test.py') for path in directory.rglob(pattern) if path.is_file()}
+    # This view reconstructs the older baseline after the exact new-module inverse.
+    added = {SHORT_OBSERVATION_BACKEND_MODULE, *FIRST_ANSWER_PURE_MODULES, *FIRST_ANSWER_MAIN_MODULES}
+    assert added <= inventory
+    assert all(not (directory / path.removeprefix('tests/')).is_symlink() for path in added)
+    inventory -= added
     assert inventory==set(a+b+fresh), 'all source modules exactly once, not only list-internal uniqueness'
     assert all(not(directory/path.removeprefix('tests/')).is_symlink() for path in inventory)
     restored=copy.deepcopy(jobs[SANITY_GROUP_IDS[0]]);restored['name']='sanity-backend'
@@ -4785,8 +4860,14 @@ def test_native_late_three_make_rejects_nonexact_collection(mutation):
 
 def test_fin3_capacity_exact_one_preserves_original_source_and_six_current_cases():
     path=ROOT/FIN3_CAPACITY_NODE.split('::')[0]
-    assert hashlib.sha256(path.read_bytes()).hexdigest()==FIN3_CAPACITY_SOURCE_SHA256
-    module=ast.parse(path.read_text())
+    source = path.read_bytes()
+    signature = b'async def fill_form(page,*,sensitivity=False,recovery=False):\n'
+    entry = b'    await helpers._open_research_advanced(page)\n'
+    # The new single-question page hides manual controls. Reverse only its
+    # one explicit entry action; all original test bodies remain byte-exact.
+    assert source.count(signature + entry) == 1
+    assert hashlib.sha256(source.replace(signature + entry, signature, 1)).hexdigest() == FIN3_CAPACITY_SOURCE_SHA256
+    module=ast.parse(source)
     cases=[x.name for x in module.body if isinstance(x,(ast.FunctionDef,ast.AsyncFunctionDef)) and x.name.startswith('test_')]
     excluded=FIN3_CAPACITY_NODE.split('::')[1]
     assert len(cases)==7 and cases.count(excluded)==1
@@ -5431,3 +5512,31 @@ def test_consume_binding_full_dryrun_missing_backend_rejected():
     assert result.returncode==0
     lines=result.stdout.splitlines(keepends=True);target=[line for line in lines if line.startswith('cd web/backend && ') and CONSUME_BINDING_NODE in line];assert len(target)==1
     with pytest.raises(AssertionError):_dry_run_before_consume_binding(result.stdout.replace(target[0],'',1))
+
+
+def test_short_observation_check_module_is_one_exact_existing_b3_consumer():
+    raw=yaml.safe_load((ROOT/'.github/workflows/sanity.yml').read_text())
+    restored=_workflow_before_short_observation_checks(raw,'sanity.yml')
+    assert restored!=raw
+    assert hashlib.sha256(json.dumps(restored['jobs'],sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()==SHORT_OBSERVATION_PRIOR_JOBS_SHA256
+    assert SHORT_OBSERVATION_BACKEND_MODULE not in json.dumps(restored['jobs'])
+    assert _workflow_before_ordinary_b_parts(raw,'sanity.yml')
+
+
+@pytest.mark.parametrize('mutation',['missing','duplicate','wrong_path','other_part','reorder','extra_filter','job_budget'])
+def test_short_observation_check_module_rejects_any_nonexact_consumer(mutation):
+    raw=yaml.safe_load((ROOT/'.github/workflows/sanity.yml').read_text())
+    job=raw['jobs']['sanity-backend-ordinary-b-3']
+    step=next(s for s in job['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline')
+    flag=' '+SHORT_OBSERVATION_BACKEND_MODULE
+    if mutation=='missing':step['run']=step['run'].replace(flag,'',1)
+    elif mutation=='duplicate':step['run']=step['run'].replace(flag,flag+flag,1)
+    elif mutation=='wrong_path':step['run']=step['run'].replace(SHORT_OBSERVATION_BACKEND_MODULE,'web/backend/'+SHORT_OBSERVATION_BACKEND_MODULE,1)
+    elif mutation=='other_part':
+        step['run']=step['run'].replace(flag,'',1)
+        other=next(s for s in raw['jobs']['sanity-backend-ordinary-b-2']['steps'] if s.get('name')=='Leg 2 — web/backend pytest baseline')
+        other['run']=other['run'].replace('python -m pytest ','python -m pytest '+SHORT_OBSERVATION_BACKEND_MODULE+' ',1)
+    elif mutation=='reorder':step['run']=step['run'].replace(flag,'',1).replace('python -m pytest ','python -m pytest '+SHORT_OBSERVATION_BACKEND_MODULE+' ',1)
+    elif mutation=='extra_filter':step['run']=step['run'].replace(flag,flag+' -k short',1)
+    else:job['timeout-minutes']=46
+    with pytest.raises(AssertionError):_workflow_before_short_observation_checks(raw,'sanity.yml')

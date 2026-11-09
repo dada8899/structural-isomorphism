@@ -45,6 +45,7 @@ async def actual_browser(tmp_path):
 
 
 async def submit_csv(page,service,text):
+    await helpers._open_research_advanced(page)
     await page.locator('#financial-preview-csv').fill(text)
     await expect(page.locator('#financial-preview-result')).to_have_text('')
     async with page.expect_response('**/financial-import-preview') as returned:await page.locator('#financial-preview-run').click()
@@ -56,7 +57,7 @@ async def minimum_preview(tmp_path):
     async with actual_browser(tmp_path) as (page,service,bridge,facts):
         rid=service.seed.research_id;before=await helpers._native_tls_fetch(page,'/api/research/'+rid);assert before['status']==200 and before['body']['data']['capabilities']['source_evidence'] is False
         health=await helpers._native_tls_fetch(page,'/api/health');assert health['body']['checks']['native_planner']=='FUNDING_CLOSED'
-        await page.locator('#method-draft-method').fill('FIN1预览不应替换的手稿B。');pending=await helpers._method_main_pending(page)
+        await helpers._open_research_advanced(page);await page.locator('#method-draft-method').fill('FIN1预览不应替换的手稿B。');pending=await helpers._method_main_pending(page)
         response,first=await submit_csv(page,service,LEGAL_CSV);assert response.status==200;await expect(page.locator('#financial-preview-status')).to_contain_text('临时预览已返回');await expect(page.locator('#financial-preview-result')).to_contain_text('1e+02');await expect(page.locator('#financial-preview-result')).to_contain_text('7.000');await expect(page.locator('#financial-preview-result')).to_contain_text('账户声明为披露（未核验）');await expect(page.locator('#financial-preview-result')).to_contain_text('声明访问日期');await expect(page.locator('#financial-preview-result a')).to_have_count(0)
         assert first['data']['persisted'] is False and first['data']['execution_authorized'] is False and first['data']['original_available'] is False
         response,second=await submit_csv(page,service,with_missing());assert response.status==200;await expect(page.locator('#financial-preview-status')).to_contain_text('临时预览已返回');await expect(page.locator('#financial-preview-result')).to_contain_text('缺失（未按 0 处理）');assert second['data']['plan']['records'][-1]['value'] is None and second['data']['preview_digest']!=first['data']['preview_digest']
@@ -109,7 +110,7 @@ async def late_audit(tmp_path,change):
             request=route.request;actual=await asyncio.to_thread(bridge.forward,request.method,request.url,await request.all_headers(),request.post_data_buffer);assert actual.status==200;roots.append(json.loads(actual.body)['data'])
             if len(roots)==2:held.append((route,actual));return
             await route.fulfill(status=actual.status,headers=dict(actual.headers),body=actual.body)
-        await page.route(root_url,root_route);await page.locator('#method-draft-method').fill('迟到财务预览不能替换的手稿B。');pending=await helpers._method_main_pending(page)
+        await page.route(root_url,root_route);await helpers._open_research_advanced(page);await page.locator('#method-draft-method').fill('迟到财务预览不能替换的手稿B。');pending=await helpers._method_main_pending(page)
         await page.locator('#financial-preview-csv').fill(LEGAL_CSV);await page.locator('#financial-preview-run').click();deadline=time.monotonic()+10
         while not held and time.monotonic()<deadline:await asyncio.sleep(.02)
         assert len(held)==1
@@ -153,7 +154,7 @@ async def conflict_and_readonly(tmp_path):
         rid=service.seed.research_id;held=[]
         async def hold_root(route):
             request=route.request;actual=await asyncio.to_thread(bridge.forward,request.method,request.url,await request.all_headers(),request.post_data_buffer);assert actual.status==200;held.append((route,actual))
-        await page.route(service.origin+'/api/research/'+rid,hold_root,times=1);await page.locator('#financial-preview-csv').fill(LEGAL_CSV);await page.locator('#method-draft-method').fill('真实版本拒绝不能替换手稿B。');await page.locator('#financial-preview-run').click();deadline=time.monotonic()+8
+        await page.route(service.origin+'/api/research/'+rid,hold_root,times=1);await helpers._open_research_advanced(page);await page.locator('#financial-preview-csv').fill(LEGAL_CSV);await page.locator('#method-draft-method').fill('真实版本拒绝不能替换手稿B。');await page.locator('#financial-preview-run').click();deadline=time.monotonic()+8
         while not held and time.monotonic()<deadline:await asyncio.sleep(.02)
         assert len(held)==1;route,actual=held[0];root=json.loads(actual.body)['data'];old=root['current_problem'];problem={key:old[key] for key in ['entry','original_input','objective','summary','variables','constraints','unknowns','confirmed']};problem.update(original_input='另一真实HTTP保存的新修订，预览旧修订必须拒绝。',summary='新问题修订已真实保存。')
         changed=await helpers._method_main_post(page,'/api/research/'+rid+'/revisions',{'schema_version':'structure-research-v1','contract_revision':'b1-candidate-01','data':{'expected_revision':1,'problem':problem}},str(uuid.uuid4()));assert changed['status']==200
@@ -169,7 +170,7 @@ def test_fin1_actual_main_real_conflict_and_readonly(tmp_path):asyncio.run(confl
 
 async def real_unknown_and_network(tmp_path):
     async with actual_browser(tmp_path) as (page,service,bridge,facts):
-        rid=service.seed.research_id;await page.locator('#method-draft-task').select_option(service.seed.source_task_id)
+        rid=service.seed.research_id;await helpers._open_research_advanced(page);await page.locator('#method-draft-task').select_option(service.seed.source_task_id)
         async with bridge.material_read(page,service.seed.source_task_id):
             await page.locator('#method-draft-read-sources').click()
         choice=page.locator('#method-draft-materials input[type=checkbox]').first;await expect(choice).to_be_visible();await expect(page.locator('#method-draft-read-sources')).to_be_enabled();await choice.check();await helpers._method_draft_type_manual_fields(page);saved=[]

@@ -28,7 +28,7 @@ class ResearchProjection:
     @staticmethod
     def build(conn, row, task_id=None,*,method_result=None,method_authorized=False,method_state=None,task_history=None,next_task_id=None):
         revisions=ResearchProjection.revision_records(conn,row['id'])
-        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):
+        if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15,16):
             from .formula_result import revision_metadata
             for record in revisions:record['formula_snapshot']=revision_metadata(conn,row['id'],record['revision'])
         current=conn.execute('SELECT id FROM research_tasks WHERE research_id=? AND input_revision=? ORDER BY start_version DESC,id DESC LIMIT 1',(row['id'],row['current_revision'])).fetchone()
@@ -58,6 +58,8 @@ class ResearchProjection:
         active=conn.execute("SELECT id FROM research_tasks WHERE research_id=? AND execution IN ('QUEUED','RUNNING','WAITING_EXTERNAL','RECONCILING') ORDER BY start_version DESC LIMIT 1",(row["id"],)).fetchone()
         from .source_integration import enabled as source_enabled
         view["capabilities"]["source_evidence"]=source_enabled()
+        if conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] == 17:
+            view["capabilities"]["external_first_answer"] = "status_only"
         view["other_active_task_id"]=active["id"] if active and (not task or active["id"]!=task["id"]) else None
         unresolved_current=conn.execute("SELECT 1 FROM research_reservations r JOIN research_tasks t ON t.id=r.task_id WHERE t.research_id=? AND t.input_revision=? AND r.status IN ('SENT','UNKNOWN')",(row["id"],row["current_revision"])).fetchone()
         if enabled() and view["current_problem"]["confirmed"] and not active and not unresolved_current:

@@ -33,38 +33,50 @@ def app_env(monkeypatch, tmp_path):
     model.load_model = lambda *a, **k: (_ for _ in ()).throw(AssertionError("unexpected model startup"))
     model.encode_texts = lambda *a, **k: (_ for _ in ()).throw(AssertionError("unexpected model startup"))
     monkeypatch.setitem(sys.modules, "structural_isomorphism.model", model)
-    main = importlib.import_module("main")
-    import numpy as np
-    from services.search_service import SearchService
-    from services.cache import MappingCache
-    from schemas import CandidateMapping
-    from api import analyze, mapping, search, phenomenon
-    svc = SearchService.__new__(SearchService)
-    svc.kb = [{"id": "p1", "name": "反馈候选", "domain": "控制", "type_id": "1", "description": "响应变化出现延迟反馈。"},
-              {"id": "p2", "name": "排队候选", "domain": "运营", "type_id": "1", "description": "流程在负载变化后出现等待。"}]
-    svc.kb_by_id = {r["id"]: r for r in svc.kb}
-    svc.idx_by_id = {r["id"]: i for i, r in enumerate(svc.kb)}
-    svc._embeddings = np.array([[1., 0.], [0., 1.]])
-    svc._bm25 = None
-    svc._struct_by_id = {}
-    svc._encode_query_cached = lambda query: np.array([[1., 0.]])
-    monkeypatch.setitem(main.app_state, "search", svc)
-    monkeypatch.setitem(main.app_state, "artifact", {"artifact_id": "synthetic-artifact"})
-    from services.rate_limit import limiter
-    monkeypatch.setattr(limiter, "enabled", False)  # unrelated test throttling
-    monkeypatch.setattr(mapping, "_cache", MappingCache(tmp_path / "mapping.jsonl", validator=lambda x: CandidateMapping.model_validate(x).model_dump(mode="json")))
-    monkeypatch.setattr(analyze, "_cache", MappingCache(tmp_path / "analysis.jsonl", schema_version=analyze._DEEP_CACHE_SCHEMA))
-    monkeypatch.setattr(analyze, "_report_store", None)
-    monkeypatch.setattr(search, "get_pairs_for", lambda *a, **k: [])
-    monkeypatch.setattr(search, "has_pairs", lambda *a, **k: False)
-    monkeypatch.setattr(phenomenon, "get_pairs_for", lambda *a, **k: [])
-    from services import translation
-    monkeypatch.setattr(translation, "_TRANSLATE_CACHE", {})
-    # TestClient has no lifespan context: do not load models/user stores/mail.
-    from fastapi.testclient import TestClient
-    client = TestClient(main.app, follow_redirects=False)
-    yield main, client, svc, tmp_path
-    client.close()
+    # These are deliberately development handler tests. Other root contracts
+    # import an actual formal Main first; reusing its cached module would keep
+    # its immutable formal middleware despite this fixture's dev environment.
+    missing = object()
+    prior_main = sys.modules.get("main", missing)
+    with monkeypatch.context() as publish:
+        spec = importlib.util.spec_from_file_location("main", BACKEND / "main.py")
+        main = importlib.util.module_from_spec(spec)
+        publish.setitem(sys.modules, "main", main)
+        spec.loader.exec_module(main)
+        import numpy as np
+        from services.search_service import SearchService
+        from services.cache import MappingCache
+        from schemas import CandidateMapping
+        from api import analyze, mapping, search, phenomenon
+        svc = SearchService.__new__(SearchService)
+        svc.kb = [{"id": "p1", "name": "反馈候选", "domain": "控制", "type_id": "1", "description": "响应变化出现延迟反馈。"},
+                  {"id": "p2", "name": "排队候选", "domain": "运营", "type_id": "1", "description": "流程在负载变化后出现等待。"}]
+        svc.kb_by_id = {r["id"]: r for r in svc.kb}
+        svc.idx_by_id = {r["id"]: i for i, r in enumerate(svc.kb)}
+        svc._embeddings = np.array([[1., 0.], [0., 1.]])
+        svc._bm25 = None
+        svc._struct_by_id = {}
+        svc._encode_query_cached = lambda query: np.array([[1., 0.]])
+        monkeypatch.setitem(main.app_state, "search", svc)
+        monkeypatch.setitem(main.app_state, "artifact", {"artifact_id": "synthetic-artifact"})
+        from services.rate_limit import limiter
+        monkeypatch.setattr(limiter, "enabled", False)  # unrelated test throttling
+        monkeypatch.setattr(mapping, "_cache", MappingCache(tmp_path / "mapping.jsonl", validator=lambda x: CandidateMapping.model_validate(x).model_dump(mode="json")))
+        monkeypatch.setattr(analyze, "_cache", MappingCache(tmp_path / "analysis.jsonl", schema_version=analyze._DEEP_CACHE_SCHEMA))
+        monkeypatch.setattr(analyze, "_report_store", None)
+        monkeypatch.setattr(search, "get_pairs_for", lambda *a, **k: [])
+        monkeypatch.setattr(search, "has_pairs", lambda *a, **k: False)
+        monkeypatch.setattr(phenomenon, "get_pairs_for", lambda *a, **k: [])
+        from services import translation
+        monkeypatch.setattr(translation, "_TRANSLATE_CACHE", {})
+        # TestClient has no lifespan context: do not load models/user stores/mail.
+        from fastapi.testclient import TestClient
+        client = TestClient(main.app, follow_redirects=False)
+        try:
+            yield main, client, svc, tmp_path
+        finally:
+            client.close()
+    assert sys.modules.get("main", missing) is prior_main
 
 
 @pytest.fixture

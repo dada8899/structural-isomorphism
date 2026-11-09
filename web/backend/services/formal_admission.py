@@ -148,6 +148,62 @@ class _Binding:
                 raise RuntimeError('Main lifespan admission unavailable')
 
 
+
+def _require_local_financial_calculation(app,service,identity,rid,envelope,key,source):
+    """Private Main admission for the actual authenticated arithmetic call.
+
+    Verify the ordinary Main identity and private resources, without reading
+    the unrelated search model. General Main/search admission is unchanged.
+    """
+    if __package__=='web.backend.services':
+        from ..research import financial_execution
+        from ..research.paid_control import require_authenticated_action
+        from ..research.financial_policy import digest
+    else:
+        from research import financial_execution
+        from research.paid_control import require_authenticated_action
+        from research.financial_policy import digest
+    frame=sys._getframe(1)
+    try:
+        outer=frame.f_back
+        values={'service':service,'identity':identity,'rid':rid,'envelope':envelope,'key':key,'source':source}
+        if (frame.f_globals is not vars(financial_execution) or frame.f_code is not financial_execution._main_binding.__code__
+                or frame.f_locals.get('app') is not app or outer is None
+                or outer.f_globals is not vars(financial_execution) or outer.f_code is not financial_execution.require_request.__code__
+                or outer.f_locals.get('request_app') is not app or any(outer.f_locals.get(k) is not v for k,v in values.items())):
+            raise PermissionError('actual financial Main admission caller required')
+    finally:
+        del frame
+        del outer
+    require_authenticated_action(source,identity=identity,action='financial-calculate',research_id=rid,key=key,
+        body_digest=digest(envelope.data_dict()))
+    binding=_STATE.get(id(app))
+    if (type(binding) is not _Binding or binding.app is not app or binding.origin!=__name__
+            or binding.factory is not _FACTORY or binding.pid!=os.getpid() or binding.config!=_config()):
+        raise PermissionError('actual financial Main binding required')
+    _modules(app)
+    if binding.roots!=(binding.paths.STATE_ROOT,binding.paths.CACHE_ROOT,binding.paths.LOG_ROOT):
+        raise PermissionError('Main private roots changed')
+    if any(_digest(path)!=value for path,value in binding.sources.items()):
+        raise PermissionError('Main source changed')
+    for witness in binding.witnesses:
+        witness.check()
+    parent=binding.witnesses[0].parent_fd
+    lock=os.stat('favorites.lock',dir_fd=parent,follow_symlinks=False)
+    data=os.stat('favorites.jsonl',dir_fd=parent,follow_symlinks=False)
+    if binding.paths.PrivateFavoritesFile._regular(lock)!=binding.favorites_lock:
+        raise PermissionError('Main favorites lock changed')
+    binding.paths.PrivateFavoritesFile._regular(data)
+    with _LIFETIME_LOCK:
+        if binding.retired or _STATE.get(id(app)) is not binding or not binding.active:
+            if _withdrawal_record(binding):
+                raise FormalAdmissionWithdrawn(binding,_factory=_WITHDRAW_FACTORY)
+            raise PermissionError('Main lifespan admission unavailable')
+        if binding.facts.basic_read_write.state!='profile_verified':
+            raise PermissionError('formal financial capability unavailable')
+    return binding
+
+
 def initialize(app):
     """Only actual Main lifespan may build from real, existing consumers."""
     main = _producer(app)
@@ -268,6 +324,16 @@ def require(app, capability):
     return None
 
 
+def local_search_resource(app):
+    """Read the resource admitted by this app's live formal binding."""
+    require(app, 'research_basic')
+    binding = _STATE[id(app)]
+    search = binding.search
+    if search is None or search._formal_snapshot is None:
+        return None
+    return search
+
+
 def safe_status(app):
     require(app, 'research_basic')
     binding = _STATE[id(app)]
@@ -276,10 +342,18 @@ def safe_status(app):
         source_status = 'ready'
     except RuntimeError:
         source_status = 'unavailable'
-    return {'base': 'ready', 'research_basic': binding.facts.basic_read_write.reason,
+    result = {'base': 'ready', 'research_basic': binding.facts.basic_read_write.reason,
             'source_history': binding.facts.source_history.reason, 'source_execute': source_status,
             'math': binding.facts.local_math.reason, 'native_planner': (binding.native_module.safe_status(app)[1] if binding.native_context is not None else binding.facts.native_planner.reason),
             'search': 'ready' if binding.search is not None else 'ARTIFACTS_UNBOUND'}
+    if binding.facts.profile.research_schema in (16,17):
+        family = binding.service.__module__.rsplit('.', 1)[0]
+        answers = importlib.import_module(family + '.first_answer_supervisor')
+        result['first_answer'] = answers.safe_status(app)
+        result['first_answer_local'] = 'ready' if answers.current(app) is not None else 'QUEUE_UNAVAILABLE'
+    if binding.facts.profile.research_schema == 17:
+        result['external_first_answer'] = 'ISSUER_UNBOUND'
+    return result
 
 
 def source_module(binding):

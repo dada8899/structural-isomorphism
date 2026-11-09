@@ -827,6 +827,61 @@ def test_native_close_needs_actual_fd_proof_and_preserves_unknown(monkeypatch, f
         sock.close(); peer.close()
 
 
+def test_native_close_does_not_own_a_reused_descriptor(monkeypatch, tmp_path):
+    sock, peer = socket.socketpair()
+    channel = transport._Channel(sock, time.monotonic() + 3, _factory=transport._FACTORY)
+    note = tmp_path / 'descriptor-reuse'
+    note.write_bytes(b'independent file')
+    reused = None
+    original = transport._close_socket
+
+    def close_and_reuse(actual):
+        nonlocal reused
+        original(actual)
+        reused = os.open(note, os.O_RDONLY)
+        assert reused == channel.fd
+
+    try:
+        with monkeypatch.context() as scope:
+            scope.setattr(transport, '_close_socket', close_and_reuse)
+            channel.close()
+            channel.close()
+        assert channel.closed and not channel.close_error
+        assert channel.reference not in transport._CHANNELS
+        assert os.read(reused, 32) == b'independent file'
+    finally:
+        if reused is not None:
+            os.close(reused)
+        sock.close()
+        peer.close()
+
+
+def test_native_close_cannot_claim_an_already_detached_reused_descriptor(tmp_path):
+    sock, peer = socket.socketpair()
+    channel = transport._Channel(sock, time.monotonic() + 3, _factory=transport._FACTORY)
+    note = tmp_path / 'detached-reuse'
+    note.write_bytes(b'independent file')
+    reused = None
+    try:
+        os.close(sock.detach())
+        reused = os.open(note, os.O_RDONLY)
+        assert reused == channel.fd
+        with pytest.raises(Exception) as unknown:
+            channel.close()
+        assert unknown.value.code == 'CLEANUP_UNCERTAIN' and not channel.closed
+        assert os.read(reused, 32) == b'independent file'
+        os.close(reused)
+        reused = None
+        with pytest.raises(Exception) as retired:
+            channel.close()
+        assert retired.value.code == 'CLEANUP_UNCERTAIN' and channel.closed
+    finally:
+        if reused is not None:
+            os.close(reused)
+        sock.close()
+        peer.close()
+
+
 def certificate(tmp_path, hostname):
     key, cert, config = tmp_path / 'server.key', tmp_path / 'server.pem', tmp_path / 'openssl.cnf'
     config.write_text('[req]\nprompt=no\ndistinguished_name=dn\nx509_extensions=ext\n[dn]\nCN=' + hostname + '\n[ext]\nsubjectAltName=DNS:' + hostname + '\nbasicConstraints=critical,CA:TRUE\nkeyUsage=digitalSignature,keyEncipherment,keyCertSign\nextendedKeyUsage=serverAuth\n')

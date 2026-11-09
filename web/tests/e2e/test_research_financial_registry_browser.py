@@ -53,6 +53,7 @@ async def minimum_chain(tmp_path):
         assert before['status']==200 and before['body']['data']['capabilities']['source_evidence'] is False
         assert (await helpers._native_tls_fetch(page,'/api/health'))['body']['checks']['native_planner']=='FUNDING_CLOSED'
         # Preserve unrelated manual work and its existing original intent.
+        await helpers._open_research_advanced(page)
         await page.locator('#method-draft-method').fill('保存财务材料不得覆盖的人工手稿。')
         original_pending=await helpers._method_main_pending(page)
         preview,saved=await save_from_ui(page,service,bridge)
@@ -137,6 +138,7 @@ async def lost_reload_history(tmp_path):
         await expect(page.locator('#financial-registry-pending')).to_contain_text('原 CSV 未保留')
         await expect(page.locator('#financial-registry-list')).to_contain_text('历史，只读')
         await page.locator('#original-input').fill('本页未保存新草稿，核对原财务操作不能替换。')
+        await helpers._open_research_advanced(page)
         await page.locator('#financial-preview-csv').fill(fin1.LEGAL_CSV)
         await page.get_by_role('button',name='核对上次保存（可能完成原保存）',exact=True).click()
         await expect(page.locator('#financial-registry-status')).to_contain_text('完全相同的原 CSV')

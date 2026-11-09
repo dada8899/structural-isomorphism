@@ -92,11 +92,12 @@ DDL=_declarations()
 
 
 def _validate(entry):
-    from .paid_control import _current_scope,_owner_binding,require_authenticated_action,verify_deletion_origin
+    from .paid_control import _current_scope,_local_financial_scope,_owner_binding,require_authenticated_action,verify_deletion_origin
     from .provider_schemas import digest
     from .financial_input import confirmation_digest,_decode_row
     conn,service,lease=entry['conn'],entry['service'],entry['lease']
-    if (entry['pid']!=os.getpid() or entry['thread']!=threading.get_ident() or _current_scope(conn) is not entry['scope']):
+    scope=_local_financial_scope(conn) if entry['operation']=='INSERT' else _current_scope(conn)
+    if (entry['pid']!=os.getpid() or entry['thread']!=threading.get_ident() or scope is not entry['scope']):
         raise PermissionError('financial input scope retired')
     values=dict(zip(COLUMNS[entry['table']],entry['values']))
     principal=_owner_binding(conn,service.store,values['principal_id'],lease)
@@ -160,7 +161,7 @@ def _write_scope(conn,service,lease,table,operation,values,*,identity=None,sourc
     from .service import ResearchService
     from .store import ResearchStore
     from .authorization import OwnerGateLease
-    from .paid_control import _current_scope
+    from .paid_control import _current_scope,_local_financial_scope
     if __package__=='web.backend.research':from ..services.sqlite_utils import PrivateAuthConnection
     else:from services.sqlite_utils import PrivateAuthConnection
     frame=sys._getframe(1)
@@ -181,7 +182,7 @@ def _write_scope(conn,service,lease,table,operation,values,*,identity=None,sourc
             or conn.private_storage_identity!=service.store.storage_identity or table not in PROTECTED
             or operation not in ('INSERT','DELETE') or id(conn) in _WRITES):
         raise PermissionError('actual native financial input transaction required')
-    scope=_current_scope(conn)
+    scope=_local_financial_scope(conn) if operation=='INSERT' else _current_scope(conn)
     entry={'conn':conn,'service':service,'lease':lease,'table':table,'operation':operation,'values':tuple(values),
            'identity':identity,'source':source,'key':key,'request':request,'job_id':job_id,'scope':scope,'pid':os.getpid(),'thread':threading.get_ident(),
            'execution':execution,'owned_return':owned_return}

@@ -156,7 +156,7 @@ _PAID_OPERATIONS = ('paid-preview','paid-confirm')
 _ROOT_VIEW_OPERATIONS = ('create','revise','view','start','source-start','cancel','reconcile','resume')
 
 
-def _with_request_source_capability(result,*,app,service,research_id,operation):
+def _with_request_source_capability(result,*,app,service,research_id,operation,identity=None):
     """Copy only the Root envelope/data/caps; cached typed content stays intact."""
     if operation not in _ROOT_VIEW_OPERATIONS:return result
     if (type(result) is not dict or set(result)!={'schema_version','contract_revision','data'}
@@ -172,7 +172,20 @@ def _with_request_source_capability(result,*,app,service,research_id,operation):
         raise ValueError('Root research identity differs')
     available=source_integration.request_execution_available(app,service)
     if type(available) is not bool:raise TypeError('Source availability must be boolean')
-    return {**result,'data':{**data,'capabilities':{**caps,'source_evidence':available}}}
+    public_caps = {**caps,'source_evidence':available}
+    if caps.get('external_first_answer') == 'status_only':
+        if __package__ == 'web.backend.api':
+            from ..research.external_first_answer_controlled import current as external_current
+        else:
+            from research.external_first_answer_controlled import current as external_current
+        if external_current(app,service) is not None:
+            public_caps['external_first_answer'] = 'ready'
+        elif identity is not None:
+            if __package__=='web.backend.api':from ..services.external_live_operations import current as live_external_current
+            else:from services.external_live_operations import current as live_external_current
+            if live_external_current(app,service,identity) is not None:
+                public_caps['external_first_answer'] = 'ready'
+    return {**result,'data':{**data,'capabilities':public_caps}}
 
 
 def _paid_response_unavailable():
@@ -349,6 +362,107 @@ async def _history_threadpool(request,stage):
         if slot is not None:admission.cancel_history_worker(slot)
 
 
+def _closed_external_scope(service, identity, research_id, input_revision, expected=None):
+    """Recheck the actual owner/snapshot without reading or exporting content."""
+    rid = service._id(research_id)
+    principal = service._principal(identity)
+    with service.store.transaction() as conn:
+        row = service.authorization.check(conn, identity, principal, rid)
+        revision = conn.execute(
+            "SELECT digest FROM research_revisions WHERE research_id=? AND revision=?",
+            (rid, input_revision)).fetchone()
+        if revision is None:
+            raise ResearchError("NOT_FOUND",404,"研究不存在或当前无法访问。")
+        if expected is not None and (row["current_revision"], row["version"], revision["digest"]) != (
+                input_revision, expected.research_version, expected.problem_digest):
+            raise ResearchError("REVISION_CONFLICT",409,"问题已有变化，请重新读取。")
+
+
+_EXTERNAL_FIRST_ANSWER = ("external-answer-preview", "external-answer-confirm", "external-answer-status", "external-answer-result")
+
+
+async def _dispatch_closed_external_answer(request, service, identity, research_id, operation):
+    raw_revision = request.path_params["input_revision"]
+    if request.query_params or not re.fullmatch(r"[1-9][0-9]{0,9}", raw_revision):
+        raise ResearchError("INPUT_INVALID",422,"外部分析修订或查询参数无效。")
+    input_revision = int(raw_revision)
+    if input_revision > 2147483647:
+        raise ResearchError("INPUT_INVALID",422,"外部分析修订无效。")
+    expected = None
+    read_only = operation in ("external-answer-status", "external-answer-result")
+    if not read_only:
+        if auth.require_same_origin(request) is not None:
+            raise ResearchError("AUTHORIZATION_STALE",403,"请从本站页面操作外部分析。")
+        if __package__ == 'web.backend.api':
+            from ..research.external_first_answer_contract import ExplicitConfirmation
+            from ..research.local_first_answer import FirstAnswerRequest
+        else:
+            from research.external_first_answer_contract import ExplicitConfirmation
+            from research.local_first_answer import FirstAnswerRequest
+        if operation == "external-answer-preview":
+            expected = await _parse(request, FirstAnswerRequest)
+        else:
+            confirmation = await _parse(request, ExplicitConfirmation)
+            if not all((confirmation.confirm_exact_question, confirmation.confirm_maximum_cost, confirmation.declares_right_to_send)):
+                raise ResearchError("INPUT_INVALID",422,"需要明确确认发送内容、费用和使用权。")
+    if operation != "external-answer-preview":
+        key = request.headers.get("idempotency-key", "")
+        if not re.fullmatch(r"[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}", key):
+            raise ResearchError("INPUT_INVALID",422,"原操作标识缺失或不合法。")
+    if read_only:
+        async for chunk in request.stream():
+            if chunk:
+                raise ResearchError("INPUT_INVALID",422,"状态查询不接受请求正文。")
+        if __package__ == 'web.backend.api':
+            from ..research.external_first_answer_catalog import read_main_recovery
+        else:
+            from research.external_first_answer_catalog import read_main_recovery
+        recovered = await run_in_threadpool(read_main_recovery, service, identity, research_id, input_revision,
+                                            key, result=operation == "external-answer-result")
+        if recovered is not None:
+            return JSONResponse(recovered, headers=_HEADERS)
+
+    if not read_only:
+        if __package__ == 'web.backend.api':
+            from ..research import external_first_answer_controlled as controlled
+            from ..research.external_first_answer_contract import ContractError
+            from ..research.paid_control import issue_authenticated_action
+            from ..services import external_live_operations as live_operations
+        else:
+            from research import external_first_answer_controlled as controlled
+            from research.external_first_answer_contract import ContractError
+            from research.paid_control import issue_authenticated_action
+            from services import external_live_operations as live_operations
+        selected=await run_in_threadpool(live_operations.current,request.app,service,identity)
+        runtime=controlled.current(request.app,service) if selected is None else None
+        if selected is not None or runtime is not None:
+            source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
+            try:
+                if selected is not None:
+                    if operation == "external-answer-preview":
+                        result=await run_in_threadpool(live_operations.preview,selected,identity,research_id,input_revision,expected,source)
+                    else:
+                        result=await run_in_threadpool(live_operations.confirm,selected,request.app,identity,research_id,input_revision,key,confirmation,source)
+                else:
+                    # Both lanes use real request proof; the controlled
+                    # transport never supplies a live handle or quote.
+                    value=expected if operation=="external-answer-preview" else confirmation
+                    await run_in_threadpool(live_operations._source,source,identity,operation,research_id,input_revision,
+                        "" if operation=="external-answer-preview" else key,value)
+                    if operation=="external-answer-preview":
+                        result=await run_in_threadpool(controlled.preview,runtime,service,identity,research_id,input_revision,expected)
+                    else:
+                        result=await run_in_threadpool(controlled.confirm,runtime,service,identity,research_id,input_revision,key,confirmation)
+                return JSONResponse(result,headers=_HEADERS)
+            except (ContractError,sqlite3.Error,PermissionError):
+                raise ResearchError("OPERATION_UNAVAILABLE",409,"外部操作未能核对，请读取原操作状态。") from None
+            finally:source.close()
+
+    await run_in_threadpool(_closed_external_scope, service, identity, research_id, input_revision, expected)
+    # No issuer, quote, reservation, execution or response lookup is admitted.
+    raise ResearchError("FEATURE_UNAVAILABLE",503,"外部分析尚未开放，已保存的问题仍在。")
+
+
 async def _dispatch(request, *, research_id=None, operation="view"):
     try:
         history_read=False
@@ -370,6 +484,68 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         # Captured private storage never falls back to a development flag after
         # environment downgrade, including requests outside canonical Main.
         if service.store._formal_mode():require_formal_application(request.app,'research_basic')
+        if operation in _EXTERNAL_FIRST_ANSWER:
+            return await _dispatch_closed_external_answer(request, service, identity, research_id, operation)
+        if operation in ("first-answer-read", "first-answer-generate", "first-answer-cancel"):
+            raw_revision = request.path_params["input_revision"]
+            if request.query_params or not re.fullmatch(r"[1-9][0-9]{0,9}",raw_revision):
+                raise ResearchError("INPUT_INVALID",422,"初步分析修订或查询参数无效。")
+            if __package__=='web.backend.api':
+                from ..research import first_answer_queue, first_answer_supervisor
+                from ..research.first_answer import read
+                from ..research.local_first_answer import FirstAnswerRequest, FirstAnswerCancelRequest
+            else:
+                from research import first_answer_queue, first_answer_supervisor
+                from research.first_answer import read
+                from research.local_first_answer import FirstAnswerRequest, FirstAnswerCancelRequest
+            input_revision = int(raw_revision)
+            if operation == "first-answer-read":
+                try:
+                    result = await run_in_threadpool(read, service, identity, research_id, input_revision)
+                except ResearchError as error:
+                    if error.code != "NOT_FOUND":
+                        raise
+                    result = await run_in_threadpool(first_answer_queue.read, service, identity, research_id, input_revision)
+                    if result["status"] == "completed":
+                        # The queue can commit between the snapshot and job reads.
+                        result = await run_in_threadpool(read, service, identity, research_id, input_revision)
+                return JSONResponse(result,headers=_HEADERS)
+            if auth.require_same_origin(request) is not None:
+                raise ResearchError("AUTHORIZATION_STALE",403,"请从本站页面操作初步分析。")
+            if operation == "first-answer-cancel":
+                arguments = await _parse(request, FirstAnswerCancelRequest)
+                result = await run_in_threadpool(first_answer_queue.cancel, service, identity, research_id,
+                    input_revision=input_revision, **arguments.model_dump())
+                return JSONResponse(result,headers=_HEADERS)
+            arguments = await _parse(request, FirstAnswerRequest)
+            try:
+                result = await run_in_threadpool(read, service, identity, research_id, input_revision)
+            except ResearchError as error:
+                if error.code != "NOT_FOUND":
+                    raise
+            else:
+                if (result["metadata"]["problem_digest"], result["metadata"]["research_version"]) != (
+                        arguments.problem_digest, arguments.research_version):
+                    raise ResearchError("REVISION_CONFLICT",409,"问题已有变化，请重新读取。")
+                return JSONResponse(result,headers=_HEADERS)
+            worker = first_answer_supervisor.current(request.app)
+            if worker is None:
+                try:
+                    result = await run_in_threadpool(first_answer_queue.read, service, identity, research_id, input_revision)
+                except ResearchError as error:
+                    if error.code != "NOT_FOUND":
+                        raise
+                    raise ResearchError("FEATURE_UNAVAILABLE",503,"后台分析暂不可用，已保存的问题仍在。") from None
+                if (result["metadata"]["problem_digest"], result["metadata"]["research_version"]) != (
+                        arguments.problem_digest, arguments.research_version):
+                    raise ResearchError("REVISION_CONFLICT",409,"问题已有变化，请重新读取。")
+            else:
+                result = await run_in_threadpool(first_answer_queue.enqueue, service, identity, research_id,
+                    input_revision=input_revision, **arguments.model_dump())
+                worker.notify()
+            if result["status"] == "completed":
+                result = await run_in_threadpool(read, service, identity, research_id, input_revision)
+            return JSONResponse(result,status_code=202 if result["status"] in ("queued","running") else 200,headers=_HEADERS)
         if operation in _FINANCIAL_RESULT_OPERATIONS:
             return await _dispatch_financial_result(request,service,identity,research_id,operation)
         if operation in _EVIDENCE_OPERATIONS:
@@ -619,7 +795,7 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         if operation in _ROOT_VIEW_OPERATIONS:
             try:
                 result=await run_in_threadpool(_with_request_source_capability,result,
-                    app=request.app,service=service,research_id=research_id,operation=operation)
+                    app=request.app,service=service,research_id=research_id,operation=operation,identity=identity)
                 if projection_bytes(result)>RESEARCH_RESPONSE_LIMIT:
                     raise ValueError('Root response exceeds bounded projection')
                 return JSONResponse(result,headers=_HEADERS)
@@ -674,6 +850,41 @@ async def revise_research(research_id: str, request: Request):
 @router.get("/research/{research_id}")
 async def view_research(research_id: str, request: Request):
     return await _dispatch(request, research_id=research_id)
+
+
+@router.get("/research/{research_id}/revisions/{input_revision}/first-answer")
+async def read_research_first_answer(research_id: str, input_revision: str, request: Request):
+    return await _dispatch(request,research_id=research_id,operation="first-answer-read")
+
+
+@router.post("/research/{research_id}/revisions/{input_revision}/first-answer")
+async def generate_research_first_answer(research_id: str, input_revision: str, request: Request):
+    return await _dispatch(request,research_id=research_id,operation="first-answer-generate")
+
+
+@router.delete("/research/{research_id}/revisions/{input_revision}/first-answer")
+async def cancel_research_first_answer(research_id: str, input_revision: str, request: Request):
+    return await _dispatch(request,research_id=research_id,operation="first-answer-cancel")
+
+
+@router.post("/research/{research_id}/revisions/{input_revision}/external-first-answer/preview")
+async def preview_external_first_answer(research_id: str, input_revision: str, request: Request):
+    return await _dispatch(request,research_id=research_id,operation="external-answer-preview")
+
+
+@router.post("/research/{research_id}/revisions/{input_revision}/external-first-answer/confirm")
+async def confirm_external_first_answer(research_id: str, input_revision: str, request: Request):
+    return await _dispatch(request,research_id=research_id,operation="external-answer-confirm")
+
+
+@router.get("/research/{research_id}/revisions/{input_revision}/external-first-answer/status")
+async def read_external_first_answer_status(research_id: str, input_revision: str, request: Request):
+    return await _dispatch(request,research_id=research_id,operation="external-answer-status")
+
+
+@router.get("/research/{research_id}/revisions/{input_revision}/external-first-answer/result")
+async def read_external_first_answer_result(research_id: str, input_revision: str, request: Request):
+    return await _dispatch(request,research_id=research_id,operation="external-answer-result")
 
 
 @router.post("/research/{research_id}/tasks")

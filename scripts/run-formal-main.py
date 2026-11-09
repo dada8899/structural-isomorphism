@@ -569,8 +569,14 @@ def _serve(pid, uid, *, entry_module=None, entry_witness=None):
     # Importing code may change process properties. Recheck immediately before
     # the actual server; no exec, UID switch or worker wrapper follows this.
     _check_boundary(pid, uid)
+    external_live_production = None
+    if entry_witness is not None:
+        from services import external_live_production
+        external_live_production.publish_entry_for_serve(main.app,entry_witness)
     outcome = 'raised'
     try:
+        if external_live_production is not None:
+            _check_boundary(pid,uid)
         server.run()
         outcome = 'returned'
         if not server.started or server.lifespan.error_occured or server.lifespan.startup_failed or server.lifespan.shutdown_failed:
@@ -581,6 +587,9 @@ def _serve(pid, uid, *, entry_module=None, entry_witness=None):
         try:primary._server_failure = _server_failure_snapshot(server, outcome)
         except BaseException:pass  # Observation cannot replace SERVER_FAILED.
         raise primary from None
+    finally:
+        if external_live_production is not None:
+            external_live_production.unpublish_entry_for_serve(main.app)
 
 
 def main():

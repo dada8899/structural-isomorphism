@@ -1335,6 +1335,9 @@ def test_public_entry_actual_owner_index_anchor(page,real_entry_server,viewport,
     # scrollIntoView rounds scrollY to device pixels; permit <1px rounding.
     assert -1<=bounds["y"]<page.viewport_size["height"]-44, {"section_y":bounds["y"],"scroll_y":page.evaluate("scrollY")}
     page.locator("#original-input").fill("导航之后新写的私密草稿不会被列表刷新改写")
+    toggle=page.locator('#advanced-tools-toggle')
+    if toggle.get_attribute('aria-expanded') != 'true':
+        toggle.click()
     page.locator("#summary").fill("手写摘要必须保留")
     page.locator("#confirmed").check()
     page.locator("#original-input").focus();page.evaluate("scrollTo(0,0)")

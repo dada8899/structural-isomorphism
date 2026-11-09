@@ -308,12 +308,14 @@ class ResolvedOwnerFinancialRegistryV2:
     def owner_data(self):self.require();return self._entry['body']
     def require(self):
         import os,threading
-        from .paid_control import _current_scope,_owner_binding,require_authenticated_action
+        from .financial_execution import require_native_scope
+        from .paid_control import require_authenticated_action
         e=getattr(self,'_entry',None)
         if (_RESOLVED_OWNER.get(id(self)) is not self or not e or e['pid']!=os.getpid()
-                or e['thread']!=threading.get_ident() or _current_scope(e['conn']) is not e['scope']):
+                or e['thread']!=threading.get_ident()):
             raise PermissionError('owner registry origin retired')
-        _owner_binding(e['conn'],e['service'].store,e['principal_id'],e['lease'])
+        scope,_=require_native_scope(e['conn'],e['service'],e['identity'],e['principal_id'],e['lease'])
+        if scope is not e['scope']:raise PermissionError('owner registry scope changed')
         require_authenticated_action(e['source'],identity=e['identity'],action='financial-calculate',
             research_id=e['rid'],body_digest=_hash(e['envelope'].data_dict()))
         e['service'].authorization.check(e['conn'],e['identity'],e['principal_id'],e['rid'],scope='read')
@@ -326,11 +328,10 @@ def resolve_owner_registry_v2(conn,service,identity,rid,envelope,lease,source):
     import os,threading
     from .financial_execution import require_calculate_frame,require_native_scope
     from .financial_result_v2 import input_binding
-    from .paid_control import _current_scope
     require_calculate_frame({'conn':conn,'service':service,'identity':identity,'rid':rid,
         'envelope':envelope,'lease':lease,'source':source})
     pid,control=_context(conn,service,identity,rid,write=True)
-    require_native_scope(conn,service,identity,pid,lease)
+    scope,_=require_native_scope(conn,service,identity,pid,lease)
     service.authorization.check(conn,identity,pid,rid,scope='read')
     ref=envelope.data.registry_ref
     row=conn.execute('SELECT * FROM '+REGISTRIES+' WHERE registry_ref=? AND registry_revision=? AND registry_digest=? AND research_id=? AND principal_id=? AND input_revision=?',
@@ -342,6 +343,6 @@ def resolve_owner_registry_v2(conn,service,identity,rid,envelope,lease,source):
             or control['current_revision']!=row['input_revision'] or control['version']!=envelope.data.expected_research_version):
         raise ResearchError('REVISION_CONFLICT',409,'研究或财务注册已变化。')
     entry={'conn':conn,'service':service,'identity':identity,'principal_id':pid,'rid':rid,'envelope':envelope,
-        'lease':lease,'source':source,'body':body,'row':dict(row),'scope':_current_scope(conn),
+        'lease':lease,'source':source,'body':body,'row':dict(row),'scope':scope,
         'pid':os.getpid(),'thread':threading.get_ident()}
     return ResolvedOwnerFinancialRegistryV2(entry,_factory=_RESOLVER_FACTORY)

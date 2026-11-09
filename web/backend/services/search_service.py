@@ -245,8 +245,9 @@ class SearchService:
         self.idx_by_id: Dict[str, int] = {}
         self._load_kb()
 
-        # Per-instance query encode cache (replaced on reload)
-        self._encode_query_cached = lru_cache(maxsize=1024)(self._encode_query_uncached)
+        # Formal searches can contain private research input. A zero-sized
+        # cache tracks calls without retaining the query text or embedding.
+        self._encode_query_cached = lru_cache(maxsize=0 if formal else 1024)(self._encode_query_uncached)
 
         # Load precomputed or encode fresh embeddings
         self._embeddings = None
@@ -524,14 +525,15 @@ class SearchService:
     BOOST_DYNAMICS = 0.10  # added to fused score for matching dynamics_family
     DOMAIN_CAP_IN_TOP5 = 2  # diversity guard threshold
 
-    def _fused_scores(self, query: str) -> np.ndarray:
+    def _fused_scores(self, query: str, q_emb: np.ndarray | None = None) -> np.ndarray:
         """Return a (N,) array of fused scores aligned with self.kb."""
         n = len(self.kb)
         if n == 0 or self._embeddings is None:
             return np.zeros(0, dtype=np.float32)
 
         # --- Embedding similarity ---
-        q_emb = self.encode_query(query)
+        if q_emb is None:
+            q_emb = self.encode_query(query)
         emb_sims = np.dot(self._embeddings, q_emb.T).flatten().astype(np.float32)
         emb_norm = _minmax(emb_sims)
 
@@ -645,18 +647,15 @@ class SearchService:
           * surface_domain— the inferred surface domain (echoed on every result;
                             None when no single domain dominates the pool)
         """
-        if self._embeddings is None or not query.strip():
+        if self._embeddings is None or not self.kb or not query.strip():
             return []
 
-        fused = self._fused_scores(query)
+        q_emb = self.encode_query(query)
+        fused = self._fused_scores(query, q_emb)
         if fused.size == 0:
             return []
 
         surface_domain = self._infer_surface_domain(fused)
-        # Query embedding is already in the lru cache (encoded inside
-        # _fused_scores), so this re-fetch is free — used for per-result
-        # unified relevance.
-        q_emb = self.encode_query(query)
 
         # Take a larger candidate pool, then diversity-rank down to top_k.
         pool_size = min(len(self.kb), max(top_k * 4, 40))

@@ -318,7 +318,7 @@ class SourceSupervisor:
                     if type(error) is not ResearchError or error.code!='STORE_BUSY' or self._slot is not None or self._lease is not None:raise
                     with self._lock:_check(self,published=True)
                     self._event.wait(.01);self._event.clear()
-            if facts.profile.checked_pid != self._pid or facts.profile.research_schema != 15:
+            if facts.profile.checked_pid != self._pid or facts.profile.research_schema not in (15,16):
                 raise _unavailable()
             while True:
                 with self._lock:
@@ -594,7 +594,7 @@ def join(supervisor, *, deadline_monotonic: float) -> SourceCleanupReceipt:
 def _select(store, *, cleanup_only=False, after=''):
     """No active/ACL join can hide a terminal or deleted task's old debt."""
     with store.transaction() as conn:
-        if conn.execute('SELECT version FROM research_schema').fetchone()[0] != 15:
+        if conn.execute('SELECT version FROM research_schema').fetchone()[0] not in (15,16):
             raise _unavailable()
         rows = conn.execute("""SELECT t.id,r.started,t.execution,
             EXISTS(SELECT 1 FROM research_source_requests q WHERE q.task_id=t.id
