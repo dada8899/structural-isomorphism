@@ -74,6 +74,30 @@ def compose(question, search):
     }
 
 
+def compose_with_worker(question, search):
+    """Answer a non-template question using only the bound local worker."""
+    from .local_answer_transport import LocalAnswerUnavailable, complete, worker_present
+    from .local_first_answer_contract import FirstAnswerContractError, interpret, prepare
+    from .provider_schemas import canonical
+
+    if search is None or not worker_present():
+        return None
+    try:
+        rows = []
+        seen = set()
+        for hit in search.search(question, top_k=4):
+            locator = hit.get("id")
+            if isinstance(locator, str) and locator not in seen:
+                record = search.get_by_id(locator)
+                if record:
+                    rows.append(record)
+                    seen.add(locator)
+        request = prepare(question, search.artifact["artifact_id"], rows)
+        return interpret(complete(canonical({"messages": request.messages})), request)
+    except (FirstAnswerContractError, LocalAnswerUnavailable):
+        return None
+
+
 def generate(service, identity, research_id, *, input_revision, problem_digest, research_version, search):
     """Generate from an authorized stored question, then recheck CAS on write."""
     from .errors import ResearchError
@@ -95,6 +119,19 @@ def generate(service, identity, research_id, *, input_revision, problem_digest, 
             input_revision, problem_digest, research_version):
         raise ResearchError("REVISION_CONFLICT", 409, "问题已有变化，请重新读取。")
     answer = compose(question["original_input"], search)
+    if answer is None:
+        result = compose_with_worker(question["original_input"], search)
+        if result and result["status"] == "insufficient":
+            # A clarification is not a result snapshot; confirm the question
+            # still belongs to this request before returning any model text.
+            current = service.view(identity, research_id)["data"]
+            if (current["current_problem"]["digest"], current["research_version"]) != (
+                    problem_digest, research_version):
+                raise ResearchError("REVISION_CONFLICT", 409, "问题已有变化，请重新读取。")
+            return {"contract_revision": "first-answer-v1", **result,
+                    "metadata": {"research_id": research_id, "input_revision": input_revision,
+                                 "problem_digest": problem_digest}}
+        answer = result["content"] if result else None
     if answer is None:
         raise ResearchError("FEATURE_UNAVAILABLE", 503, "这个问题暂时没有可用的本地初步分析。")
     return save(service, identity, research_id, input_revision=input_revision,

@@ -1438,9 +1438,19 @@
       if (response.status === 401) { clearPrivateView('confirmed_logout'); return; }
       if (!response.ok) return; // no answer or a server that does not yet support this capability
       const answer = await response.json();
-      if (!active() || answer?.contract_revision !== 'first-answer-v1' || answer.status !== 'provisional' ||
+      if (!active() || answer?.contract_revision !== 'first-answer-v1' ||
           answer.metadata?.research_id !== id || answer.metadata.input_revision !== inputRevision ||
-          answer.metadata.problem_digest !== problemDigest || !planObject(answer.content)) return;
+          answer.metadata.problem_digest !== problemDigest) return;
+      if (generate && answer.status === 'insufficient' && answer.reason === 'needs_clarification' &&
+          typeof answer.question === 'string' && answer.question.length > 0 && answer.question.length <= 480) {
+        if (!await authenticated(active, controller.signal) || !active()) return;
+        const prompt = document.createElement('p');
+        prompt.textContent = answer.question;
+        byId('first-answer-body').append(prompt);
+        byId('first-answer-status').textContent = '还需要确认一点。可以在上方补充后再开始研究。';
+        return true;
+      }
+      if (answer.status !== 'provisional' || !planObject(answer.content)) return;
       const {explanation, assumptions, cross_domain_leads:leads, next_check:check, references} = answer.content;
       const bounded = value => typeof value === 'string' && value.length > 0 && value.length <= 2400;
       if (!bounded(explanation) || !bounded(check) ||

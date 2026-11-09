@@ -121,3 +121,34 @@ def test_bounds_and_exact_record_identity_on_input():
     ):
         with pytest.raises(FirstAnswerContractError):
             prepare(*args)
+
+
+def test_worker_path_uses_bound_rows_and_drops_unverifiable_output(monkeypatch):
+    from web.backend.research import local_answer_transport as transport
+    from web.backend.research.local_first_answer import compose_with_worker
+
+    class Search:
+        artifact = {"artifact_id": "approved-kb-v1"}
+
+        def search(self, query, top_k):
+            assert query == "未知系统为什么恢复较慢？" and top_k == 4
+            return [{"id": "kb-one", "description": "不得使用检索摘要"}]
+
+        def get_by_id(self, locator):
+            return record(locator)
+
+    responses = iter([output(candidate()), output(candidate(source_refs=[2]))])
+
+    def complete(raw):
+        messages = json.loads(raw)["messages"]
+        prompt = json.loads(messages[1]["content"])
+        assert prompt["question"] == "未知系统为什么恢复较慢？"
+        assert prompt["sources"][0]["excerpt"] == record()["description"]
+        assert "不得使用检索摘要" not in messages[1]["content"]
+        return next(responses)
+
+    monkeypatch.setattr(transport, "worker_present", lambda: True)
+    monkeypatch.setattr(transport, "complete", complete)
+    question = "未知系统为什么恢复较慢？"
+    assert compose_with_worker(question, Search())["content"]["references"][0]["record_digest"] == digest(record())
+    assert compose_with_worker(question, Search()) is None

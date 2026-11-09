@@ -49,6 +49,16 @@ def _exchange(connection, payload, deadline):
     return bytes(data)
 
 
+def worker_present():
+    """Fast availability hint; complete() independently checks peer identity."""
+    if sys.platform != "linux":
+        return False
+    try:
+        return stat.S_ISSOCK(os.lstat(_SOCKET).st_mode)
+    except OSError:
+        return False
+
+
 def complete(payload):
     """Submit approved prompt bytes to the fixed local worker; never retry."""
     if type(payload) is not bytes or not 1 <= len(payload) <= _MAX_INPUT:
