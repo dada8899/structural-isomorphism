@@ -1,0 +1,155 @@
+"""Conservative conditional mechanisms backed by an approved corpus revision.
+
+This module offers one small, inspectable hypothesis, not a diagnosis or a
+retrieval-score inference. No user text is copied to the response; no provider
+or unapproved source is contacted. A missing, altered or ambiguous source is
+a reason to decline and let the caller continue its existing workflow.
+"""
+from dataclasses import dataclass
+import re
+import unicodedata
+
+from .service import digest
+
+
+_ARTIFACT = "structural-v2-kb4443-20260711"
+_SOURCE_DIGESTS = {
+    "soc-093": "da2c2fdaab5e4892791beee2ad37abda516715022c71dfeb75723ec5744aeebe",
+    "bio-012": "faab927261d195231bd712a8ed21c392dcfc7718db6c1b15be1993789588f806",
+    "5k-29-011": "2ec486f4fa93d7c747146d9886e66f64b3bcde0ce2c8994289c6f8d03c853f5b",
+    "5k-ef-148": "25e53d4d9e9a8f7b489262f3953730e559fbeb7533e7e3d0bcd91c42eba3c02f",
+    "5k-12-080": "3092b3a494b0787a99188b5bead20b5bebb890d3b19d20fa751eccb5562e544c",
+    "5k-30-041": "62090a101a1ef122142fb3b8fa8718d8f39136bdb4cc5a9d38ee8a8bbd5b92de",
+}
+
+
+@dataclass(frozen=True)
+class Mechanism:
+    name: str
+    # Every group in one alternative must occur in the same bounded passage.
+    alternatives: tuple[tuple[str, ...], ...]
+    veto: str
+    sources: tuple[str, ...]
+    explanation: str
+    assumptions: tuple[str, ...]
+    cross_domain_leads: tuple[str, ...]
+    next_check: str
+
+
+_MECHANISMS = (
+    Mechanism(
+        name="delayed-feedback",
+        alternatives=((
+            r"时滞|滞后|延迟|慢半拍|旧读数|旧数据|上[一两二三]轮|到货前|到货要|delay|lag|outdated|stale",
+            r"纠偏|校正|调节|温控|负反馈|反馈控制|设定值|补货|调整.{0,12}(配额|控制量)|"
+            r"correct(?:ion|ive|s|ing)?\b|adjust(?:ment|s|ing)?\b|setpoint|reorder|restock|controller",
+            r"过冲|超调|振荡|来回摆|忽高忽低|反复.{0,12}(缺货|过量|过剩)|缺货.{0,12}(过量|过剩|积压)|"
+            r"overshoot|overcorrect|oscillat|swing back",
+        ),),
+        veto=(r"没有.{0,8}(反馈|调节|纠偏|校正)|不根据.{0,10}(测量|误差|状态)|开环|"
+              r"(每天|按时).{0,8}(定时|开关|开机).{0,12}(不看|不管)|"
+              r"no (?:feedback|correction)|open.loop|timer.only|never adjusts|剂量|给药|用药|\bdose\b"),
+        sources=("soc-093", "bio-012"),
+        explanation="如果每轮都根据旧偏差纠正，前一轮动作还没生效时又加码，累积的纠正可能超过需要；等观测追上来，反向调整也可能过量。相对于系统响应速度，延迟越长或每次调整越猛，越值得检查是否因此反复超调。看到延迟和波动还不足以证明这个闭环原因。",
+        assumptions=("动作确实会反过来影响下一轮测量，而且方向是纠偏。单向传递慢并不构成反馈。",
+                     "比较时固定外部输入，另查周期扰动、执行上限及测量噪声。库中例子的幅度和周期不能套用。"),
+        cross_domain_leads=("补货中的在途订单和某些生物反馈中的抑制物积累，都让纠偏作用晚于触发信号；可借用分开记录偏差、动作和生效时间的方法。",),
+        next_check="用历史回放或小型可逆实验记录测量、下令和生效三个时间点。保持外部输入和目标不变，单独缩短信息延迟或减小纠偏幅度，比较最大过冲和恢复时间。如果固定纠偏后仍按同一外部周期波动，优先查外部驱动。",
+    ),
+    Mechanism(
+        name="peer-adoption-threshold",
+        alternatives=((
+            r"采纳|采用|试用|注册|报名|加入|参与|跟进|adopt|join|sign[ -]?up|try",
+            r"(?:多[个位组名]|[两二三四五几][个位组名]|至少.{0,5}|多数|过半|不同.{0,4})"
+            r".{0,14}(?:同伴|朋友|邻居|同事|团队|同行|熟人|人)|"
+            r"(?:同伴|朋友|邻居|同事|团队|同行|熟人).{0,14}(?:比例|过半|[0-9]+%|阈值|多数)|"
+            r"(?:several|multiple|two|three|distinct|fraction of|majority of).{0,18}\b(?:peers|friends|neighbou?rs|teams|coworkers)",
+            r"看到|接触|听说|说服|带动|确认|推荐|传播|扩散|跟进|到.{0,5}才|see|hear|exposure|spread|diffus|recommend",
+        ),),
+        veto=(r"一次接触就会|只要接触一次|同一[个位人].{0,15}(?:反复|重复|多次)|"
+              r"(?:everyone|all users) (?:got|received) the same (?:notice|message)|"
+              r"所有人.{0,12}(?:同时收到|统一通知)|just one contact|single exposure suffices"),
+        sources=("5k-29-011", "5k-ef-148"),
+        explanation="如果是否参与取决于已有多少相关同伴先参与，新增一个同伴可能只在接近个人门槛时带来明显变化。局部集中触达有机会让一组人跨过各自门槛，进而带动下一组。曲线突然加速本身不能证明有同伴阈值，也不能据此给出全网通用的临界比例。",
+        assumptions=("观察的是主动采纳或参与，且确能看见不同同伴的选择；同一个来源重复出现不能当成多个同伴。",
+                     "区分同伴影响与共同原因，例如同时看到同一活动、推荐算法改动或使用成本下降。"),
+        cross_domain_leads=("组织内的工具采纳与集体行动都可以用局部门槛作假设。两者的参与成本、关系网络和各人门槛未必相同。",),
+        next_check="在获得同意的小试验中保持总触达量、时间窗和参与成本相近，比较同伴触达集中与分散的组。逐人记录采纳前看见的不同同伴数和首次采纳时间。如果控制共同曝光后，增加不同同伴数也不改变采纳概率，先排查通知、激励或渠道差异。",
+    ),
+    Mechanism(
+        name="information-cascade",
+        alternatives=(
+            (
+                r"(?:同一(?:份|条|个|家)|同源|共同(?:的)?原始).{0,14}(?:报告|数据|通稿|公告|采访|消息|原帖|来源|文件)|"
+                r"(?:same|single|one) (?:original |underlying )?(?:report|dataset|press release|source|article)",
+                r"转述|转引|转发|引用|转载|来自|抄|repost|repeat|cite|quot|copi|derived",
+                r"独立证据|相互印证|更可信|更可靠|可信度|证实|同样结论|"
+                r"independent evidence|confirm|corroborat|more reliable|credib",
+            ),
+            (
+                r"先看.{0,16}(?:选择|评分|分数|结论|意见)|看到.{0,16}(?:前人|前几|之前|上一轮|别人的)|"
+                r"(?:前人|前几位|前几人).{0,12}(?:选择|意见|决定|打分)|"
+                r"see.{0,20}(?:earlier|previous).{0,14}(?:choices|votes|ratings)|observ.{0,18}earlier",
+                r"(?:自己|各自|私人|独立).{0,12}(?:信号|数据|判断|试验|试用|结论|意见)|"
+                r"(?:own|private|independent) (?:signal|evidence|judg|rating|tests?)",
+                r"跟着|跟随|照着|跟投|跟选|改选|压下|忽略|从众|conform|follow|ignor|overrid|set aside",
+            ),
+        ),
+        veto=(r"互盲|看不到前人的|不看前人的|彼此看不到|先独立.{0,16}后公开|"
+              r"without seeing.{0,24}(?:others|earlier)|blinded independent"),
+        sources=("5k-12-080", "5k-30-041"),
+        explanation="先把支持同一结论的记录追到原始观测：多条转述若共享同一原件，不能按多份独立证据累加。若还有按顺序观察他人选择、进而压下自己信号的过程，才进一步符合信息级联。单看一致的结论不能区分这种级联、同源引用和真正的独立验证。",
+        assumptions=("判断链里区分原始观察、引用与最后选择；两个不同链接不必然是两个独立来源。",
+                     "如果判断者在看到前人之前已互盲独立记录，或后来者公开了可核验的新观测，就不能仅凭共识推断级联。不同原件仍可能共用采样偏差。"),
+        cross_domain_leads=("可借用数据血缘图：把原始观察当根节点、转述当依赖边，先按根节点去重。去重能识别复用，不能证明不同根完全独立。",),
+        next_check="对每条主张记录原始文件或观测、发布时间和引用链，比较去重前后真正可核验的证据数。若要检验是否压下了私人信号，先做一轮互盲独立判断，再公开前序选择，比对改判方向；若新增独立观测已经解释改判，就不归为级联。",
+    ),
+)
+
+
+def _passages(question):
+    parts = [part.strip() for part in re.split(r"[。！？!?；;\n]+", question) if part.strip()]
+    for start, part in enumerate(parts):
+        if len(part) <= 400:
+            yield part
+        if start + 1 < len(parts):
+            pair = part + " " + parts[start + 1]
+            if len(pair) <= 400:
+                yield pair
+
+
+def _match(question):
+    passages = tuple(_passages(question))
+    return tuple(rule for rule in _MECHANISMS if not re.search(rule.veto, question)
+                 and any(all(re.search(pattern, passage) for pattern in alternative)
+                         for alternative in rule.alternatives for passage in passages))
+
+
+def compose_reviewed_mechanism(question, search):
+    """Return AnswerBody-compatible data only for one backed hypothesis."""
+    if type(question) is not str or not 1 <= len(question) <= 4000:
+        return None
+    artifact = getattr(search, "artifact", None)
+    if getattr(search, "formal", False) is not True or not isinstance(artifact, dict) or artifact.get("artifact_id") != _ARTIFACT:
+        return None
+    rules = _match(unicodedata.normalize("NFC", question).casefold())
+    if len(rules) != 1:
+        return None
+    rule = rules[0]
+    references = []
+    for locator in rule.sources:
+        record = search.get_by_id(locator)
+        if type(record) is not dict or record.get("id") != locator:
+            return None
+        try:
+            proof = digest(record)
+        except (TypeError, ValueError, UnicodeError):
+            return None
+        if proof != _SOURCE_DIGESTS[locator]:
+            return None
+        references.append({"artifact": _ARTIFACT, "locator": locator, "label": record["name"],
+                           "excerpt": record["description"], "record_digest": proof})
+    return {"producer": f"local-mechanism-{rule.name}-v1",
+            "explanation": rule.explanation, "assumptions": list(rule.assumptions),
+            "cross_domain_leads": list(rule.cross_domain_leads),
+            "next_check": rule.next_check, "references": references}
