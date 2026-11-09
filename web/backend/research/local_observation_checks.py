@@ -177,10 +177,41 @@ def _equal_weight_rates(question):
         "references":[],
     }
 
+
+def _hourly_balance(question):
+    incoming = re.findall(r"每小时(?:交来|到达|收到|流入)\s*([0-9]{1,7})\s*(组|件|单)", question)
+    changes = re.findall(r"(?:原来|过去)[^。；]{0,32}?(?:能做|能完成|完成)\s*([0-9]{1,7})\s*(组|件|单)[^。；]{0,55}?(?:现在|如今)[^。；]{0,32}?(?:只能做|能完成|完成)\s*([0-9]{1,7})\s*(组|件|单)",question)
+    duration = re.findall(r"观察\s*([1-9][0-9]{0,2}|[一二两三四五六七八九十])\s*小时",question)
+    backlog = re.findall(r"(?:积压|待[\u3400-\u9fff]{1,8})从\s*([0-9]{1,7})\s*(组|件|单)\s*(?:变成|增到|降到|变为)\s*([0-9]{1,7})\s*(组|件|单)",question)
+    if not all(len(items)==1 for items in (incoming,changes,duration,backlog)):
+        return None
+    entered,u=incoming[0]; before,v,after,w=changes[0]; start,x,end,y=backlog[0]
+    if len({u,v,w,x,y})!=1:
+        return None
+    entered,before,after,start,end=map(int,(entered,before,after,start,end))
+    count=duration[0]
+    hours=int(count) if count.isascii() else dict(zip("一二两三四五六七八九十",(1,2,2,3,4,5,6,7,8,9,10)))[count]
+    net=entered-after
+    predicted=net*hours
+    observed=end-start
+    return {
+        "producer":"local-calculation-hourly-balance-v1",
+        "explanation":f"若题中速率都按每小时计、且实际完成达到所述能力，余量由 {before}−{entered}={before-entered:+d} 变为 {after}−{entered}={after-entered:+d} {u}/小时。"
+                      f"当前净流入 {entered}−{after}={net:+d}，{hours} 小时推算积压变化 {predicted:+d}{u}；"
+                      f"记录为 {start}→{end}，变化 {observed:+d}{u}，两者"+("一致。" if observed==predicted else "不一致，需要查差额。")+
+                      ("先核处理环节的有效容量，增加入口只会扩大缺口。" if net>0 else "不能据这些速率判断入口超过当前能力。"),
+        "assumptions":["比较同一流程边界和同样计量单位；额定能力不是实际完成量。"],
+        "cross_domain_leads":[],
+        "next_check":"按同一小时窗口核实实收、实完与期初期末积压，逐窗检查变化量是否等于实收减实完。若不符，另记返工、取消、批量交接和停顿，再决定应调整哪一段。",
+        "references":[],
+    }
+
 def observation_check(question):
     """Return a hypothesis plus an executable comparison; never invent sources."""
     if type(question) is not str or not 1 <= len(question) <= 4000:
         return None
+    if balance := _hourly_balance(question):
+        return balance
     if rates := _equal_weight_rates(question):
         return rates
     if marginal := _marginal_capacity(question):

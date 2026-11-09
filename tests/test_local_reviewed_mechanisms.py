@@ -256,3 +256,11 @@ def test_equal_weight_recount_requires_matching_labelled_denominators():
     assert out and "两类等权 80.0%" in out["explanation"] and "两类等权 70.0%" in out["explanation"]
     assert observation_check(q.replace("乙类 6/10","丙类 6/10")) is None
     assert observation_check(q.replace("乙类 6/10","乙类 6/0")) is None
+
+
+def test_hourly_stock_flow_checks_the_observed_delta_and_rejects_mixed_units():
+    from web.backend.research.local_observation_checks import observation_check
+    q="每小时收到 8 件；复核原来能做 9 件，现在只能做 6 件。观察三小时，积压从 2 件变成 8 件。"
+    answer = observation_check(q)
+    assert answer and "8−6=+2" in answer["explanation"] and "变化 +6件，两者一致" in answer["explanation"]
+    assert observation_check(q.replace("6 件","6 组")) is None
