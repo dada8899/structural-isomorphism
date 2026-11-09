@@ -8,6 +8,7 @@ import time
 
 from pydantic import ValidationError
 
+from .errors import ResearchError
 from .first_answer import AnswerBody
 from .local_first_answer import produce_background_answer
 
@@ -89,6 +90,10 @@ class FirstAnswerSupervisor:
         cancel = _JobCancellation(self._stopping, worker, claim)
         result = produce_background_answer(question, self._search, cancel=cancel)
         if cancel.is_set():
+            if not self._stopping.is_set():
+                # Even when DELETE already retired the durable row, the
+                # worker session must release its in-memory claim.
+                worker.finish(claim, reason="unavailable")
             return
         if result["status"] == "answered":
             try:
@@ -100,7 +105,12 @@ class FirstAnswerSupervisor:
         elif result["status"] == "insufficient":
             reason = "needs_clarification" if result.get("reason") == "needs_clarification" else "insufficient"
             if reason == "needs_clarification":
-                worker.finish(claim, reason=reason, question=result.get("question"))
+                try:
+                    worker.finish(claim, reason=reason, question=result.get("question"))
+                except (ValueError, ResearchError) as error:
+                    if isinstance(error, ResearchError) and error.code != "INPUT_INVALID":
+                        raise
+                    worker.finish(claim, reason="invalid_answer")
             else:
                 worker.finish(claim, reason=reason)
         else:

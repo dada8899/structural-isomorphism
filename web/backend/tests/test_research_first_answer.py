@@ -163,6 +163,8 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
                     return {"status":"unavailable", "reason":"cancelled"}
                 time.sleep(.01)
             raise AssertionError("cancel fence was not observed")
+        if question.startswith("追问"):
+            return {"status":"insufficient", "reason":"needs_clarification", "question":question}
         return {"status":"answered", "content":candidate().model_dump(mode="json", exclude_none=True)}
 
     monkeypatch.setattr(first_answer_supervisor, "produce_background_answer", inference)
@@ -213,7 +215,14 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
                 assert await asyncio.to_thread(cancelled.wait, 3)
                 assert (await client.get(url)).json() == stopped.json()
                 assert (await client.post(url, json=body, headers=origin)).json() == stopped.json()
-                assert len(calls) == 2
+                url, body = await make("追问这个测试：什么时候改变测量条件？", "async-invalid-clarification")
+                assert (await client.post(url, json=body, headers=origin)).status_code == 202
+                invalid = await read_terminal(url)
+                assert invalid["status"] == "failed" and invalid["reason"] == "invalid_answer"
+                url, body = await make("为什么阈值跨过后团队采纳变快？", "async-after-cancel")
+                assert (await client.post(url, json=body, headers=origin)).status_code == 202
+                assert (await read_terminal(url))["status"] == "provisional"
+                assert len(calls) == 4
         assert first_answer_supervisor.current(main.app) is None
 
     asyncio.run(run())
