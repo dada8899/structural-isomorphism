@@ -359,3 +359,25 @@ def test_empty_context_does_not_send_question_or_accept_a_placeholder():
     with_context = prepare_extractive("为什么温差大时冷却快？", "approved-kb", [record()], lambda *_: True)
     with pytest.raises(FirstAnswerContractError, match="invalid_candidate"):
         interpret_extractive(proposed, with_context)
+
+
+@pytest.mark.parametrize("asked", [
+    "客服进线速度看起来没变，人均处理时间增加，为什么排队等待更久？",
+    "到达率基本稳定，服务时长变长，为什么排队突然加剧？",
+])
+def test_reviewed_queue_uses_the_stated_comparison_without_fixing_away_the_change(asked):
+    from web.backend.research.local_first_answer import compose
+
+    class Search:
+        formal = True
+        artifact = {"artifact_id":"structural-v2-kb4443-20260711"}
+
+        def get_by_id(self, locator):
+            return record(locator)
+
+    body = compose(asked, Search())
+    assert body is not None
+    assert "处理时间变长就会降低服务率" in body["explanation"]
+    assert "保留处理耗时不同" in body["next_check"] and "完成量下降" in body["next_check"]
+    unknown = compose("为什么到达波动后排队等待更久？", Search())
+    assert "如果进线量确实没变" not in unknown["explanation"]

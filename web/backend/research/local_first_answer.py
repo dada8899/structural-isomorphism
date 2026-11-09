@@ -34,6 +34,7 @@ _RULES = (
     {
         "patterns": (r"排队|积压|队列|queue|backlog",
                      r"到达|处理|等待|速率|arrival|service|wait|capacity"),
+        "kind": "queue-balance",
         "references": ("cross-081", "5k-30-031"),
         "explanation": "先分开看进入和处理：积压的变化等于新进入的工作减去完成的工作。进入量接近处理上限时，短时间的波动也会留下队列，因此平均工作量相同，集中到达的一组仍可能等得更久。",
         "assumptions": ["比较时固定处理人员或机器的数量，并单列暂停、返工和优先级变化。",
@@ -43,6 +44,27 @@ _RULES = (
     },
 )
 
+
+
+_STEADY_ARRIVAL = re.compile(
+    r"(?:进线|到达|来单|到店|流入)(?:量|率|速度|频率)?(?:看起来|基本|大致|平均)?(?:没变|不变|稳定|差不多)|"
+    r"(?:arrival rate|incoming volume|demand).{0,18}(?:unchanged|stable|same)", re.IGNORECASE)
+_SLOW_SERVICE = re.compile(
+    r"(?:处理|服务|办理|接待)(?:时间|时长|耗时)?(?:变慢|变长|延长|增加|拉长|更久)|"
+    r"(?:service|handling|processing) time.{0,14}(?:longer|increas|rises)|takes longer to (?:serve|handle|process)", re.IGNORECASE)
+
+
+def _queue_comparison(question, rule):
+    """Use the user's stated change, without treating it as measured fact."""
+    if rule.get("kind") != "queue-balance" or not (_STEADY_ARRIVAL.search(question) and _SLOW_SERVICE.search(question)):
+        return rule["explanation"], rule["next_check"]
+    return (
+        "如果进线量确实没变、同时处理的人数也相同，处理时间变长就会降低服务率：同一小时内能完成的单子变少。"
+        "当原本就接近满负荷时，余量会先被吃掉，短时波动累积成队列，等待可能增加得比处理时间更快。"
+        "这只是按题设的机制解释；排班、返工、转接或优先级变化也可能降低有效容量。",
+        "比较进线量和在线人数相近的时段，保留处理耗时不同这一变化。记录每小时进线、完成量、处理耗时和等待时间。"
+        "若处理变慢的时段完成量下降、等待上升，支持容量余量解释；若完成量没变，先检查到达波动、排班或队列规则。",
+    )
 
 def compose(question, search):
     """Return bounded answer data or None; never call an external provider."""
@@ -70,12 +92,13 @@ def compose(question, search):
             return None
         references.append({"artifact": artifact_id, "locator": locator, "label": record["name"],
                            "excerpt": description[:1200], "record_digest": digest(record)})
+    explanation, next_check = _queue_comparison(question, rule)
     return {
         "producer": "local-reviewed-mechanisms-v1",
-        "explanation": rule["explanation"],
+        "explanation": explanation,
         "assumptions": list(rule["assumptions"]),
         "cross_domain_leads": list(rule["cross_domain_leads"]),
-        "next_check": rule["next_check"],
+        "next_check": next_check,
         "references": references,
     }
 

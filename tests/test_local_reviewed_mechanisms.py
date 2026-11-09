@@ -111,3 +111,16 @@ def test_background_path_prefers_feedback_over_plain_cooling(approved_rows):
     assert answer["content"]["producer"] == "local-mechanism-delayed-feedback-v1"
     passive = produce_background_answer("为什么装满热水的杯子冷却更慢？", search, cancel=Event())
     assert passive["content"]["producer"] == "local-reviewed-mechanisms-v1"
+
+
+@pytest.mark.parametrize("question", [
+    "社区共享站借用量大致平稳，但仓库的补货申请忽多忽少，为什么？",
+    "门店销量稳定，上游采购订单波动明显变大，是什么机制？",
+])
+def test_stock_order_amplification_preserves_the_variable_under_test(approved_rows, question):
+    answer = compose_reviewed_mechanism(question, BoundCorpus(approved_rows))
+    assert answer is not None and answer["producer"] == "local-mechanism-stock-order-amplification-v1"
+    assert {ref["locator"] for ref in answer["references"]} == {"soc-093", "5k-ef-105"}
+    assert "同一段有波动" in answer["next_check"]
+    assert "原规则" in answer["next_check"] and "缺货未增加" in answer["next_check"]
+    assert compose_reviewed_mechanism("促销后需求翻倍，补货申请忽多忽少。", BoundCorpus(approved_rows)) is None
