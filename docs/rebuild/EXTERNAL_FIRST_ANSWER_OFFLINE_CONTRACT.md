@@ -15,3 +15,11 @@
 调用关系：prepare_closed_preview → compare_confirmation → inspect_shared_capacity 仅校验数据；recovery_hint 提示原操作处理；parse_unverified_candidate 只解析响应语法，标为必须审查。函数不读密钥、不创建任务或账本、不进行任何网络或写入。后续实现须将已验证的授权、同账本原子预留、发送前再核、单次 transport 和回执对账接在另一个受审的运行层。还应单独保存后备结果引用，不覆盖已存本地答案或重启原本地终态队列。
 
 相关现行实现：native_live_grant.py 的双目的绑定、plan_native_runtime.py 的审批/额度/一次性消费、paid_approval.py 和 model_report.py 的离线用途。这里仅保留其有用约束，没有把旧接口提升为通用在线发送。
+
+## 实际隔离集成边界
+
+external_first_answer_seam.py 通过既有 ResearchService 所有者锁、同一事务内的读写资格和当前 revision 读取问题，复核精确预览，再只读绑定既有 Native 资金账户与其未决状态。它没有登记 HTTP 路由，也不创建审批、任务、占用或结果。即使同一 revision 的原话及费用都明确确认、同经济账户存在，独立新用途也返回 external_purpose_not_admitted；原账本有未决发送则返回 unknown_reconcile_only。
+
+两个隔离场景使用真实 Main HTTPS、合成登录和 SQLite，借既有 Native 授权工厂登记唯一 CNY300 账本。作为对照，旧现象规划能在该账本下进行一次合成余额 GET 与一次合成 POST：正常回执能从原记录重复读回；缺用量回执时真实账本保持原 held，重进执行器不发送第二次。新用途在相同条件下零请求、零新账、零占用和零结果。未确认、换账户及修订改变均被原鉴权或合同拒绝；本地合成输出只通过待审候选解析，不冒充新用途的在线回读。
+
+剩余缺口是新用途的真实 Native 执行授权、同账本的原子资金写入与消费、可核对回执、独立审查和结果记录。一条模拟成功或一份数据模型不能替代这些条件。没有读取真实密钥、访问外部提供方、消费费用或改生产。
