@@ -11,7 +11,7 @@ from .errors import ResearchError
 from .financial_guard import FINANCIAL_SCHEMA_VERSION,V7_TABLES,V7_GUARDS,install_default_hook,require_hook
 from .financial_guard import DELETION_SCHEMA_VERSION,JOB_ORIGIN_COLUMNS,V8_JOB_GUARDS
 from .financial_guard import METHOD_SCHEMA_VERSION,METHOD_COLUMNS,METHOD_GUARDS
-CURRENT_RESEARCH_SCHEMA_VERSION=15
+CURRENT_RESEARCH_SCHEMA_VERSION=15  # Bootstrap default; v16 requires explicit offline adoption.
 
 SCHEMA = (
     "CREATE TABLE IF NOT EXISTS research_schema (id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL)",
@@ -399,6 +399,8 @@ class ResearchStore:
             if present:
                 try:current=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
                 except sqlite3.Error:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本标记结构不匹配。') from None
+                if current and current[0]==16:
+                    self._check_v16(conn);return
                 if current and current[0]==15:
                     self._check_v15(conn);return
                 if current and current[0]==14:
@@ -450,6 +452,8 @@ class ResearchStore:
                 # A peer may finish initialization after our first read. The
                 # write snapshot, not that stale read, decides whether legacy
                 # installation is allowed. Never repair a completed graph.
+                if current and current[0]==16:
+                    self._check_v16(conn);return
                 if current and current[0]==15:
                     self._check_v15(conn);return
                 if current and current[0]==14:
@@ -596,6 +600,8 @@ class ResearchStore:
     @classmethod
     def _check_completed_migration_peer(cls,conn,version):
         """An exact completed peer is an idempotent migration, never authority."""
+        if version==16:
+            cls._check_v16(conn);return True
         if version==15:
             cls._check_v15(conn);return True
         if version==14:
@@ -1013,7 +1019,8 @@ class ResearchStore:
         self._require_development_migration()
         with self.transaction() as conn:
             version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
-            if version==15:self._check_v15(conn)
+            if version==16:self._check_v16(conn)
+            elif version==15:self._check_v15(conn)
             elif version==14:self._check_v14(conn)
             elif version==13:self._check_v13(conn)
             elif version==12:self._check_v12(conn)
@@ -1045,24 +1052,27 @@ class ResearchStore:
         statements=(*cls._v7_required_legacy_objects(method=True).values(),*SOURCE_DDL,*evidence_ddl,
             *V7_TABLES,*V7_GUARDS,*V8_JOB_GUARDS,*METHOD_GUARDS)
         objects=cls._structure_declarations(statements)
-        if version in (10,11,12,13,14,15):
+        if version in (10,11,12,13,14,15,16):
             from .formula_runtime import FORMULA_DDL
             objects.update(cls._structure_declarations((*cls._formula_tables().values(),*FORMULA_DDL)))
         elif version!=9:raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究版本不支持。')
-        if version in (11,12,13,14,15):
+        if version in (11,12,13,14,15,16):
             from .source_guard import declarations
             objects.update(cls._structure_declarations(declarations()))
-        if version in (12,13,14,15):
+        if version in (12,13,14,15,16):
             from .plan_financial import declarations,overlay
             objects.update(cls._structure_declarations((*overlay(cls._formula_tables()).values(),*declarations())))
-        if version in (13,14,15):
+        if version in (13,14,15,16):
             from .plan_native_financial import declarations,overlay
             objects.update(cls._structure_declarations((*overlay(cls._plan_tables()).values(),*declarations())))
-        if version in (14,15):
+        if version in (14,15,16):
             from .method_draft import DDL
             objects.update(cls._structure_declarations(DDL))
-        if version==15:
+        if version in (15,16):
             from .financial_input_guard import DDL
+            objects.update(cls._structure_declarations(DDL))
+        if version==16:
+            from .first_answer import DDL
             objects.update(cls._structure_declarations(DDL))
         forms=tuple(sql.rstrip()[:-1]+', '+', '.join(name+' '+ddl for name,ddl in JOB_ORIGIN_COLUMNS)+')'
             for sql in cls._auth_job_baseline_forms())
@@ -1103,7 +1113,10 @@ class ResearchStore:
 
     @classmethod
     def check_current_structure(cls,conn):
-        return cls._check_structure_version(conn,15)
+        version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
+        if version is None or version[0] not in (15,16):
+            raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究版本不支持。')
+        return cls._check_structure_version(conn,version[0])
 
     @classmethod
     def _check_structure_version(cls,conn,version):
@@ -1175,7 +1188,8 @@ class ResearchStore:
         self._require_development_migration()
         with self.transaction() as conn:
             version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
-            if version==15:self._check_v15(conn)
+            if version==16:self._check_v16(conn)
+            elif version==15:self._check_v15(conn)
             elif version==14:self._check_v14(conn)
             elif version==13:self._check_v13(conn)
             elif version==12:self._check_v12(conn)
@@ -1191,7 +1205,8 @@ class ResearchStore:
             install_default_hook(conn)
             conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN IMMEDIATE');self.auth_store.check_gate_policy(conn)
             version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
-            if version==15:self._check_v15(conn);conn.commit();return
+            if version==16:self._check_v16(conn);conn.commit();return
+            elif version==15:self._check_v15(conn);conn.commit();return
             elif version==14:self._check_v14(conn);conn.commit();return
             elif version==13:self._check_v13(conn);conn.commit();return
             elif version==12:self._check_v12(conn);conn.commit();return
@@ -1307,7 +1322,8 @@ class ResearchStore:
     @classmethod
     def check_runtime_version(cls,conn):
         version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
-        if version==15:cls._check_v15(conn)
+        if version==16:cls._check_v16(conn)
+        elif version==15:cls._check_v15(conn)
         elif version==14:cls._check_v14(conn)
         elif version==13:cls._check_v13(conn)
         elif version==12:cls._check_v12(conn)
@@ -1317,12 +1333,20 @@ class ResearchStore:
 
     @classmethod
     def _check_v15(cls,conn):
+        cls._check_formal_version(conn,15)
+
+    @classmethod
+    def _check_v16(cls,conn):
+        cls._check_formal_version(conn,16)
+
+    @classmethod
+    def _check_formal_version(cls,conn,version):
         if __package__=='web.backend.research':from ..services.auth_store import AuthStore
         else:from services.auth_store import AuthStore
         if AuthStore.check_offline_auth_metadata(conn)!='auth-provision-v1':
-            raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式15需要完整账户准入。')
+            raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究需要完整账户准入。')
         AuthStore.check_gate_policy(conn,initialize=False)
-        cls._check_structure_version(conn,15)
+        cls._check_structure_version(conn,version)
         cls._check_formula_domain(conn,plan=True,native=True)
         from .source_guard import require_hook as source_hook
         from .plan_financial import require_hook as plan_hook
@@ -1330,8 +1354,11 @@ class ResearchStore:
         from .method_draft import require_hook as draft_hook
         from .financial_input_guard import require_hook as input_hook
         for hook in (source_hook,plan_hook,native_hook,draft_hook,input_hook):hook(conn)
+        if version==16:
+            from .first_answer import require_hook
+            require_hook(conn)
         if conn.execute('PRAGMA foreign_key_check').fetchone() is not None:
-            raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究15关联不匹配。')
+            raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究关联不匹配。')
 
     def migrate_formula_v10(self,*,maintenance):
         """Explicit offline provisioning only; never called by constructor/helper."""
@@ -1355,7 +1382,10 @@ class ResearchStore:
             conn.execute("BEGIN IMMEDIATE" if write else "BEGIN")
             self.auth_store.check_gate_policy(conn)
             if formal:
-                self._check_v15(conn)
+                version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
+                if version is None or version[0] not in (15,16):
+                    raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究版本不支持。')
+                self._check_formal_version(conn,version[0])
             from .paid_control import _transaction_scope
             with _transaction_scope(conn,write=write):
                 yield conn
@@ -1380,7 +1410,10 @@ class ResearchStore:
             if formal:
                 install_default_hook(conn)
                 conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN')
-                self._check_v15(conn)
+                version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
+                if version is None or version[0] not in (15,16):
+                    raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究版本不支持。')
+                self._check_formal_version(conn,version[0])
             self.auth_store.check_gate_policy(conn)
             if formal:conn.commit()
             conn.execute("PRAGMA busy_timeout=5000")

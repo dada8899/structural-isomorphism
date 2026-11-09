@@ -370,6 +370,14 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         # Captured private storage never falls back to a development flag after
         # environment downgrade, including requests outside canonical Main.
         if service.store._formal_mode():require_formal_application(request.app,'research_basic')
+        if operation == "first-answer-read":
+            raw_revision = request.path_params["input_revision"]
+            if request.query_params or not re.fullmatch(r"[1-9][0-9]{0,9}",raw_revision):
+                raise ResearchError("INPUT_INVALID",422,"初步分析修订或查询参数无效。")
+            if __package__=='web.backend.api':from ..research.first_answer import read
+            else:from research.first_answer import read
+            result = await run_in_threadpool(read,service,identity,research_id,int(raw_revision))
+            return JSONResponse(result,headers=_HEADERS)
         if operation in _FINANCIAL_RESULT_OPERATIONS:
             return await _dispatch_financial_result(request,service,identity,research_id,operation)
         if operation in _EVIDENCE_OPERATIONS:
@@ -674,6 +682,11 @@ async def revise_research(research_id: str, request: Request):
 @router.get("/research/{research_id}")
 async def view_research(research_id: str, request: Request):
     return await _dispatch(request, research_id=research_id)
+
+
+@router.get("/research/{research_id}/revisions/{input_revision}/first-answer")
+async def read_research_first_answer(research_id: str, input_revision: str, request: Request):
+    return await _dispatch(request,research_id=research_id,operation="first-answer-read")
 
 
 @router.post("/research/{research_id}/tasks")

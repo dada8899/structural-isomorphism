@@ -2,12 +2,17 @@
 
 A server producer supplies an already-computed candidate. This module neither
 reads providers nor turns model output into permission to perform an action.
-The migration/admission layer must explicitly adopt DDL before exposing routes.
+Schema 16 is enabled only by explicit offline adoption; schema 15 stays closed.
 """
+from contextlib import contextmanager
 from datetime import datetime
 import hashlib
 import json
+import os
+from pathlib import Path
 import re
+import sqlite3
+import sys
 from typing import Annotated
 from uuid import uuid4
 
@@ -20,6 +25,12 @@ from .service import canonical, digest, now
 REQUIRED_SCHEMA_VERSION = 16
 CONTRACT = "first-answer-v1"
 TABLE = "research_first_answers"
+_WRITES = {}
+_COLUMNS = ("id", "research_id", "principal_id", "input_revision", "problem_digest", "research_version",
+            "key_digest", "content_digest", "created_at", "body_json")
+
+def _sql_row(alias):
+    return "json_array(" + ",".join(alias+"."+key for key in _COLUMNS) + ")"
 MAX_BODY_BYTES = 32768
 _DIGEST = re.compile(r"[a-f0-9]{64}")
 _KEY = re.compile(r"[A-Za-z0-9_-]{1,128}")
@@ -39,6 +50,12 @@ DDL = (
         FOREIGN KEY(research_id,input_revision) REFERENCES research_revisions(research_id,revision),
         UNIQUE(research_id,input_revision),
         UNIQUE(principal_id,research_id,key_digest))""",
+    "CREATE TRIGGER research_first_answer_guard_insert BEFORE INSERT ON research_first_answers "
+    "WHEN research_first_answer_write_allowed('INSERT',"+_sql_row("NEW")+")!=1 "
+    "BEGIN SELECT RAISE(ABORT,'actual first-answer writer required'); END",
+    "CREATE TRIGGER research_first_answer_guard_delete BEFORE DELETE ON research_first_answers "
+    "WHEN research_first_answer_write_allowed('DELETE',"+_sql_row("OLD")+")!=1 "
+    "BEGIN SELECT RAISE(ABORT,'actual first-answer erasure required'); END",
     """CREATE TRIGGER research_first_answer_immutable BEFORE UPDATE ON research_first_answers
         BEGIN SELECT RAISE(ABORT,'immutable first answer'); END""",
     """CREATE TRIGGER research_first_answer_no_replace BEFORE INSERT ON research_first_answers
@@ -56,6 +73,65 @@ DDL = (
               AND r.revision=NEW.input_revision AND r.digest=NEW.problem_digest)
         BEGIN SELECT RAISE(ABORT,'first answer input binding changed'); END""",
 )
+
+def install_hook(conn):
+    pid = os.getpid()
+
+    def allowed(operation, encoded):
+        permit = _WRITES.get(id(conn))
+        if (not permit or permit[0] is not conn or pid != os.getpid() or not conn.in_transaction
+                or not permit[1].active or operation != permit[2]):
+            return 0
+        try:
+            permit[4].identity
+            return int(tuple(json.loads(encoded)) == permit[3])
+        except (ValueError, TypeError, PermissionError, OSError):
+            return 0
+
+    conn.create_function("research_first_answer_write_allowed", 2, allowed)
+    conn.create_function("research_first_answer_guard_version", 0, lambda: 1 if pid == os.getpid() else 0)
+
+
+def require_hook(conn):
+    try:
+        value = conn.execute("SELECT research_first_answer_guard_version(),research_first_answer_write_allowed('','[]')").fetchone()
+    except sqlite3.Error:
+        raise ResearchError("SCHEMA_UNSUPPORTED",503,"初步分析连接守卫不可用。") from None
+    if tuple(value) != (1,0):
+        raise ResearchError("SCHEMA_UNSUPPORTED",503,"初步分析连接守卫不匹配。")
+
+
+def statement_allowed(conn, action, table, column):
+    if table != TABLE or action not in (sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE, sqlite3.SQLITE_DELETE):
+        return True
+    permit = _WRITES.get(id(conn))
+    return bool(permit and permit[0] is conn and permit[1].active and conn.in_transaction)
+
+
+@contextmanager
+def _write(conn, service, lease, operation, values):
+    from .paid_control import _current_scope, _owner_binding
+    frame = sys._getframe(2)
+    try:
+        producer = _WRITE_PRODUCERS.get(operation)
+        if (producer is None or frame.f_code is not producer.__code__ or frame.f_globals is not globals()
+                or frame.f_locals.get("conn") is not conn or frame.f_locals.get("service") is not service
+                or frame.f_locals.get("lease") is not lease):
+            raise PermissionError("actual first-answer writer required")
+    finally:
+        del frame
+    _owner_binding(conn, service.store, values[2], lease)
+    scope = _current_scope(conn)
+    if id(conn) in _WRITES:
+        raise PermissionError("nested first-answer writer forbidden")
+    _WRITES[id(conn)] = (conn, scope, operation, values, lease)
+    scope.refresh_authorizer()
+    try:
+        yield
+    finally:
+        _WRITES.pop(id(conn), None)
+        scope.refresh_authorizer()
+
 
 Text = Annotated[str, StringConstraints(min_length=1, max_length=1200)]
 StableRef = Annotated[str, StringConstraints(min_length=1, max_length=160, pattern=r"^[a-zA-Z0-9._:/-]+$")]
@@ -167,11 +243,9 @@ def save(service, identity, rid, *, input_revision, problem_digest, research_ver
         if conn.execute("SELECT 1 FROM research_first_answers WHERE research_id=? AND input_revision=?", (rid, input_revision)).fetchone():
             raise ResearchError("ANSWER_EXISTS", 409, "当前修订已有初步分析，请读取已保存结果。")
         ref = str(uuid4())
-        from .paid_control import _owner_binding
-        _owner_binding(conn, service.store, pid, lease)
-        conn.execute("""INSERT INTO research_first_answers(id,research_id,principal_id,input_revision,problem_digest,
-                         research_version,key_digest,content_digest,created_at,body_json) VALUES(?,?,?,?,?,?,?,?,?,?)""",
-                     (ref, rid, pid, input_revision, problem_digest, research_version, key_digest, content_digest, now(), body))
+        values = (ref, rid, pid, input_revision, problem_digest, research_version, key_digest, content_digest, now(), body)
+        with _write(conn, service, lease, "INSERT", values):
+            conn.execute("INSERT INTO research_first_answers VALUES(?,?,?,?,?,?,?,?,?,?)", values)
         row = conn.execute("SELECT * FROM research_first_answers WHERE id=?", (ref,)).fetchone()
         return _view(conn, control, row)
 
@@ -190,3 +264,52 @@ def read(service, identity, rid, revision):
         if not row:
             raise not_found()
         return _view(conn, control, row)
+
+
+def erase_in(conn, service, lease, pid, job_id):
+    """Erasure belongs to the protected account deletion job, never a route."""
+    from .paid_control import verify_deletion_origin
+    from .authorization import OwnerGateLease
+    if type(lease) is not OwnerGateLease:
+        raise PermissionError("actual deletion lease required")
+    job = verify_deletion_origin(conn, store=service.store, lease=lease, job_id=job_id)
+    principal = conn.execute("SELECT * FROM research_principals WHERE id=?", (pid,)).fetchone()
+    if (not job or job["state"] != "pending" or not principal or principal["status"] != "deleting"
+            or principal["normalized_email"] != job["owner_email"]
+            or principal["session_generation"] != job["session_generation"]):
+        raise PermissionError("first-answer deletion owner mismatch")
+    rows = conn.execute("SELECT "+",".join(_COLUMNS)+" FROM research_first_answers WHERE principal_id=?", (pid,)).fetchall()
+    for row in rows:
+        with _write(conn, service, lease, "DELETE", tuple(row)):
+            if conn.execute("DELETE FROM research_first_answers WHERE id=?", (row["id"],)).rowcount != 1:
+                raise PermissionError("first-answer deletion compare failed")
+    return len(rows)
+
+
+_WRITE_PRODUCERS = {"INSERT": save, "DELETE": erase_in}
+
+
+def provision_first_answers_v16(path: Path):
+    """Explicit canonical offline maintenance; does not bootstrap or repair."""
+    from .formula_runtime import _offline_maintenance, _check_profile
+    from .store import ResearchStore
+    with _offline_maintenance(path, (15,16)) as (target, cap):
+        conn = cap.conn
+        cap.require(target)
+        conn.execute("BEGIN EXCLUSIVE")
+        try:
+            version = _check_profile(conn, target, (15,16))
+            if version == 15:
+                for statement in DDL:
+                    conn.execute(statement)
+                if conn.execute("UPDATE research_schema SET version=16 WHERE id=1 AND version=15").rowcount != 1:
+                    raise PermissionError("first-answer schema marker compare failed")
+            ResearchStore._check_v16(conn)
+            cap.require(target)
+            conn.commit()
+        except BaseException:
+            conn.rollback()
+            raise
+        identity = cap.identity
+    return {"schema_version": 16, "first_answer_protocol": 1, "journal_mode": "wal",
+            "database_identity": list(identity), "backup_scope": "in_memory_algorithm_recovery_only"}

@@ -295,14 +295,16 @@ def _deletion_lease_binding(conn,store,lease,job):
 
 
 def _job_has_v2(conn,job):
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==16:
+        if conn.execute('SELECT 1 FROM research_first_answers a JOIN research_principals p ON p.id=a.principal_id WHERE p.gate_id=? LIMIT 1',(job['gate_id'],)).fetchone():return True
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (15,16):
         for table in ('research_financial_registries','research_financial_results'):
             if conn.execute('SELECT 1 FROM '+table+' b JOIN research_principals p ON p.id=b.principal_id WHERE p.gate_id=? LIMIT 1',(job['gate_id'],)).fetchone():return True
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15):
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15,16):
         if conn.execute("SELECT 1 FROM research_method_drafts d JOIN research_principals p ON p.id=d.principal_id WHERE p.gate_id=? LIMIT 1",(job['gate_id'],)).fetchone():return True
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15,16):
         if conn.execute("SELECT 1 FROM research_source_approvals a JOIN research_principals p ON p.id=a.principal_id WHERE p.gate_id=? AND (? IS NULL OR (p.normalized_email=? AND p.session_generation=?)) LIMIT 1",(job['gate_id'],job['owner_email'],job['owner_email'],job['session_generation'])).fetchone():return True
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15,16):
         formula=conn.execute('SELECT 1 FROM research_formula_revisions f JOIN research_controls c ON c.id=f.research_id JOIN research_principals p ON p.id=c.owner_id WHERE p.gate_id=? '+('AND p.normalized_email=? AND p.session_generation=? ' if job['owner_email'] is not None and job['session_generation'] is not None else '')+'LIMIT 1',
             (job['gate_id'],job['owner_email'],job['session_generation']) if job['owner_email'] is not None and job['session_generation'] is not None else (job['gate_id'],)).fetchone()
         if formula:return True
@@ -322,7 +324,7 @@ def verify_deletion_origin(conn,*,store,lease,job_id):
     from .store import ResearchStore
     from .financial_guard import JOB_ORIGIN_VERSION
     _deletion_lease_binding(conn,store,lease,job)
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15,16):ResearchStore.check_runtime_version(conn)
     elif conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
     else:ResearchStore._check_v8(conn)
     if job['origin_version']!=JOB_ORIGIN_VERSION or job['origin_digest']!=deletion_origin_digest(job):
@@ -432,6 +434,8 @@ def _transaction_scope(conn,*,write):
             scope.active=False
         from .financial_input_guard import statement_allowed as input_statement_allowed
         if not input_statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
+        from .first_answer import statement_allowed as first_answer_statement_allowed
+        if not first_answer_statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
         from .method_draft import statement_allowed as draft_statement_allowed
         if not draft_statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
         from .plan_native_financial import statement_allowed as native_statement_allowed
@@ -472,7 +476,7 @@ def _current_scope(conn):
     with _LOCK:scope=_SCOPES.get(id(conn))
     if (not scope or scope.conn is not conn or not scope.active or not scope.write or scope.pid!=os.getpid()
             or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1
-            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7,8,9,10,11,12,13,14,15)):
+            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7,8,9,10,11,12,13,14,15,16)):
         raise PermissionError("current canonical v5 transaction required")
     if conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==7:
         from .store import ResearchStore
@@ -483,7 +487,7 @@ def _current_scope(conn):
     elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==9:
         from .store import ResearchStore
         ResearchStore._check_v9(conn)
-    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13,14,15):
+    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13,14,15,16):
         from .store import ResearchStore
         ResearchStore.check_runtime_version(conn)
     return scope
@@ -584,7 +588,7 @@ def mint_stop_authority(conn,*,store,lease,principal_id,task_id,expected_task_ve
 
 def mint_current_paid_authority(conn,*,store,lease,identity,context,step_id,expected_task_version,expected_step_version,operation,approval_ref):
     _current_scope(conn)
-    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13,14,15):
+    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13,14,15,16):
         policy=conn.execute('SELECT policy_revision FROM research_tasks WHERE id=?',(context.task_id,)).fetchone()
         if policy and policy[0]=='bounded_usage_upper_v2':
             from .paid_approval import mint_current_authority

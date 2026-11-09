@@ -30,7 +30,7 @@ _FUNCTION_PATHS={
     'require_formal_application':'research/runtime_profile.py',
     'require':'services/formal_admission.py','_Binding.check':'services/formal_admission.py',
     '_calculate_financial_in_request':'api/research.py','calculate_research_financial':'api/research.py','_identity':'api/research.py',
-    'ResearchService._principal_in':'research/service.py','ResearchStore._check_v15':'research/store.py',
+    'ResearchService._principal_in':'research/service.py','ResearchStore._check_formal_version':'research/store.py',
     'AuthorizationGate.check':'research/authorization.py','AuthorizationGate.check_account':'research/authorization.py',
     **{name:'research/paid_control.py' for name in ('require_authenticated_action','_current_scope','_owner_binding')},
 }
@@ -224,8 +224,10 @@ def require_native_scope(conn,service,identity,pid,lease):
     # admission inspection also probes an Auth-maintenance writer hook which
     # is deliberately absent here. Verify the exact current research closure,
     # without installing any Auth write capability into a calculation.
-    checker=type(service.store)._check_v15
-    _function(checker.__func__)(type(service.store),conn)
+    schema=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
+    if schema not in (15,16):raise PermissionError('formal financial schema required')
+    checker=type(service.store)._check_formal_version
+    _function(checker.__func__)(type(service.store),conn,schema)
     principal=_function(_owner_binding)(conn,service.store,pid,lease)
     service.authorization.check_account(conn,identity)
     return scope,principal
