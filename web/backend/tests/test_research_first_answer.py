@@ -150,10 +150,13 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
     first_answer.provision_first_answers_v16(path)
     entered, cancelled = threading.Event(), threading.Event()
     calls = []
+    local_producer = first_answer_supervisor.produce_background_answer
 
     def inference(question, search, *, cancel):
         assert search.formal is True
         calls.append(question)
+        if question.startswith("输入压力"):
+            return local_producer(question,search,cancel=cancel)
         if question.startswith("取消"):
             entered.set()
             until = time.monotonic() + 5
@@ -242,7 +245,13 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
                 url, body = await make("为什么阈值跨过后团队采纳变快？", "async-after-cancel")
                 assert (await client.post(url, json=body, headers=origin)).status_code == 202
                 assert (await read_terminal(url))["status"] == "provisional"
-                assert len(calls) == 4
+                url, body = await make("输入压力逐渐上升，达到某个临界范围。只记录了采样时间，没有查看原始曲线。", "async-one-clarification")
+                assert (await client.post(url, json=body, headers=origin)).status_code == 202
+                clarified = await read_terminal(url)
+                assert clarified["status"] == "failed" and clarified["reason"] == "needs_clarification"
+                assert clarified["question"].startswith("原始测量在边界两侧")
+                assert (await client.get(url)).json() == clarified
+                assert len(calls) == 5
         assert first_answer_supervisor.current(main.app) is None
 
     asyncio.run(run())

@@ -155,6 +155,41 @@ def _in_scope(question):
     return not is_out_of_scope(question)[0]
 
 
+
+_PREMISE_QUESTIONS = {
+    ("capacity_saturation", "arrival_rate"): ("同期进入的任务量或到达速度有没有变化？", "Did the rate of incoming work change over the same period?"),
+    ("capacity_saturation", "service_change"): ("同期单项处理时间或可用处理人数有什么变化？", "Did handling time or the number of available workers change?"),
+    ("capacity_saturation", "wait_or_backlog_change"): ("当时实际的等待时间或未处理数量有没有增加？", "Did waiting time or unfinished work actually increase?"),
+    ("delayed_feedback", "delayed_observation"): ("从调整动作到测量读数变化，大约隔了多久？", "How long after the adjustment does the measurement change?"),
+    ("delayed_feedback", "corrective_action"): ("调整是根据测量结果做的，还是按固定时间或规则执行？", "Was the adjustment based on a measured error or on a fixed schedule?"),
+    ("delayed_feedback", "effect_returns_to_measurement"): ("调整生效后，下一轮的实际测量是否随之改变？", "Did the next actual measurement change after the adjustment took effect?"),
+    ("delayed_feedback", "overcorrection_or_oscillation"): ("测量值是慢慢接近目标，还是越过目标后反复摆动？", "Did the reading approach the target smoothly or repeatedly overshoot it?"),
+    ("threshold_switch", "actual_transition"): ("原始测量在边界两侧真的跳变了，还是只有告警或分类标签改变？", "Did the raw measurement jump across the boundary, or did only its label change?"),
+    ("threshold_switch", "continuous_driver"): ("在疑似边界附近，输入变量是逐步变化还是一次改变？", "Was the input changed gradually near the suspected boundary or in one step?"),
+    ("confounding", "cochanging_factor"): ("除你想检验的变化外，同一时期还有哪些条件一起变化？", "What else changed at the same time as the change you want to test?"),
+    ("confounding", "compared_outcome"): ("前后分别观察到什么结果，测量口径相同吗？", "What outcome changed before and after, and was it measured the same way?"),
+}
+_PREMISE_FAMILIES = ("capacity_saturation", "delayed_feedback", "threshold_switch", "confounding")
+
+
+def clarify_one_premise(question):
+    """Ask only when a single well-supported candidate lacks one observation."""
+    from .experimental_mechanism_premises import verify_premises
+
+    assessments = [item for family in _PREMISE_FAMILIES
+                   for item in verify_premises(question, (family,))["candidates"]]
+    if any(item["status"] == "usable" for item in assessments):
+        return None
+    near = [item for item in assessments if len(item["missing"]) == 1 and len(item["spans"]) >= 2]
+    if len(near) != 1 or near[0].get("conflict"):
+        return None
+    item = near[0]
+    pair = _PREMISE_QUESTIONS.get((item["family"], item["missing"][0]))
+    if pair is None:
+        return None
+    return pair[0] if re.search(r"[\u3400-\u9fff]", question) else pair[1]
+
+
 def produce_background_answer(question, search, *, cancel, judge=None):
     """Compute an outcome for a previously claimed job, without writing it."""
     if cancel.is_set():
@@ -165,6 +200,8 @@ def produce_background_answer(question, search, *, cancel, judge=None):
     answer = compose_reviewed_mechanism(question, search) or compose(question, search)
     if answer is not None:
         return {"status": "answered", "content": answer}
+    if clarification := clarify_one_premise(question):
+        return {"status":"insufficient", "reason":"needs_clarification", "question":clarification}
     if judge is None:
         return {"status": "unavailable", "reason": "evidence_verifier_unavailable"}
     result = compose_with_worker(question, search, judge=judge, cancel=cancel)

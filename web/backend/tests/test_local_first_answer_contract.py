@@ -399,3 +399,19 @@ def test_capacity_warning_without_observed_queue_is_not_a_queue_diagnosis(questi
             pytest.fail("explicit absence of a backlog must not yield queue evidence")
 
     assert compose(question, Search()) is None
+
+
+@pytest.mark.parametrize("asked,expected", [
+    ("输入压力逐渐上升，达到某个临界范围。只记录了采样时间，没有查看原始曲线。","原始测量在边界两侧"),
+    ("Input pressure rises gradually and crosses a critical boundary. The raw measurements are not available yet.","Did the raw measurement jump"),
+])
+def test_single_observed_mechanism_asks_only_for_the_missing_measurement(asked, expected):
+    from threading import Event
+    from web.backend.research.local_first_answer import clarify_one_premise, produce_background_answer
+
+    question = clarify_one_premise(asked)
+    assert question is not None and question.startswith(expected)
+    result = produce_background_answer(asked, None, cancel=Event())
+    assert result == {"status":"insufficient","reason":"needs_clarification","question":question}
+    assert clarify_one_premise("没有反馈调节，仪表显示旧温度，阀门按时打开，读数过冲。") is None
+    assert clarify_one_premise("What was written on the note I discarded?") is None
