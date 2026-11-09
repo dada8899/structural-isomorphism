@@ -1,5 +1,6 @@
 """Actual Main on a marked isolated v17 Auth DB; no model/provider."""
 import asyncio
+import os
 from pathlib import Path
 import runpy
 import sqlite3
@@ -15,9 +16,32 @@ from web.backend.tests.test_research_financial_results_v2 import setup_financial
 from web.backend.tests.test_research_first_answer import candidate,identity
 
 
-def test_real_v17_closed_main_preserves_login_history_and_saved_revisions(prepared,monkeypatch,capsys):
+def test_real_v17_closed_main_preserves_login_history_and_saved_revisions(prepared,monkeypatch,capsys,tmp_path):
     main,admission,paths,messages=prepared
     from api import auth
+    from services.artifact_manifest import FormalArtifactSnapshot
+    from web.backend.tests.test_formal_search_profile import make_bundle,encoder,synthetic_readonly_mount
+    if not os.environ.get("STRUCTURAL_ARTIFACT_MANIFEST"):
+        files=make_bundle(tmp_path/"fin3-admission-search")
+        for env,key in (("STRUCTURAL_DATA_DIR","data_dir"),("STRUCTURAL_KB_FILE","kb_file"),
+                        ("STRUCTURAL_MODEL_PATH","model_path"),("STRUCTURAL_PRECOMPUTED_EMBEDDINGS","precomputed_embeddings"),
+                        ("STRUCTURAL_ARTIFACT_MANIFEST","artifact_manifest")):
+            monkeypatch.setenv(env,files[key])
+        encoder.__wrapped__(monkeypatch)
+        synthetic_readonly_mount.__wrapped__(monkeypatch)
+    checked=[]
+    original=FormalArtifactSnapshot.check_model
+    def check_model(snapshot):
+        from research.financial_result_v2 import calculate as native_calculate
+        frame=sys._getframe(1)
+        while frame is not None:
+            assert frame.f_code is not native_calculate.__code__,"manual FIN3 must not read model weights"
+            frame=frame.f_back
+        checked.append(True)
+        return original(snapshot)
+    monkeypatch.setattr(FormalArtifactSnapshot,"check_model",check_model)
+    with pytest.raises(PermissionError,match="actual financial Main admission caller"):
+        admission._require_local_financial_calculation(main.app,None,None,None,None,None,None)
     from research import first_answer,native_plan_supervisor,source_supervisor
     from research.external_first_answer_catalog import require_dispatch_admission
     from research.errors import ResearchError
@@ -55,7 +79,9 @@ def test_real_v17_closed_main_preserves_login_history_and_saved_revisions(prepar
             monkeypatch.setattr(native_plan_supervisor,"start",lambda *_:pytest.fail("v17 must not start a paid worker"))
             monkeypatch.setattr(source_supervisor,"start",lambda *_:pytest.fail("v17 must not start an outbound source worker"))
             async with main.lifespan(main.app):
+                before=len(checked)
                 assert admission.safe_status(main.app)["base"]=="ready"
+                assert len(checked)>before  # generic Main health retains actual model guard
                 assert admission.safe_status(main.app)["native_planner"]=="FUNDING_CLOSED"
                 with pytest.raises(ResearchError,match="FEATURE_UNAVAILABLE"):require_dispatch_admission()
                 ans=(await owner.get(f"/api/research/{rid}/revisions/1/first-answer"))

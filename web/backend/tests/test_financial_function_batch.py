@@ -131,7 +131,7 @@ def test_full_module_compile_preserves_original_syntax_rejection_domain(native_s
     with pytest.raises(SyntaxError):execution._same_source_functions(*references(module))
 
 
-def test_twenty_six_whitelist_targets_full_code_fields_and_nested_constants_are_exact(monkeypatch):
+def test_twenty_seven_whitelist_targets_full_code_fields_and_nested_constants_are_exact(monkeypatch):
     root=Path(execution.__file__).resolve().parents[1];nested=0
     def codes(code):
         yield code
@@ -151,7 +151,7 @@ def test_twenty_six_whitelist_targets_full_code_fields_and_nested_constants_are_
             else:assert a==b
         assert len(left.co_consts)==len(right.co_consts) and left==right
         return count
-    assert len(execution._FUNCTION_PATHS)==26 and len(set(execution._FUNCTION_PATHS.values()))==11
+    assert len(execution._FUNCTION_PATHS)==27 and len(set(execution._FUNCTION_PATHS.values()))==11
     native_compile=builtins.compile;compiled=[]
     def capture(raw,filename,mode,**kwargs):
         result=native_compile(raw,filename,mode,**kwargs);compiled.append((raw,filename,result));return result
@@ -175,7 +175,7 @@ def test_twenty_six_whitelist_targets_full_code_fields_and_nested_constants_are_
         assert compiled[0][:2]==(raw,str(path))
         candidate=tuple(x for x in codes(compiled[0][2]) if x.co_qualname==name)
         assert len(candidate)==1;nested+=same(function.__code__,candidate[0])
-    assert nested==56
+    assert nested==58
 
 
 def test_calculation_compile_cache_keeps_fresh_source_and_live_code_checks(native_source,monkeypatch):

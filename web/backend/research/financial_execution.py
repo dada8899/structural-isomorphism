@@ -29,6 +29,7 @@ _FUNCTION_PATHS={
     'resolve_owner_registry_v2':'research/financial_input.py',
     'require_formal_application':'research/runtime_profile.py',
     'require':'services/formal_admission.py','_Binding.check':'services/formal_admission.py',
+    '_require_local_financial_calculation':'services/formal_admission.py',
     '_calculate_financial_in_request':'api/research.py','calculate_research_financial':'api/research.py','_identity':'api/research.py',
     'ResearchService._principal_in':'research/service.py','ResearchStore._check_formal_version':'research/store.py',
     'AuthorizationGate.check':'research/authorization.py','AuthorizationGate.check_account':'research/authorization.py',
@@ -219,24 +220,24 @@ def require_calculate_frame(values):
     finally:del frame
 
 
-def _main_binding(app,service):
-    from .runtime_profile import require_formal_application
-    _function(require_formal_application)(app,'research_basic')
+def _main_binding(app,service,identity,rid,envelope,key,source):
     family='web.backend.services' if __package__=='web.backend.research' else 'services'
     module=importlib.import_module(family+'.formal_admission')
     expected=Path(__file__).resolve().parents[1]/'services/formal_admission.py'
     if Path(module.__file__).resolve()!=expected or Path(module.__file__).is_symlink():raise PermissionError('canonical Main module required')
-    _function(module.require)(app,'research_basic')
-    binding=module._STATE.get(id(app))
+    admission=_function(module._require_local_financial_calculation)
+    try:
+        binding=admission(app,service,identity,rid,envelope,key,source)
+    except Exception:
+        from .errors import ResearchError
+        raise ResearchError('FEATURE_UNAVAILABLE',503,'正式研究能力尚未就绪。') from None
     if (type(binding) is not module._Binding or binding.factory is not module._FACTORY or binding.app is not app
             or binding.pid!=os.getpid() or not binding.active or binding.retired):raise PermissionError('actual Main binding required')
-    _function(type(binding).check)(binding)
     other=binding.service.store;store=service.store
     if (type(store) is not type(other) or store.path!=other.path or store.storage_identity!=other.storage_identity
             or store.auth_store is not other.auth_store or store.storage_identity is None):
         raise PermissionError('same Main private storage required')
     return binding
-
 
 def require_request(service,identity,rid,envelope,key,source,request_app):
     from starlette.requests import Request
@@ -274,7 +275,7 @@ def require_request(service,identity,rid,envelope,key,source,request_app):
     if parsed.data_dict()!=envelope.data_dict():raise PermissionError('financial request body changed')
     require_authenticated_action(source,identity=identity,action='financial-calculate',research_id=rid,key=key,
         body_digest=digest(envelope.data_dict()))
-    return request,_main_binding(request_app,service)
+    return request,_main_binding(request_app,service,identity,rid,envelope,key,source)
 
 
 def require_native_scope(conn,service,identity,pid,lease):
