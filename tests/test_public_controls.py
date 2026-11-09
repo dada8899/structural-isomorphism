@@ -4843,8 +4843,14 @@ def test_native_late_three_make_rejects_nonexact_collection(mutation):
 
 def test_fin3_capacity_exact_one_preserves_original_source_and_six_current_cases():
     path=ROOT/FIN3_CAPACITY_NODE.split('::')[0]
-    assert hashlib.sha256(path.read_bytes()).hexdigest()==FIN3_CAPACITY_SOURCE_SHA256
-    module=ast.parse(path.read_text())
+    source = path.read_bytes()
+    signature = b'async def fill_form(page,*,sensitivity=False,recovery=False):\n'
+    entry = b'    await helpers._open_research_advanced(page)\n'
+    # The new single-question page hides manual controls. Reverse only its
+    # one explicit entry action; all original test bodies remain byte-exact.
+    assert source.count(signature + entry) == 1
+    assert hashlib.sha256(source.replace(signature + entry, signature, 1)).hexdigest() == FIN3_CAPACITY_SOURCE_SHA256
+    module=ast.parse(source)
     cases=[x.name for x in module.body if isinstance(x,(ast.FunctionDef,ast.AsyncFunctionDef)) and x.name.startswith('test_')]
     excluded=FIN3_CAPACITY_NODE.split('::')[1]
     assert len(cases)==7 and cases.count(excluded)==1
