@@ -194,3 +194,20 @@ def test_recovery_comparison_calculates_the_two_observed_ratios_without_proving_
     assert "12÷30=40.0%" in answer["explanation"] and "6÷15=40.0%" in answer["explanation"]
     assert "不足以确认" in answer["explanation"] and "归一曲线" in answer["next_check"]
     assert observation_check("It starts 15 units above ambient and drops by 16.") is None
+
+
+@pytest.mark.parametrize("asked", [
+    "两台压力表对同一个参照读数的差越来越大。目前只记录相对基准的差，能判断是哪台漂移吗？",
+    "Two sensors disagree. I only recorded their offsets relative to the same reference. Which sensor is drifting?",
+])
+def test_shared_reference_does_not_identify_which_device_drifted(asked):
+    from threading import Event
+    from web.backend.research.local_first_answer import produce_background_answer
+    from web.backend.research.local_observation_checks import reference_alignment_question
+
+    question = reference_alignment_question(asked)
+    assert question and question.count("?") + question.count("？") == 1
+    assert produce_background_answer(asked, None, cancel=Event()) == {
+        "status":"insufficient","reason":"needs_clarification","question":question,
+    }
+    assert reference_alignment_question("两块表已使用独立基准比较，哪块漂移？") is None

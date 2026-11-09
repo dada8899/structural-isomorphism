@@ -90,3 +90,30 @@ def observation_check(question):
             "references":[],
         }
     return None
+
+
+_TWO_READERS = re.compile(
+    r"两(?:块|台|个|支|只|套).{0,12}(?:表|仪|计|探头|传感器)|"
+    r"two (?:clocks|watches|sensors|gauges|meters)|both (?:readers|sensors|clocks)", re.I)
+_SHARED_BASELINE = re.compile(r"参照|基准|墙钟|reference|baseline|wall clock", re.I)
+_ONLY_RELATIVE = re.compile(
+    r"只.{0,8}(?:记|测|量|存|保留).{0,16}(?:相对|差)|"
+    r"only.{0,16}(?:recorded|measured|logged).{0,24}(?:relative|difference|offset)", re.I)
+_ATTRIBUTION = re.compile(
+    r"(?:哪|其中|是.{0,20}还是).{0,16}(?:偏|不准|漂移|误差)|"
+    r"which.{0,18}(?:drift|wrong|inaccurate)|tell whether.{0,28}(?:drift|wrong|inaccurate)", re.I)
+_INDEPENDENT_ALREADY = re.compile(
+    r"已.{0,6}(?:使用|测过|记录).{0,10}(?:独立|校准).{0,8}(?:基准|时间源)|"
+    r"already.{0,16}(?:compared|measured).{0,12}(?:independent|calibrated) reference", re.I)
+
+
+def reference_alignment_question(question):
+    """Ask for a common independent check instead of assigning unknown drift."""
+    if type(question) is not str or not 1 <= len(question) <= 4000:
+        return None
+    if (not all(pattern.search(question) for pattern in (_TWO_READERS, _SHARED_BASELINE, _ONLY_RELATIVE, _ATTRIBUTION))
+            or _INDEPENDENT_ALREADY.search(question)):
+        return None
+    if re.search(r"[\u3400-\u9fff]", question):
+        return "有没有可独立校准的基准，能在同一时刻与两台设备的读数一起比较？"
+    return "Is there an independently calibrated reference you can compare with both readings at the same time?"

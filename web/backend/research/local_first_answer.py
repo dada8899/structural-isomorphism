@@ -196,12 +196,12 @@ def produce_background_answer(question, search, *, cancel, judge=None):
         return {"status": "unavailable", "reason": "cancelled"}
     if not _in_scope(question):
         return {"status": "insufficient", "reason": "unsupported"}
-    from .local_observation_checks import observation_check
+    from .local_observation_checks import observation_check, reference_alignment_question
     from .local_reviewed_mechanisms import compose_reviewed_mechanism
     answer = observation_check(question) or compose_reviewed_mechanism(question, search) or compose(question, search)
     if answer is not None:
         return {"status": "answered", "content": answer}
-    if clarification := clarify_one_premise(question):
+    if clarification := (reference_alignment_question(question) or clarify_one_premise(question)):
         return {"status":"insufficient", "reason":"needs_clarification", "question":clarification}
     if judge is None:
         return {"status": "unavailable", "reason": "evidence_verifier_unavailable"}
