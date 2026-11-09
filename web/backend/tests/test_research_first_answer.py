@@ -83,7 +83,7 @@ def test_actual_main_first_answer_migration_reopen_and_erasure(prepared, monkeyp
                 opened = await client.get(answer_url)
                 assert opened.json() == stored and opened.headers["cache-control"] == "no-store"
                 assert (await client.get(answer_url + "?revision=2")).status_code == 422
-                assert (await client.post(answer_url, json=stored)).status_code == 405
+                assert (await client.post(answer_url, json=stored, headers=origin)).status_code == 422
                 for changes, code in (({"answer": candidate("另一版解释")}, "IDEMPOTENCY_CONFLICT"),
                                       ({"key": "new-key"}, "ANSWER_EXISTS")):
                     with pytest.raises(ResearchError) as conflict:
@@ -120,6 +120,31 @@ def test_actual_main_first_answer_migration_reopen_and_erasure(prepared, monkeyp
                     assert (await other.get(answer_url)).status_code == 401
                     await login(other, messages, "other-first-answer@example.invalid")
                     assert (await other.get(answer_url)).status_code == 404
+
+                class LocalCorpus:
+                    formal = True
+                    artifact = {"artifact_id": "synthetic-bound-kb"}
+
+                    def get_by_id(self, locator):
+                        return {"id": locator, "name": {"sci-006": "牛顿冷却", "sci-012": "电容器放电"}[locator]}
+
+                monkeypatch.setattr(admission, "local_search_resource", lambda app: LocalCorpus())
+                thermal = problem() | {"original_input": "为什么装满热水的杯子冷却更慢？"}
+                created = await client.post("/api/research", json=envelope({"problem": thermal}),
+                    headers=origin | {"Idempotency-Key": "thermal-first-answer"})
+                assert created.status_code == 200, created.text
+                new = created.json()["data"]
+                generated_url = "/api/research/" + new["research"]["id"] + "/revisions/1/first-answer"
+                request_data = {"problem_digest": new["current_problem"]["digest"],
+                                "research_version": new["research_version"]}
+                assert (await client.post(generated_url, json=request_data, headers={"Origin":"https://other.invalid"})).status_code == 403
+                assert (await client.post(generated_url, json={**request_data, "problem_digest":"0"*64}, headers=origin)).status_code == 409
+                generated = await client.post(generated_url, json=request_data, headers=origin)
+                assert generated.status_code == 200, generated.text
+                assert "热容" in generated.json()["content"]["explanation"]
+                assert [item["locator"] for item in generated.json()["content"]["references"]] == ["sci-006", "sci-012"]
+                assert (await client.post(generated_url, json=request_data, headers=origin)).json() == generated.json()
+                assert (await client.get(generated_url)).json() == generated.json()
 
                 deleted = await client.post("/api/me/delete", json={"confirmation": "DELETE"}, headers=origin)
                 assert deleted.status_code == 200, deleted.text

@@ -6,6 +6,13 @@ or offer separately authorized deeper analysis.
 """
 import re
 
+from .schemas import PaidDigest, Revision, StrictObject
+
+
+class FirstAnswerRequest(StrictObject):
+    problem_digest: PaidDigest
+    research_version: Revision
+
 
 _RULES = (
     {
@@ -73,10 +80,11 @@ def generate(service, identity, research_id, *, input_revision, problem_digest, 
         if error.code != "NOT_FOUND":
             raise
     else:
-        if previous["metadata"]["problem_digest"] != problem_digest:
+        if (previous["metadata"]["problem_digest"], previous["metadata"]["research_version"]) != (
+                problem_digest, research_version):
             raise ResearchError("REVISION_CONFLICT", 409, "问题已有变化，请重新读取。")
         return previous
-    view = service.view(identity, research_id)
+    view = service.view(identity, research_id)["data"]
     question = view["current_problem"]
     if (question["revision"], question["digest"], view["research_version"]) != (
             input_revision, problem_digest, research_version):
