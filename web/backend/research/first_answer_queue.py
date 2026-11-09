@@ -12,7 +12,7 @@ import unicodedata
 from uuid import uuid4
 
 from .errors import ResearchError, not_found
-from .first_answer import _DIGEST, _require_schema, _revision_digest
+from .first_answer import _DIGEST, _revision_digest
 from .service import digest, now
 
 TABLE = "research_first_answer_jobs"
@@ -127,7 +127,7 @@ def statement_allowed(conn, action, table, column):
 
 @contextmanager
 def _write(conn, service, lease, op, old, new):
-    from .paid_control import _current_scope, _owner_binding
+    from .paid_control import _local_answer_scope, _owner_binding
     frame = sys._getframe(2)
     try:
         if (frame.f_code not in _PRODUCERS or frame.f_globals is not globals()
@@ -137,7 +137,7 @@ def _write(conn, service, lease, op, old, new):
     finally:
         del frame
     _owner_binding(conn, service.store, (new or old)[2], lease)
-    scope = _current_scope(conn)
+    scope = _local_answer_scope(conn)
     if id(conn) in _WRITES:
         raise PermissionError("nested first-answer job writer")
     _WRITES[id(conn)] = (conn, scope, op, old, new, lease)
@@ -201,12 +201,20 @@ def _transition(conn, service, lease, job, state, *, fence=None, reason=None, re
     return updated
 
 
+def _require_queue_schema(conn):
+    # Both exact catalogs include the same local queue tables and hooks.
+    # External ledger capability is checked independently of this queue.
+    row = conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()
+    if row is None or row[0] not in (16,17):
+        raise ResearchError("FEATURE_UNAVAILABLE",503,"当前版本尚不能使用本地分析队列。")
+
+
 def enqueue(service, identity, rid, *, input_revision, problem_digest, research_version):
     _binding(input_revision, problem_digest, research_version)
     rid, pid = service._id(rid), service._principal(identity)
     with service.authorization.owner_gate(pid) as lease, service.store.transaction(write=True) as conn:
         control = service.authorization.check(conn, identity, pid, rid, scope="write")
-        _require_schema(conn)
+        _require_queue_schema(conn)
         existing = _row(conn, rid, input_revision, pid)
         if existing:
             if (existing["problem_digest"], existing["research_version"]) != (problem_digest, research_version):
@@ -239,7 +247,7 @@ def read(service, identity, rid, input_revision):
     with service.store.transaction() as conn:
         pid = service._principal_in(conn, identity)
         service.authorization.check(conn, identity, pid, rid)
-        _require_schema(conn)
+        _require_queue_schema(conn)
         job = _row(conn, rid, input_revision, pid)
         if not job:
             raise not_found()
@@ -252,7 +260,7 @@ def cancel(service, identity, rid, *, input_revision, problem_digest, research_v
     rid, pid = service._id(rid), service._principal(identity)
     with service.authorization.owner_gate(pid) as lease, service.store.transaction(write=True) as conn:
         service.authorization.check(conn, identity, pid, rid, scope="write")
-        _require_schema(conn)
+        _require_queue_schema(conn)
         job = _row(conn, rid, input_revision, pid)
         if not job or job["id"] != job_id:
             raise not_found()
@@ -346,7 +354,7 @@ class Worker:
         self._require()
         service = self.service
         with service.store.transaction() as conn:
-            _require_schema(conn)
+            _require_queue_schema(conn)
             old = conn.execute("SELECT id,principal_id FROM research_first_answer_jobs WHERE state='running'").fetchone()
         if old:
             with service.authorization.owner_gate(old["principal_id"]) as lease, service.store.transaction(write=True) as conn:
@@ -364,7 +372,7 @@ class Worker:
             # Do not monopolize the runner when a block of stale entries is seen.
             for _ in range(32):
                 with service.store.transaction() as conn:
-                    _require_schema(conn)
+                    _require_queue_schema(conn)
                     candidate = conn.execute("SELECT id,principal_id FROM research_first_answer_jobs "
                                              "WHERE state='queued' ORDER BY rowid LIMIT 1").fetchone()
                 if not candidate:
@@ -491,5 +499,7 @@ def erase_in(conn, service, lease, pid, job_id):
                 raise PermissionError("first-answer job deletion compare failed")
     return len(rows)
 
+
+_LOCAL_WRITE_CODE = _write.__wrapped__.__code__
 
 _PRODUCERS = {function.__code__ for function in (enqueue, _transition, erase_in)}

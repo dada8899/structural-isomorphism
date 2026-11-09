@@ -238,7 +238,7 @@ async def lifespan(app: FastAPI):
             if native_supervisor is not None:formal_admission.attach_native(app,binding,native_module,native_supervisor)
             if search_service is not None:
                 app_state['search'], app_state['artifact'] = search_service, search_service.artifact
-                if binding.facts.profile.research_schema == 16:
+                if binding.facts.profile.research_schema in (16,17):
                     answer_module = importlib.import_module(
                         binding.service.__module__.rsplit('.', 1)[0] + '.first_answer_supervisor')
                     answer_worker = answer_module.activate(app, binding.service, search_service)

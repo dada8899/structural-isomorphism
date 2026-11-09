@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import sqlite3
 import stat
+import sys
 import threading
 import time
 from uuid import uuid4
@@ -493,6 +494,30 @@ def _current_scope(conn):
     elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13,14,15,16):
         from .store import ResearchStore
         ResearchStore.check_runtime_version(conn)
+    return scope
+
+
+def _local_answer_scope(conn):
+    """Allow exact local-only writers on v17 without admitting paid writers."""
+    from . import first_answer, first_answer_queue
+    frame = sys._getframe(1)
+    try:
+        if frame.f_locals.get("conn") is not conn or not any(
+                frame.f_code is module._LOCAL_WRITE_CODE and frame.f_globals is vars(module)
+                for module in (first_answer, first_answer_queue)):
+            raise PermissionError("local answer writer required")
+    finally:
+        del frame
+    version = conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()
+    if version is None or version[0] != 17:
+        return _current_scope(conn)
+    with _LOCK:
+        scope = _SCOPES.get(id(conn))
+    if (not scope or scope.conn is not conn or not scope.active or not scope.write or scope.pid != os.getpid()
+            or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0] != 1):
+        raise PermissionError("canonical local answer transaction required")
+    from .store import ResearchStore
+    ResearchStore._check_v17(conn)
     return scope
 
 

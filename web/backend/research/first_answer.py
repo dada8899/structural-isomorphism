@@ -110,7 +110,7 @@ def statement_allowed(conn, action, table, column):
 
 @contextmanager
 def _write(conn, service, lease, operation, values):
-    from .paid_control import _current_scope, _owner_binding
+    from .paid_control import _local_answer_scope, _owner_binding
     frame = sys._getframe(2)
     try:
         producers = _WRITE_PRODUCERS.get(operation, ())
@@ -121,7 +121,7 @@ def _write(conn, service, lease, operation, values):
     finally:
         del frame
     _owner_binding(conn, service.store, values[2], lease)
-    scope = _current_scope(conn)
+    scope = _local_answer_scope(conn)
     if id(conn) in _WRITES:
         raise PermissionError("nested first-answer writer forbidden")
     _WRITES[id(conn)] = (conn, scope, operation, values, lease)
@@ -329,6 +329,8 @@ def _write_queued_result(conn, service, lease, worker, claim, answer):
         conn.execute("INSERT INTO research_first_answers VALUES(?,?,?,?,?,?,?,?,?,?)", values)
     return ref
 
+
+_LOCAL_WRITE_CODE = _write.__wrapped__.__code__
 
 _WRITE_PRODUCERS = {"INSERT": (save.__code__, _write_queued_result.__code__), "DELETE": (erase_in.__code__,)}
 

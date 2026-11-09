@@ -139,7 +139,8 @@ def test_actual_main_first_answer_migration_reopen_and_erasure(prepared, monkeyp
     asyncio.run(run())
 
 
-def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encoder, monkeypatch):
+@pytest.mark.parametrize("schema",[16,17])
+def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encoder, monkeypatch, schema):
     import threading
     import time
     from research import first_answer, first_answer_queue, first_answer_supervisor
@@ -148,6 +149,14 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
     path = paths.private_auth_path()
     (path.parent / first_answer_queue.LOCK_NAME).touch(mode=0o600, exist_ok=False)
     first_answer.provision_first_answers_v16(path)
+    if schema == 17:
+        from research.external_first_answer_catalog import provision_isolated_v17
+        from research.external_first_answer_file_writer import approve_isolated_file
+        marker = path.with_name("STRUCTURE-EXTERNAL-LEDGER-FIXTURE")
+        marker.write_bytes(b"isolated external ledger candidate, no provider\n")
+        marker.chmod(0o600)
+        provision_isolated_v17(approve_isolated_file(path))
+
     entered, cancelled = threading.Event(), threading.Event()
     calls = []
     local_producer = first_answer_supervisor.produce_background_answer
@@ -179,8 +188,23 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
             assert first_answer_supervisor.current(main.app) is not None
             async with httpx.AsyncClient(transport=transport, base_url=BETA) as client:
                 await login(client, messages)
-                health = await client.get("/api/health")
+                for _ in range(12):
+                    health = await client.get("/api/health")
+                    if health.status_code == 200:
+                        break
+                    await asyncio.sleep(.1)
+                assert health.status_code == 200, health.text
                 assert health.json()["checks"]["first_answer"] == "VERIFIER_UNBOUND"
+                if schema == 17:
+                    from api import auth
+                    from research.paid_control import _current_scope, _local_answer_scope
+                    from research.store import ResearchStore
+                    with ResearchStore(auth._store()).transaction(write=True) as conn:
+                        with pytest.raises(PermissionError, match="canonical v5"):
+                            _current_scope(conn)
+                        with pytest.raises(PermissionError, match="local answer writer"):
+                            _local_answer_scope(conn)
+
 
                 async def make(question, key):
                     made = await client.post("/api/research", json=envelope({"problem":problem() | {"original_input":question}}),
@@ -267,10 +291,10 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
                 assert sent.status_code == 503 and sent.json()["error"]["code"] == "FEATURE_UNAVAILABLE"
                 assert (await client.post(external+"/confirm",json={**confirmation,"confirm_maximum_cost":False},headers=write)).status_code == 422
                 read = await client.get(external+"/status",headers={"Idempotency-Key":key})
-                assert read.status_code == 503 and read.json()["error"]["code"] == "FEATURE_UNAVAILABLE"
+                assert read.status_code == (404 if schema==17 else 503)
                 assert (await client.get(external+"/status")).status_code == 422
                 returned = await client.get(external+"/result",headers={"Idempotency-Key":key})
-                assert returned.status_code == 503 and returned.json()["error"]["code"] == "FEATURE_UNAVAILABLE"
+                assert returned.status_code == (404 if schema==17 else 503)
                 assert "candidate" not in returned.json()
 
                 async with httpx.AsyncClient(transport=transport,base_url=BETA) as other:

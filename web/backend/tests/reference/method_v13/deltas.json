@@ -489,51 +489,61 @@
       ]
     ],
     "schema16_bridge": {
-      "current_sha256": "929d3684dac08a5ebcc9faa9d3e249020efdae862886a852f7f5f8d92658b710",
+      "current_sha256": "7b629de4d633a60926e5b3c095a9d2e0e1201eb5e2b56b74d9e04e76c9103a6a",
       "hunks": [
         [
-          297,
-          301,
-          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:\n"
-        ],
-        [
-          303,
-          304,
-          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15):\n"
-        ],
-        [
-          305,
-          306,
-          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
-        ],
-        [
-          307,
-          308,
-          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):\n"
-        ],
-        [
-          327,
-          328,
-          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)\n"
-        ],
-        [
-          437,
-          441,
+          13,
+          14,
           ""
         ],
         [
-          481,
+          298,
+          302,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:\n"
+        ],
+        [
+          304,
+          305,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15):\n"
+        ],
+        [
+          306,
+          307,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
+        ],
+        [
+          308,
+          309,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):\n"
+        ],
+        [
+          328,
+          329,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)\n"
+        ],
+        [
+          438,
+          442,
+          ""
+        ],
+        [
           482,
+          483,
           "            or conn.execute(\"SELECT version FROM research_schema WHERE id=1\").fetchone()[0] not in (5,6,7,8,9,10,11,12,13,14,15)):\n"
         ],
         [
-          492,
           493,
+          494,
           "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13,14,15):\n"
         ],
         [
-          593,
-          594,
+          496,
+          520,
+          ""
+        ],
+        [
+          618,
+          619,
           "    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13,14,15):\n"
         ]
       ]
