@@ -37,3 +37,13 @@ external_first_answer_state.py 定义待审 SQLite 表与闭合消费边界。�
 external_first_answer_fixture_writer.py 只允许 SQLite 内存库，不接受磁盘库或已挂接库。它复用既有资金账户表的真实声明，测试只建立一个 CNY 账户。独立后备 grant 复核精确预览、确认、已存修订/权限和账户绑定。预留与状态同事务写入，消费提交后只交出一次请求字节；测试随后仅向本机回环地址发送这一次。正常合成回执在原账户上把 held 转入保守上界，并保存可重复回读的未核候选；没有回执时原 held 保留且拒绝后续预留、消费或重发。没有第二份额度。
 
 另有两连接并发竞抢、已有占用扣减和注入状态写入失败的回滚检查。演练使用内存专用 guard、合成余额和合成回执，不冒用旧用途授权、不改动旧 Financial9 代码，不是可接生产的 writer。生产仍需受审的独立用途 issuer、真实同物理库授权、官方余额与预留身份，及跨旧/新目的的未决占用一致性验证。新的 run 行用自己的 ID 标记已占用；不造一条旧 research_reservations/task 行借用身份。
+
+## 同物理文件账本候选
+
+external_first_answer_file_writer.py 将预留、消费、保守记账和候选读回放进同一个有真实文件 inode 的隔离 SQLite 库。复用既有 CNY 资金账户表和 Native 资金登记形状。独立后备绑定必须与原登记的账号、经济绑定、Owner/代际、CNY300 及风险余量一致。新 run 与共享账户同时更新，文件、账户、已保存 revision 和 SQL catalog 任一变化即拒。测试证明先预留后关闭连接、重开完成一次记账并原样回读；UNKNOWN 保留原 held，拒补发或覆写；注入运行状态写失败时金额也一起回滚。
+
+候选资金触发器只接受精确旧 SQL 作为迁移前提，保留原 Financial9 判定，再添加独立 OLD/NEW 行验证分支。新分支只可改 held、upper_booked 和加一版本；旧禁止替换/删除仍原样。未有新 proof 时，新 hook 默认返回 0。旧账本的未决状态在新预留、消费的同一写事务中查询；反方向提供 unresolved_external，但尚未接入旧流程。因此不能将这个候选当成可上线的跨用途互斥。
+
+这会改变精确 schema catalog：新增 run 表/触发器，并替换 Native money trigger 的声明。当前 v16 及其回退桥不能读取或运行该 catalog；若推进，须独立版本迁移、同 catalog 的无发送回退桥，以及备份恢复演练。不能原地向现役 v16 塞表或覆写触发器。
+
+执行点尚未进入 Main。正式路径需在固定的 ResearchStore 连接初始化中装闭合 hook，并由经审 issuer 同 Owner lease、真实账号/余额 witness、当前修订和写事务发出单次 proof；把新目的的行许可纳入 SQL authorizer，且在旧目的余额/预留/consume 入口都检查新 UNKNOWN。在既有 Financial8 项目 money guard 同时适用时，它仍独立拒绝新分支；不能通过这次候选短接。临时文件 proof 仅为隔离实验，禁止生产路径，不是实时资金授权。没有访问提供方、读取密钥或进行实际费用。
