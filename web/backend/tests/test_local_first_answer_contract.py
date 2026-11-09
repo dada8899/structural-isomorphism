@@ -232,3 +232,27 @@ def test_background_supervisor_closes_an_owned_claim_without_replay(monkeypatch)
         supervisor.close(deadline=time.monotonic() + 2)
     assert retired.is_set() and not supervisor.ready
     assert calls == ["claim", "inference"]
+
+
+def test_reviewed_queue_answer_requires_sources_for_both_arrival_noise_and_capacity():
+    from pathlib import Path
+    from web.backend.research.local_first_answer import compose
+
+    corpus = Path(__file__).resolve().parents[3] / "data/kb-expanded.jsonl"
+    locators = {"cross-081", "5k-30-031"}
+    with corpus.open(encoding="utf-8") as stream:
+        rows = {row["id"]: row for row in map(json.loads, stream) if row["id"] in locators}
+
+    class Search:
+        formal = True
+        artifact = {"artifact_id": "structural-v2-kb4443-20260711"}
+
+        def get_by_id(self, locator):
+            return rows.get(locator)
+
+    question = "为什么任务到达速度没变，处理变慢后排队等得更久？"
+    answer = compose(question, Search())
+    assert {ref["locator"] for ref in answer["references"]} == locators
+    assert "到达率接近服务率" in next(ref["excerpt"] for ref in answer["references"] if ref["locator"] == "5k-30-031")
+    rows.pop("5k-30-031")
+    assert compose(question, Search()) is None
