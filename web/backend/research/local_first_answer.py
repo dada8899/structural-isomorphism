@@ -99,6 +99,29 @@ def compose_with_worker(question, search, *, cancel=None, background=False):
         return None
 
 
+def _in_scope(question):
+    if __package__ == "web.backend.research":
+        from ..services.scope_guard import is_out_of_scope
+    else:
+        from services.scope_guard import is_out_of_scope
+    return not is_out_of_scope(question)[0]
+
+
+def produce_background_answer(question, search, *, cancel):
+    """Compute an outcome for a previously claimed job, without writing it."""
+    if cancel.is_set():
+        return {"status": "unavailable", "reason": "cancelled"}
+    if not _in_scope(question):
+        return {"status": "insufficient", "reason": "unsupported"}
+    answer = compose(question, search)
+    if answer is not None:
+        return {"status": "answered", "content": answer}
+    result = compose_with_worker(question, search, cancel=cancel, background=True)
+    if cancel.is_set():
+        return {"status": "unavailable", "reason": "cancelled"}
+    return result or {"status": "unavailable", "reason": "worker_unavailable"}
+
+
 def generate(service, identity, research_id, *, input_revision, problem_digest, research_version, search, cancel=None):
     """Generate from an authorized stored question, then recheck CAS on write."""
     from .errors import ResearchError
@@ -116,11 +139,7 @@ def generate(service, identity, research_id, *, input_revision, problem_digest, 
         return previous
     args = (service, identity, research_id, input_revision, problem_digest, research_version)
     question = read_current_input(*args)
-    if __package__ == "web.backend.research":
-        from ..services.scope_guard import is_out_of_scope
-    else:
-        from services.scope_guard import is_out_of_scope
-    if is_out_of_scope(question)[0]:
+    if not _in_scope(question):
         raise ResearchError("FEATURE_UNAVAILABLE", 503, "这个问题暂时没有可用的本地初步分析。")
     answer = compose(question, search)
     if answer is None:

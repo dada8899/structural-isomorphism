@@ -152,3 +152,27 @@ def test_worker_path_uses_bound_rows_and_drops_unverifiable_output(monkeypatch):
     question = "未知系统为什么恢复较慢？"
     assert compose_with_worker(question, Search())["content"]["references"][0]["record_digest"] == digest(record())
     assert compose_with_worker(question, Search()) is None
+
+
+def test_background_producer_does_not_run_cancelled_work_and_uses_long_budget(monkeypatch):
+    from threading import Event
+    from web.backend.research import local_first_answer as producer
+
+    cancelled = Event()
+    observed = []
+
+    def infer(question, search, *, cancel, background):
+        assert background is True and cancel is cancelled
+        observed.append(question)
+        return {"status": "insufficient", "reason": "no_relevant_sources"}
+
+    monkeypatch.setattr(producer, "compose_with_worker", infer)
+    question = "为什么团队更快获得信息后错误变多？"
+    assert producer.produce_background_answer(question, None, cancel=cancelled) == {
+        "status": "insufficient", "reason": "no_relevant_sources",
+    }
+    cancelled.set()
+    assert producer.produce_background_answer(question, None, cancel=cancelled) == {
+        "status": "unavailable", "reason": "cancelled",
+    }
+    assert observed == [question]
