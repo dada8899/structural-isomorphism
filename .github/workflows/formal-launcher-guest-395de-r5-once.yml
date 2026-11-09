@@ -1,0 +1,119 @@
+# Offline candidate. Not installed or dispatched.
+name: Exact 395de R5 exact-input frozen-base launcher in disposable Linux guest
+on:
+  push:
+    branches: [codex/formal-launcher-guest-395de-r5-once]
+permissions:
+  contents: read
+concurrency:
+  group: formal-launcher-guest-395de-r5-once
+  cancel-in-progress: false
+jobs:
+  guest:
+    if: >-
+      github.event_name == 'push' &&
+      github.repository == 'dada8899/structural-isomorphism' &&
+      github.ref == 'refs/heads/codex/formal-launcher-guest-395de-r5-once' &&
+      github.run_number == 1 && github.run_attempt == 1 &&
+      github.event.created == true && github.event.deleted == false &&
+      github.event.before == '0000000000000000000000000000000000000000' &&
+      github.event.after == github.sha &&
+      vars.STRUCTURE_FORMAL_GUEST_395DE_R5_HARNESS_SHA != '' &&
+      vars.STRUCTURE_FORMAL_GUEST_395DE_R5_HARNESS_SHA == github.sha &&
+      vars.STRUCTURE_FORMAL_GUEST_395DE_R5_APPROVAL_SHA != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      EXPECTED_HARNESS_SHA: ${{ vars.STRUCTURE_FORMAL_GUEST_395DE_R5_HARNESS_SHA }}
+      EXPECTED_APPROVAL_SHA: ${{ vars.STRUCTURE_FORMAL_GUEST_395DE_R5_APPROVAL_SHA }}
+      PROBE_PUSH_CREATED: ${{ toJSON(github.event.created) }}
+      PROBE_PUSH_DELETED: ${{ toJSON(github.event.deleted) }}
+      PROBE_PUSH_BEFORE: ${{ github.event.before }}
+      PROBE_PUSH_AFTER: ${{ github.event.after }}
+      APP_SHA: 395de55b082e2cfb73111dbbe73d2571b3319c8d
+      MEMBERS_SHA: 9018e6b9adbb1dfdf81dd671cd41f47a75632a21376f84002ba55150852cfb08
+      SOURCE_MANIFEST_SHA: f380702b8cabad17b5de02aebbfaa1bdf7374dd7ca2ba3646cf520b03366649f
+      PUBLIC_PLAN_SHA: a033c04c970fe2d2666b1d2dc91016d4c1c87f9a53fc39aaf93c30b8b03add17
+      PUBLIC_FETCH_SHA: a0da8ba6d42b3ca1382b88f091d7e7fa4f8930afdf458f0329580c3797425768
+    steps:
+      - name: Admit first run and exact independent harness pin
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_HARNESS_SHA" =~ ^[a-f0-9]{40}$ && "$EXPECTED_HARNESS_SHA" == "$GITHUB_SHA" ]]
+          [[ "$EXPECTED_APPROVAL_SHA" =~ ^[a-f0-9]{64}$ ]]
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$RUNNER_OS:$RUNNER_ARCH" = Linux:X64
+          test "$GITHUB_RUN_NUMBER:$GITHUB_RUN_ATTEMPT" = 1:1
+          test "$(cat /proc/1/comm)" = systemd
+          test "$(stat -fc %T /sys/fs/cgroup)" = cgroup2fs
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: control-checkout
+          persist-credentials: false
+          lfs: false
+          submodules: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 395de55b082e2cfb73111dbbe73d2571b3319c8d
+          path: exact-app
+          persist-credentials: false
+          lfs: false
+          submodules: false
+      - name: Verify reviewed inputs and stage public bytes as runner
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          test "$(git -C control-checkout rev-parse HEAD)" = "$EXPECTED_HARNESS_SHA"
+          test "$(git -C exact-app rev-parse HEAD)" = "$APP_SHA"
+          package="$GITHUB_WORKSPACE/control-checkout/ops/formal-launcher-guest-395de-r5"
+          stage="$RUNNER_TEMP/formal-launcher-395de-r5-inputs"
+          mkdir -m 0700 "$stage"
+          printf '%s  %s\n' "$MEMBERS_SHA" "$package/EXECUTABLE-MEMBERS.json" \
+            "$PUBLIC_PLAN_SHA" "$package/LOCK-DISTRIBUTION-PLAN.json" \
+            "$PUBLIC_FETCH_SHA" "$package/fetch_verified_distributions.py" \
+            "$SOURCE_MANIFEST_SHA" "$package/candidate-source-manifest.json" | sha256sum -c --status
+          cp "$package/LOCK-DISTRIBUTION-PLAN.json" "$stage/"
+          (
+            cd "$stage"
+            curl -fLsS --max-time 90 --proto '=https' --proto-redir '=https' \
+              'https://github.com/astral-sh/python-build-standalone/releases/download/20260414/cpython-3.11.15%2B20260414-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz' \
+              -o cpython-20260414-stripped.tar.gz
+            /usr/bin/python3 -I -S -B "$package/fetch_verified_distributions.py"
+          )
+      - name: Verify separately approved bytes and run guest once
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          umask 077
+          package="$GITHUB_WORKSPACE/control-checkout/ops/formal-launcher-guest-395de-r5"
+          stage="$RUNNER_TEMP/formal-launcher-395de-r5-inputs"
+          root=/run/structure-formal-launcher-approved-395de-r5
+          approval="$stage/approval.json"
+          /usr/bin/python3 -I -S -B - "$package" "$approval" <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          p=Path(sys.argv[1]); h=lambda n:hashlib.sha256((p/n).read_bytes()).hexdigest()
+          row={"status":"APPROVED_DISPOSABLE_GITHUB_VM_ONLY","workflow_sha":os.environ["EXPECTED_HARNESS_SHA"],
+               "run_number":"1","nonce":"395dee00f1e5a715","controller_sha256":h("guest_once.py"),
+               "distribution_manifest_sha256":h("PUBLIC-DISTRIBUTION-VERIFICATION.json"),
+               "source_manifest_sha256":os.environ["SOURCE_MANIFEST_SHA"]}
+          raw=(json.dumps(row,sort_keys=True,separators=(",",":"))+"\n").encode()
+          if hashlib.sha256(raw).hexdigest()!=os.environ["EXPECTED_APPROVAL_SHA"]:raise SystemExit("APPROVAL_PIN")
+          with open(sys.argv[2],"xb") as f:f.write(raw)
+          PY
+          sudo -n mkdir -m 0700 -- "$root"
+          sudo -n install -m 0644 -- "$package"/{guest_bootstrap.py,guest_once.py,formal_launcher_envelope.py,render_github_guest.py,verify_derived_pure_wheels.py,runtime-linux-cpu.lock,PUBLIC-DISTRIBUTION-VERIFICATION.json,EXECUTABLE-MEMBERS.json,candidate.service,candidate-source-manifest.json} "$root/"
+          sudo -n install -m 0600 -- "$approval" "$root/approval.json"
+          printf '%s  %s\n' "$MEMBERS_SHA" "$root/EXECUTABLE-MEMBERS.json" | sudo -n sha256sum -c --status
+          bootstrap_sha=$(sudo -n /usr/bin/python3 -I -S -B -c 'import json,sys; print(json.load(open(sys.argv[1]))["guest_bootstrap.py"])' "$root/EXECUTABLE-MEMBERS.json")
+          printf '%s  %s\n' "$bootstrap_sha" "$root/guest_bootstrap.py" | sudo -n sha256sum -c --status
+          sudo -n /usr/bin/env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin LC_ALL=C.UTF-8 TZ=UTC \
+            GITHUB_SHA="$GITHUB_SHA" GITHUB_RUN_ID="$GITHUB_RUN_ID" GITHUB_RUN_NUMBER="$GITHUB_RUN_NUMBER" \
+            GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" GITHUB_REPOSITORY="$GITHUB_REPOSITORY" \
+            GITHUB_EVENT_NAME="$GITHUB_EVENT_NAME" GITHUB_REF="$GITHUB_REF" RUNNER_ENVIRONMENT="$RUNNER_ENVIRONMENT" \
+            PROBE_PUSH_CREATED="$PROBE_PUSH_CREATED" PROBE_PUSH_DELETED="$PROBE_PUSH_DELETED" \
+            PROBE_PUSH_BEFORE="$PROBE_PUSH_BEFORE" PROBE_PUSH_AFTER="$PROBE_PUSH_AFTER" \
+            /usr/bin/python3 -I -S -B "$root/guest_bootstrap.py" "$root/EXECUTABLE-MEMBERS.json" "$MEMBERS_SHA" \
+            --approval "$root/approval.json" --approval-sha256 "$EXPECTED_APPROVAL_SHA" --inputs "$stage" \
+            --checkout "$GITHUB_WORKSPACE/exact-app" --unit "$root/candidate.service" --source-manifest "$root/candidate-source-manifest.json"
