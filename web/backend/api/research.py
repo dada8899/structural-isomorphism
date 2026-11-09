@@ -5,10 +5,8 @@ import json
 import os
 import re
 import sqlite3
-import threading
 from uuid import UUID, uuid4
 
-from anyio import create_task_group
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
@@ -372,42 +370,10 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         # Captured private storage never falls back to a development flag after
         # environment downgrade, including requests outside canonical Main.
         if service.store._formal_mode():require_formal_application(request.app,'research_basic')
-        if operation in ("first-answer-read", "first-answer-generate"):
+        if operation == "first-answer-read":
             raw_revision = request.path_params["input_revision"]
             if request.query_params or not re.fullmatch(r"[1-9][0-9]{0,9}",raw_revision):
                 raise ResearchError("INPUT_INVALID",422,"初步分析修订或查询参数无效。")
-            if operation == "first-answer-generate":
-                if auth.require_same_origin(request) is not None:
-                    raise ResearchError("AUTHORIZATION_STALE",403,"请从本站页面开始研究。")
-                if __package__=='web.backend.api':
-                    from ..research.local_first_answer import FirstAnswerRequest, generate
-                    from ..services.formal_admission import local_search_resource
-                else:
-                    from research.local_first_answer import FirstAnswerRequest, generate
-                    from services.formal_admission import local_search_resource
-                arguments = await _parse(request, FirstAnswerRequest)
-                search = local_search_resource(request.app) if service.store._formal_mode() else None
-                cancelled = threading.Event()
-
-                async def watch_disconnect():
-                    while True:
-                        if (await request.receive()).get("type") == "http.disconnect":
-                            cancelled.set()
-                            return
-
-                async with create_task_group() as group:
-                    group.start_soon(watch_disconnect)
-                    try:
-                        result = await run_in_threadpool(generate, service, identity, research_id,
-                            input_revision=int(raw_revision), search=search, cancel=cancelled, **arguments.model_dump())
-                    except ResearchError as error:
-                        # Keep the normal public ResearchError envelope outside the task group.
-                        result = error
-                    finally:
-                        group.cancel_scope.cancel()
-                if isinstance(result, ResearchError):
-                    raise result
-                return JSONResponse(result,headers=_HEADERS)
             if __package__=='web.backend.api':from ..research.first_answer import read
             else:from research.first_answer import read
             result = await run_in_threadpool(read,service,identity,research_id,int(raw_revision))
@@ -721,11 +687,6 @@ async def view_research(research_id: str, request: Request):
 @router.get("/research/{research_id}/revisions/{input_revision}/first-answer")
 async def read_research_first_answer(research_id: str, input_revision: str, request: Request):
     return await _dispatch(request,research_id=research_id,operation="first-answer-read")
-
-
-@router.post("/research/{research_id}/revisions/{input_revision}/first-answer")
-async def generate_research_first_answer(research_id: str, input_revision: str, request: Request):
-    return await _dispatch(request,research_id=research_id,operation="first-answer-generate")
 
 
 @router.post("/research/{research_id}/tasks")

@@ -131,26 +131,16 @@
       ]
     ],
     "schema16_bridge": {
-      "current_sha256": "1fd70f34729d9054dd24a81fed7034cb9e973075480fd21ae7c7d19906c77cc8",
+      "current_sha256": "c107c3157c43c0a47bde1d69c61118c838181661daa0286576663a6950164404",
       "hunks": [
         [
-          7,
-          8,
+          372,
+          380,
           ""
         ],
         [
-          10,
-          11,
-          ""
-        ],
-        [
-          374,
-          414,
-          ""
-        ],
-        [
-          720,
-          730,
+          686,
+          691,
           ""
         ]
       ]
@@ -228,21 +218,21 @@
     ],
     "original_sha256": "2be9e0cfe9d81f8f373e2941c68149b03376d23f973ed3703eba3bc9bcad10e6",
     "schema16_bridge": {
-      "current_sha256": "f20dd16e56e0a286442401813000aaea5e83feaa2918497e3deb14dbc6eb1e08",
+      "current_sha256": "481ef82c39f688af4f80a836aee468e2f539bf7fe1b9ddc0e2af44bf5064f26d",
       "hunks": [
         [
           205,
-          207,
+          209,
           ""
         ],
         [
-          233,
-          234,
+          235,
+          236,
           "        if version and version[0] in (7,8,9,10,11,12,13,14,15):\n"
         ],
         [
-          296,
-          297,
+          298,
+          299,
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)\n"
         ]
       ]
@@ -489,51 +479,51 @@
       ]
     ],
     "schema16_bridge": {
-      "current_sha256": "f551101c855f76a9a0d90e22970b593723d9dd84fa884fce0898aef9245d3608",
+      "current_sha256": "929d3684dac08a5ebcc9faa9d3e249020efdae862886a852f7f5f8d92658b710",
       "hunks": [
         [
           297,
-          300,
+          301,
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:\n"
         ],
         [
-          302,
           303,
+          304,
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15):\n"
         ],
         [
-          304,
           305,
+          306,
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
         ],
         [
-          306,
           307,
+          308,
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):\n"
         ],
         [
-          326,
           327,
+          328,
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)\n"
         ],
         [
-          436,
-          438,
+          437,
+          441,
           ""
         ],
         [
-          478,
-          479,
+          481,
+          482,
           "            or conn.execute(\"SELECT version FROM research_schema WHERE id=1\").fetchone()[0] not in (5,6,7,8,9,10,11,12,13,14,15)):\n"
         ],
         [
-          489,
-          490,
+          492,
+          493,
           "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13,14,15):\n"
         ],
         [
-          590,
-          591,
+          593,
+          594,
           "    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13,14,15):\n"
         ]
       ]
@@ -1227,7 +1217,7 @@
     ],
     "original_sha256": "4415e35d9591896e2484bdfb962f0a1bb084704916bbcb70b9e84954f76647f3",
     "schema16_bridge": {
-      "current_sha256": "9f586481d0c822c1dc5f30eba38fdff37cd6b204986b056289935f5c074dad53",
+      "current_sha256": "1e8719b323c92852731ddbf855e45c1e764187016472edb31a4945ec5ff627d9",
       "hunks": [
         [
           182,
@@ -1301,7 +1291,7 @@
         ],
         [
           624,
-          627,
+          629,
           ""
         ]
       ]
@@ -1947,7 +1937,7 @@
     ],
     "original_sha256": "744c196ef6b9cb9c3b6fab2140b966e3b52b4859fafb11ef23a5982d371d2885",
     "schema16_bridge": {
-      "current_sha256": "e5f9c3db451c9b7a1910d2cf242e689fc9ff74813d1b65024206d57dfa335d8b",
+      "current_sha256": "56243a83fbbfa92dc9bf0ae5b4aa425887b90b82d4b3391301b468ceb0d07a77",
       "hunks": [
         [
           13,
@@ -2005,63 +1995,63 @@
           "        if version==15:\n"
         ],
         [
-          1072,
-          1075,
+          1073,
+          1077,
           ""
         ],
         [
-          1115,
-          1119,
+          1116,
+          1122,
           "        return cls._check_structure_version(conn,15)\n"
         ],
         [
-          1190,
-          1192,
+          1193,
+          1195,
           "            if version==15:self._check_v15(conn)\n"
         ],
         [
-          1207,
-          1209,
+          1210,
+          1212,
           "            if version==15:self._check_v15(conn);conn.commit();return\n"
         ],
         [
-          1324,
-          1326,
+          1327,
+          1329,
           "        if version==15:cls._check_v15(conn)\n"
         ],
         [
-          1335,
-          1343,
+          1338,
+          1346,
           ""
         ],
         [
-          1346,
-          1347,
+          1349,
+          1350,
           "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式15需要完整账户准入。')\n"
         ],
         [
-          1348,
-          1349,
+          1351,
+          1352,
           "        cls._check_structure_version(conn,15)\n"
         ],
         [
-          1356,
           1359,
+          1364,
           ""
         ],
         [
-          1360,
-          1361,
+          1365,
+          1366,
           "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究15关联不匹配。')\n"
         ],
         [
-          1384,
-          1388,
+          1389,
+          1393,
           "                self._check_v15(conn)\n"
         ],
         [
-          1412,
-          1416,
+          1417,
+          1421,
           "                self._check_v15(conn)\n"
         ]
       ]

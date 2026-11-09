@@ -83,7 +83,7 @@ def test_actual_main_first_answer_migration_reopen_and_erasure(prepared, monkeyp
                 opened = await client.get(answer_url)
                 assert opened.json() == stored and opened.headers["cache-control"] == "no-store"
                 assert (await client.get(answer_url + "?revision=2")).status_code == 422
-                assert (await client.post(answer_url, json=stored, headers=origin)).status_code == 422
+                assert (await client.post(answer_url, json=stored, headers=origin)).status_code == 405
                 for changes, code in (({"answer": candidate("另一版解释")}, "IDEMPOTENCY_CONFLICT"),
                                       ({"key": "new-key"}, "ANSWER_EXISTS")):
                     with pytest.raises(ResearchError) as conflict:
@@ -120,89 +120,6 @@ def test_actual_main_first_answer_migration_reopen_and_erasure(prepared, monkeyp
                     assert (await other.get(answer_url)).status_code == 401
                     await login(other, messages, "other-first-answer@example.invalid")
                     assert (await other.get(answer_url)).status_code == 404
-
-                class LocalCorpus:
-                    formal = True
-                    artifact = {"artifact_id": "synthetic-bound-kb"}
-
-                    def get_by_id(self, locator):
-                        return {"id": locator, "name": {"sci-006": "牛顿冷却", "sci-012": "电容器放电"}[locator],
-                                "description": "合成固定知识库摘录"}
-
-                monkeypatch.setattr(admission, "local_search_resource", lambda app: LocalCorpus())
-                thermal = problem() | {"original_input": "为什么装满热水的杯子冷却更慢？"}
-                created = await client.post("/api/research", json=envelope({"problem": thermal}),
-                    headers=origin | {"Idempotency-Key": "thermal-first-answer"})
-                assert created.status_code == 200, created.text
-                new = created.json()["data"]
-                generated_url = "/api/research/" + new["research"]["id"] + "/revisions/1/first-answer"
-                request_data = {"problem_digest": new["current_problem"]["digest"],
-                                "research_version": new["research_version"]}
-                assert (await client.post(generated_url, json=request_data, headers={"Origin":"https://other.invalid"})).status_code == 403
-                assert (await client.post(generated_url, json={**request_data, "problem_digest":"0"*64}, headers=origin)).status_code == 409
-                generated = await client.post(generated_url, json=request_data, headers=origin)
-                assert generated.status_code == 200, generated.text
-                assert "热容" in generated.json()["content"]["explanation"]
-                assert [item["locator"] for item in generated.json()["content"]["references"]] == ["sci-006", "sci-012"]
-                assert (await client.post(generated_url, json=request_data, headers=origin)).json() == generated.json()
-                assert (await client.get(generated_url)).json() == generated.json()
-                assert (await client.post(generated_url, json={**request_data, "research_version": 2}, headers=origin)).status_code == 409
-                assert all(item["excerpt"] == "合成固定知识库摘录" and len(item["record_digest"]) == 64
-                           for item in generated.json()["content"]["references"])
-                async with httpx.AsyncClient(transport=transport, base_url=BETA) as other:
-                    assert (await other.post(generated_url, json=request_data, headers=origin)).status_code == 401
-                    await login(other, messages, "other-first-answer@example.invalid")
-                    assert (await other.post(generated_url, json=request_data, headers=origin)).status_code == 404
-
-                unsupported = await client.post(root + "/revisions",
-                    json=envelope({"expected_revision": 2, "problem": problem() | {"original_input": "怎么给这个产品定价？"}}),
-                    headers=origin | {"Idempotency-Key": "unsupported-revision"})
-                assert unsupported.status_code == 200
-                new_problem = unsupported.json()["data"]
-                unavailable_url = root + "/revisions/3/first-answer"
-                unavailable_data = {"problem_digest": new_problem["current_problem"]["digest"],
-                                    "research_version": new_problem["research_version"]}
-                assert (await client.post(unavailable_url, json=unavailable_data, headers=origin)).status_code == 503
-                assert (await client.get(unavailable_url)).status_code == 404
-
-                # Exercise the actual ASGI cancellation path after consuming
-                # the POST body; no browser/socket fixture can fake its watcher.
-                import threading
-                from research import local_first_answer
-                worker_entered, worker_cancelled = threading.Event(), threading.Event()
-
-                def wait_for_cancel(question, search, *, cancel):
-                    assert question == "怎么给这个产品定价？"
-                    worker_entered.set()
-                    if cancel.wait(3):
-                        worker_cancelled.set()
-                    return None
-
-                with monkeypatch.context() as disconnect:
-                    disconnect.setattr(local_first_answer, "compose_with_worker", wait_for_cancel)
-                    request = client.build_request("POST", unavailable_url, json=unavailable_data, headers=origin)
-                    scope = {"type":"http", "asgi":{"version":"3.0"}, "http_version":"1.1", "method":"POST",
-                             "scheme":"https", "path":request.url.path, "raw_path":request.url.raw_path,
-                             "query_string":b"", "headers":[(name.lower(), value) for name, value in request.headers.raw], "root_path":"",
-                             "client":("127.0.0.1", 5555), "server":(request.url.host, 443)}
-                    delivered = False
-
-                    async def receive_then_disconnect():
-                        nonlocal delivered
-                        if not delivered:
-                            delivered = True
-                            return {"type":"http.request", "body":request.content, "more_body":False}
-                        assert await asyncio.to_thread(worker_entered.wait, 3)
-                        return {"type":"http.disconnect"}
-
-                    async def discard_response(message):
-                        pass
-
-                    await asyncio.wait_for(main.app(scope, receive_then_disconnect, discard_response), 8)
-                    assert worker_cancelled.is_set()
-                assert (await client.get(unavailable_url)).status_code == 404
-
-
 
                 deleted = await client.post("/api/me/delete", json={"confirmation": "DELETE"}, headers=origin)
                 assert deleted.status_code == 200, deleted.text
