@@ -64,10 +64,45 @@ def _recovery_comparison(question):
         "references":[],
     }
 
+
+_TOTAL_FLOW = re.compile(r"(?:总|合计|整体).{0,10}(?:进水|流入|流量)|total.{0,12}(?:inflow|incoming flow)", re.I)
+_FLOW_USE = re.compile(r"用水|消耗|流出|outflow|use(?:d)? volume", re.I)
+_LOCAL_OVERFLOW = re.compile(r"溢出|溢流|overflow", re.I)
+_SPARE_ELSEWHERE = re.compile(r"(?:另|其余|其他).{0,18}(?:没满|未满|有余量)|(?:other|elsewhere).{0,24}(?:not full|spare capacity)", re.I)
+_NO_OBSERVED_OVERFLOW = re.compile(r"没有溢出|未发生溢流|只是.{0,8}(?:告警|提示)|only an alarm|no actual overflow", re.I)
+_EQUAL_VOTES = re.compile(r"一人一票|每人一票|one vote per person|equal vote", re.I)
+_WEIGHTED_VOTES = re.compile(r"按.{0,14}(?:班次|工时|参与次数).{0,10}(?:计票|投票|权重)|vote for every (?:shift|hour)|weight(?:ed)?.{0,12}(?:shifts|hours)", re.I)
+_SAME_VOTERS = re.compile(r"同一批人|人员没变|还是这些人|same.{0,18}(?:people|voters|members)", re.I)
+
+
+def _structural_calculation(question):
+    if (all(item.search(question) for item in (_TOTAL_FLOW, _FLOW_USE, _LOCAL_OVERFLOW, _SPARE_ELSEWHERE))
+            and not _NO_OBSERVED_OVERFLOW.search(question)):
+        return {
+            "producer":"local-calculation-local-stock-v1",
+            "explanation":"全体一天的进出量接近平衡，不代表每个容器每个时段都平衡。单个容器的存量变化等于流入减流出，再加转入减转出；局部流入在下午集中、容器之间来不及分流时，可以一处溢出、别处仍有余量。",
+            "assumptions":["按同一时钟比较各容器水位和进出量，区分全天总量与短时峰值。尚不能从这些现象确定具体哪个连接限制了流量。"],
+            "cross_domain_leads":[],
+            "next_check":"同时记录各容器水位、进出流和连接处的流量。用同一段进水时序回放，保持总容量不变，只改变分流或连接能力。若溢流消失，支持局部分配受限；若不变，再查局部峰值容量或实际流出。",
+            "references":[],
+        }
+    if all(item.search(question) for item in (_EQUAL_VOTES, _WEIGHTED_VOTES, _SAME_VOTERS)):
+        return {
+            "producer":"local-calculation-vote-weights-v1",
+            "explanation":"参加的人相同，也不代表他们对结果的影响相同。按班次或工时加权后，班次较多的投票者权重更高；即使每个人的选择不变，总结果也可能移动。仅凭结果变化，不能判定偏好或说服效果变了。",
+            "assumptions":["需要同一批匿名选择和对应权重，选项、有效票规则与比较时段一致。"],
+            "cross_domain_leads":[],
+            "next_check":"把同一批票分别按一人一票与新权重重算，比较各选项份额及是否翻转。若单独换权重就产生方向相同的变化，说明权重足以解释这一部分；若重算不变，再查选择、选项或参与情况的变化。",
+            "references":[],
+        }
+    return None
+
 def observation_check(question):
     """Return a hypothesis plus an executable comparison; never invent sources."""
     if type(question) is not str or not 1 <= len(question) <= 4000:
         return None
+    if structural := _structural_calculation(question):
+        return structural
     if recovery := _recovery_comparison(question):
         return recovery
     if _aggregation_reversal(question):

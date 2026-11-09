@@ -211,3 +211,17 @@ def test_shared_reference_does_not_identify_which_device_drifted(asked):
         "status":"insufficient","reason":"needs_clarification","question":question,
     }
     assert reference_alignment_question("两块表已使用独立基准比较，哪块漂移？") is None
+
+
+@pytest.mark.parametrize("question,producer,evidence", [
+    ("多个储水槽总进水和用水接近，一处溢出而其他槽没满。总容量是不是不够？",
+     "local-calculation-local-stock-v1","保持总容量不变"),
+    ("We moved from one vote per person to a vote for every shift worked. The same people are voting. Did preferences change?",
+     "local-calculation-vote-weights-v1","同一批票"),
+])
+def test_structural_calculations_isolate_local_flow_and_weighting(question,producer,evidence):
+    from web.backend.research.local_observation_checks import observation_check
+    answer = observation_check(question)
+    assert answer is not None and answer["producer"] == producer
+    assert evidence in answer["next_check"] and answer["references"] == []
+    assert observation_check("总进水与用水相同，一处只是提示溢出，没有溢出，其他没满。") is None
