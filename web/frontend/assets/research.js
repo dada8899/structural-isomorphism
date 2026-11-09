@@ -1430,6 +1430,7 @@
         options.method = 'POST';
         options.headers = {'Content-Type':'application/json'};
         options.body = JSON.stringify({problem_digest:problemDigest, research_version:researchVersion});
+        byId('save-question').disabled = true;
         byId('first-answer-status').textContent = '正在整理初步分析…';
         byId('first-answer').hidden = false;
       }
@@ -1488,6 +1489,7 @@
       // Failure to load an optional answer must not hide the saved question.
     } finally {
       clearTimeout(timer);
+      if (active() && generate) observationSync();
       if (active() && generate && !byId('first-answer-body').childElementCount) {
         byId('first-answer-status').textContent = '这次未能生成初步分析。问题已保存，仍可查看本地线索。';
         byId('first-answer-retry').hidden = false;
