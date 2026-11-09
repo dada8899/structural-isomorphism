@@ -206,10 +206,39 @@ def _hourly_balance(question):
         "references":[],
     }
 
+
+def _baseline_decay_series(question):
+    base = re.findall(r"(?:外界|环境|背景)[^。；，,]{0,12}(?:稳定|恒定)[^。；，,]{0,12}(?:是|为)\s*([0-9]{1,7})", question)
+    first = re.findall(r"(?:当时|初始)[^。；]{0,12}(?:读数为|读到|为)\s*([0-9]{1,7})", question)
+    later = re.findall(r"每\s*([1-9][0-9]{0,2})\s*分钟[^。；]{0,14}(?:依次读到|依次为)\s*([0-9]{1,7})[、，,]\s*([0-9]{1,7})[、，,]\s*([0-9]{1,7})(?![0-9.、，,])",question)
+    if not all(len(x)==1 for x in (base,first,later)):
+        return None
+    baseline,start=int(base[0]),int(first[0])
+    step,*values=map(int,later[0])
+    gaps=[x-baseline for x in (start,*values)]
+    if any(x<=0 for x in gaps) or not 0<gaps[1]<gaps[0]:
+        return None
+    if any(b*gaps[0]!=a*gaps[1] for a,b in zip(gaps,gaps[1:])):
+        return None
+    factor=Decimal(gaps[1])/gaps[0]
+    predicted=Decimal(baseline)+gaps[-1]*factor
+    return {
+        "producer":"local-calculation-baseline-decay-v1",
+        "explanation":f"减去题设稳定背景 {baseline}，偏差依次为 "+ "、".join(map(str,gaps))+
+                      f"。每隔 {step} 分钟保留前一次偏差的 {factor:.1%}，所以绝对减少量随偏差缩小。"
+                      f"若背景和这个比例继续不变，下一次约为 {predicted:g}（题设读数单位）。这只是条件外推，不证明全程遵循该模型。",
+        "assumptions":["读数单位一致、采样等间隔；环境基准与交换条件保持稳定。"],
+        "cross_domain_leads":[],
+        "next_check":"按相同间隔继续测，并独立记录环境背景。逐次比较扣除背景后的比例或对数斜率；若背景改变、比例偏离或不同起点的归一曲线不重合，撤回预测。",
+        "references":[],
+    }
+
 def observation_check(question):
     """Return a hypothesis plus an executable comparison; never invent sources."""
     if type(question) is not str or not 1 <= len(question) <= 4000:
         return None
+    if series := _baseline_decay_series(question):
+        return series
     if balance := _hourly_balance(question):
         return balance
     if rates := _equal_weight_rates(question):

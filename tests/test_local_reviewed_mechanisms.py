@@ -264,3 +264,12 @@ def test_hourly_stock_flow_checks_the_observed_delta_and_rejects_mixed_units():
     answer = observation_check(q)
     assert answer and "8−6=+2" in answer["explanation"] and "变化 +6件，两者一致" in answer["explanation"]
     assert observation_check(q.replace("6 件","6 组")) is None
+
+
+def test_baseline_decay_series_extrapolates_only_a_consistent_stated_ratio():
+    from web.backend.research.local_observation_checks import observation_check
+    question = "环境稳定背景为 4，初始读数为 36，之后每 2 分钟依次读到 20、12、8。下一次是多少？"
+    result = observation_check(question)
+    assert result and "32、16、8、4" in result["explanation"] and "下一次约为 6" in result["explanation"]
+    assert observation_check(question.replace("稳定背景为 4","背景未知")) is None
+    assert observation_check(question.replace("20、12、8","20、13、8")) is None
