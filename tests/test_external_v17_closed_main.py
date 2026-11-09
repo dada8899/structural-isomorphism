@@ -70,6 +70,30 @@ def test_real_v17_closed_main_preserves_login_history_and_saved_revisions(prepar
 
                 reopened=await owner.get(fin_url)
                 assert reopened.status_code==200 and reopened.json()==fin
+                local_fin=await create(owner,"closed-v17-new-finance")
+                local_body=await setup_financial(owner,local_fin,currency="CNY")
+                local_result=await calculate(owner,local_fin,local_body,key="closed-v17-fin3")
+                assert local_result.status_code==200,local_result.text
+                result_meta=local_result.json()["data"]["metadata"]
+                local_fin_url=f"/api/research/{local_fin}/financial-results/{result_meta['result_ref']}?view=table"
+                local_saved=await owner.get(local_fin_url)
+                assert local_saved.status_code==200 and local_result.json()["data"]["persisted"] is True
+                assert result_meta["model_analysis_ran"] is False
+                assert (await calculate(owner,local_fin,local_body,key="closed-v17-fin3")).json()==local_result.json()
+                from research.paid_control import _current_scope,_local_financial_scope
+                from research.financial_execution import require_native_scope
+                with ResearchStore(auth._store()).transaction(write=True) as conn:
+                    with pytest.raises(PermissionError,match="v17 deletion-only scope required"):_current_scope(conn)
+                    with pytest.raises(PermissionError,match="local financial producer required"):_local_financial_scope(conn)
+                    with pytest.raises(sqlite3.DatabaseError):
+                        conn.execute("DELETE FROM research_financial_results WHERE result_ref=?",(result_meta["result_ref"],))
+                    for table in ("research_plan_native_runs","research_source_runs"):
+                        with pytest.raises(sqlite3.DatabaseError,match="not authorized"):
+                            conn.execute("INSERT INTO "+table+" DEFAULT VALUES")
+                    with pytest.raises(PermissionError,match="actual private transaction required"):
+                        require_native_scope(conn,None,None,None,None)
+                    for name in ("research_funding_accounts","research_source_runs","research_tasks"):
+                        assert conn.execute("SELECT COUNT(*) FROM "+name).fetchone()[0]==0
                 new=await create(owner,"bridge-v17-new-draft")
                 revised=await owner.post("/api/research/"+new+"/revisions",
                     json=envelope({"expected_revision":1,"problem":problem()|{"original_input":"v17 回退模式的新修订"}}),
@@ -79,12 +103,16 @@ def test_real_v17_closed_main_preserves_login_history_and_saved_revisions(prepar
                 assert stored["revision"]==2
             async with main.lifespan(main.app):
                 await login(owner,messages)
+                reopened_fin=await owner.get(local_fin_url)
+                assert reopened_fin.status_code==200 and reopened_fin.json()==local_saved.json()
                 response=await owner.get("/api/research/"+new)
                 assert response.status_code==200 and response.json()["data"]["current_problem"]==stored
                 async with httpx.AsyncClient(transport=transport,base_url=BETA) as other:
                     assert (await other.get("/api/research/"+new)).status_code==401
                     await login(other,messages,"other-v17@example.invalid")
                     assert (await other.get("/api/research/"+new)).status_code==404
+                    assert (await other.get(local_fin_url)).status_code==404
+                    assert (await calculate(other,local_fin,local_body,key="foreign-v17-fin3")).status_code==404
         assert admission._STATE.get(id(main.app)) is None
     asyncio.run(verify())
     with closing(sqlite3.connect(path.as_uri()+"?mode=ro",uri=True)) as conn:

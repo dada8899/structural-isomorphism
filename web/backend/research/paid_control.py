@@ -549,6 +549,46 @@ def _local_answer_scope(conn):
     return scope
 
 
+
+def _local_financial_scope(conn):
+    """Exact v17 authority for owner-entered financial registry and result inserts.
+
+    The caller still needs the actual request, owner lease and guarded row
+    image. This does not enter the generic paid or Native writer.
+    """
+    from . import financial_execution, financial_input_guard
+    frame=sys._getframe(1)
+    try:
+        if frame.f_locals.get('conn') is not conn:
+            raise PermissionError('local financial connection required')
+        if frame.f_globals is vars(financial_input_guard):
+            if frame.f_code is financial_input_guard._validate.__code__:
+                entry=frame.f_locals.get('entry',{})
+                operation,table=entry.get('operation'),entry.get('table')
+            elif frame.f_code is financial_input_guard._write_scope.__wrapped__.__code__:
+                operation,table=frame.f_locals.get('operation'),frame.f_locals.get('table')
+            else:
+                raise PermissionError('local financial guard required')
+            if operation!='INSERT' or table not in (financial_input_guard.REGISTRIES,financial_input_guard.RESULTS):
+                raise PermissionError('local financial insert required')
+        elif (frame.f_globals is not vars(financial_execution)
+              or frame.f_code is not financial_execution.require_native_scope.__code__):
+            raise PermissionError('local financial producer required')
+    finally:
+        del frame
+    version=conn.execute("SELECT version FROM main.research_schema WHERE id=1").fetchone()
+    if version is None or version[0]!=17:
+        return _current_scope(conn)
+    with _LOCK:
+        scope=_SCOPES.get(id(conn))
+    if (not scope or scope.conn is not conn or not scope.active or not scope.write or scope.pid!=os.getpid()
+            or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1):
+        raise PermissionError('canonical local financial transaction required')
+    from .store import ResearchStore
+    ResearchStore._check_v17(conn)
+    return scope
+
+
 def _owner_binding(conn,store,principal_id,lease):
     from .store import ResearchStore
     if type(store) is not ResearchStore:raise PermissionError("canonical research store required")

@@ -20,7 +20,7 @@ _FACTORY=object()
 _CONTEXTS={}
 _RETURNS={}
 _CODE_FILES=('financial_execution.py','financial_result_v2.py','financial_evaluator.py','financial_policy.py',
-    'financial_schemas.py','financial_input_schemas.py','financial_input.py','financial_input_guard.py','financial_import.py')
+    'financial_schemas.py','financial_input_schemas.py','financial_input.py','financial_input_guard.py','financial_import.py','paid_control.py')
 _FUNCTION_PATHS={
     **{name:'research/financial_execution.py' for name in ('begin','execute','consume','require_request','validate_insert',
         'CurrentFinancialExecution.require','CurrentFinancialExecution.check_deadline')},
@@ -32,7 +32,7 @@ _FUNCTION_PATHS={
     '_calculate_financial_in_request':'api/research.py','calculate_research_financial':'api/research.py','_identity':'api/research.py',
     'ResearchService._principal_in':'research/service.py','ResearchStore._check_formal_version':'research/store.py',
     'AuthorizationGate.check':'research/authorization.py','AuthorizationGate.check_account':'research/authorization.py',
-    **{name:'research/paid_control.py' for name in ('require_authenticated_action','_current_scope','_owner_binding')},
+    **{name:'research/paid_control.py' for name in ('require_authenticated_action','_local_financial_scope','_owner_binding')},
 }
 
 
@@ -209,7 +209,7 @@ def require_request(service,identity,rid,envelope,key,source,request_app):
 
 def require_native_scope(conn,service,identity,pid,lease):
     from .authorization import OwnerGateLease
-    from .paid_control import _current_scope,_owner_binding
+    from .paid_control import _local_financial_scope,_owner_binding
     family='web.backend.services' if __package__=='web.backend.research' else 'services'
     module=importlib.import_module(family+'.sqlite_utils')
     if (type(conn) is not module.PrivateAuthConnection or type(lease) is not OwnerGateLease
@@ -218,16 +218,27 @@ def require_native_scope(conn,service,identity,pid,lease):
             or getattr(type(conn),'execute') is not sqlite3.Connection.execute or conn.row_factory is not sqlite3.Row
             or conn.text_factory is not str or conn.isolation_level is not None):
         raise PermissionError('actual private transaction required')
-    scope=_function(_current_scope)(conn)
+    scope=_function(_local_financial_scope)(conn)
     if not scope.write:raise PermissionError('financial write scope required')
     # Request transactions have the complete Research15 hooks; C1's separate
     # admission inspection also probes an Auth-maintenance writer hook which
     # is deliberately absent here. Verify the exact current research closure,
     # without installing any Auth write capability into a calculation.
-    schema=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
-    if schema not in (15,16):raise PermissionError('formal financial schema required')
-    checker=type(service.store)._check_formal_version
-    _function(checker.__func__)(type(service.store),conn,schema)
+    schema=conn.execute('SELECT version FROM main.research_schema WHERE id=1').fetchone()[0]
+    if schema not in (15,16,17):raise PermissionError('formal financial schema required')
+    if schema==17:
+        from . import financial_input
+        caller=sys._getframe(1)
+        try:
+            allowed=((begin,globals()),(CurrentFinancialExecution.require,globals()),
+                (financial_input.resolve_owner_registry_v2,vars(financial_input)),
+                (financial_input.ResolvedOwnerFinancialRegistryV2.require,vars(financial_input)))
+            if not any(caller.f_code is fn.__code__ and caller.f_globals is ns for fn,ns in allowed):
+                raise PermissionError('actual local financial calculation caller required')
+        finally:del caller
+    else:
+        checker=type(service.store)._check_formal_version
+        _function(checker.__func__)(type(service.store),conn,schema)
     principal=_function(_owner_binding)(conn,service.store,pid,lease)
     service.authorization.check_account(conn,identity)
     return scope,principal
