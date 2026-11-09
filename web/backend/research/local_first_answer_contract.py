@@ -211,6 +211,25 @@ _CLAIM_SYSTEM = """用提问者的语言给出可检验的初步分析。下一�
 最多两条可独立核对的 claim，quote 必须在该来源摘录中逐字出现；不能以相似故事证明问题中的机制。只有一个关键缺口时返回 {"status":"insufficient","reason":"needs_clarification","question":"一个简短问题"}。材料无关时返回 {"status":"insufficient","reason":"no_relevant_sources"}，不要硬引用。"""
 
 
+_CLAIM_PLACEHOLDERS = frozenset((
+    "来源原文支持、与问题直接有关的一条限定命题", "该来源中的逐字连续摘录",
+    "对本问题的条件性解释", "会改变判断的条件",
+    "两侧变量怎样对应及何时失效；这是待核验类比", "固定什么、测量什么、怎样判断", "一个简短问题",
+))
+
+
+def _shape_key(value):
+    return "".join(char for char in unicodedata.normalize("NFKC", value).casefold()
+                   if not char.isspace() and not unicodedata.category(char).startswith("P"))
+
+
+def _claim_prose(value):
+    result = _model_text(value)
+    if _shape_key(result) in {_shape_key(sample) for sample in _CLAIM_PLACEHOLDERS}:
+        raise ValueError("copied prompt placeholder")
+    return result
+
+
 class _GroundedClaim(DTO):
     assertion: Annotated[str, StringConstraints(min_length=1, max_length=300)]
     number: SourceNumber
@@ -219,7 +238,7 @@ class _GroundedClaim(DTO):
     @field_validator("assertion")
     @classmethod
     def plain_assertion(cls, value):
-        return _model_text(value)
+        return _claim_prose(value)
 
 
 class _ClaimAnswer(DTO):
@@ -233,12 +252,12 @@ class _ClaimAnswer(DTO):
     @field_validator("hypotheses", "assumptions", "cross_domain_leads")
     @classmethod
     def plain_lists(cls, values):
-        return [_model_text(value) for value in values]
+        return [_claim_prose(value) for value in values]
 
     @field_validator("next_check")
     @classmethod
     def plain_check(cls, value):
-        return _model_text(value)
+        return _claim_prose(value)
 
 
 _CLAIM_OUTPUT = TypeAdapter(Annotated[_ClaimAnswer | _Insufficient, Field(discriminator="status")])
@@ -275,6 +294,10 @@ def interpret_claims(raw, prepared, judge):
         if claim.number > len(prepared._sources):
             raise FirstAnswerContractError("unknown_source_number")
         source = prepared._sources[claim.number - 1]
+        if _shape_key(claim.assertion) == _shape_key(source.label):
+            # A title alone does not express a proposition, regardless of
+            # whether a classifier recognizes the label in its own record.
+            continue
         if source.excerpt.count(claim.quote) != 1:
             raise FirstAnswerContractError("unbound_source_span")
         decision = judge(packet["question"], claim.quote, claim.assertion)

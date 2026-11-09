@@ -288,3 +288,23 @@ def test_claim_contract_separates_exact_quotes_relevance_and_support():
         interpret_claims(output(base | {"claims":[right | {"quote":"不存在的原文引用内容"}]}), prepared, judge)
     with pytest.raises(FirstAnswerContractError, match="invalid_judge_result"):
         interpret_claims(output(base), prepared, lambda *_:(1, 1))
+
+
+def test_claim_contract_rejects_real_prompt_echo_and_title_as_a_claim():
+    from web.backend.research.local_first_answer_contract import interpret_claims, prepare_claims
+
+    quote = "到达率接近服务率时，等待时间呈非线性增长。"
+    prepared = prepare_claims("为什么处理变慢时排队更久？", "approved-kb",
+                              [record("queue", quote) | {"name": "排队的容量边界"}])
+    base = {"status":"answered","claims":[{"assertion":"排队的容量边界。","number":1,"quote":quote}],
+            "hypotheses":[],"assumptions":[],"cross_domain_leads":[],"next_check":"记录服务率和到达率。"}
+
+    def cannot_judge(*_):
+        pytest.fail("template text and title must not reach the independent verifier")
+
+    assert interpret_claims(output(base), prepared, cannot_judge)["status"] == "insufficient"
+    for changed in ({"claims":[{"assertion":"来源原文支持、与问题直接有关的一条限定命题",
+                               "number":1,"quote":quote}]},
+                    {"next_check":"固定什么、测量什么、怎样判断。"}):
+        with pytest.raises(FirstAnswerContractError, match="invalid_candidate"):
+            interpret_claims(output(base | changed), prepared, cannot_judge)
