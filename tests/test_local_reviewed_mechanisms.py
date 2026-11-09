@@ -247,3 +247,12 @@ def test_marginal_capacity_checks_a_shared_limit_without_claiming_a_universal_th
     assert answer is not None and answer["producer"] == "local-calculation-marginal-capacity-v1"
     assert "不等于存在普遍" in answer["explanation"]
     assert "零、一、两份资源" in answer["next_check"] and "只放宽一个" in answer["next_check"]
+
+
+def test_equal_weight_recount_requires_matching_labelled_denominators():
+    from web.backend.research.local_observation_checks import observation_check
+    q="比较两组通过率。A 做甲类 9/10、乙类 14/20；B 做甲类 16/20、乙类 6/10。各取一半甲类、一半乙类是多少？"
+    out=observation_check(q)
+    assert out and "两类等权 80.0%" in out["explanation"] and "两类等权 70.0%" in out["explanation"]
+    assert observation_check(q.replace("乙类 6/10","丙类 6/10")) is None
+    assert observation_check(q.replace("乙类 6/10","乙类 6/0")) is None

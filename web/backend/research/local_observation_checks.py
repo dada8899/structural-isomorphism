@@ -141,10 +141,48 @@ def _marginal_capacity(question):
         "references":[],
     }
 
+
+def _equal_weight_rates(question):
+    """Calculate only explicit, labelled two-by-two counts with equal weights."""
+    if not re.search(r"一半.{1,16}一半|等权|equal weights|half.{1,25}half",question,re.I):
+        return None
+    if not re.search(r"合格率|成功率|通过率|pass rate|success rate",question,re.I):
+        return None
+    sections=list(re.finditer(r"(?:^|[。；;]\s*)([AB])\s*(?:做|用|:|：)",question,re.I))
+    if [m.group(1).upper() for m in sections]!=["A","B"]:
+        return None
+    groups=[]
+    for index,m in enumerate(sections):
+        text=question[m.end():sections[index+1].start() if index==0 else len(question)].split("。")[0]
+        cells=re.findall(r"([\u3400-\u9fffA-Za-z]{1,16})\s+(\d{1,8})/(\d{1,8})",text)
+        if len(cells)!=2 or len({c[0] for c in cells})!=2:
+            return None
+        groups.append({label:(int(num),int(den)) for label,num,den in cells})
+    if groups[0].keys()!=groups[1].keys() or any(not 0<=n<=d or d==0 for g in groups for n,d in g.values()):
+        return None
+    parts=[]
+    for name,group in zip(("A","B"),groups):
+        n,d=map(sum,zip(*group.values()))
+        rates=[Decimal(x)/y for x,y in group.values()]
+        parts.append(f"{name}："+
+                     "、".join(f"{label} {x}/{y}={r:.1%}" for (label,(x,y)),r in zip(group.items(),rates))+
+                     f"；总体 {n}/{d}={Decimal(n)/d:.1%}；两类等权 {sum(rates)/2:.1%}。")
+    return {
+        "producer":"local-calculation-equal-weight-rates-v1",
+        "explanation":"按题中给出的计数复算：\n"+"\n".join(parts)+
+                      "\n原总体使用各自的任务占比；等权比较使用共同占比。两种排序可以不同，不是算术矛盾，也不能据此断言某组有因果优势。",
+        "assumptions":["两个类别及合格判定口径一致；题设要求两类各占一半。"],
+        "cross_domain_leads":[],
+        "next_check":"固定共同类别权重分别重算，并核对分母、漏记和分组定义。若要判断流程本身的影响，在每类内分配可比任务、固定质量判定，再比较结果率。",
+        "references":[],
+    }
+
 def observation_check(question):
     """Return a hypothesis plus an executable comparison; never invent sources."""
     if type(question) is not str or not 1 <= len(question) <= 4000:
         return None
+    if rates := _equal_weight_rates(question):
+        return rates
     if marginal := _marginal_capacity(question):
         return marginal
     if timing := _trigger_timing(question):
