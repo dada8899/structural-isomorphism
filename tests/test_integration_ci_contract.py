@@ -261,6 +261,20 @@ FIRST_ANSWER_PRIOR_JOBS_SHA256 = '36ddd0462e7a94f57b036a36cbd97aeb3a1d8ee09bd7b4
 
 
 def _workflow_before_first_answer_checks(value, name):
+    if name == 'coverage.yml':
+        original = copy.deepcopy(value)
+        jobs = original['jobs']
+        step = next(s for s in jobs['coverage']['steps']
+                    if s.get('name') == 'Run coverage (split by suite, parallel files combined)')
+        modules = tuple('web/backend/' + module for module in FIRST_ANSWER_MAIN_MODULES)
+        prefix = 'python -m coverage run -p --rcfile=.coveragerc -m pytest '
+        aggregate = prefix + 'web/backend/tests/'
+        with_ignores = aggregate + ''.join(' --ignore=' + module for module in modules)
+        isolated = prefix + ' '.join(modules) + ' -p no:logging $PYTEST_FLAGS\n'
+        assert step['run'].count(with_ignores) == step['run'].count(isolated) == 1
+        step['run'] = step['run'].replace(with_ignores, aggregate, 1).replace(isolated, '', 1)
+        assert hashlib.sha256(json.dumps(jobs, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest() == 'de1bd325a7e455d74b2928d85113ae8523fe1a5f58cef0ee500709b93f35d785'
+        return original
     if name != 'sanity.yml':
         return value
     original = copy.deepcopy(value)
