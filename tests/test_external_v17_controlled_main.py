@@ -18,12 +18,14 @@ from web.backend.tests.test_research_first_answer import identity
 def test_main_external_controlled_preview_confirm_status_and_original_result(prepared,unknown):
     main,admission,paths,messages=prepared
     from api import auth
-    from research import first_answer,plan_native,plan_native_financial,plan_financial
+    from research import first_answer,first_answer_queue,plan_native,plan_native_financial,plan_financial
     from research.errors import ResearchError
     from research.external_first_answer_catalog import provision_isolated_v17
     from research.external_first_answer_controlled import controlled_runtime
     from research.external_first_answer_file_writer import approve_isolated_file
     from research.store import ResearchStore
+    from research.service import ResearchService
+    from research.paid_control import _current_scope
     path=paths.private_auth_path()
     original_inode=path.stat().st_ino
     first_answer.provision_first_answers_v16(path)
@@ -52,6 +54,9 @@ def test_main_external_controlled_preview_confirm_status_and_original_result(pre
                 rid=data["research"]["id"]
                 store=ResearchStore(auth._store())
                 actor=identity(client)
+                local=first_answer_queue.enqueue(ResearchService(store),actor,rid,input_revision=1,
+                    research_version=data["research_version"],problem_digest=data["current_problem"]["digest"])
+                assert local["status"]=="queued"
                 authority=plan_native.create_controlled_runtime_fixture_authority(
                     store,actor,server,approved_cap_units=300_000_000,risk_margin_units=2_129_920)
                 provision=plan_native.issue_native_provision(store,authority)
@@ -104,9 +109,25 @@ def test_main_external_controlled_preview_confirm_status_and_original_result(pre
                 async with httpx.AsyncClient(transport=client._transport,base_url=BETA) as other:
                     await login(other,messages,"external-other@example.invalid")
                     assert (await other.get(base+"/status",headers=headers)).status_code==404
+                    own=await other.post("/api/research",json=envelope({"problem":problem()}),
+                        headers=origin|{"Idempotency-Key":"external-erasure-other-record"})
+                    assert own.status_code==200
+                    other_rid=own.json()["data"]["research"]["id"]
+                    assert (await other.get("/api/research/"+other_rid)).status_code==200
             async with main.lifespan(main.app):
                 assert (await client.get(base+"/status",headers=headers)).json()==operation
                 assert (await client.post(base+"/preview",json=expected,headers=origin)).status_code==503
+                with ResearchStore(auth._store()).transaction(write=True) as probe:
+                    with pytest.raises(PermissionError,match="deletion-only"):
+                        _current_scope(probe)
+                    with pytest.raises(sqlite3.IntegrityError,match="external answer deletion denied"):
+                        probe.execute("DELETE FROM research_external_first_answer_runs")
+                erased=await client.post("/api/me/delete",json={"confirmation":"DELETE"},headers=origin)
+                assert erased.status_code==(503 if unknown else 200),erased.text
+                if unknown:
+                    assert (await client.get(base+"/status",headers=headers)).json()==operation
+                else:
+                    assert (await client.get(base+"/status",headers=headers)).status_code==401
             assert admission._STATE.get(id(main.app)) is None
 
     with ThreadingHTTPServer(("127.0.0.1",0),Handler) as server:
@@ -126,3 +147,9 @@ def test_main_external_controlled_preview_confirm_status_and_original_result(pre
                 plan_financial.check_unknown(conn,row[0])
         else:plan_financial.check_unknown(conn,row[0])
         assert conn.execute("SELECT count(*) FROM research_plan_native_runs").fetchone()==(0,)
+        assert conn.execute("SELECT count(*) FROM research_external_first_answer_runs").fetchone()==(int(unknown),)
+        assert conn.execute("SELECT count(*) FROM research_controls").fetchone()==(2 if unknown else 1,)
+        assert conn.execute("SELECT count(*) FROM research_first_answer_jobs").fetchone()==(int(unknown),)
+        if unknown:
+            assert conn.execute("SELECT state FROM research_external_first_answer_runs").fetchone()==("unknown",)
+            assert conn.execute("SELECT count(*) FROM auth_deletion_jobs").fetchone()==(0,)

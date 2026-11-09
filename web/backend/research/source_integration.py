@@ -325,7 +325,7 @@ def purge_for_deletion(store,conn,task_id,job_id):
     if not task or task["policy_revision"]!=POLICY:return
     EvidenceRepository(conn,authorizer(store,delete_job=job_id)).purge(context_for(conn,task_id))
     conn.execute("UPDATE research_source_runs SET approval_id=NULL,fingerprint=NULL WHERE task_id=?",(task_id,))
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15,16):
+    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15,16,17):
         from .source_guard import erase_resource
         erase_resource(conn,task_id)
         conn.execute("UPDATE research_source_chains SET fingerprint=NULL,research_id=NULL WHERE id IN (SELECT chain_id FROM research_source_runs WHERE task_id=?)",(task_id,))

@@ -47,7 +47,8 @@ _PRODUCTION_ROOTS=tuple(Path(item) for item in (
 
 def install_closed_hooks(conn):
     """New catalog connections must default deny without breaking the old arm."""
-    conn.create_function(GUARD,3,lambda *_:0)
+    from .external_first_answer_erasure import allowed_delete
+    conn.create_function(GUARD,3,lambda *values:allowed_delete(conn,*values))
     conn.create_function(MONEY_GUARD,2,lambda *_:0)
 
 

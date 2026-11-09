@@ -77,9 +77,6 @@ def test_real_v17_closed_main_preserves_login_history_and_saved_revisions(prepar
                 assert revised.status_code==200,revised.text
                 stored=revised.json()["data"]["current_problem"]
                 assert stored["revision"]==2
-                deletion=await owner.post("/api/me/delete",json={"confirmation":"DELETE"},headers=origin)
-                assert deletion.status_code==503
-                assert (await owner.get("/api/research/"+new)).status_code==200
             async with main.lifespan(main.app):
                 await login(owner,messages)
                 response=await owner.get("/api/research/"+new)
