@@ -1,4 +1,5 @@
 """Conditional checks derived from the user's stated observations, not citations."""
+from decimal import Decimal
 import re
 
 _AGGREGATE = re.compile(r"总体|总平均|整体均值|全体|all shoppers|overall|aggregate|combined average", re.I)
@@ -26,10 +27,49 @@ def _aggregation_reversal(question):
     return len(whole) == len(groups) == 1 and next(iter(whole)) == -next(iter(groups))
 
 
+
+_NUMBER = r"([0-9]{1,8}(?:\.[0-9]{1,6})?)"
+_RECOVERY_PAIRS = (
+    re.compile(r"(?:初始(?:偏差|温差|湿度差)(?:为|是)?|(?:起初|一开始)比(?:环境|室内)高)" + _NUMBER
+               + r".{0,45}?(?:减少了|下降了|降低了|降了)\s*" + _NUMBER),
+    re.compile(r"start(?:s|ing|ed)?(?: only)?\s+" + _NUMBER
+               + r".{0,30}?(?:above|below|away from|deviation).{0,40}?"
+               + r"(?:drop(?:s|ped)? by|decrease(?:s|d)? by)\s*(?:about\s+)?" + _NUMBER, re.I),
+)
+_MIXED_UNITS = re.compile(r"百分点.{0,20}百分之|percent(?:age)? points?.{0,20}%", re.I)
+
+
+def _recovery_comparison(question):
+    pairs = [(Decimal(start), Decimal(loss)) for matcher in _RECOVERY_PAIRS for start, loss in matcher.findall(question)]
+    if len(pairs) != 2 or _MIXED_UNITS.search(question):
+        return None
+    if any(not 0 < loss < start for start, loss in pairs):
+        return None
+    if pairs[0][0] == pairs[1][0]:
+        return None
+    shares = [loss / start for start, loss in pairs]
+    same = shares[0] == shares[1]
+    observed = "、".join(f"{loss}÷{start}={share:.1%}" for (start,loss),share in zip(pairs,shares))
+    return {
+        "producer":"local-calculation-recovery-comparison-v1",
+        "explanation":"用变化量除以各自初始偏差，题中的两次结果为 "+observed+"。"
+                      + ("若测量窗口和外界条件相同，两次减少比例相同，符合按比例恢复；"
+                         "这比固定减量更吻合，但两个端点不足以确认全程是一阶过程。" if same else
+                         "若测量窗口和外界条件相同，两次减少比例不同，不能直接用同一固定恢复常数解释；"
+                         "先核测量误差、窗口长度和边界条件。"),
+        "assumptions":["两次变化量与各自初始偏差是相同单位、相同长度的观察窗口，且环境基准在窗口内近似不变。",
+                       "这些数来自题设，未假定为校准后的实测值。"],
+        "cross_domain_leads":[],
+        "next_check":"保持环境基准和流动条件相近，用不同初始偏差记录整段曲线。把每个时刻的偏差除以各自起点，比较归一曲线或偏差对数斜率。若曲线不能重合或斜率随时间改变，不用同一个一阶常数。",
+        "references":[],
+    }
+
 def observation_check(question):
     """Return a hypothesis plus an executable comparison; never invent sources."""
     if type(question) is not str or not 1 <= len(question) <= 4000:
         return None
+    if recovery := _recovery_comparison(question):
+        return recovery
     if _aggregation_reversal(question):
         return {
             "producer":"local-calculation-aggregation-v1",

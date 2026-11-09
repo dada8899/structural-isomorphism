@@ -184,3 +184,13 @@ def test_observation_checks_have_reproducible_calculation_without_fake_citations
 def test_aggregation_check_does_not_treat_percentiles_as_means():
     from web.backend.research.local_observation_checks import observation_check
     assert observation_check("各组的中位数下降，但总体中位数上升。") is None
+
+
+def test_recovery_comparison_calculates_the_two_observed_ratios_without_proving_the_model():
+    from web.backend.research.local_observation_checks import observation_check
+    prompt = "A sensor starts 30 units above ambient and drops by 12. Starting only 15 units above, it drops by 6. What would distinguish a single recovery process?"
+    answer = observation_check(prompt)
+    assert answer is not None and answer["producer"] == "local-calculation-recovery-comparison-v1"
+    assert "12÷30=40.0%" in answer["explanation"] and "6÷15=40.0%" in answer["explanation"]
+    assert "不足以确认" in answer["explanation"] and "归一曲线" in answer["next_check"]
+    assert observation_check("It starts 15 units above ambient and drops by 16.") is None
