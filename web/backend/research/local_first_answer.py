@@ -74,9 +74,9 @@ def compose(question, search):
     }
 
 
-def compose_with_worker(question, search, *, cancel=None):
+def compose_with_worker(question, search, *, cancel=None, background=False):
     """Answer a non-template question using only the bound local worker."""
-    from .local_answer_transport import LocalAnswerUnavailable, complete, worker_present
+    from .local_answer_transport import BACKGROUND_DEADLINE_SECONDS, LocalAnswerUnavailable, complete, worker_present
     from .local_first_answer_contract import FirstAnswerContractError, interpret, prepare
     from .provider_schemas import canonical
 
@@ -93,7 +93,8 @@ def compose_with_worker(question, search, *, cancel=None):
                     rows.append(record)
                     seen.add(locator)
         request = prepare(question, search.artifact["artifact_id"], rows)
-        return interpret(complete(canonical({"messages": request.messages}), cancel=cancel), request)
+        budget = {"budget_seconds": BACKGROUND_DEADLINE_SECONDS} if background else {}
+        return interpret(complete(canonical({"messages": request.messages}), cancel=cancel, **budget), request)
     except (FirstAnswerContractError, LocalAnswerUnavailable):
         return None
 

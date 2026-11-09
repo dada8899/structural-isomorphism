@@ -16,7 +16,8 @@ _SOCKET = "/run/structural-first-answer/worker.sock"
 _WORKER = "structural-answer"
 _MAX_INPUT = 64 * 1024
 _MAX_OUTPUT = 16 * 1024
-_DEADLINE_SECONDS = 12.0
+SYNC_DEADLINE_SECONDS = 12.0
+BACKGROUND_DEADLINE_SECONDS = 150.0
 _SLOT = threading.BoundedSemaphore(1)
 
 
@@ -66,14 +67,16 @@ def worker_present():
         return False
 
 
-def complete(payload, *, cancel=None):
+def complete(payload, *, cancel=None, budget_seconds=SYNC_DEADLINE_SECONDS):
     """Submit approved prompt bytes to the fixed local worker; never retry."""
+    if type(budget_seconds) not in (int, float) or budget_seconds not in (SYNC_DEADLINE_SECONDS, BACKGROUND_DEADLINE_SECONDS):
+        raise LocalAnswerUnavailable("local answer request budget")
     if type(payload) is not bytes or not 1 <= len(payload) <= _MAX_INPUT:
         raise LocalAnswerUnavailable("local answer request limit")
     if sys.platform != "linux" or not _SLOT.acquire(blocking=False):
         raise LocalAnswerUnavailable("local answer worker unavailable")
     try:
-        deadline = time.monotonic() + _DEADLINE_SECONDS
+        deadline = time.monotonic() + budget_seconds
         account = pwd.getpwnam(_WORKER)
         entry = os.lstat(_SOCKET)
         if not stat.S_ISSOCK(entry.st_mode) or entry.st_uid != account.pw_uid or entry.st_mode & 0o007:

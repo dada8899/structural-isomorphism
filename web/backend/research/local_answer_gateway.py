@@ -17,7 +17,7 @@ import sys
 import threading
 import time
 
-from .local_answer_transport import _MAX_INPUT, _MAX_OUTPUT, _SOCKET, _WORKER
+from .local_answer_transport import BACKGROUND_DEADLINE_SECONDS, _MAX_INPUT, _MAX_OUTPUT, _SOCKET, _WORKER
 from .local_first_answer_contract import (
     CONTRACT, MAX_EXCERPT_CHARS, MAX_PROMPT_BYTES, MAX_QUESTION_CHARS, MAX_SOURCES, _SYSTEM,
 )
@@ -25,7 +25,7 @@ from .provider_schemas import ProviderFailure, strict_json
 from .schemas import bounded_text
 
 MAIN_UID = 981
-DEADLINE_SECONDS = 11.0  # Main's client closes after 12 seconds.
+DEADLINE_SECONDS = BACKGROUND_DEADLINE_SECONDS - 1.0  # The client owns the outer deadline.
 _IO_SLICE = 0.1
 _FRAME_TOKEN = re.compile(r"[<>]|\[/?(?:INST|SYSTEM_PROMPT)\]")
 
