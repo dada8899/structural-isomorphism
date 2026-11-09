@@ -165,6 +165,44 @@ def test_actual_main_first_answer_migration_reopen_and_erasure(prepared, monkeyp
                 assert (await client.post(unavailable_url, json=unavailable_data, headers=origin)).status_code == 503
                 assert (await client.get(unavailable_url)).status_code == 404
 
+                # Exercise the actual ASGI cancellation path after consuming
+                # the POST body; no browser/socket fixture can fake its watcher.
+                import threading
+                from research import local_first_answer
+                worker_entered, worker_cancelled = threading.Event(), threading.Event()
+
+                def wait_for_cancel(question, search, *, cancel):
+                    assert question == "怎么给这个产品定价？"
+                    worker_entered.set()
+                    if cancel.wait(3):
+                        worker_cancelled.set()
+                    return None
+
+                with monkeypatch.context() as disconnect:
+                    disconnect.setattr(local_first_answer, "compose_with_worker", wait_for_cancel)
+                    request = client.build_request("POST", unavailable_url, json=unavailable_data, headers=origin)
+                    scope = {"type":"http", "asgi":{"version":"3.0"}, "http_version":"1.1", "method":"POST",
+                             "scheme":"https", "path":request.url.path, "raw_path":request.url.raw_path,
+                             "query_string":b"", "headers":[(name.lower(), value) for name, value in request.headers.raw], "root_path":"",
+                             "client":("127.0.0.1", 5555), "server":(request.url.host, 443)}
+                    delivered = False
+
+                    async def receive_then_disconnect():
+                        nonlocal delivered
+                        if not delivered:
+                            delivered = True
+                            return {"type":"http.request", "body":request.content, "more_body":False}
+                        assert await asyncio.to_thread(worker_entered.wait, 3)
+                        return {"type":"http.disconnect"}
+
+                    async def discard_response(message):
+                        pass
+
+                    await asyncio.wait_for(main.app(scope, receive_then_disconnect, discard_response), 8)
+                    assert worker_cancelled.is_set()
+                assert (await client.get(unavailable_url)).status_code == 404
+
+
 
                 deleted = await client.post("/api/me/delete", json={"confirmation": "DELETE"}, headers=origin)
                 assert deleted.status_code == 200, deleted.text
