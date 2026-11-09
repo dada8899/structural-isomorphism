@@ -145,8 +145,13 @@ def _open_private(sock, request, path, uid):
 class LlamaUnixBackend:
     """Never re-use an inference slot after an incomplete upstream receipt."""
 
-    def __init__(self):
+    def __init__(self, on_unconfirmed=None):
         self._quarantined = False
+        self._on_unconfirmed = on_unconfirmed
+
+    @property
+    def quarantined(self):
+        return self._quarantined
 
     def __call__(self, messages, request):
         if self._quarantined:
@@ -159,6 +164,8 @@ class LlamaUnixBackend:
                 # Closing HTTP cancels the gateway side. Until inference exit
                 # or idle is proved out-of-band, never send another request.
                 self._quarantined = True
+                if self._on_unconfirmed is not None:
+                    self._on_unconfirmed()
                 raise GatewayUnavailable("inference_receipt_unconfirmed") from None
         return _extract(status, headers, raw)
 
@@ -167,13 +174,16 @@ def main():
     stopping = threading.Event()
     for name in (signal.SIGTERM, signal.SIGINT):
         signal.signal(name, lambda *_: stopping.set())
+    backend = LlamaUnixBackend(stopping.set)
     try:
         with private_listener() as listener:
-            Gateway(LlamaUnixBackend()).serve(listener, stopping)
+            Gateway(backend).serve(listener, stopping)
     except (GatewayUnavailable, OSError, ValueError, KeyError):
         # No raw exception (which could include user data) in unit logs.
         return 1
-    return 0
+    # The service supervisor retires both children before reopening the socket.
+    # Never retry or persist the request whose inference result was unknown.
+    return 1 if backend.quarantined else 0
 
 
 if __name__ == "__main__":

@@ -143,7 +143,8 @@ def test_disconnect_closes_inference_and_quarantines_unknown_slot(monkeypatch):
                     disconnected.set()
         inference = threading.Thread(target=fake_llama, daemon=True)
         inference.start()
-        backend = adapter.LlamaUnixBackend()
+        recovery = threading.Event()
+        backend = adapter.LlamaUnixBackend(recovery.set)
         server, client = socket.socketpair()
         worker = Gateway(backend, peer_uid=lambda _: MAIN_UID, timeout=1)
         gateway = threading.Thread(target=worker.handle, args=(server,), daemon=True)
@@ -155,6 +156,7 @@ def test_disconnect_closes_inference_and_quarantines_unknown_slot(monkeypatch):
         assert disconnected.wait(1)
         _join(gateway)
         _join(inference)
+        assert backend.quarantined and recovery.is_set()
 
         server, client = socket.socketpair()
         with server, client:
