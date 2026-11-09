@@ -289,8 +289,9 @@ def _workflow_before_first_answer_checks(value, name):
     assert ordinary['run'].count(pure_slot) == 1
     ordinary['run'] = ordinary['run'].replace(pure_slot, anchor + 'tests/test_mapping_contract.py ', 1)
     command = 'python -m pytest ' + ' '.join(FIRST_ANSWER_MAIN_MODULES) + ' -p no:logging -x -ra -q --tb=short --durations=10\n'
-    assert fresh['run'].endswith(command)
-    fresh['run'] = fresh['run'][:-len(command)]
+    external_commands = 'python -m pytest ../../tests/test_external_first_answer_contract.py ../../tests/test_external_first_answer_state.py ../../tests/test_external_first_answer_fixture_writer.py ../../tests/test_external_first_answer_file_writer.py ../../tests/test_external_first_answer_catalog.py ../../tests/test_external_v17_closed_main.py -p no:logging -x -ra -q --tb=short --durations=10\npython -m pytest ../../tests/test_external_first_answer_seam.py -p no:logging -x -ra -q --tb=short --durations=10\n'
+    assert fresh['run'].endswith(command + external_commands)
+    fresh['run'] = fresh['run'][:-len(command + external_commands)]
     assert hashlib.sha256(json.dumps(jobs, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest() == FIRST_ANSWER_PRIOR_JOBS_SHA256
     return original
 
