@@ -74,8 +74,10 @@ def test_file_shared_atomic_guard_closed_by_default_and_reopen(tmp_path):
     with closing(sqlite3.connect(path,isolation_level=None)) as conn:
         install_hook(conn)
         writer=CandidateFileWriter(conn,proof)
-        with pytest.raises(ContractError,match="consume_unavailable"):
+        with pytest.raises(ContractError,match="legacy_unknown_reconcile_only"):
             writer.consume(*args,now=NOW)
+        assert balance(conn)==(1,1000,0)
+        assert conn.execute("SELECT state FROM "+TABLE).fetchone()==("consumed",)
         candidate=canonical({"status":"candidate","explanation":"反馈滞后可能造成超调。",
             "assumptions":["动作影响后续读数。"],"next_check":"比较不同时延的结果。","evidence_status":"not_checked"})
         assert writer.finish(*args,candidate=candidate)=="returned"
