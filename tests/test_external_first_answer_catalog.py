@@ -146,3 +146,32 @@ def test_preview_public_projection_never_exposes_request_bytes():
     assert set(view)=={"contract_revision","purpose","metadata","exact_question","target","provider","model",
                        "currency","scale","upper_units","preview_digest","request_digest","valid_until","may_send"}
     assert view["may_send"] is False and view["metadata"]["problem_digest"]==digest(raw)
+
+
+def test_closed_v17_canonical_capability_is_exact_v16_only(prepared):
+    from research.external_first_answer_catalog import apply_closed_v17_maintenance
+    from research.external_first_answer_contract import ContractError
+    from research.formula_runtime import _offline_maintenance
+    _, _, paths, _ = prepared
+    path = paths.private_auth_path()
+    before = (path.stat().st_dev, path.stat().st_ino)
+    with pytest.raises(ContractError, match="external_offline_maintenance_required"):
+        apply_closed_v17_maintenance(path, object())
+    with pytest.raises(PermissionError, match="exact offline research version"):
+        with _offline_maintenance(path, (16,)):
+            pytest.fail("v15 must not acquire a v16-only capability")
+    provision_first_answers_v16(path)
+    with _offline_maintenance(path, (16,)) as (target, cap):
+        assert apply_closed_v17_maintenance(target, cap) == {
+            "schema": 17, "external_first_answer": "status_only", "may_send": False,
+        }
+        with pytest.raises(PermissionError, match="exact offline research version"):
+            apply_closed_v17_maintenance(target, cap)
+    with pytest.raises(PermissionError, match="actual maintenance capability required"):
+        apply_closed_v17_maintenance(target, cap)
+    assert (path.stat().st_dev, path.stat().st_ino) == before
+    with closing(sqlite3.connect(path.as_uri()+"?mode=ro", uri=True)) as conn:
+        assert conn.execute("SELECT version FROM research_schema").fetchone() == (17,)
+        assert conn.execute("PRAGMA journal_mode").fetchone() == ("wal",)
+        assert conn.execute("PRAGMA integrity_check").fetchall() == [("ok",)]
+        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []

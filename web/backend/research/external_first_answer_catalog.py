@@ -10,7 +10,7 @@ from .external_first_answer_file_writer import (
 )
 from .external_first_answer_state import TABLE
 from .financial_guard import install_default_hook
-from .formula_runtime import _check_profile, _offline_maintenance
+from .formula_runtime import FormulaMaintenance, _OfflineFormulaTarget, _check_profile, _offline_maintenance
 from .provider_schemas import canonical, digest
 from .service import ResearchService
 from .store import ResearchStore
@@ -22,35 +22,48 @@ _STATE={
 PUBLIC_CONTRACT="external-first-answer-v1"
 
 
-def provision_isolated_v17(proof):
-    """No production entry: proof is minted only for a marked private temp DB."""
-    if type(proof) is not _TempLedgerProof or proof.token is not _TOKEN or _identity(proof.path)!=proof.identity:
-        raise ContractError("external_file_proof_required")
-    with _offline_maintenance(proof.path,(16,17)) as (target,cap):
-        conn=cap.conn
+def _apply_catalog(target, cap, versions):
+    cap.require(target)
+    conn = cap.conn
+    conn.execute("BEGIN EXCLUSIVE")
+    try:
+        version = _check_profile(conn, target, versions)
+        if version == 16:
+            original = conn.execute("SELECT sql FROM sqlite_schema WHERE type='trigger' AND name=?", (TRIGGER,)).fetchone()
+            if original is None or money_trigger(original[0]) != CANDIDATE_DDL[-1]:
+                raise ContractError("native_catalog_not_exact")
+            for statement in CANDIDATE_DDL[:-1]:
+                conn.execute(statement)
+            conn.execute("DROP TRIGGER " + TRIGGER)
+            conn.execute(CANDIDATE_DDL[-1])
+            if conn.execute("UPDATE research_schema SET version=17 WHERE id=1 AND version=16").rowcount != 1:
+                raise ContractError("external_catalog_CAS_failed")
+        ResearchStore._check_v17(conn)
         cap.require(target)
-        conn.execute("BEGIN EXCLUSIVE")
-        try:
-            version=_check_profile(conn,target,(16,17))
-            if version==16:
-                original=conn.execute("SELECT sql FROM sqlite_schema WHERE type='trigger' AND name=?",(TRIGGER,)).fetchone()
-                if original is None or money_trigger(original[0])!=CANDIDATE_DDL[-1]:
-                    raise ContractError("native_catalog_not_exact")
-                for statement in CANDIDATE_DDL[:-1]:
-                    conn.execute(statement)
-                conn.execute("DROP TRIGGER "+TRIGGER)
-                conn.execute(CANDIDATE_DDL[-1])
-                if conn.execute("UPDATE research_schema SET version=17 WHERE id=1 AND version=16").rowcount!=1:
-                    raise ContractError("external_catalog_CAS_failed")
-            ResearchStore._check_v17(conn)
-            cap.require(target)
-            conn.commit()
-        except BaseException:
-            conn.rollback()
-            raise
-    if _identity(proof.path)!=proof.identity:
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+
+
+def apply_closed_v17_maintenance(target, capability):
+    """Consume an already-held canonical offline v16 capability; never open a path."""
+    if (type(target) is not _OfflineFormulaTarget or type(capability) is not FormulaMaintenance
+            or capability.source_version != 16):
+        raise ContractError("external_offline_maintenance_required")
+    _apply_catalog(target, capability, (16,))
+    return {"schema": 17, "external_first_answer": "status_only", "may_send": False}
+
+
+def provision_isolated_v17(proof):
+    """Fixture-only entry; the marked private temp proof remains mandatory."""
+    if type(proof) is not _TempLedgerProof or proof.token is not _TOKEN or _identity(proof.path) != proof.identity:
+        raise ContractError("external_file_proof_required")
+    with _offline_maintenance(proof.path, (16, 17)) as (target, cap):
+        _apply_catalog(target, cap, (16, 17))
+    if _identity(proof.path) != proof.identity:
         raise ContractError("external_file_identity_changed")
-    return {"schema":17,"external_first_answer":"status_only","database_same_inode":True,"may_send":False}
+    return {"schema": 17, "external_first_answer": "status_only", "database_same_inode": True, "may_send": False}
 
 
 def _snapshot(proof,conn):
