@@ -243,6 +243,9 @@ def test_plain_question_saves_verbatim_and_reopens_without_adoption(short_observ
                                                "domain": "本地", "description": "待核验"}]})
             page.route("**/api/search", local_leads)
             def first_answer(route):
+                if route.request.method == "POST":
+                    route.fulfill(status=503, json={"error": {"code": "FEATURE_UNAVAILABLE"}})
+                    return
                 path = route.request.url.split("testserver", 1)[1]
                 record_path = path.split("/revisions/", 1)[0]
                 record = client.get(record_path).json()["data"]["current_problem"]

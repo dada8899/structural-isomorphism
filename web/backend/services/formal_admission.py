@@ -275,7 +275,6 @@ def local_search_resource(app):
     search = binding.search
     if search is None or search._formal_snapshot is None:
         return None
-    search._formal_snapshot.check_model()
     return search
 
 

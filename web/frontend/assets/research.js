@@ -1415,17 +1415,24 @@
     byId('first-answer-status').textContent = '';
     byId('first-answer-body').replaceChildren();
   }
-  async function readFirstAnswer() {
+  async function readFirstAnswer(generate = false) {
     clearFirstAnswer();
     const generation = firstAnswerGeneration;
-    const {revision:inputRevision, digest:problemDigest} = editBase;
+    const {revision:inputRevision, digest:problemDigest, researchVersion} = editBase;
     const id = researchId;
     const active = () => generation === firstAnswerGeneration && id === researchId;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15000);
     try {
-      const response = await fetch(`/api/research/${encodeURIComponent(id)}/revisions/${inputRevision}/first-answer`,
-        {credentials:'same-origin', cache:'no-store', signal:controller.signal});
+      const options = {credentials:'same-origin', cache:'no-store', signal:controller.signal};
+      if (generate) {
+        options.method = 'POST';
+        options.headers = {'Content-Type':'application/json'};
+        options.body = JSON.stringify({problem_digest:problemDigest, research_version:researchVersion});
+        byId('first-answer-status').textContent = '正在整理初步分析…';
+        byId('first-answer').hidden = false;
+      }
+      const response = await fetch(`/api/research/${encodeURIComponent(id)}/revisions/${inputRevision}/first-answer`, options);
       if (!active()) return;
       if (response.status === 401) { clearPrivateView('confirmed_logout'); return; }
       if (!response.ok) return; // no answer or a server that does not yet support this capability
@@ -1461,11 +1468,17 @@
       }));
       byId('first-answer-status').textContent = `问题修订 ${inputRevision} 的初步解释。适用条件仍需核对。`;
       byId('first-answer').hidden = false;
+      return true;
     } catch {
       // Failure to load an optional answer must not hide the saved question.
-    } finally { clearTimeout(timer); }
+    } finally {
+      clearTimeout(timer);
+      if (active() && generate && !byId('first-answer-body').childElementCount) {
+        byId('first-answer-status').textContent = '这次未能生成初步分析。问题已保存，仍可查看本地线索。';
+      }
+    }
   }
-  function render(data, methodToken) {
+  function render(data, methodToken, loadAnswer = true) {
     observationReset();
     planReset();
     methodDirty = false;
@@ -1517,7 +1530,7 @@
     renderTask(data,{methodToken});
     formulaHydrate(data);
     setBusy(busy);
-    void readFirstAnswer();
+    if (loadAnswer) void readFirstAnswer();
     // A fixed record must show the entire original text, including long inputs.
     for (const field of form.querySelectorAll('textarea')) {
       field.style.height = '';
@@ -1745,12 +1758,17 @@
     try { if(observationReview === byId('original-input').value) { observationProblem(observationReview,true); eligible=true; } } catch {}
     byId('observation-adopt').disabled = locked || !eligible || !byId('observation-own').checked;
   }
+  async function continueFromQuestion(saved) {
+    if (!saved || researchId !== saved.research.id || methodDirty) return;
+    const answered = await readFirstAnswer(true);
+    if (!answered && researchId === saved.research.id && !methodDirty) void searchLocalLeads(true);
+  }
   byId('save-question').addEventListener('click', () => {
     if (busy || readOnlyView() || !byId('original-input').reportValidity()) return;
     if (current || summaryEdited || byId('objective').value || byId('constraints').value ||
         byId('unknowns').value || byId('entry').value !== 'phenomenon' || byId('confirmed').checked ||
         byId('formula-enable').checked || !byId('problem-advanced').hidden) {
-      void saveProblem().then(saved => { if (saved) void searchLocalLeads(true); });
+      void saveProblem().then(continueFromQuestion);
       return;
     }
     const original = byId('original-input').value;
@@ -1759,9 +1777,7 @@
       entry:'research', original_input:original, objective:'',
       summary:Array.from(title).length >= 8 ? title : '待研究问题：' + title + '（原话）',
       variables:[], constraints:[], unknowns:[], confirmed:false,
-    }), false).then(saved => {
-      if (saved) void searchLocalLeads(true);
-    });
+    }), false).then(continueFromQuestion);
   });
   byId('start-research').addEventListener('click', () => {
     if (busy || readOnlyView() || !byId('original-input').reportValidity()) return;
@@ -2212,7 +2228,7 @@
       const url = researchId ? `/api/research/${researchId}/revisions` : '/api/research';
       const saved = await methodRequest(url, {method:'POST', headers:{'Content-Type':'application/json', 'Idempotency-Key':pending.key}, body},methodToken);
       if (adoptedProblem) validateSimpleSaveReceipt(saved, adoptedProblem, researchId, expectedRevision, current ? editBase.researchVersion + 1 : 1);
-      render(saved,methodToken);
+      render(saved,methodToken,false);
       history.replaceState(null, '', `/research/${saved.research.id}`);
       sessionStorage.removeItem(pending.slot);
       if (adoptObservation) {
