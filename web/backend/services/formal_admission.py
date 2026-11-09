@@ -268,6 +268,17 @@ def require(app, capability):
     return None
 
 
+def local_search_resource(app):
+    """Read the resource admitted by this app's live formal binding."""
+    require(app, 'research_basic')
+    binding = _STATE[id(app)]
+    search = binding.search
+    if search is None or search._formal_snapshot is None:
+        return None
+    search._formal_snapshot.check_model()
+    return search
+
+
 def safe_status(app):
     require(app, 'research_basic')
     binding = _STATE[id(app)]

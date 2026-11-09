@@ -60,3 +60,30 @@ def compose(question, search):
         "next_check": rule["next_check"],
         "references": references,
     }
+
+
+def generate(service, identity, research_id, *, input_revision, problem_digest, research_version, search):
+    """Generate from an authorized stored question, then recheck CAS on write."""
+    from .errors import ResearchError
+    from .first_answer import AnswerBody, read, save
+
+    try:
+        previous = read(service, identity, research_id, input_revision)
+    except ResearchError as error:
+        if error.code != "NOT_FOUND":
+            raise
+    else:
+        if previous["metadata"]["problem_digest"] != problem_digest:
+            raise ResearchError("REVISION_CONFLICT", 409, "问题已有变化，请重新读取。")
+        return previous
+    view = service.view(identity, research_id)
+    question = view["current_problem"]
+    if (question["revision"], question["digest"], view["research_version"]) != (
+            input_revision, problem_digest, research_version):
+        raise ResearchError("REVISION_CONFLICT", 409, "问题已有变化，请重新读取。")
+    answer = compose(question["original_input"], search)
+    if answer is None:
+        raise ResearchError("FEATURE_UNAVAILABLE", 503, "这个问题暂时没有可用的本地初步分析。")
+    return save(service, identity, research_id, input_revision=input_revision,
+                problem_digest=problem_digest, research_version=research_version,
+                key=f"local-first-answer-{input_revision}-{problem_digest}", answer=AnswerBody(**answer))
