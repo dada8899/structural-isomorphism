@@ -223,21 +223,21 @@
     ],
     "original_sha256": "2be9e0cfe9d81f8f373e2941c68149b03376d23f973ed3703eba3bc9bcad10e6",
     "schema16_bridge": {
-      "current_sha256": "481ef82c39f688af4f80a836aee468e2f539bf7fe1b9ddc0e2af44bf5064f26d",
+      "current_sha256": "5bd75cfb5cea820ad9a1ab9246ecf72295866115175ae9910c2a3705656a6afd",
       "hunks": [
         [
           205,
-          209,
+          211,
           ""
         ],
         [
-          235,
-          236,
+          237,
+          238,
           "        if version and version[0] in (7,8,9,10,11,12,13,14,15):\n"
         ],
         [
-          298,
-          299,
+          300,
+          301,
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)\n"
         ]
       ]
@@ -295,7 +295,7 @@
     ],
     "original_sha256": "91c93bc0f5575b7eba9f8b2690779e911a44bbb129a24c0687ea5742934ab31a",
     "schema16_bridge": {
-      "current_sha256": "e17499a707193444535261f9e5d83912da40c406e4c73db54c3ed766799185c1",
+      "current_sha256": "0435ba8e23988c21ce31b8bc4115293774b52648af21c0e5af43cb1ae1d52a30",
       "hunks": [
         [
           307,
@@ -304,7 +304,7 @@
         ],
         [
           317,
-          318,
+          319,
           ""
         ]
       ]
@@ -1494,7 +1494,7 @@
       ]
     ],
     "schema16_bridge": {
-      "current_sha256": "6da7e088d7eeb410b24178118244f7849649695e2f3c186f65b465db988bdc65",
+      "current_sha256": "b9c02e33cb15ff2f687e82d6f9f06a32c30b78d1d5e4d720c7c1fc18ac09accd",
       "hunks": [
         [
           173,
@@ -1942,7 +1942,7 @@
     ],
     "original_sha256": "744c196ef6b9cb9c3b6fab2140b966e3b52b4859fafb11ef23a5982d371d2885",
     "schema16_bridge": {
-      "current_sha256": "56243a83fbbfa92dc9bf0ae5b4aa425887b90b82d4b3391301b468ceb0d07a77",
+      "current_sha256": "2b23f3d8cfe6b1bca06cb48605fe6cce752653a1290c0195df3149a17d5d15ef",
       "hunks": [
         [
           13,
@@ -1965,98 +1965,123 @@
           ""
         ],
         [
-          1021,
-          1023,
+          940,
+          941,
+          "    def _check_v7_attachments(cls,conn,*,method=False,native=False):\n"
+        ],
+        [
+          951,
+          954,
+          ""
+        ],
+        [
+          1024,
+          1026,
           "            if version==15:self._check_v15(conn)\n"
         ],
         [
+          1051,
           1054,
-          1055,
-          "        if version in (10,11,12,13,14,15):\n"
+          ""
         ],
         [
-          1058,
-          1059,
-          "        if version in (11,12,13,14,15):\n"
-        ],
-        [
+          1060,
           1061,
-          1062,
-          "        if version in (12,13,14,15):\n"
+          "        if version in (10,11,12,13,14,15):\n"
         ],
         [
           1064,
           1065,
-          "        if version in (13,14,15):\n"
+          "        if version in (11,12,13,14,15):\n"
         ],
         [
           1067,
           1068,
-          "        if version in (14,15):\n"
+          "        if version in (12,13,14,15):\n"
         ],
         [
           1070,
           1071,
-          "        if version==15:\n"
+          "        if version in (13,14,15):\n"
         ],
         [
           1073,
+          1074,
+          "        if version in (14,15):\n"
+        ],
+        [
+          1076,
           1077,
+          "        if version==15:\n"
+        ],
+        [
+          1079,
+          1083,
           ""
         ],
         [
-          1116,
           1122,
+          1128,
           "        return cls._check_structure_version(conn,15)\n"
         ],
         [
-          1193,
-          1195,
+          1199,
+          1201,
           "            if version==15:self._check_v15(conn)\n"
         ],
         [
-          1210,
-          1212,
+          1216,
+          1218,
           "            if version==15:self._check_v15(conn);conn.commit();return\n"
         ],
         [
-          1327,
-          1329,
+          1268,
+          1269,
+          "    def _check_formula_domain(cls,conn,*,plan=False,native=False):\n"
+        ],
+        [
+          1270,
+          1271,
+          "        cls._check_v7_attachments(conn,method=True,native=native)\n"
+        ],
+        [
+          1333,
+          1335,
           "        if version==15:cls._check_v15(conn)\n"
         ],
         [
-          1338,
-          1346,
+          1344,
+          1356,
           ""
-        ],
-        [
-          1349,
-          1350,
-          "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式15需要完整账户准入。')\n"
-        ],
-        [
-          1351,
-          1352,
-          "        cls._check_structure_version(conn,15)\n"
         ],
         [
           1359,
-          1364,
+          1360,
+          "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式15需要完整账户准入。')\n"
+        ],
+        [
+          1361,
+          1363,
+          "        cls._check_structure_version(conn,15)\n        cls._check_formula_domain(conn,plan=True,native=True)\n"
+        ],
+        [
+          1369,
+          1377,
           ""
         ],
         [
-          1365,
-          1366,
+          1378,
+          1379,
           "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究15关联不匹配。')\n"
         ],
         [
-          1389,
-          1393,
+          1402,
+          1406,
           "                self._check_v15(conn)\n"
         ],
         [
-          1417,
-          1421,
+          1430,
+          1434,
           "                self._check_v15(conn)\n"
         ]
       ]

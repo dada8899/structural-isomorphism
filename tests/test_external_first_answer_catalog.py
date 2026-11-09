@@ -143,6 +143,6 @@ def test_preview_public_projection_never_exposes_request_bytes():
         account_id=str(uuid4()),economic_binding="synthetic-account",funding_epoch=1,quote_id=str(uuid4()),
         price_basis_digest="a"*64,currency="CNY",scale=6,upper_units=2000,issued_at=10,valid_until=30)
     view=project_closed_preview(scope,raw,quote,now=15)
-    assert set(view)=={"contract_revision","metadata","exact_question","target","provider","model",
+    assert set(view)=={"contract_revision","purpose","metadata","exact_question","target","provider","model",
                        "currency","scale","upper_units","preview_digest","request_digest","valid_until","may_send"}
     assert view["may_send"] is False and view["metadata"]["problem_digest"]==digest(raw)

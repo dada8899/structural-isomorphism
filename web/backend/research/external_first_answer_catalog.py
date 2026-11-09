@@ -4,7 +4,7 @@ import sqlite3
 
 from .authorization import AccountIdentity, AuthorizationGate
 from .errors import ResearchError, not_found
-from .external_first_answer_contract import ContractError, SavedRevisionScope, OUTPUT_SCHEMA, parse_unverified_candidate, prepare_closed_preview
+from .external_first_answer_contract import ContractError, SavedRevisionScope, OUTPUT_SCHEMA, parse_unverified_candidate, prepare_closed_public_preview
 from .external_first_answer_file_writer import (
     CANDIDATE_DDL, TRIGGER, _TempLedgerProof, _TOKEN, _identity, money_trigger,
 )
@@ -159,12 +159,7 @@ def read_bridge_result(proof,identity,research_id,revision,operation_key):
 
 
 def project_closed_preview(scope, saved_problem, quote, *, now):
-    prepared=prepare_closed_preview(scope,saved_problem,quote,now=now)
-    fields=("exact_question","target","provider","model","currency","scale","upper_units",
-            "preview_digest","request_digest","valid_until","may_send")
-    return {"contract_revision":PUBLIC_CONTRACT,
-            "metadata":{k:getattr(scope,k) for k in ("research_id","input_revision","research_version","problem_digest")},
-            **{k:getattr(prepared,k) for k in fields}}
+    return prepare_closed_public_preview(scope, saved_problem, quote, now=now)
 
 
 def require_dispatch_admission():
