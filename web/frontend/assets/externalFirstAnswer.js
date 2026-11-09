@@ -77,12 +77,18 @@
     function offer() {
       reset();
       const current = options.current();
+      if (current?.external_first_answer === 'pending') {
+        panel.hidden = false;
+        const status = add('p','外部提交结果尚待核对。请从研究记录查看，不要重复发送。');
+        status.setAttribute('role','status');
+        return;
+      }
       if (!current || current.external_first_answer !== 'ready') return;
       const anchor = Object.freeze({...current});
       const generation = epoch;
       const active = () => {
         const current = options.current();
-        return generation === epoch && current && current.external_first_answer === 'ready' &&
+        return generation === epoch && current && ['ready','pending'].includes(current.external_first_answer) &&
           ['research_id','input_revision','research_version','problem_digest','original_input','actor']
             .every(key => current[key] === anchor[key]);
       };

@@ -395,6 +395,85 @@ def test_async_insufficient_keeps_saved_question_and_shows_local_leads(short_obs
             browser.close()
 
 
+def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observation_asgi):
+    import time
+    client, _ = short_observation_asgi
+    exact = "为什么相同需求会出现两种结果？"
+    confirms = []
+    advertised = {"ready":False}
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        context = browser.new_context()
+        try:
+            page, _ = _short_observation_page(context, client)
+
+            def with_capability(route):
+                request = route.request
+                if request.url.endswith("/api/research") and request.method != "POST":
+                    route.fallback()
+                    return
+                response = client.request(request.method, request.url, headers=request.all_headers(),
+                                          content=request.post_data_buffer)
+                body = response.json()
+                if response.status_code == 200 and advertised["ready"]:
+                    body["data"]["capabilities"]["external_first_answer"] = "ready"
+                route.fulfill(status=response.status_code,json=body)
+
+            def local_failure(route):
+                root = route.request.url.split("/revisions/",1)[0]
+                saved = client.get(root).json()["data"]
+                row = saved["current_problem"]
+                route.fulfill(json={"contract_revision":"first-answer-job-v1","status":"failed","reason":"insufficient",
+                    "metadata":{"research_id":row["research_id"],"input_revision":row["revision"],"problem_digest":row["digest"]}})
+
+            def external(route):
+                request = route.request
+                root = request.url.split("/revisions/",1)[0]
+                saved = client.get(root).json()["data"]
+                row = saved["current_problem"]
+                if request.url.endswith("/confirm"):
+                    confirms.append(request.post_data_json)
+                    route.fulfill(status=503,json={"error":{"code":"RECEIPT_UNKNOWN"}})
+                    return
+                route.fulfill(json={"contract_revision":"external-first-answer-v1","purpose":"external-first-answer-question-v1",
+                    "metadata":{"research_id":row["research_id"],"input_revision":row["revision"],
+                                "research_version":saved["research_version"],"problem_digest":row["digest"]},
+                    "exact_question":row["original_input"],"provider":"deepseek","model":"deepseek-flash",
+                    "target":"https://api.deepseek.com/chat/completions","currency":"CNY","scale":6,"upper_units":12000,
+                    "preview_digest":"b"*64,"request_digest":"c"*64,"valid_until":int(time.time())+30,"may_send":True})
+
+            page.route("https://testserver/api/research",with_capability)
+            page.route("**/revisions/*/first-answer",local_failure)
+            page.route("**/revisions/*/external-first-answer/*",external)
+            page.route("https://testserver/api/search",lambda route:route.fulfill(json={"results":[]}))
+            page.goto("https://testserver/research")
+            page.locator("#original-input").fill(exact)
+            page.locator("#save-question").click()
+            expect(page.locator("#first-answer-status")).to_contain_text("材料不足")
+            expect(page.locator("#external-first-answer")).to_be_hidden()
+            saved_url = page.url
+            advertised["ready"] = True
+            page.route("https://testserver/api/research/" + saved_url.rsplit("/",1)[1],with_capability)
+            page.reload()
+            panel = page.locator("#external-first-answer")
+            panel.get_by_role("button",name="查看外部分析选项").click()
+            expect(panel.locator("pre")).to_have_text(exact)
+            expect(panel).to_contain_text("人民币 ¥0.012000")
+            send = panel.get_by_role("button",name="确认发送")
+            expect(send).to_be_disabled()
+            for label in ("同意发送上方这条问题","接受本次费用上限","我有权发送这段内容"):
+                panel.get_by_role("checkbox",name=label).check()
+            send.click()
+            expect(panel.get_by_role("status")).to_contain_text("不要重复发送")
+            assert len(confirms) == 1 and "exact_question" not in confirms[0]
+            page.reload()
+            expect(panel.get_by_role("status")).to_contain_text("尚待核对")
+            expect(panel.get_by_role("button",name="查看外部分析选项")).to_have_count(0)
+        finally:
+            context.close()
+            browser.close()
+
+
 @pytest.mark.parametrize('raw',[
     '一个物体温度恢复到环境温度的过程，是否与电容放电对应？请比较公式，告诉我能借用什么、什么时候不能用。',
     ' e\u0301 原话中的温度恢复过程。\n ',

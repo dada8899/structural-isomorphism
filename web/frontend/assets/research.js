@@ -1408,12 +1408,64 @@
       return payload.data;
     } finally { clearTimeout(timer); }
   }
+  function externalPendingKey(anchor) {
+    return `structure-external-first-answer:${anchor.research_id}:${anchor.input_revision}`;
+  }
+  function externalContext() {
+    if (!accountScope || !editBase || !current || methodDirty || readOnlyView() || form.hidden ||
+        current.capabilities?.external_first_answer !== 'ready' || !validId(researchId)) return null;
+    const anchor = {
+      research_id:researchId, input_revision:editBase.revision, research_version:editBase.researchVersion,
+      problem_digest:editBase.digest, original_input:current.current_problem.original_input,
+      actor:accountScope, external_first_answer:'ready',
+    };
+    try {
+      if (sessionStorage.getItem(externalPendingKey(anchor))) anchor.external_first_answer = 'pending';
+    } catch { return null; }
+    return anchor;
+  }
+  async function externalAnswerRequest(anchor, action, body) {
+    const matches = () => {
+      const latest = externalContext();
+      return latest && ['research_id','input_revision','research_version','problem_digest','actor','original_input']
+        .every(name => latest[name] === anchor[name]);
+    };
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      if (!matches() || !await authenticated(matches,controller.signal) || !matches()) throw Error('external scope changed');
+      const headers = {'Content-Type':'application/json'};
+      if (action === 'confirm') {
+        const key = externalPendingKey(anchor);
+        if (sessionStorage.getItem(key)) throw Error('external operation already pending');
+        headers['Idempotency-Key'] = crypto.randomUUID();
+        // Record only the operation key before transport; never store the
+        // question or the quote. An unknown outcome is not a resend action.
+        sessionStorage.setItem(key, headers['Idempotency-Key']);
+      }
+      const path = `/api/research/${encodeURIComponent(anchor.research_id)}/revisions/${anchor.input_revision}/external-first-answer/${action}`;
+      const response = await fetch(path, {method:'POST', credentials:'same-origin', cache:'no-store',
+        redirect:'error', headers, body:JSON.stringify(body), signal:controller.signal});
+      if (!response.ok || !matches()) throw Error('external operation unavailable');
+      const value = await response.json();
+      if (!matches() || !await authenticated(matches,controller.signal) || !matches()) throw Error('external scope changed');
+      return value;
+    } finally { clearTimeout(timer); }
+  }
+  const externalPanel = window.ExternalFirstAnswer?.mount(byId('external-first-answer'), {
+    current:externalContext, now:() => Math.floor(Date.now()/1000),
+    load:anchor => externalAnswerRequest(anchor,'preview',{
+      problem_digest:anchor.problem_digest, research_version:anchor.research_version}),
+    submit:(anchor,body) => externalAnswerRequest(anchor,'confirm',body),
+  });
+
   let firstAnswerGeneration = 0;
   let firstAnswerController = null;
   let firstAnswerJob = null;
   let firstAnswerRefreshOnly = false;
   function clearFirstAnswer() {
     firstAnswerGeneration++;
+    externalPanel?.reset();
     firstAnswerController?.abort();
     firstAnswerController = null;
     firstAnswerJob = null;
@@ -1518,6 +1570,7 @@
           : labels[answer.status];
         byId('first-answer').hidden = false;
         byId('first-answer-leads').hidden = answer.status === 'cancelled' || readOnlyView();
+        if (answer.status === 'failed' || answer.status === 'interrupted') externalPanel?.offer();
         handled = true;
         return !generate || answer.status === 'cancelled';
       }
