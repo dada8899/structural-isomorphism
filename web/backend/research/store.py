@@ -1113,6 +1113,8 @@ class ResearchStore:
 
     @classmethod
     def check_current_structure(cls,conn):
+        if not isinstance(conn,sqlite3.Connection) or not conn.in_transaction:
+            raise ResearchError('SCHEMA_UNSUPPORTED',503,'结构检查需要调用方的事务快照。')
         version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
         if version is None or version[0] not in (15,16):
             raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究版本不支持。')
