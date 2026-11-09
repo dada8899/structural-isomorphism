@@ -225,3 +225,13 @@ def test_structural_calculations_isolate_local_flow_and_weighting(question,produ
     assert answer is not None and answer["producer"] == producer
     assert evidence in answer["next_check"] and answer["references"] == []
     assert observation_check("总进水与用水相同，一处只是提示溢出，没有溢出，其他没满。") is None
+
+
+def test_shared_driver_can_synchronize_threshold_crossing_without_interaction():
+    from web.backend.research.local_observation_checks import observation_check
+    asked = "从每周一次巡检改成水位超过规定值才触发。雨后几个独立站点一起触发，为什么任务一阵一阵？"
+    answer = observation_check(asked)
+    assert answer is not None and answer["producer"] == "local-calculation-synchronized-trigger-v1"
+    assert "即使它们互不影响" in answer["explanation"]
+    assert "越线分散而派发集中" in answer["next_check"]
+    assert observation_check("所有站点每天一次按时巡检，告警名称叫阈值。") is None

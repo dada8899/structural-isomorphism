@@ -75,6 +75,27 @@ _WEIGHTED_VOTES = re.compile(r"按.{0,14}(?:班次|工时|参与次数).{0,10}(?
 _SAME_VOTERS = re.compile(r"同一批人|人员没变|还是这些人|same.{0,18}(?:people|voters|members)", re.I)
 
 
+
+_OLD_SCHEDULE = re.compile(r"每(?:周|天|隔日).{0,9}(?:一次|处理|执行|安排)|定时|fixed schedule|every (?:week|day|hour)", re.I)
+_TRIGGER_RULE = re.compile(r"改成.{0,18}(?:超过|低于|达到|越过).{0,18}(?:才|触发)|"
+                           r"switch.{0,30}(?:above|below|crosses).{0,14}(?:threshold|limit)", re.I)
+_SYNC_EVENT = re.compile(r"一起触发|集中触发|同时触发|一阵一阵|trigger together|clustered triggers|arrive in bursts", re.I)
+_COMMON_DRIVER = re.compile(r"雨后|同一场雨|共同.{0,10}(?:扰动|输入|天气|条件)|"
+                            r"after (?:rain|the same change)|shared (?:driver|input|disturbance)", re.I)
+
+
+def _trigger_timing(question):
+    if not all(pattern.search(question) for pattern in (_OLD_SCHEDULE, _TRIGGER_RULE, _SYNC_EVENT, _COMMON_DRIVER)):
+        return None
+    return {
+        "producer":"local-calculation-synchronized-trigger-v1",
+        "explanation":"固定周期决定何时执行，状态门槛则让执行时间取决于何时越线。多个对象如果受同一外部变化影响，可能在相近时间跨线，即使它们互不影响也会成批出现。另一种解释是实际越线分散，但任务被调度系统集中放行。",
+        "assumptions":["区分状态越线时刻、系统创建任务时刻和实际执行时刻，不先假定任务彼此传播。"],
+        "cross_domain_leads":[],
+        "next_check":"同步记录各对象的状态、共同外部输入、首次越线和任务派发时间。用同一段非恒定状态记录重放固定周期和门槛规则。若只有越线在新规则下集中，支持共同驱动；若越线分散而派发集中，检查批量调度。",
+        "references":[],
+    }
+
 def _structural_calculation(question):
     if (all(item.search(question) for item in (_TOTAL_FLOW, _FLOW_USE, _LOCAL_OVERFLOW, _SPARE_ELSEWHERE))
             and not _NO_OBSERVED_OVERFLOW.search(question)):
@@ -101,6 +122,8 @@ def observation_check(question):
     """Return a hypothesis plus an executable comparison; never invent sources."""
     if type(question) is not str or not 1 <= len(question) <= 4000:
         return None
+    if timing := _trigger_timing(question):
+        return timing
     if structural := _structural_calculation(question):
         return structural
     if recovery := _recovery_comparison(question):
