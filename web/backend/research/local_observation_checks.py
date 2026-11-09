@@ -118,10 +118,35 @@ def _structural_calculation(question):
         }
     return None
 
+
+_FIRST_GAIN = re.compile(
+    r"(?:一台|一个|首个|第一次|打开|启用|开风扇).{0,25}(?:更快|快了|清得快|明显改善|增加|缩短)|"
+    r"(?:first|one).{0,18}(?:fan|worker|device|machine).{0,22}(?:helped|improved|faster)", re.I)
+_EXTRA_RESOURCE = re.compile(
+    r"(?:再|额外|第二).{0,18}(?:增加|开|添|加|一台|一个|台|个)|"
+    r"(?:adding|added|switching on).{0,12}(?:another|a second|one more)", re.I)
+_SMALL_EXTRA_GAIN = re.compile(
+    r"几乎没改善|没有进一步改善|提升很小|没有明显变化|barely improved|little additional gain|no further improvement", re.I)
+
+
+def _marginal_capacity(question):
+    if not all(item.search(question) for item in (_FIRST_GAIN, _EXTRA_RESOURCE, _SMALL_EXTRA_GAIN)):
+        return None
+    return {
+        "producer":"local-calculation-marginal-capacity-v1",
+        "explanation":"第一份资源有效而再加一份收益很小，只能说明当前条件下边际收益下降，不等于存在普遍的数量门槛。额外资源可能共同受同一入口、出口或下游环节限制；也可能是测量已经接近下限。",
+        "assumptions":["初始负荷、测量时段和环境设置要可比；不能把第一轮已经完成的变化重复算给第二轮。"],
+        "cross_domain_leads":[],
+        "next_check":"用同一初始条件分别比较零、一、两份资源，记录响应曲线和可能受限环节的流量或完成率。再保持两份资源不变，只放宽一个可安全调整的限制。如果额外资源此时重新有效，支持共享瓶颈解释；否则查测量下限、相互干扰或其他限制。",
+        "references":[],
+    }
+
 def observation_check(question):
     """Return a hypothesis plus an executable comparison; never invent sources."""
     if type(question) is not str or not 1 <= len(question) <= 4000:
         return None
+    if marginal := _marginal_capacity(question):
+        return marginal
     if timing := _trigger_timing(question):
         return timing
     if structural := _structural_calculation(question):

@@ -235,3 +235,15 @@ def test_shared_driver_can_synchronize_threshold_crossing_without_interaction():
     assert "即使它们互不影响" in answer["explanation"]
     assert "越线分散而派发集中" in answer["next_check"]
     assert observation_check("所有站点每天一次按时巡检，告警名称叫阈值。") is None
+
+
+@pytest.mark.parametrize("asked", [
+    "一台设备启用后清得快，再多开一台几乎没改善。是不是第二台总没用？",
+    "The first fan helped; adding a second fan barely improved the result. What do we compare?",
+])
+def test_marginal_capacity_checks_a_shared_limit_without_claiming_a_universal_threshold(asked):
+    from web.backend.research.local_observation_checks import observation_check
+    answer = observation_check(asked)
+    assert answer is not None and answer["producer"] == "local-calculation-marginal-capacity-v1"
+    assert "不等于存在普遍" in answer["explanation"]
+    assert "零、一、两份资源" in answer["next_check"] and "只放宽一个" in answer["next_check"]
