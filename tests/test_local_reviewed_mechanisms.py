@@ -124,3 +124,16 @@ def test_stock_order_amplification_preserves_the_variable_under_test(approved_ro
     assert "同一段有波动" in answer["next_check"]
     assert "原规则" in answer["next_check"] and "缺货未增加" in answer["next_check"]
     assert compose_reviewed_mechanism("促销后需求翻倍，补货申请忽多忽少。", BoundCorpus(approved_rows)) is None
+
+
+@pytest.mark.parametrize("question", [
+    "团队同时调整接待流程和话术，第二周的投诉总数下降，只看前后能确认话术起作用吗？",
+    "Two measures rise together on the same days. Does one drive the other, or are they reacting to the same thing?",
+])
+def test_causal_comparison_requires_a_comparison_that_separates_explanations(approved_rows, question):
+    answer = compose_reviewed_mechanism(question, BoundCorpus(approved_rows))
+    assert answer is not None
+    assert answer["producer"] == "local-mechanism-causal-comparison-v1"
+    assert "不足以判定" in answer["explanation"]
+    assert "每次只改一项" in answer["next_check"] and "不能单凭观察" in answer["next_check"]
+    assert compose_reviewed_mechanism("随机分配后，已经独立比较两组，只看前后能归因吗？", BoundCorpus(approved_rows)) is None

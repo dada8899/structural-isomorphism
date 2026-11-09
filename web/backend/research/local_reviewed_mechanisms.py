@@ -14,6 +14,8 @@ from .service import digest
 
 _ARTIFACT = "structural-v2-kb4443-20260711"
 _SOURCE_DIGESTS = {
+    "5k-08-040": "d438e25a1779e8cfae5f95ce4cbbf0abe22212f583a7d55d1b82e9d141bbbe00",
+    "5k-08-041": "ba0338ad7c464cc901fd1cc24a0cd1d208d6e4d833bbc48c59dcb9464896445a",
     "soc-093": "da2c2fdaab5e4892791beee2ad37abda516715022c71dfeb75723ec5744aeebe",
     "5k-ef-105": "77b715483148e12ca879b3642ac8aae8a6f25e6de31bbcb0bccfadfe4648144c",
     "bio-012": "faab927261d195231bd712a8ed21c392dcfc7718db6c1b15be1993789588f806",
@@ -58,12 +60,40 @@ _MECHANISMS = (
         next_check="用历史回放或小型可逆实验记录测量、下令和生效三个时间点。保持外部输入和目标不变，单独缩短信息延迟或减小纠偏幅度，比较最大过冲和恢复时间。如果固定纠偏后仍按同一外部周期波动，优先查外部驱动。",
     ),
     Mechanism(
+        name="causal-comparison",
+        alternatives=(
+            (
+                r"同时.{0,12}(?:换|改|调整|推出|上线)|(?:changed|introduced|switched).{0,24}at the same time",
+                r"只凭|只看|前后|第二周|afterwards|before and after|same period",
+                r"确认|归因|起作用|导致|因果|caus|attribute|which.*worked",
+            ),
+            (
+                r"同一.{0,8}(?:天|周|时段)|一起.{0,6}(?:上升|下降|变化)|同时.{0,6}(?:上升|下降|变化)|"
+                r"on the same days|rise together|move together|co.mov",
+                r"共同原因|同一个原因|同一个因素|共同因素|同因|same thing|common cause|same factor",
+                r"驱动|导致|影响|因果|相关|drive|cause|effect",
+            ),
+        ),
+        veto=(r"已随机分组|随机分配后|已隔离变量|already randomized|randomly assigned in separate groups"),
+        sources=("5k-08-040", "5k-08-041"),
+        explanation="同一时段一起变化，或同时改了两件事后结果变化，都不足以判定某一项造成结果。"
+                    "如果两项一起改，单看前后总量无法拆开各自影响；如果两个指标同涨同跌，也可能都是第三个因素带动。"
+                    "这不是在断言一定有共同原因，而是在说明现有比较还不能区分解释。",
+        assumptions=("先列可能同时影响观察的前置因素，不把变化之后才出现的中间结果拿来匹配。",
+                     "结果的分母和统计时段要可比。总量上升也可能只是流量或观察机会变多。"),
+        cross_domain_leads=("政策或干预研究会比较前后趋势，并寻找同期未受影响的可比序列；"
+                            "可借用对照思路，不能把某个政策样例的效果搬到当前场景。",),
+        next_check="如能做可逆实验，在同一时段把可比对象分组，每次只改一项，记录分母、结果率及对照组变化。"
+                   "若只能观察，比较前置条件相似的时间窗，记录共同因素与各指标的时间顺序。"
+                   "控制后关联减弱支持共同因素的解释；仍有关联也不能单凭观察确认直接因果。",
+    ),
+    Mechanism(
         name="stock-order-amplification",
         alternatives=((
-            r"(?:借用|需求|销量|消耗|使用)(?:量|流|变化)?.{0,10}(?:平稳|稳定|差不多|变动不大|波动不大)|"
+            r"(?:借用|需求|销量|消耗|使用|用掉|卖出)(?:量|流|变化)?.{0,12}(?:平稳|稳定|差不多|变动不大|波动不大)|"
             r"(?:demand|borrowing|sales).{0,18}(?:steady|stable|small changes)",
-            r"补货|补单|采购|上游订单|replenish|restock|upstream orders",
-            r"忽多忽少|忽高忽低|时多时少|波动.{0,6}(?:更大|明显|放大)|变得.{0,6}(?:不稳|剧烈)|"
+            r"补货|补单|采购|上游订单|下单|供应商|replenish|restock|upstream orders",
+            r"忽多忽少|忽高忽低|时多时少|有时.{0,10}(?:多|一大堆).{0,12}(?:少|几乎没有)|波动.{0,6}(?:更大|明显|放大)|变得.{0,6}(?:不稳|剧烈)|"
             r"oscillat|swing|larger fluctuations",
         ),),
         veto=(r"促销后.{0,12}(?:需求|销量).{0,8}(?:翻倍|激增)|"
