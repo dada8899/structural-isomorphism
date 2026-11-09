@@ -1456,12 +1456,27 @@
         byId('first-answer').hidden = false;
       }
       const url = `/api/research/${encodeURIComponent(id)}/revisions/${inputRevision}/first-answer`;
-      let answer;
+      let answer, readRetries = 0;
       while (active() && !controller.signal.aborted) {
         const response = await fetch(url, options);
         if (!active()) return;
         if (response.status === 401) { clearPrivateView('confirmed_logout'); return; }
-        if (!response.ok) return polling || Boolean(cancelJob);
+        if (!response.ok) {
+          if (options === readOptions && response.status === 503) {
+            const failure = await response.json().catch(() => null);
+            if (!active()) return;
+            if (failure?.error?.code === 'STORE_UNAVAILABLE') {
+              if (readRetries++ < 2) {
+                await waitForFirstAnswer(controller.signal);
+                continue;
+              }
+              polling = true;
+              byId('first-answer').hidden = false;
+            }
+          }
+          return polling || Boolean(cancelJob);
+        }
+        readRetries = 0;
         answer = await response.json();
         if (!active() || !['first-answer-v1','first-answer-job-v1'].includes(answer?.contract_revision) ||
             answer.metadata?.research_id !== id || answer.metadata.input_revision !== inputRevision ||

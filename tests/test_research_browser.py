@@ -307,17 +307,22 @@ def test_async_first_answer_reopens_and_cancels_without_new_submission(short_obs
     job_id = "d19160ad-396a-4edc-a383-e54c48ba728f"
     calls = []
     state = "queued"
+    transient_read = False
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         context = browser.new_context()
         try:
             page, requests = _short_observation_page(context, client)
             def job(route):
-                nonlocal state
+                nonlocal state, transient_read
                 request = route.request
                 path = request.url.split("testserver", 1)[1]
                 record = client.get(path.split("/revisions/", 1)[0]).json()["data"]["current_problem"]
                 calls.append((request.method, request.post_data_json if request.method != "GET" else None))
+                if request.method == "GET" and not transient_read:
+                    transient_read = True
+                    route.fulfill(status=503, json={"error":{"code":"STORE_UNAVAILABLE"}})
+                    return
                 if request.method == "DELETE":
                     state = "cancelled"
                 elif request.method == "GET" and state == "queued":
@@ -339,7 +344,7 @@ def test_async_first_answer_reopens_and_cancels_without_new_submission(short_obs
             expect(page.locator("#first-answer-status")).to_contain_text("已取消分析")
             page.goto(saved)
             expect(page.locator("#first-answer-status")).to_contain_text("已取消分析")
-            assert [method for method, _ in calls].count("POST") == 1
+            assert transient_read and [method for method, _ in calls].count("POST") == 1
             assert [data["job_id"] for method, data in calls if method == "DELETE"] == [job_id]
             assert [path for method, path, _ in requests if method == "POST"] == ["/api/research"]
         finally:
