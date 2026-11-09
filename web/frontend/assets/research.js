@@ -2021,7 +2021,7 @@
         title.append(link);
         const meta = document.createElement('p'); meta.className = 'hint';
         const states = {QUEUED:'等待执行', RUNNING:'处理中', WAITING_EXTERNAL:'等待响应', RECONCILING:'结果待核对', COMPLETED:'流程已结束，结论待验证', FAILED:'流程未完成', CANCELLED:'已停止', ACCESS_REVOKED:'访问已停止'};
-        meta.textContent = `修订 ${item.current_input_revision} · ${item.current_task ? (states[item.current_task.execution] || '状态待核对') : '已保存，尚未执行'} · 在新标签页打开`;
+        meta.textContent = `修订 ${item.current_input_revision} · ${item.current_task ? (states[item.current_task.execution] || '状态待核对') : '已保存问题'} · 在新标签页打开`;
         article.append(title, meta); byId('research-list-items').append(article);
       }
       listCursor = data.next_cursor;
@@ -2142,7 +2142,7 @@
     loadResearchList(false, positionEntry);
     if (positionEntry && initialSection === 'kb-section') positionInitialSection();
     await recoverSourceIntent();
-    if (data.method_result_state !== 'unavailable' && !editNotice()) status(data.is_historical ? '已读取历史流程的原问题，只读查看；方法正文以下方状态为准。' : selectedTask ? '已读取固定任务，只读查看；该任务仍是当前任务。' : '已从账户读取保存的问题；尚未执行研究。');
+    if (data.method_result_state !== 'unavailable' && !editNotice()) status(data.is_historical ? '已读取历史流程的原问题，只读查看；方法正文以下方状态为准。' : selectedTask ? '已读取固定任务，只读查看；该任务仍是当前任务。' : '已从账户读取保存的问题。');
   }
   async function operationKey(scope, body, expectedRevision, taskRequest = null) {
     const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body));
@@ -2362,7 +2362,7 @@
         byId('native-plan-section').scrollIntoView({block:'start'});
       }
       loadResearchList();
-      status(`已保存修订 ${saved.current_problem.revision}。这是一条问题记录，尚未执行研究。`);
+      status(`已保存修订 ${saved.current_problem.revision}。`);
       return saved;
     } catch (error) {
       // 4xx proves rejection; transport/5xx outcomes keep the original key.

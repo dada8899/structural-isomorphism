@@ -340,6 +340,8 @@ def test_async_first_answer_reopens_and_cancels_without_new_submission(short_obs
             saved = page.url
             page.goto(saved)
             expect(page.locator("#first-answer-status")).to_contain_text("正在后台分析")
+            expect(page.locator("#status")).to_contain_text("已从账户读取保存的问题")
+            expect(page.locator("#status")).not_to_contain_text("尚未执行研究")
             page.locator("#first-answer-cancel").click()
             expect(page.locator("#first-answer-status")).to_contain_text("已取消分析")
             page.goto(saved)
