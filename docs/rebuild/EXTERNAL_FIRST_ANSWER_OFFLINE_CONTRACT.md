@@ -98,3 +98,13 @@ services/external_live_issuer.py 把签名批准和实际 Main 绑到一起：�
 - 正式目标 Linux 运行制品的可信依赖闭包：当前 a3 没有声明 cryptography，必须固定并隔离证明目标 ABI 与签名路径，或指定独立已批准的验证入口。
 - 专用加密凭据项、物理目录/FD 见证与已审 run-formal-main 入口实现。须在硬化及单次启动许可后加载，只能证明同一供应端经济账户与原账本，不能以 key 名或 key 摘要当经济身份；加载或清理未知不得重播启动。
 - 真 sender 的不可替代 handle、官方新鲜余额和价格来源、实际同账本原子预留/消费以及已占用和 UNKNOWN 的恢复。启动授权只控制 loader，不能替代每次用户确认、当前 Owner/revision/ACL、同账本额度及 UNKNOWN 阻断，也不批准任何真实执行。
+
+## 正式启动接线候选（默认关闭）
+
+run-formal-main 的实际 _serve 可将已硬化的 systemd 凭据目录见证借给新用途，但不共享旧 grant。v17 Main 在真实准入后才尝试外部 issuer，结束时撤回 handle 和擦除受控缓冲。external_live_production.py 的代码固定政策目前为空；未提供真实入口见证，或实际源码/Unit/账本/签名/依赖核对任一缺失，外部用途保持关闭。配置、合成公钥、测试 loader 和原凭据名都不能开启这条路径。未启用请求级 sender。
+
+若后续准备实际授权，先冻结独立审查公钥与目标解释器/依赖文件清单。启动器在导入 cryptography 前检查实际目标 Linux 解释器、完整已审文件摘要和 cryptography/cffi/_cffi_backend/pycparser 的实际导入入口，拒绝当前未证的 a3 或已从其他来源导入的 verifier；本轮没有安装或证明目标依赖。随后用固定根管理路径的签名 Go 核实实际发布目录、源码 manifest 和关键文件、正式 Unit 摘要、无已知 drop-in 与实际 cgroup、数据库及同一经济账户。部署前还应独立核实际加载 Unit 的 FragmentPath/DropInPaths 及执行制品；磁盘摘要不替代正式部署现场证据。
+
+只有确认全部绑定并在独立受保护目录持久消费启动挑战后，专用 loader 才能通过原目录见证读新 credential ID。它复查 ACL、只读挂载及文件身份/重复读，且不输出或写入 ENV。旧用途 loader 和 grant 不扩展。已有状态仍需新 sender、官方新鲜余额、受审按次授权和 UNKNOWN 对账；启动 handle 不授预留或发送。未加载真实钥、未发供应端请求、未操作生产。
+
+已验证实际隔离 Main 的两种负例：无源固定 pin、只有合成 pin 但没有真实入口见证；两者都不访问批准文件、依赖或凭据，账户及普通保存照常，预览 503。合成 issuer 仍不能产生 live handle。旧正式入口与系统凭据元数据回归继续保持。
