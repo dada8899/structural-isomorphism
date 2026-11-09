@@ -1261,6 +1261,8 @@ def test_entry_kb_input_generations_and_revocation_reject_late_results(server):
             base=server["base"]; login(context,base)
             page=context.new_page(); page.goto(base+"/research")
             expect(page.locator("#problem-form")).to_be_visible()
+            if page.locator("#advanced-tools-toggle").get_attribute("aria-expanded") != "true":
+                page.locator("#advanced-tools-toggle").click()
             def kb(route):
                 if route.request.post_data_json["query"]=="现象 A 的旧请求需要延迟": held.append(route)
                 else: route.fulfill(json={"results":[{"name":"现象 B 的新线索","domain":"本地","description":"仅界面合成数据"}]})
