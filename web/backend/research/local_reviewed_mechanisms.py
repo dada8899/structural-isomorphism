@@ -43,7 +43,7 @@ _MECHANISMS = (
             r"时滞|滞后|延迟|慢半拍|旧读数|旧数据|上[一两二三]轮|到货前|到货要|delay|lag|outdated|stale",
             r"纠偏|校正|调节|温控|负反馈|反馈控制|设定值|补货|调整.{0,12}(配额|控制量)|"
             r"correct(?:ion|ive|s|ing)?\b|adjust(?:ment|s|ing)?\b|setpoint|reorder|restock|controller",
-            r"过冲|超调|振荡|来回摆|忽高忽低|反复.{0,12}(缺货|过量|过剩)|缺货.{0,12}(过量|过剩|积压)|"
+            r"过冲|超调|振荡|来回(?:摆|波动|变化)|忽高忽低|反复.{0,12}(缺货|过量|过剩)|缺货.{0,12}(过量|过剩|积压)|"
             r"overshoot|overcorrect|oscillat|swing back",
         ),),
         veto=(r"没有.{0,8}(反馈|调节|纠偏|校正)|不根据.{0,10}(测量|误差|状态)|开环|"
