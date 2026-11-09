@@ -137,3 +137,15 @@ def test_causal_comparison_requires_a_comparison_that_separates_explanations(app
     assert "不足以判定" in answer["explanation"]
     assert "每次只改一项" in answer["next_check"] and "不能单凭观察" in answer["next_check"]
     assert compose_reviewed_mechanism("随机分配后，已经独立比较两组，只看前后能归因吗？", BoundCorpus(approved_rows)) is None
+
+
+@pytest.mark.parametrize("question", [
+    "压力慢慢升高，接近某个值后设备噪声突然变大，怎么判断是否有阈值？",
+    "As input power rises in small steps the reading makes an abrupt jump. How can we distinguish a threshold from a steep continuous response?",
+])
+def test_state_threshold_offers_a_test_not_a_diagnosis(approved_rows, question):
+    result = compose_reviewed_mechanism(question, BoundCorpus(approved_rows))
+    assert result is not None and result["producer"] == "local-mechanism-state-threshold-check-v1"
+    assert "一次经过疑似边界，不能确认门槛" in result["explanation"]
+    assert "交错测试" in result["next_check"] and "连续模型同样好" in result["next_check"]
+    assert compose_reviewed_mechanism("公司按规定超过100元就报批，这是人为设定的门槛。", BoundCorpus(approved_rows)) is None

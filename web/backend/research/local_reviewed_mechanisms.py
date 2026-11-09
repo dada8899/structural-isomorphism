@@ -14,6 +14,8 @@ from .service import digest
 
 _ARTIFACT = "structural-v2-kb4443-20260711"
 _SOURCE_DIGESTS = {
+    "kb5k02-063": "6f2af915b02067a999878ff1cb58d4b69816227701f5e2f578bd5060ea34f297",
+    "5k-ee-150": "d9cccef8c13be424721c5b8783a323d1d926136afc1d31df0bb041d1d5d0ebeb",
     "5k-08-040": "d438e25a1779e8cfae5f95ce4cbbf0abe22212f583a7d55d1b82e9d141bbbe00",
     "5k-08-041": "ba0338ad7c464cc901fd1cc24a0cd1d208d6e4d833bbc48c59dcb9464896445a",
     "soc-093": "da2c2fdaab5e4892791beee2ad37abda516715022c71dfeb75723ec5744aeebe",
@@ -58,6 +60,25 @@ _MECHANISMS = (
                      "比较时固定外部输入，另查周期扰动、执行上限及测量噪声。库中例子的幅度和周期不能套用。"),
         cross_domain_leads=("补货中的在途订单和某些生物反馈中的抑制物积累，都让纠偏作用晚于触发信号；可借用分开记录偏差、动作和生效时间的方法。",),
         next_check="用历史回放或小型可逆实验记录测量、下令和生效三个时间点。保持外部输入和目标不变，单独缩短信息延迟或减小纠偏幅度，比较最大过冲和恢复时间。如果固定纠偏后仍按同一外部周期波动，优先查外部驱动。",
+    ),
+    Mechanism(
+        name="state-threshold-check",
+        alternatives=((
+            r"慢慢|逐渐|缓慢|逐步|连续.{0,10}(?:增加|减少|变化)|gradual|smoothly|in small steps",
+            r"突然.{0,14}(?:多|少|升|降|改变|变得|变大|变小)|突增|跳变|突变|跃迁|sudden|abrupt|sharp jump",
+            r"阈值|门槛|临界|分界|threshold|cutoff|boundary|transition",
+        ),),
+        veto=(r"社交扩散|同伴采纳|按规定超过|人为设定的门槛|软件写死|manual policy cutoff|hardcoded threshold"),
+        sources=("kb5k02-063", "5k-ee-150"),
+        explanation="输入逐步变化而结果突然变化，有两种要区分的解释：存在实际状态切换，或只是一个很陡但连续的响应，"
+                    "被稀疏采样、分组统计或某个同时变化的条件看成了跳变。一次经过疑似边界，不能确认门槛。",
+        assumptions=("输入和结果都有可比的测量口径；在安全范围内看边界附近，不假定边界数值固定。",
+                     "固定其他会影响结果的设置，记录批次、测量噪声和扫描方向。"),
+        cross_domain_leads=("流态转捩与声学空化都可用来理解‘缓慢输入、突然换状态’；"
+                            "它们的物理驱动和阈值条件不同，不能据此判定当前设备发生同一种变化。",),
+        next_check="优先回放或用安全台架，在疑似边界两侧加密采样，交错测试相近的输入水平并重复。"
+                   "保持速度、材料或其他关键条件固定，逐次记录结果率。"
+                   "比较连续曲线与含跳变的拟合在留出批次的误差；若边界不能复现或连续模型同样好，暂不认定门槛。",
     ),
     Mechanism(
         name="causal-comparison",
