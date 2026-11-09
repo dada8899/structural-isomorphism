@@ -1123,7 +1123,7 @@ class ResearchStore:
         if not isinstance(conn,sqlite3.Connection) or not conn.in_transaction:
             raise ResearchError('SCHEMA_UNSUPPORTED',503,'结构检查需要调用方的事务快照。')
         version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
-        if version is None or version[0] not in (15,16):
+        if version is None or version[0] not in (15,16,17):
             raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究版本不支持。')
         return cls._check_structure_version(conn,version[0])
 
@@ -1331,7 +1331,8 @@ class ResearchStore:
     @classmethod
     def check_runtime_version(cls,conn):
         version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
-        if version==16:cls._check_v16(conn)
+        if version==17:cls._check_v17(conn)
+        elif version==16:cls._check_v16(conn)
         elif version==15:cls._check_v15(conn)
         elif version==14:cls._check_v14(conn)
         elif version==13:cls._check_v13(conn)
@@ -1401,7 +1402,7 @@ class ResearchStore:
             self.auth_store.check_gate_policy(conn)
             if formal:
                 version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
-                if version is None or version[0] not in (15,16):
+                if version is None or version[0] not in (15,16,17):
                     raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究版本不支持。')
                 self._check_formal_version(conn,version[0])
             from .paid_control import _transaction_scope
@@ -1429,7 +1430,7 @@ class ResearchStore:
                 install_default_hook(conn)
                 conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN')
                 version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
-                if version is None or version[0] not in (15,16):
+                if version is None or version[0] not in (15,16,17):
                     raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究版本不支持。')
                 self._check_formal_version(conn,version[0])
             self.auth_store.check_gate_policy(conn)

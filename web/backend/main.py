@@ -213,26 +213,28 @@ async def lifespan(app: FastAPI):
                     precomputed_embeddings=configured[2], artifact_manifest=configured[3],
                     kb_file=os.getenv('STRUCTURAL_KB_FILE', 'kb-expanded.jsonl'), formal=True)
             formal_admission.publish(app, binding, search_service)
-            native_module=importlib.import_module(binding.service.__module__.rsplit('.',1)[0]+'.native_plan_supervisor')
-            native_context=native_module.prepare_main_context(binding.service,binding)
-            try:
-                source_supervisor = importlib.import_module(
-                    binding.service.__module__.rsplit('.', 1)[0] + '.source_supervisor')
-                formal_admission.pin_source_module(app, binding, source_supervisor)
-                # Core verifies this direct, actual lifespan caller. STARTING
-                # remains unavailable; neither facts nor this assignment grant it.
-                supervisor = source_supervisor.start(binding.service, binding)
-            except BaseException as error:
-                if source_supervisor is not None and type(error) is source_supervisor.SourceStartFailure:
-                    supervisor = error.supervisor
-                logger.warning('startup.source_supervisor_unavailable')
-            if supervisor is not None:
-                formal_admission.attach_source(app, binding, source_supervisor, supervisor)
-            try:
-                native_supervisor=native_module.start(binding.service,binding)
-            except BaseException as error:
-                if type(error) is native_module.NativePlanStartFailure:native_supervisor=error.supervisor
-                logger.warning('startup.native_plan_unavailable')
+            if binding.facts.profile.research_schema != 17:
+                native_module=importlib.import_module(binding.service.__module__.rsplit('.',1)[0]+'.native_plan_supervisor')
+                native_context=native_module.prepare_main_context(binding.service,binding)
+                try:
+                    source_supervisor = importlib.import_module(
+                        binding.service.__module__.rsplit('.', 1)[0] + '.source_supervisor')
+                    formal_admission.pin_source_module(app, binding, source_supervisor)
+                    # Core verifies this direct, actual lifespan caller. STARTING
+                    # remains unavailable; neither facts nor this assignment grant it.
+                    supervisor = source_supervisor.start(binding.service, binding)
+                except BaseException as error:
+                    if source_supervisor is not None and type(error) is source_supervisor.SourceStartFailure:
+                        supervisor = error.supervisor
+                    logger.warning('startup.source_supervisor_unavailable')
+                if supervisor is not None:
+                    formal_admission.attach_source(app, binding, source_supervisor, supervisor)
+            if native_context is not None:
+                try:
+                    native_supervisor=native_module.start(binding.service,binding)
+                except BaseException as error:
+                    if type(error) is native_module.NativePlanStartFailure:native_supervisor=error.supervisor
+                    logger.warning('startup.native_plan_unavailable')
             if native_supervisor is not None:formal_admission.attach_native(app,binding,native_module,native_supervisor)
             if search_service is not None:
                 app_state['search'], app_state['artifact'] = search_service, search_service.artifact

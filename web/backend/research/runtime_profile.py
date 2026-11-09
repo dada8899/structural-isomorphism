@@ -15,7 +15,7 @@ from .errors import ResearchError
 class FormalResearchProfileFacts:
     contract: Literal['core-formal-profile-v1']
     auth_profile: Literal['auth-provision-v1']
-    research_schema: Literal[15,16]
+    research_schema: Literal[15,16,17]
     financial_protocols: tuple[int,...]
     method_protocol: Literal[9]
     database_identity_verified: Literal[True]
@@ -79,7 +79,7 @@ def inspect_formal_profile(conn):
         auth.check_gate_policy(conn,initialize=False)
         if conn.execute("SELECT auth_registration_write_allowed('__profile_probe__','')").fetchone()[0]!=0:raise PermissionError()
         schema=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]
-        if schema not in (15,16):raise PermissionError()
+        if schema not in (15,16,17):raise PermissionError()
         ResearchStore._check_formal_version(conn,schema)
         if conn.execute('PRAGMA foreign_key_check').fetchone() is not None:raise PermissionError()
         witness.check()
@@ -121,8 +121,8 @@ def runtime_capability_facts(service):
         raise _closed_profile() from None
     planner=CapabilityFact('closed','FUNDING_CLOSED')
     from . import plan_native
-    session=plan_native.live_session(store)
-    pair=plan_native.installation(store) if session is None else None
+    session=plan_native.live_session(store) if profile.research_schema!=17 else None
+    pair=plan_native.installation(store) if session is None and profile.research_schema!=17 else None
     if session is not None:
         try:
             module=importlib.import_module(__package__+'.native_plan_supervisor')

@@ -55,3 +55,9 @@ provision_isolated_v17 只接受有明确标记的临时私有 Auth 文件，复
 桥接适配器单独打开已绑定 inode 的只读连接，沿用真实账户和 Owner 权限检查。原 UUID 操作键、原修订、摘要和身份共同定位状态；confirmed→pending，reserved→accepted，consumed/unknown→unknown，returned→completed，只有明确的 closed_unsent 才能报告 not_sent。找不到或权限变化拒绝，绝不据此推断没发送。result 为独立读回，要求 completed 且保存摘要、规范字节与未核候选形状一致，返回 review_required=true。preview 公共投影不包含外发字节、原账本或内部身份；默认 may_send=false。没有注册 HTTP 路由，正式发送入口固定关闭。
 
 接入实际 v17 服务前，还需完整的同结构回退 Main（账户/历史等原有运行路径仍以现行 v16 为准）、隔离演练、后备用途受信 issuer、同账本的双向 UNKNOWN 约束及结果内容独立审核。这里的 status-only 适配器已在真实临时库验证可鉴权并拒绝不存在的 key，不能代替完整回退服务或在线执行。
+
+## v17 回退 Main（隔离验证）
+
+v17 的规范数据库结构可由已标记的临时私有 Auth 库使用 `--offline-migrate-external-fallback` 离线迁移，仍要求前置 v16 和真实维护互斥。该入口不适用于生产。v17 Main 可验证账户、保留已有会话和历史、保存普通问题修订；Native 付费、Source 外发和本地首答队列消费者不启动，历史首答仍可读。账户删除在新用途未决费用与擦除规则实现前，明确返回 503 并保留账户和数据。现行 15/16 主流程沿原有分支。
+
+隔离实际 Main 核对：同 inode CLI 迁移、v17 两次启动和退役、历史首答及财务结果等值读回、旧账户重新登录、普通问题新增/修订/重开、匿名拒绝与另一账户拒绝、删除拒绝后账户仍可读取。没有真实提供方、密钥、费用或生产操作。未把该证据扩展到完整来源/高级工具或 v17 真发送。

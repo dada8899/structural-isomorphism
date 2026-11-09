@@ -173,9 +173,9 @@ class AnswerBody(StrictObject):
         return [cls.plain_text(value) for value in values]
 
 
-def _require_schema(conn):
+def _require_schema(conn, *, readonly=False):
     marker = conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()
-    if marker is None or marker[0] != REQUIRED_SCHEMA_VERSION:
+    if marker is None or marker[0] not in ((REQUIRED_SCHEMA_VERSION, 17) if readonly else (REQUIRED_SCHEMA_VERSION,)):
         raise ResearchError("FEATURE_UNAVAILABLE", 503, "当前版本尚不能保存初步分析。")
 
 
@@ -270,7 +270,7 @@ def read(service, identity, rid, revision):
     with service.store.transaction() as conn:
         pid = service._principal_in(conn, identity)
         control = service.authorization.check(conn, identity, pid, rid)
-        _require_schema(conn)
+        _require_schema(conn, readonly=True)
         row = conn.execute("""SELECT * FROM research_first_answers
             WHERE principal_id=? AND research_id=? AND input_revision=?""", (pid, rid, revision)).fetchone()
         if not row:

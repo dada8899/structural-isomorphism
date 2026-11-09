@@ -504,6 +504,10 @@ class ResearchService:
         compensation. No legacy restore can turn this epoch active again.
         """
         with self.store.transaction(write=True) as conn:
+            if conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] == 17:
+                # The bridge may contain external paid UNKNOWN rows. Do not
+                # fence the account before a compatible erasure path exists.
+                raise ResearchError("FEATURE_UNAVAILABLE",503,"回退模式暂不支持删除账户；账户与资料未变更。")
             user = conn.execute("SELECT session_generation,lifecycle FROM auth_users WHERE email=?", (email,)).fetchone()
             if not user or user["session_generation"] != generation or user["lifecycle"] != "active":
                 raise ResearchError("AUTH_REQUIRED", 401, "账户当前无法执行删除。")
