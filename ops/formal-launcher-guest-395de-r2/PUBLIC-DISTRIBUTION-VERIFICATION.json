@@ -1,0 +1,443 @@
+{
+  "rows": [
+    {
+      "filename": "annotated_doc-0.0.5-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "117bac03a25ede5df5440e855b32d556049ca169ead221505badf432fed4b101",
+      "size": 5302
+    },
+    {
+      "filename": "annotated_types-0.8.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+      "size": 13427
+    },
+    {
+      "filename": "anyio-4.15.1-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "6152fdbbf9a77fdec97731721bebf7c4c44f7c29b424b0065826173efc7ed101",
+      "size": 132079
+    },
+    {
+      "filename": "certifi-2026.7.22-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775",
+      "size": 136983
+    },
+    {
+      "filename": "charset_normalizer-3.5.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "211d5a3eb6af8f513b8d4ca19a8c1b7accab1b5f0d3175f9826b03c1a920dc1f",
+      "size": 269972
+    },
+    {
+      "filename": "click-8.5.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360",
+      "size": 125251
+    },
+    {
+      "filename": "cloudpickle-3.1.2-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "9acb47f6afd73f60dc1df93bb801b472f05ff42fa6c84167d25cb206be1fbf4a",
+      "size": 22228
+    },
+    {
+      "filename": "deprecated-1.3.1-py2.py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "597bfef186b6f60181535a29fbe44865ce137a5079f295b479886c82729d5f3f",
+      "size": 11298
+    },
+    {
+      "filename": "fastapi-0.135.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "31e2ddc78d6406c6f7d5d7b9996a057985e2600fbe7e9ba6ace8205d48dff688",
+      "size": 114496
+    },
+    {
+      "filename": "filelock-4.2.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "2ff5690882e8cdb00ef31fb3d01a3094c29f30985426c59495afb1733f3b7238",
+      "size": 135032
+    },
+    {
+      "filename": "fsspec-2026.9.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "8dd6e646e99ea382bd85f97a45e6b526a442d79423a7dc673f1e2756d05fcb5f",
+      "size": 221738
+    },
+    {
+      "filename": "h11-0.16.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86",
+      "size": 37515
+    },
+    {
+      "filename": "hf_xet-1.7.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "2814a6e999d13464c4d679b788cc5d784eb5a4edfc638a31f10e9a11ab531ef8",
+      "size": 4212180
+    },
+    {
+      "filename": "httpcore-1.0.9-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55",
+      "size": 78784
+    },
+    {
+      "filename": "httpcore2-2.13.1-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "e1e05d4f25f7d7d496bfb96748f6f4b67657b03da069b3a68c36069f3db73d0a",
+      "size": 83423
+    },
+    {
+      "filename": "httptools-0.9.0-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "b68fb053b37c258a473ab67f4965c3b439500dc160fe364667035a6833eaf50a",
+      "size": 499139
+    },
+    {
+      "filename": "httpx-0.27.2-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "7bb2708e112d8fdd7829cd4243970f0c223274051cb35ee80c03301ee29a3df0",
+      "size": 76395
+    },
+    {
+      "filename": "httpx2-2.13.1-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "6dff50fabc270ee5fd25d845d0b078ed20564579744d6d962850975996d2f9a4",
+      "size": 95597
+    },
+    {
+      "filename": "huggingface_hub-2.2.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "1667f145dc56dc210d60966069397df9ecfca9607a5d43db88b308c89dae56b3",
+      "size": 839884
+    },
+    {
+      "filename": "idna-3.20-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+      "size": 69583
+    },
+    {
+      "filename": "jieba-0.42.1.tar.gz",
+      "kind": "sdist_requires_reviewed_build",
+      "sha256": "055ca12f62674fafed09427f176506079bc135638a14e23e25be909131928db2",
+      "size": 19214172
+    },
+    {
+      "filename": "jinja2-3.1.6-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+      "size": 134899
+    },
+    {
+      "filename": "joblib-1.6.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "3dbbf9f6e4b592a2357b854608e980fe6390d131d7a82f011a377ef2ebef7aba",
+      "size": 306115
+    },
+    {
+      "filename": "langdetect-1.0.9.tar.gz",
+      "kind": "sdist_requires_reviewed_build",
+      "sha256": "cbc1fef89f8d062739774bd51eda3da3274006b3661d199c2655f6b3f6d605a0",
+      "size": 981474
+    },
+    {
+      "filename": "limits-5.8.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "ae1b008a43eb43073c3c579398bd4eb4c795de60952532dc24720ab45e1ac6b8",
+      "size": 60954
+    },
+    {
+      "filename": "markdown_it_py-4.2.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a",
+      "size": 91687
+    },
+    {
+      "filename": "markupsafe-3.0.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "6da83a088f8ef93b2d483a8232a4dbf4d69d3d8496b568a03c56becac43e1808",
+      "size": 22961
+    },
+    {
+      "filename": "mdurl-0.1.2-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8",
+      "size": 9979
+    },
+    {
+      "filename": "mpmath-1.3.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c",
+      "size": 536198
+    },
+    {
+      "filename": "narwhals-2.27.1-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "d057df13f5852b8e157596e82eb5e955fad267425df5e420e0ee9863da483b31",
+      "size": 483211
+    },
+    {
+      "filename": "networkx-3.6.1-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762",
+      "size": 2068504
+    },
+    {
+      "filename": "numpy-1.26.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "f25e2811a9c932e43943a2615e65fc487a0b6b49218899e62e426e7f0a57eeda",
+      "size": 18251823
+    },
+    {
+      "filename": "packaging-26.3-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+      "size": 129956
+    },
+    {
+      "filename": "psycopg2_binary-2.9.9-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "977646e05232579d2e7b9c59e21dbe5261f403a88417f6a6512e70d3f8a046be",
+      "size": 3019515
+    },
+    {
+      "filename": "pydantic-2.7.4-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "ee8538d41ccb9c0a9ad3e0e5f07bf15ed8015b481ced539a1759d8cc89ae90d0",
+      "size": 409017
+    },
+    {
+      "filename": "pydantic_core-2.18.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "0fbbdc827fe5e42e4d196c746b890b3d72876bdbf160b0eafe9f0334525119c8",
+      "size": 2048418
+    },
+    {
+      "filename": "pygments-2.21.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9",
+      "size": 1250147
+    },
+    {
+      "filename": "pyjwt-2.15.1-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "42d59d631f7768a1028a64c7ff581a9bf7519804daf91fc5b6c56e30eec5e193",
+      "size": 33860
+    },
+    {
+      "filename": "python_dotenv-1.2.2-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "1d8214789a24de455a8b8bd8ae6fe3c6b69a5e3d64aa8a8e5d68e694bbcb285a",
+      "size": 22101
+    },
+    {
+      "filename": "python_multipart-0.0.32-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "ff6d3f776f16878c894e52e107296ffc890e913c611b1a4ec6c44e2821fe2e23",
+      "size": 30042
+    },
+    {
+      "filename": "pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "b8bb0864c5a28024fac8a632c443c87c5aa6f215c0b126c449ae1a150412f31d",
+      "size": 806638
+    },
+    {
+      "filename": "rank_bm25-0.2.2-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "7bd4a95571adadfc271746fa146a4bcfd89c0cf731e49c3d1ad863290adbe8ae",
+      "size": 8584
+    },
+    {
+      "filename": "regex-2026.9.29-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "612b709381c0355b70d89cdb51b7f670591ed5cbbc0e3b5337488019dc667b65",
+      "size": 804978
+    },
+    {
+      "filename": "requests-2.34.2-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0",
+      "size": 73075
+    },
+    {
+      "filename": "rich-15.0.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb",
+      "size": 310654
+    },
+    {
+      "filename": "safetensors-0.8.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "fd6f3f93c9a0a7cc2788ee63fb763353d4bd2e89b0751bc78fcf7dda00bea774",
+      "size": 516040
+    },
+    {
+      "filename": "scikit_learn-1.9.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "52a0703bbc07ad27f560fa63fa68e4c54dd735bfbbf65b4dd3c225dc7547b6df",
+      "size": 9315422
+    },
+    {
+      "filename": "scipy-1.16.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "0151a0749efeaaab78711c78422d413c583b8cdd2011a3c1d6c794938ee9fdb2",
+      "size": 35899798
+    },
+    {
+      "filename": "sentence_transformers-5.7.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "b78141da3d8137e70d965866e2ca43190b9266f3d4d8752e250ded75e7136730",
+      "size": 611333
+    },
+    {
+      "filename": "setuptools-84.0.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670",
+      "size": 818216
+    },
+    {
+      "filename": "shellingham-1.5.4-py2.py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686",
+      "size": 9755
+    },
+    {
+      "filename": "six-1.17.0-py2.py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274",
+      "size": 11050
+    },
+    {
+      "filename": "slowapi-0.1.9-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "cfad116cfb84ad9d763ee155c1e5c5cbf00b0d47399a769b227865f5df576e36",
+      "size": 14670
+    },
+    {
+      "filename": "sniffio-1.3.1-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2",
+      "size": 10235
+    },
+    {
+      "filename": "starlette-1.3.1-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "c7372aae11c3c3f26a42df7bd626cec2f47d03483d261d369516a615a53714c6",
+      "size": 73632
+    },
+    {
+      "filename": "stripe-8.11.0-py2.py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "57187676dcc8713080169db4589c676d038c3a72961e04e43e44cf539b1a5a5a",
+      "size": 1457617
+    },
+    {
+      "filename": "structlog-25.5.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "a8453e9b9e636ec59bd9e79bbd4a72f025981b3ba0f5837aebf48f02f37a7f9f",
+      "size": 72510
+    },
+    {
+      "filename": "sympy-1.14.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5",
+      "size": 6299353
+    },
+    {
+      "filename": "threadpoolctl-3.7.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "cd8b60b5641b45c67bbf73c64c843235fc2d8a480c87389f52f5dbee893b86be",
+      "size": 26362
+    },
+    {
+      "filename": "tokenizers-0.23.3-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "376851d22bcf9d650a5c3090bb83e6cf9e895fbf0595369fa4cd43c1f69b5f87",
+      "size": 3396193
+    },
+    {
+      "filename": "torch-2.14.1+cpu-cp311-cp311-manylinux_2_28_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "5e38154c8896d426a5df58bf2276b603e82184dfae4f54d77dbb212f36e34f37",
+      "size": 196227172
+    },
+    {
+      "filename": "tqdm-4.70.1-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73",
+      "size": 80199
+    },
+    {
+      "filename": "transformers-5.19.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "afcd2dd5f603ed28c1e1fcb00a338ccbb4ef5f878ed289635df8b58187afb518",
+      "size": 12599123
+    },
+    {
+      "filename": "truststore-0.10.5-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "9aaaedaefaf06d8b206278cf8b5012bc897f485a874503501e12d776df78951c",
+      "size": 19017
+    },
+    {
+      "filename": "typer-0.27.3-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "e50022f28b82a86313e54501317a1db64bf8f8d036ff8cfe5ca7e47675454aff",
+      "size": 123312
+    },
+    {
+      "filename": "typing_extensions-4.16.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+      "size": 45571
+    },
+    {
+      "filename": "typing_inspection-0.4.4-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147",
+      "size": 14750
+    },
+    {
+      "filename": "urllib3-2.8.0-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3",
+      "size": 135717
+    },
+    {
+      "filename": "uvicorn-0.27.1-py3-none-any.whl",
+      "kind": "wheel",
+      "sha256": "5c89da2f3895767472a35556e539fd59f7edbe9b1e9c0e1c99eebeadc61838e4",
+      "size": 60809
+    },
+    {
+      "filename": "uvloop-0.23.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "ab17b3a8aa754be0de0e397f7b95f13b14e56f077a4c6ae295e3d4afd199b325",
+      "size": 3956355
+    },
+    {
+      "filename": "watchfiles-1.3.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "b5768b49e426fd5b550b012c866db347cdf15c398ef98dc557b6e6b72fa74cd1",
+      "size": 458353
+    },
+    {
+      "filename": "websockets-17.2-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "376a693697ddb695ea282ead76060f4847f90e564b12b4389f2c7589e6fadb9e",
+      "size": 225026
+    },
+    {
+      "filename": "wrapt-2.5.1-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl",
+      "kind": "wheel",
+      "sha256": "c25c594f58ecb676358d6d6b0ff068b8bbbc506dc831c6d17876460c66ce39c2",
+      "size": 240110
+    }
+  ],
+  "status": "PUBLIC_INPUT_DISTRIBUTIONS_VERIFIED_NO_WHEEL_BUILD"
+}
