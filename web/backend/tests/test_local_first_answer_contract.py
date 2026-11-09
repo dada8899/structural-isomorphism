@@ -256,3 +256,35 @@ def test_reviewed_queue_answer_requires_sources_for_both_arrival_noise_and_capac
     assert "到达率接近服务率" in next(ref["excerpt"] for ref in answer["references"] if ref["locator"] == "5k-30-031")
     rows.pop("5k-30-031")
     assert compose(question, Search()) is None
+
+
+def test_claim_contract_separates_exact_quotes_relevance_and_support():
+    from web.backend.research.local_first_answer_contract import claim_messages, interpret_claims, prepare_claims
+
+    question = "为什么处理变慢时客服排队更久？"
+    prepared = prepare_claims(question, "approved-kb", [
+        record("thermal", "温差越大散热越快，随着温差缩小冷却变慢。"),
+        record("queue", "到达率接近服务率时，等待时间呈非线性增长。"),
+    ])
+    assert json.loads(claim_messages(prepared)[1]["content"])["question"] == question
+    wrong = {"assertion":"温差越大散热越快。","number":1,"quote":"温差越大散热越快"}
+    right = {"assertion":"到达率接近服务率时，等待时间可能非线性增长。",
+             "number":2,"quote":"到达率接近服务率时，等待时间呈非线性增长。"}
+    base = {"status":"answered","claims":[wrong,right],"hypotheses":["处理时间变长可能压缩了余量。"],
+            "assumptions":["到达率和可用服务人员大致稳定。"],"cross_domain_leads":[],
+            "next_check":"比较同等进线量的时段，记录处理时间与等待时间。"}
+
+    def judge(asked, span, assertion):
+        assert asked == question
+        return ("服务率" in span, "等待" in assertion or "散热" in assertion)
+
+    accepted = interpret_claims(output(base), prepared, judge)["content"]
+    assert [ref["locator"] for ref in accepted["references"]] == ["queue"]
+    assert accepted["references"][0]["excerpt"] == right["quote"]
+    assert "待验证的解释" in accepted["explanation"] and "散热" not in accepted["explanation"]
+    assert interpret_claims(output(base | {"claims":[wrong]}), prepared, judge)["status"] == "insufficient"
+    assert interpret_claims(output(base), prepared, lambda *_:(True, False))["status"] == "insufficient"
+    with pytest.raises(FirstAnswerContractError, match="unbound_source_span"):
+        interpret_claims(output(base | {"claims":[right | {"quote":"不存在的原文引用内容"}]}), prepared, judge)
+    with pytest.raises(FirstAnswerContractError, match="invalid_judge_result"):
+        interpret_claims(output(base), prepared, lambda *_:(1, 1))
