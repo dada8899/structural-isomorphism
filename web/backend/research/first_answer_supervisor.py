@@ -142,6 +142,17 @@ def current(app):
     return entry[1] if entry and entry[0] is app and entry[1].ready else None
 
 
+def safe_status(app):
+    """Report only coarse availability, with no actor or model inputs."""
+    worker = current(app)
+    if worker is None:
+        return "QUEUE_UNAVAILABLE"
+    if not callable(worker._judge):
+        return "VERIFIER_UNBOUND"
+    from .local_answer_transport import worker_present
+    return "ready" if worker_present() else "WORKER_UNAVAILABLE"
+
+
 def retire(app, worker, *, deadline):
     # Withdraw admission before closing the thread or its search resource.
     with _active_lock:

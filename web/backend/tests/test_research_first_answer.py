@@ -176,6 +176,8 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
             assert first_answer_supervisor.current(main.app) is not None
             async with httpx.AsyncClient(transport=transport, base_url=BETA) as client:
                 await login(client, messages)
+                health = await client.get("/api/health")
+                assert health.json()["checks"]["first_answer"] == "VERIFIER_UNBOUND"
 
                 async def make(question, key):
                     made = await client.post("/api/research", json=envelope({"problem":problem() | {"original_input":question}}),

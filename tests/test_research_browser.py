@@ -352,6 +352,47 @@ def test_async_first_answer_reopens_and_cancels_without_new_submission(short_obs
             browser.close()
 
 
+def test_async_insufficient_keeps_saved_question_and_shows_local_leads(short_observation_asgi):
+    client, _ = short_observation_asgi
+    searches = []
+    asked = "为什么项目推进更快却出现更多错误？"
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        context = browser.new_context()
+        try:
+            page, _ = _short_observation_page(context, client)
+
+            def failed_answer(route):
+                path = route.request.url.split("testserver", 1)[1]
+                record = client.get(path.split("/revisions/", 1)[0]).json()["data"]["current_problem"]
+                route.fulfill(json={"contract_revision":"first-answer-job-v1","status":"failed","reason":"insufficient",
+                    "metadata":{"research_id":record["research_id"],"input_revision":record["revision"],
+                                "problem_digest":record["digest"]}})
+
+            def local_leads(route):
+                searches.append(route.request.post_data_json["query"])
+                route.fulfill(json={"results":[{"id":"test-lead","name":"可查的相关线索","domain":"本地",
+                                               "description":"这里只展示待核验的线索。"}]})
+
+            page.route("**/revisions/*/first-answer", failed_answer)
+            page.route("**/api/search", local_leads)
+            page.goto("https://testserver/research")
+            page.locator("#original-input").fill(asked)
+            page.locator("#save-question").click()
+            expect(page.locator("#first-answer-status")).to_contain_text("材料不足")
+            expect(page.locator("#kb-results")).to_contain_text("可查的相关线索")
+            expect(page.locator("#original-input")).to_have_value(asked)
+            assert searches == [asked]
+            page.reload()
+            expect(page.locator("#first-answer-leads")).to_be_visible()
+            page.locator("#first-answer-leads").click()
+            expect(page.locator("#kb-results")).to_contain_text("可查的相关线索")
+            assert searches == [asked, asked]
+        finally:
+            context.close()
+            browser.close()
+
+
 @pytest.mark.parametrize('raw',[
     '一个物体温度恢复到环境温度的过程，是否与电容放电对应？请比较公式，告诉我能借用什么、什么时候不能用。',
     ' e\u0301 原话中的温度恢复过程。\n ',

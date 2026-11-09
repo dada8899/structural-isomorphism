@@ -1419,6 +1419,7 @@
     firstAnswerJob = null;
     firstAnswerRefreshOnly = false;
     byId('first-answer-cancel').hidden = true;
+    byId('first-answer-leads').hidden = true;
     byId('first-answer-retry').textContent = '重试这版分析';
     byId('first-answer').hidden = true;
     byId('first-answer-status').textContent = '';
@@ -1512,10 +1513,13 @@
           cancelled:'已取消分析，原问题仍在。',
           interrupted:'上一次分析已中断。原问题仍在；可补充后再开始研究。',
         };
-        byId('first-answer-status').textContent = labels[answer.status];
+        byId('first-answer-status').textContent = answer.reason === 'insufficient'
+          ? '现有材料不足以给出解释。问题已保存，可以查看相关线索。'
+          : labels[answer.status];
         byId('first-answer').hidden = false;
+        byId('first-answer-leads').hidden = answer.status === 'cancelled' || readOnlyView();
         handled = true;
-        return true;
+        return !generate || answer.status === 'cancelled';
       }
       if (['insufficient','failed'].includes(answer.status) && answer.reason === 'needs_clarification' &&
           typeof answer.question === 'string' && answer.question.length > 0 && answer.question.length <= 480) {
@@ -1588,6 +1592,9 @@
   });
   byId('first-answer-cancel').addEventListener('click', () => {
     if (firstAnswerJob && editBase && !readOnlyView() && !methodDirty && !busy) void readFirstAnswer(false, firstAnswerJob);
+  });
+  byId('first-answer-leads').addEventListener('click', () => {
+    if (editBase && !readOnlyView() && !methodDirty && !busy) void searchLocalLeads(true);
   });
   function render(data, methodToken, loadAnswer = true) {
     observationReset();
