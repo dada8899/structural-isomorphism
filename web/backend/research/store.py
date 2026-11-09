@@ -1333,7 +1333,8 @@ class ResearchStore:
 
     @classmethod
     def check_runtime_version(cls,conn):
-        version=conn.execute('SELECT version FROM research_schema').fetchone()[0]
+        marker=conn.execute('SELECT version FROM main.research_schema WHERE id=1').fetchone()
+        version=marker[0] if marker else None
         if version==17:cls._check_v17(conn)
         elif version==16:cls._check_v16(conn)
         elif version==15:cls._check_v15(conn)

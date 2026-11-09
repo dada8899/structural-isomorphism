@@ -318,17 +318,17 @@ def _deletion_lease_binding(conn,store,lease,job):
 
 
 def _job_has_v2(conn,job):
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==16:
+    if conn.execute('SELECT version FROM main.research_schema').fetchone()[0]==16:
         if conn.execute('SELECT 1 FROM research_first_answers a JOIN research_principals p ON p.id=a.principal_id WHERE p.gate_id=? LIMIT 1',(job['gate_id'],)).fetchone():return True
         if conn.execute('SELECT 1 FROM research_first_answer_jobs a JOIN research_principals p ON p.id=a.principal_id WHERE p.gate_id=? LIMIT 1',(job['gate_id'],)).fetchone():return True
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (15,16):
+    if conn.execute('SELECT version FROM main.research_schema').fetchone()[0] in (15,16):
         for table in ('research_financial_registries','research_financial_results'):
             if conn.execute('SELECT 1 FROM '+table+' b JOIN research_principals p ON p.id=b.principal_id WHERE p.gate_id=? LIMIT 1',(job['gate_id'],)).fetchone():return True
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15,16):
+    if conn.execute('SELECT version FROM main.research_schema').fetchone()[0] in (14,15,16):
         if conn.execute("SELECT 1 FROM research_method_drafts d JOIN research_principals p ON p.id=d.principal_id WHERE p.gate_id=? LIMIT 1",(job['gate_id'],)).fetchone():return True
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15,16):
+    if conn.execute('SELECT version FROM main.research_schema').fetchone()[0] in (11,12,13,14,15,16):
         if conn.execute("SELECT 1 FROM research_source_approvals a JOIN research_principals p ON p.id=a.principal_id WHERE p.gate_id=? AND (? IS NULL OR (p.normalized_email=? AND p.session_generation=?)) LIMIT 1",(job['gate_id'],job['owner_email'],job['owner_email'],job['session_generation'])).fetchone():return True
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15,16):
+    if conn.execute('SELECT version FROM main.research_schema').fetchone()[0] in (10,11,12,13,14,15,16):
         formula=conn.execute('SELECT 1 FROM research_formula_revisions f JOIN research_controls c ON c.id=f.research_id JOIN research_principals p ON p.id=c.owner_id WHERE p.gate_id=? '+('AND p.normalized_email=? AND p.session_generation=? ' if job['owner_email'] is not None and job['session_generation'] is not None else '')+'LIMIT 1',
             (job['gate_id'],job['owner_email'],job['session_generation']) if job['owner_email'] is not None and job['session_generation'] is not None else (job['gate_id'],)).fetchone()
         if formula:return True
@@ -343,13 +343,13 @@ def verify_deletion_origin(conn,*,store,lease,job_id):
     if not job:raise PermissionError('actual deletion job required')
     protected='origin_version' in job.keys() and job['origin_version'] is not None
     if not protected:
-        if conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0]==17 or _job_has_v2(conn,job):raise PermissionError('legacy deletion cannot control v2 resources')
+        if conn.execute("SELECT version FROM main.research_schema WHERE id=1").fetchone()[0]==17 or _job_has_v2(conn,job):raise PermissionError('legacy deletion cannot control v2 resources')
         return None
     from .store import ResearchStore
     from .financial_guard import JOB_ORIGIN_VERSION
     _deletion_lease_binding(conn,store,lease,job)
-    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15,16,17):ResearchStore.check_runtime_version(conn)
-    elif conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
+    if conn.execute('SELECT version FROM main.research_schema').fetchone()[0] in (10,11,12,13,14,15,16,17):ResearchStore.check_runtime_version(conn)
+    elif conn.execute('SELECT version FROM main.research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
     else:ResearchStore._check_v8(conn)
     if job['origin_version']!=JOB_ORIGIN_VERSION or job['origin_digest']!=deletion_origin_digest(job):
         raise PermissionError('protected deletion origin damaged')
@@ -501,25 +501,28 @@ def _transaction_scope(conn,*,write):
 def _current_scope(conn):
     with _LOCK:scope=_SCOPES.get(id(conn))
     if (not scope or scope.conn is not conn or not scope.active or not scope.write or scope.pid!=os.getpid()
-            or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1
-            or conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (5,6,7,8,9,10,11,12,13,14,15,16,17)):
+            or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1):
         raise PermissionError("current canonical v5 transaction required")
-    if conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0]==17:
+    marker=conn.execute("SELECT version FROM main.research_schema WHERE id=1").fetchone()
+    if marker is None or marker[0] not in (5,6,7,8,9,10,11,12,13,14,15,16,17):
+        raise PermissionError("current canonical v5 transaction required")
+    version=marker[0]
+    if version==17:
         from .external_first_answer_erasure import require_deletion_frame
         from .store import ResearchStore
         require_deletion_frame(conn)
         ResearchStore._check_v17(conn)
         return scope
-    if conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==7:
+    if version==7:
         from .store import ResearchStore
         ResearchStore._check_v7(conn)
-    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==8:
+    elif version==8:
         from .store import ResearchStore
         ResearchStore._check_v8(conn)
-    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==9:
+    elif version==9:
         from .store import ResearchStore
         ResearchStore._check_v9(conn)
-    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13,14,15,16):
+    elif version in (10,11,12,13,14,15,16):
         from .store import ResearchStore
         ResearchStore.check_runtime_version(conn)
     return scope
@@ -536,7 +539,7 @@ def _local_answer_scope(conn):
             raise PermissionError("local answer writer required")
     finally:
         del frame
-    version = conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()
+    version = conn.execute("SELECT version FROM main.research_schema WHERE id=1").fetchone()
     if version is None or version[0] != 17:
         return _current_scope(conn)
     with _LOCK:
@@ -684,7 +687,7 @@ def mint_stop_authority(conn,*,store,lease,principal_id,task_id,expected_task_ve
 
 def mint_current_paid_authority(conn,*,store,lease,identity,context,step_id,expected_task_version,expected_step_version,operation,approval_ref):
     _current_scope(conn)
-    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13,14,15,16):
+    if type(context) is CallContext and conn.execute('SELECT version FROM main.research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13,14,15,16):
         policy=conn.execute('SELECT policy_revision FROM research_tasks WHERE id=?',(context.task_id,)).fetchone()
         if policy and policy[0]=='bounded_usage_upper_v2':
             from .paid_approval import mint_current_authority

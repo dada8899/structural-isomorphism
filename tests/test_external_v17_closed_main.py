@@ -84,6 +84,13 @@ def test_real_v17_closed_main_preserves_login_history_and_saved_revisions(prepar
                 from research.financial_execution import require_native_scope
                 with ResearchStore(auth._store()).transaction(write=True) as conn:
                     with pytest.raises(PermissionError,match="v17 deletion-only scope required"):_current_scope(conn)
+                    conn.execute("CREATE TEMP TABLE research_schema (id INTEGER, version INTEGER)")
+                    conn.execute("INSERT INTO temp.research_schema VALUES (1,5)")
+                    with pytest.raises(PermissionError,match="v17 deletion-only scope required"):_current_scope(conn)
+                    with pytest.raises(ResearchError,match="SCHEMA_UNSUPPORTED"):
+                        ResearchStore.check_runtime_version(conn)
+                    conn.execute("DROP TABLE temp.research_schema")
+                    ResearchStore.check_runtime_version(conn)
                     with pytest.raises(PermissionError,match="local financial producer required"):_local_financial_scope(conn)
                     with pytest.raises(sqlite3.DatabaseError):
                         conn.execute("DELETE FROM research_financial_results WHERE result_ref=?",(result_meta["result_ref"],))
