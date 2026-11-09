@@ -69,3 +69,11 @@ v17 的规范数据库结构可由已标记的临时私有 Auth 库使用 `--off
 真实 Main 先读取已保存修订并形成精确预览。三个确认字段和绑定一致后，在 Owner fence 下持久化并使用同账本原子预留；消费提交后只对精确回环服务发送一次原问题。正常返回记录未核候选、原键状态和结果，重复读回不发送；回执缺失保留原 held、状态为 unknown，不冒充 not_sent。已登记账户、已保存修订、权限代际、原 key 和确认内容仍须保持一致；同 key 不同金额拒绝。退出合成授权或重启 Main 只保留状态和结果读取。老 Native 与早期预算检查也识别同账户新 UNKNOWN；新路径沿用旧 UNKNOWN 检查。未伪造旧 task/run。
 
 验证覆盖正式 Main 隔离身份、同 inode v16→v17、无授权/未确认拒绝、两种回执、严格原 key 和其他账户、一次回环及重启。仅本机合成，普通页面能力仍为 status_only；未安装真实 issuer、真实余额/密钥或外部 transport。上线还需受审实时授予与官方报价/余额、故障/晚回执、独立结果核验和实际回退。
+
+## 外部用途正式启动授权候选
+
+external_first_answer_issuer_contract.py 独立于 controlled_runtime。它定义新用途的短期签名批准：固定 DeepSeek 模型、GET 官方余额与 POST chat completion 两个 HTTPS 目标、question-only 输入及未核输出、模板摘要；同一 Structure CNY300 上限。批准绑定确切 source commit/manifest、运行代码闭包、unit、Auth 数据库及独立收据目录 inode、v17、服务 UID/GID、当前 Owner/代际/gate、同一个真实经济账户及资金/凭据代次。旧用途、旧凭据入口、另一模型或端点、另一个账本或代码版本、过期批准均拒绝。
+
+正式凭据入口提案是 run-formal-main-external-first-answer-v1 与 purpose 专用 systemd 加密项 structural-external-first-answer-deepseek-key。这只是合同，未注册、未读取。实际接入必须在已审 Main 启动见证及进程硬化完成后，核 root 管理的固定公钥和实际物理绑定，先在受保护的启动记录中单次消费、再由专用受审 loader 取得凭据；不能用任意传入公钥/DTO、配置开关、控制台余额截图或旧许可替代。新凭据名不是新经济账户；必须单独证明它的官方余额与现有项目账本属于同一经济账户。发送仍另需用户逐次确认和原子资金许可。
+
+合成演练使用临时签名公钥，只接受标记的私有临时目录；签名通过后用 O_EXCL 在已绑定 inode 上持久写启动挑战的消费记录。相同挑战即使换签名批准 ID 也不能重用，并发只有一方成功。记录不含问题、账户或密钥。消费返回明确 closed，无 live authority、无凭据、无资金或发送权限；真实 issuer 入口固定拒绝。24 项离线正反例验证了精确绑定、篡改/过期拒绝、物理路径变化和持久互斥。未改变 Main、旧 grant 或生产。
