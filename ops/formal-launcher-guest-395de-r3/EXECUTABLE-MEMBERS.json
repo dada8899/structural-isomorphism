@@ -1,0 +1,9 @@
+{
+  "PUBLIC-DISTRIBUTION-VERIFICATION.json": "63abc5d6ea73e15c63f3af3ea6509ae4ad2a159a3fa2d0107449b5a178531c1d",
+  "formal_launcher_envelope.py": "39826fd1a4013f047371fc8b5779a4175d6e9b05157053542d4d2377533fb77e",
+  "guest_bootstrap.py": "96fd97ab68431fda8e6d44035c9865defab66b3a6ce47095d793cde8b0d720c6",
+  "guest_once.py": "9f747fe24588598a76afdeeaa03ccd3e0073b0e96761baed359009ece70db445",
+  "render_github_guest.py": "3c8d84f6277ad02047a486959a8ee21845926ffcab1b2f77e90ca4104092557f",
+  "runtime-linux-cpu.lock": "efd2731c4e9e212ab75e6bcb53880d88492e1a44272622f05b6c98e8a606b6f5",
+  "verify_derived_pure_wheels.py": "8a134256f9c161471f93c9db79658497f7ba4c3e2e495794ded2427f10ac0a40"
+}
