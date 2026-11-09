@@ -35,6 +35,9 @@ _RULES = (
         "patterns": (r"排队|积压|队列|queue|backlog",
                      r"到达|处理|等待|速率|arrival|service|wait|capacity"),
         "kind": "queue-balance",
+        "exclude": r"队列为空|没有.{0,5}(?:排队|积压|待处理)|无人等待|"
+                   r"(?:queue|backlog) (?:is|was|remains) empty|"
+                   r"no (?:queue|backlog|pending work|one waiting)",
         "references": ("cross-081", "5k-30-031"),
         "explanation": "先分开看进入和处理：积压的变化等于新进入的工作减去完成的工作。进入量接近处理上限时，短时间的波动也会留下队列，因此平均工作量相同，集中到达的一组仍可能等得更久。",
         "assumptions": ["比较时固定处理人员或机器的数量，并单列暂停、返工和优先级变化。",

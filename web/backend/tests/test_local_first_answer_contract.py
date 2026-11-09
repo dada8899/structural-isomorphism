@@ -382,3 +382,20 @@ def test_reviewed_queue_uses_the_stated_comparison_without_fixing_away_the_chang
     assert "保留处理耗时不同" in body["next_check"] and "完成量下降" in body["next_check"]
     unknown = compose("为什么到达波动后排队等待更久？", Search())
     assert "如果进线量确实没变" not in unknown["explanation"]
+
+
+@pytest.mark.parametrize("question", [
+    "系统提示处理能力不足，但实际队列为空、设备空闲，是否需要加容量？",
+    "Does a throughput warning prove a capacity shortage when there is no backlog?",
+])
+def test_capacity_warning_without_observed_queue_is_not_a_queue_diagnosis(question):
+    from web.backend.research.local_first_answer import compose
+
+    class Search:
+        formal = True
+        artifact = {"artifact_id":"approved-kb"}
+
+        def get_by_id(self, locator):
+            pytest.fail("explicit absence of a backlog must not yield queue evidence")
+
+    assert compose(question, Search()) is None
