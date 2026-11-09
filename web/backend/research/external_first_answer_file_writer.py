@@ -59,10 +59,10 @@ def require_closed_hooks(conn):
         raise ContractError("external_connection_not_closed")
 
 
-def unresolved_external(conn,account):
+def unresolved_external(conn,account,*,excluding=None):
     """Candidate reciprocal check for old callers; not wired into Financial9."""
-    return conn.execute("SELECT 1 FROM "+TABLE+" WHERE account_id=? AND state IN ('consumed','unknown') LIMIT 1",
-                        (account,)).fetchone() is not None
+    return conn.execute("SELECT 1 FROM "+TABLE+" WHERE account_id=? AND id IS NOT ? AND state IN ('consumed','unknown') LIMIT 1",
+                        (account,excluding)).fetchone() is not None
 
 
 

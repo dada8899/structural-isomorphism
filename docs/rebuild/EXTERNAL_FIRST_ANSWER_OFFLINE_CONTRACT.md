@@ -122,3 +122,11 @@ services/external_live_sender.py 只接受实际注册的 live 启动 handle、�
 3. 在批准的 systemd 加密入口提供专用 credential ID structural-external-first-answer-deepseek-key，验证实际挂载/ACL。独立提供该凭据代次、官方经济账户与现有 CNY300 账本同一绑定的受信记录，放在 root 管理的 external-first-answer-economic-binding.json；不能根据 key 名、key 哈希或余额数字自行推定。
 4. 核准固定公开 IP、TLS hostname api.deepseek.com、目标系统 CA bundle SHA 以及当前官方 DeepSeek 模型和价格资料。root 管理的 external-first-answer-price-basis.json 需精确给出 CNY 微元 cache miss/output 峰值单价、该模型的输入上限和本合同输出上限，独立复算并冻结每次金额上界。端点或价格材料变化使预览/批准失效。
 5. 上述真实材料齐全之后，仍需独立审核 Main 绑定、按次 quote issuer/用户确认路由、首写与撤权、返回/UNKNOWN 和回退，完成有界隔离验证再另行发布。目前所有证据仅是离线拒绝/数据测试与既有合成账本流程，未读真实凭据、访问供应端、消费费用或改生产。
+
+## 正式按次接口与单题许可
+
+preview/confirm 使用实际请求来源证明，绑定路由的 owner/research/revision、严格正文摘要和原 UUID。live preview 只有在实际启动 handle、当前 owner、签名绑定的端点、CA、同经济账户和有效 CNY 官方价格快照都核过后签出，且在服务器短期登记原报价。发送器不接受自造 quote DTO 或旧缓存：必须持有该记录、原请求来源和用户明确确认。GET status/result 保持原 key 只读，不需要新的发送能力。
+
+受控生产试验还须在已签端点政策中 pin 精确 P1 外发请求 SHA 和原 UUID v4；只有 live preview 返回该 operation_key。正式提交必须使用这个键，不能生成新键或覆盖已有恢复键。同修订已有操作就拒绝另起，余额 GET 前也重新核实。已确认未消费的 reserved 和已消费/未知分别保持原状态，不能按重试按钮抹掉占用。保守金额使用已审 CNY 官方峰值未缓存输入与输出单价、明确模型输入和输出上限，并向上取整；公开测算 2.006144 元只作规划，代码不硬编码单价。实际报价仍要求源文件摘要、官方材料摘要和有限有效期，不用 USD 价格冒充 CNY。
+
+首写在取得 Owner 锁后再核当前授权、同账本版本/金额与原持久消费，且与凭据退役共享进程闩，验证后仅做有界一次写入。HTTP 只接受唯一的精确 Content-Length 或完整单一 chunked，短读、尾随、多重或冲突 framing 一律不产生可记账回执。测试验证回执解析、quote/action 伪造拒绝及退役闩，另以已有真实 Main 合成回环确认实际请求见证、原 key 和 UNKNOWN 仍可用。未取得或加载任何正式公钥、依赖、专用凭据、经济身份或价格/端点部署制品；这些材料和独立真实验证仍是上线前提。

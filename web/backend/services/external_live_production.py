@@ -3,6 +3,7 @@
 No environment, application config, caller callback, or synthetic handle can
 activate it. A reviewed target-specific policy must be part of a new release.
 """
+from contextlib import contextmanager
 from dataclasses import dataclass
 import hashlib
 import importlib.util
@@ -11,6 +12,7 @@ from pathlib import Path
 import stat
 import sys
 import time
+import threading
 
 from . import formal_admission
 from .external_live_issuer import _attest_main,_LoadPermit,_FACTORY,_ENTRY,_CREDENTIAL_ID,_Sealed
@@ -28,6 +30,7 @@ _RECEIPTS=Path("/var/lib/structural-isomorphism-deploy/external-first-answer-sta
 _RELEASES=Path("/srv/structural-isomorphism/releases")
 _ENTRIES={}
 _LIVE={}
+_LIVE_LOCK=threading.RLock()
 _FACTORY_LIVE=object()
 _UNCERTAIN_FDS=[]
 
@@ -273,7 +276,7 @@ def activate(app):
         if not permit._used or _attest_main(app,expected) is not binding:
             raise ContractError("external_main_attestation_rejected")
         handle=_LiveHandle(app,binding,expected,resource,witness,factory=_FACTORY_LIVE)
-        _LIVE[id(app)]=handle
+        with _LIVE_LOCK:_LIVE[id(app)]=handle
         return handle
     except (ContractError,OSError,ValueError,PermissionError):
         if resource is not None:resource.retire()
@@ -284,9 +287,16 @@ def activate(app):
     finally:object.__setattr__(permit,"_active",False)
 
 
+@contextmanager
+def wire_latch():
+    """First write and resource retirement share one process-local lifetime latch."""
+    with _LIVE_LOCK:yield
+
+
 def retire(app,handle):
-    if handle is not None:
-        if _LIVE.get(id(app)) is not handle:
-            raise ContractError("external_live_handle_retired")
-        _LIVE.pop(id(app))
-        handle._resource.retire()
+    with wire_latch():
+        if handle is not None:
+            if type(handle) is not _LiveHandle or _LIVE.get(id(app)) is not handle:
+                raise ContractError("external_live_handle_retired")
+            _LIVE.pop(id(app))
+            handle._resource.retire()

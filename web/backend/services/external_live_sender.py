@@ -5,8 +5,6 @@ this path. Nothing calls it from Main or HTTP in this release.
 """
 from contextlib import contextmanager
 from dataclasses import dataclass
-from http.client import HTTPResponse
-from io import BytesIO
 import ipaddress
 import os
 from pathlib import Path
@@ -23,6 +21,7 @@ if __package__=="web.backend.services":
     from ..research.external_first_answer_catalog import read_main_recovery
     from ..research.external_first_answer_seam import _authorized_saved_revision
     from ..research.external_first_answer_state import TABLE,GUARD
+    from ..research.paid_control import require_authenticated_action
     from ..research.provider_schemas import canonical,digest,strict_json
 else:
     from research import external_first_answer_contract as contract
@@ -30,6 +29,7 @@ else:
     from research.external_first_answer_catalog import read_main_recovery
     from research.external_first_answer_seam import _authorized_saved_revision
     from research.external_first_answer_state import TABLE,GUARD
+    from research.paid_control import require_authenticated_action
     from research.provider_schemas import canonical,digest,strict_json
 
 _HOST="api.deepseek.com"
@@ -39,6 +39,7 @@ _CA=Path("/etc/ssl/certs/ca-certificates.crt")
 _ACCOUNT_PROOF=Path("/etc/structural/external-first-answer-economic-binding.json")
 _PRICE_PROOF=Path("/etc/structural/external-first-answer-price-basis.json")
 _MAX_RESPONSE=128*1024
+_CANARY_MAX_UPPER=2_129_920
 _TOKEN=object()
 
 
@@ -49,12 +50,15 @@ class EndpointPolicy:
     economic_proof_sha256:str
     price_basis_sha256:str
     upper_units:int
+    canary_operation_key:str|None=None
+    canary_request_sha256:str|None=None
 
     def wire_digest(self):
         return digest(canonical({"host":_HOST,"public_ip":self.public_ip,"balance":_BALANCE,
                                  "completion":_COMPLETION,"ca_sha256":self.ca_sha256,
                                  "economic_proof_sha256":self.economic_proof_sha256,
-                                 "price_basis_sha256":self.price_basis_sha256,"upper_units":self.upper_units}))
+                                 "price_basis_sha256":self.price_basis_sha256,"upper_units":self.upper_units,
+                                 "canary_operation_key":self.canary_operation_key,"canary_request_sha256":self.canary_request_sha256}))
 
 
 _PINNED_ENDPOINT=None
@@ -66,15 +70,40 @@ def _require_live(handle,app):
     handle.require_for_sender(app)
     policy=_PINNED_ENDPOINT
     if (type(policy) is not EndpointPolicy or policy.wire_digest()!=handle._expected.endpoint_policy_digest
-            or type(policy.upper_units) is not int or not 1<=policy.upper_units<=contract.CAP_UNITS):
+            or type(policy.upper_units) is not int or not 1<=policy.upper_units<=_CANARY_MAX_UPPER):
         raise contract.ContractError("external_endpoint_policy_unbound")
+    if (type(policy.canary_operation_key) is not str or not re.fullmatch(
+            r"[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}",policy.canary_operation_key)
+            or type(policy.canary_request_sha256) is not str or not re.fullmatch(r"[a-f0-9]{64}",policy.canary_request_sha256)):
+        raise contract.ContractError("external_canary_unbound")
     address=ipaddress.ip_address(policy.public_ip)
     if not address.is_global or address.is_multicast or address.is_unspecified or getattr(address,"ipv4_mapped",None):
         raise contract.ContractError("external_endpoint_policy_unbound")
     return policy,address
 
 
-def _trust(handle,policy):
+def _parse_price_basis(price,policy,*,now):
+    basis=strict_json(price,cap=16384)
+    if (type(basis) is not dict or set(basis)!={"model","currency","scale","max_prompt_tokens","max_output_tokens",
+              "peak_input_miss_units_per_million","peak_output_units_per_million",
+              "source_url","official_document_sha256","issued_at","valid_until"}
+            or (basis["model"],basis["currency"],basis["scale"],basis["max_output_tokens"])!=(
+                contract.MODEL,"CNY",6,contract.MAX_OUTPUT_TOKENS)
+            or type(basis["max_prompt_tokens"]) is not int or not 1<=basis["max_prompt_tokens"]<=1048576
+            or basis["source_url"]!="https://api-docs.deepseek.com/zh-cn/quick_start/pricing/"
+            or type(basis["official_document_sha256"]) is not str or not re.fullmatch(r"[a-f0-9]{64}",basis["official_document_sha256"])
+            or type(basis["issued_at"]) is not int or type(basis["valid_until"]) is not int
+            or not basis["issued_at"]<=now<basis["valid_until"]<=basis["issued_at"]+86400
+            or any(type(basis[name]) is not int or basis[name]<=0 for name in (
+                "peak_input_miss_units_per_million","peak_output_units_per_million"))):
+        raise contract.ContractError("external_price_basis_unbound")
+    numerator=basis["max_prompt_tokens"]*basis["peak_input_miss_units_per_million"]+basis["max_output_tokens"]*basis["peak_output_units_per_million"]
+    if (numerator+999999)//1_000_000>policy.upper_units:
+        raise contract.ContractError("external_price_upper_insufficient")
+    return basis
+
+
+def _trust(handle,policy,*,now):
     proof=production._fixed_file(_ACCOUNT_PROOF,16384)
     if digest(proof)!=policy.economic_proof_sha256:
         raise contract.ContractError("external_economic_proof_unbound")
@@ -87,29 +116,64 @@ def _trust(handle,policy):
     price=production._fixed_file(_PRICE_PROOF,16384)
     if digest(price)!=policy.price_basis_sha256:
         raise contract.ContractError("external_price_basis_unbound")
-    basis=strict_json(price,cap=16384)
-    if (type(basis) is not dict or set(basis)!={"model","currency","scale","max_prompt_tokens","max_output_tokens",
-              "peak_input_miss_units_per_million","peak_output_units_per_million"}
-            or (basis["model"],basis["currency"],basis["scale"],basis["max_prompt_tokens"],basis["max_output_tokens"])!=(
-                contract.MODEL,"CNY",6,1048576,contract.MAX_OUTPUT_TOKENS)
-            or any(type(basis[name]) is not int or basis[name]<=0 for name in (
-                "peak_input_miss_units_per_million","peak_output_units_per_million"))):
-        raise contract.ContractError("external_price_basis_unbound")
-    numerator=basis["max_prompt_tokens"]*basis["peak_input_miss_units_per_million"]+basis["max_output_tokens"]*basis["peak_output_units_per_million"]
-    if (numerator+999999)//1_000_000>policy.upper_units:
-        raise contract.ContractError("external_price_upper_insufficient")
+    basis=_parse_price_basis(price,policy,now=now)
     ca=production._fixed_file(_CA,2*1024**2)
     if digest(ca)!=policy.ca_sha256:
         raise contract.ContractError("external_CA_unbound")
     ctx=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     ctx.minimum_version=ssl.TLSVersion.TLSv1_2
     ctx.load_verify_locations(cadata=ca.decode("ascii"))
-    return ctx
+    return ctx,basis["valid_until"],basis["max_prompt_tokens"]
 
 
-class _RawResponse:
-    def __init__(self,raw):self.raw=raw
-    def makefile(self,*_):return BytesIO(self.raw)
+def _strict_reply(raw):
+    """Consume exactly one 200 response with unambiguous complete framing."""
+    if type(raw) is not bytes or len(raw)>_MAX_RESPONSE:
+        raise contract.ContractError("external_response_bound")
+    header,separator,body=raw.partition(b"\r\n\r\n")
+    if not separator or len(header)>16384:
+        raise contract.ContractError("external_receipt_framing")
+    lines=header.split(b"\r\n")
+    if not lines or not re.fullmatch(rb"HTTP/1\.[01] 200(?: [ -~]*)?",lines[0]):
+        raise contract.ContractError("external_receipt_unverified")
+    framing={}
+    for line in lines[1:]:
+        name,sep,value=line.partition(b":")
+        if (not sep or not re.fullmatch(rb"[A-Za-z0-9!#$%&'*+.^_`|~-]+",name)
+                or not re.fullmatch(rb"[\t -~]*",value)):
+            raise contract.ContractError("external_receipt_framing")
+        name=name.lower()
+        if name in (b"content-length",b"transfer-encoding",b"content-encoding"):
+            if name in framing:
+                raise contract.ContractError("external_receipt_framing")
+            framing[name]=value.strip(b" \t")
+    if framing.get(b"content-encoding",b"identity").lower()!=b"identity":
+        raise contract.ContractError("external_receipt_framing")
+    length=framing.get(b"content-length")
+    transfer=framing.get(b"transfer-encoding")
+    if (length is None)==(transfer is None):
+        raise contract.ContractError("external_receipt_framing")
+    if length is not None:
+        if not re.fullmatch(rb"0|[1-9][0-9]{0,6}",length) or int(length)!=len(body):
+            raise contract.ContractError("external_receipt_framing")
+        return body
+    if transfer.lower()!=b"chunked":
+        raise contract.ContractError("external_receipt_framing")
+    out=bytearray()
+    offset=0
+    while offset<len(body):
+        end=body.find(b"\r\n",offset)
+        if end<0 or not re.fullmatch(rb"[a-fA-F0-9]{1,6}",body[offset:end]):
+            raise contract.ContractError("external_receipt_framing")
+        count=int(body[offset:end],16);offset=end+2
+        if count==0:
+            if body[offset:]!=b"\r\n":raise contract.ContractError("external_receipt_framing")
+            return bytes(out)
+        end=offset+count
+        if end+2>len(body) or body[end:end+2]!=b"\r\n" or len(out)+count>_MAX_RESPONSE:
+            raise contract.ContractError("external_receipt_framing")
+        out.extend(body[offset:end]);offset=end+2
+    raise contract.ContractError("external_receipt_framing")
 
 
 def _exchange(handle,policy,address,context,method,path,payload,first_send):
@@ -145,11 +209,7 @@ def _exchange(handle,policy,address,context,method,path,payload,first_send):
             raw.extend(chunk)
         if len(raw)>_MAX_RESPONSE:
             raise contract.ContractError("external_response_bound")
-        response=HTTPResponse(_RawResponse(raw))
-        response.begin()
-        if response.status!=200 or response.getheader("Content-Encoding") not in (None,"identity"):
-            raise contract.ContractError("external_receipt_unverified")
-        return response.read(_MAX_RESPONSE+1)
+        return _strict_reply(bytes(raw))
     finally:
         (tls if tls is not None else sock).close()
 
@@ -184,10 +244,11 @@ class _Grant:
 
 
 class _Writer(file_writer.CandidateFileWriter):
-    def __init__(self,app,handle,service,identity,grant):
+    def __init__(self,app,handle,service,identity,grant,source,decision_digest,key):
         if sys._getframe(1).f_code is not run_once.__code__ or type(grant) is not _Grant or grant.token is not _TOKEN:
             raise contract.ContractError("external_balance_grant_required")
         self.app,self.handle,self.service,self.identity,self.grant=app,handle,service,identity,grant
+        self.source,self.decision_digest,self.key=source,decision_digest,key
         self.conn=None
         self._expect=self._money=None
 
@@ -219,6 +280,11 @@ class _Writer(file_writer.CandidateFileWriter):
         if getattr(self,"_check_legacy_unknown",False) and file_writer.unresolved(self.conn,grant.account_id):
             raise contract.ContractError("legacy_unknown_reconcile_only")
 
+    def _account(self,grant):
+        account=super()._account(grant)
+        self.current_account=account
+        return account
+
     def finish_live(self,run_id,receipt,body):
         if sys._getframe(1).f_code is not run_once.__code__:
             raise contract.ContractError("external_owned_return_required")
@@ -232,11 +298,12 @@ class _Writer(file_writer.CandidateFileWriter):
 
 
 class _Ticket:
-    __slots__=("writer","run","raw","pid","used")
+    __slots__=("writer","run","raw","pid","used","account")
     def __init__(self,writer,run,raw):
         if sys._getframe(1).f_code is not run_once.__code__:
             raise contract.ContractError("external_consumption_ticket_required")
         self.writer,self.run,self.raw,self.pid,self.used=writer,run,raw,os.getpid(),False
+        self.account=writer.current_account
 
     def first_write(self,sock,wire,deadline):
         if (sys._getframe(1).f_code is not _exchange.__code__ or self.used or self.pid!=os.getpid()
@@ -245,14 +312,23 @@ class _Ticket:
         # Burn the ephemeral permission before any potentially ambiguous send.
         self.used=True
         w=self.writer;scope=w.grant.scope
-        _require_live(w.handle,w.app)
-        with w.service.authorization.owner_gate(scope.principal_id):
+        with w.service.authorization.owner_gate(scope.principal_id),production.wire_latch():
+            # Recheck after the possibly blocking Owner lease. Retirement
+            # cannot zero the live resource until this bounded first write ends.
+            _require_live(w.handle,w.app)
+            require_authenticated_action(w.source,identity=w.identity,action="external-answer-confirm",
+                research_id=scope.research_id,task_id=str(scope.input_revision),key=w.key,body_digest=w.decision_digest)
             with w.service.store.transaction() as conn:
                 control=w.service.authorization.check(conn,w.identity,scope.principal_id,scope.research_id,scope="write")
                 row=conn.execute("SELECT state,request_digest,account_id FROM "+TABLE+" WHERE id=?",(self.run,)).fetchone()
-                if row is None or tuple(row)!=("consumed",digest(self.raw),w.grant.account_id) or (
-                    control["current_revision"],control["version"],control["owner_epoch"],control["acl_epoch"])!=(
-                    scope.input_revision,scope.research_version,scope.owner_epoch,scope.acl_epoch):
+                money=conn.execute("""SELECT id,binding_id,funding_epoch,settled,held,upper_booked,version
+                    FROM research_funding_accounts WHERE id=? AND status='unverified' AND provider='deepseek'
+                    AND currency='CNY' AND scale=6 AND cap=0""",(w.grant.account_id,)).fetchone()
+                if (row is None or tuple(row)!=("consumed",digest(self.raw),w.grant.account_id)
+                        or money is None or tuple(money)!=self.account or money[4]<w.grant.quote.upper_units
+                        or file_writer.unresolved(conn,w.grant.account_id,excluding_external=self.run)
+                        or (control["current_revision"],control["version"],control["owner_epoch"],control["acl_epoch"])!=(
+                           scope.input_revision,scope.research_version,scope.owner_epoch,scope.acl_epoch)):
                     raise contract.ContractError("external_consumption_fence_changed")
             remaining=deadline-time.monotonic()
             if remaining<=0 or int(time.time())>=min(w.grant.valid_until,w.grant.quote.valid_until):
@@ -261,14 +337,14 @@ class _Ticket:
             sock.sendall(wire)
 
 
-def _candidate(raw):
+def _candidate(raw,*,max_prompt_tokens=1048576):
     reply=strict_json(raw,cap=_MAX_RESPONSE)
     if type(reply) is not dict or reply.get("model")!=contract.MODEL or not isinstance(reply.get("id"),str):
         raise contract.ContractError("external_receipt_unverified")
     usage=reply.get("usage")
     if (type(usage) is not dict or any(type(usage.get(k)) is not int or usage[k]<0 for k in (
             "prompt_tokens","completion_tokens","total_tokens"))
-            or usage["prompt_tokens"]>1048576 or usage["completion_tokens"]>contract.MAX_OUTPUT_TOKENS
+            or usage["prompt_tokens"]>max_prompt_tokens or usage["completion_tokens"]>contract.MAX_OUTPUT_TOKENS
             or usage["total_tokens"]!=usage["prompt_tokens"]+usage["completion_tokens"]):
         raise contract.ContractError("external_usage_unknown")
     choices=reply.get("choices")
@@ -278,12 +354,19 @@ def _candidate(raw):
     return canonical(contract.parse_unverified_candidate(candidate.encode()))
 
 
-def run_once(app,handle,service,identity,rid,revision,research_version,key,preview,quote,confirmation):
+def run_once(app,handle,service,identity,rid,revision,research_version,key,preview,quote,confirmation,*,source=None,quote_proof=None):
     """Candidate sender port. No caller-provided transport or balance."""
     policy,address=_require_live(handle,app)
     if service.store is not handle._binding.service.store:
         raise contract.ContractError("external_ledger_identity_changed")
     key=service._id(key)
+    if (key,confirmation.request_digest)!=(policy.canary_operation_key,policy.canary_request_sha256):
+        raise contract.ContractError("external_canary_binding_changed")
+    decision_digest=digest(canonical(confirmation.model_dump(mode="json")))
+    require_authenticated_action(source,identity=identity,action="external-answer-confirm",
+        research_id=rid,task_id=str(revision),key=key,body_digest=decision_digest)
+    from .external_live_operations import require_offered
+    require_offered(quote_proof,handle,service,identity,rid,revision,preview,quote,confirmation)
     now=int(time.time())
     original=None
     with _authorized_saved_revision(service,identity,rid,revision,research_version) as (conn,scope,raw):
@@ -299,28 +382,41 @@ def run_once(app,handle,service,identity,rid,revision,research_version,key,previ
         if original is not None:
             if tuple(original)!=(confirmation.preview_digest,confirmation.request_digest,confirmation.upper_units):
                 raise contract.ContractError("confirmation_binding_changed")
-        elif file_writer.unresolved(conn,quote.account_id):
+        elif conn.execute("SELECT 1 FROM "+TABLE+" WHERE research_id=? AND input_revision=?",
+                          (rid,revision)).fetchone() or file_writer.unresolved(conn,quote.account_id):
             raise contract.ContractError("reconcile_original_only")
     if original is not None:
         return read_main_recovery(service,identity,rid,revision,key)
-    context=_trust(handle,policy)
+    context,price_valid_until,prompt_bound=_trust(handle,policy,now=now)
+    if quote.valid_until>price_valid_until:raise contract.ContractError("external_quote_expired")
     def balance_first(sock,wire,deadline):
-        _require_live(handle,app)
-        remaining=deadline-time.monotonic()
-        if remaining<=0:raise TimeoutError("external balance deadline")
-        sock.settimeout(remaining)
-        sock.sendall(wire)
+        with service.authorization.owner_gate(scope.principal_id),production.wire_latch():
+            _require_live(handle,app)
+            require_authenticated_action(source,identity=identity,action="external-answer-confirm",
+                research_id=rid,task_id=str(revision),key=key,body_digest=decision_digest)
+            with service.store.transaction() as conn:
+                control=service.authorization.check(conn,identity,scope.principal_id,rid,scope="write")
+                if (control["current_revision"],control["version"],control["owner_epoch"],control["acl_epoch"])!=(
+                        scope.input_revision,scope.research_version,scope.owner_epoch,scope.acl_epoch):
+                    raise contract.ContractError("revision_or_owner_changed")
+                if (conn.execute("SELECT 1 FROM "+TABLE+" WHERE research_id=? AND input_revision=?",
+                                 (rid,revision)).fetchone() or file_writer.unresolved(conn,quote.account_id)):
+                    raise contract.ContractError("reconcile_original_only")
+            remaining=deadline-time.monotonic()
+            if remaining<=0:raise TimeoutError("external balance deadline")
+            sock.settimeout(remaining)
+            sock.sendall(wire)
     balance=_balance_units(_exchange(handle,policy,address,context,"GET",_BALANCE,b"",balance_first))
     now=int(time.time())
     grant=_Grant(scope,quote,approved,quote.account_id,quote.economic_binding,quote.funding_epoch,balance,now+30,_TOKEN)
-    writer=_Writer(app,handle,service,identity,grant)
+    writer=_Writer(app,handle,service,identity,grant,source,decision_digest,key)
     writer.confirm(key,grant,scope)
     writer.reserve(key,grant,scope,now=now)
     outbound=writer.consume(key,grant,scope,now=now)
     ticket=_Ticket(writer,key,outbound)
     try:
         returned=_exchange(handle,policy,address,context,"POST",_COMPLETION,outbound,ticket.first_write)
-        writer.finish_live(key,digest(returned),_candidate(returned))
+        writer.finish_live(key,digest(returned),_candidate(returned,max_prompt_tokens=prompt_bound))
     except Exception:
         # If even marking UNKNOWN fails, consumed still projects as unknown,
         # and the original held upper remains. Never re-run the POST.

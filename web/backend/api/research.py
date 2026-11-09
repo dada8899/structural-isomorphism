@@ -156,7 +156,7 @@ _PAID_OPERATIONS = ('paid-preview','paid-confirm')
 _ROOT_VIEW_OPERATIONS = ('create','revise','view','start','source-start','cancel','reconcile','resume')
 
 
-def _with_request_source_capability(result,*,app,service,research_id,operation):
+def _with_request_source_capability(result,*,app,service,research_id,operation,identity=None):
     """Copy only the Root envelope/data/caps; cached typed content stays intact."""
     if operation not in _ROOT_VIEW_OPERATIONS:return result
     if (type(result) is not dict or set(result)!={'schema_version','contract_revision','data'}
@@ -180,6 +180,11 @@ def _with_request_source_capability(result,*,app,service,research_id,operation):
             from research.external_first_answer_controlled import current as external_current
         if external_current(app,service) is not None:
             public_caps['external_first_answer'] = 'ready'
+        elif identity is not None:
+            if __package__=='web.backend.api':from ..services.external_live_operations import current as live_external_current
+            else:from services.external_live_operations import current as live_external_current
+            if live_external_current(app,service,identity) is not None:
+                public_caps['external_first_answer'] = 'ready'
     return {**result,'data':{**data,'capabilities':public_caps}}
 
 
@@ -421,19 +426,37 @@ async def _dispatch_closed_external_answer(request, service, identity, research_
         if __package__ == 'web.backend.api':
             from ..research import external_first_answer_controlled as controlled
             from ..research.external_first_answer_contract import ContractError
+            from ..research.paid_control import issue_authenticated_action
+            from ..services import external_live_operations as live_operations
         else:
             from research import external_first_answer_controlled as controlled
             from research.external_first_answer_contract import ContractError
-        runtime=controlled.current(request.app,service)
-        if runtime is not None:
+            from research.paid_control import issue_authenticated_action
+            from services import external_live_operations as live_operations
+        selected=await run_in_threadpool(live_operations.current,request.app,service,identity)
+        runtime=controlled.current(request.app,service) if selected is None else None
+        if selected is not None or runtime is not None:
+            source=await run_in_threadpool(issue_authenticated_action,request,action=operation)
             try:
-                if operation == "external-answer-preview":
-                    result=await run_in_threadpool(controlled.preview,runtime,service,identity,research_id,input_revision,expected)
+                if selected is not None:
+                    if operation == "external-answer-preview":
+                        result=await run_in_threadpool(live_operations.preview,selected,identity,research_id,input_revision,expected,source)
+                    else:
+                        result=await run_in_threadpool(live_operations.confirm,selected,request.app,identity,research_id,input_revision,key,confirmation,source)
                 else:
-                    result=await run_in_threadpool(controlled.confirm,runtime,service,identity,research_id,input_revision,key,confirmation)
+                    # Both lanes use real request proof; the controlled
+                    # transport never supplies a live handle or quote.
+                    value=expected if operation=="external-answer-preview" else confirmation
+                    await run_in_threadpool(live_operations._source,source,identity,operation,research_id,input_revision,
+                        "" if operation=="external-answer-preview" else key,value)
+                    if operation=="external-answer-preview":
+                        result=await run_in_threadpool(controlled.preview,runtime,service,identity,research_id,input_revision,expected)
+                    else:
+                        result=await run_in_threadpool(controlled.confirm,runtime,service,identity,research_id,input_revision,key,confirmation)
                 return JSONResponse(result,headers=_HEADERS)
-            except (ContractError,sqlite3.Error):
+            except (ContractError,sqlite3.Error,PermissionError):
                 raise ResearchError("OPERATION_UNAVAILABLE",409,"外部操作未能核对，请读取原操作状态。") from None
+            finally:source.close()
 
     await run_in_threadpool(_closed_external_scope, service, identity, research_id, input_revision, expected)
     # No issuer, quote, reservation, execution or response lookup is admitted.
@@ -772,7 +795,7 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         if operation in _ROOT_VIEW_OPERATIONS:
             try:
                 result=await run_in_threadpool(_with_request_source_capability,result,
-                    app=request.app,service=service,research_id=research_id,operation=operation)
+                    app=request.app,service=service,research_id=research_id,operation=operation,identity=identity)
                 if projection_bytes(result)>RESEARCH_RESPONSE_LIMIT:
                     raise ValueError('Root response exceeds bounded projection')
                 return JSONResponse(result,headers=_HEADERS)

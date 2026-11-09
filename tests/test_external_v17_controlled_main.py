@@ -15,7 +15,7 @@ from web.backend.tests.test_research_first_answer import identity
 
 
 @pytest.mark.parametrize("unknown",[False,True],ids=["completed","unknown-held"])
-def test_main_external_controlled_preview_confirm_status_and_original_result(prepared,unknown):
+def test_main_external_controlled_preview_confirm_status_and_original_result(prepared,unknown,monkeypatch):
     main,admission,paths,messages=prepared
     from api import auth
     from research import first_answer,first_answer_queue,plan_native,plan_native_financial,plan_financial
@@ -31,6 +31,16 @@ def test_main_external_controlled_preview_confirm_status_and_original_result(pre
     first_answer.provision_first_answers_v16(path)
     origin={"Origin":BETA}
     calls=[]
+    from services import external_live_operations
+    proof_checks=[]
+    original_source=external_live_operations._source
+    def bound_source(proof,actor,action,rid,revision,key,data):
+        with pytest.raises(PermissionError,match="verified action source"):
+            original_source(proof,actor,action,rid,revision+1,key,data)
+        verified=original_source(proof,actor,action,rid,revision,key,data)
+        proof_checks.append(action)
+        return verified
+    monkeypatch.setattr(external_live_operations,"_source",bound_source)
     candidate={"status":"candidate","explanation":"如果反馈滞后，累积调整可能引起超调。",
         "assumptions":["动作会改变下一轮测量。"],"next_check":"记录动作和生效的时点。","evidence_status":"not_checked"}
 
@@ -137,6 +147,7 @@ def test_main_external_controlled_preview_confirm_status_and_original_result(pre
             server.shutdown();worker.join(4)
             assert not worker.is_alive()
     assert path.stat().st_ino==original_inode and len(calls)==1
+    assert "external-answer-preview" in proof_checks and "external-answer-confirm" in proof_checks
     with closing(sqlite3.connect(path.as_uri()+"?mode=ro",uri=True)) as conn:
         row=conn.execute("SELECT id,held,upper_booked FROM research_funding_accounts").fetchone()
         assert conn.execute("SELECT count(*) FROM research_funding_accounts").fetchone()==(1,)

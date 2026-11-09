@@ -67,6 +67,8 @@ def issue_authenticated_action(request,*,action,research_id=None,task_id=None,ke
         'evidence-method-preview':('POST','preview_evidence_method_plan'),'evidence-method-confirm':('POST','confirm_evidence_method_plan'),
         'evidence-method-read':('GET','read_evidence_method_plan'),'evidence-method-list':('GET','list_evidence_method_plans'),
         'plan-preview':('POST','preview_research_plan'),'plan-confirm':('POST','confirm_research_plan'),'plan-read':('GET','read_research_plan'),
+        'external-answer-preview':('POST','preview_external_first_answer'),
+        'external-answer-confirm':('POST','confirm_external_first_answer'),
         'draft-save':('POST','save_research_method_draft'),'draft-read':('GET','read_research_method_draft'),'draft-history':('GET','list_research_method_drafts'),
         'source-approve':('POST','source_approval'),'source-start':('POST','source_task'),
         'source-raw-read':('GET','source_raw_preparations'),
@@ -97,6 +99,26 @@ def issue_authenticated_action(request,*,action,research_id=None,task_id=None,ke
             limit,cursor=result_history_query(list(request.query_params.multi_items()))
             key='';task_id=None;body_digest=digest(canonical({'limit':limit,'cursor':cursor}))
         research_id=request.path_params.get('research_id')
+    elif action in ('external-answer-preview','external-answer-confirm'):
+        from .local_first_answer import FirstAnswerRequest
+        from .external_first_answer_contract import ExplicitConfirmation
+        import re
+        if type(raw) is not bytes or request.query_params:raise PermissionError('actual external answer request required')
+        model=FirstAnswerRequest if action=='external-answer-preview' else ExplicitConfirmation
+        data=model.model_validate(strict_json(raw,16384))
+        rid=request.path_params.get('research_id');rev=request.path_params.get('input_revision')
+        if type(rev) is not str or not re.fullmatch(r'[1-9][0-9]{0,9}',rev) or int(rev)>2147483647:
+            raise PermissionError('external revision binding required')
+        actual_key=request.headers.get('idempotency-key','')
+        if action=='external-answer-confirm':
+            if not re.fullmatch(r'[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}',actual_key):
+                raise PermissionError('external original operation key required')
+        elif actual_key:raise PermissionError('external preview has no operation key')
+        actual_digest=digest(canonical(data.model_dump(mode='json')))
+        if ((research_id is not None and research_id!=rid) or (task_id is not None and task_id!=rev)
+                or (key and key!=actual_key) or (body_digest and body_digest!=actual_digest)):
+            raise PermissionError('external action binding changed')
+        research_id,task_id,key,body_digest=rid,rev,actual_key,actual_digest
     elif action in ('evidence-method-preview','evidence-method-confirm'):
         from .evidence_method_plan_schemas import EvidenceMethodPreviewEnvelope,EvidenceMethodConfirmEnvelope
         from .evidence_method_plan_codec import parse_model
