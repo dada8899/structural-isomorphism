@@ -48,15 +48,27 @@ _RULES = (
 
 _STEADY_ARRIVAL = re.compile(
     r"(?:进线|到达|来单|到店|流入)(?:量|率|速度|频率)?(?:看起来|基本|大致|平均)?(?:没变|不变|稳定|差不多)|"
-    r"(?:arrival rate|incoming volume|demand).{0,18}(?:unchanged|stable|same)", re.IGNORECASE)
+    r"(?:arrival rate|incoming volume|demand).{0,18}(?:unchanged|stable|same)|"
+    r"(?:same|similar) number of (?:incoming )?(?:jobs|requests|orders|calls|customers)", re.IGNORECASE)
 _SLOW_SERVICE = re.compile(
     r"(?:处理|服务|办理|接待)(?:时间|时长|耗时)?(?:变慢|变长|延长|增加|拉长|更久)|"
-    r"(?:service|handling|processing) time.{0,14}(?:longer|increas|rises)|takes longer to (?:serve|handle|process)", re.IGNORECASE)
+    r"(?:service|handling|processing) time.{0,14}(?:longer|increas|rises)|takes longer to (?:serve|handle|process)|"
+    r"(?:each|every|a) (?:job|order|request|call).{0,16}takes (?:[a-z]+ ){0,3}longer", re.IGNORECASE)
+_BACKLOG_OUTCOME = re.compile(
+    r"积压|等待|排队|backlog|wait(?:ing)?|(?:pile|pending work|unfinished work).{0,18}(?:grows|increases|builds)", re.IGNORECASE)
+_NO_SERVICE_CHANGE = re.compile(
+    r"(?:处理|服务)(?:时间|时长|耗时).{0,8}(?:没变|不变|没有变长)|"
+    r"(?:handling|processing|service) time.{0,16}(?:unchanged|did not increase|not longer)", re.IGNORECASE)
+
+
+def _capacity_comparison_present(question):
+    return bool(_STEADY_ARRIVAL.search(question) and _SLOW_SERVICE.search(question)
+                and _BACKLOG_OUTCOME.search(question) and not _NO_SERVICE_CHANGE.search(question))
 
 
 def _queue_comparison(question, rule):
     """Use the user's stated change, without treating it as measured fact."""
-    if rule.get("kind") != "queue-balance" or not (_STEADY_ARRIVAL.search(question) and _SLOW_SERVICE.search(question)):
+    if rule.get("kind") != "queue-balance" or not _capacity_comparison_present(question):
         return rule["explanation"], rule["next_check"]
     return (
         "如果进线量确实没变、同时处理的人数也相同，处理时间变长就会降低服务率：同一小时内能完成的单子变少。"
@@ -78,7 +90,8 @@ def compose(question, search):
         return None
     matched = [rule for rule in _RULES
                if (not rule.get("exclude") or not re.search(rule["exclude"], question, re.IGNORECASE))
-               and all(re.search(pattern, question, re.IGNORECASE) for pattern in rule["patterns"])]
+               and (all(re.search(pattern, question, re.IGNORECASE) for pattern in rule["patterns"])
+                    or (rule.get("kind") == "queue-balance" and _capacity_comparison_present(question)))]
     if len(matched) != 1:
         return None
     rule = matched[0]

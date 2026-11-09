@@ -50,12 +50,17 @@ _MECHANISMS = (
             r"correct(?:ion|ive|s|ing)?\b|adjust(?:ment|s|ing)?\b|setpoint|reorder|restock|controller",
             r"过冲|超调|振荡|来回(?:摆|波动|变化)|忽高忽低|反复.{0,12}(缺货|过量|过剩)|缺货.{0,12}(过量|过剩|积压)|"
             r"overshoot|overcorrect|oscillat|swing back",
-        ),),
+        ), (
+            r"调高.{0,8}(?:增益|纠偏力度)|加大.{0,8}(?:调整|反馈|纠偏)|"
+            r"(?:turned up|increased|raised).{0,20}(?:controller|gain|correction)",
+            r"控制器|设定值|测量|水位|转速|controller|set ?point|measured|level",
+            r"超调|过冲|反复.{0,14}(?:超过|低于)|overshoot|above and below|oscillat",
+        )),
         veto=(r"没有.{0,8}(反馈|调节|纠偏|校正)|不根据.{0,10}(测量|误差|状态)|开环|"
               r"(每天|按时).{0,8}(定时|开关|开机).{0,12}(不看|不管)|"
               r"no (?:feedback|correction)|open.loop|timer.only|never adjusts|剂量|给药|用药|\bdose\b"),
         sources=("soc-093", "bio-012"),
-        explanation="如果每轮都根据旧偏差纠正，前一轮动作还没生效时又加码，累积的纠正可能超过需要；等观测追上来，反向调整也可能过量。相对于系统响应速度，延迟越长或每次调整越猛，越值得检查是否因此反复超调。看到延迟和波动还不足以证明这个闭环原因。",
+        explanation="如果每轮都根据旧偏差纠正，前一轮动作还没生效时又加码，累积的纠正可能超过需要；等观测追上来，反向调整也可能过量。相对于系统响应速度，延迟越长或每次调整越猛，越值得检查是否因此反复超调。如果已知只提高了纠偏强度，系统惯性或饱和也可能导致过冲，应分别测量时延和动作限幅，不能先认定有时延。",
         assumptions=("动作确实会反过来影响下一轮测量，而且方向是纠偏。单向传递慢并不构成反馈。",
                      "比较时固定外部输入，另查周期扰动、执行上限及测量噪声。库中例子的幅度和周期不能套用。"),
         cross_domain_leads=("补货中的在途订单和某些生物反馈中的抑制物积累，都让纠偏作用晚于触发信号；可借用分开记录偏差、动作和生效时间的方法。",),

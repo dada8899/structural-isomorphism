@@ -364,6 +364,7 @@ def test_empty_context_does_not_send_question_or_accept_a_placeholder():
 @pytest.mark.parametrize("asked", [
     "客服进线速度看起来没变，人均处理时间增加，为什么排队等待更久？",
     "到达率基本稳定，服务时长变长，为什么排队突然加剧？",
+    "We get a similar number of orders, but each order now takes a little longer and unfinished work builds up. Why?",
 ])
 def test_reviewed_queue_uses_the_stated_comparison_without_fixing_away_the_change(asked):
     from web.backend.research.local_first_answer import compose

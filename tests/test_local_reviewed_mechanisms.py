@@ -36,6 +36,7 @@ def approved_rows():
     ("delayed-feedback", "温控器按滞后的读数调节功率，温度为何来回摆动？", ("soc-093", "bio-012")),
     ("delayed-feedback", "补货后到货要十天，仓库先缺货又积压；为什么越纠偏越明显？", ("soc-093", "bio-012")),
     ("delayed-feedback", "Why does a controller overshoot when it corrects a stale reading?", ("soc-093", "bio-012")),
+    ("delayed-feedback", "We increased the controller gain. The motor speed now swings above and below its set point after the same disturbance. Why?", ("soc-093", "bio-012")),
     ("peer-adoption-threshold", "内部工具看到三个同事使用才愿意试用；集中推广和分开推广差在哪？", ("5k-29-011", "5k-ef-148")),
     ("peer-adoption-threshold", "居民看到邻居报名比例过半才愿意参与，活动为什么突然扩散？", ("5k-29-011", "5k-ef-148")),
     ("peer-adoption-threshold", "Could people need to see several distinct peers before they adopt a new tool?", ("5k-29-011", "5k-ef-148")),
