@@ -390,6 +390,9 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                     if error.code != "NOT_FOUND":
                         raise
                     result = await run_in_threadpool(first_answer_queue.read, service, identity, research_id, input_revision)
+                    if result["status"] == "completed":
+                        # The queue can commit between the snapshot and job reads.
+                        result = await run_in_threadpool(read, service, identity, research_id, input_revision)
                 return JSONResponse(result,headers=_HEADERS)
             if auth.require_same_origin(request) is not None:
                 raise ResearchError("AUTHORIZATION_STALE",403,"请从本站页面操作初步分析。")
@@ -424,6 +427,8 @@ async def _dispatch(request, *, research_id=None, operation="view"):
                 result = await run_in_threadpool(first_answer_queue.enqueue, service, identity, research_id,
                     input_revision=input_revision, **arguments.model_dump())
                 worker.notify()
+            if result["status"] == "completed":
+                result = await run_in_threadpool(read, service, identity, research_id, input_revision)
             return JSONResponse(result,status_code=202 if result["status"] in ("queued","running") else 200,headers=_HEADERS)
         if operation in _FINANCIAL_RESULT_OPERATIONS:
             return await _dispatch_financial_result(request,service,identity,research_id,operation)

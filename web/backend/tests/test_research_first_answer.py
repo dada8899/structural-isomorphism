@@ -205,6 +205,24 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
                 answered = await read_terminal(url)
                 assert answered["status"] == "provisional"
                 assert (await client.get(url)).json() == answered
+                # A result committed between two read transactions must be
+                # returned as a snapshot rather than as a bare completed job.
+                original_read = first_answer.read
+                checks = []
+
+                def first_read_misses(*args):
+                    if not checks:
+                        from research.errors import not_found
+                        checks.append("first")
+                        raise not_found()
+                    checks.append("second")
+                    return original_read(*args)
+
+                with monkeypatch.context() as race:
+                    race.setattr(first_answer, "read", first_read_misses)
+                    assert (await client.get(url)).json() == answered
+                assert checks == ["first","second"]
+
                 assert (await client.post(url, json=body, headers=origin)).json() == answered
 
                 url, body = await make("取消这个测试：为什么相同的流量有更长等待？", "async-real-cancel")
