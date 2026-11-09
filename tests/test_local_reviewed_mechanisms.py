@@ -97,3 +97,17 @@ def test_unrelated_long_sections_cannot_supply_each_others_features(approved_row
     search = BoundCorpus(approved_rows)
     question = "设备数据存在延迟。" + ("这里是另一段无关背景。" * 80) + "控制器可调整。图表在振荡。"
     assert compose_reviewed_mechanism(question, search) is None
+
+
+def test_background_path_prefers_feedback_over_plain_cooling(approved_rows):
+    from threading import Event
+    from web.backend.research.local_first_answer import compose, produce_background_answer
+
+    search = BoundCorpus(approved_rows)
+    question = "温控器按滞后的读数调节功率，温度为何来回变化和摆动？"
+    assert compose(question, search) is None
+    answer = produce_background_answer(question, search, cancel=Event())
+    assert answer["status"] == "answered"
+    assert answer["content"]["producer"] == "local-mechanism-delayed-feedback-v1"
+    passive = produce_background_answer("为什么装满热水的杯子冷却更慢？", search, cancel=Event())
+    assert passive["content"]["producer"] == "local-reviewed-mechanisms-v1"

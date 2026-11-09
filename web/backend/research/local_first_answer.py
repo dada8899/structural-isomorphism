@@ -23,6 +23,7 @@ _RULES = (
     {
         "patterns": (r"温度|热水|冷却|散热|thermal|temperature|cooling",
                      r"冷却|散热|恢复|变化|热容|热阻|回到|cool|recover|resistance|capacity"),
+        "exclude": r"振荡|来回|超调|控制器|温控器|PID|oscillat|overshoot|controller",
         "references": ("sci-006", "sci-012"),
         "explanation": "如果物体内部温度大致均匀、环境温度和传热条件近似不变，温差 ΔT 的变化率约为 −ΔT/(RₜₕCₜₕ)。热容 Cₜₕ 越大，改变同样温度需要的热量越多；在热阻相近时，加水通常会让温差衰减更慢。仅凭降温慢还不能区分热阻变大与热容变大。",
         "assumptions": ["比较相同初始温差、相同环境和近似相同的传热条件。",
@@ -53,8 +54,9 @@ def compose(question, search):
         return None
     if not isinstance(question, str) or not 1 <= len(question) <= 4000:
         return None
-    matched = [rule for rule in _RULES if all(re.search(pattern, question, re.IGNORECASE)
-                                             for pattern in rule["patterns"])]
+    matched = [rule for rule in _RULES
+               if (not rule.get("exclude") or not re.search(rule["exclude"], question, re.IGNORECASE))
+               and all(re.search(pattern, question, re.IGNORECASE) for pattern in rule["patterns"])]
     if len(matched) != 1:
         return None
     rule = matched[0]
@@ -118,7 +120,8 @@ def produce_background_answer(question, search, *, cancel, judge=None):
         return {"status": "unavailable", "reason": "cancelled"}
     if not _in_scope(question):
         return {"status": "insufficient", "reason": "unsupported"}
-    answer = compose(question, search)
+    from .local_reviewed_mechanisms import compose_reviewed_mechanism
+    answer = compose_reviewed_mechanism(question, search) or compose(question, search)
     if answer is not None:
         return {"status": "answered", "content": answer}
     if judge is None:
