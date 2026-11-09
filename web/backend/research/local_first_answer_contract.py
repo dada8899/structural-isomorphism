@@ -167,7 +167,10 @@ class _Insufficient(DTO):
                 or (self.question is None and "question" in self.model_fields_set)):
             raise ValueError("clarification does not match reason")
         if self.question is not None:
-            _model_text(self.question)
+            question = _model_text(self.question)
+            samples = ("一个简短追问", "一个简短问题", "一个明确的追问")
+            if _shape_key(question) in {_shape_key(sample) for sample in samples}:
+                raise ValueError("copied clarification placeholder")
         return self
 
 
@@ -393,6 +396,8 @@ def prepare_extractive(question, artifact_id, records, select):
 
 
 def extractive_messages(prepared):
+    if type(prepared) is not PreparedFirstAnswer or not prepared._sources:
+        raise FirstAnswerContractError("no_selected_context")
     return ({"role":"system", "content":_EXTRACTIVE_SYSTEM}, {"role":"user", "content":prepared.user_json})
 
 
@@ -404,6 +409,8 @@ def interpret_extractive(raw, prepared):
         packet = strict_json(prepared.user_json.encode(), MAX_PROMPT_BYTES)
         if packet["contract"] != EXTRACTIVE_CONTRACT:
             raise ValueError()
+        if not prepared._sources:
+            return {"status":"insufficient", "reason":"no_relevant_sources"}
         result = _EXTRACTIVE_OUTPUT.validate_python(strict_json(raw, MAX_OUTPUT_BYTES))
     except (ProviderFailure, ValidationError, ValueError, TypeError, KeyError, RecursionError):
         raise FirstAnswerContractError("invalid_candidate") from None

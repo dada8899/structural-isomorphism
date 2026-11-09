@@ -344,3 +344,18 @@ def test_extractive_context_cannot_be_replaced_or_promoted_by_the_model():
         interpret_extractive(output(payload | {"context_refs":[2]}), prepared)
     with pytest.raises(FirstAnswerContractError, match="invalid_candidate"):
         interpret_extractive(output(payload | {"supported_claim":"模型不能指定这是证据"}), prepared)
+
+
+def test_empty_context_does_not_send_question_or_accept_a_placeholder():
+    from web.backend.research.local_first_answer_contract import (
+        extractive_messages, interpret_extractive, prepare_extractive,
+    )
+
+    no_context = prepare_extractive("如何解释这个变化？", "approved-kb", [], lambda *_: False)
+    proposed = output({"status":"insufficient","reason":"needs_clarification","question":"一个明确的追问"})
+    with pytest.raises(FirstAnswerContractError, match="no_selected_context"):
+        extractive_messages(no_context)
+    assert interpret_extractive(proposed, no_context) == {"status":"insufficient","reason":"no_relevant_sources"}
+    with_context = prepare_extractive("为什么温差大时冷却快？", "approved-kb", [record()], lambda *_: True)
+    with pytest.raises(FirstAnswerContractError, match="invalid_candidate"):
+        interpret_extractive(proposed, with_context)

@@ -98,6 +98,8 @@ def compose_with_worker(question, search, *, judge, cancel=None):
                 if record:
                     rows.append(record)
                     seen.add(locator)
+        if not rows:
+            return {"status": "insufficient", "reason": "no_relevant_sources"}
         request = prepare_claims(question, search.artifact["artifact_id"], rows)
         candidate = complete(canonical({"messages": claim_messages(request)}), cancel=cancel,
                              budget_seconds=BACKGROUND_DEADLINE_SECONDS)
