@@ -22,8 +22,9 @@ class FirstAnswerCancelRequest(FirstAnswerRequest):
 _RULES = (
     {
         "patterns": (r"温度|热水|冷却|散热|thermal|temperature|cooling",
-                     r"冷却|散热|恢复|变化|热容|热阻|回到|cool|recover|resistance|capacity"),
+                     r"冷却|散热|恢复|变化|热容|热阻|回到|降温|cool|recover|resistance|capacity"),
         "exclude": r"振荡|来回|超调|控制器|温控器|PID|oscillat|overshoot|controller",
+        "kind": "thermal-rc",
         "references": ("sci-006", "sci-012"),
         "explanation": "如果物体内部温度大致均匀、环境温度和传热条件近似不变，温差 ΔT 的变化率约为 −ΔT/(RₜₕCₜₕ)。热容 Cₜₕ 越大，改变同样温度需要的热量越多；在热阻相近时，加水通常会让温差衰减更慢。仅凭降温慢还不能区分热阻变大与热容变大。",
         "assumptions": ["比较相同初始温差、相同环境和近似相同的传热条件。",
@@ -69,6 +70,26 @@ def _capacity_comparison_present(question):
                 and _BACKLOG_OUTCOME.search(question) and not _NO_SERVICE_CHANGE.search(question))
 
 
+def _thermal_comparison(question, rule):
+    if re.search(r"温差|温度|降温|冷却|temperature|cool", question, re.I):
+        if re.search(r"表面.{0,20}(?:中心|内部)|(?:中心|内部).{0,20}表面|温度分层|surface.{0,30}(?:core|center)", question, re.I):
+            return (
+                "不能直接把整个物体当作一个电容。表面与内部温度明显不同意味着单一温度状态不足；可用多个热容节点和节点间热阻，或用热传导模型。",
+                "同时记录表面、中心和环境温度。如果表面与中心曲线始终不能用同一个温度状态描述，就不要用单个时间常数拟合整个物体。",
+            )
+        if re.search(r"(?:环境|室温).{0,14}(?:随时间|显著变化|不恒定|不断变|也在变)|ambient.{0,25}(?:varies|changes|varying)", question, re.I):
+            return (
+                "不能直接套固定环境下的放电曲线。单节点模型仍可写成 dT/dt = −(T−Tₐ(t))/τ，其中 τ=RₜₕCₜₕ。相对环境的温差还受 −dTₐ/dt 驱动；电路类比是带随时间变化输入的 RC，而非自由放电。",
+                "同时记录物体温度和环境温度，以实测 Tₐ(t) 作输入；不要从相对温差降到 37% 的时间直接估计 τ。",
+            )
+    if re.search(r"电容|RC|capacitor", question, re.I) and not re.search(r"水|water", question, re.I):
+        return (
+            "在环境和传热条件近似恒定、物体温度近似均匀时，ΔT(t)=ΔT(0)e^(−t/τₜₕ)，τₜₕ=RₜₕCₜₕ；RC 放电对应 V(t)=V(0)e^(−t/RC)。两者归一化后遵循同一个指数衰减规律。环境漂移、温度分层、相变或显著非线性传热时，这个单时间常数类比不能直接套用。",
+            "记录物体和环境的温度。环境稳定时，检查温差是否在一个时间常数后降到初值约 37%，以及对数温差随时间是否近似为直线。",
+        )
+    return rule["explanation"], rule["next_check"]
+
+
 def _queue_comparison(question, rule):
     """Use the user's stated change, without treating it as measured fact."""
     if rule.get("kind") != "queue-balance" or not _capacity_comparison_present(question):
@@ -108,7 +129,10 @@ def compose(question, search):
             return None
         references.append({"artifact": artifact_id, "locator": locator, "label": record["name"],
                            "excerpt": description[:1200], "record_digest": digest(record)})
-    explanation, next_check = _queue_comparison(question, rule)
+    explanation, next_check = (
+        _thermal_comparison(question, rule) if rule.get("kind") == "thermal-rc"
+        else _queue_comparison(question, rule)
+    )
     return {
         "producer": "local-reviewed-mechanisms-v1",
         "explanation": explanation,
