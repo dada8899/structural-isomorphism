@@ -245,7 +245,17 @@ def test_plain_question_saves_verbatim_and_reopens_without_adoption(short_observ
             def first_answer(route):
                 if route.request.method == "POST":
                     generations.append(route.request.post_data_json)
-                    route.fulfill(status=503, json={"error": {"code": "FEATURE_UNAVAILABLE"}})
+                    if len(generations) != 2:
+                        route.fulfill(status=503, json={"error": {"code": "FEATURE_UNAVAILABLE"}})
+                        return
+                    path = route.request.url.split("testserver", 1)[1]
+                    record = client.get(path.split("/revisions/", 1)[0]).json()["data"]["current_problem"]
+                    route.fulfill(json={
+                        "contract_revision": "first-answer-v1", "status": "insufficient",
+                        "reason": "needs_clarification", "question": "你想解释哪一种变化？",
+                        "metadata": {"research_id": record["research_id"], "input_revision": record["revision"],
+                                     "problem_digest": record["digest"]},
+                    })
                     return
                 path = route.request.url.split("testserver", 1)[1]
                 record_path = path.split("/revisions/", 1)[0]
@@ -271,7 +281,9 @@ def test_plain_question_saves_verbatim_and_reopens_without_adoption(short_observ
             expect(page.locator('#kb-results a')).to_have_attribute('href', '/phenomenon/synthetic-lead')
             assert searches == [{"query": raw, "top_k": 12, "rewrite": False, "lang": "zh"}]
             page.locator('#first-answer-retry').click()
-            expect(page.locator('#first-answer-status')).to_contain_text('未能生成')
+            expect(page.locator('#first-answer-status')).to_contain_text('还需要确认一点')
+            expect(page.locator('#first-answer-body')).to_have_text('你想解释哪一种变化？')
+            expect(page.locator('#first-answer-retry')).to_be_hidden()
             assert len(generations) == 2 and generations[0] == generations[1]
 
             page.goto(saved_url)
