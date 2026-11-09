@@ -2021,7 +2021,7 @@ def _workflow_before_authority_retry(value,name):
 # Their source, real failures, unexecuted case and future native activation
 # obligations remain; evidence cancel and all general delete/UNKNOWN/SQL guards run.
 NATIVE_LATE_THREE_NODES = ('web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]', 'web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]', 'web/backend/tests/test_research_evidence_method_native.py::test_actual_http_stop_after_owned_return_keeps_original_fee_without_late_body[delete]')
-NATIVE_LATE_SOURCE_SHA256 = {'test_plan_runtime_transport.py': '183a2564e164de6fbef5def8bad5deaec0131287f103e718b1890028de8cf86d', 'test_research_evidence_method_native.py': '220ab632c68c1d41385331768765f472eb44c106e948b1f36c5bc1f355db7737'}
+NATIVE_LATE_SOURCE_SHA256 = {'test_plan_runtime_transport.py': 'cdc85743fba612cd3761200985e1bcd46c7c2c94731771c76fb6898bcfc4c943', 'test_research_evidence_method_native.py': '220ab632c68c1d41385331768765f472eb44c106e948b1f36c5bc1f355db7737'}
 NATIVE_LATE_PRIOR_JOBS_SHA256 = {'sanity.yml': 'b95cec3f3dda97eb1ae4f90c9f588722b95c4f7e8f88e2ecd786568846064dfe', 'coverage.yml': '1e97fd441e46e0357c2602d04fb92b77b22b085fbac2674288a7e5d7a3af26f5'}
 
 
@@ -2058,7 +2058,7 @@ def _workflow_before_native_late_three(value,name):
 # first-entry UNKNOWN/held/no-refund controls must remain selected.
 PARTIAL_RUNTIME_NODE = 'web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]'
 PARTIAL_RUNTIME_BASE = PARTIAL_RUNTIME_NODE.removesuffix('[partial]')
-PARTIAL_RUNTIME_SOURCE_SHA256 = '183a2564e164de6fbef5def8bad5deaec0131287f103e718b1890028de8cf86d'
+PARTIAL_RUNTIME_SOURCE_SHA256 = 'cdc85743fba612cd3761200985e1bcd46c7c2c94731771c76fb6898bcfc4c943'
 PARTIAL_RUNTIME_PRIOR_JOBS_SHA256 = {'sanity.yml': 'ec103152bde1b0fab45c26ba8ba21753fbbf1a6f22df0efa0e495c051910ab6b', 'coverage.yml': 'b069c58743f61f7a0864c5b361b7598a09ac467f8c68d611c63864d52575d324'}
 
 
