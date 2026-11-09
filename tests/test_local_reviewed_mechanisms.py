@@ -150,3 +150,15 @@ def test_state_threshold_offers_a_test_not_a_diagnosis(approved_rows, question):
     assert "一次经过疑似边界，不能确认门槛" in result["explanation"]
     assert "交错测试" in result["next_check"] and "连续模型同样好" in result["next_check"]
     assert compose_reviewed_mechanism("公司按规定超过100元就报批，这是人为设定的门槛。", BoundCorpus(approved_rows)) is None
+
+
+@pytest.mark.parametrize("question,producer,measure", [
+    ("上游检验工序提速后，最终交付量不变，下一阶段前的待处理任务积压。如何确认原因？",
+     "local-mechanism-serial-capacity-bottleneck-v1", "仅增加疑似瓶颈"),
+    ("推荐排序给最早有点击的内容更多展示，接下来多出很多关注。如何区分内容和排序的影响？",
+     "local-mechanism-visibility-positive-feedback-v1", "后续每次曝光"),
+])
+def test_system_mechanisms_need_an_intervention_on_the_proposed_link(approved_rows, question, producer, measure):
+    answer = compose_reviewed_mechanism(question, BoundCorpus(approved_rows))
+    assert answer is not None and answer["producer"] == producer
+    assert measure in answer["next_check"]

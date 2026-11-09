@@ -14,6 +14,10 @@ from .service import digest
 
 _ARTIFACT = "structural-v2-kb4443-20260711"
 _SOURCE_DIGESTS = {
+    "soc-077": "451fc0ef6b53cc1f1356cce0e092f9d790f1fe2542cf89683422d9e7adc4dd04",
+    "5k-30-023": "a9cd7cc1fadd9b94f061696fae8dd1990026879db3d3f550f25d317aa88ec734",
+    "soc-043": "abe9f2932f0306052749c9d8d3e7394fa4100bc3c0e6f6a52c1d80a5ecd30815",
+    "5k-30-051": "539effbd8ee6c3b3e7dd68d44f979a424653426b8bf6b76413aaba53daa73e7a",
     "kb5k02-063": "6f2af915b02067a999878ff1cb58d4b69816227701f5e2f578bd5060ea34f297",
     "5k-ee-150": "d9cccef8c13be424721c5b8783a323d1d926136afc1d31df0bb041d1d5d0ebeb",
     "5k-08-040": "d438e25a1779e8cfae5f95ce4cbbf0abe22212f583a7d55d1b82e9d141bbbe00",
@@ -65,6 +69,49 @@ _MECHANISMS = (
                      "比较时固定外部输入，另查周期扰动、执行上限及测量噪声。库中例子的幅度和周期不能套用。"),
         cross_domain_leads=("补货中的在途订单和某些生物反馈中的抑制物积累，都让纠偏作用晚于触发信号；可借用分开记录偏差、动作和生效时间的方法。",),
         next_check="用历史回放或小型可逆实验记录测量、下令和生效三个时间点。保持外部输入和目标不变，单独缩短信息延迟或减小纠偏幅度，比较最大过冲和恢复时间。如果固定纠偏后仍按同一外部周期波动，优先查外部驱动。",
+    ),
+    Mechanism(
+        name="serial-capacity-bottleneck",
+        alternatives=((
+            r"(?:环节|工序|步骤|前段|上游).{0,16}(?:加快|快了|提速|扩容)|"
+            r"(?:加了|添了|增加).{0,24}(?:台|工位|并行)|(?:earlier|upstream|first) (?:stage|step).{0,20}(?:faster|capacity)",
+            r"(?:交付|出货|产量|产出|完成).{0,22}(?:没增加|没有增加|没提升|不变|没变)|"
+            r"(?:finished output|deliveries|throughput).{0,20}(?:unchanged|did not rise|same)",
+            r"积压|半成品.{0,12}(?:越来越多|堆|增加)|堆积|work in progress|waiting.{0,12}(?:grows|builds)|backlog",
+        ),),
+        veto=(r"无积压|队列为空|并非串联|各自独立交付|no backlog|independent output"),
+        sources=("soc-077", "5k-30-023"),
+        explanation="如果工作必须依次通过多个环节，局部提速不一定提高最终交付。"
+                    "在某一环节前持续堆积、其后环节仍有余量时，先把这个环节视为容量瓶颈的候选。"
+                    "返工、批量放行或下游需求不足也可能造成类似表象。",
+        assumptions=("比较同类工作与相近班次，区分投入、每段完成与最终交付。"
+                     "确认积压是等待下一段处理，而不是故意提前备货。",),
+        cross_domain_leads=("装配线和车流汇入都可能因局部容量约束把队列推向上游；"
+                            "产品返工和车道合流不等价，借用的是观察队列位置与有效吞吐的方法。",),
+        next_check="按相同时间窗记录各环节完成数、前置等待和空闲时间。"
+                   "用回放或可逆试验仅增加疑似瓶颈的可用时段，固定上游投入与产品组合，比较最终交付和积压。"
+                   "若该处无持续等待或局部加量不改变出货，再查批量放行、返工或需求。",
+    ),
+    Mechanism(
+        name="visibility-positive-feedback",
+        alternatives=((
+            r"排序|推荐|靠前|展示|曝光|ranking|visibility|recommended",
+            r"(?:已有|已经有|先有|最早|先前).{0,18}(?:回复|点击|关注|评分|热度|选择)|"
+            r"(?:initial|early|prior).{0,14}(?:replies|clicks|votes|attention)",
+            r"(?:更多|越来越多|多出|放大|差距).{0,14}(?:回复|点击|关注|互动)|"
+            r"more (?:replies|clicks|votes)|growing gap|amplified",
+        ),),
+        veto=(r"完全随机排序|曝光完全相同|看不到历史|ranking was randomized|identical exposure"),
+        sources=("soc-043", "5k-30-051"),
+        explanation="如果早期互动会提高排名，排名又带来更多曝光，后续互动可以反过来巩固排名。"
+                    "这样小的初始差异也可能扩大；仅凭最后互动总数不能分辨内容更好，还是获得了更多被看到的机会。",
+        assumptions=("排名确实会影响曝光，且互动会进入下一轮排序；两条边缺一就不能称为这条反馈。",
+                     "曝光人群、发布时间和主题也会影响每次曝光产生互动的概率。"),
+        cross_domain_leads=("学术引用积累和网络优先连接都可帮助检验自我增强结构；"
+                            "不能据此假定论坛的具体排序算法或内容质量。",),
+        next_check="在可控的小范围内随机分配起始位置，或给内容相近的一组等量曝光。"
+                   "分别记录早期互动、实际曝光和后续每次曝光的互动率。"
+                   "等曝光后差距缩小支持可见性放大；若每曝光互动仍明显不同，优先查内容或受众差异。",
     ),
     Mechanism(
         name="state-threshold-check",
