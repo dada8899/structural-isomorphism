@@ -224,6 +224,29 @@ def prepare_closed_preview(scope, saved_problem_json, quote, *, now):
                          "CNY", 6, quote.upper_units, quote.valid_until, request_sha, template_sha, approval_sha)
 
 
+def prepare_closed_public_preview(scope, saved_problem_json, quote, *, now):
+    """Project the exact closed preview without private auth or request data."""
+    scope = _checked(SavedRevisionScope, scope, "invalid_revision_scope")
+    preview = prepare_closed_preview(scope, saved_problem_json, quote, now=now)
+    return {
+        "contract_revision": "external-first-answer-v1",
+        "purpose": preview.purpose,
+        "metadata": {name: getattr(scope, name) for name in (
+            "research_id", "input_revision", "research_version", "problem_digest")},
+        "exact_question": preview.exact_question,
+        "provider": preview.provider,
+        "model": preview.model,
+        "target": preview.target,
+        "currency": preview.currency,
+        "scale": preview.scale,
+        "upper_units": preview.upper_units,
+        "preview_digest": preview.preview_digest,
+        "request_digest": preview.request_digest,
+        "valid_until": preview.valid_until,
+        "may_send": False,
+    }
+
+
 def compare_confirmation(preview, current_scope, current_problem_json, current_quote, confirmation, *, now):
     """Return a revalidated closed preview, never authorization or a permit."""
     if type(preview) is not ClosedPreview:

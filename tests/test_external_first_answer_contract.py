@@ -9,7 +9,7 @@ from web.backend.research.external_first_answer_contract import (
     CAP_UNITS, INPUT_SCHEMA, MAX_OUTPUT_TOKENS, OUTPUT_SCHEMA, PURPOSE, PROJECT, TARGET,
     ContractError, ExplicitConfirmation, QuoteBinding, SavedRevisionScope, SharedLedgerData,
     compare_confirmation, inspect_shared_capacity, parse_unverified_candidate,
-    prepare_closed_preview, recovery_hint,
+    prepare_closed_preview, prepare_closed_public_preview, recovery_hint,
 )
 from web.backend.research.provider_schemas import canonical, digest
 
@@ -210,3 +210,28 @@ def test_no_invented_evidence_links_or_authority_in_candidate(value):
 def test_invalid_candidate_json_no_parser_text():
     with pytest.raises(ContractError,match="invalid_unverified_candidate"):
         parse_unverified_candidate(b'{"status":"insufficient","reason":"unsupported","reason":"not_enough_information"}')
+
+
+def test_closed_public_preview_matches_browser_contract_without_exposing_private_binding():
+    import subprocess
+    from pathlib import Path
+
+    raw = problem()
+    scope = revision(raw)
+    offer = quote()
+    public = prepare_closed_public_preview(scope, raw, offer, now=NOW)
+    body = json.dumps(public, ensure_ascii=False)
+    for value in (scope.principal_id, scope.auth_generation, offer.account_id, offer.economic_binding,
+                  "raw_request", "不外发目标", "不外发约束"):
+        assert value not in body
+    browser = Path(__file__).resolve().parents[1] / "web/frontend/assets/externalFirstAnswer.js"
+    script = """const assert=require('node:assert/strict');
+    const ui=require(process.argv[1]);
+    const data=JSON.parse(require('node:fs').readFileSync(0,'utf8'));
+    assert(ui.preview(data.public,data.expected,data.now));
+    assert.equal(ui.confirmation(data.public,data.expected,{confirm_exact_question:true,
+      confirm_maximum_cost:true,declares_right_to_send:true},data.now),null);"""
+    result = subprocess.run(["node","-e",script,str(browser)], input=json.dumps({
+        "public":public,"expected":public["metadata"]|{"original_input":QUESTION},"now":NOW,
+    }), text=True, capture_output=True, timeout=10)
+    assert result.returncode == 0, result.stderr
