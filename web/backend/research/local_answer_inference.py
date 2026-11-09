@@ -7,6 +7,7 @@ import select
 import signal
 import socket
 import stat
+import struct
 import threading
 
 from .local_answer_gateway import Gateway, GatewayUnavailable, _linux_peer_uid, private_listener
@@ -129,7 +130,7 @@ def _extract(status, headers, raw):
     return data
 
 
-def _open_private(sock, request, path, uid):
+def _open_private(sock, request, path, uid, *, expected_pid=None):
     entry = os.lstat(path)
     if (not stat.S_ISSOCK(entry.st_mode) or entry.st_uid != uid or entry.st_mode & 0o077 or entry.st_nlink != 1):
         raise GatewayUnavailable("inference_socket_unavailable")
@@ -140,12 +141,19 @@ def _open_private(sock, request, path, uid):
         err = sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
     if err or _linux_peer_uid(sock) != uid:
         raise GatewayUnavailable("inference_identity_unavailable")
+    if expected_pid is not None:
+        pid, peer_uid, _gid = struct.unpack("iII", sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
+        if pid != expected_pid or peer_uid != uid:
+            raise GatewayUnavailable("inference_process_unavailable")
 
 
 class LlamaUnixBackend:
     """Never re-use an inference slot after an incomplete upstream receipt."""
 
-    def __init__(self, on_unconfirmed=None):
+    def __init__(self, on_unconfirmed=None, *, expected_pid=None):
+        if expected_pid is not None and (type(expected_pid) is not int or expected_pid <= 1):
+            raise ValueError("invalid inference process identity")
+        self._expected_pid = expected_pid
         self._quarantined = False
         self._on_unconfirmed = on_unconfirmed
 
@@ -157,7 +165,7 @@ class LlamaUnixBackend:
         if self._quarantined:
             raise GatewayUnavailable("inference_unavailable")
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
-            _open_private(sock, request, _INFERENCE_SOCKET, os.geteuid())
+            _open_private(sock, request, _INFERENCE_SOCKET, os.geteuid(), expected_pid=self._expected_pid)
             try:
                 status, headers, raw = _post(sock, messages, request)
             except (GatewayUnavailable, OSError):
