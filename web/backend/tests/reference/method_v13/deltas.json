@@ -499,7 +499,7 @@
       ]
     ],
     "schema16_bridge": {
-      "current_sha256": "a70c5777d0ecf3867a6e980c3feb97f51fa018d322fd553cc0d557a3f3bd9ea2",
+      "current_sha256": "d82d271db52f9de9d74b7580192e6cd639052458dd60134e07089b371c193288",
       "hunks": [
         [
           13,
@@ -568,12 +568,12 @@
         ],
         [
           524,
-          548,
+          588,
           ""
         ],
         [
-          646,
-          647,
+          686,
+          687,
           "    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13,14,15):\n"
         ]
       ]
