@@ -252,7 +252,36 @@ SHORT_OBSERVATION_PRIOR_B3_SCRIPT_SHA256 = 'bda7a3e5bf2ecc21101f52486de687b47a98
 SHORT_OBSERVATION_PRIOR_JOBS_SHA256 = '3b46c1b92984751760a59f039c9426b5c372c981b81035aacefa3d2bd5224f49'
 
 
+# New first-answer consumers: pure contract in ordinary A; real Main in a
+# separate process after the existing fresh-2 module.
+FIRST_ANSWER_PURE_MODULE = 'tests/test_local_first_answer_contract.py'
+FIRST_ANSWER_MAIN_MODULE = 'tests/test_research_first_answer.py'
+FIRST_ANSWER_PRIOR_JOBS_SHA256 = '36ddd0462e7a94f57b036a36cbd97aeb3a1d8ee09bd7b40ac098c993a47cb8cb'
+
+
+def _workflow_before_first_answer_checks(value, name):
+    if name != 'sanity.yml':
+        return value
+    original = copy.deepcopy(value)
+    jobs = original['jobs']
+    for module in (FIRST_ANSWER_PURE_MODULE, FIRST_ANSWER_MAIN_MODULE):
+        assert sum(json.dumps(job, sort_keys=True).count(module) for job in jobs.values()) == 1
+    title = 'Leg 2 — web/backend pytest baseline'
+    ordinary, fresh = (next(step for step in jobs[job]['steps'] if step.get('name') == title)
+                       for job in ('sanity-backend-ordinary-a', 'sanity-backend-fresh-2'))
+    anchor = ' tests/test_lang_detection.py '
+    pure_slot = anchor + FIRST_ANSWER_PURE_MODULE + ' tests/test_mapping_contract.py '
+    assert ordinary['run'].count(pure_slot) == 1
+    ordinary['run'] = ordinary['run'].replace(pure_slot, anchor + 'tests/test_mapping_contract.py ', 1)
+    command = 'python -m pytest ' + FIRST_ANSWER_MAIN_MODULE + ' -p no:logging -x -ra -q --tb=short --durations=10\n'
+    assert fresh['run'].endswith(command)
+    fresh['run'] = fresh['run'][:-len(command)]
+    assert hashlib.sha256(json.dumps(jobs, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest() == FIRST_ANSWER_PRIOR_JOBS_SHA256
+    return original
+
+
 def _workflow_before_short_observation_checks(value,name):
+    value = _workflow_before_first_answer_checks(value, name)
     if name!='sanity.yml':return value
     original=copy.deepcopy(value);jobs=original['jobs']
     assert sum(json.dumps(job,sort_keys=True).count(SHORT_OBSERVATION_BACKEND_MODULE) for job in jobs.values())==1
@@ -680,8 +709,10 @@ def _workflow_before_sanity_groups(value):
     directory=ROOT/'web/backend/tests'
     inventory={'tests/'+path.relative_to(directory).as_posix() for pattern in ('test_*.py','*_test.py') for path in directory.rglob(pattern) if path.is_file()}
     # This view reconstructs the older baseline after the exact new-module inverse.
-    assert SHORT_OBSERVATION_BACKEND_MODULE in inventory
-    inventory.remove(SHORT_OBSERVATION_BACKEND_MODULE)
+    added = {SHORT_OBSERVATION_BACKEND_MODULE, FIRST_ANSWER_PURE_MODULE, FIRST_ANSWER_MAIN_MODULE}
+    assert added <= inventory
+    assert all(not (directory / path.removeprefix('tests/')).is_symlink() for path in added)
+    inventory -= added
     assert inventory==set(a+b+fresh), 'all source modules exactly once, not only list-internal uniqueness'
     assert all(not(directory/path.removeprefix('tests/')).is_symlink() for path in inventory)
     restored=copy.deepcopy(jobs[SANITY_GROUP_IDS[0]]);restored['name']='sanity-backend'
