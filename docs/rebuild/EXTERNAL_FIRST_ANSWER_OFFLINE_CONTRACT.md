@@ -85,3 +85,16 @@ external_first_answer_issuer_contract.py 独立于 controlled_runtime。它定�
 真实隔离 Main 两种回执测试核对了已完成清理和 UNKNOWN 原账保留、跨账户及本地队列。没有接触生产或真实费用。此前“v17 回退账户删除总是 503”的历史说明由本节的细分规则替代。
 
 正式签名 issuer 仍关闭：当前生产 a3 的 requirements/CPU lock 没有声明 cryptography，不能根据开发机测试推断可用。若采用 Ed25519 模块，应固定目标 Linux 完整依赖与制品摘要，在与正式 UID/runtime 一致的无网络隔离环境验证签名和拒绝路径；或复用已单独获准的签名验证入口并做相同绑定验证。未验证前不加载生产 issuer，也不临时安装依赖或使用未审替代。
+
+## 启动见证与专用 loader 接口
+
+services/external_live_issuer.py 把签名批准和实际 Main 绑到一起：核当前已准入的 v17 Main、进程与私有 Auth inode，从真实 SQLite 查现有资金账户、经济身份、额度、风险余量、Owner/gate 与代次。签名核对并持久消耗原启动挑战之后，才向专用 loader 交一次性 claim；只有绑定的执行函数、同线程、同一入口见证和新 credential ID 可以 claim 一次。未 claim、入口不符或加载失败都不会恢复原启动挑战。发给 sender 的不可序列化 handle 绑定实际 Main/进程与资源生命周期；仅合成 handle 可由测试访问，任何 live 检查均拒绝。退出会收回 handle。
+
+实际隔离 Main 测试使用合成账户登记、真实 Auth 文件、同账本、合成签名与 inert loader，不读取密钥、不发供应端请求。旧 credential ID、不同数据库 inode、重复 claim、未 claim 返回、重复启动、退休后及合成 handle 冒充 live 均被拒绝。保持旧用途 loader、grant 和资金代码不动。这个模块没有配置开关，也没有安装生产 verifier/loader；activate_live_external_issuer 仍关闭。
+
+要开启生产，还缺可具体核对的材料：
+
+- 独立审查者批准的正式 Ed25519 公钥指纹、root 管理的唯一 pin 和真实签名启动批准；批准绑定最终受保护 main 源、制品、实际 unit、代码闭包、进程 UID/GID 和持久收据位置。不能把测试公钥或任意参数当根信任。
+- 正式目标 Linux 运行制品的可信依赖闭包：当前 a3 没有声明 cryptography，必须固定并隔离证明目标 ABI 与签名路径，或指定独立已批准的验证入口。
+- 专用加密凭据项、物理目录/FD 见证与已审 run-formal-main 入口实现。须在硬化及单次启动许可后加载，只能证明同一供应端经济账户与原账本，不能以 key 名或 key 摘要当经济身份；加载或清理未知不得重播启动。
+- 真 sender 的不可替代 handle、官方新鲜余额和价格来源、实际同账本原子预留/消费以及已占用和 UNKNOWN 的恢复。启动授权只控制 loader，不能替代每次用户确认、当前 Owner/revision/ACL、同账本额度及 UNKNOWN 阻断，也不批准任何真实执行。
