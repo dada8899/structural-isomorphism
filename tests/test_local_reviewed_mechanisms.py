@@ -273,3 +273,5 @@ def test_baseline_decay_series_extrapolates_only_a_consistent_stated_ratio():
     assert result and "32、16、8、4" in result["explanation"] and "下一次约为 6" in result["explanation"]
     assert observation_check(question.replace("稳定背景为 4","背景未知")) is None
     assert observation_check(question.replace("20、12、8","20、13、8")) is None
+    assert observation_check(question.replace("背景为 4","背景为 4.5")) is None
+    assert observation_check(question.replace("读数为 36","读数为 36.5")) is None
