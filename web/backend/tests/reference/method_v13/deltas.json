@@ -131,26 +131,36 @@
       ]
     ],
     "schema16_bridge": {
-      "current_sha256": "16f792a06c1a1958555d502ce9978e6f2364f3b93bdbcb587f19b5c440e7a465",
+      "current_sha256": "f7e40740fc29da450c2879e0c430d93a5134b093bb2e46edce3865da1cbb4db7",
       "hunks": [
         [
+          158,
+          159,
+          "def _with_request_source_capability(result,*,app,service,research_id,operation):\n"
+        ],
+        [
           174,
-          183,
+          188,
           "    return {**result,'data':{**data,'capabilities':{**caps,'source_evidence':available}}}\n"
         ],
         [
-          359,
-          442,
+          364,
+          465,
           ""
         ],
         [
-          463,
-          525,
+          486,
+          548,
           ""
         ],
         [
-          831,
-          866,
+          797,
+          798,
+          "                    app=request.app,service=service,research_id=research_id,operation=operation)\n"
+        ],
+        [
+          852,
+          887,
           ""
         ]
       ]
@@ -489,7 +499,7 @@
       ]
     ],
     "schema16_bridge": {
-      "current_sha256": "1daffde48a62a5782fc6da099172a48c05c1b8cdfd4fd16d3347cf95e561f1b4",
+      "current_sha256": "a70c5777d0ecf3867a6e980c3feb97f51fa018d322fd553cc0d557a3f3bd9ea2",
       "hunks": [
         [
           13,
@@ -497,63 +507,73 @@
           ""
         ],
         [
-          298,
-          302,
+          69,
+          71,
+          ""
+        ],
+        [
+          101,
+          121,
+          ""
+        ],
+        [
+          320,
+          324,
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:\n"
         ],
         [
-          304,
-          305,
+          326,
+          327,
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15):\n"
-        ],
-        [
-          306,
-          307,
-          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
-        ],
-        [
-          308,
-          309,
-          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):\n"
-        ],
-        [
-          323,
-          324,
-          "        if _job_has_v2(conn,job):raise PermissionError('legacy deletion cannot control v2 resources')\n"
         ],
         [
           328,
           329,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
+        ],
+        [
+          330,
+          331,
+          "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):\n"
+        ],
+        [
+          345,
+          346,
+          "        if _job_has_v2(conn,job):raise PermissionError('legacy deletion cannot control v2 resources')\n"
+        ],
+        [
+          350,
+          351,
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)\n"
         ],
         [
-          438,
-          442,
+          460,
+          464,
           ""
         ],
         [
-          482,
-          483,
+          504,
+          505,
           "            or conn.execute(\"SELECT version FROM research_schema WHERE id=1\").fetchone()[0] not in (5,6,7,8,9,10,11,12,13,14,15)):\n"
         ],
         [
-          484,
-          490,
+          506,
+          512,
           ""
         ],
         [
-          499,
-          500,
+          521,
+          522,
           "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13,14,15):\n"
         ],
         [
-          502,
-          526,
+          524,
+          548,
           ""
         ],
         [
-          624,
-          625,
+          646,
+          647,
           "    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13,14,15):\n"
         ]
       ]
@@ -2371,12 +2391,12 @@
     ],
     "original_sha256": "e8ccf7d79108c0a7bf94812f31bb053668f895d7cb4b85500b6bc31fc7791304",
     "schema16_bridge": {
-      "current_sha256": "099287660a64edeb7ef809474dc2c9869eb10cd6dafdc25fc23f1bd572bb894c",
+      "current_sha256": "2dcb04abf3ff2a8f85392a488672ec2a3969c8b3462865cdd8ba36539399b46f",
       "hunks": [
         [
-          207,
+          206,
           210,
-          ""
+          "def unresolved(conn,account,*,excluding=None):\n"
         ]
       ]
     }
