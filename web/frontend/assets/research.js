@@ -1329,6 +1329,7 @@
         observation:variable.observation === null ? null : variable.observation.normalize('NFC')}))};
   }
   function clearPrivateView(cause = 'inflight_navigation') {
+    clearFirstAnswer();
     registryUI?.reset(cause);
     scenarioUI?.reset(cause);
     evidenceUI?.reset();
@@ -1407,6 +1408,63 @@
       return payload.data;
     } finally { clearTimeout(timer); }
   }
+  let firstAnswerGeneration = 0;
+  function clearFirstAnswer() {
+    firstAnswerGeneration++;
+    byId('first-answer').hidden = true;
+    byId('first-answer-status').textContent = '';
+    byId('first-answer-body').replaceChildren();
+  }
+  async function readFirstAnswer() {
+    clearFirstAnswer();
+    const generation = firstAnswerGeneration;
+    const {revision:inputRevision, digest:problemDigest} = editBase;
+    const id = researchId;
+    const active = () => generation === firstAnswerGeneration && id === researchId;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(`/api/research/${encodeURIComponent(id)}/revisions/${inputRevision}/first-answer`,
+        {credentials:'same-origin', cache:'no-store', signal:controller.signal});
+      if (!active()) return;
+      if (response.status === 401) { clearPrivateView('confirmed_logout'); return; }
+      if (!response.ok) return; // no answer or a server that does not yet support this capability
+      const answer = await response.json();
+      if (!active() || answer?.contract_revision !== 'first-answer-v1' || answer.status !== 'provisional' ||
+          answer.metadata?.research_id !== id || answer.metadata.input_revision !== inputRevision ||
+          answer.metadata.problem_digest !== problemDigest || !planObject(answer.content)) return;
+      const {explanation, assumptions, cross_domain_leads:leads, next_check:check, references} = answer.content;
+      const bounded = value => typeof value === 'string' && value.length > 0 && value.length <= 2400;
+      if (!bounded(explanation) || !bounded(check) ||
+          ![assumptions, leads].every(items => Array.isArray(items) && items.length <= 6 && items.every(bounded)) ||
+          !Array.isArray(references) || references.length > 12 || !references.every(ref =>
+            bounded(ref?.label) && /^[a-zA-Z0-9_-]{1,160}$/.test(ref.locator))) return;
+      if (!await authenticated(active, controller.signal) || !active()) return;
+      const body = byId('first-answer-body');
+      const paragraph = value => { const node = document.createElement('p'); node.textContent = value; return node; };
+      const group = (label, items) => {
+        if (!items.length) return;
+        const title = document.createElement('h3'); title.textContent = label;
+        const list = document.createElement('ul');
+        for (const value of items) { const item = document.createElement('li'); item.append(value); list.append(item); }
+        body.append(title, list);
+      };
+      body.append(paragraph(explanation));
+      group('在哪些条件下成立', assumptions);
+      group('可以借用的跨领域思路', leads);
+      group('下一步怎么验证', [check]);
+      group('可回查的知识库记录', references.map(ref => {
+        const link = document.createElement('a');
+        link.href = '/phenomenon/' + encodeURIComponent(ref.locator);
+        link.textContent = ref.label;
+        return link;
+      }));
+      byId('first-answer-status').textContent = `问题修订 ${inputRevision} 的初步解释。适用条件仍需核对。`;
+      byId('first-answer').hidden = false;
+    } catch {
+      // Failure to load an optional answer must not hide the saved question.
+    } finally { clearTimeout(timer); }
+  }
   function render(data, methodToken) {
     observationReset();
     planReset();
@@ -1459,6 +1517,7 @@
     renderTask(data,{methodToken});
     formulaHydrate(data);
     setBusy(busy);
+    void readFirstAnswer();
     // A fixed record must show the entire original text, including long inputs.
     for (const field of form.querySelectorAll('textarea')) {
       field.style.height = '';
@@ -1852,6 +1911,7 @@
       draftChanged('问题有未保存改动；此处方法文字保留，保存前先核对问题。');
       financialInvalidate('问题有未保存改动，旧预览已失效；CSV 仍暂存在本页。');
       if (id === 'summary') summaryEdited = true;
+      clearFirstAnswer();
       if (id === 'original-input') { observationReset(); echoDraft(); }
       observationSync();
       invalidateKB();

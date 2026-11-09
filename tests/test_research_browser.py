@@ -242,6 +242,19 @@ def test_plain_question_saves_verbatim_and_reopens_without_adoption(short_observ
                 route.fulfill(json={"results": [{"id": "synthetic-lead", "name": "公开示例线索",
                                                "domain": "本地", "description": "待核验"}]})
             page.route("**/api/search", local_leads)
+            def first_answer(route):
+                path = route.request.url.split("testserver", 1)[1]
+                record_path = path.split("/revisions/", 1)[0]
+                record = client.get(record_path).json()["data"]["current_problem"]
+                route.fulfill(json={
+                    "contract_revision": "first-answer-v1", "status": "provisional",
+                    "metadata": {"research_id": record["research_id"], "input_revision": record["revision"],
+                                 "problem_digest": record["digest"]},
+                    "content": {"explanation": "测试用初步解释", "assumptions": ["条件"],
+                                "cross_domain_leads": ["可比较的机制"], "next_check": "做一次对照",
+                                "references": [{"artifact": "fixture", "locator": "synthetic-lead", "label": "站内依据"}]},
+                })
+            page.route("**/revisions/*/first-answer", first_answer)
             page.goto('https://testserver/research')
             page.locator('#original-input').fill(raw)
             page.locator('#save-question').click()
@@ -255,6 +268,10 @@ def test_plain_question_saves_verbatim_and_reopens_without_adoption(short_observ
             assert searches == [{"query": raw, "top_k": 12, "rewrite": False, "lang": "zh"}]
             page.goto(saved_url)
             expect(page.locator('#original-input')).to_have_value(raw)
+            expect(page.locator('#first-answer-body')).to_contain_text('测试用初步解释')
+            expect(page.locator('#first-answer-body a')).to_have_attribute('href', '/phenomenon/synthetic-lead')
+            page.locator('#original-input').fill('已经修改的问题')
+            expect(page.locator('#first-answer')).to_be_hidden()
             expect(page.locator('#problem-advanced')).to_be_hidden()
             assert [(method, path) for method, path, _ in calls if method == 'POST'] == [('POST', '/api/research')]
         finally:
