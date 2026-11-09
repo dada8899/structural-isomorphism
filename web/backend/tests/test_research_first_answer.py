@@ -252,6 +252,29 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
                 assert clarified["question"].startswith("原始测量在边界两侧")
                 assert (await client.get(url)).json() == clarified
                 assert len(calls) == 5
+                external = url.replace("/first-answer","/external-first-answer")
+                key = "e09160ad-396a-4edc-a383-e54c48ba728f"
+                write = origin | {"Idempotency-Key":key}
+                preview = await client.post(external+"/preview",json=body,headers=origin)
+                assert preview.status_code == 503 and preview.json()["error"]["code"] == "FEATURE_UNAVAILABLE"
+                assert "exact_question" not in preview.json()
+                assert (await client.post(external+"/preview",json={**body,"problem_digest":"0"*64},headers=origin)).status_code == 409
+                assert (await client.post(external+"/preview",json=body,headers={"Origin":"https://wrong.invalid"})).status_code == 403
+                confirmation = {"purpose":"external-first-answer-question-v1","preview_digest":"b"*64,"request_digest":"c"*64,
+                                "upper_units":12000,"confirm_exact_question":True,"confirm_maximum_cost":True,
+                                "declares_right_to_send":True}
+                sent = await client.post(external+"/confirm",json=confirmation,headers=write)
+                assert sent.status_code == 503 and sent.json()["error"]["code"] == "FEATURE_UNAVAILABLE"
+                assert (await client.post(external+"/confirm",json={**confirmation,"confirm_maximum_cost":False},headers=write)).status_code == 422
+                read = await client.get(external+"/status",headers={"Idempotency-Key":key})
+                assert read.status_code == 503 and read.json()["error"]["code"] == "FEATURE_UNAVAILABLE"
+                assert (await client.get(external+"/status")).status_code == 422
+                async with httpx.AsyncClient(transport=transport,base_url=BETA) as other:
+                    assert (await other.get(external+"/status",headers={"Idempotency-Key":key})).status_code == 401
+                    await login(other,messages,"external-other@example.invalid")
+                    assert (await other.get(external+"/status",headers={"Idempotency-Key":key})).status_code == 404
+                assert (await client.get(url)).json() == clarified
+
         assert first_answer_supervisor.current(main.app) is None
 
     asyncio.run(run())

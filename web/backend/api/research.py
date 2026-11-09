@@ -349,6 +349,61 @@ async def _history_threadpool(request,stage):
         if slot is not None:admission.cancel_history_worker(slot)
 
 
+def _closed_external_scope(service, identity, research_id, input_revision, expected=None):
+    """Recheck the actual owner/snapshot without reading or exporting content."""
+    rid = service._id(research_id)
+    principal = service._principal(identity)
+    with service.store.transaction() as conn:
+        row = service.authorization.check(conn, identity, principal, rid)
+        revision = conn.execute(
+            "SELECT digest FROM research_revisions WHERE research_id=? AND revision=?",
+            (rid, input_revision)).fetchone()
+        if revision is None:
+            raise ResearchError("NOT_FOUND",404,"研究不存在或当前无法访问。")
+        if expected is not None and (row["current_revision"], row["version"], revision["digest"]) != (
+                input_revision, expected.research_version, expected.problem_digest):
+            raise ResearchError("REVISION_CONFLICT",409,"问题已有变化，请重新读取。")
+
+
+_EXTERNAL_FIRST_ANSWER = ("external-answer-preview", "external-answer-confirm", "external-answer-status")
+
+
+async def _dispatch_closed_external_answer(request, service, identity, research_id, operation):
+    raw_revision = request.path_params["input_revision"]
+    if request.query_params or not re.fullmatch(r"[1-9][0-9]{0,9}", raw_revision):
+        raise ResearchError("INPUT_INVALID",422,"外部分析修订或查询参数无效。")
+    input_revision = int(raw_revision)
+    if input_revision > 2147483647:
+        raise ResearchError("INPUT_INVALID",422,"外部分析修订无效。")
+    expected = None
+    if operation != "external-answer-status":
+        if auth.require_same_origin(request) is not None:
+            raise ResearchError("AUTHORIZATION_STALE",403,"请从本站页面操作外部分析。")
+        if __package__ == 'web.backend.api':
+            from ..research.external_first_answer_contract import ExplicitConfirmation
+            from ..research.local_first_answer import FirstAnswerRequest
+        else:
+            from research.external_first_answer_contract import ExplicitConfirmation
+            from research.local_first_answer import FirstAnswerRequest
+        if operation == "external-answer-preview":
+            expected = await _parse(request, FirstAnswerRequest)
+        else:
+            confirmation = await _parse(request, ExplicitConfirmation)
+            if not all((confirmation.confirm_exact_question, confirmation.confirm_maximum_cost, confirmation.declares_right_to_send)):
+                raise ResearchError("INPUT_INVALID",422,"需要明确确认发送内容、费用和使用权。")
+    if operation != "external-answer-preview":
+        key = request.headers.get("idempotency-key", "")
+        if not re.fullmatch(r"[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}", key):
+            raise ResearchError("INPUT_INVALID",422,"原操作标识缺失或不合法。")
+    if operation == "external-answer-status":
+        async for chunk in request.stream():
+            if chunk:
+                raise ResearchError("INPUT_INVALID",422,"状态查询不接受请求正文。")
+    await run_in_threadpool(_closed_external_scope, service, identity, research_id, input_revision, expected)
+    # No issuer, quote, reservation, execution or response lookup is admitted.
+    raise ResearchError("FEATURE_UNAVAILABLE",503,"外部分析尚未开放，已保存的问题仍在。")
+
+
 async def _dispatch(request, *, research_id=None, operation="view"):
     try:
         history_read=False
@@ -370,6 +425,8 @@ async def _dispatch(request, *, research_id=None, operation="view"):
         # Captured private storage never falls back to a development flag after
         # environment downgrade, including requests outside canonical Main.
         if service.store._formal_mode():require_formal_application(request.app,'research_basic')
+        if operation in _EXTERNAL_FIRST_ANSWER:
+            return await _dispatch_closed_external_answer(request, service, identity, research_id, operation)
         if operation in ("first-answer-read", "first-answer-generate", "first-answer-cancel"):
             raw_revision = request.path_params["input_revision"]
             if request.query_params or not re.fullmatch(r"[1-9][0-9]{0,9}",raw_revision):
@@ -749,6 +806,21 @@ async def generate_research_first_answer(research_id: str, input_revision: str, 
 @router.delete("/research/{research_id}/revisions/{input_revision}/first-answer")
 async def cancel_research_first_answer(research_id: str, input_revision: str, request: Request):
     return await _dispatch(request,research_id=research_id,operation="first-answer-cancel")
+
+
+@router.post("/research/{research_id}/revisions/{input_revision}/external-first-answer/preview")
+async def preview_external_first_answer(research_id: str, input_revision: str, request: Request):
+    return await _dispatch(request,research_id=research_id,operation="external-answer-preview")
+
+
+@router.post("/research/{research_id}/revisions/{input_revision}/external-first-answer/confirm")
+async def confirm_external_first_answer(research_id: str, input_revision: str, request: Request):
+    return await _dispatch(request,research_id=research_id,operation="external-answer-confirm")
+
+
+@router.get("/research/{research_id}/revisions/{input_revision}/external-first-answer/status")
+async def read_external_first_answer_status(research_id: str, input_revision: str, request: Request):
+    return await _dispatch(request,research_id=research_id,operation="external-answer-status")
 
 
 @router.post("/research/{research_id}/tasks")

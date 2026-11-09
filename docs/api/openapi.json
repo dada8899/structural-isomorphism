@@ -25461,6 +25461,153 @@
         ]
       }
     },
+    "/api/research/{research_id}/revisions/{input_revision}/external-first-answer/confirm": {
+      "post": {
+        "operationId": "confirm_external_first_answer_api_research__research_id__revisions__input_revision__external_first_answer_confirm_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "input_revision",
+            "required": true,
+            "schema": {
+              "title": "Input Revision",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Confirm External First Answer",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/revisions/{input_revision}/external-first-answer/preview": {
+      "post": {
+        "operationId": "preview_external_first_answer_api_research__research_id__revisions__input_revision__external_first_answer_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "input_revision",
+            "required": true,
+            "schema": {
+              "title": "Input Revision",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview External First Answer",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/research/{research_id}/revisions/{input_revision}/external-first-answer/status": {
+      "get": {
+        "operationId": "read_external_first_answer_status_api_research__research_id__revisions__input_revision__external_first_answer_status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "research_id",
+            "required": true,
+            "schema": {
+              "title": "Research Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "input_revision",
+            "required": true,
+            "schema": {
+              "title": "Input Revision",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read External First Answer Status",
+        "tags": [
+          "research"
+        ]
+      }
+    },
     "/api/research/{research_id}/revisions/{input_revision}/first-answer": {
       "delete": {
         "operationId": "cancel_research_first_answer_api_research__research_id__revisions__input_revision__first_answer_delete",
