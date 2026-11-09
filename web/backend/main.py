@@ -566,9 +566,16 @@ async def gate_unfinished_production_surfaces(request: Request, call_next):
         basic = ('/api/auth/', '/api/me/', '/api/research', '/api/favorites', '/api/history',
                  '/api/report', '/api/reports/', '/api/sso/', '/api/privacy/')
         system = path in ('/api/health', '/api/version')
-        retrieval = path.startswith(('/api/search', '/api/phenomenon', '/api/mapping', '/api/daily',
+        local_query = path == '/api/search' and request.method == 'POST'
+        retrieval = local_query or path.startswith(('/api/search', '/api/phenomenon', '/api/mapping', '/api/daily',
             '/api/examples', '/api/suggest', '/api/discoveries')) and request.method in ('GET', 'HEAD')
         if retrieval:
+            if local_query:
+                # This POST receives private question text. Allow only the exact
+                # local retrieval route; paid rewrite stays denied in its handler.
+                user, auth_status = auth_api.resolve_account_user(request)
+                if auth_status != 'valid' or user is None:
+                    return JSONResponse({'error': 'auth_required'}, status_code=401, headers={'Cache-Control': 'no-store'})
             from services import formal_admission
             try:
                 search_ready = formal_admission.safe_status(request.app)['search'] == 'ready'
@@ -578,6 +585,10 @@ async def gate_unfinished_production_surfaces(request: Request, call_next):
                 return JSONResponse({'error': 'search_not_ready'}, status_code=503, headers={'Cache-Control': 'no-store'})
         elif not system and not path.startswith(basic):
             return JSONResponse({'error': 'surface_not_admitted'}, status_code=503, headers={'Cache-Control': 'no-store'})
+        if local_query:
+            response = await call_next(request)
+            response.headers['Cache-Control'] = 'no-store'
+            return response
     return await call_next(request)
 
 

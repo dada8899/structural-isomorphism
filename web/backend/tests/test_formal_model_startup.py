@@ -5,8 +5,8 @@ import sys
 
 import pytest
 
-from web.backend.tests.test_formal_main_admission import prepared, smtp
-from web.backend.tests.test_formal_search_profile import make_bundle, encoder, synthetic_readonly_mount
+from web.backend.tests.test_formal_main_admission import BETA, login, prepared, smtp
+from web.backend.tests.test_formal_search_profile import make_bundle, refresh_bundle, encoder, synthetic_readonly_mount
 
 
 @pytest.fixture
@@ -36,6 +36,45 @@ def test_production_lifespan_constructs_only_local_cpu_and_publishes_after_ready
     asyncio.run(run())
     assert len(encoder[0]) == 1
     assert encoder[0][0][1] == {"device": "cpu", "local_files_only": True, "token": False, "trust_remote_code": False}
+
+
+def test_formal_search_post_is_account_local_and_does_not_cache_question(startup, prepared, encoder, monkeypatch):
+    import httpx
+    import numpy as np
+    from api import search
+
+    module, files = startup
+    np.save(files["precomputed_embeddings"], np.array([[1, 0, 0], [0, 1, 0]], dtype=np.float32))
+    refresh_bundle(files)
+    _, _, _, messages = prepared
+
+    def forbid_llm():
+        pytest.fail("local search may not initialize an external model")
+
+    monkeypatch.setattr(search, "_get_llm", forbid_llm)
+    async def run():
+        async with module.lifespan(module.app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=module.app), base_url=BETA) as client:
+                query = {"query": "queue feedback delay", "rewrite": False}
+
+                def encode_one(_self, value, **_kwargs):
+                    assert value == [query["query"]]
+                    return np.array([[1, 0, 0]], dtype=np.float32)
+
+                monkeypatch.setattr(encoder[1], "encode", encode_one)
+                assert (await client.post("/api/search", json=query)).status_code == 401
+                await login(client, messages)
+                result = await client.post("/api/search", json=query)
+                assert result.status_code == 200, result.text
+                assert result.headers["cache-control"] == "no-store"
+                assert result.json()["results"]
+                service = module.app_state["search"]
+                assert service.cache_stats()["size"] == 0
+                assert service.cache_stats()["misses"] == 1
+                denied = await client.post("/api/search", json={**query, "rewrite": True})
+                assert denied.status_code == 503
+                assert service.cache_stats()["misses"] == 1
+    asyncio.run(run())
 
 
 @pytest.mark.parametrize("fault", ["no-manifest", "bad-hash", "hub-id", "load-failure", "bad-vectors", "bm25"])
