@@ -1676,11 +1676,28 @@
   function observationSync() {
     const locked = busy || readOnlyView() || form.hidden;
     byId('start-research').disabled = locked || !byId('original-input').value.trim();
+    byId('save-question').disabled = byId('start-research').disabled;
     byId('observation-own').disabled = locked;
     let eligible = false;
     try { if(observationReview === byId('original-input').value) { observationProblem(observationReview,true); eligible=true; } } catch {}
     byId('observation-adopt').disabled = locked || !eligible || !byId('observation-own').checked;
   }
+  byId('save-question').addEventListener('click', () => {
+    if (busy || readOnlyView() || !byId('original-input').reportValidity()) return;
+    if (current || summaryEdited || byId('objective').value || byId('constraints').value ||
+        byId('unknowns').value || byId('entry').value !== 'phenomenon' || byId('confirmed').checked ||
+        byId('formula-enable').checked || !byId('problem-advanced').hidden) {
+      void saveProblem();
+      return;
+    }
+    const original = byId('original-input').value;
+    const title = Array.from(original.trim().normalize('NFC')).slice(0, 1000).join('');
+    void saveProblem(normalizeProblem({
+      entry:'research', original_input:original, objective:'',
+      summary:Array.from(title).length >= 8 ? title : '待研究问题：' + title + '（原话）',
+      variables:[], constraints:[], unknowns:[], confirmed:false,
+    }), false);
+  });
   byId('start-research').addEventListener('click', () => {
     if (busy || readOnlyView() || !byId('original-input').reportValidity()) return;
     byId('native-plan-own').checked = false;
@@ -2066,16 +2083,16 @@
     catch (error) { byId('source-status').textContent = error.message; }
     finally { sourceBusy = false; syncSourceAccess(); }
   });
-  function validateObservationReceipt(saved, problem, targetId, expectedRevision, minimumVersion) {
-    const fail = () => { throw Error('采用回执无法完整核对；原保存操作保留，请保留输入并用相同内容核对原操作。'); };
+  function validateSimpleSaveReceipt(saved, problem, targetId, expectedRevision, minimumVersion) {
+    const fail = () => { throw Error('保存回执无法完整核对；原保存操作保留，请保留输入并用相同内容核对原操作。'); };
     const integer = value => Number.isSafeInteger(value) && value >= 1 && value <= 2147483647;
     const row = saved?.research, value = saved?.current_problem;
     const wantedRevision = expectedRevision === null ? 1 : expectedRevision + 1;
     if (!planObject(saved) || !planObject(row) || !validId(row.id) || (targetId !== null && row.id !== targetId) ||
         row.current_revision !== wantedRevision || !integer(row.version) || row.version !== saved.research_version || row.version < minimumVersion ||
         !planObject(value) || value.research_id !== row.id || value.revision !== wantedRevision ||
-        !formulaDigest(value.digest) || !recordTime(value.created_at) || value.entry !== 'phenomenon' ||
-        value.original_input !== problem.original_input || value.summary !== problem.summary || value.objective !== '' || value.confirmed !== true ||
+        !formulaDigest(value.digest) || !recordTime(value.created_at) || value.entry !== problem.entry ||
+        value.original_input !== problem.original_input || value.summary !== problem.summary || value.objective !== problem.objective || value.confirmed !== problem.confirmed ||
         !['variables','constraints','unknowns'].every(key => Array.isArray(value[key]) && value[key].length === 0) ||
         (value.formula_snapshot !== undefined && value.formula_snapshot !== null) ||
         !Array.isArray(saved.revisions) || saved.revisions.length !== wantedRevision || saved.is_historical !== false ||
@@ -2094,7 +2111,7 @@
     for (const key of ['research_id','revision','digest','created_at','entry','original_input','objective','summary','confirmed']) if (latest[key] !== value[key]) fail();
     if (!['variables','constraints','unknowns'].every(key => latest[key].length === 0)) fail();
   }
-  async function saveProblem(adoptedProblem = null) {
+  async function saveProblem(adoptedProblem = null, adoptObservation = adoptedProblem !== null) {
     if (busy || readOnlyView()) return;
     const methodToken = beginMethodRead();
     setBusy(true);
@@ -2118,11 +2135,11 @@
       if (privateScope !== privateGeneration) throw new Error('账户访问已变化，请重新登录后核对原操作。');
       const url = researchId ? `/api/research/${researchId}/revisions` : '/api/research';
       const saved = await methodRequest(url, {method:'POST', headers:{'Content-Type':'application/json', 'Idempotency-Key':pending.key}, body},methodToken);
-      if (adoptedProblem) validateObservationReceipt(saved, adoptedProblem, researchId, expectedRevision, current ? editBase.researchVersion + 1 : 1);
+      if (adoptedProblem) validateSimpleSaveReceipt(saved, adoptedProblem, researchId, expectedRevision, current ? editBase.researchVersion + 1 : 1);
       render(saved,methodToken);
       history.replaceState(null, '', `/research/${saved.research.id}`);
       sessionStorage.removeItem(pending.slot);
-      if (adoptedProblem) {
+      if (adoptObservation) {
         byId('native-plan-own').checked = true;
         byId('observation-save-status').textContent = '本人自述已采用并保存。尚未外发；下一步请预览原话与费用。';
         planSync();

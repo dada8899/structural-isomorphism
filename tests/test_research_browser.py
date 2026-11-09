@@ -228,6 +228,32 @@ def _short_observation_page(context,client):
     return page,calls
 
 
+def test_plain_question_saves_verbatim_and_reopens_without_adoption(short_observation_asgi):
+    client, _ = short_observation_asgi
+    raw = '为什么？'
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        context = browser.new_context()
+        try:
+            page, calls = _short_observation_page(context, client)
+            page.goto('https://testserver/research')
+            page.locator('#original-input').fill(raw)
+            page.locator('#save-question').click()
+            expect(page.locator('#status')).to_contain_text('已保存修订 1')
+            saved_url = page.url
+            row = client.get('/api/research/' + saved_url.rsplit('/', 1)[1]).json()['data']
+            assert row['current_problem']['original_input'] == raw
+            assert row['current_problem']['confirmed'] is False
+            assert row['task'] is None
+            page.goto(saved_url)
+            expect(page.locator('#original-input')).to_have_value(raw)
+            expect(page.locator('#problem-advanced')).to_be_hidden()
+            assert [(method, path) for method, path, _ in calls if method == 'POST'] == [('POST', '/api/research')]
+        finally:
+            context.close()
+            browser.close()
+
+
 @pytest.mark.parametrize('raw',[
     '一个物体温度恢复到环境温度的过程，是否与电容放电对应？请比较公式，告诉我能借用什么、什么时候不能用。',
     ' e\u0301 原话中的温度恢复过程。\n ',

@@ -4,11 +4,11 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <title>研究记录 · Structure</title>
-  <link rel="stylesheet" href="/assets/research.css?v=20261030-entry7">
+  <link rel="stylesheet" href="/assets/research.css?v=20261109-entry1">
   <script src="/assets/evidenceMethodPlan.js?v=20261023-evidence1" defer></script>
   <script src="/assets/financial-registry.js?v=20261023-fin2-registry1" defer></script>
   <script src="/assets/financial-scenario.js?v=20261023-fin3-scenario1" defer></script>
-  <script src="/assets/research.js?v=20261030-entry7" defer></script>
+  <script src="/assets/research.js?v=20261109-entry1" defer></script>
 </head>
 <body class="advanced-closed">
   <header><a href="/" class="brand">Structure<span>结构研究</span></a><nav aria-label="研究导航"><a href="#my-research">我的研究</a><a href="#advanced-tools-toggle">高级工具</a><a href="/auth/login">账户</a></nav></header>
@@ -21,13 +21,13 @@
     <p id="view-context" class="scope" hidden></p>
     <div id="access" hidden><a href="/auth/login">登录账户</a><p>研究默认私有，请使用保存时的账户读取。</p></div>
     <form id="problem-form" hidden>
-      <div class="section-heading"><h2>问题记录</h2><span id="revision-label">未保存</span></div>
+      <div class="section-heading"><h2>你想研究什么？</h2><span id="revision-label">未保存</span></div>
       <p id="problem-meta" class="hint" hidden>原问题保存时间 <time id="problem-created"></time></p>
-      <p id="entry-capability" class="scope" aria-live="polite">当前可保存并规划 8–1000 字的本人现象自述。先完整保留原话，尚未进行系统分析；较长问题及第三方资料暂不适用此入口。外发前会单独展示原文、费用与实际开放状态。</p>
+      <p id="entry-capability" class="scope" aria-live="polite">输入一个问题即可保存。若要将本人的观察用于外部研究，可再核对原文、接收方与费用。</p>
       <label for="original-input">原始问题 <span>必填 · 最多 4000 字</span></label>
       <textarea id="original-input" required maxlength="4000" rows="5" aria-describedby="input-hint"></textarea>
       <p id="input-hint" class="hint">描述你观察到了什么，先保留原话。</p>
-      <div class="actions entry-actions"><button id="start-research" type="button" disabled aria-describedby="entry-capability">核对原话，继续下一步</button></div>
+      <div class="actions entry-actions"><button id="save-question" type="button" disabled>保存问题</button><button id="start-research" class="secondary" type="button" disabled aria-describedby="entry-capability">规划如何研究我的观察</button></div>
       <section id="observation-card" hidden aria-labelledby="observation-card-title">
         <h2 id="observation-card-title">原话记录</h2>
         <p class="hint">本人原话（待你声明），尚未进行系统分析，未知项未填写。这里没有生成摘要、变量或研究结论。</p>
@@ -81,7 +81,7 @@
           <div class="formula-grid"><div id="formula-left"></div><div id="formula-right"></div></div>
         </div>
       </section>
-      <div class="actions"><button id="save" type="submit">保存问题</button><button id="reload" type="button" class="secondary" hidden>重新读取已存版本</button></div>
+      <div class="actions"><button id="save" type="submit">保存手动补充</button><button id="reload" type="button" class="secondary" hidden>重新读取已存版本</button></div>
       <p class="hint">请求结果不明时保留当前内容，再次保存相同内容会核对原操作，不会另存一份。</p>
       </div>
     </form>
