@@ -59,6 +59,17 @@
     });
   }
 
+  function statusReceipt(value, expected) {
+    if (!keys(value,['contract_revision','metadata','operation_key','status']) ||
+        value.contract_revision !== CONTRACT || !object(expected) ||
+        typeof value.operation_key !== 'string' || !ID.test(value.operation_key) ||
+        value.operation_key !== expected.operation_key ||
+        !['pending','accepted','unknown','completed','not_sent'].includes(value.status) ||
+        !keys(value.metadata,['research_id','input_revision','research_version','problem_digest'])) return null;
+    return ['research_id','input_revision','research_version','problem_digest']
+      .every(key => value.metadata[key] === expected[key]) ? value.status : null;
+  }
+
   function mount(panel, options) {
     const doc = panel.ownerDocument;
     let epoch = 0;
@@ -79,8 +90,36 @@
       const current = options.current();
       if (current?.external_first_answer === 'pending') {
         panel.hidden = false;
-        const status = add('p','外部提交结果尚待核对。请从研究记录查看，不要重复发送。');
+        const status = add('p','外部提交结果尚待核对。不要重复发送。');
         status.setAttribute('role','status');
+        if (typeof options.inspect !== 'function' || typeof current.operation_key !== 'string' ||
+            !ID.test(current.operation_key)) return;
+        const anchor = Object.freeze({...current});
+        const generation = epoch;
+        const active = () => {
+          const latest = options.current();
+          return generation === epoch && latest?.external_first_answer === 'pending' &&
+            ['research_id','input_revision','research_version','problem_digest','actor','operation_key']
+              .every(key => latest[key] === anchor[key]);
+        };
+        const inspect = button('核对原提交');
+        inspect.addEventListener('click', async () => {
+          if (!active() || inspect.disabled) return;
+          inspect.disabled = true;
+          status.textContent = '正在只读核对原提交…';
+          let observed;
+          try { observed = statusReceipt(await options.inspect(anchor),anchor); } catch {}
+          if (!active()) return;
+          const labels = {
+            pending:'原请求仍在等待核对。不要重复发送。',
+            accepted:'原请求已接收。请继续查看这一条记录。',
+            unknown:'服务端尚不能确认原请求结果。不要重复发送。',
+            completed:'原请求已返回。请查看该修订的待核查分析。',
+            not_sent:'服务端确认原请求未发送。此处不会重新提交。',
+          };
+          status.textContent = labels[observed] || '暂时无法核对原请求。不要重复发送。';
+          inspect.disabled = false;
+        });
         return;
       }
       if (!current || current.external_first_answer !== 'ready') return;
@@ -160,5 +199,5 @@
     return Object.freeze({offer, reset});
   }
 
-  return Object.freeze({preview, confirmation, mount});
+  return Object.freeze({preview, confirmation, statusReceipt, mount});
 });

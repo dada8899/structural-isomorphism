@@ -1413,14 +1413,18 @@
   }
   function externalContext() {
     if (!accountScope || !editBase || !current || methodDirty || readOnlyView() || form.hidden ||
-        current.capabilities?.external_first_answer !== 'ready' || !validId(researchId)) return null;
+        !['ready','status_only'].includes(current.capabilities?.external_first_answer) || !validId(researchId)) return null;
     const anchor = {
       research_id:researchId, input_revision:editBase.revision, research_version:editBase.researchVersion,
       problem_digest:editBase.digest, original_input:current.current_problem.original_input,
       actor:accountScope, external_first_answer:'ready',
     };
     try {
-      if (sessionStorage.getItem(externalPendingKey(anchor))) anchor.external_first_answer = 'pending';
+      const pending = sessionStorage.getItem(externalPendingKey(anchor));
+      if (pending) {
+        anchor.external_first_answer = 'pending';
+        anchor.operation_key = pending;
+      } else if (current.capabilities.external_first_answer !== 'ready') return null;
     } catch { return null; }
     return anchor;
   }
@@ -1434,7 +1438,13 @@
     const timer = setTimeout(() => controller.abort(), 15000);
     try {
       if (!matches() || !await authenticated(matches,controller.signal) || !matches()) throw Error('external scope changed');
-      const headers = {'Content-Type':'application/json'};
+      const read = action === 'status';
+      const headers = read ? {} : {'Content-Type':'application/json'};
+      if (read) {
+        const pending = sessionStorage.getItem(externalPendingKey(anchor));
+        if (!validId(pending) || pending !== anchor.operation_key) throw Error('external operation not located');
+        headers['Idempotency-Key'] = pending;
+      }
       if (action === 'confirm') {
         const key = externalPendingKey(anchor);
         if (sessionStorage.getItem(key)) throw Error('external operation already pending');
@@ -1444,8 +1454,8 @@
         sessionStorage.setItem(key, headers['Idempotency-Key']);
       }
       const path = `/api/research/${encodeURIComponent(anchor.research_id)}/revisions/${anchor.input_revision}/external-first-answer/${action}`;
-      const response = await fetch(path, {method:'POST', credentials:'same-origin', cache:'no-store',
-        redirect:'error', headers, body:JSON.stringify(body), signal:controller.signal});
+      const response = await fetch(path, {method:read ? 'GET' : 'POST', credentials:'same-origin', cache:'no-store',
+        redirect:'error', headers, ...(read ? {} : {body:JSON.stringify(body)}), signal:controller.signal});
       if (!response.ok || !matches()) throw Error('external operation unavailable');
       const value = await response.json();
       if (!matches() || !await authenticated(matches,controller.signal) || !matches()) throw Error('external scope changed');
@@ -1457,6 +1467,7 @@
     load:anchor => externalAnswerRequest(anchor,'preview',{
       problem_digest:anchor.problem_digest, research_version:anchor.research_version}),
     submit:(anchor,body) => externalAnswerRequest(anchor,'confirm',body),
+    inspect:anchor => externalAnswerRequest(anchor,'status'),
   });
 
   let firstAnswerGeneration = 0;

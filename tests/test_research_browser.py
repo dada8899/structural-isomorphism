@@ -399,7 +399,7 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
     import time
     client, _ = short_observation_asgi
     exact = "为什么相同需求会出现两种结果？"
-    confirms = []
+    confirms, operation_keys, reads = [], [], []
     advertised = {"ready":False}
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
@@ -416,7 +416,7 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
                                           content=request.post_data_buffer)
                 body = response.json()
                 if response.status_code == 200 and advertised["ready"]:
-                    body["data"]["capabilities"]["external_first_answer"] = "ready"
+                    body["data"]["capabilities"]["external_first_answer"] = advertised["ready"]
                 route.fulfill(status=response.status_code,json=body)
 
             def local_failure(route):
@@ -433,7 +433,15 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
                 row = saved["current_problem"]
                 if request.url.endswith("/confirm"):
                     confirms.append(request.post_data_json)
+                    operation_keys.append(request.all_headers()["idempotency-key"])
                     route.fulfill(status=503,json={"error":{"code":"RECEIPT_UNKNOWN"}})
+                    return
+                if request.url.endswith("/status"):
+                    reads.append((request.method,request.all_headers()["idempotency-key"],request.post_data))
+                    route.fulfill(json={"contract_revision":"external-first-answer-v1",
+                        "metadata":{"research_id":row["research_id"],"input_revision":row["revision"],
+                                    "research_version":saved["research_version"],"problem_digest":row["digest"]},
+                        "operation_key":operation_keys[0],"status":"unknown"})
                     return
                 route.fulfill(json={"contract_revision":"external-first-answer-v1","purpose":"external-first-answer-question-v1",
                     "metadata":{"research_id":row["research_id"],"input_revision":row["revision"],
@@ -452,7 +460,7 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
             expect(page.locator("#first-answer-status")).to_contain_text("材料不足")
             expect(page.locator("#external-first-answer")).to_be_hidden()
             saved_url = page.url
-            advertised["ready"] = True
+            advertised["ready"] = "ready"
             page.route("https://testserver/api/research/" + saved_url.rsplit("/",1)[1],with_capability)
             page.reload()
             panel = page.locator("#external-first-answer")
@@ -466,9 +474,14 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
             send.click()
             expect(panel.get_by_role("status")).to_contain_text("不要重复发送")
             assert len(confirms) == 1 and "exact_question" not in confirms[0]
+            advertised["ready"] = "status_only"
             page.reload()
             expect(panel.get_by_role("status")).to_contain_text("尚待核对")
             expect(panel.get_by_role("button",name="查看外部分析选项")).to_have_count(0)
+            panel.get_by_role("button",name="核对原提交").click()
+            expect(panel.get_by_role("status")).to_contain_text("服务端尚不能确认")
+            assert reads == [("GET", operation_keys[0], None)] and len(confirms) == 1
+
         finally:
             context.close()
             browser.close()
