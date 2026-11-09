@@ -70,6 +70,25 @@
       .every(key => value.metadata[key] === expected[key]) ? value.status : null;
   }
 
+  function resultReceipt(value, expected) {
+    if (!keys(value,['contract_revision','metadata','operation_key','result_digest','schema','review_required','candidate']) ||
+        value.contract_revision !== CONTRACT || value.schema !== 'external-first-answer-unverified-candidate-v1' ||
+        value.review_required !== true || typeof value.result_digest !== 'string' || !KEY.test(value.result_digest) ||
+        !statusReceipt({contract_revision:value.contract_revision,metadata:value.metadata,
+                        operation_key:value.operation_key,status:'completed'},expected)) return null;
+    const item = value.candidate;
+    const text = (input,max) => typeof input === 'string' && input.trim().length > 0 &&
+      Array.from(input).length <= max && !/[<>]|https?:|www\./i.test(input);
+    if (keys(item,['status','explanation','assumptions','next_check','evidence_status']) &&
+        item.status === 'candidate' && item.evidence_status === 'not_checked' && text(item.explanation,900) &&
+        Array.isArray(item.assumptions) && item.assumptions.length >= 1 && item.assumptions.length <= 4 &&
+        item.assumptions.every(value=>text(value,240)) && text(item.next_check,400)) return item;
+    if (keys(item,['status','question']) && item.status === 'clarification' && text(item.question,240)) return item;
+    if (keys(item,['status','reason']) && item.status === 'insufficient' &&
+        ['unsupported','not_enough_information'].includes(item.reason)) return item;
+    return null;
+  }
+
   function mount(panel, options) {
     const doc = panel.ownerDocument;
     let epoch = 0;
@@ -103,6 +122,28 @@
               .every(key => latest[key] === anchor[key]);
         };
         const inspect = button('核对原提交');
+        const readResult = button('查看待核查分析');
+        readResult.hidden = true;
+        const resultBody = add('div','');
+        readResult.addEventListener('click', async () => {
+          if (!active() || readResult.disabled || typeof options.loadResult !== 'function') return;
+          readResult.disabled = true;
+          let result;
+          try { result = resultReceipt(await options.loadResult(anchor), anchor); } catch {}
+          if (!active()) return;
+          readResult.disabled = false;
+          resultBody.replaceChildren();
+          if (!result) { add('p','暂时无法核对原返回内容。',resultBody); return; }
+          add('h3','外部返回 · 待核查',resultBody);
+          if (result.status === 'candidate') {
+            add('p','此解释尚未核验证据。',resultBody);
+            add('p',result.explanation,resultBody);
+            const conditions = add('ul','',resultBody);
+            for (const item of result.assumptions) add('li',item,conditions);
+            add('p',result.next_check,resultBody);
+          } else if (result.status === 'clarification') add('p',result.question,resultBody);
+          else add('p','原返回没有足够信息形成解释。',resultBody);
+        });
         inspect.addEventListener('click', async () => {
           if (!active() || inspect.disabled) return;
           inspect.disabled = true;
@@ -118,6 +159,7 @@
             not_sent:'服务端确认原请求未发送。此处不会重新提交。',
           };
           status.textContent = labels[observed] || '暂时无法核对原请求。不要重复发送。';
+          readResult.hidden = observed !== 'completed' || typeof options.loadResult !== 'function';
           inspect.disabled = false;
         });
         return;
@@ -199,5 +241,5 @@
     return Object.freeze({offer, reset});
   }
 
-  return Object.freeze({preview, confirmation, statusReceipt, mount});
+  return Object.freeze({preview, confirmation, statusReceipt, resultReceipt, mount});
 });

@@ -365,7 +365,7 @@ def _closed_external_scope(service, identity, research_id, input_revision, expec
             raise ResearchError("REVISION_CONFLICT",409,"问题已有变化，请重新读取。")
 
 
-_EXTERNAL_FIRST_ANSWER = ("external-answer-preview", "external-answer-confirm", "external-answer-status")
+_EXTERNAL_FIRST_ANSWER = ("external-answer-preview", "external-answer-confirm", "external-answer-status", "external-answer-result")
 
 
 async def _dispatch_closed_external_answer(request, service, identity, research_id, operation):
@@ -376,7 +376,8 @@ async def _dispatch_closed_external_answer(request, service, identity, research_
     if input_revision > 2147483647:
         raise ResearchError("INPUT_INVALID",422,"外部分析修订无效。")
     expected = None
-    if operation != "external-answer-status":
+    read_only = operation in ("external-answer-status", "external-answer-result")
+    if not read_only:
         if auth.require_same_origin(request) is not None:
             raise ResearchError("AUTHORIZATION_STALE",403,"请从本站页面操作外部分析。")
         if __package__ == 'web.backend.api':
@@ -395,7 +396,7 @@ async def _dispatch_closed_external_answer(request, service, identity, research_
         key = request.headers.get("idempotency-key", "")
         if not re.fullmatch(r"[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}", key):
             raise ResearchError("INPUT_INVALID",422,"原操作标识缺失或不合法。")
-    if operation == "external-answer-status":
+    if read_only:
         async for chunk in request.stream():
             if chunk:
                 raise ResearchError("INPUT_INVALID",422,"状态查询不接受请求正文。")
@@ -821,6 +822,11 @@ async def confirm_external_first_answer(research_id: str, input_revision: str, r
 @router.get("/research/{research_id}/revisions/{input_revision}/external-first-answer/status")
 async def read_external_first_answer_status(research_id: str, input_revision: str, request: Request):
     return await _dispatch(request,research_id=research_id,operation="external-answer-status")
+
+
+@router.get("/research/{research_id}/revisions/{input_revision}/external-first-answer/result")
+async def read_external_first_answer_result(research_id: str, input_revision: str, request: Request):
+    return await _dispatch(request,research_id=research_id,operation="external-answer-result")
 
 
 @router.post("/research/{research_id}/tasks")

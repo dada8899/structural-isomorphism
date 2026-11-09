@@ -1438,7 +1438,7 @@
     const timer = setTimeout(() => controller.abort(), 15000);
     try {
       if (!matches() || !await authenticated(matches,controller.signal) || !matches()) throw Error('external scope changed');
-      const read = action === 'status';
+      const read = action === 'status' || action === 'result';
       const headers = read ? {} : {'Content-Type':'application/json'};
       if (read) {
         const pending = sessionStorage.getItem(externalPendingKey(anchor));
@@ -1468,6 +1468,7 @@
       problem_digest:anchor.problem_digest, research_version:anchor.research_version}),
     submit:(anchor,body) => externalAnswerRequest(anchor,'confirm',body),
     inspect:anchor => externalAnswerRequest(anchor,'status'),
+    loadResult:anchor => externalAnswerRequest(anchor,'result'),
   });
 
   let firstAnswerGeneration = 0;

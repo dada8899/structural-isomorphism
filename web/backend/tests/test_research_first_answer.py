@@ -269,6 +269,10 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
                 read = await client.get(external+"/status",headers={"Idempotency-Key":key})
                 assert read.status_code == 503 and read.json()["error"]["code"] == "FEATURE_UNAVAILABLE"
                 assert (await client.get(external+"/status")).status_code == 422
+                returned = await client.get(external+"/result",headers={"Idempotency-Key":key})
+                assert returned.status_code == 503 and returned.json()["error"]["code"] == "FEATURE_UNAVAILABLE"
+                assert "candidate" not in returned.json()
+
                 async with httpx.AsyncClient(transport=transport,base_url=BETA) as other:
                     assert (await other.get(external+"/status",headers={"Idempotency-Key":key})).status_code == 401
                     await login(other,messages,"external-other@example.invalid")

@@ -401,6 +401,8 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
     exact = "为什么相同需求会出现两种结果？"
     confirms, operation_keys, reads = [], [], []
     advertised = {"ready":False}
+    observed = {"status":"unknown"}
+    results = []
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         context = browser.new_context()
@@ -441,7 +443,18 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
                     route.fulfill(json={"contract_revision":"external-first-answer-v1",
                         "metadata":{"research_id":row["research_id"],"input_revision":row["revision"],
                                     "research_version":saved["research_version"],"problem_digest":row["digest"]},
-                        "operation_key":operation_keys[0],"status":"unknown"})
+                        "operation_key":operation_keys[0],"status":observed["status"]})
+                    return
+                if request.url.endswith("/result"):
+                    results.append((request.method,request.all_headers()["idempotency-key"],request.post_data))
+                    route.fulfill(json={"contract_revision":"external-first-answer-v1",
+                        "metadata":{"research_id":row["research_id"],"input_revision":row["revision"],
+                                    "research_version":saved["research_version"],"problem_digest":row["digest"]},
+                        "operation_key":operation_keys[0],"result_digest":"d"*64,
+                        "schema":"external-first-answer-unverified-candidate-v1","review_required":True,
+                        "candidate":{"status":"candidate","explanation":"可能有第二个变化因素。",
+                                     "assumptions":["比较口径一致。"],"next_check":"单独改变一项再比较。",
+                                     "evidence_status":"not_checked"}})
                     return
                 route.fulfill(json={"contract_revision":"external-first-answer-v1","purpose":"external-first-answer-question-v1",
                     "metadata":{"research_id":row["research_id"],"input_revision":row["revision"],
@@ -481,6 +494,15 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
             panel.get_by_role("button",name="核对原提交").click()
             expect(panel.get_by_role("status")).to_contain_text("服务端尚不能确认")
             assert reads == [("GET", operation_keys[0], None)] and len(confirms) == 1
+            expect(panel.get_by_role("button",name="查看待核查分析")).to_be_hidden()
+            observed["status"] = "completed"
+            panel.get_by_role("button",name="核对原提交").click()
+            panel.get_by_role("button",name="查看待核查分析").click()
+            expect(panel).to_contain_text("外部返回 · 待核查")
+            expect(panel).to_contain_text("此解释尚未核验证据")
+            expect(panel).to_contain_text("可能有第二个变化因素")
+            assert results == [("GET",operation_keys[0],None)] and len(confirms) == 1
+
 
         finally:
             context.close()
