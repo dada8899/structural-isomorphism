@@ -409,6 +409,24 @@ async def _dispatch_closed_external_answer(request, service, identity, research_
         if recovered is not None:
             return JSONResponse(recovered, headers=_HEADERS)
 
+    if not read_only:
+        if __package__ == 'web.backend.api':
+            from ..research import external_first_answer_controlled as controlled
+            from ..research.external_first_answer_contract import ContractError
+        else:
+            from research import external_first_answer_controlled as controlled
+            from research.external_first_answer_contract import ContractError
+        runtime=controlled.current(request.app,service)
+        if runtime is not None:
+            try:
+                if operation == "external-answer-preview":
+                    result=await run_in_threadpool(controlled.preview,runtime,service,identity,research_id,input_revision,expected)
+                else:
+                    result=await run_in_threadpool(controlled.confirm,runtime,service,identity,research_id,input_revision,key,confirmation)
+                return JSONResponse(result,headers=_HEADERS)
+            except (ContractError,sqlite3.Error):
+                raise ResearchError("OPERATION_UNAVAILABLE",409,"外部操作未能核对，请读取原操作状态。") from None
+
     await run_in_threadpool(_closed_external_scope, service, identity, research_id, input_revision, expected)
     # No issuer, quote, reservation, execution or response lookup is admitted.
     raise ResearchError("FEATURE_UNAVAILABLE",503,"外部分析尚未开放，已保存的问题仍在。")
