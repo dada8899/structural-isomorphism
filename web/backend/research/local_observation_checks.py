@@ -234,10 +234,44 @@ def _baseline_decay_series(question):
         "references":[],
     }
 
+
+def _open_loop_check(question):
+    scheduled = re.search(r"预设时间表|固定时间表|定时(?:开关|启停)|fixed (?:timer|schedule)|preset schedule",question,re.I)
+    display_only = re.search(r"只用于查看|仅用于显示|不进入.{0,14}控制|不参与.{0,14}控制|display only|not (?:used in|fed into) (?:the )?control",question,re.I)
+    asks_feedback = re.search(r"反馈|feedback",question,re.I)
+    contradicts = re.search(r"但.{0,12}(?:根据|依照).{0,12}(?:读数|测量).{0,8}(?:调节|控制)|but.{0,25}adjusts based on",question,re.I)
+    if not (scheduled and display_only and asks_feedback) or contradicts:
+        return None
+    return {
+        "producer":"local-logic-open-loop-v1",
+        "explanation":"按题设，测量只用于显示，没有影响下一轮控制动作。因此显示延迟不在控制回路里，不能用它解释反馈振荡。固定启停时间表本身就可能驱动周期变化；这仍需用记录核对。",
+        "assumptions":["定时控制是实际运行规则，不存在另一个根据读数调整动作的控制通道。"],
+        "cross_domain_leads":[],
+        "next_check":"对齐预设排程、实际动作命令和原始测量时间戳，另列显示时间。若实际动作跟随排程且不随测量改变，支持定时驱动；若动作会因测量值而改变，再检查闭环与时滞。",
+        "references":[],
+    }
+
+
+def missing_recovery_baseline(question):
+    """Request one measurement only when extrapolation lacks its stated reference."""
+    if not isinstance(question,str) or not 1<=len(question)<=4000:
+        return None
+    if not re.search(r"没有测.{0,8}(?:稳定)?背景|背景未知|baseline is unknown|no stable baseline",question,re.I):
+        return None
+    if not re.search(r"固定比例|唯一读数|下一次.{0,8}读数|fixed ratio|unique reading|extrapolat",question,re.I):
+        return None
+    if len(re.findall(r"读数(?:是|为)|读到|reading (?:was|is)|readings? (?:of|at)",question,re.I)) < 2:
+        return None
+    if re.search(r"[\u3400-\u9fff]",question):
+        return "能否在相同条件下再测一次稳定背景？仅凭两个读数无法同时确定背景和恢复规律，不能给出唯一的下一次读数。"
+    return "Can you measure the stable baseline under the same conditions? Two readings alone do not determine both the baseline and the recovery rule."
+
 def observation_check(question):
     """Return a hypothesis plus an executable comparison; never invent sources."""
     if type(question) is not str or not 1 <= len(question) <= 4000:
         return None
+    if boundary := _open_loop_check(question):
+        return boundary
     if series := _baseline_decay_series(question):
         return series
     if balance := _hourly_balance(question):

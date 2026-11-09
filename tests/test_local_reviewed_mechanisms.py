@@ -275,3 +275,18 @@ def test_baseline_decay_series_extrapolates_only_a_consistent_stated_ratio():
     assert observation_check(question.replace("20、12、8","20、13、8")) is None
     assert observation_check(question.replace("背景为 4","背景为 4.5")) is None
     assert observation_check(question.replace("读数为 36","读数为 36.5")) is None
+
+
+def test_timer_and_display_delay_are_not_a_feedback_loop():
+    from web.backend.research.local_observation_checks import observation_check
+    asked = "固定时间表控制电机启停，测量晚三秒，仅用于显示，不参与控制。这能证明反馈吗？"
+    result = observation_check(asked)
+    assert result and "不能用它解释反馈振荡" in result["explanation"]
+    assert "时间戳" in result["next_check"] and not result["references"]
+
+
+def test_two_readings_without_background_cannot_determine_extrapolation():
+    from web.backend.research.local_observation_checks import missing_recovery_baseline
+    question = "开始读数是 54，十分钟后读到 30，背景未知。固定比例能给唯一读数吗？"
+    result = missing_recovery_baseline(question)
+    assert result and result.count("？")==1 and "无法同时确定背景和恢复规律" in result
