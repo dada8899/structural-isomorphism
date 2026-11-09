@@ -108,3 +108,17 @@ run-formal-main 的实际 _serve 可将已硬化的 systemd 凭据目录见证�
 只有确认全部绑定并在独立受保护目录持久消费启动挑战后，专用 loader 才能通过原目录见证读新 credential ID。它复查 ACL、只读挂载及文件身份/重复读，且不输出或写入 ENV。旧用途 loader 和 grant 不扩展。已有状态仍需新 sender、官方新鲜余额、受审按次授权和 UNKNOWN 对账；启动 handle 不授预留或发送。未加载真实钥、未发供应端请求、未操作生产。
 
 已验证实际隔离 Main 的两种负例：无源固定 pin、只有合成 pin 但没有真实入口见证；两者都不访问批准文件、依赖或凭据，账户及普通保存照常，预览 503。合成 issuer 仍不能产生 live handle。旧正式入口与系统凭据元数据回归继续保持。
+
+## 正式 sender 与共享账本候选
+
+services/external_live_sender.py 只接受实际注册的 live 启动 handle、同一个已准入 Main/ResearchStore 以及源固定端点政策。合成 handle、未登记对象或无端点政策在网络和账本前拒绝。它不接通任何 Main 路由；端点政策和启动政策目前均为空。旧用途代码与授权不变。
+
+候选实际写入路径用 ResearchStore 的私有连接、Owner gate、同账本 SQL 守卫和 v17 结构，不使用内存或临时文件授权。用户确认同一修订的精确请求、金额及资格后，检查原操作和共享未决记录；从固定 HTTPS 官方余额取得 CNY 整数微元，按同账本原子预留。持久消费提交返回后才产生进程内一次票，不能用数据库 consumed 行重建票。TLS 后第一条写入持实际 Owner gate，再核存储请求摘要、权限、修订及短时效；只向固定 host/path 一次写入。原操作状态恢复不发新请求。任何可能已经发出的异常保留原 held，连 UNKNOWN 写入失败时 durable consumed 仍只呈 unknown。已知回执且用量和候选形状可核时才原子记上界、写未核候选，不把它当实际账单或证据结论。未接入正式 sender 正向测试，不能当作部署证据。
+
+正式接入所需外部材料（不提交任何私钥或 API key 值）：
+
+1. 独立审查者正式 Ed25519 公钥原始 32 字节或 64 位十六进制、指纹和批准根路径；最终 protected-main 源、source manifest、实际加载 Unit、runtime closure、UID/GID、私有库和收据目录物理身份确定后，提供与这些事实绑定的一次性签名 Go。审批私钥由审查者自行持有。
+2. 目标 Linux x86_64 的真实 Python 解释器/依赖锁及安装制品清单与逐文件 SHA，包括 cryptography、cffi、_cffi_backend、pycparser 及可加载依赖；在同目标 UID/解释器和无网络隔离环境核 ABI、实际导入来源及签名正反例。当前 a3 未证明，不能临时安装或从开发机推断。
+3. 在批准的 systemd 加密入口提供专用 credential ID structural-external-first-answer-deepseek-key，验证实际挂载/ACL。独立提供该凭据代次、官方经济账户与现有 CNY300 账本同一绑定的受信记录，放在 root 管理的 external-first-answer-economic-binding.json；不能根据 key 名、key 哈希或余额数字自行推定。
+4. 核准固定公开 IP、TLS hostname api.deepseek.com、目标系统 CA bundle SHA 以及当前官方 DeepSeek 模型和价格资料。root 管理的 external-first-answer-price-basis.json 需精确给出 CNY 微元 cache miss/output 峰值单价、该模型的输入上限和本合同输出上限，独立复算并冻结每次金额上界。端点或价格材料变化使预览/批准失效。
+5. 上述真实材料齐全之后，仍需独立审核 Main 绑定、按次 quote issuer/用户确认路由、首写与撤权、返回/UNKNOWN 和回退，完成有界隔离验证再另行发布。目前所有证据仅是离线拒绝/数据测试与既有合成账本流程，未读真实凭据、访问供应端、消费费用或改生产。
