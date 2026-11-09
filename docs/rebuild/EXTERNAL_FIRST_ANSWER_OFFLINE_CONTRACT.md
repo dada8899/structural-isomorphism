@@ -31,3 +31,9 @@ external_first_answer_state.py 定义待审 SQLite 表与闭合消费边界。�
 不能直接接旧资金 writer：plan_native_financial._producer 只允许既有 native/runtime 活动调用栈，同账本资金变化还必须与旧 dispatch 行、真实余额和固定 reserve/return/release 函数一致。把后备用途塞进旧计划、开放原 writer hook 或新建第二个钱包都会破坏边界。后续接入需明确：新 purpose 的受信 issuer 和固定 transport，真实 Owner/revision/ACL/CAS，预留与状态写入同一 SQLite 事务，发送前再次核绑定及 durable consumption，原 held 的回执/晚到/UNKNOWN 对账，候选独立审核及所有者读回。未知费用的合法账号删除需先按现有财务留存规则设计独立清理通路，不能删除未决资金行。
 
 新增 9 项隔离状态检查。测试数据库只建身份外键占位，不建余额或账本；测试 hook 只用于证实 SQL 的状态形状与不可逆约束，不是资金证明。现有真实 Native 集成对照仍是上一节的两项负控。新表未加到任何迁移或 Main，未签新目的消费、保存或回读闭环。
+
+## 受控原子写入演练
+
+external_first_answer_fixture_writer.py 只允许 SQLite 内存库，不接受磁盘库或已挂接库。它复用既有资金账户表的真实声明，测试只建立一个 CNY 账户。独立后备 grant 复核精确预览、确认、已存修订/权限和账户绑定。预留与状态同事务写入，消费提交后只交出一次请求字节；测试随后仅向本机回环地址发送这一次。正常合成回执在原账户上把 held 转入保守上界，并保存可重复回读的未核候选；没有回执时原 held 保留且拒绝后续预留、消费或重发。没有第二份额度。
+
+另有两连接并发竞抢、已有占用扣减和注入状态写入失败的回滚检查。演练使用内存专用 guard、合成余额和合成回执，不冒用旧用途授权、不改动旧 Financial9 代码，不是可接生产的 writer。生产仍需受审的独立用途 issuer、真实同物理库授权、官方余额与预留身份，及跨旧/新目的的未决占用一致性验证。新的 run 行用自己的 ID 标记已占用；不造一条旧 research_reservations/task 行借用身份。

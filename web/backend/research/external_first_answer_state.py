@@ -25,7 +25,7 @@ _COLUMNS = (
     "id", "research_id", "principal_id", "input_revision", "research_version",
     "scope_digest", "preview_digest", "request_digest", "quote_digest",
     "account_id", "funding_epoch", "upper_units", "state", "version",
-    "reservation_ref", "receipt_digest", "candidate_digest",
+    "reservation_ref", "receipt_digest", "candidate_digest", "candidate_json",
 )
 _FIXED = _COLUMNS[:12]
 
@@ -50,9 +50,11 @@ DDL = (
         upper_units INTEGER NOT NULL CHECK(typeof(upper_units)='integer' AND upper_units BETWEEN 1 AND 300000000),
         state TEXT NOT NULL CHECK(state IN ('confirmed','reserved','consumed','unknown','returned','closed_unsent')),
         version INTEGER NOT NULL CHECK(typeof(version)='integer' AND version BETWEEN 1 AND 2147483647),
-        reservation_ref TEXT UNIQUE REFERENCES research_reservations(id),
+        reservation_ref TEXT UNIQUE CHECK(reservation_ref IS NULL OR reservation_ref=id),
         receipt_digest TEXT CHECK(length(receipt_digest)=64 AND receipt_digest NOT GLOB '*[^a-f0-9]*'),
         candidate_digest TEXT CHECK(length(candidate_digest)=64 AND candidate_digest NOT GLOB '*[^a-f0-9]*'),
+        candidate_json TEXT CHECK(candidate_json IS NULL OR (json_valid(candidate_json) AND length(CAST(candidate_json AS BLOB))<=8192)),
+        CHECK((candidate_json IS NULL)=(candidate_digest IS NULL)),
         FOREIGN KEY(research_id,input_revision) REFERENCES research_revisions(research_id,revision),
         UNIQUE(research_id,input_revision),
         CHECK((state='confirmed' AND reservation_ref IS NULL AND version=1)

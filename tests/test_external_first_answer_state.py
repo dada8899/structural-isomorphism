@@ -33,8 +33,8 @@ def db():
             conn.execute("INSERT INTO "+table+" VALUES(?)",(value,))
         conn.execute("INSERT INTO research_revisions VALUES(?,1)",(rid,))
         record=(identifier(),rid,pid,1,1,"a"*64,"b"*64,"c"*64,"d"*64,account,1,5_000,
-                "confirmed",1,None,None,None)
-        yield conn,record,reservation
+                "confirmed",1,None,None,None,None)
+        yield conn,record,record[0]
 
 
 def insert(conn, row, *, replace=False):
@@ -81,7 +81,7 @@ def test_known_return_requires_receipt_and_remains_immutable(db):
     conn.execute("UPDATE "+TABLE+" SET state='consumed',version=3")
     with pytest.raises(sqlite3.IntegrityError):
         conn.execute("UPDATE "+TABLE+" SET state='returned',version=4")
-    conn.execute("UPDATE "+TABLE+" SET state='returned',version=4,receipt_digest=?,candidate_digest=?",("e"*64,"f"*64))
+    conn.execute("UPDATE "+TABLE+" SET state='returned',version=4,receipt_digest=?,candidate_digest=?,candidate_json=?",("e"*64,"f"*64,'{}'))
     assert conn.execute("SELECT state,receipt_digest,candidate_digest FROM "+TABLE).fetchone()==("returned","e"*64,"f"*64)
     with pytest.raises(sqlite3.IntegrityError):
         conn.execute("UPDATE "+TABLE+" SET candidate_digest=NULL,version=5")
