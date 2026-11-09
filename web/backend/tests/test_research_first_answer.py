@@ -200,7 +200,7 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
                     from research.paid_control import _current_scope, _local_answer_scope
                     from research.store import ResearchStore
                     with ResearchStore(auth._store()).transaction(write=True) as conn:
-                        with pytest.raises(PermissionError, match="canonical v5"):
+                        with pytest.raises(PermissionError, match="v17 deletion-only scope required"):
                             _current_scope(conn)
                         with pytest.raises(PermissionError, match="local answer writer"):
                             _local_answer_scope(conn)
