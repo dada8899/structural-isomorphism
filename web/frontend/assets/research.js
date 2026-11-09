@@ -2367,8 +2367,8 @@
     } catch (error) {
       // 4xx proves rejection; transport/5xx outcomes keep the original key.
       if (pending && error.status >= 400 && error.status < 500) sessionStorage.removeItem(pending.slot);
-      const transportFailure = error.name === 'AbortError' || error.name === 'TypeError' || error.name === 'SyntaxError';
-      status(transportFailure ? '保存结果尚未确认。请保留输入，用相同内容再次保存以核对原操作。' : error.message, true);
+      const uncertain = (pending && error.status >= 500) || error.name === 'AbortError' || error.name === 'TypeError' || error.name === 'SyntaxError';
+      status(uncertain ? '保存结果尚未确认。请保留输入，用相同内容再次保存以核对原操作。' : error.message, true);
     } finally {
       setBusy(false);
     }
