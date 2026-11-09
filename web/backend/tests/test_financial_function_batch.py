@@ -176,3 +176,62 @@ def test_twenty_six_whitelist_targets_full_code_fields_and_nested_constants_are_
         candidate=tuple(x for x in codes(compiled[0][2]) if x.co_qualname==name)
         assert len(candidate)==1;nested+=same(function.__code__,candidate[0])
     assert nested==56
+
+
+def test_calculation_compile_cache_keeps_fresh_source_and_live_code_checks(native_source,monkeypatch):
+    from web.backend import research
+    module,path=native_source
+    current=BASE+'''def calculate():
+ source_compiles=open_scope()
+ try:
+  check_active(source_compiles)
+ finally:source_compiles=None
+'''
+    path.write_text(current)
+    exec(compile(current,str(path),'exec',dont_inherit=True),vars(module))
+    module.bridge=module.f;module._CALCULATE_PRODUCER=module.calculate
+    module.open_scope=execution._open_source_compiles
+    monkeypatch.setattr(research,'financial_result_v2',module,raising=False)
+    monkeypatch.setitem(execution._FUNCTION_PATHS,'calculate','synthetic.py')
+    calls=[];compile_full=builtins.compile
+    def counted(raw,filename,mode,**kwargs):
+        calls.append(filename)
+        return compile_full(raw,filename,mode,**kwargs)
+    monkeypatch.setattr(execution,'compile',counted,raising=False)
+    with pytest.raises(PermissionError,match='actual financial source compilation scope'):
+        execution._open_source_compiles()
+
+    def check_active(token):
+        assert type(token) is tuple and type(token[2]) is tuple and type(token[2][0]) is tuple
+        with pytest.raises(TypeError):
+            token[2][0][3]=None
+        with pytest.raises(PermissionError,match='actual financial source reader required'):
+            execution._compile_source(path,str(path),b'raise RuntimeError',execution._source_generation(path.stat()))
+        assert execution._function(module.f) is module.f
+        assert execution._same_source_functions(*references(module))==(module.f,module.g)
+        assert len(calls)==2  # cold producer birth + immutable source witness
+        forged=compile_full(current.replace('not called','new forged'),str(path),'exec',dont_inherit=True)
+        original=module.f.__code__
+        module.f.__code__=next(c for c in forged.co_consts if isinstance(c,types.CodeType) and c.co_name=='f')
+        # A forged external cache plus matching replaced live code cannot
+        # poison the frame-local immutable witness, with bytes unchanged.
+        external=types.SimpleNamespace(scope=(sys._getframe(),
+            {(path,str(path)):(execution._source_generation(path.stat()),path.read_bytes(),forged)},os.getpid()))
+        monkeypatch.setattr(execution,'_SOURCE_COMPILES',external,raising=False)
+        try:
+            with pytest.raises(PermissionError,match='native function source changed'):
+                execution._function(module.f)
+        finally:
+            module.f.__code__=original
+        old_stat=path.stat()
+        path.write_text(current.replace('not called','new forged'))
+        os.utime(path,ns=(old_stat.st_atime_ns,old_stat.st_mtime_ns))
+        assert path.stat().st_size==old_stat.st_size
+        with pytest.raises(PermissionError,match='financial source changed within calculation'):
+            execution._function(module.f)
+        assert len(calls)==2
+    module.check_active=check_active
+    module.calculate()
+    path.write_text(current)
+    assert execution._function(module.f) is module.f
+    assert len(calls)==3  # scope is retired; this is a cold proof again

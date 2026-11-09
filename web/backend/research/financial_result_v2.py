@@ -1304,6 +1304,7 @@ def calculate(service,identity,rid,envelope,key,source,*,request_app):
     execution._function(execution.require_request)(service,identity,rid,envelope,key,source,request_app)
     rid=service._id(rid);request_digest=digest(envelope.data_dict());pid=service._principal(identity)
     context=registry=None
+    source_compiles=execution._open_source_compiles()
     try:
         with native._save_transaction(service,pid) as (conn,lease,commit_ready):
             _,control=native._context(conn,service,identity,rid,write=True)
@@ -1350,8 +1351,11 @@ def calculate(service,identity,rid,envelope,key,source,*,request_app):
             commit_ready[0]=True
             return responses['summary']
     finally:
-        if context is not None:context.close()
-        if registry is not None:registry.close()
+        try:
+            if context is not None:context.close()
+            if registry is not None:registry.close()
+        finally:
+            source_compiles=None
 
 
 def read_result(service,identity,rid,result_ref,source,*,view):

@@ -36,23 +36,96 @@ _FUNCTION_PATHS={
 }
 
 
+
+# Immutable witnesses are retained only in the real calculate frame.
+# Every use still rereads the exact file and checks live function code.
+def _source_generation(info):
+    return info.st_dev,info.st_ino,info.st_mode,info.st_size,info.st_mtime_ns,info.st_ctime_ns
+
+
+def _open_source_compiles():
+    from . import financial_result_v2 as result
+    frame=sys._getframe(1)
+    producer=result._CALCULATE_PRODUCER
+    if frame.f_code is not producer.__code__ or frame.f_globals is not vars(result):
+        raise PermissionError('actual financial source compilation scope required')
+    _function(producer)
+    root=Path(__file__).resolve().parents[1]
+    paths=tuple(sorted({root/relative for relative in _FUNCTION_PATHS.values()}))
+    if len(paths)>24:raise PermissionError('financial source compilation scope exceeded')
+    records=[]
+    for path in paths:
+        before=path.stat()
+        if path.resolve()!=path or not stat.S_ISREG(before.st_mode) or before.st_size>1048576:
+            raise PermissionError('bounded regular native source required')
+        raw=path.read_bytes();after=path.stat()
+        generation=_source_generation(after)
+        if (type(raw) is not bytes or len(raw)!=after.st_size
+                or generation!=_source_generation(before) or path.resolve()!=path):
+            raise PermissionError('native source read changed')
+        filename=str(path)
+        records.append((filename,generation,raw,compile(raw,filename,'exec',dont_inherit=True)))
+    return (os.getpid(),threading.get_ident(),tuple(records))
+
+
+def _compile_source(path, filename, raw, generation):
+    from . import financial_result_v2 as result
+    frame=sys._getframe(1)
+    try:
+        if (frame.f_globals is not globals() or frame.f_code not in
+                (_function.__code__,_same_source_functions.__code__)):
+            raise PermissionError('actual financial source reader required')
+        producer=result._CALCULATE_PRODUCER
+        while frame is not None:
+            if frame.f_code is producer.__code__ and frame.f_globals is vars(result):
+                scope=frame.f_locals.get('source_compiles')
+                if scope is not None:
+                    if (type(scope) is not tuple or len(scope)!=3 or scope[:2]!=(os.getpid(),threading.get_ident())
+                            or type(scope[2]) is not tuple):
+                        raise PermissionError('financial source compilation scope retired')
+                    for approved_path,approved_generation,approved_raw,approved_code in scope[2]:
+                        if approved_path==str(path):
+                            if approved_generation!=generation or approved_raw!=raw:
+                                raise PermissionError('financial source changed within calculation')
+                            # A noncanonical code filename needs its own cold
+                            # compile; the same physical source is still pinned.
+                            if approved_path==filename:return approved_code
+                            break
+                    else:
+                        raise PermissionError('financial source absent from calculation witness')
+                break
+            frame=frame.f_back
+    finally:del frame
+    return compile(raw,filename,'exec',dont_inherit=True)
+
+
 def _function(function):
     if type(function) is not types.FunctionType:raise PermissionError('fixed native function required')
     module=sys.modules.get(function.__module__)
     relative=_FUNCTION_PATHS.get(function.__qualname__)
     raw=Path(getattr(module,'__file__',''));path=raw.resolve()
     expected=Path(__file__).resolve().parents[1]/relative if relative else None
+    code=function.__code__
     if (relative is None or module is None or function.__globals__ is not vars(module)
-            or Path(function.__code__.co_filename).resolve()!=path or raw.is_symlink()
-            or path!=expected or path.stat().st_size>1048576):
+            or Path(code.co_filename).resolve()!=path or raw.is_symlink() or path!=expected):
         raise PermissionError('canonical native function required')
     def codes(code):
         yield code
         for value in code.co_consts:
             if type(value) is types.CodeType:yield from codes(value)
-    found=[c for c in codes(compile(path.read_bytes(),function.__code__.co_filename,'exec',dont_inherit=True))
-        if c.co_qualname==function.__qualname__]
-    if len(found)!=1 or found[0]!=function.__code__:raise PermissionError('native function source changed')
+    before=path.stat()
+    if not stat.S_ISREG(before.st_mode) or before.st_size>1048576:
+        raise PermissionError('bounded regular native source required')
+    content=path.read_bytes();after=path.stat()
+    generation=_source_generation(after)
+    if (type(content) is not bytes or len(content)!=after.st_size or generation!=_source_generation(before)
+            or raw.is_symlink() or raw.resolve()!=path):
+        raise PermissionError('native source read changed')
+    found=[c for c in codes(_compile_source(path,code.co_filename,content,generation))
+           if c.co_qualname==function.__qualname__]
+    if (len(found)!=1 or found[0]!=code or function.__code__ is not code
+            or sys.modules.get(function.__module__) is not module or function.__globals__ is not vars(module)):
+        raise PermissionError('native function source changed')
     return function
 
 
@@ -94,9 +167,6 @@ def _same_source_functions(*references):
             raise PermissionError('current native function reference required')
         return function,module,namespace
 
-    def generation(info):
-        return info.st_dev,info.st_ino,info.st_mode,info.st_size,info.st_mtime_ns,info.st_ctime_ns
-
     def codes(code):
         yield code
         for child in code.co_consts:
@@ -119,11 +189,11 @@ def _same_source_functions(*references):
             if not stat.S_ISREG(before.st_mode) or before.st_size>1048576:
                 raise PermissionError('bounded regular native source required')
             raw=path.read_bytes();after=path.stat()
-            if (type(raw) is not bytes or original.is_symlink() or generation(before)!=generation(after)
+            if (type(raw) is not bytes or original.is_symlink() or _source_generation(before)!=_source_generation(after)
                     or len(raw)!=after.st_size):raise PermissionError('native source read changed')
-            witness=(module,namespace,path,filename,function.__code__.co_filename,raw,generation(after),hashlib.sha256(raw).digest())
+            witness=(module,namespace,path,filename,function.__code__.co_filename,raw,_source_generation(after),hashlib.sha256(raw).digest())
             if full is None:
-                full=compile(raw,function.__code__.co_filename,'exec',dont_inherit=True)
+                full=_compile_source(path,function.__code__.co_filename,raw,_source_generation(after))
                 anchor=witness
             elif (witness[0] is not anchor[0] or witness[1] is not anchor[1] or witness[2:]!=anchor[2:]):
                 raise PermissionError('native batch source generation changed')
