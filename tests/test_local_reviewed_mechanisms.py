@@ -264,6 +264,13 @@ def test_hourly_stock_flow_checks_the_observed_delta_and_rejects_mixed_units():
     answer = observation_check(q)
     assert answer and "8−6=+2" in answer["explanation"] and "变化 +6件，两者一致" in answer["explanation"]
     assert observation_check(q.replace("6 件","6 组")) is None
+    direct = "资料每小时进 11 组；复核能力从每小时 12 组降到 10 组，三小时积压从 4 到 7。先查哪一步，如何验证？"
+    answer = observation_check(direct)
+    assert answer and "11−10=+1" in answer["explanation"] and "3 小时推算积压变化 +3组" in answer["explanation"]
+    assert "额定能力不是实际完成量" in answer["assumptions"][0]
+    assert observation_check(direct.replace("到 7。", "到 7 人。")) is None
+    assert observation_check(direct.replace("到 7。", "到 7.5。")) is None
+
 
 
 def test_baseline_decay_series_extrapolates_only_a_consistent_stated_ratio():

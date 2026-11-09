@@ -179,14 +179,27 @@ def _equal_weight_rates(question):
 
 
 def _hourly_balance(question):
-    incoming = re.findall(r"每小时(?:交来|到达|收到|流入)\s*([0-9]{1,7})\s*(组|件|单)", question)
-    changes = re.findall(r"(?:原来|过去)[^。；]{0,32}?(?:能做|能完成|完成)\s*([0-9]{1,7})\s*(组|件|单)[^。；]{0,55}?(?:现在|如今)[^。；]{0,32}?(?:只能做|能完成|完成)\s*([0-9]{1,7})\s*(组|件|单)",question)
-    duration = re.findall(r"观察\s*([1-9][0-9]{0,2}|[一二两三四五六七八九十])\s*小时",question)
-    backlog = re.findall(r"(?:积压|待[\u3400-\u9fff]{1,8})从\s*([0-9]{1,7})\s*(组|件|单)\s*(?:变成|增到|降到|变为)\s*([0-9]{1,7})\s*(组|件|单)",question)
+    rate = r"([0-9]{1,7})\s*(组|件|单)"
+    count = r"([1-9][0-9]{0,2}|[一二两三四五六七八九十])"
+    incoming = re.findall(r"每小时(?:交来|到达|收到|流入|进入|进来|进)\s*"+rate, question)
+    changes = re.findall(
+        r"(?:原来|过去)[^。；]{0,32}?(?:能做|能完成|完成)\s*"+rate+
+        r"[^。；]{0,55}?(?:现在|如今)[^。；]{0,32}?(?:只能做|能完成|完成)\s*"+rate, question)
+    changes += re.findall(
+        r"(?:处理|复核|审核|完成|服务)(?:能力|容量|速度)从\s*每小时\s*"+rate+
+        r"\s*(?:降到|降为|升到|升为|改为|变为)\s*(?:每小时\s*)?"+rate, question)
+    duration = re.findall(r"观察\s*"+count+r"\s*小时", question)
+    backlog = re.findall(
+        r"(?:积压|待[\u3400-\u9fff]{1,8})从\s*([0-9]{1,7})\s*(组|件|单)?"+
+        r"\s*(?:变成|增到|降到|变为|到)\s*([0-9]{1,7})(?![0-9.])\s*(组|件|单)?\s*(?=[。；，,！?？]|$)", question)
+    if not duration:
+        duration = re.findall(count+r"\s*小时(?:内|后)?\s*(?:积压|待[\u3400-\u9fff]{1,8})从", question)
     if not all(len(items)==1 for items in (incoming,changes,duration,backlog)):
         return None
     entered,u=incoming[0]; before,v,after,w=changes[0]; start,x,end,y=backlog[0]
-    if len({u,v,w,x,y})!=1:
+    # Omitted stock units are meaningful only within this single described
+    # queue. Any explicit unit must match the rates; never convert counts.
+    if len({u,v,w,x or u,y or u})!=1:
         return None
     entered,before,after,start,end=map(int,(entered,before,after,start,end))
     count=duration[0]
