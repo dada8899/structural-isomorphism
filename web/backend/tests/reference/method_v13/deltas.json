@@ -131,21 +131,26 @@
       ]
     ],
     "schema16_bridge": {
-      "current_sha256": "c42bc98bf83a9f7cca33d5603be42cae2adba36c5ee6d63a3f61fb091f92ad46",
+      "current_sha256": "16f792a06c1a1958555d502ce9978e6f2364f3b93bdbcb587f19b5c440e7a465",
       "hunks": [
         [
-          351,
-          416,
+          174,
+          183,
+          "    return {**result,'data':{**data,'capabilities':{**caps,'source_evidence':available}}}\n"
+        ],
+        [
+          359,
+          442,
           ""
         ],
         [
-          437,
-          499,
+          463,
+          525,
           ""
         ],
         [
-          805,
-          840,
+          831,
+          866,
           ""
         ]
       ]
@@ -2339,7 +2344,17 @@
         ""
       ]
     ],
-    "original_sha256": "e8ccf7d79108c0a7bf94812f31bb053668f895d7cb4b85500b6bc31fc7791304"
+    "original_sha256": "e8ccf7d79108c0a7bf94812f31bb053668f895d7cb4b85500b6bc31fc7791304",
+    "schema16_bridge": {
+      "current_sha256": "099287660a64edeb7ef809474dc2c9869eb10cd6dafdc25fc23f1bd572bb894c",
+      "hunks": [
+        [
+          207,
+          210,
+          ""
+        ]
+      ]
+    }
   },
   "web/backend/research/authorization.py": {
     "current_sha256": "f6ec75f7021aa1325c07724e1a72f490302d9da7d498ddb3fd40ac3514df375e",

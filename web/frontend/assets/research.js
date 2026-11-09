@@ -1527,10 +1527,12 @@
         if (!active()) return;
         if (response.status === 401) { clearPrivateView('confirmed_logout'); return; }
         if (!response.ok) {
-          if (options === readOptions && response.status === 503) {
+          if (response.status === 404 && options === readOptions) externalPanel?.offer();
+          if (response.status === 503) {
             const failure = await response.json().catch(() => null);
             if (!active()) return;
-            if (failure?.error?.code === 'STORE_UNAVAILABLE') {
+            if (failure?.error?.code === 'FEATURE_UNAVAILABLE') externalPanel?.offer();
+            if (options === readOptions && failure?.error?.code === 'STORE_UNAVAILABLE') {
               if (readRetries++ < 2) {
                 await waitForFirstAnswer(controller.signal);
                 continue;

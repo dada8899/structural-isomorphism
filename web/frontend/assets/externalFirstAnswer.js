@@ -226,11 +226,12 @@
           try {
             const receipt = await options.submit(anchor, body);
             if (!active()) return;
-            status.textContent = keys(receipt,['status','operation_ref','request_digest']) &&
-              receipt.status === 'accepted' && typeof receipt.operation_ref === 'string' && ID.test(receipt.operation_ref) &&
-              receipt.request_digest === offer.request_digest
-              ? '请求已接收。请从研究记录查看进度。'
-              : '提交结果尚未确认。请从研究记录核对，不要重复发送。';
+            const observed = statusReceipt(receipt,options.current());
+            status.textContent = observed === 'completed'
+              ? '原请求已返回。请重开研究记录查看待核查分析。'
+              : ['accepted','pending'].includes(observed)
+                ? '请求已接收。请从研究记录查看进度。'
+                : '提交结果尚未确认。请从研究记录核对，不要重复发送。';
           } catch {
             if (active()) status.textContent = '提交结果尚未确认。请从研究记录核对，不要重复发送。';
           }

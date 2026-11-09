@@ -71,7 +71,9 @@ def test_main_external_controlled_preview_confirm_status_and_original_result(pre
             key=str(uuid4())
             async with main.lifespan(main.app):
                 assert (await client.post(base+"/preview",json=expected,headers=origin)).status_code==503
+                assert (await client.get("/api/research/"+rid)).json()["data"]["capabilities"]["external_first_answer"]=="status_only"
                 with controlled_runtime(main.app,proof,server,balance=400_000_000):
+                    assert (await client.get("/api/research/"+rid)).json()["data"]["capabilities"]["external_first_answer"]=="ready"
                     offered=await client.post(base+"/preview",json=expected,headers=origin)
                     assert offered.status_code==200,offered.text
                     preview=offered.json()

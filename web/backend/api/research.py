@@ -172,7 +172,15 @@ def _with_request_source_capability(result,*,app,service,research_id,operation):
         raise ValueError('Root research identity differs')
     available=source_integration.request_execution_available(app,service)
     if type(available) is not bool:raise TypeError('Source availability must be boolean')
-    return {**result,'data':{**data,'capabilities':{**caps,'source_evidence':available}}}
+    public_caps = {**caps,'source_evidence':available}
+    if caps.get('external_first_answer') == 'status_only':
+        if __package__ == 'web.backend.api':
+            from ..research.external_first_answer_controlled import current as external_current
+        else:
+            from research.external_first_answer_controlled import current as external_current
+        if external_current(app,service) is not None:
+            public_caps['external_first_answer'] = 'ready'
+    return {**result,'data':{**data,'capabilities':public_caps}}
 
 
 def _paid_response_unavailable():

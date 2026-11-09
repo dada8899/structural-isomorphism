@@ -593,6 +593,8 @@ jobs:
 
         python -m pytest ../../tests/test_external_first_answer_seam.py -p no:logging -x -ra -q --tb=short --durations=10
 
+        python -m pytest ../../tests/test_external_v17_controlled_main.py -p no:logging -x -ra -q --tb=short --durations=10
+
         '
 
   sanity-backend-fresh:
