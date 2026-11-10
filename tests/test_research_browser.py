@@ -516,15 +516,15 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
             advertised["ready"] = "status_only"
             if fresh_storage:page.evaluate('sessionStorage.clear()')
             page.reload()
-            expect(panel.get_by_role("status")).to_contain_text("尚待核对")
+            expect(panel.get_by_role("status")).to_contain_text("服务端尚不能确认" if fresh_storage else "尚待核对")
             expect(panel.get_by_role("button",name="查看外部分析选项")).to_have_count(0)
-            panel.get_by_role("button",name="核对原提交").click()
+            if not fresh_storage:panel.get_by_role("button",name="核对原提交").click()
             expect(panel.get_by_role("status")).to_contain_text("服务端尚不能确认")
             assert reads == [("GET", operation_keys[0], None)] and len(confirms) == 1
             expect(panel.get_by_role("button",name="查看待核查分析")).to_be_hidden()
             observed["status"] = "completed"
             panel.get_by_role("button",name="核对原提交").click()
-            panel.get_by_role("button",name="查看待核查分析").click()
+            if not fresh_storage:panel.get_by_role("button",name="查看待核查分析").click()
             expect(panel).to_contain_text("外部返回 · 待核查")
             expect(panel).to_contain_text("此解释尚未核验证据")
             expect(panel).to_contain_text("可能有第二个变化因素")
@@ -4982,7 +4982,7 @@ def test_source_history_actual_main_closed_collection_keeps_existing_readable(tm
     import asyncio
     asyncio.run(_source_history_closed_main_journey(tmp_path))
 
-@pytest.mark.parametrize('mode', ['ready', 'unbound', 'over_cap', 'edited', 'reopen', 'clarification', 'queued'])
+@pytest.mark.parametrize('mode', ['ready', 'completed', 'unbound', 'over_cap', 'edited', 'reopen', 'clarification', 'queued'])
 def test_start_question_external_fallback_is_one_live_intent(short_observation_asgi, mode, tmp_path):
     """Browser-only contract: no provider, billing or live issuer is involved."""
     import time
@@ -5026,10 +5026,26 @@ def test_start_question_external_fallback_is_one_live_intent(short_observation_a
                 calls.append(request.url.rsplit('/', 1)[-1])
                 root = request.url.split('/revisions/', 1)[0]
                 saved = client.get(root).json()['data']; row = saved['current_problem']
+                metadata={'research_id':row['research_id'],'input_revision':row['revision'],
+                    'research_version':saved['research_version'],'problem_digest':row['digest']}
+                if request.method=='GET':
+                    receipt={'contract_revision':'external-first-answer-v1','metadata':metadata,
+                        'operation_key':request.all_headers()['idempotency-key']}
+                    if request.url.endswith('/status'):
+                        route.fulfill(json=receipt|{'status':'completed' if mode=='completed' else 'unknown'})
+                    else:
+                        route.fulfill(json=receipt|{'result_digest':'d'*64,
+                            'schema':'external-first-answer-unverified-candidate-v1','review_required':True,
+                            'candidate':{'status':'candidate','explanation':'自动展示的待核查解释。',
+                                'assumptions':['输入条件相同。'],'next_check':'比较两次输入的时间范围。','evidence_status':'not_checked'}})
+                    return
                 if request.url.endswith('/confirm'):
                     assert request.post_data_json['confirm_exact_question'] is True
                     assert 'exact_question' not in request.post_data_json
-                    route.fulfill(status=503, json={'error':{'code':'RECEIPT_UNKNOWN'}})
+                    if mode=='completed':
+                        route.fulfill(json={'contract_revision':'external-first-answer-v1','metadata':metadata,
+                            'operation_key':request.all_headers()['idempotency-key'],'status':'completed'})
+                    else:route.fulfill(status=503, json={'error':{'code':'RECEIPT_UNKNOWN'}})
                     return
                 if mode == 'edited':
                     page.locator('#original-input').fill(exact + '（已修改）')
@@ -5066,12 +5082,13 @@ def test_start_question_external_fallback_is_one_live_intent(short_observation_a
                 return
             page.locator('#save-question').click()
             page.wait_for_url('**/research/*')
-            if mode in ('ready', 'queued'):
-                expect(page.locator('#external-first-answer')).to_contain_text('尚待核对')
-                assert calls == ['preview', 'confirm']
+            if mode in ('ready', 'queued', 'completed'):
+                expect(page.locator('#external-first-answer')).to_contain_text('自动展示的待核查解释' if mode=='completed' else '服务端尚不能确认')
+                expected_calls=['preview','confirm','status']+(['result'] if mode=='completed' else [])
+                assert calls == expected_calls
                 page.reload()
                 expect(page.locator('#original-input')).to_have_value(exact)
-                assert calls == ['preview', 'confirm']
+                assert calls == expected_calls
             elif mode == 'clarification':
                 expect(page.locator('#first-answer-status')).to_contain_text('还需要确认一点')
                 assert calls == []
