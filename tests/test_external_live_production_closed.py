@@ -387,6 +387,9 @@ def test_actual_main18_background_queue_saved_result_reopens(existing_v17,prepar
 @pytest.mark.parametrize('environment',['prod','dev'])
 def test_b18_requires_physical18_and_environment_cannot_enable_legacy(prepared,monkeypatch,environment):
     main,admission,paths,messages=prepared
+    # Exercise the shared recovery branch; the separate B18 three-process
+    # journey verifies the source-fixed True artifact itself.
+    monkeypatch.setattr(main,'_RECOVERY_BRIDGE',True)
     from services import external_live_production
     from research import source_supervisor,native_plan_supervisor,first_answer_supervisor
     calls=[]

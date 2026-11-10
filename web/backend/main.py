@@ -69,8 +69,8 @@ _GIT_SHA_CACHE: str = ""
 # surface (including /api/admin/*). Disable them when STRUCTURAL_ENV=prod;
 # they stay on for dev / staging where they are useful.
 _IS_PROD = os.getenv("STRUCTURAL_ENV", "dev").lower() == "prod"
-# Source-fixed B18 recovery role. Environment flags cannot enable execution.
-_RECOVERY_BRIDGE = True
+# Release role is source-fixed; the B18 artifact pins this to True.
+_RECOVERY_BRIDGE = False
 _AUTH_ENABLED = os.getenv("AUTH_ENABLED", "false").lower() in {"1", "true", "yes"}
 _DOCS_KWARGS = (
     {"docs_url": None, "redoc_url": None, "openapi_url": None}
