@@ -736,3 +736,108 @@ def test_failure_only_schema_rejects_invalid_extra_snapshot():
     result=setup.installer_diagnostic('deadline',None,value)
     assert set(result)=={'protocol','outcome','observed_exit_code','sdk_processes'}
     with pytest.raises(setup.Refused):setup.installer_diagnostic('deadline',None,value|{'path':'private'})
+
+
+@pytest.mark.parametrize('status', ['ready', 'failed'])
+def test_parent_cleanup_accepts_owned_child_directory_after_known_root_return(tmp_path, monkeypatch, status):
+    reply = {'status': status, 'children_closed': True, 'source_restored': True,
+             'keyring': fake_keyring_receipt()}
+    if status == 'failed':
+        reply['installer'] = setup.installer_diagnostic('deadline', None, {
+            'status': 'observed', 'observed': 1, 'skipped': 0,
+            'counts': [{'exe_class': 'node', 'state': 'S', 'count': 1}],
+        })
+    observed = {}
+    class Process:
+        def __init__(self):
+            self.stdin = io.BytesIO()
+            self.stdout = io.BytesIO(json.dumps(reply).encode())
+        def wait(self, timeout):
+            request = json.loads(self.stdin.getvalue())
+            directory = Path(request['temporary'])
+            before = directory.lstat()
+            child = directory / 'owned-download-child'
+            child.mkdir()
+            (child / 'synthetic-data').write_bytes(b'public synthetic content')
+            after = directory.lstat()
+            observed['same_inode'] = (before.st_dev, before.st_ino) == (after.st_dev, after.st_ino)
+            observed['nlink_changed'] = before.st_nlink != after.st_nlink
+            return 0 if status == 'ready' else 1
+    monkeypatch.setattr(setup, 'host_guard', lambda: None)
+    monkeypatch.setenv('RUNNER_TEMP', str(tmp_path))
+    monkeypatch.setattr(setup.subprocess, 'Popen', lambda *a, **k: Process())
+    assert setup.prepare() == reply
+    assert observed == {'same_inode': True, 'nlink_changed': True}
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize('difference', ['inode', 'mode', 'symlink'])
+def test_parent_directory_guard_keeps_wrong_identity_and_outside_files(tmp_path, monkeypatch, difference):
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    sentinel = outside / 'public-sentinel'
+    sentinel.write_bytes(b'untouched synthetic data')
+    reply = {'status': 'ready', 'children_closed': True, 'source_restored': True,
+             'keyring': fake_keyring_receipt()}
+    class Process:
+        def __init__(self):
+            self.stdin = io.BytesIO()
+            self.stdout = io.BytesIO(json.dumps(reply).encode())
+        def wait(self, timeout):
+            directory = Path(json.loads(self.stdin.getvalue())['temporary'])
+            if difference == 'mode':
+                directory.chmod(0o755)
+            elif difference == 'inode':
+                directory.rename(tmp_path / 'retained-original')
+                directory.mkdir(mode=0o700)
+            else:
+                directory.rmdir()
+                directory.symlink_to(outside, target_is_directory=True)
+            return 0
+    monkeypatch.setattr(setup, 'host_guard', lambda: None)
+    monkeypatch.setenv('RUNNER_TEMP', str(tmp_path))
+    monkeypatch.setattr(setup.subprocess, 'Popen', lambda *a, **k: Process())
+    with pytest.raises(setup.Refused): setup.prepare()
+    assert sentinel.read_bytes() == b'untouched synthetic data'
+    assert list(tmp_path.glob('structure-ci-chromium-user-*'))
+
+
+@pytest.mark.parametrize('field', ['st_dev', 'st_ino', 'st_uid', 'st_gid', 'st_mode'])
+def test_temporary_directory_identity_preserves_all_immutable_fields(tmp_path, field):
+    info = tmp_path.stat()
+    values = {name: getattr(info, name) for name in
+              ('st_dev', 'st_ino', 'st_uid', 'st_gid', 'st_mode', 'st_nlink')}
+    changed = values | {field: values[field] + 1}
+    assert setup.temporary_directory_identity(SimpleNamespace(**changed)) != setup.temporary_directory_identity(info)
+    links = values | {'st_nlink': values['st_nlink'] + 1}
+    assert setup.temporary_directory_identity(SimpleNamespace(**links)) == setup.temporary_directory_identity(info)
+    # General file identity must still include nlink for the existing source,
+    # keyring and recovery checks; this is not a global weakening.
+    assert setup.identity(SimpleNamespace(**links)) != setup.identity(info)
+
+
+def test_temporary_directory_identity_refuses_regular_file(tmp_path):
+    path = tmp_path / 'public-data'
+    path.write_bytes(b'synthetic')
+    with pytest.raises(setup.Refused): setup.temporary_directory_identity(path.lstat())
+
+
+def test_parent_real_remove_failure_stays_unknown_without_exposing_exception(tmp_path, monkeypatch, capsys):
+    reply = {'status': 'ready', 'children_closed': True, 'source_restored': True,
+             'keyring': fake_keyring_receipt()}
+    class Process:
+        stdin = io.BytesIO()
+        stdout = io.BytesIO(json.dumps(reply).encode())
+        def wait(self, timeout): return 0
+    original = setup.shutil.rmtree
+    def denied(*args, **kwargs): raise PermissionError('SYNTHETIC_INTERNAL_PATH_DO_NOT_PROJECT')
+    denied.avoids_symlink_attacks = original.avoids_symlink_attacks
+    monkeypatch.setattr(setup, 'host_guard', lambda: None)
+    monkeypatch.setenv('RUNNER_TEMP', str(tmp_path))
+    monkeypatch.setattr(setup.subprocess, 'Popen', lambda *a, **k: Process())
+    monkeypatch.setattr(setup.shutil, 'rmtree', denied)
+    monkeypatch.setattr(setup.sys, 'argv', ['fixed-helper'])
+    assert setup.main() == 2
+    output = capsys.readouterr().out
+    assert json.loads(output) == setup.failure_record('parent', 'retirement')
+    assert 'SYNTHETIC_INTERNAL_PATH' not in output and list(tmp_path.iterdir())
