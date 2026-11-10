@@ -1914,6 +1914,9 @@ def _workflow_before_native_resource_reuse(value,name):
 
 
 def _workflow_before_cpu_torch_sources(value,name):
+    if name == 'ci.yml':
+        from tests import test_integration_ci_contract as ci_contract
+        value = ci_contract._workflow_before_evidence_shards(value, name)
     if name=='sanity.yml':value=_workflow_before_native_resource_reuse(value,name)
     if name not in ('sanity.yml','ci.yml'):return value
     original=copy.deepcopy(value)
@@ -5540,3 +5543,13 @@ def test_short_observation_check_module_rejects_any_nonexact_consumer(mutation):
     elif mutation=='extra_filter':step['run']=step['run'].replace(flag,flag+' -k short',1)
     else:job['timeout-minutes']=46
     with pytest.raises(AssertionError):_workflow_before_short_observation_checks(raw,'sanity.yml')
+
+
+def test_evidence_method_actual_matrix_covers_complete_default_make_suite():
+    from tests import test_integration_ci_contract as ci_contract
+    value = yaml.safe_load((ROOT / '.github/workflows/ci.yml').read_text())
+    job = value['jobs']['browser-evidence-method-contract']
+    assert job == ci_contract.evidence_method_expected_job(value['jobs']['browser-product-contract'])
+    assert ci_contract.evidence_method_shard_case_counts() == {'A34': 34, 'B6': 6}
+    assert job['strategy']['fail-fast'] is False
+    assert value['jobs']['release-gate-summary']['needs'].count('browser-evidence-method-contract') == 1
