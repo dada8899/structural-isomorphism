@@ -202,10 +202,10 @@ def _transition(conn, service, lease, job, state, *, fence=None, reason=None, re
 
 
 def _require_queue_schema(conn):
-    # Both exact catalogs include the same local queue tables and hooks.
+    # These exact catalogs include the same local queue tables and hooks.
     # External ledger capability is checked independently of this queue.
     row = conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()
-    if row is None or row[0] not in (16,17):
+    if row is None or row[0] not in (16,17,18):
         raise ResearchError("FEATURE_UNAVAILABLE",503,"当前版本尚不能使用本地分析队列。")
 
 

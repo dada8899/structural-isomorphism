@@ -37,7 +37,6 @@
   },
   "web/backend/api/research.py": {
     "current_sha256": "ac9f1243ca801f1ae0f9102ca631c5a8a9c6772ce1c0995cf503bfb6c65ceb06",
-    "original_sha256": "7fcc218e6f75c1cd88ee4bf1bf68f5fd35a15e8b40ffa2057a8fe72ea5d02a46",
     "hunks": [
       [
         7,
@@ -130,6 +129,7 @@
         ""
       ]
     ],
+    "original_sha256": "7fcc218e6f75c1cd88ee4bf1bf68f5fd35a15e8b40ffa2057a8fe72ea5d02a46",
     "schema16_bridge": {
       "current_sha256": "f7e40740fc29da450c2879e0c430d93a5134b093bb2e46edce3865da1cbb4db7",
       "hunks": [
@@ -166,9 +166,59 @@
       ]
     }
   },
+  "web/backend/research/authorization.py": {
+    "current_sha256": "f6ec75f7021aa1325c07724e1a72f490302d9da7d498ddb3fd40ac3514df375e",
+    "hunks": [
+      [
+        152,
+        156,
+        ""
+      ],
+      [
+        162,
+        163,
+        ""
+      ],
+      [
+        204,
+        207,
+        ""
+      ],
+      [
+        212,
+        213,
+        ""
+      ],
+      [
+        215,
+        216,
+        "                    time.sleep(0.01)\n"
+      ],
+      [
+        294,
+        298,
+        ""
+      ],
+      [
+        338,
+        341,
+        ""
+      ],
+      [
+        342,
+        343,
+        ""
+      ],
+      [
+        346,
+        347,
+        "                time.sleep(.01)\n"
+      ]
+    ],
+    "original_sha256": "06483fcdf246248cb09ff53a88064893b040549b28e869029894080607153f9c"
+  },
   "web/backend/research/evidence_repository.py": {
     "current_sha256": "edbc3654f5480d77aece0b04fd152d2a67c6d7c9045353d6d469b7d16023d848",
-    "original_sha256": "0a1064bab04e2af5490ee20ac52a4ab4fc049e4035e8cffb0793509f762f0b89",
     "hunks": [
       [
         50,
@@ -205,7 +255,24 @@
         603,
         ""
       ]
-    ]
+    ],
+    "original_sha256": "0a1064bab04e2af5490ee20ac52a4ab4fc049e4035e8cffb0793509f762f0b89"
+  },
+  "web/backend/research/evidence_schemas.py": {
+    "current_sha256": "f2b7aa83235f72811ec4e7775a89cebc5fe0402906dbad645a7bab3f4645652d",
+    "hunks": [
+      [
+        307,
+        309,
+        "        raise ValueError(\"unsupported record type\")\n"
+      ],
+      [
+        325,
+        328,
+        ""
+      ]
+    ],
+    "original_sha256": "f72022458fd2ac72a3a19cb833199b037fcff36578827de07352e830b28fe0b7"
   },
   "web/backend/research/financial_guard.py": {
     "current_sha256": "e857a966f3086e74bd72d2c312a2824a6773382751b43932b24bfea9c0caa124",
@@ -362,7 +429,7 @@
       [
         340,
         341,
-        "    if version not in (6,7,8,9,10,11,12,13):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除记录版本不支持。')\n"
+        "    if version not in (6,7,8,9,10,11,12,13):raise ResearchError('SCHEMA_UNSUPPORTED',503,'\u5220\u9664\u8bb0\u5f55\u7248\u672c\u4e0d\u652f\u6301\u3002')\n"
       ],
       [
         350,
@@ -382,12 +449,12 @@
     ],
     "original_sha256": "68267578a7fa9da70b561948a86e1c571ce87049c204b210618e1c2ec1f949f9",
     "schema16_bridge": {
-      "current_sha256": "cdfc66f53f1f5a48324c1c41e6fdf8c9b94696932dbdf0a0e7344cc5358f3859",
+      "current_sha256": "e62d25c6d3d0c9c4cab83e889e8faa3527f0034418392c97d3aab5deb3aa9106",
       "hunks": [
         [
           340,
           341,
-          "    if version not in (6,7,8,9,10,11,12,13,14,15):raise ResearchError('SCHEMA_UNSUPPORTED',503,'删除记录版本不支持。')\n"
+          "    if version not in (6,7,8,9,10,11,12,13,14,15):raise ResearchError('SCHEMA_UNSUPPORTED',503,'\u5220\u9664\u8bb0\u5f55\u7248\u672c\u4e0d\u652f\u6301\u3002')\n"
         ],
         [
           350,
@@ -430,7 +497,6 @@
   },
   "web/backend/research/paid_control.py": {
     "current_sha256": "1e4d9d94119fa8ae6ad8b90b781432d6c7c9f60859cbc13e20fb6e8b6b7be360",
-    "original_sha256": "f1a9d040d05bdb877f3ca703988f8472d0b31c4f6fc092d7a6ae8475a90cd4a8",
     "hunks": [
       [
         65,
@@ -498,6 +564,7 @@
         "    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13):\n"
       ]
     ],
+    "original_sha256": "f1a9d040d05bdb877f3ca703988f8472d0b31c4f6fc092d7a6ae8475a90cd4a8",
     "schema16_bridge": {
       "current_sha256": "a644e16bd39168a310c177b6d4a90f15d9e674ba733bfe002f7cc9c8912943fc",
       "hunks": [
@@ -611,6 +678,21 @@
           422,
           423,
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15) and s['body_origin_state']!='legacy_unproved':\n"
+        ]
+      ]
+    }
+  },
+  "web/backend/research/plan_financial.py": {
+    "current_sha256": "a13a22cddd3d13bd3aa79f920b6dc68d9afedbf84a639c467b7b76d11dea7ba2",
+    "hunks": [],
+    "original_sha256": "a13a22cddd3d13bd3aa79f920b6dc68d9afedbf84a639c467b7b76d11dea7ba2",
+    "schema16_bridge": {
+      "current_sha256": "e1469335987e1042048ae93fcc9c01fdf05712ae5bafe361197aace0e8f79a41",
+      "hunks": [
+        [
+          137,
+          141,
+          ""
         ]
       ]
     }
@@ -806,6 +888,27 @@
     ],
     "original_sha256": "5204c48b6ed93a3f952a2087b6a36a747686cdf1a49f636b0f4a920befa98873"
   },
+  "web/backend/research/plan_native_financial.py": {
+    "current_sha256": "41df4e1d96657de5f956a3894d7f6bf0d74563bbe324329ffb2d338557a458dc",
+    "hunks": [
+      [
+        163,
+        165,
+        ""
+      ]
+    ],
+    "original_sha256": "e8ccf7d79108c0a7bf94812f31bb053668f895d7cb4b85500b6bc31fc7791304",
+    "schema16_bridge": {
+      "current_sha256": "2dcb04abf3ff2a8f85392a488672ec2a3969c8b3462865cdd8ba36539399b46f",
+      "hunks": [
+        [
+          206,
+          210,
+          "def unresolved(conn,account,*,excluding=None):\n"
+        ]
+      ]
+    }
+  },
   "web/backend/research/plan_native_runtime.py": {
     "current_sha256": "ce9db3f9af5f4df18a31a9f9c4d7c78f873100a181a8ea3b4b9af4a6cfa43073",
     "hunks": [
@@ -912,7 +1015,7 @@
       [
         166,
         180,
-        "        control,saved,encoded=_input(conn,service,identity,pid,rid,value['input_revision'],value['research_version'])\n        q=NativePlanQuote.model_validate(json.loads(value['quote_json']));consent=json.loads(value['consent_json'])\n        if value['expires_at']<=int(time.time()) or consent['producer_digest']!=code_digest() or q.codec_digest!=codec_digest() or encoded.outbound_request_digest!=consent['request_digest']:raise ResearchError('PREVIEW_EXPIRED',409,'输入、代码或报价已变化，请重新预览。')\n"
+        "        control,saved,encoded=_input(conn,service,identity,pid,rid,value['input_revision'],value['research_version'])\n        q=NativePlanQuote.model_validate(json.loads(value['quote_json']));consent=json.loads(value['consent_json'])\n        if value['expires_at']<=int(time.time()) or consent['producer_digest']!=code_digest() or q.codec_digest!=codec_digest() or encoded.outbound_request_digest!=consent['request_digest']:raise ResearchError('PREVIEW_EXPIRED',409,'\u8f93\u5165\u3001\u4ee3\u7801\u6216\u62a5\u4ef7\u5df2\u53d8\u5316\uff0c\u8bf7\u91cd\u65b0\u9884\u89c8\u3002')\n"
       ],
       [
         181,
@@ -1047,7 +1150,7 @@
       [
         540,
         559,
-        "            if resource.retire_unhanded() is not None:raise ResearchError('CLEANUP_UNCERTAIN',503,'原生清场回执不符合约定，需核对原记录。')\n        except BaseException as cleanup_error:errors+=(type(cleanup_error).__name__,)\n        if errors:errors+=ports.retire_attempts(resource)\n        errors+=ports.retire_attempts(flight=resource.flight)\n        try:_cleanup(store,pid,dispatch,errors)\n        except BaseException as cleanup_error:\n            ports.retire_attempts(resource)\n            if primary is None:primary=cleanup_error\n        if errors and primary is None:primary=ResearchError('CLEANUP_UNCERTAIN',503,'原生资源退休不完整；保留原结果标识，不会重发。')\n"
+        "            if resource.retire_unhanded() is not None:raise ResearchError('CLEANUP_UNCERTAIN',503,'\u539f\u751f\u6e05\u573a\u56de\u6267\u4e0d\u7b26\u5408\u7ea6\u5b9a\uff0c\u9700\u6838\u5bf9\u539f\u8bb0\u5f55\u3002')\n        except BaseException as cleanup_error:errors+=(type(cleanup_error).__name__,)\n        if errors:errors+=ports.retire_attempts(resource)\n        errors+=ports.retire_attempts(flight=resource.flight)\n        try:_cleanup(store,pid,dispatch,errors)\n        except BaseException as cleanup_error:\n            ports.retire_attempts(resource)\n            if primary is None:primary=cleanup_error\n        if errors and primary is None:primary=ResearchError('CLEANUP_UNCERTAIN',503,'\u539f\u751f\u8d44\u6e90\u9000\u4f11\u4e0d\u5b8c\u6574\uff1b\u4fdd\u7559\u539f\u7ed3\u679c\u6807\u8bc6\uff0c\u4e0d\u4f1a\u91cd\u53d1\u3002')\n"
       ],
       [
         573,
@@ -1102,7 +1205,7 @@
       [
         690,
         708,
-        "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT r.* FROM '+RUNS+' r JOIN research_tasks t ON t.id=r.task_id WHERE r.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        result=None\n        if value['result_json']:\n            result=NativePlanResult.model_validate(json.loads(value['result_json'])).model_dump(mode='json')\n            consent=json.loads(value['consent_json']);admission=json.loads(value['admission_json']);commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone();step=conn.execute('SELECT * FROM research_steps WHERE id=?',(consent['step_id'],)).fetchone()\n            saved=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,consent['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='native-plan-v1' or task['version']!=3 or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED' or step['version']!=3\n                or digest(canonical(consent))!=value['consent_digest'] or digest(canonical(admission))!=value['admission_digest'] or not saved or saved[0]!=consent['input_digest']\n                or result['result_ref']!=value['result_ref'] or result['task_id']!=task['id'] or result['research_id']!=rid or result['input_digest']!=task['input_digest'] or result['recorded_at']!=commit['recorded_at']\n                or commit['result_digest']!=digest(canonical(result)) or commit['receipt_digest']!=digest(canonical(receipt)) or receipt['admission_digest']!=value['admission_digest']):raise ResearchError('RESULT_UNAVAILABLE',503,'原生计划记录当前无法完整核对；不会重新外发。')\n        return envelope({**metadata(value),'content':result})\n"
+        "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT r.* FROM '+RUNS+' r JOIN research_tasks t ON t.id=r.task_id WHERE r.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        result=None\n        if value['result_json']:\n            result=NativePlanResult.model_validate(json.loads(value['result_json'])).model_dump(mode='json')\n            consent=json.loads(value['consent_json']);admission=json.loads(value['admission_json']);commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone();step=conn.execute('SELECT * FROM research_steps WHERE id=?',(consent['step_id'],)).fetchone()\n            saved=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,consent['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='native-plan-v1' or task['version']!=3 or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED' or step['version']!=3\n                or digest(canonical(consent))!=value['consent_digest'] or digest(canonical(admission))!=value['admission_digest'] or not saved or saved[0]!=consent['input_digest']\n                or result['result_ref']!=value['result_ref'] or result['task_id']!=task['id'] or result['research_id']!=rid or result['input_digest']!=task['input_digest'] or result['recorded_at']!=commit['recorded_at']\n                or commit['result_digest']!=digest(canonical(result)) or commit['receipt_digest']!=digest(canonical(receipt)) or receipt['admission_digest']!=value['admission_digest']):raise ResearchError('RESULT_UNAVAILABLE',503,'\u539f\u751f\u8ba1\u5212\u8bb0\u5f55\u5f53\u524d\u65e0\u6cd5\u5b8c\u6574\u6838\u5bf9\uff1b\u4e0d\u4f1a\u91cd\u65b0\u5916\u53d1\u3002')\n        return envelope({**metadata(value),'content':result})\n"
       ],
       [
         716,
@@ -1123,7 +1226,7 @@
       [
         11,
         36,
-        "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT d.* FROM research_plan_dispatches d JOIN research_tasks t ON t.id=d.task_id WHERE d.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        body=metadata(value)\n        if value['result_json'] is None:return envelope({**body,'content':None})\n        try:\n            result=PlanResult.model_validate(json.loads(value['result_json']))\n            admission=PlanAdmission.model_validate(json.loads(value['admission_json'])).model_dump(mode='json');commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json']);usage=json.loads(value['usage_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone()\n            step=conn.execute('SELECT * FROM research_steps WHERE id=?',(admission['step_id'],)).fetchone()\n            revision=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,admission['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='funded-plan-v1' or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED'\n                or task['version']!=commit['task_after'] or step['version']!=commit['step_after'] or commit['task_after']!=commit['task_before']+1 or commit['step_after']!=commit['step_before']+1\n                or task['research_id']!=admission['research_id'] or task['principal_id']!=admission['principal_id'] or task['input_revision']!=admission['input_revision'] or task['input_digest']!=admission['input_digest']\n                or not revision or revision[0]!=admission['input_digest'] or digest(canonical(admission))!=value['admission_digest'] or result.admission_digest!=value['admission_digest']\n                or result.result_ref!=value['result_ref'] or result.task_id!=value['task_id'] or result.research_id!=rid or result.input_revision!=admission['input_revision'] or result.input_digest!=admission['input_digest'] or result.request_digest!=admission['request_digest']\n                or commit['result_ref']!=value['result_ref'] or commit['task_id']!=task['id'] or commit['admission_digest']!=value['admission_digest'] or commit['recorded_at']!=result.recorded_at\n                or commit['result_digest']!=digest(canonical(result.model_dump(mode='json'))) or commit['receipt_digest']!=digest(canonical(receipt)) or commit['usage_digest']!=digest(canonical(usage))\n                or receipt['producer_code_digest']!=admission['producer_code_digest'] or receipt['dispatch_id']!=value['id'] or receipt['nonce']!=value['nonce'] or receipt['admission_digest']!=value['admission_digest']):raise ValueError('plan domain mismatch')\n        except (ValueError,TypeError,KeyError):raise ResearchError('RESULT_UNAVAILABLE',503,'原计划记录当前无法完整核对；不会重新调用模型。') from None\n        return envelope({**body,'content':result.model_dump(mode='json')})\n"
+        "    pid=service._principal(identity)\n    with service.store.transaction() as conn:\n        service.authorization.check(conn,identity,pid,rid)\n        value=conn.execute('SELECT d.* FROM research_plan_dispatches d JOIN research_tasks t ON t.id=d.task_id WHERE d.result_ref=? AND t.research_id=? AND t.principal_id=?',(ref,rid,pid)).fetchone()\n        if not value:raise not_found()\n        body=metadata(value)\n        if value['result_json'] is None:return envelope({**body,'content':None})\n        try:\n            result=PlanResult.model_validate(json.loads(value['result_json']))\n            admission=PlanAdmission.model_validate(json.loads(value['admission_json'])).model_dump(mode='json');commit=json.loads(value['commit_json']);receipt=json.loads(value['receipt_json']);usage=json.loads(value['usage_json'])\n            task=conn.execute('SELECT * FROM research_tasks WHERE id=?',(value['task_id'],)).fetchone()\n            step=conn.execute('SELECT * FROM research_steps WHERE id=?',(admission['step_id'],)).fetchone()\n            revision=conn.execute('SELECT digest FROM research_revisions WHERE research_id=? AND revision=?',(rid,admission['input_revision'])).fetchone()\n            if (value['state']!='returned' or task['execution']!='COMPLETED' or task['policy_revision']!='funded-plan-v1' or not step or step['task_id']!=task['id'] or step['kind']!='phenomenon_plan' or step['state']!='SUCCEEDED'\n                or task['version']!=commit['task_after'] or step['version']!=commit['step_after'] or commit['task_after']!=commit['task_before']+1 or commit['step_after']!=commit['step_before']+1\n                or task['research_id']!=admission['research_id'] or task['principal_id']!=admission['principal_id'] or task['input_revision']!=admission['input_revision'] or task['input_digest']!=admission['input_digest']\n                or not revision or revision[0]!=admission['input_digest'] or digest(canonical(admission))!=value['admission_digest'] or result.admission_digest!=value['admission_digest']\n                or result.result_ref!=value['result_ref'] or result.task_id!=value['task_id'] or result.research_id!=rid or result.input_revision!=admission['input_revision'] or result.input_digest!=admission['input_digest'] or result.request_digest!=admission['request_digest']\n                or commit['result_ref']!=value['result_ref'] or commit['task_id']!=task['id'] or commit['admission_digest']!=value['admission_digest'] or commit['recorded_at']!=result.recorded_at\n                or commit['result_digest']!=digest(canonical(result.model_dump(mode='json'))) or commit['receipt_digest']!=digest(canonical(receipt)) or commit['usage_digest']!=digest(canonical(usage))\n                or receipt['producer_code_digest']!=admission['producer_code_digest'] or receipt['dispatch_id']!=value['id'] or receipt['nonce']!=value['nonce'] or receipt['admission_digest']!=value['admission_digest']):raise ValueError('plan domain mismatch')\n        except (ValueError,TypeError,KeyError):raise ResearchError('RESULT_UNAVAILABLE',503,'\u539f\u8ba1\u5212\u8bb0\u5f55\u5f53\u524d\u65e0\u6cd5\u5b8c\u6574\u6838\u5bf9\uff1b\u4e0d\u4f1a\u91cd\u65b0\u8c03\u7528\u6a21\u578b\u3002') from None\n        return envelope({**body,'content':result.model_dump(mode='json')})\n"
       ]
     ],
     "original_sha256": "af06948b4975bff80a1d0a4daf64f45c8b4b64f3e5ec8895b999084e55de6f32"
@@ -1144,7 +1247,7 @@
     ],
     "original_sha256": "cbfef1623ddceaeafe2282f98651cc92e7a61fb25ef7074ebd27862f36391d41",
     "schema16_bridge": {
-      "current_sha256": "79c6feb02aec3b8aa0de0f46d3b2882a16410cc30f7089e55bc96ec4faad4db8",
+      "current_sha256": "e97be54a96b5e1312552b89d713111cc2b0455311c9d1c0ee6336a97e3227d50",
       "hunks": [
         [
           30,
@@ -1205,6 +1308,17 @@
         ]
       ]
     }
+  },
+  "web/backend/research/schemas.py": {
+    "current_sha256": "420aadd2de58332b6236a0933ea90dc48113073a743bb47faf67c883fde0a5b7",
+    "hunks": [
+      [
+        262,
+        319,
+        ""
+      ]
+    ],
+    "original_sha256": "3bd3f68ab6e21f01d0baf80d8c9e69eefa800a237973bf2bdf5ef904a52b6e17"
   },
   "web/backend/research/service.py": {
     "current_sha256": "1bd6b88e005455cbbdbb5e565f439fc8a0a3b848ac142a15e53081d0dc7c8033",
@@ -1384,7 +1498,6 @@
   },
   "web/backend/research/source_guard.py": {
     "current_sha256": "4212719fbd57d8bc0cba907c96711d5b18a92d8cdac373d051de8373f72d8e35",
-    "original_sha256": "eba13596a681d3997672d37d03e9af72159db4b0a0d7dda72d4aad03cf96acaf",
     "hunks": [
       [
         103,
@@ -1457,8 +1570,9 @@
         ""
       ]
     ],
+    "original_sha256": "eba13596a681d3997672d37d03e9af72159db4b0a0d7dda72d4aad03cf96acaf",
     "schema16_bridge": {
-      "current_sha256": "a89fb985a16ac65e06965b5fb08e6a931fcf7a2d6bf1040ee1d9b3d3af3f8a19",
+      "current_sha256": "54698fa9782294199b754a36c3637b0afbbd99565641459f271685492d275ece",
       "hunks": [
         [
           410,
@@ -1470,7 +1584,6 @@
   },
   "web/backend/research/source_integration.py": {
     "current_sha256": "eeeee6a340c131be347e62060ac3f806e785f9aeff3cd67cf9c08a46a79687ac",
-    "original_sha256": "ba8d65ef360223742776f7b7537ec7434a4252bddf0a8bf6658fc617b5907ed7",
     "hunks": [
       [
         44,
@@ -1573,6 +1686,7 @@
         ""
       ]
     ],
+    "original_sha256": "ba8d65ef360223742776f7b7537ec7434a4252bddf0a8bf6658fc617b5907ed7",
     "schema16_bridge": {
       "current_sha256": "1d0b9caa0b06ce9bb5730402aa6f0d107996bb72a75011d23c75ac6f86fc8304",
       "hunks": [
@@ -1616,7 +1730,6 @@
   },
   "web/backend/research/source_policy.py": {
     "current_sha256": "bc6c76b4a8d9f17a2a7acc4a8b08ef87ba5fada4e22dfead39a087f291aa78eb",
-    "original_sha256": "d304c8fcbba51de2b2ffdcae5c6154dde7788ed64a8462cacb3da061cbfe3e11",
     "hunks": [
       [
         4,
@@ -1723,11 +1836,11 @@
         589,
         "            send.close()\n            receive.close()\n            if process.pid is not None:\n                if process.is_alive():\n                    process.terminate()\n                process.join(timeout=0.25)\n                if process.is_alive():\n                    process.kill()\n                    process.join(timeout=0.25)\n                process.close()\n"
       ]
-    ]
+    ],
+    "original_sha256": "d304c8fcbba51de2b2ffdcae5c6154dde7788ed64a8462cacb3da061cbfe3e11"
   },
   "web/backend/research/source_workflow.py": {
     "current_sha256": "0f527be5e5a2b7deb06963c85aa1cb5696c6677461bbb914ae975934fe4c3fea",
-    "original_sha256": "5a152fcb8fa84ce04746dd74affb6107f8acfc747ff47968086a2a3a1245148e",
     "hunks": [
       [
         18,
@@ -1830,6 +1943,7 @@
         "    except (ValueError,ResearchError,PermissionError,OSError):\n"
       ]
     ],
+    "original_sha256": "5a152fcb8fa84ce04746dd74affb6107f8acfc747ff47968086a2a3a1245148e",
     "schema16_bridge": {
       "current_sha256": "2cf129642dbaf4043da0504fe7f1cafdc8b33354f804feb422e318a139bc42f1",
       "hunks": [
@@ -2137,7 +2251,7 @@
         [
           1375,
           1376,
-          "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式15需要完整账户准入。')\n"
+          "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'\u6b63\u5f0f15\u9700\u8981\u5b8c\u6574\u8d26\u6237\u51c6\u5165\u3002')\n"
         ],
         [
           1377,
@@ -2152,7 +2266,7 @@
         [
           1397,
           1398,
-          "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究15关联不匹配。')\n"
+          "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'\u7814\u7a7615\u5173\u8054\u4e0d\u5339\u914d\u3002')\n"
         ],
         [
           1421,
@@ -2229,9 +2343,29 @@
       ]
     }
   },
+  "web/backend/services/auth_store.py": {
+    "current_sha256": "d6159f4a03c6d6811dfe9480556aaf468d5594d22ceb3f65e2bd9674c537c3ef",
+    "hunks": [
+      [
+        360,
+        361,
+        "        from .sqlite_utils import connect_private_auth\n"
+      ],
+      [
+        372,
+        373,
+        ""
+      ],
+      [
+        381,
+        382,
+        "            conn.execute(\"PRAGMA busy_timeout=10000\")\n"
+      ]
+    ],
+    "original_sha256": "e9d58769d153702b4aadfbebd30437885b263dd5c4d5585567697a50fa5f3986"
+  },
   "web/backend/services/runtime_paths.py": {
     "current_sha256": "3d4b4e87db18bc2e127d770bd79a2048f2693b169cc519f167c725e6ca97c780",
-    "original_sha256": "2d6eae7a4c3345e0db9d4b438e2ae720d1dfa9f8c686e3fb1295f52687309852",
     "hunks": [
       [
         0,
@@ -2398,104 +2532,11 @@
         828,
         "                    os.close(closing)\n"
       ]
-    ]
-  },
-  "web/backend/research/plan_native_financial.py": {
-    "current_sha256": "41df4e1d96657de5f956a3894d7f6bf0d74563bbe324329ffb2d338557a458dc",
-    "hunks": [
-      [
-        163,
-        165,
-        ""
-      ]
     ],
-    "original_sha256": "e8ccf7d79108c0a7bf94812f31bb053668f895d7cb4b85500b6bc31fc7791304",
-    "schema16_bridge": {
-      "current_sha256": "2dcb04abf3ff2a8f85392a488672ec2a3969c8b3462865cdd8ba36539399b46f",
-      "hunks": [
-        [
-          206,
-          210,
-          "def unresolved(conn,account,*,excluding=None):\n"
-        ]
-      ]
-    }
-  },
-  "web/backend/research/authorization.py": {
-    "current_sha256": "f6ec75f7021aa1325c07724e1a72f490302d9da7d498ddb3fd40ac3514df375e",
-    "hunks": [
-      [
-        152,
-        156,
-        ""
-      ],
-      [
-        162,
-        163,
-        ""
-      ],
-      [
-        204,
-        207,
-        ""
-      ],
-      [
-        212,
-        213,
-        ""
-      ],
-      [
-        215,
-        216,
-        "                    time.sleep(0.01)\n"
-      ],
-      [
-        294,
-        298,
-        ""
-      ],
-      [
-        338,
-        341,
-        ""
-      ],
-      [
-        342,
-        343,
-        ""
-      ],
-      [
-        346,
-        347,
-        "                time.sleep(.01)\n"
-      ]
-    ],
-    "original_sha256": "06483fcdf246248cb09ff53a88064893b040549b28e869029894080607153f9c"
-  },
-  "web/backend/services/auth_store.py": {
-    "current_sha256": "d6159f4a03c6d6811dfe9480556aaf468d5594d22ceb3f65e2bd9674c537c3ef",
-    "hunks": [
-      [
-        360,
-        361,
-        "        from .sqlite_utils import connect_private_auth\n"
-      ],
-      [
-        372,
-        373,
-        ""
-      ],
-      [
-        381,
-        382,
-        "            conn.execute(\"PRAGMA busy_timeout=10000\")\n"
-      ]
-    ],
-    "original_sha256": "e9d58769d153702b4aadfbebd30437885b263dd5c4d5585567697a50fa5f3986"
+    "original_sha256": "2d6eae7a4c3345e0db9d4b438e2ae720d1dfa9f8c686e3fb1295f52687309852"
   },
   "web/backend/services/sqlite_utils.py": {
     "current_sha256": "7945aa789acc5be50f6d351f2005b17eb3fb7184c2e7403a80cdd381d2b5ec2f",
-    "original_sha256": "f527f722930fddde4bf9a92fa39655f4065c80dac34d34c98136cc2ec13ac8e7",
     "hunks": [
       [
         27,
@@ -2612,59 +2653,18 @@
         275,
         "    except BaseException:\n        try:\n            if conn is not None:conn.close()\n        finally:\n            if inspected is not None:inspected.close()\n"
       ]
-    ]
-  },
-  "web/backend/research/evidence_schemas.py": {
-    "current_sha256": "f2b7aa83235f72811ec4e7775a89cebc5fe0402906dbad645a7bab3f4645652d",
-    "original_sha256": "f72022458fd2ac72a3a19cb833199b037fcff36578827de07352e830b28fe0b7",
-    "hunks": [
-      [
-        307,
-        309,
-        "        raise ValueError(\"unsupported record type\")\n"
-      ],
-      [
-        325,
-        328,
-        ""
-      ]
-    ]
-  },
-  "web/backend/research/schemas.py": {
-    "current_sha256": "420aadd2de58332b6236a0933ea90dc48113073a743bb47faf67c883fde0a5b7",
-    "original_sha256": "3bd3f68ab6e21f01d0baf80d8c9e69eefa800a237973bf2bdf5ef904a52b6e17",
-    "hunks": [
-      [
-        262,
-        319,
-        ""
-      ]
-    ]
+    ],
+    "original_sha256": "f527f722930fddde4bf9a92fa39655f4065c80dac34d34c98136cc2ec13ac8e7"
   },
   "web/backend/tests/source_http_fixture.py": {
     "current_sha256": "26b1cf335d2aa02676bca5756011e3143a87b8b940cf4b1e75f1cd119e8e9194",
-    "original_sha256": "1a854163af26ff37550b511bd6c3d6f6430ed2a2882a0dab4c7cc3aa2b6cdf26",
     "hunks": [
       [
         58,
         62,
         "    transport=PinnedPublicTransport(_worker=partial(wait_before_get,int(port),ready,go))\n"
       ]
-    ]
-  },
-  "web/backend/research/plan_financial.py": {
-    "current_sha256": "a13a22cddd3d13bd3aa79f920b6dc68d9afedbf84a639c467b7b76d11dea7ba2",
-    "hunks": [],
-    "original_sha256": "a13a22cddd3d13bd3aa79f920b6dc68d9afedbf84a639c467b7b76d11dea7ba2",
-    "schema16_bridge": {
-      "current_sha256": "e1469335987e1042048ae93fcc9c01fdf05712ae5bafe361197aace0e8f79a41",
-      "hunks": [
-        [
-          137,
-          141,
-          ""
-        ]
-      ]
-    }
+    ],
+    "original_sha256": "1a854163af26ff37550b511bd6c3d6f6430ed2a2882a0dab4c7cc3aa2b6cdf26"
   }
 }
