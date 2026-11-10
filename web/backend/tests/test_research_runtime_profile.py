@@ -163,3 +163,18 @@ def test_captured_private_api_never_uses_dev_enabled_override(stack,monkeypatch)
     monkeypatch.setattr(research,'enabled',lambda:True)
     response=client.get('/api/research')
     assert response.status_code==503 and response.json()['error']['code']=='FEATURE_UNAVAILABLE'
+
+
+def test_schema18_source_metadata_uses_existing_guarded_approval_overlay_only():
+    from research import source_integration,source_guard
+    with sqlite3.connect(':memory:') as conn:
+        conn.execute('CREATE TABLE research_schema(id INTEGER PRIMARY KEY,version INTEGER)')
+        conn.execute('INSERT INTO research_schema VALUES(1,18)')
+        source_integration.install_schema(conn)
+        actual=conn.execute("SELECT sql FROM sqlite_schema WHERE name='research_source_approvals'").fetchone()[0]
+        assert ' '.join(actual.split())==' '.join(source_guard.approval_table().split())
+        before=conn.serialize();source_integration.install_schema(conn,existing_required=True)
+        assert conn.serialize()==before
+        conn.execute('ALTER TABLE research_source_approvals ADD COLUMN unapproved TEXT')
+        with pytest.raises(ResearchError) as error:source_integration.install_schema(conn,existing_required=True)
+        assert error.value.code=='SCHEMA_UNSUPPORTED'

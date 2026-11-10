@@ -49,6 +49,26 @@ def enrollment(tmp_path):
     return path,expected,public,sign
 
 
+def test_owner_supplied_startup_preserves_unknown_payer_and_binds_authorization_event(enrollment):
+    from web.backend.research.external_first_answer_issuer_contract import OwnerKeyStartupBinding, _verify
+    _,legacy,public,sign=enrollment
+    expected=OwnerKeyStartupBinding.model_validate(legacy.model_dump()|{
+        'schema_version':18,'credential_source':'owner_supplied','authorization_event_ref':uuid(),
+        'payer_identity_status':'unknown','payer_id':None,
+        'account_id':uuid(),'economic_binding':'independent-owner-key-account',
+        'credential_incarnation':uuid()})
+    raw=sign(binding=expected.model_dump(mode='json'))
+    receipt=_verify(raw,expected,public,NOW)
+    assert receipt.state=='closed' and not receipt.live_authority and not receipt.credential_loaded
+    for field,value in (('authorization_event_ref',uuid()),('account_id',legacy.account_id),
+                        ('credential_incarnation',legacy.credential_incarnation)):
+        changed=OwnerKeyStartupBinding.model_validate(expected.model_dump()|{field:value})
+        with pytest.raises(ContractError,match='startup_approval_rejected'):
+            _verify(raw,changed,public,NOW)
+    with pytest.raises(ContractError,match='startup_approval_rejected'):
+        _verify(raw,legacy,public,NOW)
+
+
 def test_verified_startup_consumes_durable_challenge_once_but_does_not_admit_live(enrollment):
     path,expected,key,sign=enrollment
     receipt=consume_isolated_startup_once(path,sign(),expected,key,now=NOW)

@@ -209,3 +209,115 @@ def test_saved_question_policy_real_main_auth_shared_ledger_and_once_sender(prep
                 assert (await client.post(base+'/confirm',json=body,headers=headers)).status_code==503
                 assert calls==['GET','POST']*(1 if unknown else 2)
     with provider() as (server,provider_calls,_):asyncio.run(verify(server));assert provider_calls==[]
+
+
+# Real schema18 migration + actual Main/Auth/Owner/local queue. No provider or
+# permissive profile stub: Core's canonical catalog admission stays in use.
+from tests.test_external_funding_v18 import existing_v17
+
+@pytest.mark.parametrize("pin",[False,True],ids=["v18-no-pin","v18-pin-no-witness"])
+def test_actual_main18_local_answer_owner_history_and_closed_legacy_execution(existing_v17,prepared,monkeypatch,pin):
+    from tests.test_external_funding_v18 import migrate
+    from web.backend.tests.test_research_first_answer import candidate,identity
+    from research import first_answer,first_answer_queue,plan_native,native_plan_supervisor,source_supervisor
+    from research.errors import ResearchError
+    from services import external_live_production as production
+    path,record,_=existing_v17
+    migrate(path,record)
+    (path.parent/first_answer_queue.LOCK_NAME).touch(mode=0o600,exist_ok=False)
+    main,admission,paths,messages=prepared
+    calls=[]
+    def forbidden(*args,**kwargs):
+        calls.append('unexpected')
+        raise AssertionError('schema18 must not enter legacy Source/Native or seek credential without entry witness')
+    for module,names in ((plan_native,('live_session','installation')),(native_plan_supervisor,('prepare_main_context','start')),(source_supervisor,('start',)),(production,('_load_credential','_fixed_file','_verify_runtime_files'))):
+        for name in names:monkeypatch.setattr(module,name,forbidden)
+    monkeypatch.setenv('STRUCTURAL_EXTERNAL_FIRST_ANSWER_ENABLED','true')
+    if pin:monkeypatch.setattr(production,'_PINNED_POLICY',production.PinnedTargetPolicy('0'*64,'0'*64,'/no','/no',()))
+    origin={'Origin':BETA};saved={}
+    async def run():
+        async with main.lifespan(main.app):
+            binding=admission._STATE[id(main.app)];service=binding.service
+            assert binding.facts.profile.research_schema==18
+            assert binding.native_context is binding.supervisor is None
+            status=admission.safe_status(main.app)
+            assert status['native_planner']=='FUNDING_CLOSED' and status['source_execute']=='unavailable'
+            assert status['external_first_answer']=='ISSUER_UNBOUND'
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
+                await login(client,messages)
+                response=await client.post('/api/research',json=envelope({'problem':problem()}),headers=origin|{'Idempotency-Key':'v18-app-local-public'})
+                assert response.status_code==200,response.text
+                view=response.json()['data'];rid=view['research']['id'];owner=identity(client)
+                assert view['capabilities']['external_first_answer']=='status_only'
+                args={'input_revision':1,'problem_digest':view['current_problem']['digest'],'research_version':view['research_version']}
+                queued=first_answer_queue.enqueue(service,owner,rid,**args)
+                assert queued['status']=='queued'
+                with first_answer_queue.worker_session(service) as runner:
+                    job,raw=runner.claim_next();assert job.research_id==rid
+                    completed=runner.finish(job,answer=candidate())
+                    assert completed['status']=='completed'
+                answer=first_answer.read(service,owner,rid,1)
+                reopened=await client.get('/api/research/'+rid)
+                assert reopened.status_code==200
+                reopened_answer=await client.get(f'/api/research/{rid}/revisions/1/first-answer')
+                assert reopened_answer.status_code==200 and reopened_answer.json()==answer
+                history=await client.get('/api/research')
+                assert history.status_code==200 and any(row['research_id']==rid for row in history.json()['data']['items'])
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as foreign:
+                    await login(foreign,messages,'v18-foreign@example.invalid')
+                    assert (await foreign.get('/api/research/'+rid)).status_code==404
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as anonymous:
+                    assert (await anonymous.get('/api/research/'+rid)).status_code==401
+                with pytest.raises(ResearchError):first_answer.save(service,owner,rid,input_revision=1,problem_digest=args['problem_digest'],research_version=args['research_version'],key='not-the-legacy-writer',answer=candidate())
+                with service.store.transaction() as conn:
+                    money_before=[tuple(row) for row in conn.execute('SELECT id,settled,held,upper_booked FROM research_funding_accounts ORDER BY id')]
+                deleted=await client.post('/api/me/delete',json={'confirmation':'DELETE'},headers=origin)
+                assert deleted.status_code==200,deleted.text
+                from research.external_funding_v18 import read_binding
+                with service.store.transaction() as conn:
+                    retained=read_binding(conn)
+                    assert retained['status']=='retired' and retained['version']==2
+                    assert retained['owner_principal'] is retained['owner_generation'] is retained['owner_gate_id'] is None
+                    assert [tuple(row) for row in conn.execute('SELECT id,settled,held,upper_booked FROM research_funding_accounts ORDER BY id')]==money_before
+                    assert conn.execute('SELECT count(*) FROM research_first_answers WHERE research_id=?',(rid,)).fetchone()[0]==0
+                    assert conn.execute('SELECT count(*) FROM research_first_answer_jobs WHERE research_id=?',(rid,)).fetchone()[0]==0
+                saved.update(rid=rid)
+        assert admission._STATE.get(id(main.app)) is None and not production._LIVE
+    asyncio.run(run())
+    assert calls==[] and saved
+
+
+from web.backend.tests.test_formal_model_startup import startup,encoder,synthetic_readonly_mount
+
+def test_actual_main18_background_queue_saved_result_reopens(existing_v17,prepared,startup,encoder,monkeypatch):
+    from tests.test_external_funding_v18 import migrate
+    from web.backend.tests.test_research_first_answer import candidate
+    from research import first_answer_queue,first_answer_supervisor
+    path,record,_=existing_v17;migrate(path,record)
+    (path.parent/first_answer_queue.LOCK_NAME).touch(mode=0o600,exist_ok=False)
+    main,admission,paths,messages=prepared
+    entered=[]
+    def public_fixture(question,search,*,cancel):
+        assert search.formal is True
+        entered.append(True)
+        return {'status':'answered','content':candidate().model_dump(mode='json',exclude_none=True)}
+    monkeypatch.setattr(first_answer_supervisor,'produce_background_answer',public_fixture)
+    async def run():
+        async with main.lifespan(main.app):
+            assert admission.safe_status(main.app)['first_answer_local']=='ready'
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
+                await login(client,messages)
+                response=await client.post('/api/research',json=envelope({'problem':problem()}),headers={'Origin':BETA,'Idempotency-Key':'v18-background-public'})
+                assert response.status_code==200,response.text
+                row=response.json()['data'];rid=row['research']['id'];url=f'/api/research/{rid}/revisions/1/first-answer'
+                request={'problem_digest':row['current_problem']['digest'],'research_version':row['research_version']}
+                queued=await client.post(url,json=request,headers={'Origin':BETA})
+                assert queued.status_code in (200,202),queued.text
+                for _ in range(80):
+                    opened=await client.get(url)
+                    if opened.status_code==200 and opened.json().get('status')=='provisional':break
+                    await asyncio.sleep(.05)
+                assert opened.status_code==200 and opened.json()['status']=='provisional',opened.text
+                assert (await client.get(url)).json()==opened.json()
+        assert first_answer_supervisor.current(main.app) is None
+    asyncio.run(run());assert entered==[True]

@@ -150,10 +150,10 @@
         return false;
       }
       // Recovery uses the original persisted operation, never a new send.
-      offer();
+      offer(true);
       return true;
     }
-    function offer() {
+    function offer(readAutomatically = false) {
       reset();
       const current = options.current();
       if (current?.external_first_answer === 'pending') {
@@ -174,7 +174,7 @@
         const readResult = button('查看待核查分析');
         readResult.hidden = true;
         const resultBody = add('div','');
-        readResult.addEventListener('click', async () => {
+        async function readSavedResult() {
           if (!active() || readResult.disabled || typeof options.loadResult !== 'function') return;
           readResult.disabled = true;
           let result;
@@ -192,8 +192,9 @@
             add('p',result.next_check,resultBody);
           } else if (result.status === 'clarification') add('p',result.question,resultBody);
           else add('p','原返回没有足够信息形成解释。',resultBody);
-        });
-        inspect.addEventListener('click', async () => {
+        }
+        readResult.addEventListener('click', readSavedResult);
+        async function inspectSavedStatus() {
           if (!active() || inspect.disabled) return;
           inspect.disabled = true;
           status.textContent = '正在只读核对原提交…';
@@ -204,13 +205,16 @@
             pending:'原请求仍在等待核对。不要重复发送。',
             accepted:'原请求已接收。请继续查看这一条记录。',
             unknown:'服务端尚不能确认原请求结果。不要重复发送。',
-            completed:'原请求已返回。请查看该修订的待核查分析。',
+            completed:'分析已保存，以下内容仍需核查。',
             not_sent:'服务端确认原请求未发送。此处不会重新提交。',
           };
           status.textContent = labels[observed] || '暂时无法核对原请求。不要重复发送。';
           readResult.hidden = observed !== 'completed' || typeof options.loadResult !== 'function';
           inspect.disabled = false;
-        });
+          if (observed === 'completed' && (readAutomatically || anchor.recovery_only)) await readSavedResult();
+        }
+        inspect.addEventListener('click', inspectSavedStatus);
+        if (readAutomatically || anchor.recovery_only) void inspectSavedStatus();
         return;
       }
       if (!current || current.external_first_answer !== 'ready') return;

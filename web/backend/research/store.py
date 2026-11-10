@@ -938,7 +938,7 @@ class ResearchStore:
                 raise ResearchError('SCHEMA_UNSUPPORTED',503,'项目预算数据库绑定不匹配。')
 
     @classmethod
-    def _check_v7_attachments(cls,conn,*,method=False,native=False,external=False):
+    def _check_v7_attachments(cls,conn,*,method=False,native=False,external=False,funding18=False):
         allowed={}
         for ddl in (*cls._v7_required_legacy_objects().values(),*V7_GUARDS):
             if not ddl.startswith(('CREATE INDEX','CREATE UNIQUE INDEX','CREATE TRIGGER')):continue
@@ -952,6 +952,9 @@ class ResearchStore:
         if external:
             from .external_first_answer_file_writer import TRIGGER,money_trigger
             allowed[TRIGGER]=money_trigger(allowed[TRIGGER])
+        if funding18:
+            from .external_funding_v18 import DDL
+            allowed.update({ddl.split()[2]:ddl for ddl in DDL if ddl.startswith('CREATE TRIGGER')})
         # Preserve the existing extra-attachment policy; required inherited
         # objects are independently validated above and never recreated.
         for table in (*V5_SCHEMA,'research_cost_observations','research_paid_approvals','research_provider_sessions'):
@@ -1049,6 +1052,9 @@ class ResearchStore:
 
     @classmethod
     def _current_structure_declarations(cls,*,version=15):
+        if version==18:
+            from .external_funding_v18 import DDL
+            return cls._current_structure_declarations(version=17)|cls._structure_declarations(DDL)
         if version==17:
             from .external_first_answer_file_writer import CANDIDATE_DDL
             return cls._current_structure_declarations(version=16)|cls._structure_declarations(CANDIDATE_DDL)
@@ -1126,7 +1132,7 @@ class ResearchStore:
             version=conn.execute('SELECT version FROM main.research_schema WHERE id=1').fetchone()
         except sqlite3.Error as error:
             raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究版本无法核对。') from error
-        if version is None or version[0] not in (15,16,17):
+        if version is None or version[0] not in (15,16,17,18):
             raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究版本不支持。')
         return cls._check_structure_version(conn,version[0])
 
@@ -1269,9 +1275,9 @@ class ResearchStore:
         cls._check_formula_domain(conn)
 
     @classmethod
-    def _check_formula_domain(cls,conn,*,plan=False,native=False,external=False):
+    def _check_formula_domain(cls,conn,*,plan=False,native=False,external=False,funding18=False):
         cls._check_v8(conn,method=True,formula=True,plan=plan,native=native)
-        cls._check_v7_attachments(conn,method=True,native=native,external=external)
+        cls._check_v7_attachments(conn,method=True,native=native,external=external,funding18=funding18)
         cls._check_declared_structure(conn,cls._structure_declarations(METHOD_GUARDS))
         cls._check_method_hook(conn)
         from .formula_runtime import require_hook
@@ -1335,7 +1341,8 @@ class ResearchStore:
     def check_runtime_version(cls,conn):
         marker=conn.execute('SELECT version FROM main.research_schema WHERE id=1').fetchone()
         version=marker[0] if marker else None
-        if version==17:cls._check_v17(conn)
+        if version==18:cls._check_v18(conn)
+        elif version==17:cls._check_v17(conn)
         elif version==16:cls._check_v16(conn)
         elif version==15:cls._check_v15(conn)
         elif version==14:cls._check_v14(conn)
@@ -1358,6 +1365,10 @@ class ResearchStore:
         cls._check_formal_version(conn,17)
 
     @classmethod
+    def _check_v18(cls,conn):
+        cls._check_formal_version(conn,18)
+
+    @classmethod
     def _check_formal_version(cls,conn,version):
         if __package__=='web.backend.research':from ..services.auth_store import AuthStore
         else:from services.auth_store import AuthStore
@@ -1365,21 +1376,24 @@ class ResearchStore:
             raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究需要完整账户准入。')
         AuthStore.check_gate_policy(conn,initialize=False)
         cls._check_structure_version(conn,version)
-        cls._check_formula_domain(conn,plan=True,native=True,external=version==17)
+        cls._check_formula_domain(conn,plan=True,native=True,external=version in (17,18),funding18=version==18)
         from .source_guard import require_hook as source_hook
         from .plan_financial import require_hook as plan_hook
         from .plan_native_financial import require_hook as native_hook
         from .method_draft import require_hook as draft_hook
         from .financial_input_guard import require_hook as input_hook
         for hook in (source_hook,plan_hook,native_hook,draft_hook,input_hook):hook(conn)
-        if version in (16,17):
+        if version in (16,17,18):
             from .first_answer import require_hook
             from .first_answer_queue import require_hook as require_queue_hook
             require_hook(conn)
             require_queue_hook(conn)
-        if version==17:
+        if version in (17,18):
             from .external_first_answer_file_writer import require_closed_hooks
             require_closed_hooks(conn)
+        if version==18:
+            from .external_funding_v18 import require_hook as funding_hook
+            funding_hook(conn)
         if conn.execute('PRAGMA foreign_key_check').fetchone() is not None:
             raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究关联不匹配。')
 
@@ -1406,7 +1420,7 @@ class ResearchStore:
             self.auth_store.check_gate_policy(conn)
             if formal:
                 version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
-                if version is None or version[0] not in (15,16,17):
+                if version is None or version[0] not in (15,16,17,18):
                     raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究版本不支持。')
                 self._check_formal_version(conn,version[0])
             from .paid_control import _transaction_scope
@@ -1434,7 +1448,7 @@ class ResearchStore:
                 install_default_hook(conn)
                 conn.execute('PRAGMA foreign_keys=ON');conn.execute('BEGIN')
                 version=conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()
-                if version is None or version[0] not in (15,16,17):
+                if version is None or version[0] not in (15,16,17,18):
                     raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式研究版本不支持。')
                 self._check_formal_version(conn,version[0])
             self.auth_store.check_gate_policy(conn)
