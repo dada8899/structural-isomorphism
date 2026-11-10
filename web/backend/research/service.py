@@ -633,6 +633,9 @@ class ResearchService:
             if schema in (17,18):
                 from .external_first_answer_erasure import erase_in as erase_external
                 counts["external_first_answer_runs"]=erase_external(conn,self,owner_lease,pid,job_id)
+            if schema==18:
+                from .external_funding_v18 import retire_for_deletion
+                counts['external_owner_funding']=retire_for_deletion(conn,self.store,owner_lease,pid,job_id)
             if schema in (16,17,18):
                 from .first_answer_queue import erase_in as erase_first_answer_jobs
                 from .first_answer import erase_in as erase_first_answers
