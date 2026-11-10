@@ -161,6 +161,10 @@ def test_saved_question_policy_real_main_auth_shared_ledger_and_once_sender(prep
                         assert response.status_code==200,response.text
                         assert response.json()['status']==('unknown' if unknown else 'completed'),response.text
                         assert calls==['GET','POST']*(n+1)
+                        current_view=await client.get('/api/research/'+rid)
+                        assert current_view.status_code==200,current_view.text
+                        assert current_view.json()['data']['external_first_answer_recovery']==response.json()
+                        assert calls==['GET','POST']*(n+1)
                         persisted=(base,dict(headers),dict(body),response.json())
                         assert (await client.post(base+'/confirm',json=body,headers=headers)).json()==response.json()
                         duplicate=await client.post(base+'/preview',json={'research_version':data['research_version'],'problem_digest':data['current_problem']['digest']},headers=origin)
@@ -180,6 +184,28 @@ def test_saved_question_policy_real_main_auth_shared_ledger_and_once_sender(prep
                 base,headers,body,original=persisted
                 reopened=await client.get(base+'/status',headers=headers)
                 assert reopened.status_code==200 and reopened.json()==original
+                # A new page has no sessionStorage operation key. The owner
+                # view must locate the same durable operation without sending.
+                rid=base.split('/')[3]
+                located=await client.get('/api/research/'+rid)
+                assert located.status_code==200,located.text
+                recovered=located.json()['data'].get('external_first_answer_recovery')
+                if unknown:
+                    # The loop saved a newer revision after the uncertain send.
+                    # Its view must not attach the old revision's operation.
+                    assert recovered is None
+                    recovered=original
+                else:
+                    assert recovered==original
+                    assert recovered['metadata']['research_version']<=located.json()['data']['research_version']
+                assert calls==['GET','POST']*(1 if unknown else 2)
+                recovered_headers={'Idempotency-Key':recovered['operation_key']}
+                assert (await client.get(base+'/status',headers=recovered_headers)).json()==original
+                if not unknown:
+                    saved=await client.get(base+'/result',headers=recovered_headers)
+                    assert saved.status_code==200 and saved.json()['candidate']==candidate
+                else:
+                    assert (await client.get(base+'/result',headers=recovered_headers)).status_code==404
                 assert (await client.post(base+'/confirm',json=body,headers=headers)).status_code==503
                 assert calls==['GET','POST']*(1 if unknown else 2)
     with provider() as (server,provider_calls,_):asyncio.run(verify(server));assert provider_calls==[]

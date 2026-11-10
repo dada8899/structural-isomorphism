@@ -1282,7 +1282,7 @@
     ],
     "original_sha256": "4415e35d9591896e2484bdfb962f0a1bb084704916bbcb70b9e84954f76647f3",
     "schema16_bridge": {
-      "current_sha256": "a7184c0a89477d9b47dc2139ee1cffcbd256822106f7ac5009af65511faaa5d0",
+      "current_sha256": "006a18b294c7eb46605d038c688e03defc336737d2181066916ef0ce15a6cccb",
       "hunks": [
         [
           182,
@@ -1290,83 +1290,88 @@
           "        if request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15):\n"
         ],
         [
-          378,
-          379,
+          204,
+          208,
+          ""
+        ],
+        [
+          382,
+          383,
           "                method=bool(candidate and candidate[0]=='bounded_usage_upper_v2' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15))\n"
         ],
         [
-          385,
-          386,
+          389,
+          390,
           "            method_request=is_paid and operation=='reconcile' and request_source is not None and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15)\n"
         ],
         [
-          391,
-          392,
+          395,
+          396,
           "            if (is_paid or task['policy_revision'] in ('local-formula-v1','funded-plan-v1','native-plan-v1') or (task['policy_revision']=='d1-source-only-v1' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15))) and operation=='cancel':\n"
         ],
         [
-          405,
-          406,
+          409,
+          410,
           "                if is_paid and operation=='reconcile' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (9,10,11,12,13,14,15):\n"
         ],
         [
-          429,
-          430,
+          433,
+          434,
           "                        if task['policy_revision']=='d1-source-only-v1' and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
         ],
         [
-          512,
-          515,
+          516,
+          519,
           ""
         ],
         [
-          522,
-          523,
+          526,
+          527,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:\n"
         ],
         [
-          525,
-          526,
+          529,
+          530,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):\n"
         ],
         [
-          527,
-          528,
+          531,
+          532,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
         ],
         [
-          598,
-          599,
+          602,
+          603,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0]==15:\n"
         ],
         [
-          601,
-          602,
+          605,
+          606,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15):\n"
         ],
         [
-          608,
-          609,
+          612,
+          613,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (13,14,15):\n"
         ],
         [
-          611,
-          612,
+          615,
+          616,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (12,13,14,15):\n"
         ],
         [
-          614,
-          615,
+          618,
+          619,
           "            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15):\n"
         ],
         [
-          627,
-          636,
+          631,
+          640,
           ""
         ],
         [
-          713,
-          719,
+          717,
+          723,
           ""
         ]
       ]
