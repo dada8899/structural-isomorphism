@@ -33,6 +33,7 @@
   let summaryEdited = false;
   let observationReview = null;
   let accountScope = null;
+  let externalStartIntent = null;
   let evidenceUI = null;
   let registryUI = null;
   let scenarioUI = null;
@@ -1329,6 +1330,7 @@
         observation:variable.observation === null ? null : variable.observation.normalize('NFC')}))};
   }
   function clearPrivateView(cause = 'inflight_navigation') {
+    revokeExternalStart();
     clearFirstAnswer();
     registryUI?.reset(cause);
     scenarioUI?.reset(cause);
@@ -1540,7 +1542,13 @@
           if (response.status === 503) {
             const failure = await response.json().catch(() => null);
             if (!active()) return;
-            if (failure?.error?.code === 'FEATURE_UNAVAILABLE') externalPanel?.offer();
+            if (failure?.error?.code === 'FEATURE_UNAVAILABLE') {
+              if (generate && externalStartIntent) {
+                handled = Boolean(await externalPanel?.start(externalStartIntent));
+                if (handled) return true;
+              }
+              else externalPanel?.offer();
+            }
             if (options === readOptions && failure?.error?.code === 'STORE_UNAVAILABLE') {
               if (readRetries++ < 2) {
                 await waitForFirstAnswer(controller.signal);
@@ -1593,9 +1601,12 @@
           : labels[answer.status];
         byId('first-answer').hidden = false;
         byId('first-answer-leads').hidden = answer.status === 'cancelled' || readOnlyView();
-        if (answer.status === 'failed' || answer.status === 'interrupted') externalPanel?.offer();
+        let externalStarted = false;
+        if (generate && answer.status === 'failed' && answer.reason === 'unavailable' && externalStartIntent)
+          externalStarted = Boolean(await externalPanel?.start(externalStartIntent));
+        else if (answer.status === 'failed' || answer.status === 'interrupted') externalPanel?.offer();
         handled = true;
-        return !generate || answer.status === 'cancelled';
+        return externalStarted || !generate || answer.status === 'cancelled';
       }
       if (['insufficient','failed'].includes(answer.status) && answer.reason === 'needs_clarification' &&
           typeof answer.question === 'string' && answer.question.length > 0 && answer.question.length <= 480) {
@@ -1647,6 +1658,7 @@
       // Failure to load an optional answer must not hide the saved question.
       if (polling || cancelJob) return true;
     } finally {
+      if (generate || cancelJob) revokeExternalStart();
       clearTimeout(timer);
       if (firstAnswerController === controller) firstAnswerController = null;
       if (active() && (generate || polling || cancelJob)) observationSync();
@@ -1667,6 +1679,7 @@
     if (editBase && !readOnlyView() && !methodDirty && !busy) void readFirstAnswer(!firstAnswerRefreshOnly);
   });
   byId('first-answer-cancel').addEventListener('click', () => {
+    revokeExternalStart();
     if (firstAnswerJob && editBase && !readOnlyView() && !methodDirty && !busy) void readFirstAnswer(false, firstAnswerJob);
   });
   byId('first-answer-leads').addEventListener('click', () => {
@@ -1952,22 +1965,33 @@
     try { if(observationReview === byId('original-input').value) { observationProblem(observationReview,true); eligible=true; } } catch {}
     byId('observation-adopt').disabled = locked || !eligible || !byId('observation-own').checked;
   }
-  async function continueFromQuestion(saved) {
+  function revokeExternalStart() { externalStartIntent?.revoke(); externalStartIntent = null; }
+  window.addEventListener('pagehide', revokeExternalStart);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) revokeExternalStart(); });
+  async function continueFromQuestion(saved, intent = null) {
     if (!saved || researchId !== saved.research.id || methodDirty) return;
+    if (intent && intent === externalStartIntent) intent.bind(externalContext());
     const answered = await readFirstAnswer(true);
     if (!answered && researchId === saved.research.id && !methodDirty) void searchLocalLeads(true);
   }
   byId('save-question').addEventListener('click', () => {
     if (busy || readOnlyView() || !byId('original-input').reportValidity()) return;
+    revokeExternalStart();
+    const exactInput = byId('original-input').value, actor = accountScope, scope = privateGeneration;
+    const intent = window.ExternalFirstAnswer?.startIntent(exactInput, actor, () =>
+      externalStartIntent === intent && !document.hidden && accountScope === actor &&
+      privateGeneration === scope && byId('original-input').value === exactInput && !methodDirty);
+    externalStartIntent = intent;
+    const continued = saved => continueFromQuestion(saved, intent);
     if (current && !methodDirty && byId('problem-advanced').hidden &&
         !sessionStorage.getItem('structure-research-pending:' + researchId)) {
-      void continueFromQuestion(current);
+      void continued(current);
       return;
     }
     if (current || summaryEdited || byId('objective').value || byId('constraints').value ||
         byId('unknowns').value || byId('entry').value !== 'phenomenon' || byId('confirmed').checked ||
         byId('formula-enable').checked || !byId('problem-advanced').hidden) {
-      void saveProblem().then(continueFromQuestion);
+      void saveProblem().then(continued);
       return;
     }
     const original = byId('original-input').value;
@@ -1976,7 +2000,7 @@
       entry:'research', original_input:original, objective:'',
       summary:Array.from(title).length >= 8 ? title : '待研究问题：' + title + '（原话）',
       variables:[], constraints:[], unknowns:[], confirmed:false,
-    }), false).then(continueFromQuestion);
+    }), false).then(continued);
   });
   byId('start-research').addEventListener('click', () => {
     if (busy || readOnlyView() || !byId('original-input').reportValidity()) return;
@@ -2120,6 +2144,7 @@
   byId('research-list-more').addEventListener('click', () => loadResearchList(true));
   for (const id of ['original-input','objective','entry','summary','constraints','unknowns','confirmed']) {
     byId(id).addEventListener('input', () => {
+      revokeExternalStart();
       methodDirty = true; invalidateMethod('表单有未保存改动，已收起旧方法记录。');
       evidenceUI?.invalidate('问题有未保存改动，请保存并核对后重新选材预览。',true);
       formulaProblemEdited();

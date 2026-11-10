@@ -4969,3 +4969,104 @@ async def _source_history_closed_main_journey(tmp_path):
 def test_source_history_actual_main_closed_collection_keeps_existing_readable(tmp_path):
     import asyncio
     asyncio.run(_source_history_closed_main_journey(tmp_path))
+
+@pytest.mark.parametrize('mode', ['ready', 'unbound', 'over_cap', 'edited', 'reopen', 'clarification', 'queued'])
+def test_start_question_external_fallback_is_one_live_intent(short_observation_asgi, mode):
+    """Browser-only contract: no provider, billing or live issuer is involved."""
+    import time
+    client, _ = short_observation_asgi
+    calls = []
+    advertised = {'ready':mode not in ('unbound', 'reopen')}
+    exact = '为什么固定输入之后仍会出现不同结果？'
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        context = browser.new_context()
+        try:
+            page, _ = _short_observation_page(context, client)
+            def with_capability(route):
+                request = route.request
+                response = client.request(request.method, request.url,
+                    headers=request.all_headers(), content=request.post_data_buffer)
+                body = response.json()
+                if response.status_code == 200 and advertised['ready']:
+                    body['data']['capabilities']['external_first_answer'] = 'ready'
+                route.fulfill(status=response.status_code, json=body)
+            local_calls = []
+            def local_unavailable(route):
+                local_calls.append(route.request.method)
+                if mode in ('clarification', 'queued'):
+                    saved = client.get(route.request.url.split('/revisions/', 1)[0]).json()['data']
+                    row = saved['current_problem']
+                    metadata = {'research_id':row['research_id'],'input_revision':row['revision'],'problem_digest':row['digest']}
+                    if mode == 'clarification':
+                        route.fulfill(json={'contract_revision':'first-answer-job-v1','status':'failed',
+                            'reason':'needs_clarification','question':'这两次比较是否使用相同的时间范围？','metadata':metadata})
+                    elif len(local_calls) == 1:
+                        route.fulfill(json={'contract_revision':'first-answer-job-v1','status':'queued',
+                            'metadata':metadata | {'job_id':'11111111-1111-4111-8111-111111111111'}})
+                    else:
+                        route.fulfill(json={'contract_revision':'first-answer-job-v1','status':'failed',
+                            'reason':'unavailable','metadata':metadata})
+                else:
+                    route.fulfill(status=503, json={'error':{'code':'FEATURE_UNAVAILABLE'}})
+            def external(route):
+                request = route.request
+                calls.append(request.url.rsplit('/', 1)[-1])
+                root = request.url.split('/revisions/', 1)[0]
+                saved = client.get(root).json()['data']; row = saved['current_problem']
+                if request.url.endswith('/confirm'):
+                    assert request.post_data_json['confirm_exact_question'] is True
+                    assert 'exact_question' not in request.post_data_json
+                    route.fulfill(status=503, json={'error':{'code':'RECEIPT_UNKNOWN'}})
+                    return
+                if mode == 'edited':
+                    page.locator('#original-input').fill(exact + '（已修改）')
+                route.fulfill(json={'contract_revision':'external-first-answer-v1',
+                    'purpose':'external-first-answer-question-v1',
+                    'metadata':{'research_id':row['research_id'],'input_revision':row['revision'],
+                        'research_version':saved['research_version'],'problem_digest':row['digest']},
+                    'exact_question':row['original_input'],'provider':'deepseek','model':'deepseek-flash',
+                    'target':'https://api.deepseek.com/chat/completions','currency':'CNY','scale':6,
+                    'upper_units':2130001 if mode == 'over_cap' else 2130000,
+                    'preview_digest':'b'*64,'request_digest':'c'*64,'valid_until':int(time.time())+30,'may_send':True})
+            page.route('https://testserver/api/research', with_capability)
+            page.route('**/revisions/*/first-answer', local_unavailable)
+            page.route('**/revisions/*/external-first-answer/*', external)
+            page.route('https://testserver/api/search', lambda route:route.fulfill(json={'results':[]}))
+            page.goto('https://testserver/research')
+            expect(page.locator('#external-start-scope')).to_contain_text('单次最高 ¥2.13')
+            page.locator('#original-input').fill(exact)
+            if mode == 'reopen':
+                # Capability becoming ready on re-open cannot revive the old start.
+                page.locator('#save-question').click()
+                page.wait_for_url('**/research/*')
+                advertised['ready'] = True
+                page.route(page.url.replace('/research/', '/api/research/'), with_capability)
+                page.reload()
+                expect(page.locator('#original-input')).to_have_value(exact)
+                assert calls == []
+                return
+            page.locator('#save-question').click()
+            page.wait_for_url('**/research/*')
+            if mode in ('ready', 'queued'):
+                expect(page.locator('#external-first-answer')).to_contain_text('尚待核对')
+                assert calls == ['preview', 'confirm']
+                page.reload()
+                expect(page.locator('#original-input')).to_have_value(exact)
+                assert calls == ['preview', 'confirm']
+            elif mode == 'clarification':
+                expect(page.locator('#first-answer-status')).to_contain_text('还需要确认一点')
+                assert calls == []
+            elif mode == 'unbound':
+                expect(page.locator('#first-answer-status')).to_contain_text('问题已保存')
+                assert calls == []
+            elif mode == 'edited':
+                expect(page.locator('#external-first-answer')).to_be_hidden()
+                expect(page.locator('#original-input')).to_have_value(exact + '（已修改）')
+                assert calls == ['preview']
+            else:
+                expect(page.locator('#external-first-answer')).to_contain_text('未启动外部分析')
+                assert calls == ['preview']
+        finally:
+            context.close()
+            browser.close()

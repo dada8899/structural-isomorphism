@@ -8,8 +8,8 @@
   <script src="/assets/evidenceMethodPlan.js?v=20261023-evidence1" defer></script>
   <script src="/assets/financial-registry.js?v=20261023-fin2-registry1" defer></script>
   <script src="/assets/financial-scenario.js?v=20261023-fin3-scenario1" defer></script>
-  <script src="/assets/externalFirstAnswer.js?v=20261110-entry4" defer></script>
-  <script src="/assets/research.js?v=20261110-entry11" defer></script>
+  <script src="/assets/externalFirstAnswer.js?v=20261110-start-intent1" defer></script>
+  <script src="/assets/research.js?v=20261110-start-intent1" defer></script>
 </head>
 <body class="advanced-closed">
   <header><a href="/" class="brand">Structure<span>结构研究</span></a><nav aria-label="研究导航"><a href="#my-research">我的研究</a><a href="#advanced-tools-toggle">高级工具</a><a href="/auth/login">账户</a></nav></header>
@@ -17,17 +17,18 @@
     <div class="eyebrow">RESEARCH NOTEBOOK / 研究记录</div>
     <h1>你的问题，<br>与研究记录。</h1>
     <p class="intro">用自己的话描述问题，不必先知道数学方法或英文术语。已有研究记录仍可查看。</p>
-    <p class="scope" id="page-scope">先核对并采用本人现象自述，再查看下一步计划的外发原文与费用。计划执行须另行明确确认，并取决于实际执行权限；候选线索不代表研究结论。</p>
+    <p class="scope" id="page-scope">先写一个问题，系统会保留原话并尝试分析。外部分析的范围和费用见开始按钮旁说明；初步解释仍需核查依据。高级研究计划另有范围与费用说明。</p>
     <p id="status" role="status" aria-live="polite">正在读取研究记录…</p>
     <p id="view-context" class="scope" hidden></p>
     <div id="access" hidden><a href="/auth/login">登录账户</a><p>研究默认私有，请使用保存时的账户读取。</p></div>
     <form id="problem-form" hidden>
       <div class="section-heading"><h2>你想研究什么？</h2><span id="revision-label">未保存</span></div>
       <p id="problem-meta" class="hint" hidden>原问题保存时间 <time id="problem-created"></time></p>
-      <p id="entry-capability" class="scope" aria-live="polite">用自己的话写一个问题。保存后可查看初步分析或相关线索。外部研究会单独说明发送内容、接收方和费用。</p>
+      <p id="entry-capability" class="scope" aria-live="polite">用自己的话写一个问题，系统先保存，再尝试初步分析或本地线索。外部能力未开放时不会发送。</p>
       <label for="original-input">原始问题 <span>必填 · 最多 4000 字</span></label>
       <textarea id="original-input" required maxlength="4000" rows="5" aria-describedby="input-hint"></textarea>
       <p id="input-hint" class="hint">直接写你想弄清的事。系统会保留原话。</p>
+      <p id="external-start-scope" class="hint">开始研究会先使用本地分析。若此记录已开放外部分析且本地暂不支持，将仅把当前输入的问题发送给 DeepSeek（不含历史、附件或知识库）。点击表示你有权发送这段内容，并接受单次最高 ¥2.13、共享项目总预算最高 ¥300；这是费用上限，实际可用额度仍由服务端核验。</p>
       <div class="actions entry-actions"><button id="save-question" type="button" disabled>开始研究</button></div>
       <section id="observation-card" hidden aria-labelledby="observation-card-title">
         <h2 id="observation-card-title">原话记录</h2>
