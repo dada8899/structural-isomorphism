@@ -15,13 +15,15 @@ from web.backend.tests.test_formal_main_admission import BETA, envelope, login, 
 
 
 @pytest.mark.parametrize('unknown', [False, True], ids=['known-return', 'unknown-held'])
-def test_owner_key18_uses_independent_account_and_reopens_without_resending(prepared, existing_v17, monkeypatch, tmp_path, unknown):
+@pytest.mark.parametrize('price_changed',[False,True],ids=['fresh-price','expired-before-post'])
+def test_owner_key18_uses_independent_account_and_reopens_without_resending(prepared, existing_v17, monkeypatch, tmp_path, unknown,price_changed):
     from research.external_first_answer_issuer_contract import OwnerKeyStartupBinding
     from research.external_funding_v18 import read_binding, project_usage
     from services import external_live_production as live, external_live_sender as sender
     main,admission,_,messages=prepared
     path,registration,old_account=existing_v17
     migrate(path,registration)
+    unknown=unknown or price_changed
     calls=[]
     candidate={'status':'candidate','explanation':'反馈延迟可能让调整发生在状态变化之后。',
         'assumptions':['仅为公开合成问题。'],'next_check':'对照实际反馈间隔。','evidence_status':'not_checked'}
@@ -68,6 +70,14 @@ def test_owner_key18_uses_independent_account_and_reopens_without_resending(prep
                 patch.setitem(live._LIVE,id(main.app),handle)
                 patch.setattr(sender,'_PINNED_ENDPOINT',policy)
                 patch.setattr(sender,'_trust',lambda *_,**__: (NS(wrap_socket=lambda sock,**_:sock),int(time.time())+60,1_000_000))
+                price_calls=[]
+                def fresh_price(*args,**kwargs):
+                    price_calls.append(1)
+                    if price_changed and len(price_calls)>1:
+                        from research.external_first_answer_contract import ContractError
+                        raise ContractError('external_price_basis_unbound')
+                    return {'valid_until':int(time.time())+60,'max_prompt_tokens':1000000}
+                patch.setattr(sender,'_price_window',fresh_price)
                 patch.setattr(sender,'socket',NS(AF_INET=2,AF_INET6=10,SOCK_STREAM=1,socket=lambda *_:Socket()))
                 patch.setattr(live,'_receipt_directory',receipt_directory)
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
@@ -87,7 +97,7 @@ def test_owner_key18_uses_independent_account_and_reopens_without_resending(prep
                     response=await client.post(base+'/confirm',json=body,headers=headers)
                     assert response.status_code==200,response.text
                     assert response.json()['status']==('unknown' if unknown else 'completed')
-                    assert calls==['GET','POST']
+                    assert calls==(['GET'] if price_changed else ['GET','POST'])
                     assert (await client.post(base+'/confirm',json=body,headers=headers)).json()==response.json()
                     located=await client.get('/api/research/'+rid)
                     assert located.status_code==200,located.text
@@ -99,7 +109,7 @@ def test_owner_key18_uses_independent_account_and_reopens_without_resending(prep
                         assert tuple(conn.execute('SELECT held,upper_booked FROM research_funding_accounts WHERE id=?',
                             (registration.account_id,)).fetchone())==((2_129_920,0) if unknown else (0,2_129_920))
                         assert project_usage(conn)==2_129_920
-                    assert calls==['GET','POST']
+                    assert calls==(['GET'] if price_changed else ['GET','POST'])
                     deleted=await client.post('/api/me/delete',json={'confirmation':'DELETE'},headers=origin)
                     assert deleted.status_code==(503 if unknown else 200),deleted.text
                     with service.store.transaction() as conn:
@@ -117,6 +127,6 @@ def test_owner_key18_uses_independent_account_and_reopens_without_resending(prep
                         assert tuple(conn.execute('SELECT held,upper_booked FROM research_funding_accounts WHERE id=?',
                             (registration.account_id,)).fetchone())==((2_129_920,0) if unknown else (0,2_129_920))
                     assert (await client.get('/api/research/'+rid)).status_code==(200 if unknown else 401)
-                    assert calls==['GET','POST']
+                    assert calls==(['GET'] if price_changed else ['GET','POST'])
                 live.retire(main.app,handle)
     asyncio.run(verify())

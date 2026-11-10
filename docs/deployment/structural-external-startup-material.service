@@ -1,0 +1,21 @@
+[Unit]
+Description=Prepare fixed approved external-answer startup or durable closed state
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+LimitCORE=0
+PrivateDevices=yes
+CapabilityBoundingSet=
+ProtectProc=ptraceable
+ProcSubset=pid
+LoadCredentialEncrypted=structural-external-first-answer-startup-signing-key:/etc/credstore.encrypted/structural-root/structural-external-first-answer-startup-signing-key
+ExecStart=/APPROVED/A4/bin/python -I -S -B /APPROVED/RELEASE/scripts/maintain-external-live-materials.py --startup
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/etc/structural
+TimeoutStartSec=120

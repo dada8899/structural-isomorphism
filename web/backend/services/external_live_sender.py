@@ -147,10 +147,7 @@ def _trust(handle,policy,*,now):
              "economic_binding":expected.economic_binding,"credential_incarnation":expected.credential_incarnation,
              "funding_epoch":expected.funding_epoch,"ledger_policy_digest":expected.ledger_policy_digest}:
         raise contract.ContractError("external_economic_proof_unbound")
-    price=production._fixed_file(_PRICE_PROOF,16384)
-    if digest(price)!=policy.price_basis_sha256:
-        raise contract.ContractError("external_price_basis_unbound")
-    basis=_parse_price_basis(price,policy,now=now)
+    basis=_price_window(expected,policy,now=now)
     ca=production._fixed_file(_CA,2*1024**2)
     if digest(ca)!=policy.ca_sha256:
         raise contract.ContractError("external_CA_unbound")
@@ -158,6 +155,20 @@ def _trust(handle,policy,*,now):
     ctx.minimum_version=ssl.TLSVersion.TLSv1_2
     ctx.load_verify_locations(cadata=ca.decode("ascii"))
     return ctx,basis["valid_until"],basis["max_prompt_tokens"]
+
+
+def _price_window(expected,policy,*,now):
+    if expected.schema_version==18:
+        from .external_price_materials import validate_observation,MaterialError
+        try:
+            return validate_observation(production._fixed_file(_PRICE_PROOF,65536),policy.price_basis_sha256,
+                now=now,upper_units=policy.upper_units)
+        except (MaterialError,ValueError,TypeError,KeyError,UnicodeError):
+            raise contract.ContractError("external_price_basis_unbound") from None
+    price=production._fixed_file(_PRICE_PROOF,16384)
+    if digest(price)!=policy.price_basis_sha256:
+        raise contract.ContractError("external_price_basis_unbound")
+    return _parse_price_basis(price,policy,now=now)
 
 
 def _strict_reply(raw):
@@ -407,6 +418,10 @@ class _Ticket:
             remaining=deadline-time.monotonic()
             if remaining<=0 or int(time.time())>=min(w.grant.valid_until,w.grant.quote.valid_until):
                 raise TimeoutError("external first-write deadline")
+            if w.handle._expected.schema_version==18:
+                _price_window(w.handle._expected,_require_live(w.handle,w.app)[0],now=int(time.time()))
+                remaining=deadline-time.monotonic()
+                if remaining<=0:raise TimeoutError("external first-write deadline")
             sock.settimeout(remaining)
             sock.sendall(wire)
 
@@ -481,6 +496,10 @@ def run_once(app,handle,service,identity,rid,revision,research_version,key,previ
             if production.operation_already_spent(app,handle,key):
                 raise contract.ContractError("external_canary_already_spent" if policy.request_mode=="canary" else "external_operation_already_spent")
             if remaining<=0:raise TimeoutError("external balance deadline")
+            if handle._expected.schema_version==18:
+                _price_window(handle._expected,policy,now=int(time.time()))
+                remaining=deadline-time.monotonic()
+                if remaining<=0:raise TimeoutError("external balance deadline")
             sock.settimeout(remaining)
             sock.sendall(wire)
     balance=_balance_units(_exchange(handle,policy,address,context,"GET",_BALANCE,b"",balance_first))
