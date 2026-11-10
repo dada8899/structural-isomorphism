@@ -273,3 +273,39 @@ def test_actual_main18_local_answer_owner_history_and_closed_legacy_execution(ex
         assert admission._STATE.get(id(main.app)) is None and not production._LIVE
     asyncio.run(run())
     assert calls==[] and saved
+
+
+from web.backend.tests.test_formal_model_startup import startup,encoder,synthetic_readonly_mount
+
+def test_actual_main18_background_queue_saved_result_reopens(existing_v17,prepared,startup,encoder,monkeypatch):
+    from tests.test_external_funding_v18 import migrate
+    from web.backend.tests.test_research_first_answer import candidate
+    from research import first_answer_queue,first_answer_supervisor
+    path,record,_=existing_v17;migrate(path,record)
+    (path.parent/first_answer_queue.LOCK_NAME).touch(mode=0o600,exist_ok=False)
+    main,admission,paths,messages=prepared
+    entered=[]
+    def public_fixture(question,search,*,cancel):
+        assert search.formal is True
+        entered.append(True)
+        return {'status':'answered','content':candidate().model_dump(mode='json',exclude_none=True)}
+    monkeypatch.setattr(first_answer_supervisor,'produce_background_answer',public_fixture)
+    async def run():
+        async with main.lifespan(main.app):
+            assert admission.safe_status(main.app)['first_answer_local']=='ready'
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
+                await login(client,messages)
+                response=await client.post('/api/research',json=envelope({'problem':problem()}),headers={'Origin':BETA,'Idempotency-Key':'v18-background-public'})
+                assert response.status_code==200,response.text
+                row=response.json()['data'];rid=row['research']['id'];url=f'/api/research/{rid}/revisions/1/first-answer'
+                request={'problem_digest':row['current_problem']['digest'],'research_version':row['research_version']}
+                queued=await client.post(url,json=request,headers={'Origin':BETA})
+                assert queued.status_code in (200,202),queued.text
+                for _ in range(80):
+                    opened=await client.get(url)
+                    if opened.status_code==200 and opened.json().get('status')=='provisional':break
+                    await asyncio.sleep(.05)
+                assert opened.status_code==200 and opened.json()['status']=='provisional',opened.text
+                assert (await client.get(url)).json()==opened.json()
+        assert first_answer_supervisor.current(main.app) is None
+    asyncio.run(run());assert entered==[True]
