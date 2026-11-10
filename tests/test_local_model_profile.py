@@ -17,6 +17,9 @@ def constructor(monkeypatch):
     package.SentenceTransformer = lambda *a, **k: calls.append((a, k)) or object()
     monkeypatch.setattr(os, "fstatvfs", lambda _fd: SimpleNamespace(f_flag=os.ST_RDONLY))
     monkeypatch.setitem(sys.modules, "sentence_transformers", package)
+    monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(
+        backends=SimpleNamespace(mkldnn=SimpleNamespace(enabled=True)),
+    ))
     return package, calls
 
 
@@ -121,6 +124,45 @@ def test_development_fallback_and_device_are_not_changed(tmp_path, monkeypatch, 
     monkeypatch.setattr(package, "SentenceTransformer", old_behavior)
     assert model.load_model(device="mps") is sentinel
     assert calls == [(model.DEFAULT_HF_MODEL, {"device": "mps"}), (model.DEFAULT_BASE_MODEL, {"device": "mps"})]
+    assert sys.modules["torch"].backends.mkldnn.enabled is True
+
+
+def test_formal_disables_dynamic_cpu_backend_before_model_constructor(tmp_path, monkeypatch, constructor):
+    package, calls = constructor
+    backend = sys.modules["torch"].backends.mkldnn
+
+    def checked_constructor(*args, **kwargs):
+        assert backend.enabled is False
+        calls.append((args, kwargs))
+        return object()
+
+    monkeypatch.setattr(package, "SentenceTransformer", checked_constructor)
+    fd = os.open(tmp_path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        model.load_model(f"/proc/self/fd/{fd}", formal=True, directory_fd=fd)
+    finally:
+        os.close(fd)
+    assert len(calls) == 1
+
+
+def test_formal_backend_configuration_failure_never_loads_another_model(tmp_path, monkeypatch, constructor):
+    class RefusingBackend:
+        @property
+        def enabled(self):
+            return True
+
+        @enabled.setter
+        def enabled(self, value):
+            pass
+
+    monkeypatch.setattr(sys.modules["torch"].backends, "mkldnn", RefusingBackend())
+    fd = os.open(tmp_path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        with pytest.raises(RuntimeError, match="formal local CPU model could not be loaded"):
+            model.load_model(f"/proc/self/fd/{fd}", formal=True, directory_fd=fd)
+    finally:
+        os.close(fd)
+    assert constructor[1] == []
 
 
 def test_formal_fd_anchor_is_not_resolved_back_to_source(tmp_path, monkeypatch, constructor):
