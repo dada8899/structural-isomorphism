@@ -203,6 +203,60 @@ def claim_p1_before_first_write(app,handle,operation_key):
     except OSError:raise ContractError("external_startup_receipt_unbound") from None
 
 
+def _saved_operation_name(operation_key):
+    if type(operation_key) is not str or re.fullmatch(r"[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}",operation_key) is None:
+        raise ContractError("external_operation_binding_changed")
+    opaque=hashlib.sha256(b"structure-external-first-answer-saved-question-operation-v1\0"+operation_key.encode("ascii")).hexdigest()
+    return "spent-operation-"+opaque
+
+
+def _saved_operation_spent_at(parent,operation_key):
+    try:os.stat(_saved_operation_name(operation_key),dir_fd=parent,follow_symlinks=False)
+    except FileNotFoundError:return False
+    return True
+
+
+def _claim_saved_operation_at(parent,operation_key):
+    name=_saved_operation_name(operation_key)
+    try:fd=os.open(name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=parent)
+    except FileExistsError:raise ContractError("external_operation_already_spent") from None
+    with os.fdopen(fd,"wb") as stream:
+        # Only a nonprivate random operation digest persists after erasure.
+        stream.write((name.removeprefix("spent-operation-")+"\n").encode("ascii"))
+        stream.flush();os.fsync(stream.fileno())
+    os.fsync(parent)
+
+
+def operation_already_spent(app,handle,operation_key):
+    from .external_live_sender import _require_live,_valid_operation_key
+    policy,_=_require_live(handle,app)
+    if not _valid_operation_key(operation_key) or (policy.request_mode=="canary" and operation_key!=policy.canary_operation_key):
+        raise ContractError("external_operation_binding_changed")
+    if policy.request_mode=="canary":return p1_already_spent(app,handle)
+    try:
+        with _receipt_directory(handle._expected) as parent:return _saved_operation_spent_at(parent,operation_key)
+    except OSError:raise ContractError("external_startup_receipt_unbound") from None
+
+
+def claim_saved_question_before_first_write(app,handle,operation_key):
+    from .external_live_sender import _Ticket,_require_live,_valid_operation_key
+    frame=sys._getframe(1)
+    try:
+        ticket=frame.f_locals.get("self")
+        if (frame.f_code is not _Ticket.first_write.__code__ or frame.f_globals is not _Ticket.first_write.__globals__
+                or type(handle) is not _LiveHandle or type(ticket) is not _Ticket
+                or ticket.writer.handle is not handle or ticket.writer.app is not app
+                or ticket.run!=operation_key or ticket.writer.key!=operation_key):
+            raise ContractError("external_consumption_ticket_required")
+    finally:del frame
+    policy,_=_require_live(handle,app)
+    if policy.request_mode!="saved-question" or not _valid_operation_key(operation_key):
+        raise ContractError("external_operation_binding_changed")
+    try:
+        with _receipt_directory(handle._expected) as parent:_claim_saved_operation_at(parent,operation_key)
+    except OSError:raise ContractError("external_startup_receipt_unbound") from None
+
+
 class _LiveCredential(_Sealed):
     __slots__=("_raw","_active")
     def __init__(self,raw,*,factory):
@@ -299,6 +353,7 @@ def _prepare(app):
         raise ContractError("external_source_changed")
     for name in ("scripts/run-formal-main.py","web/backend/main.py",
                  "web/backend/services/external_live_issuer.py","web/backend/services/external_live_production.py",
+                 "web/backend/services/external_live_sender.py","web/backend/services/external_live_operations.py",
                  "web/backend/research/external_first_answer_issuer_contract.py"):
         if hashlib.sha256(_fixed_file(root/name,512*1024)).hexdigest()!=paths.get(name):
             raise ContractError("external_source_changed")

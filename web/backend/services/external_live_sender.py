@@ -53,13 +53,16 @@ class EndpointPolicy:
     upper_units:int
     canary_operation_key:str|None=None
     canary_request_sha256:str|None=None
+    request_mode:str="canary"
 
     def wire_digest(self):
+        _request_mode(self)
         return digest(canonical({"host":_HOST,"public_ip":self.public_ip,"balance":_BALANCE,
                                  "completion":_COMPLETION,"ca_sha256":self.ca_sha256,
                                  "economic_proof_sha256":self.economic_proof_sha256,
                                  "price_basis_sha256":self.price_basis_sha256,"upper_units":self.upper_units,
-                                 "canary_operation_key":self.canary_operation_key,"canary_request_sha256":self.canary_request_sha256}))
+                                 "canary_operation_key":self.canary_operation_key,"canary_request_sha256":self.canary_request_sha256,
+                                 "request_mode":self.request_mode}))
 
 
 _PINNED_ENDPOINT=None
@@ -67,6 +70,33 @@ _PINNED_ENDPOINT=None
 
 def _within_canary_upper(value):
     return type(value) is int and 1<=value<=_CANARY_MAX_UPPER
+
+
+def _valid_operation_key(key):
+    return type(key) is str and re.fullmatch(r"[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}",key) is not None
+
+
+def _request_mode(policy):
+    if type(policy.request_mode) is not str:
+        raise contract.ContractError("external_request_mode_unbound")
+    if policy.request_mode=="canary":
+        if (not _valid_operation_key(policy.canary_operation_key) or type(policy.canary_request_sha256) is not str
+                or re.fullmatch(r"[a-f0-9]{64}",policy.canary_request_sha256) is None):
+            raise contract.ContractError("external_canary_unbound")
+    elif policy.request_mode=="saved-question":
+        if policy.canary_operation_key is not None or policy.canary_request_sha256 is not None:
+            raise contract.ContractError("external_saved_question_policy_invalid")
+    else:
+        raise contract.ContractError("external_request_mode_unbound")
+    return policy.request_mode
+
+
+def _request_binding(policy,key,request_digest):
+    mode=_request_mode(policy)
+    if mode=="canary" and (key,request_digest)!=(policy.canary_operation_key,policy.canary_request_sha256):
+        raise contract.ContractError("external_canary_binding_changed")
+    if not _valid_operation_key(key) or type(request_digest) is not str or re.fullmatch(r"[a-f0-9]{64}",request_digest) is None:
+        raise contract.ContractError("external_operation_binding_changed")
 
 
 def _require_live(handle,app):
@@ -77,10 +107,7 @@ def _require_live(handle,app):
     if (type(policy) is not EndpointPolicy or policy.wire_digest()!=handle._expected.endpoint_policy_digest
             or not _within_canary_upper(policy.upper_units)):
         raise contract.ContractError("external_endpoint_policy_unbound")
-    if (type(policy.canary_operation_key) is not str or not re.fullmatch(
-            r"[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}",policy.canary_operation_key)
-            or type(policy.canary_request_sha256) is not str or not re.fullmatch(r"[a-f0-9]{64}",policy.canary_request_sha256)):
-        raise contract.ContractError("external_canary_unbound")
+    _request_mode(policy)
     address=ipaddress.ip_address(policy.public_ip)
     if not address.is_global or address.is_multicast or address.is_unspecified or getattr(address,"ipv4_mapped",None):
         raise contract.ContractError("external_endpoint_policy_unbound")
@@ -313,7 +340,7 @@ class _Ticket:
         self.account=writer.current_account
 
     def first_write(self,sock,wire,deadline):
-        if (sys._getframe(1).f_code is not _exchange.__code__ or self.used or self.pid!=os.getpid()
+        if (sys._getframe(1).f_code is not _exchange.__code__ or self.used or self.pid!=os.getpid() or self.run!=self.writer.key
                 or not wire.startswith(b"POST /chat/completions HTTP/1.1\r\n") or not wire.endswith(self.raw)):
             raise contract.ContractError("reconcile_original_only")
         # Burn the ephemeral permission before any potentially ambiguous send.
@@ -340,7 +367,10 @@ class _Ticket:
             remaining=deadline-time.monotonic()
             if remaining<=0 or int(time.time())>=min(w.grant.valid_until,w.grant.quote.valid_until):
                 raise TimeoutError("external first-write deadline")
-            production.claim_p1_before_first_write(w.app,w.handle,w.key)
+            if _require_live(w.handle,w.app)[0].request_mode=="canary":
+                production.claim_p1_before_first_write(w.app,w.handle,w.key)
+            else:
+                production.claim_saved_question_before_first_write(w.app,w.handle,w.key)
             remaining=deadline-time.monotonic()
             if remaining<=0 or int(time.time())>=min(w.grant.valid_until,w.grant.quote.valid_until):
                 raise TimeoutError("external first-write deadline")
@@ -371,13 +401,12 @@ def run_once(app,handle,service,identity,rid,revision,research_version,key,previ
     if service.store is not handle._binding.service.store:
         raise contract.ContractError("external_ledger_identity_changed")
     key=service._id(key)
-    if (key,confirmation.request_digest)!=(policy.canary_operation_key,policy.canary_request_sha256):
-        raise contract.ContractError("external_canary_binding_changed")
+    _request_binding(policy,key,confirmation.request_digest)
     decision_digest=digest(canonical(confirmation.model_dump(mode="json")))
     require_authenticated_action(source,identity=identity,action="external-answer-confirm",
         research_id=rid,task_id=str(revision),key=key,body_digest=decision_digest)
     from .external_live_operations import require_offered
-    require_offered(quote_proof,handle,service,identity,rid,revision,preview,quote,confirmation)
+    require_offered(quote_proof,handle,service,identity,rid,revision,preview,quote,confirmation,operation_key=key)
     now=int(time.time())
     original=None
     with _authorized_saved_revision(service,identity,rid,revision,research_version) as (conn,scope,raw):
@@ -398,8 +427,8 @@ def run_once(app,handle,service,identity,rid,revision,research_version,key,previ
             raise contract.ContractError("reconcile_original_only")
     if original is not None:
         return read_main_recovery(service,identity,rid,revision,key)
-    if production.p1_already_spent(app,handle):
-        raise contract.ContractError("external_canary_already_spent")
+    if production.operation_already_spent(app,handle,key):
+        raise contract.ContractError("external_canary_already_spent" if policy.request_mode=="canary" else "external_operation_already_spent")
     context,price_valid_until,prompt_bound=_trust(handle,policy,now=now)
     if quote.valid_until>price_valid_until:raise contract.ContractError("external_quote_expired")
     def balance_first(sock,wire,deadline):
@@ -416,8 +445,8 @@ def run_once(app,handle,service,identity,rid,revision,research_version,key,previ
                                  (rid,revision)).fetchone() or file_writer.unresolved(conn,quote.account_id)):
                     raise contract.ContractError("reconcile_original_only")
             remaining=deadline-time.monotonic()
-            if production.p1_already_spent(app,handle):
-                raise contract.ContractError("external_canary_already_spent")
+            if production.operation_already_spent(app,handle,key):
+                raise contract.ContractError("external_canary_already_spent" if policy.request_mode=="canary" else "external_operation_already_spent")
             if remaining<=0:raise TimeoutError("external balance deadline")
             sock.settimeout(remaining)
             sock.sendall(wire)

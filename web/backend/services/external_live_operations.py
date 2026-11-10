@@ -34,6 +34,7 @@ class _Offered:
     scope:object
     quote:object
     prepared:object
+    operation_key:str
 
 
 def current(app,service,identity):
@@ -85,7 +86,8 @@ def preview(selected,identity,rid,rev,request,source):
         if scope.problem_digest!=request.problem_digest:
             raise contract.ContractError("revision_binding_changed")
         _require_unused_revision(conn,rid,rev)
-        if production.p1_already_spent(handle._app,handle):
+        key=policy.canary_operation_key if policy.request_mode=="canary" else str(uuid4())
+        if production.operation_already_spent(handle._app,handle,key):
             raise ResearchError("OPERATION_ALREADY_USED",409,"本次外部分析许可已使用；不会再次发送。")
         expected=handle._expected
         if (scope.principal_id,scope.auth_generation)!=(expected.owner_principal,expected.owner_generation):
@@ -103,20 +105,22 @@ def preview(selected,identity,rid,rev,request,source):
             quote_id=str(uuid4()),price_basis_digest=policy.price_basis_sha256,currency="CNY",
             scale=6,upper_units=policy.upper_units,issued_at=now,valid_until=valid_until)
         prepared=contract.prepare_closed_preview(scope,raw,quote,now=now)
-        if prepared.request_digest!=policy.canary_request_sha256:
+        if policy.request_mode=="canary" and prepared.request_digest!=policy.canary_request_sha256:
             raise contract.ContractError("external_canary_binding_changed")
         with _LOCK:
             _prune(now)
             if len(_CACHE)>=32:raise contract.ContractError("preview_capacity")
-            _CACHE[prepared.preview_digest]=_Offered(handle,scope,quote,prepared)
-        return project_closed_preview(scope,raw,quote,now=now)|{"may_send":True,"operation_key":policy.canary_operation_key}
+            _CACHE[prepared.preview_digest]=_Offered(handle,scope,quote,prepared,key)
+        return project_closed_preview(scope,raw,quote,now=now)|{"may_send":True,"operation_key":key}
 
 
 def confirm(selected,app,identity,rid,rev,key,decision,source):
     _source(source,identity,"external-answer-confirm",rid,rev,key,decision)
     handle,service,policy,_=selected
-    if (key,decision.request_digest)!=(policy.canary_operation_key,policy.canary_request_sha256):
-        raise contract.ContractError("external_canary_binding_changed")
+    actual_policy,_=sender._require_live(handle,app)
+    if actual_policy is not policy or service is not handle._binding.service:
+        raise contract.ContractError("external_owner_binding_changed")
+    sender._request_binding(policy,key,decision.request_digest)
     try:original=read_main_recovery(service,identity,rid,rev,key)
     except ResearchError as error:
         if error.code!="NOT_FOUND":raise
@@ -132,19 +136,19 @@ def confirm(selected,app,identity,rid,rev,key,decision,source):
         _prune(int(time.time()))
         offered=_CACHE.get(decision.preview_digest)
     if (offered is None or offered.handle is not handle or offered.scope.research_id!=rid
-            or offered.scope.input_revision!=rev):
+            or offered.scope.input_revision!=rev or offered.operation_key!=key):
         raise contract.ContractError("preview_unavailable")
     return sender.run_once(app,handle,service,identity,rid,rev,offered.scope.research_version,key,
                            offered.prepared,offered.quote,decision,source=source,quote_proof=offered)
 
 
 
-def require_offered(proof,handle,service,identity,rid,revision,prepared,quote,decision):
+def require_offered(proof,handle,service,identity,rid,revision,prepared,quote,decision,*,operation_key=None):
     """Only this process's owner-bound live preview can authorize a quote."""
     with _LOCK:
         _prune(int(time.time()))
         if (type(proof) is not _Offered or _CACHE.get(decision.preview_digest) is not proof
-                or proof.handle is not handle or service is not handle._binding.service
+                or proof.handle is not handle or proof.operation_key!=operation_key or service is not handle._binding.service
                 or (proof.scope.research_id,proof.scope.input_revision,proof.scope.auth_generation)!=(
                     rid,revision,identity.generation)
                 or proof.prepared is not prepared or proof.quote is not quote):
