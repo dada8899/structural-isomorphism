@@ -69,6 +69,8 @@ _GIT_SHA_CACHE: str = ""
 # surface (including /api/admin/*). Disable them when STRUCTURAL_ENV=prod;
 # they stay on for dev / staging where they are useful.
 _IS_PROD = os.getenv("STRUCTURAL_ENV", "dev").lower() == "prod"
+# Source-fixed B18 recovery role. Environment flags cannot enable execution.
+_RECOVERY_BRIDGE = True
 _AUTH_ENABLED = os.getenv("AUTH_ENABLED", "false").lower() in {"1", "true", "yes"}
 _DOCS_KWARGS = (
     {"docs_url": None, "redoc_url": None, "openapi_url": None}
@@ -189,6 +191,8 @@ def _lifespan_primary_annotation(primary):
 async def lifespan(app: FastAPI):
     """Startup: load the search engine once."""
     logger.info("startup.begin")
+    if _RECOVERY_BRIDGE and not _IS_PROD:
+        raise RuntimeError("B18 recovery requires the formal schema18 profile")
     if _IS_PROD:
         from services import formal_admission
         if formal_admission._STATE.get(id(app)) is not None:
@@ -204,6 +208,8 @@ async def lifespan(app: FastAPI):
         try:
             auth_api._validate_production_config()
             binding = formal_admission.initialize(app)
+            if _RECOVERY_BRIDGE and binding.facts.profile.research_schema != 18:
+                raise RuntimeError("B18 recovery requires physical schema18")
             configured = tuple(os.getenv(key) for key in ('STRUCTURAL_DATA_DIR', 'STRUCTURAL_MODEL_PATH',
                 'STRUCTURAL_PRECOMPUTED_EMBEDDINGS', 'STRUCTURAL_ARTIFACT_MANIFEST'))
             if any(configured):
@@ -214,10 +220,10 @@ async def lifespan(app: FastAPI):
                     precomputed_embeddings=configured[2], artifact_manifest=configured[3],
                     kb_file=os.getenv('STRUCTURAL_KB_FILE', 'kb-expanded.jsonl'), formal=True)
             formal_admission.publish(app, binding, search_service)
-            if binding.facts.profile.research_schema in (17,18):
+            if not _RECOVERY_BRIDGE and binding.facts.profile.research_schema in (17,18):
                 from services import external_live_production as external_module
                 external_handle=external_module.activate(app)
-            if binding.facts.profile.research_schema in (15,16):
+            if not _RECOVERY_BRIDGE and binding.facts.profile.research_schema in (15,16):
                 native_module=importlib.import_module(binding.service.__module__.rsplit('.',1)[0]+'.native_plan_supervisor')
                 native_context=native_module.prepare_main_context(binding.service,binding)
                 try:
@@ -242,7 +248,7 @@ async def lifespan(app: FastAPI):
             if native_supervisor is not None:formal_admission.attach_native(app,binding,native_module,native_supervisor)
             if search_service is not None:
                 app_state['search'], app_state['artifact'] = search_service, search_service.artifact
-                if binding.facts.profile.research_schema in (16,17,18):
+                if not _RECOVERY_BRIDGE and binding.facts.profile.research_schema in (16,17,18):
                     answer_module = importlib.import_module(
                         binding.service.__module__.rsplit('.', 1)[0] + '.first_answer_supervisor')
                     answer_worker = answer_module.activate(app, binding.service, search_service)

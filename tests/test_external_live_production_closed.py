@@ -381,3 +381,21 @@ def test_actual_main18_background_queue_saved_result_reopens(existing_v17,prepar
                 assert (await client.get(url)).json()==opened.json()
         assert first_answer_supervisor.current(main.app) is None
     asyncio.run(run());assert entered==[True]
+
+
+
+@pytest.mark.parametrize('environment',['prod','dev'])
+def test_b18_requires_physical18_and_environment_cannot_enable_legacy(prepared,monkeypatch,environment):
+    main,admission,paths,messages=prepared
+    from services import external_live_production
+    from research import source_supervisor,native_plan_supervisor,first_answer_supervisor
+    calls=[]
+    def forbidden(*a,**kw):calls.append(True);raise AssertionError('B18 recovery started execution')
+    for module,name in ((external_live_production,'activate'),(source_supervisor,'start'),(native_plan_supervisor,'prepare_main_context'),(native_plan_supervisor,'start'),(first_answer_supervisor,'activate')):monkeypatch.setattr(module,name,forbidden)
+    monkeypatch.setenv('STRUCTURAL_ENV',environment)
+    monkeypatch.setenv('STRUCTURAL_EXTERNAL_FIRST_ANSWER_ENABLED','true')
+    async def run():
+        with pytest.raises(RuntimeError):
+            async with main.lifespan(main.app):pytest.fail('bridge admitted schema15/dev')
+        assert admission._STATE.get(id(main.app)) is None
+    asyncio.run(run());assert main._RECOVERY_BRIDGE is True and calls==[]
