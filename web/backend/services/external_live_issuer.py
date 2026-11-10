@@ -28,24 +28,50 @@ _ACTIVE={}
 _LOCK=threading.RLock()
 
 
+def _owner_key_row(conn, expected, family):
+    from importlib import import_module
+    funding=import_module(family+'.external_funding_v18').read_binding(conn)
+    if funding is None or (
+            funding['account_id'],funding['local_binding_ref'],funding['owner_principal'],
+            funding['owner_generation'],funding['owner_gate_id'],funding['credential_incarnation'],
+            funding['authorization_event_ref'],funding['credential_source'],funding['payer_identity_status'],
+            funding['payer_id'],funding['funding_epoch'])!=(
+            expected.account_id,expected.economic_binding,expected.owner_principal,
+            expected.owner_generation,expected.owner_gate_id,expected.credential_incarnation,
+            expected.authorization_event_ref,expected.credential_source,expected.payer_identity_status,
+            expected.payer_id,expected.funding_epoch):
+        raise ValueError()
+    return conn.execute("""SELECT f.account_id,f.local_binding_ref,f.credential_incarnation,f.owner_principal,
+        f.owner_generation,f.owner_gate_id,f.project_cap,f.single_upper,a.funding_epoch,p.epoch,p.gate_id
+        FROM research_external_owner_funding f JOIN research_funding_accounts a ON a.id=f.account_id
+        JOIN research_principals p ON p.id=f.owner_principal JOIN auth_users u ON u.email=p.normalized_email
+        WHERE f.id=1 AND a.binding_id=f.local_binding_ref AND a.mode='live' AND a.status='unverified'
+        AND a.cap=0 AND a.currency='CNY' AND a.scale=6 AND a.provider='deepseek'
+        AND p.status='active' AND u.lifecycle='active' AND p.session_generation=f.owner_generation
+        AND u.session_generation=f.owner_generation""").fetchone()
+
+
 def _attest_main(app,expected):
     """Read actual admitted v17 Main and the existing, not newly minted ledger."""
     from importlib import import_module
     family="web.backend.research" if __package__=="web.backend.services" else "research"
     schema=import_module(family+".external_first_answer_issuer_contract")
-    if type(expected) is not schema.StartupBinding:
+    if type(expected) not in (schema.StartupBinding,schema.OwnerKeyStartupBinding):
         raise ContractError("external_startup_binding_required")
     try:
         formal_admission.require(app,"research_basic")
         binding=formal_admission._STATE.get(id(app))
         if (type(binding) is not formal_admission._Binding or binding.app is not app or binding.pid!=os.getpid()
-                or binding.facts.profile.research_schema!=17 or not binding.service.store._formal_mode()):
+                or binding.facts.profile.research_schema!=expected.schema_version or not binding.service.store._formal_mode()):
             raise ValueError()
         store=binding.service.store
         if store.storage_identity!=(expected.database_dev,expected.database_ino):
             raise ValueError()
         with store.transaction() as conn:
-            row=conn.execute("""SELECT f.account_id,f.economic_binding,f.credential_incarnation,f.principal_id,
+            if expected.schema_version==18:
+                row=_owner_key_row(conn,expected,family)
+            else:
+                row=conn.execute("""SELECT f.account_id,f.economic_binding,f.credential_incarnation,f.principal_id,
                f.generation,f.owner_gate_id,f.approved_cap_units,f.risk_margin_units,
                a.funding_epoch,p.epoch,p.gate_id
                FROM research_plan_native_funding f JOIN research_funding_accounts a ON a.id=f.account_id

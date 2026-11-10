@@ -95,10 +95,17 @@ def preview(selected,identity,rid,rev,request,source):
         account=conn.execute("""SELECT settled,held,upper_booked FROM research_funding_accounts
             WHERE id=? AND binding_id=? AND funding_epoch=? AND provider='deepseek' AND currency='CNY' AND scale=6""",
             (expected.account_id,expected.economic_binding,expected.funding_epoch)).fetchone()
-        if account is None or unresolved(conn,expected.account_id):
+        if account is None:
             raise contract.ContractError("shared_ledger_unavailable")
-        if sum(account)+policy.upper_units>contract.CAP_UNITS:
-            raise contract.ContractError("shared_budget_exhausted")
+        if expected.schema_version==18:
+            from importlib import import_module
+            family='web.backend.research' if __package__=='web.backend.services' else 'research'
+            import_module(family+'.external_funding_v18').require_room(conn,policy.upper_units)
+        else:
+            if unresolved(conn,expected.account_id):
+                raise contract.ContractError("shared_ledger_unavailable")
+            if sum(account)+policy.upper_units>contract.CAP_UNITS:
+                raise contract.ContractError("shared_budget_exhausted")
         quote=contract.QuoteBinding(purpose=contract.PURPOSE,project_ref=contract.PROJECT,
             provider=contract.PROVIDER,model=contract.MODEL,account_id=expected.account_id,
             economic_binding=expected.economic_binding,funding_epoch=expected.funding_epoch,

@@ -295,7 +295,13 @@ class _Writer(file_writer.CandidateFileWriter):
             self.conn=conn
             conn.create_function(GUARD,3,self._allow_run)
             conn.create_function(file_writer.MONEY_GUARD,2,self._allow_external_money)
-            try:yield
+            try:
+                if self.handle._expected.schema_version==18 and hasattr(self,'_room_consuming'):
+                    from importlib import import_module
+                    family='web.backend.research' if __package__=='web.backend.services' else 'research'
+                    import_module(family+'.external_funding_v18').require_room(conn,self.grant.quote.upper_units,
+                        excluding=(TABLE,self.key),consuming=self._room_consuming)
+                yield
             finally:
                 file_writer.install_closed_hooks(conn)
                 self.conn=None
@@ -311,13 +317,35 @@ class _Writer(file_writer.CandidateFileWriter):
                            owner["epoch"],self.identity.generation,row[0])!=(scope.input_revision,scope.research_version,
                            scope.owner_epoch,scope.acl_epoch,scope.principal_epoch,scope.auth_generation,scope.problem_digest)):
             raise contract.ContractError("revision_or_owner_changed")
-        if getattr(self,"_check_legacy_unknown",False) and file_writer.unresolved(self.conn,grant.account_id):
+        if self.handle._expected.schema_version!=18 and getattr(self,"_check_legacy_unknown",False) and file_writer.unresolved(self.conn,grant.account_id):
             raise contract.ContractError("legacy_unknown_reconcile_only")
 
     def _account(self,grant):
-        account=super()._account(grant)
+        if self.handle._expected.schema_version==18:
+            from importlib import import_module
+            family='web.backend.research' if __package__=='web.backend.services' else 'research'
+            funding=import_module(family+'.external_funding_v18').read_binding(self.conn)
+            expected=self.handle._expected
+            if funding is None or (funding['account_id'],funding['local_binding_ref'],funding['owner_principal'],
+                    funding['owner_generation'],funding['credential_incarnation'],funding['authorization_event_ref'],
+                    funding['funding_epoch'])!=(grant.account_id,grant.binding,grant.scope.principal_id,
+                    grant.scope.auth_generation,expected.credential_incarnation,expected.authorization_event_ref,grant.epoch):
+                raise contract.ContractError('external_owner_funding_changed')
+            account=file_writer.FixtureWriter._account(self,grant)
+        else:
+            account=super()._account(grant)
         self.current_account=account
         return account
+
+    def reserve(self,run_id,grant,scope,*,now):
+        self._room_consuming=False
+        try:return super().reserve(run_id,grant,scope,now=now)
+        finally:del self._room_consuming
+
+    def consume(self,run_id,grant,scope,*,now):
+        self._room_consuming=True
+        try:return super().consume(run_id,grant,scope,now=now)
+        finally:del self._room_consuming
 
     def finish_live(self,run_id,receipt,body):
         if sys._getframe(1).f_code is not run_once.__code__:
@@ -353,6 +381,11 @@ class _Ticket:
             require_authenticated_action(w.source,identity=w.identity,action="external-answer-confirm",
                 research_id=scope.research_id,task_id=str(scope.input_revision),key=w.key,body_digest=w.decision_digest)
             with w.service.store.transaction() as conn:
+                if w.handle._expected.schema_version==18:
+                    from importlib import import_module
+                    family='web.backend.research' if __package__=='web.backend.services' else 'research'
+                    import_module(family+'.external_funding_v18').require_room(conn,w.grant.quote.upper_units,
+                        excluding=(TABLE,self.run),consuming=True)
                 control=w.service.authorization.check(conn,w.identity,scope.principal_id,scope.research_id,scope="write")
                 row=conn.execute("SELECT state,request_digest,account_id FROM "+TABLE+" WHERE id=?",(self.run,)).fetchone()
                 money=conn.execute("""SELECT id,binding_id,funding_epoch,settled,held,upper_booked,version
