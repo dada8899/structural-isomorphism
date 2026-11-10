@@ -168,3 +168,52 @@ def test_lower_actual_price_does_not_reduce_approved_worst_case_bound():
  m=price.observe_document(raw,now=100)
  with pytest.raises(price.MaterialError,match='upper_insufficient'):
   price.validate_observation(price.canonical(m),price.ceiling_digest(),now=101,upper_units=1500000)
+
+
+def test_linux_service_groups_caps_are_minimal_and_db_read_is_not_implied_by_group():
+ root=(HERE/'docs/deployment/structural-external-startup-material.service').read_text()
+ priceunit=(HERE/'docs/deployment/structural-external-price-refresh.service').read_text()
+ assert 'User=root' in root and 'Group=976' in root and 'CapabilityBoundingSet=CAP_DAC_READ_SEARCH' in root
+ assert 'CAP_DAC_OVERRIDE' not in root and 'CAP_CHOWN' not in root
+ assert 'Group=976' in priceunit and 'CapabilityBoundingSet=\n' in priceunit and 'CAP_DAC_READ_SEARCH' not in priceunit
+ fragment=(HERE/'docs/deployment/structural-web-external-materials.main-unit.fragment').read_text()
+ assert 'NOT A SYSTEMD DROP-IN' in fragment and 'Never install under *.service.d' in fragment
+ assert not (HERE/'docs/deployment/structural-web-external-materials.conf').exists()
+
+def test_signer_wrong_current_release_fails_before_crypto_or_seed(monkeypatch):
+ cli=load_cli();d=manifest_fixture()
+ monkeypatch.setattr(cli,'ROOT',Path('/srv/structural-isomorphism/releases/'+'f'*40))
+ monkeypatch.setattr(cli.materials,'load_approved_pair',lambda:d)
+ monkeypatch.setattr(cli,'read_signer_seed',lambda:pytest.fail('wrong release must not read secret'))
+ with pytest.raises(cli.materials.MaterialError,match='signer_current_release_mismatch'):cli.sign_fresh_approved_startup()
+
+def test_signer_self_and_helpers_must_be_source_closed(monkeypatch):
+ cli=load_cli();d=manifest_fixture();source=d['approval_template']['binding']['source_commit'];approved=Path('/srv/structural-isomorphism/releases')/source
+ monkeypatch.setattr(cli,'ROOT',approved);monkeypatch.setattr(cli.Path,'resolve',lambda p,strict=True:p)
+ monkeypatch.setattr(cli,'__file__',str(approved/'scripts/maintain-external-live-materials.py'))
+ monkeypatch.setattr(cli.materials,'__file__',str(approved/'web/backend/services/external_startup_materials.py'))
+ monkeypatch.setattr(cli.prices,'__file__',str(approved/'web/backend/services/external_price_materials.py'))
+ doc={'source_sha':source,'members':[]};body=cli.materials.canonical(doc)
+ d['approval_template']['binding']['source_manifest_digest']=cli.materials.sha(body)
+ d['files']['/etc/structural/external-first-answer-source.json']['bytes']=len(body)
+ monkeypatch.setattr(cli.materials,'fixed_file',lambda *a,**k:body)
+ with pytest.raises(cli.materials.MaterialError,match='signer_own_source_not_approved'):cli.verify_signing_source_root(d)
+
+def test_approved_zero_byte_file_is_valid_but_pair_is_never_empty():
+ d=manifest_fixture();path=d['runtime_root']+'/lib/python3.11/site-packages/empty/py.typed'
+ d['files'][path]={'sha256':startup.sha(b''),'bytes':0,'mode':0o640,'uid':0,'gid':976}
+ checks=sorted((n,r['sha256']) for n,r in d['files'].items() if n.startswith(d['runtime_root']+'/') or n==d['interpreter'])
+ d['approval_template']['binding']['runtime_closure_digest']=startup.sha(json.dumps(checks,separators=(',',':'),ensure_ascii=False).encode())
+ body=startup.canonical(d);assert startup.approved_manifest(body,startup.sha(body))==d
+ with pytest.raises(startup.MaterialError):startup.approved_manifest(b'',startup.sha(b''))
+
+def test_empty_expected_file_is_read_with_explicit_permission(monkeypatch):
+ d=manifest_fixture();d['files']={'/approved-empty':{'sha256':startup.sha(b''),'bytes':0,'mode':0o640,'uid':0,'gid':976},'/etc/structural/external-first-answer-source.json':{'sha256':startup.sha(b'x'),'bytes':1,'mode':0o640,'uid':0,'gid':976}}
+ calls=[]
+ def reader(path,limit,**kw):
+  calls.append((str(path),kw.get('allow_empty')))
+  if str(path)=='/approved-empty':return b''
+  raise startup.MaterialError('stop after real empty row')
+ monkeypatch.setattr(startup.Path,'stat',lambda *a,**k:SimpleNamespace(st_uid=0,st_gid=976))
+ with pytest.raises(startup.MaterialError,match='stop after real empty row'):startup.verify_expected_files(d,reader=reader)
+ assert calls[0]==('/approved-empty',True)

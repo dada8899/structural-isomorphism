@@ -3,7 +3,7 @@ Description=Refresh fixed official external-answer price observation
 [Service]
 Type=oneshot
 User=root
-Group=root
+Group=976
 UMask=0077
 LimitCORE=0
 PrivateDevices=yes
@@ -16,4 +16,5 @@ PrivateTmp=yes
 NoNewPrivileges=yes
 ProtectSystem=strict
 ReadWritePaths=/etc/structural
+InaccessiblePaths=-/run/credentials/structural-web.service -/run/credentials/structural-external-startup-material.service -/etc/credstore.encrypted -/var/lib/structural-isomorphism
 TimeoutStartSec=30

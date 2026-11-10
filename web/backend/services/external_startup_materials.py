@@ -22,19 +22,19 @@ def parse(raw):
   for k,v in pairs:need(k not in d,'duplicate_material_key');d[k]=v
   return d
  return json.loads(raw,object_pairs_hook=unique)
-def fixed_file(path,limit,*,mode=None):
+def fixed_file(path,limit,*,mode=None,allow_empty=False):
  need(path.is_absolute() and path.resolve(strict=True)==path,'material_path')
  for parent in path.parents:
   s=parent.stat(follow_symlinks=False);need(stat.S_ISDIR(s.st_mode) and s.st_uid==0 and not s.st_mode&0o022,'material_parent')
  fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
  with os.fdopen(fd,'rb') as f:
   a=os.fstat(f.fileno());need(stat.S_ISREG(a.st_mode) and a.st_uid==0 and a.st_nlink==1 and not a.st_mode&0o022
-   and 0<a.st_size<=limit and (mode is None or stat.S_IMODE(a.st_mode)==mode),'material_metadata')
+   and (0<=a.st_size<=limit if allow_empty else 0<a.st_size<=limit) and (mode is None or stat.S_IMODE(a.st_mode)==mode),'material_metadata')
   raw=f.read(limit+1);b=os.fstat(f.fileno());c=path.stat(follow_symlinks=False);key=lambda z:(z.st_dev,z.st_ino,z.st_size,z.st_mode,z.st_uid,z.st_mtime_ns,z.st_ctime_ns)
   need(len(raw)==a.st_size and key(a)==key(b)==key(c),'material_changed');return raw
 
 def approved_manifest(raw,pin):
- need(type(raw) is bytes and len(raw)<=8*1024**2 and type(pin) is str and H.fullmatch(pin) and sha(raw)==pin,'deployment_pair_mismatch')
+ need(type(raw) is bytes and 0<len(raw)<=8*1024**2 and type(pin) is str and H.fullmatch(pin) and sha(raw)==pin,'deployment_pair_mismatch')
  d=parse(raw)
  need(type(d) is dict and set(d)=={'schema','reviewer_public_key_hex','approval_template','files','purpose_snapshot','price_ceiling_sha256','runtime_root','interpreter','signature_origins'}
   and d['schema']=='external-live-approved-deployment-v1' and H.fullmatch(d['reviewer_public_key_hex'])
@@ -56,11 +56,11 @@ def approved_manifest(raw,pin):
   need(path.is_absolute() and '..' not in path.parts and allowed and not any(x.startswith('.env') or x in ('credentials','credstore.encrypted','api_keys.jsonl') for x in path.parts)
    and not '/web/backend/data/' in name,'deployment_file_scope')
   need(type(row) is dict and set(row)=={'sha256','bytes','mode','uid','gid'} and H.fullmatch(row['sha256'])
-   and type(row['bytes']) is int and 0<row['bytes']<=512*1024**2 and row['uid']==0
+   and type(row['bytes']) is int and 0<=row['bytes']<=512*1024**2 and row['uid']==0
    and type(row['mode']) is int and not row['mode']&0o7022,'deployment_file_spec')
  required=('/etc/systemd/system/structural-web.service','/etc/ssl/certs/ca-certificates.crt',
   '/etc/structural/external-first-answer-source.json','/etc/structural/external-first-answer-economic-binding.json')
- need(all(n in d['files'] for n in required),'deployment_fixed_materials_missing')
+ need(all(n in d['files'] and d['files'][n]['bytes']>0 for n in required),'deployment_fixed_materials_missing')
  need(d['files'][required[0]]['sha256']==t['binding'].get('unit_digest')
   and d['files'][required[2]]['sha256']==t['binding'].get('source_manifest_digest'),'deployment_binding_material_mismatch')
  runtime_checks=sorted((name,row['sha256']) for name,row in d['files'].items()
@@ -71,7 +71,7 @@ def approved_manifest(raw,pin):
 def verify_expected_files(d,reader=fixed_file):
  for name,row in d['files'].items():
   # Expected hashes are approved input, not values learned from this read.
-  raw=reader(Path(name),row['bytes'],mode=row['mode'])
+  raw=reader(Path(name),row['bytes'],mode=row['mode'],allow_empty=True)
   need(len(raw)==row['bytes'] and sha(raw)==row['sha256'],'approved_deployment_changed')
   meta=Path(name).stat(follow_symlinks=False)
   need(meta.st_uid==row['uid'] and meta.st_gid==row['gid'],'approved_deployment_owner_changed')

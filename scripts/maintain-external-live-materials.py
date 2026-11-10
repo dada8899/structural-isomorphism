@@ -65,9 +65,33 @@ def compare_current_purpose(d):
  try:conn.execute('BEGIN');materials.verify_purpose(d,conn);conn.rollback()
  finally:conn.close()
 
+def verify_signing_source_root(d):
+ source=d['approval_template']['binding']['source_commit']
+ approved=Path('/srv/structural-isomorphism/releases')/source
+ materials.need(ROOT==approved and ROOT.resolve(strict=True)==approved,'signer_current_release_mismatch')
+ materials.need(Path(__file__).resolve(strict=True)==approved/'scripts/maintain-external-live-materials.py'
+  and Path(materials.__file__).resolve(strict=True)==approved/'web/backend/services/external_startup_materials.py'
+  and Path(prices.__file__).resolve(strict=True)==approved/'web/backend/services/external_price_materials.py','signer_actual_source_origin')
+ required=('scripts/maintain-external-live-materials.py','web/backend/services/external_startup_materials.py',
+  'web/backend/services/external_price_materials.py')
+ manifest_path=Path('/etc/structural/external-first-answer-source.json')
+ row=d['files'].get(str(manifest_path));materials.need(row is not None,'signer_source_manifest_missing')
+ raw=materials.fixed_file(manifest_path,row['bytes'],mode=row['mode'])
+ materials.need(materials.sha(raw)==d['approval_template']['binding']['source_manifest_digest'],'signer_source_manifest_hash')
+ doc=materials.parse(raw);materials.need(doc.get('source_sha')==source,'signer_source_manifest_identity')
+ members={r['path']:r for r in doc.get('members',[])}
+ materials.need(len(members)==len(doc.get('members',[])),'signer_source_duplicate')
+ for name in required:
+  path=approved/name;expected=d['files'].get(str(path));member=members.get(name)
+  materials.need(expected is not None and member is not None and expected['sha256']==member['sha256']
+   and expected['bytes']==member['bytes'] and expected['bytes']>0,'signer_own_source_not_approved')
+  current=materials.fixed_file(path,expected['bytes'],mode=expected['mode'])
+  materials.need(materials.sha(current)==member['sha256'],'signer_own_source_changed')
+
+
 def sign_fresh_approved_startup():
  # No caller-selected deployment or payload enters the secret-bearing helper.
- d=materials.load_approved_pair();materials.verify_expected_files(d);compare_current_purpose(d)
+ d=materials.load_approved_pair();verify_signing_source_root(d);materials.verify_expected_files(d);compare_current_purpose(d)
  prices.validate_observation(materials.fixed_file(materials.PRICE,65536),d['price_ceiling_sha256'],now=int(time.time()),upper_units=2129920)
  payload=materials.fresh_payload(d,now=int(time.time()))
  # Verify actual interpreter and approved signature module origins before any

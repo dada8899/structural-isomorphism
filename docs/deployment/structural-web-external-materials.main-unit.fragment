@@ -1,3 +1,6 @@
+# NOT A SYSTEMD DROP-IN. Merge only into the complete approved main unit.
+# Never install under *.service.d; original unknown-dropin refusal is unchanged.
+# After merge, approve/pin the new full main-unit SHA in deployment and source.
 [Service]
 # Runs on every normal/automatic web ExecStart. Root oneshot is independent,
 # so its signer credential never appears in the web unit's credential directory.
