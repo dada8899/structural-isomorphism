@@ -7,6 +7,28 @@ import pytest
 from web.backend.tests.test_formal_main_admission import BETA,envelope,login,prepared,problem,smtp
 
 
+def test_actual_main18_fin3_local_calculation_and_saved_reopen(existing_v17,prepared):
+    from tests.test_external_funding_v18 import migrate
+    from web.backend.tests.test_research_financial_results_v2 import setup_financial,calculate
+    path,record,_=existing_v17;migrate(path,record)
+    main,admission,paths,messages=prepared
+    async def run():
+        async with main.lifespan(main.app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as client:
+                await login(client,messages)
+                response=await client.post('/api/research',json=envelope({'problem':problem()}),headers={'Origin':BETA,'Idempotency-Key':'fin3-v18-create'})
+                assert response.status_code==200,response.text
+                rid=response.json()['data']['research']['id'];body=await setup_financial(client,rid)
+                calculated=await calculate(client,rid,body,key='fin3-v18-local')
+                assert calculated.status_code==200,calculated.text
+                result=calculated.json()['data'];assert result['persisted'] is True
+                ref=result['metadata']['result_ref'];url=f'/api/research/{rid}/financial-results/{ref}?view=table'
+                table=await client.get(url);assert table.status_code==200,table.text
+                assert (await client.get(url)).json()==table.json()
+                assert result['metadata']['model_analysis_ran'] is False if 'model_analysis_ran' in result['metadata'] else result['metadata']['u2_goal_status']=='not_met'
+    asyncio.run(run())
+
+
 @pytest.mark.parametrize("pin",[False,True],ids=["no-source-pin","pin-without-entry-witness"])
 def test_actual_main_defaults_closed_without_credential_or_crypto_lookup(prepared,monkeypatch,pin):
     main,admission,paths,messages=prepared

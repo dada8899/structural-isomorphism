@@ -296,8 +296,8 @@ def require_native_scope(conn,service,identity,pid,lease):
     # is deliberately absent here. Verify the exact current research closure,
     # without installing any Auth write capability into a calculation.
     schema=conn.execute('SELECT version FROM main.research_schema WHERE id=1').fetchone()[0]
-    if schema not in (15,16,17):raise PermissionError('formal financial schema required')
-    if schema==17:
+    if schema not in (15,16,17,18):raise PermissionError('formal financial schema required')
+    if schema in (17,18):
         from . import financial_input
         caller=sys._getframe(1)
         try:
