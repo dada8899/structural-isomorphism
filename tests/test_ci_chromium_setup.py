@@ -541,6 +541,7 @@ def test_sdk_deadline_still_fails_after_known_cleanup_and_reports_no_sdk_text(tm
     request={'cache':'/public/cache','temporary':str(tmp_path),'uid':os.getuid(),'gid':os.getgid()}
     try:
         result=setup.install_with_lease(lease,request,SimpleNamespace(pw_name='synthetic'),100.0,[False])
+        assert setup.sdk_snapshot_valid(result['installer'].pop('sdk_processes'))
         assert result=={'status':'failed','children_closed':True,'source_restored':True,
                        'installer':{'protocol':'ci-chromium-installer-v1','outcome':'deadline','observed_exit_code':None}}
         assert path.read_bytes()==SOURCE and events==[('retired',True,100.0)]
@@ -577,6 +578,7 @@ def test_postfork_constructor_failure_must_retire_without_a_popen_object(tmp_pat
     try:
         if retirement_known:
             result=setup.install_with_lease(lease,request,SimpleNamespace(pw_name='synthetic'),time.monotonic()+100,[False])
+            assert setup.sdk_snapshot_valid(result['installer'].pop('sdk_processes'))
             assert result=={'status':'failed','children_closed':True,'source_restored':True,
                            'installer':{'protocol':'ci-chromium-installer-v1','outcome':'launch-exception','observed_exit_code':None}}
             assert events==['native_retirement_proof','restore'] and path.read_bytes()==SOURCE
@@ -627,6 +629,7 @@ def test_failure_after_popen_return_also_retires_before_source_restore(tmp_path,
     try:
         if retirement_known:
             result=setup.install_with_lease(lease,request,SimpleNamespace(pw_name='synthetic'),time.monotonic()+100,[False])
+            assert setup.sdk_snapshot_valid(result['installer'].pop('sdk_processes'))
             assert result=={'status':'failed','children_closed':True,'source_restored':True,
                            'installer':{'protocol':'ci-chromium-installer-v1','outcome':'loop-exception','observed_exit_code':None}}
             assert events==['retired','restore'] and path.read_bytes()==SOURCE
@@ -676,3 +679,60 @@ def test_only_both_retirement_and_restoration_admit_the_next_step(tmp_path, monk
     argv,kw=calls[0]
     assert argv[:3]==['/usr/bin/sudo','-n','--'] and argv[-1]=='--root-worker'
     assert set(kw['env'])=={'PATH','LANG'} and 0<calls[1][1]<=180
+
+
+# Failure-only SDK metadata controls in the existing module.
+def _sdk_snapshot_fixtures(monkeypatch,after=None,meta=None):
+ before={100:(1,10),101:(100,11),102:(101,12)}
+ calls=[before,after or before,after or before]
+ monkeypatch.setattr(setup.os,'getpid',lambda:100);monkeypatch.setattr(setup,'proc_rows',lambda:calls.pop(0) if calls else (after or before))
+ monkeypatch.setattr(setup,'sdk_process_metadata',lambda pid:(before[pid], 'apt_get' if pid==101 else 'apt_https','S') if meta is None else meta(pid))
+ monkeypatch.setattr(setup.time,'monotonic',lambda:0.)
+def test_owned_sdk_counts_only(monkeypatch):
+ _sdk_snapshot_fixtures(monkeypatch);result=setup.sdk_tree_snapshot(100)
+ assert result=={'status':'observed','observed':2,'skipped':0,'counts':[{'exe_class':'apt_get','state':'S','count':1},{'exe_class':'apt_https','state':'S','count':1}]}
+def test_pid_reuse_or_parent_drift_skips(monkeypatch):
+ _sdk_snapshot_fixtures(monkeypatch,after={100:(1,10),101:(100,99),102:(101,12)});value=setup.sdk_tree_snapshot(100);assert value['skipped']>=1
+def test_owner_identity_drift_skips_all(monkeypatch):
+ _sdk_snapshot_fixtures(monkeypatch,after={100:(1,99),101:(100,11),102:(101,12)});value=setup.sdk_tree_snapshot(100);assert value['observed']==0 and value['skipped']==2
+def test_left_owned_tree_skipped(monkeypatch):
+ _sdk_snapshot_fixtures(monkeypatch,after={100:(1,10),101:(200,11),102:(101,12)});value=setup.sdk_tree_snapshot(100);assert value['observed']==0
+def test_disappearance_is_skipped_no_exception(monkeypatch):
+ _sdk_snapshot_fixtures(monkeypatch)
+ monkeypatch.setattr(setup,'sdk_process_metadata',lambda pid:(_ for _ in ()).throw(FileNotFoundError()))
+ assert setup.sdk_tree_snapshot(100)['skipped']==2
+def test_budget_exhausted_best_effort_unavailable(monkeypatch):
+ monkeypatch.setattr(setup.time,'monotonic',lambda:100.);assert setup.sdk_tree_snapshot(100)['status']=='snapshot_unavailable'
+def test_snapshot_exception_does_not_mask_original(monkeypatch):
+ monkeypatch.setattr(setup.time,'monotonic',lambda:0.);monkeypatch.setattr(setup,'proc_rows',lambda:(_ for _ in ()).throw(RuntimeError('internal_fixture')))
+ assert setup.sdk_tree_snapshot(100)=={'status':'snapshot_unavailable','observed':0,'skipped':0,'counts':[]}
+def test_validator_rejects_free_data(monkeypatch):
+ good={'status':'observed','observed':1,'skipped':0,'counts':[{'exe_class':'other','state':'other','count':1}]};assert setup.sdk_snapshot_valid(good)
+ for wrong in (good|{'pid':42},good|{'observed':True},good|{'counts':[{'exe_class':'PRIVATE_PATH','state':'S','count':1}]},good|{'counts':[{'exe_class':[],'state':'S','count':1}]}):assert not setup.sdk_snapshot_valid(wrong)
+def test_ready_schema_and_stdout_unchanged():
+ source=(ROOT/'scripts/prepare_ci_chromium.py').read_text();assert 'stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL' in source
+ assert setup.TOTAL_SECONDS==180
+ # No sampling loop/everseen or extension of installer command/environment.
+ assert 'sdk_tree_snapshot(deadline)' in source and 'sdk_processes=sdk_tree_snapshot(deadline)' in source
+ assert set(setup.installer_diagnostic('deadline',None))=={'protocol','outcome','observed_exit_code'}
+
+def test_actual_synthetic_stat_exe_white_other_only(tmp_path,monkeypatch):
+    root=tmp_path/'101';root.mkdir()
+    fields=['?','100']+['0']*17+['11']
+    (root/'stat').write_text('101 (opaque synthetic comm) '+' '.join(fields))
+    real_path=Path
+    monkeypatch.setattr(setup,'Path',lambda value:tmp_path if str(value)=='/proc' else real_path(value))
+    monkeypatch.setattr(setup.os,'readlink',lambda *_:'/private/DO_NOT_EXPORT/unknown_program')
+    proof,exe,state=setup.sdk_process_metadata(101)
+    assert (proof,exe,state)==((100,11),'other','other')
+    (root/'stat').write_text('101 (opaque) '+' '.join(['S','100']+['0']*17+['11']))
+    monkeypatch.setattr(setup.os,'readlink',lambda *_:'/usr/bin/apt-get')
+    assert setup.sdk_process_metadata(101)==((100,11),'apt_get','S')
+
+def test_failure_only_schema_rejects_invalid_extra_snapshot():
+    # Actual keyring receipt authority is covered by the original 110 controls;
+    # this exercises strict installer projection without claiming ready.
+    value={'status':'observed','observed':1,'skipped':0,'counts':[{'exe_class':'node','state':'S','count':1}]}
+    result=setup.installer_diagnostic('deadline',None,value)
+    assert set(result)=={'protocol','outcome','observed_exit_code','sdk_processes'}
+    with pytest.raises(setup.Refused):setup.installer_diagnostic('deadline',None,value|{'path':'private'})

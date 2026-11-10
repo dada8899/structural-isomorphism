@@ -19,7 +19,7 @@ import subprocess
 import sys
 import time
 
-HELPER_SHA = '25ad87b1cd7335bbc8ac3175174fec6b5f3361715227e1ea49f34c4807d50b08'
+HELPER_SHA = 'e474504ec29e10e1f9aedc625b05dab75e9776b334ce50c58596e46dfc1a2ee7'
 HELPER_TIMEOUT_SECONDS = 190
 BRANCH = 'refs/heads/codex/structure-chromium-source-fix-20261023'
 HELPER = Path(__file__).resolve().with_name('prepare_ci_chromium.py')
