@@ -1,7 +1,7 @@
-"""Fixed production transport and shared-ledger writer, unbound by default.
+"""Source-pinned production transport and shared ledger, closed by default.
 
-Only an actual live startup handle and source-pinned endpoint policy can use
-this path. Nothing calls it from Main or HTTP in this release.
+Canary mode pins one request/key. Saved-question mode binds each saved revision
+and explicit confirmation to its server-offered key. Neither mode installs pins.
 """
 from contextlib import contextmanager
 from dataclasses import dataclass

@@ -124,6 +124,7 @@ def test_saved_question_policy_real_main_auth_shared_ledger_and_once_sender(prep
                     patch.setattr(live,'_receipt_directory',synthetic_receipts)
                     previews=[]
                     prior_data=None
+                    persisted=None
                     for n in range(2):
                         public_problem=problem()|{'original_input':f'公开合成问题{n}：为什么反馈延迟可能造成超调？'}
                         if n==0:
@@ -160,6 +161,7 @@ def test_saved_question_policy_real_main_auth_shared_ledger_and_once_sender(prep
                         assert response.status_code==200,response.text
                         assert response.json()['status']==('unknown' if unknown else 'completed'),response.text
                         assert calls==['GET','POST']*(n+1)
+                        persisted=(base,dict(headers),dict(body),response.json())
                         assert (await client.post(base+'/confirm',json=body,headers=headers)).json()==response.json()
                         duplicate=await client.post(base+'/preview',json={'research_version':data['research_version'],'problem_digest':data['current_problem']['digest']},headers=origin)
                         assert duplicate.status_code==409 and calls==['GET','POST']*(n+1)
@@ -174,4 +176,10 @@ def test_saved_question_policy_real_main_auth_shared_ledger_and_once_sender(prep
                         assert operations.current(main.app,service,actor) is None
                     live.retire(main.app,handle)
                 assert live._PINNED_POLICY is None
+            async with main.lifespan(main.app):
+                base,headers,body,original=persisted
+                reopened=await client.get(base+'/status',headers=headers)
+                assert reopened.status_code==200 and reopened.json()==original
+                assert (await client.post(base+'/confirm',json=body,headers=headers)).status_code==503
+                assert calls==['GET','POST']*(1 if unknown else 2)
     with provider() as (server,provider_calls,_):asyncio.run(verify(server));assert provider_calls==[]
