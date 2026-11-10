@@ -93,7 +93,7 @@ DEADLINE_CALLERS = (('REQUIRE_ENTER',
 _CALLER_ENUMS = frozenset(row[0] for row in DEADLINE_CALLERS)
 
 SOURCE_PINS = {'web/backend/research/financial_evaluator.py': 'b6f4d2474680a0bc8e2868325cb1006404a8c98bce563330e8619b5ae5ca08b4',
- 'web/backend/research/financial_execution.py': '6001dab34016fcbff57d7fe3b648dec4c4f0fa722f8cfe8615d27e3aa302b7d9',
+ 'web/backend/research/financial_execution.py': '87baa1f993aab32084b60ba6f2a289cc9e95b7805af87da2198fbdaa3a6162c3',
  'web/backend/research/financial_policy.py': '719792b41ebbfce6d69ceea25f77e1ad8ba1458d4a245750db206de9ea03cd02',
  'web/backend/research/financial_result_adapter.py': '8b784f74da182ca2b3bf2265d3d83fa6e5079644872fc91f1f30234540e083bf',
  'web/backend/research/financial_result_v2.py': '83dc614125b1da7845ce29d3ef867551fda778eeb6e8e94e0f81dfc2ac74e8b4',
