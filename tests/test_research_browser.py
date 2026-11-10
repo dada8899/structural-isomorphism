@@ -4971,7 +4971,7 @@ def test_source_history_actual_main_closed_collection_keeps_existing_readable(tm
     asyncio.run(_source_history_closed_main_journey(tmp_path))
 
 @pytest.mark.parametrize('mode', ['ready', 'unbound', 'over_cap', 'edited', 'reopen', 'clarification', 'queued'])
-def test_start_question_external_fallback_is_one_live_intent(short_observation_asgi, mode):
+def test_start_question_external_fallback_is_one_live_intent(short_observation_asgi, mode, tmp_path):
     """Browser-only contract: no provider, billing or live issuer is involved."""
     import time
     client, _ = short_observation_asgi
@@ -5034,8 +5034,14 @@ def test_start_question_external_fallback_is_one_live_intent(short_observation_a
             page.route('**/revisions/*/external-first-answer/*', external)
             page.route('https://testserver/api/search', lambda route:route.fulfill(json={'results':[]}))
             page.goto('https://testserver/research')
+            if mode == 'ready':
+                page.set_viewport_size({'width':390,'height':844})
             expect(page.locator('#external-start-scope')).to_contain_text('单次最高 ¥2.13')
             page.locator('#original-input').fill(exact)
+            if mode == 'ready':
+                page.screenshot(path=str(tmp_path / 'start-mobile.png'))
+                box = page.locator('#save-question').bounding_box()
+                assert box and box['y'] + box['height'] <= 844
             if mode == 'reopen':
                 # Capability becoming ready on re-open cannot revive the old start.
                 page.locator('#save-question').click()
