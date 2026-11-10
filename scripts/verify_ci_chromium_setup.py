@@ -19,7 +19,8 @@ import subprocess
 import sys
 import time
 
-HELPER_SHA = '9f0e7291f7d6bf70d53d30f2b370e55cb065a153584b44d50e081396eba9f979'
+HELPER_SHA = '25ad87b1cd7335bbc8ac3175174fec6b5f3361715227e1ea49f34c4807d50b08'
+HELPER_TIMEOUT_SECONDS = 190
 BRANCH = 'refs/heads/codex/structure-chromium-source-fix-20261023'
 HELPER = Path(__file__).resolve().with_name('prepare_ci_chromium.py')
 SYSTEM_FILES = {'source': (Path('/etc/apt/sources.list.d/ubuntu.sources'), 16384),
@@ -334,7 +335,7 @@ def install(root, header):
         env = {name: os.environ[name] for name in ('GITHUB_ACTIONS', 'RUNNER_ENVIRONMENT', 'RUNNER_OS', 'RUNNER_ARCH', 'RUNNER_TEMP')}
         env.update(PATH=str(Path(sys.executable).parent)+':/usr/local/bin:/usr/bin:/bin', LANG='C.UTF-8')
         result = subprocess.run([sys.executable, '-I', '-B', str(HELPER)], stdin=subprocess.DEVNULL,
-                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, timeout=100)
+                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, timeout=HELPER_TIMEOUT_SECONDS)
         need(len(result.stdout) <= 4096)
         code = result.returncode if type(result.returncode) is int else None
         need(code is not None)

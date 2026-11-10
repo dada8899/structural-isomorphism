@@ -4,7 +4,7 @@ Playwright's nested sudo does not explicitly forward APT_CONFIG. A root
 controller therefore leases the existing Ubuntu source inode, changes only
 its approved mirror URI, runs the unchanged SDK command as the original user,
 then restores and verifies the inode before admitting the next workflow step.
-The 100-second deadline includes termination and restoration. Kernel/FS stalls
+The 180-second setup deadline includes termination and restoration. Kernel/FS stalls
 cannot be promised a hard cleanup; an unproved cleanup always fails closed.
 """
 from __future__ import annotations
@@ -31,7 +31,7 @@ import uuid
 SOURCE = Path('/etc/apt/sources.list.d/ubuntu.sources')
 KEYRING = Path('/usr/share/keyrings/ubuntu-archive-keyring.gpg')
 COMMAND = ('-m', 'playwright', 'install', '--with-deps', 'chromium')
-TOTAL_SECONDS = 100
+TOTAL_SECONDS = 180
 SOURCE_PROFILE_BYTES = 2995
 SOURCE_PROFILE_SHA = '4508181e0dd5578c33d1247db48ab4847910b25da85e0789c8e7b3140d1fb289'
 FIXED_ARCHIVE_URI = 'https://archive.ubuntu.com/ubuntu'

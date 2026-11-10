@@ -546,7 +546,7 @@ def test_sdk_deadline_still_fails_after_known_cleanup_and_reports_no_sdk_text(tm
         assert path.read_bytes()==SOURCE and events==[('retired',True,100.0)]
         output=capsys.readouterr()
         assert output.out==output.err==''
-        assert setup.TOTAL_SECONDS==100
+        assert setup.TOTAL_SECONDS==180
     finally:
         lease.close()
 
@@ -675,4 +675,4 @@ def test_only_both_retirement_and_restoration_admit_the_next_step(tmp_path, monk
         assert len(list(tmp_path.iterdir()))==1  # Retain uncertainty, never fake cleanup.
     argv,kw=calls[0]
     assert argv[:3]==['/usr/bin/sudo','-n','--'] and argv[-1]=='--root-worker'
-    assert set(kw['env'])=={'PATH','LANG'} and 0<calls[1][1]<=100
+    assert set(kw['env'])=={'PATH','LANG'} and 0<calls[1][1]<=180
