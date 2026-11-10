@@ -6,7 +6,7 @@ import pytest
 from web.backend.services import external_price_materials as price,external_startup_materials as startup
 from web.backend.services import external_live_sender as sender
 HERE=Path(__file__).resolve().parents[1]
-SNAPSHOT=HERE.parent/'deepseek-public-current-20261110/pricing-cny.html'
+SNAPSHOT=HERE/'tests/fixtures/deepseek/pricing-cny-20261110.html'
 
 def document():return SNAPSHOT.read_bytes()
 def test_official_snapshot_actual_prices_separate_from_ceil():
