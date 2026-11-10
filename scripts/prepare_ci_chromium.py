@@ -445,14 +445,63 @@ def child_environment(python, cache, temporary):
             'PLAYWRIGHT_BROWSERS_PATH': str(cache), 'TMPDIR': str(temporary)}
 
 
-def installer_diagnostic(outcome, code):
+SDK_EXE_CLASSES={'apt-get':'apt_get','apt':'apt','dpkg':'dpkg','dpkg-deb':'dpkg_deb','sudo':'sudo','node':'node','python':'python','python3':'python','python3.11':'python','sh':'shell','dash':'shell','bash':'shell','http':'apt_http','https':'apt_https','gpgv':'gpgv','unzip':'unzip'}
+SDK_STATE_CLASSES=frozenset(('R','S','D','T','t','Z','X','I','other'))
+SDK_CLASS_NAMES=frozenset(SDK_EXE_CLASSES.values())|{'other'}
+
+def sdk_snapshot_valid(value):
+    if not (type(value) is dict and set(value)=={'status','observed','skipped','counts'} and value['status'] in ('observed','snapshot_unavailable') and type(value['observed']) is int and type(value['skipped']) is int and 0<=value['observed']<=256 and 0<=value['skipped']<=256 and type(value['counts']) is list and len(value['counts'])<=64):return False
+    total=0;seen=set()
+    for row in value['counts']:
+        if not (type(row) is dict and set(row)=={'exe_class','state','count'} and type(row['exe_class']) is str and row['exe_class'] in SDK_CLASS_NAMES and type(row['state']) is str and row['state'] in SDK_STATE_CLASSES and type(row['count']) is int and 1<=row['count']<=256):return False
+        key=(row['exe_class'],row['state'])
+        if key in seen:return False
+        seen.add(key);total+=row['count']
+    return total==value['observed'] and (value['status']=='observed' or value['observed']==0 and value['counts']==[])
+
+def sdk_process_metadata(pid):
+    path=Path('/proc')/str(pid)
+    with (path/'stat').open('rb') as stream:raw=stream.read(4097)
+    require(len(raw)<=4096)
+    fields=raw.decode().rsplit(') ',1)[1].split();require(len(fields)>=20)
+    basename=Path(os.readlink(path/'exe')).name
+    if basename.endswith(' (deleted)'):basename=basename[:-10]
+    return (int(fields[1]),int(fields[19])),SDK_EXE_CLASSES.get(basename,'other'),fields[0] if fields[0] in SDK_STATE_CLASSES else 'other'
+
+def sdk_tree_snapshot(deadline):
+    # Failure-only best effort metadata; original retirement deadlines remain
+    # absolute. Never read argv/environ/memory or SDK stdout/stderr.
+    unavailable={'status':'snapshot_unavailable','observed':0,'skipped':0,'counts':[]}
+    end=min(time.monotonic()+0.05,deadline-11.9)
+    if time.monotonic()>=end:return unavailable
+    try:
+        owner=os.getpid();before=proc_rows();owner_proof=before.get(owner)
+        if owner_proof is None:return unavailable
+        owned=descendants(before,owner)
+        if len(owned)>256:return unavailable
+        counts={};skipped=0
+        for pid,proof in sorted(owned.items()):
+            if time.monotonic()>=end:skipped+=1;continue
+            try:observed,exe,state=sdk_process_metadata(pid)
+            except (OSError,ValueError,IndexError):skipped+=1;continue
+            after=proc_rows()
+            if observed!=proof or after.get(owner)!=owner_proof or after.get(pid)!=proof or descendants(after,owner).get(pid)!=proof:skipped+=1;continue
+            key=(exe,state);counts[key]=counts.get(key,0)+1
+        result={'status':'observed','observed':sum(counts.values()),'skipped':skipped,'counts':[{'exe_class':exe,'state':state,'count':count} for (exe,state),count in sorted(counts.items())]}
+        return result if sdk_snapshot_valid(result) else unavailable
+    except Exception:return unavailable
+
+def installer_diagnostic(outcome, code, sdk_processes=None):
     require(type(outcome) is str and outcome in ('completed', 'deadline', 'control-stop',
                                                 'nonzero-exit', 'launch-exception', 'loop-exception'))
     require(code is None or type(code) is int and -255 <= code <= 255)
     require(outcome != 'completed' or code == 0)
     require(outcome != 'nonzero-exit' or type(code) is int and code != 0)
     require(outcome not in ('launch-exception', 'loop-exception') or code is None)
-    return {'protocol':'ci-chromium-installer-v1', 'outcome':outcome, 'observed_exit_code':code}
+    result={'protocol':'ci-chromium-installer-v1', 'outcome':outcome, 'observed_exit_code':code}
+    if sdk_processes is not None:
+        require(sdk_snapshot_valid(sdk_processes));result['sdk_processes']=sdk_processes
+    return result
 
 
 def known_result_valid(value):
@@ -462,10 +511,10 @@ def known_result_valid(value):
     if value['status'] == 'failed' and 'installer' in value:
         keys.add('installer')
         diagnostic = value['installer']
-        if type(diagnostic) is not dict or set(diagnostic) != {'protocol', 'outcome', 'observed_exit_code'}:
+        if type(diagnostic) is not dict or set(diagnostic) not in ({'protocol', 'outcome', 'observed_exit_code'},{'protocol', 'outcome', 'observed_exit_code','sdk_processes'}):
             return False
         try:
-            if (diagnostic != installer_diagnostic(diagnostic['outcome'], diagnostic['observed_exit_code'])
+            if (diagnostic != installer_diagnostic(diagnostic['outcome'], diagnostic['observed_exit_code'],diagnostic.get('sdk_processes'))
                     or diagnostic['outcome'] == 'completed'):
                 return False
         except Refused:
@@ -477,6 +526,7 @@ def known_result_valid(value):
 def install_with_lease(lease, request, account, deadline, stopped):
     process, success, launch_attempted = None, False, False
     observed_code, outcome = None, 'launch-exception'
+    sdk_processes=None
     try:
         require(not stopped[0] and time.monotonic() < deadline - 12)
         lease.apply()
@@ -501,6 +551,8 @@ def install_with_lease(lease, request, account, deadline, stopped):
         outcome = ('control-stop' if stopped[0] else 'deadline' if time.monotonic() >= deadline - 12
                    else 'launch-exception' if process is None else 'loop-exception')
     finally:
+        if not success:
+            sdk_processes=sdk_tree_snapshot(deadline)
         # A failed retirement must not be followed by a false restoration claim.
         if launch_attempted:
             entering('root-worker', 'install-children')
@@ -512,7 +564,7 @@ def install_with_lease(lease, request, account, deadline, stopped):
     # Only finite controller data enters the bounded JSON reply, after cleanup.
     # Neither sudo/worker stderr nor SDK stdout/stderr is forwarded.
     if not success:
-        result['installer'] = installer_diagnostic(outcome, observed_code)
+        result['installer'] = installer_diagnostic(outcome, observed_code,sdk_processes)
     return result
 
 
