@@ -168,6 +168,14 @@ def identity(info):
     return (info.st_dev, info.st_ino, info.st_uid, info.st_gid, stat.S_IMODE(info.st_mode), info.st_nlink)
 
 
+def temporary_directory_identity(info):
+    # SDK children may legitimately add/remove subdirectories (changing nlink).
+    # Keep the container's inode, ownership, permissions and actual directory
+    # type bound; regular source/keyring file identity remains unchanged.
+    require(stat.S_ISDIR(info.st_mode))
+    return (info.st_dev, info.st_ino, info.st_uid, info.st_gid, stat.S_IMODE(info.st_mode))
+
+
 def checked_read(fd, cap):
     os.lseek(fd, 0, os.SEEK_SET)
     value = os.read(fd, cap + 1)
@@ -656,7 +664,7 @@ def prepare():
     directory = Path(os.environ['RUNNER_TEMP'])
     require(directory.is_absolute() and directory == directory.resolve() and directory.stat().st_uid == os.getuid())
     temporary = Path(tempfile.mkdtemp(prefix='structure-ci-chromium-user-', dir=directory))
-    temporary_identity = identity(temporary.lstat())
+    temporary_identity = temporary_directory_identity(temporary.lstat())
     request = {'uid': os.getuid(), 'gid': os.getgid(), 'python': sys.executable,
                'cache': str(Path(pwd.getpwuid(os.getuid()).pw_dir) / '.cache/ms-playwright'),
                'temporary': str(temporary), 'deadline': deadline}
@@ -689,7 +697,7 @@ def prepare():
         require(known_result_valid(result))
         require((code, result['status']) in ((0, 'ready'), (1, 'failed')))
         entering('parent', 'retirement')
-        require(identity(temporary.lstat()) == temporary_identity and temporary == temporary.resolve())
+        require(temporary_directory_identity(temporary.lstat()) == temporary_identity and temporary == temporary.resolve())
         require(shutil.rmtree.avoids_symlink_attacks and time.monotonic() < deadline)
         shutil.rmtree(temporary)
         require(time.monotonic() < deadline)
