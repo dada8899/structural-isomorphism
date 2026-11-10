@@ -65,7 +65,14 @@ class EndpointPolicy:
                                  "request_mode":self.request_mode}))
 
 
-_PINNED_ENDPOINT=None
+_PINNED_ENDPOINT=EndpointPolicy(
+    public_ip='3.173.21.63',
+    ca_sha256='ecd9dc38bc3efb7dbd6431f57e29d2f8d6a0f0d211e1464b3fef2cbfe266fcd2',
+    economic_proof_sha256='fd4041488720a5603d980656d4acf4c8c95c22cbc2142586d5c786c253aea50c',
+    price_basis_sha256='e31d0ba23f7635e3b751ae401e23517640b45931fb816d03095a9618d6ebe51d',
+    upper_units=2_129_920,
+    request_mode="saved-question",
+)
 
 
 def _within_canary_upper(value):

@@ -4,6 +4,7 @@ Description=Refresh fixed official external-answer price observation
 Type=oneshot
 User=root
 Group=976
+Environment=OPENSSL_CONF=/dev/null
 UMask=0077
 LimitCORE=0
 PrivateDevices=yes

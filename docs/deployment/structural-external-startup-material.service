@@ -4,6 +4,7 @@ Description=Prepare fixed approved external-answer startup or durable closed sta
 Type=oneshot
 User=root
 Group=976
+Environment=OPENSSL_CONF=/dev/null
 UMask=0077
 LimitCORE=0
 PrivateDevices=yes

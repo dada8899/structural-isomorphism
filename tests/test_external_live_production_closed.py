@@ -85,6 +85,7 @@ def test_actual_main_defaults_closed_without_credential_or_crypto_lookup(prepare
     monkeypatch.setattr(production,"_fixed_file",forbidden)
     monkeypatch.setattr(production,"_verify_runtime_files",forbidden)
     monkeypatch.setenv("STRUCTURAL_EXTERNAL_FIRST_ANSWER_ENABLED","true")
+    monkeypatch.setattr(production,"_PINNED_POLICY",None)
     if pin:
         monkeypatch.setattr(production,"_PINNED_POLICY",production.PinnedTargetPolicy("0"*64,"0"*64,"/no","/no",()))
 
@@ -124,6 +125,7 @@ def test_saved_question_policy_real_main_auth_shared_ledger_and_once_sender(prep
     from research.store import ResearchStore
     from web.backend.tests.test_research_first_answer import identity
     from services import external_live_operations as operations,external_live_production as live,external_live_sender as transport
+    installed_policy=live._PINNED_POLICY
     path=paths.private_auth_path();first_answer.provision_first_answers_v16(path)
     origin={'Origin':BETA};calls=[]
     candidate={'status':'candidate','explanation':'这是公开合成问题的待核查回答。','assumptions':['仅用于隔离验证。'],
@@ -239,7 +241,7 @@ def test_saved_question_policy_real_main_auth_shared_ledger_and_once_sender(prep
                         generation.setitem(live._LIVE,id(main.app),changed)
                         assert operations.current(main.app,service,actor) is None
                     live.retire(main.app,handle)
-                assert live._PINNED_POLICY is None
+                assert live._PINNED_POLICY is installed_policy
             async with main.lifespan(main.app):
                 base,headers,body,original=persisted
                 reopened=await client.get(base+'/status',headers=headers)

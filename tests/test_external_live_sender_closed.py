@@ -119,6 +119,7 @@ def test_unregistered_quote_data_is_never_live_quote_proof():
 
 
 def test_endpoint_policy_modes_are_explicit_and_digest_bound():
+    installed=(sender._PINNED_ENDPOINT,production._PINNED_POLICY)
     from dataclasses import replace
     from uuid import uuid4
     policy=sender.EndpointPolicy('1.1.1.1','a'*64,'b'*64,'c'*64,2_129_920,str(uuid4()),'d'*64)
@@ -131,7 +132,7 @@ def test_endpoint_policy_modes_are_explicit_and_digest_bound():
     sender._request_binding(policy,policy.canary_operation_key,'d'*64)
     with pytest.raises(ContractError,match='canary_binding'):sender._request_binding(policy,str(uuid4()),'d'*64)
     sender._request_binding(generic,str(uuid4()),'e'*64)
-    assert sender._PINNED_ENDPOINT is None and production._PINNED_POLICY is None
+    assert sender._PINNED_ENDPOINT is installed[0] and production._PINNED_POLICY is installed[1]
 
 
 def test_generic_spent_receipts_are_per_key_durable_and_nonprivate(tmp_path,monkeypatch):
