@@ -1421,6 +1421,14 @@
       problem_digest:editBase.digest, original_input:current.current_problem.original_input,
       actor:accountScope, external_first_answer:'ready',
     };
+    const recovery = current.external_first_answer_recovery;
+    const version = recovery?.metadata?.research_version;
+    if (Number.isSafeInteger(version) && version > 0 && version <= editBase.researchVersion &&
+        window.ExternalFirstAnswer?.statusReceipt(recovery, {...anchor,
+          research_version:version, operation_key:recovery.operation_key})) {
+      return {...anchor, research_version:version, operation_key:recovery.operation_key,
+        external_first_answer:'pending', recovery_only:true};
+    }
     try {
       const pending = sessionStorage.getItem(externalPendingKey(anchor));
       if (pending) {
@@ -1443,10 +1451,11 @@
       const read = action === 'status' || action === 'result';
       const headers = read ? {} : {'Content-Type':'application/json'};
       if (read) {
-        const pending = sessionStorage.getItem(externalPendingKey(anchor));
+        const pending = anchor.recovery_only ? anchor.operation_key : sessionStorage.getItem(externalPendingKey(anchor));
         if (!validId(pending) || pending !== anchor.operation_key) throw Error('external operation not located');
         headers['Idempotency-Key'] = pending;
       }
+      if (!read && anchor.recovery_only) throw Error('external recovery is read only');
       if (action === 'confirm') {
         const key = externalPendingKey(anchor);
         if (sessionStorage.getItem(key)) throw Error('external operation already pending');

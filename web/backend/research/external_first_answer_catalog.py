@@ -187,6 +187,24 @@ def read_main_recovery(service, identity, research_id, revision, operation_key, 
         return (project_result if result else project_status)(row,scope,key)
 
 
+def project_owner_recovery(conn, gate, identity, control):
+    """Locate an existing current-revision run under the caller's owner gate.
+
+    This read grants no send authority and preserves the run's original version.
+    The ordinary authorized-row checks still validate every saved scope field.
+    """
+    rows=conn.execute("SELECT id FROM "+TABLE+" WHERE research_id=? AND input_revision=? LIMIT 2",
+                      (control['id'],control['current_revision'])).fetchall()
+    if len(rows)!=1:
+        return None
+    try:
+        row,scope,key=_authorized_row(conn,gate,identity,control['id'],control['current_revision'],rows[0]['id'])
+        return project_status(row,scope,key)
+    except ResearchError as exc:
+        if exc.code!='NOT_FOUND':raise
+        return None
+
+
 def project_closed_preview(scope, saved_problem, quote, *, now):
     return prepare_closed_public_preview(scope, saved_problem, quote, now=now)
 

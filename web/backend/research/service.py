@@ -202,6 +202,10 @@ class ResearchService:
                     except (PermissionError,ValueError,TypeError,KeyError):state='unavailable'
         view=ResearchProjection.build(conn,row,task_id=task_id,method_result=result,method_authorized=authorized,
             method_state=state,task_history=history,next_task_id=next_task_id)
+        if task_id is None and conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==17:
+            from .external_first_answer_catalog import project_owner_recovery
+            recovery=project_owner_recovery(conn,self.authorization,identity,row)
+            if recovery is not None:view['data']['external_first_answer_recovery']=recovery
         if projection_bytes(view)>RESEARCH_RESPONSE_LIMIT:raise ResearchError('PAYLOAD_LIMIT',413,'研究结果超过响应范围；旧记录未更改。')
         return view
 

@@ -396,7 +396,8 @@ def test_async_insufficient_keeps_saved_question_and_shows_local_leads(short_obs
 
 
 @pytest.mark.parametrize("pinned_key", [None, "71000000-0000-4000-8000-000000000001"], ids=["controlled", "pinned"])
-def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observation_asgi, pinned_key):
+@pytest.mark.parametrize("fresh_storage", [False, True], ids=["session-key", "server-recovery"])
+def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observation_asgi, pinned_key, fresh_storage):
     import time
     client, _ = short_observation_asgi
     exact = "为什么相同需求会出现两种结果？"
@@ -420,6 +421,16 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
                 body = response.json()
                 if response.status_code == 200 and advertised["ready"]:
                     body["data"]["capabilities"]["external_first_answer"] = advertised["ready"]
+                    if fresh_storage and operation_keys:
+                        saved=body['data'];row=saved['current_problem']
+                        saved['external_first_answer_recovery']={
+                            'contract_revision':'external-first-answer-v1','operation_key':operation_keys[0],
+                            'status':observed['status'],'metadata':{
+                                'research_id':row['research_id'],'input_revision':row['revision'],
+                                'research_version':saved['research_version'],'problem_digest':row['digest']}}
+                        # Task updates can advance the control version without
+                        # changing the original external operation's scope.
+                        saved['research_version']+=2
                 route.fulfill(status=response.status_code,json=body)
 
             def local_failure(route):
@@ -503,6 +514,7 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
             if pinned_key:
                 assert operation_keys == [pinned_key] and "operation_key" not in confirms[0]
             advertised["ready"] = "status_only"
+            if fresh_storage:page.evaluate('sessionStorage.clear()')
             page.reload()
             expect(panel.get_by_role("status")).to_contain_text("尚待核对")
             expect(panel.get_by_role("button",name="查看外部分析选项")).to_have_count(0)
