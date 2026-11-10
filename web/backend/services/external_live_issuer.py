@@ -31,7 +31,7 @@ _LOCK=threading.RLock()
 def _owner_key_row(conn, expected, family):
     from importlib import import_module
     funding=import_module(family+'.external_funding_v18').read_binding(conn)
-    if funding is None or (
+    if funding is None or funding['status']!='active' or (
             funding['account_id'],funding['local_binding_ref'],funding['owner_principal'],
             funding['owner_generation'],funding['owner_gate_id'],funding['credential_incarnation'],
             funding['authorization_event_ref'],funding['credential_source'],funding['payer_identity_status'],

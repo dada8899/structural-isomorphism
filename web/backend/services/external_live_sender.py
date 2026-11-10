@@ -326,7 +326,7 @@ class _Writer(file_writer.CandidateFileWriter):
             family='web.backend.research' if __package__=='web.backend.services' else 'research'
             funding=import_module(family+'.external_funding_v18').read_binding(self.conn)
             expected=self.handle._expected
-            if funding is None or (funding['account_id'],funding['local_binding_ref'],funding['owner_principal'],
+            if funding is None or funding['status']!='active' or (funding['account_id'],funding['local_binding_ref'],funding['owner_principal'],
                     funding['owner_generation'],funding['credential_incarnation'],funding['authorization_event_ref'],
                     funding['funding_epoch'])!=(grant.account_id,grant.binding,grant.scope.principal_id,
                     grant.scope.auth_generation,expected.credential_incarnation,expected.authorization_event_ref,grant.epoch):
