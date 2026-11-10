@@ -202,7 +202,7 @@ class ResearchService:
                     except (PermissionError,ValueError,TypeError,KeyError):state='unavailable'
         view=ResearchProjection.build(conn,row,task_id=task_id,method_result=result,method_authorized=authorized,
             method_state=state,task_history=history,next_task_id=next_task_id)
-        if task_id is None and conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==17:
+        if task_id is None and conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (17,18):
             from .external_first_answer_catalog import project_owner_recovery
             recovery=project_owner_recovery(conn,self.authorization,identity,row)
             if recovery is not None:view['data']['external_first_answer_recovery']=recovery
@@ -514,7 +514,7 @@ class ResearchService:
             if self.store.auth_store.owner_gate_in(conn, email) != gate_id:
                 raise ResearchError("AUTHORIZATION_STALE", 409, "账户状态已变化。")
             principal = conn.execute("SELECT * FROM research_principals WHERE normalized_email=? AND session_generation=?", (email,generation)).fetchone()
-            if principal is not None and conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0]==17:
+            if principal is not None and conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] in (17,18):
                 from .external_first_answer_erasure import require_no_pending
                 require_no_pending(conn,principal["id"])
             if principal is None:
@@ -524,12 +524,12 @@ class ResearchService:
             else:
                 principal_id = principal["id"]
             has_paid=conn.execute("SELECT 1 FROM research_tasks WHERE principal_id=? AND policy_revision IN ('bounded_usage_upper_v2','local-formula-v1') LIMIT 1",(principal_id,)).fetchone()
-            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (15,16,17):
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (15,16,17,18):
                 has_paid=has_paid or conn.execute('SELECT 1 FROM research_financial_registries WHERE principal_id=? LIMIT 1',(principal_id,)).fetchone()
                 has_paid=has_paid or conn.execute('SELECT 1 FROM research_financial_results WHERE principal_id=? LIMIT 1',(principal_id,)).fetchone()
-            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15,16,17):
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15,16,17,18):
                 has_paid=has_paid or conn.execute('SELECT 1 FROM research_formula_revisions f JOIN research_controls c ON c.id=f.research_id WHERE c.owner_id=? LIMIT 1',(principal_id,)).fetchone()
-            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15,16,17):
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15,16,17,18):
                 has_paid=has_paid or conn.execute('SELECT 1 FROM research_source_approvals WHERE principal_id=? LIMIT 1',(principal_id,)).fetchone()
             from .paid_control import require_authenticated_action,create_authenticated_deletion_job
             formal=self.store._formal_mode()
@@ -600,23 +600,23 @@ class ResearchService:
                 raise ResearchError("AUTHORIZATION_STALE", 409, "删除任务主体状态不一致。")
             pid = principal["id"]
             financial_counts={}
-            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (15,16,17):
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (15,16,17,18):
                 from .financial_input import erase_in as erase_financial_inputs
                 financial_counts=erase_financial_inputs(conn,self,owner_lease,pid,job_id)
-            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15,16,17):
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (11,12,13,14,15,16,17,18):
                 from .source_guard import erase_approvals
                 erase_approvals(conn,pid)
             if self.store._formal_mode():
                 if __package__=='web.backend.research':from ..services.auth_registration import erase_registration_for_job
                 else:from services.auth_registration import erase_registration_for_job
                 erase_registration_for_job(conn,store=self.store,lease=owner_lease,job_id=job_id)
-            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (13,14,15,16,17):
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (13,14,15,16,17,18):
                 from .plan_native_runtime import erase_in as erase_native
                 erase_native(conn,self.store,owner_lease,pid,job_id)
-            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (12,13,14,15,16,17):
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (12,13,14,15,16,17,18):
                 from .plan_runtime import erase_in
                 erase_in(conn,self.store,owner_lease,pid,job_id)
-            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15,16,17):
+            if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (14,15,16,17,18):
                 from .method_draft import erase_in as erase_drafts
                 erase_drafts(conn,self,owner_lease,pid,job_id)
             from .paid_approval import erase_paid_private_inputs
@@ -630,10 +630,10 @@ class ResearchService:
             }
             counts.update({name.removeprefix('research_'):value for name,value in financial_counts.items()})
             schema=conn.execute('SELECT version FROM research_schema').fetchone()[0]
-            if schema==17:
+            if schema in (17,18):
                 from .external_first_answer_erasure import erase_in as erase_external
                 counts["external_first_answer_runs"]=erase_external(conn,self,owner_lease,pid,job_id)
-            if schema in (16,17):
+            if schema in (16,17,18):
                 from .first_answer_queue import erase_in as erase_first_answer_jobs
                 from .first_answer import erase_in as erase_first_answers
                 counts['first_answer_jobs']=erase_first_answer_jobs(conn,self,owner_lease,pid,job_id)
