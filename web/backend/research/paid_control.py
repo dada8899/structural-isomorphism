@@ -343,12 +343,12 @@ def verify_deletion_origin(conn,*,store,lease,job_id):
     if not job:raise PermissionError('actual deletion job required')
     protected='origin_version' in job.keys() and job['origin_version'] is not None
     if not protected:
-        if conn.execute("SELECT version FROM main.research_schema WHERE id=1").fetchone()[0]==17 or _job_has_v2(conn,job):raise PermissionError('legacy deletion cannot control v2 resources')
+        if conn.execute("SELECT version FROM main.research_schema WHERE id=1").fetchone()[0] in (17,18) or _job_has_v2(conn,job):raise PermissionError('legacy deletion cannot control v2 resources')
         return None
     from .store import ResearchStore
     from .financial_guard import JOB_ORIGIN_VERSION
     _deletion_lease_binding(conn,store,lease,job)
-    if conn.execute('SELECT version FROM main.research_schema').fetchone()[0] in (10,11,12,13,14,15,16,17):ResearchStore.check_runtime_version(conn)
+    if conn.execute('SELECT version FROM main.research_schema').fetchone()[0] in (10,11,12,13,14,15,16,17,18):ResearchStore.check_runtime_version(conn)
     elif conn.execute('SELECT version FROM main.research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)
     else:ResearchStore._check_v8(conn)
     if job['origin_version']!=JOB_ORIGIN_VERSION or job['origin_digest']!=deletion_origin_digest(job):

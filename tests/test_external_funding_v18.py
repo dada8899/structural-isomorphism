@@ -170,3 +170,74 @@ def test_exclusion_is_exact_table_and_id_not_account(money_db):
 def test_all_v17_declarations_are_unchanged_subset():
  from research.store import ResearchStore
  assert ResearchStore._current_structure_declarations(version=17).items()<=ResearchStore._current_structure_declarations(version=18).items()
+
+def test_fake_cap_cannot_directly_register_valid_unbound18(existing_v17):
+ from types import SimpleNamespace
+ from research.formula_runtime import _offline_maintenance
+ from research.external_funding_v18 import DDL,_register
+ from research.store import ResearchStore
+ from research.paid_control import _transaction_scope
+ path,record,_=existing_v17
+ # Genuine exact18 catalog with no registration, to exercise the private
+ # helper rather than merely failing at the public outer capability gate.
+ with _offline_maintenance(path,(17,)) as (target,cap):
+  cap.conn.execute('BEGIN EXCLUSIVE')
+  for ddl in DDL:cap.conn.execute(ddl)
+  cap.conn.execute('UPDATE main.research_schema SET version=18');ResearchStore._check_v18(cap.conn);cap.conn.commit()
+ with closing(connection(path)) as conn:
+  conn.execute('BEGIN IMMEDIATE')
+  with _transaction_scope(conn,write=True):
+   with pytest.raises((PermissionError,Exception),match='registration|maintenance|capability'):
+    _register(object(),SimpleNamespace(conn=conn,require=lambda _:None),record)
+   from research import external_funding_v18 as funding
+   import os,threading
+   funding._REG[id(conn)]={'conn':conn,'target':object(),'cap':SimpleNamespace(require=lambda _:None),
+      'account':record.account_id,'pid':os.getpid(),'thread':threading.get_ident()}
+   try:
+    assert conn.execute('SELECT '+funding.REGISTER_GUARD+"('account',?)",(record.account_id,)).fetchone()[0]==0
+    with pytest.raises(sqlite3.IntegrityError):
+     conn.execute("INSERT INTO research_funding_accounts(id,binding_id,mode,provider,currency,status,cap) VALUES(?,?,'live','deepseek','CNY','unverified',0)",(record.account_id,record.local_binding_ref))
+   finally:funding._REG.pop(id(conn),None)
+  conn.rollback()
+
+def test_sql_integer_promotion_must_not_hide_positive_money_delta(tmp_path):
+ from research.store import V5_SCHEMA
+ from research.external_funding_v18 import DDL,install_hook
+ from research.external_first_answer_file_writer import install_closed_hooks
+ conn=sqlite3.connect(tmp_path/'overflow.sqlite3',isolation_level=None)
+ try:
+  conn.execute(V5_SCHEMA['research_funding_accounts']);conn.execute('CREATE TABLE research_principals(id TEXT PRIMARY KEY)')
+  conn.execute("INSERT INTO research_funding_accounts(id,binding_id,mode,provider,currency,status,cap,settled,held,upper_booked) VALUES('old','old','live','deepseek','CNY','unverified',0,?,1,1)",(2**63-2,))
+  for table in ('research_external_first_answer_runs','research_plan_native_runs','research_plan_dispatches'):
+   conn.execute('CREATE TABLE '+table+'(id TEXT,state TEXT,cost_state TEXT,account_id TEXT)')
+  conn.execute('CREATE TABLE research_reservations(id TEXT,status TEXT,account_id TEXT)')
+  install_hook(conn);install_closed_hooks(conn)
+  for ddl in DDL:conn.execute(ddl)
+  assert conn.execute('SELECT typeof(settled+held+upper_booked) FROM research_funding_accounts').fetchone()[0]=='real'
+  with pytest.raises(sqlite3.IntegrityError):conn.execute("UPDATE research_funding_accounts SET held=held+1 WHERE id='old'")
+  # Corrupt/over-cap legacy data is not cleared to make room. A pure decrease
+  # remains possible under its original writer rules; mixed/increasing stays closed.
+  conn.execute("UPDATE research_funding_accounts SET settled=settled-1 WHERE id='old'")
+  assert conn.execute("SELECT settled,held,upper_booked FROM research_funding_accounts").fetchone()==(2**63-3,1,1)
+  from research.external_funding_v18 import project_usage,require_room
+  assert project_usage(conn)==2**63-1
+  conn.execute('BEGIN')
+  try:
+   with pytest.raises(Exception,match='budget_exhausted'):require_room(conn,1000,consuming=True)
+  finally:conn.rollback()
+ finally:conn.close()
+
+
+def test_retire_is_only_existing_deletion_origin_and_keeps_account(existing_v17):
+ path,record,old=existing_v17;migrate(path,record)
+ from research.external_funding_v18 import read_binding,retire_for_deletion
+ from research.paid_control import _transaction_scope
+ with closing(connection(path)) as conn:
+  conn.execute('BEGIN IMMEDIATE')
+  before=tuple(conn.execute('SELECT * FROM research_funding_accounts WHERE id=?',(record.account_id,)).fetchone())
+  with _transaction_scope(conn,write=True):
+   with pytest.raises(PermissionError):retire_for_deletion(conn,object(),object(),record.owner_principal,uid())
+   with pytest.raises(sqlite3.DatabaseError):conn.execute("UPDATE research_external_owner_funding SET owner_principal=NULL,owner_generation=NULL,owner_gate_id=NULL,status='retired',version=version+1")
+  assert tuple(conn.execute('SELECT * FROM research_funding_accounts WHERE id=?',(record.account_id,)).fetchone())==before
+  assert read_binding(conn)['status']=='active'
+  conn.rollback()
