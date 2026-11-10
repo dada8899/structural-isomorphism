@@ -269,6 +269,18 @@ def test_actual_main18_local_answer_owner_history_and_closed_legacy_execution(ex
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),base_url=BETA) as anonymous:
                     assert (await anonymous.get('/api/research/'+rid)).status_code==401
                 with pytest.raises(ResearchError):first_answer.save(service,owner,rid,input_revision=1,problem_digest=args['problem_digest'],research_version=args['research_version'],key='not-the-legacy-writer',answer=candidate())
+                with service.store.transaction() as conn:
+                    money_before=[tuple(row) for row in conn.execute('SELECT id,settled,held,upper_booked FROM research_funding_accounts ORDER BY id')]
+                deleted=await client.post('/api/me/delete',json={'confirmation':'DELETE'},headers=origin)
+                assert deleted.status_code==200,deleted.text
+                from research.external_funding_v18 import read_binding
+                with service.store.transaction() as conn:
+                    retained=read_binding(conn)
+                    assert retained['status']=='retired' and retained['version']==2
+                    assert retained['owner_principal'] is retained['owner_generation'] is retained['owner_gate_id'] is None
+                    assert [tuple(row) for row in conn.execute('SELECT id,settled,held,upper_booked FROM research_funding_accounts ORDER BY id')]==money_before
+                    assert conn.execute('SELECT count(*) FROM research_first_answers WHERE research_id=?',(rid,)).fetchone()[0]==0
+                    assert conn.execute('SELECT count(*) FROM research_first_answer_jobs WHERE research_id=?',(rid,)).fetchone()[0]==0
                 saved.update(rid=rid)
         assert admission._STATE.get(id(main.app)) is None and not production._LIVE
     asyncio.run(run())
