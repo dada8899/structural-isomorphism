@@ -403,3 +403,63 @@ def test_formal_failure_closes_every_opened_artifact_fd(bundle, encoder, monkeyp
     assert opened
     for fd in set(opened):
         with pytest.raises(OSError):os.fstat(fd)
+
+
+def test_formal_member_scan_does_not_change_shared_anchor_cursor(bundle):
+    fd = artifact_manifest._open_directory(bundle['data_dir'])
+    try:
+        os.lseek(fd, 1, os.SEEK_SET)
+        assert artifact_manifest._members(fd) == artifact_manifest.FORMAL_PAYLOAD_FILES
+        assert os.lseek(fd, 0, os.SEEK_CUR) == 1
+    finally:
+        os.close(fd)
+
+
+def test_formal_model_checks_share_an_anchor_without_sharing_directory_cursors(bundle):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    snapshot = artifact_manifest.open_formal_artifact_bundle(
+        bundle['artifact_manifest'], kb_path=Path(bundle['data_dir']) / bundle['kb_file'],
+        embeddings_path=bundle['precomputed_embeddings'], model_path=bundle['model_path'])
+    files = {p: hashlib.sha256(p.read_bytes()).hexdigest()
+             for p in Path(bundle['data_dir']).rglob('*') if p.is_file()}
+    start = Barrier(2)
+
+    def check():
+        start.wait(timeout=5)
+        for _ in range(100): snapshot.check_model()
+
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(check) for _ in range(2)]
+            for future in futures: future.result(timeout=15)
+        assert files == {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
+    finally:
+        snapshot.close()
+
+
+@pytest.mark.parametrize('fault', ['readonly', 'listdir'])
+def test_member_scan_failure_closes_its_descriptor_without_closing_anchor(bundle, monkeypatch, fault):
+    anchor = artifact_manifest._open_directory(bundle['data_dir'])
+    opened = []
+    native_open = os.open
+
+    def tracked(*args, **kwargs):
+        fd = native_open(*args, **kwargs)
+        opened.append(fd)
+        return fd
+
+    def fail(*_args):
+        raise OSError('synthetic scan failure')
+
+    monkeypatch.setattr(os, 'open', tracked)
+    monkeypatch.setattr(artifact_manifest if fault == 'readonly' else os,
+                        '_readonly_fd' if fault == 'readonly' else 'listdir', fail)
+    try:
+        with pytest.raises(OSError, match='synthetic scan failure'):
+            artifact_manifest._members(anchor)
+        assert len(opened) == 1 and opened[0] != anchor
+        with pytest.raises(OSError): os.fstat(opened[0])
+        os.fstat(anchor)
+    finally:
+        os.close(anchor)
