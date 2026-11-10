@@ -238,21 +238,21 @@
     ],
     "original_sha256": "2be9e0cfe9d81f8f373e2941c68149b03376d23f973ed3703eba3bc9bcad10e6",
     "schema16_bridge": {
-      "current_sha256": "5bd75cfb5cea820ad9a1ab9246ecf72295866115175ae9910c2a3705656a6afd",
+      "current_sha256": "12b50484653063b389e112cfdc2636b294b7f1283c235e073c70a6b74756e9ba",
       "hunks": [
         [
           205,
-          211,
+          213,
           ""
         ],
         [
-          237,
-          238,
+          239,
+          240,
           "        if version and version[0] in (7,8,9,10,11,12,13,14,15):\n"
         ],
         [
-          300,
-          301,
+          302,
+          303,
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)\n"
         ]
       ]
@@ -310,7 +310,7 @@
     ],
     "original_sha256": "91c93bc0f5575b7eba9f8b2690779e911a44bbb129a24c0687ea5742934ab31a",
     "schema16_bridge": {
-      "current_sha256": "0435ba8e23988c21ce31b8bc4115293774b52648af21c0e5af43cb1ae1d52a30",
+      "current_sha256": "0e5dfe99b32f4fd9b2d2ae5f3280241feef74f267c3be9c11f2028ff5d70a922",
       "hunks": [
         [
           307,
@@ -319,7 +319,7 @@
         ],
         [
           317,
-          319,
+          320,
           ""
         ]
       ]
@@ -499,7 +499,7 @@
       ]
     ],
     "schema16_bridge": {
-      "current_sha256": "d7835459e5e6817d41905186b0335b49c402d848352541d8b9226716cbc29e29",
+      "current_sha256": "a644e16bd39168a310c177b6d4a90f15d9e674ba733bfe002f7cc9c8912943fc",
       "hunks": [
         [
           13,
@@ -547,43 +547,48 @@
           "    if conn.execute('SELECT version FROM research_schema').fetchone()[0] in (10,11,12,13,14,15):ResearchStore.check_runtime_version(conn)\n    elif conn.execute('SELECT version FROM research_schema').fetchone()[0]==9:ResearchStore._check_v9(conn)\n"
         ],
         [
+          458,
           460,
-          464,
           ""
         ],
         [
-          503,
-          504,
-          "            or not conn.in_transaction or conn.execute(\"PRAGMA foreign_keys\").fetchone()[0]!=1\n            or conn.execute(\"SELECT version FROM research_schema WHERE id=1\").fetchone()[0] not in (5,6,7,8,9,10,11,12,13,14,15)):\n"
+          462,
+          466,
+          ""
         ],
         [
           505,
-          516,
+          506,
+          "            or not conn.in_transaction or conn.execute(\"PRAGMA foreign_keys\").fetchone()[0]!=1\n            or conn.execute(\"SELECT version FROM research_schema WHERE id=1\").fetchone()[0] not in (5,6,7,8,9,10,11,12,13,14,15)):\n"
+        ],
+        [
+          507,
+          518,
           "    if conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==7:\n"
         ],
         [
-          518,
-          519,
+          520,
+          521,
           "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==8:\n"
         ],
         [
-          521,
-          522,
+          523,
+          524,
           "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0]==9:\n"
         ],
         [
-          524,
-          525,
+          526,
+          527,
           "    elif conn.execute('SELECT version FROM research_schema WHERE id=1').fetchone()[0] in (10,11,12,13,14,15):\n"
         ],
         [
-          527,
-          591,
+          529,
+          593,
           ""
         ],
         [
-          689,
-          690,
+          691,
+          692,
           "    if type(context) is CallContext and conn.execute('SELECT version FROM research_schema').fetchone()[0] in (6,7,8,9,10,11,12,13,14,15):\n"
         ]
       ]
@@ -1569,7 +1574,7 @@
       ]
     ],
     "schema16_bridge": {
-      "current_sha256": "b98796ee72ddb2043915f552de94a4365c514fb13a7a2de5bdbc98e47b08c61e",
+      "current_sha256": "1d0b9caa0b06ce9bb5730402aa6f0d107996bb72a75011d23c75ac6f86fc8304",
       "hunks": [
         [
           173,
@@ -2017,7 +2022,7 @@
     ],
     "original_sha256": "744c196ef6b9cb9c3b6fab2140b966e3b52b4859fafb11ef23a5982d371d2885",
     "schema16_bridge": {
-      "current_sha256": "96dfbeddc2e297571e7445755e192eca101af9b0892cf4983f994dcc2758e366",
+      "current_sha256": "8a5b39b1be7a14d352c7cb1b2821243a4f7f152916764c3e97a939106ffad9f1",
       "hunks": [
         [
           13,
@@ -2046,117 +2051,117 @@
         ],
         [
           951,
-          954,
+          957,
           ""
         ],
         [
-          1024,
-          1026,
+          1027,
+          1029,
           "            if version==15:self._check_v15(conn)\n"
         ],
         [
-          1051,
           1054,
+          1060,
           ""
         ],
         [
-          1060,
-          1061,
-          "        if version in (10,11,12,13,14,15):\n"
-        ],
-        [
-          1064,
-          1065,
-          "        if version in (11,12,13,14,15):\n"
-        ],
-        [
+          1066,
           1067,
-          1068,
-          "        if version in (12,13,14,15):\n"
+          "        if version in (10,11,12,13,14,15):\n"
         ],
         [
           1070,
           1071,
-          "        if version in (13,14,15):\n"
+          "        if version in (11,12,13,14,15):\n"
         ],
         [
           1073,
           1074,
-          "        if version in (14,15):\n"
+          "        if version in (12,13,14,15):\n"
         ],
         [
           1076,
           1077,
-          "        if version==15:\n"
+          "        if version in (13,14,15):\n"
         ],
         [
           1079,
+          1080,
+          "        if version in (14,15):\n"
+        ],
+        [
+          1082,
           1083,
+          "        if version==15:\n"
+        ],
+        [
+          1085,
+          1089,
           ""
         ],
         [
-          1122,
-          1131,
+          1128,
+          1137,
           "        return cls._check_structure_version(conn,15)\n"
         ],
         [
-          1202,
-          1204,
+          1208,
+          1210,
           "            if version==15:self._check_v15(conn)\n"
         ],
         [
-          1219,
-          1221,
+          1225,
+          1227,
           "            if version==15:self._check_v15(conn);conn.commit();return\n"
         ],
         [
-          1271,
-          1272,
+          1277,
+          1278,
           "    def _check_formula_domain(cls,conn,*,plan=False,native=False):\n"
         ],
         [
-          1273,
-          1274,
+          1279,
+          1280,
           "        cls._check_v7_attachments(conn,method=True,native=native)\n"
         ],
         [
-          1335,
-          1340,
+          1341,
+          1347,
           "        version=conn.execute('SELECT version FROM research_schema').fetchone()[0]\n        if version==15:cls._check_v15(conn)\n"
         ],
         [
-          1349,
-          1361,
+          1356,
+          1372,
           ""
         ],
         [
-          1364,
-          1365,
+          1375,
+          1376,
           "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'正式15需要完整账户准入。')\n"
         ],
         [
-          1366,
-          1368,
+          1377,
+          1379,
           "        cls._check_structure_version(conn,15)\n        cls._check_formula_domain(conn,plan=True,native=True)\n"
         ],
         [
-          1374,
-          1382,
+          1385,
+          1396,
           ""
         ],
         [
-          1383,
-          1384,
+          1397,
+          1398,
           "            raise ResearchError('SCHEMA_UNSUPPORTED',503,'研究15关联不匹配。')\n"
         ],
         [
-          1407,
-          1411,
+          1421,
+          1425,
           "                self._check_v15(conn)\n"
         ],
         [
-          1435,
-          1439,
+          1449,
+          1453,
           "                self._check_v15(conn)\n"
         ]
       ]

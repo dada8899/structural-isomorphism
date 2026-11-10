@@ -456,6 +456,8 @@ def _transaction_scope(conn,*,write):
     def authorizer(action,arg1,arg2,database,source):
         if action==sqlite3.SQLITE_TRANSACTION and arg1 in ("COMMIT","ROLLBACK"):
             scope.active=False
+        from .external_funding_v18 import statement_allowed as funding_statement_allowed
+        if not funding_statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
         from .financial_input_guard import statement_allowed as input_statement_allowed
         if not input_statement_allowed(conn,action,arg1,arg2):return sqlite3.SQLITE_DENY
         from .first_answer import statement_allowed as first_answer_statement_allowed
@@ -504,14 +506,14 @@ def _current_scope(conn):
             or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1):
         raise PermissionError("current canonical v5 transaction required")
     marker=conn.execute("SELECT version FROM main.research_schema WHERE id=1").fetchone()
-    if marker is None or marker[0] not in (5,6,7,8,9,10,11,12,13,14,15,16,17):
+    if marker is None or marker[0] not in (5,6,7,8,9,10,11,12,13,14,15,16,17,18):
         raise PermissionError("current canonical v5 transaction required")
     version=marker[0]
-    if version==17:
+    if version in (17,18):
         from .external_first_answer_erasure import require_deletion_frame
         from .store import ResearchStore
         require_deletion_frame(conn)
-        ResearchStore._check_v17(conn)
+        ResearchStore.check_runtime_version(conn)
         return scope
     if version==7:
         from .store import ResearchStore
@@ -540,7 +542,7 @@ def _local_answer_scope(conn):
     finally:
         del frame
     version = conn.execute("SELECT version FROM main.research_schema WHERE id=1").fetchone()
-    if version is None or version[0] != 17:
+    if version is None or version[0] not in (17,18):
         return _current_scope(conn)
     with _LOCK:
         scope = _SCOPES.get(id(conn))
@@ -548,7 +550,7 @@ def _local_answer_scope(conn):
             or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0] != 1):
         raise PermissionError("canonical local answer transaction required")
     from .store import ResearchStore
-    ResearchStore._check_v17(conn)
+    ResearchStore.check_runtime_version(conn)
     return scope
 
 
@@ -580,7 +582,7 @@ def _local_financial_scope(conn):
     finally:
         del frame
     version=conn.execute("SELECT version FROM main.research_schema WHERE id=1").fetchone()
-    if version is None or version[0]!=17:
+    if version is None or version[0] not in (17,18):
         return _current_scope(conn)
     with _LOCK:
         scope=_SCOPES.get(id(conn))
@@ -588,7 +590,7 @@ def _local_financial_scope(conn):
             or not conn.in_transaction or conn.execute("PRAGMA foreign_keys").fetchone()[0]!=1):
         raise PermissionError('canonical local financial transaction required')
     from .store import ResearchStore
-    ResearchStore._check_v17(conn)
+    ResearchStore.check_runtime_version(conn)
     return scope
 
 
