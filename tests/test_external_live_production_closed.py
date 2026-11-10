@@ -7,6 +7,44 @@ import pytest
 from web.backend.tests.test_formal_main_admission import BETA,envelope,login,prepared,problem,smtp
 
 
+def test_fresh_main_defers_jwt_and_preserves_the_original_token_library(tmp_path):
+    import os,subprocess,sys
+    from pathlib import Path
+    root=Path(__file__).resolve().parents[1]
+    code='''
+import importlib,sys
+from pathlib import Path
+root=Path(sys.argv[1]);sys.path[:0]=[str(root/'web/backend'),str(root)]
+assert 'jwt' not in sys.modules and 'cryptography' not in sys.modules
+import main
+from api import auth,sso
+assert 'jwt' not in sys.modules and 'cryptography' not in sys.modules
+assert auth.jwt is sso.jwt
+try:getattr(auth.jwt,'not_a_token_library_operation')
+except AttributeError:pass
+else:raise AssertionError('unsupported delegation')
+assert 'jwt' not in sys.modules
+secret='public-synthetic-token-secret-for-isolated-test'
+token=auth.jwt.encode({'sub':'public-synthetic-owner'},secret,algorithm='HS256')
+assert sso.jwt.decode(token,secret,algorithms=['HS256'])=={'sub':'public-synthetic-owner'}
+library=importlib.import_module('jwt')
+assert auth.jwt.encode is library.encode and auth.jwt.decode is library.decode
+assert sso.jwt.PyJWTError is library.PyJWTError
+try:sso.jwt.decode(token,'another-public-synthetic-secret',algorithms=['HS256'])
+except sso.jwt.PyJWTError:pass
+else:raise AssertionError('invalid signature accepted')
+print('DEFERRED_JWT_PUBLIC_FLOW_VERIFIED')
+'''
+    env={name:os.environ[name] for name in ('PATH','HOME','TMPDIR') if name in os.environ}
+    env.update(LANG='C',LC_ALL='C',TZ='UTC',STRUCTURAL_ENV='test',AUTH_ENABLED='false',
+        AUTH_DATA_DIR=str(tmp_path/'auth'),STRUCTURAL_SSO_DATA_DIR=str(tmp_path/'sso'),
+        STRUCTURAL_HISTORY_DB=str(tmp_path/'history.sqlite3'),STRUCTURAL_FAVORITES_PATH=str(tmp_path/'favorites.jsonl'),
+        STRUCTURAL_LOG_FILE=str(tmp_path/'app.jsonl'),PYTHONDONTWRITEBYTECODE='1')
+    result=subprocess.run([sys.executable,'-I','-B','-c',code,str(root)],env=env,capture_output=True,timeout=30)
+    assert result.returncode==0,result.stderr.decode(errors='replace')
+    assert result.stdout.strip()==b'DEFERRED_JWT_PUBLIC_FLOW_VERIFIED'
+
+
 @pytest.mark.parametrize("pin",[False,True],ids=["no-source-pin","pin-without-entry-witness"])
 def test_actual_main_defaults_closed_without_credential_or_crypto_lookup(prepared,monkeypatch,pin):
     main,admission,paths,messages=prepared

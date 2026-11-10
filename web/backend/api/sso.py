@@ -15,7 +15,10 @@ from pathlib import Path
 from urllib.parse import urlencode
 from urllib.parse import urlsplit
 
-import jwt
+if __package__ == "web.backend.api":
+    from ..services.deferred_jwt import jwt
+else:
+    from services.deferred_jwt import jwt
 import sqlite3,threading
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, RedirectResponse

@@ -33,7 +33,17 @@
         "    lease_args={'owner_lease':owner_lease} if job.get('origin_version') is not None else {}\n"
       ]
     ],
-    "original_sha256": "7c46e214178a2bbe0aff75e7a7411a3201d7237d6a812a1a9f75975fde373acb"
+    "original_sha256": "7c46e214178a2bbe0aff75e7a7411a3201d7237d6a812a1a9f75975fde373acb",
+    "schema16_bridge": {
+      "current_sha256": "4a292936a0d57b0e4b757e865ac84956a6feeb78e3cd5fefaaefb29918b56f76",
+      "hunks": [
+        [
+          46,
+          50,
+          "import jwt\n"
+        ]
+      ]
+    }
   },
   "web/backend/api/research.py": {
     "current_sha256": "ac9f1243ca801f1ae0f9102ca631c5a8a9c6772ce1c0995cf503bfb6c65ceb06",
@@ -2666,5 +2676,20 @@
       ]
     ],
     "original_sha256": "1a854163af26ff37550b511bd6c3d6f6430ed2a2882a0dab4c7cc3aa2b6cdf26"
+  },
+  "web/backend/api/sso.py": {
+    "current_sha256": "2ecd209af0085d533f3e2fc9280f98569c6bfedef12703b4934468376a3529a5",
+    "hunks": [],
+    "original_sha256": "2ecd209af0085d533f3e2fc9280f98569c6bfedef12703b4934468376a3529a5",
+    "schema16_bridge": {
+      "current_sha256": "71612143ef0a760e908debf9f412231e57f158c1ecd0faca13b19297c19c8cbd",
+      "hunks": [
+        [
+          17,
+          21,
+          "import jwt\n"
+        ]
+      ]
+    }
   }
 }
