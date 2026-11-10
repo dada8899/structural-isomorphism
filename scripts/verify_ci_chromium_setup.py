@@ -19,7 +19,7 @@ import subprocess
 import sys
 import time
 
-HELPER_SHA = '6801bdfc0678eec08343e8ec43753d54270df096ed7a3103bb10c0ea80376db2'
+HELPER_SHA = '9f0e7291f7d6bf70d53d30f2b370e55cb065a153584b44d50e081396eba9f979'
 BRANCH = 'refs/heads/codex/structure-chromium-source-fix-20261023'
 HELPER = Path(__file__).resolve().with_name('prepare_ci_chromium.py')
 SYSTEM_FILES = {'source': (Path('/etc/apt/sources.list.d/ubuntu.sources'), 16384),
@@ -32,7 +32,9 @@ KEYRING_BYTES = 3607
 FAILURE_PROTOCOL = 'ci-chromium-failure-v1'
 FAILURE_STAGES = {
     'parent': ('entry', 'host', 'request', 'launch', 'response', 'retirement'),
-    'root-worker': ('entry', 'request', 'sdk', 'subreaper', 'keyring', 'source', 'install', 'retirement'),
+    'root-worker': ('entry', 'request', 'sdk', 'subreaper', 'keyring', 'source', 'install',
+                    'install-children', 'install-source-restore', 'keyring-retire',
+                    'retirement-receipt', 'retirement'),
 }
 PINS = {'pytest':'9.0.3', 'playwright':'1.59.0', 'pytest-playwright':'0.7.2',
         'fastapi':'0.135.0', 'pydantic':'2.7.4', 'starlette':'1.3.1',

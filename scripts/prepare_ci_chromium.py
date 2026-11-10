@@ -38,7 +38,9 @@ FIXED_ARCHIVE_URI = 'https://archive.ubuntu.com/ubuntu'
 FAILURE_PROTOCOL = 'ci-chromium-failure-v1'
 FAILURE_STAGES = {
     'parent': ('entry', 'host', 'request', 'launch', 'response', 'retirement'),
-    'root-worker': ('entry', 'request', 'sdk', 'subreaper', 'keyring', 'source', 'install', 'retirement'),
+    'root-worker': ('entry', 'request', 'sdk', 'subreaper', 'keyring', 'source', 'install',
+                    'install-children', 'install-source-restore', 'keyring-retire',
+                    'retirement-receipt', 'retirement'),
 }
 _failure_phase, _failure_stage = 'parent', 'entry'
 KEYRING_PROFILE = 'ubuntu-noble-archive-pinned-v1'
@@ -443,8 +445,38 @@ def child_environment(python, cache, temporary):
             'PLAYWRIGHT_BROWSERS_PATH': str(cache), 'TMPDIR': str(temporary)}
 
 
+def installer_diagnostic(outcome, code):
+    require(type(outcome) is str and outcome in ('completed', 'deadline', 'control-stop',
+                                                'nonzero-exit', 'launch-exception', 'loop-exception'))
+    require(code is None or type(code) is int and -255 <= code <= 255)
+    require(outcome != 'completed' or code == 0)
+    require(outcome != 'nonzero-exit' or type(code) is int and code != 0)
+    require(outcome not in ('launch-exception', 'loop-exception') or code is None)
+    return {'protocol':'ci-chromium-installer-v1', 'outcome':outcome, 'observed_exit_code':code}
+
+
+def known_result_valid(value):
+    if type(value) is not dict or type(value.get('status')) is not str or value['status'] not in ('ready', 'failed'):
+        return False
+    keys = {'status', 'children_closed', 'source_restored', 'keyring'}
+    if value['status'] == 'failed' and 'installer' in value:
+        keys.add('installer')
+        diagnostic = value['installer']
+        if type(diagnostic) is not dict or set(diagnostic) != {'protocol', 'outcome', 'observed_exit_code'}:
+            return False
+        try:
+            if (diagnostic != installer_diagnostic(diagnostic['outcome'], diagnostic['observed_exit_code'])
+                    or diagnostic['outcome'] == 'completed'):
+                return False
+        except Refused:
+            return False
+    return (set(value) == keys and value['children_closed'] is True and value['source_restored'] is True
+            and keyring_receipt_ok(value['keyring'], bound=value['status'] == 'ready'))
+
+
 def install_with_lease(lease, request, account, deadline, stopped):
     process, success, launch_attempted = None, False, False
+    observed_code, outcome = None, 'launch-exception'
     try:
         require(not stopped[0] and time.monotonic() < deadline - 12)
         lease.apply()
@@ -457,17 +489,31 @@ def install_with_lease(lease, request, account, deadline, stopped):
         while process.poll() is None and time.monotonic() < deadline - 12 and not stopped[0]:
             if select.select([sys.stdin], [], [], 0.02)[0]:
                 stopped[0] = True
-        success = process.poll() == 0 and not stopped[0] and time.monotonic() < deadline - 12
+        observed_code = process.poll()
+        require(observed_code is None or type(observed_code) is int and -255 <= observed_code <= 255)
+        now = time.monotonic()
+        success = observed_code == 0 and not stopped[0] and now < deadline - 12
+        outcome = ('control-stop' if stopped[0] else 'deadline' if observed_code is None or now >= deadline - 12
+                   else 'completed' if observed_code == 0 else 'nonzero-exit')
     except Exception:
         success = False
+        observed_code = None
+        outcome = ('control-stop' if stopped[0] else 'deadline' if time.monotonic() >= deadline - 12
+                   else 'launch-exception' if process is None else 'loop-exception')
     finally:
         # A failed retirement must not be followed by a false restoration claim.
         if launch_attempted:
+            entering('root-worker', 'install-children')
             finish_children(process, deadline)
+        entering('root-worker', 'install-source-restore')
         lease.restore()
         require(time.monotonic() < deadline)
-    return {'status': 'ready' if success else 'failed',
-            'children_closed': True, 'source_restored': True}
+    result = {'status': 'ready' if success else 'failed', 'children_closed': True, 'source_restored': True}
+    # Only finite controller data enters the bounded JSON reply, after cleanup.
+    # Neither sudo/worker stderr nor SDK stdout/stderr is forwarded.
+    if not success:
+        result['installer'] = installer_diagnostic(outcome, observed_code)
+    return result
 
 
 def root_worker(request):
@@ -515,9 +561,12 @@ def root_worker(request):
                 result = install_with_lease(lease, request, account, deadline, stopped)
                 entering('root-worker', 'retirement')
                 lease._verify(lease.original,False)
+                entering('root-worker', 'keyring-retire')
                 result['keyring']=trust.retire(result['source_restored'],result['children_closed'],lease.signed_by_bound)
+                entering('root-worker', 'retirement-receipt')
                 require(keyring_receipt_ok(result['keyring'],bound=result['status']=='ready'))
                 retirement_verified = True
+                entering('root-worker', 'retirement')
             finally:
                 if lease is not None:
                     lease.close()
@@ -585,10 +634,8 @@ def prepare():
         if failure_valid(result, code):
             require(result['failure_phase'] == 'root-worker')
             raise StagedFailure(result)
-        require(type(result) is dict and set(result) == {'status', 'children_closed', 'source_restored','keyring'})
+        require(known_result_valid(result))
         require((code, result['status']) in ((0, 'ready'), (1, 'failed')))
-        require(result['children_closed'] is True and result['source_restored'] is True)
-        require(keyring_receipt_ok(result['keyring'],bound=result['status']=='ready'))
         entering('parent', 'retirement')
         require(identity(temporary.lstat()) == temporary_identity and temporary == temporary.resolve())
         require(shutil.rmtree.avoids_symlink_attacks and time.monotonic() < deadline)
@@ -613,13 +660,11 @@ def main():
         else:
             require(not sys.argv[1:])
             result = prepare()
+        require(known_result_valid(result))
     except BaseException as error:
         result = (error.value if type(error) is StagedFailure and failure_valid(error.value, 2)
                   else failure_record(_failure_phase, _failure_stage))
         print(json.dumps(result))
-        return 2
-    if result['status'] != 'ready':
-        print(json.dumps(failure_record(_failure_phase, _failure_stage)))
         return 2
     print(json.dumps(result, sort_keys=True))
     return 0 if result['status'] == 'ready' else 1
