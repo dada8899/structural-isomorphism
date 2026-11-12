@@ -19,7 +19,7 @@ import subprocess
 import sys
 import time
 
-HELPER_SHA = '245cbb8a4fdaeae5e5ac33f9d185f13fe73f0e125697681183f19593320f94b1'
+HELPER_SHA = 'ab623dea3d2cafecb5df2115bb4744693d015e2383ed2e3a7bca48580aeb3c1f'
 HELPER_TIMEOUT_SECONDS = 190
 BRANCH = 'refs/heads/codex/structure-chromium-source-fix-20261023'
 HELPER = Path(__file__).resolve().with_name('prepare_ci_chromium.py')
@@ -33,7 +33,10 @@ KEYRING_BYTES = 3607
 FAILURE_PROTOCOL = 'ci-chromium-failure-v1'
 FAILURE_STAGES = {
     'parent': ('entry', 'host', 'request', 'launch', 'response', 'retirement'),
-    'root-worker': ('entry', 'request', 'sdk', 'subreaper', 'keyring', 'source', 'install',
+    'root-worker': ('entry', 'request', 'sdk', 'subreaper', 'keyring', 'source',
+                    'source-path', 'source-open', 'source-lock', 'source-metadata',
+                    'source-read', 'source-map', 'source-named-identity',
+                    'source-backup-open', 'source-write', 'source-fsync', 'install',
                     'install-children', 'install-source-restore', 'keyring-retire',
                     'retirement-receipt', 'retirement'),
 }

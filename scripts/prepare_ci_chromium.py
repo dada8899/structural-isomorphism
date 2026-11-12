@@ -38,7 +38,10 @@ FIXED_ARCHIVE_URI = 'https://archive.ubuntu.com/ubuntu'
 FAILURE_PROTOCOL = 'ci-chromium-failure-v1'
 FAILURE_STAGES = {
     'parent': ('entry', 'host', 'request', 'launch', 'response', 'retirement'),
-    'root-worker': ('entry', 'request', 'sdk', 'subreaper', 'keyring', 'source', 'install',
+    'root-worker': ('entry', 'request', 'sdk', 'subreaper', 'keyring', 'source',
+                    'source-path', 'source-open', 'source-lock', 'source-metadata',
+                    'source-read', 'source-map', 'source-named-identity',
+                    'source-backup-open', 'source-write', 'source-fsync', 'install',
                     'install-children', 'install-source-restore', 'keyring-retire',
                     'retirement-receipt', 'retirement'),
 }
@@ -310,18 +313,27 @@ class SourceLease:
         self.path, self.fd, self.changed = path, None, False
         self.effective,self.signed_by_bound=effective,False
         try:
+            entering('root-worker', 'source-path')
             require(path.is_absolute() and path == path.resolve())
+            entering('root-worker', 'source-open')
             self.fd = os.open(path, os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC)
+            entering('root-worker', 'source-lock')
             fcntl.flock(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            entering('root-worker', 'source-metadata')
             info = os.fstat(self.fd)
             require(stat.S_ISREG(info.st_mode) and info.st_uid == expected_uid and stat.S_IMODE(info.st_mode) == 0o644 and info.st_nlink == 1)
             self.original_identity = identity(info)
+            entering('root-worker', 'source-read')
             self.original = checked_read(self.fd, 16384)
+            entering('root-worker', 'source-map')
             self.mapped = mirror_source(self.original,effective)
+            entering('root-worker', 'source-named-identity')
             require(identity(path.lstat()) == self.original_identity)
+            entering('root-worker', 'source-backup-open')
             fd = os.open(backup, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
             try:
-                self._write(fd, self.original)
+                entering('root-worker', 'source-write')
+                self._write(fd, self.original, diagnostic=True)
             finally:
                 os.close(fd)
         except BaseException:
@@ -329,13 +341,15 @@ class SourceLease:
             raise
 
     @staticmethod
-    def _write(fd, data):
+    def _write(fd, data, *, diagnostic=False):
         at = 0
         while at < len(data):
             count = os.pwrite(fd, data[at:], at)
             require(count > 0)
             at += count
         os.ftruncate(fd, len(data))
+        if diagnostic:
+            entering('root-worker', 'source-fsync')
         os.fsync(fd)
 
     def _verify(self, value,check_effective=True):
