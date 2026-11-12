@@ -42,14 +42,15 @@ def test_uncertain_usage_does_not_produce_a_bookable_candidate():
         {"currency":"CNY","total_balance":"3.000001"}]}))==3_000_001
 
 
-def test_signed_price_shape_uses_conservative_cny_bound_and_rejects_staleness():
+@pytest.mark.parametrize("request_mode",["canary","saved-question"])
+def test_signed_price_shape_uses_conservative_cny_bound_and_rejects_staleness(request_mode):
     basis={"model":"deepseek-flash","currency":"CNY","scale":6,"max_prompt_tokens":1_000_000,
            "max_output_tokens":768,"peak_input_miss_units_per_million":2_000_000,
            "peak_output_units_per_million":8_000_000,
            "source_url":"https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
            "official_document_sha256":"a"*64,"issued_at":100,"valid_until":200}
     def policy(upper):
-        return sender.EndpointPolicy("1.1.1.1","b"*64,"c"*64,"d"*64,upper)
+        return sender.EndpointPolicy("1.1.1.1","b"*64,"c"*64,"d"*64,upper,request_mode=request_mode)
     assert sender._parse_price_basis(canonical(basis),policy(2_006_144),now=150)==basis
     # The published whole context is used without assuming an unverified
     # tokenizer, even for the short fixed P1 request.
@@ -115,3 +116,73 @@ def test_unregistered_quote_data_is_never_live_quote_proof():
     decision=SimpleNamespace(preview_digest="a"*64)
     with pytest.raises(ContractError,match="live_quote_proof_required"):
         require_offered(SimpleNamespace(),object(),None,None,"research",1,None,None,decision)
+
+
+def test_endpoint_policy_modes_are_explicit_and_digest_bound():
+    installed=(sender._PINNED_ENDPOINT,production._PINNED_POLICY)
+    from dataclasses import replace
+    from uuid import uuid4
+    policy=sender.EndpointPolicy('1.1.1.1','a'*64,'b'*64,'c'*64,2_129_920,str(uuid4()),'d'*64)
+    assert policy.request_mode=='canary'
+    generic=replace(policy,request_mode='saved-question',canary_operation_key=None,canary_request_sha256=None)
+    assert generic.wire_digest()!=policy.wire_digest()
+    for bad in (replace(generic,request_mode='unknown'),replace(generic,canary_operation_key=str(uuid4())),
+                replace(generic,canary_request_sha256='d'*64)):
+        with pytest.raises(ContractError):bad.wire_digest()
+    sender._request_binding(policy,policy.canary_operation_key,'d'*64)
+    with pytest.raises(ContractError,match='canary_binding'):sender._request_binding(policy,str(uuid4()),'d'*64)
+    sender._request_binding(generic,str(uuid4()),'e'*64)
+    assert sender._PINNED_ENDPOINT is installed[0] and production._PINNED_POLICY is installed[1]
+
+
+def test_generic_spent_receipts_are_per_key_durable_and_nonprivate(tmp_path,monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    import os
+    from uuid import uuid4
+    first,second=str(uuid4()),str(uuid4())
+    fd=os.open(tmp_path,os.O_RDONLY|os.O_DIRECTORY)
+    try:
+        production._claim_saved_operation_at(fd,first)
+        assert production._saved_operation_spent_at(fd,first)
+        assert not production._saved_operation_spent_at(fd,second)
+        def claim():
+            try:production._claim_saved_operation_at(fd,second);return 'claimed'
+            except ContractError:return 'spent'
+        with ThreadPoolExecutor(max_workers=2) as executor:assert sorted(executor.map(lambda _:claim(),range(2)))==['claimed','spent']
+        third=str(uuid4())
+        with monkeypatch.context() as fault:
+            fault.setattr(production.os,'fsync',lambda _:(_ for _ in ()).throw(OSError('synthetic uncertain fsync')))
+            with pytest.raises(OSError):production._claim_saved_operation_at(fd,third)
+        assert production._saved_operation_spent_at(fd,third)
+        with pytest.raises(ContractError):production._claim_saved_operation_at(fd,third)
+        assert not production._p1_spent_at(fd)
+    finally:os.close(fd)
+    for path in tmp_path.iterdir():
+        assert path.name.startswith('spent-operation-') and path.stat().st_mode&0o777==0o600
+        assert first not in path.read_text() and second not in path.read_text()
+        assert len(path.read_text().strip())==64
+
+
+def test_offered_key_and_scope_are_not_caller_replaceable(monkeypatch):
+    from dataclasses import replace
+    from types import SimpleNamespace as NS
+    from web.backend.services import external_live_operations as operations
+    handle=NS(_app=object());service=NS();handle._binding=NS(service=service)
+    scope=NS(research_id='r',input_revision=1,auth_generation='g')
+    prepared=NS();quote=NS(valid_until=10**12);key='11111111-1111-4111-8111-111111111111'
+    offered=operations._Offered(handle,scope,quote,prepared,key)
+    monkeypatch.setattr(operations,'_CACHE',{'a'*64:offered})
+    monkeypatch.setitem(production._LIVE,id(handle._app),handle)
+    decision=NS(preview_digest='a'*64)
+    operations.require_offered(offered,handle,service,NS(generation='g'),'r',1,prepared,quote,decision,operation_key=key)
+    for proof,k,r in ((replace(offered,operation_key='other'),key,'r'),(offered,'other','r'),(offered,key,'different')):
+        with pytest.raises(ContractError,match='live_quote_proof_required'):
+            operations.require_offered(proof,handle,service,NS(generation='g'),r,1,prepared,quote,decision,operation_key=k)
+
+
+def test_generic_claim_requires_the_actual_ticket_frame_before_any_receipt_io(monkeypatch):
+    from uuid import uuid4
+    def forbidden(*args):pytest.fail('receipt lookup before exact Ticket caller')
+    monkeypatch.setattr(production,'_receipt_directory',forbidden)
+    with pytest.raises(ContractError,match='external_consumption_ticket_required'):
+        production.claim_saved_question_before_first_write(object(),object(),str(uuid4()))

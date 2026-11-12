@@ -63,6 +63,12 @@ def load_model(
         except (OSError, ValueError, RuntimeError):
             raise RuntimeError("formal model directory is unavailable") from None
         try:
+            import torch
+
+            # Disable the optional MKLDNN backend before formal CPU inference.
+            torch.backends.mkldnn.enabled = False
+            if torch.backends.mkldnn.enabled is not False:
+                raise RuntimeError("formal CPU backend could not be configured")
             from sentence_transformers import SentenceTransformer
 
             return SentenceTransformer(

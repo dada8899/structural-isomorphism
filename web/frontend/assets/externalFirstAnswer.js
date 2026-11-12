@@ -92,6 +92,38 @@
     return null;
   }
 
+  // This authority exists only for one explicit start action in this page.
+  // A saved record or recovery key can never recreate it.
+  function startIntent(question, actor, stillCurrent) {
+    let live = typeof question === 'string' && !!actor && typeof stillCurrent === 'function';
+    let bound = null, used = false;
+    const fields = ['research_id','input_revision','research_version','problem_digest','actor','original_input'];
+    return Object.freeze({
+      revoke() { live = false; },
+      bind(anchor) {
+        if (!live || used || bound || !stillCurrent() || anchor?.actor !== actor ||
+            anchor.original_input !== question || anchor.external_first_answer !== 'ready') return false;
+        bound = Object.freeze({...anchor}); return true;
+      },
+      async consume(anchor, load, submit, now, current = () => anchor) {
+        const active = () => live && stillCurrent() && bound &&
+          fields.every(key => anchor?.[key] === bound[key] && current()?.[key] === bound[key]);
+        if (used || !active()) return 'not_started';
+        used = true;
+        let offer;
+        try { offer = preview(await load(anchor), anchor, now()); } catch { return 'not_started'; }
+        if (!active() || !offer?.may_send || offer.upper_units > 2130000) return 'not_started';
+        const body = confirmation(offer, anchor, {confirm_exact_question:true,
+          confirm_maximum_cost:true, declares_right_to_send:true}, now());
+        if (!body || !active()) return 'not_started';
+        try {
+          await submit(anchor, body, offer.operation_key);
+          return 'submitted';
+        } catch { return 'unknown'; }
+      },
+    });
+  }
+
   function mount(panel, options) {
     const doc = panel.ownerDocument;
     let epoch = 0;
@@ -107,7 +139,21 @@
       element.type = 'button';
       return element;
     }
-    function offer() {
+    async function start(intent) {
+      const anchor = options.current();
+      if (anchor?.external_first_answer !== 'ready') return false;
+      reset(); panel.hidden = false;
+      const message = add('p','正在继续分析…'); message.setAttribute('role','status');
+      const result = await intent.consume(anchor, options.load, options.submit, options.now, options.current);
+      if (result === 'not_started') {
+        message.textContent = '本次未启动外部分析。问题已保存，可重新点击开始研究。';
+        return false;
+      }
+      // Recovery uses the original persisted operation, never a new send.
+      offer(true);
+      return true;
+    }
+    function offer(readAutomatically = false) {
       reset();
       const current = options.current();
       if (current?.external_first_answer === 'pending') {
@@ -128,7 +174,7 @@
         const readResult = button('查看待核查分析');
         readResult.hidden = true;
         const resultBody = add('div','');
-        readResult.addEventListener('click', async () => {
+        async function readSavedResult() {
           if (!active() || readResult.disabled || typeof options.loadResult !== 'function') return;
           readResult.disabled = true;
           let result;
@@ -146,8 +192,9 @@
             add('p',result.next_check,resultBody);
           } else if (result.status === 'clarification') add('p',result.question,resultBody);
           else add('p','原返回没有足够信息形成解释。',resultBody);
-        });
-        inspect.addEventListener('click', async () => {
+        }
+        readResult.addEventListener('click', readSavedResult);
+        async function inspectSavedStatus() {
           if (!active() || inspect.disabled) return;
           inspect.disabled = true;
           status.textContent = '正在只读核对原提交…';
@@ -158,13 +205,16 @@
             pending:'原请求仍在等待核对。不要重复发送。',
             accepted:'原请求已接收。请继续查看这一条记录。',
             unknown:'服务端尚不能确认原请求结果。不要重复发送。',
-            completed:'原请求已返回。请查看该修订的待核查分析。',
+            completed:'分析已保存，以下内容仍需核查。',
             not_sent:'服务端确认原请求未发送。此处不会重新提交。',
           };
           status.textContent = labels[observed] || '暂时无法核对原请求。不要重复发送。';
           readResult.hidden = observed !== 'completed' || typeof options.loadResult !== 'function';
           inspect.disabled = false;
-        });
+          if (observed === 'completed' && (readAutomatically || anchor.recovery_only)) await readSavedResult();
+        }
+        inspect.addEventListener('click', inspectSavedStatus);
+        if (readAutomatically || anchor.recovery_only) void inspectSavedStatus();
         return;
       }
       if (!current || current.external_first_answer !== 'ready') return;
@@ -248,8 +298,8 @@
       });
     }
     const offerPanel = offer;
-    return Object.freeze({offer, reset});
+    return Object.freeze({offer, reset, start});
   }
 
-  return Object.freeze({preview, confirmation, statusReceipt, resultReceipt, mount});
+  return Object.freeze({preview, confirmation, statusReceipt, resultReceipt, startIntent, mount});
 });

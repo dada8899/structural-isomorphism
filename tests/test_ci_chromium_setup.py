@@ -70,7 +70,10 @@ def test_parent_projects_only_closed_failure_from_returned_fake_child(tmp_path,m
         stdin=io.BytesIO();stdout=io.BytesIO(raw)
         def wait(self,timeout):return code
     monkeypatch.setattr(setup,'host_guard',lambda:None);monkeypatch.setenv('RUNNER_TEMP',str(tmp_path))
-    monkeypatch.setattr(setup.subprocess,'Popen',lambda *a,**kw:Process())
+    def launch(*_args, **kwargs):
+        assert kwargs['stderr'] is setup.subprocess.DEVNULL
+        return Process()
+    monkeypatch.setattr(setup.subprocess,'Popen',launch)
     with pytest.raises(setup.Refused) as error:setup.prepare()
     if mutation=='none':assert type(error.value) is setup.StagedFailure and error.value.value==reply
     else:assert type(error.value) is not setup.StagedFailure
@@ -89,11 +92,94 @@ def test_main_keeps_success_exact_four_keys_and_failure_only_fixed_stages(monkey
     assert setup.failure_valid(value,2) and value['failure_stage']=='host' and 'CANARY' not in json.dumps(value)
 
 
+@pytest.mark.parametrize('invalid', [False, True])
+def test_parent_reads_known_failed_diagnostic_only_through_bounded_json(tmp_path, monkeypatch, invalid):
+    result = {'status':'failed','children_closed':True,'source_restored':True,'keyring':fake_keyring_receipt(),
+              'installer':{'protocol':'ci-chromium-installer-v1','outcome':'deadline','observed_exit_code':None}}
+    if invalid: result['installer']['raw'] = 'CANARY_SDK_STDERR'
+    class Process:
+        stdin=io.BytesIO();stdout=io.BytesIO(json.dumps(result).encode())
+        def wait(self, timeout): return 1
+    def launch(*_args, **kwargs):
+        assert kwargs['stderr'] is setup.subprocess.DEVNULL
+        return Process()
+    monkeypatch.setattr(setup,'host_guard',lambda:None)
+    monkeypatch.setenv('RUNNER_TEMP',str(tmp_path))
+    monkeypatch.setattr(setup.subprocess,'Popen',launch)
+    if invalid:
+        with pytest.raises(setup.Refused) as error: setup.prepare()
+        assert 'CANARY' not in str(error.value) and len(list(tmp_path.iterdir())) == 1
+    else:
+        assert setup.prepare() == result and list(tmp_path.iterdir()) == []
+
+
 def fake_keyring_receipt():
     original={'dev':1,'ino':11,'uid':0,'gid':0,'mode':0o777,'nlink':1,'size':setup.KEYRING_BYTES,'sha256':setup.KEYRING_SHA}
     return {'profile':setup.KEYRING_PROFILE,'reference':'1'*32,'input_trust':'untrusted','original':original,
             'effective':{**original,'ino':12,'mode':0o644},'directory':{'dev':1,'ino':13,'uid':0,'gid':0,'mode':0o755,'nlink':2},
             'original_unchanged':True,'signed_by_bound':True,'retired':True}
+
+
+@pytest.mark.parametrize('worker', [False, True])
+@pytest.mark.parametrize('with_diagnostic', [False, True])
+def test_main_preserves_known_install_failure_after_verified_retirement(monkeypatch, capsys, worker, with_diagnostic):
+    result = {'status':'failed', 'children_closed':True, 'source_restored':True,
+              'keyring':fake_keyring_receipt()}
+    if with_diagnostic:
+        result['installer'] = setup.installer_diagnostic('deadline', None)
+    assert setup.keyring_receipt_ok(result['keyring'], bound=False)
+    phase = 'root-worker' if worker else 'parent'
+
+    def completed(*_args):
+        setup.entering(phase, 'retirement')
+        return result
+
+    monkeypatch.setattr(setup.sys, 'argv', ['fixed-helper'] + (['--root-worker'] if worker else []))
+    monkeypatch.setattr(setup, 'root_worker' if worker else 'prepare', completed)
+    if worker:
+        monkeypatch.setattr(setup.sys, 'stdin', io.TextIOWrapper(io.BytesIO(b'{}\n')))
+    assert setup.main() == 1
+    assert json.loads(capsys.readouterr().out) == result
+
+
+@pytest.mark.parametrize('fault', ['children', 'source', 'keyring', 'extra', 'status',
+    'installer-secret', 'installer-extra', 'installer-code', 'ready-extra'])
+def test_main_does_not_project_unverified_failure_as_known_retired(monkeypatch, capsys, fault):
+    result = {'status':'failed', 'children_closed':True, 'source_restored':True,
+              'keyring':fake_keyring_receipt()}
+    if fault == 'children': result['children_closed'] = False
+    elif fault == 'source': result['source_restored'] = False
+    elif fault == 'keyring': result['keyring']['retired'] = False
+    elif fault == 'extra': result['raw'] = 'CANARY_SECRET_SDK_OUTPUT'
+    elif fault == 'status': result['status'] = 'CANARY_SECRET_STATUS'
+    else:
+        result['installer'] = {'protocol':'ci-chromium-installer-v1','outcome':'deadline','observed_exit_code':None}
+        if fault == 'installer-secret': result['installer']['outcome'] = 'CANARY_SECRET_SDK_OUTPUT'
+        elif fault == 'installer-extra': result['installer']['raw'] = 'CANARY_SECRET_SDK_OUTPUT'
+        elif fault == 'installer-code': result['installer']['observed_exit_code'] = False
+        else: result['status'] = 'ready'
+    monkeypatch.setattr(setup.sys, 'argv', ['fixed-helper'])
+    monkeypatch.setattr(setup, 'prepare', lambda: result)
+    assert setup.main() == 2
+    value = json.loads(capsys.readouterr().out)
+    assert setup.failure_valid(value, 2) and 'CANARY' not in json.dumps(value)
+
+
+@pytest.mark.parametrize('outcome,code', [('completed',0), ('deadline',None), ('deadline',0),
+    ('control-stop',None), ('control-stop',-9), ('nonzero-exit',1), ('nonzero-exit',255),
+    ('launch-exception',None), ('loop-exception',None)])
+def test_installer_diagnostic_has_only_finite_controller_data(outcome, code):
+    assert setup.installer_diagnostic(outcome, code) == {
+        'protocol':'ci-chromium-installer-v1', 'outcome':outcome, 'observed_exit_code':code}
+
+
+@pytest.mark.parametrize('outcome,code', [('CANARY_SDK_OUTPUT',None), ('completed',None),
+    ('completed',1), ('nonzero-exit',0), ('nonzero-exit',None), ('deadline',False),
+    ('deadline',256), ('deadline',-256), ('deadline','CANARY_PATH'), ('loop-exception',1)])
+def test_installer_diagnostic_rejects_untrusted_or_inconsistent_data(outcome, code):
+    with pytest.raises(setup.Refused) as error:
+        setup.installer_diagnostic(outcome, code)
+    assert 'CANARY' not in str(error.value)
 
 
 @pytest.fixture
@@ -389,11 +475,14 @@ def test_installer_environment_preserves_sdk_and_user_cache_without_home_or_secr
     assert setup.COMMAND == ('-m','playwright','install','--with-deps','chromium')
 
 
-@pytest.mark.parametrize('fault', ['none','exit','launch','cleanup','cancel'])
-def test_fake_install_failure_and_root_cleanup_are_ordered_before_native_restore(tmp_path, monkeypatch, fault):
+@pytest.mark.parametrize('fault', ['none','exit','launch','cleanup','cancel','loop'])
+def test_fake_install_failure_and_root_cleanup_are_ordered_before_native_restore(tmp_path, monkeypatch, capsys, fault):
     path, lease = source_lease(tmp_path)
     events=[]
-    process=SimpleNamespace(poll=lambda:1 if fault=='exit' else 0)
+    def poll():
+        if fault=='loop': raise OSError('CANARY_SDK_ERROR')
+        return 1 if fault=='exit' else 0
+    process=SimpleNamespace(poll=poll)
     def launch(argv, **kw):
         events.append(('launch',argv,kw))
         if fault=='launch': raise OSError('synthetic child launch failure')
@@ -417,15 +506,48 @@ def test_fake_install_failure_and_root_cleanup_are_ordered_before_native_restore
             with pytest.raises(setup.CleanupUnknown):
                 setup.install_with_lease(lease,request,SimpleNamespace(pw_name='synthetic'),time.monotonic()+100,[False])
             assert events[-1]==('retire',) and path.read_bytes()==setup.mirror_source(SOURCE)
+            assert capsys.readouterr().err == ''
         else:
             result=setup.install_with_lease(lease,request,SimpleNamespace(pw_name='synthetic'),time.monotonic()+100,[fault=='cancel'])
             assert result['status']==('ready' if fault=='none' else 'failed')
             assert result['source_restored'] and path.read_bytes()==SOURCE
             assert events[-1]==('restore',)
             if fault=='cancel': assert events==[('restore',)]
+            output=capsys.readouterr()
+            expected={'none':'completed','exit':'nonzero-exit','launch':'launch-exception',
+                      'cancel':'control-stop','loop':'loop-exception'}[fault]
+            assert output.out == output.err == ''
+            if fault=='none': assert 'installer' not in result
+            else: assert result['installer']['outcome'] == expected
         if fault!='cancel':
             assert events[0][1][-5:]==list(setup.COMMAND)
             assert events[0][2]['user']==os.getuid() and events[0][2]['group']==os.getgid()
+            assert events[0][2]['stdout'] is setup.subprocess.DEVNULL and events[0][2]['stderr'] is setup.subprocess.DEVNULL
+    finally:
+        lease.close()
+
+
+def test_sdk_deadline_still_fails_after_known_cleanup_and_reports_no_sdk_text(tmp_path, monkeypatch, capsys):
+    path,lease=source_lease(tmp_path)
+    now=[0.0];events=[]
+    def poll():
+        now[0]=88.0
+        return None
+    process=SimpleNamespace(poll=poll)
+    monkeypatch.setattr(setup.time,'monotonic',lambda:now[0])
+    monkeypatch.setattr(setup.subprocess,'Popen',lambda *a,**kw:process)
+    monkeypatch.setattr(setup,'finish_children',lambda p,d:events.append(('retired',p is process,d)))
+    monkeypatch.setattr(setup.os,'getgrouplist',lambda *_:[os.getgid()])
+    request={'cache':'/public/cache','temporary':str(tmp_path),'uid':os.getuid(),'gid':os.getgid()}
+    try:
+        result=setup.install_with_lease(lease,request,SimpleNamespace(pw_name='synthetic'),100.0,[False])
+        assert setup.sdk_snapshot_valid(result['installer'].pop('sdk_processes'))
+        assert result=={'status':'failed','children_closed':True,'source_restored':True,
+                       'installer':{'protocol':'ci-chromium-installer-v1','outcome':'deadline','observed_exit_code':None}}
+        assert path.read_bytes()==SOURCE and events==[('retired',True,100.0)]
+        output=capsys.readouterr()
+        assert output.out==output.err==''
+        assert setup.TOTAL_SECONDS==180
     finally:
         lease.close()
 
@@ -456,7 +578,9 @@ def test_postfork_constructor_failure_must_retire_without_a_popen_object(tmp_pat
     try:
         if retirement_known:
             result=setup.install_with_lease(lease,request,SimpleNamespace(pw_name='synthetic'),time.monotonic()+100,[False])
-            assert result=={'status':'failed','children_closed':True,'source_restored':True}
+            assert setup.sdk_snapshot_valid(result['installer'].pop('sdk_processes'))
+            assert result=={'status':'failed','children_closed':True,'source_restored':True,
+                           'installer':{'protocol':'ci-chromium-installer-v1','outcome':'launch-exception','observed_exit_code':None}}
             assert events==['native_retirement_proof','restore'] and path.read_bytes()==SOURCE
         else:
             with pytest.raises(setup.CleanupUnknown):
@@ -505,7 +629,9 @@ def test_failure_after_popen_return_also_retires_before_source_restore(tmp_path,
     try:
         if retirement_known:
             result=setup.install_with_lease(lease,request,SimpleNamespace(pw_name='synthetic'),time.monotonic()+100,[False])
-            assert result=={'status':'failed','children_closed':True,'source_restored':True}
+            assert setup.sdk_snapshot_valid(result['installer'].pop('sdk_processes'))
+            assert result=={'status':'failed','children_closed':True,'source_restored':True,
+                           'installer':{'protocol':'ci-chromium-installer-v1','outcome':'loop-exception','observed_exit_code':None}}
             assert events==['retired','restore'] and path.read_bytes()==SOURCE
         else:
             with pytest.raises(setup.CleanupUnknown):
@@ -552,4 +678,166 @@ def test_only_both_retirement_and_restoration_admit_the_next_step(tmp_path, monk
         assert len(list(tmp_path.iterdir()))==1  # Retain uncertainty, never fake cleanup.
     argv,kw=calls[0]
     assert argv[:3]==['/usr/bin/sudo','-n','--'] and argv[-1]=='--root-worker'
-    assert set(kw['env'])=={'PATH','LANG'} and 0<calls[1][1]<=100
+    assert set(kw['env'])=={'PATH','LANG'} and 0<calls[1][1]<=180
+
+
+# Failure-only SDK metadata controls in the existing module.
+def _sdk_snapshot_fixtures(monkeypatch,after=None,meta=None):
+ before={100:(1,10),101:(100,11),102:(101,12)}
+ calls=[before,after or before,after or before]
+ monkeypatch.setattr(setup.os,'getpid',lambda:100);monkeypatch.setattr(setup,'proc_rows',lambda:calls.pop(0) if calls else (after or before))
+ monkeypatch.setattr(setup,'sdk_process_metadata',lambda pid:(before[pid], 'apt_get' if pid==101 else 'apt_https','S') if meta is None else meta(pid))
+ monkeypatch.setattr(setup.time,'monotonic',lambda:0.)
+def test_owned_sdk_counts_only(monkeypatch):
+ _sdk_snapshot_fixtures(monkeypatch);result=setup.sdk_tree_snapshot(100)
+ assert result=={'status':'observed','observed':2,'skipped':0,'counts':[{'exe_class':'apt_get','state':'S','count':1},{'exe_class':'apt_https','state':'S','count':1}]}
+def test_pid_reuse_or_parent_drift_skips(monkeypatch):
+ _sdk_snapshot_fixtures(monkeypatch,after={100:(1,10),101:(100,99),102:(101,12)});value=setup.sdk_tree_snapshot(100);assert value['skipped']>=1
+def test_owner_identity_drift_skips_all(monkeypatch):
+ _sdk_snapshot_fixtures(monkeypatch,after={100:(1,99),101:(100,11),102:(101,12)});value=setup.sdk_tree_snapshot(100);assert value['observed']==0 and value['skipped']==2
+def test_left_owned_tree_skipped(monkeypatch):
+ _sdk_snapshot_fixtures(monkeypatch,after={100:(1,10),101:(200,11),102:(101,12)});value=setup.sdk_tree_snapshot(100);assert value['observed']==0
+def test_disappearance_is_skipped_no_exception(monkeypatch):
+ _sdk_snapshot_fixtures(monkeypatch)
+ monkeypatch.setattr(setup,'sdk_process_metadata',lambda pid:(_ for _ in ()).throw(FileNotFoundError()))
+ assert setup.sdk_tree_snapshot(100)['skipped']==2
+def test_budget_exhausted_best_effort_unavailable(monkeypatch):
+ monkeypatch.setattr(setup.time,'monotonic',lambda:100.);assert setup.sdk_tree_snapshot(100)['status']=='snapshot_unavailable'
+def test_snapshot_exception_does_not_mask_original(monkeypatch):
+ monkeypatch.setattr(setup.time,'monotonic',lambda:0.);monkeypatch.setattr(setup,'proc_rows',lambda:(_ for _ in ()).throw(RuntimeError('internal_fixture')))
+ assert setup.sdk_tree_snapshot(100)=={'status':'snapshot_unavailable','observed':0,'skipped':0,'counts':[]}
+def test_validator_rejects_free_data(monkeypatch):
+ good={'status':'observed','observed':1,'skipped':0,'counts':[{'exe_class':'other','state':'other','count':1}]};assert setup.sdk_snapshot_valid(good)
+ for wrong in (good|{'pid':42},good|{'observed':True},good|{'counts':[{'exe_class':'PRIVATE_PATH','state':'S','count':1}]},good|{'counts':[{'exe_class':[],'state':'S','count':1}]}):assert not setup.sdk_snapshot_valid(wrong)
+def test_ready_schema_and_stdout_unchanged():
+ source=(ROOT/'scripts/prepare_ci_chromium.py').read_text();assert 'stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL' in source
+ assert setup.TOTAL_SECONDS==180
+ # No sampling loop/everseen or extension of installer command/environment.
+ assert 'sdk_tree_snapshot(deadline)' in source and 'sdk_processes=sdk_tree_snapshot(deadline)' in source
+ assert set(setup.installer_diagnostic('deadline',None))=={'protocol','outcome','observed_exit_code'}
+
+def test_actual_synthetic_stat_exe_white_other_only(tmp_path,monkeypatch):
+    root=tmp_path/'101';root.mkdir()
+    fields=['?','100']+['0']*17+['11']
+    (root/'stat').write_text('101 (opaque synthetic comm) '+' '.join(fields))
+    real_path=Path
+    monkeypatch.setattr(setup,'Path',lambda value:tmp_path if str(value)=='/proc' else real_path(value))
+    monkeypatch.setattr(setup.os,'readlink',lambda *_:'/private/DO_NOT_EXPORT/unknown_program')
+    proof,exe,state=setup.sdk_process_metadata(101)
+    assert (proof,exe,state)==((100,11),'other','other')
+    (root/'stat').write_text('101 (opaque) '+' '.join(['S','100']+['0']*17+['11']))
+    monkeypatch.setattr(setup.os,'readlink',lambda *_:'/usr/bin/apt-get')
+    assert setup.sdk_process_metadata(101)==((100,11),'apt_get','S')
+
+def test_failure_only_schema_rejects_invalid_extra_snapshot():
+    # Actual keyring receipt authority is covered by the original 110 controls;
+    # this exercises strict installer projection without claiming ready.
+    value={'status':'observed','observed':1,'skipped':0,'counts':[{'exe_class':'node','state':'S','count':1}]}
+    result=setup.installer_diagnostic('deadline',None,value)
+    assert set(result)=={'protocol','outcome','observed_exit_code','sdk_processes'}
+    with pytest.raises(setup.Refused):setup.installer_diagnostic('deadline',None,value|{'path':'private'})
+
+
+@pytest.mark.parametrize('status', ['ready', 'failed'])
+def test_parent_cleanup_accepts_owned_child_directory_after_known_root_return(tmp_path, monkeypatch, status):
+    reply = {'status': status, 'children_closed': True, 'source_restored': True,
+             'keyring': fake_keyring_receipt()}
+    if status == 'failed':
+        reply['installer'] = setup.installer_diagnostic('deadline', None, {
+            'status': 'observed', 'observed': 1, 'skipped': 0,
+            'counts': [{'exe_class': 'node', 'state': 'S', 'count': 1}],
+        })
+    observed = {}
+    class Process:
+        def __init__(self):
+            self.stdin = io.BytesIO()
+            self.stdout = io.BytesIO(json.dumps(reply).encode())
+        def wait(self, timeout):
+            request = json.loads(self.stdin.getvalue())
+            directory = Path(request['temporary'])
+            before = directory.lstat()
+            child = directory / 'owned-download-child'
+            child.mkdir()
+            (child / 'synthetic-data').write_bytes(b'public synthetic content')
+            after = directory.lstat()
+            observed['same_inode'] = (before.st_dev, before.st_ino) == (after.st_dev, after.st_ino)
+            observed['nlink_changed'] = before.st_nlink != after.st_nlink
+            return 0 if status == 'ready' else 1
+    monkeypatch.setattr(setup, 'host_guard', lambda: None)
+    monkeypatch.setenv('RUNNER_TEMP', str(tmp_path))
+    monkeypatch.setattr(setup.subprocess, 'Popen', lambda *a, **k: Process())
+    assert setup.prepare() == reply
+    assert observed == {'same_inode': True, 'nlink_changed': True}
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize('difference', ['inode', 'mode', 'symlink'])
+def test_parent_directory_guard_keeps_wrong_identity_and_outside_files(tmp_path, monkeypatch, difference):
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    sentinel = outside / 'public-sentinel'
+    sentinel.write_bytes(b'untouched synthetic data')
+    reply = {'status': 'ready', 'children_closed': True, 'source_restored': True,
+             'keyring': fake_keyring_receipt()}
+    class Process:
+        def __init__(self):
+            self.stdin = io.BytesIO()
+            self.stdout = io.BytesIO(json.dumps(reply).encode())
+        def wait(self, timeout):
+            directory = Path(json.loads(self.stdin.getvalue())['temporary'])
+            if difference == 'mode':
+                directory.chmod(0o755)
+            elif difference == 'inode':
+                directory.rename(tmp_path / 'retained-original')
+                directory.mkdir(mode=0o700)
+            else:
+                directory.rmdir()
+                directory.symlink_to(outside, target_is_directory=True)
+            return 0
+    monkeypatch.setattr(setup, 'host_guard', lambda: None)
+    monkeypatch.setenv('RUNNER_TEMP', str(tmp_path))
+    monkeypatch.setattr(setup.subprocess, 'Popen', lambda *a, **k: Process())
+    with pytest.raises(setup.Refused): setup.prepare()
+    assert sentinel.read_bytes() == b'untouched synthetic data'
+    assert list(tmp_path.glob('structure-ci-chromium-user-*'))
+
+
+@pytest.mark.parametrize('field', ['st_dev', 'st_ino', 'st_uid', 'st_gid', 'st_mode'])
+def test_temporary_directory_identity_preserves_all_immutable_fields(tmp_path, field):
+    info = tmp_path.stat()
+    values = {name: getattr(info, name) for name in
+              ('st_dev', 'st_ino', 'st_uid', 'st_gid', 'st_mode', 'st_nlink')}
+    changed = values | {field: values[field] + 1}
+    assert setup.temporary_directory_identity(SimpleNamespace(**changed)) != setup.temporary_directory_identity(info)
+    links = values | {'st_nlink': values['st_nlink'] + 1}
+    assert setup.temporary_directory_identity(SimpleNamespace(**links)) == setup.temporary_directory_identity(info)
+    # General file identity must still include nlink for the existing source,
+    # keyring and recovery checks; this is not a global weakening.
+    assert setup.identity(SimpleNamespace(**links)) != setup.identity(info)
+
+
+def test_temporary_directory_identity_refuses_regular_file(tmp_path):
+    path = tmp_path / 'public-data'
+    path.write_bytes(b'synthetic')
+    with pytest.raises(setup.Refused): setup.temporary_directory_identity(path.lstat())
+
+
+def test_parent_real_remove_failure_stays_unknown_without_exposing_exception(tmp_path, monkeypatch, capsys):
+    reply = {'status': 'ready', 'children_closed': True, 'source_restored': True,
+             'keyring': fake_keyring_receipt()}
+    class Process:
+        stdin = io.BytesIO()
+        stdout = io.BytesIO(json.dumps(reply).encode())
+        def wait(self, timeout): return 0
+    original = setup.shutil.rmtree
+    def denied(*args, **kwargs): raise PermissionError('SYNTHETIC_INTERNAL_PATH_DO_NOT_PROJECT')
+    denied.avoids_symlink_attacks = original.avoids_symlink_attacks
+    monkeypatch.setattr(setup, 'host_guard', lambda: None)
+    monkeypatch.setenv('RUNNER_TEMP', str(tmp_path))
+    monkeypatch.setattr(setup.subprocess, 'Popen', lambda *a, **k: Process())
+    monkeypatch.setattr(setup.shutil, 'rmtree', denied)
+    monkeypatch.setattr(setup.sys, 'argv', ['fixed-helper'])
+    assert setup.main() == 2
+    output = capsys.readouterr().out
+    assert json.loads(output) == setup.failure_record('parent', 'retirement')
+    assert 'SYNTHETIC_INTERNAL_PATH' not in output and list(tmp_path.iterdir())

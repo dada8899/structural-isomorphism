@@ -175,7 +175,7 @@ class AnswerBody(StrictObject):
 
 def _require_schema(conn, *, readonly=False):
     marker = conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()
-    if marker is None or marker[0] not in ((REQUIRED_SCHEMA_VERSION, 17) if readonly else (REQUIRED_SCHEMA_VERSION,)):
+    if marker is None or marker[0] not in ((REQUIRED_SCHEMA_VERSION, 17, 18) if readonly else (REQUIRED_SCHEMA_VERSION,)):
         raise ResearchError("FEATURE_UNAVAILABLE", 503, "当前版本尚不能保存初步分析。")
 
 

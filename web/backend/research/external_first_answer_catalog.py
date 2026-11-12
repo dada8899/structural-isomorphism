@@ -181,10 +181,28 @@ def read_main_recovery(service, identity, research_id, revision, operation_key, 
         raise PermissionError("canonical research service and identity required")
     rid,key=service._id(research_id),service._id(operation_key)
     with service.store.transaction() as conn:
-        if conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0]!=17:
+        if conn.execute("SELECT version FROM research_schema WHERE id=1").fetchone()[0] not in (17,18):
             return None
         row,scope,key=_authorized_row(conn,service.authorization,identity,rid,revision,key)
         return (project_result if result else project_status)(row,scope,key)
+
+
+def project_owner_recovery(conn, gate, identity, control):
+    """Locate an existing current-revision run under the caller's owner gate.
+
+    This read grants no send authority and preserves the run's original version.
+    The ordinary authorized-row checks still validate every saved scope field.
+    """
+    rows=conn.execute("SELECT id FROM "+TABLE+" WHERE research_id=? AND input_revision=? LIMIT 2",
+                      (control['id'],control['current_revision'])).fetchall()
+    if len(rows)!=1:
+        return None
+    try:
+        row,scope,key=_authorized_row(conn,gate,identity,control['id'],control['current_revision'],rows[0]['id'])
+        return project_status(row,scope,key)
+    except ResearchError as exc:
+        if exc.code!='NOT_FOUND':raise
+        return None
 
 
 def project_closed_preview(scope, saved_problem, quote, *, now):

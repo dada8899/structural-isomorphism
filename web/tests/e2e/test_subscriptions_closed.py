@@ -151,7 +151,7 @@ def test_real_pages_explain_closed_collection_without_inputs_or_subscription_req
             page.wait_for_url(base + '/research')
             assert page.locator('#problem-form').count() == 1
             assert page.locator('#problem-form #original-input').count() == 1
-            assert '你的问题' in page.locator('h1').inner_text()
+            assert page.locator('h1').inner_text() == '从一个问题开始。'
             # No model/search submission or success response is mocked. Auth
             # may keep the real problem form hidden in this local fixture.
         print(json.dumps({'page': path, 'javascript': javascript, 'width': width,

@@ -361,7 +361,29 @@ def _workflow_before_native_resource_reuse(value,name):
     return original
 
 
+def _workflow_before_evidence_shards(value, name):
+    if name != 'ci.yml':
+        return value
+    original = copy.deepcopy(value)
+    jobs = original['jobs']
+    expected = evidence_method_expected_job(jobs['browser-product-contract'])
+    assert jobs[EVIDENCE_METHOD_JOB] == expected, 'exact two complete evidence browser groups required'
+    assert type(jobs[EVIDENCE_METHOD_JOB]['timeout-minutes']) is int
+    assert jobs[EVIDENCE_METHOD_JOB]['strategy']['fail-fast'] is False
+    evidence_method_shard_case_counts()
+    jobs[EVIDENCE_METHOD_JOB] = {
+        'name': 'evidence method browser contract (local, fail-closed)',
+        'runs-on': 'ubuntu-24.04', 'timeout-minutes': 8,
+        'steps': copy.deepcopy(jobs['browser-product-contract']['steps'][:4]) + [{
+            'name': 'Verify evidence method selection and saved results',
+            'run': 'make PY=python test-evidence-method-browser-contract',
+        }],
+    }
+    return original
+
+
 def _workflow_before_cpu_torch_sources(value,name):
+    value = _workflow_before_evidence_shards(value, name)
     if name=='sanity.yml':value=_workflow_before_native_resource_reuse(value,name)
     if name not in ('sanity.yml','ci.yml'):return value
     original=copy.deepcopy(value)
@@ -469,7 +491,7 @@ def _workflow_before_authority_retry(value,name):
 # Their source, real failures, unexecuted case and future native activation
 # obligations remain; evidence cancel and all general delete/UNKNOWN/SQL guards run.
 NATIVE_LATE_THREE_NODES = ('web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]', 'web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]', 'web/backend/tests/test_research_evidence_method_native.py::test_actual_http_stop_after_owned_return_keeps_original_fee_without_late_body[delete]')
-NATIVE_LATE_SOURCE_SHA256 = {'test_plan_runtime_transport.py': 'cdc85743fba612cd3761200985e1bcd46c7c2c94731771c76fb6898bcfc4c943', 'test_research_evidence_method_native.py': '220ab632c68c1d41385331768765f472eb44c106e948b1f36c5bc1f355db7737'}
+NATIVE_LATE_SOURCE_SHA256 = {'test_plan_runtime_transport.py': 'c0b9e108cc5dd683732c89c9e3e5ecc2e25a1d460ace973442f7accbc250107d', 'test_research_evidence_method_native.py': '220ab632c68c1d41385331768765f472eb44c106e948b1f36c5bc1f355db7737'}
 NATIVE_LATE_PRIOR_JOBS_SHA256 = {'sanity.yml': 'b95cec3f3dda97eb1ae4f90c9f588722b95c4f7e8f88e2ecd786568846064dfe', 'coverage.yml': '1e97fd441e46e0357c2602d04fb92b77b22b085fbac2674288a7e5d7a3af26f5'}
 
 
@@ -506,7 +528,7 @@ def _workflow_before_native_late_three(value,name):
 # first-entry UNKNOWN/held/no-refund controls must remain selected.
 PARTIAL_RUNTIME_NODE = 'web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]'
 PARTIAL_RUNTIME_BASE = PARTIAL_RUNTIME_NODE.removesuffix('[partial]')
-PARTIAL_RUNTIME_SOURCE_SHA256 = 'cdc85743fba612cd3761200985e1bcd46c7c2c94731771c76fb6898bcfc4c943'
+PARTIAL_RUNTIME_SOURCE_SHA256 = 'c0b9e108cc5dd683732c89c9e3e5ecc2e25a1d460ace973442f7accbc250107d'
 PARTIAL_RUNTIME_PRIOR_JOBS_SHA256 = {'sanity.yml': 'ec103152bde1b0fab45c26ba8ba21753fbbf1a6f22df0efa0e495c051910ab6b', 'coverage.yml': 'b069c58743f61f7a0864c5b361b7598a09ac467f8c68d611c63864d52575d324'}
 
 
@@ -976,6 +998,80 @@ def original_browser_product_job(body: dict) -> dict:
 
 EVIDENCE_METHOD_JOB = 'browser-evidence-method-contract'
 EVIDENCE_METHOD_NODE = 'web/frontend/tests/test_evidenceMethodPlan.js'
+
+EVIDENCE_METHOD_BROWSER = 'web/tests/e2e/test_evidence_method_plan_browser.py'
+EVIDENCE_METHOD_SHARDS = (
+    ('A34', (
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_original_default_single_source_preparation_unchanged',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_actual_main_https_select_preview_confirm_runtime_save_refresh_original_ref_time',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_terminal_fulfill_failure_preserves_first_error_without_second_abort',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_retirement_waits_for_owned_handler_before_unroute',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_material_phase_rejects_wrong_binding_or_incomplete_actual_chain',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_route_retirement_stays_uncertain_when_owned_handler_misses_original_budget',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_forward_refusal_aborts_once_without_fulfilling',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_failed_abort_preserves_original_forward_error_and_bounds_cleanup_type',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_original_replay_phase_rejects_substitution_without_replacing_forwarded_response',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_replay_observer_decode_failure_still_fulfills_original_response_once',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_replay_observer_does_not_consume_decode_cancellation',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_terminal_fulfill_cancellation_keeps_original_instance_without_abort',
+    )),
+    ('B6', (
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_actual_browser_separates_failed_candidate_and_unknown_cost_without_new_send',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_actual_browser_funding_closed_preview_not_sent_and_problem_edit_invalidates',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_actual_browser_full_candidate_has_conditions_competing_explanations_and_validation',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_actual_browser_lost_ack_reuses_original_confirm_then_cancel_never_sends',
+        'web/tests/e2e/test_evidence_method_plan_browser.py::test_actual_browser_account_delete_discards_late_private_result',
+    )),
+)
+EVIDENCE_METHOD_SHARD_RUN = 'make PY=python \\\n  EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS="${{ matrix.selectors }}" \\\n  test-evidence-method-browser-contract'
+
+
+def evidence_method_expected_job(product):
+    return {
+        'name': 'evidence method browser contract (local, fail-closed) (${{ matrix.shard }})',
+        'runs-on': 'ubuntu-24.04', 'timeout-minutes': 8,
+        'strategy': {'fail-fast': False, 'matrix': {'include': [
+            {'shard': name, 'selectors': ' '.join(selectors)}
+            for name, selectors in EVIDENCE_METHOD_SHARDS
+        ]}},
+        'steps': copy.deepcopy(product['steps'][:4]) + [{
+            'name': 'Verify evidence method selection and saved results',
+            'run': EVIDENCE_METHOD_SHARD_RUN,
+        }],
+    }
+
+
+def evidence_method_shard_case_counts():
+    # Product contracts intentionally need only pytest/PyYAML. Validate complete
+    # function selectors without importing browser or application dependencies.
+    # A function selector includes every existing parameter, not one smoke case.
+    tree = ast.parse((ROOT / EVIDENCE_METHOD_BROWSER).read_text())
+    cases = {}
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) or not node.name.startswith('test_'):
+            continue
+        count = 1
+        for mark in node.decorator_list:
+            if isinstance(mark, ast.Call) and isinstance(mark.func, ast.Attribute) and mark.func.attr == 'parametrize':
+                assert len(mark.args) >= 2 and isinstance(mark.args[1], (ast.List, ast.Tuple))
+                count *= len(mark.args[1].elts)
+        assert count > 0 and node.name not in cases
+        cases[node.name] = count
+    assigned = []
+    counts = {}
+    for shard, selectors in EVIDENCE_METHOD_SHARDS:
+        names = []
+        for selector in selectors:
+            prefix, separator, name = selector.partition('::')
+            assert prefix == EVIDENCE_METHOD_BROWSER and separator and name in cases
+            assert '[' not in name and '::' not in name
+            names.append(name)
+        assigned.extend(names)
+        counts[shard] = sum(cases[name] for name in names)
+    assert len(assigned) == len(set(assigned)) and set(assigned) == set(cases)
+    assert sum(cases.values()) == 40 and counts == {'A34': 34, 'B6': 6}
+    return counts
+
 
 
 def original_ci_before_evidence_method(value: dict) -> dict:
@@ -3018,3 +3114,43 @@ def test_short_observation_check_module_rejects_any_nonexact_consumer(mutation):
     elif mutation=='extra_filter':step['run']=step['run'].replace(flag,flag+' -k short',1)
     else:job['timeout-minutes']=46
     with pytest.raises(AssertionError):_workflow_before_short_observation_checks(raw,'sanity.yml')
+
+
+def test_evidence_method_matrix_retains_every_original_parameter():
+    assert evidence_method_shard_case_counts() == {'A34': 34, 'B6': 6}
+    value = yaml.safe_load((ROOT / '.github/workflows/ci.yml').read_text())
+    assert value['jobs'][EVIDENCE_METHOD_JOB] == evidence_method_expected_job(value['jobs']['browser-product-contract'])
+    assert value['jobs']['release-gate-summary']['needs'].count(EVIDENCE_METHOD_JOB) == 1
+    assert value['jobs'][EVIDENCE_METHOD_JOB]['strategy']['fail-fast'] is False
+
+
+@pytest.mark.parametrize('mutation', ['matrix_missing', 'matrix_duplicate', 'matrix_empty',
+    'selector_missing', 'selector_duplicate', 'selector_partial_parameter',
+    'selector_wrong_file', 'selector_soft', 'fail_fast', 'old_unpartitioned', 'numeric_timeout'])
+def test_evidence_method_exact_matrix_rejects_incomplete_or_soft_groups(mutation):
+    value = yaml.safe_load((ROOT / '.github/workflows/ci.yml').read_text())
+    job = value['jobs'][EVIDENCE_METHOD_JOB]
+    if mutation == 'matrix_missing': job['strategy']['matrix']['include'].pop()
+    elif mutation == 'matrix_duplicate': job['strategy']['matrix']['include'].append(copy.deepcopy(job['strategy']['matrix']['include'][0]))
+    elif mutation == 'matrix_empty': job['strategy']['matrix']['include'] = []
+    elif mutation.startswith('selector_'):
+        row = job['strategy']['matrix']['include'][0]
+        items = row['selectors'].split()
+        if mutation == 'selector_missing': items.pop()
+        elif mutation == 'selector_duplicate': items.append(items[0])
+        elif mutation == 'selector_partial_parameter': items[1] += '[1]'
+        elif mutation == 'selector_wrong_file': items[0] = items[0].replace('/e2e/', '/other/')
+        else: items[0] += ' || true'
+        row['selectors'] = ' '.join(items)
+    elif mutation == 'fail_fast': job['strategy']['fail-fast'] = True
+    elif mutation == 'numeric_timeout': job['timeout-minutes'] = 8.0
+    else: value['jobs'][EVIDENCE_METHOD_JOB] = _workflow_before_evidence_shards(value, 'ci.yml')['jobs'][EVIDENCE_METHOD_JOB]
+    with pytest.raises((AssertionError, KeyError)):
+        _workflow_before_evidence_shards(value, 'ci.yml')
+
+
+def test_evidence_method_shard_inverse_retains_all_prior_workflow_jobs():
+    value = yaml.safe_load((ROOT / '.github/workflows/ci.yml').read_text())
+    prior = _workflow_before_evidence_shards(value, 'ci.yml')
+    assert hashlib.sha256(json.dumps(prior['jobs'], sort_keys=True, separators=(',', ':'),
+        ensure_ascii=False).encode()).hexdigest() == '1ca2a3941d7e19c385e4911157bddd11ad9bab58d2a2b24f80adbaf7b66949d9'

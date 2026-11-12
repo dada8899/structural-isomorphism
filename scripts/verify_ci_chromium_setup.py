@@ -19,7 +19,8 @@ import subprocess
 import sys
 import time
 
-HELPER_SHA = '6801bdfc0678eec08343e8ec43753d54270df096ed7a3103bb10c0ea80376db2'
+HELPER_SHA = '245cbb8a4fdaeae5e5ac33f9d185f13fe73f0e125697681183f19593320f94b1'
+HELPER_TIMEOUT_SECONDS = 190
 BRANCH = 'refs/heads/codex/structure-chromium-source-fix-20261023'
 HELPER = Path(__file__).resolve().with_name('prepare_ci_chromium.py')
 SYSTEM_FILES = {'source': (Path('/etc/apt/sources.list.d/ubuntu.sources'), 16384),
@@ -32,7 +33,9 @@ KEYRING_BYTES = 3607
 FAILURE_PROTOCOL = 'ci-chromium-failure-v1'
 FAILURE_STAGES = {
     'parent': ('entry', 'host', 'request', 'launch', 'response', 'retirement'),
-    'root-worker': ('entry', 'request', 'sdk', 'subreaper', 'keyring', 'source', 'install', 'retirement'),
+    'root-worker': ('entry', 'request', 'sdk', 'subreaper', 'keyring', 'source', 'install',
+                    'install-children', 'install-source-restore', 'keyring-retire',
+                    'retirement-receipt', 'retirement'),
 }
 PINS = {'pytest':'9.0.3', 'playwright':'1.59.0', 'pytest-playwright':'0.7.2',
         'fastapi':'0.135.0', 'pydantic':'2.7.4', 'starlette':'1.3.1',
@@ -332,7 +335,7 @@ def install(root, header):
         env = {name: os.environ[name] for name in ('GITHUB_ACTIONS', 'RUNNER_ENVIRONMENT', 'RUNNER_OS', 'RUNNER_ARCH', 'RUNNER_TEMP')}
         env.update(PATH=str(Path(sys.executable).parent)+':/usr/local/bin:/usr/bin:/bin', LANG='C.UTF-8')
         result = subprocess.run([sys.executable, '-I', '-B', str(HELPER)], stdin=subprocess.DEVNULL,
-                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, timeout=100)
+                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, timeout=HELPER_TIMEOUT_SECONDS)
         need(len(result.stdout) <= 4096)
         code = result.returncode if type(result.returncode) is int else None
         need(code is not None)

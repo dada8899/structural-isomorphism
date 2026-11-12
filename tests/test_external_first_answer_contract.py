@@ -235,3 +235,36 @@ def test_closed_public_preview_matches_browser_contract_without_exposing_private
         "public":public,"expected":public["metadata"]|{"original_input":QUESTION},"now":NOW,
     }), text=True, capture_output=True, timeout=10)
     assert result.returncode == 0, result.stderr
+
+
+def test_explicit_start_intent_is_ephemeral_bounded_and_one_use():
+    import subprocess
+    from pathlib import Path
+    browser = Path(__file__).resolve().parents[1] / 'web/frontend/assets/externalFirstAnswer.js'
+    script = r'''const assert=require('node:assert/strict');
+const api=require(process.argv[1]);
+const anchor={research_id:'11111111-1111-4111-8111-111111111111',input_revision:1,research_version:1,
+ problem_digest:'a'.repeat(64),actor:'owner',original_input:'为什么固定输入仍然出现不同结果？',external_first_answer:'ready'};
+const offer={contract_revision:'external-first-answer-v1',purpose:'external-first-answer-question-v1',
+ metadata:Object.fromEntries(['research_id','input_revision','research_version','problem_digest'].map(k=>[k,anchor[k]])),
+ exact_question:anchor.original_input,provider:'deepseek',model:'deepseek-flash',
+ target:'https://api.deepseek.com/chat/completions',currency:'CNY',scale:6,upper_units:2130000,
+ preview_digest:'b'.repeat(64),request_digest:'c'.repeat(64),valid_until:130,may_send:true};
+(async()=>{
+ for(const mode of ['ok','revoked','expired','over','receiver','scope','unbound','edit_while_preview','unknown']){
+  let live=true, sent=0;const intent=api.startIntent(anchor.original_input,'owner',()=>live);
+  assert.equal(intent.bind({...anchor,external_first_answer:mode==='unbound'?'closed':'ready'}),mode!=='unbound');
+  if(mode==='revoked')intent.revoke();
+  let quote={...offer};if(mode==='expired')quote.valid_until=100;
+  if(mode==='over')quote.upper_units=2130001;if(mode==='receiver')quote.provider='other';
+  const current=mode==='scope'?{...anchor,problem_digest:'f'.repeat(64)}:anchor;
+  const load=async()=>{if(mode==='edit_while_preview')live=false;return quote;};
+  const submit=async(a,b)=>{sent++;assert.equal(b.confirm_exact_question,true);assert(!('exact_question' in b));if(mode==='unknown')throw Error('transport');};
+  await intent.consume(anchor,load,submit,()=>100,()=>current);
+  await intent.consume(anchor,load,submit,()=>100,()=>current);
+  assert.equal(sent,['ok','unknown'].includes(mode)?1:0,mode);
+ }
+ const never=api.startIntent(anchor.original_input,'owner',()=>true);let called=0;
+ await never.consume(anchor,async()=>{called++;return offer;},async()=>{},()=>100);assert.equal(called,0);
+})().catch(e=>{console.error(e);process.exit(1)});'''
+    subprocess.run(['node', '-e', script, str(browser)], check=True)

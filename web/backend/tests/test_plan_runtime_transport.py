@@ -655,14 +655,33 @@ def test_retire_unhanded_is_io_only_and_uncertainty_is_sticky(stack, monkeypatch
         sock, peer = socket.socketpair()
         channel = transport._Channel(sock, time.monotonic() + 3, resource, _factory=transport._FACTORY)
         original_close = transport._close_socket
-        def failed_close(value): original_close(value); raise OSError('owned unhanded close uncertainty')
+        def failed_close(value):
+            # This fault means the close operation itself did not occur.
+            # Closing first and then raising instead creates a detached-socket
+            # case whose physical FD may already belong to another thread.
+            assert value is sock
+            raise OSError('owned unhanded close failed before IO')
         assert resource.flight.acquire(blocking=False)
         try:
             if fault:
-                monkeypatch.setattr(transport, '_close_socket', failed_close)
-                with pytest.raises(Exception) as unknown: resource.retire_unhanded()
-                assert unknown.value.code == 'CLEANUP_UNCERTAIN'
-                assert resource._uncertain_channels[channel.reference] is channel and channel.closed
+                with monkeypatch.context() as failure:
+                    failure.setattr(transport, '_close_socket', failed_close)
+                    with pytest.raises(Exception) as unknown: resource.retire_unhanded()
+                    assert unknown.value.code == 'CLEANUP_UNCERTAIN'
+                    assert resource._uncertain_channels[channel.reference] is channel and not channel.closed
+                    assert sock.fileno() == channel.fd and transport._identity(sock) == channel.identity
+                    assert resource._cleanup_unknown and resource.active and resource.permit.active
+                    resource.permit.require()
+                    with pytest.raises(Exception) as blocked: resource.require()
+                    assert blocked.value.code == 'CLEANUP_UNCERTAIN'
+                # Restore the real close only to retire this still-owned FD.
+                # Physical cleanup cannot erase the earlier uncertainty.
+                with pytest.raises(Exception) as sticky: resource.retire_unhanded()
+                assert sticky.value.code == 'CLEANUP_UNCERTAIN'
+                assert resource._cleanup_unknown and channel.closed
+                assert resource._uncertain_channels[channel.reference] is channel
+                with pytest.raises(Exception) as blocked: resource.require()
+                assert blocked.value.code == 'CLEANUP_UNCERTAIN'
                 with pytest.raises(Exception): resource.retire_unhanded()
             else:
                 assert resource.retire_unhanded() is None
@@ -910,3 +929,59 @@ def test_actual_owned_tls_component_verifies_chain_and_fixed_hostname(tmp_path, 
                 assert status == 200 and json.loads(body)['is_available'] and len(calls) == 1
         finally: channel.close()
         assert channel.closed
+
+
+def test_after_successful_close_exception_keeps_reused_fd_owned_by_its_creator(tmp_path):
+    # No Main threads in this child: ordinary open() deterministically reuses
+    # only the descriptor that this synthetic socket just released. This is
+    # also a regression for the former "original_close(); raise" fault seam.
+    script = r'''
+"""Owned synthetic descriptors only; no app, record, credential or external IO."""
+import json,os,pathlib,socket,sys,threading
+W=pathlib.Path(sys.argv[1]);NOTE=pathlib.Path(sys.argv[2]);sys.path[:0]=[str(W/'web/backend'),str(W)]
+from services import plan_runtime_transport as transport
+assert threading.active_count()==1
+NOTE.write_bytes(b'independent synthetic descriptor')
+sock,peer=socket.socketpair();channel=transport._Channel(sock,__import__('time').monotonic()+3,_factory=transport._FACTORY)
+original=transport._close_socket;owned=[];observed={};original_identity=channel.identity
+try:
+ def close_then_error(value):
+  assert (os.fstat(value.fileno()).st_dev,os.fstat(value.fileno()).st_ino)==original_identity
+  original(value);observed['actual_socket_close_returned']=True;observed['socket_object_detached']=value.fileno()==-1
+  fd=os.open(NOTE,os.O_RDONLY);s=os.fstat(fd);owned.append((fd,(s.st_dev,s.st_ino)))
+  observed['old_fd_reused_by_owned_file']=fd==channel.fd;assert fd==channel.fd
+  observed['replacement_identity_differs']=(s.st_dev,s.st_ino)!=original_identity
+  raise OSError('synthetic exception after a successful close')
+ transport._close_socket=close_then_error
+ try:channel.close()
+ except Exception as exc:observed['cleanup_uncertain']=getattr(exc,'code',None)=='CLEANUP_UNCERTAIN'
+ else:raise AssertionError('uncertainty missing')
+ observed['closed_before_replacement_retired']=channel.closed
+ observed['replacement_remained_open']=os.read(owned[0][0],1)==b'i'
+ observed['original_fd_identity']=list(original_identity);observed['replacement_fd_identity']=list(owned[0][1])
+ assert observed['cleanup_uncertain'] and not channel.closed and observed['replacement_remained_open']
+finally:
+ transport._close_socket=original
+ for fd,identity in owned:
+  s=os.fstat(fd);assert (s.st_dev,s.st_ino)==identity;os.close(fd)
+ try:channel.close()
+ except Exception as exc:assert getattr(exc,'code',None)=='CLEANUP_UNCERTAIN'
+ peer.close()
+ observed['physical_closed_after_owned_file_retired']=channel.closed
+ observed['runtime_registry_empty']=not transport._CHANNELS
+ assert channel.closed and not transport._CHANNELS
+print(json.dumps(observed,sort_keys=True))
+'''
+    completed = subprocess.run(
+        [sys.executable, '-I', '-B', '-c', script,
+         str(Path(__file__).resolve().parents[3]), str(tmp_path / 'independent-file')],
+        env={'PATH': os.defpath, 'LANG': 'C', 'LC_ALL': 'C'},
+        capture_output=True, timeout=15,
+    )
+    assert completed.returncode == 0, completed.stderr.decode('utf-8', errors='replace')
+    facts = json.loads(completed.stdout)
+    assert facts['actual_socket_close_returned'] and facts['socket_object_detached']
+    assert facts['old_fd_reused_by_owned_file'] and facts['replacement_identity_differs']
+    assert facts['cleanup_uncertain'] and not facts['closed_before_replacement_retired']
+    assert facts['replacement_remained_open']
+    assert facts['physical_closed_after_owned_file_retired'] and facts['runtime_registry_empty']

@@ -209,6 +209,8 @@ def install_default_hook(conn):
     first_answer_queue_hook(conn)
     from .external_first_answer_file_writer import install_closed_hooks
     install_closed_hooks(conn)
+    from .external_funding_v18 import install_hook as external_funding_hook
+    external_funding_hook(conn)
     pid=os.getpid()
     def allowed(operation,raw):
         permit=_WRITES.get(id(conn))

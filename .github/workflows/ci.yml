@@ -286,9 +286,32 @@ jobs:
         run: pytest tests/e2e/test_header_scroll.py -v
 
   browser-evidence-method-contract:
-    name: evidence method browser contract (local, fail-closed)
+    name: evidence method browser contract (local, fail-closed) (${{ matrix.shard }})
     runs-on: ubuntu-24.04
     timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - shard: A34
+          selectors: web/tests/e2e/test_evidence_method_plan_browser.py::test_original_default_single_source_preparation_unchanged
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_actual_main_https_select_preview_confirm_runtime_save_refresh_original_ref_time
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_terminal_fulfill_failure_preserves_first_error_without_second_abort
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_retirement_waits_for_owned_handler_before_unroute
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_material_phase_rejects_wrong_binding_or_incomplete_actual_chain
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_route_retirement_stays_uncertain_when_owned_handler_misses_original_budget
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_forward_refusal_aborts_once_without_fulfilling
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_failed_abort_preserves_original_forward_error_and_bounds_cleanup_type
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_original_replay_phase_rejects_substitution_without_replacing_forwarded_response
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_replay_observer_decode_failure_still_fulfills_original_response_once
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_replay_observer_does_not_consume_decode_cancellation
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_terminal_fulfill_cancellation_keeps_original_instance_without_abort
+        - shard: B6
+          selectors: web/tests/e2e/test_evidence_method_plan_browser.py::test_actual_browser_separates_failed_candidate_and_unknown_cost_without_new_send
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_actual_browser_funding_closed_preview_not_sent_and_problem_edit_invalidates
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_actual_browser_full_candidate_has_conditions_competing_explanations_and_validation
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_actual_browser_lost_ack_reuses_original_confirm_then_cancel_never_sends
+            web/tests/e2e/test_evidence_method_plan_browser.py::test_actual_browser_account_delete_discards_late_private_result
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -371,7 +394,10 @@ jobs:
                                 "torch_cuda": torch.version.cuda}, sort_keys=True))
           PY
       - name: Verify evidence method selection and saved results
-        run: make PY=python test-evidence-method-browser-contract
+        run: |-
+          make PY=python \
+            EVIDENCE_METHOD_BROWSER_CONTRACT_TESTS="${{ matrix.selectors }}" \
+            test-evidence-method-browser-contract
 
   browser-financial-registry-contract:
     name: financial registry browser contract (local, fail-closed)

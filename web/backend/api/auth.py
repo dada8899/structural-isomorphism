@@ -44,7 +44,10 @@ from pathlib import Path
 from typing import Literal, Optional
 from urllib.parse import urlencode, urlsplit
 
-import jwt
+if __package__ == "web.backend.api":
+    from ..services.deferred_jwt import jwt
+else:
+    from services.deferred_jwt import jwt
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
