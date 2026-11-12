@@ -516,15 +516,13 @@ def test_external_option_is_owner_bound_and_unknown_cannot_resend(short_observat
             advertised["ready"] = "status_only"
             if fresh_storage:page.evaluate('sessionStorage.clear()')
             page.reload()
-            expect(panel.get_by_role("status")).to_contain_text("服务端尚不能确认" if fresh_storage else "尚待核对")
+            expect(panel.get_by_role("status")).to_have_text("服务端尚不能确认原请求结果。不要重复发送。")
             expect(panel.get_by_role("button",name="查看外部分析选项")).to_have_count(0)
-            if not fresh_storage:panel.get_by_role("button",name="核对原提交").click()
             expect(panel.get_by_role("status")).to_contain_text("服务端尚不能确认")
             assert reads == [("GET", operation_keys[0], None)] and len(confirms) == 1
             expect(panel.get_by_role("button",name="查看待核查分析")).to_be_hidden()
             observed["status"] = "completed"
             panel.get_by_role("button",name="核对原提交").click()
-            if not fresh_storage:panel.get_by_role("button",name="查看待核查分析").click()
             expect(panel).to_contain_text("外部返回 · 待核查")
             expect(panel).to_contain_text("此解释尚未核验证据")
             expect(panel).to_contain_text("可能有第二个变化因素")
