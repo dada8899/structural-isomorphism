@@ -1,0 +1,30 @@
+name: Chromium source readonly diagnostic once
+on:
+  push:
+    branches: [codex/ci-chromium-source-readonly-diagnostic-r2-20261113]
+permissions:
+  contents: read
+jobs:
+  readonly-source:
+    if: >-
+      github.event_name == 'push'
+      && github.repository == 'dada8899/structural-isomorphism'
+      && github.ref == 'refs/heads/codex/ci-chromium-source-readonly-diagnostic-r2-20261113'
+      && github.event.created == true
+      && toJSON(github.event.deleted) == 'false'
+      && github.run_attempt == '1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          lfs: false
+          submodules: false
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            scripts/prepare_ci_chromium.py
+            scripts/diagnose_ci_chromium_source.py
+      - name: Read fixed public source preconditions without installation
+        run: sudo -n -- /usr/bin/python3 -I -B scripts/diagnose_ci_chromium_source.py
