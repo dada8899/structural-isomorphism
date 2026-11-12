@@ -4861,15 +4861,46 @@ def test_native_late_three_make_rejects_nonexact_collection(mutation):
     with pytest.raises(AssertionError):_makefile_before_native_late_three(raw)
 
 
+def _fin3_before_explicit_manual_tool_entry(source):
+    entry = b'        await helpers._open_research_advanced(page)\n'
+    anchors = (
+        b'        assert await pending(page)==descriptors and posted==[]\n',
+        b"        await page.route(service.origin+'/api/research/'+service.seed.research_id+'/financial-registries/'+saved_registry['metadata']['registry_ref']['id'],hold,times=1)\n",
+    )
+    for anchor in anchors:
+        assert source.count(anchor + entry) == 1
+        source = source.replace(anchor + entry, anchor, 1)
+    signature = b'async def fill_form(page,*,sensitivity=False,recovery=False):\n'
+    entry = b'    await helpers._open_research_advanced(page)\n'
+    assert source.count(signature + entry) == 1
+    prior = source.replace(signature + entry, signature, 1)
+    # Reverse only the three explicitly located UI entry actions. Every
+    # original business assertion and test body must retain its exact bytes.
+    assert hashlib.sha256(prior).hexdigest() == FIN3_CAPACITY_SOURCE_SHA256
+    return prior
+
+
+@pytest.mark.parametrize('mutation', ['missing', 'duplicate', 'misplaced', 'body'])
+def test_fin3_explicit_manual_entry_rejects_other_source_changes(mutation):
+    source = (ROOT/FIN3_CAPACITY_NODE.split('::')[0]).read_bytes()
+    anchor = b'        assert await pending(page)==descriptors and posted==[]\n'
+    entry = b'        await helpers._open_research_advanced(page)\n'
+    if mutation == 'missing':
+        source = source.replace(anchor + entry, anchor, 1)
+    elif mutation == 'duplicate':
+        source = source.replace(anchor + entry, anchor + entry + entry, 1)
+    elif mutation == 'misplaced':
+        source = source.replace(anchor + entry, entry + anchor, 1)
+    else:
+        source = source.replace(b'assert posted==[]', b'assert posted is not None', 1)
+    with pytest.raises(AssertionError):
+        _fin3_before_explicit_manual_tool_entry(source)
+
+
 def test_fin3_capacity_exact_one_preserves_original_source_and_six_current_cases():
     path=ROOT/FIN3_CAPACITY_NODE.split('::')[0]
     source = path.read_bytes()
-    signature = b'async def fill_form(page,*,sensitivity=False,recovery=False):\n'
-    entry = b'    await helpers._open_research_advanced(page)\n'
-    # The new single-question page hides manual controls. Reverse only its
-    # one explicit entry action; all original test bodies remain byte-exact.
-    assert source.count(signature + entry) == 1
-    assert hashlib.sha256(source.replace(signature + entry, signature, 1)).hexdigest() == FIN3_CAPACITY_SOURCE_SHA256
+    _fin3_before_explicit_manual_tool_entry(source)
     module=ast.parse(source)
     cases=[x.name for x in module.body if isinstance(x,(ast.FunctionDef,ast.AsyncFunctionDef)) and x.name.startswith('test_')]
     excluded=FIN3_CAPACITY_NODE.split('::')[1]

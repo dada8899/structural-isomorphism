@@ -313,15 +313,54 @@ def test_response_failures_do_not_forge_actual_or_release_upper(tmp_path,mode):
 def test_absolute_deadline_stops_slow_bytes_and_closes_socket(tmp_path,slow):
     evidence=packet();prepared=adapter.prepare_request('Question',evidence)
     price=quote();budget=basis(price);admit,consume,_=callbacks(budget)
-    with local_server(s.canonical(envelope()),slow=slow) as (factory,server):
-        client=adapter.DeepSeekAdapter.offline_probe(connection_factory=factory,credential_loader=lambda _binding:'offline-probe-not-a-key')
-        start=time.monotonic();connection=client.preconnect(prepared,seconds=.15)
-        with gate(tmp_path) as lease:
+    from web.backend.tests.test_research_source_spawn import development_auth
+    with pytest.MonkeyPatch.context() as setup:
+        # Prepare the synthetic Auth database and owner lock before measuring
+        # network I/O. Keep preconnect outside the active owner lease.
+        backing=development_auth.__wrapped__(tmp_path,setup)
+        owner=AuthorizationGate(backing);gate_id=uid()
+        with owner.owner_gate_id(gate_id):pass
+        with local_server(s.canonical(envelope()),slow=slow) as (factory,server):
+            client=adapter.DeepSeekAdapter.offline_probe(connection_factory=factory,credential_loader=lambda _binding:'offline-probe-not-a-key')
+            start=time.monotonic();connection=client.preconnect(prepared,seconds=.15)
+            with owner.owner_gate_id(gate_id) as lease:
+                client.begin(connection,lease=lease,permit=permit(prepared,lease,price,budget),price=price,basis=budget,current_authorizer=admit,consume_permit=consume,now=100)
+            result=client.finish(connection,current_authorizer=lambda *_:evidence)
+            assert time.monotonic()-start<.7
+            assert result.candidate is None and result.cost.kind=='unknown'
+            assert connection.sock.fileno()==-1 and not connection.deadline.timer.is_alive()
+
+
+def test_slow_auth_fixture_setup_does_not_consume_network_deadline(tmp_path,monkeypatch):
+    from web.backend.tests.test_research_source_spawn import development_auth
+    original=development_auth.__wrapped__
+    def slow_setup(*args,**kwargs):
+        time.sleep(.2)
+        return original(*args,**kwargs)
+    monkeypatch.setattr(development_auth,'__wrapped__',slow_setup)
+    test_absolute_deadline_stops_slow_bytes_and_closes_socket(tmp_path,'body')
+
+
+def test_expired_network_deadline_before_send_still_rejects_and_closes(tmp_path):
+    evidence=packet();prepared=adapter.prepare_request('Question',evidence)
+    price=quote();budget=basis(price);admit,consume,state=callbacks(budget);credential_reads=[]
+    class Sink:
+        sends=0
+        closed=False
+        def settimeout(self,_):pass
+        def sendall(self,_):self.sends+=1
+        def shutdown(self,_):pass
+        def close(self):self.closed=True
+    sink=Sink()
+    client=adapter.DeepSeekAdapter.offline_probe(connection_factory=lambda _:sink,
+        credential_loader=lambda _:credential_reads.append(True))
+    with gate(tmp_path) as lease:
+        connection=client.preconnect(prepared)
+        connection.deadline.expires=time.monotonic()-1
+        with pytest.raises(s.ProviderFailure,match='^admission_rejected$'):
             client.begin(connection,lease=lease,permit=permit(prepared,lease,price,budget),price=price,basis=budget,current_authorizer=admit,consume_permit=consume,now=100)
-        result=client.finish(connection,current_authorizer=lambda *_:evidence)
-        assert time.monotonic()-start<.7
-        assert result.candidate is None and result.cost.kind=='unknown'
-        assert connection.sock.fileno()==-1 and not connection.deadline.timer.is_alive()
+    assert sink.sends==0 and sink.closed and credential_reads==[] and state['consumed']==set()
+    assert not connection.deadline.timer.is_alive()
 
 
 def test_expired_real_lease_and_failed_send_are_closed(tmp_path):
