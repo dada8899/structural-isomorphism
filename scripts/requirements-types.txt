@@ -1,3 +1,0 @@
-# Reproducible Pydantic -> TypeScript generator environment.
-pydantic==2.7.4
-pydantic-to-typescript==2.0.0
