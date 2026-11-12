@@ -74,6 +74,9 @@ async def actual_browser(tmp_path,*,eight=False,funded=True,unknown_usage=False,
                         page=await context.new_page()
                         facts['observed_browser_pids']=helpers._method_main_owned_browser_pids()
                         await helpers._method_main_login(page,service)
+                        await expect(page.locator('#problem-form')).to_be_visible()
+                        await expect(page.locator('#evidence-method-section')).to_be_hidden()
+                        await helpers._open_research_advanced(page)
                         await expect(page.locator('#evidence-method-section')).to_be_visible()
                         yield page,service,store,actor,calls,bridge,facts
                         await helpers._method_draft_drain_owned_bridge(page,bridge)
@@ -181,6 +184,8 @@ def test_actual_main_https_select_preview_confirm_runtime_save_refresh_original_
             await page.locator('#evidence-method-history-load').focus()
             assert await page.locator('#evidence-method-history-load').evaluate('(x)=>x===document.activeElement')
             await page.reload()
+            await expect(page.locator('#problem-form')).to_be_visible()
+            await helpers._open_research_advanced(page)
             await page.locator('#evidence-method-history-load').click()
             await page.locator('#evidence-method-history button').click()
             await expect(page.locator('#evidence-method-record-ref')).to_contain_text(confirmed['result_ref'])

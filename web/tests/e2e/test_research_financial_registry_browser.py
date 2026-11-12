@@ -132,6 +132,7 @@ async def lost_reload_history(tmp_path):
         writes=[];page.on('request',lambda request:writes.append({'body':request.post_data,'key':request.headers.get('idempotency-key')}) if request.method=='POST' and request.url==service.origin+'/api/research/'+service.seed.research_id+'/financial-registries' else None)
         await helpers._native_tls_completed_read(page,service.origin+'/api/research?limit=20',lambda:page.reload())
         await expect(page.locator('#research-list-status')).to_contain_text('已读取 1 条研究')
+        await helpers._open_research_advanced(page)
         await expect(page.locator('#financial-preview-csv')).to_have_value('')
         assert await pending(page)==descriptors and writes==[]
         await page.locator('#financial-registry-history').click()
@@ -199,6 +200,7 @@ async def unknown_navigation_logout(tmp_path,delete):
         await expect(page.locator('#research-list-status')).to_contain_text('已读取 1 条研究')
         await expect(page.locator('#financial-registry-detail')).to_have_text('')
         assert await pending(page)==descriptors
+        await helpers._open_research_advanced(page)
         await page.locator('#financial-registry-history').click();await expect(page.locator('#financial-registry-status')).to_contain_text('已读取 2 份')
         held=[]
         async def hold_read(route):
@@ -237,6 +239,7 @@ async def pagination(tmp_path):
             saved.append(result['body']['data']['metadata']);version=result['body']['data']['current']['research_version']
         await page.locator('#original-input').fill('有未保存草稿时仍可读取财务材料历史。')
         pages=[];page.on('response',lambda response:pages.append(response.url) if '/financial-registries?limit=20' in response.url else None)
+        await helpers._open_research_advanced(page)
         await page.locator('#financial-registry-history').click();await expect(page.locator('#financial-registry-status')).to_contain_text('已读取 20 份')
         await expect(page.locator('#financial-registry-list button')).to_have_count(20);await expect(page.locator('#financial-registry-more')).to_be_visible()
         await page.locator('#financial-registry-more').click();await expect(page.locator('#financial-registry-status')).to_contain_text('已读取 21 份')
