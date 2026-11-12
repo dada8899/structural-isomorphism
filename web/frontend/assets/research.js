@@ -1528,6 +1528,25 @@
     firstAnswerController = controller;
     let timer = setTimeout(() => controller.abort(), 15000);
     let polling = false, handled = false;
+    const actor = accountScope;
+    const sameView = () => active() && accountScope === actor &&
+      editBase?.revision === inputRevision && editBase?.digest === problemDigest &&
+      editBase?.researchVersion === researchVersion;
+    async function startExternalAnswer() {
+      byId('first-answer').hidden = true;
+      let started = false;
+      try {
+        started = Boolean(await externalPanel?.start(externalStartIntent));
+        return started;
+      } finally {
+        if (!started && sameView()) byId('first-answer').hidden = false;
+      }
+    }
+    function offerExternalAnswer() {
+      const pending = externalContext()?.external_first_answer === 'pending';
+      if (pending) byId('first-answer').hidden = true;
+      externalPanel?.offer(pending);
+    }
     try {
       const readOptions = {credentials:'same-origin', cache:'no-store', signal:controller.signal};
       let options = readOptions;
@@ -1547,16 +1566,16 @@
         if (!active()) return;
         if (response.status === 401) { clearPrivateView('confirmed_logout'); return; }
         if (!response.ok) {
-          if (response.status === 404 && options === readOptions) externalPanel?.offer();
+          if (response.status === 404 && options === readOptions) offerExternalAnswer();
           if (response.status === 503) {
             const failure = await response.json().catch(() => null);
             if (!active()) return;
             if (failure?.error?.code === 'FEATURE_UNAVAILABLE') {
               if (generate && externalStartIntent) {
-                handled = Boolean(await externalPanel?.start(externalStartIntent));
+                handled = await startExternalAnswer();
                 if (handled) return true;
               }
-              else externalPanel?.offer();
+              else offerExternalAnswer();
             }
             if (options === readOptions && failure?.error?.code === 'STORE_UNAVAILABLE') {
               if (readRetries++ < 2) {
@@ -1612,8 +1631,8 @@
         byId('first-answer-leads').hidden = answer.status === 'cancelled' || readOnlyView();
         let externalStarted = false;
         if (generate && answer.status === 'failed' && answer.reason === 'unavailable' && externalStartIntent)
-          externalStarted = Boolean(await externalPanel?.start(externalStartIntent));
-        else if (answer.status === 'failed' || answer.status === 'interrupted') externalPanel?.offer();
+          externalStarted = await startExternalAnswer();
+        else if (answer.status === 'failed' || answer.status === 'interrupted') offerExternalAnswer();
         handled = true;
         return externalStarted || !generate || answer.status === 'cancelled';
       }
