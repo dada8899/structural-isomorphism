@@ -104,6 +104,7 @@ async def reload_replay(tmp_path):
         await helpers._native_tls_completed_read(page,service.origin+'/api/research?limit=20',lambda:page.reload());await expect(page.locator('#research-list-status')).to_contain_text('已读取 1 条研究')
         await expect(page.locator('#financial-scenario-pending')).to_contain_text('原表单未保留')
         assert await pending(page)==descriptors and posted==[]
+        await helpers._open_research_advanced(page)
         await page.locator('#financial-scenario-recovery-material').click();await expect(page.locator('#financial-scenario-status')).to_contain_text('仅供原表单重供')
         await expect(page.locator('#financial-scenario-calculate')).to_be_disabled()
         await fill_form(page,sensitivity=True,recovery=True)
@@ -218,6 +219,7 @@ async def late_recovery_catalog(tmp_path):
         async def hold(route):
             request=route.request;actual=await asyncio.to_thread(bridge.forward,request.method,request.url,await request.all_headers(),request.post_data_buffer);assert actual.status==200;held.append((route,actual))
         await page.route(service.origin+'/api/research/'+service.seed.research_id+'/financial-registries/'+saved_registry['metadata']['registry_ref']['id'],hold,times=1)
+        await helpers._open_research_advanced(page)
         await page.locator('#financial-scenario-recovery-material').click();deadline=time.monotonic()+8
         while not held and time.monotonic()<deadline:await asyncio.sleep(.02)
         assert len(held)==1

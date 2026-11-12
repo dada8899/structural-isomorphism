@@ -49,7 +49,7 @@ def read_signer_seed():
  for path in (directory,*directory.parents):
   info=path.stat(follow_symlinks=False)
   materials.need(path.resolve(strict=True)==path and stat.S_ISDIR(info.st_mode) and info.st_uid==0 and not info.st_mode&0o022,'root_signer_parent')
- materials.need(stat.S_IMODE(directory.stat().st_mode)==0o700 and os.statvfs(directory).f_flag&os.ST_RDONLY,'root_signer_private_readonly')
+ materials.need(stat.S_IMODE(directory.stat().st_mode) in (0o500,0o700) and os.statvfs(directory).f_flag&os.ST_RDONLY,'root_signer_private_readonly')
  path=directory/materials.SIGNER_ID
  raw=materials.fixed_file(path,32,mode=0o400);materials.need(len(raw)==32,'root_signer_seed_format')
  return bytearray(raw)
