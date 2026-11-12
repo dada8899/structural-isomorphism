@@ -488,7 +488,7 @@ def _assert_ci_chromium_setup(install_step, helper_bytes):
         "uvicorn[standard]==0.27.1", "PyJWT==2.15.1", "slowapi==0.1.9",
         "structlog==25.5.0", "python", "-I", "-B", "scripts/prepare_ci_chromium.py",
     ]
-    assert hashlib.sha256(helper_bytes).hexdigest() == '6801bdfc0678eec08343e8ec43753d54270df096ed7a3103bb10c0ea80376db2'
+    assert hashlib.sha256(helper_bytes).hexdigest() == '245cbb8a4fdaeae5e5ac33f9d185f13fe73f0e125697681183f19593320f94b1'
 
 
 def _assert_ci_chromium_runner(job):
@@ -1914,6 +1914,9 @@ def _workflow_before_native_resource_reuse(value,name):
 
 
 def _workflow_before_cpu_torch_sources(value,name):
+    if name == 'ci.yml':
+        from tests import test_integration_ci_contract as ci_contract
+        value = ci_contract._workflow_before_evidence_shards(value, name)
     if name=='sanity.yml':value=_workflow_before_native_resource_reuse(value,name)
     if name not in ('sanity.yml','ci.yml'):return value
     original=copy.deepcopy(value)
@@ -2021,7 +2024,7 @@ def _workflow_before_authority_retry(value,name):
 # Their source, real failures, unexecuted case and future native activation
 # obligations remain; evidence cancel and all general delete/UNKNOWN/SQL guards run.
 NATIVE_LATE_THREE_NODES = ('web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[cancel]', 'web/backend/tests/test_plan_runtime_transport.py::test_actual_late_return_original_credential_books_fee_without_restoring_body[delete]', 'web/backend/tests/test_research_evidence_method_native.py::test_actual_http_stop_after_owned_return_keeps_original_fee_without_late_body[delete]')
-NATIVE_LATE_SOURCE_SHA256 = {'test_plan_runtime_transport.py': 'cdc85743fba612cd3761200985e1bcd46c7c2c94731771c76fb6898bcfc4c943', 'test_research_evidence_method_native.py': '220ab632c68c1d41385331768765f472eb44c106e948b1f36c5bc1f355db7737'}
+NATIVE_LATE_SOURCE_SHA256 = {'test_plan_runtime_transport.py': 'c0b9e108cc5dd683732c89c9e3e5ecc2e25a1d460ace973442f7accbc250107d', 'test_research_evidence_method_native.py': '220ab632c68c1d41385331768765f472eb44c106e948b1f36c5bc1f355db7737'}
 NATIVE_LATE_PRIOR_JOBS_SHA256 = {'sanity.yml': 'b95cec3f3dda97eb1ae4f90c9f588722b95c4f7e8f88e2ecd786568846064dfe', 'coverage.yml': '1e97fd441e46e0357c2602d04fb92b77b22b085fbac2674288a7e5d7a3af26f5'}
 
 
@@ -2058,7 +2061,7 @@ def _workflow_before_native_late_three(value,name):
 # first-entry UNKNOWN/held/no-refund controls must remain selected.
 PARTIAL_RUNTIME_NODE = 'web/backend/tests/test_plan_runtime_transport.py::test_evidence_runtime_first_socket_entry_is_recorded_once_and_never_refunded[partial]'
 PARTIAL_RUNTIME_BASE = PARTIAL_RUNTIME_NODE.removesuffix('[partial]')
-PARTIAL_RUNTIME_SOURCE_SHA256 = 'cdc85743fba612cd3761200985e1bcd46c7c2c94731771c76fb6898bcfc4c943'
+PARTIAL_RUNTIME_SOURCE_SHA256 = 'c0b9e108cc5dd683732c89c9e3e5ecc2e25a1d460ace973442f7accbc250107d'
 PARTIAL_RUNTIME_PRIOR_JOBS_SHA256 = {'sanity.yml': 'ec103152bde1b0fab45c26ba8ba21753fbbf1a6f22df0efa0e495c051910ab6b', 'coverage.yml': 'b069c58743f61f7a0864c5b361b7598a09ac467f8c68d611c63864d52575d324'}
 
 
@@ -5540,3 +5543,13 @@ def test_short_observation_check_module_rejects_any_nonexact_consumer(mutation):
     elif mutation=='extra_filter':step['run']=step['run'].replace(flag,flag+' -k short',1)
     else:job['timeout-minutes']=46
     with pytest.raises(AssertionError):_workflow_before_short_observation_checks(raw,'sanity.yml')
+
+
+def test_evidence_method_actual_matrix_covers_complete_default_make_suite():
+    from tests import test_integration_ci_contract as ci_contract
+    value = yaml.safe_load((ROOT / '.github/workflows/ci.yml').read_text())
+    job = value['jobs']['browser-evidence-method-contract']
+    assert job == ci_contract.evidence_method_expected_job(value['jobs']['browser-product-contract'])
+    assert ci_contract.evidence_method_shard_case_counts() == {'A34': 34, 'B6': 6}
+    assert job['strategy']['fail-fast'] is False
+    assert value['jobs']['release-gate-summary']['needs'].count('browser-evidence-method-contract') == 1

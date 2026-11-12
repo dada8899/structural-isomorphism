@@ -1,7 +1,7 @@
-"""Fixed production transport and shared-ledger writer, unbound by default.
+"""Source-pinned production transport and shared ledger, closed by default.
 
-Only an actual live startup handle and source-pinned endpoint policy can use
-this path. Nothing calls it from Main or HTTP in this release.
+Canary mode pins one request/key. Saved-question mode binds each saved revision
+and explicit confirmation to its server-offered key. Neither mode installs pins.
 """
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -53,20 +53,57 @@ class EndpointPolicy:
     upper_units:int
     canary_operation_key:str|None=None
     canary_request_sha256:str|None=None
+    request_mode:str="canary"
 
     def wire_digest(self):
+        _request_mode(self)
         return digest(canonical({"host":_HOST,"public_ip":self.public_ip,"balance":_BALANCE,
                                  "completion":_COMPLETION,"ca_sha256":self.ca_sha256,
                                  "economic_proof_sha256":self.economic_proof_sha256,
                                  "price_basis_sha256":self.price_basis_sha256,"upper_units":self.upper_units,
-                                 "canary_operation_key":self.canary_operation_key,"canary_request_sha256":self.canary_request_sha256}))
+                                 "canary_operation_key":self.canary_operation_key,"canary_request_sha256":self.canary_request_sha256,
+                                 "request_mode":self.request_mode}))
 
 
-_PINNED_ENDPOINT=None
+_PINNED_ENDPOINT=EndpointPolicy(
+    public_ip='3.173.21.63',
+    ca_sha256='ecd9dc38bc3efb7dbd6431f57e29d2f8d6a0f0d211e1464b3fef2cbfe266fcd2',
+    economic_proof_sha256='fd4041488720a5603d980656d4acf4c8c95c22cbc2142586d5c786c253aea50c',
+    price_basis_sha256='e31d0ba23f7635e3b751ae401e23517640b45931fb816d03095a9618d6ebe51d',
+    upper_units=2_129_920,
+    request_mode="saved-question",
+)
 
 
 def _within_canary_upper(value):
     return type(value) is int and 1<=value<=_CANARY_MAX_UPPER
+
+
+def _valid_operation_key(key):
+    return type(key) is str and re.fullmatch(r"[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}",key) is not None
+
+
+def _request_mode(policy):
+    if type(policy.request_mode) is not str:
+        raise contract.ContractError("external_request_mode_unbound")
+    if policy.request_mode=="canary":
+        if (not _valid_operation_key(policy.canary_operation_key) or type(policy.canary_request_sha256) is not str
+                or re.fullmatch(r"[a-f0-9]{64}",policy.canary_request_sha256) is None):
+            raise contract.ContractError("external_canary_unbound")
+    elif policy.request_mode=="saved-question":
+        if policy.canary_operation_key is not None or policy.canary_request_sha256 is not None:
+            raise contract.ContractError("external_saved_question_policy_invalid")
+    else:
+        raise contract.ContractError("external_request_mode_unbound")
+    return policy.request_mode
+
+
+def _request_binding(policy,key,request_digest):
+    mode=_request_mode(policy)
+    if mode=="canary" and (key,request_digest)!=(policy.canary_operation_key,policy.canary_request_sha256):
+        raise contract.ContractError("external_canary_binding_changed")
+    if not _valid_operation_key(key) or type(request_digest) is not str or re.fullmatch(r"[a-f0-9]{64}",request_digest) is None:
+        raise contract.ContractError("external_operation_binding_changed")
 
 
 def _require_live(handle,app):
@@ -77,10 +114,7 @@ def _require_live(handle,app):
     if (type(policy) is not EndpointPolicy or policy.wire_digest()!=handle._expected.endpoint_policy_digest
             or not _within_canary_upper(policy.upper_units)):
         raise contract.ContractError("external_endpoint_policy_unbound")
-    if (type(policy.canary_operation_key) is not str or not re.fullmatch(
-            r"[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}",policy.canary_operation_key)
-            or type(policy.canary_request_sha256) is not str or not re.fullmatch(r"[a-f0-9]{64}",policy.canary_request_sha256)):
-        raise contract.ContractError("external_canary_unbound")
+    _request_mode(policy)
     address=ipaddress.ip_address(policy.public_ip)
     if not address.is_global or address.is_multicast or address.is_unspecified or getattr(address,"ipv4_mapped",None):
         raise contract.ContractError("external_endpoint_policy_unbound")
@@ -120,10 +154,7 @@ def _trust(handle,policy,*,now):
              "economic_binding":expected.economic_binding,"credential_incarnation":expected.credential_incarnation,
              "funding_epoch":expected.funding_epoch,"ledger_policy_digest":expected.ledger_policy_digest}:
         raise contract.ContractError("external_economic_proof_unbound")
-    price=production._fixed_file(_PRICE_PROOF,16384)
-    if digest(price)!=policy.price_basis_sha256:
-        raise contract.ContractError("external_price_basis_unbound")
-    basis=_parse_price_basis(price,policy,now=now)
+    basis=_price_window(expected,policy,now=now)
     ca=production._fixed_file(_CA,2*1024**2)
     if digest(ca)!=policy.ca_sha256:
         raise contract.ContractError("external_CA_unbound")
@@ -131,6 +162,20 @@ def _trust(handle,policy,*,now):
     ctx.minimum_version=ssl.TLSVersion.TLSv1_2
     ctx.load_verify_locations(cadata=ca.decode("ascii"))
     return ctx,basis["valid_until"],basis["max_prompt_tokens"]
+
+
+def _price_window(expected,policy,*,now):
+    if expected.schema_version==18:
+        from .external_price_materials import validate_observation,MaterialError
+        try:
+            return validate_observation(production._fixed_file(_PRICE_PROOF,65536),policy.price_basis_sha256,
+                now=now,upper_units=policy.upper_units)
+        except (MaterialError,ValueError,TypeError,KeyError,UnicodeError):
+            raise contract.ContractError("external_price_basis_unbound") from None
+    price=production._fixed_file(_PRICE_PROOF,16384)
+    if digest(price)!=policy.price_basis_sha256:
+        raise contract.ContractError("external_price_basis_unbound")
+    return _parse_price_basis(price,policy,now=now)
 
 
 def _strict_reply(raw):
@@ -268,7 +313,13 @@ class _Writer(file_writer.CandidateFileWriter):
             self.conn=conn
             conn.create_function(GUARD,3,self._allow_run)
             conn.create_function(file_writer.MONEY_GUARD,2,self._allow_external_money)
-            try:yield
+            try:
+                if self.handle._expected.schema_version==18 and hasattr(self,'_room_consuming'):
+                    from importlib import import_module
+                    family='web.backend.research' if __package__=='web.backend.services' else 'research'
+                    import_module(family+'.external_funding_v18').require_room(conn,self.grant.quote.upper_units,
+                        excluding=(TABLE,self.key),consuming=self._room_consuming)
+                yield
             finally:
                 file_writer.install_closed_hooks(conn)
                 self.conn=None
@@ -284,13 +335,35 @@ class _Writer(file_writer.CandidateFileWriter):
                            owner["epoch"],self.identity.generation,row[0])!=(scope.input_revision,scope.research_version,
                            scope.owner_epoch,scope.acl_epoch,scope.principal_epoch,scope.auth_generation,scope.problem_digest)):
             raise contract.ContractError("revision_or_owner_changed")
-        if getattr(self,"_check_legacy_unknown",False) and file_writer.unresolved(self.conn,grant.account_id):
+        if self.handle._expected.schema_version!=18 and getattr(self,"_check_legacy_unknown",False) and file_writer.unresolved(self.conn,grant.account_id):
             raise contract.ContractError("legacy_unknown_reconcile_only")
 
     def _account(self,grant):
-        account=super()._account(grant)
+        if self.handle._expected.schema_version==18:
+            from importlib import import_module
+            family='web.backend.research' if __package__=='web.backend.services' else 'research'
+            funding=import_module(family+'.external_funding_v18').read_binding(self.conn)
+            expected=self.handle._expected
+            if funding is None or funding['status']!='active' or (funding['account_id'],funding['local_binding_ref'],funding['owner_principal'],
+                    funding['owner_generation'],funding['credential_incarnation'],funding['authorization_event_ref'],
+                    funding['funding_epoch'])!=(grant.account_id,grant.binding,grant.scope.principal_id,
+                    grant.scope.auth_generation,expected.credential_incarnation,expected.authorization_event_ref,grant.epoch):
+                raise contract.ContractError('external_owner_funding_changed')
+            account=file_writer.FixtureWriter._account(self,grant)
+        else:
+            account=super()._account(grant)
         self.current_account=account
         return account
+
+    def reserve(self,run_id,grant,scope,*,now):
+        self._room_consuming=False
+        try:return super().reserve(run_id,grant,scope,now=now)
+        finally:del self._room_consuming
+
+    def consume(self,run_id,grant,scope,*,now):
+        self._room_consuming=True
+        try:return super().consume(run_id,grant,scope,now=now)
+        finally:del self._room_consuming
 
     def finish_live(self,run_id,receipt,body):
         if sys._getframe(1).f_code is not run_once.__code__:
@@ -313,7 +386,7 @@ class _Ticket:
         self.account=writer.current_account
 
     def first_write(self,sock,wire,deadline):
-        if (sys._getframe(1).f_code is not _exchange.__code__ or self.used or self.pid!=os.getpid()
+        if (sys._getframe(1).f_code is not _exchange.__code__ or self.used or self.pid!=os.getpid() or self.run!=self.writer.key
                 or not wire.startswith(b"POST /chat/completions HTTP/1.1\r\n") or not wire.endswith(self.raw)):
             raise contract.ContractError("reconcile_original_only")
         # Burn the ephemeral permission before any potentially ambiguous send.
@@ -326,6 +399,11 @@ class _Ticket:
             require_authenticated_action(w.source,identity=w.identity,action="external-answer-confirm",
                 research_id=scope.research_id,task_id=str(scope.input_revision),key=w.key,body_digest=w.decision_digest)
             with w.service.store.transaction() as conn:
+                if w.handle._expected.schema_version==18:
+                    from importlib import import_module
+                    family='web.backend.research' if __package__=='web.backend.services' else 'research'
+                    import_module(family+'.external_funding_v18').require_room(conn,w.grant.quote.upper_units,
+                        excluding=(TABLE,self.run),consuming=True)
                 control=w.service.authorization.check(conn,w.identity,scope.principal_id,scope.research_id,scope="write")
                 row=conn.execute("SELECT state,request_digest,account_id FROM "+TABLE+" WHERE id=?",(self.run,)).fetchone()
                 money=conn.execute("""SELECT id,binding_id,funding_epoch,settled,held,upper_booked,version
@@ -340,10 +418,17 @@ class _Ticket:
             remaining=deadline-time.monotonic()
             if remaining<=0 or int(time.time())>=min(w.grant.valid_until,w.grant.quote.valid_until):
                 raise TimeoutError("external first-write deadline")
-            production.claim_p1_before_first_write(w.app,w.handle,w.key)
+            if _require_live(w.handle,w.app)[0].request_mode=="canary":
+                production.claim_p1_before_first_write(w.app,w.handle,w.key)
+            else:
+                production.claim_saved_question_before_first_write(w.app,w.handle,w.key)
             remaining=deadline-time.monotonic()
             if remaining<=0 or int(time.time())>=min(w.grant.valid_until,w.grant.quote.valid_until):
                 raise TimeoutError("external first-write deadline")
+            if w.handle._expected.schema_version==18:
+                _price_window(w.handle._expected,_require_live(w.handle,w.app)[0],now=int(time.time()))
+                remaining=deadline-time.monotonic()
+                if remaining<=0:raise TimeoutError("external first-write deadline")
             sock.settimeout(remaining)
             sock.sendall(wire)
 
@@ -371,13 +456,12 @@ def run_once(app,handle,service,identity,rid,revision,research_version,key,previ
     if service.store is not handle._binding.service.store:
         raise contract.ContractError("external_ledger_identity_changed")
     key=service._id(key)
-    if (key,confirmation.request_digest)!=(policy.canary_operation_key,policy.canary_request_sha256):
-        raise contract.ContractError("external_canary_binding_changed")
+    _request_binding(policy,key,confirmation.request_digest)
     decision_digest=digest(canonical(confirmation.model_dump(mode="json")))
     require_authenticated_action(source,identity=identity,action="external-answer-confirm",
         research_id=rid,task_id=str(revision),key=key,body_digest=decision_digest)
     from .external_live_operations import require_offered
-    require_offered(quote_proof,handle,service,identity,rid,revision,preview,quote,confirmation)
+    require_offered(quote_proof,handle,service,identity,rid,revision,preview,quote,confirmation,operation_key=key)
     now=int(time.time())
     original=None
     with _authorized_saved_revision(service,identity,rid,revision,research_version) as (conn,scope,raw):
@@ -398,8 +482,8 @@ def run_once(app,handle,service,identity,rid,revision,research_version,key,previ
             raise contract.ContractError("reconcile_original_only")
     if original is not None:
         return read_main_recovery(service,identity,rid,revision,key)
-    if production.p1_already_spent(app,handle):
-        raise contract.ContractError("external_canary_already_spent")
+    if production.operation_already_spent(app,handle,key):
+        raise contract.ContractError("external_canary_already_spent" if policy.request_mode=="canary" else "external_operation_already_spent")
     context,price_valid_until,prompt_bound=_trust(handle,policy,now=now)
     if quote.valid_until>price_valid_until:raise contract.ContractError("external_quote_expired")
     def balance_first(sock,wire,deadline):
@@ -416,9 +500,13 @@ def run_once(app,handle,service,identity,rid,revision,research_version,key,previ
                                  (rid,revision)).fetchone() or file_writer.unresolved(conn,quote.account_id)):
                     raise contract.ContractError("reconcile_original_only")
             remaining=deadline-time.monotonic()
-            if production.p1_already_spent(app,handle):
-                raise contract.ContractError("external_canary_already_spent")
+            if production.operation_already_spent(app,handle,key):
+                raise contract.ContractError("external_canary_already_spent" if policy.request_mode=="canary" else "external_operation_already_spent")
             if remaining<=0:raise TimeoutError("external balance deadline")
+            if handle._expected.schema_version==18:
+                _price_window(handle._expected,policy,now=int(time.time()))
+                remaining=deadline-time.monotonic()
+                if remaining<=0:raise TimeoutError("external balance deadline")
             sock.settimeout(remaining)
             sock.sendall(wire)
     balance=_balance_units(_exchange(handle,policy,address,context,"GET",_BALANCE,b"",balance_first))

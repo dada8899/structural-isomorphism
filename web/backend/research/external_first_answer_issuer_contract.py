@@ -61,6 +61,16 @@ class StartupBinding(DTO):
     endpoint_policy_digest:Digest
 
 
+class OwnerKeyStartupBinding(StartupBinding):
+    """Independent owner-supplied credential; no provider payer claim."""
+
+    schema_version:Literal[18]
+    credential_source:Literal['owner_supplied']
+    authorization_event_ref:Id
+    payer_identity_status:Literal['unknown']
+    payer_id:None
+
+
 class Approval(DTO):
     protocol:Literal["external-first-answer-startup-approval-v1"]
     reviewer_key_id:Literal["external-first-answer-startup-review-v1"]
@@ -81,7 +91,7 @@ class Approval(DTO):
     approval_id:Id
     issued_at:_TIME
     expires_at:_TIME
-    binding:StartupBinding=Field(repr=False)
+    binding:StartupBinding|OwnerKeyStartupBinding=Field(repr=False)
 
 
 class SignedApproval(DTO):
@@ -104,9 +114,9 @@ class ClosedStartupReceipt:
 
 def _verify(raw,expected,reviewer_public_key,now):
     try:
-        if type(expected) is not StartupBinding or type(reviewer_public_key) is not bytes or len(reviewer_public_key)!=32:
+        if type(expected) not in (StartupBinding,OwnerKeyStartupBinding) or type(reviewer_public_key) is not bytes or len(reviewer_public_key)!=32:
             raise ValueError()
-        expected=StartupBinding.model_validate(expected)
+        expected=type(expected).model_validate(expected)
         parsed=strict_json(raw,cap=16384)
         envelope=SignedApproval.model_validate(parsed)
         if canonical(envelope.model_dump(mode="json"))!=raw:

@@ -136,7 +136,7 @@ def test_real_synthetic_inode_hash_snapshots_and_fake_helper_admit_only_one_inst
     assert v.install(f.root,f.header)==0 and v.after(f.root,f.header)==0
     assert len(f.calls)==1 and f.calls[0][0]==[v.sys.executable,'-I','-B',str(f.helper)]
     env=f.calls[0][1]['env'];assert set(env)=={'GITHUB_ACTIONS','RUNNER_ENVIRONMENT','RUNNER_OS','RUNNER_ARCH','RUNNER_TEMP','PATH','LANG'}
-    assert f.calls[0][1]['timeout']==100 and 'HOME' not in env
+    assert f.calls[0][1]['timeout']==190 and 'HOME' not in env
     assert v.install(f.root,f.header)!=0 and len(f.calls)==1
     records=[json.loads(p.read_text()) for p in (f.root/'public').iterdir()]
     encoded=json.dumps(records)

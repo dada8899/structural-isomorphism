@@ -1,12 +1,61 @@
 """Actual Main, owned SMTP, private v15/v16 migration and first-answer snapshot."""
 import asyncio
+import json
 import sqlite3
+from uuid import UUID
 
 import httpx
 import pytest
 
 from web.backend.tests.test_formal_main_admission import BETA, envelope, login, prepared, problem, smtp, source_ready
 from web.backend.tests.test_formal_model_startup import startup, encoder, synthetic_readonly_mount
+
+
+_PRODUCER_FAILURE_CODES = frozenset(("NONE", "INPUT_INVALID", "STORE_BUSY", "STORE_UNAVAILABLE",
+    "FEATURE_UNAVAILABLE", "RESEARCH_ERROR_OTHER", "ASSERTION_ERROR", "VALUE_ERROR",
+    "TYPE_ERROR", "RUNTIME_ERROR", "OS_ERROR", "OTHER"))
+
+
+def _producer_failure_code(error):
+    from research.errors import ResearchError
+    if type(error) is ResearchError:
+        return error.code if error.code in {"INPUT_INVALID", "STORE_BUSY", "STORE_UNAVAILABLE", "FEATURE_UNAVAILABLE"} else "RESEARCH_ERROR_OTHER"
+    return {AssertionError: "ASSERTION_ERROR", ValueError: "VALUE_ERROR", TypeError: "TYPE_ERROR",
+            RuntimeError: "RUNTIME_ERROR", OSError: "OS_ERROR"}.get(type(error), "OTHER")
+
+
+def _first_answer_timeout(last, worker, producer):
+    """Failure-only bounded facts, captured before Main begins retirement."""
+    last = last if type(last) is dict else {}
+    metadata = last.get("metadata")
+    metadata = metadata if type(metadata) is dict else {}
+    job = metadata.get("job_id")
+    try:
+        job = job if type(job) is str and str(UUID(job, version=4)) == job else None
+    except ValueError:
+        job = None
+    status = last.get("status")
+    reason = last.get("reason")
+    state = {}
+    for name, read in (("alive", lambda: worker._thread.is_alive()),
+                       ("ready", lambda: worker.ready),
+                       ("stopping", lambda: worker._stopping.is_set())):
+        try:
+            value = read()
+            state[name] = value if type(value) is bool else None
+        except Exception:
+            state[name] = None
+    count = lambda name: producer.get(name) if type(producer.get(name)) is int and 0 <= producer[name] <= 2147483647 else None
+    error = producer.get("error")
+    facts = {"last_status": status if type(status) is str and status in
+             {"queued", "running", "failed", "cancelled", "completed", "provisional", "unavailable"} else None,
+             "last_reason": reason if type(reason) is str and reason in
+             {"interrupted", "unavailable", "insufficient", "needs_clarification", "invalid_answer",
+              "cancelled", "revision_changed", "authorization_changed"} else None,
+             "job_id": job, "worker": state, "producer_entered": count("entered"),
+             "producer_returned": count("returned"),
+             "producer_error": error if type(error) is str and error in _PRODUCER_FAILURE_CODES else "OTHER"}
+    return AssertionError("background analysis did not reach terminal state; diagnostic=" + json.dumps(facts, sort_keys=True))
 
 
 def candidate(explanation="在稳定流量附近，波动可能使排队明显增长。"):
@@ -159,9 +208,10 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
 
     entered, cancelled = threading.Event(), threading.Event()
     calls = []
+    producer = {"entered": 0, "returned": 0, "error": "NONE"}
     local_producer = first_answer_supervisor.produce_background_answer
 
-    def inference(question, search, *, cancel):
+    def inference_body(question, search, *, cancel):
         assert search.formal is True
         calls.append(question)
         if question.startswith("输入压力"):
@@ -179,13 +229,24 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
             return {"status":"insufficient", "reason":"needs_clarification", "question":question}
         return {"status":"answered", "content":candidate().model_dump(mode="json", exclude_none=True)}
 
+    def inference(question, search, *, cancel):
+        producer["entered"] += 1
+        try:
+            result = inference_body(question, search, cancel=cancel)
+        except BaseException as error:
+            producer["error"] = _producer_failure_code(error)
+            raise
+        producer["returned"] += 1
+        return result
+
     monkeypatch.setattr(first_answer_supervisor, "produce_background_answer", inference)
     origin = {"Origin": BETA}
     transport = httpx.ASGITransport(app=main.app)
 
     async def run():
         async with main.lifespan(main.app):
-            assert first_answer_supervisor.current(main.app) is not None
+            worker = first_answer_supervisor.current(main.app)
+            assert worker is not None
             async with httpx.AsyncClient(transport=transport, base_url=BETA) as client:
                 await login(client, messages)
                 for _ in range(12):
@@ -225,7 +286,7 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
                         if got.json()["status"] not in ("queued","running"):
                             return got.json()
                         await asyncio.sleep(.1)
-                    raise AssertionError("background analysis did not reach terminal state")
+                    raise _first_answer_timeout(got.json(), worker, producer)
 
                 url, body = await make("为什么同样的团队换工具后错误更多？", "async-real-answer")
                 assert (await client.post(url, json=body, headers={"Origin":"https://wrong.invalid"})).status_code == 403
@@ -309,3 +370,36 @@ def test_actual_main_background_post_reopen_and_cancel(startup, prepared, encode
         assert first_answer_supervisor.current(main.app) is None
 
     asyncio.run(run())
+
+
+def test_first_answer_timeout_diagnostic_contains_only_bounded_facts():
+    from types import SimpleNamespace
+    worker = SimpleNamespace(_thread=SimpleNamespace(is_alive=lambda: False), ready=False,
+                             _stopping=SimpleNamespace(is_set=lambda: False))
+    job = "97197065-a327-4ef7-bf75-8228635ddad1"
+    private = "CANARY_QUESTION_DTO_COOKIE_KEY_ENV"
+    last = {"status": "running", "reason": private, "metadata": {"job_id": job, "problem": private},
+            "question": private, "cookie": private, "key": private, "env": private}
+    with pytest.raises(AssertionError, match="background analysis did not reach terminal state") as failure:
+        raise _first_answer_timeout(last, worker, {"entered": 5, "returned": 4, "error": "STORE_BUSY"})
+    assert private not in str(failure.value)
+    facts = json.loads(str(failure.value).split("; diagnostic=", 1)[1])
+    assert facts == {"last_status": "running", "last_reason": None, "job_id": job,
+        "worker": {"alive": False, "ready": False, "stopping": False},
+        "producer_entered": 5, "producer_returned": 4, "producer_error": "STORE_BUSY"}
+
+
+def test_first_answer_timeout_diagnostic_never_serializes_unknown_values_or_errors():
+    from research.errors import ResearchError
+    private = "CANARY_PRIVATE_TEXT"
+    assert _producer_failure_code(ValueError(private)) == "VALUE_ERROR"
+    assert _producer_failure_code(ResearchError(private, 503, private)) == "RESEARCH_ERROR_OTHER"
+    assert _producer_failure_code(ResearchError("INPUT_INVALID", 422, private)) == "INPUT_INVALID"
+    assert _producer_failure_code(Exception(private)) == "OTHER"
+    failure = _first_answer_timeout({"status": private, "reason": private, "metadata": {"job_id": private}},
+        None, {"entered": private, "returned": True, "error": private})
+    assert private not in str(failure)
+    facts = json.loads(str(failure).split("; diagnostic=", 1)[1])
+    assert facts == {"last_status": None, "last_reason": None, "job_id": None,
+        "worker": {"alive": None, "ready": None, "stopping": None},
+        "producer_entered": None, "producer_returned": None, "producer_error": "OTHER"}

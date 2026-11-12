@@ -238,7 +238,15 @@ def _read_member(root_fd, name, spec, *, retain=True):
 
 def _members(root_fd, prefix=""):
     result = set()
-    for name in os.listdir(root_fd):
+    # listdir(fd) can advance/rewind its open file description's directory
+    # cursor. A dup would share that cursor with concurrent admission checks.
+    scan_fd = os.open(".", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=root_fd)
+    try:
+        _readonly_fd(scan_fd)
+        names = os.listdir(scan_fd)
+    finally:
+        os.close(scan_fd)
+    for name in names:
         info = os.stat(name, dir_fd=root_fd, follow_symlinks=False)
         relative = prefix + name
         if stat.S_ISDIR(info.st_mode):

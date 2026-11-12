@@ -346,12 +346,12 @@ def safe_status(app):
             'source_history': binding.facts.source_history.reason, 'source_execute': source_status,
             'math': binding.facts.local_math.reason, 'native_planner': (binding.native_module.safe_status(app)[1] if binding.native_context is not None else binding.facts.native_planner.reason),
             'search': 'ready' if binding.search is not None else 'ARTIFACTS_UNBOUND'}
-    if binding.facts.profile.research_schema in (16,17):
+    if binding.facts.profile.research_schema in (16,17,18):
         family = binding.service.__module__.rsplit('.', 1)[0]
         answers = importlib.import_module(family + '.first_answer_supervisor')
         result['first_answer'] = answers.safe_status(app)
         result['first_answer_local'] = 'ready' if answers.current(app) is not None else 'QUEUE_UNAVAILABLE'
-    if binding.facts.profile.research_schema == 17:
+    if binding.facts.profile.research_schema in (17,18):
         result['external_first_answer'] = 'ISSUER_UNBOUND'
     return result
 

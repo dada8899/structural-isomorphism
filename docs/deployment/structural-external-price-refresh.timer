@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh official price every six hours without restarting web
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=6h
+AccuracySec=1min
+Persistent=true
+Unit=structural-external-price-refresh.service
+[Install]
+WantedBy=timers.target

@@ -51,7 +51,7 @@
 
   /* === Typography === */
   --font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'Times New Roman', serif;
-  --font-sans: 'Inter', 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Noto Sans SC', sans-serif;
+  --font-sans: 'Inter', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Noto Sans SC', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
 
   /* Font sizes (8px base scale) */
